@@ -178,8 +178,8 @@ public:
     static constexpr float  RenderScaleMinimum=   0.25f;  // [-]
 
     // Settings hub / sub-page figures (Notch ArcNotch.tsx, SettingsModal.tsx, GenericSettingsModal)
-    static constexpr float  PageCardWidth     = 840.0f;   // [px]  maxWidth when a sub-page is active
-    static constexpr float  PageCardHeight    = 600.0f;   // [px]
+    static constexpr float  PageMarginX       =  24.0f;   // [px]  sub-pages fill the canvas to this side padding…
+    static constexpr float  PageMarginY       =  24.0f;   // [px]  …and this top/bottom padding (corners are the only limit)
     static constexpr float  PageRadius        =  32.0f;   // [px]  rounded-[32px]
     static constexpr float  HubTitleSize      =  22.0f;   // [px]  text-[22px] font-bold
     static constexpr float  HubBackGlyph      =  24.0f;   // [px]  ChevronLeft size 24
@@ -340,6 +340,8 @@ private:
     // ── Display ───────────────────────────────────────────────────────────────────────────────────────────────────
     uint32_t                DisplayWidth;
     uint32_t                DisplayHeight;
+    uint32_t                LastResizeWidth  = 0u;          // [px] Resize() re-targets springs only when these change…
+    uint32_t                LastResizeHeight = 0u;          // [px] …so per-frame calls never restart a settled spring
 
     // ── Motion ────────────────────────────────────────────────────────────────────────────────────────────────────
     MotionIntegrator        Motion;

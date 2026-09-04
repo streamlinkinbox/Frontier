@@ -121,12 +121,15 @@ void ControlCentreHost::Terminate() noexcept
 
 void ControlCentreHost::Resize(uint32_t DesiredWidth, uint32_t DesiredHeight) noexcept
 {
-    const bool WasOpen = (Pose == ControlCentreHostState::Open);
     DisplayWidth  = std::max(1u, DesiredWidth);
     DisplayHeight = std::max(1u, DesiredHeight);
+    if (DisplayWidth == LastResizeWidth && DisplayHeight == LastResizeHeight) return;   // steady state: never restart a settled spring
+    LastResizeWidth  = DisplayWidth;
+    LastResizeHeight = DisplayHeight;
 
-    // Keep an open shade open at the new height and the notch inside the new admissible travel.
-    if (WasOpen) Motion.Spring(ShadeChannel).Place(OpenTravel());
+    // Keep an open shade open at the new height (Opening included: its depart target went stale with the old height).
+    //    Closing/Closed target 0 and a dragged shade (pointer-owned) need no re-targeting.
+    if (Pose == ControlCentreHostState::Open || Pose == ControlCentreHostState::Opening) Depart(true);
     if (InitializedCondition) ResizeCardForPage();   // card max-size follows the (logical) canvas
     SpringChannel& Notch = Motion.Spring(NotchChannel);
     const double Admissible = NotchAdmissible();
@@ -234,14 +237,18 @@ void ControlCentreHost::ResolveDialogueVerdict() noexcept
 
 void ControlCentreHost::ResizeCardForPage() noexcept
 {
-    // ArcNotch.tsx: animate={{ maxWidth: activeSetting ? 840 : 420, height: activeSetting ? 600 : 480 }}
-    //    maxWidth is a max — the card shrinks with the container (relevant once the UI scale shrinks the logical canvas);
-    //    height is clamped to the visible content box (viewport − notch 35 px − 24 px breathing room) the same way.
+    // ArcNotch.tsx had animate={{ maxWidth: activeSetting ? 840 : 420, height: activeSetting ? 600 : 480 }}; here
+    //    sub-pages instead fill the canvas to the PageMargin corner padding, the dashboard keeps its 420 × 480 card,
+    //    and both shrink with the container (relevant once the UI scale shrinks the logical canvas).
     const bool Sub = IsSubPage(ActivePage);
-    const float MaxW = static_cast<float>(DisplayWidth)  - 32.0f;
-    const float MaxH = static_cast<float>(DisplayHeight) - 35.0f - 24.0f;
-    Motion.Spring(CardWidthChannel ).Depart(std::min(Sub ? PageCardWidth  : CardWidth,  MaxW));
-    Motion.Spring(CardHeightChannel).Depart(std::min(Sub ? PageCardHeight : CardHeight, MaxH));
+    // Sub-pages fill the canvas to the corner padding; the dashboard keeps its 420 × 480 card.
+    const float MaxW = static_cast<float>(DisplayWidth)  - PageMarginX * 2.0f;
+    const float MaxH = static_cast<float>(DisplayHeight) - 35.0f - PageMarginY * 2.0f;
+    const double WantW = Sub ? static_cast<double>(MaxW) : std::min(static_cast<double>(CardWidth),  static_cast<double>(MaxW));
+    const double WantH = Sub ? static_cast<double>(MaxH) : std::min(static_cast<double>(CardHeight), static_cast<double>(MaxH));
+    if (Motion.Spring(CardWidthChannel).Target == WantW && Motion.Spring(CardHeightChannel).Target == WantH) return;   // no restart
+    Motion.Spring(CardWidthChannel ).Depart(WantW);
+    Motion.Spring(CardHeightChannel).Depart(WantH);
 }
 
 void ControlCentreHost::NavigateBack() noexcept
