@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FRONTIER // In-Vehicle HMI — Lobby + Leaderboard (Mock)</title>
+<link rel="stylesheet" href="styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <!-- 3D stage -->
+  <div id="stage"></div>
+
+  <!-- Boot / loading overlay -->
+  <div id="boot">
+    <div class="boot-box">
+      <div class="boot-logo">FRONTIER</div>
+      <div class="boot-sub">IN-VEHICLE HMI // INITIALIZING COCKPIT…</div>
+      <div class="boot-bar"><span></span></div>
+    </div>
+  </div>
+
+  <!-- 2D HUD -->
+  <div class="hud hud-top">
+    <div class="hud-brand">FRONTIER <span>// HMI CONCEPT</span></div>
+    <div class="hud-cams">
+      <button data-cam="cockpit" class="active">Cockpit</button>
+      <button data-cam="tablet">Tablet</button>
+      <button data-cam="driver">Driver</button>
+      <button data-cam="road">Road</button>
+    </div>
+    <div class="hud-badge">EOS MOCK BUILD</div>
+  </div>
+  <div class="hud hud-hint">Drag to orbit • Scroll to zoom • <b>Click the dashboard tablet</b> to focus it</div>
+
+  <!-- ================= THE TABLET SCREEN (projected into 3D) ================= -->
+  <div id="tablet-screen">
+    <div class="hmi">
+      <header class="hmi-top">
+        <div class="brand">FRONTIER <em>HMI</em></div>
+        <nav class="tabs">
+          <button data-tab="lobby" class="active">LOBBY</button>
+          <button data-tab="leaderboard">LEADERBOARD</button>
+        </nav>
+        <div class="top-right">
+          <div id="eosPill" class="eos-pill sync">● CONNECTING…</div>
+          <div id="clock" class="clock">--:--</div>
+          <div class="profile"><span class="avatar">YOU</span><div><b>YOU_77</b><i>PC • LVL 34</i></div></div>
+        </div>
+      </header>
+
+      <main class="hmi-main">
+        <!-- LOBBY -->
+        <section id="tab-lobby" class="panel">
+          <div class="lobby-grid">
+            <div class="card lobby-info">
+              <h3>LOBBY</h3>
+              <div class="lobby-name">NIGHT CONVOY // <span id="regionLabel">EU-WEST</span></div>
+              <div class="code-row">
+                <code id="roomCode">FR-7X2Q</code>
+                <button id="copyBtn" title="Copy room code">COPY</button>
+              </div>
+              <label>MAP
+                <select id="mapSelect">
+                  <option>Neon Dunes</option>
+                  <option>Harbor Loop</option>
+                  <option>Solar Flats</option>
+                </select>
+              </label>
+              <label>REGION
+                <select id="regionSelect">
+                  <option>EU-WEST</option>
+                  <option>US-EAST</option>
+                  <option>ASIA-SE</option>
+                </select>
+              </label>
+              <div class="mode-line">Convoy Race • up to 8 • <b id="slotCount">5/8</b></div>
+              <button id="startBtn" class="primary" disabled>START RACE</button>
+              <div id="hostNote" class="host-note">You are host. Ready up to launch.</div>
+              <div class="sim-row">
+                <span>SIM:</span>
+                <button id="simJoin">+ Join</button>
+                <button id="simLeave">− Leave</button>
+                <button id="simHost">⇄ Host</button>
+              </div>
+            </div>
+
+            <div class="card roster-card">
+              <h3>DRIVERS <span id="readyCount" class="dim">2/5 ready</span></h3>
+              <ul id="rosterList" class="roster"></ul>
+            </div>
+
+            <div class="card right-col">
+              <h3>VEHICLE</h3>
+              <div id="vehicleCards" class="vehicles"></div>
+              <button id="readyBtn" class="ready">✓ READY UP</button>
+              <h3 class="chat-h">SQUAD CHAT</h3>
+              <ul id="chatLog" class="chat"></ul>
+              <div class="chat-row">
+                <input id="chatInput" maxlength="80" placeholder="Message squad…" />
+                <button id="chatSend">➤</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADERBOARD -->
+        <section id="tab-leaderboard" class="panel" hidden>
+          <div class="lb-tools">
+            <div class="lb-filters">
+              <button data-lb="season" class="active">SEASON 04</button>
+              <button data-lb="weekly">WEEKLY</button>
+              <button data-lb="friends">FRIENDS</button>
+            </div>
+            <input id="lbSearch" placeholder="Search driver…" />
+            <button id="lbMe">★ MY RANK</button>
+            <button id="lbRefresh">⟳ SYNC</button>
+          </div>
+          <div id="podium" class="podium"></div>
+          <div class="table-wrap">
+            <table class="lb-table">
+              <thead><tr><th>RK</th><th>DRIVER</th><th>VEHICLE</th><th>WINS</th><th>PODIUMS</th><th>RATING</th><th>TREND</th></tr></thead>
+              <tbody id="lbBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="hmi-foot">
+        <span class="mock-tag">MOCK EOS FEED</span>
+        <div id="lobbyLog" class="feed"></div>
+      </footer>
+
+      <!-- countdown overlay -->
+      <div id="countdown" class="countdown" hidden><span id="cdNum">3</span></div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
