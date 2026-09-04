@@ -1,39 +1,44 @@
-# Frontier — In-Vehicle HMI Concept
+# Frontier — Lobby + Wallet HMI (HTML mock)
 
-3D car-interior preview of the **Lobby + Leaderboard** experience, built as one
-HTML application. The UI lives on a dashboard tablet rendered *inside* a
-Three.js night-drive cockpit as real, clickable HTML (CSS3D) — fully interactive.
+Tablet-style HTML mock of the **Lobby** and **Wallet** experience, in the
+FRONTIER blue · black · white design system (Inter). Zero backend — all data
+is deterministic mock, EOS flows are labelled inline (`EOS_Lobby_*`,
+`EOS_RTC`, `EOS_Ecom_*`, …) so the real SDK calls have a home later.
 
 ## Run it
 
-Any static server works, e.g.:
+Serve the `app/` folder with any static server, e.g.:
 
 ```bash
-python3 -m http.server 8099 --bind 0.0.0.0
-# open http://localhost:8099
+cd app && python3 -m http.server 8099 --bind 0.0.0.0
+# open http://localhost:8099  → Lobby
+#      http://localhost:8099/wallet.html → Wallet
 ```
 
 ## What's inside
 
-- `index.html` — stage, HUD, and the tablet-screen HMI DOM (Lobby + Leaderboard tabs)
-- `styles.css` — neon HMI theme + HUD
-- `mock-eos.js` — **Mock EOS layer**: fake lobby/presence/chat/leaderboard sync
-  (`EOS_Lobby_*`, `EOS_Presence_*`, `EOS_Leaderboards_*` flows, all client-side)
-- `main.js` — Three.js cockpit (dashboard, wheel, seats, LED strips, moving night
-  road) + all HMI wiring (roster, ready-up, host controls, vehicle select, squad
-  chat, countdown launch, live leaderboard, EOS event feed)
-- **Garage tab** — vehicle showcase, telemetry, neon paint picker that re-skins
-  the HMI theme *and* the 3D cockpit LEDs live (`gfx.paint` bridge)
-- **Map voting** — squad votes pick the race map; bots shift votes over time
-- **Results screen** — post-race positions/XP/rating deltas feed back into the
-  leaderboard; REMATCH resets the lobby
-- **Cockpit vibes** — Night / Sunset / Stealth lighting presets (`gfx.vibe`)
+- `app/index.html` — **Lobby**: browse/search/filter 18 mock lobbies → join a
+  room → roster + voice + chat sim, boarding-pass ticket with pit-box picker,
+  ready-up → countdown → session live. Create-lobby modal included.
+- `app/wallet.html` — **Wallet**: profile, animated CR balance card, top-up /
+  gift / redeem / earn modals, store (categories, sort, wishlist, equip, buy),
+  transaction history. Persists to `localStorage`.
+- `app/fonts/` — Inter OFL license. **The `.woff2` binary is git-ignored by
+  the sandbox network** — restore it with (needs internet):
 
-## Controls
+```bash
+curl -sSL -o app/fonts/inter-latin-wght-normal.woff2 \
+  "https://cdn.jsdelivr.net/fontsource/fonts/inter:vf@latest/latin-wght-normal.woff2"
+```
 
-- Drag to orbit, scroll to zoom, **click the tablet** to focus it, `Esc` to go back
-- Camera presets: Cockpit / Tablet / Driver / Road (top bar)
-- Lobby SIM buttons (`+ Join`, `− Leave`, `⇄ Host`) drive the mock multiplayer feed
+Until then the UI falls back to system fonts automatically.
 
-> Mock build: zero backend, zero network. Swap `mock-eos.js` calls for the real
-> EOS SDK when wiring the actual game.
+## Still to build
+
+- **Leaderboard** tab (currently a "coming next" stub in both pages' nav)
+- Home tab, spectator mode, real EOS + backend wiring
+
+## History note
+
+Branch history also contains an earlier 3D-cockpit HMI prototype
+(`56f4bed`, `42efe30`) — superseded by this base, recoverable via git.
