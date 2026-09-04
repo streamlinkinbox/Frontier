@@ -113,6 +113,9 @@ public:
     //    ResetPalette restores the UIComponents dark defaults.
     [[nodiscard]] static const ControlKitPalette& Palette() noexcept { return ActivePalette; }
     static void AssignTheme(const ThemeStructure& Theme, ColorQuad WarningColour, ColorQuad SuccessColour, ColorQuad InfoColour, ColorQuad CautionColour) noexcept;
+    static void AssignPalette(const ControlKitPalette& Explicit) noexcept { ActivePalette = Explicit; }
+    // BlendPalette lerps every colour slot From → To (smoothstepped T) for live theme transitions.
+    static void BlendPalette(const ControlKitPalette& From, const ControlKitPalette& To, float T) noexcept;
     static void ResetPalette() noexcept { ActivePalette = ControlKitPalette{}; }
 
     // ── Primitives ───────────────────────────────────────────────────────────────────────────────────────────────────

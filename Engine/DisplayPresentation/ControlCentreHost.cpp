@@ -396,6 +396,12 @@ void ControlCentreHost::Grab(GrabSubject Subject, float CursorX, float CursorY) 
         Motion.Spring(NotchChannel).Place(GrabNotchX);
         Pose = ControlCentreHostState::Dragging;
     }
+    else if (Subject == GrabSubject::Card)
+    {
+        // Card drags carry the shade vertically (Android-sheet dismiss); the notch stays pinned.
+        Motion.Spring(ShadeChannel).Place(GrabShadeY);
+        Pose = ControlCentreHostState::Dragging;
+    }
 }
 
 void ControlCentreHost::Carry(float CursorX, float CursorY, float DeltaSeconds) noexcept
@@ -421,9 +427,10 @@ void ControlCentreHost::Carry(float CursorX, float CursorY, float DeltaSeconds) 
         return;
     }
 
-    if (GrabbedSubject != GrabSubject::Notch)
+    const bool CardCarry = GrabbedSubject == GrabSubject::Card;
+    if (GrabbedSubject != GrabSubject::Notch && !CardCarry)
     {
-        // Tiles and the card only care whether the press stayed put (tap) or wandered (cancel).
+        // Tiles only care whether the press stayed put (tap) or wandered (cancel).
         if (!TravelExceeded && (std::fabs(TravelX) > TapTravelLimit || std::fabs(TravelY) > TapTravelLimit))
             TravelExceeded = true;
         return;
@@ -441,6 +448,7 @@ void ControlCentreHost::Carry(float CursorX, float CursorY, float DeltaSeconds) 
     }
 
     if (!AxisResolved) return;
+    if (CardCarry && !YDominant) return;   // the card ignores horizontal drags; the notch stays where it is
 
     if (YDominant)
     {
@@ -513,14 +521,14 @@ void ControlCentreHost::Relinquish() noexcept
             else if (IsPageDirty()) { LastDialoguePreset = DialoguePresetCategory::ConfirmDiscard; Dialogue.Open(DialoguePresetCategory::ConfirmDiscard); }
         }
     }
-    else if (GrabbedSubject == GrabSubject::Notch)
+    else if (GrabbedSubject == GrabSubject::Notch || GrabbedSubject == GrabSubject::Card)
     {
         if (Tap)
         {
-            // A notch that cannot be tapped is a notch the user reports as dead.
-            if (OpenBeforeGrab) RequestLeave(false); else Depart(true);
+            // A notch that cannot be tapped is a notch the user reports as dead. Card taps stay swallowed.
+            if (GrabbedSubject == GrabSubject::Notch) { if (OpenBeforeGrab) RequestLeave(false); else Depart(true); }
         }
-        else if (!YDominant)
+        else if (!YDominant && GrabbedSubject == GrabSubject::Notch)
         {
             // Horizontal slide: settle inside the admissible band (undo the elastic overshoot).
             SpringChannel& Notch = Motion.Spring(NotchChannel);
@@ -829,17 +837,47 @@ const QuickTileStructure& ControlCentreHost::QueryTile(uint32_t Slot) noexcept
 
 void ControlCentreHost::SynchroniseTheme() noexcept
 {
-    if (ThemeRevision == Appearance.QueryRevision()) return;
-    ThemeRevision = Appearance.QueryRevision();
-    const AppearanceSettings& A = Appearance.QueryApplied();
-    ActiveTheme.AssignTheme(A.Theme);
-    ActiveTheme.AssignAccent(A.Accent);
-    ActiveTheme.AssignCornerRadius(A.CornerRadius);
-    ControlKit::AssignTheme(ActiveTheme,
-                            AppearanceInspector::QuerySemanticColour(0u, A.WarningSwatch),
-                            AppearanceInspector::QuerySemanticColour(1u, A.SuccessSwatch),
-                            AppearanceInspector::QuerySemanticColour(2u, A.InfoSwatch),
-                            AppearanceInspector::QuerySemanticColour(3u, A.CautionSwatch));
+    // Live preview: the rendered palette follows the DRAFT (tile taps re-target immediately with a cross-fade);
+    //    Apply commits what is already showing, Discard re-targets back — so the Unsaved-changes dialogue now asks
+    //    about a change the user can already see.
+    const AppearanceSettings& D = Appearance.QueryDraft();
+    const bool Retargeted = !ThemePreviewSeeded || D.Theme != PushedTheme || D.Accent != PushedAccent
+        || D.WarningSwatch != PushedSwatches[0u] || D.SuccessSwatch != PushedSwatches[1u]
+        || D.InfoSwatch != PushedSwatches[2u] || D.CautionSwatch != PushedSwatches[3u];
+    if (Retargeted)
+    {
+        // Non-colour state applies instantly; colours cross-fade so the change reads as a morph, not a snap.
+        ActiveTheme.AssignTheme(D.Theme);
+        ActiveTheme.AssignAccent(D.Accent);
+        ActiveTheme.AssignCornerRadius(D.CornerRadius);
+        const ControlKitPalette Saved = ControlKit::Palette();
+        ControlKit::AssignTheme(ActiveTheme,
+                                AppearanceInspector::QuerySemanticColour(0u, D.WarningSwatch),
+                                AppearanceInspector::QuerySemanticColour(1u, D.SuccessSwatch),
+                                AppearanceInspector::QuerySemanticColour(2u, D.InfoSwatch),
+                                AppearanceInspector::QuerySemanticColour(3u, D.CautionSwatch));
+        ThemeBlendTo = ControlKit::Palette();
+        ControlKit::AssignPalette(Saved);
+        PushedTheme = D.Theme; PushedAccent = D.Accent;
+        PushedSwatches[0u] = D.WarningSwatch; PushedSwatches[1u] = D.SuccessSwatch;
+        PushedSwatches[2u] = D.InfoSwatch;    PushedSwatches[3u] = D.CautionSwatch;
+        if (!ThemePreviewSeeded)
+        {
+            // First frame: snap to the canonical palette (parity with the old instant push), blend after that.
+            ThemePreviewSeeded = true;
+            ThemeBlendT = 1.0f;
+            ControlKit::AssignPalette(ThemeBlendTo);
+            return;
+        }
+        ThemeBlendFrom = Saved;
+        ThemeBlendT = 0.0f;
+    }
+    if (ThemeBlendT < 1.0f)
+    {
+        ThemeBlendT = std::min(ThemeBlendT + LastDeltaSeconds / ThemeBlendDuration, 1.0f);
+        if (ThemeBlendT >= 1.0f) ControlKit::AssignPalette(ThemeBlendTo);
+        else ControlKit::BlendPalette(ThemeBlendFrom, ThemeBlendTo, ThemeBlendT);
+    }
 }
 
 bool ControlCentreHost::IsTileActive(QuickTileCategory Tile) const noexcept
@@ -1321,7 +1359,7 @@ void ControlCentreHost::ConstructSubPageLayout(PixelSpace& Surface, ControlCentr
     Surface.FillRectangle(Card, Faded(PageSheet(), Opacity), PageRadius);
     ControlKit::OutlineRounded(Surface, Card, Faded(Ink05(), Opacity), PageRadius);
 
-    // Header p-8 pb-4: title text-2xl semibold (mb-2) + subtitle text-sm muted; X button top-right.
+    // Header p-8 pb-4: title text-2xl semibold (mb-2) + subtitle text-sm muted; back chevron top-right (RequestLeave → previous page, dirty-checked).
     const ColorQuad TextInk  = InputStyle ? InputInk   : Ink90();
     const ColorQuad MutedInk = InputStyle ? InputMuted : Ink50();
     const float HeaderX = Card.MinimumX + PagePadding;
@@ -1338,7 +1376,7 @@ void ControlCentreHost::ConstructSubPageLayout(PixelSpace& Surface, ControlCentr
         const bool Hover = Live && Close.Encloses(Pointer.X, Pointer.Y) && !Dialogue.IsVisible();
         if (Hover) Surface.FillRectangle(Close, Faded(Ink05(), Opacity), Close.Width() * 0.5f);   // hover:bg-white/5
         ControlKit::OutlineRounded(Surface, Close, Faded(InputStyle ? Ink10() : Ink06(), Opacity), Close.Width() * 0.5f);
-        ControlKit::GlyphCentred(Surface, Close, PageCloseGlyph, Faded(MutedInk, Opacity), ControlCentreIconCategory::CloseCross);
+        ControlKit::GlyphCentred(Surface, Close, PageCloseGlyph, Faded(MutedInk, Opacity), ControlCentreIconCategory::ChevronBack);
     }
 
     // Appearance only: tab bar Display · Fonts · Theme with a 2 px white underline under the active tab.

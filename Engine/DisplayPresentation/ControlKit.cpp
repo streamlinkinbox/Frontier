@@ -77,6 +77,34 @@ void ControlKit::AssignTheme(const ThemeStructure& Theme, ColorQuad WarningColou
     K.Caution      = CautionColour;
 }
 
+void ControlKit::BlendPalette(const ControlKitPalette& From, const ControlKitPalette& To, float T) noexcept
+{
+    // Live theme preview: smoothstepped cross-fade so a tile tap reads as a morph, not a snap.
+    const float S = std::clamp(T, 0.0f, 1.0f);
+    const float E = S * S * (3.0f - 2.0f * S);
+    const auto Mix = [E](const ColorQuad& A, const ColorQuad& B) noexcept -> ColorQuad
+    {
+        return ColorQuad{ A.Red + (B.Red - A.Red) * E, A.Green + (B.Green - A.Green) * E,
+                          A.Blue + (B.Blue - A.Blue) * E, A.Alpha + (B.Alpha - A.Alpha) * E };
+    };
+    ControlKitPalette& K = ActivePalette;
+    K.Panel = Mix(From.Panel, To.Panel);                 K.Inset = Mix(From.Inset, To.Inset);
+    K.Field = Mix(From.Field, To.Field);                 K.Raised = Mix(From.Raised, To.Raised);
+    K.Selected = Mix(From.Selected, To.Selected);        K.Stroke = Mix(From.Stroke, To.Stroke);
+    K.StrokeStrong = Mix(From.StrokeStrong, To.StrokeStrong); K.Divider = Mix(From.Divider, To.Divider);
+    K.Card = Mix(From.Card, To.Card);                    K.CardSub = Mix(From.CardSub, To.CardSub);
+    K.Text = Mix(From.Text, To.Text);                    K.TextDim = Mix(From.TextDim, To.TextDim);
+    K.TextFaint = Mix(From.TextFaint, To.TextFaint);     K.Primary = Mix(From.Primary, To.Primary);
+    K.PrimaryInk = Mix(From.PrimaryInk, To.PrimaryInk);  K.Accent = Mix(From.Accent, To.Accent);
+    K.AccentInk = Mix(From.AccentInk, To.AccentInk);     K.AccentSoft = Mix(From.AccentSoft, To.AccentSoft);
+    K.Highlight = Mix(From.Highlight, To.Highlight);     K.Danger = Mix(From.Danger, To.Danger);
+    K.Ok = Mix(From.Ok, To.Ok);                          K.Info = Mix(From.Info, To.Info);
+    K.Warning = Mix(From.Warning, To.Warning);           K.Caution = Mix(From.Caution, To.Caution);
+    K.SliderFill = Mix(From.SliderFill, To.SliderFill);  K.SliderThumb = Mix(From.SliderThumb, To.SliderThumb);
+    K.SwitchKnobOff = Mix(From.SwitchKnobOff, To.SwitchKnobOff);
+    K.LightSurface = E < 0.5f ? From.LightSurface : To.LightSurface;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      PRIMITIVES
 //------------------------------------------------------------------------------------------------------------------------
