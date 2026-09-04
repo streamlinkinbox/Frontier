@@ -11,13 +11,15 @@ Serve the `app/` folder with any static server, e.g.:
 
 ```bash
 cd app && python3 -m http.server 8099 --bind 0.0.0.0
-# open http://localhost:8099  → Lobby
-#      http://localhost:8099/wallet.html → Wallet
+# open http://localhost:8099  → Home launcher (app grid)
 ```
 
 ## What's inside
 
-- `app/index.html` — **Lobby**: browse/search/filter 18 mock lobbies → join a
+- `app/index.html` — **Home launcher**: Android-style app grid + dock that
+  opens the installed apps (Lobby, Wallet). Leaderboard + Garage slots are
+  reserved as "SOON". Live clock, app search filter.
+- `app/lobby.html` — **Lobby**: browse/search/filter 18 mock lobbies → join a
   room → roster + voice + chat sim, boarding-pass ticket with pit-box picker,
   ready-up → countdown → session live. Create-lobby modal included.
   Standalone app — nav is Home / Lobby / Leaderboard only.

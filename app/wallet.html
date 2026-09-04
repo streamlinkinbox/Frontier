@@ -307,8 +307,8 @@ svg{display:block}
             <span class="logo">FRNT</span>
             <div class="tabs" id="tabs">
               <i class="tab-ink" id="tabInk"></i>
-              <button class="tab">Home</button>
-              <a class="tab" href="index.html">Lobby</a>
+              <a class="tab" href="index.html">Home</a>
+              <a class="tab" href="lobby.html">Lobby</a>
               <button class="tab">Leaderboard</button>
               <button class="tab is-on">Wallet</button>
             </div>
@@ -682,7 +682,7 @@ const render = {
     ];
     mp.innerHTML = header(IC.bolt, 'Ways to earn', `${RP.name} come from racing · ${CUR.name} from the season pass and referrals`) + `
       <div class="panel-body"><div class="earn">${rows.map(([ic, t, s, v, bg, fg]) => `<div><span class="ico" style="background:${bg};color:${fg}">${ic}</span><div>${t}<small>${s}</small></div><b>${v}</b></div>`).join('')}</div></div>
-      <div class="panel-footer"><span class="eos">EOS_Stats_IngestStat · EOS_Achievements_UnlockAchievements</span><button class="btn ghost" data-close type="button">Close</button><a class="btn primary" href="index.html">Go race</a></div>`;
+      <div class="panel-footer"><span class="eos">EOS_Stats_IngestStat · EOS_Achievements_UnlockAchievements</span><button class="btn ghost" data-close type="button">Close</button><a class="btn primary" href="lobby.html">Go race</a></div>`;
   },
   buy(){
     const i = M.data, c = catOf(i.cat), own = owned(i.id), short = i.price - W.balance, wish = W.wish.includes(i.id);
