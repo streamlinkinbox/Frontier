@@ -2,10 +2,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS3DRenderer, CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
-import { MockEOS, VEHICLES } from "./mock-eos.js";
+import { MockEOS, VEHICLES, PAINTS } from "./mock-eos.js";
 
 const $ = (s) => document.querySelector(s);
 const eos = new MockEOS();
+const gfx = { paint() {}, vibe() {} };   // hooked to the 3D scene once it boots
+let garageId = "vanta";
+const fmtTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, "0")}`;
 
 /* ================= HMI STATE / RENDER ================= */
 let lbScope = "season";
@@ -104,14 +107,120 @@ function renderBoard(changed = new Set()) {
   });
 }
 
+/* ---- map votes ---- */
+function renderVotes() {
+  const wrap = $("#mapVotes");
+  const total = Math.max(1, ...Object.values(eos.mapVotes));
+  wrap.innerHTML = "";
+  eos.maps.forEach((m) => {
+    const v = eos.mapVotes[m];
+    const d = document.createElement("div");
+    d.className = "vote" + (m === eos.winningMap() ? " win" : "") + (m === eos.myVote ? " mine" : "");
+    d.innerHTML = `<span class="v-name">${m}${m === eos.myVote ? " ✓" : ""}</span>` +
+      `<span class="v-n">${v}</span><span class="v-bar"><i style="width:${(v / total) * 100}%"></i></span>`;
+    d.onclick = () => { eos.vote(m); renderVotes(); };
+    wrap.appendChild(d);
+  });
+}
+
+/* ---- garage ---- */
+function renderGarage() {
+  const v = VEHICLES.find((x) => x.id === garageId);
+  const btns = $("#garageVehBtns");
+  btns.innerHTML = "";
+  VEHICLES.forEach((x) => {
+    const b = document.createElement("button");
+    b.textContent = x.name;
+    b.className = x.id === garageId ? "active" : "";
+    b.onclick = () => { garageId = x.id; renderGarage(); };
+    btns.appendChild(b);
+  });
+  $("#garageName").textContent = v.name;
+  $("#garageDesc").textContent = v.desc;
+  $("#garageCar").style.filter = `drop-shadow(0 0 28px ${eos.paint})`;
+  $("#garageStats").innerHTML = [["SPD", v.spd], ["ACC", v.acc], ["GRP", v.grp]].map(([k, n]) =>
+    `<div class="gstat"><span>${k}</span><div class="bar"><i style="width:${n}%"></i></div><b>${n}</b></div>`).join("");
+  $("#garageSpecs").innerHTML =
+    `<div><i>TOP SPEED</i><b>${Math.round(185 + v.spd * 1.25)} km/h</b></div>` +
+    `<div><i>0–100</i><b>${(4.4 - v.acc * 0.022).toFixed(1)}s</b></div>` +
+    `<div><i>DRIVETRAIN</i><b>AWD // EV</b></div>` +
+    `<div><i>STATUS</i><b>${eos.myVehicle.id === v.id ? "● ACTIVE" : "○ STANDBY"}</b></div>`;
+  const pr = $("#paintRow");
+  pr.innerHTML = "";
+  PAINTS.forEach((p) => {
+    const s = document.createElement("button");
+    s.className = "swatch" + (eos.paint === p.c ? " sel" : "");
+    s.style.background = p.c;
+    s.style.color = p.c;
+    s.title = p.name;
+    s.onclick = () => applyPaint(p);
+    pr.appendChild(s);
+  });
+  $("#setActiveBtn").textContent = eos.myVehicle.id === v.id ? "✓ ACTIVE FRAME" : "SET ACTIVE";
+}
+function applyPaint(p) {
+  eos.paint = p.c;
+  document.documentElement.style.setProperty("--cyan", p.c);
+  gfx.paint(p.c);
+  eos.onLog(`<b>EOS_PlayerData_Set</b> paint=${p.name} → HMI + cockpit trim`);
+  renderGarage();
+}
+$("#setActiveBtn").onclick = () => {
+  const v = VEHICLES.find((x) => x.id === garageId);
+  eos.setVehicle(v);
+  renderVehicles(); renderRoster(); renderGarage();
+  logSys(`🔧 ${v.name} set as active frame`);
+};
+
+/* ---- results ---- */
+function showResults() {
+  $("#countdown").hidden = true;
+  const results = eos.genResults();
+  eos.applyResults(results);
+  $("#resultsMap").textContent = `${eos.lobby.map} • ${results.length} DRIVERS • RATING UPDATED`;
+  const tb = $("#resultsBody");
+  tb.innerHTML = "";
+  results.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    if (r.me) tr.className = "me";
+    const medal = ["🥇", "🥈", "🥉"][i] || String(i + 1).padStart(2, "0");
+    tr.innerHTML = `<td>${medal}</td><td>${r.name}</td><td>${r.vehicle}</td><td>${fmtTime(r.time)}</td>` +
+      `<td>+${r.xp}</td><td class="${r.delta >= 0 ? "pos" : "neg"}">${r.delta >= 0 ? "+" : ""}${r.delta}</td>`;
+    tb.appendChild(tr);
+  });
+  $("#results").hidden = false;
+  const me = results.find((r) => r.me);
+  eos.onLog(`<b>EOS_Session_End</b> map=${eos.lobby.map} you=P${results.indexOf(me) + 1} Δrtg=${me.delta >= 0 ? "+" : ""}${me.delta}`);
+  logSys(`🏁 P${results.indexOf(me) + 1} on ${eos.lobby.map} — +${me.xp} XP, leaderboard synced`);
+  if (!$("#tab-leaderboard").hidden) renderBoard();
+}
+function closeResults(rematch) {
+  $("#results").hidden = true;
+  eos.players.forEach((p) => (p.ready = false));
+  $("#readyBtn").textContent = "✓ READY UP";
+  $("#readyBtn").classList.remove("on");
+  renderRoster(); renderVotes();
+  eos.onLog(`<b>EOS_Lobby_Reset</b> ${rematch ? "rematch queued" : "back to lobby"} — ready states cleared`);
+}
+$("#rematchBtn").onclick = () => closeResults(true);
+$("#resultsLobbyBtn").onclick = () => closeResults(false);
+
 /* ---- HMI events ---- */
 document.querySelectorAll(".tabs button").forEach((b) => {
   b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach((x) => x.classList.remove("active"));
     b.classList.add("active");
-    $("#tab-lobby").hidden = b.dataset.tab !== "lobby";
-    $("#tab-leaderboard").hidden = b.dataset.tab !== "leaderboard";
+    ["lobby", "garage", "leaderboard"].forEach((t) => { $("#tab-" + t).hidden = b.dataset.tab !== t; });
     if (b.dataset.tab === "leaderboard") renderBoard();
+    if (b.dataset.tab === "garage") renderGarage();
+  };
+});
+document.querySelectorAll("[data-vibe]").forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll("[data-vibe]").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    gfx.vibe(b.dataset.vibe);
+    eos.onLog(`<b>HMI_Scene</b> cockpit vibe → ${b.dataset.vibe.toUpperCase()}`);
   };
 });
 document.querySelectorAll("[data-lb]").forEach((b) => {
@@ -145,9 +254,10 @@ $("#readyBtn").onclick = () => {
   renderRoster();
 };
 $("#startBtn").onclick = () => {
+  eos.lobby.map = eos.winningMap();
   const cd = $("#countdown"), num = $("#cdNum");
   cd.hidden = false;
-  eos.onLog(`<b>EOS_Session_Start</b> map=${eos.lobby.map} players=${eos.players.length} — launching…`);
+  eos.onLog(`<b>EOS_Session_Start</b> map=${eos.lobby.map} (vote winner) players=${eos.players.length} — launching…`);
   const seq = ["3", "2", "1", "GO"];
   let i = 0;
   const step = () => {
@@ -156,21 +266,13 @@ $("#startBtn").onclick = () => {
     num.style.color = seq[i] === "GO" ? "#34d399" : "";
     i++;
     if (i < seq.length) setTimeout(step, 900);
-    else setTimeout(() => {
-      cd.hidden = true;
-      eos.onLog(`<b>EOS_Session_Lock</b> race started on ${eos.lobby.map} (mock — staying in lobby)`);
-      logSys(`🏁 Race launched on ${eos.lobby.map}! (mock — lobby persists)`);
-    }, 1000);
+    else setTimeout(showResults, 1000);
   };
   step();
 };
 $("#copyBtn").onclick = () => {
   try { navigator.clipboard.writeText($("#roomCode").textContent); } catch (e) { /* sandbox */ }
   eos.onLog(`<b>EOS_Lobby_CopyCode</b> ${$("#roomCode").textContent} → clipboard`);
-};
-$("#mapSelect").onchange = (e) => {
-  eos.lobby.map = e.target.value;
-  eos.onLog(`<b>EOS_Lobby_Update</b> map → ${e.target.value}`);
 };
 $("#regionSelect").onchange = (e) => {
   eos.lobby.region = e.target.value;
@@ -201,7 +303,7 @@ setInterval(() => {
 }, 1000);
 
 /* ---- boot sequence (mock EOS connect) ---- */
-renderRoster(); renderVehicles(); renderBoard();
+renderRoster(); renderVehicles(); renderBoard(); renderVotes(); renderGarage();
 logChat("Nova_K", "yo who put harbor loop in the vote 💀");
 logChat("Kaito", "neon dunes or we riot");
 logSys("Connected to mock EOS backend (no network)");
@@ -214,10 +316,14 @@ setInterval(() => { eos.tickPings(); renderRoster(); }, 3000);
 setInterval(() => { if (!$("#tab-leaderboard").hidden) renderBoard(eos.tickBoard(lbScope)); }, 5000);
 setInterval(() => {
   if (Math.random() > 0.45) return;
-  if (eos.players.length < eos.lobby.maxSlots && Math.random() > 0.5) {
+  const roll = Math.random();
+  if (eos.players.length < eos.lobby.maxSlots && roll > 0.6) {
     const p = eos.addBot(); if (p) { renderRoster(); logSys(`📥 ${p.name} joined the lobby`); }
-  } else {
+  } else if (roll > 0.3) {
     const p = eos.ambientEvent(); if (p) renderRoster();
+  } else {
+    const mv = eos.botVoteTick();
+    if (mv) { renderVotes(); eos.onLog(`<b>EOS_Lobby_Vote</b> squad vote shifted ${mv[0]} → ${mv[1]}`); }
   }
 }, 14000);
 
@@ -288,6 +394,9 @@ try {
     m.position.set(x, y, z); m.rotation.set(rx, ry, rz);
     scene.add(m); return m;
   };
+  // dedicated paintable trim materials (street lamps keep the shared ones)
+  const dashLED = M.cyan.clone();
+  const consoleGlow = M.mag.clone();
 
   /* ----- cabin shell ----- */
   box(3.4, 0.12, 4.2, M.dark, 0, -0.1, -0.6);          // floor
@@ -303,7 +412,7 @@ try {
   /* ----- dashboard ----- */
   box(3.0, 0.32, 0.7, M.trim, 0, 0.98, -0.95);        // dash body
   box(3.0, 0.1, 0.78, M.dark, 0, 1.16, -0.95);        // dash top pad
-  box(2.9, 0.035, 0.035, M.cyan, 0, 1.0, -0.585);     // LED strip
+  box(2.9, 0.035, 0.035, dashLED, 0, 1.0, -0.585);    // LED strip
   // driver cluster glow
   const cluster = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.16),
     new THREE.MeshBasicMaterial({ color: 0x0e7490 }));
@@ -337,7 +446,7 @@ try {
   /* ----- center console + tablet ----- */
   box(0.5, 0.5, 1.3, M.trim, 0.35, 0.28, -0.25);
   box(0.46, 0.04, 1.1, M.dark, 0.35, 0.55, -0.25);
-  box(0.44, 0.02, 0.02, M.mag, 0.35, 0.53, -0.7);     // console glow
+  box(0.44, 0.02, 0.02, consoleGlow, 0.35, 0.53, -0.7); // console glow
 
   const tablet = new THREE.Group();
   tablet.position.set(0.35, 1.02, -0.62);
@@ -361,7 +470,8 @@ try {
   scene.add(glow);
 
   /* ----- lights ----- */
-  scene.add(new THREE.AmbientLight(0x334466, 0.9));
+  const ambient = new THREE.AmbientLight(0x334466, 0.9);
+  scene.add(ambient);
   const dashLight = new THREE.PointLight(0x22d3ee, 3.5, 4);
   dashLight.position.set(0, 1.2, -0.2); scene.add(dashLight);
   const footLight = new THREE.PointLight(0xff00ff, 2.0, 3);
@@ -372,6 +482,29 @@ try {
   head.position.set(0, 1.0, -1.0);
   head.target.position.set(0, -0.4, -20);
   scene.add(head, head.target);
+
+  /* ----- paint + vibe hooks (driven by the HMI) ----- */
+  const VIBES = {
+    night:   { bg: 0x02040a, amb: [0x334466, 0.9],  head: [0xbfe3ff, 60], exp: 1.1 },
+    sunset:  { bg: 0x200a16, amb: [0x886655, 1.15], head: [0xffd9a0, 40], exp: 1.15 },
+    stealth: { bg: 0x000000, amb: [0x223344, 0.35], head: [0xcfe8ff, 85], exp: 1.0 },
+  };
+  gfx.paint = (css) => {
+    const c = new THREE.Color(css);
+    dashLED.emissive.set(c);
+    consoleGlow.emissive.set(c);
+    glow.color.set(c);
+    dashLight.color.set(c);
+  };
+  gfx.vibe = (name) => {
+    const v = VIBES[name];
+    if (!v) return;
+    scene.background.set(v.bg);
+    scene.fog.color.set(v.bg);
+    ambient.color.set(v.amb[0]); ambient.intensity = v.amb[1];
+    head.color.set(v.head[0]); head.intensity = v.head[1];
+    renderer.toneMappingExposure = v.exp;
+  };
 
   /* ----- outside world: road, lamps, city, stars ----- */
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),

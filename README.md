@@ -22,6 +22,12 @@ python3 -m http.server 8099 --bind 0.0.0.0
 - `main.js` — Three.js cockpit (dashboard, wheel, seats, LED strips, moving night
   road) + all HMI wiring (roster, ready-up, host controls, vehicle select, squad
   chat, countdown launch, live leaderboard, EOS event feed)
+- **Garage tab** — vehicle showcase, telemetry, neon paint picker that re-skins
+  the HMI theme *and* the 3D cockpit LEDs live (`gfx.paint` bridge)
+- **Map voting** — squad votes pick the race map; bots shift votes over time
+- **Results screen** — post-race positions/XP/rating deltas feed back into the
+  leaderboard; REMATCH resets the lobby
+- **Cockpit vibes** — Night / Sunset / Stealth lighting presets (`gfx.vibe`)
 
 ## Controls
 

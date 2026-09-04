@@ -36,6 +36,11 @@
       <button data-cam="driver">Driver</button>
       <button data-cam="road">Road</button>
     </div>
+    <div class="hud-vibes">
+      <button data-vibe="night" class="active">🌙 Night</button>
+      <button data-vibe="sunset">🌇 Sunset</button>
+      <button data-vibe="stealth">🕶️ Stealth</button>
+    </div>
     <div class="hud-badge">EOS MOCK BUILD</div>
   </div>
   <div class="hud hud-hint">Drag to orbit • Scroll to zoom • <b>Click the dashboard tablet</b> to focus it</div>
@@ -47,6 +52,7 @@
         <div class="brand">FRONTIER <em>HMI</em></div>
         <nav class="tabs">
           <button data-tab="lobby" class="active">LOBBY</button>
+          <button data-tab="garage">GARAGE</button>
           <button data-tab="leaderboard">LEADERBOARD</button>
         </nav>
         <div class="top-right">
@@ -67,13 +73,8 @@
                 <code id="roomCode">FR-7X2Q</code>
                 <button id="copyBtn" title="Copy room code">COPY</button>
               </div>
-              <label>MAP
-                <select id="mapSelect">
-                  <option>Neon Dunes</option>
-                  <option>Harbor Loop</option>
-                  <option>Solar Flats</option>
-                </select>
-              </label>
+              <div class="vote-label">MAP VOTE</div>
+              <div id="mapVotes" class="votes"></div>
               <label>REGION
                 <select id="regionSelect">
                   <option>EU-WEST</option>
@@ -111,6 +112,28 @@
           </div>
         </section>
 
+        <!-- GARAGE -->
+        <section id="tab-garage" class="panel" hidden>
+          <div class="garage-grid">
+            <div class="card garage-show">
+              <h3>GARAGE — SELECT FRAME</h3>
+              <div id="garageVehBtns" class="garage-btns"></div>
+              <div id="garageName" class="g-name">VANTA GT</div>
+              <div id="garageDesc" class="g-desc"></div>
+              <div id="garageCar" class="g-car">🏎️</div>
+              <h3>PAINT — NEON TRIM</h3>
+              <div id="paintRow" class="paints"></div>
+              <button id="setActiveBtn" class="primary">SET ACTIVE</button>
+            </div>
+            <div class="card garage-stats">
+              <h3>TELEMETRY</h3>
+              <div id="garageStats"></div>
+              <div id="garageSpecs" class="specs"></div>
+              <div class="g-note">Paint syncs live to the HMI theme + cockpit LEDs.<br>Frames sync via <b>EOS_PlayerData</b> (mock).</div>
+            </div>
+          </div>
+        </section>
+
         <!-- LEADERBOARD -->
         <section id="tab-leaderboard" class="panel" hidden>
           <div class="lb-tools">
@@ -137,6 +160,22 @@
         <span class="mock-tag">MOCK EOS FEED</span>
         <div id="lobbyLog" class="feed"></div>
       </footer>
+
+      <!-- results overlay -->
+      <div id="results" class="results" hidden>
+        <div class="results-card">
+          <h2>🏁 RACE COMPLETE</h2>
+          <div id="resultsMap" class="results-map"></div>
+          <table class="lb-table">
+            <thead><tr><th>POS</th><th>DRIVER</th><th>VEHICLE</th><th>TIME</th><th>XP</th><th>±RTG</th></tr></thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+          <div class="results-row">
+            <button id="rematchBtn" class="primary">REMATCH</button>
+            <button id="resultsLobbyBtn" class="ghost">LOBBY</button>
+          </div>
+        </div>
+      </div>
 
       <!-- countdown overlay -->
       <div id="countdown" class="countdown" hidden><span id="cdNum">3</span></div>

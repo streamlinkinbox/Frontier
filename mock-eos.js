@@ -9,6 +9,14 @@ export const VEHICLES = [
   { id: "volt",   name: "VOLT STRIKER", desc: "Top-speed sprinter",    spd: 95, acc: 81, grp: 70, tag: "SPEED" },
 ];
 
+export const PAINTS = [
+  { name: "NEON CYAN",     c: "#22d3ee" },
+  { name: "MAGMA MAGENTA", c: "#ff2fd6" },
+  { name: "VOLT LIME",     c: "#a3e635" },
+  { name: "SOLAR AMBER",   c: "#fbbf24" },
+  { name: "VOID VIOLET",   c: "#818cf8" },
+];
+
 const AVATAR_COLORS = ["#22d3ee", "#f0abfc", "#fbbf24", "#34d399", "#fb7185", "#818cf8", "#f97316", "#a3e635"];
 
 const BOT_POOL = [
@@ -52,6 +60,10 @@ export class MockEOS {
     this.lobby = { name: "NIGHT CONVOY", code: "FR-7X2Q", map: "Neon Dunes", region: "EU-WEST", maxSlots: 8 };
     this.isHost = true;
     this.myVehicle = VEHICLES[0];
+    this.paint = PAINTS[0].c;
+    this.maps = ["Neon Dunes", "Harbor Loop", "Solar Flats"];
+    this.mapVotes = { "Neon Dunes": 2, "Harbor Loop": 2, "Solar Flats": 1 };
+    this.myVote = "Neon Dunes";
     this._botIdx = 0;
     this.players = [
       this._mk("YOU_77", "PC", "VANTA GT", true, true),
@@ -88,7 +100,6 @@ export class MockEOS {
     return p;
   }
   removeRandom() {
-    const idx = this.players.findIndex((p) => !p.me && !(this.isHost && this.players.indexOf(p) === 1));
     const target = this.players.find((p) => !p.me);
     if (!target) return null;
     this.players.splice(this.players.indexOf(target), 1);
@@ -104,6 +115,50 @@ export class MockEOS {
     this.myVehicle = v;
     this.me.vehicle = v.name;
     this.onLog(`<b>EOS_Presence_Modify</b> vehicle=${v.id} status=IN_LOBBY`);
+  }
+
+  /* ---- map voting (mock EOS_Lobby attributes) ---- */
+  vote(map) {
+    if (this.myVote === map || !(map in this.mapVotes)) return;
+    this.mapVotes[this.myVote] = Math.max(0, this.mapVotes[this.myVote] - 1);
+    this.mapVotes[map]++;
+    this.myVote = map;
+    this.onLog(`<b>EOS_Lobby_Vote</b> YOU_77 → ${map}`);
+  }
+  botVoteTick() {
+    const a = pick(this.maps);
+    const b = pick(this.maps);
+    if (a === b || this.mapVotes[a] <= 0) return null;
+    this.mapVotes[a]--;
+    this.mapVotes[b]++;
+    return [a, b];
+  }
+  winningMap() {
+    return this.maps.reduce((x, y) => (this.mapVotes[x] >= this.mapVotes[y] ? x : y));
+  }
+
+  /* ---- race results (mock EOS_Session_End) ---- */
+  genResults() {
+    const order = [...this.players].sort(() => Math.random() - 0.5);
+    const base = 88 + Math.random() * 4;
+    const deltas = [25, 18, 12, 6, 0, -6, -12, -18];
+    return order.map((p, i) => ({
+      name: p.name, me: p.me, vehicle: p.vehicle,
+      time: base + i * (0.5 + Math.random() * 1.5) + Math.random() * 0.8,
+      xp: Math.max(60, 420 - i * 38 + rnd(-20, 60)),
+      delta: deltas[Math.min(i, deltas.length - 1)],
+    }));
+  }
+  applyResults(results) {
+    results.forEach((r) => {
+      const e = this.board.find((x) => x.name === r.name);
+      if (!e) return;
+      e.rating = Math.max(1000, e.rating + r.delta);
+      e.trend = r.delta > 0 ? 1 : r.delta < 0 ? -1 : 0;
+      if (r.delta >= 18) e.wins += 1;
+      if (r.delta >= 6) e.podiums += 1;
+    });
+    this.board.sort((a, b) => b.rating - a.rating);
   }
 
   /* ---- chat (mock EOS_Lobby_SendMessage) ---- */
