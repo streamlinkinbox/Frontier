@@ -23,12 +23,13 @@ cd app && python3 -m http.server 8099 --bind 0.0.0.0
   room → roster + voice + chat sim, boarding-pass ticket with pit-box picker,
   ready-up → countdown → session live. Create-lobby modal included.
   Standalone app — nav is Home / Lobby / Leaderboard only.
-- `app/wallet.html` — **Wallet** (standalone 2nd app): aurora balance card
-  with quick Top-up pill, CR + RP portfolio tiles with weekly movers, top-up /
-  gift / redeem / earn modals, store (decals · skins · wheels · audio ·
-  lights · engine sounds · premium Levels) with trending ▲ / falling ▼ market
-  deltas, categories, sort, wishlist, equip, buy flows, transaction history.
-  Persists to `localStorage`.
+- `app/wallet.html` — **Wallet** (standalone, built from the crypto/aurora
+  reference screens — no lobby links anywhere): aurora balance card with live
+  count-up, **Send / + / Receive** action bar (gift / top-up / redeem),
+  CR + RP holdings with weekly movers, **Assets** (owned + equip) / **Market**
+  (All · ★ · Top movers · Top rated · 7 categories with ▲▼ deltas) / **History**
+  tabs, item detail + buy flows with shortfall → top-up, earn list.
+  Persists to `localStorage` (`frontier.wallet.v2`).
 - `app/fonts/` — Inter OFL license. **The `.woff2` binary is git-ignored by
   the sandbox network** — restore it with (needs internet):
 
