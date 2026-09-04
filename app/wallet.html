@@ -14,6 +14,7 @@
   --stroke:rgba(255,255,255,.07); --stroke-strong:#2e2e2e;
   --text:#fff; --dim:#8a8a8a; --faint:#5c5c5c;
   --up:#4ade80; --down:#f87171;
+  --oct:#f59e0b; --ntr:#38bdf8;
   --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --ease:cubic-bezier(.22,.61,.36,1);
@@ -45,11 +46,12 @@ svg{display:block}
 /* header */
 .head{display:flex;align-items:flex-end;justify-content:space-between;flex:none}
 .head h1{font-size:34px;font-weight:600;letter-spacing:-.03em}
+.head h1 em{font-style:normal;color:var(--oct)}
 .head p{font-size:12px;color:var(--dim);margin-top:3px}
 .head-r{display:flex;align-items:center;gap:8px}
 .addr{display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:18px;background:var(--panel);border:1px solid var(--stroke);font-size:12.5px;font-weight:600}
 .addr:hover{border-color:var(--stroke-strong)}
-.addr i{width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:8px;font-style:normal;font-weight:800;display:grid;place-items:center}
+.addr i{width:18px;height:18px;border-radius:50%;background:var(--oct);color:#111;font-size:8px;font-style:normal;font-weight:800;display:grid;place-items:center}
 .addr .mono{font-family:var(--mono);font-size:11.5px}
 .ibtn{width:36px;height:36px;border-radius:50%;background:var(--panel);border:1px solid var(--stroke);display:grid;place-items:center;color:var(--dim);position:relative}
 .ibtn:hover{color:#fff;border-color:var(--stroke-strong)}
@@ -99,8 +101,8 @@ svg{display:block}
 .holdings{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:none}
 .hold{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;padding:12px 14px;min-width:0}
 .hold .h{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--dim);text-transform:uppercase}
-.hold .h i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:800;font-style:normal;background:#f7931a;color:#fff;flex:none}
-.hold .h i.rp{background:#627eea}
+.hold .h i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:none}
+.hold .h i .ic{width:11px;height:11px;stroke-width:2.4}
 .hold b{display:block;font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
 .hold small{display:block;font-size:10px;margin-top:3px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hold small.up{color:var(--up)} .hold small.down{color:var(--down)}
@@ -130,8 +132,8 @@ svg{display:block}
 .row{display:grid;grid-template-columns:40px minmax(0,1fr) auto 78px;gap:12px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--stroke);border-radius:10px;cursor:pointer;transition:background .15s;animation:rowIn .35s var(--ease) both;animation-delay:calc(var(--i) * 22ms)}
 .row:hover{background:var(--inset)}
 .row:last-child{border-bottom:0}
-.coin{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;font-weight:800;font-size:11px}
-.coin .ic{width:18px;height:18px}
+.coin{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
+.coin .ic{width:19px;height:19px;stroke-width:1.9}
 .row .t{min-width:0}
 .row .t b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .t small{display:block;font-size:9.5px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -160,7 +162,7 @@ svg{display:block}
 /* modal */
 .modal{position:absolute;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .25s}
 .modal.open{opacity:1;pointer-events:auto}
-.sheet{width:560px;max-height:92%;overflow-y:auto;scrollbar-width:none;background:var(--panel);border:1px solid var(--stroke-strong);border-radius:20px;transform:translateY(14px) scale(.98);transition:transform .35s var(--ease);box-shadow:0 24px 60px rgba(0,0,0,.75)}
+.sheet{width:560px;max-height:94%;overflow-y:auto;scrollbar-width:none;background:var(--panel);border:1px solid var(--stroke-strong);border-radius:20px;transform:translateY(14px) scale(.98);transition:transform .35s var(--ease);box-shadow:0 24px 60px rgba(0,0,0,.75)}
 .sheet::-webkit-scrollbar{display:none}
 .modal.open .sheet{transform:none}
 .sheet-h{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--stroke);background:rgba(255,255,255,.02)}
@@ -169,17 +171,17 @@ svg{display:block}
 .sheet-h span{font-size:10.5px;color:var(--faint)}
 .sheet-h .x{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--dim);flex:none}
 .sheet-h .x:hover{background:var(--inset);color:#fff}
-.sheet-b{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.sheet-b{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
 .sheet-f{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--stroke);background:rgba(255,255,255,.02)}
 .sheet-f .eosline{flex:1;font-size:9.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .btn{height:34px;padding:0 16px;border-radius:var(--r);border:1px solid var(--stroke);background:var(--inset);color:#fff;font-size:12px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;position:relative;white-space:nowrap;transition:background .15s,transform .12s var(--ease)}
 .btn:hover{background:var(--raised)} .btn:active{transform:scale(.97)}
-.btn.primary{background:var(--blue);border-color:transparent;font-weight:600}
-.btn.primary:hover{background:var(--blue-soft)}
-.btn.white{background:#fff;color:#111;border-color:transparent;font-weight:600}
+.btn.primary{background:#fff;border-color:transparent;color:#111;font-weight:700}
+.btn.blue{background:var(--blue);border-color:transparent;font-weight:600}
+.btn.blue:hover{background:var(--blue-soft)}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--dim)}
 .btn.ghost:hover{background:var(--inset);color:#fff}
-.btn[disabled]{opacity:.45;pointer-events:none}
+.btn[disabled]{opacity:.4;pointer-events:none}
 .crow{display:flex;align-items:center;gap:12px;min-height:32px}
 .crow>.clabel{width:110px;flex:none;color:var(--dim);font-size:12px;font-weight:500}
 .crow>.clabel small{display:block;font:500 9px/1.2 var(--mono);color:var(--faint);margin-top:2px}
@@ -191,16 +193,13 @@ svg{display:block}
 .field input::placeholder{color:var(--faint)}
 .field .unit{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--dim)}
 .mono{font-family:var(--mono)}
-.quick{display:flex;gap:6px}
-.quick button{height:26px;padding:0 10px;border-radius:13px;background:var(--inset);border:1px solid var(--stroke);font-size:10.5px;color:var(--dim)}
-.quick button:hover,.quick button.on{color:#fff;background:var(--raised)}
 .packs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .pack{position:relative;border:1px solid var(--stroke);background:var(--inset);border-radius:14px;padding:22px 10px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0;transition:border-color .15s,background .15s}
 .pack:hover{background:var(--raised)}
-.pack.on{border-color:var(--blue);background:rgba(31,94,255,.12)}
+.pack.on{border-color:var(--oct);background:rgba(245,158,11,.1)}
 .pack b{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
 .pack small{font-size:9.5px;color:var(--dim)}
-.pack .bonus{position:absolute;top:8px;right:9px;font-size:8.5px;font-weight:700;color:var(--blue-soft)}
+.pack .bonus{position:absolute;top:8px;right:9px;font-size:8.5px;font-weight:700;color:var(--oct)}
 .pack .flag{position:absolute;top:8px;left:10px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .sum{display:flex;gap:8px}
 .sum div{flex:1;background:var(--field);border:1px solid var(--stroke);border-radius:14px;padding:10px 12px;min-width:0}
@@ -218,11 +217,11 @@ svg{display:block}
 .earnrows div{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--stroke);font-size:11.5px}
 .earnrows div:last-child{border-bottom:0}
 .earnrows .coin{width:28px;height:28px}
-.earnrows .coin .ic{width:13px;height:13px}
+.earnrows .coin .ic{width:14px;height:14px}
 .earnrows small{display:block;font-size:9.5px;color:var(--faint);margin-top:2px}
 .earnrows b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .done{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 10px 10px;text-align:center;animation:pop .3s var(--ease)}
-.done .ok{width:44px;height:44px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
+.done .ok{width:44px;height:44px;border-radius:50%;background:var(--up);color:#06130b;display:grid;place-items:center}
 .done .ok .ic{width:20px;height:20px;stroke-width:2.5}
 .done b{font-size:15px} .done span{font-size:11px;color:var(--dim)}
 .errmsg{font-size:10.5px;color:#fff;padding-left:122px;min-height:14px}
@@ -239,6 +238,49 @@ svg{display:block}
 .opt:hover{background:#141414;color:#fff}
 .opt.sel{color:#fff;background:#181818}
 
+/* ---- send flow: keypad ---- */
+.sendto{display:flex;align-items:center;gap:12px}
+.sendto .clabel{width:110px;flex:none;color:var(--dim);font-size:12px}
+.sendto .dd{flex:1}
+.assetrow{display:flex;align-items:center;gap:10px;background:var(--field);border:1px solid var(--stroke);border-radius:16px;padding:10px 12px}
+.assetrow .coin{width:34px;height:34px}
+.assetrow .coin .ic{width:17px;height:17px}
+.assetrow b{font-size:13px;display:block}
+.assetrow small{font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums}
+.assetrow .max{margin-left:auto;height:28px;padding:0 14px;border-radius:14px;background:var(--inset);border:1px solid var(--stroke);font-size:11px;font-weight:700}
+.assetrow .max:hover{color:#111;background:#fff;border-color:transparent}
+.bigamt{text-align:center;padding:6px 0 0}
+.bigamt h3{font-size:46px;font-weight:600;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.bigamt h3 em{font-style:normal;font-size:18px;color:var(--dim)}
+.bigamt small{font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+.kpad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 22px;justify-items:center;padding:4px 30px 0}
+.kpad button{width:64px;height:46px;border-radius:14px;font-size:19px;font-weight:500;color:#fff;transition:background .12s}
+.kpad button:hover{background:var(--inset)}
+.kpad button:active{background:var(--raised);transform:scale(.96)}
+.kpad button.fn{color:var(--dim);font-size:16px}
+/* ---- send flow: confirm ---- */
+.ctxn{padding:2px 0 0}
+.ctxn h3{font-size:23px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.ctxn h3 span{color:var(--oct)}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--stroke);font-size:12.5px}
+.kv small{color:var(--dim)}
+.kv b{font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:7px}
+.kv b .coin{width:22px;height:22px}
+.kv b .coin .ic{width:12px;height:12px}
+.kv .who{display:inline-flex;align-items:center;gap:7px}
+.kv .who i{width:20px;height:20px;border-radius:50%;background:var(--oct);color:#111;font-size:8px;font-style:normal;font-weight:800;display:grid;place-items:center}
+.feebox{display:flex;justify-content:space-between;align-items:center;background:var(--field);border:1px solid var(--stroke);border-radius:16px;padding:12px 14px;margin-top:12px}
+.feebox b{font-size:15px;display:block;font-variant-numeric:tabular-nums}
+.feebox small{font-size:10.5px;color:var(--dim);display:block;margin-top:2px}
+.feebox .spd{text-align:right}
+.feebox .spd b{font-size:13px}
+.feebox .spd small{color:var(--up)}
+.irrev{font-size:10.5px;color:var(--faint);text-align:center;line-height:1.6;margin-top:12px}
+.bigbtn{width:100%;height:46px;border-radius:23px;background:#fff;color:#111;font-size:14px;font-weight:700;transition:transform .12s var(--ease)}
+.bigbtn:hover{transform:translateY(-1px)}
+.bigbtn:active{transform:scale(.98)}
+.bigbtn[disabled]{opacity:.35;pointer-events:none}
+
 /* toast */
 .toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,10px);padding:9px 14px;border-radius:10px;background:#fff;color:#111;font-size:11.5px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--ease);white-space:nowrap;z-index:200}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -252,7 +294,7 @@ svg{display:block}
     <div class="screen" id="screen">
       <div class="ui" id="ui">
         <header class="head">
-          <div><h1>Wallet</h1><p>FRONTIER Card ···· 3040 · in-game currency</p></div>
+          <div><h1>Wallet <em>· OCT</em></h1><p>OCTANE · NITRO · in-game currency</p></div>
           <div class="head-r">
             <button class="addr" id="btnAddr" type="button" title="Copy address"><i>₵</i><span class="mono">0x7F3A…3040</span></button>
             <button class="ibtn" id="btnBell" type="button" title="Activity"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dot"></span></button>
@@ -269,7 +311,7 @@ svg{display:block}
               <button class="side" id="btnReceive" type="button">Receive<svg class="ic" viewBox="0 0 24 24"><path d="M13 7l5 5-5 5M18 12H6"/></svg></button>
             </div>
             <div class="holdings" id="holdings"></div>
-            <div class="note"><span>EOS_Ecom_Checkout → RedeemEntitlements · backend-settled</span><button id="reset" type="button">Reset demo</button></div>
+            <div class="note"><span>OCTANE ⇄ real money · NITRO earned racing</span><button id="reset" type="button">Reset demo</button></div>
           </section>
 
           <section class="col">
@@ -305,6 +347,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const usd = n => '$' + n.toFixed(2);
 const ago = ms => { const m = Math.round(ms / 60000); if (m < 1) return 'Just now'; if (m < 60) return `${m} min ago`; const h = Math.round(m / 60); if (h < 24) return `${h} h ago`; const d = Math.round(h / 24); return d === 1 ? 'Yesterday' : `${d} days ago`; };
+/* ---- icon set: engineering-flavoured coins ---- */
 const IC = {
   chev:'<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
   x:'<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
@@ -320,38 +363,44 @@ const IC = {
   clock:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   trophy:'<svg class="ic" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6"/></svg>',
   flag:'<svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/></svg>',
-  decal:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7l-7 7H6a2 2 0 0 1-2-2z"/><path d="M13 20v-5a2 2 0 0 1 2-2h5"/></svg>',
-  skin:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>',
-  wheel:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M3.5 10.5 9 12M20.5 10.5 15 12M12 15v6"/></svg>',
-  audio:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
-  light:'<svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/></svg>',
-  engine:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>',
-  level:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 20l6-3 6 3 6-3V4l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
+  octane:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3s6.5 7 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10 12 3 12 3z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg>',
+  nitro:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3c1.8 3.6 5.5 5 5.5 9.5a5.5 5.5 0 0 1-11 0c0-1.8.9-3.2 1.9-4.6.4 1.4 1.3 2.3 2.7 2.8C10.6 8 11 5.4 12 3z"/></svg>',
+  paint:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 4s5 5.4 5 9.2a5 5 0 0 1-10 0C7 9.4 12 4 12 4z"/><path d="M18.5 4.5l.8.8M20.5 8.5l.6.6M15.5 3l.5.9"/></svg>',
+  decal:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3.5 12.5L12 17l8.5-4.5"/><path d="M3.5 16.5L12 21l8.5-4.5"/></svg>',
+  skin:'<svg class="ic" viewBox="0 0 24 24"><path d="M4.5 13.5L6.3 8.6A2 2 0 0 1 8.2 7.2h7.6a2 2 0 0 1 1.9 1.4l1.8 4.9"/><rect x="3.5" y="13.5" width="17" height="3.6" rx="1.2"/><circle cx="8" cy="17.6" r="1.5"/><circle cx="16" cy="17.6" r="1.5"/></svg>',
+  wheel:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v6M19.4 7.7l-5.2 3M19.4 16.3l-5.2-3M12 20.5v-6M4.6 16.3l5.2-3M4.6 7.7l5.2 3"/></svg>',
+  audio:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10v4"/></svg>',
+  light:'<svg class="ic" viewBox="0 0 24 24"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.7 10.6c.7.6 1.2 1.3 1.2 2.4h5c0-1.1.5-1.8 1.2-2.4A6 6 0 0 0 12 3z"/></svg>',
+  engine:'<svg class="ic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="7" rx="1.5"/><path d="M10.5 6.5h3M12 10v7M8 21h8M9.5 17.5h5"/></svg>',
+  level:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 19l6-9 4 5 3-3.4L21 19z"/><circle cx="17.5" cy="5.5" r="1.6"/></svg>',
   spark:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>',
 };
 new ResizeObserver(([e]) => $('#ui').style.setProperty('--s', (e.contentRect.width / 1000).toFixed(4))).observe($('#screen'));
 
-/* ================= DATA ================= */
-const CUR = { code:'CR', name:'Credits', usd:0.01 };
-const RP = { code:'RP', name:'Race points' };
+/* ================= DATA · OCTANE + NITRO ================= */
+const CUR = { code:'OCT', name:'Octane', usd:0.01 };   /* premium · real money in */
+const RP = { code:'NTR', name:'Nitro', usd:0 };        /* earned · racing only */
 const FRIENDS = ['SIPHO_X','MPHO.R','VOSS_R','YUKI_N','MIRA_T','THABO_77','LERATO.GT','HALO_M'];
 const PACKS = [
-  { cr:1000,  usd:9.99,  bonus:0 },
-  { cr:2600,  usd:24.99, bonus:4 },
-  { cr:5500,  usd:49.99, bonus:10, flag:'Popular' },
-  { cr:12000, usd:99.99, bonus:20, flag:'Best value' },
+  { oct:1000,  usd:9.99,  bonus:0 },
+  { oct:2600,  usd:24.99, bonus:4 },
+  { oct:5500,  usd:49.99, bonus:10, flag:'Popular' },
+  { oct:12000, usd:99.99, bonus:20, flag:'Best value' },
 ];
 const CATS = [
+  { k:'paint',  label:'Paint',         one:'Paint',          bg:'#0ea5e9', fg:'#fff' },
   { k:'decal',  label:'Decals',        one:'Decal',          bg:'#1f5eff', fg:'#fff' },
-  { k:'skin',   label:'Skins',         one:'Skin',           bg:'#e8ecff', fg:'#1f5eff' },
-  { k:'wheel',  label:'Wheels',        one:'Steering wheel', bg:'#2a2a2e', fg:'#fff' },
+  { k:'skin',   label:'Liveries',      one:'Livery',         bg:'#e8ecff', fg:'#1f5eff' },
+  { k:'wheel',  label:'Wheels',        one:'Wheel set',      bg:'#2a2a2e', fg:'#fff' },
   { k:'audio',  label:'Audio',         one:'Audio',          bg:'#4d80ff', fg:'#fff' },
   { k:'light',  label:'Lights',        one:'Lighting',       bg:'#dfe8ff', fg:'#0a1a4d' },
-  { k:'engine', label:'Engine sounds', one:'Engine sound',   bg:'#123fb8', fg:'#fff' },
+  { k:'engine', label:'Engine notes',  one:'Engine note',    bg:'#123fb8', fg:'#fff' },
   { k:'level',  label:'Levels',        one:'Premium level',  bg:'#3a3a3e', fg:'#fff' },
 ];
 const catOf = k => CATS.find(c => c.k === k);
 const ITEMS = [
+  { id:'p1', cat:'paint', name:'Liquid midnight', sub:'Base coat · gloss', price:450, rarity:'Common', rating:4.6, trend:12, age:40 },
+  { id:'p2', cat:'paint', name:'Solar flare fade', sub:'Two-stage · pearl', price:620, rarity:'Rare', rating:4.7, trend:9, age:22 },
   { id:'d1', cat:'decal', name:'Carbon weave pack', sub:'Set of 6 · matte', price:450, rarity:'Common', rating:4.6, trend:12, age:40 },
   { id:'d2', cat:'decal', name:'Retro stripes', sub:'Triple stripe · 3 colours', price:300, rarity:'Common', rating:4.4, trend:3, age:120 },
   { id:'d3', cat:'decal', name:'Night hex', sub:'Reflective honeycomb', price:600, rarity:'Rare', rating:4.8, trend:19, age:3 },
@@ -360,38 +409,38 @@ const ITEMS = [
   { id:'s2', cat:'skin', name:'Frost matte', sub:'Satin white', price:1800, rarity:'Epic', rating:4.7, trend:6, age:90 },
   { id:'s3', cat:'skin', name:'Onyx pearl', sub:'Flip pearl', price:3200, rarity:'Legendary', rating:4.8, trend:24, age:2 },
   { id:'s4', cat:'skin', name:'Cobalt racing', sub:'Factory No. 07', price:1500, rarity:'Rare', rating:4.5, trend:-2, age:200 },
-  { id:'w1', cat:'wheel', name:'GT alcantara', sub:'330 mm · shift lights', price:1200, rarity:'Rare', rating:4.7, trend:8, age:60 },
-  { id:'w2', cat:'wheel', name:'Formula carbon', sub:'280 mm · display', price:2000, rarity:'Epic', rating:4.8, trend:9, age:45 },
-  { id:'w3', cat:'wheel', name:'Classic wood', sub:'360 mm · polished', price:900, rarity:'Common', rating:4.3, trend:1, age:300 },
-  { id:'a1', cat:'audio', name:'Pit radio · pro', sub:'Voice pack · 240 lines', price:700, rarity:'Rare', rating:4.6, trend:11, age:25 },
-  { id:'a2', cat:'audio', name:'Shift beep pack', sub:'5 variants', price:250, rarity:'Common', rating:4.2, trend:0, age:180 },
-  { id:'a3', cat:'audio', name:'Launch chime', sub:'Cockpit sounds', price:300, rarity:'Common', rating:4.4, trend:7, age:5 },
-  { id:'l1', cat:'light', name:'Ambient · ice', sub:'Cabin · 3 zones', price:500, rarity:'Common', rating:4.5, trend:5, age:70 },
-  { id:'l2', cat:'light', name:'Underglow · arctic', sub:'Animated', price:800, rarity:'Rare', rating:4.7, trend:22, age:14 },
-  { id:'l3', cat:'light', name:'Halo DRL', sub:'Signature DRL', price:650, rarity:'Rare', rating:4.6, trend:4, age:110 },
-  { id:'e1', cat:'engine', name:'V10 NA', sub:'9,000 rpm dyno', price:1600, rarity:'Epic', rating:4.9, trend:31, age:20 },
-  { id:'e2', cat:'engine', name:'Flat-6 turbo', sub:'Wastegate · pops', price:1400, rarity:'Rare', rating:4.6, trend:10, age:80 },
-  { id:'e3', cat:'engine', name:'Electric whine', sub:'3 profiles', price:1100, rarity:'Rare', rating:4.4, trend:14, age:4 },
-  { id:'v1', cat:'level', name:'Kyalami · Night', sub:'4.52 km · floodlit', price:2500, rarity:'Premium', rating:4.9, trend:15, age:35 },
-  { id:'v2', cat:'level', name:'Spa · Wet', sub:'7.00 km · rain', price:2800, rarity:'Premium', rating:4.8, trend:21, age:1 },
+  { id:'w1', cat:'wheel', name:'GT forged · 19in', sub:'With sport compound', price:1200, rarity:'Rare', rating:4.7, trend:8, age:60 },
+  { id:'w2', cat:'wheel', name:'Carbon aero disc', sub:'With slick compound', price:2000, rarity:'Epic', rating:4.8, trend:9, age:45 },
+  { id:'w3', cat:'wheel', name:'Heritage mesh', sub:'With all-weather', price:900, rarity:'Common', rating:4.3, trend:1, age:300 },
+  { id:'a1', cat:'audio', name:'Pit radio · pro engineer', sub:'Voice pack · 240 lines', price:700, rarity:'Rare', rating:4.6, trend:11, age:25 },
+  { id:'a2', cat:'audio', name:'Shift beep pack', sub:'Cockpit sounds · 5 variants', price:250, rarity:'Common', rating:4.2, trend:0, age:180 },
+  { id:'a3', cat:'audio', name:'Launch control chime', sub:'Cockpit sounds', price:300, rarity:'Common', rating:4.4, trend:7, age:5 },
+  { id:'l1', cat:'light', name:'Interior ambient · ice', sub:'Cabin lighting · 3 zones', price:500, rarity:'Common', rating:4.5, trend:5, age:70 },
+  { id:'l2', cat:'light', name:'Underglow · arctic', sub:'Exterior · animated', price:800, rarity:'Rare', rating:4.7, trend:22, age:14 },
+  { id:'l3', cat:'light', name:'Halo DRL', sub:'Signature daytime lights', price:650, rarity:'Rare', rating:4.6, trend:4, age:110 },
+  { id:'e1', cat:'engine', name:'V10 NA howl', sub:'9,000 rpm · dyno recorded', price:1600, rarity:'Epic', rating:4.9, trend:31, age:20 },
+  { id:'e2', cat:'engine', name:'Flat-6 turbo bark', sub:'Wastegate flutter · pops', price:1400, rarity:'Rare', rating:4.6, trend:10, age:80 },
+  { id:'e3', cat:'engine', name:'EV torque whine', sub:'Synthesised · 3 profiles', price:1100, rarity:'Rare', rating:4.4, trend:14, age:4 },
+  { id:'v1', cat:'level', name:'Kyalami · Night', sub:'4.52 km · floodlit · 2 layouts', price:2500, rarity:'Premium', rating:4.9, trend:15, age:35 },
+  { id:'v2', cat:'level', name:'Spa · Wet weekend', sub:'7.00 km · dynamic rain', price:2800, rarity:'Premium', rating:4.8, trend:21, age:1 },
   { id:'v3', cat:'level', name:'Interlagos · Sunset', sub:'4.31 km · golden hour', price:2600, rarity:'Premium', rating:4.7, trend:9, age:150 },
-  { id:'v4', cat:'level', name:'Bathurst · Dawn', sub:'6.21 km · fog', price:3000, rarity:'Premium', rating:4.9, trend:40, age:8 },
+  { id:'v4', cat:'level', name:'Bathurst · Dawn', sub:'6.21 km · fog on the mountain', price:3000, rarity:'Premium', rating:4.9, trend:40, age:8 },
 ];
 const itemOf = id => ITEMS.find(i => i.id === id);
 const H = 3600000, D = 24 * H;
 const SEED_HISTORY = () => [
-  { kind:'earn', title:'Race reward', sub:'P3 · Spa endurance', amt:250, cur:'RP', t:Date.now() - 2 * H },
-  { kind:'buy', title:'Interlagos · Sunset', sub:'Premium level', amt:-2600, cur:'CR', t:Date.now() - 5 * H },
-  { kind:'earn', title:'Season reward · Tier 10', sub:'Season pass', amt:1000, cur:'CR', t:Date.now() - 1 * D },
-  { kind:'buy', title:'Halo DRL', sub:'Lighting · exterior', amt:-650, cur:'CR', t:Date.now() - 1 * D - 3 * H },
-  { kind:'in', title:'Gift from SIPHO_X', sub:'"gg last night"', amt:250, cur:'CR', t:Date.now() - 2 * D },
-  { kind:'earn', title:'Race reward', sub:'P1 · Kyalami sprint', amt:400, cur:'RP', t:Date.now() - 2 * D - 6 * H },
-  { kind:'buy', title:'Frost matte', sub:'Skin · full livery', amt:-1800, cur:'CR', t:Date.now() - 3 * D },
-  { kind:'topup', title:'Top up', sub:'5,500 CR pack · Epic Games Store', amt:5500, cur:'CR', usd:49.99, t:Date.now() - 3 * D - 1 * H },
+  { kind:'earn', title:'Race reward', sub:'P3 · Spa endurance', amt:250, cur:'NTR', t:Date.now() - 2 * H },
+  { kind:'buy', title:'Interlagos · Sunset', sub:'Premium level', amt:-2600, cur:'OCT', t:Date.now() - 5 * H },
+  { kind:'earn', title:'Season reward · Tier 10', sub:'Season pass', amt:1000, cur:'OCT', t:Date.now() - 1 * D },
+  { kind:'buy', title:'Halo DRL', sub:'Lighting · exterior', amt:-650, cur:'OCT', t:Date.now() - 1 * D - 3 * H },
+  { kind:'in', title:'Gift from SIPHO_X', sub:'"gg last night"', amt:250, cur:'OCT', t:Date.now() - 2 * D },
+  { kind:'earn', title:'Race reward', sub:'P1 · Kyalami sprint', amt:400, cur:'NTR', t:Date.now() - 2 * D - 6 * H },
+  { kind:'buy', title:'Frost matte', sub:'Livery · satin white', amt:-1800, cur:'OCT', t:Date.now() - 3 * D },
+  { kind:'topup', title:'Top up', sub:'5,500 OCT pack · Epic Games Store', amt:5500, cur:'OCT', usd:49.99, t:Date.now() - 3 * D - 1 * H },
 ];
 
 /* ================= STATE ================= */
-const KEY = 'frontier.wallet.v2';
+const KEY = 'frontier.wallet.v3';
 const DEFAULT = () => ({ balance:23688, rp:12450, owned:['s2','l3','v3'], equipped:{ skin:'s2', light:'l3' }, wish:['s1','e1'], history:SEED_HISTORY() });
 let W = load();
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s.balance === 'number') return s; } catch {} return DEFAULT(); }
@@ -403,7 +452,7 @@ const mover = t => t > 0 ? `<small class="up">+${t}%</small>` : t < 0 ? `<small 
 /* ================= LEFT ================= */
 let shown = W.balance;
 function weekEarned(){
-  return W.history.filter(h => h.cur === 'CR' && h.amt > 0 && h.kind !== 'topup' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
+  return W.history.filter(h => h.cur === 'OCT' && h.amt > 0 && h.kind !== 'topup' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
 }
 function renderCard(animate){
   const el = $('#card');
@@ -426,14 +475,14 @@ function renderCard(animate){
   } else { shown = W.balance; $('#balN').textContent = fmt(W.balance); $('#balUsd').textContent = usd(W.balance * CUR.usd); }
 }
 function renderHoldings(){
-  const rpW = W.history.filter(h => h.cur === 'RP' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
+  const ntrW = W.history.filter(h => h.cur === 'NTR' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
   $('#holdings').innerHTML =
-    `<div class="hold"><div class="h"><i>₵</i>${CUR.code} · ${CUR.name}</div><b>${fmt(W.balance)}</b><small>Premium · real-money currency</small></div>
-     <div class="hold"><div class="h"><i class="rp">RP</i>${RP.code} · ${RP.name}</div><b>${fmt(W.rp)}</b><small class="${rpW >= 0 ? 'up' : 'down'}">${rpW >= 0 ? '▲' : '▼'} ${fmt(Math.abs(rpW))} this week · earned</small></div>`;
+    `<div class="hold"><div class="h"><i style="background:var(--oct);color:#111">${IC.octane}</i>OCT · Octane</div><b>${fmt(W.balance)}</b><small>Premium · real money in</small></div>
+     <div class="hold"><div class="h"><i style="background:var(--ntr);color:#06283a">${IC.nitro}</i>NTR · Nitro</div><b>${fmt(W.rp)}</b><small class="${ntrW >= 0 ? 'up' : 'down'}">${ntrW >= 0 ? '▲' : '▼'} ${fmt(Math.abs(ntrW))} this week · earned</small></div>`;
 }
 $('#btnTopup').addEventListener('click', () => openModal('topup'));
 $('#btnFab').addEventListener('click', () => openModal('topup'));
-$('#btnSend').addEventListener('click', () => openModal('gift'));
+$('#btnSend').addEventListener('click', () => openModal('send'));
 $('#btnReceive').addEventListener('click', () => openModal('redeem'));
 $('#btnEarn').addEventListener('click', () => openModal('earn'));
 $('#btnAddr').addEventListener('click', () => { try { navigator.clipboard?.writeText('0x7F3A9cE14bD23040'); } catch {} toast('Address copied · 0x7F3A…3040'); });
@@ -477,10 +526,10 @@ function crow({ coin, bg, fg, name, sub, value, trend, id, idx, right }){
 function renderList(){
   const el = $('#list'); let rows = [];
   if (view.tab === 'assets'){
-    const rpW = W.history.filter(h => h.cur === 'RP' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
+    const ntrW = W.history.filter(h => h.cur === 'NTR' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
     const e = weekEarned(), pct = W.balance ? Math.round(e / W.balance * 100) : 0;
-    rows.push(crow({ coin:'₵', bg:'#f7931a', fg:'#fff', name:'Credits', sub:'CR · premium currency', value:fmt(W.balance), trend:mover(pct), idx:0 }));
-    rows.push(crow({ coin:'RP', bg:'#627eea', fg:'#fff', name:'Race points', sub:`RP · earned racing · +${fmt(rpW)} wk`, value:fmt(W.rp), trend:'<small>not purchasable</small>', idx:1 }));
+    rows.push(crow({ coin:IC.octane, bg:'var(--oct)', fg:'#111', name:'Octane', sub:'OCT · premium · real money in', value:fmt(W.balance), trend:mover(pct), idx:0 }));
+    rows.push(crow({ coin:IC.nitro, bg:'var(--ntr)', fg:'#06283a', name:'Nitro', sub:`NTR · earned racing · +${fmt(ntrW)} wk`, value:fmt(W.rp), trend:'<small>not purchasable</small>', idx:1 }));
     W.owned.map(itemOf).filter(Boolean).forEach((i, k) => {
       const c = catOf(i.cat), eq = W.equipped[i.cat] === i.id;
       rows.push(crow({ coin:IC[i.cat], bg:c.bg, fg:c.fg, id:i.id, name:esc(i.name),
@@ -502,9 +551,9 @@ function renderList(){
     rows = W.history.map((h, k) => {
       const plus = h.amt > 0;
       const ic = h.kind === 'topup' ? IC.topup : h.kind === 'buy' ? IC.bag : h.kind === 'earn' ? IC.trophy : h.kind === 'out' ? IC.sent : IC.recv;
-      const bg = h.kind === 'topup' ? '#1f5eff' : h.kind === 'earn' ? '#4ade80' : h.kind === 'out' ? '#3a3a3e' : '#4d80ff';
+      const bg = h.kind === 'topup' ? '#f59e0b' : h.kind === 'earn' ? '#4ade80' : h.kind === 'out' ? '#3a3a3e' : '#38bdf8';
       return `<div class="row" style="--i:${Math.min(k, 14)};cursor:default">
-        <span class="coin" style="background:${bg};color:${h.kind === 'earn' ? '#111' : '#fff'}">${ic}</span>
+        <span class="coin" style="background:${bg};color:${h.kind === 'earn' ? '#06130b' : '#fff'}">${ic}</span>
         <div class="t"><b>${esc(h.title)}</b><small>${esc(h.sub)}</small></div>
         <div class="num"><b>${plus ? '+' : '−'}${fmt(Math.abs(h.amt))} ${h.cur}</b><small>${ago(Date.now() - h.t)}</small></div>
         <span class="tagok">${IC.check}</span>
@@ -546,7 +595,7 @@ const mhead = (icon, bg, fg, title, sub) =>
 const mfoot = (eos, primary, pid) =>
   `<div class="sheet-f"><span class="eosline">${eos}</span>${primary ? `<button class="btn primary" id="${pid}" type="button">${primary}</button>` : `<button class="btn white" data-close type="button">Done</button>`}</div>`;
 function openModal(kind, data){
-  Mx = { kind, data, pack:2, amount:250, friend:FRIENDS[0] };
+  Mx = { kind, data, pack:2, friend:FRIENDS[0], sendAmt:'', sendTo:FRIENDS[0] };
   R[kind]();
   modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false');
   setTimeout(() => $('input', sheet)?.focus(), 120);
@@ -567,45 +616,105 @@ function dropdown(root, { options, value, onChange }){
 function closeDD(){ $$('.open').forEach(x => x.classList.remove('open')); }
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.dd')) closeDD(); });
 
+/* ---- send flow state ---- */
+function sendNum(){ const n = parseFloat(Mx.sendAmt); return isNaN(n) ? 0 : n; }
+function paintSend(){
+  const n = sendNum();
+  $('#sendN').textContent = Mx.sendAmt === '' ? '0' : Mx.sendAmt;
+  $('#sendUsd').textContent = '≈ ' + usd(n * CUR.usd);
+  const ok = n > 0 && n <= W.balance;
+  $('#sendNext').disabled = !ok;
+  $('#sendWarn').textContent = Mx.sendAmt !== '' && n > W.balance ? `Exceeds balance · you hold ${fmt(W.balance)} OCT` : '';
+}
+function keypadHTML(){
+  const keys = ['1','2','3','4','5','6','7','8','9','.', '0','back'];
+  return `<div class="kpad">${keys.map(k => k === 'back'
+    ? `<button type="button" class="fn" data-k="back">⌫</button>`
+    : `<button type="button" data-k="${k}">${k}</button>`).join('')}</div>`;
+}
+function bindKeypad(){
+  $$('.kpad button', sheet).forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.k;
+    if (k === 'back'){ Mx.sendAmt = Mx.sendAmt.slice(0, -1); }
+    else if (k === '.'){ if (!Mx.sendAmt.includes('.')) Mx.sendAmt = (Mx.sendAmt === '' ? '0' : Mx.sendAmt) + '.'; }
+    else {
+      const [ip, dp] = Mx.sendAmt.split('.');
+      if (dp !== undefined && dp.length >= 2) return;
+      if (ip.replace('.', '').length >= 7 && dp === undefined) return;
+      Mx.sendAmt = (Mx.sendAmt === '0' && k === '0') ? Mx.sendAmt : Mx.sendAmt + k;
+      if (Mx.sendAmt.length > 1 && Mx.sendAmt[0] === '0' && Mx.sendAmt[1] !== '.') Mx.sendAmt = Mx.sendAmt.slice(1);
+    }
+    paintSend();
+  }));
+}
+
 const R = {
   topup(){
-    const p = PACKS[Mx.pack], base = Math.round(p.cr / (1 + p.bonus / 100));
-    sheet.innerHTML = mhead(IC.topup, '#1f5eff', '#fff', 'Top up', 'Real money → CR · Epic Games Store') + `
+    const p = PACKS[Mx.pack], base = Math.round(p.oct / (1 + p.bonus / 100));
+    sheet.innerHTML = mhead(IC.topup, '#f59e0b', '#111', 'Top up Octane', 'Real money → OCT · Epic Games Store') + `
       <div class="sheet-b">
-        <div class="packs">${PACKS.map((k, i) => `<button class="pack ${i === Mx.pack ? 'on' : ''}" type="button" data-p="${i}">${k.flag ? `<span class="flag">${k.flag}</span>` : ''}${k.bonus ? `<span class="bonus">+${k.bonus}%</span>` : ''}<b>${fmt(k.cr)}</b><small>CR · ${usd(k.usd)}</small></button>`).join('')}</div>
+        <div class="packs">${PACKS.map((k, i) => `<button class="pack ${i === Mx.pack ? 'on' : ''}" type="button" data-p="${i}">${k.flag ? `<span class="flag">${k.flag}</span>` : ''}${k.bonus ? `<span class="bonus">+${k.bonus}%</span>` : ''}<b>${fmt(k.oct)}</b><small>OCT · ${usd(k.usd)}</small></button>`).join('')}</div>
         <div class="sum">
           <div><small>You pay</small><b>${usd(p.usd)}</b><span>Epic checkout</span></div>
-          <div><small>You get</small><b>${fmt(p.cr)}</b><span>${p.bonus ? `+${fmt(p.cr - base)} bonus` : 'No bonus'}</span></div>
-          <div><small>After</small><b>${fmt(W.balance + p.cr)}</b><span>CR balance</span></div>
+          <div><small>You get</small><b>${fmt(p.oct)} OCT</b><span>${p.bonus ? `+${fmt(p.oct - base)} bonus` : 'No bonus'}</span></div>
+          <div><small>After</small><b>${fmt(W.balance + p.oct)} OCT</b><span>Balance</span></div>
         </div>
       </div>` + mfoot('EOS_Ecom_Checkout · RedeemEntitlements', `Pay ${usd(p.usd)}`, 'mPay');
     $$('.pack', sheet).forEach(b => b.addEventListener('click', () => { Mx.pack = +b.dataset.p; R.topup(); }));
     $('#mPay').addEventListener('click', async e => {
       const b = e.currentTarget; b.classList.add('loading'); await wait(1300);
-      W.balance += p.cr; W.history.unshift({ kind:'topup', title:'Top up', sub:`${fmt(p.cr)} CR pack`, amt:p.cr, cur:'CR', usd:p.usd, t:Date.now() }); save();
-      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>+${fmt(p.cr)} CR</b><span>Balance ${fmt(W.balance)} CR</span></div>`;
+      W.balance += p.oct; W.history.unshift({ kind:'topup', title:'Top up Octane', sub:`${fmt(p.oct)} OCT pack`, amt:p.oct, cur:'OCT', usd:p.usd, t:Date.now() }); save();
+      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>+${fmt(p.oct)} OCT</b><span>Balance ${fmt(W.balance)} OCT</span></div>`;
       $('.sheet-f', sheet).innerHTML = `<span class="eosline">RedeemEntitlements → Success</span><button class="btn white" data-close type="button">Done</button>`;
-      renderAll(true); toast(`+${fmt(p.cr)} CR added`);
+      renderAll(true); toast(`+${fmt(p.oct)} OCT added`);
     });
   },
-  gift(){
-    sheet.innerHTML = mhead(IC.gift, '#4d80ff', '#fff', 'Send', 'Gift CR · instant, final') + `
+  /* ---- step 1: amount (keypad) ---- */
+  send(){
+    sheet.innerHTML = mhead(IC.sent, '#1f5eff', '#fff', 'Send Octane', 'Step 1 of 2 · amount') + `
       <div class="sheet-b">
-        <div class="crow"><div class="clabel">To<small>Friends list</small></div><div class="dd" id="gFriend"></div></div>
-        <div class="crow"><div class="clabel">Amount</div><label class="field"><input id="gAmt" type="number" min="50" max="${W.balance}" step="50" value="${Mx.amount}" /><span class="unit">CR</span></label><div class="quick">${[100,250,500,1000].map(v => `<button type="button" data-v="${v}" class="${v === Mx.amount ? 'on' : ''}">${fmt(v)}</button>`).join('')}</div></div>
-        <div class="crow"><div class="clabel">Note</div><label class="field"><input id="gMsg" type="text" maxlength="60" placeholder="gg — see you on track" /></label></div>
-        <div class="sum"><div><small>After</small><b id="gAfter">${fmt(W.balance - Mx.amount)} CR</b><span>Your balance</span></div><div><small>Fee</small><b>Free</b><span>Friends transfer</span></div></div>
-      </div>` + mfoot('Backend transfer · EOS_Connect', 'Send gift', 'mSend');
-    dropdown($('#gFriend'), { options:FRIENDS.map(f => ({ value:f, label:f })), value:Mx.friend, onChange:v => Mx.friend = v });
-    const upd = () => { const v = Math.max(0, Math.min(W.balance, +$('#gAmt').value || 0)); Mx.amount = v;
-      $('#gAfter').textContent = fmt(W.balance - v) + ' CR'; $('#mSend').disabled = v < 50;
-      $$('.quick button', sheet).forEach(b => b.classList.toggle('on', +b.dataset.v === v)); };
-    $('#gAmt').addEventListener('input', upd);
-    $$('.quick button', sheet).forEach(b => b.addEventListener('click', () => { $('#gAmt').value = b.dataset.v; upd(); }));
-    $('#mSend').addEventListener('click', async e => {
-      const b = e.currentTarget; b.classList.add('loading'); await wait(800);
-      W.balance -= Mx.amount; W.history.unshift({ kind:'out', title:`Sent to ${Mx.friend}`, sub:$('#gMsg').value.trim() || 'Gift', amt:-Mx.amount, cur:'CR', t:Date.now() }); save();
-      closeModal(); renderAll(true); toast(`Sent ${fmt(Mx.amount)} CR to ${Mx.friend}`);
+        <div class="sendto"><div class="clabel">To</div><div class="dd" id="sFriend"></div></div>
+        <div class="assetrow">
+          <span class="coin" style="background:var(--oct);color:#111">${IC.octane}</span>
+          <div><b>Octane</b><small>${fmt(W.balance)} OCT available</small></div>
+          <button class="max" id="sMax" type="button">Use Max</button>
+        </div>
+        <div class="bigamt"><h3><span id="sendN">0</span><em> OCT</em></h3><small id="sendUsd">≈ $0.00</small></div>
+        <div class="errmsg" id="sendWarn" style="padding-left:0;text-align:center"></div>
+        ${keypadHTML()}
+        <button class="bigbtn" id="sendNext" type="button" disabled>Continue</button>
+      </div>`;
+    dropdown($('#sFriend'), { options:FRIENDS.map(f => ({ value:f, label:f })), value:Mx.sendTo, onChange:v => Mx.sendTo = v });
+    $('#sMax').addEventListener('click', () => { Mx.sendAmt = String(W.balance); paintSend(); });
+    bindKeypad(); paintSend();
+    $('#sendNext').addEventListener('click', () => R.confirmTxn());
+  },
+  /* ---- step 2: confirm ---- */
+  confirmTxn(){
+    const n = sendNum();
+    sheet.innerHTML = mhead(IC.sent, '#1f5eff', '#fff', 'Review transaction', 'Step 2 of 2 · irreversible') + `
+      <div class="sheet-b">
+        <div class="ctxn">
+          <h3>Confirm transaction to <span>${esc(Mx.sendTo)}</span></h3>
+          <div style="height:8px"></div>
+          <div class="kv"><small>Total Value</small><b>${usd(n * CUR.usd)}</b></div>
+          <div class="kv"><small>Send OCT</small><b><span class="coin" style="background:var(--oct);color:#111">${IC.octane}</span>${fmt(n)} OCT</b></div>
+          <div class="kv" style="border-bottom:0"><small>From</small><b><span class="who"><i>Y</i>YOU_77</span></b></div>
+          <div class="feebox">
+            <div><b>Free</b><small>Fee estimate ⓘ</small></div>
+            <div class="spd"><b>Instant</b><small>~5 secs · friends transfer</small></div>
+          </div>
+          <p class="irrev">Review the above before confirming.<br>Once made, your transaction is irreversible.</p>
+          <div style="height:12px"></div>
+          <button class="bigbtn" id="cfGo" type="button">◈ Confirm</button>
+        </div>
+      </div>`;
+    $('#cfGo').addEventListener('click', async e => {
+      const b = e.currentTarget; b.classList.add('loading'); await wait(1200);
+      W.balance -= n; W.history.unshift({ kind:'out', title:`Sent to ${Mx.sendTo}`, sub:`${fmt(n)} OCT · confirmed`, amt:-n, cur:'OCT', t:Date.now() }); save();
+      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>Sent ${fmt(n)} OCT</b><span>${esc(Mx.sendTo)} · balance ${fmt(W.balance)} OCT</span></div>`;
+      $('.sheet-f', sheet).innerHTML = `<span class="eosline">Backend transfer confirmed</span><button class="btn white" data-close type="button">Done</button>`;
+      renderAll(true); toast(`Sent ${fmt(n)} OCT to ${Mx.sendTo}`);
     });
   },
   redeem(){
@@ -613,7 +722,7 @@ const R = {
       <div class="sheet-b">
         <div class="crow"><div class="clabel">Code</div><label class="field" id="rField"><input id="rCode" class="mono" type="text" placeholder="FRNT-XXXX-XXXX" maxlength="20" spellcheck="false" /></label></div>
         <div class="errmsg" id="rErr"></div>
-        <p class="desc">One redemption per account. Rewards land immediately.</p>
+        <p class="desc">One redemption per account. Octane lands immediately.</p>
       </div>` + mfoot('Backend · code redemption', 'Redeem', 'mRedeem');
     const inp = $('#rCode');
     inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); $('#rField').classList.remove('err'); $('#rErr').textContent = ''; });
@@ -623,39 +732,39 @@ const R = {
       b.classList.add('loading'); await wait(700); b.classList.remove('loading');
       if (!/^FRNT-/.test(code)){ $('#rField').classList.add('err'); $('#rErr').textContent = 'Code not recognised.'; return; }
       if (W.history.some(h => h.kind === 'in' && h.sub === `Code ${code}`)){ $('#rField').classList.add('err'); $('#rErr').textContent = 'Already redeemed.'; return; }
-      W.balance += 500; W.history.unshift({ kind:'in', title:'Code redeemed', sub:`Code ${code}`, amt:500, cur:'CR', t:Date.now() }); save();
-      closeModal(); renderAll(true); toast('+500 CR · code redeemed');
+      W.balance += 500; W.history.unshift({ kind:'in', title:'Code redeemed', sub:`Code ${code}`, amt:500, cur:'OCT', t:Date.now() }); save();
+      closeModal(); renderAll(true); toast('+500 OCT · code redeemed');
     });
   },
   earn(){
     const rows = [
-      [IC.flag, 'Finish a race', 'Per race', '+150 RP', '#2a2a2e', '#fff'],
-      [IC.trophy, 'Win a race', 'P1 · any mode', '+400 RP', '#4ade80', '#111'],
-      [IC.spark, 'Clean race', 'No contact', '+50 RP', '#4d80ff', '#fff'],
-      [IC.clock, 'Daily first race', 'Resets 00:00 UTC', '+100 RP', '#3a3a3e', '#fff'],
-      [IC.bolt, 'Season pass', 'Tier rewards', '+1,000 CR', '#1f5eff', '#fff'],
-      [IC.gift, 'Refer a friend', 'After 5 races', '+500 CR', '#123fb8', '#fff'],
+      [IC.flag, 'Finish a race', 'Per race', '+150 NTR', '#2a2a2e', '#fff'],
+      [IC.trophy, 'Win a race', 'P1 · any mode', '+400 NTR', '#4ade80', '#06130b'],
+      [IC.spark, 'Clean race', 'No contact', '+50 NTR', '#38bdf8', '#06283a'],
+      [IC.clock, 'Daily first race', 'Resets 00:00 UTC', '+100 NTR', '#3a3a3e', '#fff'],
+      [IC.bolt, 'Season pass', 'Tier rewards', '+1,000 OCT', '#f59e0b', '#111'],
+      [IC.gift, 'Refer a driver', 'After 5 races', '+500 OCT', '#123fb8', '#fff'],
     ];
-    sheet.innerHTML = mhead(IC.bolt, '#1f5eff', '#fff', 'Earn', 'RP from racing · CR from pass + referrals') + `
+    sheet.innerHTML = mhead(IC.bolt, '#38bdf8', '#06283a', 'Earn', 'Nitro from racing · Octane from pass + referrals') + `
       <div class="sheet-b"><div class="earnrows">${rows.map(([ic, t, s, v, bg, fg]) => `<div><span class="coin" style="background:${bg};color:${fg}">${ic}</span><div>${t}<small>${s}</small></div><b>${v}</b></div>`).join('')}</div></div>
       <div class="sheet-f"><span class="eosline">Stats · Achievements</span><button class="btn white" data-close type="button">Close</button></div>`;
   },
   detail(){
     const i = Mx.data, c = catOf(i.cat), own = owned(i.id), short = i.price - W.balance, wish = W.wish.includes(i.id);
-    const pack = PACKS.findIndex(p => p.cr >= short);
+    const pack = PACKS.findIndex(p => p.oct >= short);
     sheet.innerHTML = mhead(IC[i.cat], c.bg, c.fg, esc(i.name), `${c.one} · ${i.rarity}`) + `
       <div class="sheet-b">
         <div class="tags"><span class="tag">${IC.star}${i.rating.toFixed(1)}</span>${i.trend >= 10 ? `<span class="tag">▲ ${i.trend}%</span>` : ''}${i.age <= 14 ? `<span class="tag hi">New</span>` : ''}<span class="tag">${c.label}</span></div>
         <p class="desc">${esc(i.sub)}. ${i.cat === 'level' ? 'Hand-built track variant — lighting, weather, leaderboards. <b>Unlocks for every race you host.</b>' : 'Purely cosmetic — <b>no performance effect</b>.'}</p>
         <div class="sum">
-          <div><small>Price</small><b>${fmt(i.price)} CR</b><span>≈ ${usd(i.price * CUR.usd)}</span></div>
-          <div class="${short > 0 && !own ? 'warn' : ''}"><small>${own ? 'Status' : short > 0 ? 'Short' : 'After'}</small><b>${own ? (W.equipped[i.cat] === i.id ? 'On car' : 'Owned') : short > 0 ? fmt(short) : fmt(W.balance - i.price)}</b><span>${own ? c.one : short > 0 ? 'CR needed' : 'CR left'}</span></div>
+          <div><small>Price</small><b>${fmt(i.price)} OCT</b><span>≈ ${usd(i.price * CUR.usd)}</span></div>
+          <div class="${short > 0 && !own ? 'warn' : ''}"><small>${own ? 'Status' : short > 0 ? 'Short' : 'After'}</small><b>${own ? (W.equipped[i.cat] === i.id ? 'On car' : 'Owned') : short > 0 ? fmt(short) : fmt(W.balance - i.price)}</b><span>${own ? c.one : short > 0 ? 'OCT needed' : 'OCT left'}</span></div>
         </div>
       </div>
       <div class="sheet-f">
         <button class="wishbtn ${wish ? 'on' : ''}" id="mWish" type="button">${IC.star}</button>
         ${own ? `<button class="btn white" id="mEquip" type="button">${W.equipped[i.cat] === i.id ? 'Unequip' : 'Equip'}</button>`
-              : short > 0 ? `<button class="btn primary" id="mTop" type="button">Top up ${pack >= 0 ? fmt(PACKS[pack].cr) : ''}</button>`
+              : short > 0 ? `<button class="btn blue" id="mTop" type="button">Top up ${pack >= 0 ? fmt(PACKS[pack].oct) : ''}</button>`
                           : `<button class="btn primary" id="mBuy" type="button">Buy · ${fmt(i.price)}</button>`}
       </div>`;
     $('#mWish').addEventListener('click', e => {
@@ -668,10 +777,10 @@ const R = {
     $('#mBuy')?.addEventListener('click', async e => {
       const b = e.currentTarget; b.classList.add('loading'); await wait(900);
       W.balance -= i.price; W.owned.push(i.id); if (!W.equipped[i.cat]) W.equipped[i.cat] = i.id; W.wish = W.wish.filter(x => x !== i.id);
-      W.history.unshift({ kind:'buy', title:i.name, sub:c.one, amt:-i.price, cur:'CR', t:Date.now() }); save();
-      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>${esc(i.name)} is yours</b><span>Balance ${fmt(W.balance)} CR</span></div>`;
+      W.history.unshift({ kind:'buy', title:i.name, sub:c.one, amt:-i.price, cur:'OCT', t:Date.now() }); save();
+      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>${esc(i.name)} is yours</b><span>Balance ${fmt(W.balance)} OCT</span></div>`;
       $('.sheet-f', sheet).innerHTML = `<span class="eosline">Entitlement granted</span><button class="btn white" data-close type="button">Done</button>`;
-      renderAll(true); toast(`Bought ${i.name}`, `−${fmt(i.price)} CR`);
+      renderAll(true); toast(`Bought ${i.name}`, `−${fmt(i.price)} OCT`);
     });
   },
 };
@@ -682,7 +791,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape'){ if (modal.classList.contains('open')) closeModal(); else if ($('.open')) closeDD(); else if (typing) document.activeElement.blur(); return; }
   if (typing || modal.classList.contains('open')) return;
   if (e.key === 't' || e.key === 'T') openModal('topup');
-  if (e.key === 'g' || e.key === 'G') openModal('gift');
+  if (e.key === 'g' || e.key === 'G') openModal('send');
   if (e.key === 'r' || e.key === 'R') openModal('redeem');
   if (e.key === '1' || e.key === '2' || e.key === '3') switchTab(['assets', 'market', 'history'][+e.key - 1]);
 });
