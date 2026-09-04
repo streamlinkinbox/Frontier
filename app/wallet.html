@@ -10,275 +10,241 @@
 @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2) format('woff2')}
 :root{
   --blue:#1f5eff; --blue-soft:#4d80ff;
-  --bg:#0a0a0a; --panel:#121212; --inset:#1a1a1a; --field:#000; --raised:#232323;
-  --stroke:rgba(255,255,255,.07); --stroke-strong:#2e2e2e;
-  --text:#fff; --dim:#8a8a8a; --faint:#5c5c5c;
+  --bg:#060607; --card:#131315; --card2:#1b1b1e; --field:#000;
+  --stroke:rgba(255,255,255,.08);
+  --text:#f5f5f4; --dim:#a1a1aa; --faint:#5c5c60;
   --up:#4ade80; --down:#f87171;
   --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --ease:cubic-bezier(.22,.61,.36,1);
-  --r:999px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:var(--blue);font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
+body{background:#020203;color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(50% 36% at 50% 0%,rgba(31,94,255,.22),transparent 65%),
+             radial-gradient(44% 30% at 50% 108%,rgba(94,234,212,.07),transparent 60%)}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 input{font:inherit;color:inherit}
 svg{display:block}
-.ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:6px}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:8px}
 @keyframes rowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes pop{from{opacity:0;transform:scale(.85)}}
 @keyframes menuIn{from{opacity:0;transform:translateY(-4px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes drift{from{transform:translate(-4%,-3%) rotate(0deg) scale(1)}to{transform:translate(5%,4%) rotate(10deg) scale(1.1)}}
-@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.03)}100%{transform:scale(1)}}
 
-/* device frame */
-.stage{position:fixed;inset:0;display:grid;place-items:center;padding:4vh 4vw}
-.device{position:relative;width:min(1180px,100%,calc((100vh - 8vh) * 1.5));aspect-ratio:4/3;border-radius:38px;background:#111;padding:14px;box-shadow:0 60px 120px -30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 2px #2b2b2b}
-.device::before,.device::after{content:"";position:absolute;left:-3px;width:3px;height:9%;border-radius:2px 0 0 2px;background:#1b1b1b}
-.device::before{top:18%}.device::after{top:31%}
-.screen{position:relative;width:100%;height:100%;border-radius:26px;background:var(--bg);overflow:hidden}
-.ui{position:absolute;inset:0;width:1000px;height:750px;transform-origin:0 0;transform:scale(var(--s,1));overflow:hidden;display:flex;flex-direction:column;padding:22px 24px 18px;gap:14px}
-
-/* header */
-.head{display:flex;align-items:flex-end;justify-content:space-between;flex:none}
-.head h1{font-size:34px;font-weight:600;letter-spacing:-.03em}
-.head p{font-size:12px;color:var(--dim);margin-top:3px}
-.topup-pill{height:36px;padding:0 18px;border-radius:18px;background:var(--blue);color:#fff;font-size:13px;font-weight:600;
-  box-shadow:0 8px 24px -8px rgba(31,94,255,.7);transition:transform .15s var(--ease),background .15s}
-.topup-pill:hover{background:var(--blue-soft);transform:translateY(-1px)}
-
-/* body */
-.body{flex:1;min-height:0;display:grid;grid-template-columns:360px 1fr;gap:14px}
-.col{min-height:0;display:flex;flex-direction:column;gap:12px}
-
-/* aurora card */
-.card{position:relative;border-radius:22px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.09);
-  padding:20px;min-height:212px;display:flex;flex-direction:column;isolation:isolate;flex:none;
-  box-shadow:0 30px 60px -30px rgba(31,94,255,.65)}
-.card .glow{position:absolute;inset:-45%;z-index:-2;
-  background:radial-gradient(42% 50% at 72% 32%,#5eead4 0%,#1f5eff 26%,rgba(26,79,224,.85) 46%,transparent 70%),
-             radial-gradient(38% 48% at 18% 86%,rgba(77,128,255,.95),transparent 64%),
-             radial-gradient(64% 64% at 50% 50%,#0a2a9a,transparent 76%);
-  filter:blur(18px) saturate(1.3);animation:drift 16s ease-in-out infinite alternate}
-.card .grain{position:absolute;inset:0;z-index:-1;opacity:.16;mix-blend-mode:overlay;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
-.card::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.5))}
-.card .dots{display:flex;gap:6px;align-items:center}
-.card .dots i{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.85)}
-.card .dots i+i{background:rgba(255,255,255,.35);margin-left:-12px}
-.card .bal{margin-top:auto}
-.card .bal small{display:block;font-size:11px;color:rgba(255,255,255,.75);margin-bottom:5px}
-.card .bal b{font-size:44px;font-weight:500;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
-.card .bal b em{font-style:normal;font-size:20px;color:rgba(255,255,255,.6)}
-.card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,.75)}
-.card .foot .up{color:#fff}
-.card .foot .mono{font-family:var(--mono);letter-spacing:.1em}
-
-/* send / + / receive */
-.payrow{display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--stroke);border-radius:20px;padding:8px;gap:8px;flex:none}
-.payrow button.side{flex:1;border-radius:14px;font-size:12.5px;font-weight:600;color:var(--dim);display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
-.payrow button.side:hover{background:var(--inset);color:#fff}
-.payrow button.side .ic{width:15px;height:15px}
+/* phone */
+.stage{position:fixed;inset:0;display:grid;place-items:center;padding:20px}
+.phone{position:relative;width:392px;max-width:100%;height:min(830px,calc(100vh - 40px));background:var(--bg);
+  border-radius:52px;padding:12px;box-shadow:0 60px 120px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.1),inset 0 0 0 2px #26262b}
+.screen{position:relative;width:100%;height:100%;border-radius:42px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+/* status bar */
+.status{display:flex;align-items:center;justify-content:space-between;padding:16px 26px 4px;font-size:13px;font-weight:600;flex:none}
+.island{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:112px;height:30px;border-radius:15px;background:#000;
+  box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+.sicons{display:flex;align-items:center;gap:6px}
+.sicons svg{width:16px;height:16px;fill:currentColor}
+/* app bar */
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 2px;flex:none}
+.abtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:var(--dim)}
+.abtn:hover{background:var(--card);color:#fff}
+.addr{display:flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:17px;background:var(--card);
+  border:1px solid var(--stroke);font-size:12.5px;font-weight:600;transition:border-color .15s}
+.addr:hover{border-color:#3a3a40}
+.addr i{width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:8px;font-style:normal;font-weight:800;display:grid;place-items:center}
+.addr .mono{font-family:var(--mono);font-size:11.5px}
+.bell{position:relative}
+.bell .dot{position:absolute;top:9px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 2px var(--bg)}
+/* balance */
+.bal{text-align:center;padding:14px 20px 4px;flex:none}
+.bal small{font-size:12.5px;color:var(--dim)}
+.bal h2{font-size:44px;font-weight:600;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums}
+.bal h2 em{font-style:normal;font-size:17px;color:var(--dim);font-weight:600}
+.bal h2.bump{animation:bump .5s var(--ease)}
+.bal .pct{font-size:12.5px;font-weight:600}
+.bal .pct.up{color:var(--up)} .bal .pct.down{color:var(--down)}
+/* pay row */
+.payrow{display:flex;align-items:center;gap:6px;margin:14px 16px 4px;background:var(--card);border-radius:22px;padding:6px;flex:none}
+.payrow .side{flex:1;height:44px;border-radius:16px;font-size:13px;font-weight:600;color:var(--dim);display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
+.payrow .side:hover{background:var(--card2);color:#fff}
+.payrow .side .ic{width:16px;height:16px}
 .fab{width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;
-  box-shadow:0 10px 26px -8px rgba(31,94,255,.8);transition:transform .15s var(--ease),background .15s}
-.fab:hover{background:var(--blue-soft);transform:scale(1.06)}
-.fab .ic{width:20px;height:20px;stroke-width:2.5}
-
-/* holdings */
-.holdings{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:none}
-.hold{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;padding:12px 14px;min-width:0}
-.hold .h{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.05em;color:var(--dim);text-transform:uppercase}
-.hold .h i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:800;font-style:normal;background:var(--blue);color:#fff;flex:none}
-.hold .h i.rp{background:#fff;color:#111}
-.hold b{display:block;font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
-.hold small{display:block;font-size:10px;margin-top:3px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hold small.up{color:var(--up)} .hold small.down{color:var(--down)}
-.note{margin-top:auto;font-size:9.5px;color:var(--faint);display:flex;justify-content:space-between;gap:8px;padding:0 4px}
-.note button{color:var(--faint);text-decoration:underline;text-underline-offset:3px;font-size:9.5px}
-.note button:hover{color:#fff}
-.eosline{font-size:9.5px;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* right panel */
-.panel{background:var(--panel);border:1px solid var(--stroke);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;min-height:0;flex:1;
-  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03)}
-.segbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--stroke);background:rgba(255,255,255,.02);flex:none}
-.seg{display:flex;background:var(--field);border:1px solid var(--stroke);border-radius:var(--r);padding:3px;gap:3px;height:32px}
-.seg button{color:var(--dim);font-size:11.5px;font-weight:500;border-radius:var(--r);padding:0 14px;display:inline-flex;align-items:center;gap:6px;transition:background .15s,color .15s}
-.seg button:hover{color:#fff}
-.seg button.active{background:#fff;color:#111;font-weight:600}
-.seg button em{font-style:normal;font-size:9px;font-weight:700;color:var(--faint)}
-.seg button.active em{color:#666}
-.pcount{font-size:10px;color:var(--faint);margin-left:auto;white-space:nowrap}
-.pcount b{color:var(--dim)}
-.pills{display:flex;gap:6px;padding:10px 12px 6px;overflow:auto;scrollbar-width:none;flex:none}
+  box-shadow:0 10px 26px -6px rgba(31,94,255,.7);transition:transform .15s var(--ease),background .15s}
+.fab:hover{background:var(--blue-soft);transform:scale(1.07)}
+.fab .ic{width:22px;height:22px;stroke-width:2.5}
+/* section */
+.sect{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--card);border-radius:24px 24px 0 0;margin-top:12px;flex:none;height:100%}
+.sect-h{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 2px;flex:none}
+.sect-h b{font-size:15px;font-weight:600}
+.sect-h span{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.pills{display:flex;gap:8px;padding:10px 14px 4px;overflow-x:auto;scrollbar-width:none;flex:none}
 .pills::-webkit-scrollbar{display:none}
-.pill{height:26px;padding:0 11px;border-radius:13px;background:var(--inset);border:1px solid var(--stroke);font-size:11px;font-weight:500;color:var(--dim);white-space:nowrap;display:inline-flex;align-items:center;gap:5px;flex:none;transition:background .15s,color .15s}
-.pill .ic{width:11px;height:11px}
-.pill:hover{color:#fff}
-.pill.on{background:#c8f04a;border-color:transparent;color:#111;font-weight:700}
-.list{flex:1;min-height:0;overflow:auto;padding:2px 8px 10px;scrollbar-width:none}
+.pill{height:30px;padding:0 14px;border-radius:15px;background:var(--card2);border:1px solid transparent;font-size:12px;font-weight:600;color:var(--dim);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;flex:none}
+.pill .ic{width:12px;height:12px}
+.pill.on{background:var(--blue);color:#fff}
+.list{flex:1;min-height:0;overflow-y:auto;padding:4px 8px 12px;scrollbar-width:none}
 .list::-webkit-scrollbar{display:none}
-.row{display:grid;grid-template-columns:40px minmax(0,1fr) auto 74px;gap:12px;align-items:center;padding:10px 6px;
-  border-bottom:1px solid var(--stroke);border-radius:10px;cursor:pointer;transition:background .15s;
-  animation:rowIn .35s var(--ease) both;animation-delay:calc(var(--i) * 22ms)}
-.row:hover{background:var(--inset)}
-.row:last-child{border-bottom:0}
-.coin{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
-.coin .ic{width:18px;height:18px}
+.row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 10px;border-radius:16px;cursor:pointer;
+  animation:rowIn .35s var(--ease) both;animation-delay:calc(var(--i) * 30ms)}
+.row:hover{background:var(--card2)}
+.coin{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;font-weight:800;font-size:11px}
+.coin .ic{width:20px;height:20px}
 .row .t{min-width:0}
-.row .t b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .t small{display:block;font-size:9.5px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{display:block;font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .t small u{text-decoration:none;color:var(--blue-soft);font-weight:600}
-.num{text-align:right;white-space:nowrap}
-.num b{display:block;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.num small{display:block;font-size:9.5px;margin-top:3px;color:var(--dim);font-variant-numeric:tabular-nums}
+.num{text-align:right}
+.num b{display:block;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.num small{display:block;font-size:11px;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--dim)}
 .num small.up{color:var(--up)} .num small.down{color:var(--down)}
-.buy{height:28px;padding:0 14px;border-radius:14px;background:var(--blue);color:#fff;font-size:10.5px;font-weight:600;justify-self:end;min-width:70px;position:relative;transition:background .15s,transform .15s var(--ease)}
+.buy{height:30px;padding:0 14px;border-radius:15px;background:var(--blue);color:#fff;font-size:11.5px;font-weight:700;position:relative;transition:background .15s,transform .15s var(--ease)}
 .buy:hover{background:var(--blue-soft);transform:translateY(-1px)}
-.buy.owned{background:transparent;border:1px solid var(--stroke-strong);color:var(--dim)}
+.buy.owned{background:var(--card2);color:var(--dim)}
 .buy.owned:hover{color:#fff;transform:none}
-.buy.eq{background:#c8f04a;border-color:transparent;color:#111}
-.tagok{justify-self:end;font-size:9.5px;color:var(--dim);display:inline-flex;align-items:center;gap:5px}
-.tagok .ic{width:11px;height:11px}
-.empty{padding:44px 20px;text-align:center;color:var(--faint);font-size:12px;display:flex;flex-direction:column;gap:8px;align-items:center}
-.empty .ic{width:22px;height:22px;stroke-width:1.5}
+.buy.eq{background:#fff;color:#111}
+.buyrow{display:flex;align-items:center;gap:8px}
+.wish{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--faint);flex:none}
+.wish .ic{width:15px;height:15px}
+.wish.on{color:#fff} .wish.on .ic{fill:#fff}
+.empty{padding:40px 16px;text-align:center;color:var(--faint);font-size:12.5px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.empty .ic{width:24px;height:24px;stroke-width:1.5}
 .loading{color:transparent!important;pointer-events:none}
-.loading::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
-
-/* modal */
-.modal{position:absolute;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .25s}
+.loading::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border:1.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+/* tab bar */
+.tabbar{flex:none;display:flex;background:rgba(19,19,21,.92);backdrop-filter:blur(14px);border-top:1px solid var(--stroke);padding:10px 8px 20px}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--faint);padding:4px 0;position:relative}
+.tabbar button .ic{width:21px;height:21px}
+.tabbar button.on{color:#fff}
+.tabbar button.on::before{content:"";position:absolute;top:-11px;width:24px;height:3px;border-radius:2px;background:var(--blue)}
+/* modal sheet */
+.modal{position:absolute;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s}
 .modal.open{opacity:1;pointer-events:auto}
-.sheet{width:560px;background:var(--panel);border:1px solid var(--stroke-strong);border-radius:20px;overflow:hidden;
-  transform:translateY(14px) scale(.98);transition:transform .35s var(--ease);box-shadow:0 24px 60px rgba(0,0,0,.75)}
+.sheet{width:100%;max-height:88%;overflow-y:auto;scrollbar-width:none;background:#141416;border-radius:26px 26px 0 0;border:1px solid var(--stroke);border-bottom:0;
+  transform:translateY(40px);transition:transform .35s var(--ease);padding-bottom:22px}
+.sheet::-webkit-scrollbar{display:none}
 .modal.open .sheet{transform:none}
-.sheet-h{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--stroke);background:rgba(255,255,255,.02)}
-.sheet-h .phi{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
-.sheet-h b{font-size:13.5px;font-weight:600;display:block}
-.sheet-h span{font-size:10.5px;color:var(--faint)}
-.sheet-h .x{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--dim)}
-.sheet-h .x:hover{background:var(--inset);color:#fff}
-.sheet-b{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
-.sheet-f{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--stroke);background:rgba(255,255,255,.02)}
-.sheet-f .eosline{flex:1}
-.btn{height:34px;padding:0 16px;border-radius:var(--r);border:1px solid var(--stroke);background:var(--inset);color:#fff;font-size:12px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;position:relative;white-space:nowrap;transition:background .15s,transform .12s var(--ease)}
-.btn:hover{background:var(--raised)} .btn:active{transform:scale(.97)}
-.btn.primary{background:var(--blue);border-color:transparent;font-weight:600}
-.btn.primary:hover{background:var(--blue-soft)}
-.btn.white{background:#fff;color:#111;border-color:transparent;font-weight:600}
-.btn.ghost{background:transparent;border-color:transparent;color:var(--dim)}
-.btn.ghost:hover{background:var(--inset);color:#fff}
+.grab{width:40px;height:4px;border-radius:2px;background:#3a3a40;margin:10px auto 2px}
+.sheet-h{display:flex;align-items:center;gap:11px;padding:10px 18px 12px}
+.sheet-h .phi{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none}
+.sheet-h .phi .ic{width:18px;height:18px}
+.sheet-h b{font-size:15px;display:block}
+.sheet-h span{font-size:11px;color:var(--dim)}
+.sheet-h .x{margin-left:auto;width:32px;height:32px;border-radius:50%;background:var(--card2);display:grid;place-items:center;color:var(--dim);flex:none}
+.sheet-b{padding:2px 18px;display:flex;flex-direction:column;gap:12px}
+.sheet-f{display:flex;align-items:center;gap:8px;padding:14px 18px 0}
+.sheet-f .eosline{flex:1;font-size:9.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{min-height:40px;padding:0 16px;border-radius:20px;background:var(--card2);color:#fff;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;position:relative;white-space:nowrap}
+.btn.primary{background:var(--blue)}
+.btn.white{background:#fff;color:#111}
+.btn.ghost{background:transparent;color:var(--dim)}
 .btn[disabled]{opacity:.45;pointer-events:none}
-.crow{display:flex;align-items:center;gap:12px;min-height:32px}
-.crow>.clabel{width:120px;flex:none;color:var(--dim);font-size:12px;font-weight:500}
-.crow>.clabel small{display:block;font:500 9px/1.2 var(--mono);color:var(--faint);margin-top:2px}
+.crow{display:flex;align-items:center;gap:10px}
+.crow>.clabel{width:86px;flex:none;color:var(--dim);font-size:12px}
 .crow>.field{flex:1}
-.field{height:32px;border-radius:var(--r);background:var(--field);border:1px solid var(--stroke);display:flex;align-items:center;gap:8px;padding:0 12px;min-width:0;transition:border-color .15s}
-.field:focus-within{border-color:var(--stroke-strong)}
+.field{height:40px;border-radius:20px;background:var(--field);border:1px solid var(--stroke);display:flex;align-items:center;gap:8px;padding:0 14px;min-width:0}
+.field:focus-within{border-color:#3a3a40}
 .field.err{border-color:#fff}
-.field input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:12px}
+.field input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:13px}
 .field input::placeholder{color:var(--faint)}
-.field .unit{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--dim)}
+.field .unit{font-size:10px;font-weight:700;color:var(--dim)}
 .mono{font-family:var(--mono)}
-.quick{display:flex;gap:6px}
-.quick button{height:26px;padding:0 10px;border-radius:13px;background:var(--inset);border:1px solid var(--stroke);font-size:10.5px;color:var(--dim)}
-.quick button:hover,.quick button.on{color:#fff;background:var(--raised)}
-.packs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.pack{position:relative;border:1px solid var(--stroke);background:var(--inset);border-radius:14px;padding:22px 10px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0;transition:border-color .15s,background .15s}
-.pack:hover{background:var(--raised)}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{height:28px;padding:0 11px;border-radius:14px;background:var(--card2);font-size:11px;color:var(--dim)}
+.quick button.on{color:#111;background:#fff;font-weight:700}
+.packs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pack{position:relative;border:1px solid var(--stroke);background:var(--card);border-radius:16px;padding:24px 12px 12px;text-align:left;min-width:0}
 .pack.on{border-color:var(--blue);background:rgba(31,94,255,.12)}
-.pack b{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
-.pack small{font-size:9.5px;color:var(--dim)}
-.pack .bonus{position:absolute;top:8px;right:9px;font-size:8.5px;font-weight:700;color:var(--blue-soft)}
-.pack .flag{position:absolute;top:8px;left:10px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.pack b{font-size:17px;font-variant-numeric:tabular-nums}
+.pack small{font-size:10px;color:var(--dim);display:block;margin-top:2px}
+.pack .bonus{position:absolute;top:8px;right:10px;font-size:9px;font-weight:700;color:var(--blue-soft)}
+.pack .flag{position:absolute;top:8px;left:12px;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .sum{display:flex;gap:8px}
-.sum div{flex:1;background:var(--field);border:1px solid var(--stroke);border-radius:14px;padding:10px 12px;min-width:0}
-.sum small{display:block;font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
-.sum b{display:block;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sum span{display:block;font-size:9.5px;color:var(--dim);margin-top:3px}
+.sum div{flex:1;background:var(--field);border:1px solid var(--stroke);border-radius:14px;padding:9px 10px;min-width:0}
+.sum small{display:block;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:3px}
+.sum b{display:block;font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum span{display:block;font-size:9px;color:var(--dim);margin-top:2px}
 .sum div.warn{border-color:#fff}
-.desc{font-size:11.5px;line-height:1.45;color:var(--dim)}
+.desc{font-size:12px;line-height:1.5;color:var(--dim)}
 .desc b{color:#fff}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
-.tag{height:22px;padding:0 9px;border-radius:11px;border:1px solid var(--stroke-strong);font-size:9.5px;font-weight:600;color:var(--dim);display:inline-flex;align-items:center;gap:5px}
-.tag .ic{width:10px;height:10px}
-.tag.hi{background:#c8f04a;border-color:transparent;color:#111}
+.tag{min-height:24px;padding:3px 10px;border-radius:12px;border:1px solid #3a3a40;font-size:10px;font-weight:600;color:var(--dim);display:inline-flex;align-items:center;gap:5px}
+.tag .ic{width:11px;height:11px}
+.tag.hi{background:#fff;border-color:transparent;color:#111}
 .earnrows{display:flex;flex-direction:column}
-.earnrows div{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--stroke);font-size:11.5px}
+.earnrows div{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--stroke);font-size:12px}
 .earnrows div:last-child{border-bottom:0}
-.earnrows .coin{width:28px;height:28px}
-.earnrows .coin .ic{width:13px;height:13px}
-.earnrows small{display:block;font-size:9.5px;color:var(--faint);margin-top:2px}
+.earnrows .coin{width:30px;height:30px}
+.earnrows .coin .ic{width:14px;height:14px}
+.earnrows small{display:block;font-size:10px;color:var(--faint);margin-top:2px}
 .earnrows b{font-variant-numeric:tabular-nums;white-space:nowrap}
-.done{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 10px 10px;text-align:center;animation:pop .3s var(--ease)}
-.done .ok{width:44px;height:44px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
-.done .ok .ic{width:20px;height:20px;stroke-width:2.5}
-.done b{font-size:15px} .done span{font-size:11px;color:var(--dim)}
-.errmsg{font-size:10.5px;color:#fff;padding-left:132px;min-height:14px}
-.wishbtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--stroke);display:grid;place-items:center;color:var(--faint);flex:none}
-.wishbtn:hover{color:#fff;background:var(--raised)}
-.wishbtn.on{color:#c8f04a}
-.wishbtn.on .ic{fill:#c8f04a}
-.dd{position:relative;flex:none}
-.dd-btn{display:flex;align-items:stretch;height:32px;border-radius:var(--r);overflow:hidden;border:1px solid var(--stroke);width:100%;text-align:left}
-.dd-btn .cur{flex:1;background:var(--field);display:flex;align-items:center;padding:0 12px;font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dd-btn .caret{width:32px;background:var(--inset);border-left:1px solid var(--stroke);display:grid;place-items:center;color:var(--dim)}
-.dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;z-index:40;background:var(--field);border:1px solid var(--stroke-strong);border-radius:16px;padding:5px;display:none;flex-direction:column;gap:2px;box-shadow:0 24px 60px rgba(0,0,0,.75)}
+.done{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 10px 6px;text-align:center;animation:pop .3s var(--ease)}
+.done .ok{width:48px;height:48px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
+.done .ok .ic{width:22px;height:22px;stroke-width:2.5}
+.done b{font-size:16px} .done span{font-size:11.5px;color:var(--dim)}
+.errmsg{font-size:11px;color:#fff;padding-left:96px;min-height:14px}
+.dd{position:relative;flex:1}
+.dd-btn{display:flex;align-items:stretch;height:40px;border-radius:20px;overflow:hidden;border:1px solid var(--stroke);width:100%;text-align:left}
+.dd-btn .cur{flex:1;background:var(--field);display:flex;align-items:center;padding:0 14px;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dd-btn .caret{width:40px;background:var(--card2);display:grid;place-items:center;color:var(--dim)}
+.dd-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;background:#1c1c20;border:1px solid #3a3a40;border-radius:16px;padding:5px;display:none;flex-direction:column;gap:2px}
 .open>.dd-menu{display:flex;animation:menuIn .18s var(--ease)}
-.opt{padding:7px 12px;border-radius:var(--r);color:var(--dim);font-size:12px;text-align:left;white-space:nowrap}
-.opt:hover{background:#141414;color:#fff}
-.opt.sel{color:#fff;background:#181818}
-
+.opt{padding:9px 12px;border-radius:12px;color:var(--dim);font-size:12.5px;text-align:left}
+.opt.sel{color:#fff;background:#2a2a30}
 /* toast */
-.toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,10px);padding:9px 14px;border-radius:10px;background:#fff;color:#111;font-size:11.5px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--ease);white-space:nowrap;z-index:200}
+.toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,10px);padding:10px 16px;border-radius:12px;background:#fff;color:#111;font-size:12.5px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .3s var(--ease);white-space:nowrap;z-index:200;max-width:90%}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.toast i{font-style:normal;color:#666;margin-left:8px;font-size:10.5px}
+.toast i{font-style:normal;color:#666;margin-left:8px;font-size:11px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001s!important;transition-duration:.001s!important}}
 </style>
 </head>
 <body>
 <div class="stage">
-  <div class="device">
+  <div class="phone">
     <div class="screen" id="screen">
-      <div class="ui" id="ui">
-        <header class="head">
-          <div><h1>Wallet</h1><p>FRONTIER Card ···· 3040 · in-game currency</p></div>
-          <button class="topup-pill" id="btnTopup" type="button">+ Top up</button>
-        </header>
-
-        <main class="body">
-          <section class="col">
-            <div class="card" id="card"><div class="glow"></div><div class="grain"></div></div>
-            <div class="payrow">
-              <button class="side" id="btnSend" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M11 17l-5-5 5-5M6 12h12"/></svg>Send</button>
-              <button class="fab" id="btnFab" type="button" title="Top up"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-              <button class="side" id="btnReceive" type="button">Receive<svg class="ic" viewBox="0 0 24 24"><path d="M13 7l5 5-5 5M18 12H6"/></svg></button>
-            </div>
-            <div class="holdings" id="holdings"></div>
-            <div class="note"><span class="eosline">EOS_Ecom_Checkout → RedeemEntitlements · backend-settled</span><button id="reset" type="button">Reset demo</button></div>
-          </section>
-
-          <section class="col">
-            <div class="panel">
-              <div class="segbar">
-                <div class="seg" id="seg">
-                  <button class="active" data-t="assets">Assets</button>
-                  <button data-t="market">Market</button>
-                  <button data-t="history">History</button>
-                </div>
-                <span class="pcount" id="pcount"></span>
-              </div>
-              <div class="pills" id="pills"></div>
-              <div class="list" id="list"></div>
-            </div>
-          </section>
-        </main>
-
-        <div class="modal" id="modal" aria-hidden="true"><div class="sheet" role="dialog" id="sheet"></div></div>
-        <div class="toast" id="toast"></div>
+      <div class="island"></div>
+      <div class="status"><span id="stime">9:41</span>
+        <span class="sicons">
+          <svg viewBox="0 0 24 24"><path d="M3 17h4v4H3zM10 13h4v8h-4zM17 8h4v13h-4z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 18a1.5 1.5 0 1 0 0 .01M8.5 14.5a5 5 0 0 1 7 0M5 11a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 28 14"><rect x="1" y="2" width="22" height="10" rx="3" fill="none" stroke="currentColor"/><rect x="3" y="4" width="15" height="6" rx="1.5"/><rect x="24.5" y="5" width="2.5" height="4" rx="1"/></svg>
+        </span>
       </div>
+
+      <div class="appbar">
+        <button class="abtn" id="btnBrand" type="button" title="FRONTIER"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+        <button class="addr" id="btnAddr" type="button" title="Copy address"><i>₵</i><span class="mono">0x7F3A…3040</span></button>
+        <button class="abtn bell" id="btnBell" type="button" title="Activity"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span class="dot"></span></button>
+      </div>
+
+      <div class="bal">
+        <small>Current Balance</small>
+        <h2 id="balH"><span id="balN">0</span> <em id="balC">CR</em></h2>
+        <span class="pct up" id="balP">▲ 0%</span>
+      </div>
+
+      <div class="payrow">
+        <button class="side" id="btnSend" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M11 17l-5-5 5-5M6 12h12"/></svg>Send</button>
+        <button class="fab" id="btnFab" type="button" title="Top up"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="side" id="btnReceive" type="button">Receive<svg class="ic" viewBox="0 0 24 24"><path d="M13 7l5 5-5 5M18 12H6"/></svg></button>
+      </div>
+
+      <section class="sect">
+        <div class="sect-h"><b id="sectT">My Assets</b><span id="sectC"></span></div>
+        <div class="pills" id="pills"></div>
+        <div class="list" id="list"></div>
+      </section>
+
+      <nav class="tabbar" id="tabbar">
+        <button data-t="assets" class="on" type="button"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Assets</button>
+        <button data-t="market" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Market</button>
+        <button data-t="activity" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>Activity</button>
+        <button data-t="earn" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Earn</button>
+      </nav>
+
+      <div class="modal" id="modal" aria-hidden="true"><div class="sheet" role="dialog" id="sheet"></div></div>
+      <div class="toast" id="toast"></div>
     </div>
   </div>
 </div>
@@ -294,7 +260,6 @@ const usd = n => '$' + n.toFixed(2);
 const ago = ms => { const m = Math.round(ms / 60000); if (m < 1) return 'Just now'; if (m < 60) return `${m} min ago`; const h = Math.round(m / 60); if (h < 24) return `${h} h ago`; const d = Math.round(h / 24); return d === 1 ? 'Yesterday' : `${d} days ago`; };
 const IC = {
   chev:'<svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>',
-  plus:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   x:'<svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>',
   check:'<svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>',
   star:'<svg class="ic" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>',
@@ -317,7 +282,11 @@ const IC = {
   level:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 20l6-3 6 3 6-3V4l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>',
   spark:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>',
 };
-new ResizeObserver(([e]) => $('#ui').style.setProperty('--s', (e.contentRect.width / 1000).toFixed(4))).observe($('#screen'));
+function tickClock(){
+  const d = new Date();
+  $('#stime').textContent = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}).replace(/\s?[AP]M/i, '');
+}
+tickClock(); setInterval(tickClock, 10000);
 
 /* ================= DATA ================= */
 const CUR = { code:'CR', name:'Credits', usd:0.01 };
@@ -331,39 +300,39 @@ const PACKS = [
 ];
 const CATS = [
   { k:'decal',  label:'Decals',        one:'Decal',          bg:'#1f5eff', fg:'#fff' },
-  { k:'skin',   label:'Skins',         one:'Skin',           bg:'#c8f04a', fg:'#111' },
-  { k:'wheel',  label:'Wheels',        one:'Steering wheel', bg:'#2a2a2a', fg:'#fff' },
+  { k:'skin',   label:'Skins',         one:'Skin',           bg:'#e8ecff', fg:'#1f5eff' },
+  { k:'wheel',  label:'Wheels',        one:'Steering wheel', bg:'#2a2a2e', fg:'#fff' },
   { k:'audio',  label:'Audio',         one:'Audio',          bg:'#4d80ff', fg:'#fff' },
   { k:'light',  label:'Lights',        one:'Lighting',       bg:'#dfe8ff', fg:'#0a1a4d' },
   { k:'engine', label:'Engine sounds', one:'Engine sound',   bg:'#123fb8', fg:'#fff' },
-  { k:'level',  label:'Levels',        one:'Premium level',  bg:'#3a3a3a', fg:'#fff' },
+  { k:'level',  label:'Levels',        one:'Premium level',  bg:'#3a3a3e', fg:'#fff' },
 ];
 const catOf = k => CATS.find(c => c.k === k);
 const ITEMS = [
-  { id:'d1', cat:'decal', name:'Carbon weave pack', sub:'Set of 6 · matte finish', price:450, rarity:'Common', rating:4.6, trend:12, age:40 },
-  { id:'d2', cat:'decal', name:'Retro stripes', sub:'Triple stripe · 3 colourways', price:300, rarity:'Common', rating:4.4, trend:3, age:120 },
+  { id:'d1', cat:'decal', name:'Carbon weave pack', sub:'Set of 6 · matte', price:450, rarity:'Common', rating:4.6, trend:12, age:40 },
+  { id:'d2', cat:'decal', name:'Retro stripes', sub:'Triple stripe · 3 colours', price:300, rarity:'Common', rating:4.4, trend:3, age:120 },
   { id:'d3', cat:'decal', name:'Night hex', sub:'Reflective honeycomb', price:600, rarity:'Rare', rating:4.8, trend:19, age:3 },
-  { id:'d4', cat:'decal', name:'Season 3 sponsor set', sub:'Official partners · limited', price:900, rarity:'Epic', rating:4.9, trend:28, age:12 },
-  { id:'s1', cat:'skin', name:'Midnight chrome', sub:'Full livery · mirror finish', price:2400, rarity:'Legendary', rating:4.9, trend:18, age:30 },
-  { id:'s2', cat:'skin', name:'Frost matte', sub:'Full livery · satin white', price:1800, rarity:'Epic', rating:4.7, trend:6, age:90 },
-  { id:'s3', cat:'skin', name:'Onyx pearl', sub:'Full livery · flip pearl', price:3200, rarity:'Legendary', rating:4.8, trend:24, age:2 },
-  { id:'s4', cat:'skin', name:'Cobalt racing', sub:'Factory livery · No. 07', price:1500, rarity:'Rare', rating:4.5, trend:-2, age:200 },
+  { id:'d4', cat:'decal', name:'Season 3 sponsor set', sub:'Official · limited', price:900, rarity:'Epic', rating:4.9, trend:28, age:12 },
+  { id:'s1', cat:'skin', name:'Midnight chrome', sub:'Mirror finish', price:2400, rarity:'Legendary', rating:4.9, trend:18, age:30 },
+  { id:'s2', cat:'skin', name:'Frost matte', sub:'Satin white', price:1800, rarity:'Epic', rating:4.7, trend:6, age:90 },
+  { id:'s3', cat:'skin', name:'Onyx pearl', sub:'Flip pearl', price:3200, rarity:'Legendary', rating:4.8, trend:24, age:2 },
+  { id:'s4', cat:'skin', name:'Cobalt racing', sub:'Factory No. 07', price:1500, rarity:'Rare', rating:4.5, trend:-2, age:200 },
   { id:'w1', cat:'wheel', name:'GT alcantara', sub:'330 mm · shift lights', price:1200, rarity:'Rare', rating:4.7, trend:8, age:60 },
-  { id:'w2', cat:'wheel', name:'Formula carbon', sub:'280 mm · integrated display', price:2000, rarity:'Epic', rating:4.8, trend:9, age:45 },
-  { id:'w3', cat:'wheel', name:'Classic wood', sub:'360 mm · polished spokes', price:900, rarity:'Common', rating:4.3, trend:1, age:300 },
-  { id:'a1', cat:'audio', name:'Pit radio · pro engineer', sub:'Voice pack · 240 lines', price:700, rarity:'Rare', rating:4.6, trend:11, age:25 },
-  { id:'a2', cat:'audio', name:'Shift beep pack', sub:'Cockpit sounds · 5 variants', price:250, rarity:'Common', rating:4.2, trend:0, age:180 },
-  { id:'a3', cat:'audio', name:'Launch control chime', sub:'Cockpit sounds', price:300, rarity:'Common', rating:4.4, trend:7, age:5 },
-  { id:'l1', cat:'light', name:'Interior ambient · ice', sub:'Cabin lighting · 3 zones', price:500, rarity:'Common', rating:4.5, trend:5, age:70 },
-  { id:'l2', cat:'light', name:'Underglow · arctic', sub:'Exterior · animated', price:800, rarity:'Rare', rating:4.7, trend:22, age:14 },
-  { id:'l3', cat:'light', name:'Halo DRL', sub:'Exterior · signature daytime lights', price:650, rarity:'Rare', rating:4.6, trend:4, age:110 },
-  { id:'e1', cat:'engine', name:'V10 naturally aspirated', sub:'9,000 rpm · recorded on dyno', price:1600, rarity:'Epic', rating:4.9, trend:31, age:20 },
-  { id:'e2', cat:'engine', name:'Flat-6 turbo', sub:'Wastegate flutter · pops', price:1400, rarity:'Rare', rating:4.6, trend:10, age:80 },
-  { id:'e3', cat:'engine', name:'Electric whine', sub:'Synthesised · 3 profiles', price:1100, rarity:'Rare', rating:4.4, trend:14, age:4 },
-  { id:'v1', cat:'level', name:'Kyalami · Night', sub:'4.52 km · floodlit · 2 layouts', price:2500, rarity:'Premium', rating:4.9, trend:15, age:35 },
-  { id:'v2', cat:'level', name:'Spa · Wet weekend', sub:'7.00 km · dynamic rain', price:2800, rarity:'Premium', rating:4.8, trend:21, age:1 },
+  { id:'w2', cat:'wheel', name:'Formula carbon', sub:'280 mm · display', price:2000, rarity:'Epic', rating:4.8, trend:9, age:45 },
+  { id:'w3', cat:'wheel', name:'Classic wood', sub:'360 mm · polished', price:900, rarity:'Common', rating:4.3, trend:1, age:300 },
+  { id:'a1', cat:'audio', name:'Pit radio · pro', sub:'Voice pack · 240 lines', price:700, rarity:'Rare', rating:4.6, trend:11, age:25 },
+  { id:'a2', cat:'audio', name:'Shift beep pack', sub:'5 variants', price:250, rarity:'Common', rating:4.2, trend:0, age:180 },
+  { id:'a3', cat:'audio', name:'Launch chime', sub:'Cockpit sounds', price:300, rarity:'Common', rating:4.4, trend:7, age:5 },
+  { id:'l1', cat:'light', name:'Ambient · ice', sub:'Cabin · 3 zones', price:500, rarity:'Common', rating:4.5, trend:5, age:70 },
+  { id:'l2', cat:'light', name:'Underglow · arctic', sub:'Animated', price:800, rarity:'Rare', rating:4.7, trend:22, age:14 },
+  { id:'l3', cat:'light', name:'Halo DRL', sub:'Signature DRL', price:650, rarity:'Rare', rating:4.6, trend:4, age:110 },
+  { id:'e1', cat:'engine', name:'V10 NA', sub:'9,000 rpm dyno', price:1600, rarity:'Epic', rating:4.9, trend:31, age:20 },
+  { id:'e2', cat:'engine', name:'Flat-6 turbo', sub:'Wastegate · pops', price:1400, rarity:'Rare', rating:4.6, trend:10, age:80 },
+  { id:'e3', cat:'engine', name:'Electric whine', sub:'3 profiles', price:1100, rarity:'Rare', rating:4.4, trend:14, age:4 },
+  { id:'v1', cat:'level', name:'Kyalami · Night', sub:'4.52 km · floodlit', price:2500, rarity:'Premium', rating:4.9, trend:15, age:35 },
+  { id:'v2', cat:'level', name:'Spa · Wet', sub:'7.00 km · rain', price:2800, rarity:'Premium', rating:4.8, trend:21, age:1 },
   { id:'v3', cat:'level', name:'Interlagos · Sunset', sub:'4.31 km · golden hour', price:2600, rarity:'Premium', rating:4.7, trend:9, age:150 },
-  { id:'v4', cat:'level', name:'Bathurst · Dawn', sub:'6.21 km · fog on the mountain', price:3000, rarity:'Premium', rating:4.9, trend:40, age:8 },
+  { id:'v4', cat:'level', name:'Bathurst · Dawn', sub:'6.21 km · fog', price:3000, rarity:'Premium', rating:4.9, trend:40, age:8 },
 ];
 const itemOf = id => ITEMS.find(i => i.id === id);
 const H = 3600000, D = 24 * H;
@@ -386,150 +355,158 @@ function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s &&
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(W)); } catch {} }
 const view = { tab:'assets', pill:'all' };
 const owned = id => W.owned.includes(id);
-const mover = t => t >= 10 ? `<small class="up">▲ ${t}%</small>` : t < 0 ? `<small class="down">▼ ${Math.abs(t)}%</small>` : `<small>+${t}%</small>`;
+const mover = t => t > 0 ? `<small class="up">+${t}%</small>` : t < 0 ? `<small class="down">−${Math.abs(t)}%</small>` : `<small>0%</small>`;
 
-/* ================= LEFT ================= */
+/* ================= BALANCE ================= */
 let shown = W.balance;
-function renderCard(animate){
-  const el = $('#card');
-  if (!$('.dots', el)){
-    el.insertAdjacentHTML('beforeend',
-      `<div class="dots"><i></i><i></i></div>
-       <div class="bal"><small>Total Balance</small><b><span id="amtN">${fmt(shown)}</span><em> ${CUR.code}</em></b></div>
-       <div class="foot"><span>≈ <b id="amtUsd">${usd(shown * CUR.usd)}</b></span><span class="up" id="amtEarn"></span><span class="mono">···· 3040</span></div>`);
-  }
-  const earned = W.history.filter(h => h.cur === 'CR' && h.amt > 0 && h.kind !== 'topup' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
-  $('#amtEarn').textContent = `▲ ${fmt(earned)} this week`;
+function weekEarned(){
+  return W.history.filter(h => h.cur === 'CR' && h.amt > 0 && h.kind !== 'topup' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
+}
+function renderBal(animate){
+  const e = weekEarned(), pct = W.balance ? (e / W.balance * 100) : 0;
+  const p = $('#balP');
+  p.className = 'pct ' + (pct >= 0 ? 'up' : 'down');
+  p.textContent = `↗ +${pct.toFixed(2)}%`;
   if (animate && shown !== W.balance){
-    const from = shown, to = W.balance, t0 = performance.now(), b = $('.bal b', el);
-    b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
-    const step = t => { const p = Math.min(1, (t - t0) / 800), e = 1 - Math.pow(1 - p, 3), v = from + (to - from) * e;
-      $('#amtN').textContent = fmt(v); $('#amtUsd').textContent = usd(v * CUR.usd);
-      if (p < 1) requestAnimationFrame(step); else shown = to; };
+    const from = shown, to = W.balance, t0 = performance.now(), h = $('#balH');
+    h.classList.remove('bump'); void h.offsetWidth; h.classList.add('bump');
+    const step = t => { const k = Math.min(1, (t - t0) / 800), x = 1 - Math.pow(1 - k, 3);
+      $('#balN').textContent = fmt(from + (to - from) * x);
+      if (k < 1) requestAnimationFrame(step); else shown = to; };
     requestAnimationFrame(step);
-  } else { shown = W.balance; $('#amtN').textContent = fmt(W.balance); $('#amtUsd').textContent = usd(W.balance * CUR.usd); }
+  } else { shown = W.balance; $('#balN').textContent = fmt(W.balance); }
 }
-function renderHoldings(){
-  const rpW = W.history.filter(h => h.cur === 'RP' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
-  $('#holdings').innerHTML =
-    `<div class="hold"><div class="h"><i>₵</i>${CUR.code} · ${CUR.name}</div><b>${fmt(W.balance)}</b><small>Premium · real-money currency</small></div>
-     <div class="hold"><div class="h"><i class="rp">RP</i>${RP.code} · ${RP.name}</div><b>${fmt(W.rp)}</b><small class="${rpW >= 0 ? 'up' : 'down'}">${rpW >= 0 ? '▲' : '▼'} ${fmt(Math.abs(rpW))} this week · earned</small></div>`;
-}
-$('#btnTopup').addEventListener('click', () => openModal('topup'));
-$('#btnFab').addEventListener('click', () => openModal('topup'));
 $('#btnSend').addEventListener('click', () => openModal('gift'));
+$('#btnFab').addEventListener('click', () => openModal('topup'));
 $('#btnReceive').addEventListener('click', () => openModal('redeem'));
-$('#reset').addEventListener('click', () => { W = DEFAULT(); save(); shown = W.balance; renderAll(); toast('Demo wallet reset'); });
+$('#btnAddr').addEventListener('click', () => { try { navigator.clipboard?.writeText('0x7F3A9cE14bD23040'); } catch {} toast('Address copied · 0x7F3A…3040'); });
+$('#btnBrand').addEventListener('click', () => toast('FRONTIER Wallet · mock build'));
+$('#btnBell').addEventListener('click', () => switchTab('activity'));
 
-/* ================= RIGHT ================= */
-$('#seg').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  view.tab = b.dataset.t; view.pill = 'all';
-  $$('#seg button').forEach(x => x.classList.toggle('active', x === b));
+/* ================= TABS + LISTS ================= */
+function switchTab(t){
+  if (t === 'earn'){ openModal('earn'); return; }
+  view.tab = t; view.pill = 'all';
+  $$('#tabbar button').forEach(x => x.classList.toggle('on', x.dataset.t === t));
+  $('#sectT').textContent = t === 'assets' ? 'My Assets' : t === 'market' ? 'Market' : 'Activity';
   renderPills(); renderList();
-});
-const PILLS = [['all','All'],['wish','★'],['movers','Top movers'],['rated','Top rated'],['new','New']];
+}
+$('#tabbar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) switchTab(b.dataset.t); });
+const MPILLS = [['all','All'],['wish','★'],['movers','Top movers'],['rated','Top rated']];
 function renderPills(){
   const el = $('#pills');
-  if (view.tab === 'history'){ el.innerHTML = ''; el.style.display = 'none'; return; }
+  if (view.tab !== 'market'){ el.innerHTML = ''; el.style.display = 'none'; return; }
   el.style.display = '';
-  const cats = view.tab === 'market' ? CATS.map(c => [c.k, c.label]) : [];
-  el.innerHTML = [...PILLS, ...cats].map(([k, l]) =>
-    `<button class="pill ${view.pill === k ? 'on' : ''}" data-p="${k}" type="button">${l === '★' ? IC.star : ''}${l === '★' ? '' : esc(l)}</button>`).join('');
+  el.innerHTML = [...MPILLS, ...CATS.map(c => [c.k, c.label])].map(([k, l]) =>
+    `<button class="pill ${view.pill === k ? 'on' : ''}" data-p="${k}" type="button">${l === '★' ? IC.star : esc(l)}</button>`).join('');
 }
-$('#pills').addEventListener('click', e => {
-  const p = e.target.closest('.pill'); if (!p) return;
-  view.pill = p.dataset.p; renderPills(); renderList();
-});
-function marketList(){
+$('#pills').addEventListener('click', e => { const p = e.target.closest('.pill'); if (!p) return; view.pill = p.dataset.p; renderPills(); renderList(); });
+
+function coinRow({ coin, bg, fg, name, sub, value, trendHTML, right, id, idx }){
+  return `<div class="row" style="--i:${Math.min(idx, 12)}" ${id ? `data-id="${id}"` : 'style="cursor:default"'}>
+    <span class="coin" style="background:${bg};color:${fg}">${coin}</span>
+    <div class="t"><b>${name}</b><small>${sub}</small></div>
+    <div class="num"><b>${value}</b>${trendHTML || ''}</div>
+    ${right || ''}
+  </div>`;
+}
+function assetRows(){
+  const rpW = W.history.filter(h => h.cur === 'RP' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
+  const e = weekEarned(), pct = W.balance ? Math.round(e / W.balance * 100) : 0;
+  const rows = [
+    coinRow({ coin:'₵', bg:'#f7931a', fg:'#fff', name:'Credits', sub:'CR · premium currency', value:fmt(W.balance), trendHTML:mover(pct), idx:0 }),
+    coinRow({ coin:'RP', bg:'#627eea', fg:'#fff', name:'Race points', sub:'RP · earned racing', value:fmt(W.rp), trendHTML:`<small class="up">+${fmt(rpW)}</small>`, idx:1 }),
+  ];
+  W.owned.map(itemOf).filter(Boolean).forEach((i, k) => {
+    const c = catOf(i.cat), eq = W.equipped[i.cat] === i.id;
+    rows.push(coinRow({ coin:IC[i.cat], bg:c.bg, fg:c.fg, id:i.id,
+      name:esc(i.name), sub:`${c.one} · ${i.rarity}${eq ? ' · <u>Equipped</u>' : ''}`,
+      value:`${fmt(i.price)} ${CUR.code}`, trendHTML:mover(i.trend), idx:k + 2,
+      right: eq ? '' : `<div class="buyrow"><button class="buy owned" type="button" data-a="equip" data-id="${i.id}">Equip</button></div>` }));
+  });
+  return rows;
+}
+function marketRows(){
   let list = [...ITEMS];
   const p = view.pill;
   if (p === 'wish') list = list.filter(i => W.wish.includes(i.id));
   else if (p === 'movers') list = list.filter(i => i.trend >= 10).sort((a, b) => b.trend - a.trend);
   else if (p === 'rated') list.sort((a, b) => b.rating - a.rating);
-  else if (p === 'new') list = list.filter(i => i.age <= 14).sort((a, b) => a.age - b.age);
   else if (p !== 'all') list = list.filter(i => i.cat === p);
-  if (p === 'all' || p === 'wish' || (p !== 'movers' && p !== 'new')) list.sort((a, b) => b.rating - a.rating);
-  return list;
+  if (p !== 'movers') list.sort((a, b) => b.rating - a.rating);
+  return list.map((i, k) => {
+    const c = catOf(i.cat), own = owned(i.id), eq = W.equipped[i.cat] === i.id;
+    const btn = own ? (eq ? `<button class="buy eq" type="button" data-a="detail" data-id="${i.id}">On car</button>`
+                          : `<button class="buy owned" type="button" data-a="detail" data-id="${i.id}">Owned</button>`)
+                    : `<div class="buyrow"><button class="wish ${W.wish.includes(i.id) ? 'on' : ''}" type="button" data-a="wish" data-id="${i.id}">${IC.star}</button><button class="buy" type="button" data-a="buy" data-id="${i.id}">Buy</button></div>`;
+    return coinRow({ coin:IC[i.cat], bg:c.bg, fg:c.fg, id:i.id,
+      name:esc(i.name), sub:`${esc(i.sub)}`,
+      value:`${fmt(i.price)} ${CUR.code}`, trendHTML:mover(i.trend), idx:k, right:btn });
+  });
 }
-function assetRow(i, idx){
-  const c = catOf(i.cat), eq = W.equipped[i.cat] === i.id;
-  return `<div class="row" style="--i:${Math.min(idx, 14)}" data-id="${i.id}">
-    <span class="coin" style="background:${c.bg};color:${c.fg}">${IC[i.cat]}</span>
-    <div class="t"><b>${esc(i.name)}</b><small>${c.one} · ${i.rarity}${eq ? ' · <u>Equipped</u>' : ''}</small></div>
-    <div class="num"><b>${fmt(i.price)} ${CUR.code}</b>${mover(i.trend)}</div>
-    ${eq ? `<span class="tagok">${IC.check}On car</span>` : `<button class="buy owned" type="button" data-a="equip" data-id="${i.id}">Equip</button>`}
-  </div>`;
-}
-function marketRow(i, idx){
-  const c = catOf(i.cat), own = owned(i.id);
-  const btn = own ? `<button class="buy owned" type="button" data-a="detail" data-id="${i.id}">Owned</button>`
-                  : `<button class="buy" type="button" data-a="buy" data-id="${i.id}">Buy</button>`;
-  return `<div class="row" style="--i:${Math.min(idx, 14)}" data-id="${i.id}">
-    <span class="coin" style="background:${c.bg};color:${c.fg}">${IC[i.cat]}</span>
-    <div class="t"><b>${esc(i.name)}</b><small>${c.one} · ${i.rarity} · ★ ${i.rating.toFixed(1)}${i.age <= 14 ? ' · <u>New</u>' : ''}</small></div>
-    <div class="num"><b>${fmt(i.price)} ${CUR.code}</b>${mover(i.trend)}</div>
-    ${btn}
-  </div>`;
-}
-function historyRow(h, idx){
-  const plus = h.amt > 0;
-  const ic = h.kind === 'topup' ? IC.topup : h.kind === 'buy' ? IC.bag : h.kind === 'earn' ? IC.trophy : h.kind === 'out' ? IC.sent : IC.recv;
-  const bg = h.kind === 'topup' ? '#1f5eff' : h.kind === 'earn' ? '#c8f04a' : h.kind === 'out' ? '#3a3a3a' : h.kind === 'in' ? '#4d80ff' : '#2a2a2a';
-  const fg = (h.kind === 'earn') ? '#111' : '#fff';
-  return `<div class="row" style="--i:${Math.min(idx, 14)};cursor:default">
-    <span class="coin" style="background:${bg};color:${fg}">${ic}</span>
-    <div class="t"><b>${esc(h.title)}</b><small>${esc(h.sub)}${h.usd ? ` · ${usd(h.usd)}` : ''}</small></div>
-    <div class="num"><b>${plus ? '+' : '−'}${fmt(Math.abs(h.amt))} ${h.cur}</b><small>${ago(Date.now() - h.t)}</small></div>
-    <span class="tagok">${IC.check}</span>
-  </div>`;
+function historyRows(){
+  return W.history.map((h, k) => {
+    const plus = h.amt > 0;
+    const ic = h.kind === 'topup' ? IC.topup : h.kind === 'buy' ? IC.bag : h.kind === 'earn' ? IC.trophy : h.kind === 'out' ? IC.sent : IC.recv;
+    const bg = h.kind === 'topup' ? '#1f5eff' : h.kind === 'earn' ? '#c8f04a' : h.kind === 'out' ? '#3a3a3e' : '#4d80ff';
+    const fg = h.kind === 'earn' ? '#111' : '#fff';
+    return `<div class="row" style="--i:${Math.min(k, 12)};cursor:default">
+      <span class="coin" style="background:${bg};color:${fg}">${ic}</span>
+      <div class="t"><b>${esc(h.title)}</b><small>${esc(h.sub)}</small></div>
+      <div class="num"><b>${plus ? '+' : '−'}${fmt(Math.abs(h.amt))} ${h.cur}</b><small>${ago(Date.now() - h.t)}</small></div>
+    </div>`;
+  });
 }
 function renderList(){
-  const el = $('#list'); let rows = '', count = '';
-  if (view.tab === 'history'){
-    rows = W.history.map(historyRow).join('');
-    count = `<b>${W.history.length}</b> transactions`;
-  } else if (view.tab === 'assets'){
-    const list = W.owned.map(itemOf).filter(Boolean);
-    rows = list.map(assetRow).join('') || `<div class="empty">${IC.bag}<span>No assets yet — open the Market.</span></div>`;
-    count = `<b>${list.length}</b> assets`;
-  } else {
-    const list = marketList();
-    rows = list.map(marketRow).join('') || `<div class="empty">${IC.bag}<span>Nothing here yet.</span></div>`;
-    count = `<b>${list.length}</b> items`;
-  }
-  el.innerHTML = rows; $('#pcount').innerHTML = count;
+  const el = $('#list'); let rows = [];
+  if (view.tab === 'assets'){ rows = assetRows(); $('#sectC').textContent = `${W.owned.length + 2} holdings`; }
+  else if (view.tab === 'market'){ rows = marketRows(); $('#sectC').textContent = `${rows.length} listed`; }
+  else { rows = historyRows(); $('#sectC').textContent = `${rows.length} txns`; }
+  el.innerHTML = rows.join('') || `<div class="empty">${IC.bag}<span>Nothing here yet.</span></div>`;
+  el.scrollTop = 0;
 }
 $('#list').addEventListener('click', e => {
-  const b = e.target.closest('.buy'), row = e.target.closest('.row');
-  if (b){ e.stopPropagation(); if (b.dataset.a === 'equip') equip(b.dataset.id); else openModal('detail', itemOf(b.dataset.id)); return; }
-  if (row && row.dataset.id && view.tab !== 'history') openModal('detail', itemOf(row.dataset.id));
+  const b = e.target.closest('[data-a]');
+  if (b){
+    e.stopPropagation();
+    if (b.dataset.a === 'equip') equip(b.dataset.id);
+    else if (b.dataset.a === 'wish') toggleWish(b.dataset.id);
+    else openModal('detail', itemOf(b.dataset.id));
+    return;
+  }
+  const row = e.target.closest('.row[data-id]');
+  if (row && view.tab !== 'activity') openModal('detail', itemOf(row.dataset.id));
 });
 function equip(id){
-  const i = itemOf(id);
-  if (W.equipped[i.cat] === id) delete W.equipped[i.cat]; else W.equipped[i.cat] = i.id;
-  save(); renderList(); toast(W.equipped[i.cat] === id ? `${i.name} equipped` : `${i.name} unequipped`, 'EOS_PlayerDataStorage · loadout.json');
+  const i = itemOf(id); if (!i) return;
+  if (W.equipped[i.cat] === id) delete W.equipped[i.cat]; else W.equipped[i.cat] = id;
+  save(); renderList(); toast(W.equipped[i.cat] === id ? `${i.name} equipped` : `${i.name} unequipped`, 'loadout.json');
+}
+function toggleWish(id){
+  const on = W.wish.includes(id);
+  W.wish = on ? W.wish.filter(x => x !== id) : [...W.wish, id];
+  save(); renderList(); toast(on ? 'Removed from watchlist' : 'Added to watchlist');
 }
 
 /* ================= MODALS ================= */
 const modal = $('#modal'), sheet = $('#sheet');
 let Mx = null;
 const mhead = (icon, bg, fg, title, sub) =>
-  `<div class="sheet-h"><span class="phi" style="background:${bg};color:${fg}">${icon}</span><div><b>${title}</b><span>${sub}</span></div><button class="x" data-close type="button" aria-label="Close">${IC.x}</button></div>`;
+  `<div class="grab"></div><div class="sheet-h"><span class="phi" style="background:${bg};color:${fg}">${icon}</span><div><b>${title}</b><span>${sub}</span></div><button class="x" data-close type="button">${IC.x}</button></div>`;
 const mfoot = (eos, primary, pid) =>
-  `<div class="sheet-f"><span class="eosline">${eos}</span><button class="btn ghost" data-close type="button">Cancel</button>${primary ? `<button class="btn primary" id="${pid}" type="button">${primary}</button>` : ''}</div>`;
+  `<div class="sheet-f"><span class="eosline">${eos}</span>${primary ? `<button class="btn primary" id="${pid}" type="button" style="flex:1">${primary}</button>` : `<button class="btn white" data-close type="button" style="flex:1">Done</button>`}</div>`;
 function openModal(kind, data){
   Mx = { kind, data, pack:2, amount:250, friend:FRIENDS[0] };
   R[kind]();
   modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => $('input', sheet)?.focus(), 80);
+  setTimeout(() => $('input', sheet)?.focus(), 120);
 }
 function closeModal(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); closeDD(); Mx = null; }
 modal.addEventListener('pointerdown', e => { if (e.target === modal) closeModal(); });
 sheet.addEventListener('click', e => { if (e.target.closest('[data-close]')) closeModal(); });
 function dropdown(root, { options, value, onChange }){
   const label = v => (options.find(o => o.value === v) || { label:v }).label;
-  const paint = () => { root.innerHTML = `<button class="dd-btn" type="button"><span class="cur">${esc(label(value))}</span><span class="caret" style="width:32px;background:var(--inset);border-left:1px solid var(--stroke);display:grid;place-items:center;color:var(--dim)">${IC.chev}</span></button><div class="dd-menu">${options.map(o => `<button class="opt ${o.value === value ? 'sel' : ''}" data-v="${esc(o.value)}" type="button">${esc(o.label)}</button>`).join('')}</div>`; };
+  const paint = () => { root.innerHTML = `<button class="dd-btn" type="button"><span class="cur">${esc(label(value))}</span><span class="caret">${IC.chev}</span></button><div class="dd-menu">${options.map(o => `<button class="opt ${o.value === value ? 'sel' : ''}" data-v="${esc(o.value)}" type="button">${esc(o.label)}</button>`).join('')}</div>`; };
   paint();
   root.addEventListener('click', e => {
     if (e.target.closest('.dd-btn')){ const o = root.classList.contains('open'); closeDD(); root.classList.toggle('open', !o); return; }
@@ -538,59 +515,56 @@ function dropdown(root, { options, value, onChange }){
   });
 }
 function closeDD(){ $$('.open').forEach(x => x.classList.remove('open')); }
-document.addEventListener('pointerdown', e => { if (!e.target.closest('.dd')) closeDD(); });
 
 const R = {
   topup(){
     const p = PACKS[Mx.pack], base = Math.round(p.cr / (1 + p.bonus / 100));
-    sheet.innerHTML = mhead(IC.topup, '#1f5eff', '#fff', 'Top up Credits', 'Real money → CR · Epic Games Store') + `
+    sheet.innerHTML = mhead(IC.topup, '#1f5eff', '#fff', 'Top up', 'Real money → CR · Epic Games Store') + `
       <div class="sheet-b">
-        <div class="packs">${PACKS.map((k, i) => `<button class="pack ${i === Mx.pack ? 'on' : ''}" type="button" data-p="${i}">${k.flag ? `<span class="flag">${k.flag}</span>` : ''}${k.bonus ? `<span class="bonus">+${k.bonus}%</span>` : ''}<b>${fmt(k.cr)}</b><small>${CUR.code} · ${usd(k.usd)}</small></button>`).join('')}</div>
+        <div class="packs">${PACKS.map((k, i) => `<button class="pack ${i === Mx.pack ? 'on' : ''}" type="button" data-p="${i}">${k.flag ? `<span class="flag">${k.flag}</span>` : ''}${k.bonus ? `<span class="bonus">+${k.bonus}%</span>` : ''}<b>${fmt(k.cr)}</b><small>CR · ${usd(k.usd)}</small></button>`).join('')}</div>
         <div class="sum">
           <div><small>You pay</small><b>${usd(p.usd)}</b><span>Epic checkout</span></div>
-          <div><small>You receive</small><b>${fmt(p.cr)} ${CUR.code}</b><span>${p.bonus ? `${fmt(base)} + ${fmt(p.cr - base)} bonus` : 'No bonus'}</span></div>
-          <div><small>Balance after</small><b>${fmt(W.balance + p.cr)}</b><span>≈ ${usd((W.balance + p.cr) * CUR.usd)}</span></div>
+          <div><small>You get</small><b>${fmt(p.cr)}</b><span>${p.bonus ? `+${fmt(p.cr - base)} bonus` : 'No bonus'}</span></div>
+          <div><small>After</small><b>${fmt(W.balance + p.cr)}</b><span>CR balance</span></div>
         </div>
-        <p class="desc">Epic handles payment, tax and receipts. The game only receives an <b>entitlement</b>, redeems it once and credits your wallet.</p>
-      </div>` + mfoot('EOS_Ecom_Checkout · QueryEntitlements · RedeemEntitlements', `Pay ${usd(p.usd)}`, 'mPay');
+      </div>` + mfoot('EOS_Ecom_Checkout · RedeemEntitlements', `Pay ${usd(p.usd)}`, 'mPay');
     $$('.pack', sheet).forEach(b => b.addEventListener('click', () => { Mx.pack = +b.dataset.p; R.topup(); }));
     $('#mPay').addEventListener('click', async e => {
-      const b = e.currentTarget; b.classList.add('loading'); $('.sheet-f .eosline', sheet).textContent = 'Waiting for the Epic overlay…';
-      await wait(1300);
-      W.balance += p.cr; W.history.unshift({ kind:'topup', title:'Top up', sub:`${fmt(p.cr)} CR pack · Epic Games Store`, amt:p.cr, cur:'CR', usd:p.usd, t:Date.now() }); save();
-      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>${fmt(p.cr)} ${CUR.code} added</b><span>New balance ${fmt(W.balance)} ${CUR.code}</span></div>`;
-      $('.sheet-f', sheet).innerHTML = `<span class="eosline">RedeemEntitlements → EOS_Success</span><button class="btn white" data-close type="button">Done</button>`;
-      renderAll(true); toast(`Top up complete · +${fmt(p.cr)} ${CUR.code}`);
+      const b = e.currentTarget; b.classList.add('loading'); await wait(1300);
+      W.balance += p.cr; W.history.unshift({ kind:'topup', title:'Top up', sub:`${fmt(p.cr)} CR pack`, amt:p.cr, cur:'CR', usd:p.usd, t:Date.now() }); save();
+      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>+${fmt(p.cr)} CR</b><span>Balance ${fmt(W.balance)} CR</span></div>`;
+      $('.sheet-f', sheet).innerHTML = `<span class="eosline">RedeemEntitlements → Success</span><button class="btn white" data-close type="button" style="flex:1">Done</button>`;
+      renderAll(true); toast(`+${fmt(p.cr)} CR added`);
     });
   },
   gift(){
-    sheet.innerHTML = mhead(IC.gift, '#4d80ff', '#fff', 'Send Credits', 'Gift CR to a friend · instant, final') + `
+    sheet.innerHTML = mhead(IC.gift, '#4d80ff', '#fff', 'Send', 'Gift CR · instant, final') + `
       <div class="sheet-b">
-        <div class="crow"><div class="clabel">Friend<small>EOS_Friends list</small></div><div class="dd" id="gFriend" style="flex:1"></div></div>
-        <div class="crow"><div class="clabel">Amount</div><label class="field"><input id="gAmt" type="number" min="50" max="${W.balance}" step="50" value="${Mx.amount}" /><span class="unit">${CUR.code}</span></label><div class="quick">${[100,250,500,1000].map(v => `<button type="button" data-v="${v}" class="${v === Mx.amount ? 'on' : ''}">${fmt(v)}</button>`).join('')}</div></div>
-        <div class="crow"><div class="clabel">Message</div><label class="field"><input id="gMsg" type="text" maxlength="60" placeholder="gg — see you on track" /></label></div>
-        <div class="sum"><div><small>Balance after</small><b id="gAfter">${fmt(W.balance - Mx.amount)}</b><span>Gifts are final</span></div><div><small>Delivery</small><b>Instant</b><span>Wallet + notification</span></div></div>
-      </div>` + mfoot('Game backend · transfer · EOS_Connect token', 'Send gift', 'mSend');
+        <div class="crow"><div class="clabel">To</div><div class="dd" id="gFriend"></div></div>
+        <div class="crow"><div class="clabel">Amount</div><label class="field"><input id="gAmt" type="number" min="50" max="${W.balance}" step="50" value="${Mx.amount}" /><span class="unit">CR</span></label></div>
+        <div class="quick">${[100,250,500,1000].map(v => `<button type="button" data-v="${v}" class="${v === Mx.amount ? 'on' : ''}">${fmt(v)}</button>`).join('')}</div>
+        <div class="crow"><div class="clabel">Note</div><label class="field"><input id="gMsg" type="text" maxlength="60" placeholder="gg — see you on track" /></label></div>
+        <div class="sum"><div><small>After</small><b id="gAfter">${fmt(W.balance - Mx.amount)} CR</b><span>Your balance</span></div><div><small>Fee</small><b>Free</b><span>Friends transfer</span></div></div>
+      </div>` + mfoot('Backend transfer · EOS_Connect', 'Send gift', 'mSend');
     dropdown($('#gFriend'), { options:FRIENDS.map(f => ({ value:f, label:f })), value:Mx.friend, onChange:v => Mx.friend = v });
     const upd = () => { const v = Math.max(0, Math.min(W.balance, +$('#gAmt').value || 0)); Mx.amount = v;
-      $('#gAfter').textContent = fmt(W.balance - v); $('#mSend').disabled = v < 50;
+      $('#gAfter').textContent = fmt(W.balance - v) + ' CR'; $('#mSend').disabled = v < 50;
       $$('.quick button', sheet).forEach(b => b.classList.toggle('on', +b.dataset.v === v)); };
     $('#gAmt').addEventListener('input', upd);
     $$('.quick button', sheet).forEach(b => b.addEventListener('click', () => { $('#gAmt').value = b.dataset.v; upd(); }));
     $('#mSend').addEventListener('click', async e => {
       const b = e.currentTarget; b.classList.add('loading'); await wait(800);
-      const amount = Mx.amount, friend = Mx.friend, msg = $('#gMsg').value.trim();
-      W.balance -= amount; W.history.unshift({ kind:'out', title:`Gift to ${friend}`, sub:msg ? `"${msg}"` : 'Gift', amt:-amount, cur:'CR', t:Date.now() }); save();
-      closeModal(); renderAll(true); toast(`Sent ${fmt(amount)} ${CUR.code} to ${friend}`);
+      W.balance -= Mx.amount; W.history.unshift({ kind:'out', title:`Sent to ${Mx.friend}`, sub:$('#gMsg').value.trim() || 'Gift', amt:-Mx.amount, cur:'CR', t:Date.now() }); save();
+      closeModal(); renderAll(true); toast(`Sent ${fmt(Mx.amount)} CR to ${Mx.friend}`);
     });
   },
   redeem(){
-    sheet.innerHTML = mhead(IC.ticket, '#fff', '#111', 'Receive · redeem a code', 'Promo, creator or event codes · try FRNT-S3-WELCOME') + `
+    sheet.innerHTML = mhead(IC.ticket, '#fff', '#111', 'Receive', 'Redeem a code · try FRNT-S3-WELCOME') + `
       <div class="sheet-b">
         <div class="crow"><div class="clabel">Code</div><label class="field" id="rField"><input id="rCode" class="mono" type="text" placeholder="FRNT-XXXX-XXXX" maxlength="20" spellcheck="false" /></label></div>
         <div class="errmsg" id="rErr"></div>
-        <p class="desc">Validated server-side, one redemption per account. Rewards land immediately.</p>
-      </div>` + mfoot('Game backend · code redemption', 'Redeem', 'mRedeem');
+        <p class="desc">One redemption per account. Rewards land immediately.</p>
+      </div>` + mfoot('Backend · code redemption', 'Redeem', 'mRedeem');
     const inp = $('#rCode');
     inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''); $('#rField').classList.remove('err'); $('#rErr').textContent = ''; });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('#mRedeem').click(); });
@@ -598,65 +572,61 @@ const R = {
       const code = inp.value.trim(), b = e.currentTarget; if (!code) return;
       b.classList.add('loading'); await wait(700); b.classList.remove('loading');
       if (!/^FRNT-/.test(code)){ $('#rField').classList.add('err'); $('#rErr').textContent = 'Code not recognised.'; return; }
-      if (W.history.some(h => h.kind === 'in' && h.sub === `Code ${code}`)){ $('#rField').classList.add('err'); $('#rErr').textContent = 'Already redeemed on your account.'; return; }
+      if (W.history.some(h => h.kind === 'in' && h.sub === `Code ${code}`)){ $('#rField').classList.add('err'); $('#rErr').textContent = 'Already redeemed.'; return; }
       W.balance += 500; W.history.unshift({ kind:'in', title:'Code redeemed', sub:`Code ${code}`, amt:500, cur:'CR', t:Date.now() }); save();
-      closeModal(); renderAll(true); toast('Code redeemed · +500 CR');
+      closeModal(); renderAll(true); toast('+500 CR · code redeemed');
     });
   },
   earn(){
     const rows = [
-      [IC.flag, 'Finish a race', 'Any online race · per race', '+150 RP', '#2a2a2a', '#fff'],
-      [IC.trophy, 'Win a race', 'P1 · ranked or casual', '+400 RP', '#c8f04a', '#111'],
-      [IC.spark, 'Clean race bonus', 'No contact, no track limits', '+50 RP', '#4d80ff', '#fff'],
-      [IC.clock, 'Daily first race', 'Resets 00:00 UTC', '+100 RP', '#3a3a3a', '#fff'],
-      [IC.bolt, 'Season pass tiers', 'Next CR reward at tier 20', '+1,000 CR', '#1f5eff', '#fff'],
-      [IC.gift, 'Refer a friend', 'After their first 5 races', '+500 CR', '#123fb8', '#fff'],
+      [IC.flag, 'Finish a race', 'Per race', '+150 RP', '#2a2a2e', '#fff'],
+      [IC.trophy, 'Win a race', 'P1 · any mode', '+400 RP', '#c8f04a', '#111'],
+      [IC.spark, 'Clean race', 'No contact', '+50 RP', '#4d80ff', '#fff'],
+      [IC.clock, 'Daily first race', 'Resets 00:00 UTC', '+100 RP', '#3a3a3e', '#fff'],
+      [IC.bolt, 'Season pass', 'Tier rewards', '+1,000 CR', '#1f5eff', '#fff'],
+      [IC.gift, 'Refer a friend', 'After 5 races', '+500 CR', '#123fb8', '#fff'],
     ];
-    sheet.innerHTML = mhead(IC.bolt, '#1f5eff', '#fff', 'Ways to earn', 'RP from racing · CR from pass + referrals') + `
+    sheet.innerHTML = mhead(IC.bolt, '#1f5eff', '#fff', 'Earn', 'RP from racing · CR from pass + referrals') + `
       <div class="sheet-b"><div class="earnrows">${rows.map(([ic, t, s, v, bg, fg]) => `<div><span class="coin" style="background:${bg};color:${fg}">${ic}</span><div>${t}<small>${s}</small></div><b>${v}</b></div>`).join('')}</div></div>
-      <div class="sheet-f"><span class="eosline">EOS_Stats_IngestStat · Achievements</span><button class="btn white" data-close type="button">Close</button></div>`;
+      <div class="sheet-f"><span class="eosline">Stats · Achievements</span><button class="btn white" data-close type="button" style="flex:1">Close</button></div>`;
   },
   detail(){
     const i = Mx.data, c = catOf(i.cat), own = owned(i.id), short = i.price - W.balance, wish = W.wish.includes(i.id);
     const pack = PACKS.findIndex(p => p.cr >= short);
     sheet.innerHTML = mhead(IC[i.cat], c.bg, c.fg, esc(i.name), `${c.one} · ${i.rarity}`) + `
       <div class="sheet-b">
-        <div class="tags"><span class="tag">${IC.star}${i.rating.toFixed(1)}</span>${i.trend >= 10 ? `<span class="tag">▲ ${i.trend}% this week</span>` : ''}${i.age <= 14 ? `<span class="tag hi">New</span>` : ''}<span class="tag">${c.label}</span></div>
-        <p class="desc">${esc(i.sub)}. ${i.cat === 'level' ? 'A hand-built track variant with its own lighting, weather and leaderboards. <b>Unlocks for every race you host.</b>' : 'Purely cosmetic — <b>no effect on performance</b>.'}</p>
+        <div class="tags"><span class="tag">${IC.star}${i.rating.toFixed(1)}</span>${i.trend >= 10 ? `<span class="tag">▲ ${i.trend}%</span>` : ''}${i.age <= 14 ? `<span class="tag hi">New</span>` : ''}<span class="tag">${c.label}</span></div>
+        <p class="desc">${esc(i.sub)}. ${i.cat === 'level' ? 'Hand-built track variant — lighting, weather, leaderboards. <b>Unlocks for every race you host.</b>' : 'Purely cosmetic — <b>no performance effect</b>.'}</p>
         <div class="sum">
-          <div><small>Price</small><b>${fmt(i.price)} ${CUR.code}</b><span>≈ ${usd(i.price * CUR.usd)}</span></div>
-          <div class="${short > 0 && !own ? 'warn' : ''}"><small>${own ? 'Status' : short > 0 ? 'Short by' : 'Balance after'}</small><b>${own ? 'Owned' : short > 0 ? fmt(short) : fmt(W.balance - i.price)}</b><span>${own ? (W.equipped[i.cat] === i.id ? 'Equipped' : 'Not equipped') : short > 0 ? `You hold ${fmt(W.balance)}` : ''}</span></div>
+          <div><small>Price</small><b>${fmt(i.price)} CR</b><span>≈ ${usd(i.price * CUR.usd)}</span></div>
+          <div class="${short > 0 && !own ? 'warn' : ''}"><small>${own ? 'Status' : short > 0 ? 'Short' : 'After'}</small><b>${own ? (W.equipped[i.cat] === i.id ? 'On car' : 'Owned') : short > 0 ? fmt(short) : fmt(W.balance - i.price)}</b><span>${own ? c.one : short > 0 ? 'CR needed' : 'CR left'}</span></div>
         </div>
       </div>
       <div class="sheet-f">
-        <span class="eosline">${own ? 'PlayerData · loadout.json' : 'Backend · debit CR · grant item'}</span>
-        <button class="wishbtn ${wish ? 'on' : ''}" id="mWish" type="button" title="Wishlist">${IC.star}</button>
-        <button class="btn ghost" data-close type="button">Cancel</button>
-        ${own ? `<button class="btn white" id="mEquip" type="button">${W.equipped[i.cat] === i.id ? 'Unequip' : 'Equip'}</button>`
-              : short > 0 ? `<button class="btn primary" id="mTop" type="button">Top up ${pack >= 0 ? fmt(PACKS[pack].cr) : ''}</button>`
-                          : `<button class="btn primary" id="mBuy" type="button">Buy · ${fmt(i.price)}</button>`}
+        <button class="wishbtn ${wish ? 'on' : ''}" id="mWish" type="button" style="width:40px;height:40px">${IC.star}</button>
+        ${own ? `<button class="btn white" id="mEquip" type="button" style="flex:1">${W.equipped[i.cat] === i.id ? 'Unequip' : 'Equip'}</button>`
+              : short > 0 ? `<button class="btn primary" id="mTop" type="button" style="flex:1">Top up ${pack >= 0 ? fmt(PACKS[pack].cr) : ''}</button>`
+                          : `<button class="btn primary" id="mBuy" type="button" style="flex:1">Buy · ${fmt(i.price)}</button>`}
       </div>`;
     $('#mWish').addEventListener('click', e => {
       const on = W.wish.includes(i.id);
       W.wish = on ? W.wish.filter(x => x !== i.id) : [...W.wish, i.id];
-      save(); e.currentTarget.classList.toggle('on', !on); renderList(); toast(on ? 'Removed from wishlist' : 'Added to wishlist');
+      save(); e.currentTarget.classList.toggle('on', !on); renderList(); toast(on ? 'Unwatched' : 'Watching · price alerts on');
     });
     $('#mEquip')?.addEventListener('click', () => { equip(i.id); closeModal(); });
     $('#mTop')?.addEventListener('click', () => { openModal('topup'); Mx.pack = Math.max(0, pack); R.topup(); });
     $('#mBuy')?.addEventListener('click', async e => {
-      const b = e.currentTarget; b.classList.add('loading'); $('.sheet-f .eosline', sheet).textContent = 'Reserving item · verifying balance…';
-      await wait(900);
+      const b = e.currentTarget; b.classList.add('loading'); await wait(900);
       W.balance -= i.price; W.owned.push(i.id); if (!W.equipped[i.cat]) W.equipped[i.cat] = i.id; W.wish = W.wish.filter(x => x !== i.id);
       W.history.unshift({ kind:'buy', title:i.name, sub:c.one, amt:-i.price, cur:'CR', t:Date.now() }); save();
-      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>${esc(i.name)} is yours</b><span>Balance ${fmt(W.balance)} ${CUR.code}</span></div>`;
-      $('.sheet-f', sheet).innerHTML = `<span class="eosline">Purchase confirmed · entitlement granted</span><button class="btn white" data-close type="button">Done</button>`;
-      if (view.tab !== 'assets'){ view.tab = 'assets'; $$('#seg button').forEach(x => x.classList.toggle('active', x.dataset.t === 'assets')); renderPills(); }
-      renderAll(true); toast(`Bought ${i.name}`, `−${fmt(i.price)} ${CUR.code}`);
+      $('.sheet-b', sheet).innerHTML = `<div class="done"><span class="ok">${IC.check}</span><b>${esc(i.name)} is yours</b><span>Balance ${fmt(W.balance)} CR</span></div>`;
+      $('.sheet-f', sheet).innerHTML = `<span class="eosline">Entitlement granted</span><button class="btn white" data-close type="button" style="flex:1">Done</button>`;
+      renderAll(true); toast(`Bought ${i.name}`, `−${fmt(i.price)} CR`);
     });
   },
 };
 
-/* ================= KEYBOARD · TOAST · INIT ================= */
+/* ================= MISC · INIT ================= */
 document.addEventListener('keydown', e => {
   const typing = /INPUT|TEXTAREA/.test(document.activeElement?.tagName || '');
   if (e.key === 'Escape'){ if (modal.classList.contains('open')) closeModal(); else if ($('.open')) closeDD(); else if (typing) document.activeElement.blur(); return; }
@@ -664,10 +634,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 't' || e.key === 'T') openModal('topup');
   if (e.key === 'g' || e.key === 'G') openModal('gift');
   if (e.key === 'r' || e.key === 'R') openModal('redeem');
-  if (e.key === '1' || e.key === '2' || e.key === '3') $$('#seg button')[+e.key - 1].click();
+  if (e.key === '1' || e.key === '2' || e.key === '3') switchTab(['assets', 'market', 'activity'][+e.key - 1]);
 });
 function toast(msg, sub){ const t = $('#toast'); t.innerHTML = esc(msg) + (sub ? `<i>${esc(sub)}</i>` : ''); t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400); }
-function renderAll(animate){ renderCard(animate); renderHoldings(); renderPills(); renderList(); }
+function renderAll(animate){ renderBal(animate); renderPills(); renderList(); }
+$('#sectC').textContent = '';
 renderAll(false);
 </script>
 </body>
