@@ -20,9 +20,13 @@ cd app && python3 -m http.server 8099 --bind 0.0.0.0
 - `app/index.html` — **Lobby**: browse/search/filter 18 mock lobbies → join a
   room → roster + voice + chat sim, boarding-pass ticket with pit-box picker,
   ready-up → countdown → session live. Create-lobby modal included.
-- `app/wallet.html` — **Wallet**: profile, animated CR balance card, top-up /
-  gift / redeem / earn modals, store (categories, sort, wishlist, equip, buy),
-  transaction history. Persists to `localStorage`.
+  Standalone app — nav is Home / Lobby / Leaderboard only.
+- `app/wallet.html` — **Wallet** (standalone 2nd app): aurora balance card
+  with quick Top-up pill, CR + RP portfolio tiles with weekly movers, top-up /
+  gift / redeem / earn modals, store (decals · skins · wheels · audio ·
+  lights · engine sounds · premium Levels) with trending ▲ / falling ▼ market
+  deltas, categories, sort, wishlist, equip, buy flows, transaction history.
+  Persists to `localStorage`.
 - `app/fonts/` — Inter OFL license. **The `.woff2` binary is git-ignored by
   the sandbox network** — restore it with (needs internet):
 

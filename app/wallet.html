@@ -17,6 +17,7 @@
   --bg:#0a0a0a; --panel:#121212; --inset:#1a1a1a; --field:#000; --raised:#222; --selected:#1c1c1c; --row:#161616;
   --stroke:rgba(255,255,255,.06); --stroke-strong:#2e2e2e;
   --text:#fff; --dim:#8a8a8a; --faint:#5c5c5c;
+  --up:#4ade80; --down:#f87171;
   --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --ease:cubic-bezier(.22,.61,.36,1);
@@ -90,15 +91,18 @@ svg{display:block}
 .pstats small{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
 .pstats b{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
 
-/* balance card */
+/* balance card — aurora finish */
 .card{position:relative;height:190px;border-radius:20px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,.08);padding:16px 18px;display:flex;flex-direction:column;color:#fff;isolation:isolate;flex:none;box-shadow:0 30px 60px -30px rgba(31,94,255,.6)}
-.card .glow{position:absolute;inset:-40%;z-index:-2;background:radial-gradient(38% 46% at 68% 40%,#6f9bff 0%,#1f5eff 22%,rgba(26,79,224,.85) 42%,transparent 68%),radial-gradient(34% 44% at 22% 82%,rgba(31,94,255,.9),transparent 62%),radial-gradient(60% 60% at 50% 50%,#0a2a9a,transparent 74%);filter:blur(16px);animation:drift 16s ease-in-out infinite alternate}
+.card .glow{position:absolute;inset:-40%;z-index:-2;background:radial-gradient(40% 48% at 70% 34%,#5eead4 0%,#1f5eff 26%,rgba(26,79,224,.85) 46%,transparent 70%),radial-gradient(36% 46% at 20% 84%,rgba(77,128,255,.95),transparent 64%),radial-gradient(62% 62% at 50% 50%,#0a2a9a,transparent 76%);filter:blur(16px) saturate(1.25);animation:drift 16s ease-in-out infinite alternate}
 .card .grain{position:absolute;inset:0;z-index:-1;opacity:.16;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
 .card::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.45))}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start}
+.card-top-r{display:flex;gap:8px;align-items:center}
 .card-top small{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600}
 .sym{height:24px;padding:0 10px 0 6px;border-radius:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.14);font-size:10px;font-weight:700;letter-spacing:.08em;display:inline-flex;align-items:center;gap:6px}
 .sym i{width:14px;height:14px;border-radius:50%;background:#fff;color:var(--blue);font-size:7px;font-style:normal;display:grid;place-items:center}
+.card-cta{height:24px;padding:0 12px;border-radius:12px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);font-size:10.5px;font-weight:600;color:#fff;display:inline-flex;align-items:center;gap:5px;transition:background .15s,transform .15s var(--ease)}
+.card-cta:hover{background:rgba(255,255,255,.3);transform:translateY(-1px)}
 .card .amt{margin-top:auto;font-size:36px;font-weight:500;letter-spacing:-.035em;line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px}
 .card .amt em{font-style:normal;font-size:15px;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.85)}
 .card .amt.bump{animation:bump .5s var(--ease)}
@@ -122,7 +126,8 @@ svg{display:block}
 .ptile .h i.rp{background:#fff;color:#111}
 .ptile b{font-size:15px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .ptile small{font-size:9.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ptile small.up{color:var(--blue-soft)}
+.ptile small.up{color:var(--up)}
+.ptile small.down{color:var(--down)}
 .note{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 4px}
 .eos{font-size:9.5px;color:var(--faint);letter-spacing:.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .link{font-size:9.5px;color:var(--faint);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
@@ -164,7 +169,8 @@ svg{display:block}
 .price b{display:block;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
 .price b.plus{color:#fff}.price b.minus{color:var(--dim)}
 .price small{display:block;font-size:9.5px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums}
-.price small.up{color:var(--blue-soft)}
+.price small.up{color:var(--up)}
+.price small.down{color:var(--down)}
 .buy{height:26px;padding:0 12px;border-radius:13px;background:var(--blue);color:#fff;font-size:10px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:5px;position:relative;justify-self:end;min-width:66px;white-space:nowrap;transition:background .15s,transform .15s var(--ease)}
 .buy .ic{width:11px;height:11px}
 .buy:hover{background:var(--blue-soft);transform:translateY(-1px)}
@@ -482,7 +488,10 @@ let shownBalance = W.balance;
 function renderCard(animate){
   const earned = W.history.filter(h => h.cur === 'CR' && h.amt > 0 && h.kind !== 'topup' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
   const el = $('#card');
-  if (!$('.card-top', el)) el.insertAdjacentHTML('beforeend', `<div class="card-top"><small>Total balance</small><span class="sym"><i>₵</i>${CUR.code}</span></div><div class="amt" id="amt"><span id="amtN">${fmt(shownBalance)}</span><em>${CUR.code}</em></div><div class="sub"><span>≈ <b id="amtUsd">${usd(shownBalance * CUR.usd)}</b></span><span class="up" id="amtEarned">${fmt(earned)} CR earned this week</span><span>${ME.season}</span></div>`);
+  if (!$('.card-top', el)){
+    el.insertAdjacentHTML('beforeend', `<div class="card-top"><small>Total balance</small><span class="card-top-r"><span class="sym"><i>₵</i>${CUR.code}</span><button class="card-cta" id="cardTopup" type="button">+ Top up</button></span></div><div class="amt" id="amt"><span id="amtN">${fmt(shownBalance)}</span><em>${CUR.code}</em></div><div class="sub"><span>≈ <b id="amtUsd">${usd(shownBalance * CUR.usd)}</b></span><span class="up" id="amtEarned">${fmt(earned)} CR earned this week</span><span>${ME.season}</span></div>`);
+    $('#cardTopup').addEventListener('click', () => openModal('topup'));
+  }
   $('#amtEarned').textContent = `${fmt(earned)} CR earned this week`;
   if (animate && shownBalance !== W.balance){
     const from = shownBalance, to = W.balance, t0 = performance.now(), n = $('#amtN'), u = $('#amtUsd'), a = $('#amt');
@@ -498,7 +507,7 @@ function renderPort(){
   const rpWeek = W.history.filter(h => h.cur === 'RP' && Date.now() - h.t < 7 * D).reduce((a, h) => a + h.amt, 0);
   $('#port').innerHTML = `
     <div class="ptile"><div class="h"><i>₵</i>${CUR.code} · ${CUR.name}</div><b>${fmt(W.balance)}</b><small>Premium · bought with real money</small></div>
-    <div class="ptile"><div class="h"><i class="rp">RP</i>${RP.code} · ${RP.name}</div><b>${fmt(W.rp)}</b><small class="up">${fmt(rpWeek)} earned this week · not purchasable</small></div>`;
+    <div class="ptile"><div class="h"><i class="rp">RP</i>${RP.code} · ${RP.name}</div><b>${fmt(W.rp)}</b><small class="${rpWeek >= 0 ? 'up' : 'down'}">${rpWeek >= 0 ? '▲' : '▼'} ${fmt(Math.abs(rpWeek))} this week · not purchasable</small></div>`;
 }
 $('#actions').addEventListener('click', e => { const b = e.target.closest('.act'); if (b) openModal(b.dataset.m); });
 $('#btnTopupTop').addEventListener('click', () => openModal('topup'));
@@ -531,10 +540,11 @@ function itemRow(i, idx){
   const btn = view.tab === 'owned'
     ? `<button class="buy ${eq ? 'eq' : 'owned'}" type="button" data-a="equip" data-id="${i.id}">${eq ? IC.check + 'Equipped' : 'Equip'}</button>`
     : own ? `<button class="buy owned" type="button" data-a="detail" data-id="${i.id}">${IC.check}Owned</button>` : `<button class="buy" type="button" data-a="buy" data-id="${i.id}">Buy</button>`;
+  const mv = i.trend >= 10 ? `<small class="up">▲ ${i.trend}% this week</small>` : i.trend < 0 ? `<small class="down">▼ ${Math.abs(i.trend)}% this week</small>` : `<small>≈ ${usd(i.price * CUR.usd)}</small>`;
   return `<div class="item" style="--i:${Math.min(idx, 14)}" data-id="${i.id}">
     <span class="ico" style="background:${c.bg};color:${c.fg}">${IC[i.cat]}</span>
     <div class="t"><b>${esc(i.name)}</b><small>${c.one} · ${i.rarity} · <s>★ ${i.rating.toFixed(1)}</s>${i.age <= 14 ? ' · <u>New</u>' : ''}${esc(i.sub) ? ' · ' + esc(i.sub) : ''}</small></div>
-    <div class="price"><b>${fmt(i.price)} ${CUR.code}</b><small class="${i.trend >= 10 ? 'up' : ''}">${i.trend >= 10 ? `${i.trend}% this week` : '≈ ' + usd(i.price * CUR.usd)}</small></div>
+    <div class="price"><b>${fmt(i.price)} ${CUR.code}</b>${mv}</div>
     ${btn}
   </div>`;
 }
