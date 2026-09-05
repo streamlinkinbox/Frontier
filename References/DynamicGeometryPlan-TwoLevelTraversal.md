@@ -68,6 +68,64 @@ on its own. It would be measurably *slower*, and it would add a GPU-side builder
 The crossover is around **1 000–10 000 instances**. Below that, CPU wins outright. Above ~10 000 a GPU build
 starts to pay, and that is the point to revisit — not now.
 
+### 2b. The real target scene: ~1000 static + ~100 moving, growing to many cars
+
+The 23-instance drop scene is a stepping stone, not the destination. Measured for the stated world
+(`Scratchpad/TlasScaleBenchmark.cpp`, SSE2, pre-AVX host), rebuilding ONE merged TLAS per frame:
+
+| Total instances | Rebuild | Frame share | |
+|---|---|---|---|
+| 500 | 0.47 ms | 2.8 % | comfortable |
+| 1 000 | 1.02 ms | 6.1 % | comfortable |
+| **1 150** (1000 static + 100 moving) | **1.20 ms** | **7.2 %** | **the stated scene — fine** |
+| 1 500 | 1.89 ms | 11.3 % | budget starts to hurt |
+| 2 500 (100 cars) | 2.66 ms | 15.9 % | needs the fix below |
+| 6 000 | 6.60 ms | 39.5 % | unusable as a full rebuild |
+
+**Cars stack fast.** A car is not one instance: body + 4 wheels ≈ 5. So 20 cars ≈ 100 moving instances,
+100 cars ≈ 500. Combined with 1000–2000 static props, a busy race scene lands at **2 500–3 000 instances**,
+which is 16–20 % of the frame on the CPU — too much to spend on bookkeeping.
+
+UI is not a concern at all: those ~50 elements are `InterfaceInstanceFigure`s drawn by the raster overlay
+(`InterfaceExchange`), **not** TLAS instances. They never enter the acceleration structure. Cost is one draw
+call regardless of element count.
+
+### 2c. The obvious optimisation, measured and REJECTED
+
+Splitting into a static TLAS (built once) and a dynamic TLAS (rebuilt per frame) makes the rebuild
+**13.7× cheaper** — 1.13 ms → 0.082 ms at 1100 instances. It looks like an easy win.
+
+It is not. Every ray must then traverse **both** trees, and neither can cull the other's geometry.
+Measured over 200 000 rays (`Scratchpad/TlasSplitTraversalBenchmark.cpp`):
+
+| | per ray | |
+|---|---|---|
+| one merged TLAS | 0.370 µs | |
+| two TLASes | 0.492 µs | **+32.8 %** |
+
+Trading ~1 ms of CPU build for **+33 % on every ray** is a bad deal by a wide margin — at 1 M rays/frame the
+traversal side dominates completely. **The split is rejected.** Recording it so it is not "rediscovered"
+later as a good idea.
+
+Also checked: `BVH::Refit()` **cannot** be used on a TLAS — tinybvh aborts with *"do not refit a TLAS, use
+Build(..)"*. So the cheap middle option does not exist in this library.
+
+### 2d. What actually scales, in priority order
+
+1. **Rebuild one merged TLAS per frame on the CPU.** Correct and simple to ~1 500 instances. This is what
+   D1–D5 will implement, and it comfortably covers the stated 1000 + 100 scene at 7 % of frame.
+2. **Move the rebuild off the critical path** (next, when needed). The TLAS for frame N+1 depends only on
+   physics, not on rendering, so it can be built on a worker thread while frame N renders. Cost becomes
+   ~0 ms of *blocking* time. This alone carries 2 500–3 000 instances. It requires double-buffering the
+   TLAS, which the per-cycle-slot ring already implies.
+3. **Cull before building.** Unreal's guidance: instances outside the view/relevance radius never enter the
+   TLAS. A race track has most of its 1000 props behind or far from the camera; culling to the active
+   radius typically removes the majority, and this composes with (2).
+4. **Only then consider a GPU build**, past ~10 000 instances, where the measurements show the CPU losing.
+
+The plan below is written for (1) because that is what the stated scene needs today. (2) and (3) are
+additive and do not change the data layout — which is the point of doing (1) first rather than guessing.
+
 
 
 Three separate questions, and they have different answers:
