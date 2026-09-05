@@ -40,6 +40,7 @@
 #include "../../../Engine/SpatialInterface/InterfaceScreenSequence.h"
 #include "../../../Engine/SpatialInterface/InterfaceTextProjection.h"
 #include "../../../Engine/SpatialInterface/InterfaceVectorCodec.h"
+#include "../../../Engine/SpatialInterface/InterfaceLightProjection.h"
 
 #include <algorithm>
 #include <chrono>
@@ -174,6 +175,89 @@ int main(int argc, char** argv)
     uint32_t AlphaMaskedMaterialCount = 0u;   // R4b: > 0 switches shadow rays to the alpha-mask-aware walk
     for (const Frontier::MaterialRecord& R : Level.QueryMaterials().QueryRecords())
         if (R.Flags & Frontier::MaterialFlagAlphaMask) ++AlphaMaskedMaterialCount;
+
+    //──────────────────────────────────────────────────────────────────────────
+    // Interface light contribution — the panel as an emitter in the room
+    //──────────────────────────────────────────────────────────────────────────
+    // Where the panel hangs, resolved here because the proxy must be registered before the acceleration structure
+    //    is built — well before the interface itself is brought up further down.
+    const bool ShowroomLevelForLight = Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop";
+    Frontier::PlanePlacement PanelPlacementForLight;
+    if (ShowroomLevelForLight)
+    {
+        const Frontier::Vector3 LightAnchor = Frontier::ProjectZero::ShowroomStructure::QueryPanelOrigin();
+        PanelPlacementForLight.Origin    = Frontier::PlaneOrigin{ LightAnchor.x, LightAnchor.y, LightAnchor.z };
+        PanelPlacementForLight.RotationX = 1.57079633f + Frontier::ProjectZero::ShowroomStructure::QueryPanelTilt();
+        PanelPlacementForLight.Scale     = 2.2f;
+    }
+
+    // Registered BEFORE the acceleration structure is built, and the scene re-finalised, because Finalise is what
+    //    flattens triangles and builds the luminaire table. A proxy added after it would be geometry the light
+    //    sampler never sees: drawn, but lighting nothing.
+    //
+    //    The radiance is measured once here from the panel's rest composition rather than per frame. A per-frame
+    //    update would mean rebuilding the acceleration structure every time a lamp changed brightness, which is
+    //    the 28 ms rebuild D6 measured — far too expensive for a second-order lighting effect. The panel's average
+    //    colour barely moves during the trial loop, so a static proxy is the honest trade.
+    Frontier::InterfaceFidelityTier PanelTier = Frontier::InterfaceFidelityTier::Low;
+    if (ShowroomLevelForLight)
+    {
+        Frontier::InterfaceStructure RestFigures;
+        Frontier::MotionIntegrator   RestMotion;
+        Frontier::ProjectZero::InterfaceTrialSequence RestTrial;
+        RestTrial.AssignPanelPlacement(PanelPlacementForLight);
+        RestTrial.Construct(RestFigures, RestMotion);
+        RestTrial.AdvanceTrial(RestFigures, RestMotion, 1.5, true);   // mid-loop: buttons lit, bar part filled
+
+        Frontier::InterfaceSequence RestComposition;
+        Frontier::InterfaceViewConfiguration RestView;
+        RestView.EyeY = -1.70f; RestView.EyeZ = 1.45f; RestView.ForwardY = 1.0f;
+        RestComposition.AssignView(RestView);
+        RestComposition.Advance(RestFigures, 1.5);
+
+        // Panel face in world space. Scale 2.2 and the trial's authored half extents give the half-axes; the
+        //    showroom tilt leans the face back, so the up axis is not simply world +Z.
+        const float HalfWidth  = 0.115f * 2.2f;   // [m]
+        const float HalfHeight = 0.072f * 2.2f;   // [m]
+        const float Tilt = Frontier::ProjectZero::ShowroomStructure::QueryPanelTilt();
+        const Frontier::Vector3 Anchor = Frontier::ProjectZero::ShowroomStructure::QueryPanelOrigin();
+
+        Frontier::PanelProxyRequest Proxy;
+        Proxy.Tier    = PanelTier;
+        Proxy.CentreX = Anchor.x; Proxy.CentreY = Anchor.y; Proxy.CentreZ = Anchor.z;
+        Proxy.RightX  = HalfWidth; Proxy.RightY = 0.0f; Proxy.RightZ = 0.0f;
+        // Local +Y after the stand-up rotation and tilt: mostly world +Z, leaning toward −Y.
+        Proxy.UpX = 0.0f;
+        Proxy.UpY = -HalfHeight * std::sin(Tilt);
+        Proxy.UpZ =  HalfHeight * std::cos(Tilt);
+        // A display that reads correctly as an overlay is far too dim as an emitter measured against a 32 nit
+        //    ceiling panel; this brings it into the same range as the room's own luminaires.
+        Proxy.Gain = 26.0f;
+
+        const Frontier::PanelRadiance Radiance =
+            Frontier::InterfaceLightProjection::MeasureRadiance(RestFigures, RestComposition,
+                                                                4.0f * HalfWidth * HalfHeight);
+        const uint32_t ProxyInstance =
+            Frontier::InterfaceLightProjection::ComposeProxy(Level, Proxy, Radiance);
+
+        if (ProxyInstance != 0xFFFFFFFFu)
+        {
+            Level.Finalise(64u, nullptr);   // rebuilds the flat triangles and the luminaire table with the proxy in
+            char Line[224];
+            std::snprintf(Line, sizeof(Line),
+                          "Panel light %s: rgb (%.3f %.3f %.3f) from %u figures, %.0f%% coverage, %zu luminaires now.",
+                          Frontier::InterfaceFidelityTierName(PanelTier),
+                          Radiance.Red, Radiance.Green, Radiance.Blue, Radiance.Contributors,
+                          Radiance.Coverage() * 100.0, Level.QueryLuminaires().size());
+            Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface", Line);
+        }
+        else
+        {
+            Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface",
+                                 std::string("Panel light ") + Frontier::InterfaceFidelityTierName(PanelTier) +
+                                 ": no proxy registered (tier off, unavailable, or the panel emits nothing).");
+        }
+    }
 
     // R3: Tier A acceleration structure — tinybvh binned SAH → CWBVH over the flat world-space triangles.
     // D1: built through the bottom-level entry point. The whole level is currently ONE identity-transformed
