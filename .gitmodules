@@ -21,3 +21,21 @@
 [submodule "ExternalPackages/tomlpp"]
 	path = ExternalPackages/tomlpp
 	url = https://github.com/marzer/tomlplusplus.git
+[submodule "ExternalPackages/imgui"]
+	path = ExternalPackages/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "ExternalPackages/glfw"]
+	path = ExternalPackages/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "ExternalPackages/thorvg"]
+	path = ExternalPackages/thorvg
+	url = https://github.com/thorvg/thorvg.git
+[submodule "ExternalPackages/earcut"]
+	path = ExternalPackages/earcut
+	url = https://github.com/mapbox/earcut.hpp.git
+[submodule "ExternalPackages/cgltf"]
+	path = ExternalPackages/cgltf
+	url = https://github.com/jkuhlmann/cgltf.git
+[submodule "ExternalPackages/clipper2"]
+	path = ExternalPackages/clipper2
+	url = https://github.com/AngusJohnson/Clipper2.git
