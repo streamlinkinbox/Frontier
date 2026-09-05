@@ -47,5 +47,14 @@ void main()
 
     if (Alpha <= 0.0) discard;
 
-    OutColour = vec4(Tint.xyz * Alpha, Alpha);   // premultiplied
+    // ⑦ Surface response. Emissive elements show their tint at full strength regardless of the room. Albedo-side
+    //    elements (the housing) are lit by AmbientIrradiance, so a dark bezel sits DOWN in a dim room instead of
+    //    glowing like a decal. AmbientIrradiance is a single scene-average term in P0 — the proxy luminaire in
+    //    References/InterfaceLightContribution-Plan.md upgrades this to real transport without touching the slot.
+    vec3  Albedo   = InterfaceUnpackTint(Figure.BaseColour).xyz;
+    vec3  Emitted  = Tint.xyz;
+    vec3  Received = Albedo * AmbientIrradiance.xyz;
+    vec3  Colour   = mix(Received, Emitted, clamp(Figure.EmissiveWeight, 0.0, 1.0));
+
+    OutColour = vec4(Colour * Alpha, Alpha);   // premultiplied
 }

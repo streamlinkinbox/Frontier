@@ -31,8 +31,9 @@ struct alignas(16) InterfaceConstantRecord
     float ViewClip[16];
     float CameraOrigin[4];
     float Extent[4];
+    float AmbientIrradiance[4];
 };
-static_assert(sizeof(InterfaceConstantRecord) == 96u, "InterfaceConstantRecord must match the std140 block");
+static_assert(sizeof(InterfaceConstantRecord) == 112u, "InterfaceConstantRecord must match the std140 block");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    VULKAN RECORD
@@ -548,6 +549,10 @@ void InterfaceExchange::WriteViewConstants(uint32_t CycleSlot, const InterfaceVi
     Record.CameraOrigin[3] = 0.0f;
     Record.Extent[0] = static_cast<float>(View.RenderWidth);
     Record.Extent[1] = static_cast<float>(View.RenderHeight);
+    Record.AmbientIrradiance[0] = View.AmbientRed;
+    Record.AmbientIrradiance[1] = View.AmbientGreen;
+    Record.AmbientIrradiance[2] = View.AmbientBlue;
+    Record.AmbientIrradiance[3] = 0.0f;
 
     std::memcpy(Target.Mapped, &Record, sizeof(Record));
 }

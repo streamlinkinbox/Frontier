@@ -118,6 +118,14 @@ void InterfaceLayoutCodec::Encode(const InterfaceFigure& Figure, const WorldPlac
     Slot.ScalarAlpha     = Figure.ScalarAlpha;
     Slot.ScalarBeta      = Figure.ScalarBeta;
     Slot.Tint            = Figure.TintOverride != 0u ? Figure.TintOverride : Palette.QueryPacked(Figure.Palette);
+
+    // ⑦ Surface response. BaseColour with a zero alpha means "no distinct albedo" — the resolved tint doubles as the
+    //    albedo, which is what a pure emitter wants anyway. Reserve stays zero so the tail is deterministic and the
+    //    encode → decode round trip in the proof harness stays exact.
+    Slot.BaseColour      = (Figure.BaseColour >> 24) != 0u ? Figure.BaseColour : Slot.Tint;
+    Slot.EmissiveWeight  = std::clamp(Figure.EmissiveWeight, 0.0f, 1.0f);
+    Slot.ReserveAlpha    = 0.0f;
+    Slot.ReserveBeta     = 0.0f;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -145,6 +153,9 @@ void InterfaceLayoutCodec::Decode(const InterfaceInstanceFigure& Slot, Interface
     Figure.ScalarAlpha  = Slot.ScalarAlpha;
     Figure.ScalarBeta   = Slot.ScalarBeta;
     Figure.TintOverride = Slot.Tint;
+
+    Figure.BaseColour     = Slot.BaseColour;
+    Figure.EmissiveWeight = Slot.EmissiveWeight;
 }
 
 } // namespace Frontier

@@ -108,8 +108,58 @@ the figure storage the batcher owns. Two adjustments to earlier phases:
 2. **After P1:** implement Stage A + B1 together (one proxy quad, threshold-updated). Then evaluate B2 against
    the actual image.
 
-## Open question for you
+## Resolved: B1 and B2 are one ladder, not a choice
 
-Does the panel need to be **legible in reflections** (B2), or is a correctly-placed, correctly-coloured glow
-(B1) enough? B1 is nearly free and ships with the emission work. B2 is a genuine feature with a real cost, and
-it is the kind of thing that is much easier to build deliberately than to retrofit.
+Decision — **build both, selected by a quality tier**, because they share the entire structure and differ only in
+what the proxy's hit shader returns. Retrofitting a tier later is what would be expensive; branching one shader
+is not.
+
+```
+InterfaceFidelityTier            proxy in light list   reflection shows      cost
+    Off          .............. no                     nothing               zero — overlay only, today's behaviour
+    Low          .............. yes, averaged           flat glowing rect     2 triangles, 1 luminaire
+    High         .............. yes, averaged           SDF-evaluated panel   + SDF work on reflection rays
+    Ultra        .............. yes, per-figure         SDF-evaluated panel   + one luminaire per emissive figure
+```
+
+The tier is one enum on the project side. What changes across it:
+
+- **Off → Low** adds the proxy quad to the triangle buffer and one entry to `Luminaires`. Nothing else moves.
+- **Low → High** swaps the proxy's hit shader from "return the averaged emissive" to "evaluate
+  `InterfaceSignedDistance` at the hit's plane coordinate". Same geometry, same luminaire, same light list —
+  only the returned radiance differs. This is why `InterfaceSignedDistance.slang` stays a header of pure
+  functions: the hit shader includes it unchanged.
+- **High → Ultra** stops averaging the panel into one emitter and gives each emissive figure its own luminaire
+  entry, so a single lit button casts its own correctly-shaped pool of light instead of contributing to a panel
+  average. Only sensible for a handful of figures, hence the top tier.
+
+`Low` is the default. It is the tier where the panel visibly lights the plinth and appears in the chrome sphere,
+which is the bulk of the perceptual win, at a cost that does not move the frame time.
+
+Note that `Ultra` is the only tier that changes the *shape* of the light list, and it does so by adding entries
+rather than by changing their format — so the tiers are runtime-switchable without a rebuild.
+
+## Colour is the only channel, deliberately
+
+Confirmed scope: the panel is an emissive/albedo colour surface — a phone or LCD display — and needs no
+roughness, normal or metalness channels. The slot reflects that: `BaseColour` + `EmissiveWeight` and nothing
+more. The two `Reserve` floats in the 16-byte std430 tail exist precisely so a future channel can be added
+without moving a single existing field offset, but nothing reads them today.
+
+## Implemented ahead of the rest of this plan
+
+The slot fields are **already in**, since the layout was cheapest to change before P1 batching depends on the
+stride:
+
+- `InterfaceInstanceFigure` grew from 96 B to **112 B** — `BaseColour` at offset 96, `EmissiveWeight` at 100,
+  two reserve floats at 104/108. Verified against glslang's std430 reflection, guarded by `offsetof`
+  static asserts on both new fields.
+- `InterfaceFigure` gained the same two, defaulting to `BaseColour = 0` / `EmissiveWeight = 1.0` — a pure
+  emitter, i.e. exactly the old behaviour.
+- `InterfaceConstants` gained `AmbientIrradiance` (96 B → 112 B std140), defaulting to 1.0 in
+  `InterfaceViewClip`, so the existing look is bit-identical until a caller dims it.
+- The fragment stage now mixes `Albedo × AmbientIrradiance` against the emitted tint by `EmissiveWeight`.
+
+An unset `BaseColour` resolves to the figure's own tint rather than to black, so no existing figure turns into a
+black rectangle the moment it is lit. The proof harness asserts that fallback, the round trip of both fields,
+and that a default figure is still a pure emitter. `SpatialInterface_P0_Tilted.png` is unchanged.

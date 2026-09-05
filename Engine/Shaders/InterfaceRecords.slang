@@ -22,12 +22,13 @@ layout(std140, set = 0, binding = 0) uniform InterfaceConstants
     mat4  ViewClip;             // world → clip, current frame
     vec4  CameraOrigin;         // xyz = eye, w = unused
     vec4  Extent;               // xy = render size [px], zw = unused
+    vec4  AmbientIrradiance;    // ⑦ xyz = scene-average irradiance on the panel [nit], w = unused
 };
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     INSTANCE SLOT
 //------------------------------------------------------------------------------------------------------------------------
-// 96 B — InterfaceLayoutCodec.h. Field order is load-bearing.
+// 112 B — InterfaceLayoutCodec.h. Field order is load-bearing.
 
 struct InterfaceInstanceFigure
 {
@@ -45,6 +46,11 @@ struct InterfaceInstanceFigure
     float ScalarAlpha;          // [-]      fill fraction / angle fraction / digit / luminance
     float ScalarBeta;           // [-]      thickness / mark count / warn threshold
     uint  Tint;                 // [-]      RGBA8, resolved
+
+    uint  BaseColour;           // [-]      ⑦ RGBA8 albedo of the unlit surface
+    float EmissiveWeight;       // [-]      ⑦ 0 = pure albedo (receives room light), 1 = pure emitter
+    float ReserveAlpha;         // [-]      reserved, written 0
+    float ReserveBeta;          // [-]      reserved, written 0
 };
 
 layout(std430, set = 0, binding = 1) readonly buffer InterfaceExtent { InterfaceInstanceFigure Figures[]; };

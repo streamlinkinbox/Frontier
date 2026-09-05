@@ -10,7 +10,7 @@
 //
 // The result is a flat span of instance slots in submission order. InterfaceExchange uploads that span and issues
 //    exactly one vkCmdDraw(4, InstanceCount) — the draw count is independent of the figure count, which is the
-//    entire reason this architecture does not bog down the way per-widget render targets do.
+//    entire reason this architecture does not bog down the way per-figure render targets do.
 //
 // Sorting a few hundred keys costs microseconds on the CPU and buys correct transparency without a depth pre-pass,
 //    a stencil buffer, or order-independent blending machinery.

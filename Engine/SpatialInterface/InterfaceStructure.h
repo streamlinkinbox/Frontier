@@ -71,6 +71,12 @@ struct InterfaceFigure
     uint32_t          TintOverride = 0u;                // [-]   RGBA8; 0 = use the palette slot
     float             Opacity      = 1.0f;              // [-]   ⑤ animatable; multiplied by the group opacity
 
+    // ⑦ Surface response — how the figure behaves as a physical surface, not what it shows. Defaults keep every
+    //    existing figure a pure emitter, so adding these changed no pixel until a caller opts in: an LCD-style
+    //    panel sets a dark BaseColour with EmissiveWeight 0 on the housing and 1 on the lit elements.
+    uint32_t          BaseColour     = 0u;              // [-]   RGBA8 albedo; a = 0 → fall back to the resolved tint
+    float             EmissiveWeight = 1.0f;            // [-]   0 = pure albedo (receives room light), 1 = pure emitter
+
     // ⑥ Clip extent in the figure's OWN local plane, metres. Left wide open in P0; P2 animates it for masked wipes
     //    and intersects ancestor rectangles on the CPU so a batch group emits one tightest rectangle.
     float             ClipMinimumX = -1.0e9f;           // [m]

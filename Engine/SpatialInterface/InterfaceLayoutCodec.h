@@ -45,13 +45,25 @@ struct InterfaceInstanceFigure
     float    ScalarAlpha;                      // [-]   fill fraction / angle fraction / digit / luminance
     float    ScalarBeta;                       // [-]   thickness / mark count / warn threshold
     uint32_t Tint;                             // [-]   RGBA8, resolved (palette slot already substituted)
+
+    // ⑦ Surface response. Tint is what the figure SHOWS; these two say how it behaves as a physical surface, so the
+    //    panel reads as a phone/LCD screen in the room rather than a decal: a dark dielectric housing that catches
+    //    the ceiling luminaire and the red wall's bleed, with only the active elements actually emitting.
+    uint32_t BaseColour;                       // [-]   RGBA8 albedo of the unlit surface; a = 0 → fall back to Tint
+    float    EmissiveWeight;                   // [-]   0 = pure albedo (receives light), 1 = pure emitter ⑦
+
+    // Reserved so the 16-byte std430 tail is named rather than silent. Future channels (roughness, a second
+    //    emissive band) land here without moving a single existing offset. Written as 0, unread.
+    float    ReserveAlpha;                     // [-]
+    float    ReserveBeta;                      // [-]
 };
 
-static_assert(sizeof(InterfaceInstanceFigure) == 96u, "InterfaceInstanceFigure must be 96 bytes (std430 mirror of Shaders/InterfaceRecords.slang)");
+static_assert(sizeof(InterfaceInstanceFigure) == 112u, "InterfaceInstanceFigure must be 112 bytes (std430 mirror of Shaders/InterfaceRecords.slang)");
 
 // Field offsets verified against glslang's std430 reflection of Shaders/InterfaceRecords.slang (topLevelArrayStride
-//    96, RowX 0, RowY 16, RowZ 32, HalfExtent 48, CornerRadius 56, Opacity 60, ClipExtent 64, CategoryPalette 80,
-//    ScalarAlpha 84, ScalarBeta 88, Tint 92). Re-run Scratchpad/CompileInterfaceShaders.sh after any field change.
+//    112, RowX 0, RowY 16, RowZ 32, HalfExtent 48, CornerRadius 56, Opacity 60, ClipExtent 64, CategoryPalette 80,
+//    ScalarAlpha 84, ScalarBeta 88, Tint 92, BaseColour 96, EmissiveWeight 100).
+//    Re-run Scratchpad/CompileInterfaceShaders.sh after any field change.
 static_assert(offsetof(InterfaceInstanceFigure, RowXx)           ==  0u, "RowX must sit at offset 0");
 static_assert(offsetof(InterfaceInstanceFigure, RowYx)           == 16u, "RowY must sit at offset 16");
 static_assert(offsetof(InterfaceInstanceFigure, RowZx)           == 32u, "RowZ must sit at offset 32");
@@ -63,6 +75,8 @@ static_assert(offsetof(InterfaceInstanceFigure, CategoryPalette) == 80u, "Catego
 static_assert(offsetof(InterfaceInstanceFigure, ScalarAlpha)     == 84u, "ScalarAlpha must sit at offset 84");
 static_assert(offsetof(InterfaceInstanceFigure, ScalarBeta)      == 88u, "ScalarBeta must sit at offset 88");
 static_assert(offsetof(InterfaceInstanceFigure, Tint)            == 92u, "Tint must sit at offset 92");
+static_assert(offsetof(InterfaceInstanceFigure, BaseColour)      == 96u, "BaseColour must sit at offset 96");
+static_assert(offsetof(InterfaceInstanceFigure, EmissiveWeight)  ==100u, "EmissiveWeight must sit at offset 100");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WORLD PLACEMENT

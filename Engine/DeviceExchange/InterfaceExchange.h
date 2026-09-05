@@ -44,6 +44,12 @@ struct InterfaceViewClip
     float    EyeZ = 0.0f;         // [m]
     uint32_t RenderWidth  = 0u;   // [px]
     uint32_t RenderHeight = 0u;   // [px]
+
+    // ⑦ Irradiance reaching the panel, so albedo-side elements sit correctly in the room's light. Defaults to 1.0
+    //    (fully lit), which reproduces the old behaviour exactly for any caller that does not set it.
+    float    AmbientRed   = 1.0f; // [-]
+    float    AmbientGreen = 1.0f; // [-]
+    float    AmbientBlue  = 1.0f; // [-]
 };
 
 //------------------------------------------------------------------------------------------------------------------------

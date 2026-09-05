@@ -325,7 +325,7 @@ int main()
     // 1. Slot contract
     //──────────────────────────────────────────────────────────────────────────
     std::printf("[Slot contract]\n");
-    Check("sizeof(InterfaceInstanceFigure)", static_cast<double>(sizeof(InterfaceInstanceFigure)), 96.0, 0.0);
+    Check("sizeof(InterfaceInstanceFigure)", static_cast<double>(sizeof(InterfaceInstanceFigure)), 112.0, 0.0);
 
     //──────────────────────────────────────────────────────────────────────────
     // 2. Signed-distance sanity — the shapes the GPU will evaluate
@@ -404,6 +404,8 @@ int main()
         Original.ScalarBeta   = 0.0091f;
         Original.Opacity      = 0.6250f;
         Original.Palette      = PaletteSlot::Warning;
+        Original.BaseColour     = 0xFF2A2320u;              // ⑦ opaque dark bezel, distinct from the warning tint
+        Original.EmissiveWeight = 0.3750f;
         Original.Placement.Origin  = PlaneOrigin{ 0.11f, -0.23f, 0.37f };
         Original.Placement.RotationZ = 0.4f;
         Original.Placement.RotationX = -0.2f;
@@ -423,6 +425,19 @@ int main()
         Check("scalar alpha round trip", Recovered.ScalarAlpha,  Original.ScalarAlpha, 0.0);
         Check("scalar beta round trip",  Recovered.ScalarBeta,   Original.ScalarBeta,  0.0);
         Check("opacity round trip",      Recovered.Opacity,      Original.Opacity,     0.0);
+
+        // ⑦ Surface response survives the slot, and an unset BaseColour falls back to the resolved tint rather
+        //    than to black — otherwise every existing figure would turn into a black rectangle when lit.
+        CheckTrue("base colour round trip",     Recovered.BaseColour == Original.BaseColour);
+        Check    ("emissive weight round trip", Recovered.EmissiveWeight, Original.EmissiveWeight, 0.0);
+        {
+            InterfaceFigure Bare;                            // BaseColour left 0 → must inherit the tint
+            Bare.Palette = PaletteSlot::Warning;
+            InterfaceInstanceFigure BareSlot{};
+            InterfaceLayoutCodec::Encode(Bare, Placement, Palette, BareSlot);
+            CheckTrue("unset base colour falls back to the tint", BareSlot.BaseColour == BareSlot.Tint);
+            CheckTrue("default figure stays a pure emitter",      BareSlot.EmissiveWeight == 1.0f);
+        }
         CheckTrue("category round trip", Recovered.Category == Original.Category);
         CheckTrue("palette round trip",  Recovered.Palette  == Original.Palette);
 
