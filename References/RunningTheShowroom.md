@@ -86,37 +86,75 @@ Camera opens at (0, −1.70, 1.45) looking into the room: red wall left, green w
 with a chrome sphere on it, a matte pillar rear-left, a rough copper sphere rear-right, a deep-blue floor inlay
 and an amber strip along the back. Lit by the ceiling luminaire (32 nit) plus a dimmer rear rim strip (9 nit).
 
-**The interface panel is NOT rendered in this build.** `--scene showroom` gives you the room it will hang in, and
-nothing more — the room is the Cornell box widened and refurnished, so if it looks "like the Cornell box but
-called Showroom", that is exactly right.
+The **interface panel** hangs above the plinth, tilted toward you, animating on a 6 s loop: two buttons pulsing,
+a toggle knob sliding, a needle sweeping its arc, a progress bar filling, a two-digit readout counting.
 
-Concretely: `GameExecution.cpp` never constructs `InterfaceExchange`, never calls `UploadInstances`, and never
-calls `RecordInterface`. The shaders compile, the slot layout is proven, the figures are proven headlessly — but
-no code path submits them, so the panel cannot appear. That wiring is blocked on a real seam: `SwapchainExchange`
-keeps its `VkDevice`, image views and command buffer private, and `InterfaceExchange::Bring/Resize/RecordInterface`
-need all three. Exposing them is the next task, not a one-line hookup.
+### What to try
+
+| Action | What should happen |
+|---|---|
+| **Click the progress bar** | the fill jumps to where you clicked, and the engine note changes pitch with it |
+| **Click the toggle** | the knob springs across and latches |
+| **Click either button** | the needle steps down / up |
+| **Hover anything** | it brightens under the cursor |
+| **Press TAB** | the trial panel fades out, a card wipes in — "SLATE / SHOWROOM P4" with a green tick |
+| **Look at the chrome sphere** | the panel glows in it, and lights the plinth beneath |
+
+Once you touch a control the scripted loop stands down for good, so the panel stops fighting you. It does not
+resume on a timer — a control that starts moving by itself reads as a fault.
+
+### Flags
+
+```powershell
+.\Build\Project-Zero.exe --scene showroom          # the panel, lit, interactive
+.\Build\Project-Zero.exe --scene drop              # 12 balls fall, with ray-traced shadows that follow them
+.\Build\Project-Zero.exe --scene showroom --silent # null audio driver, for a machine with no sound device
+.\Build\Project-Zero.exe --scene showroom --animate # scripted instance motion instead of physics
+```
+
+### What is deliberately NOT there yet
+
+- **The reflection shows an averaged glow, not the panel's layout.** That is the light-contribution `Low` tier,
+  which is the default. The `High` sampler that would show the needle and readout in the chrome sphere is built
+  and proven (`Diagnostics/SpatialInterface_HighTier_Trial.png`) but not yet reachable from the ray-tracing
+  kernel — see `References/InterfaceLightContribution-Plan.md`, "High tier: status after implementation".
+- **No lobby or full cluster.** That is P5, deferred by choice.
 
 ## 5. Re-run the proofs without a GPU
 
-These are what the sandbox uses; they work anywhere with `g++` and clone what they need to `/tmp`:
+One command runs every headless gate — 18 suites covering the interface, the scene, dynamic geometry and the
+shaders. Works anywhere with `g++`; each script fetches what it needs.
 
 ```bash
-bash Scratchpad/CheckShowroomGeometry.sh    # 11 geometry invariants
-bash Scratchpad/ExportShowroomLevel.sh      # export → import round trip, luminaires intact
-bash Scratchpad/CompileInterfaceShaders.sh  # both raster stages compile, link, and match the C++ slot
+bash Scratchpad/CheckEverything.sh
 ```
 
-The interface figure/animation proof (writes PNGs to `Diagnostics/`):
+It prints one line per suite and exits non-zero if any fail, so it is usable as a pre-commit or CI step. A failing
+suite leaves its full output in `/tmp/CheckEverything.<name>.log`.
+
+Individual gates, if you want just one:
 
 ```bash
-sed -E 's/\.(xyz|xy|yz|xz|zw)\b([^(])/.\1()\2/g' Engine/Shaders/InterfaceSignedDistance.slang > /tmp/InterfaceSignedDistance.port.inc
-g++ -std=c++20 -O2 -I Scratchpad -I Engine -I ExternalPackages/stb \
-    Scratchpad/InterfaceRasterTest.cpp \
-    Engine/SpatialInterface/InterfaceStructure.cpp Engine/SpatialInterface/InterfaceSequence.cpp \
-    Engine/SpatialInterface/InterfaceLayoutCodec.cpp Engine/SpatialInterface/PaletteConfiguration.cpp \
-    Engine/DisplayPresentation/MotionIntegrator.cpp \
-    Projects/Project-Zero/Source/InterfaceTrialSequence.cpp -o /tmp/InterfaceRasterTest && /tmp/InterfaceRasterTest
+bash Scratchpad/CheckBuildIntegrity.sh        # every build system's source list resolves; submodules declared
+bash Scratchpad/CheckPanelPlacement.sh        # the panel is in the room, on the anchor, facing the camera
+bash Scratchpad/CheckPointerProjection.sh     # clicks land on the right figure, right way round
+bash Scratchpad/CheckTextProjection.sh        # stroke glyphs render; one draw; writes a glyph sheet
+bash Scratchpad/CheckScreenSequence.sh        # transitions land exactly; a moving screen is not clickable
+bash Scratchpad/CheckVectorCodec.sh           # SVG converts to figures, right way up; writes a preview
+bash Scratchpad/CheckLightProjection.sh       # the panel reaches the luminaire table
+bash Scratchpad/CheckPanelSample.sh           # High-tier sampler shows layout; writes a reflection preview
+bash Scratchpad/CheckInterfaceAudio.sh        # the bar drives the engine note, counted in firing events
+bash Scratchpad/CheckDynamicGeometryBudget.sh # per-frame refit stays inside its budget
 ```
+
+Several write images to `Diagnostics/` — those are worth opening, because a pixel count proves ink exists and not
+that it spells anything:
+
+| File | Shows |
+|---|---|
+| `SpatialInterface_P1_Text.png` | the stroke font, all 43 glyphs |
+| `SpatialInterface_P4_Vector.png` | a converted lucide checkmark |
+| `SpatialInterface_HighTier_Trial.png` | the trial panel as a High-tier reflection would sample it |
 
 ## If something breaks
 
@@ -127,3 +165,9 @@ g++ -std=c++20 -O2 -I Scratchpad -I Engine -I ExternalPackages/stb \
 | Room renders black | `Showroom.gltf` written by an older build; delete it and re-run |
 | Camera inside a wall | stale `Showroom.gltf` from before the camera branch; delete and re-run |
 | Shader/C++ slot mismatch after editing a figure field | run `Scratchpad/CompileInterfaceShaders.sh` — the `offsetof` asserts and the std430 reflection will point at the field that moved |
+| Crash at launch, `0xc000001d` | built with `-Isa AVX` on a CPU without it. Sandy Bridge **i3** has no AVX — rebuild with the default `-Isa SSE2` |
+| `JPH::RegisterTypes()` aborts, "Version mismatch" | `Jolt.lib` and the client disagree on `/arch`. Pass the same `-Isa` everywhere and add `-Rebuild` |
+| Rebuilt, but the old behaviour persists | a stale `Build\` from before the mirror step. Delete `Build\` once and rebuild |
+| No sound, or no audio device | run with `--silent` for the null driver; the scene still renders |
+| Panel not visible | it hangs above the plinth — if the camera was moved, press TAB twice to re-present the screen |
+| The whole tree, checked in one go | `bash Scratchpad/CheckEverything.sh` |
