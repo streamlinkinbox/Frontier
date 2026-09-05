@@ -28,8 +28,12 @@
 #include <vector>
 
 #if defined(_WIN32)
-#   define WIN32_LEAN_AND_MEAN
-#   define NOMINMAX
+#   ifndef WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   ifndef NOMINMAX
+#       define NOMINMAX
+#   endif
 #   include <windows.h>
 #elif defined(__APPLE__)
 #   include <mach-o/dyld.h>
@@ -103,6 +107,16 @@ struct SwapchainExchange::VulkanRecord
     VkDeviceMemory           TraversalNodeMemory   = VK_NULL_HANDLE;
     VkBuffer                 TraversalLeafBuffer   = VK_NULL_HANDLE;   // R3 CWBVH triangles (binding 9)
     VkDeviceMemory           TraversalLeafMemory   = VK_NULL_HANDLE;
+    // R6 temporal reservoirs: two W×H×64 B SSBOs (bindings 16/17), ping-ponged per presented frame. Record layout
+    //    (std430, mirrors GpuReservoir in ReSTIRViewport.slang): Sample(xyz point, w WeightSum) · Counts(M, light,
+    //    Visible, Age) · UvDepth(uv, W, view depth) · Normal(xyz geometric normal, w stride guard).
+    struct ReservoirBufferRecord { float Sample[4]; uint32_t Counts[4]; float UvDepth[4]; float Normal[4]; };
+    static_assert(sizeof(ReservoirBufferRecord) == 64u, "GpuReservoir stride must be 64 B (matches the shader)");
+    VkBuffer                 ReservoirBuffers[2]   = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkDeviceMemory           ReservoirMemories[2]  = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    VkDeviceSize             ReservoirBytes        = 0u;   // [B] per buffer (W×H×64)
+    bool                     ReservoirParity       = false;   // [-]  false: 0 = prev / 1 = curr; flipped per frame
+    bool                     ReservoirsInitialised = false;   // [-]  zero-filled once before first dispatch
     uint32_t                 TriangleCount         = 0u;
     uint32_t                 MaterialCount         = 0u;
 
@@ -124,7 +138,7 @@ struct SwapchainExchange::VulkanRecord
 
     // ── Cycle slots (one fence + two semaphores per slot) ────────────────────────────────────────────────────────────
     std::array<VkSemaphore, kCycleSlotCount> AcquireSemaphores = {};
-    std::array<VkSemaphore, kCycleSlotCount> ReleaseSemaphores = {};
+    std::vector<VkSemaphore>                ReleaseSemaphores;   // [-] per-image render-complete semaphore
     std::array<VkFence,     kCycleSlotCount> CycleFences       = {};
     std::vector<VkFence>                     ImageOrdinalFences;  // [-]  per-image in-flight fence pointer
     uint32_t                                 ActiveSlot         = 0u;
@@ -411,9 +425,13 @@ void SwapchainExchange::Retire() noexcept
     for (uint32_t Slot = 0u; Slot < kCycleSlotCount; ++Slot)
     {
         if (Vulkan->AcquireSemaphores[Slot]) vkDestroySemaphore(Vulkan->Device, Vulkan->AcquireSemaphores[Slot], nullptr);
-        if (Vulkan->ReleaseSemaphores[Slot]) vkDestroySemaphore(Vulkan->Device, Vulkan->ReleaseSemaphores[Slot], nullptr);
         if (Vulkan->CycleFences[Slot])       vkDestroyFence    (Vulkan->Device, Vulkan->CycleFences[Slot],       nullptr);
     }
+    for (VkSemaphore S : Vulkan->ReleaseSemaphores)
+    {
+        if (S) vkDestroySemaphore(Vulkan->Device, S, nullptr);
+    }
+    Vulkan->ReleaseSemaphores.clear();
 
     if (Vulkan->ComputeCommandPool)    vkDestroyCommandPool       (Vulkan->Device, Vulkan->ComputeCommandPool,    nullptr);
     if (Vulkan->ComputePipeline)       vkDestroyPipeline          (Vulkan->Device, Vulkan->ComputePipeline,       nullptr);
@@ -423,6 +441,13 @@ void SwapchainExchange::Retire() noexcept
 
     if (Vulkan->Device)   vkDestroyDevice             (Vulkan->Device,             nullptr);
     if (Vulkan->Surface)  vkDestroySurfaceKHR          (Vulkan->Instance, Vulkan->Surface, nullptr);
+    if (Vulkan->DebugMessenger)
+    {
+        auto DestroyMessenger = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(Vulkan->Instance, "vkDestroyDebugUtilsMessengerEXT"));
+        if (DestroyMessenger) DestroyMessenger(Vulkan->Instance, Vulkan->DebugMessenger, nullptr);
+        Vulkan->DebugMessenger = VK_NULL_HANDLE;
+    }
     if (Vulkan->Instance) vkDestroyInstance            (Vulkan->Instance,           nullptr);
 
     tvg::Initializer::term();
@@ -453,9 +478,22 @@ void SwapchainExchange::RetireSwapchain() noexcept
     Vulkan->HistoryMemory      = VK_NULL_HANDLE;
     Vulkan->HistoryInitialised = false;
 
+    for (uint32_t I = 0u; I < 2u; ++I)   // R6 temporal reservoirs (size-dependent, like storage/history)
+    {
+        if (Vulkan->ReservoirBuffers[I])  vkDestroyBuffer(Vulkan->Device, Vulkan->ReservoirBuffers[I], nullptr);
+        if (Vulkan->ReservoirMemories[I]) vkFreeMemory   (Vulkan->Device, Vulkan->ReservoirMemories[I], nullptr);
+        Vulkan->ReservoirBuffers[I]  = VK_NULL_HANDLE;
+        Vulkan->ReservoirMemories[I] = VK_NULL_HANDLE;
+    }
+    Vulkan->ReservoirsInitialised = false;
+
     for (auto& ImageView : Vulkan->SwapchainImageViews)
         if (ImageView) vkDestroyImageView(Vulkan->Device, ImageView, nullptr);
     Vulkan->SwapchainImageViews.clear();
+
+    for (VkSemaphore S : Vulkan->ReleaseSemaphores)
+        if (S) vkDestroySemaphore(Vulkan->Device, S, nullptr);
+    Vulkan->ReleaseSemaphores.clear();
 
     if (Vulkan->Swapchain) vkDestroySwapchainKHR(Vulkan->Device, Vulkan->Swapchain, nullptr);
     Vulkan->Swapchain = VK_NULL_HANDLE;
@@ -667,8 +705,15 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
     Enabled12.descriptorBindingPartiallyBound           = Supported12.descriptorBindingPartiallyBound;
     Enabled12.shaderSampledImageArrayNonUniformIndexing = Supported12.shaderSampledImageArrayNonUniformIndexing;
     Enabled12.descriptorBindingVariableDescriptorCount  = Supported12.descriptorBindingVariableDescriptorCount;
+    Enabled12.descriptorBindingSampledImageUpdateAfterBind   = Supported12.descriptorBindingSampledImageUpdateAfterBind;
+    Enabled12.descriptorBindingStorageBufferUpdateAfterBind  = Supported12.descriptorBindingStorageBufferUpdateAfterBind;
+    Enabled12.descriptorBindingStorageImageUpdateAfterBind   = Supported12.descriptorBindingStorageImageUpdateAfterBind;
+    Enabled12.descriptorBindingUniformBufferUpdateAfterBind  = Supported12.descriptorBindingUniformBufferUpdateAfterBind;
+    Enabled12.descriptorBindingUpdateUnusedWhilePending     = Supported12.descriptorBindingUpdateUnusedWhilePending;
     if (!Vulkan->DescriptorIndexing) std::cerr << "[SwapchainExchange] descriptor indexing not offered - textures disabled (materials keep their constants).\n";
     DeviceFeatures.multiDrawIndirect = Supported2.features.multiDrawIndirect;
+    DeviceFeatures.geometryShader    = Supported2.features.geometryShader;
+    DeviceFeatures.shaderStorageImageWriteWithoutFormat = Supported2.features.shaderStorageImageWriteWithoutFormat;
 
     VkDeviceCreateInfo DeviceInfo{};
     DeviceInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -678,12 +723,6 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
     DeviceInfo.enabledExtensionCount   = 1u;
     DeviceInfo.ppEnabledExtensionNames = DeviceExtensions;
     DeviceInfo.pEnabledFeatures        = &DeviceFeatures;
-
-    // Only request the feature when the driver actually offers it; requesting an unsupported
-    //    feature makes vkCreateDevice fail with VK_ERROR_FEATURE_NOT_PRESENT.
-    VkPhysicalDeviceFeatures Supported{};
-    vkGetPhysicalDeviceFeatures(Vulkan->PhysicalDevice, &Supported);
-    DeviceFeatures.shaderStorageImageWriteWithoutFormat = Supported.shaderStorageImageWriteWithoutFormat;
 
     const VkResult DeviceResult = vkCreateDevice(Vulkan->PhysicalDevice, &DeviceInfo, nullptr, &Vulkan->Device);
     if (DeviceResult != VK_SUCCESS)
@@ -823,6 +862,14 @@ bool SwapchainExchange::BringSwapchain() noexcept
     }
 
     Vulkan->ImageOrdinalFences.assign(ActualImageCount, VK_NULL_HANDLE);
+    for (VkSemaphore S : Vulkan->ReleaseSemaphores)
+        if (S) vkDestroySemaphore(Vulkan->Device, S, nullptr);
+    Vulkan->ReleaseSemaphores.assign(ActualImageCount, VK_NULL_HANDLE);
+    for (uint32_t Index = 0u; Index < ActualImageCount; ++Index)
+    {
+        VkSemaphoreCreateInfo SemaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+        (void)vkCreateSemaphore(Vulkan->Device, &SemaphoreInfo, nullptr, &Vulkan->ReleaseSemaphores[Index]);
+    }
     return true;
 }
 
@@ -903,6 +950,20 @@ bool SwapchainExchange::BringStorageImage() noexcept
                             Vulkan->HistoryImage, Vulkan->HistoryMemory, Vulkan->HistoryImageView, "history image"))
         return false;
 
+    // ③ R6 temporal reservoirs — two full-extent 64 B/px SSBOs (bindings 16/17), device-local, zeroed on first dispatch.
+    {
+        Vulkan->ReservoirBytes =
+            static_cast<VkDeviceSize>(Extent.width) * static_cast<VkDeviceSize>(Extent.height) * sizeof(VulkanRecord::ReservoirBufferRecord);
+        for (uint32_t I = 0u; I < 2u; ++I)
+            AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, Vulkan->ReservoirBytes,
+                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                           Vulkan->ReservoirBuffers[I], Vulkan->ReservoirMemories[I]);
+        Vulkan->ReservoirParity       = false;
+        Vulkan->ReservoirsInitialised = false;
+        std::cerr << "[SwapchainExchange] Reservoirs: 2 x " << (Vulkan->ReservoirBytes >> 20u) << " MB (64 B/px temporal DI state).\n";
+    }
+
     Vulkan->HistoryInitialised = false;
     return true;
 }
@@ -939,7 +1000,8 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     //    R2: 4: surface image, 5: normal image, 6: instance SSBO, 7: luminaire SSBO
     //    R3: 8: CWBVH node SSBO, 9: CWBVH triangle SSBO
     //    R4a: 10: material slab SSBO
-    //    R4b: 11: vertex SSBO, 12: index SSBO, 13: GGX energy LUT, 14: LTC sheen LUT, 15: sampler2D Textures[] (bindless, partially bound, variable count — must be last)
+    //    R4b: 11: vertex SSBO, 12: index SSBO, 13: GGX energy LUT, 14: LTC sheen LUT
+    //    R6: 15: motion sampler, 16: prev-reservoir SSBO, 17: curr-reservoir SSBO, 18: sampler2D Textures[] (bindless, partially bound, variable count — must be last)
     std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> LayoutBindings{};
     LayoutBindings[0].binding         = 0u;
     LayoutBindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -960,7 +1022,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     for (uint32_t B = 4u; B < kComputeBindingCount - 1u; ++B)
     {
         LayoutBindings[B].binding         = B;
-        LayoutBindings[B].descriptorType  = B < 6u ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        LayoutBindings[B].descriptorType  = B < 6u ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         LayoutBindings[B].descriptorCount = 1u;
         LayoutBindings[B].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
     }
@@ -971,7 +1033,12 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     LayoutBindings[TextureBinding].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
 
     std::array<VkDescriptorBindingFlags, kComputeBindingCount> BindingFlags{};
-    BindingFlags[TextureBinding] = Vulkan->DescriptorIndexing ? static_cast<VkDescriptorBindingFlags>(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) : 0u;
+    if (Vulkan->DescriptorIndexing)
+    {
+        BindingFlags[TextureBinding] = static_cast<VkDescriptorBindingFlags>(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+        BindingFlags[16u]            = static_cast<VkDescriptorBindingFlags>(VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+        BindingFlags[17u]            = static_cast<VkDescriptorBindingFlags>(VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+    }
     VkDescriptorSetLayoutBindingFlagsCreateInfo FlagsInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
     FlagsInfo.bindingCount  = kComputeBindingCount;
     FlagsInfo.pBindingFlags = BindingFlags.data();
@@ -1039,9 +1106,9 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
     PoolSizes[0].type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     PoolSizes[0].descriptorCount = 4u;
     PoolSizes[1].type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    PoolSizes[1].descriptorCount = kComputeBindingCount - 7u;   // 9 storage buffers (1, 2, 6-12)
+    PoolSizes[1].descriptorCount = kComputeBindingCount - 8u;   // 11 storage buffers (1, 2, 6-12, 16-17)
     PoolSizes[2].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    PoolSizes[2].descriptorCount = 2u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // R4b: two LUTs + the bindless table
+    PoolSizes[2].descriptorCount = 3u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // R6: two LUTs + motion + the bindless table
 
     VkDescriptorPoolCreateInfo PoolInfo{};
     PoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1107,6 +1174,11 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     VkDescriptorBufferInfo IndexInfo    { static_cast<VkBuffer>(Visibility.QueryIndexBuffer()),  0u, VK_WHOLE_SIZE };   // R4b
     VkDescriptorImageInfo  EnergyInfo   { Vulkan->TableSampler, Vulkan->ShadingTables[0].View, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     VkDescriptorImageInfo  SheenInfo    { Vulkan->TableSampler, Vulkan->ShadingTables[1].View, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    VkDescriptorImageInfo  MotionInfo   { Vulkan->TableSampler, static_cast<VkImageView>(Visibility.QueryMotionView()), VK_IMAGE_LAYOUT_GENERAL };   // R6: texelFetch only; linear sampler harmless
+    // R6: prev = the buffer last frame wrote, curr = the one this frame writes (parity flips per presented frame).
+    const uint32_t PrevSlot = Vulkan->ReservoirParity ? 1u : 0u;
+    VkDescriptorBufferInfo PrevReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot],      0u, VK_WHOLE_SIZE };
+    VkDescriptorBufferInfo CurrReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot ^ 1u], 0u, VK_WHOLE_SIZE };
 
     std::array<VkWriteDescriptorSet, kComputeBindingCount> Writes{};
     uint32_t WriteCount = 0u;
@@ -1188,6 +1260,9 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     };
     WriteSampled(13u, EnergyInfo);
     WriteSampled(14u, SheenInfo);
+    WriteSampled(15u, MotionInfo);          // R6: skipped until the motion target + table sampler exist
+    WriteBuffer(16u, PrevReservoirInfo);    // R6: skipped until the reservoir SSBOs exist
+    WriteBuffer(17u, CurrReservoirInfo);
 
     // R4a: the texture table. Written in one go (partially bound: slots past the resident count stay undefined and are
     //    never indexed — the material records only reference resident slots).
@@ -1221,7 +1296,6 @@ bool SwapchainExchange::BringCycleSlots() noexcept
     for (uint32_t Slot = 0u; Slot < kCycleSlotCount; ++Slot)
     {
         (void)vkCreateSemaphore(Vulkan->Device, &SemaphoreInfo, nullptr, &Vulkan->AcquireSemaphores[Slot]);
-        (void)vkCreateSemaphore(Vulkan->Device, &SemaphoreInfo, nullptr, &Vulkan->ReleaseSemaphores[Slot]);
         vkCreateFence    (Vulkan->Device, &FenceInfo,     nullptr, &Vulkan->CycleFences[Slot]);
     }
     return true;
@@ -1229,14 +1303,21 @@ bool SwapchainExchange::BringCycleSlots() noexcept
 
 bool SwapchainExchange::BringImGui() noexcept
 {
-    // ① ImGui descriptor pool
-    VkDescriptorPoolSize ImGuiPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10u };
+    // ① ImGui descriptor pool — include SAMPLER and SAMPLED_IMAGE for ImGui font/texture uploads
+    std::array<VkDescriptorPoolSize, 6u> ImGuiPoolSizes = {{
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 16u },
+        { VK_DESCRIPTOR_TYPE_SAMPLER,                16u },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          16u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          16u },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         16u },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         16u }
+    }};
     VkDescriptorPoolCreateInfo ImGuiPoolInfo{};
     ImGuiPoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     ImGuiPoolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    ImGuiPoolInfo.maxSets       = 10u;
-    ImGuiPoolInfo.poolSizeCount = 1u;
-    ImGuiPoolInfo.pPoolSizes    = &ImGuiPoolSize;
+    ImGuiPoolInfo.maxSets       = 64u;
+    ImGuiPoolInfo.poolSizeCount = static_cast<uint32_t>(ImGuiPoolSizes.size());
+    ImGuiPoolInfo.pPoolSizes    = ImGuiPoolSizes.data();
     (void)vkCreateDescriptorPool(Vulkan->Device, &ImGuiPoolInfo, nullptr, &Vulkan->ImGuiDescriptorPool);
 
     // ② Render pass — loads compute output, ImGui renders on top, transitions to PRESENT
@@ -1616,6 +1697,32 @@ void SwapchainExchange::UploadShadingTables(const float* Energy, const float* Sh
     std::cerr << "[SwapchainExchange] Shading tables: GGX energy + LTC sheen, 2 x " << N << "x" << N << " RGBA32F resident (bindings 13/14).\n";
 }
 
+void* SwapchainExchange::SwapReservoirParity() noexcept
+{
+    if (!Vulkan->Device || !Vulkan->ComputeDescriptorSet) return nullptr;
+    if (!Vulkan->ReservoirBuffers[0u] || !Vulkan->ReservoirBuffers[1u]) return nullptr;
+    Vulkan->ReservoirParity = !Vulkan->ReservoirParity;
+    // Rewrite only bindings 16/17 (the full WriteDescriptorSet also writes them — same values, harmless).
+    const uint32_t PrevSlot = Vulkan->ReservoirParity ? 1u : 0u;
+    VkDescriptorBufferInfo Infos[2] =
+    {
+        { Vulkan->ReservoirBuffers[PrevSlot],      0u, VK_WHOLE_SIZE },
+        { Vulkan->ReservoirBuffers[PrevSlot ^ 1u], 0u, VK_WHOLE_SIZE }
+    };
+    VkWriteDescriptorSet Writes[2] = {};
+    for (uint32_t I = 0u; I < 2u; ++I)
+    {
+        Writes[I].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        Writes[I].dstSet          = Vulkan->ComputeDescriptorSet;
+        Writes[I].dstBinding      = 16u + I;
+        Writes[I].descriptorCount = 1u;
+        Writes[I].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        Writes[I].pBufferInfo     = &Infos[I];
+    }
+    vkUpdateDescriptorSets(Vulkan->Device, 2u, Writes, 0u, nullptr);
+    return Vulkan->ReservoirBuffers[PrevSlot];
+}
+
 void SwapchainExchange::UploadTraversal(const TraversalIndex& Traversal) noexcept
 {
     if (!Vulkan->Device || !Traversal.IsReady()) return;
@@ -1707,6 +1814,8 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
         vkWaitForFences(Vulkan->Device, 1u, &Vulkan->ImageOrdinalFences[ImageOrdinal], VK_TRUE, UINT64_MAX);
     Vulkan->ImageOrdinalFences[ImageOrdinal] = Vulkan->CycleFences[ActiveSlot];
 
+    void* PrevReservoirs = SwapReservoirParity();   // R6: prev = last frame's curr before recording the new frame
+    Visibility.AssignReservoirView(PrevReservoirs);   // R6 row 3: resolve binding 13 follows the kernel's prev buffer (M/W/Age views)
     RecordComputeCommands(ImageOrdinal, Dispatch);
 
     vkResetFences(Vulkan->Device, 1u, &Vulkan->CycleFences[ActiveSlot]);
@@ -1720,12 +1829,12 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     Submit.commandBufferCount   = 1u;
     Submit.pCommandBuffers      = &Vulkan->ComputeCommands[ImageOrdinal];
     Submit.signalSemaphoreCount = 1u;
-    Submit.pSignalSemaphores    = &Vulkan->ReleaseSemaphores[ActiveSlot];
+    Submit.pSignalSemaphores    = &Vulkan->ReleaseSemaphores[ImageOrdinal];
     (void)vkQueueSubmit(Vulkan->GraphicsQueue, 1u, &Submit, Vulkan->CycleFences[ActiveSlot]);
 
     VkPresentInfoKHR PresentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     PresentInfo.waitSemaphoreCount = 1u;
-    PresentInfo.pWaitSemaphores    = &Vulkan->ReleaseSemaphores[ActiveSlot];
+    PresentInfo.pWaitSemaphores    = &Vulkan->ReleaseSemaphores[ImageOrdinal];
     PresentInfo.swapchainCount     = 1u;
     PresentInfo.pSwapchains        = &Vulkan->Swapchain;
     PresentInfo.pImageIndices      = &ImageOrdinal;
@@ -1790,6 +1899,49 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0u, 0u, nullptr, 0u, nullptr, 1u, &Barrier);
         Vulkan->HistoryInitialised = true;
+    }
+
+    // ①c R6 reservoirs: zero-fill once, then order the previous frame's writes before this frame's access.
+    if (Vulkan->ReservoirBuffers[0u] && Vulkan->ReservoirBuffers[1u] && Vulkan->ReservoirBytes > 0u)
+    {
+        if (!Vulkan->ReservoirsInitialised)
+        {
+            for (uint32_t I = 0u; I < 2u; ++I)
+                vkCmdFillBuffer(Command, Vulkan->ReservoirBuffers[I], 0u, Vulkan->ReservoirBytes, 0u);
+            VkBufferMemoryBarrier FillBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
+            FillBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            FillBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+            FillBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            FillBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            FillBarrier.buffer = Vulkan->ReservoirBuffers[0u];
+            FillBarrier.offset = 0u;
+            FillBarrier.size   = Vulkan->ReservoirBytes;
+            // Both buffers are filled together; one barrier per buffer (same parameters, different handle).
+            VkBufferMemoryBarrier FillBarriers[2] = { FillBarrier, FillBarrier };
+            FillBarriers[1u].buffer = Vulkan->ReservoirBuffers[1u];
+            vkCmdPipelineBarrier(Command, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                 0u, 0u, nullptr, 2u, FillBarriers, 0u, nullptr);
+            Vulkan->ReservoirsInitialised = true;
+        }
+        else
+        {
+            // Same-queue frames execute in submission order; this orders last frame's curr-writes (now prev)
+            //    before this frame's prev-reads and curr-writes.
+            VkBufferMemoryBarrier Barriers[2] = {};
+            for (uint32_t I = 0u; I < 2u; ++I)
+            {
+                Barriers[I].sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                Barriers[I].srcAccessMask       = VK_ACCESS_SHADER_WRITE_BIT;
+                Barriers[I].dstAccessMask       = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+                Barriers[I].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                Barriers[I].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                Barriers[I].buffer              = Vulkan->ReservoirBuffers[I];
+                Barriers[I].offset              = 0u;
+                Barriers[I].size                = Vulkan->ReservoirBytes;
+            }
+            vkCmdPipelineBarrier(Command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                 0u, 0u, nullptr, 2u, Barriers, 0u, nullptr);
+        }
     }
 
     // Render scale: every pass only covers Dispatch.ViewportWidth × ViewportHeight (the top-left sub-rectangle of

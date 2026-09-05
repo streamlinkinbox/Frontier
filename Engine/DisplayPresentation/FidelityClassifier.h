@@ -54,7 +54,7 @@ struct FidelityCriteria
     uint32_t                AtmosphereRaymarchStepCount;        // [steps] volumetric media sample count
     uint32_t                FluidVoxelGridResolution;           // [cells] 3D fluid domain resolution
     uint32_t                ParticleSimulationCapacity;         // [count] maximum active compute particles
-    uint32_t                ReSTIRSpatialPassCount;             // [count] ReSTIR spatial resampling passes
+    uint32_t                ReSTIRExtraCandidateCount;        // [count] extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is fixed)
     bool                    GlobalIlluminationEnabled;          // [bool] indirect radiosity ReSTIR GI
     bool                    AntiAliasingEnabled;                // [bool] sub-pixel jitter + temporal accumulation
     bool                    HardwareRayQueryEnabled;            // [bool] hardware ray tracing acceleration

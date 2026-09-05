@@ -48,7 +48,7 @@ struct HiZPushRecord { uint32_t SourceExtent[2]; uint32_t TargetExtent[2]; uint3
 
 const char* DebugViewName(DebugViewCategory View) noexcept
 {
-    static const char* Names[] = { "Off", "Depth", "Visibility ID", "Motion Vectors", "Cluster ID", "HiZ (level 3)", "Albedo", "Normal", "Roughness", "Metalness", "Shading Normal" };
+    static const char* Names[] = { "Off", "Depth", "Visibility ID", "Motion Vectors", "Cluster ID", "HiZ (level 3)", "Albedo", "Normal", "Roughness", "Metalness", "Shading Normal", "Reservoir M", "Reservoir W", "Reservoir Age" };
     const uint32_t I = static_cast<uint32_t>(View);
     return I < static_cast<uint32_t>(DebugViewCategory::Count) ? Names[I] : Names[0];
 }
@@ -87,6 +87,7 @@ struct VisibilityExchange::VulkanRecord
     // Scene (host-visible, uploaded once)
     GpuBuffer Vertices, Indices, Instances, Clusters, Materials, Luminaires, FlatTriangles;
     VkBuffer  BorrowedSlabs = VK_NULL_HANDLE;                   // R4b: SwapchainExchange's MaterialSlabRecord[] (raster binding 6)
+    VkBuffer  BorrowedReservoir = VK_NULL_HANDLE;             // R6 row 3: kernel's prev-frame reservoirs (resolve binding 13, M/W/Age views)
     VkSampler BorrowedSampler = VK_NULL_HANDLE;                 // R4b: bindless table sampler + views (raster binding 7)
     std::vector<VkImageView> BorrowedTextures;
     uint32_t  TextureSlotCapacity = 0u;                         // 0 = no descriptor indexing: raster set stops at binding 5
@@ -458,9 +459,9 @@ bool VisibilityExchange::BringPipelines() noexcept
     if (!MakePipelineLayout(Vulkan->HiZLayout, sizeof(HiZPushRecord), CS, Vulkan->HiZPipelineLayout)) return false;
     if (!MakeCompute("Engine/Shaders/HiZReduce.spv", Vulkan->HiZPipelineLayout, Vulkan->HiZPipeline)) return false;
 
-    // ④ Resolve: 0 frame, 1 instances, 2 clusters, 3 vertices, 4 indices, 5 materials, 6 visibility, 7 motion, 8 depth, 9 HiZ, 10 surface, 11 normal, 12 presentation
+    // ④ Resolve: 0 frame, 1 instances, 2 clusters, 3 vertices, 4 indices, 5 materials, 6 visibility, 7 motion, 8 depth, 9 HiZ, 10 surface, 11 normal, 12 presentation, 13 reservoirs (R6 row 3, M/W/Age views)
     if (!MakeLayout({ Binding(0, UBO, CS), Binding(1, SSBO, CS), Binding(2, SSBO, CS), Binding(3, SSBO, CS), Binding(4, SSBO, CS), Binding(5, SSBO, CS),
-                      Binding(6, TEX, CS), Binding(7, TEX, CS), Binding(8, TEX, CS), Binding(9, TEX, CS), Binding(10, IMG, CS), Binding(11, IMG, CS), Binding(12, IMG, CS) }, Vulkan->ResolveLayout)) return false;
+                      Binding(6, TEX, CS), Binding(7, TEX, CS), Binding(8, TEX, CS), Binding(9, TEX, CS), Binding(10, IMG, CS), Binding(11, IMG, CS), Binding(12, IMG, CS), Binding(13, SSBO, CS) }, Vulkan->ResolveLayout)) return false;
     if (!MakePipelineLayout(Vulkan->ResolveLayout, 0u, 0u, Vulkan->ResolvePipelineLayout)) return false;
     if (!MakeCompute("Engine/Shaders/SurfaceResolve.spv", Vulkan->ResolvePipelineLayout, Vulkan->ResolvePipeline)) return false;
 
@@ -660,14 +661,15 @@ void VisibilityExchange::WriteDescriptorSets() noexcept
     {
         Buffers.push_back({ B, 0u, VK_WHOLE_SIZE });
         VkWriteDescriptorSet W{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET }; W.dstSet = Set; W.dstBinding = Binding; W.descriptorCount = 1u; W.descriptorType = Type;
-        W.pBufferInfo = reinterpret_cast<const VkDescriptorBufferInfo*>(Buffers.size() - 1u);   // patched below (vector may grow)
+        // 1-based index: a 0-based index 0 would read back as nullptr and the patch loop below would skip it.
+        W.pBufferInfo = reinterpret_cast<const VkDescriptorBufferInfo*>(Buffers.size());   // patched below (vector may grow)
         Writes.push_back(W);
     };
     const auto Image = [&](VkDescriptorSet Set, uint32_t Binding, VkDescriptorType Type, VkImageView V)
     {
         Images.push_back({ Type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? Vulkan->PointSampler : VK_NULL_HANDLE, V, VK_IMAGE_LAYOUT_GENERAL });
         VkWriteDescriptorSet W{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET }; W.dstSet = Set; W.dstBinding = Binding; W.descriptorCount = 1u; W.descriptorType = Type;
-        W.pImageInfo = reinterpret_cast<const VkDescriptorImageInfo*>(Images.size() - 1u);
+        W.pImageInfo = reinterpret_cast<const VkDescriptorImageInfo*>(Images.size());   // 1-based, see Buffer above
         Writes.push_back(W);
     };
     constexpr VkDescriptorType UBO = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SSBO = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, IMG = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, TEX = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -720,8 +722,8 @@ void VisibilityExchange::WriteDescriptorSets() noexcept
 
     for (VkWriteDescriptorSet& W : Writes)
     {
-        if (W.pBufferInfo) W.pBufferInfo = &Buffers[reinterpret_cast<size_t>(W.pBufferInfo)];
-        if (W.pImageInfo)  W.pImageInfo  = &Images[reinterpret_cast<size_t>(W.pImageInfo)];
+        if (W.pBufferInfo) W.pBufferInfo = &Buffers[reinterpret_cast<size_t>(W.pBufferInfo) - 1u];
+        if (W.pImageInfo)  W.pImageInfo  = &Images[reinterpret_cast<size_t>(W.pImageInfo) - 1u];
     }
     vkUpdateDescriptorSets(D, static_cast<uint32_t>(Writes.size()), Writes.data(), 0u, nullptr);
 
@@ -750,6 +752,17 @@ void VisibilityExchange::AssignRasterMaterials(void* SlabBuffer, void* Sampler, 
     for (uint32_t I = 0u; I < Count; ++I) if (Views[I]) Vulkan->BorrowedTextures.push_back(static_cast<VkImageView>(const_cast<void*>(Views[I])));
     if (Vulkan->Device) vkDeviceWaitIdle(Vulkan->Device);
     WriteDescriptorSets();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    RESERVOIR VIEW (R6 row 3)
+//------------------------------------------------------------------------------------------------------------------------
+
+void VisibilityExchange::AssignReservoirView(void* PrevReservoirBuffer) noexcept
+{
+    Vulkan->BorrowedReservoir = static_cast<VkBuffer>(PrevReservoirBuffer);
+    // No WriteDescriptorSets here: the resolve set's binding 13 is rewritten per frame in RecordFrame (parity swaps
+    //    every frame), so a full rewrite on every assign would be redundant.
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -948,6 +961,21 @@ void VisibilityExchange::RecordFrame(void* CommandHandle, uint32_t Slot, const V
     vkCmdWriteTimestamp(Command, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, Vulkan->Timestamps, Q + 9u);
 
     // ⑤ Surface resolve (thin G-buffer; debug view straight to the presentation image).
+    // R6 row 3: binding 13 tracks the kernel's prev-frame reservoir buffer, which swaps parity every frame — hence
+    //    the per-frame rewrite here instead of once in WriteDescriptorSets. Skipped while null (no reservoir buffers
+    //    yet): the M/W/Age views cannot be selected before the first kernel frame anyway, and an unbound binding
+    //    is only UB if the shader actually reads it.
+    if (Vulkan->BorrowedReservoir)
+    {
+        VkDescriptorBufferInfo ReservoirInfo{ Vulkan->BorrowedReservoir, 0u, VK_WHOLE_SIZE };
+        VkWriteDescriptorSet ReservoirWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+        ReservoirWrite.dstSet          = Vulkan->ResolveSets[Slot];
+        ReservoirWrite.dstBinding      = 13u;
+        ReservoirWrite.descriptorCount = 1u;
+        ReservoirWrite.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        ReservoirWrite.pBufferInfo     = &ReservoirInfo;
+        vkUpdateDescriptorSets(Vulkan->Device, 1u, &ReservoirWrite, 0u, nullptr);
+    }
     vkCmdBindPipeline(Command, VK_PIPELINE_BIND_POINT_COMPUTE, Vulkan->ResolvePipeline);
     vkCmdBindDescriptorSets(Command, VK_PIPELINE_BIND_POINT_COMPUTE, Vulkan->ResolvePipelineLayout, 0u, 1u, &Vulkan->ResolveSets[Slot], 0u, nullptr);
     vkCmdDispatch(Command, (Frame.RenderWidth + 15u) / 16u, (Frame.RenderHeight + 15u) / 16u, 1u);
@@ -981,6 +1009,7 @@ void VisibilityExchange::RecordKernelEnd(void* CommandHandle, uint32_t Slot) noe
 
 void* VisibilityExchange::QuerySurfaceView()        const noexcept { return Vulkan->Surface.View; }
 void* VisibilityExchange::QueryNormalView()         const noexcept { return Vulkan->Normal.View; }
+void* VisibilityExchange::QueryMotionView()         const noexcept { return Vulkan->Motion.View; }
 void* VisibilityExchange::QueryLuminaireBuffer()    const noexcept { return Vulkan->Luminaires.Buffer; }
 void* VisibilityExchange::QueryInstanceBuffer()     const noexcept { return Vulkan->Instances.Buffer; }
 void* VisibilityExchange::QueryFlatTriangleBuffer() const noexcept { return Vulkan->FlatTriangles.Buffer; }

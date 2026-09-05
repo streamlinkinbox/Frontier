@@ -46,7 +46,10 @@ enum class DebugViewCategory : uint32_t
     Roughness    = 8,    // R4b
     Metalness    = 9,    // R4b
     ShadingNormal = 10,  // R4b: interpolated vertex normal
-    Count        = 11
+    ReservoirM   = 11,  // R6 row 3: reservoir sample count M (white ramp, saturates at 256)
+    ReservoirW   = 12,  // R6 row 3: reservoir unbiased weight W (1−exp(−W·k) heat ramp)
+    ReservoirAge = 13,  // R6 row 3: reservoir age in frames (ramp, saturates at 16)
+    Count        = 14
 };
 
 [[nodiscard]] const char* DebugViewName(DebugViewCategory View) noexcept;
@@ -118,6 +121,13 @@ public:
     //    borrowed into raster bindings 6 / 7. Call after UploadScene / UploadTextures; the fragment stage reads them.
     void                AssignRasterMaterials(void* SlabBuffer, void* Sampler, const void* const* Views, uint32_t ViewCount) noexcept;
 
+    // R6 row 3: the kernel's prev-frame reservoir buffer (VkBuffer) borrowed into resolve binding 13 for the
+    //    M / W / Age debug views. Called once per frame with the same buffer the kernel reads as binding 16
+    //    (SwapchainExchange::RecordAndPresent, right after the parity swap); RecordFrame writes binding 13
+    //    before the resolve dispatch. Null clears the binding (views then read zeros — never dispatched unbound
+    //    because RecordFrame skips the write while null).
+    void                AssignReservoirView(void* PrevReservoirBuffer) noexcept;
+
     // Records cull → raster → HiZ → cull → raster → resolve into Command (a VkCommandBuffer). Call once per frame after
     //    the slot's fence has been waited on; the same slot's previous telemetry is read back first.
     void                RecordFrame(void* Command, uint32_t CycleSlot, const VisibilityFrameConfiguration& Frame) noexcept;
@@ -129,6 +139,7 @@ public:
     // Resources the interim kernel binds (VkImageView / VkBuffer as void*; GENERAL layout images).
     [[nodiscard]] void* QuerySurfaceView()     const noexcept;
     [[nodiscard]] void* QueryNormalView()      const noexcept;
+    [[nodiscard]] void* QueryMotionView()      const noexcept;   // R6: RG16F motion (CurrentUv − PreviousUv, [0,1]) for temporal back-projection
     [[nodiscard]] void* QueryLuminaireBuffer() const noexcept;
     [[nodiscard]] void* QueryInstanceBuffer()  const noexcept;
     [[nodiscard]] void* QueryFlatTriangleBuffer() const noexcept;

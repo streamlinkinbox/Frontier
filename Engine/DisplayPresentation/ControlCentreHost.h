@@ -46,6 +46,7 @@
 #include "ThemeStructure.h"
 #include "MotionIntegrator.h"
 #include "AppearanceInspector.h"
+#include "ControlKit.h"
 #include "ConfigurationInspector.h"
 #include "DialogueHost.h"
 #include "PixelSpace.h"
@@ -177,8 +178,8 @@ public:
     static constexpr float  RenderScaleMinimum=   0.25f;  // [-]
 
     // Settings hub / sub-page figures (Notch ArcNotch.tsx, SettingsModal.tsx, GenericSettingsModal)
-    static constexpr float  PageCardWidth     = 840.0f;   // [px]  maxWidth when a sub-page is active
-    static constexpr float  PageCardHeight    = 600.0f;   // [px]
+    static constexpr float  PageMarginX       =  24.0f;   // [px]  sub-pages fill the canvas to this side padding…
+    static constexpr float  PageMarginY       =  24.0f;   // [px]  …and this top/bottom padding (corners are the only limit)
     static constexpr float  PageRadius        =  32.0f;   // [px]  rounded-[32px]
     static constexpr float  HubTitleSize      =  22.0f;   // [px]  text-[22px] font-bold
     static constexpr float  HubBackGlyph      =  24.0f;   // [px]  ChevronLeft size 24
@@ -204,6 +205,7 @@ public:
     static constexpr float  PageButtonPadY    =   8.0f;   // [px]  py-2
     static constexpr float  PageButtonGap     =  12.0f;   // [px]  gap-3
     static constexpr float  PageSwapDuration  =   0.20f;  // [s]   transition duration 0.2
+    static constexpr float  ThemeBlendDuration =  0.25f;  // [s]   live theme preview cross-fade (tile tap → palette morph)
 
     ControlCentreHost() noexcept;
     ~ControlCentreHost() noexcept = default;
@@ -338,6 +340,8 @@ private:
     // ── Display ───────────────────────────────────────────────────────────────────────────────────────────────────
     uint32_t                DisplayWidth;
     uint32_t                DisplayHeight;
+    uint32_t                LastResizeWidth  = 0u;          // [px] Resize() re-targets springs only when these change…
+    uint32_t                LastResizeHeight = 0u;          // [px] …so per-frame calls never restart a settled spring
 
     // ── Motion ────────────────────────────────────────────────────────────────────────────────────────────────────
     MotionIntegrator        Motion;
@@ -410,8 +414,16 @@ private:
 
     // ── Appearance ────────────────────────────────────────────────────────────────────────────────────────────────
     ThemeStructure          ActiveTheme;
-    uint32_t                ThemeRevision = ~0u;                 // [-] Appearance revision last pushed into ActiveTheme / ControlKit
-    void                    SynchroniseTheme() noexcept;         // applied Appearance → ThemeStructure → ControlKit palette
+    void                    SynchroniseTheme() noexcept;         // draft Appearance → live preview (blended) → ControlKit palette
+    // Live theme preview: a tile tap re-targets the rendered palette immediately (dirty/Apply still commit it;
+    //    Discard re-targets back, so the Unsaved-changes dialogue now asks about a change the user can already see).
+    bool                    ThemePreviewSeeded = false;          // [-] first sync snaps instead of blending
+    ThemeCategory           PushedTheme = ThemeCategory::Oled;   // [-] draft theme last pushed toward the palette
+    AccentCategory          PushedAccent = AccentCategory::Blue; // [-] draft accent last pushed
+    uint32_t                PushedSwatches[4] = { 0u, 0u, 0u, 0u }; // [-] draft semantic swatches last pushed
+    ControlKitPalette       ThemeBlendFrom;                      // [color] palette the cross-fade started from
+    ControlKitPalette       ThemeBlendTo;                        // [color] palette the cross-fade heads to
+    float                   ThemeBlendT = 1.0f;                  // [-] 0 → 1 over ThemeBlendDuration; ≥1 = settled
     std::string             ProjectName;
     std::vector<BezierPointIndex> HandleContour;   // [px] outline in notch-local space (0..400 × 0..36)
     bool                    InitializedCondition;

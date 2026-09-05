@@ -138,10 +138,11 @@ function Get-CompilationFlags([string] $Selection)
         '/Zc:__cplusplus'
         '/DWIN32_LEAN_AND_MEAN'
         '/DNOMINMAX'
+        '/D_CRT_SECURE_NO_WARNINGS'   # third-party C (cgltf) uses fopen/strcpy; deprecation warnings are noise
         '/DGLFW_DLL'
         '/DFRONTIER_DEVELOPMENT'
         '/DFRONTIER_ENABLE_GLFW'
-        '/arch:AVX2'    # tinybvh build + CWBVH CPU reference trace (GTX 1060 era hosts are all Haswell+); scalar fallback otherwise
+        '/arch:AVX'     # AVX support for Sandy Bridge+ hosts; tinybvh supports AVX/SSE scalar fallback
     )
 
     if ($Selection -eq 'Debug')
@@ -584,25 +585,21 @@ $ImGuiSources = @(
 )
 
 $EngineRelative = @(
+    # NOTE: this list must match the .cpp files actually in the tree (branch arena/01a06c54-slate, 2026-09-04).
+    # Phantom entries from a foreign module layout were removed and the two missing DisplayPresentation files
+    # added; the existence guard below fails fast with names if the list ever rots again.
     'Engine\DeviceExchange\SwapchainExchange.cpp'
     'Engine\DeviceExchange\RayTracingCapabilitySet.cpp'
-    'Engine\DeviceExchange\VulkanExchange.cpp'
-    'Engine\DeviceExchange\ByteSpace.cpp'
-    'Engine\DeviceExchange\TaskScheduler.cpp'
-    'Engine\DeviceExchange\ExecutionQueue.cpp'
-    'Engine\DeviceExchange\VendorClassifier.cpp'
-    'Engine\DeviceExchange\OrientationClassifier.cpp'
-    'Engine\DeviceExchange\WindowExchange.cpp'
     'Engine\DeviceExchange\InputExchange.cpp'
-    'Engine\DeviceExchange\RenderTargetExchange.cpp'
     'Engine\DeviceExchange\DiagnosticMetrics.cpp'
+    'Engine\DeviceExchange\OrientationClassifier.cpp'
     'Engine\DisplayPresentation\ReSTIRIntegrator.cpp'
     'Engine\DisplayPresentation\ShadingTableCodec.cpp'
     'Engine\DisplayPresentation\RenderScheduler.cpp'
     'Engine\DisplayPresentation\ThemeStructure.cpp'
     'Engine\DisplayPresentation\VectorCodec.cpp'
-    'Engine\DisplayPresentation\FontCodec.cpp'
     'Engine\DisplayPresentation\ControlCentreHost.cpp'
+    'Engine\DisplayPresentation\FontCodec.cpp'
     'Engine\DisplayPresentation\PixelSpace.cpp'
     'Engine\DisplayPresentation\MotionIntegrator.cpp'
     'Engine\DisplayPresentation\GlyphSpace.cpp'
@@ -611,19 +608,16 @@ $EngineRelative = @(
     'Engine\DisplayPresentation\ControlKit.cpp'
     'Engine\DisplayPresentation\DialogueHost.cpp'
     'Engine\DisplayPresentation\AppearanceInspector.cpp'
+    'Engine\DisplayPresentation\ConfigurationInspector.cpp'
+    'Engine\DisplayPresentation\ConfigurationRegistry.cpp'
     'Engine\DisplayPresentation\TypefaceRegistry.cpp'
-    'Engine\DisplayPresentation\WorkspaceHost.cpp'
-    'Engine\DisplayPresentation\CycleScheduler.cpp'
     'Engine\DisplayPresentation\FidelityClassifier.cpp'
-    'Engine\DisplayPresentation\FrontierHost.cpp'
-    'Engine\GeometricRaster\GeometryStructure.cpp'
     'Engine\GeometricRaster\CameraProjection.cpp'
+    'Engine\GeometricRaster\GeometryStructure.cpp'
     'Engine\GeometricRaster\SceneStructure.cpp'
     'Engine\GeometricRaster\TraversalIndex.cpp'
     'Engine\DeviceExchange\VisibilityExchange.cpp'
     'Engine\DisplayPresentation\DiagnosticInspector.cpp'
-    'Engine\GeometricRaster\VisibilityProjection.cpp'
-    'Engine\GeometricRaster\RasterSequence.cpp'
     'Engine\ContentInterchange\MaterialIndex.cpp'
     'Engine\ContentInterchange\MaterialCodec.cpp'
     'Engine\ContentInterchange\TextureIndex.cpp'
@@ -633,21 +627,6 @@ $EngineRelative = @(
     'Engine\ContentInterchange\ObjCodec.cpp'
     'Engine\ContentInterchange\ContentCodec.cpp'
     'Engine\ContentInterchange\UfbxTranslation.cpp'
-    'Engine\PhotometricIllumination\ClusteredSpace.cpp'
-    'Engine\PhotometricIllumination\DirectIlluminationIntegrator.cpp'
-    'Engine\PhotometricIllumination\GlobalIlluminationIntegrator.cpp'
-    'Engine\PhotometricIllumination\AtmosphereIntegrator.cpp'
-    'Engine\PhysicalDynamics\RigidBodySolver.cpp'
-    'Engine\PhysicalDynamics\DeformableSolver.cpp'
-    'Engine\PhysicalDynamics\LocomotionSolver.cpp'
-    'Engine\PhysicalDynamics\WorldSpace.cpp'
-    'Engine\VolumetricDynamics\LevelSetSpace.cpp'
-    'Engine\VolumetricDynamics\FluidSolver.cpp'
-    'Engine\VolumetricDynamics\ParticleIntegrator.cpp'
-    'Engine\PlatformInterchange\AcousticStructure.cpp'
-    'Engine\PlatformInterchange\AcousticIntegrator.cpp'
-    'Engine\PlatformInterchange\VoiceExchange.cpp'
-    'Engine\PlatformInterchange\OnlineInterchange.cpp'
     'Engine\SpatialInterface\InterfaceStructure.cpp'
     'Engine\SpatialInterface\InterfaceSequence.cpp'
     'Engine\SpatialInterface\InterfaceLayoutCodec.cpp'
@@ -666,6 +645,10 @@ foreach ($Rel in $EngineRelative)
     $EngineSources.Add((Join-Path $RepositoryRoot $Rel))
 }
 
+# Fail fast with NAMES if the source list ever rots again (was: 73 cascading c1xx C1083s, 2026-09-04).
+$MissingSources = @($EngineSources | Where-Object { -not (Test-Path $_) }) + @($ImGuiSources | Where-Object { -not (Test-Path $_) })
+if ($MissingSources.Count -gt 0) { throw ('missing source files in the translation batch:' + [Environment]::NewLine + ($MissingSources -join [Environment]::NewLine)) }
+
 $AllSources = New-Object System.Collections.Generic.List[string]
 foreach ($S in $EngineSources) { $AllSources.Add($S) }
 foreach ($S in $ImGuiSources)  { $AllSources.Add($S) }
@@ -681,7 +664,11 @@ $ExePath = Join-Path $BinaryRoot 'Project-Zero.exe'
 
 # Copy GLFW DLL beside executable
 $GlfwDll = Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3.dll'
-if (Test-Path $GlfwDll) { Copy-Item $GlfwDll $BinaryRoot -Force }
+if (Test-Path $GlfwDll)
+{
+    try { Copy-Item $GlfwDll $BinaryRoot -Force -ErrorAction Stop }
+    catch { if (-not (Test-Path (Join-Path $BinaryRoot 'glfw3.dll'))) { throw $_ } }
+}
 
 # Copy the lowered shaders beside the executable so double-clicking the .exe works
 # (the runtime searches <cwd>\Engine\Shaders first, then <exe dir>\Engine\Shaders and its parents).

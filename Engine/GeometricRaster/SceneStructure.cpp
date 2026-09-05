@@ -188,10 +188,10 @@ uint32_t SceneStructure::RegisterMaterial(const MaterialDescriptor& Material) no
     return Materials.Register(Material);
 }
 
-uint32_t SceneStructure::RegisterPlacement(std::string Name, uint32_t Ancestor, const Matrix4x4& Local, const Matrix4x4& World) noexcept
+uint32_t SceneStructure::RegisterPlacement(std::string PlacementName, uint32_t Ancestor, const Matrix4x4& Local, const Matrix4x4& World) noexcept
 {
     PlacementRecord P;
-    P.Name = std::move(Name);
+    P.Name = std::move(PlacementName);
     P.Ancestor = Ancestor < Placements.size() ? Ancestor : kPlacementNone;
     for (int C = 0; C < 4; ++C) for (int R = 0; R < 4; ++R) { P.LocalTransform[C * 4 + R] = Local.Columns[C][R]; P.WorldTransform[C * 4 + R] = World.Columns[C][R]; }
     const uint32_t Index    = static_cast<uint32_t>(Placements.size());

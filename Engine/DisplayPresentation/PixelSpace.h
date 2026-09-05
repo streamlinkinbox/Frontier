@@ -95,7 +95,7 @@ public:
     //    uniform scale about (PivotX, PivotY), a translation, and an alpha multiplier — the framer-motion
     //    "opacity / x / scale" triple that Notch animates on whole pages.
     [[nodiscard]] uint32_t BeginGroup() const noexcept;
-    void EndGroup(uint32_t Mark, float OffsetX, float OffsetY, float Scale, float PivotX, float PivotY, float Alpha) noexcept;
+    void EndGroup(uint32_t Mark, float OffsetX, float OffsetY, float GroupScale, float PivotX, float PivotY, float Alpha) noexcept;
 
     // ── Typeface ─────────────────────────────────────────────────────────────────────────────────────────────────────
     // Text / MeasureText use the face on top of this stack (nullptr → the backend default font). Handles come from

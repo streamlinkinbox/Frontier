@@ -165,7 +165,7 @@ uint32_t PixelSpace::BeginGroup() const noexcept
     return static_cast<uint32_t>(List(Commands)->VtxBuffer.Size);
 }
 
-void PixelSpace::EndGroup(uint32_t Mark, float OffsetX, float OffsetY, float Scale, float PivotX, float PivotY, float Alpha) noexcept
+void PixelSpace::EndGroup(uint32_t Mark, float OffsetX, float OffsetY, float GroupScale, float PivotX, float PivotY, float Alpha) noexcept
 {
     if (!Commands) return;
     ImDrawList* Draw = List(Commands);
@@ -176,8 +176,8 @@ void PixelSpace::EndGroup(uint32_t Mark, float OffsetX, float OffsetY, float Sca
     for (int Index = static_cast<int>(Mark); Index < End; ++Index)
     {
         ImDrawVert& Vertex = Draw->VtxBuffer[Index];
-        Vertex.pos.x = Px + (Vertex.pos.x - Px) * Scale + Ox;
-        Vertex.pos.y = Py + (Vertex.pos.y - Py) * Scale + Oy;
+        Vertex.pos.x = Px + (Vertex.pos.x - Px) * GroupScale + Ox;
+        Vertex.pos.y = Py + (Vertex.pos.y - Py) * GroupScale + Oy;
         if (A < 1.0f)
         {
             const ImU32 Colour = Vertex.col;

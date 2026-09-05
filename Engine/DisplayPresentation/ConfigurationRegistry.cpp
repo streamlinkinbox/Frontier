@@ -35,7 +35,7 @@ FRONTIER_NAMES(ThemeCategory,            "Oled", "Dark", "Dim", "Light", "Sepia"
 FRONTIER_NAMES(AccentCategory,           "White", "Orange", "Amber", "Lime", "Emerald", "Cyan", "Blue", "Violet", "Fuchsia", "Rose");
 FRONTIER_NAMES(InputProfileCategory,     "Blender", "MayaUnity", "Unreal");
 FRONTIER_NAMES(RayTracingTierRequestCategory, "Auto", "Software", "RayQuery", "Pipeline");
-FRONTIER_NAMES(DebugViewSelection,       "Off", "Depth", "Visibility", "Motion", "Cluster", "HiZ", "Albedo", "Normal", "Roughness", "Metalness", "ShadingNormal");
+FRONTIER_NAMES(DebugViewSelection,       "Off", "Depth", "Visibility", "Motion", "Cluster", "HiZ", "Albedo", "Normal", "Roughness", "Metalness", "ShadingNormal", "ReservoirM", "ReservoirW", "ReservoirAge");
 FRONTIER_NAMES(FontWeightCategory,       "Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black");
 #undef FRONTIER_NAMES
 
@@ -136,8 +136,9 @@ std::string ConfigurationRegistry::Serialise(const SlateConfiguration& P) noexce
         { "quality",             NameOf(P.Render.Quality) },
         { "render_scale",        static_cast<double>(P.Render.RenderScale) },
         { "ray_tracing_tier",    NameOf(P.Backend.RayTracingTier) },   // Auto | Software | RayQuery | Pipeline (never faked upward)
-        { "debug_view",          NameOf(P.Backend.DebugView) },        // Off | Depth | Visibility | Motion | Cluster | HiZ | Albedo | Normal | Roughness | Metalness | ShadingNormal (F3 popup)
+        { "debug_view",          NameOf(P.Backend.DebugView) },        // Off | Depth | Visibility | Motion | Cluster | HiZ | Albedo | Normal | Roughness | Metalness | ShadingNormal | ReservoirM | ReservoirW | ReservoirAge (F3 popup)
         { "occlusion_culling",   P.Backend.OcclusionCulling },         // HiZ two-phase cull; off = frustum only (proof 4 A/B)
+        { "alias_pick",          P.Backend.AliasPick },                // R6 row 3 Walker-alias light pick; off = uniform R0 identity (F5 popup)
         { "slab_limit",          static_cast<int64_t>(P.Backend.SlabLimit) },          // R4a material slabs kept per material (1 Tier A, 4 Tier B/C, ≤ 8)
         { "texture_edge_limit",  static_cast<int64_t>(P.Backend.TextureEdgeLimit) },   // R4a largest texture edge kept resident (0 = unlimited)
     });
@@ -228,6 +229,7 @@ bool ConfigurationRegistry::Deserialise(std::string_view Toml, SlateConfiguratio
         S.GetEnum("ray_tracing_tier",    Out.Backend.RayTracingTier);
         S.GetEnum("debug_view",          Out.Backend.DebugView);
         S.Get("occlusion_culling",       Out.Backend.OcclusionCulling);
+        S.Get("alias_pick",              Out.Backend.AliasPick);
         S.Get("slab_limit",              Out.Backend.SlabLimit);        Out.Backend.SlabLimit        = std::clamp(Out.Backend.SlabLimit, 1u, 8u);
         S.Get("texture_edge_limit",      Out.Backend.TextureEdgeLimit); Out.Backend.TextureEdgeLimit = std::min(Out.Backend.TextureEdgeLimit, 16384u);
     }

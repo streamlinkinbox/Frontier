@@ -283,6 +283,7 @@ void MaterialIndex::Finalise(uint32_t SlabLimit, std::vector<std::string>* Repor
         if (Emission[0] + Emission[1] + Emission[2] > 0.0f) R.Flags |= MaterialFlagEmissive;
         if (Bottom.GeometryThinWalled) R.Flags |= MaterialFlagThinWalled;
         R.Complexity = ClassifyComplexity(Slabs);
+        Metrics.ComplexityCount[R.Complexity & 3u] += 1u;   // R6 row 3: complexity histogram for the F3 popup
         R.BaseColourTexture = Bottom.Texture(MaterialTextureChannel::BaseColor).Texture;
         R.NormalTexture     = Bottom.Texture(MaterialTextureChannel::GeometryNormal).Texture;
         R.AlphaCutoff       = D.AlphaCutoff;

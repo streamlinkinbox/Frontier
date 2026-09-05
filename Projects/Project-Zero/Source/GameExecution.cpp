@@ -114,6 +114,7 @@ int main(int argc, char** argv)
 
     Frontier::SceneStructure Level;
     Frontier::TextureIndex   Textures;
+    uint32_t MaxTextureLevels = 1u;   // R6 row 3: deepest mip chain resident (F3 scene-census row; computed once below)
     {
         Frontier::SceneDecodeConfiguration Decode;
         Decode.UniformScale = SceneScale;
@@ -139,6 +140,8 @@ int main(int argc, char** argv)
             const Frontier::MaterialIndexMetrics& M = Level.QueryMaterials().QueryMetrics();
             std::vector<std::string> TextureReport;
             (void)Textures.Decode(Configuration.Query().Backend.TextureEdgeLimit, &TextureReport);
+            for (const Frontier::TextureDescriptor& T : Textures.QueryTextures())
+                MaxTextureLevels = std::max(MaxTextureLevels, T.LevelCount);   // R6 row 3: LOD census for the F3 popup
             for (const std::string& L : TextureReport) Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Textures", L.c_str());
             std::snprintf(Line, sizeof(Line), "Materials: %u descriptors -> %u records, %u slabs (limit %u, %u folded), %zu placements, %zu cameras, %zu punctual lights",
                           M.DescriptorCount, M.DescriptorCount, M.SlabCount, M.SlabLimit, M.FoldedCount, Level.QueryPlacements().size(), Level.QueryCameras().size(), Level.QueryPunctualLuminaires().size());
@@ -211,7 +214,7 @@ int main(int argc, char** argv)
     Frontier::ReSTIRIntegratorConfiguration IntegratorConfig
     {
         8u,         // [-]  candidates per pixel
-        2u,         // [-]  spatial resampling passes
+        2u,         // [-]  extra same-pixel candidates
         1.05f,      // [-]  ACES exposure
         0.015f      // [-]  ambient strength
     };
@@ -226,7 +229,7 @@ int main(int argc, char** argv)
         1280u,
         720u,
         "Project-Zero  |  ReSTIR GI  |  Frontier Engine",
-        false       // validation layers — set true for debugging
+        true        // validation layers — set true for debugging
     };
 
     // Slate.config.toml is read before the device comes up: [render] ray_tracing_tier decides which traversal backend
@@ -281,9 +284,11 @@ int main(int argc, char** argv)
     ControlCentre.AccessNotifications().Seed(Configuration.Query().Notifications);
     Frontier::PixelSpace OverlaySurface;
 
-    // R2 debug popup (F3) — seeded from [render] debug_view / occlusion_culling.
+    // R2 debug popup (F3) — seeded from [render] debug_view / occlusion_culling / alias_pick.
     Frontier::DiagnosticInspector Diagnostics;
-    Diagnostics.Seed(static_cast<Frontier::DebugViewCategory>(Configuration.Query().Backend.DebugView), Configuration.Query().Backend.OcclusionCulling);
+    Diagnostics.Seed(static_cast<Frontier::DebugViewCategory>(Configuration.Query().Backend.DebugView), Configuration.Query().Backend.OcclusionCulling,
+                     Configuration.Query().Backend.AliasPick);
+    Integrator.AssignAliasPick(Configuration.Query().Backend.AliasPick);   // R6 row 3: persisted F5 state applies from the first frame
 
     // Dashboard-driven engine services: quality ladder, toasts, frame telemetry
     Frontier::FidelityClassifier Fidelity;
@@ -322,7 +327,7 @@ int main(int argc, char** argv)
 
         // The quality tier sets the ReSTIR budget; the GI / AA tiles override the tier's own defaults.
         Integrator.AssignCandidatesPerPixel(Criteria.ReSTIRCandidateSampleCount);
-        Integrator.AssignSpatialPassCount(Criteria.ReSTIRSpatialPassCount);
+        Integrator.AssignExtraCandidateCount(Criteria.ReSTIRExtraCandidateCount);
         Integrator.AssignGlobalIllumination(S.GlobalIllumination);
         Integrator.AssignAntiAliasing(S.AntiAliasing);
         Notifications.AssignEnabled(S.Notifications);
@@ -330,9 +335,9 @@ int main(int argc, char** argv)
         if (Announce)
         {
             char Body[96];
-            std::snprintf(Body, sizeof(Body), "%s  |  %u candidates, %u spatial, GI %s, AA %s, scale %d%%",
+            std::snprintf(Body, sizeof(Body), "%s  |  %u candidates, %u extra, GI %s, AA %s, scale %d%%",
                           Frontier::FidelityLabel(S.Quality), Criteria.ReSTIRCandidateSampleCount,
-                          Criteria.ReSTIRSpatialPassCount, S.GlobalIllumination ? "on" : "off",
+                          Criteria.ReSTIRExtraCandidateCount, S.GlobalIllumination ? "on" : "off",
                           S.AntiAliasing ? "on" : "off", static_cast<int>(S.RenderScale * 100.0f + 0.5f));
             if (ControlCentre.QueryNotifications().QueryApplied().RenderFinished) Notifications.Push("Render settings applied", Body);
         }
@@ -382,12 +387,17 @@ int main(int argc, char** argv)
         Configuration.Advance(Δτ);
         Telemetry.RecordFrame(Δτ);
 
-        // ①b' F3 debug popup: view / HiZ toggles persist to [render] and restart the accumulation.
+        // ①b' F3 debug popup: view / HiZ / alias-pick toggles persist to [render] and restart the accumulation.
+        // R6 row 3: the scheduler's Alias-pick checkbox writes the integrator directly — mirror it into the popup
+        //    member before edge-detecting F5 so both toggles converge on one flag.
+        Diagnostics.AssignAliasPick(Integrator.QueryConfiguration().AliasPick);
         if (Diagnostics.AdvanceInteraction(Input))
         {
             Configuration.Access().Backend.DebugView        = static_cast<Frontier::DebugViewSelection>(Diagnostics.QueryView());
             Configuration.Access().Backend.OcclusionCulling = Diagnostics.QueryOcclusion();
+            Configuration.Access().Backend.AliasPick        = Diagnostics.QueryAliasPick();
             Configuration.MarkDirty();
+            Integrator.AssignAliasPick(Diagnostics.QueryAliasPick());   // R6 row 3: F5 flips the kernel's pick live
             Integrator.ResetAccumulation();
         }
 
@@ -546,7 +556,9 @@ int main(int argc, char** argv)
                               if (ControlCentre.QuerySettings().FrameRateOverlay)
                                   Telemetry.ConstructTelemetryLayout(OverlaySurface, NotchLine);
                               Diagnostics.ConstructInspectorLayout(OverlaySurface, NotchLine, static_cast<float>(LogicalWidth),
-                                                                   Surface.QueryVisibilityTelemetry(), Surface.QueryClusterCount(), Surface.QueryDrawIndirectCount());
+                                                                   Surface.QueryVisibilityTelemetry(), Surface.QueryClusterCount(), Surface.QueryDrawIndirectCount(),
+                                                                   Integrator.QueryConfiguration(), Level.QueryMaterials().QueryMetrics(),
+                                                                   Textures.QueryMetrics(), MaxTextureLevels);
                               ControlCentre.ConstructControlLayout(OverlaySurface);
                               Notifications.ConstructNotificationLayout(OverlaySurface, NotchLine);
                           }

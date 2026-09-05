@@ -155,18 +155,28 @@ void RenderScheduler::SectionReSTIR(
 
     const ReSTIRIntegratorConfiguration& Config = Integrator.QueryConfiguration();
 
-    int Candidates    = static_cast<int>(Config.CandidatesPerPixel);
-    int SpatialPasses = static_cast<int>(Config.SpatialPassCount);
-    float Exposure    = Config.Exposure;
+    int Candidates = static_cast<int>(Config.CandidatesPerPixel);
+    int Extra      = static_cast<int>(Config.ExtraCandidateCount);
+    float Exposure = Config.Exposure;
 
     if (ImGui::SliderInt("Candidates / px", &Candidates, 1, 32))
         Integrator.AssignCandidatesPerPixel(static_cast<uint32_t>(std::clamp(Candidates, 1, 32)));
 
-    if (ImGui::SliderInt("Spatial passes",  &SpatialPasses, 0, 8))
-        Integrator.AssignSpatialPassCount(static_cast<uint32_t>(std::clamp(SpatialPasses, 0, 8)));
+    if (ImGui::SliderInt("Extra candidates", &Extra, 0, 8))   // R6 row 3: renamed (was "Spatial passes" — these never left the pixel)
+        Integrator.AssignExtraCandidateCount(static_cast<uint32_t>(std::clamp(Extra, 0, 8)));
 
     if (ImGui::SliderFloat("Exposure", &Exposure, 0.1f, 4.0f, "%.2f"))
         Integrator.AssignExposure(Exposure);
+
+    bool Temporal = Config.TemporalReuse;   // R6: off-switches for the A/B proofs (converged image must match)
+    bool Spatial  = Config.SpatialReuse;
+    bool Alias    = Config.AliasPick;       // R6 row 3: off = uniform pick (R0 identity); F5 in the F3 popup flips the same flag
+    if (ImGui::Checkbox("Temporal reuse", &Temporal))
+        Integrator.AssignTemporalReuse(Temporal);
+    if (ImGui::Checkbox("Spatial reuse", &Spatial))
+        Integrator.AssignSpatialReuse(Spatial);
+    if (ImGui::Checkbox("Alias pick", &Alias))
+        Integrator.AssignAliasPick(Alias);
 
     ImGui::Spacing();
     ImGui::Text("Frame      %u", Integrator.QueryAccumulationIndex());

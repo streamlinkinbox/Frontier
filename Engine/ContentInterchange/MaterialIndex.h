@@ -76,6 +76,7 @@ struct MaterialIndexMetrics
     uint32_t SlabCount       = 0u;          // resident slabs after flatten
     uint32_t FoldedCount     = 0u;          // slabs folded away by the limit
     uint32_t SlabLimit       = 1u;
+    uint32_t ComplexityCount[4]{};          // R6 row 3: per-class histogram (Simple / Single / Complex / Special)
 };
 
 class MaterialIndex

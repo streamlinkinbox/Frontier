@@ -17,13 +17,14 @@ namespace Frontier {
 enum class RayTracingTierRequestCategory : uint32_t { Auto = 0, Software = 1, RayQuery = 2, Pipeline = 3, Count = 4 };
 
 // Mirrors DebugViewCategory (DeviceExchange/VisibilityExchange.h): the R2 debug popup (F3) cycles these.
-enum class DebugViewSelection : uint32_t { Off = 0, Depth = 1, Visibility = 2, Motion = 3, Cluster = 4, HiZ = 5, Albedo = 6, Normal = 7, Roughness = 8, Metalness = 9, ShadingNormal = 10, Count = 11 };
+enum class DebugViewSelection : uint32_t { Off = 0, Depth = 1, Visibility = 2, Motion = 3, Cluster = 4, HiZ = 5, Albedo = 6, Normal = 7, Roughness = 8, Metalness = 9, ShadingNormal = 10, ReservoirM = 11, ReservoirW = 12, ReservoirAge = 13, Count = 14 };
 
 struct RenderBackendConfiguration
 {
     RayTracingTierRequestCategory RayTracingTier = RayTracingTierRequestCategory::Auto;   // [render] ray_tracing_tier
     DebugViewSelection            DebugView      = DebugViewSelection::Off;               // [render] debug_view
     bool                          OcclusionCulling = true;                                // [render] occlusion_culling (HiZ)
+    bool                          AliasPick = true;                                       // [render] alias_pick (R6 row 3 Walker-alias light pick; false = uniform R0 identity, F5)
     uint32_t                      SlabLimit        = 1u;                                  // [render] slab_limit (R4a: Tier A 1, Tier B/C 4, ceiling 8)
     uint32_t                      TextureEdgeLimit = 2048u;                               // [render] texture_edge_limit (largest texture edge kept resident; 0 = unlimited)
     [[nodiscard]] bool operator==(const RenderBackendConfiguration&) const noexcept = default;

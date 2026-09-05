@@ -92,13 +92,16 @@ DispatchConfiguration ReSTIRIntegrator::BuildDispatch(
     Dispatch.ViewportWidth         = ViewportWidth;
     Dispatch.ViewportHeight        = ViewportHeight;
     Dispatch.AccumulationIndex     = AccumulationIndex;
-    Dispatch.SpatialPassCount      = ActiveConfiguration.SpatialPassCount;
+    Dispatch.ExtraCandidateCount      = ActiveConfiguration.ExtraCandidateCount;
     Dispatch.CandidatesPerPixel    = ActiveConfiguration.CandidatesPerPixel;
     Dispatch.AlphaMaskedMaterialCount = AlphaMaskedMaterialCount;   // R4b: 0 keeps the any-hit shadow path
     Dispatch.LuminaireTriangleCount = LuminaireTriangleCount;
     Dispatch.FeatureFlags          = (ActiveConfiguration.GlobalIllumination ? DispatchFeatureGlobalIllumination : 0u)
                                    | (ActiveConfiguration.AntiAliasing       ? DispatchFeatureAntiAliasing       : 0u)
-                                   | (ActiveConfiguration.AmbientFloor       ? DispatchFeatureAmbientFloor       : 0u);
+                                   | (ActiveConfiguration.AmbientFloor       ? DispatchFeatureAmbientFloor       : 0u)
+                                   | (ActiveConfiguration.TemporalReuse      ? DispatchFeatureTemporalReuse      : 0u)
+                                   | (ActiveConfiguration.SpatialReuse       ? DispatchFeatureSpatialReuse       : 0u)
+                                   | (ActiveConfiguration.AliasPick          ? DispatchFeatureAliasPick          : 0u);
 
     return Dispatch;
 }

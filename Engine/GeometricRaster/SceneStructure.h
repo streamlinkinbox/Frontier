@@ -163,7 +163,7 @@ public:
     uint32_t                RegisterMaterial(const MaterialDescriptor& Material) noexcept;
 
     // Scene graph rows (R4a). RegisterPlacement links the new row under `Ancestor` (appended as the last peer).
-    uint32_t                RegisterPlacement(std::string Name, uint32_t Ancestor, const Matrix4x4& Local, const Matrix4x4& World) noexcept;
+    uint32_t                RegisterPlacement(std::string PlacementName, uint32_t Ancestor, const Matrix4x4& Local, const Matrix4x4& World) noexcept;
     uint32_t                RegisterCamera(const CameraRecord& Camera, uint32_t Placement) noexcept;
     uint32_t                RegisterPunctualLuminaire(const PunctualLuminaireRecord& Luminaire, uint32_t Placement) noexcept;
     void                    AttachInstances(uint32_t Placement, uint32_t FirstInstance, uint32_t InstanceCount) noexcept;

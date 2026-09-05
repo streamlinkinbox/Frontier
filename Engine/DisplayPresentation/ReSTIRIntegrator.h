@@ -26,12 +26,15 @@ namespace Frontier {
 struct ReSTIRIntegratorConfiguration
 {
     uint32_t    CandidatesPerPixel;         // [-]   primary DI candidates per pixel
-    uint32_t    SpatialPassCount;           // [-]   ReSTIR spatial resampling passes
+    uint32_t    ExtraCandidateCount;      // [-]   extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is the fixed kSpatialTaps cross)
     float       Exposure;                   // [-]   ACES tone-map exposure scalar
     float       AmbientStrength;            // [-]   ambient fallback contribution
     bool        GlobalIllumination = true;  // [-]   secondary bounce on/off
     bool        AntiAliasing       = true;  // [-]   sub-pixel jitter on/off
     bool        AmbientFloor       = false; // [-]   debug fill light (albedo × AmbientStrength); off by default since R0
+    bool        TemporalReuse      = true;  // [-]   R6 row 2: temporal reservoir reuse (back-projection + validation)
+    bool        SpatialReuse       = true;  // [-]   R6 row 3: spatial neighbour reuse (pairwise MIS)
+    bool        AliasPick          = true;  // [-]   R6 row 3: Walker-alias light pick (false = uniform, R0 identity; F5)
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -69,10 +72,13 @@ public:
     // Mutable configuration — updated live by RenderScheduler
     // Any parameter change invalidates the temporal history; the accumulation restarts at index 0.
     void AssignCandidatesPerPixel(uint32_t Count) noexcept { if (ActiveConfiguration.CandidatesPerPixel != Count) { ActiveConfiguration.CandidatesPerPixel = Count; ResetAccumulation(); } }
-    void AssignSpatialPassCount  (uint32_t Count) noexcept { if (ActiveConfiguration.SpatialPassCount   != Count) { ActiveConfiguration.SpatialPassCount   = Count; ResetAccumulation(); } }
+    void AssignExtraCandidateCount  (uint32_t Count) noexcept { if (ActiveConfiguration.ExtraCandidateCount   != Count) { ActiveConfiguration.ExtraCandidateCount   = Count; ResetAccumulation(); } }
     void AssignExposure          (float    Value) noexcept { if (ActiveConfiguration.Exposure            != Value) { ActiveConfiguration.Exposure            = Value; ResetAccumulation(); } }
     void AssignGlobalIllumination(bool     On)    noexcept { if (ActiveConfiguration.GlobalIllumination  != On)    { ActiveConfiguration.GlobalIllumination  = On;    ResetAccumulation(); } }
     void AssignAntiAliasing      (bool     On)    noexcept { if (ActiveConfiguration.AntiAliasing        != On)    { ActiveConfiguration.AntiAliasing        = On;    ResetAccumulation(); } }
+    void AssignTemporalReuse     (bool     On)    noexcept { if (ActiveConfiguration.TemporalReuse       != On)    { ActiveConfiguration.TemporalReuse       = On;    ResetAccumulation(); } }
+    void AssignSpatialReuse      (bool     On)    noexcept { if (ActiveConfiguration.SpatialReuse        != On)    { ActiveConfiguration.SpatialReuse        = On;    ResetAccumulation(); } }
+    void AssignAliasPick         (bool     On)    noexcept { if (ActiveConfiguration.AliasPick           != On)    { ActiveConfiguration.AliasPick           = On;    ResetAccumulation(); } }
 
     void ResetAccumulation() noexcept { AccumulationIndex = 0u; }
 

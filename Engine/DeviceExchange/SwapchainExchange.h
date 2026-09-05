@@ -24,7 +24,7 @@ namespace Frontier {
 class SceneStructure;
 class TraversalIndex;   // GeometricRaster/TraversalIndex.h (R3 CWBVH)
 class TextureIndex;     // ContentInterchange/TextureIndex.h (R4a)
-static constexpr uint32_t kComputeBindingCount  = 16u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 Textures[] (R4b; variable-count binding stays last)
+static constexpr uint32_t kComputeBindingCount  = 19u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 motion · 16 prev reservoir · 17 curr reservoir · 18 Textures[] (R6; variable-count binding stays last)
 static constexpr uint32_t kTextureSlotCapacity  = 1024u;  // bindless sampler2D[] size (variable-count binding; Pascal maxPerStageDescriptorSamplers ≥ 4000)
 class MaterialIndex;    // ContentInterchange/MaterialIndex.h (R4a)
 
@@ -93,7 +93,7 @@ struct DispatchConfiguration
     uint32_t ViewportWidth;                                        // [px]  render width
     uint32_t ViewportHeight;                                       // [px]  render height
     uint32_t AccumulationIndex;                                    // [-]   temporal frame counter
-    uint32_t SpatialPassCount;                                     // [-]   ReSTIR spatial resampling passes
+    uint32_t ExtraCandidateCount;                                    // [-]   extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is the fixed kSpatialTaps cross)
     uint32_t CandidatesPerPixel;                                   // [-]   primary DI candidates per pixel
     uint32_t AlphaMaskedMaterialCount;                             // [-]   R4b: materials with MaterialFlagAlphaMask (0 = any-hit shadow rays); was TriangleCount, unused by the kernel
     uint32_t LuminaireTriangleCount;                               // [-]   emissive triangles for DI sampling
@@ -105,7 +105,10 @@ enum DispatchFeature : uint32_t
 {
     DispatchFeatureGlobalIllumination = 1u << 0,
     DispatchFeatureAntiAliasing       = 1u << 1,
-    DispatchFeatureAmbientFloor       = 1u << 2    // debug fill light (R0: off by default)
+    DispatchFeatureAmbientFloor       = 1u << 2,   // debug fill light (R0: off by default)
+    DispatchFeatureTemporalReuse      = 1u << 3,   // R6 row 2: temporal reservoir reuse
+    DispatchFeatureSpatialReuse       = 1u << 4,   // R6 row 3: spatial neighbour reuse
+    DispatchFeatureAliasPick          = 1u << 5    // R6 row 3: Walker-alias light pick (off = uniform, R0 identity)
 };
 
 // Mirrors `layout(push_constant) uniform ReSTIRConstants` in Engine/Shaders/ReSTIRViewport.slang.
@@ -137,10 +140,11 @@ public:
     // R2: the whole level becomes resident (vertices · indices · instances · clusters · materials · luminaires) and the
     //    interim kernel's flat triangle / material SSBOs are taken from the same SceneStructure — one upload, one truth.
     void                        UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures = nullptr) noexcept;
-    void                        UploadTextures(const TextureIndex& Textures) noexcept;   // R4a bindless table → binding 15
+    void                        UploadTextures(const TextureIndex& Textures) noexcept;   // R4a bindless table → binding 18 (last since R6)
     void                        DestroyTextures() noexcept;
     void                        UploadShadingTables(const float* Energy, const float* Sheen, uint32_t Resolution) noexcept;   // R4b: two RGBA32F Resolution² planes (ShadingTableCodec bake) → bindings 13 / 14, once
     void                        UploadTraversal(const TraversalIndex& Traversal) noexcept;   // R3 CWBVH blobs → bindings 8-9
+    void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
     void                        AssignVisibilityFrame(const VisibilityFrameConfiguration& Frame) noexcept { VisibilityFrame = Frame; VisibilityFrameValid = true; }

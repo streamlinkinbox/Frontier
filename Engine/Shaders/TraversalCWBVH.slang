@@ -51,17 +51,17 @@ void TraverseChildren(in vec4 n0, in vec4 n1, in vec4 n2, in vec4 n3, in vec4 n4
     float origx = (n0.x - O.x) * rD.x, origy = (n0.y - O.y) * rD.y, origz = (n0.z - O.z) * rD.z;
     hitmask = 0u;
 
-    for (uint half = 0u; half < 2u; ++half)
+    for (uint side = 0u; side < 2u; ++side)
     {
-        uint meta4      = floatBitsToUint(half == 0u ? n1.z : n1.w);
+        uint meta4      = floatBitsToUint(side == 0u ? n1.z : n1.w);
         uint isInner4   = (meta4 & (meta4 << 1u)) & 0x10101010u;
         uint innerMask4 = SignExtendS8x4(isInner4 << 3u);
         uint bitIndex4  = (meta4 ^ (octinv4 & innerMask4)) & 0x1F1F1F1Fu;
         uint childBits4 = (meta4 >> 5u) & 0x07070707u;
 
-        uint qxLo = floatBitsToUint(half == 0u ? n2.x : n2.y), qxHi = floatBitsToUint(half == 0u ? n3.z : n3.w);
-        uint qyLo = floatBitsToUint(half == 0u ? n2.z : n2.w), qyHi = floatBitsToUint(half == 0u ? n4.x : n4.y);
-        uint qzLo = floatBitsToUint(half == 0u ? n3.x : n3.y), qzHi = floatBitsToUint(half == 0u ? n4.z : n4.w);
+        uint qxLo = floatBitsToUint(side == 0u ? n2.x : n2.y), qxHi = floatBitsToUint(side == 0u ? n3.z : n3.w);
+        uint qyLo = floatBitsToUint(side == 0u ? n2.z : n2.w), qyHi = floatBitsToUint(side == 0u ? n4.x : n4.y);
+        uint qzLo = floatBitsToUint(side == 0u ? n3.x : n3.y), qzHi = floatBitsToUint(side == 0u ? n4.z : n4.w);
         vec4 lox4 = UnpackU8x4(rD.x < 0.0 ? qxHi : qxLo), hix4 = UnpackU8x4(rD.x < 0.0 ? qxLo : qxHi);
         vec4 loy4 = UnpackU8x4(rD.y < 0.0 ? qyHi : qyLo), hiy4 = UnpackU8x4(rD.y < 0.0 ? qyLo : qyHi);
         vec4 loz4 = UnpackU8x4(rD.z < 0.0 ? qzHi : qzLo), hiz4 = UnpackU8x4(rD.z < 0.0 ? qzLo : qzHi);

@@ -306,14 +306,14 @@ bool SceneCodec::Encode(const std::string& Path, const std::vector<TriangleIndex
             const float Uv[3][2] = { { T.TextureAlphaU, T.TextureAlphaV }, { T.TextureBetaU, T.TextureBetaV }, { T.TextureGammaU, T.TextureGammaV } };
             for (uint32_t K = 0u; K < 3u; ++K)
             {
-                const Vector3& C = Corners[K];
+                const Vector3& Corner = Corners[K];
                 const Vector3 Ns = Smooth ? WorldToGltf((*Configuration.CornerNormals)[TriangleSlot * 3u + K]) : N;
                 Indices.push_back(static_cast<uint32_t>(Positions.size() / 3u));
-                Positions.insert(Positions.end(), { C.x, C.y, C.z });
+                Positions.insert(Positions.end(), { Corner.x, Corner.y, Corner.z });
                 Normals.insert(Normals.end(), { Ns.x, Ns.y, Ns.z });
                 if (Configuration.WriteTexcoords) Texcoords.insert(Texcoords.end(), { Uv[K][0], Uv[K][1] });
-                Minimum[0] = std::min(Minimum[0], C.x); Minimum[1] = std::min(Minimum[1], C.y); Minimum[2] = std::min(Minimum[2], C.z);
-                Maximum[0] = std::max(Maximum[0], C.x); Maximum[1] = std::max(Maximum[1], C.y); Maximum[2] = std::max(Maximum[2], C.z);
+                Minimum[0] = std::min(Minimum[0], Corner.x); Minimum[1] = std::min(Minimum[1], Corner.y); Minimum[2] = std::min(Minimum[2], Corner.z);
+                Maximum[0] = std::max(Maximum[0], Corner.x); Maximum[1] = std::max(Maximum[1], Corner.y); Maximum[2] = std::max(Maximum[2], Corner.z);
             }
         }
         if (Indices.empty()) continue;

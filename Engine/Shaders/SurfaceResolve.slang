@@ -33,6 +33,18 @@ layout(set = 0, binding = 10, rgba32f) uniform writeonly image2D SurfaceImage;
 layout(set = 0, binding = 11, rgba16f) uniform writeonly image2D NormalImage;
 layout(set = 0, binding = 12, rgba8)   uniform writeonly image2D OutputImage;
 
+// R6 row 3: prev-frame reservoirs for the M / W / Age debug views — the same buffer the kernel reads as
+//    binding 16 (written per frame by VisibilityExchange::RecordFrame), so the views show the last completed
+//    kernel frame. The kernel is skipped in debug views, so Curr is never fresher than this by design.
+struct GpuReservoirView
+{
+    vec4  Sample;    // xyz = light sample point, w = WeightSum
+    uvec4 Counts;    // x = M, y = SelectedLight, z = Visible, w = Age
+    vec4  UvDepth;   // xy = SelectedUv, z = W, w = view depth at the build pixel [m]
+    vec4  Normal;    // xyz = geometric normal at the build pixel, w = stride guard (ViewportWidth)
+};
+layout(std430, set = 0, binding = 13) readonly buffer ReservoirExtent { GpuReservoirView Reservoirs[]; };
+
 // Debug views — mirror DebugViewCategory in Engine/DeviceExchange/VisibilityExchange.h
 const uint kDebugOff        = 0u;
 const uint kDebugDepth      = 1u;
@@ -45,6 +57,9 @@ const uint kDebugNormal     = 7u;
 const uint kDebugRoughness  = 8u;   // R4b: MaterialRecord.Albedo.w (constant part; textured roughness is not resolved here)
 const uint kDebugMetalness  = 9u;   // R4b: MaterialRecord.Emissive.w
 const uint kDebugShadingNormal = 10u;   // R4b: interpolated vertex normal (⚠️ without the normal map — that needs the slab + texture table)
+const uint kDebugReservoirM   = 11u;  // R6 row 3: reservoir M (sample count) — white ramp, saturates at 256
+const uint kDebugReservoirW   = 12u;  // R6 row 3: reservoir W (unbiased weight) — 1−exp(−W·k) heat ramp
+const uint kDebugReservoirAge = 13u;  // R6 row 3: reservoir Age (frames since a fresh sample won) — ramp, saturates at 16
 
 vec3 HashColour(uint V)
 {
@@ -140,6 +155,15 @@ void main()
     else if (View == kDebugRoughness)     Colour = Hit ? vec3(Materials[Material].Albedo.w)   : vec3(0.0);
     else if (View == kDebugMetalness)     Colour = Hit ? vec3(Materials[Material].Emissive.w) : vec3(0.0);
     else if (View == kDebugShadingNormal) Colour = Hit ? ShadingNormal * 0.5 + 0.5 : vec3(0.0);
+    else if (View == kDebugReservoirM || View == kDebugReservoirW || View == kDebugReservoirAge)
+    {
+        // R6 row 3: last completed kernel frame's reservoir at this pixel (unvalidated here — the M/W/Age views
+        //    are diagnostics of the reuse state itself, including stale entries).
+        GpuReservoirView R = Reservoirs[Pixel.y * Extent.x + Pixel.x];
+        if (View == kDebugReservoirM)         Colour = vec3(clamp(float(R.Counts.x) / 256.0, 0.0, 1.0));
+        else if (View == kDebugReservoirAge)  Colour = vec3(clamp(float(R.Counts.w) / 16.0, 0.0, 1.0));
+        else                                  Colour = vec3(1.0 - exp(-R.UvDepth.z * 0.25));
+    }
 
     imageStore(OutputImage, ivec2(Pixel), vec4(Colour, 1.0));
 }
