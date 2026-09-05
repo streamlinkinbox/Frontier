@@ -158,10 +158,13 @@ int main(int argc, char** argv)
         if (R.Flags & Frontier::MaterialFlagAlphaMask) ++AlphaMaskedMaterialCount;
 
     // R3: Tier A acceleration structure — tinybvh binned SAH → CWBVH over the flat world-space triangles.
+    // D1: built through the bottom-level entry point. The whole level is currently ONE identity-transformed
+    //     instance, so object space is world space and this is bit-for-bit what Build() produced before
+    //     (Scratchpad/CheckTraversalIdentity.sh is the gate). Per-instance transforms arrive in D2/D3.
     Frontier::TraversalIndex Traversal;
     {
         const bool HighQuality = Level.QueryTriangleCount() <= 2'000'000u;   // SBVH; ~2× build time for ~10 % fewer steps
-        Traversal.Build(Level.QueryFlatTriangles(), HighQuality);
+        Traversal.BuildBottomLevel(Level.QueryFlatTriangles(), HighQuality);
         const Frontier::TraversalMetrics& M = Traversal.QueryMetrics();
         char Line[256];
         std::snprintf(Line, sizeof(Line), "CWBVH: %u triangles → %u nodes, %.1f KB nodes + %.1f KB leaves (%.1f B/tri), SAH %.2f, built in %.1f ms (%s)",

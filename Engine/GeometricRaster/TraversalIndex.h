@@ -50,6 +50,21 @@ public:
     // faster traversal on Sponza-class scenes). Returns false on empty input.
     bool Build(const std::vector<TriangleIndex>& Triangles, bool HighQuality) noexcept;
 
+    // D1 — bottom-level entry point. Identical work to Build(); the distinct name records the INTENT that these
+    //    triangles are one instance's geometry rather than the whole world, so a reader (and the identity gate)
+    //    can tell the two apart before the transform plumbing exists.
+    //
+    //    ⚠️ This must never become a separate implementation. It forwards to Build so the two paths cannot drift:
+    //    Scratchpad/TraversalIdentityTest.cpp hashes both blobs and requires bit identity, because a perturbed
+    //    tree would silently decorrelate ReSTIR's temporal reuse rather than fail loudly.
+    //
+    //    Triangles are object-space once instances carry transforms. For a single identity-transformed instance —
+    //    every scene the renderer has today — object space IS world space, which is what makes D1 a no-op.
+    bool BuildBottomLevel(const std::vector<TriangleIndex>& Triangles, bool HighQuality) noexcept
+    {
+        return Build(Triangles, HighQuality);
+    }
+
     [[nodiscard]] bool                      IsReady()        const noexcept { return !NodeBlob.empty(); }
     [[nodiscard]] const std::vector<float>& QueryNodeBlob()  const noexcept { return NodeBlob; }   // float4 × 5 per node
     [[nodiscard]] const std::vector<float>& QueryLeafBlob()  const noexcept { return LeafBlob; }   // float4 × 3 per triangle
