@@ -303,3 +303,43 @@ target_link_libraries(FrontierEngine PRIVATE pthread)
 #============================================================================================================================================
 # All five of its sources were absent, so `cmake` failed at configure time before reaching any real target. The
 #    target is dropped rather than commented out; restore it from history if the project comes back.
+
+#============================================================================================================================================
+# Jolt Physics — compiled from the submodule as a static library, rigid-body subset (no GPU compute back ends / hair shaders)
+#   Flags mirror Scripts/BuildJolt.sh. Jolt derives JPH_USE_* / JPH_DEBUG from the compiler flags and RegisterTypes() aborts on a
+#   library/client mismatch, so FRONTIER_PHYSICS_FLAGS is applied to every target that includes <Jolt/Jolt.h> as well.
+#============================================================================================================================================
+
+set(FRONTIER_PHYSICS_FLAGS -mavx -mpopcnt -mfpmath=sse)
+
+file(GLOB_RECURSE JOLT_SOURCES CONFIGURE_DEPENDS "${EXT}/jolt/Jolt/*.cpp")
+list(FILTER JOLT_SOURCES EXCLUDE REGEX "/Compute/(CPU|DX12|VK|MTL)/")
+list(FILTER JOLT_SOURCES EXCLUDE REGEX "/Shaders/(HairWrapper|TestComputeWrapper)\\.cpp$")
+
+add_library(Jolt STATIC ${JOLT_SOURCES})
+target_include_directories(Jolt PUBLIC "${EXT}/jolt")
+target_compile_options(Jolt PUBLIC ${FRONTIER_PHYSICS_FLAGS} -pthread)
+target_compile_options(Jolt PRIVATE -Wall -Wno-psabi -Wno-stringop-overflow)
+target_compile_definitions(Jolt PUBLIC "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")   # Release → JPH_DEBUG off; Debug → asserts on (both sides)
+target_link_libraries(Jolt PUBLIC pthread)
+
+#============================================================================================================================================
+# Project-Physics — Jolt rigid-body testbed (console; plane + falling boxes / spheres / capsules ticked from the main loop)
+#============================================================================================================================================
+# Deliberately does NOT link FrontierEngine: the testbed is a console proof of the RigidBodySolver seam and needs neither Vulkan nor
+#    GLFW, so it stays buildable when the graphics submodules are uninitialised.
+
+add_executable(Project-Physics
+    Engine/DeviceExchange/OrientationClassifier.cpp
+    Engine/DeviceExchange/DiagnosticMetrics.cpp
+    Engine/PhysicalDynamics/RigidBodySolver.cpp
+    Projects/Project-Physics/Source/DropSceneStructure.cpp
+    Projects/Project-Physics/Source/GameExecution.cpp
+)
+target_include_directories(Project-Physics PRIVATE
+    ${FRONTIER_ENGINE_INCLUDES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Physics/Source
+)
+target_compile_definitions(Project-Physics PRIVATE FRONTIER_DEVELOPMENT "$<$<CONFIG:Debug>:FRONTIER_DEBUG=1>")
+target_compile_options(Project-Physics PRIVATE -Wall -Wextra -Wno-psabi)
+target_link_libraries(Project-Physics PRIVATE Jolt pthread)

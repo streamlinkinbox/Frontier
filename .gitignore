@@ -31,3 +31,8 @@ Scratchpad/InterfaceRasterTest
 # Generated on first run by GameExecution (--scene showroom). CornellBox.gltf stays tracked as the
 #    bit-identity reference; the showroom is derived from ShowroomStructure.cpp and regenerates.
 Projects/Project-Zero/Content/Scenes/Showroom.gltf
+
+# Jolt static library and Project-Physics build output (derived; rebuilt by Scripts/BuildJolt.sh and the toolchain scripts)
+ExternalPackages/jolt/lib/
+Projects/Project-Physics/Build/Output/
+Diagnostics/ProjectPhysics_TelemetryReport*.md
