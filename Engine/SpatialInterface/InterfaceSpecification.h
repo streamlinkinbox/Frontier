@@ -32,7 +32,8 @@ enum class InterfaceCategory : uint32_t
     Needle      = 3u,   // tapered pointer from the centre; ScalarAlpha = angle fraction across the sweep
     SegmentCell = 4u,   // one seven-segment digit; ScalarAlpha = digit 0..9 (10 = blank, 11 = minus)
     Lamp        = 5u,   // filled disc with a soft halo — telltales; ScalarAlpha = luminance
-    Count       = 6u
+    Glyph       = 6u,   // P1: one stroke-font character; ScalarAlpha = ASCII code, ScalarBeta = stroke half width [m]
+    Count       = 7u
 };
 
 [[nodiscard]] const char* InterfaceCategoryName(InterfaceCategory Category) noexcept;

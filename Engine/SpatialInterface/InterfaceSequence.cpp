@@ -25,6 +25,7 @@ const char* InterfaceCategoryName(InterfaceCategory Category) noexcept
         case InterfaceCategory::Needle:      return "Needle";
         case InterfaceCategory::SegmentCell: return "SegmentCell";
         case InterfaceCategory::Lamp:        return "Lamp";
+        case InterfaceCategory::Glyph:       return "Glyph";
         default:                             return "Unknown";
     }
 }
