@@ -20,6 +20,7 @@
 #pragma once
 
 #include "../../../Engine/GeometricRaster/SceneStructure.h"
+#include "../../../Engine/DeviceExchange/SwapchainExchange.h"
 #include "../../../Engine/PhysicalDynamics/RigidBodySolver.h"
 
 #include <cstdint>
@@ -49,6 +50,17 @@ public:
     //    vectors and ReSTIR reprojection stay valid, exactly as InstanceMotionSequence does.
     void AdvancePhysics(RigidBodySolver& Solver, std::vector<InstanceRecord>& Rows, float DeltaSeconds) noexcept;
 
+    // D5 — rewrite the moving bodies' entries in the FLAT triangle list from the poses computed by the last
+    //    AdvancePhysics. The renderer's acceleration structure is built over these world-space triangles, so
+    //    shadows and reflections only follow the bodies once this has run and the structure has been refitted.
+    //
+    //    Rest is captured on the first call: the flat triangles arrive already baked at the rest pose, so the
+    //    body-local geometry is recovered once and then re-transformed each frame rather than accumulating error
+    //    by transforming the previous frame's output.
+    //
+    //    Facets must be the scene's flat triangle list; Instances supplies each body's triangle range.
+    void RefreshBodyFacets(std::vector<TriangleIndex>& Facets, const std::vector<InstanceRecord>& Instances) noexcept;
+
     // Diagnostics: how many bodies are still awake, and the lowest body centre — the settling proof reads these.
     [[nodiscard]] uint32_t QueryActiveCount() const noexcept { return ActiveCount; }
     [[nodiscard]] float    QueryLowestHeight() const noexcept { return LowestHeight; }
@@ -59,6 +71,10 @@ private:
     std::vector<RigidBodyIdentity>  Bodies;        // [-] one per drop instance, creation order
     std::vector<Vector3>            RestOrigins;   // [m] where the geometry was baked, subtracted out each frame
     std::vector<RigidBodyPose>      Poses;         // reused each frame; no per-frame allocation in the loop
+    std::vector<TriangleIndex>      RestFacets;    // body-local geometry, captured once from the baked rest pose
+    std::vector<uint32_t>           FacetFirst;    // [idx] first flat triangle of each body
+    std::vector<uint32_t>           FacetCount;    // [cnt]
+    bool                            RestCaptured = false;
     uint32_t                        ActiveCount  = 0u;
     float                           LowestHeight = 0.0f;   // [m]
 };

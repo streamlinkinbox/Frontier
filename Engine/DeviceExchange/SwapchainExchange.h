@@ -151,6 +151,12 @@ public:
     void                        DestroyTextures() noexcept;
     void                        UploadShadingTables(const float* Energy, const float* Sheen, uint32_t Resolution) noexcept;   // R4b: two RGBA32F Resolution² planes (ShadingTableCodec bake) → bindings 13 / 14, once
     void                        UploadTraversal(const TraversalIndex& Traversal) noexcept;   // R3 CWBVH blobs → bindings 8-9
+
+    // D5: per-frame acceleration-structure refresh after a refit. No reallocation and no device stall, so unlike
+    //    UploadTraversal this is safe every frame. Also re-uploads the flat triangles, because the kernel resolves
+    //    material and normal through them and they must not lag the structure. False if a blob outgrew its
+    //    allocation, in which case the caller should fall back to a full UploadTraversal.
+    [[nodiscard]] bool          RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept;
     void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
@@ -261,7 +267,9 @@ private:
     bool                    FullscreenActive;    // [-]   window currently covers the primary monitor
     RayTracingCapabilitySet Capabilities;        // [-]   probed in BringPhysicalDevice
     VisibilityExchange      Visibility;          // [-]   R2 resident scene + cull / raster / HiZ / resolve
-    bool                    TraversalResident = false;   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
+    bool                    TraversalResident = false;
+    uint64_t                TraversalNodeCapacity = 0u;   // [B] allocation size, so a refit refresh cannot overrun
+    uint64_t                TraversalLeafCapacity = 0u;   // [B]   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
     VisibilityFrameConfiguration VisibilityFrame{};
     bool                    VisibilityFrameValid = false;
 

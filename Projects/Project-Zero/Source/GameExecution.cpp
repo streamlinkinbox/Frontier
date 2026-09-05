@@ -174,7 +174,9 @@ int main(int argc, char** argv)
     //     (Scratchpad/CheckTraversalIdentity.sh is the gate). Per-instance transforms arrive in D2/D3.
     Frontier::TraversalIndex Traversal;
     {
-        const bool HighQuality = Level.QueryTriangleCount() <= 2'000'000u;   // SBVH; ~2× build time for ~10 % fewer steps
+        // SBVH; ~2× build time for ~10 % fewer steps. The drop level opts OUT: spatial splits cut triangles,
+        //    which makes the tree unrefittable, and movable geometry is worth more here than the traversal gain.
+        const bool HighQuality = !DropScene && Level.QueryTriangleCount() <= 2'000'000u;
         Traversal.BuildBottomLevel(Level.QueryFlatTriangles(), HighQuality);
         const Frontier::TraversalMetrics& M = Traversal.QueryMetrics();
         char Line[256];
@@ -282,6 +284,13 @@ int main(int argc, char** argv)
     //    did, which keeps the Cornell box a valid bit-identity reference. D4 replaces the scripted driver with
     //    RigidBodySolver poses and the upload below does not change.
     std::vector<Frontier::InstanceRecord> AnimatedInstances = Level.QueryInstances();
+
+    // D5: a mutable copy of the flat world-space triangles. The acceleration structure is refitted over these, so
+    //    the bodies' traced positions follow their drawn positions. Off unless the level actually has bodies, and
+    //    disabled at run time if the refit ever refuses, so a failure degrades to static shadows rather than a crash.
+    std::vector<Frontier::TriangleIndex> TracedFacets = Level.QueryFlatTriangles();
+    bool  TraceMovingBodies      = false;
+    float RefitMillisecondsPeak  = 0.0f;   // [ms]
     Frontier::ProjectZero::InstanceMotionSequence InstanceMotion;
     bool   InstanceMotionReady = false;
     double InstanceMotionElapsed = 0.0;   // [s]
@@ -304,6 +313,9 @@ int main(int argc, char** argv)
             BridgeConfiguration.FirstDropInstance = static_cast<uint32_t>(AnimatedInstances.size()) - kDropBodyCount;
             BridgeConfiguration.BodyRadius        = Frontier::ProjectZero::ShowroomStructure::QueryDropRadius();
             PhysicsReady = BodyBridge.Construct(BodySolver, BridgeConfiguration);
+            // Refit needs a binned-SAH tree; a spatial-split (HighQuality) build cuts triangles and cannot be
+            //    refitted, so the drop level knowingly trades a little traversal speed for movable geometry.
+            TraceMovingBodies = PhysicsReady && Traversal.IsRefittable();
         }
         Logger.RecordMessage(PhysicsReady ? Frontier::DiagnosticSeverity::Information
                                           : Frontier::DiagnosticSeverity::Warning,
@@ -313,6 +325,14 @@ int main(int argc, char** argv)
                                    " rigid bodies from instance " +
                                    std::to_string(static_cast<uint32_t>(AnimatedInstances.size()) - kDropBodyCount) + "."
                                  : "Drop scene requested but the solver refused - the level renders statically.");
+
+        if (PhysicsReady)
+            Logger.RecordMessage(TraceMovingBodies ? Frontier::DiagnosticSeverity::Information
+                                                   : Frontier::DiagnosticSeverity::Warning,
+                                 "Physics",
+                                 TraceMovingBodies
+                                     ? "Traced geometry follows the bodies (acceleration structure refitted per frame)."
+                                     : "Acceleration structure is not refittable - bodies will move but their shadows will not.");
     }
 
     if (AnimateInstances && !PhysicsReady && !AnimatedInstances.empty())
@@ -805,6 +825,24 @@ int main(int argc, char** argv)
                 Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Physics",
                                      "RefreshInstances refused the row set - physics disabled.");
             }
+
+            // D5 — move the traced geometry too. Without this the bodies are DRAWN in their new places while
+            //     their shadows and reflections stay where the structure was built, which reads as the bodies
+            //     floating free of their own shadows.
+            if (TraceMovingBodies && PhysicsReady)
+            {
+                BodyBridge.RefreshBodyFacets(TracedFacets, AnimatedInstances);
+                if (Traversal.RefitBottomLevel(TracedFacets) && Surface.RefreshTraversal(Traversal, TracedFacets))
+                {
+                    RefitMillisecondsPeak = std::max(RefitMillisecondsPeak, Traversal.QueryRefitMilliseconds());
+                }
+                else
+                {
+                    TraceMovingBodies = false;
+                    Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Physics",
+                                         "Acceleration-structure refit refused - shadows will not follow the bodies.");
+                }
+            }
         }
         else if (InstanceMotionReady)
         {
@@ -844,6 +882,18 @@ int main(int argc, char** argv)
 
     Logger.RecordMessage(Frontier::DiagnosticSeverity::Information,
                          "Shutdown", "Render loop exited cleanly.");
+
+    if (RefitMillisecondsPeak > 0.0f)
+    {
+        char RefitLine[160];
+        std::snprintf(RefitLine, sizeof(RefitLine),
+                      "Acceleration-structure refit peaked at %.2f ms/frame (%.0f%% of a 16.7 ms budget).",
+                      static_cast<double>(RefitMillisecondsPeak),
+                      100.0 * static_cast<double>(RefitMillisecondsPeak) / 16.7);
+        Logger.RecordMessage(RefitMillisecondsPeak > 8.0f ? Frontier::DiagnosticSeverity::Warning
+                                                          : Frontier::DiagnosticSeverity::Information,
+                             "Physics", RefitLine);
+    }
     Logger.TerminateSink();
 
     return 0;

@@ -1747,8 +1747,40 @@ void SwapchainExchange::UploadTraversal(const TraversalIndex& Traversal) noexcep
     };
     Upload(Traversal.QueryNodeBlob(), Vulkan->TraversalNodeBuffer, Vulkan->TraversalNodeMemory);
     Upload(Traversal.QueryLeafBlob(), Vulkan->TraversalLeafBuffer, Vulkan->TraversalLeafMemory);
+    // Remember what was allocated so RefreshTraversal can refuse a blob that no longer fits instead of truncating.
+    TraversalNodeCapacity = static_cast<VkDeviceSize>(Traversal.QueryNodeBlob().size()) * sizeof(float);
+    TraversalLeafCapacity = static_cast<VkDeviceSize>(Traversal.QueryLeafBlob().size()) * sizeof(float);
     TraversalResident = true;
     WriteDescriptorSet();
+}
+
+bool SwapchainExchange::RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept
+{
+    // D5 per-frame path. Unlike UploadTraversal this must NOT reallocate: no vkDeviceWaitIdle, no descriptor
+    //    rewrite, because the VkBuffer handles are unchanged. It only succeeds while the refitted blobs still fit
+    //    the allocations made at load — a refit preserves topology, so in practice they do, but a grown blob is
+    //    refused rather than truncated.
+    if (!Vulkan || !Vulkan->Device || !TraversalResident) return false;
+    if (!Vulkan->TraversalNodeBuffer || !Vulkan->TraversalLeafBuffer) return false;
+
+    const auto Refresh = [&](const std::vector<float>& Blob, VkDeviceMemory Memory, VkDeviceSize Capacity) -> bool
+    {
+        const VkDeviceSize ByteCount = static_cast<VkDeviceSize>(Blob.size()) * sizeof(float);
+        if (ByteCount == 0u || ByteCount > Capacity) return false;
+        void* Mapped = nullptr;
+        if (vkMapMemory(Vulkan->Device, Memory, 0u, ByteCount, 0u, &Mapped) != VK_SUCCESS || Mapped == nullptr) return false;
+        std::memcpy(Mapped, Blob.data(), static_cast<size_t>(ByteCount));
+        vkUnmapMemory(Vulkan->Device, Memory);
+        return true;
+    };
+
+    if (!Refresh(Traversal.QueryNodeBlob(), Vulkan->TraversalNodeMemory, TraversalNodeCapacity)) return false;
+    if (!Refresh(Traversal.QueryLeafBlob(), Vulkan->TraversalLeafMemory, TraversalLeafCapacity)) return false;
+
+    // The kernel resolves a hit's material and normal from Triangles[], so the flat triangles must move with the
+    //    acceleration structure or shading would read the body's old position.
+    UploadTriangles(Facets);
+    return true;
 }
 
 void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures) noexcept

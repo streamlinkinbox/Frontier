@@ -142,5 +142,81 @@ void PhysicsInstanceSequence::AdvancePhysics(RigidBodySolver& Solver, std::vecto
     if (LowestHeight > 1e29f) LowestHeight = 0.0f;
 }
 
+void PhysicsInstanceSequence::RefreshBodyFacets(std::vector<TriangleIndex>& Facets,
+                                                const std::vector<InstanceRecord>& Instances) noexcept
+{
+    if (Bodies.empty()) return;
+
+    // ── Capture the rest geometry once ───────────────────────────────────────────────────────────────────────────
+    // The flat triangles arrive baked at the rest pose. Subtracting the rest origin here gives body-local
+    //    geometry, which every later frame is transformed from. Transforming the PREVIOUS frame's output instead
+    //    would compound rounding every frame and visibly drift over a long run.
+    if (!RestCaptured)
+    {
+        FacetFirst.assign(Bodies.size(), 0u);
+        FacetCount.assign(Bodies.size(), 0u);
+        size_t Total = 0u;
+        for (uint32_t Body = 0u; Body < Bodies.size(); ++Body)
+        {
+            const uint32_t Slot = Config.FirstDropInstance + Body;
+            if (Slot >= Instances.size()) return;
+            FacetFirst[Body] = Instances[Slot].FlatTriangleOffset;
+            FacetCount[Body] = Instances[Slot].TriangleCount;
+            Total += FacetCount[Body];
+        }
+
+        RestFacets.clear();
+        RestFacets.reserve(Total);
+        for (uint32_t Body = 0u; Body < Bodies.size(); ++Body)
+        {
+            const Vector3& Rest = RestOrigins[Body];
+            for (uint32_t T = 0u; T < FacetCount[Body]; ++T)
+            {
+                const size_t Index = static_cast<size_t>(FacetFirst[Body]) + T;
+                if (Index >= Facets.size()) return;
+                TriangleIndex Local = Facets[Index];
+                Local.VertexAlphaX -= Rest.x; Local.VertexAlphaY -= Rest.y; Local.VertexAlphaZ -= Rest.z;
+                Local.VertexBetaX  -= Rest.x; Local.VertexBetaY  -= Rest.y; Local.VertexBetaZ  -= Rest.z;
+                Local.VertexGammaX -= Rest.x; Local.VertexGammaY -= Rest.y; Local.VertexGammaZ -= Rest.z;
+                RestFacets.push_back(Local);
+            }
+        }
+        RestCaptured = true;
+    }
+
+    // ── Transform body-local geometry by the current pose ────────────────────────────────────────────────────────
+    size_t Cursor = 0u;
+    for (uint32_t Body = 0u; Body < Bodies.size(); ++Body)
+    {
+        const uint32_t Slot = Config.FirstDropInstance + Body;
+        if (Slot >= Instances.size()) break;
+
+        // The instance World already encodes Translate(pos)·Rotate(quat)·Translate(−rest); applying its rotation
+        //    and translation to REST-LOCAL geometry reproduces exactly what the raster path draws, so the traced
+        //    and rasterised positions cannot disagree.
+        const float* M = Instances[Slot].World;
+        const Vector3& Rest = RestOrigins[Body];
+
+        const auto Apply = [&](float X, float Y, float Z, float* OutX, float* OutY, float* OutZ)
+        {
+            const float Wx = X + Rest.x, Wy = Y + Rest.y, Wz = Z + Rest.z;   // back to baked world space
+            *OutX = M[0] * Wx + M[4] * Wy + M[8]  * Wz + M[12];
+            *OutY = M[1] * Wx + M[5] * Wy + M[9]  * Wz + M[13];
+            *OutZ = M[2] * Wx + M[6] * Wy + M[10] * Wz + M[14];
+        };
+
+        for (uint32_t T = 0u; T < FacetCount[Body]; ++T, ++Cursor)
+        {
+            const size_t Index = static_cast<size_t>(FacetFirst[Body]) + T;
+            if (Index >= Facets.size() || Cursor >= RestFacets.size()) return;
+            const TriangleIndex& L = RestFacets[Cursor];
+            TriangleIndex&       F = Facets[Index];
+            Apply(L.VertexAlphaX, L.VertexAlphaY, L.VertexAlphaZ, &F.VertexAlphaX, &F.VertexAlphaY, &F.VertexAlphaZ);
+            Apply(L.VertexBetaX,  L.VertexBetaY,  L.VertexBetaZ,  &F.VertexBetaX,  &F.VertexBetaY,  &F.VertexBetaZ);
+            Apply(L.VertexGammaX, L.VertexGammaY, L.VertexGammaZ, &F.VertexGammaX, &F.VertexGammaY, &F.VertexGammaZ);
+        }
+    }
+}
+
 } // namespace ProjectZero
 } // namespace Frontier
