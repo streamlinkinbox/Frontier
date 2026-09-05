@@ -7,9 +7,9 @@
 name                   = "Nissan GT-R Nismo"            # display name
 engine                 = "VR38DETT 3.8 L 60° V6, twin IHI turbos, titanium exhaust" # one-line engine description
 cylinder_count         = 6                              # number of cylinders
-firing_order           = [1, 2, 3, 4, 5, 6]             # cylinder numbers in firing sequence, even 720/N intervals
-bank_of_cylinder       = [1, 0, 1, 0, 1, 0]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
-idle_rpm               = 650.0                          # [rpm]
+firing_order           = [1, 4, 2, 5, 3, 6]             # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 900.0                          # [rpm]
 redline_rpm            = 7100.0                         # [rpm] fuel cut
 peak_power_rpm         = 6800.0                         # [rpm]
 peak_torque_rpm        = 3600.0                         # [rpm]
@@ -19,95 +19,77 @@ friction_nm            = 35.0                           # [N·m] friction torque
 friction_per_krpm_nm   = 10.0                           # [N·m] friction torque increase per 1000 rpm
 
 [combustion]
-evo_deg                = 132.0                          # [°] exhaust valve opens this many degrees after the firing TDC
-blowdown_deg           = 22.0                           # [°] crank angle to the blowdown pressure peak
-bark_deg               = 7.0                            # [°] crank angle to the fast combustion-only front peak
-displacement_deg       = 90.0                           # [°] crank angle to the exhaust-stroke displacement peak (from BDC)
-blowdown_amp           = 1.0
-bark_amp               = 0.4                            # scaled by load^1.5
-displacement_amp       = 0.35
-pumping_amp            = 0.06                           # blowdown amplitude without combustion, throttle closed
-pumping_open_amp       = 0.2                            # added blowdown amplitude without combustion at wide-open throttle (limiter)
-jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ) at full load
-jitter_deg             = 0.8                            # [°] cycle-to-cycle timing deviation (1 σ) at full load
-idle_jitter_boost      = 2.2                            # both deviations grow by this factor toward zero load
-misfire_probability    = 0.008                          # per firing at full load; ×4 toward zero load
-discharge_noise        = 0.3                            # turbulent blowdown noise gated by the pulse
-pop_level              = 0.5                            # overrun pop / crackle amplitude
-pop_rate_hz            = 12.0                           # [Hz] overrun pop rate at redline right after lift
+evo_deg                = 132.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.4                            # overrun crackle amplitude
+pop_rate_hz            = 12.0                           # [Hz] overrun crackle rate at redline right after lift
 pop_decay_s            = 0.8                            # [s] overrun crackle fades with this time constant
 
+[voice]
+pitch_hz               = 48.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 0.6, 0.9, 0.7, 0.4, 0.3] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 0.7                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 3.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.15                           # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
 [exhaust]
-temperature_idle_k     = 740.0                          # [K] port gas temperature at idle
-temperature_wot_k      = 1150.0                         # [K] port gas temperature at full load
-thermal_lag_s          = 3.5                            # [s]
-head_reflection        = 0.6                            # pressure reflection at the (mostly closed) exhaust valves
-merge                  = 0.7                            # 0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes
-saturation_drive       = 2.0                            # tanh drive on the exhaust bus
-bank_pan               = 0.35                           # 0 = both pipes centred … 1 = hard left/right
-
-[exhaust.primary]
-length_m               = 0.3                            # [m] head to collector
-diameter_mm            = 40.0                           # [mm]
-temperature_drop_k     = 0.0                            # [K] below the port temperature
-
-[exhaust.collector]
-length_m               = 1.8                            # [m] collector to silencer
-diameter_mm            = 76.0                           # [mm]
-temperature_drop_k     = 250.0                          # [K]
-
-[exhaust.tail]
-length_m               = 1.6                            # [m] silencer to tip
-diameter_mm            = 90.0                           # [mm] sets the radiation corner
-temperature_drop_k     = 400.0                          # [K]
-
-[exhaust.muffler]
-transmission           = 0.65                           # amplitude passed through the silencer
-cutoff_hz              = 4200.0                         # [Hz] silencer low-pass corner
-
-[exhaust.turbine]
-enabled                = true                           # turbine between primary and collector
-transmission           = 0.5
-cutoff_hz              = 1800.0                         # [Hz]
-reflection             = 0.45                           # pressure reflection back into the manifold
-
-[induction]
-runner_length_m        = 0.3                            # [m] valve to plenum
-runner_diameter_mm     = 40.0                           # [mm]
-temperature_k          = 330.0                          # [K] charge temperature
-valve_reflection       = 0.85
-plenum_reflection      = -0.5                           # runner end into the plenum
-plenum_hz              = 120.0                          # [Hz] plenum / airbox Helmholtz resonance
-plenum_q               = 3.0
-level                  = 0.2
-hiss_level             = 0.1                            # throttle-body discharge noise
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
 
 [mechanical]
-clatter_level          = 0.3                            # valve seating clatter
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
 clatter_hz             = 4200.0                         # [Hz] clatter resonance
-whine_order            = 31.0                           # gear whine order relative to crank speed (0 = none)
-whine_level            = 0.012
-inverter_hz            = 0.0                            # [Hz] hybrid inverter carrier (0 = none)
-inverter_level         = 0.0
+whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.0                            # at redline; scales with rpm
+motor_level            = 0.0                            # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
 
 [turbo]
 enabled                = true                           # forced-induction layer
-shaft_idle_rpm         = 20000.0                        # [rpm]
-shaft_max_rpm          = 165000.0                       # [rpm]
-spool_up_s             = 0.55                           # [s]
-spool_down_s           = 1.0                            # [s]
-boost_max_bar          = 1.1                            # [bar]
-whine_level            = 0.35                           # compressor whistle
-recirculation_level    = 0.6                            # blow-off / recirculation hiss on lift
-
-[body]
-resonance_hz           = [64.0, 105.0]                  # [Hz] structure-borne boom resonances
-q                      = 8.0
-level                  = 0.35
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 2500.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 4000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.1                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 3.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
 
 [mix]
-exhaust                = 1.0                            # bus levels (listener presets multiply these)
-induction              = 1.0
-mechanical             = 1.0
-body                   = 1.0
-output_gain            = 2.0                            # before the limiter
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)

@@ -35,20 +35,21 @@ html,body{height:100%;margin:0}
 body{
   background:var(--bg);color:var(--text);
   font-family:'General Sans','Inter','Segoe UI',Roboto,system-ui,Arial,sans-serif;font-size:13px;
-  -webkit-font-smoothing:antialiased;user-select:none;overflow:hidden;
+  -webkit-font-smoothing:antialiased;user-select:none;overflow:auto;
 }
 button,input,select{font:inherit}
 canvas{display:block}
 
 /* ---------- app frame ---------- */
-#app{display:grid;grid-template-rows:auto 1fr;height:100vh;gap:14px;padding:14px}
+#app{display:grid;grid-template-rows:auto 1fr;min-height:100vh;box-sizing:border-box;gap:14px;padding:14px}
 #top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 #main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;min-height:0}
-#views{display:grid;grid-template-rows:auto minmax(0,1fr) minmax(0,1fr);gap:14px;min-height:0}
+#views{display:grid;grid-template-rows:auto minmax(280px,1fr) minmax(280px,1fr);gap:14px;min-height:0}
 #rowScopes{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
 #rowSpectral{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
 #side{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:14px;min-height:0}
-@media (max-width:1280px){#main{grid-template-columns:1fr}#side{grid-template-rows:auto auto}}
+@media (max-width:1280px){#main{grid-template-columns:1fr}#side{grid-template-rows:auto auto}#inspector{max-height:70vh}}
+@media (max-width:900px){#rowScopes,#rowSpectral{grid-template-columns:1fr}#dyno .panel-body{grid-template-columns:1fr;justify-items:center}}
 
 /* ---------- panel ---------- */
 .panel{background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r-panel);box-shadow:var(--shadow-panel);display:flex;flex-direction:column;overflow:hidden;min-height:0}
@@ -208,7 +209,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
           <div class="spacer"></div>
           <div class="seg sm hi" id="modeSeg"><button data-mode="free" class="active">Free rev</button><button data-mode="scripted">Scripted</button></div>
           <label class="toggle-row" id="loopToggle" data-on="false"><span class="toggle-dotring"><i></i></span><span class="tl">Loop</span></label>
-          <label class="toggle-row" id="pureToggle" data-on="false" title="Pulses + pipes only — the proof mode the C++ harness measures"><span class="toggle-dotring"><i></i></span><span class="tl">Pure</span></label>
+          <label class="toggle-row" id="pureToggle" data-on="false" title="Pulse + body voices only, linear — no noise, transients, comb or clip; the proof mode the C++ port is measured against"><span class="toggle-dotring"><i></i></span><span class="tl">Pure</span></label>
         </div>
         <div class="panel-body">
           <div id="gaugeWrap"><canvas id="gauge" width="200" height="150"></canvas></div>
@@ -218,7 +219,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
           </div>
           <div id="readouts">
             <span>rpm <b id="rRpm">—</b></span><span>load <b id="rLoad">—</b></span>
-            <span>gas <b id="rTemp">—</b></span><span>firings <b id="rFire">—</b></span>
+            <span>pitch <b id="rTemp">—</b></span><span>firings <b id="rFire">—</b></span>
             <span>pops <b id="rPops">—</b></span><span>boost <b id="rBoost">—</b></span>
             <span>pull <b id="rPull">—</b></span><span>fuel <b id="rFuel">—</b></span>
           </div>
@@ -230,7 +231,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
         <div class="panel">
           <div class="panel-header">
             <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
-            <div><div class="ph-title">Signal chain</div><div class="ph-sub">click a junction → its fields in the inspector · meters are RMS per report</div></div>
+            <div><div class="ph-title">Signal chain</div><div class="ph-sub">click a junction → its fields in the inspector · meters are RMS per report · rev 2 event voice</div></div>
           </div>
           <div class="panel-body tight"><div class="view" id="chainView"><canvas id="chain"></canvas></div></div>
         </div>
@@ -241,7 +242,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
             <div class="spacer"></div>
             <button class="btn sm ghost" id="btnScopeHold">Hold</button>
           </div>
-          <div class="panel-body tight"><div class="view"><canvas id="scope"></canvas><div class="legend"><span><i style="background:#6c77ff"></i>output L</span><span><i style="background:rgba(245,158,11,.7)"></i>head pulses</span><span><i style="background:#f59e0b"></i>bank 0 TDC</span><span><i style="background:#22c55e"></i>bank 1 TDC</span></div></div></div>
+          <div class="panel-body tight"><div class="view"><canvas id="scope"></canvas><div class="legend"><span><i style="background:#6c77ff"></i>output L</span><span><i style="background:rgba(245,158,11,.7)"></i>cylinder pulses</span><span><i style="background:#f59e0b"></i>bank 0 TDC</span><span><i style="background:#22c55e"></i>bank 1 TDC</span></div></div></div>
         </div>
       </div>
 
@@ -307,27 +308,37 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
      ====================================================================================================================== -->
 <script id="dsp" type="text/plain">
 // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-//  FRONTIER · AcousticIntegrator — shared DSP source
-//  Runs unchanged in the browser AudioWorklet (Tools/AudioEditor/index.html) and in the node proof harness
-//  (Scratchpad/AcousticEditorRender.js). Row A2 ports this file 1:1 to Engine/PlatformInterchange/AcousticIntegrator.cpp:
-//  plain double math, fixed operation order, xorshift32 PRNG, per-sample smoothing only (slice-size invariant output).
-//  Units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [-]. Crank angle in degrees over the 720° four-stroke cycle.
+//  FRONTIER · AcousticIntegrator — shared DSP source (rev 2 · event voice)
+//  Runs unchanged in the browser AudioWorklet (Tools/AudioEditor/index.html) and in the node proof (Scratchpad/
+//  AcousticEditorRender.js). Row A2 ports this file 1:1 to Engine/PlatformInterchange/AcousticIntegrator.cpp:
+//  plain double math, fixed operation order, xorshift32 PRNG, per-sample smoothing, sample-counted rebuilds
+//  (slice-size invariant output).
+//
+//  Voicing recipe (rev 2): per-cylinder event voice after RevSim (github.com/eosclient0001-rgb/EngineAudioSim,
+//  src/lib/EngineSimulator.ts, EngineProcessor) — the reference the user judged realistic. Each firing restarts that
+//  cylinder's voice: an asymmetric pressure pulse read at a slow "thump" pitch, a 24-harmonic body whose formant climbs
+//  with rpm, a per-firing crackle burst, a valve ring that fades by 4000 rpm, the V12/flat-plane rasp, the intake howl
+//  and the cross-plane cam modulation; the sum is soft-clipped per channel (tanh, drive rises with load), run through a
+//  short feedback comb (the exhaust pipe colour), a valve high-pass and a hard ±1 clip. Transients (lift-off backfire,
+//  anti-lag pops, blow-off flutter, overrun crackle), the turbo whine + air rush, the gear whine and the hybrid motor
+//  are synthesised in the same loop so the whole voice is deterministic and portable.
+//  Units: [Hz] [rpm] [ms] [s] [bar] [-]. Crank angle in degrees over the 720° four-stroke cycle.
 // ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 'use strict';
 
 const TWO_PI = 6.283185307179586;
-
-const PULSE_HEAD_L = 0, PULSE_HEAD_R = 1, PULSE_COLLECTOR_L = 2, PULSE_COLLECTOR_R = 3, PULSE_RUNNER_L = 4, PULSE_RUNNER_R = 5;
-const PULSE_TARGET_COUNT = 6;
-const EVENT_FIRE = 0, EVENT_DISPLACE = 1, EVENT_INTAKE = 2, EVENT_CLATTER = 3;
-const EVENTS_PER_CYLINDER = 5;
-const PULSE_FLOOR_S = 2.0e-4;          // shortest kernel time constant: keeps everything past 16 kHz below −90 dB
+const EVENT_FIRE = 0, EVENT_CLATTER = 1;
+const EVENTS_PER_CYLINDER = 3;             // firing + two valve-seating clatters per cylinder per cycle
+const MAX_CYLINDERS = 16;
+const SHEET_SIZE = 512;                    // pulse / body sheets (RevSim: 512-point lookups)
+const HARMONIC_COUNT = 24;
+const REBUILD_SAMPLES = 128;               // per-slice constants are refreshed every 128 samples, counted from the first sample
+const RPM_REFERENCE = 8000.0;              // RevSim's rpmFactor = rpm / 8000 (fixed, not per vehicle)
+const WALK_REVERSION = 0.02;               // firing-time walk returns to the crank at 2 % per firing (keeps the crank lock; RevSim's walk is unbounded)
 
 function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-function speedOfSound(kelvin) { return 20.05 * Math.sqrt(kelvin); }
 function lagCoefficient(fs, tau) { return tau > 0.0 ? 1.0 - Math.exp(-1.0 / (fs * tau)) : 1.0; }
 function cutoffCoefficient(fs, hz) { return hz >= fs * 0.45 ? 1.0 : 1.0 - Math.exp(-TWO_PI * hz / fs); }
-function nextPow2(n) { let p = 16; while (p < n) p *= 2; return p; }
 
 // ─────────────────────────────────────────────── ACOUSTIC STRUCTURE SCHEMA ──────────────────────────────────────────────
 // [section, key, default, unit, comment, [min, max, step]] — one source for defaults, TOML import/export and the inspector.
@@ -346,82 +357,75 @@ const ACOUSTIC_SCHEMA = [
     ['vehicle', 'friction_nm', 25.0, 'N·m', 'friction torque at zero rpm', [0, 100, 1]],
     ['vehicle', 'friction_per_krpm_nm', 6.0, 'N·m', 'friction torque increase per 1000 rpm', [0, 30, 0.5]],
 
-    ['combustion', 'evo_deg', 130.0, '°', 'exhaust valve opens this many degrees after the firing TDC', [100, 170, 1]],
-    ['combustion', 'blowdown_deg', 12.0, '°', 'crank angle to the blowdown pressure peak', [4, 40, 0.5]],
-    ['combustion', 'bark_deg', 5.0, '°', 'crank angle to the fast combustion-only front peak', [2, 20, 0.5]],
-    ['combustion', 'displacement_deg', 90.0, '°', 'crank angle to the exhaust-stroke displacement peak (from BDC)', [30, 180, 1]],
-    ['combustion', 'blowdown_amp', 1.0, '-', '', [0, 2, 0.01]],
-    ['combustion', 'bark_amp', 0.5, '-', 'scaled by load^1.5', [0, 2, 0.01]],
-    ['combustion', 'displacement_amp', 0.35, '-', '', [0, 2, 0.01]],
-    ['combustion', 'pumping_amp', 0.06, '-', 'blowdown amplitude without combustion, throttle closed', [0, 0.5, 0.005]],
-    ['combustion', 'pumping_open_amp', 0.25, '-', 'added blowdown amplitude without combustion at wide-open throttle (limiter)', [0, 1, 0.01]],
-    ['combustion', 'jitter_amp', 0.05, '-', 'cycle-to-cycle amplitude deviation (1 σ) at full load', [0, 0.3, 0.005]],
-    ['combustion', 'jitter_deg', 0.8, '°', 'cycle-to-cycle timing deviation (1 σ) at full load', [0, 5, 0.05]],
-    ['combustion', 'idle_jitter_boost', 2.0, '-', 'both deviations grow by this factor toward zero load', [0, 6, 0.1]],
-    ['combustion', 'misfire_probability', 0.01, '-', 'per firing at full load; ×4 toward zero load', [0, 0.2, 0.001]],
-    ['combustion', 'discharge_noise', 0.35, '-', 'turbulent blowdown noise gated by the pulse', [0, 2, 0.01]],
-    ['combustion', 'pop_level', 0.8, '-', 'overrun pop / crackle amplitude', [0, 3, 0.01]],
-    ['combustion', 'pop_rate_hz', 25.0, 'Hz', 'overrun pop rate at redline right after lift', [0, 100, 1]],
+    ['combustion', 'evo_deg', 130.0, '°', 'voice starts this many degrees after the firing TDC (exhaust valve opening)', [0, 170, 1]],
+    ['combustion', 'jitter_pct', 5.0, '%', 'firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank', [0, 15, 0.1]],
+    ['combustion', 'idle_jitter_boost', 1.0, '-', 'jitter grows by this factor toward zero load', [0, 6, 0.1]],
+    ['combustion', 'jitter_amp', 0.05, '-', 'cycle-to-cycle amplitude deviation (1 σ)', [0, 0.3, 0.005]],
+    ['combustion', 'misfire_probability', 0.0, '-', 'per firing at full load; ×4 toward zero load', [0, 0.2, 0.001]],
+    ['combustion', 'backfire_level', 2.0, '-', 'lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)', [0, 4, 0.05]],
+    ['combustion', 'backfire_probability', 0.2, '-', 'chance of the thud per lift', [0, 1, 0.01]],
+    ['combustion', 'pop_level', 0.6, '-', 'overrun crackle amplitude', [0, 3, 0.01]],
+    ['combustion', 'pop_rate_hz', 25.0, 'Hz', 'overrun crackle rate at redline right after lift', [0, 100, 1]],
     ['combustion', 'pop_decay_s', 1.2, 's', 'overrun crackle fades with this time constant', [0.1, 5, 0.05]],
 
-    ['exhaust', 'temperature_idle_k', 750.0, 'K', 'port gas temperature at idle', [400, 1300, 10]],
-    ['exhaust', 'temperature_wot_k', 1150.0, 'K', 'port gas temperature at full load', [400, 1400, 10]],
-    ['exhaust', 'thermal_lag_s', 3.0, 's', '', [0.2, 20, 0.1]],
-    ['exhaust', 'head_reflection', 0.6, '-', 'pressure reflection at the (mostly closed) exhaust valves', [0, 0.95, 0.01]],
-    ['exhaust', 'merge', 0.0, '-', '0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes', [0, 1, 0.01]],
-    ['exhaust', 'saturation_drive', 2.0, '-', 'tanh drive on the exhaust bus', [0.5, 6, 0.05]],
-    ['exhaust', 'bank_pan', 0.6, '-', '0 = both pipes centred … 1 = hard left/right', [0, 1, 0.01]],
-    ['exhaust.primary', 'length_m', 0.4, 'm', 'head to collector', [0.1, 1.5, 0.01]],
-    ['exhaust.primary', 'diameter_mm', 42.0, 'mm', '', [25, 80, 0.5]],
-    ['exhaust.primary', 'temperature_drop_k', 0.0, 'K', 'below the port temperature', [0, 500, 5]],
-    ['exhaust.collector', 'length_m', 0.6, 'm', 'collector to silencer', [0.1, 3.0, 0.01]],
-    ['exhaust.collector', 'diameter_mm', 60.0, 'mm', '', [30, 120, 0.5]],
-    ['exhaust.collector', 'temperature_drop_k', 150.0, 'K', '', [0, 600, 5]],
-    ['exhaust.tail', 'length_m', 0.6, 'm', 'silencer to tip', [0.1, 3.0, 0.01]],
-    ['exhaust.tail', 'diameter_mm', 75.0, 'mm', 'sets the radiation corner', [30, 130, 0.5]],
-    ['exhaust.tail', 'temperature_drop_k', 300.0, 'K', '', [0, 800, 5]],
-    ['exhaust.muffler', 'transmission', 0.8, '-', 'amplitude passed through the silencer', [0.05, 1, 0.01]],
-    ['exhaust.muffler', 'cutoff_hz', 5000.0, 'Hz', 'silencer low-pass corner', [300, 20000, 50]],
-    ['exhaust.turbine', 'enabled', false, '-', 'turbine between primary and collector'],
-    ['exhaust.turbine', 'transmission', 0.45, '-', '', [0.05, 1, 0.01]],
-    ['exhaust.turbine', 'cutoff_hz', 1500.0, 'Hz', '', [200, 10000, 50]],
-    ['exhaust.turbine', 'reflection', 0.5, '-', 'pressure reflection back into the manifold', [0, 0.95, 0.01]],
+    ['voice', 'pitch_hz', 65.0, 'Hz', 'pulse repetition inside one firing at 0 rpm (the "thump" pitch)', [20, 200, 0.5]],
+    ['voice', 'pitch_rise_hz', 15.0, 'Hz', 'added to the pitch at 8000 rpm', [0, 100, 0.5]],
+    ['voice', 'decay_per_s', 15.0, '1/s', 'voice envelope decay at 0 rpm', [2, 80, 0.5]],
+    ['voice', 'decay_per_krpm', 3.0, '1/s', 'added decay per 1000 rpm', [0, 20, 0.1]],
+    ['voice', 'thump_level', 0.8, '-', 'asymmetric pressure pulse', [0, 2, 0.01]],
+    ['voice', 'body_level', 0.6, '-', 'harmonic body (24 harmonics of the pitch)', [0, 2, 0.01]],
+    ['voice', 'harmonics', [1.0, 0.8, 0.5, 0.3], '-', 'weights of harmonics 1 … n; beyond the list 0.5 / n^1.2'],
+    ['voice', 'resonance', 0.5, '-', 'formant climb with rpm; above 1.0 the rasp switches on', [0, 3, 0.05]],
+    ['voice', 'crackle_level', 0.1, '-', 'per-firing noise burst at zero load', [0, 1, 0.01]],
+    ['voice', 'crackle_load_level', 0.4, '-', 'added at full load', [0, 2, 0.01]],
+    ['voice', 'ring_level', 0.1, '-', 'valve ring at zero load (5 / 6 / 7 kHz by cylinder)', [0, 1, 0.01]],
+    ['voice', 'ring_load_level', 0.2, '-', 'added at full load', [0, 1, 0.01]],
+    ['voice', 'ring_hz', 5000.0, 'Hz', 'ring of cylinder 1; +1 kHz per cylinder mod 3', [1000, 12000, 50]],
+    ['voice', 'ring_fade_rpm', 4000.0, 'rpm', 'ring is gone above this speed', [500, 12000, 50]],
+    ['voice', 'rasp_level', 1.5, '-', 'AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1', [0, 4, 0.05]],
+    ['voice', 'howl_level', 0.0, '-', 'intake howl above howl_rpm', [0, 2, 0.01]],
+    ['voice', 'howl_rpm', 4000.0, 'rpm', '', [1000, 12000, 50]],
+    ['voice', 'howl_span_rpm', 5000.0, 'rpm', 'howl reaches full level this far above howl_rpm', [500, 10000, 50]],
+    ['voice', 'cam_order', 4.0, '-', 'amplitude modulation order relative to the cam (rpm / 120 Hz)', [1, 12, 1]],
+    ['voice', 'cam_depth', 0.0, '-', 'modulation depth (0 for flat-plane cranks)', [0, 0.6, 0.01]],
+    ['voice', 'lift_level', 1.0, '-', 'voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)', [0, 1, 0.01]],
 
-    ['induction', 'runner_length_m', 0.32, 'm', 'valve to plenum', [0.1, 0.8, 0.005]],
-    ['induction', 'runner_diameter_mm', 42.0, 'mm', '', [25, 70, 0.5]],
-    ['induction', 'temperature_k', 310.0, 'K', 'charge temperature', [270, 400, 5]],
-    ['induction', 'valve_reflection', 0.85, '-', '', [0, 0.98, 0.01]],
-    ['induction', 'plenum_reflection', -0.6, '-', 'runner end into the plenum', [-0.95, 0.5, 0.01]],
-    ['induction', 'plenum_hz', 150.0, 'Hz', 'plenum / airbox Helmholtz resonance', [40, 600, 1]],
-    ['induction', 'plenum_q', 4.0, '-', '', [0.5, 20, 0.1]],
-    ['induction', 'level', 0.4, '-', '', [0, 3, 0.01]],
-    ['induction', 'hiss_level', 0.15, '-', 'throttle-body discharge noise', [0, 1, 0.005]],
+    ['exhaust', 'drive', 1.0, '-', 'multiplies the per-channel tanh drive (1 + 0.8 · load)', [0.1, 6, 0.05]],
+    ['exhaust', 'bank_pan', 0.9, '-', '0 = both banks centred … 1 = hard left/right', [0, 1, 0.01]],
+    ['exhaust', 'comb_ms', 2.667, 'ms', 'feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)', [0.2, 20, 0.001]],
+    ['exhaust', 'comb_feedback', 0.3, '-', '', [0, 0.9, 0.01]],
+    ['exhaust', 'valve_hp_hz', 10.0, 'Hz', 'high-pass below valve_open_rpm (exhaust valve shut)', [5, 1000, 5]],
+    ['exhaust', 'valve_open_hp_hz', 10.0, 'Hz', 'high-pass above valve_open_rpm', [5, 1000, 5]],
+    ['exhaust', 'valve_open_rpm', 5000.0, 'rpm', '', [1000, 12000, 50]],
 
-    ['mechanical', 'clatter_level', 0.3, '-', 'valve seating clatter', [0, 2, 0.01]],
+    ['mechanical', 'clatter_level', 0.0, '-', 'valve seating clatter (crank-locked)', [0, 2, 0.01]],
     ['mechanical', 'clatter_hz', 4500.0, 'Hz', 'clatter resonance', [1000, 12000, 50]],
-    ['mechanical', 'whine_order', 0.0, '-', 'gear whine order relative to crank speed (0 = none)', [0, 80, 0.5]],
-    ['mechanical', 'whine_level', 0.0, '-', '', [0, 0.5, 0.001]],
-    ['mechanical', 'inverter_hz', 0.0, 'Hz', 'hybrid inverter carrier (0 = none)', [0, 16000, 100]],
-    ['mechanical', 'inverter_level', 0.0, '-', '', [0, 0.2, 0.001]],
+    ['mechanical', 'whine_order', 0.0, '-', 'gear whine order relative to crank speed (0 = none)', [0, 300, 0.5]],
+    ['mechanical', 'whine_level', 0.0, '-', 'at redline; scales with rpm', [0, 0.5, 0.001]],
+    ['mechanical', 'motor_level', 0.0, '-', 'hybrid drive motor tone, scales with load (0 = none)', [0, 0.5, 0.001]],
+    ['mechanical', 'motor_hz', 200.0, 'Hz', 'motor tone at zero load', [50, 4000, 10]],
+    ['mechanical', 'motor_load_hz', 600.0, 'Hz', 'added at full load', [0, 8000, 10]],
 
     ['turbo', 'enabled', false, '-', 'forced-induction layer'],
-    ['turbo', 'shaft_idle_rpm', 15000.0, 'rpm', '', [0, 60000, 500]],
-    ['turbo', 'shaft_max_rpm', 150000.0, 'rpm', '', [50000, 250000, 1000]],
-    ['turbo', 'spool_up_s', 0.5, 's', '', [0.05, 3, 0.01]],
-    ['turbo', 'spool_down_s', 0.9, 's', '', [0.05, 5, 0.01]],
-    ['turbo', 'boost_max_bar', 1.0, 'bar', '', [0, 3, 0.05]],
-    ['turbo', 'whine_level', 0.3, '-', 'compressor whistle', [0, 2, 0.01]],
-    ['turbo', 'recirculation_level', 0.5, '-', 'blow-off / recirculation hiss on lift', [0, 3, 0.01]],
+    ['turbo', 'spool_up_s', 0.2, 's', 'spool follows rpm / redline · load with this lag', [0.05, 3, 0.01]],
+    ['turbo', 'spool_down_s', 0.2, 's', '', [0.05, 5, 0.01]],
+    ['turbo', 'whine_hz', 2500.0, 'Hz', 'compressor whine at zero spool', [500, 8000, 50]],
+    ['turbo', 'whine_span_hz', 4000.0, 'Hz', 'added at full spool', [0, 16000, 50]],
+    ['turbo', 'whine_level', 0.4, '-', 'at full spool', [0, 2, 0.01]],
+    ['turbo', 'rush_hz', 2000.0, 'Hz', 'air-rush band-pass centre at zero spool', [200, 8000, 50]],
+    ['turbo', 'rush_span_hz', 6000.0, 'Hz', 'added at full spool', [0, 16000, 50]],
+    ['turbo', 'rush_q', 1.5, '-', '', [0.3, 10, 0.1]],
+    ['turbo', 'rush_level', 0.4, '-', 'at full spool', [0, 2, 0.01]],
+    ['turbo', 'boost_max_bar', 1.0, 'bar', 'readout only', [0, 3, 0.05]],
+    ['turbo', 'blowoff_level', 0.8, '-', 'blow-off flutter on lift above 3000 rpm', [0, 3, 0.01]],
+    ['turbo', 'antilag_level', 3.0, '-', 'anti-lag pops instead of the blow-off above antilag_rpm (0 = off)', [0, 6, 0.05]],
+    ['turbo', 'antilag_rpm', 4000.0, 'rpm', '', [1000, 12000, 50]],
 
-    ['body', 'resonance_hz', [80.0, 125.0], 'Hz', 'structure-borne boom resonances'],
-    ['body', 'q', 8.0, '-', '', [1, 30, 0.5]],
-    ['body', 'level', 0.3, '-', '', [0, 3, 0.01]],
-
-    ['mix', 'exhaust', 1.0, '-', 'bus levels (listener presets multiply these)', [0, 4, 0.01]],
-    ['mix', 'induction', 1.0, '-', '', [0, 4, 0.01]],
-    ['mix', 'mechanical', 1.0, '-', '', [0, 4, 0.01]],
-    ['mix', 'body', 1.0, '-', '', [0, 4, 0.01]],
-    ['mix', 'output_gain', 2.0, '-', 'before the limiter', [0.1, 8, 0.05]],
+    ['mix', 'exhaust', 1.0, '-', 'bus levels after the tanh (listener presets multiply these)', [0, 4, 0.01]],
+    ['mix', 'induction', 1.0, '-', 'turbo whine + rush', [0, 4, 0.01]],
+    ['mix', 'mechanical', 1.0, '-', 'clatter · gear whine · motor', [0, 4, 0.01]],
+    ['mix', 'transients', 1.0, '-', 'backfire · pops · anti-lag · blow-off', [0, 4, 0.01]],
+    ['mix', 'output_gain', 1.5, '-', 'before the comb and the ±1 clip (RevSim master 1.5)', [0.1, 8, 0.05]],
 ];
 
 function schemaSections()
@@ -603,6 +607,14 @@ class OnePole
     advance(x) { this.y += this.a * (x - this.y); return this.y; }
 }
 
+// First-order high-pass (DC block / blow-off sweep): y = x − lowpass(x).
+class OnePoleHigh
+{
+    constructor() { this.low = new OnePole(); }
+    setCutoff(fs, hz) { this.low.setCutoff(fs, hz); }
+    advance(x) { return x - this.low.advance(x); }
+}
+
 class BiquadSection
 {
     constructor() { this.b0 = 1.0; this.b1 = 0.0; this.b2 = 0.0; this.a1 = 0.0; this.a2 = 0.0; this.z1 = 0.0; this.z2 = 0.0; }
@@ -611,6 +623,12 @@ class BiquadSection
         const w = TWO_PI * clamp(hz, 1.0, fs * 0.45) / fs, s = Math.sin(w), c = Math.cos(w);
         const al = s / (2.0 * Math.max(0.05, q)), a0 = 1.0 + al;
         this.b0 = al / a0; this.b1 = 0.0; this.b2 = -al / a0; this.a1 = -2.0 * c / a0; this.a2 = (1.0 - al) / a0;
+    }
+    highpass(fs, hz, q)
+    {
+        const w = TWO_PI * clamp(hz, 1.0, fs * 0.45) / fs, s = Math.sin(w), c = Math.cos(w);
+        const al = s / (2.0 * Math.max(0.05, q)), a0 = 1.0 + al;
+        this.b0 = (1.0 + c) / 2.0 / a0; this.b1 = -(1.0 + c) / a0; this.b2 = this.b0; this.a1 = -2.0 * c / a0; this.a2 = (1.0 - al) / a0;
     }
     advance(x)
     {
@@ -621,194 +639,93 @@ class BiquadSection
     }
 }
 
-function readHermite(ring, mask, w, delay)
+// Feedback comb: out = x + d, line ← x + feedback · d   (RevSim: master → DelayNode → feedback GainNode → DelayNode; both paths summed).
+class CombLine
 {
-    const pos = w - delay, i = Math.floor(pos), f = pos - i;
-    const y0 = ring[(i - 1) & mask], y1 = ring[i & mask], y2 = ring[(i + 1) & mask], y3 = ring[(i + 2) & mask];
-    const c1 = 0.5 * (y2 - y0), c2 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3, c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
-    return ((c3 * f + c2) * f + c1) * f + y1;
-}
-
-// Bidirectional travelling-wave pipe: fwd runs head → far end, bwd runs far end → head, both delayed by the same length.
-class PipeSection
-{
-    constructor(capacity)
+    constructor(capacity) { this.ring = new Float64Array(capacity); this.mask = capacity - 1; this.w = 0; this.delay = 1; this.feedback = 0.0; }
+    configure(fs, ms, feedback) { this.delay = clamp(Math.round(ms * 0.001 * fs), 1, this.mask); this.feedback = clamp(feedback, 0.0, 0.95); }
+    advance(x)
     {
-        this.fwd = new Float64Array(capacity); this.bwd = new Float64Array(capacity);
-        this.mask = capacity - 1; this.w = 0; this.delay = 3.0; this.gain = 1.0;
-        this.lossFwd = new OnePole(); this.lossBwd = new OnePole();
-    }
-    setLoss(fs, cutoffHz, gain) { this.lossFwd.setCutoff(fs, cutoffHz); this.lossBwd.setCutoff(fs, cutoffHz); this.gain = gain; }
-    setDelay(samples) { this.delay = clamp(samples, 3.0, this.mask - 4); }
-    readFwd() { return this.gain * this.lossFwd.advance(readHermite(this.fwd, this.mask, this.w, this.delay)); }
-    readBwd() { return this.gain * this.lossBwd.advance(readHermite(this.bwd, this.mask, this.w, this.delay)); }
-    writeFwd(v) { this.fwd[this.w] = v; }
-    writeBwd(v) { this.bwd[this.w] = v; }
-    advance() { this.w = (this.w + 1) & this.mask; }
-}
-
-function areaReflection(diameterIn, diameterOut)
-{
-    const zIn = 1.0 / (diameterIn * diameterIn), zOut = 1.0 / (diameterOut * diameterOut);
-    return (zOut - zIn) / (zOut + zIn);
-}
-
-// ─────────────────────────────────────────────────── EXHAUST CHAIN ──────────────────────────────────────────────────────
-// primary ─J1 (area step or turbine)─ collector ─J2 (area step + silencer)─ tail ─ open end (reflection + radiation).
-
-class ExhaustChain
-{
-    constructor(fs, exhaust)
-    {
-        this.fs = fs;
-        const capacity = (maxLength) => nextPow2(maxLength * fs / 300.0 + 24);   // schema maxima at the coldest plausible gas
-        this.primary   = new PipeSection(capacity(1.5));
-        this.collector = new PipeSection(capacity(3.0));
-        this.tail      = new PipeSection(capacity(3.0));
-        this.headLP = new OnePole(); this.junctionLP = new OnePole(); this.mufflerLP = new OnePole();
-        this.openLP = new OnePole(); this.radiationLP = new OnePole();
-        this.transmitted = 0.0; this.radiated = 0.0; this.headPressure = 0.0;
-        this.configure(exhaust);
-    }
-    configure(exhaust)
-    {
-        const fs = this.fs;
-        this.rHead = exhaust.head_reflection;
-        this.headLP.setCutoff(fs, 3000.0);
-        if (exhaust.turbine.enabled) { this.k1 = exhaust.turbine.reflection; this.g1 = exhaust.turbine.transmission; this.junctionLP.setCutoff(fs, exhaust.turbine.cutoff_hz); }
-        else { this.k1 = areaReflection(exhaust.primary.diameter_mm, exhaust.collector.diameter_mm); this.g1 = 1.0; this.junctionLP.setCutoff(fs, 20000.0); }
-        this.k2 = areaReflection(exhaust.collector.diameter_mm, exhaust.tail.diameter_mm);
-        this.gm = exhaust.muffler.transmission;
-        this.mufflerLP.setCutoff(fs, exhaust.muffler.cutoff_hz);
-        this.lengths = [exhaust.primary.length_m, exhaust.collector.length_m, exhaust.tail.length_m];
-        this.drops = [exhaust.primary.temperature_drop_k, exhaust.collector.temperature_drop_k, exhaust.tail.temperature_drop_k];
-        this.tailDiameter = exhaust.tail.diameter_mm * 0.001;
-        this.primary.setLoss(fs, 12000.0 / (1.0 + this.lengths[0]), 0.995);
-        this.collector.setLoss(fs, 10000.0 / (1.0 + this.lengths[1]), 0.99);
-        this.tail.setLoss(fs, 10000.0 / (1.0 + this.lengths[2]), 0.99);
-        this.setTemperature(exhaust.temperature_idle_k);
-    }
-    setTemperature(headK)
-    {
-        const fs = this.fs;
-        this.primary.setDelay(this.lengths[0] * fs / speedOfSound(Math.max(300.0, headK - this.drops[0])));
-        this.collector.setDelay(this.lengths[1] * fs / speedOfSound(Math.max(300.0, headK - this.drops[1])));
-        const cTail = speedOfSound(Math.max(300.0, headK - this.drops[2]));
-        this.tail.setDelay(this.lengths[2] * fs / cTail);
-        const fRadiation = 0.6 * cTail / (Math.PI * this.tailDiameter);
-        this.openLP.setCutoff(fs, fRadiation);
-        this.radiationLP.setCutoff(fs, fRadiation);
-    }
-    // Phase 1: reads, head + J1 + J2 scattering, open end. Leaves `transmitted` for the merge stage and `radiated` for the mix.
-    advance(headInput, collectorInject)
-    {
-        const f1 = this.primary.readFwd(),   b1 = this.primary.readBwd();
-        const f2 = this.collector.readFwd(), b2 = this.collector.readBwd();
-        const f3 = this.tail.readFwd(),      b3 = this.tail.readBwd();
-        const headReturn = this.rHead * this.headLP.advance(b1);
-        this.primary.writeFwd(headInput + headReturn);
-        this.headPressure = headInput + headReturn + b1;
-        this.primary.writeBwd(this.k1 * f1 + (1.0 - this.k1) * b2);
-        this.collector.writeFwd(this.g1 * this.junctionLP.advance((1.0 + this.k1) * f1 - this.k1 * b2) + collectorInject);
-        this.collector.writeBwd(this.k2 * f2 + (1.0 - this.k2) * b3);
-        this.transmitted = this.gm * this.mufflerLP.advance((1.0 + this.k2) * f2 - this.k2 * b3);
-        this.tail.writeBwd(-0.97 * this.openLP.advance(f3));
-        this.radiated = f3 - this.radiationLP.advance(f3);
-    }
-    // Phase 2: tail input after the cross-bank merge, then the delay lines step.
-    complete(tailInput)
-    {
-        this.tail.writeFwd(tailInput);
-        this.primary.advance(); this.collector.advance(); this.tail.advance();
+        const d = this.ring[(this.w - this.delay) & this.mask];
+        this.ring[this.w] = x + this.feedback * d;
+        this.w = (this.w + 1) & this.mask;
+        return x + d;
     }
 }
 
-// ────────────────────────────────────────────────── INDUCTION CHAIN ─────────────────────────────────────────────────────
-// valve (mostly closed) ─ runner ─ plenum end (partial opening) → plenum Helmholtz resonator → radiation through the throttle.
+// ─────────────────────────────────────────────────── TRANSIENTS ─────────────────────────────────────────────────────────
+// One-shot voices spawned by throttle events: backfire thud, overrun pop, anti-lag pop, blow-off flutter.
 
-class InductionChain
+const TRANSIENT_BACKFIRE = 0, TRANSIENT_POP = 1, TRANSIENT_ANTILAG = 2, TRANSIENT_BLOWOFF = 3;
+
+class TransientSlots
 {
-    constructor(fs, induction)
+    constructor(fs, capacity)
     {
-        this.fs = fs;
-        this.runner = new PipeSection(nextPow2(0.8 * fs / 300.0 + 24));
-        this.valveLP = new OnePole(); this.plenum = new BiquadSection(); this.radiationLP = new OnePole();
-        this.plenumPressure = 0.0; this.radiated = 0.0;
-        this.configure(induction);
-    }
-    configure(induction)
-    {
-        const fs = this.fs;
-        this.rValve = induction.valve_reflection; this.kPlenum = induction.plenum_reflection;
-        this.valveLP.setCutoff(fs, 3000.0);
-        this.plenum.bandpass(fs, induction.plenum_hz, induction.plenum_q);
-        this.runner.setLoss(fs, 9000.0, 0.99);
-        this.runner.setDelay(induction.runner_length_m * fs / speedOfSound(induction.temperature_k));
-        const c = speedOfSound(induction.temperature_k);
-        this.radiationLP.setCutoff(fs, 0.6 * c / (Math.PI * induction.runner_diameter_mm * 0.001) * 0.5);
-    }
-    advance(valveInput)
-    {
-        const f = this.runner.readFwd(), b = this.runner.readBwd();
-        this.runner.writeFwd(valveInput + this.rValve * this.valveLP.advance(b));
-        const back = 0.3 * this.plenumPressure;
-        this.runner.writeBwd(this.kPlenum * f + (1.0 - this.kPlenum) * back);
-        const t = (1.0 + this.kPlenum) * f - this.kPlenum * back;
-        this.plenumPressure = this.plenum.advance(t) + 0.5 * t;
-        this.radiated = this.plenumPressure - this.radiationLP.advance(this.plenumPressure);
-        this.runner.advance();
-    }
-}
-
-// ────────────────────────────────────────────────────── PULSES ──────────────────────────────────────────────────────────
-// Analytic kernels p(t) = A·(t/τ)^k·e^{k(1−t/τ)} started at exact sub-sample times; e^{…} runs as a recursive multiply.
-
-class PulseSlots
-{
-    constructor(capacity)
-    {
-        this.capacity = capacity;
-        this.active = new Uint8Array(capacity); this.exponent = new Uint8Array(capacity); this.target = new Uint8Array(capacity);
-        this.amp = new Float64Array(capacity); this.t = new Float64Array(capacity); this.step = new Float64Array(capacity);
-        this.env = new Float64Array(capacity); this.decay = new Float64Array(capacity);
-        this.sum = new Float64Array(PULSE_TARGET_COUNT);
+        this.fs = fs; this.capacity = capacity;
+        this.active = new Uint8Array(capacity); this.type = new Uint8Array(capacity);
+        this.t = new Float64Array(capacity); this.delay = new Float64Array(capacity); this.dur = new Float64Array(capacity);
+        this.f0 = new Float64Array(capacity); this.f1 = new Float64Array(capacity); this.gain = new Float64Array(capacity);
+        this.attack = new Float64Array(capacity); this.decay = new Float64Array(capacity); this.phase = new Float64Array(capacity);
+        this.noiseGain = new Float64Array(capacity); this.low = []; this.high = [];
+        for (let i = 0; i < capacity; ++i) { this.low.push(new OnePole()); this.high.push(new OnePoleHigh()); }
         this.dropped = 0; this.spawned = 0;
     }
-    // fraction ∈ [0,1): where inside the previous sample interval the onset happened (0 = at the previous sample instant).
-    spawn(exponent, target, amp, tau, fraction, fs)
+    spawn(type, delay, dur, f0, f1, gain, attack, noiseGain, lowHz)
     {
         let slot = -1;
         for (let i = 0; i < this.capacity; ++i) if (!this.active[i]) { slot = i; break; }
         if (slot < 0) { ++this.dropped; return; }
-        const step = 1.0 / (tau * fs);
-        this.active[slot] = 1; this.exponent[slot] = exponent; this.target[slot] = target; this.amp[slot] = amp;
-        this.step[slot] = step; this.t[slot] = (1.0 - fraction) * step;
-        this.env[slot] = Math.exp(exponent * (1.0 - this.t[slot])); this.decay[slot] = Math.exp(-exponent * step);
+        this.active[slot] = 1; this.type[slot] = type; this.t[slot] = 0.0; this.delay[slot] = delay; this.dur[slot] = dur;
+        this.f0[slot] = f0; this.f1[slot] = f1; this.gain[slot] = gain; this.attack[slot] = attack;
+        this.decay[slot] = Math.log(Math.max(gain, 0.01) / 0.001) / Math.max(0.001, dur - attack);
+        this.phase[slot] = 0.0; this.noiseGain[slot] = noiseGain;
+        this.low[slot].setCutoff(this.fs, lowHz); this.low[slot].y = 0.0; this.high[slot].low.y = 0.0;
         ++this.spawned;
     }
-    advance()
+    // Returns the summed transient sample; `rng` supplies the noise.
+    advance(rng)
     {
-        const sum = this.sum;
-        for (let k = 0; k < PULSE_TARGET_COUNT; ++k) sum[k] = 0.0;
+        let out = 0.0; const dt = 1.0 / this.fs;
         for (let i = 0; i < this.capacity; ++i)
         {
             if (!this.active[i]) continue;
-            const t = this.t[i];
-            const shape = this.exponent[i] === 3 ? t * t * t : t * t;
-            sum[this.target[i]] += this.amp[i] * shape * this.env[i];
-            this.t[i] = t + this.step[i];
-            this.env[i] *= this.decay[i];
-            if (this.t[i] > 10.0) this.active[i] = 0;
+            if (this.delay[i] > 0.0) { this.delay[i] -= dt; continue; }
+            const t = this.t[i], dur = this.dur[i], type = this.type[i];
+            if (t >= dur) { this.active[i] = 0; continue; }
+            const frac = t / dur, attack = this.attack[i];
+            const env = t < attack ? t / attack : Math.exp(-(t - attack) * this.decay[i]);
+            if (type === TRANSIENT_BLOWOFF)
+            {
+                const hz = this.f0[i] * Math.pow(this.f1[i] / this.f0[i], frac);
+                this.high[i].setCutoff(this.fs, hz);
+                const flutter = 0.5 + 0.5 * Math.sin(TWO_PI * 14.0 * t);
+                out += this.high[i].advance(rng.signed()) * this.gain[i] * env * flutter;
+            }
+            else
+            {
+                const hz = this.f0[i] * Math.pow(this.f1[i] / this.f0[i], frac);
+                let ph = this.phase[i] + hz * dt; if (ph >= 1.0) ph -= 1.0; this.phase[i] = ph;
+                const wave = type === TRANSIENT_ANTILAG ? (ph < 0.5 ? 1.0 : -1.0) : 4.0 * Math.abs(ph - 0.5) - 1.0;
+                out += this.low[i].advance(wave * this.gain[i] * env);
+                if (this.noiseGain[i] > 0.0)
+                {
+                    const nEnv = t < 0.002 ? t / 0.002 : Math.exp(-(t - 0.002) * 70.0);   // RevSim: 2 ms attack, gone by 100 ms
+                    out += rng.signed() * this.noiseGain[i] * nEnv;
+                }
+            }
+            this.t[i] = t + dt;
         }
+        return out;
     }
 }
 
 // ─────────────────────────────────────────────── LISTENER PRESETS ───────────────────────────────────────────────────────
 
 const LISTENER_PRESETS = {
-    trackside: { exhaust: 1.0,  induction: 0.5, mechanical: 0.6, body: 0.35, width: 1.0, cutoff_hz: 16000.0 },
-    chase:     { exhaust: 1.0,  induction: 0.25, mechanical: 0.25, body: 0.7, width: 0.5, cutoff_hz: 7000.0 },
-    cockpit:   { exhaust: 0.45, induction: 1.2, mechanical: 1.0, body: 1.2, width: 0.3, cutoff_hz: 3500.0 },
+    trackside: { exhaust: 1.0,  induction: 1.0, mechanical: 1.0, transients: 1.0, width: 1.0, cutoff_hz: 16000.0 },
+    chase:     { exhaust: 1.0,  induction: 0.6, mechanical: 0.5, transients: 1.0, width: 0.5, cutoff_hz: 7000.0 },
+    cockpit:   { exhaust: 0.45, induction: 1.2, mechanical: 1.2, transients: 0.6, width: 0.3, cutoff_hz: 3500.0 },
 };
 
 // ─────────────────────────────────────────────── ACOUSTIC INTEGRATOR ────────────────────────────────────────────────────
@@ -823,29 +740,40 @@ class AcousticIntegrator
         this.rpmS = 900.0; this.throttleS = 0.0; this.loadS = 0.0;
         this.rpmLag = lagCoefficient(fs, 0.004); this.throttleLag = lagCoefficient(fs, 0.010); this.loadLag = lagCoefficient(fs, 0.005);
         this.maxRpmStep = 50000.0 * this.dt;
-        this.theta = 0.0; this.cycleIndex = 0; this.sampleIndex = 0;
-        this.pulses = new PulseSlots(96);
+        this.theta = 0.0; this.cycleIndex = 0; this.sampleIndex = 0; this.firingWalkDeg = 0.0;
+        // per-cylinder voices
+        this.voiceActive = new Uint8Array(MAX_CYLINDERS + 1); this.voiceT = new Float64Array(MAX_CYLINDERS + 1);
+        this.voiceAmp = new Float64Array(MAX_CYLINDERS + 1); this.ringHz = new Float64Array(MAX_CYLINDERS + 1);
+        this.pulseSheet = new Float64Array(SHEET_SIZE); this.bodySheet = new Float64Array(SHEET_SIZE);
+        for (let i = 0; i < SHEET_SIZE; ++i)
+        {
+            const phase = i / SHEET_SIZE; let v = 0.0;
+            if (phase < 0.05) v = phase / 0.05;                                   // rapid spike
+            else if (phase < 0.3) v = 1.0 - 1.2 * (phase - 0.05) / 0.25;           // blowdown to −0.2
+            else if (phase < 0.6) v = -0.2 * (1.0 - (phase - 0.3) / 0.3);          // rarefaction recovery to 0
+            this.pulseSheet[i] = v;
+        }
+        this.harmonicAmps = new Float64Array(HARMONIC_COUNT);
+        this.thumpHz = 65.0; this.decayRate = 15.0; this.noiseRate = 40.0; this.crackleGain = 0.1; this.ringGain = 0.1;
+        this.raspGain = 0.0; this.howlGain = 0.0; this.camDepth = 0.0; this.voiceDrive = 1.0;
+        // mechanical / turbo / transients
         this.clatterEnv = new Float64Array(2); this.clatterImpulse = new Float64Array(2);
         this.clatterDecay = Math.exp(-this.dt / 0.0012);
-        this.noiseHP = [new OnePole(), new OnePole()];
-        this.noiseHP[0].setCutoff(fs, 700.0); this.noiseHP[1].setCutoff(fs, 700.0);
-        this.heatLag = new OnePole();
-        this.hissBP = new BiquadSection(); this.hissBP.bandpass(fs, 2500.0, 0.6);
         this.clatterBP1 = new BiquadSection(); this.clatterBP2 = new BiquadSection(); this.clatterRing = new BiquadSection();
-        this.recircBP = new BiquadSection(); this.recircBP.bandpass(fs, 3500.0, 0.8);
-        this.turboNoiseLP = new OnePole(); this.turboNoiseLP.setCutoff(fs, 1200.0);
-        this.bodyBP = [new BiquadSection(), new BiquadSection()];
-        this.listenerLP = [new OnePole(), new OnePole()];
-        this.limiterEnv = 0.0; this.limiterAttack = lagCoefficient(fs, 0.0008); this.limiterRelease = lagCoefficient(fs, 0.25);
-        this.whinePhase = 0.0; this.inverterPhase = 0.0; this.turboPhase = 0.0;
-        this.shaftFraction = 0.0; this.boost = 0.0; this.recircEnv = 0.0; this.recircDecay = Math.exp(-this.dt / 0.35);
-        this.previousThrottle = 0.0;
+        this.whinePhase = 0.0; this.motorPhase = 0.0; this.turboPhase = 0.0;
+        this.spool = 0.0; this.boost = 0.0; this.rushBP = new BiquadSection(); this.rushHz = 2000.0;
+        this.transients = new TransientSlots(fs, 32);
+        this.liftArmedBackfire = false; this.liftArmedTurbo = false;
         this.overrunActive = false; this.overrunEnv = 0.0; this.popBoost = 0.0; this.popBoostDecay = Math.exp(-this.dt / 0.06);
-        this.firingCount = 0; this.popCount = 0; this.temperatureK = 750.0; this.heatS = 0.0;
-        this.pureTone = false;                 // proof mode: pulses + pipes only (no noise, mechanics, saturation, limiter)
+        // post chain
+        this.comb = [new CombLine(2048), new CombLine(2048)];
+        this.valveHP = [new BiquadSection(), new BiquadSection()]; this.valveHz = 10.0; this.valveLag = lagCoefficient(fs / REBUILD_SAMPLES, 0.2);
+        this.listenerLP = [new OnePole(), new OnePole()];
+        this.pureTone = false;                 // proof mode: pulse + body only, no noise / transients / post chain
+        this.firingCount = 0; this.popCount = 0; this.clippedCount = 0;
         this.assignListener('trackside');
         // meters (mean-square accumulators, read + cleared by the host)
-        this.meter = new Float64Array(12);     // 0/1 head L/R · 2/3 radiated L/R · 4 induction · 5 mechanical · 6 body · 7 turbo · 8/9 out L/R · 10 pops · 11 unused
+        this.meter = new Float64Array(12);     // 0/1 voice L/R · 2/3 exhaust bus L/R · 4 howl · 5 mechanical · 6 transients · 7 turbo · 8/9 out L/R · 10 pops · 11 unused
         this.meterFrames = 0;
         // crank-locked scope capture
         this.scope = new Float32Array(16384); this.scopeHead = new Float32Array(16384); this.scopeFill = 0; this.scopeCapturing = false; this.scopeReady = false; this.scopeArmed = true; this.scopeCycleSamples = 0;
@@ -865,13 +793,13 @@ class AcousticIntegrator
         this.structure = s;
         const fs = this.fs;
         const v = s.vehicle;
-        const n = Math.max(1, Math.round(v.cylinder_count));
+        const n = clamp(Math.round(v.cylinder_count), 1, MAX_CYLINDERS);
         const rebuildEvents = !this.events || this.cylinderCount !== n;
         this.cylinderCount = n;
         this.firingAngle = new Float64Array(n + 1); this.bankOfCylinder = new Uint8Array(n + 1);
         const order = v.firing_order.length === n ? v.firing_order : Array.from({ length: n }, (_, i) => i + 1);
         for (let j = 0; j < n; ++j) { const cyl = clamp(Math.round(order[j]), 1, n); this.firingAngle[cyl] = j * 720.0 / n; }
-        for (let c = 1; c <= n; ++c) this.bankOfCylinder[c] = (v.bank_of_cylinder[c - 1] | 0) ? 1 : 0;
+        for (let c = 1; c <= n; ++c) { this.bankOfCylinder[c] = (v.bank_of_cylinder[c - 1] | 0) ? 1 : 0; this.ringHz[c] = s.voice.ring_hz + ((c - 1) % 3) * 1000.0; }
         if (rebuildEvents)
         {
             const count = n * EVENTS_PER_CYLINDER;
@@ -882,8 +810,8 @@ class AcousticIntegrator
             for (let c = 1; c <= n; ++c)
             {
                 const i = (c - 1) * EVENTS_PER_CYLINDER;
-                const types = [EVENT_FIRE, EVENT_DISPLACE, EVENT_INTAKE, EVENT_CLATTER, EVENT_CLATTER];
-                const offsets = [s.combustion.evo_deg, 180.0, 380.0, 375.0, 590.0];
+                const types = [EVENT_FIRE, EVENT_CLATTER, EVENT_CLATTER];
+                const offsets = [s.combustion.evo_deg, 375.0, 590.0];
                 for (let k = 0; k < EVENTS_PER_CYLINDER; ++k)
                 {
                     this.evType[i + k] = types[k]; this.evCyl[i + k] = c; this.evBank[i + k] = this.bankOfCylinder[c];
@@ -892,27 +820,23 @@ class AcousticIntegrator
                     this.evAnchor[i + k] = a; this.evNext[i + k] = a;
                 }
             }
+            for (let c = 0; c <= MAX_CYLINDERS; ++c) this.voiceActive[c] = 0;
         }
         else
         {
             for (let c = 1; c <= n; ++c) for (let k = 0; k < EVENTS_PER_CYLINDER; ++k) this.evBank[(c - 1) * EVENTS_PER_CYLINDER + k] = this.bankOfCylinder[c];
         }
         this.idleRpm = v.idle_rpm; this.redlineRpm = v.redline_rpm;
-        if (!this.exhaust) { this.exhaust = [new ExhaustChain(fs, s.exhaust), new ExhaustChain(fs, s.exhaust)]; this.induction = [new InductionChain(fs, s.induction), new InductionChain(fs, s.induction)]; }
-        else { this.exhaust[0].configure(s.exhaust); this.exhaust[1].configure(s.exhaust); this.induction[0].configure(s.induction); this.induction[1].configure(s.induction); }
-        this.heatLag.setLag(fs, s.exhaust.thermal_lag_s);
-        this.heatLag.y = this.heatS;
+        this.firingInterval = 720.0 / n;
         this.clatterBP1.bandpass(fs, s.mechanical.clatter_hz, 1.5);
         this.clatterBP2.bandpass(fs, s.mechanical.clatter_hz * 1.8, 2.0);
         this.clatterRing.bandpass(fs, s.mechanical.clatter_hz * 1.3, 12.0);
-        this.bodyBP[0].bandpass(fs, s.body.resonance_hz[0] || 80.0, s.body.q);
-        this.bodyBP[1].bandpass(fs, s.body.resonance_hz[1] || s.body.resonance_hz[0] || 125.0, s.body.q);
         this.popDecay = Math.exp(-this.dt / Math.max(0.05, s.combustion.pop_decay_s));
         this.spoolUp = lagCoefficient(fs, s.turbo.spool_up_s); this.spoolDown = lagCoefficient(fs, s.turbo.spool_down_s);
-        this.boostLag = lagCoefficient(fs, 0.05);
-        this.mergeMix = 0.5 * clamp(s.exhaust.merge, 0.0, 1.0);
-        this.temperatureK = s.exhaust.temperature_idle_k + (s.exhaust.temperature_wot_k - s.exhaust.temperature_idle_k) * this.heatS;
-        this.exhaust[0].setTemperature(this.temperatureK); this.exhaust[1].setTemperature(this.temperatureK);
+        this.comb[0].configure(fs, s.exhaust.comb_ms, s.exhaust.comb_feedback); this.comb[1].configure(fs, s.exhaust.comb_ms, s.exhaust.comb_feedback);
+        this.valveHz = this.rpmS > s.exhaust.valve_open_rpm ? s.exhaust.valve_open_hp_hz : s.exhaust.valve_hp_hz;
+        this.valveHP[0].highpass(fs, this.valveHz, 1.12); this.valveHP[1].highpass(fs, this.valveHz, 1.12);
+        this.rebuildSheet(this.rpmS, this.loadS);
     }
 
     assignDemand(rpm, throttle, load, boost)
@@ -921,38 +845,67 @@ class AcousticIntegrator
         this.demandLoad = clamp(load, 0.0, 1.0); this.demandBoost = boost;
     }
 
-    fireEvent(index, fraction)
+    // Per-slice constants (RevSim recomputed these per 128-frame process call); called every REBUILD_SAMPLES samples.
+    rebuildSheet(rpm, load)
     {
-        const s = this.structure, c = s.combustion, rng = this.rng, fs = this.fs;
-        const bank = this.evBank[index], type = this.evType[index];
-        const degPerSecond = Math.max(600.0, 6.0 * this.rpmS);
-        const comb = this.loadS;
-        const spread = 1.0 + c.idle_jitter_boost * (1.0 - comb);
+        const s = this.structure, vo = s.voice;
+        const rpmFactor = rpm / RPM_REFERENCE;
+        this.thumpHz = vo.pitch_hz + rpmFactor * vo.pitch_rise_hz;
+        this.decayRate = vo.decay_per_s + rpm * 0.001 * vo.decay_per_krpm;
+        this.noiseRate = 40.0 + load * 60.0;
+        this.crackleGain = vo.crackle_level + vo.crackle_load_level * load;
+        this.ringGain = (vo.ring_level + vo.ring_load_level * load) * Math.max(0.0, 1.0 - rpm / Math.max(1.0, vo.ring_fade_rpm));
+        this.raspGain = vo.resonance > 1.0 ? Math.max(0.0, rpmFactor - 0.2) * load * (vo.resonance - 1.0) * vo.rasp_level : 0.0;
+        this.howlGain = (vo.howl_level > 0.0 && load > 0.2) ? Math.max(0.0, (rpm - vo.howl_rpm) / Math.max(1.0, vo.howl_span_rpm)) * load * vo.howl_level : 0.0;
+        this.camDepth = vo.cam_depth;
+        this.voiceDrive = (1.0 + 0.8 * load) * s.exhaust.drive;
+        const peak = 1.0 + rpmFactor * (8.0 + vo.resonance * 4.0);
+        const amps = this.harmonicAmps, list = vo.harmonics;
+        for (let h = 0; h < HARMONIC_COUNT; ++h)
+        {
+            const number = h + 1;
+            const restAmp = h < list.length ? list[h] : 0.5 / Math.pow(number, 1.2);
+            const rpmBoost = Math.max(0.0, 1.0 - Math.abs(number - peak) / 4.0);
+            const loadBoost = load * (number / HARMONIC_COUNT) * 2.0;
+            amps[h] = restAmp * (1.0 + rpmBoost * 1.5 + loadBoost);
+        }
+        const sheet = this.bodySheet;
+        for (let i = 0; i < SHEET_SIZE; ++i)
+        {
+            const phase = i / SHEET_SIZE; let v = 0.0;
+            for (let h = 0; h < HARMONIC_COUNT; ++h) v += Math.sin(TWO_PI * (h + 2) * phase) * amps[h];
+            sheet[i] = v * 0.15;
+        }
+        // exhaust valve high-pass follows rpm with a 0.2 s lag
+        const target = rpm > s.exhaust.valve_open_rpm ? s.exhaust.valve_open_hp_hz : s.exhaust.valve_hp_hz;
+        this.valveHz += this.valveLag * (target - this.valveHz);
+        this.valveHP[0].highpass(this.fs, this.valveHz, 1.12); this.valveHP[1].highpass(this.fs, this.valveHz, 1.12);
+        // turbo air-rush band follows the spool
+        if (s.turbo.enabled) { this.rushHz = s.turbo.rush_hz + this.spool * s.turbo.rush_span_hz; this.rushBP.bandpass(this.fs, this.rushHz, s.turbo.rush_q); }
+    }
+
+    fireEvent(index, fraction, load)
+    {
+        const s = this.structure, c = s.combustion, rng = this.rng;
+        const bank = this.evBank[index], type = this.evType[index], cyl = this.evCyl[index];
+        const spread = 1.0 + c.idle_jitter_boost * (1.0 - load);
         let jitterNext = 0.0;
         if (type === EVENT_FIRE)
         {
             let a = 1.0 + c.jitter_amp * spread * rng.gauss(); if (a < 0.2) a = 0.2;
-            const misfire = rng.uniform() < c.misfire_probability * (1.0 + 3.0 * (1.0 - comb)) ? 0.15 : 1.0;
-            const fuel = comb * misfire;
-            const pump = c.pumping_amp + c.pumping_open_amp * this.throttleS;
-            const blow = (pump + (1.0 - pump) * fuel) * a;
-            this.pulses.spawn(2, PULSE_HEAD_L + bank, c.blowdown_amp * blow, Math.max(PULSE_FLOOR_S, c.blowdown_deg / degPerSecond), fraction, fs);
-            if (fuel > 0.01) this.pulses.spawn(3, PULSE_HEAD_L + bank, c.bark_amp * Math.pow(fuel, 1.5) * a, Math.max(PULSE_FLOOR_S, c.bark_deg / degPerSecond), fraction, fs);
+            const misfire = rng.uniform() < c.misfire_probability * (1.0 + 3.0 * (1.0 - load)) ? 0.15 : 1.0;
+            const lift = s.voice.lift_level + (1.0 - s.voice.lift_level) * load;
+            this.voiceActive[cyl] = 1; this.voiceT[cyl] = (1.0 - fraction) * this.dt; this.voiceAmp[cyl] = a * misfire * lift;
             ++this.firingCount;
-            jitterNext = c.jitter_deg * spread * rng.gauss();
-        }
-        else if (type === EVENT_DISPLACE)
-        {
-            const amp = c.displacement_amp * (0.15 + 0.85 * this.throttleS) * (1.0 + 0.03 * rng.gauss());
-            this.pulses.spawn(2, PULSE_HEAD_L + bank, amp, Math.max(0.001, c.displacement_deg / degPerSecond), fraction, fs);
-            jitterNext = 0.5 * c.jitter_deg * spread * rng.gauss();
-        }
-        else if (type === EVENT_INTAKE)
-        {
-            const rpmNorm = clamp((this.rpmS - this.idleRpm) / (this.redlineRpm - this.idleRpm), 0.0, 1.0);
-            const amp = -(0.25 + 0.75 * this.throttleS) * (0.35 + 0.65 * rpmNorm) * (1.0 + 0.05 * rng.gauss());
-            this.pulses.spawn(2, PULSE_RUNNER_L + bank, amp, Math.max(3.0e-4, 50.0 / degPerSecond), fraction, fs);
-            jitterNext = 0.5 * c.jitter_deg * spread * rng.gauss();
+            // shared firing-time walk: every firing moves the whole timeline by a uniform ±½·jitter_pct of the interval (RevSim adds
+            // 0 … 5 % per interval, cumulative — the 1/f² wander is what puts the low "thump" under the firing order); a 2 % per
+            // firing return keeps it anchored to the crank so the scope, the order diagram and the C++ record stay in lock.
+            const interval = this.firingInterval, limit = 0.3 * interval;
+            const step = this.pureTone ? 0.0 : (rng.uniform() - 0.5) * c.jitter_pct * 0.01 * spread * interval;
+            this.firingWalkDeg = clamp(this.firingWalkDeg * (1.0 - WALK_REVERSION) + step, -limit, limit);
+            this.evAnchor[index] += 720.0;
+            for (let e = 0; e < this.events; ++e) if (this.evType[e] === EVENT_FIRE) this.evNext[e] = this.evAnchor[e] + this.firingWalkDeg;
+            return;
         }
         else
         {
@@ -966,32 +919,38 @@ class AcousticIntegrator
 
     render(outL, outR, frames)
     {
-        const s = this.structure, c = s.combustion, m = s.mix, rng = this.rng, fs = this.fs, dt = this.dt, pulses = this.pulses, sum = pulses.sum;
-        const exL = this.exhaust[0], exR = this.exhaust[1], inL = this.induction[0], inR = this.induction[1];
-        const meter = this.meter, listener = this.listener, pure = this.pureTone;
-        const idle = this.idleRpm, redline = this.redlineRpm, invSpan = 1.0 / Math.max(1.0, redline - idle);
-        const turbo = s.turbo.enabled;
-        const drive = Math.max(0.1, s.exhaust.saturation_drive), invDrive = 1.0 / drive;
-        const exGain = m.exhaust * listener.exhaust, indGain = m.induction * s.induction.level * listener.induction;
-        const mechGain = m.mechanical * listener.mechanical, bodyGain = m.body * s.body.level * listener.body;
+        const s = this.structure, c = s.combustion, vo = s.voice, m = s.mix, tb = s.turbo, me = s.mechanical;
+        const rng = this.rng, fs = this.fs, dt = this.dt, listener = this.listener, pure = this.pureTone;
+        const idle = this.idleRpm, redline = this.redlineRpm, invRedline = 1.0 / Math.max(1.0, redline);
+        const n = this.cylinderCount, bank = this.bankOfCylinder, active = this.voiceActive, voiceT = this.voiceT, voiceAmp = this.voiceAmp, ringHz = this.ringHz;
+        const pulseSheet = this.pulseSheet, bodySheet = this.bodySheet, meter = this.meter;
+        const thumpLevel = vo.thump_level, bodyLevel = vo.body_level, camOrder = vo.cam_order;
         const width = clamp(s.exhaust.bank_pan * listener.width, 0.0, 1.0);
-        const cSame = Math.sqrt(0.5 + 0.5 * width), cOther = Math.sqrt(0.5 - 0.5 * width);
-        const outGain = m.output_gain;
-        const whineStep = s.mechanical.whine_order / 60.0 * dt;
+        const cSame = 0.5 + 0.5 * width, cOther = 0.5 - 0.5 * width;        // linear pan law: bank_pan 0.7 → 0.85 / 0.15 (RevSim)
+        const exGain = m.exhaust * listener.exhaust, indGain = m.induction * listener.induction;
+        const mechGain = m.mechanical * listener.mechanical, transGain = m.transients * listener.transients;
+        const outGain = m.output_gain, turbo = tb.enabled && !pure;
         const bypassLP = listener.cutoff_hz >= fs * 0.45;
+        const whineStep = me.whine_order / 60.0 * dt;
 
-        for (let n = 0; n < frames; ++n)
+        for (let k = 0; k < frames; ++k)
         {
             // 1. demand smoothing (per sample → slice-size invariant)
-            let target = this.demandRpm;
-            const delta = target - this.rpmS;
+            const delta = this.demandRpm - this.rpmS;
             this.rpmS += this.rpmLag * delta > this.maxRpmStep ? this.maxRpmStep : (this.rpmLag * delta < -this.maxRpmStep ? -this.maxRpmStep : this.rpmLag * delta);
             this.throttleS += this.throttleLag * (this.demandThrottle - this.throttleS);
             this.loadS += this.loadLag * (this.demandLoad - this.loadS);
-            const rpm = this.rpmS, throttle = this.throttleS, load = this.loadS;
-            const rpmNorm = clamp((rpm - idle) * invSpan, 0.0, 1.0);
+            const rpm = this.rpmS, throttle = this.throttleS;
+            const fuelOn = this.loadS > 0.02;
+            const load = fuelOn ? throttle : 0.0;                                 // RevSim drives the voice with the throttle; fuel cut (overrun, limiter) → 0
+            const rpmNorm = clamp((rpm - idle) / Math.max(1.0, redline - idle), 0.0, 1.0);
 
-            // 2. crank clock + cylinder events at exact sub-sample times
+            // 2. per-slice constants, sample-counted
+            if ((this.sampleIndex % REBUILD_SAMPLES) === 0) this.rebuildSheet(rpm, load);
+            const thumpHz = this.thumpHz, decayRate = this.decayRate, noiseRate = this.noiseRate;
+            const crackleGain = pure ? 0.0 : this.crackleGain, ringGain = pure ? 0.0 : this.ringGain, raspGain = pure ? 0.0 : this.raspGain, howlGain = pure ? 0.0 : this.howlGain;
+
+            // 3. crank clock + cylinder events at exact sub-sample times
             const thetaPrev = this.theta;
             const dTheta = 6.0 * rpm * dt;
             this.theta = thetaPrev + dTheta;
@@ -1003,140 +962,159 @@ class AcousticIntegrator
                 while (this.theta >= this.evNext[e])
                 {
                     const fraction = dTheta > 0.0 ? clamp((this.evNext[e] - thetaPrev) / dTheta, 0.0, 0.999999) : 0.0;
-                    this.fireEvent(e, fraction);
+                    this.fireEvent(e, fraction, load);
                 }
             }
+            const camPhase = (this.theta / 720.0) % 1.0;
+            const camMod = (1.0 - this.camDepth) + this.camDepth * Math.sin(camOrder * TWO_PI * camPhase);
 
-            // 3. overrun pops (unburnt mixture igniting in the collector after a lift)
-            const closed = throttle < 0.05, fast = rpm > idle * 1.4;
-            if (closed && fast) { if (!this.overrunActive) { this.overrunActive = true; this.overrunEnv = 1.0; } }
-            else { this.overrunActive = false; this.overrunEnv = 0.0; }
-            this.overrunEnv *= this.popDecay;
-            this.popBoost *= this.popBoostDecay;
-            if (!pure && this.overrunEnv > 0.001 && c.pop_level > 0.0)
+            // 4. per-cylinder voices
+            let sumL = 0.0, sumR = 0.0, pulseSum = 0.0, howlSum = 0.0;
+            for (let cyl = 1; cyl <= n; ++cyl)
             {
-                const rate = c.pop_rate_hz * this.overrunEnv * (0.3 + 0.7 * rpmNorm) * (1.0 + 8.0 * this.popBoost);
-                if (rng.uniform() < rate * dt)
+                if (!active[cyl]) continue;
+                const t = voiceT[cyl];
+                const env = Math.exp(-t * decayRate);
+                if (env < 0.001) { active[cyl] = 0; continue; }
+                const phase = (thumpHz * t) % 1.0;
+                const pos = phase * SHEET_SIZE, i0 = pos | 0, fr = pos - i0, i1 = (i0 + 1) & (SHEET_SIZE - 1);   // linear read (RevSim reads nearest: −42 dB stair-step hash)
+                const amp = voiceAmp[cyl];
+                const pulse = (pulseSheet[i0] + (pulseSheet[i1] - pulseSheet[i0]) * fr) * env * thumpLevel * amp;
+                const body = (bodySheet[i0] + (bodySheet[i1] - bodySheet[i0]) * fr) * env * bodyLevel * amp;
+                let extra = 0.0;
+                if (crackleGain > 0.0 || ringGain > 0.0)
                 {
-                    const u = rng.uniform();
-                    const bank = rng.uniform() < 0.5 ? 0 : 1;
-                    pulses.spawn(3, PULSE_COLLECTOR_L + bank, c.pop_level * (0.3 + 1.5 * u * u) * (0.7 + 0.3 * this.overrunEnv), 4.0e-4 + 8.0e-4 * rng.uniform(), rng.uniform(), fs);
-                    this.popBoost = 1.0; ++this.popCount;
+                    const noiseEnv = Math.exp(-t * noiseRate);
+                    if (crackleGain > 0.0) extra += rng.signed() * noiseEnv * crackleGain;
+                    if (ringGain > 0.0) extra += Math.sin(TWO_PI * ringHz[cyl] * t) * noiseEnv * ringGain;
                 }
+                if (raspGain > 0.0) extra += Math.sin(TWO_PI * thumpHz * 3.0 * t) * Math.sin(TWO_PI * thumpHz * 0.5 * t) * env * raspGain;
+                if (howlGain > 0.0)
+                {
+                    const howl = (Math.sin(TWO_PI * thumpHz * t) * 0.6 + Math.sin(TWO_PI * thumpHz * 2.0 * t) * 0.4 + rng.signed() * 0.2) * env * howlGain;
+                    extra += howl; howlSum += howl;
+                }
+                const sample = (pulse + body + extra) * camMod;
+                pulseSum += pulse;
+                if (bank[cyl]) { sumL += sample * cOther; sumR += sample * cSame; }
+                else { sumL += sample * cSame; sumR += sample * cOther; }
+                voiceT[cyl] = t + dt;
             }
 
-            // 4. pulses → per-target sums
-            pulses.advance();
-            const headL = sum[PULSE_HEAD_L], headR = sum[PULSE_HEAD_R];
-            const popL = sum[PULSE_COLLECTOR_L], popR = sum[PULSE_COLLECTOR_R];
-
-            // 5. thermal state (every 32 samples, sample-counted → invariant)
-            if ((this.sampleIndex & 31) === 0)
-            {
-                this.heatS = this.heatLag.advance(load * (0.3 + 0.7 * rpmNorm));
-                this.temperatureK = s.exhaust.temperature_idle_k + (s.exhaust.temperature_wot_k - s.exhaust.temperature_idle_k) * this.heatS;
-                exL.setTemperature(this.temperatureK); exR.setTemperature(this.temperatureK);
-            }
-
-            // 6. discharge noise gated by the pressure pulses, into the primaries with the pulses
-            let nL = 0.0, nR = 0.0;
+            // 5. throttle-edge transients: backfire thud, anti-lag pops / blow-off (turbo), overrun crackle
+            let trans = 0.0;
             if (!pure)
             {
-                const gate = c.discharge_noise * (0.4 + 0.6 * rpmNorm);
-                nL = this.noiseHP[0].advance(rng.signed()) * (headL + 2.0 * popL) * gate;
-                nR = this.noiseHP[1].advance(rng.signed()) * (headR + 2.0 * popR) * gate;
+                if (throttle > 0.6) this.liftArmedBackfire = true;
+                if (throttle > 0.7) this.liftArmedTurbo = true;
+                if (throttle < 0.1)
+                {
+                    if (this.liftArmedBackfire)
+                    {
+                        this.liftArmedBackfire = false;
+                        if (rpm > redline * 0.6 && c.backfire_level > 0.0 && rng.uniform() < c.backfire_probability)
+                            this.transients.spawn(TRANSIENT_BACKFIRE, 0.0, 0.2, 100.0, 40.0, c.backfire_level, 0.005, 0.5 * c.backfire_level, 2000.0);
+                    }
+                    if (this.liftArmedTurbo)
+                    {
+                        this.liftArmedTurbo = false;
+                        if (turbo && rpm > 3000.0)
+                        {
+                            if (tb.antilag_level > 0.0 && rpm > tb.antilag_rpm)
+                            {
+                                const pops = 3 + Math.floor(rng.uniform() * 3.0); let at = 0.0;
+                                for (let p = 0; p < pops; ++p) { this.transients.spawn(TRANSIENT_ANTILAG, at, 0.1, 80.0 + rng.uniform() * 40.0, 30.0, tb.antilag_level, 0.005, 0.0, 3000.0); at += 0.05 + rng.uniform() * 0.03; }
+                                this.popCount += pops;
+                            }
+                            else if (tb.blowoff_level > 0.0) this.transients.spawn(TRANSIENT_BLOWOFF, 0.0, 0.8, 3000.0, 1000.0, tb.blowoff_level, 0.02, 0.0, 20000.0);
+                        }
+                    }
+                }
+                const closed = throttle < 0.05, fast = rpm > idle * 1.4;
+                if (closed && fast) { if (!this.overrunActive) { this.overrunActive = true; this.overrunEnv = 1.0; } }
+                else { this.overrunActive = false; this.overrunEnv = 0.0; }
+                this.overrunEnv *= this.popDecay;
+                this.popBoost *= this.popBoostDecay;
+                if (this.overrunEnv > 0.001 && c.pop_level > 0.0)
+                {
+                    const rate = c.pop_rate_hz * this.overrunEnv * (0.3 + 0.7 * rpmNorm) * (1.0 + 4.0 * this.popBoost);
+                    if (rng.uniform() < rate * dt)
+                    {
+                        const u = rng.uniform();
+                        this.transients.spawn(TRANSIENT_POP, 0.0, 0.05 + 0.07 * rng.uniform(), 90.0 + 60.0 * rng.uniform(), 45.0, c.pop_level * (0.3 + 1.5 * u * u) * (0.7 + 0.3 * this.overrunEnv), 0.003, 0.35 * c.pop_level, 2500.0);
+                        this.popBoost = 1.0; ++this.popCount;
+                    }
+                }
+                trans = this.transients.advance(rng);
             }
 
-            // 7. exhaust waveguides + merge
-            exL.advance(headL + nL, popL); exR.advance(headR + nR, popR);
-            const mm = this.mergeMix;
-            exL.complete((1.0 - mm) * exL.transmitted + mm * exR.transmitted);
-            exR.complete((1.0 - mm) * exR.transmitted + mm * exL.transmitted);
-            const radL = exL.radiated, radR = exR.radiated;
-
-            // 8. induction: runner pulses → plenum → through the throttle; hiss; turbo
-            inL.advance(sum[PULSE_RUNNER_L]); inR.advance(sum[PULSE_RUNNER_R]);
-            const throttleOpen = 0.08 + 0.92 * throttle * Math.sqrt(throttle);
-            let induction = (inL.radiated + inR.radiated) * throttleOpen;
+            // 6. turbo: spool follows rpm / redline · load; whine + air rush
             let turboOut = 0.0;
-            if (!pure)
+            if (turbo)
             {
-                induction += this.hissBP.advance(rng.signed()) * s.induction.hiss_level * (0.15 + 0.85 * throttle) * (0.3 + 0.7 * rpmNorm);
-                if (turbo)
-                {
-                    const targetFraction = Math.sqrt(clamp(load * (rpm - 1500.0) / 2500.0, 0.0, 1.0));
-                    const a = targetFraction > this.shaftFraction ? this.spoolUp : this.spoolDown;
-                    this.shaftFraction += a * (targetFraction - this.shaftFraction);
-                    const boostTarget = s.turbo.boost_max_bar * this.shaftFraction * this.shaftFraction * clamp(throttle * 4.0, 0.0, 1.0);
-                    this.boost += this.boostLag * (boostTarget - this.boost);
-                    if (this.previousThrottle >= 0.15 && throttle < 0.15 && this.boost > 0.15) this.recircEnv += s.turbo.recirculation_level * this.boost;
-                    this.recircEnv *= this.recircDecay;
-                    const shaftHz = (s.turbo.shaft_idle_rpm + (s.turbo.shaft_max_rpm - s.turbo.shaft_idle_rpm) * this.shaftFraction) / 60.0;
-                    this.turboPhase += shaftHz * dt; if (this.turboPhase >= 1.0) this.turboPhase -= 1.0;
-                    const ph = TWO_PI * this.turboPhase;
-                    const whineAmp = s.turbo.whine_level * this.shaftFraction * this.shaftFraction * Math.sqrt(this.shaftFraction);
-                    turboOut = whineAmp * (Math.sin(ph) + 0.5 * Math.sin(2.0 * ph) + 0.25 * Math.sin(3.0 * ph)) * 0.05;
-                    turboOut += this.recircBP.advance(rng.signed()) * this.recircEnv * 0.4;
-                    turboOut += this.turboNoiseLP.advance(rng.signed()) * this.boost * 0.05;
-                    induction += turboOut;
-                }
-                else this.boost = 0.0;
+                const target = clamp(rpm * invRedline, 0.0, 1.0) * load;
+                this.spool += (target > this.spool ? this.spoolUp : this.spoolDown) * (target - this.spool);
+                this.boost = tb.boost_max_bar * this.spool;
+                const hz = tb.whine_hz + this.spool * tb.whine_span_hz;
+                this.turboPhase += hz * dt; if (this.turboPhase >= 1.0) this.turboPhase -= 1.0;
+                turboOut = Math.sin(TWO_PI * this.turboPhase) * tb.whine_level * this.spool + this.rushBP.advance(rng.signed()) * tb.rush_level * this.spool;
             }
-            this.previousThrottle = throttle;
+            else { this.spool = 0.0; this.boost = 0.0; }
 
-            // 9. mechanical bed: valve seating clatter (crank-locked), gear whine, inverter carrier
+            // 7. mechanical: valve clatter (crank-locked), gear whine, hybrid motor
             let mech = 0.0;
             if (!pure)
             {
-                this.clatterEnv[0] *= this.clatterDecay; this.clatterEnv[1] *= this.clatterDecay;
-                const clatterNoise = (this.clatterEnv[0] + this.clatterEnv[1]) * rng.signed();
-                mech = this.clatterBP1.advance(clatterNoise) + 0.6 * this.clatterBP2.advance(clatterNoise) + 0.5 * this.clatterRing.advance(this.clatterImpulse[0] + this.clatterImpulse[1]);
-                this.clatterImpulse[0] = 0.0; this.clatterImpulse[1] = 0.0;
-                if (s.mechanical.whine_level > 0.0 && s.mechanical.whine_order > 0.0)
+                if (me.clatter_level > 0.0)
+                {
+                    this.clatterEnv[0] *= this.clatterDecay; this.clatterEnv[1] *= this.clatterDecay;
+                    const clatterNoise = (this.clatterEnv[0] + this.clatterEnv[1]) * rng.signed();
+                    mech = this.clatterBP1.advance(clatterNoise) + 0.6 * this.clatterBP2.advance(clatterNoise) + 0.5 * this.clatterRing.advance(this.clatterImpulse[0] + this.clatterImpulse[1]);
+                    this.clatterImpulse[0] = 0.0; this.clatterImpulse[1] = 0.0;
+                }
+                if (me.whine_level > 0.0 && me.whine_order > 0.0)
                 {
                     this.whinePhase += whineStep * rpm; if (this.whinePhase >= 1.0) this.whinePhase -= 1.0;
-                    mech += s.mechanical.whine_level * rpmNorm * rpmNorm * (0.5 + 0.5 * load) * Math.sin(TWO_PI * this.whinePhase);
+                    const hz = me.whine_order * rpm / 60.0, fade = clamp((0.4 * fs - hz) / (0.05 * fs), 0.0, 1.0);
+                    mech += me.whine_level * rpm * invRedline * fade * Math.sin(TWO_PI * this.whinePhase);
                 }
-                if (s.mechanical.inverter_level > 0.0 && s.mechanical.inverter_hz > 0.0)
+                if (me.motor_level > 0.0)
                 {
-                    this.inverterPhase += s.mechanical.inverter_hz * dt; if (this.inverterPhase >= 1.0) this.inverterPhase -= 1.0;
-                    mech += s.mechanical.inverter_level * (0.3 + 0.7 * load) * Math.sin(TWO_PI * this.inverterPhase);
+                    this.motorPhase += (me.motor_hz + me.motor_load_hz * load) * dt; if (this.motorPhase >= 1.0) this.motorPhase -= 1.0;
+                    mech += me.motor_level * load * Math.sin(TWO_PI * this.motorPhase);
                 }
             }
 
-            // 10. body boom from the pulse train
-            const bodyDrive = headL + headR;
-            const body = pure ? 0.0 : (this.bodyBP[0].advance(bodyDrive) + this.bodyBP[1].advance(bodyDrive));
-
-            // 11. mix: per-bank saturation, pan, centre buses, listener low-pass, output gain, limiter
-            let eL = radL * exGain, eR = radR * exGain;
-            if (!pure) { eL = Math.tanh(eL * drive) * invDrive; eR = Math.tanh(eR * drive) * invDrive; }
-            const centre = induction * indGain + mech * mechGain + body * bodyGain;
-            let L = eL * cSame + eR * cOther + centre, R = eR * cSame + eL * cOther + centre;
-            if (!bypassLP) { L = this.listenerLP[0].advance(L); R = this.listenerLP[1].advance(R); }
-            L *= outGain; R *= outGain;
-            if (!pure)
+            // 8. mix: per-channel tanh (drive rises with load) → buses → output gain → comb → valve high-pass → ±1 clip (the DAC in RevSim) → listener low-pass
+            let L, R;
+            if (pure) { L = sumL * exGain * outGain; R = sumR * exGain * outGain; }
+            else
             {
-                const peak = Math.max(Math.abs(L), Math.abs(R));
-                this.limiterEnv += (peak > this.limiterEnv ? this.limiterAttack : this.limiterRelease) * (peak - this.limiterEnv);
-                if (this.limiterEnv > 0.95) { const g = 0.95 / this.limiterEnv; L *= g; R *= g; }
-                L = clamp(L, -1.0, 1.0); R = clamp(R, -1.0, 1.0);
+                const drive = this.voiceDrive;
+                const vL = Math.tanh(sumL * drive) * exGain, vR = Math.tanh(sumR * drive) * exGain;
+                const centre = turboOut * indGain + mech * mechGain + trans * transGain;
+                L = (vL + centre) * outGain; R = (vR + centre) * outGain;
+                L = this.comb[0].advance(L); R = this.comb[1].advance(R);
+                L = this.valveHP[0].advance(L); R = this.valveHP[1].advance(R);
+                if (L > 1.0) { L = 1.0; ++this.clippedCount; } else if (L < -1.0) { L = -1.0; ++this.clippedCount; }
+                if (R > 1.0) R = 1.0; else if (R < -1.0) R = -1.0;
+                if (!bypassLP) { L = this.listenerLP[0].advance(L); R = this.listenerLP[1].advance(R); }
+                meter[2] += vL * vL; meter[3] += vR * vR;
             }
-            outL[n] = L; if (outR) outR[n] = R;
+            outL[k] = L; if (outR) outR[k] = R;
 
-            // 12. meters + crank-locked scope capture
-            meter[0] += headL * headL; meter[1] += headR * headR; meter[2] += radL * radL; meter[3] += radR * radR;
-            meter[4] += induction * induction; meter[5] += mech * mech; meter[6] += body * body; meter[7] += turboOut * turboOut;
-            meter[8] += L * L; meter[9] += R * R; meter[10] += (popL + popR) * (popL + popR);
+            // 9. meters + crank-locked scope capture
+            meter[0] += sumL * sumL; meter[1] += sumR * sumR; meter[4] += howlSum * howlSum; meter[5] += mech * mech;
+            meter[6] += trans * trans; meter[7] += turboOut * turboOut; meter[8] += L * L; meter[9] += R * R;
             if (this.scopeCapturing)
             {
-                this.scopeHead[this.scopeFill] = headL + headR; this.scope[this.scopeFill++] = L;
+                this.scopeHead[this.scopeFill] = pulseSum; this.scope[this.scopeFill++] = L;
                 if (this.scopeFill >= this.scopeCycleSamples || this.scopeFill >= this.scope.length) { this.scopeCapturing = false; this.scopeReady = true; }
             }
             else if (cycleStarted && this.scopeArmed && !this.scopeReady)
             {
                 this.scopeCycleSamples = Math.min(this.scope.length, Math.ceil(720.0 / Math.max(1.0e-6, dTheta)));
-                this.scopeFill = 0; this.scopeCapturing = true; this.scopeHead[this.scopeFill] = headL + headR; this.scope[this.scopeFill++] = L;
+                this.scopeFill = 0; this.scopeCapturing = true; this.scopeHead[this.scopeFill] = pulseSum; this.scope[this.scopeFill++] = L;
             }
             ++this.sampleIndex;
         }
@@ -1315,8 +1293,9 @@ if (typeof registerProcessor === 'function')
                 const now = Date.now(), windowMs = Math.max(1, now - this.windowStart);
                 const scope = ig.takeScope();
                 this.port.postMessage({
-                    type: 'report', meters: ig.takeMeters(), rpm: ig.rpmS, throttle: ig.throttleS, load: ig.loadS, boost: ig.boost, shaft: ig.shaftFraction,
-                    temperature: ig.temperatureK, firings: ig.firingCount, pops: ig.popCount, dropped: ig.pulses.dropped, active: ig.pulses.spawned,
+                    type: 'report', meters: ig.takeMeters(), rpm: ig.rpmS, throttle: ig.throttleS, load: ig.loadS, boost: ig.boost, shaft: ig.spool,
+                    firings: ig.firingCount, pops: ig.popCount, clipped: ig.clippedCount, dropped: ig.transients.dropped, active: ig.transients.spawned,
+                    valveHz: ig.valveHz, thumpHz: ig.thumpHz,
                     load_pct: 100.0 * this.busyMs / windowMs, overruns: this.overruns, mode: this.mode, pull: this.pullRunning ? this.pull.name : '', pullTime: this.pull.elapsed, pullDuration: this.pull.duration(),
                     fuel: record.load > 0.0 || record.throttle < 0.02, scope: scope, cylinders: ig.cylinderCount,
                     firingAngle: Array.from(ig.firingAngle), bankOfCylinder: Array.from(ig.bankOfCylinder), time: this.time,
@@ -1348,9 +1327,9 @@ if (typeof module !== 'undefined' && module.exports)
 name                   = "Porsche 918 Spyder"           # display name
 engine                 = "4.6 L 90° flat-plane V8, NA, top-exit pipes" # one-line engine description
 cylinder_count         = 8                              # number of cylinders
-firing_order           = [1, 5, 2, 6, 4, 8, 3, 7]       # cylinder numbers in firing sequence, even 720/N intervals
-bank_of_cylinder       = [0, 0, 0, 0, 1, 1, 1, 1]       # bank per cylinder number (0 = left pipe, 1 = right pipe)
-idle_rpm               = 950.0                          # [rpm]
+firing_order           = [1, 8, 3, 6, 4, 5, 2, 7]       # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1, 0, 1]       # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 1000.0                         # [rpm]
 redline_rpm            = 9150.0                         # [rpm] fuel cut
 peak_power_rpm         = 8700.0                         # [rpm]
 peak_torque_rpm        = 6700.0                         # [rpm]
@@ -1360,98 +1339,80 @@ friction_nm            = 30.0                           # [N·m] friction torque
 friction_per_krpm_nm   = 7.0                            # [N·m] friction torque increase per 1000 rpm
 
 [combustion]
-evo_deg                = 128.0                          # [°] exhaust valve opens this many degrees after the firing TDC
-blowdown_deg           = 16.0                           # [°] crank angle to the blowdown pressure peak
-bark_deg               = 5.0                            # [°] crank angle to the fast combustion-only front peak
-displacement_deg       = 90.0                           # [°] crank angle to the exhaust-stroke displacement peak (from BDC)
-blowdown_amp           = 1.0
-bark_amp               = 0.7                            # scaled by load^1.5
-displacement_amp       = 0.3
-pumping_amp            = 0.05                           # blowdown amplitude without combustion, throttle closed
-pumping_open_amp       = 0.25                           # added blowdown amplitude without combustion at wide-open throttle (limiter)
-jitter_amp             = 0.04                           # cycle-to-cycle amplitude deviation (1 σ) at full load
-jitter_deg             = 0.6                            # [°] cycle-to-cycle timing deviation (1 σ) at full load
-idle_jitter_boost      = 2.0                            # both deviations grow by this factor toward zero load
-misfire_probability    = 0.006                          # per firing at full load; ×4 toward zero load
-discharge_noise        = 0.45                           # turbulent blowdown noise gated by the pulse
-pop_level              = 1.0                            # overrun pop / crackle amplitude
-pop_rate_hz            = 30.0                           # [Hz] overrun pop rate at redline right after lift
+evo_deg                = 128.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.04                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.6                            # overrun crackle amplitude
+pop_rate_hz            = 30.0                           # [Hz] overrun crackle rate at redline right after lift
 pop_decay_s            = 1.4                            # [s] overrun crackle fades with this time constant
 
+[voice]
+pitch_hz               = 65.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 1.4, 0.6, 0.8]           # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 1.5                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 4.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.0                            # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
 [exhaust]
-temperature_idle_k     = 780.0                          # [K] port gas temperature at idle
-temperature_wot_k      = 1200.0                         # [K] port gas temperature at full load
-thermal_lag_s          = 2.5                            # [s]
-head_reflection        = 0.55                           # pressure reflection at the (mostly closed) exhaust valves
-merge                  = 0.0                            # 0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes
-saturation_drive       = 2.2                            # tanh drive on the exhaust bus
-bank_pan               = 0.5                            # 0 = both pipes centred … 1 = hard left/right
-
-[exhaust.primary]
-length_m               = 0.35                           # [m] head to collector
-diameter_mm            = 42.0                           # [mm]
-temperature_drop_k     = 0.0                            # [K] below the port temperature
-
-[exhaust.collector]
-length_m               = 0.3                            # [m] collector to silencer
-diameter_mm            = 65.0                           # [mm]
-temperature_drop_k     = 100.0                          # [K]
-
-[exhaust.tail]
-length_m               = 0.25                           # [m] silencer to tip
-diameter_mm            = 80.0                           # [mm] sets the radiation corner
-temperature_drop_k     = 200.0                          # [K]
-
-[exhaust.muffler]
-transmission           = 0.9                            # amplitude passed through the silencer
-cutoff_hz              = 9000.0                         # [Hz] silencer low-pass corner
-
-[exhaust.turbine]
-enabled                = false                          # turbine between primary and collector
-transmission           = 0.45
-cutoff_hz              = 1500.0                         # [Hz]
-reflection             = 0.5                            # pressure reflection back into the manifold
-
-[induction]
-runner_length_m        = 0.28                           # [m] valve to plenum
-runner_diameter_mm     = 44.0                           # [mm]
-temperature_k          = 315.0                          # [K] charge temperature
-valve_reflection       = 0.85
-plenum_reflection      = -0.55                          # runner end into the plenum
-plenum_hz              = 190.0                          # [Hz] plenum / airbox Helmholtz resonance
-plenum_q               = 4.0
-level                  = 0.35
-hiss_level             = 0.15                           # throttle-body discharge noise
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 300.0                          # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 100.0                          # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
 
 [mechanical]
-clatter_level          = 0.28                           # valve seating clatter
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
 clatter_hz             = 5200.0                         # [Hz] clatter resonance
-whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
-whine_level            = 0.0
-inverter_hz            = 9000.0                         # [Hz] hybrid inverter carrier (0 = none)
-inverter_level         = 0.004
+whine_order            = 168.0                          # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.03                           # at redline; scales with rpm
+motor_level            = 0.03                           # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
 
 [turbo]
 enabled                = false                          # forced-induction layer
-shaft_idle_rpm         = 15000.0                        # [rpm]
-shaft_max_rpm          = 150000.0                       # [rpm]
-spool_up_s             = 0.5                            # [s]
-spool_down_s           = 0.9                            # [s]
-boost_max_bar          = 1.0                            # [bar]
-whine_level            = 0.3                            # compressor whistle
-recirculation_level    = 0.5                            # blow-off / recirculation hiss on lift
-
-[body]
-resonance_hz           = [72.0, 118.0]                  # [Hz] structure-borne boom resonances
-q                      = 8.0
-level                  = 0.25
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 4000.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 8000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.0                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 0.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
 
 [mix]
-exhaust                = 1.0                            # bus levels (listener presets multiply these)
-induction              = 1.0
-mechanical             = 1.0
-body                   = 1.0
-output_gain            = 2.0                            # before the limiter
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
 </script>
 <script type="text/toml" data-car="FerrariLaFerrari">
 # Frontier acoustic structure — Ferrari LaFerrari (first cut, row A2 / HTML editor)
@@ -1464,8 +1425,8 @@ name                   = "Ferrari LaFerrari"            # display name
 engine                 = "F140FE 6.3 L 65° V12, NA, equal-length headers" # one-line engine description
 cylinder_count         = 12                             # number of cylinders
 firing_order           = [1, 12, 5, 8, 3, 10, 6, 7, 2, 11, 4, 9] # cylinder numbers in firing sequence, even 720/N intervals
-bank_of_cylinder       = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1] # bank per cylinder number (0 = left pipe, 1 = right pipe)
-idle_rpm               = 900.0                          # [rpm]
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1] # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 1000.0                         # [rpm]
 redline_rpm            = 9250.0                         # [rpm] fuel cut
 peak_power_rpm         = 9000.0                         # [rpm]
 peak_torque_rpm        = 6750.0                         # [rpm]
@@ -1475,98 +1436,80 @@ friction_nm            = 40.0                           # [N·m] friction torque
 friction_per_krpm_nm   = 9.0                            # [N·m] friction torque increase per 1000 rpm
 
 [combustion]
-evo_deg                = 126.0                          # [°] exhaust valve opens this many degrees after the firing TDC
-blowdown_deg           = 16.0                           # [°] crank angle to the blowdown pressure peak
-bark_deg               = 5.0                            # [°] crank angle to the fast combustion-only front peak
-displacement_deg       = 90.0                           # [°] crank angle to the exhaust-stroke displacement peak (from BDC)
-blowdown_amp           = 1.0
-bark_amp               = 0.6                            # scaled by load^1.5
-displacement_amp       = 0.3
-pumping_amp            = 0.05                           # blowdown amplitude without combustion, throttle closed
-pumping_open_amp       = 0.22                           # added blowdown amplitude without combustion at wide-open throttle (limiter)
-jitter_amp             = 0.035                          # cycle-to-cycle amplitude deviation (1 σ) at full load
-jitter_deg             = 0.5                            # [°] cycle-to-cycle timing deviation (1 σ) at full load
-idle_jitter_boost      = 1.8                            # both deviations grow by this factor toward zero load
-misfire_probability    = 0.004                          # per firing at full load; ×4 toward zero load
-discharge_noise        = 0.35                           # turbulent blowdown noise gated by the pulse
-pop_level              = 0.7                            # overrun pop / crackle amplitude
-pop_rate_hz            = 18.0                           # [Hz] overrun pop rate at redline right after lift
+evo_deg                = 126.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.035                          # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.5                            # overrun crackle amplitude
+pop_rate_hz            = 18.0                           # [Hz] overrun crackle rate at redline right after lift
 pop_decay_s            = 1.0                            # [s] overrun crackle fades with this time constant
 
+[voice]
+pitch_hz               = 58.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [0.8, 1.0, 0.5, 0.9, 0.4, 0.6, 0.3, 0.2] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 2.0                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.8                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 6.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.1                            # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
 [exhaust]
-temperature_idle_k     = 760.0                          # [K] port gas temperature at idle
-temperature_wot_k      = 1180.0                         # [K] port gas temperature at full load
-thermal_lag_s          = 3.0                            # [s]
-head_reflection        = 0.6                            # pressure reflection at the (mostly closed) exhaust valves
-merge                  = 0.0                            # 0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes
-saturation_drive       = 1.8                            # tanh drive on the exhaust bus
-bank_pan               = 0.6                            # 0 = both pipes centred … 1 = hard left/right
-
-[exhaust.primary]
-length_m               = 0.8                            # [m] head to collector
-diameter_mm            = 40.0                           # [mm]
-temperature_drop_k     = 0.0                            # [K] below the port temperature
-
-[exhaust.collector]
-length_m               = 1.1                            # [m] collector to silencer
-diameter_mm            = 63.0                           # [mm]
-temperature_drop_k     = 150.0                          # [K]
-
-[exhaust.tail]
-length_m               = 0.9                            # [m] silencer to tip
-diameter_mm            = 70.0                           # [mm] sets the radiation corner
-temperature_drop_k     = 320.0                          # [K]
-
-[exhaust.muffler]
-transmission           = 0.8                            # amplitude passed through the silencer
-cutoff_hz              = 7000.0                         # [Hz] silencer low-pass corner
-
-[exhaust.turbine]
-enabled                = false                          # turbine between primary and collector
-transmission           = 0.45
-cutoff_hz              = 1500.0                         # [Hz]
-reflection             = 0.5                            # pressure reflection back into the manifold
-
-[induction]
-runner_length_m        = 0.34                           # [m] valve to plenum
-runner_diameter_mm     = 40.0                           # [mm]
-temperature_k          = 312.0                          # [K] charge temperature
-valve_reflection       = 0.88
-plenum_reflection      = -0.6                           # runner end into the plenum
-plenum_hz              = 165.0                          # [Hz] plenum / airbox Helmholtz resonance
-plenum_q               = 5.0
-level                  = 0.7
-hiss_level             = 0.12                           # throttle-body discharge noise
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
 
 [mechanical]
-clatter_level          = 0.22                           # valve seating clatter
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
 clatter_hz             = 4800.0                         # [Hz] clatter resonance
 whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
-whine_level            = 0.0
-inverter_hz            = 10000.0                        # [Hz] hybrid inverter carrier (0 = none)
-inverter_level         = 0.003
+whine_level            = 0.0                            # at redline; scales with rpm
+motor_level            = 0.0                            # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
 
 [turbo]
 enabled                = false                          # forced-induction layer
-shaft_idle_rpm         = 15000.0                        # [rpm]
-shaft_max_rpm          = 150000.0                       # [rpm]
-spool_up_s             = 0.5                            # [s]
-spool_down_s           = 0.9                            # [s]
-boost_max_bar          = 1.0                            # [bar]
-whine_level            = 0.3                            # compressor whistle
-recirculation_level    = 0.5                            # blow-off / recirculation hiss on lift
-
-[body]
-resonance_hz           = [78.0, 130.0]                  # [Hz] structure-borne boom resonances
-q                      = 8.0
-level                  = 0.25
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 4000.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 8000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.0                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 0.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
 
 [mix]
-exhaust                = 1.0                            # bus levels (listener presets multiply these)
-induction              = 1.0
-mechanical             = 1.0
-body                   = 1.0
-output_gain            = 2.0                            # before the limiter
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
 </script>
 <script type="text/toml" data-car="NissanGtrNismo">
 # Frontier acoustic structure — Nissan GT-R Nismo (first cut, row A2 / HTML editor)
@@ -1578,9 +1521,9 @@ output_gain            = 2.0                            # before the limiter
 name                   = "Nissan GT-R Nismo"            # display name
 engine                 = "VR38DETT 3.8 L 60° V6, twin IHI turbos, titanium exhaust" # one-line engine description
 cylinder_count         = 6                              # number of cylinders
-firing_order           = [1, 2, 3, 4, 5, 6]             # cylinder numbers in firing sequence, even 720/N intervals
-bank_of_cylinder       = [1, 0, 1, 0, 1, 0]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
-idle_rpm               = 650.0                          # [rpm]
+firing_order           = [1, 4, 2, 5, 3, 6]             # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 900.0                          # [rpm]
 redline_rpm            = 7100.0                         # [rpm] fuel cut
 peak_power_rpm         = 6800.0                         # [rpm]
 peak_torque_rpm        = 3600.0                         # [rpm]
@@ -1590,98 +1533,80 @@ friction_nm            = 35.0                           # [N·m] friction torque
 friction_per_krpm_nm   = 10.0                           # [N·m] friction torque increase per 1000 rpm
 
 [combustion]
-evo_deg                = 132.0                          # [°] exhaust valve opens this many degrees after the firing TDC
-blowdown_deg           = 22.0                           # [°] crank angle to the blowdown pressure peak
-bark_deg               = 7.0                            # [°] crank angle to the fast combustion-only front peak
-displacement_deg       = 90.0                           # [°] crank angle to the exhaust-stroke displacement peak (from BDC)
-blowdown_amp           = 1.0
-bark_amp               = 0.4                            # scaled by load^1.5
-displacement_amp       = 0.35
-pumping_amp            = 0.06                           # blowdown amplitude without combustion, throttle closed
-pumping_open_amp       = 0.2                            # added blowdown amplitude without combustion at wide-open throttle (limiter)
-jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ) at full load
-jitter_deg             = 0.8                            # [°] cycle-to-cycle timing deviation (1 σ) at full load
-idle_jitter_boost      = 2.2                            # both deviations grow by this factor toward zero load
-misfire_probability    = 0.008                          # per firing at full load; ×4 toward zero load
-discharge_noise        = 0.3                            # turbulent blowdown noise gated by the pulse
-pop_level              = 0.5                            # overrun pop / crackle amplitude
-pop_rate_hz            = 12.0                           # [Hz] overrun pop rate at redline right after lift
+evo_deg                = 132.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.4                            # overrun crackle amplitude
+pop_rate_hz            = 12.0                           # [Hz] overrun crackle rate at redline right after lift
 pop_decay_s            = 0.8                            # [s] overrun crackle fades with this time constant
 
+[voice]
+pitch_hz               = 48.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 0.6, 0.9, 0.7, 0.4, 0.3] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 0.7                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 3.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.15                           # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
 [exhaust]
-temperature_idle_k     = 740.0                          # [K] port gas temperature at idle
-temperature_wot_k      = 1150.0                         # [K] port gas temperature at full load
-thermal_lag_s          = 3.5                            # [s]
-head_reflection        = 0.6                            # pressure reflection at the (mostly closed) exhaust valves
-merge                  = 0.7                            # 0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes
-saturation_drive       = 2.0                            # tanh drive on the exhaust bus
-bank_pan               = 0.35                           # 0 = both pipes centred … 1 = hard left/right
-
-[exhaust.primary]
-length_m               = 0.3                            # [m] head to collector
-diameter_mm            = 40.0                           # [mm]
-temperature_drop_k     = 0.0                            # [K] below the port temperature
-
-[exhaust.collector]
-length_m               = 1.8                            # [m] collector to silencer
-diameter_mm            = 76.0                           # [mm]
-temperature_drop_k     = 250.0                          # [K]
-
-[exhaust.tail]
-length_m               = 1.6                            # [m] silencer to tip
-diameter_mm            = 90.0                           # [mm] sets the radiation corner
-temperature_drop_k     = 400.0                          # [K]
-
-[exhaust.muffler]
-transmission           = 0.65                           # amplitude passed through the silencer
-cutoff_hz              = 4200.0                         # [Hz] silencer low-pass corner
-
-[exhaust.turbine]
-enabled                = true                           # turbine between primary and collector
-transmission           = 0.5
-cutoff_hz              = 1800.0                         # [Hz]
-reflection             = 0.45                           # pressure reflection back into the manifold
-
-[induction]
-runner_length_m        = 0.3                            # [m] valve to plenum
-runner_diameter_mm     = 40.0                           # [mm]
-temperature_k          = 330.0                          # [K] charge temperature
-valve_reflection       = 0.85
-plenum_reflection      = -0.5                           # runner end into the plenum
-plenum_hz              = 120.0                          # [Hz] plenum / airbox Helmholtz resonance
-plenum_q               = 3.0
-level                  = 0.2
-hiss_level             = 0.1                            # throttle-body discharge noise
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
 
 [mechanical]
-clatter_level          = 0.3                            # valve seating clatter
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
 clatter_hz             = 4200.0                         # [Hz] clatter resonance
-whine_order            = 31.0                           # gear whine order relative to crank speed (0 = none)
-whine_level            = 0.012
-inverter_hz            = 0.0                            # [Hz] hybrid inverter carrier (0 = none)
-inverter_level         = 0.0
+whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.0                            # at redline; scales with rpm
+motor_level            = 0.0                            # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
 
 [turbo]
 enabled                = true                           # forced-induction layer
-shaft_idle_rpm         = 20000.0                        # [rpm]
-shaft_max_rpm          = 165000.0                       # [rpm]
-spool_up_s             = 0.55                           # [s]
-spool_down_s           = 1.0                            # [s]
-boost_max_bar          = 1.1                            # [bar]
-whine_level            = 0.35                           # compressor whistle
-recirculation_level    = 0.6                            # blow-off / recirculation hiss on lift
-
-[body]
-resonance_hz           = [64.0, 105.0]                  # [Hz] structure-borne boom resonances
-q                      = 8.0
-level                  = 0.35
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 2500.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 4000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.1                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 3.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
 
 [mix]
-exhaust                = 1.0                            # bus levels (listener presets multiply these)
-induction              = 1.0
-mechanical             = 1.0
-body                   = 1.0
-output_gain            = 2.0                            # before the limiter
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
 </script>
 
 <!-- ============================================================ APP ============================================================ -->
@@ -1695,9 +1620,9 @@ const DSP_TEXT = $('dsp').textContent;
 const Dsp = (() => { const module = { exports: {} }; new Function('module', 'exports', DSP_TEXT)(module, module.exports); return module.exports; })();
 const { ACOUSTIC_SCHEMA, DYNO_PULL_NAMES, structureFromToml, parseToml, serialiseToml, schemaSections, structurePath, DynoSequence, clamp } = Dsp;
 const DSP_URL = URL.createObjectURL(new Blob([DSP_TEXT], { type: 'application/javascript' }));
-const DSP_DATA_URL = 'data:application/javascript;base64,' + btoa(unescape(encodeURIComponent(DSP_TEXT)));
+const DSP_INLINE_URL = 'data:application/javascript;base64,' + btoa(unescape(encodeURIComponent(DSP_TEXT)));
 // Blob module first; data: URL second (some file:// / policy setups refuse blob workers). Either way the same text runs.
-async function addDspModule(ctx) { try { await ctx.audioWorklet.addModule(DSP_URL); } catch (e) { await ctx.audioWorklet.addModule(DSP_DATA_URL); } }
+async function attachDsp(ctx) { try { await ctx.audioWorklet.addModule(DSP_URL); } catch (e) { await ctx.audioWorklet.addModule(DSP_INLINE_URL); } }
 const SEED = 0x5EED1234;
 
 // ───────────────────────────────────────────── vehicles (embedded TOML) ─────────────────────────────────────────────
@@ -1732,6 +1657,7 @@ function fmt(v, step) { const d = step >= 1 ? 0 : Math.min(4, Math.max(0, -Math.
 function tintSlider(el) { const p = 100 * (el.value - el.min) / (el.max - el.min); const c = el.classList.contains('hi') ? 'var(--hi)' : '#7a7a7a'; el.style.background = 'linear-gradient(to right,' + c + ' ' + p + '%,var(--raised) ' + p + '%)'; }
 function db(rms) { return 20.0 * Math.log10(rms + 1.0e-9); }
 function setActive(container, attr, value) { for (const b of container.querySelectorAll('button')) b.classList.toggle('active', b.dataset[attr] === value); }
+function roundedRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r); g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r); g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r); g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r); g.closePath(); }
 function fitCanvas(c) { const dpr = window.devicePixelRatio || 1; const w = Math.max(2, Math.floor(c.clientWidth * dpr)), h = Math.max(2, Math.floor(c.clientHeight * dpr)); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; return true; } return false; }
 function gaugeMax() { return Math.ceil((vehicle().redline_rpm + 400.0) / 1000.0) * 1000.0; }
 
@@ -1751,7 +1677,7 @@ async function startAudio()
     if (Editor.started) return;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     const ctx = new Ctx({ sampleRate: 48000, latencyHint: 'interactive' });
-    await addDspModule(ctx);
+    await attachDsp(ctx);
     const worklet = new AudioWorkletNode(ctx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: car().current, seed: SEED, listener: Editor.listener, reportEvery: 4 } });
     const analyser = ctx.createAnalyser(); analyser.fftSize = 8192; analyser.smoothingTimeConstant = 0.55; analyser.minDecibels = -100; analyser.maxDecibels = -10;
     const liveGain = ctx.createGain(), fileGain = ctx.createGain();
@@ -1780,7 +1706,8 @@ function updateStatus()
     const st = $('status');
     if (!Editor.ctx) { st.dataset.link = 'idle'; $('statusText').textContent = 'audio idle'; return; }
     st.dataset.link = Editor.ctx.state === 'running' ? 'running' : 'suspended';
-    $('statusText').textContent = (Editor.ctx.sampleRate / 1000).toFixed(1) + ' kHz · ' + Editor.ctx.state + (Editor.last ? ' · load ' + Editor.last.load_pct.toFixed(0) + ' %' : '');
+    $('statusText').textContent = (Editor.ctx.sampleRate / 1000).toFixed(1) + ' kHz · ' + Editor.ctx.state + (Editor.last ? ' · load ' + Editor.last.load_pct.toFixed(0) + ' %' : '') + (drawFault ? ' · draw fault ' + drawFault : '');
+    if (drawFault) st.dataset.link = 'error';
 }
 
 function scheduleStructure()
@@ -1907,16 +1834,16 @@ function drawGauge()
 
 // ─────────────────────────────────────────────── signal-flow diagram ────────────────────────────────────────────────
 const chainJunctions = [
-    { id: 'crank', label: 'Crank clock', sub: 'θ(t) · firing events', section: 'vehicle', col: 0, row: 1.5, meter: null },
-    { id: 'pulse', label: 'Combustion', sub: 'blowdown · bark · displ.', section: 'combustion', col: 1, row: 0.5, meter: [0, 1] },
-    { id: 'mech', label: 'Mechanical', sub: 'clatter · whine · inverter', section: 'mechanical', col: 1, row: 2.5, meter: [5] },
-    { id: 'exhaust', label: 'Exhaust pipes', sub: 'primary · collector · tail', section: 'exhaust', col: 2, row: 0, meter: [2, 3] },
-    { id: 'induction', label: 'Induction', sub: 'runner · plenum · throttle', section: 'induction', col: 2, row: 1, meter: [4] },
-    { id: 'turbo', label: 'Turbo', sub: 'shaft · whine · recirc.', section: 'turbo', col: 2, row: 2, meter: [7] },
-    { id: 'body', label: 'Body boom', sub: 'panel resonators', section: 'body', col: 2, row: 3, meter: [6] },
-    { id: 'mix', label: 'Mix · limiter', sub: 'tanh · pan · listener · L/R', section: 'mix', col: 3, row: 1.5, meter: [8, 9] },
+    { id: 'crank', label: 'Crank clock', sub: 'θ(t) · firing walk · cam', section: 'vehicle', col: 0, row: 1.5, meter: null },
+    { id: 'voice', label: 'Cylinder voices', sub: 'thump · body · crackle · ring · rasp', section: 'voice', col: 1, row: 0, meter: [0, 1] },
+    { id: 'trans', label: 'Transients', sub: 'backfire · pops · anti-lag · blow-off', section: 'combustion', col: 1, row: 1, meter: [6] },
+    { id: 'turbo', label: 'Turbo', sub: 'spool · whine · air rush', section: 'turbo', col: 1, row: 2, meter: [7] },
+    { id: 'mech', label: 'Mechanical', sub: 'clatter · gear whine · motor', section: 'mechanical', col: 1, row: 3, meter: [5] },
+    { id: 'exhaust', label: 'Exhaust bus', sub: 'tanh(1 + 0.8·load) · bank pan', section: 'exhaust', col: 2, row: 0, meter: [2, 3] },
+    { id: 'howl', label: 'Intake howl', sub: 'above howl_rpm · V12', section: 'voice', col: 2, row: 1.5, meter: [4] },
+    { id: 'mix', label: 'Mix · comb · clip', sub: 'buses · comb · valve HP · ±1 · listener', section: 'mix', col: 3, row: 1.5, meter: [8, 9] },
 ];
-const chainEdges = [['crank', 'pulse'], ['crank', 'mech'], ['pulse', 'exhaust'], ['pulse', 'induction'], ['pulse', 'body'], ['induction', 'turbo'], ['exhaust', 'mix'], ['induction', 'mix'], ['turbo', 'mix'], ['mech', 'mix'], ['body', 'mix']];
+const chainEdges = [['crank', 'voice'], ['crank', 'trans'], ['crank', 'turbo'], ['crank', 'mech'], ['voice', 'exhaust'], ['voice', 'howl'], ['exhaust', 'mix'], ['howl', 'mix'], ['trans', 'mix'], ['turbo', 'mix'], ['mech', 'mix']];
 let chainRects = [];
 function clipText(g, text, width) { if (g.measureText(text).width <= width) return text; while (text.length > 1 && g.measureText(text + '…').width > width) text = text.slice(0, -1); return text + '…'; }
 function drawChain()
@@ -1945,7 +1872,7 @@ function drawChain()
     {
         const R = rect[j.id], dim = j.id === 'turbo' && !turboOn, lv = level(j.meter);
         g.fillStyle = dim ? '#0f0f0f' : '#1a1a1a'; g.strokeStyle = Editor.hotSection === j.section ? '#6c77ff' : '#2e2e2e'; g.lineWidth = 1;
-        g.beginPath(); g.roundRect(R.x, R.y, R.w, R.h, 10); g.fill(); g.stroke();
+        roundedRect(g, R.x, R.y, R.w, R.h, 10); g.fill(); g.stroke();
         g.fillStyle = dim ? '#5c5c5c' : '#f0f0f0'; g.font = '600 11px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
         g.fillText(clipText(g, j.label, R.w - 16), R.x + 9, R.y + 15);
         g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.fillText(clipText(g, j.sub, R.w - 16), R.x + 9, R.y + 27);
@@ -1953,11 +1880,11 @@ function drawChain()
         {
             const mx = R.x + 9, my = R.y + R.h - 8, mw = R.w - 18;
             g.fillStyle = '#0a0a0a'; g.fillRect(mx, my, mw, 3);
-            if (lv !== null) { g.fillStyle = lv > 0.95 ? '#ef4444' : '#6c77ff'; g.fillRect(mx, my, mw * lv, 3); }
+            if (lv !== null) { g.fillStyle = j.id === 'mix' && lv > 0.95 ? '#ef4444' : '#6c77ff'; g.fillRect(mx, my, mw * lv, 3); }
             if (j.meter.length === 2 && meters) { const l2 = clamp((db(meters[j.meter[1]]) + 60) / 60, 0, 1); g.fillStyle = 'rgba(240,240,240,.6)'; g.fillRect(mx, my + 3, mw * l2, 1); }
         }
     }
-    if (Editor.last) { g.fillStyle = '#5c5c5c'; g.font = '500 10px system-ui,sans-serif'; g.textAlign = 'right'; g.fillText('pops ' + Editor.last.pops + ' · pulses ' + Editor.last.active + (Editor.last.dropped ? ' · DROPPED ' + Editor.last.dropped : ''), W - 10, H - 6); }
+    if (Editor.last) { g.fillStyle = '#5c5c5c'; g.font = '500 10px system-ui,sans-serif'; g.textAlign = 'right'; g.fillText('pops ' + Editor.last.pops + ' · transients ' + Editor.last.active + ' · clipped ' + Editor.last.clipped + (Editor.last.dropped ? ' · DROPPED ' + Editor.last.dropped : ''), W - 10, H - 6); }
 }
 $('chain').addEventListener('click', (e) => {
     const b = e.target.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
@@ -1993,7 +1920,7 @@ function drawScope()
     g.strokeStyle = '#6c77ff'; g.lineWidth = 1.25; g.beginPath();
     for (let i = 0; i < n; ++i) { const x = pad + (W - 2 * pad) * i / (n - 1), y = H / 2 - tr.output[i] / peak * half; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
     g.stroke();
-    g.fillStyle = '#5c5c5c'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText(n + ' samples · ' + Math.round(tr.rpm) + ' rpm · out peak ' + peak.toFixed(2) + ' · head peak ' + peakHead.toFixed(2) + (Editor.scopeHold ? ' · HOLD' : ''), W - pad - 4, H - pad - 14);
+    g.fillStyle = '#5c5c5c'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText(n + ' samples · ' + Math.round(tr.rpm) + ' rpm · out peak ' + peak.toFixed(2) + ' · pulse peak ' + peakHead.toFixed(2) + (Editor.scopeHold ? ' · HOLD' : ''), W - pad - 4, H - pad - 14);
 }
 
 // ───────────────────────────────────────── spectrum + spectrogram ───────────────────────────────────────────────────
@@ -2183,8 +2110,9 @@ function drawDevice()
         ['rate granted', ctx ? ctx.sampleRate + ' Hz' : '—'], ['period', ctx ? '128 frames · ' + (128000 / ctx.sampleRate).toFixed(2) + ' ms' : '—'],
         ['base latency', ctx && ctx.baseLatency ? (ctx.baseLatency * 1000).toFixed(1) + ' ms' : '—'], ['output latency', ctx && ctx.outputLatency ? (ctx.outputLatency * 1000).toFixed(1) + ' ms' : '—'],
         ['slices', L ? String(Editor.reports * 4) : '—'], ['worklet load', L ? L.load_pct.toFixed(1) + ' %' : '—', L && L.load_pct > 60],
-        ['overruns', L ? String(L.overruns) : '—', L && L.overruns > 0], ['pulses dropped', L ? String(L.dropped) : '—', L && L.dropped > 0],
-        ['firings', L ? String(L.firings) : '—'], ['state', ctx ? ctx.state : 'idle'],
+        ['overruns', L ? String(L.overruns) : '—', L && L.overruns > 0], ['transients dropped', L ? String(L.dropped) : '—', L && L.dropped > 0],
+        ['firings', L ? String(L.firings) : '—'], ['clipped samples', L ? String(L.clipped) : '—'],
+        ['valve high-pass', L ? L.valveHz.toFixed(0) + ' Hz' : '—'], ['link', ctx ? ctx.state : 'idle'],
     ];
     let html = ''; for (const r of rows) html += '<span>' + r[0] + '</span><b' + (r[2] ? ' class="bad"' : '') + '>' + r[1] + '</b>';
     g.innerHTML = html;
@@ -2195,7 +2123,7 @@ function drawDevice()
 function drawReadouts()
 {
     const L = Editor.last; if (!L) return;
-    $('rRpm').textContent = Math.round(L.rpm); $('rLoad').textContent = (L.load * 100).toFixed(0) + ' %'; $('rTemp').textContent = Math.round(L.temperature) + ' K';
+    $('rRpm').textContent = Math.round(L.rpm); $('rLoad').textContent = (L.load * 100).toFixed(0) + ' %'; $('rTemp').textContent = L.thumpHz.toFixed(1) + ' Hz';
     $('rFire').textContent = L.firings; $('rPops').textContent = L.pops; $('rBoost').textContent = car().current.turbo.enabled ? L.boost.toFixed(2) + ' bar' : '—';
     $('rPull').textContent = L.pull ? L.pull + ' ' + L.pullTime.toFixed(1) + '/' + L.pullDuration.toFixed(0) + ' s' : 'free'; $('rFuel').textContent = L.fuel ? 'on' : 'cut';
     if (Editor.recording) $('recLabel').textContent = 'Recording ' + ((performance.now() - Editor.recStart) / 1000).toFixed(0) + ' s';
@@ -2203,13 +2131,14 @@ function drawReadouts()
 }
 
 // ─────────────────────────────────────────────────── frame loop ─────────────────────────────────────────────────────
-let drawCount = 0;
+let drawCount = 0, drawFault = '';
+function guarded(name, draw) { try { draw(); } catch (e) { if (!drawFault) { drawFault = name + ': ' + e.message; console.error('AudioEditor draw fault in ' + drawFault, e); } } }
 function loop()
 {
     requestAnimationFrame(loop);
     if (Editor.analyser && Editor.freq) Editor.analyser.getFloatFrequencyData(Editor.freq);
-        drawGauge(); drawChain(); drawScope(); drawSpectrum(); drawOrders(); drawReadouts();
-    if ((++drawCount % 15) === 0) { drawDevice(); updateStatus(); }
+    guarded('gauge', drawGauge); guarded('chain', drawChain); guarded('scope', drawScope); guarded('spectrum', drawSpectrum); guarded('orders', drawOrders); guarded('readouts', drawReadouts);
+    if ((++drawCount % 15) === 0) { guarded('device', drawDevice); updateStatus(); }
 }
 
 // ──────────────────────────────────────────────────── wiring ────────────────────────────────────────────────────────
@@ -2283,7 +2212,7 @@ async function renderOffline(key, pull, seconds, options)
 {
     const rate = (options && options.rate) || 48000;
     const octx = new OfflineAudioContext(2, Math.floor(seconds * rate), rate);
-    await addDspModule(octx);
+    await attachDsp(octx);
     const worklet = new AudioWorkletNode(octx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: cars[key].current, seed: SEED, pull, reportEvery: 1 << 30, listener: (options && options.listener) || 'trackside' } });
     worklet.connect(octx.destination);
     const rendered = await octx.startRendering();

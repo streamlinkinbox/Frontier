@@ -131,6 +131,23 @@ function orderLevels(x, start, size, rpm, N)
     }
 
     console.log('\n[3] live audio (fake device)');
+    // the user's preview showed every panel black: CanvasRenderingContext2D.roundRect threw inside the frame loop (older engines).
+    // Prove the loop survives without roundRect and that all four panels carry pixels at the small preview viewport.
+    {
+        const small = await browser.newPage();
+        await small.setViewport({ width: 790, height: 600, deviceScaleFactor: 1 });
+        await small.evaluateOnNewDocument(() => { delete CanvasRenderingContext2D.prototype.roundRect; });
+        const smallErrors = [];
+        small.on('pageerror', e => smallErrors.push(e.message));
+        await small.goto(url, { waitUntil: 'load' });
+        await small.evaluate(async () => { await window.FrontierAudioEditor.startAudio(); document.getElementById('gate').dataset.on = 'false'; document.getElementById('pureToggle').click(); document.querySelector('#listenerSeg button[data-listener="cockpit"]').click(); });
+        await new Promise(r => setTimeout(r, 1500));
+        const lit = await small.evaluate(() => { const out = {}; for (const id of ['chain', 'scope', 'spectrum', 'orders', 'gauge']) { const c = document.getElementById(id), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let lit = 0; for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] > 40) ++lit; out[id] = lit; } out.rpm = document.getElementById('rRpm').textContent; return out; });
+        check(smallErrors.length === 0, 'frame loop survives without CanvasRenderingContext2D.roundRect (errors ' + smallErrors.length + ')' + (smallErrors.length ? ' → ' + smallErrors[0] : ''));
+        check(lit.chain > 200 && lit.scope > 200 && lit.spectrum > 200 && lit.orders > 200 && lit.gauge > 200 && /^\d+$/.test(lit.rpm), 'all panels drawn at 790×600 · Pure · Cockpit: ' + JSON.stringify(lit));
+        await small.screenshot({ path: path.join(shots, 'AudioEditor_06_Preview_790x600_Pure_Cockpit.png') });
+        await small.close();
+    }
     await page.click('#btnStart');
     await new Promise(r => setTimeout(r, 1500));
     const st1 = await page.evaluate(() => ({ state: window.FrontierAudioEditor.editor.ctx && window.FrontierAudioEditor.editor.ctx.state, reports: window.FrontierAudioEditor.editor.reports, rate: window.FrontierAudioEditor.editor.ctx && window.FrontierAudioEditor.editor.ctx.sampleRate }));
@@ -140,11 +157,16 @@ function orderLevels(x, start, size, rpm, N)
     check(idle > 800 && idle < 1100, 'free-rev idle settled at ' + Math.round(idle) + ' rpm (918)');
     await page.screenshot({ path: path.join(shots, 'AudioEditor_02_918_Idle_FreeRev.png') });
     // hold space (throttle) for 1 s → rpm must rise fast (light flywheel)
-    await page.keyboard.down('Space'); await new Promise(r => setTimeout(r, 1000));
+    // sample the mechanical bus on the way up: at the limiter the fuel cut silences the hybrid motor (load 0) and the
+    // rpm × 2.8 gear whine has faded past the 0.4·fs guard — both by design, so the peak over the climb is what counts
+    await page.keyboard.down('Space');
+    let mechPeak = 0;
+    for (let i = 0; i < 10; ++i) { await new Promise(r => setTimeout(r, 100)); mechPeak = Math.max(mechPeak, await page.evaluate(() => window.FrontierAudioEditor.editor.last.meters[5])); }
     const revved = await page.evaluate(() => window.FrontierAudioEditor.editor.last.rpm);
     await page.screenshot({ path: path.join(shots, 'AudioEditor_03_918_SpaceHeld_WOT.png') });
     await page.keyboard.up('Space');
     check(revved > 6000, 'Space held 1 s → ' + Math.round(revved) + ' rpm (free-rev inertia model)');
+    check(mechPeak > 0, '918 gear whine + hybrid motor on the mechanical bus during the climb: peak ' + (20 * Math.log10(mechPeak + 1e-9)).toFixed(0) + ' dB');
     await new Promise(r => setTimeout(r, 800));
     const pops = await page.evaluate(() => window.FrontierAudioEditor.editor.last.pops);
     check(pops > 0, 'lift-off produced overrun pops: ' + pops);
@@ -155,7 +177,7 @@ function orderLevels(x, start, size, rpm, N)
     const mid = await page.evaluate(() => ({ rpm: window.FrontierAudioEditor.editor.last.rpm, pull: window.FrontierAudioEditor.editor.last.pull, load: window.FrontierAudioEditor.editor.last.load_pct, over: window.FrontierAudioEditor.editor.last.overruns, dropped: window.FrontierAudioEditor.editor.last.dropped, meters: Array.from(window.FrontierAudioEditor.editor.last.meters) }));
     check(mid.pull === 'pull' && mid.rpm > 5000, 'LaFerrari scripted pull running: ' + Math.round(mid.rpm) + ' rpm at t ≈ 5.5 s');
     check(mid.dropped === 0, 'no pulses dropped (' + mid.dropped + ')');
-    check(mid.meters[2] > 0 && mid.meters[4] > 0 && mid.meters[5] > 0, 'exhaust / induction / mechanical meters live: ' + mid.meters.slice(0, 10).map(v => (20 * Math.log10(v + 1e-9)).toFixed(0)).join(' ') + ' dB');
+    check(mid.meters[0] > 0 && mid.meters[2] > 0 && mid.meters[4] > 0 && mid.meters[8] > 0, 'voice / exhaust bus / intake howl / output meters live: ' + mid.meters.slice(0, 10).map(v => (20 * Math.log10(v + 1e-9)).toFixed(0)).join(' ') + ' dB');
     console.log('  worklet load ' + mid.load.toFixed(1) + ' % (headless software Chromium — the user\'s desktop will be far lower), overruns ' + mid.over);
     await page.screenshot({ path: path.join(shots, 'AudioEditor_04_LaFerrari_ScriptedPull.png') });
     // GT-R: turbo layer shows boost during a pull
@@ -163,7 +185,7 @@ function orderLevels(x, start, size, rpm, N)
     await page.evaluate(() => window.FrontierAudioEditor.runPull('pull'));
     await new Promise(r => setTimeout(r, 4500));
     const gtr = await page.evaluate(() => ({ boost: window.FrontierAudioEditor.editor.last.boost, shaft: window.FrontierAudioEditor.editor.last.shaft, rpm: window.FrontierAudioEditor.editor.last.rpm, turbo: window.FrontierAudioEditor.editor.last.meters[7] }));
-    check(gtr.boost > 0.5, 'GT-R boost under load: ' + gtr.boost.toFixed(2) + ' bar, shaft ' + (gtr.shaft * 100).toFixed(0) + ' % at ' + Math.round(gtr.rpm) + ' rpm');
+    check(gtr.boost > 0.5 && gtr.turbo > 0, 'GT-R boost under load: ' + gtr.boost.toFixed(2) + ' bar, spool ' + (gtr.shaft * 100).toFixed(0) + ' % at ' + Math.round(gtr.rpm) + ' rpm, turbo meter ' + (20 * Math.log10(gtr.turbo + 1e-9)).toFixed(0) + ' dB');
     await page.screenshot({ path: path.join(shots, 'AudioEditor_05_GTR_ScriptedPull_Boost.png') });
     // inspector edit propagates: change bank_pan via the schema path and confirm the worklet accepted a structure message (no errors)
     await page.evaluate(() => { const c = window.FrontierAudioEditor.cars.NissanGtrNismo.current; c.exhaust.bank_pan = 0.9; window.FrontierAudioEditor.editor.worklet.port.postMessage({ type: 'structure', structure: c }); });

@@ -1,38 +1,41 @@
-AudioEditor browser proof — 2026-09-05T16:21:45.032Z — HeadlessChrome/129.0.6668.0
+AudioEditor browser proof — 2026-09-05T19:28:17.447Z — HeadlessChrome/129.0.6668.0
 
 [0] double-click path (file:// origin, no server)
-  PASS  file:// page loads and its worklet renders (peak 0.257, errors 0)
+  PASS  file:// page loads and its worklet renders (peak 1.000, errors 0)
 
 [1] page + worklet
   PASS  no console / page errors on load
   PASS  three vehicles embedded: Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo
   PASS  car picker has 3 entries
-  PASS  inspector built 76 sliders from the schema
+  PASS  inspector built 71 sliders from the schema
 
 [2] worklet ⇄ node identity (OfflineAudioContext, 4 s of the "pull" pull)
-  PASS  Porsche918Spyder: worklet rendered 192000 frames (754 ms)
-  PASS  Porsche918Spyder: sample-level max |worklet − node| = 1.49e-8 (float32 output rounding only; peak 0.528)
+  PASS  Porsche918Spyder: worklet rendered 192000 frames (935 ms)
+  PASS  Porsche918Spyder: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  Porsche918Spyder: order diagram agreement ±0.0000 dB over orders ½ … 16 (limit 0.1 dB)
-  PASS  FerrariLaFerrari: worklet rendered 192000 frames (519 ms)
-  PASS  FerrariLaFerrari: sample-level max |worklet − node| = 2.97e-8 (float32 output rounding only; peak 0.753)
+  PASS  FerrariLaFerrari: worklet rendered 192000 frames (1050 ms)
+  PASS  FerrariLaFerrari: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  FerrariLaFerrari: order diagram agreement ±0.0000 dB over orders ½ … 24 (limit 0.1 dB)
-  PASS  NissanGtrNismo: worklet rendered 192000 frames (721 ms)
-  PASS  NissanGtrNismo: sample-level max |worklet − node| = 1.49e-8 (float32 output rounding only; peak 0.459)
+  PASS  NissanGtrNismo: worklet rendered 192000 frames (740 ms)
+  PASS  NissanGtrNismo: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  NissanGtrNismo: order diagram agreement ±0.0000 dB over orders ½ … 12 (limit 0.1 dB)
 
 [3] live audio (fake device)
+  PASS  frame loop survives without CanvasRenderingContext2D.roundRect (errors 0)
+  PASS  all panels drawn at 790×600 · Pure · Cockpit: {"chain":8664,"scope":1824,"spectrum":3720,"orders":944,"gauge":1337,"rpm":"1022"}
   PASS  AudioContext running at 48000 Hz
   PASS  worklet reports arriving: 140 in 1.5 s
-  PASS  free-rev idle settled at 972 rpm (918)
-  PASS  Space held 1 s → 9095 rpm (free-rev inertia model)
-  PASS  lift-off produced overrun pops: 109
-  PASS  LaFerrari scripted pull running: 7184 rpm at t ≈ 5.5 s
+  PASS  free-rev idle settled at 1022 rpm (918)
+  PASS  Space held 1 s → 9054 rpm (free-rev inertia model)
+  PASS  918 gear whine + hybrid motor on the mechanical bus during the climb: peak -32 dB
+  PASS  lift-off produced overrun pops: 81
+  PASS  LaFerrari scripted pull running: 7197 rpm at t ≈ 5.5 s
   PASS  no pulses dropped (0)
-  PASS  exhaust / induction / mechanical meters live: -1 -1 -23 -24 -30 -19 -34 -180 -15 -15 dB
-  worklet load 5.9 % (headless software Chromium — the user's desktop will be far lower), overruns 11
-  PASS  GT-R boost under load: 1.05 bar, shaft 98 % at 4804 rpm
-  PASS  live structure edit accepted mid-pull (rpm 6608, errors 0)
+  PASS  voice / exhaust bus / intake howl / output meters live: 0 1 -1 -1 -4 -180 -180 -180 -7 -7 dB
+  worklet load 8.6 % (headless software Chromium — the user's desktop will be far lower), overruns 10
+  PASS  GT-R boost under load: 0.72 bar, spool 65 % at 4804 rpm, turbo meter -14 dB
+  PASS  live structure edit accepted mid-pull (rpm 7070, errors 0)
   PASS  serialiseToml → parseToml round trip is lossless (918)
   PASS  no console / page errors during the live session
 
-ALL PASS — 26 pass, 0 fail
+ALL PASS — 29 pass, 0 fail
