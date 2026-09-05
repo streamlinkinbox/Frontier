@@ -33,6 +33,7 @@
 #include "../../../Engine/SpatialInterface/InterfaceSequence.h"
 #include "../../../Engine/GeometricRaster/ClipProjection.h"
 #include "InterfaceTrialSequence.h"
+#include "InstanceMotionSequence.h"
 
 #include <algorithm>
 #include <chrono>
@@ -47,8 +48,11 @@ int main(int argc, char** argv)
 {
     std::string ScenePath  = "Projects/Project-Zero/Content/Scenes/CornellBox.gltf";
     float       SceneScale = 1.0f;
-    for (int I = 1; I + 1 < argc; ++I)
+    bool        AnimateInstances = false;   // D3: --animate drives instance transforms from a scripted path
+    for (int I = 1; I < argc; ++I)
     {
+        if (std::strcmp(argv[I], "--animate") == 0) { AnimateInstances = true; continue; }
+        if (I + 1 >= argc) break;
         if (std::strcmp(argv[I], "--scene") == 0) ScenePath  = argv[++I];
         if (std::strcmp(argv[I], "--scale") == 0) SceneScale = static_cast<float>(std::atof(argv[++I]));
     }
@@ -263,6 +267,36 @@ int main(int argc, char** argv)
         Surface.UploadShadingTables(Tables.Energy.data(), Tables.Sheen.data(), Frontier::ShadingTableSet::kResolution);
     }
     Surface.UploadScene(Level, Traversal, &Textures);
+
+    //──────────────────────────────────────────────────────────────────────────
+    // D3 — scripted instance motion (--animate), proving the transform path before physics
+    //──────────────────────────────────────────────────────────────────────────
+    // Off by default: with no flag the instance rows are never rewritten and the renderer behaves exactly as it
+    //    did, which keeps the Cornell box a valid bit-identity reference. D4 replaces the scripted driver with
+    //    RigidBodySolver poses and the upload below does not change.
+    std::vector<Frontier::InstanceRecord> AnimatedInstances = Level.QueryInstances();
+    Frontier::ProjectZero::InstanceMotionSequence InstanceMotion;
+    bool   InstanceMotionReady = false;
+    double InstanceMotionElapsed = 0.0;   // [s]
+
+    if (AnimateInstances && !AnimatedInstances.empty())
+    {
+        // Drive the trailing half of the instance list so the static front half proves, in the same frame, that
+        //    untouched rows really are untouched.
+        Frontier::ProjectZero::InstanceMotionConfiguration MotionConfiguration;
+        MotionConfiguration.FirstInstance = static_cast<uint32_t>(AnimatedInstances.size()) / 2u;
+        MotionConfiguration.InstanceCount = static_cast<uint32_t>(AnimatedInstances.size()) - MotionConfiguration.FirstInstance;
+        InstanceMotion.Construct(AnimatedInstances, MotionConfiguration);
+        InstanceMotionReady = InstanceMotion.QueryDrivenCount() > 0u;
+
+        Logger.RecordMessage(InstanceMotionReady ? Frontier::DiagnosticSeverity::Information
+                                                 : Frontier::DiagnosticSeverity::Warning,
+                             "Instances",
+                             InstanceMotionReady
+                                 ? "Scripted instance motion on: " + std::to_string(InstanceMotion.QueryDrivenCount()) +
+                                   " of " + std::to_string(AnimatedInstances.size()) + " instances animated."
+                                 : "Scripted instance motion requested but no instances could be driven.");
+    }
 
     //──────────────────────────────────────────────────────────────────────────
     // ImGui panel — apply theme once after context exists
@@ -721,6 +755,20 @@ int main(int argc, char** argv)
                 Interface.UploadInstances(InterfaceCompose.QueryInstances(),
                                           InterfaceCompose.QueryInstanceCount(),
                                           Surface.QueryCycleSlot());
+            }
+        }
+
+        // ④c D3 — advance instance transforms and refresh them in place. No reallocation and no device stall, so
+        //     unlike UploadScene this is safe every frame; the VkBuffer handle is unchanged so descriptors stand.
+        if (InstanceMotionReady)
+        {
+            InstanceMotionElapsed += static_cast<double>(Δτ);
+            InstanceMotion.AdvanceMotion(AnimatedInstances, InstanceMotionElapsed);
+            if (!Surface.RefreshInstances(AnimatedInstances.data(), static_cast<uint32_t>(AnimatedInstances.size())))
+            {
+                InstanceMotionReady = false;   // count no longer matches the resident scene — stop rather than tear
+                Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Instances",
+                                     "RefreshInstances refused the row set - scripted motion disabled.");
             }
         }
 

@@ -629,6 +629,7 @@ void VisibilityExchange::UploadScene(const SceneStructure& Scene) noexcept
     (void)UploadBuffer(D, P, Vulkan->FlatTriangles, Scene.QueryFlatTriangles().data(), Bytes(Scene.QueryFlatTriangles()), S, "flat triangles");
 
     TriangleCount  = Scene.QueryTriangleCount();
+    InstanceCount  = static_cast<uint32_t>(Scene.QueryInstances().size());
     ClusterCount   = static_cast<uint32_t>(Scene.QueryClusters().size());
     LuminaireCount = static_cast<uint32_t>(Scene.QueryLuminaires().size());
 
@@ -643,6 +644,27 @@ void VisibilityExchange::UploadScene(const SceneStructure& Scene) noexcept
     std::cerr << "[VisibilityExchange] Scene resident: " << TriangleCount << " triangles, " << Scene.QueryVertices().size() << " vertices, "
               << Scene.QueryInstances().size() << " instances, " << ClusterCount << " clusters, " << LuminaireCount << " luminaires.\n";
     WriteDescriptorSets();
+}
+
+bool VisibilityExchange::RefreshInstances(const InstanceRecord* Rows, uint32_t Count) noexcept
+{
+    // Fail rather than write a partial or oversized row set: a mismatch means the caller changed the scene, and a
+    //    silent short write would leave stale transforms that look exactly like a physics bug.
+    if (Rows == nullptr || Count == 0u)          return false;
+    if (Count != InstanceCount)                  return false;
+    if (Vulkan == nullptr || !Vulkan->Instances.Buffer) return false;
+
+    void* Destination = Vulkan->Instances.Mapped;
+    if (Destination == nullptr) return false;    // device-local fallback: no host mapping to write through
+
+    const size_t Bytes = static_cast<size_t>(Count) * sizeof(InstanceRecord);
+    if (Bytes > static_cast<size_t>(Vulkan->Instances.Bytes)) return false;
+
+    // The allocation is HOST_VISIBLE | HOST_COHERENT and mapped once at creation, so this is a plain memcpy into
+    //    memory the GPU already sees. No reallocation, so the VkBuffer handle and every descriptor written against
+    //    it stay valid — which is the whole reason this can run per frame while UploadScene cannot.
+    std::memcpy(Destination, Rows, Bytes);
+    return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
