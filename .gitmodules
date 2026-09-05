@@ -10,3 +10,9 @@
 [submodule "ExternalPackages/stb"]
 	path = ExternalPackages/stb
 	url = https://github.com/nothings/stb.git
+[submodule "ExternalPackages/miniaudio"]
+	path = ExternalPackages/miniaudio
+	url = https://github.com/mackron/miniaudio.git
+[submodule "ExternalPackages/tomlpp"]
+	path = ExternalPackages/tomlpp
+	url = https://github.com/marzer/tomlplusplus.git

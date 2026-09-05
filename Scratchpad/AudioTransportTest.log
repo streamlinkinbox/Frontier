@@ -1,0 +1,57 @@
+[1] WaveCodec round trips (PCM16 dithered, PCM24, Float32 exact, EXTENSIBLE unwrap, unknown chunk skip)
+  PCM16 max abs error (<= 2.5 LSB: dither + rounding + 32767/32768)      0.000065 (want 0.000000 +-0.000076) PASS
+  PCM16 decoded rate/channels/frames                                     1.000000 (want 1.000000 +-0.000000) PASS
+  PCM24 max abs error (<= 1.5 LSB)                                       0.000000 (want 0.000000 +-0.000000) PASS
+  PCM24 decoded rate/channels/frames                                     1.000000 (want 1.000000 +-0.000000) PASS
+  Float32 max abs error (exact)                                          0.000000 (want 0.000000 +-0.000000) PASS
+  Float32 decoded rate/channels/frames                                   1.000000 (want 1.000000 +-0.000000) PASS
+  PCM16 encode deterministic (bytes equal)                               1.000000 (want 1.000000 +-0.000000) PASS
+  EXTENSIBLE(PCM) + odd LIST chunk decodes                               1.000000 (want 1.000000 +-0.000000) PASS
+  EXTENSIBLE frame count                                                 4.000000 (want 4.000000 +-0.000000) PASS
+  EXTENSIBLE sample 0 L (0x4000 -> 0.5)                                  0.500000 (want 0.500000 +-0.000001) PASS
+  EXTENSIBLE sample 1 R (0x8000 -> -1.0)                                -1.000000 (want -1.000000 +-0.000001) PASS
+[2] Offline render deterministic and slicing-independent (64 vs 256 vs 37 frame blocks, V8 sweep)
+  same block size twice: identical                                       1.000000 (want 1.000000 +-0.000000) PASS
+  event count 64 vs 256 frame blocks                                   600.000000 (want 600.000000 +-1.000000) PASS
+  event count 64 vs 37 frame blocks                                    600.000000 (want 600.000000 +-1.000000) PASS
+  held demand: 256-frame blocks == 64-frame blocks (bytes)               1.000000 (want 1.000000 +-0.000000) PASS
+  held demand: 37-frame blocks == 64-frame blocks (bytes)                1.000000 (want 1.000000 +-0.000000) PASS
+  held demand: 1-frame blocks == 64-frame blocks (bytes)                 1.000000 (want 1.000000 +-0.000000) PASS
+  3 s stereo frame count                                             288000.000000 (want 288000.000000 +-0.000000) PASS
+[3] Crank-locked click spacing = 60 / (rpm x N/2) within one sample (V6 / V8 / V12 at 1000 / 4500 / 9000 rpm)
+[4] Sub-sample placement: centroid drift over 1.75 s steady state < 0.5 sample
+  V6 @ 1000 rpm: spacing error [samples] (87 steady clicks)              0.000000 (want 0.000000 +-1.000000) PASS
+  V6 @ 1000 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V6 @ 4500 rpm: spacing error [samples] (394 steady clicks)             0.000000 (want 0.000000 +-1.000000) PASS
+  V6 @ 4500 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V6 @ 9000 rpm: spacing error [samples] (788 steady clicks)             0.000000 (want 0.000000 +-1.000000) PASS
+  V6 @ 9000 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V8 @ 1000 rpm: spacing error [samples] (117 steady clicks)             0.000000 (want 0.000000 +-1.000000) PASS
+  V8 @ 1000 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V8 @ 4500 rpm: spacing error [samples] (525 steady clicks)             0.000000 (want 0.000000 +-1.000000) PASS
+  V8 @ 4500 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V8 @ 9000 rpm: spacing error [samples] (1050 steady clicks)            0.000000 (want 0.000000 +-1.000000) PASS
+  V8 @ 9000 rpm: centroid drift over 1.75 s [samples]                    0.000000 (want 0.000000 +-0.500000) PASS
+  V12 @ 1000 rpm: spacing error [samples] (175 steady clicks)            0.000000 (want 0.000000 +-1.000000) PASS
+  V12 @ 1000 rpm: centroid drift over 1.75 s [samples]                   0.000000 (want 0.000000 +-0.500000) PASS
+  V12 @ 4500 rpm: spacing error [samples] (788 steady clicks)            0.000000 (want 0.000000 +-1.000000) PASS
+  V12 @ 4500 rpm: centroid drift over 1.75 s [samples]                   0.000000 (want 0.000000 +-0.500000) PASS
+  V12 @ 9000 rpm: spacing error [samples] (1575 steady clicks)           0.000000 (want 0.000000 +-1.000000) PASS
+  V12 @ 9000 rpm: centroid drift over 1.75 s [samples]                   0.000000 (want 0.000000 +-0.500000) PASS
+[5] Wait-free demand relay: hammering writer, every read succeeds, no torn record, latest wins (2 M reads)
+  writer published 34698 records; reader: 17810 fresh, 1982190 nothing-new (never blocked), last written 7694, last read 7694
+  torn records observed                                                  0.000000 (want 0.000000 +-0.000000) PASS
+  fresh reads (> 0)                                                      1.000000 (want 1.000000 +-0.000000) PASS
+  latest wins: final read == last written rpm                         7694.000000 (want 7694.000000 +-0.000000) PASS
+[6] Null-backend device: open, callbacks arrive, frame budget met, zero overloads, clean close
+  Open(null) succeeds                                                    1.000000 (want 1.000000 +-0.000000) PASS
+  backend Null | device NULL Playback Device | granted 48000 Hz / 256 frames | callbacks 189 | frames 48384 | peak 6.7 us | overloads 0
+  granted sample rate                                                48000.000000 (want 48000.000000 +-0.000000) PASS
+  frames rendered in 1 s (>= 0.8 s worth)                                1.000000 (want 1.000000 +-0.000000) PASS
+  callbacks served (> 0)                                                 1.000000 (want 1.000000 +-0.000000) PASS
+  overloads                                                              0.000000 (want 0.000000 +-0.000000) PASS
+  clips                                                                  0.000000 (want 0.000000 +-0.000000) PASS
+  output peak (clicks 0.6 + carry <= 0.6)                                1.000000 (want 1.000000 +-0.000000) PASS
+  closed                                                                 1.000000 (want 1.000000 +-0.000000) PASS
+
+ALL PASS (0 failures)

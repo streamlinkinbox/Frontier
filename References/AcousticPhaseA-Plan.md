@@ -89,7 +89,7 @@ Audio.Attach(Powertrain);                                                     //
 while (running)
 {
     Pull.Advance(Δτ);                                                         // DynoSequence → rpm, throttle, gear
-    Powertrain.AssignDemand(Pull.QueryRecord());                              // main thread → seqlock'd latest PowertrainRecord
+    Powertrain.AssignDemand(Pull.QueryRecord());                              // main thread → RelayQueue<PowertrainRecord>, latest wins
     Audio.Advance(Δτ);                                                        // drains AudioMetrics, device-loss reopen, hot-plug
 }
 ```
@@ -98,7 +98,8 @@ while (running)
 ever feeds. Physics will produce it; the dyno scripts it. Merge into Project-Zero = construct, `Open`, `Advance(Δτ)`.
 
 Realtime rules: zero allocations after `Open` (everything pre-sized), denormals flushed, no locks — demand crosses
-threads through a seqlock (latest wins); the integrator advances on a **fixed 1 ms control substep** inside `Render`
+threads through `RelayQueue<T>` (wait-free triple-slot mailbox, latest wins — a seqlock was tried first and dropped: the
+realtime reader gave up on 63 % of reads under a saturating writer); the integrator advances on a **fixed 1 ms control substep** inside `Render`
 regardless of the device's period size (same reasoning as `MotionIntegrator`'s 1/240 s substep), so `--render` output
 is **bit-identical** to what the device plays for the same timeline, whatever period WASAPI actually grants.
 
@@ -177,7 +178,7 @@ Views:
 
 | Row | Scope | Sandbox proof | Your acceptance (Windows, GTX 1060 box) |
 |---|---|---|---|
-| **A1** transport | `.gitmodules` pins, `MiniaudioTranslation.cpp`, `AudioExchange` (open/close, callback, seqlock demand, `AudioMetrics`, device-loss reopen, null backend), `WaveCodec`, `Project-Dyno` skeleton + both `ToolchainSequence` scripts + CMake target; plays a sine sweep and a crank-locked click train at scripted rpm | builds with g++ 12 `-Wall -Wextra` clean; null backend opens; `--render` writes a 5 s sweep + click train; click spacing = 60/(rpm·N/2) within one sample | hear sweep + clicks; callback max < 500 µs, zero underruns over 60 s (printed by `AudioMetrics` on exit) |
+| **A1** transport ✅ | `.gitmodules` pins, `MiniaudioTranslation.cpp`, `AudioExchange` (open/close, callback, `AudioMetrics`, device-loss reopen, null driver, `RenderOffline`), `SignalIntegrator` seam, `RelayQueue<T>` (DeviceExchange), `WaveCodec`, `Project-Dyno` (`GameExecution`, `DynoSequence`, `CrankClickIntegrator`) + both `ToolchainSequence` scripts + CMake target; plays a sine sweep and a crank-locked click train at scripted rpm | `Scratchpad/AudioTransportTest.log`: 48/48 — WAV round trips, slicing-invariant render (1/37/64/256-frame slices byte-identical), click spacing = 60/(rpm·N/2) exact for V6/V8/V12 × 3 speeds, sub-sample centroid drift 0, relay never torn / never blocks, null device 0 overloads; g++ 12 `-Wall -Wextra` clean, Debug + Release | `ToolchainSequence.ps1 -Run`: hear sweep (`--sweep`) + clicks; `[Audio]` line every 2 s → peak µs < 500, overloads 0 over 60 s; `--render x.wav --pull pull` opens in any player |
 | **A2** synthesis skeleton | `AcousticStructure` TOML load/save, `AcousticIntegrator` v1 (crank clock, analytic pulses with jitter, exhaust + induction waveguides, discharge noise, mechanical bed, inertia), `DynoSequence` pulls, three first-cut TOMLs | offline WOT pulls for all three cars → `Scratchpad/*.log` + spectrogram/order PNGs (C++ harness, radix-2 FFT, `stb_image_write`); dominant order = N/2 within 1 Hz; silent-pulse aliasing guard: nothing above −90 dB past 16 kHz | first listen: "an engine, wrong car" is the bar |
 | **A3** editor design | static HTML: all five views with mock feeds, tokens, layout, resize | screenshots `Diagnostics/AudioEditor_01…_ContactSheet.png` | look approved before wiring |
 | **A4** editor live | worklet port, scopes, order diagram, TOML import/export, file feed, reference lane, WAV record | worklet renders the A2 pull; order diagram matches the C++ render within ±0.1 dB per order | audible in the live preview |
@@ -209,7 +210,7 @@ judge by ear + order signatures until clips arrive, pin `9634bedb`.
 
 ## 7. Vocabulary (banned-word substitutions — DSP is a minefield for CLAUDE.md §3)
 
-`Filter` → `Resonator` / `BiquadSection` / `OnePoleLag` · `Buffer` → `Ring` / `Extent` · `Source` → `Generator` / `Emitter` ·
+`Filter` → `Resonator` / `BiquadSection` / `OnePoleLag` · `Buffer` → `Ring` / `Extent` · `Source` / `Generator` → `Integrator` (role 7) / `Emitter` · `Backend` → `Driver` · `Block` → `Slice` / `Stride` ·
 `Flow` → `Discharge` (exhaust) / `Induction` (intake) · `Blend` → `Mix` · `Map` (Campbell map) → `OrderDiagram` · `Table` →
 `Sheet` · `Node` (junction) → `Junction` · `Pipeline` → `Chain` · `History` → `Trace` · `Bridge` → `Feed` · `Tick` →
 `Advance(Δτ)` (existing convention). Units annotated `[Hz] [rpm] [m] [s] [Pa] [bar] [-]`; Allman, 4 spaces, 142/122 banners.

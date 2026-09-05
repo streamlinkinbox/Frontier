@@ -23,3 +23,8 @@ Projects/*/Content/Slate.config.toml
 # Fetched test levels (Projects/Project-Zero/Build/FetchSponza.ps1) - never committed
 Projects/*/Content/Scenes/Sponza/
 Projects/*/Content/Scenes/ShaderBall.gltf
+
+# Project-Dyno / Phase A acoustics: build output and rendered audio (regenerate with --render); logs + PNG proofs are committed
+Projects/*/Build/Output/
+Scratchpad/*.wav
+Diagnostics/ProjectDyno_TelemetryReport*.md
