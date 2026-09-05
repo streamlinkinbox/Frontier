@@ -44,7 +44,31 @@ millisecond."*
 Expected cost for the drop scene: **TLAS rebuild ≈ 0.05–0.2 ms/frame on the CPU for ~12 instances**, versus
 116–248 ms today. Traversal gains one matrix multiply per instance entered.
 
-### Answering "can it be done on the GPU?"
+### Answering "can it be done on the GPU?" — measured, not argued
+
+`Scratchpad/TlasRebuildBenchmark.cpp` rebuilds a TLAS over N instances every iteration, moving every
+instance first so the number is a real per-frame cost. Compiled **SSE2-only**, matching a pre-AVX host like
+the i3-2120 (a 2.6 GHz Xeon stood in for it; your 3.3 GHz part should be no slower per core):
+
+| Instances | CPU TLAS rebuild | Share of a 16.7 ms frame |
+|---|---|---|
+| **23**  (the drop scene: 11 static + 12 bodies) | **0.019 ms** | **0.1 %** |
+| 100 | 0.090 ms | 0.5 % |
+| 1 000 | 0.98 ms | 5.9 % |
+| 10 000 | 9.2 ms | 55 % |
+| 100 000 | 54.5 ms | 327 % |
+
+BLAS builds, which happen **once at load and never per frame**: room (5286 tris) 5.5 ms, ball (320 tris)
+0.3 ms.
+
+**At 23 instances the CPU TLAS rebuild is 0.019 ms — roughly one thousandth of the frame.** Moving that to
+the GPU would mean a dispatch, a barrier and a synchronisation point, each of which costs more than 0.019 ms
+on its own. It would be measurably *slower*, and it would add a GPU-side builder to maintain.
+
+The crossover is around **1 000–10 000 instances**. Below that, CPU wins outright. Above ~10 000 a GPU build
+starts to pay, and that is the point to revisit — not now.
+
+
 
 Three separate questions, and they have different answers:
 
