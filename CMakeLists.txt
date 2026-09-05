@@ -207,6 +207,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/SpatialInterface/PaletteConfiguration.cpp
     Engine/SpatialInterface/InterfacePointerProjection.cpp
     Engine/SpatialInterface/InterfaceTextProjection.cpp
+    Engine/SpatialInterface/InterfaceScreenSequence.cpp
 )
 
 # ─── Engine common include dirs ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
