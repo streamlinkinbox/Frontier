@@ -45,3 +45,6 @@ ParametricSketcher/Output/
 Projects/*/Build/Output/
 Scratchpad/*.wav
 Diagnostics/ProjectDyno_TelemetryReport*.md
+
+# Repository-root Build\ mirror written by Project-Zero's ToolchainSequence.ps1 (exe + pdb + glfw3.dll + SPIR-V)
+/Build/

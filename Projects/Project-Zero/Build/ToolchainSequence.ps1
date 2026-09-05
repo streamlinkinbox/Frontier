@@ -11,7 +11,15 @@ param(
     [ValidateSet('Debug', 'Release')] [string] $Configuration = 'Release',
     [switch] $Rebuild,
     [switch] $Run,
-    [int]    $Parallel = 0
+    [int]    $Parallel = 0,
+    # Instruction set of the OLDEST machine this binary must run on — not the machine compiling it.
+    #    SSE2    baseline x64: runs anywhere. Use this when unsure.
+    #    AVX     Sandy Bridge i5/i7 and later. ⚠️ Sandy Bridge Core i3 (e.g. i3-2120) has NO AVX — it will
+    #            crash at launch with 0xc000001d STATUS_ILLEGAL_INSTRUCTION on the first VEX instruction.
+    #    AVX2    Haswell (2013) and later.
+    # This must match Scripts/BuildJolt.ps1 and every other project script: Jolt derives JPH_USE_AVX/SSE4_2/SSE4_1
+    #    from the compiler's __AVX__ macros and RegisterTypes() aborts on a library/client mismatch.
+    [ValidateSet('SSE2', 'AVX', 'AVX2')] [string] $Isa = 'SSE2'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -142,8 +150,10 @@ function Get-CompilationFlags([string] $Selection)
         '/DGLFW_DLL'
         '/DFRONTIER_DEVELOPMENT'
         '/DFRONTIER_ENABLE_GLFW'
-        '/arch:AVX'     # AVX support for Sandy Bridge+ hosts; tinybvh supports AVX/SSE scalar fallback
     )
+    # Baseline SSE2 emits no /arch at all (it is the x64 default); anything else is opt-in via -Isa.
+    #    tinybvh falls back to its scalar path cleanly when AVX is absent.
+    if ($Isa -ne 'SSE2') { $Common += "/arch:$Isa" }
 
     if ($Selection -eq 'Debug')
     {
@@ -721,6 +731,27 @@ if ($LASTEXITCODE -ne 0)
 }
 
 Write-Produced $ExePath
+
+# Mirror the freshly linked binary to <repo>\Build\ so `.\Build\Project-Zero.exe` works from the repository root,
+#    which is the command References/RunningTheShowroom.md documents. Copying (rather than only linking here) is what
+#    prevents the classic "I rebuilt but the old UI is still there" report: a stale copy from an earlier session would
+#    otherwise sit at that path forever, since nothing else ever writes to it.
+$RootBinary = Join-Path $RepositoryRoot 'Build'
+New-Item -ItemType Directory -Force -Path $RootBinary | Out-Null
+foreach ($Payload in @('Project-Zero.exe', 'Project-Zero.pdb', 'glfw3.dll'))
+{
+    $From = Join-Path $BinaryRoot $Payload
+    if (Test-Path $From) { Copy-Item $From $RootBinary -Force -ErrorAction SilentlyContinue }
+}
+# The runtime searches <cwd>\Engine\Shaders first, so the mirrored copy needs the lowered SPIR-V beside it too.
+$RootShaders = Join-Path $RootBinary 'Engine\Shaders'
+New-Item -ItemType Directory -Force -Path $RootShaders | Out-Null
+foreach ($Entry in $ShaderTable)
+{
+    $SpirvSource = Join-Path $EngineRoot ('Shaders\' + $Entry.Output)
+    if (Test-Path $SpirvSource) { Copy-Item $SpirvSource $RootShaders -Force }
+}
+Write-Produced (Join-Path $RootBinary 'Project-Zero.exe')
 
 if ($Run)
 {

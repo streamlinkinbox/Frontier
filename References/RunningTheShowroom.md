@@ -39,6 +39,30 @@ Vulkan SDK on `PATH` for `glslc`/`slangc`.
 .\Build\Project-Zero.exe --scene showroom
 ```
 
+The build script mirrors the freshly linked exe, its PDB, `glfw3.dll` and the lowered SPIR-V into `Build\` at the
+repository root, so this path is always the binary you just built. If you ran an older revision that lacked that copy
+step, delete `Build\` once — a stale exe left there by hand is the usual cause of "I rebuilt but nothing changed".
+The canonical output also remains at
+`Projects\Project-Zero\Build\Output\Windows\Release\Binary\Project-Zero.exe`.
+
+### Older CPUs — read this before the first build
+
+The scripts default to **`-Isa SSE2`** (baseline x64), which runs on any 64-bit machine. If your CPU supports it you
+can opt into faster code:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Projects\Project-Zero\Build\ToolchainSequence.ps1 -Isa AVX2
+```
+
+⚠️ **Sandy Bridge Core i3 (e.g. i3-2120) has no AVX at all** — only the i5/i7 parts of that generation do. Building
+with `-Isa AVX` there produces an exe that dies instantly with `0xc000001d STATUS_ILLEGAL_INSTRUCTION`. Leave the
+default alone unless you know the target supports the wider set.
+
+`-Isa` **must be identical for every Frontier target you build**, because Jolt derives `JPH_USE_AVX`/`SSE4_2`/`SSE4_1`
+from the compiler's macros and `RegisterTypes()` aborts at run time when the library and its client disagree.
+`Project-Physics` forwards its `-Isa` to `BuildJolt.ps1` automatically; if you switch ISA, pass `-Rebuild` so the
+stale `Jolt.lib` is discarded.
+
 On the first run you will see:
 
 ```
@@ -62,9 +86,15 @@ Camera opens at (0, −1.70, 1.45) looking into the room: red wall left, green w
 with a chrome sphere on it, a matte pillar rear-left, a rough copper sphere rear-right, a deep-blue floor inlay
 and an amber strip along the back. Lit by the ceiling luminaire (32 nit) plus a dimmer rear rim strip (9 nit).
 
-**The interface panel is not in this build yet.** P0 proved the panel headlessly; wiring
-`InterfaceTrialSequence` into the live frame is the next step. Right now `--scene showroom` gives you the room
-it will hang in.
+**The interface panel is NOT rendered in this build.** `--scene showroom` gives you the room it will hang in, and
+nothing more — the room is the Cornell box widened and refurnished, so if it looks "like the Cornell box but
+called Showroom", that is exactly right.
+
+Concretely: `GameExecution.cpp` never constructs `InterfaceExchange`, never calls `UploadInstances`, and never
+calls `RecordInterface`. The shaders compile, the slot layout is proven, the figures are proven headlessly — but
+no code path submits them, so the panel cannot appear. That wiring is blocked on a real seam: `SwapchainExchange`
+keeps its `VkDevice`, image views and command buffer private, and `InterfaceExchange::Bring/Resize/RecordInterface`
+need all three. Exposing them is the next task, not a one-line hookup.
 
 ## 5. Re-run the proofs without a GPU
 
