@@ -169,29 +169,13 @@ else()
     add_custom_target(ReSTIRViewportSpirv)
 endif()
 set(FRONTIER_ENGINE_SOURCES
-    Engine/DeviceExchange/VulkanExchange.cpp
-    Engine/DeviceExchange/ByteSpace.cpp
-    Engine/DeviceExchange/TaskScheduler.cpp
-    Engine/DeviceExchange/ExecutionQueue.cpp
-    Engine/DeviceExchange/VendorClassifier.cpp
     Engine/DeviceExchange/OrientationClassifier.cpp
-    Engine/DeviceExchange/WindowExchange.cpp
     Engine/DeviceExchange/InputExchange.cpp
-    Engine/DeviceExchange/RenderTargetExchange.cpp
     Engine/DeviceExchange/DiagnosticMetrics.cpp
-    Engine/PhysicalDynamics/RigidBodySolver.cpp
-    Engine/PhysicalDynamics/DeformableSolver.cpp
-    Engine/PhysicalDynamics/LocomotionSolver.cpp
-    Engine/PhysicalDynamics/WorldSpace.cpp
-    Engine/VolumetricDynamics/LevelSetSpace.cpp
-    Engine/VolumetricDynamics/FluidSolver.cpp
-    Engine/VolumetricDynamics/ParticleIntegrator.cpp
     Engine/GeometricRaster/GeometryStructure.cpp
     Engine/GeometricRaster/CameraProjection.cpp
     Engine/GeometricRaster/SceneStructure.cpp
     Engine/GeometricRaster/TraversalIndex.cpp
-    Engine/GeometricRaster/VisibilityProjection.cpp
-    Engine/GeometricRaster/RasterSequence.cpp
     Engine/ContentInterchange/MaterialIndex.cpp
     Engine/ContentInterchange/MaterialCodec.cpp
     Engine/ContentInterchange/TextureIndex.cpp
@@ -201,14 +185,6 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/ContentInterchange/ObjCodec.cpp
     Engine/ContentInterchange/ContentCodec.cpp
     Engine/ContentInterchange/UfbxTranslation.cpp
-    Engine/PhotometricIllumination/ClusteredSpace.cpp
-    Engine/PhotometricIllumination/DirectIlluminationIntegrator.cpp
-    Engine/PhotometricIllumination/GlobalIlluminationIntegrator.cpp
-    Engine/PhotometricIllumination/AtmosphereIntegrator.cpp
-    Engine/PlatformInterchange/AcousticStructure.cpp
-    Engine/PlatformInterchange/AcousticIntegrator.cpp
-    Engine/PlatformInterchange/VoiceExchange.cpp
-    Engine/PlatformInterchange/OnlineInterchange.cpp
     Engine/DisplayPresentation/ThemeStructure.cpp
     Engine/DisplayPresentation/VectorCodec.cpp
     Engine/DisplayPresentation/FontCodec.cpp
@@ -224,10 +200,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/DisplayPresentation/AppearanceInspector.cpp
     Engine/DisplayPresentation/ConfigurationInspector.cpp
     Engine/DisplayPresentation/TypefaceRegistry.cpp
-    Engine/DisplayPresentation/WorkspaceHost.cpp
-    Engine/DisplayPresentation/CycleScheduler.cpp
     Engine/DisplayPresentation/FidelityClassifier.cpp
-    Engine/DisplayPresentation/FrontierHost.cpp
     Engine/SpatialInterface/InterfaceStructure.cpp
     Engine/SpatialInterface/InterfaceSequence.cpp
     Engine/SpatialInterface/InterfaceLayoutCodec.cpp
@@ -263,6 +236,23 @@ set(PROJECT_ZERO_SOURCES
     Projects/Project-Zero/Source/GameExecution.cpp
     ${IMGUI_SOURCES}
 )
+
+# Fail fast with NAMES if the source list ever rots again, mirroring the guard in
+#    Projects/Project-Zero/Build/ToolchainSequence.ps1. Without it a stale entry surfaces as a wall of cascading
+#    compiler errors (was: 73 C1083s on Windows, 2026-09-04) instead of one legible message. Only repo-relative
+#    paths are checked; ${...} entries are generator expressions or submodule paths resolved elsewhere.
+set(FRONTIER_MISSING_SOURCES "")
+foreach(FrontierSource IN LISTS PROJECT_ZERO_SOURCES)
+    if(NOT FrontierSource MATCHES "^\\$" AND NOT IS_ABSOLUTE "${FrontierSource}")
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${FrontierSource}")
+            list(APPEND FRONTIER_MISSING_SOURCES "${FrontierSource}")
+        endif()
+    endif()
+endforeach()
+if(FRONTIER_MISSING_SOURCES)
+    string(REPLACE ";" "\n    " FRONTIER_MISSING_REPORT "${FRONTIER_MISSING_SOURCES}")
+    message(FATAL_ERROR "missing source files in the translation batch:\n    ${FRONTIER_MISSING_REPORT}")
+endif()
 
 add_executable(Project-Zero ${PROJECT_ZERO_SOURCES})
 add_dependencies(Project-Zero ReSTIRViewportSpirv)
@@ -304,26 +294,12 @@ endif()
 
 add_executable(FrontierEngine
     ${FRONTIER_ENGINE_SOURCES}
-    Engine/DisplayPresentation/EngineExecution.cpp
 )
 target_include_directories(FrontierEngine PRIVATE ${FRONTIER_ENGINE_INCLUDES})
 target_link_libraries(FrontierEngine PRIVATE pthread)
 
 #============================================================================================================================================
-# Project-F20 — Racing Game
+# Project-F20 — Racing Game   (🚧 removed 2026-09-05: Projects/Project-F20/ does not exist in this tree)
 #============================================================================================================================================
-
-set(PROJECT_F20_SOURCES
-    ${FRONTIER_ENGINE_SOURCES}
-    Projects/Project-F20/Source/VehicleStructure.h
-    Projects/Project-F20/Source/VehicleSolver.cpp
-    Projects/Project-F20/Source/TrackSequence.cpp
-    Projects/Project-F20/Source/GameHost.cpp
-    Projects/Project-F20/Source/GameExecution.cpp
-)
-add_executable(Project-F20 ${PROJECT_F20_SOURCES})
-target_include_directories(Project-F20 PRIVATE
-    ${FRONTIER_ENGINE_INCLUDES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-F20/Source
-)
-target_link_libraries(Project-F20 PRIVATE pthread)
+# All five of its sources were absent, so `cmake` failed at configure time before reaching any real target. The
+#    target is dropped rather than commented out; restore it from history if the project comes back.
