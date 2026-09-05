@@ -15,6 +15,7 @@
 
 #include "InterfaceStructure.h"
 
+#include <cstddef>
 #include <cstdint>
 
 namespace Frontier {
@@ -47,6 +48,21 @@ struct InterfaceInstanceFigure
 };
 
 static_assert(sizeof(InterfaceInstanceFigure) == 96u, "InterfaceInstanceFigure must be 96 bytes (std430 mirror of Shaders/InterfaceRecords.slang)");
+
+// Field offsets verified against glslang's std430 reflection of Shaders/InterfaceRecords.slang (topLevelArrayStride
+//    96, RowX 0, RowY 16, RowZ 32, HalfExtent 48, CornerRadius 56, Opacity 60, ClipExtent 64, CategoryPalette 80,
+//    ScalarAlpha 84, ScalarBeta 88, Tint 92). Re-run Scratchpad/CompileInterfaceShaders.sh after any field change.
+static_assert(offsetof(InterfaceInstanceFigure, RowXx)           ==  0u, "RowX must sit at offset 0");
+static_assert(offsetof(InterfaceInstanceFigure, RowYx)           == 16u, "RowY must sit at offset 16");
+static_assert(offsetof(InterfaceInstanceFigure, RowZx)           == 32u, "RowZ must sit at offset 32");
+static_assert(offsetof(InterfaceInstanceFigure, HalfWidth)       == 48u, "HalfExtent must sit at offset 48");
+static_assert(offsetof(InterfaceInstanceFigure, CornerRadius)    == 56u, "CornerRadius must sit at offset 56");
+static_assert(offsetof(InterfaceInstanceFigure, Opacity)         == 60u, "Opacity must sit at offset 60");
+static_assert(offsetof(InterfaceInstanceFigure, ClipMinimumX)    == 64u, "ClipExtent must sit at offset 64");
+static_assert(offsetof(InterfaceInstanceFigure, CategoryPalette) == 80u, "CategoryPalette must sit at offset 80");
+static_assert(offsetof(InterfaceInstanceFigure, ScalarAlpha)     == 84u, "ScalarAlpha must sit at offset 84");
+static_assert(offsetof(InterfaceInstanceFigure, ScalarBeta)      == 88u, "ScalarBeta must sit at offset 88");
+static_assert(offsetof(InterfaceInstanceFigure, Tint)            == 92u, "Tint must sit at offset 92");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WORLD PLACEMENT

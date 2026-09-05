@@ -350,8 +350,10 @@ $ShaderTable = @(
     @{ Source = 'SurfaceResolve.slang';        Stage = 'compute';  Output = 'SurfaceResolve.spv' }
     @{ Source = 'VisibilityRaster.vert.slang'; Stage = 'vertex';   Output = 'VisibilityRaster.vert.spv' }
     @{ Source = 'VisibilityRaster.frag.slang'; Stage = 'fragment'; Output = 'VisibilityRaster.frag.spv' }
+    @{ Source = 'InterfaceRaster.vert.slang';  Stage = 'vertex';   Output = 'InterfaceRaster.vert.spv' }
+    @{ Source = 'InterfaceRaster.frag.slang';  Stage = 'fragment'; Output = 'InterfaceRaster.frag.spv' }
 )
-$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang')
+$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang', 'InterfaceRecords.slang', 'InterfaceSignedDistance.slang')
 
 function Invoke-ShaderLowering([string] $VulkanRoot)
 {
@@ -646,6 +648,12 @@ $EngineRelative = @(
     'Engine\PlatformInterchange\AcousticIntegrator.cpp'
     'Engine\PlatformInterchange\VoiceExchange.cpp'
     'Engine\PlatformInterchange\OnlineInterchange.cpp'
+    'Engine\SpatialInterface\InterfaceStructure.cpp'
+    'Engine\SpatialInterface\InterfaceSequence.cpp'
+    'Engine\SpatialInterface\InterfaceLayoutCodec.cpp'
+    'Engine\SpatialInterface\PaletteConfiguration.cpp'
+    'Engine\DeviceExchange\InterfaceExchange.cpp'
+    'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'
     'Projects\Project-Zero\Source\GameExecution.cpp'

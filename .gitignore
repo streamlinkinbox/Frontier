@@ -24,3 +24,6 @@ Projects/*/Content/Slate.config.toml
 Projects/*/Content/Scenes/Sponza/
 Projects/*/Content/Scenes/ShaderBall.gltf
 Scratchpad/InterfaceRasterTest
+
+# Compiled shaders (produced by ToolchainSequence / CompileInterfaceShaders.sh)
+*.spv

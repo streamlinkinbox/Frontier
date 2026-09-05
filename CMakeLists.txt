@@ -119,14 +119,17 @@ find_program(GLSLC_EXECUTABLE glslc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/us
 find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/usr/local/bin")
 
 set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
-set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang")
+set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
+                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang")
 set(SHADER_TABLE
     "ReSTIRViewport.slang|compute|ReSTIRViewport.spv"
     "ClusterCull.slang|compute|ClusterCull.spv"
     "HiZReduce.slang|compute|HiZReduce.spv"
     "SurfaceResolve.slang|compute|SurfaceResolve.spv"
     "VisibilityRaster.vert.slang|vertex|VisibilityRaster.vert.spv"
-    "VisibilityRaster.frag.slang|fragment|VisibilityRaster.frag.spv")
+    "VisibilityRaster.frag.slang|fragment|VisibilityRaster.frag.spv"
+    "InterfaceRaster.vert.slang|vertex|InterfaceRaster.vert.spv"
+    "InterfaceRaster.frag.slang|fragment|InterfaceRaster.frag.spv")
 
 set(SPV_OUTPUTS)
 if(GLSLC_EXECUTABLE OR SLANGC_EXECUTABLE)
@@ -225,6 +228,10 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/DisplayPresentation/CycleScheduler.cpp
     Engine/DisplayPresentation/FidelityClassifier.cpp
     Engine/DisplayPresentation/FrontierHost.cpp
+    Engine/SpatialInterface/InterfaceStructure.cpp
+    Engine/SpatialInterface/InterfaceSequence.cpp
+    Engine/SpatialInterface/InterfaceLayoutCodec.cpp
+    Engine/SpatialInterface/PaletteConfiguration.cpp
 )
 
 # ─── Engine common include dirs ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -244,6 +251,8 @@ set(PROJECT_ZERO_SOURCES
     Engine/DeviceExchange/SwapchainExchange.cpp
     Engine/DeviceExchange/RayTracingCapabilitySet.cpp
     Engine/DeviceExchange/VisibilityExchange.cpp
+    Engine/DeviceExchange/InterfaceExchange.cpp
+    Projects/Project-Zero/Source/InterfaceTrialSequence.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
     Engine/DisplayPresentation/ReSTIRIntegrator.cpp
     Engine/DisplayPresentation/ShadingTableCodec.cpp
