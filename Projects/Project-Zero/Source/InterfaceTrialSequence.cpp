@@ -213,6 +213,9 @@ void InterfaceTrialSequence::ConstructTrialLayout(InterfaceStructure& Structure)
         Figure.CornerRadius = 0.0075f;
         Figure.Palette      = PaletteSlot::SurfaceSunk;
         Figure.OrderingRank = 9u;
+        // P2: the trough is the one CONTINUOUS control — dragging along it sets a value, where the buttons and
+        //    the toggle are discrete. That makes it the natural thing to bind a real quantity to.
+        Figure.PointerTarget = true;
         BarTrough = Structure.Construct(Figure);
         (void)Structure.Attach(BarTrough, Face);
     }
@@ -298,6 +301,62 @@ void InterfaceTrialSequence::AssignToggleEngaged(bool Engaged) noexcept
     TogglePending = true;
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 POINTER INTERACTION (P2)
+//------------------------------------------------------------------------------------------------------------------------
+
+void InterfaceTrialSequence::ApplyPointer(InterfaceStructure& Structure, const PointerContact& Contact, bool Pressed) noexcept
+{
+    // ── Hover highlight ──────────────────────────────────────────────────────────────────────────────────────────
+    // Clearing the previous highlight before setting the new one means a pointer that leaves the panel entirely
+    //    still clears it, which a "set on hit" implementation silently gets wrong.
+    const uint32_t Previous = HoveredOrdinal;
+    HoveredOrdinal = Contact.Valid ? Contact.Ordinal : InterfaceStructure::Detached;
+
+    if (Previous != HoveredOrdinal)
+    {
+        const auto ApplyHighlight = [&](uint32_t Ordinal, bool Lit)
+        {
+            if (Ordinal == InterfaceStructure::Detached || Ordinal >= Structure.QueryCount()) return;
+            InterfaceFigure& Figure = Structure.Access(Ordinal);
+            // Opacity is the honest channel for a hover cue here: it is already animatable and already in the GPU
+            //    slot, so a highlight costs nothing new. A tint override would fight the palette.
+            Figure.Opacity = Lit ? 1.0f : 0.86f;
+            Structure.MarkDirty(Ordinal);
+        };
+        ApplyHighlight(Previous, false);
+        ApplyHighlight(HoveredOrdinal, true);
+    }
+
+    if (!Contact.Valid || !Pressed) return;
+
+    // ── Press semantics ──────────────────────────────────────────────────────────────────────────────────────────
+    // Once the user touches the panel the scripted loop stands down for good. It does not resume on a timer: a
+    //    control that starts moving by itself a few seconds after you let go reads as a fault, not a feature.
+    PointerDriven = true;
+
+    if (Contact.Ordinal == ToggleBed)
+    {
+        AssignToggleEngaged(!ToggleEngaged);
+    }
+    else if (Contact.Ordinal == BarTrough)
+    {
+        // FractionX is −1 at the left edge and +1 at the right, so the map to [0,1] is (f + 1) / 2. The engine
+        //    deliberately does not do this: for a knob the same fraction would mean an angle.
+        AssignFillTarget(std::clamp((Contact.FractionX + 1.0f) * 0.5f, 0.0f, 1.0f));
+    }
+    else if (Contact.Ordinal == ButtonLeft)
+    {
+        // Left button nudges the meter down, right button up — the sweep is the spring-driven needle, so this is
+        //    also the visible proof that interaction feeds the same motion channels the scripted loop drives.
+        AssignSweepTarget(static_cast<float>(std::clamp(LastSweep - 0.2, 0.0, 1.0)));
+    }
+    else if (Contact.Ordinal == ButtonRight)
+    {
+        AssignSweepTarget(static_cast<float>(std::clamp(LastSweep + 0.2, 0.0, 1.0)));
+    }
+}
+
 double InterfaceTrialSequence::QuerySweepValue() const noexcept { return LastSweep; }
 double InterfaceTrialSequence::QueryFillValue()  const noexcept { return LastFill;  }
 bool   InterfaceTrialSequence::IsSweepSettled()  const noexcept { return SweepSettled; }
@@ -312,6 +371,10 @@ void InterfaceTrialSequence::AdvanceTrial(InterfaceStructure& Structure, MotionI
                                           double Elapsed, bool RunLoop) noexcept
 {
     if (!ChannelsReady) return;
+
+    // P2: the pointer wins. Once the user has driven a control, the scripted demonstration stops overwriting the
+    //    targets — otherwise the loop and the user fight each other every frame and the panel appears to snap back.
+    if (PointerDriven) RunLoop = false;
 
     if (RunLoop)
     {

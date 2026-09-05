@@ -31,6 +31,7 @@
 #include "ShowroomStructure.h"
 #include "../../../Engine/DeviceExchange/InterfaceExchange.h"
 #include "../../../Engine/SpatialInterface/InterfaceSequence.h"
+#include "../../../Engine/SpatialInterface/InterfacePointerProjection.h"
 #include "../../../Engine/GeometricRaster/ClipProjection.h"
 #include "InterfaceTrialSequence.h"
 #include "InstanceMotionSequence.h"
@@ -465,6 +466,9 @@ int main(int argc, char** argv)
     // Filled once per frame just before RecordAndPresent; the overlay callback reads it during recording.
     Frontier::InterfaceViewClip InterfaceViewOfFrame{};
 
+    // P2: previous-frame mouse state, so a press is detected as an edge rather than a level.
+    bool PointerHeldLastFrame = false;
+
     if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
                         Surface.QueryCycleSlotCount(), Surface.QueryColourFormat(), Surface.QueryDepthFormat()))
     {
@@ -789,6 +793,38 @@ int main(int argc, char** argv)
             if (InterfaceReady)
             {
                 InterfaceElapsed += static_cast<double>(Δτ);
+
+                // P2 — pointer interaction. The cursor becomes a world ray, the engine reports which figure it
+                //     struck, and the trial sequence decides what that means. Done BEFORE AdvanceTrial so a press
+                //     this frame is reflected in the same frame's animation rather than one frame late.
+                {
+                    const Frontier::Vector3 Eye     = Camera.QuerySpatialLocation();
+                    const Frontier::Vector3 Forward = Camera.QueryForwardVector();
+                    const Frontier::Vector3 Right   = Camera.QueryRightVector();
+                    const Frontier::Vector3 Upward  = Camera.QueryUpwardVector();
+                    const float EyeArray[3]     = { Eye.x, Eye.y, Eye.z };
+                    const float ForwardArray[3] = { Forward.x, Forward.y, Forward.z };
+                    const float RightArray[3]   = { Right.x, Right.y, Right.z };
+                    const float UpArray[3]      = { Upward.x, Upward.y, Upward.z };
+
+                    const Frontier::PointerRay Ray = Frontier::InterfacePointerProjection::ConstructViewportRay(
+                        Input.QueryCursorPositionX(), Input.QueryCursorPositionY(),
+                        Surface.QueryWidth(), Surface.QueryHeight(),
+                        EyeArray, ForwardArray, RightArray, UpArray,
+                        Dispatch.FieldOfViewTanHalf, Camera.QueryAspectRatio());
+
+                    const Frontier::PointerContact Contact =
+                        Frontier::InterfacePointerProjection::Project(InterfaceFigures, InterfaceCompose, Ray);
+
+                    // Edge, not level: only the frame the button goes down counts as a press, so holding does not
+                    //     retrigger a toggle sixty times a second.
+                    const bool Held    = Input.IsMouseButtonPressed(Frontier::MouseButtonCategory::ButtonLeft);
+                    const bool Pressed = Held && !PointerHeldLastFrame;
+                    PointerHeldLastFrame = Held;
+
+                    InterfaceTrial.ApplyPointer(InterfaceFigures, Contact, Pressed);
+                }
+
                 InterfaceTrial.AdvanceTrial(InterfaceFigures, InterfaceMotion, InterfaceElapsed, true);
 
                 // The panel is world-space: it uses the same view→clip the visibility raster builds, so the figures

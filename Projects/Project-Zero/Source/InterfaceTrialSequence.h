@@ -16,6 +16,7 @@
 #pragma once
 
 #include "../../../Engine/SpatialInterface/InterfaceStructure.h"
+#include "../../../Engine/SpatialInterface/InterfacePointerProjection.h"
 
 #include <cstdint>
 
@@ -58,6 +59,29 @@ public:
     // World placement of the whole panel — the Showroom decides where it hangs.
     void AssignPanelPlacement(const PlanePlacement& Placement) noexcept { PanelPlacement = Placement; }
 
+    //--------------------------------------------------------------------------------------------------------------------
+    // P2 — interaction. The MEANING of a hit lives here, on the project side of the seam.
+    //--------------------------------------------------------------------------------------------------------------------
+    // InterfacePointerProjection answers "which figure, and where on it". It cannot answer "so the toggle flips",
+    //    because the engine does not know one rounded rectangle is a toggle and another is a bar. This turns that
+    //    geometric answer into the demonstration's own semantics.
+    //
+    //    Contact.Valid false is a legitimate state, not an error — the pointer is simply off the panel, and any
+    //    hover highlight must clear.
+    //
+    //    Pressed is the edge, not the level: pass true only on the frame the button goes down. Holding is handled
+    //    by the caller so this stays free of input history.
+    void ApplyPointer(InterfaceStructure& Structure, const PointerContact& Contact, bool Pressed) noexcept;
+
+    // Ordinal currently under the pointer, or Detached. Read for diagnostics; the highlight itself is applied by
+    //    ApplyPointer so the tint and the reported state cannot disagree.
+    [[nodiscard]] uint32_t QueryHoveredOrdinal() const noexcept { return HoveredOrdinal; }
+
+    // True while the demonstration is being driven by the pointer rather than the scripted loop. The loop yields
+    //    on first contact so a user's input is never fought by the animation, and never resumes on its own —
+    //    a control that starts moving by itself after a few seconds reads as a bug.
+    [[nodiscard]] bool IsPointerDriven() const noexcept { return PointerDriven; }
+
 private:
     void ConstructTrialLayout(InterfaceStructure& Structure) noexcept;
 
@@ -86,6 +110,9 @@ private:
     bool     ChannelsReady  = false;
 
     PlanePlacement PanelPlacement;
+
+    uint32_t HoveredOrdinal = InterfaceStructure::Detached;   // [-] figure under the pointer, for the highlight
+    bool     PointerDriven  = false;                          // [-] true once the user has touched the panel
     double         LoopTime      = 0.0;
     uint32_t       FigureCount   = 0u;
     bool           ToggleEngaged = false;
