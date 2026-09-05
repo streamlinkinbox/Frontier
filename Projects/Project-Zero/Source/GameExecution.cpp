@@ -37,6 +37,9 @@
 #include "InstanceMotionSequence.h"
 #include "PhysicsInstanceSequence.h"
 #include "InterfaceAudioSequence.h"
+#include "../../../Engine/SpatialInterface/InterfaceScreenSequence.h"
+#include "../../../Engine/SpatialInterface/InterfaceTextProjection.h"
+#include "../../../Engine/SpatialInterface/InterfaceVectorCodec.h"
 
 #include <algorithm>
 #include <chrono>
@@ -472,6 +475,16 @@ int main(int argc, char** argv)
     Frontier::ProjectZero::InterfaceAudioSequence InterfaceAudio;
     bool InterfaceAudioReady = false;
 
+    // P3/P4: the director and the second screen it switches to. Screen 0 is the live trial panel; screen 1 is a
+    //    static card built from P1 text and a P4-converted icon, which exists so the director has two real
+    //    screens to move between rather than being wired up against a single one and never exercised.
+    Frontier::InterfaceScreenSequence InterfaceDirector;
+    bool     InterfaceDirectorReady = false;
+    uint32_t InterfaceScreenShown   = 0u;
+    bool     ScreenKeyHeldLastFrame = false;
+    constexpr uint32_t kTrialScreen = 0u;
+    constexpr uint32_t kAboutScreen = 1u;
+
     // P2: previous-frame mouse state, so a press is detected as an edge rather than a level.
     bool PointerHeldLastFrame = false;
 
@@ -483,6 +496,12 @@ int main(int argc, char** argv)
         //    interface hangs and the trial sequence owns what is on it. Any other level keeps the default upright
         //    placement, which is why this is conditional rather than unconditional.
         const bool ShowroomLevel = Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop";
+
+        // Shared by the trial panel and every other screen, so they all hang in the same place. Declared out here
+        //    rather than inside the branch because the director's second screen needs the same placement.
+        Frontier::PlanePlacement PanelPlacementForScreens;
+        PanelPlacementForScreens.RotationX = 1.57079633f;
+
         if (ShowroomLevel)
         {
             const Frontier::Vector3 Anchor = Frontier::ProjectZero::ShowroomStructure::QueryPanelOrigin();
@@ -492,9 +511,61 @@ int main(int argc, char** argv)
             PanelPlacement.RotationX = 1.57079633f + Frontier::ProjectZero::ShowroomStructure::QueryPanelTilt();
             PanelPlacement.Scale     = 2.2f;   // the trial layout is authored at ~0.14 m across; this reads at 2 m
             InterfaceTrial.AssignPanelPlacement(PanelPlacement);
+            PanelPlacementForScreens = PanelPlacement;
         }
 
         InterfaceTrial.Construct(InterfaceFigures, InterfaceMotion);
+
+        //──────────────────────────────────────────────────────────────────────
+        // P3 + P4 — a second screen, and the director that moves between them
+        //──────────────────────────────────────────────────────────────────────
+        // Built from the phases that came before rather than from anything new: the card is a Surface figure, its
+        //     caption is P1 stroke text, and the tick is a P4-converted lucide path. All of it lands in the same
+        //     batch as the trial panel, so two screens still cost one draw.
+        {
+            Frontier::InterfaceFigure Card;
+            Card.Category     = Frontier::InterfaceCategory::Surface;
+            Card.HalfWidth    = 0.090f;
+            Card.HalfHeight   = 0.055f;
+            Card.CornerRadius = 0.008f;
+            Card.Palette      = Frontier::PaletteSlot::Housing;
+            Card.Placement    = PanelPlacementForScreens;
+            const uint32_t AboutRoot = InterfaceFigures.Construct(Card);
+
+            Frontier::TextPlacement Caption;
+            Caption.OriginY     =  0.014f;
+            Caption.OriginZ     =  0.0020f;
+            Caption.CapHeight   =  0.016f;
+            Caption.StrokeWidth =  0.0016f;
+            Caption.Alignment   = Frontier::TextAlignment::Centre;
+            (void)Frontier::InterfaceTextProjection::Compose(InterfaceFigures, AboutRoot, "SLATE", Caption);
+
+            Caption.OriginY   = -0.010f;
+            Caption.CapHeight =  0.009f;
+            Caption.Palette   = Frontier::PaletteSlot::MarkingMute;
+            (void)Frontier::InterfaceTextProjection::Compose(InterfaceFigures, AboutRoot, "SHOWROOM P4", Caption);
+
+            Frontier::VectorPlacement Tick;
+            Tick.OriginX     =  0.060f;
+            Tick.OriginY     = -0.028f;
+            Tick.OriginZ     =  0.0020f;
+            Tick.Extent      =  0.022f;
+            Tick.StrokeWidth =  0.0018f;
+            Tick.Palette     = Frontier::PaletteSlot::Confirm;
+            const Frontier::VectorConversionMetrics Converted =
+                Frontier::InterfaceVectorCodec::Compose(InterfaceFigures, AboutRoot, "M20 6 L9 17 L4 12", Tick);
+
+            InterfaceDirector.Construct(kTrialScreen, { InterfaceTrial.QueryHousingOrdinal() },
+                                        Frontier::TransitionConfiguration{ Frontier::TransitionCategory::Fade, 0.30f, 0.0f });
+            InterfaceDirector.Construct(kAboutScreen, { AboutRoot },
+                                        Frontier::TransitionConfiguration{ Frontier::TransitionCategory::Wipe, 0.35f, 0.0f });
+            InterfaceDirector.Present(kTrialScreen);
+            InterfaceDirectorReady = true;
+
+            Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface",
+                                 "Director ready: TAB switches screens. The card carries " +
+                                 std::to_string(Converted.FigureCount) + " converted vector segments.");
+        }
 
         // Bind the panel to the audio transport: turning the progress bar changes the engine note. Failure is not
         //    fatal — a machine with no sound device still renders the scene, it just does so quietly.
@@ -841,7 +912,28 @@ int main(int argc, char** argv)
                     const bool Pressed = Held && !PointerHeldLastFrame;
                     PointerHeldLastFrame = Held;
 
-                    InterfaceTrial.ApplyPointer(InterfaceFigures, Contact, Pressed);
+                    // P3: a screen that is not fully present must not be clickable. The director already clears
+                    //     PointerTarget while a screen moves, but discarding the contact here as well means a
+                    //     press cannot be queued during a transition and applied the instant it lands.
+                    const bool ScreenSettled = !InterfaceDirectorReady ||
+                                               InterfaceDirector.QueryInteractiveScreen() == kTrialScreen;
+                    InterfaceTrial.ApplyPointer(InterfaceFigures, ScreenSettled ? Contact : Frontier::PointerContact{},
+                                                ScreenSettled && Pressed);
+                }
+
+                // P3 — TAB switches screens, on the key EDGE so holding it does not flip every frame.
+                if (InterfaceDirectorReady)
+                {
+                    const bool Held = Input.IsKeyPressed(Frontier::VirtualKeyCategory::KeyTab);
+                    if (Held && !ScreenKeyHeldLastFrame && !InterfaceDirector.IsTransitioning())
+                    {
+                        InterfaceScreenShown = (InterfaceScreenShown == kTrialScreen) ? kAboutScreen : kTrialScreen;
+                        InterfaceDirector.Present(InterfaceScreenShown);
+                    }
+                    ScreenKeyHeldLastFrame = Held;
+
+                    // Advance BEFORE the composition below, or a screen renders one frame stale.
+                    InterfaceDirector.AdvanceScreens(InterfaceFigures, Δτ);
                 }
 
                 InterfaceTrial.AdvanceTrial(InterfaceFigures, InterfaceMotion, InterfaceElapsed, true);

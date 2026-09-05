@@ -52,6 +52,9 @@ public:
     [[nodiscard]] double QueryFillValue()   const noexcept;
     [[nodiscard]] bool   IsSweepSettled()   const noexcept;
 
+    // Root of the whole panel — the director needs it to fade or slide the trial screen as one unit.
+    [[nodiscard]] uint32_t QueryHousingOrdinal() const noexcept { return Housing; }
+
     [[nodiscard]] uint32_t QueryFigureCount() const noexcept { return FigureCount; }
     [[nodiscard]] double   QueryLoopSeconds() const noexcept { return LoopSeconds; }
     [[nodiscard]] double   QueryLoopTime()    const noexcept { return LoopTime; }

@@ -657,6 +657,7 @@ $EngineRelative = @(
     'Engine\SpatialInterface\InterfacePointerProjection.cpp'
     'Engine\SpatialInterface\InterfaceTextProjection.cpp'
     'Engine\SpatialInterface\InterfaceScreenSequence.cpp'
+    'Engine\SpatialInterface\InterfaceVectorCodec.cpp'
     'Engine\DeviceExchange\InterfaceExchange.cpp'
     'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
     'Projects\Project-Zero\Source\InstanceMotionSequence.cpp'
