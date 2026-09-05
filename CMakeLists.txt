@@ -229,6 +229,12 @@ set(PROJECT_ZERO_SOURCES
     Projects/Project-Zero/Source/InterfaceTrialSequence.cpp
     Projects/Project-Zero/Source/InstanceMotionSequence.cpp
     Projects/Project-Zero/Source/PhysicsInstanceSequence.cpp
+    Projects/Project-Zero/Source/InterfaceAudioSequence.cpp
+    Projects/Project-Dyno/Source/CrankClickIntegrator.cpp
+    Projects/Project-Dyno/Source/DynoSequence.cpp
+    Engine/PlatformInterchange/AudioExchange.cpp
+    Engine/PlatformInterchange/MiniaudioTranslation.cpp
+    Engine/PlatformInterchange/WaveCodec.cpp
     Engine/PhysicalDynamics/RigidBodySolver.cpp
     Projects/Project-Zero/Source/ShowroomStructure.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
@@ -265,6 +271,8 @@ set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES
 target_include_directories(Project-Zero PRIVATE
     ${FRONTIER_ENGINE_INCLUDES}
     ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Zero/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Dyno/Source
+    ${EXT}/miniaudio
     ${Vulkan_INCLUDE_DIRS}
     ${IMGUI_SRC}
     ${IMGUI_SRC}/backends
@@ -278,6 +286,7 @@ target_include_directories(Project-Zero PRIVATE
 )
 
 target_link_libraries(Project-Zero PRIVATE Jolt)   # D4: rigid bodies drive instance transforms
+set_source_files_properties(Engine/PlatformInterchange/MiniaudioTranslation.cpp PROPERTIES COMPILE_OPTIONS "-w")   # third-party TU
 target_compile_definitions(Project-Zero PRIVATE
     FRONTIER_DEVELOPMENT
     FRONTIER_ENABLE_GLFW

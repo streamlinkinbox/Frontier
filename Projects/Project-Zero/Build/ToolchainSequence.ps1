@@ -174,6 +174,8 @@ function Get-IncludePaths([string] $VulkanRoot)
         "/I$EngineRoot"
         "/I$(Join-Path $ProjectRoot 'Source')"
         "/I$(Join-Path $VulkanRoot  'Include')"
+        "/I$(Join-Path $PackageRoot 'miniaudio')"
+        "/I$(Join-Path $RepositoryRoot 'Projects\Project-Dyno\Source')"
         "/I$(Join-Path $PackageRoot 'imgui')"
         "/I$(Join-Path $PackageRoot 'imgui\backends')"
         "/I$(Join-Path $PackageRoot 'glfw\include')"
@@ -657,6 +659,12 @@ $EngineRelative = @(
     'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
     'Projects\Project-Zero\Source\InstanceMotionSequence.cpp'
     'Projects\Project-Zero\Source\PhysicsInstanceSequence.cpp'
+    'Projects\Project-Zero\Source\InterfaceAudioSequence.cpp'
+    'Projects\Project-Dyno\Source\CrankClickIntegrator.cpp'
+    'Projects\Project-Dyno\Source\DynoSequence.cpp'
+    'Engine\PlatformInterchange\AudioExchange.cpp'
+    'Engine\PlatformInterchange\MiniaudioTranslation.cpp'
+    'Engine\PlatformInterchange\WaveCodec.cpp'
     'Engine\PhysicalDynamics\RigidBodySolver.cpp'
     'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'

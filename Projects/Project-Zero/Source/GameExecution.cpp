@@ -36,6 +36,7 @@
 #include "InterfaceTrialSequence.h"
 #include "InstanceMotionSequence.h"
 #include "PhysicsInstanceSequence.h"
+#include "InterfaceAudioSequence.h"
 
 #include <algorithm>
 #include <chrono>
@@ -55,9 +56,11 @@ int main(int argc, char** argv)
     std::string ScenePath  = "Projects/Project-Zero/Content/Scenes/CornellBox.gltf";
     float       SceneScale = 1.0f;
     bool        AnimateInstances = false;   // D3: --animate drives instance transforms from a scripted path
+    bool        SilentAudio      = false;   // --silent: open the null audio driver (no sound card, or CI)
     for (int I = 1; I < argc; ++I)
     {
         if (std::strcmp(argv[I], "--animate") == 0) { AnimateInstances = true; continue; }
+        if (std::strcmp(argv[I], "--silent")  == 0) { SilentAudio      = true; continue; }   // null audio driver
         if (I + 1 >= argc) break;
         if (std::strcmp(argv[I], "--scene") == 0) ScenePath  = argv[++I];
         if (std::strcmp(argv[I], "--scale") == 0) SceneScale = static_cast<float>(std::atof(argv[++I]));
@@ -466,6 +469,9 @@ int main(int argc, char** argv)
     // Filled once per frame just before RecordAndPresent; the overlay callback reads it during recording.
     Frontier::InterfaceViewClip InterfaceViewOfFrame{};
 
+    Frontier::ProjectZero::InterfaceAudioSequence InterfaceAudio;
+    bool InterfaceAudioReady = false;
+
     // P2: previous-frame mouse state, so a press is detected as an edge rather than a level.
     bool PointerHeldLastFrame = false;
 
@@ -489,6 +495,19 @@ int main(int argc, char** argv)
         }
 
         InterfaceTrial.Construct(InterfaceFigures, InterfaceMotion);
+
+        // Bind the panel to the audio transport: turning the progress bar changes the engine note. Failure is not
+        //    fatal — a machine with no sound device still renders the scene, it just does so quietly.
+        Frontier::ProjectZero::InterfaceAudioConfiguration AudioConfiguration;
+        AudioConfiguration.UseNullDriver = SilentAudio;
+        std::string AudioError;
+        InterfaceAudioReady = InterfaceAudio.Construct(AudioConfiguration, &AudioError);
+        Logger.RecordMessage(InterfaceAudioReady ? Frontier::DiagnosticSeverity::Information
+                                                 : Frontier::DiagnosticSeverity::Warning,
+                             "Audio",
+                             InterfaceAudioReady
+                                 ? "Panel bound to audio: drag the progress bar to change the engine note."
+                                 : "Audio unavailable, the panel renders silently - " + AudioError);
         InterfaceReady = true;
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface",
                              "Spatial interface ready: " + std::to_string(InterfaceTrial.QueryFigureCount()) +
@@ -826,6 +845,10 @@ int main(int argc, char** argv)
                 }
 
                 InterfaceTrial.AdvanceTrial(InterfaceFigures, InterfaceMotion, InterfaceElapsed, true);
+
+                // Publish the panel's values as audio demand and service the device. After AdvanceTrial so the
+                //     note follows the value the user just set rather than lagging it by a frame.
+                if (InterfaceAudioReady) InterfaceAudio.AdvanceAudio(InterfaceTrial, Δτ);
 
                 // The panel is world-space: it uses the same view→clip the visibility raster builds, so the figures
                 //    sit in the room and reproject exactly like geometry rather than floating in screen space.
