@@ -23,3 +23,4 @@ Projects/*/Content/Slate.config.toml
 # Fetched test levels (Projects/Project-Zero/Build/FetchSponza.ps1) - never committed
 Projects/*/Content/Scenes/Sponza/
 Projects/*/Content/Scenes/ShaderBall.gltf
+Scratchpad/InterfaceRasterTest
