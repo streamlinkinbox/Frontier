@@ -36,3 +36,7 @@ Projects/Project-Zero/Content/Scenes/Showroom.gltf
 ExternalPackages/jolt/lib/
 Projects/Project-Physics/Build/Output/
 Diagnostics/ProjectPhysics_TelemetryReport*.md
+
+# SolidArc build output (ParametricSketcher has its own standalone CMake project)
+ParametricSketcher/build/
+ParametricSketcher/Output/

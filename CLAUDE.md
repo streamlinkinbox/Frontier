@@ -50,6 +50,11 @@
 `Submission`, `Footprint`, `Region`, `Tree`, `Vacancy`, `Ordinates`, `Draft`, `Draught`, `Paint`,
 `Depot`, `Ordinal`, `Actor`, `Source`, `API`.
 
+### 3.1 SolidArc Vocabulary (ParametricSketcher/)
+- The modelling tool is named **SolidArc** and lives in the top-level folder **`ParametricSketcher/`** (a sibling of `Engine/`, `Projects/`, `Tools/` — it is a tool, never a project).
+- The three-letter acronym for computer-aided design is **strictly banned** anywhere in this repository's SolidArc code, comments, file names, targets, scripts, proofs and documentation. Say `SolidArc`, `modelling tool`, `sketcher`, `kernel`, `NURBS`, `B-rep` instead.
+- Script files use the `.arc` extension; build targets are prefixed `SolidArc`.
+
 ---
 
 ## 4. Formatting Standards
