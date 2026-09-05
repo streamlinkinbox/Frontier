@@ -174,7 +174,11 @@ if ($Stale.Count -gt 0)
     $ResponsePath = Join-Path $BuildDir 'Jolt.rsp'
     $Lines = New-Object System.Collections.Generic.List[string]
     foreach ($F in $Flags) { if ($F -match '[ \t"]') { $Lines.Add('"' + $F + '"') } else { $Lines.Add($F) } }
-    $Lines.Add('"/Fo' + $BuildDir + '\"')
+    # MSVC's response-file reader treats \" as an escaped quote, so the usual "/Fo<dir>\" form makes the trailing
+    #    separator vanish and cl reports D8036 ('/Fo...Release"' not allowed with multiple source files). Only quote
+    #    when the path actually needs it, and double the separator in that case so the quote survives.
+    if ($BuildDir -match '[ \t]') { $Lines.Add('"/Fo' + $BuildDir + '\\"') }
+    else                          { $Lines.Add('/Fo' + $BuildDir + '\') }
     foreach ($S in $Stale) { $Lines.Add('"' + $S + '"') }
     [System.IO.File]::WriteAllText($ResponsePath, ($Lines -join "`r`n"), [System.Text.Encoding]::ASCII)
 

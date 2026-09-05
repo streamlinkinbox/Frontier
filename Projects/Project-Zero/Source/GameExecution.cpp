@@ -29,6 +29,10 @@
 #include "RayTracingSolver.h"
 #include "../../../Engine/ContentInterchange/ShaderBallStructure.h"
 #include "ShowroomStructure.h"
+#include "../../../Engine/DeviceExchange/InterfaceExchange.h"
+#include "../../../Engine/SpatialInterface/InterfaceSequence.h"
+#include "../../../Engine/GeometricRaster/ClipProjection.h"
+#include "InterfaceTrialSequence.h"
 
 #include <algorithm>
 #include <chrono>
@@ -351,6 +355,46 @@ int main(int argc, char** argv)
                          "Bootstrap", "Entering render loop.");
 
     //──────────────────────────────────────────────────────────────────────────
+    // Spatial interface — the world-space panel, composited over the resolved scene
+    //──────────────────────────────────────────────────────────────────────────
+    // The engine owns the draw (InterfaceExchange) and the shapes (InterfaceStructure); this project owns what the
+    //    figures MEAN — the trial sequence composes them and normalises every value before writing it. The overlay
+    //    callback is the only place the two meet, and it hands the engine nothing but a command buffer.
+    Frontier::InterfaceExchange      Interface;
+    Frontier::InterfaceStructure     InterfaceFigures;
+    Frontier::InterfaceSequence      InterfaceCompose;
+    Frontier::MotionIntegrator       InterfaceMotion;
+    Frontier::ProjectZero::InterfaceTrialSequence InterfaceTrial;
+    bool     InterfaceReady        = false;
+    uint32_t InterfaceGeneration   = 0xFFFFFFFFu;   // forces the first Resize
+    double   InterfaceElapsed      = 0.0;           // [s]
+
+    // Filled once per frame just before RecordAndPresent; the overlay callback reads it during recording.
+    Frontier::InterfaceViewClip InterfaceViewOfFrame{};
+
+    if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
+                        Surface.QueryCycleSlotCount(), Surface.QueryColourFormat(), Surface.QueryDepthFormat()))
+    {
+        InterfaceTrial.Construct(InterfaceFigures, InterfaceMotion);
+        InterfaceReady = true;
+        Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface",
+                             "Spatial interface ready: " + std::to_string(InterfaceTrial.QueryFigureCount()) +
+                             " figures, depth test " + (Interface.IsDepthTested() ? "on" : "off") + ".");
+    }
+    else
+    {
+        Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Interface",
+                             "Spatial interface unavailable - the scene renders without the panel.");
+    }
+
+    // Recorded after the scene resolves and before the blit, so the panel is part of the presented image.
+    Surface.AssignOverlaySequence([&](void* Command, uint32_t CycleSlot) noexcept
+    {
+        if (!InterfaceReady) return;
+        Interface.RecordInterface(Command, CycleSlot, InterfaceViewOfFrame);
+    });
+
+    //──────────────────────────────────────────────────────────────────────────
     // Input exchange — filled each frame by GLFW callbacks
     //──────────────────────────────────────────────────────────────────────────
     Frontier::InputExchange Input;
@@ -610,6 +654,71 @@ int main(int argc, char** argv)
             Frame.OcclusionCulling = Diagnostics.QueryOcclusion();
             Frame.ConeCulling      = false;   // the kernel shades both faces; cone culling would remove back-facing walls seen from outside
             Surface.AssignVisibilityFrame(Frame);
+        }
+
+        // ④b Spatial interface — animate the figures, re-bind on a swapchain rebuild, publish this frame's view.
+        if (InterfaceReady)
+        {
+            // Every image view the interface renders into is destroyed by a swapchain rebuild, so re-Resize whenever
+            //    the generation moves. Comparing generations (rather than extents) also catches a rebuild that keeps
+            //    the same size, e.g. a present-pacing change.
+            const uint32_t Generation = Surface.QueryTargetGeneration();
+            if (Generation != InterfaceGeneration)
+            {
+                if (Interface.Resize(RenderWidth, RenderHeight, Surface.QueryColourView(), Surface.QueryDepthView()))
+                {
+                    InterfaceGeneration = Generation;
+                }
+                else
+                {
+                    InterfaceReady = false;
+                    Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Interface",
+                                         "Interface Resize failed after a swapchain rebuild - panel disabled.");
+                }
+            }
+
+            if (InterfaceReady)
+            {
+                InterfaceElapsed += static_cast<double>(Δτ);
+                InterfaceTrial.AdvanceTrial(InterfaceFigures, InterfaceMotion, InterfaceElapsed, true);
+
+                // The panel is world-space: it uses the same view→clip the visibility raster builds, so the figures
+                //    sit in the room and reproject exactly like geometry rather than floating in screen space.
+                // Same camera the visibility raster uses, rebuilt here because Frame is scoped to the block below.
+                Frontier::CameraClipConfiguration PanelCamera;
+                PanelCamera.Origin             = Camera.QuerySpatialLocation();
+                PanelCamera.Forward            = Camera.QueryForwardVector();
+                PanelCamera.Right              = Camera.QueryRightVector();
+                PanelCamera.Up                 = Camera.QueryUpwardVector();
+                PanelCamera.TanHalfFieldOfView = Dispatch.FieldOfViewTanHalf;
+                PanelCamera.AspectRatio        = Camera.QueryAspectRatio();
+                PanelCamera.NearDistance       = Camera.QueryNearPlaneDistance();
+
+                const Frontier::Matrix4x4 ViewClip = Frontier::ConstructViewClipProjection(PanelCamera);
+                for (int Column = 0; Column < 4; ++Column)
+                    for (int Row = 0; Row < 4; ++Row)
+                        InterfaceViewOfFrame.ViewClip[Column * 4 + Row] = ViewClip.Columns[Column][Row];
+
+                const Frontier::Vector3 Eye     = Camera.QuerySpatialLocation();
+                const Frontier::Vector3 Forward = Camera.QueryForwardVector();
+
+                // Depth ordering needs the eye and forward axis; the full transform travels in the raster constants.
+                Frontier::InterfaceViewConfiguration ComposeView;
+                ComposeView.EyeX = Eye.x;         ComposeView.EyeY = Eye.y;         ComposeView.EyeZ = Eye.z;
+                ComposeView.ForwardX = Forward.x; ComposeView.ForwardY = Forward.y; ComposeView.ForwardZ = Forward.z;
+                InterfaceCompose.AssignView(ComposeView);
+                InterfaceCompose.Advance(InterfaceFigures, InterfaceElapsed);
+
+                InterfaceViewOfFrame.EyeX = Eye.x;
+                InterfaceViewOfFrame.EyeY = Eye.y;
+                InterfaceViewOfFrame.EyeZ = Eye.z;
+                InterfaceViewOfFrame.RenderWidth  = RenderWidth;
+                InterfaceViewOfFrame.RenderHeight = RenderHeight;
+
+                Interface.UploadInstances(InterfaceCompose.QueryInstances(),
+                                          InterfaceCompose.QueryInstanceCount(),
+                                          Surface.QueryCycleSlot());
+            }
         }
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present

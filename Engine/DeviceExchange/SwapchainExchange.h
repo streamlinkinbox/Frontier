@@ -15,6 +15,7 @@
 #include "VisibilityExchange.h"
 #include <cstdint>
 #include <vector>
+#include <functional>
 #include <array>
 
 struct GLFWwindow;
@@ -175,6 +176,38 @@ public:
     [[nodiscard]] uint32_t      QueryWidth()  const noexcept { return Configuration.Width;  }
     [[nodiscard]] uint32_t      QueryHeight() const noexcept { return Configuration.Height; }
 
+    //--------------------------------------------------------------------------------------------------------------------
+    // Device seam — the handles a compositing overlay (SpatialInterface) needs to record into this frame.
+    //--------------------------------------------------------------------------------------------------------------------
+    // Returned as void*/uint32_t so this header stays Vulkan-free, exactly like InterfaceExchange::Bring accepts them.
+    //    A caller that wants to draw over the finished scene registers an OverlaySequence below; these accessors exist
+    //    so it can Bring() and Resize() its own resources against the same device and targets.
+    //
+    // ⚠️ Lifetime: every handle here is owned by SwapchainExchange and is invalidated by a swapchain rebuild (resize,
+    //    present-pacing change, fullscreen toggle). QueryTargetGeneration() increments on every rebuild — an overlay
+    //    must compare it each frame and re-Resize when it changes, or it will render into destroyed image views.
+
+    [[nodiscard]] void*    QueryDevice()          const noexcept;   // VkDevice
+    [[nodiscard]] void*    QueryPhysicalDevice()  const noexcept;   // VkPhysicalDevice
+    [[nodiscard]] void*    QueryColourView()      const noexcept;   // VkImageView of the resolved scene image (GENERAL)
+    [[nodiscard]] void*    QueryDepthView()       const noexcept;   // VkImageView, or null when no depth target exists
+    [[nodiscard]] uint32_t QueryColourFormat()    const noexcept;   // VkFormat of the above colour view
+    [[nodiscard]] uint32_t QueryDepthFormat()     const noexcept;   // VkFormat, or VK_FORMAT_UNDEFINED when depthless
+    [[nodiscard]] uint32_t QueryCycleSlotCount()  const noexcept;   // frames in flight — the overlay sizes rings to this
+    [[nodiscard]] uint32_t QueryCycleSlot()       const noexcept;   // slot the frame now being recorded belongs to
+    [[nodiscard]] uint32_t QueryTargetGeneration() const noexcept { return TargetGeneration; }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Overlay seam — one callback recorded after the scene, before ImGui.
+    //--------------------------------------------------------------------------------------------------------------------
+    // The engine deliberately knows nothing about what is drawn: it hands back the command buffer and the slot, and the
+    //    project records whatever it likes. This keeps SpatialInterface out of DeviceExchange (a project may compose
+    //    figures; the engine may not know what a figure means) while still giving the overlay a place in the frame.
+    //    Command is a VkCommandBuffer. Called once per presented frame; never called for a skipped frame.
+    using OverlaySequence = std::function<void(void* Command, uint32_t CycleSlot)>;
+    void AssignOverlaySequence(OverlaySequence Sequence) noexcept { Overlay = std::move(Sequence); }
+    void ClearOverlaySequence() noexcept { Overlay = nullptr; }
+
     template<typename TargetType>
     [[nodiscard]] TargetType    Convert() const noexcept;
 
@@ -225,6 +258,9 @@ private:
     bool                    TraversalResident = false;   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
     VisibilityFrameConfiguration VisibilityFrame{};
     bool                    VisibilityFrameValid = false;
+
+    OverlaySequence         Overlay;                       // [-]   optional per-frame overlay recorder (project-owned)
+    uint32_t                TargetGeneration = 0u;         // [cnt] bumped on every swapchain rebuild; overlays re-Resize on change
     bool                    DrawIndirectCountSupported = false;   // [-] VkPhysicalDeviceVulkan12Features::drawIndirectCount
     RayTracingRequestCategory RayTracingRequest = RayTracingRequestCategory::Auto;
     int                     WindowedX, WindowedY, WindowedW, WindowedH;   // [px] rectangle to restore on leaving fullscreen
