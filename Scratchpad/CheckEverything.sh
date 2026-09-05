@@ -51,6 +51,10 @@ Run CheckTracedGeometry
 Run CheckDynamicGeometryBudget
 
 echo
+echo "=== fluid testbed (browser; source integrity only) ==="
+Run CheckFluidProject
+
+echo
 echo "=== shaders ==="
 Run CompileInterfaceShaders
 
