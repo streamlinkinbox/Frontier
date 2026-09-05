@@ -289,6 +289,34 @@ if(WIN32)
 endif()
 
 #============================================================================================================================================
+# Project-Dyno — Windowless dyno cell (miniaudio transport + powertrain acoustics; no Vulkan / GLFW / ImGui)
+#   Self-contained on purpose: it lists exactly the TUs it needs so it builds even when the engine-wide lists above rot.
+#============================================================================================================================================
+
+set(PROJECT_DYNO_SOURCES
+    Engine/DeviceExchange/DiagnosticMetrics.cpp
+    Engine/PlatformInterchange/MiniaudioTranslation.cpp
+    Engine/PlatformInterchange/WaveCodec.cpp
+    Engine/PlatformInterchange/AudioExchange.cpp
+    Projects/Project-Dyno/Source/DynoSequence.cpp
+    Projects/Project-Dyno/Source/CrankClickIntegrator.cpp
+    Projects/Project-Dyno/Source/GameExecution.cpp
+)
+add_executable(Project-Dyno ${PROJECT_DYNO_SOURCES})
+set_source_files_properties(Engine/PlatformInterchange/MiniaudioTranslation.cpp PROPERTIES COMPILE_OPTIONS "-w")   # third-party TU
+target_include_directories(Project-Dyno PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Engine
+    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Dyno/Source
+    ${EXT}/miniaudio
+    ${EXT}/tomlpp/include
+    ${EXT}/stb
+)
+target_compile_definitions(Project-Dyno PRIVATE FRONTIER_DEVELOPMENT)
+target_compile_options(Project-Dyno PRIVATE -Wall -Wextra)
+target_link_libraries(Project-Dyno PRIVATE pthread dl m)
+
+#============================================================================================================================================
 # FrontierEngine demo target (Linux only)
 #============================================================================================================================================
 

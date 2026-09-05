@@ -15,3 +15,9 @@
 	url = https://github.com/jrouwe/JoltPhysics.git
 	ignore = untracked
 	shallow = true
+[submodule "ExternalPackages/miniaudio"]
+	path = ExternalPackages/miniaudio
+	url = https://github.com/mackron/miniaudio.git
+[submodule "ExternalPackages/tomlpp"]
+	path = ExternalPackages/tomlpp
+	url = https://github.com/marzer/tomlplusplus.git

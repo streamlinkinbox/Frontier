@@ -40,3 +40,8 @@ Diagnostics/ProjectPhysics_TelemetryReport*.md
 # SolidArc build output (ParametricSketcher has its own standalone CMake project)
 ParametricSketcher/build/
 ParametricSketcher/Output/
+
+# Project-Dyno / Phase A acoustics: build output and rendered audio (regenerate with --render); logs + PNG proofs are committed
+Projects/*/Build/Output/
+Scratchpad/*.wav
+Diagnostics/ProjectDyno_TelemetryReport*.md

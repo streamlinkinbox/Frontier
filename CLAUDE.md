@@ -179,7 +179,7 @@ Frontier/
 │   ├── GeometricRaster/            ← Geometry, camera, visibility, raster, material codec
 │   ├── PhotometricIllumination/    ← Direct/global/atmosphere light integrators, clusters
 │   ├── PhysicalDynamics/           ← Rigid/deformable bodies, locomotion, spatial, world
-│   ├── PlatformInterchange/        ← Audio, voice, online (EOS)
+│   ├── PlatformInterchange/        ← Audio (AudioExchange · WaveCodec · Acoustic*), voice, online (EOS)
 │   ├── Shaders/                    ← .slang shaders lowered to SPIR-V via slangc (Vulkan SDK)
 │   └── VolumetricDynamics/         ← Level-set, fluid, particle integrators
 │
@@ -230,6 +230,14 @@ Frontier/
 │   │       ├── FlyThroughSolver.h/.cpp
 │   │       ├── RayTracingSolver.h/.cpp
 │   │       └── TracingIndex.h
+│   ├── Project-Dyno/               ← Windowless dyno cell: audio transport + powertrain acoustics (no Vulkan; Phase A)
+│   │   ├── Build/
+│   │   │   ├── ToolchainSequence.ps1   ← cl.exe / link.exe, miniaudio only (no Vulkan SDK needed)
+│   │   │   └── ToolchainSequence.sh    ← g++ / clang++ (the sandbox proofs run this)
+│   │   └── Source/
+│   │       ├── GameExecution.cpp       ← main loop; --render <wav> for offline output; --null for headless
+│   │       ├── DynoSequence.h/.cpp     ← scripted pulls (idle · sweep · pull · steady · blip)
+│   │       └── CrankClickIntegrator.h/.cpp ← transport self-test (crank-locked click train)
 │   └── Project-F20/                ← Racing game (same Content/ layout)
 │
 ├── Scripts/                        ← Utility scripts — invoked by build scripts as needed
