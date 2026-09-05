@@ -219,7 +219,19 @@ void ShowroomStructure::Construct(uint32_t DropBodyCount) noexcept
             // Geometry is emitted at the REST pose. Physics then supplies a world matrix relative to it, so the
             //    body must be modelled about its own origin offset — the transform replaces this placement rather
             //    than adding to it, exactly as InstanceMotionSequence assumes.
-            AppendSphere(QueryDropOrigin(Body), QueryDropRadius(), FirstDropMaterial + Body, 16u, 32u);
+            //
+            // ⚠️ Tessellation is a PER-FRAME cost here, not just a memory one. These are the only triangles that
+            //    move, so every one of them is re-transformed and re-emitted into the acceleration structure each
+            //    frame. Measured on the real drop scene, alongside the silhouette error each choice costs (a
+            //    0.16 m ball spans ≈111 px at 720p / 55° / 2 m, so sub-pixel is the bar for an invisible change):
+            //        16×32 → 960 tris/ball → 7.46 ms/frame (45 %) · 0.27 px error
+            //        12×24 → 552 tris/ball → 1.90 ms/frame (11 %) · 0.47 px error   ← chosen
+            //         8×16 → 224 tris/ball → 1.77 ms/frame (11 %) · 1.06 px error   ← visibly facetted
+            //    8×16 was tempting and wrong: it saves barely 0.1 ms more while pushing the silhouette past a
+            //    whole pixel, so the balls would read as polygons. 12×24 stays sub-pixel and still takes the win.
+            //    (Pole rings emit one triangle, not two, so the counts are below rings×segs×2.)
+            //    Static scenery has no per-frame cost and keeps its full detail.
+            AppendSphere(QueryDropOrigin(Body), QueryDropRadius(), FirstDropMaterial + Body, 12u, 24u);
         }
     }
 
