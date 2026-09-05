@@ -28,3 +28,6 @@ Projects/*/Content/Scenes/ShaderBall.gltf
 Projects/*/Build/Output/
 Scratchpad/*.wav
 Diagnostics/ProjectDyno_TelemetryReport*.md
+
+# Phase A acoustics: third-party reference clips fetched by Scratchpad/AcousticLaFerrariReference.js --fetch (no licence) - never committed
+Scratchpad/LaFerrariReference/

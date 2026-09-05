@@ -15,8 +15,14 @@ Report only — no code in this row. Companion to `AcousticPhaseA-Plan.md` (§2a
 * The fix (§5) is not more tuning by ear. It is (a) six physical corrections to the voice that remove the impossible content and
   restore the missing content, and (b) a measurement loop (the plan's A4 reference lane, pulled forward) that overlays a real
   recording's order diagram on the synth's and reports the per-order distance, so tuning becomes reading a meter.
-* I could **not** measure against recordings in this sandbox (YouTube / archive.org are unreachable). §8 lists exactly which
+* I could **not** measure against proper recordings in this sandbox (YouTube / archive.org are unreachable). §8 lists exactly which
   recordings to give me and how; then §3 gets a second column with the measured numbers.
+* **§10 (added after the search you asked for)**: no published LaFerrari spectrogram or waveform graph is reachable — what exists
+  is Ferrari's own prose and generic method pages. The one real LaFerrari-labelled audio reachable is a 2.5 s start clip plus
+  two 166 ms loops in an open RC-sound project. Measured, they confirm the §2 structure (one integer-order ladder, order 6 on top,
+  no half-orders) and add numbers rev 2 misses badly: heard from one side, rev 2's loudest idle line is order 3½ — a line the
+  real car does not have at all — and the real idle is far darker (centroid ≈ 110–180 Hz vs 400 Hz) and sparser (10 lines vs
+  25–28 within 26 dB below 1 kHz).
 
 ## 1. What was measured, and how
 
@@ -175,3 +181,120 @@ How to get them to me: my sandbox reaches github.com and the npm registry but no
 4. **A2** — the C++ port of rev 3 (porting rev 2 now would mean porting twice).
 
 If you approve, row 1 starts on your word; no code until then.
+
+## 10. Real-data check — the LaFerrari audio that is actually reachable
+
+You said published LaFerrari spectra / wave graphs exist online. I searched for them specifically (web search, image search,
+Ferrari's own site, GitHub code search, the acoustics pages that do publish car spectrograms). Result, honestly:
+
+| Looked for | Found | Usable? |
+|---|---|---|
+| Published spectrogram / waterfall / order plot of a LaFerrari | none reachable. Image hits titled "LaFerrari spectrogram" are press photos and F1 thumbnails | no |
+| Ferrari's own acoustic statements (812 GTS / Competizione, 12Cilindri — same F140 family, same 6-into-1 recipe) | prose only: "predominance of the first-order combustion harmonics", "high and low frequencies from the intake and exhaust respectively", resonators tuned to "the noble combustion orders" | confirms §2 qualitatively (note = combustion order, intake = the high half, exhaust = the low half); no numbers |
+| YMEC (Yoshimasa Electronic) — the site that does publish car spectrograms with a worked method | F40 0–200 km/h page (fundamental 59 Hz + harmonics, running-ACF method); no LaFerrari; the WAV is unreachable | method only — it is the A4 lane's reader (§6) |
+| Loudness figures | Car and Driver 812 Superfast: 66 / 91 / 75 dBA interior at idle / WOT / 70 mph | family-level targets only |
+| Audio files (`laferrari` + wav/mp3/ogg on GitHub) | zero hits; one C-array sample set in an open RC engine-sound project (`TheDIYGuy999/Rc_Engine_Sound_ESP32`, `src/vehicles/sounds/LaFerrari{Start,Idle,Rev,Knock}.h`) | **yes, with caveats — measured below** |
+
+### 10.1 What the sample set is
+
+22 050 Hz, 8-bit PCM, mono, in C headers. No licence in that repository, so the clips are **not** committed here:
+`node Scratchpad/AcousticLaFerrariReference.js --fetch` pulls them into the git-ignored `Scratchpad/LaFerrariReference/`.
+Provenance from the project's own commit log and README:
+
+| Clip | Label in the project | Length | What it is | Trust |
+|---|---|---|---|---|
+| `LaFerrariStart.h` | "Ferrari LaFerrari, V12" | 2.53 s | cranking → catch → flare → settle; a straight recording, not looped, not rate-shifted | **best** — the targets below lean on it |
+| `LaFerrariRev.h` | "Ferrari LaFerrari, V12" | 166.1 ms loop | a running-engine loop; the README's cutting rule **rate-shifts** the rev sample until it is as long as the idle loop, so its pitch is only as real as the idle loop's | shape + relative levels |
+| `LaFerrariIdle.h` | **"Jaguar XJS V12"** in the vehicle profile since v5.4 (2020-09), the same commit that replaced the file's content (the v2.6 file, labelled LaFerrari, was a different 2094-sample clip) | 166.5 ms loop | most likely a Jaguar V12 idle — a 60° V12 with the same firing rate. (A fixed ≈ 180 Hz line shows up in both this loop and the start clip: either the same car after all, or a shared 3 × 60 Hz mains harmonic from the video — undecidable at 8 bits) | V12-idle **shape control**, not LaFerrari evidence |
+| `LaFerrariKnock.h` | — | 1.7 ms | the per-firing click the firmware layers on top (the same event-synth idea as rev 2) | — |
+
+No clip carries a tachometer, so the crank speed is read out of the audio and **two readings are reported everywhere**:
+**R1** = the project's cutting rule (one loop = one 720° cycle = 12 firings → 721 rpm); **R2** = the engine reading (the shortest
+lag at which the loop repeats with r ≥ 0.8 is one firing or one revolution; the interpretation whose crank series carries ≥ 90 %
+of the line energy wins). R2 lands on **1081 rpm** from the idle loop (its 55.5 ms period = one revolution at 18.0 Hz) and **1084 rpm**
+from the rev loop (its 9.07 ms period = one firing of a V12 at 18.1 Hz) — two independent routes to the same number, and a
+plausible warm-ish idle; R1's 721 rpm makes the loudest lines orders 9 and 15, which no V12 does. **R2 is the reading I trust**;
+R1 is kept so the "loop = 720°" assumption is visible. The start clip needs neither.
+
+### 10.2 What the clips measure (`Scratchpad/AcousticLaFerrariReference.log`; image `Scratchpad/AcousticLaFerrari_RealVsRev2.png`)
+
+**Start clip** (LaFerrari-labelled, no loop, no rate shift): cranking 0–0.5 s (compression thuds 26–37 Hz, 50 Hz hum, starter
+whine 1–2 kHz); catch at ≈ 0.5 s at 108–136 Hz; **flare to 145–155 Hz at 0.9–1.3 s**; then a smooth glide **141 → 117 Hz from
+1.5 to 2.3 s** (≈ −300 rpm/s read as order 6), still falling toward the loops' 108 Hz when the clip ends. Companions that glide
+with it sit at 1/2 × (−16 dB at the flare), 3/2 × (−2 … −12 dB, 0.9–1.2 s only) and 2 × (−10 dB) — **orders 3, 9, 12 of an
+order-6 line: one integer ladder, no half-orders**. Read as order 3 (the per-bank note) the flare would be 2900 → 2370 rpm, which
+no warm start does — so order 6 is the loudest line of the real car, as §2 predicted. Two lines **stay put while the pitch
+glides**: ≈ 172–188 Hz and ≈ 207–223 Hz — fixed ridges, i.e. pipe/body resonances, not orders. From 1.5 s on the sound is
+essentially one line with everything else ≥ 19 dB down; **nothing within 25 dB above 300 Hz** after the catch. Settled 1.3–2.5 s:
+bands re 20–200 Hz = **−17 / −23 / −23 / −25 / −27 dB** (200–500 / 500–1k / 1–2k / 2–4k / 4–8k), **centroid 160 Hz**.
+
+**Loops** (exact line spectra — a seamless loop is periodic, so 8 tiled repeats and a rectangular DFT give leak-free lines on a
+6.0 Hz lattice; under R2 the half-orders fall *between* lattice lines, so a loop cannot hold them at all — which is itself a
+weak hint: the author found a seamless cut at 3 revolutions = 1½ cycles, only possible if the 720°-periodic content was
+negligible. The direct evidence is the start clip and the on-lattice lines between the integer orders):
+
+| | idle loop (probably Jaguar) | rev loop (LaFerrari-labelled) |
+|---|---|---|
+| loudest lines | **108 Hz** and **180 Hz** (equal), 126 Hz (−4), 36 / 72 Hz (−19 / −16) | **108 Hz**, then 36 Hz (−13), 114 Hz (−12), 145 Hz (−15) |
+| own period (circular ACF) | 55.5 ms, r = 0.89 (one revolution at 1081 rpm) | 9.07 ms, r = 0.85 (one firing at 1084 rpm); 27.7 ms r = 0.91 |
+| orders under R2 (≈ 1082 rpm) | **6 = 10 = 0 dB**, 7 −4, 11 / 12 / 14 −15 … −16, 2 / 4 −18 / −17, **3 −35** | **6 = 0 dB**, 2 −13, 8 −15, 7 −19, 4 −24, 1 −27, **3 −34**, 9 … 12 −32 … −35 |
+| lines *between* the integer orders (odd multiples of 6 Hz — on the lattice, so a real measurement) | −22 … −46 dB (mean −42) | −12 … −46 dB (mean −36; the −12 is the 114 Hz sideband of the 108 Hz line, a loop-modulation artefact) |
+| bands re 20–200 Hz | −14 / −22 / −22 / −24 / −26 dB · centroid **179 Hz** | −26 / −35 / −44 / −48 / −46 dB · centroid **107 Hz** |
+| lines within 26 dB below 1 kHz | 28 (highest 552 Hz) | **10** (highest 145 Hz) |
+
+Three things agree across all three clips regardless of reading: the loudest line is **order 6 at ≈ 108 Hz** (≈ 1080 rpm), the
+content is **one integer-order ladder with order 3 ≈ 35 dB down**, and the spectrum is **dark** — centroid 107–179 Hz, nothing
+of note above 300 Hz.
+
+### 10.3 Rev 2 at the same crank speed (full chain, same reader; L+R and the left channel alone)
+
+The clips are mono, so the fair comparison is one channel — what one ear or one speaker gets. That matters here: rev 2's parity
+pan puts the half-orders anti-phase between left and right, so the L+R sum hides most of them.
+
+| | rev 2 · 1081 rpm load 0 (L+R / **left**) | rev 2 · 1081 rpm load 1 (L+R / **left**) | real rev loop (R2) | real start, settled |
+|---|---|---|---|---|
+| loudest order | 6 / **3½** | 6 / **3½** | 6 | 6 (117–145 Hz) |
+| order 6 | 0 / −3 | 0 / −3 | 0 | 0 |
+| order 3 | **−16** / −18 | −22 / −23 | **−34** | −16 (flare) … not found (settled) |
+| orders 18 / 24 | **−10 / −11** | −12 / −10 | −40 / −56 | nothing within 25 dB above 300 Hz |
+| half-orders ½ … 6½ (mean; worst) | −34; 6½ −19 / **−16; 3½ 0, 2½ −11** | −34; 6½ −25 / **−18; 3½ 0, 2½ −16** | −36 (R1 row) / not holdable (R2) | none found |
+| bands re 20–200 Hz | −3 / −15 / −22 / −24 / **−13** | −3 / −13 / −15 / −14 / −7 | −26 / −35 / −44 / −48 / −46 | −17 / −23 / −23 / −25 / −27 |
+| centroid < 8 kHz | 403 Hz | 976 Hz | 107 Hz | 160 Hz |
+| peaks within 26 dB below 1 kHz | 25 | 28 | **10** | 36 (the pitch glides through the window) |
+| mean \|Δ\| over orders 1–14 vs the rev loop | 7.0 / 7.5 dB | 6.5 / 5.7 dB | — | — |
+
+So against real audio rev 2 misses on four measurable things at idle:
+
+1. **The half-orders — in one channel they are the loudest thing.** Left alone: order 3½ is the top line, 2½ at −11, ½ / 1½ at
+   −18; the real clips have none (≤ −36 dB re order 6 where a loop can hold them; unfindable in the start clip). This is the §3
+   parity-pan prediction measured against the car: a listener on one side hears a lumpy 6-of-12 pattern with a 720° period, not
+   a V12. §5 a (bank-true routing) removes it outright; b/d keep it from creeping back.
+2. **Order 3 ≈ 15–20 dB too strong.** At 1081 rpm order 3 is 54 Hz, and the fixed `pitch_hz` = 58 Hz thump (+15 Hz rise with
+   rpm) lands within a few Hz of it — the thump *is* the order-3 excess, and its harmonics at 116 / 174 Hz land next to orders
+   6 and 10 and widen them. §5 c removes it (pulse in crank degrees, no fixed pitch).
+3. **Orders 18 / 24 ≈ 20–45 dB too strong** and **4–8 kHz ≈ 13 dB too bright**: the pulse sheet's fixed spectrum plus the
+   crackle / rasp / ring layers. Real idle has nothing within 25 dB above 300 Hz. §5 c + f + i, targets tightened below.
+4. **Too many lines and too bright overall**: 25–28 peaks within 26 dB below 1 kHz vs 10; the 200–500 Hz band 10–20 dB too
+   hot; centroid 2.5–4× too high. Line density is what the ear calls "digital fizz".
+
+Measured this way the idle problem is mostly *structure* (items 1–2: the wrong lines exist), and only then *colour* (items 3–4).
+
+### 10.4 What this changes in the §5 list (targets, not new entries)
+
+| §5 entry | Was | Now (measured target at idle, ≈ 1080 rpm, full chain) |
+|---|---|---|
+| a / b / d | "half-orders below −30 dB re order 6 in pure mode" | **below −40 dB re order 6 in the full chain, measured per channel, not on L+R** (real ≤ −36 on 8-bit video audio; leave headroom for the 16-bit lane) |
+| b | order 3 ≈ −17 dB | order 3 **≈ −35 dB** at idle (both loops), rising to ≈ −16 only during the start flare; order 7 / 8 present at −15 … −19 (the 55/65° timing) |
+| c | "centroid rises linearly with rpm" | **centroid ≈ 110–180 Hz at idle**; bands re 20–200 Hz between −17 / −23 / −23 / −25 / −27 (start, settled) and −26 / −35 / −44 / −48 / −46 (rev loop); nothing above 300 Hz within 25 dB |
+| f | exhaust formants "from the recording" | two fixed ridges at **≈ 180 Hz** and **≈ 215 Hz** (present in the start clip while the pitch glides, and as the equal-loudness 180 Hz line of the idle loop) — candidates for the first two resonators, to be confirmed on a 16-bit recording; the 2.667 ms comb goes |
+| i | idle mechanics "within 6 dB of the recording" | 2–6 kHz hash **≥ 25 dB down** in these clips (8-bit, video-grade — the true figure needs a real recording; keep `clatter` low until then) |
+| new: **line count** | — | ≤ 15 peaks within 26 dB below 1 kHz at steady idle (the LaFerrari-labelled rev loop has 10; the other two clips are inflated by loop modulation and the pitch glide) — a direct meter for "fizz" in the A4 lane |
+| new: **start sequence** | — | catch at ≈ 108–136 Hz → flare +25 % (≈ 1450–1550 rpm) within 0.4–0.8 s → glide down at ≈ 300 rpm/s → idle; Project-Dyno's start can be read straight off the clip |
+
+### 10.5 Limits — why §8 still stands
+
+8-bit (floor ≈ −50 dBFS), 22 kHz, mono, unknown microphone, almost certainly lifted from a video; **idle region only** — nothing
+about the 6000 / 8000 rpm intake steps, the order profile at 9000 rpm, the valve step or the overrun; the idle loop is probably
+a Jaguar. So: these numbers fix the *idle* targets and prove the order-structure argument on real audio; the rest of §5 (e, g, h)
+still needs the §8 recordings. If you can point me at the published spectra you had in mind (a URL, a paper title, or a screenshot
+dropped into `EngineContent/AudioArchives/FerrariLaFerrari/Reference/`), I read them next — the reader is written.
