@@ -3,7 +3,8 @@
 //============================================================================================================================================
 // 🧩 Project-Zero entry point — opens the Vulkan window, makes a glTF level resident, runs the ReSTIR render loop.
 //
-//    Scene selection (R2): `Project-Zero.exe [--scene <file.gltf|glb>] [--scale <float>]`
+//    Scene selection (R2): `Project-Zero.exe [--scene <file.gltf|glb|shaderball|showroom>] [--scale <float>]`
+//        showroom — P0 spatial-interface level, exported once from ShowroomStructure then imported like any other
 //        default  Projects/Project-Zero/Content/Scenes/CornellBox.gltf — regenerated from RayTracingSolver when missing,
 //                 so the reference image is unchanged; the CPU solver stays only as that generator.
 //        Sponza   Projects/Project-Zero/Content/Scenes/Sponza/Sponza.gltf (fetched by the build script, not committed).
@@ -27,6 +28,7 @@
 #include "FlyThroughSolver.h"
 #include "RayTracingSolver.h"
 #include "../../../Engine/ContentInterchange/ShaderBallStructure.h"
+#include "ShowroomStructure.h"
 
 #include <algorithm>
 #include <chrono>
@@ -47,6 +49,7 @@ int main(int argc, char** argv)
         if (std::strcmp(argv[I], "--scale") == 0) SceneScale = static_cast<float>(std::atof(argv[++I]));
     }
     if (ScenePath == "shaderball") ScenePath = "Projects/Project-Zero/Content/Scenes/ShaderBall.gltf";   // R4b material test level
+    if (ScenePath == "showroom")   ScenePath = "Projects/Project-Zero/Content/Scenes/Showroom.gltf";     // P0 spatial-interface level
 
     //──────────────────────────────────────────────────────────────────────────
     // Telemetry sink
@@ -91,6 +94,17 @@ int main(int argc, char** argv)
             Frontier::ShaderBallStructure ShaderBall; ShaderBall.Construct();
             if (ShaderBall.Export(ScenePath, &Error)) std::cerr << "[Scene] Exported the shader-ball level to " << ScenePath << "\n";
             else                                     std::cerr << "[Scene] Shader-ball export failed: " << Error << "\n";
+        }
+        // P0 spatial-interface level. Same export-once-then-import discipline: the Cornell box stays the untouched
+        //    bit-identity reference, and the showroom is a separate file the renderer only ever sees as glTF.
+        const bool IsShowroom = ScenePath.find("Showroom.gltf") != std::string::npos;
+        if (IsShowroom && !std::filesystem::exists(ScenePath, FsError))
+        {
+            std::filesystem::create_directories(std::filesystem::path(ScenePath).parent_path(), FsError);
+            std::string Error;
+            Frontier::ProjectZero::ShowroomStructure Showroom; Showroom.Construct();
+            if (Showroom.Export(ScenePath, &Error)) std::cerr << "[Scene] Exported the showroom level to " << ScenePath << "\n";
+            else                                    std::cerr << "[Scene] Showroom export failed: " << Error << "\n";
         }
     }
 
@@ -171,6 +185,14 @@ int main(int argc, char** argv)
         // Shader ball: 5 m back from the front row, 2.6 m up, pitched down ~22° so all four rows fit at 55° FoV.
         Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.2f, 2.6f });
         Camera.AssignOrientationEuler(-22.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
+    }
+    else if (Level.QueryName() == "Showroom")
+    {
+        // Showroom: stand just outside the open −Y face at eye height, looking along +Y. This frames the panel
+        //    anchor (0, 1.55, 1.32) dead centre with the chrome sphere directly beneath it, so the panel and its
+        //    reflection are both in shot the moment the level opens.
+        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -1.70f, 1.45f });
+        Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
     }
     else if (Level.QueryName() != "CornellBox")
     {

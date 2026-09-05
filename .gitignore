@@ -27,3 +27,7 @@ Scratchpad/InterfaceRasterTest
 
 # Compiled shaders (produced by ToolchainSequence / CompileInterfaceShaders.sh)
 *.spv
+
+# Generated on first run by GameExecution (--scene showroom). CornellBox.gltf stays tracked as the
+#    bit-identity reference; the showroom is derived from ShowroomStructure.cpp and regenerates.
+Projects/Project-Zero/Content/Scenes/Showroom.gltf
