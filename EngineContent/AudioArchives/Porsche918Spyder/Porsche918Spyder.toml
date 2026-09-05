@@ -1,0 +1,113 @@
+# Frontier acoustic structure — Porsche 918 Spyder (first cut, row A2 / HTML editor)
+# Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
+# Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
+# units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
+
+[vehicle]
+name                   = "Porsche 918 Spyder"           # display name
+engine                 = "4.6 L 90° flat-plane V8, NA, top-exit pipes" # one-line engine description
+cylinder_count         = 8                              # number of cylinders
+firing_order           = [1, 5, 2, 6, 4, 8, 3, 7]       # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 0, 0, 0, 1, 1, 1, 1]       # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 950.0                          # [rpm]
+redline_rpm            = 9150.0                         # [rpm] fuel cut
+peak_power_rpm         = 8700.0                         # [rpm]
+peak_torque_rpm        = 6700.0                         # [rpm]
+peak_torque_nm         = 540.0                          # [N·m]
+inertia_kgm2           = 0.35                           # [kg·m²] effective rotating inertia seen by the free-rev powertrain
+friction_nm            = 30.0                           # [N·m] friction torque at zero rpm
+friction_per_krpm_nm   = 7.0                            # [N·m] friction torque increase per 1000 rpm
+
+[combustion]
+evo_deg                = 128.0                          # [°] exhaust valve opens this many degrees after the firing TDC
+blowdown_deg           = 16.0                           # [°] crank angle to the blowdown pressure peak
+bark_deg               = 5.0                            # [°] crank angle to the fast combustion-only front peak
+displacement_deg       = 90.0                           # [°] crank angle to the exhaust-stroke displacement peak (from BDC)
+blowdown_amp           = 1.0
+bark_amp               = 0.7                            # scaled by load^1.5
+displacement_amp       = 0.3
+pumping_amp            = 0.05                           # blowdown amplitude without combustion, throttle closed
+pumping_open_amp       = 0.25                           # added blowdown amplitude without combustion at wide-open throttle (limiter)
+jitter_amp             = 0.04                           # cycle-to-cycle amplitude deviation (1 σ) at full load
+jitter_deg             = 0.6                            # [°] cycle-to-cycle timing deviation (1 σ) at full load
+idle_jitter_boost      = 2.0                            # both deviations grow by this factor toward zero load
+misfire_probability    = 0.006                          # per firing at full load; ×4 toward zero load
+discharge_noise        = 0.45                           # turbulent blowdown noise gated by the pulse
+pop_level              = 1.0                            # overrun pop / crackle amplitude
+pop_rate_hz            = 30.0                           # [Hz] overrun pop rate at redline right after lift
+pop_decay_s            = 1.4                            # [s] overrun crackle fades with this time constant
+
+[exhaust]
+temperature_idle_k     = 780.0                          # [K] port gas temperature at idle
+temperature_wot_k      = 1200.0                         # [K] port gas temperature at full load
+thermal_lag_s          = 2.5                            # [s]
+head_reflection        = 0.55                           # pressure reflection at the (mostly closed) exhaust valves
+merge                  = 0.0                            # 0 = separate bank systems … 1 = full Y-merge ahead of the tail pipes
+saturation_drive       = 2.2                            # tanh drive on the exhaust bus
+bank_pan               = 0.5                            # 0 = both pipes centred … 1 = hard left/right
+
+[exhaust.primary]
+length_m               = 0.35                           # [m] head to collector
+diameter_mm            = 42.0                           # [mm]
+temperature_drop_k     = 0.0                            # [K] below the port temperature
+
+[exhaust.collector]
+length_m               = 0.3                            # [m] collector to silencer
+diameter_mm            = 65.0                           # [mm]
+temperature_drop_k     = 100.0                          # [K]
+
+[exhaust.tail]
+length_m               = 0.25                           # [m] silencer to tip
+diameter_mm            = 80.0                           # [mm] sets the radiation corner
+temperature_drop_k     = 200.0                          # [K]
+
+[exhaust.muffler]
+transmission           = 0.9                            # amplitude passed through the silencer
+cutoff_hz              = 9000.0                         # [Hz] silencer low-pass corner
+
+[exhaust.turbine]
+enabled                = false                          # turbine between primary and collector
+transmission           = 0.45
+cutoff_hz              = 1500.0                         # [Hz]
+reflection             = 0.5                            # pressure reflection back into the manifold
+
+[induction]
+runner_length_m        = 0.28                           # [m] valve to plenum
+runner_diameter_mm     = 44.0                           # [mm]
+temperature_k          = 315.0                          # [K] charge temperature
+valve_reflection       = 0.85
+plenum_reflection      = -0.55                          # runner end into the plenum
+plenum_hz              = 190.0                          # [Hz] plenum / airbox Helmholtz resonance
+plenum_q               = 4.0
+level                  = 0.35
+hiss_level             = 0.15                           # throttle-body discharge noise
+
+[mechanical]
+clatter_level          = 0.28                           # valve seating clatter
+clatter_hz             = 5200.0                         # [Hz] clatter resonance
+whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.0
+inverter_hz            = 9000.0                         # [Hz] hybrid inverter carrier (0 = none)
+inverter_level         = 0.004
+
+[turbo]
+enabled                = false                          # forced-induction layer
+shaft_idle_rpm         = 15000.0                        # [rpm]
+shaft_max_rpm          = 150000.0                       # [rpm]
+spool_up_s             = 0.5                            # [s]
+spool_down_s           = 0.9                            # [s]
+boost_max_bar          = 1.0                            # [bar]
+whine_level            = 0.3                            # compressor whistle
+recirculation_level    = 0.5                            # blow-off / recirculation hiss on lift
+
+[body]
+resonance_hz           = [72.0, 118.0]                  # [Hz] structure-borne boom resonances
+q                      = 8.0
+level                  = 0.25
+
+[mix]
+exhaust                = 1.0                            # bus levels (listener presets multiply these)
+induction              = 1.0
+mechanical             = 1.0
+body                   = 1.0
+output_gain            = 2.0                            # before the limiter

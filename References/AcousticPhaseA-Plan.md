@@ -154,6 +154,11 @@ turbo layer is purely additive. Your call — §6 Q4.)
 
 ## 4. Sequence 2 — AudioEditor (`Tools/AudioEditor/index.html`)
 
+> Shipped in row A1½. The DSP lives once, in `<script id="dsp" type="text/plain">`, and is loaded into the AudioWorklet as a Blob module
+> *and* evaluated in the page (TOML I/O, file-feed rpm timeline). `Scratchpad/AcousticEditorRender.js` pulls that same block out of
+> the HTML for the node proofs, so page, worklet and proof can never drift. The three vehicle TOMLs are embedded as
+> `<script type="text/toml" data-car=…>` and mirrored verbatim under `EngineContent/AudioArchives/`. Reference lane = A4.
+
 Single file, zero dependencies, opens from disk by double-click (worklet inlined as a Blob module, so no server needed;
 the sandbox serves it for the live preview). Frontier tokens (Inter, blue/black/white/dark-grey from the Frontier lobby
 mock; components per Slate `References/UIComponents.html`). Two feeds, same views:
@@ -179,9 +184,10 @@ Views:
 | Row | Scope | Sandbox proof | Your acceptance (Windows, GTX 1060 box) |
 |---|---|---|---|
 | **A1** transport ✅ | `.gitmodules` pins, `MiniaudioTranslation.cpp`, `AudioExchange` (open/close, callback, `AudioMetrics`, device-loss reopen, null driver, `RenderOffline`), `SignalIntegrator` seam, `RelayQueue<T>` (DeviceExchange), `WaveCodec`, `Project-Dyno` (`GameExecution`, `DynoSequence`, `CrankClickIntegrator`) + both `ToolchainSequence` scripts + CMake target; plays a sine sweep and a crank-locked click train at scripted rpm | `Scratchpad/AudioTransportTest.log`: 48/48 — WAV round trips, slicing-invariant render (1/37/64/256-frame slices byte-identical), click spacing = 60/(rpm·N/2) exact for V6/V8/V12 × 3 speeds, sub-sample centroid drift 0, relay never torn / never blocks, null device 0 overloads; g++ 12 `-Wall -Wextra` clean, Debug + Release | `ToolchainSequence.ps1 -Run`: hear sweep (`--sweep`) + clicks; `[Audio]` line every 2 s → peak µs < 500, overloads 0 over 60 s; `--render x.wav --pull pull` opens in any player |
-| **A2** synthesis skeleton | `AcousticStructure` TOML load/save, `AcousticIntegrator` v1 (crank clock, analytic pulses with jitter, exhaust + induction waveguides, discharge noise, mechanical bed, inertia), `DynoSequence` pulls, three first-cut TOMLs | offline WOT pulls for all three cars → `Scratchpad/*.log` + spectrogram/order PNGs (C++ harness, radix-2 FFT, `stb_image_write`); dominant order = N/2 within 1 Hz; silent-pulse aliasing guard: nothing above −90 dB past 16 kHz | first listen: "an engine, wrong car" is the bar |
-| **A3** editor design | static HTML: all five views with mock feeds, tokens, layout, resize | screenshots `Diagnostics/AudioEditor_01…_ContactSheet.png` | look approved before wiring |
-| **A4** editor live | worklet port, scopes, order diagram, TOML import/export, file feed, reference lane, WAV record | worklet renders the A2 pull; order diagram matches the C++ render within ±0.1 dB per order | audible in the live preview |
+| **A1½** editor + three cars ✅ (pulled forward — you asked to hear the cars in HTML before the C++ port) | `Tools/AudioEditor/index.html` (single file, opens by double-click): `AcousticIntegrator` DSP as a shared script that runs in the AudioWorklet *and* in the page; three first-cut structures embedded as TOML and written to `EngineContent/AudioArchives/<Car>/<Car>.toml`; dyno strip (gauge, throttle, Space = WOT, free-rev inertia powertrain, seven scripted pulls incl. `overrun` + `limiter`, listener presets, Pure mode); signal-chain diagram with live meters → inspector; crank-locked scope (output + head pulses, TDC marks per bank); spectrum with order markers + spectrogram; order diagram; inspector = every TOML field as a slider (live); Import/Export TOML; Record WAV; file feed (drop a `--render` WAV) | `Scratchpad/AcousticEditorRender.log` 48/48 (dominant order N/2 within 1 Hz at 3 speeds × 3 cars, nothing above −90 dB past 16 kHz, 1/37/64/256-slice identity, firing count = ∫rpm·N/120, pops after lift) + `Scratchpad/AcousticEditor_<Car>_Pull.png`; `Scratchpad/AcousticEditorBrowser.log` 25/25 in headless Chromium (worklet ⇄ node identity: max |Δ| 3e-8, order diagram ±0.0000 dB; live device runs, free rev 972 → 9088 rpm in 1 s on the 918, GT-R boost 1.05 bar) + `Diagnostics/AudioEditor_01…05.png` | double-click `Tools\AudioEditor\index.html` in Chrome/Edge → Start audio → hold Space; pick each car; run `pull`, `overrun`, `blip`; bar: "an engine, wrong car" — note what is wrong per car and I fold it into A5–A7 |
+| **A2** synthesis skeleton | C++ port of the A1½ DSP, 1:1: `AcousticStructure` TOML load/save (the three A1½ TOMLs, tomlpp), `AcousticIntegrator` v1 (crank clock, analytic pulses with jitter, exhaust + induction waveguides, discharge noise, mechanical bed, turbo layer, free-rev inertia), `DynoSequence` gains `overrun` + `limiter`, `--car` in Project-Dyno | offline WOT pulls for all three cars → `Scratchpad/*.log` + spectrogram/order PNGs (C++ harness, radix-2 FFT, `stb_image_write`); dominant order = N/2 within 1 Hz; silent-pulse aliasing guard: nothing above −90 dB past 16 kHz | first listen: "an engine, wrong car" is the bar |
+| **A3** editor design | ~~static HTML~~ folded into A1½ — remaining: layout pass on your screen sizes, resize behaviour, contact sheet | `Diagnostics/AudioEditor_…_ContactSheet.png` | look approved |
+| **A4** editor live | ~~worklet port, scopes, order diagram, TOML I/O, file feed, WAV record~~ done in A1½ — remaining: **reference lane** (drop a recording, aligned spectrogram + order diagram over the synth's), C++ ⇄ worklet identity once A2 exists | order diagram of the C++ `--render` matches the worklet within ±0.1 dB per order | audible in the live preview |
 | **A5** car 1 (918) | tune in editor → back-port constants/DSP deltas to C++ → identity proof | C++ vs worklet ±0.1 dB per order; reference-lane match report | you sign off by ear |
 | **A6** car 2 (LaFerrari) | same loop; adds runner-length resonance shift, induction dominance | same | same |
 | **A7** car 3 (GT-R) | same loop; adds turbo shaft integrator, whine, wastegate, recirculation, DCT orders | same | same |
@@ -189,6 +195,9 @@ Views:
 
 Sandbox limits (do not re-discover): no sound device (`/dev/snd` absent), no cmake, no numpy/ffmpeg — proofs are
 g++-built harnesses writing WAV/PNG/log; WAVs are git-ignored (regenerate with `--render`), PNG + log are committed.
+Browser proofs: `apt` is locked and the Playwright CDN is blocked, but `npm i @sparticuz/chromium@129 puppeteer-core@23`
+works — set `AWS_EXECUTION_ENV=AWS_Lambda_nodejs20.x` so it unpacks its own `libnss3` into `/tmp/al2023/lib`, put that on
+`LD_LIBRARY_PATH`, launch with `--autoplay-policy=no-user-gesture-required`; real AudioWorklet + OfflineAudioContext, fake device.
 
 ## 6. Decisions needed before "go A1"
 

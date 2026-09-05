@@ -1,0 +1,63 @@
+AcousticEditor DSP proof — 2026-09-05T16:22:19.317Z  rate 48000  cars Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo
+
+[Porsche918Spyder] Porsche 918 Spyder — 8 cylinders
+  PASS  dominant order @ 3000 rpm = 4 (expected 4), level -21.0 dBFS
+  PASS  firing frequency @ 3000 rpm = 200.01 Hz (expected 200.00)
+  PASS  above 16 kHz: -123.1 dB re peak (limit −90)
+  PASS  dominant order @ 6000 rpm = 4 (expected 4), level -15.6 dBFS
+  PASS  firing frequency @ 6000 rpm = 400.01 Hz (expected 400.00)
+  PASS  above 16 kHz: -110.2 dB re peak (limit −90)
+  PASS  dominant order @ 8500 rpm = 4 (expected 4), level -16.7 dBFS
+  PASS  firing frequency @ 8500 rpm = 566.66 Hz (expected 566.67)
+  PASS  above 16 kHz: -101.7 dB re peak (limit −90)
+  PASS  held-demand render identical across 1/37/64/256-frame slices (max |Δ| = 0)
+  PASS  pull peak 1.000 (limiter holds ≤ 1.0, level useful > 0.3), rms -17.9 dBFS
+  PASS  pulse pool never overflowed (dropped 0, spawned 17481, firings 4774)
+  PASS  overrun pops after lift: 247
+  PASS  no NaN
+  render 15 s in 527 ms → 28.5× realtime (node)
+  wrote Scratchpad/AcousticEditor_Porsche918Spyder_Pull.png  (Porsche 918 Spyder WOT pull)
+  PASS  firing count 4774 vs ∫ rpm·N/120 dt ≈ 4774 (±3 %)
+  PASS  idle audible (peak 0.349)
+
+[FerrariLaFerrari] Ferrari LaFerrari — 12 cylinders
+  PASS  dominant order @ 3000 rpm = 6 (expected 6), level -23.1 dBFS
+  PASS  firing frequency @ 3000 rpm = 300.00 Hz (expected 300.00)
+  PASS  above 16 kHz: -127.6 dB re peak (limit −90)
+  PASS  dominant order @ 6000 rpm = 6 (expected 6), level -18.7 dBFS
+  PASS  firing frequency @ 6000 rpm = 600.02 Hz (expected 600.00)
+  PASS  above 16 kHz: -106.3 dB re peak (limit −90)
+  PASS  dominant order @ 8500 rpm = 6 (expected 6), level -13.8 dBFS
+  PASS  firing frequency @ 8500 rpm = 850.01 Hz (expected 850.00)
+  PASS  above 16 kHz: -99.7 dB re peak (limit −90)
+  PASS  held-demand render identical across 1/37/64/256-frame slices (max |Δ| = 0)
+  PASS  pull peak 1.000 (limiter holds ≤ 1.0, level useful > 0.3), rms -17.4 dBFS
+  PASS  pulse pool never overflowed (dropped 0, spawned 26078, firings 7200)
+  PASS  overrun pops after lift: 91
+  PASS  no NaN
+  render 15 s in 603 ms → 24.9× realtime (node)
+  wrote Scratchpad/AcousticEditor_FerrariLaFerrari_Pull.png  (Ferrari LaFerrari WOT pull)
+  PASS  firing count 7200 vs ∫ rpm·N/120 dt ≈ 7201 (±3 %)
+  PASS  idle audible (peak 0.291)
+
+[NissanGtrNismo] Nissan GT-R Nismo — 6 cylinders
+  PASS  dominant order @ 3000 rpm = 3 (expected 3), level -27.7 dBFS
+  PASS  firing frequency @ 3000 rpm = 149.99 Hz (expected 150.00)
+  PASS  above 16 kHz: -133.5 dB re peak (limit −90)
+  PASS  dominant order @ 6000 rpm = 3 (expected 3), level -22.3 dBFS
+  PASS  firing frequency @ 6000 rpm = 300.00 Hz (expected 300.00)
+  PASS  above 16 kHz: -122.9 dB re peak (limit −90)
+  PASS  dominant order @ 6900 rpm = 3 (expected 3), level -21.4 dBFS
+  PASS  firing frequency @ 6900 rpm = 345.02 Hz (expected 345.00)
+  PASS  above 16 kHz: -123.9 dB re peak (limit −90)
+  PASS  held-demand render identical across 1/37/64/256-frame slices (max |Δ| = 0)
+  PASS  pull peak 0.791 (limiter holds ≤ 1.0, level useful > 0.3), rms -22.1 dBFS
+  PASS  pulse pool never overflowed (dropped 0, spawned 10273, firings 2825)
+  PASS  overrun pops after lift: 56
+  PASS  no NaN
+  render 15 s in 516 ms → 29.1× realtime (node)
+  wrote Scratchpad/AcousticEditor_NissanGtrNismo_Pull.png  (Nissan GT-R Nismo WOT pull)
+  PASS  firing count 2825 vs ∫ rpm·N/120 dt ≈ 2825 (±3 %)
+  PASS  idle audible (peak 0.342)
+
+ALL PASS — 48 pass, 0 fail
