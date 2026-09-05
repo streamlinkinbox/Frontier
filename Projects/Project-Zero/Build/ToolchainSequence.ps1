@@ -654,6 +654,7 @@ $EngineRelative = @(
     'Engine\SpatialInterface\PaletteConfiguration.cpp'
     'Engine\DeviceExchange\InterfaceExchange.cpp'
     'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
+    'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'
     'Projects\Project-Zero\Source\GameExecution.cpp'

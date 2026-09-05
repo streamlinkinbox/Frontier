@@ -253,6 +253,7 @@ set(PROJECT_ZERO_SOURCES
     Engine/DeviceExchange/VisibilityExchange.cpp
     Engine/DeviceExchange/InterfaceExchange.cpp
     Projects/Project-Zero/Source/InterfaceTrialSequence.cpp
+    Projects/Project-Zero/Source/ShowroomStructure.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
     Engine/DisplayPresentation/ReSTIRIntegrator.cpp
     Engine/DisplayPresentation/ShadingTableCodec.cpp
