@@ -114,17 +114,60 @@ Build(..)"*. So the cheap middle option does not exist in this library.
 
 1. **Rebuild one merged TLAS per frame on the CPU.** Correct and simple to ~1 500 instances. This is what
    D1–D5 will implement, and it comfortably covers the stated 1000 + 100 scene at 7 % of frame.
-2. **Move the rebuild off the critical path** (next, when needed). The TLAS for frame N+1 depends only on
-   physics, not on rendering, so it can be built on a worker thread while frame N renders. Cost becomes
-   ~0 ms of *blocking* time. This alone carries 2 500–3 000 instances. It requires double-buffering the
-   TLAS, which the per-cycle-slot ring already implies.
+2. ~~**Move the rebuild off the critical path.**~~ **WITHDRAWN — there is no spare core.** See §2e.
 3. **Cull before building.** Unreal's guidance: instances outside the view/relevance radius never enter the
    TLAS. A race track has most of its 1000 props behind or far from the camera; culling to the active
    radius typically removes the majority, and this composes with (2).
 4. **Only then consider a GPU build**, past ~10 000 instances, where the measurements show the CPU losing.
 
-The plan below is written for (1) because that is what the stated scene needs today. (2) and (3) are
-additive and do not change the data layout — which is the point of doing (1) first rather than guessing.
+The plan below is written for (1) because that is what the stated scene needs today. (3) is additive and
+does not change the data layout — which is the point of doing (1) first rather than guessing.
+
+### 2e. Why the TLAS worker thread is withdrawn
+
+I proposed building the TLAS on a worker thread. That was wrong for this target, and the objection is
+correct: **the threads are already spoken for.**
+
+Thread census on an **i3-2120 — 2 physical cores, 4 hardware threads**:
+
+| Thread | Owner | Negotiable? |
+|---|---|---|
+| main / render | GLFW + Vulkan submit | no |
+| Jolt job pool | `hardware_concurrency() - 1` → **3 workers** | count is tunable, existence is not |
+| miniaudio realtime callback | OS-owned, high priority | **absolutely not** |
+| tinybvh internal build threads | 8 references in the header | implicit |
+
+That is already **1 + 3 + 1 = 5 threads on 4 lanes** before adding anything. Jolt's default alone
+oversubscribes the machine.
+
+Measured (`Scratchpad/TlasContentionBenchmark.cpp`), 1150 instances, rebuild time as competing threads are
+added:
+
+| Competing busy threads | TLAS rebuild | Frame share |
+|---|---|---|
+| 0 | 1.15 ms | 6.9 % |
+| 1 | 1.10 ms | 6.6 % |
+| 2 | 1.92 ms | 11.5 % |
+| 3 | 2.34 ms | **14.0 %** |
+
+**Oversubscription doubles the cost.** A "background" TLAS build on a saturated CPU does not hide latency —
+it adds a runnable thread that steals slices from the render thread and, far worse, can preempt the audio
+callback. A missed audio deadline is an audible click; a late TLAS is nothing. **We must never trade an
+audio glitch for a graphics optimisation.**
+
+**Revised guidance:**
+
+- Keep the TLAS rebuild **synchronous on the main thread**. At 1150 instances it is 1.2 ms and predictable.
+- **Cap Jolt's job pool explicitly** rather than taking `hardware_concurrency() - 1`. On a 4-thread host,
+  1–2 workers leaves room for render and audio. This is a `RigidBodyConfiguration::WorkerThreads` value,
+  already exposed — it needs a sensible default, not new machinery.
+- Reach for **culling (3)** before threading. It reduces the work instead of relocating it, and it costs no
+  cores.
+- Revisit threading only on a host with genuinely idle cores, and only with the audio thread pinned away
+  from the worker.
+
+The general rule this establishes: **on a 2-core machine, latency hiding is a myth — there is nowhere to
+hide it.** Reduce the work or do it predictably.
 
 
 

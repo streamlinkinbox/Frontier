@@ -107,7 +107,9 @@ struct RigidBodyConfiguration
     uint32_t                MaxBodies               = 4096u;                // [-]
     uint32_t                MaxBodyPairs            = 4096u;                // [-]
     uint32_t                MaxContactConstraints   = 4096u;                // [-]
-    uint32_t                WorkerThreads           = 0u;                   // [-]    0 = hardware_concurrency − 1 (min 1)
+    uint32_t                WorkerThreads           = 0u;                   // [-]    0 = auto: hardware_concurrency − 2, clamped to
+                                                                            //        [1,4]. Leaves lanes for the render thread and
+                                                                            //        the realtime audio callback; never oversubscribe.
     uint32_t                TemporaryAllocationBytes= 16u * 1024u * 1024u;  // [B]    Jolt per-update scratch
     float                   SpeculativeContactDistance = 0.02f;             // [m]    contact look-ahead; a body moving faster than
                                                                             //        this per step lands up to (v·Δt − this) deep for

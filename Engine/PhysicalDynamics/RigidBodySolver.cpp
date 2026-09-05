@@ -229,11 +229,27 @@ struct RigidBodySolver::JoltWorld
     std::vector<BodyRecord>                     Records;            // [-] indexed by RigidBodyIdentity; creation order
     std::vector<uint32_t>                       FreeSlots;          // [-] recycled record indices
 
+    // Jolt's own sample default is hardware_concurrency() - 1, which assumes the physics world owns the machine.
+    //    It does not: a frame also carries the render thread and miniaudio's realtime callback, and the callback
+    //    must never be preempted — a missed audio deadline is an audible click, whereas a slightly slower physics
+    //    step is invisible. On a 4-thread host the old default asked for 3 workers, giving 1 + 3 + 1 = 5 runnable
+    //    threads on 4 lanes. Measured effect of that oversubscription on a comparable workload: rebuild time
+    //    roughly doubles (Scratchpad/TlasContentionBenchmark.cpp).
+    //
+    //    So: leave two lanes free (render + audio) and never ask for more than 4 workers, since Jolt scales poorly
+    //    past that for the body counts this engine targets.
+    [[nodiscard]] static int ResolveWorkerThreads() noexcept
+    {
+        const int Lanes = static_cast<int>(std::thread::hardware_concurrency());
+        if (Lanes <= 0) return 1;                       // unknown topology → stay single-threaded
+        return std::clamp(Lanes - 2, 1, 4);             // ≤3 lanes → 1 worker; 4 → 2; 8 → 4 (capped)
+    }
+
     explicit JoltWorld(const RigidBodyConfiguration& C)
         : TemporaryAllocator(static_cast<JPH::uint>(std::max<uint32_t>(C.TemporaryAllocationBytes, 1u * 1024u * 1024u)))
         , Jobs(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers,
                C.WorkerThreads > 0u ? static_cast<int>(C.WorkerThreads)
-                                    : std::max(1, static_cast<int>(std::thread::hardware_concurrency()) - 1))
+                                    : ResolveWorkerThreads())
         , Layers()
         , ObjectVsBroadPhaseTable(Layers.BroadPhaseTable, BroadPhaseLayers::Count, Layers.PairTable, ObjectLayers::Count)
     {
