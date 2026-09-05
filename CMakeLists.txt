@@ -227,6 +227,8 @@ set(PROJECT_ZERO_SOURCES
     Engine/DeviceExchange/InterfaceExchange.cpp
     Projects/Project-Zero/Source/InterfaceTrialSequence.cpp
     Projects/Project-Zero/Source/InstanceMotionSequence.cpp
+    Projects/Project-Zero/Source/PhysicsInstanceSequence.cpp
+    Engine/PhysicalDynamics/RigidBodySolver.cpp
     Projects/Project-Zero/Source/ShowroomStructure.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
     Engine/DisplayPresentation/ReSTIRIntegrator.cpp
@@ -274,6 +276,7 @@ target_include_directories(Project-Zero PRIVATE
     ${EXT}/fast_obj
 )
 
+target_link_libraries(Project-Zero PRIVATE Jolt)   # D4: rigid bodies drive instance transforms
 target_compile_definitions(Project-Zero PRIVATE
     FRONTIER_DEVELOPMENT
     FRONTIER_ENABLE_GLFW

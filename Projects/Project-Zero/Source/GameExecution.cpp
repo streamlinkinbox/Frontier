@@ -34,6 +34,7 @@
 #include "../../../Engine/GeometricRaster/ClipProjection.h"
 #include "InterfaceTrialSequence.h"
 #include "InstanceMotionSequence.h"
+#include "PhysicsInstanceSequence.h"
 
 #include <algorithm>
 #include <chrono>
@@ -46,6 +47,10 @@
 
 int main(int argc, char** argv)
 {
+    // D4: how many rigid bodies the --scene drop level contains. Fixed so the exported glTF and the solver agree
+    //    on instance ordinals without either having to inspect the other.
+    constexpr uint32_t kDropBodyCount = 12u;
+
     std::string ScenePath  = "Projects/Project-Zero/Content/Scenes/CornellBox.gltf";
     float       SceneScale = 1.0f;
     bool        AnimateInstances = false;   // D3: --animate drives instance transforms from a scripted path
@@ -58,6 +63,8 @@ int main(int argc, char** argv)
     }
     if (ScenePath == "shaderball") ScenePath = "Projects/Project-Zero/Content/Scenes/ShaderBall.gltf";   // R4b material test level
     if (ScenePath == "showroom")   ScenePath = "Projects/Project-Zero/Content/Scenes/Showroom.gltf";     // P0 spatial-interface level
+    bool DropScene = false;
+    if (ScenePath == "drop") { ScenePath = "Projects/Project-Zero/Content/Scenes/ShowroomDrop.gltf"; DropScene = true; }   // D4 physics level
 
     //──────────────────────────────────────────────────────────────────────────
     // Telemetry sink
@@ -105,12 +112,12 @@ int main(int argc, char** argv)
         }
         // P0 spatial-interface level. Same export-once-then-import discipline: the Cornell box stays the untouched
         //    bit-identity reference, and the showroom is a separate file the renderer only ever sees as glTF.
-        const bool IsShowroom = ScenePath.find("Showroom.gltf") != std::string::npos;
+        const bool IsShowroom = ScenePath.find("Showroom.gltf") != std::string::npos || DropScene;
         if (IsShowroom && !std::filesystem::exists(ScenePath, FsError))
         {
             std::filesystem::create_directories(std::filesystem::path(ScenePath).parent_path(), FsError);
             std::string Error;
-            Frontier::ProjectZero::ShowroomStructure Showroom; Showroom.Construct();
+            Frontier::ProjectZero::ShowroomStructure Showroom; Showroom.Construct(DropScene ? kDropBodyCount : 0u);
             if (Showroom.Export(ScenePath, &Error)) std::cerr << "[Scene] Exported the showroom level to " << ScenePath << "\n";
             else                                    std::cerr << "[Scene] Showroom export failed: " << Error << "\n";
         }
@@ -200,7 +207,7 @@ int main(int argc, char** argv)
         Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.2f, 2.6f });
         Camera.AssignOrientationEuler(-22.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
     }
-    else if (Level.QueryName() == "Showroom")
+    else if (Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop")
     {
         // Showroom: stand just outside the open −Y face at eye height, looking along +Y. This frames the panel
         //    anchor (0, 1.55, 1.32) dead centre with the chrome sphere directly beneath it, so the panel and its
@@ -279,7 +286,36 @@ int main(int argc, char** argv)
     bool   InstanceMotionReady = false;
     double InstanceMotionElapsed = 0.0;   // [s]
 
-    if (AnimateInstances && !AnimatedInstances.empty())
+    // D4 — real rigid bodies. Takes precedence over the scripted driver: --scene drop replaces the analytic path
+    //    with Jolt poses through exactly the same RefreshInstances upload, which is why D3 was worth proving first.
+    Frontier::RigidBodySolver                       BodySolver;
+    Frontier::ProjectZero::PhysicsInstanceSequence  BodyBridge;
+    bool PhysicsReady = false;
+
+    if (DropScene && !AnimatedInstances.empty())
+    {
+        Frontier::RigidBodyConfiguration SolverConfiguration;
+        SolverConfiguration.FixedStepSeconds = 1.0f / 60.0f;
+        if (BodySolver.Bring(SolverConfiguration))
+        {
+            Frontier::ProjectZero::PhysicsInstanceConfiguration BridgeConfiguration;
+            // The exporter appends drop bodies after the static scenery, so they occupy the trailing instances.
+            BridgeConfiguration.DropCount         = kDropBodyCount;
+            BridgeConfiguration.FirstDropInstance = static_cast<uint32_t>(AnimatedInstances.size()) - kDropBodyCount;
+            BridgeConfiguration.BodyRadius        = Frontier::ProjectZero::ShowroomStructure::QueryDropRadius();
+            PhysicsReady = BodyBridge.Construct(BodySolver, BridgeConfiguration);
+        }
+        Logger.RecordMessage(PhysicsReady ? Frontier::DiagnosticSeverity::Information
+                                          : Frontier::DiagnosticSeverity::Warning,
+                             "Physics",
+                             PhysicsReady
+                                 ? "Drop scene live: " + std::to_string(BodyBridge.QueryBodyCount()) +
+                                   " rigid bodies from instance " +
+                                   std::to_string(static_cast<uint32_t>(AnimatedInstances.size()) - kDropBodyCount) + "."
+                                 : "Drop scene requested but the solver refused - the level renders statically.");
+    }
+
+    if (AnimateInstances && !PhysicsReady && !AnimatedInstances.empty())
     {
         // Drive the trailing half of the instance list so the static front half proves, in the same frame, that
         //    untouched rows really are untouched.
@@ -760,7 +796,17 @@ int main(int argc, char** argv)
 
         // ④c D3 — advance instance transforms and refresh them in place. No reallocation and no device stall, so
         //     unlike UploadScene this is safe every frame; the VkBuffer handle is unchanged so descriptors stand.
-        if (InstanceMotionReady)
+        if (PhysicsReady)
+        {
+            BodyBridge.AdvancePhysics(BodySolver, AnimatedInstances, Δτ);
+            if (!Surface.RefreshInstances(AnimatedInstances.data(), static_cast<uint32_t>(AnimatedInstances.size())))
+            {
+                PhysicsReady = false;
+                Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Physics",
+                                     "RefreshInstances refused the row set - physics disabled.");
+            }
+        }
+        else if (InstanceMotionReady)
         {
             InstanceMotionElapsed += static_cast<double>(Δτ);
             InstanceMotion.AdvanceMotion(AnimatedInstances, InstanceMotionElapsed);

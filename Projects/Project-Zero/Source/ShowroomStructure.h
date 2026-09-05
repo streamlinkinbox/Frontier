@@ -29,7 +29,21 @@ class ShowroomStructure
 public:
     // Fills the world-space soup. Triangles carry UVs; CornerNormals holds three smooth normals per triangle.
     //    The emissive quads are appended last, the luminaire convention the Cornell box and shader ball share.
-    void Construct() noexcept;
+    //
+    //    DropBodyCount > 0 appends that many spheres above the floor, each with its OWN material so the codec
+    //    gives each one its OWN instance — the renderer moves instances, not triangles, so a body that shares a
+    //    material with another body could not be moved independently. They are appended BEFORE the luminaires so
+    //    the "emissive quads are last" convention still holds.
+    void Construct(uint32_t DropBodyCount = 0u) noexcept;
+
+    // Rest pose of drop body `Ordinal` as Construct placed it: where the renderer puts it before physics runs, and
+    //    where Project-Physics should create the matching rigid body so the two agree on frame zero.
+    [[nodiscard]] static Vector3 QueryDropOrigin(uint32_t Ordinal) noexcept;
+    [[nodiscard]] static float   QueryDropRadius() noexcept { return 0.16f; }   // [m]
+
+    // Instance ordinal of the first drop body. Everything below this index is static scenery.
+    [[nodiscard]] uint32_t QueryFirstDropInstance() const noexcept { return FirstDropMaterial; }
+    [[nodiscard]] uint32_t QueryDropCount()         const noexcept { return DropCount; }
 
     // Writes Showroom.gltf at Path. Error receives the codec message.
     [[nodiscard]] bool Export(const std::string& Path, std::string* Error) const noexcept;
@@ -51,6 +65,9 @@ private:
     std::vector<TriangleIndex>      Triangles;
     std::vector<Vector3>            CornerNormals;
     std::vector<MaterialDescriptor> Materials;
+
+    uint32_t                        FirstDropMaterial = 0u;   // [idx] material/instance ordinal of drop body 0
+    uint32_t                        DropCount         = 0u;   // [cnt]
 };
 
 } // namespace ProjectZero

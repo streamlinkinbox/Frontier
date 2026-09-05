@@ -21,6 +21,7 @@
 #include "../../../Engine/DeviceExchange/OrientationClassifier.h"
 
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 namespace Frontier {
@@ -65,11 +66,35 @@ enum : uint32_t
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-void ShowroomStructure::Construct() noexcept
+Vector3 ShowroomStructure::QueryDropOrigin(uint32_t Ordinal) noexcept
+{
+    // A loose 3-wide grid dropped onto open FLOOR, in front of the plinth and clear of the chrome sphere.
+    //
+    //    ⚠️ Do not move these back over the plinth. An earlier layout centred the grid above it, and every body
+    //    landed exactly on the plinth's edge, got squeezed sideways and rolled out through the room's open −Y
+    //    face — the proof caught them at −814 m. Spheres balanced on a box edge are the least stable contact a
+    //    solver can be handed; a flat floor well inside the walls is the honest way to demonstrate settling.
+    //
+    //    Plinth occupies x ∈ [−0.45, 0.45], y ∈ [1.30, 1.80]. This grid sits at y ∈ [−0.85, 0.95], safely clear.
+    //
+    //    Laid out as a 3 × 4 grid in the FLOOR PLANE with only a slight height stagger, rather than a 4-high
+    //    stack. Stacking them made all twelve land on the same spot as a pile, and the mutual contacts shoved
+    //    bodies into the walls hard enough to embed them — the proof caught that too. Spread horizontally, each
+    //    body gets its own patch of floor and the pile never forms.
+    const uint32_t Column = Ordinal % 3u;          // x: three lanes, 0.62 m apart (radius 0.16 → ample)
+    const uint32_t Row    = Ordinal / 3u;          // y: four ranks,  0.60 m apart
+    return Vector3{ -0.62f + 0.62f * static_cast<float>(Column),
+                    -0.85f + 0.60f * static_cast<float>(Row),
+                     0.85f + 0.14f * static_cast<float>(Ordinal % 2u) };
+}
+
+void ShowroomStructure::Construct(uint32_t DropBodyCount) noexcept
 {
     Triangles.clear();
     CornerNormals.clear();
     Materials.clear();
+    FirstDropMaterial = 0u;
+    DropCount         = 0u;
 
     // ── Materials ────────────────────────────────────────────────────────────────────────────────────────────────
     {
@@ -167,6 +192,36 @@ void ShowroomStructure::Construct() noexcept
     AppendBox(Vector3{ -1.75f, 2.25f, 0.0f },  Vector3{ -1.41f, 2.59f, 1.50f }, MaterialPillar);  // matte pillar
     AppendBox(Vector3{ 1.20f, 2.10f, 0.0f },   Vector3{ 1.72f, 2.62f, 0.30f }, MaterialPlinth);   // copper stand
     AppendSphere(Vector3{ 1.46f, 2.36f, 0.58f }, 0.28f, MaterialCopper, 24u, 48u);                 // copper sphere
+
+    // ── Drop bodies, one material each so the codec gives each its own instance ──────────────────────────────────
+    // The renderer moves INSTANCES, so two bodies sharing a material would share an instance and could never be
+    //    moved apart. Appended before the luminaires to preserve the "emissive quads are last" convention.
+    if (DropBodyCount > 0u)
+    {
+        FirstDropMaterial = static_cast<uint32_t>(Materials.size());
+        DropCount         = DropBodyCount;
+        for (uint32_t Body = 0u; Body < DropBodyCount; ++Body)
+        {
+            char Name[32];
+            std::snprintf(Name, sizeof(Name), "drop_body_%02u", Body);
+            MaterialDescriptor D = MakeMaterial(Name);
+            // Cycle three saturated hues so individual bodies stay distinguishable while they tumble.
+            switch (Body % 3u)
+            {
+                case 0u:  SetColour(D.Slabs[0].BaseColor, 0.82f, 0.24f, 0.20f); break;   // red
+                case 1u:  SetColour(D.Slabs[0].BaseColor, 0.22f, 0.55f, 0.85f); break;   // blue
+                default:  SetColour(D.Slabs[0].BaseColor, 0.92f, 0.72f, 0.18f); break;   // amber
+            }
+            D.Slabs[0].SpecularWeight = 0.35f;
+            D.Slabs[0].SpecularRoughness = 0.35f;
+            Materials.push_back(D);
+
+            // Geometry is emitted at the REST pose. Physics then supplies a world matrix relative to it, so the
+            //    body must be modelled about its own origin offset — the transform replaces this placement rather
+            //    than adding to it, exactly as InstanceMotionSequence assumes.
+            AppendSphere(QueryDropOrigin(Body), QueryDropRadius(), FirstDropMaterial + Body, 16u, 32u);
+        }
+    }
 
     // ── Luminaires, appended LAST (the convention the Cornell box and shader ball share) ─────────────────────────
     // Ceiling panel, facing down (−Z).

@@ -570,6 +570,17 @@ if ((-not (Test-Path $ThorVGLib)) -and (-not $script:ThorVGBuilt))
     $script:ThorVGBuilt = $true
 }
 
+# Build Jolt static lib if absent (D4: rigid bodies drive instance transforms)
+#    -Isa is forwarded: Jolt derives JPH_USE_AVX/SSE4_2/SSE4_1 from the compiler macros and RegisterTypes()
+#    aborts at run time if the library and this client disagree.
+$JoltLib = Join-Path $PackageRoot "jolt\lib\$Configuration\Jolt.lib"
+if (-not (Test-Path $JoltLib))
+{
+    Write-Building 'Jolt library absent - invoking BuildJolt.ps1'
+    $ExitCode = Invoke-DependencyScript (Join-Path $ScriptRoot 'BuildJolt.ps1') @('-Configuration', $Configuration, '-Isa', $Isa)
+    if ($ExitCode -ne 0) { throw 'BuildJolt.ps1 failed' }
+}
+
 # Lower shaders
 Invoke-ShaderLowering $VulkanRoot
 
@@ -644,6 +655,8 @@ $EngineRelative = @(
     'Engine\DeviceExchange\InterfaceExchange.cpp'
     'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
     'Projects\Project-Zero\Source\InstanceMotionSequence.cpp'
+    'Projects\Project-Zero\Source\PhysicsInstanceSequence.cpp'
+    'Engine\PhysicalDynamics\RigidBodySolver.cpp'
     'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'
@@ -717,6 +730,7 @@ foreach ($Obj in $ObjectFiles)                    { $LinkArgs.Add($Obj) }
 $LinkArgs.Add((Join-Path $VulkanRoot 'Lib\vulkan-1.lib'))
 $LinkArgs.Add((Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3dll.lib'))
 $LinkArgs.Add((Join-Path $PackageRoot 'thorvg\lib\thorvg.lib'))
+$LinkArgs.Add($JoltLib)
 $LinkArgs.Add('gdi32.lib')
 $LinkArgs.Add('user32.lib')
 $LinkArgs.Add('shell32.lib')
