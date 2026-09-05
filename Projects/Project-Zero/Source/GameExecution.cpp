@@ -468,6 +468,22 @@ int main(int argc, char** argv)
     if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
                         Surface.QueryCycleSlotCount(), Surface.QueryColourFormat(), Surface.QueryDepthFormat()))
     {
+        // Place the panel in the ROOM rather than at the world origin. ShowroomStructure publishes the anchor it
+        //    reserved for exactly this — above the plinth, tilted toward the eye — so the level owns where the
+        //    interface hangs and the trial sequence owns what is on it. Any other level keeps the default upright
+        //    placement, which is why this is conditional rather than unconditional.
+        const bool ShowroomLevel = Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop";
+        if (ShowroomLevel)
+        {
+            const Frontier::Vector3 Anchor = Frontier::ProjectZero::ShowroomStructure::QueryPanelOrigin();
+            Frontier::PlanePlacement PanelPlacement;
+            PanelPlacement.Origin = Frontier::PlaneOrigin{ Anchor.x, Anchor.y, Anchor.z };
+            // π/2 stands the panel up (local +Y → world +Z); the showroom's tilt then leans it back toward the eye.
+            PanelPlacement.RotationX = 1.57079633f + Frontier::ProjectZero::ShowroomStructure::QueryPanelTilt();
+            PanelPlacement.Scale     = 2.2f;   // the trial layout is authored at ~0.14 m across; this reads at 2 m
+            InterfaceTrial.AssignPanelPlacement(PanelPlacement);
+        }
+
         InterfaceTrial.Construct(InterfaceFigures, InterfaceMotion);
         InterfaceReady = true;
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Interface",
