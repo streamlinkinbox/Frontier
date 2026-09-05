@@ -163,3 +163,47 @@ stride:
 An unset `BaseColour` resolves to the figure's own tint rather than to black, so no existing figure turns into a
 black rectangle the moment it is lit. The proof harness asserts that fallback, the round trip of both fields,
 and that a default figure is still a pure emitter. `SpatialInterface_P0_Tilted.png` is unchanged.
+
+---
+
+## High tier: status after implementation
+
+**The sampler is built and proven; the plumbing is not.** Worth separating, because "High is done" and "High is
+reachable" are different claims and only the first is true.
+
+`Shaders/InterfacePanelSample.slang` walks the composed figures at a hit's plane coordinate and returns the
+panel's emission there. It is a header of pure functions with no bindings declared, for the same reason
+`InterfaceSignedDistance.slang` is: the raster stage and the kernel bind the same data at different indices, so a
+header that hard-coded one would be unusable by the other.
+
+Verified (`Scratchpad/CheckPanelSample.sh`):
+
+- Spatial agreement — a red figure on the left samples red on the **left**, blue on the right, green placed high
+  samples in the **upper** half. A mirrored UV returns plausible colour everywhere and is otherwise invisible in a
+  blurry reflection, so this is the check that matters.
+- The gap between figures reads **dark**. That is the whole difference from Low: an averaged proxy is lit
+  uniformly, so visible structure is the evidence the reflection carries layout.
+- High's per-texel average vs Low's area-weighted average: **(0.1042, 0.0401, 0.1042)** against
+  **(0.1042, 0.0400, 0.1042)**. Two unrelated computations agreeing to four decimals.
+- Compiles to SPIR-V as the kernel would include it, not merely as C++ through the shim.
+- `Diagnostics/SpatialInterface_HighTier_Trial.png` shows the real trial panel — needle, tick ring, seven-segment
+  readout, progress bar.
+
+### What is left, and why it was not done in the same step
+
+The kernel cannot currently **read** the figure buffer:
+
+1. It lives in `InterfaceExchange`'s own descriptor set. The kernel's set is full to binding 18, which is the
+   variable-count bindless texture array and must remain last, so adding a buffer means extending
+   `kComputeBindingCount`, inserting before the texture binding, and renumbering 18 → 19 in the shader, the C++
+   layout, and every descriptor write site.
+2. The kernel must learn which instance is the panel proxy, to know when to substitute the sampler for the
+   material's averaged emission.
+3. The figure buffer must be uploaded per frame into a buffer the kernel's set owns.
+
+None of that is difficult; all of it is a descriptor-layout change of the kind that breaks quietly, and its
+correctness is only observable **on a GPU** — reflection output cannot be verified in this sandbox. Landing the
+sampler separately means the part that can be proven here is proven, and the part that cannot is a small, clearly
+bounded change rather than being tangled with untested geometry.
+
+`IsTierAvailable` therefore still returns false for High. It will flip in the same commit that lands the binding.

@@ -16,9 +16,16 @@
 //        High   same geometry and same luminaire; the hit shader evaluates the figures instead of the average
 //        Ultra  one luminaire per emissive figure, so a single lit button casts its own shaped pool
 //
-//    Off/Low are implemented here. High and Ultra need shader-side work in the hit path and are deliberately
-//    reported as unavailable rather than silently falling back to Low — a tier that quietly does something else
-//    is worse than one that says it is not there.
+//    Off and Low are implemented here end to end. HIGH's sampler is built and proven —
+//    Shaders/InterfacePanelSample.slang walks the figures at a hit's plane coordinate and is verified against the
+//    Low-tier average to four decimals (Scratchpad/CheckPanelSample.sh) — but it is not yet REACHABLE from the
+//    ray-tracing kernel: the figure buffer lives in InterfaceExchange's own descriptor set, and the kernel's set
+//    is full to binding 18, which is the variable-count bindless array and must stay last. Wiring it needs a
+//    descriptor renumber that touches every write site.
+//
+//    So High still reports itself unavailable. That is deliberate and worth stating plainly: the geometry is
+//    done, the plumbing is not, and a tier that silently fell back to Low would hide exactly that distinction.
+//    Ultra needs the same plumbing plus per-figure luminaires.
 //
 //    Engine ⇄ project seam: this knows figures have colour, area and an emissive weight. It does not know which
 //    figure is a warning lamp. The project picks the tier and owns the panel's placement.
