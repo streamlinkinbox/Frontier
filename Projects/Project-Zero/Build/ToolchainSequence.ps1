@@ -666,6 +666,7 @@ $EngineRelative = @(
     'Projects\Project-Zero\Source\InterfaceAudioSequence.cpp'
     'Projects\Project-Dyno\Source\CrankClickIntegrator.cpp'
     'Projects\Project-Dyno\Source\DynoSequence.cpp'
+    'Engine\PlatformInterchange\AcousticStructure.cpp'
     'Engine\PlatformInterchange\AudioExchange.cpp'
     'Engine\PlatformInterchange\MiniaudioTranslation.cpp'
     'Engine\PlatformInterchange\WaveCodec.cpp'

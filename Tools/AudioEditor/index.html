@@ -261,8 +261,9 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
         <div class="panel">
           <div class="panel-header">
             <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M3 17l5-5 4 3 5-7 4 4"/></svg></div>
-            <div><div class="ph-title">Order diagram</div><div class="ph-sub">level of each engine order against rpm · the NVH view for matching a recording</div></div>
+            <div><div class="ph-title">Order diagram</div><div class="ph-sub" id="orderSub">level of each engine order against rpm · the NVH view for matching a recording</div></div>
             <div class="spacer"></div>
+            <div class="seg sm" id="overlaySeg"><button data-overlay="off" class="active">Live</button><button data-overlay="split">Split</button><button data-overlay="diff">Δ</button></div>
             <button class="btn sm ghost" id="btnOrderClear">Clear</button>
           </div>
           <div class="panel-body tight"><div class="view"><canvas id="orders"></canvas></div></div>
@@ -2069,6 +2070,7 @@ const Editor = {
     recording: false, recChunks: [], recFrames: 0, recStart: 0,
     fileClip: null, fileEmitter: null, filePull: 'pull', fileStart: 0, fileSeq: null, fileName: '',
     freq: null, gramReports: 0, lastOrderX: -1, structurePending: false, hotSection: '',
+    overlay: 'off', fileOrders: null, fileOrderAgreement: null,   // C++ WAV order sheet (row A2 · P5): drawn over the live diagram
 };
 
 // ─────────────────────────────────────────────────── helpers ────────────────────────────────────────────────────────
@@ -2160,7 +2162,91 @@ async function loadWav(file)
     Editor.feed = 'file'; setActive($('feedSeg'), 'feed', 'file');
     clearOrders();
     applyFeed();
+    analyseFileOrders();
     toast('file feed: ' + file.name + ' · ' + Editor.fileClip.duration.toFixed(1) + ' s · ' + Editor.fileClip.numberOfChannels + ' ch');
+}
+
+// ─────────────────────────────────────── C++ overlay (row A2 · P5) ────────────────────────────────────────────────────
+// A dropped Project-Dyno --render WAV is read as an ORDER SHEET: the clip is walked with the selected pull's rpm timeline
+// (the same DynoSequence the C++ ran), one 8 192-point Hann spectrum per 40 ms, and the level of every half-order ½ … 2N is
+// kept against rpm. drawOrders paints it over the live diagram (Split: live in the lower half of each rpm column, file in
+// the upper; Δ: file − live in a blue/red ramp). The agreement readout is the mean |Δ| over orders ≥ −40 dB re the loudest —
+// the bar the C++ port is accepted against on Windows, where libm differs and the sample-level identity is not the test.
+function fftInPlace(re, im)
+{
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; ++i) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+    for (let len = 2; len <= n; len <<= 1)
+    {
+        const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+        for (let i = 0; i < n; i += len)
+        {
+            let cr = 1, ci = 0;
+            for (let j = 0; j < len / 2; ++j)
+            {
+                const ur = re[i + j], ui = im[i + j], vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+                re[i + j] = ur + vr; im[i + j] = ui + vi; re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+                const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+            }
+        }
+    }
+}
+// order sheet of a mono signal against an rpm timeline: columns = rpm bins (rpmLo … rpmHi over `columns`), rows = half-orders
+function orderSheetOf(samples, rate, rpmAt, N, rpmLo, rpmHi, columns)
+{
+    const size = 8192, hop = Math.round(rate * 0.04), rows = 4 * N, sheet = new Float32Array(columns * rows).fill(-200), hits = new Uint16Array(columns);
+    const re = new Float64Array(size), im = new Float64Array(size), win = new Float64Array(size); let ws = 0;
+    for (let i = 0; i < size; ++i) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / size); ws += win[i]; }
+    for (let start = 0; start + size <= samples.length; start += hop)
+    {
+        const rpm = rpmAt((start + size / 2) / rate); if (!rpm || rpm < rpmLo || rpm > rpmHi) continue;
+        for (let i = 0; i < size; ++i) { re[i] = samples[start + i] * win[i]; im[i] = 0; }
+        fftInPlace(re, im);
+        const col = Math.min(columns - 1, Math.floor((rpm - rpmLo) / (rpmHi - rpmLo) * columns)), f0 = rpm / 60;
+        for (let r = 0; r < rows; ++r)
+        {
+            const k = Math.round((r + 1) * 0.5 * f0 * size / rate); if (k < 2 || k >= size / 2 - 2) continue;
+            let m = 0; for (let j = k - 2; j <= k + 2; ++j) m = Math.max(m, Math.hypot(re[j], im[j]));
+            const db = 20 * Math.log10(2 * m / ws + 1e-12), at = col * rows + r;
+            sheet[at] = hits[col] ? sheet[at] + (db - sheet[at]) / (hits[col] + 1) : db;   // running mean over the column's spectra
+        }
+        ++hits[col];
+    }
+    return { sheet, hits, rows, columns, rpmLo, rpmHi };
+}
+function analyseFileOrders()
+{
+    Editor.fileOrders = null; Editor.fileOrderAgreement = null;
+    if (!Editor.fileClip) return;
+    const v = vehicle(), N = v.cylinder_count, rpmLo = Math.max(300, v.idle_rpm * 0.7), rpmHi = gaugeMax();
+    const seq = new DynoSequence(); seq.select(Editor.filePull, v.redline_rpm, v.idle_rpm);
+    const rpmAt = (t) => { seq.sample(t); return seq.rpm; };
+    const left = Editor.fileClip.getChannelData(0);
+    Editor.fileOrders = orderSheetOf(left, Editor.fileClip.sampleRate, rpmAt, N, rpmLo, rpmHi, 160);
+    Editor.fileOrders.pull = Editor.filePull; Editor.fileOrders.car = carKey;
+    $('orderSub').textContent = 'file order sheet: ' + Editor.fileName + ' along the "' + Editor.filePull + '" timeline · Split / Δ compare it with the live voice';
+}
+// live order sheet on the same lattice, from the worklet's own render (OfflineAudioContext, same pull, same seed) — so the
+// comparison is diagram against diagram, not diagram against a moving analyser
+async function analyseLiveOrders()
+{
+    if (!Editor.fileOrders) return null;
+    const v = vehicle(), N = v.cylinder_count, o = Editor.fileOrders;
+    const seq = new DynoSequence(); seq.select(o.pull, v.redline_rpm, v.idle_rpm);
+    const [L] = await renderOffline(carKey, o.pull, seq.duration(), { listener: Editor.listener });
+    const rpmAt = (t) => { seq.sample(t); return seq.rpm; };
+    return orderSheetOf(L, 48000, rpmAt, N, o.rpmLo, o.rpmHi, o.columns);
+}
+function compareOrderSheets(file, live)
+{
+    let sum = 0, count = 0, worst = 0, top = -200;
+    for (let i = 0; i < file.sheet.length; ++i) top = Math.max(top, file.sheet[i]);
+    for (let c = 0; c < file.columns; ++c)
+    {
+        if (!file.hits[c] || !live.hits[c]) continue;
+        for (let r = 0; r < file.rows; ++r) { const a = file.sheet[c * file.rows + r], b = live.sheet[c * file.rows + r]; if (a < top - 40 || b < top - 40) continue; const d = Math.abs(a - b); sum += d; ++count; worst = Math.max(worst, d); }
+    }
+    return { mean: count ? sum / count : NaN, worst, count };
 }
 function playFile()
 {
@@ -2447,8 +2533,47 @@ function drawOrders()
     }
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(orderCanvas, left * dpr, 4 * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1; g.fillStyle = '#888'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'middle';
     const plotW = pw / dpr, plotH = ph / dpr;
+    // C++ overlay: the file's order sheet (and the live sheet on the same lattice when Δ is chosen)
+    const fo = Editor.fileOrders;
+    if (fo && Editor.overlay !== 'off' && fo.car === carKey)
+    {
+        const lo = Editor.liveOrders && Editor.liveOrders.columns === fo.columns ? Editor.liveOrders : null;
+        const colW = plotW / fo.columns, rowH = plotH / fo.rows;
+        for (let c = 0; c < fo.columns; ++c)
+        {
+            if (!fo.hits[c]) continue;
+            const x = left + c * colW;
+            for (let r = 0; r < fo.rows; ++r)
+            {
+                const order = (r + 1) * 0.5; if (order > maxOrder) break;
+                const y = 4 + plotH * (1 - order / maxOrder);
+                const a = fo.sheet[c * fo.rows + r];
+                if (Editor.overlay === 'split')
+                {
+                    // upper half of the order band: the file; lower half: the live sheet on the same lattice once it is rendered
+                    //    (until then the analyser's own accumulation shows through)
+                    g.fillStyle = HEAT[heatIndex(a, -95, -15)]; g.fillRect(x, y - rowH * 0.5, colW + 0.5, rowH * 0.5);
+                    if (lo && lo.hits[c]) { g.fillStyle = HEAT[heatIndex(lo.sheet[c * lo.rows + r], -95, -15)]; g.fillRect(x, y, colW + 0.5, rowH * 0.5); }
+                }
+                else if (lo && lo.hits[c])
+                {
+                    const d = a - lo.sheet[c * lo.rows + r];
+                    if (a < -70 && lo.sheet[c * lo.rows + r] < -70) continue;
+                    const t = Math.max(-1, Math.min(1, d / 6));   // ±6 dB full scale
+                    g.fillStyle = t >= 0 ? 'rgba(255,' + Math.round(120 - 120 * t) + ',' + Math.round(80 - 80 * t) + ',' + (0.25 + 0.75 * Math.abs(t)).toFixed(2) + ')' : 'rgba(' + Math.round(80 + 80 * t) + ',' + Math.round(160 + 90 * t) + ',255,' + (0.25 + 0.75 * Math.abs(t)).toFixed(2) + ')';
+                    g.fillRect(x, y - rowH * 0.5, colW + 0.5, rowH);
+                }
+            }
+        }
+        g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(left + 6, 8, 330, 30);
+        g.fillStyle = '#e8e8e8'; g.font = '500 10.5px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top';
+        const ag = Editor.fileOrderAgreement;
+        g.fillText((Editor.overlay === 'split' ? 'split: file (upper) · live (lower) — ' : 'Δ file − live (red +, blue −, ±6 dB) — ') + Editor.fileName, left + 12, 12);
+        g.fillStyle = ag ? (ag.mean <= 0.1 ? '#7fe0a0' : (ag.mean <= 1.0 ? '#ffd27f' : '#ff8f8f')) : '#aaa';
+        g.fillText(ag ? 'agreement: mean |Δ| ' + ag.mean.toFixed(3) + ' dB, worst ' + ag.worst.toFixed(2) + ' dB over ' + ag.count + ' order cells ≥ −40 dB' : 'rendering the live sheet for the comparison …', left + 12, 25);
+    }
+    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1; g.fillStyle = '#888'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'middle';
     for (let o = 1; o <= maxOrder; ++o)
     {
         const y = 4 + plotH * (1 - o / maxOrder), dom = o === N / 2;
@@ -2576,6 +2701,7 @@ function selectCar(key)
     buildInspector(); drawGaugeStatic(); clearOrders();
     post({ type: 'stop' }); post({ type: 'structure', structure: car().current });
     if (Editor.feed === 'file') playFile();
+    if (Editor.fileClip) { analyseFileOrders(); Editor.liveOrders = null; Editor.fileOrderAgreement = null; }
 }
 const pick = $('carPick');
 for (const key of carOrder) { const b = document.createElement('button'); b.dataset.car = key; b.textContent = cars[key].defaults.vehicle.name; b.onclick = () => selectCar(key); pick.appendChild(b); }
@@ -2586,7 +2712,7 @@ const stopBtn = document.createElement('button'); stopBtn.className = 'btn ghost
 function runPull(name)
 {
     if (!Editor.started) { toast('start audio first'); return; }
-    if (Editor.feed === 'file') { Editor.filePull = name; playFile(); return; }
+    if (Editor.feed === 'file') { Editor.filePull = name; playFile(); analyseFileOrders(); Editor.liveOrders = null; Editor.fileOrderAgreement = null; return; }
     post({ type: 'pull', name, loop: Editor.loop });
 }
 
@@ -2598,6 +2724,20 @@ $('loopToggle').onclick = () => { Editor.loop = !Editor.loop; $('loopToggle').da
 $('pureToggle').onclick = () => { Editor.pure = !Editor.pure; $('pureToggle').dataset.on = String(Editor.pure); post({ type: 'pure', on: Editor.pure }); };
 $('btnScopeHold').onclick = () => { Editor.scopeHold = !Editor.scopeHold; $('btnScopeHold').textContent = Editor.scopeHold ? 'Resume' : 'Hold'; $('btnScopeHold').classList.toggle('primary', Editor.scopeHold); };
 $('btnOrderClear').onclick = clearOrders;
+$('overlaySeg').onclick = async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    Editor.overlay = b.dataset.overlay; setActive($('overlaySeg'), 'overlay', Editor.overlay);
+    if (Editor.overlay === 'off') return;
+    if (!Editor.fileOrders) { toast('drop a Project-Dyno --render WAV first'); return; }
+    if (!Editor.liveOrders || Editor.liveOrders.pull !== Editor.fileOrders.pull || Editor.liveOrders.car !== carKey)
+    {
+        Editor.liveOrders = null; Editor.fileOrderAgreement = null;
+        const live = await analyseLiveOrders(); if (!live) return;
+        live.pull = Editor.fileOrders.pull; live.car = carKey; Editor.liveOrders = live;
+        Editor.fileOrderAgreement = compareOrderSheets(Editor.fileOrders, live);
+        toast('order sheets compared: mean |Δ| ' + Editor.fileOrderAgreement.mean.toFixed(3) + ' dB');
+    }
+};
 $('btnReset').onclick = () => { car().current = structureFromToml(car().defaults); buildInspector(); scheduleStructure(); toast('reset ' + vehicle().name); };
 $('btnImport').onclick = () => $('fileToml').click();
 $('btnExport').onclick = exportToml;
@@ -2644,7 +2784,8 @@ async function renderOffline(key, pull, seconds, options)
     const rendered = await octx.startRendering();
     return [rendered.getChannelData(0), rendered.getChannelData(1)];
 }
-window.FrontierAudioEditor = { Dsp, cars, get carKey() { return carKey; }, selectCar, renderOffline, startAudio, runPull, loadWav, editor: Editor, exportToml };
+window.FrontierAudioEditor = { Dsp, cars, get carKey() { return carKey; }, selectCar, renderOffline, startAudio, runPull, loadWav, editor: Editor, exportToml,
+                               orderSheetOf, analyseFileOrders, analyseLiveOrders, compareOrderSheets, serialiseToml };
 
 selectCar(carKey);
 drawGaugeStatic();

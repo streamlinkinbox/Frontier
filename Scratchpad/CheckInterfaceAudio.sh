@@ -11,13 +11,13 @@ if [ -z "$VulkanInclude" ]; then
 fi
 [ -z "$VulkanInclude" ] && { git clone -q --depth 1 https://github.com/KhronosGroup/Vulkan-Headers.git /tmp/vkh >/dev/null 2>&1; VulkanInclude=/tmp/vkh/include; }
 g++ -std=c++20 -O2 -pthread -I Engine -I . -I "$VulkanInclude" \
-    -I Projects/Project-Dyno/Source -I ExternalPackages/miniaudio \
+    -I Projects/Project-Dyno/Source -I ExternalPackages/miniaudio -I ExternalPackages/tomlpp/include \
     Scratchpad/InterfaceAudioTest.cpp \
     Projects/Project-Zero/Source/InterfaceAudioSequence.cpp \
     Projects/Project-Zero/Source/InterfaceTrialSequence.cpp \
     Projects/Project-Dyno/Source/CrankClickIntegrator.cpp Projects/Project-Dyno/Source/DynoSequence.cpp \
     Engine/PlatformInterchange/AudioExchange.cpp Engine/PlatformInterchange/MiniaudioTranslation.cpp \
-    Engine/PlatformInterchange/WaveCodec.cpp \
+    Engine/PlatformInterchange/WaveCodec.cpp Engine/PlatformInterchange/AcousticStructure.cpp \
     Engine/SpatialInterface/InterfaceStructure.cpp Engine/SpatialInterface/InterfaceSequence.cpp \
     Engine/SpatialInterface/InterfaceLayoutCodec.cpp Engine/SpatialInterface/PaletteConfiguration.cpp \
     Engine/SpatialInterface/InterfacePointerProjection.cpp \

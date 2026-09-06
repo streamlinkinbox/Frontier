@@ -1,0 +1,61 @@
+ProjectDynoRender — 2026-09-06T21:05:05Z
+
+[1] AcousticProof --self
+AcousticProof --self
+  PASS  FFT: 246.094 Hz at 0.5 → -6.0206 dBFS (want −6.0206 ± 0.001), 750 Hz at 0.1 → -20.0000 dBFS (want −20.0 ± 0.001)
+  PASS  order reader on a 12-order synthetic comb, f0 = 46.875 Hz (bin-centred): worst error 0.0000 dB re order 6 (bar ±0.01)
+  PASS  order reader on a 12-order synthetic comb, f0 = 50.000 Hz (3 000 rpm, off-centre): worst error 0.0010 dB re order 6 (bar ±0.01)
+ALL PASS — 3 pass, 0 fail
+
+[2] --render 3 cars × pull → WAV ⇄ JavaScript dump, order sheets, PNGs
+[Car] Ferrari LaFerrari — F140FE 6.3 L 65° V12, NA, equal-length headers (12 cylinders, idle 1000, redline 9250 rpm, rev-3 crank-pulse voice) from /home/user/Frontier/EngineContent/AudioArchives/FerrariLaFerrari/FerrariLaFerrari.toml
+[Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_FerrariLaFerrari_Pull.wav — firings 7253, pops 9, clipped 0, dropped 0
+  PASS  /tmp/ProjectDyno_FerrariLaFerrari_Pull.wav vs Scratchpad/Reference/FerrariLaFerrari_pull.f64: 720000 frames, max |Δ| 2.980e-08 at frame 337577 ch 1 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
+ALL PASS — 1 pass, 0 fail
+  FerrariLaFerrari idle @ 1000 rpm (left, 0.32–1.00 s): loudest order 6.0 at -35.1 dBFS; re it: 0.5:-29.6 1:-15.5 1.5:-27.1 2:-11.9 2.5:-31.9 3:-27.7 4:-20.4 5:-42.4 6:+0.0 7:-39.3 8:-23.6 9:-33.8 10:-31.9 12:-17.2 18:-37.0 24:-57.0
+    centroid < 8 kHz 118 Hz · above 300 Hz -36.8 dB re the loudest line · N/2 = 6
+  FerrariLaFerrari redline @ 9250 rpm (left, 7.52–8.20 s): loudest order 12.0 at -20.8 dBFS; re it: 0.5:-34.3 1:-31.2 1.5:-35.3 2:-26.2 2.5:-34.2 3:-12.3 4:-25.8 5:-27.8 6:-5.3 7:-25.3 8:-25.8 9:-9.4 10:-33.4 12:+0.0 18:-4.5 24:-13.1
+    centroid < 8 kHz 2026 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 6
+  wrote Scratchpad/ProjectDyno_FerrariLaFerrari_Pull.png  (FerrariLaFerrari redline)
+  FerrariLaFerrari pure steady @ 4000 rpm (left, 2.32–3.00 s): loudest order 6.0 at -25.2 dBFS; re it: 0.5:-49.6 1:-27.5 1.5:-46.3 2:-23.1 2.5:-49.7 3:-21.3 4:-23.8 5:-38.1 6:+0.0 7:-29.9 8:-26.7 9:-11.2 10:-32.3 12:-4.6 18:-9.1 24:-15.2
+    centroid < 8 kHz 754 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 6
+  PASS  FerrariLaFerrari pure steady: firing order N/2 = 6 at +0.0 dB re the loudest order (6.0) — within 20 dB
+ALL PASS — 1 pass, 0 fail
+[Car] Porsche 918 Spyder — 4.6 L 90° flat-plane V8, NA, top-exit pipes (8 cylinders, idle 1000, redline 9150 rpm, rev-2 voice) from /home/user/Frontier/EngineContent/AudioArchives/Porsche918Spyder/Porsche918Spyder.toml
+[Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_Porsche918Spyder_Pull.wav — firings 4792, pops 127, clipped 98203, dropped 0
+  PASS  /tmp/ProjectDyno_Porsche918Spyder_Pull.wav vs Scratchpad/Reference/Porsche918Spyder_pull.f64: 720000 frames, max |Δ| 2.980e-08 at frame 505390 ch 0 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
+ALL PASS — 1 pass, 0 fail
+  Porsche918Spyder idle @ 1000 rpm (left, 0.32–1.00 s): loudest order 20.0 at -8.8 dBFS; re it: 0.5:-50.3 1:-56.1 1.5:-51.7 2:-54.3 2.5:-50.7 3:-53.9 4:-23.3 5:-50.0 6:-44.7 7:-44.3 8:-12.5 9:-49.6 10:-50.1 12:-13.7 18:-34.5 24:-11.4
+    centroid < 8 kHz 442 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 4
+  Porsche918Spyder redline @ 9150 rpm (left, 7.52–8.20 s): loudest order 1.5 at -7.6 dBFS; re it: 0.5:-6.7 1:-18.6 1.5:+0.0 2:-14.7 2.5:-7.7 3:-7.1 4:-13.3 5:-18.3 6:-36.9 7:-19.2 8:-20.3 9:-34.0 10:-28.6 12:-20.6 18:-34.0 24:-28.0
+    centroid < 8 kHz 1122 Hz · above 300 Hz -7.6 dB re the loudest line · N/2 = 4
+  wrote Scratchpad/ProjectDyno_Porsche918Spyder_Pull.png  (Porsche918Spyder redline)
+  Porsche918Spyder pure steady @ 4000 rpm (left, 2.32–3.00 s): loudest order 5.5 at -11.3 dBFS; re it: 0.5:-9.3 1:-27.0 1.5:-2.2 2:-28.2 2.5:-7.1 3:-28.6 4:-12.2 5:-40.9 6:-42.4 7:-45.9 8:-12.5 9:-45.6 10:-46.3 12:-8.6 18:-68.6 24:-25.1
+    centroid < 8 kHz 312 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 4
+  PASS  Porsche918Spyder pure steady: firing order N/2 = 4 at -12.2 dB re the loudest order (5.5) — within 20 dB
+ALL PASS — 1 pass, 0 fail
+[Car] Nissan GT-R Nismo — VR38DETT 3.8 L 60° V6, twin IHI turbos, titanium exhaust (6 cylinders, idle 900, redline 7100 rpm, rev-2 voice, turbo) from /home/user/Frontier/EngineContent/AudioArchives/NissanGtrNismo/NissanGtrNismo.toml
+[Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_NissanGtrNismo_Pull.wav — firings 2891, pops 26, clipped 105578, dropped 0
+  PASS  /tmp/ProjectDyno_NissanGtrNismo_Pull.wav vs Scratchpad/Reference/NissanGtrNismo_pull.f64: 720000 frames, max |Δ| 2.981e-08 at frame 246724 ch 0 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
+ALL PASS — 1 pass, 0 fail
+  NissanGtrNismo idle @ 900 rpm (left, 0.32–1.00 s): loudest order 3.0 at -7.3 dBFS; re it: 0.5:-22.5 1:-13.9 1.5:-31.5 2:-15.3 2.5:-19.9 3:+0.0 4:-15.8 5:-16.5 6:-5.5 7:-15.5 8:-28.6 9:-22.1 10:-18.1 12:-41.0 18:-27.6 24:-20.2
+    centroid < 8 kHz 168 Hz · above 300 Hz -18.8 dB re the loudest line · N/2 = 3
+  NissanGtrNismo redline @ 7100 rpm (left, 7.52–8.20 s): loudest order 1.0 at -10.1 dBFS; re it: 0.5:-1.0 1:+0.0 1.5:-21.9 2:-10.5 2.5:-26.6 3:-1.0 4:-23.8 5:-25.5 6:-12.5 7:-23.2 8:-37.8 9:-17.2 10:-23.1 12:-23.8 18:-33.3 24:-37.4
+    centroid < 8 kHz 2474 Hz · above 300 Hz -1.1 dB re the loudest line · N/2 = 3
+  wrote Scratchpad/ProjectDyno_NissanGtrNismo_Pull.png  (NissanGtrNismo redline)
+  NissanGtrNismo pure steady @ 4000 rpm (left, 2.32–3.00 s): loudest order 1.0 at -11.0 dBFS; re it: 0.5:-8.8 1:+0.0 1.5:-5.3 2:-10.0 2.5:-7.7 3:-3.4 4:-5.7 5:-6.7 6:-0.9 7:-19.4 8:-23.7 9:-13.0 10:-22.1 12:-25.1 18:-44.8 24:-29.8
+    centroid < 8 kHz 218 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 3
+  PASS  NissanGtrNismo pure steady: firing order N/2 = 3 at -3.4 dB re the loudest order (1.0) — within 20 dB
+ALL PASS — 1 pass, 0 fail
+
+[3] --null --seconds 60 --pull limiter (LaFerrari): overloads, dropped transients, peak callback
+[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 10889 | frames 2787584 | last 78.6 us (0.01 load) | peak 452.1 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 1.00 | firings 38331 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
+[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 11252 | frames 2880512 | last 71.3 us (0.01 load) | peak 452.1 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 0.00 (fuel cut) | firings 40122 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
+[Shutdown] 60.0 s live, 40122 firing events, 0 overloads, 0 clips (device) / 0 clipped (voice), 0 transients dropped — PASS
+[Shutdown] 20.0 s live, 3289 firing events, 0 overloads, 0 clips (device) / 81531 clipped (voice), 0 transients dropped — PASS
+  PASS  null device: 0 overloads, 0 transients dropped
+
+[4] --clicks --render (row-A1 click train still behind --clicks)
+  PASS  click train renders
+
+ALL PASS

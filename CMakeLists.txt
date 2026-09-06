@@ -236,6 +236,7 @@ set(PROJECT_ZERO_SOURCES
     Projects/Project-Zero/Source/InterfaceAudioSequence.cpp
     Projects/Project-Dyno/Source/CrankClickIntegrator.cpp
     Projects/Project-Dyno/Source/DynoSequence.cpp
+    Engine/PlatformInterchange/AcousticStructure.cpp
     Engine/PlatformInterchange/AudioExchange.cpp
     Engine/PlatformInterchange/MiniaudioTranslation.cpp
     Engine/PlatformInterchange/WaveCodec.cpp
@@ -316,8 +317,11 @@ set(PROJECT_DYNO_SOURCES
     Engine/PlatformInterchange/MiniaudioTranslation.cpp
     Engine/PlatformInterchange/WaveCodec.cpp
     Engine/PlatformInterchange/AudioExchange.cpp
+    Engine/PlatformInterchange/AcousticStructure.cpp
+    Engine/PlatformInterchange/AcousticIntegrator.cpp
     Projects/Project-Dyno/Source/DynoSequence.cpp
     Projects/Project-Dyno/Source/CrankClickIntegrator.cpp
+    Projects/Project-Dyno/Source/FreeRevPowertrain.cpp
     Projects/Project-Dyno/Source/GameExecution.cpp
 )
 add_executable(Project-Dyno ${PROJECT_DYNO_SOURCES})

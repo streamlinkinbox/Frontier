@@ -51,6 +51,11 @@ Run CheckTracedGeometry
 Run CheckDynamicGeometryBudget
 
 echo
+echo "=== acoustics (row A2: the C++ voice against the editor's JavaScript, then Project-Dyno end to end) ==="
+Run CheckAcousticIdentity
+Run CheckAcousticDyno
+
+echo
 echo "=== browser-side testbeds (source integrity only; DSP and WebGPU need a browser) ==="
 Run CheckAcousticArchives
 Run CheckFluidProject

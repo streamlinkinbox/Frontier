@@ -24,7 +24,8 @@ const CARS = {}, CAR_ORDER = [];
 for (const m of html.matchAll(/<script type="text\/toml" data-car="([^"]+)">([\s\S]*?)<\/script>/g)) { CARS[m[1]] = D.parseToml(m[2]); CAR_ORDER.push(m[1]); }
 
 const RATE = 48000;
-const outDir = process.argv[2] || path.join(repo, 'Scratchpad');
+const dumpMode = process.argv[2] === '--dump';
+const outDir = (!dumpMode && process.argv[2]) || path.join(repo, 'Scratchpad');
 fs.mkdirSync(outDir, { recursive: true });
 let pass = 0, fail = 0;
 function check(ok, text) { if (ok) ++pass; else ++fail; console.log((ok ? '  PASS  ' : '  FAIL  ') + text); }
@@ -176,6 +177,60 @@ function proofImage(file, L, R, trace, structure, title)
     for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) { const y = PAD + Math.round(HS * (1 - Math.log(f / fLo) / Math.log(fHi / fLo))); for (let x = 0; x < 10; ++x) put(x, y, INK_GREY); }
     writePng(file, W, H, ink, PALETTE);
     console.log('  wrote ' + path.relative(repo, file) + '  (' + title + ')');
+}
+
+// ---------------------------------------------------------------- reference dump (row A2 · P0) ---------------------------------------------
+// node Scratchpad/AcousticEditorRender.js --dump [car|all] [pull] [seconds|full] [slice] [seed] [pure|full] [listener]
+//   Writes Scratchpad/Reference/<car>_<pull>[_pure][_<listener>].f64 (raw little-endian float64, interleaved L R — git-ignored,
+//   regenerate on demand), the matching .txt (dump arguments, counts, meters, final smoothed demand — one `key value` per line)
+//   and .toml (the structure as the page serialises it, so the C++ loader and writer are checked against the same bytes).
+//   The C++ identity proof (Scratchpad/AcousticIdentityTest.cpp) renders the same structure through AcousticIntegrator with the
+//   same slicing and seed and reports max |Δ| per sample; the .f64 is the contract, the .txt says what produced it. Demand goes
+//   in per slice exactly as the worklet and the C++ transport do it: pull.advance(slice / rate) → scriptedRecord → assignDemand → render.
+if (dumpMode)
+{
+    const carArg = process.argv[3] || 'all', pullName = process.argv[4] || 'pull', secondsArg = process.argv[5] || 'full';
+    const slice = Math.max(1, Math.round(Number(process.argv[6] || 64))), seed = Number(process.argv[7] || 0x5EED1234) >>> 0;
+    const pure = (process.argv[8] || 'full') === 'pure', listener = process.argv[9] || 'trackside';
+    const refDir = path.join(repo, 'Scratchpad', 'Reference'); fs.mkdirSync(refDir, { recursive: true });
+    const keys = carArg === 'all' ? CAR_ORDER : [carArg];
+    for (const key of keys)
+    {
+        if (!CARS[key]) { console.error('unknown car ' + key); process.exit(2); }
+        const structure = D.structureFromToml(CARS[key]);
+        const ig = new D.AcousticIntegrator(RATE, structure, seed);
+        ig.pureTone = pure; ig.assignListener(listener);
+        const pull = new D.DynoSequence(); pull.select(pullName, structure.vehicle.redline_rpm, structure.vehicle.idle_rpm);
+        const seconds = secondsArg === 'full' ? pull.duration() : Number(secondsArg);
+        const total = Math.floor(seconds * RATE), L = new Float64Array(total), R = new Float64Array(total);
+        let done = 0, time = 0.0;
+        while (done < total)
+        {
+            const n = Math.min(slice, total - done), dt = n / RATE;
+            pull.advance(dt);
+            const rec = D.scriptedRecord(pull, structure.vehicle, time);
+            ig.assignDemand(rec.rpm, rec.throttle, rec.load, 0.0);
+            ig.render(L.subarray(done, done + n), R.subarray(done, done + n), n);
+            done += n; time += dt;
+        }
+        const meters = Array.from(ig.takeMeters());
+        const stem = key + '_' + pullName + (pure ? '_pure' : '') + (listener !== 'trackside' ? '_' + listener : '') + (slice !== 64 ? '_slice' + slice : '');
+        const raw = Buffer.alloc(total * 16);
+        for (let i = 0; i < total; ++i) { raw.writeDoubleLE(L[i], i * 16); raw.writeDoubleLE(R[i], i * 16 + 8); }
+        fs.writeFileSync(path.join(refDir, stem + '.f64'), raw);
+        let peak = 0.0; for (let i = 0; i < total; ++i) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+        const echo = [['car', key], ['pull', pullName], ['seconds', seconds], ['rate', RATE], ['slice', slice], ['seed', seed], ['pure', pure ? 1 : 0], ['listener', listener],
+                      ['frames', total], ['firings', ig.firingCount], ['pops', ig.popCount], ['clipped', ig.clippedCount], ['dropped', ig.transients.dropped], ['spawned', ig.transients.spawned],
+                      ['peak', peak], ['rpmS', ig.rpmS], ['throttleS', ig.throttleS], ['loadS', ig.loadS], ['theta', ig.theta], ['sampleIndex', ig.sampleIndex],
+                      ['schemaFields', D.ACOUSTIC_SCHEMA.length], ['valveHz', ig.valveHz], ['silencerHz', ig.silencerHz], ['intakeHz', ig.intakeHz], ['valveGain', ig.valveGain], ['thumpHz', ig.thumpHz],
+                      ['spool', ig.spool], ['boost', ig.boost], ['firingWalkDeg', ig.firingWalkDeg], ['cycleIndex', ig.cycleIndex]];
+        meters.forEach((m, i) => echo.push(['meter' + i, m]));
+        // numbers are written with 17 significant digits (exact round trip) so the C++ side compares doubles, not text
+        fs.writeFileSync(path.join(refDir, stem + '.txt'), echo.map(([k, v]) => k + ' ' + (typeof v === 'number' ? v.toPrecision(17) : v)).join('\n') + '\n');
+        fs.writeFileSync(path.join(refDir, stem + '.toml'), D.serialiseToml(structure, ['Frontier acoustic structure — ' + structure.vehicle.name, 'reference dump echo (Scratchpad/AcousticEditorRender.js --dump)', 'units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]']));
+        console.log('  dumped ' + stem + '  ' + total + ' frames  peak ' + peak.toFixed(4) + '  firings ' + ig.firingCount + '  pops ' + ig.popCount + '  clipped ' + ig.clippedCount);
+    }
+    process.exit(0);
 }
 
 // ---------------------------------------------------------------- checks ---------------------------------------------------------------

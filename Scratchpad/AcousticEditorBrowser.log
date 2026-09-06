@@ -1,4 +1,4 @@
-AudioEditor browser proof — 2026-09-06T17:51:15.893Z — HeadlessChrome/129.0.6668.0
+AudioEditor browser proof — 2026-09-06T20:56:46.645Z — HeadlessChrome/129.0.6668.0
 
 [0] double-click path (file:// origin, no server)
   PASS  file:// page loads and its worklet renders (peak 1.000, errors 0)
@@ -10,32 +10,39 @@ AudioEditor browser proof — 2026-09-06T17:51:15.893Z — HeadlessChrome/129.0.
   PASS  inspector built 103 sliders from the schema
 
 [2] worklet ⇄ node identity (OfflineAudioContext, 4 s of the "pull" pull)
-  PASS  Porsche918Spyder: worklet rendered 192000 frames (1297 ms)
+  PASS  Porsche918Spyder: worklet rendered 192000 frames (1428 ms)
   PASS  Porsche918Spyder: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  Porsche918Spyder: order diagram agreement ±0.0000 dB over orders ½ … 16 (limit 0.1 dB)
-  PASS  FerrariLaFerrari: worklet rendered 192000 frames (968 ms)
+  PASS  FerrariLaFerrari: worklet rendered 192000 frames (899 ms)
   PASS  FerrariLaFerrari: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 0.783)
   PASS  FerrariLaFerrari: order diagram agreement ±0.0000 dB over orders ½ … 24 (limit 0.1 dB)
-  PASS  NissanGtrNismo: worklet rendered 192000 frames (1153 ms)
+  PASS  NissanGtrNismo: worklet rendered 192000 frames (1059 ms)
   PASS  NissanGtrNismo: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  NissanGtrNismo: order diagram agreement ±0.0000 dB over orders ½ … 12 (limit 0.1 dB)
 
 [3] live audio (fake device)
   PASS  frame loop survives without CanvasRenderingContext2D.roundRect (errors 0)
-  PASS  all panels drawn at 790×600 · Pure · Cockpit: {"chain":9655,"scope":1730,"spectrum":3703,"orders":944,"gauge":1337,"rpm":"1022"}
+  PASS  all panels drawn at 790×600 · Pure · Cockpit: {"chain":9643,"scope":1840,"spectrum":3806,"orders":944,"gauge":1337,"rpm":"1022"}
   PASS  AudioContext running at 48000 Hz
-  PASS  worklet reports arriving: 141 in 1.5 s
+  PASS  worklet reports arriving: 145 in 1.5 s
   PASS  free-rev idle settled at 1022 rpm (918)
   PASS  Space held 1 s → 9073 rpm (free-rev inertia model)
   PASS  918 gear whine + hybrid motor on the mechanical bus during the climb: peak -32 dB
-  PASS  lift-off produced overrun pops: 60
-  PASS  LaFerrari scripted pull running: 7188 rpm at t ≈ 5.5 s
+  PASS  lift-off produced overrun pops: 68
+  PASS  LaFerrari scripted pull running: 7197 rpm at t ≈ 5.5 s
   PASS  no pulses dropped (0)
-  PASS  voice / exhaust bus / intake (rev 3 intake voice, meter 11) / output meters live: -13 -13 -8 -9 -180 -39 -180 -180 -11 -15 -180 -10 dB
-  worklet load 5.4 % (headless software Chromium — the user's desktop will be far lower), overruns 34
-  PASS  GT-R boost under load: 0.72 bar, spool 65 % at 4799 rpm, turbo meter -14 dB
+  PASS  voice / exhaust bus / intake (rev 3 intake voice, meter 11) / output meters live: -13 -13 -8 -8 -180 -38 -180 -180 -11 -14 -180 -11 dB
+  worklet load 0.0 % (headless software Chromium — the user's desktop will be far lower), overruns 26
+  PASS  GT-R boost under load: 0.72 bar, spool 65 % at 4804 rpm, turbo meter -15 dB
   PASS  live structure edit accepted mid-pull (rpm 7100, errors 0)
   PASS  serialiseToml → parseToml round trip is lossless (918)
+
+[5] C++ hand-over: --render WAV order overlay, Export TOML ⇄ AcousticStructure::Save
+  PASS  Project-Dyno --render / --save outputs available (Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav)
+  PASS  C++ WAV dropped: file feed on, 15.00 s stereo decoded, order sheet built over 142 rpm columns (275 ms)
+  PASS  C++ WAV order sheet vs the worklet's own render of the same pull: mean |Δ| 0.0000 dB, worst 0.000 dB over 1927 order cells ≥ −40 dB (limit: mean 0.1 dB; 1536 ms)
+  PASS  overlay drawn on the order diagram (65656 lit samples)
+  PASS  Export TOML text == Project-Dyno --save (AcousticStructure::Save): 13628 bytes identical
   PASS  no console / page errors during the live session
 
-ALL PASS — 29 pass, 0 fail
+ALL PASS — 34 pass, 0 fail

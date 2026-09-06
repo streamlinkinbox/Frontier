@@ -1,5 +1,7 @@
 # Acoustic Phase A — C++ port plan (row A2): the AudioEditor voice into `Engine/PlatformInterchange` + Project-Dyno
 
+**Status (row A2 shipped in one commit, P0–P5): see §8 at the end for what landed, the measured numbers and the ⚠️ deviations from this plan.**
+
 Plan only — no code until you say go. Companion to `AcousticPhaseA-Plan.md` (§5 row A2) and `AcousticPhaseA-VoicingReport.md`
 (§5 rev-3 list, §10 measured idle targets). Written so it works **whichever voice ships first**: rev 2 as it stands today, or rev 3
 after the LaFerrari work. The port is of a *contract* (TOML schema + integrator + proofs), not of a snapshot.
@@ -186,3 +188,24 @@ linear read), a 4th event per cylinder (`EVENT_INTAKE`), an `intake` voice with 
 band-passes + a 4th-order silencer per channel, `valve_open_load`, `CYLINDER_SPREAD` (8-entry pattern indexed by firing position
 mod N/2) and `VALVE_RAMP_DEG`. `BiquadSection` gains `lowpass` / `highpass`; `CombLine` gains `mix`. Nothing in the transport,
 the record, the dyno sequences or the proofs changes; the §P0 identity proof simply runs the LaFerrari through both voices.
+
+## 8. As built (row A2)
+
+You answered "continue" instead of the §7 asks, so the plan's stated defaults were applied — ⚠️ flagged below where they matter.
+
+| Row | Landed | Proof (sandbox) |
+|---|---|---|
+| P0 | `Scratchpad/AcousticEditorRender.js --dump [car\|all] [pull] [seconds\|full] [slice] [seed] [pure\|full] [listener]` → `Scratchpad/Reference/<stem>.f64` (float64 L/R, git-ignored) + `.txt` (counters, final demand, meters — tracked) + `.toml` (structure echo); `Scratchpad/AcousticProof.cpp` (FFT, Hann-lobe order reader, order sheet, centroid, PNG, WAV ⇄ `.f64` diff, `--self`) | `AcousticProof --self`: FFT −6.0206 / −20.0000 dBFS exact; synthetic comb bin-centred 0.0000 dB, off-centre 0.0010 dB (bar 0.01) |
+| P1 | `PowertrainRecord.h` (moved to the Engine, **doubles**), `SignalSections.h`, `TransientSlots.h`, `AcousticStructure.h/.cpp` (sheet of 111 rows generated from `ACOUSTIC_SCHEMA`; Load / Save / Deserialise / Serialise / FindField / QueryReal …; unknown keys counted) | the three archives load with 0 unknown keys and **Serialise reproduces every archive byte for byte** (13 837 / 13 865 / 13 849 bytes); every sheet default equals the member initialiser |
+| P2 + P3 | `AcousticIntegrator.h/.cpp` — one loop, rev 2 and rev 3 (the dump is of the A1¾ tree, so the plan's "rev 2 first" became "both at once"); `RenderDouble` for the proofs, `Render` (float, interleaved) for the transport; structure via `RelayQueue<AcousticStructure>`, readout / meters back via relays, scope via a ready flag | `Scratchpad/AcousticIdentityTest.log` 70/70: **max \|Δ\| 1.7 × 10⁻¹¹** over 14 dumps (≈ 4.9 M samples); 918 pull, GT-R pull / overrun with 98 k–106 k clipped samples equal to the count; final rpm / θ equal to 10⁻⁹; 1 / 37 / 64 / 256 slices byte-identical; 33–37 µs per 64-frame slice at −O2 |
+| P4 | Project-Dyno: `--car <key\|path.toml>`, `--listener`, `--pure`, `--seed`, `--free` (Space, Enter / q), `--slice`, `--save`, `--clicks`; `DynoSequence` doubles + `overrun` + `limiter` + `ScriptedRecord(rpm, throttle, vehicle, time)`; `FreeRevPowertrain`; `[Audio]` line: `voice <rpm> thr load [fuel cut] \| firings \| pops \| clipped \| dropped \| boost`; build lists (`.sh`, `.ps1`, `CMakeLists.txt`, Project-Zero's `.ps1` — it links `DynoSequence`, which now needs `AcousticStructure`) | `Scratchpad/ProjectDynoRender.log`: `--render --float` vs the dump ≤ 2.98 × 10⁻⁸ for all three cars (float32 rounding), order sheets idle / redline, PNGs, pure steady firing-order gate, 60 s null run 0 overloads / 0 dropped / peak 440 µs, click train intact |
+| P5 | Editor order diagram: **Live / Split / Δ** segment; a dropped WAV is analysed into an order sheet along the selected pull's timeline; Δ renders the worklet's own pull offline on the same lattice and reports mean / worst \|Δ\| over cells ≥ −40 dB | `Scratchpad/AcousticEditorBrowser.log` 34/34: C++ `--render --slice 128` WAV vs the worklet **0.0000 dB** over 1 927 cells; Export TOML == `--save` 13 628 bytes identical; `Diagnostics/AudioEditor_07_CppOverlay.png` / `_08_CppOverlay_Delta.png` |
+
+⚠️ Deviations and defaults
+* **§7 asks defaulted**: fixed seed `0x5EED1234` (two runs identical; `--seed` overrides); the `[Audio]` line carries the voice counters every 2 s; the transport's `PowertrainRecord` became **double** (the plan said float — a float record rounds rpm by 0.0005 and breaks the 10⁻⁶ bar; the click train and Project-Zero's `InterfaceAudioSequence` compile unchanged, `AudioTransportTest` still 0 failures).
+* **P2 / P3 merged** into one integrator commit: the reference is the rev-3 tree, and the pure-mode subset alone cannot be dumped from it without a second DSP fork.
+* **`AcousticProof` built by its own line** in `CheckAcousticDyno.sh`, not by a `ToolchainSequence.sh --proof` mode — the toolchain scripts stay the binary's; proofs live in `Scratchpad/` per the house rule. The PNG writer is the tree's `Scratchpad/PngWriteShim.h` (stb's signature) so the `stb` submodule is not required.
+* **Order reader**: the JavaScript proof reads the raw peak bin; the C++ reader recovers the tone through the Hann lobe (no scalloping). Both readers are used on both signals when comparing, so the overlay's 0.0000 dB is like against like.
+* **Windows libm**: the sample-level identity is proven here (glibc ↔ V8 are both within 1 ulp on exp / sin / tanh; the feedback sections grow that to 10⁻¹¹). On your box MSVC's CRT may differ by an ulp — the acceptance there is the Δ overlay (order sheet ±0.1 dB), which is the audible bar.
+* **Not done**: the A4 *recording* lane (needs an rpm trace for a real clip — the overlay code is ready for it); Project-Zero still plays the click train (`InterfaceAudioSequence` — Phase B swaps it for `AcousticIntegrator`).
+

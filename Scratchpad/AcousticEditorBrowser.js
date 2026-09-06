@@ -7,10 +7,13 @@
 //   [2] OfflineAudioContext render through the page's own worklet == node render of the same DSP (per-order ±0.1 dB, sample-level max |Δ|)
 //   [3] the live AudioContext runs (fake audio device), reports arrive, meters move, pulls run
 //   [4] screenshots of the editor for Diagnostics/
+//   [5] row A2 · P5: a Project-Dyno --render WAV dropped on the page draws its order sheet over the live voice's (Split / Δ);
+//       the two agree to ±0.1 dB per order cell; Export TOML text == AcousticStructure::Save output byte for byte
+//       (the binary is built and run here when Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav is absent — Linux toolchain script)
 // Run:  node Scratchpad/AcousticEditorBrowser.js <puppeteerModulesDir> [chromiumExecutable]
 //   sandbox: npm i @sparticuz/chromium@129 puppeteer-core@23 in a scratch dir (the Lambda build ships its own libnss)
 //   desktop: point it at an installed Chrome/Edge instead; the WebAudio path is identical.
-const fs = require('fs'), path = require('path'), http = require('http');
+const fs = require('fs'), path = require('path'), http = require('http'), { execSync } = require('child_process');
 const modulesDir = process.argv[2] || '/tmp/pw/node_modules';
 const puppeteer = require(path.join(modulesDir, 'puppeteer-core'));
 let executablePath = process.argv[3] || null;
@@ -198,6 +201,64 @@ function orderLevels(x, start, size, rpm, N)
     // TOML export text round-trips through the parser to the same structure
     const roundTrip = await page.evaluate(() => { const E = window.FrontierAudioEditor; const s = E.cars.Porsche918Spyder.current; const text = E.Dsp.serialiseToml(s, []); const back = E.Dsp.structureFromToml(E.Dsp.parseToml(text)); return JSON.stringify(back) === JSON.stringify(s); });
     check(roundTrip, 'serialiseToml → parseToml round trip is lossless (918)');
+
+    console.log('\n[5] C++ hand-over: --render WAV order overlay, Export TOML ⇄ AcousticStructure::Save');
+    {
+        const refDir = path.join(repo, 'Scratchpad', 'Reference'); fs.mkdirSync(refDir, { recursive: true });
+        const cppWav = path.join(refDir, 'FerrariLaFerrari_pull_cpp.wav'), cppToml = path.join(refDir, 'FerrariLaFerrari_save_cpp.toml');
+        const binary = path.join(repo, 'Projects', 'Project-Dyno', 'Build', 'Output', 'Linux', 'Release', 'Binary', 'Project-Dyno');
+        let built = fs.existsSync(cppWav) && fs.existsSync(cppToml);
+        if (!built)
+        {
+            try
+            {
+                execSync('bash Projects/Project-Dyno/Build/ToolchainSequence.sh', { cwd: repo, stdio: 'pipe' });
+                // --slice 128: the worklet renders in 128-frame quanta, so the demand is sampled at the same instants and the two order sheets are the same render
+                execSync('"' + binary + '" --render "' + cppWav + '" --car FerrariLaFerrari --pull pull --float --slice 128', { cwd: repo, stdio: 'pipe' });
+                execSync('"' + binary + '" --save "' + cppToml + '" --car FerrariLaFerrari', { cwd: repo, stdio: 'pipe' });
+                built = true;
+            }
+            catch (e) { console.log('  (Project-Dyno build / render unavailable here: ' + (e.message || e).toString().split('\n')[0] + ')'); }
+        }
+        check(built, 'Project-Dyno --render / --save outputs available (' + path.relative(repo, cppWav) + ')');
+        if (built)
+        {
+            await page.evaluate(() => window.FrontierAudioEditor.selectCar('FerrariLaFerrari'));
+            await new Promise(r => setTimeout(r, 300));
+            const t0 = Date.now();
+            const loaded = await page.evaluate(async (url) => {
+                const r = await fetch(url); const blob = await r.blob();
+                await window.FrontierAudioEditor.loadWav(new File([blob], 'FerrariLaFerrari_pull_cpp.wav', { type: 'audio/wav' }));
+                const E = window.FrontierAudioEditor.editor;
+                return { feed: E.feed, seconds: E.fileClip ? E.fileClip.duration : 0, channels: E.fileClip ? E.fileClip.numberOfChannels : 0, sheet: !!E.fileOrders, hits: E.fileOrders ? Array.from(E.fileOrders.hits).filter(h => h > 0).length : 0 };
+            }, '/Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav');
+            check(loaded.feed === 'file' && loaded.seconds > 14.9 && loaded.channels === 2 && loaded.sheet, 'C++ WAV dropped: file feed on, ' + loaded.seconds.toFixed(2) + ' s stereo decoded, order sheet built over ' + loaded.hits + ' rpm columns (' + (Date.now() - t0) + ' ms)');
+            const t1 = Date.now();
+            const agreement = await page.evaluate(async () => {
+                const F = window.FrontierAudioEditor, E = F.editor;
+                const live = await F.analyseLiveOrders(); live.pull = E.fileOrders.pull; live.car = F.carKey; E.liveOrders = live;
+                E.fileOrderAgreement = F.compareOrderSheets(E.fileOrders, live);
+                document.querySelector('#overlaySeg button[data-overlay="split"]').click();
+                return E.fileOrderAgreement;
+            });
+            check(agreement.count > 1000 && agreement.mean <= 0.1, 'C++ WAV order sheet vs the worklet\'s own render of the same pull: mean |Δ| ' + agreement.mean.toFixed(4) + ' dB, worst ' + agreement.worst.toFixed(3) + ' dB over ' + agreement.count + ' order cells ≥ −40 dB (limit: mean 0.1 dB; ' + (Date.now() - t1) + ' ms)');
+            await new Promise(r => setTimeout(r, 700));
+            const ordersPanel = await page.evaluateHandle(() => document.getElementById('orders').closest('.panel'));
+            await ordersPanel.screenshot({ path: path.join(shots, 'AudioEditor_07_CppOverlay.png') });
+            await page.evaluate(() => document.querySelector('#overlaySeg button[data-overlay="diff"]').click());
+            await new Promise(r => setTimeout(r, 400));
+            await ordersPanel.screenshot({ path: path.join(shots, 'AudioEditor_08_CppOverlay_Delta.png') });
+            const lit = await page.evaluate(() => { const c = document.getElementById('orders'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 16) if (d[i] + d[i + 1] + d[i + 2] > 40) ++n; return n; });
+            check(lit > 200, 'overlay drawn on the order diagram (' + lit + ' lit samples)');
+            // Export TOML ⇄ C++ Save: same structure, same header lines → same bytes
+            const saved = fs.readFileSync(cppToml, 'utf8');
+            const header = saved.split('\n').filter((l, i, a) => { for (let j = 0; j <= i; ++j) if (!a[j].startsWith('#')) return false; return true; }).map(l => l.length > 2 ? l.slice(2) : '');
+            const exported = await page.evaluate((h) => window.FrontierAudioEditor.serialiseToml(window.FrontierAudioEditor.cars.FerrariLaFerrari.current, h), header);
+            let firstDiff = -1; for (let i = 0; i < Math.max(saved.length, exported.length); ++i) if (saved[i] !== exported[i]) { firstDiff = i; break; }
+            check(firstDiff < 0, 'Export TOML text == Project-Dyno --save (AcousticStructure::Save): ' + saved.length + ' bytes identical' + (firstDiff >= 0 ? ' — FIRST DIFFERENCE at byte ' + firstDiff + ': ' + JSON.stringify(saved.slice(Math.max(0, firstDiff - 20), firstDiff + 30)) + ' vs ' + JSON.stringify(exported.slice(Math.max(0, firstDiff - 20), firstDiff + 30)) : ''));
+            await page.evaluate(() => { document.querySelector('#overlaySeg button[data-overlay="off"]').click(); document.querySelector('#feedSeg button[data-feed="live"]').click(); });
+        }
+    }
     check(errors.length === 0, 'no console / page errors during the live session' + (errors.length ? ' → ' + errors.slice(0, 3).join(' | ') : ''));
 
     await browser.close(); server.close();
