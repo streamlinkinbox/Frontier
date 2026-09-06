@@ -208,6 +208,7 @@ Frontier/
 │   │   │   ├── Archivo-SemiBold.ttf
 │   │   │   └── Archivo-Bold.ttf
 │   │   └── <Family>/               ← Same structure for all other families
+│   ├── AudioArchives/              ← One subfolder per vehicle: <Car>/<Car>.toml acoustic structure (AcousticStructure, tomlpp)
 │   ├── GraphicArchives/
 │   └── MaterialArchives/
 │
@@ -268,6 +269,8 @@ Frontier/
 │   └── ApplyImGuiPatches.ps1       ← Apply Frontier-specific ImGui patches before build
 │
 ├── Scratchpad/                     ← Temporary work only — never in Source/ or root
+├── Tools/
+│   └── AudioEditor/index.html      ← Single-file dyno cell + visualiser; same DSP as AcousticIntegrator runs in an AudioWorklet
 └── CMakeLists.txt                  ← Linux/IDE integration only; Windows uses ToolchainSequence.ps1
 ```
 

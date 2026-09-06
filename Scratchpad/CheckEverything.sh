@@ -51,7 +51,8 @@ Run CheckTracedGeometry
 Run CheckDynamicGeometryBudget
 
 echo
-echo "=== fluid testbed (browser; source integrity only) ==="
+echo "=== browser-side testbeds (source integrity only; DSP and WebGPU need a browser) ==="
+Run CheckAcousticArchives
 Run CheckFluidProject
 
 echo
