@@ -177,7 +177,10 @@ function orderLevels(x, start, size, rpm, N)
     const mid = await page.evaluate(() => ({ rpm: window.FrontierAudioEditor.editor.last.rpm, pull: window.FrontierAudioEditor.editor.last.pull, load: window.FrontierAudioEditor.editor.last.load_pct, over: window.FrontierAudioEditor.editor.last.overruns, dropped: window.FrontierAudioEditor.editor.last.dropped, meters: Array.from(window.FrontierAudioEditor.editor.last.meters) }));
     check(mid.pull === 'pull' && mid.rpm > 5000, 'LaFerrari scripted pull running: ' + Math.round(mid.rpm) + ' rpm at t ≈ 5.5 s');
     check(mid.dropped === 0, 'no pulses dropped (' + mid.dropped + ')');
-    check(mid.meters[0] > 0 && mid.meters[2] > 0 && mid.meters[4] > 0 && mid.meters[8] > 0, 'voice / exhaust bus / intake howl / output meters live: ' + mid.meters.slice(0, 10).map(v => (20 * Math.log10(v + 1e-9)).toFixed(0)).join(' ') + ' dB');
+    // rev 2 carries the intake on the howl layer (meter 4); the rev-3 crank-degree voice carries it on the intake voice (meter 11)
+    const lafRev3 = await page.evaluate(() => { const E = window.FrontierAudioEditor, s = E.cars[E.carKey].current; return !!(s.voice.crank_pulse && s.intake && s.intake.level > 0); });
+    const intakeMeter = lafRev3 ? 11 : 4;
+    check(mid.meters[0] > 0 && mid.meters[2] > 0 && mid.meters[intakeMeter] > 0 && mid.meters[8] > 0, 'voice / exhaust bus / intake (' + (lafRev3 ? 'rev 3 intake voice, meter 11' : 'rev 2 howl, meter 4') + ') / output meters live: ' + mid.meters.slice(0, 12).map(v => (20 * Math.log10(v + 1e-9)).toFixed(0)).join(' ') + ' dB');
     console.log('  worklet load ' + mid.load.toFixed(1) + ' % (headless software Chromium — the user\'s desktop will be far lower), overruns ' + mid.over);
     await page.screenshot({ path: path.join(shots, 'AudioEditor_04_LaFerrari_ScriptedPull.png') });
     // GT-R: turbo layer shows boost during a pull

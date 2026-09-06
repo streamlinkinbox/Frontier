@@ -129,6 +129,16 @@ the transient slots, the clip as a safety, cycle-to-cycle variance, the dyno / f
 
 Items a–d are one change to the shared voice (they fix the 918 and GT-R too); e–i are per-car tuning against the recording.
 
+**Status (row A1¾, `Tools/AudioEditor/index.html` rev 3):** a–g and i are implemented behind `voice.crank_pulse` and switched on
+for the LaFerrari only (the 918 / GT-R renders stay bit-identical to rev 2); h is left at sparse defaults. Against the §10.4
+sheet the LaFerrari idle now measures (left channel, 1081 rpm): loudest order 6; structural half-orders ≤ −70 dB (rev 2: 3½ at
+0 dB); order 3 −27 (rev 2 −16 … −18, real −35); orders 18 / 24 −38 / −58 (real −40 / −56); centroid 129 Hz (real 107–179);
+nothing within 37 dB above 300 Hz; 6 lines within 26 dB below 1 kHz (real 10). Mean |Δ| over integer orders 1–14 vs the real
+rev loop: 9.3 dB (rev 2: 7.5 on the left channel — the remaining distance is orders 1 / 8 / 12, which the loop carries at
+−27 / −15 / −32 and rev 3 at −16 / −23 / −18; the loop's 8-bit floor and loop-splice sidebands set ≈ 5 dB of that). What the
+idle clips cannot tell (§10.5) — everything above idle — is tuned to the geometry alone and waits for the §8 recordings.
+Plan `AcousticPhaseA-Plan.md` §2b carries the field-by-field sheet.
+
 ## 6. The measurement loop (A4 reference lane, pulled forward)
 
 Inputs: a recording (WAV) dropped on the editor. Extracted automatically:

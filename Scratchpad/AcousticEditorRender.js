@@ -10,6 +10,9 @@
 //    slice-size invariance, ±1 clip honoured, transients never dropped, firing count = ∫ rpm·N/120.
 //    Rev 2 voice (event synth after RevSim): the dominant order is no longer N/2 by construction — the parity bank pan and
 //    the firing-time walk deliberately put energy on orders below the firing order (the half-order rumble under the note).
+//    Rev 3 voice (`voice.crank_pulse`, the LaFerrari): section [6] measures the References/AcousticPhaseA-VoicingReport.md
+//    §10.4 idle targets per channel (half-orders, order 3, orders 18 / 24, centroid, content above 300 Hz, line count) and
+//    the loaded-range headroom (no clipped samples on the trackside pull / overrun / limiter sequences, cockpit too).
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 // Loads the DSP and the three vehicle TOMLs straight out of Tools/AudioEditor/index.html, so the proof measures the
 // shipped page, not a copy.   Run:  node Scratchpad/AcousticEditorRender.js [outDir]   (node ≥ 18, no packages)
@@ -238,7 +241,54 @@ for (const key of CAR_ORDER)
         const b = renderPull(structure, 'blip', 8.0, 256); writeWav(path.join(outDir, 'AcousticEditor_' + key + '_Blip.wav'), b.L, b.R);
         const i = renderPull(structure, 'idle', 5.0, 256); writeWav(path.join(outDir, 'AcousticEditor_' + key + '_Idle.wav'), i.L, i.R);
         let peak = 0; for (let n = 0; n < i.L.length; ++n) peak = Math.max(peak, Math.abs(i.L[n]));
-        check(peak > 0.05, 'idle audible (peak ' + peak.toFixed(3) + ')');
+        check(peak > (structure.voice.crank_pulse ? 0.01 : 0.05), 'idle audible (peak ' + peak.toFixed(3) + ')');
+    }
+    // [6] rev 3 only: the §10.4 idle targets, measured on the LEFT channel of the full chain at 1081 rpm (the real clips' crank speed)
+    if (structure.voice.crank_pulse)
+    {
+        const rpm = 1081;
+        const idleSpectrum = (s) =>
+        {
+            const ig = new D.AcousticIntegrator(RATE, s, 0x5EED1234);
+            ig.rpmS = rpm; ig.assignDemand(rpm, 0.0, 0.06, 0.0);
+            const total = Math.floor(2.5 * RATE), L = new Float64Array(total), R = new Float64Array(total);
+            for (let done = 0; done < total; done += 256) { const n = Math.min(256, total - done); ig.render(L.subarray(done, done + n), R.subarray(done, done + n), n); }
+            return spectrumDb(L, total - 65536, 65536);
+        };
+        const size = 65536, db = idleSpectrum(structure), f0 = rpm / 60;
+        const orderOf = (spectrum, o) => { const k = Math.round(o * f0 * size / RATE); let m = -999; for (let j = k - 2; j <= k + 2; ++j) if (j > 0 && j < spectrum.length) m = Math.max(m, spectrum[j]); return m; };
+        const order = (o) => orderOf(db, o);
+        const ref = order(6), halves = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
+        // half-orders twice: the shipped structure (cycle-to-cycle variance on → the physical floor between the lines, which the real
+        // loops also carry at −36 … −42 dB mean) and the same structure with the variance off (the STRUCTURAL half-orders of the
+        // firing geometry and the pan — the §10.4 "< −40 dB" target, what rev 2's parity pan failed)
+        let halfMax = -999, halfMean = 0; for (const h of halves) { const v = order(h) - ref; halfMax = Math.max(halfMax, v); halfMean += v / halves.length; }
+        const frozen = JSON.parse(JSON.stringify(structure)); frozen.combustion.jitter_amp = 0.0; frozen.combustion.timing_jitter_deg = 0.0;
+        const dbFrozen = idleSpectrum(frozen), refFrozen = orderOf(dbFrozen, 6);
+        let structuralMax = -999; for (const h of halves) structuralMax = Math.max(structuralMax, orderOf(dbFrozen, h) - refFrozen);
+        let top = -999; for (let k = 2; k < 8000 * size / RATE; ++k) top = Math.max(top, db[k]);
+        let above300 = -999; for (let k = Math.ceil(300 * size / RATE); k < 20000 * size / RATE; ++k) above300 = Math.max(above300, db[k]);
+        let num = 0, den = 0; for (let k = 2; k < 8000 * size / RATE; ++k) { const p = Math.pow(10, db[k] / 10); num += p * k * RATE / size; den += p; }
+        const centroid = num / den;
+        let lines = 0; for (let k = 3; k < 1000 * size / RATE; ++k) if (db[k] > top - 26 && db[k] > db[k - 1] && db[k] >= db[k + 1] && db[k] > db[k - 2] && db[k] >= db[k + 2]) ++lines;
+        let bestOrder = 0, bestDb = -999; for (let o = 0.5; o <= 24; o += 0.5) { const m = order(o); if (m > bestDb) { bestDb = m; bestOrder = o; } }
+        check(bestOrder === 6, 'idle 1081 rpm (L): loudest order = ' + bestOrder + ' (real clips: 6)');
+        check(structuralMax <= -40, 'idle structural half-orders ½ … 6½ (variance off) ≤ −40 dB re order 6 (worst ' + structuralMax.toFixed(1) + '; rev 2 left channel had 3½ at 0 dB)');
+        check(halfMean <= -36 && halfMax <= -25, 'idle between-order floor with the cycle variance on: mean ' + halfMean.toFixed(1) + ' / worst ' + halfMax.toFixed(1) + ' dB re order 6 (real loops mean −36 … −42, worst −22; limits −36 / −25)');
+        check(order(3) - ref <= -20, 'idle order 3 = ' + (order(3) - ref).toFixed(1) + ' dB re order 6 (target ≈ −35, limit −20; rev 2 was −16 … −18)');
+        check(order(18) - ref <= -30 && order(24) - ref <= -40, 'idle orders 18 / 24 = ' + (order(18) - ref).toFixed(1) + ' / ' + (order(24) - ref).toFixed(1) + ' dB re order 6 (real −40 / −56; limits −30 / −40)');
+        check(centroid >= 100 && centroid <= 200, 'idle centroid < 8 kHz = ' + centroid.toFixed(0) + ' Hz (real 107–179; limits 100–200)');
+        check(above300 - top <= -25, 'idle content above 300 Hz = ' + (above300 - top).toFixed(1) + ' dB re the loudest line (real: nothing within 25 dB)');
+        check(lines <= 15, 'idle lines within 26 dB below 1 kHz = ' + lines + ' (real rev loop 10; limit 15)');
+        console.log('  orders re 6: ' + [1, 2, 3, 4, 5, 7, 8, 9, 10, 12, 18, 24].map(o => o + ':' + (order(o) - ref).toFixed(0)).join(' '));
+        // headroom: no clipped samples on the trackside and cockpit sequences (rev 3 leaves the ±1 clip idle; rev 2 leans on it)
+        for (const listener of ['trackside', 'cockpit'])
+            for (const [pullName, seconds] of [['pull', 12], ['overrun', 10], ['limiter', 11]])
+            {
+                const r = renderPull(structure, pullName, seconds, 256, { listener });
+                let pk = 0; for (let n = 0; n < r.L.length; ++n) pk = Math.max(pk, Math.abs(r.L[n]), Math.abs(r.R[n]));
+                check(r.ig.clippedCount === 0 && pk > 0.3, listener + ' ' + pullName + ': clipped ' + r.ig.clippedCount + ', peak ' + pk.toFixed(2) + ' (no clipping, peak > 0.3)');
+            }
     }
 }
 console.log('\n' + (fail === 0 ? 'ALL PASS' : fail + ' FAIL') + ' — ' + pass + ' pass, ' + fail + ' fail');

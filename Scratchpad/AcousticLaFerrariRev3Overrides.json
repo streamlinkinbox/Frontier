@@ -1,0 +1,88 @@
+{
+ "vehicle": {
+  "even_firing": false,
+  "bank_angle_deg": 65,
+  "bank_of_cylinder": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ]
+ },
+ "combustion": {
+  "jitter_pct": 0.0,
+  "timing_jitter_deg": 0.15,
+  "cylinder_spread_pct": 10.0,
+  "jitter_amp": 0.02,
+  "idle_jitter_boost": 1.0,
+  "backfire_probability": 0.05,
+  "backfire_level": 1.2,
+  "pop_level": 0.35,
+  "pop_rate_hz": 6.0,
+  "pop_decay_s": 0.6
+ },
+ "voice": {
+  "crank_pulse": true,
+  "pulse_rise_deg": 12.0,
+  "pulse_blowdown_deg": 45.0,
+  "pulse_tail_level": 0.6,
+  "pulse_undershoot": 0.3,
+  "pulse_sharpness": 1.0,
+  "thump_level": 1.2,
+  "crackle_level": 0.0,
+  "crackle_load_level": 0.15,
+  "ring_level": 0.0,
+  "ring_load_level": 0.0,
+  "resonance": 0.5,
+  "rasp_level": 0.0,
+  "howl_level": 0.0,
+  "cam_depth": 0.0,
+  "lift_level": 1.0,
+  "pulse_soft_level": 0.05,
+  "pulse_soft_stretch": 2.5
+ },
+ "intake": {
+  "level": 1.0,
+  "runner_hz": 400.0,
+  "short_ratio": 2.0,
+  "min_ratio": 2.6,
+  "step_rpm_1": 6000.0,
+  "step_rpm_2": 8000.0,
+  "q": 3.0,
+  "breath": 0.15,
+  "direct": 0.4,
+  "path_m": 1.5
+ },
+ "exhaust": {
+  "drive": 0.8,
+  "bank_pan": 0.3,
+  "formant_a_hz": 180.0,
+  "formant_a_q": 8.0,
+  "formant_a_level": 0.3,
+  "formant_b_hz": 215.0,
+  "formant_b_q": 8.0,
+  "formant_b_level": 0.25,
+  "silencer_hz": 170.0,
+  "silencer_open_hz": 4000.0,
+  "valve_open_gain": 1.4,
+  "valve_open_rpm": 3500.0,
+  "comb_mix": 0.0,
+  "pan_split_hz": 600.0,
+  "valve_open_load": 0.55
+ },
+ "mechanical": {
+  "clatter_level": 0.02,
+  "clatter_hz": 4800.0
+ },
+ "mix": {
+  "output_gain": 0.55
+ }
+}

@@ -7,7 +7,7 @@ after the LaFerrari work. The port is of a *contract* (TOML schema + integrator 
 ## 0. Summary
 
 * The whole voice lives in one JavaScript text today (`Tools/AudioEditor/index.html`, `<script id="dsp">`, 1 009 lines): a TOML
-  schema of 77 fields in 7 sections, `AcousticIntegrator` (≈ 410 lines of per-sample DSP), five small DSP pieces, `TransientSlots`,
+  schema of 77 fields in 7 sections (111 in 8 since rev 3 — see the rev-3 note at the end), `AcousticIntegrator` (≈ 410 lines of per-sample DSP), five small DSP pieces, `TransientSlots`,
   `DynoSequence` (+ `overrun`, `limiter`), `FreeRevPowertrain`, `scriptedRecord`. It runs identically in the page and in the
   AudioWorklet (proof: max |Δ| 3 × 10⁻⁸). The C++ port makes it run identically a third place: the engine.
 * The A1 transport is already the shape the port needs: `SignalIntegrator::Render(float*, frames)` on the realtime thread,
@@ -171,3 +171,18 @@ sheet from that number, and a sheet six entries short would load six fields as t
 Verified on integration: all three TOMLs parse and share an identical key set; all four `Scratchpad/Acoustic*.js`
 modules parse; the editor is 154 KB. The DSP itself is not verified here — it needs a browser with an
 AudioContext, so the identity proof the plan describes (§P0) remains the first real check of the port.
+
+## Rev-3 note (row A1¾ — the LaFerrari voice landed in the editor after this plan was written)
+
+The schema is now **111 fields in 8 sections** — vehicle 15, combustion 12, voice 29, **intake 10 (new section)**, exhaust 19,
+mechanical 7, turbo 14, mix 5 — counted under node.js from `ACOUSTIC_SCHEMA` and from all three archives (`/tmp` `tomlcheck.js`: embedded
+== serialised == archive for every car). Every "77" above reads 111; §3.6's field sheet grows by the 34 rev-3 fields, all with
+defaults that leave the rev-2 path bit-identical (`voice.crank_pulse = false`, `intake.level = 0`, `exhaust.comb_mix = 1`,
+`pan_split_hz = 0`, silencer corners at 24 kHz = bypassed, formant levels 0, `valve_open_gain = 1`, `valve_open_load = 2`).
+Beyond the schema the port gains, all inside `AcousticIntegrator`: `firingAngles()` (shared-pin V geometry), three crank-degree
+kernels built once per structure (`buildKernels` / `finishKernel`: differentiate + raised-cosine smooth, `KERNEL_SIZE` 2048,
+linear read), a 4th event per cylinder (`EVENT_INTAKE`), an `intake` voice with two band-pass sections + a high-pass mouth + a
+1024-sample path ring (two taps, left / right), per-bank LR2 `lowpass` / `highpass` `BiquadSection` pairs, two formant
+band-passes + a 4th-order silencer per channel, `valve_open_load`, `CYLINDER_SPREAD` (8-entry pattern indexed by firing position
+mod N/2) and `VALVE_RAMP_DEG`. `BiquadSection` gains `lowpass` / `highpass`; `CombLine` gains `mix`. Nothing in the transport,
+the record, the dyno sequences or the proofs changes; the §P0 identity proof simply runs the LaFerrari through both voices.

@@ -1,6 +1,6 @@
 'use strict';
 // ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-//  AcousticLaFerrariReference — measures a REAL LaFerrari recording against the rev-2 synth (report row, no DSP change)
+//  AcousticLaFerrariReference — measures a REAL LaFerrari recording against the shipped synth (rev 2 at the report row, rev 3 now)
 // ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 //
 //  🧪 Sandbox proof for References/AcousticPhaseA-VoicingReport.md §10. The only LaFerrari-labelled recording reachable from
@@ -14,13 +14,14 @@
 //                          its content → probably not the LaFerrari; kept here as a V12-idle shape control only.
 //  Usage: node Scratchpad/AcousticLaFerrariReference.js [dir-with-the-.h-files] [--fetch]   (default dir: Scratchpad/LaFerrariReference/,
 //         git-ignored; --fetch downloads the three headers there through api.github.com — they are third-party, never committed)
-//  Writes Scratchpad/AcousticLaFerrariReference.log and Scratchpad/AcousticLaFerrari_RealVsRev2.png.
+//  Writes Scratchpad/AcousticLaFerrariReference.log and Scratchpad/AcousticLaFerrari_RealVsRev<N>.png (N = the shipped revision).
 //
 //  Method: the loops are exactly periodic, so 8 tiled repeats + one rectangular DFT give lines on a 6.0 Hz lattice with no
 //  leakage. Two crank readings are reported for each loop, because no clip carries a tachometer:
 //    R1 — the project's own cutting rule (one loop = one 720° cycle = 12 firings) → crank = 2 / loop length;
 //    R2 — the harmonic-series test (the largest lattice multiple whose series carries ≥ 90 % of the line energy).
-//  The rev-2 synth is rendered from the shipped Tools/AudioEditor/index.html at both readings' rpm and read the same way.
+//  The synth is rendered from the shipped Tools/AudioEditor/index.html at both readings' rpm and read the same way (the
+//  embedded LaFerrari is whatever revision the page carries — rev 3 since the A1¾ row; the log names it).
 
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const ROOT = path.resolve(__dirname, '..');
@@ -186,7 +187,8 @@ function drawSheetPanel(img, W, x0, y0, w, h, sheets, labels, title)
 }
 
 // ═══════════════════════════════════════════════════════════════ run ══════════════════════════════════════════════════════════════════
-out('AcousticLaFerrariReference — ' + new Date().toISOString() + ' — real LaFerrari loops vs rev-2 synth (Tools/AudioEditor/index.html)');
+const SYNTH_REV = D.structureFromToml(CARS.FerrariLaFerrari).voice.crank_pulse ? 'rev-3' : 'rev-2';
+out('AcousticLaFerrariReference — ' + new Date().toISOString() + ' — real LaFerrari loops vs ' + SYNTH_REV + ' synth (Tools/AudioEditor/index.html)');
 out('reference dir ' + REF_DIR);
 // --fetch: pull the three headers through the GitHub contents lookup (base64 JSON; curl ships with Windows 10+ and every Linux)
 if (process.argv.includes('--fetch'))
@@ -276,7 +278,7 @@ const synthSheets = {};
 for (const tag of ['R1', 'R2'])
 {
     const rpmRef = READ.idle[tag].rpm;
-    out('\n[rev-2 synth] LaFerrari at ' + rpmRef.toFixed(0) + ' rpm (idle-loop reading ' + tag + '), full chain, L+R');
+    out('\n[' + SYNTH_REV + ' synth] LaFerrari at ' + rpmRef.toFixed(0) + ' rpm (idle-loop reading ' + tag + '), full chain, L+R');
     for (const [label, load, pure] of [['load 0', 0.0, false], ['load 1', 1.0, false], ['pure load 1', 1.0, true]])
     {
         const { L, M } = renderSynth(rpmRef, load, 3.0, pure);
@@ -301,7 +303,7 @@ for (const tag of ['R1', 'R2'])
 // distance: mean |Δ| over integer orders 1 … 14 (both sheets re their own top) and the half-order excess, real vs synth under the same reading
 function distance(a, b, list) { let s = 0, n = 0; for (const o of list) if (a[o] > -70 && b[o] > -70) { s += Math.abs(a[o] - b[o]); ++n; } return s / n; }
 const ints = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], halves = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
-out('\n[distance] real loops vs rev-2 under the same crank reading (mean |Δ| over integer orders 1–14, each sheet re its own top; half-order means where the loop can hold them)');
+out('\n[distance] real loops vs ' + SYNTH_REV + ' under the same crank reading (mean |Δ| over integer orders 1–14, each sheet re its own top; half-order means where the loop can hold them)');
 for (const tag of ['R1', 'R2'])
     for (const name of ['idle', 'rev'])
         for (const label of ['load 0', 'load 1'])
@@ -310,7 +312,7 @@ for (const tag of ['R1', 'R2'])
             const realHalf = halves.reduce((s, o) => s + Math.max(real[o], -65), 0) / halves.length, synthHalf = halves.reduce((s, o) => s + synth[o], 0) / halves.length;
             const left = synthSheets[tag + ' ' + label + ' left'], leftHalf = halves.reduce((s, o) => s + left[o], 0) / halves.length;
             const halfNote = tag === 'R1' ? 'half-orders (on-lattice) real ' + realHalf.toFixed(0) + ' dB vs synth L+R ' + synthHalf.toFixed(0) + ' / left ' + leftHalf.toFixed(0) + ' dB' : 'half-orders: real off-lattice under R2 (none by construction) vs synth L+R ' + synthHalf.toFixed(0) + ' / left ' + leftHalf.toFixed(0) + ' dB mean (left 3½ at ' + Math.round(left[3.5]) + ')';
-            out('  ' + tag + ' ' + READ.idle[tag].rpm.toFixed(0) + ' rpm · real ' + name.padEnd(4) + ' vs rev-2 ' + label.padEnd(7) + ': mean |Δ| integer orders L+R ' + distance(real, synth, ints).toFixed(1) + ' / left ' + distance(real, left, ints).toFixed(1) + ' dB · ' + halfNote + ' · bands real ' + results[name].bands.join('/'));
+            out('  ' + tag + ' ' + READ.idle[tag].rpm.toFixed(0) + ' rpm · real ' + name.padEnd(4) + ' vs ' + SYNTH_REV + ' ' + label.padEnd(7) + ': mean |Δ| integer orders L+R ' + distance(real, synth, ints).toFixed(1) + ' / left ' + distance(real, left, ints).toFixed(1) + ' dB · ' + halfNote + ' · bands real ' + results[name].bands.join('/'));
         }
 
 // start clip: harmonic-comb rpm track (informational — the loudest line per 100 ms and the best comb fundamental)
@@ -359,17 +361,18 @@ if (start)
     out('  lines that stay put while the loudest glides = fixed ridges: ≈ 172–188 Hz (−2 … −17 dB from 0.8 to 1.3 s) and ≈ 207–223 Hz (present from the catch to 2.0 s at −5 … −22 dB, peaking at −2 … 0 dB when the 3/2 line sweeps through it at 0.9–1.0 s). Nothing within 25 dB above 300 Hz after the catch; the dense ladders in the fast-glide windows are smear of the same few lines.');
 }
 
-// image: real loops under both readings next to rev 2 at the matching rpm
+// image: real loops under both readings next to the synth at the matching rpm
 {
     const W = 760, H = 430, img = Buffer.alloc(W * H, INK_BACKGROUND);
     text(img, W, 10, 6, 'LaFerrari order sheets  rows = crank orders 1/2 .. 24 (6 = V12 firing order, amber)  cell = level re loudest order, 60 dB range', INK_WHITE);
     const r1 = READ.idle.R1.rpm.toFixed(0), r2 = READ.idle.R2.rpm.toFixed(0);
     drawSheetPanel(img, W, 10, 40, 740, 340,
         [results.idle.sheets.R1, results.rev.sheets.R1, synthSheets['R1 load 0'], results.idle.sheets.R2, results.rev.sheets.R2, synthSheets['R2 load 0'], synthSheets['R2 load 0 left']],
-        ['REAL idle R1 ' + r1, 'REAL rev R1', 'rev2 ' + r1 + ' L+R', 'REAL idle R2 ' + r2, 'REAL rev R2', 'rev2 ' + r2 + ' L+R', 'rev2 ' + r2 + ' left'],
-        'RC sample loops (R1 = loop is one 720 deg cycle, R2 = series test) vs rev-2 synth at the matching rpm');
+        ['REAL idle R1 ' + r1, 'REAL rev R1', SYNTH_REV + ' ' + r1 + ' L+R', 'REAL idle R2 ' + r2, 'REAL rev R2', SYNTH_REV + ' ' + r2 + ' L+R', SYNTH_REV + ' ' + r2 + ' left'],
+        'RC sample loops (R1 = loop is one 720 deg cycle, R2 = series test) vs ' + SYNTH_REV + ' synth at the matching rpm');
     text(img, W, 10, H - 14, 'Scratchpad/AcousticLaFerrariReference.js  clips: TheDIYGuy999/Rc_Engine_Sound_ESP32 LaFerrari{Idle,Rev}.h 22050 Hz 8-bit loops (idle labelled Jaguar XJS V12)', INK_GREY);
-    writePng(path.join(__dirname, 'AcousticLaFerrari_RealVsRev2.png'), W, H, img, PALETTE);
-    out('\nwrote Scratchpad/AcousticLaFerrari_RealVsRev2.png');
+    const imageName = 'AcousticLaFerrari_RealVs' + (SYNTH_REV === 'rev-3' ? 'Rev3' : 'Rev2') + '.png';
+    writePng(path.join(__dirname, imageName), W, H, img, PALETTE);
+    out('\nwrote Scratchpad/' + imageName);
 }
 fs.writeFileSync(path.join(__dirname, 'AcousticLaFerrariReference.log'), lines.join('\n') + '\n');

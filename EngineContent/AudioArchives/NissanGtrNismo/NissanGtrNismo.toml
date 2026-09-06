@@ -1,4 +1,4 @@
-# Frontier acoustic structure — Nissan GT-R Nismo (first cut, row A2 / HTML editor)
+# Frontier acoustic structure — Nissan GT-R Nismo (rev 2 voice, row A1½ / HTML editor)
 # Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
 # Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
 # units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
@@ -7,8 +7,10 @@
 name                   = "Nissan GT-R Nismo"            # display name
 engine                 = "VR38DETT 3.8 L 60° V6, twin IHI turbos, titanium exhaust" # one-line engine description
 cylinder_count         = 6                              # number of cylinders
-firing_order           = [1, 4, 2, 5, 3, 6]             # cylinder numbers in firing sequence, even 720/N intervals
-bank_of_cylinder       = [0, 1, 0, 1, 0, 1]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
+firing_order           = [1, 4, 2, 5, 3, 6]             # cylinder numbers in firing sequence; even 720/N intervals unless even_firing is off
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1]             # bank per cylinder number (0 = left pipe, 1 = right pipe); the pan and the per-bank trains follow it
+even_firing            = true                           # on = firings at even 720/N (split pins, inline, flat-plane, 90° V8); off = shared straight pins on a V: each bank fires evenly at 720/(N/2), bank 1 trails bank 0 by bank_angle_deg (F140 65° V12 → 65° / 55° alternation)
+bank_angle_deg         = 90.0                           # [°] V angle between the banks; only read when even_firing is off
 idle_rpm               = 900.0                          # [rpm]
 redline_rpm            = 7100.0                         # [rpm] fuel cut
 peak_power_rpm         = 6800.0                         # [rpm]
@@ -23,6 +25,8 @@ evo_deg                = 132.0                          # [°] voice starts this
 jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
 idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
 jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ)
+timing_jitter_deg      = 0.0                            # [°] per-firing timing jitter (1 σ, crank degrees), not cumulative — rev 3 keeps ≤ 0.3°; 0 = off
+cylinder_spread_pct    = 0.0                            # [%] fixed cylinder-to-cylinder amplitude imbalance at full load (peak, % of the pulse; × (1 + idle_jitter_boost) at zero load), one pattern along the firing order repeating every revolution — puts the integer orders between the firing harmonics (1, 2, 4, 5, 7, 8 …) where a real idle has them, no half-orders
 misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
 backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
 backfire_probability   = 0.2                            # chance of the thud per lift
@@ -31,12 +35,20 @@ pop_rate_hz            = 12.0                           # [Hz] overrun crackle r
 pop_decay_s            = 0.8                            # [s] overrun crackle fades with this time constant
 
 [voice]
-pitch_hz               = 48.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+crank_pulse            = false                          # rev 3: each firing plays one blowdown kernel defined over crank degrees (length ∝ 1/rpm, no fixed pitch, no body sheet); off = rev-2 thump + body voice at pitch_hz
+pulse_rise_deg         = 12.0                           # [°] crank_pulse: blowdown rise from exhaust valve opening to the discharge peak
+pulse_blowdown_deg     = 45.0                           # [°] crank_pulse: blowdown decay length (1/e² point)
+pulse_tail_level       = 0.25                           # crank_pulse: displacement-stroke discharge (piston velocity BDC → TDC) re the full-load blowdown
+pulse_undershoot       = 0.3                            # crank_pulse: share of the reverse piston velocity after TDC (valve still open through the overlap) that shows as suck-back
+pulse_sharpness        = 1.0                            # crank_pulse: rise curvature — 1 = raised cosine over pulse_rise_deg, < 1 front-loads the rise (brighter), > 1 back-loads it (softer)
+pulse_soft_level       = 0.25                           # crank_pulse: blowdown at zero load re full load (the voice crossfades hard ↔ soft with load)
+pulse_soft_stretch     = 1.5                            # crank_pulse: zero-load rise is this many times longer (decay ½ (1 + stretch) ×) — a throttled cylinder blows down more gently
+pitch_hz               = 48.0                           # [Hz] rev-2 voice: pulse repetition inside one firing at 0 rpm (the "thump" pitch)
 pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
 decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
 decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
-thump_level            = 0.8                            # asymmetric pressure pulse
-body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+thump_level            = 0.8                            # pressure pulse amplitude (rev 2: the asymmetric thump sheet; crank_pulse: the kernel peak)
+body_level             = 0.6                            # rev-2 voice: harmonic body (24 harmonics of the pitch); unused with crank_pulse
 harmonics              = [1.0, 0.6, 0.9, 0.7, 0.4, 0.3] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
 resonance              = 0.7                            # formant climb with rpm; above 1.0 the rasp switches on
 crackle_level          = 0.1                            # per-firing noise burst at zero load
@@ -53,14 +65,38 @@ cam_order              = 3.0                            # amplitude modulation o
 cam_depth              = 0.15                           # modulation depth (0 for flat-plane cranks)
 lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
 
+[intake]
+level                  = 0.0                            # rev 3 intake voice on the induction bus: suction pulses at intake valve opening through the runner resonator; scales with throttle and with rpm / redline (mass throughput); 0 = off
+direct                 = 0.3                            # share of the raw suction train radiated straight out of the trumpet mouth (high-passed at 2 × the runner frequency: a small mouth only radiates the top), re level
+path_m                 = 0.0                            # [m] extra path of the intake voice to the listener re the tailpipes (trumpets under the rear deck vs tailpipes at the bumper): a delay of path / c on the left channel, path + INTAKE_EAR_OFFSET_M on the right — the two crank-locked voices then interfere the way two separated emitters do (narrow dips that sweep with rpm, never the same order in both ears) instead of cancelling one order across the whole rev range; 0 = in phase
+runner_hz              = 220.0                          # [Hz] quarter-wave frequency of the long tract (c / 4L); the resonator sits here and at 3× (odd modes)
+short_ratio            = 2.0                            # tract length is cut to 1/ratio at step_rpm_1 (LaFerrari: halved → ×2), then eases back to 0.75 × this by step_rpm_2 (tract lengthens again)
+min_ratio              = 2.6                            # frequency ratio above step_rpm_2 (minimum tract length)
+step_rpm_1             = 6000.0                         # [rpm] first tract step
+step_rpm_2             = 8000.0                         # [rpm] second tract step (minimum length above it)
+q                      = 9.0                            # runner resonator Q (ring length of the trumpet)
+breath                 = 0.2                            # aspiration noise through the same resonator, ∝ throttle · rpm / redline, re level
+
 [exhaust]
 drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
 bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+pan_split_hz           = 0.0                            # [Hz] below this the two banks merge in the image (tailpipes a metre apart are one emitter at long wavelengths — the 55/65° bank offset then cancels order N/4 the way the real car does); the pan applies above it; 0 = rev-2 full-band pan
+formant_a_hz           = 180.0                          # [Hz] fixed exhaust resonator A (collector / silencer ridge that stays put while the pitch moves); level 0 = off
+formant_a_q            = 8.0
+formant_a_level        = 0.0                            # added to the exhaust bus after the tanh
+formant_b_hz           = 215.0                          # [Hz] fixed exhaust resonator B; level 0 = off
+formant_b_q            = 8.0
+formant_b_level        = 0.0
+silencer_hz            = 24000.0                        # [Hz] 4th-order low-pass on the exhaust bus while the bypass valve is shut (cat + silencer + tailpipe); ≥ 0.45 × sample rate = off
+silencer_open_hz       = 24000.0                        # [Hz] the same low-pass above valve_open_rpm (bypass open)
+valve_open_gain        = 1.0                            # exhaust bus gain above valve_open_rpm (the "opens up" step; 0.2 s lag like the high-pass)
+comb_mix               = 1.0                            # share of the feedback comb output added to the bus (RevSim 1; 0 = comb off — rev 3 uses the formants instead)
 comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
 comb_feedback          = 0.3
 valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
 valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
 valve_open_rpm         = 5000.0                         # [rpm]
+valve_open_load        = 2.0                            # the bypass valve also opens above this load (above 1 = rpm only)
 
 [mechanical]
 clatter_level          = 0.0                            # valve seating clatter (crank-locked)
@@ -89,7 +125,7 @@ antilag_rpm            = 4000.0                         # [rpm]
 
 [mix]
 exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
-induction              = 1.0                            # turbo whine + rush
+induction              = 1.0                            # turbo whine + rush · rev 3 intake voice
 mechanical             = 1.0                            # clatter · gear whine · motor
 transients             = 1.0                            # backfire · pops · anti-lag · blow-off
 output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
