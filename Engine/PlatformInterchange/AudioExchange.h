@@ -54,7 +54,7 @@ public:
 
 enum class AudioDriverCategory : uint32_t
 {
-    Platform = 0,     // miniaudio's default backend order for the host OS (WASAPI on Windows)
+    Platform = 0,     // miniaudio's default driver order for the host OS (WASAPI on Windows)
     Null     = 1      // no hardware: a clocked thread that discards output — sandbox proofs, CI, headless renders
 };
 

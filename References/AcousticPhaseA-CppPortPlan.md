@@ -7,7 +7,7 @@ after the LaFerrari work. The port is of a *contract* (TOML schema + integrator 
 ## 0. Summary
 
 * The whole voice lives in one JavaScript text today (`Tools/AudioEditor/index.html`, `<script id="dsp">`, 1 009 lines): a TOML
-  schema of 71 fields in 7 sections, `AcousticIntegrator` (≈ 410 lines of per-sample DSP), five small DSP pieces, `TransientSlots`,
+  schema of 77 fields in 7 sections, `AcousticIntegrator` (≈ 410 lines of per-sample DSP), five small DSP pieces, `TransientSlots`,
   `DynoSequence` (+ `overrun`, `limiter`), `FreeRevPowertrain`, `scriptedRecord`. It runs identically in the page and in the
   AudioWorklet (proof: max |Δ| 3 × 10⁻⁸). The C++ port makes it run identically a third place: the engine.
 * The A1 transport is already the shape the port needs: `SignalIntegrator::Render(float*, frames)` on the realtime thread,
@@ -29,7 +29,7 @@ after the LaFerrari work. The port is of a *contract* (TOML schema + integrator 
 
 | JS piece (index.html `#dsp`) | Lines | C++ home | Notes |
 |---|---|---|---|
-| `ACOUSTIC_SCHEMA` (71 fields: section, key, default, unit, note, [min, max, step]) | 86 | `Engine/PlatformInterchange/AcousticStructure.h/.cpp` — `struct AcousticStructure { Vehicle, Combustion, Voice, Exhaust, Mechanical, Turbo, Mix }` + a `constexpr` field sheet used by Load / Save / Describe | one sheet, three uses: defaults, TOML load with per-field fallback, TOML save with unit comments. The slider ranges ship too (`AcousticFieldRange`) — Project-Zero's `[audio]` page reuses them |
+| `ACOUSTIC_SCHEMA` (77 fields: section, key, default, unit, note, [min, max, step]) | 86 | `Engine/PlatformInterchange/AcousticStructure.h/.cpp` — `struct AcousticStructure { Vehicle, Combustion, Voice, Exhaust, Mechanical, Turbo, Mix }` + a `constexpr` field sheet used by Load / Save / Describe | one sheet, three uses: defaults, TOML load with per-field fallback, TOML save with unit comments. The slider ranges ship too (`AcousticFieldRange`) — Project-Zero's `[audio]` page reuses them |
 | `parseToml`, `serialiseToml`, `structureFromToml`, `structureDefaults`, `structureClone` | 130 | same files, via **tomlpp** (`ExternalPackages/tomlpp`, pin `1e8829b7`, already a submodule) — `Reader` pattern from `Engine/DisplayPresentation/ConfigurationRegistry.cpp` | the JS has its own 60-line TOML parser because a browser has none; C++ uses the real library. Round-trip proof: the three shipped TOMLs load → save → load with zero field drift |
 | `Xorshift` (xorshift32, `uniform / signed / gauss`) | 16 | `Engine/PlatformInterchange/AcousticIntegrator.h` (private, header-only) | **bit-exact**: `uint32_t` shifts, `x * 2.3283064365386963e-10`, gauss = sum of four uniforms − 2, × √3. Same seed `0x5EED1234` default |
 | `OnePole`, `OnePoleHigh`, `BiquadSection` (bandpass / highpass RBJ), `CombLine` (feedback comb, power-of-two ring) | 70 | `Engine/PlatformInterchange/SignalSections.h` (header-only, `struct`s, no virtuals) | doubles for state and coefficients, same formulas incl. the `clamp(hz, 1, 0.45·fs)` and `max(0.05, q)` guards |
@@ -73,7 +73,7 @@ Pure mode (`pureTone`) is kept as `AssignPureTone(bool)`: it is what the order-s
    a feature for A/B listening and a non-issue for gameplay (Project-Zero can seed from its clock).
 3. **RNG call order is part of the contract.** Every stage consumes randomness in the JS statement order. A comment block at the
    top of `Render()` lists the order; the identity proof is the enforcement.
-4. **Schema sheet drives everything.** ⚠️ Instead of hand-written `Load` per field (the `ConfigurationRegistry` style), the 71 fields
+4. **Schema sheet drives everything.** ⚠️ Instead of hand-written `Load` per field (the `ConfigurationRegistry` style), the 77 fields
    live in one `constexpr` sheet (`section, key, offset, kind, default, unit, min, max, step`) and `Load / Save / Describe / Apply`
    iterate it. Why: the editor's inspector, the TOML writer, Project-Zero's `[audio]` page and the C++ loader must never disagree on
    a field — one sheet, four consumers. The JS already works this way (`ACOUSTIC_SCHEMA`).
@@ -158,3 +158,16 @@ Naming follows the locked list (`AcousticStructure`, `AcousticIntegrator`, `Dyno
 2. **Seed policy** for live play (fixed default vs clock) — default fixed, per §3.2.
 3. **Meters in the `[Audio]` line** every 2 s: firing / pop / clip counts and boost — yes unless you want it quieter.
 4. Nothing else: no new packages, no repo access, no recordings needed for this row.
+
+---
+
+## Merge note (integrated into the Slate interface branch)
+
+Counted at integration time rather than taken from the prose: the editor's `ACOUSTIC_SCHEMA` and all three shipped
+car archives carry **77 fields in 7 sections** — vehicle 13, combustion 10, voice 21, exhaust 7, mechanical 7,
+turbo 14, mix 5. The plan said 71; the references above are corrected. It matters because §3.6 sizes the C++ field
+sheet from that number, and a sheet six entries short would load six fields as their defaults and never say so.
+
+Verified on integration: all three TOMLs parse and share an identical key set; all four `Scratchpad/Acoustic*.js`
+modules parse; the editor is 154 KB. The DSP itself is not verified here — it needs a browser with an
+AudioContext, so the identity proof the plan describes (§P0) remains the first real check of the port.

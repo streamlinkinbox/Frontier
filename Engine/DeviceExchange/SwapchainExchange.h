@@ -15,6 +15,7 @@
 #include "VisibilityExchange.h"
 #include <cstdint>
 #include <vector>
+#include <functional>
 #include <array>
 
 struct GLFWwindow;
@@ -140,10 +141,22 @@ public:
     // R2: the whole level becomes resident (vertices · indices · instances · clusters · materials · luminaires) and the
     //    interim kernel's flat triangle / material SSBOs are taken from the same SceneStructure — one upload, one truth.
     void                        UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures = nullptr) noexcept;
+
+    // D3: per-frame instance transform refresh (no reallocation, no device stall). See
+    //    VisibilityExchange::RefreshInstances. Returns false if the count no longer matches the resident scene.
+    [[nodiscard]] bool          RefreshInstances(const InstanceRecord* Rows, uint32_t Count) noexcept
+    { return Visibility.RefreshInstances(Rows, Count); }
+    [[nodiscard]] uint32_t      QueryInstanceCount() const noexcept { return Visibility.QueryInstanceCount(); }
     void                        UploadTextures(const TextureIndex& Textures) noexcept;   // R4a bindless table → binding 18 (last since R6)
     void                        DestroyTextures() noexcept;
     void                        UploadShadingTables(const float* Energy, const float* Sheen, uint32_t Resolution) noexcept;   // R4b: two RGBA32F Resolution² planes (ShadingTableCodec bake) → bindings 13 / 14, once
     void                        UploadTraversal(const TraversalIndex& Traversal) noexcept;   // R3 CWBVH blobs → bindings 8-9
+
+    // D5: per-frame acceleration-structure refresh after a refit. No reallocation and no device stall, so unlike
+    //    UploadTraversal this is safe every frame. Also re-uploads the flat triangles, because the kernel resolves
+    //    material and normal through them and they must not lag the structure. False if a blob outgrew its
+    //    allocation, in which case the caller should fall back to a full UploadTraversal.
+    [[nodiscard]] bool          RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept;
     void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
@@ -174,6 +187,38 @@ public:
 
     [[nodiscard]] uint32_t      QueryWidth()  const noexcept { return Configuration.Width;  }
     [[nodiscard]] uint32_t      QueryHeight() const noexcept { return Configuration.Height; }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Device seam — the handles a compositing overlay (SpatialInterface) needs to record into this frame.
+    //--------------------------------------------------------------------------------------------------------------------
+    // Returned as void*/uint32_t so this header stays Vulkan-free, exactly like InterfaceExchange::Bring accepts them.
+    //    A caller that wants to draw over the finished scene registers an OverlaySequence below; these accessors exist
+    //    so it can Bring() and Resize() its own resources against the same device and targets.
+    //
+    // ⚠️ Lifetime: every handle here is owned by SwapchainExchange and is invalidated by a swapchain rebuild (resize,
+    //    present-pacing change, fullscreen toggle). QueryTargetGeneration() increments on every rebuild — an overlay
+    //    must compare it each frame and re-Resize when it changes, or it will render into destroyed image views.
+
+    [[nodiscard]] void*    QueryDevice()          const noexcept;   // VkDevice
+    [[nodiscard]] void*    QueryPhysicalDevice()  const noexcept;   // VkPhysicalDevice
+    [[nodiscard]] void*    QueryColourView()      const noexcept;   // VkImageView of the resolved scene image (GENERAL)
+    [[nodiscard]] void*    QueryDepthView()       const noexcept;   // VkImageView, or null when no depth target exists
+    [[nodiscard]] uint32_t QueryColourFormat()    const noexcept;   // VkFormat of the above colour view
+    [[nodiscard]] uint32_t QueryDepthFormat()     const noexcept;   // VkFormat, or VK_FORMAT_UNDEFINED when depthless
+    [[nodiscard]] uint32_t QueryCycleSlotCount()  const noexcept;   // frames in flight — the overlay sizes rings to this
+    [[nodiscard]] uint32_t QueryCycleSlot()       const noexcept;   // slot the frame now being recorded belongs to
+    [[nodiscard]] uint32_t QueryTargetGeneration() const noexcept { return TargetGeneration; }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    // Overlay seam — one callback recorded after the scene, before ImGui.
+    //--------------------------------------------------------------------------------------------------------------------
+    // The engine deliberately knows nothing about what is drawn: it hands back the command buffer and the slot, and the
+    //    project records whatever it likes. This keeps SpatialInterface out of DeviceExchange (a project may compose
+    //    figures; the engine may not know what a figure means) while still giving the overlay a place in the frame.
+    //    Command is a VkCommandBuffer. Called once per presented frame; never called for a skipped frame.
+    using OverlaySequence = std::function<void(void* Command, uint32_t CycleSlot)>;
+    void AssignOverlaySequence(OverlaySequence Sequence) noexcept { Overlay = std::move(Sequence); }
+    void ClearOverlaySequence() noexcept { Overlay = nullptr; }
 
     template<typename TargetType>
     [[nodiscard]] TargetType    Convert() const noexcept;
@@ -222,9 +267,14 @@ private:
     bool                    FullscreenActive;    // [-]   window currently covers the primary monitor
     RayTracingCapabilitySet Capabilities;        // [-]   probed in BringPhysicalDevice
     VisibilityExchange      Visibility;          // [-]   R2 resident scene + cull / raster / HiZ / resolve
-    bool                    TraversalResident = false;   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
+    bool                    TraversalResident = false;
+    uint64_t                TraversalNodeCapacity = 0u;   // [B] allocation size, so a refit refresh cannot overrun
+    uint64_t                TraversalLeafCapacity = 0u;   // [B]   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
     VisibilityFrameConfiguration VisibilityFrame{};
     bool                    VisibilityFrameValid = false;
+
+    OverlaySequence         Overlay;                       // [-]   optional per-frame overlay recorder (project-owned)
+    uint32_t                TargetGeneration = 0u;         // [cnt] bumped on every swapchain rebuild; overlays re-Resize on change
     bool                    DrawIndirectCountSupported = false;   // [-] VkPhysicalDeviceVulkan12Features::drawIndirectCount
     RayTracingRequestCategory RayTracingRequest = RayTracingRequestCategory::Auto;
     int                     WindowedX, WindowedY, WindowedW, WindowedH;   // [px] rectangle to restore on leaving fullscreen

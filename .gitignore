@@ -23,11 +23,32 @@ Projects/*/Content/Slate.config.toml
 # Fetched test levels (Projects/Project-Zero/Build/FetchSponza.ps1) - never committed
 Projects/*/Content/Scenes/Sponza/
 Projects/*/Content/Scenes/ShaderBall.gltf
+Scratchpad/InterfaceRasterTest
+
+# Compiled shaders (produced by ToolchainSequence / CompileInterfaceShaders.sh)
+*.spv
+
+# Generated on first run by GameExecution (--scene showroom). CornellBox.gltf stays tracked as the
+#    bit-identity reference; the showroom is derived from ShowroomStructure.cpp and regenerates.
+Projects/Project-Zero/Content/Scenes/Showroom.gltf
+Projects/Project-Zero/Content/Scenes/ShowroomDrop.gltf
+
+# Jolt static library and Project-Physics build output (derived; rebuilt by Scripts/BuildJolt.sh and the toolchain scripts)
+ExternalPackages/jolt/lib/
+Projects/Project-Physics/Build/Output/
+Diagnostics/ProjectPhysics_TelemetryReport*.md
+
+# SolidArc build output (ParametricSketcher has its own standalone CMake project)
+ParametricSketcher/build/
+ParametricSketcher/Output/
 
 # Project-Dyno / Phase A acoustics: build output and rendered audio (regenerate with --render); logs + PNG proofs are committed
 Projects/*/Build/Output/
 Scratchpad/*.wav
 Diagnostics/ProjectDyno_TelemetryReport*.md
+
+# Repository-root Build\ mirror written by Project-Zero's ToolchainSequence.ps1 (exe + pdb + glfw3.dll + SPIR-V)
+/Build/
 
 # Phase A acoustics: third-party reference clips fetched by Scratchpad/AcousticLaFerrariReference.js --fetch (no licence) - never committed
 Scratchpad/LaFerrariReference/

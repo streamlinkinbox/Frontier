@@ -353,7 +353,7 @@ uint MakeSeed(uvec2 pixel, uint frame)
 const uint kMaterialFlagAlphaMask = 2u;      // MaterialRecord.Flags bit (SceneRecords.slang)
 const uint kAlphaMaskRetraceLimit = 4u;      // cut-out layers a shadow / bounce ray may pass through before giving up
 struct Ray    { vec3 origin; vec3 dir; };
-struct Hit    { bool valid; float t; vec3 pos; vec3 normal; uint matIdx; uint primitive; };
+struct Hit    { bool valid; float t; vec3 pos; vec3 normal; uint matIdx; uint primitive; uint instance; };
 
 const float kEps = 1e-4;
 const float kInf = 1e30;
@@ -378,6 +378,38 @@ bool AlphaMaskCutOut(uint primitive, vec3 hitPos)
         opacity *= textureLod(Textures[nonuniformEXT(mat.Textures.x)], uv, 0.0).a;
     }
     return opacity < mat.AlphaCutoff;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                        HIT IDENTITY  (D2 — one definition, one place)
+//------------------------------------------------------------------------------------------------------------------------
+// A hit is identified by the PAIR (instance, primitive). Today Triangles[] is one flat world-space array and the
+//    traversal returns a flat slot, so the instance is recovered from the layout. Once instances carry transforms
+//    (D3) the traversal will return the pair directly and only these two helpers change — every caller already
+//    speaks in terms of the pair, so nothing downstream has to be revisited.
+//
+// ⚠️ Why this is worth a helper rather than an inline loop: the search below used to be copy-pasted at the bounce
+//    site. Two copies of an identity rule is how (instance, primitive) silently disagree between the primary hit
+//    and the bounce hit — and because ReSTIR reuses hits across frames, a disagreement decorrelates the reservoir
+//    instead of crashing. One definition removes that whole class of bug.
+
+// Instance owning a flat primitive slot. Triangles[] is laid out per instance in FlatTriangleOffset order, so this
+//    is a search for the last instance whose offset does not exceed the slot. Bounded by instance count.
+uint InstanceOfPrimitive(uint flatPrimitive)
+{
+    uint found = 0u;
+    for (uint i = 0u; i + 1u < uint(Instances.length()); ++i)
+    {
+        if (Instances[i + 1u].FlatTriangleOffset <= flatPrimitive) found = i + 1u;
+        else break;
+    }
+    return found;
+}
+
+// Primitive index WITHIN its instance — what ResolveMaterial expects for vertex/uv lookup.
+uint LocalPrimitive(uint flatPrimitive, uint instance)
+{
+    return flatPrimitive - Instances[instance].FlatTriangleOffset;
 }
 
 Hit TraceScene(Ray ray)
@@ -406,6 +438,7 @@ Hit TraceScene(Ray ray)
         closest.normal = normalize(cross(tri.v1.xyz - tri.v0.xyz, tri.v2.xyz - tri.v0.xyz));   // R4a: face normal from the edges (slot now carries UVs)
         closest.matIdx = floatBitsToUint(tri.v0.w);
         closest.primitive = h.primitive;
+        closest.instance  = InstanceOfPrimitive(h.primitive);   // D2: identity is the (instance, primitive) pair
         return closest;
     }
     return closest;
@@ -850,14 +883,11 @@ void main()
             if (bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
             {
                 GpuMaterial   bMat  = Materials[bounceHit.matIdx];
-                uint          bInst = 0u;   // the flat primitive index already addresses Triangles[]; find its instance for the vertex range
-                // Triangles[] is laid out per instance in FlatTriangleOffset order; binary search would need a count — linear over
-                //    instances is bounded (Sponza: 105) and only runs once per bounce.
-                for (uint i = 0u; i + 1u < uint(Instances.length()); ++i) if (Instances[i + 1u].FlatTriangleOffset <= bounceHit.primitive) bInst = i + 1u; else break;
-                GpuInstance   bInstance = Instances[bInst];
+                // D2: TraceScene already resolved the instance — reuse it rather than repeating the search here.
+                GpuInstance   bInstance = Instances[bounceHit.instance];
                 SurfaceFrame  bFrame;
                 float         bCone = coneWidth + bounceHit.t * PixelSpreadAngle();
-                ShadingRecord bShading = ResolveMaterial(bMat, bInstance, bounceHit.primitive - bInstance.FlatTriangleOffset, bounceHit.pos, -bounceDir, bCone, bFrame);
+                ShadingRecord bShading = ResolveMaterial(bMat, bInstance, LocalPrimitive(bounceHit.primitive, bounceHit.instance), bounceHit.pos, -bounceDir, bCone, bFrame);
 
                 if (dot(bFrame.Emission, bFrame.Emission) > 0.0)
                 {

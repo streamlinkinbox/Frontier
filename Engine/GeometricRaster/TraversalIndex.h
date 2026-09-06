@@ -50,6 +50,45 @@ public:
     // faster traversal on Sponza-class scenes). Returns false on empty input.
     bool Build(const std::vector<TriangleIndex>& Triangles, bool HighQuality) noexcept;
 
+    // D1 — bottom-level entry point. Identical work to Build(); the distinct name records the INTENT that these
+    //    triangles are one instance's geometry rather than the whole world, so a reader (and the identity gate)
+    //    can tell the two apart before the transform plumbing exists.
+    //
+    //    ⚠️ This must never become a separate implementation. It forwards to Build so the two paths cannot drift:
+    //    Scratchpad/TraversalIdentityTest.cpp hashes both blobs and requires bit identity, because a perturbed
+    //    tree would silently decorrelate ReSTIR's temporal reuse rather than fail loudly.
+    //
+    //    Triangles are object-space once instances carry transforms. For a single identity-transformed instance —
+    //    every scene the renderer has today — object space IS world space, which is what makes D1 a no-op.
+    bool BuildBottomLevel(const std::vector<TriangleIndex>& Triangles, bool HighQuality) noexcept
+    {
+        return Build(Triangles, HighQuality);
+    }
+
+    // D5 — refresh the structure after triangles MOVED, keeping the tree topology.
+    //
+    //    Refit walks the existing tree bottom-up recomputing bounds: O(n), no splits re-evaluated, no
+    //    reallocation. It is correct only while the topology still suits the geometry, which is exactly the
+    //    rigid-body case — bodies translate and rotate but never change shape or triangle count.
+    //
+    //    ⚠️ Cost is dominated by re-emitting the GPU blob, not by the refit. Measured on a pre-AVX host
+    //    (Scratchpad/TraversalRefitBenchmark.cpp), for the whole showroom drop scene:
+    //        BVH::Refit      0.22 ms      MBVH8 collapse  0.74 ms      CWBVH compress  6.31 ms
+    //    The compress is O(total nodes) and re-emits STATIC geometry too, so the chain scales with the whole
+    //    scene rather than with the moving part: 0.94 ms at 2 k triangles, 7.46 ms at 16.8 k. That is the honest
+    //    ceiling of this approach and the reason a true two-level split (static BLAS emitted once, dynamic BLAS
+    //    re-emitted alone) is the next optimisation rather than something already delivered here.
+    //
+    //    Returns false if no tree exists yet, or if HighQuality was used — a spatial-split BVH cuts triangles and
+    //    tinybvh refuses to refit it, which is a hard error rather than a quality trade.
+    [[nodiscard]] bool RefitBottomLevel(const std::vector<TriangleIndex>& Triangles) noexcept;
+
+    // True when RefitBottomLevel can be used: a tree exists and it was not built with spatial splits.
+    [[nodiscard]] bool IsRefittable() const noexcept { return !NodeBlob.empty() && !Metrics.HighQuality; }
+
+    // Wall-clock of the last RefitBottomLevel, so a caller can budget-guard it.
+    [[nodiscard]] float QueryRefitMilliseconds() const noexcept { return RefitMilliseconds; }
+
     [[nodiscard]] bool                      IsReady()        const noexcept { return !NodeBlob.empty(); }
     [[nodiscard]] const std::vector<float>& QueryNodeBlob()  const noexcept { return NodeBlob; }   // float4 × 5 per node
     [[nodiscard]] const std::vector<float>& QueryLeafBlob()  const noexcept { return LeafBlob; }   // float4 × 3 per triangle
@@ -64,6 +103,7 @@ private:
     std::vector<float>   NodeBlob;
     std::vector<float>   LeafBlob;
     TraversalMetrics     Metrics;
+    float                RefitMilliseconds = 0.0f;   // [ms] wall clock of the last RefitBottomLevel
 };
 
 } // namespace Frontier

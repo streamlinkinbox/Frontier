@@ -11,7 +11,15 @@ param(
     [ValidateSet('Debug', 'Release')] [string] $Configuration = 'Release',
     [switch] $Rebuild,
     [switch] $Run,
-    [int]    $Parallel = 0
+    [int]    $Parallel = 0,
+    # Instruction set of the OLDEST machine this binary must run on — not the machine compiling it.
+    #    SSE2    baseline x64: runs anywhere. Use this when unsure.
+    #    AVX     Sandy Bridge i5/i7 and later. ⚠️ Sandy Bridge Core i3 (e.g. i3-2120) has NO AVX — it will
+    #            crash at launch with 0xc000001d STATUS_ILLEGAL_INSTRUCTION on the first VEX instruction.
+    #    AVX2    Haswell (2013) and later.
+    # This must match Scripts/BuildJolt.ps1 and every other project script: Jolt derives JPH_USE_AVX/SSE4_2/SSE4_1
+    #    from the compiler's __AVX__ macros and RegisterTypes() aborts on a library/client mismatch.
+    [ValidateSet('SSE2', 'AVX', 'AVX2')] [string] $Isa = 'SSE2'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -142,8 +150,10 @@ function Get-CompilationFlags([string] $Selection)
         '/DGLFW_DLL'
         '/DFRONTIER_DEVELOPMENT'
         '/DFRONTIER_ENABLE_GLFW'
-        '/arch:AVX'     # AVX support for Sandy Bridge+ hosts; tinybvh supports AVX/SSE scalar fallback
     )
+    # Baseline SSE2 emits no /arch at all (it is the x64 default); anything else is opt-in via -Isa.
+    #    tinybvh falls back to its scalar path cleanly when AVX is absent.
+    if ($Isa -ne 'SSE2') { $Common += "/arch:$Isa" }
 
     if ($Selection -eq 'Debug')
     {
@@ -164,6 +174,8 @@ function Get-IncludePaths([string] $VulkanRoot)
         "/I$EngineRoot"
         "/I$(Join-Path $ProjectRoot 'Source')"
         "/I$(Join-Path $VulkanRoot  'Include')"
+        "/I$(Join-Path $PackageRoot 'miniaudio')"
+        "/I$(Join-Path $RepositoryRoot 'Projects\Project-Dyno\Source')"
         "/I$(Join-Path $PackageRoot 'imgui')"
         "/I$(Join-Path $PackageRoot 'imgui\backends')"
         "/I$(Join-Path $PackageRoot 'glfw\include')"
@@ -351,8 +363,10 @@ $ShaderTable = @(
     @{ Source = 'SurfaceResolve.slang';        Stage = 'compute';  Output = 'SurfaceResolve.spv' }
     @{ Source = 'VisibilityRaster.vert.slang'; Stage = 'vertex';   Output = 'VisibilityRaster.vert.spv' }
     @{ Source = 'VisibilityRaster.frag.slang'; Stage = 'fragment'; Output = 'VisibilityRaster.frag.spv' }
+    @{ Source = 'InterfaceRaster.vert.slang';  Stage = 'vertex';   Output = 'InterfaceRaster.vert.spv' }
+    @{ Source = 'InterfaceRaster.frag.slang';  Stage = 'fragment'; Output = 'InterfaceRaster.frag.spv' }
 )
-$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang')
+$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang', 'InterfaceRecords.slang', 'InterfaceSignedDistance.slang')
 
 function Invoke-ShaderLowering([string] $VulkanRoot)
 {
@@ -558,6 +572,17 @@ if ((-not (Test-Path $ThorVGLib)) -and (-not $script:ThorVGBuilt))
     $script:ThorVGBuilt = $true
 }
 
+# Build Jolt static lib if absent (D4: rigid bodies drive instance transforms)
+#    -Isa is forwarded: Jolt derives JPH_USE_AVX/SSE4_2/SSE4_1 from the compiler macros and RegisterTypes()
+#    aborts at run time if the library and this client disagree.
+$JoltLib = Join-Path $PackageRoot "jolt\lib\$Configuration\Jolt.lib"
+if (-not (Test-Path $JoltLib))
+{
+    Write-Building 'Jolt library absent - invoking BuildJolt.ps1'
+    $ExitCode = Invoke-DependencyScript (Join-Path $ScriptRoot 'BuildJolt.ps1') @('-Configuration', $Configuration, '-Isa', $Isa)
+    if ($ExitCode -ne 0) { throw 'BuildJolt.ps1 failed' }
+}
+
 # Lower shaders
 Invoke-ShaderLowering $VulkanRoot
 
@@ -625,6 +650,27 @@ $EngineRelative = @(
     'Engine\ContentInterchange\ObjCodec.cpp'
     'Engine\ContentInterchange\ContentCodec.cpp'
     'Engine\ContentInterchange\UfbxTranslation.cpp'
+    'Engine\SpatialInterface\InterfaceStructure.cpp'
+    'Engine\SpatialInterface\InterfaceSequence.cpp'
+    'Engine\SpatialInterface\InterfaceLayoutCodec.cpp'
+    'Engine\SpatialInterface\PaletteConfiguration.cpp'
+    'Engine\SpatialInterface\InterfacePointerProjection.cpp'
+    'Engine\SpatialInterface\InterfaceTextProjection.cpp'
+    'Engine\SpatialInterface\InterfaceScreenSequence.cpp'
+    'Engine\SpatialInterface\InterfaceVectorCodec.cpp'
+    'Engine\SpatialInterface\InterfaceLightProjection.cpp'
+    'Engine\DeviceExchange\InterfaceExchange.cpp'
+    'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
+    'Projects\Project-Zero\Source\InstanceMotionSequence.cpp'
+    'Projects\Project-Zero\Source\PhysicsInstanceSequence.cpp'
+    'Projects\Project-Zero\Source\InterfaceAudioSequence.cpp'
+    'Projects\Project-Dyno\Source\CrankClickIntegrator.cpp'
+    'Projects\Project-Dyno\Source\DynoSequence.cpp'
+    'Engine\PlatformInterchange\AudioExchange.cpp'
+    'Engine\PlatformInterchange\MiniaudioTranslation.cpp'
+    'Engine\PlatformInterchange\WaveCodec.cpp'
+    'Engine\PhysicalDynamics\RigidBodySolver.cpp'
+    'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'
     'Projects\Project-Zero\Source\GameExecution.cpp'
@@ -697,6 +743,7 @@ foreach ($Obj in $ObjectFiles)                    { $LinkArgs.Add($Obj) }
 $LinkArgs.Add((Join-Path $VulkanRoot 'Lib\vulkan-1.lib'))
 $LinkArgs.Add((Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3dll.lib'))
 $LinkArgs.Add((Join-Path $PackageRoot 'thorvg\lib\thorvg.lib'))
+$LinkArgs.Add($JoltLib)
 $LinkArgs.Add('gdi32.lib')
 $LinkArgs.Add('user32.lib')
 $LinkArgs.Add('shell32.lib')
@@ -712,6 +759,27 @@ if ($LASTEXITCODE -ne 0)
 }
 
 Write-Produced $ExePath
+
+# Mirror the freshly linked binary to <repo>\Build\ so `.\Build\Project-Zero.exe` works from the repository root,
+#    which is the command References/RunningTheShowroom.md documents. Copying (rather than only linking here) is what
+#    prevents the classic "I rebuilt but the old UI is still there" report: a stale copy from an earlier session would
+#    otherwise sit at that path forever, since nothing else ever writes to it.
+$RootBinary = Join-Path $RepositoryRoot 'Build'
+New-Item -ItemType Directory -Force -Path $RootBinary | Out-Null
+foreach ($Payload in @('Project-Zero.exe', 'Project-Zero.pdb', 'glfw3.dll'))
+{
+    $From = Join-Path $BinaryRoot $Payload
+    if (Test-Path $From) { Copy-Item $From $RootBinary -Force -ErrorAction SilentlyContinue }
+}
+# The runtime searches <cwd>\Engine\Shaders first, so the mirrored copy needs the lowered SPIR-V beside it too.
+$RootShaders = Join-Path $RootBinary 'Engine\Shaders'
+New-Item -ItemType Directory -Force -Path $RootShaders | Out-Null
+foreach ($Entry in $ShaderTable)
+{
+    $SpirvSource = Join-Path $EngineRoot ('Shaders\' + $Entry.Output)
+    if (Test-Path $SpirvSource) { Copy-Item $SpirvSource $RootShaders -Force }
+}
+Write-Produced (Join-Path $RootBinary 'Project-Zero.exe')
 
 if ($Run)
 {

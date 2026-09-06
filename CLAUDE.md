@@ -50,6 +50,11 @@
 `Submission`, `Footprint`, `Region`, `Tree`, `Vacancy`, `Ordinates`, `Draft`, `Draught`, `Paint`,
 `Depot`, `Ordinal`, `Actor`, `Source`, `API`.
 
+### 3.1 SolidArc Vocabulary (ParametricSketcher/)
+- The modelling tool is named **SolidArc** and lives in the top-level folder **`ParametricSketcher/`** (a sibling of `Engine/`, `Projects/`, `Tools/` — it is a tool, never a project).
+- The three-letter acronym for computer-aided design is **strictly banned** anywhere in this repository's SolidArc code, comments, file names, targets, scripts, proofs and documentation. Say `SolidArc`, `modelling tool`, `sketcher`, `kernel`, `NURBS`, `B-rep` instead.
+- Script files use the `.arc` extension; build targets are prefixed `SolidArc`.
+
 ---
 
 ## 4. Formatting Standards
@@ -80,6 +85,7 @@ powershell -File Projects\Project-Zero\Build\ToolchainSequence.ps1 -Rebuild -Run
 - Requires: Visual Studio 2022 (MSVC), Vulkan SDK (sets `VULKAN_SDK` env var or falls back to `C:\VulkanSDK\<latest>`), PowerShell 5.1 or later
 - GLFW is built automatically via `Scripts\BuildGLFW.ps1` when `ExternalPackages\glfw\lib-vc2022\glfw3dll.lib` is absent (cmake VS17 2022 → DLL + import lib)
 - ThorVG is built automatically via `Scripts\BuildThorVG.ps1` when `ExternalPackages\thorvg\lib\thorvg.lib` is absent (direct `cl.exe` → static lib)
+- Jolt is built automatically via `Scripts\BuildJolt.ps1` when `ExternalPackages\jolt\lib\<Configuration>\Jolt.lib` is absent (direct `cl.exe` → static lib, 138 TUs, rigid-body subset). ⚠️ Jolt derives `JPH_USE_*`/`JPH_DEBUG` from compiler flags and `RegisterTypes()` aborts on a client mismatch — every TU that includes `<Jolt/Jolt.h>` must use the same `-Isa` (SSE2 default — Sandy Bridge i3 has no AVX), `/MD`, NDEBUG choice as the library; `ToolchainSequence.ps1 -Isa AVX` forwards it to `BuildJolt.ps1`
 - Shaders: `.slang` → SPIR-V via `slangc.exe` (ships with Vulkan SDK)
 - Compatible with Windows PowerShell 5.1 and PowerShell 7+ (both `powershell.exe` and `pwsh.exe` work)
 - `Construct.ps1` is a banned script name — use `ToolchainSequence.ps1`
@@ -101,6 +107,20 @@ powershell -File Scripts\BuildGLFW.ps1            # builds ExternalPackages/glfw
 powershell -File Scripts\BuildThorVG.ps1          # builds ExternalPackages/thorvg/lib/thorvg.lib
 powershell -File Scripts\BuildThorVG.ps1 -Configuration Debug
 ```
+
+### Project-Fluid (WebGPU fluid testbed — browser page, no compiler, self-proving)
+```powershell
+powershell -File Projects\Project-Fluid\Build\ToolchainSequence.ps1              # serve Source/ on http://localhost:8765/ and open it
+powershell -File Projects\Project-Fluid\Build\ToolchainSequence.ps1 -Proof       # opens ?seconds=8&proof=1&fixed=1 → PASS/FAIL + trace hash
+powershell -File Projects\Project-Fluid\Build\ToolchainSequence.ps1 -Check       # source tree + 142-char headers only
+bash Projects/Project-Fluid/Build/ToolchainSequence.sh --port 8765               # Linux/macOS (python3 http.server)
+```
+- Needs Chrome/Edge 113+, Firefox 141+ or Safari 26; on Windows the GPU is reached through D3D12 (check `chrome://gpu` → WebGPU)
+- Query: `resolution=32…160` (5 k → 1.4 M particles), `seconds=N` (0 = endless), `proof=1`, `fixed=1`, `perkernel=1`, `scale=0.25…1`, `mode=0…3`,
+  `solver=positionbased|explicit` (default PB-MPM, EA SEED 2024; explicit = MLS-MPM + Tait EOS), `iterations=1…8`, `stiffness=κ`, `substeps=auto|N`
+- Exit status in `window.ProjectFluidExit` and `#status`: 0 proofs passed, 2 a proof failed, 1 refusal (no WebGPU)
+- Survey + plan: `References/FluidPhaseF1-RecentSurveyAndWebGpuPlan.md` (2023–2026 sources); background: `FluidPhaseF0-SurveyAndPlan.md`;
+  field-by-field comparison with Unreal Niagara Fluids + material road map (water → honey → mud → snow): `FluidPhaseF1-UnrealComparison.md`
 
 ### Linux CMake (IDE integration / non-Windows only)
 ```bash
@@ -234,6 +254,12 @@ Frontier/
 │   │       ├── GameExecution.cpp       ← main loop; --render <wav> for offline output; --null for headless
 │   │       ├── DynoSequence.h/.cpp     ← scripted pulls (idle · sweep · pull · steady · blip)
 │   │       └── CrankClickIntegrator.h/.cpp ← transport self-test (crank-locked click train)
+│   ├── Project-Fluid/              ← WebGPU fluid testbed (browser page, no C++): PB-MPM / MLS-MPM dam-break + screen-space surface
+│   │   ├── Build/ToolchainSequence.ps1/.sh   ← static HTTP server (the browser is the toolchain); -Check validates headers
+│   │   └── Source/
+│   │       ├── index.html, GameExecution.js  ← 60 Hz tick accumulator → LiquidSolver.Advance → Present → proofs (exit 0/2/1)
+│   │       ├── LiquidSolver.js, SurfaceProjection.js, DamBreakStructure.js, TimingMetrics.js
+│   │       └── Shaders/ParticleSolver.wgsl, SurfaceProjection.wgsl
 │   └── Project-F20/                ← Racing game (same Content/ layout)
 │
 ├── Scripts/                        ← Utility scripts — invoked by build scripts as needed

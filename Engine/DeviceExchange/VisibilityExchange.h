@@ -27,6 +27,7 @@
 namespace Frontier {
 
 class SceneStructure;
+struct InstanceRecord;   // GeometricRaster/SceneStructure.h — 160 B std430 mirror (World + PreviousWorld + ranges)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DEBUG VIEW
@@ -117,6 +118,24 @@ public:
     // Uploads every SceneStructure buffer (host-visible; a staging path is R7 work). Safe to call again with a new scene.
     void                UploadScene(const SceneStructure& Scene) noexcept;
 
+    // D3 — refresh instance transforms in place, once per frame, for moving bodies.
+    //
+    //    UploadScene reallocates every scene buffer behind a vkDeviceWaitIdle. That is correct at load time and
+    //    ruinous per frame: it stalls the whole device. This writes only the InstanceRecord rows into the existing
+    //    host-visible, persistently-mapped allocation — no reallocation, no stall, no descriptor rewrite, because
+    //    the VkBuffer handle never changes.
+    //
+    //    ⚠️ The count must match the resident scene. A caller that grows or shrinks the instance list has changed
+    //    the scene, not moved it, and must go through UploadScene. Refusal (false) rather than a silent partial
+    //    write, since a short write would leave stale transforms that look like physics glitches.
+    //
+    //    Memory is HOST_COHERENT, so no explicit flush is needed; the write must still land before the frame that
+    //    reads it is submitted, which is why the caller does this before RecordAndPresent.
+    [[nodiscard]] bool  RefreshInstances(const InstanceRecord* Rows, uint32_t Count) noexcept;
+
+    // Instances resident after the last UploadScene — the bound RefreshInstances must match.
+    [[nodiscard]] uint32_t QueryInstanceCount() const noexcept { return InstanceCount; }
+
     // R4b alpha mask in the raster: the kernel's slab SSBO (VkBuffer) and bindless table (VkSampler + VkImageView[]) are
     //    borrowed into raster bindings 6 / 7. Call after UploadScene / UploadTextures; the fragment stage reads them.
     void                AssignRasterMaterials(void* SlabBuffer, void* Sampler, const void* const* Views, uint32_t ViewCount) noexcept;
@@ -171,6 +190,7 @@ private:
     bool                 PreviousValid   = false;
     bool                 Ready           = false;
     uint32_t             TriangleCount   = 0u;
+    uint32_t             InstanceCount   = 0u;   // [cnt] resident instances; RefreshInstances must match this
     uint32_t             ClusterCount    = 0u;
     uint32_t             LuminaireCount  = 0u;
     uint32_t             Width           = 0u;

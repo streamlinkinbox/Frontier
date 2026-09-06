@@ -8,7 +8,7 @@
 //        Project-Dyno                                  live: default device, "sweep" pull, 8 cylinders, loops until Enter / Ctrl-C
 //        Project-Dyno --pull pull --cylinders 12       live: WOT pull, 12-cylinder click train
 //        Project-Dyno --sweep                          add the 40 Hz → 8 kHz sine sweep on top of the clicks
-//        Project-Dyno --null                           null backend (no hardware): clocked, silent — CI / sandbox
+//        Project-Dyno --null                           null driver (no hardware): clocked, silent — CI / sandbox
 //        Project-Dyno --render out.wav --pull pull     offline: same generator, same slicing, written to WAV; no device
 //        Project-Dyno --seconds 8                      run / render length in seconds (0 = until Enter live, = pull length for --render)
 //        Project-Dyno --float                          write IEEE float32 instead of PCM16 (bit-identity proofs)

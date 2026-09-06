@@ -939,8 +939,10 @@ bool SwapchainExchange::BringStorageImage() noexcept
     const VkExtent2D Extent{ Configuration.Width, Configuration.Height };
 
     // ① Presentation image — the compute pass writes tone-mapped 8-bit colour, blitted to the swapchain.
+    // COLOR_ATTACHMENT_BIT is what lets the SpatialInterface overlay draw its figures straight onto the resolved
+    //    scene image (it begins its own render pass against this view) before the blit to the swapchain.
     if (!CreateStorageImage(Vulkan->Device, Vulkan->MemoryProperties, VK_FORMAT_R8G8B8A8_UNORM, Extent,
-                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                             Vulkan->StorageImage, Vulkan->StorageMemory, Vulkan->StorageImageView, "storage image"))
         return false;
 
@@ -1745,8 +1747,40 @@ void SwapchainExchange::UploadTraversal(const TraversalIndex& Traversal) noexcep
     };
     Upload(Traversal.QueryNodeBlob(), Vulkan->TraversalNodeBuffer, Vulkan->TraversalNodeMemory);
     Upload(Traversal.QueryLeafBlob(), Vulkan->TraversalLeafBuffer, Vulkan->TraversalLeafMemory);
+    // Remember what was allocated so RefreshTraversal can refuse a blob that no longer fits instead of truncating.
+    TraversalNodeCapacity = static_cast<VkDeviceSize>(Traversal.QueryNodeBlob().size()) * sizeof(float);
+    TraversalLeafCapacity = static_cast<VkDeviceSize>(Traversal.QueryLeafBlob().size()) * sizeof(float);
     TraversalResident = true;
     WriteDescriptorSet();
+}
+
+bool SwapchainExchange::RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept
+{
+    // D5 per-frame path. Unlike UploadTraversal this must NOT reallocate: no vkDeviceWaitIdle, no descriptor
+    //    rewrite, because the VkBuffer handles are unchanged. It only succeeds while the refitted blobs still fit
+    //    the allocations made at load — a refit preserves topology, so in practice they do, but a grown blob is
+    //    refused rather than truncated.
+    if (!Vulkan || !Vulkan->Device || !TraversalResident) return false;
+    if (!Vulkan->TraversalNodeBuffer || !Vulkan->TraversalLeafBuffer) return false;
+
+    const auto Refresh = [&](const std::vector<float>& Blob, VkDeviceMemory Memory, VkDeviceSize Capacity) -> bool
+    {
+        const VkDeviceSize ByteCount = static_cast<VkDeviceSize>(Blob.size()) * sizeof(float);
+        if (ByteCount == 0u || ByteCount > Capacity) return false;
+        void* Mapped = nullptr;
+        if (vkMapMemory(Vulkan->Device, Memory, 0u, ByteCount, 0u, &Mapped) != VK_SUCCESS || Mapped == nullptr) return false;
+        std::memcpy(Mapped, Blob.data(), static_cast<size_t>(ByteCount));
+        vkUnmapMemory(Vulkan->Device, Memory);
+        return true;
+    };
+
+    if (!Refresh(Traversal.QueryNodeBlob(), Vulkan->TraversalNodeMemory, TraversalNodeCapacity)) return false;
+    if (!Refresh(Traversal.QueryLeafBlob(), Vulkan->TraversalLeafMemory, TraversalLeafCapacity)) return false;
+
+    // The kernel resolves a hit's material and normal from Triangles[], so the flat triangles must move with the
+    //    acceleration structure or shading would read the body's old position.
+    UploadTriangles(Facets);
+    return true;
 }
 
 void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures) noexcept
@@ -1970,6 +2004,38 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     }
     Visibility.RecordKernelEnd(Command, Vulkan->ActiveSlot);
 
+    // ②b Project overlay (SpatialInterface) — draws world-space figures onto the resolved scene before the blit, so
+    //     the panel is part of the presented image rather than a screen-space sticker on top of it.
+    //     The overlay begins its own render pass expecting COLOR_ATTACHMENT_OPTIMAL, so the image is transitioned in
+    //     and back out; without the round trip the following blit would read an image in the wrong layout.
+    if (Overlay)
+    {
+        VkImageMemoryBarrier ToAttachment{};
+        ToAttachment.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        ToAttachment.oldLayout                   = VK_IMAGE_LAYOUT_GENERAL;
+        ToAttachment.newLayout                   = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        ToAttachment.image                       = Vulkan->StorageImage;
+        ToAttachment.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        ToAttachment.subresourceRange.levelCount = 1u;
+        ToAttachment.subresourceRange.layerCount = 1u;
+        ToAttachment.srcAccessMask               = VK_ACCESS_SHADER_WRITE_BIT;
+        ToAttachment.dstAccessMask               = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        vkCmdPipelineBarrier(Command,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0u, 0u, nullptr, 0u, nullptr, 1u, &ToAttachment);
+
+        Overlay(static_cast<void*>(Command), Vulkan->ActiveSlot);
+
+        VkImageMemoryBarrier ToGeneral = ToAttachment;
+        ToGeneral.oldLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        ToGeneral.newLayout     = VK_IMAGE_LAYOUT_GENERAL;
+        ToGeneral.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        ToGeneral.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        vkCmdPipelineBarrier(Command,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0u, 0u, nullptr, 0u, nullptr, 1u, &ToGeneral);
+    }
+
     // ③ Storage image → TRANSFER_SRC for blit
     {
         VkImageMemoryBarrier Barrier{};
@@ -2058,6 +2124,22 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
 //                                             DISPLAY SETTINGS (present pacing · fullscreen)
 //============================================================================================================================================
 
+//============================================================================================================================================
+//                                        DEVICE SEAM (handles an overlay needs to record)
+//============================================================================================================================================
+// Deliberately thin: these hand back handles this class already owns so a project-side overlay can build its own
+//    resources against the same device and targets. There is no depth target in this renderer — the compute path
+//    resolves into a colour storage image — so QueryDepthView/Format report "none" and an overlay draws depthless.
+
+void*    SwapchainExchange::QueryDevice()         const noexcept { return Vulkan ? static_cast<void*>(Vulkan->Device)           : nullptr; }
+void*    SwapchainExchange::QueryPhysicalDevice() const noexcept { return Vulkan ? static_cast<void*>(Vulkan->PhysicalDevice)   : nullptr; }
+void*    SwapchainExchange::QueryColourView()     const noexcept { return Vulkan ? static_cast<void*>(Vulkan->StorageImageView) : nullptr; }
+void*    SwapchainExchange::QueryDepthView()      const noexcept { return nullptr; }
+uint32_t SwapchainExchange::QueryColourFormat()   const noexcept { return static_cast<uint32_t>(VK_FORMAT_R8G8B8A8_UNORM); }
+uint32_t SwapchainExchange::QueryDepthFormat()    const noexcept { return static_cast<uint32_t>(VK_FORMAT_UNDEFINED); }
+uint32_t SwapchainExchange::QueryCycleSlotCount() const noexcept { return kCycleSlotCount; }
+uint32_t SwapchainExchange::QueryCycleSlot()      const noexcept { return Vulkan ? Vulkan->ActiveSlot : 0u; }
+
 uint32_t SwapchainExchange::ResolvePresentMode() const noexcept
 {
     uint32_t Count = 0u;
@@ -2144,6 +2226,10 @@ bool SwapchainExchange::RebuildSwapchain() noexcept
 
     if (!BringSwapchain() || !BringStorageImage()) return false;
     if (!Visibility.Resize(Configuration.Width, Configuration.Height, Vulkan->StorageImageView)) return false;
+
+    // Every view handed out by the device seam has just been destroyed and recreated. Bumping the generation is how
+    //    an overlay learns it must re-Resize; without it, it would keep rendering into a stale VkImageView.
+    ++TargetGeneration;
 
     WriteDescriptorSet();
 

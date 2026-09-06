@@ -119,14 +119,17 @@ find_program(GLSLC_EXECUTABLE glslc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/us
 find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/usr/local/bin")
 
 set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
-set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang")
+set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
+                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang")
 set(SHADER_TABLE
     "ReSTIRViewport.slang|compute|ReSTIRViewport.spv"
     "ClusterCull.slang|compute|ClusterCull.spv"
     "HiZReduce.slang|compute|HiZReduce.spv"
     "SurfaceResolve.slang|compute|SurfaceResolve.spv"
     "VisibilityRaster.vert.slang|vertex|VisibilityRaster.vert.spv"
-    "VisibilityRaster.frag.slang|fragment|VisibilityRaster.frag.spv")
+    "VisibilityRaster.frag.slang|fragment|VisibilityRaster.frag.spv"
+    "InterfaceRaster.vert.slang|vertex|InterfaceRaster.vert.spv"
+    "InterfaceRaster.frag.slang|fragment|InterfaceRaster.frag.spv")
 
 set(SPV_OUTPUTS)
 if(GLSLC_EXECUTABLE OR SLANGC_EXECUTABLE)
@@ -166,29 +169,13 @@ else()
     add_custom_target(ReSTIRViewportSpirv)
 endif()
 set(FRONTIER_ENGINE_SOURCES
-    Engine/DeviceExchange/VulkanExchange.cpp
-    Engine/DeviceExchange/ByteSpace.cpp
-    Engine/DeviceExchange/TaskScheduler.cpp
-    Engine/DeviceExchange/ExecutionQueue.cpp
-    Engine/DeviceExchange/VendorClassifier.cpp
     Engine/DeviceExchange/OrientationClassifier.cpp
-    Engine/DeviceExchange/WindowExchange.cpp
     Engine/DeviceExchange/InputExchange.cpp
-    Engine/DeviceExchange/RenderTargetExchange.cpp
     Engine/DeviceExchange/DiagnosticMetrics.cpp
-    Engine/PhysicalDynamics/RigidBodySolver.cpp
-    Engine/PhysicalDynamics/DeformableSolver.cpp
-    Engine/PhysicalDynamics/LocomotionSolver.cpp
-    Engine/PhysicalDynamics/WorldSpace.cpp
-    Engine/VolumetricDynamics/LevelSetSpace.cpp
-    Engine/VolumetricDynamics/FluidSolver.cpp
-    Engine/VolumetricDynamics/ParticleIntegrator.cpp
     Engine/GeometricRaster/GeometryStructure.cpp
     Engine/GeometricRaster/CameraProjection.cpp
     Engine/GeometricRaster/SceneStructure.cpp
     Engine/GeometricRaster/TraversalIndex.cpp
-    Engine/GeometricRaster/VisibilityProjection.cpp
-    Engine/GeometricRaster/RasterSequence.cpp
     Engine/ContentInterchange/MaterialIndex.cpp
     Engine/ContentInterchange/MaterialCodec.cpp
     Engine/ContentInterchange/TextureIndex.cpp
@@ -198,14 +185,6 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/ContentInterchange/ObjCodec.cpp
     Engine/ContentInterchange/ContentCodec.cpp
     Engine/ContentInterchange/UfbxTranslation.cpp
-    Engine/PhotometricIllumination/ClusteredSpace.cpp
-    Engine/PhotometricIllumination/DirectIlluminationIntegrator.cpp
-    Engine/PhotometricIllumination/GlobalIlluminationIntegrator.cpp
-    Engine/PhotometricIllumination/AtmosphereIntegrator.cpp
-    Engine/PlatformInterchange/AcousticStructure.cpp
-    Engine/PlatformInterchange/AcousticIntegrator.cpp
-    Engine/PlatformInterchange/VoiceExchange.cpp
-    Engine/PlatformInterchange/OnlineInterchange.cpp
     Engine/DisplayPresentation/ThemeStructure.cpp
     Engine/DisplayPresentation/VectorCodec.cpp
     Engine/DisplayPresentation/FontCodec.cpp
@@ -221,10 +200,16 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/DisplayPresentation/AppearanceInspector.cpp
     Engine/DisplayPresentation/ConfigurationInspector.cpp
     Engine/DisplayPresentation/TypefaceRegistry.cpp
-    Engine/DisplayPresentation/WorkspaceHost.cpp
-    Engine/DisplayPresentation/CycleScheduler.cpp
     Engine/DisplayPresentation/FidelityClassifier.cpp
-    Engine/DisplayPresentation/FrontierHost.cpp
+    Engine/SpatialInterface/InterfaceStructure.cpp
+    Engine/SpatialInterface/InterfaceSequence.cpp
+    Engine/SpatialInterface/InterfaceLayoutCodec.cpp
+    Engine/SpatialInterface/PaletteConfiguration.cpp
+    Engine/SpatialInterface/InterfacePointerProjection.cpp
+    Engine/SpatialInterface/InterfaceTextProjection.cpp
+    Engine/SpatialInterface/InterfaceScreenSequence.cpp
+    Engine/SpatialInterface/InterfaceVectorCodec.cpp
+    Engine/SpatialInterface/InterfaceLightProjection.cpp
 )
 
 # ─── Engine common include dirs ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -244,6 +229,18 @@ set(PROJECT_ZERO_SOURCES
     Engine/DeviceExchange/SwapchainExchange.cpp
     Engine/DeviceExchange/RayTracingCapabilitySet.cpp
     Engine/DeviceExchange/VisibilityExchange.cpp
+    Engine/DeviceExchange/InterfaceExchange.cpp
+    Projects/Project-Zero/Source/InterfaceTrialSequence.cpp
+    Projects/Project-Zero/Source/InstanceMotionSequence.cpp
+    Projects/Project-Zero/Source/PhysicsInstanceSequence.cpp
+    Projects/Project-Zero/Source/InterfaceAudioSequence.cpp
+    Projects/Project-Dyno/Source/CrankClickIntegrator.cpp
+    Projects/Project-Dyno/Source/DynoSequence.cpp
+    Engine/PlatformInterchange/AudioExchange.cpp
+    Engine/PlatformInterchange/MiniaudioTranslation.cpp
+    Engine/PlatformInterchange/WaveCodec.cpp
+    Engine/PhysicalDynamics/RigidBodySolver.cpp
+    Projects/Project-Zero/Source/ShowroomStructure.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
     Engine/DisplayPresentation/ReSTIRIntegrator.cpp
     Engine/DisplayPresentation/ShadingTableCodec.cpp
@@ -254,6 +251,23 @@ set(PROJECT_ZERO_SOURCES
     ${IMGUI_SOURCES}
 )
 
+# Fail fast with NAMES if the source list ever rots again, mirroring the guard in
+#    Projects/Project-Zero/Build/ToolchainSequence.ps1. Without it a stale entry surfaces as a wall of cascading
+#    compiler errors (was: 73 C1083s on Windows, 2026-09-04) instead of one legible message. Only repo-relative
+#    paths are checked; ${...} entries are generator expressions or submodule paths resolved elsewhere.
+set(FRONTIER_MISSING_SOURCES "")
+foreach(FrontierSource IN LISTS PROJECT_ZERO_SOURCES)
+    if(NOT FrontierSource MATCHES "^\\$" AND NOT IS_ABSOLUTE "${FrontierSource}")
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${FrontierSource}")
+            list(APPEND FRONTIER_MISSING_SOURCES "${FrontierSource}")
+        endif()
+    endif()
+endforeach()
+if(FRONTIER_MISSING_SOURCES)
+    string(REPLACE ";" "\n    " FRONTIER_MISSING_REPORT "${FRONTIER_MISSING_SOURCES}")
+    message(FATAL_ERROR "missing source files in the translation batch:\n    ${FRONTIER_MISSING_REPORT}")
+endif()
+
 add_executable(Project-Zero ${PROJECT_ZERO_SOURCES})
 add_dependencies(Project-Zero ReSTIRViewportSpirv)
 set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # tinybvh SIMD build
@@ -261,6 +275,8 @@ set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES
 target_include_directories(Project-Zero PRIVATE
     ${FRONTIER_ENGINE_INCLUDES}
     ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Zero/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Dyno/Source
+    ${EXT}/miniaudio
     ${Vulkan_INCLUDE_DIRS}
     ${IMGUI_SRC}
     ${IMGUI_SRC}/backends
@@ -273,6 +289,8 @@ target_include_directories(Project-Zero PRIVATE
     ${EXT}/fast_obj
 )
 
+target_link_libraries(Project-Zero PRIVATE Jolt)   # D4: rigid bodies drive instance transforms
+set_source_files_properties(Engine/PlatformInterchange/MiniaudioTranslation.cpp PROPERTIES COMPILE_OPTIONS "-w")   # third-party TU
 target_compile_definitions(Project-Zero PRIVATE
     FRONTIER_DEVELOPMENT
     FRONTIER_ENABLE_GLFW
@@ -322,26 +340,52 @@ target_link_libraries(Project-Dyno PRIVATE pthread dl m)
 
 add_executable(FrontierEngine
     ${FRONTIER_ENGINE_SOURCES}
-    Engine/DisplayPresentation/EngineExecution.cpp
 )
 target_include_directories(FrontierEngine PRIVATE ${FRONTIER_ENGINE_INCLUDES})
 target_link_libraries(FrontierEngine PRIVATE pthread)
 
 #============================================================================================================================================
-# Project-F20 — Racing Game
+# Project-F20 — Racing Game   (🚧 removed 2026-09-05: Projects/Project-F20/ does not exist in this tree)
+#============================================================================================================================================
+# All five of its sources were absent, so `cmake` failed at configure time before reaching any real target. The
+#    target is dropped rather than commented out; restore it from history if the project comes back.
+
+#============================================================================================================================================
+# Jolt Physics — compiled from the submodule as a static library, rigid-body subset (no GPU compute back ends / hair shaders)
+#   Flags mirror Scripts/BuildJolt.sh. Jolt derives JPH_USE_* / JPH_DEBUG from the compiler flags and RegisterTypes() aborts on a
+#   library/client mismatch, so FRONTIER_PHYSICS_FLAGS is applied to every target that includes <Jolt/Jolt.h> as well.
 #============================================================================================================================================
 
-set(PROJECT_F20_SOURCES
-    ${FRONTIER_ENGINE_SOURCES}
-    Projects/Project-F20/Source/VehicleStructure.h
-    Projects/Project-F20/Source/VehicleSolver.cpp
-    Projects/Project-F20/Source/TrackSequence.cpp
-    Projects/Project-F20/Source/GameHost.cpp
-    Projects/Project-F20/Source/GameExecution.cpp
+set(FRONTIER_PHYSICS_FLAGS -mavx -mpopcnt -mfpmath=sse)
+
+file(GLOB_RECURSE JOLT_SOURCES CONFIGURE_DEPENDS "${EXT}/jolt/Jolt/*.cpp")
+list(FILTER JOLT_SOURCES EXCLUDE REGEX "/Compute/(CPU|DX12|VK|MTL)/")
+list(FILTER JOLT_SOURCES EXCLUDE REGEX "/Shaders/(HairWrapper|TestComputeWrapper)\\.cpp$")
+
+add_library(Jolt STATIC ${JOLT_SOURCES})
+target_include_directories(Jolt PUBLIC "${EXT}/jolt")
+target_compile_options(Jolt PUBLIC ${FRONTIER_PHYSICS_FLAGS} -pthread)
+target_compile_options(Jolt PRIVATE -Wall -Wno-psabi -Wno-stringop-overflow)
+target_compile_definitions(Jolt PUBLIC "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")   # Release → JPH_DEBUG off; Debug → asserts on (both sides)
+target_link_libraries(Jolt PUBLIC pthread)
+
+#============================================================================================================================================
+# Project-Physics — Jolt rigid-body testbed (console; plane + falling boxes / spheres / capsules ticked from the main loop)
+#============================================================================================================================================
+# Deliberately does NOT link FrontierEngine: the testbed is a console proof of the RigidBodySolver seam and needs neither Vulkan nor
+#    GLFW, so it stays buildable when the graphics submodules are uninitialised.
+
+add_executable(Project-Physics
+    Engine/DeviceExchange/OrientationClassifier.cpp
+    Engine/DeviceExchange/DiagnosticMetrics.cpp
+    Engine/PhysicalDynamics/RigidBodySolver.cpp
+    Projects/Project-Physics/Source/DropSceneStructure.cpp
+    Projects/Project-Physics/Source/GameExecution.cpp
 )
-add_executable(Project-F20 ${PROJECT_F20_SOURCES})
-target_include_directories(Project-F20 PRIVATE
+target_include_directories(Project-Physics PRIVATE
     ${FRONTIER_ENGINE_INCLUDES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-F20/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Projects/Project-Physics/Source
 )
-target_link_libraries(Project-F20 PRIVATE pthread)
+target_compile_definitions(Project-Physics PRIVATE FRONTIER_DEVELOPMENT "$<$<CONFIG:Debug>:FRONTIER_DEBUG=1>")
+target_compile_options(Project-Physics PRIVATE -Wall -Wextra -Wno-psabi)
+target_link_libraries(Project-Physics PRIVATE Jolt pthread)

@@ -15,7 +15,7 @@
 //        MA_NO_ENCODING          WAV encoder                      (WaveCodec owns file I/O)
 //        MA_NO_GENERATION        waveform / noise generators      (AcousticIntegrator owns synthesis)
 //    Drivers stay at miniaudio's defaults (WASAPI → DirectSound → WinMM on Windows, PulseAudio → ALSA → JACK on Linux,
-//    Core Audio on macOS) with the null backend as the terminator — AudioExchange selects it explicitly when no device
+//    Core Audio on macOS) with the null driver as the terminator — AudioExchange selects it explicitly when no device
 //    is wanted (sandbox proofs, offline renders).
 
 #define MINIAUDIO_IMPLEMENTATION
