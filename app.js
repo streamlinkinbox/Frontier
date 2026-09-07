@@ -40,6 +40,9 @@ const WORLD = 16;
 let viewWidth = 1, viewHeight = 1, dpr = 1;
 let pointer = { x: 0, y: 0, down: false, drag: false, lx: 0, ly: 0 };
 let resizeTimer;
+let fieldRevision = 0;
+let gpuWeather = null;
+let gpuWeatherBusy = false;
 
 function clamp(n, lo = 0, hi = 1) { return Math.max(lo, Math.min(hi, n)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -70,6 +73,7 @@ function getField(x, z) {
   return lerp(lerp(sample(ix, iz), sample(ix + 1, iz), tx), lerp(sample(ix, iz + 1), sample(ix + 1, iz + 1), tx), tz);
 }
 function addToField(x, z, amount, radius = 1.2) {
+  fieldRevision++;
   const cx = (x + WORLD) / (WORLD * 2) * (FIELD_N - 1);
   const cz = (z + WORLD) / (WORLD * 2) * (FIELD_N - 1);
   const cellRadius = Math.max(1, radius / (WORLD * 2) * (FIELD_N - 1));
@@ -242,6 +246,66 @@ function renderBrushCursor() {
 function render() {
   renderSky(); renderTerrain(); renderWater(); renderBrushCursor();
 }
+// Optional WebGPU weathering kernel. The CPU droplet pass handles directional hydraulic flow;
+// this compute pass performs the local talus-settling stage on the same SDF-shell offsets.
+async function initialiseWebGPUWeather() {
+  if (!navigator.gpu) { $('#computeMode').textContent = 'GPU PREVIEW'; return; }
+  const label = $('#computeMode');
+  try {
+    label.textContent = 'WEBGPU INITIALIZING';
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error('No WebGPU adapter');
+    const device = await adapter.requestDevice();
+    const byteLength = erosionField.byteLength;
+    const fieldBuffer = device.createBuffer({ size: byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    const resultBuffer = device.createBuffer({ size: byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+    const readBuffer = device.createBuffer({ size: byteLength, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const paramsBuffer = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    const module = device.createShaderModule({ code: `
+      struct Params { size: u32, relaxation: f32, padA: u32, padB: u32 };
+      @group(0) @binding(0) var<storage, read> field: array<f32>;
+      @group(0) @binding(1) var<storage, read_write> result: array<f32>;
+      @group(0) @binding(2) var<uniform> params: Params;
+      @compute @workgroup_size(64)
+      fn settle(@builtin(global_invocation_id) id: vec3<u32>) {
+        let i = id.x;
+        let n = params.size;
+        if (i >= n * n) { return; }
+        let x = i % n;
+        let y = i / n;
+        if (x == 0u || y == 0u || x + 1u >= n || y + 1u >= n) { result[i] = field[i]; return; }
+        let neighbours = (field[i - 1u] + field[i + 1u] + field[i - n] + field[i + n]) * .25;
+        result[i] = field[i] + (neighbours - field[i]) * params.relaxation;
+      }` });
+    const pipeline = device.createComputePipeline({ layout: 'auto', compute: { module, entryPoint: 'settle' } });
+    const bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [
+      { binding: 0, resource: { buffer: fieldBuffer } }, { binding: 1, resource: { buffer: resultBuffer } }, { binding: 2, resource: { buffer: paramsBuffer } },
+    ] });
+    gpuWeather = { device, fieldBuffer, resultBuffer, readBuffer, paramsBuffer, pipeline, bindGroup, byteLength };
+    label.textContent = 'WEBGPU COMPUTE';
+    device.lost.then(() => { gpuWeather = null; label.textContent = 'GPU PREVIEW'; });
+  } catch (error) {
+    gpuWeather = null;
+    label.textContent = 'GPU PREVIEW';
+  }
+}
+function scheduleTalusSettling() {
+  if (!gpuWeather || gpuWeatherBusy) return;
+  gpuWeatherBusy = true;
+  const revisionAtDispatch = fieldRevision, gpu = gpuWeather;
+  const paramData = new ArrayBuffer(16), params = new DataView(paramData);
+  params.setUint32(0, FIELD_N, true); params.setFloat32(4, .025 + state.rainfall * (1 - state.hardness) * .12, true);
+  gpu.device.queue.writeBuffer(gpu.fieldBuffer, 0, erosionField);
+  gpu.device.queue.writeBuffer(gpu.paramsBuffer, 0, paramData);
+  const encoder = gpu.device.createCommandEncoder();
+  const pass = encoder.beginComputePass(); pass.setPipeline(gpu.pipeline); pass.setBindGroup(0, gpu.bindGroup); pass.dispatchWorkgroups(Math.ceil(erosionField.length / 64)); pass.end();
+  encoder.copyBufferToBuffer(gpu.resultBuffer, 0, gpu.readBuffer, 0, gpu.byteLength);
+  gpu.device.queue.submit([encoder.finish()]);
+  gpu.readBuffer.mapAsync(GPUMapMode.READ).then(() => {
+    if (revisionAtDispatch === fieldRevision) erosionField.set(new Float32Array(gpu.readBuffer.getMappedRange().slice(0)));
+    gpu.readBuffer.unmap(); gpuWeatherBusy = false;
+  }).catch(() => { gpuWeatherBusy = false; });
+}
 function animate(timestamp) {
   const seconds = timestamp * .001;
   const delta = Math.min(.05, seconds - (state.lastFrame || seconds)); state.lastFrame = seconds;
@@ -282,6 +346,7 @@ function simulateErosion(drops = 50, quiet = false) {
   state.iterations += drops;
   state.moved += moved * 10;
   state.graph.shift(); state.graph.push(28 + Math.min(42, moved * 220 + Math.random() * 14));
+  scheduleTalusSettling();
   if (!quiet) {
     $('#iterationCount').textContent = String(state.iterations).padStart(5, '0');
     $('#materialMoved').textContent = `${state.moved.toFixed(1)} m³`;
@@ -407,5 +472,5 @@ canvas.addEventListener('wheel', event => { event.preventDefault(); state.zoom =
 window.addEventListener('keydown', event => { if (event.key === 'Escape') closeHelp(); if (event.key === '1') setTool('sculpt'); if (event.key === '2') setTool('carve'); if (event.key === '3') setTool('erosion'); });
 window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(resize, 50); });
 
-if (!navigator.gpu) $('#computeMode').textContent = 'GPU PREVIEW';
+initialiseWebGPUWeather();
 resize(); setTool('sculpt'); requestAnimationFrame(animate);
