@@ -1,8 +1,11 @@
 import { extractMesh, buildGLB } from "./mesh";
 self.onmessage = (event) => {
   try {
-    const mesh = extractMesh(event.data.data, event.data.size, (progress) =>
-      self.postMessage({ progress }),
+    const mesh = extractMesh(
+      event.data.data,
+      event.data.size,
+      (progress) => self.postMessage({ progress }),
+      event.data.settings,
     );
     const buffer = buildGLB(mesh);
     self.postMessage(

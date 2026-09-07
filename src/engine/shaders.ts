@@ -1,9 +1,12 @@
 import common from "./shaders/common.wgsl?raw";
 import compute from "./shaders/compute.wgsl?raw";
 import render from "./shaders/render.wgsl?raw";
+import materials from "./shaders/materials.wgsl?raw";
 export const computeShader = common + "\n" + compute;
 export const renderShader =
   common +
+  "\n" +
+  materials +
   "\n" +
   render +
   `
@@ -61,13 +64,13 @@ precision highp sampler3D;
 layout(std140) uniform Params {
   vec4 eye;vec4 forward;vec4 right;vec4 up;vec4 viewport;vec4 brush;vec4 water;
   vec4 flags;vec4 dims;vec4 erosion;vec4 geology;vec4 sculpt;vec4 brushParams;vec4 pick;
-  vec4 planeOrigin;vec4 planeNormal;vec4 strokeTangent;vec4 strokePrevious;vec4 processes;vec4 reserved;
+  vec4 planeOrigin;vec4 planeNormal;vec4 strokeTangent;vec4 strokePrevious;vec4 processes;vec4 material;vec4 materialShape;vec4 materialOptics;vec4 baseColor;vec4 waterOptics;
 } u;
 uniform sampler3D field;
 out vec4 fragColor;
 float select(float a,float b,bool s){return s?b:a;}
 vec3 select(vec3 a,vec3 b,bool s){return s?b:a;}
-${toGLSL(glCommon + "\n" + render)}
+${toGLSL(glCommon + "\n" + materials + "\n" + render)}
 void main(){fragColor=renderPixel(vec2(gl_FragCoord.x,u.viewport.y-gl_FragCoord.y));}
 `;
 export const glVertex = `#version 300 es

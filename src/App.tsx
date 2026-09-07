@@ -75,6 +75,8 @@ import {
   SectionHeading,
 } from "./components/Controls";
 import { Dialog, Guide } from "./components/Guide";
+import { MaterialEditor } from "./components/MaterialEditor";
+import { MATERIAL_PRESETS } from "./engine/materials";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { diagnostics } from "./diagnostics";
 import "./styles.css";
@@ -177,9 +179,9 @@ export default function App() {
   const [dirty, setDirty] = useState(false),
     [saved, setSaved] = useState(false);
   const [history, setHistory] = useState([0, 0]);
-  const [inspector, setInspector] = useState<"erosion" | "environment">(
-    "erosion",
-  );
+  const [inspector, setInspector] = useState<
+    "erosion" | "environment" | "materials"
+  >("erosion");
   const [erosionTab, setErosionTab] = useState<
     "hydraulic" | "thermal" | "wind"
   >("hydraulic");
@@ -215,6 +217,17 @@ export default function App() {
       diagnostics.log("UI", "Canvas snapshot unavailable", error, "warn");
     }
     setLogsOpen(true);
+  };
+  const currentMaterial = MATERIAL_PRESETS.find(
+    (p) => p.id === settings.material,
+  )!;
+  const changeMaterial = (patch: Partial<Settings>) => {
+    const next = { ...settingsRef.current, ...patch };
+    settingsRef.current = next;
+    setSettings(next);
+    engine.current?.update(next, false);
+    setDirty(true);
+    setSaved(false);
   };
   const currentPreset = PRESETS.find((p) => p.id === settings.preset)!;
   const notify = useCallback((message: string, isError = false) => {
@@ -596,7 +609,9 @@ export default function App() {
               worker.terminate();
               reject(new Error(e.message));
             };
-            worker.postMessage({ data, size }, [data.buffer]);
+            worker.postMessage({ data, size, settings: settingsRef.current }, [
+              data.buffer,
+            ]);
           });
           download(
             new Blob([result.buffer], { type: "model/gltf-binary" }),
@@ -926,11 +941,15 @@ export default function App() {
                   )}
                 </button>
               </div>
-              <div className="material-row">
+              <button
+                className="material-row material-tree-button"
+                onClick={() => setInspector("materials")}
+                aria-label="Edit surface material"
+              >
                 <span className="tree-line" />
                 <span className="material-dot" />
-                Procedural sandstone
-              </div>
+                {currentMaterial.name}
+              </button>
               <div className="scene-row">
                 <button
                   className="scene-label"
@@ -1382,7 +1401,7 @@ export default function App() {
               </div>
               <h1>{currentPreset.name}</h1>
               <p>
-                Sandstone formation <span>·</span> 96 × 96 m
+                {currentMaterial.name} surface <span>·</span> 96 × 96 m
               </p>
             </div>
             {comparing && (
@@ -1576,7 +1595,10 @@ export default function App() {
             </div>
           </div>
         </section>
-        <aside className="inspector" aria-label="Terrain simulation inspector">
+        <aside
+          className={`inspector ${inspector === "materials" ? "materials-panel" : ""}`}
+          aria-label="Terrain simulation inspector"
+        >
           <div
             className="inspector-tabs"
             role="tablist"
@@ -1599,6 +1621,15 @@ export default function App() {
             >
               <CloudSun size={15} />
               Environment
+            </button>
+            <button
+              role="tab"
+              aria-selected={inspector === "materials"}
+              className={inspector === "materials" ? "active" : ""}
+              onClick={() => setInspector("materials")}
+            >
+              <Gem size={14} />
+              Materials
             </button>
           </div>
           <div className="inspector-scroll">
@@ -1840,6 +1871,23 @@ export default function App() {
                         disabled={!settings.water}
                         help="Optical clarity; suspended simulation sediment also tints the water"
                       />
+                      <Slider
+                        label="Absorption distance"
+                        value={settings.waterAbsorption}
+                        min={0.5}
+                        max={30}
+                        step={0.5}
+                        format={(v) => `${v.toFixed(1)} m`}
+                        onChange={(v) => update("waterAbsorption", v)}
+                        disabled={!settings.water}
+                        help="Longer distances transmit more light. Thickness is traced, not inferred from a shallow/deep tint."
+                      />
+                      <Slider
+                        label="Shore foam"
+                        value={settings.waterFoam}
+                        onChange={(v) => update("waterFoam", v)}
+                        disabled={!settings.water}
+                      />
                     </div>
                     <p className="water-note">
                       <Wind size={12} />
@@ -1847,6 +1895,8 @@ export default function App() {
                     </p>
                   </div>
                 </>
+              ) : inspector === "materials" ? (
+                <MaterialEditor settings={settings} onChange={changeMaterial} />
               ) : (
                 <>
                   <div className="inspector-intro">
@@ -1934,12 +1984,30 @@ export default function App() {
                       onChange={(v) => update("waterClarity", v)}
                       disabled={!settings.water}
                     />
+                    <Slider
+                      label="Absorption distance"
+                      value={settings.waterAbsorption}
+                      min={0.5}
+                      max={30}
+                      step={0.5}
+                      format={(v) => `${v.toFixed(1)} m`}
+                      onChange={(v) => update("waterAbsorption", v)}
+                      disabled={!settings.water}
+                    />
+                    <Slider
+                      label="Shore foam"
+                      value={settings.waterFoam}
+                      onChange={(v) => update("waterFoam", v)}
+                      disabled={!settings.water}
+                    />
+
                     <div className="parameter-note">
                       <Waves size={17} />
                       <p>
                         <strong>Water meets stone.</strong>Displaced wind waves,
-                        refracted shallows, lapping foam and a moving wet edge.
-                        Water tint responds to suspended sediment.
+                        entry-tested refraction, thickness-dependent absorption
+                        and shadowed foam. Water below the surface is handled as
+                        a medium, not a colored edge strip.
                       </p>
                     </div>
                   </div>
@@ -1956,28 +2024,19 @@ export default function App() {
                         onChange={(v) => update("grid", v)}
                       />
                     </div>
-                    <div className="material-detail-control">
-                      <Slider
-                        label="Surface detail"
-                        value={settings.detail}
-                        min={0}
-                        max={1.5}
-                        step={0.05}
-                        onChange={(value) => update("detail", value)}
+                    <button
+                      className="material-edit-link"
+                      onClick={() => setInspector("materials")}
+                    >
+                      <span
+                        className={`material-chip chip-${settings.material}`}
                       />
-                      <p>
-                        Rotated mineral grain, broken lamination and pore
-                        relief. Scouring exposes fresh rock; deposited material
-                        adds a sandy finish. Fly closer to inspect.
-                      </p>
-                    </div>
-                    <div className="material-info">
-                      <div className="sandstone-swatch" />
-                      <div>
-                        <strong>Procedural sandstone</strong>
-                        <p>Mineral grain · wet rock · weathered strata</p>
-                      </div>
-                    </div>
+                      <span>
+                        <strong>{currentMaterial.name}</strong>
+                        <small>Edit surface material</small>
+                      </span>
+                      <ArrowRight size={15} />
+                    </button>
                   </div>
                 </>
               )}

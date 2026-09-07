@@ -1,5 +1,6 @@
+import { MATERIAL_IDS, colorToLinear } from "./materials";
 import { TOOL_IDS, type FrameState, type VolumeSize } from "./types";
-export const UNIFORM_FLOATS = 80;
+export const UNIFORM_FLOATS = 96;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   const s = f.settings;
@@ -39,6 +40,26 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   a.set([...(stamp?.previous ?? f.brush ?? [0, 0, 0]), 0], 68);
   const angle = (s.windDirection * Math.PI) / 180;
   a.set([s.channeling, s.windErosion, Math.cos(angle), Math.sin(angle)], 72);
-  a.set([0, 0, 0, 0], 76);
+  a.set(
+    [
+      MATERIAL_IDS.indexOf(s.material),
+      s.materialRoughness,
+      s.materialGrain * 0.001,
+      s.materialRelief * 0.001,
+    ],
+    76,
+  );
+  a.set(
+    [
+      s.materialScale,
+      s.materialBedding,
+      s.materialPorosity,
+      s.materialWeathering,
+    ],
+    80,
+  );
+  a.set([s.materialIOR, s.materialMoisture, 0, 0], 84);
+  a.set([...colorToLinear(s.materialColor), 1], 88);
+  a.set([s.waterAbsorption, s.waterFoam, 0, 0], 92);
   return a;
 }

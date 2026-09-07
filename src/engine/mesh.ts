@@ -1,7 +1,12 @@
-import { strataStrength } from "./geology";
+import { MATERIAL_PRESETS, materialMacroColor } from "./materials";
 import { sampleField } from "./field";
-import { normalize, cross, sub, dot, mix, smoothstep } from "./math";
-import { type Vec3, type VolumeSize } from "./types";
+import { normalize, cross, sub, dot, mix } from "./math";
+import {
+  DEFAULT_SETTINGS,
+  type Settings,
+  type Vec3,
+  type VolumeSize,
+} from "./types";
 export interface Mesh {
   positions: Float32Array;
   normals: Float32Array;
@@ -9,6 +14,7 @@ export interface Mesh {
   indices: Uint32Array;
   min: Vec3;
   max: Vec3;
+  material?: { name: string; roughness: number; ior: number };
 }
 const CORNERS: Vec3[] = [
   [0, 0, 0],
@@ -32,6 +38,7 @@ export function extractMesh(
   data: Float32Array,
   size: VolumeSize,
   onProgress?: (progress: number) => void,
+  settings: Settings = DEFAULT_SETTINGS,
 ): Mesh {
   const positions: number[] = [],
     normals: number[] = [],
@@ -53,22 +60,8 @@ export function extractMesh(
         sampleField(data, size, [p[0], p[1], p[2] - e]),
     ]);
   };
-  const color = (p: Vec3, n: Vec3): Vec3 => {
-    const strength = strataStrength(...p);
-    const base = [
-      mix(0.34, 0.57, strength * 0.8),
-      mix(0.115, 0.315, strength * 0.8),
-      mix(0.047, 0.146, strength * 0.8),
-    ];
-    const deposited =
-      Math.max(0, -sampleField(data, size, p, 3)) / (cell * 0.65);
-    const sand = [0.56, 0.335, 0.167];
-    const dust = Math.min(
-      0.85,
-      smoothstep(0.58, 0.92, n[1]) * 0.32 + deposited * 0.6,
-    );
-    return base.map((value, i) => mix(value, sand[i], dust)) as Vec3;
-  };
+  const color = (p: Vec3, n: Vec3): Vec3 =>
+    materialMacroColor(p, n, settings, sampleField(data, size, p, 3));
   const emit = (a: number, b: number, c: number) => {
     const pa = positions.slice(a * 3, a * 3 + 3) as Vec3,
       pb = positions.slice(b * 3, b * 3 + 3) as Vec3,
@@ -150,6 +143,11 @@ export function extractMesh(
     indices: new Uint32Array(indices),
     min: minimum,
     max: maximum,
+    material: {
+      name: MATERIAL_PRESETS.find((m) => m.id === settings.material)!.name,
+      roughness: settings.materialRoughness,
+      ior: settings.materialIOR,
+    },
   };
 }
 export function buildGLB(mesh: Mesh): ArrayBuffer {
@@ -165,6 +163,7 @@ export function buildGLB(mesh: Mesh): ArrayBuffer {
       version: "2.0",
       generator: "Frontier Terrain Lab · volumetric SDF",
     },
+    extensionsUsed: ["KHR_materials_ior"],
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0, name: "Frontier terrain · meters" }],
@@ -182,11 +181,12 @@ export function buildGLB(mesh: Mesh): ArrayBuffer {
     ],
     materials: [
       {
-        name: "Procedural sandstone",
+        name: mesh.material?.name ?? "Sandstone",
+        extensions: { KHR_materials_ior: { ior: mesh.material?.ior ?? 1.5 } },
         pbrMetallicRoughness: {
           baseColorFactor: [1, 1, 1, 1],
           metallicFactor: 0,
-          roughnessFactor: 0.95,
+          roughnessFactor: mesh.material?.roughness ?? 0.82,
         },
         doubleSided: false,
       },

@@ -76,6 +76,17 @@ export function validateSettings(raw: unknown): Settings {
     ["channeling", 0, 1],
     ["windErosion", 0, 1],
     ["windDirection", 0, 360],
+    ["materialRoughness", 0.12, 1],
+    ["materialGrain", 0.05, 20],
+    ["materialRelief", 0, 8],
+    ["materialScale", 0.25, 4],
+    ["materialBedding", 0, 1],
+    ["materialPorosity", 0, 1],
+    ["materialWeathering", 0, 1],
+    ["materialIOR", 1.3, 1.8],
+    ["materialMoisture", 0, 1],
+    ["waterAbsorption", 0.5, 30],
+    ["waterFoam", 0, 1],
   ] as const) {
     const value = input[key];
     if (value === undefined) continue;
@@ -87,6 +98,23 @@ export function validateSettings(raw: unknown): Settings {
     )
       throw new Error(`Invalid project setting: ${key}.`);
     settings[key] = value;
+  }
+  if (input.material !== undefined) {
+    if (
+      !["sandstone", "limestone", "granite", "basalt"].includes(
+        String(input.material),
+      )
+    )
+      throw new Error("Unknown surface material.");
+    settings.material = input.material as Settings["material"];
+  }
+  if (input.materialColor !== undefined) {
+    if (
+      typeof input.materialColor !== "string" ||
+      !/^#[0-9a-f]{6}$/i.test(input.materialColor)
+    )
+      throw new Error("Invalid material color.");
+    settings.materialColor = input.materialColor;
   }
   if (input.flattenPlane !== undefined) {
     if (input.flattenPlane !== "surface" && input.flattenPlane !== "horizontal")

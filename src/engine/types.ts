@@ -23,6 +23,7 @@ export interface BrushStamp {
   previous: Vec3;
   seed: number;
 }
+export type SurfaceMaterial = "sandstone" | "limestone" | "granite" | "basalt";
 export type ViewMode = "lit" | "clay" | "flow";
 export interface Settings {
   seed: number;
@@ -43,6 +44,19 @@ export interface Settings {
   sunAngle: number;
   exposure: number;
   detail: number;
+  material: SurfaceMaterial;
+  materialColor: string;
+  materialRoughness: number;
+  materialGrain: number;
+  materialRelief: number;
+  materialScale: number;
+  materialBedding: number;
+  materialPorosity: number;
+  materialWeathering: number;
+  materialIOR: number;
+  materialMoisture: number;
+  waterAbsorption: number;
+  waterFoam: number;
   grid: boolean;
   view: ViewMode;
   radius: number;
@@ -77,6 +91,19 @@ export const DEFAULT_SETTINGS: Settings = {
   sunAngle: 38,
   exposure: 1.08,
   detail: 0.85,
+  material: "sandstone",
+  materialColor: "#B19167",
+  materialRoughness: 0.82,
+  materialGrain: 0.6,
+  materialRelief: 1.6,
+  materialScale: 1,
+  materialBedding: 0.55,
+  materialPorosity: 0.32,
+  materialWeathering: 0.28,
+  materialIOR: 1.5,
+  materialMoisture: 0,
+  waterAbsorption: 8,
+  waterFoam: 0.35,
   grid: true,
   view: "lit",
   radius: 4,

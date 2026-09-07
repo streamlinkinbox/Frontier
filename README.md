@@ -212,6 +212,50 @@ The shared uniform block is now **20 vec4s / 320 bytes**; use `UNIFORM_BYTES`, a
 update copied GLSL/WGSL layouts together. Archives keep their existing voxel data
 and receive defaults for missing v0.4 controls.
 
+## Surface materials & water optics · v0.5.0
+
+Open the new **Materials** inspector tab (or click the material in the Scene tree).
+The selectable models are **Sandstone, Limestone, Granite and Basalt**. This pass
+changes surface rendering and optics, **not brushes, sculpted geometry, or erosion
+parameters**. Preset selection and Reset material only affect material settings.
+
+The research and implementation rationale are in
+**[research/materials-and-water.md](research/materials-and-water.md)**, with sources
+from Google Filament, PBRT, Epic's water documentation and geological references.
+Colors/roughness are explicitly **authored starting values**, not measured scans.
+
+- Separate linear-RGB albedo, dielectric IOR/Fresnel reflectance, correlated-Smith
+  GGX specular response and diffuse energy attenuation replace the old fixed
+  sandstone lighting/specular-power treatment.
+- Grain size and relief have **millimeter units**. Sub-pixel grains are averaged
+  into the material response rather than appearing as enlarged white specks.
+- Sandstone uses granular cement/bedding, limestone a fine mottled matrix, granite
+  cellular mineral domains with distinct mica/quartz/feldspar-like responses,
+  and basalt a fine dark matrix with controllable vesicle-style pores.
+- Controls: base color, roughness, grain size, relief, mottle/pore scale, pore
+  coverage, sedimentary layer contrast, weathering, effective IOR and moisture.
+  Rock remains non-metallic. Surface detail is a final normal-detail gain.
+- Material values save/load with the project. Older projects acquire defaults
+  without modifying their saved volume. GLB exports carry broad-band color,
+  selected roughness and `KHR_materials_ior`; millimeter shader detail and water
+  are not falsely baked into coarse vertex colors.
+
+**Water edge repair:** clearance-limited offsets and entry-only refraction traces
+avoid starting inside a bank and treating its far exit as deep water. Unknown
+traces no longer invent an 8 m absorption layer. Shoreline coverage is smooth,
+volume/foam contributions are lit, and above/below-water IORs and total internal
+reflection are handled separately. Underwater optical paths are attenuated before
+edge coverage is mixed, preventing a tiny water sliver from shortening the entire
+pixel's path. **Absorption distance** and **Shore foam** controls are also available.
+
+Water can still physically reflect blue sky or tint a deep view blue/green; the
+fix targets an unjustified colored border. This is RGB real-time optics with an
+analytic sky/lighting approximation—not a spectral, path-traced or calibrated
+multilayer wet-rock model. Relief is shaded; the voxel grid does not resolve grains.
+
+Uniform integration note: the material/optical parameters extend the common block
+to **24 vec4s / 384 bytes**. Use `UNIFORM_BYTES`; keep WGSL and GLSL layouts in sync.
+
 ## What you can do
 
 - Start from a seeded sandstone canyon, an asymmetric weathered arch with unequal shoulders and alcoves, or fractured hoodoos/fins with caprock and non-monotonic profiles. The v0.2 canyon generator is unchanged; arches and spires use revised formations. Existing imported voxel data is preserved.
@@ -222,7 +266,7 @@ and receive defaults for missing v0.4 controls.
 - Inspect the material-free clay view or the runoff/erosion/deposition diagnostic view.
 - Hold **C / Compare** to view the procedural original without destroying edits.
 - Undo/redo up to four volume snapshots. Sculpt strokes, simulation starts, paused live-preview batches, and resets are snapshot boundaries.
-- Adjust sunlight, exposure, water level, and subtle wind-driven water ripples. **Environment → Surface detail** controls world-space mineral grain, pore relief, broken lamination, and joint fractures. Analytic noise gradients drive the bump normals; finer layers fade with pixel footprint to reduce distant aliasing. **Renderer options → Native resolution** locks full viewport resolution for inspection.
+- Adjust sunlight, exposure, water level, and subtle wind-driven water ripples. **Materials → Surface detail** controls world-space mineral grain, pore relief, broken lamination, and joint fractures. Analytic noise gradients drive the bump normals; finer layers fade with pixel footprint to reduce distant aliasing. **Renderer options → Native resolution** locks full viewport resolution for inspection.
 - Save the complete project to this browser's IndexedDB, reopen that save from the project menu, or import/export portable `.frontier` files.
 - Export an **indexed GLB mesh**, including smooth normals and procedural sandstone vertex colors. Extraction runs in a worker. PNG export captures the actual rendered viewport.
 
@@ -268,7 +312,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.4.0**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.5.0**.
 
 ### Why the earlier deployment returned 404
 
@@ -336,7 +380,7 @@ The WebGPU volume is **144 × 72 × 144 voxels** (1,492,992 samples; approximate
 
 The initial field combines 3D CSG, warped polygonal mesas, ellipsoidal cutouts, irregular stratification, and volumetric noise. The arch preset explicitly has **multiple solid/empty crossings in a vertical column**. The CPU and WGSL initializers implement the same seeded functions.
 
-A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows, ambient occlusion, procedural bedding and mineral grain. There are no Quixel assets or texture downloads. The only raster assets in this repository are small **thumbnails captured from this renderer**. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
+A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows, ambient occlusion and selectable dielectric surface materials. Material grain/pore details are filtered by world-space pixel footprint. There are no Quixel assets or texture downloads. The only raster assets in this repository are small **thumbnails captured from this renderer**. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
 
 The water preview intersects a multi-band displaced surface and clips it against the SDF. It uses terrain-distance shoreline ripples and foam, refracted bed rays, depth-dependent absorption/turbidity, Fresnel reflection rays, and animated wind normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. Both backends raymarch into an owned, adaptively sized off-screen texture and scale it into a stable display-sized canvas. Only actual viewport-size changes resize that canvas, immediately before drawing; Adaptive/Native quality changes and capture do not reset it. Adaptive resolution uses multi-second hysteresis; Native mode renders at full viewport resolution. GPU readback for PNG export happens in the same submission into an owned buffer, before swapchain recycling. Verification still checks the actual presented canvas, not just the off-screen image.
 
@@ -397,6 +441,8 @@ src/engine/
   WebGPUBackend.ts       Native device, 3D textures, compute/render pipelines
   WebGLBackend.ts        Explicit lower-resolution fallback
   presentation.ts        Owned RGBA/BGRA readback and PNG encoding
+  materials.ts           Material presets, linear color and broad-band export color
+  optics.ts              Testable dielectric/attenuation reference equations
   display.ts             Safe GPU→CPU bitmap presentation and display-mode choice
   shaders/common.wgsl    Field sampling, noise, ray intersections
   shaders/compute.wgsl   Initialization, runoff, erosion, sculpting, redistancing
@@ -455,3 +501,12 @@ check nonuniform rain incision versus sheet wash, directional wind bands, initia
 shelter protection, and conserved dry-dust transport. Clay-shaded WebGL captures
 also exercise the canyon after separate rain/wind runs. These are implementation
 regressions, not field validation of a geological model.
+
+### v0.5 optical/material regressions
+
+Tests check linear color conversion, dielectric F0, BRDF reciprocity and rough
+white-furnace bounds, real grain filtering, thin/zero-thickness transmission, safe
+ray offsets, total internal reflection and coverage continuity. Browser checks
+switch four materials on an unchanged volume, adjust their parameters, test an
+actual GLSL entry ray only 2 cm from rock, and capture raised-water overhangs from
+above and below. GLB material metadata and legacy defaults are also validated.
