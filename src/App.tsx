@@ -75,6 +75,7 @@ import {
   SectionHeading,
 } from "./components/Controls";
 import { Dialog, Guide } from "./components/Guide";
+import { RiverControls } from "./components/RiverControls";
 import { MaterialEditor } from "./components/MaterialEditor";
 import { MATERIAL_PRESETS } from "./engine/materials";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
@@ -723,11 +724,16 @@ export default function App() {
         </a>
         <span className="header-divider" />
         <span className="lab-label">
-          TERRAIN LAB <span>01</span>
+          Terrain studio <span>LOCAL</span>
         </span>
         <div className="header-actions">
           <span className="local-label">
-            <span className="status-dot" /> Local workspace
+            <span className="status-dot" />{" "}
+            {dirty
+              ? "Unsaved changes"
+              : saved
+                ? "Saved locally"
+                : "Local project"}
           </span>
           <button className="text-button gpu-logs-button" onClick={openLogs}>
             <TerminalSquare size={15} /> <span>GPU logs</span>
@@ -738,7 +744,7 @@ export default function App() {
             onClick={() => setGuide(true)}
           >
             <BookOpen size={15} />
-            <span>Quick guide</span>
+            <span>Guide</span>
           </button>
           <span className="header-divider" />
           <button
@@ -806,7 +812,7 @@ export default function App() {
             <PanelLeft size={17} />
           </button>
           <Mountain size={15} />
-          <span>Desert studies</span>
+          <span>Workspace</span>
           <ChevronRight size={12} />
           <Menu
             className="project-menu"
@@ -903,13 +909,36 @@ export default function App() {
         </div>
       </div>
       <main className="workspace">
+        {leftOpen && (
+          <button
+            className="drawer-backdrop"
+            aria-label="Close sculpting panel"
+            onClick={() => setLeftOpen(false)}
+          />
+        )}
         <aside
           className={`left-sidebar ${leftOpen ? "mobile-open" : ""}`}
           aria-label="Scene and sculpting tools"
         >
+          <div className="panel-heading">
+            <span className="panel-heading-icon">
+              <Layers3 size={17} />
+            </span>
+            <div>
+              <strong>Scene</strong>
+              <small>Volume & sculpting</small>
+            </div>
+            <button
+              className="icon-button drawer-close"
+              aria-label="Close sculpting drawer"
+              onClick={() => setLeftOpen(false)}
+            >
+              <X size={16} />
+            </button>
+          </div>
           <div className="sidebar-main">
-            <SectionHeading detail={<span className="count">03</span>}>
-              Scene
+            <SectionHeading detail={<span className="count">3</span>}>
+              Layers
             </SectionHeading>
             <div className="scene-tree">
               <div
@@ -1071,12 +1100,22 @@ export default function App() {
                     max={1.5}
                     step={0.05}
                     format={(v) => `${Math.round(v * 100)}% radius`}
+                    editScale={100}
                     onChange={(v) => update("brushDepth", v)}
                   />
                 )}
                 {["crack", "crevice"].includes(tool) && (
                   <Slider
                     label="Cut width"
+                    editScale={
+                      settings.radius * 2 * (tool === "crevice" ? 2.2 : 1)
+                    }
+                    numericMin={
+                      (96 / stats.size.x) *
+                      0.75 *
+                      2 *
+                      (tool === "crevice" ? 2.2 : 1)
+                    }
                     value={settings.brushWidth}
                     min={0.08}
                     max={0.8}
@@ -1141,23 +1180,30 @@ export default function App() {
               <p className="seed-note">Same seed. Same starting landscape.</p>
             </div>
           </div>
-          <div className="procedural-note">
-            <svg viewBox="0 0 220 80" aria-hidden="true">
-              <path d="M-20 70Q20 5 75 53T180 36T250 20M-20 58Q20-7 75 41T180 24T250 8M-20 82Q20 17 75 65T180 48T250 32M-20 94Q20 29 75 77T180 60T250 44M-20 46Q20-19 75 29T180 12T250-4" />
-            </svg>
-            <Box size={18} />
-            <h3>Yours, down to the rock.</h3>
-            <p>
-              Real geometry. Procedural materials.
-              <br />
-              Not a single borrowed asset.
-            </p>
-            <span>
-              SIGNED DISTANCE FIELD <ArrowUpRight size={11} />
-            </span>
+          <div className="sidebar-footer">
+            <Box size={15} />
+            <div>
+              <strong>Volumetric workspace</strong>
+              <span>96 × 48 × 96 m · editable SDF</span>
+            </div>
           </div>
         </aside>
         <section className="center-stage" aria-label="Terrain workspace">
+          <div className="viewport-heading">
+            <div className="scene-caption">
+              <Mountain size={16} />
+              <h1>{currentPreset.name}</h1>
+              <span className="viewport-heading-meta">96 × 96 m</span>
+            </div>
+            <button
+              className="material-context"
+              onClick={() => setInspector("materials")}
+            >
+              <span style={{ background: settings.materialColor }} />
+              {currentMaterial.name}
+              <ChevronRight size={12} />
+            </button>
+          </div>
           <div
             className={`viewport ${stats.navigationMode === "fly" ? "is-flying" : ""}`}
             ref={stageRef}
@@ -1395,15 +1441,6 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="scene-caption">
-              <div>
-                <span className="caption-line" /> PROCEDURAL LANDSCAPE
-              </div>
-              <h1>{currentPreset.name}</h1>
-              <p>
-                {currentMaterial.name} surface <span>·</span> 96 × 96 m
-              </p>
-            </div>
             {comparing && (
               <div className="compare-banner">
                 <SplitSquareHorizontal size={14} />
@@ -1537,7 +1574,7 @@ export default function App() {
           <div className="presets-section">
             <div className="presets-heading">
               <h2>STARTING POINTS</h2>
-              <span>A seed. Endless possibilities.</span>
+              <span>Choose a base terrain</span>
             </div>
             <div className="preset-list">
               {PRESETS.map((p, i) => (
@@ -1637,9 +1674,9 @@ export default function App() {
               {inspector === "erosion" ? (
                 <>
                   <div className="inspector-intro">
-                    <span className="eyebrow">LET NATURE TAKE OVER</span>
-                    <h2>Time, water & stone.</h2>
-                    <p>Wear away the ordinary.</p>
+                    <span className="eyebrow">VOLUME PROCESSES</span>
+                    <h2>Erosion</h2>
+                    <p>Shape the terrain with water, wind and gravity.</p>
                   </div>
                   <div
                     className="weather-profiles"
@@ -1844,7 +1881,7 @@ export default function App() {
                       }
                     >
                       <Waves size={14} />
-                      Water & wind
+                      River surface
                     </SectionHeading>
                     <div className={!settings.water ? "muted-controls" : ""}>
                       <Slider
@@ -1864,6 +1901,7 @@ export default function App() {
                         onChange={(v) => update("wind", v)}
                         disabled={!settings.water}
                       />
+                      <RiverControls settings={settings} onChange={update} />
                       <Slider
                         label="Water clarity"
                         value={settings.waterClarity}
@@ -1891,7 +1929,8 @@ export default function App() {
                     </div>
                     <p className="water-note">
                       <Wind size={12} />
-                      Wind waves · shoreline lapping · sediment-tinted depth.
+                      Advected current · irregular ripples · depth-aware
+                      shoreline.
                     </p>
                   </div>
                 </>
@@ -1900,9 +1939,9 @@ export default function App() {
               ) : (
                 <>
                   <div className="inspector-intro">
-                    <span className="eyebrow">THE FINISHING TOUCHES</span>
-                    <h2>Find your light.</h2>
-                    <p>A little atmosphere goes a long way.</p>
+                    <span className="eyebrow">SCENE SETTINGS</span>
+                    <h2>Environment</h2>
+                    <p>Lighting, river surface and workspace display.</p>
                   </div>
                   <div className="environment-section">
                     <SectionHeading>
@@ -1960,7 +1999,7 @@ export default function App() {
                       }
                     >
                       <Waves size={14} />
-                      Water & wind
+                      River surface
                     </SectionHeading>
                     <Slider
                       label="Water level"
@@ -1978,6 +2017,7 @@ export default function App() {
                       onChange={(v) => update("wind", v)}
                       disabled={!settings.water}
                     />
+                    <RiverControls settings={settings} onChange={update} />
                     <Slider
                       label="Water clarity"
                       value={settings.waterClarity}
@@ -2116,7 +2156,7 @@ export default function App() {
             </div>
             <p>
               <Box size={12} />
-              Changes the geometry. Not just the surface.
+              Non-destructive history · Ctrl / ⌘ Z to undo
             </p>
           </div>
         </aside>

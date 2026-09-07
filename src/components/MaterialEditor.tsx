@@ -19,8 +19,8 @@ export function MaterialEditor({
     <>
       <div className="inspector-intro material-intro">
         <span className="eyebrow">SURFACE LAB · DIELECTRIC PBR</span>
-        <h2>More than a color.</h2>
-        <p>Choose a mineral structure, then tune its surface.</p>
+        <h2>Surface material</h2>
+        <p>Choose a rock type and refine its optical response.</p>
       </div>
       <div
         className="material-presets"

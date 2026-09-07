@@ -1,6 +1,6 @@
 import { MATERIAL_IDS, colorToLinear } from "./materials";
 import { TOOL_IDS, type FrameState, type VolumeSize } from "./types";
-export const UNIFORM_FLOATS = 96;
+export const UNIFORM_FLOATS = 100;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   const s = f.settings;
@@ -61,5 +61,15 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   a.set([s.materialIOR, s.materialMoisture, 0, 0], 84);
   a.set([...colorToLinear(s.materialColor), 1], 88);
   a.set([s.waterAbsorption, s.waterFoam, 0, 0], 92);
+  const flowAngle = (s.waterDirection * Math.PI) / 180;
+  a.set(
+    [
+      s.waterCurrent,
+      s.waterRippleScale,
+      Math.cos(flowAngle),
+      Math.sin(flowAngle),
+    ],
+    96,
+  );
   return a;
 }

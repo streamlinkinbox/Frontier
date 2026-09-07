@@ -114,7 +114,7 @@ The procedural waves remain a visual surface, not a fluid free-surface solver.
 - GLB carries selected broad-band material color, roughness and `KHR_materials_ior`.
   Millimeter patterns are averaged for coarse mesh vertices, not falsely baked as
   noisy triangles; shader-only detail/optical water is not baked into the mesh.
-- Shared uniform layout: **24 vec4s / 384 bytes**. `UNIFORM_BYTES` drives allocation
+- Shared uniform layout: **25 vec4s / 400 bytes** (v0.6 adds river-flow controls). `UNIFORM_BYTES` drives allocation
   on both backends. Old projects get material defaults without modifying saved SDFs.
 
 The numerical and screenshot tests validate implementation behavior. They cannot

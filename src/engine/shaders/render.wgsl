@@ -1,24 +1,33 @@
-// Four non-parallel wave bands, with deep-water dispersion and a slowly varying
-// envelope. xy gradients describe the same height used for ray/surface intersection.
-fn waveBand(q:vec2f,d:vec2f,k:f32,a:f32,time:f32,phase:f32) -> vec3f {
-  let angle:f32=dot(q,d)*k-sqrt(9.81*k)*time+phase;
-  let derivative:f32=cos(angle)*a*k;
-  return vec3f(sin(angle)*a,d.x*derivative,d.y*derivative);
-}
+// Domain-warped, advected river height field. World-space noise does not repeat
+// with texture UVs or a small set of crossing sine-wave periods. CPU reference:
+// river.ts. The same height/analytic derivative drives intersection and normals.
+fn riverAmplitude() -> f32 {return .055*u.water.y*u.water.y+.022*min(u.river.x,2.);}
+fn riverSlopeBound() -> f32 {return riverAmplitude()*(13./u.river.y+4.5)+.005;}
 fn waterWaves(p:vec3f) -> vec3f {
-  let time:f32=u.eye.w*(.26+u.water.y*.5);
-  let envelope:f32=.78+.22*noise(vec3f(p.x*.07,time*.06,p.z*.07));
-  let amplitude:f32=(.016+.11*u.water.y*u.water.y)*envelope;
-  var wave:vec3f=waveBand(p.xz,vec2f(.94,.342),.62,amplitude*.55,time,1.7);
-  wave+=waveBand(p.xz,vec2f(.24,.971),1.31,amplitude*.25,time*.94,4.3);
-  wave+=waveBand(p.xz,vec2f(-.73,.683),2.71,amplitude*.14,time*.81,2.1);
-  wave+=waveBand(p.xz,vec2f(.83,-.558),5.49,amplitude*.06*detailVisibility(p,5.49),time*.7,5.7);
-  return wave;
+  let amplitude:f32=riverAmplitude();if(amplitude==0.){return vec3f(0.);}
+  let direction:vec2f=u.river.zw;let along:f32=dot(p.xz,direction);
+  let across:f32=dot(p.xz,vec2f(-direction.y,direction.x));let scale:f32=u.river.y;
+  let time:f32=u.eye.w;let evolution:f32=(u.water.y+u.river.x*.5)*.025;let speed:f32=u.river.x+u.water.y*.08;
+  let wa:vec4f=noiseGradient(vec3f(along*.075+u.flags.z*.013,across*.075+11.4,time*evolution*.35+4.8));
+  let wb:vec4f=noiseGradient(vec3f(along*.075+3.1,across*.075+39.2,time*evolution*.29+u.flags.z*.005));
+  let a:f32=along+wa.x*scale*.85;let c:f32=across+wb.x*scale*.65;
+  let jaa:f32=1.+wa.y*.075*scale*.85;let jac:f32=wa.z*.075*scale*.85;
+  let jca:f32=wb.y*.075*scale*.65;let jcc:f32=1.+wb.z*.075*scale*.65;
+  let a1:f32=a-time*speed;let a2:f32=a-time*speed*.83;let a3:f32=a-time*speed*1.21;
+  let n1:vec4f=noiseGradient(vec3f(a1*1.37/scale,c*.61/scale,time*evolution));
+  let n2:vec4f=noiseGradient(vec3f((a2*.82+c*.572)*3.11/scale+11.3,(-a2*.572+c*.82)*1.17/scale+43.7,time*evolution*.87+17.31));
+  let n3:vec4f=noiseGradient(vec3f((a3*.37-c*.929)*6.43/scale+8.7,(a3*.929+c*.37)*2.71/scale+3.2,time*evolution*1.41+4.7));
+  let w3:f32=.11*detailVisibility(p,6.43/scale);
+  let height:f32=amplitude*(n1.x*.62+n2.x*.27+n3.x*w3);
+  let ga:f32=(n1.y*1.37*.62+(n2.y*.82*3.11-n2.z*.572*1.17)*.27+(n3.y*.37*6.43+n3.z*.929*2.71)*w3)/scale;
+  let gc:f32=(n1.z*.61*.62+(n2.y*.572*3.11+n2.z*.82*1.17)*.27+(-n3.y*.929*6.43+n3.z*.37*2.71)*w3)/scale;
+  let da:f32=(ga*jaa+gc*jca)*amplitude;let dc:f32=(ga*jac+gc*jcc)*amplitude;
+  return vec3f(height,da*direction.x-dc*direction.y,da*direction.y+dc*direction.x);
 }
 // Find the FIRST crossing of the displaced surface inside a bounded wave slab.
 // A Newton solve can land on a farther, back-facing wave at grazing angles.
 fn waterSurfaceHit(ro:vec3f,rd:vec3f,opaqueT:f32) -> f32 {
-  let amplitude:f32=.016+.11*u.water.y*u.water.y;
+  let amplitude:f32=max(.0001,riverAmplitude());
   let box:vec2f=boxHit(ro,rd);
   var start:f32=max(.001,box.x);var end:f32=min(opaqueT,box.y);
   if(abs(rd.y)>.00001){
@@ -26,10 +35,10 @@ fn waterSurfaceHit(ro:vec3f,rd:vec3f,opaqueT:f32) -> f32 {
     start=max(start,min(a,b));end=min(end,max(a,b));
   }else if(abs(ro.y-u.water.x)>amplitude){return 10000.;}
   if(start>=end){return 10000.;}
-  let bound:f32=abs(rd.y)+(amplitude*1.55+.005)*length(rd.xz);
+  let bound:f32=abs(rd.y)+riverSlopeBound()*length(rd.xz);
   var t:f32=start;var previousT:f32=t;
   var previous:f32=(ro+rd*t).y-u.water.x-waterWaves(ro+rd*t).x;
-  for(var i:i32=0;i<80;i++){
+  for(var i:i32=0;i<112;i++){
     let point:vec3f=ro+rd*t;let d:f32=point.y-u.water.x-waterWaves(point).x;
     if(abs(d)<.0008){return t;}
     if(d*previous<0.){
@@ -175,10 +184,11 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   let slope:f32=length(coastGradient);let coastNormal:vec2f=coastGradient/max(slope,.001);
   let shoreDistance:f32=clearance/max(slope,.16);
   let shoreMask:f32=exp(-shoreDistance*1.5)*smoothstep(.08,.55,slope);
-  let time:f32=u.eye.w*(.65+u.water.y*.65);
-  let breakup:f32=.55+.45*noise(p*vec3f(1.7,.2,1.7)+vec3f(time*.08,0,-time*.06));
+  let time:f32=u.eye.w*(u.water.y*.65+u.river.x*.45);
+  let flow:vec3f=vec3f(u.river.z,0,u.river.w)*u.river.x*time;
+  let breakup:f32=smoothstep(-.2,.6,noise((p-flow*.17)*vec3f(1.1,.2,1.1)+vec3f(3.7,0,9.1)));
   let phase:f32=shoreDistance*8.+time*3.+noise(p*.65)*.6;
-  let lap:f32=cos(phase)*(.006+u.water.y*.027)*shoreMask;
+  let lap:f32=cos(phase)*(u.water.y*.02+u.river.x*.004)*shoreMask;
   let ripples:vec2f=coastNormal*lap;
   var geometric:vec3f=normalize(vec3f(-wave.y,1.,-wave.z));
   var n:vec3f=normalize(vec3f(-wave.y-ripples.x,1.,-wave.z-ripples.y));
@@ -208,7 +218,9 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   }
   var col:vec3f=mix(transmission,reflection,fresnel);
   let halfway:vec3f=safeNormalize(sunDirection()-rd);
-  let roughness:f32=.13+u.water.y*.05;
+  // Filter sub-pixel glints instead of exposing a grid of bright highlights.
+  let filtered:f32=1.-detailVisibility(p,6.43/u.river.y);
+  let roughness:f32=sqrt(pow(.17+u.water.y*.055,2.)+filtered*.012);
   let spec:f32=specularGGX(max(dot(n,-rd),.001),max(dot(n,sunDirection()),0.),max(dot(n,halfway),0.),max(dot(-rd,halfway),0.),roughness,.0204);
   if(!below){col+=vec3f(4.6,4.25,3.7)*spec*max(dot(n,sunDirection()),0.)*softShadow(p+vec3f(0,.02,0),sunDirection());}
   if(!below){

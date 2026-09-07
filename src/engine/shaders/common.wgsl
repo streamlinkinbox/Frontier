@@ -23,6 +23,7 @@ struct Uniforms {
   materialOptics: vec4f,
   baseColor: vec4f,
   waterOptics: vec4f,
+  river: vec4f,
 };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var field: texture_3d<f32>;

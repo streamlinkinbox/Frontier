@@ -256,6 +256,47 @@ multilayer wet-rock model. Relief is shaded; the voxel grid does not resolve gra
 Uniform integration note: the material/optical parameters extend the common block
 to **24 vec4s / 384 bytes**. Use `UNIFORM_BYTES`; keep WGSL and GLSL layouts in sync.
 
+## Slate-inspired workspace & non-repeating river · v0.6.0
+
+The UI follows the supplied [Slate base component reference](https://github.com/SultanAladin/Slate/blob/arena/01a062a4-slate/References/UIComponents.html)
+(reference commit `37d8614`): near-black panels, rounded groups, white primary actions,
+quiet strokes and a violet keyboard-focus accent. Frontier retains its local Inter /
+Plex fonts rather than adding an external font service. The old layered stylesheet
+was replaced with one token-driven workbench theme.
+
+- Bordered scene/inspector panels, a compact project bar and a cleaner viewport
+  heading replace the previous overlaid title and mixed green/gold treatments.
+- Sliders have editable value pills. Click a value, type, then **Enter** to commit;
+  **Escape** cancels. Values clamp to their valid ranges; ordinary ranges remain
+  keyboard accessible. Percent controls accept percentages; physical controls
+  accept their displayed units. Opening widths respect the voxel-aware minimum
+  (the input tooltip gives the editable range).
+- Menus render in a positioned portal rather than being clipped by rounded panels.
+  Arrow keys navigate menu items; Escape closes and restores trigger focus.
+- Narrow layouts use a dismissible sculpting drawer and a stacked inspector. No
+  preview-breaking compositing filter is applied to the actual terrain canvas.
+
+**River surface:** the former four periodic sine bands are replaced by a
+world-space, domain-warped, advected noise field. Three differently oriented
+scales travel at slightly different speeds, without wrapped texture UVs or a
+looping phase reset. The same analytic height derivatives drive normals and the
+water intersection; filtered glints reduce regular-looking bright flecks.
+
+Water controls now include **Current speed**, **Flow direction** and **Ripple
+scale** under **Current & ripple shape**. Direction is travel direction: 0° = +X,
+90° = +Z. Zero wind and zero current produce a still surface. These controls affect
+water visualization, **not the erosion solver or a physically solved river velocity
+field**. Optical depth/refraction guards and the four material models are retained.
+
+`river.ts` is a CPU reference for the shader field. Tests check analytic derivatives,
+height/slope bounds, directional motion and non-repetition across likely short tile
+shifts. Browser tests cover actual moving water pixels, numeric editing, unclipped
+keyboard-operated menus and the mobile drawer. A spatial correlation check does not
+claim that a procedural river is a calibrated hydrodynamics model.
+
+Uniform layout: **25 vec4s / 400 bytes** (`UNIFORM_BYTES`). Old projects receive
+river-control defaults without changing their stored terrain.
+
 ## What you can do
 
 - Start from a seeded sandstone canyon, an asymmetric weathered arch with unequal shoulders and alcoves, or fractured hoodoos/fins with caprock and non-monotonic profiles. The v0.2 canyon generator is unchanged; arches and spires use revised formations. Existing imported voxel data is preserved.
@@ -312,7 +353,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.5.0**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.6.0**.
 
 ### Why the earlier deployment returned 404
 

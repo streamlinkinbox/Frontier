@@ -57,6 +57,9 @@ export interface Settings {
   materialMoisture: number;
   waterAbsorption: number;
   waterFoam: number;
+  waterCurrent: number;
+  waterDirection: number;
+  waterRippleScale: number;
   grid: boolean;
   view: ViewMode;
   radius: number;
@@ -104,6 +107,9 @@ export const DEFAULT_SETTINGS: Settings = {
   materialMoisture: 0,
   waterAbsorption: 8,
   waterFoam: 0.35,
+  waterCurrent: 0.35,
+  waterDirection: 270,
+  waterRippleScale: 1.8,
   grid: true,
   view: "lit",
   radius: 4,

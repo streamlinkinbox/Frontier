@@ -87,6 +87,9 @@ export function validateSettings(raw: unknown): Settings {
     ["materialMoisture", 0, 1],
     ["waterAbsorption", 0.5, 30],
     ["waterFoam", 0, 1],
+    ["waterCurrent", 0, 2.5],
+    ["waterDirection", 0, 360],
+    ["waterRippleScale", 0.5, 4],
   ] as const) {
     const value = input[key];
     if (value === undefined) continue;

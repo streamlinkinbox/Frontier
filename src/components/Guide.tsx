@@ -93,8 +93,9 @@ export function Guide({ onClose }: { onClose: () => void }) {
           <Move3D />
           <h4>02 / Sculpt in three dimensions</h4>
           <p>
-            Add rock, carve a cave, soften an edge, or flatten a shelf. Brushes
-            edit a sphere of voxels, not a heightmap.
+            Add rock, carve caves, flatten to a locked plane, cut cracks or
+            crevices, and stamp boulders. Brushes edit the volume, not a
+            heightmap.
           </p>
         </article>
         <article>
@@ -131,6 +132,8 @@ export function Guide({ onClose }: { onClose: () => void }) {
             ["B", "Add rock"],
             ["X", "Carve"],
             ["M", "Smooth"],
+            ["L / R", "Flatten / ridges"],
+            ["K / U / O", "Cracks / crevice / boulder"],
             ["F", "Frame terrain"],
             ["Space", "Run / pause"],
             ["[ / ]", "Brush size"],

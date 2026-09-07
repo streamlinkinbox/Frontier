@@ -64,7 +64,7 @@ precision highp sampler3D;
 layout(std140) uniform Params {
   vec4 eye;vec4 forward;vec4 right;vec4 up;vec4 viewport;vec4 brush;vec4 water;
   vec4 flags;vec4 dims;vec4 erosion;vec4 geology;vec4 sculpt;vec4 brushParams;vec4 pick;
-  vec4 planeOrigin;vec4 planeNormal;vec4 strokeTangent;vec4 strokePrevious;vec4 processes;vec4 material;vec4 materialShape;vec4 materialOptics;vec4 baseColor;vec4 waterOptics;
+  vec4 planeOrigin;vec4 planeNormal;vec4 strokeTangent;vec4 strokePrevious;vec4 processes;vec4 material;vec4 materialShape;vec4 materialOptics;vec4 baseColor;vec4 waterOptics;vec4 river;
 } u;
 uniform sampler3D field;
 out vec4 fragColor;
