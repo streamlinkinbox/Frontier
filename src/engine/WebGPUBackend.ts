@@ -1,4 +1,5 @@
-import { computeShader, renderShader } from "./shaders";
+import { computeShader, presentShader, renderShader } from "./shaders";
+import { encodeFramePNG } from "./presentation";
 import { packUniforms } from "./uniforms";
 import { hasVisibleFrame } from "./startup";
 import { floatToHalf, halfToFloat } from "./math";
@@ -26,6 +27,10 @@ export class WebGPUBackend implements Backend {
   private current = 0;
   private pipelines: Record<string, GPUComputePipeline> = {};
   private renderPipeline!: GPURenderPipeline;
+  private presentPipeline!: GPURenderPipeline;
+  private presentGroup!: GPUBindGroup;
+  private renderTarget?: GPUTexture;
+  private format!: GPUTextureFormat;
   private groups = new Map<string, GPUBindGroup>();
   private pickResult!: GPUBuffer;
   private pickRead!: GPUBuffer;
@@ -143,12 +148,25 @@ export class WebGPUBackend implements Backend {
       }),
     );
     this.assertActive();
-    const format = navigator.gpu.getPreferredCanvasFormat();
+    const format = (this.format = navigator.gpu.getPreferredCanvasFormat());
     this.renderPipeline = await this.device.createRenderPipelineAsync({
       layout: "auto",
       vertex: { module: render, entryPoint: "vertexMain" },
       fragment: {
         module: render,
+        entryPoint: "fragmentMain",
+        targets: [{ format }],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    this.assertActive();
+    const presenter = this.device.createShaderModule({ code: presentShader });
+    this.presentPipeline = await this.device.createRenderPipelineAsync({
+      label: "Stable canvas presentation",
+      layout: "auto",
+      vertex: { module: presenter, entryPoint: "vertexMain" },
+      fragment: {
+        module: presenter,
         entryPoint: "fragmentMain",
         targets: [{ format }],
       },
@@ -189,19 +207,6 @@ export class WebGPUBackend implements Backend {
       [this.size.x, this.size.y, this.size.z],
     );
     this.device.queue.submit([enc.finish()]);
-    const probe = this.device.createCommandEncoder();
-    const pass = probe.beginRenderPass({
-      colorAttachments: [
-        {
-          view: this.context.getCurrentTexture().createView(),
-          clearValue: { r: 0.15, g: 0.18, b: 0.16, a: 1 },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    });
-    pass.end();
-    this.device.queue.submit([probe.finish()]);
     await this.device.queue.onSubmittedWorkDone();
     if (this.destroyed)
       throw new Error("The GPU canvas could not be initialized.");
@@ -285,11 +290,37 @@ export class WebGPUBackend implements Backend {
   render(frame: FrameState) {
     this.drawFrame(frame);
   }
+  private getRenderTarget(width: number, height: number): GPUTexture {
+    if (
+      this.renderTarget?.width === width &&
+      this.renderTarget.height === height
+    )
+      return this.renderTarget;
+    this.renderTarget?.destroy();
+    this.renderTarget = this.device.createTexture({
+      label: "Owned, scaled terrain frame",
+      size: [width, height],
+      format: this.format,
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC,
+    });
+    this.presentGroup = this.device.createBindGroup({
+      layout: this.presentPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: this.renderTarget.createView() },
+        { binding: 1, resource: this.sampler },
+      ],
+    });
+    return this.renderTarget;
+  }
   private drawFrame(
     frame: FrameState,
-    probe?: { buffer: GPUBuffer; rowBytes: number; rows: number },
+    probe?: { buffer: GPUBuffer; rowBytes: number; rows?: number },
+    present = true,
   ) {
-    if (this.destroyed) return;
+    this.assertActive();
     this.lastFrame = frame;
     this.device.queue.writeBuffer(
       this.uniform,
@@ -297,7 +328,7 @@ export class WebGPUBackend implements Backend {
       packUniforms(frame, this.size),
     );
     const enc = this.device.createCommandEncoder();
-    const target = this.context.getCurrentTexture();
+    const target = this.getRenderTarget(frame.width, frame.height);
     const pass = enc.beginRenderPass({
       colorAttachments: [
         {
@@ -315,23 +346,50 @@ export class WebGPUBackend implements Backend {
     );
     pass.draw(3);
     pass.end();
-    if (probe) {
-      // Read the actual render target in the same submission. Reading a WebGPU
-      // canvas through a 2D context after an await can instead see a recycled
-      // swapchain image, so it is not a reliable first-frame test.
-      for (let row = 0; row < probe.rows; row++) {
-        const y = Math.min(
-          frame.height - 1,
-          Math.floor(((row + 0.5) * frame.height) / probe.rows),
-        );
-        enc.copyTextureToBuffer(
-          { texture: target, origin: [0, y, 0] },
+    let readTarget = target;
+    if (present) {
+      // Scaling an owned texture is cheap and never resizes/clears the visible
+      // canvas just because the expensive raymarch resolution has changed.
+      readTarget = this.context.getCurrentTexture();
+      const output = enc.beginRenderPass({
+        colorAttachments: [
           {
-            buffer: probe.buffer,
-            offset: row * probe.rowBytes,
-            bytesPerRow: probe.rowBytes,
+            view: readTarget.createView(),
+            loadOp: "clear",
+            storeOp: "store",
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
           },
-          [frame.width, 1, 1],
+        ],
+      });
+      output.setPipeline(this.presentPipeline);
+      output.setBindGroup(0, this.presentGroup);
+      output.draw(3);
+      output.end();
+    }
+    if (probe) {
+      // Read before presentation recycles the canvas texture. Verification
+      // checks the actual presentation target; PNG capture uses our own target.
+      if (probe.rows) {
+        for (let row = 0; row < probe.rows; row++) {
+          const y = Math.min(
+            readTarget.height - 1,
+            Math.floor(((row + 0.5) * readTarget.height) / probe.rows),
+          );
+          enc.copyTextureToBuffer(
+            { texture: readTarget, origin: [0, y, 0] },
+            {
+              buffer: probe.buffer,
+              offset: row * probe.rowBytes,
+              bytesPerRow: probe.rowBytes,
+            },
+            [readTarget.width, 1, 1],
+          );
+        }
+      } else {
+        enc.copyTextureToBuffer(
+          { texture: readTarget },
+          { buffer: probe.buffer, bytesPerRow: probe.rowBytes },
+          [readTarget.width, readTarget.height, 1],
         );
       }
     }
@@ -339,8 +397,10 @@ export class WebGPUBackend implements Backend {
     this.pendingFrames++;
     void this.device.queue.onSubmittedWorkDone().then(
       () => this.pendingFrames--,
-      () => {
+      (error) => {
         this.pendingFrames--;
+        if (!this.destroyed && this.initialized)
+          this.onLost?.(`GPU submission failed: ${String(error)}`);
       },
     );
   }
@@ -348,7 +408,7 @@ export class WebGPUBackend implements Backend {
     this.assertActive();
     const rows = 32,
       columns = 32,
-      rowBytes = Math.ceil((frame.width * 4) / 256) * 256;
+      rowBytes = Math.ceil((this.canvas.width * 4) / 256) * 256;
     const buffer = this.device.createBuffer({
       label: "First-frame pixel verification",
       size: rowBytes * rows,
@@ -363,13 +423,40 @@ export class WebGPUBackend implements Backend {
       for (let y = 0; y < rows; y++)
         for (let x = 0; x < columns; x++) {
           const sx = Math.min(
-            frame.width - 1,
-            Math.floor(((x + 0.5) * frame.width) / columns),
+            this.canvas.width - 1,
+            Math.floor(((x + 0.5) * this.canvas.width) / columns),
           );
           const start = y * rowBytes + sx * 4;
           pixels.set(source.subarray(start, start + 4), (y * columns + x) * 4);
         }
       return hasVisibleFrame(pixels);
+    } finally {
+      if (buffer.mapState === "mapped") buffer.unmap();
+      buffer.destroy();
+    }
+  }
+  async capture(frame: FrameState): Promise<Blob> {
+    this.assertActive();
+    const rowBytes = Math.ceil((frame.width * 4) / 256) * 256;
+    const buffer = this.device.createBuffer({
+      label: "Owned PNG readback",
+      size: rowBytes * frame.height,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    try {
+      this.drawFrame(frame, { buffer, rowBytes }, false);
+      await buffer.mapAsync(GPUMapMode.READ);
+      this.assertActive();
+      const source = new Uint8Array(buffer.getMappedRange());
+      const pixels = new Uint8Array(frame.width * frame.height * 4);
+      for (let y = 0; y < frame.height; y++)
+        pixels.set(
+          source.subarray(y * rowBytes, y * rowBytes + frame.width * 4),
+          y * frame.width * 4,
+        );
+      return await encodeFramePNG(pixels, frame.width, frame.height, {
+        bgra: this.format === "bgra8unorm",
+      });
     } finally {
       if (buffer.mapState === "mapped") buffer.unmap();
       buffer.destroy();
@@ -469,6 +556,7 @@ export class WebGPUBackend implements Backend {
   dispose() {
     this.destroyed = true;
     this.context?.unconfigure();
+    this.renderTarget?.destroy();
     this.fields?.forEach((t) => t.destroy());
     this.original?.destroy();
     this.flux?.destroy();

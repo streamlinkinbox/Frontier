@@ -3,6 +3,7 @@ import { generateField, pickField, sculptField } from "./field";
 import { computeFlux, evolveField, redistanceField } from "./simulation";
 import { packUniforms } from "./uniforms";
 import { hasVisibleFrame } from "./startup";
+import { encodeFramePNG } from "./presentation";
 import {
   CPU_SIZE,
   type Backend,
@@ -21,6 +22,10 @@ export class WebGLBackend implements Backend {
   private uniform!: WebGLBuffer;
   private texture!: WebGLTexture;
   private originalTexture!: WebGLTexture;
+  private framebuffer: WebGLFramebuffer | null = null;
+  private colorTarget: WebGLTexture | null = null;
+  private targetWidth = 0;
+  private targetHeight = 0;
   private data!: Float32Array;
   private original!: Float32Array;
   private scratch!: Float32Array;
@@ -121,6 +126,12 @@ export class WebGLBackend implements Backend {
     if (!this.fence) return true;
     const state = this.gl.clientWaitSync(this.fence, 0, 0);
     if (state === this.gl.TIMEOUT_EXPIRED) return false;
+    if (state === this.gl.WAIT_FAILED) {
+      this.onLost?.(
+        "WebGL could not complete the terrain frame. Restart the renderer.",
+      );
+      return false;
+    }
     this.gl.deleteSync(this.fence);
     this.fence = null;
     return true;
@@ -170,9 +181,54 @@ export class WebGLBackend implements Backend {
       this.data,
     );
   }
-  render(frame: FrameState) {
+  private bindRenderTarget(width: number, height: number) {
     const gl = this.gl;
-    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    if (this.targetWidth !== width || this.targetHeight !== height) {
+      gl.deleteTexture(this.colorTarget);
+      gl.deleteFramebuffer(this.framebuffer);
+      this.colorTarget = gl.createTexture();
+      this.framebuffer = gl.createFramebuffer();
+      gl.bindTexture(gl.TEXTURE_2D, this.colorTarget);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA8,
+        width,
+        height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        this.colorTarget,
+        0,
+      );
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE)
+        throw new Error(
+          "Could not allocate the terrain render target. Try a smaller browser window.",
+        );
+      this.targetWidth = width;
+      this.targetHeight = height;
+    } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+  }
+  render(frame: FrameState) {
+    this.drawFrame(frame);
+  }
+  private drawFrame(frame: FrameState, present = true) {
+    const gl = this.gl;
+    if (this.destroyed || gl.isContextLost())
+      throw new Error("WebGL context is unavailable.");
+    this.bindRenderTarget(frame.width, frame.height);
+    gl.viewport(0, 0, frame.width, frame.height);
     gl.useProgram(this.program);
     gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, packUniforms(frame, this.size));
@@ -182,6 +238,23 @@ export class WebGLBackend implements Backend {
       frame.compare ? this.originalTexture : this.texture,
     );
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (present) {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+      gl.blitFramebuffer(
+        0,
+        0,
+        frame.width,
+        frame.height,
+        0,
+        0,
+        this.canvas.width,
+        this.canvas.height,
+        gl.COLOR_BUFFER_BIT,
+        gl.LINEAR,
+      );
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     if (this.fence) gl.deleteSync(this.fence);
     this.fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     gl.flush();
@@ -191,23 +264,55 @@ export class WebGLBackend implements Backend {
     const gl = this.gl;
     if (gl.isContextLost())
       throw new Error("WebGL graphics context was lost during startup.");
-    const row = new Uint8Array(frame.width * 4);
+    const row = new Uint8Array(this.canvas.width * 4);
     const pixels = new Uint8Array(32 * 32 * 4);
     for (let y = 0; y < 32; y++) {
       const sy = Math.min(
-        frame.height - 1,
-        Math.floor(((y + 0.5) * frame.height) / 32),
+        this.canvas.height - 1,
+        Math.floor(((y + 0.5) * this.canvas.height) / 32),
       );
-      gl.readPixels(0, sy, frame.width, 1, gl.RGBA, gl.UNSIGNED_BYTE, row);
+      gl.readPixels(
+        0,
+        sy,
+        this.canvas.width,
+        1,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        row,
+      );
       for (let x = 0; x < 32; x++) {
         const sx = Math.min(
-          frame.width - 1,
-          Math.floor(((x + 0.5) * frame.width) / 32),
+          this.canvas.width - 1,
+          Math.floor(((x + 0.5) * this.canvas.width) / 32),
         );
         pixels.set(row.subarray(sx * 4, sx * 4 + 4), (y * 32 + x) * 4);
       }
     }
     return hasVisibleFrame(pixels);
+  }
+  async capture(frame: FrameState): Promise<Blob> {
+    this.drawFrame(frame, false);
+    const gl = this.gl;
+    const pixels = new Uint8Array(frame.width * frame.height * 4);
+    try {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
+      gl.readPixels(
+        0,
+        0,
+        frame.width,
+        frame.height,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      );
+      if (gl.isContextLost())
+        throw new Error("WebGL context was lost during capture.");
+      return await encodeFramePNG(pixels, frame.width, frame.height, {
+        flipY: true,
+      });
+    } finally {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
   }
   step(s: Settings, count: number) {
     for (let i = 0; i < count; i++) {
@@ -261,6 +366,8 @@ export class WebGLBackend implements Backend {
     if (!gl) return;
     if (this.fence) gl.deleteSync(this.fence);
     this.fence = null;
+    gl.deleteTexture(this.colorTarget);
+    gl.deleteFramebuffer(this.framebuffer);
     gl.deleteTexture(this.texture);
     gl.deleteTexture(this.originalTexture);
     gl.deleteBuffer(this.uniform);

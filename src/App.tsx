@@ -72,6 +72,7 @@ import {
 } from "./components/Controls";
 import { Dialog, Guide } from "./components/Guide";
 import "./styles.css";
+import { version } from "../package.json";
 
 declare global {
   interface Window {
@@ -307,7 +308,8 @@ export default function App() {
         guide ||
         confirm ||
         busy ||
-        !ready
+        !ready ||
+        !!error
       )
         return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -365,6 +367,7 @@ export default function App() {
   }, [
     ready,
     busy,
+    error,
     guide,
     confirm,
     undo,
@@ -570,8 +573,9 @@ export default function App() {
     if (dirty)
       setConfirm({
         title: "Restart the renderer?",
-        description:
-          "This reloads the viewport. Save or export your current project first to keep any unsaved sculpting and erosion.",
+        description: error
+          ? "The graphics device is unavailable. Restarting discards unsaved edits; previously saved or exported projects can be reopened afterward."
+          : "This reloads the viewport. Save or export your current project first to keep any unsaved sculpting and erosion.",
         action: restart,
       });
     else restart();
@@ -1758,8 +1762,12 @@ export default function App() {
             className={`gpu-status ${stats.backend === "WebGL2" ? "fallback" : ""}`}
           >
             <span className="status-dot" />
-            {ready ? stats.backend : "Connecting GPU"}
-            {ready && (
+            {error
+              ? "Graphics interrupted"
+              : ready
+                ? stats.backend
+                : "Connecting GPU"}
+            {ready && !error && (
               <span>
                 {stats.backend === "WebGPU" ? "COMPUTE" : "CPU FALLBACK"}
               </span>
@@ -1784,7 +1792,7 @@ export default function App() {
           </span>
           <span className="footer-divider" />
           <span className="footer-version">
-            FRONTIER LAB <span>v0.2</span>
+            FRONTIER LAB <span>v{version}</span>
           </span>
           <button
             aria-label="About this simulation"

@@ -55,6 +55,10 @@ export class TerrainEngine {
   private last: [number, number] = [0, 0];
   readonly camera = new EditorCamera();
   private resolution = 0.9;
+  private renderWidth = 1;
+  private renderHeight = 1;
+  private frameWaitStarted = 0;
+  private graphicsFailed = false;
   private resizeRequested = true;
   private quality: "adaptive" | "native" = "adaptive";
   private lastResolutionChange = 0;
@@ -164,8 +168,13 @@ export class TerrainEngine {
       );
   }
   private graphicsLost(message: string) {
-    if (!this.isCurrent || !this.initialized) return;
-    this.pause();
+    if (!this.isCurrent || !this.initialized || this.graphicsFailed) return;
+    this.graphicsFailed = true;
+    this.running = false;
+    this.pendingSteps = 0;
+    this.fps = 0;
+    this.camera.clearKeys();
+    this.emitStats();
     this.callbacks.error(`Graphics device: ${message}`);
   }
   private async verifyFirstFrame(backend: Backend) {
@@ -202,13 +211,16 @@ export class TerrainEngine {
   }
   private applyResize() {
     if (!this.isCurrent || !this.resizeRequested) return;
-    const dpr =
-      Math.min(devicePixelRatio, 1.5) *
-      (this.quality === "native" ? 1 : this.resolution);
+    const dpr = Math.min(devicePixelRatio, 1.5);
     const width = Math.max(1, Math.round(this.container.clientWidth * dpr));
     const height = Math.max(1, Math.round(this.container.clientHeight * dpr));
+    // Only a real display-size change may reset the visible bitmap. Adaptive
+    // quality changes resize a backend-owned render target, not this canvas.
     if (this.canvas.width !== width) this.canvas.width = width;
     if (this.canvas.height !== height) this.canvas.height = height;
+    const scale = this.quality === "native" ? 1 : this.resolution;
+    this.renderWidth = Math.max(1, Math.round(width * scale));
+    this.renderHeight = Math.max(1, Math.round(height * scale));
     this.resizeRequested = false;
   }
   private get aspect() {
@@ -220,8 +232,8 @@ export class TerrainEngine {
   private makeFrame(): FrameState {
     return {
       ...this.camera.basis(this.aspect),
-      width: this.canvas.width,
-      height: this.canvas.height,
+      width: this.renderWidth,
+      height: this.renderHeight,
       time: this.time,
       settings: this.settings,
       brush:
@@ -246,67 +258,75 @@ export class TerrainEngine {
     this.then = now;
     if (!document.hidden) {
       this.time += dt;
-      if (this.initialized && !this.busy) this.camera.update(dt, this.aspect);
+      if (this.initialized && !this.busy && !this.graphicsFailed)
+        this.camera.update(dt, this.aspect);
     }
     if (
       document.hidden ||
       !this.initialized ||
       this.busy ||
-      !this.backend.ready()
-    )
+      this.graphicsFailed
+    ) {
+      this.frameWaitStarted = 0;
       return;
-    if (
-      (this.running || this.pendingSteps > 0) &&
-      !this.compare &&
-      now - this.lastSimulation > (this.backend.name === "WebGPU" ? 35 : 180)
-    ) {
-      const count = Math.min(
-        8000 - this.steps,
-        this.backend.name === "WebGPU"
-          ? this.running
-            ? this.settings.speed
-            : Math.min(this.settings.speed, this.pendingSteps)
-          : 1,
-      );
-      this.backend.step(this.settings, count);
-      this.steps += count;
-      this.pendingSteps = Math.max(0, this.pendingSteps - count);
-      this.lastSimulation = now;
-      this.callbacks.changed();
-      if (this.steps >= 8000) {
-        this.running = false;
-        this.pendingSteps = 0;
-        this.callbacks.notice(
-          "8,000 iterations reached. Pause and inspect the result, or reset the simulation.",
+    }
+    if (!this.backend.ready()) {
+      if (!this.frameWaitStarted) this.frameWaitStarted = now;
+      if (now - this.frameWaitStarted > 15_000)
+        this.graphicsLost(
+          "The renderer stopped responding for 15 seconds. Try compatibility rendering or restart the renderer.",
         );
-      }
+      return;
     }
-    this.applyResize();
-    this.frame = this.makeFrame();
-    if (
-      this.tool !== "orbit" &&
-      this.pointerInside &&
-      !this.picking &&
-      this.mode !== "look" &&
-      !this.camera.moving &&
-      now - this.lastPick > 55 &&
-      !this.compare
-    ) {
-      this.lastPick = now;
-      void this.updateBrush();
-    }
-    if (this.down && this.mode === "sculpt" && this.brush && !this.compare) {
-      this.backend.sculpt(this.brush, this.tool, this.settings);
-      this.callbacks.changed();
-    }
+    this.frameWaitStarted = 0;
     try {
+      if (
+        (this.running || this.pendingSteps > 0) &&
+        !this.compare &&
+        now - this.lastSimulation > (this.backend.name === "WebGPU" ? 35 : 180)
+      ) {
+        const count = Math.min(
+          8000 - this.steps,
+          this.backend.name === "WebGPU"
+            ? this.running
+              ? this.settings.speed
+              : Math.min(this.settings.speed, this.pendingSteps)
+            : 1,
+        );
+        this.backend.step(this.settings, count);
+        this.steps += count;
+        this.pendingSteps = Math.max(0, this.pendingSteps - count);
+        this.lastSimulation = now;
+        this.callbacks.changed();
+        if (this.steps >= 8000) {
+          this.running = false;
+          this.pendingSteps = 0;
+          this.callbacks.notice(
+            "8,000 iterations reached. Pause and inspect the result, or reset the simulation.",
+          );
+        }
+      }
+      this.applyResize();
+      this.frame = this.makeFrame();
+      if (
+        this.tool !== "orbit" &&
+        this.pointerInside &&
+        !this.picking &&
+        this.mode !== "look" &&
+        !this.camera.moving &&
+        now - this.lastPick > 55 &&
+        !this.compare
+      ) {
+        this.lastPick = now;
+        void this.updateBrush();
+      }
+      if (this.down && this.mode === "sculpt" && this.brush && !this.compare) {
+        this.backend.sculpt(this.brush, this.tool, this.settings);
+        this.callbacks.changed();
+      }
       this.backend.render(this.frame);
     } catch (error) {
-      this.running = false;
-      this.busy = true;
-      this.callbacks.error(
-        error instanceof Error ? error.message : String(error),
-      );
+      this.graphicsLost(error instanceof Error ? error.message : String(error));
       return;
     }
     this.frameCount++;
@@ -482,6 +502,7 @@ export class TerrainEngine {
     const clear = () => this.camera.clearKeys();
     const visibility = () => {
       clear();
+      this.frameWaitStarted = 0;
       if (!document.hidden) {
         this.then = this.fpsStart = performance.now();
         this.frameCount = 0;
@@ -532,6 +553,7 @@ export class TerrainEngine {
       settings.autoPreview &&
       !this.running &&
       this.initialized &&
+      !this.graphicsFailed &&
       this.steps < 8000
     ) {
       if (this.pendingSteps > 0) {
@@ -550,7 +572,7 @@ export class TerrainEngine {
     if (!settings.autoPreview && !this.running) this.pendingSteps = 0;
   }
   async toggleSimulation() {
-    if (this.busy || !this.initialized) return;
+    if (this.busy || !this.initialized || this.graphicsFailed) return;
     if (this.running) {
       this.running = false;
       this.pendingSteps = 0;
@@ -568,7 +590,7 @@ export class TerrainEngine {
     this.emitStats();
   }
   async singleStep() {
-    if (this.busy || this.steps >= 8000) return;
+    if (this.busy || this.graphicsFailed || this.steps >= 8000) return;
     this.running = false;
     await this.snapshot();
     this.pendingSteps = 1;
@@ -579,7 +601,7 @@ export class TerrainEngine {
     if (this.initialized) this.emitStats();
   }
   async snapshot() {
-    if (this.busy || !this.initialized) return;
+    if (this.busy || !this.initialized || this.graphicsFailed) return;
     this.busy = true;
     try {
       this.undoStack.push({
@@ -683,34 +705,25 @@ export class TerrainEngine {
     const wasBusy = this.busy;
     this.busy = true;
     try {
-      // Export at viewport resolution, independent of adaptive live rendering,
-      // and omit the editor's brush ring. Keep animation submissions paused
-      // until the canvas has been read back.
-      await this.backend.sync();
-      const dpr = Math.min(devicePixelRatio, 1.5);
-      this.canvas.width = Math.max(
-        1,
-        Math.round(this.container.clientWidth * dpr),
+      await withTimeout(
+        this.backend.sync(),
+        15_000,
+        "The GPU did not finish the capture.",
       );
-      this.canvas.height = Math.max(
-        1,
-        Math.round(this.container.clientHeight * dpr),
-      );
-      this.backend.render({ ...this.makeFrame(), brush: null, tool: "orbit" });
-      await this.backend.sync();
-      return await new Promise<Blob>((resolve, reject) =>
-        this.canvas.toBlob(
-          (b) =>
-            b
-              ? resolve(b)
-              : reject(new Error("Could not capture the viewport.")),
-          "image/png",
-        ),
+      // The backend copies its owned render texture before awaiting readback.
+      // No visible canvas resize, and no recycled WebGPU swapchain capture.
+      return await withTimeout(
+        this.backend.capture({
+          ...this.makeFrame(),
+          width: this.canvas.width,
+          height: this.canvas.height,
+          brush: null,
+          tool: "orbit",
+        }),
+        15_000,
+        "Viewport capture timed out. Try compatibility rendering.",
       );
     } finally {
-      // Leave the completed capture visible. The next live draw, not this
-      // cleanup, will restore adaptive sizing without a blank interval.
-      this.resize();
       this.busy = wasBusy;
     }
   }

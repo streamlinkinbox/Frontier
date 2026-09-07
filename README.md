@@ -13,11 +13,12 @@ Open the URL printed by Vite. The development server binds to `0.0.0.0` and acce
 
 ```sh
 npm run build      # TypeScript check + production build
-npm run build:pages # Production build rooted at /Frontier/ for GitHub Pages
+npm run build:pages # Production build with relative assets for project-based Pages
 npm run publish:pages # Rebuild the prebuilt docs/ site committed for branch-based Pages
 npm run preview    # Serve the production build
 npm test           # Mathematical, simulation, archive, and mesh tests
 npm run test:e2e   # Browser integration tests (install Chromium first)
+npm run test:pages # Rebuild docs/ and test it under strict static /Frontier/ hosting
 ```
 
 WebGPU requires a secure origin (HTTPS or localhost), a compatible browser/device, and enabled hardware acceleration. If unavailable, Frontier uses an explicitly labeled **WebGL2 / CPU fallback**, with a lower-resolution 3D volume. `?renderer=webgl` forces that path for testing. CPU/software graphics are substantially slower than a physical GPU; frame rate is measured, not simulated.
@@ -33,8 +34,20 @@ Startup now verifies nonblank pixels copied from the actual render target before
 reporting the scene as ready, and automatically falls back if WebGPU times out or
 fails that check. A late, cancelled initializer cannot append an empty canvas on
 top of its replacement. Every viewport has exactly one active canvas, including
-across hot reloads. Restarting/reloading discards unsaved edits, so save or export
-an existing project first.
+across hot reloads.
+
+In **v0.2.1** (shown in the footer), adaptive resolution uses an **off-screen render
+target** in both backends. Switching Adaptive/Native no longer resets the visible
+canvas bitmap. PNG exports copy owned render pixels, not a potentially recycled
+WebGPU canvas. A GPU that stops responding for 15 visible, non-busy seconds, a
+lost device, or a failed render/compute submission shows an explicit recovery
+panel and stops the simulation. Background tabs and busy exports do not trigger
+the stalled-frame deadline.
+
+Restarting/reloading discards unsaved edits; it does not silently regenerate your
+terrain. Save or export first when the GPU is available. After a lost GPU, reopen
+a previously saved/exported project. The **F** shortcut restores the overview if
+you have simply flown away from the terrain.
 
 ## What you can do
 
@@ -83,42 +96,66 @@ inputs don't move the camera while typing into fields or using a dialog.
 
 ## GitHub Pages
 
-A prebuilt, self-contained site is committed in **`docs/`**. No custom workflow or
-backend is needed to serve it. The current Arena GitHub connection can push
-source files but was explicitly denied the separate `workflows` and Pages-setup
-permissions, so an executable workflow is **not** installed in `.github/`.
+A prebuilt, self-contained site is committed in **`docs/`**. It runs entirely in
+the browser; **no development server or custom GitHub workflow is required**.
 
-A repository owner can enable the site with:
+In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/pages)**:
 
-1. **Settings → Pages → Build and deployment → Source → Deploy from a branch**.
-2. Choose **`arena/01a07c42-frontier`** and **`/docs`**, then **Save**.
-3. Wait for GitHub's Pages deployment to finish. The intended URL is
-   **https://streamlinkinbox.github.io/Frontier/**.
+1. Select **Deploy from a branch**.
+2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
+3. Wait for GitHub's Pages deployment to finish, then open
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.2.1**.
 
-The site is **not automatically live just because the code was pushed**. GitHub
-must first enable Pages for the branch. To refresh the prebuilt site after edits:
+### Why the earlier deployment returned 404
+
+Pages was configured to serve `/` from `arena/01a07c42-frontier`. That folder held
+the **source** `index.html`, which requested `/src/main.tsx` and an unresolved
+`%BASE_URL%` favicon. GitHub Pages serves static files; it does not run Vite or
+compile TypeScript. A successful Pages deployment can therefore still serve a
+non-working source page. Select the **current branch + `/docs`**, not the old
+branch or the source root.
+
+As a safety net, the new source index recognizes when it has not been processed
+by Vite and redirects to `./docs/`, preserving renderer query options and the
+hash. All compiled assets now use **relative URLs**, so this rescue path also
+works under `/Frontier/docs/`. Correct `/docs` publishing still serves the app at
+`/Frontier/` with no redirect. If an application bundle is missing, an inline
+loading/error screen explains how to recover instead of leaving the whole page
+empty. **Do not copy the source index over the compiled `docs/index.html`.**
+
+To refresh the deployment after source edits:
 
 ```sh
+npm ci
 npm run publish:pages
-# Commit the updated source and docs/ output to the same branch, then push.
+npm run check:pages
+# Commit the updated source and generated docs/ output to this session branch.
+# Push only arena/01a07d13-frontier.
 ```
 
-`docs/` is generated by `scripts/publish-pages.mjs`; do not hand-edit it. Assets
-use the explicit `/Frontier/` base path, including worker scripts, fonts,
-thumbnails, favicon, and navigation. This is a small, intentional deployment
-artifact; other build outputs and large exports remain ignored.
+`docs/` is generated by `scripts/publish-pages.mjs`; do not hand-edit it. The
+script checks the compiled entry point, relative asset references, fonts,
+presets, export worker, and `.nojekyll` **before** replacing the previous build.
+This small generated deployment is intentionally tracked; dependencies, other
+build output, test artifacts and large exports remain ignored.
+
+`npm run test:pages` tests the **compiled** app with strict static hosting at
+`/Frontier/`, both with `/docs` as the source and with the root-source rescue.
+Missing files return real 404s (there is no Vite SPA fallback to hide bad paths).
+The tests exercise both renderers, actual visible sandstone pixels, PNG capture,
+the mesh-export worker, and missing-bundle recovery. No development-only globals
+are available in this production build.
 
 **Optional automation:** `deployment/pages-workflow.yml` is an inert template.
-After reconnecting GitHub in Arena with workflow permission (or using an
-authorized GitHub account), copy it to `.github/workflows/pages.yml`, choose
-**GitHub Actions** as the Pages source, and push. The template tests/builds on
-pushes to the session branch or `main`; the `github-pages` environment must permit
-the branch. It does not run while stored under `deployment/`.
+An authorized owner may copy it to `.github/workflows/pages.yml` and select
+**GitHub Actions** as the Pages source. This requires workflow permission; it is
+not necessary for branch-based `/docs` hosting. The template does not run while
+stored under `deployment/`.
 
-Local IndexedDB saves are **per browser origin**. Before moving from the Arena
-preview to Pages, export a `.frontier` project, then import it on the Pages site.
-Both origins need a compatible browser and hardware acceleration; hosting on
-Pages removes the development preview/HMR layer but doesn't change GPU support.
+Local IndexedDB saves are **per browser origin**. Export a `.frontier` project
+before moving from the Arena preview to Pages, then import it on the Pages site.
+HTTPS hosting does not change browser/GPU support. The direct compatibility link
+is **https://streamlinkinbox.github.io/Frontier/?renderer=webgl**.
 
 ## How it works
 
@@ -137,7 +174,7 @@ The initial field combines 3D CSG, warped polygonal mesas, ellipsoidal cutouts, 
 
 A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows, ambient occlusion, procedural bedding and mineral grain. There are no Quixel assets or texture downloads. The only raster assets in this repository are small **thumbnails captured from this renderer**. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
 
-The water preview uses geometric shoreline clipping, depth-dependent absorption, Fresnel reflection rays against the SDF, and animated wind-driven normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. ResizeObserver only requests sizing changes. Canvas dimensions change immediately before a new draw, never just after one, and capture cleanup does not clear the displayed frame. Adaptive resolution uses multi-second hysteresis; Native mode disables adaptive resizing.
+The water preview uses geometric shoreline clipping, depth-dependent absorption, Fresnel reflection rays against the SDF, and animated wind-driven normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. Both backends raymarch into an owned, adaptively sized off-screen texture and scale it into a stable display-sized canvas. Only actual viewport-size changes resize that canvas, immediately before drawing; Adaptive/Native quality changes and capture do not reset it. Adaptive resolution uses multi-second hysteresis; Native mode renders at full viewport resolution. GPU readback for PNG export happens in the same submission into an owned buffer, before swapchain recycling. Verification still checks the actual presented canvas, not just the off-screen image.
 
 ### Erosion pipeline
 
@@ -173,6 +210,7 @@ src/engine/
   EditorCamera.ts        Frame-independent orbit/fly camera and scoped movement
   WebGPUBackend.ts       Native device, 3D textures, compute/render pipelines
   WebGLBackend.ts        Explicit lower-resolution fallback
+  presentation.ts        Owned RGBA/BGRA readback and PNG encoding
   shaders/common.wgsl    Field sampling, noise, ray intersections
   shaders/compute.wgsl   Initialization, runoff, erosion, sculpting, redistancing
   shaders/render.wgsl    Procedural rock, lighting, diagnostic view, water
@@ -190,13 +228,19 @@ The `.frontier` binary format is versioned: eight ASCII bytes `FRONTIER`, a litt
 
 The unit suite covers seeded determinism, real 3D overhang topology, boundedness, spherical edits, internal water/sediment conservation, no-forcing stability, finite erosion updates, sign-preserving redistancing, half-float archives, malformed imports, indexed mesh extraction and GLB headers.
 
-Browser tests exercise actual volume changes, exact undo/redo restoration, live parameters, one-step semantics, save/export, presets, and mobile layout. Regression cases cover a late renderer-startup failure during remount, a GPU that fails its first-frame check, and the in-viewport compatibility action. To install a normal test browser:
+Browser tests exercise actual volume changes, exact undo/redo restoration, live parameters, one-step semantics, save/export, presets, and mobile layout. Regression cases cover a late renderer-startup failure during remount, a GPU that fails its first-frame check, and the in-viewport compatibility action. Added regressions assert actual WebGPU
+usage (a fallback is not counted as a GPU pass), stable visible-canvas dimensions
+through quality changes/capture, sandstone pixels in PNGs, stalled-device recovery,
+real device destruction, and caught compute errors. PNG unit tests cover RGBA,
+BGRA, bottom-up WebGL rows, and encoding failures. To install a normal test browser:
 
 ```sh
 npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-For a software Vulkan environment, use `FRONTIER_SOFTWARE_GPU=1`. An externally installed Chromium can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Performance in a software renderer does not represent a hardware GPU.
+For a software Vulkan environment, use `FRONTIER_SOFTWARE_GPU=1`. This selects
+SwiftShader for both ANGLE and Vulkan; forcing ANGLE's generic Vulkan mode can
+fail shared-image presentation on a headless build even when an adapter exists. An externally installed Chromium can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Performance in a software renderer does not represent a hardware GPU.
 
 The original uploaded `.patch` in this checkout is unrelated to this terrain workbench and has been left untouched.

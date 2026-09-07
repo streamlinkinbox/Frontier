@@ -9,11 +9,86 @@
       content="Frontier Terrain Lab. Sculpt a world in three dimensions, then let water and weather shape it. A local, procedural WebGPU terrain workbench."
     />
     <title>Frontier — Terrain Lab</title>
-    <link rel="icon" type="image/svg+xml" href="/Frontier/favicon.svg" />
-    <script type="module" crossorigin src="/Frontier/assets/index-DOC531FI.js"></script>
-    <link rel="stylesheet" crossorigin href="/Frontier/assets/index-Cql7UFdl.css">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <style>
+      #frontier-boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 16px;
+        padding: 32px;
+        background: #17191a;
+        color: #e2e5da;
+        font:
+          14px/1.7 system-ui,
+          sans-serif;
+      }
+      #frontier-boot > * {
+        max-width: 540px;
+        margin: 0;
+      }
+      #frontier-boot h1 {
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: -0.04em;
+      }
+      #frontier-boot p {
+        color: #a8b0a2;
+      }
+      #frontier-boot button {
+        padding: 10px 18px;
+        border: 1px solid #758465;
+        border-radius: 6px;
+        background: #d0ddac;
+        color: #20271a;
+        cursor: pointer;
+        font: inherit;
+      }
+    </style>
+    <script>
+      (() => {
+        // Vite replaces the favicon's base token in both dev and production.
+        // If it is still unresolved, a static host is serving our SOURCE index.
+        // Open the committed build instead of requesting uncompiled /src/*.tsx.
+        const source = document
+          .querySelector('link[rel="icon"]')
+          .getAttribute("href")
+          .startsWith("%");
+        if (source) {
+          const target = new URL("./docs/", location.href);
+          target.search = location.search;
+          target.hash = location.hash;
+          location.replace(target.href);
+          return;
+        }
+        const explain = () => {
+          const message = document.getElementById("frontier-boot-message");
+          if (!message) return; // React has already mounted successfully.
+          message.textContent =
+            "The application files could not finish loading. Reload once; if this persists, check that GitHub Pages publishes the compiled /docs folder, not the source root.";
+          document.getElementById("frontier-boot-retry").hidden = false;
+        };
+        window.addEventListener("error", explain, true);
+        window.addEventListener("unhandledrejection", explain);
+        setTimeout(explain, 15000);
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DTd5Mmmf.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main id="frontier-boot" aria-live="polite">
+        <h1>Frontier · Terrain Lab</h1>
+        <p id="frontier-boot-message">Loading the terrain workbench…</p>
+        <p id="frontier-boot-retry" hidden>
+          <button onclick="location.reload()">Reload page</button>
+        </p>
+      </main>
+    </div>
+    <noscript
+      >This terrain workbench requires JavaScript and browser graphics
+      acceleration.</noscript
+    >
   </body>
 </html>

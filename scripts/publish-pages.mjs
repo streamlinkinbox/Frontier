@@ -1,16 +1,14 @@
-import { cp, readFile, rm } from "node:fs/promises";
+import { cp, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { checkPages } from "./check-pages.mjs";
 
-// GitHub Pages can publish /docs directly, without granting a GitHub App the
-// separate workflows permission. This directory contains only generated output.
+// Pages can publish /docs without granting a GitHub App workflow permission.
+// Validate BEFORE replacing the last committed, working deployment artifact.
 const source = fileURLToPath(new URL("../dist/", import.meta.url));
 const destination = fileURLToPath(new URL("../docs/", import.meta.url));
-const html = await readFile(`${source}/index.html`, "utf8");
-if (!html.includes("/Frontier/assets/")) {
-  throw new Error("Run the /Frontier/ Pages build before publishing docs.");
-}
+await checkPages(source);
 await rm(destination, { recursive: true, force: true });
 await cp(source, destination, { recursive: true });
 console.log(
-  "Published the tested static build to docs/. Select this branch and /docs in GitHub Pages settings.",
+  "Published to docs/. In GitHub Pages settings, select this branch and /docs (not /).",
 );

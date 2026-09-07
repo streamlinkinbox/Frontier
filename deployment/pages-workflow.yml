@@ -2,7 +2,7 @@ name: Deploy Terrain Lab to GitHub Pages
 
 on:
   push:
-    branches: [main, "arena/01a07c42-frontier"]
+    branches: [main, "arena/01a07d13-frontier"]
   workflow_dispatch:
 
 permissions:

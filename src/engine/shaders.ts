@@ -71,3 +71,23 @@ void main(){fragColor=renderPixel(vec2(gl_FragCoord.x,u.viewport.y-gl_FragCoord.
 `;
 export const glVertex = `#version 300 es
 void main(){float x=float((gl_VertexID<<1)&2);float y=float(gl_VertexID&2);gl_Position=vec4(x*2.-1.,y*2.-1.,0.,1.);}`;
+
+// Present the scaled raymarch target into a stable, display-sized canvas.
+// Adaptive resolution must not reset the canvas bitmap between GPU frames.
+export const presentShader = `
+struct VertexOutput {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+};
+@group(0) @binding(0) var image: texture_2d<f32>;
+@group(0) @binding(1) var imageSampler: sampler;
+@vertex fn vertexMain(@builtin(vertex_index) id: u32) -> VertexOutput {
+  let x = f32((id << 1u) & 2u); let y = f32(id & 2u);
+  var output: VertexOutput;
+  output.position = vec4f(x*2.-1.,y*2.-1.,0.,1.);
+  output.uv = vec2f(x,1.-y);
+  return output;
+}
+@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+  return textureSampleLevel(image,imageSampler,input.uv,0.);
+}`;

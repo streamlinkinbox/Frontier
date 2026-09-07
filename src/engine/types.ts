@@ -107,6 +107,7 @@ export interface Backend {
   sync(): Promise<void>;
   render(frame: FrameState): void;
   verifyFrame(frame: FrameState): Promise<boolean>;
+  capture(frame: FrameState): Promise<Blob>;
   step(settings: Settings, count: number): void;
   sculpt(center: Vec3, tool: Tool, settings: Settings): void;
   pick(frame: FrameState, x: number, y: number): Promise<Vec3 | null>;

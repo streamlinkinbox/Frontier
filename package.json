@@ -1,7 +1,7 @@
 {
   "name": "frontier-terrain-lab",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -9,8 +9,10 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "build:pages": "tsc -b && vite build --base=/Frontier/",
-    "publish:pages": "npm run build:pages && node scripts/publish-pages.mjs"
+    "build:pages": "tsc -b && vite build --base=./",
+    "publish:pages": "npm run build:pages && node scripts/publish-pages.mjs",
+    "check:pages": "node scripts/check-pages.mjs",
+    "test:pages": "npm run publish:pages && playwright test --config=playwright.pages.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -21,10 +23,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@webgpu/types": "^0.1.60",
+    "pngjs": "^7.0.0",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
     "vitest": "^3.0.7"

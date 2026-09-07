@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { expectSandstone } from "./pixels";
 
 test("SDF erosion, sculpting, exact undo, exports and responsive tools", async ({
   page,
@@ -11,8 +13,9 @@ test("SDF erosion, sculpting, exact undo, exports and responsive tools", async (
       window.__frontier?.backend &&
       !document.querySelector(".viewport-loading"),
   );
-  expect(await page.evaluate(() => window.__frontier!.backend.name)).toMatch(
-    /WebGPU|WebGL2/,
+  // This is the GPU simulation test; a silent fallback is not a GPU pass.
+  expect(await page.evaluate(() => window.__frontier!.backend.name)).toBe(
+    "WebGPU",
   );
 
   await page.evaluate(async () => {
@@ -409,4 +412,147 @@ test("resizing is deferred until a draw, not allowed to clear a paused viewport"
       }
     }),
   ).toBe(true);
+});
+
+for (const renderer of ["webgpu", "webgl"] as const) {
+  test(`${renderer}: adaptive scaling and PNG capture never resize the visible canvas`, async ({
+    page,
+  }) => {
+    await page.goto(`/?renderer=${renderer}`);
+    await page.waitForFunction(
+      () =>
+        window.__frontier?.backend &&
+        !document.querySelector(".viewport-loading"),
+    );
+    expect(await page.evaluate(() => window.__frontier!.backend.name)).toBe(
+      renderer === "webgpu" ? "WebGPU" : "WebGL2",
+    );
+    const initial = await page.evaluate(() => {
+      const canvas = window.__frontier!.canvas;
+      (window as any).canvasResizes = [];
+      const observer = new MutationObserver((records) =>
+        (window as any).canvasResizes.push(
+          ...records.map((r) => r.attributeName),
+        ),
+      );
+      observer.observe(canvas, {
+        attributes: true,
+        attributeFilter: ["width", "height"],
+      });
+      return { width: canvas.width, height: canvas.height };
+    });
+    for (const quality of [
+      "native",
+      "adaptive",
+      "native",
+      "adaptive",
+    ] as const) {
+      await page.evaluate((q) => window.__frontier!.setQuality(q), quality);
+      await page.waitForFunction((q) => {
+        const e = window.__frontier!;
+        const width = (e as any).frame.width;
+        return q === "native"
+          ? width === e.canvas.width
+          : width < e.canvas.width;
+      }, quality);
+    }
+    expectSandstone(await page.locator(".viewport-canvas").screenshot());
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const pending = page.waitForEvent("download");
+    await page.getByRole("menuitem", { name: /Viewport image/ }).click();
+    const png = await pending;
+    const size = expectSandstone(await readFile((await png.path())!));
+    expect(size).toEqual(initial);
+    expect(await page.evaluate(() => (window as any).canvasResizes)).toEqual(
+      [],
+    );
+    expectSandstone(await page.locator(".viewport-canvas").screenshot());
+    await expect(page.locator(".has-error")).toHaveCount(0);
+  });
+}
+
+test("a stalled GPU reports recovery instead of silently freezing, but busy work is exempt", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      window.__frontier?.backend &&
+      !document.querySelector(".viewport-loading"),
+  );
+  await page.evaluate(() => {
+    const e = window.__frontier!;
+    e.busy = true;
+    (e as any).frameWaitStarted = performance.now() - 20_000;
+  });
+  await page.waitForFunction(
+    () => (window.__frontier as any).frameWaitStarted === 0,
+  );
+  await expect(page.locator(".has-error")).toHaveCount(0);
+  await page.evaluate(() => {
+    const e = window.__frontier!;
+    e.backend.ready = () => false;
+    (e as any).frameWaitStarted = performance.now() - 20_000;
+    e.busy = false;
+  });
+  await expect(page.locator(".has-error")).toContainText("stopped responding");
+  await expect(
+    page.getByRole("button", { name: "Try compatibility renderer" }),
+  ).toBeVisible();
+  await expect(page.locator(".fps")).toContainText("0 FPS");
+});
+
+test("GPU device loss exposes a working compatibility recovery action", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      window.__frontier?.backend &&
+      !document.querySelector(".viewport-loading"),
+  );
+  expect(await page.evaluate(() => window.__frontier!.backend.name)).toBe(
+    "WebGPU",
+  );
+  await page.evaluate(() =>
+    (window.__frontier!.backend as any).device.destroy(),
+  );
+  await expect(page.locator(".has-error")).toBeVisible();
+  await expect(page.locator(".gpu-status")).toContainText(
+    "Graphics interrupted",
+  );
+  await page
+    .getByRole("button", { name: "Try compatibility renderer" })
+    .click();
+  await page.waitForFunction(
+    () =>
+      window.__frontier?.backend?.name === "WebGL2" &&
+      !document.querySelector(".viewport-loading"),
+  );
+  expectSandstone(await page.locator(".viewport-canvas").screenshot());
+});
+
+test("a compute failure is caught by the same visible recovery UI as a render failure", async ({
+  page,
+}) => {
+  const unhandled: string[] = [];
+  page.on("pageerror", (error) => unhandled.push(error.message));
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      window.__frontier?.backend &&
+      !document.querySelector(".viewport-loading"),
+  );
+  await page.evaluate(() => {
+    const e = window.__frontier!;
+    e.backend.step = () => {
+      throw new Error("Injected erosion submission failure");
+    };
+    e.running = true;
+  });
+  await expect(page.locator(".has-error")).toContainText(
+    "Injected erosion submission failure",
+  );
+  expect(await page.evaluate(() => window.__frontier!.running)).toBe(false);
+  expect(unhandled).toEqual([]);
 });
