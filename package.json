@@ -1,0 +1,13 @@
+{
+  "name": "frontier-sdf-terrain-lab",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  }
+}

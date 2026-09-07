@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10120f" />
+  <title>Frontier — Terrain Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <button class="mark" aria-label="Frontier home"><i></i><i></i><i></i></button>
+        <div class="brand-name">FRONTIER</div>
+        <span class="workspace-chip"><span class="chip-dot"></span> TERRAIN LAB</span>
+        <span class="top-separator"></span>
+        <button class="file-name" id="sceneName">red-rock_basin<span>.sdf</span><b class="chevron"></b></button>
+      </div>
+      <div class="top-center">
+        <span class="compute-indicator"><i></i><span id="computeMode">WEBGPU COMPUTE</span></span>
+        <span class="slash">/</span>
+        <span class="autosave" id="saveLabel">SAVED JUST NOW</span>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" id="helpButton" aria-label="Help">?</button>
+        <button class="icon-button" id="viewButton" aria-label="View options"><svg viewBox="0 0 24 24"><path d="M3 12s3.4-6 9-6 9 6 9 6-3.4 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.6"/></svg></button>
+        <span class="top-separator"></span>
+        <button class="avatar" aria-label="Account">EN</button>
+        <button class="export-button" id="exportButton">EXPORT <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 16v4h14v-4"/></svg></button>
+      </div>
+    </header>
+
+    <aside class="tool-rail" aria-label="Terrain tools">
+      <div class="rail-stack">
+        <button class="rail-tool active" data-tool="sculpt" aria-label="SDF sculpt" data-tip="SDF sculpt"><svg viewBox="0 0 24 24"><path d="M5 18c4.7 1.5 9.3 1.5 14 0M4 14.5c5.3 1.6 10.7 1.6 16 0M7 11c3.4.8 6.6.8 10 0M12 3v8"/><path d="m9.5 6 2.5-3 2.5 3"/></svg></button>
+        <button class="rail-tool" data-tool="carve" aria-label="Carve canyon" data-tip="Carve canyon"><svg viewBox="0 0 24 24"><path d="M4 18c3-3 4-10 8-10s4 7 8 10M4 18h16M12 5v3"/></svg></button>
+        <button class="rail-tool" data-tool="strata" aria-label="Strata brush" data-tip="Strata brush"><svg viewBox="0 0 24 24"><path d="M4 7c4 2 12 2 16 0M4 12c4 2 12 2 16 0M4 17c4 2 12 2 16 0"/></svg></button>
+        <div class="rail-rule"></div>
+        <button class="rail-tool" data-tool="erosion" aria-label="Erosion pass" data-tip="Erosion pass"><svg viewBox="0 0 24 24"><path d="M4 14c2.3-4.7 4.7-4.7 7 0s4.7 4.7 9 0M4 19c2.3-4.7 4.7-4.7 7 0s4.7 4.7 9 0"/></svg></button>
+        <button class="rail-tool" data-tool="water" aria-label="Water source" data-tip="Water source"><svg viewBox="0 0 24 24"><path d="M12 3s5 5.3 5 9a5 5 0 1 1-10 0c0-3.7 5-9 5-9Z"/></svg></button>
+      </div>
+      <div class="rail-footer">
+        <button class="rail-tool" data-tool="measure" aria-label="Measure" data-tip="Measure"><svg viewBox="0 0 24 24"><path d="m5 19 14-14M6 8l2-2m1 7 2-2m1 7 2-2m1-7 2-2"/></svg></button>
+        <button class="rail-tool" id="settingsButton" aria-label="Settings" data-tip="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.1 2.1-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56v.1h-3v-.1A1.7 1.7 0 0 0 10.7 18.6a1.7 1.7 0 0 0-1.88.34l-.06.06-2.1-2.1.06-.06A1.7 1.7 0 0 0 7.06 15a1.7 1.7 0 0 0-1.56-1.03h-.1v-3h.1A1.7 1.7 0 0 0 7.06 9.94a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.1-2.1.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56v-.1h3v.1A1.7 1.7 0 0 0 15.76 6.3a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.1 2.1-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.1v3h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg></button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <section class="viewport-panel" id="viewportPanel">
+        <canvas id="terrainCanvas" aria-label="Realtime SDF canyon terrain viewport"></canvas>
+        <div class="atmosphere"></div>
+        <div class="horizon-glow"></div>
+
+        <div class="viewport-hud top-left">
+          <div class="mode-kicker"><span></span> SDF SCULPT / <b id="toolName">ADD MATERIAL</b></div>
+          <div class="viewport-title">Red Rock Basin</div>
+          <div class="viewport-subtitle"><span>24 × 24 m</span><i></i><span>0.25 m cell size</span></div>
+        </div>
+
+        <div class="brush-readout" id="brushReadout"><span class="brush-dot"></span><span id="brushLabel">CLAY BRUSH</span><b id="brushAmount">+ 0.34</b></div>
+
+        <div class="viewport-hud top-right">
+          <button class="view-cube" id="viewCube" aria-label="Reset view">
+            <span class="cube-top"></span><span class="cube-side"></span><b>TOP</b>
+          </button>
+          <div class="zoom-control"><button id="zoomIn">+</button><span></span><button id="zoomOut">−</button></div>
+        </div>
+
+        <div class="viewport-bottom">
+          <div class="orientation"><span class="north-arrow">↑</span><span>NORTH</span><i></i><span class="coord" id="coordinates">X +12.5&nbsp;&nbsp; Z −04.3</span></div>
+          <div class="camera-hint"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M12 8v5m0 0-2-2m2 2 2-2"/></svg> DRAG TO ORBIT <span>·</span> SCROLL TO ZOOM</div>
+        </div>
+        <div id="statusToast" class="status-toast"><span></span><b>SCULPT APPLIED</b><em>Signed-distance field updated</em></div>
+      </section>
+
+      <aside class="inspector" id="inspector">
+        <div class="inspector-header">
+          <div><span class="eyebrow">PROCEDURAL SURFACE</span><h1>Terrain stack</h1></div>
+          <button class="more-button" aria-label="More terrain options">•••</button>
+        </div>
+
+        <nav class="inspector-tabs" aria-label="Inspector sections">
+          <button class="tab active" data-tab="shape">SHAPE</button>
+          <button class="tab" data-tab="erosion">EROSION</button>
+          <button class="tab" data-tab="water">WATER</button>
+        </nav>
+
+        <div class="inspector-scroll">
+          <section class="tab-panel active" data-panel="shape">
+            <article class="layer-card current-card">
+              <div class="layer-icon sdf-icon"><svg viewBox="0 0 24 24"><path d="m5 15 4-6 4 6 3-4 3 4"/><path d="M4 19h16"/></svg></div>
+              <div class="layer-copy"><b>Rock formation</b><span>Analytic SDF · 9 primitives</span></div>
+              <button class="visibility" aria-label="Toggle rock formation visibility"><svg viewBox="0 0 24 24"><path d="M3 12s3.4-6 9-6 9 6 9 6-3.4 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+            </article>
+
+            <div class="section-line"><span>SCULPT OPERATOR</span><button class="inline-reset" id="resetScene">RESET</button></div>
+            <div class="segmented" id="sculptOperator">
+              <button class="selected" data-op="add">ADD</button><button data-op="subtract">CUT</button><button data-op="smooth">SMOOTH</button>
+            </div>
+
+            <label class="field-label" for="brushRadius">Brush radius <output id="brushRadiusOut">4.0 m</output></label>
+            <div class="range-row"><input type="range" id="brushRadius" min="1" max="8" step=".25" value="4"><div class="range-number" id="brushRadiusNumber">4.0</div></div>
+            <label class="field-label" for="brushStrength">Field strength <output id="brushStrengthOut">0.34</output></label>
+            <div class="range-row"><input type="range" id="brushStrength" min="0.05" max="1" step=".01" value=".34"><div class="range-number" id="brushStrengthNumber">.34</div></div>
+
+            <div class="section-line push"><span>GEOLOGY</span><button class="small-plus" id="newStratum" aria-label="Add stratum">+</button></div>
+            <article class="material-card">
+              <div class="material-swatch rock-swatch"></div><div class="material-copy"><b>Desert sandstone</b><span>Roughness 0.78</span></div><button class="chev-button">›</button>
+            </article>
+            <article class="material-card">
+              <div class="material-swatch sediment-swatch"></div><div class="material-copy"><b>Alluvial sediment</b><span>Deposited by flow</span></div><button class="chev-button">›</button>
+            </article>
+
+            <div class="info-note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 11v5m0-8h.01"/></svg><p>Geometry is evaluated from signed-distance operations. No terrain heightmap is used.</p></div>
+          </section>
+
+          <section class="tab-panel" data-panel="erosion">
+            <div class="sim-hero">
+              <div class="sim-head"><div><span class="eyebrow">HYDRAULIC SOLVER</span><h2>Weathering pass</h2></div><label class="switch"><input id="liveSimulation" type="checkbox" checked><i></i></label></div>
+              <p>Rain transport, dissolution, deposition, and talus settling run directly against the SDF surface.</p>
+              <div class="sim-stat-row"><div><b id="iterationCount">01280</b><span>ITERATIONS</span></div><div><b id="materialMoved">3.6 m³</b><span>SEDIMENT MOVED</span></div><div><b class="live-text">LIVE</b><span>SOLVER</span></div></div>
+              <div class="erosion-chart"><canvas id="chartCanvas"></canvas><span>erosion / deposition</span></div>
+            </div>
+
+            <div class="section-line"><span>FLOW CONDITIONS</span><button class="preset-pill" id="presetButton">DESERT STORM <b>⌄</b></button></div>
+            <label class="field-label" for="rainfall">Rainfall <output id="rainfallOut">0.42</output></label>
+            <div class="range-row"><input type="range" id="rainfall" min="0" max="1" step=".01" value=".42"><div class="range-number">0.42</div></div>
+            <label class="field-label" for="flowRate">Flow rate <output id="flowRateOut">1.20×</output></label>
+            <div class="range-row"><input type="range" id="flowRate" min=".2" max="2" step=".05" value="1.2"><div class="range-number">1.20×</div></div>
+            <label class="field-label" for="sediment">Sediment capacity <output id="sedimentOut">0.68</output></label>
+            <div class="range-row"><input type="range" id="sediment" min="0" max="1" step=".01" value=".68"><div class="range-number">0.68</div></div>
+            <label class="field-label" for="hardness">Rock hardness <output id="hardnessOut">0.72</output></label>
+            <div class="range-row"><input type="range" id="hardness" min="0" max="1" step=".01" value=".72"><div class="range-number">0.72</div></div>
+
+            <div class="solver-actions"><button class="secondary-button" id="stepButton"><svg viewBox="0 0 24 24"><path d="m7 5 10 7-10 7V5Z"/><path d="M18 5v14"/></svg> STEP 50</button><button class="primary-button" id="erodeButton"><svg viewBox="0 0 24 24"><path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14"/></svg> RUN 500</button></div>
+            <div class="info-note sandy"><svg viewBox="0 0 24 24"><path d="M5 17c2.5-4 4.5-4 7 0s4.5 4 7 0"/><path d="M5 8h14M5 12h14"/></svg><p>Material is conserved locally. Soft strata weather before the sandstone cap.</p></div>
+          </section>
+
+          <section class="tab-panel" data-panel="water">
+            <div class="water-card">
+              <div class="water-preview"><span></span><span></span><span></span></div>
+              <div><span class="eyebrow">FLOW LAYER</span><h2>Seasonal creek</h2><p>Surface-bound water follows the carved SDF gradient.</p></div>
+              <label class="switch"><input id="waterEnabled" type="checkbox" checked><i></i></label>
+            </div>
+            <label class="field-label" for="waterLevel">Water depth <output id="waterLevelOut">0.24 m</output></label>
+            <div class="range-row"><input type="range" id="waterLevel" min="0" max=".7" step=".01" value=".24"><div class="range-number">0.24</div></div>
+            <label class="field-label" for="windSpeed">Wind speed <output id="windSpeedOut">0.18</output></label>
+            <div class="range-row"><input type="range" id="windSpeed" min="0" max="1" step=".01" value=".18"><div class="range-number">0.18</div></div>
+            <label class="field-label" for="waterTint">Mineral tint <output id="waterTintOut">Turquoise</output></label>
+            <div class="tint-options" id="tintOptions"><button class="selected" data-tint="turquoise"><i></i>TURQUOISE</button><button data-tint="umber"><i></i>UMBER</button><button data-tint="clear"><i></i>CLEAR</button></div>
+            <div class="water-lines"><span>RIPPLE FREQUENCY</span><b id="rippleInfo">0.9 Hz / subtle</b></div>
+            <div class="info-note blue-note"><svg viewBox="0 0 24 24"><path d="M3 14c2.3-4.7 4.7-4.7 7 0s4.7 4.7 9 0M3 19c2.3-4.7 4.7-4.7 7 0s4.7 4.7 9 0"/></svg><p>Water is a shallow surface layer, not a flat world plane.</p></div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="bottom-bar">
+      <div class="bottom-left"><span class="sdf-status"><i></i> SDF FIELD STABLE</span><span class="bottom-rule"></span><span>128³ ACTIVE CELLS</span><span class="bottom-rule"></span><span id="triCount">56.2K SURFACE TRIS</span></div>
+      <div class="bottom-right"><span class="gpu-dot"></span><span id="fps">60 FPS</span><span class="bottom-rule"></span><span>0.75 MS</span><button id="panelToggle" class="collapse-inspector">INSPECTOR <b>›</b></button></div>
+    </footer>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <section class="help-modal" id="helpModal" aria-hidden="true">
+    <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    <span class="eyebrow">FRONTIER TERRAIN LAB</span><h2>Build landscapes,<br><em>not heightmaps.</em></h2>
+    <p>This scene uses a compact signed-distance field. Sculpt geometry, weather it with a local erosion solver, and keep every canyon uniquely yours.</p>
+    <div class="help-grid"><div><kbd>drag</kbd><span>orbit camera</span></div><div><kbd>scroll</kbd><span>zoom viewport</span></div><div><kbd>click</kbd><span>place selected SDF brush</span></div></div>
+    <button class="primary-button full" id="startButton">START SCULPTING</button>
+  </section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
