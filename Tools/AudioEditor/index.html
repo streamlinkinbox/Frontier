@@ -16,8 +16,11 @@
   (keys 1 … 5); edits in the inspector rebuild the running integrator instantly and Export writes the TOML that
   Project-Dyno loads.
 
-  Feeds:  LIVE  — worklet render of the selected structure (free rev by throttle, or scripted dyno pulls)
-          FILE  — drop a Project-Dyno --render WAV to visualise the engine's own output through the same scopes
+  Feeds:  LIVE       — worklet render of the selected structure (free rev by throttle, or scripted dyno pulls)
+          FILE       — drop a Project-Dyno --render WAV to visualise the engine's own output through the same scopes
+          REFERENCE  — drop a real recording (row A4): its rpm is tracked from the audio (the <script id="analysis"> block,
+                       with the car's own synthesised order profiles as the template bank), the synth plays along that trace,
+                       and the order diagram compares recording against synth (Split / Δ)
   Views:  dyno strip · signal-chain diagram with live meters · crank-locked scope · spectrum with order markers ·
           spectrogram · order diagram · inspector (TOML fields) · device panel (mirrors AudioMetrics)
 -->
@@ -147,6 +150,12 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
 #pulls .btn{height:30px;padding:0 12px;font-size:12px;text-transform:capitalize}
 #pulls .btn.active{background:var(--hi);color:#fff;border-color:transparent}
 #readouts{display:grid;grid-template-columns:repeat(2,auto);gap:4px 18px;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#pulls[hidden]{display:none}
+#refRow{display:flex;flex-direction:column;gap:8px;min-width:0}
+#refRow[hidden]{display:none}
+#refTraceView{height:84px;min-height:84px;flex:none;cursor:crosshair}
+#refBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--text-dim);min-height:30px}
+#refBar #refNote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 #readouts b{color:var(--text);font-weight:600}
 .stack{display:flex;flex-direction:column;gap:8px}
 
@@ -207,7 +216,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
       <div class="dd-btn" id="carPickBtn" role="button" aria-haspopup="listbox" aria-expanded="false" title="vehicle — keys 1 … 9 pick by position"><div class="cur" id="carPickCur"></div><div class="caret"><svg class="ic" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div></div>
       <div class="dd-menu" id="carPickMenu" role="listbox"></div>
     </div>
-    <div class="seg" id="feedSeg"><button data-feed="live" class="active">Live</button><button data-feed="file">File</button></div>
+    <div class="seg" id="feedSeg"><button data-feed="live" class="active">Live</button><button data-feed="file" title="a Project-Dyno --render WAV along a dyno timeline">File</button><button data-feed="reference" title="a real recording — rpm tracked from the audio, the synth plays along">Reference</button></div>
     <div class="seg" id="listenerSeg"><button data-listener="trackside" class="active">Trackside</button><button data-listener="chase">Chase</button><button data-listener="cockpit">Cockpit</button></div>
     <div class="spacer"></div>
     <button class="btn" id="btnImport"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg>Import TOML</button>
@@ -216,6 +225,7 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
     <div id="status" data-link="idle"><span class="dot"></span><span id="statusText">audio idle</span></div>
     <input type="file" id="fileToml" accept=".toml,text/plain" hidden>
     <input type="file" id="fileWav" accept=".wav,audio/wav,audio/x-wav" hidden>
+    <input type="file" id="fileRef" accept=".wav,.wave,.mp3,.m4a,.aac,.ogg,.oga,.opus,.flac,.webm,audio/*" hidden>
   </div>
 
   <div id="main">
@@ -235,6 +245,16 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
           <div id="throttleCol">
             <div class="crow"><div class="clabel">Throttle</div><input type="range" class="slider hi" id="throttle" min="0" max="1" step="0.001" value="0"><div class="vpill"><div class="num" id="throttleNum">0</div><div class="unit">%</div></div></div>
             <div id="pulls"></div>
+            <div id="refRow" hidden>
+              <div class="view" id="refTraceView" title="tracked rpm of the recording · click to seek"><canvas id="refTrace"></canvas></div>
+              <div id="refBar">
+                <div class="seg sm" id="hearSeg" title="what plays: the recording, the synth along its trace, or both"><button data-hear="recording" class="active">Recording</button><button data-hear="synth">Synth</button><button data-hear="both">Both</button></div>
+                <button class="btn sm ghost" id="btnRefHalf" title="the tracker locked an octave high — halve the trace">÷2</button>
+                <button class="btn sm ghost" id="btnRefDouble" title="the tracker locked an octave low — double the trace">×2</button>
+                <button class="btn sm ghost" id="btnRefCompare" title="render the synth along the trace again with the current structure and re-read the agreement">Compare</button>
+                <span id="refNote" title="the rpm trace is read with the selected car's own order bank — pick the recorded car first; another car's bank puts the trace an octave out (÷2 / ×2 fix a slip)">pick the recorded car, then drop a recording (or click Reference to browse)</span>
+              </div>
+            </div>
           </div>
           <div id="readouts">
             <span>rpm <b id="rRpm">—</b></span><span>load <b id="rLoad">—</b></span>
@@ -312,11 +332,11 @@ select.field{height:30px;background:var(--field);border:1px solid var(--stroke);
   </div>
 </div>
 
-<div id="drop" data-on="false"><div>Drop a Project-Dyno WAV (file feed) or a vehicle TOML (structure)</div></div>
+<div id="drop" data-on="false"><div>Drop a Project-Dyno WAV (file feed) · a recording (reference lane — pick Reference first, or hold Shift) · a vehicle TOML (structure)</div></div>
 <div id="gate" data-on="true">
   <div class="card">
     <h1>Frontier AudioEditor</h1>
-    <p>Procedural vehicle audio — 918 Spyder · LaFerrari · GT-R Nismo · Agera R · SRT Demon. The browser needs a click before it will open an audio device. Then pick a vehicle from the dropdown (keys <span class="kbd">1</span> … <span class="kbd">5</span>), hold <span class="kbd">Space</span> to rev, or run a scripted pull.</p>
+    <p>Procedural vehicle audio — 918 Spyder · LaFerrari · GT-R Nismo · Agera R · SRT Demon. The browser needs a click before it will open an audio device. Then pick a vehicle from the dropdown (keys <span class="kbd">1</span> … <span class="kbd">5</span>), hold <span class="kbd">Space</span> to rev, or run a scripted pull. Drop a real recording on the Reference feed to match a car against it.</p>
     <button class="btn primary" id="btnStart">Start audio</button>
     <p id="gateNote" style="font-size:11px"></p>
   </div>
@@ -1564,6 +1584,13 @@ class DynoSequence
         this.rpm = this.keys[0][1]; this.throttle = this.keys[0][2];
         this.sample(0.0);
     }
+    // an arbitrary timeline — the reference lane's tracked rpm / throttle trace of a recording (row A4); keys = [[t, rpm, throttle], …]
+    assignKeys(keys, name)
+    {
+        this.keys = keys.map(k => [Number(k[0]), Number(k[1]), Number(k[2])]); this.name = name || 'reference';
+        this.elapsed = 0.0; this.rpm = this.keys[0][1]; this.throttle = this.keys[0][2];
+        this.sample(0.0);
+    }
     duration() { return this.keys[this.keys.length - 1][0]; }
     finished() { return this.elapsed >= this.duration(); }
     restart() { this.elapsed = 0.0; this.sample(0.0); }
@@ -1644,7 +1671,8 @@ if (typeof registerProcessor === 'function')
             this.sliceCounter = 0; this.busyMs = 0.0; this.windowStart = Date.now(); this.overruns = 0;
             this.reportEvery = o.reportEvery || 4;
             this.time = 0.0;
-            if (o.pull) { this.pull.select(o.pull, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm); this.pullRunning = true; this.mode = 'scripted'; }
+            if (o.trace) { this.pull.assignKeys(o.trace, o.pull || 'reference'); this.pullRunning = true; this.mode = 'scripted'; }
+            else if (o.pull) { this.pull.select(o.pull, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm); this.pullRunning = true; this.mode = 'scripted'; }
             if (o.listener) this.integrator.assignListener(o.listener);
             this.port.onmessage = (e) => this.receive(e.data);
         }
@@ -1655,7 +1683,10 @@ if (typeof registerProcessor === 'function')
                 case 'structure': this.structure = structureFromToml(msg.structure); this.integrator.assignStructure(this.structure); this.powertrain.assign(this.structure.vehicle); break;
                 case 'throttle': this.throttle = clamp(msg.throttle, 0.0, 1.0); break;
                 case 'mode': this.mode = msg.mode; if (this.mode === 'free') { this.powertrain.rpm = this.integrator.rpmS; } break;
-                case 'pull': this.pull.select(msg.name, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm); this.pullRunning = true; this.pullLoop = !!msg.loop; this.mode = 'scripted'; break;
+                case 'pull':
+                    if (msg.keys) this.pull.assignKeys(msg.keys, msg.name); else this.pull.select(msg.name, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm);
+                    if (msg.at > 0.0) { this.pull.elapsed = Math.min(msg.at, this.pull.duration()); this.pull.sample(this.pull.elapsed); }
+                    this.pullRunning = true; this.pullLoop = !!msg.loop; this.mode = 'scripted'; break;
                 case 'stop': this.pullRunning = false; this.mode = 'free'; this.powertrain.rpm = this.integrator.rpmS; break;
                 case 'listener': this.integrator.assignListener(msg.listener); break;
                 case 'record': this.recording = !!msg.on; break;
@@ -1714,6 +1745,436 @@ if (typeof module !== 'undefined' && module.exports)
                        Xorshift, AcousticIntegrator, DynoSequence, FreeRevPowertrain, scriptedRecord, clamp };
 }
 
+</script>
+
+<!-- ============================================ ANALYSIS (page + node proofs) ============================================ -->
+<!-- What the editor MEASURES, as opposed to what it synthesises (#dsp): the FFT, the order-sheet reader the C++ overlay is
+     accepted with (row A2 · P5), and the reference lane's rpm tracker (row A4). Plain text like #dsp so the sandbox proofs
+     (Scratchpad/AcousticReferenceLane.js) load the very functions the page runs. Nothing here has a C++ mirror. -->
+<script id="analysis" type="text/plain">
+'use strict';
+
+// ────────────────────────────────────────────────────── FFT ─────────────────────────────────────────────────────────────
+function fftInPlace(re, im)
+{
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; ++i) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+    for (let len = 2; len <= n; len <<= 1)
+    {
+        const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+        for (let i = 0; i < n; i += len)
+        {
+            let cr = 1, ci = 0;
+            for (let j = 0; j < len / 2; ++j)
+            {
+                const ur = re[i + j], ui = im[i + j], vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+                re[i + j] = ur + vr; im[i + j] = ui + vi; re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+                const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+            }
+        }
+    }
+}
+// ─────────────────────────────────────────────── ORDER SHEET READER ─────────────────────────────────────────────────────
+// Order sheet of a mono signal against an rpm timeline: columns = rpm bins (rpmLo … rpmHi over `columns`), rows = half-orders
+// ½ … 2N. One 8 192-point Hann spectrum per 40 ms; each half-order's level is the largest bin within ±2 of its frequency;
+// a column is the running mean of every spectrum whose rpm fell into it. rpmAt(t) returning 0 / null skips the frame — the
+// reference lane uses that for the stretches its tracker is not confident about.
+function orderSheetOf(samples, rate, rpmAt, N, rpmLo, rpmHi, columns)
+{
+    const size = 8192, hop = Math.round(rate * 0.04), rows = 4 * N, sheet = new Float32Array(columns * rows).fill(-200), hits = new Uint16Array(columns);
+    const re = new Float64Array(size), im = new Float64Array(size), win = new Float64Array(size); let ws = 0;
+    for (let i = 0; i < size; ++i) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / size); ws += win[i]; }
+    for (let start = 0; start + size <= samples.length; start += hop)
+    {
+        const rpm = rpmAt((start + size / 2) / rate); if (!rpm || rpm < rpmLo || rpm > rpmHi) continue;
+        for (let i = 0; i < size; ++i) { re[i] = samples[start + i] * win[i]; im[i] = 0; }
+        fftInPlace(re, im);
+        const col = Math.min(columns - 1, Math.floor((rpm - rpmLo) / (rpmHi - rpmLo) * columns)), f0 = rpm / 60;
+        for (let r = 0; r < rows; ++r)
+        {
+            const k = Math.round((r + 1) * 0.5 * f0 * size / rate); if (k < 2 || k >= size / 2 - 2) continue;
+            let m = 0; for (let j = k - 2; j <= k + 2; ++j) m = Math.max(m, Math.hypot(re[j], im[j]));
+            const db = 20 * Math.log10(2 * m / ws + 1e-12), at = col * rows + r;
+            sheet[at] = hits[col] ? sheet[at] + (db - sheet[at]) / (hits[col] + 1) : db;   // running mean over the column's spectra
+        }
+        ++hits[col];
+    }
+    return { sheet, hits, rows, columns, rpmLo, rpmHi };
+}
+
+// agreement between two sheets on one lattice: mean |Δ| over the cells ≥ −40 dB re the loudest cell of the first (the C++ bar)
+function compareOrderSheets(file, live)
+{
+    let sum = 0, count = 0, worst = 0, top = -200;
+    for (let i = 0; i < file.sheet.length; ++i) top = Math.max(top, file.sheet[i]);
+    for (let c = 0; c < file.columns; ++c)
+    {
+        if (!file.hits[c] || !live.hits[c]) continue;
+        for (let r = 0; r < file.rows; ++r) { const a = file.sheet[c * file.rows + r], b = live.sheet[c * file.rows + r]; if (a < top - 40 || b < top - 40) continue; const d = Math.abs(a - b); sum += d; ++count; worst = Math.max(worst, d); }
+    }
+    return { mean: count ? sum / count : NaN, worst, count };
+}
+
+// level alignment for a recording (microphone distance and normalisation are arbitrary): the median of (live − recording) over
+// the cells that are strong in both sheets (≥ −30 dB re each sheet's own top); the recording is shifted by it before Δ is read
+function alignOrderSheets(recording, live)
+{
+    let recTop = -200, liveTop = -200;
+    for (let i = 0; i < recording.sheet.length; ++i) recTop = Math.max(recTop, recording.sheet[i]);
+    for (let i = 0; i < live.sheet.length; ++i) liveTop = Math.max(liveTop, live.sheet[i]);
+    const d = [];
+    for (let c = 0; c < recording.columns; ++c)
+    {
+        if (!recording.hits[c] || !live.hits[c]) continue;
+        for (let r = 0; r < recording.rows; ++r) { const a = recording.sheet[c * recording.rows + r], b = live.sheet[c * recording.rows + r]; if (a < recTop - 30 || b < liveTop - 30) continue; d.push(b - a); }
+    }
+    if (!d.length) return { offset: 0, cells: 0 };
+    d.sort((x, y) => x - y);
+    return { offset: d[d.length >> 1], cells: d.length };
+}
+function shiftOrderSheet(o, offsetDb)
+{
+    const sheet = new Float32Array(o.sheet.length);
+    for (let i = 0; i < sheet.length; ++i) sheet[i] = o.sheet[i] > -190 ? o.sheet[i] + offsetDb : o.sheet[i];
+    return Object.assign({}, o, { sheet, offsetDb });
+}
+
+// ───────────────────────────────────────────── RPM TRACKER (reference lane) ─────────────────────────────────────────────
+// The rpm trace of a recording that carries no tachometer, with the synth itself as the model of the car.
+// ORDER BANK — orderBankOf renders the car's own structure steady at a geometric rpm grid (4 % steps, idle × 0.7 … gauge
+// top; wide-open and closed throttle) and keeps each render's EXCESS profile on the quarter-order lattice ¼ … 32 (excess =
+// a spectrum over its local floor, the per-8-bin medians averaged over ± 6 blocks: a noise bin reads ≈ 0 dB, a line its
+// prominence; capped at 20 dB). ~70 renders × 0.15 s + a window each; the bank is cached per car and rpm range.
+// TRACKING — one frame per 20 ms; per frame three Hann spectra centred on the same instant — 32 768, 16 384 and 8 192
+// points (1.5 / 2.9 / 5.9 Hz bins at 48 kHz); a candidate crank speed reads the shortest window whose bins still resolve
+// its half-order lattice (spacing ≥ 4 bins = the Hann main lobe), so an idling V12 gets the long window and a pull's slew
+// the short one. Every candidate on a 0.5 % lattice between rpmLo and rpmHi is scored per frame by
+//   · 40 × the Pearson correlation between the recording's excess profile on the candidate's quarter-order lattice and the
+//     bank's profile at that rpm (best of the throttles) — this is what settles the OCTAVE: a lattice comb alone cannot
+//     (every sub-multiple of the crank speed is lattice-consistent) and no fixed rule about "the firing order is the
+//     loudest line" holds across a flat V8, a V6 with a loud order 3 / 9 and a supercharged V8 with its lobe-pass whine,
+//     but the car's own synthesised profile at half or double speed looks nothing like the recording's;
+//   · 0.25 × a LATTICE score that anchors the pitch class where the templates are flat: a weighted comb on the engine's
+//     order lattice up to 4.2 kHz — firing multiples N/2, N, 3N/2 … (weight 1.0, on to order 64 at 0.35), other integer
+//     orders (0.5) — lit excess minus a cost for a dark tooth (10 dB firing, 8 dB other integer); + 0.5 × (mean firing −
+//     mean other-integer excess); + 0.25 × (excess at N/2 − loudest other tooth ≤ N) clamped −10 … +12; − the rise of the
+//     loudest quarter of the half-order teeth above (integer mean + 10 dB); − the mean excess on the quarter-orders (a
+//     candidate whose quarter-orders are lit is a sub-multiple).
+// A Viterbi path (0.25 dB × steps + 0.01 × steps², window ± 30 steps ≈ ± 16 % per 20 ms) picks the smooth trace. The
+// confidence of a frame is the winner's margin over the best candidate more than 10 % away (4 → 1.0); a frame is TRACKED
+// when that reaches 0.5 and the frame is louder than −60 dBFS. The tracked runs are then checked as octave SEGMENTS: a
+// dynamic programme may shift each run by whole octaves (change across a gap < 1.5 s costs 8 per frame up to 25 frames,
+// beyond 2) and a whole-trace shift is tried with a 1-point bonus when the trace's 5th percentile lands within ± 25 % of
+// the idle speed. The rpm is refined below the lattice by a parabola through the winner's neighbours. ÷2 / ×2 in the lane
+// correct the whole trace when a recording still defeats all of this.
+// Throttle is not observable from audio: the trace carries the dyno-cell heuristic 0.3 + slew / 900 rpm·s⁻¹ (WOT when
+// the engine is pulling, shut on overrun, 0 at idle) so the worklet can play the synth along the trace with a plausible
+// load. Untracked frames are filled by linear interpolation for playback and skipped by the order sheet (traceRpmAt(…, true)).
+// Without a bank (options.bank absent) the lattice score alone drives the tracker — the octave is then the user's ÷2 / ×2.
+function orderBankOf(Integrator, structure, rate, rpmLo, rpmHi, seed, progress)
+{
+    const step = 1.04, orders = [], topOrder = 32;
+    for (let o = 0.25; o <= topOrder; o += 0.25) orders.push(o);
+    const rpms = []; for (let r = rpmLo; r <= rpmHi * 1.0001; r *= step) rpms.push(r);
+    const throttles = [1.0, 0.0], profiles = new Float32Array(rpms.length * throttles.length * orders.length).fill(-1);
+    const windows = {};
+    const windowOf = (size) => { if (!windows[size]) { const win = new Float64Array(size); let ws = 0; for (let i = 0; i < size; ++i) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / size); ws += win[i]; } windows[size] = { win, ws, re: new Float64Array(size), im: new Float64Array(size), db: new Float32Array(size / 2), md: new Float32Array(size / 16), eight: new Float32Array(8) }; } return windows[size]; };
+    for (let gi = 0; gi < rpms.length; ++gi)
+    {
+        const rpm = rpms[gi], need = 480 * rate / rpm, size = need > 16384 ? 32768 : (need > 8192 ? 16384 : 8192), w = windowOf(size);
+        for (let ti = 0; ti < throttles.length; ++ti)
+        {
+            const throttle = throttles[ti], integrator = new Integrator(rate, structure, seed);
+            integrator.rpmS = rpm; integrator.assignDemand(rpm, throttle, throttle, 0);
+            const total = size + Math.round(0.15 * rate), L = new Float64Array(total), R = new Float64Array(total);
+            for (let d = 0; d < total; d += 256) { const n = Math.min(256, total - d); integrator.render(L.subarray(d, d + n), R.subarray(d, d + n), n); }
+            const start = total - size;
+            for (let i = 0; i < size; ++i) { w.re[i] = 0.5 * (L[start + i] + R[start + i]) * w.win[i]; w.im[i] = 0; }
+            fftInPlace(w.re, w.im);
+            const half = size / 2, { db, md, eight } = w;
+            for (let k = 0; k < half; ++k) db[k] = 20 * Math.log10(2 * Math.hypot(w.re[k], w.im[k]) / w.ws + 1e-12);
+            for (let b = 0; b < md.length; ++b) { for (let j = 0; j < 8; ++j) eight[j] = db[8 * b + j]; eight.sort(); md[b] = 0.5 * (eight[3] + eight[4]); }
+            const excessAt = (k) => { const b = k >> 3, lo = Math.max(0, b - 6), hi = Math.min(md.length - 1, b + 6); let sum = 0; for (let j = lo; j <= hi; ++j) sum += md[j]; const e = db[k] - sum / (hi - lo + 1); return e < 0 ? 0 : (e > 40 ? 40 : e); };
+            const binsPerOrder = rpm / 60 / (rate / size), kMax = Math.min(half - 3, Math.floor(4200 * size / rate)), base = (gi * throttles.length + ti) * orders.length;
+            for (let i = 0; i < orders.length; ++i)
+            {
+                const pos = orders[i] * binsPerOrder, k = Math.floor(pos);
+                if (k < 2 || k + 1 >= kMax) continue;
+                const a = excessAt(k), c = excessAt(k + 1), ex = a + (c - a) * (pos - k);
+                profiles[base + i] = ex < 20 ? ex : 20;
+            }
+        }
+        if (progress) progress((gi + 1) / rpms.length);
+    }
+    return { rpmLo, step, rpms, orders, throttles: throttles.length, profiles };
+}
+async function trackReference(samples, rate, N, rpmLo, rpmHi, options)
+{
+    const o = options || {}, bank = o.bank;
+    const P = Object.assign({ cap: 20, darkBelow: 3, costFiring: 10, costInteger: 8, wFiring: 1.0, wInteger: 0.5, wExt: 0.35, gammaFund: 0.25, fundLo: -10, fundHi: 12, gammaSeries: 0.5,
+                              gammaHalf: 0.5, halfSlack: 10, gammaQuarter: 1.0, wLattice: 0.25, wTemplate: 40, kappa1: 0.25, kappa2: 0.01, W: 30, topHz: 4200, confidenceSpan: 4.0,
+                              idleBonus: 1.0, gapSeconds: 1.5, jumpCost: 8.0, jumpCostFar: 2.0 }, o.tune || {});
+    const hop = Math.max(1, Math.round(rate * (o.hop || 0.02))), yieldEvery = o.yieldEvery || 0;
+    // three window lengths; a candidate reads the shortest one that resolves its half-order lattice (≥ 4 bins = the Hann main lobe)
+    const spectra = [32768, 16384, 8192].map(size =>
+    {
+        const win = new Float64Array(size); let ws = 0;
+        for (let i = 0; i < size; ++i) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / size); ws += win[i]; }
+        return { size, win, ws, binHz: rate / size, kMax: Math.min(size / 2 - 3, Math.floor(P.topHz * size / rate)), re: new Float64Array(size), im: new Float64Array(size),
+                 db: new Float32Array(size / 2), excess: new Float32Array(size / 2), md: new Float32Array(size / 16), eight: new Float32Array(8), ready: false, centre: -1 };
+    });
+    const step = 1.005, rungs = Math.max(2, Math.ceil(Math.log(rpmHi / rpmLo) / Math.log(step)) + 1), octave = Math.round(Math.log(2) / Math.log(step));
+    const rpmOf = new Float64Array(rungs), pick = new Uint8Array(rungs);
+    for (let s = 0; s < rungs; ++s) { rpmOf[s] = rpmLo * Math.pow(step, s); const need = 480 * rate / rpmOf[s]; pick[s] = need > 16384 ? 0 : (need > 8192 ? 1 : 2); }
+    const firing = N / 2, teeth = [], weights = [], costs = [], kinds = [];   // kind 0 half-order, 1 other integer, 2 firing multiple ≤ 2N, 3 firing multiple beyond
+    for (let r = 1; r <= 4 * N; ++r)
+    {
+        const order = r * 0.5, isFiring = order % firing === 0, isInteger = Number.isInteger(order);
+        teeth.push(order); weights.push(isFiring ? P.wFiring : (isInteger ? P.wInteger : 0)); costs.push(isFiring ? P.costFiring : (isInteger ? P.costInteger : 0)); kinds.push(isFiring ? 2 : (isInteger ? 1 : 0));
+    }
+    for (let m = Math.floor(2 * N / firing) + 1; m * firing <= 64; ++m) { teeth.push(m * firing); weights.push(P.wExt); costs.push(P.costFiring * 0.5); kinds.push(3); }
+    const halfCount = kinds.filter(k => k === 0).length, halves = new Float32Array(halfCount), topQuarter = Math.max(1, Math.floor(halfCount / 4));
+    // per rung: the bank templates (nearest grid rpm), restricted to the orders this rung can read, with their means and norms
+    const tmpl = [];
+    if (bank)
+    {
+        const M = bank.orders.length;
+        for (let s = 0; s < rungs; ++s)
+        {
+            const sp = spectra[pick[s]], binsPerOrder = rpmOf[s] / 60 / sp.binHz, gi = Math.max(0, Math.min(bank.rpms.length - 1, Math.round(Math.log(rpmOf[s] / bank.rpmLo) / Math.log(bank.step))));
+            let i0 = 0; while (i0 < M && Math.floor(bank.orders[i0] * binsPerOrder) < 2) ++i0;
+            let i1 = i0; while (i1 < M && Math.floor(bank.orders[i1] * binsPerOrder) + 1 < sp.kMax) ++i1;
+            const rows = [];
+            for (let ti = 0; ti < bank.throttles; ++ti)
+            {
+                const base = (gi * bank.throttles + ti) * M; let sum = 0, sq = 0, n = 0;
+                for (let i = i0; i < i1; ++i) { const v = bank.profiles[base + i]; if (v < 0) continue; sum += v; sq += v * v; ++n; }
+                if (n < 8) continue;
+                const mean = sum / n; rows.push({ base, mean, norm: Math.sqrt(Math.max(1e-6, sq - n * mean * mean)) });
+            }
+            tmpl.push({ i0, i1, rows });
+        }
+    }
+    const centre0 = 4096, frames = Math.max(0, Math.floor((samples.length - 8192) / hop) + 1);
+    const emission = new Float32Array(frames * rungs), level = new Float32Array(frames), explained = {}, read = new Float32Array(bank ? bank.orders.length : 0);
+    function analyse(sp, centre)
+    {
+        let start = centre - sp.size / 2;
+        if (sp.size > samples.length) { sp.ready = false; return; }
+        start = Math.max(0, Math.min(samples.length - sp.size, start));          // long windows slide to stay inside the clip
+        if (sp.centre === start) return; sp.centre = start;
+        const { size, win, re, im, db, excess, md, eight } = sp, half = size / 2;
+        for (let i = 0; i < size; ++i) { re[i] = samples[start + i] * win[i]; im[i] = 0; }
+        fftInPlace(re, im);
+        for (let k = 0; k < half; ++k) db[k] = 20 * Math.log10(2 * Math.hypot(re[k], im[k]) / sp.ws + 1e-12);
+        for (let b = 0; b < md.length; ++b) { for (let j = 0; j < 8; ++j) eight[j] = db[8 * b + j]; eight.sort(); md[b] = 0.5 * (eight[3] + eight[4]); }
+        for (let k = 0; k < half; ++k)
+        {
+            const b = k >> 3, lo = Math.max(0, b - 6), hi = Math.min(md.length - 1, b + 6); let sum = 0;
+            for (let j = lo; j <= hi; ++j) sum += md[j];
+            const ex = db[k] - sum / (hi - lo + 1); excess[k] = ex < 0 ? 0 : (ex > 40 ? 40 : ex);
+        }
+        sp.ready = true;
+    }
+    for (let f = 0; f < frames; ++f)
+    {
+        const centre = centre0 + f * hop;
+        let e = 0; for (let i = centre - 4096; i < centre + 4096; ++i) e += samples[i] * samples[i];
+        level[f] = 10 * Math.log10(e / 8192 + 1e-20);
+        analyse(spectra[2], centre); analyse(spectra[1], centre); if ((f & 1) === 0 || spectra[0].centre < 0) analyse(spectra[0], centre);
+        for (let s = 0; s < rungs; ++s)
+        {
+            let sp = spectra[pick[s]]; if (!sp.ready) sp = spectra[2];
+            const { excess, kMax } = sp, binsPerOrder = rpmOf[s] / 60 / sp.binHz;
+            let sum = 0, wsum = 0, dark = 0, firingSum = 0, firingCount = 0, otherSum = 0, otherCount = 0, nh = 0, fundamental = -1, loudestOther = 0, quarterSum = 0, quarterCount = 0;
+            for (let t = 0; t < teeth.length; ++t)
+            {
+                const pos = teeth[t] * binsPerOrder, k = Math.floor(pos);
+                if (k < 2) continue; if (k + 1 >= kMax) break;
+                const ex = excess[k] + (excess[k + 1] - excess[k]) * (pos - k), lit = ex < P.cap ? ex : P.cap;
+                if (kinds[t] === 0)
+                {
+                    halves[nh++] = lit;
+                    const q = pos - 0.25 * binsPerOrder, kq = Math.floor(q);                  // the quarter-order below each half-order
+                    if (kq >= 2) { const exq = excess[kq] + (excess[kq + 1] - excess[kq]) * (q - kq); quarterSum += exq < P.cap ? exq : P.cap; ++quarterCount; }
+                    continue;
+                }
+                sum += weights[t] * lit; wsum += weights[t]; if (ex < P.darkBelow) dark += weights[t] * costs[t];
+                if (kinds[t] === 1) { otherSum += lit; ++otherCount; } else if (kinds[t] === 2) { firingSum += lit; ++firingCount; }
+                if (teeth[t] === firing) fundamental = ex; else if (teeth[t] <= N && ex > loudestOther) loudestOther = ex;
+            }
+            if (wsum <= 0 || !firingCount) { emission[f * rungs + s] = -30; continue; }
+            const tComb = (sum - dark) / wsum, tSeries = otherCount ? P.gammaSeries * (firingSum / firingCount - otherSum / otherCount) : 0;
+            const p = fundamental - loudestOther, tFund = fundamental >= 0 ? P.gammaFund * (p < P.fundLo ? P.fundLo : (p > P.fundHi ? P.fundHi : p)) : 0;
+            let tHalf = 0;
+            if (nh >= 4)
+            {
+                const sub = halves.subarray(0, nh); sub.sort();
+                let top = 0; for (let i = 0; i < topQuarter; ++i) top += sub[nh - 1 - i]; top /= topQuarter;
+                const rise = top - ((firingSum + otherSum) / (firingCount + otherCount) + P.halfSlack); if (rise > 0) tHalf = -P.gammaHalf * rise;
+            }
+            const tQuarter = quarterCount ? -P.gammaQuarter * quarterSum / quarterCount : 0, lattice = tComb + tSeries + tFund + tHalf + tQuarter;
+            // template correlation: the recording's quarter-order profile vs the synth's at this rpm (best of the throttles)
+            let tTemplate = 0;
+            if (bank && tmpl[s].rows.length)
+            {
+                const { i0, i1, rows } = tmpl[s]; let rs = 0, rq = 0, rn = 0;
+                for (let i = i0; i < i1; ++i)
+                {
+                    const pos = bank.orders[i] * binsPerOrder, k = Math.floor(pos), ex = excess[k] + (excess[k + 1] - excess[k]) * (pos - k), v = ex < P.cap ? ex : P.cap;
+                    read[i] = v; rs += v; rq += v * v; ++rn;
+                }
+                const rMean = rs / rn, rNorm = Math.sqrt(Math.max(1e-6, rq - rn * rMean * rMean)); let best = -1;
+                for (const row of rows)
+                {
+                    let dot = 0, n = 0;
+                    for (let i = i0; i < i1; ++i) { const v = bank.profiles[row.base + i]; if (v < 0) continue; dot += (read[i] - rMean) * (v - row.mean); ++n; }
+                    const c = dot / (rNorm * row.norm); if (c > best) best = c;
+                }
+                tTemplate = P.wTemplate * best;
+            }
+            emission[f * rungs + s] = P.wLattice * lattice + tTemplate;
+            if (o.explain && o.explain.has(f)) { if (!explained[f]) explained[f] = new Float32Array(rungs * 5); const E = explained[f]; E[s * 5] = tComb; E[s * 5 + 1] = tSeries; E[s * 5 + 2] = tFund; E[s * 5 + 3] = tHalf + tQuarter; E[s * 5 + 4] = tTemplate; }
+        }
+        if (yieldEvery && (f % yieldEvery) === yieldEvery - 1) { if (o.progress) o.progress(f / frames); await new Promise(r => setTimeout(r, 0)); }
+    }
+    // Viterbi: slew-limited (± W lattice steps ≈ ± 16 % per 20 ms), linear + small quadratic transition cost
+    const W = P.W, acc = new Float64Array(rungs), next = new Float64Array(rungs), from = new Int16Array(frames * rungs), trans = new Float64Array(W + 1);
+    for (let d = 0; d <= W; ++d) trans[d] = P.kappa1 * d + P.kappa2 * d * d;
+    for (let s = 0; s < rungs; ++s) acc[s] = emission[s];
+    for (let f = 1; f < frames; ++f)
+    {
+        const row = f * rungs;
+        for (let s = 0; s < rungs; ++s)
+        {
+            let best = -Infinity, arg = s;
+            const lo = Math.max(0, s - W), hi = Math.min(rungs - 1, s + W);
+            for (let q = lo; q <= hi; ++q) { const v = acc[q] - trans[q > s ? q - s : s - q]; if (v > best) { best = v; arg = q; } }
+            next[s] = best + emission[row + s]; from[row + s] = arg;
+        }
+        acc.set(next);
+        if (yieldEvery && (f % (yieldEvery * 4)) === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    const path = new Int32Array(frames);
+    if (frames > 0) { let arg = 0; for (let s = 1; s < rungs; ++s) if (acc[s] > acc[arg]) arg = s; path[frames - 1] = arg; for (let f = frames - 1; f > 0; --f) path[f - 1] = from[f * rungs + path[f]]; }
+    // confidence: margin of the path's emission over the best candidate more than 10 % away; tracked ≥ 0.5 and louder than −60 dBFS
+    const confidence = new Float32Array(frames), tracked = new Uint8Array(frames), apart = Math.ceil(Math.log(1.1) / Math.log(step));
+    for (let f = 0; f < frames; ++f)
+    {
+        const row = f * rungs, s = path[f];
+        let rival = -Infinity;
+        for (let q = 0; q < rungs; ++q) { if (Math.abs(q - s) <= apart) continue; if (emission[row + q] > rival) rival = emission[row + q]; }
+        const margin = rival > -Infinity ? emission[row + s] - rival : P.confidenceSpan;
+        confidence[f] = Math.max(0, Math.min(1, margin / P.confidenceSpan));
+        tracked[f] = confidence[f] >= 0.5 && level[f] > -60 ? 1 : 0;
+    }
+    // octave repair over tracked segments (runs between untracked gaps): each may sit an octave off; a change of octave across a
+    // short gap is costly, a whole-recording shift is tried too, with a small bonus when the trace's floor lands at the idle speed
+    const segments = [];
+    for (let f = 0; f < frames; ++f) { if (!tracked[f]) continue; if (segments.length && segments[segments.length - 1].end === f) segments[segments.length - 1].end = f + 1; else segments.push({ start: f, end: f + 1 }); }
+    const shifts = [-2, -1, 0, 1, 2], idle = o.idleRpm || rpmLo / 0.7;
+    const gain = segments.map(seg => shifts.map(k =>
+    {
+        let total = 0, n = 0;
+        for (let f = seg.start; f < seg.end; ++f) { const s = path[f] + k * octave; if (s < 0 || s >= rungs) return -Infinity; total += emission[f * rungs + s]; ++n; }
+        return total / n;
+    }));
+    const shiftOf = new Int8Array(segments.length);
+    if (segments.length)
+    {
+        const best = new Float64Array(segments.length * shifts.length).fill(-Infinity), back = new Int8Array(segments.length * shifts.length);
+        for (let i = 0; i < shifts.length; ++i) best[i] = gain[0][i] * (segments[0].end - segments[0].start);
+        for (let g = 1; g < segments.length; ++g)
+        {
+            const gap = (segments[g].start - segments[g - 1].end) * hop / rate, jump = gap < P.gapSeconds ? P.jumpCost : P.jumpCostFar, dur = segments[g].end - segments[g].start;
+            for (let i = 0; i < shifts.length; ++i)
+            {
+                if (gain[g][i] === -Infinity) continue;
+                let b = -Infinity, arg = 0;
+                for (let j = 0; j < shifts.length; ++j) { const v = best[(g - 1) * shifts.length + j] - (i === j ? 0 : jump * Math.abs(i - j) * Math.min(dur, 25)); if (v > b) { b = v; arg = j; } }
+                best[g * shifts.length + i] = b + gain[g][i] * dur; back[g * shifts.length + i] = arg;
+            }
+        }
+        const last = segments.length - 1; let arg = 0;
+        for (let i = 1; i < shifts.length; ++i) if (best[last * shifts.length + i] > best[last * shifts.length + arg]) arg = i;
+        const chain = new Int8Array(segments.length); chain[last] = arg; for (let g = last; g > 0; --g) chain[g - 1] = back[g * shifts.length + chain[g]];
+        const totalFrames = segments.reduce((a, s) => a + s.end - s.start, 0);
+        const evaluate = (delta) =>
+        {
+            let total = 0; const all = [];
+            for (let g = 0; g < segments.length; ++g)
+            {
+                const i = chain[g] + delta; if (i < 0 || i >= shifts.length || gain[g][i] === -Infinity) return -Infinity;
+                total += gain[g][i] * (segments[g].end - segments[g].start);
+                for (let f = segments[g].start; f < segments[g].end; ++f) all.push(rpmOf[path[f] + shifts[i] * octave]);
+            }
+            all.sort((a, b) => a - b);
+            const p5 = all[Math.floor(all.length * 0.05)];
+            return total / totalFrames + (p5 > idle * 0.75 && p5 < idle * 1.25 ? P.idleBonus : 0);
+        };
+        let choice = 0, choiceScore = evaluate(0);
+        for (const delta of [-1, 1]) { const v = evaluate(delta); if (v > choiceScore) { choice = delta; choiceScore = v; } }
+        for (let g = 0; g < segments.length; ++g) shiftOf[g] = shifts[chain[g] + choice];
+    }
+    const rpm = new Float64Array(frames), shiftAt = new Int8Array(frames);
+    segments.forEach((seg, g) => { for (let f = seg.start; f < seg.end; ++f) shiftAt[f] = shiftOf[g]; });
+    for (let f = 0; f < frames; ++f)
+    {
+        const row = f * rungs, s = Math.max(0, Math.min(rungs - 1, path[f] + shiftAt[f] * octave));
+        let delta = 0;
+        if (s > 0 && s < rungs - 1) { const a = emission[row + s - 1], b = emission[row + s], c = emission[row + s + 1], den = a - 2 * b + c; if (den < 0) delta = Math.max(-0.5, Math.min(0.5, 0.5 * (a - c) / den)); }
+        rpm[f] = rpmOf[s] * Math.pow(step, delta);
+    }
+    // fill the untracked stretches for playback (hold at the edges, interpolate inside)
+    const filled = Float64Array.from(rpm);
+    let last = -1;
+    for (let f = 0; f < frames; ++f)
+    {
+        if (!tracked[f]) continue;
+        if (last < 0) { for (let g = 0; g < f; ++g) filled[g] = rpm[f]; }
+        else if (f - last > 1) { for (let g = last + 1; g < f; ++g) filled[g] = rpm[last] + (rpm[f] - rpm[last]) * (g - last) / (f - last); }
+        last = f;
+    }
+    if (last >= 0) { for (let g = last + 1; g < frames; ++g) filled[g] = rpm[last]; }
+    // throttle heuristic from the slew of the filled trace (± 100 ms)
+    const hopSeconds = hop / rate, reach = Math.max(1, Math.round(0.1 / hopSeconds));
+    const keys = [];
+    for (let f = 0; f < frames; ++f)
+    {
+        const a = Math.max(0, f - reach), b = Math.min(frames - 1, f + reach);
+        const slew = b > a ? (filled[b] - filled[a]) / ((b - a) * hopSeconds) : 0;
+        const throttle = filled[f] < idle * 1.15 ? 0 : Math.max(0, Math.min(1, 0.3 + slew / 900));
+        keys.push([(centre0 + f * hop) / rate, filled[f], throttle]);
+    }
+    let covered = 0; for (let f = 0; f < frames; ++f) covered += tracked[f];
+    return { keys, rpm: filled, tracked, confidence, level, hopSeconds, t0: centre0 / rate, rpmLo, rpmHi, rungs, frames, coverage: frames ? covered / frames : 0, duration: samples.length / rate, cylinders: N,
+             segments: segments.length, templated: !!bank, debug: o.debug ? { emission, path, rpmOf, explained } : undefined };
+}
+// rpm of a trace at time t: linear between frame centres; with `onlyTracked` set, 0 unless both neighbours were tracked
+function traceRpmAt(trace, t, onlyTracked)
+{
+    const k = trace.keys; if (!k.length) return 0;
+    if (t <= k[0][0]) return onlyTracked && !trace.tracked[0] ? 0 : k[0][1];
+    const last = k.length - 1;
+    if (t >= k[last][0]) return onlyTracked && !trace.tracked[last] ? 0 : k[last][1];
+    const pos = (t - k[0][0]) / (k[last][0] - k[0][0]) * last, i = Math.min(last - 1, Math.max(0, Math.floor(pos))), u = pos - i;
+    if (onlyTracked && !(trace.tracked[i] && trace.tracked[i + 1])) return 0;
+    return k[i][1] + (k[i + 1][1] - k[i][1]) * u;
+}
+function traceThrottleAt(trace, t)
+{
+    const k = trace.keys; if (!k.length) return 0;
+    if (t <= k[0][0]) return k[0][2]; const last = k.length - 1; if (t >= k[last][0]) return k[last][2];
+    const pos = (t - k[0][0]) / (k[last][0] - k[0][0]) * last, i = Math.min(last - 1, Math.max(0, Math.floor(pos))), u = pos - i;
+    return k[i][2] + (k[i + 1][2] - k[i][2]) * u;
+}
+// the trace with its rpm scaled (the ×2 / ÷2 correction for an octave slip of the comb)
+function scaleTrace(trace, factor) { return Object.assign({}, trace, { keys: trace.keys.map(k => [k[0], k[1] * factor, k[2]]), rpm: trace.rpm.map(r => r * factor) }); }
+
+if (typeof module !== 'undefined' && module.exports)
+{
+    module.exports = { fftInPlace, orderSheetOf, compareOrderSheets, alignOrderSheets, shiftOrderSheet, orderBankOf, trackReference, traceRpmAt, traceThrottleAt, scaleTrace };
+}
 </script>
 
 <!-- ============================================== VEHICLE STRUCTURES (TOML) ============================================== -->
@@ -2470,6 +2931,8 @@ const $ = (id) => document.getElementById(id);
 const DSP_TEXT = $('dsp').textContent;
 const Dsp = (() => { const module = { exports: {} }; new Function('module', 'exports', DSP_TEXT)(module, module.exports); return module.exports; })();
 const { ACOUSTIC_SCHEMA, DYNO_PULL_NAMES, structureFromToml, parseToml, serialiseToml, schemaSections, structurePath, DynoSequence, clamp } = Dsp;
+const Analysis = (() => { const module = { exports: {} }; new Function('module', 'exports', $('analysis').textContent)(module, module.exports); return module.exports; })();
+const { orderSheetOf, compareOrderSheets, alignOrderSheets, shiftOrderSheet, orderBankOf, trackReference, traceRpmAt, traceThrottleAt, scaleTrace } = Analysis;
 const DSP_URL = URL.createObjectURL(new Blob([DSP_TEXT], { type: 'application/javascript' }));
 const DSP_INLINE_URL = 'data:application/javascript;base64,' + btoa(unescape(encodeURIComponent(DSP_TEXT)));
 // Blob module first; data: URL second (some file:// / policy setups refuse blob workers). Either way the same text runs.
@@ -2498,6 +2961,9 @@ const Editor = {
     fileClip: null, fileEmitter: null, filePull: 'pull', fileStart: 0, fileSeq: null, fileName: '',
     freq: null, gramReports: 0, lastOrderX: -1, structurePending: false, hotSection: '',
     overlay: 'off', fileOrders: null, fileOrderAgreement: null,   // C++ WAV order sheet (row A2 · P5): drawn over the live diagram
+    // reference lane (row A4): a real recording, its tracked rpm trace, and the two order sheets (recording / synth along the trace)
+    reference: { clip: null, name: '', mono: null, rate: 48000, traces: {}, trace: null, scale: 1, car: '', orders: null, rawOrders: null, liveOrders: null, agreement: null, offsetDb: 0,
+                 hear: 'recording', emitter: null, start: 0, at: 0, ended: false, busy: '', stale: false, renderSeconds: 0 },
 };
 
 // ─────────────────────────────────────────────────── helpers ────────────────────────────────────────────────────────
@@ -2566,18 +3032,31 @@ function scheduleStructure()
 {
     if (Editor.structurePending) return;
     Editor.structurePending = true;
-    setTimeout(() => { Editor.structurePending = false; post({ type: 'structure', structure: car().current }); drawGaugeStatic(); }, 30);
+    setTimeout(() => { Editor.structurePending = false; post({ type: 'structure', structure: car().current }); drawGaugeStatic(); queueReferenceCompare(); }, 30);
 }
 
 // ───────────────────────────────────────────── file feed (--render WAVs) ────────────────────────────────────────────
 function applyFeed()
 {
     if (!Editor.started) return;
-    const live = Editor.feed === 'live';
-    Editor.liveGain.gain.setTargetAtTime(live ? 1.0 : 0.0, Editor.ctx.currentTime, 0.02);
-    Editor.fileGain.gain.setTargetAtTime(live ? 0.0 : 1.0, Editor.ctx.currentTime, 0.02);
-    if (!live) playFile(); else stopFile();
-    $('dynoSub').textContent = live ? 'free rev · hold Space or drag the throttle · scripted pulls run the dyno timeline' : (Editor.fileClip ? 'file feed · ' + Editor.fileName + ' · pull buttons pick the rpm timeline used for the order markers' : 'file feed · drop a Project-Dyno --render WAV anywhere on the page');
+    const feed = Editor.feed, ref = feed === 'reference', R = Editor.reference;
+    applyHear();
+    if (feed === 'file') { stopReference(); playFile(); }
+    else if (ref) { stopFile(); if (R.mono && R.car !== carKey) analyseReference(); else if (R.trace) playReference(R.at); else stopReference(); }
+    else { stopFile(); stopReference(); }
+    $('pulls').hidden = ref; $('refRow').hidden = !ref;
+    $('dynoSub').textContent = feed === 'live' ? 'free rev · hold Space or drag the throttle · scripted pulls run the dyno timeline'
+                             : feed === 'file' ? (Editor.fileClip ? 'file feed · ' + Editor.fileName + ' · pull buttons pick the rpm timeline used for the order markers' : 'file feed · drop a Project-Dyno --render WAV anywhere on the page')
+                             : (R.clip ? 'reference lane · ' + R.name + ' · the synth follows the recording\'s tracked rpm · click the trace to seek' : 'reference lane · drop a real recording (WAV / MP3 / M4A / FLAC / OGG) anywhere on the page');
+}
+// which of the two paths is audible: live = the worklet (free rev, pulls, or the synth along the trace), file = the clip emitters
+function applyHear()
+{
+    if (!Editor.started) return;
+    const feed = Editor.feed, hear = Editor.reference.hear;
+    const liveOn = feed === 'live' || (feed === 'reference' && hear !== 'recording'), fileOn = feed === 'file' || (feed === 'reference' && hear !== 'synth');
+    Editor.liveGain.gain.setTargetAtTime(liveOn ? 1.0 : 0.0, Editor.ctx.currentTime, 0.02);
+    Editor.fileGain.gain.setTargetAtTime(fileOn ? 1.0 : 0.0, Editor.ctx.currentTime, 0.02);
 }
 async function loadWav(file)
 {
@@ -2599,48 +3078,6 @@ async function loadWav(file)
 // kept against rpm. drawOrders paints it over the live diagram (Split: live in the lower half of each rpm column, file in
 // the upper; Δ: file − live in a blue/red ramp). The agreement readout is the mean |Δ| over orders ≥ −40 dB re the loudest —
 // the bar the C++ port is accepted against on Windows, where libm differs and the sample-level identity is not the test.
-function fftInPlace(re, im)
-{
-    const n = re.length;
-    for (let i = 1, j = 0; i < n; ++i) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
-    for (let len = 2; len <= n; len <<= 1)
-    {
-        const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
-        for (let i = 0; i < n; i += len)
-        {
-            let cr = 1, ci = 0;
-            for (let j = 0; j < len / 2; ++j)
-            {
-                const ur = re[i + j], ui = im[i + j], vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
-                re[i + j] = ur + vr; im[i + j] = ui + vi; re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
-                const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
-            }
-        }
-    }
-}
-// order sheet of a mono signal against an rpm timeline: columns = rpm bins (rpmLo … rpmHi over `columns`), rows = half-orders
-function orderSheetOf(samples, rate, rpmAt, N, rpmLo, rpmHi, columns)
-{
-    const size = 8192, hop = Math.round(rate * 0.04), rows = 4 * N, sheet = new Float32Array(columns * rows).fill(-200), hits = new Uint16Array(columns);
-    const re = new Float64Array(size), im = new Float64Array(size), win = new Float64Array(size); let ws = 0;
-    for (let i = 0; i < size; ++i) { win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / size); ws += win[i]; }
-    for (let start = 0; start + size <= samples.length; start += hop)
-    {
-        const rpm = rpmAt((start + size / 2) / rate); if (!rpm || rpm < rpmLo || rpm > rpmHi) continue;
-        for (let i = 0; i < size; ++i) { re[i] = samples[start + i] * win[i]; im[i] = 0; }
-        fftInPlace(re, im);
-        const col = Math.min(columns - 1, Math.floor((rpm - rpmLo) / (rpmHi - rpmLo) * columns)), f0 = rpm / 60;
-        for (let r = 0; r < rows; ++r)
-        {
-            const k = Math.round((r + 1) * 0.5 * f0 * size / rate); if (k < 2 || k >= size / 2 - 2) continue;
-            let m = 0; for (let j = k - 2; j <= k + 2; ++j) m = Math.max(m, Math.hypot(re[j], im[j]));
-            const db = 20 * Math.log10(2 * m / ws + 1e-12), at = col * rows + r;
-            sheet[at] = hits[col] ? sheet[at] + (db - sheet[at]) / (hits[col] + 1) : db;   // running mean over the column's spectra
-        }
-        ++hits[col];
-    }
-    return { sheet, hits, rows, columns, rpmLo, rpmHi };
-}
 function analyseFileOrders()
 {
     Editor.fileOrders = null; Editor.fileOrderAgreement = null;
@@ -2664,17 +3101,6 @@ async function analyseLiveOrders()
     const rpmAt = (t) => { seq.sample(t); return seq.rpm; };
     return orderSheetOf(L, 48000, rpmAt, N, o.rpmLo, o.rpmHi, o.columns);
 }
-function compareOrderSheets(file, live)
-{
-    let sum = 0, count = 0, worst = 0, top = -200;
-    for (let i = 0; i < file.sheet.length; ++i) top = Math.max(top, file.sheet[i]);
-    for (let c = 0; c < file.columns; ++c)
-    {
-        if (!file.hits[c] || !live.hits[c]) continue;
-        for (let r = 0; r < file.rows; ++r) { const a = file.sheet[c * file.rows + r], b = live.sheet[c * file.rows + r]; if (a < top - 40 || b < top - 40) continue; const d = Math.abs(a - b); sum += d; ++count; worst = Math.max(worst, d); }
-    }
-    return { mean: count ? sum / count : NaN, worst, count };
-}
 function playFile()
 {
     stopFile();
@@ -2691,7 +3117,213 @@ function fileRpm()
     let t = Editor.ctx.currentTime - Editor.fileStart; if (Editor.loop && Editor.fileClip) t = t % Editor.fileClip.duration;
     Editor.fileSeq.sample(t); return Editor.fileSeq.rpm;
 }
-function currentRpm() { return Editor.feed === 'file' ? fileRpm() : (Editor.last ? Editor.last.rpm : null); }
+function currentRpm() { return Editor.feed === 'file' ? fileRpm() : (Editor.feed === 'reference' ? referenceRpm() : (Editor.last ? Editor.last.rpm : null)); }
+
+// ─────────────────────────────────────────── reference lane (row A4) ───────────────────────────────────────────────────
+// A real recording carries no tachometer, so its rpm is TRACKED from the audio (trackReference in the #analysis block: a
+// weighted order comb on the engine's own lattice, a Viterbi path through the frames, a confidence per frame). Then:
+//   · the recording plays through the file path while the worklet plays the synth along the same trace (Hear: Recording /
+//     Synth / Both) — the gauge, the order markers on the spectrum and the accumulating order diagram all follow the trace;
+//   · the recording is read as an order sheet along the trace (untracked stretches skipped), the synth is rendered offline
+//     along the trace and read on the same lattice, the recording is lifted by the median level difference of the strong
+//     cells (microphone distance is arbitrary) and Split / Δ + the agreement line compare the two.
+// The analysis runs in a Worker built from the #dsp + #analysis texts — the order bank renders the synth itself — and falls
+// back to the page (yielding) where workers are refused. The bank is the car's shipped voicing (defaults), so the trace is
+// stable under inspector edits; it is built once per car and rpm range per session.
+const ANALYSIS_TEXT = $('analysis').textContent;
+const ANALYSIS_WORKER_TAIL = `
+onmessage = async (e) => {
+    const m = e.data;
+    try
+    {
+        if (m.kind === 'bank') { const bank = orderBankOf(AcousticIntegrator, structureFromToml(m.structure), m.rate, m.rpmLo, m.rpmHi, m.seed, (p) => postMessage({ id: m.id, progress: p })); postMessage({ id: m.id, result: bank }); }
+        else if (m.kind === 'track') { const trace = await trackReference(m.samples, m.rate, m.N, m.rpmLo, m.rpmHi, { idleRpm: m.idleRpm, bank: m.bank, yieldEvery: 60, progress: (p) => postMessage({ id: m.id, progress: p }) }); postMessage({ id: m.id, result: trace }); }
+        else if (m.kind === 'sheet') { postMessage({ id: m.id, result: orderSheetOf(m.samples, m.rate, (t) => traceRpmAt(m.trace, t, true), m.N, m.rpmLo, m.rpmHi, m.columns) }); }
+        else postMessage({ id: m.id, error: 'unknown task ' + m.kind });
+    }
+    catch (err) { postMessage({ id: m.id, error: String(err && err.message || err) }); }
+};`;
+let analysisWorker = null, analysisWorkerBroken = false, analysisTaskId = 0;
+const analysisWaiting = new Map();
+function analysisTask(kind, payload, progress)
+{
+    if (!analysisWorker && !analysisWorkerBroken)
+    {
+        try
+        {
+            analysisWorker = new Worker(URL.createObjectURL(new Blob([DSP_TEXT, '\n', ANALYSIS_TEXT, ANALYSIS_WORKER_TAIL], { type: 'application/javascript' })));
+            analysisWorker.onmessage = (e) => { const m = e.data, w = analysisWaiting.get(m.id); if (!w) return; if (m.progress !== undefined) { if (w.progress) w.progress(m.progress); return; } analysisWaiting.delete(m.id); if (m.error) w.reject(new Error(m.error)); else w.resolve(m.result); };
+            analysisWorker.onerror = (e) => { analysisWorkerBroken = true; for (const w of analysisWaiting.values()) w.reject(new Error('analysis worker failed: ' + (e.message || 'error'))); analysisWaiting.clear(); analysisWorker = null; };
+        }
+        catch (e) { analysisWorkerBroken = true; analysisWorker = null; }
+    }
+    if (analysisWorker)
+    {
+        const id = ++analysisTaskId;
+        return new Promise((resolve, reject) => { analysisWaiting.set(id, { resolve, reject, progress }); analysisWorker.postMessage(Object.assign({ id, kind }, payload)); })
+            .catch((e) => { if (!analysisWorkerBroken) throw e; return analysisTaskInPage(kind, payload, progress); });
+    }
+    return analysisTaskInPage(kind, payload, progress);
+}
+async function analysisTaskInPage(kind, m, progress)
+{
+    if (kind === 'bank') return orderBankOf(Dsp.AcousticIntegrator, structureFromToml(m.structure), m.rate, m.rpmLo, m.rpmHi, m.seed, progress);
+    if (kind === 'track') return trackReference(m.samples, m.rate, m.N, m.rpmLo, m.rpmHi, { idleRpm: m.idleRpm, bank: m.bank, yieldEvery: 12, progress });
+    return orderSheetOf(m.samples, m.rate, (t) => traceRpmAt(m.trace, t, true), m.N, m.rpmLo, m.rpmHi, m.columns);
+}
+async function loadReference(file)
+{
+    if (!Editor.started) { toast('start audio first'); return; }
+    const bytes = await file.arrayBuffer();
+    let clip;
+    try { clip = await Editor.ctx.decodeAudioData(bytes); }
+    catch (e) { toast('could not decode ' + file.name); return; }
+    // peak-normalise a copy to −1 dBFS (the clip plays at a level comparable with the synth); keep a mono mix for the analysis
+    const n = clip.length, ch = clip.numberOfChannels, mono = new Float32Array(n); let peak = 1.0e-6;
+    for (let c = 0; c < ch; ++c) { const d = clip.getChannelData(c); for (let i = 0; i < n; ++i) { mono[i] += d[i] / ch; if (Math.abs(d[i]) > peak) peak = Math.abs(d[i]); } }
+    const gain = 0.9 / peak, copy = Editor.ctx.createBuffer(ch, n, clip.sampleRate);
+    for (let c = 0; c < ch; ++c) { const src = clip.getChannelData(c), d = copy.getChannelData(c); for (let i = 0; i < n; ++i) d[i] = src[i] * gain; }
+    for (let i = 0; i < n; ++i) mono[i] *= gain;
+    const R = Editor.reference; stopReference();
+    R.clip = copy; R.name = file.name; R.mono = mono; R.rate = clip.sampleRate; R.traces = {}; R.trace = null; R.scale = 1; R.car = '';
+    R.orders = R.rawOrders = R.liveOrders = R.agreement = null; R.offsetDb = 0; R.at = 0; R.ended = false; R.stale = false;
+    Editor.feed = 'reference'; setActive($('feedSeg'), 'feed', 'reference'); clearOrders(); applyFeed();
+    toast('reference: ' + file.name + ' · ' + clip.duration.toFixed(1) + ' s · ' + ch + ' ch · tracking rpm as the ' + vehicle().name + ' …');
+    await analyseReference();
+}
+// (re)tracks the recording for the selected car's cylinder count and rpm range, plays it, reads both order sheets
+let referenceJob = 0, referenceCompareTimer = 0;
+const referenceBanks = {};   // order banks per car + rpm range (≈ 70 steady renders each; built once per session)
+async function analyseReference()
+{
+    const R = Editor.reference; if (!R.mono) return;
+    const job = ++referenceJob, v = vehicle(), N = v.cylinder_count, rpmLo = Math.max(300, v.idle_rpm * 0.7), rpmHi = gaugeMax();
+    const cacheKey = N + ':' + rpmLo + ':' + rpmHi;
+    R.orders = R.rawOrders = R.liveOrders = R.agreement = null; R.stale = false;
+    if (R.car !== carKey) { R.trace = null; stopReference(); }   // another car: the old trace (its lattice, its range) is not this car's
+    try
+    {
+        let trace = R.traces[carKey + ':' + cacheKey];
+        if (!trace)
+        {
+            // the order bank is the car's shipped voicing (defaults, not the live edits — the trace must not move under the inspector)
+            let bank = referenceBanks[carKey + ':' + cacheKey];
+            if (!bank)
+            {
+                R.busy = 'rendering the order bank …';
+                bank = await analysisTask('bank', { structure: car().defaults, rate: 48000, rpmLo, rpmHi, seed: SEED }, (p) => { R.busy = 'rendering the order bank … ' + Math.round(p * 100) + ' %'; });
+                if (job !== referenceJob) return;
+                referenceBanks[carKey + ':' + cacheKey] = bank;
+            }
+            R.busy = 'tracking rpm …';
+            trace = await analysisTask('track', { samples: R.mono, rate: R.rate, N, rpmLo, rpmHi, idleRpm: v.idle_rpm, bank }, (p) => { R.busy = 'tracking rpm … ' + Math.round(p * 100) + ' %'; });
+            if (job !== referenceJob) return;
+            R.traces[carKey + ':' + cacheKey] = trace;
+        }
+        R.trace = R.scale === 1 ? trace : scaleTrace(trace, R.scale); R.car = carKey;
+        if (Editor.feed === 'reference') playReference(R.at);
+        R.busy = 'reading the recording\'s order sheet …';
+        const raw = await analysisTask('sheet', { samples: R.mono, rate: R.rate, trace: R.trace, N, rpmLo, rpmHi, columns: 160 });
+        if (job !== referenceJob) return;
+        R.rawOrders = raw; R.orders = raw;
+        $('orderSub').textContent = 'recording order sheet along its tracked rpm trace (' + Math.round(R.trace.coverage * 100) + ' % tracked) · Split / Δ compare it with the synth along the same trace';
+        await compareReference(job);
+    }
+    catch (e) { R.busy = ''; toast('reference analysis failed: ' + e.message); console.error(e); }
+}
+// renders the synth (current structure, current listener) along the trace and reads the agreement; called again after edits
+async function compareReference(job)
+{
+    const R = Editor.reference; if (!R.trace || !R.rawOrders) return;
+    if (job === undefined) job = ++referenceJob;
+    const v = vehicle(), N = v.cylinder_count, o = R.rawOrders;
+    const seconds = Math.min(R.trace.duration, 180.0);   // the offline render is capped at 3 minutes
+    R.busy = 'rendering the synth along the trace (' + seconds.toFixed(0) + ' s) …'; R.stale = false;
+    const t0 = performance.now();
+    const [L, Rc] = await renderOffline(carKey, 'reference', seconds, { listener: Editor.listener, trace: R.trace.keys });
+    if (job !== referenceJob) return;
+    // the recording is a mono mix (one microphone hears both banks), so the synth is read as its mono mix too — read left alone,
+    // the bank-panned imbalance orders (½, 1½, 2½ …) sit 15 dB apart from the mix and the Δ says nothing about the voicing
+    const mix = new Float32Array(L.length); for (let i = 0; i < L.length; ++i) mix[i] = 0.5 * (L[i] + Rc[i]);
+    const live = orderSheetOf(mix, 48000, (t) => traceRpmAt(R.trace, t, true), N, o.rpmLo, o.rpmHi, o.columns);
+    const align = alignOrderSheets(o, live);
+    R.offsetDb = align.offset; R.orders = shiftOrderSheet(o, align.offset); R.liveOrders = live; R.agreement = compareOrderSheets(R.orders, live);
+    R.renderSeconds = (performance.now() - t0) / 1000; R.busy = '';
+    if (Editor.overlay === 'off') { Editor.overlay = 'split'; setActive($('overlaySeg'), 'overlay', 'split'); }
+    toast('recording vs synth: mean |Δ| ' + R.agreement.mean.toFixed(2) + ' dB over ' + R.agreement.count + ' order cells · recording lifted ' + (R.offsetDb >= 0 ? '+' : '') + R.offsetDb.toFixed(1) + ' dB');
+}
+// inspector edits while the lane is up: re-render the synth sheet 2.5 s after the last edit (dropped if another edit lands first)
+function queueReferenceCompare()
+{
+    const R = Editor.reference; if (Editor.feed !== 'reference' || !R.rawOrders) return;
+    R.stale = true; clearTimeout(referenceCompareTimer);
+    referenceCompareTimer = setTimeout(() => { if (Editor.feed === 'reference' && R.rawOrders) compareReference(); }, 2500);
+}
+function playReference(at)
+{
+    stopReference();
+    const R = Editor.reference; if (!R.clip || !R.trace) return;
+    at = Math.max(0, Math.min(R.clip.duration - 0.01, at || 0));
+    const emitter = Editor.ctx.createBufferSource(); emitter.buffer = R.clip; emitter.loop = Editor.loop; emitter.connect(Editor.fileGain); emitter.start(0, at);
+    R.emitter = emitter; R.start = Editor.ctx.currentTime; R.at = at; R.ended = false;
+    post({ type: 'pull', name: 'reference', keys: R.trace.keys, at, loop: Editor.loop });
+    emitter.onended = () => { if (R.emitter === emitter) { R.emitter = null; R.ended = true; } };
+}
+function stopReference() { const R = Editor.reference; if (R.emitter) { try { R.emitter.stop(); } catch (e) { /* already stopped */ } R.emitter = null; } }
+function referenceTime()
+{
+    const R = Editor.reference; if (!R.clip) return null;
+    if (!R.emitter) return R.ended ? R.clip.duration : R.at;
+    let t = Editor.ctx.currentTime - R.start + R.at; if (Editor.loop) t = t % R.clip.duration; return Math.min(t, R.clip.duration);
+}
+function referenceRpm() { const R = Editor.reference, t = referenceTime(); return R.trace && t !== null ? traceRpmAt(R.trace, t, false) : null; }
+function seekReference(t) { const R = Editor.reference; if (!R.clip || !R.trace) return; R.at = Math.max(0, Math.min(R.clip.duration - 0.01, t)); if (Editor.feed === 'reference') playReference(R.at); }
+function rescaleReference(factor) { const R = Editor.reference; if (!R.trace) return; R.scale *= factor; toast('trace × ' + R.scale.toFixed(2)); return analyseReference(); }
+// the trace strip: rpm against time (tracked white, untracked dim, confidence band below, throttle heuristic in blue), playhead
+function drawRefTrace()
+{
+    if (Editor.feed !== 'reference') return;
+    const c = $('refTrace'); fitCanvas(c);
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
+    const W = c.clientWidth, H = c.clientHeight, R = Editor.reference, tr = R.trace;
+    g.font = '500 9.5px system-ui,sans-serif'; g.textBaseline = 'top';
+    if (!tr) { g.fillStyle = '#888'; g.textAlign = 'left'; g.fillText(R.mono ? (R.busy || 'analysing …') : 'no recording — drop one anywhere on the page', 8, 6); return; }
+    const left = 30, right = W - 4, top = 4, plotH = H - 16, dur = Math.max(0.01, R.clip ? R.clip.duration : tr.duration);
+    let rpmTop = tr.rpmHi; for (let f = 0; f < tr.frames; ++f) if (tr.rpm[f] > rpmTop) rpmTop = tr.rpm[f];
+    const rpmLo = tr.rpmLo, rpmHi = Math.ceil(rpmTop / 1000) * 1000;
+    const xOf = (t) => left + (right - left) * t / dur, yOf = (rpm) => top + plotH * (1 - Math.max(0, Math.min(1, (rpm - rpmLo) / (rpmHi - rpmLo))));
+    g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1; g.fillStyle = '#5c5c5c'; g.textAlign = 'right';
+    for (let r = Math.ceil(rpmLo / 1000) * 1000; r <= rpmHi; r += (rpmHi - rpmLo > 6000 ? 2000 : 1000)) { const y = yOf(r); g.beginPath(); g.moveTo(left, y); g.lineTo(right, y); g.stroke(); g.fillText(String(r / 1000) + 'k', left - 3, y - 5); }
+    g.textAlign = 'center';
+    const tick = dur > 120 ? 30 : (dur > 40 ? 10 : (dur > 12 ? 5 : 1));
+    for (let t = 0; t <= dur; t += tick) { const x = xOf(t); g.beginPath(); g.moveTo(x, top); g.lineTo(x, top + plotH); g.stroke(); g.fillText(t + ' s', x, top + plotH + 3); }
+    // confidence band
+    for (let f = 0; f < tr.frames; ++f) { const x0 = xOf(tr.t0 + f * tr.hopSeconds), x1 = xOf(tr.t0 + (f + 1) * tr.hopSeconds); g.fillStyle = HEAT[heatIndex(tr.confidence[f], 0, 1)]; g.fillRect(x0, top + plotH - 3, Math.max(0.5, x1 - x0), 3); }
+    // throttle heuristic
+    g.strokeStyle = 'rgba(108,119,255,.55)'; g.lineWidth = 1; g.beginPath();
+    for (let f = 0; f < tr.frames; ++f) { const x = xOf(tr.t0 + f * tr.hopSeconds), y = top + plotH * (1 - 0.9 * tr.keys[f][2]) - 4; if (f === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    g.stroke();
+    // rpm: untracked dim, tracked white
+    for (const pass of [0, 1])
+    {
+        g.strokeStyle = pass ? '#f0f0f0' : 'rgba(240,240,240,.28)'; g.lineWidth = pass ? 1.5 : 1; g.beginPath(); let pen = false;
+        for (let f = 0; f < tr.frames; ++f)
+        {
+            const on = tr.tracked[f] === 1;
+            if (on !== !!pass) { pen = false; continue; }
+            const x = xOf(tr.t0 + f * tr.hopSeconds), y = yOf(tr.rpm[f]);
+            if (!pen) { g.moveTo(x, y); pen = true; } else g.lineTo(x, y);
+        }
+        g.stroke();
+    }
+    const t = referenceTime();
+    if (t !== null) { const x = xOf(t); g.strokeStyle = '#f59e0b'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, top); g.lineTo(x, top + plotH); g.stroke(); }
+    g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(left + 4, top + 2, 250, 13);
+    g.fillStyle = '#e8e8e8'; g.textAlign = 'left';
+    g.fillText(R.busy || (Math.round(tr.coverage * 100) + ' % tracked · ' + (R.scale !== 1 ? 'trace × ' + R.scale.toFixed(2) + ' · ' : '') + (R.agreement ? 'mean |Δ| ' + R.agreement.mean.toFixed(2) + ' dB' + (R.stale ? ' (edited — comparing …)' : '') : 'comparing …')), left + 8, top + 4);
+    $('refNote').textContent = R.busy || (R.name + ' · ' + dur.toFixed(1) + ' s · read as the ' + vehicle().name + (R.agreement ? ' · recording lifted ' + (R.offsetDb >= 0 ? '+' : '') + R.offsetDb.toFixed(1) + ' dB · synth render ' + R.renderSeconds.toFixed(1) + ' s' : ''));
+}
 
 // ───────────────────────────────────────────────── recording ────────────────────────────────────────────────────────
 function toggleRecord()
@@ -2964,11 +3596,12 @@ function drawOrders()
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(orderCanvas, left * dpr, 4 * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const plotW = pw / dpr, plotH = ph / dpr;
-    // C++ overlay: the file's order sheet (and the live sheet on the same lattice when Δ is chosen)
-    const fo = Editor.fileOrders;
-    if (fo && Editor.overlay !== 'off' && fo.car === carKey)
+    // overlay: the file's (or the recording's) order sheet, and the live sheet on the same lattice once it is rendered
+    const ref = Editor.feed === 'reference', RF = Editor.reference;
+    const fo = ref ? RF.orders : Editor.fileOrders;
+    if (fo && Editor.overlay !== 'off' && (ref ? RF.car === carKey : fo.car === carKey))
     {
-        const lo = Editor.liveOrders && Editor.liveOrders.columns === fo.columns ? Editor.liveOrders : null;
+        const lo = ref ? RF.liveOrders : (Editor.liveOrders && Editor.liveOrders.columns === fo.columns ? Editor.liveOrders : null);
         const colW = plotW / fo.columns, rowH = plotH / fo.rows;
         for (let c = 0; c < fo.columns; ++c)
         {
@@ -2996,12 +3629,13 @@ function drawOrders()
                 }
             }
         }
-        g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(left + 6, 8, 330, 30);
+        g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(left + 6, 8, ref ? 430 : 330, 30);
         g.fillStyle = '#e8e8e8'; g.font = '500 10.5px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top';
-        const ag = Editor.fileOrderAgreement;
-        g.fillText((Editor.overlay === 'split' ? 'split: file (upper) · live (lower) — ' : 'Δ file − live (red +, blue −, ±6 dB) — ') + Editor.fileName, left + 12, 12);
-        g.fillStyle = ag ? (ag.mean <= 0.1 ? '#7fe0a0' : (ag.mean <= 1.0 ? '#ffd27f' : '#ff8f8f')) : '#aaa';
-        g.fillText(ag ? 'agreement: mean |Δ| ' + ag.mean.toFixed(3) + ' dB, worst ' + ag.worst.toFixed(2) + ' dB over ' + ag.count + ' order cells ≥ −40 dB' : 'rendering the live sheet for the comparison …', left + 12, 25);
+        const ag = ref ? RF.agreement : Editor.fileOrderAgreement, what = ref ? 'recording' : 'file', other = ref ? 'synth along its trace' : 'live';
+        g.fillText((Editor.overlay === 'split' ? 'split: ' + what + ' (upper) · ' + other + ' (lower) — ' : 'Δ ' + what + ' − ' + other + ' (red +, blue −, ±6 dB) — ') + (ref ? RF.name : Editor.fileName), left + 12, 12);
+        const good = ref ? 3.0 : 0.1, fair = ref ? 6.0 : 1.0;
+        g.fillStyle = ag ? (ag.mean <= good ? '#7fe0a0' : (ag.mean <= fair ? '#ffd27f' : '#ff8f8f')) : '#aaa';
+        g.fillText(ag ? 'agreement: mean |Δ| ' + ag.mean.toFixed(ref ? 2 : 3) + ' dB, worst ' + ag.worst.toFixed(2) + ' dB over ' + ag.count + ' order cells ≥ −40 dB' + (ref ? ' · recording lifted ' + (RF.offsetDb >= 0 ? '+' : '') + RF.offsetDb.toFixed(1) + ' dB' + (RF.stale ? ' · edited' : '') : '') : (ref ? (RF.busy || 'comparing …') : 'rendering the live sheet for the comparison …'), left + 12, 25);
     }
     g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1; g.fillStyle = '#888'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'middle';
     for (let o = 1; o <= maxOrder; ++o)
@@ -3118,7 +3752,7 @@ function loop()
 {
     requestAnimationFrame(loop);
     if (Editor.analyser && Editor.freq) Editor.analyser.getFloatFrequencyData(Editor.freq);
-    guarded('gauge', drawGauge); guarded('chain', drawChain); guarded('scope', drawScope); guarded('spectrum', drawSpectrum); guarded('orders', drawOrders); guarded('readouts', drawReadouts);
+    guarded('gauge', drawGauge); guarded('chain', drawChain); guarded('scope', drawScope); guarded('spectrum', drawSpectrum); guarded('orders', drawOrders); guarded('readouts', drawReadouts); guarded('reference', drawRefTrace);
     if ((++drawCount % 15) === 0) { guarded('device', drawDevice); updateStatus(); }
 }
 
@@ -3133,6 +3767,7 @@ function selectCar(key)
     post({ type: 'stop' }); post({ type: 'structure', structure: car().current });
     if (Editor.feed === 'file') playFile();
     if (Editor.fileClip) { analyseFileOrders(); Editor.liveOrders = null; Editor.fileOrderAgreement = null; }
+    if (Editor.feed === 'reference' && Editor.reference.mono) analyseReference();   // re-tracks for this car's cylinder count / rpm range (cached per lattice), replays along the trace
 }
 // vehicle dropdown: the current pill shows the name + its key number; the menu lists name, engine line and key per vehicle
 const pick = $('carPick'), pickMenu = $('carPickMenu');
@@ -3161,7 +3796,7 @@ refreshCarPick();
 
 const pulls = $('pulls');
 for (const name of DYNO_PULL_NAMES) { const b = document.createElement('button'); b.className = 'btn'; b.dataset.pull = name; b.textContent = name; b.onclick = () => runPull(name); pulls.appendChild(b); }
-const stopBtn = document.createElement('button'); stopBtn.className = 'btn ghost'; stopBtn.textContent = 'stop'; stopBtn.onclick = () => { post({ type: 'stop' }); if (Editor.feed === 'file') stopFile(); }; pulls.appendChild(stopBtn);
+const stopBtn = document.createElement('button'); stopBtn.className = 'btn ghost'; stopBtn.textContent = 'stop'; stopBtn.onclick = () => { post({ type: 'stop' }); if (Editor.feed === 'file') stopFile(); stopReference(); }; pulls.appendChild(stopBtn);
 function runPull(name)
 {
     if (!Editor.started) { toast('start audio first'); return; }
@@ -3169,11 +3804,23 @@ function runPull(name)
     post({ type: 'pull', name, loop: Editor.loop });
 }
 
-$('feedSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.feed = b.dataset.feed; setActive($('feedSeg'), 'feed', Editor.feed); clearOrders(); applyFeed(); if (Editor.feed === 'file' && !Editor.fileClip) $('fileWav').click(); };
-$('listenerSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.listener = b.dataset.listener; setActive($('listenerSeg'), 'listener', Editor.listener); post({ type: 'listener', listener: Editor.listener }); };
+$('feedSeg').onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const was = Editor.feed; Editor.feed = b.dataset.feed; setActive($('feedSeg'), 'feed', Editor.feed); clearOrders();
+    if (was === 'reference' && Editor.feed !== 'reference') post({ type: 'stop' });
+    applyFeed();
+    if (Editor.feed === 'file' && !Editor.fileClip) $('fileWav').click();
+    if (Editor.feed === 'reference' && !Editor.reference.clip) $('fileRef').click();
+};
+$('listenerSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.listener = b.dataset.listener; setActive($('listenerSeg'), 'listener', Editor.listener); post({ type: 'listener', listener: Editor.listener }); queueReferenceCompare(); };
+$('hearSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.reference.hear = b.dataset.hear; setActive($('hearSeg'), 'hear', Editor.reference.hear); applyHear(); };
+$('btnRefHalf').onclick = () => rescaleReference(0.5);
+$('btnRefDouble').onclick = () => rescaleReference(2.0);
+$('btnRefCompare').onclick = () => { if (Editor.reference.rawOrders) compareReference(); else toast('drop a recording first'); };
+$('refTrace').onclick = (e) => { const R = Editor.reference; if (!R.clip || !R.trace) return; const rect = e.currentTarget.getBoundingClientRect(), left = 30, right = rect.width - 4; seekReference((e.clientX - rect.left - left) / (right - left) * R.clip.duration); };
 $('modeSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; post({ type: 'mode', mode: b.dataset.mode }); setActive($('modeSeg'), 'mode', b.dataset.mode); };
 $('specSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.specMode = b.dataset.spec; setActive($('specSeg'), 'spec', Editor.specMode); };
-$('loopToggle').onclick = () => { Editor.loop = !Editor.loop; $('loopToggle').dataset.on = String(Editor.loop); post({ type: 'loop', on: Editor.loop }); if (Editor.fileEmitter) Editor.fileEmitter.loop = Editor.loop; };
+$('loopToggle').onclick = () => { Editor.loop = !Editor.loop; $('loopToggle').dataset.on = String(Editor.loop); post({ type: 'loop', on: Editor.loop }); if (Editor.fileEmitter) Editor.fileEmitter.loop = Editor.loop; if (Editor.reference.emitter) Editor.reference.emitter.loop = Editor.loop; };
 $('pureToggle').onclick = () => { Editor.pure = !Editor.pure; $('pureToggle').dataset.on = String(Editor.pure); post({ type: 'pure', on: Editor.pure }); };
 $('btnScopeHold').onclick = () => { Editor.scopeHold = !Editor.scopeHold; $('btnScopeHold').textContent = Editor.scopeHold ? 'Resume' : 'Hold'; $('btnScopeHold').classList.toggle('primary', Editor.scopeHold); };
 $('btnOrderClear').onclick = clearOrders;
@@ -3181,7 +3828,8 @@ $('overlaySeg').onclick = async (e) => {
     const b = e.target.closest('button'); if (!b) return;
     Editor.overlay = b.dataset.overlay; setActive($('overlaySeg'), 'overlay', Editor.overlay);
     if (Editor.overlay === 'off') return;
-    if (!Editor.fileOrders) { toast('drop a Project-Dyno --render WAV first'); return; }
+    if (Editor.feed === 'reference') { const R = Editor.reference; if (!R.orders) toast(R.mono ? 'still analysing the recording …' : 'drop a recording first'); else if (R.car !== carKey) analyseReference(); return; }
+    if (!Editor.fileOrders) { toast('drop a Project-Dyno --render WAV first (or pick the Reference feed for a real recording)'); return; }
     if (!Editor.liveOrders || Editor.liveOrders.pull !== Editor.fileOrders.pull || Editor.liveOrders.car !== carKey)
     {
         Editor.liveOrders = null; Editor.fileOrderAgreement = null;
@@ -3197,6 +3845,7 @@ $('btnExport').onclick = exportToml;
 $('btnRecord').onclick = toggleRecord;
 $('fileToml').onchange = async (e) => { const f = e.target.files[0]; if (f) importTomlText(await f.text(), f.name); e.target.value = ''; };
 $('fileWav').onchange = async (e) => { const f = e.target.files[0]; if (f) await loadWav(f); e.target.value = ''; };
+$('fileRef').onchange = async (e) => { const f = e.target.files[0]; if (f) await loadReference(f); e.target.value = ''; };
 $('btnStart').onclick = async () => {
     try { await startAudio(); $('gate').dataset.on = 'false'; toast('audio running · ' + vehicle().name); }
     catch (e) { $('gateNote').textContent = 'audio start failed: ' + e.message; $('status').dataset.link = 'error'; $('statusText').textContent = 'audio error'; }
@@ -3210,7 +3859,7 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') { e.preventDefault(); if (!Editor.spaceDown) { Editor.spaceDown = true; post({ type: 'throttle', throttle: 1.0 }); } }
     else if (e.key >= '1' && e.key <= '9') { const k = carOrder[Number(e.key) - 1]; if (k && k !== carKey) selectCar(k); }
     else if (e.key === 'r' || e.key === 'R') toggleRecord();
-    else if (e.key === 'Escape') { if (pick.classList.contains('open')) openCarPick(false); else post({ type: 'stop' }); }
+    else if (e.key === 'Escape') { if (pick.classList.contains('open')) openCarPick(false); else { post({ type: 'stop' }); stopReference(); } }
 });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') { Editor.spaceDown = false; post({ type: 'throttle', throttle: Editor.throttle }); $('throttleNum').textContent = Math.round(Editor.throttle * 100); } });
 window.addEventListener('blur', () => { if (Editor.spaceDown) { Editor.spaceDown = false; post({ type: 'throttle', throttle: Editor.throttle }); } });
@@ -3222,7 +3871,13 @@ window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth =
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', async (e) => {
     e.preventDefault(); dragDepth = 0; $('drop').dataset.on = 'false';
-    for (const f of e.dataTransfer.files) { if (/\.toml$/i.test(f.name)) importTomlText(await f.text(), f.name); else if (/\.(wav|wave)$/i.test(f.name)) await loadWav(f); else toast('unsupported: ' + f.name); }
+    for (const f of e.dataTransfer.files)
+    {
+        if (/\.toml$/i.test(f.name)) importTomlText(await f.text(), f.name);
+        else if (/\.(wav|wave)$/i.test(f.name) && Editor.feed !== 'reference' && !e.shiftKey) await loadWav(f);           // a Project-Dyno --render → file feed
+        else if (/\.(wav|wave|mp3|m4a|aac|ogg|oga|opus|flac|webm)$/i.test(f.name)) await loadReference(f);            // a recording → reference lane
+        else toast('unsupported: ' + f.name);
+    }
 });
 window.addEventListener('resize', () => { drawGaugeStatic(); });
 
@@ -3232,13 +3887,14 @@ async function renderOffline(key, pull, seconds, options)
     const rate = (options && options.rate) || 48000;
     const octx = new OfflineAudioContext(2, Math.floor(seconds * rate), rate);
     await attachDsp(octx);
-    const worklet = new AudioWorkletNode(octx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: cars[key].current, seed: SEED, pull, reportEvery: 1 << 30, listener: (options && options.listener) || 'trackside' } });
+    const worklet = new AudioWorkletNode(octx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: cars[key].current, seed: SEED, pull, trace: options && options.trace, reportEvery: 1 << 30, listener: (options && options.listener) || 'trackside' } });
     worklet.connect(octx.destination);
     const rendered = await octx.startRendering();
     return [rendered.getChannelData(0), rendered.getChannelData(1)];
 }
-window.FrontierAudioEditor = { Dsp, cars, get carKey() { return carKey; }, selectCar, renderOffline, startAudio, runPull, loadWav, editor: Editor, exportToml,
-                               orderSheetOf, analyseFileOrders, analyseLiveOrders, compareOrderSheets, serialiseToml };
+window.FrontierAudioEditor = { Dsp, Analysis, cars, get carKey() { return carKey; }, selectCar, renderOffline, startAudio, runPull, loadWav, editor: Editor, exportToml,
+                               orderSheetOf, analyseFileOrders, analyseLiveOrders, compareOrderSheets, serialiseToml,
+                               loadReference, analyseReference, compareReference, seekReference, rescaleReference, referenceTime };
 
 selectCar(carKey);
 drawGaugeStatic();

@@ -1,48 +1,67 @@
-AudioEditor browser proof — 2026-09-06T20:56:46.645Z — HeadlessChrome/129.0.6668.0
+AudioEditor browser proof — 2026-09-07T05:42:34.559Z — HeadlessChrome/129.0.6668.0
 
 [0] double-click path (file:// origin, no server)
   PASS  file:// page loads and its worklet renders (peak 1.000, errors 0)
 
 [1] page + worklet
   PASS  no console / page errors on load
-  PASS  three vehicles embedded: Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo
-  PASS  car picker has 3 entries
-  PASS  inspector built 103 sliders from the schema
+  PASS  five vehicles embedded: Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo, KoenigseggAgeraR, DodgeDemon
+  PASS  vehicle dropdown lists 5 entries
+  PASS  inspector built 114 sliders from the schema
 
 [2] worklet ⇄ node identity (OfflineAudioContext, 4 s of the "pull" pull)
-  PASS  Porsche918Spyder: worklet rendered 192000 frames (1428 ms)
+  PASS  Porsche918Spyder: worklet rendered 192000 frames (1176 ms)
   PASS  Porsche918Spyder: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  Porsche918Spyder: order diagram agreement ±0.0000 dB over orders ½ … 16 (limit 0.1 dB)
-  PASS  FerrariLaFerrari: worklet rendered 192000 frames (899 ms)
+  PASS  FerrariLaFerrari: worklet rendered 192000 frames (757 ms)
   PASS  FerrariLaFerrari: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 0.783)
   PASS  FerrariLaFerrari: order diagram agreement ±0.0000 dB over orders ½ … 24 (limit 0.1 dB)
-  PASS  NissanGtrNismo: worklet rendered 192000 frames (1059 ms)
+  PASS  NissanGtrNismo: worklet rendered 192000 frames (1164 ms)
   PASS  NissanGtrNismo: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
   PASS  NissanGtrNismo: order diagram agreement ±0.0000 dB over orders ½ … 12 (limit 0.1 dB)
+  PASS  KoenigseggAgeraR: worklet rendered 192000 frames (1272 ms)
+  PASS  KoenigseggAgeraR: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
+  PASS  KoenigseggAgeraR: order diagram agreement ±0.0000 dB over orders ½ … 16 (limit 0.1 dB)
+  PASS  DodgeDemon: worklet rendered 192000 frames (1196 ms)
+  PASS  DodgeDemon: sample-level max |worklet − node| = 2.98e-8 (float32 output rounding only; peak 1.000)
+  PASS  DodgeDemon: order diagram agreement ±0.0000 dB over orders ½ … 16 (limit 0.1 dB)
 
 [3] live audio (fake device)
   PASS  frame loop survives without CanvasRenderingContext2D.roundRect (errors 0)
-  PASS  all panels drawn at 790×600 · Pure · Cockpit: {"chain":9643,"scope":1840,"spectrum":3806,"orders":944,"gauge":1337,"rpm":"1022"}
+  PASS  all panels drawn at 790×600 · Pure · Cockpit: {"chain":9648,"scope":1710,"spectrum":3579,"orders":944,"gauge":1337,"rpm":"1022"}
   PASS  AudioContext running at 48000 Hz
-  PASS  worklet reports arriving: 145 in 1.5 s
+  PASS  worklet reports arriving: 146 in 1.5 s
   PASS  free-rev idle settled at 1022 rpm (918)
-  PASS  Space held 1 s → 9073 rpm (free-rev inertia model)
+  PASS  Space held 1 s → 9054 rpm (free-rev inertia model)
   PASS  918 gear whine + hybrid motor on the mechanical bus during the climb: peak -32 dB
-  PASS  lift-off produced overrun pops: 68
-  PASS  LaFerrari scripted pull running: 7197 rpm at t ≈ 5.5 s
+  PASS  lift-off produced overrun pops: 54
+  PASS  dropdown: closed on load → caret opens → option picks the Demon and closes (pill "Dodge Challenger SRT Demon5", title "Frontier · AudioEditor · Dodge Challenger SRT Demon")
+  PASS  dropdown: outside click closes it; key 4 → KoenigseggAgeraR, key 1 → Porsche918Spyder
+  PASS  LaFerrari scripted pull running: 7204 rpm at t ≈ 5.5 s
   PASS  no pulses dropped (0)
-  PASS  voice / exhaust bus / intake (rev 3 intake voice, meter 11) / output meters live: -13 -13 -8 -8 -180 -38 -180 -180 -11 -14 -180 -11 dB
-  worklet load 0.0 % (headless software Chromium — the user's desktop will be far lower), overruns 26
-  PASS  GT-R boost under load: 0.72 bar, spool 65 % at 4804 rpm, turbo meter -15 dB
-  PASS  live structure edit accepted mid-pull (rpm 7100, errors 0)
+  PASS  voice / exhaust bus / intake (rev 3 intake voice, meter 11) / output meters live: -13 -13 -8 -8 -180 -40 -180 -180 -11 -14 -180 -10 dB
+  worklet load 3.0 % (headless software Chromium — the user's desktop will be far lower), overruns 30
+  PASS  GT-R boost under load: 0.72 bar, spool 65 % at 4795 rpm, turbo meter -14 dB
+  PASS  Demon supercharger under load: 0.69 bar at 4468 rpm, charger meter -19 dB, turbo meter silent, readout "0.66 bar"
+  PASS  Agera R twin turbo under load: 1.23 bar at 6845 rpm, turbo meter -7 dB
+  PASS  Agera R lift: 145 transients spawned for 138 pops (blow-off + wastegate thump on top), dropped 0
+  PASS  live structure edit accepted mid-pull (rpm 2180, errors 0)
   PASS  serialiseToml → parseToml round trip is lossless (918)
 
 [5] C++ hand-over: --render WAV order overlay, Export TOML ⇄ AcousticStructure::Save
-  PASS  Project-Dyno --render / --save outputs available (Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav)
-  PASS  C++ WAV dropped: file feed on, 15.00 s stereo decoded, order sheet built over 142 rpm columns (275 ms)
-  PASS  C++ WAV order sheet vs the worklet's own render of the same pull: mean |Δ| 0.0000 dB, worst 0.000 dB over 1927 order cells ≥ −40 dB (limit: mean 0.1 dB; 1536 ms)
-  PASS  overlay drawn on the order diagram (65656 lit samples)
-  PASS  Export TOML text == Project-Dyno --save (AcousticStructure::Save): 13628 bytes identical
+  (Project-Dyno build / render unavailable here: Command failed: bash Projects/Project-Dyno/Build/ToolchainSequence.sh)
+  FAIL  Project-Dyno --render / --save outputs available (Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav)
+
+[6] row A4 reference lane: a recording tracked blind, played along its trace, compared with the synth
+  PASS  recording dropped: Reference feed on, lane visible, 15.00 s decoded (34871 ms for bank + track + sheet + synth render)
+  PASS  tracker ran in the Worker with the Demon's order bank (742 frames, 20 tracked segments)
+  PASS  blind rpm trace follows the Demon pull: 77 % tracked, median error 0.32 %, p90 1.27 %, octave slips 0 (bars: > 70 %, < 1 %, 0)
+  PASS  recording vs synth along the trace (Split / Δ): mean |Δ| 1.96 dB over 2338 order cells, recording lifted 1.0 dB (limit: mean 3 dB — same voice, other seed, 16-bit)
+  PASS  clip playing along its trace (hear = recording)
+  PASS  worklet plays the synth along the trace in step with the clip: playhead 4.02 s, worklet at 4.02 s of "reference", trace 4130 rpm, worklet rpm 4127 (gauge 4000)
+  PASS  seek to 6 s: playhead 6.30 s, trace 5845 rpm vs pull 5826 rpm at that instant
+  PASS  ÷2 halves the trace (mid-clip 3211 rpm, agreement worsens to 6.57 dB), ×2 restores it (6421 rpm, 1.959 dB)
+  PASS  hear Synth / Both / Recording switch the gains (synth:clip:live1.0:file0.0 both:clip:live1.0:file1.0 recording:clip:live0.0:file1.0); back to Live closes the lane and stops the clip
   PASS  no console / page errors during the live session
 
-ALL PASS — 34 pass, 0 fail
+1 FAIL — 49 pass, 1 fail

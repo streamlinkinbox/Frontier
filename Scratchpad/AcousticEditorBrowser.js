@@ -10,6 +10,11 @@
 //   [5] row A2 · P5: a Project-Dyno --render WAV dropped on the page draws its order sheet over the live voice's (Split / Δ);
 //       the two agree to ±0.1 dB per order cell; Export TOML text == AcousticStructure::Save output byte for byte
 //       (the binary is built and run here when Scratchpad/Reference/FerrariLaFerrari_pull_cpp.wav is absent — Linux toolchain script)
+//   [6] row A4 reference lane: a recording (here a node render of the Demon's pull — the recording feed knows nothing of the dyno
+//       timeline) is dropped as a *recording*; the page builds the car's order bank in its Worker, tracks the rpm blind, plays the
+//       clip along the trace, renders the synth along the trace and compares the two order sheets; the trace must follow the
+//       pull's true rpm (median error < 1 %, no octave slips, coverage > 70 %), Split / Δ agreement ≤ 0.5 dB mean, ÷2 / ×2 rescale
+//       the trace and re-compare, seeking moves the gauge with the clip
 // Run:  node Scratchpad/AcousticEditorBrowser.js <puppeteerModulesDir> [chromiumExecutable]
 //   sandbox: npm i @sparticuz/chromium@129 puppeteer-core@23 in a scratch dir (the Lambda build ships its own libnss)
 //   desktop: point it at an installed Chrome/Edge instead; the WebAudio path is identical.
@@ -292,6 +297,70 @@ function orderLevels(x, start, size, rpm, N)
             check(firstDiff < 0, 'Export TOML text == Project-Dyno --save (AcousticStructure::Save): ' + saved.length + ' bytes identical' + (firstDiff >= 0 ? ' — FIRST DIFFERENCE at byte ' + firstDiff + ': ' + JSON.stringify(saved.slice(Math.max(0, firstDiff - 20), firstDiff + 30)) + ' vs ' + JSON.stringify(exported.slice(Math.max(0, firstDiff - 20), firstDiff + 30)) : ''));
             await page.evaluate(() => { document.querySelector('#overlaySeg button[data-overlay="off"]').click(); document.querySelector('#feedSeg button[data-feed="live"]').click(); });
         }
+    }
+    console.log('\n[6] row A4 reference lane: a recording tracked blind, played along its trace, compared with the synth');
+    {
+        // the "recording": a node render of the Demon's pull, written as a 16-bit WAV (what a phone would hand over), no rpm metadata
+        const refDir = path.join(repo, 'Scratchpad', 'Reference'); fs.mkdirSync(refDir, { recursive: true });
+        const recWav = path.join(refDir, 'DodgeDemon_pull_recording.wav');
+        const demonStructure = D.structureFromToml(D.parseToml(html.match(/<script type="text\/toml" data-car="DodgeDemon">([\s\S]*?)<\/script>/)[1]));
+        const seq = new D.DynoSequence(); seq.select('pull', demonStructure.vehicle.redline_rpm, demonStructure.vehicle.idle_rpm);
+        const recSeconds = seq.duration();
+        {
+            const ig = new D.AcousticIntegrator(RATE, demonStructure, 0xC0FFEE);   // another seed: not the editor's own render
+            const total = Math.floor(recSeconds * RATE), L = new Float64Array(total), R = new Float64Array(total); let done = 0, time = 0;
+            while (done < total) { const n = Math.min(64, total - done), dt = n / RATE; seq.advance(dt); const rec = D.scriptedRecord(seq, demonStructure.vehicle, time); ig.assignDemand(rec.rpm, rec.throttle, rec.load, 0); ig.render(L.subarray(done, done + n), R.subarray(done, done + n), n); done += n; time += dt; }
+            const bytes = new DataView(new ArrayBuffer(44 + total * 2)); const str = (o, t) => { for (let i = 0; i < t.length; ++i) bytes.setUint8(o + i, t.charCodeAt(i)); };
+            str(0, 'RIFF'); bytes.setUint32(4, 36 + total * 2, true); str(8, 'WAVE'); str(12, 'fmt '); bytes.setUint32(16, 16, true); bytes.setUint16(20, 1, true); bytes.setUint16(22, 1, true); bytes.setUint32(24, RATE, true); bytes.setUint32(28, RATE * 2, true); bytes.setUint16(32, 2, true); bytes.setUint16(34, 16, true); str(36, 'data'); bytes.setUint32(40, total * 2, true);
+            for (let i = 0; i < total; ++i) { const v = Math.max(-1, Math.min(1, 0.5 * (L[i] + R[i]) * 0.7)); bytes.setInt16(44 + i * 2, Math.round(v * 32767), true); }
+            fs.writeFileSync(recWav, new Uint8Array(bytes.buffer));
+        }
+        await page.evaluate(() => window.FrontierAudioEditor.selectCar('DodgeDemon'));
+        await new Promise(r => setTimeout(r, 300));
+        const t0 = Date.now();
+        const lane = await page.evaluate(async (url) => {
+            const r = await fetch(url); const blob = await r.blob();
+            await window.FrontierAudioEditor.loadReference(new File([blob], 'DodgeDemon_pull_recording.wav', { type: 'audio/wav' }));
+            const E = window.FrontierAudioEditor.editor, R = E.reference, tr = R.trace;
+            return { feed: E.feed, name: R.name, seconds: R.clip ? R.clip.duration : 0, templated: tr && tr.templated, coverage: tr ? tr.coverage : 0, frames: tr ? tr.frames : 0, segments: tr ? tr.segments : 0,
+                     keys: tr ? tr.keys.filter((k, i) => tr.tracked[i]) : [], agreement: R.agreement, offset: R.offsetDb, busy: R.busy, row: getComputedStyle(document.getElementById('refRow')).display, playing: !!R.emitter, hear: R.hear };
+        }, '/Scratchpad/Reference/DodgeDemon_pull_recording.wav');
+        const ms = Date.now() - t0;
+        check(lane.feed === 'reference' && lane.row !== 'none' && lane.seconds > recSeconds - 0.1, 'recording dropped: Reference feed on, lane visible, ' + lane.seconds.toFixed(2) + ' s decoded (' + ms + ' ms for bank + track + sheet + synth render)');
+        check(lane.templated === true && lane.frames > 500, 'tracker ran in the Worker with the Demon\'s order bank (' + lane.frames + ' frames, ' + lane.segments + ' tracked segments)');
+        // blind trace vs the pull's true rpm
+        const truth = new D.DynoSequence(); truth.select('pull', demonStructure.vehicle.redline_rpm, demonStructure.vehicle.idle_rpm);
+        const errs = []; let slips = 0;
+        for (const k of lane.keys) { truth.sample(k[0]); const e = k[1] / truth.rpm; errs.push(Math.abs(e - 1)); if (Math.abs(e - 2) < 0.08 || Math.abs(e - 0.5) < 0.04) ++slips; }
+        errs.sort((a, b) => a - b);
+        const med = errs.length ? errs[errs.length >> 1] : 1, p90 = errs.length ? errs[Math.floor(errs.length * 0.9)] : 1;
+        check(lane.coverage > 0.7 && med < 0.01 && slips === 0, 'blind rpm trace follows the Demon pull: ' + Math.round(lane.coverage * 100) + ' % tracked, median error ' + (med * 100).toFixed(2) + ' %, p90 ' + (p90 * 100).toFixed(2) + ' %, octave slips ' + slips + ' (bars: > 70 %, < 1 %, 0)');
+        // same voice, other seed, 16-bit, 0.7 gain, along a tracked (not scripted) rpm — the per-cell running means of two independent noise
+        // realisations differ by ≈ 2 dB where a cell is one or two 40 ms spectra deep (the sweep never dwells); the bar is the 3 dB an ear notices
+        check(lane.agreement && lane.agreement.count > 500 && lane.agreement.mean <= 3.0, 'recording vs synth along the trace (Split / Δ): mean |Δ| ' + (lane.agreement ? lane.agreement.mean.toFixed(2) : '—') + ' dB over ' + (lane.agreement ? lane.agreement.count : 0) + ' order cells, recording lifted ' + lane.offset.toFixed(1) + ' dB (limit: mean 3 dB — same voice, other seed, 16-bit)');
+        check(lane.playing && lane.hear === 'recording', 'clip playing along its trace (hear = ' + lane.hear + ')');
+        await new Promise(r => setTimeout(r, 900));
+        // the worklet walks the same trace: its report's pullTime must sit on the clip's playhead (a few slices of report latency) and its smoothed rpm on the trace there
+        const gaugeFollows = await page.evaluate(() => { const F = window.FrontierAudioEditor, E = F.editor, R = E.reference; const t = F.referenceTime(); return { t, pullTime: E.last.pullTime, pull: E.last.pull, rpm: F.Analysis.traceRpmAt(R.trace, E.last.pullTime, false), worklet: E.last.rpm, gauge: document.getElementById('rRpm').textContent }; });
+        check(gaugeFollows.t > 0.5 && gaugeFollows.pull === 'reference' && Math.abs(gaugeFollows.pullTime - gaugeFollows.t) < 0.15 && Math.abs(gaugeFollows.worklet / gaugeFollows.rpm - 1) < 0.02, 'worklet plays the synth along the trace in step with the clip: playhead ' + gaugeFollows.t.toFixed(2) + ' s, worklet at ' + gaugeFollows.pullTime.toFixed(2) + ' s of "' + gaugeFollows.pull + '", trace ' + Math.round(gaugeFollows.rpm) + ' rpm, worklet rpm ' + Math.round(gaugeFollows.worklet) + ' (gauge ' + gaugeFollows.gauge + ')');
+        await page.evaluate(() => window.FrontierAudioEditor.seekReference(6.0));
+        await new Promise(r => setTimeout(r, 300));
+        const sought = await page.evaluate(() => { const F = window.FrontierAudioEditor; const t = F.referenceTime(); return { t, rpm: F.Analysis.traceRpmAt(F.editor.reference.trace, t, false) }; });
+        truth.sample(sought.t);
+        check(sought.t > 5.9 && sought.t < 6.8 && Math.abs(sought.rpm / truth.rpm - 1) < 0.03, 'seek to 6 s: playhead ' + sought.t.toFixed(2) + ' s, trace ' + Math.round(sought.rpm) + ' rpm vs pull ' + Math.round(truth.rpm) + ' rpm at that instant');
+        await new Promise(r => setTimeout(r, 500));
+        const refPanel = await page.evaluateHandle(() => document.getElementById('refRow'));
+        await refPanel.screenshot({ path: path.join(shots, 'AudioEditor_11_ReferenceLane_Trace.png') });
+        const ordersPanel = await page.evaluateHandle(() => document.getElementById('orders').closest('.panel'));
+        await ordersPanel.screenshot({ path: path.join(shots, 'AudioEditor_12_ReferenceLane_Split.png') });
+        // ÷2 then ×2: the trace halves (the synth would play an octave low), the sheets are re-read, ×2 restores it
+        const halved = await page.evaluate(async () => { const F = window.FrontierAudioEditor; await F.rescaleReference(0.5); const R = F.editor.reference; return { scale: R.scale, rpm: R.trace.rpm[Math.floor(R.trace.frames / 2)], agreement: R.agreement && R.agreement.mean }; });
+        const restored = await page.evaluate(async () => { const F = window.FrontierAudioEditor; await F.rescaleReference(2.0); const R = F.editor.reference; return { scale: R.scale, rpm: R.trace.rpm[Math.floor(R.trace.frames / 2)], agreement: R.agreement && R.agreement.mean }; });
+        check(halved.scale === 0.5 && Math.abs(halved.rpm * 2 / restored.rpm - 1) < 1e-6 && restored.scale === 1 && halved.agreement > restored.agreement, '÷2 halves the trace (mid-clip ' + Math.round(halved.rpm) + ' rpm, agreement worsens to ' + halved.agreement.toFixed(2) + ' dB), ×2 restores it (' + Math.round(restored.rpm) + ' rpm, ' + restored.agreement.toFixed(3) + ' dB)');
+        // Synth / Both hearing modes switch the emitters without errors; back to the live feed closes the lane
+        // the clip keeps running (muted) in Synth mode so the playhead — and the synth's rpm — stay in step; the gains do the switching
+        const hear = await page.evaluate(async () => { const F = window.FrontierAudioEditor, E = F.editor; const out = []; for (const h of ['synth', 'both', 'recording']) { document.querySelector('#hearSeg button[data-hear="' + h + '"]').click(); await new Promise(r => setTimeout(r, 250)); out.push(E.reference.hear + ':' + (E.reference.emitter ? 'clip' : 'noclip') + ':live' + E.liveGain.gain.value.toFixed(1) + ':file' + E.fileGain.gain.value.toFixed(1)); } document.querySelector('#feedSeg button[data-feed="live"]').click(); await new Promise(r => setTimeout(r, 200)); return { out, feed: E.feed, row: getComputedStyle(document.getElementById('refRow')).display, emitter: !!E.reference.emitter }; });
+        check(hear.out.join(' ') === 'synth:clip:live1.0:file0.0 both:clip:live1.0:file1.0 recording:clip:live0.0:file1.0' && hear.feed === 'live' && hear.row === 'none' && !hear.emitter, 'hear Synth / Both / Recording switch the gains (' + hear.out.join(' ') + '); back to Live closes the lane and stops the clip');
     }
     check(errors.length === 0, 'no console / page errors during the live session' + (errors.length ? ' → ' + errors.slice(0, 3).join(' | ') : ''));
 

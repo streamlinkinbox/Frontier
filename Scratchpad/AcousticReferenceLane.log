@@ -1,0 +1,66 @@
+AudioEditor reference lane proof — 2026-09-07T05:42:33.587Z
+
+[1] blind rpm tracking of the scripted sequences (the tracker sees audio only; the bank is the car's own voicing)
+  (order bank FerrariLaFerrari: 68 rpm points × 2 throttles, 2790 ms)
+  PASS  FerrariLaFerrari/pull       85 % tracked, median 0.05 %, p90 0.25 %, > 3 %: 2/631, octave slips 0 (4095 ms)
+  (order bank Porsche918Spyder: 68 rpm points × 2 throttles, 11905 ms)
+  PASS  Porsche918Spyder/pull       83 % tracked, median 0.52 %, p90 1.72 %, > 3 %: 20/616, octave slips 0 (3781 ms)
+  (order bank NissanGtrNismo: 65 rpm points × 2 throttles, 7529 ms)
+  PASS  NissanGtrNismo/pull         87 % tracked, median 0.49 %, p90 1.46 %, > 3 %: 20/643, octave slips 0 (3528 ms)
+  (order bank KoenigseggAgeraR: 65 rpm points × 2 throttles, 7615 ms)
+  PASS  KoenigseggAgeraR/pull       89 % tracked, median 0.45 %, p90 1.45 %, > 3 %: 23/662, octave slips 0 (3154 ms)
+  (order bank DodgeDemon: 65 rpm points × 2 throttles, 7548 ms)
+  PASS  DodgeDemon/pull             76 % tracked, median 0.32 %, p90 1.02 %, > 3 %: 10/563, octave slips 0 (3713 ms)
+  PASS  FerrariLaFerrari/idle       100 % tracked, median 0.02 %, p90 0.03 %, > 3 %: 0/492, octave slips 0 (2338 ms)
+  PASS  FerrariLaFerrari/blip       71 % tracked, median 0.17 %, p90 1.91 %, > 3 %: 15/280, octave slips 0 (2202 ms)
+  PASS  FerrariLaFerrari/overrun    89 % tracked, median 0.08 %, p90 0.46 %, > 3 %: 7/481, octave slips 0 (2747 ms)
+  PASS  Porsche918Spyder/blip       78 % tracked, median 0.39 %, p90 3.21 %, > 3 %: 35/306, octave slips 0 (1690 ms)
+  PASS  DodgeDemon/idle             99 % tracked, median 0.59 %, p90 1.83 %, > 3 %: 0/487, octave slips 0 (2125 ms)
+  PASS  NissanGtrNismo/overrun      87 % tracked, median 0.44 %, p90 1.61 %, > 3 %: 15/474, octave slips 0 (3187 ms)
+  PASS  KoenigseggAgeraR/sweep      92 % tracked, median 0.59 %, p90 2.30 %, > 3 %: 37/547, octave slips 0 (4465 ms)
+  PASS  over all cases 184 of 6182 tracked frames more than 3 % off (3.0 %, limit 5 %)
+
+[2] degraded recordings (pink noise −12 dB · room · telephone band) on the five pulls + the Demon idle
+        noise     FerrariLaFerrari/pull       48 % tracked, median 0.06 %, p90 0.25 %, > 3 %: 12/357, octave slips 0 (6356 ms)
+        noise     Porsche918Spyder/pull       73 % tracked, median 0.41 %, p90 1.30 %, > 3 %: 12/543, octave slips 0 (5682 ms)
+        noise     NissanGtrNismo/pull         73 % tracked, median 0.47 %, p90 1.85 %, > 3 %: 23/538, octave slips 0 (5737 ms)
+        noise     KoenigseggAgeraR/pull       69 % tracked, median 0.41 %, p90 1.45 %, > 3 %: 18/515, octave slips 0 (6009 ms)
+        noise     DodgeDemon/pull             70 % tracked, median 0.32 %, p90 1.39 %, > 3 %: 11/517, octave slips 0 (5763 ms)
+        noise     DodgeDemon/idle             85 % tracked, median 0.75 %, p90 1.91 %, > 3 %: 8/417, octave slips 0 (2416 ms)
+  PASS  noise: worst median 0.75 %, octave slips 0, lowest coverage 48 % over 6 cases
+        room      FerrariLaFerrari/pull       85 % tracked, median 0.09 %, p90 0.42 %, > 3 %: 3/628, octave slips 0 (3648 ms)
+        room      Porsche918Spyder/pull       75 % tracked, median 0.54 %, p90 1.83 %, > 3 %: 22/558, octave slips 0 (3209 ms)
+        room      NissanGtrNismo/pull         81 % tracked, median 0.56 %, p90 1.59 %, > 3 %: 22/601, octave slips 0 (4456 ms)
+        room      KoenigseggAgeraR/pull       81 % tracked, median 0.49 %, p90 1.63 %, > 3 %: 24/600, octave slips 0 (4635 ms)
+        room      DodgeDemon/pull             72 % tracked, median 0.37 %, p90 1.06 %, > 3 %: 5/531, octave slips 0 (2784 ms)
+        room      DodgeDemon/idle             67 % tracked, median 0.45 %, p90 1.77 %, > 3 %: 0/329, octave slips 0 (1816 ms)
+  PASS  room: worst median 0.56 %, octave slips 0, lowest coverage 67 % over 6 cases
+        telephone FerrariLaFerrari/pull       85 % tracked, median 0.05 %, p90 0.25 %, > 3 %: 5/630, octave slips 0 (2946 ms)
+        telephone Porsche918Spyder/pull       82 % tracked, median 0.52 %, p90 1.69 %, > 3 %: 19/610, octave slips 0 (2664 ms)
+        telephone NissanGtrNismo/pull         83 % tracked, median 0.50 %, p90 1.56 %, > 3 %: 21/619, octave slips 0 (2589 ms)
+        telephone KoenigseggAgeraR/pull       82 % tracked, median 0.46 %, p90 1.57 %, > 3 %: 17/605, octave slips 0 (2656 ms)
+        telephone DodgeDemon/pull             76 % tracked, median 0.29 %, p90 1.01 %, > 3 %: 7/563, octave slips 0 (2704 ms)
+        telephone DodgeDemon/idle             97 % tracked, median 0.55 %, p90 1.28 %, > 3 %: 0/478, octave slips 0 (1700 ms)
+  PASS  telephone: worst median 0.55 %, octave slips 0, lowest coverage 76 % over 6 cases
+
+[3] the bank is the car: a recording tracked with another car's bank (same cylinder count) — reported, not barred
+        Porsche918Spyder pull with its own bank: 83 % tracked, median 0.52 %, p90 1.72 %, > 3 %: 20/616, octave slips 0 (2621 ms)
+                         with the KoenigseggAgeraR bank: 51 % tracked, median 1.29 %, p90 302.69 %, > 3 %: 163/382, octave slips 30 (2703 ms)
+  PASS  Porsche918Spyder: own bank tracks at least as well as the KoenigseggAgeraR bank (20 vs 163 frames off, coverage 83 vs 51 %)
+        KoenigseggAgeraR pull with its own bank: 89 % tracked, median 0.45 %, p90 1.45 %, > 3 %: 23/662, octave slips 0 (2589 ms)
+                         with the DodgeDemon bank: 65 % tracked, median 1.10 %, p90 301.56 %, > 3 %: 195/486, octave slips 84 (2606 ms)
+  PASS  KoenigseggAgeraR: own bank tracks at least as well as the DodgeDemon bank (23 vs 195 frames off, coverage 89 vs 65 %)
+        DodgeDemon pull with its own bank: 76 % tracked, median 0.32 %, p90 1.02 %, > 3 %: 10/563, octave slips 0 (2575 ms)
+                   with the Porsche918Spyder bank: 36 % tracked, median 0.74 %, p90 298.79 %, > 3 %: 74/267, octave slips 14 (2603 ms)
+  PASS  DodgeDemon: own bank tracks at least as well as the Porsche918Spyder bank (10 vs 74 frames off, coverage 76 vs 36 %)
+
+[4] the lane's comparison: a 16-bit Demon pull at another seed, tracked blind, synth along the trace, Split / Δ agreement
+  PASS  the 16-bit recording tracks: 77 % tracked, median 0.32 %, p90 1.27 %, > 3 %: 9/568, octave slips 0 (2650 ms)
+  PASS  recording vs synth along the trace: mean |Δ| 1.92 dB, worst 12.5 dB over 2338 cells ≥ −40 dB, recording lifted 1.0 dB (limit: mean 3 dB)
+  PASS  ÷2 (the trace an octave low): mean |Δ| 6.55 dB — the agreement line exposes a wrong octave by 4.6 dB
+        (the same comparison along the true rpm with the true throttle: mean |Δ| 1.83 dB — the floor set by the two noise realisations; the blind trace costs 0.09 dB)
+
+[5] the #dsp block against the previous commit: the identity reference set renders bit-identically
+  PASS  #dsp text changed — 9 reference renders max |Δ| 0 (bit-neutral)
+
+ALL PASS — 23 pass, 0 fail
