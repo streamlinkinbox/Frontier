@@ -101,12 +101,18 @@ export interface FrameState {
 export interface Backend {
   name: "WebGPU" | "WebGL2";
   size: VolumeSize;
+  readonly displayMode?: "native" | "safe";
+  refreshDisplaySurface?(): void;
   initialize(settings: Settings): Promise<void>;
   regenerate(settings: Settings): Promise<void>;
   ready(): boolean;
+  getDiagnostics(): Record<string, unknown>;
   sync(): Promise<void>;
   render(frame: FrameState): void;
-  verifyFrame(frame: FrameState): Promise<boolean>;
+  verifyFrame(
+    frame: FrameState,
+    target?: "presentation" | "offscreen",
+  ): Promise<boolean>;
   capture(frame: FrameState): Promise<Blob>;
   step(settings: Settings, count: number): void;
   sculpt(center: Vec3, tool: Tool, settings: Settings): void;
@@ -120,6 +126,7 @@ export interface EngineStats {
   fps: number;
   steps: number;
   backend: string;
+  displayMode?: "native" | "safe";
   size: VolumeSize;
   running: boolean;
   scalePixels?: number;

@@ -3192,3 +3192,155 @@ input[type="range"]:focus-visible {
 .is-flying .scene-caption h1 {
   font-size: 20px;
 }
+
+/* Diagnostics remain reachable even when the renderer cannot initialize. */
+.header-actions .gpu-logs-button {
+  color: #e2ba7f;
+  border: 1px solid #806442;
+  border-radius: 5px;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+.diagnostics-dialog {
+  width: min(920px, 94vw);
+  max-height: 94dvh;
+  background: #1c1f20;
+  border-color: #5b6058;
+  color: #e4e5dc;
+}
+.diagnostics-dialog .dialog-header {
+  background: #252a27;
+  border-color: #41463f;
+}
+.diagnostics-dialog .dialog-header h2 {
+  font-size: 17px;
+}
+.diagnostics-body {
+  padding: 20px 24px;
+}
+.diagnostics-intro {
+  color: #b9c0b4;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.diagnostics-intro strong {
+  color: #e8cc9b;
+}
+.diagnostics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+}
+.diagnostics-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 37px;
+  font-size: 12px;
+}
+.diagnostics-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px;
+  font: 10px var(--mono);
+  color: #a7b197;
+}
+.diagnostics-caption button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #d8c095;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.diagnostics-report {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: min(44dvh, 470px);
+  min-height: 170px;
+  border: 1px solid #4c5846;
+  border-radius: 6px;
+  padding: 14px;
+  background: #101513;
+  color: #d0ddc2;
+  font:
+    11px/1.65 var(--mono),
+    monospace;
+  resize: vertical;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+.diagnostics-report:focus {
+  outline: 2px solid #bd9a63;
+  outline-offset: 2px;
+}
+.diagnostics-feedback {
+  min-height: 20px;
+  margin-top: 12px;
+  color: #ebca92;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.diagnostics-note {
+  color: #99a491;
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+@media (max-width: 690px) {
+  .header-actions .gpu-logs-button {
+    padding: 6px 7px;
+    font-size: 10px;
+  }
+  .header-actions .gpu-logs-button span {
+    display: inline;
+  }
+  .header-actions .gpu-logs-button svg {
+    display: none;
+  }
+  .diagnostics-body {
+    padding: 15px;
+  }
+  .diagnostics-actions button {
+    flex: 1 1 130px;
+  }
+  .diagnostics-intro {
+    font-size: 12px;
+  }
+  .diagnostics-report {
+    height: 32dvh;
+  }
+}
+@media (max-width: 420px) {
+  .app-header {
+    gap: 8px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions > .guide-button {
+    display: none;
+  }
+  .header-actions > .save-button {
+    min-width: 24px;
+  }
+  .header-actions > .save-button > span {
+    display: none;
+  }
+}
+/* Keep the recovery UI independent of GPU-backed backdrop/filter effects. */
+.diagnostics-dialog {
+  filter: none;
+}
+.diagnostics-dialog::backdrop {
+  backdrop-filter: none;
+  background: #0d140be8;
+}

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { expectSandstone } from "./pixels";
+import { version } from "../package.json";
 
 for (const renderer of ["webgpu", "webgl"] as const) {
   test(`${renderer}: compiled Pages site loads its assets, renders terrain and exports`, async ({
@@ -28,7 +29,7 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       renderer === "webgpu" ? "WebGPU" : "WebGL2",
     );
     expect(await page.evaluate(() => window.__frontier)).toBeUndefined();
-    await expect(page.locator(".footer-version")).toContainText("v0.2.1");
+    await expect(page.locator(".footer-version")).toContainText(`v${version}`);
     const image = await page.locator(".viewport-canvas").screenshot();
     expectSandstone(image);
     await testInfo.attach("rendered-canyon", {
@@ -68,6 +69,13 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       const bytes = await readFile((await mesh.path())!);
       expect(bytes.readUInt32LE(0)).toBe(0x46546c67);
     }
+    await page.getByRole("button", { name: "GPU logs", exact: true }).click();
+    await expect(
+      page.getByRole("dialog", { name: "GPU diagnostics" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "GPU diagnostic report" }),
+    ).toHaveValue(/FRONTIER GPU DIAGNOSTICS/);
     expect(failures).toEqual([]);
     expect(errors).toEqual([]);
   });

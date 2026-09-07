@@ -2,7 +2,7 @@ import { glFragment, glVertex } from "./shaders";
 import { generateField, pickField, sculptField } from "./field";
 import { computeFlux, evolveField, redistanceField } from "./simulation";
 import { packUniforms } from "./uniforms";
-import { hasVisibleFrame } from "./startup";
+import { diagnostics, summarizePixels } from "../diagnostics";
 import { encodeFramePNG } from "./presentation";
 import {
   CPU_SIZE,
@@ -34,9 +34,19 @@ export class WebGLBackend implements Backend {
   private brushCycle = 0;
   private destroyed = false;
   private fence: WebGLSync | null = null;
+  private drawCount = 0;
+  private lastProbe: unknown = null;
+  private lastOffscreenProbe: unknown = null;
+  private rendererInfo: unknown = null;
   onLost?: (message: string) => void;
   private contextLost = (event: Event) => {
     event.preventDefault();
+    diagnostics.log(
+      "WebGL2",
+      "Context lost",
+      { expectedDisposal: this.destroyed },
+      this.destroyed ? "info" : "error",
+    );
     if (!this.destroyed)
       this.onLost?.(
         "The WebGL graphics context was lost. Restart the renderer to reconnect.",
@@ -47,6 +57,7 @@ export class WebGLBackend implements Backend {
     if (this.destroyed)
       throw new DOMException("WebGL startup was cancelled", "AbortError");
     this.canvas.addEventListener("webglcontextlost", this.contextLost);
+    diagnostics.log("WebGL2", "Requesting compatibility graphics context");
     const gl = this.canvas.getContext("webgl2", {
       alpha: false,
       antialias: false,
@@ -58,11 +69,40 @@ export class WebGLBackend implements Backend {
         "Neither WebGPU nor WebGL2 is available. Enable graphics acceleration in your browser.",
       );
     this.gl = gl;
+    const debug = gl.getExtension("WEBGL_debug_renderer_info");
+    this.rendererInfo = {
+      vendor: gl.getParameter(gl.VENDOR),
+      renderer: gl.getParameter(gl.RENDERER),
+      unmaskedVendor: debug
+        ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)
+        : "not exposed",
+      unmaskedRenderer: debug
+        ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+        : "not exposed",
+      version: gl.getParameter(gl.VERSION),
+      shadingLanguage: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
+      maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+      max3DTextureSize: gl.getParameter(gl.MAX_3D_TEXTURE_SIZE),
+      attributes: gl.getContextAttributes(),
+    };
+    diagnostics.log("WebGL2", "Context created", this.rendererInfo);
     const compile = (type: number, source: string) => {
       const shader = gl.createShader(type)!;
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      const compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      diagnostics.log(
+        "GLSL",
+        type === gl.VERTEX_SHADER
+          ? "Vertex shader compiled"
+          : "Fragment shader compiled",
+        {
+          compiled,
+          info: gl.getShaderInfoLog(shader),
+        },
+        compiled ? "info" : "error",
+      );
+      if (!compiled) {
         const error = gl.getShaderInfoLog(shader);
         gl.deleteShader(shader);
         throw new Error(error || "Shader compilation failed");
@@ -77,6 +117,10 @@ export class WebGLBackend implements Backend {
     gl.linkProgram(this.program);
     gl.deleteShader(vs);
     gl.deleteShader(fs);
+    diagnostics.log("WebGL2", "Program link result", {
+      linked: gl.getProgramParameter(this.program, gl.LINK_STATUS),
+      info: gl.getProgramInfoLog(this.program),
+    });
     if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))
       throw new Error(
         gl.getProgramInfoLog(this.program) || "Shader link failed",
@@ -98,6 +142,25 @@ export class WebGLBackend implements Backend {
     this.flux = new Float32Array((this.data.length / 4) * 3);
     this.texture = this.createTexture(this.data);
     this.originalTexture = this.createTexture(this.original);
+    diagnostics.log("WebGL2", "Initial 3D volume uploaded", {
+      size: this.size,
+      seed: settings.seed,
+      preset: settings.preset,
+    });
+  }
+  getDiagnostics(): Record<string, unknown> {
+    return {
+      backend: this.name,
+      destroyed: this.destroyed,
+      contextLost: this.gl?.isContextLost(),
+      rendererInfo: this.rendererInfo,
+      drawCount: this.drawCount,
+      frameFencePending: !!this.fence,
+      renderTargetSize: [this.targetWidth, this.targetHeight],
+      volumeSize: this.size,
+      lastPixelProbe: this.lastProbe,
+      lastOffscreenProbe: this.lastOffscreenProbe,
+    };
   }
   async regenerate(settings: Settings) {
     this.relaxationCycle = 0;
@@ -258,37 +321,60 @@ export class WebGLBackend implements Backend {
     if (this.fence) gl.deleteSync(this.fence);
     this.fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     gl.flush();
+    this.drawCount++;
+    if (this.drawCount === 1)
+      diagnostics.log("WebGL2", "First terrain draw submitted", {
+        renderSize: [frame.width, frame.height],
+        displaySize: [this.canvas.width, this.canvas.height],
+      });
   }
-  async verifyFrame(frame: FrameState): Promise<boolean> {
-    this.render(frame);
+  async verifyFrame(
+    frame: FrameState,
+    target: "presentation" | "offscreen" = "presentation",
+  ): Promise<boolean> {
+    this.drawFrame(frame, target === "presentation");
     const gl = this.gl;
+    const width = target === "presentation" ? this.canvas.width : frame.width;
+    const height =
+      target === "presentation" ? this.canvas.height : frame.height;
+    gl.bindFramebuffer(
+      gl.READ_FRAMEBUFFER,
+      target === "presentation" ? null : this.framebuffer,
+    );
     if (gl.isContextLost())
       throw new Error("WebGL graphics context was lost during startup.");
-    const row = new Uint8Array(this.canvas.width * 4);
+    const row = new Uint8Array(width * 4);
     const pixels = new Uint8Array(32 * 32 * 4);
     for (let y = 0; y < 32; y++) {
-      const sy = Math.min(
-        this.canvas.height - 1,
-        Math.floor(((y + 0.5) * this.canvas.height) / 32),
-      );
-      gl.readPixels(
-        0,
-        sy,
-        this.canvas.width,
-        1,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        row,
-      );
+      const sy = Math.min(height - 1, Math.floor(((y + 0.5) * height) / 32));
+      gl.readPixels(0, sy, width, 1, gl.RGBA, gl.UNSIGNED_BYTE, row);
       for (let x = 0; x < 32; x++) {
-        const sx = Math.min(
-          this.canvas.width - 1,
-          Math.floor(((x + 0.5) * this.canvas.width) / 32),
-        );
+        const sx = Math.min(width - 1, Math.floor(((x + 0.5) * width) / 32));
         pixels.set(row.subarray(sx * 4, sx * 4 + 4), (y * 32 + x) * 4);
       }
     }
-    return hasVisibleFrame(pixels);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    const summary = summarizePixels(pixels);
+    const probe = {
+      at: new Date().toISOString(),
+      source:
+        target === "presentation"
+          ? "WebGL default framebuffer (not a screen capture)"
+          : "Owned WebGL framebuffer (not a screen capture)",
+      glError: gl.getError(),
+      ...summary,
+    };
+    if (target === "presentation") this.lastProbe = probe;
+    else this.lastOffscreenProbe = probe;
+    diagnostics.log(
+      "WebGL2",
+      target === "presentation"
+        ? "Presentation framebuffer pixel check"
+        : "Owned render target pixel check",
+      probe,
+      summary.nonUniformOpaque ? "info" : "warn",
+    );
+    return summary.nonUniformOpaque;
   }
   async capture(frame: FrameState): Promise<Blob> {
     this.drawFrame(frame, false);
@@ -360,6 +446,7 @@ export class WebGLBackend implements Backend {
     this.upload();
   }
   dispose() {
+    diagnostics.log("WebGL2", "Backend disposed");
     this.destroyed = true;
     this.canvas.removeEventListener("webglcontextlost", this.contextLost);
     const gl = this.gl;

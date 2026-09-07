@@ -32,3 +32,44 @@ export async function withTimeout<T>(
     if (timer !== undefined) clearTimeout(timer);
   }
 }
+
+/** A hidden iframe may compile shaders, but must not acquire its first native
+ * swapchain frame until the browser offers a visible rendering opportunity. */
+export function nextVisibleFrame(
+  container: HTMLElement,
+  signal: AbortSignal,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let raf = 0;
+    const cleanup = () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", schedule);
+      signal.removeEventListener("abort", abort);
+    };
+    const abort = () => {
+      cleanup();
+      reject(new DOMException("Viewport startup was cancelled", "AbortError"));
+    };
+    const schedule = () => {
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      if (document.hidden || raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (
+          !document.hidden &&
+          container.clientWidth > 0 &&
+          container.clientHeight > 0
+        ) {
+          cleanup();
+          resolve();
+        } else schedule();
+      });
+    };
+    document.addEventListener("visibilitychange", schedule);
+    signal.addEventListener("abort", abort, { once: true });
+    schedule();
+  });
+}

@@ -3,7 +3,9 @@ import { WebGLBackend } from "./WebGLBackend";
 import { clamp } from "./math";
 import { EditorCamera, FLY_KEYS, type NavigationMode } from "./EditorCamera";
 import { sampleField } from "./field";
-import { withTimeout } from "./startup";
+import { nextVisibleFrame, withTimeout } from "./startup";
+import { chooseGPUDisplay } from "./display";
+import { diagnostics, canvasSnapshot, summarizeVolume } from "../diagnostics";
 import {
   BOUNDS_MIN,
   WORLD_SIZE,
@@ -71,6 +73,8 @@ export class TerrainEngine {
   private lastSimulation = 0;
   private lastPick = 0;
   private initialized = false;
+  private startupAbort = new AbortController();
+  private restoreDisplayRequested = false;
   private previewSnapshotPending = false;
   constructor(
     private container: HTMLElement,
@@ -84,6 +88,15 @@ export class TerrainEngine {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
     this.events();
+    diagnostics.log("Engine", "Viewport created", {
+      preset: settings.preset,
+      seed: settings.seed,
+      clientSize: [container.clientWidth, container.clientHeight],
+    });
+  }
+  private startupStatus(message: string) {
+    diagnostics.log("Startup", message);
+    this.callbacks.status?.(message);
   }
   private get isCurrent() {
     return !this.stopped && canvasOwners.get(this.container) === this;
@@ -109,10 +122,13 @@ export class TerrainEngine {
       new URLSearchParams(location.search).get("renderer") === "webgl";
     let fallbackReason = "";
     if (!forceGL) {
-      const gpu = new WebGPUBackend(this.canvas);
+      const gpu = new WebGPUBackend(
+        this.canvas,
+        chooseGPUDisplay(location.search, navigator.userAgent),
+      );
       this.backend = gpu;
       gpu.onLost = (m) => this.graphicsLost(m);
-      this.callbacks.status?.("Initializing the WebGPU terrain volume…");
+      this.startupStatus("Initializing the WebGPU terrain volume…");
       try {
         await withTimeout(
           gpu.initialize(this.settings),
@@ -129,6 +145,12 @@ export class TerrainEngine {
         // A disposed initializer must never append a fallback canvas later.
         if (!this.isCurrent) return;
         fallbackReason = error instanceof Error ? error.message : String(error);
+        diagnostics.log(
+          "Startup",
+          "WebGPU failed; using compatibility renderer",
+          error,
+          "warn",
+        );
         console.warn(
           "WebGPU startup failed; switching to the 3D compatibility renderer.",
           error,
@@ -143,7 +165,7 @@ export class TerrainEngine {
       this.backend = gl;
       gl.onLost = (m) => this.graphicsLost(m);
       this.resolution = 0.7;
-      this.callbacks.status?.("Starting the 3D compatibility renderer…");
+      this.startupStatus("Starting the 3D compatibility renderer…");
       await gl.initialize(this.settings);
       if (!this.isCurrent) {
         gl.dispose();
@@ -156,12 +178,18 @@ export class TerrainEngine {
       return;
     }
     this.initialized = true;
+    this.restoreDisplayRequested = false;
     this.resize();
     this.then = this.fpsStart = performance.now();
     this.frameCount = 0;
     this.emitStats();
+    diagnostics.log(
+      "Engine",
+      "Ready (GPU readback checked; browser composition not verified)",
+      { backend: this.backend.name },
+    );
     this.callbacks.ready(this.backend.name);
-    this.tick(performance.now());
+    this.raf = requestAnimationFrame(this.tick);
     if (fallbackReason)
       this.callbacks.notice(
         "WebGPU could not display the scene. The 3D compatibility renderer is now active.",
@@ -169,6 +197,12 @@ export class TerrainEngine {
   }
   private graphicsLost(message: string) {
     if (!this.isCurrent || !this.initialized || this.graphicsFailed) return;
+    diagnostics.log(
+      "Engine",
+      "Graphics interrupted",
+      { message, backend: this.backend.getDiagnostics() },
+      "error",
+    );
     this.graphicsFailed = true;
     this.running = false;
     this.pendingSteps = 0;
@@ -178,8 +212,14 @@ export class TerrainEngine {
     this.callbacks.error(`Graphics device: ${message}`);
   }
   private async verifyFirstFrame(backend: Backend) {
-    this.callbacks.status?.("Checking the first terrain frame…");
+    this.startupStatus("Checking the first terrain frame…");
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (!this.isCurrent) return;
+      if (document.hidden)
+        this.startupStatus(
+          "Waiting for the viewport to become visible before displaying terrain…",
+        );
+      await nextVisibleFrame(this.container, this.startupAbort.signal);
       if (!this.isCurrent) return;
       this.resize();
       this.applyResize();
@@ -192,9 +232,27 @@ export class TerrainEngine {
         `${backend.name} did not finish the first frame.`,
       );
       if (!this.isCurrent) return;
+      if (document.hidden) {
+        attempt--;
+        continue;
+      }
       // An initially hidden preview gets sized when it becomes visible. It
       // cannot be usefully checked for spatial variation at one pixel wide.
-      if (width < 32 || height < 32) return;
+      diagnostics.log("Startup", "First-frame verification result", {
+        backend: backend.name,
+        attempt: attempt + 1,
+        sampledBitmapSize: [width, height],
+        visiblePixels: visible,
+      });
+      if (width < 32 || height < 32) {
+        diagnostics.log(
+          "Startup",
+          "Tiny or hidden viewport; full-sized first-frame check skipped",
+          { width, height },
+          "warn",
+        );
+        return;
+      }
       if (
         this.canvas.width === width &&
         this.canvas.height === height &&
@@ -221,6 +279,12 @@ export class TerrainEngine {
     const scale = this.quality === "native" ? 1 : this.resolution;
     this.renderWidth = Math.max(1, Math.round(width * scale));
     this.renderHeight = Math.max(1, Math.round(height * scale));
+    diagnostics.log("Canvas", "Display/render sizing applied", {
+      display: [width, height],
+      render: [this.renderWidth, this.renderHeight],
+      quality: this.quality,
+      dpr,
+    });
     this.resizeRequested = false;
   }
   private get aspect() {
@@ -307,6 +371,10 @@ export class TerrainEngine {
         }
       }
       this.applyResize();
+      if (this.restoreDisplayRequested) {
+        this.backend.refreshDisplaySurface?.();
+        this.restoreDisplayRequested = false;
+      }
       this.frame = this.makeFrame();
       if (
         this.tool !== "orbit" &&
@@ -360,6 +428,7 @@ export class TerrainEngine {
       fps: this.fps,
       steps: this.steps,
       backend: this.backend.name,
+      displayMode: this.backend.displayMode,
       size: this.backend.size,
       running: this.running,
       navigationMode: this.camera.mode,
@@ -504,6 +573,7 @@ export class TerrainEngine {
       clear();
       this.frameWaitStarted = 0;
       if (!document.hidden) {
+        this.restoreDisplayRequested = true;
         this.then = this.fpsStart = performance.now();
         this.frameCount = 0;
         this.lowFpsWindows = this.highFpsWindows = 0;
@@ -529,6 +599,138 @@ export class TerrainEngine {
   setCameraSpeed(speed: number) {
     this.camera.speed = clamp(speed, 0.25, 80);
     this.emitStats();
+  }
+  getDiagnostics(): Record<string, unknown> {
+    return {
+      initialized: this.initialized,
+      currentOwner: this.isCurrent,
+      stopped: this.stopped,
+      graphicsFailed: this.graphicsFailed,
+      busy: this.busy,
+      running: this.running,
+      fps: +this.fps.toFixed(1),
+      steps: this.steps,
+      pendingSteps: this.pendingSteps,
+      waitingForFrameMs: this.frameWaitStarted
+        ? Math.round(performance.now() - this.frameWaitStarted)
+        : 0,
+      quality: this.quality,
+      resolutionScale: this.resolution,
+      renderSize: [this.renderWidth, this.renderHeight],
+      resizeRequested: this.resizeRequested,
+      camera: { mode: this.camera.mode, ...this.camera.basis(this.aspect) },
+      settings: {
+        preset: this.settings.preset,
+        seed: this.settings.seed,
+        terrainVisible: this.settings.terrainVisible,
+        view: this.settings.view,
+        exposure: this.settings.exposure,
+        sunAngle: this.settings.sunAngle,
+        detail: this.settings.detail,
+        water: this.settings.water,
+        waterLevel: this.settings.waterLevel,
+        compare: this.compare,
+      },
+      backend: this.backend?.getDiagnostics(),
+      canvas: canvasSnapshot(this.canvas, this.container),
+    };
+  }
+  /** Explicit, bounded inspection. It never sculpts, steps, resets or saves. */
+  async checkViewport() {
+    diagnostics.log(
+      "Check",
+      "User requested viewport diagnostics",
+      this.getDiagnostics(),
+    );
+    if (
+      !this.initialized ||
+      !this.isCurrent ||
+      this.graphicsFailed ||
+      this.busy ||
+      this.picking ||
+      this.down
+    ) {
+      diagnostics.log(
+        "Check",
+        "GPU checks skipped: renderer is unavailable or busy. Startup/errors are still in this report.",
+        undefined,
+        "warn",
+      );
+      return;
+    }
+    const backend = this.backend;
+    this.busy = true;
+    this.camera.clearKeys();
+    let stage = "waiting for GPU queue";
+    try {
+      diagnostics.log("Check", stage);
+      await withTimeout(
+        backend.sync(),
+        6000,
+        "GPU queue did not complete within 6 seconds.",
+      );
+      if (!this.isCurrent) return;
+      stage = "checking presentation texture";
+      diagnostics.log("Check", stage);
+      await nextVisibleFrame(this.container, this.startupAbort.signal);
+      if (!this.isCurrent) return;
+      await withTimeout(
+        backend.verifyFrame(this.makeFrame()),
+        8000,
+        "Presentation pixel readback timed out after 8 seconds.",
+      );
+      if (!this.isCurrent) return;
+      // Never copy a live WebGPU canvas or route probes through PNG/Canvas2D:
+      // a browser-side image transfer can block JS on an unhealthy compositor.
+      diagnostics.log(
+        "Check",
+        "Browser compositor pixels are not readable safely by this app",
+        {
+          note: "Both probes copy GPU textures into owned buffers. They do not prove on-screen display; report the visible result separately.",
+        },
+      );
+      stage = "checking owned off-screen image";
+      diagnostics.log("Check", stage);
+      const frame = this.makeFrame();
+      await withTimeout(
+        backend.verifyFrame(
+          {
+            ...frame,
+            width: 192,
+            height: Math.max(1, Math.round((192 * frame.height) / frame.width)),
+            brush: null,
+            tool: "orbit",
+          },
+          "offscreen",
+        ),
+        8000,
+        "Owned render target check timed out after 8 seconds.",
+      );
+      if (!this.isCurrent) return;
+      stage = "reading SDF volume statistics";
+      diagnostics.log("Check", stage);
+      const data = await withTimeout(
+        backend.readVolume(),
+        8000,
+        "SDF readback timed out after 8 seconds.",
+      );
+      if (!this.isCurrent) return;
+      const summary = summarizeVolume(data);
+      diagnostics.log(
+        "Check",
+        "SDF volume statistics (no voxel data included)",
+        summary,
+        summary.nonFiniteSDF || !summary.solidVoxels ? "warn" : "info",
+      );
+      diagnostics.log(
+        "Check",
+        "Viewport checks complete. Copy these logs and describe whether the main viewport is still blank.",
+      );
+    } catch (error) {
+      diagnostics.log("Check", `Failed while ${stage}`, error, "error");
+    } finally {
+      this.busy = false;
+    }
   }
   setQuality(quality: "adaptive" | "native") {
     this.quality = quality;
@@ -728,7 +930,9 @@ export class TerrainEngine {
     }
   }
   dispose() {
+    diagnostics.log("Engine", "Viewport disposed");
     this.stopped = true;
+    this.startupAbort.abort();
     this.camera.clearKeys();
     cancelAnimationFrame(this.raf);
     this.resizeObserver.disconnect();

@@ -26,7 +26,8 @@ WebGPU requires a secure origin (HTTPS or localhost), a compatible browser/devic
 ## If the controls load but the viewport is blank
 
 Use the **Renderer options** (chip icon) in the viewport toolbar to restart the
-renderer or select **Use compatibility renderer**. You can also open the preview
+renderer or select **Use WebGPU safe display** (keeps GPU erosion). The separate
+**Use compatibility renderer** option uses WebGL2/CPU erosion. You can also open the preview
 in its own browser tab. The compatibility path is still a sculptable 3D volume;
 it is not a static screenshot or a heightmap.
 
@@ -36,7 +37,7 @@ fails that check. A late, cancelled initializer cannot append an empty canvas on
 top of its replacement. Every viewport has exactly one active canvas, including
 across hot reloads.
 
-In **v0.2.1** (shown in the footer), adaptive resolution uses an **off-screen render
+Since **v0.2.1**, adaptive resolution uses an **off-screen render
 target** in both backends. Switching Adaptive/Native no longer resets the visible
 canvas bitmap. PNG exports copy owned render pixels, not a potentially recycled
 WebGPU canvas. A GPU that stops responding for 15 visible, non-busy seconds, a
@@ -48,6 +49,73 @@ Restarting/reloading discards unsaved edits; it does not silently regenerate you
 terrain. Save or export first when the GPU is available. After a lost GPU, reopen
 a previously saved/exported project. The **F** shortcut restores the overview if
 you have simply flown away from the terrain.
+
+### Safe display and hidden-frame startup (v0.2.3)
+
+A reported Chrome/Windows/NVIDIA case completed thousands of GPU frames and read
+back opaque sandstone pixels, but the native canvas remained visually blank.
+The report also showed that its first frame was acquired while the iframe was
+hidden. This points to a display/presentation problem, not a shader compilation
+error; the exact driver/compositor fault has not been proven on that device.
+
+- **Windows defaults to Safe display.** WebGPU still initializes, raymarches,
+  sculpts and erodes the full **144 × 72 × 144** volume. Each finished GPU frame is
+  copied to an owned buffer, unpacked to RGBA, and painted into a regular,
+  software-backed Canvas2D bitmap. This mode never acquires a native WebGPU canvas
+  or copies its swapchain through `drawImage`/`toBlob`.
+- Safe display costs a GPU→CPU frame transfer and bitmap copy. It is explicitly
+  labeled **COMPUTE · SAFE DISPLAY**, not native presentation or CPU erosion.
+  Single-frame backpressure bounds the transfers and buffers are reused.
+- **Renderer options → Use WebGPU (native display)** selects the faster native
+  path. `?display=safe` / `?display=native` explicitly select either mode. The
+  defaults are safe on Windows, native elsewhere; these are workbench recovery
+  choices, not a claim that every Windows GPU is defective.
+- Native `configure()` / the first draw now wait for a **visible animation
+  frame**. Returning from a hidden tab/iframe renews the native surface before
+  drawing, without regenerating or discarding the SDF. Cancellation prevents an
+  obsolete hidden initializer from reviving later.
+- The fractional DPR in the report (0.5) is supported; it is not treated as a
+  rendering error. A browser regression uses that DPR with a Windows user-agent
+  and deliberately disables native WebGPU canvas creation while verifying actual
+  visible sandstone, GPU erosion, and exact undo. This emulates the configuration
+  using the test machine's GPU, not the user's physical NVIDIA GPU.
+
+Switching display modes through the menu reloads the app; save/export first if
+there are unsaved edits. A mode switch is not a silent terrain reset.
+
+### Share GPU diagnostics (v0.2.2+)
+
+The **GPU logs** button in the header is available even if initialization fails.
+The error panel also has **Show GPU logs**. You do not need DevTools.
+
+1. Click **GPU logs → Check viewport**. The engine briefly holds rendering and
+   erosion while inspecting the current frame; it does **not** edit, reset or
+   save the volume.
+2. Click **Copy GPU logs** and paste the report into the chat. If clipboard access
+   is blocked by the preview iframe, the text stays selected for **Ctrl+C / Cmd+C**.
+   **Download logs** provides the same report as `frontier-gpu-diagnostics.txt`.
+3. Include whether the main viewport is still blank. `?diagnostics=1` opens the
+   panel directly, in either the normal or compatibility renderer.
+
+The bounded in-memory log includes browser/iframe/secure-context details, GPU
+adapter/features/limits, shader compilation and device errors, fallback reasons,
+canvas dimensions and CSS ancestors, queue progress, and initial-frame pixel
+statistics. The manual check also samples the presentation texture, an owned
+off-screen render, and SDF statistics (solid count, distance
+range, non-finite samples). Copy/download snapshots current state even when the
+GPU is unavailable. Live report updates can be paused for selection.
+
+**GPU readback and FPS do not prove on-screen presentation.** The report labels
+GPU target checks separately rather than calling them a screen capture. It never
+copies the live WebGPU canvas through Canvas2D or `toBlob()`: some drivers block
+synchronously while reading a recycled swapchain image, which cannot be bounded
+by a JavaScript timeout. A CSS-hidden canvas is covered by a regression test
+precisely because it can still report successful GPU work.
+
+Nothing is uploaded automatically or persisted by the logger. URL query strings,
+hashes, credentials, credential-like fields and raw typed-array/voxel buffers are
+omitted from the report. The report does contain browser/GPU identification and
+app-origin information; it is shared only when you copy/download it.
 
 ## What you can do
 
@@ -104,7 +172,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.2.1**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.2.3**.
 
 ### Why the earlier deployment returned 404
 
@@ -211,6 +279,7 @@ src/engine/
   WebGPUBackend.ts       Native device, 3D textures, compute/render pipelines
   WebGLBackend.ts        Explicit lower-resolution fallback
   presentation.ts        Owned RGBA/BGRA readback and PNG encoding
+  display.ts             Safe GPU→CPU bitmap presentation and display-mode choice
   shaders/common.wgsl    Field sampling, noise, ray intersections
   shaders/compute.wgsl   Initialization, runoff, erosion, sculpting, redistancing
   shaders/render.wgsl    Procedural rock, lighting, diagnostic view, water
@@ -239,7 +308,8 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-For a software Vulkan environment, use `FRONTIER_SOFTWARE_GPU=1`. This selects
+Use `FRONTIER_TEST_PORT=5175` to keep browser tests separate from a running
+production preview. For a software Vulkan environment, use `FRONTIER_SOFTWARE_GPU=1`. This selects
 SwiftShader for both ANGLE and Vulkan; forcing ANGLE's generic Vulkan mode can
 fail shared-image presentation on a headless build even when an adapter exists. An externally installed Chromium can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Performance in a software renderer does not represent a hardware GPU.
 

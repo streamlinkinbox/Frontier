@@ -45,6 +45,7 @@ import {
   CloudSun,
   Cpu,
   Navigation,
+  TerminalSquare,
 } from "lucide-react";
 import { TerrainEngine } from "./engine/TerrainEngine";
 import {
@@ -71,6 +72,8 @@ import {
   SectionHeading,
 } from "./components/Controls";
 import { Dialog, Guide } from "./components/Guide";
+import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
+import { diagnostics } from "./diagnostics";
 import "./styles.css";
 import { version } from "../package.json";
 
@@ -121,6 +124,9 @@ export default function App() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const [tool, setTool] = useState<Tool>("orbit");
+  const [logsOpen, setLogsOpen] = useState(
+    () => new URLSearchParams(location.search).get("diagnostics") === "1",
+  );
   const [stats, setStats] = useState<EngineStats>({
     fps: 0,
     steps: 0,
@@ -163,6 +169,19 @@ export default function App() {
     fileRef = useRef<HTMLInputElement>(null),
     engine = useRef<TerrainEngine | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openLogs = () => {
+    // Capture the real canvas hit stack BEFORE the modal covers the viewport.
+    try {
+      diagnostics.log(
+        "UI",
+        "GPU logs opened (snapshot before dialog)",
+        engine.current?.getDiagnostics(),
+      );
+    } catch (error) {
+      diagnostics.log("UI", "Canvas snapshot unavailable", error, "warn");
+    }
+    setLogsOpen(true);
+  };
   const currentPreset = PRESETS.find((p) => p.id === settings.preset)!;
   const notify = useCallback((message: string, isError = false) => {
     setToast({ message, error: isError });
@@ -234,6 +253,12 @@ export default function App() {
     engine.current = e;
     if (import.meta.env.DEV) window.__frontier = e;
     void e.initialize().catch((err) => {
+      diagnostics.log(
+        "Startup",
+        "Renderer initialization rejected",
+        err,
+        "error",
+      );
       if (active) {
         setError(err instanceof Error ? err.message : String(err));
         notify(
@@ -306,6 +331,7 @@ export default function App() {
         e.defaultPrevented ||
         /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName) ||
         guide ||
+        logsOpen ||
         confirm ||
         busy ||
         !ready ||
@@ -369,6 +395,7 @@ export default function App() {
     busy,
     error,
     guide,
+    logsOpen,
     confirm,
     undo,
     toggleRun,
@@ -563,10 +590,14 @@ export default function App() {
       );
     }
   };
-  const restartRenderer = (mode?: "webgpu" | "webgl") => {
+  const restartRenderer = (
+    mode?: "webgpu" | "webgl",
+    display?: "native" | "safe",
+  ) => {
     const restart = () => {
       const url = new URL(location.href);
       if (mode) url.searchParams.set("renderer", mode);
+      if (display) url.searchParams.set("display", display);
       if (url.href === location.href) location.reload();
       else location.assign(url.href);
     };
@@ -602,8 +633,12 @@ export default function App() {
           <span className="local-label">
             <span className="status-dot" /> Local workspace
           </span>
+          <button className="text-button gpu-logs-button" onClick={openLogs}>
+            <TerminalSquare size={15} /> <span>GPU logs</span>
+          </button>
           <button
             className="text-button guide-button"
+            aria-label="Quick guide"
             onClick={() => setGuide(true)}
           >
             <BookOpen size={15} />
@@ -612,6 +647,7 @@ export default function App() {
           <span className="header-divider" />
           <button
             className={`text-button save-button ${saved ? "saved" : ""}`}
+            aria-label={saved ? "Saved" : "Save"}
             onClick={save}
             disabled={disabled}
           >
@@ -1102,14 +1138,33 @@ export default function App() {
                       </MenuItem>
                       <MenuItem
                         icon={<Cpu size={15} />}
-                        active={ready && stats.backend === "WebGPU"}
-                        description="GPU terrain rendering and erosion"
+                        active={
+                          ready &&
+                          stats.backend === "WebGPU" &&
+                          stats.displayMode !== "safe"
+                        }
+                        description="Fast native canvas · GPU terrain and erosion"
                         onClick={() => {
                           close();
-                          restartRenderer("webgpu");
+                          restartRenderer("webgpu", "native");
                         }}
                       >
-                        Use WebGPU
+                        Use WebGPU (native display)
+                      </MenuItem>
+                      <MenuItem
+                        icon={<Image size={15} />}
+                        active={
+                          ready &&
+                          stats.backend === "WebGPU" &&
+                          stats.displayMode === "safe"
+                        }
+                        description="GPU terrain + erosion · CPU bitmap display, with extra transfer cost"
+                        onClick={() => {
+                          close();
+                          restartRenderer("webgpu", "safe");
+                        }}
+                      >
+                        Use WebGPU safe display
                       </MenuItem>
                       <MenuItem
                         icon={<Box size={15} />}
@@ -1265,11 +1320,20 @@ export default function App() {
                     <h3>The terrain renderer could not display a frame.</h3>
                     <p>{error}</p>
                     <div className="renderer-recovery-actions">
+                      <button className="secondary-button" onClick={openLogs}>
+                        <TerminalSquare size={15} /> Show GPU logs
+                      </button>
                       <button
                         className="primary-button"
                         onClick={() => restartRenderer("webgl")}
                       >
                         Try compatibility renderer
+                      </button>
+                      <button
+                        className="secondary-button"
+                        onClick={() => restartRenderer("webgpu", "safe")}
+                      >
+                        Try safe WebGPU display
                       </button>
                       <button
                         className="secondary-button"
@@ -1769,7 +1833,11 @@ export default function App() {
                 : "Connecting GPU"}
             {ready && !error && (
               <span>
-                {stats.backend === "WebGPU" ? "COMPUTE" : "CPU FALLBACK"}
+                {stats.backend === "WebGPU"
+                  ? stats.displayMode === "safe"
+                    ? "COMPUTE · SAFE DISPLAY"
+                    : "COMPUTE"
+                  : "CPU FALLBACK"}
               </span>
             )}
           </span>
@@ -1817,6 +1885,12 @@ export default function App() {
             <X size={14} />
           </button>
         </div>
+      )}
+      {logsOpen && (
+        <DiagnosticsPanel
+          engineRef={engine}
+          onClose={() => setLogsOpen(false)}
+        />
       )}
       {guide && <Guide onClose={() => setGuide(false)} />}
       {confirm && (
