@@ -58,7 +58,7 @@ Echo ReadEcho(const std::string& Path)
     return Out;
 }
 
-const char* CarKeys[3] = { "Porsche918Spyder", "FerrariLaFerrari", "NissanGtrNismo" };
+const char* CarKeys[5] = { "Porsche918Spyder", "FerrariLaFerrari", "NissanGtrNismo", "KoenigseggAgeraR", "DodgeDemon" };
 
 // Renders like the dump: pull.advance(slice/rate) → scripted record → AssignDemand → render, per slice. RenderDouble gives the
 //    samples before the float cast, so the comparison is double against double (the transport's float path is the same loop —

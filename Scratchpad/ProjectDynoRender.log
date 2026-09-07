@@ -1,4 +1,4 @@
-ProjectDynoRender — 2026-09-06T21:05:05Z
+ProjectDynoRender — 2026-09-07T00:30:54Z
 
 [1] AcousticProof --self
 AcousticProof --self
@@ -7,7 +7,7 @@ AcousticProof --self
   PASS  order reader on a 12-order synthetic comb, f0 = 50.000 Hz (3 000 rpm, off-centre): worst error 0.0010 dB re order 6 (bar ±0.01)
 ALL PASS — 3 pass, 0 fail
 
-[2] --render 3 cars × pull → WAV ⇄ JavaScript dump, order sheets, PNGs
+[2] --render 5 cars × pull → WAV ⇄ JavaScript dump, order sheets, PNGs
 [Car] Ferrari LaFerrari — F140FE 6.3 L 65° V12, NA, equal-length headers (12 cylinders, idle 1000, redline 9250 rpm, rev-3 crank-pulse voice) from /home/user/Frontier/EngineContent/AudioArchives/FerrariLaFerrari/FerrariLaFerrari.toml
 [Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_FerrariLaFerrari_Pull.wav — firings 7253, pops 9, clipped 0, dropped 0
   PASS  /tmp/ProjectDyno_FerrariLaFerrari_Pull.wav vs Scratchpad/Reference/FerrariLaFerrari_pull.f64: 720000 frames, max |Δ| 2.980e-08 at frame 337577 ch 1 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
@@ -47,12 +47,38 @@ ALL PASS — 1 pass, 0 fail
     centroid < 8 kHz 218 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 3
   PASS  NissanGtrNismo pure steady: firing order N/2 = 3 at -3.4 dB re the loudest order (1.0) — within 20 dB
 ALL PASS — 1 pass, 0 fail
+[Car] Koenigsegg Agera R — 5.0 L 90° cross-plane V8, twin turbo 1.4 bar, inconel merge collectors (8 cylinders, idle 900, redline 7500 rpm, rev-2 voice, turbo) from /home/user/Frontier/EngineContent/AudioArchives/KoenigseggAgeraR/KoenigseggAgeraR.toml
+[Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_KoenigseggAgeraR_Pull.wav — firings 4030, pops 55, clipped 117111, dropped 0
+  PASS  /tmp/ProjectDyno_KoenigseggAgeraR_Pull.wav vs Scratchpad/Reference/KoenigseggAgeraR_pull.f64: 720000 frames, max |Δ| 2.981e-08 at frame 479622 ch 0 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
+ALL PASS — 1 pass, 0 fail
+  KoenigseggAgeraR idle @ 900 rpm (left, 0.32–1.00 s): loudest order 4.0 at -7.2 dBFS; re it: 0.5:-29.4 1:-37.7 1.5:-23.5 2:-31.4 2.5:-25.9 3:-32.0 4:+0.0 5:-35.6 6:-26.1 7:-28.4 8:-0.8 9:-38.4 10:-36.6 12:-18.6 18:-33.1 24:-4.5
+    centroid < 8 kHz 207 Hz · above 300 Hz -4.2 dB re the loudest line · N/2 = 4
+  KoenigseggAgeraR redline @ 7500 rpm (left, 7.52–8.20 s): loudest order 0.5 at -12.7 dBFS; re it: 0.5:+0.0 1:-19.0 1.5:-15.3 2:-16.4 2.5:-2.5 3:-18.0 4:-4.1 5:-30.5 6:-19.0 7:-30.5 8:-21.4 9:-26.4 10:-28.4 12:-24.9 18:-25.7 24:-25.4
+    centroid < 8 kHz 1564 Hz · above 300 Hz -2.5 dB re the loudest line · N/2 = 4
+  wrote Scratchpad/ProjectDyno_KoenigseggAgeraR_Pull.png  (KoenigseggAgeraR redline)
+  KoenigseggAgeraR pure steady @ 4000 rpm (left, 2.32–3.00 s): loudest order 8.0 at -5.6 dBFS; re it: 0.5:-23.2 1:-31.0 1.5:-13.5 2:-19.5 2.5:-18.4 3:-37.8 4:-0.6 5:-40.3 6:-17.5 7:-44.0 8:+0.0 9:-47.0 10:-22.5 12:-20.1 18:-48.6 24:-32.9
+    centroid < 8 kHz 405 Hz · above 300 Hz +0.0 dB re the loudest line · N/2 = 4
+  PASS  KoenigseggAgeraR pure steady: firing order N/2 = 4 at -0.6 dB re the loudest order (8.0) — within 20 dB
+ALL PASS — 1 pass, 0 fail
+[Car] Dodge Challenger SRT Demon — 6.2 L supercharged HEMI 90° cross-plane V8, IHI 2.7 L twin-screw, 14.5 psi (8 cylinders, idle 800, redline 6500 rpm, rev-2 voice) from /home/user/Frontier/EngineContent/AudioArchives/DodgeDemon/DodgeDemon.toml
+[Render] rendered 15.00 s (720000 frames) to /tmp/ProjectDyno_DodgeDemon_Pull.wav — firings 3555, pops 15, clipped 89679, dropped 0
+  PASS  /tmp/ProjectDyno_DodgeDemon_Pull.wav vs Scratchpad/Reference/DodgeDemon_pull.f64: 720000 frames, max |Δ| 2.981e-08 at frame 417776 ch 0 (bar 1.2e-7 = float32 rounding of |x| ≤ 1, > 1 LSB of 24-bit)
+ALL PASS — 1 pass, 0 fail
+  DodgeDemon idle @ 800 rpm (left, 0.32–1.00 s): loudest order 5.5 at -8.2 dBFS; re it: 0.5:-24.6 1:-19.7 1.5:-7.7 2:-13.9 2.5:-0.8 3:-19.1 4:-4.6 5:-14.9 6:-18.2 7:-26.4 8:-2.6 9:-22.6 10:-29.3 12:-31.6 18:-36.4 24:-23.9
+    centroid < 8 kHz 122 Hz · above 300 Hz -22.8 dB re the loudest line · N/2 = 4
+  DodgeDemon redline @ 6500 rpm (left, 7.52–8.20 s): loudest order 0.5 at -7.6 dBFS; re it: 0.5:+0.0 1:-16.2 1.5:-14.5 2:-20.9 2.5:-8.3 3:-16.7 4:-6.8 5:-27.1 6:-25.1 7:-0.8 8:-27.0 9:-26.6 10:-30.5 12:-35.5 18:-30.9 24:-28.9
+    centroid < 8 kHz 850 Hz · above 300 Hz -1.7 dB re the loudest line · N/2 = 4
+  wrote Scratchpad/ProjectDyno_DodgeDemon_Pull.png  (DodgeDemon redline)
+  DodgeDemon pure steady @ 4000 rpm (left, 2.32–3.00 s): loudest order 2.5 at -9.7 dBFS; re it: 0.5:-2.4 1:-21.0 1.5:-6.0 2:-7.9 2.5:+0.0 3:-28.3 4:-8.5 5:-36.8 6:-23.0 7:-43.7 8:-13.1 9:-53.1 10:-30.3 12:-30.8 18:-40.2 24:-41.2
+    centroid < 8 kHz 152 Hz · above 300 Hz -11.5 dB re the loudest line · N/2 = 4
+  PASS  DodgeDemon pure steady: firing order N/2 = 4 at -8.5 dB re the loudest order (2.5) — within 20 dB
+ALL PASS — 1 pass, 0 fail
 
 [3] --null --seconds 60 --pull limiter (LaFerrari): overloads, dropped transients, peak callback
-[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 10889 | frames 2787584 | last 78.6 us (0.01 load) | peak 452.1 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 1.00 | firings 38331 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
-[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 11252 | frames 2880512 | last 71.3 us (0.01 load) | peak 452.1 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 0.00 (fuel cut) | firings 40122 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
-[Shutdown] 60.0 s live, 40122 firing events, 0 overloads, 0 clips (device) / 0 clipped (voice), 0 transients dropped — PASS
-[Shutdown] 20.0 s live, 3289 firing events, 0 overloads, 0 clips (device) / 81531 clipped (voice), 0 transients dropped — PASS
+[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 10888 | frames 2787328 | last 90.8 us (0.02 load) | peak 425.6 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 1.00 | firings 38321 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
+[Audio] Null | NULL Playback Device | 48000 Hz | period 256 frames | callbacks 11252 | frames 2880512 | last 69.3 us (0.01 load) | peak 425.6 us (0.08 load) | overloads 0 | clips 0 | stops 0 | reroutes 0 | reopens 0 | voice 9250 rpm thr 1.00 load 0.00 (fuel cut) | firings 40116 | pops 26 | clipped 0 | dropped 0 | boost 0.00 bar
+[Shutdown] 60.0 s live, 40116 firing events, 0 overloads, 0 clips (device) / 0 clipped (voice), 0 transients dropped — PASS
+[Shutdown] 20.0 s live, 3289 firing events, 0 overloads, 0 clips (device) / 80332 clipped (voice), 0 transients dropped — PASS
   PASS  null device: 0 overloads, 0 transients dropped
 
 [4] --clicks --render (row-A1 click train still behind --clicks)

@@ -1,4 +1,4 @@
-AcousticEditor DSP proof — 2026-09-06T17:36:10.645Z  rate 48000  cars Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo
+AcousticEditor DSP proof — 2026-09-07T00:33:43.661Z  rate 48000  cars Porsche918Spyder, FerrariLaFerrari, NissanGtrNismo, KoenigseggAgeraR, DodgeDemon
 
 [Porsche918Spyder] Porsche 918 Spyder — 8 cylinders
   PASS  firing frequency @ 3000 rpm = 200.00 Hz (expected 200.00), -2.4 dBFS
@@ -15,7 +15,7 @@ AcousticEditor DSP proof — 2026-09-06T17:36:10.645Z  rate 48000  cars Porsche9
   PASS  transient slots never overflowed (dropped 0, spawned 143, firings 4792)
   PASS  overrun pops after lift: 143
   PASS  no NaN
-  render 15 s in 2203 ms → 6.8× realtime (node)
+  render 15 s in 2035 ms → 7.4× realtime (node)
   wrote Scratchpad/AcousticEditor_Porsche918Spyder_Pull.png  (Porsche 918 Spyder WOT pull)
   PASS  firing count 4792 vs ∫ rpm·N/120 dt ≈ 4792 (±3 %)
   PASS  idle audible (peak 1.000)
@@ -35,7 +35,7 @@ AcousticEditor DSP proof — 2026-09-06T17:36:10.645Z  rate 48000  cars Porsche9
   PASS  transient slots never overflowed (dropped 0, spawned 6, firings 7253)
   PASS  overrun pops after lift: 6
   PASS  no NaN
-  render 15 s in 590 ms → 25.4× realtime (node)
+  render 15 s in 553 ms → 27.1× realtime (node)
   wrote Scratchpad/AcousticEditor_FerrariLaFerrari_Pull.png  (Ferrari LaFerrari WOT pull)
   PASS  firing count 7253 vs ∫ rpm·N/120 dt ≈ 7254 (±3 %)
   PASS  idle audible (peak 0.036)
@@ -70,9 +70,49 @@ AcousticEditor DSP proof — 2026-09-06T17:36:10.645Z  rate 48000  cars Porsche9
   PASS  transient slots never overflowed (dropped 0, spawned 18, firings 2891)
   PASS  overrun pops after lift: 18
   PASS  no NaN
-  render 15 s in 1827 ms → 8.2× realtime (node)
+  render 15 s in 1815 ms → 8.3× realtime (node)
   wrote Scratchpad/AcousticEditor_NissanGtrNismo_Pull.png  (Nissan GT-R Nismo WOT pull)
   PASS  firing count 2891 vs ∫ rpm·N/120 dt ≈ 2891 (±3 %)
   PASS  idle audible (peak 1.000)
 
-ALL PASS — 62 pass, 0 fail
+[KoenigseggAgeraR] Koenigsegg Agera R — 8 cylinders
+  PASS  firing frequency @ 3000 rpm = 200.00 Hz (expected 200.00), -9.3 dBFS
+  PASS  loudest order @ 3000 rpm = 2.5 at -8.0 dBFS, firing order 4 within 1.3 dB (limit 20)
+  PASS  above 16 kHz: -60.3 dB re peak (limit −30)
+  PASS  firing frequency @ 6000 rpm = 400.01 Hz (expected 400.00), -6.6 dBFS
+  PASS  loudest order @ 6000 rpm = 4 at -6.6 dBFS, firing order 4 within 0.0 dB (limit 20)
+  PASS  above 16 kHz: -61.2 dB re peak (limit −30)
+  PASS  firing frequency @ 7300 rpm = 486.67 Hz (expected 486.67), -14.1 dBFS
+  PASS  loudest order @ 7300 rpm = 0.5 at -13.8 dBFS, firing order 4 within 0.3 dB (limit 20)
+  PASS  above 16 kHz: -45.7 dB re peak (limit −30)
+  PASS  held-demand render identical across 1/37/64/256-frame slices (max |Δ| = 0)
+  PASS  pull peak 1.000 (±1 clip holds, level useful > 0.3), rms -4.9 dBFS, clipped samples 114678 (15.9 %)
+  PASS  transient slots never overflowed (dropped 0, spawned 45, firings 4031)
+  PASS  overrun pops after lift: 42
+  PASS  no NaN
+  render 15 s in 2049 ms → 7.3× realtime (node)
+  wrote Scratchpad/AcousticEditor_KoenigseggAgeraR_Pull.png  (Koenigsegg Agera R WOT pull)
+  PASS  firing count 4031 vs ∫ rpm·N/120 dt ≈ 4031 (±3 %)
+  PASS  idle audible (peak 1.000)
+
+[DodgeDemon] Dodge Challenger SRT Demon — 8 cylinders
+  PASS  firing frequency @ 3000 rpm = 200.00 Hz (expected 200.00), -5.7 dBFS
+  PASS  loudest order @ 3000 rpm = 1.5 at -5.0 dBFS, firing order 4 within 0.7 dB (limit 20)
+  PASS  above 16 kHz: -80.4 dB re peak (limit −30)
+  PASS  firing frequency @ 6000 rpm = 400.01 Hz (expected 400.00), -15.8 dBFS
+  PASS  loudest order @ 6000 rpm = 1.5 at -10.0 dBFS, firing order 4 within 5.8 dB (limit 20)
+  PASS  above 16 kHz: -62.4 dB re peak (limit −30)
+  PASS  firing frequency @ 6300 rpm = 420.01 Hz (expected 420.00), -17.5 dBFS
+  PASS  loudest order @ 6300 rpm = 1.5 at -10.2 dBFS, firing order 4 within 7.3 dB (limit 20)
+  PASS  above 16 kHz: -72.1 dB re peak (limit −30)
+  PASS  held-demand render identical across 1/37/64/256-frame slices (max |Δ| = 0)
+  PASS  pull peak 1.000 (±1 clip holds, level useful > 0.3), rms -5.0 dBFS, clipped samples 88684 (12.3 %)
+  PASS  transient slots never overflowed (dropped 0, spawned 17, firings 3555)
+  PASS  overrun pops after lift: 16
+  PASS  no NaN
+  render 15 s in 1966 ms → 7.6× realtime (node)
+  wrote Scratchpad/AcousticEditor_DodgeDemon_Pull.png  (Dodge Challenger SRT Demon WOT pull)
+  PASS  firing count 3555 vs ∫ rpm·N/120 dt ≈ 3555 (±3 %)
+  PASS  idle audible (peak 1.000)
+
+ALL PASS — 94 pass, 0 fail

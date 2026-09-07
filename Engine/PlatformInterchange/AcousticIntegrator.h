@@ -43,8 +43,9 @@ constexpr uint32_t AcousticMaxCylinders     = 16u;      // [-]        voice slot
 constexpr uint32_t AcousticKernelSize       = 2048u;    // [samples]  rev-3 crank-degree kernels (exhaust hard / soft, intake)
 constexpr uint32_t AcousticSheetSize        = 512u;     // [samples]  rev-2 pulse / body sheets (RevSim: 512-point lookups)
 constexpr uint32_t AcousticHarmonicCount    = 24u;      // [-]        body sheet harmonics
+constexpr uint32_t AcousticChargerHarmonics = 8u;       // [-]        supercharger rotor-pulsation harmonics (charger.whine_harmonics, row A2½)
 constexpr uint32_t AcousticEventsPerCylinder = 4u;      // [-]        firing + two valve-seating clatters + intake opening
-constexpr uint32_t AcousticMeterCount       = 12u;      // [-]        0/1 voice L/R · 2/3 exhaust bus L/R · 4 howl · 5 mechanical · 6 transients · 7 turbo · 8/9 out L/R · 10 (unused) · 11 intake
+constexpr uint32_t AcousticMeterCount       = 12u;      // [-]        0/1 voice L/R · 2/3 exhaust bus L/R · 4 howl · 5 mechanical · 6 transients · 7 turbo · 8/9 out L/R · 10 supercharger · 11 intake
 constexpr uint32_t AcousticScopeCapacity    = 16384u;   // [samples]  one crank-locked 720° cycle of output + head pulses
 constexpr uint32_t AcousticIntakePathSize   = 1024u;    // [samples]  intake path ring (≈ 7.3 m at 48 kHz)
 constexpr uint32_t AcousticTransientCount   = 32u;      // [-]        one-shot slots
@@ -260,6 +261,9 @@ private:
     BiquadSection ClatterBP1, ClatterBP2, ClatterRing;
     double WhinePhase = 0.0, MotorPhase = 0.0, TurboPhase = 0.0, Spool = 0.0, Boost = 0.0, RushHz = 2000.0;
     BiquadSection RushBP;
+    double   ChargerPhase = 0.0, ChargerAmps[AcousticChargerHarmonics] = {}, BarkClock = 0.0;   // row A2½: supercharger pulsation + intake bark arming
+    uint32_t ChargerCount = 0u;
+    bool     BarkArmed = false;
     TransientSlots<AcousticTransientCount> Transients;
     bool   LiftArmedBackfire = false, LiftArmedTurbo = false, OverrunActive = false;
     double OverrunEnv = 0.0, PopBoost = 0.0, PopBoostDecay = 0.0, PopDecay = 0.0, SpoolUp = 1.0, SpoolDown = 1.0;

@@ -28,7 +28,7 @@ namespace Frontier {
 
 constexpr uint32_t AcousticTextCapacity     = 96u;    // [bytes] display strings (name, engine line) incl. terminator
 constexpr uint32_t AcousticRealListCapacity = 32u;    // [-]     longest list a field can hold (firing order of a 16-cylinder, harmonics)
-constexpr uint32_t AcousticFieldCount       = 111u;   // [-]     rows in the sheet = ACOUSTIC_SCHEMA.length in the editor
+constexpr uint32_t AcousticFieldCount       = 124u;   // [-]     rows in the sheet = ACOUSTIC_SCHEMA.length in the editor
 
 enum class AcousticFieldCategory : uint32_t
 {
@@ -203,7 +203,24 @@ struct AcousticStructure
         double            BlowoffLevel = 0.8;                                                   // [-]      blow-off flutter on lift above 3000 rpm
         double            AntilagLevel = 3.0;                                                   // [-]      anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
         double            AntilagRpm = 4000.0;                                                  // [rpm]    
+        double            FlutterHz = 14.0;                                                     // [Hz]     blow-off flutter rate (14 = RevSim, the Agera's wastegate chatter ≈ 25)
+        double            ThumpLevel = 0.0;                                                     // [-]      low sine thud under the blow-off on lift (the Agera's "whump"); 0 = off
+        double            ThumpHz = 60.0;                                                       // [Hz]     thud pitch
     } Turbo;
+
+    struct ChargerSheet                                                                          // row A2½: belt-driven positive-displacement supercharger
+    {
+        bool              Enabled = false;                                                      // [-]      supercharger layer: rotor pulsation whine, boost ∝ rpm · load, bypass valve shut-throttle
+        double            DriveRatio = 2.36;                                                    // [-]      rotor speed re crank speed (pulley ratio; Hellcat / Demon IHI 2.36)
+        double            Lobes = 3.0;                                                          // [-]      lobes on the driven (male) rotor: pocket-passing order = lobes × drive_ratio re crank
+        double            WhineLevel = 0.3;                                                     // [-]      pulsation whine at redline, full load; scales with rpm / redline
+        AcousticRealList  WhineHarmonics = { 4u, { 1.0, 0.7, 0.5, 0.35 } };                     // [-]      weights of the pulsation harmonics 1 … n (up to 8)
+        double            WhineDrive = 1.0;                                                     // [-]      tanh shaping of the summed harmonics (> 1 = gritty)
+        double            BypassLevel = 0.15;                                                   // [-]      share of the whine left with the throttle shut (bypass valve open)
+        double            BoostMaxBar = 1.0;                                                    // [bar]    readout only: boost = boost_max · rpm / redline · load (no spool)
+        double            BarkLevel = 0.0;                                                      // [-]      intake bark on a fast throttle stab (bypass valve snapping shut); 0 = off
+        double            BarkHz = 600.0;                                                       // [Hz]     bark band centre
+    } Charger;
 
     struct MixSheet
     {

@@ -122,6 +122,21 @@ boost_max_bar          = 1.1                            # [bar] readout only
 blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
 antilag_level          = 3.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
 antilag_rpm            = 4000.0                         # [rpm]
+flutter_hz             = 14.0                           # [Hz] blow-off flutter rate (the recirculation valve chattering; 14 = RevSim, the Agera's wastegate chatter ≈ 25)
+thump_level            = 0.0                            # low sine thud under the blow-off on lift (the Agera's "whump"); 0 = off
+thump_hz               = 60.0                           # [Hz] thud pitch
+
+[charger]
+enabled                = false                          # positive-displacement supercharger layer (belt-driven twin-screw / roots): rotor pulsation whine, boost ∝ rpm · load, bypass valve with the throttle shut
+drive_ratio            = 2.36                           # rotor speed re crank speed (pulley ratio; Hellcat / Demon IHI 2.36)
+lobes                  = 3.0                            # lobes on the driven (male) rotor: pocket-passing order = lobes × drive_ratio re crank (IHI 3 × 5 rotors → order 7.08)
+whine_level            = 0.3                            # pulsation whine at redline, full load; scales with rpm / redline (throughput)
+whine_harmonics        = [1.0, 0.7, 0.5, 0.35]          # weights of the pulsation harmonics 1 … n (up to 8); beyond the list 0
+whine_drive            = 1.0                            # tanh shaping of the summed harmonics (> 1 = the gritty, over-compressed pulse; 1 = clean)
+bypass_level           = 0.15                           # share of the whine left with the throttle shut (the internal bypass valve open, rotors idling)
+boost_max_bar          = 1.0                            # [bar] readout only: boost = boost_max · rpm / redline · load (no spool — positive displacement)
+bark_level             = 0.0                            # intake bark on a fast throttle stab (shut → > 80 % within 0.25 s: the bypass valve snapping shut); 0 = off
+bark_hz                = 600.0                          # [Hz] bark band centre (first-order band bark_hz / 1.6 … × 1.6)
 
 [mix]
 exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)

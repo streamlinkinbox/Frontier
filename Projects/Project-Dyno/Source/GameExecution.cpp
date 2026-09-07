@@ -6,7 +6,7 @@
 //
 //    Usage
 //        Project-Dyno                                          live: default device, LaFerrari, "sweep" pull, loops until Enter / Ctrl-C
-//        Project-Dyno --car Porsche918Spyder --pull pull       live: one of Porsche918Spyder | FerrariLaFerrari | NissanGtrNismo, or a path to a .toml
+//        Project-Dyno --car Porsche918Spyder --pull pull       live: one of Porsche918Spyder | FerrariLaFerrari | NissanGtrNismo | KoenigseggAgeraR | DodgeDemon, or a path to a .toml
 //        Project-Dyno --pull overrun                           pulls: idle | sweep | pull | steady | blip | overrun | limiter
 //        Project-Dyno --free                                   live: free rev — Space (hold) = throttle, Enter = stop (FreeRevPowertrain, as the editor)
 //        Project-Dyno --listener cockpit                       listener preset: trackside (default) | chase | cockpit

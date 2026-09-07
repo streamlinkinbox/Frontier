@@ -161,6 +161,7 @@ void AcousticIntegrator::Prepare(uint32_t SampleRate, uint32_t ChannelCount) noe
     ClatterBP1 = BiquadSection{}; ClatterBP2 = BiquadSection{}; ClatterRing = BiquadSection{};
     WhinePhase = 0.0; MotorPhase = 0.0; TurboPhase = 0.0;
     Spool = 0.0; Boost = 0.0; RushBP = BiquadSection{}; RushHz = 2000.0;
+    ChargerPhase = 0.0; for (double& A : ChargerAmps) A = 0.0; ChargerCount = 0u; BarkArmed = false; BarkClock = 0.0;
     Transients.Prepare(Fs);
     LiftArmedBackfire = false; LiftArmedTurbo = false;
     OverrunActive = false; OverrunEnv = 0.0; PopBoost = 0.0; PopBoostDecay = std::exp(-Dt / 0.06);
@@ -345,6 +346,8 @@ void AcousticIntegrator::ApplyStructure(const AcousticStructure& S) noexcept
     ClatterRing.Bandpass(Fs, S.Mechanical.ClatterHz * 1.3, 12.0);
     PopDecay = std::exp(-Dt / std::max(0.05, S.Combustion.PopDecayS));
     SpoolUp = LagCoefficient(Fs, S.Turbo.SpoolUpS); SpoolDown = LagCoefficient(Fs, S.Turbo.SpoolDownS);
+    ChargerCount = std::min(AcousticChargerHarmonics, S.Charger.WhineHarmonics.Count);
+    for (uint32_t H = 0u; H < AcousticChargerHarmonics; ++H) ChargerAmps[H] = H < S.Charger.WhineHarmonics.Count ? S.Charger.WhineHarmonics.Entry[H] : 0.0;
     const AcousticStructure::ExhaustSheet& Ex = S.Exhaust;
     Comb[0].Configure(Fs, Ex.CombMs, Ex.CombFeedback, Ex.CombMix); Comb[1].Configure(Fs, Ex.CombMs, Ex.CombFeedback, Ex.CombMix);
     FormantA[0].Bandpass(Fs, Ex.FormantAHz, Ex.FormantAQ); FormantA[1].Bandpass(Fs, Ex.FormantAHz, Ex.FormantAQ);
@@ -505,6 +508,7 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
     const AcousticStructure::TurboSheet&      Tb = S.Turbo;
     const AcousticStructure::MechanicalSheet& Me = S.Mechanical;
     const AcousticStructure::ExhaustSheet&    Ex = S.Exhaust;
+    const AcousticStructure::ChargerSheet&    Ch = S.Charger;
     const double LocalFs = Fs, LocalDt = Dt;
     const bool Pure = PureTone;
     const double Idle = IdleRpm, Redline = RedlineRpm, InvRedline = 1.0 / std::max(1.0, Redline);
@@ -517,6 +521,9 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
     const double MechGain = M.Mechanical * Listener.Mechanical, TransGain = M.Transients * Listener.Transients;
     const double OutGain = M.OutputGain;
     const bool Turbo = Tb.Enabled && !Pure;
+    const bool Charger = Ch.Enabled && !Pure;
+    const double ChargerStep = Ch.DriveRatio * Ch.Lobes / 60.0 * LocalDt, ChargerHzPerRpm = Ch.DriveRatio * Ch.Lobes / 60.0;
+    const double* LocalChargerAmps = ChargerAmps; const uint32_t LocalChargerCount = ChargerCount;
     const bool BypassLP = Listener.CutoffHz >= LocalFs * 0.45;
     const double WhineStep = Me.WhineOrder / 60.0 * LocalDt;
     const double FA = Ex.FormantALevel, FB = Ex.FormantBLevel;
@@ -672,9 +679,21 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
                             }
                             PopCount += Pops;
                         }
-                        else if (Tb.BlowoffLevel > 0.0) Transients.Spawn(TransientCategory::Blowoff, 0.0, 0.8, 3000.0, 1000.0, Tb.BlowoffLevel, 0.02, 0.0, 20000.0);
+                        else if (Tb.BlowoffLevel > 0.0)
+                        {
+                            Transients.Spawn(TransientCategory::Blowoff, 0.0, 0.8, 3000.0, 1000.0, Tb.BlowoffLevel, 0.02, 0.0, 20000.0, Tb.FlutterHz);
+                            if (Tb.ThumpLevel > 0.0) Transients.Spawn(TransientCategory::Thump, 0.0, 0.5, Tb.ThumpHz, Tb.ThumpHz * 0.8, Tb.ThumpLevel, 0.02, 0.0, 20000.0);
+                        }
                     }
                 }
+            }
+            // supercharger intake bark: a fast throttle stab (shut → > 80 % within 0.25 s) snaps the bypass valve shut
+            if (Throttle < 0.1) { BarkArmed = true; BarkClock = 0.0; }
+            else if (BarkArmed)
+            {
+                BarkClock += LocalDt;
+                if (Throttle > 0.8) { BarkArmed = false; if (Charger && Ch.BarkLevel > 0.0 && BarkClock < 0.25) Transients.Spawn(TransientCategory::Bark, 0.0, 0.07, Ch.BarkHz / 1.6, Ch.BarkHz / 1.6, Ch.BarkLevel, 0.004, 0.0, Ch.BarkHz * 1.6); }
+                else if (BarkClock >= 0.25) BarkArmed = false;
             }
             const bool Closed = Throttle < 0.05, Fast = Rpm > Idle * 1.4;
             if (Closed && Fast) { if (!OverrunActive) { OverrunActive = true; OverrunEnv = 1.0; } }
@@ -709,6 +728,25 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
             TurboOut = std::sin(TwoPi * TurboPhase) * Tb.WhineLevel * Spool + RushBP.Advance(Rng.Signed()) * Tb.RushLevel * Spool;
         }
         else { Spool = 0.0; Boost = 0.0; }
+
+        // 6b. supercharger (row A2½): positive-displacement rotor pulsation at lobes × drive_ratio × crank speed with its harmonics
+        //     (IHI 3 × 5 twin-screw at 2.36 : 1 → order 7.08), tanh-shaped; level ∝ rpm / redline (throughput) and load — the internal bypass
+        //     valve opens with the throttle shut and leaves bypass_level; boost ∝ rpm · load with no spool
+        double ChargerOut = 0.0;
+        if (Charger)
+        {
+            ChargerPhase += ChargerStep * Rpm; if (ChargerPhase >= 1.0) ChargerPhase -= 1.0;
+            const double Hz = ChargerHzPerRpm * Rpm, Throughput = ClampReal(Rpm * InvRedline, 0.0, 1.0);
+            const double Level = Ch.WhineLevel * Throughput * (Ch.BypassLevel + (1.0 - Ch.BypassLevel) * Load);
+            double W = 0.0;
+            for (uint32_t H = 0u; H < LocalChargerCount; ++H)
+            {
+                const double Fade = ClampReal((0.4 * LocalFs - Hz * double(H + 1u)) / (0.05 * LocalFs), 0.0, 1.0);
+                if (Fade > 0.0) W += std::sin(TwoPi * double(H + 1u) * ChargerPhase) * LocalChargerAmps[H] * Fade;
+            }
+            ChargerOut = std::tanh(W * Ch.WhineDrive) * Level;
+            Boost = Ch.BoostMaxBar * Throughput * Load;
+        }
 
         // 7. mechanical: valve clatter (crank-locked), gear whine, hybrid motor
         double Mech = 0.0;
@@ -748,9 +786,9 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
             }
             if (!SilencerBypass) { VL = Silencer[0][1].Advance(Silencer[0][0].Advance(VL)); VR = Silencer[1][1].Advance(Silencer[1][0].Advance(VR)); }
             if (ValveGain != 1.0) { VL *= ValveGain; VR *= ValveGain; }
-            const double Centre = (TurboOut + IntakeOut) * IndGain + Mech * MechGain + Trans * TransGain;
+            const double Centre = (TurboOut + ChargerOut + IntakeOut) * IndGain + Mech * MechGain + Trans * TransGain;
             L = (VL + Centre) * OutGain;
-            R = (VR + (!IntakeSplit ? Centre : (TurboOut + IntakeOutR) * IndGain + Mech * MechGain + Trans * TransGain)) * OutGain;
+            R = (VR + (!IntakeSplit ? Centre : (TurboOut + ChargerOut + IntakeOutR) * IndGain + Mech * MechGain + Trans * TransGain)) * OutGain;
             L = Comb[0].Advance(L); R = Comb[1].Advance(R);
             L = ValveHP[0].Advance(L); R = ValveHP[1].Advance(R);
             if (L > 1.0) { L = 1.0; ++ClippedCount; } else if (L < -1.0) { L = -1.0; ++ClippedCount; }
@@ -763,7 +801,7 @@ void AcousticIntegrator::Integrate(float* Output, double* OutLeft, double* OutRi
 
         // 9. meters + crank-locked scope capture
         Meter[0] += SumL * SumL; Meter[1] += SumR * SumR; Meter[4] += HowlSum * HowlSum; Meter[5] += Mech * Mech;
-        Meter[6] += Trans * Trans; Meter[7] += TurboOut * TurboOut; Meter[8] += L * L; Meter[9] += R * R; Meter[11] += IntakeOut * IntakeOut;
+        Meter[6] += Trans * Trans; Meter[7] += TurboOut * TurboOut; Meter[8] += L * L; Meter[9] += R * R; Meter[10] += ChargerOut * ChargerOut; Meter[11] += IntakeOut * IntakeOut;
         if (ScopeCapturing)
         {
             Scope.Head[ScopeFill] = float(PulseSum); Scope.Output[ScopeFill++] = float(L);

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Gate: Project-Dyno plays the voice — the binary's --render is the JavaScript reference after float32 quantisation, the
-#    order sheets of the three cars are what the editor shows, and a 60 s null-device run keeps the callback under budget.
+#    order sheets of the five cars are what the editor shows, and a 60 s null-device run keeps the callback under budget.
 #
 #    1. AcousticProof --self                              FFT / order reader self-check
-#    2. --render 3 cars × pull (float32 WAV)              WAV ⇄ Scratchpad/Reference/<car>_pull.f64 ≤ 1.2e-7 per sample (float32 rounding);
+#    2. --render 5 cars × pull (float32 WAV)              WAV ⇄ Scratchpad/Reference/<car>_pull.f64 ≤ 1.2e-7 per sample (float32 rounding);
 #                                                         order sheets at idle and at redline (informative — the voicing is the editor's business);
 #                                                         Scratchpad/ProjectDyno_<Car>_Pull.png; --pure --pull steady: firing order N/2 within 20 dB
 #                                                         of the loudest (the JavaScript proof's [1] bar, gated)
 #    3. --null --seconds 60 --pull limiter                 0 overloads, 0 dropped transients, peak callback µs in the log
 #    4. --clicks --render                                  the row-A1 click train still renders behind --clicks
-# Needs the reference dumps (Scratchpad/CheckAcousticIdentity.sh writes them; this script writes the three it needs if absent).
+# Needs the reference dumps (Scratchpad/CheckAcousticIdentity.sh writes them; this script writes the five it needs if absent).
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -29,11 +29,11 @@ Say "[1] AcousticProof --self"
 Run /tmp/AcousticProof --self || Fail=1
 
 Say ""
-Say "[2] --render 3 cars × pull → WAV ⇄ JavaScript dump, order sheets, PNGs"
-declare -A Cyl=( [Porsche918Spyder]=8 [FerrariLaFerrari]=12 [NissanGtrNismo]=6 )
-declare -A Idle=( [Porsche918Spyder]=1000 [FerrariLaFerrari]=1000 [NissanGtrNismo]=900 )
-declare -A Red=( [Porsche918Spyder]=9150 [FerrariLaFerrari]=9250 [NissanGtrNismo]=7100 )
-for Car in FerrariLaFerrari Porsche918Spyder NissanGtrNismo; do
+Say "[2] --render 5 cars × pull → WAV ⇄ JavaScript dump, order sheets, PNGs"
+declare -A Cyl=( [Porsche918Spyder]=8 [FerrariLaFerrari]=12 [NissanGtrNismo]=6 [KoenigseggAgeraR]=8 [DodgeDemon]=8 )
+declare -A Idle=( [Porsche918Spyder]=1000 [FerrariLaFerrari]=1000 [NissanGtrNismo]=900 [KoenigseggAgeraR]=900 [DodgeDemon]=800 )
+declare -A Red=( [Porsche918Spyder]=9150 [FerrariLaFerrari]=9250 [NissanGtrNismo]=7100 [KoenigseggAgeraR]=7500 [DodgeDemon]=6500 )
+for Car in FerrariLaFerrari Porsche918Spyder NissanGtrNismo KoenigseggAgeraR DodgeDemon; do
     [ -f "Scratchpad/Reference/${Car}_pull.f64" ] || node Scratchpad/AcousticEditorRender.js --dump "$Car" pull full 64 >>"$Log" 2>&1
     Wav=/tmp/ProjectDyno_${Car}_Pull.wav
     "$Bin" --render "$Wav" --car "$Car" --pull pull --float 2>&1 | grep -E "\[Car\]|\[Render\]" | sed 's/^\[INFO\] //' | tee -a "$Log"

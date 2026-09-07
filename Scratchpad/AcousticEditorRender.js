@@ -2,7 +2,7 @@
 // ============================================================================================================================================
 //                                                   ACOUSTICEDITORRENDER.JS
 // ============================================================================================================================================
-// 🧪 Sandbox proof for the HTML row: renders the three vehicles with the editor's own DSP, writes WAV (git-ignored) +
+// 🧪 Sandbox proof for the HTML row: renders every embedded vehicle (five since row A2½) with the editor's own DSP, writes WAV (git-ignored) +
 //    spectrogram / order-diagram PNGs (committed as Scratchpad/AcousticEditor_<Car>_Pull.png) and checks the A2 invariants
 //    the C++ port must reproduce: the firing-order line (N/2 × rpm/60) within 1 Hz and within 20 dB of the loudest line,
 //    the voice-restart hash past 16 kHz below −30 dB re peak (every firing restarts its cylinder's voice from phase 0 —
@@ -14,7 +14,7 @@
 //    §10.4 idle targets per channel (half-orders, order 3, orders 18 / 24, centroid, content above 300 Hz, line count) and
 //    the loaded-range headroom (no clipped samples on the trackside pull / overrun / limiter sequences, cockpit too).
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
-// Loads the DSP and the three vehicle TOMLs straight out of Tools/AudioEditor/index.html, so the proof measures the
+// Loads the DSP and the vehicle TOMLs straight out of Tools/AudioEditor/index.html, so the proof measures the
 // shipped page, not a copy.   Run:  node Scratchpad/AcousticEditorRender.js [outDir]   (node ≥ 18, no packages)
 const repo = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(repo, 'Tools', 'AudioEditor', 'index.html'), 'utf8');

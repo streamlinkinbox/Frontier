@@ -3,7 +3,7 @@
 //                                                   ACOUSTICEDITORBROWSER.JS
 // ============================================================================================================================================
 // 🧪 Headless-Chromium proof for Tools/AudioEditor/index.html:
-//   [1] the page loads without console errors, the worklet module compiles, all three cars appear
+//   [1] the page loads without console errors, the worklet module compiles, all five cars appear in the vehicle dropdown
 //   [2] OfflineAudioContext render through the page's own worklet == node render of the same DSP (per-order ±0.1 dB, sample-level max |Δ|)
 //   [3] the live AudioContext runs (fake audio device), reports arrive, meters move, pulls run
 //   [4] screenshots of the editor for Diagnostics/
@@ -105,9 +105,9 @@ function orderLevels(x, start, size, rpm, N)
     console.log('\n[1] page + worklet');
     const cars = await page.evaluate(() => Object.keys(window.FrontierAudioEditor.cars));
     check(errors.length === 0, 'no console / page errors on load' + (errors.length ? ' → ' + errors.join(' | ') : ''));
-    check(cars.length === 3 && cars.join() === 'Porsche918Spyder,FerrariLaFerrari,NissanGtrNismo', 'three vehicles embedded: ' + cars.join(', '));
-    const pickCount = await page.$$eval('#carPick button', b => b.length);
-    check(pickCount === 3, 'car picker has 3 entries');
+    check(cars.length === 5 && cars.join() === 'Porsche918Spyder,FerrariLaFerrari,NissanGtrNismo,KoenigseggAgeraR,DodgeDemon', 'five vehicles embedded: ' + cars.join(', '));
+    const pickCount = await page.$$eval('#carPick .opt', b => b.length);
+    check(pickCount === 5, 'vehicle dropdown lists 5 entries');
     const sliderCount = await page.$$eval('#inspectorBody input[type=range]', b => b.length);
     check(sliderCount > 60, 'inspector built ' + sliderCount + ' sliders from the schema');
     await page.screenshot({ path: path.join(shots, 'AudioEditor_01_Gate_StartAudio.png') });
@@ -173,6 +173,23 @@ function orderLevels(x, start, size, rpm, N)
     await new Promise(r => setTimeout(r, 800));
     const pops = await page.evaluate(() => window.FrontierAudioEditor.editor.last.pops);
     check(pops > 0, 'lift-off produced overrun pops: ' + pops);
+    // dropdown (real clicks, the gate is down now): closed on load, the caret opens it, an option picks the car and closes it, an outside click closes it, keys 1 … 5 pick by position
+    {
+        const closed = await page.$eval('#carPick', d => !d.classList.contains('open') && getComputedStyle(d.querySelector('.dd-menu')).display === 'none');
+        await page.click('#carPickBtn');
+        const opened = await page.$eval('#carPick', d => d.classList.contains('open') && getComputedStyle(d.querySelector('.dd-menu')).display === 'flex');
+        await page.click('#carPick .opt[data-car="DodgeDemon"]');
+        const picked = await page.evaluate(() => ({ key: window.FrontierAudioEditor.carKey, open: document.getElementById('carPick').classList.contains('open'), cur: document.getElementById('carPickCur').textContent, sel: document.querySelector('#carPick .opt.sel').dataset.car, title: document.title }));
+        check(closed && opened && !picked.open && picked.key === 'DodgeDemon' && picked.sel === 'DodgeDemon' && picked.cur.indexOf('SRT Demon') >= 0, 'dropdown: closed on load → caret opens → option picks the Demon and closes (pill "' + picked.cur + '", title "' + picked.title + '")');
+        await page.click('#carPickBtn');
+        await page.mouse.click(700, 400);
+        const outside = await page.$eval('#carPick', d => !d.classList.contains('open'));
+        await page.keyboard.press('4');
+        const key4 = await page.evaluate(() => window.FrontierAudioEditor.carKey);
+        await page.keyboard.press('1');
+        const key1 = await page.evaluate(() => window.FrontierAudioEditor.carKey);
+        check(outside && key4 === 'KoenigseggAgeraR' && key1 === 'Porsche918Spyder', 'dropdown: outside click closes it; key 4 → ' + key4 + ', key 1 → ' + key1);
+    }
     // scripted pull on the LaFerrari, screenshot mid-pull
     await page.evaluate(() => window.FrontierAudioEditor.selectCar('FerrariLaFerrari'));
     await page.evaluate(() => window.FrontierAudioEditor.runPull('pull'));
@@ -193,6 +210,23 @@ function orderLevels(x, start, size, rpm, N)
     const gtr = await page.evaluate(() => ({ boost: window.FrontierAudioEditor.editor.last.boost, shaft: window.FrontierAudioEditor.editor.last.shaft, rpm: window.FrontierAudioEditor.editor.last.rpm, turbo: window.FrontierAudioEditor.editor.last.meters[7] }));
     check(gtr.boost > 0.5 && gtr.turbo > 0, 'GT-R boost under load: ' + gtr.boost.toFixed(2) + ' bar, spool ' + (gtr.shaft * 100).toFixed(0) + ' % at ' + Math.round(gtr.rpm) + ' rpm, turbo meter ' + (20 * Math.log10(gtr.turbo + 1e-9)).toFixed(0) + ' dB');
     await page.screenshot({ path: path.join(shots, 'AudioEditor_05_GTR_ScriptedPull_Boost.png') });
+    // Demon: the supercharger layer (meter 10) carries the rotor pulsation under load, the boost readout follows rpm · load, the chain junction reads Supercharger
+    await page.evaluate(() => window.FrontierAudioEditor.selectCar('DodgeDemon'));
+    await page.evaluate(() => window.FrontierAudioEditor.runPull('pull'));
+    await new Promise(r => setTimeout(r, 4500));
+    const demon = await page.evaluate(() => ({ boost: window.FrontierAudioEditor.editor.last.boost, rpm: window.FrontierAudioEditor.editor.last.rpm, charger: window.FrontierAudioEditor.editor.last.meters[10], turbo: window.FrontierAudioEditor.editor.last.meters[7], readout: document.getElementById('rBoost').textContent }));
+    check(demon.boost > 0.3 && demon.charger > 0 && demon.turbo === 0, 'Demon supercharger under load: ' + demon.boost.toFixed(2) + ' bar at ' + Math.round(demon.rpm) + ' rpm, charger meter ' + (20 * Math.log10(demon.charger + 1e-9)).toFixed(0) + ' dB, turbo meter silent, readout "' + demon.readout + '"');
+    await page.screenshot({ path: path.join(shots, 'AudioEditor_09_Demon_ScriptedPull_Supercharger.png') });
+    // Agera R: loud turbos (whine 4 → 12 kHz), 1.4 bar, wastegate blow-off with the 25 Hz flutter + thump on lift (spawned transients grow past the pops)
+    await page.evaluate(() => window.FrontierAudioEditor.selectCar('KoenigseggAgeraR'));
+    await page.evaluate(() => window.FrontierAudioEditor.runPull('pull'));
+    await new Promise(r => setTimeout(r, 6500));
+    const agera = await page.evaluate(() => ({ boost: window.FrontierAudioEditor.editor.last.boost, rpm: window.FrontierAudioEditor.editor.last.rpm, turbo: window.FrontierAudioEditor.editor.last.meters[7] }));
+    check(agera.boost > 0.8 && agera.turbo > 0, 'Agera R twin turbo under load: ' + agera.boost.toFixed(2) + ' bar at ' + Math.round(agera.rpm) + ' rpm, turbo meter ' + (20 * Math.log10(agera.turbo + 1e-9)).toFixed(0) + ' dB');
+    await page.screenshot({ path: path.join(shots, 'AudioEditor_10_AgeraR_ScriptedPull_Turbo.png') });
+    await new Promise(r => setTimeout(r, 3000));
+    const lifted = await page.evaluate(() => ({ pops: window.FrontierAudioEditor.editor.last.pops, active: window.FrontierAudioEditor.editor.last.active, dropped: window.FrontierAudioEditor.editor.last.dropped }));
+    check(lifted.active > lifted.pops && lifted.dropped === 0, 'Agera R lift: ' + lifted.active + ' transients spawned for ' + lifted.pops + ' pops (blow-off + wastegate thump on top), dropped ' + lifted.dropped);
     // inspector edit propagates: change bank_pan via the schema path and confirm the worklet accepted a structure message (no errors)
     await page.evaluate(() => { const c = window.FrontierAudioEditor.cars.NissanGtrNismo.current; c.exhaust.bank_pan = 0.9; window.FrontierAudioEditor.editor.worklet.port.postMessage({ type: 'structure', structure: c }); });
     await new Promise(r => setTimeout(r, 600));

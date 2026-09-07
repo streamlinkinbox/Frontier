@@ -9,8 +9,9 @@
 #
 # Reference set: every pull of the LaFerrari (the rev-3 voice: kernels, intake, formants, silencer, pan split), the 918 (rev 2,
 #    NA) on the pull and the blips, the GT-R (rev 2, turbo: whine, rush, anti-lag / blow-off, transients) on the pull and the
-#    overrun script, plus a pure-tone LaFerrari pull, a cockpit-listener pull and a 37-frame-slice blip (slice-size handling
-#    against the JavaScript, not just against itself).
+#    overrun script, the Agera R (loud turbos, 25 Hz wastegate flutter + thump) on the pull and the overrun script, the Demon
+#    (supercharger layer: rotor pulsation, bypass, bark) on the pull and the blips, plus a pure-tone LaFerrari pull, a
+#    cockpit-listener pull and a 37-frame-slice blip (slice-size handling against the JavaScript, not just against itself).
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -24,6 +25,10 @@ Dump Porsche918Spyder pull full 64
 Dump Porsche918Spyder blip full 64
 Dump NissanGtrNismo pull full 64
 Dump NissanGtrNismo overrun full 64
+Dump KoenigseggAgeraR pull full 64
+Dump KoenigseggAgeraR overrun full 64
+Dump DodgeDemon pull full 64
+Dump DodgeDemon blip full 64
 Dump FerrariLaFerrari pull 4 64 0x5EED1234 pure
 Dump FerrariLaFerrari pull 4 64 0x5EED1234 full cockpit
 Dump FerrariLaFerrari blip full 37
