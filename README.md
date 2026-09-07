@@ -220,7 +220,7 @@ changes surface rendering and optics, **not brushes, sculpted geometry, or erosi
 parameters**. Preset selection and Reset material only affect material settings.
 
 The research and implementation rationale are in
-**[research/materials-and-water.md](research/materials-and-water.md)**, with sources
+**[public/research/materials-and-water.md](public/research/materials-and-water.md)**, with sources
 from Google Filament, PBRT, Epic's water documentation and geological references.
 Colors/roughness are explicitly **authored starting values**, not measured scans.
 

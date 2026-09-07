@@ -14,7 +14,7 @@ fn noiseGradient(p:vec3f) -> vec4f {
   let gradient:vec3f=dw*vec3f(k1+k4*w.y+k6*w.z+k7*w.y*w.z,k2+k4*w.x+k5*w.z+k7*w.x*w.z,k3+k5*w.y+k6*w.x+k7*w.x*w.y);
   return vec4f(value*2.-1.,gradient*2.);
 }
-// Research/design notes: research/materials-and-water.md. Color is LINEAR RGB.
+// Research/design notes: public/research/materials-and-water.md. Color is LINEAR RGB.
 // Millimeter grains are averaged when unresolved, not enlarged into white blobs.
 fn detailVisibility(p:vec3f,frequency:f32) -> f32 {
   let width:f32=length(p-u.eye.xyz)*.828427/max(u.viewport.y,1.);

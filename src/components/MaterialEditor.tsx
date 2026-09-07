@@ -186,7 +186,7 @@ export function MaterialEditor({
       </div>
       <a
         className="material-research-link"
-        href="https://github.com/streamlinkinbox/Frontier/blob/arena/01a07d13-frontier/research/materials-and-water.md"
+        href={`${import.meta.env.BASE_URL}research/materials-and-water.md`}
         target="_blank"
         rel="noopener noreferrer"
       >
