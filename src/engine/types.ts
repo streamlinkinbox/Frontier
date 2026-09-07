@@ -11,6 +11,10 @@ export interface Settings {
   evaporation: number;
   thermal: number;
   resistance: number;
+  cohesion: number;
+  settling: number;
+  talusAngle: number;
+  waterClarity: number;
   water: boolean;
   waterLevel: number;
   wind: number;
@@ -35,6 +39,10 @@ export const DEFAULT_SETTINGS: Settings = {
   evaporation: 0.18,
   thermal: 0.3,
   resistance: 0.65,
+  cohesion: 0.28,
+  settling: 0.35,
+  talusAngle: 34,
+  waterClarity: 0.72,
   water: true,
   waterLevel: 0.65,
   wind: 0.28,

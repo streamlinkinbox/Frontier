@@ -1,6 +1,12 @@
 import { glFragment, glVertex } from "./shaders";
 import { generateField, pickField, sculptField } from "./field";
-import { computeFlux, evolveField, redistanceField } from "./simulation";
+import {
+  computeFlux,
+  evolveField,
+  redistanceField,
+  computeTalusFlux,
+  settleTalus,
+} from "./simulation";
 import { packUniforms } from "./uniforms";
 import { diagnostics, summarizePixels } from "../diagnostics";
 import { encodeFramePNG } from "./presentation";
@@ -139,7 +145,7 @@ export class WebGLBackend implements Backend {
     this.data = generateField(this.size, settings);
     this.original = this.data.slice();
     this.scratch = new Float32Array(this.data.length);
-    this.flux = new Float32Array((this.data.length / 4) * 3);
+    this.flux = new Float32Array(this.data.length);
     this.texture = this.createTexture(this.data);
     this.originalTexture = this.createTexture(this.original);
     diagnostics.log("WebGL2", "Initial 3D volume uploaded", {
@@ -407,6 +413,11 @@ export class WebGLBackend implements Backend {
       const old = this.data;
       this.data = this.scratch;
       this.scratch = old;
+      if (s.thermal > 0) {
+        computeTalusFlux(this.data, this.size, s, this.flux);
+        settleTalus(this.data, this.size, this.flux, this.scratch);
+        [this.data, this.scratch] = [this.scratch, this.data];
+      }
       if (++this.relaxationCycle % 2 === 0 && (s.thermal > 0 || s.erosion > 0))
         this.redistance();
     }

@@ -148,8 +148,10 @@ export function Guide({ onClose }: { onClose: () => void }) {
         <p>
           <strong>A creative simulation, not a geological prediction.</strong>{" "}
           WebGPU runs a 3D finite-volume runoff and sediment model, coupled to
-          narrow-band SDF erosion and curvature-based thermal relaxation.
-          Resolution and simplified material physics limit realism; this is not
+          shear-threshold SDF erosion, budgeted sediment exchange, particle
+          settling and slope-limited downhill talus transfer. Water waves and
+          shoreline foam are visual, not a fluid free-surface solve. Resolution
+          and simplified material physics limit realism; this is not
           Navier–Stokes, rock-fracture mechanics, or a calibrated geological
           timescale. WebGL2 uses the same lower-resolution CPU model.
         </p>

@@ -117,6 +117,39 @@ hashes, credentials, credential-like fields and raw typed-array/voxel buffers ar
 omitted from the report. The report does contain browser/GPU identification and
 app-origin information; it is shared only when you copy/download it.
 
+## Water, weathering and material update · v0.3.0
+
+The **working WebGL2 path** and WebGPU use the same new rendering shader and
+corresponding CPU/GPU erosion equations. This update does not claim that the
+reported Windows native-WebGPU presentation problem has been validated as fixed.
+Continue using `?renderer=webgl` if that is the reliable renderer on your device.
+
+- **Water:** four non-parallel, dispersion-driven wave bands displace the surface,
+  rather than only wobbling the normals of a flat sheet. Terrain-distance ripples
+  lap toward the banks, with broken contact foam, a moving wet edge, restrained
+  highlights, refracted riverbed detail, and shallow caustic light. Optical clarity
+  and actual suspended-sediment samples affect the water tint.
+- **Stone:** rotated multi-scale grain removes the old axis-aligned pore pattern.
+  Broken lamination, quartz variation, anti-aliased joints, vertical varnish,
+  mineral tide marks, dark wet rock and a wetter specular response add scale.
+  Erosion history reveals fresher surfaces; deposition adds a sandy finish.
+  The same dipping/warped strata determine both the material and its resistance.
+- **Physics:** tangential runoff must overcome a cohesion-dependent shear threshold
+  to detach rock. Deposition spends the cell's own suspended material (no borrowed
+  neighbor sediment), with an explicit local solid-fraction/sediment budget.
+  Sediment has a bounded downward settling flux. Talus travels down four diagonal
+  links only above its repose angle, with paired donor/receiver budgets, rather
+  than a global Laplacian blur. Every voxel above a surface is checked for rain
+  shelter, so a one-voxel roof protects a cave floor.
+- **Controls:** Hydraulic → **Scour & sediment controls** contains **Rock cohesion**
+  and **Settling rate**. Thermal has **Talus weathering**, **Layer resistance** and
+  **Talus angle**. **Water clarity** is available in both water panels. Process
+  controls use the existing 12-iteration live preview; water clarity is visual only.
+
+Existing `.frontier` archives keep their saved voxel geometry. Missing new settings
+receive defaults, and future iterations use the revised solver. Mesh exports share
+the new base strata/sand colors, but do not bake the optical water or shader-only grain.
+
 ## What you can do
 
 - Start from a seeded sandstone canyon, an asymmetric weathered arch with unequal shoulders and alcoves, or fractured hoodoos/fins with caprock and non-monotonic profiles. The v0.2 canyon generator is unchanged; arches and spires use revised formations. Existing imported voxel data is preserved.
@@ -172,7 +205,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.2.3**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.3.0**.
 
 ### Why the earlier deployment returned 404
 
@@ -242,17 +275,33 @@ The initial field combines 3D CSG, warped polygonal mesas, ellipsoidal cutouts, 
 
 A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows, ambient occlusion, procedural bedding and mineral grain. There are no Quixel assets or texture downloads. The only raster assets in this repository are small **thumbnails captured from this renderer**. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
 
-The water preview uses geometric shoreline clipping, depth-dependent absorption, Fresnel reflection rays against the SDF, and animated wind-driven normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. Both backends raymarch into an owned, adaptively sized off-screen texture and scale it into a stable display-sized canvas. Only actual viewport-size changes resize that canvas, immediately before drawing; Adaptive/Native quality changes and capture do not reset it. Adaptive resolution uses multi-second hysteresis; Native mode renders at full viewport resolution. GPU readback for PNG export happens in the same submission into an owned buffer, before swapchain recycling. Verification still checks the actual presented canvas, not just the off-screen image.
+The water preview intersects a multi-band displaced surface and clips it against the SDF. It uses terrain-distance shoreline ripples and foam, refracted bed rays, depth-dependent absorption/turbidity, Fresnel reflection rays, and animated wind normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. Both backends raymarch into an owned, adaptively sized off-screen texture and scale it into a stable display-sized canvas. Only actual viewport-size changes resize that canvas, immediately before drawing; Adaptive/Native quality changes and capture do not reset it. Adaptive resolution uses multi-second hysteresis; Native mode renders at full viewport resolution. GPU readback for PNG export happens in the same submission into an owned buffer, before swapchain recycling. Verification still checks the actual presented canvas, not just the off-screen image.
 
 ### Erosion pipeline
 
 Each iteration performs:
 
-1. **Face flux:** pressure differences and a downward gravity bias move water across the positive X/Y/Z faces of the 3D grid. Each face has one signed flux, shared by its two cells. A 1/6 donor limiter prevents negative water.
-2. **Transport and forcing:** the divergence of those fluxes updates water; donor concentrations advect sediment. Rain is added near upward-facing, sky-exposed rock. Evaporation and the bounded edge drains remove water.
-3. **Hydraulic exchange:** local wetness, flow, capacity, and stratigraphic hardness evolve the narrow-band level set and suspended sediment. Sediment above carrying capacity can deposit.
-4. **Thermal relaxation:** a curvature-based term rounds exposed edges and relaxes the 3D surface. Resistant and soft strata weather at different rates.
-5. **Distance maintenance:** every second iteration, a sign-limited Godunov/Eikonal relaxation pass extends distance changes into the surrounding volume. Brushes also periodically redistance. This keeps repeated editing from exhausting the original narrow band.
+1. **Face flux:** pressure differences and a downward gravity bias move water across
+   shared X/Y/Z faces. A 1/6 donor limiter prevents exporting more water than exists.
+2. **Transport and forcing:** flux divergence updates water, upwind concentrations
+   advect sediment, and a reserved donor budget lets sediment settle downward.
+   Rain enters exposed upward-facing surface cells; every voxel in the column is
+   tested for shelter. Evaporation, water saturation and the outer drains are sinks.
+3. **Hydraulic exchange:** a tangential-flow/stream-power response must exceed a
+   cohesion/strata-dependent shear threshold. Unloaded runoff can detach material;
+   overloaded water can deposit on supporting faces. The local exchange uses
+   `solidFraction = clamp(0.5 - sdf / (2 * cell), 0, 1)`, with equal and opposite
+   changes to this material proxy and suspended sediment. Deposition cannot spend
+   a neighbor's sediment, and still water without rain does not scour.
+4. **Talus transport:** a four-channel flux pass transfers material to lower diagonal
+   neighbors, followed by an accumulation pass. Slopes below the selected repose
+   angle do not move. Cohesion and lithology slow intact rock; deposited material
+   is more mobile. Each link receives a quarter of donor/receiver budgets so the
+   isolated pass conserves its solid-volume proxy and lowers material elevation.
+5. **Distance maintenance:** every second iteration, sign-limited Godunov/Eikonal
+   relaxation extends the new distances into the volume. This pass is not a
+   volume-conservative reconstruction; overall geological mass conservation is
+   therefore **not** claimed. Brushes also periodically redistance.
 
 Both GPU and CPU paths have the same basic solver. The CPU path uses a single iteration per simulation tick to keep the interface usable. A session pauses at 8,000 iterations; reset restores the original terrain and can itself be undone.
 
@@ -261,11 +310,11 @@ Both GPU and CPU paths have the same basic solver. The CPU path uses a single it
 This is a **creative, physically motivated erosion prototype**, not a validated geological prediction or a production engine integration.
 
 - Flow uses a simplified 3D finite-volume pressure/gravity model. It is **not** incompressible Navier–Stokes, shallow-water CFD, SPH, or a calibrated real-world timescale.
-- Internal water/sediment **advection** is conservative before forcing, saturation clamps, and edge drainage. Conversion between rock distance and sediment is approximate and is **not globally mass-conserving rock mechanics**.
-- Thermal erosion is curvature relaxation, **not** rigid rock fracture, a talus-angle solver, or particle-based landslides. The wind slider animates water; it does not simulate aeolian rock erosion.
-- Rain visibility uses coarse upward volume probes. Thin roofs, very small channels, and sub-voxel rock detail are limited by the grid.
+- Internal advection/settling, the local hydraulic exchange, and the isolated talus pass have explicit material budgets. However, SDF-to-solid-fraction conversion is a proxy, floating-point storage rounds values, and redistancing changes the proxy. The whole solver is **not globally mass-conserving rock mechanics**.
+- Talus is a slope-limited grid transfer, **not** discrete rigid-block fracture or resolved granular dynamics. Rock fatigue and cohesion are phenomenological. Wind drives the visual water, not aeolian rock erosion.
+- Rain visibility checks the full vertical voxel column, but roofs or channels thinner than the grid cannot be represented accurately.
 - Eikonal relaxation approximately preserves the zero surface; it is not exact signed-distance reconstruction. Long or extreme edits can soften fine features.
-- The water surface is a **separate planar visualization**, clipped and shaded against the actual terrain. It is not a reconstructed free surface of the mobile-water voxels. Use **Flow** to inspect simulation water.
+- The displaced water surface, caustics and contact foam are **visual approximations**, clipped and shaded against actual terrain. They are not a reconstructed mobile-water free surface, breaking-wave CFD, or shoreline wave-abrasion simulation. Use **Flow** to inspect simulation water. The preview's water level is not a hydraulic boundary condition.
 - Geometry details below the voxel spacing are shaded procedural grain, not additional triangles. Increase the volume dimensions in `types.ts` for more geometric detail, with cubic memory/compute cost.
 - GLB exports the terrain's current zero isosurface and sampled base vertex color. Water, sunlight, atmosphere, and shader-only grain are **not baked** into the mesh. Port the WGSL material/water shader to your engine for the full rendering treatment.
 - Projects stay on this origin/browser until exported. There is no cloud sync or automatic save. A different device's resolution is handled with trilinear 3D resampling on import.
@@ -314,3 +363,14 @@ SwiftShader for both ANGLE and Vulkan; forcing ANGLE's generic Vulkan mode can
 fail shared-image presentation on a headless build even when an adapter exists. An externally installed Chromium can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Performance in a software renderer does not represent a hardware GPU.
 
 The original uploaded `.patch` in this checkout is unrelated to this terrain workbench and has been left untouched.
+
+### v0.3 numerical and visual regressions
+
+The added tests cover still-water versus moving-water scouring, cohesion response,
+local erosion/deposition budgets, no neighbor-borrowed deposits, one-voxel rain
+shelter, sediment settling/advection conservation, stable below-repose slopes,
+downhill talus and its material budget, legacy archive defaults, and CPU/GPU
+agreement on an identical small 3D fixture (with a tolerance for RGBA16F storage).
+Browser tests also check animated WebGL water pixels, optical clarity, the new
+controls, actual GPU SDF changes, sculpting, exact undo and exports. These tests
+validate implementation properties, **not geological calibration**.

@@ -65,6 +65,24 @@ export function validateSettings(raw: unknown): Settings {
       throw new Error("Invalid project setting: detail.");
     settings.detail = input.detail;
   }
+  // Added in v0.3. Old archives retain their exact voxel data and get defaults.
+  for (const [key, lo, hi] of [
+    ["cohesion", 0, 1],
+    ["settling", 0, 1],
+    ["talusAngle", 20, 55],
+    ["waterClarity", 0, 1],
+  ] as const) {
+    const value = input[key];
+    if (value === undefined) continue;
+    if (
+      typeof value !== "number" ||
+      !Number.isFinite(value) ||
+      value < lo ||
+      value > hi
+    )
+      throw new Error(`Invalid project setting: ${key}.`);
+    settings[key] = value;
+  }
   if (!Number.isInteger(settings.seed) || !Number.isInteger(settings.speed))
     throw new Error("Seed and speed must be integers.");
   for (const key of [

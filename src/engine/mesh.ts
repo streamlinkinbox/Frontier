@@ -1,4 +1,5 @@
-import { sampleField, noise } from "./field";
+import { strataStrength } from "./geology";
+import { sampleField } from "./field";
 import { normalize, cross, sub, dot, mix, smoothstep } from "./math";
 import { type Vec3, type VolumeSize } from "./types";
 export interface Mesh {
@@ -53,22 +54,20 @@ export function extractMesh(
     ]);
   };
   const color = (p: Vec3, n: Vec3): Vec3 => {
-    const layer =
-      p[1] +
-      noise(p[0] * 0.035, p[1] * 0.02, p[2] * 0.035) * 1.7 +
-      Math.sin(p[2] * 0.022) * 1.6;
-    const bands = (Math.sin(layer * 0.92) * 0.5 + 0.5) * 0.65 + 0.15,
-      pale = smoothstep(0.65, 0.92, Math.sin(layer * 0.46 + 0.9)) * 0.4;
+    const strength = strataStrength(...p);
     const base = [
-      mix(0.38, 0.53, bands),
-      mix(0.113, 0.24, bands),
-      mix(0.043, 0.091, bands),
+      mix(0.34, 0.57, strength * 0.8),
+      mix(0.115, 0.315, strength * 0.8),
+      mix(0.047, 0.146, strength * 0.8),
     ];
-    const chalk = [0.61, 0.355, 0.17],
-      sand = [0.5, 0.255, 0.112];
-    return base.map((v, i) =>
-      mix(mix(v, chalk[i], pale), sand[i], smoothstep(0.64, 0.94, n[1]) * 0.42),
-    ) as Vec3;
+    const deposited =
+      Math.max(0, -sampleField(data, size, p, 3)) / (cell * 0.65);
+    const sand = [0.56, 0.335, 0.167];
+    const dust = Math.min(
+      0.85,
+      smoothstep(0.58, 0.92, n[1]) * 0.32 + deposited * 0.6,
+    );
+    return base.map((value, i) => mix(value, sand[i], dust)) as Vec3;
   };
   const emit = (a: number, b: number, c: number) => {
     const pa = positions.slice(a * 3, a * 3 + 3) as Vec3,

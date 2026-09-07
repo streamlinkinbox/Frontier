@@ -35,6 +35,15 @@ fn noise(p: vec3f) -> f32 {
   return mix(mix(mix(hash3(i),hash3(i+vec3i(1,0,0)),f.x),mix(hash3(i+vec3i(0,1,0)),hash3(i+vec3i(1,1,0)),f.x),f.y),
     mix(mix(hash3(i+vec3i(0,0,1)),hash3(i+vec3i(1,0,1)),f.x),mix(hash3(i+vec3i(0,1,1)),hash3(i+vec3i(1,1,1)),f.x),f.y),f.z)*2.-1.;
 }
+// Shared visual/mechanical lithology. Pale, cemented bands resist detachment.
+fn strataCoordinate(p:vec3f) -> f32 {
+  return p.y+p.x*.025+p.z*.017+noise(p*vec3f(.047,.018,.047))*.85;
+}
+fn strataStrength(p:vec3f) -> f32 {
+  return .2+.75*smoothstep(-.5,.65,sin(strataCoordinate(p)*1.05+noise(p*vec3f(.16,.06,.16))*.24));
+}
+fn erodibility(p:vec3f) -> f32 {return mix(1.,1.-strataStrength(p)*.82,u.geology.y);}
+fn solidFraction(d:f32) -> f32 {return clamp(.5-d/(2.*u.dims.w),0.,1.);}
 fn smin(a: f32,b: f32,k: f32) -> f32 {let h: f32=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
 fn boxSdf(p:vec3f,b:vec3f) -> f32 {let q:vec3f=abs(p)-b;return length(max(q,vec3f(0)))+min(max(q.x,max(q.y,q.z)),0.);}
 fn ellipsoid(p:vec3f,r:vec3f) -> f32 {let k0:f32=length(p/r);let k1:f32=length(p/(r*r));return select(k0*(k0-1.)/max(k1,.00001),-min(r.x,min(r.y,r.z)),k0<.00001);}
@@ -46,7 +55,9 @@ fn safeNormalize(v:vec3f) -> vec3f {
   return select(vec3f(0,1,0),v*inverseSqrt(max(squared,.00000001)),squared>.00000001);
 }
 fn surfaceNormal(p:vec3f) -> vec3f {
-  let e:f32=.28;
+  // Blend across voxel faces before applying the fine material bump. This
+  // avoids faceted/dotted lighting along the lower-resolution fallback's seams.
+  let e:f32=max(.3,u.dims.w*.6);
   return safeNormalize(vec3f(map(p+vec3f(e,0,0))-map(p-vec3f(e,0,0)),map(p+vec3f(0,e,0))-map(p-vec3f(0,e,0)),map(p+vec3f(0,0,e))-map(p-vec3f(0,0,e))));
 }
 fn boxHit(ro:vec3f,rd:vec3f) -> vec2f {

@@ -207,6 +207,8 @@ export class WebGPUBackend implements Backend {
         "initialize",
         "flux",
         "evolve",
+        "talusFlux",
+        "talusSettle",
         "sculpt",
         "redistance",
         "pickSurface",
@@ -434,15 +436,19 @@ export class WebGPUBackend implements Backend {
       entries.push({ binding: 1, resource: tex.createView() });
     if (["render", "pickSurface"].includes(kind))
       entries.push({ binding: 2, resource: this.sampler });
-    if (["initialize", "evolve", "sculpt", "redistance"].includes(kind))
+    if (
+      ["initialize", "evolve", "sculpt", "redistance", "talusSettle"].includes(
+        kind,
+      )
+    )
       entries.push({
         binding: 3,
         resource:
           this.fields[kind === "initialize" ? index : 1 - index].createView(),
       });
-    if (kind === "flux")
+    if (kind === "flux" || kind === "talusFlux")
       entries.push({ binding: 4, resource: this.flux.createView() });
-    if (kind === "evolve")
+    if (kind === "evolve" || kind === "talusSettle")
       entries.push({ binding: 5, resource: this.flux.createView() });
     if (kind === "pickSurface")
       entries.push({ binding: 6, resource: { buffer: this.pickResult } });
@@ -469,7 +475,12 @@ export class WebGPUBackend implements Backend {
       );
     pass.end();
     if (!encoder) this.device.queue.submit([enc.finish()]);
-    if (kind === "evolve" || kind === "sculpt" || kind === "redistance")
+    if (
+      kind === "evolve" ||
+      kind === "sculpt" ||
+      kind === "redistance" ||
+      kind === "talusSettle"
+    )
       this.current = 1 - this.current;
   }
   render(frame: FrameState) {
@@ -742,6 +753,10 @@ export class WebGPUBackend implements Backend {
     for (let i = 0; i < count; i++) {
       this.run("flux", enc);
       this.run("evolve", enc);
+      if (settings.thermal > 0) {
+        this.run("talusFlux", enc);
+        this.run("talusSettle", enc);
+      }
       if (
         ++this.relaxationCycle % 2 === 0 &&
         (settings.thermal > 0 || settings.erosion > 0)

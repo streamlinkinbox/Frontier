@@ -3344,3 +3344,23 @@ input[type="range"]:focus-visible {
   backdrop-filter: none;
   background: #0d140be8;
 }
+
+.process-details {
+  margin-top: 22px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.process-details summary {
+  color: #c5cbbd;
+  font-size: 11px;
+  cursor: pointer;
+}
+.process-details[open] summary {
+  color: var(--accent);
+}
+.process-details p {
+  font-size: 10px;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 15px 0 2px;
+}

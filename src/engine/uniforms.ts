@@ -15,14 +15,14 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
     20,
   );
   a.set([s.waterLevel, s.wind, s.water ? 1 : 0, s.grid ? 1 : 0], 24);
-  a.set([0, s.terrainVisible ? 1 : 0, s.seed, s.detail], 28);
+  a.set([s.waterClarity, s.terrainVisible ? 1 : 0, s.seed, s.detail], 28);
   a.set([size.x, size.y, size.z, 96 / size.x], 32);
   a.set([s.rainfall, s.erosion, s.sediment, s.evaporation], 36);
   a.set(
     [
       s.thermal,
       s.resistance,
-      0.1,
+      s.cohesion,
       ["canyon", "arches", "badlands"].indexOf(s.preset),
     ],
     40,
@@ -33,9 +33,10 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
       s.radius,
       s.falloff,
       ["orbit", "add", "carve", "smooth", "flatten"].indexOf(f.tool),
-      0,
+      s.settling,
     ],
     48,
   );
+  a[54] = (s.talusAngle * Math.PI) / 180;
   return a;
 }

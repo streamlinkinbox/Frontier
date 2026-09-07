@@ -1,7 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { expectSandstone } from "./pixels";
-import { version } from "../package.json";
+import { readFileSync } from "node:fs";
+const { version } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
 
 for (const renderer of ["webgpu", "webgl"] as const) {
   test(`${renderer}: compiled Pages site loads its assets, renders terrain and exports`, async ({

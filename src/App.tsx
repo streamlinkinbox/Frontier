@@ -1512,13 +1512,13 @@ export default function App() {
                           label="Rainfall"
                           value={settings.rainfall}
                           onChange={(v) => update("rainfall", v, true)}
-                          help="Rain added to sky-exposed surface cells each iteration"
+                          help="Rain enters exposed surfaces; every voxel above is checked for cave roofs"
                         />
                         <Slider
                           label="Erosion strength"
                           value={settings.erosion}
                           onChange={(v) => update("erosion", v, true)}
-                          help="Rate at which flowing water removes material"
+                          help="Rate of detachment above the local shear/cohesion threshold"
                         />
                         <Slider
                           label="Sediment capacity"
@@ -1532,18 +1532,37 @@ export default function App() {
                           onChange={(v) => update("evaporation", v, true)}
                           help="Water removed from the volume each iteration"
                         />
+                        <details className="process-details">
+                          <summary>Scour & sediment controls</summary>
+                          <Slider
+                            label="Rock cohesion"
+                            value={settings.cohesion}
+                            onChange={(v) => update("cohesion", v, true)}
+                            help="Flow must overcome this critical shear threshold before detaching rock"
+                          />
+                          <Slider
+                            label="Settling rate"
+                            value={settings.settling}
+                            onChange={(v) => update("settling", v, true)}
+                            help="Particles settle down through water and deposit when carrying capacity falls"
+                          />
+                          <p>
+                            Moving runoff cuts; overloaded water deposits. The
+                            local rock/sediment exchange is budgeted.
+                          </p>
+                        </details>
                       </>
                     ) : (
                       <>
                         <div className="parameter-caption">
                           <Mountain size={12} />
-                          <span>Weather softens the sharpest edges.</span>
+                          <span>Loose material moves downhill.</span>
                         </div>
                         <Slider
-                          label="Thermal relaxation"
+                          label="Talus weathering"
                           value={settings.thermal}
                           onChange={(v) => update("thermal", v, true)}
-                          help="Curvature-driven relaxation of the 3D level set"
+                          help="Gravity-driven material transfer on slopes above the repose angle; not global smoothing"
                         />
                         <Slider
                           label="Layer resistance"
@@ -1551,12 +1570,22 @@ export default function App() {
                           onChange={(v) => update("resistance", v, true)}
                           help="Contrasting hardness of sedimentary strata"
                         />
+                        <Slider
+                          label="Talus angle"
+                          value={settings.talusAngle}
+                          min={20}
+                          max={55}
+                          step={1}
+                          format={(v) => `${v}°`}
+                          onChange={(v) => update("talusAngle", v, true)}
+                          help="Slopes below this angle do not shed talus; cohesion protects intact rock"
+                        />
                         <div className="parameter-note">
                           <Layers3 size={17} />
                           <p>
                             <strong>Rock remembers its layers.</strong>Harder
-                            strata resist erosion. Softer bands wear back to
-                            form shelves and undercuts.
+                            strata resist scouring. The same bands control the
+                            visible sandstone and its mechanical resistance.
                           </p>
                         </div>
                         <p className="thermal-note">
@@ -1612,10 +1641,17 @@ export default function App() {
                         onChange={(v) => update("wind", v)}
                         disabled={!settings.water}
                       />
+                      <Slider
+                        label="Water clarity"
+                        value={settings.waterClarity}
+                        onChange={(v) => update("waterClarity", v)}
+                        disabled={!settings.water}
+                        help="Optical clarity; suspended simulation sediment also tints the water"
+                      />
                     </div>
                     <p className="water-note">
                       <Wind size={12} />
-                      Small ripples. A quieter kind of detail.
+                      Wind waves · shoreline lapping · sediment-tinted depth.
                     </p>
                   </div>
                 </>
@@ -1700,12 +1736,18 @@ export default function App() {
                       onChange={(v) => update("wind", v)}
                       disabled={!settings.water}
                     />
+                    <Slider
+                      label="Water clarity"
+                      value={settings.waterClarity}
+                      onChange={(v) => update("waterClarity", v)}
+                      disabled={!settings.water}
+                    />
                     <div className="parameter-note">
                       <Waves size={17} />
                       <p>
-                        <strong>Quiet water, real depth.</strong>Fresnel
-                        reflections, depth absorption, shoreline shallows, and
-                        wind-driven surface normals.
+                        <strong>Water meets stone.</strong>Displaced wind waves,
+                        refracted shallows, lapping foam and a moving wet edge.
+                        Water tint responds to suspended sediment.
                       </p>
                     </div>
                   </div>
@@ -1732,15 +1774,16 @@ export default function App() {
                         onChange={(value) => update("detail", value)}
                       />
                       <p>
-                        World-space grain, pore relief, fine bedding, and joint
-                        fractures. Fly closer to inspect.
+                        Rotated mineral grain, broken lamination and pore
+                        relief. Scouring exposes fresh rock; deposited material
+                        adds a sandy finish. Fly closer to inspect.
                       </p>
                     </div>
                     <div className="material-info">
                       <div className="sandstone-swatch" />
                       <div>
                         <strong>Procedural sandstone</strong>
-                        <p>Grain · pores · joint fractures</p>
+                        <p>Mineral grain · wet rock · weathered strata</p>
                       </div>
                     </div>
                   </div>

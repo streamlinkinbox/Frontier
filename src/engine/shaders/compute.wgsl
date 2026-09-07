@@ -119,11 +119,10 @@ fn initialize(@builtin(global_invocation_id) id:vec3u) {
   let p=WORLD_MIN+(vec3f(id)+.5)/u.dims.xyz*WORLD_SIZE;
   textureStore(outputField,vec3i(id),vec4f(initialSdf(p),0,0,0));
 }
-fn permeability(d:f32) -> f32 {return smoothstep(-.12*u.dims.w,.65*u.dims.w,d);}
+fn permeability(d:f32) -> f32 {return smoothstep(-.45*u.dims.w,.65*u.dims.w,d);}
 fn faceFlux(a:vec4f,b:vec4f,axis:i32) -> f32 {
   let gravity=select(0.,.55,axis==1);
-  let raw=(a.y-b.y-gravity)*.30;
-  return clamp(raw,-b.y/6.,a.y/6.)*min(permeability(a.x),permeability(b.x));
+  return clamp((a.y-b.y-gravity)*.30,-b.y/6.,a.y/6.)*min(permeability(a.x),permeability(b.x));
 }
 @compute @workgroup_size(4,4,4)
 fn flux(@builtin(global_invocation_id) id:vec3u) {
@@ -135,47 +134,95 @@ fn flux(@builtin(global_invocation_id) id:vec3u) {
 }
 fn fluxAt(p:vec3i) -> vec3f {if(any(p<vec3i(0))||any(p>=vec3i(u.dims.xyz))){return vec3f(0);}return textureLoad(fluxField,p,0).xyz;}
 fn concentration(v:vec4f) -> f32 {return min(v.z/max(v.y,.00001),3.);}
-fn sedimentFlux(f:f32,a:vec4f,b:vec4f) -> f32 {return f*select(concentration(b),concentration(a),f>=0.);}
+fn sedimentFlux(f:f32,a:vec4f,b:vec4f,axis:i32) -> f32 {
+  let settling=u.brushParams.w*.06;
+  let advected=(1.-settling)*f*select(concentration(b),concentration(a),f>=0.);
+  return advected-select(0.,settling*b.z*min(permeability(a.x),permeability(b.x)),axis==1);
+}
 @compute @workgroup_size(4,4,4)
 fn evolve(@builtin(global_invocation_id) id:vec3u) {
   if(any(id>=vec3u(u.dims.xyz))){return;}
   let p=vec3i(id);let a=loadAt(p);
+  if(any(id<vec3u(2))||any(id>=vec3u(u.dims.xyz)-2u)){textureStore(outputField,p,vec4f(a.x,0,0,a.w));return;}
   let xp=loadAt(p+vec3i(1,0,0));let xm=loadAt(p-vec3i(1,0,0));
   let yp=loadAt(p+vec3i(0,1,0));let ym=loadAt(p-vec3i(0,1,0));
   let zp=loadAt(p+vec3i(0,0,1));let zm=loadAt(p-vec3i(0,0,1));
   let f=fluxAt(p);let fm=vec3f(fluxAt(p-vec3i(1,0,0)).x,fluxAt(p-vec3i(0,1,0)).y,fluxAt(p-vec3i(0,0,1)).z);
-  var water=max(0.,a.y+dot(fm-f,vec3f(1)));
-  var sediment=max(0.,a.z+sedimentFlux(fm.x,xm,a)+sedimentFlux(fm.y,ym,a)+sedimentFlux(fm.z,zm,a)-sedimentFlux(f.x,a,xp)-sedimentFlux(f.y,a,yp)-sedimentFlux(f.z,a,zp));
+  var water=a.y+dot(fm-f,vec3f(1));
+  var sediment=max(0.,a.z+sedimentFlux(fm.x,xm,a,0)+sedimentFlux(fm.y,ym,a,1)+sedimentFlux(fm.z,zm,a,2)-sedimentFlux(f.x,a,xp,0)-sedimentFlux(f.y,a,yp,1)-sedimentFlux(f.z,a,zp,2));
   let cell=u.dims.w;
-  let grad=vec3f(xp.x-xm.x,yp.x-ym.x,zp.x-zm.x)/(2.*cell);
-  let normal=normalize(grad+vec3f(0,.00001,0));
+  let grad=vec3f(xp.x-xm.x,yp.x-ym.x,zp.x-zm.x);
+  let normal=grad/max(length(grad),.000001);
   var rain=0.;
-  if(a.x>0.&&a.x<cell*1.7&&normal.y>.08) {
+  if(a.x>0.&&a.x<cell*1.7&&normal.y>.08&&u.erosion.x>0.) {
     var exposed=1.;
-    // Rain enters only sky-exposed cells; roofs protect cave interiors.
-    for(var j=1;j<=18;j++) {if(p.y+j*4<i32(u.dims.y)){exposed*=smoothstep(-cell*.2,cell,loadAt(p+vec3i(0,j*4,0)).x);}}
-    rain=u.erosion.x*.028*normal.y*exposed;
+    // Test every voxel above the surface: thin cave roofs shelter the floor.
+    for(var y=p.y+1;y<i32(u.dims.y);y++) {
+      exposed*=smoothstep(-cell*.2,cell*.3,loadAt(vec3i(p.x,y,p.z)).x);
+      if(exposed<.001){break;}
+    }
+    rain=u.erosion.x*.04*normal.y*exposed;
   }
-  water=(water+rain)*max(0.,1.-u.erosion.w*.035);
-  let wet=max(water,max(max(xp.y,xm.y),max(max(yp.y,ym.y),max(zp.y,zm.y))));
-  let speed=length(abs(f)+abs(fm));
-  let wp=WORLD_MIN+(vec3f(id)+.5)/u.dims.xyz*WORLD_SIZE;
-  let band=sin(wp.y*1.38+noise(wp*.055)*1.4)*.5+.5;
-  let hardness=mix(1.,.18+band*.72,u.geology.y);
-  let capacity=u.erosion.z*(speed*8.+rain*6.+.012)*wet*3.;
-  let carried=(sediment+xp.z+xm.z+yp.z+ym.z+zp.z+zm.z)/7.;
-  let narrow=1.-smoothstep(cell*.6,cell*2.3,abs(a.x));
-  let detach=u.erosion.y*hardness*max(0.,capacity-carried)*.62;
-  let deposit=max(0.,carried-capacity)*.11;
-  let hydraulic=clamp((detach-deposit)*narrow,-cell*.025,cell*.035);
-  // Curvature-driven thermal relaxation operates on the entire 3D level set.
-  let lap=(xp.x+xm.x+yp.x+ym.x+zp.x+zm.x)/6.-a.x;
-  let thermal=clamp(lap*u.geology.x*.11*hardness*narrow,-cell*.028,cell*.028);
-  var d=a.x+hydraulic+thermal;
-  sediment=max(0.,sediment+max(hydraulic,0.)*.3-max(-hydraulic,0.)*.3);
-  // The outer two cells are fixed: this is a bounded terrain tile, not a world.
-  if(any(id<vec3u(2))||any(id>=vec3u(u.dims.xyz)-2u)){d=a.x;water=0.;sediment=0.;}
-  textureStore(outputField,p,vec4f(clamp(d,-24.,32.),min(water,2.),min(sediment,2.),clamp(a.w+hydraulic+thermal,-6.,6.)));
+  water=max(0.,water+rain)*(1.-u.erosion.w*.035);
+  let wet=max(max(a.y,water),max(max(xp.y,xm.y),max(max(yp.y,ym.y),max(zp.y,zm.y))));
+  let narrow=1.-smoothstep(cell*.75,cell,abs(a.x));
+  var delta=0.;
+  if(narrow>0.) {
+    var front=vec3i(0,0,select(-1,1,normal.z>=0.));
+    if(abs(normal.x)>abs(normal.y)&&abs(normal.x)>abs(normal.z)){front=vec3i(select(-1,1,normal.x>=0.),0,0);}
+    else if(abs(normal.y)>abs(normal.z)){front=vec3i(0,select(-1,1,normal.y>=0.),0);}
+    let q=((f+fm)*.5+fluxAt(p+front))*.5;
+    let tangential=length(q-normal*dot(q,normal));
+    let slope=min(2.5,sqrt(max(0.,1.-normal.y*normal.y))/max(abs(normal.y),.25));
+    let velocity=min(3.,tangential/max(wet,.015));
+    let wp=WORLD_MIN+(vec3f(id)+.5)*cell;
+    let weak=erodibility(wp);
+    let shear=wet*velocity*(.5+slope*1.2)+rain*.6;
+    let threshold=(.001+u.geology.z*.025)*(1.1-weak*.7);
+    let capacity=u.erosion.z*(wet*velocity*(1.+slope*.8)*4.+rain*.7);
+    let solid=solidFraction(a.x);
+    let detach=min(min(solid,max(0.,capacity-sediment)),min(.02,u.erosion.y*weak*max(0.,shear-threshold)*.4*narrow));
+    let deposit=min(min(1.-solid,sediment),min(.02,max(0.,sediment-capacity)*(.08+u.brushParams.w*.35)*smoothstep(-.15,.75,normal.y)*narrow));
+    let exchange=detach-deposit;
+    delta=exchange*2.*cell;
+    sediment+=exchange;
+  }
+  textureStore(outputField,p,vec4f(clamp(a.x+delta,-24.,32.),min(water,2.),max(0.,sediment),clamp(a.w+delta,-6.,6.)));
+}
+// Four downward diagonal grains transfers. Source and destination each grant a
+// quarter of their material/void budget to a shared link. No global blur term.
+fn talusLink(p:vec3i,offset:vec3i,solid:f32,rate:f32) -> f32 {
+  let dest=p+offset;
+  if(any(dest<vec3i(2))||any(dest>=vec3i(u.dims.xyz)-2)){return 0.;}
+  return min(solid,1.-solidFraction(loadAt(dest).x))*.25*rate;
+}
+@compute @workgroup_size(4,4,4)
+fn talusFlux(@builtin(global_invocation_id) id:vec3u) {
+  if(any(id>=vec3u(u.dims.xyz))){return;}
+  let p=vec3i(id);let a=loadAt(p);var f=vec4f(0);
+  if(all(id>=vec3u(2))&&all(id<vec3u(u.dims.xyz)-2u)&&id.y>2u&&abs(a.x)<u.dims.w&&u.geology.x>0.) {
+    let g=vec3f(loadAt(p+vec3i(1,0,0)).x-loadAt(p-vec3i(1,0,0)).x,loadAt(p+vec3i(0,1,0)).x-loadAt(p-vec3i(0,1,0)).x,loadAt(p+vec3i(0,0,1)).x-loadAt(p-vec3i(0,0,1)).x);
+    let ny=g.y/max(length(g),.000001);let repose=cos(u.pick.z);
+    let unstable=clamp((repose-ny)/repose,0.,1.);
+    let loose=clamp(-a.w/u.dims.w,0.,1.);
+    let weak=erodibility(WORLD_MIN+(vec3f(id)+.5)*u.dims.w);
+    let mobility=mix((.7-u.geology.z*.35)*weak,1.,loose);
+    let rate=min(.4,u.geology.x*.45*unstable*mobility);let solid=solidFraction(a.x);
+    f=vec4f(talusLink(p,vec3i(1,-1,0),solid,rate),talusLink(p,vec3i(-1,-1,0),solid,rate),talusLink(p,vec3i(0,-1,1),solid,rate),talusLink(p,vec3i(0,-1,-1),solid,rate));
+  }
+  textureStore(outputFlux,p,f);
+}
+@compute @workgroup_size(4,4,4)
+fn talusSettle(@builtin(global_invocation_id) id:vec3u) {
+  if(any(id>=vec3u(u.dims.xyz))){return;}
+  let p=vec3i(id);var a=loadAt(p);
+  if(all(id>=vec3u(2))&&all(id<vec3u(u.dims.xyz)-2u)) {
+    let outflow=dot(textureLoad(fluxField,p,0),vec4f(1));
+    let incoming=textureLoad(fluxField,p+vec3i(-1,1,0),0).x+textureLoad(fluxField,p+vec3i(1,1,0),0).y+textureLoad(fluxField,p+vec3i(0,1,-1),0).z+textureLoad(fluxField,p+vec3i(0,1,1),0).w;
+    let change=incoming-outflow;
+    if(abs(change)>.000000000001){a.x=(.5-clamp(solidFraction(a.x)+change,0.,1.))*2.*u.dims.w;a.w=clamp(a.w-change*2.*u.dims.w,-6.,6.);}
+  }
+  textureStore(outputField,p,a);
 }
 @compute @workgroup_size(4,4,4)
 fn sculpt(@builtin(global_invocation_id) id:vec3u) {
