@@ -1,4 +1,16 @@
-import { clamp, mix, smoothstep, rayBox, add, scale, normalize } from "./math";
+import { makeBrushStamp } from "./brush";
+import {
+  clamp,
+  mix,
+  smoothstep,
+  rayBox,
+  add,
+  scale,
+  normalize,
+  dot,
+  sub,
+  cross,
+} from "./math";
 import {
   BOUNDS_MIN,
   BOUNDS_MAX,
@@ -7,6 +19,8 @@ import {
   type Settings,
   type VolumeSize,
   type FrameState,
+  type Tool,
+  type BrushStamp,
 } from "./types";
 
 // Matching hash/noise implementations are used by the WGSL initializer. No
@@ -455,48 +469,146 @@ export function pickField(
   }
   return null;
 }
+export function sampleSurfaceNormal(
+  data: Float32Array,
+  size: VolumeSize,
+  p: Vec3,
+  radius = 1,
+): Vec3 {
+  const e = Math.max((96 / size.x) * 0.8, radius * 0.22);
+  const g: Vec3 = [
+    sampleField(data, size, [p[0] + e, p[1], p[2]]) -
+      sampleField(data, size, [p[0] - e, p[1], p[2]]),
+    sampleField(data, size, [p[0], p[1] + e, p[2]]) -
+      sampleField(data, size, [p[0], p[1] - e, p[2]]),
+    sampleField(data, size, [p[0], p[1], p[2] + e]) -
+      sampleField(data, size, [p[0], p[1], p[2] - e]),
+  ];
+  return Math.hypot(...g) > 1e-6 ? normalize(g) : [0, 1, 0];
+}
 export function sculptField(
   data: Float32Array,
   size: VolumeSize,
   center: Vec3,
-  tool: string,
+  tool: Tool,
   s: Settings,
+  stroke?: BrushStamp,
 ): void {
   const cell = 96 / size.x,
     r = s.radius;
+  const stamp = stroke ?? makeBrushStamp(center, [0, 1, 0], [1, 0, 0], s.seed);
+  const n = stamp.normal,
+    t = stamp.tangent,
+    b = cross(n, t);
+  const extent = ["flatten", "crack", "crevice", "boulder"].includes(tool)
+    ? r * 1.65
+    : r;
   const ranges = center.map((c, i) => [
-    Math.max(1, Math.floor((c - r - BOUNDS_MIN[i]) / cell)),
+    Math.max(2, Math.floor((c - extent - BOUNDS_MIN[i]) / cell)),
     Math.min(
-      [size.x, size.y, size.z][i] - 2,
-      Math.ceil((c + r - BOUNDS_MIN[i]) / cell),
+      [size.x, size.y, size.z][i] - 3,
+      Math.ceil((c + extent - BOUNDS_MIN[i]) / cell),
     ),
   ]);
   const source = tool === "smooth" ? data.slice() : data;
   for (let z = ranges[2][0]; z <= ranges[2][1]; z++)
     for (let y = ranges[1][0]; y <= ranges[1][1]; y++)
       for (let x = ranges[0][0]; x <= ranges[0][1]; x++) {
-        const px = -48 + (x + 0.5) * cell,
-          py = -10 + (y + 0.5) * cell,
-          pz = -48 + (z + 0.5) * cell;
-        const dist = Math.hypot(px - center[0], py - center[1], pz - center[2]);
-        if (dist >= r) continue;
-        const i = ((z * size.y + y) * size.x + x) * 4,
-          w =
-            (1 - smoothstep(r * (1 - s.falloff), r, dist)) * s.strength * 0.38;
-        if (tool === "add") data[i] -= w * cell * 1.5;
-        if (tool === "carve") data[i] += w * cell * 1.5;
-        if (tool === "flatten") data[i] = mix(data[i], py - center[1], w);
-        if (tool === "smooth")
-          data[i] = mix(
-            data[i],
-            (source[i - 4] +
-              source[i + 4] +
-              source[i - size.x * 4] +
-              source[i + size.x * 4] +
-              source[i - size.x * size.y * 4] +
-              source[i + size.x * size.y * 4]) /
-              6,
-            w,
+        const p: Vec3 = [
+          -48 + (x + 0.5) * cell,
+          -10 + (y + 0.5) * cell,
+          -48 + (z + 0.5) * cell,
+        ];
+        const v = sub(p, center),
+          dist = Math.hypot(...v),
+          i = ((z * size.y + y) * size.x + x) * 4,
+          d = source[i];
+        if (Math.max(Math.abs(v[0]), Math.abs(v[1]), Math.abs(v[2])) > extent)
+          continue;
+        let value = d;
+        if (tool === "flatten") {
+          const plane = dot(sub(p, stamp.origin), n),
+            radial = Math.hypot(...sub(v, scale(n, dot(v, n))));
+          const edge = 1 - smoothstep(r * (1 - s.falloff * 0.55), r, radial);
+          const depth = 1 - smoothstep(r * 0.95, r * 1.6, Math.abs(plane));
+          value = mix(d, plane, edge * depth * s.strength * 0.62);
+        } else if (tool === "crack" || tool === "crevice") {
+          const along = dot(v, t),
+            side = dot(v, b),
+            height = dot(v, n),
+            phase = stamp.seed * 0.017;
+          const width =
+            Math.max(cell * 0.75, r * s.brushWidth) *
+            (tool === "crevice" ? 2.2 : 1);
+          const depth = r * s.brushDepth * (tool === "crevice" ? 1.9 : 1.15);
+          const curve =
+            Math.sin(along * 0.9 + phase) * r * 0.1 +
+            Math.sin(along * 2.3 + phase) * r * 0.04;
+          const opening = width * clamp(1 + height / depth, 0.12, 1);
+          let cut = Math.max(
+            Math.abs(side - curve) - opening,
+            Math.abs(along) - r,
+            -height - depth,
+            height - cell * 0.35,
           );
+          if (tool === "crack") {
+            const ax = (along - r * 0.12) * 0.65 + side * 0.76,
+              az = -(along - r * 0.12) * 0.76 + side * 0.65;
+            const fork = Math.max(
+              Math.abs(az) - opening * 0.55,
+              Math.abs(ax) - r * 0.65,
+              -height - depth * 0.68,
+              height - cell * 0.3,
+            );
+            cut = Math.min(cut, fork);
+          }
+          value = mix(d, Math.max(d, -cut), s.strength * 0.72);
+        } else if (tool === "boulder") {
+          const local: Vec3 = [dot(v, t), dot(v, n) - r * 0.22, dot(v, b)];
+          const phase = stamp.seed * 0.013;
+          const q: Vec3 = [
+            local[0] / (r * 0.91),
+            local[1] / (r * clamp(s.brushDepth, 0.3, 1.2)),
+            local[2] / (r * 0.78),
+          ];
+          const k0 = Math.hypot(...q),
+            k1 = Math.hypot(
+              q[0] / (r * 0.91),
+              q[1] / (r * clamp(s.brushDepth, 0.3, 1.2)),
+              q[2] / (r * 0.78),
+            );
+          const stone =
+            (k0 < 1e-5
+              ? -r * Math.min(0.91, 0.78, clamp(s.brushDepth, 0.3, 1.2))
+              : (k0 * (k0 - 1)) / k1) +
+            noise(
+              (local[0] / r) * 2.3 + phase,
+              (local[1] / r) * 2.3,
+              (local[2] / r) * 2.3,
+            ) *
+              r *
+              0.11;
+          value = mix(d, Math.min(d, stone), Math.min(1, s.strength * 1.7));
+        } else if (dist < r) {
+          const w =
+            (1 - smoothstep(r * (1 - s.falloff), r, dist)) * s.strength * 0.38;
+          if (tool === "add") value = d - w * cell * 1.5;
+          if (tool === "carve") value = d + w * cell * 1.5;
+          // Preserve the legacy live-height, spherical falloff effect as Ridges.
+          if (tool === "ridges") value = mix(d, p[1] - center[1], w);
+          if (tool === "smooth")
+            value = mix(
+              d,
+              (source[i - 4] +
+                source[i + 4] +
+                source[i - size.x * 4] +
+                source[i + size.x * 4] +
+                source[i - size.x * size.y * 4] +
+                source[i + size.x * size.y * 4]) /
+                6,
+              w,
+            );
+        }
+        data[i] = clamp(value, -24, 32);
       }
 }

@@ -1,6 +1,7 @@
 import { WebGPUBackend } from "./WebGPUBackend";
 import { WebGLBackend } from "./WebGLBackend";
-import { clamp } from "./math";
+import { clamp, normalize, add, scale, sub } from "./math";
+import { makeBrushStamp, brushPlaneHit, projectToBrushPlane } from "./brush";
 import { EditorCamera, FLY_KEYS, type NavigationMode } from "./EditorCamera";
 import { sampleField } from "./field";
 import { nextVisibleFrame, withTimeout } from "./startup";
@@ -16,6 +17,7 @@ import {
   type Vec3,
   type EngineStats,
   type VolumeSize,
+  type BrushStamp,
 } from "./types";
 
 export interface EngineCallbacks {
@@ -50,6 +52,15 @@ export class TerrainEngine {
   private frame!: FrameState;
   private brush: Vec3 | null = null;
   private picking = false;
+  private pickTask: Promise<void> | null = null;
+  private hoverNormal: Vec3 = [0, 1, 0];
+  private stroke: BrushStamp | null = null;
+  private strokeToken = 0;
+  private strokeSequence = 0;
+  private dabSequence = 0;
+  private lastDab: Vec3 | null = null;
+  private lastDabPointer: [number, number] = [0, 0];
+  private lastSculpt = 0;
   private pointer: [number, number] = [0, 0];
   private mode: "orbit" | "pan" | "sculpt" | "look" | null = null;
   private down = false;
@@ -305,6 +316,16 @@ export class TerrainEngine {
           ? null
           : this.brush,
       tool: this.tool,
+      stamp:
+        this.stroke ??
+        (this.brush
+          ? makeBrushStamp(
+              this.brush,
+              this.hoverNormal,
+              this.camera.basis(this.aspect).right,
+              this.settings.seed,
+            )
+          : undefined),
       compare: this.compare,
     };
   }
@@ -388,9 +409,92 @@ export class TerrainEngine {
         this.lastPick = now;
         void this.updateBrush();
       }
-      if (this.down && this.mode === "sculpt" && this.brush && !this.compare) {
-        this.backend.sculpt(this.brush, this.tool, this.settings);
-        this.callbacks.changed();
+      if (
+        this.down &&
+        this.mode === "sculpt" &&
+        this.brush &&
+        this.stroke &&
+        !this.compare &&
+        now - this.lastSculpt >= 32
+      ) {
+        const distance = this.lastDab
+          ? Math.hypot(...sub(this.brush, this.lastDab))
+          : Infinity;
+        const spacing =
+          this.tool === "boulder" ? this.settings.radius * 0.95 : 0;
+        const pointerMoved =
+          Math.hypot(
+            (this.pointer[0] - this.lastDabPointer[0]) *
+              this.container.clientWidth *
+              0.5,
+            (this.pointer[1] - this.lastDabPointer[1]) *
+              this.container.clientHeight *
+              0.5,
+          ) > 2;
+        if (
+          distance >= spacing &&
+          (this.tool !== "boulder" || !this.lastDab || pointerMoved)
+        ) {
+          if (
+            this.lastDab &&
+            (this.tool === "crack" || this.tool === "crevice") &&
+            pointerMoved
+          ) {
+            const movement = sub(this.brush, this.lastDab);
+            if (Math.hypot(...movement) > 0.1)
+              this.stroke.tangent = makeBrushStamp(
+                this.stroke.origin,
+                this.hoverNormal,
+                movement,
+                this.stroke.seed,
+              ).tangent;
+          }
+          const stamp =
+            this.tool === "flatten"
+              ? this.stroke
+              : makeBrushStamp(
+                  this.stroke.origin,
+                  this.hoverNormal,
+                  this.stroke.tangent,
+                  this.stroke.seed +
+                    (this.tool === "boulder" ? this.dabSequence * 101 : 0),
+                );
+          const center =
+            this.tool === "flatten"
+              ? projectToBrushPlane(this.brush, stamp)
+              : this.brush;
+          const previous = this.lastDab ?? center;
+          // Fill small pointer gaps so a low frame rate does not break a drawn crack.
+          const pieces =
+            this.tool === "boulder"
+              ? 1
+              : Math.min(
+                  8,
+                  Math.max(
+                    1,
+                    Math.ceil(
+                      Math.hypot(...sub(center, previous)) /
+                        (this.settings.radius * 0.3),
+                    ),
+                  ),
+                );
+          for (let part = 1; part <= pieces; part++) {
+            const dab: Vec3 = [
+              previous[0] + ((center[0] - previous[0]) * part) / pieces,
+              previous[1] + ((center[1] - previous[1]) * part) / pieces,
+              previous[2] + ((center[2] - previous[2]) * part) / pieces,
+            ];
+            this.backend.sculpt(dab, this.tool, this.settings, {
+              ...stamp,
+              previous,
+            });
+          }
+          this.lastDab = [...center];
+          this.lastDabPointer = [...this.pointer];
+          this.lastSculpt = now;
+          this.dabSequence++;
+          this.callbacks.changed();
+        }
       }
       this.backend.render(this.frame);
     } catch (error) {
@@ -430,7 +534,7 @@ export class TerrainEngine {
       backend: this.backend.name,
       displayMode: this.backend.displayMode,
       size: this.backend.size,
-      running: this.running,
+      running: this.running || this.pendingSteps > 0,
       navigationMode: this.camera.mode,
       cameraSpeed: this.camera.speed,
       cameraPosition: this.camera.basis(this.aspect).eye,
@@ -441,20 +545,47 @@ export class TerrainEngine {
         (this.camera.focusDistance(this.aspect) * 0.82842712),
     });
   }
-  private async updateBrush() {
-    this.picking = true;
-    try {
-      const b = await this.backend.pick(
-        this.frame,
-        this.pointer[0],
-        this.pointer[1],
+  private updateBrush(coordinates = this.pointer): Promise<void> {
+    if (this.pickTask) return this.pickTask;
+    if (
+      this.down &&
+      this.mode === "sculpt" &&
+      this.tool === "flatten" &&
+      this.stroke
+    ) {
+      const basis = this.camera.basis(this.aspect);
+      const ray = normalize(
+        add(
+          basis.forward,
+          add(
+            scale(basis.right, coordinates[0] * this.aspect * 0.41421356),
+            scale(basis.up, coordinates[1] * 0.41421356),
+          ),
+        ),
       );
-      if (!this.stopped) this.brush = b;
-    } catch (e) {
-      if (!this.stopped) console.warn("Picking interrupted", e);
-    } finally {
-      this.picking = false;
+      this.brush = brushPlaneHit(basis.eye, ray, this.stroke);
+      return Promise.resolve();
     }
+    this.picking = true;
+    this.pickTask = (async () => {
+      try {
+        const hit = await this.backend.pick(
+          this.frame,
+          coordinates[0],
+          coordinates[1],
+        );
+        if (!this.stopped) {
+          this.brush = hit?.position ?? null;
+          if (hit) this.hoverNormal = hit.normal;
+        }
+      } catch (error) {
+        if (!this.stopped) console.warn("Picking interrupted", error);
+      } finally {
+        this.picking = false;
+        this.pickTask = null;
+      }
+    })();
+    return this.pickTask;
   }
   private events() {
     const on = (
@@ -503,11 +634,30 @@ export class TerrainEngine {
       this.running = false;
       this.pendingSteps = 0;
       this.mode = null;
+      const token = ++this.strokeToken;
+      const startPointer: [number, number] = [...this.pointer];
       void this.snapshot()
         .then(async () => {
-          if (!this.down || this.stopped) return;
-          if (!this.picking) await this.updateBrush();
-          if (this.down) this.mode = "sculpt";
+          if (!this.down || this.stopped || token !== this.strokeToken) return;
+          if (this.pickTask) await this.pickTask;
+          await this.updateBrush(startPointer);
+          if (this.down && token === this.strokeToken && this.brush) {
+            const normal: Vec3 =
+              this.tool === "flatten" &&
+              this.settings.flattenPlane === "horizontal"
+                ? [0, 1, 0]
+                : this.hoverNormal;
+            this.stroke = makeBrushStamp(
+              this.brush,
+              normal,
+              this.camera.basis(this.aspect).right,
+              this.settings.seed + ++this.strokeSequence * 73,
+            );
+            this.lastDab = null;
+            this.lastSculpt = 0;
+            this.dabSequence = 0;
+            this.mode = "sculpt";
+          }
         })
         .catch((e) => this.callbacks.error(String(e)));
     }) as EventListener);
@@ -526,6 +676,9 @@ export class TerrainEngine {
       if (this.mode === "look") this.camera.clearKeys();
       this.down = false;
       this.mode = null;
+      this.stroke = null;
+      this.lastDab = null;
+      this.strokeToken++;
     };
     on("pointerup", up);
     on("pointercancel", up);
@@ -568,7 +721,10 @@ export class TerrainEngine {
     }) as EventListener);
     const release = (event: KeyboardEvent) =>
       this.camera.key(event.code, false, this.aspect);
-    const clear = () => this.camera.clearKeys();
+    const clear = () => {
+      this.camera.clearKeys();
+      up();
+    };
     const visibility = () => {
       clear();
       this.frameWaitStarted = 0;
@@ -741,6 +897,11 @@ export class TerrainEngine {
   setTool(tool: Tool) {
     this.tool = tool;
     this.brush = null;
+    this.down = false;
+    this.mode = null;
+    this.stroke = null;
+    this.lastDab = null;
+    this.strokeToken++;
     this.canvas.style.cursor = tool === "orbit" ? "grab" : "crosshair";
     if (tool !== "orbit") {
       this.running = false;
@@ -775,7 +936,7 @@ export class TerrainEngine {
   }
   async toggleSimulation() {
     if (this.busy || !this.initialized || this.graphicsFailed) return;
-    if (this.running) {
+    if (this.running || this.pendingSteps > 0) {
       this.running = false;
       this.pendingSteps = 0;
       this.emitStats();
@@ -789,6 +950,19 @@ export class TerrainEngine {
     }
     await this.snapshot();
     this.running = true;
+    this.emitStats();
+  }
+  async weatherBatch(count = 80) {
+    if (
+      this.busy ||
+      !this.initialized ||
+      this.graphicsFailed ||
+      this.steps >= 8000
+    )
+      return;
+    this.pause();
+    await this.snapshot();
+    this.pendingSteps = Math.min(count, 8000 - this.steps);
     this.emitStats();
   }
   async singleStep() {

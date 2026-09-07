@@ -1,7 +1,9 @@
-import type { FrameState, VolumeSize } from "./types";
+import { TOOL_IDS, type FrameState, type VolumeSize } from "./types";
+export const UNIFORM_FLOATS = 80;
+export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   const s = f.settings;
-  const a = new Float32Array(56);
+  const a = new Float32Array(UNIFORM_FLOATS);
   a.set([...f.eye, f.time], 0);
   a.set([...f.forward, f.width / f.height], 4);
   a.set([...f.right, 0.41421356], 8);
@@ -28,15 +30,15 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
     40,
   );
   a.set([0, 0, 0, s.strength], 44);
-  a.set(
-    [
-      s.radius,
-      s.falloff,
-      ["orbit", "add", "carve", "smooth", "flatten"].indexOf(f.tool),
-      s.settling,
-    ],
-    48,
-  );
+  a.set([s.radius, s.falloff, TOOL_IDS.indexOf(f.tool), s.settling], 48);
   a[54] = (s.talusAngle * Math.PI) / 180;
+  const stamp = f.stamp;
+  a.set([...(stamp?.origin ?? f.brush ?? [0, 0, 0]), s.brushDepth], 56);
+  a.set([...(stamp?.normal ?? [0, 1, 0]), s.brushWidth], 60);
+  a.set([...(stamp?.tangent ?? [1, 0, 0]), stamp?.seed ?? s.seed], 64);
+  a.set([...(stamp?.previous ?? f.brush ?? [0, 0, 0]), 0], 68);
+  const angle = (s.windDirection * Math.PI) / 180;
+  a.set([s.channeling, s.windErosion, Math.cos(angle), Math.sin(angle)], 72);
+  a.set([0, 0, 0, 0], 76);
   return a;
 }

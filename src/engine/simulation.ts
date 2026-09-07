@@ -1,6 +1,7 @@
 import { clamp, smoothstep } from "./math";
 import { erodibility, solidFraction } from "./geology";
-import type { Settings, VolumeSize } from "./types";
+import { DEFAULT_SETTINGS, type Settings, type VolumeSize } from "./types";
+import { runoffPotential, windCutRate, windExposure } from "./weathering";
 
 const permeability = (d: number, h: number) =>
   smoothstep(-0.45 * h, 0.65 * h, d);
@@ -13,15 +14,64 @@ const boundary = (
   sz: number,
 ) => x < 2 || y < 2 || z < 2 || x >= sx - 2 || y >= sy - 2 || z >= sz - 2;
 
-/** Shared signed face fluxes; each donor exports at most one sixth per face. */
+const flowScratch = new WeakMap<VolumeSize, Float32Array>();
+/** Near rock, gravity is projected onto the 3D surface. The roughness potential
+ * seeds converging runoff; each face still has a single donor-limited flux. */
 export function computeFlux(
   data: Float32Array,
   size: VolumeSize,
   flux: Float32Array,
+  s: Settings = DEFAULT_SETTINGS,
 ): void {
   const { x: sx, y: sy, z: sz } = size,
-    h = 96 / sx;
-  const offsets = [1, sx, sx * sy];
+    h = 96 / sx,
+    offsets = [1, sx, sx * sy];
+  let geometry = flowScratch.get(size);
+  if (!geometry || geometry.length !== data.length) {
+    geometry = new Float32Array(data.length);
+    flowScratch.set(size, geometry);
+  }
+  const at = (x: number, y: number, z: number) =>
+    data[
+      ((Math.max(0, Math.min(sz - 1, z)) * sy +
+        Math.max(0, Math.min(sy - 1, y))) *
+        sx +
+        Math.max(0, Math.min(sx - 1, x))) *
+        4
+    ];
+  for (let z = 0; z < sz; z++)
+    for (let y = 0; y < sy; y++)
+      for (let x = 0; x < sx; x++) {
+        const i = ((z * sy + y) * sx + x) * 4;
+        geometry[i] = 0;
+        geometry[i + 1] = -1;
+        geometry[i + 2] = 0;
+        geometry[i + 3] = 0;
+        if (Math.abs(data[i]) > h * 2.2) continue;
+        const gx = at(x + 1, y, z) - at(x - 1, y, z),
+          gy = at(x, y + 1, z) - at(x, y - 1, z),
+          gz = at(x, y, z + 1) - at(x, y, z - 1);
+        const len = Math.hypot(gx, gy, gz) || 1,
+          nx = gx / len,
+          ny = gy / len,
+          nz = gz / len;
+        const surface =
+          (1 - smoothstep(h * 0.5, h * 2.2, Math.abs(data[i]))) *
+          smoothstep(-0.15, 0.25, ny);
+        geometry[i] = nx * ny * surface;
+        geometry[i + 1] = -1 + ny * ny * surface;
+        geometry[i + 2] = nz * ny * surface;
+        geometry[i + 3] =
+          runoffPotential(
+            -48 + (x + 0.5) * h,
+            -10 + (y + 0.5) * h,
+            -48 + (z + 0.5) * h,
+            s.seed,
+          ) *
+          s.channeling *
+          0.07 *
+          surface;
+      }
   for (let z = 0; z < sz; z++)
     for (let y = 0; y < sy; y++)
       for (let x = 0; x < sx; x++) {
@@ -41,8 +91,12 @@ export function computeFlux(
             flux[voxel * 3 + axis] = 0;
             continue;
           }
+          const direction = (geometry[a + axis] + geometry[b + axis]) * 0.5;
+          const donor = direction >= 0 ? data[a + 1] : data[b + 1];
           const raw =
-            (data[a + 1] - data[b + 1] - (axis === 1 ? 0.55 : 0)) * 0.3;
+            (data[a + 1] + geometry[a + 3] - data[b + 1] - geometry[b + 3]) *
+              0.16 +
+            direction * donor * 0.72;
           flux[voxel * 3 + axis] =
             clamp(raw, -data[b + 1] / 6, data[a + 1] / 6) *
             Math.min(permeability(data[a], h), permeability(data[b], h));
@@ -63,14 +117,30 @@ export function evolveField(
     h = 96 / sx;
   const offsets = [4, sx * 4, sx * sy * 4];
   const settling = s.settling * 0.06;
+  const dustBudget = s.windErosion * 0.18,
+    windAngle = (s.windDirection * Math.PI) / 180;
+  const windAxes = [Math.cos(windAngle), 0, Math.sin(windAngle)];
+  const windNorm = Math.max(
+    0.001,
+    Math.abs(windAxes[0]) + Math.abs(windAxes[2]),
+  );
   const concentration = (i: number) =>
     Math.min(data[i + 2] / Math.max(data[i + 1], 0.00001), 3);
   // Reserve part of each donor's sediment budget for gravitational settling.
   const sedimentFlux = (f: number, a: number, b: number, axis: number) => {
     const advected =
-      (1 - settling) * f * (f >= 0 ? concentration(a) : concentration(b));
+      (1 - settling - dustBudget) *
+      f *
+      (f >= 0 ? concentration(a) : concentration(b));
+    const donor = windAxes[axis] >= 0 ? a : b;
+    const dust =
+      ((dustBudget * windAxes[axis]) / windNorm) *
+      data[donor + 2] *
+      (1 - clamp(data[donor + 1] * 3, 0, 1)) *
+      Math.min(permeability(data[a], h), permeability(data[b], h));
     return (
-      advected -
+      advected +
+      dust -
       (axis === 1
         ? settling *
           data[b + 2] *
@@ -100,7 +170,7 @@ export function evolveField(
           sediment +=
             sedimentFlux(fm, i - off, i, axis) -
             sedimentFlux(f, i, i + off, axis);
-          wet = Math.max(wet, data[i - off + 1], data[i + off + 1]);
+          wet += data[i - off + 1] + data[i + off + 1];
           q[axis] = (f + fm) * 0.5;
         }
         const gx = data[i + 4] - data[i - 4],
@@ -124,7 +194,7 @@ export function evolveField(
         }
         water = Math.max(0, water + rain) * (1 - s.evaporation * 0.035);
         sediment = Math.max(0, sediment);
-        wet = Math.max(wet, water);
+        wet = water;
         let delta = 0;
         const narrow = 1 - smoothstep(h * 0.75, h, Math.abs(data[i]));
         if (narrow > 0) {
@@ -139,6 +209,25 @@ export function evolveField(
           const sign = [nx, ny, nz][axis] >= 0 ? 1 : -1;
           const front = voxel + (sign * offsets[axis]) / 4;
           for (let a = 0; a < 3; a++) q[a] = (q[a] + flux[front * 3 + a]) * 0.5;
+          wet = Math.max(water, data[front * 4 + 1] * 0.85);
+          const flowCell = data[i + 1] >= data[front * 4 + 1] ? i : front * 4;
+          const lateral = Math.abs(nx) > Math.abs(nz) ? offsets[2] : offsets[0];
+          const streamWet = data[flowCell + 1];
+          const flankWet =
+            (data[flowCell - 2 * lateral + 1] +
+              data[flowCell - lateral + 1] +
+              streamWet +
+              data[flowCell + lateral + 1] +
+              data[flowCell + 2 * lateral + 1]) /
+            5;
+          const concentration = smoothstep(
+            1.01,
+            1.3,
+            streamWet / Math.max(flankWet, 0.002),
+          );
+          const concentrationBoost = 1 + s.channeling * 2 * concentration;
+          const channelMask =
+            1 - s.channeling + s.channeling * (0.04 + 0.96 * concentration);
           const normalFlow = q[0] * nx + q[1] * ny + q[2] * nz;
           const tangential = Math.hypot(
             q[0] - nx * normalFlow,
@@ -154,16 +243,27 @@ export function evolveField(
             py = -10 + (y + 0.5) * h,
             pz = -48 + (z + 0.5) * h;
           const weak = erodibility(px, py, pz, s.resistance);
-          const shear = wet * velocity * (0.5 + slope * 1.2) + rain * 0.6;
+          // No uniform rain-impact subtraction: incision requires routed flow.
+          const shear = wet * velocity * (1 + slope * 2.4) * concentrationBoost;
           const threshold = (0.001 + s.cohesion * 0.025) * (1.1 - weak * 0.7);
           const capacity =
-            s.sediment * (wet * velocity * (1 + slope * 0.8) * 4 + rain * 0.7);
+            s.sediment *
+            wet *
+            velocity *
+            (1 + slope * 0.8) *
+            6 *
+            concentrationBoost;
           const solid = solidFraction(data[i], h);
           const detach = Math.min(
             solid,
             Math.max(0, capacity - sediment),
-            0.02,
-            s.erosion * weak * Math.max(0, shear - threshold) * 0.4 * narrow,
+            0.045,
+            s.erosion *
+              weak *
+              Math.max(0, shear - threshold) *
+              0.95 *
+              narrow *
+              channelMask,
           );
           const deposit = Math.min(
             1 - solid,
@@ -174,7 +274,33 @@ export function evolveField(
               smoothstep(-0.15, 0.75, ny) *
               narrow,
           );
-          const exchange = detach - deposit;
+          let windDetach = 0;
+          const angle = (s.windDirection * Math.PI) / 180,
+            dx = Math.cos(angle),
+            dz = Math.sin(angle);
+          if (s.windErosion > 0 && -nx * dx - nz * dz > 0.08 && wet < 0.34) {
+            const visibility = windExposure(
+              data,
+              size,
+              x,
+              y,
+              z,
+              nx,
+              ny,
+              nz,
+              dx,
+              dz,
+            );
+            windDetach = Math.min(
+              Math.max(0, solid - detach),
+              0.04,
+              windCutRate([px, py, pz], [nx, ny, nz], s, wet, visibility) *
+                weak *
+                0.08 *
+                narrow,
+            );
+          }
+          const exchange = detach + windDetach - deposit;
           delta = exchange * 2 * h;
           sediment += exchange;
         }

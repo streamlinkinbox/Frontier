@@ -71,6 +71,11 @@ export function validateSettings(raw: unknown): Settings {
     ["settling", 0, 1],
     ["talusAngle", 20, 55],
     ["waterClarity", 0, 1],
+    ["brushDepth", 0.1, 1.5],
+    ["brushWidth", 0.08, 0.8],
+    ["channeling", 0, 1],
+    ["windErosion", 0, 1],
+    ["windDirection", 0, 360],
   ] as const) {
     const value = input[key];
     if (value === undefined) continue;
@@ -82,6 +87,11 @@ export function validateSettings(raw: unknown): Settings {
     )
       throw new Error(`Invalid project setting: ${key}.`);
     settings[key] = value;
+  }
+  if (input.flattenPlane !== undefined) {
+    if (input.flattenPlane !== "surface" && input.flattenPlane !== "horizontal")
+      throw new Error("Invalid flatten plane.");
+    settings.flattenPlane = input.flattenPlane;
   }
   if (!Number.isInteger(settings.seed) || !Number.isInteger(settings.speed))
     throw new Error("Seed and speed must be integers.");

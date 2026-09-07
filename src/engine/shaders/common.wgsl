@@ -13,6 +13,12 @@ struct Uniforms {
   sculpt: vec4f,
   brushParams: vec4f,
   pick: vec4f,
+  planeOrigin: vec4f,
+  planeNormal: vec4f,
+  strokeTangent: vec4f,
+  strokePrevious: vec4f,
+  processes: vec4f,
+  reserved: vec4f,
 };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var field: texture_3d<f32>;

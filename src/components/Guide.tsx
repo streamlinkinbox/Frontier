@@ -84,7 +84,9 @@ export function Guide({ onClose }: { onClose: () => void }) {
             Right-drag looks around from your position. Use WASD to fly, Q/E to
             move down/up, and Shift for a 3× speed boost. RMB + wheel adjusts
             fly speed. Left-drag or Alt-drag orbits; middle-drag pans. F returns
-            to the overview. Click the viewport to focus the keys.
+            to the overview. Click the viewport to focus the keys. L selects
+            planar Flatten; R keeps the old Ridges effect. K / U / O select
+            Cracks, Crevice, and Boulder.
           </p>
         </article>
         <article>
@@ -148,10 +150,10 @@ export function Guide({ onClose }: { onClose: () => void }) {
         <p>
           <strong>A creative simulation, not a geological prediction.</strong>{" "}
           WebGPU runs a 3D finite-volume runoff and sediment model, coupled to
-          shear-threshold SDF erosion, budgeted sediment exchange, particle
-          settling and slope-limited downhill talus transfer. Water waves and
-          shoreline foam are visual, not a fluid free-surface solve. Resolution
-          and simplified material physics limit realism; this is not
+          surface-directed runoff incision, budgeted sediment exchange,
+          directional dry-rock wind abrasion, and downhill talus transfer. Water
+          waves and shoreline foam are visual, not a fluid free-surface solve.
+          Resolution and simplified material physics limit realism; this is not
           Navier–Stokes, rock-fracture mechanics, or a calibrated geological
           timescale. WebGL2 uses the same lower-resolution CPU model.
         </p>

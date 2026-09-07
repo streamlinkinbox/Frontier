@@ -150,11 +150,73 @@ Existing `.frontier` archives keep their saved voxel geometry. Missing new setti
 receive defaults, and future iterations use the revised solver. Mesh exports share
 the new base strata/sand colors, but do not bake the optical water or shader-only grain.
 
+## Sculpting & incision update · v0.4.0
+
+### Eight volume brushes
+
+| Brush | Shortcut | What it actually does |
+| --- | --- | --- |
+| Add | B | Builds the SDF outward inside a soft spherical brush. |
+| Carve | X | Removes a spherical volume. |
+| Smooth | M | Relaxes the local distance field. |
+| **Flatten** | **L** | Samples one plane at mouse-down and holds it for the entire stroke. Choose the averaged **Surface plane** or **Horizontal**. A cylindrical footprint converges to that plane without repeatedly lifting its target as the terrain moves. |
+| **Ridges** | **R** | Preserves the old Flatten behavior: a moving horizontal shelf with spherical falloff. |
+| **Cracks** | **K** | Subtracts an uneven, branching, tapered fault in the surface frame. Drag to connect fractures. |
+| **Crevice** | **U** | Subtracts a wider, deeper V-shaped fissure, following the drawn stroke. |
+| **Boulder** | **O** | Unions an irregular, partly embedded ellipsoidal rock. Drag to space more rocks; holding still does not stack them repeatedly. |
+
+Depth/height and opening-width controls appear for feature brushes. All of these
+change the **3D signed-distance volume** and therefore affect caves, silhouettes,
+collision/mesh extraction and GLB export; they are not decals. One stroke is one
+undo boundary. The plane is resampled only on the next stroke. Feature widths
+have a voxel-aware minimum: the 1 m WebGL grid cannot represent a hairline crack.
+
+### Rain channels, wind flutes, and separate talus
+
+The previous direct rain-impact term was too uniform, and talus could dominate
+the resulting shape. Rain no longer directly subtracts distance from every
+exposed cell. Instead, water moves using gravity projected onto the local **3D
+surface normal**, pressure differences, and a small seeded roughness potential.
+The potential routes water; it does not directly stamp grooves. Across-flow
+water concentration gates/amplifies detachment so flowing channels cut deeper
+than background sheet wash. The evolving geometry then affects later routing.
+
+A separate **Wind** tab now controls **Wind abrasion** and **Wind direction**.
+Dry, wind-facing surfaces are sampled for upwind shelter before abrasive grains
+remove SDF rock. A seeded, direction-aligned grain-flux spectrum gives uneven
+bands/flutes; detached dry sediment has a donor-budgeted downwind flux and can
+settle. This is a phenomenological abrasion model, not resolved saltation or CFD.
+The existing **Wind strength** control in Water still affects the visual waves.
+
+To inspect each process without masking it:
+
+1. Choose **Rain cuts** or **Wind streaks** above the erosion tabs. These change
+   settings and pause the current run; they **do not regenerate your terrain**.
+2. Click **Weather 80 iterations**, or run continuously. Pause interrupts the batch.
+3. Use **Clay** or **Flow** to inspect geometry and transport without the material.
+
+The new default talus strength is **0.03**, rather than 0.3. Old saved projects
+keep their chosen strength; use a process preset to disable talus when comparing
+incision. Wind abrasion starts off, and does not affect waterlogged/underwater
+rock. A wet project may need time to dry before wind cuts become apparent.
+
+There is still no rigid-block collapse/fracture solver. Aggressive weathering can
+leave unsupported fragments and grid-scale edges, and the time/strength units
+are artistic rather than geological. This update makes distinct volumetric cuts;
+it does **not** claim calibrated erosion or sub-voxel fracture mechanics.
+
+Engine integration changes: `Backend.pick` returns `{ position, normal }`.
+`BrushStamp` contains the locked origin, normal, tangent, previous point and seed.
+`TOOL_IDS` centralizes brush codes (legacy Ridges is code 4; new Flatten is code 5).
+The shared uniform block is now **20 vec4s / 320 bytes**; use `UNIFORM_BYTES`, and
+update copied GLSL/WGSL layouts together. Archives keep their existing voxel data
+and receive defaults for missing v0.4 controls.
+
 ## What you can do
 
 - Start from a seeded sandstone canyon, an asymmetric weathered arch with unequal shoulders and alcoves, or fractured hoodoos/fins with caprock and non-monotonic profiles. The v0.2 canyon generator is unchanged; arches and spires use revised formations. Existing imported voxel data is preserved.
 - Orbit, pan, or fly through a **96 × 48 × 96 meter** volume. This is not an infinite world. Right-mouse look + WASD/QE uses a free, Unreal-style inspection camera, independent of the rendering frame rate.
-- **Add, carve, smooth, or flatten** using spherical 3D brushes. Carving supports tunnels, caves, and overhangs.
+- **Add, carve, smooth, flatten, form ridges, crack, cut crevices, or stamp boulders** with 3D volume brushes. Carving supports tunnels, caves, and overhangs.
 - Run and pause erosion, advance exactly one iteration, and change rainfall, erodibility, sediment capacity, evaporation, thermal relaxation, and layer resistance while it runs.
 - With **Live preview** enabled, changing a simulation parameter queues 12 more iterations even when continuous simulation is paused. Parameters affect future simulation, rather than retexturing or regenerating the terrain.
 - Inspect the material-free clay view or the runoff/erosion/deposition diagnostic view.
@@ -184,6 +246,7 @@ capture loss, and tab visibility changes so movement cannot get stuck.
 | Middle drag / Shift + left drag         | Pan                                                 |
 | Left drag with a brush                  | Sculpt the volume                                   |
 | V / B / X / M                           | Navigate tool / add / carve / smooth                |
+| L / R / K / U / O                       | Plane flatten / ridges / cracks / crevice / boulder |
 | [ / ]                                   | Smaller / larger brush                              |
 | F / G                                   | Return to the framed overview / toggle grid         |
 | Space                                   | Run / pause erosion                                 |
@@ -205,7 +268,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.3.0**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.4.0**.
 
 ### Why the earlier deployment returned 404
 
@@ -281,24 +344,30 @@ The water preview intersects a multi-band displaced surface and clips it against
 
 Each iteration performs:
 
-1. **Face flux:** pressure differences and a downward gravity bias move water across
-   shared X/Y/Z faces. A 1/6 donor limiter prevents exporting more water than exists.
+1. **Face flux:** projected surface gravity, pressure differences and a seeded
+   roughness potential route water across shared X/Y/Z faces. It is a 3D surface
+   calculation, not a heightmap. A 1/6 donor limiter bounds water exports.
 2. **Transport and forcing:** flux divergence updates water, upwind concentrations
    advect sediment, and a reserved donor budget lets sediment settle downward.
    Rain enters exposed upward-facing surface cells; every voxel in the column is
    tested for shelter. Evaporation, water saturation and the outer drains are sinks.
-3. **Hydraulic exchange:** a tangential-flow/stream-power response must exceed a
-   cohesion/strata-dependent shear threshold. Unloaded runoff can detach material;
+3. **Hydraulic exchange:** across-flow concentration focuses tangential runoff
+   incision above a cohesion/strata-dependent shear threshold. Rain is a water
+   source, not a uniform geometry-subtraction term. Unloaded runoff can detach material;
    overloaded water can deposit on supporting faces. The local exchange uses
    `solidFraction = clamp(0.5 - sdf / (2 * cell), 0, 1)`, with equal and opposite
    changes to this material proxy and suspended sediment. Deposition cannot spend
    a neighbor's sediment, and still water without rain does not scour.
-4. **Talus transport:** a four-channel flux pass transfers material to lower diagonal
+4. **Wind abrasion:** dry wind-facing rock is checked for upwind shelter, then
+   directionally modulated grain flux cuts the SDF. Detached sediment is budgeted
+   locally and can advect downwind or settle. Water, advection and dust have
+   separate portions of the same donor budget.
+5. **Talus transport:** a four-channel flux pass transfers material to lower diagonal
    neighbors, followed by an accumulation pass. Slopes below the selected repose
    angle do not move. Cohesion and lithology slow intact rock; deposited material
    is more mobile. Each link receives a quarter of donor/receiver budgets so the
    isolated pass conserves its solid-volume proxy and lowers material elevation.
-5. **Distance maintenance:** every second iteration, sign-limited Godunov/Eikonal
+6. **Distance maintenance:** every second iteration, sign-limited Godunov/Eikonal
    relaxation extends the new distances into the volume. This pass is not a
    volume-conservative reconstruction; overall geological mass conservation is
    therefore **not** claimed. Brushes also periodically redistance.
@@ -311,7 +380,7 @@ This is a **creative, physically motivated erosion prototype**, not a validated 
 
 - Flow uses a simplified 3D finite-volume pressure/gravity model. It is **not** incompressible Navier–Stokes, shallow-water CFD, SPH, or a calibrated real-world timescale.
 - Internal advection/settling, the local hydraulic exchange, and the isolated talus pass have explicit material budgets. However, SDF-to-solid-fraction conversion is a proxy, floating-point storage rounds values, and redistancing changes the proxy. The whole solver is **not globally mass-conserving rock mechanics**.
-- Talus is a slope-limited grid transfer, **not** discrete rigid-block fracture or resolved granular dynamics. Rock fatigue and cohesion are phenomenological. Wind drives the visual water, not aeolian rock erosion.
+- Talus is a slope-limited grid transfer, **not** rigid-block fracture or resolved granular dynamics. Cohesion and wind grain-flux variation are phenomenological. The Water panel's wind control animates waves; the separate Wind abrasion control changes geometry.
 - Rain visibility checks the full vertical voxel column, but roofs or channels thinner than the grid cannot be represented accurately.
 - Eikonal relaxation approximately preserves the zero surface; it is not exact signed-distance reconstruction. Long or extreme edits can soften fine features.
 - The displaced water surface, caustics and contact foam are **visual approximations**, clipped and shaded against actual terrain. They are not a reconstructed mobile-water free surface, breaking-wave CFD, or shoreline wave-abrasion simulation. Use **Flow** to inspect simulation water. The preview's water level is not a hydraulic boundary condition.
@@ -374,3 +443,15 @@ agreement on an identical small 3D fixture (with a tolerance for RGBA16F storage
 Browser tests also check animated WebGL water pixels, optical clarity, the new
 controls, actual GPU SDF changes, sculpting, exact undo and exports. These tests
 validate implementation properties, **not geological calibration**.
+
+### v0.4 geometry tests
+
+Regression tests check horizontal/vertical flattening, convergence without plane
+overshoot, legacy Ridges, crack/crevice empty voxels and depth, bounded boulders,
+CPU/GPU brush agreement, real pointer-stroke plane locking, exact undo and no
+stationary boulder stacking. Erosion tests measure **zero-isosurface crossings**
+on uniform fixtures—not just changed distance values or colored pixels. They
+check nonuniform rain incision versus sheet wash, directional wind bands, initial
+shelter protection, and conserved dry-dust transport. Clay-shaded WebGL captures
+also exercise the canyon after separate rain/wind runs. These are implementation
+regressions, not field validation of a geological model.

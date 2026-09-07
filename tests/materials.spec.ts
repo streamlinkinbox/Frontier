@@ -116,6 +116,8 @@ test("GPU and CPU erosion/settling/talus agree on the same small volumetric fixt
         cohesion: 0.15,
         settling: 0.6,
         thermal: 0.7,
+        windErosion: 0.8,
+        windDirection: 0,
       };
     const data = new Float32Array(size.x * size.y * size.z * 4);
     for (let z = 0; z < size.z; z++)
@@ -142,7 +144,7 @@ test("GPU and CPU erosion/settling/talus agree on the same small volumetric fixt
     let cpu = data.slice(),
       scratch = data.slice();
     const flux = new Float32Array(data.length);
-    computeFlux(cpu, size, flux);
+    computeFlux(cpu, size, flux, settings);
     evolveField(cpu, size, settings, flux, scratch);
     [cpu, scratch] = [scratch, cpu];
     computeTalusFlux(cpu, size, settings, flux);

@@ -181,9 +181,11 @@ fn shadeRock(p:vec3f,rd:vec3f,details:bool) -> vec3f {
     col+=vec3f(1.1,.95,.74)*spec*mix(.012,.16,wet)*shadow;
   }
   if(u.brush.w>0.&&details){
-    let dist:f32=length(p-u.brush.xyz);
+    var v:vec3f=p-u.brush.xyz;
+    if(u.brushParams.z>4.5&&u.brushParams.z<5.5){v-=u.planeNormal.xyz*dot(v,u.planeNormal.xyz);}
+    let dist:f32=length(v);
     let ring:f32=1.-smoothstep(.035,.16,abs(dist-u.brush.w));
-    let tint:vec3f=select(vec3f(.45,.79,.62),vec3f(1.,.60,.25),u.brushParams.z>1.5);
+    let tint:vec3f=select(vec3f(.45,.79,.62),vec3f(1.,.60,.25),u.brushParams.z>1.5&&u.brushParams.z<7.5);
     col=mix(col,tint,ring*.9);
     col=mix(col,tint,(1.-smoothstep(0.,u.brush.w,dist))*.1);
   }

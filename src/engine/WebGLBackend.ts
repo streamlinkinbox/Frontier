@@ -1,5 +1,10 @@
 import { glFragment, glVertex } from "./shaders";
-import { generateField, pickField, sculptField } from "./field";
+import {
+  generateField,
+  pickField,
+  sculptField,
+  sampleSurfaceNormal,
+} from "./field";
 import {
   computeFlux,
   evolveField,
@@ -7,7 +12,7 @@ import {
   computeTalusFlux,
   settleTalus,
 } from "./simulation";
-import { packUniforms } from "./uniforms";
+import { packUniforms, UNIFORM_BYTES } from "./uniforms";
 import { diagnostics, summarizePixels } from "../diagnostics";
 import { encodeFramePNG } from "./presentation";
 import {
@@ -18,6 +23,8 @@ import {
   type Vec3,
   type Tool,
   type VolumeSize,
+  type BrushStamp,
+  type BrushHit,
 } from "./types";
 
 export class WebGLBackend implements Backend {
@@ -135,7 +142,7 @@ export class WebGLBackend implements Backend {
     gl.uniform1i(gl.getUniformLocation(this.program, "field"), 0);
     this.uniform = gl.createBuffer()!;
     gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
-    gl.bufferData(gl.UNIFORM_BUFFER, 224, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.UNIFORM_BUFFER, UNIFORM_BYTES, gl.DYNAMIC_DRAW);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniform);
     gl.uniformBlockBinding(
       this.program,
@@ -408,7 +415,7 @@ export class WebGLBackend implements Backend {
   }
   step(s: Settings, count: number) {
     for (let i = 0; i < count; i++) {
-      computeFlux(this.data, this.size, this.flux);
+      computeFlux(this.data, this.size, this.flux, s);
       evolveField(this.data, this.size, s, this.flux, this.scratch);
       const old = this.data;
       this.data = this.scratch;
@@ -418,13 +425,16 @@ export class WebGLBackend implements Backend {
         settleTalus(this.data, this.size, this.flux, this.scratch);
         [this.data, this.scratch] = [this.scratch, this.data];
       }
-      if (++this.relaxationCycle % 2 === 0 && (s.thermal > 0 || s.erosion > 0))
+      if (
+        ++this.relaxationCycle % 2 === 0 &&
+        (s.thermal > 0 || s.erosion > 0 || s.windErosion > 0)
+      )
         this.redistance();
     }
     this.upload();
   }
-  sculpt(center: Vec3, tool: Tool, s: Settings) {
-    sculptField(this.data, this.size, center, tool, s);
+  sculpt(center: Vec3, tool: Tool, s: Settings, stamp?: BrushStamp) {
+    sculptField(this.data, this.size, center, tool, s, stamp);
     if (++this.brushCycle % 4 === 0) this.redistance();
     this.upload();
   }
@@ -432,14 +442,29 @@ export class WebGLBackend implements Backend {
     redistanceField(this.data, this.size, this.scratch);
     [this.data, this.scratch] = [this.scratch, this.data];
   }
-  async pick(frame: FrameState, x: number, y: number) {
-    return pickField(
+  async pick(
+    frame: FrameState,
+    x: number,
+    y: number,
+  ): Promise<BrushHit | null> {
+    const point = pickField(
       frame.compare ? this.original : this.data,
       this.size,
       frame,
       x,
       y,
     );
+    return point
+      ? {
+          position: point,
+          normal: sampleSurfaceNormal(
+            frame.compare ? this.original : this.data,
+            this.size,
+            point,
+            frame.settings.radius,
+          ),
+        }
+      : null;
   }
   async readVolume() {
     return this.data.slice();

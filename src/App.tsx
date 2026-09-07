@@ -46,6 +46,9 @@ import {
   Cpu,
   Navigation,
   TerminalSquare,
+  Zap,
+  Scissors,
+  Gem,
 } from "lucide-react";
 import { TerrainEngine } from "./engine/TerrainEngine";
 import {
@@ -114,8 +117,39 @@ const TOOL_LIST: {
     id: "flatten",
     label: "Flatten",
     icon: MoveHorizontal,
-    key: "",
-    description: "Sculpt a horizontal shelf at the brush height",
+    key: "L",
+    description:
+      "Flatten to the plane captured at stroke start; no moving-height ridges",
+  },
+  {
+    id: "ridges",
+    label: "Ridges",
+    icon: Layers3,
+    key: "R",
+    description:
+      "Legacy flatten: a moving horizontal shelf with spherical falloff",
+  },
+  {
+    id: "crack",
+    label: "Cracks",
+    icon: Zap,
+    key: "K",
+    description: "Carve a branching, uneven fault into the rock",
+  },
+  {
+    id: "crevice",
+    label: "Crevice",
+    icon: Scissors,
+    key: "U",
+    description: "Cut a deep, wide V-shaped fissure",
+  },
+  {
+    id: "boulder",
+    label: "Boulder",
+    icon: Gem,
+    key: "O",
+    description:
+      "Place irregular, partly embedded rock; drag to space more boulders",
   },
 ];
 const percent = (v: number) => `${Math.round(v * 100)}%`;
@@ -146,9 +180,9 @@ export default function App() {
   const [inspector, setInspector] = useState<"erosion" | "environment">(
     "erosion",
   );
-  const [erosionTab, setErosionTab] = useState<"hydraulic" | "thermal">(
-    "hydraulic",
-  );
+  const [erosionTab, setErosionTab] = useState<
+    "hydraulic" | "thermal" | "wind"
+  >("hydraulic");
   const [guide, setGuide] = useState(false),
     [comparing, setComparing] = useState(false),
     [full, setFull] = useState(false),
@@ -363,6 +397,11 @@ export default function App() {
       if (e.key.toLowerCase() === "b") chooseTool("add");
       if (e.key.toLowerCase() === "x") chooseTool("carve");
       if (e.key.toLowerCase() === "m") chooseTool("smooth");
+      if (e.key.toLowerCase() === "l") chooseTool("flatten");
+      if (e.key.toLowerCase() === "r") chooseTool("ridges");
+      if (e.key.toLowerCase() === "k") chooseTool("crack");
+      if (e.key.toLowerCase() === "u") chooseTool("crevice");
+      if (e.key.toLowerCase() === "o") chooseTool("boulder");
       if (e.key.toLowerCase() === "f") engine.current?.resetCamera();
       if (e.key.toLowerCase() === "g")
         update("grid", !settingsRef.current.grid);
@@ -569,6 +608,48 @@ export default function App() {
         }
       },
     );
+  const weatherProfile = (kind: "rain" | "wind" | "talus") => {
+    const patch: Partial<Settings> =
+      kind === "rain"
+        ? {
+            rainfall: 0.85,
+            erosion: 0.8,
+            channeling: 1,
+            cohesion: 0.12,
+            sediment: 0.85,
+            settling: 0.2,
+            evaporation: 0.12,
+            thermal: 0,
+            windErosion: 0,
+          }
+        : kind === "wind"
+          ? {
+              rainfall: 0,
+              erosion: 0,
+              thermal: 0,
+              windErosion: 0.9,
+              evaporation: 0.95,
+              settling: 0.25,
+            }
+          : { rainfall: 0, erosion: 0, thermal: 0.65, windErosion: 0 };
+    engine.current?.pause();
+    const next = { ...settingsRef.current, ...patch };
+    settingsRef.current = next;
+    setSettings(next);
+    engine.current?.update(next, false);
+    setDirty(true);
+    setSaved(false);
+    setErosionTab(
+      kind === "rain" ? "hydraulic" : kind === "wind" ? "wind" : "thermal",
+    );
+    notify(
+      kind === "rain"
+        ? "Rain cuts: talus off. Run erosion to develop channels."
+        : kind === "wind"
+          ? "Wind streaks: dry exposed faces abrade. Wet areas must dry first."
+          : "Talus: gravity-driven material movement, without rain or wind cutting.",
+    );
+  };
   const reset = () =>
     setConfirm({
       title: "Return to the original terrain?",
@@ -914,7 +995,34 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <div className="active-brush-description">
+                {TOOL_LIST.find((t) => t.id === tool)?.description ??
+                  "Orbit, pan or fly through the volume."}
+              </div>
               <fieldset disabled={disabled}>
+                {tool === "flatten" && (
+                  <div
+                    className="brush-plane-controls"
+                    role="group"
+                    aria-label="Flatten plane"
+                  >
+                    <button
+                      aria-pressed={settings.flattenPlane === "surface"}
+                      onClick={() => update("flattenPlane", "surface")}
+                    >
+                      Surface plane
+                    </button>
+                    <button
+                      aria-pressed={settings.flattenPlane === "horizontal"}
+                      onClick={() => update("flattenPlane", "horizontal")}
+                    >
+                      Horizontal
+                    </button>
+                    <small>
+                      Plane locks at mouse-down. Release to sample a new plane.
+                    </small>
+                  </div>
+                )}
                 <Slider
                   label="Brush radius"
                   value={settings.radius}
@@ -936,6 +1044,31 @@ export default function App() {
                   min={0.05}
                   onChange={(v) => update("falloff", v)}
                 />
+                {["crack", "crevice", "boulder"].includes(tool) && (
+                  <Slider
+                    label={tool === "boulder" ? "Boulder height" : "Cut depth"}
+                    value={settings.brushDepth}
+                    min={0.1}
+                    max={1.5}
+                    step={0.05}
+                    format={(v) => `${Math.round(v * 100)}% radius`}
+                    onChange={(v) => update("brushDepth", v)}
+                  />
+                )}
+                {["crack", "crevice"].includes(tool) && (
+                  <Slider
+                    label="Cut width"
+                    value={settings.brushWidth}
+                    min={0.08}
+                    max={0.8}
+                    step={0.02}
+                    format={(v) =>
+                      `${(Math.max((96 / stats.size.x) * 0.75, v * settings.radius) * 2 * (tool === "crevice" ? 2.2 : 1)).toFixed(1)} m`
+                    }
+                    onChange={(v) => update("brushWidth", v)}
+                    help="Minimum width is limited by the volume grid; sub-voxel hairline cracks are not geometry"
+                  />
+                )}
               </fieldset>
               <div className="brush-hint">
                 <Info size={13} />
@@ -1478,6 +1611,23 @@ export default function App() {
                     <p>Wear away the ordinary.</p>
                   </div>
                   <div
+                    className="weather-profiles"
+                    aria-label="Weathering parameter presets"
+                  >
+                    <button onClick={() => weatherProfile("rain")}>
+                      <Droplets size={12} />
+                      Rain cuts
+                    </button>
+                    <button onClick={() => weatherProfile("wind")}>
+                      <Wind size={12} />
+                      Wind streaks
+                    </button>
+                    <button onClick={() => weatherProfile("talus")}>
+                      <Mountain size={12} />
+                      Talus
+                    </button>
+                  </div>
+                  <div
                     className="method-tabs"
                     role="tablist"
                     aria-label="Erosion parameters"
@@ -1500,6 +1650,15 @@ export default function App() {
                       <Mountain size={14} />
                       Thermal
                     </button>
+                    <button
+                      role="tab"
+                      aria-selected={erosionTab === "wind"}
+                      className={erosionTab === "wind" ? "active" : ""}
+                      onClick={() => setErosionTab("wind")}
+                    >
+                      <Wind size={13} />
+                      Wind
+                    </button>
                   </div>
                   <div className="erosion-parameters">
                     {erosionTab === "hydraulic" ? (
@@ -1519,6 +1678,12 @@ export default function App() {
                           value={settings.erosion}
                           onChange={(v) => update("erosion", v, true)}
                           help="Rate of detachment above the local shear/cohesion threshold"
+                        />
+                        <Slider
+                          label="Channel focus"
+                          value={settings.channeling}
+                          onChange={(v) => update("channeling", v, true)}
+                          help="Focus runoff into connected low-potential paths; cuts actual channels rather than uniformly shrinking rock"
                         />
                         <Slider
                           label="Sediment capacity"
@@ -1552,7 +1717,7 @@ export default function App() {
                           </p>
                         </details>
                       </>
-                    ) : (
+                    ) : erosionTab === "thermal" ? (
                       <>
                         <div className="parameter-caption">
                           <Mountain size={12} />
@@ -1589,8 +1754,35 @@ export default function App() {
                           </p>
                         </div>
                         <p className="thermal-note">
-                          Hydraulic and thermal processes run together. These
-                          tabs expose their individual parameters.
+                          Talus is separate from incision. Turn it down for
+                          sharp rain cuts or wind flutes.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="parameter-caption">
+                          <Wind size={13} />
+                          <span>Abrasive grains cut exposed, dry faces.</span>
+                        </div>
+                        <Slider
+                          label="Wind abrasion"
+                          value={settings.windErosion}
+                          onChange={(v) => update("windErosion", v, true)}
+                          help="Actual removal of SDF rock, not water animation or a texture"
+                        />
+                        <Slider
+                          label="Wind direction"
+                          value={settings.windDirection}
+                          min={0}
+                          max={360}
+                          step={5}
+                          format={(v) => `${v}°`}
+                          onChange={(v) => update("windDirection", v, true)}
+                        />
+                        <p className="thermal-note">
+                          Wind-facing surfaces are checked for shelter. Wet and
+                          underwater rock resists abrasion; eroded dust is
+                          transported and can settle.
                         </p>
                       </>
                     )}
@@ -1819,6 +2011,13 @@ export default function App() {
                 ))}
               </div>
             </div>
+            <button
+              className="weather-batch"
+              disabled={disabled || stats.running}
+              onClick={() => void engine.current?.weatherBatch(80)}
+            >
+              Weather 80 iterations <ArrowRight size={12} />
+            </button>
             <div className="simulation-buttons">
               <button
                 className={`run-button ${stats.running ? "is-running" : ""}`}

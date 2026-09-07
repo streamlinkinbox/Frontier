@@ -1,7 +1,7 @@
 import { computeShader, presentShader, renderShader } from "./shaders";
 import { encodeFramePNG } from "./presentation";
 import { BitmapPresenter, type GPUDisplayMode } from "./display";
-import { packUniforms } from "./uniforms";
+import { packUniforms, UNIFORM_BYTES } from "./uniforms";
 import { diagnostics, summarizePixels } from "../diagnostics";
 import { floatToHalf, halfToFloat } from "./math";
 import {
@@ -12,6 +12,8 @@ import {
   type Tool,
   type Vec3,
   type VolumeSize,
+  type BrushStamp,
+  type BrushHit,
 } from "./types";
 
 export class WebGPUBackend implements Backend {
@@ -134,7 +136,7 @@ export class WebGPUBackend implements Backend {
       if (this.initialized) this.onLost?.(e.error.message);
     });
     this.uniform = this.device.createBuffer({
-      size: 224,
+      size: UNIFORM_BYTES,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.sampler = this.device.createSampler({
@@ -163,11 +165,11 @@ export class WebGPUBackend implements Backend {
     this.original = make("Unmodified procedural volume");
     this.flux = make("Conservative face flux");
     this.pickResult = this.device.createBuffer({
-      size: 16,
+      size: 32,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     });
     this.pickRead = this.device.createBuffer({
-      size: 16,
+      size: 32,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
     const compute = this.device.createShaderModule({
@@ -759,14 +761,19 @@ export class WebGPUBackend implements Backend {
       }
       if (
         ++this.relaxationCycle % 2 === 0 &&
-        (settings.thermal > 0 || settings.erosion > 0)
+        (settings.thermal > 0 ||
+          settings.erosion > 0 ||
+          settings.windErosion > 0)
       )
         this.run("redistance", enc);
     }
     this.device.queue.submit([enc.finish()]);
   }
-  sculpt(center: Vec3, tool: Tool, settings: Settings) {
-    const a = packUniforms({ ...this.lastFrame, settings, tool }, this.size);
+  sculpt(center: Vec3, tool: Tool, settings: Settings, stamp?: BrushStamp) {
+    const a = packUniforms(
+      { ...this.lastFrame, settings, tool, brush: center, stamp },
+      this.size,
+    );
     a.set([...center, settings.strength], 44);
     this.device.queue.writeBuffer(this.uniform, 0, a);
     const enc = this.device.createCommandEncoder();
@@ -774,19 +781,25 @@ export class WebGPUBackend implements Backend {
     if (++this.brushCycle % 4 === 0) this.run("redistance", enc);
     this.device.queue.submit([enc.finish()]);
   }
-  async pick(frame: FrameState, x: number, y: number): Promise<Vec3 | null> {
+  async pick(
+    frame: FrameState,
+    x: number,
+    y: number,
+  ): Promise<BrushHit | null> {
     if (this.destroyed) return null;
     const a = packUniforms(frame, this.size);
     a.set([x, y, 0, 0], 52);
     this.device.queue.writeBuffer(this.uniform, 0, a);
     const enc = this.device.createCommandEncoder();
     this.run("pickSurface", enc);
-    enc.copyBufferToBuffer(this.pickResult, 0, this.pickRead, 0, 16);
+    enc.copyBufferToBuffer(this.pickResult, 0, this.pickRead, 0, 32);
     this.device.queue.submit([enc.finish()]);
     await this.pickRead.mapAsync(GPUMapMode.READ);
     const v = new Float32Array(this.pickRead.getMappedRange()).slice();
     this.pickRead.unmap();
-    return v[3] > 0.5 ? [v[0], v[1], v[2]] : null;
+    return v[3] > 0.5
+      ? { position: [v[0], v[1], v[2]], normal: [v[4], v[5], v[6]] }
+      : null;
   }
   async readVolume(): Promise<Float32Array> {
     const { x, y, z } = this.size;

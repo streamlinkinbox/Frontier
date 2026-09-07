@@ -1,6 +1,28 @@
 export type Vec3 = [number, number, number];
 export type Preset = "canyon" | "arches" | "badlands";
-export type Tool = "orbit" | "add" | "carve" | "smooth" | "flatten";
+export const TOOL_IDS = [
+  "orbit",
+  "add",
+  "carve",
+  "smooth",
+  "ridges",
+  "flatten",
+  "crack",
+  "crevice",
+  "boulder",
+] as const;
+export type Tool = (typeof TOOL_IDS)[number];
+export interface BrushHit {
+  position: Vec3;
+  normal: Vec3;
+}
+export interface BrushStamp {
+  origin: Vec3;
+  normal: Vec3;
+  tangent: Vec3;
+  previous: Vec3;
+  seed: number;
+}
 export type ViewMode = "lit" | "clay" | "flow";
 export interface Settings {
   seed: number;
@@ -25,6 +47,12 @@ export interface Settings {
   view: ViewMode;
   radius: number;
   strength: number;
+  brushDepth: number;
+  brushWidth: number;
+  flattenPlane: "surface" | "horizontal";
+  channeling: number;
+  windErosion: number;
+  windDirection: number;
   falloff: number;
   speed: number;
   autoPreview: boolean;
@@ -37,7 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
   erosion: 0.55,
   sediment: 0.6,
   evaporation: 0.18,
-  thermal: 0.3,
+  thermal: 0.03,
   resistance: 0.65,
   cohesion: 0.28,
   settling: 0.35,
@@ -53,6 +81,12 @@ export const DEFAULT_SETTINGS: Settings = {
   view: "lit",
   radius: 4,
   strength: 0.55,
+  brushDepth: 0.7,
+  brushWidth: 0.18,
+  flattenPlane: "surface",
+  channeling: 0.85,
+  windErosion: 0,
+  windDirection: 135,
   falloff: 0.6,
   speed: 2,
   autoPreview: true,
@@ -104,6 +138,7 @@ export interface FrameState {
   settings: Settings;
   brush: Vec3 | null;
   tool: Tool;
+  stamp?: BrushStamp;
   compare: boolean;
 }
 export interface Backend {
@@ -123,8 +158,13 @@ export interface Backend {
   ): Promise<boolean>;
   capture(frame: FrameState): Promise<Blob>;
   step(settings: Settings, count: number): void;
-  sculpt(center: Vec3, tool: Tool, settings: Settings): void;
-  pick(frame: FrameState, x: number, y: number): Promise<Vec3 | null>;
+  sculpt(
+    center: Vec3,
+    tool: Tool,
+    settings: Settings,
+    stamp?: BrushStamp,
+  ): void;
+  pick(frame: FrameState, x: number, y: number): Promise<BrushHit | null>;
   readVolume(): Promise<Float32Array>;
   writeVolume(data: Float32Array): void;
   reset(): void;

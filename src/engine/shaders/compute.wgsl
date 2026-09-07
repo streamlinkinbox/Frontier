@@ -120,24 +120,59 @@ fn initialize(@builtin(global_invocation_id) id:vec3u) {
   textureStore(outputField,vec3i(id),vec4f(initialSdf(p),0,0,0));
 }
 fn permeability(d:f32) -> f32 {return smoothstep(-.45*u.dims.w,.65*u.dims.w,d);}
-fn faceFlux(a:vec4f,b:vec4f,axis:i32) -> f32 {
-  let gravity=select(0.,.55,axis==1);
-  return clamp((a.y-b.y-gravity)*.30,-b.y/6.,a.y/6.)*min(permeability(a.x),permeability(b.x));
+fn runoffPotential(p:vec3f) -> f32 {
+  return noise(p*vec3f(.46,.035,.46)+vec3f(u.flags.z*.013,0,0))*.72+noise(p*vec3f(.18,.06,.18)+vec3f(0,11.2,u.flags.z*.007))*.28;
+}
+fn runoffGeometry(p:vec3i) -> vec4f {
+  let a=loadAt(p);let h=u.dims.w;
+  if(abs(a.x)>h*2.2){return vec4f(0,-1,0,0);}
+  let g=vec3f(loadAt(p+vec3i(1,0,0)).x-loadAt(p-vec3i(1,0,0)).x,loadAt(p+vec3i(0,1,0)).x-loadAt(p-vec3i(0,1,0)).x,loadAt(p+vec3i(0,0,1)).x-loadAt(p-vec3i(0,0,1)).x);
+  let n=g/max(length(g),.000001);
+  let surface=(1.-smoothstep(h*.5,h*2.2,abs(a.x)))*smoothstep(-.15,.25,n.y);
+  let potential=runoffPotential(WORLD_MIN+(vec3f(p)+.5)*h)*u.processes.x*.07*surface;
+  return vec4f(n.x*n.y*surface,-1.+n.y*n.y*surface,n.z*n.y*surface,potential);
+}
+fn faceFlux(p:vec3i,a:vec4f,geometry:vec4f,offset:vec3i,axis:i32) -> f32 {
+  let b=loadAt(p+offset);
+  if(a.y==0.&&b.y==0.){return 0.;}
+  let gb=runoffGeometry(p+offset);
+  let direction=(geometry[axis]+gb[axis])*.5;
+  let donor=select(b.y,a.y,direction>=0.);
+  let raw=(a.y+geometry.w-b.y-gb.w)*.16+direction*donor*.72;
+  return clamp(raw,-b.y/6.,a.y/6.)*min(permeability(a.x),permeability(b.x));
 }
 @compute @workgroup_size(4,4,4)
 fn flux(@builtin(global_invocation_id) id:vec3u) {
   if(any(id>=vec3u(u.dims.xyz))){return;}
-  let p=vec3i(id);let a=loadAt(p);
-  var f=vec3f(faceFlux(a,loadAt(p+vec3i(1,0,0)),0),faceFlux(a,loadAt(p+vec3i(0,1,0)),1),faceFlux(a,loadAt(p+vec3i(0,0,1)),2));
+  let p=vec3i(id);let a=loadAt(p);let g=runoffGeometry(p);
+  var f=vec3f(faceFlux(p,a,g,vec3i(1,0,0),0),faceFlux(p,a,g,vec3i(0,1,0),1),faceFlux(p,a,g,vec3i(0,0,1),2));
   if(id.x==u32(u.dims.x)-1u){f.x=0.;}if(id.y==u32(u.dims.y)-1u){f.y=0.;}if(id.z==u32(u.dims.z)-1u){f.z=0.;}
   textureStore(outputFlux,p,vec4f(f,0));
 }
 fn fluxAt(p:vec3i) -> vec3f {if(any(p<vec3i(0))||any(p>=vec3i(u.dims.xyz))){return vec3f(0);}return textureLoad(fluxField,p,0).xyz;}
 fn concentration(v:vec4f) -> f32 {return min(v.z/max(v.y,.00001),3.);}
 fn sedimentFlux(f:f32,a:vec4f,b:vec4f,axis:i32) -> f32 {
-  let settling=u.brushParams.w*.06;
-  let advected=(1.-settling)*f*select(concentration(b),concentration(a),f>=0.);
-  return advected-select(0.,settling*b.z*min(permeability(a.x),permeability(b.x)),axis==1);
+  let settling=u.brushParams.w*.06;let dustBudget=u.processes.y*.18;
+  let advected=(1.-settling-dustBudget)*f*select(concentration(b),concentration(a),f>=0.);
+  let wind=vec3f(u.processes.z,0,u.processes.w);let windNorm=max(.001,abs(wind.x)+abs(wind.z));
+  let donor=select(b,a,wind[axis]>=0.);
+  let dust=dustBudget*wind[axis]/windNorm*donor.z*(1.-clamp(donor.y*3.,0.,1.))*min(permeability(a.x),permeability(b.x));
+  return advected+dust-select(0.,settling*b.z*min(permeability(a.x),permeability(b.x)),axis==1);
+}
+fn abrasiveBand(p:vec3f) -> f32 {
+  let along=p.x*u.processes.z+p.z*u.processes.w;let across=-p.x*u.processes.w+p.z*u.processes.z;
+  let phase=p.y*1.55+noise(vec3f(across*.14+u.flags.z*.003,p.y*.09,along*.025))*1.65;
+  return smoothstep(.25,.85,.5+.5*sin(phase));
+}
+fn windExposure(p:vec3i,n:vec3f) -> f32 {
+  var visibility=1.;let direction=vec3f(u.processes.z,0,u.processes.w);
+  for(var step=0;step<288;step++){
+    let q=vec3i(floor(vec3f(p)+n*.8-direction*(1.+f32(step)*.75)+.5));
+    if(any(q<vec3i(0))||any(q>=vec3i(u.dims.xyz))){break;}
+    visibility*=smoothstep(-u.dims.w*.25,u.dims.w*.25,loadAt(q).x);
+    if(visibility<.001){break;}
+  }
+  return visibility;
 }
 @compute @workgroup_size(4,4,4)
 fn evolve(@builtin(global_invocation_id) id:vec3u) {
@@ -164,26 +199,40 @@ fn evolve(@builtin(global_invocation_id) id:vec3u) {
     rain=u.erosion.x*.04*normal.y*exposed;
   }
   water=max(0.,water+rain)*(1.-u.erosion.w*.035);
-  let wet=max(max(a.y,water),max(max(xp.y,xm.y),max(max(yp.y,ym.y),max(zp.y,zm.y))));
   let narrow=1.-smoothstep(cell*.75,cell,abs(a.x));
   var delta=0.;
   if(narrow>0.) {
     var front=vec3i(0,0,select(-1,1,normal.z>=0.));
     if(abs(normal.x)>abs(normal.y)&&abs(normal.x)>abs(normal.z)){front=vec3i(select(-1,1,normal.x>=0.),0,0);}
     else if(abs(normal.y)>abs(normal.z)){front=vec3i(0,select(-1,1,normal.y>=0.),0);}
+    let wet=max(water,loadAt(p+front).y*.85);
+    let flowCell=select(p+front,p,a.y>=loadAt(p+front).y);
+    let lateral=select(vec3i(1,0,0),vec3i(0,0,1),abs(normal.x)>abs(normal.z));
+    let streamWet=loadAt(flowCell).y;
+    let flankWet=(loadAt(flowCell-lateral*2).y+loadAt(flowCell-lateral).y+streamWet+loadAt(flowCell+lateral).y+loadAt(flowCell+lateral*2).y)/5.;
+    let concentration=smoothstep(1.01,1.3,streamWet/max(flankWet,.002));
+    let focus=1.+u.processes.x*2.*concentration;
+    let channelMask=1.-u.processes.x+u.processes.x*(.04+.96*concentration);
     let q=((f+fm)*.5+fluxAt(p+front))*.5;
     let tangential=length(q-normal*dot(q,normal));
     let slope=min(2.5,sqrt(max(0.,1.-normal.y*normal.y))/max(abs(normal.y),.25));
     let velocity=min(3.,tangential/max(wet,.015));
     let wp=WORLD_MIN+(vec3f(id)+.5)*cell;
     let weak=erodibility(wp);
-    let shear=wet*velocity*(.5+slope*1.2)+rain*.6;
+    let shear=wet*velocity*(1.+slope*2.4)*focus;
     let threshold=(.001+u.geology.z*.025)*(1.1-weak*.7);
-    let capacity=u.erosion.z*(wet*velocity*(1.+slope*.8)*4.+rain*.7);
+    let capacity=u.erosion.z*wet*velocity*(1.+slope*.8)*6.*focus;
     let solid=solidFraction(a.x);
-    let detach=min(min(solid,max(0.,capacity-sediment)),min(.02,u.erosion.y*weak*max(0.,shear-threshold)*.4*narrow));
+    let detach=min(min(solid,max(0.,capacity-sediment)),min(.045,u.erosion.y*weak*max(0.,shear-threshold)*.95*narrow*channelMask));
     let deposit=min(min(1.-solid,sediment),min(.02,max(0.,sediment-capacity)*(.08+u.brushParams.w*.35)*smoothstep(-.15,.75,normal.y)*narrow));
-    let exchange=detach-deposit;
+    var windDetach=0.;let facing=max(0.,-normal.x*u.processes.z-normal.z*u.processes.w);
+    if(u.processes.y>0.&&facing>.08&&wet<.34){
+      let exposure=windExposure(p,normal);let dry=1.-clamp(wet*3.,0.,1.);
+      let aboveWater=select(0.,1.,u.water.z<.5||wp.y>u.water.x+.25);
+      let rate=u.processes.y*u.processes.y*facing*exposure*dry*aboveWater*abrasiveBand(wp)*exp(-max(wp.y+2.,0.)/22.);
+      windDetach=min(max(0.,solid-detach),min(.04,rate*weak*.08*narrow));
+    }
+    let exchange=detach+windDetach-deposit;
     delta=exchange*2.*cell;
     sediment+=exchange;
   }
@@ -228,24 +277,54 @@ fn talusSettle(@builtin(global_invocation_id) id:vec3u) {
 fn sculpt(@builtin(global_invocation_id) id:vec3u) {
   if(any(id>=vec3u(u.dims.xyz))){return;}
   let p=vec3i(id);var a=loadAt(p);
-  let wp=WORLD_MIN+(vec3f(id)+.5)/u.dims.xyz*WORLD_SIZE;
-  let r=u.brushParams.x;let distance=length(wp-u.sculpt.xyz);
-  let w=(1.-smoothstep(r*(1.-u.brushParams.y),r,distance))*u.sculpt.w*.38;
-  if(distance<r&&all(id>vec3u(1))&&all(id<vec3u(u.dims.xyz)-2u)){
-    if(u.brushParams.z<1.5){a.x-=w*u.dims.w*1.5;}
-    else if(u.brushParams.z<2.5){a.x+=w*u.dims.w*1.5;}
-    else if(u.brushParams.z<3.5){
-      let avg=(loadAt(p+vec3i(1,0,0)).x+loadAt(p-vec3i(1,0,0)).x+loadAt(p+vec3i(0,1,0)).x+loadAt(p-vec3i(0,1,0)).x+loadAt(p+vec3i(0,0,1)).x+loadAt(p-vec3i(0,0,1)).x)/6.;
-      a.x=mix(a.x,avg,w);
-    }else{a.x=mix(a.x,wp.y-u.sculpt.y,w);}
+  if(any(id<vec3u(2))||any(id>=vec3u(u.dims.xyz)-2u)){textureStore(outputField,p,a);return;}
+  let wp=WORLD_MIN+(vec3f(id)+.5)*u.dims.w;
+  let r=u.brushParams.x;let v=wp-u.sculpt.xyz;let distance=length(v);
+  let n=u.planeNormal.xyz;let tangent=u.strokeTangent.xyz;let bitangent=cross(n,tangent);
+  let tool=i32(u.brushParams.z);var value=a.x;
+  let extent=select(r,r*1.65,tool>=5);
+  if(any(abs(v)>vec3f(extent))){textureStore(outputField,p,a);return;}
+  if(tool==5){
+    let plane=dot(wp-u.planeOrigin.xyz,n);let radial=length(v-n*dot(v,n));
+    let edge=1.-smoothstep(r*(1.-u.brushParams.y*.55),r,radial);
+    let depth=1.-smoothstep(r*.95,r*1.6,abs(plane));
+    value=mix(a.x,plane,edge*depth*u.sculpt.w*.62);
+  }else if(tool==6||tool==7){
+    let along=dot(v,tangent);let side=dot(v,bitangent);let height=dot(v,n);let phase=u.strokeTangent.w*.017;
+    let width=max(u.dims.w*.75,r*u.planeNormal.w)*select(1.,2.2,tool==7);
+    let depth=r*u.planeOrigin.w*select(1.15,1.9,tool==7);
+    let curve=sin(along*.9+phase)*r*.10+sin(along*2.3+phase)*r*.04;
+    let opening=width*clamp(1.+height/depth,.12,1.);
+    var cut=max(max(abs(side-curve)-opening,abs(along)-r),max(-height-depth,height-u.dims.w*.35));
+    if(tool==6){
+      let ax=(along-r*.12)*.65+side*.76;let az=-(along-r*.12)*.76+side*.65;
+      let fork=max(max(abs(az)-opening*.55,abs(ax)-r*.65),max(-height-depth*.68,height-u.dims.w*.3));
+      cut=min(cut,fork);
+    }
+    value=mix(a.x,max(a.x,-cut),u.sculpt.w*.72);
+  }else if(tool==8){
+    let local=vec3f(dot(v,tangent),dot(v,n)-r*.22,dot(v,bitangent));
+    let phase=u.strokeTangent.w*.013;
+    let stone=ellipsoid(local,vec3f(r*.91,r*clamp(u.planeOrigin.w,.3,1.2),r*.78))+noise(local/r*2.3+vec3f(phase,0,0))*r*.11;
+    value=mix(a.x,min(a.x,stone),min(1.,u.sculpt.w*1.7));
+  }else if(distance<r){
+    let w=(1.-smoothstep(r*(1.-u.brushParams.y),r,distance))*u.sculpt.w*.38;
+    if(tool==1){value-=w*u.dims.w*1.5;}
+    else if(tool==2){value+=w*u.dims.w*1.5;}
+    else if(tool==3){value=mix(a.x,(loadAt(p-vec3i(1,0,0)).x+loadAt(p+vec3i(1,0,0)).x+loadAt(p-vec3i(0,1,0)).x+loadAt(p+vec3i(0,1,0)).x+loadAt(p-vec3i(0,0,1)).x+loadAt(p+vec3i(0,0,1)).x)/6.,w);}
+    else if(tool==4){value=mix(a.x,wp.y-u.sculpt.y,w);}
   }
-  textureStore(outputField,p,a);
+  a.x=clamp(value,-24.,32.);textureStore(outputField,p,a);
 }
 @compute @workgroup_size(1)
 fn pickSurface() {
   let rd=normalize(u.forward.xyz+u.right.xyz*u.pick.x*u.forward.w*u.right.w+u.up.xyz*u.pick.y*u.right.w);
   let t=trace(u.eye.xyz,rd,280);
-  pickResult[0]=vec4f(u.eye.xyz+rd*t,select(0.,1.,t<9999.));
+  let hit=u.eye.xyz+rd*t;
+  pickResult[0]=vec4f(hit,select(0.,1.,t<9999.));
+  let e=max(u.dims.w*.8,u.brushParams.x*.22);
+  let g=vec3f(map(hit+vec3f(e,0,0))-map(hit-vec3f(e,0,0)),map(hit+vec3f(0,e,0))-map(hit-vec3f(0,e,0)),map(hit+vec3f(0,0,e))-map(hit-vec3f(0,0,e)));
+  pickResult[1]=vec4f(safeNormalize(g),0.);
 }
 // Eikonal relaxation extends surface displacement into neighboring voxels.
 // Without redistancing, a narrow-band level set eventually runs out of valid
