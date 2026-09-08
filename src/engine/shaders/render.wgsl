@@ -123,10 +123,16 @@ fn shadeRock(p:vec3f,rd:vec3f,details:bool) -> vec3f {
   var geometric:vec3f=surfaceNormal(p);
   if(dot(geometric,rd)>0.){geometric=-geometric;}
   let footprint:f32=materialFootprint(p,geometric);
-  let surfaceData:vec4f=sampleMaterial(p,geometric,select(footprint*4.,footprint,details));
+  let ao:f32=ambientOcclusion(p,geometric);
+  var surfaceData:vec4f=vec4f(0.);
+  if(u.satmap.x>.5){surfaceData=sampleSatMaterial(p,geometric,select(footprint*4.,footprint,details),ao);}
+  else{surfaceData=sampleMaterial(p,geometric,select(footprint*4.,footprint,details));}
   var albedo:vec3f=surfaceData.rgb;var roughness:f32=surfaceData.a;
   var n:vec3f=geometric;var structure:vec4f=vec4f(0.);
-  if(details&&u.viewport.w<.5){structure=layeredRock(p,footprint);n=materialNormal(p,geometric,footprint,structure);}
+  if(details&&u.viewport.w<.5){
+    if(u.satmap.x>.5){n=satNormal(p,geometric,footprint);}
+    else{structure=layeredRock(p,footprint);n=materialNormal(p,geometric,footprint,structure);}
+  }
   let cavity:f32=clamp(1.+structure.x/max(.001,u.rockDetail.x+u.rockLayers.y*.5)*.35,.68,1.);
   let view:vec3f=-rd;
   // Keep perturbed normals on the visible side at grazing angles.
@@ -149,7 +155,6 @@ fn shadeRock(p:vec3f,rd:vec3f,details:bool) -> vec3f {
   // Secondary (reflected/refracted) rock still needs macro shadowing. Skipping
   // it makes the bed/underside glow at the shoreline even at zero thickness.
   let shadow:f32=softShadow(p+geometric*.25,light);
-  let ao:f32=ambientOcclusion(p,geometric);
   let diffuseWeight:f32=(1.-fresnelSchlick(noV,f0))*(1.-fresnelSchlick(noL,f0));
   let specular:f32=specularGGX(noV,noL,noH,voH,roughness,f0);
   let sun:vec3f=vec3f(4.6,4.25,3.7);
@@ -262,6 +267,25 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   }
   return col;
 }
+// Diagnostic maps are unlit, camera/time invariant and never obscured by water.
+// Grayscale masks are displayed numerically (no filmic exposure or baked shadow).
+fn satDebug(p:vec3f) -> vec3f {
+  let n:vec3f=surfaceNormal(p);let ao:f32=ambientOcclusion(p,n);
+  let state:vec4f=volume(p+n*u.dims.w*.22);
+  let photo:f32=satPhoto(p,n,materialFootprint(p,n));let curvature:f32=satCurvature(p);
+  let view:i32=i32(u.satmap.y);
+  let mask:f32=satTextureMask(p,n,ao,photo,curvature,state);
+  if(view==1){let color:vec3f=satColorAt(mask);return vec3f(linearToSRGB(color.r),linearToSRGB(color.g),linearToSRGB(color.b));}
+  if(view==2){return vec3f(mask);}
+  if(view==3){return vec3f(satElevation(p));}
+  if(view==4){return vec3f(1.-clamp(n.y,0.,1.));}
+  if(view==5){return vec3f(curvature*.5+.5);}
+  if(view==6){return vec3f(ao);}
+  if(view==7){return n*.5+.5;}
+  if(view==8){return vec3f(max(satFlow(p,n),clamp(state.y*3.,0.,1.)));}
+  if(view==9){return vec3f(satSediment(state,n));}
+  return vec3f(photo);
+}
 fn renderPixel(frag:vec2f) -> vec4f {
   let uv:vec2f=(frag/u.viewport.xy)*2.-1.;
   let rd:vec3f=normalize(u.forward.xyz+u.right.xyz*uv.x*u.forward.w*u.right.w-u.up.xyz*uv.y*u.right.w);
@@ -269,6 +293,10 @@ fn renderPixel(frag:vec2f) -> vec4f {
   var col:vec3f=sky(rd);
   var t:f32=10000.;
   if(u.flags.y>.5){t=trace(ro,rd,320);}
+  if(u.satmap.x>.5&&u.satmap.y>.5&&u.viewport.w<.5){
+    if(t<9999.){return vec4f(satDebug(ro+rd*t),1.);}
+    return vec4f(.055,.065,.073,1.);
+  }
   var groundT:f32=10000.;
   if(abs(rd.y)>.00001){
     let planeT:f32=(-2.7-ro.y)/rd.y;
@@ -324,7 +352,7 @@ fn renderPixel(frag:vec2f) -> vec4f {
       }
     }
   }
-  // Filmic exposure, not a photographic texture or a pre-rendered backdrop.
+  // Filmic exposure over lit geometry (SatMap albedo is decoded to linear RGB).
   col=vec3f(1.)-exp(-max(col,vec3f(0.))*u.viewport.z*1.30);
   col=vec3f(linearToSRGB(col.r),linearToSRGB(col.g),linearToSRGB(col.b));
   col*=1.-dot(uv*vec2f(.65,1.),uv*vec2f(.65,1.))*.045;

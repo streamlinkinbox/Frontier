@@ -1,4 +1,10 @@
 import { glFragment, glVertex } from "./shaders";
+import { GLSatmapTextures } from "./satmaps/textures";
+import {
+  buildTerrainMaps,
+  extractHeightSurface,
+  type TerrainMaps,
+} from "./satmaps/terrainMaps";
 import {
   generateField,
   pickField,
@@ -35,6 +41,11 @@ export class WebGLBackend implements Backend {
   private uniform!: WebGLBuffer;
   private texture!: WebGLTexture;
   private originalTexture!: WebGLTexture;
+  private satTextures!: GLSatmapTextures;
+  private terrainMaps!: TerrainMaps;
+  private originalTerrainMaps!: TerrainMaps;
+  private terrainMapsDirty = true;
+  private terrainMapsAt = 0;
   private framebuffer: WebGLFramebuffer | null = null;
   private colorTarget: WebGLTexture | null = null;
   private targetWidth = 0;
@@ -140,6 +151,8 @@ export class WebGLBackend implements Backend {
       );
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "field"), 0);
+    for (const [i, name] of ["satPalette", "satDetail", "satTerrain"].entries())
+      gl.uniform1i(gl.getUniformLocation(this.program, name), i + 1);
     this.uniform = gl.createBuffer()!;
     gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
     gl.bufferData(gl.UNIFORM_BUFFER, UNIFORM_BYTES, gl.DYNAMIC_DRAW);
@@ -155,6 +168,11 @@ export class WebGLBackend implements Backend {
     this.flux = new Float32Array(this.data.length);
     this.texture = this.createTexture(this.data);
     this.originalTexture = this.createTexture(this.original);
+    this.satTextures = new GLSatmapTextures(gl, this.size.x, this.size.z);
+    this.satTextures.update(settings);
+    await this.refreshTerrainMaps();
+    this.originalTerrainMaps = this.terrainMaps;
+    this.satTextures.writeTerrain(this.originalTerrainMaps, true);
     diagnostics.log("WebGL2", "Initial 3D volume uploaded", {
       size: this.size,
       seed: settings.seed,
@@ -171,6 +189,13 @@ export class WebGLBackend implements Backend {
       frameFencePending: !!this.fence,
       renderTargetSize: [this.targetWidth, this.targetHeight],
       volumeSize: this.size,
+      satelliteMaps: {
+        size: [this.size.x, this.size.z],
+        dirty: this.terrainMapsDirty,
+        range: this.terrainMaps?.range,
+        paletteSamples: 256,
+        detailSize: 64,
+      },
       lastPixelProbe: this.lastProbe,
       lastOffscreenProbe: this.lastOffscreenProbe,
     };
@@ -196,6 +221,9 @@ export class WebGLBackend implements Backend {
       gl.FLOAT,
       this.original,
     );
+    await this.refreshTerrainMaps();
+    this.originalTerrainMaps = this.terrainMaps;
+    this.satTextures.writeTerrain(this.originalTerrainMaps, true);
   }
   ready() {
     if (this.destroyed || this.gl.isContextLost()) return false;
@@ -241,6 +269,7 @@ export class WebGLBackend implements Backend {
     return t;
   }
   private upload() {
+    this.terrainMapsDirty = true;
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_3D, this.texture);
     gl.texSubImage3D(
@@ -256,6 +285,18 @@ export class WebGLBackend implements Backend {
       gl.FLOAT,
       this.data,
     );
+  }
+  private rebuildTerrainMaps() {
+    if (!this.terrainMapsDirty) return;
+    this.terrainMaps = buildTerrainMaps(
+      extractHeightSurface(this.data, this.size),
+    );
+    this.satTextures.writeTerrain(this.terrainMaps);
+    this.terrainMapsDirty = false;
+    this.terrainMapsAt = performance.now();
+  }
+  async refreshTerrainMaps() {
+    this.rebuildTerrainMaps();
   }
   private bindRenderTarget(width: number, height: number) {
     const gl = this.gl;
@@ -303,16 +344,28 @@ export class WebGLBackend implements Backend {
     const gl = this.gl;
     if (this.destroyed || gl.isContextLost())
       throw new Error("WebGL context is unavailable.");
+    if (this.terrainMapsDirty && performance.now() - this.terrainMapsAt > 250)
+      this.rebuildTerrainMaps();
+    this.satTextures.update(frame.settings);
     this.bindRenderTarget(frame.width, frame.height);
     gl.viewport(0, 0, frame.width, frame.height);
     gl.useProgram(this.program);
     gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, packUniforms(frame, this.size));
+    gl.bufferSubData(
+      gl.UNIFORM_BUFFER,
+      0,
+      packUniforms(
+        frame,
+        this.size,
+        (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
+      ),
+    );
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(
       gl.TEXTURE_3D,
       frame.compare ? this.originalTexture : this.texture,
     );
+    this.satTextures.bind(frame.compare);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (present) {
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
@@ -390,6 +443,7 @@ export class WebGLBackend implements Backend {
     return summary.nonUniformOpaque;
   }
   async capture(frame: FrameState): Promise<Blob> {
+    await this.refreshTerrainMaps();
     this.drawFrame(frame, false);
     const gl = this.gl;
     const pixels = new Uint8Array(frame.width * frame.height * 4);
@@ -480,6 +534,9 @@ export class WebGLBackend implements Backend {
     this.brushCycle = 0;
     this.data.set(this.original);
     this.upload();
+    this.terrainMaps = this.originalTerrainMaps;
+    this.terrainMapsDirty = false;
+    this.satTextures.writeTerrain(this.terrainMaps);
   }
   dispose() {
     diagnostics.log("WebGL2", "Backend disposed");
@@ -493,6 +550,7 @@ export class WebGLBackend implements Backend {
     gl.deleteFramebuffer(this.framebuffer);
     gl.deleteTexture(this.texture);
     gl.deleteTexture(this.originalTexture);
+    this.satTextures?.dispose();
     gl.deleteBuffer(this.uniform);
     gl.deleteProgram(this.program);
     gl.getExtension("WEBGL_lose_context")?.loseContext();

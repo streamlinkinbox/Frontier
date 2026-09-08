@@ -1,9 +1,18 @@
 import { channelArcTable, followsChannel } from "./flowRoute";
 import { MATERIAL_IDS, colorToLinear } from "./materials";
-import { TOOL_IDS, type FrameState, type VolumeSize } from "./types";
-export const UNIFORM_FLOATS = 144;
+import {
+  SATMAP_VIEWS,
+  TOOL_IDS,
+  type FrameState,
+  type VolumeSize,
+} from "./types";
+export const UNIFORM_FLOATS = 164;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
-export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
+export function packUniforms(
+  f: FrameState,
+  size: VolumeSize,
+  terrainRange: readonly [number, number] = [-10, 38],
+): Float32Array {
   const s = f.settings;
   const a = new Float32Array(UNIFORM_FLOATS);
   a.set([...f.eye, f.time], 0);
@@ -86,5 +95,26 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
     [s.rockLayerSpacing, s.rockLayerRelief * 0.01, s.rockLayerWarp, 0],
     140,
   );
+  a.set(
+    [
+      s.textureMode === "satmap" ? 1 : 0,
+      SATMAP_VIEWS.indexOf(s.satmapPreview),
+      s.satmapLow,
+      s.satmapHigh,
+    ],
+    144,
+  );
+  a.set(
+    [
+      s.satmapBias,
+      s.satmapContrast,
+      s.satmapSaturation,
+      s.satmapReverse ? 1 : 0,
+    ],
+    148,
+  );
+  a.set([s.satmapHeight, s.satmapSlope, s.satmapCurvature, s.satmapAO], 152);
+  a.set([s.satmapFlow, s.satmapSediment, s.satmapDetail, s.satmapScale], 156);
+  a.set([s.satmapRelief * 0.001, ...terrainRange, 0], 160);
   return a;
 }

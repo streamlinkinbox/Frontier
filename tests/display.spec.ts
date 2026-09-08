@@ -47,10 +47,29 @@ test("Windows safe display renders real GPU erosion at DPR 0.5 without ever requ
   });
   expect(state.bitmapFrames).toBeGreaterThan(0);
   await expect(page.locator(".gpu-status")).toContainText("SAFE DISPLAY");
+  // Software SwiftShader + Canvas2D safe presentation can continuously dirty
+  // the compositor during a screenshot. Settle one real displayed GPU frame,
+  // then freeze only while taking the browser screenshot (not an owned-image
+  // substitute). Resume before testing erosion/undo and live diagnostics.
+  const displayedScreenshot = async (path?: string) => {
+    await page.evaluate(async () => {
+      const e = window.__frontier!;
+      e.busy = true;
+      await e.backend.sync();
+      await e.backend.refreshTerrainMaps();
+      e.backend.render({ ...(e as any).makeFrame(), brush: null });
+      await e.backend.sync();
+    });
+    try {
+      return await page.locator(".viewport-canvas").screenshot({ path });
+    } finally {
+      await page.evaluate(() => {
+        window.__frontier!.busy = false;
+      });
+    }
+  };
   expectSandstone(
-    await page
-      .locator(".viewport-canvas")
-      .screenshot({ path: testInfo.outputPath("windows-safe-display.png") }),
+    await displayedScreenshot(testInfo.outputPath("windows-safe-display.png")),
   );
   await page.evaluate(async () => {
     (window as any).beforeErosion =
@@ -76,7 +95,7 @@ test("Windows safe display renders real GPU erosion at DPR 0.5 without ever requ
       return data.every((v, i) => v === (window as any).beforeErosion[i]);
     }),
   ).toBe(true);
-  expectSandstone(await page.locator(".viewport-canvas").screenshot());
+  expectSandstone(await displayedScreenshot());
   await page.getByRole("button", { name: "GPU logs", exact: true }).click();
   await page
     .getByRole("button", { name: "Check viewport", exact: true })

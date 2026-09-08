@@ -44,6 +44,11 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       "presets/canyon.webp",
       "presets/arches.webp",
       "presets/badlands.webp",
+      "satmaps/namib.webp",
+      "satmaps/canyonlands.webp",
+      "satmaps/iceland.webp",
+      "satmaps/white-sands.webp",
+      "research/satellite-texturing.md",
     ])
       expect((await request.get(new URL(path, page.url()).href)).status()).toBe(
         200,
@@ -72,6 +77,33 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       const bytes = await readFile((await mesh.path())!);
       expect(bytes.readUInt32LE(0)).toBe(0x46546c67);
     }
+    await page.getByRole("tab", { name: "Materials", exact: true }).click();
+    await expect(page.locator(".satmap-card")).toHaveCount(4);
+    await expect(page.locator(".satmap-card.selected")).toContainText(
+      "Namib dunes",
+    );
+    await expect
+      .poll(() =>
+        page
+          .locator(".satmap-thumbnail img")
+          .evaluateAll(
+            (images) =>
+              images.length === 4 &&
+              images.every(
+                (image) =>
+                  (image as HTMLImageElement).complete &&
+                  (image as HTMLImageElement).naturalWidth > 0,
+              ),
+          ),
+      )
+      .toBe(true);
+    await page
+      .locator(".satmap-library")
+      .getByRole("button", { name: /Volcanic coast/ })
+      .click();
+    await expect(page.locator(".material-context")).toContainText(
+      "Volcanic coast",
+    );
     await page.getByRole("button", { name: "GPU logs", exact: true }).click();
     await expect(
       page.getByRole("dialog", { name: "GPU diagnostics" }),

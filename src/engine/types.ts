@@ -25,7 +25,44 @@ export interface BrushStamp {
 }
 export type SurfaceMaterial = "sandstone" | "limestone" | "granite" | "basalt";
 export type ViewMode = "lit" | "clay" | "flow";
+export type SatmapId =
+  "namib" | "canyonlands" | "iceland" | "white-sands" | "custom";
+export const SATMAP_VIEWS = [
+  "beauty",
+  "albedo",
+  "texture",
+  "height",
+  "slope",
+  "curvature",
+  "ao",
+  "normals",
+  "flow",
+  "sediment",
+  "detail",
+] as const;
+export type SatmapView = (typeof SATMAP_VIEWS)[number];
 export interface Settings {
+  textureMode: "satmap" | "legacy";
+  satmap: SatmapId;
+  satmapPalette: string;
+  satmapDetailMap: string;
+  satmapName: string;
+  satmapHeight: number;
+  satmapSlope: number;
+  satmapCurvature: number;
+  satmapAO: number;
+  satmapFlow: number;
+  satmapSediment: number;
+  satmapDetail: number;
+  satmapScale: number;
+  satmapRelief: number;
+  satmapBias: number;
+  satmapContrast: number;
+  satmapLow: number;
+  satmapHigh: number;
+  satmapReverse: boolean;
+  satmapSaturation: number;
+  satmapPreview: SatmapView;
   seed: number;
   preset: Preset;
   rainfall: number;
@@ -86,6 +123,27 @@ export interface Settings {
   terrainVisible: boolean;
 }
 export const DEFAULT_SETTINGS: Settings = {
+  textureMode: "satmap",
+  satmap: "namib",
+  satmapPalette: "",
+  satmapDetailMap: "",
+  satmapName: "",
+  satmapHeight: 0.35,
+  satmapSlope: 0.6,
+  satmapCurvature: 0.65,
+  satmapAO: 0.3,
+  satmapFlow: 0.55,
+  satmapSediment: 0.7,
+  satmapDetail: 0.8,
+  satmapScale: 6,
+  satmapRelief: 18,
+  satmapBias: 0,
+  satmapContrast: 1.7,
+  satmapLow: 0.03,
+  satmapHigh: 0.98,
+  satmapReverse: false,
+  satmapSaturation: 0.82,
+  satmapPreview: "beauty",
   seed: 47021,
   preset: "canyon",
   rainfall: 0.45,
@@ -218,6 +276,7 @@ export interface Backend {
     stamp?: BrushStamp,
   ): void;
   pick(frame: FrameState, x: number, y: number): Promise<BrushHit | null>;
+  refreshTerrainMaps(): Promise<void>;
   readVolume(): Promise<Float32Array>;
   writeVolume(data: Float32Array): void;
   reset(): void;

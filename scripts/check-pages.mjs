@@ -52,8 +52,11 @@ export async function checkPages(directory) {
   }
   for (const preset of ["canyon", "arches", "badlands"])
     await stat(resolve(root, "presets", `${preset}.webp`));
+  for (const satmap of ["namib", "canyonlands", "iceland", "white-sands"])
+    await stat(resolve(root, "satmaps", `${satmap}.webp`));
+  await stat(resolve(root, "research", "satellite-texturing.md"));
   console.log(
-    `Pages build verified: ${checked} local asset references, worker and three presets.`,
+    `Pages build verified: ${checked} local asset references, worker, three terrains and four satellite sources.`,
   );
 }
 

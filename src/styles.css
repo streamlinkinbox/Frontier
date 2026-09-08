@@ -2830,3 +2830,498 @@ kbd {
   color: var(--muted);
   margin: 10px 0 2px;
 }
+
+/* Satellite texturing — actual source imagery, not synthetic preset swatches. */
+.satmap-intro {
+  margin-bottom: 15px;
+}
+.satmap-intro .eyebrow {
+  color: #b9a391;
+  font-size: 8px;
+  letter-spacing: 0.07em;
+}
+.texture-mode {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 17px;
+}
+.texture-mode > button {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 5px;
+  font-size: 11px;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.texture-mode > button[aria-pressed="true"] {
+  color: #f1e4d6;
+  background: #3b3026;
+  box-shadow: inset 0 0 0 1px #c99d7040;
+}
+.texture-mode button span {
+  font: 6px var(--mono);
+  color: #c6aa8c;
+  letter-spacing: 0.04em;
+}
+.satmap-editor {
+  --sat-accent: #d1ad83;
+}
+.satmap-pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--faint);
+  margin: 2px 0 23px;
+  font: 8px var(--mono);
+}
+.satmap-pipeline span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  white-space: nowrap;
+}
+.satmap-pipeline span:nth-of-type(2) {
+  color: var(--sat-accent);
+}
+.satmap-count {
+  color: var(--faint);
+  font: 8px var(--mono);
+  letter-spacing: 0.06em;
+}
+.satmap-library {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 9px;
+  margin: 14px 0 19px;
+}
+.satmap-card {
+  display: block;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 4px 9px;
+  border: 1px solid #ffffff09;
+  border-radius: 8px;
+  background: #17171a;
+}
+.satmap-card:hover {
+  border-color: #756351;
+  background: #211e1b;
+}
+.satmap-card.selected {
+  border-color: #ae8b65;
+  background: #2a241e;
+  box-shadow: 0 0 0 1px #a3814320;
+}
+.satmap-thumbnail {
+  position: relative;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.satmap-thumbnail::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #0008, transparent 65%);
+  pointer-events: none;
+}
+.satmap-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.8;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.satmap-card:hover img,
+.satmap-card.selected img {
+  opacity: 1;
+  transform: scale(1.035);
+}
+.satmap-category,
+.satmap-card-index {
+  position: absolute;
+  z-index: 1;
+  bottom: 6px;
+  font: 7px var(--mono);
+  color: #fff;
+}
+.satmap-category {
+  left: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.satmap-card-index {
+  right: 7px;
+  opacity: 0.65;
+}
+.satmap-thumbnail > i {
+  position: absolute;
+  z-index: 2;
+  top: 5px;
+  right: 5px;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  background: #f1ddc1;
+  color: #2e2418;
+  border-radius: 50%;
+  box-shadow: 0 1px 6px #0006;
+}
+.satmap-card > strong {
+  display: block;
+  padding: 8px 4px 3px;
+  font-size: 10px;
+  font-weight: 530;
+  color: #dfdedb;
+}
+.satmap-card > small {
+  display: block;
+  padding: 0 4px;
+  font-size: 8px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.satmap-card.selected > strong {
+  color: #f0ddc4;
+}
+.satmap-custom {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 8px;
+  margin: -6px 0 15px;
+  border: 1px solid var(--border);
+  background: var(--field);
+  border-radius: 6px;
+}
+.satmap-custom[aria-pressed="true"] {
+  border-color: #ae8b65;
+}
+.satmap-custom > span {
+  width: 34px;
+  height: 21px;
+  border-radius: 3px;
+  flex: none;
+}
+.satmap-custom > strong {
+  font-size: 9px;
+  font-weight: 450;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.satmap-custom small {
+  color: var(--faint);
+  font: 7px var(--mono);
+}
+.satmap-ramp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+.satmap-ramp-header strong {
+  color: #c8c1b7;
+  font-size: 9px;
+  font-weight: 450;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.satmap-ramp-header span {
+  flex: none;
+  color: var(--faint);
+  font: 7px var(--mono);
+}
+.satmap-ramp {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid #ffffff12;
+}
+.satmap-clip {
+  position: absolute;
+  width: 1px;
+  top: -2px;
+  bottom: -2px;
+  background: #ffffffb3;
+  box-shadow: 0 0 3px #000;
+}
+.satmap-clip::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  bottom: -3px;
+  border: 3px solid transparent;
+  border-bottom-color: #e9e1d8;
+}
+.satmap-ramp-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font: 7px var(--mono);
+  color: var(--faint);
+}
+.satmap-source-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 12px;
+  gap: 6px;
+  color: var(--faint);
+  font-size: 8px;
+}
+.satmap-source-line a {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.satmap-source-line a:hover {
+  color: var(--sat-accent);
+}
+.satmap-source-line button {
+  padding: 4px;
+}
+.satmap-import.process-details {
+  margin-top: 13px;
+  border: 1px dashed #ffffff1b;
+  border-radius: 7px;
+  padding: 0 11px;
+}
+.satmap-editor .process-details summary {
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+}
+.satmap-import summary {
+  margin: 0;
+  padding: 11px 0;
+  color: var(--muted);
+}
+.satmap-import-modes {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 10px;
+}
+.satmap-import-modes button {
+  flex: 1;
+  font-size: 9px;
+  padding: 7px 4px;
+  background: var(--field);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+}
+.satmap-import-modes button[aria-pressed="true"] {
+  border-color: #9c7b555e;
+  color: #ddc6a9;
+  background: #29241e;
+}
+.satmap-import p {
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 8px 0 11px;
+}
+.satmap-import .satmap-local-note {
+  color: var(--faint);
+  font-size: 8px;
+}
+.satmap-file {
+  display: none;
+}
+.satmap-import-button {
+  padding: 10px;
+  width: 100%;
+  font-size: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: #242429;
+}
+.satmap-import-button small {
+  font: 7px var(--mono);
+  color: var(--muted);
+  margin-left: auto;
+}
+.satmap-import-message {
+  border-left: 2px solid var(--ok);
+  padding: 7px 10px;
+  background: #8dccaa08;
+  font-size: 10px;
+  color: #a9c6b8;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.satmap-import-message.error {
+  border-color: var(--danger);
+  background: #ef929208;
+  color: var(--danger);
+}
+.satmap-section {
+  padding-top: 19px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.satmap-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 7px var(--mono);
+  color: #90af9a;
+  letter-spacing: 0.035em;
+}
+.satmap-live i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #8eb398;
+}
+.satmap-previews {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 13px;
+}
+.satmap-previews button {
+  padding: 8px 2px;
+  min-width: 0;
+  font-size: 9px;
+  border: 1px solid #ffffff0d;
+  background: var(--field);
+  color: var(--muted);
+  border-radius: 4px;
+}
+.satmap-previews button:nth-child(-n + 3) {
+  border-bottom-color: #5e514240;
+}
+.satmap-previews button:hover {
+  background: #272727;
+  border-color: #6b5b483f;
+}
+.satmap-previews button[aria-pressed="true"] {
+  background: #352e25;
+  border-color: #aa8b6161;
+  color: #edcfac;
+}
+.satmap-view-hint {
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--faint);
+  margin: 10px 0 0;
+}
+.satmap-mixer.process-details {
+  padding-top: 0;
+}
+.satmap-mixer summary {
+  padding-top: 19px;
+}
+.satmap-mix-presets {
+  display: flex;
+  gap: 4px;
+  margin: 7px 0 17px;
+}
+.satmap-mix-presets button {
+  flex: 1;
+  background: #1c1c20;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 3px;
+  color: var(--muted);
+  font-size: 8px;
+}
+.satmap-mix-presets button:hover {
+  background: #3b3026;
+  color: #ead5bb;
+}
+.satmap-editor .slider-control {
+  margin-top: 16px;
+}
+.satmap-editor .slider-label label {
+  font-size: 10px;
+}
+.satmap-clip-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.satmap-editor .simple-toggle-row {
+  font-size: 10px;
+  margin-top: 16px;
+}
+.satmap-editor > .material-research-link {
+  margin-top: 20px;
+  font-size: 9px;
+}
+.satmap-preview-legend {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  bottom: 69px;
+  max-width: min(310px, calc(100% - 36px));
+  background: #111418e8;
+  border: 1px solid #ffffff17;
+  border-radius: 9px;
+  padding: 12px 14px;
+  box-shadow: 0 6px 30px #0003;
+  pointer-events: none;
+}
+.satmap-preview-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 8px var(--mono);
+  color: #d4bea3;
+  letter-spacing: 0.04em;
+}
+.satmap-preview-legend > span i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #8d9f98;
+}
+.satmap-preview-legend p {
+  font-size: 9px;
+  color: #989e9f;
+  line-height: 1.65;
+  margin: 8px 0;
+}
+.satmap-preview-legend button {
+  pointer-events: auto;
+  font-size: 9px;
+  color: #dfddd7;
+}
+@media (max-width: 680px) {
+  .satmap-thumbnail {
+    height: 82px;
+  }
+  .satmap-preview-legend {
+    left: 12px;
+    bottom: 64px;
+    max-width: calc(100% - 24px);
+    padding: 8px 11px;
+  }
+  .satmap-preview-legend p {
+    display: none;
+  }
+  .satmap-preview-legend button {
+    margin-top: 6px;
+  }
+}

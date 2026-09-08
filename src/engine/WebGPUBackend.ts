@@ -1,4 +1,11 @@
 import { computeShader, presentShader, renderShader } from "./shaders";
+import heightShader from "./shaders/terrain-height.wgsl?raw";
+import { GPUSatmapTextures } from "./satmaps/textures";
+import {
+  buildTerrainMaps,
+  type TerrainMaps,
+  type HeightSurface,
+} from "./satmaps/terrainMaps";
 import { encodeFramePNG } from "./presentation";
 import { BitmapPresenter, type GPUDisplayMode } from "./display";
 import { packUniforms, UNIFORM_BYTES } from "./uniforms";
@@ -32,6 +39,15 @@ export class WebGPUBackend implements Backend {
   private sampler!: GPUSampler;
   private fields!: GPUTexture[];
   private original!: GPUTexture;
+  private satTextures!: GPUSatmapTextures;
+  private heightPipeline!: GPUComputePipeline;
+  private heightTexture!: GPUTexture;
+  private terrainMaps!: TerrainMaps;
+  private originalTerrainMaps!: TerrainMaps;
+  private terrainRevision = 0;
+  private bakedTerrainRevision = -1;
+  private terrainMapTask: Promise<void> | null = null;
+  private terrainMapsAt = 0;
   private flux!: GPUTexture;
   private current = 0;
   private pipelines: Record<string, GPUComputePipeline> = {};
@@ -142,6 +158,7 @@ export class WebGPUBackend implements Backend {
     this.sampler = this.device.createSampler({
       magFilter: "linear",
       minFilter: "linear",
+      mipmapFilter: "linear",
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
       addressModeW: "clamp-to-edge",
@@ -163,6 +180,14 @@ export class WebGPUBackend implements Backend {
       make("SDF + water + sediment + erosion B"),
     ];
     this.original = make("Unmodified procedural volume");
+    this.satTextures = new GPUSatmapTextures(device, this.size.x, this.size.z);
+    this.satTextures.update(settings);
+    this.heightTexture = device.createTexture({
+      label: "Drainage upper envelope",
+      size: [this.size.x, this.size.z],
+      format: "rgba32float",
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
+    });
     this.flux = make("Conservative face flux");
     this.pickResult = this.device.createBuffer({
       size: 32,
@@ -180,7 +205,11 @@ export class WebGPUBackend implements Backend {
       label: "SDF raymarch renderer",
       code: renderShader,
     });
-    for (const module of [compute, render]) {
+    const heightModule = device.createShaderModule({
+      label: "SatMap upper-envelope extraction",
+      code: heightShader,
+    });
+    for (const module of [compute, render, heightModule]) {
       const info = await module.getCompilationInfo();
       this.assertActive();
       diagnostics.log(
@@ -223,6 +252,11 @@ export class WebGPUBackend implements Backend {
           });
       }),
     );
+    this.heightPipeline = await device.createComputePipelineAsync({
+      label: "Terrain drainage readback",
+      layout: "auto",
+      compute: { module: heightModule, entryPoint: "extractHeight" },
+    });
     this.assertActive();
     diagnostics.log(
       "WebGPU",
@@ -301,6 +335,10 @@ export class WebGPUBackend implements Backend {
     await this.device.queue.onSubmittedWorkDone();
     if (this.destroyed)
       throw new Error("The GPU canvas could not be initialized.");
+    await this.refreshTerrainMaps();
+    this.assertActive();
+    this.originalTerrainMaps = this.terrainMaps;
+    this.satTextures.writeTerrain(this.originalTerrainMaps, true);
     this.initialized = true;
     diagnostics.log("WebGPU", "Initial 3D volume submitted and completed", {
       size: this.size,
@@ -334,6 +372,15 @@ export class WebGPUBackend implements Backend {
         ? [this.renderTarget.width, this.renderTarget.height]
         : null,
       pipelines: Object.keys(this.pipelines),
+      satelliteMaps: {
+        size: [this.size.x, this.size.z],
+        revision: this.terrainRevision,
+        bakedRevision: this.bakedTerrainRevision,
+        pending: !!this.terrainMapTask,
+        range: this.terrainMaps?.range,
+        paletteSamples: 256,
+        detailSize: 64,
+      },
       lastPixelProbe: this.lastProbe,
       lastOffscreenProbe: this.lastOffscreenProbe,
     };
@@ -356,6 +403,10 @@ export class WebGPUBackend implements Backend {
     );
     this.device.queue.submit([enc.finish()]);
     await this.sync();
+    this.terrainRevision++;
+    await this.refreshTerrainMaps();
+    this.originalTerrainMaps = this.terrainMaps;
+    this.satTextures.writeTerrain(this.originalTerrainMaps, true);
   }
   ready() {
     return this.pendingFrames === 0 && !this.destroyed;
@@ -454,6 +505,15 @@ export class WebGPUBackend implements Backend {
       entries.push({ binding: 5, resource: this.flux.createView() });
     if (kind === "pickSurface")
       entries.push({ binding: 6, resource: { buffer: this.pickResult } });
+    if (kind === "render")
+      entries.push(
+        { binding: 7, resource: this.satTextures.palette.createView() },
+        { binding: 8, resource: this.satTextures.detail.createView() },
+        {
+          binding: 9,
+          resource: this.satTextures.terrain[index === 2 ? 1 : 0].createView(),
+        },
+      );
     const pipeline =
       kind === "render" ? this.renderPipeline : this.pipelines[kind];
     const group = this.device.createBindGroup({
@@ -521,10 +581,30 @@ export class WebGPUBackend implements Backend {
   ) {
     this.assertActive();
     this.lastFrame = frame;
+    this.satTextures.update(frame.settings);
+    if (
+      !this.terrainMapTask &&
+      this.terrainRevision !== this.bakedTerrainRevision &&
+      performance.now() - this.terrainMapsAt > 500
+    ) {
+      void this.refreshTerrainMaps().catch((error) => {
+        if (!this.destroyed)
+          diagnostics.log(
+            "SatMaps",
+            "Drainage refresh failed; retaining last map",
+            error,
+            "warn",
+          );
+      });
+    }
     this.device.queue.writeBuffer(
       this.uniform,
       0,
-      packUniforms(frame, this.size),
+      packUniforms(
+        frame,
+        this.size,
+        (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
+      ),
     );
     const enc = this.device.createCommandEncoder();
     const target = this.getRenderTarget(frame.width, frame.height);
@@ -719,6 +799,7 @@ export class WebGPUBackend implements Backend {
     }
   }
   async capture(frame: FrameState): Promise<Blob> {
+    await this.refreshTerrainMaps();
     this.assertActive();
     const rowBytes = Math.ceil((frame.width * 4) / 256) * 256;
     const buffer = this.device.createBuffer({
@@ -768,6 +849,7 @@ export class WebGPUBackend implements Backend {
         this.run("redistance", enc);
     }
     this.device.queue.submit([enc.finish()]);
+    this.terrainRevision++;
   }
   sculpt(center: Vec3, tool: Tool, settings: Settings, stamp?: BrushStamp) {
     const a = packUniforms(
@@ -780,6 +862,7 @@ export class WebGPUBackend implements Backend {
     this.run("sculpt", enc);
     if (++this.brushCycle % 4 === 0) this.run("redistance", enc);
     this.device.queue.submit([enc.finish()]);
+    this.terrainRevision++;
   }
   async pick(
     frame: FrameState,
@@ -800,6 +883,75 @@ export class WebGPUBackend implements Backend {
     return v[3] > 0.5
       ? { position: [v[0], v[1], v[2]], normal: [v[4], v[5], v[6]] }
       : null;
+  }
+  /** Coalesced asynchronous 2D readback. Capture/export can await this, while
+   * normal rendering keeps the previous map until a new one is complete. */
+  async refreshTerrainMaps(): Promise<void> {
+    while (this.terrainMapTask) await this.terrainMapTask;
+    this.assertActive();
+    if (this.bakedTerrainRevision === this.terrainRevision) return;
+    const revision = this.terrainRevision;
+    this.terrainMapsAt = performance.now();
+    const task = this.readHeightSurface().then((surface) => {
+      if (this.destroyed || revision < this.bakedTerrainRevision) return;
+      this.terrainMaps = buildTerrainMaps(surface);
+      this.satTextures.writeTerrain(this.terrainMaps);
+      this.bakedTerrainRevision = revision;
+    });
+    this.terrainMapTask = task;
+    try {
+      await task;
+    } finally {
+      if (this.terrainMapTask === task) this.terrainMapTask = null;
+    }
+  }
+  private async readHeightSurface(): Promise<HeightSurface> {
+    const device = this.device,
+      width = this.size.x,
+      height = this.size.z;
+    const rowBytes = Math.ceil((width * 16) / 256) * 256;
+    const buffer = device.createBuffer({
+      label: "Small drainage readback",
+      size: rowBytes * height,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+    try {
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginComputePass();
+      pass.setPipeline(this.heightPipeline);
+      pass.setBindGroup(
+        0,
+        device.createBindGroup({
+          layout: this.heightPipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: this.fields[this.current].createView() },
+            { binding: 1, resource: this.heightTexture.createView() },
+          ],
+        }),
+      );
+      pass.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(height / 8));
+      pass.end();
+      enc.copyTextureToBuffer(
+        { texture: this.heightTexture },
+        { buffer, bytesPerRow: rowBytes },
+        [width, height],
+      );
+      device.queue.submit([enc.finish()]);
+      await buffer.mapAsync(GPUMapMode.READ);
+      const pixels = new Float32Array(buffer.getMappedRange());
+      const heights = new Float32Array(width * height),
+        valid = new Uint8Array(width * height);
+      for (let y = 0; y < height; y++)
+        for (let x = 0; x < width; x++) {
+          heights[y * width + x] = pixels[(y * rowBytes) / 4 + x * 4];
+          valid[y * width + x] =
+            pixels[(y * rowBytes) / 4 + x * 4 + 1] > 0.5 ? 1 : 0;
+        }
+      return { width, height, heights, valid };
+    } finally {
+      if (buffer.mapState === "mapped") buffer.unmap();
+      buffer.destroy();
+    }
   }
   async readVolume(): Promise<Float32Array> {
     const { x, y, z } = this.size;
@@ -833,6 +985,7 @@ export class WebGPUBackend implements Backend {
       throw new Error("Volume dimensions do not match.");
     const half = new Uint16Array(data.length);
     for (let i = 0; i < data.length; i++) half[i] = floatToHalf(data[i]);
+    this.terrainRevision++;
     this.device.queue.writeTexture(
       { texture: this.fields[this.current] },
       half,
@@ -850,6 +1003,10 @@ export class WebGPUBackend implements Backend {
       [this.size.x, this.size.y, this.size.z],
     );
     this.device.queue.submit([enc.finish()]);
+    this.terrainRevision++;
+    this.bakedTerrainRevision = this.terrainRevision;
+    this.terrainMaps = this.originalTerrainMaps;
+    this.satTextures.writeTerrain(this.terrainMaps);
   }
   dispose() {
     diagnostics.log("WebGPU", "Backend disposed");
@@ -859,6 +1016,8 @@ export class WebGPUBackend implements Backend {
     this.renderTarget?.destroy();
     this.fields?.forEach((t) => t.destroy());
     this.original?.destroy();
+    this.satTextures?.dispose();
+    this.heightTexture?.destroy();
     this.flux?.destroy();
     this.uniform?.destroy();
     this.pickResult?.destroy();

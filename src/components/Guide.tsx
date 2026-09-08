@@ -108,12 +108,13 @@ export function Guide({ onClose }: { onClose: () => void }) {
         </article>
         <article>
           <Download />
-          <h4>04 / Take it into your engine</h4>
+          <h4>04 / Texture it. Take it with you.</h4>
           <p>
-            Export a GLB mesh with vertex-colored sandstone, or keep the
-            editable volume in a .frontier project. Micro-grain is procedural
-            shader detail, not extra mesh triangles. Water is a preview shader
-            and is not baked into the GLB.
+            Materials → SatMaps colors your terrain with satellite-derived
+            palettes, driven by curvature, slope, AO, flow and deposition.
+            Inspect each mask or import your own image. GLB exports sampled
+            vertex colors; .frontier saves the editable volume and custom
+            palette. Image bump and water are not exported geometry.
           </p>
         </article>
       </div>

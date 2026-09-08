@@ -1,9 +1,10 @@
 import { Layers3, Gem, RotateCcw, Droplets } from "lucide-react";
 import { Slider, SectionHeading } from "./Controls";
 import { MATERIAL_PRESETS, dielectricF0 } from "../engine/materials";
+import { SatMapEditor } from "./SatMapEditor";
 import type { Settings } from "../engine/types";
 
-export function MaterialEditor({
+function LegacyMaterialEditor({
   settings,
   onChange,
 }: {
@@ -316,6 +317,49 @@ export function MaterialEditor({
           regenerate the volume or alter erosion settings.
         </p>
       </div>
+    </>
+  );
+}
+
+export function MaterialEditor({
+  settings,
+  onChange,
+}: {
+  settings: Settings;
+  onChange: (patch: Partial<Settings>) => void;
+}) {
+  return (
+    <>
+      <div className="inspector-intro satmap-intro">
+        <span className="eyebrow">SURFACE LAB · TERRAIN-DRIVEN COLOR</span>
+        <h2>Terrain texturing</h2>
+        <p>Real-world palettes. Shaped by your terrain.</p>
+      </div>
+      <div
+        className="texture-mode"
+        role="group"
+        aria-label="Terrain texturing method"
+      >
+        <button
+          aria-pressed={settings.textureMode === "satmap"}
+          onClick={() => onChange({ textureMode: "satmap" })}
+        >
+          SatMaps <span>IMAGE-BASED</span>
+        </button>
+        <button
+          aria-pressed={settings.textureMode === "legacy"}
+          onClick={() =>
+            onChange({ textureMode: "legacy", satmapPreview: "beauty" })
+          }
+        >
+          Legacy rock
+        </button>
+      </div>
+      {settings.textureMode === "satmap" ? (
+        <SatMapEditor settings={settings} onChange={onChange} />
+      ) : (
+        <LegacyMaterialEditor settings={settings} onChange={onChange} />
+      )}
     </>
   );
 }

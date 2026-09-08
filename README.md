@@ -2,6 +2,24 @@
 
 A working, local-first terrain workbench for a **bounded, volumetric SDF**, built with TypeScript, React, and native WebGPU. The terrain is actual 3D geometry, not a heightmap, a photograph, or a textured plane.
 
+## Satellite terrain texturing · v0.8.0
+
+Continues the linked `arena/01a07d13-frontier` application at `e15424a` (downstream flow, camera modes and layered rock relief). The existing WebGL workbench is retained; the new texturing path works in **both WebGL2 and WebGPU**.
+
+Open **Materials → SatMaps**, or use `?renderer=webgl&panel=materials`.
+
+- **Image-derived color, not the old procedural pigment shader.** Four local USGS/NASA satellite palettes: Namib dunes, Canyonlands, Iceland's volcanic coast and White Sands. This is a Gaea-style CLUT workflow; Gaea's proprietary assets/implementation are not included.
+- **Terrain mask mixer:** normalized elevation, slope from actual normals, signed SDF curvature, geometric AO, terrain-derived D8 catchment, live runoff and net deposition. Source-image luminance supplies optional mip-filtered triplanar detail, including on cliffs/overhangs.
+- **Eleven views:** lit surface, unlit albedo, composite texture mask, height, slope, curvature, occlusion, world-space normals, flow, deposition and photo detail. Water/lighting cannot obscure diagnostic maps.
+- **Color controls:** clip low/high, bias, contrast, saturation and reverse. Choose Balanced / Exposed rock / Alluvial mask recipes without regenerating terrain.
+- **Bring your own imagery:** local PNG/JPEG/WebP extraction, or horizontal/vertical color-strip import that preserves its order. Custom pixels and controls travel inside saved `.frontier` files. Export the source CLUT as a 256 × 1 PNG.
+- **GLB export follows the satellite palette**, using the same data inputs to produce unlit linear vertex colors. This is a vertex-resolution approximation, not a UV texture bake. Micro-bump and water remain viewport-only.
+- Old projects retain their appearance through **Legacy rock**. Changing a palette does not edit voxels, trigger erosion or replace sculpting history.
+
+See **[satellite texturing: workflow, sources and limitations](public/research/satellite-texturing.md)**. The bundled imagery includes enhanced/false-color composites, not measured rock reflectance. Curvature/AO and image relief are visual approximations; catchment is top-surface D8 with closed depressions retained, not hydrodynamic simulation.
+
+Source extraction can be reproduced with `npm run build:satmaps` (Node 22+, original images cached under `.cache/satmaps/`). Tests independently recreate all palettes/detail data from the committed local source crops.
+
 ## Run
 
 ```sh
@@ -329,7 +347,7 @@ surface currents and visual foam, not Navier–Stokes or transported water voxel
 
 ### Texture structure, not another material tint
 
-**Materials → Layered rock detail** adds a centimeter-scale height/normal stack
+**Materials → Legacy rock → Layered rock detail** adds a centimeter-scale height/normal stack
 above the existing millimeter grain layer: domain-warped multi-octave noise, a
 smoothed ridged component, broken sedimentary lamination and restrained cavity
 shading. Sandstone and limestone receive layers; igneous presets retain unlayered
@@ -356,7 +374,7 @@ is now **36 vec4 slots / 576 bytes** (including the eight-vector route table).
 - Inspect the material-free clay view or the runoff/erosion/deposition diagnostic view.
 - Hold **C / Compare** to view the procedural original without destroying edits.
 - Undo/redo up to four volume snapshots. Sculpt strokes, simulation starts, paused live-preview batches, and resets are snapshot boundaries.
-- Adjust sunlight, exposure, water level, and subtle wind-driven water ripples. **Materials → Surface detail** controls world-space mineral grain, pore relief, broken lamination, and joint fractures. Analytic noise gradients drive the bump normals; finer layers fade with pixel footprint to reduce distant aliasing. **Renderer options → Native resolution** locks full viewport resolution for inspection.
+- Adjust sunlight, exposure, water level, and subtle wind-driven water ripples. **Materials → Legacy rock → Surface detail** controls world-space mineral grain, pore relief, broken lamination, and joint fractures. Analytic noise gradients drive the bump normals; finer layers fade with pixel footprint to reduce distant aliasing. **Renderer options → Native resolution** locks full viewport resolution for inspection.
 - Save the complete project to this browser's IndexedDB, reopen that save from the project menu, or import/export portable `.frontier` files.
 - Export an **indexed GLB mesh**, including smooth normals and procedural sandstone vertex colors. Extraction runs in a worker. PNG export captures the actual rendered viewport.
 
@@ -471,7 +489,7 @@ The WebGPU volume is **144 × 72 × 144 voxels** (1,492,992 samples; approximate
 
 The initial field combines 3D CSG, warped polygonal mesas, ellipsoidal cutouts, irregular stratification, and volumetric noise. The arch preset explicitly has **multiple solid/empty crossings in a vertical column**. The CPU and WGSL initializers implement the same seeded functions.
 
-A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows, ambient occlusion and selectable dielectric surface materials. Material grain/pore details are filtered by world-space pixel footprint. There are no Quixel assets or texture downloads. The only raster assets in this repository are small **thumbnails captured from this renderer**. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
+A raymarcher renders the zero isosurface directly with trilinear volume samples, finite-difference normals, soft shadows and ambient occlusion. The default surface samples satellite-derived CLUTs using terrain masks; the explicit Legacy rock path retains its procedural dielectric materials. Image/grain detail is filtered by world-space pixel footprint. Small public-domain satellite crops, extracted palette/detail pixels, and renderer-captured formation thumbnails are bundled locally; no Quixel or proprietary Gaea assets or runtime texture downloads are needed. Inter and IBM Plex Mono are locally bundled, OFL-licensed fonts.
 
 The water preview intersects a multi-band displaced surface and clips it against the SDF. It uses terrain-distance shoreline ripples and foam, refracted bed rays, depth-dependent absorption/turbidity, Fresnel reflection rays, and animated wind normals. Exposure and camera-relative atmospheric attenuation finish the viewport. Render resolution adapts to measured frame rate, independently of voxel resolution. A single WebGPU frame is in flight; WebGL2 also uses fence-based backpressure. Both backends raymarch into an owned, adaptively sized off-screen texture and scale it into a stable display-sized canvas. Only actual viewport-size changes resize that canvas, immediately before drawing; Adaptive/Native quality changes and capture do not reset it. Adaptive resolution uses multi-second hysteresis; Native mode renders at full viewport resolution. GPU readback for PNG export happens in the same submission into an owned buffer, before swapchain recycling. Verification still checks the actual presented canvas, not just the off-screen image.
 
@@ -519,7 +537,7 @@ This is a **creative, physically motivated erosion prototype**, not a validated 
 - Rain visibility checks the full vertical voxel column, but roofs or channels thinner than the grid cannot be represented accurately.
 - Eikonal relaxation approximately preserves the zero surface; it is not exact signed-distance reconstruction. Long or extreme edits can soften fine features.
 - The displaced water surface, caustics and contact foam are **visual approximations**, clipped and shaded against actual terrain. They are not a reconstructed mobile-water free surface, breaking-wave CFD, or shoreline wave-abrasion simulation. Use **Flow** to inspect simulation water. The preview's water level is not a hydraulic boundary condition.
-- Geometry details below the voxel spacing are shaded procedural grain, not additional triangles. Increase the volume dimensions in `types.ts` for more geometric detail, with cubic memory/compute cost.
+- Geometry details below the voxel spacing are optional image-derived bump (SatMaps) or procedural grain (Legacy rock), not additional triangles. Increase the volume dimensions in `types.ts` for more geometric detail, with cubic memory/compute cost.
 - GLB exports the terrain's current zero isosurface and sampled base vertex color. Water, sunlight, atmosphere, and shader-only grain are **not baked** into the mesh. Port the WGSL material/water shader to your engine for the full rendering treatment.
 - Projects stay on this origin/browser until exported. There is no cloud sync or automatic save. A different device's resolution is handled with trilinear 3D resampling on import.
 
@@ -540,7 +558,10 @@ src/engine/
   display.ts             Safe GPU→CPU bitmap presentation and display-mode choice
   shaders/common.wgsl    Field sampling, noise, ray intersections
   shaders/compute.wgsl   Initialization, runoff, erosion, sculpting, redistancing
-  shaders/render.wgsl    Procedural rock, lighting, diagnostic view, water
+  satmaps/              Satellite extraction, library, D8 maps, GPU textures and export sampling
+  shaders/satmap.wgsl    Image CLUT sampling and terrain-mask mixing (also emitted as GLSL)
+  shaders/terrain-height.wgsl  Compact GPU upper-envelope extraction for drainage
+  shaders/render.wgsl    Satellite/legacy shading, lighting, diagnostic views, water
   shaders.ts             WGSL assembly + typed-subset GLSL emission
   field.ts               Matching CPU SDF, trilinear sampling, CPU brushes
   simulation.ts          CPU reference flux, evolution and redistancing

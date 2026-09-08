@@ -1,5 +1,7 @@
 import { MATERIAL_PRESETS, materialMacroColor } from "./materials";
 import { sampleField } from "./field";
+import { createSatmapSampler, getSatmap } from "./satmaps/satmap";
+import { buildTerrainMaps, extractHeightSurface } from "./satmaps/terrainMaps";
 import { normalize, cross, sub, dot, mix } from "./math";
 import {
   DEFAULT_SETTINGS,
@@ -14,7 +16,12 @@ export interface Mesh {
   indices: Uint32Array;
   min: Vec3;
   max: Vec3;
-  material?: { name: string; roughness: number; ior: number };
+  material?: {
+    name: string;
+    roughness: number;
+    ior: number;
+    textureMode?: string;
+  };
 }
 const CORNERS: Vec3[] = [
   [0, 0, 0],
@@ -60,8 +67,16 @@ export function extractMesh(
         sampleField(data, size, [p[0], p[1], p[2] - e]),
     ]);
   };
-  const color = (p: Vec3, n: Vec3): Vec3 =>
-    materialMacroColor(p, n, settings, sampleField(data, size, p, 3));
+  const color =
+    settings.textureMode === "satmap"
+      ? createSatmapSampler(
+          data,
+          size,
+          buildTerrainMaps(extractHeightSurface(data, size)),
+          settings,
+        )
+      : (p: Vec3, n: Vec3): Vec3 =>
+          materialMacroColor(p, n, settings, sampleField(data, size, p, 3));
   const emit = (a: number, b: number, c: number) => {
     const pa = positions.slice(a * 3, a * 3 + 3) as Vec3,
       pb = positions.slice(b * 3, b * 3 + 3) as Vec3,
@@ -144,7 +159,11 @@ export function extractMesh(
     min: minimum,
     max: maximum,
     material: {
-      name: MATERIAL_PRESETS.find((m) => m.id === settings.material)!.name,
+      name:
+        settings.textureMode === "satmap"
+          ? `${getSatmap(settings).name} · SatMap`
+          : MATERIAL_PRESETS.find((m) => m.id === settings.material)!.name,
+      textureMode: settings.textureMode,
       roughness: settings.materialRoughness,
       ior: settings.materialIOR,
     },
@@ -241,6 +260,10 @@ export function buildGLB(mesh: Mesh): ArrayBuffer {
       units: "meters",
       field: "3D signed distance, zero isosurface",
       water: "Water is a preview shader, not included in this mesh.",
+      color:
+        mesh.material?.textureMode === "satmap"
+          ? "Satellite CLUT and terrain data masks sampled into linear COLOR_0. No baked lighting or photo bump; vertex-resolution approximation, not a UV texture atlas."
+          : "Legacy rock macro color sampled into linear COLOR_0.",
     },
   };
   const json = new TextEncoder().encode(JSON.stringify(doc)),

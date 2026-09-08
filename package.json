@@ -1,7 +1,7 @@
 {
   "name": "frontier-terrain-lab",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -12,7 +12,8 @@
     "build:pages": "tsc -b && vite build --base=./",
     "publish:pages": "npm run build:pages && node scripts/publish-pages.mjs",
     "check:pages": "node scripts/check-pages.mjs",
-    "test:pages": "npm run publish:pages && playwright test --config=playwright.pages.config.ts"
+    "test:pages": "npm run publish:pages && playwright test --config=playwright.pages.config.ts",
+    "build:satmaps": "node --experimental-strip-types scripts/build-satmaps.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -29,6 +30,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@webgpu/types": "^0.1.60",
     "pngjs": "^7.0.0",
+    "sharp": "^0.35.4",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
     "vitest": "^3.0.7"

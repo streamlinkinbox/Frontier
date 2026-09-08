@@ -28,6 +28,11 @@ struct Uniforms {
   flowArc: array<vec4f,8>,
   rockDetail: vec4f,
   rockLayers: vec4f,
+  satmap: vec4f,
+  satColor: vec4f,
+  satShape: vec4f,
+  satWeather: vec4f,
+  satSurface: vec4f,
 };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var field: texture_3d<f32>;
@@ -36,6 +41,9 @@ struct Uniforms {
 @group(0) @binding(4) var outputFlux: texture_storage_3d<rgba16float, write>;
 @group(0) @binding(5) var fluxField: texture_3d<f32>;
 @group(0) @binding(6) var<storage, read_write> pickResult: array<vec4f>;
+@group(0) @binding(7) var satPalette: texture_2d<f32>;
+@group(0) @binding(8) var satDetail: texture_2d<f32>;
+@group(0) @binding(9) var satTerrain: texture_2d<f32>;
 const WORLD_MIN: vec3f = vec3f(-48., -10., -48.);
 const WORLD_MAX: vec3f = vec3f(48., 38., 48.);
 const WORLD_SIZE: vec3f = vec3f(96., 48., 96.);

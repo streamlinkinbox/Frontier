@@ -90,6 +90,7 @@ test("layered rock relief changes lighting, not albedo settings or saved voxels"
 }, testInfo) => {
   await ready(page);
   await page.getByRole("tab", { name: "Materials", exact: true }).click();
+  await page.getByRole("button", { name: "Legacy rock", exact: true }).click();
   await page.evaluate(async () => {
     const e = window.__frontier!;
     e.pause();

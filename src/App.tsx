@@ -77,6 +77,8 @@ import {
 import { Dialog, Guide } from "./components/Guide";
 import { RiverControls } from "./components/RiverControls";
 import { MaterialEditor } from "./components/MaterialEditor";
+import { MAP_PREVIEWS } from "./components/SatMapEditor";
+import { getSatmap, paletteGradient } from "./engine/satmaps/satmap";
 import { MATERIAL_PRESETS } from "./engine/materials";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { diagnostics } from "./diagnostics";
@@ -182,7 +184,11 @@ export default function App() {
   const [history, setHistory] = useState([0, 0]);
   const [inspector, setInspector] = useState<
     "erosion" | "environment" | "materials"
-  >("erosion");
+  >(() =>
+    new URLSearchParams(location.search).get("panel") === "materials"
+      ? "materials"
+      : "erosion",
+  );
   const [erosionTab, setErosionTab] = useState<
     "hydraulic" | "thermal" | "wind"
   >("hydraulic");
@@ -221,6 +227,18 @@ export default function App() {
   };
   const currentMaterial = MATERIAL_PRESETS.find(
     (p) => p.id === settings.material,
+  )!;
+  const satmapAsset = getSatmap(settings);
+  const surfaceName =
+    settings.textureMode === "satmap"
+      ? `SatMap · ${satmapAsset.name}`
+      : currentMaterial.name;
+  const surfaceSwatch =
+    settings.textureMode === "satmap"
+      ? paletteGradient(satmapAsset.palette)
+      : settings.materialColor;
+  const texturePreview = MAP_PREVIEWS.find(
+    (v) => v.id === settings.satmapPreview,
   )!;
   const changeMaterial = (patch: Partial<Settings>) => {
     const next = { ...settingsRef.current, ...patch };
@@ -978,8 +996,11 @@ export default function App() {
                 aria-label="Edit surface material"
               >
                 <span className="tree-line" />
-                <span className="material-dot" />
-                {currentMaterial.name}
+                <span
+                  className="material-dot"
+                  style={{ background: surfaceSwatch }}
+                />
+                {surfaceName}
               </button>
               <div className="scene-row">
                 <button
@@ -1201,8 +1222,8 @@ export default function App() {
               className="material-context"
               onClick={() => setInspector("materials")}
             >
-              <span style={{ background: settings.materialColor }} />
-              {currentMaterial.name}
+              <span style={{ background: surfaceSwatch }} />
+              {surfaceName}
               <ChevronRight size={12} />
             </button>
           </div>
@@ -1303,7 +1324,10 @@ export default function App() {
                   align="left"
                   label={
                     settings.view === "lit"
-                      ? "Lit"
+                      ? settings.textureMode === "satmap" &&
+                        settings.satmapPreview !== "beauty"
+                        ? texturePreview.label
+                        : "Lit"
                       : settings.view === "clay"
                         ? "Clay"
                         : "Flow"
@@ -1324,11 +1348,16 @@ export default function App() {
                           active={settings.view === v}
                           onClick={() => {
                             close();
-                            update("view", v);
+                            changeMaterial({
+                              view: v,
+                              satmapPreview: "beauty",
+                            });
                           }}
                         >
                           {v === "lit"
-                            ? "Lit · sandstone"
+                            ? settings.textureMode === "satmap"
+                              ? "Lit · satellite surface"
+                              : "Lit · rock material"
                             : v === "clay"
                               ? "Clay · inspect geometry"
                               : "Flow · erosion & sediment"}
@@ -1475,6 +1504,24 @@ export default function App() {
                 Original terrain<span>Release to return</span>
               </div>
             )}
+            {settings.textureMode === "satmap" &&
+              settings.view === "lit" &&
+              settings.satmapPreview !== "beauty" && (
+                <div
+                  className="satmap-preview-legend"
+                  aria-label="Active texture diagnostic"
+                >
+                  <span>
+                    TEXTURE DATA <i /> {texturePreview.label}
+                  </span>
+                  <p>{texturePreview.hint}</p>
+                  <button
+                    onClick={() => changeMaterial({ satmapPreview: "beauty" })}
+                  >
+                    Return to surface <X size={12} />
+                  </button>
+                </div>
+              )}
             {settings.view === "flow" && (
               <div className="flow-legend">
                 <strong>VOLUME DIAGNOSTICS</strong>
@@ -2100,7 +2147,7 @@ export default function App() {
                         className={`material-chip chip-${settings.material}`}
                       />
                       <span>
-                        <strong>{currentMaterial.name}</strong>
+                        <strong>{surfaceName}</strong>
                         <small>Edit surface material</small>
                       </span>
                       <ArrowRight size={15} />

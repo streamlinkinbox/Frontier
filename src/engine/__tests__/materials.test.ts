@@ -134,6 +134,7 @@ it("exports selected material roughness and dielectric IOR, not hard-coded sands
   const s = {
     ...DEFAULT_SETTINGS,
     material: "granite" as const,
+    textureMode: "legacy" as const,
     ...MATERIAL_PRESETS[2].values,
     materialRoughness: 0.32,
     materialIOR: 1.62,

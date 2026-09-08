@@ -32,6 +32,7 @@ test("four editable material structures render on the same unmodified WebGL volu
     "Renderer startup must succeed",
   ).toBe(0);
   await page.getByRole("tab", { name: "Materials", exact: true }).click();
+  await page.getByRole("button", { name: "Legacy rock", exact: true }).click();
   await page.evaluate(async () => {
     const e = window.__frontier!;
     e.pause();

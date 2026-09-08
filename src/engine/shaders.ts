@@ -2,11 +2,14 @@ import common from "./shaders/common.wgsl?raw";
 import compute from "./shaders/compute.wgsl?raw";
 import render from "./shaders/render.wgsl?raw";
 import materials from "./shaders/materials.wgsl?raw";
+import satmap from "./shaders/satmap.wgsl?raw";
 export const computeShader = common + "\n" + compute;
 export const renderShader =
   common +
   "\n" +
   materials +
+  "\n" +
+  satmap +
   "\n" +
   render +
   `
@@ -47,8 +50,8 @@ function toGLSL(source: string): string {
     (_, kind, name, t) => `${kind === "const" ? "const " : ""}${t} ${name} =`,
   );
   out = out.replace(
-    /textureSampleLevel\(field,linearSampler,([^;]+),0\.\)/g,
-    "textureLod(field,$1,0.)",
+    /textureSampleLevel\((\w+),linearSampler,/g,
+    "textureLod($1,",
   );
   out = out.replace(
     /textureLoad\(field,([^;]+),0\)/g,
@@ -61,17 +64,22 @@ export const glFragment = `#version 300 es
 precision highp float;
 precision highp int;
 precision highp sampler3D;
+precision highp sampler2D;
 layout(std140) uniform Params {
   vec4 eye;vec4 forward;vec4 right;vec4 up;vec4 viewport;vec4 brush;vec4 water;
   vec4 flags;vec4 dims;vec4 erosion;vec4 geology;vec4 sculpt;vec4 brushParams;vec4 pick;
   vec4 planeOrigin;vec4 planeNormal;vec4 strokeTangent;vec4 strokePrevious;vec4 processes;vec4 material;vec4 materialShape;vec4 materialOptics;vec4 baseColor;vec4 waterOptics;vec4 river;
   vec4 flow;vec4 flowArc[8];vec4 rockDetail;vec4 rockLayers;
+  vec4 satmap;vec4 satColor;vec4 satShape;vec4 satWeather;vec4 satSurface;
 } u;
 uniform sampler3D field;
+uniform sampler2D satPalette;
+uniform sampler2D satDetail;
+uniform sampler2D satTerrain;
 out vec4 fragColor;
 float select(float a,float b,bool s){return s?b:a;}
 vec3 select(vec3 a,vec3 b,bool s){return s?b:a;}
-${toGLSL(glCommon + "\n" + materials + "\n" + render)}
+${toGLSL(glCommon + "\n" + materials + "\n" + satmap + "\n" + render)}
 void main(){fragColor=renderPixel(vec2(gl_FragCoord.x,u.viewport.y-gl_FragCoord.y));}
 `;
 export const glVertex = `#version 300 es

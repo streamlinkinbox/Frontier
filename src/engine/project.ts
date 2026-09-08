@@ -1,4 +1,9 @@
-import { DEFAULT_SETTINGS, type Settings, type VolumeSize } from "./types";
+import {
+  DEFAULT_SETTINGS,
+  SATMAP_VIEWS,
+  type Settings,
+  type VolumeSize,
+} from "./types";
 import { floatToHalf, halfToFloat } from "./math";
 export interface Project {
   version: 1;
@@ -91,6 +96,20 @@ export function validateSettings(raw: unknown): Settings {
     ["waterDirection", 0, 360],
     ["waterRippleScale", 0.5, 4],
     ["waterStreaks", 0, 1],
+    ["satmapHeight", 0, 1],
+    ["satmapSlope", 0, 1],
+    ["satmapCurvature", 0, 1],
+    ["satmapAO", 0, 1],
+    ["satmapFlow", 0, 1],
+    ["satmapSediment", 0, 1],
+    ["satmapDetail", 0, 1],
+    ["satmapScale", 0.5, 24],
+    ["satmapRelief", 0, 80],
+    ["satmapBias", -1, 1],
+    ["satmapContrast", 0.25, 4],
+    ["satmapLow", 0, 0.99],
+    ["satmapHigh", 0.01, 1],
+    ["satmapSaturation", 0, 2],
     ["rockRelief", 0, 15],
     ["rockNoiseScale", 0.1, 2],
     ["rockOctaves", 1, 5],
@@ -110,6 +129,63 @@ export function validateSettings(raw: unknown): Settings {
       throw new Error(`Invalid project setting: ${key}.`);
     settings[key] = value;
   }
+  // Missing mode identifies archives from before satellite texturing. Preserve
+  // their old material appearance, not just their voxel data.
+  if (input.textureMode === undefined) settings.textureMode = "legacy";
+  else if (input.textureMode === "satmap" || input.textureMode === "legacy")
+    settings.textureMode = input.textureMode;
+  else throw new Error("Invalid texture mode.");
+  if (input.satmap !== undefined) {
+    if (
+      typeof input.satmap !== "string" ||
+      !["namib", "canyonlands", "iceland", "white-sands", "custom"].includes(
+        input.satmap,
+      )
+    )
+      throw new Error("Unknown satellite palette.");
+    settings.satmap = input.satmap as Settings["satmap"];
+  }
+  for (const [key, length] of [
+    ["satmapPalette", 1536],
+    ["satmapDetailMap", 8192],
+  ] as const) {
+    const value = input[key];
+    if (value === undefined) continue;
+    if (
+      typeof value !== "string" ||
+      (value !== "" && (value.length !== length || !/^[0-9a-f]+$/i.test(value)))
+    )
+      throw new Error(`Invalid satellite image data: ${key}.`);
+    settings[key] = value;
+  }
+  if (
+    settings.satmap === "custom" &&
+    (!settings.satmapPalette || !settings.satmapDetailMap)
+  )
+    throw new Error("The custom satellite palette is missing its image data.");
+  if (input.satmapName !== undefined) {
+    if (
+      typeof input.satmapName !== "string" ||
+      input.satmapName.length > 80 ||
+      /[\x00-\x1f]/.test(input.satmapName)
+    )
+      throw new Error("Invalid satellite palette name.");
+    settings.satmapName = input.satmapName;
+  }
+  if (input.satmapReverse !== undefined) {
+    if (typeof input.satmapReverse !== "boolean")
+      throw new Error("Invalid satellite palette direction.");
+    settings.satmapReverse = input.satmapReverse;
+  }
+  if (input.satmapPreview !== undefined) {
+    if (
+      !SATMAP_VIEWS.includes(input.satmapPreview as Settings["satmapPreview"])
+    )
+      throw new Error("Invalid satellite map preview.");
+    settings.satmapPreview = input.satmapPreview as Settings["satmapPreview"];
+  }
+  if (settings.satmapHigh - settings.satmapLow < 0.0099)
+    throw new Error("Satellite color clip range must be at least 1%.");
   if (input.waterFlowMode !== undefined) {
     if (
       input.waterFlowMode !== "channel" &&
@@ -175,7 +251,7 @@ export function decodeProject(buffer: ArrayBuffer): Project {
     throw new Error("This is not a .frontier terrain file.");
   const headerLength = new DataView(buffer).getUint32(8, true);
   if (
-    headerLength > 16000 ||
+    headerLength > 64 * 1024 ||
     headerLength % 4 !== 0 ||
     headerLength + 12 >= buffer.byteLength
   )
