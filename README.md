@@ -20,6 +20,15 @@ See **[satellite texturing: workflow, sources and limitations](public/research/s
 
 Source extraction can be reproduced with `npm run build:satmaps` (Node 22+, original images cached under `.cache/satmaps/`). Tests independently recreate all palettes/detail data from the committed local source crops.
 
+## Foam tiers · research (not implemented yet)
+
+The [GTX-first foam research report](public/research/foam-quality-tiers.md) compares
+three candidates for **Standard, Ultra and Cinematic**, treating the current
+stateless effect as Low. It includes an audit of this renderer, primary-source
+evidence, proposed performance/memory gates, WebGL2/WebGPU integration, RTX
+scaling, limitations and a hardware-validation plan. **The timing budgets are
+design targets, not measured GPU performance.**
+
 ## Run
 
 ```sh
