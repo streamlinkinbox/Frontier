@@ -297,10 +297,59 @@ claim that a procedural river is a calibrated hydrodynamics model.
 Uniform layout: **25 vec4s / 400 bytes** (`UNIFORM_BYTES`). Old projects receive
 river-control defaults without changing their stored terrain.
 
+## Downstream flow, explicit cameras & layered relief · v0.7.0
+
+### River that visibly travels downstream
+
+Under **Environment → River surface → Downstream current**, select **Follow canyon**
+or **Compass heading**, then set speed and optionally **Reverse current**. For the
+canyon, forward flow travels from +Z toward −Z along the seeded course; reverse
+travels the opposite way. A 32-sample arc-length table with Hermite interpolation
+keeps speed meaningful around bends. Foam/current streaks are advected in that
+coordinate system, rather than merely pulsing in place. **Current streaks** controls
+their visibility. The default current for a new project is now 0.8 m/s.
+
+The channel route follows the **seeded canyon**, not a new global hydraulic solve.
+Water still clips against sculpted terrain, but heavily reshaped/custom courses can
+use Compass heading. Other formation presets use heading flow. These are routed
+surface currents and visual foam, not Navier–Stokes or transported water voxels.
+
+### Orbit and Fly no longer fight each other
+
+- Select **Orbit camera (1)** or **Fly camera (2)** explicitly in Camera controls.
+- **Orbit:** left/right drag rotates, middle or Shift-drag pans, wheel zooms.
+  WASD/QE do not activate Fly behind your back.
+- **Fly:** right-drag looks in place; focused WASD/QE moves; wheel changes speed
+  without dollying. A left drag does not switch to Orbit (it sculpts when a brush
+  is selected). Middle/Shift-drag pans in the selected mode.
+- F / Frame terrain and top view change the pose, **not the control mode**.
+  Switching camera mode preserves the eye position and clears held inputs.
+- “Live viewport” is render/simulation status, not a camera-mode name. The camera
+  selector and the mode-specific hint line show the current navigation controls.
+
+### Texture structure, not another material tint
+
+**Materials → Layered rock detail** adds a centimeter-scale height/normal stack
+above the existing millimeter grain layer: domain-warped multi-octave noise, a
+smoothed ridged component, broken sedimentary lamination and restrained cavity
+shading. Sandstone and limestone receive layers; igneous presets retain unlayered
+weathered relief. The noise is fixed in world space and filtered by pixel footprint.
+
+Use **Subtle**, **Layered** or **Weathered** detail presets, or adjust **Rock relief**,
+**Noise scale**, **Layer spacing**, **Layer relief**, and the octave/ridge/warp
+controls. This changes surface normal/height detail without changing base color.
+It is **shader relief**, not additional triangles or a modification of the saved
+SDF. Clay view deliberately shows the underlying voxel geometry without it.
+
+Tests cover explicit mode isolation and focus handling, constant-distance downstream
+marker travel/reversal, arc-coordinate and relief derivatives, CPU/shader agreement,
+and a rendered texture comparison on an unchanged volume. The common uniform block
+is now **36 vec4 slots / 576 bytes** (including the eight-vector route table).
+
 ## What you can do
 
 - Start from a seeded sandstone canyon, an asymmetric weathered arch with unequal shoulders and alcoves, or fractured hoodoos/fins with caprock and non-monotonic profiles. The v0.2 canyon generator is unchanged; arches and spires use revised formations. Existing imported voxel data is preserved.
-- Orbit, pan, or fly through a **96 × 48 × 96 meter** volume. This is not an infinite world. Right-mouse look + WASD/QE uses a free, Unreal-style inspection camera, independent of the rendering frame rate.
+- Orbit, pan, or fly through a **96 × 48 × 96 meter** volume. This is not an infinite world. Explicit Fly mode uses RMB look + WASD/QE, independent of rendering frame rate. Orbit is a separate, explicitly selected mode.
 - **Add, carve, smooth, flatten, form ridges, crack, cut crevices, or stamp boulders** with 3D volume brushes. Carving supports tunnels, caves, and overhangs.
 - Run and pause erosion, advance exactly one iteration, and change rainfall, erodibility, sediment capacity, evaporation, thermal relaxation, and layer resistance while it runs.
 - With **Live preview** enabled, changing a simulation parameter queues 12 more iterations even when continuous simulation is paused. Parameters affect future simulation, rather than retexturing or regenerating the terrain.
@@ -320,20 +369,21 @@ capture loss, and tab visibility changes so movement cannot get stuck.
 
 | Input                                   | Action                                              |
 | --------------------------------------- | --------------------------------------------------- |
-| Right drag                              | Free look: rotate **in place**, not around the tile |
+| 1 / 2                                   | Select Orbit / Fly camera controls                  |
+| Right drag                              | Orbit in Orbit mode / look **in place** in Fly mode |
 | W / S                                   | Fly forward / backward along the view direction     |
 | A / D                                   | Strafe left / right                                 |
 | Q / E                                   | Move down / up on the world's vertical axis         |
 | Shift while flying                      | 3× speed boost                                      |
-| Right mouse + wheel                     | Adjust fly speed (0.25–80 m/s)                      |
-| Ordinary wheel                          | Dolly in fly mode / zoom in orbit mode              |
+| Wheel in Fly mode                       | Adjust fly speed (0.25–80 m/s); never dolly          |
+| Wheel in Orbit mode                     | Zoom the orbit camera                               |
 | Left drag in Navigate mode / Alt + drag | Orbit                                               |
 | Middle drag / Shift + left drag         | Pan                                                 |
 | Left drag with a brush                  | Sculpt the volume                                   |
 | V / B / X / M                           | Navigate tool / add / carve / smooth                |
 | L / R / K / U / O                       | Plane flatten / ridges / cracks / crevice / boulder |
 | [ / ]                                   | Smaller / larger brush                              |
-| F / G                                   | Return to the framed overview / toggle grid         |
+| F / G                                   | Frame without changing camera mode / toggle grid   |
 | Space                                   | Run / pause erosion                                 |
 | Hold C                                  | Compare with original                               |
 | Ctrl or Cmd + Z                         | Undo                                                |
@@ -353,7 +403,7 @@ In **[Settings → Pages](https://github.com/streamlinkinbox/Frontier/settings/p
 1. Select **Deploy from a branch**.
 2. Choose **`arena/01a07d13-frontier`** and **`/docs`** (not `/`), then **Save**.
 3. Wait for GitHub's Pages deployment to finish, then open
-   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.6.0**.
+   **https://streamlinkinbox.github.io/Frontier/**. The footer should say **v0.7.0**.
 
 ### Why the earlier deployment returned 404
 
@@ -483,6 +533,9 @@ src/engine/
   WebGLBackend.ts        Explicit lower-resolution fallback
   presentation.ts        Owned RGBA/BGRA readback and PNG encoding
   materials.ts           Material presets, linear color and broad-band export color
+  surfaceDetail.ts       CPU reference: layered cm-scale height/normal noise
+  flowRoute.ts           Seeded course and arc-distance coordinates
+  noise.ts               Shared analytic derivative-noise reference
   optics.ts              Testable dielectric/attenuation reference equations
   display.ts             Safe GPU→CPU bitmap presentation and display-mode choice
   shaders/common.wgsl    Field sampling, noise, ray intersections

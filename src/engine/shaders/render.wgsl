@@ -1,12 +1,40 @@
+// Seeded canyon course, in arc-distance coordinates. No per-frame texture reset.
+fn canyonCenter(z:f32) -> f32 {let seed:f32=f32(u32(u.flags.z)%8192u);return -9.5*sin(z*.058)-3.3*sin(z*.117+seed*.01);}
+fn canyonSlope(z:f32) -> f32 {let seed:f32=f32(u32(u.flags.z)%8192u);return -9.5*.058*cos(z*.058)-3.3*.117*cos(z*.117+seed*.01);}
+fn arcValue(i:i32) -> f32 {return u.flowArc[i/4][i%4];}
+fn channelArc(z:f32) -> vec2f {
+  let step:f32=96./31.;let index:i32=clamp(i32(floor((z+48.)/step)),0,30);
+  let z0:f32=-48.+f32(index)*step;let t:f32=clamp((z-z0)/step,0.,1.);let t2:f32=t*t;let t3:f32=t2*t;
+  let a:f32=arcValue(index);let b:f32=arcValue(index+1);
+  let m0:f32=sqrt(1.+pow(canyonSlope(z0),2.))*step;let m1:f32=sqrt(1.+pow(canyonSlope(z0+step),2.))*step;
+  let value:f32=(2.*t3-3.*t2+1.)*a+(t3-2.*t2+t)*m0+(-2.*t3+3.*t2)*b+(t3-t2)*m1;
+  let derivative:f32=((6.*t2-6.*t)*a+(3.*t2-4.*t+1.)*m0+(-6.*t2+6.*t)*b+(3.*t2-2.*t)*m1)/step;
+  return vec2f(value,derivative);
+}
+// xy: along/across. zw: channel d(along)/dz, d(across)/dz.
+fn flowCoordinates(p:vec3f) -> vec4f {
+  if(u.flow.x>.5){let arc:vec2f=channelArc(p.z);return vec4f(arc.x*u.flow.y,p.x-canyonCenter(p.z),arc.y*u.flow.y,-canyonSlope(p.z));}
+  return vec4f(dot(p.xz,u.river.zw),dot(p.xz,vec2f(-u.river.w,u.river.z)),u.river.w,u.river.z);
+}
+fn riverDirection(p:vec3f) -> vec2f {
+  if(u.flow.x>.5){return normalize(vec2f(canyonSlope(p.z),1.))*u.flow.y;}
+  return u.river.zw;
+}
+fn currentStreak(p:vec3f) -> f32 {
+  let coords:vec4f=flowCoordinates(p);let travel:f32=coords.x-u.river.x*u.eye.w;
+  let ribbon:f32=noise(vec3f(travel*.24,coords.y*1.45,u.flags.z*.005));
+  let broken:f32=noise(vec3f(travel*.61+13.7,coords.y*.8+4.1,u.flags.z*.003));
+  return (1.-smoothstep(.035,.16,abs(ribbon)))*smoothstep(-.3,.5,broken)*u.flow.z*min(u.river.x,1.5)/1.5;
+}
 // Domain-warped, advected river height field. World-space noise does not repeat
 // with texture UVs or a small set of crossing sine-wave periods. CPU reference:
 // river.ts. The same height/analytic derivative drives intersection and normals.
 fn riverAmplitude() -> f32 {return .055*u.water.y*u.water.y+.022*min(u.river.x,2.);}
-fn riverSlopeBound() -> f32 {return riverAmplitude()*(13./u.river.y+4.5)+.005;}
+fn riverSlopeBound() -> f32 {return (riverAmplitude()*(13./u.river.y+4.5)+.005)*select(1.,1.5,u.flow.x>.5);}
 fn waterWaves(p:vec3f) -> vec3f {
   let amplitude:f32=riverAmplitude();if(amplitude==0.){return vec3f(0.);}
-  let direction:vec2f=u.river.zw;let along:f32=dot(p.xz,direction);
-  let across:f32=dot(p.xz,vec2f(-direction.y,direction.x));let scale:f32=u.river.y;
+  let route:vec4f=flowCoordinates(p);let direction:vec2f=u.river.zw;
+  let along:f32=route.x;let across:f32=route.y;let scale:f32=u.river.y;
   let time:f32=u.eye.w;let evolution:f32=(u.water.y+u.river.x*.5)*.025;let speed:f32=u.river.x+u.water.y*.08;
   let wa:vec4f=noiseGradient(vec3f(along*.075+u.flags.z*.013,across*.075+11.4,time*evolution*.35+4.8));
   let wb:vec4f=noiseGradient(vec3f(along*.075+3.1,across*.075+39.2,time*evolution*.29+u.flags.z*.005));
@@ -22,6 +50,7 @@ fn waterWaves(p:vec3f) -> vec3f {
   let ga:f32=(n1.y*1.37*.62+(n2.y*.82*3.11-n2.z*.572*1.17)*.27+(n3.y*.37*6.43+n3.z*.929*2.71)*w3)/scale;
   let gc:f32=(n1.z*.61*.62+(n2.y*.572*3.11+n2.z*.82*1.17)*.27+(-n3.y*.929*6.43+n3.z*.37*2.71)*w3)/scale;
   let da:f32=(ga*jaa+gc*jca)*amplitude;let dc:f32=(ga*jac+gc*jcc)*amplitude;
+  if(u.flow.x>.5){return vec3f(height,dc,da*route.z+dc*route.w);}
   return vec3f(height,da*direction.x-dc*direction.y,da*direction.y+dc*direction.x);
 }
 // Find the FIRST crossing of the displaced surface inside a bounded wave slab.
@@ -96,8 +125,9 @@ fn shadeRock(p:vec3f,rd:vec3f,details:bool) -> vec3f {
   let footprint:f32=materialFootprint(p,geometric);
   let surfaceData:vec4f=sampleMaterial(p,geometric,select(footprint*4.,footprint,details));
   var albedo:vec3f=surfaceData.rgb;var roughness:f32=surfaceData.a;
-  var n:vec3f=geometric;
-  if(details&&u.viewport.w<.5){n=materialNormal(p,geometric,footprint);}
+  var n:vec3f=geometric;var structure:vec4f=vec4f(0.);
+  if(details&&u.viewport.w<.5){structure=layeredRock(p,footprint);n=materialNormal(p,geometric,footprint,structure);}
+  let cavity:f32=clamp(1.+structure.x/max(.001,u.rockDetail.x+u.rockLayers.y*.5)*.35,.68,1.);
   let view:vec3f=-rd;
   // Keep perturbed normals on the visible side at grazing angles.
   if(dot(n,view)<.03){n=safeNormalize(mix(n,geometric,.65));}
@@ -126,7 +156,7 @@ fn shadeRock(p:vec3f,rd:vec3f,details:bool) -> vec3f {
   var col:vec3f=(albedo*(diffuseWeight/3.14159265)+vec3f(specular))*sun*noL*shadow;
   let up:f32=clamp(n.y*.5+.5,0.,1.);
   let irradiance:vec3f=mix(vec3f(.10,.08,.06),vec3f(.27,.32,.38),up);
-  col+=albedo*(1.-f0)*irradiance*ao;
+  col+=albedo*(1.-f0)*irradiance*ao*cavity;
   let reflected:vec3f=reflect(rd,n);
   let env:vec3f=mix(sky(reflected),sky(vec3f(0,1,0)),roughness*.65);
   let envF:f32=f0+(1.-f0)*pow(1.-noV,5.)*(1.-roughness*.75);
@@ -185,7 +215,8 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   let shoreDistance:f32=clearance/max(slope,.16);
   let shoreMask:f32=exp(-shoreDistance*1.5)*smoothstep(.08,.55,slope);
   let time:f32=u.eye.w*(u.water.y*.65+u.river.x*.45);
-  let flow:vec3f=vec3f(u.river.z,0,u.river.w)*u.river.x*time;
+  let localFlow:vec2f=riverDirection(p);
+  let flow:vec3f=vec3f(localFlow.x,0,localFlow.y)*u.river.x*time;
   let breakup:f32=smoothstep(-.2,.6,noise((p-flow*.17)*vec3f(1.1,.2,1.1)+vec3f(3.7,0,9.1)));
   let phase:f32=shoreDistance*8.+time*3.+noise(p*.65)*.6;
   let lap:f32=cos(phase)*(u.water.y*.02+u.river.x*.004)*shoreMask;
@@ -226,7 +257,8 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   if(!below){
     let crest:f32=smoothstep(.4,.88,sin(phase)+breakup*.45);
     let foam:f32=clamp(crest*shoreMask*breakup*u.waterOptics.y*(.12+u.water.y*.45),0.,.45);
-    col=mix(col,vec3f(.55,.56,.52)*light,foam);
+    let streak:f32=currentStreak(p)*(1.-shoreMask*.35);
+    col=mix(col,vec3f(.55,.56,.52)*light,clamp(foam+streak*.8,0.,.55));
   }
   return col;
 }

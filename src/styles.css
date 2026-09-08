@@ -2798,3 +2798,35 @@ kbd {
     animation: none !important;
   }
 }
+
+.river-route-controls,
+.rock-detail-presets {
+  display: flex;
+  gap: 5px;
+  margin-top: 14px;
+}
+.river-route-controls button,
+.rock-detail-presets button {
+  flex: 1;
+  min-height: 31px;
+  padding: 4px 7px;
+  border-radius: var(--pill);
+  border: 1px solid var(--border);
+  background: var(--field);
+  color: var(--muted);
+  font-size: 10px;
+}
+.river-route-controls button[aria-pressed="true"] {
+  color: var(--text);
+  border-color: #ffffff3a;
+  background: var(--selected);
+}
+.rock-detail-presets button:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+.downstream-label {
+  font: 9px/1.6 var(--mono);
+  color: var(--muted);
+  margin: 10px 0 2px;
+}

@@ -24,6 +24,10 @@ struct Uniforms {
   baseColor: vec4f,
   waterOptics: vec4f,
   river: vec4f,
+  flow: vec4f,
+  flowArc: array<vec4f,8>,
+  rockDetail: vec4f,
+  rockLayers: vec4f,
 };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var field: texture_3d<f32>;

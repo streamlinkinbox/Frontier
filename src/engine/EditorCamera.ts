@@ -45,6 +45,7 @@ export class EditorCamera {
     if (this.mode === "fly") return;
     this.position = this.basis(aspect).eye;
     this.mode = "fly";
+    this.clearKeys();
   }
   enterOrbit(aspect: number) {
     if (this.mode === "orbit") return;
@@ -55,13 +56,13 @@ export class EditorCamera {
     this.mode = "orbit";
     this.clearKeys();
   }
-  look(dx: number, dy: number, aspect: number) {
-    this.enterFly(aspect);
+  look(dx: number, dy: number, _aspect: number) {
+    if (this.mode !== "fly") return;
     this.yaw -= dx * 0.004;
     this.pitch = clamp(this.pitch + dy * 0.004, -1.54, 1.54);
   }
-  orbit(dx: number, dy: number, aspect: number) {
-    this.enterOrbit(aspect);
+  orbit(dx: number, dy: number, _aspect: number) {
+    if (this.mode !== "orbit") return;
     this.yaw -= dx * 0.006;
     this.pitch = clamp(this.pitch + dy * 0.005, -1.48, 1.48);
   }
@@ -75,29 +76,26 @@ export class EditorCamera {
     if (this.mode === "fly") this.position = add(this.position, delta);
     else this.target = add(this.target, delta);
   }
-  wheel(delta: number, looking: boolean, aspect: number) {
-    if (looking) {
+  wheel(delta: number, _looking: boolean, _aspect: number) {
+    if (this.mode === "fly") {
+      // Fly mode wheel is a speed control, never an orbit-style dolly.
       this.speed = clamp(this.speed * Math.exp(-delta * 0.0015), 0.25, 80);
+    } else {
+      this.distance = clamp(this.distance * Math.exp(delta * 0.001), 1, 350);
+    }
+  }
+  key(code: string, pressed: boolean, _aspect: number) {
+    if (this.mode !== "fly") {
+      this.keys.delete(code);
       return;
     }
-    if (this.mode === "fly") {
-      this.position = add(
-        this.position,
-        scale(
-          this.basis(aspect).forward,
-          -delta * Math.max(0.008, this.speed * 0.012),
-        ),
-      );
-    } else
-      this.distance = clamp(this.distance * Math.exp(delta * 0.001), 1, 350);
-  }
-  key(code: string, pressed: boolean, aspect: number) {
-    if (pressed && FLY_KEYS.has(code)) this.enterFly(aspect);
     if (pressed) this.keys.add(code);
     else this.keys.delete(code);
   }
   get moving() {
-    return [...this.keys].some((key) => FLY_KEYS.has(key));
+    return (
+      this.mode === "fly" && [...this.keys].some((key) => FLY_KEYS.has(key))
+    );
   }
   clearKeys() {
     this.keys.clear();
@@ -129,12 +127,17 @@ export class EditorCamera {
     this.mode = "fly";
     this.clearKeys();
   }
-  frame(top = false) {
+  frame(top = false, aspect = 1.5) {
+    const mode = this.mode;
     this.mode = "orbit";
     this.yaw = top ? 0 : 0.4;
     this.pitch = top ? 1.48 : 0.61;
     this.distance = top ? 142 : 151;
     this.target = [0, 7, 0];
+    if (mode === "fly") {
+      this.position = this.basis(aspect).eye;
+      this.mode = "fly";
+    }
     this.clearKeys();
   }
   focusDistance(aspect: number) {

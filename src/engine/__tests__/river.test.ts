@@ -64,6 +64,7 @@ describe("non-periodic river surface", () => {
       wind: 1,
       waterCurrent: 2.5,
       waterRippleScale: 0.5,
+      waterFlowMode: "directional" as const,
     };
     for (let i = 0; i < 100; i++) {
       const wave = riverSample([i * 0.73 - 30, 0, i * 0.29 - 18], i * 0.07, s);
@@ -88,7 +89,7 @@ it("loads old projects with flow defaults and validates new river controls", () 
   delete old.waterDirection;
   delete old.waterRippleScale;
   const loaded = validateSettings(old);
-  expect(loaded.waterCurrent).toBe(0.35);
+  expect(loaded.waterCurrent).toBe(DEFAULT_SETTINGS.waterCurrent);
   expect(loaded.waterDirection).toBe(270);
   expect(loaded.waterRippleScale).toBe(1.8);
   expect(() =>

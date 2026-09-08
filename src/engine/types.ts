@@ -60,6 +60,16 @@ export interface Settings {
   waterCurrent: number;
   waterDirection: number;
   waterRippleScale: number;
+  waterFlowMode: "channel" | "directional";
+  waterReverse: boolean;
+  waterStreaks: number;
+  rockRelief: number;
+  rockNoiseScale: number;
+  rockOctaves: number;
+  rockRidges: number;
+  rockLayerSpacing: number;
+  rockLayerRelief: number;
+  rockLayerWarp: number;
   grid: boolean;
   view: ViewMode;
   radius: number;
@@ -107,9 +117,19 @@ export const DEFAULT_SETTINGS: Settings = {
   materialMoisture: 0,
   waterAbsorption: 8,
   waterFoam: 0.35,
-  waterCurrent: 0.35,
+  waterCurrent: 0.8,
   waterDirection: 270,
   waterRippleScale: 1.8,
+  waterFlowMode: "channel",
+  waterReverse: false,
+  waterStreaks: 0.45,
+  rockRelief: 5.5,
+  rockNoiseScale: 0.55,
+  rockOctaves: 4,
+  rockRidges: 0.6,
+  rockLayerSpacing: 0.42,
+  rockLayerRelief: 2.8,
+  rockLayerWarp: 0.65,
   grid: true,
   view: "lit",
   radius: 4,

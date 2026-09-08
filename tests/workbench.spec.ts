@@ -303,6 +303,8 @@ test("WASD/QE fly controls rotate in place, stop on blur and never move while ty
       window.__frontier?.backend &&
       !document.querySelector(".viewport-loading"),
   );
+  await page.getByRole("button", { name: "Camera controls" }).click();
+  await page.getByRole("menuitem", { name: /^Fly camera/ }).click();
   const bounds = (await page.locator(".viewport-canvas").boundingBox())!;
   const original = await page.evaluate(
     () => window.__frontier!.camera.basis(1.5).eye,
@@ -360,9 +362,7 @@ test("WASD/QE fly controls rotate in place, stop on blur and never move while ty
   await page
     .getByRole("button", { name: "Frame terrain", exact: true })
     .click();
-  expect(await page.evaluate(() => window.__frontier!.camera.mode)).toBe(
-    "orbit",
-  );
+  expect(await page.evaluate(() => window.__frontier!.camera.mode)).toBe("fly");
   expect(
     await page.evaluate(() => window.__frontier!.camera.basis(1.5).eye),
   ).toEqual(original);

@@ -1,58 +1,16 @@
-import { hash } from "./field";
+import { noise } from "./field";
+import { gradientNoise } from "./noise";
+import { followsChannel, riverCoordinates } from "./flowRoute";
 import { smoothstep } from "./math";
 import type { Settings, Vec3 } from "./types";
-type NoiseSample = [number, number, number, number];
-
-/** CPU reference for the same analytic, non-periodic noise used by the shader. */
-function gradientNoise(x: number, y: number, z: number): NoiseSample {
-  const ix = Math.floor(x),
-    iy = Math.floor(y),
-    iz = Math.floor(z),
-    fx = x - ix,
-    fy = y - iy,
-    fz = z - iz;
-  const wx = fx * fx * (3 - 2 * fx),
-    wy = fy * fy * (3 - 2 * fy),
-    wz = fz * fz * (3 - 2 * fz);
-  const dx = 6 * fx * (1 - fx),
-    dy = 6 * fy * (1 - fy),
-    dz = 6 * fz * (1 - fz);
-  const a = hash(ix, iy, iz),
-    b = hash(ix + 1, iy, iz),
-    c = hash(ix, iy + 1, iz),
-    d = hash(ix + 1, iy + 1, iz);
-  const e = hash(ix, iy, iz + 1),
-    f = hash(ix + 1, iy, iz + 1),
-    g = hash(ix, iy + 1, iz + 1),
-    h = hash(ix + 1, iy + 1, iz + 1);
-  const k1 = b - a,
-    k2 = c - a,
-    k3 = e - a,
-    k4 = a - b - c + d,
-    k5 = a - c - e + g,
-    k6 = a - b - e + f,
-    k7 = -a + b + c - d + e - f - g + h;
-  return [
-    (a +
-      k1 * wx +
-      k2 * wy +
-      k3 * wz +
-      k4 * wx * wy +
-      k5 * wy * wz +
-      k6 * wz * wx +
-      k7 * wx * wy * wz) *
-      2 -
-      1,
-    dx * (k1 + k4 * wy + k6 * wz + k7 * wy * wz) * 2,
-    dy * (k2 + k4 * wx + k5 * wz + k7 * wx * wz) * 2,
-    dz * (k3 + k5 * wy + k6 * wx + k7 * wx * wy) * 2,
-  ];
-}
 export function riverAmplitude(s: Settings): number {
   return 0.055 * s.wind * s.wind + 0.022 * Math.min(s.waterCurrent, 2);
 }
 export function riverSlopeBound(s: Settings): number {
-  return riverAmplitude(s) * (13 / s.waterRippleScale + 4.5) + 0.005;
+  return (
+    (riverAmplitude(s) * (13 / s.waterRippleScale + 4.5) + 0.005) *
+    (followsChannel(s) ? 1.5 : 1)
+  );
 }
 /** Height + world X/Z derivatives. No UV tiling, looping time, or periodic
  * crossing sine bands. The stationary low-frequency warp breaks the grid;
@@ -65,11 +23,9 @@ export function riverSample(
 ): Vec3 {
   const amplitude = riverAmplitude(s);
   if (amplitude === 0) return [0, 0, 0];
-  const angle = (s.waterDirection * Math.PI) / 180,
-    dx = Math.cos(angle),
-    dz = Math.sin(angle);
-  const along = p[0] * dx + p[2] * dz,
-    across = -p[0] * dz + p[2] * dx,
+  const route = riverCoordinates(p, s);
+  const along = route.along,
+    across = route.across,
     scale = s.waterRippleScale;
   const evolution = (s.wind + s.waterCurrent * 0.5) * 0.025,
     speed = s.waterCurrent + s.wind * 0.08;
@@ -121,5 +77,28 @@ export function riverSample(
     scale;
   const da = (ga * jaa + gc * jca) * amplitude,
     dc = (ga * jac + gc * jcc) * amplitude;
-  return [height, da * dx - dc * dz, da * dz + dc * dx];
+  return [
+    height,
+    da * route.du[0] + dc * route.dv[0],
+    da * route.du[1] + dc * route.dv[1],
+  ];
+}
+
+/** Visible foam/current tracers translate in arc-distance coordinates. */
+export function currentStreak(p: Vec3, time: number, s: Settings): number {
+  const route = riverCoordinates(p, s),
+    travel = route.along - s.waterCurrent * time;
+  const ribbon = noise(travel * 0.24, route.across * 1.45, s.seed * 0.005);
+  const broken = noise(
+    travel * 0.61 + 13.7,
+    route.across * 0.8 + 4.1,
+    s.seed * 0.003,
+  );
+  return (
+    ((1 - smoothstep(0.035, 0.16, Math.abs(ribbon))) *
+      smoothstep(-0.3, 0.5, broken) *
+      s.waterStreaks *
+      Math.min(s.waterCurrent, 1.5)) /
+    1.5
+  );
 }

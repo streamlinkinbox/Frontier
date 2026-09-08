@@ -118,7 +118,7 @@ export class TerrainEngine {
     const c = document.createElement("canvas");
     c.setAttribute(
       "aria-label",
-      "Interactive 3D terrain. Right-drag to look, WASD to fly, Q/E down/up, Shift to boost. Left-drag orbits or sculpts. F frames the terrain.",
+      "Interactive 3D terrain. Orbit mode: drag to rotate, middle-drag to pan, wheel to zoom. Select Fly (2) for right-drag look and WASD/QE movement; wheel changes speed. F frames without changing camera mode.",
     );
     c.setAttribute("role", "img");
     c.tabIndex = 0;
@@ -614,9 +614,8 @@ export class TerrainEngine {
       this.last = [e.clientX, e.clientY];
       coordinates(e);
       if (e.button === 2) {
-        this.mode = "look";
+        this.mode = this.camera.mode === "fly" ? "look" : "orbit";
         this.brush = null;
-        this.camera.enterFly(this.aspect);
         this.emitStats();
         return;
       }
@@ -625,8 +624,8 @@ export class TerrainEngine {
         return;
       }
       if (e.altKey || this.tool === "orbit") {
-        this.mode = "orbit";
-        this.camera.enterOrbit(this.aspect);
+        this.mode = this.camera.mode === "orbit" ? "orbit" : null;
+        this.brush = null;
         this.emitStats();
         return;
       }
@@ -673,7 +672,6 @@ export class TerrainEngine {
       if (this.mode === "pan") this.camera.pan(dx, dy, this.aspect);
     }) as EventListener);
     const up = () => {
-      if (this.mode === "look") this.camera.clearKeys();
       this.down = false;
       this.mode = null;
       this.stroke = null;
@@ -703,6 +701,7 @@ export class TerrainEngine {
         !this.initialized ||
         this.busy ||
         this.mode === "sculpt" ||
+        this.camera.mode !== "fly" ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey
@@ -747,6 +746,12 @@ export class TerrainEngine {
     });
   }
   setNavigation(mode: NavigationMode) {
+    this.down = false;
+    this.mode = null;
+    this.stroke = null;
+    this.lastDab = null;
+    this.strokeToken++;
+    this.camera.clearKeys();
     if (mode === "fly") this.camera.enterFly(this.aspect);
     else this.camera.enterOrbit(this.aspect);
     this.canvas.focus({ preventScroll: true });
@@ -1045,7 +1050,7 @@ export class TerrainEngine {
     this.emitStats();
   }
   resetCamera(top = false) {
-    this.camera.frame(top);
+    this.camera.frame(top, this.aspect);
     if (this.initialized) this.emitStats();
   }
   async load(

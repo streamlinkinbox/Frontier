@@ -114,8 +114,20 @@ The procedural waves remain a visual surface, not a fluid free-surface solver.
 - GLB carries selected broad-band material color, roughness and `KHR_materials_ior`.
   Millimeter patterns are averaged for coarse mesh vertices, not falsely baked as
   noisy triangles; shader-only detail/optical water is not baked into the mesh.
-- Shared uniform layout: **25 vec4s / 400 bytes** (v0.6 adds river-flow controls). `UNIFORM_BYTES` drives allocation
+- Shared uniform layout: **36 vec4 slots / 576 bytes** (v0.7 includes the channel arc table and layered-relief controls). `UNIFORM_BYTES` drives allocation
   on both backends. Old projects get material defaults without modifying saved SDFs.
 
 The numerical and screenshot tests validate implementation behavior. They cannot
 establish that a procedural material exactly matches an arbitrary real specimen.
+
+## v0.7 extension: the missing middle scale
+
+The original millimeter-scale grain model did not supply enough **centimeter-scale
+surface structure** at ordinary inspection distances. v0.7 adds a separately
+controlled, band-limited height/gradient stack: domain-warped fBm, smoothed ridged
+noise, broken sedimentary layers and a restrained cavity response. It is not a
+material-color swap, and it does not alter the saved voxel geometry. The new
+surface-detail presets are authored art controls, not measured specimen scans.
+The procedural river also gains arc-distance downstream advection along the
+seeded canyon route. It is an explicitly routed surface visualization, not a
+claim to reconstruct the fluid velocity field from erosion data.

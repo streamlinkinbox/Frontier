@@ -51,6 +51,123 @@ export function MaterialEditor({
           </button>
         ))}
       </div>
+      <div className="environment-section material-rock-detail">
+        <SectionHeading>
+          <Layers3 size={14} />
+          Layered rock detail
+        </SectionHeading>
+        <div className="rock-detail-presets" aria-label="Rock noise presets">
+          <button
+            onClick={() =>
+              onChange({
+                rockRelief: 2,
+                rockNoiseScale: 0.8,
+                rockOctaves: 3,
+                rockRidges: 0.3,
+                rockLayerRelief: 1,
+              })
+            }
+          >
+            Subtle
+          </button>
+          <button
+            onClick={() =>
+              onChange({
+                rockRelief: 5.5,
+                rockNoiseScale: 0.55,
+                rockOctaves: 4,
+                rockRidges: 0.6,
+                rockLayerSpacing: 0.42,
+                rockLayerRelief: 2.8,
+                rockLayerWarp: 0.65,
+              })
+            }
+          >
+            Layered
+          </button>
+          <button
+            onClick={() =>
+              onChange({
+                rockRelief: 9,
+                rockNoiseScale: 0.38,
+                rockOctaves: 5,
+                rockRidges: 0.8,
+                rockLayerSpacing: 0.28,
+                rockLayerRelief: 3.8,
+                rockLayerWarp: 0.85,
+              })
+            }
+          >
+            Weathered
+          </button>
+        </div>
+        <Slider
+          label="Rock relief"
+          value={settings.rockRelief}
+          min={0}
+          max={15}
+          step={0.5}
+          format={(v) => `${v.toFixed(1)} cm`}
+          onChange={(v) => set("rockRelief", v)}
+          help="Centimeter-scale domain-warped rock relief. Shading detail, not a change to the voxel volume."
+        />
+        <Slider
+          label="Noise scale"
+          value={settings.rockNoiseScale}
+          min={0.1}
+          max={2}
+          step={0.05}
+          format={(v) => `${v.toFixed(2)} m`}
+          onChange={(v) => set("rockNoiseScale", v)}
+        />
+        <Slider
+          label="Layer spacing"
+          value={settings.rockLayerSpacing}
+          min={0.08}
+          max={2}
+          step={0.02}
+          format={(v) => `${v.toFixed(2)} m`}
+          onChange={(v) => set("rockLayerSpacing", v)}
+          disabled={!sedimentary}
+        />
+        <Slider
+          label="Layer relief"
+          value={settings.rockLayerRelief}
+          min={0}
+          max={8}
+          step={0.2}
+          format={(v) => `${v.toFixed(1)} cm`}
+          onChange={(v) => set("rockLayerRelief", v)}
+          disabled={!sedimentary}
+        />
+        <details className="process-details">
+          <summary>Noise shaping</summary>
+          <Slider
+            label="Noise octaves"
+            value={settings.rockOctaves}
+            min={1}
+            max={5}
+            step={1}
+            format={(v) => String(v)}
+            onChange={(v) => set("rockOctaves", v)}
+          />
+          <Slider
+            label="Ridge strength"
+            value={settings.rockRidges}
+            onChange={(v) => set("rockRidges", v)}
+          />
+          <Slider
+            label="Layer warp"
+            value={settings.rockLayerWarp}
+            onChange={(v) => set("rockLayerWarp", v)}
+          />
+        </details>
+        <p className="material-scale-note">
+          Broad rock relief, broken strata and fine grain are separate scales.
+          Switch to Clay to see which features are shader relief versus saved
+          geometry.
+        </p>
+      </div>
       <div className="environment-section material-surface-controls">
         <SectionHeading
           detail={
@@ -98,7 +215,7 @@ export function MaterialEditor({
           help="Physical grain/crystal size. Unresolved grains average into the material rather than becoming large spots."
         />
         <Slider
-          label="Surface relief"
+          label="Micro relief"
           value={settings.materialRelief}
           min={0}
           max={8}

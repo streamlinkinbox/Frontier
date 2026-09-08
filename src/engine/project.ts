@@ -90,6 +90,14 @@ export function validateSettings(raw: unknown): Settings {
     ["waterCurrent", 0, 2.5],
     ["waterDirection", 0, 360],
     ["waterRippleScale", 0.5, 4],
+    ["waterStreaks", 0, 1],
+    ["rockRelief", 0, 15],
+    ["rockNoiseScale", 0.1, 2],
+    ["rockOctaves", 1, 5],
+    ["rockRidges", 0, 1],
+    ["rockLayerSpacing", 0.08, 2],
+    ["rockLayerRelief", 0, 8],
+    ["rockLayerWarp", 0, 1],
   ] as const) {
     const value = input[key];
     if (value === undefined) continue;
@@ -102,6 +110,21 @@ export function validateSettings(raw: unknown): Settings {
       throw new Error(`Invalid project setting: ${key}.`);
     settings[key] = value;
   }
+  if (input.waterFlowMode !== undefined) {
+    if (
+      input.waterFlowMode !== "channel" &&
+      input.waterFlowMode !== "directional"
+    )
+      throw new Error("Invalid water flow mode.");
+    settings.waterFlowMode = input.waterFlowMode;
+  }
+  if (input.waterReverse !== undefined) {
+    if (typeof input.waterReverse !== "boolean")
+      throw new Error("Invalid reverse flow option.");
+    settings.waterReverse = input.waterReverse;
+  }
+  if (!Number.isInteger(settings.rockOctaves))
+    throw new Error("Invalid rock detail octave count.");
   if (input.material !== undefined) {
     if (
       !["sandstone", "limestone", "granite", "basalt"].includes(

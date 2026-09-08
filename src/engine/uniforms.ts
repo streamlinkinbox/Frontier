@@ -1,6 +1,7 @@
+import { channelArcTable, followsChannel } from "./flowRoute";
 import { MATERIAL_IDS, colorToLinear } from "./materials";
 import { TOOL_IDS, type FrameState, type VolumeSize } from "./types";
-export const UNIFORM_FLOATS = 100;
+export const UNIFORM_FLOATS = 144;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   const s = f.settings;
@@ -61,7 +62,8 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
   a.set([s.materialIOR, s.materialMoisture, 0, 0], 84);
   a.set([...colorToLinear(s.materialColor), 1], 88);
   a.set([s.waterAbsorption, s.waterFoam, 0, 0], 92);
-  const flowAngle = (s.waterDirection * Math.PI) / 180;
+  const flowAngle =
+    ((s.waterDirection + (s.waterReverse ? 180 : 0)) * Math.PI) / 180;
   a.set(
     [
       s.waterCurrent,
@@ -70,6 +72,19 @@ export function packUniforms(f: FrameState, size: VolumeSize): Float32Array {
       Math.sin(flowAngle),
     ],
     96,
+  );
+  a.set(
+    [followsChannel(s) ? 1 : 0, s.waterReverse ? 1 : -1, s.waterStreaks, 0],
+    100,
+  );
+  a.set(channelArcTable(s.seed), 104);
+  a.set(
+    [s.rockRelief * 0.01, s.rockNoiseScale, s.rockOctaves, s.rockRidges],
+    136,
+  );
+  a.set(
+    [s.rockLayerSpacing, s.rockLayerRelief * 0.01, s.rockLayerWarp, 0],
+    140,
   );
   return a;
 }

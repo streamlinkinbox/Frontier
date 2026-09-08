@@ -417,6 +417,8 @@ export default function App() {
       if (e.key.toLowerCase() === "u") chooseTool("crevice");
       if (e.key.toLowerCase() === "o") chooseTool("boulder");
       if (e.key.toLowerCase() === "f") engine.current?.resetCamera();
+      if (e.key === "1") engine.current?.setNavigation("orbit");
+      if (e.key === "2") engine.current?.setNavigation("fly");
       if (e.key.toLowerCase() === "g")
         update("grid", !settingsRef.current.grid);
       if (e.key === "[" || e.key === "]")
@@ -1045,7 +1047,7 @@ export default function App() {
               </div>
               <div className="active-brush-description">
                 {TOOL_LIST.find((t) => t.id === tool)?.description ??
-                  "Orbit, pan or fly through the volume."}
+                  "Choose Orbit (1) or Fly (2) in Camera controls."}
               </div>
               <fieldset disabled={disabled}>
                 {tool === "flatten" && (
@@ -1133,7 +1135,7 @@ export default function App() {
                 <span>
                   {tool === "orbit"
                     ? "Choose a brush to sculpt in 3D."
-                    : "Left-drag to sculpt. Right-drag to look. WASD to fly."}
+                    : "Left-drag sculpts. Select Fly (2) for RMB look and WASD/QE."}
                 </span>
               </div>
             </div>
@@ -1214,34 +1216,58 @@ export default function App() {
                 <Menu
                   className="viewport-menu"
                   align="left"
-                  icon={<Box size={14} />}
+                  icon={
+                    stats.navigationMode === "fly" ? (
+                      <Navigation size={14} />
+                    ) : (
+                      <Box size={14} />
+                    )
+                  }
+                  ariaLabel="Camera controls"
                   label={
                     stats.navigationMode === "fly"
                       ? "Fly camera"
-                      : "Perspective"
+                      : "Orbit camera"
                   }
                 >
                   {(close) => (
                     <>
+                      <div className="menu-label">
+                        CAMERA MODE · EXPLICIT SELECTION
+                      </div>
                       <MenuItem
                         icon={<Box size={14} />}
+                        active={stats.navigationMode !== "fly"}
+                        description="Drag to orbit · middle drag to pan · wheel zooms"
                         onClick={() => {
                           close();
-                          engine.current?.resetCamera();
+                          engine.current?.setNavigation("orbit");
                         }}
                       >
-                        Perspective view
+                        Orbit camera <kbd>1</kbd>
                       </MenuItem>
                       <MenuItem
                         icon={<Navigation size={14} />}
                         active={stats.navigationMode === "fly"}
-                        description="RMB look · WASD · Q/E down/up"
+                        description="RMB look · WASD/QE move · wheel adjusts speed"
                         onClick={() => {
                           close();
                           engine.current?.setNavigation("fly");
                         }}
                       >
-                        Fly camera
+                        Fly camera <kbd>2</kbd>
+                      </MenuItem>
+                      <div className="menu-label">
+                        FRAME VIEW · KEEPS CAMERA MODE
+                      </div>
+                      <MenuItem
+                        icon={<Maximize size={14} />}
+                        onClick={() => {
+                          close();
+                          engine.current?.resetCamera();
+                        }}
+                      >
+                        Frame terrain <kbd>F</kbd>
                       </MenuItem>
                       <MenuItem
                         icon={<Grid2X2 size={14} />}
@@ -1255,6 +1281,7 @@ export default function App() {
                       <div className="camera-settings">
                         <Slider
                           label="Fly speed"
+                          disabled={stats.navigationMode !== "fly"}
                           value={stats.cameraSpeed ?? 10}
                           min={0.25}
                           max={80}
@@ -1263,7 +1290,8 @@ export default function App() {
                           onChange={(v) => engine.current?.setCameraSpeed(v)}
                         />
                         <p>
-                          Hold Shift for 3× speed. RMB + wheel adjusts speed.
+                          Fly mode: hold Shift for 3× speed; wheel changes speed
+                          without moving the camera. Orbit ignores WASD/QE.
                         </p>
                       </div>
                     </>
@@ -1474,9 +1502,7 @@ export default function App() {
                     ? "Original volume"
                     : stats.running
                       ? "Erosion in progress"
-                      : stats.navigationMode === "fly"
-                        ? "Fly camera"
-                        : "Live viewport"}
+                      : "Live viewport"}
                 </span>
                 <i />
                 {stats.steps.toLocaleString()}
@@ -1484,7 +1510,7 @@ export default function App() {
               </div>
               <div
                 className="scale-indicator"
-                title="10 meters at the camera focus plane"
+                title={`${stats.scaleMeters ?? 10} meters at the camera focus plane`}
               >
                 <span>{stats.scaleMeters ?? 10} m</span>
                 <i style={{ width: stats.scalePixels || 48 }} />
@@ -1560,11 +1586,13 @@ export default function App() {
             )}
           </div>
           <div className="viewport-help">
-            <span title="Left-drag or Alt-drag orbits. Right-drag looks around from your position. Click the viewport to focus keyboard input.">
+            <span>
               <Navigation size={12} />
-              <b>RMB + WASD</b> fly<span className="dot-separator">·</span>
-              <b>Q / E</b> down / up<span className="dot-separator">·</span>
-              <b>Shift</b> boost
+              <b>{stats.navigationMode === "fly" ? "FLY" : "ORBIT"}</b>
+              <span className="dot-separator">·</span>
+              {stats.navigationMode === "fly"
+                ? "RMB look · WASD / QE move · wheel speed"
+                : "Drag rotate · middle drag pan · wheel zoom"}
             </span>
             <button onClick={() => setGuide(true)} title="Keyboard shortcuts">
               <Keyboard size={14} />

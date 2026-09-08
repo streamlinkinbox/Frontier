@@ -27,6 +27,44 @@ fn materialFootprint(p:vec3f,n:vec3f) -> f32 {
 fn featureWeight(footprint:f32,size:f32) -> f32 {return 1.-smoothstep(.15,.75,footprint/max(size,.00001));}
 fn grainPoint(p:vec3f) -> vec3f {return vec3f(p.x*.8+p.z*.6,p.y,-p.x*.6+p.z*.8);}
 fn grainGradient(g:vec3f) -> vec3f {return vec3f(g.x*.8-g.z*.6,g.y,g.x*.6+g.z*.8);}
+// Centimeter-scale rock structure above the existing millimeter grain model.
+// Matched CPU reference: surfaceDetail.ts. No color/noise animation or SDF edit.
+fn layeredRock(p:vec3f,footprint:f32) -> vec4f {
+  if(u.rockDetail.x==0.&&(u.rockLayers.y==0.||u.material.x>1.5)){return vec4f(0.);}
+  let warp:vec4f=noiseGradient(p*.115+vec3f(u.flags.z*.002,7.9,3.1));
+  let strength:f32=.35+.4*u.rockLayers.z;let c:vec3f=vec3f(.7,.17,.45)*strength;
+  let q:vec3f=grainPoint(p)+warp.x*c;
+  var height:f32=0.;var gradient:vec3f=vec3f(0.);var weight:f32=.5;var frequency:f32=1.;var total:f32=0.;
+  for(var i:i32=0;i<5;i++){
+    if(i>=i32(u.rockDetail.z)){break;}
+    total+=weight;
+    let f:f32=frequency/u.rockDetail.y;let w:f32=weight*featureWeight(footprint,u.rockDetail.y/frequency);
+    if(w>0.){
+      let point:vec3f=q*vec3f(f,f*1.3,f)+vec3f(f32(i)*4.31,-f32(i)*7.17,f32(i)*11.63);
+      let value:vec4f=noiseGradient(point);let absolute:f32=sqrt(value.x*value.x+.015);
+      let shaped:f32=value.x*(1.-u.rockDetail.w)+(.55-absolute)*1.5*u.rockDetail.w;
+      let derivative:f32=(1.-u.rockDetail.w)-1.5*u.rockDetail.w*value.x/absolute;
+      height+=shaped*w;gradient+=value.yzw*vec3f(f,f*1.3,f)*derivative*w;
+    }
+    frequency*=2.07;weight*=.5;
+  }
+  let amplitude:f32=u.rockDetail.x/max(total,.5);
+  height*=amplitude;gradient*=amplitude;
+  var g:vec3f=grainGradient(gradient)+warp.yzw*.115*dot(gradient,c);
+  if(u.material.x<1.5&&u.rockLayers.y>0.){
+    let k:f32=6.2831853/u.rockLayers.x;let w:f32=featureWeight(footprint,u.rockLayers.x*.35);
+    let band:vec4f=noiseGradient(p*vec3f(.65,.12,.65)+vec3f(13.1,u.flags.z*.001,19.3));
+    let level:f32=p.y+p.x*.025+p.z*.017+warp.x*u.rockLayers.z*.8;
+    let gp:vec3f=(vec3f(.025,1.,.017)+warp.yzw*.115*u.rockLayers.z*.8)*k+band.yzw*vec3f(.65,.12,.65)*u.rockLayers.z*.7;
+    let phase:f32=level*k+band.x*u.rockLayers.z*.7;let second:f32=phase*2.07+band.x*.4;
+    let wave:f32=sin(phase)+.25*sin(second);let t:f32=clamp((wave+.25)/1.1,0.,1.);
+    let a:f32=u.rockLayers.y*w;let derivativeScale:f32=6.*t*(1.-t)/1.1*a;
+    let d:f32=cos(phase)+.25*2.07*cos(second);let extra:f32=.25*cos(second)*.4;
+    height+=(t*t*(3.-2.*t)-.5)*a;
+    g+=(gp*d+band.yzw*vec3f(.65,.12,.65)*extra)*derivativeScale;
+  }
+  return vec4f(height,g);
+}
 fn materialMacroColor(p:vec3f,n:vec3f,displacement:f32) -> vec3f {
   let q:vec3f=p/u.materialShape.x;
   let broad:f32=noise(q*vec3f(.31,.17,.31)+vec3f(u.flags.z*.003,0,0));
@@ -105,11 +143,11 @@ fn sampleMaterial(p:vec3f,n:vec3f,footprint:f32) -> vec4f {
   roughness=sqrt(roughness*roughness+(1.-grainWeight)*.008+(1.-poreWeight)*u.materialShape.z*.025);
   return vec4f(clamp(color,vec3f(.008),vec3f(.85)),clamp(roughness,.12,1.));
 }
-fn materialNormal(p:vec3f,n:vec3f,footprint:f32) -> vec3f {
-  if(u.flags.w<=0.||u.material.w<=0.){return n;}
+fn materialNormal(p:vec3f,n:vec3f,footprint:f32,structure:vec4f) -> vec3f {
+  if(u.flags.w<=0.){return n;}
   let q:vec3f=grainPoint(p)+vec3f(u.flags.z*.001,3.1,7.7);
   let poreSize:f32=materialPoreSize();let poreWeight:f32=featureWeight(footprint,poreSize);
-  var gradient:vec3f=vec3f(0.);
+  var gradient:vec3f=structure.yzw;
   if(poreWeight>.01&&u.materialShape.z>0.){
     let pore:vec4f=noiseGradient(q/poreSize);
     let threshold:f32=mix(.92,.25,u.materialShape.z);
@@ -133,7 +171,7 @@ fn materialNormal(p:vec3f,n:vec3f,footprint:f32) -> vec3f {
     gradient+=grainGradient(meso.yzw)/mesoSize*u.material.w*.25*mesoWeight;
   }
   gradient-=n*dot(n,gradient);
-  gradient*=u.flags.w/max(1.,length(gradient)/.55);
+  gradient*=u.flags.w/max(1.,length(gradient)/1.2);
   return safeNormalize(n-gradient);
 }
 fn dielectricF0(ior:f32) -> f32 {let f:f32=(ior-1.)/(ior+1.);return f*f;}

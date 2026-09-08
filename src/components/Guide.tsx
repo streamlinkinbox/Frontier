@@ -81,12 +81,11 @@ export function Guide({ onClose }: { onClose: () => void }) {
           <MousePointer2 />
           <h4>01 / Find your angle</h4>
           <p>
-            Right-drag looks around from your position. Use WASD to fly, Q/E to
-            move down/up, and Shift for a 3× speed boost. RMB + wheel adjusts
-            fly speed. Left-drag or Alt-drag orbits; middle-drag pans. F returns
-            to the overview. Click the viewport to focus the keys. L selects
-            planar Flatten; R keeps the old Ridges effect. K / U / O select
-            Cracks, Crevice, and Boulder.
+            Select Orbit (1) to rotate/pan/zoom around the scene. Select Fly (2)
+            for right-drag look, WASD/QE movement and wheel speed control.
+            Neither mode switches itself when you drag or press movement keys. F
+            frames the terrain while keeping the selected mode. Click the
+            viewport to focus input.
           </p>
         </article>
         <article>
@@ -124,7 +123,8 @@ export function Guide({ onClose }: { onClose: () => void }) {
         </h4>
         <div>
           {[
-            ["W A S D", "Fly / strafe"],
+            ["1 / 2", "Orbit / Fly mode"],
+            ["W A S D", "Fly / strafe (Fly mode)"],
             ["Q / E", "Down / up"],
             ["RMB", "Free look"],
             ["Shift", "3× fly speed"],

@@ -1,4 +1,4 @@
-import { Slider } from "./Controls";
+import { Slider, Toggle } from "./Controls";
 import type { Settings } from "../engine/types";
 
 export function RiverControls({
@@ -8,9 +8,46 @@ export function RiverControls({
   settings: Settings;
   onChange: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
 }) {
+  const channel =
+    settings.waterFlowMode === "channel" && settings.preset === "canyon";
   return (
     <details className="process-details river-controls" open>
-      <summary>Current & ripple shape</summary>
+      <summary>Downstream current</summary>
+      <div
+        className="river-route-controls"
+        role="group"
+        aria-label="River flow route"
+      >
+        <button
+          aria-pressed={channel}
+          disabled={!settings.water || settings.preset !== "canyon"}
+          onClick={() => onChange("waterFlowMode", "channel")}
+        >
+          Follow canyon
+        </button>
+        <button
+          aria-pressed={!channel}
+          disabled={!settings.water}
+          onClick={() => onChange("waterFlowMode", "directional")}
+        >
+          Compass heading
+        </button>
+      </div>
+      <div className="downstream-label">
+        {settings.waterFlowMode === "channel" && settings.preset === "canyon"
+          ? settings.waterReverse
+            ? "Downstream: −Z → +Z, along the canyon"
+            : "Downstream: +Z → −Z, along the canyon"
+          : "Direction follows the compass heading below"}
+      </div>
+      <div className="simple-toggle-row">
+        <span>Reverse current</span>
+        <Toggle
+          label="Reverse downstream current"
+          checked={settings.waterReverse}
+          onChange={(v) => onChange("waterReverse", v)}
+        />
+      </div>
       <Slider
         label="Current speed"
         value={settings.waterCurrent}
@@ -30,8 +67,11 @@ export function RiverControls({
         step={5}
         format={(v) => `${v}°`}
         onChange={(v) => onChange("waterDirection", v)}
-        disabled={!settings.water}
-        help="Surface flow direction: 0° follows +X and 90° follows +Z."
+        disabled={
+          !settings.water ||
+          (settings.waterFlowMode === "channel" && settings.preset === "canyon")
+        }
+        help="Compass mode: 0° follows +X and 90° follows +Z. Channel mode follows the seeded canyon."
       />
       <Slider
         label="Ripple scale"
@@ -44,9 +84,17 @@ export function RiverControls({
         disabled={!settings.water}
         help="World-space ripple size. The field is warped and advected, not a repeating texture tile."
       />
+      <Slider
+        label="Current streaks"
+        value={settings.waterStreaks}
+        onChange={(v) => onChange("waterStreaks", v)}
+        disabled={!settings.water}
+        help="Visible foam traces move downstream at the selected current speed."
+      />
       <p>
-        Non-repeating surface flow. Wind adds smaller ripples; current carries
-        the larger patterns.
+        Channel flow follows the seeded canyon's bends. Use compass mode for
+        custom sculpted courses. Ripples and foam are advected surface detail,
+        not a fluid-volume solve.
       </p>
     </details>
   );

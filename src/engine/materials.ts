@@ -25,6 +25,13 @@ export const MATERIAL_PRESETS: {
     | "materialWeathering"
     | "materialIOR"
     | "materialMoisture"
+    | "rockRelief"
+    | "rockNoiseScale"
+    | "rockOctaves"
+    | "rockRidges"
+    | "rockLayerSpacing"
+    | "rockLayerRelief"
+    | "rockLayerWarp"
   >;
 }[] = [
   {
@@ -42,6 +49,13 @@ export const MATERIAL_PRESETS: {
       materialWeathering: 0.28,
       materialIOR: 1.5,
       materialMoisture: 0,
+      rockRelief: 5.5,
+      rockNoiseScale: 0.55,
+      rockOctaves: 4,
+      rockRidges: 0.6,
+      rockLayerSpacing: 0.42,
+      rockLayerRelief: 2.8,
+      rockLayerWarp: 0.65,
     },
   },
   {
@@ -59,6 +73,13 @@ export const MATERIAL_PRESETS: {
       materialWeathering: 0.2,
       materialIOR: 1.5,
       materialMoisture: 0,
+      rockRelief: 4.5,
+      rockNoiseScale: 0.65,
+      rockOctaves: 4,
+      rockRidges: 0.4,
+      rockLayerSpacing: 0.65,
+      rockLayerRelief: 1.6,
+      rockLayerWarp: 0.75,
     },
   },
   {
@@ -76,6 +97,13 @@ export const MATERIAL_PRESETS: {
       materialWeathering: 0.15,
       materialIOR: 1.5,
       materialMoisture: 0,
+      rockRelief: 4,
+      rockNoiseScale: 0.32,
+      rockOctaves: 4,
+      rockRidges: 0.7,
+      rockLayerSpacing: 0.4,
+      rockLayerRelief: 0,
+      rockLayerWarp: 0.55,
     },
   },
   {
@@ -93,6 +121,13 @@ export const MATERIAL_PRESETS: {
       materialWeathering: 0.25,
       materialIOR: 1.5,
       materialMoisture: 0,
+      rockRelief: 5,
+      rockNoiseScale: 0.45,
+      rockOctaves: 5,
+      rockRidges: 0.75,
+      rockLayerSpacing: 0.4,
+      rockLayerRelief: 0,
+      rockLayerWarp: 0.7,
     },
   },
 ];

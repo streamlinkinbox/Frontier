@@ -64,11 +64,11 @@ describe("Unreal-style inspection camera", () => {
     expect(c.mode).toBe("fly");
     expect(c.basis(aspect).forward[2]).toBeCloseTo(-1);
     c.frame();
-    expect(c.mode).toBe("orbit");
+    expect(c.mode).toBe("fly");
     expect(c.distance).toBe(151);
     expect(c.target).toEqual([0, 7, 0]);
   });
-  it("RMB-wheel changes speed while ordinary wheel moves the camera", () => {
+  it("the wheel changes fly speed without dollying or changing camera mode", () => {
     const c = new EditorCamera();
     c.enterFly(aspect);
     const position = c.position;
@@ -76,6 +76,26 @@ describe("Unreal-style inspection camera", () => {
     expect(c.speed).toBeGreaterThan(10);
     expect(c.position).toEqual(position);
     c.wheel(-200, false, aspect);
-    expect(c.position).not.toEqual(position);
+    expect(c.position).toEqual(position);
+    expect(c.mode).toBe("fly");
   });
+});
+
+it("never switches modes as a side effect of look, orbit, or movement keys", () => {
+  const c = new EditorCamera(),
+    before = c.basis(aspect);
+  c.key("KeyW", true, aspect);
+  c.update(0.1, aspect);
+  c.look(100, 40, aspect);
+  expect(c.mode).toBe("orbit");
+  expect(c.basis(aspect)).toEqual(before);
+  c.enterFly(aspect);
+  const eye = [...c.position],
+    yaw = c.yaw;
+  c.orbit(100, 40, aspect);
+  expect(c.mode).toBe("fly");
+  expect(c.position).toEqual(eye);
+  expect(c.yaw).toBe(yaw);
+  c.enterOrbit(aspect);
+  expect(c.basis(aspect).eye).toEqual(eye);
 });
