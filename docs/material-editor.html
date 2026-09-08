@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111718" />
+    <meta
+      name="description"
+      content="Frontier SDF material editor: an organic stone with geometric cracks, pores, bedding and grain. SatMaps supply color only."
+    />
+    <title>Material Editor — Frontier</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <style>
+      body {
+        margin: 0;
+        background: #111718;
+        color: #d7e2dd;
+        font: 14px/1.6 system-ui;
+      }
+      #material-boot {
+        padding: 48px;
+        max-width: 620px;
+      }
+      #material-boot h1 {
+        font-size: 26px;
+        font-weight: 500;
+      }
+    </style>
+    <script>
+      (() => {
+        if (
+          document
+            .querySelector('link[rel="icon"]')
+            .getAttribute("href")
+            .startsWith("%")
+        ) {
+          const target = new URL("./docs/material-editor.html", location.href);
+          target.search = location.search;
+          target.hash = location.hash;
+          location.replace(target.href);
+          return;
+        }
+        const explain = () => {
+          const el = document.getElementById("material-boot-message");
+          if (el)
+            el.textContent =
+              "The material editor could not load. Reload, or check that Pages serves the compiled /docs build.";
+        };
+        window.addEventListener("error", explain, true);
+        window.addEventListener("unhandledrejection", explain);
+        setTimeout(explain, 15000);
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/material-editor-B5u0P5v_.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/preload-helper-mg6Z-sIv.js">
+  </head>
+  <body>
+    <div id="material-root">
+      <main id="material-boot">
+        <h1>Frontier · Material editor</h1>
+        <p id="material-boot-message">Preparing the SDF specimen…</p>
+      </main>
+    </div>
+    <noscript
+      >This editor needs JavaScript and WebGL2 graphics acceleration.</noscript
+    >
+  </body>
+</html>

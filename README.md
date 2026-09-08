@@ -2,6 +2,27 @@
 
 A working, local-first terrain workbench for a **bounded, volumetric SDF**, built with TypeScript, React, and native WebGPU. The terrain is actual 3D geometry, not a heightmap, a photograph, or a textured plane.
 
+## SDF material editor · v0.11.0
+
+Open **`material-editor.html`** (or the new link in Materials) for a separate,
+small-stone experiment. `npm run dev:material` opens this page directly; normal
+`npm run dev` still opens the terrain workbench.
+
+- Six organic-stone recipes: sandstone, basalt, granite, slate, limestone and
+  river-worn stone.
+- Chips, shell-limited cracks, interrupted bedding, spherical pores and fine grain
+  **modify the signed field and actual ray-hit surface**, not an image normal map.
+- All 100 SatMaps supply **color only**. No source-photo detail, image displacement
+  or normal textures are used in this lab.
+- Orbit/zoom, smooth/detail comparison, Clay/Albedo/Normals/Relief/Silhouette/Steps
+  views, geometric LOD, lighting, local recipe save/import/export and PNG capture.
+- The main terrain's geometry, rendering and simulation are not changed by this
+  experiment. Integrating millimeter SDF detail there remains a separate task.
+
+See [method, controls and numerical limits](public/research/sdf-stone-materials.md).
+This is a procedural visual prototype, not a measured rock scan or a guarantee of
+unlimited-resolution geometry or a particular GTX frame rate.
+
 ## 100-map SatMap library · v0.10.0
 
 **Materials → SatMaps** now contains **100 built-in CLUTs** across Desert (10),
@@ -68,6 +89,7 @@ millisecond budgets are still **targets, not measured performance claims**.
 ```sh
 npm ci
 npm run dev
+# or: npm run dev:material  # separate SDF stone material editor
 ```
 
 Open the URL printed by Vite. The development server binds to `0.0.0.0` and accepts Arena's `*.e2b.app` preview hosts. Everything runs in the browser; no backend, API key, external asset service, or remote texture request is required.

@@ -44,6 +44,19 @@ export async function checkPages(directory) {
   };
   for (const [, url] of html.matchAll(/(?:src|href)="([^"%]+)"/g))
     await checkReference(url, resolve(root, "index.html"));
+  const editorPath = resolve(root, "material-editor.html");
+  const editor = await readFile(editorPath, "utf8");
+  assert(
+    editor.includes('src="./assets/'),
+    "Material editor must use compiled relative assets.",
+  );
+  assert(
+    !editor.includes("/src/material-lab/main.tsx") &&
+      !editor.includes("%BASE_URL%"),
+    "Material editor HTML was not compiled.",
+  );
+  for (const [, url] of editor.matchAll(/(?:src|href)="([^"%]+)"/g))
+    await checkReference(url, editorPath);
   for (const file of files.filter((f) => f.endsWith(".css"))) {
     const path = resolve(root, "assets", file);
     const css = await readFile(path, "utf8");
@@ -57,8 +70,9 @@ export async function checkPages(directory) {
   await stat(resolve(root, "research", "satellite-texturing.md"));
   await stat(resolve(root, "research", "foam-implementation.md"));
   await stat(resolve(root, "research", "satmap-library.md"));
+  await stat(resolve(root, "research", "sdf-stone-materials.md"));
   console.log(
-    `Pages build verified: ${checked} local asset references, worker, three terrains and four satellite sources.`,
+    `Pages build verified: ${checked} local asset references, two HTML entries, worker, three terrains and four satellite sources.`,
   );
 }
 

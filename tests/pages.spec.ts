@@ -150,3 +150,44 @@ test("a missing application bundle gets an explanation instead of an empty page"
   );
   await expect(page.getByRole("button", { name: "Reload page" })).toBeVisible();
 });
+
+test("compiled material-editor HTML is independent and works under nested static hosting", async ({
+  page,
+  request,
+}, info) => {
+  const failures: string[] = [],
+    errors: string[] = [];
+  page.on("response", (response) => {
+    if (response.status() >= 400) failures.push(response.url());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./material-editor.html?quality=draft");
+  await expect(page).toHaveTitle("Material Editor — Frontier");
+  await expect(page.locator(".lab-loading")).toHaveCount(0);
+  await expect(page.locator(".lab-error")).toHaveCount(0);
+  expect(
+    await page.evaluate(() => (window as any).__materialLab),
+  ).toBeUndefined();
+  expect(await page.evaluate(() => window.__frontier)).toBeUndefined();
+  const suffix = info.project.name === "root-source-recovery" ? "docs/" : "";
+  await expect(page).toHaveURL(
+    new RegExp(`/Frontier/${suffix}material-editor\\.html\\?quality=draft$`),
+  );
+  expect(
+    (
+      await request.get(
+        new URL("research/sdf-stone-materials.md", page.url()).href,
+      )
+    ).status(),
+  ).toBe(200);
+  await page.getByRole("button", { name: "Silhouette", exact: true }).click();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export PNG", exact: true }).click();
+  const png = PNG.sync.read(await readFile((await (await pending).path())!));
+  let hits = 0;
+  for (let i = 0; i < png.data.length; i += 4) if (png.data[i] > 200) hits++;
+  expect(hits).toBeGreaterThan(png.width * png.height * 0.05);
+  expect(hits).toBeLessThan(png.width * png.height * 0.85);
+  expect(failures).toEqual([]);
+  expect(errors).toEqual([]);
+});

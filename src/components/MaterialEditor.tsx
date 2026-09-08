@@ -335,6 +335,14 @@ export function MaterialEditor({
         <h2>Terrain texturing</h2>
         <p>Real-world palettes. Shaped by your terrain.</p>
       </div>
+      <a
+        className="material-research-link"
+        href={`${import.meta.env.BASE_URL}material-editor.html`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Test geometric rock detail in the SDF material editor ↗
+      </a>
       <div
         className="texture-mode"
         role="group"

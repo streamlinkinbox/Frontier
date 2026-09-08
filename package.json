@@ -1,7 +1,7 @@
 {
   "name": "frontier-terrain-lab",
   "private": true,
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -13,7 +13,8 @@
     "publish:pages": "npm run build:pages && node scripts/publish-pages.mjs",
     "check:pages": "node scripts/check-pages.mjs",
     "test:pages": "npm run publish:pages && playwright test --config=playwright.pages.config.ts",
-    "build:satmaps": "node --experimental-strip-types scripts/build-satmaps.mjs"
+    "build:satmaps": "node --experimental-strip-types scripts/build-satmaps.mjs",
+    "dev:material": "vite --mode material-lab --host 0.0.0.0"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
