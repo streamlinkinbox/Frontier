@@ -1,4 +1,4 @@
-# SDF stone material editor · Frontier 0.11
+# SDF stone material editor · Frontier 0.12
 
 ## Open the separate experiment
 
@@ -15,9 +15,9 @@ The base is a bounded ellipsoidal distance estimator intersected with softened f
 The detail stack modifies the field's zero surface:
 
 1. **Chipped relief:** signed, multi-scale 3D displacement gives broken faces and an irregular contour.
-2. **Bedding:** tilted, warped, spatially interrupted strata make small ledges rather than uniformly wrapping rings. The relief is geometric; a separate pigment stripe is not used to fake it.
-3. **Cracks:** warped, interrupted slab voids are subtracted with CSG and limited to a shallow shell. Aperture, depth and spacing are independent controls.
-4. **Pores:** seeded spherical voids at jittered 3D lattice vertices are subtracted from the stone. Coverage controls their population; spacing controls the aggregate scale. These are geometric cavities, not dark painted dots.
+2. **Bedding / slate:** ordered, jittered layer boundaries give unequal sheet thickness. Each sheet has its own displacement and spalling pattern, with narrow, variable-width linear transitions and partly missing edges. This replaces the old sinusoidal ribs with flatter, broken cleavage ledges. **Sheet breakup** controls the per-sheet damage; the material color is not used to draw layers.
+3. **Cracks:** a deterministic network of up to **56 finite 3D segments** is projected onto the organic base. Parent paths have correlated direction changes; forks share existing vertices and taper toward their tips. SDF slit cutters have a depth profile plus irregular flared/chipped mouths. They are shell-limited relative to the **already-detailed substrate**, not the original smooth form, so ledges do not erase their lips. **Crack branching** and **Fracture edge chipping** are independent controls. Spacing changes network density and reach within the fixed segment budget; it is an art control, not an exact uniform interval.
+4. **Pores:** the original seeded centers/population remain, but **Pore irregularity** changes spherical cuts into randomly rotated, anisotropic superellipsoids joined to secondary lobes, with gently uneven walls. This makes oval, asymmetric and merged vesicles rather than only circles. Zero irregularity returns to round cavities. These are geometric cuts, not dark painted dots.
 5. **Grain:** fine 3D displacement bands also change the field. Bands smaller than the current pixel footprint fade out rather than being enlarged into visible blobs.
 
 Normals are finite differences of the **same effective field used for ray intersection**. This is not the main terrain editor's legacy shader-normal relief. Clay and Silhouette views provide direct visual checks independent of the SatMap coloring.
@@ -43,7 +43,7 @@ A displayed footprint of 2 mm cannot faithfully resolve a 0.5 mm feature. Draft,
 
 ## Important numerical limits
 
-After displacement and CSG, the function is a **distance estimator**, not a globally exact Euclidean signed-distance function. Tracing uses a conservative outer envelope, gradient-based step bounds and a narrow detail band; sign crossings are refined by bisection. There is still a bounded number of steps. Very narrow fissures, grazing views or extreme combinations of controls can require more work or exhaust that budget.
+After displacement and CSG, the function is a **distance estimator**, not a globally exact Euclidean signed-distance function. Tracing uses an outer envelope, separate component gradient bounds for the displaced substrate, fractures and pores, and a narrow detail band. Verified over-relaxation accepts a longer step only after checking that consecutive empty bounds overlap; otherwise it backtracks before accepting a hit. Sign crossings are refined by bisection. There is still a bounded number of steps. Very narrow fissures, grazing views or extreme combinations of controls can require more work or exhaust that budget.
 
 The effective field is band-limited by a frame-wide world-space pixel footprint. Consequently, unresolved geometry is intentionally simplified when zooming out or lowering preview quality. It is not a view-independent mesh at unlimited microscopic resolution.
 
@@ -60,17 +60,20 @@ There is no stone mesh export in this experiment. A future mesh bake would need 
 ## Save and deployment
 
 - **Save** writes a recipe to the separate browser key `frontier.sdf-material-lab.v1`. It never overwrites a terrain project.
-- **Export recipe** downloads compact, versioned parameter JSON. **Import recipe** validates the format, all numerical bounds, booleans, quality/view and registered palette ID. Files over 64 KB are rejected. Recipes contain no executable shader text or external asset URLs.
+- **Export recipe** downloads compact, versioned parameter JSON (v2). Version-1 recipes still load: their original numeric controls are preserved and the four new structure controls receive defaults. The refined geometry algorithms intentionally change the older appearance. **Import recipe** validates the format, all numerical bounds, booleans, quality/view and registered palette ID. Files over 64 KB are rejected. Recipes contain no executable shader text or external asset URLs.
 - **Export PNG** reads owned render pixels, not a recycled display surface, and supports the inspection views and comparison split.
 - Vite builds both `index.html` and `material-editor.html`. Both use relative assets in the Pages build. The second source HTML also recovers to `docs/material-editor.html` if a repository root is mistakenly published.
 
 ## Verification
 
 - CPU tests cover seeded noise, bounded form, disabled-detail identity, actual intersection changes, palette/geometry independence, finite geometric normals, detail filtering and strict recipe round trips.
-- A browser test compares GPU field samples with the CPU reference across all six specimens.
+- Browser tests compare GPU field samples with the CPU reference across all six specimens, including targeted branch junctions, deep cuts and organic pore walls.
+- Structure tests check ordered/nonuniform bed boundaries, flat sheet interiors, joined/tapered branches, finite support, flared mouths and asymmetric pore contours. Palette and lighting changes reuse the same cached fracture descriptors.
 - Image tests demonstrate changed hit silhouettes and changed clay surfaces when detail is enabled; changing only the SatMap preserves the silhouette.
 - Browser checks cover comparison, controls, recipe import/export, main-project storage isolation, mobile navigation and a missing-WebGL2 explanation.
 
 The development-only `window.__materialLab` hook supports these probes and is not published by the production build.
 
-**Implementation:** `src/material-lab/model.ts`, `field.ts`, `stone.glsl`, `shader.ts`, `renderer.ts`, `MaterialLab.tsx`; entry point `material-editor.html`.
+**Implementation:** `src/material-lab/model.ts`, `base.ts`, `field.ts`, `fractures.ts`, `structure.ts`, `stone.glsl`, `structure.glsl`, `shader.ts`, `renderer.ts`, `MaterialLab.tsx`; entry point `material-editor.html`.
+
+The fracture graph is generated on the CPU only when its seed/base/spacing/branching changes and uploaded as small uniform arrays, not as a texture or mesh. Per-frame shading and ray intersection still evaluate the 3D field on the GPU. This is procedural fracture geometry, not a stress-propagation or geological fracture-mechanics solver.

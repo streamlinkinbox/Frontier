@@ -1,9 +1,11 @@
+import { getFractureNetwork } from "./fractures";
 import { getBuiltinSatmap } from "../engine/satmaps/catalog";
 import { paletteRGBA } from "../engine/satmaps/pixels";
 import {
   LAB_VIEWS,
   clamp,
   detailEnvelope,
+  fieldBounds,
   slopeBound,
   type StoneSettings,
   type LabView,
@@ -43,6 +45,8 @@ export class StoneRenderer {
   private disposed = false;
   private lost = false;
   private paletteKey = "";
+  private crackKey = "";
+  private fractureSegments = 0;
   private width = 0;
   private height = 0;
   private yaw = 0.65;
@@ -233,6 +237,12 @@ export class StoneRenderer {
       "uDisplay",
       "uBounds",
       "uProbe",
+      "uStructure",
+      "uFieldBounds",
+      "uCrackA[0]",
+      "uCrackB[0]",
+      "uCrackN[0]",
+      "uCrackCount",
     ])
       this.locations.set(name, gl.getUniformLocation(this.program, name));
     this.palette = gl.createTexture()!;
@@ -259,6 +269,7 @@ export class StoneRenderer {
     this.framebuffer = gl.createFramebuffer()!;
     this.width = this.height = 0;
     this.paletteKey = "";
+    this.crackKey = "";
     this.fence = null;
     this.dirty = true;
   }
@@ -432,12 +443,32 @@ export class StoneRenderer {
       s.grainSize * 0.001,
       0,
     ]);
+    set("uStructure", [
+      s.layerBreakup,
+      s.crackBranching,
+      s.crackChipping,
+      s.poreIrregularity,
+    ]);
+    const bounds = fieldBounds(effective, this.footprint);
+    set("uFieldBounds", [bounds.substrate, bounds.fracture, bounds.pore, 0]);
+    const network = s.crackDepth > 0 ? getFractureNetwork(s) : null,
+      key = network?.key ?? "off";
+    if (key !== this.crackKey) {
+      this.crackKey = key;
+      this.fractureSegments = network?.segments.length ?? 0;
+      gl.uniform1i(this.locations.get("uCrackCount")!, this.fractureSegments);
+      if (network) {
+        gl.uniform4fv(this.locations.get("uCrackA[0]")!, network.a);
+        gl.uniform4fv(this.locations.get("uCrackB[0]")!, network.b);
+        gl.uniform4fv(this.locations.get("uCrackN[0]")!, network.normals);
+      }
+    }
     set("uMaterial", [s.roughness, s.contrast, s.bias, s.saturation]);
     set("uLight", [
       (s.sunAzimuth * Math.PI) / 180,
       (s.sunElevation * Math.PI) / 180,
       s.exposure,
-      { draft: 240, balanced: 340, closeup: 440 }[s.quality],
+      { draft: 300, balanced: 420, closeup: 600 }[s.quality],
     ]);
     set("uDisplay", [
       width,
@@ -570,6 +601,9 @@ export class StoneRenderer {
       footprint: this.footprint,
       draws: this.draws,
       materialTextures: 1,
+      fractureSegments: this.fractureSegments,
+      structure:
+        "irregular sheets / connected finite fractures / organic vesicles",
       texturePurpose: "256×1 color CLUT only",
       detailSource: "analytic 3D signed field",
       glError: this.gl.getError(),

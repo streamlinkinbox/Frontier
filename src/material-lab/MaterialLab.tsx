@@ -133,13 +133,17 @@ export default function MaterialLab() {
             "facets",
             "chips",
             "bedding",
+            "layerBreakup",
             "spacing",
             "tilt",
             "crackDepth",
             "crackWidth",
             "crackSpacing",
+            "crackBranching",
+            "crackChipping",
             "porosity",
             "poreSize",
+            "poreIrregularity",
             "grain",
             "grainSize",
             "palette",
@@ -711,6 +715,28 @@ export default function MaterialLab() {
               disabled={!settings.detail}
             />
             <ValueSlider
+              label="Crack branching"
+              value={settings.crackBranching}
+              min={0}
+              max={1}
+              step={0.01}
+              scale={100}
+              unit="%"
+              onChange={numeric("crackBranching")}
+              disabled={!settings.detail}
+            />
+            <ValueSlider
+              label="Fracture edge chipping"
+              value={settings.crackChipping}
+              min={0}
+              max={1}
+              step={0.01}
+              scale={100}
+              unit="%"
+              onChange={numeric("crackChipping")}
+              disabled={!settings.detail}
+            />
+            <ValueSlider
               label="Crack spacing"
               value={settings.crackSpacing}
               min={45}
@@ -745,6 +771,21 @@ export default function MaterialLab() {
               onChange={numeric("spacing")}
               disabled={!settings.detail}
             />
+            <ValueSlider
+              label="Sheet breakup"
+              value={settings.layerBreakup}
+              min={0}
+              max={1}
+              step={0.01}
+              scale={100}
+              unit="%"
+              onChange={numeric("layerBreakup")}
+              disabled={!settings.detail}
+            />
+            <p>
+              Uneven sheet thickness, chipped ledges and partial
+              delamination—not wrapping sine-wave ribs.
+            </p>
             <ValueSlider
               label="Bedding tilt"
               value={settings.tilt}
@@ -781,6 +822,21 @@ export default function MaterialLab() {
               onChange={numeric("poreSize")}
               disabled={!settings.detail}
             />
+            <ValueSlider
+              label="Pore irregularity"
+              value={settings.poreIrregularity}
+              min={0}
+              max={1}
+              step={0.01}
+              scale={100}
+              unit="%"
+              onChange={numeric("poreIrregularity")}
+              disabled={!settings.detail}
+            />
+            <p>
+              Rotated, elongated and joined vesicles with uneven walls. Zero
+              returns to round pores.
+            </p>
             <ValueSlider
               label="Grain relief"
               value={settings.grain}

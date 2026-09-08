@@ -19,13 +19,17 @@ export interface StoneSettings {
   facets: number;
   chips: number;
   bedding: number;
+  layerBreakup: number;
   spacing: number;
   tilt: number;
   crackDepth: number;
   crackWidth: number;
   crackSpacing: number;
+  crackBranching: number;
+  crackChipping: number;
   porosity: number;
   poreSize: number;
+  poreIrregularity: number;
   grain: number;
   grainSize: number;
   detail: boolean;
@@ -49,13 +53,17 @@ export const DEFAULT_STONE: StoneSettings = {
   facets: 0.55,
   chips: 7,
   bedding: 0.65,
+  layerBreakup: 0.65,
   spacing: 24,
   tilt: 14,
   crackDepth: 6,
   crackWidth: 1,
   crackSpacing: 110,
+  crackBranching: 0.7,
+  crackChipping: 0.65,
   porosity: 0.28,
   poreSize: 13,
+  poreIrregularity: 0.75,
   grain: 0.45,
   grainSize: 3,
   detail: true,
@@ -96,6 +104,7 @@ export const STONE_PRESETS = [
       bedding: 0,
       porosity: 0.9,
       poreSize: 20,
+      poreIrregularity: 0.9,
       grain: 0.32,
       grainSize: 2.6,
       crackDepth: 8,
@@ -129,21 +138,23 @@ export const STONE_PRESETS = [
     id: "slate",
     name: "Layered slate",
     category: "METAMORPHIC",
-    description: "Tilted cleavage, thin ledges, sharp splits.",
+    description: "Broken foliation, torn ledges and branching splits.",
     color: "#7a8496",
     values: {
       ...DEFAULT_STONE,
       palette: "quarry-slate",
       facets: 0.9,
       chips: 3,
-      bedding: 3.5,
-      spacing: 14,
+      bedding: 2.8,
+      spacing: 16,
+      layerBreakup: 0.9,
       tilt: 36,
       porosity: 0.04,
       grain: 0.16,
       grainSize: 1.4,
       crackDepth: 7,
-      crackWidth: 0.55,
+      crackWidth: 0.85,
+      crackChipping: 0.8,
       crackSpacing: 75,
       roughness: 0.7,
     },
@@ -204,13 +215,17 @@ export const STONE_RANGES = {
   facets: [0, 1],
   chips: [0, 12],
   bedding: [0, 6],
+  layerBreakup: [0, 1],
   spacing: [8, 60],
   tilt: [-70, 70],
   crackDepth: [0, 12],
   crackWidth: [0.2, 2],
   crackSpacing: [45, 180],
+  crackBranching: [0, 1],
+  crackChipping: [0, 1],
   porosity: [0, 1],
   poreSize: [6, 30],
+  poreIrregularity: [0, 1],
   grain: [0, 1.5],
   grainSize: [0.6, 6],
   contrast: [0.5, 2.5],
@@ -227,7 +242,7 @@ export function validateStoneRecipe(raw: unknown): StoneSettings {
     throw new Error("This is not a stone material recipe.");
   const record = raw as Record<string, unknown>;
   if (
-    record.version !== 1 ||
+    (record.version !== 1 && record.version !== 2) ||
     record.kind !== "frontier-sdf-stone" ||
     !record.settings ||
     typeof record.settings !== "object"
@@ -237,6 +252,17 @@ export function validateStoneRecipe(raw: unknown): StoneSettings {
     result = { ...DEFAULT_STONE };
   for (const [key, range] of Object.entries(STONE_RANGES)) {
     const value = input[key];
+    if (
+      record.version === 1 &&
+      value === undefined &&
+      [
+        "layerBreakup",
+        "crackBranching",
+        "crackChipping",
+        "poreIrregularity",
+      ].includes(key)
+    )
+      continue;
     if (
       typeof value !== "number" ||
       !Number.isFinite(value) ||
@@ -265,7 +291,7 @@ export function validateStoneRecipe(raw: unknown): StoneSettings {
   return result;
 }
 export const encodeStoneRecipe = (settings: StoneSettings) =>
-  JSON.stringify({ kind: "frontier-sdf-stone", version: 1, settings }, null, 2);
+  JSON.stringify({ kind: "frontier-sdf-stone", version: 2, settings }, null, 2);
 export const clamp = (v: number, a: number, b: number) =>
   Math.max(a, Math.min(b, v));
 export function detailWeight(footprint: number, size: number) {
@@ -275,33 +301,59 @@ export function detailWeight(footprint: number, size: number) {
 export function detailEnvelope(s: StoneSettings, fp: number) {
   return s.detail
     ? (s.chips * detailWeight(fp, 0.018) +
-        s.bedding * 0.73 * detailWeight(fp, s.spacing * 0.0005) +
+        s.bedding * 1.3 * detailWeight(fp, s.spacing * 0.0005) +
         s.grain *
           (detailWeight(fp, s.grainSize * 0.001) +
             0.35 * detailWeight(fp, s.grainSize * 0.0005))) *
         0.001
     : 0;
 }
-export function slopeBound(s: StoneSettings, fp: number) {
+/** Separate lower-bound divisors for displacement and the CSG cutters.
+ * Tracing combines normalized component bounds before max/intersection, rather
+ * than penalizing the whole stone with the steepest tiny crack everywhere. */
+export function fieldBounds(s: StoneSettings, fp: number) {
   const base = 1 + s.form * 5.2 * (0.016 * 4 + 0.007 * 11);
-  if (!s.detail) return base;
+  if (!s.detail) return { base, substrate: base, fracture: base, pore: base };
   const chips =
     s.chips *
     0.001 *
     detailWeight(fp, 0.018) *
     5.2 *
     (0.6 * 22 + 0.28 * 47 + 0.12 * 93);
+  const level = 1000 / s.spacing + 5.2 * (7 * 0.35 + 17 * 0.09),
+    frequency = 1000 / (s.spacing * 4.2);
   const layers =
     s.bedding *
     0.001 *
     detailWeight(fp, s.spacing * 0.0005) *
-    (0.91 * 6.2831853 * (1000 / s.spacing + 5.2 * (8 * 0.32 + 21 * 0.075)) +
-      0.73 * 0.88 * 1.875 * 5.2 * 13);
+    (((0.7 + 0.92 * s.layerBreakup) / 0.12) * level +
+      s.layerBreakup * 11.95 * frequency +
+      s.layerBreakup * 0.18 * (level / 0.22 + 29.15 * frequency));
   const grain =
     s.grain *
     0.001 *
     5.2 *
     ((detailWeight(fp, s.grainSize * 0.001) * 1000) / s.grainSize +
       (0.35 * detailWeight(fp, s.grainSize * 0.0005) * 2000) / s.grainSize);
-  return Math.max(1.5, base + chips + layers + grain) * 1.1;
+  const width = s.crackWidth * 0.001 * detailWeight(fp, s.crackWidth * 0.006);
+  const nominal = width * 1.15,
+    depth = Math.max(0.00001, s.crackDepth * 0.0007);
+  const substrate = base + chips + layers + grain;
+  const fracture =
+    1.6 +
+    nominal * s.crackChipping * 2750 +
+    substrate *
+      ((0.8 * nominal) / depth +
+        (nominal * s.crackChipping * 7.6) /
+          Math.max(depth * 0.8, width * 6, 0.00001));
+  return {
+    base,
+    substrate: substrate * 1.1,
+    fracture: Math.max(base, fracture) * 1.1,
+    pore: 1 + s.poreIrregularity * 1.3,
+  };
+}
+export function slopeBound(s: StoneSettings, fp: number) {
+  const b = fieldBounds(s, fp);
+  return Math.max(b.substrate, b.fracture, b.pore);
 }

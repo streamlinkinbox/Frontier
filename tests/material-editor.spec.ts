@@ -207,13 +207,11 @@ test("stone controls, comparison, safe recipes and mobile navigation stay indepe
   const bytes = await readFile((await (await pending).path())!);
   expect(JSON.parse(bytes.toString()).settings).toEqual(before);
   await page.getByRole("button", { name: "Reset stone material" }).click();
-  await page
-    .getByLabel("Import stone recipe")
-    .setInputFiles({
-      name: "stone.json",
-      mimeType: "application/json",
-      buffer: bytes,
-    });
+  await page.getByLabel("Import stone recipe").setInputFiles({
+    name: "stone.json",
+    mimeType: "application/json",
+    buffer: bytes,
+  });
   await expect(
     page.getByRole("spinbutton", { name: "Chipped relief numeric value" }),
   ).toHaveValue("9");
@@ -223,13 +221,11 @@ test("stone controls, comparison, safe recipes and mobile navigation stay indepe
       localStorage.getItem("frontier.terrain.untouched"),
     ),
   ).toBe("preserve-this");
-  await page
-    .getByLabel("Import stone recipe")
-    .setInputFiles({
-      name: "bad.json",
-      mimeType: "application/json",
-      buffer: Buffer.from('{"kind":"wrong","settings":{}}'),
-    });
+  await page.getByLabel("Import stone recipe").setInputFiles({
+    name: "bad.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"kind":"wrong","settings":{}}'),
+  });
   await expect(page.getByRole("status")).toContainText("Unsupported");
   expect(
     await page.evaluate(() => (window as any).__materialLab.getSettings()),
@@ -261,4 +257,94 @@ test("missing WebGL2 explains the problem while recipe controls remain available
   await expect(
     page.getByRole("button", { name: "Export recipe", exact: true }),
   ).toBeEnabled();
+});
+
+test("branch junctions, deep cuts and organic pore walls agree between CPU and GPU", async ({
+  page,
+}) => {
+  await ready(page);
+  const result = await page.evaluate(async () => {
+    const { STONE_PRESETS } = await import("/src/material-lab/model.ts");
+    const { stoneField, stoneHash } =
+      await import("/src/material-lab/field.ts");
+    const { getFractureNetwork, projectStone } =
+      await import("/src/material-lab/fractures.ts");
+    const r = (window as any).__materialLab.renderer;
+    let worst = 0,
+      count = 0;
+    for (const name of ["slate", "basalt"]) {
+      const s = {
+        ...STONE_PRESETS.find((p) => p.id === name)!.values,
+        quality: "draft" as const,
+        crackBranching: 1,
+        crackChipping: 1,
+        poreIrregularity: 1,
+      };
+      r.update(s);
+      r.probe([[0, 0, 0]], true);
+      const fp = r.getDiagnostics().footprint;
+      const points: [number, number, number][] = [];
+      const uncut = { ...s, crackDepth: 0, porosity: 0 };
+      for (const segment of getFractureNetwork(s).segments) {
+        const mid = segment.a.map((v, i) => (v + segment.b[i]) * 0.5);
+        let lo = -0.025,
+          hi = 0.025;
+        for (let i = 0; i < 23; i++) {
+          const t = (lo + hi) * 0.5,
+            p = mid.map((v, k) => v + segment.normal[k] * t) as [
+              number,
+              number,
+              number,
+            ];
+          if (stoneField(p, uncut, fp) > 0) hi = t;
+          else lo = t;
+        }
+        const at = mid.map(
+          (v, k) => v + segment.normal[k] * (lo + hi) * 0.5,
+        ) as [number, number, number];
+        for (const depth of [0, -0.001, -0.004])
+          points.push(
+            at.map((v, k) => v + segment.normal[k] * depth) as [
+              number,
+              number,
+              number,
+            ],
+          );
+      }
+      const size = s.poreSize * 0.001;
+      for (let i = 0; i < 12; i++) {
+        const surface = projectStone(
+            [Math.cos(i * 2.399), 0.25, Math.sin(i * 2.399)],
+            s,
+          ),
+          cell = surface.map((v) => Math.floor(v / size));
+        for (let x = 0; x < 2; x++)
+          for (let y = 0; y < 2; y++)
+            for (let z = 0; z < 2; z++) {
+              const a = cell[0] + x,
+                b = cell[1] + y,
+                c = cell[2] + z;
+              if (stoneHash(a, b, c, s.seed + 31) > s.porosity) continue;
+              const center = [
+                (a + (stoneHash(a, b, c, s.seed + 71) - 0.5) * 0.12) * size,
+                (b + (stoneHash(a, b, c, s.seed + 97) - 0.5) * 0.12) * size,
+                (c + (stoneHash(a, b, c, s.seed + 113) - 0.5) * 0.12) * size,
+              ];
+              for (const offset of [0, 0.1, 0.2])
+                points.push([center[0] + size * offset, center[1], center[2]]);
+            }
+      }
+      const actual = r.probe(points, true);
+      points.forEach((p, i) => {
+        worst = Math.max(worst, Math.abs(actual[i] - stoneField(p, s, fp)));
+      });
+      count += points.length;
+    }
+    return { worst, count, diag: r.getDiagnostics() };
+  });
+  expect(result.count).toBeGreaterThan(350);
+  expect(result.worst).toBeLessThan(0.00003);
+  expect(result.diag.fractureSegments).toBeLessThanOrEqual(56);
+  expect(result.diag.materialTextures).toBe(1);
+  expect(result.diag.glError).toBe(0);
 });

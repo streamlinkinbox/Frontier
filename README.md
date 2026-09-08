@@ -2,6 +2,18 @@
 
 A working, local-first terrain workbench for a **bounded, volumetric SDF**, built with TypeScript, React, and native WebGPU. The terrain is actual 3D geometry, not a heightmap, a photograph, or a textured plane.
 
+## Refined rock structures · v0.12.0
+
+The standalone **material-editor.html** now uses broken, nonuniform slate sheets
+instead of repeating ribs; connected, tapered fracture networks with chipped
+mouths instead of periodic line cuts; and rotated, lobed, irregular pores instead
+of only spherical cavities. New controls: **Sheet breakup**, **Crack branching**,
+**Fracture edge chipping**, and **Pore irregularity**. All modify the SDF; SatMaps
+remain color-only. Old stone recipes load with defaults for the new controls.
+
+[Implementation and limits](public/research/sdf-stone-materials.md). This refinement
+is isolated to the stone experiment; the terrain renderer has not been changed.
+
 ## SDF material editor · v0.11.0
 
 Open **`material-editor.html`** (or the new link in Materials) for a separate,

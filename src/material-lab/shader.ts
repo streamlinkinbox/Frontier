@@ -1,4 +1,6 @@
+import { MAX_FRACTURE_SEGMENTS } from "./fractures";
 import field from "./stone.glsl?raw";
+import structure from "./structure.glsl?raw";
 export const stoneVertex = `#version 300 es
 void main(){float x=float((gl_VertexID<<1)&2);float y=float(gl_VertexID&2);gl_Position=vec4(x*2.-1.,y*2.-1.,0.,1.);}`;
 export const stoneFragment = `#version 300 es
@@ -6,9 +8,14 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 uniform vec4 uEye,uRight,uUp,uForward,uShape,uMeso,uFracture,uMicro,uMaterial,uLight,uDisplay,uBounds,uProbe;
+uniform vec4 uStructure,uFieldBounds;
+#define STONE_CRACK_SEGMENTS ${MAX_FRACTURE_SEGMENTS}
+uniform vec4 uCrackA[STONE_CRACK_SEGMENTS],uCrackB[STONE_CRACK_SEGMENTS],uCrackN[STONE_CRACK_SEGMENTS];
+uniform int uCrackCount;
 uniform sampler2D uPalette;
+float stoneStepBound=0.;
 out vec4 fragColor;
-${field}
+${field.replace("// @include structure", structure)}
 vec3 sunDirection(){return normalize(vec3(cos(uLight.x)*cos(uLight.y),sin(uLight.y),sin(uLight.x)*cos(uLight.y)));}
 vec3 stoneGradient(vec3 p,bool detailed,float epsilon){
   vec2 e=vec2(epsilon,0.);
@@ -18,7 +25,7 @@ float conservativeStep(vec3 p,bool detailed){
   float base=baseStone(p);
   if(!detailed)return base/uBounds.y;
   if(base>uBounds.x+.001)return (base-uBounds.x)/uBounds.y;
-  return detailStone(p,true)/uBounds.z;
+  detailStone(p,true);return stoneStepBound;
 }
 vec3 traceStone(vec3 ro,vec3 rd,bool detailed,float limit){
   float b=dot(ro,rd),disc=b*b-dot(ro,ro)+.48*.48;
@@ -26,22 +33,29 @@ vec3 traceStone(vec3 ro,vec3 rd,bool detailed,float limit){
   float begin=max(0.,-b-sqrt(disc)),end=min(limit,-b+sqrt(disc));
   if(begin>end)return vec3(-1.,0.,0.);
   float t=begin,lastT=t,lastD=1.,eps=uBounds.w;
-  for(int i=0;i<440;i++){
+  float previousSafe=0.,attemptedStep=0.;bool relaxed=false;
+  for(int i=0;i<600;i++){
     if(i>=int(uLight.w))return vec3(-1.,float(i),1.);
     vec3 p=ro+rd*t;float base=baseStone(p);
     float d=(detailed&&base>uBounds.x+.001)?base-uBounds.x:detailStone(p,detailed);
+    float advance=detailed&&base<=uBounds.x+.001?stoneStepBound:d/uBounds.y;
+    // Verified over-relaxation: accept a longer step only if its two empty
+    // distance bounds overlap. Otherwise backtrack before accepting any hit.
+    if(relaxed && previousSafe+max(advance,0.)<attemptedStep*.9999){
+      t=lastT+previousSafe;relaxed=false;continue;
+    }
     if(abs(d)<eps)return vec3(t,float(i),0.);
     if(d<0. && lastD>0.) {
       float lo=lastT,hi=t;
       for(int j=0;j<9;j++){float mid=(lo+hi)*.5;if(detailStone(ro+rd*mid,detailed)>0.)lo=mid;else hi=mid;}
       return vec3((lo+hi)*.5,float(i),0.);
     }
+    if(t>=end)return vec3(-1.,float(i),0.);
     lastT=t;lastD=d;
-    float slope=detailed&&base<=uBounds.x+.001?uBounds.z:uBounds.y;
-    t+=max(eps*.28,abs(d)*.85/slope);
-    if(t>end)return vec3(-1.,float(i),0.);
+    previousSafe=max(eps*.28,abs(advance)*.85);
+    attemptedStep=min(previousSafe*1.55,end-t);relaxed=true;t+=attemptedStep;
   }
-  return vec3(-1.,440.,1.);
+  return vec3(-1.,600.,1.);
 }
 float shadowStone(vec3 p,bool detailed){
   vec3 light=sunDirection();float t=.001,shadow=1.;
