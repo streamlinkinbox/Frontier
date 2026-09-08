@@ -88,13 +88,13 @@ export function RiverControls({
         label="Current streaks"
         value={settings.waterStreaks}
         onChange={(v) => onChange("waterStreaks", v)}
-        disabled={!settings.water}
-        help="Visible foam traces move downstream at the selected current speed."
+        disabled={!settings.water || settings.foamQuality !== "low"}
+        help="Low-only procedural streaks. Higher tiers use the evolving foam density and particle population instead."
       />
       <p>
-        Channel flow follows the seeded canyon's bends. Use compass mode for
-        custom sculpted courses. Ripples and foam are advected surface detail,
-        not a fluid-volume solve.
+        The route drives the current. Use compass mode for sculpted courses.
+        Higher foam tiers add obstacle-aware GPU transport; this is separate
+        from the volumetric erosion solver.
       </p>
     </details>
   );

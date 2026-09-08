@@ -76,6 +76,7 @@ import {
 } from "./components/Controls";
 import { Dialog, Guide } from "./components/Guide";
 import { RiverControls } from "./components/RiverControls";
+import { FoamControls } from "./components/FoamControls";
 import { MaterialEditor } from "./components/MaterialEditor";
 import { MAP_PREVIEWS } from "./components/SatMapEditor";
 import { getSatmap, paletteGradient } from "./engine/satmaps/satmap";
@@ -187,7 +188,11 @@ export default function App() {
   >(() =>
     new URLSearchParams(location.search).get("panel") === "materials"
       ? "materials"
-      : "erosion",
+      : ["environment", "foam"].includes(
+            new URLSearchParams(location.search).get("panel") || "",
+          )
+        ? "environment"
+        : "erosion",
   );
   const [erosionTab, setErosionTab] = useState<
     "hydraulic" | "thermal" | "wind"
@@ -355,6 +360,20 @@ export default function App() {
     },
     [],
   );
+  const resetFoam = useCallback(() => {
+    engine.current?.backend?.resetFoam();
+    notify("Foam restarted · terrain and erosion history unchanged.");
+  }, [notify]);
+  const getFoamStatus = useCallback(
+    () => engine.current?.backend?.getDiagnostics().foam,
+    [],
+  );
+  useEffect(() => {
+    if (ready && new URLSearchParams(location.search).get("panel") === "foam")
+      document
+        .querySelector(".foam-controls")
+        ?.scrollIntoView({ block: "start" });
+  }, [ready]);
   const chooseTool = useCallback((t: Tool) => {
     setTool(t);
     engine.current?.setTool(t);
@@ -1351,12 +1370,13 @@ export default function App() {
                             changeMaterial({
                               view: v,
                               satmapPreview: "beauty",
+                              foamView: "surface",
                             });
                           }}
                         >
                           {v === "lit"
                             ? settings.textureMode === "satmap"
-                              ? "Lit · satellite surface"
+                              ? "Lit · SatMap surface"
                               : "Lit · rock material"
                             : v === "clay"
                               ? "Clay · inspect geometry"
@@ -1520,6 +1540,21 @@ export default function App() {
                   >
                     Return to surface <X size={12} />
                   </button>
+                </div>
+              )}
+            {settings.water &&
+              settings.foamQuality !== "low" &&
+              settings.foamView !== "surface" &&
+              settings.view === "lit" &&
+              !comparing &&
+              (settings.textureMode !== "satmap" ||
+                settings.satmapPreview === "beauty") && (
+                <div
+                  className="foam-map-legend"
+                  aria-label="Active foam diagnostic"
+                >
+                  FOAM · {settings.foamView.toUpperCase()}{" "}
+                  <span>Water data · unlit</span>
                 </div>
               )}
             {settings.view === "flow" && (
@@ -1996,10 +2031,20 @@ export default function App() {
                         help="Longer distances transmit more light. Thickness is traced, not inferred from a shallow/deep tint."
                       />
                       <Slider
-                        label="Shore foam"
+                        label={
+                          settings.foamQuality === "low"
+                            ? "Shore foam"
+                            : "Foam generation"
+                        }
                         value={settings.waterFoam}
                         onChange={(v) => update("waterFoam", v)}
                         disabled={!settings.water}
+                      />
+                      <FoamControls
+                        settings={settings}
+                        onChange={update}
+                        onReset={resetFoam}
+                        getStatus={getFoamStatus}
                       />
                     </div>
                     <p className="water-note">
@@ -2110,10 +2155,20 @@ export default function App() {
                       disabled={!settings.water}
                     />
                     <Slider
-                      label="Shore foam"
+                      label={
+                        settings.foamQuality === "low"
+                          ? "Shore foam"
+                          : "Foam generation"
+                      }
                       value={settings.waterFoam}
                       onChange={(v) => update("waterFoam", v)}
                       disabled={!settings.water}
+                    />
+                    <FoamControls
+                      settings={settings}
+                      onChange={update}
+                      onReset={resetFoam}
+                      getStatus={getFoamStatus}
                     />
 
                     <div className="parameter-note">

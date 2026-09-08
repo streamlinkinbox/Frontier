@@ -17,6 +17,7 @@ import {
 } from "../satmaps/pixels";
 import {
   SATMAP_LIBRARY,
+  SATELLITE_LIBRARY,
   photoDetail,
   remapSatmap,
   samplePalette,
@@ -94,8 +95,8 @@ describe("satellite-derived image data", () => {
     expect([...mips.at(-1)!.data]).toEqual([128, 128, 128, 255]);
   });
   it("reproduces every shipped CLUT and detail map from its real satellite crop", async () => {
-    expect(SATMAP_LIBRARY).toHaveLength(4);
-    for (const asset of SATMAP_LIBRARY) {
+    expect(SATELLITE_LIBRARY).toHaveLength(4);
+    for (const asset of SATELLITE_LIBRARY) {
       const file = await readFile(`public/satmaps/${asset.id}.webp`);
       const { data, info } = await sharp(file)
         .resize(256, 256, { fit: "fill" })

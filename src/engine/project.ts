@@ -1,6 +1,9 @@
+import { isSatmapId } from "./satmaps/catalog";
 import {
   DEFAULT_SETTINGS,
   SATMAP_VIEWS,
+  FOAM_QUALITIES,
+  FOAM_VIEWS,
   type Settings,
   type VolumeSize,
 } from "./types";
@@ -92,6 +95,11 @@ export function validateSettings(raw: unknown): Settings {
     ["materialMoisture", 0, 1],
     ["waterAbsorption", 0.5, 30],
     ["waterFoam", 0, 1],
+    ["foamLifetime", 1, 20],
+    ["foamTurbulence", 0, 1],
+    ["foamDetailScale", 0.2, 2],
+    ["foamSpray", 0, 1],
+    ["foamBubbles", 0, 1],
     ["waterCurrent", 0, 2.5],
     ["waterDirection", 0, 360],
     ["waterRippleScale", 0.5, 4],
@@ -129,6 +137,30 @@ export function validateSettings(raw: unknown): Settings {
       throw new Error(`Invalid project setting: ${key}.`);
     settings[key] = value;
   }
+  // Old projects keep their stateless Low water; new projects start Standard.
+  if (input.foamQuality === undefined) settings.foamQuality = "low";
+  else if (
+    FOAM_QUALITIES.includes(input.foamQuality as Settings["foamQuality"])
+  )
+    settings.foamQuality = input.foamQuality as Settings["foamQuality"];
+  else throw new Error("Invalid foam quality.");
+  if (input.foamBudget !== undefined) {
+    if (
+      !["compact", "balanced", "expanded"].includes(input.foamBudget as string)
+    )
+      throw new Error("Invalid foam budget.");
+    settings.foamBudget = input.foamBudget as Settings["foamBudget"];
+  }
+  if (input.foamView !== undefined) {
+    if (!FOAM_VIEWS.includes(input.foamView as Settings["foamView"]))
+      throw new Error("Invalid foam view.");
+    settings.foamView = input.foamView as Settings["foamView"];
+  }
+  if (input.foamPaused !== undefined) {
+    if (typeof input.foamPaused !== "boolean")
+      throw new Error("Invalid foam pause setting.");
+    settings.foamPaused = input.foamPaused;
+  }
   // Missing mode identifies archives from before satellite texturing. Preserve
   // their old material appearance, not just their voxel data.
   if (input.textureMode === undefined) settings.textureMode = "legacy";
@@ -136,12 +168,7 @@ export function validateSettings(raw: unknown): Settings {
     settings.textureMode = input.textureMode;
   else throw new Error("Invalid texture mode.");
   if (input.satmap !== undefined) {
-    if (
-      typeof input.satmap !== "string" ||
-      !["namib", "canyonlands", "iceland", "white-sands", "custom"].includes(
-        input.satmap,
-      )
-    )
+    if (!isSatmapId(input.satmap))
       throw new Error("Unknown satellite palette.");
     settings.satmap = input.satmap as Settings["satmap"];
   }

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { PNG } from "pngjs";
 import { readFile } from "node:fs/promises";
 import { expectSandstone } from "./pixels";
 import { readFileSync } from "node:fs";
@@ -49,6 +50,7 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       "satmaps/iceland.webp",
       "satmaps/white-sands.webp",
       "research/satellite-texturing.md",
+      "research/foam-implementation.md",
     ])
       expect((await request.get(new URL(path, page.url()).href)).status()).toBe(
         200,
@@ -78,7 +80,7 @@ for (const renderer of ["webgpu", "webgl"] as const) {
       expect(bytes.readUInt32LE(0)).toBe(0x46546c67);
     }
     await page.getByRole("tab", { name: "Materials", exact: true }).click();
-    await expect(page.locator(".satmap-card")).toHaveCount(4);
+    await expect(page.locator(".satmap-card")).toHaveCount(12);
     await expect(page.locator(".satmap-card.selected")).toContainText(
       "Namib dunes",
     );
@@ -104,6 +106,26 @@ for (const renderer of ["webgpu", "webgl"] as const) {
     await expect(page.locator(".material-context")).toContainText(
       "Volcanic coast",
     );
+    await page.getByRole("tab", { name: "Environment", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: /Standard TRANSPORT/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel("Foam workload budget").selectOption("compact");
+    await page.getByRole("button", { name: /Cinematic WHITEWATER/ }).click();
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const cinematicDownload = page.waitForEvent("download");
+    await page.getByRole("menuitem", { name: /Viewport image/ }).click();
+    const cinematicPNG = PNG.sync.read(
+      await readFile((await (await cinematicDownload).path())!),
+    );
+    expect(cinematicPNG.width).toBeGreaterThan(200);
+    let min = 255,
+      max = 0;
+    for (let i = 0; i < cinematicPNG.data.length; i += 4) {
+      min = Math.min(min, cinematicPNG.data[i]);
+      max = Math.max(max, cinematicPNG.data[i]);
+    }
+    expect(max - min).toBeGreaterThan(30);
     await page.getByRole("button", { name: "GPU logs", exact: true }).click();
     await expect(
       page.getByRole("dialog", { name: "GPU diagnostics" }),

@@ -1,5 +1,7 @@
 # Satellite terrain texturing · Frontier 0.8
 
+> **v0.10 library expansion:** the four image-derived maps below are preserved alongside 96 clearly labeled authored CLUTs. See the [100-map library](satmap-library.md).
+
 ## What “SatMaps” means here
 
 Gaea describes SatMaps as color lookup tables (CLUTs) extracted from satellite data. A grayscale input selects a color in the table; it is not simply a photograph projected over a terrain. Gaea also describes deriving that input from elevation, slope, curvature, flow and soil/deposition data. Frontier implements this **style of workflow**, not Gaea's implementation or proprietary map library. [1](https://docs.quadspinner.com/Reference/Color/SatMaps.html) [2](https://docs.quadspinner.com/Guide/Using-Gaea/Color-Production.html)

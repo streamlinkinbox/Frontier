@@ -33,6 +33,8 @@ struct Uniforms {
   satShape: vec4f,
   satWeather: vec4f,
   satSurface: vec4f,
+  foam: vec4f,
+  foamEffects: vec4f,
 };
 @group(0) @binding(0) var<uniform> u: Uniforms;
 @group(0) @binding(1) var field: texture_3d<f32>;
@@ -44,6 +46,11 @@ struct Uniforms {
 @group(0) @binding(7) var satPalette: texture_2d<f32>;
 @group(0) @binding(8) var satDetail: texture_2d<f32>;
 @group(0) @binding(9) var satTerrain: texture_2d<f32>;
+@group(0) @binding(10) var foamDensity: texture_2d<f32>;
+@group(0) @binding(11) var foamMotion: texture_2d<f32>;
+@group(0) @binding(12) var foamGeometry: texture_2d<f32>;
+@group(0) @binding(13) var foamLighting: texture_2d<f32>;
+@group(0) @binding(14) var foamAtlas: texture_2d<f32>;
 const WORLD_MIN: vec3f = vec3f(-48., -10., -48.);
 const WORLD_MAX: vec3f = vec3f(48., 38., 48.);
 const WORLD_SIZE: vec3f = vec3f(96., 48., 96.);

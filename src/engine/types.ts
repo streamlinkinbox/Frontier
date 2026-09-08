@@ -1,3 +1,4 @@
+import type { BuiltinSatmapId } from "./satmaps/catalog";
 export type Vec3 = [number, number, number];
 export type Preset = "canyon" | "arches" | "badlands";
 export const TOOL_IDS = [
@@ -25,8 +26,7 @@ export interface BrushStamp {
 }
 export type SurfaceMaterial = "sandstone" | "limestone" | "granite" | "basalt";
 export type ViewMode = "lit" | "clay" | "flow";
-export type SatmapId =
-  "namib" | "canyonlands" | "iceland" | "white-sands" | "custom";
+export type SatmapId = BuiltinSatmapId | "custom";
 export const SATMAP_VIEWS = [
   "beauty",
   "albedo",
@@ -41,7 +41,32 @@ export const SATMAP_VIEWS = [
   "detail",
 ] as const;
 export type SatmapView = (typeof SATMAP_VIEWS)[number];
+export const FOAM_QUALITIES = [
+  "low",
+  "standard",
+  "ultra",
+  "cinematic",
+] as const;
+export type FoamQuality = (typeof FOAM_QUALITIES)[number];
+export const FOAM_VIEWS = [
+  "surface",
+  "density",
+  "age",
+  "velocity",
+  "sources",
+  "obstacles",
+] as const;
+export type FoamView = (typeof FOAM_VIEWS)[number];
 export interface Settings {
+  foamQuality: FoamQuality;
+  foamBudget: "compact" | "balanced" | "expanded";
+  foamView: FoamView;
+  foamLifetime: number;
+  foamTurbulence: number;
+  foamDetailScale: number;
+  foamSpray: number;
+  foamBubbles: number;
+  foamPaused: boolean;
   textureMode: "satmap" | "legacy";
   satmap: SatmapId;
   satmapPalette: string;
@@ -123,6 +148,15 @@ export interface Settings {
   terrainVisible: boolean;
 }
 export const DEFAULT_SETTINGS: Settings = {
+  foamQuality: "standard",
+  foamBudget: "balanced",
+  foamView: "surface",
+  foamLifetime: 6,
+  foamTurbulence: 0.45,
+  foamDetailScale: 0.65,
+  foamSpray: 0.65,
+  foamBubbles: 0.65,
+  foamPaused: false,
   textureMode: "satmap",
   satmap: "namib",
   satmapPalette: "",
@@ -259,6 +293,7 @@ export interface Backend {
   refreshDisplaySurface?(): void;
   initialize(settings: Settings): Promise<void>;
   regenerate(settings: Settings): Promise<void>;
+  resetFoam(): void;
   ready(): boolean;
   getDiagnostics(): Record<string, unknown>;
   sync(): Promise<void>;

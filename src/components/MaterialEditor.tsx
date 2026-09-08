@@ -344,7 +344,7 @@ export function MaterialEditor({
           aria-pressed={settings.textureMode === "satmap"}
           onClick={() => onChange({ textureMode: "satmap" })}
         >
-          SatMaps <span>IMAGE-BASED</span>
+          SatMaps <span>COLOR MAPS</span>
         </button>
         <button
           aria-pressed={settings.textureMode === "legacy"}

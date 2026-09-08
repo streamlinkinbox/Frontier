@@ -222,7 +222,7 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   let time:f32=u.eye.w*(u.water.y*.65+u.river.x*.45);
   let localFlow:vec2f=riverDirection(p);
   let flow:vec3f=vec3f(localFlow.x,0,localFlow.y)*u.river.x*time;
-  let breakup:f32=smoothstep(-.2,.6,noise((p-flow*.17)*vec3f(1.1,.2,1.1)+vec3f(3.7,0,9.1)));
+  var breakup:f32=0.;if(u.foam.x<.5){breakup=smoothstep(-.2,.6,noise((p-flow*.17)*vec3f(1.1,.2,1.1)+vec3f(3.7,0,9.1)));}
   let phase:f32=shoreDistance*8.+time*3.+noise(p*.65)*.6;
   let lap:f32=cos(phase)*(u.water.y*.02+u.river.x*.004)*shoreMask;
   let ripples:vec2f=coastNormal*lap;
@@ -252,6 +252,8 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
     // thickness. In particular, there is no invented 8-meter fallback layer.
     if(!below){transmission=waterSegment(transmission,distance,turbidity,light);}
   }
+  foamWaterTransmission=transmission*(1.-fresnel);
+  foamWaterWeight=1.-fresnel;
   var col:vec3f=mix(transmission,reflection,fresnel);
   let halfway:vec3f=safeNormalize(sunDirection()-rd);
   // Filter sub-pixel glints instead of exposing a grid of bright highlights.
@@ -260,10 +262,16 @@ fn shadeWater(p:vec3f,rd:vec3f,behind:vec3f,below:bool) -> vec3f {
   let spec:f32=specularGGX(max(dot(n,-rd),.001),max(dot(n,sunDirection()),0.),max(dot(n,halfway),0.),max(dot(-rd,halfway),0.),roughness,.0204);
   if(!below){col+=vec3f(4.6,4.25,3.7)*spec*max(dot(n,sunDirection()),0.)*softShadow(p+vec3f(0,.02,0),sunDirection());}
   if(!below){
+    if(u.foam.x>.5){
+      let surface:vec4f=foamSurface(p,geometric);
+      col=mix(col,surface.rgb,surface.a);
+      foamWaterTransmission*=1.-surface.a;foamWaterWeight*=1.-surface.a;
+    }else{
     let crest:f32=smoothstep(.4,.88,sin(phase)+breakup*.45);
     let foam:f32=clamp(crest*shoreMask*breakup*u.waterOptics.y*(.12+u.water.y*.45),0.,.45);
     let streak:f32=currentStreak(p)*(1.-shoreMask*.35);
     col=mix(col,vec3f(.55,.56,.52)*light,clamp(foam+streak*.8,0.,.55));
+    }
   }
   return col;
 }
@@ -323,11 +331,14 @@ fn renderPixel(frag:vec2f) -> vec4f {
   let inFootprint:bool=max(abs(ro.x),abs(ro.z))<45.55;
   let below:bool=u.water.z>.5&&inFootprint&&ro.y<u.water.x+waterWaves(ro).x-.008&&map(ro)>0.;
   if(below){wetTravel=max(0.,min(min(t,groundT),boxHit(ro,rd).y));}
+  foamHitData=vec4f(min(t,groundT),10000.,select(0.,1.,below),0.);
   let opaqueColor:vec3f=col;
   var cameraLight:vec3f=vec3f(0.);var cameraTurbidity:f32=0.;
   if(below&&u.viewport.w<1.5){
     cameraLight=waterIllumination(ro);cameraTurbidity=waterTurbidity(ro);
     col=waterSegment(opaqueColor,wetTravel,cameraTurbidity,cameraLight);
+    let coeff:vec3f=mix(vec3f(3.,.75,.4),vec3f(1.8,2.6,4.2),cameraTurbidity)/max(u.waterOptics.x,.5);
+    foamTransData=vec4f(opaqueColor*exp(-coeff*wetTravel),1.);
   }
   if(u.water.z>.5&&u.viewport.w<1.5){
     let opaqueT:f32=min(t,groundT);
@@ -344,14 +355,24 @@ fn renderPixel(frag:vec2f) -> vec4f {
       // front when its first hit precedes water. No hard colored cutoff ring.
       let coverage:f32=smoothstep(0.,max(.025,footprint*1.2),clearance)*smoothstep(0.,max(.025,footprint*1.2),opaqueT-wt);
       if(coverage>0.){
+        foamHitData=vec4f(opaqueT,wt,select(0.,1.,below),coverage);
+        if(u.foam.x>.5&&u.foam.y>.5&&u.viewport.w<.5){return vec4f(foamInspect(wp),1.);}
         var waterColor:vec3f=shadeWater(wp,rd,opaqueColor,below);
-        if(below){waterColor=waterSegment(waterColor,wt,cameraTurbidity,cameraLight);}
+        if(below){
+          waterColor=waterSegment(waterColor,wt,cameraTurbidity,cameraLight);
+          let coeff:vec3f=mix(vec3f(3.,.75,.4),vec3f(1.8,2.6,4.2),cameraTurbidity)/max(u.waterOptics.x,.5);
+          foamWaterTransmission*=exp(-coeff*wt);
+        }
+        foamTransData=vec4f(foamWaterTransmission*coverage,foamWaterWeight*coverage);
         // Attenuate each path BEFORE coverage blending. Replacing both path
         // lengths with min(water,rock) creates an underwater edge discontinuity.
         col=mix(col,waterColor,coverage);
       }
     }
   }
+  // Cinematic composes airborne/submerged optical layers in linear HDR before
+  // this filmic mapping. The primary terrain/water raymarch runs only once.
+  if(u.foam.x>2.5&&u.foam.y<.5&&u.viewport.w<.5&&u.water.z>.5){return vec4f(col,1.);}
   // Filmic exposure over lit geometry (SatMap albedo is decoded to linear RGB).
   col=vec3f(1.)-exp(-max(col,vec3f(0.))*u.viewport.z*1.30);
   col=vec3f(linearToSRGB(col.r),linearToSRGB(col.g),linearToSRGB(col.b));

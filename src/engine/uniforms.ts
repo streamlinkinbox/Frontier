@@ -2,11 +2,13 @@ import { channelArcTable, followsChannel } from "./flowRoute";
 import { MATERIAL_IDS, colorToLinear } from "./materials";
 import {
   SATMAP_VIEWS,
+  FOAM_QUALITIES,
+  FOAM_VIEWS,
   TOOL_IDS,
   type FrameState,
   type VolumeSize,
 } from "./types";
-export const UNIFORM_FLOATS = 164;
+export const UNIFORM_FLOATS = 172;
 export const UNIFORM_BYTES = UNIFORM_FLOATS * 4;
 export function packUniforms(
   f: FrameState,
@@ -116,5 +118,18 @@ export function packUniforms(
   a.set([s.satmapHeight, s.satmapSlope, s.satmapCurvature, s.satmapAO], 152);
   a.set([s.satmapFlow, s.satmapSediment, s.satmapDetail, s.satmapScale], 156);
   a.set([s.satmapRelief * 0.001, ...terrainRange, 0], 160);
+  a.set(
+    [
+      f.compare ? 0 : FOAM_QUALITIES.indexOf(s.foamQuality),
+      f.compare ? 0 : FOAM_VIEWS.indexOf(s.foamView),
+      s.foamDetailScale,
+      s.foamLifetime,
+    ],
+    164,
+  );
+  a.set(
+    [s.foamTurbulence, s.foamSpray, s.foamBubbles, s.foamPaused ? 1 : 0],
+    168,
+  );
   return a;
 }

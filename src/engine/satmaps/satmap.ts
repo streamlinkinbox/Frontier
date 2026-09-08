@@ -1,4 +1,5 @@
-import library from "./library.json";
+import { SATMAP_LIBRARY, getBuiltinSatmap } from "./catalog";
+export { SATMAP_LIBRARY, SATELLITE_LIBRARY } from "./catalog";
 import { clamp, mix, smoothstep } from "../math";
 import { srgbToLinear } from "../materials";
 import { sampleField } from "../field";
@@ -12,7 +13,6 @@ import {
 } from "./terrainMaps";
 import type { VolumeSize } from "../types";
 
-export const SATMAP_LIBRARY = library;
 export function getSatmap(settings: Settings) {
   if (
     settings.satmap === "custom" &&
@@ -24,10 +24,7 @@ export function getSatmap(settings: Settings) {
       detail: settings.satmapDetailMap,
       name: settings.satmapName || "Imported palette",
     };
-  return (
-    SATMAP_LIBRARY.find((item) => item.id === settings.satmap) ??
-    SATMAP_LIBRARY[0]
-  );
+  return getBuiltinSatmap(settings.satmap) ?? SATMAP_LIBRARY[0];
 }
 export function paletteGradient(palette: string): string {
   const stops: string[] = [];

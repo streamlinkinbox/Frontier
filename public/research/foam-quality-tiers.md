@@ -1,7 +1,9 @@
 # Frontier — realistic foam on GTX, scalable to RTX
 
 **Research and engineering recommendation · 8 September 2026**  
-**Application inspected:** Frontier 0.8.0, commit `a615ffc`  
+**Application inspected:** Frontier 0.8.0, commit `a615ffc`
+
+> **Implementation update:** Frontier 0.9 now includes the three tiers. See [implementation status and differences](foam-implementation.md). The original research and unverified performance targets below are retained as design context.
 **Scope:** three candidates for **Standard, Ultra and Cinematic**. The existing effect is the **Low baseline**. **This report does not implement the new tiers.**
 
 ## Executive decision

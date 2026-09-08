@@ -1,4 +1,11 @@
-import { computeShader, presentShader, renderShader } from "./shaders";
+import { FoamSystem } from "./foam/system";
+import { GPUFoamDriver } from "./foam/drivers";
+import {
+  computeShader,
+  presentShader,
+  renderShader,
+  cinematicShader,
+} from "./shaders";
 import heightShader from "./shaders/terrain-height.wgsl?raw";
 import { GPUSatmapTextures } from "./satmaps/textures";
 import {
@@ -52,6 +59,9 @@ export class WebGPUBackend implements Backend {
   private current = 0;
   private pipelines: Record<string, GPUComputePipeline> = {};
   private renderPipeline!: GPURenderPipeline;
+  private cinematicPipeline!: GPURenderPipeline;
+  private foam!: FoamSystem<GPUTexture>;
+  private foamVersion = -1;
   private presentPipeline!: GPURenderPipeline;
   private presentGroup!: GPUBindGroup;
   private renderTarget?: GPUTexture;
@@ -278,6 +288,31 @@ export class WebGPUBackend implements Backend {
       primitive: { topology: "triangle-list" },
     });
     this.assertActive();
+    const foamDriver = new GPUFoamDriver(device, this.uniform, format);
+    await foamDriver.initialize();
+    this.assertActive();
+    this.foam = new FoamSystem(foamDriver);
+    this.foam.configure(settings.foamQuality);
+    const cinematicModule = device.createShaderModule({
+      label: "Cinematic HDR and hit data",
+      code: cinematicShader,
+    });
+    this.cinematicPipeline = await device.createRenderPipelineAsync({
+      label: "Cinematic terrain/water",
+      layout: "auto",
+      vertex: { module: cinematicModule, entryPoint: "vertexMain" },
+      fragment: {
+        module: cinematicModule,
+        entryPoint: "cinematicMain",
+        targets: [
+          { format: "rgba16float" },
+          { format: "rgba16float" },
+          { format: "rgba16float" },
+        ],
+      },
+      primitive: { topology: "triangle-list" },
+    });
+    this.assertActive();
     if (this.displayMode === "native") {
       const presenter = this.device.createShaderModule({ code: presentShader });
       this.presentPipeline = await this.device.createRenderPipelineAsync({
@@ -372,6 +407,7 @@ export class WebGPUBackend implements Backend {
         ? [this.renderTarget.width, this.renderTarget.height]
         : null,
       pipelines: Object.keys(this.pipelines),
+      foam: this.foam?.diagnostics(),
       satelliteMaps: {
         size: [this.size.x, this.size.z],
         revision: this.terrainRevision,
@@ -386,6 +422,7 @@ export class WebGPUBackend implements Backend {
     };
   }
   async regenerate(settings: Settings) {
+    this.foam?.reset();
     this.relaxationCycle = 0;
     this.brushCycle = 0;
     this.lastFrame = { ...this.lastFrame, settings };
@@ -404,6 +441,7 @@ export class WebGPUBackend implements Backend {
     this.device.queue.submit([enc.finish()]);
     await this.sync();
     this.terrainRevision++;
+    this.foam?.invalidate();
     await this.refreshTerrainMaps();
     this.originalTerrainMaps = this.terrainMaps;
     this.satTextures.writeTerrain(this.originalTerrainMaps, true);
@@ -487,7 +525,7 @@ export class WebGPUBackend implements Backend {
     const tex = index === 2 ? this.original : this.fields[index];
     if (kind !== "initialize")
       entries.push({ binding: 1, resource: tex.createView() });
-    if (["render", "pickSurface"].includes(kind))
+    if (["render", "cinematic", "pickSurface"].includes(kind))
       entries.push({ binding: 2, resource: this.sampler });
     if (
       ["initialize", "evolve", "sculpt", "redistance", "talusSettle"].includes(
@@ -505,7 +543,7 @@ export class WebGPUBackend implements Backend {
       entries.push({ binding: 5, resource: this.flux.createView() });
     if (kind === "pickSurface")
       entries.push({ binding: 6, resource: { buffer: this.pickResult } });
-    if (kind === "render")
+    if (kind === "render" || kind === "cinematic")
       entries.push(
         { binding: 7, resource: this.satTextures.palette.createView() },
         { binding: 8, resource: this.satTextures.detail.createView() },
@@ -514,8 +552,17 @@ export class WebGPUBackend implements Backend {
           resource: this.satTextures.terrain[index === 2 ? 1 : 0].createView(),
         },
       );
+    if (kind === "render" || kind === "cinematic") {
+      const maps = this.foam.bindings();
+      for (const binding of [10, 11, 12, 13, 14])
+        entries.push({ binding, resource: maps.get(binding)!.createView() });
+    }
     const pipeline =
-      kind === "render" ? this.renderPipeline : this.pipelines[kind];
+      kind === "cinematic"
+        ? this.cinematicPipeline
+        : kind === "render"
+          ? this.renderPipeline
+          : this.pipelines[kind];
     const group = this.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries,
@@ -597,34 +644,64 @@ export class WebGPUBackend implements Backend {
           );
       });
     }
-    this.device.queue.writeBuffer(
-      this.uniform,
-      0,
-      packUniforms(
-        frame,
-        this.size,
-        (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
-      ),
+    frame = this.foam.effectiveFrame(frame);
+    if (this.foam.version !== this.foamVersion) {
+      this.groups.clear();
+      this.foamVersion = this.foam.version;
+    }
+    const packed = packUniforms(
+      frame,
+      this.size,
+      (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
     );
-    const enc = this.device.createCommandEncoder();
+    packed[171] = this.foam.time;
+    this.device.queue.writeBuffer(this.uniform, 0, packed);
+    const field = frame.compare ? this.original : this.fields[this.current];
+    this.foam.update(frame, field, present);
+    packed[171] = this.foam.time;
+    this.device.queue.writeBuffer(this.uniform, 0, packed);
     const target = this.getRenderTarget(frame.width, frame.height);
+    const cinematic = this.foam.isCinematic(frame);
+    if (cinematic) this.foam.prepareScreen(frame.width, frame.height);
+    let enc = this.device.createCommandEncoder();
+    const targets = cinematic
+      ? [
+          this.foam.scene.handle,
+          this.foam.hits.handle,
+          this.foam.transmitted.handle,
+        ]
+      : [target];
     const pass = enc.beginRenderPass({
-      colorAttachments: [
-        {
-          view: target.createView(),
-          loadOp: "clear",
-          storeOp: "store",
-          clearValue: { r: 0.22, g: 0.26, b: 0.28, a: 1 },
-        },
-      ],
+      colorAttachments: targets.map((t) => ({
+        view: t.createView(),
+        loadOp: "clear" as const,
+        storeOp: "store" as const,
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+      })),
     });
-    pass.setPipeline(this.renderPipeline);
+    pass.setPipeline(cinematic ? this.cinematicPipeline : this.renderPipeline);
     pass.setBindGroup(
       0,
-      this.group("render", frame.compare ? 2 : this.current),
+      this.group(
+        cinematic ? "cinematic" : "render",
+        frame.compare ? 2 : this.current,
+      ),
     );
     pass.draw(3);
     pass.end();
+    if (cinematic) {
+      this.device.queue.submit([enc.finish()]);
+      this.foam.composite(
+        {
+          handle: target,
+          width: frame.width,
+          height: frame.height,
+          format: "rgba8unorm",
+        },
+        field,
+      );
+      enc = this.device.createCommandEncoder();
+    }
     let readTarget = target;
     const bitmapCopy =
       present && this.bitmap
@@ -850,6 +927,7 @@ export class WebGPUBackend implements Backend {
     }
     this.device.queue.submit([enc.finish()]);
     this.terrainRevision++;
+    this.foam?.invalidate();
   }
   sculpt(center: Vec3, tool: Tool, settings: Settings, stamp?: BrushStamp) {
     const a = packUniforms(
@@ -863,6 +941,7 @@ export class WebGPUBackend implements Backend {
     if (++this.brushCycle % 4 === 0) this.run("redistance", enc);
     this.device.queue.submit([enc.finish()]);
     this.terrainRevision++;
+    this.foam?.invalidate();
   }
   async pick(
     frame: FrameState,
@@ -986,6 +1065,7 @@ export class WebGPUBackend implements Backend {
     const half = new Uint16Array(data.length);
     for (let i = 0; i < data.length; i++) half[i] = floatToHalf(data[i]);
     this.terrainRevision++;
+    this.foam?.invalidate();
     this.device.queue.writeTexture(
       { texture: this.fields[this.current] },
       half,
@@ -993,7 +1073,11 @@ export class WebGPUBackend implements Backend {
       [this.size.x, this.size.y, this.size.z],
     );
   }
+  resetFoam() {
+    this.foam?.reset();
+  }
   reset() {
+    this.foam?.reset();
     this.relaxationCycle = 0;
     this.brushCycle = 0;
     const enc = this.device.createCommandEncoder();
@@ -1004,6 +1088,7 @@ export class WebGPUBackend implements Backend {
     );
     this.device.queue.submit([enc.finish()]);
     this.terrainRevision++;
+    this.foam?.invalidate();
     this.bakedTerrainRevision = this.terrainRevision;
     this.terrainMaps = this.originalTerrainMaps;
     this.satTextures.writeTerrain(this.terrainMaps);
@@ -1017,6 +1102,7 @@ export class WebGPUBackend implements Backend {
     this.fields?.forEach((t) => t.destroy());
     this.original?.destroy();
     this.satTextures?.dispose();
+    this.foam?.dispose();
     this.heightTexture?.destroy();
     this.flux?.destroy();
     this.uniform?.destroy();

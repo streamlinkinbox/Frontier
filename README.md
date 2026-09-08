@@ -2,6 +2,23 @@
 
 A working, local-first terrain workbench for a **bounded, volumetric SDF**, built with TypeScript, React, and native WebGPU. The terrain is actual 3D geometry, not a heightmap, a photograph, or a textured plane.
 
+## 100-map SatMap library · v0.10.0
+
+**Materials → SatMaps** now contains **100 built-in CLUTs** across Desert (10),
+Grassland (8), Forest (10), Alpine (8), Fantasy (12), Lake (8), Volcanic (10),
+Icelandic (8), Beach (8), Quarry (8), Wetland (6) and Badlands (4).
+
+Search names/tags, filter by environment and provenance, and browse 12 maps per
+page. The original **four satellite-derived maps** are unchanged; **96 new
+artist-authored palettes** are explicitly labeled rather than presented as
+satellite extractions. The new cards show color ramps, with no new photograph
+requests. Source-luminance detail is shared, and only the selected CLUT is uploaded
+to the GPU. Existing projects, custom import, palette PNG and vertex-color mesh
+exports remain supported.
+
+See [library contents, provenance and workflow](public/research/satmap-library.md).
+The previously completed GPU foam tiers are included in this release as well.
+
 ## Satellite terrain texturing · v0.8.0
 
 Continues the linked `arena/01a07d13-frontier` application at `e15424a` (downstream flow, camera modes and layered rock relief). The existing WebGL workbench is retained; the new texturing path works in **both WebGL2 and WebGPU**.
@@ -20,14 +37,31 @@ See **[satellite texturing: workflow, sources and limitations](public/research/s
 
 Source extraction can be reproduced with `npm run build:satmaps` (Node 22+, original images cached under `.cache/satmaps/`). Tests independently recreate all palettes/detail data from the committed local source crops.
 
-## Foam tiers · research (not implemented yet)
+## GPU foam simulation · v0.9.0
 
-The [GTX-first foam research report](public/research/foam-quality-tiers.md) compares
-three candidates for **Standard, Ultra and Cinematic**, treating the current
-stateless effect as Low. It includes an audit of this renderer, primary-source
-evidence, proposed performance/memory gates, WebGL2/WebGPU integration, RTX
-scaling, limitations and a hardware-validation plan. **The timing budgets are
-design targets, not measured GPU performance.**
+Open **Environment → River surface → Foam simulation**, or use
+`?renderer=webgl&panel=foam`. Both WebGL2 and WebGPU now run the stateful system:
+
+- **Low:** previous procedural shore/streak effect; old projects retain it.
+- **Standard (new default):** persistent, advected density and age with lifetime,
+  accumulation, wet-cell/bank handling and a cached flow field.
+- **Ultra:** GPU surface particles, reconstructed into a fresh density map instead
+  of repeatedly advecting the same rendered splats.
+- **Cinematic:** a capped, localized foam/spray/bubble population, surface
+  transitions, linear-HDR targets, terrain/water hit distances, underwater
+  attenuation and depth-aware optical-layer composition.
+
+**Compact / Balanced / Expanded** workloads scale map and particle budgets without
+an RTX-only feature dependency. Pause/restart foam independently, inspect density,
+age, velocity, sources and bank/bed data, and save the controls with your project.
+Foam history is transient and reseeded on reopening or tier/budget changes. Image
+export includes it; terrain GLB export does not bake water/foam.
+
+See the [implementation, controls and honest limitations](public/research/foam-implementation.md)
+and the [original research report](public/research/foam-quality-tiers.md). The flow
+model is a bounded visual approximation; it does not replace the water surface
+with a full hydrodynamic solver or simulate bubble films. The research's GTX
+millisecond budgets are still **targets, not measured performance claims**.
 
 ## Run
 

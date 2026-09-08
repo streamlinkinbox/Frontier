@@ -77,7 +77,7 @@ for (const renderer of ["webgl", "webgpu"]) {
     });
     await ready(page, renderer);
     await expect(
-      page.getByRole("button", { name: /^SatMaps IMAGE-BASED/ }),
+      page.getByRole("button", { name: /^SatMaps COLOR MAPS/ }),
     ).toHaveAttribute("aria-pressed", "true");
     const palettes: Buffer[] = [];
     for (const name of [
@@ -109,7 +109,7 @@ for (const renderer of ["webgl", "webgpu"]) {
       "Normals",
       "Flow",
       "Deposition",
-      "Photo detail",
+      "Source detail",
     ];
     const hashes = new Set<string>();
     for (const label of views) {

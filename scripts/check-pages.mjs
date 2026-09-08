@@ -55,6 +55,8 @@ export async function checkPages(directory) {
   for (const satmap of ["namib", "canyonlands", "iceland", "white-sands"])
     await stat(resolve(root, "satmaps", `${satmap}.webp`));
   await stat(resolve(root, "research", "satellite-texturing.md"));
+  await stat(resolve(root, "research", "foam-implementation.md"));
+  await stat(resolve(root, "research", "satmap-library.md"));
   console.log(
     `Pages build verified: ${checked} local asset references, worker, three terrains and four satellite sources.`,
   );

@@ -3325,3 +3325,335 @@ kbd {
     margin-top: 6px;
   }
 }
+
+/* Stateful water detail: a separate control surface from terrain CLUTs. */
+.foam-controls {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.foam-controls .section-heading {
+  margin-bottom: 12px;
+}
+.foam-gpu-tag {
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.08em;
+  color: #7da895;
+}
+.foam-tiers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.foam-tiers button {
+  border: 1px solid #333d43;
+  background: #232c32;
+  color: #b6c1c7;
+  border-radius: 6px;
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+.foam-tiers button strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.foam-tiers button small {
+  font:
+    8px "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.08em;
+  color: #778d9a;
+}
+.foam-tiers button.selected {
+  background: #253c38;
+  border-color: #527e6d;
+  color: #d1eddd;
+}
+.foam-tiers button.selected small {
+  color: #92b7a5;
+}
+.foam-description,
+.foam-history-note {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #92a3ac;
+  margin: 10px 0 14px;
+}
+.foam-warning {
+  padding: 9px;
+  border: 1px solid #997a48;
+  color: #e5c694;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.foam-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 11px;
+  color: #b9c3c9;
+}
+.foam-budget select {
+  width: 100%;
+  min-width: 0;
+  background: #20292f;
+  color: #c5d0d6;
+  border: 1px solid #39474f;
+  padding: 8px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+.foam-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  color: #93afa9;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  padding: 10px 0 14px;
+}
+.foam-actions {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.foam-actions button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  padding: 7px 8px;
+  background: #29363d;
+  border: 1px solid #3a4a52;
+  border-radius: 5px;
+  color: #c0cdd2;
+  cursor: pointer;
+}
+.foam-inspect {
+  border-top: 1px solid #354149;
+  margin-top: 15px;
+  padding-top: 12px;
+}
+.foam-inspect summary {
+  color: #b8cad2;
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.foam-inspect [role="group"] {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.foam-inspect button {
+  padding: 7px 4px;
+  font-size: 10px;
+  color: #8eabb7;
+  background: #263139;
+  border: 1px solid #3b4c55;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.foam-inspect button.selected {
+  color: #d1ebe4;
+  background: #34584f;
+  border-color: #648f7e;
+}
+.foam-controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.foam-controls button:focus-visible,
+.foam-budget select:focus-visible {
+  outline: 2px solid #94bfab;
+  outline-offset: 2px;
+}
+.foam-research {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #91b3b3;
+  font-size: 10px;
+  text-decoration: none;
+}
+.foam-map-legend {
+  position: absolute;
+  bottom: 54px;
+  left: 18px;
+  pointer-events: none;
+  background: #18272ee6;
+  border: 1px solid #476573;
+  padding: 9px 13px;
+  border-radius: 6px;
+  color: #c7e1e7;
+  font:
+    11px "IBM Plex Mono",
+    monospace;
+}
+.foam-map-legend span {
+  display: block;
+  font-size: 9px;
+  color: #8facb7;
+  padding-top: 5px;
+}
+@media (max-width: 600px) {
+  .foam-map-legend {
+    left: 9px;
+    bottom: 42px;
+    padding: 7px 9px;
+    font-size: 10px;
+  }
+}
+
+/* The 100-map catalog renders only one page of cards; source photos are optional. */
+.satmap-library-note,
+.satmap-detail-credit {
+  color: #97a5ad;
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+.satmap-detail-credit a {
+  color: #abc6be;
+}
+.satmap-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid #3a484f;
+  border-radius: 6px;
+  background: #1a252b;
+  color: #94acae;
+}
+.satmap-search input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: #dce5e4;
+  font-size: 11px;
+}
+.satmap-search:focus-within {
+  outline: 2px solid #8aaf9e;
+  outline-offset: 2px;
+}
+.satmap-search button {
+  flex-shrink: 0;
+  padding: 2px;
+}
+.satmap-filters {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 7px;
+  margin: 10px 0;
+}
+.satmap-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 9px;
+  color: #91a3ac;
+  min-width: 0;
+}
+.satmap-filters select,
+.satmap-page-label select {
+  width: 100%;
+  min-width: 0;
+  background: #202b31;
+  border: 1px solid #3c4c51;
+  color: #c9d7d5;
+  border-radius: 5px;
+  font-size: 10px;
+  padding: 7px 3px;
+}
+.satmap-results-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+  font: 9px var(--mono);
+  color: #91b2a5;
+  margin-bottom: 10px;
+}
+.satmap-results-line button {
+  font: inherit;
+  color: #bbd6c8;
+  text-decoration: underline;
+}
+.satmap-color-preview {
+  background: #29343a;
+}
+.satmap-card-colors {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+.satmap-color-preview::after {
+  background: linear-gradient(0deg, #10181b9c, transparent 60%);
+}
+.satmap-browser .satmap-thumbnail {
+  position: relative;
+}
+.satmap-browser .satmap-card > small {
+  white-space: normal;
+  line-height: 1.35;
+  min-height: 24px;
+}
+.satmap-empty {
+  border: 1px dashed #41544e;
+  border-radius: 6px;
+  padding: 15px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #a1b9ae;
+}
+.satmap-empty button {
+  font-size: 10px;
+  color: #d4e7da;
+  text-decoration: underline;
+}
+.satmap-pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 17px;
+}
+.satmap-pagination button {
+  font-size: 10px;
+  color: #b6cfc4;
+  gap: 3px;
+}
+.satmap-pagination button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.satmap-page-label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 9px;
+  color: #94a79f;
+}
+.satmap-page-label select {
+  width: 61px;
+  padding: 5px 2px;
+}
+.satmap-browser button:focus-visible,
+.satmap-filters select:focus-visible,
+.satmap-page-label select:focus-visible {
+  outline: 2px solid #b5d2c1;
+  outline-offset: 2px;
+}

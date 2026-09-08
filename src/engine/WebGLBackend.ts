@@ -1,4 +1,6 @@
-import { glFragment, glVertex } from "./shaders";
+import { FoamSystem } from "./foam/system";
+import { GLFoamDriver } from "./foam/drivers";
+import { glFragment, glVertex, glCinematicFragment } from "./shaders";
 import { GLSatmapTextures } from "./satmaps/textures";
 import {
   buildTerrainMaps,
@@ -38,6 +40,9 @@ export class WebGLBackend implements Backend {
   readonly size: VolumeSize = { ...CPU_SIZE };
   private gl!: WebGL2RenderingContext;
   private program!: WebGLProgram;
+  private cinematicProgram?: WebGLProgram;
+  private foamDriver!: GLFoamDriver;
+  private foam!: FoamSystem<WebGLTexture>;
   private uniform!: WebGLBuffer;
   private texture!: WebGLTexture;
   private originalTexture!: WebGLTexture;
@@ -162,6 +167,47 @@ export class WebGLBackend implements Backend {
       gl.getUniformBlockIndex(this.program, "Params"),
       0,
     );
+    this.foamDriver = new GLFoamDriver(gl, this.uniform);
+    this.foamDriver.initialize();
+    this.foam = new FoamSystem(this.foamDriver);
+    this.foam.configure(settings.foamQuality);
+    if (this.foamDriver.supported) {
+      const cvs = compile(gl.VERTEX_SHADER, glVertex),
+        cfs = compile(gl.FRAGMENT_SHADER, glCinematicFragment);
+      const program = gl.createProgram()!;
+      gl.attachShader(program, cvs);
+      gl.attachShader(program, cfs);
+      gl.linkProgram(program);
+      gl.deleteShader(cvs);
+      gl.deleteShader(cfs);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+        throw new Error(
+          gl.getProgramInfoLog(program) || "Cinematic foam shader link failed",
+        );
+      this.cinematicProgram = program;
+    }
+    for (const program of [this.program, this.cinematicProgram].filter(
+      Boolean,
+    ) as WebGLProgram[]) {
+      gl.useProgram(program);
+      for (const [i, name] of [
+        "field",
+        "satPalette",
+        "satDetail",
+        "satTerrain",
+        "foamDensity",
+        "foamMotion",
+        "foamGeometry",
+        "foamLighting",
+        "foamAtlas",
+      ].entries())
+        gl.uniform1i(gl.getUniformLocation(program, name), i);
+      gl.uniformBlockBinding(
+        program,
+        gl.getUniformBlockIndex(program, "Params"),
+        0,
+      );
+    }
     this.data = generateField(this.size, settings);
     this.original = this.data.slice();
     this.scratch = new Float32Array(this.data.length);
@@ -189,6 +235,7 @@ export class WebGLBackend implements Backend {
       frameFencePending: !!this.fence,
       renderTargetSize: [this.targetWidth, this.targetHeight],
       volumeSize: this.size,
+      foam: this.foam?.diagnostics(),
       satelliteMaps: {
         size: [this.size.x, this.size.z],
         dirty: this.terrainMapsDirty,
@@ -201,6 +248,7 @@ export class WebGLBackend implements Backend {
     };
   }
   async regenerate(settings: Settings) {
+    this.foam?.reset();
     this.relaxationCycle = 0;
     this.brushCycle = 0;
     this.data = generateField(this.size, settings);
@@ -269,6 +317,7 @@ export class WebGLBackend implements Backend {
     return t;
   }
   private upload() {
+    this.foam?.invalidate();
     this.terrainMapsDirty = true;
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_3D, this.texture);
@@ -301,6 +350,7 @@ export class WebGLBackend implements Backend {
   private bindRenderTarget(width: number, height: number) {
     const gl = this.gl;
     if (this.targetWidth !== width || this.targetHeight !== height) {
+      if (this.colorTarget) this.foamDriver?.forgetTarget(this.colorTarget);
       gl.deleteTexture(this.colorTarget);
       gl.deleteFramebuffer(this.framebuffer);
       this.colorTarget = gl.createTexture();
@@ -346,27 +396,53 @@ export class WebGLBackend implements Backend {
       throw new Error("WebGL context is unavailable.");
     if (this.terrainMapsDirty && performance.now() - this.terrainMapsAt > 250)
       this.rebuildTerrainMaps();
+    frame = this.foam.effectiveFrame(frame);
+    const field = frame.compare ? this.originalTexture : this.texture;
+    const packed = packUniforms(
+      frame,
+      this.size,
+      (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
+    );
+    packed[171] = this.foam.time;
+    gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, packed);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniform);
+    this.foam.update(frame, field, present);
+    packed[171] = this.foam.time;
+    gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, packed);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniform);
     this.satTextures.update(frame.settings);
     this.bindRenderTarget(frame.width, frame.height);
+    const cinematic = this.foam.isCinematic(frame);
+    if (cinematic) {
+      this.foam.prepareScreen(frame.width, frame.height);
+      this.foamDriver.target([
+        this.foam.scene,
+        this.foam.hits,
+        this.foam.transmitted,
+      ]);
+    }
     gl.viewport(0, 0, frame.width, frame.height);
-    gl.useProgram(this.program);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this.uniform);
-    gl.bufferSubData(
-      gl.UNIFORM_BUFFER,
-      0,
-      packUniforms(
-        frame,
-        this.size,
-        (frame.compare ? this.originalTerrainMaps : this.terrainMaps).range,
-      ),
-    );
+    gl.disable(gl.BLEND);
+    gl.disable(gl.DEPTH_TEST);
+    gl.bindVertexArray(null);
+    gl.useProgram(cinematic ? this.cinematicProgram! : this.program);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(
-      gl.TEXTURE_3D,
-      frame.compare ? this.originalTexture : this.texture,
-    );
+    gl.bindTexture(gl.TEXTURE_3D, field);
     this.satTextures.bind(frame.compare);
+    this.foamDriver.bindRenderTextures(this.foam.bindings());
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (cinematic)
+      this.foam.composite(
+        {
+          handle: this.colorTarget!,
+          width: frame.width,
+          height: frame.height,
+          format: "rgba8unorm",
+        },
+        field,
+      );
     if (present) {
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -529,7 +605,11 @@ export class WebGLBackend implements Backend {
     this.data.set(data);
     this.upload();
   }
+  resetFoam() {
+    this.foam?.reset();
+  }
   reset() {
+    this.foam?.reset();
     this.relaxationCycle = 0;
     this.brushCycle = 0;
     this.data.set(this.original);
@@ -551,6 +631,8 @@ export class WebGLBackend implements Backend {
     gl.deleteTexture(this.texture);
     gl.deleteTexture(this.originalTexture);
     this.satTextures?.dispose();
+    this.foam?.dispose();
+    if (this.cinematicProgram) gl.deleteProgram(this.cinematicProgram);
     gl.deleteBuffer(this.uniform);
     gl.deleteProgram(this.program);
     gl.getExtension("WEBGL_lose_context")?.loseContext();

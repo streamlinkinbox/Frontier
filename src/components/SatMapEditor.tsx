@@ -12,6 +12,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Slider, SectionHeading, Toggle } from "./Controls";
+import { SatMapLibrary } from "./SatMapLibrary";
+import { getBuiltinSatmap } from "../engine/satmaps/catalog";
 import {
   SATMAP_LIBRARY,
   getSatmap,
@@ -22,7 +24,6 @@ import { paletteRGBA, type PaletteExtraction } from "../engine/satmaps/pixels";
 import { download } from "../engine/project";
 import {
   DEFAULT_SETTINGS,
-  type SatmapId,
   type SatmapView,
   type Settings,
 } from "../engine/types";
@@ -31,12 +32,12 @@ export const MAP_PREVIEWS: { id: SatmapView; label: string; hint: string }[] = [
   {
     id: "beauty",
     label: "Surface",
-    hint: "Satellite albedo with terrain lighting, source-image relief and water.",
+    hint: "Selected CLUT with terrain lighting, shared source-detail relief and water.",
   },
   {
     id: "albedo",
     label: "Albedo",
-    hint: "Unlit satellite color. No sun, shadows, exposure or water in this view.",
+    hint: "Unlit color-map output. No sun, shadows, exposure or water in this view.",
   },
   {
     id: "texture",
@@ -80,7 +81,7 @@ export const MAP_PREVIEWS: { id: SatmapView; label: string; hint: string }[] = [
   },
   {
     id: "detail",
-    label: "Photo detail",
+    label: "Source detail",
     hint: "Triplanar source-image luminance. This artistic detail is not a measured height or normal map.",
   },
 ];
@@ -128,8 +129,8 @@ const WEIGHTS: {
   },
   {
     key: "satmapDetail",
-    label: "Photo detail influence",
-    help: "Add real source-image luminance to the texture mask, not procedural color noise.",
+    label: "Source detail influence",
+    help: "Add source-image luminance to the mask. Authored CLUTs reuse a credited satellite-detail tile.",
   },
 ];
 
@@ -141,7 +142,7 @@ export function SatMapEditor({
   onChange: (patch: Partial<Settings>) => void;
 }) {
   const asset = getSatmap(s),
-    selected = SATMAP_LIBRARY.find((item) => item.id === s.satmap);
+    selected = getBuiltinSatmap(s.satmap);
   const [importMode, setImportMode] = useState<PaletteExtraction>("photo");
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
@@ -220,45 +221,22 @@ export function SatMapEditor({
         <ArrowRight size={11} />
         <span>Albedo</span>
       </div>
-      <SectionHeading detail={<span className="satmap-count">04 MAPS</span>}>
-        <Satellite size={14} /> Satellite library
-      </SectionHeading>
-      <div
-        className="satmap-library"
-        role="group"
-        aria-label="Satellite palette library"
+      <SectionHeading
+        detail={
+          <span className="satmap-count">{SATMAP_LIBRARY.length} MAPS</span>
+        }
       >
-        {SATMAP_LIBRARY.map((item, index) => (
-          <button
-            key={item.id}
-            className={`satmap-card ${s.satmap === item.id ? "selected" : ""}`}
-            aria-pressed={s.satmap === item.id}
-            title={`${item.region} · ${item.note}`}
-            onClick={() => {
-              importSequence.current++;
-              setImporting(false);
-              onChange({ satmap: item.id as SatmapId });
-              setMessage("");
-            }}
-          >
-            <div className="satmap-thumbnail">
-              <img
-                src={`${import.meta.env.BASE_URL}satmaps/${item.id}.webp`}
-                alt=""
-              />
-              <span className="satmap-category">{item.category}</span>
-              <span className="satmap-card-index">0{index + 1}</span>
-              {s.satmap === item.id && (
-                <i>
-                  <Check size={11} />
-                </i>
-              )}
-            </div>
-            <strong>{item.name}</strong>
-            <small>{item.region}</small>
-          </button>
-        ))}
-      </div>
+        <Satellite size={14} /> SatMap library
+      </SectionHeading>
+      <SatMapLibrary
+        selected={s.satmap}
+        onSelect={(id) => {
+          importSequence.current++;
+          setImporting(false);
+          onChange({ satmap: id });
+          setMessage("");
+        }}
+      />
       {s.satmapPalette && (
         <button
           className="satmap-custom"
@@ -294,10 +272,15 @@ export function SatMapEditor({
         <span>High values</span>
       </div>
       <div className="satmap-source-line">
-        {selected ? (
+        {selected?.origin === "satellite" ? (
           <a href={selected.source} target="_blank" rel="noopener noreferrer">
             USGS / NASA · satellite composite <ExternalLink size={10} />
           </a>
+        ) : selected ? (
+          <span>
+            {selected.origin === "fantasy" ? "Fantasy" : "Terrain-inspired"}{" "}
+            CLUT · authored by Frontier
+          </span>
         ) : (
           <span>Imported locally · embedded in project</span>
         )}
@@ -309,6 +292,20 @@ export function SatMapEditor({
           <Download size={13} />
         </button>
       </div>
+      {selected && selected.origin !== "satellite" && (
+        <p className="satmap-detail-credit">
+          Colors are authored, not extracted from this location. Shared
+          luminance detail:{" "}
+          <a
+            href={selected.detailSource}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {selected.detailName}
+          </a>
+          . No extra photograph download.
+        </p>
+      )}
       <details className="satmap-import process-details">
         <summary>
           <Upload size={12} /> Import your own map
