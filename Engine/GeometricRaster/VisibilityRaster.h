@@ -7,6 +7,18 @@
 //    specular under the luminaires, visibility from rasterized shadow maps, a flat ambient fill, no bounces.
 //    Emissive triangles emit, misses take the sky.
 //
+//    Shadow filtering is a quality-tier decision, carried in by ShadowCriteria (mirroring FidelityCriteria's
+//    shadow fields so this header need not depend on the presentation layer):
+//       HardShadowMap  — one comparison per tap. Aliased and binary; what Minimal can afford.
+//       WidePercentageCloserFilter — a fixed-radius PCF box. Constant-width penumbra: cheap and stable, but the
+//          softness does not track occluder distance, so it is a look, not a physical result.
+//       PercentageCloserSoftShadow — a blocker search over the map estimates the mean occluder depth, then the
+//          similar-triangles relation w = (Receiver − Blocker) / Blocker × LightSize sizes the PCF kernel. Contact
+//          stays sharp and the shadow widens with distance, which is what real area lights do. LightSize comes
+//          from the luminaire's own area (PlaceTaps already knows it), so the penumbra is physically scaled.
+//    This mirrors the GPU pass in Shaders/ShadowRaster.*.slang and Shaders/ShadowResolve.slang, which is what the
+//    application actually runs; the CPU path here is the headless proof of the same three techniques.
+//
 //    Nothing here names a ray query: not the traversal, not an occlusion segment, nothing the ReSTIR path shares.
 //    The preview's quarantine gate greps this file for those names and fails the run if one appears. Shadow maps
 //    (one per fixed light tap, rasterized from the tap point) are what stand between a shaded pixel and its light.
@@ -23,6 +35,24 @@ namespace Frontier {
 
 class SceneStructure;
 
+// Which filter runs over the shadow map, and how big that map is. Mirrors ShadowTechniqueCategory /
+//    FidelityCriteria in DisplayPresentation/FidelityClassifier.h — duplicated as a plain record rather than
+//    included so GeometricRaster keeps no dependency on the presentation layer. ControlCentreHost resolves the
+//    tier and its resolution override into these three numbers; the raster just obeys them.
+enum class ShadowFilterKind : uint32_t
+{
+    HardShadowMap              = 0,
+    WidePercentageCloserFilter = 1,
+    PercentageCloserSoftShadow = 2
+};
+
+struct ShadowCriteria
+{
+    ShadowFilterKind Filter   = ShadowFilterKind::WidePercentageCloserFilter;
+    uint32_t         MapSide  = 512u;   // [px] shadow map side in texels
+    uint32_t         TapCount = 5u;     // [cnt] filter kernel side in taps (1 = a single comparison)
+};
+
 class VisibilityRaster final
 {
 public:
@@ -34,11 +64,16 @@ public:
 
     static constexpr uint32_t kMiss         = 0xFFFFFFFFu;   // [idx] visibility id where no triangle won
     static constexpr uint32_t kLightTaps    = 4u;            // [cnt] fixed stratified taps over the luminaires
-    static constexpr uint32_t kShadowSize   = 512u;          // [px] shadow map side; linear depth entries
+    static constexpr uint32_t kShadowSize   = 512u;          // [px] default shadow map side; Standard's own figure
     static constexpr float    kShadowHalf   = 65.0f;         // [deg] shadow frustum half-angle about light→centre
     static constexpr float    kNear         = 0.05f;         // [m] nearer vertices skip the triangle, unclipped
     static constexpr float    kShadowBias   = 0.015f;        // [m] depth bias plus a slope term from NdotL
     static constexpr float    kAmbient      = 0.045f;        // [-] flat fill under the direct light
+    static constexpr uint32_t kBlockerTaps  = 5u;            // [cnt] PCSS blocker-search kernel side, in texels
+
+    // Selects the shadow technique for subsequent renders. Defaults to the Standard tier's PCSS if never called.
+    void AssignShadowCriteria(const ShadowCriteria& Criteria) noexcept;
+    [[nodiscard]] const ShadowCriteria& QueryShadowCriteria() const noexcept { return Shadows_; }
 
     // Renders Level through the Eye/Forward/Right/Up camera into Width×Height RGBA32 top-down rows. Returns
     //    false on empty input; MeanLum carries the sheets' mean luminance for the run log.
@@ -70,6 +105,7 @@ private:
         float N[3];               // [-] its triangle's unit normal
         float Le[3];              // [nit]
         float Weight;             // [m2] luminaire area this tap integrates
+        float Size;               // [m] the luminaire's own extent, √Area — PCSS's LightSize term
     };
 
     void CollectLumi(const SceneStructure& Level) noexcept;
@@ -82,7 +118,17 @@ private:
                           uint32_t Width, uint32_t Height) noexcept;
     void RasterizeShadow(const SceneStructure& Level, const float Tap[3], const float Centre[3]) noexcept;
     [[nodiscard]] float Shadow(const float P[3], const float N[3], float NdotL,
-                             const float Tap[3]) const noexcept;
+                             const LightTap& Tap) const noexcept;
+    // Fetches one map texel's linear depth; returns 1e30f (nothing occluding) outside the map.
+    [[nodiscard]] float ShadowTexel(int32_t X, int32_t Y) const noexcept;
+    // Averages the depths of texels nearer than the receiver over a kBlockerTaps² window: PCSS step one. Returns
+    //    false when the window found no blocker at all, which means the receiver is fully lit.
+    [[nodiscard]] bool BlockerDepth(float TexU, float TexV, float Zc, float Bias, float Radius,
+                                    float& OutDepth) const noexcept;
+    // The PCF box itself, RadiusTexels wide, centred on (TexU, TexV). Shared by all three techniques: hard is
+    //    this with a zero radius and a single tap, wide PCF a fixed radius, PCSS a penumbra-derived one.
+    [[nodiscard]] float FilterLit(float TexU, float TexV, float Zc, float Bias,
+                                  float RadiusTexels, uint32_t Taps) const noexcept;
     void Shade(const SceneStructure& Level, const float Eye[3], const float Forward[3],
                const float Right[3], const float Up[3], float FovYRadians,
                uint32_t Width, uint32_t Height, unsigned char* Rgba, double& MeanLum) noexcept;
@@ -100,7 +146,8 @@ private:
     std::vector<uint32_t> TriId_;    // [idx] the visibility buffer: winning triangle or kMiss
     std::vector<float>    Bary_;     // [-] winning (w0, w1) per pixel; w2 = 1 − w0 − w1
     std::vector<float>    TriN_;     // [-] unit face normal per flat triangle, pass one's side table
-    std::vector<float>    Shadow_;   // [m] one shadow map's linear depth, kShadowSize², per tap in turn
+    std::vector<float>    Shadow_;   // [m] one shadow map's linear depth, Shadows_.MapSide², per tap in turn
+    ShadowCriteria        Shadows_{ ShadowFilterKind::PercentageCloserSoftShadow, kShadowSize, 5u };
     std::vector<float>    Acc_;      // [nit] linear accumulator the taps add into, Width×Height×3
     float                 ShadowTan_ = 1.0f;
     float                 ShadowR_[3] = { 1.0f, 0.0f, 0.0f };

@@ -140,7 +140,8 @@ find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/
 
 set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
 set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
-                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang")
+                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang"
+                    "${SHADER_ROOT}/ShadowRecords.slang" "${SHADER_ROOT}/ShadowSample.slang")
 set(SHADER_TABLE
     "ReSTIRViewport.slang|compute|ReSTIRViewport.spv"
     "ClusterCull.slang|compute|ClusterCull.spv"
@@ -148,6 +149,9 @@ set(SHADER_TABLE
     "AtrousDenoise.slang|compute|AtrousDenoise.spv"
     "LuminanceReduce.slang|compute|LuminanceReduce.spv"
     "SurfaceResolve.slang|compute|SurfaceResolve.spv"
+    "ShadowResolve.slang|compute|ShadowResolve.spv"
+    "ShadowRaster.vert.slang|vertex|ShadowRaster.vert.spv"
+    "ShadowRaster.frag.slang|fragment|ShadowRaster.frag.spv"
     "VisibilityRaster.vert.slang|vertex|VisibilityRaster.vert.spv"
     "VisibilityRaster.frag.slang|fragment|VisibilityRaster.frag.spv"
     "InterfaceRaster.vert.slang|vertex|InterfaceRaster.vert.spv"

@@ -69,6 +69,8 @@ public:
     [[nodiscard]] float    QueryRenderScale() const noexcept;
     [[nodiscard]] uint32_t QueryRevision() const noexcept;
     [[nodiscard]] const ControlCentreSettings& QueryShadeSettings() const noexcept;
+    // The tier's criteria with the shade's shadow-resolution override already applied — what the renderer runs.
+    [[nodiscard]] FidelityCriteria QueryShadeCriteria() const noexcept;
     void AssignProjectName(const char* Name) noexcept;
 
     // The shade's pose and page for the harness log: open while the sheet travels or rests down, page zero

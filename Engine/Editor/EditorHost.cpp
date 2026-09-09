@@ -149,6 +149,11 @@ bool EditorHost::QueryGiEnabled() const noexcept
     return Shade_.QuerySettings().GlobalIllumination;
 }
 
+FidelityCriteria EditorHost::QueryShadeCriteria() const noexcept
+{
+    return Shade_.QueryEffectiveCriteria();
+}
+
 float EditorHost::QueryRenderScale() const noexcept
 {
     return Shade_.QuerySettings().RenderScale;

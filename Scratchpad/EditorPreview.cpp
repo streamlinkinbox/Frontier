@@ -661,6 +661,19 @@ int main()
     const float RightP[3] = { RightV.x, RightV.y, RightV.z };
     const float UpP[3] = { UpV.x, UpV.y, UpV.z };
     VisibilityRaster Raster;
+    // The shade's tier and its shadow-resolution override decide the technique and the map side; the raster is
+    //    told once, before the render, exactly as the GPU path is told through ShadowFrameConfiguration.
+    {
+        const FidelityCriteria Criteria = Editor.QueryShadeCriteria();
+        ShadowCriteria Shadows{};
+        Shadows.Filter   = static_cast<ShadowFilterKind>(Criteria.ShadowTechnique);
+        Shadows.MapSide  = Criteria.ShadowMapSide;
+        Shadows.TapCount = Criteria.ShadowFilterTapCount;
+        Raster.AssignShadowCriteria(Shadows);
+        std::printf("[Preview] shadows: %s, %u x %u map, %u tap kernel\n",
+                    ShadowTechniqueLabel(Criteria.ShadowTechnique), Criteria.ShadowMapSide,
+                    Criteria.ShadowMapSide, Criteria.ShadowFilterTapCount);
+    }
     const auto RasterStart = std::chrono::steady_clock::now();
     double RasterLum = 0.0;
     if (!Raster.Render(Level, EyeP, FwdP, RightP, UpP, Camera.QueryFieldOfViewRadians(),

@@ -86,5 +86,6 @@ occlusion_culling = true
 quality = 'Standard'
 ray_tracing_tier = 'Auto'
 render_scale = 0.6000249981880188
+shadow_resolution = 'Auto'
 slab_limit = 1
 texture_edge_limit = 2048

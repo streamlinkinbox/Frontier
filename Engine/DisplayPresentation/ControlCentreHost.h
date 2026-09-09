@@ -120,6 +120,9 @@ struct ControlCentreSettings
     bool             Notifications      = true;
     FidelityCategory Quality            = FidelityCategory::StandardFidelity;
     float            RenderScale        = 1.0f;     // [-] 0.25 … 1.0
+    // Shadow map side, chosen on the Render page. Auto follows the Quality tier (256 … 2048); any other entry
+    //    pins the map at that side and outranks the tier. The filter itself is always the tier's.
+    ShadowResolutionCategory ShadowResolution = ShadowResolutionCategory::FollowQualityTier;
     uint32_t         Revision           = 0u;       // [-] bumps on every change; projects compare to react
 };
 
@@ -234,7 +237,12 @@ public:
     void                    AssignSettings(const ControlCentreSettings& Desired) noexcept { Settings = Desired; ++Settings.Revision; }
     void                    ToggleTile(QuickTileCategory Tile) noexcept;             // toggles, or advances Quality
     void                    AssignRenderScale(float Scale) noexcept;
+    void                    AssignShadowResolution(ShadowResolutionCategory Resolution) noexcept;
     [[nodiscard]] bool      IsTileActive(QuickTileCategory Tile) const noexcept;
+    // The criteria the renderer should run with: the active tier, with the Render page's shadow override applied.
+    [[nodiscard]] FidelityCriteria QueryEffectiveCriteria() const noexcept;
+    [[nodiscard]] PlaneExtent QueryShadowDropdownExtent() const noexcept { return ShadowDropdownExtent; }
+    [[nodiscard]] bool      IsShadowMenuOpen() const noexcept { return ShadowMenuOpen; }
     [[nodiscard]] PlaneExtent QueryCardExtent() const noexcept;                      // [px] dashboard card on the display
     [[nodiscard]] PlaneExtent QueryTileDiscExtent(uint32_t Slot) const noexcept;     // [px] disc of grid slot 0..7
     [[nodiscard]] PlaneExtent QueryPillTrackExtent() const noexcept;                 // [px] render-scale track
@@ -321,6 +329,10 @@ private:
     void                    ConstructHubLayout(PixelSpace& Surface, float Opacity) const noexcept;
     void                    ConstructSubPageLayout(PixelSpace& Surface, ControlCentrePageCategory Page, float Opacity, bool Live) noexcept;
     void                    ConstructPageBodyLayout(PixelSpace& Surface, ControlCentrePageCategory Page, const PlaneExtent& Body, float Opacity, bool Live) noexcept;
+    // Render page body: the Shadows section (technique read-out + resolution dropdown). Returns the content height.
+    float                   ConstructRenderPageLayout(PixelSpace& Surface, const PlaneExtent& Body, float ScrollY, const ControlPointer& Local, float Opacity) noexcept;
+    // Floating layer for the Render page's own dropdown, drawn above the footer like the inspectors' menus.
+    void                    ConstructRenderFloatingLayout(PixelSpace& Surface, float Opacity) noexcept;
     void                    RequestLeave(bool Back) noexcept;    // X / back / shade-close with dirty-check
     void                    ResolveDialogueVerdict() noexcept;
     void                    ConstructDashboardLayout(PixelSpace& Surface, float Opacity) const noexcept;
@@ -393,6 +405,13 @@ private:
     int                     HoveredSlot;             // [-] grid slot under the pointer, -1 none
     int                     GrabbedSlot;             // [-] slot the press landed on
     bool                    PillGrabbed;
+
+    // ── Render page ───────────────────────────────────────────────────────────────────────────────────────────────
+    // The shadow-resolution dropdown lives directly on the host (the Render page has no inspector of its own: it
+    //    edits ControlCentreSettings live, with no Applied/Draft pair, exactly as the dashboard tiles do).
+    bool                    ShadowMenuOpen = false;      // [-]  the resolution menu owns the pointer while open
+    PlaneExtent             ShadowDropdownExtent{};      // [px] its button, recorded for the floating layer
+    int                     ShadowMenuPick = -1;         // [-]  choice made in the floating layer, consumed next frame
 
     // ── Pages ─────────────────────────────────────────────────────────────────────────────────────────────────────
     uint32_t                CardWidthChannel;        // [px] spring: 420 ↔ 840

@@ -150,6 +150,7 @@ void ControlCentreHost::NavigateToPage(ControlCentrePageCategory TargetPage) noe
     PageSwapProgress = 0.0f;
     BodyScrollY      = 0.0f;
     Appearance.CloseMenus();
+    ShadowMenuOpen   = false;   // leaving the Render page dismisses its resolution menu
     Motion.Spring(SlideChannel).Place(0.0);
     ResizeCardForPage();
 }
@@ -605,7 +606,7 @@ void ControlCentreHost::AdvanceInteraction(const InputExchange& Input, float Cur
     const bool OverBody = CardActive && PageSettled && IsSubPage(ActivePage) && Body.Encloses(CursorX, CursorY);
     if (Pressed && OverBody) PressedInBody = true;
     if (Released) { /* cleared after this frame's recording — see AdvanceLocomotion */ }
-    const bool BodyOwned = PressedInBody || Appearance.HasOpenMenu() || InputPage.HasOpenMenu() || Dialogue.IsVisible();
+    const bool BodyOwned = PressedInBody || Appearance.HasOpenMenu() || InputPage.HasOpenMenu() || ShadowMenuOpen || Dialogue.IsVisible();
     const bool OnDashboard = ActivePage == ControlCentrePageCategory::Dashboard;
     const bool OnHub       = ActivePage == ControlCentrePageCategory::SettingsHub;
     const bool OnSubPage   = IsSubPage(ActivePage);
@@ -920,6 +921,21 @@ void ControlCentreHost::AssignRenderScale(float Scale) noexcept
     if (Clamped == Settings.RenderScale) return;
     Settings.RenderScale = Clamped;
     ++Settings.Revision;
+}
+
+void ControlCentreHost::AssignShadowResolution(ShadowResolutionCategory Resolution) noexcept
+{
+    if (Resolution == Settings.ShadowResolution) return;
+    Settings.ShadowResolution = Resolution;
+    ++Settings.Revision;
+}
+
+FidelityCriteria ControlCentreHost::QueryEffectiveCriteria() const noexcept
+{
+    // One place resolves "tier plus override" so the CPU raster and the GPU shadow pass cannot disagree.
+    FidelityClassifier Classifier;
+    Classifier.AssignCategory(Settings.Quality);
+    return WithShadowResolution(Classifier.QueryActiveCriteria(), Settings.ShadowResolution);
 }
 
 float ControlCentreHost::QueryCardOpacity() const noexcept
@@ -1332,7 +1348,7 @@ void ControlCentreHost::ConstructPageBodyLayout(PixelSpace& Surface, ControlCent
     // Scrollable body: px-8 py-8 (Notch overflow-y-auto p-8). Content is clipped to the body.
     const PlaneExtent Inner = PlaneExtent{ Body.MinimumX + PagePadding, Body.MinimumY + PagePadding, Body.MaximumX - PagePadding, Body.MaximumY - PagePadding };
     ControlPointer Local = Pointer;
-    Local.Enabled = Pointer.Enabled && Live && !Dialogue.IsVisible() && (Body.Encloses(Pointer.X, Pointer.Y) || PressedInBody || Appearance.HasOpenMenu() || InputPage.HasOpenMenu());
+    Local.Enabled = Pointer.Enabled && Live && !Dialogue.IsVisible() && (Body.Encloses(Pointer.X, Pointer.Y) || PressedInBody || Appearance.HasOpenMenu() || InputPage.HasOpenMenu() || ShadowMenuOpen);
 
     Surface.PushClip(Body);
     float ContentHeight = 0.0f;
@@ -1346,6 +1362,7 @@ void ControlCentreHost::ConstructPageBodyLayout(PixelSpace& Surface, ControlCent
             default: break;
         }
     }
+    else if (Page == ControlCentrePageCategory::RenderSettings) ContentHeight = ConstructRenderPageLayout(Surface, Inner, BodyScrollY, Local, Opacity);
     else if (Page == ControlCentrePageCategory::Input)         ContentHeight = InputPage.ConstructInputLayout(Surface, Inner, BodyScrollY, Local, Opacity);
     else if (Page == ControlCentrePageCategory::Notifications) ContentHeight = NotificationPage.ConstructNotificationLayout(Surface, Inner, BodyScrollY, Local, Opacity);
     Surface.PopClip();
@@ -1360,6 +1377,98 @@ void ControlCentreHost::ConstructPageBodyLayout(PixelSpace& Surface, ControlCent
         const float ThumbY = Body.MinimumY + 8.0f + (TrackH - ThumbH) * std::clamp(BodyScrollY / Room, 0.0f, 1.0f);
         Surface.FillRectangle(Spanning(Body.MaximumX - 10.0f, ThumbY, 4.0f, ThumbH), Faded(Ink10(), Opacity), 2.0f);
     }
+}
+
+float ControlCentreHost::ConstructRenderPageLayout(PixelSpace& Surface, const PlaneExtent& Body, float ScrollY,
+                                                   const ControlPointer& Local, float Opacity) noexcept
+{
+    // Shadows section, in the inspector idiom (SectionCard + heading + ControlRow rows). Unlike the Appearance and
+    //    Input pages this one has no Applied/Draft pair: the Render page edits the live dashboard record, the way
+    //    the quick tiles do, so a pick takes effect the moment it is made and the footer stays enabled.
+    const float Radius = std::clamp(ActiveTheme.QueryCornerRadius(), 0.0f, 32.0f);
+    const float X = Body.MinimumX, W = Body.Width();
+    float Y = Body.MinimumY - ScrollY;
+    const float RowH = ControlKitTokens::ControlHeight, RowGap = 16.0f;
+
+    ControlPointer Inner = Local;
+    if (ShadowMenuOpen) Inner.Enabled = false;   // the floating menu owns the pointer while it is open
+
+    const FidelityCriteria Tier   = QueryEffectiveCriteria();
+    const FidelityCriteria Native = FidelityClassifier{}.ConstructCriteria(Settings.Quality);
+
+    const float HeadingH = 24.0f + 16.0f + 24.0f;   // title + description + mb-6
+    const float SectionH = ControlKit::SectionPadding * 2.0f + HeadingH + RowH * 3.0f + RowGap * 2.0f;
+    const PlaneExtent Card    = Spanning(X, Y, W, SectionH);
+    const PlaneExtent Content = ControlKit::SectionCard(Surface, Card, Radius, Opacity);
+    ControlKit::SectionHeading(Surface, Content.MinimumX, Content.MinimumY, Content.Width(),
+                               "Shadows", "Filter follows the quality tier; resolution can override it", Ink90(), Ink50(), Opacity);
+
+    float RowY = Content.MinimumY + HeadingH;
+
+    // Row 1 — the technique the active tier selected. Read-only: the tier owns it (Minimal hard · Economy PCF ·
+    //    Standard and above PCSS), so showing it here explains what the dropdown below is sizing.
+    {
+        const PlaneExtent Ctl = ControlKit::ControlRow(Surface, Content.MinimumX, RowY, Content.Width(), "Technique",
+                                                       ControlKit::Palette().TextDim, Opacity);
+        const char* Name = Tier.ShadowTechnique == ShadowTechniqueCategory::HardShadowMap ? "Hard shadow map"
+                         : Tier.ShadowTechnique == ShadowTechniqueCategory::WidePercentageCloserFilter ? "Wide PCF"
+                         : "PCSS (soft, contact-hardening)";
+        char Line[80];
+        std::snprintf(Line, sizeof(Line), "%s - %u tap%s", Name, Tier.ShadowFilterTapCount,
+                      Tier.ShadowFilterTapCount == 1u ? "" : "s");
+        const PlanePoint Size = Surface.MeasureText(Line, 13.0f);
+        Surface.Text(Ctl.MinimumX, RowY + (RowH - Size.Y) * 0.5f, Faded(Ink70(), Opacity), Line, 13.0f);
+        RowY += RowH + RowGap;
+    }
+
+    // Row 2 — the resolution dropdown. Auto reports the tier's own side in the button so the reader always knows
+    //    what "Auto" resolved to; the pinned entries outrank the tier entirely.
+    {
+        const PlaneExtent Ctl = ControlKit::ControlRow(Surface, Content.MinimumX, RowY, Content.Width(), "Resolution",
+                                                       ControlKit::Palette().TextDim, Opacity);
+        ShadowDropdownExtent = Spanning(Ctl.MinimumX, RowY, std::min(Ctl.Width(), 260.0f), RowH);
+
+        if (ShadowMenuPick >= 0)
+        {
+            AssignShadowResolution(static_cast<ShadowResolutionCategory>(ShadowMenuPick));
+            ShadowMenuPick = -1;
+        }
+
+        char Auto[32];
+        std::snprintf(Auto, sizeof(Auto), "Auto (%u)", Native.ShadowMapSide);
+        const char* Current = Settings.ShadowResolution == ShadowResolutionCategory::FollowQualityTier
+                            ? Auto : ShadowResolutionLabel(Settings.ShadowResolution);
+        if (ControlKit::Dropdown(Surface, ShadowDropdownExtent, Current, ShadowMenuOpen, Inner, Opacity).Clicked)
+            ShadowMenuOpen = true;
+        RowY += RowH + RowGap;
+    }
+
+    // Row 3 — the resolved map, in texels and in memory, so an override's cost is visible where it is chosen.
+    {
+        const PlaneExtent Ctl = ControlKit::ControlRow(Surface, Content.MinimumX, RowY, Content.Width(), "Map",
+                                                       ControlKit::Palette().TextDim, Opacity);
+        const double Bytes = static_cast<double>(Tier.ShadowMapSide) * static_cast<double>(Tier.ShadowMapSide) * 4.0;
+        char Line[96];
+        std::snprintf(Line, sizeof(Line), "%u x %u - %.1f MB per light tap", Tier.ShadowMapSide, Tier.ShadowMapSide,
+                      Bytes / (1024.0 * 1024.0));
+        const PlanePoint Size = Surface.MeasureText(Line, 13.0f);
+        Surface.Text(Ctl.MinimumX, RowY + (RowH - Size.Y) * 0.5f, Faded(Ink50(), Opacity), Line, 13.0f);
+    }
+
+    return SectionH;
+}
+
+void ControlCentreHost::ConstructRenderFloatingLayout(PixelSpace& Surface, float Opacity) noexcept
+{
+    if (!ShadowMenuOpen) return;
+    static const char* const Options[] = { "Auto (tier)", "256 x 256", "512 x 512", "1024 x 1024", "2048 x 2048" };
+    uint32_t Chosen = static_cast<uint32_t>(Settings.ShadowResolution);
+    const ControlHit Hit = ControlKit::DropdownMenu(Surface, ShadowDropdownExtent, Options,
+                                                    static_cast<uint32_t>(ShadowResolutionCategory::Count),
+                                                    Chosen, Pointer, Chosen, Opacity);
+    if (Hit.Clicked) { ShadowMenuPick = static_cast<int>(Chosen); ShadowMenuOpen = false; return; }
+    // Release outside the menu and its button closes it, as with every other dropdown.
+    if (Pointer.Released && !Hit.Hovered && !ShadowDropdownExtent.Encloses(Pointer.X, Pointer.Y)) ShadowMenuOpen = false;
 }
 
 void ControlCentreHost::ConstructSubPageLayout(PixelSpace& Surface, ControlCentrePageCategory Page, float Opacity, bool Live) noexcept
@@ -1442,6 +1551,12 @@ void ControlCentreHost::ConstructSubPageLayout(PixelSpace& Surface, ControlCentr
                 char Scale[16];
                 std::snprintf(Scale, sizeof(Scale), " - %d%%", static_cast<int>(std::lround(Settings.RenderScale * 100.0f)));
                 Status += Scale;
+                // The shadow read-out names the resolved map, not the dropdown entry, so Auto is never ambiguous.
+                const FidelityCriteria Effective = QueryEffectiveCriteria();
+                char Shadow[48];
+                std::snprintf(Shadow, sizeof(Shadow), " - %s shadows %u",
+                              ShadowTechniqueLabel(Effective.ShadowTechnique), Effective.ShadowMapSide);
+                Status += Shadow;
             }
             break;
         case ControlCentrePageCategory::Appearance:
@@ -1524,6 +1639,7 @@ void ControlCentreHost::ConstructSubPageLayout(PixelSpace& Surface, ControlCentr
     {
         Appearance.ConstructFloatingLayout(Surface, Pointer, Opacity);
         InputPage.ConstructFloatingLayout(Surface, Pointer, Opacity);
+        ConstructRenderFloatingLayout(Surface, Opacity);
         Dialogue.ConstructDialogueLayout(Surface, Card, Pointer);
     }
 }

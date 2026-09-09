@@ -26,6 +26,7 @@ template<typename E> struct NameTable;
     template<> struct NameTable<Enum> { static constexpr const char* Names[] = { __VA_ARGS__ }; }
 
 FRONTIER_NAMES(FidelityCategory,         "Minimal", "Economy", "Standard", "Ultra", "Reference");
+FRONTIER_NAMES(ShadowResolutionCategory, "Auto", "256", "512", "1024", "2048");
 FRONTIER_NAMES(RenderResolutionCategory, "Native", "2560x1440", "1920x1080", "1280x720");
 FRONTIER_NAMES(VerticalSyncCategory,     "Off", "On", "Adaptive");
 FRONTIER_NAMES(FrameCapCategory,         "Unlimited", "60", "120", "144");
@@ -135,6 +136,7 @@ std::string ConfigurationRegistry::Serialise(const SlateConfiguration& P) noexce
         { "notifications",       P.Render.Notifications },
         { "quality",             NameOf(P.Render.Quality) },
         { "render_scale",        static_cast<double>(P.Render.RenderScale) },
+        { "shadow_resolution",   NameOf(P.Render.ShadowResolution) },   // Auto follows the quality tier; the rest pin the map side
         { "ray_tracing_tier",    NameOf(P.Backend.RayTracingTier) },   // Auto | Software | RayQuery | Pipeline (never faked upward)
         { "debug_view",          NameOf(P.Backend.DebugView) },        // Off | Depth | Visibility | Motion | Cluster | HiZ | Albedo | Normal | Roughness | Metalness | ShadingNormal | ReservoirM | ReservoirW | ReservoirAge (F3 popup)
         { "occlusion_culling",   P.Backend.OcclusionCulling },         // HiZ two-phase cull; off = frustum only (proof 4 A/B)
@@ -226,6 +228,7 @@ bool ConfigurationRegistry::Deserialise(std::string_view Toml, SlateConfiguratio
         S.GetEnum("quality",         Out.Render.Quality);
         S.Get("render_scale",        Out.Render.RenderScale);
         Out.Render.RenderScale = std::clamp(Out.Render.RenderScale, 0.25f, 1.0f);
+        S.GetEnum("shadow_resolution", Out.Render.ShadowResolution);
         S.GetEnum("ray_tracing_tier",    Out.Backend.RayTracingTier);
         S.GetEnum("debug_view",          Out.Backend.DebugView);
         S.Get("occlusion_culling",       Out.Backend.OcclusionCulling);

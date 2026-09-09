@@ -3,13 +3,17 @@
 //============================================================================================================================================
 // 🧩 The visibility buffer, rasterized on the CPU. Pass one keeps the nearest triangle per pixel; the shadow
 //    pass keeps the nearest depth per texel from each light tap; the shade pass spends the two buffers with no
-//    ray query anywhere. Taps are fixed and stratified (deterministic across runs); a 2x2 percentage-closer
-//    gather per tap keeps the penumbra edges the four taps would otherwise band smooth instead of dithered.
+//    ray query anywhere. Taps are fixed and stratified (deterministic across runs).
+//
+//    Which filter runs over the map is the quality tier's call, carried in by AssignShadowCriteria: a single hard
+//    comparison, a fixed-radius PCF box, or PCSS, whose blocker search sizes the kernel from the real occluder
+//    distance so contact stays sharp and the penumbra widens with distance. See VisibilityRaster.h for the ladder.
 
 #include "VisibilityRaster.h"
 
 #include "SceneStructure.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -42,7 +46,7 @@ bool VisibilityRaster::Render(const SceneStructure& Level,
     TriId_.assign(Cells, kMiss);
     Bary_.assign(Cells * 2u, 0.0f);
     TriN_.assign(Flat.size() * 3u, 0.0f);
-    Shadow_.assign(static_cast<size_t>(kShadowSize) * static_cast<size_t>(kShadowSize), 1e30f);
+    Shadow_.assign(static_cast<size_t>(Shadows_.MapSide) * static_cast<size_t>(Shadows_.MapSide), 1e30f);
     Acc_.assign(Cells * 3u, 0.0f);
 
     RasterizePrimary(Level, Eye, Forward, Right, Up, FovYRadians, Width, Height);
@@ -70,7 +74,7 @@ bool VisibilityRaster::RenderOrthographic(const SceneStructure& Level,
     TriId_.assign(Cells, kMiss);
     Bary_.assign(Cells * 2u, 0.0f);
     TriN_.assign(Flat.size() * 3u, 0.0f);
-    Shadow_.assign(static_cast<size_t>(kShadowSize) * static_cast<size_t>(kShadowSize), 1e30f);
+    Shadow_.assign(static_cast<size_t>(Shadows_.MapSide) * static_cast<size_t>(Shadows_.MapSide), 1e30f);
     Acc_.assign(Cells * 3u, 0.0f);
 
     RasterizePrimaryOrthographic(Level, Eye, Forward, Right, Up, HalfHeightWorld, Width, Height);
@@ -130,6 +134,10 @@ void VisibilityRaster::PlaceTaps() noexcept
         Tap.N[0] = L.N[0]; Tap.N[1] = L.N[1]; Tap.N[2] = L.N[2];
         Tap.Le[0] = L.Le[0]; Tap.Le[1] = L.Le[1]; Tap.Le[2] = L.Le[2];
         Tap.Weight = L.Area * static_cast<float>(Lumi_.size()) / static_cast<float>(kLightTaps);
+        // PCSS's LightSize: the luminaire's own extent. Taking √Area of the whole emitter (not of one tap's share)
+        //    is the physically meaningful figure — the penumbra is cast by the light's real width, and the four
+        //    taps are just how that one emitter is integrated.
+        Tap.Size = std::sqrt(L.Area * static_cast<float>(Lumi_.size()));
     }
     TapCount_ = kLightTaps;
 }
@@ -356,8 +364,8 @@ void VisibilityRaster::RasterizeShadow(const SceneStructure& Level, const float 
                 break;
             }
             InvZ[K] = 1.0f / Zc;
-            Sx[K] = (Xc * InvZ[K] / ShadowTan_ * 0.5f + 0.5f) * static_cast<float>(kShadowSize);
-            Sy[K] = (1.0f - (Yc * InvZ[K] / ShadowTan_ * 0.5f + 0.5f)) * static_cast<float>(kShadowSize);
+            Sx[K] = (Xc * InvZ[K] / ShadowTan_ * 0.5f + 0.5f) * static_cast<float>(Shadows_.MapSide);
+            Sy[K] = (1.0f - (Yc * InvZ[K] / ShadowTan_ * 0.5f + 0.5f)) * static_cast<float>(Shadows_.MapSide);
         }
         if (Behind)
             continue;
@@ -376,8 +384,8 @@ void VisibilityRaster::RasterizeShadow(const SceneStructure& Level, const float 
         int HiX = static_cast<int>(std::ceil(Sx[0] > Sx[1] ? (Sx[0] > Sx[2] ? Sx[0] : Sx[2]) : (Sx[1] > Sx[2] ? Sx[1] : Sx[2])));
         int LoY = static_cast<int>(std::floor(Sy[0] < Sy[1] ? (Sy[0] < Sy[2] ? Sy[0] : Sy[2]) : (Sy[1] < Sy[2] ? Sy[1] : Sy[2])));
         int HiY = static_cast<int>(std::ceil(Sy[0] > Sy[1] ? (Sy[0] > Sy[2] ? Sy[0] : Sy[2]) : (Sy[1] > Sy[2] ? Sy[1] : Sy[2])));
-        if (LoX < 0) LoX = 0; if (HiX > static_cast<int>(kShadowSize)) HiX = static_cast<int>(kShadowSize);
-        if (LoY < 0) LoY = 0; if (HiY > static_cast<int>(kShadowSize)) HiY = static_cast<int>(kShadowSize);
+        if (LoX < 0) LoX = 0; if (HiX > static_cast<int>(Shadows_.MapSide)) HiX = static_cast<int>(Shadows_.MapSide);
+        if (LoY < 0) LoY = 0; if (HiY > static_cast<int>(Shadows_.MapSide)) HiY = static_cast<int>(Shadows_.MapSide);
         const float InverseArea = 1.0f / Area;
 
         for (int Y = LoY; Y < HiY; ++Y)
@@ -392,7 +400,7 @@ void VisibilityRaster::RasterizeShadow(const SceneStructure& Level, const float 
                 if (W0 < 0.0f || W1 < 0.0f || W2 < 0.0f)
                     continue;
                 const float Z = 1.0f / (W0 * InvZ[0] + W1 * InvZ[1] + W2 * InvZ[2]);
-                const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(kShadowSize) + static_cast<size_t>(X);
+                const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(Shadows_.MapSide) + static_cast<size_t>(X);
                 if (Z < Shadow_[Idx])
                     Shadow_[Idx] = Z;
             }
@@ -400,16 +408,82 @@ void VisibilityRaster::RasterizeShadow(const SceneStructure& Level, const float 
     }
 }
 
-float VisibilityRaster::Shadow(const float P[3], const float N[3], float NdotL, const float Tap[3]) const noexcept
+void VisibilityRaster::AssignShadowCriteria(const ShadowCriteria& Criteria) noexcept
+{
+    // The map side is clamped to something a CPU proof can actually rasterize; the tiers stay well inside it.
+    Shadows_.Filter   = Criteria.Filter;
+    Shadows_.MapSide  = Criteria.MapSide  < 64u ? 64u : (Criteria.MapSide  > 4096u ? 4096u : Criteria.MapSide);
+    Shadows_.TapCount = Criteria.TapCount <  1u ?  1u : (Criteria.TapCount >   15u ?   15u : Criteria.TapCount);
+}
+
+float VisibilityRaster::ShadowTexel(int32_t X, int32_t Y) const noexcept
+{
+    if (X < 0 || Y < 0 || X >= static_cast<int32_t>(Shadows_.MapSide) || Y >= static_cast<int32_t>(Shadows_.MapSide))
+        return 1e30f;   // off the map: nothing occludes there
+    return Shadow_[static_cast<size_t>(Y) * static_cast<size_t>(Shadows_.MapSide) + static_cast<size_t>(X)];
+}
+
+bool VisibilityRaster::BlockerDepth(float TexU, float TexV, float Zc, float Bias, float Radius,
+                                    float& OutDepth) const noexcept
+{
+    // PCSS step one. Everything nearer to the light than this receiver is an occluder; their MEAN depth is what
+    //    the penumbra relation needs (the nearest alone would over-soften wherever two occluders overlap).
+    const float Step = Radius <= 0.0f ? 1.0f : Radius * 2.0f / static_cast<float>(kBlockerTaps - 1u);
+    const float Half = Radius <= 0.0f ? 0.0f : Radius;
+    float Sum = 0.0f;
+    uint32_t Count = 0u;
+    for (uint32_t Y = 0u; Y < kBlockerTaps; ++Y)
+    {
+        for (uint32_t X = 0u; X < kBlockerTaps; ++X)
+        {
+            const float Sx = TexU - Half + Step * static_cast<float>(X);
+            const float Sy = TexV - Half + Step * static_cast<float>(Y);
+            const float D  = ShadowTexel(static_cast<int32_t>(Sx + 0.5f), static_cast<int32_t>(Sy + 0.5f));
+            if (D + Bias < Zc)
+            {
+                Sum += D;
+                ++Count;
+            }
+        }
+    }
+    if (Count == 0u)
+        return false;
+    OutDepth = Sum / static_cast<float>(Count);
+    return true;
+}
+
+float VisibilityRaster::FilterLit(float TexU, float TexV, float Zc, float Bias,
+                                  float RadiusTexels, uint32_t Taps) const noexcept
+{
+    // A single tap is the hard test; anything wider is a box of comparisons whose mean is the lit fraction,
+    //    which is what turns a binary edge into a ramp.
+    if (Taps <= 1u || RadiusTexels <= 0.0f)
+        return ShadowTexel(static_cast<int32_t>(TexU + 0.5f), static_cast<int32_t>(TexV + 0.5f)) + Bias < Zc ? 0.0f : 1.0f;
+
+    const float Step = RadiusTexels * 2.0f / static_cast<float>(Taps - 1u);
+    float Lit = 0.0f;
+    for (uint32_t Y = 0u; Y < Taps; ++Y)
+    {
+        for (uint32_t X = 0u; X < Taps; ++X)
+        {
+            const float Sx = TexU - RadiusTexels + Step * static_cast<float>(X);
+            const float Sy = TexV - RadiusTexels + Step * static_cast<float>(Y);
+            if (!(ShadowTexel(static_cast<int32_t>(Sx + 0.5f), static_cast<int32_t>(Sy + 0.5f)) + Bias < Zc))
+                Lit += 1.0f;
+        }
+    }
+    return Lit / static_cast<float>(Taps * Taps);
+}
+
+float VisibilityRaster::Shadow(const float P[3], const float N[3], float NdotL, const LightTap& Tap) const noexcept
 {
     // The sample leaves from the surface point nudged one normal offset outward; without that nudge a
-    // grazing wall lands inside its own map texels and peppers itself with acne. The 2x2 gather returns a
-    // lit fraction, so the penumbra arrives as a smooth ramp instead of binary dither.
+    // grazing wall lands inside its own map texels and peppers itself with acne.
     constexpr float kNormalOffset = 0.02f; // [m] along the geometric normal, ahead of the map test
     const float Qx = P[0] + N[0] * kNormalOffset;
     const float Qy = P[1] + N[1] * kNormalOffset;
     const float Qz = P[2] + N[2] * kNormalOffset;
-    const float Ox = Qx - Tap[0], Oy = Qy - Tap[1], Oz = Qz - Tap[2];
+    const float Ox = Qx - Tap.P[0], Oy = Qy - Tap.P[1], Oz = Qz - Tap.P[2];
     const float Xc = Ox * ShadowR_[0] + Oy * ShadowR_[1] + Oz * ShadowR_[2];
     const float Yc = Ox * ShadowU_[0] + Oy * ShadowU_[1] + Oz * ShadowU_[2];
     const float Zc = Ox * ShadowD_[0] + Oy * ShadowD_[1] + Oz * ShadowD_[2];
@@ -420,34 +494,47 @@ float VisibilityRaster::Shadow(const float P[3], const float N[3], float NdotL, 
     const float V = 1.0f - (Yc / (Zc * ShadowTan_) * 0.5f + 0.5f);
     if (U < 0.0f || U >= 1.0f || V < 0.0f || V >= 1.0f)
         return 1.0f;
-    const float TexU = U * static_cast<float>(kShadowSize) - 0.5f;
-    const float TexV = V * static_cast<float>(kShadowSize) - 0.5f;
-    const int32_t X0 = static_cast<int32_t>(TexU);
-    const int32_t Y0 = static_cast<int32_t>(TexV);
-    const float Fx = TexU - static_cast<float>(X0);
-    const float Fy = TexV - static_cast<float>(Y0);
+
+    const float Side = static_cast<float>(Shadows_.MapSide);
+    const float TexU = U * Side - 0.5f;
+    const float TexV = V * Side - 0.5f;
     const float Bias = kShadowBias * (1.0f + (1.0f - NdotL));
-    float LitSum = 0.0f, LitWeight = 0.0f;
-    for (int Dy = 0; Dy < 2; ++Dy)
+
+    // Texels per metre at the receiver's depth: the map covers 2·Zc·tan(half) metres across Side texels, so this
+    //    is what converts a penumbra measured in metres into a kernel measured in texels.
+    const float TexelsPerMetre = Side / (2.0f * Zc * ShadowTan_);
+
+    switch (Shadows_.Filter)
     {
-        for (int Dx = 0; Dx < 2; ++Dx)
+        case ShadowFilterKind::HardShadowMap:
+            return FilterLit(TexU, TexV, Zc, Bias, 0.0f, 1u);
+
+        case ShadowFilterKind::WidePercentageCloserFilter:
         {
-            const int32_t Xi = X0 + Dx, Yi = Y0 + Dy;
-            if (Xi < 0 || Yi < 0 || Xi >= static_cast<int32_t>(kShadowSize) ||
-                Yi >= static_cast<int32_t>(kShadowSize))
-                continue;
-            const size_t Idx = static_cast<size_t>(Yi) * static_cast<size_t>(kShadowSize)
-                + static_cast<size_t>(Xi);
-            const float Wx = Dx == 0 ? 1.0f - Fx : Fx;
-            const float Wy = Dy == 0 ? 1.0f - Fy : Fy;
-            LitWeight += Wx * Wy;
-            if (!(Shadow_[Idx] + Bias < Zc))
-                LitSum += Wx * Wy;
+            // A fixed kernel: the radius is the tap count, so the penumbra is a constant number of texels wide
+            //    wherever it falls. Cheap and stable — and deliberately not physical, which is the tier's point.
+            const float Radius = static_cast<float>(Shadows_.TapCount) * 0.5f;
+            return FilterLit(TexU, TexV, Zc, Bias, Radius, Shadows_.TapCount);
+        }
+
+        case ShadowFilterKind::PercentageCloserSoftShadow:
+        default:
+        {
+            // Step one: search for blockers over a window scaled by the light's own size, as seen from here.
+            const float SearchTexels = std::max(Tap.Size * TexelsPerMetre * 0.5f, 1.0f);
+            float Blocker = 0.0f;
+            if (!BlockerDepth(TexU, TexV, Zc, Bias, SearchTexels, Blocker))
+                return 1.0f;                       // no occluder in the window: fully lit, and no kernel to pay for
+            if (Blocker <= 0.0f)
+                return FilterLit(TexU, TexV, Zc, Bias, 1.0f, Shadows_.TapCount);
+
+            // Step two: similar triangles. w = (Receiver − Blocker) / Blocker × LightSize. At contact the numerator
+            //    goes to zero and the kernel collapses to a hard test; far from the occluder it opens up.
+            const float Penumbra = (Zc - Blocker) / Blocker * Tap.Size;
+            const float Radius   = std::max(Penumbra * TexelsPerMetre * 0.5f, 0.5f);
+            return FilterLit(TexU, TexV, Zc, Bias, Radius, Shadows_.TapCount);
         }
     }
-    if (LitWeight <= 0.0f)
-        return 1.0f;
-    return LitSum / LitWeight;
 }
 
 void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], const float Forward[3],
@@ -539,7 +626,7 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                 const float LdotL = -(Tap.N[0] * Sx + Tap.N[1] * Sy + Tap.N[2] * Sz);
                 if (NdotL <= 0.0f || LdotL <= 0.0f)
                     continue;
-                const float LitFrac = Shadow(P, Ns, NdotL, Tap.P);
+                const float LitFrac = Shadow(P, Ns, NdotL, Tap);
                 if (LitFrac <= 0.0f)
                     continue;
 
