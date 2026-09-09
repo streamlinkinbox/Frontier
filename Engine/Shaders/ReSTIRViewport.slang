@@ -420,17 +420,31 @@ bool AlphaMaskCutOut(uint primitive, vec3 hitPos)
 //    and the bounce hit — and because ReSTIR reuses hits across frames, a disagreement decorrelates the reservoir
 //    instead of crashing. One definition removes that whole class of bug.
 
-// Instance owning a flat primitive slot. Triangles[] is laid out per instance in FlatTriangleOffset order, so this
-//    is a search for the last instance whose offset does not exceed the slot. Bounded by instance count.
+// Instance owning a flat primitive slot. Triangles[] is laid out per instance in FlatTriangleOffset order —
+//    SceneStructure::Finalise assigns each offset from the size of a growing vector, walking instances in order,
+//    so the sequence is non-decreasing — and the answer is the LAST instance whose offset does not exceed the
+//    slot. That is a sorted search, so it is done in log₂(N) steps rather than by walking.
+//
+//    Why "last" and not "first": an instance with no triangles repeats its predecessor's offset, and the walk it
+//    replaces kept advancing over equal offsets, so it settled on the last of a run. This binary search converges
+//    to the same element by moving `low` on every `<=`, which keeps empty instances resolving exactly as before
+//    instead of handing the primitive to whichever duplicate the search happened to land on first.
+//
+//    Cornell has two instances, where this is a wash. It is O(instances) per ray hit that matters: every closest
+//    hit on every candidate and bounce ray pays it, so on a real scene the walk is a per-ray tax proportional to
+//    scene complexity.
 uint InstanceOfPrimitive(uint flatPrimitive)
 {
-    uint found = 0u;
-    for (uint i = 0u; i + 1u < uint(Instances.length()); ++i)
+    uint low  = 0u;
+    uint high = uint(Instances.length()) - 1u;      // Instances is never empty: a hit implies geometry
+    while (low < high)
     {
-        if (Instances[i + 1u].FlatTriangleOffset <= flatPrimitive) found = i + 1u;
-        else break;
+        // Bias the midpoint UP so that `low = mid` always advances and the loop cannot stall on high == low + 1.
+        uint mid = low + (high - low + 1u) / 2u;
+        if (Instances[mid].FlatTriangleOffset <= flatPrimitive) low  = mid;
+        else                                                    high = mid - 1u;
     }
-    return found;
+    return low;
 }
 
 // Primitive index WITHIN its instance — what ResolveMaterial expects for vertex/uv lookup.
