@@ -31,7 +31,7 @@ int main(int ArgCount, char** Args) {
     }
     // Brightness test over the slider column: the tracks run x 1166..1258, and the
     //    orbit/disc rows sit between y 140 and y 460 on the Tabs sheet.
-    const int X0 = 1166, X1 = 1260, Y0 = 140, Y1 = 460;
+    const int X0 = 1166, X1 = 1260, Y0 = 170, Y1 = 490;   // below the shade strip
     std::vector<unsigned char> Seen((X1 - X0) * (Y1 - Y0), 0);
     auto Bright = [&](int X, int Y) -> bool {
         const unsigned char* P = Pixels + (Y * W + X) * 4;
@@ -104,10 +104,10 @@ int main(int ArgCount, char** Args) {
         std::printf("  middle %d,%d size %dx%d\n", (Found.X0 + Found.X1) / 2,
             (Found.Y0 + Found.Y1) / 2, Found.X1 - Found.X0 + 1, Found.Y1 - Found.Y0 + 1);
     }
-    // The settled travel runs 1205..1240 (track 1193..1252 with no scrollbar seated,
-    //    12-pixel knob radius); the middles the fractions ask for are 1225, 1216, 1208,
-    //    and 1225, top to bottom.
-    const int Want[4] = {1225, 1216, 1208, 1225};
+    // The settled travel runs 1205..1232 (track 1193..1244 with the theme's 8-pixel scrollbar seated:
+    //    the Sun sheet overflows the shortened column; 12-pixel knob radius); the middles the same
+    //    fractions ask for are 1220, 1213, 1207, and 1220, top to bottom.
+    const int Want[4] = {1220, 1213, 1207, 1220};
     if (Blobs.size() != 4) {
         std::printf("want 4 knobs\n");
         return 1;

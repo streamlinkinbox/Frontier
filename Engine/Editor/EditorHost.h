@@ -10,6 +10,7 @@
 #include "OutlinerPanel.h"
 #include "ViewportPanel.h"
 #include "InspectorPanel.h"
+#include "ControlCentrePanel.h"
 
 #include <cstdint>
 
@@ -39,6 +40,14 @@ public:
     [[nodiscard]] float QueryViewWidth() const noexcept;
     [[nodiscard]] float QueryViewHeight() const noexcept;
 
+    // The Control Centre shade's figures: GI seats the render path, exposure trims the view.
+    [[nodiscard]] bool  QueryGiEnabled() const noexcept;
+    [[nodiscard]] float QueryExposure() const noexcept;
+    [[nodiscard]] float QueryGiSwitchX() const noexcept;
+    [[nodiscard]] float QueryGiSwitchY() const noexcept;
+    [[nodiscard]] float QueryNotchX() const noexcept;
+    [[nodiscard]] float QueryNotchY() const noexcept;
+
     // The primary pick — the instance the sheet must describe. kNoEditorInstance when nothing is picked.
     [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;
 
@@ -58,6 +67,9 @@ private:
     OutlinerPanel  Outliner_;
     ViewportPanel  Viewport_;
     InspectorPanel Inspector_;
+    ControlCentrePanel ControlCentre_;   // last: the shade draws above the dock columns
+
+    bool ShadeOpen_ = false;             // shut at boot, Android-style; shared with the shade and the gear
 
     bool FontsSeated_ = false;
     int  FontCount_   = 0;

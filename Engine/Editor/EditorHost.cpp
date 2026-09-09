@@ -22,6 +22,9 @@ EditorHost::EditorHost() noexcept
     Outliner_.AssignControls(&Controls_);
     Viewport_.AssignControls(&Controls_);
     Inspector_.AssignControls(&Controls_);
+    ControlCentre_.AssignControls(&Controls_);
+    ControlCentre_.AssignOpen(&ShadeOpen_);
+    Viewport_.AssignShadeOpen(&ShadeOpen_);
 }
 
 uint32_t EditorHost::QueryPickedInstance() const noexcept
@@ -52,6 +55,36 @@ float EditorHost::QueryViewWidth() const noexcept
 float EditorHost::QueryViewHeight() const noexcept
 {
     return Viewport_.QueryViewHeight();
+}
+
+bool EditorHost::QueryGiEnabled() const noexcept
+{
+    return ControlCentre_.QueryGiEnabled();
+}
+
+float EditorHost::QueryExposure() const noexcept
+{
+    return ControlCentre_.QueryExposure();
+}
+
+float EditorHost::QueryGiSwitchX() const noexcept
+{
+    return ControlCentre_.QueryGiSwitchX();
+}
+
+float EditorHost::QueryGiSwitchY() const noexcept
+{
+    return ControlCentre_.QueryGiSwitchY();
+}
+
+float EditorHost::QueryNotchX() const noexcept
+{
+    return ControlCentre_.QueryNotchX();
+}
+
+float EditorHost::QueryNotchY() const noexcept
+{
+    return ControlCentre_.QueryNotchY();
 }
 
 //============================================================================================================================================
@@ -223,8 +256,9 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
 {
 #ifdef FRONTIER_DEVELOPMENT
     ImGuiViewport* Main = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(Main->Pos);
-    ImGui::SetNextWindowSize(Main->Size);
+    // The dock host always leaves the shade its strip; the sheet slides over the columns from there.
+    ImGui::SetNextWindowPos(ImVec2(Main->Pos.x, Main->Pos.y + ControlCentrePanel::kCollapsedH));
+    ImGui::SetNextWindowSize(ImVec2(Main->Size.x, Main->Size.y - ControlCentrePanel::kCollapsedH));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -262,6 +296,9 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
     const uint32_t Picked = Outliner_.QueryPicked();
     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
     Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? PickedSheet : nullptr);
+
+    // The shade records last, above the dock columns.
+    ControlCentre_.Record();
 #else
     (void)Instances; (void)InstanceCount; (void)PickedSheet;
 #endif

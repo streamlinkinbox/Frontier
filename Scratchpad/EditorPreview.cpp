@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Headless editor preview — the development editor over the LIVE Cornell level: the feed fills the roster from
 //    the fresh glTF, the Tall Box carries the pick, and the viewport shows the level traced on the CPU through
-//    the same traversal the renderer refits. One sheet out (Diagnostics/EditorPreview.png), no gates. No Vulkan,
+//    the same traversal the renderer refits. Three sheets out (shut, open GI, open raster), no gates. No Vulkan,
 //    no GLFW, no window. Run via Scratchpad/CheckEditorPreview.sh.
 
 #ifndef FRONTIER_DEVELOPMENT
@@ -162,17 +162,13 @@ struct LumiTri
     float Le[3];
 };
 
-// Next-event estimation over the level's own emissive triangles, two diffuse bounces, sky through the gaps.
-void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalIndex& Traversal,
-               const Frontier::Vector3& Eye, const Frontier::Vector3& Forward,
-               const Frontier::Vector3& Right, const Frontier::Vector3& Up, float FovYRadians,
-               int W, int H, unsigned char* Rgba, double& MeanLum) noexcept
+// The level's emissive triangles as samplable luminaires; both the tracer and the raster draw from it.
+void CollectLumi(const Frontier::SceneStructure& Level, std::vector<LumiTri>& Lumi)
 {
     using namespace Frontier;
     const auto& Flat    = Level.QueryFlatTriangles();
     const auto& Records = Level.QueryMaterials().QueryRecords();
 
-    std::vector<LumiTri> Lumi;
     for (size_t T = 0u; T < Flat.size(); ++T)
     {
         uint32_t Slot = 0u;
@@ -197,12 +193,27 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
         L.Le[0]  = R.EmissiveR; L.Le[1] = R.EmissiveG; L.Le[2] = R.EmissiveB;
         Lumi.push_back(L);
     }
+}
+
+// Next-event estimation over the level's own emissive triangles, two diffuse bounces, sky through the gaps.
+void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalIndex& Traversal,
+               const Frontier::Vector3& Eye, const Frontier::Vector3& Forward,
+               const Frontier::Vector3& Right, const Frontier::Vector3& Up, float FovYRadians,
+               int W, int H, unsigned char* Rgba, float Exposure, double& MeanLum) noexcept
+{
+    using namespace Frontier;
+    const auto& Flat    = Level.QueryFlatTriangles();
+    const auto& Records = Level.QueryMaterials().QueryRecords();
+
+    std::vector<LumiTri> Lumi;
+    CollectLumi(Level, Lumi);
     std::printf("[Preview] %zu emissive triangles light the trace\n", Lumi.size());
 
     constexpr float kPi = 3.14159265359f;
     const float HalfH = std::tan(FovYRadians * 0.5f);
     const float HalfW = HalfH * static_cast<float>(W) / static_cast<float>(H);
     double LumSum = 0.0;
+    const float Gain = std::pow(2.0f, Exposure);
 
     auto TraceRay = [&](const float O[3], const float D[3], float& Dist, uint32_t& Prim) -> bool
     {
@@ -326,7 +337,209 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
             unsigned char* Px = Rgba + (static_cast<size_t>(Y) * static_cast<size_t>(W) + static_cast<size_t>(X)) * 4u;
             for (int C = 0; C < 3; ++C)
             {
-                const float Reinhard = (Acc[C] / static_cast<float>(kSamples));
+                const float Reinhard = (Acc[C] / static_cast<float>(kSamples)) * Gain;
+                const float Mapped    = Reinhard / (1.0f + Reinhard);
+                const float Gamma     = std::pow(Mapped < 0.0f ? 0.0f : Mapped, 1.0f / 2.2f);
+                Px[C] = static_cast<unsigned char>(Gamma * 255.0f + 0.5f);
+            }
+            Px[3] = 255u;
+            LumSum += 0.2126 * Px[0] + 0.7152 * Px[1] + 0.0722 * Px[2];
+        }
+    }
+    MeanLum = LumSum / (static_cast<double>(W) * static_cast<double>(H) * 255.0);
+}
+
+// The visibility raster: projected triangles edge-walked under a depth buffer, shaded direct-only —
+//    Lambert plus a GGX specular under the luminaires, four shadow samples a pixel, no bounces. The
+//    shade-off look: normal lookdev PBR, like the raster without GI.
+void RasterizeView(const Frontier::SceneStructure& Level, const Frontier::TraversalIndex& Traversal,
+                   const Frontier::Vector3& Eye, const Frontier::Vector3& Forward,
+                   const Frontier::Vector3& Right, const Frontier::Vector3& Up, float FovYRadians,
+                   int W, int H, unsigned char* Rgba, float Exposure, double& MeanLum) noexcept
+{
+    using namespace Frontier;
+    const auto& Flat    = Level.QueryFlatTriangles();
+    const auto& Records = Level.QueryMaterials().QueryRecords();
+
+    std::vector<LumiTri> Lumi;
+    CollectLumi(Level, Lumi);
+    std::printf("[Preview] %zu emissive triangles light the raster\n", Lumi.size());
+
+    constexpr float kPi = 3.14159265359f;
+    constexpr float kSky[3] = { 0.30f, 0.42f, 0.63f };
+    constexpr int kLightSamples = 4;
+    const float HalfH = std::tan(FovYRadians * 0.5f);
+    const float HalfW = HalfH * static_cast<float>(W) / static_cast<float>(H);
+    const float Gain  = std::pow(2.0f, Exposure);
+
+    std::vector<float> Depth(static_cast<size_t>(W) * static_cast<size_t>(H), 1e30f);
+    std::vector<float> Linear(static_cast<size_t>(W) * static_cast<size_t>(H) * 3u);
+    for (size_t I = 0u; I < static_cast<size_t>(W) * static_cast<size_t>(H); ++I)
+    {
+        Linear[I * 3u] = kSky[0]; Linear[I * 3u + 1u] = kSky[1]; Linear[I * 3u + 2u] = kSky[2];
+    }
+
+    uint32_t Seed = 0xC0FFEEu;
+    for (size_t T = 0u; T < Flat.size(); ++T)
+    {
+        uint32_t Slot = 0u;
+        std::memcpy(&Slot, &Flat[T].MaterialSlot, sizeof(Slot));
+        if (Slot >= Records.size())
+            continue;
+        const MaterialRecord& R = Records[Slot];
+
+        const float V[3][3] = {
+            { Flat[T].VertexAlphaX, Flat[T].VertexAlphaY, Flat[T].VertexAlphaZ },
+            { Flat[T].VertexBetaX,  Flat[T].VertexBetaY,  Flat[T].VertexBetaZ },
+            { Flat[T].VertexGammaX, Flat[T].VertexGammaY, Flat[T].VertexGammaZ },
+        };
+        float N[3] = { (V[1][1] - V[0][1]) * (V[2][2] - V[0][2]) - (V[1][2] - V[0][2]) * (V[2][1] - V[0][1]),
+                       (V[1][2] - V[0][2]) * (V[2][0] - V[0][0]) - (V[1][0] - V[0][0]) * (V[2][2] - V[0][2]),
+                       (V[1][0] - V[0][0]) * (V[2][1] - V[0][1]) - (V[1][1] - V[0][1]) * (V[2][0] - V[0][0]) };
+        const float Nl = std::sqrt(N[0] * N[0] + N[1] * N[1] + N[2] * N[2]);
+        if (Nl <= 0.0f)
+            continue;
+        N[0] /= Nl; N[1] /= Nl; N[2] /= Nl;
+
+        // Camera space; the Cornell camera stands outside the room, so no triangle crosses the near plane.
+        float Cx[3], Cy[3], Cz[3];
+        bool Behind = false;
+        for (int K = 0; K < 3; ++K)
+        {
+            const float Rx = V[K][0] - Eye.x, Ry = V[K][1] - Eye.y, Rz = V[K][2] - Eye.z;
+            Cx[K] = Rx * Right.x + Ry * Right.y + Rz * Right.z;
+            Cy[K] = Rx * Up.x    + Ry * Up.y    + Rz * Up.z;
+            Cz[K] = Rx * Forward.x + Ry * Forward.y + Rz * Forward.z;
+            if (Cz[K] < 0.05f)
+                Behind = true;
+        }
+        if (Behind)
+            continue;
+
+        float Sx[3], Sy[3], InvZ[3];
+        for (int K = 0; K < 3; ++K)
+        {
+            InvZ[K] = 1.0f / Cz[K];
+            Sx[K] = (Cx[K] * InvZ[K] / HalfW * 0.5f + 0.5f) * static_cast<float>(W);
+            Sy[K] = (1.0f - (Cy[K] * InvZ[K] / HalfH * 0.5f + 0.5f)) * static_cast<float>(H);
+        }
+        float Area = EdgeWeight(Sx[0], Sy[0], Sx[1], Sy[1], Sx[2], Sy[2]);
+        if (Area == 0.0f)
+            continue;
+        if (Area < 0.0f)
+        {
+            std::swap(Sx[1], Sx[2]); std::swap(Sy[1], Sy[2]); std::swap(InvZ[1], InvZ[2]);
+            Area = -Area;
+        }
+        int LoX = static_cast<int>(std::floor(std::fmin(Sx[0], std::fmin(Sx[1], Sx[2]))));
+        int HiX = static_cast<int>(std::ceil(std::fmax(Sx[0], std::fmax(Sx[1], Sx[2]))));
+        int LoY = static_cast<int>(std::floor(std::fmin(Sy[0], std::fmin(Sy[1], Sy[2]))));
+        int HiY = static_cast<int>(std::ceil(std::fmax(Sy[0], std::fmax(Sy[1], Sy[2]))));
+        if (LoX < 0) LoX = 0; if (HiX > W) HiX = W;
+        if (LoY < 0) LoY = 0; if (HiY > H) HiY = H;
+        const float InverseArea = 1.0f / Area;
+
+        const float Alb[3] = { R.AlbedoR, R.AlbedoG, R.AlbedoB };
+        const float Rough = R.Roughness, Metal = R.Metalness;
+        const bool Emits = (R.EmissiveR + R.EmissiveG + R.EmissiveB) > 0.0f;
+        for (int Y = LoY; Y < HiY; ++Y)
+        {
+            for (int X = LoX; X < HiX; ++X)
+            {
+                const float Px = static_cast<float>(X) + 0.5f;
+                const float Py = static_cast<float>(Y) + 0.5f;
+                const float W0 = EdgeWeight(Sx[1], Sy[1], Sx[2], Sy[2], Px, Py) * InverseArea;
+                const float W1 = EdgeWeight(Sx[2], Sy[2], Sx[0], Sy[0], Px, Py) * InverseArea;
+                const float W2 = EdgeWeight(Sx[0], Sy[0], Sx[1], Sy[1], Px, Py) * InverseArea;
+                if (W0 < 0.0f || W1 < 0.0f || W2 < 0.0f)
+                    continue;
+                const float Z = 1.0f / (W0 * InvZ[0] + W1 * InvZ[1] + W2 * InvZ[2]);
+                const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(W) + static_cast<size_t>(X);
+                if (Z >= Depth[Idx])
+                    continue;
+                Depth[Idx] = Z;
+
+                float* Out = &Linear[Idx * 3u];
+                if (Emits)
+                {
+                    Out[0] = R.EmissiveR; Out[1] = R.EmissiveG; Out[2] = R.EmissiveB;
+                    continue;
+                }
+                const float U = (2.0f * Px / static_cast<float>(W) - 1.0f) * HalfW;
+                const float Vv = (1.0f - 2.0f * Py / static_cast<float>(H)) * HalfH;
+                float Dx = Forward.x + Right.x * U + Up.x * Vv;
+                float Dy = Forward.y + Right.y * U + Up.y * Vv;
+                float Dz = Forward.z + Right.z * U + Up.z * Vv;
+                const float Dl = std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
+                Dx /= Dl; Dy /= Dl; Dz /= Dl;
+                float Ns[3] = { N[0], N[1], N[2] };
+                if (Ns[0] * Dx + Ns[1] * Dy + Ns[2] * Dz > 0.0f) { Ns[0] = -Ns[0]; Ns[1] = -Ns[1]; Ns[2] = -Ns[2]; }
+                const float P[3] = { Eye.x + Dx * Z, Eye.y + Dy * Z, Eye.z + Dz * Z };
+                const float NdotV = -(Ns[0] * Dx + Ns[1] * Dy + Ns[2] * Dz);
+
+                // The raster's fill: a flat ambient under the direct light, so unlit faces sit dark grey
+                //    instead of pitch black (the no-GI look still needs to read as a render, not a void).
+                float Acc[3] = { Alb[0] * (1.0f - Metal) * 0.045f, Alb[1] * (1.0f - Metal) * 0.045f,
+                                 Alb[2] * (1.0f - Metal) * 0.045f };
+                for (int Ls = 0; Ls < kLightSamples && !Lumi.empty(); ++Ls)
+                {
+                    const LumiTri& L = Lumi[XorShift(Seed) % Lumi.size()];
+                    const float R1 = Rand01(Seed), R2 = Rand01(Seed);
+                    const float Sq = std::sqrt(R1);
+                    const float Lp[3] = { L.A[0] + (L.B[0] - L.A[0]) * (1.0f - Sq) + (L.C[0] - L.A[0]) * (Sq * R2),
+                                          L.A[1] + (L.B[1] - L.A[1]) * (1.0f - Sq) + (L.C[1] - L.A[1]) * (Sq * R2),
+                                          L.A[2] + (L.B[2] - L.A[2]) * (1.0f - Sq) + (L.C[2] - L.A[2]) * (Sq * R2) };
+                    float Sd[3] = { Lp[0] - P[0], Lp[1] - P[1], Lp[2] - P[2] };
+                    const float Sl = std::sqrt(Sd[0] * Sd[0] + Sd[1] * Sd[1] + Sd[2] * Sd[2]);
+                    Sd[0] /= Sl; Sd[1] /= Sl; Sd[2] /= Sl;
+                    const float NdotL = Ns[0] * Sd[0] + Ns[1] * Sd[1] + Ns[2] * Sd[2];
+                    const float LdotL = -(L.N[0] * Sd[0] + L.N[1] * Sd[1] + L.N[2] * Sd[2]);
+                    if (NdotL <= 0.0f || LdotL <= 0.0f)
+                        continue;
+                    const float So[3] = { P[0] + Ns[0] * 1e-4f, P[1] + Ns[1] * 1e-4f, P[2] + Ns[2] * 1e-4f };
+                    float Sdist = 0.0f; uint32_t Sprim = 0u;
+                    if (Traversal.TraceClosest(So, Sd, Sdist, Sprim) && Sdist < Sl * 0.9999f)
+                        continue;
+                    const float Geo = NdotL * LdotL * L.Area * static_cast<float>(Lumi.size()) / (Sl * Sl);
+                    float Hx = Sd[0] - Dx, Hy = Sd[1] - Dy, Hz = Sd[2] - Dz;
+                    const float Hl = std::sqrt(Hx * Hx + Hy * Hy + Hz * Hz);
+                    Hx /= Hl; Hy /= Hl; Hz /= Hl;
+                    const float NdotH = Ns[0] * Hx + Ns[1] * Hy + Ns[2] * Hz;
+                    float Alpha = Rough * Rough;
+                    if (Alpha < 0.05f)
+                        Alpha = 0.05f;
+                    const float A2 = Alpha * Alpha;
+                    const float Denom = NdotH * NdotH * (A2 - 1.0f) + 1.0f;
+                    const float Df = A2 / (kPi * Denom * Denom);
+                    const float Kk = (Alpha + 1.0f) * (Alpha + 1.0f) * 0.125f;
+                    const float G = (NdotV / (NdotV * (1.0f - Kk) + Kk)) * (NdotL / (NdotL * (1.0f - Kk) + Kk));
+                    const float Cos5 = (1.0f - NdotH) * (1.0f - NdotH) * (1.0f - NdotH) * (1.0f - NdotH) * (1.0f - NdotH);
+                    for (int C = 0; C < 3; ++C)
+                    {
+                        const float F0 = 0.04f + (Alb[C] - 0.04f) * Metal;
+                        const float F = F0 + (1.0f - F0) * Cos5;
+                        const float Spec = Df * G * F / (4.0f * NdotV * NdotL);
+                        const float Diff = Alb[C] * (1.0f - Metal) / kPi;
+                        Acc[C] += (Diff + Spec) * L.Le[C] * Geo;
+                    }
+                }
+                Out[0] = Acc[0] / static_cast<float>(kLightSamples);
+                Out[1] = Acc[1] / static_cast<float>(kLightSamples);
+                Out[2] = Acc[2] / static_cast<float>(kLightSamples);
+            }
+        }
+    }
+
+    double LumSum = 0.0;
+    for (int Y = 0; Y < H; ++Y)
+    {
+        for (int X = 0; X < W; ++X)
+        {
+            const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(W) + static_cast<size_t>(X);
+            unsigned char* Px = Rgba + Idx * 4u;
+            for (int C = 0; C < 3; ++C)
+            {
+                const float Reinhard = Linear[Idx * 3u + static_cast<size_t>(C)] * Gain;
                 const float Mapped    = Reinhard / (1.0f + Reinhard);
                 const float Gamma     = std::pow(Mapped < 0.0f ? 0.0f : Mapped, 1.0f / 2.2f);
                 Px[C] = static_cast<unsigned char>(Gamma * 255.0f + 0.5f);
@@ -433,31 +646,75 @@ int main()
     const auto TraceStart = std::chrono::steady_clock::now();
     double MeanLum = 0.0;
     TraceView(Level, Traversal, Eye, Fwd, Camera.QueryRightVector(), Camera.QueryUpwardVector(),
-              Camera.QueryFieldOfViewRadians(), ViewW, ViewH, View.data(), MeanLum);
+              Camera.QueryFieldOfViewRadians(), ViewW, ViewH, View.data(), Editor.QueryExposure(), MeanLum);
     const double TraceMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - TraceStart).count();
     std::printf("[Preview] traced %d x %d in %.0f ms (mean luminance %.3f)\n", ViewW, ViewH, TraceMs, MeanLum);
 
     Editor.AssignView(View.data(), static_cast<uint32_t>(ViewW), static_cast<uint32_t>(ViewH));
     const ImTextureID ViewId = static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(View.data()));
+    auto WriteSheet = [&](const char* Sheet)
+    {
+        for (size_t I = 0u; I < Pixels.size(); I += 3u)
+        {
+            Pixels[I] = kGround[0]; Pixels[I + 1u] = kGround[1]; Pixels[I + 2u] = kGround[2];
+        }
+        const ImDrawData* Drawings = ImGui::GetDrawData();
+        for (int Index = 0; Index < Drawings->CmdListsCount; ++Index)
+            RasterizeList(Drawings->CmdLists[Index], GlyphSheet, GlyphSheetWidth, GlyphSheetHeight,
+                          View.data(), ViewW, ViewH, ViewId, Pixels.data(),
+                          Drawings->DisplayPos, Drawings->FramebufferScale);
+        if (stbi_write_png(Sheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
+        {
+            std::printf("[Preview] the sheet would not write\n");
+            return false;
+        }
+        std::printf("[Preview] wrote %s\n", Sheet);
+        return true;
+    };
+
+    // Sheet one: the shade shut at boot over the GI view.
     Tick(-1.0f, -1.0f, false);
     Tick(-1.0f, -1.0f, false);
+    if (!WriteSheet("Diagnostics/EditorPreviewShut.png"))
+        return 1;
 
-    for (size_t I = 0u; I < Pixels.size(); I += 3u)
+    // A tap on the notch slides the shade open; the switch centre seating proves the rows drew.
+    const float NotchX = Editor.QueryNotchX(), NotchY = Editor.QueryNotchY();
+    Tick(NotchX, NotchY, true);
+    Tick(NotchX, NotchY, false);
+    for (int i = 0; i < 40; ++i)
+        Tick(-1.0f, -1.0f, false);
+    std::printf("[Preview] notch tap at (%.0f, %.0f); switch at (%.0f, %.0f)\n",
+                static_cast<double>(NotchX), static_cast<double>(NotchY),
+                static_cast<double>(Editor.QueryGiSwitchX()), static_cast<double>(Editor.QueryGiSwitchY()));
+    if (Editor.QueryGiSwitchX() < 0.0f)
     {
-        Pixels[I] = kGround[0]; Pixels[I + 1u] = kGround[1]; Pixels[I + 2u] = kGround[2];
-    }
-    const ImDrawData* Drawings = ImGui::GetDrawData();
-    for (int Index = 0; Index < Drawings->CmdListsCount; ++Index)
-        RasterizeList(Drawings->CmdLists[Index], GlyphSheet, GlyphSheetWidth, GlyphSheetHeight,
-                      View.data(), ViewW, ViewH, ViewId, Pixels.data(),
-                      Drawings->DisplayPos, Drawings->FramebufferScale);
-
-    const char* Sheet = "Diagnostics/EditorPreview.png";
-    if (stbi_write_png(Sheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
-    {
-        std::printf("[Preview] the sheet would not write\n");
+        std::printf("[Preview] the shade never opened\n");
         return 1;
     }
-    std::printf("[Preview] wrote %s\n", Sheet);
+    if (!WriteSheet("Diagnostics/EditorPreview.png"))
+        return 1;
+
+    // A tap on the switch seats the raster path; the view re-seats through the visibility raster.
+    const float GiX = Editor.QueryGiSwitchX(), GiY = Editor.QueryGiSwitchY();
+    Tick(GiX, GiY, true);
+    Tick(GiX, GiY, false);
+    Tick(-1.0f, -1.0f, false);
+    std::printf("[Preview] GI %s after the switch tap\n", Editor.QueryGiEnabled() ? "on" : "off");
+    if (Editor.QueryGiEnabled())
+    {
+        std::printf("[Preview] the switch never toggled\n");
+        return 1;
+    }
+    const auto RasterStart = std::chrono::steady_clock::now();
+    double RasterLum = 0.0;
+    RasterizeView(Level, Traversal, Eye, Fwd, Camera.QueryRightVector(), Camera.QueryUpwardVector(),
+                  Camera.QueryFieldOfViewRadians(), ViewW, ViewH, View.data(), Editor.QueryExposure(), RasterLum);
+    const double RasterMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - RasterStart).count();
+    std::printf("[Preview] rasterized %d x %d in %.0f ms (mean luminance %.3f)\n", ViewW, ViewH, RasterMs, RasterLum);
+    Tick(-1.0f, -1.0f, false);
+    Tick(-1.0f, -1.0f, false);
+    if (!WriteSheet("Diagnostics/EditorPreviewRaster.png"))
+        return 1;
     return 0;
 }

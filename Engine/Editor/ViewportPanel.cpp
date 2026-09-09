@@ -620,7 +620,8 @@ void ViewportPanel::RecordBar() noexcept
     constexpr float kBtnW = 28.0f, kBtnH = 26.0f, kBtnGap = 2.0f, kStripH = 30.0f, kStripPad = 4.0f;
     const float ChipW = SpacedCapsWidth(Small, ChipLabel, 1.3f) + 20.0f;
     const float RtW   = SpacedCapsWidth(Small, "Realtime", 1.1f) + 32.0f;
-    const float Inner = 5.0f * kBtnW + 4.0f * kBtnGap + kBtnGap + 11.0f + kBtnGap + RtW + kBtnGap + ChipW;
+    const float Inner = 5.0f * kBtnW + 4.0f * kBtnGap + kBtnGap + 11.0f + kBtnGap + RtW + kBtnGap + ChipW
+        + kBtnGap + kBtnW;
     const float StripW = Inner + 2.0f * kStripPad;
     const float StripX = Cursor.x + RowWidth - StripW;
     const float StripY = Cursor.y + 7.0f;
@@ -744,6 +745,37 @@ void ViewportPanel::RecordBar() noexcept
     }
     SpacedCaps(Draw, Small, ChipLabel, ImVec2(BX + 10.0f, ChipY + (22.0f - RtGlyph.y) * 0.5f), ChipTint, 1.3f);
 
+    // The gear: slides the Control Centre shade open and shut through the shared open figure.
+    const float GX = BX + ChipW + kBtnGap;
+    ImGui::SetCursorScreenPos(ImVec2(GX, TBtnY));
+    ImGui::InvisibleButton("##tsettings", ImVec2(kBtnW, kBtnH));
+    const bool GearHot = ImGui::IsItemHovered();
+    if (GearHot)
+    {
+        ImGui::SetTooltip("Viewport settings");
+        if (ImGui::IsMouseClicked(0) && ShadeOpen_ != nullptr)
+        {
+            *ShadeOpen_ = !*ShadeOpen_;
+        }
+    }
+    const bool GearOn = (ShadeOpen_ != nullptr && *ShadeOpen_);
+    if (GearHot || GearOn)
+    {
+        Draw->AddCircleFilled(ImVec2(GX + kBtnW * 0.5f, TBtnY + kBtnH * 0.5f), 12.0f,
+            GearHot ? kHover : IM_COL32(255, 255, 255, 16));
+    }
+    const ImVec2 GearC(GX + kBtnW * 0.5f, TBtnY + kBtnH * 0.5f);
+    const ImU32  GearTint = (GearHot || GearOn) ? kText : kDim;
+    Draw->AddCircle(GearC, 5.0f, GearTint, 24, 1.4f);
+    for (uint32_t Tooth = 0u; Tooth < 8u; ++Tooth)
+    {
+        const float A = static_cast<float>(Tooth) * 0.7853982f;
+        const ImVec2 Tip(GearC.x + 8.2f * std::cos(A), GearC.y + 8.2f * std::sin(A));
+        const ImVec2 Root(GearC.x + 5.6f * std::cos(A), GearC.y + 5.6f * std::sin(A));
+        Draw->AddLine(Root, Tip, GearTint, 1.6f);
+    }
+    Draw->AddCircleFilled(GearC, 1.6f, GearTint);
+
     const ImVec2 WinPos = ImGui::GetWindowPos();
     const ImVec2 WinSize = ImGui::GetWindowSize();
     Draw->AddLine(ImVec2(WinPos.x, Cursor.y + 44.0f), ImVec2(WinPos.x + WinSize.x, Cursor.y + 44.0f), kStroke);
@@ -806,6 +838,8 @@ void ViewportPanel::RecordView() noexcept
     ImGui::PopFont();
     LastW_ = Max.x - Min.x;
     LastH_ = Max.y - Min.y;
+    LastX_ = Min.x;
+    LastY_ = Min.y;
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
 }
 

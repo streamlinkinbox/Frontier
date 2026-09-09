@@ -552,7 +552,8 @@ int main()
     }
 
     // Gate 2 — the trapezoid: both upper corners of the outliner tab must sit inside the lower ones by
-    //    the seated slant. The tab spans y 1 … 27; the scanlines sit 1 px off its extremes, clear of the
+    //    the seated slant. The tab spans y 31 … 57, below the shade strip; the scanlines sit 1 px off its
+    //    extremes, clear of the
     //    title glyphs that shred the mid-band runs, and the slant is linear, so each side must measure
     //    between 7 and 17 px against the seated 14. The rounded viewport corner leaves a seated sliver at
     //    the strip's left edge, so the leftward scan only trusts runs twenty cells or longer.
@@ -595,13 +596,13 @@ int main()
             }
             return Last;
         };
-        const int LoLeft = LeftEdge(26), HiLeft = LeftEdge(2);
+        const int LoLeft = LeftEdge(56), HiLeft = LeftEdge(32);
         std::fprintf(stderr, "[EditorProof] tab edges: lower-left %d, upper-left %d", LoLeft, HiLeft);
         bool Slanted = LoLeft >= 0 && HiLeft >= 0;
         int LeftInset = 0, RightInset = 0;
         if (Slanted)
         {
-            const int LoRight = RightEdge(26, LoLeft), HiRight = RightEdge(2, HiLeft);
+            const int LoRight = RightEdge(56, LoLeft), HiRight = RightEdge(32, HiLeft);
             std::fprintf(stderr, ", lower-right %d, upper-right %d\n", LoRight, HiRight);
             Slanted = LoRight > LoLeft && HiRight > HiLeft;
             LeftInset = HiLeft - LoLeft;
@@ -622,7 +623,7 @@ int main()
     // Gate 3 — titled strips: the tab band must carry glyph ink (the three titles).
     {
         int Glyphs = 0;
-        for (int Y = 0; Y < 32; ++Y)
+        for (int Y = 30; Y < 62; ++Y)
             for (int X = 0; X < kWidth; ++X)
             {
                 const unsigned char* P = At(X, Y);
@@ -676,7 +677,7 @@ int main()
     }
 
     // Gate 5 — the category menu opens: a click on the category pill must raise the black menu.
-    Click(220.0f, 116.0f);
+    Click(220.0f, 146.0f);
     Rest(14);
     Rasterise();
     {
@@ -687,7 +688,7 @@ int main()
             return 1;
         }
         int Black = 0;
-        for (int Y = 140; Y < 400; ++Y)
+        for (int Y = 170; Y < 430; ++Y)
             for (int X = 170; X < 270; ++X)
             {
                 const unsigned char* P = At(X, Y);
@@ -703,9 +704,9 @@ int main()
     }
 
     // Gate 6 — the narrowing works: picking Sun filters the outline and raises its chip.
-    Click(220.0f, 348.0f);
+    Click(220.0f, 378.0f);
     Rest(3);
-    Click(500.0f, 400.0f);   // outside the menu: dismiss it, leaving the pick behind
+    Click(500.0f, 430.0f);   // outside the menu: dismiss it, leaving the pick behind
     Rest(5);
     Rasterise();
     {
@@ -728,12 +729,12 @@ int main()
                 && std::abs(static_cast<int>(P[2]) - 42) <= 3;
         };
         int Chips = 0;
-        for (int Y = 130; Y < 160; ++Y)
+        for (int Y = 160; Y < 190; ++Y)
             for (int X = 14; X < 280; ++X)
                 if (IsChip(At(X, Y)))
                     ++Chips;
         int Rows = 0;
-        for (int Y = 160; Y < 700; ++Y)
+        for (int Y = 190; Y < 700; ++Y)
             for (int X = 14; X < 280; ++X)
                 if (IsNarrowRow(At(X, Y)))
                     ++Rows;
@@ -751,14 +752,14 @@ int main()
     }
 
     // The chip dismisses too: one click on it clears the narrowing for the Quality pass below.
-    Click(39.0f, 146.0f);
+    Click(39.0f, 176.0f);
     Rest(5);
 
     // Gate 7 — the reference dropdown opens: the Quality pill must raise its black menu over the cards.
     Editor.PickInstance(17u);   // Sky, the sheet with the reference dropdown
     BuildMirrorSheet(17u, CornellInstances, &PickedSheet);
     Rest(5);
-    Click(1171.0f, 234.0f);
+    Click(1171.0f, 264.0f);
     Rest(14);
     Rasterise();
     {
@@ -769,7 +770,7 @@ int main()
             return 1;
         }
         int Black = 0;
-        for (int Y = 270; Y < 420; ++Y)
+        for (int Y = 300; Y < 450; ++Y)
             for (int X = 1100; X < 1240; ++X)
             {
                 const unsigned char* P = At(X, Y);
@@ -785,7 +786,7 @@ int main()
     }
 
     // Gate 8 — the reference dropdown selects: picking High lands in the sheet's own figure.
-    Click(1171.0f, 368.0f);
+    Click(1171.0f, 398.0f);
     Rest(3);
     {
         const uint32_t Grade = PickedSheet.Groups[0].Properties[2].Picked;

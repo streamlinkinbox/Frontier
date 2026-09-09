@@ -29,6 +29,7 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
      Engine/Editor/OutlinerPanel.cpp \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
+     Engine/Editor/ControlCentrePanel.cpp \
      ExternalPackages/imgui/imgui.cpp \
      ExternalPackages/imgui/imgui_draw.cpp \
      ExternalPackages/imgui/imgui_tables.cpp \

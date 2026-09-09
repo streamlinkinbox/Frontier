@@ -27,6 +27,9 @@ public:
     void AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept;
     void AssignViewTexture(ImTextureID View, uint32_t Width, uint32_t Height) noexcept;
 
+    // Shares the Control Centre shade's open figure with the bar's gear.
+    void AssignShadeOpen(bool* Open) noexcept { ShadeOpen_ = Open; }
+
     // Last view rect, so the project can size the view rows to the rect it draws into.
     [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
     [[nodiscard]] float QueryViewHeight() const noexcept { return LastH_; }
@@ -54,8 +57,11 @@ private:
     ImTextureID          ViewTexture_ = static_cast<ImTextureID>(0);
     uint32_t             ViewW_       = 0u;
     uint32_t             ViewH_       = 0u;
-    float                LastW_       = 0.0f;      // last view rect, for QueryViewWidth/QueryViewHeight
+    float                LastW_       = 0.0f;      // last view rect, for the QueryView* rect
     float                LastH_       = 0.0f;
+    float                LastX_       = 0.0f;
+    float                LastY_       = 0.0f;
+    bool*                ShadeOpen_ = nullptr;  // the Control Centre shade's open figure, shared with the host
 
     uint32_t Transport_ = 0u;   // 0 edit, 1 play, 2 simulate — the reference's three runs
     bool     Paused_    = false;
