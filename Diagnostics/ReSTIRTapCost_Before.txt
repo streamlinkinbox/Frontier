@@ -1,0 +1,9 @@
+[ReSTIRTapCost] BEFORE (hardcoded 4-tap cross) — kSpatialTaps = 4 for every tier
+[ReSTIRTapCost] 921600 pixels/frame, temporal valid, all spatial taps valid (worst case)
+
+  tier          M extra  taps       PHat/px  PHat/frame    ms/frame
+  Minimal       1     0     4          18.0    16588800       223.7
+  Economy       2     1     4          20.0    18432000       160.1
+  Standard      4     2     4          23.0    21196800       179.0
+  Ultra         8     3     4          28.0    25804800       213.3
+  Reference    16     4     4          37.0    34099200       283.2
