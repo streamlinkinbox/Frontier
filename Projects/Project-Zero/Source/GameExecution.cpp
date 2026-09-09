@@ -748,7 +748,8 @@ int main(int argc, char** argv)
     auto PreviousTime = Clock::now();
 
     // Scene editor feed — the roster fills once from the live level; the sheet rebuilds whenever the
-    //    pick moves, and the folder tint mirror (the single write-back this turn) carries back every tick.
+    //    pick moves. Two write-backs cross back every tick: the folder tint mirror, and the outliner +
+    //    menu's ask, which seats a created sky body; the orbit's home seats from the fly camera below.
     //    Without FRONTIER_DEVELOPMENT the panel below ignores all of this (see the ifdef at the feed block).
     Frontier::EditorInstance   SceneInstances[Frontier::kMaxEditorInstances] = {};
     Frontier::EditorSheet    PickedSheet = {};
@@ -756,6 +757,7 @@ int main(int argc, char** argv)
     uint32_t                 SceneRowCount = 0u;
     uint32_t                 SheetFor     = Frontier::kNoEditorInstance;
     Frontier::EditorProperty* TintMirror  = nullptr;
+    uint32_t                 AppliedOrbit = 0u;
 
     while (!Surface.CloseRequested() && !Panel.Convert<bool>())
     {
@@ -950,7 +952,21 @@ int main(int argc, char** argv)
         if (!SceneReady)
         {
             SceneRowCount = Feed.FillRoster(SceneInstances, Level);
-            SceneReady = true;
+            Frontier::ViewportOrbit Home;
+            float Middle[3] = { 0.0f, 0.0f, 0.0f };
+            Frontier::ProjectZero::QueryLevelCentre(Level, Middle);
+            const Frontier::Vector3 At = Camera.Convert<Frontier::Vector3>();
+            const float Dx = At.x - Middle[0], Dy = At.y - Middle[1], Dz = At.z - Middle[2];
+            Home.Yaw      = Camera.QueryYawRadians();
+            Home.Pitch    = Camera.QueryPitchRadians();
+            Home.Distance = std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
+            if (Home.Distance < 0.5f)
+                Home.Distance = 4.5f;
+            Home.Target[0] = Middle[0]; Home.Target[1] = Middle[1]; Home.Target[2] = Middle[2];
+            Home.Ortho = false; Home.ViewPoint = 0u; Home.Revision = 0u;
+            Panel.SeatViewportOrbit(Home);
+            AppliedOrbit = 0u;
+            SceneReady   = true;
         }
         const uint32_t PickedNow = Panel.QueryPickedInstance();
         if (PickedNow != SheetFor)
@@ -961,7 +977,7 @@ int main(int argc, char** argv)
             SheetFor   = PickedNow;
         }
 #else
-        (void)SceneReady; (void)SceneRowCount; (void)SheetFor; (void)TintMirror;
+        (void)SceneReady; (void)SceneRowCount; (void)SheetFor; (void)TintMirror; (void)AppliedOrbit;
 #endif
 
         Panel.Present(Integrator, Camera, Scene,
@@ -991,12 +1007,37 @@ int main(int argc, char** argv)
                       });
 
 #ifdef FRONTIER_DEVELOPMENT
-        // ②d The single write-back: a folder tint edited in the sheet lands back on its row.
+        // ②d The tint write-back: a folder tint edited in the sheet lands back on its row.
         if (TintMirror != nullptr && PickedNow < SceneRowCount)
         {
             SceneInstances[PickedNow].Tint[0] = TintMirror->ColourTint[0];
             SceneInstances[PickedNow].Tint[1] = TintMirror->ColourTint[1];
             SceneInstances[PickedNow].Tint[2] = TintMirror->ColourTint[2];
+        }
+        // ②e The creation write-back: the outliner + menu's ask seats a sky body past the stock roster,
+        //    and the pick lands on the new row so its sheet builds next tick.
+        const int32_t Asked = Panel.QueryPendingAdd();
+        if (Asked >= 0)
+        {
+            const uint32_t Seated = Frontier::ProjectZero::AppendAddedRow(
+                SceneInstances, &SceneRowCount, static_cast<Frontier::EditorInstanceCategory>(Asked));
+            Panel.ClearPendingAdd();
+            if (Seated != Frontier::kNoEditorInstance)
+                Panel.PickInstance(Seated);
+        }
+        // ②f The view write-back: a fresh orbit revision poses the fly camera (the eye off the orbit's
+        //    figures), so the views menu and the gizmo steer the rendered view.
+        const Frontier::ViewportOrbit& Orbit = Panel.QueryViewportOrbit();
+        if (Orbit.Revision != AppliedOrbit)
+        {
+            const float Cy = std::cos(Orbit.Yaw), Sy = std::sin(Orbit.Yaw);
+            const float Cp = std::cos(Orbit.Pitch), Sp = std::sin(Orbit.Pitch);
+            const float Fx = Sy * Cp, Fy = Cy * Cp, Fz = Sp;
+            Camera.AssignSpatialLocation(Frontier::Vector3{ Orbit.Target[0] - Fx * Orbit.Distance,
+                                                            Orbit.Target[1] - Fy * Orbit.Distance,
+                                                            Orbit.Target[2] - Fz * Orbit.Distance });
+            Camera.AssignOrientationEuler(Orbit.Pitch, Orbit.Yaw, 0.0f);
+            AppliedOrbit = Orbit.Revision;
         }
 #endif
 

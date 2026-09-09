@@ -15,7 +15,8 @@
 //
 //    Sheets are UI mirrors: every figure is read live at pick time, and the panel edits the mirror until a
 //    write-back lands. Ranges repeat the configuration comments, so no slider can propose a figure its owner
-//    cannot hold. Only the folder tint mirror writes back (see the tick in GameExecution).
+//    cannot hold. Two write-backs cross the seam (see the tick in GameExecution): the folder tint mirror,
+//    and the outliner + menu's ask, which seats a created sky body past the stock roster.
 
 #pragma once
 
@@ -52,5 +53,14 @@ public:
     [[nodiscard]] bool QueryAnimatedSpan(uint32_t* First, uint32_t* Count,
                                         const SceneStructure& Level) const noexcept;
 };
+
+// Seats a created row (the outliner + menu's write-back): inserts after the Environment folder's last row
+//    so stock and added bodies stay grouped, serials the label ("Sun 2"), and returns the row seated — or
+//    kNoEditorInstance when the ask is not a sky body or the roster is full.
+uint32_t AppendAddedRow(EditorInstance* Instances, uint32_t* RowCount, EditorInstanceCategory Category) noexcept;
+
+// The level's middle: the midpoint of its triangles' bounds (the placements' translations when the level
+//    carries no triangles), for seating the viewport orbit's target. The origin when both are empty.
+void QueryLevelCentre(const SceneStructure& Level, float Centre[3]) noexcept;
 
 } // namespace Frontier::ProjectZero

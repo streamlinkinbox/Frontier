@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Headless editor preview — the development editor over the LIVE Cornell level: the feed fills the roster from
 //    the fresh glTF, the Tall Box carries the pick, and the viewport shows the level traced on the CPU through
-//    the same traversal the renderer refits. Five sheets out (shut, open, raster, shut raster, hub), no gates. No Vulkan,
+//    the same traversal the renderer refits. Nine sheets out (shut, creation menu, added sun, open, raster, shut raster, hub, ortho front, top). No Vulkan,
 //    no GLFW, no window. Run via Scratchpad/CheckEditorPreview.sh.
 
 #ifndef FRONTIER_DEVELOPMENT
@@ -202,6 +202,7 @@ void CollectLumi(const Frontier::SceneStructure& Level, std::vector<LumiTri>& Lu
 void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalIndex& Traversal,
                const Frontier::Vector3& Eye, const Frontier::Vector3& Forward,
                const Frontier::Vector3& Right, const Frontier::Vector3& Up, float FovYRadians,
+               bool Ortho, float OrthoHalfH,
                int W, int H, unsigned char* Rgba, double& MeanLum) noexcept
 {
     using namespace Frontier;
@@ -213,7 +214,7 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
     std::printf("[Preview] %zu emissive triangles light the trace\n", Lumi.size());
 
     constexpr float kPi = 3.14159265359f;
-    const float HalfH = std::tan(FovYRadians * 0.5f);
+    const float HalfH = Ortho ? OrthoHalfH : std::tan(FovYRadians * 0.5f);
     const float HalfW = HalfH * static_cast<float>(W) / static_cast<float>(H);
     double LumSum = 0.0;
 
@@ -256,13 +257,25 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
             {
                 const float U = (static_cast<float>(X) + Rand01(Seed)) / static_cast<float>(W);
                 const float V = (static_cast<float>(Y) + Rand01(Seed)) / static_cast<float>(H);
-                float Dx = Forward.x + Right.x * ((2.0f * U - 1.0f) * HalfW) + Up.x * ((1.0f - 2.0f * V) * HalfH);
-                float Dy = Forward.y + Right.y * ((2.0f * U - 1.0f) * HalfW) + Up.y * ((1.0f - 2.0f * V) * HalfH);
-                float Dz = Forward.z + Right.z * ((2.0f * U - 1.0f) * HalfW) + Up.z * ((1.0f - 2.0f * V) * HalfH);
-                const float Dl = std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
-                Dx /= Dl; Dy /= Dl; Dz /= Dl;
+                float Dx, Dy, Dz, Ox, Oy, Oz;
+                if (Ortho)
+                {
+                    Ox = Eye.x + Right.x * ((2.0f * U - 1.0f) * HalfW) + Up.x * ((1.0f - 2.0f * V) * HalfH);
+                    Oy = Eye.y + Right.y * ((2.0f * U - 1.0f) * HalfW) + Up.y * ((1.0f - 2.0f * V) * HalfH);
+                    Oz = Eye.z + Right.z * ((2.0f * U - 1.0f) * HalfW) + Up.z * ((1.0f - 2.0f * V) * HalfH);
+                    Dx = Forward.x; Dy = Forward.y; Dz = Forward.z;
+                }
+                else
+                {
+                    Dx = Forward.x + Right.x * ((2.0f * U - 1.0f) * HalfW) + Up.x * ((1.0f - 2.0f * V) * HalfH);
+                    Dy = Forward.y + Right.y * ((2.0f * U - 1.0f) * HalfW) + Up.y * ((1.0f - 2.0f * V) * HalfH);
+                    Dz = Forward.z + Right.z * ((2.0f * U - 1.0f) * HalfW) + Up.z * ((1.0f - 2.0f * V) * HalfH);
+                    const float Dl = std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
+                    Dx /= Dl; Dy /= Dl; Dz /= Dl;
+                    Ox = Eye.x; Oy = Eye.y; Oz = Eye.z;
+                }
 
-                float O[3] = { Eye.x, Eye.y, Eye.z };
+                float O[3] = { Ox, Oy, Oz };
                 float D[3] = { Dx, Dy, Dz };
                 float Thr[3] = { 1.0f, 1.0f, 1.0f };
                 float Path[3] = { 0.0f, 0.0f, 0.0f };
@@ -353,6 +366,24 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
 
 } // namespace
 
+// Poses a render off the viewport's orbit: the eye hangs behind the target along the orbit's forward,
+//    with the solver's basis (and its pole guard) rebuilt around it.
+void OrbitPose(const Frontier::ViewportOrbit& O, float Eye[3], float F[3], float R[3], float U[3]) noexcept
+{
+    const float Cy = std::cos(O.Yaw), Sy = std::sin(O.Yaw);
+    const float Cp = std::cos(O.Pitch), Sp = std::sin(O.Pitch);
+    F[0] = Sy * Cp; F[1] = Cy * Cp; F[2] = Sp;
+    float Rx = F[1], Ry = -F[0];
+    const float Rl = std::sqrt(Rx * Rx + Ry * Ry);
+    if (Rl < 1e-4f) { Rx = Cy; Ry = -Sy; }
+    else            { Rx /= Rl; Ry /= Rl; }
+    R[0] = Rx; R[1] = Ry; R[2] = 0.0f;
+    U[0] = Ry * F[2]; U[1] = -Rx * F[2]; U[2] = Rx * F[1] - Ry * F[0];
+    Eye[0] = O.Target[0] - F[0] * O.Distance;
+    Eye[1] = O.Target[1] - F[1] * O.Distance;
+    Eye[2] = O.Target[2] - F[2] * O.Distance;
+}
+
 int main()
 {
     using namespace Frontier;
@@ -397,7 +428,7 @@ int main()
 
     EditorFeedSequence Feed;
     EditorInstance Rows[kMaxEditorInstances] = {};
-    const uint32_t RowCount = Feed.FillRoster(Rows, Level);
+    uint32_t RowCount = Feed.FillRoster(Rows, Level);
     std::printf("[Preview] roster: %u rows over %zu placements\n", RowCount, Level.QueryPlacements().size());
 
     // The game's own boot camera for the Cornell level (see GameExecution's camera branch).
@@ -410,6 +441,25 @@ int main()
     std::printf("[Preview] eye (%.2f, %.2f, %.2f) forward (%.2f, %.2f, %.2f) fov %.1f deg\n",
                 Eye.x, Eye.y, Eye.z, Fwd.x, Fwd.y, Fwd.z,
                 static_cast<double>(Camera.QueryFieldOfViewRadians() * 57.29578f));
+
+    // The viewport orbit's home reads the boot camera, aimed at the level's middle.
+    Frontier::ViewportOrbit Home;
+    float Middle[3] = { 0.0f, 0.0f, 0.0f };
+    Frontier::ProjectZero::QueryLevelCentre(Level, Middle);
+    Home.Yaw   = Camera.QueryYawRadians();
+    Home.Pitch = Camera.QueryPitchRadians();
+    {
+        const float Dx = Eye.x - Middle[0], Dy = Eye.y - Middle[1], Dz = Eye.z - Middle[2];
+        Home.Distance = std::sqrt(Dx * Dx + Dy * Dy + Dz * Dz);
+    }
+    Home.Target[0] = Middle[0]; Home.Target[1] = Middle[1]; Home.Target[2] = Middle[2];
+    Home.Ortho = false; Home.ViewPoint = 0u; Home.Revision = 0u;
+    Editor.SeatViewportOrbit(Home);
+    std::printf("[Preview] orbit home: yaw %.2f pitch %.2f dist %.2f target (%.2f, %.2f, %.2f)\n",
+                static_cast<double>(Home.Yaw), static_cast<double>(Home.Pitch),
+                static_cast<double>(Home.Distance),
+                static_cast<double>(Middle[0]), static_cast<double>(Middle[1]),
+                static_cast<double>(Middle[2]));
 
     TraversalIndex Traversal;
     if (!Traversal.BuildBottomLevel(Level.QueryFlatTriangles(), false))
@@ -510,7 +560,7 @@ int main()
     const auto TraceStart = std::chrono::steady_clock::now();
     double MeanLum = 0.0;
     TraceView(Level, Traversal, Eye, Fwd, Camera.QueryRightVector(), Camera.QueryUpwardVector(),
-              Camera.QueryFieldOfViewRadians(), ViewW, ViewH, View.data(), MeanLum);
+              Camera.QueryFieldOfViewRadians(), false, 0.0f, ViewW, ViewH, View.data(), MeanLum);
     const double TraceMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - TraceStart).count();
     std::printf("[Preview] traced %d x %d in %.0f ms (mean luminance %.3f)\n", ViewW, ViewH, TraceMs, MeanLum);
 
@@ -539,6 +589,71 @@ int main()
     Park();
     Figures("shut");
     if (!WriteSheet("Diagnostics/EditorPreviewShut.png"))
+        return 1;
+
+    // The Environment folder ships the sky bodies by default: pick the stock Sun and prove the sheet
+    //    follows. Then the + menu seats a second sun, and the pick lands on the new row.
+    uint32_t SunRow = kNoEditorInstance;
+    for (uint32_t R = 0u; R < RowCount; ++R)
+        if (Rows[R].Category == EditorInstanceCategory::Sun) { SunRow = R; break; }
+    if (SunRow == kNoEditorInstance)
+    {
+        std::printf("[Preview] the roster carries no Sun\n");
+        return 1;
+    }
+    Editor.PickInstance(SunRow);
+    (void)Feed.BuildSheet(SunRow, Rows, RowCount, &PickedSheet, Config, Sky, Camera, Level, Live);
+    Idle(10);
+    Tap(265.0f, 101.0f);
+    Idle(14);
+    Park();
+    if (!WriteSheet("Diagnostics/EditorPreviewAdd.png"))
+        return 1;
+    {
+        int Black = 0;
+        for (int Y = 130; Y < 215; ++Y)
+            for (int X = 100; X < 260; ++X)
+            {
+                const size_t I = (static_cast<size_t>(Y) * kWidth + static_cast<size_t>(X)) * 3u;
+                if (Pixels[I] == 0u && Pixels[I + 1u] == 0u && Pixels[I + 2u] == 0u)
+                    ++Black;
+            }
+        std::printf("[Preview] creation menu: %d black cells\n", Black);
+        if (Black < 1500)
+        {
+            std::printf("[Preview] the creation menu never opened\n");
+            return 1;
+        }
+    }
+    Tap(176.0f, 173.0f);
+    Idle(3);
+    {
+        const int32_t Asked = Editor.QueryPendingAdd();
+        std::printf("[Preview] pending add: %d\n", Asked);
+        if (Asked != static_cast<int32_t>(EditorInstanceCategory::Sun))
+        {
+            std::printf("[Preview] the Sun row never asked\n");
+            return 1;
+        }
+        const uint32_t Seated = AppendAddedRow(Rows, &RowCount, static_cast<EditorInstanceCategory>(Asked));
+        Editor.ClearPendingAdd();
+        if (Seated == kNoEditorInstance)
+        {
+            std::printf("[Preview] the roster took no seating\n");
+            return 1;
+        }
+        std::printf("[Preview] added row %u '%s' (%u rows)\n", Seated, Rows[Seated].Label, RowCount);
+        Editor.PickInstance(Seated);
+        (void)Feed.BuildSheet(Seated, Rows, RowCount, &PickedSheet, Config, Sky, Camera, Level, Live);
+        if (PickedSheet.GroupCount != 2u)
+        {
+            std::printf("[Preview] the added Sun built %u groups\n", PickedSheet.GroupCount);
+            return 1;
+        }
+    }
+    Idle(10);
+    Park();
+    if (!WriteSheet("Diagnostics/EditorPreviewSun.png"))
         return 1;
 
     // A tap on the notch carries the shade open; the dashboard's own figures prove the card went live.
@@ -664,6 +779,152 @@ int main()
         return 1;
     }
     if (!WriteSheet("Diagnostics/EditorPreviewHub.png"))
+        return 1;
+
+    // The shade shuts for the views pass: the pill's rows pose the orbit, and each pose re-seats the
+    //    view — Front under the orthographic projection through the tracer, Top through the raster.
+    Tap(Editor.QueryNotchX(), Editor.QueryNotchY());
+    Idle(120);
+    Figures("views shut");
+    if (Editor.QueryShadeOpen())
+    {
+        std::printf("[Preview] the notch never shut for the views\n");
+        return 1;
+    }
+    const auto OrbitFigures = [&](const char* Tag)
+    {
+        const ViewportOrbit& O = Editor.QueryViewportOrbit();
+        std::printf("[Preview] %s: snap %u yaw %.3f pitch %.3f ortho %d dist %.2f rev %u\n",
+                    Tag, O.ViewPoint, static_cast<double>(O.Yaw), static_cast<double>(O.Pitch),
+                    O.Ortho ? 1 : 0, static_cast<double>(O.Distance), O.Revision);
+    };
+    // Orthographic first: home under the parallel projection, which the snaps below keep.
+    Tap(532.0f, 108.0f);
+    Idle(10);
+    Tap(607.0f, 172.0f);
+    Idle(3);
+    OrbitFigures("ortho home");
+    if (Editor.QueryViewportOrbit().ViewPoint != 0u || !Editor.QueryViewportOrbit().Ortho)
+    {
+        std::printf("[Preview] the Orthographic row never posed\n");
+        return 1;
+    }
+    // The level's bounds, for framing the parallel poses off the room instead of the eye distance.
+    float LoB[3] = { 0.0f, 0.0f, 0.0f }, HiB[3] = { 0.0f, 0.0f, 0.0f };
+    {
+        const auto& Flat = Level.QueryFlatTriangles();
+        LoB[0] = HiB[0] = Flat[0].VertexAlphaX;
+        LoB[1] = HiB[1] = Flat[0].VertexAlphaY;
+        LoB[2] = HiB[2] = Flat[0].VertexAlphaZ;
+        for (const TriangleIndex& T : Flat)
+        {
+            const float Vx[3] = { T.VertexAlphaX, T.VertexBetaX, T.VertexGammaX };
+            const float Vy[3] = { T.VertexAlphaY, T.VertexBetaY, T.VertexGammaY };
+            const float Vz[3] = { T.VertexAlphaZ, T.VertexBetaZ, T.VertexGammaZ };
+            for (int K = 0; K < 3; ++K)
+            {
+                if (Vx[K] < LoB[0]) LoB[0] = Vx[K]; if (Vx[K] > HiB[0]) HiB[0] = Vx[K];
+                if (Vy[K] < LoB[1]) LoB[1] = Vy[K]; if (Vy[K] > HiB[1]) HiB[1] = Vy[K];
+                if (Vz[K] < LoB[2]) LoB[2] = Vz[K]; if (Vz[K] > HiB[2]) HiB[2] = Vz[K];
+            }
+        }
+        std::printf("[Preview] level bounds x %.2f..%.2f y %.2f..%.2f z %.2f..%.2f\n",
+                    static_cast<double>(LoB[0]), static_cast<double>(HiB[0]),
+                    static_cast<double>(LoB[1]), static_cast<double>(HiB[1]),
+                    static_cast<double>(LoB[2]), static_cast<double>(HiB[2]));
+    }
+    // Front through the tracer: the eye hangs off -Y on the orbit's figures, parallel rays, the room
+    //    filling the frame.
+    Tap(532.0f, 108.0f);
+    Idle(10);
+    Tap(607.0f, 211.0f);
+    Idle(3);
+    OrbitFigures("front");
+    {
+        const ViewportOrbit& O = Editor.QueryViewportOrbit();
+        if (O.ViewPoint != 1u || !O.Ortho)
+        {
+            std::printf("[Preview] the Front row never posed\n");
+            return 1;
+        }
+        float EyeO[3], FO[3], RO[3], UO[3];
+        OrbitPose(O, EyeO, FO, RO, UO);
+        const float Aspect = static_cast<float>(ViewW) / static_cast<float>(ViewH);
+        const float ZSpan = HiB[2] - LoB[2], XSpan = HiB[0] - LoB[0];
+        const float FrontHalfH = 0.5f * (ZSpan > XSpan / Aspect ? ZSpan : XSpan / Aspect) * 1.1f;
+        std::printf("[Preview] front eye (%.2f, %.2f, %.2f) half-height %.2f\n",
+                    static_cast<double>(EyeO[0]), static_cast<double>(EyeO[1]),
+                    static_cast<double>(EyeO[2]), static_cast<double>(FrontHalfH));
+        const Vector3 EyeV{ EyeO[0], EyeO[1], EyeO[2] };
+        const Vector3 FwdV{ FO[0], FO[1], FO[2] };
+        const Vector3 RightV{ RO[0], RO[1], RO[2] };
+        const Vector3 UpV{ UO[0], UO[1], UO[2] };
+        double FrontLum = 0.0;
+        const auto FrontStart = std::chrono::steady_clock::now();
+        TraceView(Level, Traversal, EyeV, FwdV, RightV, UpV,
+                  Camera.QueryFieldOfViewRadians(), true, FrontHalfH,
+                  ViewW, ViewH, View.data(), FrontLum);
+        const double FrontMs = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - FrontStart).count();
+        std::printf("[Preview] front ortho traced in %.0f ms (mean luminance %.3f)\n", FrontMs, FrontLum);
+        if (!(FrontLum > 0.05) || !(FrontLum < 3.0))
+        {
+            std::printf("[Preview] the front ortho trace went dark or blown\n");
+            return 1;
+        }
+    }
+    Idle(6);
+    Park();
+    if (!WriteSheet("Diagnostics/EditorPreviewOrtho.png"))
+        return 1;
+    // Top through the raster: the eye drops inside the room (off the ceiling height), parallel primary.
+    float CeilZ = Home.Target[2] + 1.0f;
+    for (const TriangleIndex& T : Level.QueryFlatTriangles())
+    {
+        if (T.VertexAlphaZ > CeilZ) CeilZ = T.VertexAlphaZ;
+        if (T.VertexBetaZ > CeilZ)  CeilZ = T.VertexBetaZ;
+        if (T.VertexGammaZ > CeilZ) CeilZ = T.VertexGammaZ;
+    }
+    Tap(532.0f, 108.0f);
+    Idle(10);
+    Tap(607.0f, 331.0f);
+    Idle(3);
+    OrbitFigures("top");
+    {
+        const ViewportOrbit& O = Editor.QueryViewportOrbit();
+        if (O.ViewPoint != 5u || !O.Ortho)
+        {
+            std::printf("[Preview] the Top row never posed\n");
+            return 1;
+        }
+        ViewportOrbit TopO = O;
+        TopO.Distance = (CeilZ - O.Target[2]) * 0.55f;
+        if (TopO.Distance < 0.4f)
+            TopO.Distance = 0.4f;
+        ++TopO.Revision;
+        Editor.SeatViewportOrbit(TopO);
+        float EyeO[3], FO[3], RO[3], UO[3];
+        OrbitPose(TopO, EyeO, FO, RO, UO);
+        std::printf("[Preview] top eye (%.2f, %.2f, %.2f) under ceiling %.2f\n",
+                    static_cast<double>(EyeO[0]), static_cast<double>(EyeO[1]),
+                    static_cast<double>(EyeO[2]), static_cast<double>(CeilZ));
+        double TopLum = 0.0;
+        if (!Raster.RenderOrthographic(Level, EyeO, FO, RO, UO, 1.5f,
+                       static_cast<uint32_t>(ViewW), static_cast<uint32_t>(ViewH), View.data(), TopLum))
+        {
+            std::printf("[Preview] the top ortho raster declined the render\n");
+            return 1;
+        }
+        std::printf("[Preview] top ortho rasterized (mean luminance %.3f)\n", TopLum);
+        if (!(TopLum > 0.05) || !(TopLum < 3.0))
+        {
+            std::printf("[Preview] the top ortho raster went dark or blown\n");
+            return 1;
+        }
+    }
+    Idle(6);
+    Park();
+    if (!WriteSheet("Diagnostics/EditorPreviewTop.png"))
         return 1;
     return 0;
 }

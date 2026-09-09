@@ -147,15 +147,15 @@ if [[ "$SelectedCount" != "1" || "$TotalCount" != "1" ]]; then
     echo "  the footer caption lost its figures (selected $SelectedCount, of-total $TotalCount)"; Fail=1
 fi
 
-# Every popup the editor opens, the editor begins: the Open set and the Begin set must be the same three ids.
+# Every popup the editor opens, the editor begins: the Open set and the Begin set must be the same five ids.
 OpenPopups="$(grep -hoE 'OpenPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sort -u)"
 BeginPopups="$(grep -hoE 'BeginPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sed 's/BeginPopup/OpenPopup/' | sort -u)"
 if [[ "$OpenPopups" != "$BeginPopups" ]]; then
     echo "  a popup opens that never begins, or begins that never opens:"; Fail=1
 fi
 OpenCount="$(echo "$OpenPopups" | grep -c 'OpenPopup')"
-if [[ "$OpenCount" != "3" ]]; then
-    echo "  the editor seats three popups, no more:"; echo "$OpenPopups" | sed 's/^/    /'; Fail=1
+if [[ "$OpenCount" != "5" ]]; then
+    echo "  the editor seats five popups, no more:"; echo "$OpenPopups" | sed 's/^/    /'; Fail=1
 fi
 
 # No heap traffic while drawing: the panels must not allocate.
@@ -164,7 +164,7 @@ if grep -nE '(push_back|emplace_back|resize|reserve)[[:space:]]*\(|new[[:space:]
 fi
 
 echo
-for Sheet in Tabs Menu Filtered Quality Palette; do
+for Sheet in Tabs Menu Filtered Quality Palette Add Views; do
     if [[ ! -s Diagnostics/EditorProof_$Sheet.png ]]; then
         echo "  MISSING Diagnostics/EditorProof_$Sheet.png"; Fail=1
     else

@@ -862,6 +862,162 @@ int main()
         }
     }
 
+    // Gate 10 — the creation menu opens: a click on the outliner's plus must raise the black menu.
+    Click(265.0f, 101.0f);
+    Rest(14);
+    Rasterise();
+    {
+        const char* AddSheet = "Diagnostics/EditorProof_Add.png";
+        if (stbi_write_png(AddSheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the creation sheet would not write\n");
+            return 1;
+        }
+        int Black = 0;
+        for (int Y = 130; Y < 215; ++Y)
+            for (int X = 100; X < 260; ++X)
+            {
+                const unsigned char* P = At(X, Y);
+                if (P[0] == 0u && P[1] == 0u && P[2] == 0u)
+                    ++Black;
+            }
+        std::fprintf(stderr, "[EditorProof] creation menu: %d black cells\n", Black);
+        if (Black < 1500)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the creation menu never opened\n");
+            Failed = true;
+        }
+    }
+
+    // Gate 11 — the creation ask lands: picking Sun seats the pending ask, and clearing idles it.
+    Click(176.0f, 173.0f);
+    Rest(3);
+    {
+        const int32_t Asked = Editor.QueryPendingAdd();
+        std::fprintf(stderr, "[EditorProof] pending add: %d\n", Asked);
+        if (Asked != static_cast<int32_t>(Frontier::EditorInstanceCategory::Sun))
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the Sun row never asked\n");
+            Failed = true;
+        }
+        Editor.ClearPendingAdd();
+        if (Editor.QueryPendingAdd() != -1)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the ask never cleared\n");
+            Failed = true;
+        }
+    }
+    Editor.PickInstance(18u);   // back to Sun, whatever the menu clicks above landed on
+    Rest(3);
+
+    // Gate 12 — the views menu opens and snaps: the pill raises eight rows, and each compass row poses
+    //    the orbit (checked here against the solver's own euler).
+    Click(532.0f, 108.0f);
+    Rest(14);
+    Rasterise();
+    {
+        const char* ViewsSheet = "Diagnostics/EditorProof_Views.png";
+        if (stbi_write_png(ViewsSheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the views sheet would not write\n");
+            return 1;
+        }
+        int Black = 0;
+        for (int Y = 140; Y < 380; ++Y)
+            for (int X = 530; X < 680; ++X)
+            {
+                const unsigned char* P = At(X, Y);
+                if (P[0] == 0u && P[1] == 0u && P[2] == 0u)
+                    ++Black;
+            }
+        std::fprintf(stderr, "[EditorProof] views menu: %d black cells\n", Black);
+        if (Black < 1500)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the views menu never opened\n");
+            Failed = true;
+        }
+    }
+    {
+        uint32_t LastRev = Editor.QueryViewportOrbit().Revision;
+        const auto PickView = [&](float RowY, uint32_t WantSnap, float WantYaw, float WantPitch,
+                                  bool WantOrtho)
+        {
+            Click(607.0f, RowY);
+            Rest(3);
+            const Frontier::ViewportOrbit& Orbit = Editor.QueryViewportOrbit();
+            std::fprintf(stderr, "[EditorProof] view pick: snap %u yaw %.3f pitch %.3f ortho %d rev %u\n",
+                         Orbit.ViewPoint, Orbit.Yaw, Orbit.Pitch, Orbit.Ortho ? 1 : 0, Orbit.Revision);
+            if (Orbit.ViewPoint != WantSnap
+                || std::fabs(Orbit.Yaw - WantYaw) > 0.01f
+                || std::fabs(Orbit.Pitch - WantPitch) > 0.01f
+                || Orbit.Ortho != WantOrtho
+                || Orbit.Revision <= LastRev)
+            {
+                std::fprintf(stderr, "[EditorProof] [FAIL] the views menu never posed snap %u\n", WantSnap);
+                Failed = true;
+            }
+            LastRev = Orbit.Revision;
+            Click(532.0f, 108.0f);   // the pill again: the next pick reopens the menu
+            Rest(3);
+        };
+        PickView(331.0f, 5u, 0.0f, -1.5707963f, false);
+        PickView(211.0f, 1u, 0.0f, 0.0f, false);
+        PickView(241.0f, 2u, 3.1415927f, 0.0f, false);
+        PickView(271.0f, 3u, -1.5707963f, 0.0f, false);
+        PickView(301.0f, 4u, 1.5707963f, 0.0f, false);
+        PickView(361.0f, 6u, 0.0f, 1.5707963f, false);
+        PickView(172.0f, 0u, 0.0f, 0.0f, true);
+        PickView(142.0f, 0u, 0.0f, 0.0f, false);
+        Click(500.0f, 500.0f);   // dismiss the reopened menu off the empty view
+        Rest(3);
+    }
+
+    // Gate 13 — the gizmo answers: a pad tap snaps its view, a drag orbits, and the wheel dollies.
+    Click(937.0f, 588.0f);
+    Rest(3);
+    {
+        const Frontier::ViewportOrbit& Orbit = Editor.QueryViewportOrbit();
+        std::fprintf(stderr, "[EditorProof] gizmo tap: snap %u yaw %.3f\n", Orbit.ViewPoint, Orbit.Yaw);
+        if (Orbit.ViewPoint != 3u || std::fabs(Orbit.Yaw + 1.5707963f) > 0.01f)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the +X pad never snapped right\n");
+            Failed = true;
+        }
+    }
+    {
+        const float    YawBefore = Editor.QueryViewportOrbit().Yaw;
+        const uint32_t RevBefore = Editor.QueryViewportOrbit().Revision;
+        Tick(917.0f, 587.0f, false);
+        Tick(917.0f, 587.0f, false);
+        Tick(917.0f, 587.0f, true);
+        for (int i = 1; i <= 8; ++i)
+            Tick(917.0f + 5.0f * static_cast<float>(i), 587.0f, true);
+        Tick(957.0f, 587.0f, false);
+        Rest(3);
+        const Frontier::ViewportOrbit& Orbit = Editor.QueryViewportOrbit();
+        std::fprintf(stderr, "[EditorProof] gizmo drag: yaw %.3f (was %.3f) snap %u rev %u\n",
+                     Orbit.Yaw, YawBefore, Orbit.ViewPoint, Orbit.Revision);
+        if (!(Orbit.Yaw < YawBefore - 0.1f) || Orbit.ViewPoint != 0u || Orbit.Revision <= RevBefore)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the gizmo drag never orbited\n");
+            Failed = true;
+        }
+    }
+    {
+        const float DistBefore = Editor.QueryViewportOrbit().Distance;
+        IO.MouseWheel = 1.0f;
+        Tick(600.0f, 400.0f, false);
+        IO.MouseWheel = 0.0f;
+        Rest(2);
+        const float DistAfter = Editor.QueryViewportOrbit().Distance;
+        std::fprintf(stderr, "[EditorProof] wheel dolly: %.3f (was %.3f)\n", DistAfter, DistBefore);
+        if (!(DistAfter < DistBefore))
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the wheel never dollied\n");
+            Failed = true;
+        }
+    }
+
     if (Failed)
     {
         std::fprintf(stderr, "[EditorProof] [FAIL] wrote %s, but the sheet disagrees with its caption\n", Sheet);

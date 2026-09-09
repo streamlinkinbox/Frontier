@@ -48,6 +48,14 @@ public:
                               uint32_t Width, uint32_t Height,
                               unsigned char* Rgba, double& MeanLum) noexcept;
 
+    // The same render under an orthographic primary: parallel rays through the Eye/Right/Up plane, framing
+    //    HalfHeightWorld metres above and below the eye. Shading, taps and shadow maps are shared untouched.
+    [[nodiscard]] bool RenderOrthographic(const SceneStructure& Level,
+                              const float Eye[3], const float Forward[3],
+                              const float Right[3], const float Up[3], float HalfHeightWorld,
+                              uint32_t Width, uint32_t Height,
+                              unsigned char* Rgba, double& MeanLum) noexcept;
+
 private:
     struct LumiTri
     {
@@ -68,6 +76,9 @@ private:
     void PlaceTaps() noexcept;
     void RasterizePrimary(const SceneStructure& Level, const float Eye[3], const float Forward[3],
                           const float Right[3], const float Up[3], float FovYRadians,
+                          uint32_t Width, uint32_t Height) noexcept;
+    void RasterizePrimaryOrthographic(const SceneStructure& Level, const float Eye[3], const float Forward[3],
+                          const float Right[3], const float Up[3], float HalfHeightWorld,
                           uint32_t Width, uint32_t Height) noexcept;
     void RasterizeShadow(const SceneStructure& Level, const float Tap[3], const float Centre[3]) noexcept;
     [[nodiscard]] float Shadow(const float P[3], const float N[3], float NdotL,

@@ -270,12 +270,85 @@ void OutlinerPanel::RecordHeader(EditorInstance* Instances, uint32_t InstanceCou
     Draw->AddLine(ImVec2(FoldCentre.x, FoldCentre.y + ChevY),
         ImVec2(FoldCentre.x + 5.0f, FoldCentre.y - ChevY), kText, 1.8f);
 
-    // The plus stays decorative: the feed owns the roster, and creation lands with the project write-back.
+    // The plus seats fresh sky bodies: it opens the creation menu, and the row the pointer lands on sets
+    //    the pending ask the project's tick consumes and clears.
     const ImVec2 PlusMin(EndX - 28.0f, Cursor.y + 8.0f);
     const ImVec2 PlusCentre(PlusMin.x + 14.0f, PlusMin.y + 14.0f);
-    Draw->AddCircleFilled(PlusCentre, 14.0f, IM_COL32(255, 255, 255, 8));
-    Draw->AddLine(ImVec2(PlusCentre.x - 5.0f, PlusCentre.y), ImVec2(PlusCentre.x + 5.0f, PlusCentre.y), kFaint, 1.8f);
-    Draw->AddLine(ImVec2(PlusCentre.x, PlusCentre.y - 5.0f), ImVec2(PlusCentre.x, PlusCentre.y + 5.0f), kFaint, 1.8f);
+    ImGui::SetCursorScreenPos(PlusMin);
+    ImGui::InvisibleButton("##addbutton", ImVec2(28.0f, 28.0f));
+    const bool PlusHot = ImGui::IsItemHovered();
+    if (PlusHot && ImGui::IsMouseClicked(0))
+        ImGui::OpenPopup("##addmenu");
+    Draw->AddCircleFilled(PlusCentre, 14.0f, PlusHot ? IM_COL32(255, 255, 255, 24) : IM_COL32(255, 255, 255, 8));
+    Draw->AddLine(ImVec2(PlusCentre.x - 5.0f, PlusCentre.y), ImVec2(PlusCentre.x + 5.0f, PlusCentre.y),
+        PlusHot ? kText : kFaint, 1.8f);
+    Draw->AddLine(ImVec2(PlusCentre.x, PlusCentre.y - 5.0f), ImVec2(PlusCentre.x, PlusCentre.y + 5.0f),
+        PlusHot ? kText : kFaint, 1.8f);
+
+    ImFont* AddUi = Controls_->QueryUi();
+    const double AddMenuNow = ImGui::GetTime();
+    float AddMenuFade = 1.0f;
+    if (AddMenuWasOpen_)
+    {
+        float T = static_cast<float>((AddMenuNow - AddMenuOpenedAt_) / 0.14);
+        T           = T < 0.0f ? 0.0f : (T > 1.0f ? 1.0f : T);
+        AddMenuFade = T * T * (3.0f - 2.0f * T);
+    }
+    ImGui::SetNextWindowPos(ImVec2(EndX - 198.0f, PlusMin.y + 36.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(190.0f, 0.0f), ImGuiCond_Appearing);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, AddMenuFade));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, AddMenuFade));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
+    const bool AddMenuOpen = ImGui::BeginPopup("##addmenu");
+    if (AddMenuOpen && !AddMenuWasOpen_)
+    {
+        AddMenuOpenedAt_ = AddMenuNow;
+        AddMenuFade      = 0.0f;
+    }
+    AddMenuWasOpen_ = AddMenuOpen;
+    if (AddMenuOpen)
+    {
+        ImDrawList* MenuDraw = ImGui::GetWindowDrawList();
+        ImGui::PushFont(AddUi);
+        const float MenuWidth = ImGui::GetContentRegionAvail().x;
+        const EditorInstanceCategory AddCats[3] = { EditorInstanceCategory::Sky,
+                                                    EditorInstanceCategory::Sun,
+                                                    EditorInstanceCategory::Moon };
+        const char* AddLabels[3] = { "Sky", "Sun", "Moon" };
+        const ImU32 AddTints[3]  = { IM_COL32(143, 211, 255, 255),
+                                     IM_COL32(255, 177, 75, 255),
+                                     IM_COL32(184, 196, 214, 255) };
+        for (uint32_t a = 0u; a < 3u; ++a)
+        {
+            ImGui::Dummy(ImVec2(MenuWidth, 28.0f));
+            const ImVec2 RowMin = ImGui::GetItemRectMin();
+            const ImVec2 RowMax = ImGui::GetItemRectMax();
+            ImGui::SetCursorScreenPos(RowMin);
+            char RowId[12] = {};
+            std::snprintf(RowId, sizeof(RowId), "##a%ui", a);
+            ImGui::InvisibleButton(RowId, ImVec2(MenuWidth, 28.0f));
+            const bool Hovered = ImGui::IsItemHovered();
+            if (Hovered && ImGui::IsMouseClicked(0))
+            {
+                PendingAdd_ = static_cast<int32_t>(AddCats[a]);
+                ImGui::CloseCurrentPopup();
+            }
+            if (Hovered)
+                MenuDraw->AddRectFilled(RowMin, RowMax,
+                    ControlPanel::FadeTint(kMenuHover, AddMenuFade), 14.0f);
+            MenuDraw->AddCircleFilled(ImVec2(RowMin.x + 16.0f, (RowMin.y + RowMax.y) * 0.5f), 5.0f,
+                ControlPanel::FadeTint(AddTints[a], AddMenuFade));
+            const ImVec2 OptGlyph = AddUi->CalcTextSizeA(AddUi->LegacySize, FLT_MAX, 0.0f, AddLabels[a]);
+            MenuDraw->AddText(ImVec2(RowMin.x + 30.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
+                ControlPanel::FadeTint(Hovered ? kText : kDim, AddMenuFade), AddLabels[a]);
+        }
+        ImGui::PopFont();
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
     ImGui::SetCursorScreenPos(ImVec2(Cursor.x, Cursor.y + 44.0f));
 }
 

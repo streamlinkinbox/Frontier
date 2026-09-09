@@ -121,6 +121,50 @@ uint32_t RenderScheduler::QueryPickedInstance() const noexcept
 #endif
 }
 
+void RenderScheduler::PickInstance(uint32_t Index) noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    Editor_.PickInstance(Index);
+#else
+    (void)Index;
+#endif
+}
+
+int32_t RenderScheduler::QueryPendingAdd() const noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    return Editor_.QueryPendingAdd();
+#else
+    return -1;
+#endif
+}
+
+void RenderScheduler::ClearPendingAdd() noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    Editor_.ClearPendingAdd();
+#endif
+}
+
+void RenderScheduler::SeatViewportOrbit(const ViewportOrbit& Seated) noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    Editor_.SeatViewportOrbit(Seated);
+#else
+    (void)Seated;
+#endif
+}
+
+const ViewportOrbit& RenderScheduler::QueryViewportOrbit() const noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    return Editor_.QueryViewportOrbit();
+#else
+    static const ViewportOrbit kIdle{};
+    return kIdle;
+#endif
+}
+
 //============================================================================================================================================
 //                                                    SECTION — CAMERA
 //============================================================================================================================================

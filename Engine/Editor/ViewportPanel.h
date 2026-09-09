@@ -1,10 +1,11 @@
 //============================================================================================================================================
 //                                                    VIEWPORTPANEL.H
 //============================================================================================================================================
-// 🧩 Development editor viewport — the scene column. Header bar with the brand, the dock toggles, the view
-//    cycler and the transport strip; the dark view with its axis orb; the command console with its suggestion
+// 🧩 Development editor viewport — the scene column. Header bar with the brand, the dock toggles, the views
+//    menu and the transport strip; the dark view with its orbit gizmo; the command console with its suggestion
 //    stack; the stats footer with the day clock. Every control here is local figures: the transport runs, the
-//    clock scrubs, the console answers from its quick table.
+//    clock scrubs, the console answers from its quick table, and the views menu poses the orbit the harness
+//    re-traces from.
 
 #pragma once
 
@@ -16,6 +17,22 @@ namespace Frontier {
 
 class ControlPanel;
 struct EditorInstance;
+
+// The viewport's orbit: yaw and pitch around a target at a distance, the projection in use, and which
+//    compass snap posed it (home reads free). The harness seats home from its own camera; the views menu,
+//    the gizmo and the wheel rewrite the figures and bump Revision, and the harness re-poses its trace
+//    from them. Yaw 0 with pitch 0 looks along +Y, exactly the solver's euler, so a snap poses the fly
+//    camera with no conversion at all.
+struct ViewportOrbit
+{
+    float    Yaw      = 0.0f;   // [rad] 0 faces +Y, positive turns toward +X
+    float    Pitch    = 0.0f;   // [rad] positive looks up toward +Z
+    float    Distance = 4.5f;   // [m] eye to target
+    float    Target[3] = { 0.0f, 0.5f, 1.4f };
+    bool     Ortho    = false;  // false reads perspective, true orthographic
+    uint32_t ViewPoint = 0u;    // 0 home, 1 front, 2 back, 3 right, 4 left, 5 top, 6 bottom
+    uint32_t Revision = 0u;     // bumps on every write the panels make
+};
 
 class ViewportPanel final
 {
@@ -29,6 +46,11 @@ public:
 
     // Shares the Control Centre shade's open figure with the bar's gear.
     void AssignShadeOpen(bool* Open) noexcept { ShadeOpen_ = Open; }
+
+    // Seats the orbit's home from the harness camera (yaw, pitch, target, distance); the snaps and the
+    //    gizmo work from there. Reads the orbit back for the harness trace and the game camera.
+    void SeatViewportOrbit(const ViewportOrbit& Seated) noexcept;
+    [[nodiscard]] const ViewportOrbit& QueryViewportOrbit() const noexcept { return Orbit_; }
 
     // Last view rect, so the project can size the view rows to the rect it draws into.
     [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
@@ -67,7 +89,8 @@ private:
     bool     DayCycle_  = false;
 
     bool     MarkersOn_ = true;
-    uint32_t ViewPick_  = 0u;
+    ViewportOrbit Orbit_;   // the views menu, the gizmo and the wheel pose through this
+    ViewportOrbit Home_    = {};   // the seated home; the projection rows restore it
     bool     DockLeft_  = true;
     bool     DockRight_ = true;
 
@@ -96,6 +119,15 @@ private:
     int32_t  PastAt_           = -1;
 
     float    ClockHours_       = 19.15f;
+
+    bool     ViewMenuWasOpen_  = false;   // the views dropdown fades in like the category menu
+    double   ViewMenuOpenedAt_ = 0.0;
+    float    ViewChevronAnim_  = 0.0f;
+    bool     OrbHeld_  = false;   // a gizmo drag owns the pointer
+    bool     OrbMoved_ = false;   // the hold turned into an orbit (past the tap slop)
+    float    OrbDownX_ = 0.0f;    // where the hold started, for the tap slop
+    float    OrbDownY_ = 0.0f;
+    uint32_t OrbHot_   = 0u;      // the hot gizmo pad, 0 none, 1..6 pads +X −X +Y −Y +Z −Z
 };
 
 } // namespace Frontier

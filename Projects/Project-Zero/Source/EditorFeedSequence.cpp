@@ -2,8 +2,9 @@
 //                                                  EDITORFEEDSEQUENCE.CPP
 //============================================================================================================================================
 // 🧩 The development editor's live feed — FillRoster walks the level's placements into outliner rows, BuildSheet
-//    reads the picked row's figures live, and QueryAnimatedSpan finds the run the motion driver owns. Stateless:
-//    both builders recompute the same row layout from the level, so the sheet can never disagree with the roster.
+//    reads the picked row's figures live, and QueryAnimatedSpan finds the run the motion driver owns. Stateless
+//    over the level: both builders recompute the same row layout from it, so the sheet can never disagree
+//    with the roster. Created rows (AppendAddedRow) sit past the stock layout and mirror the same sky clock.
 
 #include "EditorFeedSequence.h"
 
@@ -358,6 +359,95 @@ uint32_t EditorFeedSequence::FillRoster(EditorInstance* Instances, const SceneSt
     return Rows;
 }
 
+uint32_t AppendAddedRow(EditorInstance* Instances, uint32_t* RowCount, EditorInstanceCategory Category) noexcept
+{
+    if (Instances == nullptr || RowCount == nullptr || *RowCount >= kMaxEditorInstances)
+        return kNoEditorInstance;
+    if (Category != EditorInstanceCategory::Sky && Category != EditorInstanceCategory::Sun
+        && Category != EditorInstanceCategory::Moon)
+        return kNoEditorInstance;
+    uint32_t Folder = kNoEditorInstance;
+    for (uint32_t R = 0u; R < *RowCount; ++R)
+        if (Instances[R].Category == EditorInstanceCategory::Folder
+            && std::strcmp(Instances[R].Label, "Environment") == 0)
+            Folder = R;
+    if (Folder == kNoEditorInstance)
+        return kNoEditorInstance;
+    uint32_t Serial = 1u;
+    for (uint32_t R = 0u; R < *RowCount; ++R)
+        if (Instances[R].Category == Category)
+            ++Serial;
+    uint32_t Seat = Folder + 1u;
+    while (Seat < *RowCount && Instances[Seat].Depth > 0u)
+        ++Seat;
+    for (uint32_t R = *RowCount; R > Seat; --R)
+        Instances[R] = Instances[R - 1u];
+    EditorInstance& Row = Instances[Seat];
+    const char* Stem = Category == EditorInstanceCategory::Sky ? "Sky"
+        : Category == EditorInstanceCategory::Sun ? "Sun" : "Moon";
+    std::snprintf(Row.Label, sizeof(Row.Label), "%s %u", Stem, Serial);
+    Row.Depth    = 1u;
+    Row.Category = Category;
+    Row.Visible  = true;
+    Row.Locked   = false;
+    Row.Solo     = false;
+    Row.Physics  = false;
+    Row.Dynamic  = false;
+    Row.KidCount = 0u;
+    if (Category == EditorInstanceCategory::Sky)
+        CopyTint(Row.Tint, kSkyTint);
+    else if (Category == EditorInstanceCategory::Sun)
+        CopyTint(Row.Tint, kSunTint);
+    else
+        CopyTint(Row.Tint, kMoonTint);
+    ++Instances[Folder].KidCount;
+    ++(*RowCount);
+    return Seat;
+}
+
+void QueryLevelCentre(const SceneStructure& Level, float Centre[3]) noexcept
+{
+    if (Centre == nullptr)
+        return;
+    Centre[0] = 0.0f; Centre[1] = 0.0f; Centre[2] = 0.0f;
+    const auto& Flat = Level.QueryFlatTriangles();
+    if (!Flat.empty())
+    {
+        // The bounds' midpoint, not the vertex mean: a dense floor grid must not drag the middle down.
+        float Lo[3] = { Flat[0].VertexAlphaX, Flat[0].VertexAlphaY, Flat[0].VertexAlphaZ };
+        float Hi[3] = { Lo[0], Lo[1], Lo[2] };
+        for (const TriangleIndex& T : Flat)
+        {
+            const float Vx[3] = { T.VertexAlphaX, T.VertexBetaX, T.VertexGammaX };
+            const float Vy[3] = { T.VertexAlphaY, T.VertexBetaY, T.VertexGammaY };
+            const float Vz[3] = { T.VertexAlphaZ, T.VertexBetaZ, T.VertexGammaZ };
+            for (int K = 0; K < 3; ++K)
+            {
+                if (Vx[K] < Lo[0]) Lo[0] = Vx[K]; if (Vx[K] > Hi[0]) Hi[0] = Vx[K];
+                if (Vy[K] < Lo[1]) Lo[1] = Vy[K]; if (Vy[K] > Hi[1]) Hi[1] = Vy[K];
+                if (Vz[K] < Lo[2]) Lo[2] = Vz[K]; if (Vz[K] > Hi[2]) Hi[2] = Vz[K];
+            }
+        }
+        Centre[0] = (Lo[0] + Hi[0]) * 0.5f;
+        Centre[1] = (Lo[1] + Hi[1]) * 0.5f;
+        Centre[2] = (Lo[2] + Hi[2]) * 0.5f;
+        return;
+    }
+    const auto& Placements = Level.QueryPlacements();
+    if (Placements.empty())
+        return;
+    double X = 0.0, Y = 0.0, Z = 0.0;
+    for (const PlacementRecord& P : Placements)
+    {
+        X += P.WorldTransform[12];
+        Y += P.WorldTransform[13];
+        Z += P.WorldTransform[14];
+    }
+    Centre[0] = static_cast<float>(X / Placements.size());
+    Centre[1] = static_cast<float>(Y / Placements.size());
+    Centre[2] = static_cast<float>(Z / Placements.size());
+}
+
 EditorProperty* EditorFeedSequence::BuildSheet(uint32_t Index, EditorInstance* Instances, uint32_t RowCount,
                                               EditorSheet* Sheet, const ReSTIRIntegratorConfiguration& Config,
                                               const CelestialSolver& Sky, const FlyThroughSolver& Camera,
@@ -373,7 +463,16 @@ EditorProperty* EditorFeedSequence::BuildSheet(uint32_t Index, EditorInstance* I
     using Frontier::EditorPropertyCategory;
     constexpr float kRadToDeg = 57.29578f;
     FeedRow Layout[kMaxEditorInstances];
-    BuildLayout(Level, Layout, RowCount);
+    const uint32_t StockRows = BuildLayout(Level, Layout, RowCount);
+    // Rows past the stock layout are created bodies: they mirror the same sky clock as their stock twins,
+    //    so the sheet builds off the stock row of the same category.
+    if (Index >= StockRows)
+    {
+        for (uint32_t St = 0u; St < StockRows; ++St)
+            if (Instances[St].Category == Instances[Index].Category)
+                return BuildSheet(St, Instances, RowCount, Sheet, Config, Sky, Camera, Level, Live);
+        return nullptr;
+    }
     const FeedRow& Picked = Layout[Index];
     EditorProperty* TintMirror = nullptr;
 

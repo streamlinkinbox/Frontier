@@ -51,7 +51,47 @@ constexpr uint32_t kEdit      = 0u;
 constexpr uint32_t kPlay      = 1u;
 constexpr uint32_t kSimulate  = 2u;
 
-const char* kViewNames[3] = { "Perspective", "Orthographic", "Top" };
+constexpr ImU32 kMenuHover = IM_COL32(20, 20, 20, 255);
+constexpr ImU32 kMenuSel   = IM_COL32(24, 24, 24, 255);
+
+constexpr float kOrbitPi = 3.14159265359f;
+
+// The views menu's rows: two projections, then the six compass snaps. Home (viewpoint 0) keeps the seated
+//    figures; each snap carries the euler that faces its side, in the solver's own convention (yaw 0 faces
+//    +Y, positive pitch looks up), so a pick poses the fly camera with no conversion at all.
+const char* kSnapNames[7] = { "", "Front", "Back", "Right", "Left", "Top", "Bottom" };
+struct SnapEuler
+{
+    float Yaw;
+    float Pitch;
+};
+constexpr SnapEuler kSnaps[7] = {
+    { 0.0f, 0.0f },                    // home: unused, the seated figures stay
+    { 0.0f, 0.0f },                    // front: faces +Y
+    { kOrbitPi, 0.0f },                // back: faces −Y
+    { -kOrbitPi * 0.5f, 0.0f },        // right: faces −X
+    { kOrbitPi * 0.5f, 0.0f },         // left: faces +X
+    { 0.0f, -kOrbitPi * 0.5f },        // top: faces −Z
+    { 0.0f, kOrbitPi * 0.5f },         // bottom: faces +Z
+};
+
+// A gizmo pad tap snaps its view: the pad on +X looks back down −X, which reads right.
+constexpr uint32_t kPadViews[6] = { 3u, 4u, 2u, 1u, 5u, 6u };
+
+// The orbit's basis, the solver's formula: forward off yaw and pitch, right off forward × +Z, up off
+//    right × forward. At the poles the first cross collapses, so east stays east off the yaw alone.
+void OrbitBasis(float Yaw, float Pitch, float F[3], float R[3], float U[3]) noexcept
+{
+    const float Cy = std::cos(Yaw), Sy = std::sin(Yaw);
+    const float Cp = std::cos(Pitch), Sp = std::sin(Pitch);
+    F[0] = Sy * Cp; F[1] = Cy * Cp; F[2] = Sp;
+    float Rx = F[1], Ry = -F[0];
+    const float Rl = std::sqrt(Rx * Rx + Ry * Ry);
+    if (Rl < 1e-4f) { Rx = Cy; Ry = -Sy; }
+    else            { Rx /= Rl; Ry /= Rl; }
+    R[0] = Rx; R[1] = Ry; R[2] = 0.0f;
+    U[0] = Ry * F[2]; U[1] = -Rx * F[2]; U[2] = Rx * F[1] - Ry * F[0];
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    TRANSPORT GLYPHS
@@ -426,6 +466,12 @@ void ViewportPanel::AssignViewTexture(ImTextureID View, uint32_t Width, uint32_t
 //                                                           RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
+void ViewportPanel::SeatViewportOrbit(const ViewportOrbit& Seated) noexcept
+{
+    Orbit_ = Seated;
+    Home_  = Seated;
+}
+
 void ViewportPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
     IM_ASSERT(Controls_ != nullptr);
@@ -577,23 +623,154 @@ void ViewportPanel::RecordBar() noexcept
     ImGui::PopFont();
     X += MarkW + 8.0f;
 
+    // The views menu: the pill reads the orbit (home shows the projection, a snap its compass name),
+    //    and opens the eight rows — two projections over the six snaps — with a check on each half of
+    //    the pose. A projection row restores the seated home under it; a snap keeps the projection.
+    char ViewLabel[32] = {};
+    if (Orbit_.ViewPoint == 0u)
+        std::snprintf(ViewLabel, sizeof(ViewLabel), "%s", Orbit_.Ortho ? "Orthographic" : "Perspective");
+    else
+        std::snprintf(ViewLabel, sizeof(ViewLabel), "%s %s", kSnapNames[Orbit_.ViewPoint],
+                      Orbit_.Ortho ? "Ortho" : "Persp");
     ImGui::PushFont(Small);
-    const ImVec2 ViewGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, kViewNames[ViewPick_]);
+    const ImVec2 ViewGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, ViewLabel);
     ImGui::PopFont();
-    const float ViewW = ViewGlyph.x + 24.0f;
+    const float ViewW = ViewGlyph.x + 44.0f;
     ImGui::SetCursorScreenPos(ImVec2(X, BtnY + 3.0f));
-    ImGui::InvisibleButton("##viewcycle", ImVec2(ViewW, 22.0f));
+    ImGui::InvisibleButton("##viewbutton", ImVec2(ViewW, 22.0f));
     const bool ViewHot = ImGui::IsItemHovered();
     if (ViewHot && ImGui::IsMouseClicked(0))
-    {
-        ViewPick_ = (ViewPick_ + 1u) % 3u;
-    }
+        ImGui::OpenPopup("##viewmenu");
     Draw->AddRectFilled(ImVec2(X, BtnY + 3.0f), ImVec2(X + ViewW, BtnY + 25.0f),
         ViewHot ? IM_COL32(255, 255, 255, 24) : IM_COL32(255, 255, 255, 12), 11.0f);
     Draw->AddRect(ImVec2(X, BtnY + 3.0f), ImVec2(X + ViewW, BtnY + 25.0f), kStroke, 11.0f);
     ImGui::PushFont(Small);
-    Draw->AddText(ImVec2(X + 12.0f, BtnY + 3.0f + (22.0f - ViewGlyph.y) * 0.5f), kDim, kViewNames[ViewPick_]);
+    Draw->AddText(ImVec2(X + 12.0f, BtnY + 3.0f + (22.0f - ViewGlyph.y) * 0.5f), kDim, ViewLabel);
     ImGui::PopFont();
+
+    const float ViewTurnTarget = ViewMenuWasOpen_ ? 1.0f : 0.0f;
+    const float ViewTurnStep   = ImGui::GetIO().DeltaTime / 0.2f;
+    if (ViewChevronAnim_ < ViewTurnTarget)
+    {
+        ViewChevronAnim_ += ViewTurnStep;
+        if (ViewChevronAnim_ > ViewTurnTarget)
+            ViewChevronAnim_ = ViewTurnTarget;
+    }
+    else if (ViewChevronAnim_ > ViewTurnTarget)
+    {
+        ViewChevronAnim_ -= ViewTurnStep;
+        if (ViewChevronAnim_ < ViewTurnTarget)
+            ViewChevronAnim_ = ViewTurnTarget;
+    }
+    const float ViewTurn   = ViewChevronAnim_ * ViewChevronAnim_ * (3.0f - 2.0f * ViewChevronAnim_);
+    const float ViewChevX  = X + ViewW - 15.0f;
+    const float ViewChevY  = BtnY + 14.0f;
+    const float ViewTipY   = ViewChevY - 1.5f + ViewTurn * 4.0f;
+    const float ViewElbowY = ViewChevY + 2.5f - ViewTurn * 4.0f;
+    Draw->AddLine(ImVec2(ViewChevX - 4.0f, ViewTipY), ImVec2(ViewChevX, ViewElbowY), kDim, 1.8f);
+    Draw->AddLine(ImVec2(ViewChevX, ViewElbowY), ImVec2(ViewChevX + 4.0f, ViewTipY), kDim, 1.8f);
+
+    const double ViewMenuNow = ImGui::GetTime();
+    float ViewMenuFade = 1.0f;
+    if (ViewMenuWasOpen_)
+    {
+        float T = static_cast<float>((ViewMenuNow - ViewMenuOpenedAt_) / 0.14);
+        T            = T < 0.0f ? 0.0f : (T > 1.0f ? 1.0f : T);
+        ViewMenuFade = T * T * (3.0f - 2.0f * T);
+    }
+    ImGui::SetNextWindowPos(ImVec2(X, BtnY + 33.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(190.0f, 0.0f), ImGuiCond_Appearing);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, ViewMenuFade));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, ViewMenuFade));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
+    const bool ViewMenuOpen = ImGui::BeginPopup("##viewmenu");
+    if (ViewMenuOpen && !ViewMenuWasOpen_)
+    {
+        ViewMenuOpenedAt_ = ViewMenuNow;
+        ViewMenuFade      = 0.0f;
+    }
+    ViewMenuWasOpen_ = ViewMenuOpen;
+    if (ViewMenuOpen)
+    {
+        ImDrawList* MenuDraw = ImGui::GetWindowDrawList();
+        ImGui::PushFont(Small);
+        const float MenuWidth = ImGui::GetContentRegionAvail().x;
+        for (uint32_t r = 0u; r < 8u; ++r)
+        {
+            if (r == 2u)
+            {
+                ImGui::Dummy(ImVec2(MenuWidth, 7.0f));
+                const ImVec2 SepMin = ImGui::GetItemRectMin();
+                const ImVec2 SepMax = ImGui::GetItemRectMax();
+                MenuDraw->AddLine(ImVec2(SepMin.x + 8.0f, (SepMin.y + SepMax.y) * 0.5f),
+                    ImVec2(SepMax.x - 8.0f, (SepMin.y + SepMax.y) * 0.5f),
+                    ControlPanel::FadeTint(kStroke, ViewMenuFade));
+            }
+            char RowLabel[24] = {};
+            bool Ticked = false;
+            if (r == 0u)
+            {
+                std::snprintf(RowLabel, sizeof(RowLabel), "Perspective");
+                Ticked = !Orbit_.Ortho;
+            }
+            else if (r == 1u)
+            {
+                std::snprintf(RowLabel, sizeof(RowLabel), "Orthographic");
+                Ticked = Orbit_.Ortho;
+            }
+            else
+            {
+                std::snprintf(RowLabel, sizeof(RowLabel), "%s", kSnapNames[r - 1u]);
+                Ticked = Orbit_.ViewPoint == r - 1u;
+            }
+            ImGui::Dummy(ImVec2(MenuWidth, 28.0f));
+            const ImVec2 RowMin = ImGui::GetItemRectMin();
+            const ImVec2 RowMax = ImGui::GetItemRectMax();
+            ImGui::SetCursorScreenPos(RowMin);
+            char RowId[12] = {};
+            std::snprintf(RowId, sizeof(RowId), "##v%ui", r);
+            ImGui::InvisibleButton(RowId, ImVec2(MenuWidth, 28.0f));
+            const bool Hovered = ImGui::IsItemHovered();
+            if (Hovered && ImGui::IsMouseClicked(0))
+            {
+                if (r < 2u)
+                {
+                    Orbit_.Yaw      = Home_.Yaw;
+                    Orbit_.Pitch    = Home_.Pitch;
+                    Orbit_.Distance = Home_.Distance;
+                    Orbit_.Target[0] = Home_.Target[0];
+                    Orbit_.Target[1] = Home_.Target[1];
+                    Orbit_.Target[2] = Home_.Target[2];
+                    Orbit_.Ortho     = (r == 1u);
+                    Orbit_.ViewPoint = 0u;
+                }
+                else
+                {
+                    Orbit_.Yaw       = kSnaps[r - 1u].Yaw;
+                    Orbit_.Pitch     = kSnaps[r - 1u].Pitch;
+                    Orbit_.ViewPoint = r - 1u;
+                }
+                ++Orbit_.Revision;
+                ImGui::CloseCurrentPopup();
+            }
+            if (Ticked)
+                MenuDraw->AddRectFilled(RowMin, RowMax, ControlPanel::FadeTint(kMenuSel, ViewMenuFade), 14.0f);
+            else if (Hovered)
+                MenuDraw->AddRectFilled(RowMin, RowMax, ControlPanel::FadeTint(kMenuHover, ViewMenuFade), 14.0f);
+            if (Ticked)
+                MenuDraw->AddCircleFilled(ImVec2(RowMin.x + 16.0f, (RowMin.y + RowMax.y) * 0.5f), 3.5f,
+                    ControlPanel::FadeTint(kHi, ViewMenuFade));
+            const ImVec2 OptGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, RowLabel);
+            MenuDraw->AddText(ImVec2(RowMin.x + 30.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
+                ControlPanel::FadeTint(Ticked || Hovered ? kText : kDim, ViewMenuFade), RowLabel);
+        }
+        ImGui::PopFont();
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
 
     // The transport strip: five runs in a seated pill, the realtime lamp, and the status chip. The
     //    reference's order — play, simulate, pause, step, stop — and its rules: step waits on pause, stop
@@ -821,21 +998,112 @@ void ViewportPanel::RecordView() noexcept
         ImGui::PopFont();
     }
 
-    const ImVec2 OrbCentre(Max.x - 52.0f, Max.y - 52.0f);
-    Draw->AddCircleFilled(OrbCentre, 32.0f, IM_COL32(16, 16, 20, 255));
-    Draw->AddCircle(OrbCentre, 32.0f, kStrong, 0, 1.2f);
-    Draw->AddLine(ImVec2(OrbCentre.x - 20.0f, OrbCentre.y), ImVec2(OrbCentre.x + 20.0f, OrbCentre.y),
-        IM_COL32(239, 83, 80, 140), 1.6f);
-    Draw->AddLine(ImVec2(OrbCentre.x, OrbCentre.y - 20.0f), ImVec2(OrbCentre.x, OrbCentre.y + 20.0f),
-        IM_COL32(105, 208, 109, 140), 1.6f);
-    Draw->AddCircleFilled(ImVec2(OrbCentre.x + 20.0f, OrbCentre.y), 4.0f, IM_COL32(239, 83, 80, 255));
-    Draw->AddCircleFilled(ImVec2(OrbCentre.x, OrbCentre.y - 20.0f), 4.0f, IM_COL32(105, 208, 109, 255));
-    Draw->AddCircleFilled(OrbCentre, 4.0f, IM_COL32(91, 140, 255, 255));
+    // The orbit gizmo, Blender's compass: the three axes through the orbit's basis, pads on all six
+    //    ends, letters on the positive three. A pad tap snaps its view, a drag orbits, and the wheel
+    //    dollies over the view. Front pads read bright, back pads dim, and the hot pad rings.
+    float Gf[3], Gr[3], Gu[3];
+    OrbitBasis(Orbit_.Yaw, Orbit_.Pitch, Gf, Gr, Gu);
+    const ImVec2 OrbC(Max.x - 52.0f, Max.y - 52.0f);
+    constexpr float kArm = 20.0f;
+    struct PadDot { float X; float Y; bool Front; };
+    PadDot Pads[6];
+    constexpr float kAxes[6][3] = { { 1.0f, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f },
+                                    { 0.0f, 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
+                                    { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } };
+    for (uint32_t i = 0u; i < 6u; ++i)
+    {
+        const float Dx = kAxes[i][0] * Gr[0] + kAxes[i][1] * Gr[1] + kAxes[i][2] * Gr[2];
+        const float Dy = kAxes[i][0] * Gu[0] + kAxes[i][1] * Gu[1] + kAxes[i][2] * Gu[2];
+        const float Toward = -(kAxes[i][0] * Gf[0] + kAxes[i][1] * Gf[1] + kAxes[i][2] * Gf[2]);
+        Pads[i].X     = OrbC.x + Dx * kArm;
+        Pads[i].Y     = OrbC.y - Dy * kArm;
+        Pads[i].Front = Toward > 0.0f;
+    }
+    ImGui::SetCursorScreenPos(ImVec2(OrbC.x - 48.0f, OrbC.y - 48.0f));
+    ImGui::InvisibleButton("##orb", ImVec2(96.0f, 96.0f));
+    const bool OrbHover = ImGui::IsItemHovered();
+    OrbHot_ = 0u;
+    if (OrbHover || OrbHeld_)
+    {
+        const ImVec2 Mouse = ImGui::GetIO().MousePos;
+        float Best = 14.0f * 14.0f;
+        for (uint32_t i = 0u; i < 6u; ++i)
+        {
+            const float Hx = Mouse.x - Pads[i].X, Hy = Mouse.y - Pads[i].Y;
+            const float D2 = Hx * Hx + Hy * Hy;
+            if (D2 < Best) { Best = D2; OrbHot_ = i + 1u; }
+        }
+    }
+    if (OrbHover && ImGui::IsMouseClicked(0))
+    {
+        OrbHeld_  = true;
+        OrbMoved_ = false;
+        OrbDownX_ = ImGui::GetIO().MousePos.x;
+        OrbDownY_ = ImGui::GetIO().MousePos.y;
+    }
+    if (OrbHeld_)
+    {
+        if (!ImGui::IsMouseDown(0))
+        {
+            if (!OrbMoved_ && OrbHot_ > 0u)
+            {
+                const uint32_t V = kPadViews[OrbHot_ - 1u];
+                Orbit_.Yaw       = kSnaps[V].Yaw;
+                Orbit_.Pitch     = kSnaps[V].Pitch;
+                Orbit_.ViewPoint = V;
+                ++Orbit_.Revision;
+            }
+            OrbHeld_ = false;
+        }
+        else
+        {
+            const ImVec2 Mouse = ImGui::GetIO().MousePos;
+            if (!OrbMoved_ && (std::fabs(Mouse.x - OrbDownX_) + std::fabs(Mouse.y - OrbDownY_)) > 4.0f)
+                OrbMoved_ = true;
+            if (OrbMoved_)
+            {
+                const ImVec2 Delta = ImGui::GetIO().MouseDelta;
+                Orbit_.Yaw   -= Delta.x * 0.008f;
+                Orbit_.Pitch += Delta.y * 0.008f;
+                if (Orbit_.Pitch > 1.55f)  Orbit_.Pitch = 1.55f;
+                if (Orbit_.Pitch < -1.55f) Orbit_.Pitch = -1.55f;
+                while (Orbit_.Yaw > kOrbitPi)  Orbit_.Yaw -= 2.0f * kOrbitPi;
+                while (Orbit_.Yaw < -kOrbitPi) Orbit_.Yaw += 2.0f * kOrbitPi;
+                Orbit_.ViewPoint = 0u;
+                ++Orbit_.Revision;
+            }
+        }
+    }
+    constexpr ImU32 kAxisTint[3] = { IM_COL32(239, 83, 80, 255),
+                                     IM_COL32(105, 208, 109, 255),
+                                     IM_COL32(91, 140, 255, 255) };
+    for (uint32_t a = 0u; a < 3u; ++a)
+        Draw->AddLine(ImVec2(Pads[2u * a].X, Pads[2u * a].Y),
+            ImVec2(Pads[2u * a + 1u].X, Pads[2u * a + 1u].Y),
+            ControlPanel::FadeTint(kAxisTint[a], 0.55f), 2.0f);
+    for (uint32_t i = 0u; i < 6u; ++i)
+    {
+        const ImU32 Tint = ControlPanel::FadeTint(kAxisTint[i / 2u], Pads[i].Front ? 1.0f : 0.35f);
+        Draw->AddCircleFilled(ImVec2(Pads[i].X, Pads[i].Y), 7.0f, Tint);
+        if (OrbHot_ == i + 1u)
+            Draw->AddCircle(ImVec2(Pads[i].X, Pads[i].Y), 10.0f, IM_COL32(255, 255, 255, 200), 0, 1.6f);
+    }
+    const char* kAxisNames[3] = { "X", "Y", "Z" };
     ImGui::PushFont(Small);
-    Draw->AddText(ImVec2(OrbCentre.x + 24.0f, OrbCentre.y - 6.0f), IM_COL32(239, 83, 80, 255), "X");
-    Draw->AddText(ImVec2(OrbCentre.x - 3.0f, OrbCentre.y - 32.0f), IM_COL32(105, 208, 109, 255), "Y");
-    Draw->AddText(ImVec2(OrbCentre.x + 6.0f, OrbCentre.y + 4.0f), IM_COL32(91, 140, 255, 255), "Z");
+    for (uint32_t a = 0u; a < 3u; ++a)
+    {
+        const ImU32 Tint = ControlPanel::FadeTint(kAxisTint[a], Pads[2u * a].Front ? 1.0f : 0.4f);
+        Draw->AddText(ImVec2(Pads[2u * a].X + 9.0f, Pads[2u * a].Y - 7.0f), Tint, kAxisNames[a]);
+    }
     ImGui::PopFont();
+    // The wheel dollies over the view: crowd the target or back off, the compass snap staying put.
+    if (ImGui::IsMouseHoveringRect(Min, Max) && ImGui::GetIO().MouseWheel != 0.0f)
+    {
+        Orbit_.Distance *= ImGui::GetIO().MouseWheel > 0.0f ? 0.9f : 1.1f;
+        if (Orbit_.Distance < 0.5f)  Orbit_.Distance = 0.5f;
+        if (Orbit_.Distance > 60.0f) Orbit_.Distance = 60.0f;
+        ++Orbit_.Revision;
+    }
     LastW_ = Max.x - Min.x;
     LastH_ = Max.y - Min.y;
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
@@ -1434,12 +1702,16 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
         bool        Dim;
         bool        Opt;
     };
+    char CamText[32] = {};
+    std::snprintf(CamText, sizeof(CamText), "%+.0f\xc2\xb0 %+.0f\xc2\xb0 %.1fm",
+        static_cast<double>(Orbit_.Yaw * 57.29578f), static_cast<double>(Orbit_.Pitch * 57.29578f),
+        static_cast<double>(Orbit_.Distance));
     const Counter Counters[5] = {
         { "FPS", PerfText, PerfSub, Fps > 0.0f && Fps < 24.0f, false, false },
         { "TRIS", Dash, "", false, false, false },
         { "INSTANCES", EntsText, EntsSub, false, false, false },
         { "DAYLIGHT", DayText, DaySub, false, false, false },
-        { "CAMERA", Dash, "", false, true, true },
+        { "CAMERA", CamText, "", false, false, true },
     };
 
     ImGui::PushFont(Small);

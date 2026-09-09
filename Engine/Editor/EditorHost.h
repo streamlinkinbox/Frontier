@@ -96,6 +96,16 @@ public:
     // The test seam; the proof drives the pick through it.
     void PickInstance(uint32_t Index) noexcept;
 
+    // The outliner + menu's ask: the category to seat, or -1 when idle. The project's tick consumes it
+    //    and clears it.
+    [[nodiscard]] int32_t QueryPendingAdd() const noexcept;
+    void ClearPendingAdd() noexcept;
+
+    // The viewport's orbit in and out: the harness seats home from its camera, and reads the pose back
+    //    for its trace (the game poses the fly camera off the same figures).
+    void SeatViewportOrbit(const ViewportOrbit& Seated) noexcept;
+    [[nodiscard]] const ViewportOrbit& QueryViewportOrbit() const noexcept;
+
 private:
     // Splits the dockspace into the outliner / viewport / inspector columns on the first tick, then rests.
     //    Runs with the host window open: the builder addresses the host, and without it there is nothing to

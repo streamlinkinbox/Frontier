@@ -48,6 +48,26 @@ void EditorHost::PickInstance(uint32_t Index) noexcept
     Outliner_.PickInstance(Index);
 }
 
+int32_t EditorHost::QueryPendingAdd() const noexcept
+{
+    return Outliner_.QueryPendingAdd();
+}
+
+void EditorHost::ClearPendingAdd() noexcept
+{
+    Outliner_.ClearPendingAdd();
+}
+
+void EditorHost::SeatViewportOrbit(const ViewportOrbit& Seated) noexcept
+{
+    Viewport_.SeatViewportOrbit(Seated);
+}
+
+const ViewportOrbit& EditorHost::QueryViewportOrbit() const noexcept
+{
+    return Viewport_.QueryViewportOrbit();
+}
+
 void EditorHost::AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept
 {
     Viewport_.AssignView(Rgba, Width, Height);

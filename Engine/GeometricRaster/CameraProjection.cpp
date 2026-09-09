@@ -93,7 +93,12 @@ void CameraProjection::RecomputeDirectionalVectors() noexcept
     //    (Vulkan image y grows downward; the shader maps the top pixel row to +Up — no further flip anywhere).
     ForwardVector = Vector3{ SinYaw * CosPitch, CosYaw * CosPitch, SinPitch }.Normalized();
     Vector3 WorldUp{ 0.0f, 0.0f, 1.0f }; // Strict +Z Upward Axis
-    RightVector   = OrientationClassifier::CrossProduct(ForwardVector, WorldUp).Normalized();
+    Vector3 Right = OrientationClassifier::CrossProduct(ForwardVector, WorldUp);
+    // Over the poles forward runs parallel to world-up and the cross collapses to nothing; east stays
+    //    east off the yaw alone, so the top and bottom views keep a basis instead of a zero vector.
+    if (Right.LengthSquared() < 1e-10f)
+        Right = Vector3{ CosYaw, -SinYaw, 0.0f };
+    RightVector   = Right.Normalized();
     UpwardVector  = OrientationClassifier::CrossProduct(RightVector, ForwardVector).Normalized();
 }
 

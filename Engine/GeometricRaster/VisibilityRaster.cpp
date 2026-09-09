@@ -50,6 +50,36 @@ bool VisibilityRaster::Render(const SceneStructure& Level,
     return true;
 }
 
+bool VisibilityRaster::RenderOrthographic(const SceneStructure& Level,
+                              const float Eye[3], const float Forward[3],
+                              const float Right[3], const float Up[3], float HalfHeightWorld,
+                              uint32_t Width, uint32_t Height,
+                              unsigned char* Rgba, double& MeanLum) noexcept
+{
+    const auto& Flat = Level.QueryFlatTriangles();
+    if (Flat.empty() || Width == 0u || Height == 0u || Rgba == nullptr)
+        return false;
+    if (!(HalfHeightWorld > 0.0f))
+        return false;
+
+    CollectLumi(Level);
+    PlaceTaps();
+
+    const size_t Cells = static_cast<size_t>(Width) * static_cast<size_t>(Height);
+    Depth_.assign(Cells, 1e30f);
+    TriId_.assign(Cells, kMiss);
+    Bary_.assign(Cells * 2u, 0.0f);
+    TriN_.assign(Flat.size() * 3u, 0.0f);
+    Shadow_.assign(static_cast<size_t>(kShadowSize) * static_cast<size_t>(kShadowSize), 1e30f);
+    Acc_.assign(Cells * 3u, 0.0f);
+
+    RasterizePrimaryOrthographic(Level, Eye, Forward, Right, Up, HalfHeightWorld, Width, Height);
+    // The shade pass ignores the projection arguments (it rebuilds hit points off the visibility buffer),
+    //    so the perspective field of view below is a formality, never consulted.
+    Shade(Level, Eye, Forward, Right, Up, 1.0471976f, Width, Height, Rgba, MeanLum);
+    return true;
+}
+
 void VisibilityRaster::CollectLumi(const SceneStructure& Level) noexcept
 {
     const auto& Flat    = Level.QueryFlatTriangles();
@@ -180,6 +210,92 @@ void VisibilityRaster::RasterizePrimary(const SceneStructure& Level, const float
                 if (W0 < 0.0f || W1 < 0.0f || W2 < 0.0f)
                     continue;
                 const float Z = 1.0f / (W0 * InvZ[0] + W1 * InvZ[1] + W2 * InvZ[2]);
+                const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(Width) + static_cast<size_t>(X);
+                if (Z >= Depth_[Idx])
+                    continue;
+                Depth_[Idx] = Z;
+                TriId_[Idx] = static_cast<uint32_t>(T);
+                Bary_[Idx * 2u] = W0;
+                Bary_[Idx * 2u + 1u] = Swapped ? W2 : W1;
+            }
+        }
+    }
+}
+
+void VisibilityRaster::RasterizePrimaryOrthographic(const SceneStructure& Level, const float Eye[3],
+                                        const float Forward[3], const float Right[3], const float Up[3],
+                                        float HalfHeightWorld, uint32_t Width, uint32_t Height) noexcept
+{
+    const auto& Flat = Level.QueryFlatTriangles();
+    const float HalfH = HalfHeightWorld;
+    const float HalfW = HalfH * static_cast<float>(Width) / static_cast<float>(Height);
+
+    for (size_t T = 0u; T < Flat.size(); ++T)
+    {
+        const float Ax = Flat[T].VertexAlphaX, Ay = Flat[T].VertexAlphaY, Az = Flat[T].VertexAlphaZ;
+        const float Bx = Flat[T].VertexBetaX,  By = Flat[T].VertexBetaY,  Bz = Flat[T].VertexBetaZ;
+        const float Cx = Flat[T].VertexGammaX, Cy = Flat[T].VertexGammaY, Cz = Flat[T].VertexGammaZ;
+        float Nx = (By - Ay) * (Cz - Az) - (Bz - Az) * (Cy - Ay);
+        float Ny = (Bz - Az) * (Cx - Ax) - (Bx - Ax) * (Cz - Az);
+        float Nz = (Bx - Ax) * (Cy - Ay) - (By - Ay) * (Cx - Ax);
+        const float Nl = std::sqrt(Nx * Nx + Ny * Ny + Nz * Nz);
+        if (Nl <= 0.0f)
+            continue;
+        TriN_[T * 3u] = Nx / Nl; TriN_[T * 3u + 1u] = Ny / Nl; TriN_[T * 3u + 2u] = Nz / Nl;
+
+        const float Vx[3] = { Ax, Bx, Cx }, Vy[3] = { Ay, By, Cy }, Vz[3] = { Az, Bz, Cz };
+        float Sx[3], Sy[3], Zv[3];
+        bool Near = false;
+        for (int K = 0; K < 3; ++K)
+        {
+            const float Rx = Vx[K] - Eye[0], Ry = Vy[K] - Eye[1], Rz = Vz[K] - Eye[2];
+            const float Xc = Rx * Right[0] + Ry * Right[1] + Rz * Right[2];
+            const float Yc = Rx * Up[0]    + Ry * Up[1]    + Rz * Up[2];
+            const float Zc = Rx * Forward[0] + Ry * Forward[1] + Rz * Forward[2];
+            if (Zc < kNear)
+            {
+                Near = true;
+                break;
+            }
+            Zv[K] = Zc;
+            Sx[K] = (Xc / HalfW * 0.5f + 0.5f) * static_cast<float>(Width);
+            Sy[K] = (1.0f - (Yc / HalfH * 0.5f + 0.5f)) * static_cast<float>(Height);
+        }
+        if (Near)
+            continue;
+
+        float Area = EdgeWeight(Sx[0], Sy[0], Sx[1], Sy[1], Sx[2], Sy[2]);
+        if (Area == 0.0f)
+            continue;
+        bool Swapped = false;
+        if (Area < 0.0f)
+        {
+            const float Tx = Sx[1]; Sx[1] = Sx[2]; Sx[2] = Tx;
+            const float Ty = Sy[1]; Sy[1] = Sy[2]; Sy[2] = Ty;
+            const float Tz = Zv[1]; Zv[1] = Zv[2]; Zv[2] = Tz;
+            Area = -Area;
+            Swapped = true;
+        }
+        int LoX = static_cast<int>(std::floor(Sx[0] < Sx[1] ? (Sx[0] < Sx[2] ? Sx[0] : Sx[2]) : (Sx[1] < Sx[2] ? Sx[1] : Sx[2])));
+        int HiX = static_cast<int>(std::ceil(Sx[0] > Sx[1] ? (Sx[0] > Sx[2] ? Sx[0] : Sx[2]) : (Sx[1] > Sx[2] ? Sx[1] : Sx[2])));
+        int LoY = static_cast<int>(std::floor(Sy[0] < Sy[1] ? (Sy[0] < Sy[2] ? Sy[0] : Sy[2]) : (Sy[1] < Sy[2] ? Sy[1] : Sy[2])));
+        int HiY = static_cast<int>(std::ceil(Sy[0] > Sy[1] ? (Sy[0] > Sy[2] ? Sy[0] : Sy[2]) : (Sy[1] > Sy[2] ? Sy[1] : Sy[2])));
+        if (LoX < 0) LoX = 0; if (HiX > static_cast<int>(Width)) HiX = static_cast<int>(Width);
+        if (LoY < 0) LoY = 0; if (HiY > static_cast<int>(Height)) HiY = static_cast<int>(Height);
+        const float InverseArea = 1.0f / Area;
+
+        for (int Y = LoY; Y < HiY; ++Y)
+        {
+            for (int X = LoX; X < HiX; ++X)
+            {
+                const float Px = static_cast<float>(X) + 0.5f;
+                const float Py = static_cast<float>(Y) + 0.5f;
+                const float W0 = EdgeWeight(Sx[1], Sy[1], Sx[2], Sy[2], Px, Py) * InverseArea;
+                const float W1 = EdgeWeight(Sx[2], Sy[2], Sx[0], Sy[0], Px, Py) * InverseArea;
+                const float W2 = EdgeWeight(Sx[0], Sy[0], Sx[1], Sy[1], Px, Py) * InverseArea;
+                if (W0 < 0.0f || W1 < 0.0f || W2 < 0.0f)
+                    continue;
+                const float Z = W0 * Zv[0] + W1 * Zv[1] + W2 * Zv[2];
                 const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(Width) + static_cast<size_t>(X);
                 if (Z >= Depth_[Idx])
                     continue;
