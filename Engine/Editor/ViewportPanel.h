@@ -59,8 +59,6 @@ private:
     uint32_t             ViewH_       = 0u;
     float                LastW_       = 0.0f;      // last view rect, for the QueryView* rect
     float                LastH_       = 0.0f;
-    float                LastX_       = 0.0f;
-    float                LastY_       = 0.0f;
     bool*                ShadeOpen_ = nullptr;  // the Control Centre shade's open figure, shared with the host
 
     uint32_t Transport_ = 0u;   // 0 edit, 1 play, 2 simulate — the reference's three runs

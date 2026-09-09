@@ -838,8 +838,6 @@ void ViewportPanel::RecordView() noexcept
     ImGui::PopFont();
     LastW_ = Max.x - Min.x;
     LastH_ = Max.y - Min.y;
-    LastX_ = Min.x;
-    LastY_ = Min.y;
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
 }
 

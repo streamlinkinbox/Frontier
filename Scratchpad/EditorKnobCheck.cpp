@@ -31,7 +31,7 @@ int main(int ArgCount, char** Args) {
     }
     // Brightness test over the slider column: the tracks run x 1166..1258, and the
     //    orbit/disc rows sit between y 140 and y 460 on the Tabs sheet.
-    const int X0 = 1166, X1 = 1260, Y0 = 170, Y1 = 490;   // below the shade strip
+    const int X0 = 1166, X1 = 1260, Y0 = 176, Y1 = 496;   // below the shade strip
     std::vector<unsigned char> Seen((X1 - X0) * (Y1 - Y0), 0);
     auto Bright = [&](int X, int Y) -> bool {
         const unsigned char* P = Pixels + (Y * W + X) * 4;

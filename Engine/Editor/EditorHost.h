@@ -40,13 +40,20 @@ public:
     [[nodiscard]] float QueryViewWidth() const noexcept;
     [[nodiscard]] float QueryViewHeight() const noexcept;
 
-    // The Control Centre shade's figures: GI seats the render path, exposure trims the view.
-    [[nodiscard]] bool  QueryGiEnabled() const noexcept;
-    [[nodiscard]] float QueryExposure() const noexcept;
-    [[nodiscard]] float QueryGiSwitchX() const noexcept;
-    [[nodiscard]] float QueryGiSwitchY() const noexcept;
+    // The Control Centre shade's figures: GI seats the render path, render scale trims the view rows.
+    [[nodiscard]] bool     QueryGiEnabled() const noexcept;
+    [[nodiscard]] float    QueryRenderScale() const noexcept;
+    [[nodiscard]] uint32_t QueryRevision() const noexcept;
+    void AssignProjectName(const char* Name) noexcept;
+
+    // The harness seams; the preview taps and drags the shade through them.
+    [[nodiscard]] float QueryGiTileX() const noexcept;
+    [[nodiscard]] float QueryGiTileY() const noexcept;
     [[nodiscard]] float QueryNotchX() const noexcept;
     [[nodiscard]] float QueryNotchY() const noexcept;
+    [[nodiscard]] float QueryPillX0() const noexcept;
+    [[nodiscard]] float QueryPillX1() const noexcept;
+    [[nodiscard]] float QueryPillY() const noexcept;
 
     // The primary pick — the instance the sheet must describe. kNoEditorInstance when nothing is picked.
     [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;

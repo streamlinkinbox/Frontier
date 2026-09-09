@@ -30,6 +30,7 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
      Engine/Editor/ControlCentrePanel.cpp \
+     Engine/GeometricRaster/VisibilityRaster.cpp \
      ExternalPackages/imgui/imgui.cpp \
      ExternalPackages/imgui/imgui_draw.cpp \
      ExternalPackages/imgui/imgui_tables.cpp \
@@ -52,4 +53,8 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
 fi
 "$Binary" || exit 1
 rm -f "$Binary"
+echo "[EditorPreview] quarantining the visibility raster (no ray query may appear)"
+if grep -nE 'TraceClosest|TraversalIndex|BuildBottomLevel|TraceRay|Intersect' Engine/GeometricRaster/VisibilityRaster.cpp Engine/GeometricRaster/VisibilityRaster.h; then
+    echo "  >>> A RAY QUERY LEAKED INTO THE NO-RAY PATH"; exit 1
+fi
 echo "[EditorPreview] preview OK"

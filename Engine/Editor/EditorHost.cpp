@@ -62,19 +62,44 @@ bool EditorHost::QueryGiEnabled() const noexcept
     return ControlCentre_.QueryGiEnabled();
 }
 
-float EditorHost::QueryExposure() const noexcept
+float EditorHost::QueryRenderScale() const noexcept
 {
-    return ControlCentre_.QueryExposure();
+    return ControlCentre_.QueryRenderScale();
 }
 
-float EditorHost::QueryGiSwitchX() const noexcept
+uint32_t EditorHost::QueryRevision() const noexcept
 {
-    return ControlCentre_.QueryGiSwitchX();
+    return ControlCentre_.QueryRevision();
 }
 
-float EditorHost::QueryGiSwitchY() const noexcept
+void EditorHost::AssignProjectName(const char* Name) noexcept
 {
-    return ControlCentre_.QueryGiSwitchY();
+    ControlCentre_.AssignProjectName(Name);
+}
+
+float EditorHost::QueryGiTileX() const noexcept
+{
+    return ControlCentre_.QueryGiTileX();
+}
+
+float EditorHost::QueryGiTileY() const noexcept
+{
+    return ControlCentre_.QueryGiTileY();
+}
+
+float EditorHost::QueryPillX0() const noexcept
+{
+    return ControlCentre_.QueryPillX0();
+}
+
+float EditorHost::QueryPillX1() const noexcept
+{
+    return ControlCentre_.QueryPillX1();
+}
+
+float EditorHost::QueryPillY() const noexcept
+{
+    return ControlCentre_.QueryPillY();
 }
 
 float EditorHost::QueryNotchX() const noexcept
@@ -257,8 +282,8 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
 #ifdef FRONTIER_DEVELOPMENT
     ImGuiViewport* Main = ImGui::GetMainViewport();
     // The dock host always leaves the shade its strip; the sheet slides over the columns from there.
-    ImGui::SetNextWindowPos(ImVec2(Main->Pos.x, Main->Pos.y + ControlCentrePanel::kCollapsedH));
-    ImGui::SetNextWindowSize(ImVec2(Main->Size.x, Main->Size.y - ControlCentrePanel::kCollapsedH));
+    ImGui::SetNextWindowPos(ImVec2(Main->Pos.x, Main->Pos.y + ControlCentrePanel::kNotchH));
+    ImGui::SetNextWindowSize(ImVec2(Main->Size.x, Main->Size.y - ControlCentrePanel::kNotchH));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
