@@ -28,9 +28,6 @@ enum class EditorInstanceCategory : uint32_t
     Geometry,
     Light,
     Camera,
-    Sky,
-    Sun,
-    Moon,
     Count
 };
 
@@ -122,9 +119,6 @@ inline const char* EditorInstanceLabel(EditorInstanceCategory Category) noexcept
     case EditorInstanceCategory::Geometry: return "Geometry";
     case EditorInstanceCategory::Light:    return "Light";
     case EditorInstanceCategory::Camera:   return "Camera";
-    case EditorInstanceCategory::Sky:      return "Sky";
-    case EditorInstanceCategory::Sun:      return "Sun";
-    case EditorInstanceCategory::Moon:     return "Moon";
     default:                         return "?";
     }
 }

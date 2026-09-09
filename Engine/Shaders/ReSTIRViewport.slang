@@ -118,8 +118,6 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
 layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
-layout(binding = 21) uniform sampler2D TransmittanceLut;  // A2: sun survival, (cos sun zenith, sqrt altitude)
-layout(binding = 22) uniform sampler2D MultiScatterLut;   // A2: isotropic multiple-scattering transfer factor
 layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — ⚠️ moved 11 → 15 in R4b → 18 in R6 → 19 in R7a → 21 in R7 → 23 in A2 → 25 in A7: a variable-count binding must be the last one in the set
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
@@ -297,7 +295,6 @@ ShadingRecord ResolveMaterial(GpuMaterial mat, GpuInstance instance, uint primit
 }
 
 #include "TraversalCWBVH.slang"
-#include "AtmosphereScattering.slang"
 
 const uint kVisibilityInvalid = 0xFFFFFFFFu;
 uint VisibilityInstance(uint Packed)  { return (Packed >> 14) & 0x3FFFFu; }
@@ -325,10 +322,9 @@ layout(push_constant) uniform ReSTIRConstants
     uint    AlphaMaskedMaterialCount; // [cnt] R4b: materials flagged kMaterialFlagAlphaMask (0 ⇒ any-hit shadow rays) — was TriangleCount (unused here)
     uint    LightTriangleCount;     // [cnt] emissive triangles for DI sampling
     uint    FeatureFlags;           // [bit] kFeatureGlobalIllumination | kFeatureAntiAliasing
-    // A7 ⚠️ The sky parameters used to live here and filled the block to exactly 128 bytes — Vulkan's guaranteed
-    //    minimum. The moon and the star field need ~20 bytes more, and growing past the guarantee would work on
-    //    a card that offers 256 and fail on one that offers only 128, i.e. break on someone else's machine.
-    //    They now live in the SkyRecord uniform buffer, which is also the shape a per-world sky needs (M1).
+    // Push constants stay within 128 bytes, which is Vulkan’s GUARANTEED MINIMUM. Growing past it works on a
+    //    card offering 256 and fails on one offering only the guarantee — a defect that appears on someone
+    //    else’s machine. Anything that does not fit goes into a uniform buffer rather than growing this block.
     // A7d. How much colour the eye still has at the adapted luminance: 1 in daylight, 0 under starlight.
     float   ColourSaturation;       // [-]   taken from one of the reserves, so the block is still 128 B
     uint    PushReserve1;
@@ -340,32 +336,6 @@ layout(push_constant) uniform ReSTIRConstants
     uint    PushReserve7;
 };
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                     SKY RECORD (A7)
-//------------------------------------------------------------------------------------------------------------------------
-// One uniform buffer describing the sky. A buffer rather than push constants because the block was full, and a
-//    buffer rather than more push bytes because this is the shape a PER-WORLD sky needs: when portals arrive
-//    this becomes an array indexed by world ordinal and nothing else about the kernel changes (CLAUDE.md §15b).
-
-layout(binding = 24) uniform SkyRecord
-{
-    vec3    SunDirection;           // [-]   toward the sun, unit, world space (Z-up)
-    float   SunIlluminance;         // [lx]  direct-beam illuminance above the atmosphere; 0 disables the sky
-
-    vec3    MoonDirection;          // [-]   toward the moon, unit
-    float   MoonPhase;              // [0..1] illuminated fraction; 0 new, 1 full
-
-    float   CameraAltitude;         // [m]   observer height above the planet surface
-    float   StarRotation;           // [rad] sidereal rotation of the star field
-    float   StarBrightness;         // [cd/m²] 0 disables the stars
-    float   MoonIlluminance;        // [lx]  sunlight reaching the moon; 0 disables it
-
-    uint    SkyViewSteps;           // [cnt] quality tier: samples along the view ray
-    uint    SkyLightSteps;          // [cnt] quality tier: 0 selects the tabulated path
-    float   SkyTurbidity;           // [-]   aerosol load; 1 is the clear reference atmosphere (A7b)
-    float   MoonAngularScale;       // [-]   1 is the true 0.259°; larger is an artistic moon (A7c)
-};
-
 const uint kFeatureGlobalIllumination = 1u;   // bit 0: trace the secondary bounce (section 4)
 const uint kFeatureAntiAliasing       = 2u;   // bit 1: sub-pixel jitter — applied by the R2 raster/resolve, not here
 const uint kFeatureAmbientFloor       = 4u;   // bit 2: add albedo × AmbientStrength (debug fill light; default OFF)
@@ -374,8 +344,6 @@ const uint kFeatureSpatialReuse       = 16u;  // bit 4: R6 row 3 — spatiotempo
 const uint kFeatureAliasPick          = 32u;  // bit 5: R6 row 3 — Walker-alias light pick (off = uniform, the R0 identity proof)
 const uint kFeatureTemporalReprojection = 64u;  // bit 6: R7a — reproject the running mean through the R2 motion vectors
 const uint kFeatureDenoise            = 128u; // bit 7: R7 — the à-trous filter runs, so the kernel defers the tone map to it
-const uint kFeatureSkyLighting        = 256u; // bit 8: A5 — an escaped bounce ray gathers sky radiance (off = the pre-A5 image)
-const uint kFeatureNightSky           = 512u; // bit 9: A7 — the moon disc and the star field (off = the pre-A7 image)
 
 float PixelSpreadAngle() { return 2.0 * FieldOfViewTanHalf / float(ViewportHeight); }   // [rad] R4b ray-cone spread per pixel
 
@@ -561,88 +529,18 @@ vec3 SampleLightPoint(uint lightTriIdx, float u1, float u2)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                          A2 — ATMOSPHERE TABLE SAMPLERS
+//                                          LIGHT EMISSION + POSITION ACCESSORS
 //------------------------------------------------------------------------------------------------------------------------
-// Declared here rather than beside the sky evaluators because A4's sun reads the same transmittance: the disc,
-//    the sky and the sunlight landing on the ground must redden together, which only happens if all three
-//    consult one table.
-
-vec3 SampleTransmittance(float Altitude, float CosSunZenith)
-{
-    return texture(TransmittanceLut, TransmittanceParameterisation(Altitude, CosSunZenith)).rgb;
-}
-
-vec3 SampleMultiScatter(float Altitude, float CosSunZenith)
-{
-    // ⚠️ Its OWN parameterisation, not the transmittance one. The transmittance mapping cannot express a sun
-    //    below the horizon, and a sun below the horizon is exactly when multiple scattering is what you see.
-    return texture(MultiScatterLut, MultiScatterParameterisation(Altitude, CosSunZenith)).rgb;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                            A4 — THE SUN AS A LIGHT
-//------------------------------------------------------------------------------------------------------------------------
-// The sun has no triangle, so it is addressed by the index ONE PAST the last luminaire triangle. That keeps the
-//    reservoir's existing uint light index working untouched, which matters because the temporal and spatial
-//    reuse paths carry that index across frames and neighbours.
-//
-// 🔴 Every read of a light's emission or position now goes through these two accessors. The emission used to be
-//    fetched inline at eight separate sites; adding the sun to each of those would have been eight chances to
-//    forget one, and a missed site would have read a scene material for the sun — a plausible wrong colour
-//    rather than an obvious failure.
-
-bool IsSunLight(uint lightIndex) { return SunIlluminance > 0.0 && lightIndex >= LightTriangleCount; }
-
-// How many light "slots" a pixel can choose from: the emissive triangles, plus the sun when it is above the
-//    horizon. Below the horizon it is not a candidate at all, so no sample is ever wasted on a light that
-//    cannot contribute.
-uint LightSlotCount()
-{
-    return LightTriangleCount + ((SunIlluminance > 0.0 && SunDirection.z > -0.05) ? 1u : 0u);
-}
-
-// The sun's radiance, attenuated by the air it has already travelled through. This is the same transmittance
-//    the sky march uses, so the disc, the sky and the light on the ground all redden together at sunset instead
-//    of disagreeing.
-vec3 SunRadiance()
-{
-    return SampleTransmittance(max(CameraAltitude, 1.0), SunDirection.z) * SunIlluminance;
-}
+// Every read of a light's emission or position goes through these two accessors, so the shading, reservoir and
+//    reuse paths cannot disagree about what a light is.
 
 vec3 LightEmission(uint lightIndex)
 {
-    if (IsSunLight(lightIndex)) return SunRadiance();
     return Materials[floatBitsToUint(Triangles[LightTriangle(lightIndex)].v0.w)].Emissive.xyz;
 }
 
-// A point on the sun's disc, expressed as somewhere far away along a jittered direction. Returning a POINT
-//    rather than a direction is what lets the existing shadow-ray and reuse machinery work unchanged — and the
-//    jitter across the 0.268° disc is exactly what produces a real penumbra instead of a hard edge.
-vec3 SampleSunPoint(vec3 origin, float u1, float u2)
+vec3 SampleLightPointFor(uint lightIndex, float u1, float u2)
 {
-    // Uniform on the cap: the radius must go as √u or samples bunch at the centre and the penumbra is too sharp.
-    const float CosMax = cos(kSunAngularRadius);
-    const float CosTheta = 1.0 - u1 * (1.0 - CosMax);
-    const float SinTheta = sqrt(max(0.0, 1.0 - CosTheta * CosTheta));
-    const float Phi      = 6.28318530 * u2;
-
-    // Any tangent frame will do; the disc is rotationally symmetric about the sun direction.
-    vec3 Up      = abs(SunDirection.z) < 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-    vec3 Tangent = normalize(cross(Up, SunDirection));
-    vec3 Bitangent = cross(SunDirection, Tangent);
-
-    const vec3 Direction = normalize(SunDirection * CosTheta
-                                   + Tangent   * (SinTheta * cos(Phi))
-                                   + Bitangent * (SinTheta * sin(Phi)));
-
-    // Far enough to be effectively directional, near enough that the squared-distance falloff in PHatFull does
-    //    not underflow to zero in a float.
-    return origin + Direction * 1.0e7;
-}
-
-vec3 SampleLightPointFor(uint lightIndex, vec3 origin, float u1, float u2)
-{
-    if (IsSunLight(lightIndex)) return SampleSunPoint(origin, u1, u2);
     return SampleLightPoint(lightIndex, u1, u2);
 }
 
@@ -652,37 +550,6 @@ vec3 SampleLightPointFor(uint lightIndex, vec3 origin, float u1, float u2)
 //    Any positive pSource keeps RIS unbiased: the converged image is unchanged, only the noise differs.
 uint PickLight(inout uint seed, out float pSource)
 {
-    const uint Slots = LightSlotCount();
-
-    // A4. The sun occupies the slot one past the last triangle. It is picked with a fixed share rather than
-    //    being folded into the alias table, because that table is built on the CPU from triangle power and the
-    //    sun's contribution changes every frame as it moves — rebuilding the table per frame would cost more
-    //    than the stratification is worth.
-    //
-    //    Half the samples when the sun is up. It is overwhelmingly the brightest light in an outdoor scene, so
-    //    an even split with the luminaires is far closer to importance-proportional than any fixed small share,
-    //    and RIS stays unbiased for ANY positive pSource — this choice only moves noise around.
-    if (Slots > LightTriangleCount)
-    {
-        const float SunShare = 0.5;
-        if (RandFloat(seed) < SunShare)
-        {
-            pSource = SunShare;
-            return LightTriangleCount;
-        }
-        // Fall through to a triangle, whose probability is scaled by the remaining share.
-        if ((FeatureFlags & kFeatureAliasPick) != 0u)
-        {
-            uint col = uint(RandFloat(seed) * float(LightTriangleCount));
-            col = min(col, LightTriangleCount - 1u);
-            uint z = RandFloat(seed) < Luminaires[col].Threshold ? col : Luminaires[col].AliasSlot;
-            pSource = Luminaires[z].Probability * (1.0 - SunShare);
-            return z;
-        }
-        pSource = (1.0 - SunShare) / float(LightTriangleCount);
-        return min(uint(RandFloat(seed) * float(LightTriangleCount)), LightTriangleCount - 1u);
-    }
-
     if ((FeatureFlags & kFeatureAliasPick) != 0u)
     {
         uint col = uint(RandFloat(seed) * float(LightTriangleCount));
@@ -882,89 +749,6 @@ void Resolve(uvec2 pixel, vec3 radiance)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                            A2 — TABULATED ATMOSPHERE
-//------------------------------------------------------------------------------------------------------------------------
-// These live here rather than in AtmosphereScattering.slang because they sample the kernel's own descriptors,
-//    and that header is deliberately free of bindings so the CPU proof can port it verbatim.
-
-// The A3 march with its inner light march replaced by a texture fetch, plus the second-order term.
-vec3 SkyRadianceTabulated(float CameraAltitude, vec3 ViewDirection, vec3 SunDirection, vec3 SunIlluminance, int ViewSteps)
-{
-    const vec3 Origin = vec3(0.0, 0.0, kPlanetRadius + max(CameraAltitude, 1.0));
-
-    float Distance = RaySphereNearest(Origin, ViewDirection, kAtmosphereRadius);
-    if (Distance < 0.0) return vec3(0.0);
-    const float Ground = RaySphereNearest(Origin, ViewDirection, kPlanetRadius);
-    if (Ground > 0.0) Distance = min(Distance, Ground);
-
-    const float CosTheta      = dot(ViewDirection, SunDirection);
-    const float PhaseRayleigh = RayleighPhase(CosTheta);
-    const float PhaseMie      = MiePhase(CosTheta, kMieAsymmetry);
-
-    const float Step = Distance / float(ViewSteps);
-    vec3 Radiance      = vec3(0.0);
-    vec3 Transmittance = vec3(1.0);
-
-    const bool HitsGround = Ground > 0.0;   // A7c: the ray ends on the planet, not in space
-
-    for (int i = 0; i < ViewSteps; ++i)
-    {
-        const vec3  Position = Origin + ViewDirection * (float(i) + 0.5) * Step;
-        const float Radius   = length(Position);
-        const float Altitude = Radius - kPlanetRadius;
-        const vec3  Density  = AtmosphereDensity(Altitude);
-
-        const vec3 Extinction = kRayleighScattering * Density.x
-                              + vec3(MieExtinction()) * Density.y
-                              + kOzoneAbsorption    * Density.z;
-        const vec3 StepTransmittance = exp(-Extinction * Step);
-
-        // The sun's zenith angle AT THIS SAMPLE, not at the camera. Using the camera's would make the whole ray
-        //    share one lighting condition and flatten the terminator into a hard edge.
-        const float CosSunZenith = dot(Position / Radius, SunDirection);
-        const vec3  SunArriving  = SampleTransmittance(Altitude, CosSunZenith);
-
-        const vec3 Phased    = kRayleighScattering * Density.x * PhaseRayleigh
-                             + vec3(MieScattering()) * Density.y * PhaseMie;
-        const vec3 Isotropic = (kRayleighScattering * Density.x + vec3(MieScattering()) * Density.y)
-                             * SampleMultiScatter(Altitude, CosSunZenith);
-
-        const vec3 Scattering = Phased * SunArriving + Isotropic;
-        const vec3 Integrated = (Scattering - Scattering * StepTransmittance) / max(Extinction, vec3(1e-9));
-
-        Radiance      += Transmittance * Integrated * SunIlluminance;
-        Transmittance *= StepTransmittance;
-    }
-
-    // A7c — the ground. Before this, a ray passing below the horizon returned only the thin slice of air in
-    //    front of it, which at eye height is nearly nothing: the world ended in a black void along the horizon
-    //    line and the exposure meter read that void as most of the scene.
-    if (HitsGround)
-    {
-        const vec3  Surface = Origin + ViewDirection * Distance;
-        const vec3  Normal  = normalize(Surface);
-        const float CosSunAtSurface = dot(Normal, SunDirection);
-
-        // The sky's own light on the ground, which is what keeps the surface from switching off the moment the
-        //    sun dips. The multiple-scattering table already holds exactly this quantity — the isotropic
-        //    radiance arriving at an altitude for a sun angle — and a uniform hemisphere of radiance L delivers
-        //    an irradiance of πL, so the π cancels against the one inside GroundReflection.
-        const vec3 SkyIrradiance = SampleMultiScatter(0.0, CosSunAtSurface) * SunIlluminance * 3.14159265;
-
-        Radiance += Transmittance * GroundReflection(Normal, SunDirection, SunIlluminance,
-                                                     SampleTransmittance(0.0, CosSunAtSurface), SkyIrradiance);
-    }
-    return Radiance;
-}
-
-vec3 SunDiscTabulated(float CameraAltitude, vec3 ViewDirection, vec3 SunDirection, vec3 SunIlluminance)
-{
-    if (dot(ViewDirection, SunDirection) < cos(kSunAngularRadius)) return vec3(0.0);
-    const float SolidAngle = 6.28318530 * (1.0 - cos(kSunAngularRadius));
-    return SampleTransmittance(max(CameraAltitude, 1.0), SunDirection.z) * SunIlluminance / SolidAngle;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
 //                                                    MAIN COMPUTE KERNEL
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -972,13 +756,6 @@ void main()
 {
     uvec2 pixel = gl_GlobalInvocationID.xy;
     if (pixel.x >= ViewportWidth || pixel.y >= ViewportHeight) return;
-
-    // A7b ⚠️ FIRST, before anything that can touch the atmosphere. Every Mie term in this invocation — the sky
-    //    march, the sun disc, and the bounce ray's sky gather — reads this global, so it must be set before the
-    //    first of them runs. Setting it later would leave whichever path ran first evaluating clear air.
-    //    Clamped rather than trusted: a negative turbidity is negative extinction, i.e. an atmosphere that
-    //    amplifies light, and the march would diverge into NaN rather than merely look wrong.
-    gAerosolTurbidity = clamp(SkyTurbidity, 0.0, 16.0);
 
     uint seed = MakeSeed(pixel, FrameIndex);
 
@@ -994,86 +771,8 @@ void main()
 
     if (visibility == kVisibilityInvalid)
     {
-        // A3 — the ray-miss path. This used to return pure black; it now returns the radiance of the sky in the
-        //    ray's direction, which is what turns the roof oculus from a hole into nothing into a window.
-        //
-        //    SunIlluminance of zero disables the sky entirely and restores the black background, so every image
-        //    made before A3 can still be reproduced exactly. That is the identity switch for this phase.
-        vec3 skyRadiance = vec3(0.0);
-        if (SunIlluminance > 0.0)
-        {
-            // The primary ray direction has to be rebuilt here: the visibility raster only stores hits, so a
-            //    miss carries no direction. Pixel centre, matching the raster's own convention.
-            const vec2 uv  = (vec2(pixel) + 0.5) / vec2(float(ViewportWidth), float(ViewportHeight));
-            const vec2 ndc = vec2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
-            const vec3 rayDirection = normalize(CameraForward
-                                              + CameraRight * (ndc.x * FieldOfViewTanHalf * AspectRatio)
-                                              + CameraUp    * (ndc.y * FieldOfViewTanHalf));
-
-            // A2 — the LUT path. The tables remove the inner light march, taking the per-pixel cost from
-            //    ViewSteps × LightSteps down to ViewSteps, and add the multiple scattering that single
-            //    scattering physically cannot produce. SkyLightSteps of 0 selects it; a non-zero value keeps
-            //    the A3 march, so the two can still be compared directly on the same frame.
-            if (SkyLightSteps == 0u)
-                skyRadiance = SkyRadianceTabulated(CameraAltitude, rayDirection, SunDirection,
-                                                   vec3(SunIlluminance), int(SkyViewSteps));
-            else
-                skyRadiance = SkyRadiance(CameraAltitude, rayDirection, SunDirection,
-                                          vec3(SunIlluminance), int(SkyViewSteps), int(SkyLightSteps));
-
-            skyRadiance += SunDiscTabulated(CameraAltitude, rayDirection, SunDirection, vec3(SunIlluminance));
-
-            // A7 — the night sky. Both are ADDED to the sky radiance and then attenuated by the atmosphere
-            //    between here and them, so they fade out at dawn exactly as the real ones do rather than being
-            //    switched off by a threshold. That is the whole reason they are not a separate "night" branch.
-            if ((FeatureFlags & kFeatureNightSky) != 0u)
-            {
-                const vec3 Attenuation = SampleTransmittance(max(CameraAltitude, 1.0), rayDirection.z);
-
-                // Stars first: the moon draws over them, which is correct — it is nearer and opaque.
-                skyRadiance += StarField(rayDirection, StarRotation, StarBrightness) * Attenuation;
-
-                if (MoonIlluminance > 0.0)
-                {
-                    // A7c ⚠️ The true moon is 0.259° across, which at a 55° field of view is about ten pixels
-                    //    — accurate, and far smaller than people expect, because the eye enlarges it near the
-                    //    horizon and every photograph of it is taken with a long lens. The scale is an
-                    //    admitted artistic control, so it is a multiplier on the real angle rather than a
-                    //    replacement for it: 1 is always the truth, and the readout says so.
-                    const float MoonRadius = kMoonAngularRadius * clamp(MoonAngularScale, 0.05, 40.0);
-
-                    const float CosToMoon = dot(rayDirection, MoonDirection);
-                    if (CosToMoon > cos(MoonRadius))
-                    {
-                        // Where on the disc this ray lands, in units of the moon's radius. Building a tangent
-                        //    frame keeps the phase terminator oriented consistently as the moon moves, instead
-                        //    of spinning with the camera.
-                        const vec3 Up      = abs(MoonDirection.z) < 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
-                        const vec3 Tangent = normalize(cross(Up, MoonDirection));
-                        const vec3 Bitan   = cross(MoonDirection, Tangent);
-                        const vec3 Offset  = rayDirection / max(CosToMoon, 1e-6) - MoonDirection;
-                        const vec2 Disc    = vec2(dot(Offset, Tangent), dot(Offset, Bitan)) / MoonRadius;
-
-                        const float Lit = MoonLitFraction(Disc, MoonPhase);
-                        if (Lit > 0.0)
-                        {
-                            // Radiance, not illuminance: divided by the solid angle it subtends, so its
-                            //    brightness does not change with render resolution.
-                            //
-                            // ⚠️ The TRUE solid angle, deliberately, not the scaled one. Dividing by the scaled
-                            //    angle would conserve total flux, so an enlarged moon would dim as it grew and
-                            //    a big one would read as a flat grey disc. Keeping the true angle keeps the
-                            //    SURFACE BRIGHTNESS that of the real moon, which is what makes an enlarged one
-                            //    still look like the moon.
-                            const float SolidAngle = 6.28318530 * (1.0 - cos(kMoonAngularRadius));
-                            skyRadiance += vec3(MoonIlluminance) * kMoonAlbedo * Lit
-                                         / SolidAngle * Attenuation;
-                        }
-                    }
-                }
-            }
-        }
-        Resolve(pixel, skyRadiance);
+    // A missed primary ray sees no surface, and there is no environment light, so it contributes nothing.
+    Resolve(pixel, vec3(0.0));
         return;
     }
 
@@ -1109,7 +808,7 @@ void main()
     //    spatiotemporal neighbour taps, shade.
     //------------------------------------------------------------------------------------------------------------------
 
-    if (LightSlotCount() > 0u)   // A4: a scene lit only by the sun has no emissive triangle at all
+    if (LightTriangleCount > 0u)
     {
         // Initial reservoir from M = SamplesPerPixel candidates
         Reservoir res;
@@ -1127,7 +826,7 @@ void main()
             uint   li          = PickLight(seed, pSource);   // R6 row 3: alias (F5) or uniform (identity proof)
             float  u1          = RandFloat(seed);
             float  u2          = RandFloat(seed);
-            vec3   lp          = SampleLightPointFor(li, hitPos, u1, u2);
+            vec3   lp          = SampleLightPointFor(li, u1, u2);
             vec3   toLight     = lp - hitPos;
 
             // Get light material
@@ -1159,7 +858,7 @@ void main()
                 uint   nli    = PickLight(seed, npSource);   // R6 row 3: same alias/uniform gate as the initial loop
                 float  nu1    = RandFloat(seed);
                 float  nu2    = RandFloat(seed);
-                vec3   nlp    = SampleLightPointFor(nli, hitPos, nu1, nu2);
+                vec3   nlp    = SampleLightPointFor(nli, nu1, nu2);
                 vec3   nToL   = nlp - hitPos;
                 vec3   nEmit  = LightEmission(nli);
                 float  nPHat  = PHatFull(frame, shading, layers, woLocal, nEmit, nToL, dot(nToL, nToL));
@@ -1325,21 +1024,8 @@ void main()
 
             Hit bounceHit = TraceScene(bounceRay);
 
-            // A5 — the sky as an environment light. A bounce ray that escapes the scene used to contribute
-            //    nothing, which is why the room stayed lit only by what it could see directly: a wall facing the
-            //    oculus received no skylight at all, however bright the sky outside was.
-            //
-            //    This is the whole of the environment term. No separate environment sampler and no second alias
-            //    table: the BSDF sample already chose a direction with the right distribution, so the escaped ray
-            //    IS the environment sample, and multiplying by throughput is the correct estimator. An explicit
-            //    environment sampler would add a second estimator to combine by MIS for no gain at this depth.
-            if (!bounceHit.valid && dot(bounceDir, hitNormal) > 0.0 && SunIlluminance > 0.0
-                && (FeatureFlags & kFeatureSkyLighting) != 0u)
-            {
-                accumulatedRadiance += throughput * SkyRadianceTabulated(
-                    CameraAltitude, bounceDir, SunDirection, vec3(SunIlluminance), int(max(SkyViewSteps / 2u, 8u)));
-            }
-            else if (bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
+            // An escaped bounce ray contributes nothing: there is no environment light.
+            if (bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
             {
                 GpuMaterial   bMat  = Materials[bounceHit.matIdx];
                 // D2: TraceScene already resolved the instance — reuse it rather than repeating the search here.
@@ -1352,7 +1038,7 @@ void main()
                 {
                     accumulatedRadiance += throughput * bFrame.Emission;
                 }
-                else if (LightSlotCount() > 0u)
+                else if (LightTriangleCount > 0u)
                 {
                     vec3  bHitPos    = bounceHit.pos;
                     vec3  bHitNormal = bFrame.Geometric;
@@ -1360,12 +1046,12 @@ void main()
                     if (bWo.z <= 0.0) bWo = vec3(bWo.xy, 1e-3);
                     ResolvedLayers bLayers = ResolveLayers(bShading, bWo);
 
-                    // A4: the bounce samples the sun too, uniformly over all slots. The secondary bounce is a
+                    // The bounce samples a light uniformly over all triangles. The secondary bounce is a
                     //    single unweighted sample rather than a reservoir, so a uniform pick is the correct
-                    //    estimator here — and outdoors the sun is what actually lights the second bounce.
-                    const uint bSlots = LightSlotCount();
+                    //    estimator here.
+                    const uint bSlots = LightTriangleCount;
                     uint  bLi  = min(uint(RandFloat(seed) * float(bSlots)), bSlots - 1u);
-                    vec3  bLp  = SampleLightPointFor(bLi, bHitPos, RandFloat(seed), RandFloat(seed));
+                    vec3  bLp  = SampleLightPointFor(bLi, RandFloat(seed), RandFloat(seed));
                     vec3  bToL = bLp - bHitPos;
                     float bDist = length(bToL);
                     vec3  bLDir = bToL / bDist;

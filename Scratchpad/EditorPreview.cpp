@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Headless editor preview — the development editor over the LIVE Cornell level: the feed fills the roster from
 //    the fresh glTF, the Tall Box carries the pick, and the viewport shows the level traced on the CPU through
-//    the same traversal the renderer refits. Nine sheets out (shut, creation menu, added sun, open, raster, shut raster, hub, ortho front, top). No Vulkan,
+//    the same traversal the renderer refits. Eight sheets out (shut, picked camera, open, raster, shut raster, hub, ortho front, top). No Vulkan,
 //    no GLFW, no window. Run via Scratchpad/CheckEditorPreview.sh.
 
 #ifndef FRONTIER_DEVELOPMENT
@@ -284,8 +284,8 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
                     float Dist = 0.0f; uint32_t Prim = 0u;
                     if (!TraceRay(O, D, Dist, Prim))
                     {
-                        constexpr float Sky[3] = { 0.30f, 0.42f, 0.63f };
-                        Path[0] += Thr[0] * Sky[0]; Path[1] += Thr[1] * Sky[1]; Path[2] += Thr[2] * Sky[2];
+                        constexpr float Miss[3] = { 0.30f, 0.42f, 0.63f };
+                        Path[0] += Thr[0] * Miss[0]; Path[1] += Thr[1] * Miss[1]; Path[2] += Thr[2] * Miss[2];
                         break;
                     }
                     float P[3], N[3];
@@ -468,12 +468,10 @@ int main()
         return 1;
     }
 
-    ReSTIRIntegratorConfiguration Config{};
-    CelestialSolver Sky;
     std::vector<InstanceRecord> Live = Level.QueryInstances();
     EditorSheet PickedSheet = {};
     Editor.PickInstance(7u);   // Tall Box: the geometry sheet over a live centroid
-    (void)Feed.BuildSheet(7u, Rows, RowCount, &PickedSheet, Config, Sky, Camera, Level, Live);
+    (void)Feed.BuildSheet(7u, Rows, RowCount, &PickedSheet, Camera, Level, Live);
     std::printf("[Preview] pick: row 7 '%s'\n", Rows[7].Label);
 
     std::vector<unsigned char> Pixels(static_cast<size_t>(kWidth) * static_cast<size_t>(kHeight) * 3u);
@@ -591,69 +589,26 @@ int main()
     if (!WriteSheet("Diagnostics/EditorPreviewShut.png"))
         return 1;
 
-    // The Environment folder ships the sky bodies by default: pick the stock Sun and prove the sheet
-    //    follows. Then the + menu seats a second sun, and the pick lands on the new row.
-    uint32_t SunRow = kNoEditorInstance;
+    // The Cameras folder ships the stock Main Camera by default: pick it and prove the sheet follows.
+    uint32_t CameraRow = kNoEditorInstance;
     for (uint32_t R = 0u; R < RowCount; ++R)
-        if (Rows[R].Category == EditorInstanceCategory::Sun) { SunRow = R; break; }
-    if (SunRow == kNoEditorInstance)
+        if (Rows[R].Category == EditorInstanceCategory::Camera) { CameraRow = R; break; }
+    if (CameraRow == kNoEditorInstance)
     {
-        std::printf("[Preview] the roster carries no Sun\n");
+        std::printf("[Preview] the roster carries no Camera\n");
         return 1;
     }
-    Editor.PickInstance(SunRow);
-    (void)Feed.BuildSheet(SunRow, Rows, RowCount, &PickedSheet, Config, Sky, Camera, Level, Live);
-    Idle(10);
-    Tap(265.0f, 101.0f);
-    Idle(14);
-    Park();
-    if (!WriteSheet("Diagnostics/EditorPreviewAdd.png"))
+    Editor.PickInstance(CameraRow);
+    (void)Feed.BuildSheet(CameraRow, Rows, RowCount, &PickedSheet, Camera, Level, Live);
+    if (PickedSheet.GroupCount != 3u)
+    {
+        std::printf("[Preview] the picked Camera built %u groups\n", PickedSheet.GroupCount);
         return 1;
-    {
-        int Black = 0;
-        for (int Y = 130; Y < 215; ++Y)
-            for (int X = 100; X < 260; ++X)
-            {
-                const size_t I = (static_cast<size_t>(Y) * kWidth + static_cast<size_t>(X)) * 3u;
-                if (Pixels[I] == 0u && Pixels[I + 1u] == 0u && Pixels[I + 2u] == 0u)
-                    ++Black;
-            }
-        std::printf("[Preview] creation menu: %d black cells\n", Black);
-        if (Black < 1500)
-        {
-            std::printf("[Preview] the creation menu never opened\n");
-            return 1;
-        }
-    }
-    Tap(176.0f, 173.0f);
-    Idle(3);
-    {
-        const int32_t Asked = Editor.QueryPendingAdd();
-        std::printf("[Preview] pending add: %d\n", Asked);
-        if (Asked != static_cast<int32_t>(EditorInstanceCategory::Sun))
-        {
-            std::printf("[Preview] the Sun row never asked\n");
-            return 1;
-        }
-        const uint32_t Seated = AppendAddedRow(Rows, &RowCount, static_cast<EditorInstanceCategory>(Asked));
-        Editor.ClearPendingAdd();
-        if (Seated == kNoEditorInstance)
-        {
-            std::printf("[Preview] the roster took no seating\n");
-            return 1;
-        }
-        std::printf("[Preview] added row %u '%s' (%u rows)\n", Seated, Rows[Seated].Label, RowCount);
-        Editor.PickInstance(Seated);
-        (void)Feed.BuildSheet(Seated, Rows, RowCount, &PickedSheet, Config, Sky, Camera, Level, Live);
-        if (PickedSheet.GroupCount != 2u)
-        {
-            std::printf("[Preview] the added Sun built %u groups\n", PickedSheet.GroupCount);
-            return 1;
-        }
     }
     Idle(10);
+    Idle(10);
     Park();
-    if (!WriteSheet("Diagnostics/EditorPreviewSun.png"))
+    if (!WriteSheet("Diagnostics/EditorPreviewCamera.png"))
         return 1;
 
     // A tap on the notch carries the shade open; the dashboard's own figures prove the card went live.

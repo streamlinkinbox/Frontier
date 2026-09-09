@@ -327,38 +327,6 @@ Frontier/
 
 ---
 
-## 15b. Deferred by Design — Single Sky Dome
-
-⚠️ **The renderer supports exactly ONE atmosphere at a time, and that is deliberate.**
-
-The camera can only ever be inside one world, so a second dome would be built, kept resident and
-sampled while contributing nothing to any pixel. The single-dome assumption is therefore not a
-shortcut — it is correct for every situation that exists today.
-
-**What makes it stop being correct: portals.** A portal shows another world through an opening, so
-rays that cross it need that world's sky, and two domes become simultaneously visible in one frame.
-Nothing else changes this. Splitscreen does not (each view resolves independently), and neither does
-a distant planet (that is geometry under this sky, not a second atmosphere).
-
-Where the assumption is currently baked in:
-
-| Site | Assumption |
-|------|-----------|
-| `ReSTIRIntegrator` | owns one `CelestialSolver`, so one clock and one sun |
-| `DispatchConfiguration` | one `SunDirection` / `SunIlluminance` in the push block, which is now **exactly full at 128 bytes** |
-| `SwapchainExchange::AtmosphereTables[2]` | one transmittance + one multi-scatter table, built once |
-| Bindings 21 / 22 | one LUT pair in the kernel's descriptor set |
-| `LightSlotCount()` | one sun slot, at index `LightTriangleCount` |
-
-**When portals arrive**, the shape of the change is already known and is recorded in
-`References/WorldSkyAtmosphere-Plan.md` (M1–M2): atmosphere becomes a per-world *record* rather than
-a singleton; the constant LUTs (transmittance, multi-scattering) are small and cache per world; only
-the per-observer tables need rebuilding, so cost scales with **visible** worlds, not with worlds that
-exist. The push block cannot absorb a second sun — it is full — so the sky parameters move to a
-uniform buffer indexed by world ordinal at that point.
-
-🔴 Do not generalise this speculatively. Building a multi-dome path with no portal to exercise it
-means shipping an untestable code path, and the first real portal would find it wrong anyway.
 
 ---
 

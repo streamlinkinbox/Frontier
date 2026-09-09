@@ -2,9 +2,9 @@
 # Headless visual proof for the development editor — compiles the patched vendor plus Engine/Editor, drives ten
 #    ticks through the engine's tick order, rasterises the last tick with a dependency-free CPU rasteriser, and
 #    gates the PNG: three occupied columns, a trapezoid slant on both tab edges, titled strips, the seated theme
-#    tints, and the four faces the theme seats. Then three interaction phases drive the pointer the way the
-#    engine does — the category menu opens, a Sun pick narrows the outline, the Sky Quality menu opens and
-#    selects High — and each phase rasterises its own sheet, so the four PNGs agree with the caption together.
+#    tints, and the four faces the theme seats. Then the interaction phases drive the pointer the way the
+#    engine does — the category menu opens, a Camera pick narrows the outline, the palette opens over the
+#    console, the views menu poses the orbit, the gizmo answers — and each phase rasterises its own sheet.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 Fail=0
@@ -147,15 +147,15 @@ if [[ "$SelectedCount" != "1" || "$TotalCount" != "1" ]]; then
     echo "  the footer caption lost its figures (selected $SelectedCount, of-total $TotalCount)"; Fail=1
 fi
 
-# Every popup the editor opens, the editor begins: the Open set and the Begin set must be the same five ids.
+# Every popup the editor opens, the editor begins: the Open set and the Begin set must be the same four ids.
 OpenPopups="$(grep -hoE 'OpenPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sort -u)"
 BeginPopups="$(grep -hoE 'BeginPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sed 's/BeginPopup/OpenPopup/' | sort -u)"
 if [[ "$OpenPopups" != "$BeginPopups" ]]; then
     echo "  a popup opens that never begins, or begins that never opens:"; Fail=1
 fi
 OpenCount="$(echo "$OpenPopups" | grep -c 'OpenPopup')"
-if [[ "$OpenCount" != "5" ]]; then
-    echo "  the editor seats five popups, no more:"; echo "$OpenPopups" | sed 's/^/    /'; Fail=1
+if [[ "$OpenCount" != "4" ]]; then
+    echo "  the editor seats four popups, no more:"; echo "$OpenPopups" | sed 's/^/    /'; Fail=1
 fi
 
 # No heap traffic while drawing: the panels must not allocate.
@@ -164,7 +164,7 @@ if grep -nE '(push_back|emplace_back|resize|reserve)[[:space:]]*\(|new[[:space:]
 fi
 
 echo
-for Sheet in Tabs Menu Filtered Quality Palette Add Views; do
+for Sheet in Tabs Menu Filtered Palette Views; do
     if [[ ! -s Diagnostics/EditorProof_$Sheet.png ]]; then
         echo "  MISSING Diagnostics/EditorProof_$Sheet.png"; Fail=1
     else

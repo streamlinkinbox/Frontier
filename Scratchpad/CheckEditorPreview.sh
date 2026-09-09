@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Headless editor preview — the development editor over the LIVE Cornell level, with the viewport traced on the
-#    CPU through the renderer's own traversal. Five sheets out (shut, open, raster, shut raster, hub). No Vulkan, no GLFW.
+#    CPU through the renderer's own traversal. Eight sheets out (shut, picked camera, open, raster, shut raster, hub, ortho front, top). No Vulkan, no GLFW.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 mkdir -p Diagnostics
@@ -55,7 +55,6 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
      Projects/Project-Zero/Source/FlyThroughSolver.cpp \
      Engine/GeometricRaster/CameraProjection.cpp \
      Engine/DeviceExchange/InputExchange.cpp \
-     Engine/GeometricRaster/CelestialSolver.cpp \
      Engine/GeometricRaster/TraversalIndex.cpp \
      Engine/ContentInterchange/SceneCodec.cpp \
      Engine/ContentInterchange/MaterialCodec.cpp \

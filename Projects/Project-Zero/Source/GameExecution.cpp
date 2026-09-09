@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     }
     if (ScenePath == "shaderball") ScenePath = "Projects/Project-Zero/Content/Scenes/ShaderBall.gltf";   // R4b material test level
     if (ScenePath == "showroom")   ScenePath = "Projects/Project-Zero/Content/Scenes/Showroom.gltf";     // P0 spatial-interface level
-    // A8: the open scene. The sky work can only be judged where the sky is actually visible.
+    // The open-air scene.
     if (ScenePath == "outdoor")    ScenePath = "Projects/Project-Zero/Content/Scenes/Outdoor.gltf";
     bool DropScene = false;
     if (ScenePath == "drop") { ScenePath = "Projects/Project-Zero/Content/Scenes/ShowroomDrop.gltf"; DropScene = true; }   // D4 physics level
@@ -334,7 +334,7 @@ int main(int argc, char** argv)
     else if (Level.QueryName() == "Outdoor")
     {
         // Standing on open ground at eye height, looking north along +Y at the casters, pitched up 8° so the
-        //    horizon sits low in frame and most of the view is sky — which is the whole reason this scene exists.
+        //    horizon sits low in frame.
         Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.0f, 1.70f });
         Camera.AssignOrientationEuler(8.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
     }
@@ -748,8 +748,8 @@ int main(int argc, char** argv)
     auto PreviousTime = Clock::now();
 
     // Scene editor feed — the roster fills once from the live level; the sheet rebuilds whenever the
-    //    pick moves. Two write-backs cross back every tick: the folder tint mirror, and the outliner +
-    //    menu's ask, which seats a created sky body; the orbit's home seats from the fly camera below.
+//    pick moves. One write-back crosses back every tick: the folder tint mirror; the orbit's home
+//    seats from the fly camera below.
     //    Without FRONTIER_DEVELOPMENT the panel below ignores all of this (see the ifdef at the feed block).
     Frontier::EditorInstance   SceneInstances[Frontier::kMaxEditorInstances] = {};
     Frontier::EditorSheet    PickedSheet = {};
@@ -972,8 +972,7 @@ int main(int argc, char** argv)
         if (PickedNow != SheetFor)
         {
             TintMirror = Feed.BuildSheet(PickedNow, SceneInstances, SceneRowCount, &PickedSheet,
-                                         Integrator.QueryConfiguration(), Integrator.Celestial(), Camera, Level,
-                                         AnimatedInstances);
+                                         Camera, Level, AnimatedInstances);
             SheetFor   = PickedNow;
         }
 #else
@@ -1014,17 +1013,6 @@ int main(int argc, char** argv)
             SceneInstances[PickedNow].Tint[1] = TintMirror->ColourTint[1];
             SceneInstances[PickedNow].Tint[2] = TintMirror->ColourTint[2];
         }
-        // ②e The creation write-back: the outliner + menu's ask seats a sky body past the stock roster,
-        //    and the pick lands on the new row so its sheet builds next tick.
-        const int32_t Asked = Panel.QueryPendingAdd();
-        if (Asked >= 0)
-        {
-            const uint32_t Seated = Frontier::ProjectZero::AppendAddedRow(
-                SceneInstances, &SceneRowCount, static_cast<Frontier::EditorInstanceCategory>(Asked));
-            Panel.ClearPendingAdd();
-            if (Seated != Frontier::kNoEditorInstance)
-                Panel.PickInstance(Seated);
-        }
         // ②f The view write-back: a fresh orbit revision poses the fly camera (the eye off the orbit's
         //    figures), so the views menu and the gizmo steer the rendered view.
         const Frontier::ViewportOrbit& Orbit = Panel.QueryViewportOrbit();
@@ -1049,17 +1037,11 @@ int main(int argc, char** argv)
         const float    FixedFactor  = FixedRenderHeight > 0u ? std::min(1.0f, static_cast<float>(FixedRenderHeight) / static_cast<float>(std::max(1u, Surface.QueryHeight()))) : 1.0f;
         const uint32_t RenderWidth  = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryWidth())  * RenderScale * FixedFactor + 0.5f));
         const uint32_t RenderHeight = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryHeight()) * RenderScale * FixedFactor + 0.5f));
-        // A3 — advance the sky's clock. This is the ONLY place time moves; every sun, moon and star position is
-        //    derived from it, so there is nothing else to keep in step.
-        Integrator.Celestial().Advance(Δτ);
 
         // A6b — adaptive exposure. The measurement is one or two frames stale because it is read from the cycle
         //    slot the GPU has already finished with; against time constants of half a second and up that is
         //    invisible, and it is what keeps the read from stalling the CPU on the GPU.
         {
-            // A7e ⚠️ The incident reading FIRST, then the frame's. Both feed one reconciliation, and the order
-            //     only matters in that neither may be a frame stale with respect to the other.
-            Integrator.ObserveDaylight();
             const float Measured = Surface.QueryAverageLogLuminance();
             if (Measured > -1.0e8f) Integrator.Exposure().ObserveLuminance(Measured);
             Integrator.Exposure().Advance(Δτ);
@@ -1074,9 +1056,6 @@ int main(int argc, char** argv)
                           Frontier::RayTracingCapabilitySet::TierName(Surface.QueryRayTracingTier()));
             Frontier::TelemetryRowStructure Rows = Telemetry.QueryRows(); Rows.SceneLine = Line; Telemetry.AssignRows(Rows);
         }
-        // A7 — upload the frame's sky. Built from the same clock as the dispatch and written immediately before
-        //    it, so the two can never describe different instants.
-        Surface.AssignSkyRecord(Integrator.BuildSkyRecord());
 
         const Frontier::DispatchConfiguration Dispatch = Integrator.BuildDispatch(
             Camera,

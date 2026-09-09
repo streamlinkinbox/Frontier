@@ -51,7 +51,6 @@ struct FidelityCriteria
     FidelityCategory        Category;                           // [category] active graphics quality rank
     float                   ResolutionScale;                    // [0..1] internal render scale factor
     uint32_t                ReSTIRCandidateSampleCount;         // [count] ReSTIR initial sample count M0
-    uint32_t                AtmosphereRaymarchStepCount;        // [steps] volumetric media sample count
     uint32_t                FluidVoxelGridResolution;           // [cells] 3D fluid domain resolution
     uint32_t                ParticleSimulationCapacity;         // [count] maximum active compute particles
     uint32_t                ReSTIRExtraCandidateCount;        // [count] extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is fixed)

@@ -20,7 +20,7 @@ Sources="$Root/Engine/ContentInterchange/SceneCodec.cpp $Root/Engine/ContentInte
          $Root/Engine/DeviceExchange/OrientationClassifier.cpp"
 cd "$Root"
 g++ -std=c++20 -O1 -I "$Vkh" -I "$Cg" -I "$Ufbx" -I "$Stb" -I "$Root" \
-    "$Root/Scratchpad/CornellExportProof.cpp" "$Root/Projects/Project-Zero/Source/RayTracingSolver.cpp" "$Root/Engine/DisplayPresentation/ReSTIRIntegrator.cpp" "$Root/Engine/GeometricRaster/CelestialSolver.cpp" "$Root/Engine/DisplayPresentation/ExposureIntegrator.cpp" "$Root/Engine/DisplayPresentation/DaylightSolver.cpp" \
+    "$Root/Scratchpad/CornellExportProof.cpp" "$Root/Projects/Project-Zero/Source/RayTracingSolver.cpp" "$Root/Engine/DisplayPresentation/ReSTIRIntegrator.cpp" "$Root/Engine/DisplayPresentation/ExposureIntegrator.cpp" \
     $Sources -o "$Work/export"
 "$Work/export"
 echo "[Cornell] export OK"

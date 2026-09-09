@@ -140,13 +140,12 @@ find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/
 
 set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
 set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
-                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang" "${SHADER_ROOT}/AtmosphereScattering.slang")
+                    "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang")
 set(SHADER_TABLE
     "ReSTIRViewport.slang|compute|ReSTIRViewport.spv"
     "ClusterCull.slang|compute|ClusterCull.spv"
     "HiZReduce.slang|compute|HiZReduce.spv"
     "AtrousDenoise.slang|compute|AtrousDenoise.spv"
-    "AtmosphereLut.slang|compute|AtmosphereLut.spv"
     "LuminanceReduce.slang|compute|LuminanceReduce.spv"
     "SurfaceResolve.slang|compute|SurfaceResolve.spv"
     "VisibilityRaster.vert.slang|vertex|VisibilityRaster.vert.spv"
@@ -224,9 +223,7 @@ set(FRONTIER_ENGINE_SOURCES
     Engine/Editor/OutlinerPanel.cpp
     Engine/Editor/ViewportPanel.cpp
     Engine/Editor/InspectorPanel.cpp
-    Engine/GeometricRaster/CelestialSolver.cpp
     Engine/DisplayPresentation/ExposureIntegrator.cpp
-    Engine/DisplayPresentation/DaylightSolver.cpp
     Engine/DisplayPresentation/DialogueHost.cpp
     Engine/DisplayPresentation/AppearanceInspector.cpp
     Engine/DisplayPresentation/ConfigurationInspector.cpp

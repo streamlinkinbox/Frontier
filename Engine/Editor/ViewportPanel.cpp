@@ -237,14 +237,13 @@ struct QuickCommand
     const char* Sub;
 };
 
-constexpr QuickCommand kQuick[7] = {
+constexpr QuickCommand kQuick[6] = {
     { "Play \xe2\x80\x94 run through a camera", "transport" },
     { "Simulate \xe2\x80\x94 run the world", "transport" },
     { "Pause / resume", "transport" },
     { "Step one frame", "transport" },
     { "Stop and restore", "transport" },
     { "Realtime viewport", "viewport" },
-    { "Day cycle", "viewport" },
 };
 
 // The empty line offers nine sayable things, ours named for the Cornell shelf.
@@ -481,17 +480,6 @@ void ViewportPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
         return;
     }
 
-    if (DayCycle_ && Realtime_ && !Paused_)
-    {
-        // The day cycle walks the clock the way the reference loop does: one day-hour per 600 seconds at
-        //    the Sun sheet's 1.00 rate.
-        ClockHours_ += ImGui::GetIO().DeltaTime / 600.0f;
-        if (ClockHours_ >= 24.0f)
-        {
-            ClockHours_ -= 24.0f;
-        }
-    }
-
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 0.0f));
     RecordBar();
     RecordView();
@@ -533,15 +521,10 @@ void ViewportPanel::SetRealtime(bool Realtime) noexcept
 
 void ViewportPanel::StepOnce() noexcept
 {
-    // One tick past the pause, and the daylight clock takes the reference's thirtieth-of-a-second stride.
+    // One tick past the pause.
     if (!Paused_)
     {
         Paused_ = true;
-    }
-    ClockHours_ += (1.0f / 30.0f) / 600.0f;
-    if (ClockHours_ >= 24.0f)
-    {
-        ClockHours_ -= 24.0f;
     }
 }
 
@@ -1407,17 +1390,12 @@ void ViewportPanel::PaintSuggestions(EditorInstance* Instances, uint32_t Instanc
         // The reference's help clears the line and shows the whole table.
         CommandText_[0] = '\0';
     }
-    for (uint32_t i = 0u; i < 7u; ++i)
+    for (uint32_t i = 0u; i < 6u; ++i)
     {
         if (i == 5u)
         {
             std::snprintf(QuickLabels_[i], sizeof(QuickLabels_[i]), "Realtime viewport: turn %s",
                 Realtime_ ? "off" : "on");
-        }
-        else if (i == 6u)
-        {
-            std::snprintf(QuickLabels_[i], sizeof(QuickLabels_[i]), "Day cycle: turn %s",
-                DayCycle_ ? "off" : "on");
         }
         else
         {
@@ -1474,7 +1452,7 @@ void ViewportPanel::PaintSuggestions(EditorInstance* Instances, uint32_t Instanc
             }
         }
         uint32_t Quicks = 0u;
-        for (uint32_t i = 0u; i < 7u && SugCount_ < 9u && Quicks < 5u; ++i)
+        for (uint32_t i = 0u; i < 6u && SugCount_ < 9u && Quicks < 5u; ++i)
         {
             if (InfixMatch(QuickLabels_[i], CommandText_))
             {
@@ -1553,14 +1531,6 @@ void ViewportPanel::RunSugRow(uint32_t Row, EditorInstance* Instances, uint32_t 
     else if (Cmd == 3u) { StepOnce(); }
     else if (Cmd == 4u) { SetTransport(kEdit); }
     else if (Cmd == 5u) { SetRealtime(!Realtime_); }
-    else
-    {
-        DayCycle_ = !DayCycle_;
-        if (DayCycle_ && !Realtime_)
-        {
-            SetRealtime(true);
-        }
-    }
 
     if (CommandText_[0] != '\0'
         && (PastCount_ == 0u || std::strcmp(CommandText_, CommandPast_[PastCount_ - 1u]) != 0))
@@ -1671,7 +1641,6 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     //    dash; physics and isolation hide at zero, under the reference's show rule.
     const char* Dash = "\xe2\x80\x94";
     char PerfText[16] = {}, PerfSub[16] = {}, EntsText[16] = {}, EntsSub[32] = {};
-    char DayText[16] = {}, DaySub[16] = {};
     const float Fps = ImGui::GetIO().Framerate;
     std::snprintf(PerfText, sizeof(PerfText), "%.0f", static_cast<double>(Fps));
     std::snprintf(PerfSub, sizeof(PerfSub), "%.1f ms",
@@ -1686,13 +1655,6 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     }
     std::snprintf(EntsText, sizeof(EntsText), "%u", InstanceCount);
     std::snprintf(EntsSub, sizeof(EntsSub), "%u visible", Shown);
-    const float DayT = (ClockHours_ - 6.0f) / 12.0f * 3.14159265f;
-    const float Elev = 62.0f * std::sin(DayT);
-    float DayFactor = (std::sin(Elev * 3.14159265f / 180.0f) + 0.10f) / 0.34f;
-    DayFactor = DayFactor < 0.0f ? 0.0f : (DayFactor > 1.0f ? 1.0f : DayFactor);
-    std::snprintf(DayText, sizeof(DayText), "%d%%", static_cast<int>(std::round(DayFactor * 100.0f)));
-    std::snprintf(DaySub, sizeof(DaySub), "%d\xc2\xb0", static_cast<int>(std::round(Elev)));
-
     struct Counter
     {
         const char* Label;
@@ -1706,11 +1668,10 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     std::snprintf(CamText, sizeof(CamText), "%+.0f\xc2\xb0 %+.0f\xc2\xb0 %.1fm",
         static_cast<double>(Orbit_.Yaw * 57.29578f), static_cast<double>(Orbit_.Pitch * 57.29578f),
         static_cast<double>(Orbit_.Distance));
-    const Counter Counters[5] = {
+    const Counter Counters[4] = {
         { "FPS", PerfText, PerfSub, Fps > 0.0f && Fps < 24.0f, false, false },
         { "TRIS", Dash, "", false, false, false },
         { "INSTANCES", EntsText, EntsSub, false, false, false },
-        { "DAYLIGHT", DayText, DaySub, false, false, false },
         { "CAMERA", CamText, "", false, false, true },
     };
 
@@ -1733,13 +1694,12 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
 
     // fitStats: the camera cell steps aside first, then the secondary halves.
     uint32_t Mode = 2u;
-    float TodW = 132.0f;
     for (uint32_t Try = 0u; Try < 3u; ++Try)
     {
         const bool KeepCam = (Try == 0u);
         const bool KeepSub = (Try < 2u);
         float W = 4.0f;
-        for (uint32_t i = 0u; i < 5u; ++i)
+        for (uint32_t i = 0u; i < 4u; ++i)
         {
             if (Counters[i].Opt && !KeepCam)
             {
@@ -1747,13 +1707,10 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
             }
             W += CounterWidth(Counters[i], KeepSub) + 20.0f;
         }
-        W -= 10.0f;   // the last cell keeps its left pad only; the tod gap follows
-        float Tod = FootSize.x - W - 10.0f;
-        Tod = Tod < 132.0f ? 132.0f : (Tod > 236.0f ? 236.0f : Tod);
-        if (W + 10.0f + Tod <= FootSize.x || Try == 2u)
+        W -= 10.0f;   // the last cell keeps its left pad only
+        if (W <= FootSize.x || Try == 2u)
         {
             Mode = Try;
-            TodW = Tod;
             break;
         }
     }
@@ -1765,7 +1722,7 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     const float MidY    = Cursor.y + FootH * 0.5f;
     float X = FootX0 + 4.0f;
     bool First = true;
-    for (uint32_t i = 0u; i < 5u; ++i)
+    for (uint32_t i = 0u; i < 4u; ++i)
     {
         if (Counters[i].Opt && !KeepCam)
         {
@@ -1790,67 +1747,6 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
         }
         ImGui::PopFont();
         X += CounterWidth(Counters[i], KeepSub) + 20.0f;
-    }
-
-    const float TodX1 = FootX1 - 10.0f;
-    const float TodX0 = TodX1 - TodW;
-    const float TodY  = MidY - 14.0f;
-    Draw->AddRectFilled(ImVec2(TodX0, TodY), ImVec2(TodX1, TodY + 28.0f), kInset, 14.0f);
-    Draw->AddRect(ImVec2(TodX0, TodY), ImVec2(TodX1, TodY + 28.0f), kStroke, 14.0f);
-
-    char Clock[8] = {};
-    const int Hours   = static_cast<int>(ClockHours_);
-    const int Minutes = static_cast<int>((ClockHours_ - static_cast<float>(Hours)) * 60.0f);
-    std::snprintf(Clock, sizeof(Clock), "%02d:%02d", Hours, Minutes);
-    ImGui::PushFont(Small);
-    const ImVec2 ClockGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Clock);
-    Draw->AddText(ImVec2(TodX0 + 12.0f, TodY + (28.0f - ClockGlyph.y) * 0.5f), kText, Clock);
-    ImGui::PopFont();
-    const float ClockW = ClockGlyph.x > 48.0f ? ClockGlyph.x : 48.0f;
-
-    const float SlotX0 = TodX0 + 12.0f + ClockW + 10.0f;
-    const float SlotX1 = TodX1 - 6.0f - 28.0f - 10.0f;
-    if (SlotX1 - SlotX0 > 20.0f)
-    {
-        ImGui::SetCursorScreenPos(ImVec2(SlotX0, TodY - 1.0f));
-        ImGui::BeginChild("##todslot", ImVec2(SlotX1 - SlotX0, 28.0f), false,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        Controls_->SliderPill("##tod", &ClockHours_, 0.0f, 24.0f, 2u, "h", false, true, false);
-        ImGui::EndChild();
-    }
-
-    const ImVec2 TodPlayMin(TodX1 - 6.0f - 28.0f, TodY);
-    ImGui::SetCursorScreenPos(TodPlayMin);
-    ImGui::InvisibleButton("##todplay", ImVec2(28.0f, 28.0f));
-    const bool TodHot = ImGui::IsItemHovered();
-    if (TodHot)
-    {
-        ImGui::SetTooltip("Run the day cycle");
-        if (ImGui::IsMouseClicked(0))
-        {
-            DayCycle_ = !DayCycle_;
-            if (DayCycle_ && !Realtime_)
-            {
-                SetRealtime(true);
-            }
-        }
-    }
-    const ImVec2 TodCentre(TodPlayMin.x + 14.0f, TodPlayMin.y + 14.0f);
-    if (DayCycle_)
-    {
-        Draw->AddCircleFilled(TodCentre, 14.0f, IM_COL32(255, 255, 255, 255));
-    }
-    else if (TodHot)
-    {
-        Draw->AddCircleFilled(TodCentre, 14.0f, kHover);
-    }
-    if (DayCycle_)
-    {
-        PauseGlyph(Draw, TodCentre, 12.0f, IM_COL32(0, 0, 0, 255));
-    }
-    else
-    {
-        PlayGlyph(Draw, TodCentre, 12.0f, TodHot ? kText : kDim);
     }
 }
 

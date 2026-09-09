@@ -86,7 +86,6 @@ private:
     uint32_t Transport_ = 0u;   // 0 edit, 1 play, 2 simulate — the reference's three runs
     bool     Paused_    = false;
     bool     Realtime_  = true;   // the viewport boots live, like the reference
-    bool     DayCycle_  = false;
 
     bool     MarkersOn_ = true;
     ViewportOrbit Orbit_;   // the views menu, the gizmo and the wheel pose through this
@@ -113,12 +112,10 @@ private:
     char     LastSugText_[128] = {};   // fresh text re-seats the standing row, as a repaint does
     bool     CaretToEnd_       = false;   // an insert parks the caret past its own tail
     char     Ghost_[64]        = {};
-    char     QuickLabels_[7][48] = {};
+    char     QuickLabels_[6][48] = {};
     char     CommandPast_[8][128] = {};
     uint32_t PastCount_        = 0u;
     int32_t  PastAt_           = -1;
-
-    float    ClockHours_       = 19.15f;
 
     bool     ViewMenuWasOpen_  = false;   // the views dropdown fades in like the category menu
     double   ViewMenuOpenedAt_ = 0.0;

@@ -5,15 +5,16 @@
 set -u
 Root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$Root" || exit 1
+Vkh="${VKH:-/tmp/vkh/include}"
 Fail=0
 
 echo "[Primitives] closed-surface, winding and degeneracy audit"
 Binary="$(mktemp -u /tmp/PrimitiveGeometry.XXXXXX)"
-if ! g++ -std=c++20 -O2 -Wall -Wextra -I Engine -I . -I Projects/Project-Zero/Source \
+if ! g++ -std=c++20 -O2 -Wall -Wextra -I Engine -I . -I Projects/Project-Zero/Source -I "$Vkh" \
      Scratchpad/PrimitiveGeometryTest.cpp \
      Projects/Project-Zero/Source/RayTracingSolver.cpp \
      Engine/DeviceExchange/OrientationClassifier.cpp \
-     Engine/GeometricRaster/CelestialSolver.cpp -o "$Binary" 2>/tmp/Primitives.build; then
+ -o "$Binary" 2>/tmp/Primitives.build; then
     echo "  COMPILE FAILED"; sed 's/^/    /' /tmp/Primitives.build | head -20; exit 1
 fi
 "$Binary" || Fail=1

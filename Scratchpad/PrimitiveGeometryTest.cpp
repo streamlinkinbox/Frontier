@@ -14,7 +14,6 @@
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 #include "RayTracingSolver.h"
-#include "GeometricRaster/CelestialSolver.h"
 #include <cstdio>
 #include <cmath>
 #include <map>
@@ -163,19 +162,14 @@ int main(){
                                        std::sqrt((v->x) * (v->x) + (v->y - 2.10) * (v->y - 2.10)));
         }
         printf("  the luminaire's nearest corner is %.2f m from the aperture centre\n", LampNearest);
-        Expect(LampNearest > 0.75, "the luminaire stays out of the opening, so the sky is what shows through it");
+        Expect(LampNearest > 0.75, "the luminaire stays out of the opening");
     }
 
-    // ── Does sunlight actually come through? ─────────────────────────────────────────────────────────────────
-    // 🔴 The point of the aperture, and the thing that was wrong about it. A roof opening only reads as sunlight
-    // if a shaft LANDS somewhere the camera can see. At any northern latitude the midday sun stands to the
-    // south, so the shaft runs north, AWAY from the camera — which means the hole belongs south of where the
-    // light should fall. It was at Y = 3.05, only 0.95 m from the back wall, and the light landed at Y ≈ 4.3:
-    // behind the wall, every hour of every day.
-    printf("\nsunlight through the aperture\n");
+    // ── The roof aperture ──────────────────────────────────────────────────────────────────────────────
+    // The ceiling carries a roof opening; its rim is measured from the build below, not copied from
+    //    a constant, so the test asserts on the hole that is really there.
+    printf("\nroof aperture\n");
     {
-        constexpr double TopZ = 3.0;
-        constexpr double MinX = -2.0, MaxX = 2.0, MinY = 0.0, MaxY = 4.0;
 
         // ⚠️ MEASURED from the ceiling that was built, not copied from the solver's constant. A second copy of
         //    the aperture's position would keep agreeing with itself after the real one moved, and this test
@@ -215,62 +209,11 @@ int main(){
         printf("  measured from the built ceiling: centre (%.2f, %.2f), radius %.2f m, %d rim vertices\n",
                HoleX, HoleY, HoleR, RimCount);
         Expect(RimCount > 0, "the ceiling actually has a rim — there is a hole in it to measure");
-
-        // Where the disc of light falls: the aperture translated by the sun's slope over the room's height.
-        const auto Shaft = [&](const CelestialSolver& Sky, double Hour, double& Cx, double& Cy)
-        {
-            const HorizonDirection S = Sky.QuerySunDirection(Hour * 3600.0);
-            if (S.Zenith <= 0.05) return false;
-            const double T2 = TopZ / S.Zenith;
-            Cx = HoleX - T2 * S.East;
-            Cy = HoleY - T2 * S.North;
-            return true;
-        };
-
-        for (double LatitudeDegrees : { 45.0, 0.0 })
-        {
-            CelestialSolver Sky;
-            CelestialConfiguration Cfg{};
-            Cfg.LatitudeRadians = LatitudeDegrees * 3.14159265358979 / 180.0;
-            Sky.AssignConfiguration(Cfg);
-
-            // Noon first, because that is the setting the panel opens on: if a user sets the clock to 12 and
-            //    looks up, there has to be a shaft on the floor.
-            double Cx = 0.0, Cy = 0.0;
-            const bool Daylight = Shaft(Sky, 12.0, Cx, Cy);
-            printf("  latitude %2.0f: the noon shaft lands at (%.2f, %.2f)\n", LatitudeDegrees, Cx, Cy);
-            Expect(Daylight, "the sun is up at 12:00 — the clock's noon is the sun's noon");
-            Expect(Cx > MinX + HoleR && Cx < MaxX - HoleR, "and the noon shaft is between the side walls");
-            Expect(Cy > MinY && Cy < MaxY,                 "and lands on the floor, not beyond the back wall");
-
-            // And it stays there for a usable part of the day rather than for one instant.
-            int Lit = 0;
-            for (int Quarter = 0; Quarter < 96; ++Quarter)
-            {
-                const double Hour = Quarter / 4.0;
-                if (!Shaft(Sky, Hour, Cx, Cy)) continue;
-                if (Cx > MinX && Cx < MaxX && Cy > MinY && Cy < MaxY) ++Lit;
-            }
-            printf("  latitude %2.0f: on the floor for %.1f hours of the day\n", LatitudeDegrees, Lit / 4.0);
-            Expect(Lit >= 12, "the shaft is on the floor for at least three hours, not a passing instant");
-        }
-
-        // The old placement, so the regression is recognisable. Same sun, same room, hole at 3.05.
-        CelestialSolver Sky;
-        CelestialConfiguration Cfg{};
-        Cfg.LatitudeRadians = 45.0 * 3.14159265358979 / 180.0;
-        Sky.AssignConfiguration(Cfg);
-        const HorizonDirection S = Sky.QuerySunDirection(12.0 * 3600.0);
-        const double OldY = 3.05 - (TopZ / S.Zenith) * S.North;
-        printf("  from the old 3.05 the noon shaft would land at Y = %.2f, past the %.1f m back wall\n",
-               OldY, MaxY);
-        Expect(OldY > MaxY, "the old placement really did throw the light behind the wall — this is the fix");
     }
 
     // ── Outdoor scene ────────────────────────────────────────────────────────────────────────────────────────
-    // A1-A7 built a sun, sky, sunset, moon, stars, skylight and adaptive exposure whose only window was a 13°
-    // oculus at 12.9° elevation. This scene exists to make that work visible, so what it must prove is exactly
-    // that: most of the frame is sky, and the sun is the only light.
+    // The open-air scene: an outdoor composition whose horizon must stay open, with the ground in
+    //    shot. What it proves is framing, not light: most of the default view misses geometry.
     printf("\noutdoor scene\n");
     {
         RayTracingSolver Open;
@@ -303,16 +246,16 @@ int main(){
                 else if (Hit.MaterialIndex == 0u) ++GroundHits;
             }
 
-        const double SkyFraction = 100.0 * Miss / Total;
-        printf("  %zu triangles, %d emissive materials, %.1f%% of the frame is sky, %.1f%% is ground\n",
-               Open.QueryTriangles().size(), Emissive, SkyFraction, 100.0 * GroundHits / Total);
+        const double MissFraction = 100.0 * Miss / Total;
+        printf("  %zu triangles, %d emissive materials, %.1f%% of the frame misses, %.1f%% is ground\n",
+               Open.QueryTriangles().size(), Emissive, MissFraction, 100.0 * GroundHits / Total);
 
         Expect(Emissive == 0,
-               "no emissive triangle — the sun is the only light, which is a live test of the A4 path");
-        Expect(SkyFraction > 40.0,
-               "most of the frame is sky, so a sunset can actually be judged");
+               "no emissive triangle in the outdoor scene");
+        Expect(MissFraction > 40.0,
+               "most of the frame misses geometry, so the horizon stays open");
         Expect(GroundHits > 0,
-               "and the ground is still in shot, so shadows have somewhere to land");
+               "and the ground is still in shot");
     }
 
     printf("\nassertions\n");

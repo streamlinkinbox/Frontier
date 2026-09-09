@@ -42,7 +42,7 @@ int main()
     const uint32_t RowCount = Feed.FillRoster(Rows, Level);
 
     std::printf("[Feed] roster over %zu placements\n", Level.QueryPlacements().size());
-    CheckTrue("five folders, eleven objects, fly camera, three bodies: 20 rows", RowCount == 20u);
+    CheckTrue("four folders, eleven objects, fly camera: 16 rows", RowCount == 16u);
     const auto RowIs = [&](uint32_t R, const char* Label, EditorInstanceCategory Cat, uint32_t Depth)
     {
         return R < RowCount && std::strcmp(Rows[R].Label, Label) == 0 && Rows[R].Category == Cat
@@ -67,11 +67,6 @@ int main()
               && RowIs(13u, "Ceiling Luminaire", EditorInstanceCategory::Light, 1u));
     CheckTrue("Cameras folds the fly camera", RowIs(14u, "Cameras", EditorInstanceCategory::Folder, 0u)
               && Rows[14].KidCount == 1u && RowIs(15u, "Main Camera", EditorInstanceCategory::Camera, 1u));
-    CheckTrue("Environment folds Sky, Sun and Moon",
-              RowIs(16u, "Environment", EditorInstanceCategory::Folder, 0u) && Rows[16].KidCount == 3u
-                  && RowIs(17u, "Sky", EditorInstanceCategory::Sky, 1u)
-                  && RowIs(18u, "Sun", EditorInstanceCategory::Sun, 1u)
-                  && RowIs(19u, "Moon", EditorInstanceCategory::Moon, 1u));
     bool AllVisible = true;
     for (uint32_t R = 0u; R < RowCount; ++R) AllVisible = AllVisible && Rows[R].Visible;
     CheckTrue("every row is visible", AllVisible);
@@ -80,23 +75,12 @@ int main()
                   && Near(Rows[1].Tint[2], 0.75f, 0.01f) && Near(Rows[4].Tint[0], 0.85f, 0.01f)
                   && Near(Rows[4].Tint[1], 0.12f, 0.01f) && Near(Rows[4].Tint[2], 0.12f, 0.01f));
 
-    ReSTIRIntegratorConfiguration Config{};
-    Config.SkyTurbidity   = 2.5f;
-    Config.TurbiditySwing = 0.5f;
-    Config.SkyQuality     = SkyQualityCategory::High;
-    Config.CameraAltitude = 12.0f;
-    Config.SkyLighting    = false;
-    Config.NightSky       = true;
-    Config.StarBrightness = 1.5f;
-    Config.SunIlluminance = 100000.0f;
-    Config.MoonAngularScale = 2.0f;
-    CelestialSolver Sky;
     FlyThroughSolver Camera;
     std::vector<InstanceRecord> Live = Level.QueryInstances();
 
     std::printf("[Feed] sheets\n");
     EditorSheet Sheet = {};
-    EditorProperty* Mirror = Feed.BuildSheet(0u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
+    EditorProperty* Mirror = Feed.BuildSheet(0u, Rows, RowCount, &Sheet, Camera, Level, Live);
     CheckTrue("the Room folder counts its contents",
               Sheet.GroupCount == 1u && std::strcmp(Sheet.Groups[0].Title, "Group") == 0
                   && Sheet.Groups[0].PropertyCount == 2u
@@ -104,7 +88,7 @@ int main()
     CheckTrue("the folder opens the tint mirror", Mirror != nullptr && Mirror->Swatches
               && Near(Mirror->ColourTint[0], Rows[0].Tint[0], 1e-6f));
 
-    (void)Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
+    (void)Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Camera, Level, Live);
     const float* At = Sheet.Groups[0].Properties[0].Axes;
     CheckTrue("the Tall Box sits on its baked centroid",
               Sheet.GroupCount == 2u && std::strcmp(Sheet.Groups[0].Title, "Transform") == 0
@@ -118,53 +102,34 @@ int main()
                   && Near(Sheet.Groups[1].Properties[1].Figure, TallMat.EmissiveR, 1e-6f)
                   && Near(Sheet.Groups[1].Properties[2].Figure, TallMat.Roughness, 1e-6f));
     CheckTrue("geometry opens no mirror",
-              Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live) == nullptr);
+              Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Camera, Level, Live) == nullptr);
 
     Live[5u].World[12] += 1.0f;
-    (void)Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
+    (void)Feed.BuildSheet(7u, Rows, RowCount, &Sheet, Camera, Level, Live);
     CheckTrue("a driven body shows where it IS",
               Near(Sheet.Groups[0].Properties[0].Axes[0], 0.10f, 0.02f));
     Live[5u].World[12] -= 1.0f;
 
-    (void)Feed.BuildSheet(13u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
+    (void)Feed.BuildSheet(13u, Rows, RowCount, &Sheet, Camera, Level, Live);
     const MaterialRecord& LampMat = TallRecords[Level.QueryInstances()[10u].MaterialIndex];
     CheckTrue("the luminaire keeps its intensity",
               Sheet.GroupCount == 2u && Near(Sheet.Groups[0].Properties[0].Figure, LampMat.EmissiveR, 1e-4f));
     CheckTrue("the luminaire aims at nadir",
               std::strcmp(Sheet.Groups[1].Properties[0].Text, "-Z (nadir)") == 0);
 
-    (void)Feed.BuildSheet(15u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
+    (void)Feed.BuildSheet(15u, Rows, RowCount, &Sheet, Camera, Level, Live);
     const Vector3 Eye = Camera.Convert<Vector3>();
     CheckTrue("the camera card follows the fly camera",
               Sheet.GroupCount == 3u && Near(Sheet.Groups[0].Properties[0].Axes[0], Eye.x, 1e-6f)
                   && Near(Sheet.Groups[1].Properties[0].Figure,
                           Camera.QueryFieldOfViewRadians() * 57.29578f, 1e-4f));
 
-    (void)Feed.BuildSheet(17u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
-    CheckTrue("the Sky card mirrors the atmosphere config",
-              Sheet.GroupCount == 2u && Near(Sheet.Groups[0].Properties[0].Figure, 2.5f, 1e-6f)
-                  && Near(Sheet.Groups[0].Properties[1].Figure, 0.5f, 1e-6f)
-                  && Sheet.Groups[0].Properties[2].Picked == static_cast<uint32_t>(SkyQualityCategory::High)
-                  && Near(Sheet.Groups[0].Properties[3].Figure, 12.0f, 1e-6f)
-                  && !Sheet.Groups[0].Properties[4].On && Sheet.Groups[1].Properties[0].On
-                  && Near(Sheet.Groups[1].Properties[1].Figure, 1.5f, 1e-6f));
 
-    (void)Feed.BuildSheet(18u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
-    const auto SunDir = Sky.QuerySunDirection();
-    CheckTrue("the Sun card mirrors the sky clock",
-              Sheet.GroupCount == 2u
-                  && Near(Sheet.Groups[0].Properties[0].Figure, SunDir.Elevation * 57.29578f, 1e-3f)
-                  && Near(Sheet.Groups[0].Properties[1].Figure, SunDir.Azimuth * 57.29578f, 1e-3f)
-                  && Near(Sheet.Groups[0].Properties[3].Figure, Sky.QueryRate(), 1e-9f)
-                  && Near(Sheet.Groups[1].Properties[0].Figure, 100000.0f, 1e-3f));
 
-    (void)Feed.BuildSheet(19u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live);
-    CheckTrue("the Moon card mirrors phase and scale",
-              Sheet.GroupCount == 2u && Near(Sheet.Groups[1].Properties[0].Figure, 2.0f, 1e-6f));
 
     Sheet.GroupCount = 7u;
     CheckTrue("a wild pick builds nothing",
-              Feed.BuildSheet(99u, Rows, RowCount, &Sheet, Config, Sky, Camera, Level, Live) == nullptr
+              Feed.BuildSheet(99u, Rows, RowCount, &Sheet, Camera, Level, Live) == nullptr
                   && Sheet.GroupCount == 0u);
 
     std::printf("[Feed] animated span\n");
@@ -174,7 +139,7 @@ int main()
     CheckTrue("null out-params refuse", !Feed.QueryAnimatedSpan(nullptr, &Count, Level));
 
     SceneStructure Empty;
-    CheckTrue("an empty level still folds its folders", Feed.FillRoster(Rows, Empty) == 9u);
+    CheckTrue("an empty level still folds its folders", Feed.FillRoster(Rows, Empty) == 5u);
     CheckTrue("an empty level animates nothing", !Feed.QueryAnimatedSpan(&First, &Count, Empty));
 
     // The drop showroom: twelve dynamic bodies between the static scenery and the trailing luminaires. The

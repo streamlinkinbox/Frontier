@@ -62,12 +62,9 @@ public:
     //    picked, or when the build carries no editor at all.
     [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;
 
-    // Drives the pick from the game (the creation write-back lands the pick on its new row).
+    // Drives the pick from the game.
     void PickInstance(uint32_t Index) noexcept;
 
-    // The outliner + menu's ask: the category to seat, or -1 when idle. The game consumes it and clears it.
-    [[nodiscard]] int32_t QueryPendingAdd() const noexcept;
-    void ClearPendingAdd() noexcept;
 
     // The viewport's orbit in and out: the game seats home from the fly camera, and reads the pose back to
     //    steer the camera from the views menu and the gizmo.

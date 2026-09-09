@@ -367,7 +367,6 @@ $ShaderTable = @(
     @{ Source = 'ClusterCull.slang';           Stage = 'compute';  Output = 'ClusterCull.spv' }
     @{ Source = 'HiZReduce.slang';             Stage = 'compute';  Output = 'HiZReduce.spv' }
     @{ Source = 'AtrousDenoise.slang';         Stage = 'compute';  Output = 'AtrousDenoise.spv' }
-    @{ Source = 'AtmosphereLut.slang';         Stage = 'compute';  Output = 'AtmosphereLut.spv' }
     @{ Source = 'LuminanceReduce.slang';       Stage = 'compute';  Output = 'LuminanceReduce.spv' }
     @{ Source = 'SurfaceResolve.slang';        Stage = 'compute';  Output = 'SurfaceResolve.spv' }
     @{ Source = 'VisibilityRaster.vert.slang'; Stage = 'vertex';   Output = 'VisibilityRaster.vert.spv' }
@@ -375,7 +374,7 @@ $ShaderTable = @(
     @{ Source = 'InterfaceRaster.vert.slang';  Stage = 'vertex';   Output = 'InterfaceRaster.vert.spv' }
     @{ Source = 'InterfaceRaster.frag.slang';  Stage = 'fragment'; Output = 'InterfaceRaster.frag.spv' }
 )
-$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang', 'InterfaceRecords.slang', 'InterfaceSignedDistance.slang', 'AtmosphereScattering.slang')
+$ShaderIncludeNames = @('SceneRecords.slang', 'RayGeneration.slang', 'TraversalCWBVH.slang', 'InterfaceRecords.slang', 'InterfaceSignedDistance.slang')
 
 function Invoke-ShaderLowering([string] $VulkanRoot)
 {
@@ -666,9 +665,7 @@ $EngineRelative = @(
     'Engine\Editor\OutlinerPanel.cpp'
     'Engine\Editor\ViewportPanel.cpp'
     'Engine\Editor\InspectorPanel.cpp'
-    'Engine\GeometricRaster\CelestialSolver.cpp'
     'Engine\DisplayPresentation\ExposureIntegrator.cpp'
-    'Engine\DisplayPresentation\DaylightSolver.cpp'
     'Engine\DisplayPresentation\DialogueHost.cpp'
     'Engine\DisplayPresentation\AppearanceInspector.cpp'
     'Engine\DisplayPresentation\ConfigurationInspector.cpp'

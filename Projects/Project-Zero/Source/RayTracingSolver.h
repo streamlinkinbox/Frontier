@@ -22,9 +22,8 @@ public:
 
     void                    ConstructCornellBoxScene() noexcept;
 
-    // An OPEN scene, for judging the sky. The Cornell box shows the atmosphere through a 13° oculus at 12.9°
-    //    elevation, which is enough to prove the light arrives but far too little to judge a sunset, a moon or a
-    //    star field. This is ground and horizon with nothing overhead.
+    // An OPEN scene: ground and horizon with nothing overhead. Where the Cornell box is a closed room,
+    //    this is the framing complement — most of the default view misses geometry.
     void                    ConstructOutdoorScene() noexcept;
     void                    AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept;
     void                    AppendQuad(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3, uint32_t MaterialIdx) noexcept;

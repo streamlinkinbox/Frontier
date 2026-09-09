@@ -1,5 +1,5 @@
-// The inspector's four orbit/disc knobs must sit on their fractions: Elevation 14 on
-//    -90..90, Azimuth 118 on 0..360, Rate 1 on 0..10, Illuminance 120000 on 0..200000.
+// The inspector Field-of-view knob must sit on its fraction: 55 on 20..120.
+// The sampler walks the slider column of the Tabs sheet, gathers the bright knobs by
 // The sampler walks the slider column of the Tabs sheet, gathers the bright knobs by
 //    size (24-pixel discs; the smaller switch knobs fall out), and checks each knob's
 //    horizontal middle against the fraction math, top to bottom.
@@ -105,14 +105,14 @@ int main(int ArgCount, char** Args) {
             (Found.Y0 + Found.Y1) / 2, Found.X1 - Found.X0 + 1, Found.Y1 - Found.Y0 + 1);
     }
     // The settled travel runs 1205..1232 (track 1193..1244 with the theme's 8-pixel scrollbar seated:
-    //    the Sun sheet overflows the shortened column; 12-pixel knob radius); the middles the same
-    //    fractions ask for are 1220, 1213, 1207, and 1220, top to bottom.
-    const int Want[4] = {1220, 1213, 1207, 1220};
-    if (Blobs.size() != 4) {
-        std::printf("want 4 knobs\n");
+    //    the Camera sheet overflows the shortened column; 12-pixel knob radius); the middle the 0.35
+    //    fraction asks for is 1214.
+    const int Want[1] = {1214};
+    if (Blobs.size() != 1) {
+        std::printf("want 1 knob\n");
         return 1;
     }
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 1; ++i) {
         const int Middle = (Blobs[(size_t)i].X0 + Blobs[(size_t)i].X1) / 2;
         if (std::abs(Middle - Want[i]) > 4) {
             std::printf("knob %d sits at %d, want %d\n", i, Middle, Want[i]);

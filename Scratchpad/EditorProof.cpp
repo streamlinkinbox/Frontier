@@ -140,7 +140,7 @@ void RasterizeList(const ImDrawList* List, const unsigned char* GlyphSheet, int 
 //------------------------------------------------------------------------------------------------------------------------
 
 // The engine's Cornell feed at a representative instant: the roster repeats GameExecution's roster exactly,
-//    and the sheet figures repeat the solvers' startup figures. Sun (index 18) is the picked instance.
+//    and the sheet figures repeat the solvers' startup figures. Main Camera (index 15) is the picked instance.
 
 struct MirrorEntry
 {
@@ -173,10 +173,6 @@ constexpr MirrorEntry kMirrorEntries[] =
     { "Ceiling Luminaire", Frontier::EditorInstanceCategory::Light,    1u, 0u, { 0.961f, 0.827f, 0.294f },  3, {  0.00f,  0.75f, 2.995f },   0.0f, false },
     { "Cameras",           Frontier::EditorInstanceCategory::Folder,   0u, 1u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
     { "Main Camera",       Frontier::EditorInstanceCategory::Camera,   1u, 0u, { 0.412f, 0.765f, 1.000f }, -1, {  0.00f, -3.30f, 1.550f },   0.0f, false },
-    { "Environment",       Frontier::EditorInstanceCategory::Folder,   0u, 3u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
-    { "Sky",               Frontier::EditorInstanceCategory::Sky,      1u, 0u, { 0.561f, 0.827f, 1.000f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
-    { "Sun",               Frontier::EditorInstanceCategory::Sun,      1u, 0u, { 1.000f, 0.694f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
-    { "Moon",              Frontier::EditorInstanceCategory::Moon,     1u, 0u, { 0.722f, 0.769f, 0.839f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
 };
 
 constexpr uint32_t kMirrorEntryCount = sizeof(kMirrorEntries) / sizeof(kMirrorEntries[0]);
@@ -341,82 +337,6 @@ void BuildMirrorSheet(uint32_t Index, Frontier::EditorInstance* Instances, Front
         std::snprintf(Feel.Text, sizeof(Feel.Text), "0.00125 rad/px");
         break;
     }
-    case Frontier::EditorInstanceCategory::Sky:
-    {
-        Frontier::EditorPropertyGroup& Air = OpenMirrorGroup(Sheet, "Atmosphere");
-        Frontier::EditorProperty& Haze = OpenMirrorProp(Air, "Turbidity", EditorPropertyCategory::Slider);
-        Haze.Minimum = 1.0f; Haze.Maximum = 4.0f; Haze.Figure = 1.0f;
-        Haze.Decimals = 2u;
-        Frontier::EditorProperty& Swing = OpenMirrorProp(Air, "Swing", EditorPropertyCategory::Slider);
-        Swing.Minimum = 0.0f; Swing.Maximum = 1.0f; Swing.Figure = 0.35f;
-        Swing.Decimals = 2u;
-        Frontier::EditorProperty& Grade = OpenMirrorProp(Air, "Quality", EditorPropertyCategory::Select);
-        std::snprintf(Grade.Options[0], sizeof(Grade.Options[0]), "Off");
-        std::snprintf(Grade.Options[1], sizeof(Grade.Options[1]), "Low");
-        std::snprintf(Grade.Options[2], sizeof(Grade.Options[2]), "Medium");
-        std::snprintf(Grade.Options[3], sizeof(Grade.Options[3]), "High");
-        std::snprintf(Grade.Options[4], sizeof(Grade.Options[4]), "Ultra");
-        Grade.OptionCount = 5u;
-        Grade.Picked = 2u;
-        Frontier::EditorProperty& High = OpenMirrorProp(Air, "Altitude", EditorPropertyCategory::Slider);
-        High.Minimum = 0.0f; High.Maximum = 100.0f; High.Figure = 2.0f;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "m");
-        Frontier::EditorProperty& Bounce = OpenMirrorProp(Air, "Sky lights", EditorPropertyCategory::Switch);
-        Bounce.On = true;
-        Frontier::EditorPropertyGroup& Dark = OpenMirrorGroup(Sheet, "Night");
-        Frontier::EditorProperty& Eve = OpenMirrorProp(Dark, "Night sky", EditorPropertyCategory::Switch);
-        Eve.On = true;
-        Frontier::EditorProperty& Stars = OpenMirrorProp(Dark, "Starlight", EditorPropertyCategory::Slider);
-        Stars.Minimum = 0.0f; Stars.Maximum = 2.0f; Stars.Figure = 0.4f;
-        Stars.Decimals = 2u;
-        std::snprintf(Stars.Unit, sizeof(Stars.Unit), "nt");
-        break;
-    }
-    case Frontier::EditorInstanceCategory::Sun:
-    {
-        Frontier::EditorPropertyGroup& Orbited = OpenMirrorGroup(Sheet, "Orbit");
-        Frontier::EditorProperty& High = OpenMirrorProp(Orbited, "Elevation", EditorPropertyCategory::Slider);
-        High.Minimum = -90.0f; High.Maximum = 90.0f; High.Figure = 14.0f;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "\xc2\xb0");
-        Frontier::EditorProperty& Around = OpenMirrorProp(Orbited, "Azimuth", EditorPropertyCategory::Slider);
-        Around.Minimum = 0.0f; Around.Maximum = 360.0f; Around.Figure = 118.0f;
-        Around.Decimals = 1u;
-        std::snprintf(Around.Unit, sizeof(Around.Unit), "\xc2\xb0");
-        Frontier::EditorProperty& Aged = OpenMirrorProp(Orbited, "Elapsed", EditorPropertyCategory::Readout);
-        std::snprintf(Aged.Text, sizeof(Aged.Text), "0 s");
-        Frontier::EditorProperty& Paced = OpenMirrorProp(Orbited, "Rate", EditorPropertyCategory::Slider);
-        Paced.Minimum = 0.0f; Paced.Maximum = 10.0f; Paced.Figure = 1.0f;
-        Paced.Decimals = 2u;
-        std::snprintf(Paced.Unit, sizeof(Paced.Unit), "\xc3\x97");
-        Frontier::EditorPropertyGroup& Disc = OpenMirrorGroup(Sheet, "Disc");
-        Frontier::EditorProperty& Bright = OpenMirrorProp(Disc, "Illuminance", EditorPropertyCategory::Slider);
-        Bright.Minimum = 0.0f; Bright.Maximum = 200000.0f; Bright.Figure = 120000.0f;
-        Bright.Decimals = 0u;
-        std::snprintf(Bright.Unit, sizeof(Bright.Unit), "lx");
-        break;
-    }
-    case Frontier::EditorInstanceCategory::Moon:
-    {
-        Frontier::EditorPropertyGroup& Orbited = OpenMirrorGroup(Sheet, "Orbit");
-        Frontier::EditorProperty& High = OpenMirrorProp(Orbited, "Elevation", EditorPropertyCategory::Slider);
-        High.Minimum = -90.0f; High.Maximum = 90.0f; High.Figure = -12.0f;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "\xc2\xb0");
-        Frontier::EditorProperty& Around = OpenMirrorProp(Orbited, "Azimuth", EditorPropertyCategory::Slider);
-        Around.Minimum = 0.0f; Around.Maximum = 360.0f; Around.Figure = 236.0f;
-        Around.Decimals = 1u;
-        std::snprintf(Around.Unit, sizeof(Around.Unit), "\xc2\xb0");
-        Frontier::EditorProperty& Waned = OpenMirrorProp(Orbited, "Phase", EditorPropertyCategory::Readout);
-        std::snprintf(Waned.Text, sizeof(Waned.Text), "0.62");
-        Frontier::EditorPropertyGroup& Disc = OpenMirrorGroup(Sheet, "Disc");
-        Frontier::EditorProperty& Wide = OpenMirrorProp(Disc, "Angular scale", EditorPropertyCategory::Slider);
-        Wide.Minimum = 0.25f; Wide.Maximum = 8.0f; Wide.Figure = 1.0f;
-        Wide.Decimals = 2u;
-        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc3\x97");
-        break;
-    }
     default:
         break;
     }
@@ -456,8 +376,8 @@ int main()
     Frontier::EditorInstance CornellInstances[kMirrorEntryCount] = {};
     Frontier::EditorSheet  PickedSheet = {};
     FillMirrorInstances(CornellInstances);
-    Editor.PickInstance(18u);   // Sun, as in the reference capture
-    BuildMirrorSheet(18u, CornellInstances, &PickedSheet);
+    Editor.PickInstance(15u);   // Main Camera, the last row of the mirror
+    BuildMirrorSheet(15u, CornellInstances, &PickedSheet);
 
     std::vector<unsigned char> Pixels(static_cast<size_t>(kWidth) * static_cast<size_t>(kHeight) * 3u);
 
@@ -725,8 +645,8 @@ int main()
         }
     }
 
-    // Gate 6 — the narrowing works: picking Sun filters the outline and raises its chip.
-    Click(220.0f, 384.0f);
+    // Gate 6 — the narrowing works: picking Camera filters the outline and raises its chip.
+    Click(220.0f, 313.0f);
     Rest(3);
     Click(500.0f, 436.0f);   // outside the menu: dismiss it, leaving the pick behind
     Rest(5);
@@ -763,7 +683,7 @@ int main()
         std::fprintf(stderr, "[EditorProof] narrowed: %d chip cells, %d seated-row cells\n", Chips, Rows);
         if (Chips < 300)
         {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the Sun pick raised no chip\n");
+            std::fprintf(stderr, "[EditorProof] [FAIL] the Camera pick raised no chip\n");
             Failed = true;
         }
         if (Rows < 100)
@@ -773,57 +693,15 @@ int main()
         }
     }
 
-    // The chip dismisses too: one click on it clears the narrowing for the Quality pass below.
-    Click(39.0f, 182.0f);
+    // The chip dismisses too: one click on it clears the narrowing for the passes below.
+    Click(64.0f, 182.0f);
     Rest(5);
 
-    // Gate 7 — the reference dropdown opens: the Quality pill must raise its black menu over the cards.
-    Editor.PickInstance(17u);   // Sky, the sheet with the reference dropdown
-    BuildMirrorSheet(17u, CornellInstances, &PickedSheet);
-    Rest(5);
-    Click(1171.0f, 270.0f);
-    Rest(14);
-    Rasterise();
-    {
-        const char* GradeSheet = "Diagnostics/EditorProof_Quality.png";
-        if (stbi_write_png(GradeSheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the Quality sheet would not write\n");
-            return 1;
-        }
-        int Black = 0;
-        for (int Y = 306; Y < 456; ++Y)
-            for (int X = 1100; X < 1240; ++X)
-            {
-                const unsigned char* P = At(X, Y);
-                if (P[0] == 0u && P[1] == 0u && P[2] == 0u)
-                    ++Black;
-            }
-        std::fprintf(stderr, "[EditorProof] Quality menu: %d black cells\n", Black);
-        if (Black < 1500)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the Quality menu never opened\n");
-            Failed = true;
-        }
-    }
 
-    // Gate 8 — the reference dropdown selects: picking High lands in the sheet's own figure.
-    Click(1171.0f, 404.0f);
-    Rest(3);
-    {
-        const uint32_t Grade = PickedSheet.Groups[0].Properties[2].Picked;
-        std::fprintf(stderr, "[EditorProof] Quality picked: %u\n", Grade);
-        if (Grade != 3u)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the Quality menu never selected High\n");
-            Failed = true;
-        }
-    }
-
-    // Gate 9 — the palette opens: focusing the console and typing raises the suggestion stack, its
-    //    standing row indigo. Back to the Sun first, so the sheet matches the Tabs pass.
-    Editor.PickInstance(18u);
-    BuildMirrorSheet(18u, CornellInstances, &PickedSheet);
+    // Gate 7 — the palette opens: focusing the console and typing raises the suggestion stack, its
+    //    standing row indigo. Back to Main Camera first, so the sheet matches the Tabs pass.
+    Editor.PickInstance(15u);
+    BuildMirrorSheet(15u, CornellInstances, &PickedSheet);
     Rest(5);
     Click(500.0f, 648.0f);
     Rest(3);
@@ -862,55 +740,8 @@ int main()
         }
     }
 
-    // Gate 10 — the creation menu opens: a click on the outliner's plus must raise the black menu.
-    Click(265.0f, 101.0f);
-    Rest(14);
-    Rasterise();
-    {
-        const char* AddSheet = "Diagnostics/EditorProof_Add.png";
-        if (stbi_write_png(AddSheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the creation sheet would not write\n");
-            return 1;
-        }
-        int Black = 0;
-        for (int Y = 130; Y < 215; ++Y)
-            for (int X = 100; X < 260; ++X)
-            {
-                const unsigned char* P = At(X, Y);
-                if (P[0] == 0u && P[1] == 0u && P[2] == 0u)
-                    ++Black;
-            }
-        std::fprintf(stderr, "[EditorProof] creation menu: %d black cells\n", Black);
-        if (Black < 1500)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the creation menu never opened\n");
-            Failed = true;
-        }
-    }
 
-    // Gate 11 — the creation ask lands: picking Sun seats the pending ask, and clearing idles it.
-    Click(176.0f, 173.0f);
-    Rest(3);
-    {
-        const int32_t Asked = Editor.QueryPendingAdd();
-        std::fprintf(stderr, "[EditorProof] pending add: %d\n", Asked);
-        if (Asked != static_cast<int32_t>(Frontier::EditorInstanceCategory::Sun))
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the Sun row never asked\n");
-            Failed = true;
-        }
-        Editor.ClearPendingAdd();
-        if (Editor.QueryPendingAdd() != -1)
-        {
-            std::fprintf(stderr, "[EditorProof] [FAIL] the ask never cleared\n");
-            Failed = true;
-        }
-    }
-    Editor.PickInstance(18u);   // back to Sun, whatever the menu clicks above landed on
-    Rest(3);
-
-    // Gate 12 — the views menu opens and snaps: the pill raises eight rows, and each compass row poses
+    // Gate 8 — the views menu opens and snaps: the pill raises eight rows, and each compass row poses
     //    the orbit (checked here against the solver's own euler).
     Click(532.0f, 108.0f);
     Rest(14);
@@ -972,7 +803,7 @@ int main()
         Rest(3);
     }
 
-    // Gate 13 — the gizmo answers: a pad tap snaps its view, a drag orbits, and the wheel dollies.
+    // Gate 9 — the gizmo answers: a pad tap snaps its view, a drag orbits, and the wheel dollies.
     Click(937.0f, 588.0f);
     Rest(3);
     {

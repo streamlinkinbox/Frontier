@@ -48,16 +48,6 @@ void EditorHost::PickInstance(uint32_t Index) noexcept
     Outliner_.PickInstance(Index);
 }
 
-int32_t EditorHost::QueryPendingAdd() const noexcept
-{
-    return Outliner_.QueryPendingAdd();
-}
-
-void EditorHost::ClearPendingAdd() noexcept
-{
-    Outliner_.ClearPendingAdd();
-}
-
 void EditorHost::SeatViewportOrbit(const ViewportOrbit& Seated) noexcept
 {
     Viewport_.SeatViewportOrbit(Seated);

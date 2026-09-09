@@ -130,22 +130,6 @@ void RenderScheduler::PickInstance(uint32_t Index) noexcept
 #endif
 }
 
-int32_t RenderScheduler::QueryPendingAdd() const noexcept
-{
-#ifdef FRONTIER_DEVELOPMENT
-    return Editor_.QueryPendingAdd();
-#else
-    return -1;
-#endif
-}
-
-void RenderScheduler::ClearPendingAdd() noexcept
-{
-#ifdef FRONTIER_DEVELOPMENT
-    Editor_.ClearPendingAdd();
-#endif
-}
-
 void RenderScheduler::SeatViewportOrbit(const ViewportOrbit& Seated) noexcept
 {
 #ifdef FRONTIER_DEVELOPMENT

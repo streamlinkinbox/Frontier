@@ -28,25 +28,6 @@ ReSTIRIntegrator::ReSTIRIntegrator(ReSTIRIntegratorConfiguration InitialConfigur
 //                                                OBSERVE CAMERA
 //============================================================================================================================================
 
-void ReSTIRIntegrator::ObserveDaylight() noexcept
-{
-    // 🔴 The sun's own elevation and the air it shines through — nothing about where the camera is. That is the
-    //    property being bought: an exposure derived from these cannot move when the camera does.
-    const HorizonDirection Sun = Sky.QuerySunDirection();
-    const float Turbidity = QueryDiurnalTurbidity(ActiveConfiguration.SkyTurbidity,
-                                                  ActiveConfiguration.TurbiditySwing,
-                                                  Sky.QuerySolarDayFraction(Sky.QueryTime()));
-
-    // Sky off means there is no incident reading to give, and the exposure falls back to metering the frame —
-    //    which is right, because then the only light in the world is whatever the scene itself carries.
-    const bool SkyOn = ActiveConfiguration.SunIlluminance > 0.0f
-                    && ActiveConfiguration.SkyQuality != SkyQualityCategory::Off;
-    Adaptation.ObserveIlluminance(SkyOn
-        ? Daylight.QueryAnchorLuminance(ActiveConfiguration.SunIlluminance,
-                                        static_cast<float>(Sun.Elevation), Turbidity)
-        : 0.0f);
-}
-
 void ReSTIRIntegrator::ObserveCamera(const ProjectZero::FlyThroughSolver& Camera,
                                      uint32_t ViewportWidth, uint32_t ViewportHeight) noexcept
 {
@@ -63,22 +44,8 @@ void ReSTIRIntegrator::ObserveCamera(const ProjectZero::FlyThroughSolver& Camera
     const bool Turned  = ForwardDelta.LengthSquared() > DirectionTolerance * DirectionTolerance;
     const bool Resized = ViewportWidth != HistoryWidth || ViewportHeight != HistoryHeight;
 
-    // A3 ⚠️ A MOVING SUN INVALIDATES THE HISTORY TOO. The camera can be perfectly still while the sky changes
-    //    underneath it, and accumulating across that blends two different skies — a sunset would smear into a
-    //    long grey dissolve and read as a denoiser fault rather than a stale history. The threshold is angular
-    //    so a paused clock costs nothing: 0.0001 rad is roughly a twentieth of the sun's own diameter, well
-    //    below what a frame can show, so a slow day/night cycle still accumulates between steps.
-    const HorizonDirection Sun = Sky.QuerySunDirection();
-    const float SunX = static_cast<float>(Sun.East), SunY = static_cast<float>(Sun.North), SunZ = static_cast<float>(Sun.Zenith);
-    const float SunDelta = (SunX - HistorySunX) * (SunX - HistorySunX)
-                         + (SunY - HistorySunY) * (SunY - HistorySunY)
-                         + (SunZ - HistorySunZ) * (SunZ - HistorySunZ);
-    constexpr float SunTolerance = 1e-4f;   // [rad] chord ≈ angle for small angles
-    const bool SunMoved = SunDelta > SunTolerance * SunTolerance;
-
-    if (Moved || Turned || Resized || SunMoved)
+    if (Moved || Turned || Resized)
     {
-        HistorySunX = SunX; HistorySunY = SunY; HistorySunZ = SunZ;
         HistoryOrigin  = Origin;
         HistoryForward = Forward;
         HistoryWidth   = ViewportWidth;
@@ -142,67 +109,11 @@ DispatchConfiguration ReSTIRIntegrator::BuildDispatch(
                                    | (ActiveConfiguration.SpatialReuse       ? DispatchFeatureSpatialReuse       : 0u)
                                    | (ActiveConfiguration.AliasPick          ? DispatchFeatureAliasPick          : 0u)
                                    | (ActiveConfiguration.TemporalReprojection ? DispatchFeatureTemporalReprojection : 0u)
-                                   | (ActiveConfiguration.Denoise            ? DispatchFeatureDenoise            : 0u)
-                                   | (ActiveConfiguration.SkyLighting        ? DispatchFeatureSkyLighting        : 0u)
-                                   | (ActiveConfiguration.NightSky           ? DispatchFeatureNightSky           : 0u);
+                                   | (ActiveConfiguration.Denoise            ? DispatchFeatureDenoise            : 0u);
 
     for (uint32_t& Reserve : Dispatch.PushReserve) Reserve = 0u;
 
     return Dispatch;
-}
-
-//============================================================================================================================================
-//                                                  A7 — THE SKY RECORD
-//============================================================================================================================================
-
-SkyRecord ReSTIRIntegrator::BuildSkyRecord() const noexcept
-{
-    SkyRecord Record{};
-
-    // Every direction comes from the celestial clock, which is the single authoritative source. The integrator
-    //    never stores a sun or a moon of its own, or two copies would eventually disagree about the time.
-    const HorizonDirection Sun  = Sky.QuerySunDirection();
-    const HorizonDirection Moon = Sky.QueryMoonDirection();
-
-    Record.SunDirectionX = static_cast<float>(Sun.East);
-    Record.SunDirectionY = static_cast<float>(Sun.North);
-    Record.SunDirectionZ = static_cast<float>(Sun.Zenith);
-
-    Record.MoonDirectionX = static_cast<float>(Moon.East);
-    Record.MoonDirectionY = static_cast<float>(Moon.North);
-    Record.MoonDirectionZ = static_cast<float>(Moon.Zenith);
-    Record.MoonPhase      = static_cast<float>(Sky.QueryMoonPhase());
-
-    Record.CameraAltitude = ActiveConfiguration.CameraAltitude;
-    Record.StarRotation   = static_cast<float>(Sky.QuerySiderealAngle(Sky.QueryTime()));
-
-    const SkyStepCounts Steps = QuerySkySteps(ActiveConfiguration.SkyQuality);
-    Record.SkyViewSteps  = Steps.View;
-    Record.SkyLightSteps = Steps.Light;
-
-    // A7b. The aerosol load for this hour. Taken from the SAME clock as the sun above, so the air and the sun
-    //    can never describe different times of day — which would show as a clean-air glow under a low evening
-    //    sun, i.e. exactly the symptom this parameter exists to fix, but at the wrong end of the day.
-    Record.SkyTurbidity = QueryDiurnalTurbidity(ActiveConfiguration.SkyTurbidity,
-                                                ActiveConfiguration.TurbiditySwing,
-                                                Sky.QuerySolarDayFraction(Sky.QueryTime()));
-
-    // Quality Off zeroes the illuminance, which is the single condition the shader tests. Two conditions could
-    //    disagree about whether the sky is on.
-    const bool SkyOn = ActiveConfiguration.SkyQuality != SkyQualityCategory::Off;
-    Record.SunIlluminance = SkyOn ? ActiveConfiguration.SunIlluminance : 0.0f;
-
-    // The moon and the stars are only offered when they could actually be seen. Below the horizon the moon is
-    //    not drawn at all, and with the sun well up the stars are washed out anyway — but they are faded rather
-    //    than switched, so nothing pops at dawn.
-    Record.MoonIlluminance = (SkyOn && ActiveConfiguration.NightSky && Moon.Zenith > -0.05)
-                           ? ActiveConfiguration.SunIlluminance : 0.0f;
-    Record.StarBrightness  = (SkyOn && ActiveConfiguration.NightSky)
-                           ? ActiveConfiguration.StarBrightness : 0.0f;
-
-    Record.MoonAngularScale = ActiveConfiguration.MoonAngularScale;
-
-    return Record;
 }
 
 //============================================================================================================================================

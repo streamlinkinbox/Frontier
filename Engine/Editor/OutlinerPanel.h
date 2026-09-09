@@ -26,8 +26,6 @@ public:
     [[nodiscard]] uint32_t QueryPickedCount() const noexcept;
     [[nodiscard]] uint32_t QueryPickedAt(uint32_t Slot) const noexcept;
     void PickInstance(uint32_t Index) noexcept;                            // the test seam; the proof drives the pick
-    [[nodiscard]] int32_t QueryPendingAdd() const noexcept { return PendingAdd_; }   // the + menu's ask
-    void ClearPendingAdd() noexcept { PendingAdd_ = -1; }
 
 private:
     void RecordHeader(EditorInstance* Instances, uint32_t InstanceCount, uint32_t LeafCount, uint32_t GroupCount) noexcept;
@@ -62,9 +60,6 @@ private:
     bool     CategoryMenuWasOpen_  = false;
     double   CategoryMenuOpenedAt_ = 0.0;
     float    CategoryChevronAnim_  = 0.0f;
-    int32_t  PendingAdd_      = -1;     // the + menu's ask: a category, or -1 when idle
-    bool     AddMenuWasOpen_  = false;  // the creation menu fades in like the category menu
-    double   AddMenuOpenedAt_ = 0.0;
 };
 
 } // namespace Frontier

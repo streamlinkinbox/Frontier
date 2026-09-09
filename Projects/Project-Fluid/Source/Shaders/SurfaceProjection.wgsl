@@ -30,7 +30,6 @@ struct ViewConstants
     BoxOrigin      : vec4<f32>,   // xyz [m] solver-space position of the inner corner, w = offscreen scale [-]
     Smoothing      : vec4<f32>,   // x = σ [m], y = δ [m], z = μ [m], w = max kernel radius [px]
     Absorption     : vec4<f32>,   // xyz [1/m]           w = refraction strength        [-]
-    SunDirection   : vec4<f32>,   // xyz [-]             w = unused
     Extent         : vec4<f32>,   // xy = offscreen target [px], zw = 1/xy
     Mode           : vec4<u32>,   // x = 0 water · 1 particles · 2 smoothed distance · 3 thickness, y = tick
 };
@@ -71,7 +70,8 @@ fn ToWorldDirection(v: vec3<f32>) -> vec3<f32>
     return v.x * View.CameraRight.xyz + v.y * View.CameraUp.xyz - v.z * View.CameraForward.xyz;
 }
 
-fn Sky(direction: vec3<f32>) -> vec3<f32>
+// A plain backdrop ramp for the fluid surface, not a sky model.
+fn Backdrop(direction: vec3<f32>) -> vec3<f32>
 {
     let up      = clamp(direction.z, -1.0, 1.0);
     let horizon = vec3<f32>(0.78, 0.86, 0.94);
@@ -79,8 +79,7 @@ fn Sky(direction: vec3<f32>) -> vec3<f32>
     let ground  = vec3<f32>(0.32, 0.30, 0.28);
     var colour  = mix(horizon, zenith, pow(max(up, 0.0), 0.45));
     colour      = mix(colour, ground, smoothstep(0.0, -0.15, up));
-    let sun     = pow(max(dot(direction, View.SunDirection.xyz), 0.0), 900.0) * 6.0;
-    return colour + vec3<f32>(sun);
+    return colour;
 }
 
 fn Srgb(linear: vec3<f32>) -> vec3<f32>
@@ -114,7 +113,7 @@ fn BackgroundFragmentMain(input: CoverVertex) -> BackgroundOutput
     let box       = View.BoxExtent.xyz;
 
     var best      = NoSurface;
-    var colour    = Sky(direction);
+    var colour    = Backdrop(direction);
 
     // Floor z = 0 inside the footprint.
     if (direction.z < 0.0)
@@ -432,7 +431,7 @@ fn ShadeFragmentMain(input: CoverVertex) -> @location(0) vec4<f32>
     let eyeWorld    = normalize(ToWorldDirection(toEye));
     let cosine      = max(dot(normal, toEye), 0.0);
     let fresnel     = 0.02 + 0.98 * pow(1.0 - cosine, 5.0);
-    let reflection  = Sky(reflect(-eyeWorld, normalWorld));
+    let reflection  = Backdrop(reflect(-eyeWorld, normalWorld));
 
     // Refraction: offset the background lookup along the screen-space normal, more for thicker water.
     let bend        = View.Absorption.w * min(thickness, 0.5) * View.Extent.y;

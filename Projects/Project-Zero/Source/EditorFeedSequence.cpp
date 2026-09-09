@@ -4,7 +4,7 @@
 // 🧩 The development editor's live feed — FillRoster walks the level's placements into outliner rows, BuildSheet
 //    reads the picked row's figures live, and QueryAnimatedSpan finds the run the motion driver owns. Stateless
 //    over the level: both builders recompute the same row layout from it, so the sheet can never disagree
-//    with the roster. Created rows (AppendAddedRow) sit past the stock layout and mirror the same sky clock.
+//    with the roster.
 
 #include "EditorFeedSequence.h"
 
@@ -16,8 +16,8 @@ namespace Frontier::ProjectZero {
 namespace {
 
 // The roster's rows, in order. Folders are virtual (Ordinal = folder index); placement rows carry their
-//    placement ordinal; the fly camera and the sky bodies are stock (Ordinal unused).
-enum class FeedRowKind : uint32_t { Folder, Placement, FlyCamera, Sky, Sun, Moon };
+//    placement ordinal; the fly camera is stock (Ordinal unused).
+enum class FeedRowKind : uint32_t { Folder, Placement, FlyCamera };
 struct FeedRow
 {
     FeedRowKind Kind    = FeedRowKind::Folder;
@@ -28,15 +28,11 @@ constexpr uint32_t kFolderRoom        = 0u;
 constexpr uint32_t kFolderObjects     = 1u;
 constexpr uint32_t kFolderLighting    = 2u;
 constexpr uint32_t kFolderCameras     = 3u;
-constexpr uint32_t kFolderEnvironment = 4u;
-constexpr const char* kFolderLabels[] = { "Room", "Objects", "Lighting", "Cameras", "Environment" };
+constexpr const char* kFolderLabels[] = { "Room", "Objects", "Lighting", "Cameras" };
 
 constexpr float kFolderTint[3] = { 0.788f, 0.635f, 0.294f };   // amber, shared by every folder
 constexpr float kLightTint[3]  = { 0.961f, 0.827f, 0.294f };   // the lamp rows
 constexpr float kCameraTint[3] = { 0.412f, 0.765f, 1.000f };   // the camera rows
-constexpr float kSkyTint[3]    = { 0.561f, 0.827f, 1.000f };
-constexpr float kSunTint[3]    = { 1.000f, 0.694f, 0.294f };
-constexpr float kMoonTint[3]   = { 0.722f, 0.769f, 0.839f };
 
 // True when any of the placement's instances sits on an emissive material. Reads the flattened records —
 //    emission_luminance × emission_color — so the test matches what the kernel lights from.
@@ -91,8 +87,8 @@ uint32_t PlacementDepth(uint32_t Ordinal, const SceneStructure& Level) noexcept
     return Depth;
 }
 
-// The shared row layout: each folder followed by its placements, the fly camera first under Cameras, and the
-//    sky bodies closing the roster. Both builders run this, so the sheet's row means what the roster showed.
+// The shared row layout: each folder followed by its placements, the fly camera first under Cameras.
+//    Both builders run this, so the sheet's row means what the roster showed.
 uint32_t BuildLayout(const SceneStructure& Level, FeedRow* Layout, uint32_t Capacity) noexcept
 {
     const auto& Placements = Level.QueryPlacements();
@@ -113,10 +109,6 @@ uint32_t BuildLayout(const SceneStructure& Level, FeedRow* Layout, uint32_t Capa
     for (uint32_t P = 0u; P < Placements.size(); ++P)
         if (PlacementFolder(Placements[P], Level) == kFolderCameras)
             Push(FeedRowKind::Placement, P);
-    Push(FeedRowKind::Folder, kFolderEnvironment);
-    Push(FeedRowKind::Sky, 0u);
-    Push(FeedRowKind::Sun, 0u);
-    Push(FeedRowKind::Moon, 0u);
     return Rows;
 }
 
@@ -325,24 +317,6 @@ uint32_t EditorFeedSequence::FillRoster(EditorInstance* Instances, const SceneSt
             Row.Category = EditorInstanceCategory::Camera;
             CopyTint(Row.Tint, kCameraTint);
             break;
-        case FeedRowKind::Sky:
-            std::snprintf(Row.Label, sizeof(Row.Label), "Sky");
-            Row.Depth    = 1u;
-            Row.Category = EditorInstanceCategory::Sky;
-            CopyTint(Row.Tint, kSkyTint);
-            break;
-        case FeedRowKind::Sun:
-            std::snprintf(Row.Label, sizeof(Row.Label), "Sun");
-            Row.Depth    = 1u;
-            Row.Category = EditorInstanceCategory::Sun;
-            CopyTint(Row.Tint, kSunTint);
-            break;
-        case FeedRowKind::Moon:
-            std::snprintf(Row.Label, sizeof(Row.Label), "Moon");
-            Row.Depth    = 1u;
-            Row.Category = EditorInstanceCategory::Moon;
-            CopyTint(Row.Tint, kMoonTint);
-            break;
         }
     }
     // Folders count their direct rows so the panel can badge them.
@@ -359,51 +333,6 @@ uint32_t EditorFeedSequence::FillRoster(EditorInstance* Instances, const SceneSt
     return Rows;
 }
 
-uint32_t AppendAddedRow(EditorInstance* Instances, uint32_t* RowCount, EditorInstanceCategory Category) noexcept
-{
-    if (Instances == nullptr || RowCount == nullptr || *RowCount >= kMaxEditorInstances)
-        return kNoEditorInstance;
-    if (Category != EditorInstanceCategory::Sky && Category != EditorInstanceCategory::Sun
-        && Category != EditorInstanceCategory::Moon)
-        return kNoEditorInstance;
-    uint32_t Folder = kNoEditorInstance;
-    for (uint32_t R = 0u; R < *RowCount; ++R)
-        if (Instances[R].Category == EditorInstanceCategory::Folder
-            && std::strcmp(Instances[R].Label, "Environment") == 0)
-            Folder = R;
-    if (Folder == kNoEditorInstance)
-        return kNoEditorInstance;
-    uint32_t Serial = 1u;
-    for (uint32_t R = 0u; R < *RowCount; ++R)
-        if (Instances[R].Category == Category)
-            ++Serial;
-    uint32_t Seat = Folder + 1u;
-    while (Seat < *RowCount && Instances[Seat].Depth > 0u)
-        ++Seat;
-    for (uint32_t R = *RowCount; R > Seat; --R)
-        Instances[R] = Instances[R - 1u];
-    EditorInstance& Row = Instances[Seat];
-    const char* Stem = Category == EditorInstanceCategory::Sky ? "Sky"
-        : Category == EditorInstanceCategory::Sun ? "Sun" : "Moon";
-    std::snprintf(Row.Label, sizeof(Row.Label), "%s %u", Stem, Serial);
-    Row.Depth    = 1u;
-    Row.Category = Category;
-    Row.Visible  = true;
-    Row.Locked   = false;
-    Row.Solo     = false;
-    Row.Physics  = false;
-    Row.Dynamic  = false;
-    Row.KidCount = 0u;
-    if (Category == EditorInstanceCategory::Sky)
-        CopyTint(Row.Tint, kSkyTint);
-    else if (Category == EditorInstanceCategory::Sun)
-        CopyTint(Row.Tint, kSunTint);
-    else
-        CopyTint(Row.Tint, kMoonTint);
-    ++Instances[Folder].KidCount;
-    ++(*RowCount);
-    return Seat;
-}
 
 void QueryLevelCentre(const SceneStructure& Level, float Centre[3]) noexcept
 {
@@ -449,8 +378,7 @@ void QueryLevelCentre(const SceneStructure& Level, float Centre[3]) noexcept
 }
 
 EditorProperty* EditorFeedSequence::BuildSheet(uint32_t Index, EditorInstance* Instances, uint32_t RowCount,
-                                              EditorSheet* Sheet, const ReSTIRIntegratorConfiguration& Config,
-                                              const CelestialSolver& Sky, const FlyThroughSolver& Camera,
+                                              EditorSheet* Sheet, const FlyThroughSolver& Camera,
                                               const SceneStructure& Level,
                                               const std::vector<InstanceRecord>& Live) const noexcept
 {
@@ -464,15 +392,8 @@ EditorProperty* EditorFeedSequence::BuildSheet(uint32_t Index, EditorInstance* I
     constexpr float kRadToDeg = 57.29578f;
     FeedRow Layout[kMaxEditorInstances];
     const uint32_t StockRows = BuildLayout(Level, Layout, RowCount);
-    // Rows past the stock layout are created bodies: they mirror the same sky clock as their stock twins,
-    //    so the sheet builds off the stock row of the same category.
     if (Index >= StockRows)
-    {
-        for (uint32_t St = 0u; St < StockRows; ++St)
-            if (Instances[St].Category == Instances[Index].Category)
-                return BuildSheet(St, Instances, RowCount, Sheet, Config, Sky, Camera, Level, Live);
         return nullptr;
-    }
     const FeedRow& Picked = Layout[Index];
     EditorProperty* TintMirror = nullptr;
 
@@ -637,87 +558,6 @@ EditorProperty* EditorFeedSequence::BuildSheet(uint32_t Index, EditorInstance* I
         std::snprintf(Boost.Text, sizeof(Boost.Text), "%.2f\xc3\x97", static_cast<double>(Flight.BoostMultiplier));
         EditorProperty& Feel = OpenProp(Moved, "Sensitivity", EditorPropertyCategory::Readout);
         std::snprintf(Feel.Text, sizeof(Feel.Text), "%.5f rad/px", static_cast<double>(Flight.MouseSensitivity));
-        return nullptr;
-    }
-
-    if (Picked.Kind == FeedRowKind::Sky)
-    {
-        EditorPropertyGroup& Air = OpenGroup(Sheet, "Atmosphere");
-        EditorProperty& Haze = OpenProp(Air, "Turbidity", EditorPropertyCategory::Slider);
-        Haze.Minimum = 1.0f; Haze.Maximum = 4.0f; Haze.Figure = Config.SkyTurbidity;
-        Haze.Decimals = 2u;
-        EditorProperty& Swing = OpenProp(Air, "Swing", EditorPropertyCategory::Slider);
-        Swing.Minimum = 0.0f; Swing.Maximum = 1.0f; Swing.Figure = Config.TurbiditySwing;
-        Swing.Decimals = 2u;
-        EditorProperty& Grade = OpenProp(Air, "Quality", EditorPropertyCategory::Select);
-        std::snprintf(Grade.Options[0], sizeof(Grade.Options[0]), "Off");
-        std::snprintf(Grade.Options[1], sizeof(Grade.Options[1]), "Low");
-        std::snprintf(Grade.Options[2], sizeof(Grade.Options[2]), "Medium");
-        std::snprintf(Grade.Options[3], sizeof(Grade.Options[3]), "High");
-        std::snprintf(Grade.Options[4], sizeof(Grade.Options[4]), "Ultra");
-        Grade.OptionCount = 5u;
-        Grade.Picked = static_cast<uint32_t>(Config.SkyQuality);
-        EditorProperty& High = OpenProp(Air, "Altitude", EditorPropertyCategory::Slider);
-        High.Minimum = 0.0f; High.Maximum = 100.0f; High.Figure = Config.CameraAltitude;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "m");
-        EditorProperty& Bounce = OpenProp(Air, "Sky lights", EditorPropertyCategory::Switch);
-        Bounce.On = Config.SkyLighting;
-        EditorPropertyGroup& Dark = OpenGroup(Sheet, "Night");
-        EditorProperty& Eve = OpenProp(Dark, "Night sky", EditorPropertyCategory::Switch);
-        Eve.On = Config.NightSky;
-        EditorProperty& Stars = OpenProp(Dark, "Starlight", EditorPropertyCategory::Slider);
-        Stars.Minimum = 0.0f; Stars.Maximum = 2.0f; Stars.Figure = Config.StarBrightness;
-        Stars.Decimals = 2u;
-        std::snprintf(Stars.Unit, sizeof(Stars.Unit), "nt");
-        return nullptr;
-    }
-
-    if (Picked.Kind == FeedRowKind::Sun)
-    {
-        const auto SunDir = Sky.QuerySunDirection();
-        EditorPropertyGroup& Orbited = OpenGroup(Sheet, "Orbit");
-        EditorProperty& High = OpenProp(Orbited, "Elevation", EditorPropertyCategory::Slider);
-        High.Minimum = -90.0f; High.Maximum = 90.0f; High.Figure = SunDir.Elevation * kRadToDeg;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "\xc2\xb0");
-        EditorProperty& Around = OpenProp(Orbited, "Azimuth", EditorPropertyCategory::Slider);
-        Around.Minimum = 0.0f; Around.Maximum = 360.0f; Around.Figure = SunDir.Azimuth * kRadToDeg;
-        Around.Decimals = 1u;
-        std::snprintf(Around.Unit, sizeof(Around.Unit), "\xc2\xb0");
-        EditorProperty& Aged = OpenProp(Orbited, "Elapsed", EditorPropertyCategory::Readout);
-        std::snprintf(Aged.Text, sizeof(Aged.Text), "%.0f s", static_cast<double>(Sky.QueryTime()));
-        EditorProperty& Paced = OpenProp(Orbited, "Rate", EditorPropertyCategory::Slider);
-        Paced.Minimum = 0.0f; Paced.Maximum = 10.0f; Paced.Figure = Sky.QueryRate();
-        Paced.Decimals = 2u;
-        std::snprintf(Paced.Unit, sizeof(Paced.Unit), "\xc3\x97");
-        EditorPropertyGroup& Disc = OpenGroup(Sheet, "Disc");
-        EditorProperty& Bright = OpenProp(Disc, "Illuminance", EditorPropertyCategory::Slider);
-        Bright.Minimum = 0.0f; Bright.Maximum = 200000.0f; Bright.Figure = Config.SunIlluminance;
-        Bright.Decimals = 0u;
-        std::snprintf(Bright.Unit, sizeof(Bright.Unit), "lx");
-        return nullptr;
-    }
-
-    if (Picked.Kind == FeedRowKind::Moon)
-    {
-        const auto MoonDir = Sky.QueryMoonDirection();
-        EditorPropertyGroup& Orbited = OpenGroup(Sheet, "Orbit");
-        EditorProperty& High = OpenProp(Orbited, "Elevation", EditorPropertyCategory::Slider);
-        High.Minimum = -90.0f; High.Maximum = 90.0f; High.Figure = MoonDir.Elevation * kRadToDeg;
-        High.Decimals = 1u;
-        std::snprintf(High.Unit, sizeof(High.Unit), "\xc2\xb0");
-        EditorProperty& Around = OpenProp(Orbited, "Azimuth", EditorPropertyCategory::Slider);
-        Around.Minimum = 0.0f; Around.Maximum = 360.0f; Around.Figure = MoonDir.Azimuth * kRadToDeg;
-        Around.Decimals = 1u;
-        std::snprintf(Around.Unit, sizeof(Around.Unit), "\xc2\xb0");
-        EditorProperty& Waned = OpenProp(Orbited, "Phase", EditorPropertyCategory::Readout);
-        std::snprintf(Waned.Text, sizeof(Waned.Text), "%.2f", static_cast<double>(Sky.QueryMoonPhase()));
-        EditorPropertyGroup& Disc = OpenGroup(Sheet, "Disc");
-        EditorProperty& Wide = OpenProp(Disc, "Angular scale", EditorPropertyCategory::Slider);
-        Wide.Minimum = 0.25f; Wide.Maximum = 8.0f; Wide.Figure = Config.MoonAngularScale;
-        Wide.Decimals = 2u;
-        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc3\x97");
         return nullptr;
     }
 

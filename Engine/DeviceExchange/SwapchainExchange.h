@@ -61,38 +61,7 @@ static constexpr float    kLuminanceLog2High      =  30.0f;   // 1e9 cd/m², abo
 static constexpr float    kLuminanceMedianStops   = 6.0f;
 static constexpr uint32_t kLuminanceHistogramBytes = kLuminanceHistogramBins * 4u;
 
-// A2 atmosphere tables. Sizes match AtmosphereScattering.slang; the gate checks they still agree.
-static constexpr uint32_t kTransmittanceLutWidth  = 256u;
-static constexpr uint32_t kTransmittanceLutHeight = 64u;
-// 64, not 32. With the horizon-concentrated parameterisation the same 32 texels already cut the twilight error
-//    from 2.71x to 1.72x; doubling takes it to 1.13x, which is where it stops being visible as a colour shift on
-//    the dawn horizon. 4096 texels against the previous 1024 — the surface is 32 KiB rather than 8, and it is
-//    rebuilt only when the aerosol load moves, not per frame.
-static constexpr uint32_t kMultiScatterLutSize    = 64u;
-
-// A7. The sky, as a uniform buffer rather than push constants. Mirrors `SkyRecord` in ReSTIRViewport.slang.
-//    std140: a vec3 occupies 16 bytes, so each is paired with the float that follows it.
-struct SkyRecord
-{
-    float    SunDirectionX, SunDirectionY, SunDirectionZ;   // [-]    toward the sun, unit
-    float    SunIlluminance;                                // [lx]   0 disables the sky entirely
-
-    float    MoonDirectionX, MoonDirectionY, MoonDirectionZ;// [-]    toward the moon, unit
-    float    MoonPhase;                                     // [0..1] illuminated fraction
-
-    float    CameraAltitude;                                // [m]
-    float    StarRotation;                                  // [rad]  sidereal rotation of the field
-    float    StarBrightness;                                // [cd/m²] 0 disables the stars
-    float    MoonIlluminance;                               // [lx]   0 disables the moon
-
-    uint32_t SkyViewSteps;                                  // [-]    quality tier
-    uint32_t SkyLightSteps;                                 // [-]    0 selects the tabulated path
-    float    SkyTurbidity;                                  // [-]    A7b: aerosol load; 1 is the clear reference
-    float    MoonAngularScale;                              // [-]    A7c: 1 is the true 0.259° disc
-};
-static_assert(sizeof(SkyRecord) == 64u, "SkyRecord must match the shader's std140 uniform block (64 bytes)");
-
-static constexpr uint32_t kComputeBindingCount  = 26u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 motion · 16 prev reservoir · 17 curr reservoir · 18 history normal+depth (R7a) · 19 luminance moments (R7) · 20 denoise input (R7) · 21 transmittance LUT (A2) · 22 multi-scatter LUT (A2) · 24 sky record UBO (A7) · 25 Textures[] (variable-count binding MUST stay last — Vulkan requires it on the highest binding number)
+static constexpr uint32_t kComputeBindingCount  = 26u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 motion · 16 prev reservoir · 17 curr reservoir · 18 history normal+depth (R7a) · 19 luminance moments (R7) · 20 denoise input (R7) · 21/22/24 retired sky bindings · 25 Textures[] (variable-count binding MUST stay last — Vulkan requires it on the highest binding number)
 static constexpr uint32_t kTextureSlotCapacity  = 1024u;  // bindless sampler2D[] size (variable-count binding; Pascal maxPerStageDescriptorSamplers ≥ 4000)
 class MaterialIndex;    // ContentInterchange/MaterialIndex.h (R4a)
 
@@ -185,11 +154,10 @@ struct DispatchConfiguration
     uint32_t LuminaireTriangleCount;                               // [-]   emissive triangles for DI sampling
     uint32_t FeatureFlags;                                         // [bit] DispatchFeature bits
 
-    // ── A7 reserve ───────────────────────────────────────────────────────────────────────────────────────────────
-    // ⚠️ The sky parameters used to live here and filled the block to exactly 128 bytes, which is Vulkan's
-    //    GUARANTEED MINIMUM. A7's moon and stars needed ~20 more, and growing past 128 would have worked on a
-    //    card offering 256 and failed on one offering only the guarantee — a defect that appears on someone
-    //    else's machine. They moved to SkyRecord, which is also the shape a per-world sky needs (CLAUDE.md §15b).
+    // ── Reserve ──────────────────────────────────────────────────────────────────────────────────────────────────
+    // ⚠️ Push constants stay within 128 bytes, which is Vulkan's GUARANTEED MINIMUM. Growing past it works on a
+    //    card offering 256 and fails on one offering only the guarantee — a defect that appears on someone
+    //    else's machine. Anything that does not fit goes into a uniform buffer rather than growing this block.
     float    ColourSaturation;                                     // [-] A7d: 1 in daylight, 0 under starlight
     uint32_t PushReserve[7];                                       // [-] keeps the block 128 B and 16-B aligned
 };
@@ -205,14 +173,12 @@ enum DispatchFeature : uint32_t
     DispatchFeatureAliasPick          = 1u << 5,   // R6 row 3: Walker-alias light pick (off = uniform, R0 identity)
     DispatchFeatureTemporalReprojection = 1u << 6, // R7a: reproject the running mean through the R2 motion vectors
     DispatchFeatureDenoise            = 1u << 7,   // R7:  à-trous filter runs; the kernel defers the tone map to it
-    DispatchFeatureSkyLighting        = 1u << 8,   // A5:  an escaped bounce ray gathers sky radiance (off = the pre-A5 image)
-    DispatchFeatureNightSky           = 1u << 9    // A7:  the moon disc and the star field (off = the pre-A7 image)
 };
 
 // Mirrors `layout(push_constant) uniform ReSTIRConstants` in Engine/Shaders/ReSTIRViewport.slang.
-//    vec3 + float pairs pack to 16 bytes each (4 × 16) followed by 8 uints (32) = 96, plus A3's sky block (32).
+//    vec3 + float pairs pack to 16 bytes each (4 × 16) followed by 8 uints (32) = 96, plus the reserve tail (32).
 //    128 bytes is the minimum every Vulkan implementation must offer, so this is now exactly full: anything
-//    further has to become a uniform buffer, which is where A2's LUT handles will go.
+//    further has to become a uniform buffer.
 static_assert(sizeof(DispatchConfiguration) == 128u, "DispatchConfiguration must match the shader push-constant block (128 bytes)");
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -316,9 +282,6 @@ public:
     //    or two frames stale, which is invisible against adaptation time constants measured in seconds.
     [[nodiscard]] float QueryAverageLogLuminance() const noexcept;
 
-    // A7. Write the frame's sky into the uniform buffer the kernel reads. Called before RecordComputeCommands,
-    //    from the same place the dispatch configuration is built, so the two cannot describe different frames.
-    void AssignSkyRecord(const SkyRecord& Record) noexcept;
     [[nodiscard]] uint32_t QueryTargetGeneration() const noexcept { return TargetGeneration; }
 
     //--------------------------------------------------------------------------------------------------------------------
@@ -345,7 +308,6 @@ private:
     [[nodiscard]] bool  BringComputePipeline()  noexcept;
     [[nodiscard]] bool  BringDescriptorSet()    noexcept;
     [[nodiscard]] bool  BringDenoisePipeline()  noexcept;   // R7: à-trous filter, its own small descriptor set
-    [[nodiscard]] bool  BringAtmosphereTables() noexcept;   // A2: the two constant atmosphere LUTs
     [[nodiscard]] bool  BringLuminanceReduction() noexcept; // A6b: the average-log-luminance pass
     // Rewritten on every resize: this set binds HistoryImageView, which a resize destroys and recreates.
     void                WriteLuminanceDescriptors() noexcept;
