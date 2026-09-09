@@ -5,6 +5,7 @@
 #pragma once
 
 #include "TracingIndex.h"
+#include "../../../Engine/DeviceExchange/SwapchainExchange.h"
 #include <vector>
 
 namespace Frontier::ProjectZero {
@@ -61,6 +62,18 @@ public:
     [[nodiscard]] const std::vector<TriangleGeometry>&   QueryTriangles() const noexcept { return Triangles; }
     [[nodiscard]] const std::vector<AnalyticalMaterial>& QueryMaterials() const noexcept { return Materials; }
 
+    // Object spans: one record per scene object over Triangles, in append order. The scope closes itself when
+    //    it dies, so a span covers exactly the Appends in its block — hold one per object in Construct.
+    struct SpanScope
+    {
+        std::vector<TriangleSpanRecord>*     Spans     = nullptr;
+        const std::vector<TriangleGeometry>* Triangles = nullptr;
+        uint32_t                             Span      = 0u;
+        ~SpanScope() noexcept;
+    };
+    [[nodiscard]] SpanScope                              OpenSpan(const char* Name, bool Dynamic = false) noexcept;
+    [[nodiscard]] const std::vector<TriangleSpanRecord>& QuerySpans() const noexcept { return Spans; }
+
     // Single unified conversion operator for total triangle count
     template<typename TargetType>
     [[nodiscard]] TargetType Convert() const noexcept;
@@ -68,6 +81,7 @@ public:
 private:
     std::vector<TriangleGeometry>   Triangles;                  // [primitives] scene triangle geometry
     std::vector<AnalyticalMaterial> Materials;                  // [materials] scene photometric materials
+    std::vector<TriangleSpanRecord> Spans;                      // [spans] one record per scene object, append order
 };
 
 template<>

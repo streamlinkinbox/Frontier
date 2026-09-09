@@ -14,6 +14,7 @@
 #include "OrientationClassifier.h"
 #include "VisibilityExchange.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <functional>
 #include <array>
@@ -136,6 +137,24 @@ struct TriangleIndex
     float    TextureBetaU,  TextureBetaV;                    // [uv]  β
 };
 static_assert(sizeof(TriangleIndex) == 64u, "TriangleIndex must be 64 bytes (std430 mirror)");
+
+//------------------------------------------------------------------------------------------------------------------------
+//                          TRIANGLE SPAN RECORD  (CPU only — object identity over a soup)
+//
+// Mechanism: a TriangleIndex soup carries no object identity — Floor, Ceiling and Back Wall share one material
+//    and would decode as one instance. The builders record one span per Append call (name + dynamic flag authored
+//    at the call site); SceneCodec::Encode turns each span into a named glTF node, so the decode carries one
+//    placement per scene object and the outliner walks the live scene instead of a parallel hand-typed table.
+//    Never uploaded; dies with TriangleIndex in R5.
+//------------------------------------------------------------------------------------------------------------------------
+
+struct TriangleSpanRecord
+{
+    uint32_t    FirstTriangle = 0u;      // [idx] first triangle of the object in the builder's soup
+    uint32_t    TriangleCount = 0u;      // [cnt]
+    std::string Name;                    // [-]   display name ("Tall Box")
+    bool        Dynamic = false;         // [-]   the object moves (--animate / physics drive it)
+};
 
 // R4a: RadianceStructure (48 B material summary) is gone — materials are MaterialRecord / MaterialSlabRecord
 //    (ContentInterchange/MaterialIndex.h), uploaded through UploadMaterials(const MaterialIndex&).

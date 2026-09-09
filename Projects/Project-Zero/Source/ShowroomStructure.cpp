@@ -88,11 +88,34 @@ Vector3 ShowroomStructure::QueryDropOrigin(uint32_t Ordinal) noexcept
                      0.85f + 0.14f * static_cast<float>(Ordinal % 2u) };
 }
 
+ShowroomStructure::SpanScope::~SpanScope() noexcept
+{
+    if (Spans == nullptr || Triangles == nullptr || Span >= Spans->size()) return;
+    TriangleSpanRecord& S = (*Spans)[Span];
+    const uint32_t Now = static_cast<uint32_t>(Triangles->size());
+    S.TriangleCount = Now >= S.FirstTriangle ? Now - S.FirstTriangle : 0u;
+}
+
+ShowroomStructure::SpanScope ShowroomStructure::OpenSpan(const char* Name, bool Dynamic) noexcept
+{
+    TriangleSpanRecord S;
+    S.FirstTriangle = static_cast<uint32_t>(Triangles.size());
+    if (Name != nullptr) S.Name = Name;
+    S.Dynamic = Dynamic;
+    Spans.push_back(std::move(S));
+    SpanScope Scope;
+    Scope.Spans     = &Spans;
+    Scope.Triangles = &Triangles;
+    Scope.Span      = static_cast<uint32_t>(Spans.size()) - 1u;
+    return Scope;
+}
+
 void ShowroomStructure::Construct(uint32_t DropBodyCount) noexcept
 {
     Triangles.clear();
     CornerNormals.clear();
     Materials.clear();
+    Spans.clear();
     FirstDropMaterial = 0u;
     DropCount         = 0u;
 
@@ -165,33 +188,69 @@ void ShowroomStructure::Construct(uint32_t DropBodyCount) noexcept
     constexpr float MinZ =  0.0f, MaxZ = 3.0f;
 
     // Floor (+Z up)
-    AppendQuad(Vector3{ MinX, MinY, MinZ }, Vector3{ MaxX, MinY, MinZ },
-               Vector3{ MaxX, MaxY, MinZ }, Vector3{ MinX, MaxY, MinZ }, MaterialWhite, 0.25f);
+    {
+        const auto FloorSpan = OpenSpan("Floor");
+        AppendQuad(Vector3{ MinX, MinY, MinZ }, Vector3{ MaxX, MinY, MinZ },
+                   Vector3{ MaxX, MaxY, MinZ }, Vector3{ MinX, MaxY, MinZ }, MaterialWhite, 0.25f);
+    }
     // Ceiling (−Z down)
-    AppendQuad(Vector3{ MinX, MaxY, MaxZ }, Vector3{ MaxX, MaxY, MaxZ },
-               Vector3{ MaxX, MinY, MaxZ }, Vector3{ MinX, MinY, MaxZ }, MaterialWhite, 0.25f);
+    {
+        const auto CeilingSpan = OpenSpan("Ceiling");
+        AppendQuad(Vector3{ MinX, MaxY, MaxZ }, Vector3{ MaxX, MaxY, MaxZ },
+                   Vector3{ MaxX, MinY, MaxZ }, Vector3{ MinX, MinY, MaxZ }, MaterialWhite, 0.25f);
+    }
     // Rear wall (facing −Y)
-    AppendQuad(Vector3{ MinX, MaxY, MinZ }, Vector3{ MaxX, MaxY, MinZ },
-               Vector3{ MaxX, MaxY, MaxZ }, Vector3{ MinX, MaxY, MaxZ }, MaterialWhite, 0.25f);
+    {
+        const auto RearSpan = OpenSpan("Rear Wall");
+        AppendQuad(Vector3{ MinX, MaxY, MinZ }, Vector3{ MaxX, MaxY, MinZ },
+                   Vector3{ MaxX, MaxY, MaxZ }, Vector3{ MinX, MaxY, MaxZ }, MaterialWhite, 0.25f);
+    }
     // Left wall, red (facing +X)
-    AppendQuad(Vector3{ MinX, MinY, MinZ }, Vector3{ MinX, MaxY, MinZ },
-               Vector3{ MinX, MaxY, MaxZ }, Vector3{ MinX, MinY, MaxZ }, MaterialRed, 0.25f);
+    {
+        const auto LeftSpan = OpenSpan("Left Wall");
+        AppendQuad(Vector3{ MinX, MinY, MinZ }, Vector3{ MinX, MaxY, MinZ },
+                   Vector3{ MinX, MaxY, MaxZ }, Vector3{ MinX, MinY, MaxZ }, MaterialRed, 0.25f);
+    }
     // Right wall, green (facing −X)
-    AppendQuad(Vector3{ MaxX, MaxY, MinZ }, Vector3{ MaxX, MinY, MinZ },
-               Vector3{ MaxX, MinY, MaxZ }, Vector3{ MaxX, MaxY, MaxZ }, MaterialGreen, 0.25f);
+    {
+        const auto RightSpan = OpenSpan("Right Wall");
+        AppendQuad(Vector3{ MaxX, MaxY, MinZ }, Vector3{ MaxX, MinY, MinZ },
+                   Vector3{ MaxX, MinY, MaxZ }, Vector3{ MaxX, MaxY, MaxZ }, MaterialGreen, 0.25f);
+    }
 
     // ── Floor inlay and rear accent strip, lifted a millimetre to avoid coplanar fighting ────────────────────────
-    AppendQuad(Vector3{ -1.25f, 0.10f, 0.001f }, Vector3{ 1.25f, 0.10f, 0.001f },
-               Vector3{ 1.25f, 2.60f, 0.001f }, Vector3{ -1.25f, 2.60f, 0.001f }, MaterialInlay, 0.5f);
-    AppendQuad(Vector3{ MinX, MaxY - 0.001f, 0.0f }, Vector3{ MaxX, MaxY - 0.001f, 0.0f },
-               Vector3{ MaxX, MaxY - 0.001f, 0.06f }, Vector3{ MinX, MaxY - 0.001f, 0.06f }, MaterialAmber, 1.0f);
+    {
+        const auto InlaySpan = OpenSpan("Floor Inlay");
+        AppendQuad(Vector3{ -1.25f, 0.10f, 0.001f }, Vector3{ 1.25f, 0.10f, 0.001f },
+                   Vector3{ 1.25f, 2.60f, 0.001f }, Vector3{ -1.25f, 2.60f, 0.001f }, MaterialInlay, 0.5f);
+    }
+    {
+        const auto AmberSpan = OpenSpan("Amber Strip");
+        AppendQuad(Vector3{ MinX, MaxY - 0.001f, 0.0f }, Vector3{ MaxX, MaxY - 0.001f, 0.0f },
+                   Vector3{ MaxX, MaxY - 0.001f, 0.06f }, Vector3{ MinX, MaxY - 0.001f, 0.06f }, MaterialAmber, 1.0f);
+    }
 
     // ── Furniture ────────────────────────────────────────────────────────────────────────────────────────────────
-    AppendBox(Vector3{ -0.45f, 1.30f, 0.0f },  Vector3{ 0.45f, 1.80f, 0.35f }, MaterialPlinth);   // plinth
-    AppendSphere(Vector3{ 0.0f, 1.55f, 0.69f }, 0.34f, MaterialChrome, 28u, 56u);                  // chrome sphere
-    AppendBox(Vector3{ -1.75f, 2.25f, 0.0f },  Vector3{ -1.41f, 2.59f, 1.50f }, MaterialPillar);  // matte pillar
-    AppendBox(Vector3{ 1.20f, 2.10f, 0.0f },   Vector3{ 1.72f, 2.62f, 0.30f }, MaterialPlinth);   // copper stand
-    AppendSphere(Vector3{ 1.46f, 2.36f, 0.58f }, 0.28f, MaterialCopper, 24u, 48u);                 // copper sphere
+    {
+        const auto PlinthSpan = OpenSpan("Plinth");
+        AppendBox(Vector3{ -0.45f, 1.30f, 0.0f },  Vector3{ 0.45f, 1.80f, 0.35f }, MaterialPlinth);   // plinth
+    }
+    {
+        const auto ChromeSpan = OpenSpan("Chrome Sphere");
+        AppendSphere(Vector3{ 0.0f, 1.55f, 0.69f }, 0.34f, MaterialChrome, 28u, 56u);                  // chrome sphere
+    }
+    {
+        const auto PillarSpan = OpenSpan("Matte Pillar");
+        AppendBox(Vector3{ -1.75f, 2.25f, 0.0f },  Vector3{ -1.41f, 2.59f, 1.50f }, MaterialPillar);  // matte pillar
+    }
+    {
+        const auto StandSpan = OpenSpan("Copper Stand");
+        AppendBox(Vector3{ 1.20f, 2.10f, 0.0f },   Vector3{ 1.72f, 2.62f, 0.30f }, MaterialPlinth);   // copper stand
+    }
+    {
+        const auto CopperSpan = OpenSpan("Copper Sphere");
+        AppendSphere(Vector3{ 1.46f, 2.36f, 0.58f }, 0.28f, MaterialCopper, 24u, 48u);                 // copper sphere
+    }
 
     // ── Drop bodies, one material each so the codec gives each its own instance ──────────────────────────────────
     // The renderer moves INSTANCES, so two bodies sharing a material would share an instance and could never be
@@ -231,17 +290,26 @@ void ShowroomStructure::Construct(uint32_t DropBodyCount) noexcept
             //    whole pixel, so the balls would read as polygons. 12×24 stays sub-pixel and still takes the win.
             //    (Pole rings emit one triangle, not two, so the counts are below rings×segs×2.)
             //    Static scenery has no per-frame cost and keeps its full detail.
+            char SpanName[32];
+            std::snprintf(SpanName, sizeof(SpanName), "Body %02u", Body + 1u);
+            const auto BodySpan = OpenSpan(SpanName, true);
             AppendSphere(QueryDropOrigin(Body), QueryDropRadius(), FirstDropMaterial + Body, 12u, 24u);
         }
     }
 
     // ── Luminaires, appended LAST (the convention the Cornell box and shader ball share) ─────────────────────────
     // Ceiling panel, facing down (−Z).
-    AppendQuad(Vector3{ -0.60f, 1.00f, MaxZ - 0.002f }, Vector3{ 0.60f, 1.00f, MaxZ - 0.002f },
-               Vector3{ 0.60f, 0.00f, MaxZ - 0.002f }, Vector3{ -0.60f, 0.00f, MaxZ - 0.002f }, MaterialLuminaire, 1.0f);
+    {
+        const auto PanelSpan = OpenSpan("Ceiling Panel");
+        AppendQuad(Vector3{ -0.60f, 1.00f, MaxZ - 0.002f }, Vector3{ 0.60f, 1.00f, MaxZ - 0.002f },
+                   Vector3{ 0.60f, 0.00f, MaxZ - 0.002f }, Vector3{ -0.60f, 0.00f, MaxZ - 0.002f }, MaterialLuminaire, 1.0f);
+    }
     // Rear rim strip high on the back wall, facing −Y.
-    AppendQuad(Vector3{ -0.40f, MaxY - 0.004f, 2.30f }, Vector3{ 0.40f, MaxY - 0.004f, 2.30f },
-               Vector3{ 0.40f, MaxY - 0.004f, 2.60f }, Vector3{ -0.40f, MaxY - 0.004f, 2.60f }, MaterialRimLight, 1.0f);
+    {
+        const auto RimSpan = OpenSpan("Rear Rim Strip");
+        AppendQuad(Vector3{ -0.40f, MaxY - 0.004f, 2.30f }, Vector3{ 0.40f, MaxY - 0.004f, 2.30f },
+                   Vector3{ 0.40f, MaxY - 0.004f, 2.60f }, Vector3{ -0.40f, MaxY - 0.004f, 2.60f }, MaterialRimLight, 1.0f);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -340,6 +408,7 @@ bool ShowroomStructure::Export(const std::string& Path, std::string* Error) cons
     Configuration.Name           = "Showroom";
     Configuration.CornerNormals  = &CornerNormals;
     Configuration.WriteTexcoords = true;
+    Configuration.Spans = &Spans;
     return SceneCodec::Encode(Path, Triangles, Materials, Error, Configuration);
 }
 

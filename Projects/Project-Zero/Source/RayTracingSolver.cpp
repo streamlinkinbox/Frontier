@@ -18,6 +18,28 @@ RayTracingSolver::RayTracingSolver() noexcept
     ConstructCornellBoxScene();
 }
 
+RayTracingSolver::SpanScope::~SpanScope() noexcept
+{
+    if (Spans == nullptr || Triangles == nullptr || Span >= Spans->size()) return;
+    TriangleSpanRecord& S = (*Spans)[Span];
+    const uint32_t Now = static_cast<uint32_t>(Triangles->size());
+    S.TriangleCount = Now >= S.FirstTriangle ? Now - S.FirstTriangle : 0u;
+}
+
+RayTracingSolver::SpanScope RayTracingSolver::OpenSpan(const char* Name, bool Dynamic) noexcept
+{
+    TriangleSpanRecord S;
+    S.FirstTriangle = static_cast<uint32_t>(Triangles.size());
+    if (Name != nullptr) S.Name = Name;
+    S.Dynamic = Dynamic;
+    Spans.push_back(std::move(S));
+    SpanScope Scope;
+    Scope.Spans     = &Spans;
+    Scope.Triangles = &Triangles;
+    Scope.Span      = static_cast<uint32_t>(Spans.size()) - 1u;
+    return Scope;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                SCENE GEOMETRY SETUP
 //------------------------------------------------------------------------------------------------------------------------
@@ -26,25 +48,26 @@ void RayTracingSolver::ConstructCornellBoxScene() noexcept
 {
     Triangles.clear();
     Materials.clear();
+    Spans.clear();
 
     // Material 0: White diffuse walls, floor, ceiling
     Materials.push_back(AnalyticalMaterial{ Vector3{ 0.75f, 0.75f, 0.75f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 0 });
     // Material 1: Left wall (vibrant red)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.85f, 0.12f, 0.12f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 1 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.85f, 0.12f, 0.12f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 1  });
     // Material 2: Right wall (vibrant green)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.12f, 0.85f, 0.15f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 2 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.12f, 0.85f, 0.15f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 2  });
     // Material 3: Ceiling Light (bright emissive white)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 1.0f, 1.0f, 1.0f }, Vector3{ 32.0f, 32.0f, 32.0f }, 0.1f, 0.0f, 3 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 1.0f, 1.0f, 1.0f }, Vector3{ 32.0f, 32.0f, 32.0f }, 0.1f, 0.0f, 3  });
     // Material 4: Tall Box (warm white diffuse)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 4 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 4  });
     // Material 5: Short Box (cool white diffuse)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 5 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 5  });
     // Material 6: Sphere (warm off-white, smoother than the boxes so the oculus highlight is visible on it)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.82f, 0.78f, 0.72f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.25f, 0.0f, 6 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.82f, 0.78f, 0.72f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.25f, 0.0f, 6  });
     // Material 7: Cone (muted blue)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.35f, 0.45f, 0.70f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 7 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.35f, 0.45f, 0.70f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 7  });
     // Material 8: Torus (muted amber)
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.55f, 0.25f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.35f, 0.0f, 8 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.55f, 0.25f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.35f, 0.0f, 8  });
 
     // Cornell Box in the engine's right-handed Z-up world (CLAUDE.md §7):
     //      X ∈ [−2, +2]  right / east       (red wall at X = −2, green wall at X = +2)
@@ -82,32 +105,62 @@ void RayTracingSolver::ConstructCornellBoxScene() noexcept
     constexpr uint32_t HoleSides = 48u;                    // 48 sides: the rim reads as a circle at room scale
 
     // Floor (Z = 0, normal +Z)
-    AppendQuad(Vector3{ RoomMinX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, 0.0f }, 0);
+    {
+        const auto FloorSpan = OpenSpan("Floor");
+        AppendQuad(Vector3{ RoomMinX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, 0.0f }, 0);
+    }
 
     // Ceiling (Z = RoomTopZ, normal −Z) — a plate with the oculus cut out of it. Until the sky exists the
     //    opening reads as black, which is correct: there is genuinely nothing above it yet.
-    AppendPlateWithCircularHole(RoomMinX, RoomMinY, RoomMaxX, RoomMaxY, RoomTopZ,
-                                Vector3{ HoleCentreX, HoleCentreY, RoomTopZ }, HoleRadius, HoleSides, true, 0);
+    {
+        const auto CeilingSpan = OpenSpan("Ceiling");
+        AppendPlateWithCircularHole(RoomMinX, RoomMinY, RoomMaxX, RoomMaxY, RoomTopZ,
+                                    Vector3{ HoleCentreX, HoleCentreY, RoomTopZ }, HoleRadius, HoleSides, true, 0);
+    }
 
     // Back Wall (Y = RoomMaxY, normal −Y)
-    AppendQuad(Vector3{ RoomMinX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, RoomTopZ }, Vector3{ RoomMinX, RoomMaxY, RoomTopZ }, 0);
+    {
+        const auto BackSpan = OpenSpan("Back Wall");
+        AppendQuad(Vector3{ RoomMinX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMaxY, RoomTopZ }, Vector3{ RoomMinX, RoomMaxY, RoomTopZ }, 0);
+    }
     // Left Wall (X = −2, Red, normal +X)
-    AppendQuad(Vector3{ RoomMinX, RoomMinY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, RoomTopZ }, Vector3{ RoomMinX, RoomMinY, RoomTopZ }, 1);
+    {
+        const auto LeftSpan = OpenSpan("Left Wall");
+        AppendQuad(Vector3{ RoomMinX, RoomMinY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, 0.0f }, Vector3{ RoomMinX, RoomMaxY, RoomTopZ }, Vector3{ RoomMinX, RoomMinY, RoomTopZ }, 1);
+    }
     // Right Wall (X = +2, Green, normal −X)
-    AppendQuad(Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, RoomTopZ }, Vector3{ RoomMaxX, RoomMaxY, RoomTopZ }, 2);
+    {
+        const auto RightSpan = OpenSpan("Right Wall");
+        AppendQuad(Vector3{ RoomMaxX, RoomMaxY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, 0.0f }, Vector3{ RoomMaxX, RoomMinY, RoomTopZ }, Vector3{ RoomMaxX, RoomMaxY, RoomTopZ }, 2);
+    }
 
     // Tall Box (0.84 × 0.84 footprint, 1.8 m tall, rotated +22° about Z) — rear left, clear of the aperture so it
     //    catches the edge of the shaft and casts a long shadow rather than plugging the hole.
-    AppendBox(Vector3{ -0.90f, 2.70f, 0.90f }, Vector3{ 0.42f, 0.42f, 0.90f },  22.0f, 4);
+    {
+        const auto TallSpan = OpenSpan("Tall Box", true);
+        AppendBox(Vector3{ -0.90f, 2.70f, 0.90f }, Vector3{ 0.42f, 0.42f, 0.90f },  22.0f, 4);
+    }
     // Short Box (0.84 × 0.84 footprint, 0.9 m tall, rotated −18° about Z) — front right
-    AppendBox(Vector3{  0.85f, 1.50f, 0.45f }, Vector3{ 0.42f, 0.42f, 0.45f }, -18.0f, 5);
+    {
+        const auto ShortSpan = OpenSpan("Short Box", true);
+        AppendBox(Vector3{  0.85f, 1.50f, 0.45f }, Vector3{ 0.42f, 0.42f, 0.45f }, -18.0f, 5);
+    }
 
     // Parametric primitives, placed clear of the two boxes and of each other. Segment counts are chosen for a
     //    GTX 1650 SUPER: together these three add ~2 400 triangles against the room's 40, which is the right
     //    order for a test scene and still leaves headroom before the R8 GPU-BVH gate at ~15 000 moving triangles.
-    AppendSphere(Vector3{ -1.15f, 1.05f, 0.45f }, 0.45f, 32u, 16u, 6u);           //   960 tris
-    AppendCone  (Vector3{  1.30f, 3.05f, 0.00f }, 0.45f, 1.10f, 32u, 7u);         //    64 tris
-    AppendTorus (Vector3{  0.00f, 1.55f, 0.32f }, 0.42f, 0.14f, 36u, 18u, 8u);    // 1 296 tris
+    {
+        const auto SphereSpan = OpenSpan("Sphere", true);
+        AppendSphere(Vector3{ -1.15f, 1.05f, 0.45f }, 0.45f, 32u, 16u, 6u);           //   960 tris
+    }
+    {
+        const auto ConeSpan = OpenSpan("Cone", true);
+        AppendCone  (Vector3{  1.30f, 3.05f, 0.00f }, 0.45f, 1.10f, 32u, 7u);         //    64 tris
+    }
+    {
+        const auto TorusSpan = OpenSpan("Torus", true);
+        AppendTorus (Vector3{  0.00f, 1.55f, 0.32f }, 0.42f, 0.14f, 36u, 18u, 8u);    // 1 296 tris
+    }
 
     // Ceiling Luminaire (Z = RoomTopZ − 0.005, normal −Z) — LAST, see note above.
     //
@@ -116,8 +169,11 @@ void RayTracingSolver::ConstructCornellBoxScene() noexcept
     //    with the sky behind it — the one thing the aperture exists to show, blocked by the lamp that the
     //    aperture is meant to be compared against. The hole reaches Y = 1.35 at its nearest; this ends at 1.15.
     constexpr float LampMinY = 0.35f, LampMaxY = 1.15f, LampZ = RoomTopZ - 0.005f;
-    AppendQuad(Vector3{ -0.50f, LampMaxY, LampZ }, Vector3{ 0.50f, LampMaxY, LampZ },
-               Vector3{  0.50f, LampMinY, LampZ }, Vector3{ -0.50f, LampMinY, LampZ }, 3);
+    {
+        const auto LuminaireSpan = OpenSpan("Ceiling Luminaire");
+        AppendQuad(Vector3{ -0.50f, LampMaxY, LampZ }, Vector3{ 0.50f, LampMaxY, LampZ },
+                   Vector3{  0.50f, LampMinY, LampZ }, Vector3{ -0.50f, LampMinY, LampZ }, 3);
+    }
 }
 
 void RayTracingSolver::AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept
@@ -197,16 +253,17 @@ void RayTracingSolver::ConstructOutdoorScene() noexcept
 {
     Triangles.clear();
     Materials.clear();
+    Spans.clear();
 
     // Ground is deliberately mid-grey and slightly rough. A bright ground would bounce enough light to mask the
     //    sky's own contribution, which is the thing being judged; a dark one would hide the sun's shadows.
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.32f, 0.32f, 0.30f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.6f, 0.0f, 0 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.32f, 0.32f, 0.30f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.6f, 0.0f, 0  });
     // A neutral white for the shadow casters, so their shading is the sky's colour and not their own.
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.80f, 0.80f, 0.80f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 1 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.80f, 0.80f, 0.80f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 1  });
     // Smoother, to catch a specular glint of the sun and the sky.
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.72f, 0.74f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.15f, 0.0f, 2 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.72f, 0.74f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.15f, 0.0f, 2  });
     // Warm, so the sunset's colour shift is legible against something that is not neutral.
-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.70f, 0.45f, 0.28f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 3 });
+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.70f, 0.45f, 0.28f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 3  });
 
     // ⚠️ The ground is 400 m across, not a few metres. Two reasons, both load-bearing:
     //      · the horizon has to be far enough away that the eye reads it as a horizon rather than as the edge of
@@ -214,20 +271,41 @@ void RayTracingSolver::ConstructOutdoorScene() noexcept
     //      · aerial perspective (A6) is invisible over six metres — 0.016 % colour shift, 24× below one 8-bit
     //        step — and only becomes measurable over hundreds. This scene is what makes that phase testable.
     constexpr float GroundExtent = 200.0f;   // [m] half-width
-    AppendQuad(Vector3{ -GroundExtent, -GroundExtent, 0.0f }, Vector3{  GroundExtent, -GroundExtent, 0.0f },
-               Vector3{  GroundExtent,  GroundExtent, 0.0f }, Vector3{ -GroundExtent,  GroundExtent, 0.0f }, 0);
+    {
+        const auto GroundSpan = OpenSpan("Ground");
+        AppendQuad(Vector3{ -GroundExtent, -GroundExtent, 0.0f }, Vector3{  GroundExtent, -GroundExtent, 0.0f },
+                   Vector3{  GroundExtent,  GroundExtent, 0.0f }, Vector3{ -GroundExtent,  GroundExtent, 0.0f }, 0);
+    }
 
     // Casters at a spread of heights, so shadow length changes visibly as the sun moves and the penumbra widens
     //    with distance from the ground — which is the A4 result made observable.
-    AppendSphere(Vector3{ -3.20f, 6.00f, 1.20f }, 1.20f, 40u, 20u, 1u);
-    AppendSphere(Vector3{  4.60f, 11.00f, 0.70f }, 0.70f, 32u, 16u, 2u);
-    AppendCone  (Vector3{  1.80f, 5.20f, 0.00f }, 0.90f, 2.60f, 40u, 3u);
-    AppendTorus (Vector3{ -1.40f, 9.50f, 1.60f }, 1.10f, 0.30f, 44u, 22u, 2u);
+    {
+        const auto WhiteSphereSpan = OpenSpan("White Sphere");
+        AppendSphere(Vector3{ -3.20f, 6.00f, 1.20f }, 1.20f, 40u, 20u, 1u);
+    }
+    {
+        const auto SteelSphereSpan = OpenSpan("Steel Sphere");
+        AppendSphere(Vector3{  4.60f, 11.00f, 0.70f }, 0.70f, 32u, 16u, 2u);
+    }
+    {
+        const auto ClayConeSpan = OpenSpan("Clay Cone");
+        AppendCone  (Vector3{  1.80f, 5.20f, 0.00f }, 0.90f, 2.60f, 40u, 3u);
+    }
+    {
+        const auto SteelTorusSpan = OpenSpan("Steel Torus");
+        AppendTorus (Vector3{ -1.40f, 9.50f, 1.60f }, 1.10f, 0.30f, 44u, 22u, 2u);
+    }
 
     // A tall thin slab. A long shadow is the clearest possible read on the sun's elevation, and its edge is
     //    where a penumbra is easiest to measure against the numbers A4 recorded.
-    AppendBox(Vector3{  6.50f, 4.00f, 2.00f }, Vector3{ 0.25f, 1.60f, 2.00f }, 18.0f, 1u);
-    AppendBox(Vector3{ -6.00f, 3.20f, 0.60f }, Vector3{ 1.00f, 1.00f, 0.60f }, -12.0f, 3u);
+    {
+        const auto WhiteSlabSpan = OpenSpan("White Slab");
+        AppendBox(Vector3{  6.50f, 4.00f, 2.00f }, Vector3{ 0.25f, 1.60f, 2.00f }, 18.0f, 1u);
+    }
+    {
+        const auto ClayCrateSpan = OpenSpan("Clay Crate");
+        AppendBox(Vector3{ -6.00f, 3.20f, 0.60f }, Vector3{ 1.00f, 1.00f, 0.60f }, -12.0f, 3u);
+    }
 
     // ⚠️ NO luminaire. The sun is the only light, which is what A4 made possible: before it, a scene with no
     //    emissive triangle was simply black. That makes this scene a live test of the sun-as-emitter path — if

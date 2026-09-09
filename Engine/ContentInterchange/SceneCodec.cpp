@@ -147,6 +147,8 @@ bool SceneCodec::Decode(const std::string& Path, SceneStructure& Out, TextureInd
         const Matrix4x4 Local = Ancestor == kPlacementNone ? World : ProjectionFromColumns(LocalColumns);
         const uint32_t Placement = Out.RegisterPlacement(Node.name ? Node.name : ("node_" + std::to_string(N)), Ancestor, Local, World);
         PlacementOf[N] = Placement;
+        if (Node.extras.data != nullptr && std::strstr(Node.extras.data, "frontier_dynamic") != nullptr)
+            Out.AssignPlacementDynamic(Placement, true);
         if (Node.camera) Out.AttachCamera(Placement, static_cast<uint32_t>(Node.camera - Data->cameras));
         if (Node.light)  Out.AttachPunctualLuminaire(Placement, static_cast<uint32_t>(Node.light - Data->lights));
         if (!Node.mesh) continue;
@@ -274,10 +276,206 @@ std::string Number(float F)
 
 } // namespace
 
+// Spanned encode: one node + mesh per object span (the outliner walks these). The per-material gathering below
+//    repeats Encode's own loop on purpose — sharing it would touch the byte-pinned R2 path, and the pin matters
+//    more than the duplication.
+
+namespace {
+
+void AppendEscapedName(std::ostream& Out, const std::string& Text) noexcept
+{
+    for (char C : Text)
+    {
+        if (C == '"' || C == '\\') Out << '\\';
+        Out << C;
+    }
+}
+
+// A span is emissive when any of its triangles sits on a material whose slabs emit.
+bool SpanEmits(const std::vector<TriangleIndex>& Triangles, const TriangleSpanRecord& Span,
+               const std::vector<MaterialDescriptor>& Materials) noexcept
+{
+    const uint32_t Count = static_cast<uint32_t>(Triangles.size());
+    const uint32_t First = Span.FirstTriangle < Count ? Span.FirstTriangle : Count;
+    const uint32_t End   = Span.FirstTriangle + Span.TriangleCount < Count
+        ? Span.FirstTriangle + Span.TriangleCount : Count;
+    for (uint32_t T = First; T < End; ++T)
+    {
+        uint32_t Slot = 0u;
+        std::memcpy(&Slot, &Triangles[T].MaterialSlot, sizeof(Slot));
+        if (Slot >= Materials.size()) continue;
+        for (const MaterialSlabDescriptor& Slab : Materials[Slot].Slabs)
+            if (Slab.EmissionLuminance > 0.0f) return true;
+    }
+    return false;
+}
+
+bool EncodeSpanned(const std::string& Path, const std::vector<TriangleIndex>& Triangles,
+                   const std::vector<MaterialDescriptor>& Materials, std::string* Error,
+                   const SceneEncodeConfiguration& Configuration,
+                   const std::vector<TriangleSpanRecord>& Spans) noexcept
+{
+    const uint32_t TriangleCount = static_cast<uint32_t>(Triangles.size());
+    std::vector<const TriangleSpanRecord*> Order;
+    Order.reserve(Spans.size());
+    for (const TriangleSpanRecord& S : Spans)
+    {
+        const uint32_t First = S.FirstTriangle < TriangleCount ? S.FirstTriangle : TriangleCount;
+        const uint32_t End   = S.FirstTriangle + S.TriangleCount < TriangleCount
+            ? S.FirstTriangle + S.TriangleCount : TriangleCount;
+        if (End > First) Order.push_back(&S);
+    }
+    if (Order.empty()) { if (Error) *Error = "no span covers any triangle"; return false; }
+    // Emissive spans trail, stably: the luminaire convention the builders keep ("emissive appended last") then
+    //    holds in the file even for scenes whose emitter sits mid-list (the shader ball's glowing ball). The
+    //    luminaire set keeps its relative order either way, so the alias table — and the render — is unchanged.
+    std::stable_partition(Order.begin(), Order.end(),
+        [&](const TriangleSpanRecord* S) { return !SpanEmits(Triangles, *S, Materials); });
+
+    std::vector<uint8_t> Buffer;
+    std::ostringstream Views, Accessors, Nodes, Meshes, SceneNodes;
+    uint32_t ViewIndex = 0u, AccessorIndex = 0u;
+    const std::string Name = Configuration.Name.empty() ? std::string("CornellBox") : Configuration.Name;
+    const bool Smooth = Configuration.CornerNormals && Configuration.CornerNormals->size() == Triangles.size() * 3u;
+
+    for (size_t N = 0u; N < Order.size(); ++N)
+    {
+        const TriangleSpanRecord& Span = *Order[N];
+        const size_t First = Span.FirstTriangle < TriangleCount ? Span.FirstTriangle : TriangleCount;
+        const size_t End   = Span.FirstTriangle + Span.TriangleCount < TriangleCount
+            ? Span.FirstTriangle + Span.TriangleCount : TriangleCount;
+        std::ostringstream Primitives;
+        bool FirstPrimitive = true;
+
+        for (uint32_t M = 0u; M < Materials.size(); ++M)
+        {
+            std::vector<float> Positions, Normals, Texcoords;
+            std::vector<uint32_t> Indices;
+            float Minimum[3] = {  1e30f,  1e30f,  1e30f };
+            float Maximum[3] = { -1e30f, -1e30f, -1e30f };
+            for (size_t TriangleSlot = First; TriangleSlot < End; ++TriangleSlot)
+            {
+                const TriangleIndex& T = Triangles[TriangleSlot];
+                uint32_t Slot; std::memcpy(&Slot, &T.MaterialSlot, sizeof(Slot));
+                if (Slot != M) continue;
+                const Vector3 Corners[3] = { WorldToGltf(Vector3{ T.VertexAlphaX, T.VertexAlphaY, T.VertexAlphaZ }),
+                                             WorldToGltf(Vector3{ T.VertexBetaX,  T.VertexBetaY,  T.VertexBetaZ  }),
+                                             WorldToGltf(Vector3{ T.VertexGammaX, T.VertexGammaY, T.VertexGammaZ }) };
+                const Vector3 A = Vector3{ T.VertexAlphaX, T.VertexAlphaY, T.VertexAlphaZ }, B = Vector3{ T.VertexBetaX, T.VertexBetaY, T.VertexBetaZ }, C = Vector3{ T.VertexGammaX, T.VertexGammaY, T.VertexGammaZ };
+                const Vector3 Cross = OrientationClassifier::CrossProduct(B - A, C - A);
+                const float   Len   = Cross.Length();
+                const Vector3 Nrm = WorldToGltf(Len > 0.0f ? Cross / Len : Vector3{ 0.0f, 0.0f, 1.0f });
+                const float Uv[3][2] = { { T.TextureAlphaU, T.TextureAlphaV }, { T.TextureBetaU, T.TextureBetaV }, { T.TextureGammaU, T.TextureGammaV } };
+                for (uint32_t K = 0u; K < 3u; ++K)
+                {
+                    const Vector3& Corner = Corners[K];
+                    const Vector3 Ns = Smooth ? WorldToGltf((*Configuration.CornerNormals)[TriangleSlot * 3u + K]) : Nrm;
+                    Indices.push_back(static_cast<uint32_t>(Positions.size() / 3u));
+                    Positions.insert(Positions.end(), { Corner.x, Corner.y, Corner.z });
+                    Normals.insert(Normals.end(), { Ns.x, Ns.y, Ns.z });
+                    if (Configuration.WriteTexcoords) Texcoords.insert(Texcoords.end(), { Uv[K][0], Uv[K][1] });
+                    Minimum[0] = std::min(Minimum[0], Corner.x); Minimum[1] = std::min(Minimum[1], Corner.y); Minimum[2] = std::min(Minimum[2], Corner.z);
+                    Maximum[0] = std::max(Maximum[0], Corner.x); Maximum[1] = std::max(Maximum[1], Corner.y); Maximum[2] = std::max(Maximum[2], Corner.z);
+                }
+            }
+            if (Indices.empty()) continue;
+
+            const auto EmitView = [&](size_t ByteOffset, size_t ByteLength, int Target)
+            {
+                if (ViewIndex) Views << ",";
+                Views << "{\"buffer\":0,\"byteOffset\":" << ByteOffset << ",\"byteLength\":" << ByteLength << ",\"target\":" << Target << "}";
+                return ViewIndex++;
+            };
+
+            size_t Offset = Buffer.size();
+            AppendFloats(Buffer, Positions.data(), Positions.size());
+            const uint32_t PositionView = EmitView(Offset, Positions.size() * 4u, 34962);
+            Offset = Buffer.size();
+            AppendFloats(Buffer, Normals.data(), Normals.size());
+            const uint32_t NormalView = EmitView(Offset, Normals.size() * 4u, 34962);
+            uint32_t TexcoordView = 0u;
+            if (Configuration.WriteTexcoords)
+            {
+                Offset = Buffer.size();
+                AppendFloats(Buffer, Texcoords.data(), Texcoords.size());
+                TexcoordView = EmitView(Offset, Texcoords.size() * 4u, 34962);
+            }
+            Offset = Buffer.size();
+            Buffer.resize(Offset + Indices.size() * 4u);
+            std::memcpy(Buffer.data() + Offset, Indices.data(), Indices.size() * 4u);
+            const uint32_t IndexView = EmitView(Offset, Indices.size() * 4u, 34963);
+
+            const uint32_t Count = static_cast<uint32_t>(Positions.size() / 3u);
+            if (AccessorIndex) Accessors << ",";
+            Accessors << "{\"bufferView\":" << PositionView << ",\"componentType\":5126,\"count\":" << Count << ",\"type\":\"VEC3\""
+                      << ",\"min\":[" << Number(Minimum[0]) << "," << Number(Minimum[1]) << "," << Number(Minimum[2]) << "]"
+                      << ",\"max\":[" << Number(Maximum[0]) << "," << Number(Maximum[1]) << "," << Number(Maximum[2]) << "]}";
+            const uint32_t PositionAccessor = AccessorIndex++;
+            Accessors << ",{\"bufferView\":" << NormalView << ",\"componentType\":5126,\"count\":" << Count << ",\"type\":\"VEC3\"}";
+            const uint32_t NormalAccessor = AccessorIndex++;
+            uint32_t TexcoordAccessor = 0u;
+            if (Configuration.WriteTexcoords)
+            {
+                Accessors << ",{\"bufferView\":" << TexcoordView << ",\"componentType\":5126,\"count\":" << Count << ",\"type\":\"VEC2\"}";
+                TexcoordAccessor = AccessorIndex++;
+            }
+            Accessors << ",{\"bufferView\":" << IndexView << ",\"componentType\":5125,\"count\":" << Indices.size() << ",\"type\":\"SCALAR\"}";
+            const uint32_t IndexAccessor = AccessorIndex++;
+
+            if (!FirstPrimitive) Primitives << ",";
+            FirstPrimitive = false;
+            Primitives << "{\"attributes\":{\"POSITION\":" << PositionAccessor << ",\"NORMAL\":" << NormalAccessor;
+            if (Configuration.WriteTexcoords) Primitives << ",\"TEXCOORD_0\":" << TexcoordAccessor;
+            Primitives << "},\"indices\":" << IndexAccessor
+                       << ",\"material\":" << M << ",\"mode\":4}";
+        }
+
+        if (N) { Nodes << ","; Meshes << ","; SceneNodes << ","; }
+        Nodes << "{\"mesh\":" << N << ",\"name\":\"";
+        AppendEscapedName(Nodes, Span.Name);
+        Nodes << "\"";
+        if (Span.Dynamic) Nodes << ",\"extras\":{\"frontier_dynamic\":1}";
+        Nodes << "}";
+        Meshes << "{\"name\":\"";
+        AppendEscapedName(Meshes, Span.Name);
+        Meshes << "\",\"primitives\":[" << Primitives.str() << "]}";
+        SceneNodes << N;
+    }
+
+    std::ostringstream MaterialsJson;
+    std::vector<std::string> ExtensionsUsed;
+    for (uint32_t M = 0u; M < Materials.size(); ++M)
+    {
+        if (M) MaterialsJson << ",";
+        MaterialsJson << MaterialCodec::EncodeGltf(Materials[M], ExtensionsUsed, nullptr);
+    }
+    std::ostringstream ExtensionsJson;
+    for (size_t I = 0; I < ExtensionsUsed.size(); ++I) ExtensionsJson << (I ? "," : "") << "\"" << ExtensionsUsed[I] << "\"";
+
+    std::ofstream File(Path, std::ios::binary | std::ios::trunc);
+    if (!File) { if (Error) *Error = "cannot open " + Path + " for writing"; return false; }
+    File << "{\"asset\":{\"version\":\"2.0\",\"generator\":\"Frontier SceneCodec\"},"
+         << "\"extensionsUsed\":[" << ExtensionsJson.str() << "],"
+         << "\"scene\":0,\"scenes\":[{\"name\":\"";
+    AppendEscapedName(File, Name);
+    File << "\",\"nodes\":[" << SceneNodes.str() << "]}],\"nodes\":[" << Nodes.str() << "],"
+         << "\"meshes\":[" << Meshes.str() << "],"
+         << "\"materials\":[" << MaterialsJson.str() << "],"
+         << "\"accessors\":[" << Accessors.str() << "],"
+         << "\"bufferViews\":[" << Views.str() << "],"
+         << "\"buffers\":[{\"byteLength\":" << Buffer.size() << ",\"uri\":\"data:application/octet-stream;base64," << Base64(Buffer) << "\"}]}\n";
+    return static_cast<bool>(File);
+}
+
+} // namespace
+
 bool SceneCodec::Encode(const std::string& Path, const std::vector<TriangleIndex>& Triangles,
                         const std::vector<MaterialDescriptor>& Materials, std::string* Error,
                         const SceneEncodeConfiguration& Configuration) noexcept
 {
+    if (Configuration.Spans != nullptr && !Configuration.Spans->empty())
+        return EncodeSpanned(Path, Triangles, Materials, Error, Configuration, *Configuration.Spans);
+
     std::vector<uint8_t> Buffer;
     std::ostringstream Views, Accessors, Primitives;
     uint32_t ViewIndex = 0u, AccessorIndex = 0u;

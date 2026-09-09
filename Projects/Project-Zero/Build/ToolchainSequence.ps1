@@ -5,6 +5,7 @@
 #     powershell -File Projects\Project-Zero\Build\ToolchainSequence.ps1
 #     powershell -File Projects\Project-Zero\Build\ToolchainSequence.ps1 -Configuration Debug
 #     powershell -File Projects\Project-Zero\Build\ToolchainSequence.ps1 -Rebuild -Run
+#     powershell -File Projects\Project-Zero\Build\ToolchainSequence.ps1 -Development:$false   # ship build: no editor
 
 [CmdletBinding()]
 param(
@@ -19,7 +20,10 @@ param(
     #    AVX2    Haswell (2013) and later.
     # This must match Scripts/BuildJolt.ps1 and every other project script: Jolt derives JPH_USE_AVX/SSE4_2/SSE4_1
     #    from the compiler's __AVX__ macros and RegisterTypes() aborts on a library/client mismatch.
-    [ValidateSet('SSE2', 'AVX', 'AVX2')] [string] $Isa = 'SSE2'
+    [ValidateSet('SSE2', 'AVX', 'AVX2')] [string] $Isa = 'SSE2',
+    # Development editor (outliner / viewport / inspector over the live scene). On by default; pass
+    #    -Development:$false for a ship build — the editor compiles out and the game runs without it.
+    [switch] $Development = $true
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,7 +131,7 @@ function Resolve-VulkanRoot
 #                                         COMPILATION FLAGS
 #---
 
-function Get-CompilationFlags([string] $Selection)
+function Get-CompilationFlags([string] $Selection, [bool] $Development)
 {
     $MpFlag = '/MP'
     if ($Parallel -gt 0) { $MpFlag = "/MP$Parallel" }
@@ -148,9 +152,11 @@ function Get-CompilationFlags([string] $Selection)
         '/DNOMINMAX'
         '/D_CRT_SECURE_NO_WARNINGS'   # third-party C (cgltf) uses fopen/strcpy; deprecation warnings are noise
         '/DGLFW_DLL'
-        '/DFRONTIER_DEVELOPMENT'
         '/DFRONTIER_ENABLE_GLFW'
     )
+    # The editor lives behind FRONTIER_DEVELOPMENT: defined, the panels record over the live scene;
+    #    undefined, the host compiles to empty shells and the game runs without them.
+    if ($Development) { $Common += '/DFRONTIER_DEVELOPMENT' }
     # Baseline SSE2 emits no /arch at all (it is the x64 default); anything else is opt-in via -Isa.
     #    tinybvh falls back to its scalar path cleanly when AVX is absent.
     if ($Isa -ne 'SSE2') { $Common += "/arch:$Isa" }
@@ -620,7 +626,7 @@ if ($Rebuild -and (Test-Path $OutputRoot))
 New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
 $ObjectRoot = Join-Path $OutputRoot 'Object'
 
-$Flags        = Get-CompilationFlags $Configuration
+$Flags        = Get-CompilationFlags $Configuration $Development
 $IncludePaths = Get-IncludePaths $VulkanRoot
 
 # Collect sources
@@ -707,6 +713,7 @@ $EngineRelative = @(
     'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'
+    'Projects\\Project-Zero\\Source\\EditorFeedSequence.cpp'
     'Projects\Project-Zero\Source\GameExecution.cpp'
 )
 

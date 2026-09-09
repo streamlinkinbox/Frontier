@@ -30,6 +30,18 @@ public:
     [[nodiscard]] const std::vector<Vector3>&            QueryCornerNormals() const noexcept { return CornerNormals; }
     [[nodiscard]] const std::vector<MaterialDescriptor>& QueryMaterials()     const noexcept { return Materials; }
 
+    // Object spans: one record per scene object over Triangles, in append order. The scope closes itself when
+    //    it dies, so a span covers exactly the Appends in its block — hold one per object in Construct.
+    struct SpanScope
+    {
+        std::vector<TriangleSpanRecord>*     Spans     = nullptr;
+        const std::vector<TriangleIndex>*    Triangles = nullptr;
+        uint32_t                             Span      = 0u;
+        ~SpanScope() noexcept;
+    };
+    [[nodiscard]] SpanScope                              OpenSpan(const char* Name, bool Dynamic = false) noexcept;
+    [[nodiscard]] const std::vector<TriangleSpanRecord>& QuerySpans() const noexcept { return Spans; }
+
 private:
     void AppendSphere(const Vector3& Centre, float Radius, uint32_t Material, uint32_t Rings, uint32_t Segments) noexcept;
     void AppendQuad(const Vector3& A, const Vector3& B, const Vector3& C, const Vector3& D, uint32_t Material, float UvScale) noexcept;
@@ -38,6 +50,7 @@ private:
     std::vector<TriangleIndex>      Triangles;
     std::vector<Vector3>            CornerNormals;
     std::vector<MaterialDescriptor> Materials;
+    std::vector<TriangleSpanRecord> Spans;
 };
 
 } // namespace Frontier

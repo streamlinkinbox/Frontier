@@ -118,6 +118,7 @@ struct PlacementRecord
     uint32_t    InstanceCount   = 0u;               // [cnt]
     uint32_t    Camera          = kPlacementNone;   // [idx] CameraRecord
     uint32_t    Luminaire       = kPlacementNone;   // [idx] PunctualLuminaireRecord
+    bool        Dynamic         = false;            // [-] the object moves (--animate / physics drive it)
 };
 
 struct CameraRecord
@@ -169,6 +170,7 @@ public:
     void                    AttachInstances(uint32_t Placement, uint32_t FirstInstance, uint32_t InstanceCount) noexcept;
     void                    AttachCamera(uint32_t Placement, uint32_t Camera) noexcept            { if (Placement < Placements.size() && Camera < Cameras.size()) Placements[Placement].Camera = Camera; }
     void                    AttachPunctualLuminaire(uint32_t Placement, uint32_t Luminaire) noexcept { if (Placement < Placements.size() && Luminaire < PunctualLuminaires.size()) Placements[Placement].Luminaire = Luminaire; }
+    void                    AssignPlacementDynamic(uint32_t Placement, bool Dynamic) noexcept { if (Placement < Placements.size()) Placements[Placement].Dynamic = Dynamic; }
 
     // Finalise: flatten materials at `SlabLimit`, flatten world-space triangles, gather luminaires, build the alias
     //    table. `Report` receives the material fold lines.

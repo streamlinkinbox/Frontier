@@ -16,6 +16,7 @@
 #include "SceneCodec.h"
 #include "../DeviceExchange/OrientationClassifier.h"
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 
 namespace Frontier {
@@ -37,9 +38,31 @@ void SetColor(float* Target, float R, float G, float B) { Target[0] = R; Target[
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
+ShaderBallStructure::SpanScope::~SpanScope() noexcept
+{
+    if (Spans == nullptr || Triangles == nullptr || Span >= Spans->size()) return;
+    TriangleSpanRecord& S = (*Spans)[Span];
+    const uint32_t Now = static_cast<uint32_t>(Triangles->size());
+    S.TriangleCount = Now >= S.FirstTriangle ? Now - S.FirstTriangle : 0u;
+}
+
+ShaderBallStructure::SpanScope ShaderBallStructure::OpenSpan(const char* Name, bool Dynamic) noexcept
+{
+    TriangleSpanRecord S;
+    S.FirstTriangle = static_cast<uint32_t>(Triangles.size());
+    if (Name != nullptr) S.Name = Name;
+    S.Dynamic = Dynamic;
+    Spans.push_back(std::move(S));
+    SpanScope Scope;
+    Scope.Spans     = &Spans;
+    Scope.Triangles = &Triangles;
+    Scope.Span      = static_cast<uint32_t>(Spans.size()) - 1u;
+    return Scope;
+}
+
 void ShaderBallStructure::Construct() noexcept
 {
-    Triangles.clear(); CornerNormals.clear(); Materials.clear();
+    Triangles.clear(); CornerNormals.clear(); Materials.clear(); Spans.clear();
 
     // ── Materials (index = order below) ──────────────────────────────────────────────────────────────────────────────
     {   // 0 floor
@@ -109,7 +132,10 @@ void ShaderBallStructure::Construct() noexcept
     }
 
     // ── Geometry ─────────────────────────────────────────────────────────────────────────────────────────────────────
-    AppendQuad(Vector3{ -4.0f, -3.0f, 0.0f }, Vector3{ 4.0f, -3.0f, 0.0f }, Vector3{ 4.0f, 4.0f, 0.0f }, Vector3{ -4.0f, 4.0f, 0.0f }, 0u, 0.25f);
+    {
+        const auto FloorSpan = OpenSpan("Floor");
+        AppendQuad(Vector3{ -4.0f, -3.0f, 0.0f }, Vector3{ 4.0f, -3.0f, 0.0f }, Vector3{ 4.0f, 4.0f, 0.0f }, Vector3{ -4.0f, 4.0f, 0.0f }, 0u, 0.25f);
+    }
 
     constexpr float Radius = 0.45f;
     uint32_t Material = 1u;
@@ -117,6 +143,11 @@ void ShaderBallStructure::Construct() noexcept
         for (int Column = 0; Column < 6; ++Column, ++Material)
         {
             const Vector3 Centre{ -3.0f + 1.2f * static_cast<float>(Column), -1.2f + 1.2f * static_cast<float>(Row), Radius };
+            char BallName[80];
+            std::snprintf(BallName, sizeof(BallName), "Ball %02u (%s)", Material,
+                          Materials[static_cast<size_t>(Material)].Name.c_str());
+            if (Material == 20u) std::snprintf(BallName, sizeof(BallName), "Alpha Card");
+            const auto BallSpan = OpenSpan(BallName, true);
             if (Material == 20u)   // alpha card: a vertical 0.9 m quad facing the camera instead of a sphere
             {
                 AppendQuad(Vector3{ Centre.x - 0.45f, Centre.y, 0.0f }, Vector3{ Centre.x + 0.45f, Centre.y, 0.0f },
@@ -127,7 +158,10 @@ void ShaderBallStructure::Construct() noexcept
         }
 
     // Luminaire: 2×2 m at Z = 4 facing down (−Z) — LAST.
-    AppendQuad(Vector3{ -1.0f, 1.6f, 4.0f }, Vector3{ 1.0f, 1.6f, 4.0f }, Vector3{ 1.0f, -0.4f, 4.0f }, Vector3{ -1.0f, -0.4f, 4.0f }, 25u, 1.0f);
+    {
+        const auto LuminaireSpan = OpenSpan("Luminaire");
+        AppendQuad(Vector3{ -1.0f, 1.6f, 4.0f }, Vector3{ 1.0f, 1.6f, 4.0f }, Vector3{ 1.0f, -0.4f, 4.0f }, Vector3{ -1.0f, -0.4f, 4.0f }, 25u, 1.0f);
+    }
 }
 
 void ShaderBallStructure::AppendTriangle(const Vector3 P[3], const Vector3 N[3], const float Uv[3][2], uint32_t Material) noexcept
@@ -186,6 +220,7 @@ bool ShaderBallStructure::Export(const std::string& Path, std::string* Error) co
 {
     SceneEncodeConfiguration Configuration;
     Configuration.Name = "ShaderBall"; Configuration.CornerNormals = &CornerNormals; Configuration.WriteTexcoords = true;
+    Configuration.Spans = &Spans;
     return SceneCodec::Encode(Path, Triangles, Materials, Error, Configuration);
 }
 

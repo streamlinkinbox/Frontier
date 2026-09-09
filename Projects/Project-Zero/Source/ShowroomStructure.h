@@ -56,6 +56,18 @@ public:
     [[nodiscard]] static Vector3 QueryPanelOrigin() noexcept { return Vector3{ 0.0f, 1.55f, 1.32f }; }
     [[nodiscard]] static float   QueryPanelTilt()   noexcept { return -0.21f; }   // [rad] ≈ 12° face-up toward the eye
 
+    // Object spans: one record per scene object over Triangles, in append order. The scope closes itself when
+    //    it dies, so a span covers exactly the Appends in its block — hold one per object in Construct.
+    struct SpanScope
+    {
+        std::vector<TriangleSpanRecord>*     Spans     = nullptr;
+        const std::vector<TriangleIndex>*    Triangles = nullptr;
+        uint32_t                             Span      = 0u;
+        ~SpanScope() noexcept;
+    };
+    [[nodiscard]] SpanScope                              OpenSpan(const char* Name, bool Dynamic = false) noexcept;
+    [[nodiscard]] const std::vector<TriangleSpanRecord>& QuerySpans() const noexcept { return Spans; }
+
 private:
     void AppendQuad(const Vector3& A, const Vector3& B, const Vector3& C, const Vector3& D, uint32_t Material, float UvScale) noexcept;
     void AppendBox(const Vector3& Minimum, const Vector3& Maximum, uint32_t Material) noexcept;
@@ -65,6 +77,7 @@ private:
     std::vector<TriangleIndex>      Triangles;
     std::vector<Vector3>            CornerNormals;
     std::vector<MaterialDescriptor> Materials;
+    std::vector<TriangleSpanRecord> Spans;
 
     uint32_t                        FirstDropMaterial = 0u;   // [idx] material/instance ordinal of drop body 0
     uint32_t                        DropCount         = 0u;   // [cnt]

@@ -30,9 +30,13 @@ struct SceneDecodeConfiguration
 
 struct SceneEncodeConfiguration
 {
-    std::string                 Name;                      // node / mesh name; empty = "CornellBox"
+    std::string                 Name;                      // scene name; empty = "CornellBox"
     const std::vector<Vector3>* CornerNormals = nullptr;   // 3 per triangle, world space → smooth NORMAL
     bool                        WriteTexcoords = false;    // emit TEXCOORD_0 from TriangleIndex UVs
+    // Object spans over Triangles, in append order. Null (or empty) keeps the R2 shape — one node, one mesh,
+    //    one primitive per material, byte for byte. Set, each span becomes a named node + mesh, so the decode
+    //    carries one placement per scene object for the outliner to walk.
+    const std::vector<TriangleSpanRecord>* Spans = nullptr;
 };
 
 class SceneCodec
@@ -42,8 +46,9 @@ public:
     //    given. Returns false and sets `Error` on failure; a non-empty `Error` on success is a warning line.
     [[nodiscard]] static bool Decode(const std::string& Path, SceneStructure& Out, TextureIndex* Textures, const SceneDecodeConfiguration& Config, std::string* Error) noexcept;
 
-    // Writes a world-space triangle soup (one mesh, one primitive per material) as an embedded-buffer .gltf.
-    //    Defaults reproduce the R2 Cornell writer byte for byte (flat normals, no TEXCOORD_0, node/mesh named "CornellBox").
+    // Writes a world-space triangle soup as an embedded-buffer .gltf. Without spans the shape is the R2 one
+    //    (one node, one mesh, one primitive per material), reproduced byte for byte (flat normals, no TEXCOORD_0,
+    //    node/mesh named "CornellBox"). With spans each span becomes a named node + mesh (emissive spans last).
     //    R4b: CornerNormals (3 per triangle, world space) switch to smooth shading, WriteTexcoords emits TriangleIndex UVs.
     [[nodiscard]] static bool Encode(const std::string& Path, const std::vector<TriangleIndex>& Triangles,
                                      const std::vector<MaterialDescriptor>& Materials, std::string* Error,

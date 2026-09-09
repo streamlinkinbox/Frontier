@@ -267,6 +267,8 @@ std::vector<MaterialDescriptor> ReSTIRIntegrator::BuildMaterialDescriptors(
     for (const auto& Material : Materials)
     {
         MaterialDescriptor D;
+        // The R2 fallback path keeps its pinned material_N names (see SceneCodecR4Test): object names ride the
+        //    spans, not the materials, so the null-spans encode stays byte-identical.
         D.Name = "material_" + std::to_string(Material.MaterialIdentifier);
         D.Slabs.emplace_back();
         MaterialSlabDescriptor& S = D.Slabs.back();

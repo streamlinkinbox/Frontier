@@ -44,11 +44,18 @@ int main()
     ProjectZero::RayTracingSolver Solver;
     const auto Triangles = ReSTIRIntegrator::BuildTriangleIndex(Solver);
     const auto Materials = ReSTIRIntegrator::BuildMaterialDescriptors(Solver);
+    SceneEncodeConfiguration EncodeConfig;
+    EncodeConfig.Name  = "CornellBox";
+    EncodeConfig.Spans = &Solver.QuerySpans();
 
-    std::printf("[Cornell] exporting %zu triangles, %zu materials\n", Triangles.size(), Materials.size());
+    std::printf("[Cornell] exporting %zu triangles, %zu materials, %zu spans\n", Triangles.size(),
+                Materials.size(), Solver.QuerySpans().size());
+    CheckTrue("the solver names all eleven objects",
+              Solver.QuerySpans().size() == 11u && Solver.QuerySpans()[0].Name == "Floor"
+                  && Solver.QuerySpans()[10].Name == "Ceiling Luminaire");
 
     std::string Error;
-    if (!SceneCodec::Encode(Path, Triangles, Materials, &Error))
+    if (!SceneCodec::Encode(Path, Triangles, Materials, &Error, EncodeConfig))
     {
         std::printf("  ENCODE FAILED: %s\n", Error.c_str());
         return 1;
@@ -73,6 +80,18 @@ int main()
     // One more than authored: the decoder inserts its own default at index 0.
     CheckTrue("every material survived it too",
               Reloaded.QueryMaterials().QueryCount() >= static_cast<uint32_t>(Materials.size()));
+
+    // The spans round-trip into one placement (and one instance) per object, dynamics flagged — this is the
+    //    shape the outliner walks, so the proof pins it here rather than in the editor.
+    const auto& Placements = Reloaded.QueryPlacements();
+    uint32_t DynamicPlacements = 0u;
+    for (const auto& P : Placements) if (P.Dynamic) ++DynamicPlacements;
+    CheckTrue("one placement per scene object", Placements.size() == 11u);
+    CheckTrue("placements carry the builder names",
+              Placements.size() == 11u && Placements[0].Name == "Floor"
+                  && Placements[10].Name == "Ceiling Luminaire");
+    CheckTrue("the five loose objects are flagged dynamic", DynamicPlacements == 5u);
+    CheckTrue("one instance per object", Reloaded.QueryInstances().size() == 11u);
 
     // 🔴 The aperture is the reason this file is regenerated at all, so it is what gets checked. The room is
     //    Z-up in the engine; the loader hands back the engine's own convention, so the ceiling is at Z = 3.
