@@ -44,15 +44,21 @@ std::vector<InstanceRow> Instances;
 // Ports of the shader helpers — must stay identical to ReSTIRViewport.slang.
 //──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+// R10 #6: binary search, mirroring the kernel. FlatTriangleOffset is non-decreasing (SceneStructure::Finalise
+//    assigns it from a growing vector in instance order), and the answer is the LAST instance whose offset does
+//    not exceed the slot — empty instances repeat their predecessor's offset, and the walk this replaces settled
+//    on the last of such a run. Biasing the midpoint up and moving Low on every <= lands on that same element.
 uint32_t InstanceOfPrimitive(uint32_t FlatPrimitive)
 {
-    uint32_t Found = 0u;
-    for (uint32_t I = 0u; I + 1u < static_cast<uint32_t>(Instances.size()); ++I)
+    uint32_t Low  = 0u;
+    uint32_t High = static_cast<uint32_t>(Instances.size()) - 1u;
+    while (Low < High)
     {
-        if (Instances[I + 1u].FlatTriangleOffset <= FlatPrimitive) Found = I + 1u;
-        else break;
+        const uint32_t Mid = Low + (High - Low + 1u) / 2u;
+        if (Instances[Mid].FlatTriangleOffset <= FlatPrimitive) Low  = Mid;
+        else                                                    High = Mid - 1u;
     }
-    return Found;
+    return Low;
 }
 
 uint32_t LocalPrimitive(uint32_t FlatPrimitive, uint32_t Instance)
