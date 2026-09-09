@@ -69,6 +69,9 @@ void RenderScheduler::Present(
     const ProjectZero::RayTracingSolver& Scene,
     uint32_t                             ViewportWidth,
     uint32_t                             ViewportHeight,
+    EditorRecord*                        Records,
+    uint32_t                             RecordCount,
+    EditorSheet*                         PickedSheet,
     const OverlayHook&                   Overlay) noexcept
 {
     ImGui_ImplVulkan_NewFrame();
@@ -80,7 +83,9 @@ void RenderScheduler::Present(
     //    Patches A/B/C switch on. Without FRONTIER_DEVELOPMENT there is no dockspace and no editor — the F3
     //    popup below still floats, and the Control Centre overlay still records through the hook.
 #ifdef FRONTIER_DEVELOPMENT
-    Editor_.Record();
+    Editor_.Record(Records, RecordCount, PickedSheet);
+#else
+    (void)Records; (void)RecordCount; (void)PickedSheet;
 #endif
 
     // ⚠️ The scene / render inspector that used to live here is gone: it is now Engine/Editor, recorded above.
@@ -105,6 +110,15 @@ bool RenderScheduler::QueryEditorCapturesPointer() const noexcept
 bool RenderScheduler::QueryEditorCapturesKeyboard() const noexcept
 {
     return ImGui::GetIO().WantCaptureKeyboard;
+}
+
+uint32_t RenderScheduler::QueryPickedRecord() const noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    return Editor_.QueryPickedRecord();
+#else
+    return kNoEditorRecord;
+#endif
 }
 
 //============================================================================================================================================

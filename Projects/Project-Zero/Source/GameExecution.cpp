@@ -13,6 +13,7 @@
 #include "../../../Engine/DisplayPresentation/ReSTIRIntegrator.h"
 #include "../../../Engine/DisplayPresentation/ShadingTableCodec.h"
 #include "../../../Engine/DisplayPresentation/RenderScheduler.h"
+#include "../../../Engine/Editor/EditorRecord.h"
 #include "../../../Engine/DeviceExchange/DiagnosticMetrics.h"
 #include "../../../Engine/DisplayPresentation/ControlCentreHost.h"
 #include "../../../Engine/DisplayPresentation/PixelSpace.h"
@@ -50,6 +51,318 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+
+namespace {
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  CORNELL EDITOR FEED
+//------------------------------------------------------------------------------------------------------------------------
+
+using Frontier::EditorRecordKind;
+
+// One row of the Cornell register, in preorder: a folder's rows follow it, nested by Depth. Centres and spins
+//    repeat ConstructCornellBoxScene's own Append calls; material-row tints are reseated from the live materials
+//    at fill time, so the register can never disagree with the solver.
+struct CornellEntry
+{
+    const char*      Label;
+    EditorRecordKind Kind;
+    uint32_t         Depth;
+    uint32_t         Kids;
+    float            Tint[3];
+    int              Material;   // the Cornell material, or -1 when the row carries none
+    float            At[3];      // the Append centre
+    float            RotZ;       // degrees about Z
+    bool             Dynamic;    // the two boxes the physics sequence drives
+};
+
+constexpr CornellEntry kCornellEntries[] =
+{
+    { "Room",              EditorRecordKind::Folder,   0u, 5u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Floor",             EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  2.00f, 0.000f },   0.0f, false },
+    { "Ceiling",           EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  2.00f, 3.000f },   0.0f, false },
+    { "Back Wall",         EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  4.00f, 1.500f },   0.0f, false },
+    { "Left Wall",         EditorRecordKind::Geometry, 1u, 0u, { 0.850f, 0.120f, 0.120f },  1, { -2.00f,  2.00f, 1.500f },   0.0f, false },
+    { "Right Wall",        EditorRecordKind::Geometry, 1u, 0u, { 0.120f, 0.850f, 0.150f },  2, {  2.00f,  2.00f, 1.500f },   0.0f, false },
+    { "Objects",           EditorRecordKind::Folder,   0u, 5u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Tall Box",          EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.780f, 0.780f },  4, { -0.90f,  2.70f, 0.900f },  22.0f, true  },
+    { "Short Box",         EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.780f, 0.780f },  5, {  0.85f,  1.50f, 0.450f }, -18.0f, true  },
+    { "Sphere",            EditorRecordKind::Geometry, 1u, 0u, { 0.820f, 0.780f, 0.720f },  6, { -1.15f,  1.05f, 0.450f },   0.0f, false },
+    { "Cone",              EditorRecordKind::Geometry, 1u, 0u, { 0.350f, 0.450f, 0.700f },  7, {  1.30f,  3.05f, 0.550f },   0.0f, false },
+    { "Torus",             EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.550f, 0.250f },  8, {  0.00f,  1.55f, 0.320f },   0.0f, false },
+    { "Lighting",          EditorRecordKind::Folder,   0u, 1u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Ceiling Luminaire", EditorRecordKind::Light,    1u, 0u, { 0.961f, 0.827f, 0.294f },  3, {  0.00f,  0.75f, 2.995f },   0.0f, false },
+    { "Cameras",           EditorRecordKind::Folder,   0u, 1u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Main Camera",       EditorRecordKind::Camera,   1u, 0u, { 0.412f, 0.765f, 1.000f }, -1, {  0.00f, -3.30f, 1.550f },   0.0f, false },
+    { "Environment",       EditorRecordKind::Folder,   0u, 3u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Sky",               EditorRecordKind::Sky,      1u, 0u, { 0.561f, 0.827f, 1.000f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Sun",               EditorRecordKind::Sun,      1u, 0u, { 1.000f, 0.694f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Moon",              EditorRecordKind::Moon,     1u, 0u, { 0.722f, 0.769f, 0.839f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+};
+
+constexpr uint32_t kCornellEntryCount = sizeof(kCornellEntries) / sizeof(kCornellEntries[0]);
+
+void FillCornellRecords(Frontier::EditorRecord* Records,
+                         const Frontier::ProjectZero::RayTracingSolver& Scene) noexcept
+{
+    const auto& Mats = Scene.QueryMaterials();
+    for (uint32_t i = 0u; i < kCornellEntryCount; ++i)
+    {
+        const CornellEntry&     Entry = kCornellEntries[i];
+        Frontier::EditorRecord& Row   = Records[i];
+        std::snprintf(Row.Label, sizeof(Row.Label), "%s", Entry.Label);
+        Row.Depth    = Entry.Depth;
+        Row.KidCount = Entry.Kids;
+        Row.Kind     = Entry.Kind;
+        Row.Tint[0]  = Entry.Tint[0];
+        Row.Tint[1]  = Entry.Tint[1];
+        Row.Tint[2]  = Entry.Tint[2];
+        if (Entry.Kind == EditorRecordKind::Geometry && Entry.Material >= 0
+            && static_cast<size_t>(Entry.Material) < Mats.size())
+        {
+            const auto& Mat = Mats[static_cast<size_t>(Entry.Material)];
+            Row.Tint[0] = Mat.AlbedoColor.x;
+            Row.Tint[1] = Mat.AlbedoColor.y;
+            Row.Tint[2] = Mat.AlbedoColor.z;
+        }
+        Row.Dynamic = Entry.Dynamic;
+    }
+}
+
+// The sheet is UI only: every figure is read live at pick time, and the panel edits the mirror until the
+//    project binding lands. Ranges repeat the configuration comments (the identity switches stay inside them),
+//    so no slider can propose a figure its owner cannot hold. Group and property counts below are fixed at
+//    author time (at most three groups, at most five properties) against limits of six and ten.
+Frontier::EditorPropertyGroup& OpenCornellGroup(Frontier::EditorSheet* Sheet, const char* Title) noexcept
+{
+    Frontier::EditorPropertyGroup& Group = Sheet->Groups[Sheet->GroupCount++];
+    std::snprintf(Group.Title, sizeof(Group.Title), "%s", Title);
+    Group.PropertyCount = 0u;
+    return Group;
+}
+
+Frontier::EditorProperty& OpenCornellProp(Frontier::EditorPropertyGroup& Group, const char* Label,
+                                           Frontier::EditorPropertyKind Kind) noexcept
+{
+    Frontier::EditorProperty& Prop = Group.Properties[Group.PropertyCount++];
+    std::snprintf(Prop.Label, sizeof(Prop.Label), "%s", Label);
+    Prop.Kind = Kind;
+    return Prop;
+}
+
+// Builds the picked record's sheet. Returns the folder tint mirror when one is open — the single binding this
+//    turn — so the tick can carry it back onto the row; null otherwise.
+Frontier::EditorProperty* BuildCornellSheet(uint32_t Index, Frontier::EditorRecord* Records,
+                                             Frontier::EditorSheet* Sheet,
+                                             const Frontier::ReSTIRIntegrator& Integrator,
+                                             const Frontier::ProjectZero::FlyThroughSolver& Camera,
+                                             const Frontier::ProjectZero::RayTracingSolver& Scene) noexcept
+{
+    Sheet->GroupCount = 0u;
+    if (Index >= kCornellEntryCount)
+    {
+        return nullptr;
+    }
+
+    using Frontier::EditorPropertyKind;
+    constexpr float kRadToDeg = 57.29578f;
+    const CornellEntry& Entry = kCornellEntries[Index];
+    const auto&         Cfg   = Integrator.QueryConfiguration();
+    Frontier::EditorProperty* TintMirror = nullptr;
+
+    switch (Entry.Kind)
+    {
+    case EditorRecordKind::Folder:
+    {
+        Frontier::EditorPropertyGroup& Group = OpenCornellGroup(Sheet, "Group");
+        uint32_t Total = 0u;
+        for (uint32_t j = Index + 1u; j < kCornellEntryCount && kCornellEntries[j].Depth > Entry.Depth; ++j)
+        {
+            ++Total;
+        }
+        Frontier::EditorProperty& Contents = OpenCornellProp(Group, "Contents", EditorPropertyKind::Readout);
+        std::snprintf(Contents.Text, sizeof(Contents.Text), "%u direct \xc2\xb7 %u total", Entry.Kids, Total);
+        Frontier::EditorProperty& Tint = OpenCornellProp(Group, "Tint", EditorPropertyKind::Colour);
+        Tint.ColourTint[0] = Records[Index].Tint[0];
+        Tint.ColourTint[1] = Records[Index].Tint[1];
+        Tint.ColourTint[2] = Records[Index].Tint[2];
+        Tint.Swatches = true;
+        TintMirror = &Tint;
+        break;
+    }
+    case EditorRecordKind::Geometry:
+    {
+        Frontier::EditorPropertyGroup& Placed = OpenCornellGroup(Sheet, "Transform");
+        Frontier::EditorProperty& Where = OpenCornellProp(Placed, "Position", EditorPropertyKind::AxisVec3);
+        Where.Axes[0] = Entry.At[0];
+        Where.Axes[1] = Entry.At[1];
+        Where.Axes[2] = Entry.At[2];
+        Where.AxisStep = 0.05f;
+        Where.Editable = false;
+        Frontier::EditorProperty& Spin = OpenCornellProp(Placed, "Rotation", EditorPropertyKind::Readout);
+        std::snprintf(Spin.Text, sizeof(Spin.Text), "%+.0f\xc2\xb0 about Z", static_cast<double>(Entry.RotZ));
+
+        const auto& Mats = Scene.QueryMaterials();
+        if (Entry.Material >= 0 && static_cast<size_t>(Entry.Material) < Mats.size())
+        {
+            const auto& Mat = Mats[static_cast<size_t>(Entry.Material)];
+            Frontier::EditorPropertyGroup& Faced = OpenCornellGroup(Sheet, "Surface");
+            Frontier::EditorProperty& Albedo = OpenCornellProp(Faced, "Albedo", EditorPropertyKind::Colour);
+            Albedo.ColourTint[0] = Mat.AlbedoColor.x;
+            Albedo.ColourTint[1] = Mat.AlbedoColor.y;
+            Albedo.ColourTint[2] = Mat.AlbedoColor.z;
+            Frontier::EditorProperty& Emitted = OpenCornellProp(Faced, "Emission", EditorPropertyKind::Slider);
+            Emitted.Minimum = 0.0f; Emitted.Maximum = 64.0f; Emitted.Figure = Mat.EmissiveRadiance.x;
+            Emitted.Decimals = 1u;
+            std::snprintf(Emitted.Unit, sizeof(Emitted.Unit), "lx");
+            Frontier::EditorProperty& Rough = OpenCornellProp(Faced, "Roughness", EditorPropertyKind::Slider);
+            Rough.Minimum = 0.0f; Rough.Maximum = 1.0f; Rough.Figure = Mat.RoughnessValue;
+            Rough.Decimals = 2u;
+            Frontier::EditorProperty& Metal = OpenCornellProp(Faced, "Metallic", EditorPropertyKind::Readout);
+            std::snprintf(Metal.Text, sizeof(Metal.Text), "%.2f", static_cast<double>(Mat.MetallicValue));
+        }
+        break;
+    }
+    case EditorRecordKind::Light:
+    {
+        const auto& Mats = Scene.QueryMaterials();
+        const auto& Mat  = Mats[static_cast<size_t>(Entry.Material)];
+        const float Brightest = Mat.EmissiveRadiance.x > Mat.EmissiveRadiance.y
+            ? (Mat.EmissiveRadiance.x > Mat.EmissiveRadiance.z ? Mat.EmissiveRadiance.x : Mat.EmissiveRadiance.z)
+            : (Mat.EmissiveRadiance.y > Mat.EmissiveRadiance.z ? Mat.EmissiveRadiance.y : Mat.EmissiveRadiance.z);
+        Frontier::EditorPropertyGroup& Lamp = OpenCornellGroup(Sheet, "Light");
+        Frontier::EditorProperty& Power = OpenCornellProp(Lamp, "Intensity", EditorPropertyKind::Slider);
+        Power.Minimum = 0.0f; Power.Maximum = 64.0f; Power.Figure = Mat.EmissiveRadiance.x;
+        Power.Decimals = 1u;
+        std::snprintf(Power.Unit, sizeof(Power.Unit), "lx");
+        Frontier::EditorProperty& Hue = OpenCornellProp(Lamp, "Colour", EditorPropertyKind::Colour);
+        Hue.ColourTint[0] = Brightest > 0.0f ? Mat.EmissiveRadiance.x / Brightest : 1.0f;
+        Hue.ColourTint[1] = Brightest > 0.0f ? Mat.EmissiveRadiance.y / Brightest : 1.0f;
+        Hue.ColourTint[2] = Brightest > 0.0f ? Mat.EmissiveRadiance.z / Brightest : 1.0f;
+        Frontier::EditorPropertyGroup& Aimed = OpenCornellGroup(Sheet, "Aim");
+        Frontier::EditorProperty& Facing = OpenCornellProp(Aimed, "Direction", EditorPropertyKind::Readout);
+        std::snprintf(Facing.Text, sizeof(Facing.Text), "-Z (nadir)");
+        break;
+    }
+    case EditorRecordKind::Camera:
+    {
+        const Frontier::Vector3 At     = Camera.Convert<Frontier::Vector3>();
+        const auto&             Flight = Camera.QueryConfiguration();
+        Frontier::EditorPropertyGroup& Placed = OpenCornellGroup(Sheet, "Transform");
+        Frontier::EditorProperty& Where = OpenCornellProp(Placed, "Position", EditorPropertyKind::AxisVec3);
+        Where.Axes[0] = At.x;
+        Where.Axes[1] = At.y;
+        Where.Axes[2] = At.z;
+        Where.AxisStep = 0.05f;
+        Where.Editable = false;
+        Frontier::EditorProperty& Pitch = OpenCornellProp(Placed, "Pitch", EditorPropertyKind::Readout);
+        std::snprintf(Pitch.Text, sizeof(Pitch.Text), "%+.1f\xc2\xb0",
+            static_cast<double>(Camera.QueryPitchRadians() * kRadToDeg));
+        Frontier::EditorProperty& Yaw = OpenCornellProp(Placed, "Yaw", EditorPropertyKind::Readout);
+        std::snprintf(Yaw.Text, sizeof(Yaw.Text), "%+.1f\xc2\xb0",
+            static_cast<double>(Camera.QueryYawRadians() * kRadToDeg));
+        Frontier::EditorPropertyGroup& Lens = OpenCornellGroup(Sheet, "Lens");
+        Frontier::EditorProperty& Wide = OpenCornellProp(Lens, "Field of view", EditorPropertyKind::Slider);
+        Wide.Minimum = 20.0f; Wide.Maximum = 120.0f;
+        Wide.Figure = Camera.QueryFieldOfViewRadians() * kRadToDeg;
+        Wide.Decimals = 1u; Wide.Hi = true;
+        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc2\xb0");
+        Frontier::EditorProperty& Shape = OpenCornellProp(Lens, "Aspect", EditorPropertyKind::Readout);
+        std::snprintf(Shape.Text, sizeof(Shape.Text), "%.3f", static_cast<double>(Camera.QueryAspectRatio()));
+        Frontier::EditorPropertyGroup& Moved = OpenCornellGroup(Sheet, "Flight");
+        Frontier::EditorProperty& Fast = OpenCornellProp(Moved, "Speed", EditorPropertyKind::Readout);
+        std::snprintf(Fast.Text, sizeof(Fast.Text), "%.2f m/s", static_cast<double>(Camera.QueryFlightSpeed()));
+        Frontier::EditorProperty& Base = OpenCornellProp(Moved, "Base", EditorPropertyKind::Readout);
+        std::snprintf(Base.Text, sizeof(Base.Text), "%.2f m/s", static_cast<double>(Flight.BaseFlightSpeed));
+        Frontier::EditorProperty& Boost = OpenCornellProp(Moved, "Boost", EditorPropertyKind::Readout);
+        std::snprintf(Boost.Text, sizeof(Boost.Text), "%.2f\xc3\x97", static_cast<double>(Flight.BoostMultiplier));
+        Frontier::EditorProperty& Feel = OpenCornellProp(Moved, "Sensitivity", EditorPropertyKind::Readout);
+        std::snprintf(Feel.Text, sizeof(Feel.Text), "%.5f rad/px", static_cast<double>(Flight.MouseSensitivity));
+        break;
+    }
+    case EditorRecordKind::Sky:
+    {
+        Frontier::EditorPropertyGroup& Air = OpenCornellGroup(Sheet, "Atmosphere");
+        Frontier::EditorProperty& Haze = OpenCornellProp(Air, "Turbidity", EditorPropertyKind::Slider);
+        Haze.Minimum = 1.0f; Haze.Maximum = 4.0f; Haze.Figure = Cfg.SkyTurbidity;
+        Haze.Decimals = 2u;
+        Frontier::EditorProperty& Swing = OpenCornellProp(Air, "Swing", EditorPropertyKind::Slider);
+        Swing.Minimum = 0.0f; Swing.Maximum = 1.0f; Swing.Figure = Cfg.TurbiditySwing;
+        Swing.Decimals = 2u;
+        Frontier::EditorProperty& Grade = OpenCornellProp(Air, "Quality", EditorPropertyKind::Select);
+        std::snprintf(Grade.Options[0], sizeof(Grade.Options[0]), "Off");
+        std::snprintf(Grade.Options[1], sizeof(Grade.Options[1]), "Low");
+        std::snprintf(Grade.Options[2], sizeof(Grade.Options[2]), "Medium");
+        std::snprintf(Grade.Options[3], sizeof(Grade.Options[3]), "High");
+        std::snprintf(Grade.Options[4], sizeof(Grade.Options[4]), "Ultra");
+        Grade.OptionCount = 5u;
+        Grade.Picked = static_cast<uint32_t>(Cfg.SkyQuality);
+        Frontier::EditorProperty& High = OpenCornellProp(Air, "Altitude", EditorPropertyKind::Slider);
+        High.Minimum = 0.0f; High.Maximum = 100.0f; High.Figure = Cfg.CameraAltitude;
+        High.Decimals = 1u;
+        std::snprintf(High.Unit, sizeof(High.Unit), "m");
+        Frontier::EditorProperty& Bounce = OpenCornellProp(Air, "Sky lights", EditorPropertyKind::Switch);
+        Bounce.On = Cfg.SkyLighting;
+        Frontier::EditorPropertyGroup& Dark = OpenCornellGroup(Sheet, "Night");
+        Frontier::EditorProperty& Eve = OpenCornellProp(Dark, "Night sky", EditorPropertyKind::Switch);
+        Eve.On = Cfg.NightSky;
+        Frontier::EditorProperty& Stars = OpenCornellProp(Dark, "Starlight", EditorPropertyKind::Slider);
+        Stars.Minimum = 0.0f; Stars.Maximum = 2.0f; Stars.Figure = Cfg.StarBrightness;
+        Stars.Decimals = 2u;
+        std::snprintf(Stars.Unit, sizeof(Stars.Unit), "cd/m\xc2\xb2");
+        break;
+    }
+    case EditorRecordKind::Sun:
+    {
+        const auto SunDir = Integrator.Celestial().QuerySunDirection();
+        Frontier::EditorPropertyGroup& Orbited = OpenCornellGroup(Sheet, "Orbit");
+        Frontier::EditorProperty& High = OpenCornellProp(Orbited, "Elevation", EditorPropertyKind::Readout);
+        std::snprintf(High.Text, sizeof(High.Text), "%+.1f\xc2\xb0",
+            static_cast<double>(SunDir.Elevation * kRadToDeg));
+        Frontier::EditorProperty& Around = OpenCornellProp(Orbited, "Azimuth", EditorPropertyKind::Readout);
+        std::snprintf(Around.Text, sizeof(Around.Text), "%.1f\xc2\xb0",
+            static_cast<double>(SunDir.Azimuth * kRadToDeg));
+        Frontier::EditorProperty& Aged = OpenCornellProp(Orbited, "Elapsed", EditorPropertyKind::Readout);
+        std::snprintf(Aged.Text, sizeof(Aged.Text), "%.0f s",
+            static_cast<double>(Integrator.Celestial().QueryTime()));
+        Frontier::EditorProperty& Paced = OpenCornellProp(Orbited, "Rate", EditorPropertyKind::Readout);
+        std::snprintf(Paced.Text, sizeof(Paced.Text), "%.2f\xc3\x97",
+            static_cast<double>(Integrator.Celestial().QueryRate()));
+        Frontier::EditorPropertyGroup& Disc = OpenCornellGroup(Sheet, "Disc");
+        Frontier::EditorProperty& Bright = OpenCornellProp(Disc, "Illuminance", EditorPropertyKind::Slider);
+        Bright.Minimum = 0.0f; Bright.Maximum = 200000.0f; Bright.Figure = Cfg.SunIlluminance;
+        Bright.Decimals = 0u;
+        std::snprintf(Bright.Unit, sizeof(Bright.Unit), "lx");
+        break;
+    }
+    case EditorRecordKind::Moon:
+    {
+        const auto MoonDir = Integrator.Celestial().QueryMoonDirection();
+        Frontier::EditorPropertyGroup& Orbited = OpenCornellGroup(Sheet, "Orbit");
+        Frontier::EditorProperty& High = OpenCornellProp(Orbited, "Elevation", EditorPropertyKind::Readout);
+        std::snprintf(High.Text, sizeof(High.Text), "%+.1f\xc2\xb0",
+            static_cast<double>(MoonDir.Elevation * kRadToDeg));
+        Frontier::EditorProperty& Around = OpenCornellProp(Orbited, "Azimuth", EditorPropertyKind::Readout);
+        std::snprintf(Around.Text, sizeof(Around.Text), "%.1f\xc2\xb0",
+            static_cast<double>(MoonDir.Azimuth * kRadToDeg));
+        Frontier::EditorProperty& Waned = OpenCornellProp(Orbited, "Phase", EditorPropertyKind::Readout);
+        std::snprintf(Waned.Text, sizeof(Waned.Text), "%.2f",
+            static_cast<double>(Integrator.Celestial().QueryMoonPhase()));
+        Frontier::EditorPropertyGroup& Disc = OpenCornellGroup(Sheet, "Disc");
+        Frontier::EditorProperty& Wide = OpenCornellProp(Disc, "Angular scale", EditorPropertyKind::Slider);
+        Wide.Minimum = 0.25f; Wide.Maximum = 8.0f; Wide.Figure = Cfg.MoonAngularScale;
+        Wide.Decimals = 2u;
+        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc3\x97");
+        break;
+    }
+    default:
+        break;
+    }
+
+    return TintMirror;
+}
+
+} // namespace
 
 int main(int argc, char** argv)
 {
@@ -725,6 +1038,14 @@ int main(int argc, char** argv)
 
     auto PreviousTime = Clock::now();
 
+    // Cornell editor feed — the register fills once from the live scene; the sheet rebuilds whenever the
+    //    pick moves, and the folder tint mirror (the single binding this turn) carries back every tick.
+    Frontier::EditorRecord   CornellRecords[kCornellEntryCount] = {};
+    Frontier::EditorSheet    PickedSheet = {};
+    bool                     CornellReady = false;
+    uint32_t                 SheetFor     = Frontier::kNoEditorRecord;
+    Frontier::EditorProperty* TintMirror  = nullptr;
+
     while (!Surface.CloseRequested() && !Panel.Convert<bool>())
     {
         const auto  NowTime = Clock::now();
@@ -911,8 +1232,23 @@ int main(int argc, char** argv)
 
         // ③ Build ImGui draw data (calls ImGui::NewFrame → ImGui::Render internally); the Control Centre records
         //    itself onto the foreground list between NewFrame and Render via the overlay hook.
+        // ②c Cornell editor feed: the register fills once, the sheet follows the pick, and the folder
+        //    tint mirror carries back onto the row every tick.
+        if (!CornellReady)
+        {
+            FillCornellRecords(CornellRecords, Scene);
+            CornellReady = true;
+        }
+        const uint32_t PickedNow = Panel.QueryPickedRecord();
+        if (PickedNow != SheetFor)
+        {
+            TintMirror = BuildCornellSheet(PickedNow, CornellRecords, &PickedSheet, Integrator, Camera, Scene);
+            SheetFor   = PickedNow;
+        }
+
         Panel.Present(Integrator, Camera, Scene,
                       Surface.QueryWidth(), Surface.QueryHeight(),
+                      CornellRecords, kCornellEntryCount, &PickedSheet,
                       [&]()
                       {
                           if (OverlaySurface.Begin(Frontier::SurfaceLayer::Above,
@@ -935,6 +1271,14 @@ int main(int argc, char** argv)
                           }
 
                       });
+
+        // ②d The single binding: a folder tint edited in the sheet lands back on its row.
+        if (TintMirror != nullptr && PickedNow < kCornellEntryCount)
+        {
+            CornellRecords[PickedNow].Tint[0] = TintMirror->ColourTint[0];
+            CornellRecords[PickedNow].Tint[1] = TintMirror->ColourTint[1];
+            CornellRecords[PickedNow].Tint[2] = TintMirror->ColourTint[2];
+        }
 
         // ④ Build dispatch configuration from live camera + integrator state (camera motion restarts accumulation)
         //    Render scale: the kernel runs on a sub-rectangle of the storage image and the blit stretches it.

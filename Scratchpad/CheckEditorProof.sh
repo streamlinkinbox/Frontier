@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Headless visual proof for the development editor — compiles the patched vendor plus Engine/Editor, drives ten
 #    ticks through the engine's tick order, rasterises the last tick with a dependency-free CPU rasteriser, and
-#    gates the PNG: three occupied columns, a trapezoid slant on both tab edges, and titled strips.
+#    gates the PNG: three occupied columns, a trapezoid slant on both tab edges, titled strips, the seated theme
+#    tints, and the four faces the theme seats.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 Fail=0
@@ -21,6 +22,7 @@ if ! g++ -std=c++20 -O2 -Wall -Wextra -DFRONTIER_DEVELOPMENT \
      -I ExternalPackages/imgui -I Engine/Editor -I Scratchpad \
      Scratchpad/EditorProof.cpp \
      Engine/Editor/EditorHost.cpp \
+     Engine/Editor/EditorKit.cpp \
      Engine/Editor/OutlinerPanel.cpp \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
@@ -42,9 +44,18 @@ if grep -rn '#include.*Projects/' Engine/Editor/ >/dev/null 2>&1; then
     echo "  the editor includes from Projects/ — the engine must not know game semantics"; Fail=1
 fi
 
-# Banned vocabulary (CLAUDE.md §2). ImGui's own API names its dock columns 'nodes' and its draw-store members
-#    'buffers'; those lines are the vendor's vocabulary, not ours, and are excluded from the scan.
+echo
+echo "[EditorProof] typeface archives the theme seats"
+for Face in EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf \
+            EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Regular.ttf; do
+    if [[ ! -s "$Face" ]]; then echo "  MISSING $Face"; Fail=1; fi
+done
+
+# Banned vocabulary (CLAUDE.md §2). ImGui's own API names its dock columns 'nodes', its draw-store members
+#    'buffers', and its scroll panes 'children'; those lines are the vendor's vocabulary, not ours, and are
+#    excluded from the scan.
 Bad="$(grep -nE '\b(Node|Tree|Item|Entity|Element|Object|Frame|Manager|Controller|Handle|State|Value|Flag|Data|Buffer|Cache|Region|Array|Map|Model|Source|Parent|Child|Mesh|Grid|Filter|Stage|Pass|Ordinal)\b' \
+    Engine/Editor/EditorRecord.h Engine/Editor/EditorKit.h Engine/Editor/EditorKit.cpp \
     Engine/Editor/EditorHost.h Engine/Editor/EditorHost.cpp \
     Engine/Editor/OutlinerPanel.h Engine/Editor/OutlinerPanel.cpp \
     Engine/Editor/ViewportPanel.h Engine/Editor/ViewportPanel.cpp \

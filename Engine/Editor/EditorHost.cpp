@@ -1,14 +1,43 @@
 //============================================================================================================================================
 //                                                      EDITORHOST.CPP
 //============================================================================================================================================
-// 🧩 Development editor host — seats the trapezoid tab sheet, builds the dock columns, and records the three panels.
+// 🧩 Development editor host — seats the theme, builds the dock columns, and records the three panels over the
+//    project's record feed.
 
 #include "EditorHost.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>   // DockBuilder*: the first-seat columns are built, not dragged
 
+#include <cstdio>
+
 namespace Frontier {
+
+//============================================================================================================================================
+//                                                         WIRING
+//============================================================================================================================================
+
+EditorHost::EditorHost() noexcept
+{
+    Outliner_.AssignKit(&Kit_);
+    Viewport_.AssignKit(&Kit_);
+    Inspector_.AssignKit(&Kit_);
+}
+
+uint32_t EditorHost::QueryPickedRecord() const noexcept
+{
+    return Outliner_.QueryPicked();
+}
+
+int EditorHost::QueryFontCount() const noexcept
+{
+    return FontCount_;
+}
+
+void EditorHost::PickRecord(uint32_t Index) noexcept
+{
+    Outliner_.PickRecord(Index);
+}
 
 //============================================================================================================================================
 //                                                       APPLY THEME
@@ -26,7 +55,6 @@ void EditorHost::ApplyTheme() noexcept
     Applied.TabOverlap           = 24.0f;   // [px] neighbour interlock, so slanted edges overlap
     Applied.TabHeight            = 24.0f;   // [px] strip height
     Applied.TabStripPadTop       = 4.0f;    // [px] strip showing above the tabs
-    Applied.FramePadding.x       = 38.0f;   // [px] tab breathing room, so the slant reads
     Applied.TabMinWidthBase      = 170.0f;  // [px] tab width floor
     Applied.TabMinWidthShrink    = 170.0f;  // [px] tab width floor while shrinking
     Applied.TabRounding          = 0.0f;    // [px] the sheet's corners are cut, not rounded
@@ -34,19 +62,105 @@ void EditorHost::ApplyTheme() noexcept
     Applied.TabBarBorderSize     = 0.0f;    // [px] no strip outline
     Applied.TabButtonRounding    = 1.0f;    // [-] tab buttons are full discs
 
-    // Tints. Every seated-tab variant carries one tint, so each column's lone tab renders the same colour
-    //    whether or not its column holds the keyboard.
-    const ImVec4 Quiet  = ImVec4(0.10f, 0.10f, 0.11f, 1.0f);
-    const ImVec4 Seated = ImVec4(0.16f, 0.17f, 0.19f, 1.0f);
-    Applied.Colors[ImGuiCol_Tab]                   = Quiet;
-    Applied.Colors[ImGuiCol_TabHovered]            = ImVec4(0.14f, 0.14f, 0.15f, 1.0f);
-    Applied.Colors[ImGuiCol_TabActive]             = Seated;
-    Applied.Colors[ImGuiCol_TabUnfocused]          = Quiet;
-    Applied.Colors[ImGuiCol_TabUnfocusedActive]    = Seated;
-    Applied.Colors[ImGuiCol_TabDimmed]             = ImVec4(0.07f, 0.07f, 0.08f, 1.0f);
-    Applied.Colors[ImGuiCol_TabDimmedSelected]     = Seated;
-    Applied.Colors[ImGuiCol_TabSelectedOverline]   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-    Applied.Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    // Geometry tokens: pills for fields, square-cut tabs, hairlines everywhere else.
+    Applied.WindowPadding      = ImVec2(14.0f, 12.0f);
+    Applied.FramePadding       = ImVec2(13.0f, 9.0f);
+    Applied.ItemSpacing        = ImVec2(10.0f, 8.0f);
+    Applied.ItemInnerSpacing   = ImVec2(6.0f, 4.0f);
+    Applied.ScrollbarSize      = 8.0f;
+    Applied.WindowRounding     = 8.0f;
+    Applied.ChildRounding      = 12.0f;
+    Applied.FrameRounding      = 16.0f;
+    Applied.PopupRounding      = 18.0f;
+    Applied.ScrollbarRounding  = 9.0f;
+    Applied.GrabRounding       = 12.0f;
+    Applied.WindowBorderSize   = 1.0f;
+    Applied.ChildBorderSize    = 0.0f;
+    Applied.FrameBorderSize    = 1.0f;
+    Applied.PopupBorderSize    = 1.0f;
+
+    // Colour tokens. The lone tab carries the window tint, the sheet's seamless rule: the tab and the body
+    //    it opens onto are one surface, and the strip behind is the vendor's own untinted dark. TitleBg and
+    //    DockingEmptyBg stay stock on purpose — one of them paints the unfocused strip — and TitleBgActive
+    //    is seated to the same dark, because the focused node's strip paints with it and the stock blue
+    //    would wedge the strip. The proof gates the tab edges against that uniform dark.
+    ImVec4* Tints = Applied.Colors;
+    Tints[ImGuiCol_Text]                  = ImVec4(0.941f, 0.941f, 0.941f, 1.0f);   // #f0f0f0
+    Tints[ImGuiCol_TextDisabled]          = ImVec4(0.361f, 0.361f, 0.361f, 1.0f);   // #5c5c5c
+    Tints[ImGuiCol_WindowBg]              = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);   // #121212
+    Tints[ImGuiCol_ChildBg]               = ImVec4(0.000f, 0.000f, 0.000f, 0.0f);
+    Tints[ImGuiCol_PopupBg]               = ImVec4(0.102f, 0.102f, 0.102f, 1.0f);   // #1a1a1a
+    Tints[ImGuiCol_Border]                = ImVec4(1.000f, 1.000f, 1.000f, 0.05f);
+    Tints[ImGuiCol_BorderShadow]          = ImVec4(0.000f, 0.000f, 0.000f, 0.0f);
+    Tints[ImGuiCol_FrameBg]               = ImVec4(0.000f, 0.000f, 0.000f, 1.0f);   // #000000
+    Tints[ImGuiCol_FrameBgHovered]        = ImVec4(0.031f, 0.031f, 0.031f, 1.0f);
+    Tints[ImGuiCol_FrameBgActive]         = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);
+    Tints[ImGuiCol_MenuBarBg]             = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);
+    Tints[ImGuiCol_TitleBgActive]         = ImVec4(0.039f, 0.039f, 0.039f, 1.0f);   // #0a0a0a
+    Tints[ImGuiCol_ScrollbarBg]           = ImVec4(0.000f, 0.000f, 0.000f, 0.0f);
+    Tints[ImGuiCol_ScrollbarGrab]         = ImVec4(0.141f, 0.141f, 0.141f, 1.0f);   // #242424
+    Tints[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.180f, 0.180f, 0.180f, 1.0f);   // #2e2e2e
+    Tints[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.200f, 0.200f, 0.200f, 1.0f);   // #333333
+    Tints[ImGuiCol_CheckMark]             = ImVec4(1.000f, 1.000f, 1.000f, 1.0f);
+    Tints[ImGuiCol_SliderGrab]            = ImVec4(0.878f, 0.878f, 0.878f, 1.0f);   // #e0e0e0
+    Tints[ImGuiCol_SliderGrabActive]      = ImVec4(1.000f, 1.000f, 1.000f, 1.0f);
+    Tints[ImGuiCol_Button]                = ImVec4(0.133f, 0.133f, 0.133f, 1.0f);   // #222222
+    Tints[ImGuiCol_ButtonHovered]         = ImVec4(0.180f, 0.180f, 0.180f, 1.0f);
+    Tints[ImGuiCol_ButtonActive]          = ImVec4(0.220f, 0.220f, 0.220f, 1.0f);
+    Tints[ImGuiCol_Header]                = ImVec4(0.165f, 0.165f, 0.165f, 1.0f);   // #2a2a2a
+    Tints[ImGuiCol_HeaderHovered]         = ImVec4(0.110f, 0.110f, 0.110f, 1.0f);   // #1c1c1c
+    Tints[ImGuiCol_HeaderActive]          = ImVec4(0.165f, 0.165f, 0.165f, 1.0f);
+    Tints[ImGuiCol_Separator]             = ImVec4(0.180f, 0.180f, 0.180f, 1.0f);
+    Tints[ImGuiCol_SeparatorHovered]      = ImVec4(0.298f, 0.302f, 1.000f, 1.0f);
+    Tints[ImGuiCol_SeparatorActive]       = ImVec4(0.424f, 0.467f, 1.000f, 1.0f);
+    Tints[ImGuiCol_ResizeGrip]            = ImVec4(0.180f, 0.180f, 0.180f, 1.0f);
+    Tints[ImGuiCol_ResizeGripHovered]     = ImVec4(0.298f, 0.302f, 1.000f, 1.0f);
+    Tints[ImGuiCol_ResizeGripActive]      = ImVec4(0.424f, 0.467f, 1.000f, 1.0f);
+    Tints[ImGuiCol_Tab]                   = ImVec4(0.149f, 0.149f, 0.173f, 1.0f);   // #26262c
+    Tints[ImGuiCol_TabHovered]            = ImVec4(0.196f, 0.196f, 0.227f, 1.0f);   // #32323a
+    Tints[ImGuiCol_TabActive]             = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);   // #121212
+    Tints[ImGuiCol_TabUnfocused]          = ImVec4(0.149f, 0.149f, 0.173f, 1.0f);
+    Tints[ImGuiCol_TabUnfocusedActive]    = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);
+    Tints[ImGuiCol_TabDimmed]             = ImVec4(0.118f, 0.118f, 0.141f, 1.0f);   // #1e1e24
+    Tints[ImGuiCol_TabDimmedSelected]     = ImVec4(0.071f, 0.071f, 0.071f, 1.0f);
+    Tints[ImGuiCol_TabSelectedOverline]   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    Tints[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    Tints[ImGuiCol_DockingPreview]        = ImVec4(1.000f, 1.000f, 1.000f, 0.12f);
+    Tints[ImGuiCol_TextSelectedBg]        = ImVec4(0.424f, 0.467f, 1.000f, 0.35f);
+
+    // Faces. Fira Sans carries the chrome, JetBrains Mono the figures. Each archive is probed before it is
+    //    read, so a missing archive falls back to the raster default instead of tripping an assert — and the
+    //    proof gates the seated count, so the fallback never passes silently.
+    if (!FontsSeated_)
+    {
+        FontsSeated_ = true;
+        ImGuiIO& IO = ImGui::GetIO();
+        const char* SansFaces = "EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf";
+        const char* MonoFaces = "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Regular.ttf";
+
+        auto SeatFace = [&IO](const char* Path, float Size) -> ImFont*
+        {
+            std::FILE* Probe = std::fopen(Path, "rb");
+            if (Probe == nullptr)
+            {
+                return nullptr;
+            }
+            std::fclose(Probe);
+            return IO.Fonts->AddFontFromFileTTF(Path, Size);
+        };
+
+        ImFont* Ui        = SeatFace(SansFaces, 13.0f);
+        ImFont* Small     = SeatFace(SansFaces, 11.0f);
+        ImFont* Mono      = SeatFace(MonoFaces, 13.0f);
+        ImFont* MonoSmall = SeatFace(MonoFaces, 11.0f);
+        FontCount_ = (Ui != nullptr ? 1 : 0) + (Small != nullptr ? 1 : 0)
+                   + (Mono != nullptr ? 1 : 0) + (MonoSmall != nullptr ? 1 : 0);
+        if (Ui != nullptr)
+        {
+            IO.FontDefault = Ui;
+        }
+        Kit_.AssignFonts(Ui, Small, Mono, MonoSmall);
+    }
 #else
     // Without the define the editor draws nothing: the dockspace stays, the panels stay away.
 #endif
@@ -72,8 +186,8 @@ void EditorHost::ConstructLayout() noexcept
     ImGui::DockBuilderSetNodeSize(DockId, Main->Size);
 
     ImGuiID Left = 0u, Centre = 0u, Right = 0u;
-    ImGui::DockBuilderSplitNode(DockId, ImGuiDir_Left, 0.22f, &Left, &Centre);
-    ImGui::DockBuilderSplitNode(Centre, ImGuiDir_Right, 0.27f, &Right, &Centre);
+    ImGui::DockBuilderSplitNode(DockId, ImGuiDir_Left, 0.23f, &Left, &Centre);
+    ImGui::DockBuilderSplitNode(Centre, ImGuiDir_Right, 0.30f, &Right, &Centre);
 
     ImGui::DockBuilderDockWindow("Outliner", Left);
     ImGui::DockBuilderDockWindow("Viewport", Centre);
@@ -86,7 +200,7 @@ void EditorHost::ConstructLayout() noexcept
 //                                                          RECORD
 //============================================================================================================================================
 
-void EditorHost::Record() noexcept
+void EditorHost::Record(EditorRecord* Records, uint32_t RecordCount, EditorSheet* PickedSheet) noexcept
 {
 #ifdef FRONTIER_DEVELOPMENT
     ImGuiViewport* Main = ImGui::GetMainViewport();
@@ -123,9 +237,14 @@ void EditorHost::Record() noexcept
     ImGui::End();
     ImGui::PopStyleVar(2);
 
-    Outliner_.Record();
-    Viewport_.Record();
-    Inspector_.Record();
+    Outliner_.Record(Records, RecordCount);
+    Viewport_.Record(RecordCount);
+
+    const uint32_t Picked = Outliner_.QueryPicked();
+    EditorRecord* PickedRecord = (Picked < RecordCount) ? &Records[Picked] : nullptr;
+    Inspector_.Record(PickedRecord, Picked, (PickedRecord != nullptr) ? PickedSheet : nullptr);
+#else
+    (void)Records; (void)RecordCount; (void)PickedSheet;
 #endif
 }
 

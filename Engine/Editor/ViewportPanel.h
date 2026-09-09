@@ -1,29 +1,46 @@
 //============================================================================================================================================
-//                                                      VIEWPORTPANEL.H
+//                                                    VIEWPORTPANEL.H
 //============================================================================================================================================
-// 🧩 Development editor, central column — hosts the ray-traced image. Placeholder chrome until the scene feed lands.
+// 🧩 Development editor viewport — the stage column. Header bar with the brand, the dock toggles, the view
+//    cycler and the transport; the dark view with its axis orb; the command line; the stats footer. Every
+//    control here is local state: the transport runs, the clock scrubs, the command line answers honestly.
 
 #pragma once
 
+#include <cstdint>
+
 namespace Frontier {
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                      VIEWPORT PANEL
-//------------------------------------------------------------------------------------------------------------------------
+class EditorKit;
 
-// The central dock column. This step records the column's chrome — heading, transport row, standing line — so
-//    the three-tab strip and the layout prove out before the scene feed is bound underneath it.
-class ViewportPanel
+class ViewportPanel final
 {
 public:
-    ViewportPanel() noexcept = default;
-    ~ViewportPanel() noexcept = default;
+    void AssignKit(EditorKit* Kit) noexcept;
 
-    ViewportPanel(const ViewportPanel&)            = delete;
-    ViewportPanel& operator=(const ViewportPanel&) = delete;
+    void Record(uint32_t RecordCount) noexcept;
 
-    // Records the panel into its dock column. Inert unless FRONTIER_DEVELOPMENT is defined.
-    void Record() noexcept;
+private:
+    void RecordBar() noexcept;
+    void RecordView() noexcept;
+    void RecordCommand() noexcept;
+    void RecordFooter(uint32_t RecordCount) noexcept;
+
+    EditorKit* Kit_ = nullptr;
+
+    bool Playing_ = false;
+    bool Paused_  = false;
+    bool SimOn_   = false;
+
+    bool     MarkersOn_ = true;
+    uint32_t ViewPick_  = 0u;
+    bool     DockLeft_  = true;
+    bool     DockRight_ = true;
+
+    char  CommandText_[128] = {};
+    char  CommandEcho_[128] = {};
+    bool  FocusCommand_     = false;
+    float ClockHours_       = 19.15f;
 };
 
 } // namespace Frontier

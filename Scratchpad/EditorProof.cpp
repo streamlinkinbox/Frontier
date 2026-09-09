@@ -1,8 +1,9 @@
 //============================================================================================================================================
 //                                                      EDITORPROOF.CPP
 //============================================================================================================================================
-// 🧩 Headless visual proof — drives EditorHost through the engine's tick order, rasterises the last tick with a
-//    dependency-free CPU rasteriser, and gates the trapezoid sheet. No Vulkan, no GLFW, no window.
+// 🧩 Headless visual proof — drives EditorHost through the engine's tick order over the Cornell mirror, rasterises
+//    the last tick with a dependency-free CPU rasteriser, and gates the trapezoid sheet, the seated theme tints,
+//    and the four faces. No Vulkan, no GLFW, no window.
 
 #ifndef FRONTIER_DEVELOPMENT
 #error "the proof must define FRONTIER_DEVELOPMENT, or the editor records nothing and every gate fails"
@@ -24,8 +25,8 @@ namespace {
 constexpr int kWidth  = 1280;
 constexpr int kHeight = 720;
 
-// Seated-tab tint in bytes: EditorHost::ApplyTheme seats (0.16, 0.17, 0.19).
-constexpr unsigned char kSeated[3] = { 41u, 43u, 48u };
+// Seated-tab tint in bytes: EditorHost::ApplyTheme seats #121212 (the sheet's seamless rule).
+constexpr unsigned char kSeated[3] = { 18u, 18u, 18u };
 constexpr unsigned char kGround[3] = { 5u, 5u, 5u };   // Frontier ground #050505
 
 struct Rgba
@@ -133,6 +134,283 @@ void RasterizeList(const ImDrawList* List, const unsigned char* Atlas, int Atlas
     }
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      CORNELL MIRROR
+//------------------------------------------------------------------------------------------------------------------------
+
+// The engine's Cornell feed at a representative instant: the register repeats GameExecution's inventory exactly,
+//    and the sheet figures repeat the solvers' startup figures. Sun (index 18) is the picked record.
+
+struct MirrorEntry
+{
+    const char*                   Label;
+    Frontier::EditorRecordKind    Kind;
+    uint32_t                      Depth;
+    uint32_t                      Kids;
+    float                         Tint[3];
+    int                           Material;
+    float                         At[3];
+    float                         RotZ;
+    bool                          Dynamic;
+};
+
+constexpr MirrorEntry kMirrorEntries[] =
+{
+    { "Room",              Frontier::EditorRecordKind::Folder,   0u, 5u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Floor",             Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  2.00f, 0.000f },   0.0f, false },
+    { "Ceiling",           Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  2.00f, 3.000f },   0.0f, false },
+    { "Back Wall",         Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.750f, 0.750f, 0.750f },  0, {  0.00f,  4.00f, 1.500f },   0.0f, false },
+    { "Left Wall",         Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.850f, 0.120f, 0.120f },  1, { -2.00f,  2.00f, 1.500f },   0.0f, false },
+    { "Right Wall",        Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.120f, 0.850f, 0.150f },  2, {  2.00f,  2.00f, 1.500f },   0.0f, false },
+    { "Objects",           Frontier::EditorRecordKind::Folder,   0u, 5u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Tall Box",          Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.780f, 0.780f },  4, { -0.90f,  2.70f, 0.900f },  22.0f, true  },
+    { "Short Box",         Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.780f, 0.780f },  5, {  0.85f,  1.50f, 0.450f }, -18.0f, true  },
+    { "Sphere",            Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.820f, 0.780f, 0.720f },  6, { -1.15f,  1.05f, 0.450f },   0.0f, false },
+    { "Cone",              Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.350f, 0.450f, 0.700f },  7, {  1.30f,  3.05f, 0.550f },   0.0f, false },
+    { "Torus",             Frontier::EditorRecordKind::Geometry, 1u, 0u, { 0.780f, 0.550f, 0.250f },  8, {  0.00f,  1.55f, 0.320f },   0.0f, false },
+    { "Lighting",          Frontier::EditorRecordKind::Folder,   0u, 1u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Ceiling Luminaire", Frontier::EditorRecordKind::Light,    1u, 0u, { 0.961f, 0.827f, 0.294f },  3, {  0.00f,  0.75f, 2.995f },   0.0f, false },
+    { "Cameras",           Frontier::EditorRecordKind::Folder,   0u, 1u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Main Camera",       Frontier::EditorRecordKind::Camera,   1u, 0u, { 0.412f, 0.765f, 1.000f }, -1, {  0.00f, -3.30f, 1.550f },   0.0f, false },
+    { "Environment",       Frontier::EditorRecordKind::Folder,   0u, 3u, { 0.788f, 0.635f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Sky",               Frontier::EditorRecordKind::Sky,      1u, 0u, { 0.561f, 0.827f, 1.000f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Sun",               Frontier::EditorRecordKind::Sun,      1u, 0u, { 1.000f, 0.694f, 0.294f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+    { "Moon",              Frontier::EditorRecordKind::Moon,     1u, 0u, { 0.722f, 0.769f, 0.839f }, -1, {  0.00f,  0.00f, 0.000f },   0.0f, false },
+};
+
+constexpr uint32_t kMirrorEntryCount = sizeof(kMirrorEntries) / sizeof(kMirrorEntries[0]);
+
+struct MirrorMaterial
+{
+    float Albedo[3];
+    float Emission;
+    float Rough;
+    float Metal;
+};
+
+constexpr MirrorMaterial kMirrorMats[9] =
+{
+    { { 0.75f, 0.75f, 0.75f },  0.0f, 0.50f, 0.0f },
+    { { 0.85f, 0.12f, 0.12f },  0.0f, 0.50f, 0.0f },
+    { { 0.12f, 0.85f, 0.15f },  0.0f, 0.50f, 0.0f },
+    { { 1.00f, 1.00f, 1.00f }, 32.0f, 0.10f, 0.0f },
+    { { 0.78f, 0.78f, 0.78f },  0.0f, 0.40f, 0.0f },
+    { { 0.78f, 0.78f, 0.78f },  0.0f, 0.40f, 0.0f },
+    { { 0.82f, 0.78f, 0.72f },  0.0f, 0.25f, 0.0f },
+    { { 0.35f, 0.45f, 0.70f },  0.0f, 0.40f, 0.0f },
+    { { 0.78f, 0.55f, 0.25f },  0.0f, 0.35f, 0.0f },
+};
+
+void FillMirrorRecords(Frontier::EditorRecord* Records) noexcept
+{
+    for (uint32_t i = 0u; i < kMirrorEntryCount; ++i)
+    {
+        const MirrorEntry&        Entry = kMirrorEntries[i];
+        Frontier::EditorRecord&   Row   = Records[i];
+        std::snprintf(Row.Label, sizeof(Row.Label), "%s", Entry.Label);
+        Row.Depth    = Entry.Depth;
+        Row.KidCount = Entry.Kids;
+        Row.Kind     = Entry.Kind;
+        Row.Tint[0]  = Entry.Tint[0];
+        Row.Tint[1]  = Entry.Tint[1];
+        Row.Tint[2]  = Entry.Tint[2];
+        Row.Dynamic  = Entry.Dynamic;
+    }
+}
+
+Frontier::EditorPropertyGroup& OpenMirrorGroup(Frontier::EditorSheet* Sheet, const char* Title) noexcept
+{
+    Frontier::EditorPropertyGroup& Group = Sheet->Groups[Sheet->GroupCount++];
+    std::snprintf(Group.Title, sizeof(Group.Title), "%s", Title);
+    Group.PropertyCount = 0u;
+    return Group;
+}
+
+Frontier::EditorProperty& OpenMirrorProp(Frontier::EditorPropertyGroup& Group, const char* Label,
+                                          Frontier::EditorPropertyKind Kind) noexcept
+{
+    Frontier::EditorProperty& Prop = Group.Properties[Group.PropertyCount++];
+    std::snprintf(Prop.Label, sizeof(Prop.Label), "%s", Label);
+    Prop.Kind = Kind;
+    return Prop;
+}
+
+void BuildMirrorSheet(uint32_t Index, Frontier::EditorRecord* Records, Frontier::EditorSheet* Sheet) noexcept
+{
+    Sheet->GroupCount = 0u;
+    if (Index >= kMirrorEntryCount)
+    {
+        return;
+    }
+
+    using Frontier::EditorPropertyKind;
+    const MirrorEntry& Entry = kMirrorEntries[Index];
+
+    switch (Entry.Kind)
+    {
+    case Frontier::EditorRecordKind::Folder:
+    {
+        Frontier::EditorPropertyGroup& Group = OpenMirrorGroup(Sheet, "Group");
+        uint32_t Total = 0u;
+        for (uint32_t j = Index + 1u; j < kMirrorEntryCount && kMirrorEntries[j].Depth > Entry.Depth; ++j)
+        {
+            ++Total;
+        }
+        Frontier::EditorProperty& Contents = OpenMirrorProp(Group, "Contents", EditorPropertyKind::Readout);
+        std::snprintf(Contents.Text, sizeof(Contents.Text), "%u direct \xc2\xb7 %u total", Entry.Kids, Total);
+        Frontier::EditorProperty& Tint = OpenMirrorProp(Group, "Tint", EditorPropertyKind::Colour);
+        Tint.ColourTint[0] = Records[Index].Tint[0];
+        Tint.ColourTint[1] = Records[Index].Tint[1];
+        Tint.ColourTint[2] = Records[Index].Tint[2];
+        Tint.Swatches = true;
+        break;
+    }
+    case Frontier::EditorRecordKind::Geometry:
+    {
+        const MirrorMaterial& Mat = kMirrorMats[Entry.Material];
+        Frontier::EditorPropertyGroup& Placed = OpenMirrorGroup(Sheet, "Transform");
+        Frontier::EditorProperty& Where = OpenMirrorProp(Placed, "Position", EditorPropertyKind::AxisVec3);
+        Where.Axes[0] = Entry.At[0];
+        Where.Axes[1] = Entry.At[1];
+        Where.Axes[2] = Entry.At[2];
+        Where.AxisStep = 0.05f;
+        Where.Editable = false;
+        Frontier::EditorProperty& Spin = OpenMirrorProp(Placed, "Rotation", EditorPropertyKind::Readout);
+        std::snprintf(Spin.Text, sizeof(Spin.Text), "%+.0f\xc2\xb0 about Z", static_cast<double>(Entry.RotZ));
+        Frontier::EditorPropertyGroup& Faced = OpenMirrorGroup(Sheet, "Surface");
+        Frontier::EditorProperty& Albedo = OpenMirrorProp(Faced, "Albedo", EditorPropertyKind::Colour);
+        Albedo.ColourTint[0] = Mat.Albedo[0];
+        Albedo.ColourTint[1] = Mat.Albedo[1];
+        Albedo.ColourTint[2] = Mat.Albedo[2];
+        Frontier::EditorProperty& Emitted = OpenMirrorProp(Faced, "Emission", EditorPropertyKind::Slider);
+        Emitted.Minimum = 0.0f; Emitted.Maximum = 64.0f; Emitted.Figure = Mat.Emission;
+        Emitted.Decimals = 1u;
+        std::snprintf(Emitted.Unit, sizeof(Emitted.Unit), "lx");
+        Frontier::EditorProperty& Rough = OpenMirrorProp(Faced, "Roughness", EditorPropertyKind::Slider);
+        Rough.Minimum = 0.0f; Rough.Maximum = 1.0f; Rough.Figure = Mat.Rough;
+        Rough.Decimals = 2u;
+        Frontier::EditorProperty& Metal = OpenMirrorProp(Faced, "Metallic", EditorPropertyKind::Readout);
+        std::snprintf(Metal.Text, sizeof(Metal.Text), "%.2f", static_cast<double>(Mat.Metal));
+        break;
+    }
+    case Frontier::EditorRecordKind::Light:
+    {
+        Frontier::EditorPropertyGroup& Lamp = OpenMirrorGroup(Sheet, "Light");
+        Frontier::EditorProperty& Power = OpenMirrorProp(Lamp, "Intensity", EditorPropertyKind::Slider);
+        Power.Minimum = 0.0f; Power.Maximum = 64.0f; Power.Figure = 32.0f;
+        Power.Decimals = 1u;
+        std::snprintf(Power.Unit, sizeof(Power.Unit), "lx");
+        Frontier::EditorProperty& Hue = OpenMirrorProp(Lamp, "Colour", EditorPropertyKind::Colour);
+        Hue.ColourTint[0] = 1.0f;
+        Hue.ColourTint[1] = 1.0f;
+        Hue.ColourTint[2] = 1.0f;
+        Frontier::EditorPropertyGroup& Aimed = OpenMirrorGroup(Sheet, "Aim");
+        Frontier::EditorProperty& Facing = OpenMirrorProp(Aimed, "Direction", EditorPropertyKind::Readout);
+        std::snprintf(Facing.Text, sizeof(Facing.Text), "-Z (nadir)");
+        break;
+    }
+    case Frontier::EditorRecordKind::Camera:
+    {
+        Frontier::EditorPropertyGroup& Placed = OpenMirrorGroup(Sheet, "Transform");
+        Frontier::EditorProperty& Where = OpenMirrorProp(Placed, "Position", EditorPropertyKind::AxisVec3);
+        Where.Axes[0] = 0.0f;
+        Where.Axes[1] = -3.30f;
+        Where.Axes[2] = 1.55f;
+        Where.AxisStep = 0.05f;
+        Where.Editable = false;
+        Frontier::EditorProperty& Pitch = OpenMirrorProp(Placed, "Pitch", EditorPropertyKind::Readout);
+        std::snprintf(Pitch.Text, sizeof(Pitch.Text), "+0.0\xc2\xb0");
+        Frontier::EditorProperty& Yaw = OpenMirrorProp(Placed, "Yaw", EditorPropertyKind::Readout);
+        std::snprintf(Yaw.Text, sizeof(Yaw.Text), "+0.0\xc2\xb0");
+        Frontier::EditorPropertyGroup& Lens = OpenMirrorGroup(Sheet, "Lens");
+        Frontier::EditorProperty& Wide = OpenMirrorProp(Lens, "Field of view", EditorPropertyKind::Slider);
+        Wide.Minimum = 20.0f; Wide.Maximum = 120.0f; Wide.Figure = 55.0f;
+        Wide.Decimals = 1u; Wide.Hi = true;
+        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc2\xb0");
+        Frontier::EditorProperty& Shape = OpenMirrorProp(Lens, "Aspect", EditorPropertyKind::Readout);
+        std::snprintf(Shape.Text, sizeof(Shape.Text), "1.778");
+        Frontier::EditorPropertyGroup& Moved = OpenMirrorGroup(Sheet, "Flight");
+        Frontier::EditorProperty& Fast = OpenMirrorProp(Moved, "Speed", EditorPropertyKind::Readout);
+        std::snprintf(Fast.Text, sizeof(Fast.Text), "2.50 m/s");
+        Frontier::EditorProperty& Base = OpenMirrorProp(Moved, "Base", EditorPropertyKind::Readout);
+        std::snprintf(Base.Text, sizeof(Base.Text), "2.50 m/s");
+        Frontier::EditorProperty& Boost = OpenMirrorProp(Moved, "Boost", EditorPropertyKind::Readout);
+        std::snprintf(Boost.Text, sizeof(Boost.Text), "3.00\xc3\x97");
+        Frontier::EditorProperty& Feel = OpenMirrorProp(Moved, "Sensitivity", EditorPropertyKind::Readout);
+        std::snprintf(Feel.Text, sizeof(Feel.Text), "0.00125 rad/px");
+        break;
+    }
+    case Frontier::EditorRecordKind::Sky:
+    {
+        Frontier::EditorPropertyGroup& Air = OpenMirrorGroup(Sheet, "Atmosphere");
+        Frontier::EditorProperty& Haze = OpenMirrorProp(Air, "Turbidity", EditorPropertyKind::Slider);
+        Haze.Minimum = 1.0f; Haze.Maximum = 4.0f; Haze.Figure = 1.0f;
+        Haze.Decimals = 2u;
+        Frontier::EditorProperty& Swing = OpenMirrorProp(Air, "Swing", EditorPropertyKind::Slider);
+        Swing.Minimum = 0.0f; Swing.Maximum = 1.0f; Swing.Figure = 0.35f;
+        Swing.Decimals = 2u;
+        Frontier::EditorProperty& Grade = OpenMirrorProp(Air, "Quality", EditorPropertyKind::Select);
+        std::snprintf(Grade.Options[0], sizeof(Grade.Options[0]), "Off");
+        std::snprintf(Grade.Options[1], sizeof(Grade.Options[1]), "Low");
+        std::snprintf(Grade.Options[2], sizeof(Grade.Options[2]), "Medium");
+        std::snprintf(Grade.Options[3], sizeof(Grade.Options[3]), "High");
+        std::snprintf(Grade.Options[4], sizeof(Grade.Options[4]), "Ultra");
+        Grade.OptionCount = 5u;
+        Grade.Picked = 2u;
+        Frontier::EditorProperty& High = OpenMirrorProp(Air, "Altitude", EditorPropertyKind::Slider);
+        High.Minimum = 0.0f; High.Maximum = 100.0f; High.Figure = 2.0f;
+        High.Decimals = 1u;
+        std::snprintf(High.Unit, sizeof(High.Unit), "m");
+        Frontier::EditorProperty& Bounce = OpenMirrorProp(Air, "Sky lights", EditorPropertyKind::Switch);
+        Bounce.On = true;
+        Frontier::EditorPropertyGroup& Dark = OpenMirrorGroup(Sheet, "Night");
+        Frontier::EditorProperty& Eve = OpenMirrorProp(Dark, "Night sky", EditorPropertyKind::Switch);
+        Eve.On = true;
+        Frontier::EditorProperty& Stars = OpenMirrorProp(Dark, "Starlight", EditorPropertyKind::Slider);
+        Stars.Minimum = 0.0f; Stars.Maximum = 2.0f; Stars.Figure = 0.4f;
+        Stars.Decimals = 2u;
+        std::snprintf(Stars.Unit, sizeof(Stars.Unit), "cd/m\xc2\xb2");
+        break;
+    }
+    case Frontier::EditorRecordKind::Sun:
+    {
+        Frontier::EditorPropertyGroup& Orbited = OpenMirrorGroup(Sheet, "Orbit");
+        Frontier::EditorProperty& High = OpenMirrorProp(Orbited, "Elevation", EditorPropertyKind::Readout);
+        std::snprintf(High.Text, sizeof(High.Text), "+14.0\xc2\xb0");
+        Frontier::EditorProperty& Around = OpenMirrorProp(Orbited, "Azimuth", EditorPropertyKind::Readout);
+        std::snprintf(Around.Text, sizeof(Around.Text), "118.0\xc2\xb0");
+        Frontier::EditorProperty& Aged = OpenMirrorProp(Orbited, "Elapsed", EditorPropertyKind::Readout);
+        std::snprintf(Aged.Text, sizeof(Aged.Text), "0 s");
+        Frontier::EditorProperty& Paced = OpenMirrorProp(Orbited, "Rate", EditorPropertyKind::Readout);
+        std::snprintf(Paced.Text, sizeof(Paced.Text), "1.00\xc3\x97");
+        Frontier::EditorPropertyGroup& Disc = OpenMirrorGroup(Sheet, "Disc");
+        Frontier::EditorProperty& Bright = OpenMirrorProp(Disc, "Illuminance", EditorPropertyKind::Slider);
+        Bright.Minimum = 0.0f; Bright.Maximum = 200000.0f; Bright.Figure = 120000.0f;
+        Bright.Decimals = 0u;
+        std::snprintf(Bright.Unit, sizeof(Bright.Unit), "lx");
+        break;
+    }
+    case Frontier::EditorRecordKind::Moon:
+    {
+        Frontier::EditorPropertyGroup& Orbited = OpenMirrorGroup(Sheet, "Orbit");
+        Frontier::EditorProperty& High = OpenMirrorProp(Orbited, "Elevation", EditorPropertyKind::Readout);
+        std::snprintf(High.Text, sizeof(High.Text), "-12.0\xc2\xb0");
+        Frontier::EditorProperty& Around = OpenMirrorProp(Orbited, "Azimuth", EditorPropertyKind::Readout);
+        std::snprintf(Around.Text, sizeof(Around.Text), "236.0\xc2\xb0");
+        Frontier::EditorProperty& Waned = OpenMirrorProp(Orbited, "Phase", EditorPropertyKind::Readout);
+        std::snprintf(Waned.Text, sizeof(Waned.Text), "0.62");
+        Frontier::EditorPropertyGroup& Disc = OpenMirrorGroup(Sheet, "Disc");
+        Frontier::EditorProperty& Wide = OpenMirrorProp(Disc, "Angular scale", EditorPropertyKind::Slider);
+        Wide.Minimum = 0.25f; Wide.Maximum = 8.0f; Wide.Figure = 1.0f;
+        Wide.Decimals = 2u;
+        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc3\x97");
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 } // namespace
 
 int main()
@@ -146,12 +424,18 @@ int main()
     IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;   // the swapchain seats this in the engine; here it is ours
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasTextures | ImGuiBackendFlags_RendererHasVtxOffset;
 
+    Frontier::EditorHost Editor;
+    Editor.ApplyTheme();   // seats the faces first: the atlas below must bake them, not the raster default
+
     unsigned char* Atlas = nullptr;
     int AtlasWidth = 0, AtlasHeight = 0;
     IO.Fonts->GetTexDataAsRGBA32(&Atlas, &AtlasWidth, &AtlasHeight);
 
-    Frontier::EditorHost Editor;
-    Editor.ApplyTheme();
+    Frontier::EditorRecord CornellRecords[kMirrorEntryCount] = {};
+    Frontier::EditorSheet  PickedSheet = {};
+    FillMirrorRecords(CornellRecords);
+    Editor.PickRecord(18u);   // Sun, as in the reference capture
+    BuildMirrorSheet(18u, CornellRecords, &PickedSheet);
 
     // The engine's tick order (RenderScheduler::Present), minus the Control Centre overlay, which needs Vulkan.
     //    Ten ticks: the built columns settle over the first two, and the gates read the last.
@@ -160,7 +444,7 @@ int main()
         IO.DeltaTime = 1.0f / 60.0f;
         IO.AddMousePosEvent(-1.0f, -1.0f);   // nowhere near the strips: no hover tint may pollute the gates
         ImGui::NewFrame();
-        Editor.Record();
+        Editor.Record(CornellRecords, kMirrorEntryCount, &PickedSheet);
         ImGui::Render();
     }
 
@@ -193,10 +477,21 @@ int main()
     };
     const auto IsSeated = [&](const unsigned char* P) -> bool
     {
-        return std::abs(static_cast<int>(P[0]) - 41) <= 6
-            && std::abs(static_cast<int>(P[1]) - 43) <= 6
-            && std::abs(static_cast<int>(P[2]) - 48) <= 6;
+        return std::abs(static_cast<int>(P[0]) - 18) <= 6
+            && std::abs(static_cast<int>(P[1]) - 18) <= 6
+            && std::abs(static_cast<int>(P[2]) - 18) <= 6;
     };
+
+    // Gate 0 — four faces: the theme seats two sizes in two archives, and the atlas baked them above.
+    {
+        const int Faces = Editor.QueryFontCount();
+        std::fprintf(stderr, "[EditorProof] faces seated: %d of 4\n", Faces);
+        if (Faces != 4)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the theme fell back to the raster default\n");
+            Failed = true;
+        }
+    }
 
     // Gate 1 — three occupied columns: each third of the sheet must carry panel ink, not bare ground.
     {
@@ -221,9 +516,10 @@ int main()
     }
 
     // Gate 2 — the trapezoid: both upper corners of the outliner tab must sit inside the lower ones by
-    //    the seated slant. The tab spans y 1 … 18; the scanlines sit 1 px off its extremes, and the slant is
-    //    linear, so each side must measure between 7 and 17 px against the seated 14. Title glyphs interrupt
-    //    the run mid-tab, so the rightward scan steps over glyph-bright cells instead of stopping at them.
+    //    the seated slant. The tab spans y 1 … 27; the scanlines sit 1 px off its extremes, clear of the
+    //    title glyphs that shred the mid-band runs, and the slant is linear, so each side must measure
+    //    between 7 and 17 px against the seated 14. The rounded viewport corner leaves a seated sliver at
+    //    the strip's left edge, so the leftward scan only trusts runs twenty cells or longer.
     {
         const auto IsGlyph = [&](const unsigned char* P) -> bool
         {
@@ -232,8 +528,22 @@ int main()
         const auto LeftEdge = [&](int Y) -> int
         {
             for (int X = 0; X < 120; ++X)
-                if (IsSeated(At(X, Y)))
+            {
+                if (!IsSeated(At(X, Y)))
+                {
+                    continue;
+                }
+                int End = X;
+                while (End < 300 && IsSeated(At(End, Y)))
+                {
+                    ++End;
+                }
+                if (End - X >= 20)
+                {
                     return X;
+                }
+                X = End;
+            }
             return -1;
         };
         const auto RightEdge = [&](int Y, int FromX) -> int
@@ -249,13 +559,13 @@ int main()
             }
             return Last;
         };
-        const int LoLeft = LeftEdge(17), HiLeft = LeftEdge(2);
+        const int LoLeft = LeftEdge(26), HiLeft = LeftEdge(2);
         std::fprintf(stderr, "[EditorProof] tab edges: lower-left %d, upper-left %d", LoLeft, HiLeft);
         bool Slanted = LoLeft >= 0 && HiLeft >= 0;
         int LeftInset = 0, RightInset = 0;
         if (Slanted)
         {
-            const int LoRight = RightEdge(17, LoLeft), HiRight = RightEdge(2, HiLeft);
+            const int LoRight = RightEdge(26, LoLeft), HiRight = RightEdge(2, HiLeft);
             std::fprintf(stderr, ", lower-right %d, upper-right %d\n", LoRight, HiRight);
             Slanted = LoRight > LoLeft && HiRight > HiLeft;
             LeftInset = HiLeft - LoLeft;
@@ -291,11 +601,49 @@ int main()
         }
     }
 
+    // Gate 4 — the seated theme: the inspector third must carry inset card tint (#1a1a1a), and the outliner
+    //    third the seated-row tint (#2a2a2a) of the revealed pick.
+    {
+        const auto IsInset = [&](const unsigned char* P) -> bool
+        {
+            return std::abs(static_cast<int>(P[0]) - 26) <= 3
+                && std::abs(static_cast<int>(P[1]) - 26) <= 3
+                && std::abs(static_cast<int>(P[2]) - 26) <= 3;
+        };
+        const auto IsPickedRow = [&](const unsigned char* P) -> bool
+        {
+            return std::abs(static_cast<int>(P[0]) - 42) <= 3
+                && std::abs(static_cast<int>(P[1]) - 42) <= 3
+                && std::abs(static_cast<int>(P[2]) - 42) <= 3;
+        };
+        int Cards = 0, Rows = 0;
+        for (int Y = 100; Y < 700; ++Y)
+        {
+            for (int X = 1020; X < 1270; ++X)
+                if (IsInset(At(X, Y)))
+                    ++Cards;
+            for (int X = 10; X < 270; ++X)
+                if (IsPickedRow(At(X, Y)))
+                    ++Rows;
+        }
+        std::fprintf(stderr, "[EditorProof] theme tints: %d inset cells, %d seated-row cells\n", Cards, Rows);
+        if (Cards < 3000)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the inspector carries no cards\n");
+            Failed = true;
+        }
+        if (Rows < 100)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the revealed pick carries no seated row\n");
+            Failed = true;
+        }
+    }
+
     if (Failed)
     {
         std::fprintf(stderr, "[EditorProof] [FAIL] wrote %s, but the sheet disagrees with its caption\n", Sheet);
         return 1;
     }
-    std::fprintf(stderr, "[EditorProof] wrote %s: three columns, trapezoid tabs, titled strips\n", Sheet);
+    std::fprintf(stderr, "[EditorProof] wrote %s: three columns, trapezoid tabs, titled strips, seated tints\n", Sheet);
     return 0;
 }

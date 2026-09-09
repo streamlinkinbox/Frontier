@@ -45,6 +45,9 @@ public:
                  const ProjectZero::RayTracingSolver&    Scene,
                  uint32_t                                ViewportWidth,
                  uint32_t                                ViewportHeight,
+                 EditorRecord*                           Records,
+                 uint32_t                                RecordCount,
+                 EditorSheet*                            PickedSheet,
                  const OverlayHook&                      Overlay = {}) noexcept;
 
     template<typename TargetType>
@@ -54,6 +57,10 @@ public:
     //    from the previous tick, the same lag every overlay gate accepts).
     [[nodiscard]] bool QueryEditorCapturesPointer() const noexcept;
     [[nodiscard]] bool QueryEditorCapturesKeyboard() const noexcept;
+
+    // The editor's primary pick — the record PickedSheet must describe. kNoEditorRecord when nothing is
+    //    picked, or when the build carries no editor at all.
+    [[nodiscard]] uint32_t QueryPickedRecord() const noexcept;
 
 private:
     bool QuitRequested = false;     // [-]  quit button pressed

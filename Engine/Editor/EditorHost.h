@@ -1,40 +1,47 @@
 //============================================================================================================================================
 //                                                       EDITORHOST.H
 //============================================================================================================================================
-// 🧩 Development editor host — seats the trapezoid tab sheet, builds the dock columns, and records the three panels.
+// 🧩 Development editor host — seats the theme, builds the dock columns, and records the three panels over the
+//    project's record feed. The host owns the kit the panels draw with and the four faces they draw in.
 
 #pragma once
 
+#include "EditorKit.h"
 #include "OutlinerPanel.h"
 #include "ViewportPanel.h"
 #include "InspectorPanel.h"
 
+#include <cstdint>
+
 namespace Frontier {
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                       EDITOR HOST
-//------------------------------------------------------------------------------------------------------------------------
-
-// Owns the development editor's place in the tick: the tab sheet, the first-seat dock columns, and the three
-//    docked panels. Every method below is inert unless FRONTIER_DEVELOPMENT is defined, so a build without the
-//    define keeps the dockspace but draws no editor.
 class EditorHost
 {
 public:
-    EditorHost() noexcept = default;
+    EditorHost() noexcept;
     ~EditorHost() noexcept = default;
 
     EditorHost(const EditorHost&)            = delete;
     EditorHost& operator=(const EditorHost&) = delete;
 
-    // Call once after the ImGui context exists — seats the sheet's tab figures and tints. Idempotent: the
-    //    four geometry figures repeat the SwapchainExchange seating so the headless proof, which never runs
-    //    the swapchain, draws the identical strip from this call alone.
+    // Call once after the ImGui context exists — seats the sheet's tab figures, the full token theme, and the
+    //    four faces. Idempotent: the faces seat once (a second seating would duplicate the atlas), the style
+    //    re-seats freely. Runs last, over the scheduler's own seating, so the editor's tokens win everywhere.
     void ApplyTheme() noexcept;
 
-    // Call every tick between ImGui::NewFrame() and ImGui::Render() — records the fullscreen dock host,
-    //    the dockspace, and the three panels.
-    void Record() noexcept;
+    // Call every tick between ImGui::NewFrame() and ImGui::Render() — records the fullscreen dock host, the
+    //    dockspace, and the three panels over the project's feed. The panels borrow the feed and edit it in
+    //    place; the sheet must already describe the currently picked record (see QueryPickedRecord).
+    void Record(EditorRecord* Records, uint32_t RecordCount, EditorSheet* PickedSheet) noexcept;
+
+    // The primary pick — the record the sheet must describe. kNoEditorRecord when nothing is picked.
+    [[nodiscard]] uint32_t QueryPickedRecord() const noexcept;
+
+    // Faces seated by ApplyTheme (four when both archives resolve, zero without the define).
+    [[nodiscard]] int QueryFontCount() const noexcept;
+
+    // The test seam; the proof drives the pick through it.
+    void PickRecord(uint32_t Index) noexcept;
 
 private:
     // Splits the dockspace into the outliner / viewport / inspector columns on the first tick, then rests.
@@ -42,9 +49,13 @@ private:
     //    build against.
     void ConstructLayout() noexcept;
 
+    EditorKit      Kit_;          // first: the panels borrow it
     OutlinerPanel  Outliner_;
     ViewportPanel  Viewport_;
     InspectorPanel Inspector_;
+
+    bool FontsSeated_ = false;
+    int  FontCount_   = 0;
 };
 
 } // namespace Frontier

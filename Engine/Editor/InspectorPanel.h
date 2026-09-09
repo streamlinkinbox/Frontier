@@ -1,37 +1,42 @@
 //============================================================================================================================================
-//                                                      INSPECTORPANEL.H
+//                                                    INSPECTORPANEL.H
 //============================================================================================================================================
-// 🧩 Development editor, right column — describes the picked record. Static sliders this step; nothing is bound yet.
+// 🧩 Development editor inspector — the picked record as a property sheet. Ident strip, schema cards drawn from
+//    the project's sheet, the record standing, the notes card. Every control edits the project's own figures.
 
 #pragma once
 
+#include "EditorRecord.h"
+
+#include <imgui.h>
+
+#include <cstdint>
+
 namespace Frontier {
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                     INSPECTOR PANEL
-//------------------------------------------------------------------------------------------------------------------------
+class EditorKit;
 
-// The right dock column. Transform and surface controls for the picked record; the sliders move and hold, and
-//    bind to the live scene in a later step. Nothing here allocates: every control writes a member.
-class InspectorPanel
+class InspectorPanel final
 {
 public:
-    InspectorPanel() noexcept = default;
-    ~InspectorPanel() noexcept = default;
+    void AssignKit(EditorKit* Kit) noexcept;
 
-    InspectorPanel(const InspectorPanel&)            = delete;
-    InspectorPanel& operator=(const InspectorPanel&) = delete;
-
-    // Records the panel into its dock column. Inert unless FRONTIER_DEVELOPMENT is defined.
-    void Record() noexcept;
+    void Record(EditorRecord* Picked, uint32_t PickedIndex, EditorSheet* Sheet) noexcept;
 
 private:
-    float Position[3]  = {};                        // [m]  picked record origin
-    float Rotation[3]  = {};                        // [°]  picked record attitude
-    float Scale[3]     = { 1.0f, 1.0f, 1.0f };      // [-]  picked record extent
-    float Metallic     = 1.0f;                      // [-]  0 dielectric … 1 conductor
-    float Roughness    = 0.25f;                     // [-]  0 mirror … 1 matte
-    float ExposureBias = 0.0f;                      // [EV] picked record exposure trim
+    void  RecordEmpty() noexcept;
+    void  RecordIdent(EditorRecord* Picked, uint32_t PickedIndex) noexcept;
+    void  RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexcept;
+    void  RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) noexcept;
+    void  RecordNotes(EditorRecord* Picked) noexcept;
+    float RecordCaps(const char* Text, const ImVec2& At, ImU32 Tint) noexcept;
+
+    EditorKit* Kit_ = nullptr;
+
+    bool     CardShut_[8] = {};                        // false reads open; sheet cards, then the notes card
+    uint32_t SheetFor_    = kNoEditorRecord;
+    uint32_t NameFor_     = kNoEditorRecord;
+    char     NameText_[48] = {};
 };
 
 } // namespace Frontier
