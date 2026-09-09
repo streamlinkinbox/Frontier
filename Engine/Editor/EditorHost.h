@@ -2,11 +2,11 @@
 //                                                       EDITORHOST.H
 //============================================================================================================================================
 // 🧩 Development editor host — seats the theme, builds the dock columns, and records the three panels over the
-//    project's record feed. The host owns the kit the panels draw with and the four faces they draw in.
+//    project's instance feed. The host owns the controls the panels draw with and the four faces they draw in.
 
 #pragma once
 
-#include "EditorKit.h"
+#include "ControlPanel.h"
 #include "OutlinerPanel.h"
 #include "ViewportPanel.h"
 #include "InspectorPanel.h"
@@ -25,23 +25,23 @@ public:
     EditorHost& operator=(const EditorHost&) = delete;
 
     // Call once after the ImGui context exists — seats the sheet's tab figures, the full token theme, and the
-    //    four faces. Idempotent: the faces seat once (a second seating would duplicate the atlas), the style
+    //    four faces. Idempotent: the faces seat once (a second seating would duplicate the glyph sheet), the style
     //    re-seats freely. Runs last, over the scheduler's own seating, so the editor's tokens win everywhere.
     void ApplyTheme() noexcept;
 
     // Call every tick between ImGui::NewFrame() and ImGui::Render() — records the fullscreen dock host, the
     //    dockspace, and the three panels over the project's feed. The panels borrow the feed and edit it in
-    //    place; the sheet must already describe the currently picked record (see QueryPickedRecord).
-    void Record(EditorRecord* Records, uint32_t RecordCount, EditorSheet* PickedSheet) noexcept;
+    //    place; the sheet must already describe the currently picked instance (see QueryPickedInstance).
+    void Record(EditorInstance* Instances, uint32_t InstanceCount, EditorSheet* PickedSheet) noexcept;
 
-    // The primary pick — the record the sheet must describe. kNoEditorRecord when nothing is picked.
-    [[nodiscard]] uint32_t QueryPickedRecord() const noexcept;
+    // The primary pick — the instance the sheet must describe. kNoEditorInstance when nothing is picked.
+    [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;
 
     // Faces seated by ApplyTheme (four when both archives resolve, zero without the define).
     [[nodiscard]] int QueryFontCount() const noexcept;
 
     // The test seam; the proof drives the pick through it.
-    void PickRecord(uint32_t Index) noexcept;
+    void PickInstance(uint32_t Index) noexcept;
 
 private:
     // Splits the dockspace into the outliner / viewport / inspector columns on the first tick, then rests.
@@ -49,7 +49,7 @@ private:
     //    build against.
     void ConstructLayout() noexcept;
 
-    EditorKit      Kit_;          // first: the panels borrow it
+    ControlPanel      Controls_;          // first: the panels borrow it
     OutlinerPanel  Outliner_;
     ViewportPanel  Viewport_;
     InspectorPanel Inspector_;

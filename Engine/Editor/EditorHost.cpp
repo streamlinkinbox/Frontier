@@ -19,12 +19,12 @@ namespace Frontier {
 
 EditorHost::EditorHost() noexcept
 {
-    Outliner_.AssignKit(&Kit_);
-    Viewport_.AssignKit(&Kit_);
-    Inspector_.AssignKit(&Kit_);
+    Outliner_.AssignControls(&Controls_);
+    Viewport_.AssignControls(&Controls_);
+    Inspector_.AssignControls(&Controls_);
 }
 
-uint32_t EditorHost::QueryPickedRecord() const noexcept
+uint32_t EditorHost::QueryPickedInstance() const noexcept
 {
     return Outliner_.QueryPicked();
 }
@@ -34,9 +34,9 @@ int EditorHost::QueryFontCount() const noexcept
     return FontCount_;
 }
 
-void EditorHost::PickRecord(uint32_t Index) noexcept
+void EditorHost::PickInstance(uint32_t Index) noexcept
 {
-    Outliner_.PickRecord(Index);
+    Outliner_.PickInstance(Index);
 }
 
 //============================================================================================================================================
@@ -140,12 +140,12 @@ void EditorHost::ApplyTheme() noexcept
 
         auto SeatFace = [&IO](const char* Path, float Size) -> ImFont*
         {
-            std::FILE* Probe = std::fopen(Path, "rb");
-            if (Probe == nullptr)
+            std::FILE* Check = std::fopen(Path, "rb");
+            if (Check == nullptr)
             {
                 return nullptr;
             }
-            std::fclose(Probe);
+            std::fclose(Check);
             return IO.Fonts->AddFontFromFileTTF(Path, Size);
         };
 
@@ -159,7 +159,7 @@ void EditorHost::ApplyTheme() noexcept
         {
             IO.FontDefault = Ui;
         }
-        Kit_.AssignFonts(Ui, Small, Mono, MonoSmall);
+        Controls_.AssignFonts(Ui, Small, Mono, MonoSmall);
     }
 #else
     // Without the define the editor draws nothing: the dockspace stays, the panels stay away.
@@ -200,7 +200,7 @@ void EditorHost::ConstructLayout() noexcept
 //                                                          RECORD
 //============================================================================================================================================
 
-void EditorHost::Record(EditorRecord* Records, uint32_t RecordCount, EditorSheet* PickedSheet) noexcept
+void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, EditorSheet* PickedSheet) noexcept
 {
 #ifdef FRONTIER_DEVELOPMENT
     ImGuiViewport* Main = ImGui::GetMainViewport();
@@ -237,14 +237,14 @@ void EditorHost::Record(EditorRecord* Records, uint32_t RecordCount, EditorSheet
     ImGui::End();
     ImGui::PopStyleVar(2);
 
-    Outliner_.Record(Records, RecordCount);
-    Viewport_.Record(RecordCount);
+    Outliner_.Record(Instances, InstanceCount);
+    Viewport_.Record(InstanceCount);
 
     const uint32_t Picked = Outliner_.QueryPicked();
-    EditorRecord* PickedRecord = (Picked < RecordCount) ? &Records[Picked] : nullptr;
-    Inspector_.Record(PickedRecord, Picked, (PickedRecord != nullptr) ? PickedSheet : nullptr);
+    EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
+    Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? PickedSheet : nullptr);
 #else
-    (void)Records; (void)RecordCount; (void)PickedSheet;
+    (void)Instances; (void)InstanceCount; (void)PickedSheet;
 #endif
 }
 

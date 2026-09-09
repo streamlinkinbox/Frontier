@@ -1,11 +1,11 @@
 //============================================================================================================================================
 //                                                    VIEWPORTPANEL.CPP
 //============================================================================================================================================
-// 🧩 Development editor viewport — the stage column.
+// 🧩 Development editor viewport — the scene column.
 
 #include "ViewportPanel.h"
 
-#include "EditorKit.h"
+#include "ControlPanel.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
@@ -27,6 +27,9 @@ constexpr ImU32 kDim    = IM_COL32(136, 136, 136, 255);
 constexpr ImU32 kFaint  = IM_COL32(92, 92, 92, 255);
 constexpr ImU32 kStroke = IM_COL32(255, 255, 255, 13);
 constexpr ImU32 kStrong = IM_COL32(46, 46, 46, 255);
+constexpr ImU32 kWash   = IM_COL32(255, 255, 255, 5);
+constexpr ImU32 kFill   = IM_COL32(122, 122, 122, 255);
+constexpr ImU32 kThumb  = IM_COL32(224, 224, 224, 255);
 constexpr ImU32 kGreen  = IM_COL32(105, 208, 109, 255);
 constexpr ImU32 kAmber  = IM_COL32(245, 158, 11, 255);
 
@@ -38,18 +41,18 @@ const char* kViewNames[3] = { "Perspective", "Orthographic", "Top" };
 //                                                           WIRING
 //------------------------------------------------------------------------------------------------------------------------
 
-void ViewportPanel::AssignKit(EditorKit* Kit) noexcept
+void ViewportPanel::AssignControls(ControlPanel* Controls) noexcept
 {
-    Kit_ = Kit;
+    Controls_ = Controls;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                           RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-void ViewportPanel::Record(uint32_t RecordCount) noexcept
+void ViewportPanel::Record(uint32_t InstanceCount) noexcept
 {
-    IM_ASSERT(Kit_ != nullptr);
+    IM_ASSERT(Controls_ != nullptr);
     if (!ImGui::Begin("Viewport", nullptr))
     {
         ImGui::End();
@@ -59,7 +62,7 @@ void ViewportPanel::Record(uint32_t RecordCount) noexcept
     RecordBar();
     RecordView();
     RecordCommand();
-    RecordFooter(RecordCount);
+    RecordFooter(InstanceCount);
     ImGui::End();
 }
 
@@ -74,8 +77,8 @@ void ViewportPanel::RecordBar() noexcept
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
-    ImFont*     Ui    = Kit_->QueryUi();
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Ui    = Controls_->QueryUi();
+    ImFont*     Small = Controls_->QuerySmall();
 
     const ImVec2 TileMin(Cursor.x, Cursor.y + 8.0f);
     const ImVec2 TileMax(Cursor.x + 28.0f, Cursor.y + 36.0f);
@@ -276,8 +279,8 @@ void ViewportPanel::RecordView() noexcept
     const ImVec2 Max = ImGui::GetItemRectMax();
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
-    ImFont*     Ui    = Kit_->QueryUi();
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Ui    = Controls_->QueryUi();
+    ImFont*     Small = Controls_->QuerySmall();
     Draw->AddRectFilled(Min, Max, kView, 12.0f);
     Draw->AddRect(Min, Max, kStroke, 12.0f);
 
@@ -329,10 +332,10 @@ void ViewportPanel::RecordCommand() noexcept
     const ImVec2 Max = ImGui::GetItemRectMax();
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
-    ImFont*     Ui    = Kit_->QueryUi();
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Ui    = Controls_->QueryUi();
+    ImFont*     Small = Controls_->QuerySmall();
     Draw->AddRectFilled(Min, Max, IM_COL32(0, 0, 0, 255), 10.0f);
-    Draw->AddRect(Min, Max, kStroke, 10.0f);
+    Draw->AddRect(Min, Max, CommandFocus_ ? kStrong : kStroke, 10.0f);
 
     ImGui::PushFont(Ui);
     const ImVec2 PromptGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, ">");
@@ -364,6 +367,7 @@ void ViewportPanel::RecordCommand() noexcept
     }
     const bool Done = ImGui::InputTextWithHint("##cmd", "Type a command\xe2\x80\xa6",
         CommandText_, sizeof(CommandText_), ImGuiInputTextFlags_EnterReturnsTrue);
+    CommandFocus_ = ImGui::IsItemFocused();
     if (ImGui::IsItemActivated())
     {
         CommandEcho_[0] = '\0';
@@ -375,7 +379,7 @@ void ViewportPanel::RecordCommand() noexcept
 
     if (Done && CommandText_[0] != '\0')
     {
-        std::snprintf(CommandEcho_, sizeof(CommandEcho_), "'%s' is not bound yet", CommandText_);
+        std::snprintf(CommandEcho_, sizeof(CommandEcho_), "'%s' does nothing yet", CommandText_);
         CommandText_[0] = '\0';
     }
     if (CommandEcho_[0] != '\0' && CommandText_[0] == '\0')
@@ -394,19 +398,22 @@ void ViewportPanel::RecordCommand() noexcept
 //                                                           FOOTER
 //------------------------------------------------------------------------------------------------------------------------
 
-void ViewportPanel::RecordFooter(uint32_t RecordCount) noexcept
+void ViewportPanel::RecordFooter(uint32_t InstanceCount) noexcept
 {
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     ImGui::Dummy(ImVec2(RowWidth, 30.0f));
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    ImFont*     Mono = Kit_->QueryMonoSmall();
+    ImFont*     Mono = Controls_->QueryMonoSmall();
+
+    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
+    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
 
     const float Fps = ImGui::GetIO().Framerate;
     char Stats[64] = {};
-    std::snprintf(Stats, sizeof(Stats), "%.0f FPS \xc2\xb7 %.1f MS \xc2\xb7 %u RECORDS",
-        static_cast<double>(Fps), static_cast<double>(Fps > 0.0f ? 1000.0f / Fps : 0.0f), RecordCount);
+    std::snprintf(Stats, sizeof(Stats), "%.0f FPS \xc2\xb7 %.1f MS \xc2\xb7 %u INSTANCES",
+        static_cast<double>(Fps), static_cast<double>(Fps > 0.0f ? 1000.0f / Fps : 0.0f), InstanceCount);
     ImGui::PushFont(Mono);
     const ImVec2 StatsGlyph = Mono->CalcTextSizeA(Mono->LegacySize, FLT_MAX, 0.0f, Stats);
     Draw->AddText(ImVec2(Cursor.x, Cursor.y + (30.0f - StatsGlyph.y) * 0.5f), kDim, Stats);
@@ -430,14 +437,16 @@ void ViewportPanel::RecordFooter(uint32_t RecordCount) noexcept
     if (ImGui::IsItemActive())
     {
         const float MouseX = ImGui::GetIO().MousePos.x;
-        float Next = (MouseX - TrackX0) / kTrackW * 24.0f;
+        float Next = (MouseX - TrackX0 - 9.0f) / (kTrackW - 18.0f) * 24.0f;
         ClockHours_ = Next < 0.0f ? 0.0f : (Next > 24.0f ? 24.0f : Next);
     }
 
-    const float KnobX = TrackX0 + (ClockHours_ / 24.0f) * kTrackW;
-    Draw->AddLine(ImVec2(TrackX0, TrackY), ImVec2(TrackX1, TrackY), IM_COL32(255, 255, 255, 36), 2.0f);
-    Draw->AddLine(ImVec2(TrackX0, TrackY), ImVec2(KnobX, TrackY), IM_COL32(255, 255, 255, 255), 2.0f);
-    Draw->AddCircleFilled(ImVec2(KnobX, TrackY), 5.0f, IM_COL32(255, 255, 255, 255));
+    const float Travel0 = TrackX0 + 9.0f;
+    const float Travel1 = TrackX1 - 9.0f;
+    const float KnobX = Travel0 + (ClockHours_ / 24.0f) * (Travel1 - Travel0);
+    Draw->AddRectFilled(ImVec2(TrackX0, TrackY - 5.0f), ImVec2(TrackX1, TrackY + 5.0f), IM_COL32(34, 34, 34, 255), 5.0f);
+    Draw->AddRectFilled(ImVec2(TrackX0, TrackY - 5.0f), ImVec2(KnobX, TrackY + 5.0f), kFill, 5.0f);
+    Draw->AddCircleFilled(ImVec2(KnobX, TrackY), 9.0f, kThumb);
     ImGui::PushFont(Mono);
     Draw->AddText(ImVec2(TrackX1 + 8.0f, Cursor.y + (30.0f - ClockGlyph.y) * 0.5f), kDim, Clock);
     ImGui::PopFont();

@@ -1,7 +1,7 @@
 //============================================================================================================================================
-//                                                      EDITORRECORD.H
+//                                                     EDITORINSTANCE.H
 //============================================================================================================================================
-// 🧩 Development editor feed — the record register and property sheet protocol. The project fills these from the
+// 🧩 Development editor feed — the instance roster and property sheet protocol. The project fills these from the
 //    live scene; the panels borrow them each tick and edit in place, so a rename, a toggle or a slider move is
 //    visible to the project on the same tick without any bus or queue between them.
 
@@ -15,14 +15,14 @@ namespace Frontier {
 //                                                     RECORD COMPASS
 //------------------------------------------------------------------------------------------------------------------------
 
-// The most records one tick may carry, the most rows one selection may hold, and the index that means "none".
+// The most instances one tick may carry, the most rows one selection may hold, and the index that means "none".
 //    Fixed: the tick never allocates.
-constexpr uint32_t kMaxEditorRecords = 64u;
+constexpr uint32_t kMaxEditorInstances = 64u;
 constexpr uint32_t kMaxEditorPicked  = 16u;
-constexpr uint32_t kNoEditorRecord   = 0xFFFFFFFFu;
+constexpr uint32_t kNoEditorInstance   = 0xFFFFFFFFu;
 
-// Record kinds. The tint lives per record (kind colour, folders overridable); this names the behaviour.
-enum class EditorRecordKind : uint32_t
+// Instance categories. The tint lives per instance (category colour, folders overridable); this names the behaviour.
+enum class EditorInstanceCategory : uint32_t
 {
     Folder = 0u,
     Geometry,
@@ -34,15 +34,15 @@ enum class EditorRecordKind : uint32_t
     Count
 };
 
-// One row of the register. The feed walks in preorder: a folder's rows follow it, nested by Depth, so the
+// One row of the roster. The feed walks in preorder: a folder's rows follow it, deepened by Depth, so the
 //    panel renders the hierarchy without any links of its own.
-struct EditorRecord
+struct EditorInstance
 {
     char             Label[44] = {};                        // display name; the panel renames in place
-    char             Notes[256] = {};                       // per-record scratch; the inspector's notes card
-    uint32_t         Depth     = 0u;                        // nesting depth in the preorder walk
+    char             Notes[256] = {};                       // per-instance scratch; the inspector's notes card
+    uint32_t         Depth     = 0u;                        // Depth in the preorder walk
     uint32_t         KidCount  = 0u;                        // direct rows below a folder (the count badge)
-    EditorRecordKind Kind      = EditorRecordKind::Folder;
+    EditorInstanceCategory Category      = EditorInstanceCategory::Folder;
     float            Tint[3]   = { 1.0f, 1.0f, 1.0f };      // row glyph tint
     bool             Visible   = true;
     bool             Locked    = false;
@@ -55,9 +55,9 @@ struct EditorRecord
 //                                                    PROPERTY SHEET
 //------------------------------------------------------------------------------------------------------------------------
 
-// Property kinds. One control per kind, drawn by EditorKit: the slider is always paired with its type-in pill,
+// Property categories. One control per category, drawn by ControlPanel: the slider is always paired with its type-in pill,
 //    the vector is always three axis fields, and the readout is always right-aligned tabular text.
-enum class EditorPropertyKind : uint32_t
+enum class EditorPropertyCategory : uint32_t
 {
     Slider = 0u,
     Switch,
@@ -76,7 +76,7 @@ constexpr uint32_t kMaxEditorSheetGroups  = 6u;    // cards per sheet
 struct EditorProperty
 {
     char               Label[28] = {};
-    EditorPropertyKind Kind      = EditorPropertyKind::Readout;
+    EditorPropertyCategory Category      = EditorPropertyCategory::Readout;
 
     // Slider: the figure, its range, and how the pill prints it.
     float    Minimum  = 0.0f;
@@ -114,17 +114,17 @@ struct EditorSheet
     uint32_t            GroupCount = 0u;
 };
 
-inline const char* EditorKindLabel(EditorRecordKind Kind) noexcept
+inline const char* EditorInstanceLabel(EditorInstanceCategory Category) noexcept
 {
-    switch (Kind)
+    switch (Category)
     {
-    case EditorRecordKind::Folder:   return "Folder";
-    case EditorRecordKind::Geometry: return "Geometry";
-    case EditorRecordKind::Light:    return "Light";
-    case EditorRecordKind::Camera:   return "Camera";
-    case EditorRecordKind::Sky:      return "Sky";
-    case EditorRecordKind::Sun:      return "Sun";
-    case EditorRecordKind::Moon:     return "Moon";
+    case EditorInstanceCategory::Folder:   return "Folder";
+    case EditorInstanceCategory::Geometry: return "Geometry";
+    case EditorInstanceCategory::Light:    return "Light";
+    case EditorInstanceCategory::Camera:   return "Camera";
+    case EditorInstanceCategory::Sky:      return "Sky";
+    case EditorInstanceCategory::Sun:      return "Sun";
+    case EditorInstanceCategory::Moon:     return "Moon";
     default:                         return "?";
     }
 }

@@ -1,9 +1,9 @@
 //============================================================================================================================================
-//                                                      EDITORKIT.CPP
+//                                                    CONTROLPANEL.CPP
 //============================================================================================================================================
-// 🧩 Development editor kit — the hand-drawn controls of the property sheet.
+// 🧩 Development editor controls — the hand-drawn widgets of the property sheet.
 
-#include "EditorKit.h"
+#include "ControlPanel.h"
 #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
 
 #include <cmath>
@@ -19,18 +19,23 @@ namespace {
 //                                                          TOKENS
 //------------------------------------------------------------------------------------------------------------------------
 
-constexpr ImU32 kField  = IM_COL32(0, 0, 0, 255);        // the pill shell
-constexpr ImU32 kInset  = IM_COL32(26, 26, 26, 255);     // the card seat
-constexpr ImU32 kHover  = IM_COL32(28, 28, 28, 255);     // the row hover
-constexpr ImU32 kSeated = IM_COL32(42, 42, 42, 255);     // the seated row
-constexpr ImU32 kStrong = IM_COL32(46, 46, 46, 255);     // the strong stroke
-constexpr ImU32 kText   = IM_COL32(240, 240, 240, 255);
-constexpr ImU32 kDim    = IM_COL32(136, 136, 136, 255);
-constexpr ImU32 kFaint  = IM_COL32(92, 92, 92, 255);
-constexpr ImU32 kStroke = IM_COL32(255, 255, 255, 13);   // rgba(255,255,255,.05)
-constexpr ImU32 kTrack  = IM_COL32(255, 255, 255, 36);   // rgba(255,255,255,.14)
-constexpr ImU32 kHi     = IM_COL32(108, 119, 255, 255);  // the periwinkle fill
-constexpr ImU32 kCellBg = IM_COL32(255, 255, 255, 11);   // rgba(255,255,255,.045)
+constexpr ImU32 kField     = IM_COL32(0, 0, 0, 255);      // the pill shell
+constexpr ImU32 kInset     = IM_COL32(26, 26, 26, 255);     // the card seat
+constexpr ImU32 kHover     = IM_COL32(34, 34, 34, 255);     // the raised hover
+constexpr ImU32 kSeated    = IM_COL32(42, 42, 42, 255);     // the seated row
+constexpr ImU32 kStrong    = IM_COL32(46, 46, 46, 255);     // the strong stroke
+constexpr ImU32 kText      = IM_COL32(240, 240, 240, 255);
+constexpr ImU32 kDim       = IM_COL32(136, 136, 136, 255);
+constexpr ImU32 kFaint     = IM_COL32(92, 92, 92, 255);
+constexpr ImU32 kStroke    = IM_COL32(255, 255, 255, 13);   // rgba(255,255,255,.05)
+constexpr ImU32 kHi        = IM_COL32(108, 119, 255, 255);  // the periwinkle fill
+constexpr ImU32 kFill      = IM_COL32(122, 122, 122, 255);  // the slider fill
+constexpr ImU32 kThumb     = IM_COL32(224, 224, 224, 255);  // the slider thumb
+constexpr ImU32 kKnobOff   = IM_COL32(189, 189, 189, 255);  // the switch knob, off
+constexpr ImU32 kKnobOn    = IM_COL32(17, 17, 17, 255);     // the switch knob, on
+constexpr ImU32 kCell      = IM_COL32(34, 34, 34, 255);     // the unit/caret cell, one step up from the card
+constexpr ImU32 kMenuHover = IM_COL32(20, 20, 20, 255);     // the menu option hover
+constexpr ImU32 kMenuSel   = IM_COL32(24, 24, 24, 255);     // the menu option seated
 constexpr ImU32 kAxX    = IM_COL32(239, 83, 80, 255);
 constexpr ImU32 kAxY    = IM_COL32(105, 208, 109, 255);
 constexpr ImU32 kAxZ    = IM_COL32(91, 140, 255, 255);
@@ -63,7 +68,7 @@ bool NearTint(const float A[3], const float B[3]) noexcept
 //                                                           FACES
 //------------------------------------------------------------------------------------------------------------------------
 
-void EditorKit::AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall) noexcept
+void ControlPanel::AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall) noexcept
 {
     Ui_        = Ui;
     Small_     = Small;
@@ -71,31 +76,37 @@ void EditorKit::AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* Mon
     MonoSmall_ = MonoSmall;
 }
 
-ImFont* EditorKit::QueryUi() const noexcept
+ImFont* ControlPanel::QueryUi() const noexcept
 {
     return Ui_ != nullptr ? Ui_ : ImGui::GetFont();
 }
 
-ImFont* EditorKit::QuerySmall() const noexcept
+ImFont* ControlPanel::QuerySmall() const noexcept
 {
     return Small_ != nullptr ? Small_ : ImGui::GetFont();
 }
 
-ImFont* EditorKit::QueryMono() const noexcept
+ImFont* ControlPanel::QueryMono() const noexcept
 {
     return Mono_ != nullptr ? Mono_ : ImGui::GetFont();
 }
 
-ImFont* EditorKit::QueryMonoSmall() const noexcept
+ImFont* ControlPanel::QueryMonoSmall() const noexcept
 {
     return MonoSmall_ != nullptr ? MonoSmall_ : ImGui::GetFont();
+}
+
+ImU32 ControlPanel::FadeTint(ImU32 Tint, float Fade) noexcept
+{
+    const int A = static_cast<int>(((Tint >> IM_COL32_A_SHIFT) & 0xFFu) * Fade);
+    return (Tint & ~IM_COL32_A_MASK) | (static_cast<ImU32>(A) << IM_COL32_A_SHIFT);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CLICK-TO-TYPE
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::TypeInCell(const char* Id, const ImVec2& CellMin, const ImVec2& CellSize,
+bool ControlPanel::TypeInCell(const char* Id, const ImVec2& CellMin, const ImVec2& CellSize,
                             float Current, uint32_t Decimals, float* Committed) noexcept
 {
     const ImGuiID CellId = ImGui::GetID(Id);
@@ -158,7 +169,7 @@ bool EditorKit::TypeInCell(const char* Id, const ImVec2& CellMin, const ImVec2& 
 //                                                        SLIDER PILL
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::SliderPill(const char* Id, float* Figure, float Minimum, float Maximum,
+bool ControlPanel::SliderPill(const char* Id, float* Figure, float Minimum, float Maximum,
                             uint32_t Decimals, const char* Unit, bool Hi) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
@@ -173,71 +184,78 @@ bool EditorKit::SliderPill(const char* Id, float* Figure, float Minimum, float M
         return false;
     }
 
-    constexpr float kPillWidth = 92.0f;
+    // The reference figure pill, dense: a split pill (black figure cell, raised unit cell) beside the thin track.
+    constexpr float kPillWidth = 100.0f;
+    constexpr float kUnitWidth = 40.0f;
     constexpr float kGap       = 10.0f;
-    constexpr float kHeight    = 26.0f;
+    constexpr float kHeight    = 30.0f;
+    constexpr float kPillH     = 28.0f;
 
     ImGui::Dummy(ImVec2(RowWidth, kHeight));
     const ImVec2 Cursor  = ImGui::GetItemRectMin();
-    const ImVec2 PillMax = ImVec2(Cursor.x + kPillWidth, Cursor.y + kHeight);
+    const ImVec2 PillMin(Cursor.x, Cursor.y + 1.0f);
+    const ImVec2 PillMax(Cursor.x + kPillWidth, Cursor.y + 1.0f + kPillH);
+    const float  SplitX  = Cursor.x + kPillWidth - kUnitWidth;
     const float  TrackX0 = Cursor.x + kPillWidth + kGap;
     const float  TrackX1 = Cursor.x + RowWidth;
 
     ImDrawList* Draw    = ImGui::GetWindowDrawList();
-    ImFont*     Mono    = QueryMono();
     bool        Changed = false;
 
-    Draw->AddRectFilled(Cursor, PillMax, kField, 13.0f);
-    Draw->AddRect(Cursor, PillMax, kStroke, 13.0f);
+    Draw->AddRectFilled(PillMin, ImVec2(SplitX, PillMax.y), kField, 14.0f, ImDrawFlags_RoundCornersLeft);
+    Draw->AddRectFilled(ImVec2(SplitX, PillMin.y), PillMax, kCell, 14.0f, ImDrawFlags_RoundCornersRight);
+    Draw->AddRect(PillMin, PillMax, kStroke, 14.0f);
+    Draw->AddLine(ImVec2(SplitX, PillMin.y + 4.0f), ImVec2(SplitX, PillMax.y - 4.0f), kStroke);
 
-    ImGui::PushFont(Mono);
-    const ImVec2 UnitGlyph = Mono->CalcTextSizeA(Mono->LegacySize, FLT_MAX, 0.0f, Unit);
-    ImGui::PopFont();
-    const float UnitCell = UnitGlyph.x + 18.0f;
-    const float SplitX   = Cursor.x + kPillWidth - 4.0f - UnitCell;
-    const ImVec2 NumMin(Cursor.x + 4.0f, Cursor.y + 4.0f);
-    const ImVec2 NumMax(SplitX - 2.0f, Cursor.y + kHeight - 4.0f);
-    const ImVec2 UnitMin(SplitX + 2.0f, Cursor.y + 4.0f);
-    const ImVec2 UnitMax(Cursor.x + kPillWidth - 4.0f, Cursor.y + kHeight - 4.0f);
-    Draw->AddRectFilled(NumMin, NumMax, kCellBg, 9.0f);
-    Draw->AddRectFilled(UnitMin, UnitMax, kCellBg, 9.0f);
-
-    if (TypeInCell(Id, NumMin, ImVec2(NumMax.x - NumMin.x, NumMax.y - NumMin.y), *Figure, Decimals, Figure))
+    const ImVec2 NumMin(Cursor.x + 2.0f, PillMin.y + 2.0f);
+    const ImVec2 NumSize(SplitX - Cursor.x - 4.0f, kPillH - 4.0f);
+    if (TypeInCell(Id, NumMin, NumSize, *Figure, Decimals, Figure))
     {
         Changed = true;
     }
 
-    ImGui::PushFont(Mono);
-    Draw->AddText(ImVec2(UnitMin.x + (UnitMax.x - UnitMin.x - UnitGlyph.x) * 0.5f,
-        UnitMin.y + (UnitMax.y - UnitMin.y - UnitGlyph.y) * 0.5f), kDim, Unit);
+    ImFont* Small = QuerySmall();
+    ImGui::PushFont(Small);
+    const ImVec2 UnitGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Unit);
+    Draw->AddText(ImVec2(SplitX + (kUnitWidth - UnitGlyph.x) * 0.5f,
+        PillMin.y + (kPillH - UnitGlyph.y) * 0.5f), kFaint, Unit);
     ImGui::PopFont();
 
     const float Span = TrackX1 - TrackX0;
-    if (Span > 4.0f)
+    if (Span > 20.0f)
     {
-        const float TrackY = Cursor.y + kHeight * 0.5f;
+        constexpr float kTrackH = 10.0f;
+        constexpr float kThumbR = 9.0f;
+        const float TrackY0 = Cursor.y + (kHeight - kTrackH) * 0.5f;
+        const float TrackY1 = TrackY0 + kTrackH;
+        const float MidY    = (TrackY0 + TrackY1) * 0.5f;
+        const float Travel0 = TrackX0 + kThumbR;
+        const float Travel1 = TrackX1 - kThumbR;
+
         float Fraction = (Maximum > Minimum) ? ((*Figure - Minimum) / (Maximum - Minimum)) : 0.0f;
         Fraction       = Clamp01(Fraction);
-        const float KnobX = TrackX0 + Fraction * Span;
 
         ImGui::SetCursorScreenPos(ImVec2(TrackX0, Cursor.y));
         ImGui::InvisibleButton("##track", ImVec2(Span, kHeight));
-        if (ImGui::IsItemActive())
+        const bool Held = ImGui::IsItemActive();
+        if (Held && Travel1 > Travel0)
         {
             const float MouseX = ImGui::GetIO().MousePos.x;
-            float Next = Minimum + (MouseX - TrackX0) / Span * (Maximum - Minimum);
+            float Next = Minimum + (MouseX - Travel0) / (Travel1 - Travel0) * (Maximum - Minimum);
             Next       = Next < Minimum ? Minimum : (Next > Maximum ? Maximum : Next);
             if (Next != *Figure)
             {
-                *Figure = Next;
-                Changed = true;
+                *Figure  = Next;
+                Changed  = true;
+                Fraction = (Maximum > Minimum) ? ((*Figure - Minimum) / (Maximum - Minimum)) : 0.0f;
+                Fraction = Clamp01(Fraction);
             }
         }
 
-        Draw->AddLine(ImVec2(TrackX0, TrackY), ImVec2(TrackX1, TrackY), kTrack, 2.0f);
-        Draw->AddLine(ImVec2(TrackX0, TrackY), ImVec2(KnobX, TrackY), Hi ? kHi : IM_COL32(255, 255, 255, 255), 2.0f);
-        Draw->AddCircleFilled(ImVec2(KnobX, TrackY), 10.0f, IM_COL32(255, 255, 255, 30));
-        Draw->AddCircleFilled(ImVec2(KnobX, TrackY), 6.0f, IM_COL32(255, 255, 255, 255));
+        const float ThumbX = Travel0 + Fraction * (Travel1 - Travel0);
+        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(TrackX1, TrackY1), kHover, 5.0f);
+        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(ThumbX, TrackY1), Hi ? kHi : kFill, 5.0f);
+        Draw->AddCircleFilled(ImVec2(ThumbX, MidY), Held ? kThumbR * 1.1f : kThumbR, kThumb);
     }
 
     return Changed;
@@ -247,7 +265,7 @@ bool EditorKit::SliderPill(const char* Id, float* Figure, float Minimum, float M
 //                                                          SWITCH
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::Switch(const char* Id, bool* On) noexcept
+bool ControlPanel::Switch(const char* Id, bool* On) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
     if (Window->SkipItems)
@@ -255,12 +273,15 @@ bool EditorKit::Switch(const char* Id, bool* On) noexcept
         return false;
     }
 
-    ImGui::Dummy(ImVec2(33.0f, 19.0f));
+    // The reference switch, dense-true: a 46×26 pill, white when on, the knob gliding end to end.
+    constexpr float kW = 46.0f;
+    constexpr float kH = 26.0f;
+    ImGui::Dummy(ImVec2(kW, kH));
     const ImVec2 Min = ImGui::GetItemRectMin();
     const ImVec2 Max = ImGui::GetItemRectMax();
 
     ImGui::SetCursorScreenPos(Min);
-    ImGui::InvisibleButton(Id, ImVec2(33.0f, 19.0f));
+    ImGui::InvisibleButton(Id, ImVec2(kW, kH));
     bool Changed = false;
     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
     {
@@ -269,11 +290,10 @@ bool EditorKit::Switch(const char* Id, bool* On) noexcept
     }
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    Draw->AddRectFilled(Min, Max, *On ? IM_COL32(232, 232, 232, 255) : IM_COL32(36, 36, 36, 255), 9.5f);
-    Draw->AddRect(Min, Max, kStroke, 9.5f);
-    const float KnobX = *On ? (Max.x - 9.5f) : (Min.x + 9.5f);
-    Draw->AddCircleFilled(ImVec2(KnobX, Min.y + 9.5f), 6.5f, IM_COL32(245, 245, 245, 255));
-    Draw->AddCircle(ImVec2(KnobX, Min.y + 9.5f), 6.5f, IM_COL32(0, 0, 0, 60));
+    Draw->AddRectFilled(Min, Max, *On ? IM_COL32(255, 255, 255, 255) : kHover, 13.0f);
+    Draw->AddRect(Min, Max, kStroke, 13.0f);
+    const float KnobX = *On ? (Min.x + 32.0f) : (Min.x + 12.0f);
+    Draw->AddCircleFilled(ImVec2(KnobX, Min.y + 13.0f), 10.0f, *On ? kKnobOn : kKnobOff);
 
     return Changed;
 }
@@ -282,7 +302,7 @@ bool EditorKit::Switch(const char* Id, bool* On) noexcept
 //                                                         AXIS VEC3
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::AxisVec3(const char* Id, float Axes[3], float Step, bool Editable) noexcept
+bool ControlPanel::AxisVec3(const char* Id, float Axes[3], float Step, bool Editable) noexcept
 {
     (void)Id;
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
@@ -366,7 +386,7 @@ bool EditorKit::AxisVec3(const char* Id, float Axes[3], float Step, bool Editabl
 //                                                        COLOUR CHIP
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::ColourChip(const char* Id, float Tint[3]) noexcept
+bool ControlPanel::ColourChip(const char* Id, float Tint[3]) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
     if (Window->SkipItems)
@@ -431,7 +451,7 @@ bool EditorKit::ColourChip(const char* Id, float Tint[3]) noexcept
 //                                                        SWATCH ROW
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::SwatchRow(const char* Id, float Tint[3]) noexcept
+bool ControlPanel::SwatchRow(const char* Id, float Tint[3]) noexcept
 {
     (void)Id;
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
@@ -483,7 +503,7 @@ bool EditorKit::SwatchRow(const char* Id, float Tint[3]) noexcept
 //                                                         DROP-DOWN
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::DropDown(const char* Id, uint32_t* Picked,
+bool ControlPanel::DropDown(const char* Id, uint32_t* Picked,
                           const char Options[kMaxEditorOptions][kMaxEditorOptionChars],
                           uint32_t OptionCount) noexcept
 {
@@ -499,41 +519,90 @@ bool EditorKit::DropDown(const char* Id, uint32_t* Picked,
         return false;
     }
 
-    constexpr float kHeight = 30.0f;
+    // The reference dropdown, dense: a split pill (black current cell, raised caret cell) over a black menu.
+    constexpr float kHeight = 32.0f;
+    constexpr float kCaretW = 36.0f;
     ImGui::Dummy(ImVec2(RowWidth, kHeight));
     const ImVec2 Cursor = ImGui::GetItemRectMin();
     const ImVec2 End(Cursor.x + RowWidth, Cursor.y + kHeight);
+    const float  SplitX = End.x - kCaretW;
 
     ImGui::SetCursorScreenPos(Cursor);
     ImGui::InvisibleButton(Id, ImVec2(RowWidth, kHeight));
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+    const bool ButtonHot = ImGui::IsItemHovered();
+    if (ButtonHot && ImGui::IsMouseClicked(0))
     {
         ImGui::OpenPopup("##ddmenu");
     }
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    Draw->AddRectFilled(Cursor, End, kField, 15.0f);
-    Draw->AddRect(Cursor, End, kStroke, 15.0f);
+    Draw->AddRectFilled(Cursor, ImVec2(SplitX, End.y), kField, 16.0f, ImDrawFlags_RoundCornersLeft);
+    Draw->AddRectFilled(ImVec2(SplitX, Cursor.y), End, ButtonHot ? kSeated : kCell, 16.0f,
+        ImDrawFlags_RoundCornersRight);
+    Draw->AddRect(Cursor, End, kStroke, 16.0f);
+    Draw->AddLine(ImVec2(SplitX, Cursor.y + 5.0f), ImVec2(SplitX, End.y - 5.0f), kStroke);
 
     const uint32_t Shown = (*Picked < OptionCount) ? *Picked : 0u;
     ImFont* Ui = QueryUi();
     ImGui::PushFont(Ui);
     const ImVec2 LabelGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Options[Shown]);
-    Draw->AddText(ImVec2(Cursor.x + 13.0f, Cursor.y + (kHeight - LabelGlyph.y) * 0.5f), kText, Options[Shown]);
+    Draw->AddText(ImVec2(Cursor.x + 16.0f, Cursor.y + (kHeight - LabelGlyph.y) * 0.5f), kText, Options[Shown]);
     ImGui::PopFont();
 
-    const ImVec2 Chev(Cursor.x + RowWidth - 16.0f, Cursor.y + kHeight * 0.5f);
-    Draw->AddLine(ImVec2(Chev.x - 4.0f, Chev.y - 1.5f), ImVec2(Chev.x, Chev.y + 2.5f), kDim, 1.6f);
-    Draw->AddLine(ImVec2(Chev.x, Chev.y + 2.5f), ImVec2(Chev.x + 4.0f, Chev.y - 1.5f), kDim, 1.6f);
-
-    bool Changed = false;
-    ImGui::SetNextWindowSize(ImVec2(RowWidth < 160.0f ? 160.0f : RowWidth, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.102f, 0.102f, 0.102f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, 1.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
-    if (ImGui::BeginPopup("##ddmenu"))
+    // The caret turns 180° over two-tenths of a second while the menu stands open.
+    const float TurnTarget = MenuWasOpen_ ? 1.0f : 0.0f;
+    const float TurnStep   = ImGui::GetIO().DeltaTime / 0.2f;
+    if (ChevronAnim_ < TurnTarget)
     {
+        ChevronAnim_ += TurnStep;
+        if (ChevronAnim_ > TurnTarget)
+        {
+            ChevronAnim_ = TurnTarget;
+        }
+    }
+    else if (ChevronAnim_ > TurnTarget)
+    {
+        ChevronAnim_ -= TurnStep;
+        if (ChevronAnim_ < TurnTarget)
+        {
+            ChevronAnim_ = TurnTarget;
+        }
+    }
+    const float Turn   = ChevronAnim_ * ChevronAnim_ * (3.0f - 2.0f * ChevronAnim_);
+    const float ChevX  = SplitX + kCaretW * 0.5f;
+    const float ChevY  = Cursor.y + kHeight * 0.5f;
+    const float TipY   = ChevY - 2.0f + Turn * 4.0f;
+    const float ElbowY = ChevY + 3.0f - Turn * 6.0f;
+    Draw->AddLine(ImVec2(ChevX - 5.0f, TipY), ImVec2(ChevX, ElbowY), kDim, 2.0f);
+    Draw->AddLine(ImVec2(ChevX, ElbowY), ImVec2(ChevX + 5.0f, TipY), kDim, 2.0f);
+
+    // The menu fades in over fourteen-hundredths of a second, eased — the reference ctxIn, minus the rise.
+    bool Changed = false;
+    const double Now = ImGui::GetTime();
+    float Fade = 1.0f;
+    if (MenuWasOpen_)
+    {
+        float T = static_cast<float>((Now - MenuOpenedAt_) / 0.14);
+        T    = T < 0.0f ? 0.0f : (T > 1.0f ? 1.0f : T);
+        Fade = T * T * (3.0f - 2.0f * T);
+    }
+    ImGui::SetNextWindowPos(ImVec2(Cursor.x, End.y + 8.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(RowWidth, 0.0f), ImGuiCond_Appearing);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, Fade));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, Fade));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
+    const bool Open = ImGui::BeginPopup("##ddmenu");
+    if (Open && !MenuWasOpen_)
+    {
+        MenuOpenedAt_ = Now;
+        Fade          = 0.0f;
+    }
+    MenuWasOpen_ = Open;
+    if (Open)
+    {
+        ImDrawList* MenuDraw = ImGui::GetWindowDrawList();
         ImGui::PushFont(Ui);
         for (uint32_t i = 0u; i < OptionCount; ++i)
         {
@@ -552,24 +621,23 @@ bool EditorKit::DropDown(const char* Id, uint32_t* Picked,
                 Changed = true;
                 ImGui::CloseCurrentPopup();
             }
-            if (Hovered)
+            const bool Sel = (*Picked == i);
+            if (Sel)
             {
-                Draw->AddRectFilled(RowMin, RowMax, IM_COL32(36, 36, 36, 255), 6.0f);
+                MenuDraw->AddRectFilled(RowMin, RowMax, FadeTint(kMenuSel, Fade), 14.0f);
+            }
+            else if (Hovered)
+            {
+                MenuDraw->AddRectFilled(RowMin, RowMax, FadeTint(kMenuHover, Fade), 14.0f);
             }
             const ImVec2 OptGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Options[i]);
-            Draw->AddText(ImVec2(RowMin.x + 30.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
-                *Picked == i ? kText : kDim, Options[i]);
-            if (*Picked == i)
-            {
-                const ImVec2 Tick(RowMin.x + 14.0f, RowMin.y + 14.0f);
-                Draw->AddLine(ImVec2(Tick.x - 5.0f, Tick.y), ImVec2(Tick.x - 1.0f, Tick.y + 4.0f), kText, 2.0f);
-                Draw->AddLine(ImVec2(Tick.x - 1.0f, Tick.y + 4.0f), ImVec2(Tick.x + 5.0f, Tick.y - 4.0f), kText, 2.0f);
-            }
+            MenuDraw->AddText(ImVec2(RowMin.x + 14.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
+                FadeTint(Sel || Hovered ? kText : kDim, Fade), Options[i]);
         }
         ImGui::PopFont();
         ImGui::EndPopup();
     }
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
     return Changed;
 }
@@ -578,7 +646,7 @@ bool EditorKit::DropDown(const char* Id, uint32_t* Picked,
 //                                                        PILL TOGGLE
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EditorKit::PillToggle(const char* Label, bool* On) noexcept
+bool ControlPanel::PillToggle(const char* Label, bool* On) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
     if (Window->SkipItems)
@@ -619,7 +687,7 @@ bool EditorKit::PillToggle(const char* Label, bool* On) noexcept
 //                                                          READOUT
 //------------------------------------------------------------------------------------------------------------------------
 
-void EditorKit::Readout(const char* Text) noexcept
+void ControlPanel::Readout(const char* Text) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
     if (Window->SkipItems)

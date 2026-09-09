@@ -2,7 +2,9 @@
 # Headless visual proof for the development editor — compiles the patched vendor plus Engine/Editor, drives ten
 #    ticks through the engine's tick order, rasterises the last tick with a dependency-free CPU rasteriser, and
 #    gates the PNG: three occupied columns, a trapezoid slant on both tab edges, titled strips, the seated theme
-#    tints, and the four faces the theme seats.
+#    tints, and the four faces the theme seats. Then three interaction phases drive the pointer the way the
+#    engine does — the category menu opens, a Sun pick narrows the outline, the Sky Quality menu opens and
+#    selects High — and each phase rasterises its own sheet, so the four PNGs agree with the caption together.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 Fail=0
@@ -22,7 +24,7 @@ if ! g++ -std=c++20 -O2 -Wall -Wextra -DFRONTIER_DEVELOPMENT \
      -I ExternalPackages/imgui -I Engine/Editor -I Scratchpad \
      Scratchpad/EditorProof.cpp \
      Engine/Editor/EditorHost.cpp \
-     Engine/Editor/EditorKit.cpp \
+     Engine/Editor/ControlPanel.cpp \
      Engine/Editor/OutlinerPanel.cpp \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
@@ -51,18 +53,90 @@ for Face in EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf \
     if [[ ! -s "$Face" ]]; then echo "  MISSING $Face"; Fail=1; fi
 done
 
-# Banned vocabulary (CLAUDE.md §2). ImGui's own API names its dock columns 'nodes', its draw-store members
-#    'buffers', and its scroll panes 'children'; those lines are the vendor's vocabulary, not ours, and are
-#    excluded from the scan.
-Bad="$(grep -nE '\b(Node|Tree|Item|Entity|Element|Object|Frame|Manager|Controller|Handle|State|Value|Flag|Data|Buffer|Cache|Region|Array|Map|Model|Source|Parent|Child|Mesh|Grid|Filter|Stage|Pass|Ordinal)\b' \
-    Engine/Editor/EditorRecord.h Engine/Editor/EditorKit.h Engine/Editor/EditorKit.cpp \
-    Engine/Editor/EditorHost.h Engine/Editor/EditorHost.cpp \
-    Engine/Editor/OutlinerPanel.h Engine/Editor/OutlinerPanel.cpp \
-    Engine/Editor/ViewportPanel.h Engine/Editor/ViewportPanel.cpp \
-    Engine/Editor/InspectorPanel.h Engine/Editor/InspectorPanel.cpp \
-    Scratchpad/EditorProof.cpp | grep -vE 'Im[A-Z]' || true)"
+# Banned vocabulary (CLAUDE.md §3, plus §13's Record table and the Kit rename). ImGui's own entry points name
+#    their dock columns 'nodes', their draw-list spans 'buffers', and their scroll panes 'children'; those lines
+#    are the vendor's vocabulary, not ours, and are excluded from the scan.
+EditorFiles="Engine/Editor/EditorInstance.h Engine/Editor/ControlPanel.h Engine/Editor/ControlPanel.cpp
+    Engine/Editor/EditorHost.h Engine/Editor/EditorHost.cpp
+    Engine/Editor/OutlinerPanel.h Engine/Editor/OutlinerPanel.cpp
+    Engine/Editor/ViewportPanel.h Engine/Editor/ViewportPanel.cpp
+    Engine/Editor/InspectorPanel.h Engine/Editor/InspectorPanel.cpp
+    Scratchpad/EditorProof.cpp"
+# shellcheck disable=SC2086
+Bad="$(grep -nE '\b(Manager|Handler|Processor|Controller|Service|Utility|Helper|Node|Frame|Module|Core|System|Backend|Pass|Stage|Harness|Shell|Entity|Element|Subsystem|Hierarchy|Data|Info|Object|Item|Thing|Kind|Base|flag|state|value|Parent|Child|Sibling|Table|Map|Block|Digest|Model|Handle|Store|Bridge|Atlas|Substrate|Fabric|Cache|Evaluator|Evaluate|Journal|Resolver|Mesh|Pool|Registry|Catalog|Repository|Directory|Vault|Arena|Inventory|Ledger|Plan|Filter|Grid|Array|Dispatcher|Memory|Buffer|Pipeline|Flow|Composite|Compose|Composition|Allocation|Tier|Nesting|Stratum|Mip|Messenger|Probe|Blend|History|Bake|Stamp|Contract|Outcome|Prelude|Cadence|Binding|Submission|Footprint|Region|Tree|Vacancy|Ordinates|Draft|Draught|Paint|Depot|Ordinal|Actor|Source|API|Kit|kit|kind)\b' \
+    $EditorFiles | grep -vE 'Im[A-Z]' || true)"
 if [[ -n "$Bad" ]]; then
     echo "  forbidden words in the editor's own vocabulary:"; echo "$Bad" | sed 's/^/    /'; Fail=1
+fi
+
+# The Cornell feed is project code, but it speaks the editor's vocabulary across the seam, so the same §3 list
+#    holds between its landmarks (FillCornellInstances down to main). The project's older systems above and below
+#    keep their grandfathered words; this range does not.
+FeedBad="$(sed -n '/^void FillCornellInstances/,/^int main/p' Projects/Project-Zero/Source/GameExecution.cpp \
+    | sed '$d' | grep -nE '\b(Manager|Handler|Processor|Controller|Service|Utility|Helper|Node|Frame|Module|Core|System|Backend|Pass|Stage|Harness|Shell|Entity|Element|Subsystem|Hierarchy|Data|Info|Object|Item|Thing|Kind|Base|flag|state|value|Parent|Child|Sibling|Table|Map|Block|Digest|Model|Handle|Store|Bridge|Atlas|Substrate|Fabric|Cache|Evaluator|Evaluate|Journal|Resolver|Mesh|Pool|Registry|Catalog|Repository|Directory|Vault|Arena|Inventory|Ledger|Plan|Filter|Grid|Array|Dispatcher|Memory|Buffer|Pipeline|Flow|Composite|Compose|Composition|Allocation|Tier|Nesting|Stratum|Mip|Messenger|Probe|Blend|History|Bake|Stamp|Contract|Outcome|Prelude|Cadence|Binding|Submission|Footprint|Region|Tree|Vacancy|Ordinates|Draft|Draught|Paint|Depot|Ordinal|Actor|Source|API|Kit|kit|kind|Record)\b' \
+    | grep -vE 'Im[A-Z]' || true)"
+if [[ -n "$FeedBad" ]]; then
+    echo "  forbidden words in the Cornell feed:"; echo "$FeedBad" | sed 's/^/    /'; Fail=1
+fi
+
+# 'kind' and 'kit' survive no boundary: the ##kindmenu rename proved a word-boundary scan blind to them, so the
+#    substrings themselves are tripwires — any casing, any position.
+# shellcheck disable=SC2086
+KindHit="$(grep -rni 'kind' Engine/Editor/ Scratchpad/EditorProof.cpp || true)"
+if [[ -n "$KindHit" ]]; then
+    echo "  'kind' survives somewhere it must not:"; echo "$KindHit" | sed 's/^/    /'; Fail=1
+fi
+# shellcheck disable=SC2086
+KitHit="$(grep -rni 'kit' Engine/Editor/ Scratchpad/EditorProof.cpp || true)"
+if [[ -n "$KitHit" ]]; then
+    echo "  'kit' survives somewhere it must not:"; echo "$KitHit" | sed 's/^/    /'; Fail=1
+fi
+
+# 'Record' lives in the editor only as the drawing verb: sixteen method names and the two lowercase verb forms.
+#    Any seventeenth spelling is a noun sneaking back in.
+# shellcheck disable=SC2086
+RecordWant="Record
+RecordBar
+RecordCaps
+RecordCard
+RecordChips
+RecordCommand
+RecordEmpty
+RecordFooter
+RecordHeader
+RecordIdent
+RecordNotes
+RecordOutline
+RecordRow
+RecordSearch
+RecordStanding
+RecordView"
+RecordHave="$(grep -hoE 'Record[A-Za-z]*' $EditorFiles | sort -u || true)"
+if [[ "$RecordHave" != "$RecordWant" ]]; then
+    echo "  the Record verb grew a new spelling:"; echo "$RecordHave" | sed 's/^/    /'; Fail=1
+fi
+# shellcheck disable=SC2086
+RecordLow="$(grep -hoE '\brecord[a-z]*\b' $EditorFiles | sort -u || true)"
+if [[ "$RecordLow" != "$(printf 'record\nrecords')" ]]; then
+    echo "  the lowercase record verb grew a new spelling:"; echo "$RecordLow" | sed 's/^/    /'; Fail=1
+fi
+
+# The footer caption keeps its two figures: a selected count on the left, hits-of-total on the right.
+SelectedCount="$(grep -c '%u selected' Engine/Editor/OutlinerPanel.cpp)"
+TotalCount="$(grep -c '%u of %u' Engine/Editor/OutlinerPanel.cpp)"
+if [[ "$SelectedCount" != "1" || "$TotalCount" != "1" ]]; then
+    echo "  the footer caption lost its figures (selected $SelectedCount, of-total $TotalCount)"; Fail=1
+fi
+
+# Every popup the editor opens, the editor begins: the Open set and the Begin set must be the same three ids.
+OpenPopups="$(grep -hoE 'OpenPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sort -u)"
+BeginPopups="$(grep -hoE 'BeginPopup\("##[a-z]+"\)' Engine/Editor/*.cpp | sed 's/BeginPopup/OpenPopup/' | sort -u)"
+if [[ "$OpenPopups" != "$BeginPopups" ]]; then
+    echo "  a popup opens that never begins, or begins that never opens:"; Fail=1
+fi
+OpenCount="$(echo "$OpenPopups" | grep -c 'OpenPopup')"
+if [[ "$OpenCount" != "3" ]]; then
+    echo "  the editor seats three popups, no more:"; echo "$OpenPopups" | sed 's/^/    /'; Fail=1
 fi
 
 # No heap traffic while drawing: the panels must not allocate.
@@ -71,7 +145,13 @@ if grep -nE '(push_back|emplace_back|resize|reserve|new )' Engine/Editor/*.cpp |
 fi
 
 echo
-if [[ ! -s Diagnostics/EditorProof_Tabs.png ]]; then echo "  MISSING Diagnostics/EditorProof_Tabs.png"; Fail=1; else echo "  wrote Diagnostics/EditorProof_Tabs.png"; fi
+for Sheet in Tabs Menu Filtered Quality; do
+    if [[ ! -s Diagnostics/EditorProof_$Sheet.png ]]; then
+        echo "  MISSING Diagnostics/EditorProof_$Sheet.png"; Fail=1
+    else
+        echo "  wrote Diagnostics/EditorProof_$Sheet.png"
+    fi
+done
 
 if (( Fail )); then echo "  >>> EDITOR PROOF FAILED"; else echo "  >>> the editor agrees with its caption"; fi
 exit "$Fail"

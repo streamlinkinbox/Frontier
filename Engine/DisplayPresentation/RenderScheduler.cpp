@@ -69,8 +69,8 @@ void RenderScheduler::Present(
     const ProjectZero::RayTracingSolver& Scene,
     uint32_t                             ViewportWidth,
     uint32_t                             ViewportHeight,
-    EditorRecord*                        Records,
-    uint32_t                             RecordCount,
+    EditorInstance*                        Instances,
+    uint32_t                             InstanceCount,
     EditorSheet*                         PickedSheet,
     const OverlayHook&                   Overlay) noexcept
 {
@@ -83,13 +83,13 @@ void RenderScheduler::Present(
     //    Patches A/B/C switch on. Without FRONTIER_DEVELOPMENT there is no dockspace and no editor — the F3
     //    popup below still floats, and the Control Centre overlay still records through the hook.
 #ifdef FRONTIER_DEVELOPMENT
-    Editor_.Record(Records, RecordCount, PickedSheet);
+    Editor_.Record(Instances, InstanceCount, PickedSheet);
 #else
-    (void)Records; (void)RecordCount; (void)PickedSheet;
+    (void)Instances; (void)InstanceCount; (void)PickedSheet;
 #endif
 
     // ⚠️ The scene / render inspector that used to live here is gone: it is now Engine/Editor, recorded above.
-    //    This still owns the ImGui frame because the Control Centre overlay records itself between NewFrame and
+    //    This still owns the ImGui tick because the Control Centre overlay records itself between NewFrame and
     //    Render through the hook below, and the F3 diagnostic popup is still an ImGui window.
     //
     //    SectionCamera / SectionReSTIR / SectionScene are retained but unreferenced by design: they are the
@@ -112,12 +112,12 @@ bool RenderScheduler::QueryEditorCapturesKeyboard() const noexcept
     return ImGui::GetIO().WantCaptureKeyboard;
 }
 
-uint32_t RenderScheduler::QueryPickedRecord() const noexcept
+uint32_t RenderScheduler::QueryPickedInstance() const noexcept
 {
 #ifdef FRONTIER_DEVELOPMENT
-    return Editor_.QueryPickedRecord();
+    return Editor_.QueryPickedInstance();
 #else
-    return kNoEditorRecord;
+    return kNoEditorInstance;
 #endif
 }
 

@@ -1,11 +1,11 @@
 //============================================================================================================================================
 //                                                     OUTLINERPANEL.CPP
 //============================================================================================================================================
-// 🧩 Development editor outliner — the record register as a tree.
+// 🧩 Development editor outliner — the instance roster as an outline.
 
 #include "OutlinerPanel.h"
 
-#include "EditorKit.h"
+#include "ControlPanel.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
@@ -22,8 +22,8 @@ namespace {
 //                                                          TOKENS
 //------------------------------------------------------------------------------------------------------------------------
 
-constexpr ImU32 kTile   = IM_COL32(34, 34, 34, 255);
-constexpr ImU32 kHover  = IM_COL32(28, 28, 28, 255);
+constexpr ImU32 kTile   = IM_COL32(26, 26, 26, 255);
+constexpr ImU32 kHover  = IM_COL32(34, 34, 34, 255);
 constexpr ImU32 kSeated = IM_COL32(42, 42, 42, 255);
 constexpr ImU32 kText   = IM_COL32(240, 240, 240, 255);
 constexpr ImU32 kDim    = IM_COL32(136, 136, 136, 255);
@@ -34,6 +34,10 @@ constexpr ImU32 kHi     = IM_COL32(108, 119, 255, 255);
 constexpr ImU32 kDynBg  = IM_COL32(108, 119, 255, 46);
 constexpr ImU32 kDynTx  = IM_COL32(154, 162, 255, 255);
 constexpr ImU32 kPillBg = IM_COL32(255, 255, 255, 15);
+constexpr ImU32 kMenuHover = IM_COL32(20, 20, 20, 255);
+constexpr ImU32 kMenuSel   = IM_COL32(24, 24, 24, 255);
+constexpr ImU32 kWash   = IM_COL32(255, 255, 255, 5);
+constexpr ImU32 kGuide  = IM_COL32(255, 255, 255, 15);
 
 bool ContainsFolded(const char* Hay, const char* Needle) noexcept
 {
@@ -83,20 +87,6 @@ const char* FindFolded(const char* Hay, const char* Needle) noexcept
     return nullptr;
 }
 
-const char* KindLabel(EditorRecordKind Kind) noexcept
-{
-    switch (Kind)
-    {
-    case EditorRecordKind::Folder:   return "Folder";
-    case EditorRecordKind::Geometry: return "Geometry";
-    case EditorRecordKind::Light:    return "Light";
-    case EditorRecordKind::Camera:   return "Camera";
-    case EditorRecordKind::Sky:      return "Sky";
-    case EditorRecordKind::Sun:      return "Sun";
-    case EditorRecordKind::Moon:     return "Moon";
-    default:                         return "?";
-    }
-}
 
 } // namespace
 
@@ -104,14 +94,14 @@ const char* KindLabel(EditorRecordKind Kind) noexcept
 //                                                           WIRING
 //------------------------------------------------------------------------------------------------------------------------
 
-void OutlinerPanel::AssignKit(EditorKit* Kit) noexcept
+void OutlinerPanel::AssignControls(ControlPanel* Controls) noexcept
 {
-    Kit_ = Kit;
+    Controls_ = Controls;
 }
 
 uint32_t OutlinerPanel::QueryPicked() const noexcept
 {
-    return PickedCount_ > 0u ? Picked_[0] : kNoEditorRecord;
+    return PickedCount_ > 0u ? Picked_[0] : kNoEditorInstance;
 }
 
 uint32_t OutlinerPanel::QueryPickedCount() const noexcept
@@ -121,10 +111,10 @@ uint32_t OutlinerPanel::QueryPickedCount() const noexcept
 
 uint32_t OutlinerPanel::QueryPickedAt(uint32_t Slot) const noexcept
 {
-    return Slot < PickedCount_ ? Picked_[Slot] : kNoEditorRecord;
+    return Slot < PickedCount_ ? Picked_[Slot] : kNoEditorInstance;
 }
 
-void OutlinerPanel::PickRecord(uint32_t Index) noexcept
+void OutlinerPanel::PickInstance(uint32_t Index) noexcept
 {
     Picked_[0]   = Index;
     PickedCount_ = 1u;
@@ -171,38 +161,38 @@ void OutlinerPanel::RemovePick(uint32_t Index) noexcept
 //                                                           RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-void OutlinerPanel::Record(EditorRecord* Records, uint32_t RecordCount) noexcept
+void OutlinerPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
-    IM_ASSERT(Kit_ != nullptr);
+    IM_ASSERT(Controls_ != nullptr);
     if (!ImGui::Begin("Outliner", nullptr))
     {
         ImGui::End();
         return;
     }
-    if (RecordCount > kMaxEditorRecords)
+    if (InstanceCount > kMaxEditorInstances)
     {
-        RecordCount = kMaxEditorRecords;
+        InstanceCount = kMaxEditorInstances;
     }
 
-    uint32_t EntityCount = 0u;
+    uint32_t LeafCount = 0u;
     uint32_t GroupCount  = 0u;
-    for (uint32_t i = 0u; i < RecordCount; ++i)
+    for (uint32_t i = 0u; i < InstanceCount; ++i)
     {
-        if (Records[i].Kind == EditorRecordKind::Folder)
+        if (Instances[i].Category == EditorInstanceCategory::Folder)
         {
             ++GroupCount;
         }
         else
         {
-            ++EntityCount;
+            ++LeafCount;
         }
     }
 
-    RecordHeader(Records, RecordCount, EntityCount, GroupCount);
+    RecordHeader(Instances, InstanceCount, LeafCount, GroupCount);
     RecordSearch();
     RecordChips();
-    const uint32_t Hits = RecordTree(Records, RecordCount);
-    RecordFooter(Hits, RecordCount);
+    const uint32_t Hits = RecordOutline(Instances, InstanceCount);
+    RecordFooter(Hits, InstanceCount);
     ImGui::End();
 }
 
@@ -210,16 +200,19 @@ void OutlinerPanel::Record(EditorRecord* Records, uint32_t RecordCount) noexcept
 //                                                          HEADER
 //------------------------------------------------------------------------------------------------------------------------
 
-void OutlinerPanel::RecordHeader(EditorRecord* Records, uint32_t RecordCount,
-                                 uint32_t EntityCount, uint32_t GroupCount) noexcept
+void OutlinerPanel::RecordHeader(EditorInstance* Instances, uint32_t InstanceCount,
+                                 uint32_t LeafCount, uint32_t GroupCount) noexcept
 {
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     ImGui::Dummy(ImVec2(RowWidth, 44.0f));
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
-    ImFont*     Ui    = Kit_->QueryUi();
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Ui    = Controls_->QueryUi();
+    ImFont*     Small = Controls_->QuerySmall();
+
+    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 44.0f), kWash);
+    Draw->AddLine(ImVec2(Cursor.x, Cursor.y + 44.0f), ImVec2(Cursor.x + RowWidth, Cursor.y + 44.0f), kStroke);
 
     const ImVec2 TileMax(Cursor.x + 28.0f, Cursor.y + 36.0f);
     Draw->AddRectFilled(ImVec2(Cursor.x, Cursor.y + 4.0f), TileMax, kTile, 8.0f);
@@ -235,16 +228,16 @@ void OutlinerPanel::RecordHeader(EditorRecord* Records, uint32_t RecordCount,
     ImGui::PopFont();
 
     char Sub[48] = {};
-    std::snprintf(Sub, sizeof(Sub), "%u entities \xc2\xb7 %u groups", EntityCount, GroupCount);
+    std::snprintf(Sub, sizeof(Sub), "%u instances \xc2\xb7 %u groups", LeafCount, GroupCount);
     ImGui::PushFont(Small);
     Draw->AddText(ImVec2(Cursor.x + 38.0f, Cursor.y + 21.0f), kDim, Sub);
     ImGui::PopFont();
 
     const float EndX = Cursor.x + RowWidth;
     bool AnyOpen = false;
-    for (uint32_t i = 0u; i < RecordCount; ++i)
+    for (uint32_t i = 0u; i < InstanceCount; ++i)
     {
-        if (Records[i].Kind == EditorRecordKind::Folder && !FolderShut_[i])
+        if (Instances[i].Category == EditorInstanceCategory::Folder && !FolderShut_[i])
         {
             AnyOpen = true;
             break;
@@ -257,9 +250,9 @@ void OutlinerPanel::RecordHeader(EditorRecord* Records, uint32_t RecordCount,
     const bool FoldHot = ImGui::IsItemHovered();
     if (FoldHot && ImGui::IsMouseClicked(0))
     {
-        for (uint32_t i = 0u; i < RecordCount; ++i)
+        for (uint32_t i = 0u; i < InstanceCount; ++i)
         {
-            if (Records[i].Kind == EditorRecordKind::Folder)
+            if (Instances[i].Category == EditorInstanceCategory::Folder)
             {
                 FolderShut_[i] = AnyOpen;
             }
@@ -273,7 +266,7 @@ void OutlinerPanel::RecordHeader(EditorRecord* Records, uint32_t RecordCount,
     Draw->AddLine(ImVec2(FoldCentre.x, FoldCentre.y + ChevY),
         ImVec2(FoldCentre.x + 5.0f, FoldCentre.y - ChevY), kText, 1.8f);
 
-    // The plus stays decorative: the feed owns the register, and creation lands with the project binding.
+    // The plus stays decorative: the feed owns the roster, and creation lands with the project write-back.
     const ImVec2 PlusMin(EndX - 28.0f, Cursor.y + 8.0f);
     const ImVec2 PlusCentre(PlusMin.x + 14.0f, PlusMin.y + 14.0f);
     Draw->AddCircleFilled(PlusCentre, 14.0f, IM_COL32(255, 255, 255, 8));
@@ -292,28 +285,34 @@ void OutlinerPanel::RecordSearch() noexcept
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.03f, 0.03f, 0.03f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.05f));
+    ImGui::PushStyleColor(ImGuiCol_Border,
+        SearchFocus_ ? ImVec4(0.180f, 0.180f, 0.180f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 0.05f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 16.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(28.0f, 8.0f));
     ImGui::PushItemWidth(RowWidth - kDdWidth - 8.0f);
-    ImGui::InputTextWithHint("##query", "Search records\xe2\x80\xa6", QueryText_, sizeof(QueryText_));
+    ImGui::InputTextWithHint("##query", "Search instances\xe2\x80\xa6", QueryText_, sizeof(QueryText_));
+    SearchFocus_ = ImGui::IsItemFocused();
+    const ImVec2 FieldMin = ImGui::GetItemRectMin();
+    const ImVec2 FieldMax = ImGui::GetItemRectMax();
     ImGui::PopItemWidth();
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(3);
 
     ImGui::SameLine(0.0f, 8.0f);
     const ImVec2 DdMin = ImGui::GetCursorScreenPos();
     const float  DdW   = ImGui::GetContentRegionAvail().x;
-    ImGui::InvisibleButton("##kindmenu", ImVec2(DdW, 32.0f));
-    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+    ImGui::InvisibleButton("##categorymenu", ImVec2(DdW, 32.0f));
+    const bool DdHot = ImGui::IsItemHovered();
+    if (DdHot && ImGui::IsMouseClicked(0))
     {
-        ImGui::OpenPopup("##kinds");
+        ImGui::OpenPopup("##categories");
     }
 
     uint32_t PickCount = 0u;
-    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorRecordKind::Count); ++i)
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
     {
-        if (KindPicked_[i])
+        if (CategoryPicked_[i])
         {
             ++PickCount;
         }
@@ -329,31 +328,80 @@ void OutlinerPanel::RecordSearch() noexcept
     }
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
+    const float GlassY = (FieldMin.y + FieldMax.y) * 0.5f;
+    Draw->AddCircle(ImVec2(FieldMin.x + 13.0f, GlassY - 1.0f), 5.0f, kFaint, 0, 1.6f);
+    Draw->AddLine(ImVec2(FieldMin.x + 17.0f, GlassY + 3.0f), ImVec2(FieldMin.x + 21.0f, GlassY + 7.0f), kFaint, 1.6f);
+
     const ImVec2 DdMax(DdMin.x + DdW, DdMin.y + 32.0f);
-    Draw->AddRectFilled(DdMin, DdMax, IM_COL32(0, 0, 0, 255), 16.0f);
+    const float CaretX = DdMax.x - 36.0f;
+    Draw->AddRectFilled(DdMin, ImVec2(CaretX, DdMax.y), IM_COL32(0, 0, 0, 255), 16.0f, ImDrawFlags_RoundCornersLeft);
+    Draw->AddRectFilled(ImVec2(CaretX, DdMin.y), DdMax, DdHot ? kHover : kTile, 16.0f,
+        ImDrawFlags_RoundCornersRight);
     Draw->AddRect(DdMin, DdMax, kStroke, 16.0f);
-    ImFont* Ui = Kit_->QueryUi();
+    Draw->AddLine(ImVec2(CaretX, DdMin.y + 5.0f), ImVec2(CaretX, DdMax.y - 5.0f), kStroke);
+    ImFont* Ui = Controls_->QueryUi();
     ImGui::PushFont(Ui);
     const ImVec2 LabelGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, DdLabel);
-    Draw->AddText(ImVec2(DdMin.x + 13.0f, DdMin.y + (32.0f - LabelGlyph.y) * 0.5f), kText, DdLabel);
+    Draw->AddText(ImVec2(DdMin.x + 16.0f, DdMin.y + (32.0f - LabelGlyph.y) * 0.5f), kText, DdLabel);
     ImGui::PopFont();
-    const ImVec2 Chev(DdMin.x + DdW - 16.0f, DdMin.y + 16.0f);
-    Draw->AddLine(ImVec2(Chev.x - 4.0f, Chev.y - 1.5f), ImVec2(Chev.x, Chev.y + 2.5f), kDim, 1.6f);
-    Draw->AddLine(ImVec2(Chev.x, Chev.y + 2.5f), ImVec2(Chev.x + 4.0f, Chev.y - 1.5f), kDim, 1.6f);
 
-    ImGui::SetNextWindowSize(ImVec2(180.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.102f, 0.102f, 0.102f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, 1.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 12.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
-    if (ImGui::BeginPopup("##kinds"))
+    const float TurnTarget = CategoryMenuWasOpen_ ? 1.0f : 0.0f;
+    const float TurnStep   = ImGui::GetIO().DeltaTime / 0.2f;
+    if (CategoryChevronAnim_ < TurnTarget)
     {
+        CategoryChevronAnim_ += TurnStep;
+        if (CategoryChevronAnim_ > TurnTarget)
+        {
+            CategoryChevronAnim_ = TurnTarget;
+        }
+    }
+    else if (CategoryChevronAnim_ > TurnTarget)
+    {
+        CategoryChevronAnim_ -= TurnStep;
+        if (CategoryChevronAnim_ < TurnTarget)
+        {
+            CategoryChevronAnim_ = TurnTarget;
+        }
+    }
+    const float Turn   = CategoryChevronAnim_ * CategoryChevronAnim_ * (3.0f - 2.0f * CategoryChevronAnim_);
+    const float ChevX  = CaretX + 18.0f;
+    const float ChevY  = DdMin.y + 16.0f;
+    const float TipY   = ChevY - 2.0f + Turn * 4.0f;
+    const float ElbowY = ChevY + 3.0f - Turn * 6.0f;
+    Draw->AddLine(ImVec2(ChevX - 5.0f, TipY), ImVec2(ChevX, ElbowY), kDim, 2.0f);
+    Draw->AddLine(ImVec2(ChevX, ElbowY), ImVec2(ChevX + 5.0f, TipY), kDim, 2.0f);
+
+    const double MenuNow = ImGui::GetTime();
+    float MenuFade = 1.0f;
+    if (CategoryMenuWasOpen_)
+    {
+        float T = static_cast<float>((MenuNow - CategoryMenuOpenedAt_) / 0.14);
+        T        = T < 0.0f ? 0.0f : (T > 1.0f ? 1.0f : T);
+        MenuFade = T * T * (3.0f - 2.0f * T);
+    }
+    ImGui::SetNextWindowPos(ImVec2(DdMin.x, DdMax.y + 8.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(DdW, 0.0f), ImGuiCond_Appearing);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, MenuFade));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.180f, 0.180f, 0.180f, MenuFade));
+    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 20.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 6.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
+    const bool MenuOpen = ImGui::BeginPopup("##categories");
+    if (MenuOpen && !CategoryMenuWasOpen_)
+    {
+        CategoryMenuOpenedAt_ = MenuNow;
+        MenuFade              = 0.0f;
+    }
+    CategoryMenuWasOpen_ = MenuOpen;
+    if (MenuOpen)
+    {
+        ImDrawList* MenuDraw = ImGui::GetWindowDrawList();
         ImGui::PushFont(Ui);
         const float MenuWidth = ImGui::GetContentRegionAvail().x;
-        for (int32_t i = -1; i < static_cast<int32_t>(EditorRecordKind::Count); ++i)
+        for (int32_t i = -1; i < static_cast<int32_t>(EditorInstanceCategory::Count); ++i)
         {
-            const char* Label = (i < 0) ? "All types" : KindLabel(static_cast<EditorRecordKind>(i));
-            const bool  Ticked = (i < 0) ? (PickCount == 0u) : KindPicked_[i];
+            const char* Label = (i < 0) ? "All types" : EditorInstanceLabel(static_cast<EditorInstanceCategory>(i));
+            const bool  Ticked = (i < 0) ? (PickCount == 0u) : CategoryPicked_[i];
             ImGui::Dummy(ImVec2(MenuWidth, 28.0f));
             const ImVec2 RowMin = ImGui::GetItemRectMin();
             const ImVec2 RowMax = ImGui::GetItemRectMax();
@@ -362,38 +410,36 @@ void OutlinerPanel::RecordSearch() noexcept
             std::snprintf(RowId, sizeof(RowId), "##k%di", i);
             ImGui::InvisibleButton(RowId, ImVec2(MenuWidth, 28.0f));
             const bool Hovered = ImGui::IsItemHovered();
-            if (Hovered)
-            {
-                Draw->AddRectFilled(RowMin, RowMax, IM_COL32(36, 36, 36, 255), 6.0f);
-            }
             if (Hovered && ImGui::IsMouseClicked(0))
             {
                 if (i < 0)
                 {
-                    for (uint32_t k = 0u; k < static_cast<uint32_t>(EditorRecordKind::Count); ++k)
+                    for (uint32_t k = 0u; k < static_cast<uint32_t>(EditorInstanceCategory::Count); ++k)
                     {
-                        KindPicked_[k] = false;
+                        CategoryPicked_[k] = false;
                     }
                 }
                 else
                 {
-                    KindPicked_[i] = !KindPicked_[i];
+                    CategoryPicked_[i] = !CategoryPicked_[i];
                 }
             }
-            const ImVec2 OptGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Label);
-            Draw->AddText(ImVec2(RowMin.x + 30.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
-                Ticked ? kText : kDim, Label);
             if (Ticked)
             {
-                const ImVec2 Tick(RowMin.x + 14.0f, RowMin.y + 14.0f);
-                Draw->AddLine(ImVec2(Tick.x - 5.0f, Tick.y), ImVec2(Tick.x - 1.0f, Tick.y + 4.0f), kText, 2.0f);
-                Draw->AddLine(ImVec2(Tick.x - 1.0f, Tick.y + 4.0f), ImVec2(Tick.x + 5.0f, Tick.y - 4.0f), kText, 2.0f);
+                MenuDraw->AddRectFilled(RowMin, RowMax, ControlPanel::FadeTint(kMenuSel, MenuFade), 14.0f);
             }
+            else if (Hovered)
+            {
+                MenuDraw->AddRectFilled(RowMin, RowMax, ControlPanel::FadeTint(kMenuHover, MenuFade), 14.0f);
+            }
+            const ImVec2 OptGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Label);
+            MenuDraw->AddText(ImVec2(RowMin.x + 14.0f, RowMin.y + (28.0f - OptGlyph.y) * 0.5f),
+                ControlPanel::FadeTint(Ticked || Hovered ? kText : kDim, MenuFade), Label);
         }
         ImGui::PopFont();
         ImGui::EndPopup();
     }
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(2);
 }
 
@@ -404,9 +450,9 @@ void OutlinerPanel::RecordSearch() noexcept
 void OutlinerPanel::RecordChips() noexcept
 {
     uint32_t PickCount = 0u;
-    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorRecordKind::Count); ++i)
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
     {
-        if (KindPicked_[i])
+        if (CategoryPicked_[i])
         {
             ++PickCount;
         }
@@ -416,23 +462,23 @@ void OutlinerPanel::RecordChips() noexcept
         return;
     }
 
-    // Flow layout: buttons place themselves and wrap by the tracked X, so no cursor jump ever extends
+    // Wrap layout: buttons place themselves and wrap by the tracked X, so no cursor jump ever extends
     //    the boundaries. After the last button the cursor already sits at the next line's start.
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Small = Controls_->QuerySmall();
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
     const float StartX = ImGui::GetCursorScreenPos().x;
     const float EndX   = StartX + ImGui::GetContentRegionAvail().x;
     float X = StartX;
     bool  FreshLine = true;
 
-    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorRecordKind::Count); ++i)
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
     {
-        if (!KindPicked_[i])
+        if (!CategoryPicked_[i])
         {
             continue;
         }
         char Chip[32] = {};
-        std::snprintf(Chip, sizeof(Chip), "%s \xc3\x97", KindLabel(static_cast<EditorRecordKind>(i)));
+        std::snprintf(Chip, sizeof(Chip), "%s \xc3\x97", EditorInstanceLabel(static_cast<EditorInstanceCategory>(i)));
         ImGui::PushFont(Small);
         const ImVec2 Glyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Chip);
         ImGui::PopFont();
@@ -451,7 +497,7 @@ void OutlinerPanel::RecordChips() noexcept
         const bool Hovered = ImGui::IsItemHovered();
         if (Hovered && ImGui::IsMouseClicked(0))
         {
-            KindPicked_[i] = false;
+            CategoryPicked_[i] = false;
         }
         const ImVec2 ChipMin = ImGui::GetItemRectMin();
         const ImVec2 ChipMax = ImGui::GetItemRectMax();
@@ -487,9 +533,9 @@ void OutlinerPanel::RecordChips() noexcept
     const bool ClearHot = ImGui::IsItemHovered();
     if (ClearHot && ImGui::IsMouseClicked(0))
     {
-        for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorRecordKind::Count); ++i)
+        for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
         {
-            KindPicked_[i] = false;
+            CategoryPicked_[i] = false;
         }
     }
     const ImVec2 ClearMin = ImGui::GetItemRectMin();
@@ -503,33 +549,33 @@ void OutlinerPanel::RecordChips() noexcept
 //                                                           TREE
 //------------------------------------------------------------------------------------------------------------------------
 
-uint32_t OutlinerPanel::RecordTree(EditorRecord* Records, uint32_t RecordCount) noexcept
+uint32_t OutlinerPanel::RecordOutline(EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
-    bool SelfMatch[kMaxEditorRecords] = {};
-    bool Shown[kMaxEditorRecords]     = {};
+    bool SelfMatch[kMaxEditorInstances] = {};
+    bool Shown[kMaxEditorInstances]     = {};
 
     const bool QueryOn = QueryText_[0] != '\0';
     bool AnyPick = false;
-    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorRecordKind::Count); ++i)
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
     {
-        AnyPick = AnyPick || KindPicked_[i];
+        AnyPick = AnyPick || CategoryPicked_[i];
     }
     const bool MatchOn = QueryOn || AnyPick;
 
-    for (uint32_t i = 0u; i < RecordCount; ++i)
+    for (uint32_t i = 0u; i < InstanceCount; ++i)
     {
-        const bool NameHit = !QueryOn || ContainsFolded(Records[i].Label, QueryText_);
-        const bool KindHit = !AnyPick || KindPicked_[static_cast<uint32_t>(Records[i].Kind)];
-        SelfMatch[i] = NameHit && KindHit;
+        const bool NameHit = !QueryOn || ContainsFolded(Instances[i].Label, QueryText_);
+        const bool CategoryHit = !AnyPick || CategoryPicked_[static_cast<uint32_t>(Instances[i].Category)];
+        SelfMatch[i] = NameHit && CategoryHit;
         Shown[i]     = SelfMatch[i];
     }
-    for (uint32_t i = RecordCount; i-- > 0u;)
+    for (uint32_t i = InstanceCount; i-- > 0u;)
     {
-        if (Records[i].Kind != EditorRecordKind::Folder)
+        if (Instances[i].Category != EditorInstanceCategory::Folder)
         {
             continue;
         }
-        for (uint32_t j = i + 1u; j < RecordCount && Records[j].Depth > Records[i].Depth; ++j)
+        for (uint32_t j = i + 1u; j < InstanceCount && Instances[j].Depth > Instances[i].Depth; ++j)
         {
             if (Shown[j])
             {
@@ -540,7 +586,7 @@ uint32_t OutlinerPanel::RecordTree(EditorRecord* Records, uint32_t RecordCount) 
     }
 
     uint32_t HitCount = 0u;
-    for (uint32_t i = 0u; i < RecordCount; ++i)
+    for (uint32_t i = 0u; i < InstanceCount; ++i)
     {
         if (Shown[i])
         {
@@ -550,13 +596,13 @@ uint32_t OutlinerPanel::RecordTree(EditorRecord* Records, uint32_t RecordCount) 
 
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
-    ImGui::BeginChild("##tree", ImVec2(0.0f, -30.0f), false);
+    ImGui::BeginChild("##outline", ImVec2(0.0f, -30.0f), false);
     if (HitCount == 0u)
     {
         const ImVec2 Avail = ImGui::GetContentRegionAvail();
         ImGui::Dummy(Avail);
         const ImVec2 EmptyMin = ImGui::GetItemRectMin();
-        ImFont* Small = Kit_->QuerySmall();
+        ImFont* Small = Controls_->QuerySmall();
         ImGui::PushFont(Small);
         const ImVec2 Glyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, "Nothing matches");
         ImGui::GetWindowDrawList()->AddText(
@@ -565,21 +611,21 @@ uint32_t OutlinerPanel::RecordTree(EditorRecord* Records, uint32_t RecordCount) 
     }
     else
     {
-        for (uint32_t i = 0u; i < RecordCount;)
+        for (uint32_t i = 0u; i < InstanceCount;)
         {
             if (!Shown[i])
             {
                 ++i;
                 continue;
             }
-            RecordRow(Records, RecordCount, i, MatchOn);
-            if (Records[i].Kind == EditorRecordKind::Folder && FolderShut_[i] && !MatchOn)
+            RecordRow(Instances, InstanceCount, i, MatchOn);
+            if (Instances[i].Category == EditorInstanceCategory::Folder && FolderShut_[i] && !MatchOn)
             {
-                const uint32_t ShutDepth = Records[i].Depth;
+                const uint32_t ShutDepth = Instances[i].Depth;
                 do
                 {
                     ++i;
-                } while (i < RecordCount && Records[i].Depth > ShutDepth);
+                } while (i < InstanceCount && Instances[i].Depth > ShutDepth);
             }
             else
             {
@@ -598,16 +644,16 @@ uint32_t OutlinerPanel::RecordTree(EditorRecord* Records, uint32_t RecordCount) 
 //                                                           ROW
 //------------------------------------------------------------------------------------------------------------------------
 
-void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint32_t Index, bool MatchOn) noexcept
+void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount, uint32_t Index, bool MatchOn) noexcept
 {
-    EditorRecord& Row = Records[Index];
+    EditorInstance& Row = Instances[Index];
     ImGui::PushID(static_cast<int>(Index));
 
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     ImGui::Dummy(ImVec2(RowWidth, 30.0f));
     const ImVec2 Min = ImGui::GetItemRectMin();
     const ImVec2 Max = ImGui::GetItemRectMax();
-    const bool IsFolder = (Row.Kind == EditorRecordKind::Folder);
+    const bool IsFolder = (Row.Category == EditorInstanceCategory::Folder);
 
     ImGui::SetCursorScreenPos(Min);
     ImGui::InvisibleButton("##row", ImVec2(RowWidth, 30.0f));
@@ -616,58 +662,81 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
     const float Indent = static_cast<float>(Row.Depth) * 14.0f;
     float X = Min.x + 6.0f + Indent;
 
-    bool TwirlHit = false;
-    bool TwirlHot = false;
+    bool TwistyHit = false;
+    bool TwistyHot = false;
     if (IsFolder)
     {
         ImGui::SetCursorScreenPos(ImVec2(X, Min.y));
-        ImGui::InvisibleButton("##twirl", ImVec2(14.0f, 30.0f));
-        TwirlHot = ImGui::IsItemHovered();
-        TwirlHit = TwirlHot && ImGui::IsMouseClicked(0);
+        ImGui::InvisibleButton("##twisty", ImVec2(14.0f, 30.0f));
+        TwistyHot = ImGui::IsItemHovered();
+        TwistyHit = TwistyHot && ImGui::IsMouseClicked(0);
         X += 14.0f;
     }
 
     float BX = Max.x - 4.0f;
     BX -= 19.0f;
     const ImVec2 VisMin(BX, Min.y + 5.5f);
-    ImGui::SetCursorScreenPos(VisMin);
-    ImGui::InvisibleButton("##vis", ImVec2(19.0f, 19.0f));
-    const bool VisHot = ImGui::IsItemHovered();
-    const bool VisHit = VisHot && ImGui::IsMouseClicked(0);
     BX -= 4.0f;
-
     BX -= 19.0f;
     const ImVec2 LockMin(BX, Min.y + 5.5f);
-    ImGui::SetCursorScreenPos(LockMin);
-    ImGui::InvisibleButton("##lock", ImVec2(19.0f, 19.0f));
-    const bool LockHot = ImGui::IsItemHovered();
-    const bool LockHit = LockHot && ImGui::IsMouseClicked(0);
     BX -= 4.0f;
-
     BX -= 19.0f;
     const ImVec2 SoloMin(BX, Min.y + 5.5f);
-    ImGui::SetCursorScreenPos(SoloMin);
-    ImGui::InvisibleButton("##solo", ImVec2(19.0f, 19.0f));
-    const bool SoloHot = ImGui::IsItemHovered();
-    const bool SoloHit = SoloHot && ImGui::IsMouseClicked(0);
     BX -= 6.0f;
 
-    const bool AnyHot = RowHot || TwirlHot || VisHot || LockHot || SoloHot;
+    // The row buttons rest hidden: a hover over the row wakes them, and a set button stays lit.
+    const bool VisShow  = RowHot || !Row.Visible;
+    const bool LockShow = RowHot || Row.Locked;
+    const bool SoloShow = RowHot || Row.Solo;
+    bool VisHot   = false;
+    bool VisHit   = false;
+    bool LockHot  = false;
+    bool LockHit  = false;
+    bool SoloHot  = false;
+    bool SoloHit  = false;
+    if (VisShow)
+    {
+        ImGui::SetCursorScreenPos(VisMin);
+        ImGui::InvisibleButton("##vis", ImVec2(19.0f, 19.0f));
+        VisHot = ImGui::IsItemHovered();
+        VisHit = VisHot && ImGui::IsMouseClicked(0);
+    }
+    if (LockShow)
+    {
+        ImGui::SetCursorScreenPos(LockMin);
+        ImGui::InvisibleButton("##lock", ImVec2(19.0f, 19.0f));
+        LockHot = ImGui::IsItemHovered();
+        LockHit = LockHot && ImGui::IsMouseClicked(0);
+    }
+    if (SoloShow)
+    {
+        ImGui::SetCursorScreenPos(SoloMin);
+        ImGui::InvisibleButton("##solo", ImVec2(19.0f, 19.0f));
+        SoloHot = ImGui::IsItemHovered();
+        SoloHit = SoloHot && ImGui::IsMouseClicked(0);
+    }
+
+    const bool AnyHot = RowHot || TwistyHot || VisHot || LockHot || SoloHot;
     const bool Seated = IsPicked(Index);
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
     if (Seated)
     {
-        Draw->AddRectFilled(Min, Max, kSeated, 9.0f);
-        Draw->AddRectFilled(ImVec2(Min.x, Min.y + 5.0f), ImVec2(Min.x + 2.0f, Max.y - 5.0f),
-            IM_COL32(255, 255, 255, 255), 1.0f);
+        Draw->AddRectFilled(Min, Max, kSeated, 10.0f);
+        Draw->AddRectFilled(ImVec2(Min.x, Min.y + 6.0f), ImVec2(Min.x + 3.0f, Max.y - 6.0f),
+            IM_COL32(255, 255, 255, 255), 1.5f);
     }
     else if (AnyHot)
     {
-        Draw->AddRectFilled(Min, Max, kHover, 9.0f);
+        Draw->AddRectFilled(Min, Max, kHover, 10.0f);
+    }
+    for (uint32_t d = 1u; d <= Row.Depth; ++d)
+    {
+        const float GuideX = Min.x + static_cast<float>(d - 1u) * 14.0f + 11.0f;
+        Draw->AddLine(ImVec2(GuideX, Min.y), ImVec2(GuideX, Max.y), kGuide);
     }
 
-    if (TwirlHit)
+    if (TwistyHit)
     {
         FolderShut_[Index] = !FolderShut_[Index];
     }
@@ -691,7 +760,7 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
         }
         const bool Ctrl  = ImGui::GetIO().KeyCtrl;
         const bool Shift = ImGui::GetIO().KeyShift;
-        if (Shift && Anchor_ != kNoEditorRecord && Anchor_ < RecordCount)
+        if (Shift && Anchor_ != kNoEditorInstance && Anchor_ < InstanceCount)
         {
             const uint32_t Lo = Anchor_ < Index ? Anchor_ : Index;
             const uint32_t Hi = Anchor_ < Index ? Index : Anchor_;
@@ -761,8 +830,8 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
             static_cast<int>(Row.Tint[2] * 255.0f), 255));
     X += 12.0f;
 
-    ImFont* Ui    = Kit_->QueryUi();
-    ImFont* Small = Kit_->QuerySmall();
+    ImFont* Ui    = Controls_->QueryUi();
+    ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Ui);
     const ImVec2 NameGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Row.Label);
     ImGui::PopFont();
@@ -773,7 +842,8 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
         ImGui::SetCursorScreenPos(ImVec2(X, Min.y + 4.0f));
         ImGui::PushItemWidth(BX - X > 40.0f ? BX - X : 40.0f);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, RenameFocus_
+            ? ImVec4(0.180f, 0.180f, 0.180f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 0.05f));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f));
@@ -785,6 +855,7 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
         }
         const bool Done = ImGui::InputText("##rename", RenameText_, sizeof(RenameText_),
             ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+        RenameFocus_ = ImGui::IsItemFocused();
         ImGui::PopFont();
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(2);
@@ -792,11 +863,13 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
         if (Done)
         {
             std::snprintf(Row.Label, sizeof(Row.Label), "%s", RenameText_);
-            Renaming_ = false;
+            Renaming_    = false;
+            RenameFocus_ = false;
         }
         else if (ImGui::IsItemDeactivated())
         {
-            Renaming_ = false;
+            Renaming_    = false;
+            RenameFocus_ = false;
         }
     }
     else
@@ -867,35 +940,44 @@ void OutlinerPanel::RecordRow(EditorRecord* Records, uint32_t RecordCount, uint3
         }
     }
 
-    const ImVec2 SoloCentre(SoloMin.x + 9.5f, SoloMin.y + 9.5f);
-    const ImU32 SoloTint = Row.Solo ? kHi : (SoloHot ? kDim : kFaint);
-    Draw->AddCircle(SoloCentre, 5.0f, SoloTint, 0, 1.6f);
-    Draw->AddCircleFilled(SoloCentre, 1.6f, SoloTint);
-
-    const ImVec2 LockCentre(LockMin.x + 9.5f, LockMin.y + 9.5f);
-    const ImU32 LockTint = Row.Locked ? kText : (LockHot ? kDim : kFaint);
-    Draw->AddCircle(ImVec2(LockCentre.x, LockCentre.y - 1.5f), 3.2f, LockTint, 0, 1.6f);
-    Draw->AddRectFilled(ImVec2(LockCentre.x - 3.8f, LockCentre.y - 1.0f),
-        ImVec2(LockCentre.x + 3.8f, LockCentre.y + 5.0f), kSeated, 2.0f);
-    Draw->AddRect(ImVec2(LockCentre.x - 3.8f, LockCentre.y - 1.0f),
-        ImVec2(LockCentre.x + 3.8f, LockCentre.y + 5.0f), LockTint, 2.0f, 0, 1.4f);
-
-    const ImVec2 VisCentre(VisMin.x + 9.5f, VisMin.y + 9.5f);
-    const ImU32 VisTint = Row.Visible ? (VisHot ? kText : kDim) : kFaint;
-    Draw->AddBezierCubic(ImVec2(VisCentre.x - 6.0f, VisCentre.y),
-        ImVec2(VisCentre.x - 2.5f, VisCentre.y - 4.5f), ImVec2(VisCentre.x + 2.5f, VisCentre.y - 4.5f),
-        ImVec2(VisCentre.x + 6.0f, VisCentre.y), VisTint, 1.6f);
-    Draw->AddBezierCubic(ImVec2(VisCentre.x - 6.0f, VisCentre.y),
-        ImVec2(VisCentre.x - 2.5f, VisCentre.y + 4.5f), ImVec2(VisCentre.x + 2.5f, VisCentre.y + 4.5f),
-        ImVec2(VisCentre.x + 6.0f, VisCentre.y), VisTint, 1.6f);
-    if (Row.Visible)
+    if (SoloShow)
     {
-        Draw->AddCircleFilled(VisCentre, 1.8f, VisTint);
+        const ImVec2 SoloCentre(SoloMin.x + 9.5f, SoloMin.y + 9.5f);
+        const ImU32 SoloTint = Row.Solo ? kHi : (SoloHot ? kDim : kFaint);
+        Draw->AddCircle(SoloCentre, 5.0f, SoloTint, 0, 1.6f);
+        Draw->AddCircleFilled(SoloCentre, 1.6f, SoloTint);
     }
-    else
+
+    if (LockShow)
     {
-        Draw->AddLine(ImVec2(VisCentre.x - 6.5f, VisCentre.y + 6.0f),
-            ImVec2(VisCentre.x + 6.5f, VisCentre.y - 6.0f), kFaint, 1.6f);
+        const ImVec2 LockCentre(LockMin.x + 9.5f, LockMin.y + 9.5f);
+        const ImU32 LockTint = Row.Locked ? kText : (LockHot ? kDim : kFaint);
+        Draw->AddCircle(ImVec2(LockCentre.x, LockCentre.y - 1.5f), 3.2f, LockTint, 0, 1.6f);
+        Draw->AddRectFilled(ImVec2(LockCentre.x - 3.8f, LockCentre.y - 1.0f),
+            ImVec2(LockCentre.x + 3.8f, LockCentre.y + 5.0f), kSeated, 2.0f);
+        Draw->AddRect(ImVec2(LockCentre.x - 3.8f, LockCentre.y - 1.0f),
+            ImVec2(LockCentre.x + 3.8f, LockCentre.y + 5.0f), LockTint, 2.0f, 0, 1.4f);
+    }
+
+    if (VisShow)
+    {
+        const ImVec2 VisCentre(VisMin.x + 9.5f, VisMin.y + 9.5f);
+        const ImU32 VisTint = Row.Visible ? (VisHot ? kText : kDim) : kFaint;
+        Draw->AddBezierCubic(ImVec2(VisCentre.x - 6.0f, VisCentre.y),
+            ImVec2(VisCentre.x - 2.5f, VisCentre.y - 4.5f), ImVec2(VisCentre.x + 2.5f, VisCentre.y - 4.5f),
+            ImVec2(VisCentre.x + 6.0f, VisCentre.y), VisTint, 1.6f);
+        Draw->AddBezierCubic(ImVec2(VisCentre.x - 6.0f, VisCentre.y),
+            ImVec2(VisCentre.x - 2.5f, VisCentre.y + 4.5f), ImVec2(VisCentre.x + 2.5f, VisCentre.y + 4.5f),
+            ImVec2(VisCentre.x + 6.0f, VisCentre.y), VisTint, 1.6f);
+        if (Row.Visible)
+        {
+            Draw->AddCircleFilled(VisCentre, 1.8f, VisTint);
+        }
+        else
+        {
+            Draw->AddLine(ImVec2(VisCentre.x - 6.5f, VisCentre.y + 6.0f),
+                ImVec2(VisCentre.x + 6.5f, VisCentre.y - 6.0f), kFaint, 1.6f);
+        }
     }
 
     ImGui::PopID();
@@ -912,6 +994,7 @@ void OutlinerPanel::RecordFooter(uint32_t HitCount, uint32_t TotalCount) noexcep
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
+    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
     Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), IM_COL32(34, 34, 40, 255));
 
     char Left[32] = {};
@@ -926,7 +1009,7 @@ void OutlinerPanel::RecordFooter(uint32_t HitCount, uint32_t TotalCount) noexcep
     char Right[32] = {};
     std::snprintf(Right, sizeof(Right), "%u of %u", HitCount, TotalCount);
 
-    ImFont* Small = Kit_->QuerySmall();
+    ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Small);
     const ImVec2 RightGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Right);
     Draw->AddText(ImVec2(Cursor.x, Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kDim, Left);

@@ -37,7 +37,7 @@ public:
     // Call every frame between ImGui::NewFrame() and ImGui::Render()
     // Mutates integrator parameters directly via its public setters
     // OverlayHook runs between ImGui::NewFrame and ImGui::Render so engine overlays (Control Centre) can
-    //    record onto the foreground draw list of the same frame. Pass nullptr / empty for none.
+    //    record onto the foreground draw list of the same tick. Pass nullptr / empty for none.
     using OverlayHook = std::function<void()>;
 
     void Present(ReSTIRIntegrator&                       Integrator,
@@ -45,8 +45,8 @@ public:
                  const ProjectZero::RayTracingSolver&    Scene,
                  uint32_t                                ViewportWidth,
                  uint32_t                                ViewportHeight,
-                 EditorRecord*                           Records,
-                 uint32_t                                RecordCount,
+                 EditorInstance*                           Instances,
+                 uint32_t                                InstanceCount,
                  EditorSheet*                            PickedSheet,
                  const OverlayHook&                      Overlay = {}) noexcept;
 
@@ -58,9 +58,9 @@ public:
     [[nodiscard]] bool QueryEditorCapturesPointer() const noexcept;
     [[nodiscard]] bool QueryEditorCapturesKeyboard() const noexcept;
 
-    // The editor's primary pick — the record PickedSheet must describe. kNoEditorRecord when nothing is
+    // The editor's primary pick — the instance PickedSheet must describe. kNoEditorInstance when nothing is
     //    picked, or when the build carries no editor at all.
-    [[nodiscard]] uint32_t QueryPickedRecord() const noexcept;
+    [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;
 
 private:
     bool QuitRequested = false;     // [-]  quit button pressed

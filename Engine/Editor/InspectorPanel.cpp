@@ -1,11 +1,11 @@
 //============================================================================================================================================
 //                                                    INSPECTORPANEL.CPP
 //============================================================================================================================================
-// 🧩 Development editor inspector — the picked record as a property sheet.
+// 🧩 Development editor inspector — the picked instance as a property sheet.
 
 #include "InspectorPanel.h"
 
-#include "EditorKit.h"
+#include "ControlPanel.h"
 #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
 
 #include <cctype>
@@ -25,17 +25,19 @@ constexpr ImU32 kText   = IM_COL32(240, 240, 240, 255);
 constexpr ImU32 kDim    = IM_COL32(136, 136, 136, 255);
 constexpr ImU32 kFaint  = IM_COL32(92, 92, 92, 255);
 constexpr ImU32 kStroke = IM_COL32(255, 255, 255, 13);
+constexpr ImU32 kStrong = IM_COL32(46, 46, 46, 255);
+constexpr ImU32 kWash   = IM_COL32(255, 255, 255, 5);
 
-float ProwHeight(EditorPropertyKind Kind) noexcept
+float ProwHeight(EditorPropertyCategory Category) noexcept
 {
-    switch (Kind)
+    switch (Category)
     {
-    case EditorPropertyKind::Slider:   return 26.0f;
-    case EditorPropertyKind::Switch:   return 26.0f;
-    case EditorPropertyKind::AxisVec3: return 26.0f;
-    case EditorPropertyKind::Colour:   return 26.0f;
-    case EditorPropertyKind::Select:   return 30.0f;
-    case EditorPropertyKind::Readout:  return 18.0f;
+    case EditorPropertyCategory::Slider:   return 30.0f;
+    case EditorPropertyCategory::Switch:   return 26.0f;
+    case EditorPropertyCategory::AxisVec3: return 26.0f;
+    case EditorPropertyCategory::Colour:   return 26.0f;
+    case EditorPropertyCategory::Select:   return 32.0f;
+    case EditorPropertyCategory::Readout:  return 18.0f;
     default:                           return 26.0f;
     }
 }
@@ -46,18 +48,18 @@ float ProwHeight(EditorPropertyKind Kind) noexcept
 //                                                           WIRING
 //------------------------------------------------------------------------------------------------------------------------
 
-void InspectorPanel::AssignKit(EditorKit* Kit) noexcept
+void InspectorPanel::AssignControls(ControlPanel* Controls) noexcept
 {
-    Kit_ = Kit;
+    Controls_ = Controls;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                           RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-void InspectorPanel::Record(EditorRecord* Picked, uint32_t PickedIndex, EditorSheet* Sheet) noexcept
+void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, EditorSheet* Sheet) noexcept
 {
-    IM_ASSERT(Kit_ != nullptr);
+    IM_ASSERT(Controls_ != nullptr);
     if (!ImGui::Begin("Inspector", nullptr))
     {
         ImGui::End();
@@ -67,7 +69,7 @@ void InspectorPanel::Record(EditorRecord* Picked, uint32_t PickedIndex, EditorSh
     if (PickedIndex != SheetFor_)
     {
         SheetFor_ = PickedIndex;
-        NameFor_  = kNoEditorRecord;
+        NameFor_  = kNoEditorInstance;
         for (uint32_t i = 0u; i < 8u; ++i)
         {
             CardShut_[i] = false;
@@ -102,7 +104,7 @@ void InspectorPanel::Record(EditorRecord* Picked, uint32_t PickedIndex, EditorSh
 
 float InspectorPanel::RecordCaps(const char* Text, const ImVec2& At, ImU32 Tint) noexcept
 {
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Small = Controls_->QuerySmall();
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
     ImGui::PushFont(Small);
     float Advance = 0.0f;
@@ -131,16 +133,16 @@ void InspectorPanel::RecordEmpty() noexcept
     Draw->AddRectFilled(Min, Max, kInset, 18.0f);
     Draw->AddRect(Min, Max, kStroke, 18.0f);
 
-    ImFont* Ui    = Kit_->QueryUi();
-    ImFont* Small = Kit_->QuerySmall();
+    ImFont* Ui    = Controls_->QueryUi();
+    ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Ui);
     const ImVec2 TitleGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, "Nothing selected");
     Draw->AddText(ImVec2(Min.x + (RowWidth - TitleGlyph.x) * 0.5f, Min.y + 38.0f), kDim, "Nothing selected");
     ImGui::PopFont();
     ImGui::PushFont(Small);
-    const ImVec2 HintGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, "Pick a record in the outliner.");
+    const ImVec2 HintGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, "Pick an instance in the outliner.");
     Draw->AddText(ImVec2(Min.x + (RowWidth - HintGlyph.x) * 0.5f, Min.y + 62.0f), kFaint,
-        "Pick a record in the outliner.");
+        "Pick an instance in the outliner.");
     ImGui::PopFont();
 }
 
@@ -148,15 +150,18 @@ void InspectorPanel::RecordEmpty() noexcept
 //                                                           IDENT
 //------------------------------------------------------------------------------------------------------------------------
 
-void InspectorPanel::RecordIdent(EditorRecord* Picked, uint32_t PickedIndex) noexcept
+void InspectorPanel::RecordIdent(EditorInstance* Picked, uint32_t PickedIndex) noexcept
 {
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     ImGui::Dummy(ImVec2(RowWidth, 56.0f));
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
-    ImFont*     Ui    = Kit_->QueryUi();
-    ImFont*     Small = Kit_->QuerySmall();
+    ImFont*     Ui    = Controls_->QueryUi();
+    ImFont*     Small = Controls_->QuerySmall();
+
+    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 56.0f), kWash);
+    Draw->AddLine(ImVec2(Cursor.x, Cursor.y + 56.0f), ImVec2(Cursor.x + RowWidth, Cursor.y + 56.0f), kStroke);
 
     const int R = static_cast<int>(Picked->Tint[0] * 255.0f);
     const int G = static_cast<int>(Picked->Tint[1] * 255.0f);
@@ -185,20 +190,27 @@ void InspectorPanel::RecordIdent(EditorRecord* Picked, uint32_t PickedIndex) noe
     const bool NameDone = ImGui::InputText("##pickname", NameText_, sizeof(NameText_),
         ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
     const bool NameEdited = ImGui::IsItemDeactivatedAfterEdit();
+    const ImVec2 NameMin = ImGui::GetItemRectMin();
+    const ImVec2 NameMax = ImGui::GetItemRectMax();
+    const bool NameHot = ImGui::IsItemFocused();
     ImGui::PopFont();
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor();
     ImGui::PopItemWidth();
+    if (NameHot)
+    {
+        Draw->AddRect(NameMin, NameMax, kStrong, 6.0f);
+    }
     if (NameDone || NameEdited)
     {
         std::snprintf(Picked->Label, sizeof(Picked->Label), "%s", NameText_);
     }
 
-    char KindUpper[24] = {};
-    const char* KindName = EditorKindLabel(Picked->Kind);
-    for (uint32_t i = 0u; i < sizeof(KindUpper) - 1u && KindName[i] != '\0'; ++i)
+    char CategoryUpper[24] = {};
+    const char* CategoryName = EditorInstanceLabel(Picked->Category);
+    for (uint32_t i = 0u; i < sizeof(CategoryUpper) - 1u && CategoryName[i] != '\0'; ++i)
     {
-        KindUpper[i] = static_cast<char>(std::toupper(static_cast<unsigned char>(KindName[i])));
+        CategoryUpper[i] = static_cast<char>(std::toupper(static_cast<unsigned char>(CategoryName[i])));
     }
     char Suffix[32] = {};
     if (Picked->Locked && !Picked->Visible)
@@ -213,9 +225,9 @@ void InspectorPanel::RecordIdent(EditorRecord* Picked, uint32_t PickedIndex) noe
     {
         std::snprintf(Suffix, sizeof(Suffix), " \xc2\xb7 hidden");
     }
-    const float KindAdvance = RecordCaps(KindUpper, ImVec2(NameX + 2.0f, Cursor.y + 30.0f), kDim);
+    const float CategoryAdvance = RecordCaps(CategoryUpper, ImVec2(NameX + 2.0f, Cursor.y + 30.0f), kDim);
     ImGui::PushFont(Small);
-    Draw->AddText(ImVec2(NameX + 2.0f + KindAdvance, Cursor.y + 30.0f), kFaint, Suffix);
+    Draw->AddText(ImVec2(NameX + 2.0f + CategoryAdvance, Cursor.y + 30.0f), kFaint, Suffix);
     ImGui::PopFont();
 
     const ImVec2 LockMin(BtnX, Cursor.y + 14.0f);
@@ -279,7 +291,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
         H = 12.0f + 24.0f + 8.0f;
         for (uint32_t i = 0u; i < Group.PropertyCount; ++i)
         {
-            H += ProwHeight(Group.Properties[i].Kind) + 8.0f;
+            H += ProwHeight(Group.Properties[i].Category) + 8.0f;
         }
         H += 14.0f - 8.0f;
     }
@@ -315,7 +327,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
 
     if (!CardShut_[Card])
     {
-        ImFont* Small = Kit_->QuerySmall();
+        ImFont* Small = Controls_->QuerySmall();
         const float BodyX = Min.x + 14.0f;
         const float BodyW = RowWidth - 28.0f;
         const float ZoneX = BodyX + 78.0f;
@@ -325,7 +337,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
         for (uint32_t i = 0u; i < Group.PropertyCount; ++i)
         {
             EditorProperty& Prop = Group.Properties[i];
-            const float ProwH = ProwHeight(Prop.Kind);
+            const float ProwH = ProwHeight(Prop.Category);
 
             ImGui::PushFont(Small);
             const ImVec2 LabelGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Prop.Label);
@@ -337,33 +349,33 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
             std::snprintf(ProwId, sizeof(ProwId), "##p%u", i);
             ImGui::BeginChild(ProwId, ImVec2(ZoneW, ProwH), false,
                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-            switch (Prop.Kind)
+            switch (Prop.Category)
             {
-            case EditorPropertyKind::Slider:
-                Kit_->SliderPill("##s", &Prop.Figure, Prop.Minimum, Prop.Maximum, Prop.Decimals, Prop.Unit, Prop.Hi);
+            case EditorPropertyCategory::Slider:
+                Controls_->SliderPill("##s", &Prop.Figure, Prop.Minimum, Prop.Maximum, Prop.Decimals, Prop.Unit, Prop.Hi);
                 break;
-            case EditorPropertyKind::Switch:
+            case EditorPropertyCategory::Switch:
                 ImGui::SetCursorScreenPos(ImVec2(ZoneX + ZoneW - 33.0f, Y + 3.5f));
-                Kit_->Switch("##w", &Prop.On);
+                Controls_->Switch("##w", &Prop.On);
                 break;
-            case EditorPropertyKind::AxisVec3:
-                Kit_->AxisVec3("##v", Prop.Axes, Prop.AxisStep, Prop.Editable);
+            case EditorPropertyCategory::AxisVec3:
+                Controls_->AxisVec3("##v", Prop.Axes, Prop.AxisStep, Prop.Editable);
                 break;
-            case EditorPropertyKind::Colour:
+            case EditorPropertyCategory::Colour:
                 if (Prop.Swatches)
                 {
-                    Kit_->SwatchRow("##t", Prop.ColourTint);
+                    Controls_->SwatchRow("##t", Prop.ColourTint);
                 }
                 else
                 {
-                    Kit_->ColourChip("##c", Prop.ColourTint);
+                    Controls_->ColourChip("##c", Prop.ColourTint);
                 }
                 break;
-            case EditorPropertyKind::Select:
-                Kit_->DropDown("##d", &Prop.Picked, Prop.Options, Prop.OptionCount);
+            case EditorPropertyCategory::Select:
+                Controls_->DropDown("##d", &Prop.Picked, Prop.Options, Prop.OptionCount);
                 break;
-            case EditorPropertyKind::Readout:
-                Kit_->Readout(Prop.Text);
+            case EditorPropertyCategory::Readout:
+                Controls_->Readout(Prop.Text);
                 break;
             default:
                 break;
@@ -383,7 +395,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
 //                                                      RECORD STANDING
 //------------------------------------------------------------------------------------------------------------------------
 
-void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) noexcept
+void InspectorPanel::RecordStanding(EditorInstance* Picked, uint32_t PickedIndex) noexcept
 {
     ImGui::PushID(6);
 
@@ -397,11 +409,11 @@ void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) 
     Draw->AddRectFilled(Min, Max, kInset, 18.0f);
     Draw->AddRect(Min, Max, kStroke, 18.0f);
 
-    RecordCaps("Record", ImVec2(Min.x + 14.0f, Min.y + 14.0f), kDim);
+    RecordCaps("Instance", ImVec2(Min.x + 14.0f, Min.y + 14.0f), kDim);
 
-    ImFont* Small = Kit_->QuerySmall();
+    ImFont* Small = Controls_->QuerySmall();
     const char* Pills[4] = { "VISIBLE", "LOCKED", "DYNAMIC", "PHYSICS" };
-    bool* Flags[4] = { &Picked->Visible, &Picked->Locked, &Picked->Dynamic, &Picked->Physics };
+    bool* Standing[4] = { &Picked->Visible, &Picked->Locked, &Picked->Dynamic, &Picked->Physics };
     float PX = Min.x + 14.0f;
     const float PY = Min.y + 40.0f;
     for (uint32_t i = 0u; i < 4u; ++i)
@@ -411,7 +423,7 @@ void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) 
         ImGui::PopFont();
         ImGui::SetCursorScreenPos(ImVec2(PX, PY));
         ImGui::PushID(static_cast<int>(10 + i));
-        Kit_->PillToggle(Pills[i], Flags[i]);
+        Controls_->PillToggle(Pills[i], Standing[i]);
         ImGui::PopID();
         PX += Glyph.x + 20.0f + 8.0f;
     }
@@ -428,7 +440,7 @@ void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) 
     ImGui::SetCursorScreenPos(ImVec2(ZoneX, Y));
     ImGui::BeginChild("##spectype", ImVec2(ZoneW, 18.0f), false,
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    Kit_->Readout(EditorKindLabel(Picked->Kind));
+    Controls_->Readout(EditorInstanceLabel(Picked->Category));
     ImGui::EndChild();
     Y += 24.0f;
 
@@ -440,7 +452,7 @@ void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) 
     ImGui::SetCursorScreenPos(ImVec2(ZoneX, Y));
     ImGui::BeginChild("##specid", ImVec2(ZoneW, 18.0f), false,
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    Kit_->Readout(IdText);
+    Controls_->Readout(IdText);
     ImGui::EndChild();
 
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
@@ -452,7 +464,7 @@ void InspectorPanel::RecordStanding(EditorRecord* Picked, uint32_t PickedIndex) 
 //                                                          NOTES
 //------------------------------------------------------------------------------------------------------------------------
 
-void InspectorPanel::RecordNotes(EditorRecord* Picked) noexcept
+void InspectorPanel::RecordNotes(EditorInstance* Picked) noexcept
 {
     ImGui::PushID(7);
 
@@ -493,12 +505,14 @@ void InspectorPanel::RecordNotes(EditorRecord* Picked) noexcept
         ImGui::SetCursorScreenPos(ImVec2(BodyX, Min.y + 12.0f + 24.0f + 8.0f));
         ImGui::PushItemWidth(BodyW);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 0.05f));
+        ImGui::PushStyleColor(ImGuiCol_Border, NotesFocus_
+            ? ImVec4(0.180f, 0.180f, 0.180f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 0.05f));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 8.0f));
-        ImGui::PushFont(Kit_->QueryUi());
+        ImGui::PushFont(Controls_->QueryUi());
         ImGui::InputTextMultiline("##notes", Picked->Notes, sizeof(Picked->Notes), ImVec2(BodyW, 64.0f));
+        NotesFocus_ = ImGui::IsItemFocused();
         ImGui::PopFont();
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor(2);
