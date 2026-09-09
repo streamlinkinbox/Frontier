@@ -153,5 +153,17 @@ for Sheet in Tabs Menu Filtered Quality; do
     fi
 done
 
+echo
+echo "[EditorProof] the knobs sit on their fractions"
+KnobCheck="$(mktemp -u /tmp/EditorKnobCheck.XXXXXX)"
+if ! g++ -O2 -I ExternalPackages/stb -o "$KnobCheck" Scratchpad/EditorKnobCheck.cpp \
+    2>/tmp/EditorKnobCheck.build; then
+    echo "  KNOB CHECK COMPILE FAILED"; sed 's/^/    /' /tmp/EditorKnobCheck.build | head -10; Fail=1
+else
+    KnobOut="$("$KnobCheck" Diagnostics/EditorProof_Tabs.png 2>&1)" || Fail=1
+    echo "$KnobOut" | sed 's/^/  /'
+fi
+rm -f "$KnobCheck"
+
 if (( Fail )); then echo "  >>> EDITOR PROOF FAILED"; else echo "  >>> the editor agrees with its caption"; fi
 exit "$Fail"

@@ -192,7 +192,7 @@ void OutlinerPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
     RecordSearch();
     RecordChips();
     const uint32_t Hits = RecordOutline(Instances, InstanceCount);
-    RecordFooter(Hits, InstanceCount);
+    RecordFooter(Instances, InstanceCount, Hits);
     ImGui::End();
 }
 
@@ -987,7 +987,7 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
 //                                                          FOOTER
 //------------------------------------------------------------------------------------------------------------------------
 
-void OutlinerPanel::RecordFooter(uint32_t HitCount, uint32_t TotalCount) noexcept
+void OutlinerPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCount, uint32_t HitCount) noexcept
 {
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     ImGui::Dummy(ImVec2(RowWidth, 30.0f));
@@ -995,25 +995,42 @@ void OutlinerPanel::RecordFooter(uint32_t HitCount, uint32_t TotalCount) noexcep
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
     Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), IM_COL32(34, 34, 40, 255));
+    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
 
-    char Left[32] = {};
-    if (PickedCount_ > 0u)
-    {
-        std::snprintf(Left, sizeof(Left), "%u selected", PickedCount_);
-    }
-    else
+    // One pick names itself; the hit count only shows while a query or a chip narrows the tree.
+    char Left[64] = {};
+    if (PickedCount_ == 0u)
     {
         std::snprintf(Left, sizeof(Left), "Nothing selected");
     }
+    else if (PickedCount_ == 1u && Picked_[0] < InstanceCount)
+    {
+        std::snprintf(Left, sizeof(Left), "%s selected", Instances[Picked_[0]].Label);
+    }
+    else
+    {
+        std::snprintf(Left, sizeof(Left), "%u selected", PickedCount_);
+    }
+    bool Narrowed = (QueryText_[0] != '\0');
+    for (uint32_t i = 0u; i < static_cast<uint32_t>(EditorInstanceCategory::Count); ++i)
+    {
+        Narrowed = Narrowed || CategoryPicked_[i];
+    }
     char Right[32] = {};
-    std::snprintf(Right, sizeof(Right), "%u of %u", HitCount, TotalCount);
+    if (Narrowed)
+    {
+        std::snprintf(Right, sizeof(Right), "%u of %u", HitCount, InstanceCount);
+    }
 
     ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Small);
     const ImVec2 RightGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Right);
-    Draw->AddText(ImVec2(Cursor.x, Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kDim, Left);
-    Draw->AddText(ImVec2(Cursor.x + RowWidth - RightGlyph.x, Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kDim, Right);
+    Draw->AddText(ImVec2(Cursor.x + 14.0f, Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kFaint, Left);
+    if (Right[0] != '\0')
+    {
+        Draw->AddText(ImVec2(Cursor.x + RowWidth - 14.0f - RightGlyph.x,
+            Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kFaint, Right);
+    }
     ImGui::PopFont();
 }
 

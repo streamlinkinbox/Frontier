@@ -33,7 +33,7 @@ private:
     void RecordChips() noexcept;
     uint32_t RecordOutline(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
     void RecordRow(EditorInstance* Instances, uint32_t InstanceCount, uint32_t Index, bool MatchOn) noexcept;
-    void RecordFooter(uint32_t HitCount, uint32_t TotalCount) noexcept;
+    void RecordFooter(EditorInstance* Instances, uint32_t InstanceCount, uint32_t HitCount) noexcept;
 
     [[nodiscard]] bool IsPicked(uint32_t Index) const noexcept;
     void AddPick(uint32_t Index) noexcept;

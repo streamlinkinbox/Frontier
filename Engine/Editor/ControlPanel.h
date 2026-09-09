@@ -24,9 +24,10 @@ public:
     [[nodiscard]] ImFont* QueryMono() const noexcept;
     [[nodiscard]] ImFont* QueryMonoSmall() const noexcept;
 
-    // The reference thin slider: a 100-pixel split pill (figure + unit) beside the 10-pixel track. 30 tall.
+    // The reference slider: a 92-pixel split pill beside a track pill as tall as the knob circle (26 over
+    //    24). Thin drops the three figures to 18 over 10 over 18; the pill hides for the footer clock.
     bool SliderPill(const char* Id, float* Figure, float Minimum, float Maximum,
-                    uint32_t Decimals, const char* Unit, bool Hi) noexcept;
+                    uint32_t Decimals, const char* Unit, bool Hi, bool Thin, bool ShowPill) noexcept;
 
     // The reference 46×26 switch. Draws at the cursor; the caller aligns it.
     bool Switch(const char* Id, bool* On) noexcept;

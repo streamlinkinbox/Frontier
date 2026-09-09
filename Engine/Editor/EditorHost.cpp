@@ -138,7 +138,11 @@ void EditorHost::ApplyTheme() noexcept
         const char* SansFaces = "EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf";
         const char* MonoFaces = "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Regular.ttf";
 
-        auto SeatFace = [&IO](const char* Path, float Size) -> ImFont*
+        // The chrome faces carry the punctuation the console placeholder speaks: the em dash, the curly
+        //    quotes, the ellipsis, and the command key. The figure faces keep the raster default.
+        static const ImWchar SansRanges[] = { 0x0020, 0x00FF, 0x2013, 0x2014, 0x2018, 0x201E,
+            0x2026, 0x2026, 0x2318, 0x2318, 0 };
+        auto SeatFace = [&IO](const char* Path, float Size, const ImWchar* Ranges) -> ImFont*
         {
             std::FILE* Check = std::fopen(Path, "rb");
             if (Check == nullptr)
@@ -146,13 +150,13 @@ void EditorHost::ApplyTheme() noexcept
                 return nullptr;
             }
             std::fclose(Check);
-            return IO.Fonts->AddFontFromFileTTF(Path, Size);
+            return IO.Fonts->AddFontFromFileTTF(Path, Size, nullptr, Ranges);
         };
 
-        ImFont* Ui        = SeatFace(SansFaces, 13.0f);
-        ImFont* Small     = SeatFace(SansFaces, 11.0f);
-        ImFont* Mono      = SeatFace(MonoFaces, 13.0f);
-        ImFont* MonoSmall = SeatFace(MonoFaces, 11.0f);
+        ImFont* Ui        = SeatFace(SansFaces, 13.0f, SansRanges);
+        ImFont* Small     = SeatFace(SansFaces, 11.0f, SansRanges);
+        ImFont* Mono      = SeatFace(MonoFaces, 13.0f, nullptr);
+        ImFont* MonoSmall = SeatFace(MonoFaces, 11.0f, nullptr);
         FontCount_ = (Ui != nullptr ? 1 : 0) + (Small != nullptr ? 1 : 0)
                    + (Mono != nullptr ? 1 : 0) + (MonoSmall != nullptr ? 1 : 0);
         if (Ui != nullptr)
@@ -238,7 +242,7 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
     ImGui::PopStyleVar(2);
 
     Outliner_.Record(Instances, InstanceCount);
-    Viewport_.Record(InstanceCount);
+    Viewport_.Record(Instances, InstanceCount);
 
     const uint32_t Picked = Outliner_.QueryPicked();
     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;

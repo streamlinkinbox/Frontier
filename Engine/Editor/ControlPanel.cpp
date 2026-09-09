@@ -29,7 +29,7 @@ constexpr ImU32 kDim       = IM_COL32(136, 136, 136, 255);
 constexpr ImU32 kFaint     = IM_COL32(92, 92, 92, 255);
 constexpr ImU32 kStroke    = IM_COL32(255, 255, 255, 13);   // rgba(255,255,255,.05)
 constexpr ImU32 kHi        = IM_COL32(108, 119, 255, 255);  // the periwinkle fill
-constexpr ImU32 kFill      = IM_COL32(122, 122, 122, 255);  // the slider fill
+constexpr ImU32 kFill      = IM_COL32(74, 74, 74, 255);     // the slider fill
 constexpr ImU32 kThumb     = IM_COL32(224, 224, 224, 255);  // the slider thumb
 constexpr ImU32 kKnobOff   = IM_COL32(189, 189, 189, 255);  // the switch knob, off
 constexpr ImU32 kKnobOn    = IM_COL32(17, 17, 17, 255);     // the switch knob, on
@@ -170,7 +170,7 @@ bool ControlPanel::TypeInCell(const char* Id, const ImVec2& CellMin, const ImVec
 //------------------------------------------------------------------------------------------------------------------------
 
 bool ControlPanel::SliderPill(const char* Id, float* Figure, float Minimum, float Maximum,
-                            uint32_t Decimals, const char* Unit, bool Hi) noexcept
+                            uint32_t Decimals, const char* Unit, bool Hi, bool Thin, bool ShowPill) noexcept
 {
     ImGuiWindow* Window = ImGui::GetCurrentWindow();
     if (Window->SkipItems)
@@ -184,59 +184,68 @@ bool ControlPanel::SliderPill(const char* Id, float* Figure, float Minimum, floa
         return false;
     }
 
-    // The reference figure pill, dense: a split pill (black figure cell, raised unit cell) beside the thin track.
-    constexpr float kPillWidth = 100.0f;
-    constexpr float kUnitWidth = 40.0f;
+    // The reference slider: a 92-pixel split pill (black figure cell, inset unit cell) beside the track.
+    //    The track pill stands as tall as the knob circle — 26 over 24 — and the thin voice drops the
+    //    three figures to 18 over 10 over 18. The pill hides for the footer clock, which keeps its own text.
+    constexpr float kPillWidth = 92.0f;
+    constexpr float kUnitWidth = 34.0f;
     constexpr float kGap       = 10.0f;
     constexpr float kHeight    = 30.0f;
     constexpr float kPillH     = 28.0f;
+    const float TrackH = Thin ? 10.0f : 26.0f;
+    const float ThumbR = Thin ? 9.0f : 12.0f;
+    const float BoxH   = Thin ? 18.0f : 26.0f;
 
     ImGui::Dummy(ImVec2(RowWidth, kHeight));
-    const ImVec2 Cursor  = ImGui::GetItemRectMin();
-    const ImVec2 PillMin(Cursor.x, Cursor.y + 1.0f);
-    const ImVec2 PillMax(Cursor.x + kPillWidth, Cursor.y + 1.0f + kPillH);
-    const float  SplitX  = Cursor.x + kPillWidth - kUnitWidth;
-    const float  TrackX0 = Cursor.x + kPillWidth + kGap;
-    const float  TrackX1 = Cursor.x + RowWidth;
-
+    const ImVec2 Cursor = ImGui::GetItemRectMin();
     ImDrawList* Draw    = ImGui::GetWindowDrawList();
     bool        Changed = false;
 
-    Draw->AddRectFilled(PillMin, ImVec2(SplitX, PillMax.y), kField, 14.0f, ImDrawFlags_RoundCornersLeft);
-    Draw->AddRectFilled(ImVec2(SplitX, PillMin.y), PillMax, kCell, 14.0f, ImDrawFlags_RoundCornersRight);
-    Draw->AddRect(PillMin, PillMax, kStroke, 14.0f);
-    Draw->AddLine(ImVec2(SplitX, PillMin.y + 4.0f), ImVec2(SplitX, PillMax.y - 4.0f), kStroke);
-
-    const ImVec2 NumMin(Cursor.x + 2.0f, PillMin.y + 2.0f);
-    const ImVec2 NumSize(SplitX - Cursor.x - 4.0f, kPillH - 4.0f);
-    if (TypeInCell(Id, NumMin, NumSize, *Figure, Decimals, Figure))
+    float TrackX0 = Cursor.x;
+    if (ShowPill)
     {
-        Changed = true;
+        const ImVec2 PillMin(Cursor.x, Cursor.y + 1.0f);
+        const ImVec2 PillMax(Cursor.x + kPillWidth, Cursor.y + 1.0f + kPillH);
+        const float  SplitX = Cursor.x + kPillWidth - kUnitWidth;
+
+        Draw->AddRectFilled(PillMin, ImVec2(SplitX, PillMax.y), kField, 14.0f, ImDrawFlags_RoundCornersLeft);
+        Draw->AddRectFilled(ImVec2(SplitX, PillMin.y), PillMax, kInset, 14.0f, ImDrawFlags_RoundCornersRight);
+        Draw->AddRect(PillMin, PillMax, kStroke, 14.0f);
+        Draw->AddLine(ImVec2(SplitX, PillMin.y), ImVec2(SplitX, PillMax.y), kStroke);
+
+        const ImVec2 NumMin(Cursor.x + 2.0f, PillMin.y + 2.0f);
+        const ImVec2 NumSize(SplitX - Cursor.x - 4.0f, kPillH - 4.0f);
+        if (TypeInCell(Id, NumMin, NumSize, *Figure, Decimals, Figure))
+        {
+            Changed = true;
+        }
+
+        ImFont* Small = QuerySmall();
+        ImGui::PushFont(Small);
+        const ImVec2 UnitGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Unit);
+        Draw->AddText(ImVec2(SplitX + (kUnitWidth - UnitGlyph.x) * 0.5f,
+            PillMin.y + (kPillH - UnitGlyph.y) * 0.5f), kFaint, Unit);
+        ImGui::PopFont();
+
+        TrackX0 = Cursor.x + kPillWidth + kGap;
     }
 
-    ImFont* Small = QuerySmall();
-    ImGui::PushFont(Small);
-    const ImVec2 UnitGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Unit);
-    Draw->AddText(ImVec2(SplitX + (kUnitWidth - UnitGlyph.x) * 0.5f,
-        PillMin.y + (kPillH - UnitGlyph.y) * 0.5f), kFaint, Unit);
-    ImGui::PopFont();
-
-    const float Span = TrackX1 - TrackX0;
+    const float TrackX1 = Cursor.x + RowWidth;
+    const float Span    = TrackX1 - TrackX0;
     if (Span > 20.0f)
     {
-        constexpr float kTrackH = 10.0f;
-        constexpr float kThumbR = 9.0f;
-        const float TrackY0 = Cursor.y + (kHeight - kTrackH) * 0.5f;
-        const float TrackY1 = TrackY0 + kTrackH;
+        const float BoxY0   = Cursor.y + (kHeight - BoxH) * 0.5f;
+        const float TrackY0 = BoxY0 + (BoxH - TrackH) * 0.5f;
+        const float TrackY1 = TrackY0 + TrackH;
         const float MidY    = (TrackY0 + TrackY1) * 0.5f;
-        const float Travel0 = TrackX0 + kThumbR;
-        const float Travel1 = TrackX1 - kThumbR;
+        const float Travel0 = TrackX0 + ThumbR;
+        const float Travel1 = TrackX1 - ThumbR;
 
         float Fraction = (Maximum > Minimum) ? ((*Figure - Minimum) / (Maximum - Minimum)) : 0.0f;
         Fraction       = Clamp01(Fraction);
 
-        ImGui::SetCursorScreenPos(ImVec2(TrackX0, Cursor.y));
-        ImGui::InvisibleButton("##track", ImVec2(Span, kHeight));
+        ImGui::SetCursorScreenPos(ImVec2(TrackX0, BoxY0));
+        ImGui::InvisibleButton("##track", ImVec2(Span, BoxH));
         const bool Held = ImGui::IsItemActive();
         if (Held && Travel1 > Travel0)
         {
@@ -253,9 +262,12 @@ bool ControlPanel::SliderPill(const char* Id, float* Figure, float Minimum, floa
         }
 
         const float ThumbX = Travel0 + Fraction * (Travel1 - Travel0);
-        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(TrackX1, TrackY1), kHover, 5.0f);
-        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(ThumbX, TrackY1), Hi ? kHi : kFill, 5.0f);
-        Draw->AddCircleFilled(ImVec2(ThumbX, MidY), Held ? kThumbR * 1.1f : kThumbR, kThumb);
+        const float FillX1 = ThumbX > TrackX0 + ThumbR * 2.0f ? ThumbX : TrackX0 + ThumbR * 2.0f;
+        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(TrackX1, TrackY1), kHover, TrackH * 0.5f);
+        Draw->AddRectFilled(ImVec2(TrackX0, TrackY0), ImVec2(FillX1, TrackY1), Hi ? kHi : kFill, TrackH * 0.5f);
+        const float KnobR = Held ? ThumbR * 1.12f : ThumbR;
+        Draw->AddCircleFilled(ImVec2(ThumbX, MidY + 1.0f), KnobR, IM_COL32(0, 0, 0, 128));
+        Draw->AddCircleFilled(ImVec2(ThumbX, MidY), KnobR, kThumb);
     }
 
     return Changed;
@@ -273,9 +285,9 @@ bool ControlPanel::Switch(const char* Id, bool* On) noexcept
         return false;
     }
 
-    // The reference switch, dense-true: a 46×26 pill, white when on, the knob gliding end to end.
-    constexpr float kW = 46.0f;
-    constexpr float kH = 26.0f;
+    // The reference switch: a 44×25 pill, white when on, the knob gliding end to end.
+    constexpr float kW = 44.0f;
+    constexpr float kH = 25.0f;
     ImGui::Dummy(ImVec2(kW, kH));
     const ImVec2 Min = ImGui::GetItemRectMin();
     const ImVec2 Max = ImGui::GetItemRectMax();
@@ -290,10 +302,10 @@ bool ControlPanel::Switch(const char* Id, bool* On) noexcept
     }
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    Draw->AddRectFilled(Min, Max, *On ? IM_COL32(255, 255, 255, 255) : kHover, 13.0f);
-    Draw->AddRect(Min, Max, kStroke, 13.0f);
-    const float KnobX = *On ? (Min.x + 32.0f) : (Min.x + 12.0f);
-    Draw->AddCircleFilled(ImVec2(KnobX, Min.y + 13.0f), 10.0f, *On ? kKnobOn : kKnobOff);
+    Draw->AddRectFilled(Min, Max, *On ? IM_COL32(255, 255, 255, 255) : kHover, 12.5f);
+    Draw->AddRect(Min, Max, kStroke, 12.5f);
+    const float KnobX = *On ? (Min.x + 30.5f) : (Min.x + 11.5f);
+    Draw->AddCircleFilled(ImVec2(KnobX, Min.y + 12.5f), 9.5f, *On ? kKnobOn : kKnobOff);
 
     return Changed;
 }

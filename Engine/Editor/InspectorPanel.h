@@ -29,6 +29,7 @@ private:
     void  RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexcept;
     void  RecordStanding(EditorInstance* Picked, uint32_t PickedIndex) noexcept;
     void  RecordNotes(EditorInstance* Picked) noexcept;
+    void  RecordFooter(EditorInstance* Picked) noexcept;
     float RecordCaps(const char* Text, const ImVec2& At, ImU32 Tint) noexcept;
 
     ControlPanel* Controls_ = nullptr;

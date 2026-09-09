@@ -79,6 +79,12 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
     if (Picked == nullptr || Sheet == nullptr)
     {
         RecordEmpty();
+        const float Gap = ImGui::GetContentRegionAvail().y - 30.0f;
+        if (Gap > 0.0f)
+        {
+            ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, Gap));
+        }
+        RecordFooter(nullptr);
         ImGui::End();
         return;
     }
@@ -86,7 +92,7 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
     RecordIdent(Picked, PickedIndex);
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 2.0f));
-    ImGui::BeginChild("##props", ImVec2(0.0f, 0.0f), false);
+    ImGui::BeginChild("##props", ImVec2(0.0f, -30.0f), false);
     for (uint32_t i = 0u; i < Sheet->GroupCount && i < kMaxEditorSheetGroups; ++i)
     {
         RecordCard(Sheet->Groups[i], i);
@@ -95,6 +101,7 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
     RecordNotes(Picked);
     ImGui::EndChild();
     ImGui::PopStyleVar();
+    RecordFooter(Picked);
     ImGui::End();
 }
 
@@ -352,7 +359,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
             switch (Prop.Category)
             {
             case EditorPropertyCategory::Slider:
-                Controls_->SliderPill("##s", &Prop.Figure, Prop.Minimum, Prop.Maximum, Prop.Decimals, Prop.Unit, Prop.Hi);
+                Controls_->SliderPill("##s", &Prop.Figure, Prop.Minimum, Prop.Maximum, Prop.Decimals, Prop.Unit, Prop.Hi, false, true);
                 break;
             case EditorPropertyCategory::Switch:
                 ImGui::SetCursorScreenPos(ImVec2(ZoneX + ZoneW - 33.0f, Y + 3.5f));
@@ -522,6 +529,42 @@ void InspectorPanel::RecordNotes(EditorInstance* Picked) noexcept
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
     ImGui::Dummy(ImVec2(RowWidth, 10.0f));
     ImGui::PopID();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                           FOOTER
+//------------------------------------------------------------------------------------------------------------------------
+
+void InspectorPanel::RecordFooter(EditorInstance* Picked) noexcept
+{
+    const float RowWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::Dummy(ImVec2(RowWidth, 30.0f));
+    const ImVec2 Cursor = ImGui::GetItemRectMin();
+
+    ImDrawList* Draw = ImGui::GetWindowDrawList();
+    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
+    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
+
+    char Foot[64] = {};
+    if (Picked == nullptr)
+    {
+        std::snprintf(Foot, sizeof(Foot), "\xe2\x80\x94");
+    }
+    else if (Picked->Locked)
+    {
+        std::snprintf(Foot, sizeof(Foot), "%s \xc2\xb7 %s \xc2\xb7 locked",
+            EditorInstanceLabel(Picked->Category), Picked->Dynamic ? "dynamic" : "static");
+    }
+    else
+    {
+        std::snprintf(Foot, sizeof(Foot), "%s \xc2\xb7 %s",
+            EditorInstanceLabel(Picked->Category), Picked->Dynamic ? "dynamic" : "static");
+    }
+    ImFont* Small = Controls_->QuerySmall();
+    ImGui::PushFont(Small);
+    const ImVec2 FootGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Foot);
+    Draw->AddText(ImVec2(Cursor.x + 14.0f, Cursor.y + (30.0f - FootGlyph.y) * 0.5f), kFaint, Foot);
+    ImGui::PopFont();
 }
 
 } // namespace Frontier
