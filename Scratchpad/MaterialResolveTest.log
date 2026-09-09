@@ -1,0 +1,58 @@
+[1] header fallback (no slab): base colour / roughness / metalness from the 64 B record
+  BaseColor.g                                                         0.40000 (want 0.4000 +-0.0000) PASS
+  SpecularRoughness                                                   0.35000 (want 0.3500 +-0.0000) PASS
+  Metalness                                                           0.70000 (want 0.7000 +-0.0000) PASS
+  frame N.z                                                           1.00000 (want 1.0000 +-0.0000) PASS
+  frame T.x                                                           1.00000 (want 1.0000 +-0.0000) PASS
+  frame B.y (right-handed)                                            1.00000 (want 1.0000 +-0.0000) PASS
+[2] viewer below the face: geometric + shading normal flip, frame stays orthonormal
+  Geometric.z                                                        -1.00000 (want -1.0000 +-0.0000) PASS
+  Normal.z                                                           -1.00000 (want -1.0000 +-0.0000) PASS
+  |T x B . N| = 1                                                     1.00000 (want 1.0000 +-0.0000) PASS
+[3] interpolated vertex normals (tilted 30 deg about X at vertex 1 only) -> barycentric blend, renormalised
+  N.y                                                                -0.25882 (want -0.2588 +-0.0001) PASS
+  N.z                                                                 0.96593 (want 0.9659 +-0.0001) PASS
+  T . N = 0 (Gram-Schmidt)                                            0.00000 (want 0.0000 +-0.0000) PASS
+[4] no authored tangents -> derived from UV parametrisation (dP/du = +X here); tangent.w < 0 flips B
+  derived T.x                                                         1.00000 (want 1.0000 +-0.0000) PASS
+  derived B.y                                                         1.00000 (want 1.0000 +-0.0000) PASS
+  tangent.w = -1 -> B.y                                              -1.00000 (want -1.0000 +-0.0000) PASS
+[5] slab path: OpenPBR fields, textures (metalness B / roughness G / opacity A), normal map, occlusion
+  BaseColor.r = 0.8 * 0.5                                             0.40000 (want 0.4000 +-0.0000) PASS
+  Metalness = 1.0 * B(0.4)                                            0.40000 (want 0.4000 +-0.0000) PASS
+  SpecularRoughness = 1.0 * G(0.6)                                    0.60000 (want 0.6000 +-0.0000) PASS
+  SpecularAnisotropy                                                  0.25000 (want 0.2500 +-0.0000) PASS
+  SpecularWeight                                                      0.90000 (want 0.9000 +-0.0000) PASS
+  SpecularIor                                                         1.70000 (want 1.7000 +-0.0000) PASS
+  DiffuseRoughness                                                    0.30000 (want 0.3000 +-0.0000) PASS
+  CoatWeight                                                          0.60000 (want 0.6000 +-0.0000) PASS
+  CoatColor.b                                                         0.70000 (want 0.7000 +-0.0000) PASS
+  CoatRoughness                                                       0.10000 (want 0.1000 +-0.0000) PASS
+  CoatIor                                                             1.55000 (want 1.5500 +-0.0000) PASS
+  CoatDarkening                                                       0.50000 (want 0.5000 +-0.0000) PASS
+  FuzzWeight                                                          0.40000 (want 0.4000 +-0.0000) PASS
+  FuzzColor.b                                                         0.25000 (want 0.2500 +-0.0000) PASS
+  FuzzRoughness                                                       0.80000 (want 0.8000 +-0.0000) PASS
+  Emission.g = 100 * 0.5                                             50.00000 (want 50.0000 +-0.0001) PASS
+  ThinFilmWeight                                                      1.00000 (want 1.0000 +-0.0000) PASS
+  ThinFilmThickness                                                   0.35000 (want 0.3500 +-0.0000) PASS
+  ThinFilmIor                                                         1.30000 (want 1.3000 +-0.0000) PASS
+  HazinessWeight                                                      0.20000 (want 0.2000 +-0.0000) PASS
+  HazinessRoughness                                                   0.90000 (want 0.9000 +-0.0000) PASS
+  Opacity = 0.75 * A(0.8)                                             0.60000 (want 0.6000 +-0.0000) PASS
+  Occlusion = lerp(1, 0.4, 0.5)                                       0.70000 (want 0.7000 +-0.0000) PASS
+  normal map N.x (0.6 along T)                                        0.60000 (want 0.6000 +-0.0001) PASS
+  normal map N.z                                                      0.80000 (want 0.8000 +-0.0001) PASS
+  T . N after re-orthogonalisation                                   -0.00000 (want 0.0000 +-0.0000) PASS
+  |B| = 1                                                             1.00000 (want 1.0000 +-0.0000) PASS
+[6] ray-cone LOD: 1 m face, uvArea = worldArea -> lambda = log2(w / |n.d|) + 0.5 log2(texW*texH); must land within 0.5 of the analytic texel level
+  LOD base colour 2048^2 at 4 m normal incidence                      3.13070 (want 3.1307 +-0.5000) PASS
+      (footprint 4.28 mm = 8.8 texels -> level 3.13)
+  LOD occlusion 256^2 = base - 3                                      0.13070 (want 0.1307 +-0.5000) PASS
+  LOD at 60 deg = normal + 1                                          4.13067 (want 4.1307 +-0.5000) PASS
+  LOD at double cone width = +1                                       4.13070 (want 4.1307 +-0.5000) PASS
+[7] the resolved record drives the R4b-1 BSDF without NaN: albedo of the full slab at mu = 0.6
+      albedo = (0.4893 0.1933 0.1074)
+  finite & <= 1                                                       1.00000 (want 1.0000 +-0.0000) PASS
+
+ALL PASS (0 failures)

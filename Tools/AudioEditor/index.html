@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier · AudioEditor</title>
+<!--
+  ========================================================================================================================
+                                               FRONTIER · AUDIOEDITOR
+  ========================================================================================================================
+  Single-file dyno cell + visualiser for the procedural vehicle audio (References/AcousticPhaseA-Plan.md §4).
+  Open by double-click — no server, no dependencies. The AcousticIntegrator DSP is embedded once (the <script id="dsp">
+  block below) and loaded into an AudioWorklet as a Blob module, so the audio thread runs the exact source the C++
+  port (row A2) mirrors. Three first-cut vehicles are embedded as TOML in <script type="text/toml"> blocks; edits in the
+  inspector rebuild the running integrator instantly and Export writes the TOML that Project-Dyno loads.
+
+  Feeds:  LIVE  — worklet render of the selected structure (free rev by throttle, or scripted dyno pulls)
+          FILE  — drop a Project-Dyno --render WAV to visualise the engine's own output through the same scopes
+  Views:  dyno strip · signal-chain diagram with live meters · crank-locked scope · spectrum with order markers ·
+          spectrogram · order diagram · inspector (TOML fields) · device panel (mirrors AudioMetrics)
+-->
+<style>
+:root{
+  --bg:#050505;--panel:#121212;--inset:#1a1a1a;--raised:#222222;--selected:#2a2a2a;--field:#000000;
+  --stroke:rgba(255,255,255,.05);--stroke-strong:#2e2e2e;
+  --text:#f0f0f0;--text-dim:#888888;--text-faint:#5c5c5c;
+  --accent:#ffffff;--accent-soft:rgba(255,255,255,.12);--hi:#6c77ff;--hi-glow:0 0 12px rgba(108,119,255,.8);
+  --ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+  --r-panel:24px;--r-inset:18px;--r-pill:999px;--ctl-h:40px;--row-h:36px;
+  --shadow-panel:0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'General Sans','Inter','Segoe UI',Roboto,system-ui,Arial,sans-serif;font-size:13px;
+  -webkit-font-smoothing:antialiased;user-select:none;overflow:auto;
+}
+button,input,select{font:inherit}
+canvas{display:block}
+
+/* ---------- app frame ---------- */
+#app{display:grid;grid-template-rows:auto 1fr;min-height:100vh;box-sizing:border-box;gap:14px;padding:14px}
+#top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;min-height:0}
+#views{display:grid;grid-template-rows:auto minmax(280px,1fr) minmax(280px,1fr);gap:14px;min-height:0}
+#rowScopes{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
+#rowSpectral{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
+#side{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:14px;min-height:0}
+@media (max-width:1280px){#main{grid-template-columns:1fr}#side{grid-template-rows:auto auto}#inspector{max-height:70vh}}
+@media (max-width:900px){#rowScopes,#rowSpectral{grid-template-columns:1fr}#dyno .panel-body{grid-template-columns:1fr;justify-items:center}}
+
+/* ---------- panel ---------- */
+.panel{background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r-panel);box-shadow:var(--shadow-panel);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.panel-header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--stroke);background:rgba(255,255,255,.02);flex-shrink:0;min-height:46px}
+.ph-icon{width:26px;height:26px;border-radius:8px;flex-shrink:0;background:var(--inset);border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-dim)}
+.ph-title{font-size:13px;font-weight:600;letter-spacing:.2px}
+.ph-sub{font-size:11px;color:var(--text-faint);margin-top:1px}
+.spacer{flex:1}
+.panel-body{padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:0;flex:1}
+.panel-body.tight{padding:8px}
+.panel-footer{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--stroke);background:rgba(255,255,255,.02);flex-shrink:0;font-size:11px;color:var(--text-faint)}
+.ic{width:14px;height:14px;stroke-width:2;flex-shrink:0;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- controls ---------- */
+.btn{height:var(--ctl-h);padding:0 16px;border-radius:var(--r-pill);border:1px solid var(--stroke);background:var(--inset);color:var(--text);font-size:12.5px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s var(--ease),transform .12s var(--ease),color .15s var(--ease);white-space:nowrap}
+.btn:hover{background:var(--raised)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);color:#111;border-color:transparent;font-weight:600}
+.btn.primary:hover{background:#d9d9d9}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--text-dim)}
+.btn.ghost:hover{background:var(--inset);color:var(--text)}
+.btn.danger{color:var(--danger)}
+.btn.sm{height:30px;padding:0 12px;font-size:12px}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.btn.rec[data-on="true"]{color:var(--danger);border-color:rgba(239,68,68,.4)}
+.btn.rec[data-on="true"] i{background:var(--danger);box-shadow:0 0 10px rgba(239,68,68,.8)}
+.btn.rec i{width:8px;height:8px;border-radius:50%;background:var(--text-faint);display:inline-block}
+.seg{display:inline-flex;background:var(--field);border:1px solid var(--stroke);border-radius:var(--r-pill);padding:3px;gap:3px;height:var(--ctl-h)}
+.seg.sm{height:30px}
+.seg button{border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:500;padding:0 12px;border-radius:var(--r-pill);transition:background .15s var(--ease),color .15s var(--ease)}
+.seg button:hover{color:var(--text)}
+.seg button.active{background:var(--accent);color:#111;font-weight:600}
+.seg.hi button.active{background:var(--hi);color:#fff}
+.vpill{display:flex;align-items:stretch;height:var(--ctl-h);width:118px;flex-shrink:0;border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--stroke)}
+.vpill .num{flex:1;background:var(--field);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.vpill .unit{width:40px;background:var(--inset);border-left:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:11px;font-weight:500}
+input[type=range].slider{appearance:none;-webkit-appearance:none;outline:none;flex:1;min-width:80px;height:28px;border-radius:var(--r-pill);cursor:pointer;border:none;background:linear-gradient(to right,#7a7a7a 0%,var(--raised) 0%)}
+input[type=range].slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:#e0e0e0;border:none;transition:transform .12s var(--ease)}
+input[type=range].slider::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#e0e0e0;border:none}
+input[type=range].slider:active::-webkit-slider-thumb{transform:scale(1.1)}
+input[type=range].slider.thin{height:10px}
+input[type=range].slider.thin::-webkit-slider-thumb{width:18px;height:18px}
+input[type=range].slider.thin::-moz-range-thumb{width:18px;height:18px}
+input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 0%,var(--raised) 0%)}
+.crow{display:flex;align-items:center;gap:10px;min-height:32px}
+.crow>.clabel{width:120px;flex-shrink:0;color:var(--text-dim);font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow>.cval{width:66px;text-align:right;font-variant-numeric:tabular-nums;font-size:12px;color:var(--text)}
+.crow>.cunit{width:34px;color:var(--text-faint);font-size:10.5px}
+select.field{height:30px;background:var(--field);border:1px solid var(--stroke);border-radius:var(--r-pill);color:var(--text);padding:0 12px;outline:none}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:6px;background:var(--inset);border:1px solid var(--stroke-strong);font-size:10.5px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+.toggle-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 4px;cursor:pointer;border-radius:10px}
+.toggle-row:hover{background:rgba(255,255,255,.03)}
+.toggle-dotring{width:18px;height:18px;border-radius:50%;border:2px solid var(--stroke-strong);display:flex;align-items:center;justify-content:center;transition:border-color .18s var(--ease)}
+.toggle-dotring i{width:8px;height:8px;border-radius:50%;background:var(--text);transform:scale(0);transition:transform .18s var(--ease)}
+.toggle-row[data-on="true"] .toggle-dotring{border-color:var(--text)}
+.toggle-row[data-on="true"] .toggle-dotring i{transform:scale(1)}
+.toggle-row .tl{font-size:12.5px;font-weight:500;color:var(--text-dim)}
+.toggle-row[data-on="true"] .tl{color:var(--text)}
+
+/* ---------- top strip ---------- */
+#brand{display:flex;align-items:center;gap:10px;padding-right:8px}
+#brand .mark{width:30px;height:30px;border-radius:9px;background:var(--hi);box-shadow:var(--hi-glow);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
+#brand .name{font-weight:600;font-size:14px;letter-spacing:.3px}
+#brand .name small{display:block;font-size:10.5px;color:var(--text-faint);font-weight:500;letter-spacing:.2px}
+#carPick{display:inline-flex;gap:3px;background:var(--field);border:1px solid var(--stroke);border-radius:var(--r-pill);padding:3px;height:var(--ctl-h)}
+#carPick button{border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:12.5px;font-weight:500;padding:0 14px;border-radius:var(--r-pill)}
+#carPick button.active{background:var(--accent);color:#111;font-weight:600}
+#status{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-faint)}
+#status .dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint)}
+#status[data-link="running"] .dot{background:var(--ok);box-shadow:0 0 8px rgba(34,197,94,.7)}
+#status[data-link="suspended"] .dot{background:var(--warn)}
+#status[data-link="error"] .dot{background:var(--danger)}
+
+/* ---------- dyno strip ---------- */
+#dyno .panel-body{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:16px;align-items:center;padding:10px 16px}
+#gaugeWrap{display:flex;align-items:center;justify-content:center}
+#throttleCol{display:flex;flex-direction:column;gap:10px;min-width:0}
+#pulls{display:flex;flex-wrap:wrap;gap:6px}
+#pulls .btn{height:30px;padding:0 12px;font-size:12px;text-transform:capitalize}
+#pulls .btn.active{background:var(--hi);color:#fff;border-color:transparent}
+#readouts{display:grid;grid-template-columns:repeat(2,auto);gap:4px 18px;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#readouts b{color:var(--text);font-weight:600}
+.stack{display:flex;flex-direction:column;gap:8px}
+
+/* ---------- views ---------- */
+.view{position:relative;flex:1;min-height:120px;background:var(--field);border-radius:var(--r-inset);border:1px solid var(--stroke);overflow:hidden}
+.view canvas{position:absolute;inset:0;width:100%;height:100%}
+.view .legend{position:absolute;left:10px;top:8px;font-size:10.5px;color:var(--text-dim);pointer-events:none;display:flex;gap:10px}
+.view .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+
+/* ---------- flow diagram ---------- */
+#chainView{min-height:150px}
+
+/* ---------- inspector ---------- */
+#inspector .panel-body{overflow:auto;padding:6px 10px 12px;gap:0}
+#inspector .panel-body::-webkit-scrollbar{width:8px}
+#inspector .panel-body::-webkit-scrollbar-thumb{background:var(--raised);border-radius:4px}
+.sec{border-bottom:1px solid var(--stroke);padding:8px 6px}
+.sec:last-child{border-bottom:none}
+.sec-h{display:flex;align-items:center;gap:8px;cursor:pointer;height:28px;color:var(--text);font-weight:600;font-size:12px;text-transform:capitalize}
+.sec-h .chev{transition:transform .18s var(--ease);color:var(--text-faint)}
+.sec[data-open="false"] .chev{transform:rotate(-90deg)}
+.sec[data-open="false"] .sec-b{display:none}
+.sec[data-hot="true"] .sec-h{color:var(--hi)}
+.sec-b{display:flex;flex-direction:column;gap:2px;padding-top:4px}
+.sec-b .crow{min-height:28px}
+.sec-b .crow>.clabel{width:128px;font-size:11.5px}
+.sec-b input[type=text]{flex:1;height:26px;background:var(--field);border:1px solid var(--stroke);border-radius:8px;color:var(--text);padding:0 8px;font-size:11.5px;outline:none;min-width:0}
+.sec-b input[type=text]:focus{border-color:var(--stroke-strong)}
+
+/* ---------- device panel ---------- */
+#device .sheet{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:11.5px;font-variant-numeric:tabular-nums}
+#device .sheet span{color:var(--text-dim)}
+#device .sheet b{font-weight:600;color:var(--text);text-align:right}
+#device .sheet b.bad{color:var(--danger)}
+
+/* ---------- drop overlay ---------- */
+#drop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:20;pointer-events:none}
+#drop[data-on="true"]{display:flex}
+#drop div{padding:22px 34px;border:2px dashed var(--hi);border-radius:var(--r-panel);background:var(--panel);font-size:14px;font-weight:600}
+
+/* ---------- start overlay (audio needs a gesture) ---------- */
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,5,5,.7);backdrop-filter:blur(6px);z-index:30}
+#gate[data-on="false"]{display:none}
+#gate .card{background:var(--panel);border:1px solid var(--stroke);border-radius:var(--r-panel);box-shadow:var(--shadow-panel);padding:28px 34px;display:flex;flex-direction:column;gap:14px;align-items:center;max-width:460px;text-align:center}
+#gate h1{margin:0;font-size:18px;font-weight:600}
+#gate p{margin:0;color:var(--text-dim);font-size:12.5px;line-height:1.5}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--raised);border:1px solid var(--stroke-strong);border-radius:var(--r-pill);padding:8px 16px;font-size:12px;opacity:0;transition:opacity .2s var(--ease);pointer-events:none;z-index:40}
+#toast[data-on="true"]{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- ================================================== TOP STRIP ================================================== -->
+  <div id="top">
+    <div id="brand"><div class="mark">F</div><div class="name">AudioEditor<small>Frontier · Acoustic Phase A</small></div></div>
+    <div id="carPick"></div>
+    <div class="seg" id="feedSeg"><button data-feed="live" class="active">Live</button><button data-feed="file">File</button></div>
+    <div class="seg" id="listenerSeg"><button data-listener="trackside" class="active">Trackside</button><button data-listener="chase">Chase</button><button data-listener="cockpit">Cockpit</button></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnImport"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg>Import TOML</button>
+    <button class="btn" id="btnExport"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3m0 0 4 4m-4-4-4 4M4 17v3h16v-3"/></svg>Export TOML</button>
+    <button class="btn rec" id="btnRecord" data-on="false"><i></i><span id="recLabel">Record WAV</span></button>
+    <div id="status" data-link="idle"><span class="dot"></span><span id="statusText">audio idle</span></div>
+    <input type="file" id="fileToml" accept=".toml,text/plain" hidden>
+    <input type="file" id="fileWav" accept=".wav,audio/wav,audio/x-wav" hidden>
+  </div>
+
+  <div id="main">
+    <div id="views">
+      <!-- ================================================ DYNO STRIP ================================================ -->
+      <div class="panel" id="dyno">
+        <div class="panel-header">
+          <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0-8-8"/><path d="M12 12l4-4"/></svg></div>
+          <div><div class="ph-title">Dyno</div><div class="ph-sub" id="dynoSub">free rev · hold Space or drag the throttle</div></div>
+          <div class="spacer"></div>
+          <div class="seg sm hi" id="modeSeg"><button data-mode="free" class="active">Free rev</button><button data-mode="scripted">Scripted</button></div>
+          <label class="toggle-row" id="loopToggle" data-on="false"><span class="toggle-dotring"><i></i></span><span class="tl">Loop</span></label>
+          <label class="toggle-row" id="pureToggle" data-on="false" title="Pulse + body voices only, linear — no noise, transients, comb or clip; the proof mode the C++ port is measured against"><span class="toggle-dotring"><i></i></span><span class="tl">Pure</span></label>
+        </div>
+        <div class="panel-body">
+          <div id="gaugeWrap"><canvas id="gauge" width="200" height="150"></canvas></div>
+          <div id="throttleCol">
+            <div class="crow"><div class="clabel">Throttle</div><input type="range" class="slider hi" id="throttle" min="0" max="1" step="0.001" value="0"><div class="vpill"><div class="num" id="throttleNum">0</div><div class="unit">%</div></div></div>
+            <div id="pulls"></div>
+          </div>
+          <div id="readouts">
+            <span>rpm <b id="rRpm">—</b></span><span>load <b id="rLoad">—</b></span>
+            <span>pitch <b id="rTemp">—</b></span><span>firings <b id="rFire">—</b></span>
+            <span>pops <b id="rPops">—</b></span><span>boost <b id="rBoost">—</b></span>
+            <span>pull <b id="rPull">—</b></span><span>fuel <b id="rFuel">—</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================ SCOPES ================================================ -->
+      <div id="rowScopes">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+            <div><div class="ph-title">Signal chain</div><div class="ph-sub">click a junction → its fields in the inspector · meters are RMS per report · rev 2 event voice</div></div>
+          </div>
+          <div class="panel-body tight"><div class="view" id="chainView"><canvas id="chain"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M2 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0"/></svg></div>
+            <div><div class="ph-title">Crank-locked scope</div><div class="ph-sub">one 720° cycle, triggered on cylinder 1 TDC · firing marks per bank</div></div>
+            <div class="spacer"></div>
+            <button class="btn sm ghost" id="btnScopeHold">Hold</button>
+          </div>
+          <div class="panel-body tight"><div class="view"><canvas id="scope"></canvas><div class="legend"><span><i style="background:#6c77ff"></i>output L</span><span><i style="background:rgba(245,158,11,.7)"></i>cylinder pulses</span><span><i style="background:#f59e0b"></i>bank 0 TDC</span><span><i style="background:#22c55e"></i>bank 1 TDC</span></div></div></div>
+        </div>
+      </div>
+
+      <!-- ============================================== SPECTRAL ============================================== -->
+      <div id="rowSpectral">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M9 20V4M14 20v-8M19 20V7"/></svg></div>
+            <div><div class="ph-title">Spectrum + spectrogram</div><div class="ph-sub">log frequency 30 Hz – 20 kHz · engine-order markers ½, 1, 1½ … × rpm</div></div>
+            <div class="spacer"></div>
+            <div class="seg sm" id="specSeg"><button data-spec="both" class="active">Both</button><button data-spec="spectrum">Spectrum</button><button data-spec="gram">Spectrogram</button></div>
+          </div>
+          <div class="panel-body tight"><div class="view"><canvas id="spectrum"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M3 17l5-5 4 3 5-7 4 4"/></svg></div>
+            <div><div class="ph-title">Order diagram</div><div class="ph-sub">level of each engine order against rpm · the NVH view for matching a recording</div></div>
+            <div class="spacer"></div>
+            <button class="btn sm ghost" id="btnOrderClear">Clear</button>
+          </div>
+          <div class="panel-body tight"><div class="view"><canvas id="orders"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================== SIDE =================================================== -->
+    <div id="side">
+      <div class="panel" id="inspector">
+        <div class="panel-header">
+          <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/></svg></div>
+          <div><div class="ph-title">Acoustic structure</div><div class="ph-sub" id="inspectorSub">edits apply live · Export writes the TOML the C++ loads</div></div>
+          <div class="spacer"></div>
+          <button class="btn sm ghost" id="btnReset">Reset car</button>
+        </div>
+        <div class="panel-body" id="inspectorBody"></div>
+      </div>
+      <div class="panel" id="device">
+        <div class="panel-header">
+          <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg></div>
+          <div><div class="ph-title">Device</div><div class="ph-sub">mirrors AudioMetrics · Phase B WebSocket feed is a drop-in</div></div>
+        </div>
+        <div class="panel-body"><div class="sheet" id="deviceSheet"></div></div>
+        <div class="panel-footer"><span id="deviceFoot">worklet not started</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="drop" data-on="false"><div>Drop a Project-Dyno WAV (file feed) or a vehicle TOML (structure)</div></div>
+<div id="gate" data-on="true">
+  <div class="card">
+    <h1>Frontier AudioEditor</h1>
+    <p>Procedural vehicle audio — 918 Spyder · LaFerrari · GT-R Nismo. The browser needs a click before it will open an audio device. Then hold <span class="kbd">Space</span> to rev, or run a scripted pull.</p>
+    <button class="btn primary" id="btnStart">Start audio</button>
+    <p id="gateNote" style="font-size:11px"></p>
+  </div>
+</div>
+<div id="toast" data-on="false"></div>
+
+<!-- ======================================================================================================================
+     SHARED DSP — identical source runs in the worklet (Blob module) and in the page (file-feed analysis, TOML I/O).
+     ====================================================================================================================== -->
+<script id="dsp" type="text/plain">
+// ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+//  FRONTIER · AcousticIntegrator — shared DSP source (rev 2 · event voice)
+//  Runs unchanged in the browser AudioWorklet (Tools/AudioEditor/index.html) and in the node proof (Scratchpad/
+//  AcousticEditorRender.js). Row A2 ports this file 1:1 to Engine/PlatformInterchange/AcousticIntegrator.cpp:
+//  plain double math, fixed operation order, xorshift32 PRNG, per-sample smoothing, sample-counted rebuilds
+//  (slice-size invariant output).
+//
+//  Voicing recipe (rev 2): per-cylinder event voice after RevSim (github.com/eosclient0001-rgb/EngineAudioSim,
+//  src/lib/EngineSimulator.ts, EngineProcessor) — the reference the user judged realistic. Each firing restarts that
+//  cylinder's voice: an asymmetric pressure pulse read at a slow "thump" pitch, a 24-harmonic body whose formant climbs
+//  with rpm, a per-firing crackle burst, a valve ring that fades by 4000 rpm, the V12/flat-plane rasp, the intake howl
+//  and the cross-plane cam modulation; the sum is soft-clipped per channel (tanh, drive rises with load), run through a
+//  short feedback comb (the exhaust pipe colour), a valve high-pass and a hard ±1 clip. Transients (lift-off backfire,
+//  anti-lag pops, blow-off flutter, overrun crackle), the turbo whine + air rush, the gear whine and the hybrid motor
+//  are synthesised in the same loop so the whole voice is deterministic and portable.
+//  Units: [Hz] [rpm] [ms] [s] [bar] [-]. Crank angle in degrees over the 720° four-stroke cycle.
+// ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+'use strict';
+
+const TWO_PI = 6.283185307179586;
+const EVENT_FIRE = 0, EVENT_CLATTER = 1;
+const EVENTS_PER_CYLINDER = 3;             // firing + two valve-seating clatters per cylinder per cycle
+const MAX_CYLINDERS = 16;
+const SHEET_SIZE = 512;                    // pulse / body sheets (RevSim: 512-point lookups)
+const HARMONIC_COUNT = 24;
+const REBUILD_SAMPLES = 128;               // per-slice constants are refreshed every 128 samples, counted from the first sample
+const RPM_REFERENCE = 8000.0;              // RevSim's rpmFactor = rpm / 8000 (fixed, not per vehicle)
+const WALK_REVERSION = 0.02;               // firing-time walk returns to the crank at 2 % per firing (keeps the crank lock; RevSim's walk is unbounded)
+
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function lagCoefficient(fs, tau) { return tau > 0.0 ? 1.0 - Math.exp(-1.0 / (fs * tau)) : 1.0; }
+function cutoffCoefficient(fs, hz) { return hz >= fs * 0.45 ? 1.0 : 1.0 - Math.exp(-TWO_PI * hz / fs); }
+
+// ─────────────────────────────────────────────── ACOUSTIC STRUCTURE SCHEMA ──────────────────────────────────────────────
+// [section, key, default, unit, comment, [min, max, step]] — one source for defaults, TOML import/export and the inspector.
+const ACOUSTIC_SCHEMA = [
+    ['vehicle', 'name', 'Generic V8', '', 'display name'],
+    ['vehicle', 'engine', '4.0 L 90° V8', '', 'one-line engine description'],
+    ['vehicle', 'cylinder_count', 8, '-', 'number of cylinders', [1, 16, 1]],
+    ['vehicle', 'firing_order', [1, 8, 3, 6, 4, 5, 2, 7], '-', 'cylinder numbers in firing sequence, even 720/N intervals'],
+    ['vehicle', 'bank_of_cylinder', [0, 0, 0, 0, 1, 1, 1, 1], '-', 'bank per cylinder number (0 = left pipe, 1 = right pipe)'],
+    ['vehicle', 'idle_rpm', 900, 'rpm', '', [500, 2000, 10]],
+    ['vehicle', 'redline_rpm', 8000, 'rpm', 'fuel cut', [3000, 12000, 50]],
+    ['vehicle', 'peak_power_rpm', 7500, 'rpm', '', [3000, 12000, 50]],
+    ['vehicle', 'peak_torque_rpm', 5500, 'rpm', '', [1500, 10000, 50]],
+    ['vehicle', 'peak_torque_nm', 500.0, 'N·m', '', [100, 1500, 10]],
+    ['vehicle', 'inertia_kgm2', 0.4, 'kg·m²', 'effective rotating inertia seen by the free-rev powertrain', [0.05, 2.0, 0.01]],
+    ['vehicle', 'friction_nm', 25.0, 'N·m', 'friction torque at zero rpm', [0, 100, 1]],
+    ['vehicle', 'friction_per_krpm_nm', 6.0, 'N·m', 'friction torque increase per 1000 rpm', [0, 30, 0.5]],
+
+    ['combustion', 'evo_deg', 130.0, '°', 'voice starts this many degrees after the firing TDC (exhaust valve opening)', [0, 170, 1]],
+    ['combustion', 'jitter_pct', 5.0, '%', 'firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank', [0, 15, 0.1]],
+    ['combustion', 'idle_jitter_boost', 1.0, '-', 'jitter grows by this factor toward zero load', [0, 6, 0.1]],
+    ['combustion', 'jitter_amp', 0.05, '-', 'cycle-to-cycle amplitude deviation (1 σ)', [0, 0.3, 0.005]],
+    ['combustion', 'misfire_probability', 0.0, '-', 'per firing at full load; ×4 toward zero load', [0, 0.2, 0.001]],
+    ['combustion', 'backfire_level', 2.0, '-', 'lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)', [0, 4, 0.05]],
+    ['combustion', 'backfire_probability', 0.2, '-', 'chance of the thud per lift', [0, 1, 0.01]],
+    ['combustion', 'pop_level', 0.6, '-', 'overrun crackle amplitude', [0, 3, 0.01]],
+    ['combustion', 'pop_rate_hz', 25.0, 'Hz', 'overrun crackle rate at redline right after lift', [0, 100, 1]],
+    ['combustion', 'pop_decay_s', 1.2, 's', 'overrun crackle fades with this time constant', [0.1, 5, 0.05]],
+
+    ['voice', 'pitch_hz', 65.0, 'Hz', 'pulse repetition inside one firing at 0 rpm (the "thump" pitch)', [20, 200, 0.5]],
+    ['voice', 'pitch_rise_hz', 15.0, 'Hz', 'added to the pitch at 8000 rpm', [0, 100, 0.5]],
+    ['voice', 'decay_per_s', 15.0, '1/s', 'voice envelope decay at 0 rpm', [2, 80, 0.5]],
+    ['voice', 'decay_per_krpm', 3.0, '1/s', 'added decay per 1000 rpm', [0, 20, 0.1]],
+    ['voice', 'thump_level', 0.8, '-', 'asymmetric pressure pulse', [0, 2, 0.01]],
+    ['voice', 'body_level', 0.6, '-', 'harmonic body (24 harmonics of the pitch)', [0, 2, 0.01]],
+    ['voice', 'harmonics', [1.0, 0.8, 0.5, 0.3], '-', 'weights of harmonics 1 … n; beyond the list 0.5 / n^1.2'],
+    ['voice', 'resonance', 0.5, '-', 'formant climb with rpm; above 1.0 the rasp switches on', [0, 3, 0.05]],
+    ['voice', 'crackle_level', 0.1, '-', 'per-firing noise burst at zero load', [0, 1, 0.01]],
+    ['voice', 'crackle_load_level', 0.4, '-', 'added at full load', [0, 2, 0.01]],
+    ['voice', 'ring_level', 0.1, '-', 'valve ring at zero load (5 / 6 / 7 kHz by cylinder)', [0, 1, 0.01]],
+    ['voice', 'ring_load_level', 0.2, '-', 'added at full load', [0, 1, 0.01]],
+    ['voice', 'ring_hz', 5000.0, 'Hz', 'ring of cylinder 1; +1 kHz per cylinder mod 3', [1000, 12000, 50]],
+    ['voice', 'ring_fade_rpm', 4000.0, 'rpm', 'ring is gone above this speed', [500, 12000, 50]],
+    ['voice', 'rasp_level', 1.5, '-', 'AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1', [0, 4, 0.05]],
+    ['voice', 'howl_level', 0.0, '-', 'intake howl above howl_rpm', [0, 2, 0.01]],
+    ['voice', 'howl_rpm', 4000.0, 'rpm', '', [1000, 12000, 50]],
+    ['voice', 'howl_span_rpm', 5000.0, 'rpm', 'howl reaches full level this far above howl_rpm', [500, 10000, 50]],
+    ['voice', 'cam_order', 4.0, '-', 'amplitude modulation order relative to the cam (rpm / 120 Hz)', [1, 12, 1]],
+    ['voice', 'cam_depth', 0.0, '-', 'modulation depth (0 for flat-plane cranks)', [0, 0.6, 0.01]],
+    ['voice', 'lift_level', 1.0, '-', 'voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)', [0, 1, 0.01]],
+
+    ['exhaust', 'drive', 1.0, '-', 'multiplies the per-channel tanh drive (1 + 0.8 · load)', [0.1, 6, 0.05]],
+    ['exhaust', 'bank_pan', 0.9, '-', '0 = both banks centred … 1 = hard left/right', [0, 1, 0.01]],
+    ['exhaust', 'comb_ms', 2.667, 'ms', 'feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)', [0.2, 20, 0.001]],
+    ['exhaust', 'comb_feedback', 0.3, '-', '', [0, 0.9, 0.01]],
+    ['exhaust', 'valve_hp_hz', 10.0, 'Hz', 'high-pass below valve_open_rpm (exhaust valve shut)', [5, 1000, 5]],
+    ['exhaust', 'valve_open_hp_hz', 10.0, 'Hz', 'high-pass above valve_open_rpm', [5, 1000, 5]],
+    ['exhaust', 'valve_open_rpm', 5000.0, 'rpm', '', [1000, 12000, 50]],
+
+    ['mechanical', 'clatter_level', 0.0, '-', 'valve seating clatter (crank-locked)', [0, 2, 0.01]],
+    ['mechanical', 'clatter_hz', 4500.0, 'Hz', 'clatter resonance', [1000, 12000, 50]],
+    ['mechanical', 'whine_order', 0.0, '-', 'gear whine order relative to crank speed (0 = none)', [0, 300, 0.5]],
+    ['mechanical', 'whine_level', 0.0, '-', 'at redline; scales with rpm', [0, 0.5, 0.001]],
+    ['mechanical', 'motor_level', 0.0, '-', 'hybrid drive motor tone, scales with load (0 = none)', [0, 0.5, 0.001]],
+    ['mechanical', 'motor_hz', 200.0, 'Hz', 'motor tone at zero load', [50, 4000, 10]],
+    ['mechanical', 'motor_load_hz', 600.0, 'Hz', 'added at full load', [0, 8000, 10]],
+
+    ['turbo', 'enabled', false, '-', 'forced-induction layer'],
+    ['turbo', 'spool_up_s', 0.2, 's', 'spool follows rpm / redline · load with this lag', [0.05, 3, 0.01]],
+    ['turbo', 'spool_down_s', 0.2, 's', '', [0.05, 5, 0.01]],
+    ['turbo', 'whine_hz', 2500.0, 'Hz', 'compressor whine at zero spool', [500, 8000, 50]],
+    ['turbo', 'whine_span_hz', 4000.0, 'Hz', 'added at full spool', [0, 16000, 50]],
+    ['turbo', 'whine_level', 0.4, '-', 'at full spool', [0, 2, 0.01]],
+    ['turbo', 'rush_hz', 2000.0, 'Hz', 'air-rush band-pass centre at zero spool', [200, 8000, 50]],
+    ['turbo', 'rush_span_hz', 6000.0, 'Hz', 'added at full spool', [0, 16000, 50]],
+    ['turbo', 'rush_q', 1.5, '-', '', [0.3, 10, 0.1]],
+    ['turbo', 'rush_level', 0.4, '-', 'at full spool', [0, 2, 0.01]],
+    ['turbo', 'boost_max_bar', 1.0, 'bar', 'readout only', [0, 3, 0.05]],
+    ['turbo', 'blowoff_level', 0.8, '-', 'blow-off flutter on lift above 3000 rpm', [0, 3, 0.01]],
+    ['turbo', 'antilag_level', 3.0, '-', 'anti-lag pops instead of the blow-off above antilag_rpm (0 = off)', [0, 6, 0.05]],
+    ['turbo', 'antilag_rpm', 4000.0, 'rpm', '', [1000, 12000, 50]],
+
+    ['mix', 'exhaust', 1.0, '-', 'bus levels after the tanh (listener presets multiply these)', [0, 4, 0.01]],
+    ['mix', 'induction', 1.0, '-', 'turbo whine + rush', [0, 4, 0.01]],
+    ['mix', 'mechanical', 1.0, '-', 'clatter · gear whine · motor', [0, 4, 0.01]],
+    ['mix', 'transients', 1.0, '-', 'backfire · pops · anti-lag · blow-off', [0, 4, 0.01]],
+    ['mix', 'output_gain', 1.5, '-', 'before the comb and the ±1 clip (RevSim master 1.5)', [0.1, 8, 0.05]],
+];
+
+function schemaSections()
+{
+    const out = [];
+    for (const row of ACOUSTIC_SCHEMA) if (out.indexOf(row[0]) < 0) out.push(row[0]);
+    return out;
+}
+
+function structurePath(root, section, create)
+{
+    let cur = root;
+    for (const part of section.split('.'))
+    {
+        if (cur[part] === undefined || cur[part] === null || typeof cur[part] !== 'object') { if (!create) return null; cur[part] = {}; }
+        cur = cur[part];
+    }
+    return cur;
+}
+
+function structureDefaults()
+{
+    const root = {};
+    for (const row of ACOUSTIC_SCHEMA)
+    {
+        const sheet = structurePath(root, row[0], true);
+        sheet[row[1]] = Array.isArray(row[2]) ? row[2].slice() : row[2];
+    }
+    return root;
+}
+
+// Merges a parsed TOML object onto the defaults; unknown keys are ignored, kinds are coerced. Returns the structure.
+function structureFromToml(parsed)
+{
+    const root = structureDefaults();
+    for (const row of ACOUSTIC_SCHEMA)
+    {
+        const src = structurePath(parsed, row[0], false);
+        if (!src || src[row[1]] === undefined) continue;
+        const dst = structurePath(root, row[0], true);
+        const def = row[2], val = src[row[1]];
+        if (Array.isArray(def)) { if (Array.isArray(val)) dst[row[1]] = val.map(Number); }
+        else if (typeof def === 'boolean') dst[row[1]] = !!val;
+        else if (typeof def === 'number') { const n = Number(val); if (Number.isFinite(n)) dst[row[1]] = n; }
+        else dst[row[1]] = String(val);
+    }
+    return root;
+}
+
+function structureClone(structure) { return structureFromToml(structure); }
+
+// ────────────────────────────────────────────────── TOML (subset) ───────────────────────────────────────────────────────
+// [section] and [dotted.section] headers, key = literal, integers/floats/booleans/strings, single-line lists, # comments.
+
+function tomlStripComment(line)
+{
+    let quoted = false;
+    for (let i = 0; i < line.length; ++i)
+    {
+        const c = line[i];
+        if (c === '"' && line[i - 1] !== '\\') quoted = !quoted;
+        else if (c === '#' && !quoted) return line.slice(0, i);
+    }
+    return line;
+}
+
+function tomlSplitList(body)
+{
+    const parts = []; let depth = 0, quoted = false, start = 0;
+    for (let i = 0; i < body.length; ++i)
+    {
+        const c = body[i];
+        if (c === '"' && body[i - 1] !== '\\') quoted = !quoted;
+        else if (!quoted && c === '[') ++depth;
+        else if (!quoted && c === ']') --depth;
+        else if (!quoted && c === ',' && depth === 0) { parts.push(body.slice(start, i)); start = i + 1; }
+    }
+    const last = body.slice(start).trim();
+    if (last.length) parts.push(last);
+    return parts.map(p => p.trim()).filter(p => p.length);
+}
+
+function tomlLiteralOf(text)
+{
+    if (text[0] === '"') return text.slice(1, text.lastIndexOf('"')).replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+    if (text === 'true') return true;
+    if (text === 'false') return false;
+    if (text[0] === '[') return tomlSplitList(text.slice(1, text.lastIndexOf(']'))).map(tomlLiteralOf);
+    const n = Number(text.replace(/_/g, ''));
+    return Number.isFinite(n) ? n : text;
+}
+
+function parseToml(text)
+{
+    const root = {}; let cur = root;
+    for (const raw of String(text).split(/\r?\n/))
+    {
+        const line = tomlStripComment(raw).trim();
+        if (!line.length) continue;
+        if (line[0] === '[')
+        {
+            const name = line.slice(1, line.indexOf(']')).trim();
+            cur = structurePath(root, name, true);
+            continue;
+        }
+        const eq = line.indexOf('=');
+        if (eq < 0) continue;
+        cur[line.slice(0, eq).trim()] = tomlLiteralOf(line.slice(eq + 1).trim());
+    }
+    return root;
+}
+
+const INTEGER_KEYS = { cylinder_count: true, firing_order: true, bank_of_cylinder: true };
+
+function tomlNumber(v, wholeNumber)
+{
+    if (wholeNumber) return String(Math.round(v));
+    if (Number.isInteger(v)) return v.toFixed(1);
+    let text = Number(v.toPrecision(6)).toString();
+    if (text.indexOf('.') < 0 && text.indexOf('e') < 0) text += '.0';
+    return text;
+}
+
+function tomlLiteral(v, def, key)
+{
+    const wholeNumber = !!INTEGER_KEYS[key];
+    if (Array.isArray(def)) return '[' + v.map(x => tomlNumber(Number(x), wholeNumber)).join(', ') + ']';
+    if (typeof def === 'boolean') return v ? 'true' : 'false';
+    if (typeof def === 'number') return tomlNumber(Number(v), wholeNumber);
+    return '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+function serialiseToml(structure, headerLines)
+{
+    const lines = [];
+    for (const h of (headerLines || [])) lines.push(h.length ? '# ' + h : '#');
+    let current = null;
+    for (const row of ACOUSTIC_SCHEMA)
+    {
+        if (row[0] !== current)
+        {
+            current = row[0];
+            lines.push('');
+            lines.push('[' + current + ']');
+        }
+        const sheet = structurePath(structure, row[0], false);
+        const literal = tomlLiteral(sheet && sheet[row[1]] !== undefined ? sheet[row[1]] : row[2], row[2], row[1]);
+        const key = row[1].padEnd(22);
+        const note = [row[3] && row[3] !== '-' && row[3] !== '' ? '[' + row[3] + ']' : '', row[4]].filter(x => x.length).join(' ');
+        lines.push(note.length ? (key + ' = ' + literal + ' ').padEnd(56) + '# ' + note : key + ' = ' + literal);
+    }
+    lines.push('');
+    return lines.join('\n');
+}
+
+// ─────────────────────────────────────────────────── PRIMITIVES ─────────────────────────────────────────────────────────
+
+class Xorshift
+{
+    constructor(seed) { this.word = (seed >>> 0) || 0x9E3779B9; }
+    uniform()
+    {
+        let x = this.word;
+        x ^= x << 13; x >>>= 0;
+        x ^= x >>> 17;
+        x ^= x << 5;  x >>>= 0;
+        this.word = x;
+        return x * 2.3283064365386963e-10;
+    }
+    signed() { return this.uniform() * 2.0 - 1.0; }
+    gauss()  { return (this.uniform() + this.uniform() + this.uniform() + this.uniform() - 2.0) * 1.7320508075688772; }
+}
+
+class OnePole
+{
+    constructor() { this.a = 1.0; this.y = 0.0; }
+    setLag(fs, tau) { this.a = lagCoefficient(fs, tau); }
+    setCutoff(fs, hz) { this.a = cutoffCoefficient(fs, hz); }
+    advance(x) { this.y += this.a * (x - this.y); return this.y; }
+}
+
+// First-order high-pass (DC block / blow-off sweep): y = x − lowpass(x).
+class OnePoleHigh
+{
+    constructor() { this.low = new OnePole(); }
+    setCutoff(fs, hz) { this.low.setCutoff(fs, hz); }
+    advance(x) { return x - this.low.advance(x); }
+}
+
+class BiquadSection
+{
+    constructor() { this.b0 = 1.0; this.b1 = 0.0; this.b2 = 0.0; this.a1 = 0.0; this.a2 = 0.0; this.z1 = 0.0; this.z2 = 0.0; }
+    bandpass(fs, hz, q)
+    {
+        const w = TWO_PI * clamp(hz, 1.0, fs * 0.45) / fs, s = Math.sin(w), c = Math.cos(w);
+        const al = s / (2.0 * Math.max(0.05, q)), a0 = 1.0 + al;
+        this.b0 = al / a0; this.b1 = 0.0; this.b2 = -al / a0; this.a1 = -2.0 * c / a0; this.a2 = (1.0 - al) / a0;
+    }
+    highpass(fs, hz, q)
+    {
+        const w = TWO_PI * clamp(hz, 1.0, fs * 0.45) / fs, s = Math.sin(w), c = Math.cos(w);
+        const al = s / (2.0 * Math.max(0.05, q)), a0 = 1.0 + al;
+        this.b0 = (1.0 + c) / 2.0 / a0; this.b1 = -(1.0 + c) / a0; this.b2 = this.b0; this.a1 = -2.0 * c / a0; this.a2 = (1.0 - al) / a0;
+    }
+    advance(x)
+    {
+        const y = this.b0 * x + this.z1;
+        this.z1 = this.b1 * x - this.a1 * y + this.z2;
+        this.z2 = this.b2 * x - this.a2 * y;
+        return y;
+    }
+}
+
+// Feedback comb: out = x + d, line ← x + feedback · d   (RevSim: master → DelayNode → feedback GainNode → DelayNode; both paths summed).
+class CombLine
+{
+    constructor(capacity) { this.ring = new Float64Array(capacity); this.mask = capacity - 1; this.w = 0; this.delay = 1; this.feedback = 0.0; }
+    configure(fs, ms, feedback) { this.delay = clamp(Math.round(ms * 0.001 * fs), 1, this.mask); this.feedback = clamp(feedback, 0.0, 0.95); }
+    advance(x)
+    {
+        const d = this.ring[(this.w - this.delay) & this.mask];
+        this.ring[this.w] = x + this.feedback * d;
+        this.w = (this.w + 1) & this.mask;
+        return x + d;
+    }
+}
+
+// ─────────────────────────────────────────────────── TRANSIENTS ─────────────────────────────────────────────────────────
+// One-shot voices spawned by throttle events: backfire thud, overrun pop, anti-lag pop, blow-off flutter.
+
+const TRANSIENT_BACKFIRE = 0, TRANSIENT_POP = 1, TRANSIENT_ANTILAG = 2, TRANSIENT_BLOWOFF = 3;
+
+class TransientSlots
+{
+    constructor(fs, capacity)
+    {
+        this.fs = fs; this.capacity = capacity;
+        this.active = new Uint8Array(capacity); this.type = new Uint8Array(capacity);
+        this.t = new Float64Array(capacity); this.delay = new Float64Array(capacity); this.dur = new Float64Array(capacity);
+        this.f0 = new Float64Array(capacity); this.f1 = new Float64Array(capacity); this.gain = new Float64Array(capacity);
+        this.attack = new Float64Array(capacity); this.decay = new Float64Array(capacity); this.phase = new Float64Array(capacity);
+        this.noiseGain = new Float64Array(capacity); this.low = []; this.high = [];
+        for (let i = 0; i < capacity; ++i) { this.low.push(new OnePole()); this.high.push(new OnePoleHigh()); }
+        this.dropped = 0; this.spawned = 0;
+    }
+    spawn(type, delay, dur, f0, f1, gain, attack, noiseGain, lowHz)
+    {
+        let slot = -1;
+        for (let i = 0; i < this.capacity; ++i) if (!this.active[i]) { slot = i; break; }
+        if (slot < 0) { ++this.dropped; return; }
+        this.active[slot] = 1; this.type[slot] = type; this.t[slot] = 0.0; this.delay[slot] = delay; this.dur[slot] = dur;
+        this.f0[slot] = f0; this.f1[slot] = f1; this.gain[slot] = gain; this.attack[slot] = attack;
+        this.decay[slot] = Math.log(Math.max(gain, 0.01) / 0.001) / Math.max(0.001, dur - attack);
+        this.phase[slot] = 0.0; this.noiseGain[slot] = noiseGain;
+        this.low[slot].setCutoff(this.fs, lowHz); this.low[slot].y = 0.0; this.high[slot].low.y = 0.0;
+        ++this.spawned;
+    }
+    // Returns the summed transient sample; `rng` supplies the noise.
+    advance(rng)
+    {
+        let out = 0.0; const dt = 1.0 / this.fs;
+        for (let i = 0; i < this.capacity; ++i)
+        {
+            if (!this.active[i]) continue;
+            if (this.delay[i] > 0.0) { this.delay[i] -= dt; continue; }
+            const t = this.t[i], dur = this.dur[i], type = this.type[i];
+            if (t >= dur) { this.active[i] = 0; continue; }
+            const frac = t / dur, attack = this.attack[i];
+            const env = t < attack ? t / attack : Math.exp(-(t - attack) * this.decay[i]);
+            if (type === TRANSIENT_BLOWOFF)
+            {
+                const hz = this.f0[i] * Math.pow(this.f1[i] / this.f0[i], frac);
+                this.high[i].setCutoff(this.fs, hz);
+                const flutter = 0.5 + 0.5 * Math.sin(TWO_PI * 14.0 * t);
+                out += this.high[i].advance(rng.signed()) * this.gain[i] * env * flutter;
+            }
+            else
+            {
+                const hz = this.f0[i] * Math.pow(this.f1[i] / this.f0[i], frac);
+                let ph = this.phase[i] + hz * dt; if (ph >= 1.0) ph -= 1.0; this.phase[i] = ph;
+                const wave = type === TRANSIENT_ANTILAG ? (ph < 0.5 ? 1.0 : -1.0) : 4.0 * Math.abs(ph - 0.5) - 1.0;
+                out += this.low[i].advance(wave * this.gain[i] * env);
+                if (this.noiseGain[i] > 0.0)
+                {
+                    const nEnv = t < 0.002 ? t / 0.002 : Math.exp(-(t - 0.002) * 70.0);   // RevSim: 2 ms attack, gone by 100 ms
+                    out += rng.signed() * this.noiseGain[i] * nEnv;
+                }
+            }
+            this.t[i] = t + dt;
+        }
+        return out;
+    }
+}
+
+// ─────────────────────────────────────────────── LISTENER PRESETS ───────────────────────────────────────────────────────
+
+const LISTENER_PRESETS = {
+    trackside: { exhaust: 1.0,  induction: 1.0, mechanical: 1.0, transients: 1.0, width: 1.0, cutoff_hz: 16000.0 },
+    chase:     { exhaust: 1.0,  induction: 0.6, mechanical: 0.5, transients: 1.0, width: 0.5, cutoff_hz: 7000.0 },
+    cockpit:   { exhaust: 0.45, induction: 1.2, mechanical: 1.2, transients: 0.6, width: 0.3, cutoff_hz: 3500.0 },
+};
+
+// ─────────────────────────────────────────────── ACOUSTIC INTEGRATOR ────────────────────────────────────────────────────
+
+class AcousticIntegrator
+{
+    constructor(fs, structure, seed)
+    {
+        this.fs = fs; this.dt = 1.0 / fs;
+        this.rng = new Xorshift(seed === undefined ? 0x5EED1234 : seed);
+        this.demandRpm = 900.0; this.demandThrottle = 0.0; this.demandLoad = 0.0; this.demandBoost = 0.0;
+        this.rpmS = 900.0; this.throttleS = 0.0; this.loadS = 0.0;
+        this.rpmLag = lagCoefficient(fs, 0.004); this.throttleLag = lagCoefficient(fs, 0.010); this.loadLag = lagCoefficient(fs, 0.005);
+        this.maxRpmStep = 50000.0 * this.dt;
+        this.theta = 0.0; this.cycleIndex = 0; this.sampleIndex = 0; this.firingWalkDeg = 0.0;
+        // per-cylinder voices
+        this.voiceActive = new Uint8Array(MAX_CYLINDERS + 1); this.voiceT = new Float64Array(MAX_CYLINDERS + 1);
+        this.voiceAmp = new Float64Array(MAX_CYLINDERS + 1); this.ringHz = new Float64Array(MAX_CYLINDERS + 1);
+        this.pulseSheet = new Float64Array(SHEET_SIZE); this.bodySheet = new Float64Array(SHEET_SIZE);
+        for (let i = 0; i < SHEET_SIZE; ++i)
+        {
+            const phase = i / SHEET_SIZE; let v = 0.0;
+            if (phase < 0.05) v = phase / 0.05;                                   // rapid spike
+            else if (phase < 0.3) v = 1.0 - 1.2 * (phase - 0.05) / 0.25;           // blowdown to −0.2
+            else if (phase < 0.6) v = -0.2 * (1.0 - (phase - 0.3) / 0.3);          // rarefaction recovery to 0
+            this.pulseSheet[i] = v;
+        }
+        this.harmonicAmps = new Float64Array(HARMONIC_COUNT);
+        this.thumpHz = 65.0; this.decayRate = 15.0; this.noiseRate = 40.0; this.crackleGain = 0.1; this.ringGain = 0.1;
+        this.raspGain = 0.0; this.howlGain = 0.0; this.camDepth = 0.0; this.voiceDrive = 1.0;
+        // mechanical / turbo / transients
+        this.clatterEnv = new Float64Array(2); this.clatterImpulse = new Float64Array(2);
+        this.clatterDecay = Math.exp(-this.dt / 0.0012);
+        this.clatterBP1 = new BiquadSection(); this.clatterBP2 = new BiquadSection(); this.clatterRing = new BiquadSection();
+        this.whinePhase = 0.0; this.motorPhase = 0.0; this.turboPhase = 0.0;
+        this.spool = 0.0; this.boost = 0.0; this.rushBP = new BiquadSection(); this.rushHz = 2000.0;
+        this.transients = new TransientSlots(fs, 32);
+        this.liftArmedBackfire = false; this.liftArmedTurbo = false;
+        this.overrunActive = false; this.overrunEnv = 0.0; this.popBoost = 0.0; this.popBoostDecay = Math.exp(-this.dt / 0.06);
+        // post chain
+        this.comb = [new CombLine(2048), new CombLine(2048)];
+        this.valveHP = [new BiquadSection(), new BiquadSection()]; this.valveHz = 10.0; this.valveLag = lagCoefficient(fs / REBUILD_SAMPLES, 0.2);
+        this.listenerLP = [new OnePole(), new OnePole()];
+        this.pureTone = false;                 // proof mode: pulse + body only, no noise / transients / post chain
+        this.firingCount = 0; this.popCount = 0; this.clippedCount = 0;
+        this.assignListener('trackside');
+        // meters (mean-square accumulators, read + cleared by the host)
+        this.meter = new Float64Array(12);     // 0/1 voice L/R · 2/3 exhaust bus L/R · 4 howl · 5 mechanical · 6 transients · 7 turbo · 8/9 out L/R · 10 pops · 11 unused
+        this.meterFrames = 0;
+        // crank-locked scope capture
+        this.scope = new Float32Array(16384); this.scopeHead = new Float32Array(16384); this.scopeFill = 0; this.scopeCapturing = false; this.scopeReady = false; this.scopeArmed = true; this.scopeCycleSamples = 0;
+        this.assignStructure(structure);
+    }
+
+    assignListener(name)
+    {
+        const p = LISTENER_PRESETS[name] || LISTENER_PRESETS.trackside;
+        this.listener = p;
+        this.listenerLP[0].setCutoff(this.fs, p.cutoff_hz); this.listenerLP[1].setCutoff(this.fs, p.cutoff_hz);
+    }
+
+    assignStructure(structure)
+    {
+        const s = structureClone(structure);
+        this.structure = s;
+        const fs = this.fs;
+        const v = s.vehicle;
+        const n = clamp(Math.round(v.cylinder_count), 1, MAX_CYLINDERS);
+        const rebuildEvents = !this.events || this.cylinderCount !== n;
+        this.cylinderCount = n;
+        this.firingAngle = new Float64Array(n + 1); this.bankOfCylinder = new Uint8Array(n + 1);
+        const order = v.firing_order.length === n ? v.firing_order : Array.from({ length: n }, (_, i) => i + 1);
+        for (let j = 0; j < n; ++j) { const cyl = clamp(Math.round(order[j]), 1, n); this.firingAngle[cyl] = j * 720.0 / n; }
+        for (let c = 1; c <= n; ++c) { this.bankOfCylinder[c] = (v.bank_of_cylinder[c - 1] | 0) ? 1 : 0; this.ringHz[c] = s.voice.ring_hz + ((c - 1) % 3) * 1000.0; }
+        if (rebuildEvents)
+        {
+            const count = n * EVENTS_PER_CYLINDER;
+            this.events = count;
+            this.evType = new Uint8Array(count); this.evBank = new Uint8Array(count); this.evCyl = new Uint8Array(count);
+            this.evAnchor = new Float64Array(count); this.evNext = new Float64Array(count);
+            const cycleStart = Math.floor(this.theta / 720.0) * 720.0;
+            for (let c = 1; c <= n; ++c)
+            {
+                const i = (c - 1) * EVENTS_PER_CYLINDER;
+                const types = [EVENT_FIRE, EVENT_CLATTER, EVENT_CLATTER];
+                const offsets = [s.combustion.evo_deg, 375.0, 590.0];
+                for (let k = 0; k < EVENTS_PER_CYLINDER; ++k)
+                {
+                    this.evType[i + k] = types[k]; this.evCyl[i + k] = c; this.evBank[i + k] = this.bankOfCylinder[c];
+                    let a = cycleStart + this.firingAngle[c] + offsets[k];
+                    while (a < this.theta) a += 720.0;
+                    this.evAnchor[i + k] = a; this.evNext[i + k] = a;
+                }
+            }
+            for (let c = 0; c <= MAX_CYLINDERS; ++c) this.voiceActive[c] = 0;
+        }
+        else
+        {
+            for (let c = 1; c <= n; ++c) for (let k = 0; k < EVENTS_PER_CYLINDER; ++k) this.evBank[(c - 1) * EVENTS_PER_CYLINDER + k] = this.bankOfCylinder[c];
+        }
+        this.idleRpm = v.idle_rpm; this.redlineRpm = v.redline_rpm;
+        this.firingInterval = 720.0 / n;
+        this.clatterBP1.bandpass(fs, s.mechanical.clatter_hz, 1.5);
+        this.clatterBP2.bandpass(fs, s.mechanical.clatter_hz * 1.8, 2.0);
+        this.clatterRing.bandpass(fs, s.mechanical.clatter_hz * 1.3, 12.0);
+        this.popDecay = Math.exp(-this.dt / Math.max(0.05, s.combustion.pop_decay_s));
+        this.spoolUp = lagCoefficient(fs, s.turbo.spool_up_s); this.spoolDown = lagCoefficient(fs, s.turbo.spool_down_s);
+        this.comb[0].configure(fs, s.exhaust.comb_ms, s.exhaust.comb_feedback); this.comb[1].configure(fs, s.exhaust.comb_ms, s.exhaust.comb_feedback);
+        this.valveHz = this.rpmS > s.exhaust.valve_open_rpm ? s.exhaust.valve_open_hp_hz : s.exhaust.valve_hp_hz;
+        this.valveHP[0].highpass(fs, this.valveHz, 1.12); this.valveHP[1].highpass(fs, this.valveHz, 1.12);
+        this.rebuildSheet(this.rpmS, this.loadS);
+    }
+
+    assignDemand(rpm, throttle, load, boost)
+    {
+        this.demandRpm = clamp(rpm, 0.0, 20000.0); this.demandThrottle = clamp(throttle, 0.0, 1.0);
+        this.demandLoad = clamp(load, 0.0, 1.0); this.demandBoost = boost;
+    }
+
+    // Per-slice constants (RevSim recomputed these per 128-frame process call); called every REBUILD_SAMPLES samples.
+    rebuildSheet(rpm, load)
+    {
+        const s = this.structure, vo = s.voice;
+        const rpmFactor = rpm / RPM_REFERENCE;
+        this.thumpHz = vo.pitch_hz + rpmFactor * vo.pitch_rise_hz;
+        this.decayRate = vo.decay_per_s + rpm * 0.001 * vo.decay_per_krpm;
+        this.noiseRate = 40.0 + load * 60.0;
+        this.crackleGain = vo.crackle_level + vo.crackle_load_level * load;
+        this.ringGain = (vo.ring_level + vo.ring_load_level * load) * Math.max(0.0, 1.0 - rpm / Math.max(1.0, vo.ring_fade_rpm));
+        this.raspGain = vo.resonance > 1.0 ? Math.max(0.0, rpmFactor - 0.2) * load * (vo.resonance - 1.0) * vo.rasp_level : 0.0;
+        this.howlGain = (vo.howl_level > 0.0 && load > 0.2) ? Math.max(0.0, (rpm - vo.howl_rpm) / Math.max(1.0, vo.howl_span_rpm)) * load * vo.howl_level : 0.0;
+        this.camDepth = vo.cam_depth;
+        this.voiceDrive = (1.0 + 0.8 * load) * s.exhaust.drive;
+        const peak = 1.0 + rpmFactor * (8.0 + vo.resonance * 4.0);
+        const amps = this.harmonicAmps, list = vo.harmonics;
+        for (let h = 0; h < HARMONIC_COUNT; ++h)
+        {
+            const number = h + 1;
+            const restAmp = h < list.length ? list[h] : 0.5 / Math.pow(number, 1.2);
+            const rpmBoost = Math.max(0.0, 1.0 - Math.abs(number - peak) / 4.0);
+            const loadBoost = load * (number / HARMONIC_COUNT) * 2.0;
+            amps[h] = restAmp * (1.0 + rpmBoost * 1.5 + loadBoost);
+        }
+        const sheet = this.bodySheet;
+        for (let i = 0; i < SHEET_SIZE; ++i)
+        {
+            const phase = i / SHEET_SIZE; let v = 0.0;
+            for (let h = 0; h < HARMONIC_COUNT; ++h) v += Math.sin(TWO_PI * (h + 2) * phase) * amps[h];
+            sheet[i] = v * 0.15;
+        }
+        // exhaust valve high-pass follows rpm with a 0.2 s lag
+        const target = rpm > s.exhaust.valve_open_rpm ? s.exhaust.valve_open_hp_hz : s.exhaust.valve_hp_hz;
+        this.valveHz += this.valveLag * (target - this.valveHz);
+        this.valveHP[0].highpass(this.fs, this.valveHz, 1.12); this.valveHP[1].highpass(this.fs, this.valveHz, 1.12);
+        // turbo air-rush band follows the spool
+        if (s.turbo.enabled) { this.rushHz = s.turbo.rush_hz + this.spool * s.turbo.rush_span_hz; this.rushBP.bandpass(this.fs, this.rushHz, s.turbo.rush_q); }
+    }
+
+    fireEvent(index, fraction, load)
+    {
+        const s = this.structure, c = s.combustion, rng = this.rng;
+        const bank = this.evBank[index], type = this.evType[index], cyl = this.evCyl[index];
+        const spread = 1.0 + c.idle_jitter_boost * (1.0 - load);
+        let jitterNext = 0.0;
+        if (type === EVENT_FIRE)
+        {
+            let a = 1.0 + c.jitter_amp * spread * rng.gauss(); if (a < 0.2) a = 0.2;
+            const misfire = rng.uniform() < c.misfire_probability * (1.0 + 3.0 * (1.0 - load)) ? 0.15 : 1.0;
+            const lift = s.voice.lift_level + (1.0 - s.voice.lift_level) * load;
+            this.voiceActive[cyl] = 1; this.voiceT[cyl] = (1.0 - fraction) * this.dt; this.voiceAmp[cyl] = a * misfire * lift;
+            ++this.firingCount;
+            // shared firing-time walk: every firing moves the whole timeline by a uniform ±½·jitter_pct of the interval (RevSim adds
+            // 0 … 5 % per interval, cumulative — the 1/f² wander is what puts the low "thump" under the firing order); a 2 % per
+            // firing return keeps it anchored to the crank so the scope, the order diagram and the C++ record stay in lock.
+            const interval = this.firingInterval, limit = 0.3 * interval;
+            const step = this.pureTone ? 0.0 : (rng.uniform() - 0.5) * c.jitter_pct * 0.01 * spread * interval;
+            this.firingWalkDeg = clamp(this.firingWalkDeg * (1.0 - WALK_REVERSION) + step, -limit, limit);
+            this.evAnchor[index] += 720.0;
+            for (let e = 0; e < this.events; ++e) if (this.evType[e] === EVENT_FIRE) this.evNext[e] = this.evAnchor[e] + this.firingWalkDeg;
+            return;
+        }
+        else
+        {
+            const amp = s.mechanical.clatter_level * (0.6 + 0.8 * rng.uniform());
+            this.clatterEnv[bank] += amp; this.clatterImpulse[bank] += 0.5 * amp;
+            jitterNext = 0.3 * rng.gauss();
+        }
+        this.evAnchor[index] += 720.0;
+        this.evNext[index] = this.evAnchor[index] + jitterNext;
+    }
+
+    render(outL, outR, frames)
+    {
+        const s = this.structure, c = s.combustion, vo = s.voice, m = s.mix, tb = s.turbo, me = s.mechanical;
+        const rng = this.rng, fs = this.fs, dt = this.dt, listener = this.listener, pure = this.pureTone;
+        const idle = this.idleRpm, redline = this.redlineRpm, invRedline = 1.0 / Math.max(1.0, redline);
+        const n = this.cylinderCount, bank = this.bankOfCylinder, active = this.voiceActive, voiceT = this.voiceT, voiceAmp = this.voiceAmp, ringHz = this.ringHz;
+        const pulseSheet = this.pulseSheet, bodySheet = this.bodySheet, meter = this.meter;
+        const thumpLevel = vo.thump_level, bodyLevel = vo.body_level, camOrder = vo.cam_order;
+        const width = clamp(s.exhaust.bank_pan * listener.width, 0.0, 1.0);
+        const cSame = 0.5 + 0.5 * width, cOther = 0.5 - 0.5 * width;        // linear pan law: bank_pan 0.7 → 0.85 / 0.15 (RevSim)
+        const exGain = m.exhaust * listener.exhaust, indGain = m.induction * listener.induction;
+        const mechGain = m.mechanical * listener.mechanical, transGain = m.transients * listener.transients;
+        const outGain = m.output_gain, turbo = tb.enabled && !pure;
+        const bypassLP = listener.cutoff_hz >= fs * 0.45;
+        const whineStep = me.whine_order / 60.0 * dt;
+
+        for (let k = 0; k < frames; ++k)
+        {
+            // 1. demand smoothing (per sample → slice-size invariant)
+            const delta = this.demandRpm - this.rpmS;
+            this.rpmS += this.rpmLag * delta > this.maxRpmStep ? this.maxRpmStep : (this.rpmLag * delta < -this.maxRpmStep ? -this.maxRpmStep : this.rpmLag * delta);
+            this.throttleS += this.throttleLag * (this.demandThrottle - this.throttleS);
+            this.loadS += this.loadLag * (this.demandLoad - this.loadS);
+            const rpm = this.rpmS, throttle = this.throttleS;
+            const fuelOn = this.loadS > 0.02;
+            const load = fuelOn ? throttle : 0.0;                                 // RevSim drives the voice with the throttle; fuel cut (overrun, limiter) → 0
+            const rpmNorm = clamp((rpm - idle) / Math.max(1.0, redline - idle), 0.0, 1.0);
+
+            // 2. per-slice constants, sample-counted
+            if ((this.sampleIndex % REBUILD_SAMPLES) === 0) this.rebuildSheet(rpm, load);
+            const thumpHz = this.thumpHz, decayRate = this.decayRate, noiseRate = this.noiseRate;
+            const crackleGain = pure ? 0.0 : this.crackleGain, ringGain = pure ? 0.0 : this.ringGain, raspGain = pure ? 0.0 : this.raspGain, howlGain = pure ? 0.0 : this.howlGain;
+
+            // 3. crank clock + cylinder events at exact sub-sample times
+            const thetaPrev = this.theta;
+            const dTheta = 6.0 * rpm * dt;
+            this.theta = thetaPrev + dTheta;
+            const cycle = Math.floor(this.theta / 720.0);
+            let cycleStarted = false;
+            if (cycle !== this.cycleIndex) { this.cycleIndex = cycle; cycleStarted = true; }
+            for (let e = 0; e < this.events; ++e)
+            {
+                while (this.theta >= this.evNext[e])
+                {
+                    const fraction = dTheta > 0.0 ? clamp((this.evNext[e] - thetaPrev) / dTheta, 0.0, 0.999999) : 0.0;
+                    this.fireEvent(e, fraction, load);
+                }
+            }
+            const camPhase = (this.theta / 720.0) % 1.0;
+            const camMod = (1.0 - this.camDepth) + this.camDepth * Math.sin(camOrder * TWO_PI * camPhase);
+
+            // 4. per-cylinder voices
+            let sumL = 0.0, sumR = 0.0, pulseSum = 0.0, howlSum = 0.0;
+            for (let cyl = 1; cyl <= n; ++cyl)
+            {
+                if (!active[cyl]) continue;
+                const t = voiceT[cyl];
+                const env = Math.exp(-t * decayRate);
+                if (env < 0.001) { active[cyl] = 0; continue; }
+                const phase = (thumpHz * t) % 1.0;
+                const pos = phase * SHEET_SIZE, i0 = pos | 0, fr = pos - i0, i1 = (i0 + 1) & (SHEET_SIZE - 1);   // linear read (RevSim reads nearest: −42 dB stair-step hash)
+                const amp = voiceAmp[cyl];
+                const pulse = (pulseSheet[i0] + (pulseSheet[i1] - pulseSheet[i0]) * fr) * env * thumpLevel * amp;
+                const body = (bodySheet[i0] + (bodySheet[i1] - bodySheet[i0]) * fr) * env * bodyLevel * amp;
+                let extra = 0.0;
+                if (crackleGain > 0.0 || ringGain > 0.0)
+                {
+                    const noiseEnv = Math.exp(-t * noiseRate);
+                    if (crackleGain > 0.0) extra += rng.signed() * noiseEnv * crackleGain;
+                    if (ringGain > 0.0) extra += Math.sin(TWO_PI * ringHz[cyl] * t) * noiseEnv * ringGain;
+                }
+                if (raspGain > 0.0) extra += Math.sin(TWO_PI * thumpHz * 3.0 * t) * Math.sin(TWO_PI * thumpHz * 0.5 * t) * env * raspGain;
+                if (howlGain > 0.0)
+                {
+                    const howl = (Math.sin(TWO_PI * thumpHz * t) * 0.6 + Math.sin(TWO_PI * thumpHz * 2.0 * t) * 0.4 + rng.signed() * 0.2) * env * howlGain;
+                    extra += howl; howlSum += howl;
+                }
+                const sample = (pulse + body + extra) * camMod;
+                pulseSum += pulse;
+                if (bank[cyl]) { sumL += sample * cOther; sumR += sample * cSame; }
+                else { sumL += sample * cSame; sumR += sample * cOther; }
+                voiceT[cyl] = t + dt;
+            }
+
+            // 5. throttle-edge transients: backfire thud, anti-lag pops / blow-off (turbo), overrun crackle
+            let trans = 0.0;
+            if (!pure)
+            {
+                if (throttle > 0.6) this.liftArmedBackfire = true;
+                if (throttle > 0.7) this.liftArmedTurbo = true;
+                if (throttle < 0.1)
+                {
+                    if (this.liftArmedBackfire)
+                    {
+                        this.liftArmedBackfire = false;
+                        if (rpm > redline * 0.6 && c.backfire_level > 0.0 && rng.uniform() < c.backfire_probability)
+                            this.transients.spawn(TRANSIENT_BACKFIRE, 0.0, 0.2, 100.0, 40.0, c.backfire_level, 0.005, 0.5 * c.backfire_level, 2000.0);
+                    }
+                    if (this.liftArmedTurbo)
+                    {
+                        this.liftArmedTurbo = false;
+                        if (turbo && rpm > 3000.0)
+                        {
+                            if (tb.antilag_level > 0.0 && rpm > tb.antilag_rpm)
+                            {
+                                const pops = 3 + Math.floor(rng.uniform() * 3.0); let at = 0.0;
+                                for (let p = 0; p < pops; ++p) { this.transients.spawn(TRANSIENT_ANTILAG, at, 0.1, 80.0 + rng.uniform() * 40.0, 30.0, tb.antilag_level, 0.005, 0.0, 3000.0); at += 0.05 + rng.uniform() * 0.03; }
+                                this.popCount += pops;
+                            }
+                            else if (tb.blowoff_level > 0.0) this.transients.spawn(TRANSIENT_BLOWOFF, 0.0, 0.8, 3000.0, 1000.0, tb.blowoff_level, 0.02, 0.0, 20000.0);
+                        }
+                    }
+                }
+                const closed = throttle < 0.05, fast = rpm > idle * 1.4;
+                if (closed && fast) { if (!this.overrunActive) { this.overrunActive = true; this.overrunEnv = 1.0; } }
+                else { this.overrunActive = false; this.overrunEnv = 0.0; }
+                this.overrunEnv *= this.popDecay;
+                this.popBoost *= this.popBoostDecay;
+                if (this.overrunEnv > 0.001 && c.pop_level > 0.0)
+                {
+                    const rate = c.pop_rate_hz * this.overrunEnv * (0.3 + 0.7 * rpmNorm) * (1.0 + 4.0 * this.popBoost);
+                    if (rng.uniform() < rate * dt)
+                    {
+                        const u = rng.uniform();
+                        this.transients.spawn(TRANSIENT_POP, 0.0, 0.05 + 0.07 * rng.uniform(), 90.0 + 60.0 * rng.uniform(), 45.0, c.pop_level * (0.3 + 1.5 * u * u) * (0.7 + 0.3 * this.overrunEnv), 0.003, 0.35 * c.pop_level, 2500.0);
+                        this.popBoost = 1.0; ++this.popCount;
+                    }
+                }
+                trans = this.transients.advance(rng);
+            }
+
+            // 6. turbo: spool follows rpm / redline · load; whine + air rush
+            let turboOut = 0.0;
+            if (turbo)
+            {
+                const target = clamp(rpm * invRedline, 0.0, 1.0) * load;
+                this.spool += (target > this.spool ? this.spoolUp : this.spoolDown) * (target - this.spool);
+                this.boost = tb.boost_max_bar * this.spool;
+                const hz = tb.whine_hz + this.spool * tb.whine_span_hz;
+                this.turboPhase += hz * dt; if (this.turboPhase >= 1.0) this.turboPhase -= 1.0;
+                turboOut = Math.sin(TWO_PI * this.turboPhase) * tb.whine_level * this.spool + this.rushBP.advance(rng.signed()) * tb.rush_level * this.spool;
+            }
+            else { this.spool = 0.0; this.boost = 0.0; }
+
+            // 7. mechanical: valve clatter (crank-locked), gear whine, hybrid motor
+            let mech = 0.0;
+            if (!pure)
+            {
+                if (me.clatter_level > 0.0)
+                {
+                    this.clatterEnv[0] *= this.clatterDecay; this.clatterEnv[1] *= this.clatterDecay;
+                    const clatterNoise = (this.clatterEnv[0] + this.clatterEnv[1]) * rng.signed();
+                    mech = this.clatterBP1.advance(clatterNoise) + 0.6 * this.clatterBP2.advance(clatterNoise) + 0.5 * this.clatterRing.advance(this.clatterImpulse[0] + this.clatterImpulse[1]);
+                    this.clatterImpulse[0] = 0.0; this.clatterImpulse[1] = 0.0;
+                }
+                if (me.whine_level > 0.0 && me.whine_order > 0.0)
+                {
+                    this.whinePhase += whineStep * rpm; if (this.whinePhase >= 1.0) this.whinePhase -= 1.0;
+                    const hz = me.whine_order * rpm / 60.0, fade = clamp((0.4 * fs - hz) / (0.05 * fs), 0.0, 1.0);
+                    mech += me.whine_level * rpm * invRedline * fade * Math.sin(TWO_PI * this.whinePhase);
+                }
+                if (me.motor_level > 0.0)
+                {
+                    this.motorPhase += (me.motor_hz + me.motor_load_hz * load) * dt; if (this.motorPhase >= 1.0) this.motorPhase -= 1.0;
+                    mech += me.motor_level * load * Math.sin(TWO_PI * this.motorPhase);
+                }
+            }
+
+            // 8. mix: per-channel tanh (drive rises with load) → buses → output gain → comb → valve high-pass → ±1 clip (the DAC in RevSim) → listener low-pass
+            let L, R;
+            if (pure) { L = sumL * exGain * outGain; R = sumR * exGain * outGain; }
+            else
+            {
+                const drive = this.voiceDrive;
+                const vL = Math.tanh(sumL * drive) * exGain, vR = Math.tanh(sumR * drive) * exGain;
+                const centre = turboOut * indGain + mech * mechGain + trans * transGain;
+                L = (vL + centre) * outGain; R = (vR + centre) * outGain;
+                L = this.comb[0].advance(L); R = this.comb[1].advance(R);
+                L = this.valveHP[0].advance(L); R = this.valveHP[1].advance(R);
+                if (L > 1.0) { L = 1.0; ++this.clippedCount; } else if (L < -1.0) { L = -1.0; ++this.clippedCount; }
+                if (R > 1.0) R = 1.0; else if (R < -1.0) R = -1.0;
+                if (!bypassLP) { L = this.listenerLP[0].advance(L); R = this.listenerLP[1].advance(R); }
+                meter[2] += vL * vL; meter[3] += vR * vR;
+            }
+            outL[k] = L; if (outR) outR[k] = R;
+
+            // 9. meters + crank-locked scope capture
+            meter[0] += sumL * sumL; meter[1] += sumR * sumR; meter[4] += howlSum * howlSum; meter[5] += mech * mech;
+            meter[6] += trans * trans; meter[7] += turboOut * turboOut; meter[8] += L * L; meter[9] += R * R;
+            if (this.scopeCapturing)
+            {
+                this.scopeHead[this.scopeFill] = pulseSum; this.scope[this.scopeFill++] = L;
+                if (this.scopeFill >= this.scopeCycleSamples || this.scopeFill >= this.scope.length) { this.scopeCapturing = false; this.scopeReady = true; }
+            }
+            else if (cycleStarted && this.scopeArmed && !this.scopeReady)
+            {
+                this.scopeCycleSamples = Math.min(this.scope.length, Math.ceil(720.0 / Math.max(1.0e-6, dTheta)));
+                this.scopeFill = 0; this.scopeCapturing = true; this.scopeHead[this.scopeFill] = pulseSum; this.scope[this.scopeFill++] = L;
+            }
+            ++this.sampleIndex;
+        }
+        this.meterFrames += frames;
+    }
+
+    takeMeters()
+    {
+        const frames = Math.max(1, this.meterFrames);
+        const out = new Float64Array(this.meter.length);
+        for (let i = 0; i < out.length; ++i) { out[i] = Math.sqrt(this.meter[i] / frames); this.meter[i] = 0.0; }
+        this.meterFrames = 0;
+        return out;
+    }
+
+    takeScope()
+    {
+        if (!this.scopeReady) return null;
+        const out = { output: this.scope.slice(0, this.scopeFill), head: this.scopeHead.slice(0, this.scopeFill) };
+        this.scopeReady = false; this.scopeArmed = false;
+        return out;
+    }
+}
+
+// ─────────────────────────────────────────────────── DYNO SEQUENCE ──────────────────────────────────────────────────────
+// Same keyframes as Projects/Project-Dyno/Source/DynoSequence.cpp (+ 'overrun' and 'limiter', added to C++ in row A2).
+
+const DYNO_PULL_NAMES = ['idle', 'sweep', 'pull', 'steady', 'blip', 'overrun', 'limiter'];
+
+class DynoSequence
+{
+    constructor() { this.select('sweep', 9000.0, 900.0); }
+    select(name, redlineRpm, idleRpm)
+    {
+        const idle = idleRpm || 900.0, redline = Math.max(3000.0, redlineRpm);
+        this.elapsed = 0.0; this.name = name;
+        switch (name)
+        {
+            case 'idle':    this.keys = [[0, idle, 0], [10, idle, 0]]; break;
+            case 'pull':    this.keys = [[0, idle, 0], [1, idle, 0], [1.2, 2000, 1], [7.2, redline, 1], [8.2, redline, 1], [8.3, redline, 0], [13.3, idle, 0], [15, idle, 0]]; break;
+            case 'steady':  this.keys = [[0, 4000, 0.4], [10, 4000, 0.4]]; break;
+            case 'blip':    this.keys = [[0, idle, 0], [1, idle, 0], [1.15, 4500, 1], [1.30, 4500, 0], [2.2, idle, 0], [3, idle, 0], [3.15, 5500, 1], [3.30, 5500, 0], [4.4, idle, 0], [5.2, idle, 0], [5.35, 6500, 1], [5.50, 6500, 0], [6.8, idle, 0], [8, idle, 0]]; break;
+            case 'overrun': this.keys = [[0, idle, 0], [1, idle, 0], [1.2, 3500, 1], [3.2, redline * 0.85, 1], [3.3, redline * 0.85, 0], [9.3, idle, 0], [11, idle, 0]]; break;
+            case 'limiter': this.keys = [[0, 4000, 1], [2, redline, 1], [6, redline, 1], [6.1, redline, 0], [10, idle, 0], [11, idle, 0]]; break;
+            default:        this.name = 'sweep'; this.keys = [[0, 1000, 0.5], [6, redline, 0.5], [12, 1000, 0.5]]; break;
+        }
+        this.rpm = this.keys[0][1]; this.throttle = this.keys[0][2];
+        this.sample(0.0);
+    }
+    duration() { return this.keys[this.keys.length - 1][0]; }
+    finished() { return this.elapsed >= this.duration(); }
+    restart() { this.elapsed = 0.0; this.sample(0.0); }
+    advance(dt) { this.elapsed = Math.min(this.elapsed + Math.max(0.0, dt), this.duration()); this.sample(this.elapsed); }
+    sample(time)
+    {
+        const k = this.keys;
+        if (time <= k[0][0]) { this.rpm = k[0][1]; this.throttle = k[0][2]; return; }
+        const last = k[k.length - 1];
+        if (time >= last[0]) { this.rpm = last[1]; this.throttle = last[2]; return; }
+        let i = 1; while (i < k.length && k[i][0] < time) ++i;
+        const a = k[i - 1], b = k[i], span = b[0] - a[0], t = span > 0.0 ? (time - a[0]) / span : 1.0;
+        this.rpm = a[1] + (b[1] - a[1]) * t; this.throttle = a[2] + (b[2] - a[2]) * t;
+    }
+}
+
+// ─────────────────────────────────────────────── POWERTRAIN MODEL (free rev) ────────────────────────────────────────────
+// The dyno cell's stand-in for the game's physics: torque curve, friction, inertia, idle governor, rev limiter, overrun fuel cut.
+
+class FreeRevPowertrain
+{
+    constructor(vehicle) { this.assign(vehicle); this.rpm = vehicle.idle_rpm; this.fuelOn = true; this.cut = false; this.load = 0.0; this.throttle = 0.0; }
+    assign(vehicle) { this.v = vehicle; if (this.rpm === undefined) this.rpm = vehicle.idle_rpm; }
+    torqueShape(rpm)
+    {
+        const v = this.v, tp = v.peak_torque_rpm;
+        if (rpm < tp) { const x = (tp - rpm) / Math.max(1.0, tp - v.idle_rpm); return clamp(1.0 - 0.45 * x * x, 0.3, 1.0); }
+        const x = (rpm - tp) / Math.max(1.0, v.redline_rpm - tp);
+        return clamp(1.0 - 0.28 * x * x, 0.3, 1.0);
+    }
+    advance(dt, throttleInput)
+    {
+        const v = this.v, rpm = this.rpm;
+        const throttle = clamp(throttleInput, 0.0, 1.0);
+        const idleAir = clamp((v.idle_rpm + 40.0 - rpm) / 120.0, 0.0, 0.4);   // idle-speed governor
+        const effective = Math.max(Math.pow(throttle, 1.2), idleAir);
+        if (rpm >= v.redline_rpm) this.cut = true; else if (rpm < v.redline_rpm - 120.0) this.cut = false;
+        const overrun = throttle < 0.02 && rpm > v.idle_rpm * 1.6;
+        this.fuelOn = !this.cut && !overrun;
+        const torque = this.fuelOn ? v.peak_torque_nm * this.torqueShape(rpm) * effective : 0.0;
+        const friction = v.friction_nm + v.friction_per_krpm_nm * rpm * 0.001 + 8.0 * (1.0 - throttle) * rpm * 0.001;
+        const omegaDot = (torque - friction) / Math.max(0.01, v.inertia_kgm2);
+        this.rpm = clamp(rpm + omegaDot * dt * 9.549296585513721, v.idle_rpm * 0.5, v.redline_rpm + 300.0);
+        this.throttle = throttle;
+        this.load = clamp(torque / v.peak_torque_nm, 0.0, 1.0);
+    }
+}
+
+// Scripted pulls prescribe rpm; this gives them the same fuel-cut behaviour as the free-rev powertrain.
+function scriptedRecord(pull, vehicle, time)
+{
+    const overrun = pull.throttle < 0.02 && pull.rpm > vehicle.idle_rpm * 1.6;
+    const atLimiter = pull.rpm >= vehicle.redline_rpm - 15.0 && pull.throttle > 0.5;
+    const cutPhase = atLimiter && (Math.floor(time * 14.0) & 1) === 1;
+    const idleLoad = clamp((vehicle.friction_nm + vehicle.friction_per_krpm_nm * pull.rpm * 0.001) / Math.max(1.0, vehicle.peak_torque_nm), 0.0, 0.3);
+    const load = (overrun || cutPhase) ? 0.0 : Math.max(pull.throttle, idleLoad);
+    return { rpm: pull.rpm, throttle: pull.throttle, load: load };
+}
+
+// ─────────────────────────────────────────────── AUDIO WORKLET PROCESSOR ────────────────────────────────────────────────
+
+if (typeof registerProcessor === 'function')
+{
+    class AcousticWorklet extends AudioWorkletProcessor
+    {
+        constructor(options)
+        {
+            super();
+            const o = options.processorOptions || {};
+            this.structure = structureFromToml(o.structure || {});
+            this.integrator = new AcousticIntegrator(sampleRate, this.structure, o.seed);
+            this.powertrain = new FreeRevPowertrain(this.structure.vehicle);
+            this.pull = new DynoSequence();
+            this.mode = o.mode || 'free';
+            this.throttle = 0.0; this.scopeWait = 0;
+            this.pullRunning = false; this.pullLoop = !!o.loop;
+            this.recording = false;
+            this.sliceCounter = 0; this.busyMs = 0.0; this.windowStart = Date.now(); this.overruns = 0;
+            this.reportEvery = o.reportEvery || 4;
+            this.time = 0.0;
+            if (o.pull) { this.pull.select(o.pull, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm); this.pullRunning = true; this.mode = 'scripted'; }
+            if (o.listener) this.integrator.assignListener(o.listener);
+            this.port.onmessage = (e) => this.receive(e.data);
+        }
+        receive(msg)
+        {
+            switch (msg.type)
+            {
+                case 'structure': this.structure = structureFromToml(msg.structure); this.integrator.assignStructure(this.structure); this.powertrain.assign(this.structure.vehicle); break;
+                case 'throttle': this.throttle = clamp(msg.throttle, 0.0, 1.0); break;
+                case 'mode': this.mode = msg.mode; if (this.mode === 'free') { this.powertrain.rpm = this.integrator.rpmS; } break;
+                case 'pull': this.pull.select(msg.name, this.structure.vehicle.redline_rpm, this.structure.vehicle.idle_rpm); this.pullRunning = true; this.pullLoop = !!msg.loop; this.mode = 'scripted'; break;
+                case 'stop': this.pullRunning = false; this.mode = 'free'; this.powertrain.rpm = this.integrator.rpmS; break;
+                case 'listener': this.integrator.assignListener(msg.listener); break;
+                case 'record': this.recording = !!msg.on; break;
+                case 'scope': this.integrator.scopeArmed = true; break;
+                case 'pure': this.integrator.pureTone = !!msg.on; break;
+                case 'loop': this.pullLoop = !!msg.on; break;
+            }
+        }
+        process(inputs, outputs)
+        {
+            const t0 = Date.now();
+            const out = outputs[0]; const L = out[0]; const R = out.length > 1 ? out[1] : null;
+            const frames = L.length, dt = frames / sampleRate;
+            let record;
+            if (this.mode === 'scripted' && this.pullRunning)
+            {
+                this.pull.advance(dt);
+                record = scriptedRecord(this.pull, this.structure.vehicle, this.time);
+                if (this.pull.finished()) { if (this.pullLoop) this.pull.restart(); else { this.pullRunning = false; this.mode = 'free'; this.powertrain.rpm = this.pull.rpm; } }
+            }
+            else
+            {
+                this.powertrain.advance(dt, this.throttle);
+                record = { rpm: this.powertrain.rpm, throttle: this.powertrain.throttle, load: this.powertrain.load };
+            }
+            this.integrator.assignDemand(record.rpm, record.throttle, record.load, 0.0);
+            this.integrator.render(L, R, frames);
+            this.time += dt;
+            if (this.recording) { const copy = new Float32Array(frames * 2); for (let i = 0; i < frames; ++i) { copy[2 * i] = L[i]; copy[2 * i + 1] = R ? R[i] : L[i]; } this.port.postMessage({ type: 'audio', frames: copy }, [copy.buffer]); }
+            const busy = Date.now() - t0; this.busyMs += busy; if (busy > dt * 1000.0) ++this.overruns;
+            if (++this.sliceCounter % this.reportEvery === 0)
+            {
+                const ig = this.integrator;
+                if (!ig.scopeArmed && !ig.scopeCapturing && !ig.scopeReady && ++this.scopeWait >= 6) { ig.scopeArmed = true; this.scopeWait = 0; }
+                const now = Date.now(), windowMs = Math.max(1, now - this.windowStart);
+                const scope = ig.takeScope();
+                this.port.postMessage({
+                    type: 'report', meters: ig.takeMeters(), rpm: ig.rpmS, throttle: ig.throttleS, load: ig.loadS, boost: ig.boost, shaft: ig.spool,
+                    firings: ig.firingCount, pops: ig.popCount, clipped: ig.clippedCount, dropped: ig.transients.dropped, active: ig.transients.spawned,
+                    valveHz: ig.valveHz, thumpHz: ig.thumpHz,
+                    load_pct: 100.0 * this.busyMs / windowMs, overruns: this.overruns, mode: this.mode, pull: this.pullRunning ? this.pull.name : '', pullTime: this.pull.elapsed, pullDuration: this.pull.duration(),
+                    fuel: record.load > 0.0 || record.throttle < 0.02, scope: scope, cylinders: ig.cylinderCount,
+                    firingAngle: Array.from(ig.firingAngle), bankOfCylinder: Array.from(ig.bankOfCylinder), time: this.time,
+                });
+                if (windowMs > 1000) { this.windowStart = now; this.busyMs = 0.0; }
+            }
+            return true;
+        }
+    }
+    registerProcessor('acoustic-integrator', AcousticWorklet);
+}
+
+if (typeof module !== 'undefined' && module.exports)
+{
+    module.exports = { ACOUSTIC_SCHEMA, LISTENER_PRESETS, DYNO_PULL_NAMES, schemaSections, structurePath, structureDefaults, structureFromToml, parseToml, serialiseToml,
+                       Xorshift, AcousticIntegrator, DynoSequence, FreeRevPowertrain, scriptedRecord, clamp };
+}
+
+</script>
+
+<!-- ============================================== VEHICLE STRUCTURES (TOML) ============================================== -->
+<script type="text/toml" data-car="Porsche918Spyder">
+# Frontier acoustic structure — Porsche 918 Spyder (first cut, row A2 / HTML editor)
+# Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
+# Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
+# units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
+
+[vehicle]
+name                   = "Porsche 918 Spyder"           # display name
+engine                 = "4.6 L 90° flat-plane V8, NA, top-exit pipes" # one-line engine description
+cylinder_count         = 8                              # number of cylinders
+firing_order           = [1, 8, 3, 6, 4, 5, 2, 7]       # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1, 0, 1]       # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 1000.0                         # [rpm]
+redline_rpm            = 9150.0                         # [rpm] fuel cut
+peak_power_rpm         = 8700.0                         # [rpm]
+peak_torque_rpm        = 6700.0                         # [rpm]
+peak_torque_nm         = 540.0                          # [N·m]
+inertia_kgm2           = 0.35                           # [kg·m²] effective rotating inertia seen by the free-rev powertrain
+friction_nm            = 30.0                           # [N·m] friction torque at zero rpm
+friction_per_krpm_nm   = 7.0                            # [N·m] friction torque increase per 1000 rpm
+
+[combustion]
+evo_deg                = 128.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.04                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.6                            # overrun crackle amplitude
+pop_rate_hz            = 30.0                           # [Hz] overrun crackle rate at redline right after lift
+pop_decay_s            = 1.4                            # [s] overrun crackle fades with this time constant
+
+[voice]
+pitch_hz               = 65.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 1.4, 0.6, 0.8]           # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 1.5                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 4.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.0                            # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
+[exhaust]
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 300.0                          # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 100.0                          # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
+
+[mechanical]
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
+clatter_hz             = 5200.0                         # [Hz] clatter resonance
+whine_order            = 168.0                          # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.03                           # at redline; scales with rpm
+motor_level            = 0.03                           # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
+
+[turbo]
+enabled                = false                          # forced-induction layer
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 4000.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 8000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.0                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 0.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
+
+[mix]
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
+</script>
+<script type="text/toml" data-car="FerrariLaFerrari">
+# Frontier acoustic structure — Ferrari LaFerrari (first cut, row A2 / HTML editor)
+# Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
+# Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
+# units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
+
+[vehicle]
+name                   = "Ferrari LaFerrari"            # display name
+engine                 = "F140FE 6.3 L 65° V12, NA, equal-length headers" # one-line engine description
+cylinder_count         = 12                             # number of cylinders
+firing_order           = [1, 12, 5, 8, 3, 10, 6, 7, 2, 11, 4, 9] # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1] # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 1000.0                         # [rpm]
+redline_rpm            = 9250.0                         # [rpm] fuel cut
+peak_power_rpm         = 9000.0                         # [rpm]
+peak_torque_rpm        = 6750.0                         # [rpm]
+peak_torque_nm         = 700.0                          # [N·m]
+inertia_kgm2           = 0.45                           # [kg·m²] effective rotating inertia seen by the free-rev powertrain
+friction_nm            = 40.0                           # [N·m] friction torque at zero rpm
+friction_per_krpm_nm   = 9.0                            # [N·m] friction torque increase per 1000 rpm
+
+[combustion]
+evo_deg                = 126.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.035                          # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.5                            # overrun crackle amplitude
+pop_rate_hz            = 18.0                           # [Hz] overrun crackle rate at redline right after lift
+pop_decay_s            = 1.0                            # [s] overrun crackle fades with this time constant
+
+[voice]
+pitch_hz               = 58.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [0.8, 1.0, 0.5, 0.9, 0.4, 0.6, 0.3, 0.2] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 2.0                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.8                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 6.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.1                            # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
+[exhaust]
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
+
+[mechanical]
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
+clatter_hz             = 4800.0                         # [Hz] clatter resonance
+whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.0                            # at redline; scales with rpm
+motor_level            = 0.0                            # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
+
+[turbo]
+enabled                = false                          # forced-induction layer
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 4000.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 8000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.0                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 0.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
+
+[mix]
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
+</script>
+<script type="text/toml" data-car="NissanGtrNismo">
+# Frontier acoustic structure — Nissan GT-R Nismo (first cut, row A2 / HTML editor)
+# Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
+# Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
+# units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
+
+[vehicle]
+name                   = "Nissan GT-R Nismo"            # display name
+engine                 = "VR38DETT 3.8 L 60° V6, twin IHI turbos, titanium exhaust" # one-line engine description
+cylinder_count         = 6                              # number of cylinders
+firing_order           = [1, 4, 2, 5, 3, 6]             # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1]             # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 900.0                          # [rpm]
+redline_rpm            = 7100.0                         # [rpm] fuel cut
+peak_power_rpm         = 6800.0                         # [rpm]
+peak_torque_rpm        = 3600.0                         # [rpm]
+peak_torque_nm         = 652.0                          # [N·m]
+inertia_kgm2           = 0.6                            # [kg·m²] effective rotating inertia seen by the free-rev powertrain
+friction_nm            = 35.0                           # [N·m] friction torque at zero rpm
+friction_per_krpm_nm   = 10.0                           # [N·m] friction torque increase per 1000 rpm
+
+[combustion]
+evo_deg                = 132.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.05                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.4                            # overrun crackle amplitude
+pop_rate_hz            = 12.0                           # [Hz] overrun crackle rate at redline right after lift
+pop_decay_s            = 0.8                            # [s] overrun crackle fades with this time constant
+
+[voice]
+pitch_hz               = 48.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 0.6, 0.9, 0.7, 0.4, 0.3] # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 0.7                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 3.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.15                           # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
+[exhaust]
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 10.0                           # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 10.0                           # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
+
+[mechanical]
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
+clatter_hz             = 4200.0                         # [Hz] clatter resonance
+whine_order            = 0.0                            # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.0                            # at redline; scales with rpm
+motor_level            = 0.0                            # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
+
+[turbo]
+enabled                = true                           # forced-induction layer
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 2500.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 4000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.1                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 3.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
+
+[mix]
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)
+</script>
+
+<!-- ============================================================ APP ============================================================ -->
+<script>
+'use strict';
+(() => {
+const $ = (id) => document.getElementById(id);
+
+// ───────────────────────────────────────────── shared DSP, in the page ──────────────────────────────────────────────
+const DSP_TEXT = $('dsp').textContent;
+const Dsp = (() => { const module = { exports: {} }; new Function('module', 'exports', DSP_TEXT)(module, module.exports); return module.exports; })();
+const { ACOUSTIC_SCHEMA, DYNO_PULL_NAMES, structureFromToml, parseToml, serialiseToml, schemaSections, structurePath, DynoSequence, clamp } = Dsp;
+const DSP_URL = URL.createObjectURL(new Blob([DSP_TEXT], { type: 'application/javascript' }));
+const DSP_INLINE_URL = 'data:application/javascript;base64,' + btoa(unescape(encodeURIComponent(DSP_TEXT)));
+// Blob module first; data: URL second (some file:// / policy setups refuse blob workers). Either way the same text runs.
+async function attachDsp(ctx) { try { await ctx.audioWorklet.addModule(DSP_URL); } catch (e) { await ctx.audioWorklet.addModule(DSP_INLINE_URL); } }
+const SEED = 0x5EED1234;
+
+// ───────────────────────────────────────────── vehicles (embedded TOML) ─────────────────────────────────────────────
+const cars = {}; const carOrder = [];
+for (const el of document.querySelectorAll('script[type="text/toml"]'))
+{
+    const key = el.dataset.car;
+    const defaults = structureFromToml(parseToml(el.textContent));
+    cars[key] = { key, defaults, current: structureFromToml(defaults) };
+    carOrder.push(key);
+}
+let carKey = carOrder[0];
+const car = () => cars[carKey];
+const vehicle = () => car().current.vehicle;
+
+// ───────────────────────────────────────────────────── state ────────────────────────────────────────────────────────
+const Editor = {
+    ctx: null, worklet: null, analyser: null, liveGain: null, fileGain: null, started: false,
+    feed: 'live', listener: 'trackside', pure: false, loop: false, throttle: 0.0, spaceDown: false,
+    last: null, reports: 0, scopeTrace: null, scopeHold: false, specMode: 'both',
+    recording: false, recChunks: [], recFrames: 0, recStart: 0,
+    fileClip: null, fileEmitter: null, filePull: 'pull', fileStart: 0, fileSeq: null, fileName: '',
+    freq: null, gramReports: 0, lastOrderX: -1, structurePending: false, hotSection: '',
+};
+
+// ─────────────────────────────────────────────────── helpers ────────────────────────────────────────────────────────
+let toastTimer = 0;
+function toast(text) { const t = $('toast'); t.textContent = text; t.dataset.on = 'true'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.dataset.on = 'false'; }, 2600); }
+function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+function post(msg) { if (Editor.worklet) Editor.worklet.port.postMessage(msg); }
+function fmt(v, step) { const d = step >= 1 ? 0 : Math.min(4, Math.max(0, -Math.floor(Math.log10(step)))); return Number(v).toFixed(d); }
+function tintSlider(el) { const p = 100 * (el.value - el.min) / (el.max - el.min); const c = el.classList.contains('hi') ? 'var(--hi)' : '#7a7a7a'; el.style.background = 'linear-gradient(to right,' + c + ' ' + p + '%,var(--raised) ' + p + '%)'; }
+function db(rms) { return 20.0 * Math.log10(rms + 1.0e-9); }
+function setActive(container, attr, value) { for (const b of container.querySelectorAll('button')) b.classList.toggle('active', b.dataset[attr] === value); }
+function roundedRect(g, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); g.beginPath(); g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r); g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r); g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r); g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r); g.closePath(); }
+function fitCanvas(c) { const dpr = window.devicePixelRatio || 1; const w = Math.max(2, Math.floor(c.clientWidth * dpr)), h = Math.max(2, Math.floor(c.clientHeight * dpr)); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; return true; } return false; }
+function gaugeMax() { return Math.ceil((vehicle().redline_rpm + 400.0) / 1000.0) * 1000.0; }
+
+// colour ramp shared with the proof harness (dark → purple → orange → white)
+const HEAT = new Array(256);
+for (let i = 0; i < 256; ++i)
+{
+    const t = i / 255;
+    const r = Math.min(1, Math.max(0, 1.6 * t - 0.1)), g = Math.max(0, Math.min(1, 2.2 * t - 1.1)), b = t < 0.5 ? 0.15 + 1.2 * t : Math.max(0, 2.0 - 2.4 * t);
+    HEAT[i] = 'rgb(' + Math.round(255 * r) + ',' + Math.round(255 * g) + ',' + Math.round(255 * b) + ')';
+}
+function heatIndex(levelDb, lo, hi) { return Math.max(0, Math.min(255, Math.round(255 * (levelDb - lo) / (hi - lo)))); }
+
+// ─────────────────────────────────────────────────── audio ──────────────────────────────────────────────────────────
+async function startAudio()
+{
+    if (Editor.started) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx({ sampleRate: 48000, latencyHint: 'interactive' });
+    await attachDsp(ctx);
+    const worklet = new AudioWorkletNode(ctx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: car().current, seed: SEED, listener: Editor.listener, reportEvery: 4 } });
+    const analyser = ctx.createAnalyser(); analyser.fftSize = 8192; analyser.smoothingTimeConstant = 0.55; analyser.minDecibels = -100; analyser.maxDecibels = -10;
+    const liveGain = ctx.createGain(), fileGain = ctx.createGain();
+    worklet.connect(liveGain); liveGain.connect(analyser); fileGain.connect(analyser); analyser.connect(ctx.destination);
+    worklet.port.onmessage = (e) => onWorklet(e.data);
+    Editor.ctx = ctx; Editor.worklet = worklet; Editor.analyser = analyser; Editor.liveGain = liveGain; Editor.fileGain = fileGain; Editor.started = true;
+    Editor.freq = new Float32Array(analyser.frequencyBinCount);
+    await ctx.resume();
+    ctx.onstatechange = updateStatus;
+    updateStatus();
+    applyFeed();
+}
+
+function onWorklet(msg)
+{
+    if (msg.type === 'audio') { if (Editor.recording) { Editor.recChunks.push(msg.frames); Editor.recFrames += msg.frames.length / 2; } return; }
+    if (msg.type !== 'report') return;
+    Editor.last = msg; ++Editor.reports;
+    if (msg.scope && !Editor.scopeHold) Editor.scopeTrace = { output: msg.scope.output, head: msg.scope.head, cylinders: msg.cylinders, firingAngle: msg.firingAngle, bank: msg.bankOfCylinder, rpm: msg.rpm };
+    setActive($('modeSeg'), 'mode', msg.mode);
+    for (const b of $('pulls').querySelectorAll('button')) b.classList.toggle('active', Editor.feed === 'live' ? b.dataset.pull === msg.pull : b.dataset.pull === Editor.filePull);
+}
+
+function updateStatus()
+{
+    const st = $('status');
+    if (!Editor.ctx) { st.dataset.link = 'idle'; $('statusText').textContent = 'audio idle'; return; }
+    st.dataset.link = Editor.ctx.state === 'running' ? 'running' : 'suspended';
+    $('statusText').textContent = (Editor.ctx.sampleRate / 1000).toFixed(1) + ' kHz · ' + Editor.ctx.state + (Editor.last ? ' · load ' + Editor.last.load_pct.toFixed(0) + ' %' : '') + (drawFault ? ' · draw fault ' + drawFault : '');
+    if (drawFault) st.dataset.link = 'error';
+}
+
+function scheduleStructure()
+{
+    if (Editor.structurePending) return;
+    Editor.structurePending = true;
+    setTimeout(() => { Editor.structurePending = false; post({ type: 'structure', structure: car().current }); drawGaugeStatic(); }, 30);
+}
+
+// ───────────────────────────────────────────── file feed (--render WAVs) ────────────────────────────────────────────
+function applyFeed()
+{
+    if (!Editor.started) return;
+    const live = Editor.feed === 'live';
+    Editor.liveGain.gain.setTargetAtTime(live ? 1.0 : 0.0, Editor.ctx.currentTime, 0.02);
+    Editor.fileGain.gain.setTargetAtTime(live ? 0.0 : 1.0, Editor.ctx.currentTime, 0.02);
+    if (!live) playFile(); else stopFile();
+    $('dynoSub').textContent = live ? 'free rev · hold Space or drag the throttle · scripted pulls run the dyno timeline' : (Editor.fileClip ? 'file feed · ' + Editor.fileName + ' · pull buttons pick the rpm timeline used for the order markers' : 'file feed · drop a Project-Dyno --render WAV anywhere on the page');
+}
+async function loadWav(file)
+{
+    if (!Editor.started) { toast('start audio first'); return; }
+    const bytes = await file.arrayBuffer();
+    try { Editor.fileClip = await Editor.ctx.decodeAudioData(bytes); }
+    catch (e) { toast('could not decode ' + file.name); return; }
+    Editor.fileName = file.name;
+    Editor.feed = 'file'; setActive($('feedSeg'), 'feed', 'file');
+    clearOrders();
+    applyFeed();
+    toast('file feed: ' + file.name + ' · ' + Editor.fileClip.duration.toFixed(1) + ' s · ' + Editor.fileClip.numberOfChannels + ' ch');
+}
+function playFile()
+{
+    stopFile();
+    if (!Editor.fileClip) return;
+    const emitter = Editor.ctx.createBufferSource(); emitter.buffer = Editor.fileClip; emitter.loop = Editor.loop; emitter.connect(Editor.fileGain); emitter.start();
+    Editor.fileEmitter = emitter; Editor.fileStart = Editor.ctx.currentTime;
+    Editor.fileSeq = new DynoSequence(); Editor.fileSeq.select(Editor.filePull, vehicle().redline_rpm, vehicle().idle_rpm);
+    emitter.onended = () => { if (Editor.fileEmitter === emitter) Editor.fileEmitter = null; };
+}
+function stopFile() { if (Editor.fileEmitter) { try { Editor.fileEmitter.stop(); } catch (e) { /* already stopped */ } Editor.fileEmitter = null; } }
+function fileRpm()
+{
+    if (!Editor.fileSeq || !Editor.fileEmitter) return null;
+    let t = Editor.ctx.currentTime - Editor.fileStart; if (Editor.loop && Editor.fileClip) t = t % Editor.fileClip.duration;
+    Editor.fileSeq.sample(t); return Editor.fileSeq.rpm;
+}
+function currentRpm() { return Editor.feed === 'file' ? fileRpm() : (Editor.last ? Editor.last.rpm : null); }
+
+// ───────────────────────────────────────────────── recording ────────────────────────────────────────────────────────
+function toggleRecord()
+{
+    if (!Editor.started) { toast('start audio first'); return; }
+    if (!Editor.recording) { Editor.recording = true; Editor.recChunks = []; Editor.recFrames = 0; Editor.recStart = performance.now(); post({ type: 'record', on: true }); $('btnRecord').dataset.on = 'true'; return; }
+    Editor.recording = false; post({ type: 'record', on: false }); $('btnRecord').dataset.on = 'false'; $('recLabel').textContent = 'Record WAV';
+    const frames = Editor.recFrames, rate = Editor.ctx.sampleRate, bytes = new DataView(new ArrayBuffer(44 + frames * 4));
+    const tag = (o, s) => { for (let i = 0; i < 4; ++i) bytes.setUint8(o + i, s.charCodeAt(i)); };
+    tag(0, 'RIFF'); bytes.setUint32(4, 36 + frames * 4, true); tag(8, 'WAVE'); tag(12, 'fmt '); bytes.setUint32(16, 16, true); bytes.setUint16(20, 1, true); bytes.setUint16(22, 2, true);
+    bytes.setUint32(24, rate, true); bytes.setUint32(28, rate * 4, true); bytes.setUint16(32, 4, true); bytes.setUint16(34, 16, true); tag(36, 'data'); bytes.setUint32(40, frames * 4, true);
+    let o = 44;
+    for (const chunk of Editor.recChunks) for (let i = 0; i < chunk.length; ++i) { bytes.setInt16(o, Math.max(-32768, Math.min(32767, Math.round(chunk[i] * 32767))), true); o += 2; }
+    const clock = new Date().toISOString().slice(11, 19).replace(/:/g, '');
+    download(carKey + '_' + (Editor.last && Editor.last.pull ? Editor.last.pull : 'free') + '_' + clock + '.wav', new Blob([bytes.buffer], { type: 'audio/wav' }));
+    toast('saved ' + (frames / rate).toFixed(1) + ' s WAV');
+}
+
+// ─────────────────────────────────────────────── TOML import / export ───────────────────────────────────────────────
+function exportToml()
+{
+    const s = car().current, name = s.vehicle.name;
+    const text = serialiseToml(s, ['Frontier acoustic structure — ' + name, 'exported from Tools/AudioEditor on ' + new Date().toISOString().slice(0, 19).replace('T', ' '),
+                                   'load path: EngineContent/AudioArchives/' + carKey + '/' + carKey + '.toml', 'units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]']);
+    download(carKey + '.toml', new Blob([text], { type: 'text/plain' }));
+    toast('exported ' + carKey + '.toml');
+}
+function importTomlText(text, label)
+{
+    let parsed;
+    try { parsed = parseToml(text); } catch (e) { toast('TOML parse failed: ' + e.message); return; }
+    car().current = structureFromToml(parsed);
+    buildInspector(); scheduleStructure(); clearOrders();
+    toast('imported ' + label + ' into the ' + carKey + ' slot');
+}
+
+// ─────────────────────────────────────────────────── gauge ──────────────────────────────────────────────────────────
+const gaugeStatic = document.createElement('canvas');
+function drawGaugeStatic()
+{
+    const c = $('gauge'); fitCanvas(c);
+    gaugeStatic.width = c.width; gaugeStatic.height = c.height;
+    const g = gaugeStatic.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.scale(dpr, dpr);
+    const W = c.clientWidth, H = c.clientHeight, cx = W / 2, cy = H * 0.6, r = Math.min(W, H * 1.2) * 0.42;
+    const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25, max = gaugeMax(), red = vehicle().redline_rpm;
+    const ang = (rpm) => a0 + (a1 - a0) * clamp(rpm / max, 0, 1);
+    g.lineCap = 'round';
+    g.strokeStyle = '#1f1f1f'; g.lineWidth = 10; g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke();
+    g.strokeStyle = 'rgba(239,68,68,.55)'; g.lineWidth = 10; g.beginPath(); g.arc(cx, cy, r, ang(red), a1); g.stroke();
+    g.fillStyle = '#5c5c5c'; g.font = '600 10px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let k = 0; k <= max; k += 1000)
+    {
+        const a = ang(k), major = k % 2000 === 0;
+        g.strokeStyle = k >= red ? 'rgba(239,68,68,.9)' : '#8a8a8a'; g.lineWidth = major ? 2 : 1;
+        g.beginPath(); g.moveTo(cx + Math.cos(a) * (r - 9), cy + Math.sin(a) * (r - 9)); g.lineTo(cx + Math.cos(a) * (r - (major ? 17 : 13)), cy + Math.sin(a) * (r - (major ? 17 : 13))); g.stroke();
+        if (major) g.fillText(String(k / 1000), cx + Math.cos(a) * (r - 28), cy + Math.sin(a) * (r - 28));
+    }
+    g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.fillText('×1000 rpm', cx, cy + r * 0.55);
+}
+function drawGauge()
+{
+    const c = $('gauge'); if (fitCanvas(c)) drawGaugeStatic();
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.drawImage(gaugeStatic, 0, 0); g.scale(dpr, dpr);
+    const W = c.clientWidth, H = c.clientHeight, cx = W / 2, cy = H * 0.6, r = Math.min(W, H * 1.2) * 0.42;
+    const a0 = Math.PI * 0.75, a1 = Math.PI * 2.25, max = gaugeMax();
+    const rpm = currentRpm() || 0, throttle = Editor.last ? Editor.last.throttle : 0;
+    const a = a0 + (a1 - a0) * clamp(rpm / max, 0, 1);
+    g.lineCap = 'round';
+    g.strokeStyle = '#6c77ff'; g.lineWidth = 4; g.beginPath(); g.arc(cx, cy, r - 36, a0, a0 + (a1 - a0) * throttle); g.stroke();
+    g.strokeStyle = '#f0f0f0'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx - Math.cos(a) * 12, cy - Math.sin(a) * 12); g.lineTo(cx + Math.cos(a) * (r - 6), cy + Math.sin(a) * (r - 6)); g.stroke();
+    g.fillStyle = '#f0f0f0'; g.beginPath(); g.arc(cx, cy, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f0f0f0'; g.font = '600 20px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(Math.round(rpm)), cx, cy + r * 0.28);
+}
+
+// ─────────────────────────────────────────────── signal-flow diagram ────────────────────────────────────────────────
+const chainJunctions = [
+    { id: 'crank', label: 'Crank clock', sub: 'θ(t) · firing walk · cam', section: 'vehicle', col: 0, row: 1.5, meter: null },
+    { id: 'voice', label: 'Cylinder voices', sub: 'thump · body · crackle · ring · rasp', section: 'voice', col: 1, row: 0, meter: [0, 1] },
+    { id: 'trans', label: 'Transients', sub: 'backfire · pops · anti-lag · blow-off', section: 'combustion', col: 1, row: 1, meter: [6] },
+    { id: 'turbo', label: 'Turbo', sub: 'spool · whine · air rush', section: 'turbo', col: 1, row: 2, meter: [7] },
+    { id: 'mech', label: 'Mechanical', sub: 'clatter · gear whine · motor', section: 'mechanical', col: 1, row: 3, meter: [5] },
+    { id: 'exhaust', label: 'Exhaust bus', sub: 'tanh(1 + 0.8·load) · bank pan', section: 'exhaust', col: 2, row: 0, meter: [2, 3] },
+    { id: 'howl', label: 'Intake howl', sub: 'above howl_rpm · V12', section: 'voice', col: 2, row: 1.5, meter: [4] },
+    { id: 'mix', label: 'Mix · comb · clip', sub: 'buses · comb · valve HP · ±1 · listener', section: 'mix', col: 3, row: 1.5, meter: [8, 9] },
+];
+const chainEdges = [['crank', 'voice'], ['crank', 'trans'], ['crank', 'turbo'], ['crank', 'mech'], ['voice', 'exhaust'], ['voice', 'howl'], ['exhaust', 'mix'], ['howl', 'mix'], ['trans', 'mix'], ['turbo', 'mix'], ['mech', 'mix']];
+let chainRects = [];
+function clipText(g, text, width) { if (g.measureText(text).width <= width) return text; while (text.length > 1 && g.measureText(text + '…').width > width) text = text.slice(0, -1); return text + '…'; }
+function drawChain()
+{
+    const c = $('chain'); fitCanvas(c);
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
+    const W = c.clientWidth, H = c.clientHeight, cols = 4, rows = 4, gapX = 26;
+    const bw = Math.min(170, (W - 24 - gapX * (cols - 1)) / cols), bh = Math.min(46, (H - 24) / rows - 6);
+    const colX = (col) => 12 + col * ((W - 24 - bw) / (cols - 1));
+    const rowY = (row) => 10 + row * ((H - 22 - bh) / (rows - 1));
+    const meters = Editor.last ? Editor.last.meters : null;
+    const turboOn = !!car().current.turbo.enabled;
+    const level = (idx) => { if (!meters || !idx) return null; let m = 0; for (const i of idx) m = Math.max(m, meters[i]); return clamp((db(m) + 60) / 60, 0, 1); };
+    const rect = {}; chainRects = [];
+    for (const j of chainJunctions) { const x = colX(j.col), y = rowY(j.row); rect[j.id] = { x, y, w: bw, h: bh }; chainRects.push({ x, y, w: bw, h: bh, section: j.section }); }
+    g.lineWidth = 1.5;
+    for (const [a, b] of chainEdges)
+    {
+        const A = rect[a], B = rect[b], from = chainJunctions.find(j => j.id === a);
+        const lv = level(from.meter); const dim = (a === 'turbo' || b === 'turbo') && !turboOn;
+        g.strokeStyle = dim ? 'rgba(255,255,255,.05)' : (lv === null ? 'rgba(255,255,255,.14)' : 'rgba(108,119,255,' + (0.15 + 0.85 * lv).toFixed(2) + ')');
+        g.beginPath(); g.moveTo(A.x + A.w, A.y + A.h / 2); g.bezierCurveTo(A.x + A.w + gapX * 0.7, A.y + A.h / 2, B.x - gapX * 0.7, B.y + B.h / 2, B.x, B.y + B.h / 2); g.stroke();
+    }
+    for (const j of chainJunctions)
+    {
+        const R = rect[j.id], dim = j.id === 'turbo' && !turboOn, lv = level(j.meter);
+        g.fillStyle = dim ? '#0f0f0f' : '#1a1a1a'; g.strokeStyle = Editor.hotSection === j.section ? '#6c77ff' : '#2e2e2e'; g.lineWidth = 1;
+        roundedRect(g, R.x, R.y, R.w, R.h, 10); g.fill(); g.stroke();
+        g.fillStyle = dim ? '#5c5c5c' : '#f0f0f0'; g.font = '600 11px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+        g.fillText(clipText(g, j.label, R.w - 16), R.x + 9, R.y + 15);
+        g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.fillText(clipText(g, j.sub, R.w - 16), R.x + 9, R.y + 27);
+        if (j.meter)
+        {
+            const mx = R.x + 9, my = R.y + R.h - 8, mw = R.w - 18;
+            g.fillStyle = '#0a0a0a'; g.fillRect(mx, my, mw, 3);
+            if (lv !== null) { g.fillStyle = j.id === 'mix' && lv > 0.95 ? '#ef4444' : '#6c77ff'; g.fillRect(mx, my, mw * lv, 3); }
+            if (j.meter.length === 2 && meters) { const l2 = clamp((db(meters[j.meter[1]]) + 60) / 60, 0, 1); g.fillStyle = 'rgba(240,240,240,.6)'; g.fillRect(mx, my + 3, mw * l2, 1); }
+        }
+    }
+    if (Editor.last) { g.fillStyle = '#5c5c5c'; g.font = '500 10px system-ui,sans-serif'; g.textAlign = 'right'; g.fillText('pops ' + Editor.last.pops + ' · transients ' + Editor.last.active + ' · clipped ' + Editor.last.clipped + (Editor.last.dropped ? ' · DROPPED ' + Editor.last.dropped : ''), W - 10, H - 6); }
+}
+$('chain').addEventListener('click', (e) => {
+    const b = e.target.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+    for (const r of chainRects) if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { openSection(r.section); return; }
+});
+
+// ────────────────────────────────────────────── crank-locked scope ──────────────────────────────────────────────────
+function drawScope()
+{
+    const c = $('scope'); fitCanvas(c);
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
+    const W = c.clientWidth, H = c.clientHeight, pad = 8;
+    g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1;
+    for (let k = 0; k <= 4; ++k) { const x = pad + (W - 2 * pad) * k / 4; g.beginPath(); g.moveTo(x, pad); g.lineTo(x, H - pad); g.stroke(); }
+    g.beginPath(); g.moveTo(pad, H / 2); g.lineTo(W - pad, H / 2); g.stroke();
+    g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
+    for (let k = 0; k <= 4; ++k) g.fillText((k * 180) + '°', pad + (W - 2 * pad) * k / 4, H - pad - 12);
+    const tr = Editor.scopeTrace; if (!tr || Editor.feed === 'file') { if (Editor.feed === 'file') { g.textAlign = 'left'; g.fillText('crank lock needs the live feed', pad + 4, pad + 12); } return; }
+    for (let cyl = 1; cyl <= tr.cylinders; ++cyl)
+    {
+        const x = pad + (W - 2 * pad) * (tr.firingAngle[cyl] / 720.0);
+        g.strokeStyle = tr.bank[cyl] ? 'rgba(34,197,94,.55)' : 'rgba(245,158,11,.55)'; g.beginPath(); g.moveTo(x, pad); g.lineTo(x, pad + 10); g.stroke();
+        g.fillStyle = tr.bank[cyl] ? 'rgba(34,197,94,.9)' : 'rgba(245,158,11,.9)'; g.textAlign = 'left'; g.fillText(String(cyl), x + 2, pad + 12);
+    }
+    const n = tr.output.length; if (n < 2) return;
+    let peak = 1.0e-3, peakHead = 1.0e-3;
+    for (let i = 0; i < n; ++i) { peak = Math.max(peak, Math.abs(tr.output[i])); peakHead = Math.max(peakHead, Math.abs(tr.head[i])); }
+    const half = H / 2 - pad - 14;
+    g.strokeStyle = 'rgba(245,158,11,.55)'; g.lineWidth = 1; g.beginPath();
+    for (let i = 0; i < n; ++i) { const x = pad + (W - 2 * pad) * i / (n - 1), y = H / 2 - tr.head[i] / peakHead * half * 0.9; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    g.stroke();
+    g.strokeStyle = '#6c77ff'; g.lineWidth = 1.25; g.beginPath();
+    for (let i = 0; i < n; ++i) { const x = pad + (W - 2 * pad) * i / (n - 1), y = H / 2 - tr.output[i] / peak * half; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    g.stroke();
+    g.fillStyle = '#5c5c5c'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillText(n + ' samples · ' + Math.round(tr.rpm) + ' rpm · out peak ' + peak.toFixed(2) + ' · pulse peak ' + peakHead.toFixed(2) + (Editor.scopeHold ? ' · HOLD' : ''), W - pad - 4, H - pad - 14);
+}
+
+// ───────────────────────────────────────── spectrum + spectrogram ───────────────────────────────────────────────────
+const gram = document.createElement('canvas');
+const F_LO = 30.0, F_HI = 20000.0;
+const xOfFreq = (f, W) => Math.log(f / F_LO) / Math.log(F_HI / F_LO) * W;
+const freqOfX = (x, W) => F_LO * Math.pow(F_HI / F_LO, x / W);
+function drawSpectrum()
+{
+    const c = $('spectrum'); fitCanvas(c);
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c.clientWidth, c.clientHeight);
+    const W = c.clientWidth, H = c.clientHeight;
+    const mode = Editor.specMode, hs = mode === 'both' ? Math.floor(H * 0.45) : (mode === 'spectrum' ? H : 0), hg = H - hs;
+    const freq = Editor.freq, rate = Editor.ctx ? Editor.ctx.sampleRate : 48000, bins = freq ? freq.length : 0, binHz = rate / 2 / Math.max(1, bins);
+    const rpm = currentRpm(), N = vehicle().cylinder_count;
+    if (hs > 0)
+    {
+        g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1; g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
+        for (const f of [50, 100, 200, 500, 1000, 2000, 5000, 10000]) { const x = xOfFreq(f, W); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, hs); g.stroke(); g.fillText(f >= 1000 ? (f / 1000) + 'k' : String(f), x, hs - 12); }
+        for (const d of [-20, -40, -60, -80]) { const y = hs * (-10 - d) / 90; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); g.textAlign = 'left'; g.fillText(d + ' dB', 4, y + 1); }
+        if (rpm)
+        {
+            const f0 = rpm / 60; let lastLabelX = -100;
+            for (let o = 0.5; o <= 2 * N; o += 0.5)
+            {
+                const f = o * f0; if (f < F_LO || f > F_HI) continue;
+                const x = xOfFreq(f, W), dominant = o === N / 2, integer = Number.isInteger(o);
+                g.strokeStyle = dominant ? 'rgba(108,119,255,.9)' : (integer ? 'rgba(240,240,240,.28)' : 'rgba(240,240,240,.10)');
+                g.lineWidth = dominant ? 1.5 : 1; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, hs); g.stroke();
+                if ((integer && x - lastLabelX > 16) || dominant) { g.fillStyle = dominant ? '#6c77ff' : '#888'; g.textAlign = 'left'; g.fillText((dominant ? 'order ' : '') + o, x + 2, 2); lastLabelX = x + (dominant ? 34 : 0); }
+            }
+        }
+        if (freq)
+        {
+            g.strokeStyle = '#f0f0f0'; g.lineWidth = 1.2; g.beginPath();
+            let started = false;
+            for (let x = 0; x < W; ++x)
+            {
+                const fA = freqOfX(x, W), fB = freqOfX(x + 1, W);
+                let kA = Math.max(1, Math.floor(fA / binHz)), kB = Math.min(bins - 1, Math.ceil(fB / binHz));
+                let m = -200; for (let k = kA; k <= kB; ++k) m = Math.max(m, freq[k]);
+                const y = clamp(hs * (-10 - m) / 90, 0, hs);
+                if (!started) { g.moveTo(x, y); started = true; } else g.lineTo(x, y);
+            }
+            g.stroke();
+        }
+    }
+    if (hg > 0)
+    {
+        if (gram.width !== c.width || gram.height !== Math.floor(hg * dpr)) { gram.width = c.width; gram.height = Math.floor(hg * dpr); }
+        const gg = gram.getContext('2d');
+        const columns = Math.min(8, Editor.reports - Editor.gramReports);      // one column per worklet report = 512 frames ≈ 10.7 ms
+        if (freq && columns > 0)
+        {
+            Editor.gramReports = Editor.reports;
+            gg.drawImage(gram, -columns, 0);
+            const rows = gram.height;
+            for (let y = 0; y < rows; ++y)
+            {
+                const f = F_LO * Math.pow(F_HI / F_LO, 1 - y / rows);
+                const k = Math.min(bins - 1, Math.max(0, Math.round(f / binHz)));
+                gg.fillStyle = HEAT[heatIndex(freq[k], -100, -10)]; gg.fillRect(gram.width - columns, y, columns, 1);
+            }
+        }
+        g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(gram, 0, Math.floor(hs * dpr)); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (rpm) { const f = rpm / 60 * N / 2, y = hs + hg * (1 - Math.log(f / F_LO) / Math.log(F_HI / F_LO)); g.fillStyle = 'rgba(240,240,240,.9)'; g.fillRect(W - 6, y - 1, 6, 2); }
+        g.fillStyle = '#5c5c5c'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top';
+        for (const f of [100, 1000, 10000]) { const y = hs + hg * (1 - Math.log(f / F_LO) / Math.log(F_HI / F_LO)); g.fillText(f >= 1000 ? (f / 1000) + 'k' : String(f), 4, y - 10); }
+    }
+}
+
+// ───────────────────────────────────────────────── order diagram ────────────────────────────────────────────────────
+const orderCanvas = document.createElement('canvas');
+function clearOrders() { const g = orderCanvas.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, orderCanvas.width, orderCanvas.height); Editor.lastOrderX = -1; }
+function drawOrders()
+{
+    const c = $('orders'); fitCanvas(c);
+    const g = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth, H = c.clientHeight, left = 34, bottom = 16;
+    const pw = Math.floor((W - left - 4) * dpr), ph = Math.floor((H - bottom - 6) * dpr);
+    if (orderCanvas.width !== pw || orderCanvas.height !== ph) { orderCanvas.width = pw; orderCanvas.height = ph; clearOrders(); }
+    const v = vehicle(), N = v.cylinder_count, maxOrder = Math.max(12, 2 * N), rpmLo = Math.max(300, v.idle_rpm * 0.7), rpmHi = gaugeMax();
+    const rpm = currentRpm(), freq = Editor.freq, rate = Editor.ctx ? Editor.ctx.sampleRate : 48000, bins = freq ? freq.length : 0, binHz = rate / 2 / Math.max(1, bins);
+    if (rpm && freq && rpm >= rpmLo)
+    {
+        const og = orderCanvas.getContext('2d');
+        const x = Math.round((rpm - rpmLo) / (rpmHi - rpmLo) * (pw - 1));
+        const x0 = Editor.lastOrderX < 0 || Math.abs(Editor.lastOrderX - x) > pw * 0.1 ? x : Editor.lastOrderX;
+        const xa = Math.min(x0, x), xb = Math.max(x0, x);
+        const f0 = rpm / 60;
+        for (let y = 0; y < ph; ++y)
+        {
+            const order = maxOrder * (1 - y / ph), f = order * f0;
+            const k = Math.round(f / binHz); if (k < 2 || k >= bins - 2) continue;
+            let m = -200; for (let j = k - 1; j <= k + 1; ++j) m = Math.max(m, freq[j]);
+            og.fillStyle = HEAT[heatIndex(m, -95, -15)]; og.fillRect(xa, y, xb - xa + 1, 1);
+        }
+        Editor.lastOrderX = x;
+    }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(orderCanvas, left * dpr, 4 * dpr); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1; g.fillStyle = '#888'; g.font = '500 9.5px system-ui,sans-serif'; g.textAlign = 'right'; g.textBaseline = 'middle';
+    const plotW = pw / dpr, plotH = ph / dpr;
+    for (let o = 1; o <= maxOrder; ++o)
+    {
+        const y = 4 + plotH * (1 - o / maxOrder), dom = o === N / 2;
+        if (dom || o % 2 === 0) { g.fillStyle = dom ? '#6c77ff' : '#888'; g.fillText(String(o), left - 4, y); }
+        if (dom) { g.strokeStyle = 'rgba(108,119,255,.6)'; g.beginPath(); g.moveTo(left, y); g.lineTo(left + plotW, y); g.stroke(); g.strokeStyle = 'rgba(255,255,255,.12)'; }
+    }
+    g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = '#5c5c5c';
+    for (let r = 1000; r < rpmHi; r += 1000) { const x = left + (r - rpmLo) / (rpmHi - rpmLo) * plotW; if (x < left) continue; g.beginPath(); g.moveTo(x, 4); g.lineTo(x, 4 + plotH); g.stroke(); g.fillText(String(r / 1000) + 'k', x, H - bottom + 3); }
+    if (rpm) { const x = left + clamp((rpm - rpmLo) / (rpmHi - rpmLo), 0, 1) * plotW; g.fillStyle = 'rgba(240,240,240,.8)'; g.fillRect(x - 0.5, 4, 1, plotH); }
+    g.fillStyle = '#5c5c5c'; g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText('order', 2, H - 2);
+}
+
+// ─────────────────────────────────────────────────── inspector ──────────────────────────────────────────────────────
+const sectionOpen = {};
+function buildInspector()
+{
+    const body = $('inspectorBody'); body.innerHTML = '';
+    const s = car().current;
+    for (const section of schemaSections())
+    {
+        const sec = document.createElement('div'); sec.className = 'sec'; sec.dataset.section = section;
+        if (sectionOpen[section] === undefined) sectionOpen[section] = section === 'vehicle' || section === 'combustion';
+        sec.dataset.open = String(sectionOpen[section]);
+        const h = document.createElement('div'); h.className = 'sec-h';
+        h.innerHTML = '<svg class="ic chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg><span>' + section.replace('.', ' · ') + '</span>';
+        h.onclick = () => { sectionOpen[section] = !sectionOpen[section]; sec.dataset.open = String(sectionOpen[section]); };
+        const b = document.createElement('div'); b.className = 'sec-b';
+        for (const row of ACOUSTIC_SCHEMA)
+        {
+            if (row[0] !== section) continue;
+            const [sect, key, def, unit, note, range] = row;
+            const sheet = structurePath(s, sect, true);
+            const line = document.createElement('div'); line.className = 'crow'; line.title = note || key;
+            const label = document.createElement('div'); label.className = 'clabel'; label.textContent = key.replace(/_/g, ' '); line.appendChild(label);
+            const assign = (v) => { sheet[key] = v; scheduleStructure(); };
+            if (typeof def === 'number' && range)
+            {
+                const input = document.createElement('input'); input.type = 'range'; input.className = 'slider thin'; input.min = range[0]; input.max = range[1]; input.step = range[2]; input.value = sheet[key];
+                const val = document.createElement('div'); val.className = 'cval'; val.textContent = fmt(sheet[key], range[2]);
+                const u = document.createElement('div'); u.className = 'cunit'; u.textContent = unit === '-' ? '' : unit;
+                tintSlider(input);
+                input.oninput = () => { tintSlider(input); val.textContent = fmt(input.value, range[2]); assign(Number(input.value)); };
+                val.ondblclick = () => { const t = prompt(key, sheet[key]); if (t !== null && Number.isFinite(Number(t))) { input.value = Number(t); input.oninput(); } };
+                line.appendChild(input); line.appendChild(val); line.appendChild(u);
+            }
+            else if (typeof def === 'boolean')
+            {
+                const t = document.createElement('label'); t.className = 'toggle-row'; t.dataset.on = String(!!sheet[key]); t.innerHTML = '<span class="toggle-dotring"><i></i></span><span class="tl">' + (sheet[key] ? 'on' : 'off') + '</span>';
+                t.onclick = () => { const on = t.dataset.on !== 'true'; t.dataset.on = String(on); t.querySelector('.tl').textContent = on ? 'on' : 'off'; assign(on); };
+                line.appendChild(t);
+            }
+            else
+            {
+                const input = document.createElement('input'); input.type = 'text'; input.value = Array.isArray(def) ? sheet[key].join(', ') : String(sheet[key]);
+                input.onchange = () => { if (Array.isArray(def)) assign(input.value.split(/[\s,]+/).filter(x => x.length).map(Number).filter(Number.isFinite)); else if (typeof def === 'number') { const n = Number(input.value); if (Number.isFinite(n)) assign(n); } else assign(input.value); };
+                line.appendChild(input);
+                if (unit && unit !== '-') { const u = document.createElement('div'); u.className = 'cunit'; u.textContent = unit; line.appendChild(u); }
+            }
+            b.appendChild(line);
+        }
+        sec.appendChild(h); sec.appendChild(b); body.appendChild(sec);
+    }
+    $('inspectorSub').textContent = s.vehicle.name + ' · ' + s.vehicle.engine;
+}
+function openSection(section)
+{
+    Editor.hotSection = section;
+    for (const sec of document.querySelectorAll('#inspectorBody .sec'))
+    {
+        const hot = sec.dataset.section === section || sec.dataset.section.startsWith(section + '.');
+        sec.dataset.hot = String(hot);
+        if (hot) { sectionOpen[sec.dataset.section] = true; sec.dataset.open = 'true'; }
+    }
+    const first = document.querySelector('#inspectorBody .sec[data-section="' + section + '"]'); if (first) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ──────────────────────────────────────────────────── device ────────────────────────────────────────────────────────
+function drawDevice()
+{
+    const g = $('deviceSheet'), L = Editor.last, ctx = Editor.ctx;
+    const rows = [
+        ['driver', 'WebAudio · AudioWorklet'], ['device', ctx ? (ctx.sinkId === undefined ? 'default output' : (ctx.sinkId || 'default output')) : '—'],
+        ['rate granted', ctx ? ctx.sampleRate + ' Hz' : '—'], ['period', ctx ? '128 frames · ' + (128000 / ctx.sampleRate).toFixed(2) + ' ms' : '—'],
+        ['base latency', ctx && ctx.baseLatency ? (ctx.baseLatency * 1000).toFixed(1) + ' ms' : '—'], ['output latency', ctx && ctx.outputLatency ? (ctx.outputLatency * 1000).toFixed(1) + ' ms' : '—'],
+        ['slices', L ? String(Editor.reports * 4) : '—'], ['worklet load', L ? L.load_pct.toFixed(1) + ' %' : '—', L && L.load_pct > 60],
+        ['overruns', L ? String(L.overruns) : '—', L && L.overruns > 0], ['transients dropped', L ? String(L.dropped) : '—', L && L.dropped > 0],
+        ['firings', L ? String(L.firings) : '—'], ['clipped samples', L ? String(L.clipped) : '—'],
+        ['valve high-pass', L ? L.valveHz.toFixed(0) + ' Hz' : '—'], ['link', ctx ? ctx.state : 'idle'],
+    ];
+    let html = ''; for (const r of rows) html += '<span>' + r[0] + '</span><b' + (r[2] ? ' class="bad"' : '') + '>' + r[1] + '</b>';
+    g.innerHTML = html;
+    $('deviceFoot').textContent = L ? 'AudioMetrics mirror · callbacks ' + Editor.reports * 4 + ' · µs/slice ≈ ' + (L.load_pct / 100 * 128000 / (ctx ? ctx.sampleRate : 48000) * 1000).toFixed(0) : 'worklet not started';
+}
+
+// ───────────────────────────────────────────────── readouts ─────────────────────────────────────────────────────────
+function drawReadouts()
+{
+    const L = Editor.last; if (!L) return;
+    $('rRpm').textContent = Math.round(L.rpm); $('rLoad').textContent = (L.load * 100).toFixed(0) + ' %'; $('rTemp').textContent = L.thumpHz.toFixed(1) + ' Hz';
+    $('rFire').textContent = L.firings; $('rPops').textContent = L.pops; $('rBoost').textContent = car().current.turbo.enabled ? L.boost.toFixed(2) + ' bar' : '—';
+    $('rPull').textContent = L.pull ? L.pull + ' ' + L.pullTime.toFixed(1) + '/' + L.pullDuration.toFixed(0) + ' s' : 'free'; $('rFuel').textContent = L.fuel ? 'on' : 'cut';
+    if (Editor.recording) $('recLabel').textContent = 'Recording ' + ((performance.now() - Editor.recStart) / 1000).toFixed(0) + ' s';
+    if (Editor.spaceDown && $('throttleNum')) $('throttleNum').textContent = '100';
+}
+
+// ─────────────────────────────────────────────────── frame loop ─────────────────────────────────────────────────────
+let drawCount = 0, drawFault = '';
+function guarded(name, draw) { try { draw(); } catch (e) { if (!drawFault) { drawFault = name + ': ' + e.message; console.error('AudioEditor draw fault in ' + drawFault, e); } } }
+function loop()
+{
+    requestAnimationFrame(loop);
+    if (Editor.analyser && Editor.freq) Editor.analyser.getFloatFrequencyData(Editor.freq);
+    guarded('gauge', drawGauge); guarded('chain', drawChain); guarded('scope', drawScope); guarded('spectrum', drawSpectrum); guarded('orders', drawOrders); guarded('readouts', drawReadouts);
+    if ((++drawCount % 15) === 0) { guarded('device', drawDevice); updateStatus(); }
+}
+
+// ──────────────────────────────────────────────────── wiring ────────────────────────────────────────────────────────
+function selectCar(key)
+{
+    carKey = key;
+    setActive($('carPick'), 'car', key);
+    document.title = 'Frontier · AudioEditor · ' + vehicle().name;
+    buildInspector(); drawGaugeStatic(); clearOrders();
+    post({ type: 'stop' }); post({ type: 'structure', structure: car().current });
+    if (Editor.feed === 'file') playFile();
+}
+const pick = $('carPick');
+for (const key of carOrder) { const b = document.createElement('button'); b.dataset.car = key; b.textContent = cars[key].defaults.vehicle.name; b.onclick = () => selectCar(key); pick.appendChild(b); }
+
+const pulls = $('pulls');
+for (const name of DYNO_PULL_NAMES) { const b = document.createElement('button'); b.className = 'btn'; b.dataset.pull = name; b.textContent = name; b.onclick = () => runPull(name); pulls.appendChild(b); }
+const stopBtn = document.createElement('button'); stopBtn.className = 'btn ghost'; stopBtn.textContent = 'stop'; stopBtn.onclick = () => { post({ type: 'stop' }); if (Editor.feed === 'file') stopFile(); }; pulls.appendChild(stopBtn);
+function runPull(name)
+{
+    if (!Editor.started) { toast('start audio first'); return; }
+    if (Editor.feed === 'file') { Editor.filePull = name; playFile(); return; }
+    post({ type: 'pull', name, loop: Editor.loop });
+}
+
+$('feedSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.feed = b.dataset.feed; setActive($('feedSeg'), 'feed', Editor.feed); clearOrders(); applyFeed(); if (Editor.feed === 'file' && !Editor.fileClip) $('fileWav').click(); };
+$('listenerSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.listener = b.dataset.listener; setActive($('listenerSeg'), 'listener', Editor.listener); post({ type: 'listener', listener: Editor.listener }); };
+$('modeSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; post({ type: 'mode', mode: b.dataset.mode }); setActive($('modeSeg'), 'mode', b.dataset.mode); };
+$('specSeg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; Editor.specMode = b.dataset.spec; setActive($('specSeg'), 'spec', Editor.specMode); };
+$('loopToggle').onclick = () => { Editor.loop = !Editor.loop; $('loopToggle').dataset.on = String(Editor.loop); post({ type: 'loop', on: Editor.loop }); if (Editor.fileEmitter) Editor.fileEmitter.loop = Editor.loop; };
+$('pureToggle').onclick = () => { Editor.pure = !Editor.pure; $('pureToggle').dataset.on = String(Editor.pure); post({ type: 'pure', on: Editor.pure }); };
+$('btnScopeHold').onclick = () => { Editor.scopeHold = !Editor.scopeHold; $('btnScopeHold').textContent = Editor.scopeHold ? 'Resume' : 'Hold'; $('btnScopeHold').classList.toggle('primary', Editor.scopeHold); };
+$('btnOrderClear').onclick = clearOrders;
+$('btnReset').onclick = () => { car().current = structureFromToml(car().defaults); buildInspector(); scheduleStructure(); toast('reset ' + vehicle().name); };
+$('btnImport').onclick = () => $('fileToml').click();
+$('btnExport').onclick = exportToml;
+$('btnRecord').onclick = toggleRecord;
+$('fileToml').onchange = async (e) => { const f = e.target.files[0]; if (f) importTomlText(await f.text(), f.name); e.target.value = ''; };
+$('fileWav').onchange = async (e) => { const f = e.target.files[0]; if (f) await loadWav(f); e.target.value = ''; };
+$('btnStart').onclick = async () => {
+    try { await startAudio(); $('gate').dataset.on = 'false'; toast('audio running · ' + vehicle().name); }
+    catch (e) { $('gateNote').textContent = 'audio start failed: ' + e.message; $('status').dataset.link = 'error'; $('statusText').textContent = 'audio error'; }
+};
+
+const throttle = $('throttle');
+tintSlider(throttle);
+throttle.oninput = () => { Editor.throttle = Number(throttle.value); tintSlider(throttle); $('throttleNum').textContent = Math.round(Editor.throttle * 100); if (!Editor.spaceDown) post({ type: 'throttle', throttle: Editor.throttle }); };
+window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'text') return;
+    if (e.code === 'Space') { e.preventDefault(); if (!Editor.spaceDown) { Editor.spaceDown = true; post({ type: 'throttle', throttle: 1.0 }); } }
+    else if (e.key >= '1' && e.key <= '3') { const k = carOrder[Number(e.key) - 1]; if (k) selectCar(k); }
+    else if (e.key === 'r' || e.key === 'R') toggleRecord();
+    else if (e.key === 'Escape') post({ type: 'stop' });
+});
+window.addEventListener('keyup', (e) => { if (e.code === 'Space') { Editor.spaceDown = false; post({ type: 'throttle', throttle: Editor.throttle }); $('throttleNum').textContent = Math.round(Editor.throttle * 100); } });
+window.addEventListener('blur', () => { if (Editor.spaceDown) { Editor.spaceDown = false; post({ type: 'throttle', throttle: Editor.throttle }); } });
+
+// drag & drop: WAV → file feed, TOML → structure
+let dragDepth = 0;
+window.addEventListener('dragenter', (e) => { e.preventDefault(); ++dragDepth; $('drop').dataset.on = 'true'; });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('drop').dataset.on = 'false'; } });
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', async (e) => {
+    e.preventDefault(); dragDepth = 0; $('drop').dataset.on = 'false';
+    for (const f of e.dataTransfer.files) { if (/\.toml$/i.test(f.name)) importTomlText(await f.text(), f.name); else if (/\.(wav|wave)$/i.test(f.name)) await loadWav(f); else toast('unsupported: ' + f.name); }
+});
+window.addEventListener('resize', () => { drawGaugeStatic(); });
+
+// offline render through the same worklet — used by the proof harness (Scratchpad/AcousticEditorRender.js) and handy for identity checks
+async function renderOffline(key, pull, seconds, options)
+{
+    const rate = (options && options.rate) || 48000;
+    const octx = new OfflineAudioContext(2, Math.floor(seconds * rate), rate);
+    await attachDsp(octx);
+    const worklet = new AudioWorkletNode(octx, 'acoustic-integrator', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: { structure: cars[key].current, seed: SEED, pull, reportEvery: 1 << 30, listener: (options && options.listener) || 'trackside' } });
+    worklet.connect(octx.destination);
+    const rendered = await octx.startRendering();
+    return [rendered.getChannelData(0), rendered.getChannelData(1)];
+}
+window.FrontierAudioEditor = { Dsp, cars, get carKey() { return carKey; }, selectCar, renderOffline, startAudio, runPull, loadWav, editor: Editor, exportToml };
+
+selectCar(carKey);
+drawGaugeStatic();
+requestAnimationFrame(loop);
+})();
+
+</script>
+</body>
+</html>

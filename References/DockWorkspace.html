@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SLATE — Workspace</title>
+<style>
+:root{
+  --bg: #000000;
+  --strip: #18181c;
+  --panel: #000000;
+  --tab-active: #000000;
+  --tab-active-text: #ffffff;
+  --tab-inactive: #26262c;
+  --tab-inactive-text: #9ba1ad;
+  --tab-hover: #32323a;
+  --baseline: #000000;
+  --border: #222228;
+  --splitter: #1a1a20;
+  --splitter-act: #ffffff;
+  --text-main: #ffffff;
+  --text-muted: #8e94a0;
+  --panel-footer-bg: #18181c;
+  --panel-footer-border: #222228;
+  --sp: 6px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--text-main);
+  font-family:"Inter","Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;
+  display:flex;
+  flex-direction:column;
+}
+
+body.dragging, body.dragging *{cursor:grabbing !important}
+body.rs-col, body.rs-col *{cursor:col-resize !important}
+body.rs-row, body.rs-row *{cursor:row-resize !important}
+
+/* =====================================================================
+   WORKSPACE ROOT (OLED BLACK BACKGROUND, NO HEADER, NO FOOTER)
+   ===================================================================== */
+#app-workspace{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+}
+
+#dockhost{
+  position: absolute;
+  inset: 0px;
+  z-index: 0;
+  background: #000000;
+}
+
+#floatlayer{
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#overlay{
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Centered + Button when Workspace is Empty */
+.workspace-empty-center{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #000000;
+  z-index: 10;
+}
+
+.center-add-workspace-btn{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #111114;
+  border: 1.5px solid #2d2d38;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  transition: all 0.16s ease;
+}
+
+.center-add-workspace-btn:hover{
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+  transform: scale(1.08);
+  box-shadow: 0 14px 40px rgba(255,255,255,0.15);
+}
+
+.center-add-label{
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #4b4b58;
+  text-transform: uppercase;
+}
+
+/* =====================================================================
+   SPLITS & PANES
+   ===================================================================== */
+.split{display:flex;width:100%;height:100%}
+.split.row{flex-direction:row}
+.split.col{flex-direction:column}
+.pane{flex-basis:0;min-width:0;min-height:0;overflow:hidden}
+.splitter{position:relative;flex:0 0 var(--sp);z-index:4}
+.splitter.row{cursor:col-resize}
+.splitter.col{cursor:row-resize}
+.splitter::after{
+  content:"";
+  position:absolute;
+  background:var(--splitter);
+  border-radius:2px;
+  transition:background .12s, transform .12s;
+}
+.splitter.row::after{top:4px;bottom:4px;left:2px;width:2px}
+.splitter.col::after{left:4px;right:4px;top:2px;height:2px}
+.splitter:hover::after, .splitter.act::after{
+  background:var(--splitter-act);
+  transform: scale(1.4);
+}
+
+/* =====================================================================
+   DOCK GROUP & WIDE TRAPEZOIDAL TABS (SHARP BY DEFAULT)
+   ===================================================================== */
+.dock-group{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--strip);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.dock-group.focused{
+  box-shadow: 0 0 0 1.5px #3b3b48;
+}
+
+.tabstrip{
+  position: relative;
+  flex: 0 0 28px;
+  height: 28px;
+  background: var(--strip);
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Caret Dropdown Button before First Tab: (V) /-------\ */
+.tab-caret-btn{
+  position: relative;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 60;
+  margin-left: 6px;
+  margin-bottom: 3px;
+  transition: all 0.12s ease;
+}
+
+.tab-caret-btn:hover{
+  background: #111114;
+  border-color: #2d2d38;
+  color: #ffffff;
+}
+
+.tab-caret-btn svg{
+  transition: transform 0.12s ease;
+}
+
+.tab-caret-btn.open svg{
+  transform: rotate(180deg);
+}
+
+/* Caret Dropdown Menu */
+.caret-menu{
+  position: absolute;
+  top: 29px;
+  left: 6px;
+  background: #111114;
+  border: 1px solid #2d2d38;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.85);
+  z-index: 999;
+  display: none;
+  min-width: 175px;
+}
+
+.caret-menu.show{
+  display: block;
+}
+
+.caret-menu-item{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.1s ease;
+}
+
+.caret-menu-item:hover{
+  background: #1e1e26;
+  color: #ffffff;
+}
+
+.caret-menu-divider{
+  height: 1px;
+  background: #23232c;
+  margin: 3px 0;
+}
+
+.tabscroll{
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding-left: 4px;
+  padding-right: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tabscroll::-webkit-scrollbar{height:0}
+
+.baseline{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--baseline);
+  z-index: 4;
+}
+
+/* Rounded + Icon */
+.tab-add-btn{
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #2d2d38;
+  background: #111114;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 60;
+  transition: all 0.12s ease;
+}
+
+.tab-add-btn:hover{
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+/* WIDE Overlapping Trapezoidal Tab Element */
+.tab{
+  position: relative;
+  flex: 0 0 auto;
+  height: 24px;
+  min-width: 170px;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 38px 0 38px;
+  margin-right: -24px;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.08s ease;
+}
+
+.tab .shape{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+  pointer-events: none;
+}
+
+.tab .shape path{
+  fill: var(--tab-inactive);
+  stroke: rgba(0, 0, 0, 0.45);
+  stroke-width: 1px;
+  transition: fill .12s, stroke .12s;
+}
+
+.tab:hover:not(.active){
+  z-index: 80 !important;
+}
+
+.tab:hover .shape path{
+  fill: var(--tab-hover);
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.tab.active{
+  z-index: 100 !important;
+}
+
+.tab.active .shape path{
+  fill: var(--tab-active);
+  stroke: transparent;
+}
+
+.tab .lbl{
+  position: relative;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: var(--tab-inactive-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 2;
+  margin-top: 1px;
+}
+
+.tab:hover .lbl{
+  color: #e2e8f0;
+}
+
+.tab.active .lbl{
+  color: var(--tab-active-text);
+  font-weight: 800;
+}
+
+/* Rounded x Close Icon */
+.tabclose{
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: var(--tab-inactive-text);
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 3;
+  transition: all 0.1s ease;
+}
+
+.tab:hover .tabclose, .tab.active .tabclose{
+  display: flex;
+}
+
+.tab.active .tabclose{
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+}
+
+.tabclose:hover{
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* =====================================================================
+   OLED BLACK VIEWPORT & IN-VIEWPORT SUB-PANELS (CLIPPED TO VIEWPORT)
+   ===================================================================== */
+.panelbody{
+  flex: 1;
+  position: relative;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.content{
+  position: absolute;
+  inset: 0;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.empty{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: #33333d;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #000000;
+  pointer-events: none;
+}
+
+/* In-Viewport Sub-Panel Rectangle (Clipped strictly within viewport) */
+.sub-panel-box{
+  position: absolute;
+  background: #111115;
+  border: 1px solid #2d2d38;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.75);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 20;
+  touch-action: none;
+}
+
+.sub-panel-box.focused{
+  border-color: #4f4f62;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.9), 0 0 0 1px #4f4f62;
+}
+
+.sub-panel-header{
+  flex: 0 0 22px;
+  height: 22px;
+  background: #18181c;
+  border-bottom: 1px solid #222228;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  cursor: grab;
+  user-select: none;
+}
+
+.sub-panel-header:active{
+  cursor: grabbing;
+}
+
+.sub-panel-title{
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.sub-panel-close{
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sub-panel-close:hover{
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.sub-panel-body{
+  flex: 1;
+  background: #000000;
+  position: relative;
+  overflow: hidden;
+}
+
+.sub-panel-rz{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nwse-resize;
+  z-index: 5;
+}
+
+.sub-panel-rz::after{
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-right: 2px solid #475569;
+  border-bottom: 2px solid #475569;
+}
+
+/* =====================================================================
+   EMPTY BOTTOM TAB / FOOTER (CLEAN GREY BOX)
+   ===================================================================== */
+.panelfooter{
+  flex: 0 0 22px;
+  height: 22px;
+  background: var(--panel-footer-bg);
+  border-top: 1px solid var(--panel-footer-border);
+  z-index: 2;
+}
+
+/* =====================================================================
+   FLOATING WINDOWS
+   ===================================================================== */
+.floatwin{
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  background: #000000;
+  border-radius: 4px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 0 1px #2a2a34;
+  overflow: hidden;
+}
+
+.winbody{
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+}
+
+.winbody > .dock-group {
+  border: 0;
+}
+
+.rz{position:absolute;z-index:9}
+.rz-n{left:8px;right:8px;top:-3px;height:7px;cursor:ns-resize}
+.rz-s{left:8px;right:8px;bottom:-3px;height:7px;cursor:ns-resize}
+.rz-w{top:8px;bottom:8px;left:-3px;width:7px;cursor:ew-resize}
+.rz-e{top:8px;bottom:8px;right:-3px;width:7px;cursor:ew-resize}
+.rz-nw{left:-3px;top:-3px;width:12px;height:12px;cursor:nwse-resize}
+.rz-ne{right:-3px;top:-3px;width:12px;height:12px;cursor:nesw-resize}
+.rz-sw{left:-3px;bottom:-3px;width:12px;height:12px;cursor:nesw-resize}
+.rz-se{right:-3px;bottom:-3px;width:12px;height:12px;cursor:nwse-resize}
+
+/* =====================================================================
+   DRAG OVERLAY & DOCKING FEEDBACK
+   ===================================================================== */
+.ghost{
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 14px 30px rgba(0,0,0,0.8));
+  opacity: 0.95;
+}
+
+.ghost .tab{
+  margin: 0;
+  cursor: grabbing;
+}
+
+.ghost .tab .shape path{
+  fill: #000000;
+  stroke: #444455;
+}
+
+.ghost .tab .lbl{
+  color: #ffffff;
+}
+
+.hint{
+  margin-top: 6px;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #000000;
+  border: 1px solid #3b3b48;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.preview{
+  position: absolute;
+  pointer-events: none;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid #ffffff;
+  transition: left .09s ease, top .09s ease, width .09s ease, height .09s ease;
+  box-shadow: inset 0 0 30px rgba(255,255,255,0.03);
+}
+
+.preview.dash{
+  background: transparent;
+  border: 2px dashed #ffffff;
+  transition: none;
+}
+
+.insline{
+  position: absolute;
+  width: 3px;
+  border-radius: 2px;
+  background: #ffffff;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
+}
+
+.zone{
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 4px;
+  background: #18181c;
+  border: 1.5px solid #3b3b48;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .1s, border-color .1s, transform .1s;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.zone i{
+  display: block;
+  background: #64748b;
+  border-radius: 2px;
+  transition: background .1s;
+}
+
+.zone.hot{
+  background: #000000;
+  border-color: #ffffff;
+  transform: scale(1.08);
+}
+
+.zone.hot i{
+  background: #ffffff;
+}
+</style>
+</head>
+<body>
+
+<!-- Workspace Dock Area (Clean full-height black canvas; no header; no footer) -->
+<main id="app-workspace">
+  <div id="dockhost"></div>
+  <div id="floatlayer"></div>
+  <div id="overlay"></div>
+</main>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   DOCKING SYSTEM & TRAPEZOIDAL TABS (SHARP BY DEFAULT, OLED BLACK)
+   ===================================================================== */
+
+const SPLITTER = 6;
+const uid = (()=>{let n=0;return p=>p+(++n);})();
+const $  = s=>document.querySelector(s);
+const el = (t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
+const inRect=(r,x,y)=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+// Set default to sharp trapezoids (no rounded corners)
+let roundCorners = false;
+
+/* ------------------------- blank panel tabs ------------------------- */
+const tabs = new Map();                       // tabId -> {id,title,el,subPanels,zTop}
+
+function makeTab(title){
+  const id = uid("tab");
+  const e = el("div", "content");
+  tabs.set(id, {id, title, el: e, subPanels: [], zTop: 10});
+  return id;
+}
+
+/* ------------------------- in-viewport sub-panels ------------------------- */
+function addSubPanelToTab(tabId, name="Sub Panel"){
+  const t = tabs.get(tabId);
+  if(!t) return;
+  const panelId = uid("subp");
+  const vpRect = t.el.getBoundingClientRect();
+  const defW = Math.max(160, Math.min(220, (vpRect.width || 300) - 40));
+  const defH = Math.max(120, Math.min(150, (vpRect.height || 200) - 40));
+  
+  const count = t.subPanels.length;
+  const x = Math.min(20 + count * 24, Math.max(0, (vpRect.width || 300) - defW - 10));
+  const y = Math.min(20 + count * 24, Math.max(0, (vpRect.height || 200) - defH - 10));
+  
+  const subPanel = {
+    id: panelId,
+    title: `${name} ${count + 1}`,
+    x: Math.max(4, x),
+    y: Math.max(4, y),
+    w: defW,
+    h: defH,
+    z: ++t.zTop
+  };
+  t.subPanels.push(subPanel);
+  renderSubPanelsForTab(t);
+}
+
+function removeSubPanelFromTab(tabId, panelId){
+  const t = tabs.get(tabId);
+  if(!t) return;
+  const idx = t.subPanels.findIndex(p => p.id === panelId);
+  if(idx >= 0){
+    t.subPanels.splice(idx, 1);
+    renderSubPanelsForTab(t);
+  }
+}
+
+function clearSubPanelsForTab(tabId){
+  const t = tabs.get(tabId);
+  if(!t) return;
+  t.subPanels = [];
+  renderSubPanelsForTab(t);
+}
+
+function renderSubPanelsForTab(t){
+  t.el.innerHTML = "";
+  if(t.subPanels.length === 0){
+    const em = el("div", "empty");
+    em.textContent = "EMPTY PANEL";
+    t.el.appendChild(em);
+    return;
+  }
+  
+  t.subPanels.forEach(p => {
+    const box = el("div", "sub-panel-box");
+    box.dataset.subp = p.id;
+    box.style.left = p.x + "px";
+    box.style.top = p.y + "px";
+    box.style.width = p.w + "px";
+    box.style.height = p.h + "px";
+    box.style.zIndex = p.z;
+    
+    const hdr = el("div", "sub-panel-header");
+    const ttl = el("span", "sub-panel-title");
+    ttl.textContent = p.title;
+    
+    const cls = el("button", "sub-panel-close");
+    cls.innerHTML = "&#10005;";
+    cls.title = "Close Panel";
+    cls.onclick = (ev) => {
+      ev.stopPropagation();
+      removeSubPanelFromTab(t.id, p.id);
+    };
+    
+    hdr.append(ttl, cls);
+    
+    const bdy = el("div", "sub-panel-body");
+    const rz = el("div", "sub-panel-rz");
+    
+    box.append(hdr, bdy, rz);
+    
+    // Sub-panel drag handler (strictly constrained inside viewport)
+    hdr.onpointerdown = (ev) => {
+      if(ev.target === cls) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      p.z = ++t.zTop;
+      box.style.zIndex = p.z;
+      
+      const startX = ev.clientX, startY = ev.clientY;
+      const initX = p.x, initY = p.y;
+      
+      const onMove = (mev) => {
+        const vp = t.el.getBoundingClientRect();
+        const dx = mev.clientX - startX;
+        const dy = mev.clientY - startY;
+        
+        const maxX = Math.max(0, vp.width - p.w);
+        const maxY = Math.max(0, vp.height - p.h);
+        
+        p.x = clamp(initX + dx, 0, maxX);
+        p.y = clamp(initY + dy, 0, maxY);
+        
+        box.style.left = p.x + "px";
+        box.style.top = p.y + "px";
+      };
+      
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    };
+    
+    // Sub-panel resize handler (strictly constrained inside viewport)
+    rz.onpointerdown = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      p.z = ++t.zTop;
+      box.style.zIndex = p.z;
+      
+      const startX = ev.clientX, startY = ev.clientY;
+      const initW = p.w, initH = p.h;
+      
+      const onRzMove = (mev) => {
+        const vp = t.el.getBoundingClientRect();
+        const dw = mev.clientX - startX;
+        const dh = mev.clientY - startY;
+        
+        const maxW = Math.max(100, vp.width - p.x);
+        const maxH = Math.max(80, vp.height - p.y);
+        
+        p.w = clamp(initW + dw, 100, maxW);
+        p.h = clamp(initH + dh, 80, maxH);
+        
+        box.style.width = p.w + "px";
+        box.style.height = p.h + "px";
+      };
+      
+      const onRzUp = () => {
+        window.removeEventListener("pointermove", onRzMove);
+        window.removeEventListener("pointerup", onRzUp);
+      };
+      
+      window.addEventListener("pointermove", onRzMove);
+      window.addEventListener("pointerup", onRzUp);
+    };
+    
+    t.el.appendChild(box);
+  });
+}
+
+/* ------------------------- model helpers ------------------------- */
+const mkGroup=(ids=[])=>({id:uid("g"),type:"group",tabs:ids.slice(),active:ids[0]||null});
+const mkSplit=(dir,children,sizes)=>({id:uid("s"),type:"split",dir,children,sizes});
+
+const state = { dock: null, windows: [], zTop: 100, focus: null };
+
+function allHosts(){
+  return [{hostId:"dock",get root(){return state.dock;}}]
+    .concat(state.windows.map(w=>({hostId:w.id,get root(){return w.root;}})));
+}
+const getWin = id=>state.windows.find(w=>w.id===id);
+const hostRoot = h=>h==="dock"?state.dock:(getWin(h)||{}).root;
+function setHostRoot(h,n){ if(h==="dock") state.dock=n; else { const w=getWin(h); if(w) w.root=n; } }
+
+function walk(n,fn){ fn(n); if(n.type==="split") n.children.forEach(c=>walk(c,fn)); }
+function findNode(root,id){ let r=null; if(root) walk(root,n=>{if(n.id===id)r=n;}); return r; }
+function findParent(root,id){
+  let p=null;
+  if(root) walk(root,n=>{ if(n.type==="split"&&n.children.some(c=>c.id===id)) p=n; });
+  return p;
+}
+function findGroupLoc(gid){
+  for(const h of allHosts()){ const n=findNode(h.root,gid); if(n) return {hostId:h.hostId,node:n}; }
+  return null;
+}
+function findGroupById(gid){ const l=findGroupLoc(gid); return l&&l.node; }
+function groupOfTab(tabId){
+  for(const h of allHosts()){
+    let f=null; if(h.root) walk(h.root,n=>{ if(n.type==="group"&&n.tabs.includes(tabId)) f=n; });
+    if(f) return {hostId:h.hostId,node:f};
+  }
+  return null;
+}
+function flattenTabs(n){
+  const out=[]; walk(n,x=>{ if(x.type==="group") out.push(...x.tabs); }); return out;
+}
+const normalize=a=>{const s=a.reduce((x,y)=>x+y,0)||1; for(let i=0;i<a.length;i++)a[i]/=s;};
+
+function replaceNode(hostId,oldId,newNode){
+  const root=hostRoot(hostId); if(!root) return;
+  if(root.id===oldId){ setHostRoot(hostId,newNode); return; }
+  const p=findParent(root,oldId); if(!p) return;
+  p.children[p.children.findIndex(c=>c.id===oldId)]=newNode;
+}
+function pruneNode(hostId,nodeId){
+  const root=hostRoot(hostId); if(!root) return;
+  if(root.id===nodeId){
+    if(hostId==="dock") setHostRoot("dock",mkGroup([]));
+    else closeWindow(hostId);
+    return;
+  }
+  const p=findParent(root,nodeId); if(!p) return;
+  const i=p.children.findIndex(c=>c.id===nodeId);
+  p.children.splice(i,1); p.sizes.splice(i,1); normalize(p.sizes);
+  if(p.children.length===1) replaceNode(hostId,p.id,p.children[0]);
+}
+function detachTab(tabId){
+  const loc=groupOfTab(tabId); if(!loc) return null;
+  const g=loc.node, i=g.tabs.indexOf(tabId);
+  g.tabs.splice(i,1);
+  if(g.active===tabId) g.active=g.tabs[Math.min(i,g.tabs.length-1)]||null;
+  if(g.tabs.length===0) pruneNode(loc.hostId,g.id);
+  return loc;
+}
+function closeWindow(id){
+  const i=state.windows.findIndex(w=>w.id===id);
+  if(i>=0) state.windows.splice(i,1);
+}
+function makeWindow(node,x,y,w,h){
+  const win={id:uid("w"),x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h),
+             z:++state.zTop,root:node};
+  state.windows.push(win); return win;
+}
+
+/* ------------------------- trapezoidal tab geometry ------------------------- */
+const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
+const len=a=>Math.hypot(a[0],a[1]);
+const norm=a=>{const l=len(a)||1;return [a[0]/l,a[1]/l];};
+
+function roundedPath(pts, radii){
+  let d="", n=pts.length;
+  for(let i=0;i<n;i++){
+    const p0=pts[(i-1+n)%n], p=pts[i], p1=pts[(i+1)%n];
+    const v0=norm(sub(p0,p)), v1=norm(sub(p1,p));
+    const r=Math.min(radii[i], len(sub(p0,p))/2, len(sub(p1,p))/2);
+    if(r <= 0.1){
+      d += (i===0 ? `M${p[0].toFixed(2)},${p[1].toFixed(2)}` : ` L${p[0].toFixed(2)},${p[1].toFixed(2)}`);
+    } else {
+      const a=[p[0]+v0[0]*r, p[1]+v0[1]*r], b=[p[0]+v1[0]*r, p[1]+v1[1]*r];
+      d += (i===0 ? `M${a[0].toFixed(2)},${a[1].toFixed(2)}` : ` L${a[0].toFixed(2)},${a[1].toFixed(2)}`);
+      d += ` Q${p[0].toFixed(2)},${p[1].toFixed(2)} ${b[0].toFixed(2)},${b[1].toFixed(2)}`;
+    }
+  }
+  return d+"Z";
+}
+
+function tabPath(w, h){
+  const slant = Math.min(14, w * 0.16);
+  const radT = roundCorners ? 5 : 0;
+  const radB = 0;
+  if(!roundCorners){
+    return `M 0,${h} L ${slant},0 L ${w - slant},0 L ${w},${h} Z`;
+  }
+  return roundedPath([[0, h], [slant, 0], [w - slant, 0], [w, h]], [radB, radT, radT, radB]);
+}
+
+function updateTabShapes(){
+  document.querySelectorAll(".tab").forEach(t=>{
+    const r=t.getBoundingClientRect();
+    if(!r.width) return;
+    const svg=t.querySelector("svg"), p=svg.firstElementChild;
+    svg.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`);
+    p.setAttribute("d",tabPath(r.width,r.height));
+  });
+}
+
+/* ------------------------- rendering ------------------------- */
+function renderTab(tabId, group, index, totalTabs){
+  const t=tabs.get(tabId);
+  const isActive = group.active === tabId;
+  const e=el("div","tab" + (isActive ? " active" : ""));
+  e.dataset.tab=tabId;
+  
+  // Natural left-to-right stacking: 1st tab over 2nd, 2nd over 3rd; Active tab has top z-index (100)
+  e.style.zIndex = isActive ? 100 : (50 - index);
+  
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("class","shape"); 
+  svg.setAttribute("preserveAspectRatio","none");
+  svg.appendChild(document.createElementNS("http://www.w3.org/2000/svg","path"));
+  
+  const lbl=el("span","lbl"); 
+  lbl.textContent=t ? t.title : "—";
+  
+  const cls=el("button","tabclose"); 
+  cls.innerHTML="&#10005;"; 
+  cls.dataset.close=tabId;
+  cls.title="Close Tab";
+  
+  e.append(svg,lbl,cls);
+  return e;
+}
+
+function renderGroup(g,hostId){
+  const e=el("div","dock-group"+(state.focus===g.id?" focused":""));
+  e.dataset.node=g.id; e.dataset.host=hostId;
+  
+  // TOP TAB STRIP
+  const strip=el("div","tabstrip");
+  
+  // Caret (V) Button before the First Tab
+  const caretBtn=el("button","tab-caret-btn");
+  caretBtn.title="Add In-Viewport Panel";
+  caretBtn.innerHTML=`<svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+  
+  // Caret Dropdown Menu
+  const caretMenu=el("div","caret-menu");
+  
+  const mi1 = el("button","caret-menu-item");
+  mi1.textContent = "+ Add Sub-Panel";
+  mi1.onclick = (ev) => {
+    ev.stopPropagation();
+    caretMenu.classList.remove("show");
+    caretBtn.classList.remove("open");
+    if(g.active) addSubPanelToTab(g.active, "Panel");
+  };
+  
+  const mi2 = el("button","caret-menu-item");
+  mi2.textContent = "+ Add Rectangle Box";
+  mi2.onclick = (ev) => {
+    ev.stopPropagation();
+    caretMenu.classList.remove("show");
+    caretBtn.classList.remove("open");
+    if(g.active) addSubPanelToTab(g.active, "Box");
+  };
+  
+  const div = el("div","caret-menu-divider");
+  
+  const mi3 = el("button","caret-menu-item");
+  mi3.textContent = "Clear In-Viewport Panels";
+  mi3.onclick = (ev) => {
+    ev.stopPropagation();
+    caretMenu.classList.remove("show");
+    caretBtn.classList.remove("open");
+    if(g.active) clearSubPanelsForTab(g.active);
+  };
+  
+  caretMenu.append(mi1, mi2, div, mi3);
+  
+  caretBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    document.querySelectorAll(".caret-menu.show").forEach(m => {
+      if(m !== caretMenu) m.classList.remove("show");
+    });
+    document.querySelectorAll(".tab-caret-btn.open").forEach(b => {
+      if(b !== caretBtn) b.classList.remove("open");
+    });
+    caretMenu.classList.toggle("show");
+    caretBtn.classList.toggle("open");
+  };
+  
+  const scroll=el("div","tabscroll");
+  scroll.dataset.group=g.id;
+  
+  // Render wider sharp tabs with left-to-right z-order
+  g.tabs.forEach((id, idx) => scroll.appendChild(renderTab(id, g, idx, g.tabs.length)));
+  
+  // Rounded + Button
+  const addBtn = el("button", "tab-add-btn");
+  addBtn.innerHTML = "+";
+  addBtn.title = "Add Tab";
+  addBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    const newId = makeTab(`WORKSPACE ${tabs.size + 1}`);
+    g.tabs.push(newId);
+    g.active = newId;
+    state.focus = g.id;
+    render();
+  };
+  
+  strip.append(caretBtn, caretMenu, scroll, addBtn, el("div","baseline"));
+  
+  // VIEWPORT / PANEL BODY (OLED BLACK)
+  const body=el("div","panelbody");
+  const act=tabs.get(g.active);
+  if(act){
+    renderSubPanelsForTab(act);
+    body.appendChild(act.el);
+  } else { 
+    const em=el("div","empty"); 
+    em.textContent="EMPTY PANEL"; 
+    body.appendChild(em); 
+  }
+  
+  // EMPTY BOTTOM TAB / FOOTER (GREY BOX)
+  const footer=el("div", "panelfooter");
+  
+  e.append(strip, body, footer);
+  return e;
+}
+
+function renderNode(n,hostId){
+  if(n.type==="group") return renderGroup(n,hostId);
+  const e=el("div","split "+n.dir);
+  n.children.forEach((c,i)=>{
+    if(i){
+      const sp=el("div","splitter "+n.dir);
+      sp.dataset.split=n.id; sp.dataset.index=i-1; sp.dataset.host=hostId;
+      e.appendChild(sp);
+    }
+    const pane=el("div","pane");
+    pane.style.flexGrow=n.sizes[i]*100;
+    pane.appendChild(renderNode(c,hostId));
+    e.appendChild(pane);
+  });
+  return e;
+}
+
+function renderWindows(){
+  const layer=$("#floatlayer"); layer.innerHTML="";
+  state.windows.forEach(w=>{
+    const e=el("div","floatwin"); e.dataset.win=w.id;
+    e.style.left=w.x+"px"; e.style.top=w.y+"px";
+    e.style.width=w.w+"px"; e.style.height=w.h+"px"; e.style.zIndex=w.z;
+    
+    const body=el("div","winbody");
+    body.appendChild(renderNode(w.root,w.id));
+    e.append(body);
+    
+    ["n","s","e","w","ne","nw","se","sw"].forEach(d=>{
+      const h=el("div","rz rz-"+d); h.dataset.rz=d; e.appendChild(h);
+    });
+    layer.appendChild(e);
+  });
+}
+
+function isWorkspaceEmpty(){
+  if(state.windows.length > 0) return false;
+  if(!state.dock) return true;
+  const allTabs = flattenTabs(state.dock);
+  return allTabs.length === 0;
+}
+
+function render(){
+  const host=$("#dockhost"); host.innerHTML="";
+  
+  if(isWorkspaceEmpty()){
+    // Render Centered + Button when there are no workspaces
+    const emptyBox = el("div", "workspace-empty-center");
+    const addBtn = el("button", "center-add-workspace-btn");
+    addBtn.innerHTML = "+";
+    addBtn.title = "Create New Workspace";
+    addBtn.onclick = () => {
+      const newId = makeTab("WORKSPACE 1");
+      state.dock = mkGroup([newId]);
+      state.focus = state.dock.id;
+      render();
+    };
+    const lbl = el("span", "center-add-label");
+    lbl.textContent = "Click to Add Workspace";
+    emptyBox.append(addBtn, lbl);
+    host.appendChild(emptyBox);
+  } else {
+    host.appendChild(renderNode(state.dock,"dock"));
+  }
+  
+  renderWindows();
+  updateTabShapes();
+}
+
+// Global click listener to dismiss caret menus
+document.addEventListener("pointerdown", e => {
+  if(!e.target.closest(".tab-caret-btn") && !e.target.closest(".caret-menu")){
+    document.querySelectorAll(".caret-menu.show").forEach(m => m.classList.remove("show"));
+    document.querySelectorAll(".tab-caret-btn.open").forEach(b => b.classList.remove("open"));
+  }
+});
+
+/* ------------------------- drag machinery ------------------------- */
+let drag=null, snapshot=[], cross=null, rootZones=[], ov={};
+
+function buildSnapshot(excludeWin){
+  const list=[];
+  [...state.windows].sort((a,b)=>b.z-a.z).forEach(w=>{
+    if(w.id===excludeWin) return;
+    const e=document.querySelector(`.floatwin[data-win="${w.id}"]`);
+    if(e) list.push({hostId:w.id,rect:e.getBoundingClientRect(),groups:collectGroups(w.id)});
+  });
+  list.push({hostId:"dock",isDock:true,rect:$("#dockhost").getBoundingClientRect(),
+             groups:collectGroups("dock")});
+  return list;
+}
+
+function collectGroups(hostId){
+  return [...document.querySelectorAll(`.dock-group[data-host="${hostId}"]`)].map(e=>({
+    id:e.dataset.node,
+    rect:e.getBoundingClientRect(),
+    strip:e.querySelector(".tabstrip").getBoundingClientRect(),
+    tabs:[...e.querySelectorAll(".tab")].map(t=>({id:t.dataset.tab,rect:t.getBoundingClientRect()}))
+  }));
+}
+
+function zoneEl(zone,size){
+  const z=el("div","zone"); z.style.width=size+"px"; z.style.height=size+"px";
+  const i=el("i");
+  const m=Math.round(size*0.30), f=Math.round(size*0.56);
+  if(zone==="center"){ i.style.width=f+"px"; i.style.height=f+"px"; }
+  else if(zone==="left"||zone==="right"){ i.style.width=m+"px"; i.style.height=f+"px"; i.style.marginRight=(zone==="left"?m:-m)+"px"; }
+  else { i.style.height=m+"px"; i.style.width=f+"px"; i.style.marginBottom=(zone==="top"?m:-m)+"px"; }
+  z.appendChild(i); return z;
+}
+
+function makeCross(g,hostId){
+  clearCross();
+  const size=clamp(Math.min(g.rect.width,g.rect.height)/5,22,36);
+  const gap=5, cx=g.rect.left+g.rect.width/2, cy=g.rect.top+g.rect.height/2;
+  const defs=[["center",0,0],["left",-1,0],["right",1,0],["top",0,-1],["bottom",0,1]];
+  const buttons=[];
+  defs.forEach(([zone,dx,dy])=>{
+    const e=zoneEl(zone,size);
+    const x=cx+dx*(size+gap)-size/2, y=cy+dy*(size+gap)-size/2;
+    e.style.left=x+"px"; e.style.top=y+"px";
+    $("#overlay").appendChild(e);
+    buttons.push({zone,el:e,rect:{left:x,top:y,right:x+size,bottom:y+size}});
+  });
+  cross={group:g.id,host:hostId,buttons,rect:g.rect};
+}
+
+function clearCross(){ if(cross){ cross.buttons.forEach(b=>b.el.remove()); cross=null; } }
+
+function makeRootZones(){
+  const r=$("#dockhost").getBoundingClientRect(), s=34, m=14;
+  const defs=[["left",r.left+m,r.top+r.height/2-s/2],
+              ["right",r.right-m-s,r.top+r.height/2-s/2],
+              ["top",r.left+r.width/2-s/2,r.top+m],
+              ["bottom",r.left+r.width/2-s/2,r.bottom-m-s]];
+  rootZones=defs.map(([zone,x,y])=>{
+    const e=zoneEl(zone,s); e.style.left=x+"px"; e.style.top=y+"px";
+    e.style.borderStyle="dashed";
+    $("#overlay").appendChild(e);
+    return {zone,el:e,rect:{left:x,top:y,right:x+s,bottom:y+s}};
+  });
+}
+function clearRootZones(){ rootZones.forEach(z=>z.el.remove()); rootZones=[]; }
+
+function insertIndex(g,x,skipTab){
+  let idx=0;
+  for(const t of g.tabs){
+    if(skipTab && t.id===skipTab) { idx++; continue; }
+    if(x > t.rect.left + t.rect.width/2) idx++; else break;
+  }
+  return Math.min(idx,g.tabs.length);
+}
+
+function hitTest(x,y){
+  const topHost=snapshot.find(h=>inRect(h.rect,x,y))||null;
+  if(cross && topHost && cross.host===topHost.hostId)
+    for(const b of cross.buttons)
+      if(inRect(b.rect,x,y)) return {type:"zone",zone:b.zone,host:cross.host,group:cross.group};
+  if(!topHost||topHost.isDock)
+    for(const b of rootZones)
+      if(inRect(b.rect,x,y)) return {type:"zone",zone:b.zone,host:"dock",group:null};
+  if(!topHost) return {type:"none"};
+  for(const g of topHost.groups){
+    if(!inRect(g.rect,x,y)) continue;
+    if(inRect(g.strip,x,y))
+      return {type:"tabs",host:topHost.hostId,group:g.id,
+              index:insertIndex(g,x,drag.kind==="tab"?drag.tabId:null),g};
+    return {type:"over",host:topHost.hostId,group:g.id,g};
+  }
+  return {type:"host",host:topHost.hostId};
+}
+
+function zoneRect(base,zone){
+  const {left:l,top:t,width:w,height:h}=base;
+  switch(zone){
+    case "left":   return {left:l,top:t,width:w/2,height:h};
+    case "right":  return {left:l+w/2,top:t,width:w/2,height:h};
+    case "top":    return {left:l,top:t,width:w,height:h/2};
+    case "bottom": return {left:l,top:t+h/2,width:w,height:h/2};
+    default:       return {left:l,top:t,width:w,height:h};
+  }
+}
+
+function rootRectFor(zone){
+  const r=$("#dockhost").getBoundingClientRect();
+  const b={left:r.left,top:r.top,width:r.width,height:r.height};
+  const f=0.28;
+  switch(zone){
+    case "left":   return {left:b.left,top:b.top,width:b.width*f,height:b.height};
+    case "right":  return {left:b.left+b.width*(1-f),top:b.top,width:b.width*f,height:b.height};
+    case "top":    return {left:b.left,top:b.top,width:b.width,height:b.height*f};
+    default:       return {left:b.left,top:b.top+b.height*(1-f),width:b.width,height:b.height*f};
+  }
+}
+
+function showPreview(r,dashed){
+  const p=ov.preview;
+  p.style.display="block";
+  p.classList.toggle("dash",!!dashed);
+  p.style.left=r.left+"px"; p.style.top=r.top+"px";
+  p.style.width=r.width+"px"; p.style.height=r.height+"px";
+}
+function hidePreview(){ ov.preview.style.display="none"; ov.insline.style.display="none"; }
+
+function updateFeedback(t,x,y){
+  ov.insline.style.display="none";
+  rootZones.forEach(z=>z.el.classList.remove("hot"));
+  if(cross) cross.buttons.forEach(b=>b.el.classList.remove("hot"));
+
+  if((t.type==="over"||t.type==="tabs") && (!cross||cross.group!==t.group)) makeCross(t.g,t.host);
+  if(t.type==="none"||t.type==="host") clearCross();
+
+  if(t.type==="zone"){
+    const src = cross&&cross.group===t.group ? cross : null;
+    (t.group?cross.buttons:rootZones).forEach(b=>{ if(b.zone===t.zone) b.el.classList.add("hot"); });
+    if(t.group){
+      const g=snapshot.flatMap(h=>h.groups).find(g=>g.id===t.group);
+      showPreview(zoneRect(g?g.rect:cross.rect,t.zone));
+    } else showPreview(rootRectFor(t.zone));
+    setHint("DOCK");
+    return;
+  }
+  if(t.type==="tabs"){
+    const g=snapshot.flatMap(h=>h.groups).find(g=>g.id===t.group);
+    showPreview({left:g.strip.left,top:g.strip.top,width:g.strip.width,height:g.strip.height});
+    let lx=g.strip.left+7;
+    const visible=g.tabs.filter(tb=>!(drag.kind==="tab"&&tb.id===drag.tabId));
+    if(visible.length){
+      const i=clamp(t.index,0,visible.length);
+      lx = i>=visible.length ? visible[visible.length-1].rect.right-6 : visible[i].rect.left+2;
+    }
+    ov.insline.style.display="block";
+    ov.insline.style.left=lx+"px";
+    ov.insline.style.top=(g.strip.top+5)+"px";
+    ov.insline.style.height=(g.strip.height-8)+"px";
+    setHint("INSERT");
+    return;
+  }
+  hidePreview();
+  if(drag.kind==="tab"){
+    showPreview({left:x-40,top:y-14,width:380,height:260},true);
+    setHint("RELEASE TO FLOAT");
+  } else setHint("MOVE");
+}
+function setHint(txt){ if(ov.hint) ov.hint.textContent=txt; }
+
+/* ---- start drags ---- */
+function beginOverlay(excludeWin){
+  snapshot=buildSnapshot(excludeWin);
+  ov.preview=el("div","preview"); ov.preview.style.display="none";
+  ov.insline=el("div","insline"); ov.insline.style.display="none";
+  $("#overlay").append(ov.preview,ov.insline);
+  makeRootZones();
+  document.body.classList.add("dragging");
+}
+function endOverlay(){
+  clearCross(); clearRootZones();
+  Object.values(ov).forEach(e=>e&&e.remove&&e.remove());
+  ov={}; snapshot=[];
+  document.body.classList.remove("dragging");
+}
+
+function startTabDrag(ev,tabEl){
+  const grp=tabEl.closest(".dock-group");
+  const r=tabEl.getBoundingClientRect();
+  drag={kind:"tab",tabId:tabEl.dataset.tab,groupId:grp.dataset.node,hostId:grp.dataset.host,
+        sx:ev.clientX,sy:ev.clientY,gx:ev.clientX-r.left,gy:ev.clientY-r.top,
+        w:r.width,h:r.height,armed:false};
+  bindDrag();
+}
+
+function armTabDrag(){
+  drag.armed=true;
+  const g=el("div","ghost");
+  const holder=el("div"); holder.style.width=drag.w+"px"; holder.style.height=drag.h+"px";
+  const fake=renderTab(drag.tabId,{active:drag.tabId}, 0, 1);
+  fake.classList.add("active");
+  fake.style.width=drag.w+"px"; fake.style.height=drag.h+"px";
+  holder.appendChild(fake);
+  ov.hint=el("div","hint"); ov.hint.textContent="";
+  g.append(holder,ov.hint);
+  ov.ghost=g; $("#overlay").appendChild(g);
+  fake.querySelector("svg").setAttribute("viewBox",`0 0 ${drag.w} ${drag.h}`);
+  fake.querySelector("path").setAttribute("d",tabPath(drag.w,drag.h));
+  beginOverlay(null);
+}
+
+function startWindowDrag(ev,winEl){
+  const w=getWin(winEl.dataset.win);
+  drag={kind:"window",winId:w.id,el:winEl,
+        ox:ev.clientX-w.x,oy:ev.clientY-w.y,armed:true};
+  ov.hint=el("div","hint");
+  ov.hint.style.position="absolute"; ov.hint.style.pointerEvents="none";
+  $("#overlay").appendChild(ov.hint);
+  beginOverlay(w.id);
+  bindDrag();
+}
+
+function startResize(ev,winEl,dir){
+  const w=getWin(winEl.dataset.win);
+  drag={kind:"resize",winId:w.id,el:winEl,dir,sx:ev.clientX,sy:ev.clientY,
+        x0:w.x,y0:w.y,w0:w.w,h0:w.h,armed:true};
+  bindDrag();
+}
+
+function startSplitDrag(ev,sp){
+  const hostId=sp.dataset.host;
+  const node=findNode(hostRoot(hostId),sp.dataset.split);
+  if(!node) return;
+  const i=+sp.dataset.index, splitEl=sp.parentElement;
+  const r=splitEl.getBoundingClientRect(), horiz=node.dir==="row";
+  const total=(horiz?r.width:r.height)-(node.children.length-1)*SPLITTER;
+  const panes=[...splitEl.children].filter(c=>c.classList.contains("pane"));
+  sp.classList.add("act");
+  document.body.classList.add(horiz?"rs-col":"rs-row");
+  drag={kind:"split",node,i,total,horiz,start:horiz?ev.clientX:ev.clientY,
+        s0:node.sizes[i],s1:node.sizes[i+1],panes,sp,armed:true};
+  bindDrag();
+}
+
+function bindDrag(){
+  window.addEventListener("pointermove",onDragMove,true);
+  window.addEventListener("pointerup",onDragUp,true);
+  window.addEventListener("keydown",onDragKey,true);
+}
+function unbindDrag(){
+  window.removeEventListener("pointermove",onDragMove,true);
+  window.removeEventListener("pointerup",onDragUp,true);
+  window.removeEventListener("keydown",onDragKey,true);
+}
+function onDragKey(e){ if(e.key==="Escape"){ cancelDrag(); } }
+function cancelDrag(){
+  if(!drag) return;
+  if(drag.kind==="split"){ drag.sp.classList.remove("act"); }
+  endOverlay(); unbindDrag();
+  document.body.classList.remove("rs-col","rs-row");
+  drag=null; render();
+}
+
+function onDragMove(e){
+  if(!drag) return;
+  e.preventDefault();
+  const x=e.clientX, y=e.clientY;
+
+  if(drag.kind==="split"){
+    const d=((drag.horiz?x:y)-drag.start)/drag.total;
+    let a=drag.s0+d, b=drag.s1-d, min=0.05;
+    if(a<min){b-=(min-a);a=min;} if(b<min){a-=(min-b);b=min;}
+    drag.node.sizes[drag.i]=a; drag.node.sizes[drag.i+1]=b;
+    drag.panes[drag.i].style.flexGrow=a*100;
+    drag.panes[drag.i+1].style.flexGrow=b*100;
+    return;
+  }
+  if(drag.kind==="resize"){
+    const w=getWin(drag.winId); if(!w) return;
+    const dx=x-drag.sx, dy=y-drag.sy, MIN_W=240, MIN_H=150;
+    let nx=drag.x0, ny=drag.y0, nw=drag.w0, nh=drag.h0;
+    if(drag.dir.includes("e")) nw=Math.max(MIN_W,drag.w0+dx);
+    if(drag.dir.includes("s")) nh=Math.max(MIN_H,drag.h0+dy);
+    if(drag.dir.includes("w")){ nw=Math.max(MIN_W,drag.w0-dx); nx=drag.x0+(drag.w0-nw); }
+    if(drag.dir.includes("n")){ nh=Math.max(MIN_H,drag.h0-dy); ny=drag.y0+(drag.h0-nh); }
+    Object.assign(w,{x:nx,y:ny,w:nw,h:nh});
+    drag.el.style.left=nx+"px"; drag.el.style.top=ny+"px";
+    drag.el.style.width=nw+"px"; drag.el.style.height=nh+"px";
+    updateTabShapes();
+    return;
+  }
+  if(drag.kind==="tab" && !drag.armed){
+    if(Math.hypot(x-drag.sx,y-drag.sy)<5) return;
+    armTabDrag();
+  }
+  if(drag.kind==="tab"){
+    ov.ghost.style.transform=`translate(${x-drag.gx}px,${y-drag.gy}px)`;
+  }
+  if(drag.kind==="window"){
+    const w=getWin(drag.winId); if(!w) return;
+    w.x=Math.round(clamp(x-drag.ox,-w.w+90,window.innerWidth-90));
+    w.y=Math.round(clamp(y-drag.oy,0,window.innerHeight-30));
+    drag.el.style.left=w.x+"px"; drag.el.style.top=w.y+"px";
+    ov.hint.style.left=(x+16)+"px"; ov.hint.style.top=(y+16)+"px";
+  }
+  const t=hitTest(x,y);
+  drag.target=t; drag.px=x; drag.py=y;
+  updateFeedback(t,x,y);
+}
+
+function onDragUp(e){
+  if(!drag) return;
+  const d=drag;
+  unbindDrag();
+  if(d.kind==="split"){ d.sp.classList.remove("act"); document.body.classList.remove("rs-col","rs-row");
+    drag=null; updateTabShapes(); return; }
+  if(d.kind==="resize"){ drag=null; return; }
+  if(d.kind==="tab" && !d.armed){ drag=null; return; }
+  const t=d.target||{type:"none"};
+  endOverlay();
+  drag=null;
+  performDrop(d,t,e.clientX,e.clientY);
+  render();
+}
+
+/* ------------------------- drop resolution ------------------------- */
+function dockToRoot(hostId,node,zone){
+  const root=hostRoot(hostId);
+  if(!root || (root.type==="group" && root.tabs.length===0)){ setHostRoot(hostId,node); return; }
+  const dir=(zone==="left"||zone==="right")?"row":"col";
+  const first=(zone==="left"||zone==="top");
+  setHostRoot(hostId, mkSplit(dir, first?[node,root]:[root,node], first?[0.28,0.72]:[0.72,0.28]));
+}
+
+function dockNode(node,t){
+  if(!t.group){ dockToRoot(t.host,node,t.zone); return; }
+  const loc=findGroupLoc(t.group);
+  if(!loc){ dockToRoot(t.host,node,t.zone==="center"?"right":t.zone); return; }
+  if(t.zone==="center"){
+    const ids=flattenTabs(node);
+    loc.node.tabs.push(...ids);
+    loc.node.active=ids[ids.length-1];
+    return;
+  }
+  const dir=(t.zone==="left"||t.zone==="right")?"row":"col";
+  const first=(t.zone==="left"||t.zone==="top");
+  const split=mkSplit(dir, first?[node,loc.node]:[loc.node,node],[0.5,0.5]);
+  replaceNode(loc.hostId,loc.node.id,split);
+}
+
+function floatNode(node,x,y,w,h){
+  const win=makeWindow(node,clamp(x,4,window.innerWidth-140),clamp(y,4,window.innerHeight-90),
+                       w||420,h||300);
+  state.focus=(node.type==="group")?node.id:null;
+  return win;
+}
+
+function performDrop(d,t,x,y){
+  if(d.kind==="tab"){
+    const tabId=d.tabId, src=findGroupById(d.groupId);
+    if(t.type==="tabs"){
+      if(src && src.id===t.group){
+        const old=src.tabs.indexOf(tabId);
+        let idx=clamp(t.index,0,src.tabs.length-1);
+        src.tabs.splice(old,1); src.tabs.splice(idx,0,tabId); src.active=tabId;
+        return;
+      }
+      detachTab(tabId);
+      const g=findGroupById(t.group);
+      if(g){ g.tabs.splice(clamp(t.index,0,g.tabs.length),0,tabId); g.active=tabId; state.focus=g.id; }
+      else floatNode(mkGroup([tabId]),x-30,y-14,420,300);
+      return;
+    }
+    if(t.type==="zone"){
+      if(src && src.id===t.group && src.tabs.length===1) return;
+      detachTab(tabId);
+      const ng=mkGroup([tabId]);
+      dockNode(ng,t); state.focus=ng.id;
+      return;
+    }
+    if(src && src.tabs.length===1 && d.hostId!=="dock"){
+      const w=getWin(d.hostId);
+      if(w && w.root.type==="group" && w.root.id===src.id){
+        w.x=Math.round(x-d.gx-6); w.y=Math.round(y-d.gy-30);
+        return;
+      }
+    }
+    detachTab(tabId);
+    floatNode(mkGroup([tabId]),x-d.gx-6,y-d.gy-30,
+              Math.max(420,d.w+180),300);
+    return;
+  }
+
+  if(d.kind==="window"){
+    const w=getWin(d.winId); if(!w) return;
+    if(t.type==="zone"){
+      const node=w.root; closeWindow(w.id); dockNode(node,t);
+      state.focus=node.type==="group"?node.id:null;
+    } else if(t.type==="tabs"){
+      const ids=flattenTabs(w.root); closeWindow(w.id);
+      const g=findGroupById(t.group);
+      if(g){ g.tabs.splice(clamp(t.index,0,g.tabs.length),0,...ids); g.active=ids[ids.length-1]; }
+      else floatNode(mkGroup(ids),x,y,420,300);
+    }
+  }
+}
+
+/* ------------------------- input routing ------------------------- */
+document.addEventListener("pointerdown",e=>{
+  if(drag) return;
+  const winEl=e.target.closest(".floatwin");
+  if(winEl) focusWindow(winEl.dataset.win);
+
+  const rz=e.target.closest("[data-rz]");
+  if(rz && winEl){ e.preventDefault(); startResize(e,winEl,rz.dataset.rz); return; }
+
+  const cl=e.target.closest("[data-close]");
+  if(cl){ e.preventDefault(); detachTab(cl.dataset.close); render(); return; }
+
+  const sp=e.target.closest(".splitter");
+  if(sp){ e.preventDefault(); startSplitDrag(e,sp); return; }
+
+  const tabEl=e.target.closest(".tab");
+  if(tabEl){
+    e.preventDefault();
+    const grp=tabEl.closest(".dock-group");
+    const g=findGroupById(grp.dataset.node);
+    startTabDrag(e,tabEl);
+    if(g && g.active!==tabEl.dataset.tab){ g.active=tabEl.dataset.tab; state.focus=g.id; render(); }
+    else if(g && state.focus!==g.id){ state.focus=g.id; render(); }
+    return;
+  }
+
+  if(winEl && e.target.closest(".tabstrip") && !e.target.closest(".tab-add-btn") && !e.target.closest(".tab-caret-btn")){
+    e.preventDefault();
+    startWindowDrag(e, winEl);
+    return;
+  }
+
+  const grp=e.target.closest(".dock-group");
+  if(grp && state.focus!==grp.dataset.node){ state.focus=grp.dataset.node; render(); }
+},true);
+
+function focusWindow(id){
+  const w=getWin(id); if(!w) return;
+  if(w.z===state.zTop) return;
+  w.z=++state.zTop;
+  const e=document.querySelector(`.floatwin[data-win="${id}"]`);
+  if(e) e.style.zIndex=w.z;
+}
+
+window.addEventListener("resize",()=>{
+  state.windows.forEach(w=>{
+    w.x=clamp(w.x,-w.w+90,window.innerWidth-90);
+    w.y=clamp(w.y,0,window.innerHeight-30);
+  });
+  render();
+});
+
+window.addEventListener("contextmenu",e=>{ if(e.target.closest(".tab")) e.preventDefault(); });
+
+/* ------------------------- initial layout ------------------------- */
+function resetLayout(){
+  tabs.clear();
+  state.windows = [];
+  
+  // Start with 1 tab named Workspace 1
+  const tab1 = makeTab("WORKSPACE 1");
+  state.dock = mkGroup([tab1]);
+  state.focus = state.dock.id;
+  render();
+}
+
+(function init(){
+  resetLayout();
+})();
+</script>
+</body>
+</html>

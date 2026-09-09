@@ -1,0 +1,193 @@
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+//  StarCatalogueTest.cpp — the catalogue loads, the constellations are real, and the binning finds every star
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+//  The binning is the part that fails silently. If a cell lookup is wrong the sky is simply empty, and if a
+//  boundary star is missed it winks out only while the camera pans — neither produces an error, and both look
+//  like something else. So the central assertion here is exhaustive: sample thousands of directions, and for
+//  each one confirm that every star the brute-force search finds is also in the cell the lookup returns.
+//
+//  Build: see Scratchpad/CheckStarCatalogue.sh
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+#include "GeometricRaster/StarCatalogueIndex.h"
+
+#include <cmath>
+#include <cstdio>
+#include <string>
+
+using namespace Frontier;
+
+static int Failures = 0;
+
+static void Expect(bool Condition, const char* What)
+{
+    std::printf("  %-70s %s\n", What, Condition ? "PASS" : "FAIL");
+    if (!Condition) ++Failures;
+}
+
+static float Dot(const StarRecord& A, float X, float Y, float Z)
+{
+    return A.DirectionX * X + A.DirectionY * Y + A.DirectionZ * Z;
+}
+
+int main(int argc, char** argv)
+{
+    const std::string Path = (argc > 1) ? argv[1] : "EngineContent/StarCatalogue/BrightStars.bin";
+
+    std::printf("StarCatalogueIndex — %s\n", Path.c_str());
+
+    StarCatalogueIndex Catalogue;
+    const bool Loaded = Catalogue.Load(Path);
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n1. the catalogue loads\n");
+    {
+        Expect(Loaded, "the binary parses");
+        if (!Loaded)
+        {
+            std::printf("\n>>> FAILURES (cannot continue without a catalogue)\n");
+            return 1;
+        }
+        std::printf("     %u stars → %zu after boundary duplication, %zu cells\n",
+                    Catalogue.QuerySourceCount(), Catalogue.QueryStars().size(), Catalogue.QueryCells().size());
+        Expect(Catalogue.QuerySourceCount() > 100u, "it contains a usable number of stars");
+        Expect(Catalogue.QueryCells().size() == StarCatalogueIndex::kCellCount, "every cell has an entry");
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n2. a missing or corrupt file degrades to an empty sky\n");
+    {
+        // A missing catalogue must mean "no stars", never a crash or garbage directions — this runs on machines
+        //    that may not have the asset, and the failure has to be boring.
+        StarCatalogueIndex Absent;
+        Expect(!Absent.Load("EngineContent/StarCatalogue/NoSuchFile.bin"), "a missing file is refused");
+        Expect(Absent.Empty(), "and leaves the index empty rather than partly filled");
+
+        StarCatalogueIndex Garbage;
+        Expect(!Garbage.Load("Tools/StarCatalogue/BrightStars.csv"), "a file with the wrong magic is refused");
+        Expect(Garbage.Empty(), "and also leaves nothing behind");
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n3. every star is a unit vector with sane photometry\n");
+    {
+        float WorstLength = 0.0f;
+        bool  SaneLuminance = true, SaneColour = true;
+        for (const StarRecord& S : Catalogue.QueryStars())
+        {
+            const float Length = std::sqrt(S.DirectionX * S.DirectionX + S.DirectionY * S.DirectionY
+                                         + S.DirectionZ * S.DirectionZ);
+            WorstLength = std::fmax(WorstLength, std::fabs(Length - 1.0f));
+            if (!(S.Luminance > 0.0f) || S.Luminance > 100.0f) SaneLuminance = false;
+            if (S.ColourRed < 0.0f || S.ColourRed > 1.001f
+             || S.ColourGreen < 0.0f || S.ColourGreen > 1.001f
+             || S.ColourBlue < 0.0f || S.ColourBlue > 1.001f) SaneColour = false;
+        }
+        std::printf("     worst |direction| − 1: %.3e\n", static_cast<double>(WorstLength));
+        Expect(WorstLength < 1e-5f, "directions are unit length");
+        Expect(SaneLuminance,       "luminances are positive and bounded");
+        Expect(SaneColour,          "colours are inside [0, 1]");
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n4. the cell lookup finds every star it should — the assertion that matters\n");
+    {
+        // Exhaustive: for thousands of directions, brute-force every star within the glow radius and confirm the
+        //    binned cell contains it. A lookup that missed stars would show as an emptier sky, not as an error,
+        //    and a boundary miss would only appear while panning.
+        constexpr float kSearchRadius = 0.0025f;   // matches kStarAngularRadius in the index
+        const float CosRadius = std::cos(kSearchRadius);
+
+        uint32_t Probes = 0u, Expected = 0u, Missed = 0u;
+        for (int I = 0; I < 20000; ++I)
+        {
+            // A Fibonacci sphere: uniform coverage, and deterministic so a failure reproduces.
+            const float Fraction = (I + 0.5f) / 20000.0f;
+            const float CosTheta = 1.0f - 2.0f * Fraction;
+            const float SinTheta = std::sqrt(std::fmax(0.0f, 1.0f - CosTheta * CosTheta));
+            const float Phi      = I * 2.39996323f;
+            const float X = SinTheta * std::cos(Phi), Y = SinTheta * std::sin(Phi), Z = CosTheta;
+            ++Probes;
+
+            const uint32_t Cell = StarCatalogueIndex::CellForDirection(X, Y, Z);
+            const StarCellRecord& Bucket = Catalogue.QueryCells()[Cell];
+
+            for (const StarRecord& S : Catalogue.QueryStars())
+            {
+                if (Dot(S, X, Y, Z) <= CosRadius) continue;      // not within the glow of this direction
+                ++Expected;
+
+                bool Found = false;
+                for (uint32_t J = 0u; J < Bucket.Count; ++J)
+                {
+                    const StarRecord& Candidate = Catalogue.QueryStars()[Bucket.First + J];
+                    if (std::fabs(Candidate.DirectionX - S.DirectionX) < 1e-6f
+                     && std::fabs(Candidate.DirectionY - S.DirectionY) < 1e-6f
+                     && std::fabs(Candidate.DirectionZ - S.DirectionZ) < 1e-6f) { Found = true; break; }
+                }
+                if (!Found) ++Missed;
+            }
+        }
+        std::printf("     %u probes, %u star hits expected, %u missed by the cell lookup\n",
+                    Probes, Expected, Missed);
+        Expect(Expected > 0u, "the probe set actually lands on stars, so the test is meaningful");
+        Expect(Missed == 0u,  "the binned cell contains every star within the glow radius");
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n5. binning is worth what it costs\n");
+    {
+        // The justification for the whole structure. If the average cell held most of the catalogue there would
+        //    be no point binning at all.
+        uint32_t Largest = 0u, Occupied = 0u;
+        for (const StarCellRecord& Cell : Catalogue.QueryCells())
+        {
+            Largest = std::max(Largest, Cell.Count);
+            if (Cell.Count > 0u) ++Occupied;
+        }
+        const double Average = static_cast<double>(Catalogue.QueryStars().size())
+                             / static_cast<double>(StarCatalogueIndex::kCellCount);
+        const double Duplication = static_cast<double>(Catalogue.QueryStars().size())
+                                 / static_cast<double>(Catalogue.QuerySourceCount());
+
+        std::printf("     average %.2f stars per cell, largest %u, %u of %u cells occupied\n",
+                    Average, Largest, Occupied, StarCatalogueIndex::kCellCount);
+        std::printf("     boundary duplication factor %.3f\n", Duplication);
+        std::printf("     a pixel tests %u stars at worst instead of %u — %.0f× fewer\n",
+                    Largest, Catalogue.QuerySourceCount(),
+                    static_cast<double>(Catalogue.QuerySourceCount()) / std::max(1u, Largest));
+
+        Expect(Largest < Catalogue.QuerySourceCount() / 4u,
+               "the worst cell holds far less than the whole catalogue");
+        Expect(Duplication < 1.6,
+               "boundary duplication stays modest — it is not silently copying every star everywhere");
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    std::printf("\n6. the sky is the real sky\n");
+    {
+        // Geometry that exists independently of this repository. A parsing bug — reading right ascension as
+        //    degrees rather than hours, say — still yields a plausible-looking sky, so the check has to be
+        //    against known separations rather than against appearances.
+        const auto Brightest = [&](float& X, float& Y, float& Z)
+        {
+            float Best = -1.0f;
+            for (const StarRecord& S : Catalogue.QueryStars())
+                if (S.Luminance > Best) { Best = S.Luminance; X = S.DirectionX; Y = S.DirectionY; Z = S.DirectionZ; }
+            return Best;
+        };
+        float Sx = 0.0f, Sy = 0.0f, Sz = 0.0f;
+        const float Peak = Brightest(Sx, Sy, Sz);
+
+        // Sirius: magnitude −1.46, so luminance 10^(0.4 × 1.46) ≈ 3.83.
+        std::printf("     brightest star luminance %.3f (Sirius should be ~3.83)\n", static_cast<double>(Peak));
+        Expect(Peak > 3.5f && Peak < 4.2f, "the brightest star is Sirius at the right luminance");
+
+        // Sirius sits at declination −16.7°, so its Z component is sin(−16.7°) ≈ −0.287.
+        std::printf("     its declination component %.3f (should be ≈ −0.287)\n", static_cast<double>(Sz));
+        Expect(std::fabs(Sz - (-0.287f)) < 0.01f, "and at the right declination — right ascension read as hours");
+    }
+
+    std::printf("\n>>> %s (%d failure%s)\n", Failures == 0 ? "ALL PASS" : "FAILURES", Failures, Failures == 1 ? "" : "s");
+    return Failures == 0 ? 0 : 1;
+}

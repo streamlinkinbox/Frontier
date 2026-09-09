@@ -1,0 +1,87 @@
+ShadingTableCodec::Bake  Energy 32x32 RGBA32F (A, B, E_avg), Sheen 32x32 RGBA32F
+  E_ss(mu, alpha): mu=0.98 a=0.02 -> 0.9997 | mu=0.5 a=0.25 -> 0.8575 | mu=0.5 a=1 -> 0.4574 | mu=0.1 a=1 -> 0.7643 | E_avg(a=1) 0.4162
+  LUT E_ss(mu=0.5, a=1) vs raw slang GGX quadrature            0.45740  (want 0.4507 +-0.0100)  PASS
+  LUT E_ss(mu=0.15, a=0.49) vs raw slang GGX quadrature        0.82355  (want 0.8231 +-0.0100)  PASS
+
+[1] EON furnace (specular off): white base -> 1.0 within 0.5%; base 0.8 -> paper's closed-form E_EON within 0.5%
+    (for rho < 1 and r > 0 EON is darker than rho by design: multiple scattering absorbs, rho_ms ~ rho^2)
+  EON white r=0.0 mu=0.95  albedo                              0.99995  (want 1.0000 +-0.0050)  PASS
+  EON white r=0.0 mu=0.50  albedo                              0.99995  (want 1.0000 +-0.0050)  PASS
+  EON white r=0.0 mu=0.15  albedo                              0.99995  (want 1.0000 +-0.0050)  PASS
+  EON white r=0.5 mu=0.95  albedo                              0.99970  (want 1.0000 +-0.0050)  PASS
+  EON white r=0.5 mu=0.50  albedo                              0.99992  (want 1.0000 +-0.0050)  PASS
+  EON white r=0.5 mu=0.15  albedo                              1.00008  (want 1.0000 +-0.0050)  PASS
+  EON white r=1.0 mu=0.95  albedo                              0.99946  (want 1.0000 +-0.0050)  PASS
+  EON white r=1.0 mu=0.50  albedo                              0.99987  (want 1.0000 +-0.0050)  PASS
+  EON white r=1.0 mu=0.15  albedo                              1.00015  (want 1.0000 +-0.0050)  PASS
+  EON 0.8 r=0.5 mu=0.95  albedo vs E_EON                       0.77830  (want 0.7785 +-0.0040)  PASS
+  EON 0.8 r=0.5 mu=0.50  albedo vs E_EON                       0.78684  (want 0.7869 +-0.0040)  PASS
+  EON 0.8 r=0.5 mu=0.15  albedo vs E_EON                       0.79624  (want 0.7962 +-0.0040)  PASS
+  EON 0.8 r=1.0 mu=0.95  albedo vs E_EON                       0.75888  (want 0.7593 +-0.0040)  PASS
+  EON 0.8 r=1.0 mu=0.50  albedo vs E_EON                       0.77504  (want 0.7751 +-0.0040)  PASS
+  EON 0.8 r=1.0 mu=0.15  albedo vs E_EON                       0.79287  (want 0.7927 +-0.0040)  PASS
+
+[2] GGX white furnace (metal, F0 = 1): compensated == 1.0 within 1%; raw single-scatter shown for loss
+  metal F0=1 r=0.3 mu=0.95  (raw 0.990)                        1.00038  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=0.3 mu=0.50  (raw 0.975)                        1.00050  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=0.3 mu=0.15  (raw 0.895)                        0.99635  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=0.7 mu=0.95  (raw 0.695)                        0.99982  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=0.7 mu=0.50  (raw 0.704)                        0.99974  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=0.7 mu=0.15  (raw 0.823)                        0.99956  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=1.0 mu=0.95  (raw 0.317)                        0.99199  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=1.0 mu=0.50  (raw 0.451)                        0.99327  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=1.0 mu=0.15  (raw 0.694)                        0.99553  (want 1.0000 +-0.0100)  PASS
+  metal F0=1 r=1.0 aniso=0.8 mu=0.5 (aniso path, sqrt(ax*ay) LUT approx)   0.84522  (want 1.0000 +-0.2000)  PASS
+  metal F0=1 r=1.0 aniso=0.5 mu=0.5 (aniso path)               0.96541  (want 1.0000 +-0.0500)  PASS
+
+[3] Dielectric + diffuse (default OpenPBR: 0.8 base, ior 1.5, r 0.3): albedo <= 1, >= diffuse-only
+  mu=0.95  albedo = (0.8084 0.8084 0.8084)  PASS
+  mu=0.50  albedo = (0.8306 0.8306 0.8306)  PASS
+  mu=0.15  albedo = (0.8472 0.8472 0.8472)  PASS
+  white dielectric+diffuse mu=0.5 (<= 1, ~1)                   1.01652  (want 1.0000 +-0.0300)  PASS
+  thin film 0.5um on default: (0.8246 0.7968 0.8223) PASS
+  haziness 0.5/0.8 on default mu=0.5 (<= 1)                    0.82099  (want 0.8210 +-0.0000)  PASS
+
+[4] Fuzz furnace (white fuzz, weight 1, black base): albedo <= 1; fuzz over white diffuse ~<= 1
+  fuzz r=0.2 mu=0.95 albedo (table R 0.000)                    0.00006  (want 0.0001 +-0.0100)  PASS
+  fuzz r=0.2 mu=0.50 albedo (table R 0.001)                    0.00115  (want 0.0011 +-0.0100)  PASS
+  fuzz r=0.2 mu=0.15 albedo (table R 0.177)                    0.17692  (want 0.1769 +-0.0135)  PASS
+  fuzz r=0.5 mu=0.95 albedo (table R 0.022)                    0.02216  (want 0.0222 +-0.0104)  PASS
+  fuzz r=0.5 mu=0.50 albedo (table R 0.154)                    0.15387  (want 0.1539 +-0.0131)  PASS
+  fuzz r=0.5 mu=0.15 albedo (table R 0.501)                    0.50146  (want 0.5015 +-0.0200)  PASS
+  fuzz r=1.0 mu=0.95 albedo (table R 0.350)                    0.34974  (want 0.3497 +-0.0170)  PASS
+  fuzz r=1.0 mu=0.50 albedo (table R 0.499)                    0.49878  (want 0.4988 +-0.0200)  PASS
+  fuzz r=1.0 mu=0.15 albedo (table R 0.678)                    0.67793  (want 0.6779 +-0.0236)  PASS
+  fuzz 0.5 over white diffuse mu=0.95 (<= 1.01)                0.99999  (want 1.0000 +-0.0000)  PASS
+  fuzz 0.5 over white diffuse mu=0.50 (<= 1.01)                1.00001  (want 1.0000 +-0.0000)  PASS
+  fuzz 0.5 over white diffuse mu=0.15 (<= 1.01)                1.00001  (want 1.0000 +-0.0000)  PASS
+
+[5] Coat furnace (clear coat ior 1.6 over white metal / white diffuse): coat + base <= 1
+  coat r=0.0 over white metal mu=0.95 (<= 1.02)                0.99233  (want 0.9923 +-0.0000)  PASS
+  coat r=0.0 over white metal mu=0.50 (<= 1.02)                0.94566  (want 0.9457 +-0.0000)  PASS
+  coat r=0.0 over white metal mu=0.15 (<= 1.02)                0.54759  (want 0.5476 +-0.0000)  PASS
+  coat r=0.3 over white metal mu=0.95 (<= 1.02)                1.00064  (want 1.0006 +-0.0000)  PASS
+  coat r=0.3 over white metal mu=0.50 (<= 1.02)                1.01924  (want 1.0192 +-0.0000)  PASS
+  coat r=0.3 over white metal mu=0.15 (<= 1.02)                0.99140  (want 0.9914 +-0.0000)  PASS
+  clear coat over white diffuse mu=0.95 (<= 1.01, darkening on)   0.99217  (want 0.9922 +-0.0000)  PASS
+  clear coat over white diffuse mu=0.50 (<= 1.01, darkening on)   0.94593  (want 0.9459 +-0.0000)  PASS
+  clear coat over white diffuse mu=0.15 (<= 1.01, darkening on)   0.54785  (want 0.5478 +-0.0000)  PASS
+  tinted coat (0.5,0.2,0.1) over 0.8 diffuse mu=0.5: (0.2691 0.1125 0.0667) — must be tinted & <= 1  PASS
+
+[6] Reciprocity f(wo,wi) == f(wi,wo), 10000 pairs per lobe set (relative error; layered forms are non-reciprocal by design -> reported only)
+  EON r=0.7 (diffuse only)                           worst rel 1.19e-07, pairs > 1e-3: 0  PASS
+  metal GGX aniso (single lobe)                      worst rel 2.21e-06, pairs > 1e-3: 0  PASS
+  fuzz only (LTC, table-fit)                         worst rel 5.48e-01, pairs > 1e-3: 9861  (info)
+  full stack (albedo-scaling layers)                 worst rel 7.59e-01, pairs > 1e-3: 9817  (info)
+
+[7] Importance sampling: E[f cos / pdf] over 200k samples == quadrature albedo within 1%; pdf integrates to ~1
+  EON r=1 CLTC mu=0.50  (pdf int 1.000, failed 0.04%)          0.77478  (want 0.7750 +-0.0078)  PASS
+  EON r=1 CLTC mu=0.10  (pdf int 0.999, failed 0.08%)          0.79581  (want 0.7953 +-0.0080)  PASS
+  metal aniso VNDF mu=0.50  (pdf int 0.932, failed 6.79%)      0.76017  (want 0.7594 +-0.0076)  PASS
+  default dielectric+EON mu=0.70  (pdf int 0.999, failed 0.05%)   0.81717  (want 0.8171 +-0.0082)  PASS
+  default dielectric+EON mu=0.15  (pdf int 0.987, failed 1.28%)   0.84687  (want 0.8472 +-0.0085)  PASS
+  haziness mu=0.50  (pdf int 0.991, failed 0.86%)              0.81976  (want 0.8198 +-0.0082)  PASS
+  fuzz over default mu=0.50  (pdf int 0.999, failed 0.11%)     0.83830  (want 0.8383 +-0.0084)  PASS
+  full stack mu=0.40  (pdf int 0.999, failed 0.11%)            0.75562  (want 0.7552 +-0.0076)  PASS
+
+ALL PASS (0 failures)

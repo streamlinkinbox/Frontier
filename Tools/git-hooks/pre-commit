@@ -1,0 +1,23 @@
+#!/bin/sh
+# Slate session guard — refuses to commit on a stale/rewound base.
+# Incident 2026-09-04: the sandbox rewound the session branch to its base commit; a blind `git add -A` +
+# commit then squashed already-pushed history and swept up session files. This hook requires the remote tip
+# of the current arena/* branch to be an ancestor of HEAD. Offline (fetch fails) = allow, so work is never
+# blocked without network. Install: cp Tools/git-hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+set -u
+BRANCH="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+case "$BRANCH" in arena/*) ;; *) exit 0;; esac
+if ! git rev-parse --verify -q "refs/remotes/origin/$BRANCH" >/dev/null; then
+    git fetch -q origin "$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null || exit 0
+fi
+if git rev-parse --verify -q "refs/remotes/origin/$BRANCH" >/dev/null; then
+    if ! git merge-base --is-ancestor "refs/remotes/origin/$BRANCH" HEAD; then
+        echo "pre-commit: BLOCKED — origin/$BRANCH is not an ancestor of HEAD (stale/rewound base?)."
+        echo "  Run: git log --oneline -4 && git status --short"
+        echo "  Recover: git fetch origin $BRANCH:refs/remotes/origin/$BRANCH && git reset --mixed origin/$BRANCH"
+        echo "  (keeps the working tree), then stage explicit file paths — never 'git add -A'."
+        exit 1
+    fi
+    echo "pre-commit: base OK (origin/$BRANCH is an ancestor of HEAD); staged top dirs: $(git diff --cached --name-only | cut -d/ -f1 | sort -u | tr '\n' ' ')"
+fi
+exit 0

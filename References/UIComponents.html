@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slate UI — Base Component Kit</title>
+
+<!-- General Sans (Fontshare) — same face as the Outliner references -->
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   SLATE UI — DESIGN TOKENS
+   Single source of truth. Every component below only uses these.
+   ============================================================ */
+:root{
+  /* surfaces */
+  --bg:#050505;             /* app background            */
+  --panel:#121212;          /* card / panel              */
+  --inset:#1a1a1a;          /* inset wells inside panels */
+  --field:#000000;          /* pill fields / value slots */
+  --raised:#222222;         /* hover surface             */
+  --selected:#2a2a2a;       /* selected row              */
+
+  /* strokes */
+  --stroke:rgba(255,255,255,.05);
+  --stroke-strong:#2e2e2e;
+
+  /* text */
+  --text:#f0f0f0;
+  --text-dim:#888888;
+  --text-faint:#5c5c5c;
+
+  /* accent */
+  --accent:#ffffff;                     /* primary accent = white  */
+  --accent-soft:rgba(255,255,255,.12);
+  --hi:#6c77ff;                         /* electric highlight      */
+  --hi-glow:0 0 12px rgba(108,119,255,.8);
+  --danger:#ef4444;
+  --ok:#22c55e;
+
+  /* geometry */
+  --r-panel:24px;
+  --r-inset:18px;
+  --r-pill:999px;
+  --ctl-h:40px;             /* standard control height */
+  --row-h:36px;             /* list / tree row height  */
+
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --shadow-panel:0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+  --shadow-pop:0 24px 60px rgba(0,0,0,.75);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'General Sans','Segoe UI',Roboto,system-ui,Arial,sans-serif;
+  font-size:14px;
+  padding:40px 32px 80px;
+  user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- page scaffold (demo only) ---------- */
+.kit-title{max-width:1180px;margin:0 auto 6px;font-size:22px;font-weight:600;letter-spacing:.2px}
+.kit-sub{max-width:1180px;margin:0 auto 28px;color:var(--text-dim);font-size:13px}
+.kit-grid{
+  max-width:1180px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;
+}
+.col{display:flex;flex-direction:column;gap:24px;min-width:0}
+@media (max-width:980px){.kit-grid{grid-template-columns:1fr}}
+
+/* ============================================================
+   PANEL  — every menu/panel has a HEADER; footer is optional
+   ============================================================ */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--r-panel);
+  box-shadow:var(--shadow-panel);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-header{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--stroke);
+  background:rgba(255,255,255,.02);
+  flex-shrink:0;
+}
+.panel-header .ph-icon{
+  width:28px;height:28px;border-radius:9px;flex-shrink:0;
+  background:var(--inset);border:1px solid var(--stroke);
+  display:flex;align-items:center;justify-content:center;color:var(--text-dim);
+}
+.panel-header .ph-title{font-size:14px;font-weight:600;letter-spacing:.2px}
+.panel-header .ph-sub{font-size:11.5px;color:var(--text-faint);margin-top:1px}
+.panel-header .spacer{flex:1}
+.panel-body{padding:18px 20px;display:flex;flex-direction:column;gap:16px}
+.panel-footer{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 20px;
+  border-top:1px solid var(--stroke);
+  background:rgba(255,255,255,.02);
+  flex-shrink:0;
+}
+.panel-footer .hint{color:var(--text-faint);font-size:11.5px;flex:1}
+
+/* control row: label left, control right */
+.crow{display:flex;align-items:center;gap:14px;min-height:var(--ctl-h)}
+.crow > .clabel{width:110px;flex-shrink:0;color:var(--text-dim);font-size:13.5px;font-weight:500}
+
+/* icon helper */
+.ic{width:16px;height:16px;stroke-width:2;flex-shrink:0}
+svg{display:block}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  height:var(--ctl-h);padding:0 20px;border-radius:var(--r-pill);
+  border:1px solid var(--stroke);background:var(--inset);color:var(--text);
+  font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:background .15s var(--ease),transform .12s var(--ease),color .15s var(--ease);
+}
+.btn:hover{background:var(--raised)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);color:#111;border-color:transparent;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.btn.primary:hover{background:#d9d9d9}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--text-dim)}
+.btn.ghost:hover{background:var(--inset);color:var(--text)}
+.btn.danger{color:var(--danger)}
+.btn.icon{width:var(--ctl-h);padding:0}
+.btn[disabled]{opacity:.35;pointer-events:none}
+
+/* segmented control */
+.seg{
+  display:inline-flex;background:var(--field);border:1px solid var(--stroke);
+  border-radius:var(--r-pill);padding:4px;gap:4px;height:var(--ctl-h);
+}
+.seg button{
+  border:none;background:transparent;color:var(--text-dim);cursor:pointer;
+  font:inherit;font-size:13px;font-weight:500;padding:0 16px;border-radius:var(--r-pill);
+  transition:background .15s var(--ease),color .15s var(--ease);
+}
+.seg button:hover{color:var(--text)}
+.seg button.active{background:var(--accent);color:#111;font-weight:600}
+
+/* ============================================================
+   SLIDERS
+   ============================================================ */
+
+/* value pill: number + unit cell (shared by sliders / scrubbers) */
+.vpill{
+  display:flex;align-items:stretch;height:var(--ctl-h);width:118px;flex-shrink:0;
+  border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--stroke);
+}
+.vpill .num{flex:1;background:var(--field);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.vpill .unit{width:44px;background:var(--inset);border-left:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12.5px;font-weight:500}
+
+/* 1) standard slider — chunky pill track, round thumb, filled left side */
+input[type=range].slider{
+  appearance:none;-webkit-appearance:none;outline:none;flex:1;min-width:80px;
+  height:28px;border-radius:var(--r-pill);cursor:pointer;
+  border:none;
+  background:linear-gradient(to right,#7a7a7a 50%,var(--raised) 50%);
+}
+input[type=range].slider::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:#e0e0e0;border:none;
+  transition:transform .12s var(--ease);
+}
+input[type=range].slider::-moz-range-thumb{
+  width:26px;height:26px;border-radius:50%;background:#e0e0e0;
+  border:none;
+}
+input[type=range].slider:active::-webkit-slider-thumb{transform:scale(1.1)}
+
+/* 2) thin slider — quiet variant for dense property panels */
+input[type=range].slider.thin{height:10px}
+input[type=range].slider.thin::-webkit-slider-thumb{width:18px;height:18px}
+input[type=range].slider.thin::-moz-range-thumb{width:18px;height:18px}
+
+/* 3) accent fill (highlight colour) */
+input[type=range].slider.hi{background:linear-gradient(to right,var(--hi) 50%,var(--raised) 50%)}
+
+/* 4) stepped slider — detent dots under the track */
+.stepped{flex:1;display:flex;flex-direction:column;gap:6px;min-width:80px}
+.stepped .dots{display:flex;justify-content:space-between;padding:0 12px}
+.stepped .dots i{width:4px;height:4px;border-radius:50%;background:var(--stroke-strong)}
+.stepped .dots i.lit{background:var(--text-dim)}
+
+/* 5) drag scrubber — ImGui-style DragFloat: drag anywhere on the pill */
+.scrub{
+  flex:1;min-width:80px;height:var(--ctl-h);border-radius:var(--r-pill);
+  background:var(--field);border:1px solid var(--stroke);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;cursor:ew-resize;position:relative;overflow:hidden;
+}
+.scrub .fill{position:absolute;inset:0;background:rgba(255,255,255,.06);transform-origin:left;pointer-events:none}
+.scrub .sl{color:var(--text-faint);font-size:12px;font-weight:500;z-index:1}
+.scrub .sv{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;z-index:1}
+.scrub:hover{border-color:var(--stroke-strong)}
+.scrub.dragging{border-color:var(--hi);box-shadow:0 0 0 1px rgba(108,119,255,.35)}
+
+/* ============================================================
+   TOGGLES / CHECKS / SWITCH
+   ============================================================ */
+.toggle-row{display:flex;align-items:center;gap:12px;height:38px;padding:0 6px;cursor:pointer;border-radius:12px}
+.toggle-row:hover{background:rgba(255,255,255,.03)}
+.toggle-dotring{
+  width:22px;height:22px;border-radius:50%;border:2px solid #444;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .18s var(--ease);
+}
+.toggle-dotring i{width:10px;height:10px;border-radius:50%;background:var(--text);transform:scale(0);transition:transform .18s var(--ease)}
+.toggle-row[data-on="true"] .toggle-dotring{border-color:var(--text)}
+.toggle-row[data-on="true"] .toggle-dotring i{transform:scale(1)}
+.toggle-row .tl{font-size:13.5px;font-weight:500;color:var(--text-dim);transition:color .18s var(--ease)}
+.toggle-row[data-on="true"] .tl{color:var(--text)}
+
+/* switch */
+.switch{
+  width:46px;height:26px;border-radius:var(--r-pill);flex-shrink:0;cursor:pointer;
+  background:var(--raised);border:1px solid var(--stroke);position:relative;
+  transition:background .18s var(--ease);
+}
+.switch::after{
+  content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+  background:#bdbdbd;transition:transform .18s var(--ease),background .18s var(--ease);
+}
+.switch[data-on="true"]{background:var(--accent)}
+.switch[data-on="true"]::after{transform:translateX(20px);background:#111}
+
+/* ============================================================
+   TEXT / SEARCH / DROPDOWN FIELDS
+   ============================================================ */
+.field{
+  flex:1;height:var(--ctl-h);border-radius:var(--r-pill);
+  background:var(--field);border:1px solid var(--stroke);
+  display:flex;align-items:center;gap:10px;padding:0 16px;min-width:0;
+}
+.field:focus-within{border-color:var(--stroke-strong)}
+.field input{
+  flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--text);
+  font:inherit;font-size:13.5px;
+}
+.field input::placeholder{color:var(--text-faint)}
+.field .ic{color:var(--text-faint)}
+
+/* dropdown = pill with split caret cell, floating menu */
+.dd{position:relative;flex:1;min-width:0}
+.dd-btn{
+  display:flex;align-items:stretch;height:var(--ctl-h);border-radius:var(--r-pill);
+  overflow:hidden;border:1px solid var(--stroke);cursor:pointer;
+}
+.dd-btn .cur{flex:1;background:var(--field);display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dd-btn .caret{width:44px;background:var(--inset);border-left:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-dim);transition:background .15s var(--ease)}
+.dd-btn:hover .caret{background:var(--raised)}
+.dd-btn .caret svg{transition:transform .2s var(--ease)}
+.dd.open .caret svg{transform:rotate(180deg)}
+.dd-menu{
+  position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:40;
+  background:var(--field);border:1px solid var(--stroke-strong);border-radius:20px;
+  padding:6px;display:none;flex-direction:column;gap:2px;box-shadow:var(--shadow-pop);
+}
+.dd.open .dd-menu{display:flex}
+.dd-menu .opt{
+  padding:9px 14px;border-radius:var(--r-pill);cursor:pointer;
+  color:var(--text-dim);font-size:13px;font-weight:500;
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.dd-menu .opt:hover{background:#141414;color:var(--text)}
+.dd-menu .opt.sel{color:var(--text);background:#181818}
+
+/* ============================================================
+   LIST VIEW  (single + multi select, ctx-menu enabled)
+   ============================================================ */
+.listwell{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px}
+.list-item{
+  position:relative;display:flex;align-items:center;gap:10px;
+  height:var(--row-h);padding:0 14px;cursor:pointer;border-radius:10px;
+  color:var(--text-dim);font-size:13.5px;font-weight:500;
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.list-item:hover{background:var(--raised)}
+.list-item .bar{position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:transparent;transition:background .15s var(--ease)}
+.list-item.sel{background:var(--selected);color:var(--text)}
+.list-item.sel .bar{background:var(--accent)}
+.list-item .meta{margin-left:auto;font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.list-item .ic{color:var(--text-faint)}
+.list-item.sel .ic{color:var(--text-dim)}
+
+/* ============================================================
+   HIERARCHY / TREE  (expand, visibility, drag re-parenting)
+   ============================================================ */
+.tree{background:var(--inset);border:1px solid var(--stroke);border-radius:var(--r-inset);padding:6px;min-height:120px}
+.tnode{position:relative}
+.trow{
+  position:relative;display:flex;align-items:center;gap:6px;
+  height:var(--row-h);padding-right:8px;border-radius:10px;cursor:pointer;
+  color:var(--text-dim);font-size:13.5px;font-weight:500;
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.trow:hover{background:var(--raised)}
+.trow.sel{background:var(--selected);color:var(--text)}
+.trow.sel::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--accent)}
+.trow .twisty{
+  width:22px;height:22px;flex-shrink:0;border:none;background:transparent;color:var(--text-faint);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:6px;
+}
+.trow .twisty:hover{color:var(--text)}
+.trow .twisty svg{transition:transform .18s var(--ease)}
+.tnode.open > .trow .twisty svg{transform:rotate(90deg)}
+.trow .ticon{color:var(--text-faint)}
+.trow.sel .ticon{color:var(--text-dim)}
+.trow .tname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .rowbtn{
+  width:24px;height:24px;border:none;background:transparent;color:var(--text-faint);
+  border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  opacity:0;transition:opacity .15s var(--ease),color .15s var(--ease),background .15s var(--ease);
+}
+.trow:hover .rowbtn,.trow .rowbtn.on{opacity:1}
+.trow .rowbtn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.trow .rowbtn.off{color:var(--text-faint);opacity:1}
+.tkids{overflow:hidden;display:none}
+.tnode.open > .tkids{display:block}
+.tkids{border-left:1px solid rgba(255,255,255,.06);margin-left:16px;padding-left:4px}
+
+/* drag & drop feedback */
+.trow.drag-src{opacity:.35}
+.trow.drop-into{outline:1.5px solid var(--hi);outline-offset:-1.5px;background:rgba(108,119,255,.10)}
+.trow.drop-before::after,.trow.drop-after::after{
+  content:"";position:absolute;left:24px;right:8px;height:2px;border-radius:2px;
+  background:var(--hi);box-shadow:var(--hi-glow);
+}
+.trow.drop-before::after{top:-1px}
+.trow.drop-after::after{bottom:-1px}
+.drag-ghost{
+  position:fixed;z-index:100;pointer-events:none;
+  background:var(--field);border:1px solid var(--stroke-strong);border-radius:var(--r-pill);
+  padding:6px 16px;font-size:12.5px;font-weight:600;color:var(--text);
+  box-shadow:var(--shadow-pop);display:flex;align-items:center;gap:8px;
+}
+
+/* ============================================================
+   CONTEXT MENU — header required, footer optional
+   ============================================================ */
+.ctx{
+  position:fixed;z-index:200;min-width:230px;
+  background:#0c0c0c;border:1px solid var(--stroke-strong);border-radius:20px;
+  box-shadow:var(--shadow-pop);overflow:hidden;
+  display:none;flex-direction:column;
+  animation:ctxIn .14s var(--ease);
+}
+.ctx.show{display:flex}
+@keyframes ctxIn{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+.ctx .ctx-header{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:rgba(255,255,255,.03);border-bottom:1px solid var(--stroke);
+}
+.ctx .ctx-header .ph-icon{width:26px;height:26px;border-radius:8px;background:var(--inset);border:1px solid var(--stroke);display:flex;align-items:center;justify-content:center;color:var(--text-dim)}
+.ctx .ctx-header .t{font-size:13px;font-weight:600}
+.ctx .ctx-header .s{font-size:11px;color:var(--text-faint);margin-top:1px}
+.ctx .ctx-body{padding:6px;display:flex;flex-direction:column;gap:1px}
+.ctx .mi{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;cursor:pointer;
+  color:var(--text-dim);font-size:13px;font-weight:500;
+  transition:background .1s var(--ease),color .1s var(--ease);
+}
+.ctx .mi:hover{background:#161616;color:var(--text)}
+.ctx .mi .ic{color:var(--text-faint)}
+.ctx .mi:hover .ic{color:var(--text)}
+.ctx .mi .kbd{margin-left:auto;font-size:10.5px;color:var(--text-faint);background:var(--inset);border:1px solid var(--stroke);border-radius:6px;padding:2px 7px;font-weight:600;letter-spacing:.4px}
+.ctx .mi.danger,.ctx .mi.danger .ic{color:var(--danger)}
+.ctx .mi.danger:hover{background:rgba(239,68,68,.1)}
+.ctx .mi.disabled{opacity:.35;pointer-events:none}
+.ctx .sep{height:1px;background:var(--stroke);margin:5px 10px}
+.ctx .ctx-footer{
+  padding:9px 16px;border-top:1px solid var(--stroke);background:rgba(255,255,255,.02);
+  font-size:11px;color:var(--text-faint);
+}
+
+/* inline (static) preview of the ctx menu inside the showcase */
+.ctx.inline{position:static;display:flex;animation:none;width:250px}
+</style>
+</head>
+<body>
+
+<div class="kit-title">Slate UI — Base Component Kit</div>
+<div class="kit-sub">One file, every primitive. Panels always carry a header (footer optional). Right-click the List or Hierarchy for live context menus. Drag hierarchy rows to re-parent.</div>
+
+<div class="kit-grid">
+
+<!-- ================= LEFT COLUMN ================= -->
+<div class="col">
+
+  <!-- ============ SLIDERS ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></div>
+      <div><div class="ph-title">Sliders</div><div class="ph-sub">standard · thin · accent · stepped · drag scrubber</div></div>
+    </div>
+    <div class="panel-body">
+
+      <div class="crow">
+        <div class="clabel">Degree</div>
+        <div class="vpill"><div class="num" id="v-deg">123</div><div class="unit">°</div></div>
+        <input type="range" class="slider" min="0" max="360" value="123" data-out="v-deg">
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Percent</div>
+        <div class="vpill"><div class="num" id="v-pct">85</div><div class="unit">%</div></div>
+        <input type="range" class="slider" min="0" max="100" value="85" data-out="v-pct">
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Opacity</div>
+        <div class="vpill"><div class="num" id="v-op">64</div><div class="unit">%</div></div>
+        <input type="range" class="slider thin" min="0" max="100" value="64" data-out="v-op">
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Emission</div>
+        <div class="vpill"><div class="num" id="v-em">40</div><div class="unit">nt</div></div>
+        <input type="range" class="slider thin hi" min="0" max="100" value="40" data-out="v-em">
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Subdivision</div>
+        <div class="vpill"><div class="num" id="v-sub">3</div><div class="unit">lv</div></div>
+        <div class="stepped">
+          <input type="range" class="slider thin" min="0" max="6" step="1" value="3" data-out="v-sub" id="sub-slider">
+          <div class="dots" id="sub-dots"></div>
+        </div>
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Scale</div>
+        <div class="scrub" data-min="0" data-max="10" data-step="0.01" data-val="1.00" data-suffix="×">
+          <div class="fill"></div><span class="sl">drag</span><span class="sv">1.00×</span>
+        </div>
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Position</div>
+        <div class="scrub" data-min="-1000" data-max="1000" data-step="0.1" data-val="12.5" data-suffix=" cm" data-nofill="1">
+          <div class="fill"></div><span class="sl">X</span><span class="sv">12.5 cm</span>
+        </div>
+        <div class="scrub" data-min="-1000" data-max="1000" data-step="0.1" data-val="-4.0" data-suffix=" cm" data-nofill="1">
+          <div class="fill"></div><span class="sl">Y</span><span class="sv">-4.0 cm</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="panel-footer"><div class="hint">Scrubbers: drag horizontally · double-click to reset</div></div>
+  </div>
+
+  <!-- ============ BUTTONS & TOGGLES ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="8" cy="12" r="2"/></svg></div>
+      <div><div class="ph-title">Buttons &amp; Toggles</div><div class="ph-sub">primary · secondary · ghost · icon · segmented · switch · dot-toggle</div></div>
+    </div>
+    <div class="panel-body">
+
+      <div class="crow" style="flex-wrap:wrap">
+        <button class="btn primary">Apply</button>
+        <button class="btn">Secondary</button>
+        <button class="btn ghost">Ghost</button>
+        <button class="btn danger">Delete</button>
+        <button class="btn" disabled>Disabled</button>
+        <button class="btn icon" title="Settings"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M1 12h4M19 12h4M4.2 19.8L7 17M17 7l2.8-2.8"/></svg></button>
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Mode</div>
+        <div class="seg" id="seg-demo">
+          <button class="active">Object</button><button>Edit</button><button>Sculpt</button><button>Paint</button>
+        </div>
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Live sync</div>
+        <div class="switch" data-on="true" role="switch"></div>
+        <div class="clabel" style="width:auto">Auto-save</div>
+        <div class="switch" data-on="false" role="switch"></div>
+      </div>
+
+      <div class="listwell" style="display:flex;flex-direction:column;gap:2px">
+        <div class="toggle-row" data-on="true"><div class="toggle-dotring"><i></i></div><span class="tl">Enable Snapping</span></div>
+        <div class="toggle-row" data-on="false"><div class="toggle-dotring"><i></i></div><span class="tl">Show Grid Lines</span></div>
+        <div class="toggle-row" data-on="false"><div class="toggle-dotring"><i></i></div><span class="tl">Lock Aspect Ratio</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ FIELDS ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/></svg></div>
+      <div><div class="ph-title">Fields</div><div class="ph-sub">text · search · dropdown</div></div>
+    </div>
+    <div class="panel-body">
+
+      <div class="crow">
+        <div class="clabel">Name</div>
+        <div class="field"><input type="text" value="SM_Column_01" spellcheck="false"></div>
+      </div>
+
+      <div class="crow">
+        <div class="clabel">Search</div>
+        <div class="field">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Filter assets…" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="crow" style="position:relative;z-index:30">
+        <div class="clabel">Selection</div>
+        <div class="dd" id="dd-demo">
+          <div class="dd-btn">
+            <div class="cur">Entry name</div>
+            <div class="caret"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+          </div>
+          <div class="dd-menu">
+            <div class="opt sel">Entry name</div>
+            <div class="opt">Second Entry</div>
+            <div class="opt">Third Entry</div>
+            <div class="opt">Fourth Entry</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= RIGHT COLUMN ================= -->
+<div class="col">
+
+  <!-- ============ LIST VIEW ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      <div><div class="ph-title">List View</div><div class="ph-sub">click · ctrl multi · shift range · right-click menu</div></div>
+      <div class="spacer"></div>
+      <button class="btn ghost icon" style="height:30px;width:30px" title="Add"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="panel-body">
+      <div class="listwell" id="listview">
+        <div class="list-item sel"><div class="bar"></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg><span>Column_Base</span><span class="meta">2.4k tris</span></div>
+        <div class="list-item"><div class="bar"></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg><span>Column_Shaft</span><span class="meta">6.1k tris</span></div>
+        <div class="list-item"><div class="bar"></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg><span>Capital_Sphere</span><span class="meta">1.2k tris</span></div>
+        <div class="list-item"><div class="bar"></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 19h20Z"/></svg><span>Pediment</span><span class="meta">840 tris</span></div>
+        <div class="list-item"><div class="bar"></div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg><span>Plinth_Slab</span><span class="meta">120 tris</span></div>
+      </div>
+    </div>
+    <div class="panel-footer"><div class="hint" id="list-count">1 of 5 selected</div><button class="btn ghost" style="height:30px;font-size:12px;padding:0 14px">Clear</button></div>
+  </div>
+
+  <!-- ============ HIERARCHY ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h6"/><path d="M3 12h6"/><path d="M3 19h6"/><path d="M13 5h8"/><path d="M15 12h6"/><path d="M17 19h4"/></svg></div>
+      <div><div class="ph-title">Hierarchy</div><div class="ph-sub">drag rows to re-parent · drop on = child · drop edge = sibling</div></div>
+      <div class="spacer"></div>
+      <button class="btn ghost icon" style="height:30px;width:30px" title="Collapse all" id="collapse-all"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg></button>
+    </div>
+    <div class="panel-body">
+      <div class="tree" id="tree"></div>
+    </div>
+    <div class="panel-footer"><div class="hint" id="tree-hint">Right-click a node for its context menu</div></div>
+  </div>
+
+  <!-- ============ CONTEXT MENU (static preview) ============ -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg></div>
+      <div><div class="ph-title">Context Menu</div><div class="ph-sub">anatomy — header required, footer optional</div></div>
+    </div>
+    <div class="panel-body" style="align-items:center">
+      <div class="ctx inline">
+        <div class="ctx-header">
+          <div class="ph-icon"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg></div>
+          <div><div class="t">Column_Shaft</div><div class="s">Static Mesh · 6.1k tris</div></div>
+        </div>
+        <div class="ctx-body">
+          <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Rename<span class="kbd">F2</span></div>
+          <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Duplicate<span class="kbd">⌘D</span></div>
+          <div class="sep"></div>
+          <div class="mi"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add Child</div>
+          <div class="mi disabled"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>Unparent</div>
+          <div class="sep"></div>
+          <div class="mi danger"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete<span class="kbd">⌫</span></div>
+        </div>
+        <div class="ctx-footer">Hold ⌥ while duplicating to deep-copy children</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- live (floating) context menu shell — filled dynamically -->
+<div class="ctx" id="live-ctx"></div>
+
+<script>
+/* ============================================================
+   SLIDERS
+   ============================================================ */
+function paintSlider(s){
+  const min=+s.min, max=+s.max, pct=((+s.value-min)/(max-min))*100;
+  const fill = s.classList.contains('hi') ? 'var(--hi)' : '#7a7a7a';
+  s.style.background = `linear-gradient(to right, ${fill} ${pct}%, var(--raised) ${pct}%)`;
+}
+document.querySelectorAll('input[type=range].slider').forEach(s=>{
+  paintSlider(s);
+  s.addEventListener('input',()=>{
+    paintSlider(s);
+    const out=s.dataset.out; if(out) document.getElementById(out).textContent=s.value;
+  });
+});
+
+/* stepped slider detent dots */
+(function(){
+  const s=document.getElementById('sub-slider'), dots=document.getElementById('sub-dots');
+  function draw(){
+    dots.innerHTML='';
+    for(let i=+s.min;i<=+s.max;i++){
+      const d=document.createElement('i');
+      if(i<=+s.value) d.classList.add('lit');
+      dots.appendChild(d);
+    }
+  }
+  s.addEventListener('input',draw); draw();
+})();
+
+/* drag scrubbers (ImGui DragFloat style) */
+document.querySelectorAll('.scrub').forEach(sc=>{
+  const sv=sc.querySelector('.sv'), fill=sc.querySelector('.fill');
+  const min=+sc.dataset.min, max=+sc.dataset.max, step=+sc.dataset.step;
+  const suffix=sc.dataset.suffix||'';
+  const init=+sc.dataset.val;
+  const dec=(String(step).split('.')[1]||'').length;
+  let val=init, dragging=false, lastX=0;
+
+  function render(){
+    sv.textContent=val.toFixed(dec)+suffix;
+    if(!sc.dataset.nofill){
+      fill.style.transform=`scaleX(${(val-min)/(max-min)})`;
+    } else fill.style.display='none';
+  }
+  sc.addEventListener('pointerdown',e=>{
+    dragging=true;lastX=e.clientX;sc.classList.add('dragging');
+    sc.setPointerCapture(e.pointerId);
+  });
+  sc.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    const dx=e.clientX-lastX; lastX=e.clientX;
+    const speed=(e.shiftKey?0.1:1)*(max-min)/300;
+    val=Math.min(max,Math.max(min,val+dx*speed));
+    val=Math.round(val/step)*step;
+    render();
+  });
+  sc.addEventListener('pointerup',e=>{dragging=false;sc.classList.remove('dragging');sc.releasePointerCapture(e.pointerId)});
+  sc.addEventListener('dblclick',()=>{val=init;render()});
+  render();
+});
+
+/* ============================================================
+   BUTTONS / SEGMENTED / SWITCHES / DOT-TOGGLES
+   ============================================================ */
+document.querySelectorAll('.seg').forEach(seg=>{
+  seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    seg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+});
+document.querySelectorAll('.switch').forEach(sw=>{
+  sw.addEventListener('click',()=>sw.dataset.on = sw.dataset.on==='true'?'false':'true');
+});
+document.querySelectorAll('.toggle-row').forEach(r=>{
+  r.addEventListener('click',()=>r.dataset.on = r.dataset.on==='true'?'false':'true');
+});
+
+/* ============================================================
+   DROPDOWN
+   ============================================================ */
+document.querySelectorAll('.dd').forEach(dd=>{
+  const btn=dd.querySelector('.dd-btn'), cur=dd.querySelector('.cur');
+  btn.addEventListener('click',e=>{e.stopPropagation();dd.classList.toggle('open')});
+  dd.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',e=>{
+    e.stopPropagation();
+    dd.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+    o.classList.add('sel'); cur.textContent=o.textContent; dd.classList.remove('open');
+  }));
+});
+document.addEventListener('click',()=>document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open')));
+
+/* ============================================================
+   LIST VIEW — single / ctrl-multi / shift-range selection
+   ============================================================ */
+(function(){
+  const list=document.getElementById('listview');
+  const items=[...list.querySelectorAll('.list-item')];
+  const count=document.getElementById('list-count');
+  let anchor=0;
+  function refresh(){
+    const n=items.filter(i=>i.classList.contains('sel')).length;
+    count.textContent=`${n} of ${items.length} selected`;
+  }
+  items.forEach((it,idx)=>{
+    it.addEventListener('click',e=>{
+      if(e.shiftKey){
+        const [a,b]=[Math.min(anchor,idx),Math.max(anchor,idx)];
+        items.forEach((x,i)=>x.classList.toggle('sel', i>=a&&i<=b));
+      }else if(e.ctrlKey||e.metaKey){
+        it.classList.toggle('sel'); anchor=idx;
+      }else{
+        items.forEach(x=>x.classList.remove('sel'));
+        it.classList.add('sel'); anchor=idx;
+      }
+      refresh();
+    });
+    it.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      if(!it.classList.contains('sel')){items.forEach(x=>x.classList.remove('sel'));it.classList.add('sel');anchor=idx;refresh();}
+      openCtx(e.clientX,e.clientY,{
+        title:it.querySelector('span').textContent,
+        sub:'List entry',
+        icon:'box',
+        items:[
+          {label:'Rename',icon:'edit',kbd:'F2'},
+          {label:'Duplicate',icon:'copy',kbd:'⌘D'},
+          {sep:true},
+          {label:'Delete',icon:'trash',danger:true,kbd:'⌫',fn:()=>{it.remove();items.splice(items.indexOf(it),1);refresh();}}
+        ],
+        footer:'Applies to all selected entries'
+      });
+    });
+  });
+  document.querySelector('.panel-footer .btn').addEventListener('click',()=>{items.forEach(x=>x.classList.remove('sel'));refresh()});
+  refresh();
+})();
+
+/* ============================================================
+   HIERARCHY — data-driven tree with drag re-parenting
+   ============================================================ */
+const ICONS={
+  scene:'<path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/>',
+  group:'<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+  mesh:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>',
+  light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  cam:'<path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  up:'<path d="m18 15-6-6-6 6"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:'<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 8 10 8a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>'
+};
+function svgIc(name,cls='ic'){return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||ICONS.box}</svg>`}
+
+let NODE_ID=0;
+const treeData={id:++NODE_ID,name:'Scene',icon:'scene',open:true,vis:true,children:[
+  {id:++NODE_ID,name:'Environment',icon:'group',open:true,vis:true,children:[
+    {id:++NODE_ID,name:'Terrain',icon:'mesh',vis:true,children:[]},
+    {id:++NODE_ID,name:'Sky_Dome',icon:'mesh',vis:true,children:[]},
+  ]},
+  {id:++NODE_ID,name:'Temple',icon:'group',open:true,vis:true,children:[
+    {id:++NODE_ID,name:'Column_01',icon:'mesh',vis:true,children:[
+      {id:++NODE_ID,name:'Capital',icon:'mesh',vis:true,children:[]},
+    ]},
+    {id:++NODE_ID,name:'Column_02',icon:'mesh',vis:false,children:[]},
+    {id:++NODE_ID,name:'Pediment',icon:'mesh',vis:true,children:[]},
+  ]},
+  {id:++NODE_ID,name:'Key_Light',icon:'light',vis:true,children:[]},
+  {id:++NODE_ID,name:'Camera_Main',icon:'cam',vis:true,children:[]},
+]};
+
+const treeEl=document.getElementById('tree');
+let selNode=null, dragNode=null, ghost=null;
+
+function findParent(root,node){
+  for(const c of root.children||[]){
+    if(c===node) return root;
+    const p=findParent(c,node); if(p) return p;
+  }
+  return null;
+}
+function isDescendant(a,b){ /* is b inside a */
+  return (a.children||[]).some(c=>c===b||isDescendant(c,b));
+}
+
+function renderTree(){
+  treeEl.innerHTML='';
+  treeEl.appendChild(buildNode(treeData,0));
+}
+function buildNode(n,depth){
+  const wrap=document.createElement('div');
+  wrap.className='tnode'+(n.open?' open':'');
+  const row=document.createElement('div');
+  row.className='trow'+(selNode===n?' sel':'');
+  row.draggable=depth>0;               /* root not draggable */
+  row.style.paddingLeft=(depth===0?4:4)+'px';
+  row.innerHTML=`
+    <button class="twisty" style="visibility:${n.children.length? 'visible':'hidden'}">
+      <svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
+    <span class="ticon">${svgIc(n.icon)}</span>
+    <span class="tname">${n.name}</span>
+    <button class="rowbtn ${n.vis?'on':'off'}" data-act="vis" title="Toggle visibility">${svgIc(n.vis?'eye':'eyeoff')}</button>
+  `;
+
+  /* expand / collapse */
+  row.querySelector('.twisty').addEventListener('click',e=>{
+    e.stopPropagation(); n.open=!n.open; renderTree();
+  });
+  /* select */
+  row.addEventListener('click',()=>{selNode=n;renderTree()});
+  /* visibility */
+  row.querySelector('[data-act=vis]').addEventListener('click',e=>{
+    e.stopPropagation(); n.vis=!n.vis; renderTree();
+  });
+
+  /* ---- context menu (header + optional footer) ---- */
+  row.addEventListener('contextmenu',e=>{
+    e.preventDefault();e.stopPropagation();
+    selNode=n; renderTree();
+    const parent=findParent(treeData,n);
+    openCtx(e.clientX,e.clientY,{
+      title:n.name,
+      sub:(n.children.length?`Group · ${n.children.length} children`:'Node'),
+      icon:n.icon,
+      items:[
+        {label:'Rename',icon:'edit',kbd:'F2',fn:()=>{const v=prompt('Rename node',n.name);if(v){n.name=v;renderTree();}}},
+        {label:'Duplicate',icon:'copy',kbd:'⌘D',fn:()=>{
+          if(!parent)return;
+          const clone=JSON.parse(JSON.stringify(n));
+          (function reid(x){x.id=++NODE_ID;(x.children||[]).forEach(reid)})(clone);
+          clone.name=n.name+'_Copy';
+          parent.children.splice(parent.children.indexOf(n)+1,0,clone);
+          renderTree();
+        }},
+        {sep:true},
+        {label:'Add Child',icon:'plus',fn:()=>{
+          n.children.push({id:++NODE_ID,name:'New_Node',icon:'mesh',vis:true,children:[]});
+          n.open=true;renderTree();
+        }},
+        {label:'Unparent',icon:'up',disabled:!parent||parent===treeData,fn:()=>{
+          const gp=findParent(treeData,parent);
+          parent.children.splice(parent.children.indexOf(n),1);
+          gp.children.splice(gp.children.indexOf(parent)+1,0,n);
+          renderTree();
+        }},
+        {sep:true},
+        {label:'Delete',icon:'trash',danger:true,kbd:'⌫',disabled:!parent,fn:()=>{
+          parent.children.splice(parent.children.indexOf(n),1);
+          if(selNode===n)selNode=null;
+          renderTree();
+        }},
+      ],
+      footer: n.children.length ? 'Deleting a group removes its children' : null
+    });
+  });
+
+  /* ---- drag & drop re-parenting ---- */
+  row.addEventListener('dragstart',e=>{
+    dragNode=n; row.classList.add('drag-src');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setDragImage(new Image(),0,0);
+    ghost=document.createElement('div');
+    ghost.className='drag-ghost';
+    ghost.innerHTML=`${svgIc(n.icon)}<span>${n.name}</span>`;
+    document.body.appendChild(ghost);
+  });
+  document.addEventListener('dragover',e=>{ if(ghost){ghost.style.left=(e.clientX+14)+'px';ghost.style.top=(e.clientY+10)+'px';} });
+  row.addEventListener('dragend',()=>{
+    dragNode=null; if(ghost){ghost.remove();ghost=null;}
+    clearDropMarks(); renderTree();
+  });
+  row.addEventListener('dragover',e=>{
+    if(!dragNode||dragNode===n||isDescendant(dragNode,n))return;
+    e.preventDefault();
+    const r=row.getBoundingClientRect(), y=e.clientY-r.top;
+    clearDropMarks();
+    if(depth>0 && y<r.height*0.25) row.classList.add('drop-before');
+    else if(depth>0 && y>r.height*0.75) row.classList.add('drop-after');
+    else row.classList.add('drop-into');
+  });
+  row.addEventListener('dragleave',()=>row.classList.remove('drop-into','drop-before','drop-after'));
+  row.addEventListener('drop',e=>{
+    e.preventDefault();
+    if(!dragNode||dragNode===n||isDescendant(dragNode,n))return;
+    const mode=row.classList.contains('drop-before')?'before':row.classList.contains('drop-after')?'after':'into';
+    const srcParent=findParent(treeData,dragNode);
+    srcParent.children.splice(srcParent.children.indexOf(dragNode),1);
+    if(mode==='into'){ n.children.push(dragNode); n.open=true; }
+    else{
+      const p=findParent(treeData,n);
+      const i=p.children.indexOf(n)+(mode==='after'?1:0);
+      p.children.splice(i,0,dragNode);
+    }
+    document.getElementById('tree-hint').textContent=`Moved “${dragNode.name}” ${mode==='into'?'under':'beside'} “${n.name}”`;
+    clearDropMarks(); renderTree();
+  });
+
+  wrap.appendChild(row);
+  if(n.children.length){
+    const kids=document.createElement('div');
+    kids.className='tkids';
+    n.children.forEach(c=>kids.appendChild(buildNode(c,depth+1)));
+    wrap.appendChild(kids);
+  }
+  return wrap;
+}
+function clearDropMarks(){
+  treeEl.querySelectorAll('.drop-into,.drop-before,.drop-after').forEach(x=>x.classList.remove('drop-into','drop-before','drop-after'));
+}
+document.getElementById('collapse-all').addEventListener('click',()=>{
+  (function walk(x){x.open=false;(x.children||[]).forEach(walk)})(treeData);
+  treeData.open=true; renderTree();
+});
+renderTree();
+
+/* ============================================================
+   LIVE CONTEXT MENU ENGINE
+   spec = { title, sub, icon, items:[{label,icon,kbd,danger,disabled,fn}|{sep}], footer? }
+   ============================================================ */
+const liveCtx=document.getElementById('live-ctx');
+function openCtx(x,y,spec){
+  let html=`
+    <div class="ctx-header">
+      <div class="ph-icon">${svgIc(spec.icon||'box')}</div>
+      <div><div class="t">${spec.title}</div>${spec.sub?`<div class="s">${spec.sub}</div>`:''}</div>
+    </div>
+    <div class="ctx-body">`;
+  spec.items.forEach((it,i)=>{
+    if(it.sep){html+=`<div class="sep"></div>`;return;}
+    html+=`<div class="mi${it.danger?' danger':''}${it.disabled?' disabled':''}" data-i="${i}">
+      ${svgIc(it.icon||'box')}${it.label}${it.kbd?`<span class="kbd">${it.kbd}</span>`:''}
+    </div>`;
+  });
+  html+=`</div>`;
+  if(spec.footer) html+=`<div class="ctx-footer">${spec.footer}</div>`;
+  liveCtx.innerHTML=html;
+  liveCtx.classList.add('show');
+  /* keep on screen */
+  const r=liveCtx.getBoundingClientRect();
+  liveCtx.style.left=Math.min(x,innerWidth-r.width-12)+'px';
+  liveCtx.style.top=Math.min(y,innerHeight-r.height-12)+'px';
+  liveCtx.querySelectorAll('.mi').forEach(mi=>mi.addEventListener('click',()=>{
+    const it=spec.items[+mi.dataset.i];
+    closeCtx(); it.fn && it.fn();
+  }));
+}
+function closeCtx(){liveCtx.classList.remove('show')}
+document.addEventListener('click',e=>{if(!liveCtx.contains(e.target))closeCtx()});
+document.addEventListener('contextmenu',e=>{if(!e.defaultPrevented)closeCtx()});
+window.addEventListener('blur',closeCtx);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx()});
+</script>
+</body>
+</html>

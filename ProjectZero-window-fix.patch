@@ -1,0 +1,679 @@
+diff --git a/Engine/DeviceExchange/SwapchainExchange.cpp b/Engine/DeviceExchange/SwapchainExchange.cpp
+index 5ca323d..6cf1dea 100644
+--- a/Engine/DeviceExchange/SwapchainExchange.cpp
++++ b/Engine/DeviceExchange/SwapchainExchange.cpp
+@@ -18,10 +18,21 @@
+ #include <algorithm>
+ #include <array>
+ #include <cstring>
++#include <filesystem>
+ #include <fstream>
+ #include <iostream>
+ #include <vector>
+ 
++#if defined(_WIN32)
++#   define WIN32_LEAN_AND_MEAN
++#   define NOMINMAX
++#   include <windows.h>
++#elif defined(__APPLE__)
++#   include <mach-o/dyld.h>
++#else
++#   include <unistd.h>
++#endif
++
+ namespace Frontier {
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -114,18 +125,71 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL ValidationCallback(
+ //                                               SPIRV LOADER
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-static std::vector<uint32_t> LoadSpirv(const std::string& Path)
++static std::filesystem::path QueryExecutableDirectory()
++{
++#if defined(_WIN32)
++    wchar_t Buffer[MAX_PATH]{};
++    const DWORD Length = GetModuleFileNameW(nullptr, Buffer, MAX_PATH);
++    if (Length == 0u) return {};
++    return std::filesystem::path(Buffer).parent_path();
++#elif defined(__APPLE__)
++    char     Buffer[4096]{};
++    uint32_t Size = sizeof(Buffer);
++    if (_NSGetExecutablePath(Buffer, &Size) != 0) return {};
++    return std::filesystem::path(Buffer).parent_path();
++#else
++    char Buffer[4096]{};
++    const ssize_t Length = readlink("/proc/self/exe", Buffer, sizeof(Buffer) - 1u);
++    if (Length <= 0) return {};
++    return std::filesystem::path(std::string(Buffer, static_cast<size_t>(Length))).parent_path();
++#endif
++}
++
++// 📝 Resolves a repository-relative asset path. Order of preference:
++//    ① relative to the current working directory (running from the repository root)
++//    ② next to the executable, then walking up its parents (double-clicking the .exe in Build\Output\...\Binary)
++static std::filesystem::path ResolveAssetPath(const std::string& RelativePath)
++{
++    std::error_code Error;
++
++    if (std::filesystem::exists(RelativePath, Error)) return RelativePath;
++
++    std::filesystem::path Probe = QueryExecutableDirectory();
++    for (int Depth = 0; Depth < 12 && !Probe.empty(); ++Depth)
++    {
++        const std::filesystem::path Candidate = Probe / RelativePath;
++        if (std::filesystem::exists(Candidate, Error)) return Candidate;
++
++        const std::filesystem::path Parent = Probe.parent_path();
++        if (Parent == Probe) break;
++        Probe = Parent;
++    }
++
++    return RelativePath;
++}
++
++static std::vector<uint32_t> LoadSpirv(const std::string& RelativePath)
+ {
++    const std::filesystem::path Path = ResolveAssetPath(RelativePath);
++
+     std::ifstream File(Path, std::ios::binary | std::ios::ate);
+     if (!File.is_open())
+     {
+-        std::cerr << "[SwapchainExchange] Cannot open SPIR-V: " << Path << "\n";
++        std::cerr << "[SwapchainExchange] Cannot open SPIR-V: " << RelativePath
++                  << " (searched the working directory and the executable's parent folders). "
++                  << "Run the build script so the shader is lowered, or launch from the repository root.\n";
+         return {};
+     }
+     const std::streamsize ByteCount = File.tellg();
++    if (ByteCount < 4 || (ByteCount % 4) != 0)
++    {
++        std::cerr << "[SwapchainExchange] SPIR-V file is malformed: " << Path.string() << "\n";
++        return {};
++    }
+     std::vector<uint32_t> Spirv(static_cast<size_t>(ByteCount) / 4u);
+     File.seekg(0);
+     File.read(reinterpret_cast<char*>(Spirv.data()), ByteCount);
++    std::cerr << "[SwapchainExchange] Loaded SPIR-V: " << Path.string() << "\n";
+     return Spirv;
+ }
+ 
+@@ -195,14 +259,27 @@ SwapchainExchange::~SwapchainExchange() noexcept
+ //                                                       BRING
+ //------------------------------------------------------------------------------------------------------------------------
+ 
++static void OnGlfwError(int Code, const char* Description) noexcept
++{
++    std::cerr << "[SwapchainExchange] GLFW error " << Code << ": " << (Description ? Description : "") << "\n";
++}
++
+ bool SwapchainExchange::Bring() noexcept
+ {
++    glfwSetErrorCallback(OnGlfwError);
++
+     if (!glfwInit())
+     {
+         std::cerr << "[SwapchainExchange] glfwInit failed.\n";
+         return false;
+     }
+ 
++    if (!glfwVulkanSupported())
++    {
++        std::cerr << "[SwapchainExchange] glfwVulkanSupported() returned false - no Vulkan loader/ICD found (vulkan-1.dll missing or no Vulkan-capable driver).\n";
++        return false;
++    }
++
+     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+     glfwWindowHint(GLFW_RESIZABLE,  GLFW_TRUE);
+ 
+@@ -225,19 +302,38 @@ bool SwapchainExchange::Bring() noexcept
+     glfwSetScrollCallback         (GlfwWindow, OnScroll);
+     glfwSetFramebufferSizeCallback(GlfwWindow, OnFramebuffer);
+ 
++    std::cerr << "[SwapchainExchange] Window created: " << Configuration.Width << "x" << Configuration.Height << "\n";
++
+     tvg::Initializer::init(0u);
+ 
+-    return BringInstance()
+-        && BringSurface()
+-        && BringPhysicalDevice()
+-        && BringLogicalDevice()
+-        && BringSwapchain()
+-        && BringStorageImage()
+-        && BringCommandRecording()
+-        && BringComputePipeline()
+-        && BringDescriptorSet()
+-        && BringCycleSlots()
+-        && BringImGui();
++    // 📝 Each stage reports its own failure reason to stderr; the name here tells the reader which one stopped.
++    struct Stage { const char* Name; bool (SwapchainExchange::*Fn)() noexcept; };
++    const Stage Stages[] =
++    {
++        { "BringInstance",         &SwapchainExchange::BringInstance         },
++        { "BringSurface",          &SwapchainExchange::BringSurface          },
++        { "BringPhysicalDevice",   &SwapchainExchange::BringPhysicalDevice   },
++        { "BringLogicalDevice",    &SwapchainExchange::BringLogicalDevice    },
++        { "BringSwapchain",        &SwapchainExchange::BringSwapchain        },
++        { "BringStorageImage",     &SwapchainExchange::BringStorageImage     },
++        { "BringCommandRecording", &SwapchainExchange::BringCommandRecording },
++        { "BringComputePipeline",  &SwapchainExchange::BringComputePipeline  },
++        { "BringDescriptorSet",    &SwapchainExchange::BringDescriptorSet    },
++        { "BringCycleSlots",       &SwapchainExchange::BringCycleSlots       },
++        { "BringImGui",            &SwapchainExchange::BringImGui            },
++    };
++
++    for (const Stage& Current : Stages)
++    {
++        if (!(this->*Current.Fn)())
++        {
++            std::cerr << "[SwapchainExchange] Bring-up stopped at stage " << Current.Name << ".\n";
++            return false;
++        }
++    }
++
++    std::cerr << "[SwapchainExchange] Bring-up complete.\n";
++    return true;
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -345,9 +441,16 @@ bool SwapchainExchange::BringInstance() noexcept
+     InstanceInfo.enabledLayerCount       = static_cast<uint32_t>(Layers.size());
+     InstanceInfo.ppEnabledLayerNames     = Layers.data();
+ 
+-    if (vkCreateInstance(&InstanceInfo, nullptr, &Vulkan->Instance) != VK_SUCCESS)
++    if (GlfwExtensions == nullptr || GlfwExtensionCount == 0u)
++    {
++        std::cerr << "[SwapchainExchange] glfwGetRequiredInstanceExtensions returned nothing - Vulkan surface extensions unavailable.\n";
++        return false;
++    }
++
++    const VkResult InstanceResult = vkCreateInstance(&InstanceInfo, nullptr, &Vulkan->Instance);
++    if (InstanceResult != VK_SUCCESS)
+     {
+-        std::cerr << "[SwapchainExchange] vkCreateInstance failed.\n";
++        std::cerr << "[SwapchainExchange] vkCreateInstance failed (VkResult " << static_cast<int>(InstanceResult) << ").\n";
+         return false;
+     }
+ 
+@@ -395,35 +498,59 @@ bool SwapchainExchange::BringPhysicalDevice() noexcept
+     std::vector<VkPhysicalDevice> Devices(DeviceCount);
+     vkEnumeratePhysicalDevices(Vulkan->Instance, &DeviceCount, Devices.data());
+ 
+-    Vulkan->PhysicalDevice = Devices[0];
++    // 📝 Pick the first device that owns a queue family able to do graphics + compute + present on our surface.
++    //    Discrete GPUs are preferred over integrated ones when both qualify.
++    VkPhysicalDevice ChosenDevice = VK_NULL_HANDLE;
++    uint32_t         ChosenFamily = 0u;
++    bool             ChosenIsDiscrete = false;
++    std::string      ChosenName;
++
+     for (const auto& Candidate : Devices)
+     {
+         VkPhysicalDeviceProperties Properties{};
+         vkGetPhysicalDeviceProperties(Candidate, &Properties);
+-        if (Properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
++
++        uint32_t FamilyCount = 0u;
++        vkGetPhysicalDeviceQueueFamilyProperties(Candidate, &FamilyCount, nullptr);
++        std::vector<VkQueueFamilyProperties> Families(FamilyCount);
++        vkGetPhysicalDeviceQueueFamilyProperties(Candidate, &FamilyCount, Families.data());
++
++        for (uint32_t Index = 0u; Index < FamilyCount; ++Index)
+         {
+-            Vulkan->PhysicalDevice = Candidate;
++            constexpr VkQueueFlags Wanted = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
++            if ((Families[Index].queueFlags & Wanted) != Wanted) continue;
++
++            VkBool32 PresentCapable = VK_FALSE;
++            vkGetPhysicalDeviceSurfaceSupportKHR(Candidate, Index, Vulkan->Surface, &PresentCapable);
++            if (!PresentCapable) continue;
++
++            const bool IsDiscrete = Properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
++            if (ChosenDevice == VK_NULL_HANDLE || (IsDiscrete && !ChosenIsDiscrete))
++            {
++                ChosenDevice     = Candidate;
++                ChosenFamily     = Index;
++                ChosenIsDiscrete = IsDiscrete;
++                ChosenName       = Properties.deviceName;
++            }
+             break;
+         }
+     }
+ 
+-    vkGetPhysicalDeviceMemoryProperties(Vulkan->PhysicalDevice, &Vulkan->MemoryProperties);
+-
+-    uint32_t FamilyCount = 0u;
+-    vkGetPhysicalDeviceQueueFamilyProperties(Vulkan->PhysicalDevice, &FamilyCount, nullptr);
+-    std::vector<VkQueueFamilyProperties> Families(FamilyCount);
+-    vkGetPhysicalDeviceQueueFamilyProperties(Vulkan->PhysicalDevice, &FamilyCount, Families.data());
+-
+-    for (uint32_t Index = 0u; Index < FamilyCount; ++Index)
++    if (ChosenDevice == VK_NULL_HANDLE)
+     {
+-        VkBool32 PresentCapable = VK_FALSE;
+-        vkGetPhysicalDeviceSurfaceSupportKHR(Vulkan->PhysicalDevice, Index, Vulkan->Surface, &PresentCapable);
+-        if ((Families[Index].queueFlags & VK_QUEUE_GRAPHICS_BIT) && PresentCapable)
+-            Vulkan->GraphicsFamily = Index;
+-        if (Families[Index].queueFlags & VK_QUEUE_COMPUTE_BIT)
+-            Vulkan->ComputeFamily = Index;
++        std::cerr << "[SwapchainExchange] No Vulkan device exposes a graphics+compute queue family that can present to the window.\n";
++        return false;
+     }
+ 
++    Vulkan->PhysicalDevice = ChosenDevice;
++    // 📝 One family drives everything: the command pool, the submit queue and the present queue must agree,
++    //    otherwise command buffers recorded from a compute-only pool would be submitted to a graphics queue.
++    Vulkan->GraphicsFamily = ChosenFamily;
++    Vulkan->ComputeFamily  = ChosenFamily;
++
++    vkGetPhysicalDeviceMemoryProperties(Vulkan->PhysicalDevice, &Vulkan->MemoryProperties);
++
++    std::cerr << "[SwapchainExchange] Using GPU: " << ChosenName << " (queue family " << ChosenFamily << ")\n";
+     return true;
+ }
+ 
+@@ -461,9 +588,16 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
+     DeviceInfo.ppEnabledExtensionNames = DeviceExtensions;
+     DeviceInfo.pEnabledFeatures        = &DeviceFeatures;
+ 
+-    if (vkCreateDevice(Vulkan->PhysicalDevice, &DeviceInfo, nullptr, &Vulkan->Device) != VK_SUCCESS)
++    // 📝 Only request the feature when the driver actually offers it; requesting an unsupported
++    //    feature makes vkCreateDevice fail with VK_ERROR_FEATURE_NOT_PRESENT.
++    VkPhysicalDeviceFeatures Supported{};
++    vkGetPhysicalDeviceFeatures(Vulkan->PhysicalDevice, &Supported);
++    DeviceFeatures.shaderStorageImageWriteWithoutFormat = Supported.shaderStorageImageWriteWithoutFormat;
++
++    const VkResult DeviceResult = vkCreateDevice(Vulkan->PhysicalDevice, &DeviceInfo, nullptr, &Vulkan->Device);
++    if (DeviceResult != VK_SUCCESS)
+     {
+-        std::cerr << "[SwapchainExchange] vkCreateDevice failed.\n";
++        std::cerr << "[SwapchainExchange] vkCreateDevice failed (VkResult " << static_cast<int>(DeviceResult) << ").\n";
+         return false;
+     }
+ 
+@@ -482,6 +616,12 @@ bool SwapchainExchange::BringSwapchain() noexcept
+     std::vector<VkSurfaceFormatKHR> SurfaceFormats(FormatCount);
+     vkGetPhysicalDeviceSurfaceFormatsKHR(Vulkan->PhysicalDevice, Vulkan->Surface, &FormatCount, SurfaceFormats.data());
+ 
++    if (SurfaceFormats.empty())
++    {
++        std::cerr << "[SwapchainExchange] Surface reports no supported formats.\n";
++        return false;
++    }
++
+     VkSurfaceFormatKHR ChosenFormat = SurfaceFormats[0];
+     for (const auto& Candidate : SurfaceFormats)
+     {
+@@ -528,10 +668,23 @@ bool SwapchainExchange::BringSwapchain() noexcept
+     SwapchainInfo.imageColorSpace  = ChosenFormat.colorSpace;
+     SwapchainInfo.imageExtent      = Vulkan->SwapchainExtent;
+     SwapchainInfo.imageArrayLayers = 1u;
+-    SwapchainInfo.imageUsage       = VK_IMAGE_USAGE_STORAGE_BIT
+-                                   | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
++    // 📝 The compute pass writes the private storage image; swapchain images only receive the blit
++    //    and the ImGui colour pass, so STORAGE usage (not universally supported) is not requested.
++    SwapchainInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                                    | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+ 
++    if ((SurfaceCapabilities.supportedUsageFlags & SwapchainInfo.imageUsage) != SwapchainInfo.imageUsage)
++    {
++        std::cerr << "[SwapchainExchange] Surface does not support COLOR_ATTACHMENT | TRANSFER_DST swapchain usage.\n";
++        return false;
++    }
++
++    if (Vulkan->SwapchainExtent.width == 0u || Vulkan->SwapchainExtent.height == 0u)
++    {
++        std::cerr << "[SwapchainExchange] Swapchain extent is zero (window minimised?).\n";
++        return false;
++    }
++
+     uint32_t SharedFamilies[] = { Vulkan->GraphicsFamily, Vulkan->ComputeFamily };
+     if (Vulkan->GraphicsFamily != Vulkan->ComputeFamily)
+     {
+@@ -549,9 +702,10 @@ bool SwapchainExchange::BringSwapchain() noexcept
+     SwapchainInfo.presentMode    = VK_PRESENT_MODE_FIFO_KHR;
+     SwapchainInfo.clipped        = VK_TRUE;
+ 
+-    if (vkCreateSwapchainKHR(Vulkan->Device, &SwapchainInfo, nullptr, &Vulkan->Swapchain) != VK_SUCCESS)
++    const VkResult SwapchainResult = vkCreateSwapchainKHR(Vulkan->Device, &SwapchainInfo, nullptr, &Vulkan->Swapchain);
++    if (SwapchainResult != VK_SUCCESS)
+     {
+-        std::cerr << "[SwapchainExchange] vkCreateSwapchainKHR failed.\n";
++        std::cerr << "[SwapchainExchange] vkCreateSwapchainKHR failed (VkResult " << static_cast<int>(SwapchainResult) << ").\n";
+         return false;
+     }
+ 
+@@ -594,7 +748,11 @@ bool SwapchainExchange::BringStorageImage() noexcept
+     ImageInfo.usage         = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+     ImageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+     ImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+-    (void)vkCreateImage(Vulkan->Device, &ImageInfo, nullptr, &Vulkan->StorageImage);
++    if (vkCreateImage(Vulkan->Device, &ImageInfo, nullptr, &Vulkan->StorageImage) != VK_SUCCESS)
++    {
++        std::cerr << "[SwapchainExchange] vkCreateImage (storage image) failed.\n";
++        return false;
++    }
+ 
+     VkMemoryRequirements Requirements{};
+     vkGetImageMemoryRequirements(Vulkan->Device, Vulkan->StorageImage, &Requirements);
+@@ -603,7 +761,11 @@ bool SwapchainExchange::BringStorageImage() noexcept
+     AllocateInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+     AllocateInfo.allocationSize  = Requirements.size;
+     AllocateInfo.memoryTypeIndex = ResolveMemoryType(Requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+-    (void)vkAllocateMemory(Vulkan->Device, &AllocateInfo, nullptr, &Vulkan->StorageMemory);
++    if (vkAllocateMemory(Vulkan->Device, &AllocateInfo, nullptr, &Vulkan->StorageMemory) != VK_SUCCESS)
++    {
++        std::cerr << "[SwapchainExchange] vkAllocateMemory (storage image) failed.\n";
++        return false;
++    }
+     vkBindImageMemory(Vulkan->Device, Vulkan->StorageImage, Vulkan->StorageMemory, 0);
+ 
+     VkImageViewCreateInfo ViewInfo{};
+@@ -691,7 +853,11 @@ bool SwapchainExchange::BringComputePipeline() noexcept
+     ShaderModuleInfo.codeSize = Spirv.size() * 4u;
+     ShaderModuleInfo.pCode    = Spirv.data();
+     VkShaderModule ShaderModule = VK_NULL_HANDLE;
+-    (void)vkCreateShaderModule(Vulkan->Device, &ShaderModuleInfo, nullptr, &ShaderModule);
++    if (vkCreateShaderModule(Vulkan->Device, &ShaderModuleInfo, nullptr, &ShaderModule) != VK_SUCCESS)
++    {
++        std::cerr << "[SwapchainExchange] vkCreateShaderModule failed - the SPIR-V blob is invalid.\n";
++        return false;
++    }
+ 
+     VkComputePipelineCreateInfo ComputeInfo{};
+     ComputeInfo.sType        = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+@@ -707,7 +873,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
+ 
+     if (PipelineResult != VK_SUCCESS)
+     {
+-        std::cerr << "[SwapchainExchange] vkCreateComputePipelines failed.\n";
++        std::cerr << "[SwapchainExchange] vkCreateComputePipelines failed (VkResult " << static_cast<int>(PipelineResult) << ").\n";
+         return false;
+     }
+     return true;
+@@ -733,14 +899,23 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
+     AllocateInfo.descriptorPool     = Vulkan->ComputeDescriptorPool;
+     AllocateInfo.descriptorSetCount = 1u;
+     AllocateInfo.pSetLayouts        = &Vulkan->ComputeDescriptorLayout;
+-    (void)vkAllocateDescriptorSets(Vulkan->Device, &AllocateInfo, &Vulkan->ComputeDescriptorSet);
++    if (vkAllocateDescriptorSets(Vulkan->Device, &AllocateInfo, &Vulkan->ComputeDescriptorSet) != VK_SUCCESS)
++    {
++        std::cerr << "[SwapchainExchange] vkAllocateDescriptorSets failed.\n";
++        return false;
++    }
+ 
++    // 📝 The scene SSBOs do not exist yet (UploadTriangles / UploadRadiance run after Bring()).
++    //    WriteDescriptorSet() only writes the bindings whose resources exist - writing a VK_NULL_HANDLE
++    //    buffer into a descriptor is invalid and crashes most drivers when validation is off.
+     WriteDescriptorSet();
+     return true;
+ }
+ 
+ void SwapchainExchange::WriteDescriptorSet() noexcept
+ {
++    if (!Vulkan->ComputeDescriptorSet) return;
++
+     VkDescriptorImageInfo ImageInfo{};
+     ImageInfo.imageView   = Vulkan->StorageImageView;
+     ImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+@@ -756,28 +931,43 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
+     MaterialBufferInfo.range  = VK_WHOLE_SIZE;
+ 
+     std::array<VkWriteDescriptorSet, 3u> Writes{};
+-    Writes[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+-    Writes[0].dstSet          = Vulkan->ComputeDescriptorSet;
+-    Writes[0].dstBinding      = 0u;
+-    Writes[0].descriptorCount = 1u;
+-    Writes[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+-    Writes[0].pImageInfo      = &ImageInfo;
+-
+-    Writes[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+-    Writes[1].dstSet          = Vulkan->ComputeDescriptorSet;
+-    Writes[1].dstBinding      = 1u;
+-    Writes[1].descriptorCount = 1u;
+-    Writes[1].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+-    Writes[1].pBufferInfo     = &TriangleBufferInfo;
+-
+-    Writes[2].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+-    Writes[2].dstSet          = Vulkan->ComputeDescriptorSet;
+-    Writes[2].dstBinding      = 2u;
+-    Writes[2].descriptorCount = 1u;
+-    Writes[2].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+-    Writes[2].pBufferInfo     = &MaterialBufferInfo;
+-
+-    vkUpdateDescriptorSets(Vulkan->Device, 3u, Writes.data(), 0u, nullptr);
++    uint32_t WriteCount = 0u;
++
++    if (Vulkan->StorageImageView)
++    {
++        VkWriteDescriptorSet& Write = Writes[WriteCount++];
++        Write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
++        Write.dstSet          = Vulkan->ComputeDescriptorSet;
++        Write.dstBinding      = 0u;
++        Write.descriptorCount = 1u;
++        Write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
++        Write.pImageInfo      = &ImageInfo;
++    }
++
++    if (Vulkan->TriangleBuffer)
++    {
++        VkWriteDescriptorSet& Write = Writes[WriteCount++];
++        Write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
++        Write.dstSet          = Vulkan->ComputeDescriptorSet;
++        Write.dstBinding      = 1u;
++        Write.descriptorCount = 1u;
++        Write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
++        Write.pBufferInfo     = &TriangleBufferInfo;
++    }
++
++    if (Vulkan->MaterialBuffer)
++    {
++        VkWriteDescriptorSet& Write = Writes[WriteCount++];
++        Write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
++        Write.dstSet          = Vulkan->ComputeDescriptorSet;
++        Write.dstBinding      = 2u;
++        Write.descriptorCount = 1u;
++        Write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
++        Write.pBufferInfo     = &MaterialBufferInfo;
++    }
++
++    if (WriteCount > 0u)
++        vkUpdateDescriptorSets(Vulkan->Device, WriteCount, Writes.data(), 0u, nullptr);
+ }
+ 
+ bool SwapchainExchange::BringCycleSlots() noexcept
+@@ -892,11 +1082,17 @@ bool SwapchainExchange::BringImGui() noexcept
+ 
+ void SwapchainExchange::UploadTriangles(const std::vector<TriangleIndex>& Triangles) noexcept
+ {
++    if (!Vulkan->Device) return;
++
++    if (Vulkan->TriangleBuffer || Vulkan->TriangleMemory) vkDeviceWaitIdle(Vulkan->Device);
+     if (Vulkan->TriangleBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->TriangleBuffer, nullptr);
+     if (Vulkan->TriangleMemory) vkFreeMemory   (Vulkan->Device, Vulkan->TriangleMemory, nullptr);
++    Vulkan->TriangleBuffer = VK_NULL_HANDLE;
++    Vulkan->TriangleMemory = VK_NULL_HANDLE;
+ 
+     Vulkan->TriangleCount      = static_cast<uint32_t>(Triangles.size());
+-    const VkDeviceSize ByteCount = Triangles.size() * sizeof(TriangleIndex);
++    // 📝 A zero-sized buffer is invalid; keep at least one record so the SSBO binding is always valid.
++    const VkDeviceSize ByteCount = std::max<VkDeviceSize>(Triangles.size(), 1u) * sizeof(TriangleIndex);
+     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                    | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+ 
+@@ -906,17 +1102,29 @@ void SwapchainExchange::UploadTriangles(const std::vector<TriangleIndex>& Triang
+ 
+     void* Mapped = nullptr;
+     (void)vkMapMemory(Vulkan->Device, Vulkan->TriangleMemory, 0u, ByteCount, 0u, &Mapped);
+-    std::memcpy(Mapped, Triangles.data(), static_cast<size_t>(ByteCount));
+-    vkUnmapMemory(Vulkan->Device, Vulkan->TriangleMemory);
++    if (Mapped)
++    {
++        std::memset(Mapped, 0, static_cast<size_t>(ByteCount));
++        if (!Triangles.empty())
++            std::memcpy(Mapped, Triangles.data(), Triangles.size() * sizeof(TriangleIndex));
++        vkUnmapMemory(Vulkan->Device, Vulkan->TriangleMemory);
++    }
++
++    WriteDescriptorSet();
+ }
+ 
+ void SwapchainExchange::UploadRadiance(const std::vector<RadianceStructure>& Materials) noexcept
+ {
++    if (!Vulkan->Device) return;
++
++    if (Vulkan->MaterialBuffer || Vulkan->MaterialMemory) vkDeviceWaitIdle(Vulkan->Device);
+     if (Vulkan->MaterialBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->MaterialBuffer, nullptr);
+     if (Vulkan->MaterialMemory) vkFreeMemory   (Vulkan->Device, Vulkan->MaterialMemory, nullptr);
++    Vulkan->MaterialBuffer = VK_NULL_HANDLE;
++    Vulkan->MaterialMemory = VK_NULL_HANDLE;
+ 
+     Vulkan->MaterialCount      = static_cast<uint32_t>(Materials.size());
+-    const VkDeviceSize ByteCount = Materials.size() * sizeof(RadianceStructure);
++    const VkDeviceSize ByteCount = std::max<VkDeviceSize>(Materials.size(), 1u) * sizeof(RadianceStructure);
+     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                    | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+ 
+@@ -926,8 +1134,15 @@ void SwapchainExchange::UploadRadiance(const std::vector<RadianceStructure>& Mat
+ 
+     void* Mapped = nullptr;
+     (void)vkMapMemory(Vulkan->Device, Vulkan->MaterialMemory, 0u, ByteCount, 0u, &Mapped);
+-    std::memcpy(Mapped, Materials.data(), static_cast<size_t>(ByteCount));
+-    vkUnmapMemory(Vulkan->Device, Vulkan->MaterialMemory);
++    if (Mapped)
++    {
++        std::memset(Mapped, 0, static_cast<size_t>(ByteCount));
++        if (!Materials.empty())
++            std::memcpy(Mapped, Materials.data(), Materials.size() * sizeof(RadianceStructure));
++        vkUnmapMemory(Vulkan->Device, Vulkan->MaterialMemory);
++    }
++
++    WriteDescriptorSet();
+ }
+ 
+ //============================================================================================================================================
+@@ -952,6 +1167,19 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch)
+         return;
+     }
+ 
++    if (AcquireResult != VK_SUCCESS && AcquireResult != VK_SUBOPTIMAL_KHR)
++    {
++        std::cerr << "[SwapchainExchange] vkAcquireNextImageKHR failed (VkResult " << static_cast<int>(AcquireResult) << ").\n";
++        return;
++    }
++
++    if (!Vulkan->TriangleBuffer || !Vulkan->MaterialBuffer)
++    {
++        // 📝 Descriptors for bindings 1/2 are unwritten until the scene is uploaded; dispatching now would be UB.
++        std::cerr << "[SwapchainExchange] RecordAndPresent called before UploadTriangles/UploadRadiance - frame skipped.\n";
++        return;
++    }
++
+     if (Vulkan->ImageOrdinalFences[ImageOrdinal] != VK_NULL_HANDLE)
+         vkWaitForFences(Vulkan->Device, 1u, &Vulkan->ImageOrdinalFences[ImageOrdinal], VK_TRUE, UINT64_MAX);
+     Vulkan->ImageOrdinalFences[ImageOrdinal] = Vulkan->CycleFences[ActiveSlot];
+@@ -960,7 +1188,8 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch)
+ 
+     vkResetFences(Vulkan->Device, 1u, &Vulkan->CycleFences[ActiveSlot]);
+ 
+-    VkPipelineStageFlags WaitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
++    // 📝 The first touch of the acquired image is the blit (transfer stage), then the ImGui colour pass.
++    VkPipelineStageFlags WaitStage = VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+     VkSubmitInfo Submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+     Submit.waitSemaphoreCount   = 1u;
+     Submit.pWaitSemaphores      = &Vulkan->AcquireSemaphores[ActiveSlot];
+@@ -1106,7 +1335,8 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
+     RenderPassBegin.clearValueCount   = 1u;
+     RenderPassBegin.pClearValues      = &ClearValue;
+     vkCmdBeginRenderPass(Command, &RenderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
+-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Command);
++    if (ImDrawData* DrawData = ImGui::GetDrawData())
++        ImGui_ImplVulkan_RenderDrawData(DrawData, Command);
+     vkCmdEndRenderPass(Command);
+ 
+     (void)vkEndCommandBuffer(Command);
+diff --git a/Projects/Project-Zero/Build/ToolchainSequence.ps1 b/Projects/Project-Zero/Build/ToolchainSequence.ps1
+index 36bfe59..76ad454 100644
+--- a/Projects/Project-Zero/Build/ToolchainSequence.ps1
++++ b/Projects/Project-Zero/Build/ToolchainSequence.ps1
+@@ -613,6 +613,20 @@ $ExePath = Join-Path $BinaryRoot 'Project-Zero.exe'
+ $GlfwDll = Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3.dll'
+ if (Test-Path $GlfwDll) { Copy-Item $GlfwDll $BinaryRoot -Force }
+ 
++# Copy the lowered compute shader beside the executable so double-clicking the .exe works
++# (the runtime searches <cwd>\Engine\Shaders first, then <exe dir>\Engine\Shaders and its parents).
++$SpirvSource = Join-Path $EngineRoot 'Shaders\ReSTIRViewport.spv'
++if (Test-Path $SpirvSource)
++{
++    $SpirvTarget = Join-Path $BinaryRoot 'Engine\Shaders'
++    New-Item -ItemType Directory -Force -Path $SpirvTarget | Out-Null
++    Copy-Item $SpirvSource $SpirvTarget -Force
++}
++else
++{
++    Write-Rejected "Engine\Shaders\ReSTIRViewport.spv is missing - Project-Zero will fail at BringComputePipeline"
++}
++
+ if (Test-Path $ExePath)
+ {
+     try
+@@ -656,6 +670,8 @@ Write-Produced $ExePath
+ 
+ if ($Run)
+ {
+-    Write-Building 'Launching Project-Zero...'
+-    & "$ExePath"
++    Write-Building 'Launching Project-Zero (working directory = repository root)...'
++    Push-Location $RepositoryRoot
++    try     { & "$ExePath"; Write-Building "Project-Zero exited with code $LASTEXITCODE" }
++    finally { Pop-Location }
+ }
+diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
+index 5293370..d714bf9 100644
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -11,6 +11,7 @@
+ #include "RayTracingSolver.h"
+ 
+ #include <chrono>
++#include <iostream>
+ 
+ int main(int, char**)
+ {
+@@ -22,7 +23,7 @@ int main(int, char**)
+     DiagnosticConfig.OutputFileStem             = "ProjectZero_TelemetryReport";
+     DiagnosticConfig.FileExtension              = ".md";
+     DiagnosticConfig.TimestampPrefixEnabled     = true;
+-    DiagnosticConfig.ConsoleEchoEnabled         = false;
++    DiagnosticConfig.ConsoleEchoEnabled         = true;    // 💡 mirror telemetry into the console so a failed bring-up is visible
+     DiagnosticConfig.MarkdownTableFormatEnabled = true;
+ 
+     Frontier::DiagnosticMetrics Logger(DiagnosticConfig);
+@@ -91,11 +92,16 @@ int main(int, char**)
+     if (!Surface.Bring())
+     {
+         Logger.RecordMessage(Frontier::DiagnosticSeverity::Fatal,
+-                             "Bootstrap", "SwapchainExchange bring-up failed.");
++                             "Bootstrap", "SwapchainExchange bring-up failed - see the [SwapchainExchange] lines above for the failing stage.");
+         Logger.TerminateSink();
++        std::cerr << "\nProject-Zero could not open its window. Press Enter to close this console.\n";
++        std::cin.get();
+         return 1;
+     }
+ 
++    Logger.RecordMessage(Frontier::DiagnosticSeverity::Information,
++                         "Bootstrap", "Window and Vulkan swapchain ready.");
++
+     Surface.UploadTriangles(GpuTriangles);
+     Surface.UploadRadiance(GpuMaterials);
+ 
+@@ -159,6 +165,9 @@ int main(int, char**)
+         Surface.RecordAndPresent(Dispatch);
+ 
+         Integrator.IncrementAccumulationIndex();
++
++        // 📝 Keep the on-disk telemetry current even if the process is killed mid-run.
++        if ((Integrator.QueryAccumulationIndex() & 63u) == 0u) Logger.FlushSink();
+     }
+ 
+     //──────────────────────────────────────────────────────────────────────────
