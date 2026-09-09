@@ -18,17 +18,35 @@ if ! python3 Scripts/ApplyImGuiPatches.py --verify >/tmp/EditorProof.verify 2>&1
     echo "  PATCH VERIFY FAILED"; sed 's/^/    /' /tmp/EditorProof.verify | head -25; exit 1
 fi
 
+[ -f "ExternalPackages/tomlpp/include/toml++/toml.hpp" ] || git clone --depth 1 -q https://github.com/marzer/tomlplusplus.git ExternalPackages/tomlpp
+
 echo "[EditorProof] compiling the patched vendor + Engine/Editor (headless: no Vulkan, no GLFW)"
 Binary="$(mktemp -u /tmp/EditorProof.XXXXXX)"
 if ! g++ -std=c++20 -O2 -Wall -Wextra -DFRONTIER_DEVELOPMENT \
-     -I ExternalPackages/imgui -I Engine/Editor -I Scratchpad \
+     -I ExternalPackages/imgui -I Engine/Editor -I Engine/DisplayPresentation -I ExternalPackages/tomlpp/include -I Scratchpad \
      Scratchpad/EditorProof.cpp \
      Engine/Editor/EditorHost.cpp \
      Engine/Editor/ControlPanel.cpp \
      Engine/Editor/OutlinerPanel.cpp \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
-     Engine/Editor/ControlCentrePanel.cpp \
+     Engine/Editor/ShadeTick.cpp \
+     Engine/DisplayPresentation/ControlCentreHost.cpp \
+     Engine/DisplayPresentation/PixelSpace.cpp \
+     Engine/DisplayPresentation/MotionIntegrator.cpp \
+     Engine/DisplayPresentation/ThemeStructure.cpp \
+     Engine/DisplayPresentation/ControlKit.cpp \
+     Engine/DisplayPresentation/AppearanceInspector.cpp \
+     Engine/DisplayPresentation/ConfigurationInspector.cpp \
+     Engine/DisplayPresentation/DialogueHost.cpp \
+     Engine/DisplayPresentation/FidelityClassifier.cpp \
+     Engine/DisplayPresentation/VectorCodec.cpp \
+     Engine/DisplayPresentation/NotificationQueue.cpp \
+     Engine/DisplayPresentation/TelemetryMetrics.cpp \
+     Engine/DisplayPresentation/TypefaceRegistry.cpp \
+     Engine/DisplayPresentation/GlyphSpace.cpp \
+     Engine/DisplayPresentation/FontCodec.cpp \
+     Engine/DeviceExchange/InputExchange.cpp \
      ExternalPackages/imgui/imgui.cpp \
      ExternalPackages/imgui/imgui_draw.cpp \
      ExternalPackages/imgui/imgui_tables.cpp \
@@ -62,7 +80,6 @@ EditorFiles="Engine/Editor/EditorInstance.h Engine/Editor/ControlPanel.h Engine/
     Engine/Editor/OutlinerPanel.h Engine/Editor/OutlinerPanel.cpp
     Engine/Editor/ViewportPanel.h Engine/Editor/ViewportPanel.cpp
     Engine/Editor/InspectorPanel.h Engine/Editor/InspectorPanel.cpp
-    Engine/Editor/ControlCentrePanel.h Engine/Editor/ControlCentrePanel.cpp
     Scratchpad/EditorProof.cpp"
 # shellcheck disable=SC2086
 Bad="$(grep -nE '\b(Manager|Handler|Processor|Controller|Service|Utility|Helper|Node|Frame|Module|Core|System|Backend|Pass|Stage|Harness|Shell|Entity|Element|Subsystem|Hierarchy|Data|Info|Object|Item|Thing|Kind|Base|flag|state|value|Parent|Child|Sibling|Table|Map|Block|Digest|Model|Handle|Store|Bridge|Atlas|Substrate|Fabric|Cache|Evaluator|Evaluate|Journal|Resolver|Mesh|Pool|Registry|Catalog|Repository|Directory|Vault|Arena|Inventory|Ledger|Plan|Filter|Grid|Array|Dispatcher|Memory|Buffer|Pipeline|Flow|Composite|Compose|Composition|Allocation|Tier|Nesting|Stratum|Mip|Messenger|Probe|Blend|History|Bake|Stamp|Contract|Outcome|Prelude|Cadence|Binding|Submission|Footprint|Region|Tree|Vacancy|Ordinates|Draft|Draught|Paint|Depot|Ordinal|Actor|Source|API|Kit|kit|kind)\b' \

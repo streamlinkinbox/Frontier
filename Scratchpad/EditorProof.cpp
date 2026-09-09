@@ -11,6 +11,7 @@
 #include <imgui.h>
 
 #include "EditorHost.h"
+#include "TypefaceRegistry.h"
 #include "PngWriteShim.h"
 
 #include <cmath>
@@ -437,9 +438,20 @@ int main()
     Frontier::EditorHost Editor;
     Editor.ApplyTheme();   // seats the faces first: the glyph sheet below must carry them, not the raster default
 
+    static Frontier::TypefaceRegistry Typefaces;
+    const uint32_t FamilyCount = Typefaces.Load("EngineContent/FontArchives");
+    Frontier::TypefaceRegistry::Install(&Typefaces);
+    std::fprintf(stderr, "[EditorProof] typefaces: %u families\n", FamilyCount);
+
     unsigned char* GlyphSheet = nullptr;
     int GlyphSheetWidth = 0, GlyphSheetHeight = 0;
     IO.Fonts->GetTexDataAsRGBA32(&GlyphSheet, &GlyphSheetWidth, &GlyphSheetHeight);
+
+    if (!Editor.SeatShade(kWidth, kHeight))
+    {
+        std::fprintf(stderr, "[EditorProof] [FAIL] the shade never seated\n");
+        return 1;
+    }
 
     Frontier::EditorInstance CornellInstances[kMirrorEntryCount] = {};
     Frontier::EditorSheet  PickedSheet = {};
@@ -449,12 +461,22 @@ int main()
 
     std::vector<unsigned char> Pixels(static_cast<size_t>(kWidth) * static_cast<size_t>(kHeight) * 3u);
 
-    // One engine tick with the pointer parked where the phase wants it.
+    // One engine tick with the pointer parked where the phase wants it. The shade takes the
+    //    contact first; while it owns the pointer the columns below see an empty contact.
     auto Tick = [&](float MouseX, float MouseY, bool Down)
     {
         IO.DeltaTime = 1.0f / 60.0f;
-        IO.AddMousePosEvent(MouseX, MouseY);
-        IO.AddMouseButtonEvent(0, Down);
+        Editor.TickShade(MouseX, MouseY, Down, 0.0f, 1.0f / 60.0f);
+        if (Editor.ShadeCoversPointer())
+        {
+            IO.AddMousePosEvent(-1.0f, -1.0f);
+            IO.AddMouseButtonEvent(0, false);
+        }
+        else
+        {
+            IO.AddMousePosEvent(MouseX, MouseY);
+            IO.AddMouseButtonEvent(0, Down);
+        }
         ImGui::NewFrame();
         Editor.Record(CornellInstances, kMirrorEntryCount, &PickedSheet);
         ImGui::Render();
@@ -487,7 +509,7 @@ int main()
         Tick(-1.0f, -1.0f, false);
     };
 
-    // The engine's tick order (RenderScheduler::Present), minus the Control Centre overlay, which needs Vulkan.
+    // The engine's tick order (RenderScheduler::Present), shade and all.
     //    Ten ticks: the built columns settle over the first two, and the gates read the last. The pointer
     //    rests nowhere near the strips, so no hover tint may pollute the gates.
     for (int i = 0; i < 10; ++i)

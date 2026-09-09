@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Headless editor preview — the development editor over the LIVE Cornell level, with the viewport traced on the
-#    CPU through the renderer's own traversal. One sheet out (Diagnostics/EditorPreview.png). No Vulkan, no GLFW.
+#    CPU through the renderer's own traversal. Five sheets out (shut, open, raster, shut raster, hub). No Vulkan, no GLFW.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 mkdir -p Diagnostics
@@ -17,11 +17,12 @@ Vkh="${VKH:-/tmp/vkh/include}"
 [ -f "$Stb/stb_image.h" ] || git clone --depth 1 -q https://github.com/nothings/stb.git "$Stb"
 [ -f "$Bvh/tiny_bvh.h" ] || git clone --depth 1 -q https://github.com/jbikker/tinybvh.git "$Bvh"
 [ -f "$Vkh/vulkan/vulkan.h" ] || git clone --depth 1 -q https://github.com/KhronosGroup/Vulkan-Headers.git "$(dirname "$Vkh")"
+[ -f "ExternalPackages/tomlpp/include/toml++/toml.hpp" ] || git clone --depth 1 -q https://github.com/marzer/tomlplusplus.git ExternalPackages/tomlpp
 
 echo "[EditorPreview] compiling the preview (headless: no Vulkan, no GLFW)"
 Binary="$(mktemp -u /tmp/EditorPreview.XXXXXX)"
 if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
-     -I ExternalPackages/imgui -I Engine/Editor -I Scratchpad -I . -I Engine \
+     -I ExternalPackages/imgui -I Engine/Editor -I Engine/DisplayPresentation -I ExternalPackages/tomlpp/include -I Scratchpad -I . -I Engine \
      -I Projects/Project-Zero/Source -I "$Cg" -I "$Ufbx" -I "$Stb" -I "$Bvh" -I "$Vkh" \
      Scratchpad/EditorPreview.cpp \
      Engine/Editor/EditorHost.cpp \
@@ -29,7 +30,22 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
      Engine/Editor/OutlinerPanel.cpp \
      Engine/Editor/ViewportPanel.cpp \
      Engine/Editor/InspectorPanel.cpp \
-     Engine/Editor/ControlCentrePanel.cpp \
+     Engine/Editor/ShadeTick.cpp \
+     Engine/DisplayPresentation/ControlCentreHost.cpp \
+     Engine/DisplayPresentation/PixelSpace.cpp \
+     Engine/DisplayPresentation/MotionIntegrator.cpp \
+     Engine/DisplayPresentation/ThemeStructure.cpp \
+     Engine/DisplayPresentation/ControlKit.cpp \
+     Engine/DisplayPresentation/AppearanceInspector.cpp \
+     Engine/DisplayPresentation/ConfigurationInspector.cpp \
+     Engine/DisplayPresentation/DialogueHost.cpp \
+     Engine/DisplayPresentation/FidelityClassifier.cpp \
+     Engine/DisplayPresentation/VectorCodec.cpp \
+     Engine/DisplayPresentation/NotificationQueue.cpp \
+     Engine/DisplayPresentation/TelemetryMetrics.cpp \
+     Engine/DisplayPresentation/TypefaceRegistry.cpp \
+     Engine/DisplayPresentation/GlyphSpace.cpp \
+     Engine/DisplayPresentation/FontCodec.cpp \
      Engine/GeometricRaster/VisibilityRaster.cpp \
      ExternalPackages/imgui/imgui.cpp \
      ExternalPackages/imgui/imgui_draw.cpp \

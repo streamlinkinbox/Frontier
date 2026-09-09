@@ -9,6 +9,9 @@
 #include <imgui.h>
 #include <imgui_internal.h>   // DockBuilder*: the first-seat columns are built, not dragged
 
+#include "../DisplayPresentation/FidelityClassifier.h"
+
+#include <algorithm>
 #include <cstdio>
 
 namespace Frontier {
@@ -22,9 +25,12 @@ EditorHost::EditorHost() noexcept
     Outliner_.AssignControls(&Controls_);
     Viewport_.AssignControls(&Controls_);
     Inspector_.AssignControls(&Controls_);
-    ControlCentre_.AssignControls(&Controls_);
-    ControlCentre_.AssignOpen(&ShadeOpen_);
     Viewport_.AssignShadeOpen(&ShadeOpen_);
+}
+
+EditorHost::~EditorHost() noexcept
+{
+    Shade_.Terminate();
 }
 
 uint32_t EditorHost::QueryPickedInstance() const noexcept
@@ -57,59 +63,162 @@ float EditorHost::QueryViewHeight() const noexcept
     return Viewport_.QueryViewHeight();
 }
 
+bool EditorHost::SeatShade(uint32_t Width, uint32_t Height) noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    ShadeSeated_ = Shade_.Initialize(Width, Height);
+    return ShadeSeated_;
+#else
+    (void)Width; (void)Height;
+    return false;
+#endif
+}
+
+void EditorHost::TickShade(float CursorX, float CursorY, bool Down, float Wheel, float DeltaSeconds) noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    if (!ShadeSeated_)
+        return;
+    // The host runs in logical pixels; the contact arrives in display pixels, so the exchange carries the
+    //    contact scaled while the advance takes it logical — the Rig's mapping, kept exact under UI scale.
+    const float Scale = std::clamp(Shade_.QueryAppearance().QueryApplied().InterfaceScale / 100.0f, 0.5f, 2.0f);
+    const ImVec2 Display = ImGui::GetIO().DisplaySize;
+    Shade_.Resize(static_cast<uint32_t>(Display.x / Scale + 0.5f),
+                  static_cast<uint32_t>(Display.y / Scale + 0.5f));
+    ShadeInput_.AssignCursorPosition(CursorX * Scale, CursorY * Scale);
+    ShadeInput_.AssignMouseButton(MouseButtonCategory::ButtonLeft, Down);
+    ShadeInput_.ResetMouseScroll();
+    if (Wheel != 0.0f)
+        ShadeInput_.AssignMouseScroll(Wheel);
+    Shade_.AdvanceInteraction(ShadeInput_, CursorX, CursorY);
+    Shade_.AdvanceLocomotion(DeltaSeconds);
+    Toasts_.Advance(DeltaSeconds);
+    AdvanceShadeTelemetry(Telemetry_, DeltaSeconds);
+
+    // The gear toggles the shared figure; only an edge past the echo moves the shade, so the publish
+    //    below never fights a tap or a scrim press that already seated the pose.
+    if (!Shade_.IsDragging() && ShadeOpen_ != OpenEcho_)
+    {
+        if (ShadeOpen_)
+            Shade_.OpenNotch();
+        else
+            Shade_.CloseNotch();
+        OpenEcho_ = ShadeOpen_;
+    }
+    ShadeOpen_ = Shade_.IsOpen();
+    OpenEcho_  = ShadeOpen_;
+
+    // A settings change raises the dashboard's toast, as the Rig and the game both do.
+    const ControlCentreSettings& Current = Shade_.QuerySettings();
+    if (Current.Revision != ToastRevision_)
+    {
+        Toasts_.AssignEnabled(Current.Notifications);
+        char Body[96];
+        std::snprintf(Body, sizeof(Body), "%s  |  GI %s, AA %s, scale %d%%", FidelityLabel(Current.Quality),
+                      Current.GlobalIllumination ? "on" : "off", Current.AntiAliasing ? "on" : "off",
+                      static_cast<int>(Current.RenderScale * 100.0f + 0.5f));
+        Toasts_.Push("Render settings applied", Body);
+        ToastRevision_ = Current.Revision;
+    }
+#else
+    (void)CursorX; (void)CursorY; (void)Down; (void)Wheel; (void)DeltaSeconds;
+#endif
+}
+
+bool EditorHost::ShadeCoversPointer() const noexcept
+{
+#ifdef FRONTIER_DEVELOPMENT
+    return ShadeSeated_ && Shade_.CoversPointer();
+#else
+    return false;
+#endif
+}
+
 bool EditorHost::QueryGiEnabled() const noexcept
 {
-    return ControlCentre_.QueryGiEnabled();
+    return Shade_.QuerySettings().GlobalIllumination;
 }
 
 float EditorHost::QueryRenderScale() const noexcept
 {
-    return ControlCentre_.QueryRenderScale();
+    return Shade_.QuerySettings().RenderScale;
 }
 
 uint32_t EditorHost::QueryRevision() const noexcept
 {
-    return ControlCentre_.QueryRevision();
+    return Shade_.QuerySettings().Revision;
+}
+
+const ControlCentreSettings& EditorHost::QueryShadeSettings() const noexcept
+{
+    return Shade_.QuerySettings();
 }
 
 void EditorHost::AssignProjectName(const char* Name) noexcept
 {
-    ControlCentre_.AssignProjectName(Name);
+    Shade_.AssignProjectName(Name != nullptr ? Name : "");
+}
+
+bool EditorHost::QueryShadeOpen() const noexcept
+{
+    return ShadeSeated_ && Shade_.IsOpen();
+}
+
+uint32_t EditorHost::QueryShadePage() const noexcept
+{
+    return static_cast<uint32_t>(Shade_.QueryActivePage());
 }
 
 float EditorHost::QueryGiTileX() const noexcept
 {
-    return ControlCentre_.QueryGiTileX();
+    const PlaneExtent Disc = Shade_.QueryTileDiscExtent(0u);
+    return (Disc.MinimumX + Disc.MaximumX) * 0.5f;
 }
 
 float EditorHost::QueryGiTileY() const noexcept
 {
-    return ControlCentre_.QueryGiTileY();
+    const PlaneExtent Disc = Shade_.QueryTileDiscExtent(0u);
+    return (Disc.MinimumY + Disc.MaximumY) * 0.5f;
 }
 
 float EditorHost::QueryPillX0() const noexcept
 {
-    return ControlCentre_.QueryPillX0();
+    return Shade_.QueryPillTrackExtent().MinimumX;
 }
 
 float EditorHost::QueryPillX1() const noexcept
 {
-    return ControlCentre_.QueryPillX1();
+    return Shade_.QueryPillTrackExtent().MaximumX;
 }
 
 float EditorHost::QueryPillY() const noexcept
 {
-    return ControlCentre_.QueryPillY();
+    const PlaneExtent Track = Shade_.QueryPillTrackExtent();
+    return (Track.MinimumY + Track.MaximumY) * 0.5f;
 }
 
 float EditorHost::QueryNotchX() const noexcept
 {
-    return ControlCentre_.QueryNotchX();
+    const PlaneExtent Grip = Shade_.QueryHandleExtent();
+    return (Grip.MinimumX + Grip.MaximumX) * 0.5f;
 }
 
 float EditorHost::QueryNotchY() const noexcept
 {
-    return ControlCentre_.QueryNotchY();
+    const PlaneExtent Grip = Shade_.QueryHandleExtent();
+    return (Grip.MinimumY + Grip.MaximumY) * 0.5f;
+}
+
+float EditorHost::QueryGearX() const noexcept
+{
+    const PlaneExtent Gear = Shade_.QueryHeaderGearExtent();
+    return (Gear.MinimumX + Gear.MaximumX) * 0.5f;
+}
+
+float EditorHost::QueryGearY() const noexcept
+{
+    const PlaneExtent Gear = Shade_.QueryHeaderGearExtent();
+    return (Gear.MinimumY + Gear.MaximumY) * 0.5f;
 }
 
 //============================================================================================================================================
@@ -282,8 +391,8 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
 #ifdef FRONTIER_DEVELOPMENT
     ImGuiViewport* Main = ImGui::GetMainViewport();
     // The dock host always leaves the shade its strip; the sheet slides over the columns from there.
-    ImGui::SetNextWindowPos(ImVec2(Main->Pos.x, Main->Pos.y + ControlCentrePanel::kNotchH));
-    ImGui::SetNextWindowSize(ImVec2(Main->Size.x, Main->Size.y - ControlCentrePanel::kNotchH));
+    ImGui::SetNextWindowPos(ImVec2(Main->Pos.x, Main->Pos.y + ControlCentreHost::NotchHeight));
+    ImGui::SetNextWindowSize(ImVec2(Main->Size.x, Main->Size.y - ControlCentreHost::NotchHeight));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -322,8 +431,21 @@ void EditorHost::Record(EditorInstance* Instances, uint32_t InstanceCount, Edito
     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
     Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? PickedSheet : nullptr);
 
-    // The shade records last, above the dock columns.
-    ControlCentre_.Record();
+    // The shade records last, above the dock columns: the FPS readout, the shade itself, and the
+    //    toasts, all onto the foreground list — the Rig's order, kept.
+    if (ShadeSeated_)
+    {
+        const float UiScale = std::clamp(Shade_.QueryAppearance().QueryApplied().InterfaceScale / 100.0f,
+                                         0.5f, 2.0f);
+        if (ShadeSurface_.Begin(SurfaceLayer::Above, Main->Size.x, Main->Size.y, UiScale))
+        {
+            const float NotchLine = Shade_.QueryHandleHeight();
+            if (Shade_.QuerySettings().FrameRateOverlay)
+                Telemetry_.ConstructTelemetryLayout(ShadeSurface_, NotchLine);
+            Shade_.ConstructControlLayout(ShadeSurface_);
+            Toasts_.ConstructNotificationLayout(ShadeSurface_, NotchLine);
+        }
+    }
 #else
     (void)Instances; (void)InstanceCount; (void)PickedSheet;
 #endif

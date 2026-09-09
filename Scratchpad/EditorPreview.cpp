@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Headless editor preview — the development editor over the LIVE Cornell level: the feed fills the roster from
 //    the fresh glTF, the Tall Box carries the pick, and the viewport shows the level traced on the CPU through
-//    the same traversal the renderer refits. Four sheets out (shut, open GI, open raster, shut raster), no gates. No Vulkan,
+//    the same traversal the renderer refits. Five sheets out (shut, open, raster, shut raster, hub), no gates. No Vulkan,
 //    no GLFW, no window. Run via Scratchpad/CheckEditorPreview.sh.
 
 #ifndef FRONTIER_DEVELOPMENT
@@ -18,6 +18,8 @@
 #include "Engine/ContentInterchange/SceneCodec.h"
 #include "Engine/GeometricRaster/TraversalIndex.h"
 #include "Engine/GeometricRaster/VisibilityRaster.h"
+#include "Engine/DisplayPresentation/TypefaceRegistry.h"
+#include "Engine/DisplayPresentation/FidelityClassifier.h"
 
 #include <chrono>
 #include <cmath>
@@ -367,11 +369,22 @@ int main()
 
     EditorHost Editor;
     Editor.ApplyTheme();
-    Editor.AssignProjectName("Project-Zero");
+
+    static TypefaceRegistry Typefaces;
+    const uint32_t FamilyCount = Typefaces.Load("EngineContent/FontArchives");
+    TypefaceRegistry::Install(&Typefaces);
+    std::printf("[Preview] typefaces: %u families\n", FamilyCount);
 
     unsigned char* GlyphSheet = nullptr;
     int GlyphSheetWidth = 0, GlyphSheetHeight = 0;
     IO.Fonts->GetTexDataAsRGBA32(&GlyphSheet, &GlyphSheetWidth, &GlyphSheetHeight);
+
+    if (!Editor.SeatShade(kWidth, kHeight))
+    {
+        std::printf("[Preview] the shade never seated\n");
+        return 1;
+    }
+    Editor.AssignProjectName("Project-Zero");
 
     SceneStructure Level;
     std::string Error;
@@ -414,24 +427,76 @@ int main()
     std::printf("[Preview] pick: row 7 '%s'\n", Rows[7].Label);
 
     std::vector<unsigned char> Pixels(static_cast<size_t>(kWidth) * static_cast<size_t>(kHeight) * 3u);
+    float CursorX = -1.0f, CursorY = -1.0f;
+    bool Held = false;
     auto Tick = [&](float MouseX, float MouseY, bool Down)
     {
         IO.DeltaTime = 1.0f / 60.0f;
-        IO.AddMousePosEvent(MouseX, MouseY);
-        IO.AddMouseButtonEvent(0, Down);
+        Editor.TickShade(MouseX, MouseY, Down, 0.0f, 1.0f / 60.0f);
+        if (Editor.ShadeCoversPointer())
+        {
+            IO.AddMousePosEvent(-1.0f, -1.0f);
+            IO.AddMouseButtonEvent(0, false);
+        }
+        else
+        {
+            IO.AddMousePosEvent(MouseX, MouseY);
+            IO.AddMouseButtonEvent(0, Down);
+        }
         ImGui::NewFrame();
         Editor.Record(Rows, RowCount, &PickedSheet);
         ImGui::Render();
     };
-    for (int i = 0; i < 10; ++i)
+    // Frames pass with the contact exactly where it is (the Rig's Idle); Park clears the hover
+    //    before a sheet so no tinted control poses as the resting look.
+    auto Idle = [&](int Frames)
     {
-        IO.DeltaTime = 1.0f / 60.0f;
-        IO.AddMousePosEvent(-1.0f, -1.0f);
-        IO.AddMouseButtonEvent(0, false);
-        ImGui::NewFrame();
-        Editor.Record(Rows, RowCount, &PickedSheet);
-        ImGui::Render();
-    }
+        for (int I = 0; I < Frames; ++I)
+            Tick(CursorX, CursorY, Held);
+    };
+    auto Press = [&]
+    {
+        Held = true;
+        Tick(CursorX, CursorY, true);
+    };
+    auto Release = [&]
+    {
+        Held = false;
+        Tick(CursorX, CursorY, false);
+    };
+    auto MoveTo = [&](float X, float Y, int Frames)
+    {
+        const float X0 = CursorX, Y0 = CursorY;
+        for (int I = 1; I <= Frames; ++I)
+        {
+            const float T = static_cast<float>(I) / static_cast<float>(Frames);
+            CursorX = X0 + (X - X0) * T;
+            CursorY = Y0 + (Y - Y0) * T;
+            Tick(CursorX, CursorY, Held);
+        }
+    };
+    auto Tap = [&](float X, float Y)
+    {
+        MoveTo(X, Y, 8);
+        Press();
+        Idle(3);
+        Release();
+    };
+    auto Park = [&]
+    {
+        MoveTo(-1.0f, -1.0f, 6);
+        Idle(2);
+    };
+    auto Figures = [&](const char* Tag)
+    {
+        const ControlCentreSettings& S = Editor.QueryShadeSettings();
+        std::printf("[Preview] %s: open %d page %u | GI %s AA %s FPS %s Notif %s Q %s scale %.2f rev %u\n",
+                    Tag, Editor.QueryShadeOpen() ? 1 : 0, Editor.QueryShadePage(),
+                    S.GlobalIllumination ? "on" : "off", S.AntiAliasing ? "on" : "off",
+                    S.FrameRateOverlay ? "on" : "off", S.Notifications ? "on" : "off",
+                    FidelityLabel(S.Quality), static_cast<double>(S.RenderScale), S.Revision);
+    };
+    Idle(10);
 
     const int ViewW = static_cast<int>(Editor.QueryViewWidth());
     const int ViewH = static_cast<int>(Editor.QueryViewHeight());
@@ -470,41 +535,34 @@ int main()
         std::printf("[Preview] wrote %s\n", Sheet);
         return true;
     };
-    auto Drag = [&](float X0, float Y, float X1)
-    {
-        Tick(X0, Y, true);
-        for (int S = 1; S <= 6; ++S)
-            Tick(X0 + (X1 - X0) * static_cast<float>(S) / 6.0f, Y, true);
-        Tick(X1, Y, false);
-        Tick(-1.0f, -1.0f, false);
-    };
-
     // Sheet one: the notch at rest over the GI view.
-    Tick(-1.0f, -1.0f, false);
-    Tick(-1.0f, -1.0f, false);
+    Park();
+    Figures("shut");
     if (!WriteSheet("Diagnostics/EditorPreviewShut.png"))
         return 1;
 
-    // A tap on the notch carries the shade open; the GI disc centre seating proves the card went live.
-    const float NotchX = Editor.QueryNotchX(), NotchY = Editor.QueryNotchY();
-    Tick(NotchX, NotchY, true);
-    Tick(NotchX, NotchY, false);
-    for (int i = 0; i < 40; ++i)
-        Tick(-1.0f, -1.0f, false);
-    std::printf("[Preview] notch tap at (%.0f, %.0f); GI disc at (%.0f, %.0f); scale %.2f rev %u\n",
-                static_cast<double>(NotchX), static_cast<double>(NotchY),
-                static_cast<double>(Editor.QueryGiTileX()), static_cast<double>(Editor.QueryGiTileY()),
-                static_cast<double>(Editor.QueryRenderScale()), Editor.QueryRevision());
+    // A tap on the notch carries the shade open; the dashboard's own figures prove the card went live.
+    Tap(Editor.QueryNotchX(), Editor.QueryNotchY());
+    Idle(120);
+    Park();
+    Figures("open");
+    if (!Editor.QueryShadeOpen())
+    {
+        std::printf("[Preview] the notch never opened\n");
+        return 1;
+    }
     if (!WriteSheet("Diagnostics/EditorPreview.png"))
         return 1;
 
-    // The pill drags the render scale down and back; the figures must follow both ways.
+    // The pill drags the render scale down and back; the figures must follow both ways. The carry
+    //    mirrors the Rig's own: press near the track's end, carry to 46.67% of its span, release.
     const float PillX0 = Editor.QueryPillX0(), PillX1 = Editor.QueryPillX1(), PillY = Editor.QueryPillY();
-    Drag(PillX1 - 2.0f, PillY, PillX0 + (PillX1 - PillX0) * 0.4667f);
-    for (int i = 0; i < 3; ++i)
-        Tick(-1.0f, -1.0f, false);
-    std::printf("[Preview] scale after the pill drag: %.2f rev %u\n",
-                static_cast<double>(Editor.QueryRenderScale()), Editor.QueryRevision());
+    MoveTo(PillX1 - 2.0f, PillY, 8);
+    Press();
+    MoveTo(PillX0 + (PillX1 - PillX0) * 0.4667f, PillY, 40);
+    Release();
+    Idle(6);
+    Figures("pill 60");
     if (Editor.QueryRenderScale() < 0.55f || Editor.QueryRenderScale() > 0.65f)
     {
         std::printf("[Preview] the pill never dragged\n");
@@ -513,12 +571,9 @@ int main()
 
     // A tap on the GI disc seats the raster path; the view re-seats through the engine's
     //    visibility raster at the pill's scale, upscaled into the view rows.
-    const float GiX = Editor.QueryGiTileX(), GiY = Editor.QueryGiTileY();
-    Tick(GiX, GiY, true);
-    Tick(GiX, GiY, false);
-    Tick(-1.0f, -1.0f, false);
-    std::printf("[Preview] GI %s after the disc tap rev %u\n",
-                Editor.QueryGiEnabled() ? "on" : "off", Editor.QueryRevision());
+    Tap(Editor.QueryGiTileX(), Editor.QueryGiTileY());
+    Idle(6);
+    Figures("GI off");
     if (Editor.QueryGiEnabled())
     {
         std::printf("[Preview] the disc never toggled\n");
@@ -556,17 +611,20 @@ int main()
         }
     std::printf("[Preview] rasterized %d x %d at scale %.2f in %.0f ms (mean luminance %.3f)\n",
                 Rw, Rh, static_cast<double>(Scale), RasterMs, RasterLum);
-    Tick(-1.0f, -1.0f, false);
-    Tick(-1.0f, -1.0f, false);
+    Park();
     if (!WriteSheet("Diagnostics/EditorPreviewRaster.png"))
         return 1;
 
     // Sheet four: the shade tapped shut and the raster re-seated at full scale, so the render
     //    itself can be looked at without the upscale chunk.
-    Tick(Editor.QueryNotchX(), Editor.QueryNotchY(), true);
-    Tick(Editor.QueryNotchX(), Editor.QueryNotchY(), false);
-    for (int i = 0; i < 40; ++i)
-        Tick(-1.0f, -1.0f, false);
+    Tap(Editor.QueryNotchX(), Editor.QueryNotchY());
+    Idle(120);
+    Figures("shut raster");
+    if (Editor.QueryShadeOpen())
+    {
+        std::printf("[Preview] the notch never shut\n");
+        return 1;
+    }
     double FullLum = 0.0;
     if (!Raster.Render(Level, EyeP, FwdP, RightP, UpP, Camera.QueryFieldOfViewRadians(),
                        static_cast<uint32_t>(ViewW), static_cast<uint32_t>(ViewH), View.data(), FullLum))
@@ -575,26 +633,37 @@ int main()
         return 1;
     }
     std::printf("[Preview] rasterized %d x %d at full scale (mean luminance %.3f)\n", ViewW, ViewH, FullLum);
-    Tick(-1.0f, -1.0f, false);
-    Tick(-1.0f, -1.0f, false);
+    Park();
     if (!WriteSheet("Diagnostics/EditorPreviewRasterShut.png"))
         return 1;
 
     // The shade back open for the drag home: the pill only takes the pointer while live.
-    Tick(Editor.QueryNotchX(), Editor.QueryNotchY(), true);
-    Tick(Editor.QueryNotchX(), Editor.QueryNotchY(), false);
-    for (int i = 0; i < 40; ++i)
-        Tick(-1.0f, -1.0f, false);
+    Tap(Editor.QueryNotchX(), Editor.QueryNotchY());
+    Idle(120);
 
-    Drag(PillX0 + (PillX1 - PillX0) * 0.4667f, PillY, PillX1);
-    for (int i = 0; i < 3; ++i)
-        Tick(-1.0f, -1.0f, false);
-    std::printf("[Preview] scale after the drag home: %.2f rev %u\n",
-                static_cast<double>(Editor.QueryRenderScale()), Editor.QueryRevision());
+    MoveTo(PillX0 + (PillX1 - PillX0) * 0.4667f, PillY, 8);
+    Press();
+    MoveTo(PillX1 - 1.0f, PillY, 40);
+    Release();
+    Idle(6);
+    Figures("pill home");
     if (Editor.QueryRenderScale() < 0.99f)
     {
         std::printf("[Preview] the pill never dragged home\n");
         return 1;
     }
+
+    // Sheet five: the gear carries the settings hub in — render, appearance, input, notifications.
+    Tap(Editor.QueryGearX(), Editor.QueryGearY());
+    Idle(90);
+    Park();
+    Figures("hub");
+    if (Editor.QueryShadePage() != 1u)
+    {
+        std::printf("[Preview] the gear never raised the hub\n");
+        return 1;
+    }
+    if (!WriteSheet("Diagnostics/EditorPreviewHub.png"))
+        return 1;
     return 0;
 }
