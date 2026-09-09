@@ -1,0 +1,9 @@
+[ReSTIRTapCost] CACHED (tier-keyed cross + carried selection p-hat)
+[ReSTIRTapCost] 921600 pixels/frame, temporal valid, all spatial taps valid (worst case)
+
+  tier          M extra  taps       PHat/px  PHat/frame    ms/frame
+  Minimal       1     0     0           3.0     2764800        28.3
+  Economy       2     1     1           6.0     5529600        55.5
+  Standard      4     2     2          10.0     9216000        81.9
+  Ultra         8     3     3          16.0    14745600       127.3
+  Reference    16     4     4          26.0    23961600       206.0

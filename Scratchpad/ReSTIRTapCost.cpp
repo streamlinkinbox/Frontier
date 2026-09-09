@@ -92,7 +92,8 @@ struct TierSetup
     const char* Name;
     uint32_t    M;              // ReSTIRCandidateSampleCount
     uint32_t    Extra;          // ReSTIRExtraCandidateCount
-    uint32_t    SpatialTaps;    // kSpatialTaps — the constant #4 makes tier-keyed
+    uint32_t    SpatialTaps;    // kSpatialTapCeiling budget — the constant #4 made tier-keyed
+    bool        CacheSelected;  // #5: carry p̂ of the current selection instead of re-deriving it
 };
 
 // Simulates one pixel's reservoir work and returns nothing; the tally is the measurement.
@@ -103,31 +104,43 @@ void SimulatePixel(const TierSetup& T, bool TemporalValid, bool SpatialTapValid,
     for (uint32_t s = 0u; s < T.M; ++s)
         EvaluateBsdfShaped(nl, nv, rough, metal, coat);
 
-    // :849 pHatSel for the unbiased weight
-    EvaluateBsdfShaped(nl, nv, rough, metal, coat);
+    // :853 pHatSel. DEAD when the selection is carried: it writes UnbiasedWeight, nothing reads that write, and
+    //    :877 overwrites it unconditionally. Kept in the BEFORE model because the kernel really did pay for it.
+    if (!T.CacheSelected)
+        EvaluateBsdfShaped(nl, nv, rough, metal, coat);
 
-    // :855 extra same-pixel candidates
+    // :859 extra same-pixel candidates
     for (uint32_t e = 0u; e < T.Extra; ++e)
         EvaluateBsdfShaped(nl, nv, rough, metal, coat);
 
-    // :873 recompute W for the final selection
+    // :876 W for the final selection. This one survives in both models — it establishes the running p̂.
     EvaluateBsdfShaped(nl, nv, rough, metal, coat);
 
-    // :900,:902,:917 temporal reuse — pPrev, pCur, pFin, only when the reprojected sample validates
+    // :900,:902,:917 temporal reuse — pPrev, pCur, pFin.
+    //    pCur == the :876 value (res untouched in between) and pFin is whichever of pPrev/pCur won the merge,
+    //    so with a carried selection only pPrev is a genuine evaluation.
     if (TemporalValid)
     {
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);
+        EvaluateBsdfShaped(nl, nv, rough, metal, coat);            // pPrev — a real, new sample
+        if (!T.CacheSelected)
+        {
+            EvaluateBsdfShaped(nl, nv, rough, metal, coat);        // pCur  — re-derives the :876 value
+            EvaluateBsdfShaped(nl, nv, rough, metal, coat);        // pFin  — re-derives the merge winner
+        }
     }
 
-    // :936 spatial cross — per VALID tap: pNeigh, pSelf, pM
+    // :941 spatial cross — per VALID tap: pNeigh, pSelf, pM.
+    //    pSelf is p̂ of the current selection (already known) and pM is the merge winner (pNeigh or pSelf),
+    //    so with a carried selection only pNeigh is a genuine evaluation.
     for (uint32_t t = 0u; t < T.SpatialTaps; ++t)
     {
         if (!SpatialTapValid) continue;
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);   // :955 pNeigh
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);   // :958 pSelf
-        EvaluateBsdfShaped(nl, nv, rough, metal, coat);   // :975 pM
+        EvaluateBsdfShaped(nl, nv, rough, metal, coat);            // pNeigh — a real, new sample
+        if (!T.CacheSelected)
+        {
+            EvaluateBsdfShaped(nl, nv, rough, metal, coat);        // pSelf — already known
+            EvaluateBsdfShaped(nl, nv, rough, metal, coat);        // pM    — the merge winner
+        }
     }
 }
 
@@ -167,31 +180,43 @@ int main(int argc, char** argv)
 {
     // The five tiers, with kSpatialTaps as it is TODAY: a hardcoded 4 for every tier.
     const TierSetup Before[5] = {
-        { "Minimal",   1u, 0u, 4u },
-        { "Economy",   2u, 1u, 4u },
-        { "Standard",  4u, 2u, 4u },
-        { "Ultra",     8u, 3u, 4u },
-        { "Reference", 16u, 4u, 4u },
+        { "Minimal",   1u, 0u, 4u, false },
+        { "Economy",   2u, 1u, 4u, false },
+        { "Standard",  4u, 2u, 4u, false },
+        { "Ultra",     8u, 3u, 4u, false },
+        { "Reference", 16u, 4u, 4u, false },
     };
 
     // The proposed ladder: the cross scales with the tier like every other knob. Reference is unchanged at 4,
     //    so the top of the ladder — the tier whose whole purpose is the most realistic image — is untouched.
     const TierSetup After[5] = {
-        { "Minimal",   1u, 0u, 0u },
-        { "Economy",   2u, 1u, 1u },
-        { "Standard",  4u, 2u, 2u },
-        { "Ultra",     8u, 3u, 3u },
-        { "Reference", 16u, 4u, 4u },
+        { "Minimal",   1u, 0u, 0u, false },
+        { "Economy",   2u, 1u, 1u, false },
+        { "Standard",  4u, 2u, 2u, false },
+        { "Ultra",     8u, 3u, 3u, false },
+        { "Reference", 16u, 4u, 4u, false },
     };
 
-    const bool AfterMode = argc > 1 && std::string_view(argv[1]) == "after";
-    const TierSetup* Setup = AfterMode ? After : Before;
+    // #5 on top of #4: the tier-keyed cross, with p̂ of the current selection carried rather than re-derived.
+    const TierSetup Cached[5] = {
+        { "Minimal",   1u, 0u, 0u, true },
+        { "Economy",   2u, 1u, 1u, true },
+        { "Standard",  4u, 2u, 2u, true },
+        { "Ultra",     8u, 3u, 3u, true },
+        { "Reference", 16u, 4u, 4u, true },
+    };
+
+    const std::string_view Mode = argc > 1 ? std::string_view(argv[1]) : std::string_view("before");
+    const bool AfterMode  = Mode == "after";
+    const bool CachedMode = Mode == "cached";
+    const TierSetup* Setup = CachedMode ? Cached : (AfterMode ? After : Before);
 
     constexpr uint32_t kPixels = 1280u * 720u;   // one 720p frame's worth of shaded pixels
 
-    std::printf("[ReSTIRTapCost] %s — kSpatialTaps %s\n",
-                AfterMode ? "AFTER  (tier-keyed cross)" : "BEFORE (hardcoded 4-tap cross)",
-                AfterMode ? "= 0/1/2/3/4 by tier" : "= 4 for every tier");
+    std::printf("[ReSTIRTapCost] %s\n",
+                CachedMode ? "CACHED (tier-keyed cross + carried selection p-hat)"
+                           : AfterMode ? "AFTER  (tier-keyed cross, p-hat re-derived)"
+                                       : "BEFORE (hardcoded 4-tap cross, p-hat re-derived)");
     std::printf("[ReSTIRTapCost] %u pixels/frame, temporal valid, all spatial taps valid (worst case)\n\n", kPixels);
     std::printf("  %-10s %4s %5s %5s  %12s  %10s  %10s\n",
                 "tier", "M", "extra", "taps", "PHat/px", "PHat/frame", "ms/frame");

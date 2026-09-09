@@ -846,13 +846,19 @@ void main()
         // Compute unbiased weight W (R6: the chosen light comes from the reservoir — no nearest-emissive search)
         if (res.WeightSum > 0.0 && res.SampleCount > 0u)
         {
-            vec3  toSel    = res.SelectedPoint - hitPos;
-
-            vec3 selEmissive = LightEmission(res.SelectedLight);
-
-            float pHatSel = PHatFull(frame, shading, layers, woLocal, selEmissive, toSel, dot(toSel, toSel));
-            if (pHatSel > 0.0)
-                res.UnbiasedWeight = res.WeightSum / (float(res.SampleCount) * pHatSel);
+            // p̂ OF THE CURRENT SELECTION, carried from here on.
+            //
+            //    Every later stage needs this same quantity — the target function evaluated at whichever sample
+            //    the reservoir currently holds — and each used to re-derive it with a fresh PHatFull, which is a
+            //    full OpenPBR EvaluateBsdf (GGX D and G2, Fresnel, EON diffuse, coat, sheen). But the selection
+            //    only ever changes at a resample, and when it does the winner's p̂ was JUST computed as part of
+            //    deciding it won. So the value can simply be carried: pSelected below is updated at each point
+            //    the selection can change, and read everywhere the old code called PHatFull again.
+            //
+            //    The pre-R10 code also computed a pHatSel here purely to set UnbiasedWeight, which the block at
+            //    the end of the extras loop then overwrote unconditionally — nothing read it in between. That
+            //    evaluation was dead in every path and is simply gone.
+            float pSelected = 0.0;
 
             // Extra same-pixel candidates (R6 row 3: renamed from SpatialPassCount): ExtraCandidateCount further light samples
             //    from THIS pixel, resampled with the same target function so the reservoir stays a valid RIS estimate.
@@ -869,13 +875,14 @@ void main()
                 float  nW     = nPHat / npSource;   // p̂ / p_source, same as the initial loop
                 ResampleCandidate(res, nlp, nli, vec2(nu1, nu2), nW, seed);
             }
-            // Recompute W for the final selection (the selected point may have changed).
+            // W for the final selection (the selected point may have changed in the loop above). This is the one
+            //    evaluation that establishes pSelected; everything downstream carries it.
             vec3  emit2  = vec3(0.0);
             {
                 vec3  toSel2   = res.SelectedPoint - hitPos;
                 emit2          = LightEmission(res.SelectedLight);
-                float pHat2 = PHatFull(frame, shading, layers, woLocal, emit2, toSel2, dot(toSel2, toSel2));
-                res.UnbiasedWeight = pHat2 > 0.0 ? res.WeightSum / (float(res.SampleCount) * pHat2) : 0.0;
+                pSelected      = PHatFull(frame, shading, layers, woLocal, emit2, toSel2, dot(toSel2, toSel2));
+                res.UnbiasedWeight = pSelected > 0.0 ? res.WeightSum / (float(res.SampleCount) * pSelected) : 0.0;
             }
 
             // R6 row 2: temporal reuse — back-project by the R2 motion vector, validate the previous surface
@@ -902,8 +909,9 @@ void main()
                         vec3 prevEmit = LightEmission(prev.Counts.y);
                         vec3 prevToL  = prev.Sample.xyz - hitPos;
                         float pPrev = PHatFull(frame, shading, layers, woLocal, prevEmit, prevToL, dot(prevToL, prevToL));
-                        vec3  curToL  = res.SelectedPoint - hitPos;
-                        float pCur  = PHatFull(frame, shading, layers, woLocal, emit2, curToL, dot(curToL, curToL));
+                        // pCur is p̂ at the current selection, and res has not been touched since pSelected was
+                        //    established — so it IS pSelected, not something to evaluate again.
+                        float pCur  = pSelected;
                         float wCur  = pCur * res.UnbiasedWeight * float(res.SampleCount);
                         float wPrev = pPrev * prev.UvDepth.z * float(mPrevCapped);
                         float total = wCur + wPrev;
@@ -912,14 +920,14 @@ void main()
                             res.SelectedPoint = prev.Sample.xyz;
                             res.SelectedLight = prev.Counts.y;
                             res.SelectedUv    = prev.UvDepth.xy;
+                            pSelected         = pPrev;   // the winner's p̂, already in hand from the merge test
                         }
                         res.SampleCount = res.SampleCount + mPrevCapped;
                         res.WeightSum   = total;
                         resAge = prev.Counts.w + 1u;
-                        vec3  finEmit = LightEmission(res.SelectedLight);
-                        vec3  finToL  = res.SelectedPoint - hitPos;
-                        float pFin = PHatFull(frame, shading, layers, woLocal, finEmit, finToL, dot(finToL, finToL));
-                        res.UnbiasedWeight = pFin > 0.0 ? total / (float(res.SampleCount) * pFin) : 0.0;
+                        // pFin is p̂ of whichever sample survived the merge, and both candidates' p̂ were computed
+                        //    to decide it — so it is a selection between two known values, never a new evaluation.
+                        res.UnbiasedWeight = pSelected > 0.0 ? total / (float(res.SampleCount) * pSelected) : 0.0;
                     }
                 }
             }
@@ -958,9 +966,8 @@ void main()
                     vec3 neighEmit = LightEmission(neigh.Counts.y);
                     vec3 neighToL  = neigh.Sample.xyz - hitPos;
                     float pNeigh = PHatFull(frame, shading, layers, woLocal, neighEmit, neighToL, dot(neighToL, neighToL));
-                    vec3  selfToL  = res.SelectedPoint - hitPos;
-                    vec3  selfEmit = LightEmission(res.SelectedLight);
-                    float pSelf = PHatFull(frame, shading, layers, woLocal, selfEmit, selfToL, dot(selfToL, selfToL));
+                    // Same identity as the temporal merge: p̂ at the current selection is the carried value.
+                    float pSelf  = pSelected;
                     float wSelf  = pSelf * res.UnbiasedWeight * float(res.SampleCount);
                     float wNeigh = pNeigh * neigh.UvDepth.z * float(mNeighCapped);
                     float nTotal = wSelf + wNeigh;
@@ -971,14 +978,12 @@ void main()
                         res.SelectedLight = neigh.Counts.y;
                         res.SelectedUv    = neigh.UvDepth.xy;
                         takeAge = neigh.Counts.w + 1u;
+                        pSelected         = pNeigh;   // the winner's p̂, already in hand
                     }
                     res.SampleCount = res.SampleCount + mNeighCapped;
                     res.WeightSum   = nTotal;
                     resAge = takeAge;
-                    vec3  mEmit = LightEmission(res.SelectedLight);
-                    vec3  mToL  = res.SelectedPoint - hitPos;
-                    float pM = PHatFull(frame, shading, layers, woLocal, mEmit, mToL, dot(mToL, mToL));
-                    res.UnbiasedWeight = pM > 0.0 ? nTotal / (float(res.SampleCount) * pM) : 0.0;
+                    res.UnbiasedWeight = pSelected > 0.0 ? nTotal / (float(res.SampleCount) * pSelected) : 0.0;
                 }
             }
 
