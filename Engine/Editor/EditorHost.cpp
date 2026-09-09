@@ -39,6 +39,21 @@ void EditorHost::PickInstance(uint32_t Index) noexcept
     Outliner_.PickInstance(Index);
 }
 
+void EditorHost::AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept
+{
+    Viewport_.AssignView(Rgba, Width, Height);
+}
+
+float EditorHost::QueryViewWidth() const noexcept
+{
+    return Viewport_.QueryViewWidth();
+}
+
+float EditorHost::QueryViewHeight() const noexcept
+{
+    return Viewport_.QueryViewHeight();
+}
+
 //============================================================================================================================================
 //                                                       APPLY THEME
 //============================================================================================================================================

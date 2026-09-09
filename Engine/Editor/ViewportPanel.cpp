@@ -407,6 +407,21 @@ void ViewportPanel::AssignControls(ControlPanel* Controls) noexcept
     Controls_ = Controls;
 }
 
+void ViewportPanel::AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept
+{
+    ViewRgba_    = (Rgba != nullptr && Width > 0u && Height > 0u) ? Rgba : nullptr;
+    ViewTexture_ = static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(ViewRgba_));
+    ViewW_       = (ViewRgba_ != nullptr) ? Width : 0u;
+    ViewH_       = (ViewRgba_ != nullptr) ? Height : 0u;
+}
+
+void ViewportPanel::AssignViewTexture(ImTextureID View, uint32_t Width, uint32_t Height) noexcept
+{
+    ViewTexture_ = View;
+    ViewW_       = Width;
+    ViewH_       = Height;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                           RECORD
 //------------------------------------------------------------------------------------------------------------------------
@@ -756,18 +771,23 @@ void ViewportPanel::RecordView() noexcept
     ImFont*     Ui    = Controls_->QueryUi();
     ImFont*     Small = Controls_->QuerySmall();
     Draw->AddRectFilled(Min, Max, kView, 12.0f);
+    if (ViewTexture_ != static_cast<ImTextureID>(0))
+        Draw->AddImage(ViewTexture_, Min, Max);
     Draw->AddRect(Min, Max, kStroke, 12.0f);
 
-    ImGui::PushFont(Ui);
-    const ImVec2 HintGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, "The Cornell Box renders here");
-    Draw->AddText(ImVec2(Min.x + (RowWidth - HintGlyph.x) * 0.5f, Min.y + ViewH * 0.5f - 22.0f),
-        kDim, "The Cornell Box renders here");
-    ImGui::PopFont();
-    ImGui::PushFont(Small);
-    const ImVec2 SubGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, "in the engine build");
-    Draw->AddText(ImVec2(Min.x + (RowWidth - SubGlyph.x) * 0.5f, Min.y + ViewH * 0.5f + 2.0f),
-        kFaint, "in the engine build");
-    ImGui::PopFont();
+    if (ViewTexture_ == static_cast<ImTextureID>(0))
+    {
+        ImGui::PushFont(Ui);
+        const ImVec2 HintGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, "The Cornell Box renders here");
+        Draw->AddText(ImVec2(Min.x + (RowWidth - HintGlyph.x) * 0.5f, Min.y + ViewH * 0.5f - 22.0f),
+            kDim, "The Cornell Box renders here");
+        ImGui::PopFont();
+        ImGui::PushFont(Small);
+        const ImVec2 SubGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, "in the engine build");
+        Draw->AddText(ImVec2(Min.x + (RowWidth - SubGlyph.x) * 0.5f, Min.y + ViewH * 0.5f + 2.0f),
+            kFaint, "in the engine build");
+        ImGui::PopFont();
+    }
 
     const ImVec2 OrbCentre(Max.x - 52.0f, Max.y - 52.0f);
     Draw->AddCircleFilled(OrbCentre, 32.0f, IM_COL32(16, 16, 20, 255));
@@ -784,6 +804,8 @@ void ViewportPanel::RecordView() noexcept
     Draw->AddText(ImVec2(OrbCentre.x - 3.0f, OrbCentre.y - 32.0f), IM_COL32(105, 208, 109, 255), "Y");
     Draw->AddText(ImVec2(OrbCentre.x + 6.0f, OrbCentre.y + 4.0f), IM_COL32(91, 140, 255, 255), "Z");
     ImGui::PopFont();
+    LastW_ = Max.x - Min.x;
+    LastH_ = Max.y - Min.y;
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
 }
 

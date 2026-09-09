@@ -34,6 +34,11 @@ public:
     //    place; the sheet must already describe the currently picked instance (see QueryPickedInstance).
     void Record(EditorInstance* Instances, uint32_t InstanceCount, EditorSheet* PickedSheet) noexcept;
 
+    // Seats the viewport's scene view (see ViewportPanel::AssignView) and reads back the view rect.
+    void AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept;
+    [[nodiscard]] float QueryViewWidth() const noexcept;
+    [[nodiscard]] float QueryViewHeight() const noexcept;
+
     // The primary pick — the instance the sheet must describe. kNoEditorInstance when nothing is picked.
     [[nodiscard]] uint32_t QueryPickedInstance() const noexcept;
 

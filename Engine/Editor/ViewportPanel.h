@@ -22,6 +22,15 @@ class ViewportPanel final
 public:
     void AssignControls(ControlPanel* Controls) noexcept;
 
+    // Seats the scene view: RGBA32 top-down rows the view draws under its orb. The headless harness seats a CPU
+    //    trace here; the engine build seats its ReSTIR target through AssignViewTexture instead.
+    void AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept;
+    void AssignViewTexture(ImTextureID View, uint32_t Width, uint32_t Height) noexcept;
+
+    // Last view rect, so the project can size the view rows to the rect it draws into.
+    [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
+    [[nodiscard]] float QueryViewHeight() const noexcept { return LastH_; }
+
     void Record(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
 
 private:
@@ -40,6 +49,13 @@ private:
     static int ConsoleCallback(ImGuiInputTextCallbackData* Edit) noexcept;
 
     ControlPanel* Controls_ = nullptr;
+
+    const unsigned char* ViewRgba_    = nullptr;   // CPU rows; the seated texture id aliases them headless
+    ImTextureID          ViewTexture_ = static_cast<ImTextureID>(0);
+    uint32_t             ViewW_       = 0u;
+    uint32_t             ViewH_       = 0u;
+    float                LastW_       = 0.0f;      // last view rect, for QueryViewWidth/QueryViewHeight
+    float                LastH_       = 0.0f;
 
     uint32_t Transport_ = 0u;   // 0 edit, 1 play, 2 simulate — the reference's three runs
     bool     Paused_    = false;
