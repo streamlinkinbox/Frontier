@@ -351,26 +351,21 @@ ControlHit ControlKit::Slider(PixelSpace& Surface, const PlaneExtent& Extent, fl
         OutValue = Minimum + T * Span;
     }
 
-    // 🔴 A GROOVE, not a bar. The fill used to run flush with the track, which reads as a progress bar however
-    //    it is coloured — there is nothing for the eye to see the knob as sitting IN. Inset by 3 px on every
-    //    side there is a visible rail around it, and the knob overhangs that rail, which is what makes it look
-    //    like something you can take hold of. It is also what the reference does.
-    const float R     = TrackH * 0.5f;
-    const float Inset = Thin ? 1.5f : 3.0f;
+    // A FLAT bar with a knob, like the inspector's SliderPill: the fill runs flush inside the rail and the
+    //    thumb rides on top with a drop shadow. (History: the fill used to sit in a 3 px groove inset into
+    //    the rail; the Control Centre sliders were unified with the inspector pattern instead. Travel, hit
+    //    band, and thumb sizes are unchanged — only the paint moved.)
+    const float R = TrackH * 0.5f;
     Surface.FillRectangle(Track, Faded(Palette().SliderTrack, Opacity), R);
 
-    const PlaneExtent Groove = Spanning(Track.MinimumX + Inset, Track.MinimumY + Inset,
-                                        std::max(Track.Width() - Inset * 2.0f, 0.0f),
-                                        std::max(TrackH - Inset * 2.0f, 1.0f));
-    const float GrooveR = Groove.Height() * 0.5f;
-
     const float ThumbCx = Extent.MinimumX + Thumb * 0.5f + T * (Extent.Width() - Thumb);
-    const float FilledW = std::max(ThumbCx - Groove.MinimumX, 0.0f);
+    const float FilledW = std::max(ThumbCx - Track.MinimumX, 0.0f);
     if (FilledW > 1.0f)
-        Surface.FillRectangle(Spanning(Groove.MinimumX, Groove.MinimumY, std::min(FilledW, Groove.Width()), Groove.Height()),
-                              Faded(HighlightFill ? Palette().Highlight : Palette().SliderFill, Opacity), GrooveR);
+        Surface.FillRectangle(Spanning(Track.MinimumX, Track.MinimumY, std::min(FilledW, Track.Width()), Track.Height()),
+                              Faded(HighlightFill ? Palette().Highlight : Palette().SliderFill, Opacity), R);
 
-    const float ThumbR = Thumb * 0.5f * (Hit.Dragging && Pointer.Down ? 1.1f : 1.0f);   // :active scale(1.1)
+    const float ThumbR = Thumb * 0.5f * (Hit.Dragging && Pointer.Down ? 1.12f : 1.0f);   // held: × 1.12, like the inspector knob
+    FillCircle(Surface, ThumbCx, Cy + 1.0f, ThumbR, Faded(ColorQuad{ 0.0f, 0.0f, 0.0f, 0.5f }, Opacity));
     FillCircle(Surface, ThumbCx, Cy, ThumbR, Faded(Palette().SliderThumb, Opacity));
     return Hit;
 }

@@ -1,4 +1,4 @@
-# Frontier user preferences - written by ConfigurationRegistry; edit freely, unknown keys are ignored.
+# Slate configuration - written by ConfigurationRegistry; edit freely, unknown keys are ignored.
 
 [appearance.display]
 anti_aliasing = '1x'
@@ -51,6 +51,9 @@ success_swatch = 1
 theme = 'Dark'
 warning_swatch = 0
 
+[configuration]
+version = 1
+
 [input]
 advanced_controls = false
 custom_shortcuts = true
@@ -72,13 +75,16 @@ show_frame_rate_overlay = false
 show_memory_usage = true
 show_scene_metadata = true
 
-[configuration]
-version = 1
-
 [render]
+alias_pick = true
 anti_aliasing = true
+debug_view = 'Off'
 frame_rate_overlay = false
 global_illumination = true
 notifications = true
+occlusion_culling = true
 quality = 'Standard'
+ray_tracing_tier = 'Auto'
 render_scale = 1.0
+slab_limit = 1
+texture_edge_limit = 2048

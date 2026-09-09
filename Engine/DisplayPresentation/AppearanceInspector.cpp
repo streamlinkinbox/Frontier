@@ -395,16 +395,16 @@ float AppearanceInspector::ConstructThemeTabLayout(PixelSpace& Surface, const Pl
         Y += H + SectionGap;
     }
 
-    // ② Corner Radius — heading left, "Npx" right, slider below (Notch <Slider>: thin track).
+    // ② Corner Radius — heading, then the value pill + slider row below (thin track).
     {
         const float HeadH = 20.0f + 4.0f + 16.0f + 24.0f;
         const float H = ControlKit::SectionPadding * 2.0f + HeadH + ControlKitTokens::ControlHeight;
         const PlaneExtent Content = ControlKit::SectionCard(Surface, Spanning(X, Y, W, H), Radius, Opacity);
         ControlKit::SectionHeading(Surface, Content.MinimumX, Content.MinimumY, Content.Width(), "Corner Radius", "Adjust the roundness of UI elements", Ink90(), Ink50(), Opacity);
-        char Value[8]; std::snprintf(Value, sizeof(Value), "%dpx", static_cast<int>(std::lround(Draft.CornerRadius)));
-        const PlanePoint VM = Surface.MeasureText(Value, 12.0f);
-        Surface.Text(Content.MaximumX - VM.X, Content.MinimumY + HeadH - 24.0f - 16.0f + (16.0f - VM.Y) * 0.5f, ControlKit::Faded(Ink50(), Opacity), Value, 12.0f);
-        RadiusSliderExtent = Spanning(Content.MinimumX, Content.MinimumY + HeadH, Content.Width(), ControlKitTokens::ControlHeight);
+        char Value[8]; std::snprintf(Value, sizeof(Value), "%d", static_cast<int>(std::lround(Draft.CornerRadius)));
+        ControlKit::ValuePill(Surface, Content.MinimumX, Content.MinimumY + HeadH, Value, "px", Opacity);
+        RadiusSliderExtent = Spanning(Content.MinimumX + ControlKit::ValuePillWidth + ControlKitTokens::RowGap, Content.MinimumY + HeadH,
+                                      Content.Width() - ControlKit::ValuePillWidth - ControlKitTokens::RowGap, ControlKitTokens::ControlHeight);
         float V = Draft.CornerRadius;
         const ControlHit Hit = ControlKit::Slider(Surface, RadiusSliderExtent, 0.0f, 32.0f, V, DraggingSlider == 2, Pointer, V, true, false, Opacity);
         if (Hit.Pressed) DraggingSlider = 2;
@@ -665,14 +665,15 @@ float AppearanceInspector::ConstructFontsTabLayout(PixelSpace& Surface, const Pl
             const PlaneExtent Content = ControlKit::SectionCard(Surface, Spanning(X, Y, W, H), Radius, Opacity);
             const float Top = Content.MinimumY + (Content.Height() - LeftH) * 0.5f;   // items-center
 
-            // Left: label / "Npx" / slider / chips
-            char Px[16]; std::snprintf(Px, sizeof(Px), "%dpx", static_cast<int>(std::lround(Draft.RoleSize[R])));
+            // Left: label / value pill + slider / chips
+            char Px[16]; std::snprintf(Px, sizeof(Px), "%d", static_cast<int>(std::lround(Draft.RoleSize[R])));
             Surface.PushTypeface(Face(FontWeightCategory::Medium));
             Surface.Text(Content.MinimumX, Top + 2.0f, ControlKit::Faded(Ink90(), Opacity), Roles[R].Label, 14.0f);
             Surface.PopTypeface();
-            const PlanePoint PxM = Surface.MeasureText(Px, 12.0f);
-            Surface.Text(Content.MinimumX + LeftW - PxM.X, Top + 3.0f, ControlKit::Faded(Ink50(), Opacity), Px, 12.0f);
-            RoleSliderExtents[R] = Spanning(Content.MinimumX, Top + 20.0f + 24.0f - (ControlKitTokens::ControlHeight - ControlKit::SliderThinHeight) * 0.5f, LeftW, ControlKitTokens::ControlHeight);
+            const float SliderY = Top + 20.0f + 24.0f - (ControlKitTokens::ControlHeight - ControlKit::SliderThinHeight) * 0.5f;
+            ControlKit::ValuePill(Surface, Content.MinimumX, SliderY, Px, "px", Opacity);
+            RoleSliderExtents[R] = Spanning(Content.MinimumX + ControlKit::ValuePillWidth + ControlKitTokens::RowGap, SliderY,
+                                            LeftW - ControlKit::ValuePillWidth - ControlKitTokens::RowGap, ControlKitTokens::ControlHeight);
             {
                 float V = Draft.RoleSize[R];
                 const int Ordinal = 10 + static_cast<int>(R);

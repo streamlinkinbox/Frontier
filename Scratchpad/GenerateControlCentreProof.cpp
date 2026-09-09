@@ -282,6 +282,7 @@ int main()
     ImGui::CreateContext();
     ImGuiIO& IO = ImGui::GetIO();
     IO.DisplaySize = ImVec2(Width, Height);
+    IO.IniFilename = nullptr;   // the harness owns no windows; never touch the tracked imgui.ini
     // Dynamic atlas (ImGuiBackendFlags_RendererHasTextures), exactly like the Vulkan backend: faces rasterise on demand
     //    at any size; the CPU rasteriser reads the atlas ImTextureData after each Render().
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
@@ -505,9 +506,11 @@ int main()
         R.CursorX = (Row.MinimumX + Row.MaximumX) * 0.5f; R.CursorY = (Row.MinimumY + Row.MaximumY) * 0.5f;
         R.Idle(2); R.Press(); R.Idle(3); R.Release(); R.Idle(70);
         R.Snapshot("ControlCentre_Settings_20_Input_Page");
-        // "Discard Changes" on the Input page calls onClose in Notch → hub.
+        // "Discard Changes" on the Input page calls onClose in Notch → hub — but only when the draft is dirty.
+        //    A clean draft leaves the tap inert, so X carries us to the hub explicitly before row 3.
         TapExtent(R.Host.QueryPageButtonExtent(false)); R.Idle(70);
         std::printf("   after Discard: page=%u\n", Page());
+        TapExtent(R.Host.QueryPageCloseExtent()); R.Idle(80);
 
         const Frontier::PlaneExtent Row3 = R.Host.QueryHubRowExtent(3u);
         R.CursorX = (Row3.MinimumX + Row3.MaximumX) * 0.5f; R.CursorY = (Row3.MinimumY + Row3.MaximumY) * 0.5f;
@@ -515,13 +518,14 @@ int main()
         R.Snapshot("ControlCentre_Settings_21_Notifications_Page");
     }
 
-    // ⑰ Close the shade from a sub-page: 300 ms later the host has reset to the dashboard at 420×480.
+    // ⑰ Close the shade from a sub-page, then reopen it: the host keeps the page (no dashboard reset) —
+    //    reopening returns to the sub-page, so Step 4 below navigates explicitly instead of assuming the hub.
     R.CursorX = 640.0f; R.CursorY = Height - 18.0f; R.Idle(2);
     R.Press(); R.Idle(2); R.Release(); R.Idle(150);
     std::printf("   after close: page=%u card=%.0fx%.0f\n", Page(), R.Host.QueryCardExtent().Width(), R.Host.QueryCardExtent().Height());
     R.CursorX = 640.0f; R.CursorY = 18.0f; R.Idle(2);
     R.Press(); R.Idle(2); R.Release(); R.Idle(150);
-    R.Snapshot("ControlCentre_Settings_22_Reopened_Dashboard_Reset");
+    R.Snapshot("ControlCentre_Settings_22_Reopened_Page_Persists");
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                     STEP 4 · DISPLAY / THEME CONTENT · DIRTY FOOTER · DIALOGUES
@@ -530,14 +534,19 @@ int main()
     auto Focus = [&](const Frontier::PlaneExtent& E) { R.CursorX = (E.MinimumX + E.MaximumX) * 0.5f; R.CursorY = (E.MinimumY + E.MaximumY) * 0.5f; };
     auto Tap = [&](const Frontier::PlaneExtent& E) { Focus(E); R.Idle(2); R.Press(); R.Idle(3); R.Release(); R.Idle(2); };
     auto Dirty = [&]{ return R.Host.QueryAppearance().IsDirty() ? 1 : 0; };
+    int Fail = 0;
+    auto Check = [&](bool Ok, const char* What) { if (!Ok) { std::printf("   FAIL %s\n", What); ++Fail; } };
     auto Draft = [&]() -> const Frontier::AppearanceSettings& { return R.Host.QueryAppearance().QueryDraft(); };
 
-    // Open shade → hub → Appearance (Fonts is initial) → Display tab.
-    R.CursorX = 640.0f; R.CursorY = 18.0f; R.Idle(2);
-    R.Press(); R.Idle(2); R.Release(); R.Idle(150);
+    // Hub → Appearance (Fonts is initial) → Display tab. The shade is already open (⑰ reopened it): X reaches
+    //    the hub from any sub-page (a clean draft leaves straight away; a dirty one is applied first) and the
+    //    gear covers the dashboard, so this entry lands on Display from wherever the earlier steps left us.
+    Tap(R.Host.QueryPageCloseExtent()); R.Idle(80);
+    if (R.Host.IsDialogueOpen()) Tap(R.Host.QueryDialogue().QueryButtonExtent(Frontier::DialogueVerdictCategory::Primary)); R.Idle(80);
     Tap(R.Host.QueryHeaderGearExtent()); R.Idle(30);
     { const Frontier::PlaneExtent Row = R.Host.QueryHubRowExtent(1u); Focus(Row); R.Idle(2); R.Press(); R.Idle(3); R.Release(); R.Idle(80); }
     Tap(R.Host.QueryPageTabExtent(0u)); R.Idle(30);
+    Check(Page() == 3u && R.Host.QueryAppearanceSubTab() == Frontier::AppearanceSubTabCategory::Display, "step-4 entry missed the Display tab");
     std::printf("   [23] Display tab: dirty=%d\n", Dirty());
     R.Snapshot("ControlCentre_Settings_23_Display_Tab_Clean_Buttons_Disabled");
 
@@ -548,6 +557,7 @@ int main()
         R.Idle(2); R.Press();
         R.Drag(S.MinimumX + S.Width() * 0.72f, R.CursorY, 20);
         std::printf("   [24] dragging UI scale: %.0f%% dirty=%d\n", Draft().InterfaceScale, Dirty());
+        Check(Draft().InterfaceScale != 100.0f && Dirty(), "ui-scale drag left the draft clean");
         R.Snapshot("ControlCentre_Settings_24_Display_UIScale_Dragging_Footer_Enabled");
         R.Release(); R.Idle(4);
     }
@@ -596,8 +606,9 @@ int main()
     // Second tile row sits below the fold: scroll 3 clicks, then pick Nord.
     { const Frontier::PlaneExtent B = R.Host.QueryPageBodyExtent(); Focus(B); R.Idle(2); for (int I = 0; I < 3; ++I) { R.PendingWheel = -1.0f; R.Idle(1); } R.Idle(3); }
     Tap(R.Host.QueryAppearance().QueryThemeTileExtent(5u)); R.Idle(3);
-    // Corner Radius card is the next one down: 4 more clicks bring it into the body.
-    { const Frontier::PlaneExtent B = R.Host.QueryPageBodyExtent(); Focus(B); R.Idle(2); for (int I = 0; I < 4; ++I) { R.PendingWheel = -1.0f; R.Idle(1); } R.Idle(3); }
+    // Corner Radius card is the next one down: 6 clicks bring its slider into the body
+    //    (4 left the track 28 px below the fold and the drag missed the footer).
+    { const Frontier::PlaneExtent B = R.Host.QueryPageBodyExtent(); Focus(B); R.Idle(2); for (int I = 0; I < 6; ++I) { R.PendingWheel = -1.0f; R.Idle(1); } R.Idle(3); }
     {
         const Frontier::PlaneExtent S = R.Host.QueryAppearance().QueryRadiusSliderExtent();
         R.CursorX = S.MinimumX + 9.0f + (S.Width() - 18.0f) * 0.5f; R.CursorY = (S.MinimumY + S.MaximumY) * 0.5f;
@@ -605,10 +616,11 @@ int main()
         R.Snapshot("ControlCentre_Settings_31_Theme_Nord_Radius_Dragging");
         R.Release(); R.Idle(3);
     }
-    // Accent section is below the fold: scroll it into view, then pick Rose (swatch 9).
-    { const Frontier::PlaneExtent B = R.Host.QueryPageBodyExtent(); Focus(B); R.Idle(2); for (int I = 0; I < 3; ++I) { R.PendingWheel = -1.0f; R.Idle(1); } R.Idle(3); }
+    // Accent section is below the fold: 1 more click keeps its absolute scroll (6+1 == 4+3), then pick Rose (swatch 9).
+    { const Frontier::PlaneExtent B = R.Host.QueryPageBodyExtent(); Focus(B); R.Idle(2); for (int I = 0; I < 1; ++I) { R.PendingWheel = -1.0f; R.Idle(1); } R.Idle(3); }
     Tap(R.Host.QueryAppearance().QueryAccentSwatchExtent(9u)); R.Idle(3);
     std::printf("   [32] theme=%u radius=%.0f accent=%u dirty=%d\n", static_cast<unsigned>(Draft().Theme), Draft().CornerRadius, static_cast<unsigned>(Draft().Accent), Dirty());
+    Check(Draft().Theme == Frontier::ThemeCategory::Nord && Draft().CornerRadius > 20.0f && Dirty(), "theme-tab edits did not land");
     R.Snapshot("ControlCentre_Settings_32_Theme_Changed_Footer_Enabled");
 
     // Scroll to the semantic rows.
@@ -619,7 +631,7 @@ int main()
     Tap(R.Host.QueryPageCloseExtent()); R.Idle(30);
     std::printf("   [34] close requested: dialogue=%d preset=%u page=%u\n", R.Host.IsDialogueOpen() ? 1 : 0, static_cast<unsigned>(R.Host.QueryDialogue().QueryActive()), static_cast<unsigned>(R.Host.QueryActivePage()));
     R.Snapshot("ControlCentre_Settings_34_Unsaved_Changes_Dialogue");
-    Tap(R.Host.QueryDialogue().QueryButtonExtent(Frontier::DialogueVerdictCategory::Primary)); R.Idle(80);
+    if (R.Host.IsDialogueOpen()) Tap(R.Host.QueryDialogue().QueryButtonExtent(Frontier::DialogueVerdictCategory::Primary)); R.Idle(80);
     {
         const Frontier::AppearanceSettings& A = R.Host.QueryAppearance().QueryApplied();
         std::printf("   [35] after Apply: page=%u applied theme=%u radius=%.0f accent=%u dirty=%d rev=%u\n", static_cast<unsigned>(R.Host.QueryActivePage()),
@@ -663,6 +675,7 @@ int main()
         R.CursorX = S.MinimumX + 9.0f + (S.Width() - 18.0f) * ((32.0f - 8.0f) / 64.0f); R.CursorY = (S.MinimumY + S.MaximumY) * 0.5f;
         R.Idle(2); R.Press(); R.Drag(S.MinimumX + 9.0f + (S.Width() - 18.0f) * ((48.0f - 8.0f) / 64.0f), R.CursorY, 20);
         std::printf("   [41] dragging Title size=%.0f\n", Draft().RoleSize[0]);
+        Check(Draft().RoleSize[0] == 48.0f, "title-size drag missed 48");
         R.Snapshot("ControlCentre_Settings_41_Fonts_Title_Size_Dragging");
         R.Release(); R.Idle(3);
     }
@@ -717,10 +730,11 @@ int main()
     Tap(R.Host.QueryPageTabExtent(0u)); R.Idle(30);
     {
         const Frontier::PlaneExtent S = R.Host.QueryAppearance().QueryScaleSliderExtent();
-        R.CursorX = S.MinimumX + 9.0f + (S.Width() - 18.0f) * 0.5f; R.CursorY = (S.MinimumY + S.MaximumY) * 0.5f;
-        R.Idle(2); R.Press(); R.Drag(S.MinimumX + 9.0f + (S.Width() - 18.0f) * 0.75f, R.CursorY, 20); R.Release(); R.Idle(3);
+        R.CursorX = S.MinimumX + 13.0f + (S.Width() - 26.0f) * (50.0f / 150.0f); R.CursorY = (S.MinimumY + S.MaximumY) * 0.5f;
+        R.Idle(2); R.Press(); R.Drag(S.MinimumX + 13.0f + (S.Width() - 26.0f) * 0.5f, R.CursorY, 20); R.Release(); R.Idle(3);
     }
     std::printf("   [52] draft UI scale=%.0f%%\n", Draft().InterfaceScale);
+    Check(Draft().InterfaceScale == 125.0f, "5D scale drag missed 125");
     R.Snapshot("ControlCentre_Settings_52_Display_UIScale_Draft");
     Tap(R.Host.QueryPageButtonExtent(true)); R.Idle(30);
     std::printf("   [53] applied UI scale=%.0f%% logical=%ux%u\n", R.Host.QueryAppearance().QueryApplied().InterfaceScale, R.Host.QueryDisplayWidth(), R.Host.QueryDisplayHeight());
@@ -764,6 +778,7 @@ int main()
     std::printf("   [5E] after gear: page=%u\n", Page());
     { const Frontier::PlaneExtent Row = R.Host.QueryHubRowExtent(2u); Focus(Row); R.Idle(2); R.Press(); R.Idle(3); R.Release(); R.Idle(80); }
     std::printf("   [56] Input page: page=%u dirty=%d default=%d\n", Page(), InDirty(), R.Host.QueryInput().IsDefault());
+    Check(Page() == 4u, "5E entry missed the Input page");
     R.Snapshot("ControlCentre_Settings_56_Input_Clean_Buttons_Disabled");
 
     // Preset profile dropdown: open, capture, pick "Unreal Engine".
@@ -778,6 +793,7 @@ int main()
         R.Idle(2); R.Press(); R.Drag(S.MinimumX + S.Width() * 0.8f, R.CursorY, 20); R.Release(); R.Idle(3);
     }
     std::printf("   [58] draft profile=%u sensitivity=%.0f%% dirty=%d\n", static_cast<unsigned>(InDraft().Profile), InDraft().MouseSensitivity, InDirty());
+    Check(InDraft().MouseSensitivity >= 78.0f && InDraft().MouseSensitivity <= 84.0f && InDirty(), "sensitivity drag left ~80");
     R.Snapshot("ControlCentre_Settings_58_Input_Profile_Sensitivity_Draft");
 
     // Toggles: Custom Shortcuts off (fields go read-only); scroll the body down; Advanced on, Invert Y-Axis on.
@@ -832,6 +848,7 @@ int main()
         R.Idle(2); R.Press(); R.Drag(S.MinimumX + 9.0f + (S.Width() - 18.0f) * 0.6f, R.CursorY, 20); R.Release(); R.Idle(3);
     }
     std::printf("   [65] draft fps=%d ram=%d scene=%d drops=%d hold=%.1f dirty=%d\n", NoDraft().ShowFrameRateOverlay, NoDraft().ShowMemoryUsage, NoDraft().ShowSceneMetadata, NoDraft().FrameRateDrops, NoDraft().HoldSeconds, NoDirty());
+    Check(NoDraft().HoldSeconds == 6.5f && NoDirty(), "hold drag missed 6.5 s");
     R.Snapshot("ControlCentre_Settings_65_Notifications_Draft_Footer_Enabled");
     Tap(R.Host.QueryPageButtonExtent(true)); R.Idle(30);
     std::printf("   [66] applied hold=%.1f fps-tile=%d dirty=%d\n", R.Host.QueryNotifications().QueryApplied().HoldSeconds, R.Host.QuerySettings().FrameRateOverlay, NoDirty());
@@ -855,5 +872,6 @@ int main()
     }
 
     ImGui::DestroyContext();
-    return 0;
+    if (Fail > 0) std::printf("CONTROL-CENTRE PROOF: %d FAILURE(S)\n", Fail);
+    return Fail ? 1 : 0;
 }

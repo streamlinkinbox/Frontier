@@ -111,32 +111,18 @@ float InputInspector::ConstructInputLayout(PixelSpace& Surface, const PlaneExten
         Y += FieldH + RowGap;
 
         Ctl = LabelRow("Mouse Sensitivity", true);
-        // flex-1 range inside a field + w-16 text box showing "NN%".
-        const float BoxW = 64.0f;
-        const PlaneExtent Track = Spanning(Ctl.MinimumX, Ctl.MinimumY, Ctl.Width() - BoxW - 8.0f, FieldH);
-        RecordField(Surface, Track, Opacity);
-        SensitivityExtent = Spanning(Track.MinimumX + FieldPadX, Track.MinimumY, Track.Width() - FieldPadX * 2.0f, FieldH);
+        // The inspector pattern: value pill, then the kit slider across the rest of the row.
+        char Num[8]; std::snprintf(Num, sizeof(Num), "%d", static_cast<int>(std::lround(Draft.MouseSensitivity)));
+        ControlKit::ValuePill(Surface, Ctl.MinimumX, Ctl.MinimumY, Num, "%", Opacity);
+        SensitivityExtent = Spanning(Ctl.MinimumX + ControlKit::ValuePillWidth + ControlKitTokens::RowGap, Ctl.MinimumY,
+                                     Ctl.Width() - ControlKit::ValuePillWidth - ControlKitTokens::RowGap, FieldH);
         {
             float V = Draft.MouseSensitivity;
-            // Browser <input type=range accent-[#e254eb]>: thin track, accent fill and thumb.
-            const float Cy = Track.MinimumY + FieldH * 0.5f;
-            const PlaneExtent Rail = Spanning(SensitivityExtent.MinimumX, Cy - 2.0f, SensitivityExtent.Width(), 4.0f);
-            const bool Dragging = DraggingSlider;
-            const bool Over = ControlKit::Over(Spanning(SensitivityExtent.MinimumX, Track.MinimumY, SensitivityExtent.Width(), FieldH), Local);
-            if (Over && Local.Pressed) DraggingSlider = true;
+            const ControlHit Hit = ControlKit::Slider(Surface, SensitivityExtent, 0.0f, 100.0f, V, DraggingSlider, Local, V, false, false, Opacity);
+            if (Hit.Pressed) DraggingSlider = true;
             if (DraggingSlider && !Local.Down) DraggingSlider = false;
-            if (DraggingSlider || (Dragging && Local.Down))
-                V = std::clamp((Local.X - Rail.MinimumX) / std::max(Rail.Width(), 1.0f), 0.0f, 1.0f) * 100.0f;
-            Draft.MouseSensitivity = std::round(V);
-            const float T = Draft.MouseSensitivity / 100.0f;
-            Surface.FillRectangle(Rail, Faded(KnobTrack, Opacity), 2.0f);
-            Surface.FillRectangle(Spanning(Rail.MinimumX, Rail.MinimumY, Rail.Width() * T, 4.0f), Faded(Accent, Opacity), 2.0f);
-            ControlKit::FillCircle(Surface, Rail.MinimumX + Rail.Width() * T, Cy, 7.0f, Faded(Accent, Opacity));
+            if (DraggingSlider) Draft.MouseSensitivity = std::round(V);
         }
-        const PlaneExtent Box = Spanning(Ctl.MaximumX - BoxW, Ctl.MinimumY, BoxW, FieldH);
-        RecordField(Surface, Box, Opacity);
-        char Pct[8]; std::snprintf(Pct, sizeof(Pct), "%d%%", static_cast<int>(Draft.MouseSensitivity));
-        ControlKit::TextCentred(Surface, Box, Faded(InkLabel, Opacity), Pct, LabelSize);
         Y += FieldH;
     }
     Divider();
@@ -262,17 +248,18 @@ float NotificationInspector::ConstructNotificationLayout(PixelSpace& Surface, co
     Row(5u, "Autosave Errors",  Draft.AutosaveErrors, false);
     Row(6u, "Frame-rate Drops", Draft.FrameRateDrops, true);   // engine addition (flagged)
 
-    // Engine addition (flagged): toast dwell. Same FormFieldRow grid, thin kit slider + "N.N s" readout.
+    // Engine addition (flagged): toast dwell. Same FormFieldRow grid, value pill + thin kit slider.
     {
         Y += AlertsHeadTop;
         Surface.Text(X, Y, Faded(K.Text, Opacity), "Toasts", FormLabelSize);
         Y += Surface.MeasureText("Toasts", FormLabelSize).Y + AlertsHeadGap;
         const PlanePoint M = Surface.MeasureText("Hold Duration", FormLabelSize);
         Surface.Text(X, Y + (FormRowH - M.Y) * 0.5f, Faded(K.Text, Opacity), "Hold Duration", FormLabelSize);
-        char Readout[16]; std::snprintf(Readout, sizeof(Readout), "%.1f s", static_cast<double>(Draft.HoldSeconds));
-        const PlanePoint RM = Surface.MeasureText(Readout, 12.0f);
-        Surface.Text(X + W - RM.X, Y + (FormRowH - RM.Y) * 0.5f, Faded(K.TextDim, Opacity), Readout, 12.0f);
-        HoldSliderExtent = Spanning(X + FormLabelCol, Y + (FormRowH - ControlKitTokens::ControlHeight) * 0.5f, W - FormLabelCol - RM.X - 24.0f, ControlKitTokens::ControlHeight);
+        char Readout[16]; std::snprintf(Readout, sizeof(Readout), "%.1f", static_cast<double>(Draft.HoldSeconds));
+        const float HoldY = Y + (FormRowH - ControlKitTokens::ControlHeight) * 0.5f;
+        ControlKit::ValuePill(Surface, X + FormLabelCol, HoldY, Readout, "s", Opacity);
+        HoldSliderExtent = Spanning(X + FormLabelCol + ControlKit::ValuePillWidth + ControlKitTokens::RowGap, HoldY,
+                                    W - FormLabelCol - ControlKit::ValuePillWidth - ControlKitTokens::RowGap, ControlKitTokens::ControlHeight);
         float V = Draft.HoldSeconds;
         const ControlHit Hit = ControlKit::Slider(Surface, HoldSliderExtent, 1.0f, 10.0f, V, DraggingSlider, Pointer, V, true, false, Opacity);
         if (Hit.Pressed) DraggingSlider = true;

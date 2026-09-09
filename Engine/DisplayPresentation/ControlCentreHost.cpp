@@ -1054,8 +1054,16 @@ void ControlCentreHost::ConstructPillLayout(PixelSpace& Surface, float Opacity) 
 
     Surface.FillRectangle(Track, Faded(TrackBlack50(), Opacity), PillTrack * 0.5f);
     const float T = (Settings.RenderScale - RenderScaleMinimum) / (1.0f - RenderScaleMinimum);
-    Surface.FillRectangle(Spanning(Track.MinimumX, Track.MinimumY, Track.Width() * std::clamp(T, 0.0f, 1.0f), PillTrack),
+    const float ClampedT = std::clamp(T, 0.0f, 1.0f);
+    Surface.FillRectangle(Spanning(Track.MinimumX, Track.MinimumY, Track.Width() * ClampedT, PillTrack),
                           Faded(TrackFill(), Opacity), PillTrack * 0.5f);
+    // The inspector knob: a thumb with a drop shadow riding the fill edge. The gaps beside the track are
+    //    16 px, so the 12 px knob never touches the glyph or the readout, even held (× 1.12) at the ends.
+    const float KnobR = 12.0f * (PillGrabbed ? 1.12f : 1.0f);
+    const float KnobX = Track.MinimumX + Track.Width() * ClampedT;
+    const float KnobY = (Track.MinimumY + Track.MaximumY) * 0.5f;
+    ControlKit::FillCircle(Surface, KnobX, KnobY + 1.0f, KnobR, Faded(ColorQuad{ 0.0f, 0.0f, 0.0f, 0.5f }, Opacity));
+    ControlKit::FillCircle(Surface, KnobX, KnobY, KnobR, Faded(ControlKit::Palette().SliderThumb, Opacity));
 
     char Value[8];
     std::snprintf(Value, sizeof(Value), "%d%%", static_cast<int>(std::lround(Settings.RenderScale * 100.0f)));

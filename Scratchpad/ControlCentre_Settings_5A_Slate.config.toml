@@ -1,11 +1,11 @@
-# Frontier user preferences - written by ConfigurationRegistry; edit freely, unknown keys are ignored.
+# Slate configuration - written by ConfigurationRegistry; edit freely, unknown keys are ignored.
 
 [appearance.display]
 anti_aliasing = '1x'
 frame_cap = 'Unlimited'
 frame_rate_overlay = false
 fullscreen = false
-interface_scale = 163.0
+interface_scale = 125.0
 match_quality_tier = true
 overlay_corner = 'TopRight'
 resolution = 'Native'
@@ -43,13 +43,16 @@ ligatures = false
     weight = 'Bold'
 
 [appearance.theme]
-accent = 'Rose'
+accent = 'Blue'
 caution_swatch = 0
 corner_radius = 30.0
 info_swatch = 0
 success_swatch = 1
 theme = 'Light'
 warning_swatch = 0
+
+[configuration]
+version = 1
 
 [input]
 advanced_controls = false
@@ -72,13 +75,16 @@ show_frame_rate_overlay = true
 show_memory_usage = true
 show_scene_metadata = false
 
-[configuration]
-version = 1
-
 [render]
+alias_pick = true
 anti_aliasing = false
+debug_view = 'Off'
 frame_rate_overlay = true
 global_illumination = true
 notifications = false
+occlusion_culling = true
 quality = 'Standard'
+ray_tracing_tier = 'Auto'
 render_scale = 0.6000249981880188
+slab_limit = 1
+texture_edge_limit = 2048
