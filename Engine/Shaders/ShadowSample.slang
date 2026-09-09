@@ -108,13 +108,15 @@ float ShadowLitFraction(vec3 World, vec3 Normal, float NdotL, uint Tap)
     if (Kind == kShadowFilterHard)
         return ShadowFilterLit(Texel, Receiver, Bias, 0.0, 1u, Tap);
 
+    // PCF's radius is a fixed count of texels, so it needs no projection maths at all — it returns before the
+    //    texels-per-metre conversion below, which only PCSS consumes.
+    if (Kind == kShadowFilterPcf)
+        return ShadowFilterLit(Texel, Receiver, Bias, float(Taps) * 0.5, Taps, Tap);
+
     // Texels per metre at the receiver's depth: the frustum is 2·z·tan(half) metres across Side texels. The half
     //    angle is recovered from the projection matrix rather than passed again, so the two cannot drift apart.
     float TanHalf        = 1.0 / max(ShadowLightClip[Tap][1][1], 1e-6);
     float TexelsPerMetre = Side / max(2.0 * Receiver * TanHalf, 1e-6);
-
-    if (Kind == kShadowFilterPcf)
-        return ShadowFilterLit(Texel, Receiver, Bias, float(Taps) * 0.5, Taps, Tap);
 
     // PCSS.
     float LightSize    = ShadowTapOrigin[Tap].w;
@@ -125,6 +127,7 @@ float ShadowLitFraction(vec3 World, vec3 Normal, float NdotL, uint Tap)
 
     float Penumbra = (Receiver - Blocker) / Blocker * LightSize;
     float Radius   = max(Penumbra * TexelsPerMetre * 0.5, 0.5);
+
     return ShadowFilterLit(Texel, Receiver, Bias, Radius, Taps, Tap);
 }
 

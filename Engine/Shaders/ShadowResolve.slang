@@ -85,6 +85,14 @@ void main()
         float NdotL = dot(Normal, ToLight);
         if (NdotL <= 0.0) continue;
 
+        // BOTH cosine rejects come before the shadow lookup. LdotL is the emitter's own facing test: a tap that
+        //    points away from this surface cannot light it whatever the shadow map says. Testing it afterwards
+        //    would spend a full PCSS kernel — up to 106 texel fetches at Reference — on a result thrown away on
+        //    the next line. VisibilityRaster::Shade already rejects on both cosines before calling Shadow(), so
+        //    this ordering is what keeps the GPU path faithful to the CPU one rather than merely cheaper.
+        float LdotL = -dot(ShadowTapNormal[Tap].xyz, ToLight);
+        if (LdotL <= 0.0) continue;
+
         float Lit = ShadowLitFraction(Position, Normal, NdotL, Tap);
         if (Lit <= 0.0) continue;
 
@@ -92,8 +100,6 @@ void main()
         //    folds the same NdotL · LdotL · Area / d² geometry term.
         vec3  Radiance = ShadowTapRadiance[Tap].xyz;
         float Weight   = ShadowTapRadiance[Tap].w;
-        float LdotL    = -dot(ShadowTapNormal[Tap].xyz, ToLight);
-        if (LdotL <= 0.0) continue;
 
         float Geometry = NdotL * LdotL * Weight * Lit / (Distance * Distance);
 
