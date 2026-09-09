@@ -123,7 +123,11 @@ layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — �
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
 const float kTemporalDepthTol  = 0.10;       // 10% relative depth validation
 const uint  kTemporalMClamp    = 20u;        // prev M capped at 20× current M (ReSTIR M-clamp)
-const uint  kSpatialTaps       = 4u;         // R6 row 3: 4-tap cross — the true spatial reuse (ExtraCandidateCount = extra same-pixel candidates)
+const uint  kSpatialTapCeiling = 4u;         // R6 row 3: the widest cross the kernel will walk; SpatialTapCount picks how many of them run.
+                                             //    R10: the COUNT is now tier-keyed (Minimal 0 … Reference 4) because a hardcoded 4 made the
+                                             //    cheapest tier spend two thirds of its lighting budget — 12 of 18 full-BSDF target-function
+                                             //    evaluations per pixel — on spatial reuse. The ceiling stays 4 so the 90° tap spacing below is
+                                             //    unchanged for any tier that asks for the full cross.
 // ⚠️ The cross is ROTATED and its radius JITTERED per pixel per frame. A fixed offset set makes the reuse graph static:
 //    pixel (x,y) could only ever exchange reservoirs with (x±r,y) and (x,y±r), which partitions the image into r²
 //    residue classes that never share a sample. Each class converges to its own estimate and temporal accumulation
@@ -327,7 +331,7 @@ layout(push_constant) uniform ReSTIRConstants
     //    else’s machine. Anything that does not fit goes into a uniform buffer rather than growing this block.
     // A7d. How much colour the eye still has at the adapted luminance: 1 in daylight, 0 under starlight.
     float   ColourSaturation;       // [-]   taken from one of the reserves, so the block is still 128 B
-    uint    PushReserve1;
+    uint    SpatialTapCount;        // [cnt] R10: spatial-reuse neighbours per pixel, tier-keyed (0 = cross off)
     uint    PushReserve2;
     uint    PushReserve3;
     uint    PushReserve4;
@@ -933,11 +937,12 @@ void main()
                 float angle   = RandFloat(tapSeed) * 6.28318531;
                 float radius  = mix(kSpatialRadiusMinPx, kSpatialRadiusMaxPx, RandFloat(tapSeed)) * scale;
 
-                for (uint tap = 0u; tap < kSpatialTaps; ++tap)
+                uint spatialTaps = min(SpatialTapCount, kSpatialTapCeiling);
+                for (uint tap = 0u; tap < spatialTaps; ++tap)
                 {
                     // The cross keeps its 90° spacing — it is still four taps of equal reach, just aimed
                     //    differently each frame, so no direction is systematically favoured over time.
-                    float  theta  = angle + float(tap) * 1.57079633;
+                    float  theta  = angle + float(tap) * (6.28318531 / float(spatialTaps));
                     ivec2  offset = ivec2(int(round(radius * cos(theta))), int(round(radius * sin(theta))));
                     if (offset.x == 0 && offset.y == 0) continue;   // a rounded-to-zero tap is the pixel itself
                     ivec2 npx = ivec2(pixel) + offset;

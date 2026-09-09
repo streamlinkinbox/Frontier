@@ -99,6 +99,7 @@ DispatchConfiguration ReSTIRIntegrator::BuildDispatch(
     Dispatch.ViewportHeight        = ViewportHeight;
     Dispatch.AccumulationIndex     = AccumulationIndex;
     Dispatch.ExtraCandidateCount      = ActiveConfiguration.ExtraCandidateCount;
+    Dispatch.SpatialTapCount       = ActiveConfiguration.SpatialTapCount;
     Dispatch.CandidatesPerPixel    = ActiveConfiguration.CandidatesPerPixel;
     Dispatch.AlphaMaskedMaterialCount = AlphaMaskedMaterialCount;   // R4b: 0 keeps the any-hit shadow path
     Dispatch.LuminaireTriangleCount = LuminaireTriangleCount;

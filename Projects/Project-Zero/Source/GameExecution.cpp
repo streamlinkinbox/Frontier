@@ -569,6 +569,7 @@ int main(int argc, char** argv)
         // The quality tier sets the ReSTIR budget; the GI / AA tiles override the tier's own defaults.
         Integrator.AssignCandidatesPerPixel(Criteria.ReSTIRCandidateSampleCount);
         Integrator.AssignExtraCandidateCount(Criteria.ReSTIRExtraCandidateCount);
+        Integrator.AssignSpatialTapCount(Criteria.ReSTIRSpatialTapCount);
         Integrator.AssignGlobalIllumination(S.GlobalIllumination);
         Integrator.AssignAntiAliasing(S.AntiAliasing);
         Notifications.AssignEnabled(S.Notifications);

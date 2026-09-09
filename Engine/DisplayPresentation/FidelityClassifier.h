@@ -130,7 +130,8 @@ struct FidelityCriteria
     uint32_t                ReSTIRCandidateSampleCount;         // [count] ReSTIR initial sample count M0
     uint32_t                FluidVoxelGridResolution;           // [cells] 3D fluid domain resolution
     uint32_t                ParticleSimulationCapacity;         // [count] maximum active compute particles
-    uint32_t                ReSTIRExtraCandidateCount;        // [count] extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is fixed)
+    uint32_t                ReSTIRExtraCandidateCount;        // [count] extra same-pixel RIS candidates (R6 row 3: renamed)
+    uint32_t                ReSTIRSpatialTapCount;              // [count] spatial-reuse neighbours per pixel (0 = no cross)
     ShadowTechniqueCategory ShadowTechnique;                    // [category] GI-off shadow filter: hard · wide PCF · PCSS
     uint32_t                ShadowMapSide;                      // [px] shadow map side in texels (the tier's default)
     uint32_t                ShadowFilterTapCount;               // [count] filter kernel side in taps (1 = single comparison)

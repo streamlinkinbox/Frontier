@@ -28,7 +28,10 @@ namespace Frontier {
 struct ReSTIRIntegratorConfiguration
 {
     uint32_t    CandidatesPerPixel;         // [-]   primary DI candidates per pixel
-    uint32_t    ExtraCandidateCount;      // [-]   extra same-pixel RIS candidates (R6 row 3: renamed; true spatial reuse is the fixed kSpatialTaps cross)
+    uint32_t    ExtraCandidateCount;      // [-]   extra same-pixel RIS candidates (R6 row 3: renamed)
+    uint32_t    SpatialTapCount    = 4;   // [-]   R10: spatial-reuse neighbours per pixel, tier-keyed (0 = cross off).
+                                          //       Defaults to the pre-R10 hardcoded 4, so a caller that never assigns
+                                          //       it renders exactly as before rather than silently losing the cross.
     float       Exposure;                   // [-]   ACES tone-map exposure scalar
     float       AmbientStrength;            // [-]   ambient fallback contribution
     bool        GlobalIllumination = true;  // [-]   secondary bounce on/off
@@ -78,6 +81,7 @@ public:
     // Any parameter change invalidates the temporal history; the accumulation restarts at index 0.
     void AssignCandidatesPerPixel(uint32_t Count) noexcept { if (ActiveConfiguration.CandidatesPerPixel != Count) { ActiveConfiguration.CandidatesPerPixel = Count; ResetAccumulation(); } }
     void AssignExtraCandidateCount  (uint32_t Count) noexcept { if (ActiveConfiguration.ExtraCandidateCount   != Count) { ActiveConfiguration.ExtraCandidateCount   = Count; ResetAccumulation(); } }
+    void AssignSpatialTapCount      (uint32_t Count) noexcept { if (ActiveConfiguration.SpatialTapCount       != Count) { ActiveConfiguration.SpatialTapCount       = Count; ResetAccumulation(); } }
     // A6b ⚠️ The slider writes BOTH the configuration and the exposure integrator's manual value. Keeping two
     //    copies and hoping they agree is exactly how a control ends up doing nothing in one mode.
     void AssignExposure          (float    Value) noexcept

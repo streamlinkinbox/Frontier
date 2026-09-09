@@ -159,7 +159,8 @@ struct DispatchConfiguration
     //    card offering 256 and fails on one offering only the guarantee — a defect that appears on someone
     //    else's machine. Anything that does not fit goes into a uniform buffer rather than growing this block.
     float    ColourSaturation;                                     // [-] A7d: 1 in daylight, 0 under starlight
-    uint32_t PushReserve[7];                                       // [-] keeps the block 128 B and 16-B aligned
+    uint32_t SpatialTapCount;                                      // [-] spatial-reuse neighbours per pixel (0 = cross off); taken from the reserve, block still 128 B
+    uint32_t PushReserve[6];                                       // [-] keeps the block 128 B and 16-B aligned
 };
 
 // Bits of DispatchConfiguration::FeatureFlags — mirror kFeature* in ReSTIRViewport.slang.
