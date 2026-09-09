@@ -40,6 +40,12 @@ constexpr ImU32 kOk     = IM_COL32(34, 197, 94, 255);
 constexpr ImU32 kDanger = IM_COL32(239, 68, 68, 255);
 constexpr ImU32 kAmber  = IM_COL32(245, 158, 11, 255);
 constexpr ImU32 kHi     = IM_COL32(108, 119, 255, 255);
+constexpr ImU32 kPrimaryBg   = IM_COL32(108, 119, 255, 33);    // the standing row's indigo wash
+constexpr ImU32 kPrimaryOn   = IM_COL32(108, 119, 255, 61);    // picked by keys, it deepens
+constexpr ImU32 kPrimaryEdge = IM_COL32(108, 119, 255, 87);    // its indigo hem
+constexpr ImU32 kBadBg       = IM_COL32(239, 68, 68, 26);      // the unheard line's red wash
+constexpr ImU32 kBadEdge     = IM_COL32(239, 68, 68, 77);
+constexpr ImU32 kBadTitle    = IM_COL32(255, 180, 180, 255);
 
 constexpr uint32_t kEdit      = 0u;
 constexpr uint32_t kPlay      = 1u;
@@ -110,6 +116,14 @@ void CommandGlyph(ImDrawList* Draw, const ImVec2& Centre, float Size, ImU32 Tint
     Draw->PathStroke(Tint, 1.9f * Size / 24.0f, ImDrawFlags_Closed);
 }
 
+void CloseGlyph(ImDrawList* Draw, const ImVec2& Centre, float Size, ImU32 Tint) noexcept
+{
+    // The bad row's cross: two strokes corner to corner of the fourteen box.
+    const float S = Size / 24.0f;
+    Draw->AddLine(GlyphDot(Centre, Size, 7.0f, 7.0f), GlyphDot(Centre, Size, 17.0f, 17.0f), Tint, 1.9f * S);
+    Draw->AddLine(GlyphDot(Centre, Size, 17.0f, 7.0f), GlyphDot(Centre, Size, 7.0f, 17.0f), Tint, 1.9f * S);
+}
+
 void RunGlyph(uint32_t Icon, ImDrawList* Draw, const ImVec2& Centre, float Size, ImU32 Tint) noexcept
 {
     if (Icon == 0u)      { PlayGlyph(Draw, Centre, Size, Tint); }
@@ -129,10 +143,21 @@ float SpacedCapsWidth(ImFont* Font, const char* Text, float Tracking) noexcept
 {
     ImGui::PushFont(Font);
     float Advance = 0.0f;
-    for (const char* P = Text; *P != '\0'; ++P)
+    for (const char* P = Text; *P != '\0';)
     {
-        const char Upper[2] = { static_cast<char>(std::toupper(static_cast<unsigned char>(*P))), '\0' };
+        // Whole glyphs at a time: the middle dot walks through untouched.
+        uint32_t Len = 1u;
+        const unsigned char Lead = static_cast<unsigned char>(*P);
+        if ((Lead & 0xE0u) == 0xC0u)      { Len = 2u; }
+        else if ((Lead & 0xF0u) == 0xE0u) { Len = 3u; }
+        else if ((Lead & 0xF8u) == 0xF0u) { Len = 4u; }
+        char Upper[8] = {};
+        for (uint32_t i = 0u; i < Len && P[i] != '\0'; ++i)
+        {
+            Upper[i] = (i == 0u) ? static_cast<char>(std::toupper(Lead)) : P[i];
+        }
         Advance += Font->CalcTextSizeA(Font->LegacySize, FLT_MAX, 0.0f, Upper).x + Tracking;
+        P += Len;
     }
     ImGui::PopFont();
     return Advance > 0.0f ? Advance - Tracking : 0.0f;
@@ -143,11 +168,21 @@ void SpacedCaps(ImDrawList* Draw, ImFont* Font, const char* Text, const ImVec2& 
 {
     ImGui::PushFont(Font);
     float Advance = 0.0f;
-    for (const char* P = Text; *P != '\0'; ++P)
+    for (const char* P = Text; *P != '\0';)
     {
-        const char Upper[2] = { static_cast<char>(std::toupper(static_cast<unsigned char>(*P))), '\0' };
+        uint32_t Len = 1u;
+        const unsigned char Lead = static_cast<unsigned char>(*P);
+        if ((Lead & 0xE0u) == 0xC0u)      { Len = 2u; }
+        else if ((Lead & 0xF0u) == 0xE0u) { Len = 3u; }
+        else if ((Lead & 0xF8u) == 0xF0u) { Len = 4u; }
+        char Upper[8] = {};
+        for (uint32_t i = 0u; i < Len && P[i] != '\0'; ++i)
+        {
+            Upper[i] = (i == 0u) ? static_cast<char>(std::toupper(Lead)) : P[i];
+        }
         Draw->AddText(ImVec2(At.x + Advance, At.y), Tint, Upper);
         Advance += Font->CalcTextSizeA(Font->LegacySize, FLT_MAX, 0.0f, Upper).x + Tracking;
+        P += Len;
     }
     ImGui::PopFont();
 }
@@ -160,18 +195,64 @@ struct QuickCommand
 {
     const char* Label;
     const char* Sub;
-    uint32_t    Icon;   // play, sim, pause, step, stop, command — the run glyphs above
 };
 
 constexpr QuickCommand kQuick[7] = {
-    { "Play \xe2\x80\x94 run through a camera", "transport", 0u },
-    { "Simulate \xe2\x80\x94 run the world", "transport", 1u },
-    { "Pause / resume", "transport", 2u },
-    { "Step one frame", "transport", 3u },
-    { "Stop and restore", "transport", 4u },
-    { "Realtime viewport", "viewport", 5u },
-    { "Day cycle", "day", 1u },
+    { "Play \xe2\x80\x94 run through a camera", "transport" },
+    { "Simulate \xe2\x80\x94 run the world", "transport" },
+    { "Pause / resume", "transport" },
+    { "Step one frame", "transport" },
+    { "Stop and restore", "transport" },
+    { "Realtime viewport", "viewport" },
+    { "Day cycle", "viewport" },
 };
+
+// The empty line offers nine sayable things, ours named for the Cornell shelf.
+constexpr const char* kExamples[9] = {
+    "find tall box",
+    "rotate tall box 40 degrees on z",
+    "move sphere 2 m on x",
+    "add sphere at x 3 y 2 z -1",
+    "enable physics on selected objects",
+    "isolate selection",
+    "set time to golden hour",
+    "hide moon",
+    "scale cone 2x",
+};
+
+// The verb words the line listens for: pipe-kept keys, a usage, and the help the row hangs right.
+struct VerbWord
+{
+    const char* Keys;
+    const char* Usage;
+    const char* Help;
+};
+
+constexpr VerbWord kVerbs[15] = {
+    { "find|locate|select|where is|go to|show me|pick", "find <entity>",
+      "select it, reveal it in the tree and frame it" },
+    { "rotate|turn|spin|yaw|pitch|roll", "rotate <entity> 40 degrees on z",
+      "degrees by default, radians if you say so" },
+    { "move|translate|shift|nudge|push|place|put", "move <entity> 2 m on x",
+      "or \"move cube to x 4 y 1 z 0\"" },
+    { "scale|resize|grow|shrink", "scale <entity> 2x", "uniform, or add \"on y\" for one axis" },
+    { "add|create|spawn|new|insert|drop", "add sphere at x 3 y 2 z -1", "any entity type, anywhere" },
+    { "enable physics|disable physics|turn on physics|turn off physics|add physics|remove physics|physics",
+      "enable physics on <entity>", "bodies fall and settle while the world runs" },
+    { "exit isolation|unisolate|leave isolation|clear isolation|show everything", "exit isolation",
+      "bring the rest of the world back" },
+    { "delete from ram|remove from ram|delete from memory|purge|wipe|free|destroy|nuke",
+      "delete from ram <entity>", "deletes it and disposes its GPU + RAM buffers for good" },
+    { "hide|unhide|show", "hide <entity>", "visibility, same as the eye in the outliner" },
+    { "frame|focus|look at|zoom to", "frame <entity|everything>", "" },
+    { "set time|time|set the time|make it", "set time to golden hour",
+      "a clock time, or sunrise / noon / dusk / midnight" },
+    { "play|run", "play", "run the world through a camera" },
+    { "close popups|close all popups|clear popups", "close popups", "" },
+    { "set|make", "set roughness of <entity> to 0.2", "any property on any entity" },
+    { "help|commands|what can i say|?", "help", "" },
+};
+
 
 bool InfixMatch(const char* Label, const char* Text) noexcept
 {
@@ -196,6 +277,124 @@ bool InfixMatch(const char* Label, const char* Text) noexcept
     }
     return false;
 }
+
+bool StartsFolded(const char* Str, const char* Prefix) noexcept
+{
+    while (*Prefix != '\0')
+    {
+        if (*Str == '\0'
+            || std::tolower(static_cast<unsigned char>(*Str)) != std::tolower(static_cast<unsigned char>(*Prefix)))
+        {
+            return false;
+        }
+        ++Str;
+        ++Prefix;
+    }
+    return true;
+}
+
+// A verb word answers when one of its pipe-kept keys opens with the typed word, or — past two
+//    letters — carries the typed first word inside.
+bool KeysHit(const char* Keys, const char* Text, const char* First) noexcept
+{
+    const size_t Eaten = std::strlen(Text);
+    const char* At = Keys;
+    for (;;)
+    {
+        const char* Bar = std::strchr(At, '|');
+        const size_t Span = (Bar != nullptr) ? static_cast<size_t>(Bar - At) : std::strlen(At);
+        char Key[32] = {};
+        if (Span < sizeof(Key))
+        {
+            std::strncpy(Key, At, Span);
+            if (StartsFolded(Key, Text) || (Eaten > 2u && InfixMatch(Key, First)))
+            {
+                return true;
+            }
+        }
+        if (Bar == nullptr)
+        {
+            return false;
+        }
+        At = Bar + 1;
+    }
+}
+
+// While the word still grows into a verb key, the line withholds its scold.
+bool GrowingWord(const char* Text) noexcept
+{
+    if (Text[0] == '\0')
+    {
+        return false;
+    }
+    for (uint32_t v = 0u; v < 15u; ++v)
+    {
+        const char* At = kVerbs[v].Keys;
+        for (;;)
+        {
+            const char* Bar = std::strchr(At, '|');
+            const size_t Span = (Bar != nullptr) ? static_cast<size_t>(Bar - At) : std::strlen(At);
+            char Key[32] = {};
+            if (Span < sizeof(Key))
+            {
+                std::strncpy(Key, At, Span);
+                if (StartsFolded(Key, Text) && std::strlen(Key) != std::strlen(Text))
+                {
+                    return true;
+                }
+            }
+            if (Bar == nullptr)
+            {
+                break;
+            }
+            At = Bar + 1;
+        }
+    }
+    return false;
+}
+
+// The usage sheds its bracketed tail: 'find <entity>' offers 'find '.
+void VerbInsert(const char* Usage, char* Out, size_t OutSize) noexcept
+{
+    size_t Eaten = 0u;
+    while (Usage[Eaten] != '\0' && Usage[Eaten] != '<' && Eaten + 1u < OutSize)
+    {
+        Out[Eaten] = Usage[Eaten];
+        ++Eaten;
+    }
+    while (Eaten > 0u && Out[Eaten - 1u] == ' ')
+    {
+        --Eaten;
+    }
+    if (Eaten + 1u < OutSize)
+    {
+        Out[Eaten] = ' ';
+        ++Eaten;
+    }
+    Out[Eaten] = '\0';
+}
+
+// The completion a row pours into the line: examples whole, usages shed, entries found.
+void SugInsertText(uint32_t Sort, uint32_t At, const char* EntryLabel, char* Out, size_t OutSize) noexcept
+{
+    if (Sort == 1u)
+    {
+        std::snprintf(Out, OutSize, "%s", kExamples[At]);
+    }
+    else if (Sort == 2u)
+    {
+        VerbInsert(kVerbs[At].Usage, Out, OutSize);
+    }
+    else if (Sort == 3u)
+    {
+        std::snprintf(Out, OutSize, "find %s", EntryLabel);
+    }
+    else
+    {
+        Out[0] = '\0';
+    }
+}
+
 
 } // namespace
 
@@ -232,10 +431,12 @@ void ViewportPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
         }
     }
 
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 0.0f));
     RecordBar();
     RecordView();
-    RecordCommand();
+    RecordCommand(Instances, InstanceCount);
     RecordFooter(Instances, InstanceCount);
+    ImGui::PopStyleVar();
     ImGui::End();
 }
 
@@ -527,6 +728,11 @@ void ViewportPanel::RecordBar() noexcept
         Draw->AddRectFilled(ImVec2(BX, ChipY), ImVec2(BX + ChipW, ChipY + 22.0f), ChipBg, 11.0f);
     }
     SpacedCaps(Draw, Small, ChipLabel, ImVec2(BX + 10.0f, ChipY + (22.0f - RtGlyph.y) * 0.5f), ChipTint, 1.3f);
+
+    const ImVec2 WinPos = ImGui::GetWindowPos();
+    const ImVec2 WinSize = ImGui::GetWindowSize();
+    Draw->AddLine(ImVec2(WinPos.x, Cursor.y + 44.0f), ImVec2(WinPos.x + WinSize.x, Cursor.y + 44.0f), kStroke);
+    ImGui::SetCursorScreenPos(ImVec2(Cursor.x, Cursor.y + 44.0f));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -536,7 +742,7 @@ void ViewportPanel::RecordBar() noexcept
 void ViewportPanel::RecordView() noexcept
 {
     const float RowWidth = ImGui::GetContentRegionAvail().x;
-    const float ViewH    = ImGui::GetContentRegionAvail().y - 40.0f - 8.0f - 40.0f - 8.0f;
+    const float ViewH    = ImGui::GetContentRegionAvail().y - 40.0f - 40.0f;
     if (ViewH < 40.0f)
     {
         return;
@@ -578,16 +784,14 @@ void ViewportPanel::RecordView() noexcept
     Draw->AddText(ImVec2(OrbCentre.x - 3.0f, OrbCentre.y - 32.0f), IM_COL32(105, 208, 109, 255), "Y");
     Draw->AddText(ImVec2(OrbCentre.x + 6.0f, OrbCentre.y + 4.0f), IM_COL32(91, 140, 255, 255), "Z");
     ImGui::PopFont();
-
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
-    ImGui::Dummy(ImVec2(RowWidth, 8.0f));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       COMMAND LINE
 //------------------------------------------------------------------------------------------------------------------------
 
-void ViewportPanel::RecordCommand() noexcept
+void ViewportPanel::RecordCommand(EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
     if ((ImGui::GetIO().KeyCtrl || ImGui::GetIO().KeySuper) && ImGui::IsKeyPressed(ImGuiKey_K, false))
     {
@@ -603,8 +807,12 @@ void ViewportPanel::RecordCommand() noexcept
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
     ImFont*     Ui    = Controls_->QueryUi();
     ImFont*     Small = Controls_->QuerySmall();
-    Draw->AddRectFilled(Min, Max, kWash);
-    Draw->AddLine(ImVec2(Min.x, Min.y), ImVec2(Max.x, Min.y), kStroke);
+    const ImVec2 WinPos  = ImGui::GetWindowPos();
+    const ImVec2 WinSize = ImGui::GetWindowSize();
+    const float  WinX    = WinPos.x;
+    const float  WinX1   = WinPos.x + WinSize.x;
+    Draw->AddRectFilled(ImVec2(WinX, Min.y), ImVec2(WinX1, Max.y), kWash);
+    Draw->AddLine(ImVec2(WinX, Min.y), ImVec2(WinX1, Min.y), kStroke);
 
     if (std::strcmp(CommandText_, LastPaint_) != 0)
     {
@@ -616,7 +824,7 @@ void ViewportPanel::RecordCommand() noexcept
     const bool   EchoOn = (CommandEcho_[0] != '\0') && (Now < EchoUntil_);
 
     // The right cluster first, so the field takes the middle: run, kbd, echo.
-    const ImVec2 RunMin(Max.x - 8.0f - 28.0f, Min.y + 6.0f);
+    const ImVec2 RunMin(WinX1 - 8.0f - 28.0f, Min.y + 6.0f);
     ImFont* MonoSmall = Controls_->QueryMonoSmall();
     ImGui::PushFont(MonoSmall);
     const ImVec2 CmdGlyph = MonoSmall->CalcTextSizeA(MonoSmall->LegacySize, FLT_MAX, 0.0f, "\xe2\x8c\x98");
@@ -637,10 +845,12 @@ void ViewportPanel::RecordCommand() noexcept
             EchoW = RowWidth * 0.42f;
         }
     }
-    const float FieldX0 = Min.x + 10.0f + 20.0f + 10.0f;
+    const float FieldX0 = WinX + 10.0f + 20.0f + 10.0f;
     const float FieldX1 = (EchoOn ? (KbdMin.x - 10.0f - EchoW) : KbdMin.x) - 10.0f;
 
-    CommandGlyph(Draw, ImVec2(Min.x + 20.0f, Min.y + 20.0f), 14.0f, CommandFocus_ ? kHi : kFaint);
+    const bool BadShown = (SugCount_ > 0u && SugRows_[0].Sort == 4u);
+    const ImU32 PromptTint = BadShown ? kDanger : (CommandFocus_ ? kHi : kFaint);
+    CommandGlyph(Draw, ImVec2(WinX + 20.0f, Min.y + 20.0f), 14.0f, PromptTint);
 
     ImGui::SetCursorScreenPos(ImVec2(FieldX0, Min.y + 9.0f));
     ImGui::PushItemWidth(FieldX1 - FieldX0);
@@ -656,7 +866,7 @@ void ViewportPanel::RecordCommand() noexcept
     static constexpr char kPlaceholder[] = "Say what you want \xe2\x80\x94 \xe2\x80\x9crotate cube 40 degrees on Z\xe2\x80\x9d, " "\xe2\x80\x9c" "add sphere at x 3 y 2 z -1\xe2\x80\x9d";
     const bool Done = ImGui::InputTextWithHint("##cmd", kPlaceholder, CommandText_, sizeof(CommandText_),
         ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion
-            | ImGuiInputTextFlags_CallbackHistory,
+            | ImGuiInputTextFlags_CallbackHistory | ImGuiInputTextFlags_CallbackAlways,
         &ViewportPanel::ConsoleCallback, this);
     const bool Focused = ImGui::IsItemFocused();
     if ((CommandFocus_ || Focused) && ImGui::IsKeyPressed(ImGuiKey_Escape, false))
@@ -680,7 +890,7 @@ void ViewportPanel::RecordCommand() noexcept
     if (Done)
     {
         // Enter runs the standing row, even on an empty line — the reference's own quirk, kept.
-        RunSugRow(SugIndex_);
+        RunSugRow(SugIndex_, Instances, InstanceCount);
     }
 
     if (Focused && Ghost_[0] != '\0')
@@ -725,7 +935,7 @@ void ViewportPanel::RecordCommand() noexcept
         ImGui::SetTooltip("Run  (Enter)");
         if (ImGui::IsMouseClicked(0))
         {
-            RunSugRow(SugIndex_);
+            RunSugRow(SugIndex_, Instances, InstanceCount);
         }
     }
     const ImVec2 RunCentre(RunMin.x + 14.0f, RunMin.y + 14.0f);
@@ -738,14 +948,14 @@ void ViewportPanel::RecordCommand() noexcept
     const bool SugOpen = (Focused && !SugShut_) || (Now < SugUntil_);
     if (SugOpen)
     {
-        PaintSuggestions();
+        PaintSuggestions(Instances, InstanceCount);
 
-        // The stack rises out of the console instead of covering the viewport: header caps, then rows
-        //    with their glyph, title, and right-hung sub.
+        // The stack rises out of the console with eight pixels of air on three sides: the head caps,
+        //    then rows with their glyph, title, and right-hung sub.
         constexpr float kRowH = 36.0f, kHeadH = 24.0f, kPad = 6.0f;
         const float StackH  = kPad + kHeadH + static_cast<float>(SugCount_) * kRowH + kPad;
-        const float StackX0 = Min.x + 8.0f;
-        const float StackX1 = Max.x - 8.0f;
+        const float StackX0 = WinX + 8.0f;
+        const float StackX1 = WinX1 - 8.0f;
         const float StackY1 = Min.y - 6.0f;
         const float StackY0 = StackY1 - StackH;
         Draw->AddRectFilled(ImVec2(StackX0, StackY0), ImVec2(StackX1, StackY1),
@@ -754,10 +964,9 @@ void ViewportPanel::RecordCommand() noexcept
 
         const char* Head = (SugCount_ == 0u) ? "Nothing matches \xe2\x80\x94 try \xe2\x80\x9chelp\xe2\x80\x9d"
             : (CommandText_[0] != '\0' ? "What this will do" : "Say something like");
-        SpacedCaps(Draw, Small, Head, ImVec2(StackX0 + 16.0f, StackY0 + 10.0f), kFaint, 1.3f);
+        SpacedCaps(Draw, Small, Head, ImVec2(StackX0 + 16.0f, StackY0 + 13.0f), kFaint, 1.3f);
 
-        const uint32_t Rows = SugCount_;
-        for (uint32_t r = 0u; r < Rows; ++r)
+        for (uint32_t r = 0u; r < SugCount_; ++r)
         {
             const float RowY0 = StackY0 + kPad + kHeadH + static_cast<float>(r) * kRowH;
             const ImVec2 RowMin(StackX0 + kPad, RowY0);
@@ -768,31 +977,86 @@ void ViewportPanel::RecordCommand() noexcept
             ImGui::InvisibleButton(SugId, ImVec2(RowMax.x - RowMin.x, kRowH));
             const bool RowHot = ImGui::IsItemHovered();
 
-            const uint32_t Cmd = SugRows_[r];
-            if (RowHot)
+            const uint32_t Sort = SugRows_[r].Sort;
+            const uint32_t At   = SugRows_[r].At;
+            const bool Bad      = (Sort == 4u);
+            const bool On       = (r == SugIndex_);
+            // The standing row carries the indigo till the English reader lands; the keys deepen it, and
+            //    the pointer leaves it alone. Grey rows keep the old rule: hover beats picked.
+            const bool Primary = (r == 0u && CommandText_[0] != '\0');
+            if (Primary)
+            {
+                Draw->AddRectFilled(RowMin, RowMax, Bad ? kBadBg : (On ? kPrimaryOn : kPrimaryBg), 13.0f);
+                Draw->AddRect(RowMin, RowMax, Bad ? kBadEdge : kPrimaryEdge, 13.0f);
+            }
+            else if (RowHot)
             {
                 Draw->AddRectFilled(RowMin, RowMax, IM_COL32(27, 27, 27, 255), 13.0f);
             }
-            else if (r == SugIndex_)
+            else if (On)
             {
                 Draw->AddRectFilled(RowMin, RowMax, kSeated, 13.0f);
             }
-            uint32_t Icon = kQuick[Cmd].Icon;
-            if (Cmd == 2u && Paused_)
+
+            const char* EntryLabel = (Sort == 3u && At < InstanceCount) ? Instances[At].Label : "";
+            char EntrySub[64] = {};
+            const char* Title = "";
+            const char* Sub   = "";
+            if (Sort == 0u)
             {
-                Icon = 0u;
+                Title = QuickLabels_[At];
+                Sub   = kQuick[At].Sub;
             }
-            RunGlyph(Icon, Draw, ImVec2(RowMin.x + 19.0f, RowY0 + kRowH * 0.5f), 14.0f, kDim);
+            else if (Sort == 1u)
+            {
+                Title = kExamples[At];
+                Sub   = "try this";
+            }
+            else if (Sort == 2u)
+            {
+                Title = kVerbs[At].Usage;
+                Sub   = kVerbs[At].Help[0] != '\0' ? kVerbs[At].Help : "command";
+            }
+            else if (Sort == 3u)
+            {
+                Title = EntryLabel;
+                std::snprintf(EntrySub, sizeof(EntrySub), "%s \xc2\xb7 find and frame",
+                    At < InstanceCount ? EditorInstanceLabel(Instances[At].Category) : "");
+                Sub = EntrySub;
+            }
+            else
+            {
+                Title = "I did not understand that";
+                Sub   = "not understood";
+            }
+
+            const ImVec2 IconCentre(RowMin.x + 19.0f, RowY0 + kRowH * 0.5f);
+            if (Sort == 3u && At < InstanceCount)
+            {
+                const float* Tint = Instances[At].Tint;
+                Draw->AddCircleFilled(IconCentre, 5.0f,
+                    IM_COL32(static_cast<int>(Tint[0] * 255.0f), static_cast<int>(Tint[1] * 255.0f),
+                        static_cast<int>(Tint[2] * 255.0f), 255));
+            }
+            else if (Bad)
+            {
+                CloseGlyph(Draw, IconCentre, 14.0f, kDim);
+            }
+            else
+            {
+                CommandGlyph(Draw, IconCentre, 14.0f, kDim);
+            }
+
             ImGui::PushFont(Ui);
-            const ImVec2 TitleGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, QuickLabels_[Cmd]);
-            Draw->AddText(ImVec2(RowMin.x + 37.0f, RowY0 + (kRowH - TitleGlyph.y) * 0.5f), kText,
-                QuickLabels_[Cmd]);
+            const ImVec2 TitleGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Title);
+            Draw->AddText(ImVec2(RowMin.x + 37.0f, RowY0 + (kRowH - TitleGlyph.y) * 0.5f),
+                Bad ? kBadTitle : kText, Title);
             ImGui::PopFont();
             ImGui::PushFont(Small);
-            const ImVec2 SubGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, kQuick[Cmd].Sub);
+            const ImVec2 SubGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Sub);
             ImGui::PopFont();
-            const float SubW = SpacedCapsWidth(Small, kQuick[Cmd].Sub, 0.7f);
-            SpacedCaps(Draw, Small, kQuick[Cmd].Sub,
+            const float SubW = SpacedCapsWidth(Small, Sub, 0.7f);
+            SpacedCaps(Draw, Small, Sub,
                 ImVec2(RowMax.x - 12.0f - SubW, RowY0 + (kRowH - SubGlyph.y) * 0.5f), kFaint, 0.7f);
 
             if (RowHot)
@@ -800,22 +1064,21 @@ void ViewportPanel::RecordCommand() noexcept
                 SugIndex_ = r;
                 if (ImGui::IsMouseClicked(0))
                 {
-                    RunSugRow(r);
+                    RunSugRow(r, Instances, InstanceCount);
                     break;   // the run repaints the rows; the rest redraw next tick, shut
                 }
             }
         }
     }
-
     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
-    ImGui::Dummy(ImVec2(RowWidth, 8.0f));
 }
+
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SUGGESTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-void ViewportPanel::PaintSuggestions() noexcept
+void ViewportPanel::PaintSuggestions(EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
     if (std::strcmp(CommandText_, "help") == 0)
     {
@@ -840,13 +1103,71 @@ void ViewportPanel::PaintSuggestions() noexcept
         }
     }
 
-    SugCount_ = 0u;
-    for (uint32_t i = 0u; i < 7u; ++i)
+    if (std::strcmp(CommandText_, LastSugText_) != 0)
     {
-        if (InfixMatch(QuickLabels_[i], CommandText_))
+        // Fresh text re-seats the standing row, the way a repaint does.
+        SugIndex_ = 0u;
+        std::snprintf(LastSugText_, sizeof(LastSugText_), "%s", CommandText_);
+    }
+
+    SugCount_ = 0u;
+    if (CommandText_[0] == '\0')
+    {
+        for (uint32_t i = 0u; i < 9u; ++i)
         {
-            SugRows_[SugCount_] = i;
+            SugRows_[SugCount_].Sort = 1u;
+            SugRows_[SugCount_].At   = static_cast<uint8_t>(i);
             ++SugCount_;
+        }
+    }
+    else
+    {
+        char First[128] = {};
+        size_t Span = 0u;
+        while (CommandText_[Span] != '\0' && CommandText_[Span] != ' ' && Span + 1u < sizeof(First))
+        {
+            First[Span] = CommandText_[Span];
+            ++Span;
+        }
+        // Verb words first, then entries, then the quick rows: five entries and five quick at most,
+        //    nine rows in all. The tables share no titles, so no doubles survive the merge.
+        for (uint32_t v = 0u; v < 15u && SugCount_ < 9u; ++v)
+        {
+            if (KeysHit(kVerbs[v].Keys, CommandText_, First))
+            {
+                SugRows_[SugCount_].Sort = 2u;
+                SugRows_[SugCount_].At   = static_cast<uint8_t>(v);
+                ++SugCount_;
+            }
+        }
+        uint32_t Entries = 0u;
+        for (uint32_t i = 0u; i < InstanceCount && SugCount_ < 9u && Entries < 5u; ++i)
+        {
+            if (InfixMatch(Instances[i].Label, CommandText_))
+            {
+                SugRows_[SugCount_].Sort = 3u;
+                SugRows_[SugCount_].At   = static_cast<uint8_t>(i);
+                ++SugCount_;
+                ++Entries;
+            }
+        }
+        uint32_t Quicks = 0u;
+        for (uint32_t i = 0u; i < 7u && SugCount_ < 9u && Quicks < 5u; ++i)
+        {
+            if (InfixMatch(QuickLabels_[i], CommandText_))
+            {
+                SugRows_[SugCount_].Sort = 0u;
+                SugRows_[SugCount_].At   = static_cast<uint8_t>(i);
+                ++SugCount_;
+                ++Quicks;
+            }
+        }
+        if (SugCount_ == 0u && !GrowingWord(CommandText_))
+        {
+            // Nothing answers and no verb still grows: the red row says so.
+            SugRows_[0].Sort = 4u;
+            SugRows_[0].At   = 0u;
+            SugCount_        = 1u;
         }
     }
     if (SugCount_ > 0u && SugIndex_ >= SugCount_)
@@ -857,33 +1178,53 @@ void ViewportPanel::PaintSuggestions() noexcept
     Ghost_[0] = '\0';
     if (CommandText_[0] != '\0' && SugCount_ > 0u)
     {
-        const char* Top    = QuickLabels_[SugRows_[0]];
+        // The ghost completes only what a row offers to pour: examples, usages, found entries.
         const size_t Eaten = std::strlen(CommandText_);
-        bool Prefix = true;
-        for (size_t i = 0u; i < Eaten; ++i)
+        char Offer[128] = {};
+        for (uint32_t r = 0u; r < SugCount_; ++r)
         {
-            if (Top[i] == '\0'
-                || std::tolower(static_cast<unsigned char>(Top[i]))
-                    != std::tolower(static_cast<unsigned char>(CommandText_[i])))
+            const uint32_t Sort = SugRows_[r].Sort;
+            const uint32_t At   = SugRows_[r].At;
+            const char* EntryLabel = (Sort == 3u && At < InstanceCount) ? Instances[At].Label : "";
+            SugInsertText(Sort, At, EntryLabel, Offer, sizeof(Offer));
+            if (Offer[0] != '\0' && StartsFolded(Offer, CommandText_) && std::strlen(Offer) > Eaten)
             {
-                Prefix = false;
+                std::snprintf(Ghost_, sizeof(Ghost_), "%s", Offer + Eaten);
                 break;
             }
-        }
-        if (Prefix)
-        {
-            std::snprintf(Ghost_, sizeof(Ghost_), "%s", Top + Eaten);
         }
     }
 }
 
-void ViewportPanel::RunSugRow(uint32_t Row) noexcept
+void ViewportPanel::RunSugRow(uint32_t Row, EditorInstance* Instances, uint32_t InstanceCount) noexcept
 {
     if (Row >= SugCount_)
     {
         return;
     }
-    const uint32_t Cmd = SugRows_[Row];
+    const uint32_t Sort = SugRows_[Row].Sort;
+    const uint32_t At   = SugRows_[Row].At;
+    if (Sort == 4u)
+    {
+        // The red row never runs; it says the line went unheard and keeps it.
+        std::snprintf(CommandEcho_, sizeof(CommandEcho_), "I did not understand that");
+        EchoUntil_ = ImGui::GetTime() + 3.2;
+        return;
+    }
+    if (Sort == 1u || Sort == 2u || Sort == 3u)
+    {
+        // An offer, not an action: the line drinks it and the caret parks past its tail.
+        const char* EntryLabel = (Sort == 3u && At < InstanceCount) ? Instances[At].Label : "";
+        char Offer[128] = {};
+        SugInsertText(Sort, At, EntryLabel, Offer, sizeof(Offer));
+        std::snprintf(CommandText_, sizeof(CommandText_), "%s", Offer);
+        CaretToEnd_ = true;
+        SugShut_    = false;
+        PaintSuggestions(Instances, InstanceCount);
+        return;
+    }
+
+    const uint32_t Cmd = At;
     if (Cmd == 0u)      { SetTransport(kPlay); }
     else if (Cmd == 1u) { SetTransport(kSimulate); }
     else if (Cmd == 2u) { SetPaused(!Paused_); }
@@ -919,12 +1260,23 @@ void ViewportPanel::RunSugRow(uint32_t Row) noexcept
     CommandText_[0] = '\0';
     Ghost_[0]       = '\0';
     SugShut_        = true;
-    PaintSuggestions();
+    PaintSuggestions(Instances, InstanceCount);
 }
 
 int ViewportPanel::ConsoleCallback(ImGuiInputTextCallbackData* Edit) noexcept
 {
     auto* Self = static_cast<ViewportPanel*>(Edit->UserData);
+    if (Edit->EventFlag == ImGuiInputTextFlags_CallbackAlways)
+    {
+        if (Self->CaretToEnd_)
+        {
+            Edit->CursorPos      = Edit->BufTextLen;
+            Edit->SelectionStart = Edit->CursorPos;
+            Edit->SelectionEnd   = Edit->CursorPos;
+            Self->CaretToEnd_    = false;
+        }
+        return 0;
+    }
     if (Edit->EventFlag == ImGuiInputTextFlags_CallbackCompletion)
     {
         if (Self->Ghost_[0] != '\0')
@@ -984,8 +1336,14 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
 
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
     ImFont*     Small = Controls_->QuerySmall();
-    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 40.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
+    const ImVec2 FootPos = ImGui::GetWindowPos();
+    const ImVec2 FootSize = ImGui::GetWindowSize();
+    const float  FootX0 = FootPos.x;
+    const float  FootX1 = FootPos.x + FootSize.x;
+    // The footer sits on the panel's own sill: its hem runs edge to edge and its wash pours to the
+    //    sill's foot, with no pad to float it.
+    Draw->AddRectFilled(ImVec2(FootX0, Cursor.y), ImVec2(FootX1, FootPos.y + FootSize.y), kWash);
+    Draw->AddLine(ImVec2(FootX0, Cursor.y), ImVec2(FootX1, Cursor.y), kStroke);
 
     // The counters. Tris and camera wait on engine counters, so they keep the reference's own pre-paint
     //    dash; physics and isolation hide at zero, under the reference's show rule.
@@ -1054,7 +1412,7 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     {
         const bool KeepCam = (Try == 0u);
         const bool KeepSub = (Try < 2u);
-        float W = 10.0f;
+        float W = 4.0f;
         for (uint32_t i = 0u; i < 5u; ++i)
         {
             if (Counters[i].Opt && !KeepCam)
@@ -1064,9 +1422,9 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
             W += CounterWidth(Counters[i], KeepSub) + 20.0f;
         }
         W -= 10.0f;   // the last cell keeps its left pad only; the tod gap follows
-        float Tod = RowWidth - W - 10.0f;
+        float Tod = FootSize.x - W - 10.0f;
         Tod = Tod < 132.0f ? 132.0f : (Tod > 236.0f ? 236.0f : Tod);
-        if (W + 10.0f + Tod <= RowWidth || Try == 2u)
+        if (W + 10.0f + Tod <= FootSize.x || Try == 2u)
         {
             Mode = Try;
             TodW = Tod;
@@ -1076,9 +1434,10 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
 
     const bool  KeepCam = (Mode == 0u);
     const bool  KeepSub = (Mode < 2u);
-    const float TextY   = Cursor.y + (40.0f - TextH) * 0.5f;
-    const float MidY    = Cursor.y + 20.0f;
-    float X = Cursor.x + 10.0f;
+    const float FootH   = FootPos.y + FootSize.y - Cursor.y;
+    const float TextY   = Cursor.y + (FootH - TextH) * 0.5f;
+    const float MidY    = Cursor.y + FootH * 0.5f;
+    float X = FootX0 + 4.0f;
     bool First = true;
     for (uint32_t i = 0u; i < 5u; ++i)
     {
@@ -1107,9 +1466,9 @@ void ViewportPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
         X += CounterWidth(Counters[i], KeepSub) + 20.0f;
     }
 
-    const float TodX1 = Cursor.x + RowWidth - 10.0f;
+    const float TodX1 = FootX1 - 10.0f;
     const float TodX0 = TodX1 - TodW;
-    const float TodY  = Cursor.y + 6.0f;
+    const float TodY  = MidY - 14.0f;
     Draw->AddRectFilled(ImVec2(TodX0, TodY), ImVec2(TodX1, TodY + 28.0f), kInset, 14.0f);
     Draw->AddRect(ImVec2(TodX0, TodY), ImVec2(TodX1, TodY + 28.0f), kStroke, 14.0f);
 

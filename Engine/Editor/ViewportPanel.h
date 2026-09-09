@@ -27,7 +27,7 @@ public:
 private:
     void RecordBar() noexcept;
     void RecordView() noexcept;
-    void RecordCommand() noexcept;
+    void RecordCommand(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
     void RecordFooter(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
 
     void SetTransport(uint32_t Mode) noexcept;
@@ -35,8 +35,8 @@ private:
     void SetRealtime(bool Realtime) noexcept;
     void StepOnce() noexcept;
 
-    void PaintSuggestions() noexcept;
-    void RunSugRow(uint32_t Row) noexcept;
+    void PaintSuggestions(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
+    void RunSugRow(uint32_t Row, EditorInstance* Instances, uint32_t InstanceCount) noexcept;
     static int ConsoleCallback(ImGuiInputTextCallbackData* Edit) noexcept;
 
     ControlPanel* Controls_ = nullptr;
@@ -59,9 +59,16 @@ private:
     bool     SugShut_          = false;   // a run shuts the stack until the text moves again
     double   SugUntil_         = 0.0;   // the stack lingers 120ms past blur, so its clicks land
     char     LastPaint_[128]   = {};
-    uint32_t SugRows_[7]       = {};   // indices into the quick table, repainted while open
+    struct SugRow
+    {
+        uint8_t Sort = 0u;   // 0 quick, 1 example, 2 verb, 3 entry, 4 bad
+        uint8_t At   = 0u;   // index into the sort's own table
+    };
+    SugRow   SugRows_[9]       = {};   // the stack's rows, repainted while open
     uint32_t SugCount_         = 0u;
     uint32_t SugIndex_         = 0u;
+    char     LastSugText_[128] = {};   // fresh text re-seats the standing row, as a repaint does
+    bool     CaretToEnd_       = false;   // an insert parks the caret past its own tail
     char     Ghost_[64]        = {};
     char     QuickLabels_[7][48] = {};
     char     CommandPast_[8][128] = {};

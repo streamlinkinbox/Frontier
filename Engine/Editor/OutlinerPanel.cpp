@@ -192,6 +192,7 @@ void OutlinerPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
     RecordSearch();
     RecordChips();
     const uint32_t Hits = RecordOutline(Instances, InstanceCount);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 8.0f);
     RecordFooter(Instances, InstanceCount, Hits);
     ImGui::End();
 }
@@ -211,8 +212,11 @@ void OutlinerPanel::RecordHeader(EditorInstance* Instances, uint32_t InstanceCou
     ImFont*     Ui    = Controls_->QueryUi();
     ImFont*     Small = Controls_->QuerySmall();
 
-    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 44.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y + 44.0f), ImVec2(Cursor.x + RowWidth, Cursor.y + 44.0f), kStroke);
+    const ImVec2 HeadPos  = ImGui::GetWindowPos();
+    const float  HeadX0   = HeadPos.x;
+    const float  HeadX1   = HeadPos.x + ImGui::GetWindowSize().x;
+    Draw->AddRectFilled(ImVec2(HeadX0, Cursor.y), ImVec2(HeadX1, Cursor.y + 44.0f), kWash);
+    Draw->AddLine(ImVec2(HeadX0, Cursor.y + 44.0f), ImVec2(HeadX1, Cursor.y + 44.0f), kStroke);
 
     const ImVec2 TileMax(Cursor.x + 28.0f, Cursor.y + 36.0f);
     Draw->AddRectFilled(ImVec2(Cursor.x, Cursor.y + 4.0f), TileMax, kTile, 8.0f);
@@ -272,6 +276,7 @@ void OutlinerPanel::RecordHeader(EditorInstance* Instances, uint32_t InstanceCou
     Draw->AddCircleFilled(PlusCentre, 14.0f, IM_COL32(255, 255, 255, 8));
     Draw->AddLine(ImVec2(PlusCentre.x - 5.0f, PlusCentre.y), ImVec2(PlusCentre.x + 5.0f, PlusCentre.y), kFaint, 1.8f);
     Draw->AddLine(ImVec2(PlusCentre.x, PlusCentre.y - 5.0f), ImVec2(PlusCentre.x, PlusCentre.y + 5.0f), kFaint, 1.8f);
+    ImGui::SetCursorScreenPos(ImVec2(Cursor.x, Cursor.y + 44.0f));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -280,6 +285,8 @@ void OutlinerPanel::RecordHeader(EditorInstance* Instances, uint32_t InstanceCou
 
 void OutlinerPanel::RecordSearch() noexcept
 {
+    const ImVec2 At = ImGui::GetCursorScreenPos();
+    ImGui::SetCursorScreenPos(ImVec2(At.x, At.y + 8.0f));
     const float RowWidth = ImGui::GetContentRegionAvail().x;
     constexpr float kDdWidth = 120.0f;
 
@@ -994,8 +1001,13 @@ void OutlinerPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
+    const ImVec2 FootPos  = ImGui::GetWindowPos();
+    const ImVec2 FootSize = ImGui::GetWindowSize();
+    const float  FootX0   = FootPos.x;
+    const float  FootX1   = FootPos.x + FootSize.x;
+    const float  FootH    = FootPos.y + FootSize.y - Cursor.y;
+    Draw->AddRectFilled(ImVec2(FootX0, Cursor.y), ImVec2(FootX1, Cursor.y + FootH), kWash);
+    Draw->AddLine(ImVec2(FootX0, Cursor.y), ImVec2(FootX1, Cursor.y), kStroke);
 
     // One pick names itself; the hit count only shows while a query or a chip narrows the tree.
     char Left[64] = {};
@@ -1025,11 +1037,11 @@ void OutlinerPanel::RecordFooter(EditorInstance* Instances, uint32_t InstanceCou
     ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Small);
     const ImVec2 RightGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Right);
-    Draw->AddText(ImVec2(Cursor.x + 14.0f, Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kFaint, Left);
+    Draw->AddText(ImVec2(FootX0 + 14.0f, Cursor.y + (FootH - RightGlyph.y) * 0.5f), kFaint, Left);
     if (Right[0] != '\0')
     {
-        Draw->AddText(ImVec2(Cursor.x + RowWidth - 14.0f - RightGlyph.x,
-            Cursor.y + (30.0f - RightGlyph.y) * 0.5f), kFaint, Right);
+        Draw->AddText(ImVec2(FootX1 - 14.0f - RightGlyph.x,
+            Cursor.y + (FootH - RightGlyph.y) * 0.5f), kFaint, Right);
     }
     ImGui::PopFont();
 }

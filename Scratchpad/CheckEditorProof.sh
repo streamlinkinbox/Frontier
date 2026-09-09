@@ -140,12 +140,12 @@ if [[ "$OpenCount" != "3" ]]; then
 fi
 
 # No heap traffic while drawing: the panels must not allocate.
-if grep -nE '(push_back|emplace_back|resize|reserve|new )' Engine/Editor/*.cpp | grep -q .; then
+if grep -nE '(push_back|emplace_back|resize|reserve)[[:space:]]*\(|new[[:space:]]+[A-Za-z_\*]' Engine/Editor/*.cpp | grep -q .; then
     echo "  a panel appears to allocate — the tick must not touch the heap"; Fail=1
 fi
 
 echo
-for Sheet in Tabs Menu Filtered Quality; do
+for Sheet in Tabs Menu Filtered Quality Palette; do
     if [[ ! -s Diagnostics/EditorProof_$Sheet.png ]]; then
         echo "  MISSING Diagnostics/EditorProof_$Sheet.png"; Fail=1
     else

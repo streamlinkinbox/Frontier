@@ -481,6 +481,11 @@ int main()
         for (int i = 0; i < Ticks; ++i)
             Tick(-1.0f, -1.0f, false);
     };
+    auto Type = [&](const char* Text)
+    {
+        IO.AddInputCharactersUTF8(Text);
+        Tick(-1.0f, -1.0f, false);
+    };
 
     // The engine's tick order (RenderScheduler::Present), minus the Control Centre overlay, which needs Vulkan.
     //    Ten ticks: the built columns settle over the first two, and the gates read the last. The pointer
@@ -671,7 +676,7 @@ int main()
     }
 
     // Gate 5 — the category menu opens: a click on the category pill must raise the black menu.
-    Click(220.0f, 108.0f);
+    Click(220.0f, 116.0f);
     Rest(14);
     Rasterise();
     {
@@ -698,7 +703,7 @@ int main()
     }
 
     // Gate 6 — the narrowing works: picking Sun filters the outline and raises its chip.
-    Click(220.0f, 332.0f);
+    Click(220.0f, 348.0f);
     Rest(3);
     Click(500.0f, 400.0f);   // outside the menu: dismiss it, leaving the pick behind
     Rest(5);
@@ -746,14 +751,14 @@ int main()
     }
 
     // The chip dismisses too: one click on it clears the narrowing for the Quality pass below.
-    Click(39.0f, 143.0f);
+    Click(39.0f, 146.0f);
     Rest(5);
 
     // Gate 7 — the reference dropdown opens: the Quality pill must raise its black menu over the cards.
     Editor.PickInstance(17u);   // Sky, the sheet with the reference dropdown
     BuildMirrorSheet(17u, CornellInstances, &PickedSheet);
     Rest(5);
-    Click(1171.0f, 240.0f);
+    Click(1171.0f, 234.0f);
     Rest(14);
     Rasterise();
     {
@@ -780,7 +785,7 @@ int main()
     }
 
     // Gate 8 — the reference dropdown selects: picking High lands in the sheet's own figure.
-    Click(1171.0f, 374.0f);
+    Click(1171.0f, 368.0f);
     Rest(3);
     {
         const uint32_t Grade = PickedSheet.Groups[0].Properties[2].Picked;
@@ -788,6 +793,48 @@ int main()
         if (Grade != 3u)
         {
             std::fprintf(stderr, "[EditorProof] [FAIL] the Quality menu never selected High\n");
+            Failed = true;
+        }
+    }
+
+    // Gate 9 — the palette opens: focusing the console and typing raises the suggestion stack, its
+    //    standing row indigo. Back to the Sun first, so the sheet matches the Tabs pass.
+    Editor.PickInstance(18u);
+    BuildMirrorSheet(18u, CornellInstances, &PickedSheet);
+    Rest(5);
+    Click(500.0f, 648.0f);
+    Rest(3);
+    Type("p");
+    Rest(3);
+    Rasterise();
+    {
+        const char* PaletteSheet = "Diagnostics/EditorProof_Palette.png";
+        if (stbi_write_png(PaletteSheet, kWidth, kHeight, 3, Pixels.data(), kWidth * 3) == 0)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the palette sheet would not write\n");
+            return 1;
+        }
+        int Box = 0, Indigo = 0;
+        for (int Y = 300; Y < 640; ++Y)
+            for (int X = 355; X < 925; ++X)
+            {
+                const unsigned char* P = At(X, Y);
+                if (std::abs(static_cast<int>(P[0]) - 12) <= 3
+                    && std::abs(static_cast<int>(P[1]) - 12) <= 3
+                    && std::abs(static_cast<int>(P[2]) - 12) <= 3)
+                    ++Box;
+                if (P[2] >= 60 && static_cast<int>(P[2]) - static_cast<int>(P[0]) >= 25)
+                    ++Indigo;
+            }
+        std::fprintf(stderr, "[EditorProof] palette: %d stack cells, %d indigo cells\n", Box, Indigo);
+        if (Box < 3000)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the palette never opened\n");
+            Failed = true;
+        }
+        if (Indigo < 300)
+        {
+            std::fprintf(stderr, "[EditorProof] [FAIL] the standing row carries no indigo\n");
             Failed = true;
         }
     }

@@ -84,6 +84,7 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
         {
             ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, Gap));
         }
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 8.0f);
         RecordFooter(nullptr);
         ImGui::End();
         return;
@@ -101,6 +102,7 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
     RecordNotes(Picked);
     ImGui::EndChild();
     ImGui::PopStyleVar();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 8.0f);
     RecordFooter(Picked);
     ImGui::End();
 }
@@ -167,8 +169,11 @@ void InspectorPanel::RecordIdent(EditorInstance* Picked, uint32_t PickedIndex) n
     ImFont*     Ui    = Controls_->QueryUi();
     ImFont*     Small = Controls_->QuerySmall();
 
-    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 56.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y + 56.0f), ImVec2(Cursor.x + RowWidth, Cursor.y + 56.0f), kStroke);
+    const ImVec2 HeadPos = ImGui::GetWindowPos();
+    const float  HeadX0  = HeadPos.x;
+    const float  HeadX1  = HeadPos.x + ImGui::GetWindowSize().x;
+    Draw->AddRectFilled(ImVec2(HeadX0, Cursor.y), ImVec2(HeadX1, Cursor.y + 56.0f), kWash);
+    Draw->AddLine(ImVec2(HeadX0, Cursor.y + 56.0f), ImVec2(HeadX1, Cursor.y + 56.0f), kStroke);
 
     const int R = static_cast<int>(Picked->Tint[0] * 255.0f);
     const int G = static_cast<int>(Picked->Tint[1] * 255.0f);
@@ -281,6 +286,7 @@ void InspectorPanel::RecordIdent(EditorInstance* Picked, uint32_t PickedIndex) n
         Draw->AddLine(ImVec2(VisCentre.x - 6.5f, VisCentre.y + 6.0f),
             ImVec2(VisCentre.x + 6.5f, VisCentre.y - 6.0f), kFaint, 1.6f);
     }
+    ImGui::SetCursorScreenPos(ImVec2(Cursor.x, Cursor.y + 56.0f));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -362,7 +368,7 @@ void InspectorPanel::RecordCard(EditorPropertyGroup& Group, uint32_t Card) noexc
                 Controls_->SliderPill("##s", &Prop.Figure, Prop.Minimum, Prop.Maximum, Prop.Decimals, Prop.Unit, Prop.Hi, false, true);
                 break;
             case EditorPropertyCategory::Switch:
-                ImGui::SetCursorScreenPos(ImVec2(ZoneX + ZoneW - 33.0f, Y + 3.5f));
+                ImGui::SetCursorScreenPos(ImVec2(ZoneX + ZoneW - 44.0f, Y + 3.5f));
                 Controls_->Switch("##w", &Prop.On);
                 break;
             case EditorPropertyCategory::AxisVec3:
@@ -542,8 +548,12 @@ void InspectorPanel::RecordFooter(EditorInstance* Picked) noexcept
     const ImVec2 Cursor = ImGui::GetItemRectMin();
 
     ImDrawList* Draw = ImGui::GetWindowDrawList();
-    Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + 30.0f), kWash);
-    Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke);
+    const ImVec2 FootPos  = ImGui::GetWindowPos();
+    const ImVec2 FootSize = ImGui::GetWindowSize();
+    const float  FootX0   = FootPos.x;
+    const float  FootH    = FootPos.y + FootSize.y - Cursor.y;
+    Draw->AddRectFilled(ImVec2(FootX0, Cursor.y), ImVec2(FootX0 + FootSize.x, Cursor.y + FootH), kWash);
+    Draw->AddLine(ImVec2(FootX0, Cursor.y), ImVec2(FootX0 + FootSize.x, Cursor.y), kStroke);
 
     char Foot[64] = {};
     if (Picked == nullptr)
@@ -563,7 +573,7 @@ void InspectorPanel::RecordFooter(EditorInstance* Picked) noexcept
     ImFont* Small = Controls_->QuerySmall();
     ImGui::PushFont(Small);
     const ImVec2 FootGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Foot);
-    Draw->AddText(ImVec2(Cursor.x + 14.0f, Cursor.y + (30.0f - FootGlyph.y) * 0.5f), kFaint, Foot);
+    Draw->AddText(ImVec2(FootX0 + 14.0f, Cursor.y + (FootH - FootGlyph.y) * 0.5f), kFaint, Foot);
     ImGui::PopFont();
 }
 

@@ -104,10 +104,10 @@ int main(int ArgCount, char** Args) {
         std::printf("  middle %d,%d size %dx%d\n", (Found.X0 + Found.X1) / 2,
             (Found.Y0 + Found.Y1) / 2, Found.X1 - Found.X0 + 1, Found.Y1 - Found.Y0 + 1);
     }
-    // The settled travel runs 1205..1232 (track 1193..1244 past the first-tick settle,
-    //    12-pixel knob radius); the middles the fractions ask for are 1221, 1214, 1208,
-    //    and 1221, top to bottom.
-    const int Want[4] = {1221, 1214, 1208, 1221};
+    // The settled travel runs 1205..1240 (track 1193..1252 with no scrollbar seated,
+    //    12-pixel knob radius); the middles the fractions ask for are 1225, 1216, 1208,
+    //    and 1225, top to bottom.
+    const int Want[4] = {1225, 1216, 1208, 1225};
     if (Blobs.size() != 4) {
         std::printf("want 4 knobs\n");
         return 1;
