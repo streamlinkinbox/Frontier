@@ -360,12 +360,16 @@ int main(int argc, char** argv)
     //──────────────────────────────────────────────────────────────────────────
     // ReSTIR integrator — owns dispatch parameters, accumulation index
     //──────────────────────────────────────────────────────────────────────────
+    // Designated initialisers, NOT positional. This list was positional and silently bound 1.05f (the exposure) to
+    //    SpatialTapCount the moment R10 added a tier-keyed field ahead of it — the struct's own defaults for the
+    //    new fields were skipped and the exposure landed in a uint32_t. Naming each member means a future field can
+    //    be inserted anywhere without quietly repointing every value after it.
     Frontier::ReSTIRIntegratorConfiguration IntegratorConfig
     {
-        8u,         // [-]  candidates per pixel
-        2u,         // [-]  extra same-pixel candidates
-        1.05f,      // [-]  ACES exposure
-        0.015f      // [-]  ambient strength
+        .CandidatesPerPixel  = 8u,      // [-]  primary DI candidates per pixel
+        .ExtraCandidateCount = 2u,      // [-]  extra same-pixel candidates
+        .Exposure            = 1.05f,   // [-]  ACES exposure
+        .AmbientStrength     = 0.015f   // [-]  ambient strength
     };
 
     Frontier::ReSTIRIntegrator Integrator(IntegratorConfig);

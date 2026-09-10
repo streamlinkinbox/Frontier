@@ -163,9 +163,34 @@ awk '/vec3 ToneMap/{f=1} f&&/ColourSaturation/{c=NR} f&&/\*= Exposure/{e=NR; exi
     Engine/Shaders/ReSTIRViewport.slang \
     || { echo "  the kernel desaturates after applying the exposure — it must come first"; Fail=1; }
 
-# It rides in a push RESERVE, so the block must still be 128 B: seven reserves left, not eight.
-grep -q 'uint32_t PushReserve\[7\]' Engine/DeviceExchange/SwapchainExchange.h \
-    || { echo "  the push block's reserve count no longer accounts for ColourSaturation"; Fail=1; }
+# It rides in a push RESERVE, so the block must still be 128 B — Vulkan's guaranteed minimum, and the whole reason
+#    a reserve exists. This asserted 'PushReserve[7]' by literal, which fails the moment anything else legitimately
+#    claims a reserve slot: it had already gone stale at [6] before R10 touched it, and the message ("no longer
+#    accounts for ColourSaturation") pointed at the wrong cause entirely. What actually matters is the SIZE, so
+#    compile the real header and measure it rather than pattern-matching a number that is expected to change.
+#    SwapchainExchange.h cannot be included directly here — it pulls in <vulkan/vulkan.h>, which this sandbox has
+#    no reason to carry. The struct itself is nothing but float and uint32_t, so it is lifted verbatim out of the
+#    header and compiled on its own. Lifting the REAL text (rather than restating the fields) is what keeps this
+#    honest: if a member is added, removed or retyped, the measurement moves with it.
+ReserveProbe="$(mktemp -d)"
+{
+    echo '#include <cstdint>'
+    echo '#include <cstdio>'
+    sed -n '/^struct DispatchConfiguration$/,/^};$/p' Engine/DeviceExchange/SwapchainExchange.h
+    echo 'int main() { std::printf("%zu\n", sizeof(DispatchConfiguration));'
+    echo '             return sizeof(DispatchConfiguration) == 128u ? 0 : 1; }'
+} > "$ReserveProbe/Probe.cpp"
+
+if ! grep -q 'struct DispatchConfiguration' "$ReserveProbe/Probe.cpp"; then
+    echo "  DispatchConfiguration could not be found in SwapchainExchange.h"; Fail=1
+elif ! g++ -std=c++20 -o "$ReserveProbe/Probe" "$ReserveProbe/Probe.cpp" 2>/dev/null; then
+    # Never pass silently: an unmeasurable block is a failed check, not a skipped one.
+    echo "  the dispatch push block could not be measured (DispatchConfiguration did not compile)"; Fail=1
+else
+    ProbeSize="$("$ReserveProbe/Probe")" \
+        || { echo "  the dispatch push block is ${ProbeSize} B, not the 128 B Vulkan guarantees"; Fail=1; }
+fi
+rm -rf "$ReserveProbe"
 
 # The value comes from the integrator, so it can never describe different light from the exposure beside it.
 grep -q 'Dispatch.ColourSaturation      = Adaptation.QueryColourSaturation();' Engine/DisplayPresentation/ReSTIRIntegrator.cpp \

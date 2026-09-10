@@ -230,20 +230,23 @@ struct Score
     uint64_t Taps = 0u;
     uint64_t Skipped = 0u;
     uint32_t Dispatches = 0u;
+    std::vector<Pixel> Final;      // the chain's output, so an early-out run can be diffed against a full one
 };
 
 Score RunChain(const std::vector<Pixel>& Noisy, const std::vector<Pixel>& Truth,
                const std::vector<Surface>& Surfaces, uint32_t Levels,
-               bool VarianceEarlyOut, float Threshold)
+               bool VarianceEarlyOut, float Threshold, uint32_t MinEarlyOutLevel)
 {
     std::vector<Pixel> A = Noisy, B(Noisy.size());
     Score Result;
     for (uint32_t Level = 0u; Level < Levels; ++Level)
     {
-        Result.Taps += FilterLevel(A, B, Surfaces, 1u << Level, VarianceEarlyOut, Threshold, Result.Skipped);
+        Result.Taps += FilterLevel(A, B, Surfaces, 1u << Level,
+                                   VarianceEarlyOut && Level >= MinEarlyOutLevel, Threshold, Result.Skipped);
         A.swap(B);
         ++Result.Dispatches;
     }
+    Result.Final = A;
     double SumSq = 0.0;
     uint64_t Count = 0u;
     for (size_t I = 0u; I < A.size(); ++I)
@@ -262,13 +265,16 @@ Score RunChain(const std::vector<Pixel>& Noisy, const std::vector<Pixel>& Truth,
 int main(int argc, char** argv)
 {
     bool  EarlyOut  = false;
-    float Threshold = 0.0f;
+    uint32_t MinEarlyOutLevel = 0u;
+    // Matches kEarlyOutVariance in AtrousDenoise.slang: sigma = one fifth of an 8-bit step.
+    float Threshold = (0.2f / 255.0f) * (0.2f / 255.0f);
     uint32_t Spp = 4u;
     for (int I = 1; I < argc; ++I)
     {
         const std::string_view Arg = argv[I];
         if      (Arg.rfind("earlyout=",  0) == 0) EarlyOut  = std::atoi(argv[I] + 9) != 0;
         else if (Arg.rfind("threshold=", 0) == 0) Threshold = static_cast<float>(std::atof(argv[I] + 10));
+        else if (Arg.rfind("minlevel=",  0) == 0) MinEarlyOutLevel = static_cast<uint32_t>(std::atoi(argv[I] + 9));
         else if (Arg.rfind("spp=",       0) == 0) Spp       = static_cast<uint32_t>(std::atoi(argv[I] + 4));
     }
 
@@ -278,7 +284,7 @@ int main(int argc, char** argv)
     uint32_t Seed = 0x1234567u;
     AddNoise(Truth, Noisy, Spp, Seed);
 
-    const Score Unfiltered = RunChain(Noisy, Truth, Surfaces, 0u, false, 0.0f);
+    const Score Unfiltered = RunChain(Noisy, Truth, Surfaces, 0u, false, 0.0f, 0u);
 
     std::printf("[AtrousLevels] %ux%u, %u spp of synthetic path-tracer noise%s\n",
                 kWidth, kHeight, Spp, EarlyOut ? ", variance early-out ON" : "");
@@ -289,17 +295,36 @@ int main(int argc, char** argv)
     Score Five{};
     for (uint32_t Levels = 0u; Levels <= 5u; ++Levels)
     {
-        const Score S = RunChain(Noisy, Truth, Surfaces, Levels, EarlyOut, Threshold);
+        const Score S = RunChain(Noisy, Truth, Surfaces, Levels, EarlyOut, Threshold, MinEarlyOutLevel);
         if (Levels == 5u) Five = S;
     }
     for (uint32_t Levels = 0u; Levels <= 5u; ++Levels)
     {
-        const Score S = RunChain(Noisy, Truth, Surfaces, Levels, EarlyOut, Threshold);
+        const Score S = RunChain(Noisy, Truth, Surfaces, Levels, EarlyOut, Threshold, MinEarlyOutLevel);
         const double Ratio = Five.Rmse > 0.0 ? S.Rmse / Five.Rmse : 1.0;
         std::printf("  %8u %11u %14llu %12.5f %9.2fx", Levels, S.Dispatches,
                     static_cast<unsigned long long>(S.Taps), S.Rmse, Ratio);
         if (EarlyOut && S.Skipped > 0u)
             std::printf("   (%llu px skipped)", static_cast<unsigned long long>(S.Skipped));
+
+        // The question that decides whether the early-out is honest: how far does a SKIPPED pixel end up from
+        //    where the full filter would have put it? Measured in 8-bit display steps, because a deviation under
+        //    half a step cannot survive quantisation into the presentation image and is therefore invisible.
+        if (EarlyOut)
+        {
+            const Score Reference = RunChain(Noisy, Truth, Surfaces, Levels, false, 0.0f, 0u);
+            double WorstStep = 0.0, SumStep = 0.0;
+            for (size_t I = 0u; I < S.Final.size(); ++I)
+            {
+                const double D = std::max({ std::fabs(S.Final[I].R - Reference.Final[I].R),
+                                            std::fabs(S.Final[I].G - Reference.Final[I].G),
+                                            std::fabs(S.Final[I].B - Reference.Final[I].B) }) * 255.0;
+                WorstStep = std::max(WorstStep, D);
+                SumStep  += D;
+            }
+            std::printf("   worst %.3f / mean %.4f 8-bit steps vs full",
+                        WorstStep, SumStep / static_cast<double>(S.Final.size()));
+        }
         std::printf("\n");
     }
     return 0;

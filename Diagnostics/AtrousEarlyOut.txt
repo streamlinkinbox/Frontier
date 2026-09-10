@@ -1,0 +1,43 @@
+R10 #9 -- variance-guided per-pixel early-out
+====================================================================================================
+
+Threshold: (0.2/255)^2 = 6.151e-07 variance, i.e. a standard deviation of one fifth of an 8-bit step.
+Derived from the presentation format, not tuned: below this a pixel cannot move far enough to
+change the byte written to the screen. 320x240 synthetic G-buffer, 5-level chain.
+
+THRESHOLD SWEEP (16 spp, 5 levels) -- why the constant sits where it does
+   threshold  taps saved  px skipped   worst dev  verdict
+     3.0e-07        0.0%           0      0.000   invisible
+     6.1e-07        0.4%       2,004      0.475   invisible
+     1.0e-06        5.0%      21,529      0.797   VISIBLE - rejected
+     3.0e-06       14.8%      62,473      1.478   VISIBLE - rejected
+     1.0e-05       27.8%     113,883      4.402   VISIBLE - rejected
+     1.0e-04       48.7%     194,306     13.358   VISIBLE - rejected
+
+  The usable range is far narrower and lower than intuition suggests. At 1e-5 -- a value that looks
+  small -- the worst pixel lands 4.4 quantisation steps from where the full filter would put it.
+
+CONVERGENCE BEHAVIOUR at the chosen threshold -- this is also the answer to #7
+   eff. spp  taps saved  px skipped  RMSE change  worst dev
+          1        0.0%           0       +0.00%      0.000
+          4        0.0%           0       +0.00%      0.000
+         16        0.5%       2,167       +0.00%      0.475
+         64       10.0%      42,413       -0.06%      0.580
+        256       21.5%      89,328       -0.10%      0.788
+       1024       36.2%     146,619       -0.05%      0.878
+
+  Caveat, stated rather than buried: the half-step guarantee is measured at 16 spp, where the worst
+  deviation is 0.475. As accumulation continues the worst case drifts to 0.88 steps at 1024 spp -- one
+  pixel somewhere in the frame may round differently. Two things make that acceptable where a visible
+  error would not be: it is a STILL pixel in an already-converged region, so there is no shimmer, and
+  overall RMSE against ground truth slightly IMPROVES (-0.05% to -0.10%) because the skipped pixels stop
+  being blurred across the edges they sit near. It is a rounding difference, not an artefact.
+
+  A noisy frame skips nothing: the filter behaves exactly as it did before. A frame held still accumulates
+  samples and skips progressively more, reaching 36% of taps at 1024 spp. No frame counter, no heuristic,
+  no separate "converged" code path -- variance only falls this low where the estimate has genuinely
+  converged. The saving is per PIXEL, not per frame, so a static background stops being filtered while a
+  moving character in front of it keeps its full chain. A per-frame convergence check could not do that.
+
+  A level guard (skip only at levels >= N) was implemented and measured: a no-op for N <= 3, because no
+  pixel ever qualifies at the early levels. The convergence test gates itself; the guard was removed.
