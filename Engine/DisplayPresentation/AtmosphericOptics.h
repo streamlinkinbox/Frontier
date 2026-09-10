@@ -33,6 +33,9 @@ struct RainbowSettings
     float Width         = 1.0f;   // [x] multiplies the natural angular width
     float SecondaryGain = 1.0f;   // [0..1] how visible the second bow is
     bool  AlexanderBand = true;   // the darker sky between the bows
+    // [m] the depth of rain a ray must cross for a full-strength bow. Shorter paths fade out, which is what
+    //    keeps the arc off nearby geometry — see the note on Rainbow().
+    float MinimumPathMetres = 250.0f;
 };
 
 class AtmosphericOptics
@@ -83,13 +86,33 @@ public:
         OutRgb[0] = R * Falloff; OutRgb[1] = G * Falloff; OutRgb[2] = B * Falloff;
     }
 
-    // The bow along a view direction. RainVisibility is how much falling rain the ray passes through — no rain,
-    //    no bow, which is why this takes it rather than assuming.
+    // The bow along a view direction.
+    //
+    //    RainVisibility is how much falling rain the ray passes through — no rain, no bow, which is why this
+    //    takes it rather than assuming.
+    //
+    //    ⚠️ RainDistance is how far the ray travels before it hits something, and it is not optional. A rainbow
+    //    is light returned by drops SUSPENDED IN THE AIR: it is a feature of the volume between the viewer and
+    //    whatever is behind it, so it can only appear where the ray has air to cross. A ray that meets the
+    //    ground a few metres away has almost no air in it and must show almost no bow.
+    //
+    //    Getting this wrong is easy and looks obviously wrong the moment anyone checks: the first render of this
+    //    system painted the arc across the ground plane as well as the sky, because the caller passed a constant
+    //    visibility for every pixel. The bow appeared to be lying on the floor. Passing the distance makes the
+    //    correct behaviour the default — a short ray gets a short path through rain and therefore no bow.
+    //
+    //    Pass a large distance (the sky) for rays that hit nothing.
     static void Rainbow(const RainbowSettings& Settings, const float Direction[3], const float SunDirection[3],
-                        float RainVisibility, float OutRgb[3]) noexcept
+                        float RainVisibility, float RainDistanceMetres, float OutRgb[3]) noexcept
     {
         OutRgb[0] = OutRgb[1] = OutRgb[2] = 0.0f;
         if (!Settings.Enabled || RainVisibility <= 0.0f) return;
+
+        // How much rain the ray actually crosses. A bow needs a deep column of drops; the reference figure is a
+        //    few hundred metres of falling rain, below which the arc fades rather than cutting off, so a shower
+        //    seen across a field still reads correctly.
+        const float PathFraction = SmoothStep(0.0f, Settings.MinimumPathMetres, RainDistanceMetres);
+        if (PathFraction <= 0.0f) return;
 
         // A bow needs the sun above the horizon and behind the viewer. Below about -2° the antisolar point is
         //    high enough that the arc is entirely above the sky.
@@ -139,7 +162,7 @@ public:
         }
 
         for (int C = 0; C < 3; ++C)
-            OutRgb[C] = Sum[C] * Settings.Intensity * RainVisibility * SunUp * Band;
+            OutRgb[C] = Sum[C] * Settings.Intensity * RainVisibility * SunUp * Band * PathFraction;
     }
 
     // How much the sky is darkened between the bows, at an angle. Separated so the caller can apply it to the
@@ -151,6 +174,108 @@ public:
         const float SecondaryEdge = RainbowAngle(700.0f, 2u);
         return 1.0f - 0.18f * SmoothStep(PrimaryEdge, PrimaryEdge + 0.02f, AngleFromAntisolar)
                             * (1.0f - SmoothStep(SecondaryEdge - 0.02f, SecondaryEdge, AngleFromAntisolar));
+    }
+
+    //--------------------------------------------------------------------------------------------------------------------
+    //                                                  LENS FLARE
+    //--------------------------------------------------------------------------------------------------------------------
+
+    // ⚠️ A lens flare is an artefact of the CAMERA, not of the world, and that distinction decides its whole
+    //    design. The sun does not have a flare; a lens pointed at the sun does. So this is the one effect in the
+    //    Celestial port that is legitimately screen-space — the ghosts really do march along the line joining the
+    //    sun's image to the frame centre, because that is the optical axis of the lens they are reflecting in.
+    //
+    //    ⚠️ AND IT COMPOSITES OVER GEOMETRY, WHICH IS CORRECT — do not "fix" this to match the rainbow. The two
+    //    look like the same class of effect and are opposites. A rainbow is light returned by drops in the WORLD,
+    //    so it sits at a depth and anything in front of it hides it (see the RainDistance note on Rainbow()). A
+    //    flare is scattered across the SENSOR after the light has already entered the lens, so it lies over
+    //    everything the sensor recorded, foreground included. Photographs show exactly that: the ghosts sit on
+    //    top of the subject, never behind it.
+    //
+    //    Two consequences the implementation has to respect, and which a decorative sprite gets wrong:
+    //      · the flare must be OCCLUDED by anything in front of the sun. Light that never entered the lens
+    //        cannot bounce inside it, so a sun behind a wall produces no ghosts at all. This is passed in as
+    //        SunVisibility rather than assumed.
+    //      · it must vanish when the sun leaves the frame, and fade rather than pop as it approaches the edge.
+    //
+    //    Ghosts are placed at k = -1.35 + i*0.42 along that line, matching the reference demo. The spacing is
+    //    what makes it read as a real lens: a row of reflections at unequal sizes, not a starburst.
+
+    struct LensFlareSettings
+    {
+        bool     Enabled     = true;
+        uint32_t GhostCount  = 6u;      // [cnt] internal reflections drawn; tier-keyed
+        float    Intensity   = 1.0f;    // [x]
+        float    HaloRadius  = 0.28f;   // [ndc] the ring around the optical axis
+        float    Chromatic   = 0.6f;    // [0..1] how coloured the ghosts are
+        float    StreakGain  = 1.0f;    // [x] the horizontal anamorphic streak
+    };
+
+    // ScreenUv and SunUv are in [0,1] with (0,0) at the top-left. SunVisibility is 0 when the sun is occluded.
+    static void LensFlare(const LensFlareSettings& Settings, const float ScreenUv[2], const float SunUv[2],
+                          float SunVisibility, float Aspect, float OutRgb[3]) noexcept
+    {
+        OutRgb[0] = OutRgb[1] = OutRgb[2] = 0.0f;
+        if (!Settings.Enabled || SunVisibility <= 0.0f) return;
+
+        // Off-screen suns produce nothing, and the approach to the edge is a fade rather than a pop.
+        const float EdgeFade = SmoothStep(-0.15f, 0.05f, SunUv[0]) * (1.0f - SmoothStep(0.95f, 1.15f, SunUv[0]))
+                             * SmoothStep(-0.15f, 0.05f, SunUv[1]) * (1.0f - SmoothStep(0.95f, 1.15f, SunUv[1]));
+        if (EdgeFade <= 0.0f) return;
+
+        // Work about the frame centre, because that is where the optical axis is.
+        const float P[2] = { (ScreenUv[0] - 0.5f) * Aspect, ScreenUv[1] - 0.5f };
+        const float S[2] = { (SunUv[0] - 0.5f) * Aspect, SunUv[1] - 0.5f };
+
+        float Accumulated[3] = { 0.0f, 0.0f, 0.0f };
+
+        // ── Ghosts: internal reflections, strung along the sun-to-centre line ──────────────────────────────────
+        const uint32_t Ghosts = Settings.GhostCount > 8u ? 8u : Settings.GhostCount;
+        for (uint32_t I = 0; I < Ghosts; ++I)
+        {
+            const float Index = static_cast<float>(I);
+            const float K = -1.35f + Index * 0.42f;
+            const float Centre[2] = { S[0] * K, S[1] * K };
+            const float Radius = 0.035f + 0.07f * Fract(Index * 0.618f + 0.31f);
+            const float Dx = P[0] - Centre[0], Dy = P[1] - Centre[1];
+            const float Distance = std::sqrt(Dx * Dx + Dy * Dy);
+
+            float Shape = SmoothStep(Radius, Radius * 0.35f, Distance) * 0.9f
+                        + SmoothStep(Radius * 1.6f, Radius, Distance) * 0.25f;
+            Shape *= 0.06f + 0.06f * Fract(Index * 0.37f);
+            if (Shape <= 0.0f) continue;
+
+            float Tint[3];
+            Hue(Fract(Index * 0.23f + 0.5f), Tint);
+            for (int C = 0; C < 3; ++C)
+                Accumulated[C] += Shape * (1.0f + (Tint[C] - 1.0f) * Settings.Chromatic);
+        }
+
+        // ── Halo: a ring about the axis, chromatically smeared ─────────────────────────────────────────────────
+        const float HaloCentre[2] = { S[0] * 0.25f, S[1] * 0.25f };
+        const float Hx = P[0] - HaloCentre[0], Hy = P[1] - HaloCentre[1];
+        const float HaloDistance = std::sqrt(Hx * Hx + Hy * Hy);
+        const float RingOffset = std::fabs(HaloDistance - Settings.HaloRadius);
+        const float Halo = SmoothStep(0.045f, 0.0f, RingOffset) * 0.09f;
+        if (Halo > 0.0f)
+        {
+            constexpr float kPi = 3.14159265358979323846f;
+            const float Angle = std::atan2(Hy, Hx);
+            float Tint[3];
+            Hue(Fract(Angle / (2.0f * kPi) + RingOffset * 8.0f), Tint);
+            for (int C = 0; C < 3; ++C)
+                Accumulated[C] += Halo * (1.0f + (Tint[C] - 1.0f) * Settings.Chromatic * 0.8f);
+        }
+
+        // ── Anamorphic streak: the horizontal bar a wide lens throws ───────────────────────────────────────────
+        const float Mx = P[0] - S[0], My = P[1] - S[1];
+        const float Streak = std::exp(-std::fabs(My) * 95.0f) * std::exp(-std::fabs(Mx) * 2.2f) * 0.55f;
+        Accumulated[0] += Streak * 0.6f * Settings.StreakGain;
+        Accumulated[1] += Streak * 0.75f * Settings.StreakGain;
+        Accumulated[2] += Streak * 1.0f * Settings.StreakGain;
+
+        for (int C = 0; C < 3; ++C)
+            OutRgb[C] = Accumulated[C] * Settings.Intensity * SunVisibility * EdgeFade;
     }
 
     //--------------------------------------------------------------------------------------------------------------------
@@ -204,6 +329,18 @@ public:
     }
 
 private:
+    static float Fract(float V) noexcept { return V - std::floor(V); }
+
+    // A cheap spectral sweep for the ghosts' tinting. Not a colour space conversion — the ghosts are broad and
+    //    low-contrast, and a full HSV would be precision nobody can see.
+    static void Hue(float T, float OutRgb[3]) noexcept
+    {
+        constexpr float kPi = 3.14159265358979323846f;
+        OutRgb[0] = 0.5f + 0.5f * std::cos(2.0f * kPi * (T + 0.00f));
+        OutRgb[1] = 0.5f + 0.5f * std::cos(2.0f * kPi * (T + 0.33f));
+        OutRgb[2] = 0.5f + 0.5f * std::cos(2.0f * kPi * (T + 0.67f));
+    }
+
     static float SmoothStep(float Edge0, float Edge1, float V) noexcept
     {
         const float T = std::fmin(1.0f, std::fmax(0.0f, (V - Edge0) / (Edge1 - Edge0)));

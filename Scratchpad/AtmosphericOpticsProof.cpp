@@ -96,7 +96,7 @@ int main()
         float Rgb[3];
         // Straight at the antisolar point: inside the bow, no colour.
         float Anti[3] = { -Sun[0], -Sun[1], -Sun[2] };
-        AtmosphericOptics::Rainbow(Settings, Anti, Sun, 1.0f, Rgb);
+        AtmosphericOptics::Rainbow(Settings, Anti, Sun, 1.0f, 5000.0f, Rgb);
         Expect(Rgb[0] + Rgb[1] + Rgb[2] < 1e-4f, "nothing at the antisolar point itself");
 
         // 42 degrees off it: the bow.
@@ -115,21 +115,63 @@ int main()
                               Side[0] * Anti[1] - Side[1] * Anti[0] };
             for (int I = 0; I < 3; ++I) OnBow[I] = Anti[I] * std::cos(A) + Perp[I] * std::sin(A);
         }
-        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 1.0f, Rgb);
+        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 1.0f, 5000.0f, Rgb);
         const float OnBowSum = Rgb[0] + Rgb[1] + Rgb[2];
         std::printf("     at 42 deg from the antisolar point: rgb %.4f %.4f %.4f\n", Rgb[0], Rgb[1], Rgb[2]);
         Expect(OnBowSum > 0.05f, "there is a bow at 42 degrees");
 
         // No rain, no bow — however good the geometry.
-        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 0.0f, Rgb);
+        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 0.0f, 5000.0f, Rgb);
         Expect(Rgb[0] + Rgb[1] + Rgb[2] < 1e-6f, "no rain means no bow");
 
         // Sun high overhead: the bow is below the horizon and must not appear.
         float High[3] = { 0.0f, 0.0f, 1.0f };
-        AtmosphericOptics::Rainbow(Settings, OnBow, High, 1.0f, Rgb);
+        AtmosphericOptics::Rainbow(Settings, OnBow, High, 1.0f, 5000.0f, Rgb);
         std::printf("     with the sun overhead: rgb %.4f %.4f %.4f\n", Rgb[0], Rgb[1], Rgb[2]);
         Expect(Rgb[0] + Rgb[1] + Rgb[2] < OnBowSum,
                "a high sun gives no bow at that direction");
+    }
+
+    // ── ⑤b the bow is in the air, not on the floor ─────────────────────────────────────────────────────────────
+    // A rainbow is light returned by drops suspended between the viewer and whatever is behind them. A ray that
+    // hits the ground two metres away has crossed almost no rain and must show almost no bow. The first render
+    // of this system painted the arc across the ground plane because the caller passed one constant visibility
+    // for every pixel, and the bow appeared to be lying on the floor.
+    std::printf("\n5b. the bow needs a depth of rain to form in\n");
+    {
+        RainbowSettings Settings{};
+        float Sun[3] = { 0.0f, -0.30f, 0.20f };
+        const float L = std::sqrt(Sun[0]*Sun[0] + Sun[1]*Sun[1] + Sun[2]*Sun[2]);
+        for (int I = 0; I < 3; ++I) Sun[I] /= L;
+        float Anti[3] = { -Sun[0], -Sun[1], -Sun[2] };
+        float OnBow[3];
+        {
+            const float A = 42.0f * static_cast<float>(kPi) / 180.0f;
+            const float Up[3] = { 0.0f, 0.0f, 1.0f };
+            float Side[3] = { Anti[1] * Up[2] - Anti[2] * Up[1],
+                              Anti[2] * Up[0] - Anti[0] * Up[2],
+                              Anti[0] * Up[1] - Anti[1] * Up[0] };
+            const float SL = std::sqrt(Side[0]*Side[0] + Side[1]*Side[1] + Side[2]*Side[2]);
+            for (int I = 0; I < 3; ++I) Side[I] /= SL;
+            float Perp[3] = { Side[1] * Anti[2] - Side[2] * Anti[1],
+                              Side[2] * Anti[0] - Side[0] * Anti[2],
+                              Side[0] * Anti[1] - Side[1] * Anti[0] };
+            for (int I = 0; I < 3; ++I) OnBow[I] = Anti[I] * std::cos(A) + Perp[I] * std::sin(A);
+        }
+
+        float Sky[3], Wall[3], Mid[3];
+        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 1.0f, 5000.0f, Sky);
+        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 1.0f, 2.0f, Wall);
+        AtmosphericOptics::Rainbow(Settings, OnBow, Sun, 1.0f, 150.0f, Mid);
+        const float SkySum  = Sky[0] + Sky[1] + Sky[2];
+        const float WallSum = Wall[0] + Wall[1] + Wall[2];
+        const float MidSum  = Mid[0] + Mid[1] + Mid[2];
+        std::printf("     open sky (5 km of rain): %.4f\n", SkySum);
+        std::printf("     a wall 2 m away        : %.4f\n", WallSum);
+        std::printf("     rain 150 m deep        : %.4f\n", MidSum);
+        Expect(SkySum > 0.05f, "the bow is full strength against open sky");
+        Expect(WallSum < SkySum * 0.05f, "and essentially absent on geometry two metres away");
+        Expect(MidSum > WallSum && MidSum < SkySum, "a shallow shower fades rather than cutting off");
     }
 
     // ── ⑥ aerial perspective ───────────────────────────────────────────────────────────────────────────────────
@@ -151,6 +193,86 @@ int main()
         Expect(Far[2] < Far[0], "blue is extinguished fastest, so distant things go warm then pale");
         Expect(FarScatter[2] > NearScatter[2], "and the air's own light builds with distance");
         Expect(Near[0] > 0.99f, "at 100 m there is essentially no haze");
+    }
+
+    // ── ⑦ lens flare ───────────────────────────────────────────────────────────────────────────────────────────
+    // A flare is an artefact of the camera, not the world. The properties that separate a real one from a
+    // decorative sprite: it is occluded with the sun, it lies on the sun-to-centre line because that is the
+    // optical axis, and it leaves with the sun rather than hanging in frame.
+    std::printf("\n7. the lens flare belongs to the lens\n");
+    {
+        AtmosphericOptics::LensFlareSettings Flare{};
+        const float Aspect = 16.0f / 9.0f;
+        const float Sun[2] = { 0.72f, 0.30f };
+
+        // Sample a grid and total the energy, which is a stabler measure than any single pixel.
+        auto TotalEnergy = [&](const float SunUv[2], float Visibility) -> double
+        {
+            double Sum = 0.0;
+            for (int Y = 0; Y < 90; ++Y)
+                for (int X = 0; X < 160; ++X)
+                {
+                    const float Uv[2] = { (static_cast<float>(X) + 0.5f) / 160.0f,
+                                          (static_cast<float>(Y) + 0.5f) / 90.0f };
+                    float Rgb[3];
+                    AtmosphericOptics::LensFlare(Flare, Uv, SunUv, Visibility, Aspect, Rgb);
+                    Sum += Rgb[0] + Rgb[1] + Rgb[2];
+                }
+            return Sum;
+        };
+
+        const double Visible  = TotalEnergy(Sun, 1.0f);
+        const double Occluded = TotalEnergy(Sun, 0.0f);
+        const double Half     = TotalEnergy(Sun, 0.5f);
+        std::printf("     sun visible %.3f, half-occluded %.3f, fully occluded %.3f\n",
+                    Visible, Half, Occluded);
+        Expect(Visible > 1.0, "a visible sun produces a flare");
+        Expect(Occluded == 0.0, "an occluded sun produces NONE — light that never entered the lens cannot bounce");
+        Expect(Half < Visible && Half > Occluded, "partial occlusion scales it rather than switching it");
+
+        const float OffScreen[2] = { 1.6f, 0.3f };
+        std::printf("     sun off-screen: %.4f\n", TotalEnergy(OffScreen, 1.0f));
+        Expect(TotalEnergy(OffScreen, 1.0f) == 0.0, "a sun outside the frame produces no flare");
+
+        // The ghosts must lie along the sun-to-centre line, which is what makes it read as a lens rather than a
+        //    starburst pinned to the sun.
+        const float Centre[2] = { 0.5f, 0.5f };
+        double OnAxis = 0.0, OffAxis = 0.0;
+        for (int I = 1; I < 40; ++I)
+        {
+            const float T = static_cast<float>(I) / 40.0f;
+            // Along the line from the sun through the centre and out the other side.
+            const float Along[2] = { Sun[0] + (Centre[0] - Sun[0]) * T * 2.0f,
+                                     Sun[1] + (Centre[1] - Sun[1]) * T * 2.0f };
+            // The same distance from centre, but rotated a quarter turn away from that line.
+            const float Dx = Along[0] - Centre[0], Dy = Along[1] - Centre[1];
+            const float Rotated[2] = { Centre[0] - Dy, Centre[1] + Dx };
+            float A[3], B[3];
+            AtmosphericOptics::LensFlare(Flare, Along, Sun, 1.0f, Aspect, A);
+            AtmosphericOptics::LensFlare(Flare, Rotated, Sun, 1.0f, Aspect, B);
+            OnAxis  += A[0] + A[1] + A[2];
+            OffAxis += B[0] + B[1] + B[2];
+        }
+        std::printf("     energy along the sun-centre axis %.4f, perpendicular %.4f\n", OnAxis, OffAxis);
+        Expect(OnAxis > OffAxis * 2.0, "the ghosts lie on the optical axis, not scattered around the sun");
+
+        // Tier keying: fewer ghosts must mean less flare, so the ladder has something to scale.
+        AtmosphericOptics::LensFlareSettings Minimal = Flare; Minimal.GhostCount = 0u;
+        AtmosphericOptics::LensFlareSettings Rich = Flare;    Rich.GhostCount = 8u;
+        double Lean = 0.0, Full = 0.0;
+        for (int Y = 0; Y < 90; ++Y)
+            for (int X = 0; X < 160; ++X)
+            {
+                const float Uv[2] = { (static_cast<float>(X) + 0.5f) / 160.0f,
+                                      (static_cast<float>(Y) + 0.5f) / 90.0f };
+                float A[3], B[3];
+                AtmosphericOptics::LensFlare(Minimal, Uv, Sun, 1.0f, Aspect, A);
+                AtmosphericOptics::LensFlare(Rich, Uv, Sun, 1.0f, Aspect, B);
+                Lean += A[0] + A[1] + A[2];
+                Full += B[0] + B[1] + B[2];
+            }
+        std::printf("     0 ghosts %.3f, 8 ghosts %.3f\n", Lean, Full);
+        Expect(Full > Lean, "the ghost count is a real budget the tiers can spend");
     }
 
     std::printf("\n");

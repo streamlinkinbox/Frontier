@@ -43,5 +43,17 @@ Report $? "it takes the same AtmosphereMedium the sky uses"
 Report $? "no second copy of the scattering coefficients"
 
 echo
+echo "[AtmosphericOptics] the bow is in the world, the flare is in the lens"
+# These two look alike and behave oppositely. The rainbow must take a distance so geometry can hide it; the
+#    flare must not, because it is scattered on the sensor after the light entered and correctly lies over
+#    everything. Guarded so a later tidy-up does not make them consistent with each other.
+printf '%s' "$Code" | grep -q 'float RainVisibility, float RainDistanceMetres'
+Report $? "the rainbow takes the ray's distance, so nearby geometry suppresses it"
+printf '%s' "$Code" | grep -q 'float SunVisibility, float Aspect'
+Report $? "the flare takes sun visibility, so an occluded sun kills it"
+grep -q 'do not "fix" this to match the rainbow' "$Header"
+Report $? "the difference between the two is recorded where it would be undone"
+
+echo
 if [ "$Fail" != "0" ]; then echo "[AtmosphericOptics] FAILED"; exit 1; fi
 echo "[AtmosphericOptics] OK"
