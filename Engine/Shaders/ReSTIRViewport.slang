@@ -118,6 +118,13 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
 layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
+// ── Bindings 21-24 are RESERVED for the Celestial port (sky-view, transmittance, sun record, cloud shadow).
+//    Round 9 vacated them when the sun/sky system was removed (947b8b9) and they are still the right shape:
+//    below the bindless table, which must stay last because a variable-count binding has to be.
+//
+//    They are deliberately NOT declared here yet. A declared-but-never-written descriptor is not free — it is a
+//    validation error the moment the layout is created without it, and the R9 removal left exactly that kind of
+//    hole behind. They get declared in the step that first writes them, together with their descriptor writes.
 layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — ⚠️ moved 11 → 15 in R4b → 18 in R6 → 19 in R7a → 21 in R7 → 23 in A2 → 25 in A7: a variable-count binding must be the last one in the set
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation

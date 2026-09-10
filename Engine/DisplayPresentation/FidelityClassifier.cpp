@@ -40,6 +40,16 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.GlobalIlluminationEnabled   = false;
             Criteria.AntiAliasingEnabled         = false;
             Criteria.HardwareRayQueryEnabled     = false;
+            Criteria.CloudMarchStepCount         = 16;
+            Criteria.CloudLightTapCount          = 3;
+            Criteria.LocalVolumeStepCount        = 12;
+            Criteria.CloudResolutionScale        = 0.25f;
+            Criteria.AtmosphereSampleCount       = 8;
+            Criteria.AtmosphereLightSampleCount  = 3;
+            Criteria.StarLayerCount              = 2;
+            Criteria.StarSuperSampleCount        = 1;
+            Criteria.GodRaySampleCount           = 0;
+            Criteria.CloudCoverageMargin         = 0.10f;
             break;
 
         case FidelityCategory::EconomyFidelity:
@@ -56,6 +66,16 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.GlobalIlluminationEnabled   = false;
             Criteria.AntiAliasingEnabled         = true;
             Criteria.HardwareRayQueryEnabled     = false;
+            Criteria.CloudMarchStepCount         = 20;
+            Criteria.CloudLightTapCount          = 3;
+            Criteria.LocalVolumeStepCount        = 16;
+            Criteria.CloudResolutionScale        = 0.50f;
+            Criteria.AtmosphereSampleCount       = 12;
+            Criteria.AtmosphereLightSampleCount  = 4;
+            Criteria.StarLayerCount              = 3;
+            Criteria.StarSuperSampleCount        = 1;
+            Criteria.GodRaySampleCount           = 8;
+            Criteria.CloudCoverageMargin         = 0.06f;
             break;
 
         case FidelityCategory::StandardFidelity:
@@ -72,6 +92,16 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.GlobalIlluminationEnabled   = true;
             Criteria.AntiAliasingEnabled         = true;
             Criteria.HardwareRayQueryEnabled     = false;
+            Criteria.CloudMarchStepCount         = 28;
+            Criteria.CloudLightTapCount          = 4;
+            Criteria.LocalVolumeStepCount        = 28;
+            Criteria.CloudResolutionScale        = 0.50f;
+            Criteria.AtmosphereSampleCount       = 16;
+            Criteria.AtmosphereLightSampleCount  = 6;
+            Criteria.StarLayerCount              = 3;
+            Criteria.StarSuperSampleCount        = 1;
+            Criteria.GodRaySampleCount           = 16;
+            Criteria.CloudCoverageMargin         = 0.03f;
             break;
 
         case FidelityCategory::UltraFidelity:
@@ -88,6 +118,16 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.GlobalIlluminationEnabled   = true;
             Criteria.AntiAliasingEnabled         = true;
             Criteria.HardwareRayQueryEnabled     = true;
+            Criteria.CloudMarchStepCount         = 36;
+            Criteria.CloudLightTapCount          = 5;
+            Criteria.LocalVolumeStepCount        = 36;
+            Criteria.CloudResolutionScale        = 0.50f;
+            Criteria.AtmosphereSampleCount       = 20;
+            Criteria.AtmosphereLightSampleCount  = 8;
+            Criteria.StarLayerCount              = 3;
+            Criteria.StarSuperSampleCount        = 2;
+            Criteria.GodRaySampleCount           = 24;
+            Criteria.CloudCoverageMargin         = 0.00f;
             break;
 
         case FidelityCategory::ReferenceFidelity:
@@ -105,6 +145,16 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.GlobalIlluminationEnabled   = true;
             Criteria.AntiAliasingEnabled         = true;
             Criteria.HardwareRayQueryEnabled     = true;
+            Criteria.CloudMarchStepCount         = 64;
+            Criteria.CloudLightTapCount          = 5;
+            Criteria.LocalVolumeStepCount        = 64;
+            Criteria.CloudResolutionScale        = 1.00f;
+            Criteria.AtmosphereSampleCount       = 32;
+            Criteria.AtmosphereLightSampleCount  = 12;
+            Criteria.StarLayerCount              = 4;
+            Criteria.StarSuperSampleCount        = 2;
+            Criteria.GodRaySampleCount           = 32;
+            Criteria.CloudCoverageMargin         = 0.00f;
             break;
     }
 

@@ -136,6 +136,20 @@ struct FidelityCriteria
     ShadowTechniqueCategory ShadowTechnique;                    // [category] GI-off shadow filter: hard · wide PCF · PCSS
     uint32_t                ShadowMapSide;                      // [px] shadow map side in texels (the tier's default)
     uint32_t                ShadowFilterTapCount;               // [count] filter kernel side in taps (1 = single comparison)
+    // ── Celestial port. The demo ships seven tiers (Low · Economic · Standard · Ultra · Cinematic · Reference,
+    //    plus Auto); we have five, so Cinematic collapses into Reference — steps from Reference, render scale
+    //    from Cinematic, since our Reference already means "most realistic, no compromise". The ladder lives
+    //    HERE and nowhere else: the panel reads these, it does not restate them.
+    uint32_t                CloudMarchStepCount;                // [count] steps through the cloud shell
+    uint32_t                CloudLightTapCount;                 // [count] sun-shadow taps inside the cloud march
+    uint32_t                LocalVolumeStepCount;               // [count] steps through local fog / local cloud
+    float                   CloudResolutionScale;               // [0..1] cloud shell resolution vs the frame
+    uint32_t                AtmosphereSampleCount;              // [count] view-ray samples through the atmosphere
+    uint32_t                AtmosphereLightSampleCount;         // [count] sun-ray samples per atmosphere sample
+    uint32_t                StarLayerCount;                     // [count] star field layers
+    uint32_t                StarSuperSampleCount;               // [count] star AA samples (1 = none)
+    uint32_t                GodRaySampleCount;                  // [count] crepuscular shaft samples (0 = off)
+    float                   CloudCoverageMargin;                // [0..1] early-out slack on the coverage probe
     bool                    GlobalIlluminationEnabled;          // [bool] indirect radiosity ReSTIR GI
     bool                    AntiAliasingEnabled;                // [bool] sub-pixel jitter + temporal accumulation
     bool                    HardwareRayQueryEnabled;            // [bool] hardware ray tracing acceleration

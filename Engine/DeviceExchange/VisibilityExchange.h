@@ -95,6 +95,8 @@ struct VisibilityTelemetry
     float    ShadowMilliseconds   = 0.0f;   // R10 ②: the GI-off shadow stage — maps rasterised + ShadowResolve
     float    RestirMilliseconds   = 0.0f;   // R10 ②: the ReSTIR dispatch alone (0 when GI is off)
     float    PostMilliseconds     = 0.0f;   // R10 ②: trailing compute that is neither — denoise + luminance
+    float    SkyMilliseconds      = 0.0f;   // Celestial: the sky/atmosphere pass (0 until it exists)
+    float    VolumeMilliseconds   = 0.0f;   // Celestial: the unified cloud/fog march (0 until it exists)
     bool     Valid                = false;
 };
 
@@ -185,6 +187,11 @@ public:
     // R10 ②: brackets the ReSTIR dispatch itself, so its cost is not conflated with denoise and luminance.
     void                RecordRestirBegin(void* Command, uint32_t CycleSlot) noexcept;
     void                RecordRestirEnd(void* Command, uint32_t CycleSlot) noexcept;
+    // Celestial port: spans reserved in step 0 so the stages are timed from their first frame.
+    void                RecordSkyBegin(void* Command, uint32_t CycleSlot) noexcept;
+    void                RecordSkyEnd(void* Command, uint32_t CycleSlot) noexcept;
+    void                RecordVolumeBegin(void* Command, uint32_t CycleSlot) noexcept;
+    void                RecordVolumeEnd(void* Command, uint32_t CycleSlot) noexcept;
 
     // Resources the interim kernel binds (VkImageView / VkBuffer as void*; GENERAL layout images).
     [[nodiscard]] void* QuerySurfaceView()     const noexcept;

@@ -139,6 +139,48 @@ cloud), a low-res cloud FBO with temporal reprojection (`a152901`, reverted: slo
   reporting separately from `sky` · SwiftShader dispatch correctness.
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+┌─ STEP 5b · God rays (crepuscular shafts) ──────────────────────────────────────────────────────────────────────┐
+**Not a port — new work.** Checked the source branch and the demo: no godray/shaft/crepuscular code exists in
+either. So this is designed here, and the design should follow the physics the demo already uses rather than the
+screen-space trick.
+
+The demo's volumetrics already contain the exact term shafts are made of: `uniShadow(p, st)` marches 4 taps toward
+the sun accumulating optical depth and returns `exp(-od)` — the sun's transmittance *at a point inside a medium*.
+Shafts are that same quantity evaluated against **scene occlusion** instead of only cloud/fog density, integrated
+along the view ray through the atmospheric medium. So god rays are not a new system: they are the sun-visibility
+term of the existing march, sourced from the shadow maps.
+
+That is why this sits at 5b rather than in its own phase — it reuses Step 5's unified march (one more term in a
+loop that already exists) and Round 10's shadow maps (`ShadowExchange`, up to 4 taps) as the occlusion source. Two
+things this repo already has, joined.
+
+Implementation, in preference order:
+  • **Analytic in-medium** (preferred): inside the unified march, replace the medium-only `uniShadow` with the
+    product of medium transmittance and the shadow-map lookup already used by `ShadowSample.slang`. Physically
+    consistent with the fog and cloud in-scatter, correct behind occluders, and costs one map lookup per march
+    step rather than a separate pass.
+  • **Radial screen-space blur**: rejected as the default. Cheap, but it fails when the sun is off-screen —
+    exactly the shot people want shafts for — and it cannot be reconciled with the aerial-perspective integral.
+    Only worth reconsidering as a Minimal-tier fallback, and only if measured.
+
+Tier keying (extends the plan §6 table): shaft sample count follows the medium's own step budget — off at
+Minimal, 8 at Economy, 16 at Standard, 24 at Ultra, 32 at Reference — so shafts cannot desynchronise from the
+march that carries them.
+
+Both paths: GI-off takes the shadow-map term directly; GI-on must not double-count, since ReSTIR already resolves
+sun visibility per sample — there the shaft term applies to the *medium* in-scatter only, not to surface shading.
+**That double-counting risk is the main thing to get right**, and it is the reason this step is proved on both
+paths separately like every other.
+
+  **Proof**:
+  • `Scratchpad/GodRayProof.cpp` — a slab of uniform medium with a known occluder, integrated analytically and
+    compared against the marched result; shaft radiance must fall as `exp(-σ·d)` along the shadowed segment.
+  • `Diagnostics/Celestial_05b_GodRays_{Forest,CloudGap}.png` in both paths, plus a **sun-behind-camera** sheet —
+    the case that would expose a screen-space shortcut if one ever crept in.
+  • A gate asserting the shaft term is evaluated inside the unified march (no separate full-screen pass) and that
+    GI-on applies it to medium in-scatter only.
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
 ┌─ STEP 6 · Precipitation ───────────────────────────────────────────────────────────────────────────────────────┐
 Rain/drizzle/hail/snow/sleet: terminal velocity, drag, wind coupling, ground collision with restitution (hail
 bounces), rest-then-vanish, splash ripples / melt. Spawns from cloud base, so it follows Step 5.

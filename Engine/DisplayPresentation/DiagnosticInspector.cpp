@@ -87,7 +87,10 @@ void DiagnosticInspector::ConstructInspectorLayout(PixelSpace& Surface, float To
     Thousands(Two,     sizeof(Two),     T.PhaseTwoDraws);
     Thousands(Tris,    sizeof(Tris),    T.TrianglesDrawn);
 
-    char Rows[7][160];   // widened for the R10 shadow cell: the worst-case gpu row is 112 B, and 4-digit frame times would clip at 128
+    // 8 rows since the Celestial port split the gpu line in two. Everything below derives the row COUNT from the
+    //    array rather than repeating the literal — the hint row's index and the card height were both hardcoded
+    //    7s, so adding a row silently dropped the last line and mis-sized the card until they were derived.
+    char Rows[8][160];
     std::snprintf(Rows[0], sizeof(Rows[0]), "clusters   %s  \xE2\x86\x92  frustum %s  \xE2\x86\x92  cone %s  \xE2\x86\x92  visible %s", Total, Frustum, Cone, Visible);
     std::snprintf(Rows[1], sizeof(Rows[1]), "drawn      phase 1  %s   +   phase 2  %s   (%s triangles)", One, Two, Tris);
     std::snprintf(Rows[2], sizeof(Rows[2]), "indirect   %s   |   HiZ occlusion %s   |   rays: CWBVH (Tier A)", DrawIndirectCount ? "1 draw/phase" : "fixed-count", Occlusion_ ? "on" : "OFF");
@@ -99,21 +102,28 @@ void DiagnosticInspector::ConstructInspectorLayout(PixelSpace& Surface, float To
         if (Ms > 0.0f) std::snprintf(Out, N, "%.2f", static_cast<double>(Ms));
         else           std::snprintf(Out, N, "%s", "\xE2\x80\x93");
     };
-    char ShadowCell[16], RestirCell[16];
+    char ShadowCell[16], RestirCell[16], SkyCell[16], VolCell[16];
     Cell(ShadowCell, sizeof(ShadowCell), T.ShadowMilliseconds);
     Cell(RestirCell, sizeof(RestirCell), T.RestirMilliseconds);
-    std::snprintf(Rows[3], sizeof(Rows[3]), "gpu        cull %.2f  \xC2\xB7  raster %.2f  \xC2\xB7  HiZ %.2f  \xC2\xB7  resolve %.2f  \xC2\xB7  shadow %s  \xC2\xB7  restir %s  \xC2\xB7  post %.2f ms",
-                  static_cast<double>(T.CullMilliseconds), static_cast<double>(T.RasterMilliseconds), static_cast<double>(T.HiZMilliseconds),
-                  static_cast<double>(T.ResolveMilliseconds), ShadowCell, RestirCell, static_cast<double>(T.PostMilliseconds));
-    std::snprintf(Rows[4], sizeof(Rows[4]), "restir     temporal %s  \xC2\xB7  spatial %s  \xC2\xB7  alias pick %s  \xC2\xB7  %u cand + %u extra",
+    Cell(SkyCell,    sizeof(SkyCell),    T.SkyMilliseconds);
+    Cell(VolCell,    sizeof(VolCell),    T.VolumeMilliseconds);
+    // Two rows rather than one. With sky and volumetrics added the single row reached 158 of 160 bytes, which is
+    //    not a margin — a four-digit frame time on a stalled GPU would silently truncate exactly when the reader
+    //    most needs the number. Geometry on one line, shading stages on the next.
+    std::snprintf(Rows[3], sizeof(Rows[3]), "gpu        cull %.2f  \xC2\xB7  raster %.2f  \xC2\xB7  HiZ %.2f  \xC2\xB7  resolve %.2f ms",
+                  static_cast<double>(T.CullMilliseconds), static_cast<double>(T.RasterMilliseconds),
+                  static_cast<double>(T.HiZMilliseconds), static_cast<double>(T.ResolveMilliseconds));
+    std::snprintf(Rows[4], sizeof(Rows[4]), "shading    shadow %s  \xC2\xB7  restir %s  \xC2\xB7  sky %s  \xC2\xB7  volume %s  \xC2\xB7  post %.2f ms",
+                  ShadowCell, RestirCell, SkyCell, VolCell, static_cast<double>(T.PostMilliseconds));
+    std::snprintf(Rows[5], sizeof(Rows[5]), "restir     temporal %s  \xC2\xB7  spatial %s  \xC2\xB7  alias pick %s  \xC2\xB7  %u cand + %u extra",
                   ReSTIR.TemporalReuse ? "on" : "OFF", ReSTIR.SpatialReuse ? "on" : "OFF", ReSTIR.AliasPick ? "on" : "OFF",
                   ReSTIR.CandidatesPerPixel, ReSTIR.ExtraCandidateCount);
-    std::snprintf(Rows[5], sizeof(Rows[5]), "scene      %u mats -> %u slabs (S %u Si %u C %u Sp %u)  \xC2\xB7  %u tex %.1f MB <= %u mips",
+    std::snprintf(Rows[6], sizeof(Rows[6]), "scene      %u mats -> %u slabs (S %u Si %u C %u Sp %u)  \xC2\xB7  %u tex %.1f MB <= %u mips",
                   MaterialStats.DescriptorCount, MaterialStats.SlabCount,
                   MaterialStats.ComplexityCount[0], MaterialStats.ComplexityCount[1],
                   MaterialStats.ComplexityCount[2], MaterialStats.ComplexityCount[3],
                   TextureStats.Count, static_cast<double>(TextureStats.ByteCount) / 1048576.0, MaxTextureLevels);
-    std::snprintf(Rows[6], sizeof(Rows[6]), "F3 next  \xC2\xB7  Shift+F3 previous  \xC2\xB7  F4 HiZ on/off  \xC2\xB7  F5 alias pick  \xC2\xB7  Esc close");
+    std::snprintf(Rows[7], sizeof(Rows[7]), "F3 next  \xC2\xB7  Shift+F3 previous  \xC2\xB7  F4 HiZ on/off  \xC2\xB7  F5 alias pick  \xC2\xB7  Esc close");
 
     const PlanePoint TitleSizePx = Surface.MeasureText(Title, TitleSize);
     float ContentWidth = std::max(Width - Padding * 2.0f, TitleSizePx.X);
@@ -121,7 +131,8 @@ void DiagnosticInspector::ConstructInspectorLayout(PixelSpace& Surface, float To
     for (const char* Row : Rows) { const PlanePoint M = Surface.MeasureText(Row, RowSize); ContentWidth = std::max(ContentWidth, M.X); RowHeight = std::max(RowHeight, M.Y); }
 
     const float CardWidth  = ContentWidth + Padding * 2.0f;
-    const float CardHeight = Padding * 2.0f + TitleSizePx.Y + 8.0f + 7.0f * (RowHeight + RowGap) - RowGap;
+    constexpr uint32_t RowCount = static_cast<uint32_t>(sizeof(Rows) / sizeof(Rows[0]));
+    const float CardHeight = Padding * 2.0f + TitleSizePx.Y + 8.0f + static_cast<float>(RowCount) * (RowHeight + RowGap) - RowGap;
     const PlaneExtent Card = Spanning(DisplayWidth - Inset - CardWidth, TopInset + Inset, CardWidth, CardHeight);
 
     // Notch card: CardSub background, 1 px stroke, 12 px radius (matches the FPS pill and toasts).
@@ -135,9 +146,9 @@ void DiagnosticInspector::ConstructInspectorLayout(PixelSpace& Surface, float To
         ControlKit::FillCircle(Surface, Card.MinimumX + Padding + TitleSizePx.X + 10.0f, Y + TitleSizePx.Y * 0.5f, 3.5f, P.Accent);
     Y += TitleSizePx.Y + 8.0f;
 
-    for (uint32_t I = 0u; I < 7u; ++I)
+    for (uint32_t I = 0u; I < RowCount; ++I)
     {
-        const ColorQuad Ink = I == 6u ? P.TextDim : (I == 2u && !Occlusion_ ? ColorQuad{ 0xF5 / 255.0f, 0xA5 / 255.0f, 0x24 / 255.0f, 1.0f } : P.Text);
+        const ColorQuad Ink = I == RowCount - 1u ? P.TextDim : (I == 2u && !Occlusion_ ? ColorQuad{ 0xF5 / 255.0f, 0xA5 / 255.0f, 0x24 / 255.0f, 1.0f } : P.Text);
         Surface.Text(Card.MinimumX + Padding, Y, Ink, Rows[I], RowSize);
         Y += RowHeight + RowGap;
     }

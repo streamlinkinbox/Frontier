@@ -23,8 +23,8 @@ Report() { if [ "$1" = "0" ]; then printf '  %-66s PASS\n' "$2"; else printf '  
 
 echo "[GpuTimestamps] the pool holds every span"
 Count=$(grep -oP 'kTimestampCount\s*=\s*\K[0-9]+' "$V" | head -1)
-[ -n "$Count" ] && [ "$Count" -ge 16 ]
-Report $? "kTimestampCount is $Count (>= 16: 12 base + shadow pair + restir pair)"
+[ -n "$Count" ] && [ "$Count" -ge 20 ]
+Report $? "kTimestampCount is $Count (>= 20: 12 base + shadow + restir + sky + volume)"
 
 # Highest query index actually written must fit inside the pool.
 Highest=$(grep -oP 'kTimestampCount \+ \K[0-9]+' "$V" | sort -n | tail -1)
@@ -33,7 +33,7 @@ Report $? "highest written query is $Highest, inside a pool of $Count"
 
 echo
 echo "[GpuTimestamps] every span opens and closes"
-for Pair in "12:13:shadow" "14:15:restir"; do
+for Pair in "12:13:shadow" "14:15:restir" "16:17:sky" "18:19:volumetrics"; do
     A=${Pair%%:*}; Rest=${Pair#*:}; B=${Rest%%:*}; Name=${Rest#*:}
     Open=$(grep -c "kTimestampCount + ${A}u" "$V")
     Close=$(grep -c "kTimestampCount + ${B}u" "$V")
@@ -57,8 +57,13 @@ Report $? "no telemetry field reads Stamps[] directly, bypassing the guard"
 
 echo
 echo "[GpuTimestamps] the stages are reported apart"
-grep -q 'ShadowMilliseconds' "$H" && grep -q 'RestirMilliseconds' "$H" && grep -q 'PostMilliseconds' "$H"
-Report $? "telemetry exposes shadow, restir and post separately"
+grep -q 'ShadowMilliseconds' "$H" && grep -q 'RestirMilliseconds' "$H" && grep -q 'PostMilliseconds' "$H" \
+    && grep -q 'SkyMilliseconds' "$H" && grep -q 'VolumeMilliseconds' "$H"
+Report $? "telemetry exposes shadow, restir, sky, volume and post separately"
+# "post" must mean denoise + luminance only. If a new stage is added to the trailing span without being
+#    subtracted here, post silently absorbs it and the new stage looks free.
+grep -qE 'const float Owned = .*\+ Sky \+ Volume;' "$V"
+Report $? "post subtracts the celestial spans instead of absorbing them"
 # The bug this replaced: the trailing span reported whole as "kernel".
 ! grep -qE 'KernelMilliseconds\s*=\s*Ms\(10, *11\);' "$V"
 Report $? "kernel is no longer the raw trailing span"

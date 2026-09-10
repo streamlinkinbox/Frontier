@@ -29,7 +29,10 @@ static constexpr uint32_t kMaximumCycleSlots = 3u;
 //    "kernel" would have reported a busy shadow frame as ReSTIR time in a mode where ReSTIR never ran, so the
 //    shadow stage now brackets itself: 12 at its start, 13 at its end, and the reader subtracts it out.
 //    14/15 do the same for the ReSTIR dispatch alone, so "kernel" stops meaning "kernel + denoise + luminance".
-static constexpr uint32_t kTimestampCount    = 16u;
+//    16/17 and 18/19 are the Celestial port's sky and volumetrics spans, reserved by step 0 so the stages are
+//    measured from their first frame rather than instrumented afterwards — the shadow round showed that a stage
+//    added without its own span silently borrows another's time.
+static constexpr uint32_t kTimestampCount    = 20u;
 static constexpr uint32_t kCounterCount      = 8u;    // SceneRecords.slang kCounterCount
 static constexpr uint32_t kCounterDrawPhaseTwoByte = 7u * 4u;
 
@@ -1094,16 +1097,22 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
         //    attributed exactly, and it can never again report ReSTIR time for a frame that ran no ReSTIR.
         const float Shadow   = Ms(12, 13);
         const float Restir   = Ms(14, 15);
+        const float Sky      = Ms(16, 17);
+        const float Volume   = Ms(18, 19);
         const float Trailing = Ms(10, 11);
         Telemetry.ShadowMilliseconds = Shadow;
         Telemetry.RestirMilliseconds = Restir;
+        Telemetry.SkyMilliseconds    = Sky;
+        Telemetry.VolumeMilliseconds = Volume;
         // The kernel figure is now the ReSTIR dispatch when it ran, and otherwise whatever trailing work remains
         //    once the shadow stage is removed. Both are exact; neither silently borrows the other's time.
         Telemetry.KernelMilliseconds = Restir > 0.0f ? Restir
                                      : (Trailing > Shadow ? Trailing - Shadow : 0.0f);
         // What the trailing span holds beyond the stage that owns it: denoise + luminance, reported honestly
         //    rather than folded into "kernel".
-        const float Owned = Restir > 0.0f ? Restir : Shadow;
+        // Everything in the trailing span that some stage owns. Sky and volumetrics are added here as they land
+        //    so "post" keeps meaning strictly denoise + luminance rather than quietly absorbing the new work.
+        const float Owned = (Restir > 0.0f ? Restir : Shadow) + Sky + Volume;
         Telemetry.PostMilliseconds = Trailing > Owned ? Trailing - Owned : 0.0f;
     }
     Telemetry.Valid = true;
@@ -1586,6 +1595,32 @@ void VisibilityExchange::RecordRestirEnd(void* CommandHandle, uint32_t Slot) noe
 {
     if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
     vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 15u);
+}
+
+// Celestial port step 0 — reserved spans for the sky and the unified volumetrics march. Written the moment those
+//    stages exist; until then they are simply never called and the availability word keeps them out of the sums.
+void VisibilityExchange::RecordSkyBegin(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 16u);
+}
+
+void VisibilityExchange::RecordSkyEnd(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 17u);
+}
+
+void VisibilityExchange::RecordVolumeBegin(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 18u);
+}
+
+void VisibilityExchange::RecordVolumeEnd(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 19u);
 }
 
 void VisibilityExchange::RecordKernelEnd(void* CommandHandle, uint32_t Slot) noexcept

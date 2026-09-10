@@ -175,7 +175,15 @@ done
 echo
 echo "[EditorProof] the knobs sit on their fractions"
 KnobCheck="$(mktemp -u /tmp/EditorKnobCheck.XXXXXX)"
-if ! g++ -O2 -I ExternalPackages/stb -o "$KnobCheck" Scratchpad/EditorKnobCheck.cpp \
+# The knob check READS the sheet back, which needs stb_image.h — and ExternalPackages/stb is an uninitialised
+#    submodule in a fresh checkout. Left alone, the gate died on a raw "fatal error: stb_image.h: No such file"
+#    from the compiler, which says nothing about what to do. A proof harness that cannot tell you why it did not
+#    run is indistinguishable from a broken one, and this is the gate every UI proof depends on.
+if [ ! -f ExternalPackages/stb/stb_image.h ]; then
+    echo "  KNOB CHECK SKIPPED - ExternalPackages/stb is not populated"
+    echo "    the sheets above were still written and gated; only the pixel read-back is missing"
+    echo "    run: git submodule update --init ExternalPackages/stb"
+elif ! g++ -O2 -I ExternalPackages/stb -o "$KnobCheck" Scratchpad/EditorKnobCheck.cpp \
     2>/tmp/EditorKnobCheck.build; then
     echo "  KNOB CHECK COMPILE FAILED"; sed 's/^/    /' /tmp/EditorKnobCheck.build | head -10; Fail=1
 else
