@@ -579,6 +579,29 @@ int main(int argc, char** argv)
         Integrator.AssignAntiAliasing(S.AntiAliasing);
         Notifications.AssignEnabled(S.Notifications);
 
+        // R10 — the GI-off shadow stage. The tier picks the technique, the kernel width and a default map side;
+        //    the Control Centre's "Shadow resolution" dropdown then OVERRIDES that side and stands regardless of
+        //    which tier is selected (WithShadowResolution leaves the tier's value alone only for Auto). That
+        //    separation is deliberate: resolution is the setting a user is most likely to want to pin against the
+        //    tier's judgement, on a machine whose memory or bandwidth the tier cannot know about.
+        {
+            const Frontier::FidelityCriteria ShadowCriteria = Frontier::WithShadowResolution(Criteria, S.ShadowResolution);
+            Frontier::ShadowFrameConfiguration Shadow{};
+            Shadow.MapSide    = ShadowCriteria.ShadowMapSide;
+            Shadow.FilterTaps = ShadowCriteria.ShadowFilterTapCount;
+            switch (ShadowCriteria.ShadowTechnique)
+            {
+                case Frontier::ShadowTechniqueCategory::HardShadowMap:
+                    Shadow.Filter = Frontier::ShadowFilterCategory::Hard; break;
+                case Frontier::ShadowTechniqueCategory::WidePercentageCloserFilter:
+                    Shadow.Filter = Frontier::ShadowFilterCategory::Pcf;  break;
+                case Frontier::ShadowTechniqueCategory::PercentageCloserSoftShadow:
+                default:
+                    Shadow.Filter = Frontier::ShadowFilterCategory::Pcss; break;
+            }
+            Surface.AssignShadowFrame(Shadow);
+        }
+
         if (Announce)
         {
             char Body[96];

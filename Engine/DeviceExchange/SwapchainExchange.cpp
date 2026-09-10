@@ -2504,7 +2504,24 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     Frame.RenderHeight = RenderHeight;
     Visibility.RecordFrame(Command, Vulkan->ActiveSlot, Frame);
 
-    if (Frame.DebugView == DebugViewCategory::Off)
+    // R10 ①d — the GI-off shadow stage. With Global Illumination off the ReSTIR kernel is not dispatched at all:
+    //    light visibility comes from shadow maps rasterised here, and ShadowResolve writes the presentation image
+    //    directly. The whole no-ray path lives in this branch, so with GI ON nothing below costs anything.
+    //
+    //    The fallback matters. If the stage cannot be recorded — no shadow SPIR-V, no emissive geometry in the
+    //    scene, an unsupported map size — we must NOT skip straight to present: the presentation image would keep
+    //    whatever the last frame left in it and the viewport would freeze on a stale picture. Dropping through to
+    //    the kernel is the honest failure, since that path always writes every pixel.
+    const bool GlobalIlluminationOff = (Dispatch.FeatureFlags & DispatchFeatureGlobalIllumination) == 0u;
+    bool ShadowStageRecorded = false;
+    if (Frame.DebugView == DebugViewCategory::Off && GlobalIlluminationOff && ShadowFrameValid && Visibility.IsShadowReady())
+    {
+        ShadowFrameConfiguration Shadow = ShadowFrame;
+        if (Visibility.PlaceShadowTaps(Shadow))
+            ShadowStageRecorded = Visibility.RecordShadowFrame(Command, Vulkan->ActiveSlot, Shadow);
+    }
+
+    if (Frame.DebugView == DebugViewCategory::Off && !ShadowStageRecorded)
     {
         // ② Dispatch ReSTIR compute
         vkCmdBindPipeline(Command, VK_PIPELINE_BIND_POINT_COMPUTE, Vulkan->ComputePipeline);

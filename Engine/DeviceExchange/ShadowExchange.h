@@ -49,6 +49,12 @@ struct ShadowLightTap
     float Radiance[3] = { 0.0f, 0.0f, 0.0f };   // [nit] emitted radiance
     float Weight      = 0.0f;                   // [m²]  the emitter area this tap integrates
     float Normal[3]   = { 0.0f, 0.0f, 1.0f };   // [-]   the emitter's unit normal (the LdotL term)
+    float TangentHalf = 0.0f;                   // [-]   tan(HalfAngle) of this tap's frustum — PCSS's texels-per-metre
+                                                //       term. Filled in by the exchange from HalfAngle, not by the
+                                                //       caller. It is carried explicitly because the shader used to
+                                                //       recover it from the world→clip matrix, which is Projection ·
+                                                //       View and so only yields the right angle for a light that
+                                                //       happens to point down an axis — see ShadowSample.slang.
 };
 
 //------------------------------------------------------------------------------------------------------------------------

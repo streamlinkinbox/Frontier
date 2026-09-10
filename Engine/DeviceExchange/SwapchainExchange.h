@@ -236,6 +236,12 @@ public:
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
     void                        AssignVisibilityFrame(const VisibilityFrameConfiguration& Frame) noexcept { VisibilityFrame = Frame; VisibilityFrameValid = true; }
+
+    // R10 — the GI-off shadow stage's per-frame settings (technique, map side, taps). Only consulted when Global
+    //    Illumination is off: with GI on the ReSTIR kernel owns light visibility and no shadow map is rasterised.
+    //    The taps themselves are placed by VisibilityExchange from the resident emitters, so the caller supplies
+    //    only the tier's choices and the Control Centre's resolution override.
+    void                        AssignShadowFrame(const ShadowFrameConfiguration& Shadow) noexcept { ShadowFrame = Shadow; ShadowFrameValid = true; }
     [[nodiscard]] const VisibilityTelemetry& QueryVisibilityTelemetry() const noexcept { return Visibility.QueryTelemetry(); }
     [[nodiscard]] uint32_t      QueryClusterCount() const noexcept { return Visibility.QueryClusterCount(); }
     [[nodiscard]] bool          QueryDrawIndirectCount() const noexcept { return DrawIndirectCountSupported; }
@@ -358,6 +364,8 @@ private:
     uint64_t                TraversalLeafCapacity = 0u;   // [B]   // [-]   R3 CWBVH uploaded (kernel refuses to run without it)
     VisibilityFrameConfiguration VisibilityFrame{};
     bool                    VisibilityFrameValid = false;
+    ShadowFrameConfiguration ShadowFrame{};        // R10: GI-off shadow settings (tier technique + resolution override)
+    bool                    ShadowFrameValid = false;
 
     OverlaySequence         Overlay;                       // [-]   optional per-frame overlay recorder (project-owned)
     uint32_t                TargetGeneration = 0u;         // [cnt] bumped on every swapchain rebuild; overlays re-Resize on change

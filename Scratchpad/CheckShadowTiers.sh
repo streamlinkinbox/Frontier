@@ -88,6 +88,58 @@ else
     echo "  the build lists carry every shadow shader                        PASS"
 fi
 
+# R10 — the shaders are only half the job. Until this round ShadowResolve.slang compiled, sat in the CMake shader
+#    table, and was never dispatched by anything: `grep ShadowResolve Engine/*.cpp` returned nothing at all. A gate
+#    that only checks the shaders exist would have stayed green through that, so it now checks the HOST side too.
+echo
+echo "[ShadowTier] the GPU stage is actually reachable"
+ShadowHost="Engine/DeviceExchange/VisibilityExchange.cpp"
+grep -q 'ShadowRaster.vert.spv'  "$ShadowHost" || { echo "  no pipeline is built from ShadowRaster.vert.spv"; Fail=1; }
+grep -q 'ShadowRaster.frag.spv'  "$ShadowHost" || { echo "  no pipeline is built from ShadowRaster.frag.spv"; Fail=1; }
+grep -q 'ShadowResolve.spv'      "$ShadowHost" || { echo "  no pipeline is built from ShadowResolve.spv"; Fail=1; }
+grep -q 'vkCmdBeginRenderPass'   "$ShadowHost" || { echo "  the shadow maps are never rasterised"; Fail=1; }
+# Comments are stripped here too, and the pattern is the CALL rather than the bare name: the first version of this
+#    check matched the explanatory comment above the dispatch and passed happily while the call itself was renamed
+#    away. Verified by unhooking it — the gate must go red, and now does.
+SwapchainCode="$(sed 's;//.*;;' Engine/DeviceExchange/SwapchainExchange.cpp)"
+printf '%s' "$SwapchainCode" | grep -q 'Visibility\.RecordShadowFrame(' \
+    || { echo "  the frame loop never records the shadow stage"; Fail=1; }
+GameCode="$(sed 's;//.*;;' Projects/Project-Zero/Source/GameExecution.cpp)"
+printf '%s' "$GameCode" | grep -q 'AssignShadowFrame(' \
+    || { echo "  the application never supplies the shadow settings"; Fail=1; }
+# The dropdown must outrank the tier, and must do so through WithShadowResolution rather than a second copy of the
+#    ladder — two places deciding one number is how they drift apart.
+printf '%s' "$GameCode" | grep -q 'WithShadowResolution(' \
+    || { echo "  the Control Centre resolution override is not applied"; Fail=1; }
+[ "$Fail" -eq 0 ] && echo "  pipelines built, stage recorded, override applied                PASS"
+
+# R10 — PCSS regression. ShadowSample.slang used to recover the light's half-angle as 1/ShadowLightClip[1][1]. That
+#    matrix is Projection · View, so the element carries the light's own Up.y: measured over six orientations every
+#    single one was wrong, and a ceiling lamp pointing straight down recovered 1e6 instead of 2.14 — a penumbra
+#    466,000x too wide. Scratchpad/ShadowMatrixProof.cpp is the measurement; this keeps the fix from being undone.
+echo
+echo "[ShadowTier] PCSS reads its half-angle from the tap, not the matrix"
+# Comments are stripped first: the fix is DOCUMENTED in a comment that necessarily quotes the old expression, and a
+#    grep over the raw file would match its own explanation and fail forever. Check the code, not the prose.
+ShadowSampleCode="$(sed 's;//.*;;' Engine/Shaders/ShadowSample.slang)"
+if printf '%s' "$ShadowSampleCode" | grep -q 'ShadowLightClip\[Tap\]\[1\]\[1\]'; then
+    echo "  the half-angle is being recovered from the world->clip matrix again"; Fail=1
+elif ! printf '%s' "$ShadowSampleCode" | grep -q 'ShadowTapNormal\[Tap\].w'; then
+    echo "  the half-angle is no longer read from the tap record"; Fail=1
+else
+    if command -v g++ >/dev/null 2>&1 && [ -f Scratchpad/ShadowMatrixProof.cpp ]; then
+        if g++ -std=c++20 -O2 -o "${TMPDIR:-/tmp}/ShadowMatrixProof" Scratchpad/ShadowMatrixProof.cpp 2>/dev/null; then
+            # The proof exits non-zero while the OLD recovery is wrong (which it always is) — what must hold is that
+            #    the projection itself is sane, so grep the line the projection checks print.
+            if "${TMPDIR:-/tmp}/ShadowMatrixProof" | grep -q "centre, depth-in-metres and behind-the-light all correct"; then
+                echo "  light-clip projection verified: centre, metres, w<=0 behind         PASS"
+            else
+                echo "  the light-clip matrix no longer projects correctly"; Fail=1
+            fi
+        fi
+    fi
+fi
+
 # The GI-off path must stay ray-free: the quarantine rule the preview already enforces on VisibilityRaster.
 echo
 echo "[ShadowTier] the GI-off path names no ray query"

@@ -20,6 +20,7 @@
 #endif
 
 #include "OrientationClassifier.h"
+#include "ShadowExchange.h"
 #include "../GeometricRaster/ClipProjection.h"
 #include <cstdint>
 #include <vector>
@@ -151,6 +152,30 @@ public:
     //    the slot's fence has been waited on; the same slot's previous telemetry is read back first.
     void                RecordFrame(void* Command, uint32_t CycleSlot, const VisibilityFrameConfiguration& Frame) noexcept;
 
+    //──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    //  R10 — the GI-off shadow stage
+    //──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // The no-ray path's shadows: a depth-only map per light tap, then a shading pass that samples them under the
+    //    tier's filter. Recorded AFTER RecordFrame (it consumes the surface + normal targets the resolve wrote) and
+    //    only when Global Illumination is off — with GI on the ReSTIR kernel owns visibility and none of this runs.
+    //
+    // Split in two deliberately. PlaceShadowTaps is pure CPU arithmetic over the resident luminaires and produces
+    //    the same four stratified taps as VisibilityRaster::PlaceTaps, so the headless proof and the application
+    //    light the scene identically; RecordShadowFrame is the GPU work. A caller that wants to override the taps
+    //    can skip the first and fill the configuration itself.
+    [[nodiscard]] bool  PlaceShadowTaps(ShadowFrameConfiguration& Shadow) const noexcept;
+
+    // Records [ShadowRaster × TapCount] → ShadowResolve. The map side is taken from Shadow.MapSide, so the Control
+    //    Centre's resolution dropdown takes effect on the next frame without a device idle: the array is only
+    //    reallocated when the side actually changes. Returns false if the stage could not be recorded (no shadow
+    //    pipelines, no scene, or no live taps), in which case the caller must fall back rather than present a
+    //    never-written image.
+    [[nodiscard]] bool  RecordShadowFrame(void* Command, uint32_t CycleSlot, const ShadowFrameConfiguration& Shadow) noexcept;
+
+    // True once the shadow pipelines exist — Bring() reports but does not fail on a missing shadow SPIR-V, so an
+    //    engine built before these shaders were compiled still runs everything else.
+    [[nodiscard]] bool  IsShadowReady() const noexcept;
+
     // Kernel timing bracket (timestamps written into this slot's query pool).
     void                RecordKernelBegin(void* Command, uint32_t CycleSlot) noexcept;
     void                RecordKernelEnd(void* Command, uint32_t CycleSlot) noexcept;
@@ -184,6 +209,18 @@ private:
     void                 WriteDescriptorSets() noexcept;
     void                 WriteFrameConstants(uint32_t CycleSlot, uint32_t Phase, const VisibilityFrameConfiguration& Frame) noexcept;
     void                 ReadTelemetry(uint32_t CycleSlot) noexcept;
+
+    // R10 — the emissive triangles, cached at UploadScene so PlaceShadowTaps never walks the scene per frame.
+    struct EmissiveTriangle
+    {
+        float A[3]{}, B[3]{}, C[3]{};     // [m]   world-space vertices
+        float Normal[3]{};                // [-]   unit face normal
+        float Area = 0.0f;                // [m²]
+        float Radiance[3]{};              // [nit]
+    };
+    std::vector<EmissiveTriangle> Emitters;
+    float                SceneCentre[3]{ 0.0f, 0.0f, 0.0f };   // [m] every tap frustum aims here
+    float                SceneDiagonal = 1.0f;                 // [m] sets the light far plane
 
     VisibilityTelemetry  Telemetry;
     Matrix4x4            PreviousViewClip;      // [-]  last frame's unjittered world → clip

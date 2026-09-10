@@ -113,9 +113,17 @@ float ShadowLitFraction(vec3 World, vec3 Normal, float NdotL, uint Tap)
     if (Kind == kShadowFilterPcf)
         return ShadowFilterLit(Texel, Receiver, Bias, float(Taps) * 0.5, Taps, Tap);
 
-    // Texels per metre at the receiver's depth: the frustum is 2·z·tan(half) metres across Side texels. The half
-    //    angle is recovered from the projection matrix rather than passed again, so the two cannot drift apart.
-    float TanHalf        = 1.0 / max(ShadowLightClip[Tap][1][1], 1e-6);
+    // Texels per metre at the receiver's depth: the frustum is 2·z·tan(half) metres across Side texels.
+    //
+    // ⚠️ This used to recover the half-angle as 1.0 / ShadowLightClip[Tap][1][1], on the reasoning that a value read
+    //    back from the matrix "cannot drift apart" from it. That is true of a bare PROJECTION matrix, where [1][1]
+    //    is exactly ±1/tan(half). ShadowLightClip is Projection · View, so the element also carries the light's own
+    //    basis — it is (−1/tanHalf)·Up.y — and the recovery is only right when the light happens to look along an
+    //    axis that leaves Up.y = ∓1. Measured over six orientations (Scratchpad/ShadowMatrixProof.cpp) every one was
+    //    wrong: a ceiling lamp aimed straight down recovered 1e6 instead of 2.14, because Up.y is 0 there and the
+    //    clamp floors the divisor — a penumbra 466,000× too wide, i.e. PCSS destroyed in the most ordinary setup
+    //    there is. The tangent is now carried explicitly beside the tap it belongs to.
+    float TanHalf        = max(ShadowTapNormal[Tap].w, 1e-6);
     float TexelsPerMetre = Side / max(2.0 * Receiver * TanHalf, 1e-6);
 
     // PCSS.

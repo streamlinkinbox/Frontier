@@ -25,7 +25,7 @@ layout(std140, set = 1, binding = 0) uniform ShadowConstants
     mat4 ShadowLightClip[kShadowMaximumTaps];   // world → light clip, one per tap (ordinary depth, near→0 far→1)
     vec4 ShadowTapOrigin[kShadowMaximumTaps];   // xyz = the tap's world position, w = the luminaire's size [m] (PCSS LightSize)
     vec4 ShadowTapRadiance[kShadowMaximumTaps]; // xyz = the tap's emitted radiance [nit], w = the area it integrates [m²]
-    vec4 ShadowTapNormal[kShadowMaximumTaps];   // xyz = the emitter's unit normal (the LdotL term), w = unused
+    vec4 ShadowTapNormal[kShadowMaximumTaps];   // xyz = the emitter's unit normal (the LdotL term), w = tan(half-angle) of this tap's frustum
     vec4 ShadowGeometry;                        // x = map side [px], y = light near [m], z = light far [m], w = depth bias [m]
     uvec4 ShadowControl;                        // x = filter kind, y = filter taps per side, z = live tap count, w = flags
 };
