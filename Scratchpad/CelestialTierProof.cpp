@@ -58,10 +58,10 @@ int main()
         const FidelityCriteria Criteria = Classifier.ConstructCriteria(AutoTierLadder::kOrder[T]);
         Budgets[T] = CelestialTier::BudgetFor(Criteria);
         Costs[T]   = CelestialTier::RelativeCost(Budgets[T]);
-        std::printf("     %-11s %6u %6u %5u %7u %6u %6u %7u %10.1f\n",
+        std::printf("     %-11s %6u %6u %5u %6u %6u %7u %10.1f\n",
                     Name(AutoTierLadder::kOrder[T]),
                     Budgets[T].Volumetrics.CloudSteps, Budgets[T].Volumetrics.LocalSteps,
-                    Budgets[T].Volumetrics.LightTaps, Budgets[T].Volumetrics.GodRaySamples,
+                    Budgets[T].Volumetrics.LightTaps,
                     Budgets[T].AtmosphereSamples, Budgets[T].AtmosphereLightSamples,
                     Budgets[T].StarLayers, Costs[T]);
     }
@@ -81,7 +81,6 @@ int main()
         if (Costs[T] <= Costs[T - 1]) CostRises = false;
     Expect(CostRises, "relative cost rises strictly with the tier, so Auto can order them");
 
-    Expect(Budgets[0].Volumetrics.GodRaySamples == 0u, "Minimal still spends nothing on shafts");
     Expect(Budgets[4].Volumetrics.CloudSteps == 64u && Budgets[4].AtmosphereSamples == 32u,
            "Reference carries the Cinematic-collapsed figures from the plan's mapping");
 

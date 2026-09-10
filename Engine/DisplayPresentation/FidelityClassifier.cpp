@@ -48,7 +48,6 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.AtmosphereLightSampleCount  = 3;
             Criteria.StarLayerCount              = 2;
             Criteria.StarSuperSampleCount        = 1;
-            Criteria.GodRaySampleCount           = 0;
             Criteria.CloudCoverageMargin         = 0.10f;
             break;
 
@@ -74,7 +73,6 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.AtmosphereLightSampleCount  = 4;
             Criteria.StarLayerCount              = 3;
             Criteria.StarSuperSampleCount        = 1;
-            Criteria.GodRaySampleCount           = 8;
             Criteria.CloudCoverageMargin         = 0.06f;
             break;
 
@@ -100,7 +98,6 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.AtmosphereLightSampleCount  = 6;
             Criteria.StarLayerCount              = 3;
             Criteria.StarSuperSampleCount        = 1;
-            Criteria.GodRaySampleCount           = 16;
             Criteria.CloudCoverageMargin         = 0.03f;
             break;
 
@@ -126,7 +123,6 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.AtmosphereLightSampleCount  = 8;
             Criteria.StarLayerCount              = 3;
             Criteria.StarSuperSampleCount        = 2;
-            Criteria.GodRaySampleCount           = 24;
             Criteria.CloudCoverageMargin         = 0.00f;
             break;
 
@@ -153,7 +149,6 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.AtmosphereLightSampleCount  = 12;
             Criteria.StarLayerCount              = 4;
             Criteria.StarSuperSampleCount        = 2;
-            Criteria.GodRaySampleCount           = 32;
             Criteria.CloudCoverageMargin         = 0.00f;
             break;
     }

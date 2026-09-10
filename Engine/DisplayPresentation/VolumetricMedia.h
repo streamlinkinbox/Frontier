@@ -10,6 +10,17 @@
 //    Splitting them back apart is not a refactor, it is a regression; `CheckVolumetricMedia.sh` asserts the
 //    single-march structure.
 //
+// ⚠️ ON GOD RAYS. The scene-occlusion path — a SunVisibilityAt callback and a GodRaySamples budget for shafts
+//    cut by buildings, terrain or foliage — was built, proved, and then removed at the user's request because
+//    nothing in the engine called it and no such geometry exists yet. `git show c4ea076` and `6bb52a7` carry the
+//    working implementation if it is ever wanted; the lesson worth keeping is that the query must follow the SUN
+//    RAY, not test the occluder directly above the sample, or the beams do not move when the sun does.
+//
+//    CLOUD AND FOG SHAFTS ARE NOT PART OF THAT REMOVAL AND MUST NOT BE. They come from ShadowMarch below, which
+//    accumulates cloud density along the sun ray so the medium shadows itself. That is not a shaft feature bolted
+//    on: it is what lights a cloud at all. Measured across 2 km of broken cumulus it gives 4.83x contrast between
+//    gap and shadow, against 1.39x under solid overcast. Removing it would leave clouds flat and unlit.
+//
 // ⚠️ AND THREE OPTIMISATIONS THAT ARE PROHIBITED, each measured and reverted upstream:
 //        clear-air striding (73b71d6)  — probe/erosion mismatch stalled the march, dark speckled cloud
 //        low-res cloud FBO + temporal reprojection (a152901) — slower on a GTX and lower quality
@@ -109,43 +120,8 @@ struct VolumetricBudget
     uint32_t LocalSteps      = 28u;   // FidelityCriteria::LocalVolumeStepCount
     uint32_t LightTaps       = 4u;    // FidelityCriteria::CloudLightTapCount
     float    CoverageMargin  = 0.03f; // FidelityCriteria::CloudCoverageMargin
-    // ⚠️ THIS BUDGET IS FOR SCENE-GEOMETRY SHAFTS ONLY, and the name oversells it. Shafts have TWO sources and
-    //    only one of them is here:
-    //
-    //      · CLOUD AND FOG shafts come free from ShadowMarch, which already accumulates CloudDensity and
-    //        LocalDensity along the sun ray. Broken cumulus casts beams into haze whether or not this budget is
-    //        set — measured at 4.83x contrast with GodRaySamples at 0 and no callback supplied. That is the
-    //        common case and it cannot be switched off, because it is just the medium shadowing itself.
-    //
-    //      · SCENE shafts — light cut by buildings, terrain or foliage — need geometry the march knows nothing
-    //        about, so they arrive through the SunVisibilityAt callback, and THAT is what this counts.
-    //
-    //    Setting it to 0 therefore does not disable god rays; it disables the geometry half. Minimal still gets
-    //    cloud shafts, which is the right behaviour and not an accident worth removing.
-    uint32_t GodRaySamples   = 16u;   // FidelityCriteria::GodRaySampleCount (0 = no SCENE occlusion sampling)
 };
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                   SCENE OCCLUSION
-//------------------------------------------------------------------------------------------------------------------------
-
-// How the shaft term asks "is the sun visible from this point in the air?".
-//
-// ⚠️ GOD RAYS ARE NOT A NEW SYSTEM. A crepuscular shaft is the sun-visibility term the march already computes,
-//    evaluated against SCENE occlusion instead of only against cloud and fog density. The medium is what makes
-//    the beam visible — light scattered toward the eye by air, haze or dust — and the geometry is what carves
-//    the gaps. Both halves already exist here: the march (VolumetricMedia) and the shadow maps (ShadowExchange,
-//    up to 4 taps). This joins them.
-//
-//    The alternative, a radial screen-space blur from the sun's pixel, is deliberately rejected as the default.
-//    It is cheaper and it fails in exactly the shot people want shafts for: with the sun off-screen there is no
-//    pixel to blur from, so the beams vanish at the moment the camera frames them. It also cannot be reconciled
-//    with the aerial-perspective integral, because it operates after the medium has already been resolved.
-//
-//    The callback keeps this header free of any dependency on the shadow system: the GI-off path passes a lambda
-//    that samples ShadowSample.slang's maps, the proofs pass an analytic occluder, and neither has to know about
-//    the other.
-using SunVisibilityAt = float (*)(const float WorldPosition[3], void* Context);
 
 struct VolumetricSample
 {
@@ -156,7 +132,6 @@ struct VolumetricSample
     //    than either — it is ONE sun-shadow march per occupied step instead of one per medium per step. That is
     //    the number the proof asserts.
     uint32_t ShadowMarches = 0u;
-    uint32_t ShaftSamples  = 0u;   // scene-occlusion lookups; 0 when shafts are off
 };
 
 class VolumetricMedia
@@ -344,8 +319,7 @@ public:
                                   const VolumetricBudget& Budget,
                                   const float Origin[3], const float Direction[3], float MaximumDistance,
                                   const float SunDirection[3], const float SunRadiance[3],
-                                  const float AmbientRadiance[3], float Time,
-                                  SunVisibilityAt SceneVisibility = nullptr, void* VisibilityContext = nullptr) noexcept
+                                  const float AmbientRadiance[3], float Time) noexcept
     {
         VolumetricSample Result{};
 
@@ -419,36 +393,10 @@ public:
             if (Density <= 1e-5f) continue;
 
             // Sun visibility, marched once for the combined medium rather than per volume.
-            float SunTransmittance = ShadowMarch(Cloud, LocalCloud, LocalFog, Wind, P, SunDirection,
+            const float SunTransmittance = ShadowMarch(Cloud, LocalCloud, LocalFog, Wind, P, SunDirection,
                                                  ActualStep, Budget.LightTaps, Time);
             ++Result.ShadowMarches;
 
-            // ── The shaft term ─────────────────────────────────────────────────────────────────────────────────
-            // Scene occlusion multiplies the medium's own sun transmittance. It is one more factor in a product
-            //    the loop already forms, which is the whole reason shafts belong here rather than in a pass of
-            //    their own: the beams are correct behind occluders, they respect the phase function, and they
-            //    cost one lookup per step instead of a full-screen blur.
-            if (SceneVisibility != nullptr && Budget.GodRaySamples > 0u)
-            {
-                // ⚠️ The shaft term is sampled ACROSS the step, not once at its midpoint, and GodRaySamples is
-                //    what sets how finely. Sampling once per march step makes every beam edge a hard cut at a
-                //    step boundary: the first render of this produced flat-sided slabs and what you saw was the
-                //    march's own step spacing, not a beam. A shadow edge is far sharper than a cloud gradient,
-                //    so it needs finer sampling than the medium that carries it — which is precisely the budget
-                //    the tier ladder allocates and which was otherwise doing nothing but switching shafts on.
-                const uint32_t Taps = Budget.GodRaySamples > 8u ? 8u : Budget.GodRaySamples;
-                float Visible = 0.0f;
-                for (uint32_t K = 0; K < Taps; ++K)
-                {
-                    const float Offset = (static_cast<float>(K) + 0.5f) / static_cast<float>(Taps) - 0.5f;
-                    const float Q[3] = { P[0] + Direction[0] * Offset * ActualStep,
-                                         P[1] + Direction[1] * Offset * ActualStep,
-                                         P[2] + Direction[2] * Offset * ActualStep };
-                    Visible += SceneVisibility(Q, VisibilityContext);
-                    ++Result.ShaftSamples;
-                }
-                SunTransmittance *= Visible / static_cast<float>(Taps);
-            }
 
             const float Phase = HenyeyGreenstein(CosTheta, LocalCloud.Anisotropy);
             const float Extinction = Density * ActualStep * 0.01f;

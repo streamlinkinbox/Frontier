@@ -148,7 +148,6 @@ struct FidelityCriteria
     uint32_t                AtmosphereLightSampleCount;         // [count] sun-ray samples per atmosphere sample
     uint32_t                StarLayerCount;                     // [count] star field layers
     uint32_t                StarSuperSampleCount;               // [count] star AA samples (1 = none)
-    uint32_t                GodRaySampleCount;                  // [count] crepuscular shaft samples (0 = off)
     float                   CloudCoverageMargin;                // [0..1] early-out slack on the coverage probe
     bool                    GlobalIlluminationEnabled;          // [bool] indirect radiosity ReSTIR GI
     bool                    AntiAliasingEnabled;                // [bool] sub-pixel jitter + temporal accumulation

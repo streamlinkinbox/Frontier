@@ -73,24 +73,20 @@ echo "[VolumetricMedia] the prohibited optimisations have not returned"
 #    version of this check matched its own documentation and failed forever — the same trap CheckShadowTiers
 #    records for the PCSS half-angle. Check the code, not the prose.
 MediaCode="$(sed 's;//.*;;' "$Header")"
-echo
-echo "[VolumetricMedia] god rays ride the march, not a screen-space pass"
-# A crepuscular shaft is the sun-visibility term the march already computes, evaluated against scene occlusion.
-#    A separate full-screen radial blur would be cheaper and would fail with the sun off-screen, which is exactly
-#    the shot shafts are wanted for.
-printf '%s' "$MediaCode" | grep -q 'SunVisibilityAt SceneVisibility'
-Report $? "the march takes a scene-occlusion source"
-printf '%s' "$MediaCode" | grep -q 'SunTransmittance \*= Visible'
-Report $? "occlusion multiplies the existing sun term rather than adding a pass"
-# The budget must subdivide the shaft term, not merely switch it on: a shadow edge is far sharper than the
-#    medium that carries it, and one sample per march step turns every beam edge into a step boundary.
-printf '%s' "$MediaCode" | grep -q 'Budget.GodRaySamples > 8u ? 8u : Budget.GodRaySamples'
-Report $? "GodRaySamples sets how finely the shaft is sampled across a step"
-! printf '%s' "$MediaCode" | grep -qiE 'radial.?blur|screenspace shaft'
-Report $? "no screen-space radial blur"
-
 ! printf '%s' "$MediaCode" | grep -qiE 'clear.?air strid|temporal reproject|reprojectionbuffer'
 Report $? "no clear-air striding or cloud temporal reprojection in the code"
+
+echo
+echo "[VolumetricMedia] cloud shafts come from the medium shadowing itself"
+# The scene-occlusion callback was removed - nothing in the engine called it and no such geometry exists yet.
+#    What stays is the half that renders: ShadowMarch accumulates cloud density along the sun ray, which is what
+#    lights a cloud at all. Deleting THAT would leave clouds flat, so it is guarded here.
+printf '%s' "$MediaCode" | grep -q 'Cloud.Enabled ? CloudDensity(Cloud, Wind, Q, Time) : 0.0f'
+Report $? "the sun-shadow march samples cloud density along the sun ray"
+! printf '%s' "$MediaCode" | grep -q 'SunVisibilityAt'
+Report $? "the unused scene-occlusion callback is gone"
+! printf '%s' "$MediaCode" | grep -qiE 'radial.?blur|screenspace shaft'
+Report $? "no screen-space radial blur"
 
 echo
 if [ "$Fail" != "0" ]; then echo "[VolumetricMedia] FAILED"; exit 1; fi

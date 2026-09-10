@@ -230,168 +230,15 @@ int main()
                "every marker category has an SVG glyph");
     }
 
-    // ── ⑥ god rays ─────────────────────────────────────────────────────────────────────────────────────────────
-    // A crepuscular shaft is the sun-visibility term the march already computes, evaluated against SCENE
-    // occlusion rather than only against cloud density. The properties that matter, and that a screen-space
-    // radial blur cannot deliver:
-    //    · the beam is made of MEDIUM — no fog, no shaft, however sharp the shadow,
-    //    · gaps in the occluder produce brighter columns than the shadowed parts, which is the effect itself,
-    //    · it works with the sun off-screen, because nothing is being smeared outward from the sun's pixel.
-    std::printf("\n6. god rays are the sun-visibility term, carved by scene occlusion\n");
-    {
-        // A slatted occluder overhead: alternating 20 m bands of blocked and open sky. This is the classic
-        //    louvre / cloud-gap arrangement, and it makes the answer countable rather than impressionistic.
-        // ⚠️ THE QUERY MUST FOLLOW THE SUN RAY. "Is the sun visible from P" means: walk from P toward the sun and
-        //    see what you meet. An earlier version of this occluder tested the slat directly above P, which
-        //    answers "which slat is P under" — a different question, and one that produces vertical columns
-        //    that do not move when the sun moves. The renders looked wrong and the assertions still passed,
-        //    because a gap was still brighter than a slat; only the shafts' ANGLE was meaningless.
-        struct Louvre
-        {
-            static float Visibility(const float P[3], void* Context) noexcept
-            {
-                const float PlaneZ = 120.0f;
-                const float* Sun = static_cast<const float*>(Context);
-                if (P[2] >= PlaneZ) return 1.0f;                 // above the slats: nothing blocks
-                if (Sun[2] <= 1e-3f) return 1.0f;                // sun on the horizon: no shaft geometry
-                const float T = (PlaneZ - P[2]) / Sun[2];        // along the sun ray to the occluder plane
-                const float X = P[0] + Sun[0] * T;               // where it crosses
-                return (static_cast<int>(std::floor(X / 20.0f)) & 1) == 0 ? 1.0f : 0.0f;
-            }
-        };
-
-        LocalVolumeSettings Haze{};
-        Haze.Enabled = true;
-        Haze.Centre[0] = 0.0f; Haze.Centre[1] = 120.0f; Haze.Centre[2] = 60.0f;
-        Haze.HalfSize[0] = 200.0f; Haze.HalfSize[1] = 60.0f; Haze.HalfSize[2] = 60.0f;
-        Haze.Density = 2.2f; Haze.Coverage = 0.98f; Haze.Scale = 400.0f;
-        LocalVolumeSettings None{};
-        CloudLayerSettings NoCloud{};
-
-        VolumetricBudget Shafted = Budget;  Shafted.GodRaySamples = 16u;
-        VolumetricBudget Plain   = Budget;  Plain.GodRaySamples = 0u;
-
-        const float Eye[3] = { 0.0f, 0.0f, 40.0f };
-        const float Sun[3] = { 0.0f, 0.20f, 0.98f };
-        const float Radiance[3] = { 30.0f, 29.0f, 27.0f }, Ambient[3] = { 0.4f, 0.5f, 0.7f };
-
-        // Sample across the slats. A lit column and a shadowed one must differ; without the shaft term they
-        //    cannot, because nothing else in the march knows the occluder exists.
-        auto ColumnBrightness = [&](float X, const VolumetricBudget& B, bool WithScene) -> double
-        {
-            float Direction[3] = { X - Eye[0], 120.0f - Eye[1], 60.0f - Eye[2] };
-            const float L = std::sqrt(Direction[0]*Direction[0] + Direction[1]*Direction[1] + Direction[2]*Direction[2]);
-            for (int C = 0; C < 3; ++C) Direction[C] /= L;
-            const VolumetricSample S = VolumetricMedia::March(
-                NoCloud, Haze, None, Wind, B, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-                WithScene ? &Louvre::Visibility : nullptr, const_cast<float*>(Sun));
-            return S.Scatter[0] + S.Scatter[1] + S.Scatter[2];
-        };
-
-        const double OpenBand    = ColumnBrightness(10.0f, Shafted, true);    // band 0: open
-        const double BlockedBand = ColumnBrightness(30.0f, Shafted, true);    // band 1: blocked
-        const double NoShafts    = ColumnBrightness(30.0f, Plain, false);
-        std::printf("     open column %.4f, blocked column %.4f, shafts off %.4f\n",
-                    OpenBand, BlockedBand, NoShafts);
-        Expect(OpenBand > BlockedBand * 1.5,
-               "a gap in the occluder is markedly brighter than the shadowed band");
-        Expect(NoShafts > BlockedBand,
-               "with shafts off the occluder is ignored entirely, as it was before");
-
-        // No medium, no shaft. This is what separates a real beam from a screen-space glow: the light is only
-        //    visible because something is scattering it toward the eye.
-        LocalVolumeSettings Vacuum = Haze;
-        Vacuum.Enabled = false;
-        float Direction[3] = { 10.0f - Eye[0], 120.0f, 20.0f };
-        const float DL = std::sqrt(Direction[0]*Direction[0] + Direction[1]*Direction[1] + Direction[2]*Direction[2]);
-        for (int C = 0; C < 3; ++C) Direction[C] /= DL;
-        const VolumetricSample Empty = VolumetricMedia::March(
-            NoCloud, Vacuum, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, const_cast<float*>(Sun));
-        std::printf("     with no medium at all: %.6f\n",
-                    Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2]);
-        Expect(Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2] < 1e-6,
-               "no medium means no shaft, however sharp the shadow");
-
-        // The sun off-screen. A radial blur has no pixel to work from here; this does not care, because the
-        //    term is evaluated in world space at each march step.
-        const float Behind[3] = { 0.0f, -0.20f, 0.98f };
-        const VolumetricSample OffScreen = VolumetricMedia::March(
-            NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Behind, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, const_cast<float*>(Sun));
-        std::printf("     sun behind the camera: %.4f of in-scatter still resolved\n",
-                    OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2]);
-        Expect(OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2] > 0.0,
-               "shafts still resolve with the sun out of frame");
-
-        // The budget must actually gate the work, or the tier ladder is decorative.
-        const VolumetricSample Counted = VolumetricMedia::March(
-            NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, const_cast<float*>(Sun));
-        const VolumetricSample Uncounted = VolumetricMedia::March(
-            NoCloud, Haze, None, Wind, Plain, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, const_cast<float*>(Sun));
-        std::printf("     occlusion lookups: budget 16 -> %u, budget 0 -> %u\n",
-                    Counted.ShaftSamples, Uncounted.ShaftSamples);
-        Expect(Counted.ShaftSamples > 0u && Uncounted.ShaftSamples == 0u,
-               "GodRaySamples 0 costs nothing at all, so Minimal really is free");
-
-        // ⚠️ THE SHAFTS MUST MOVE WHEN THE SUN MOVES. Every brightness assertion above passes even with an
-        //    occlusion query that ignores the sun entirely — a gap is still brighter than a slat, so brightness
-        //    alone cannot tell a real shaft from a vertical column sitting under a hole. That was the actual
-        //    defect: the renders looked wrong long before any check complained.
-        //
-        //    ⚠️ And the obvious test does not work either. Comparing two sun azimuths directly scored 21.3% for
-        //    the correct occluder and 13.3% for the broken one — because HenyeyGreenstein depends on the angle
-        //    between the view ray and the sun, so swinging the sun changes every sample whether or not anything
-        //    is occluding. The metric was mostly measuring the phase function.
-        //
-        //    So each sun angle is NORMALISED against an unoccluded march at the same angle. That divides the
-        //    phase change out and leaves only the shadow pattern, which is the thing under test.
-        {
-            const float East[3] = { 0.55f, 0.20f, 0.81f };
-            const float West[3] = { -0.55f, 0.20f, 0.81f };
-            double Difference = 0.0, Magnitude = 0.0;
-            for (int I = 0; I < 24; ++I)
-            {
-                const float X = -60.0f + static_cast<float>(I) * 5.0f;
-                float Ray[3] = { X - Eye[0], 120.0f - Eye[1], 60.0f - Eye[2] };
-                const float RL = std::sqrt(Ray[0]*Ray[0] + Ray[1]*Ray[1] + Ray[2]*Ray[2]);
-                for (int C = 0; C < 3; ++C) Ray[C] /= RL;
-
-                auto Shadowed = [&](const float* SunDirection) -> double
-                {
-                    const VolumetricSample Occluded = VolumetricMedia::March(
-                        NoCloud, Haze, None, Wind, Shafted, Eye, Ray, 1000.0f, SunDirection, Radiance, Ambient,
-                        0.0f, &Louvre::Visibility, const_cast<float*>(SunDirection));
-                    const VolumetricSample Open = VolumetricMedia::March(
-                        NoCloud, Haze, None, Wind, Plain, Eye, Ray, 1000.0f, SunDirection, Radiance, Ambient,
-                        0.0f, nullptr, nullptr);
-                    const double A = Occluded.Scatter[0] + Occluded.Scatter[1] + Occluded.Scatter[2];
-                    const double B = Open.Scatter[0] + Open.Scatter[1] + Open.Scatter[2];
-                    return B > 1e-9 ? A / B : 1.0;      // the shadow pattern alone, phase divided out
-                };
-
-                const double Ea = Shadowed(East), We = Shadowed(West);
-                Difference += std::fabs(Ea - We);
-                Magnitude  += Ea + We;
-            }
-            const double Relative = Magnitude > 1e-9 ? Difference / Magnitude : 0.0;
-            std::printf("     swinging the sun east/west moves the shadow pattern by %.1f%%\n", Relative * 100.0);
-            // 15.3% with a correct occluder against 2.7% for a sun-independent one, measured; 8% sits between them.
-            Expect(Relative > 0.08,
-                   "the shafts follow the sun — a sun-independent occluder scores near zero here");
-        }
-    }
-
-    // ── ⑥b clouds cast their own shafts ────────────────────────────────────────────────────────────────────────
-    // The case that matters, and the one section ⑥ does NOT cover: it uses a synthetic louvre with clouds
-    // disabled. Broken cumulus over haze must produce beams with no callback at all, because ShadowMarch already
-    // accumulates cloud density along the sun ray — the medium shadows itself.
+    // ── ⑥ clouds cast their own shafts ────────────────────────────────────────────────────────────────────────
+    // Cloud shafts are not a feature bolted onto the march — they are what lights a cloud at all. ShadowMarch
+    // accumulates cloud density along the sun ray, so broken cumulus shadows itself and beams appear in any haze
+    // beneath it with nothing extra asked for.
     //
-    // This also pins the distinction the budget's name hides: GodRaySamples gates SCENE occlusion only. Cloud
-    // and fog shafts are not gated by it and cannot be switched off, which is correct.
-    std::printf("\n6b. broken cloud casts shafts into haze, with no callback\n");
+    // The scene-occlusion path that used to sit above this section (a callback for shafts cut by buildings or
+    // terrain) was removed: nothing in the engine called it and no such geometry exists yet. This section is
+    // what remains, and it is the case that actually renders.
+    std::printf("\n6. broken cloud casts shafts into haze — the medium shadows itself\n");
     {
         CloudLayerSettings Broken{};
         Broken.Enabled = true; Broken.Type = CloudTypeCategory::Cumulus;
@@ -411,8 +258,7 @@ int main()
         const float Bright[3] = { 60.0f, 58.0f, 54.0f }, Fill[3] = { 0.35f, 0.45f, 0.62f };
 
         VolumetricBudget CloudOnly = Budget;
-        CloudOnly.CloudSteps = 48u; CloudOnly.LocalSteps = 48u;
-        CloudOnly.LightTaps = 5u; CloudOnly.GodRaySamples = 0u;   // scene shafts OFF on purpose
+        CloudOnly.CloudSteps = 48u; CloudOnly.LocalSteps = 48u; CloudOnly.LightTaps = 5u;
 
         double Lowest = 1e30, Highest = -1e30;
         for (int I = 0; I < 41; ++I)
@@ -424,7 +270,7 @@ int main()
             for (int C = 0; C < 3; ++C) Ray[C] /= RL;
             const VolumetricSample Sample = VolumetricMedia::March(
                 Broken, Air, Nothing, Wind, CloudOnly, Eye, Ray, 6000.0f,
-                SunUp, Bright, Fill, 0.0f);      // no callback, no context
+                SunUp, Bright, Fill, 0.0f);
             const double Energy = Sample.Scatter[0] + Sample.Scatter[1] + Sample.Scatter[2];
             Lowest = std::fmin(Lowest, Energy); Highest = std::fmax(Highest, Energy);
         }
@@ -467,9 +313,6 @@ int main()
                                             FidelityCategory::ReferenceFidelity };
         const char* Names[5] = { "Minimal", "Economy", "Standard", "Ultra", "Reference" };
 
-        struct Louvre2 { static float Visibility(const float P[3], void*) noexcept
-            { return (static_cast<int>(std::floor(P[0] / 20.0f)) & 1) == 0 ? 1.0f : 0.0f; } };
-
         LocalVolumeSettings Haze{};
         Haze.Enabled = true;
         Haze.Centre[0] = 0.0f; Haze.Centre[1] = 120.0f; Haze.Centre[2] = 60.0f;
@@ -485,7 +328,7 @@ int main()
         const float Sun[3] = { 0.0f, 0.20f, 0.98f };
         const float Radiance[3] = { 30.0f, 29.0f, 27.0f }, Ambient[3] = { 0.4f, 0.5f, 0.7f };
 
-        std::printf("     %-11s %7s %7s %9s %11s\n", "tier", "cloud", "local", "godray", "shaft taps");
+        std::printf("     %-11s %7s %7s %7s %7s\n", "tier", "cloud", "local", "taps", "atmN");
         uint32_t Previous = 0u;
         bool Rising = true, MinimalFree = false;
         for (int T = 0; T < 5; ++T)
@@ -496,22 +339,21 @@ int main()
             Budgeted.LocalSteps    = Criteria.LocalVolumeStepCount;
             Budgeted.LightTaps     = Criteria.CloudLightTapCount;
             Budgeted.CoverageMargin= Criteria.CloudCoverageMargin;
-            Budgeted.GodRaySamples = Criteria.GodRaySampleCount;
 
             const VolumetricSample Sample = VolumetricMedia::March(
                 NoCloud, Haze, None, Wind, Budgeted, Eye, Direction, 1000.0f,
-                Sun, Radiance, Ambient, 0.0f, &Louvre2::Visibility, nullptr);
+                Sun, Radiance, Ambient, 0.0f);
 
-            std::printf("     %-11s %7u %7u %9u %11u\n", Names[T],
+            std::printf("     %-11s %7u %7u %7u %7u\n", Names[T],
                         Criteria.CloudMarchStepCount, Criteria.LocalVolumeStepCount,
-                        Criteria.GodRaySampleCount, Sample.ShaftSamples);
+                        Criteria.CloudLightTapCount, Criteria.AtmosphereSampleCount);
 
-            if (T == 0 && Sample.ShaftSamples == 0u) MinimalFree = true;
-            if (T > 0 && Sample.ShaftSamples < Previous) Rising = false;
-            Previous = Sample.ShaftSamples;
+            if (T == 0) MinimalFree = Sample.StepsTaken > 0u;
+            if (T > 0 && Sample.StepsTaken < Previous) Rising = false;
+            Previous = Sample.StepsTaken;
         }
-        Expect(MinimalFree, "Minimal spends nothing on shafts, as the ladder says");
-        Expect(Rising, "higher tiers spend more on them");
+        Expect(MinimalFree, "even Minimal marches the medium");
+        Expect(Rising, "higher tiers march it more finely");
     }
 
     std::printf("\n");

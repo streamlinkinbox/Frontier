@@ -29,7 +29,7 @@ echo
 echo "[CelestialTiers] the ladder lives in exactly one place"
 # The budgets are assigned in FidelityClassifier.cpp and nowhere else. Any other assignment is a second copy.
 Stray=$(grep -rln --include=*.cpp --include=*.h --include=*.slang \
-        -e 'CloudMarchStepCount *=' -e 'AtmosphereSampleCount *=' -e 'GodRaySampleCount *=' \
+        -e 'CloudMarchStepCount *=' -e 'AtmosphereSampleCount *=' -e 'LocalVolumeStepCount *=' \
         Engine/ Projects/ 2>/dev/null | grep -v 'FidelityClassifier.cpp' || true)
 [ -z "$Stray" ]
 Report $? "no second copy of the budgets ($(echo "$Stray" | tr '\n' ' '))"
@@ -56,7 +56,7 @@ echo "[CelestialTiers] nothing translates a tier except CelestialTier"
 #    definition and the whole point of it - so a bare name match flags the one file that is allowed to.
 #    The pattern requires the field NOT be followed by '=', which is what separates a read from a write.
 Hand=$(grep -rlnE --include=*.cpp --include=*.h \
-       'Criteria\.(CloudMarchStepCount|GodRaySampleCount|CloudLightTapCount|AtmosphereSampleCount)[^=]*[;,)]' \
+       'Criteria\.(CloudMarchStepCount|LocalVolumeStepCount|CloudLightTapCount|AtmosphereSampleCount)[^=]*[;,)]' \
        Engine/ 2>/dev/null | grep -v 'CelestialTier.h' || true)
 [ -z "$Hand" ]
 Report $? "no engine file assembles a celestial budget by hand ($Hand)"

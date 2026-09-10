@@ -57,7 +57,6 @@ public:
         Budget.Volumetrics.LocalSteps     = Criteria.LocalVolumeStepCount;
         Budget.Volumetrics.LightTaps      = Criteria.CloudLightTapCount;
         Budget.Volumetrics.CoverageMargin = Criteria.CloudCoverageMargin;
-        Budget.Volumetrics.GodRaySamples  = Criteria.GodRaySampleCount;
 
         Budget.AtmosphereSamples      = Criteria.AtmosphereSampleCount;
         Budget.AtmosphereLightSamples = Criteria.AtmosphereLightSampleCount;
@@ -78,8 +77,7 @@ public:
     [[nodiscard]] static float RelativeCost(const CelestialBudget& Budget) noexcept
     {
         const float March = static_cast<float>(Budget.Volumetrics.CloudSteps)
-                          * (1.0f + static_cast<float>(Budget.Volumetrics.LightTaps) * 0.5f
-                                  + static_cast<float>(Budget.Volumetrics.GodRaySamples) * 0.25f);
+                          * (1.0f + static_cast<float>(Budget.Volumetrics.LightTaps) * 0.5f);
         const float Local = static_cast<float>(Budget.Volumetrics.LocalSteps) * 0.6f;
         const float Sky   = static_cast<float>(Budget.AtmosphereSamples)
                           * static_cast<float>(Budget.AtmosphereLightSamples) * 0.05f;
