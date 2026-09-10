@@ -91,7 +91,10 @@ struct VisibilityTelemetry
     float    RasterMilliseconds   = 0.0f;
     float    HiZMilliseconds      = 0.0f;
     float    ResolveMilliseconds  = 0.0f;
-    float    KernelMilliseconds   = 0.0f;
+    float    KernelMilliseconds   = 0.0f;   // post-resolve compute MINUS the shadow stage (denoise + luminance + ReSTIR)
+    float    ShadowMilliseconds   = 0.0f;   // R10 ②: the GI-off shadow stage — maps rasterised + ShadowResolve
+    float    RestirMilliseconds   = 0.0f;   // R10 ②: the ReSTIR dispatch alone (0 when GI is off)
+    float    PostMilliseconds     = 0.0f;   // R10 ②: trailing compute that is neither — denoise + luminance
     bool     Valid                = false;
 };
 
@@ -179,6 +182,9 @@ public:
     // Kernel timing bracket (timestamps written into this slot's query pool).
     void                RecordKernelBegin(void* Command, uint32_t CycleSlot) noexcept;
     void                RecordKernelEnd(void* Command, uint32_t CycleSlot) noexcept;
+    // R10 ②: brackets the ReSTIR dispatch itself, so its cost is not conflated with denoise and luminance.
+    void                RecordRestirBegin(void* Command, uint32_t CycleSlot) noexcept;
+    void                RecordRestirEnd(void* Command, uint32_t CycleSlot) noexcept;
 
     // Resources the interim kernel binds (VkImageView / VkBuffer as void*; GENERAL layout images).
     [[nodiscard]] void* QuerySurfaceView()     const noexcept;

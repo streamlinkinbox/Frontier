@@ -23,7 +23,13 @@ namespace Frontier {
 //------------------------------------------------------------------------------------------------------------------------
 
 static constexpr uint32_t kMaximumCycleSlots = 3u;
-static constexpr uint32_t kTimestampCount    = 12u;   // per slot: cull1 ×2, raster1 ×2, hiz ×2, cull2 ×2 (folded), raster2, resolve ×2, kernel ×2
+// Per slot: cull1 ×2, raster1 ×2, hiz ×2, cull2 ×2 (folded), raster2, resolve ×2, kernel ×2, then R10 ②'s shadow
+//    pair. Query 11 closes whatever ran after the resolve, so before the shadow stage existed it was "the kernel";
+//    with GI off the kernel is not dispatched and the same span is the shadow stage instead. Attributing that to
+//    "kernel" would have reported a busy shadow frame as ReSTIR time in a mode where ReSTIR never ran, so the
+//    shadow stage now brackets itself: 12 at its start, 13 at its end, and the reader subtracts it out.
+//    14/15 do the same for the ReSTIR dispatch alone, so "kernel" stops meaning "kernel + denoise + luminance".
+static constexpr uint32_t kTimestampCount    = 16u;
 static constexpr uint32_t kCounterCount      = 8u;    // SceneRecords.slang kCounterCount
 static constexpr uint32_t kCounterDrawPhaseTwoByte = 7u * 4u;
 
@@ -1054,15 +1060,51 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
         Telemetry.TrianglesDrawn  = Counters[5];
         Telemetry.PhaseTwoDraws   = Counters[7];
     }
-    uint64_t Stamps[kTimestampCount]{};
-    if (vkGetQueryPoolResults(Vulkan->Device, Vulkan->Timestamps, Slot * kTimestampCount, kTimestampCount, sizeof(Stamps), Stamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT) == VK_SUCCESS)
+    // WITH_AVAILABILITY, and two words per query: the shadow pair is only written on frames the shadow stage
+    //    actually recorded (GI off, shadow frame valid). A reset-but-never-written query returns UNDEFINED data,
+    //    not zero, so without the availability word a GI-on frame would subtract garbage from the kernel figure.
+    //    The flag makes the driver tell us which stamps are real; unavailable ones are treated as "stage absent".
+    uint64_t Stamps[kTimestampCount * 2u]{};
+    if (vkGetQueryPoolResults(Vulkan->Device, Vulkan->Timestamps, Slot * kTimestampCount, kTimestampCount,
+                              sizeof(Stamps), Stamps, sizeof(uint64_t) * 2u,
+                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) == VK_SUCCESS)
     {
-        const auto Ms = [&](uint32_t A, uint32_t B) { return Stamps[B] > Stamps[A] ? static_cast<float>(static_cast<double>(Stamps[B] - Stamps[A]) * Vulkan->TimestampPeriod * 1e-6) : 0.0f; };
+        const auto Have  = [&](uint32_t I) { return Stamps[I * 2u + 1u] != 0u; };
+        const auto Value = [&](uint32_t I) { return Stamps[I * 2u]; };
+        const auto Ms = [&](uint32_t A, uint32_t B) {
+            if (!Have(A) || !Have(B) || Value(B) <= Value(A)) return 0.0f;
+            return static_cast<float>(static_cast<double>(Value(B) - Value(A)) * Vulkan->TimestampPeriod * 1e-6);
+        };
         Telemetry.CullMilliseconds    = Ms(0, 1) + Ms(6, 7);
         Telemetry.RasterMilliseconds  = Ms(2, 3) + Ms(8, 9);
         Telemetry.HiZMilliseconds     = Ms(4, 5);
         Telemetry.ResolveMilliseconds = Ms(9, 10);
-        Telemetry.KernelMilliseconds  = Ms(10, 11);
+
+        // R10 ② — the shadow stage, and the correction it forces on the kernel figure.
+        //
+        //    Query 11 is written at the very end of the frame's compute work, so the span 10→11 is "everything
+        //    after the resolve". That was the ReSTIR kernel back when the kernel was the only thing there. It is
+        //    not any more: with GI off the kernel is never dispatched and that same span is the shadow stage,
+        //    plus denoise and luminance in either mode. Reporting it unchanged would have shown a busy shadow
+        //    frame as several milliseconds of "kernel" in a mode where ReSTIR did not run at all — a number that
+        //    looks plausible and is entirely wrong, which is the worst kind.
+        //
+        //    So the shadow span is measured on its own and subtracted. The remainder is still not purely the
+        //    kernel (denoise and luminance live in it too), but it no longer contains the one stage that can be
+        //    attributed exactly, and it can never again report ReSTIR time for a frame that ran no ReSTIR.
+        const float Shadow   = Ms(12, 13);
+        const float Restir   = Ms(14, 15);
+        const float Trailing = Ms(10, 11);
+        Telemetry.ShadowMilliseconds = Shadow;
+        Telemetry.RestirMilliseconds = Restir;
+        // The kernel figure is now the ReSTIR dispatch when it ran, and otherwise whatever trailing work remains
+        //    once the shadow stage is removed. Both are exact; neither silently borrows the other's time.
+        Telemetry.KernelMilliseconds = Restir > 0.0f ? Restir
+                                     : (Trailing > Shadow ? Trailing - Shadow : 0.0f);
+        // What the trailing span holds beyond the stage that owns it: denoise + luminance, reported honestly
+        //    rather than folded into "kernel".
+        const float Owned = Restir > 0.0f ? Restir : Shadow;
+        Telemetry.PostMilliseconds = Trailing > Owned ? Trailing - Owned : 0.0f;
     }
     Telemetry.Valid = true;
 }
@@ -1431,6 +1473,11 @@ bool VisibilityExchange::RecordShadowFrame(void* CommandHandle, uint32_t Slot, c
         }
     }
 
+    // R10 ② — the shadow stage opens its own timestamp span. Written here rather than at the top of the function
+    //    because everything above is one-off resource creation (maps, framebuffers, descriptor refresh) that only
+    //    runs when the map size changes; timing it would report a resize as a slow frame.
+    vkCmdWriteTimestamp(Command, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 12u);
+
     // ② The constants for this frame, into this slot's own buffer (never touched while an earlier frame is in flight).
     if (Vulkan->ShadowConstants[Slot].Buffer == VK_NULL_HANDLE)
     {
@@ -1514,6 +1561,10 @@ bool VisibilityExchange::RecordShadowFrame(void* CommandHandle, uint32_t Slot, c
     vkCmdBindDescriptorSets(Command, VK_PIPELINE_BIND_POINT_COMPUTE, Vulkan->ShadowResolvePipelineLayout,
                             1u, 1u, &Vulkan->ShadowSets[Slot], 0u, nullptr);
     vkCmdDispatch(Command, (Vulkan->TargetExtent.width + 15u) / 16u, (Vulkan->TargetExtent.height + 15u) / 16u, 1u);
+
+    // Closes the span opened at ①. COMPUTE_SHADER rather than BOTTOM_OF_PIPE so the stamp waits for the resolve
+    //    dispatch above to retire — the maps' raster is already ordered before it by the render pass.
+    vkCmdWriteTimestamp(Command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 13u);
     return true;
 }
 
@@ -1522,6 +1573,19 @@ void VisibilityExchange::RecordKernelBegin(void* Command, uint32_t Slot) noexcep
     if (!IsReady()) return;
     (void)Slot;   // the kernel start is timestamp 10 (end of resolve) — nothing else runs between the two
     (void)Command;
+}
+
+// R10 ② — the ReSTIR dispatch's own span. Separate from RecordKernelEnd, which closes the whole trailing block.
+void VisibilityExchange::RecordRestirBegin(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 14u);
+}
+
+void VisibilityExchange::RecordRestirEnd(void* CommandHandle, uint32_t Slot) noexcept
+{
+    if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(CommandHandle), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, Vulkan->Timestamps, Slot * kTimestampCount + 15u);
 }
 
 void VisibilityExchange::RecordKernelEnd(void* CommandHandle, uint32_t Slot) noexcept

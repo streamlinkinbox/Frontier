@@ -2531,7 +2531,12 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
             VK_SHADER_STAGE_COMPUTE_BIT, 0u, sizeof(DispatchConfiguration), &Dispatch);
         const uint32_t GroupX = (RenderWidth  + kLocalGroupSizeX - 1u) / kLocalGroupSizeX;
         const uint32_t GroupY = (RenderHeight + kLocalGroupSizeY - 1u) / kLocalGroupSizeY;
+        // R10 ② — bracket the ReSTIR dispatch itself. The trailing span (query 10→11) also contains the à-trous
+        //    denoise and the luminance reduction, so without this pair "kernel" was really "kernel + denoise +
+        //    luminance" and no tier comparison could tell which of the three a change had moved.
+        Visibility.RecordRestirBegin(Command, Vulkan->ActiveSlot);
         vkCmdDispatch(Command, GroupX, GroupY, 1u);
+        Visibility.RecordRestirEnd(Command, Vulkan->ActiveSlot);
 
         // ②a R7 à-trous denoise. The kernel wrote LINEAR radiance + variance into denoise slot 0 and, with the
         //     feature on, skipped the tone map; the final level here performs it into the presentation image.
