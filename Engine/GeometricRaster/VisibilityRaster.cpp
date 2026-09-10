@@ -14,6 +14,7 @@
 #include "SceneStructure.h"
 #include "DisplayPresentation/AtmosphereModel.h"
 #include "DisplayPresentation/ColourTransfer.h"
+#include "DisplayPresentation/CelestialSolver.h"
 
 #include <algorithm>
 #include <cmath>
@@ -585,6 +586,8 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
     //    a Minimal frame integrates 8 steps and a Reference frame 32 — the panel never restates these.
     const float TanHalf = std::tan(FovYRadians * 0.5f);
     const float Aspect  = static_cast<float>(Width) / static_cast<float>(Height);
+    // One pixel's angular size. A star smaller than this would alias into a flicker as the camera turns.
+    const float PixelAngle = FovYRadians / static_cast<float>(Height);
     const auto SkyAlong = [&](size_t Idx, float* Out)
     {
         if (!Celestial_.Enabled)
@@ -605,6 +608,48 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                               Celestial_.CameraHeight, Dir,
                                                               Celestial_.SampleCount, Celestial_.LightSampleCount);
         Out[0] = S.Radiance[0]; Out[1] = S.Radiance[1]; Out[2] = S.Radiance[2];
+
+        // Stars, before twilight, because they are behind it: the glow washes them out near the horizon rather
+        //    than the other way round. Only the cell the ray falls in is tested — 8 920 stars binned into 1 024
+        //    cells means about 9 candidates instead of the whole catalogue (StarCatalogueIndex).
+        if (Celestial_.Stars != nullptr && !Celestial_.Stars->Empty())
+        {
+            // The catalogue is equatorial J2000 and the ray is in the horizon frame, so the ray is rotated into
+            //    the catalogue's frame rather than the catalogue into the ray's — one rotation per pixel instead
+            //    of one per star.
+            float Equatorial[3];
+            HorizonToEquatorial(Dir, Celestial_.LocalSiderealTime, Celestial_.Latitude, Equatorial);
+            const uint32_t Cell = StarCatalogueIndex::CellForDirection(Equatorial[0], Equatorial[1], Equatorial[2]);
+            const std::vector<StarCellRecord>& Cells = Celestial_.Stars->QueryCells();
+            if (Cell < Cells.size())
+            {
+                const std::vector<StarRecord>& All = Celestial_.Stars->QueryStars();
+                const StarCellRecord& Bucket = Cells[Cell];
+                for (uint32_t I = 0u; I < Bucket.Count; ++I)
+                {
+                    const StarRecord& Star = All[Bucket.First + I];
+                    const float Dot = Equatorial[0] * Star.DirectionX
+                                    + Equatorial[1] * Star.DirectionY
+                                    + Equatorial[2] * Star.DirectionZ;
+                    if (Dot <= 0.0f) continue;
+                    const float Angle = std::acos(std::fmin(1.0f, Dot));
+                    // A star is a point source: it must never be smaller than the pixel it lands on, or it
+                    //    aliases into a flicker as the camera turns. PixelAngle is the ray's own footprint.
+                    const float Radius = std::fmax(Celestial_.StarSize * 0.0004f, PixelAngle * 0.9f);
+                    if (Angle > Radius * 3.0f) continue;
+                    // Flat-topped core with a soft edge, plus a faint halo for the brightest.
+                    const float Core = Angle <= Radius ? 1.0f : std::exp(-((Angle - Radius) / (Radius * 0.8f))
+                                                                          * ((Angle - Radius) / (Radius * 0.8f)));
+                    // Gain 1.0, not a fraction. The catalogue's luminance is already relative to magnitude 0,
+                    //    so scaling it down crushes the faint end: at 0.02 a magnitude-4 star reached 4/255 and
+                    //    the sky rendered as a nearly empty black field with only Sirius faintly visible.
+                    const float Gain = Star.Luminance * Celestial_.StarBrightness * Core;
+                    Out[0] += Star.ColourRed * Gain;
+                    Out[1] += Star.ColourGreen * Gain;
+                    Out[2] += Star.ColourBlue * Gain;
+                }
+            }
+        }
 
         // Twilight rides on top of the physical integral. Single scattering cannot produce a lit sky once the sun
         //    is below the horizon (every sample is in the planet's shadow), so without this the pre-dawn sky is

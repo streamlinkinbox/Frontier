@@ -25,6 +25,11 @@ Positions verified independently after conversion: Sirius RA 101.29 Dec −16.72
 Arcturus RA 213.92 Dec +19.18 — each matching published values to two decimals, with Sirius blue-white
 (0.79, 0.85, 1.00) and Arcturus orange (1.00, 0.83, 0.69). All 8 920 direction vectors are unit length.
 
+**Now wired.** The three `.groundwork` files have moved into the tree as `Engine/GeometricRaster/StarCatalogueIndex.{h,cpp}`
+and `Scratchpad/StarCatalogueTest.cpp`, and the GI-off raster samples the catalogue. Against 8 920 stars the
+binning reports 1 022 of 1 024 cells occupied and 276 hits per 20 000 probes, where 178 stars gave 166 cells and
+12 hits — the sparseness that made the original decision is gone. Gated by `Scratchpad/CheckStarCatalogue.sh`.
+
 The original note follows, unchanged, because its reasoning is what made the trigger recognisable.
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -68,7 +68,32 @@ struct CelestialFrame
     float JulianDay       = 0.0f;   // [d]
     float MoonPhase       = 0.0f;   // [0..1] 0 = new, 0.5 = full
     float MoonIllumination= 0.0f;   // [0..1] lit fraction of the visible disc
+
+    // Local sidereal time [deg]. The star catalogue stores equatorial J2000 directions, which are fixed to the
+    //    sky rather than to the ground; this is the angle that turns one into the other, and it is what makes the
+    //    stars wheel about the celestial pole as the night passes instead of hanging still.
+    float LocalSiderealTime = 0.0f;
 };
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                              EQUATORIAL → HORIZON
+//------------------------------------------------------------------------------------------------------------------------
+
+// Rotates an equatorial J2000 direction into the observer's horizon frame (+X east, +Y north, +Z up), given the
+//    local sidereal time and latitude from a CelestialFrame. Free function rather than a method because the star
+//    field applies it to thousands of directions and has no business owning a solver.
+//
+//    ⚠️ Both rotations are needed and the order matters. Sidereal time alone spins the sky about the pole but
+//    leaves the pole itself overhead, which is only correct at the geographic pole; latitude alone tips a sky
+//    that is not turning. Applied together, in this order, Polaris sits at altitude = latitude, which is the
+//    check the proof makes.
+void EquatorialToHorizon(const float Equatorial[3], float LocalSiderealDegrees, float LatitudeDegrees,
+                         float OutHorizon[3]) noexcept;
+
+// The inverse. A star field wants this one: rotating the single view ray into the catalogue's frame costs one
+//    rotation per pixel, where rotating the catalogue into the ray's frame would cost one per star.
+void HorizonToEquatorial(const float Horizon[3], float LocalSiderealDegrees, float LatitudeDegrees,
+                         float OutEquatorial[3]) noexcept;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SOLVER

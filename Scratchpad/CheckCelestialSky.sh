@@ -36,6 +36,7 @@ if ! g++ -std=c++20 -O2 -msse4.2 -I . -I Engine -I Scratchpad \
      -I "$Cg" -I "$Ufbx" -I "$Stb" -I "$Bvh" -I "$Vkh" -o "$Sky" \
      Scratchpad/CelestialSkyProof.cpp \
      Engine/GeometricRaster/VisibilityRaster.cpp \
+     Engine/GeometricRaster/StarCatalogueIndex.cpp \
      Engine/GeometricRaster/SceneStructure.cpp \
      Engine/GeometricRaster/GeometryStructure.cpp \
      Engine/GeometricRaster/TraversalIndex.cpp \

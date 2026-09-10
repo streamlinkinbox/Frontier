@@ -30,6 +30,7 @@
 
 #include "DisplayPresentation/AtmosphereModel.h"
 #include "DisplayPresentation/ColourTransfer.h"
+#include "StarCatalogueIndex.h"
 #include <cstdint>
 #include <vector>
 
@@ -86,6 +87,13 @@ public:
         AtmosphereMedium Medium{};
         AtmosphereLight  Light{};
         TwilightSettings Twilight{};                // the pre-dawn glow and the white line (see AtmosphereModel.h)
+        // The star field. Null means no stars, which is the default so nothing existing changes. The index is
+        //    borrowed, not owned: it is loaded once and shared by every raster that draws the same sky.
+        const StarCatalogueIndex* Stars = nullptr;
+        float            StarBrightness    = 1.0f;   // [x] panel: Stars > Field > Brightness
+        float            StarSize          = 1.0f;   // [x] panel: Stars > Field > Point Size
+        float            LocalSiderealTime = 0.0f;   // [deg] from CelestialFrame
+        float            Latitude          = 0.0f;   // [deg] north positive
         float            CameraHeight     = 2.0f;   // [m] above the surface
         uint32_t         SampleCount      = 16u;    // FidelityCriteria::AtmosphereSampleCount
         uint32_t         LightSampleCount = 6u;     // FidelityCriteria::AtmosphereLightSampleCount

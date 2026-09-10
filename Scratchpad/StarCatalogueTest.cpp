@@ -10,6 +10,7 @@
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 #include "GeometricRaster/StarCatalogueIndex.h"
+#include "DisplayPresentation/CelestialSolver.h"
 
 #include <cmath>
 #include <cstdio>
@@ -186,6 +187,112 @@ int main(int argc, char** argv)
         // Sirius sits at declination −16.7°, so its Z component is sin(−16.7°) ≈ −0.287.
         std::printf("     its declination component %.3f (should be ≈ −0.287)\n", static_cast<double>(Sz));
         Expect(std::fabs(Sz - (-0.287f)) < 0.01f, "and at the right declination — right ascension read as hours");
+    }
+
+    // ── 7. the sky is fixed to the pole, not to the ground ────────────────────────────────────────────────────
+    // The catalogue is equatorial J2000; the renderer needs horizon coordinates. Two checks, both facts that
+    //    hold independently of this code: Polaris stands at an altitude equal to the observer's latitude, and a
+    //    star on the celestial equator rises and sets. Getting the second rotation's sine and cosine the wrong
+    //    way round passes neither — the first attempt put Polaris overhead at the equator.
+    std::printf("\n7. equatorial directions reach the horizon frame correctly\n");
+    {
+        const double Ra = 2.53 * 15.0 * 3.14159265358979323846 / 180.0;
+        const double Dec = 89.26 * 3.14159265358979323846 / 180.0;
+        const float Polaris[3] = { static_cast<float>(std::cos(Dec) * std::cos(Ra)),
+                                   static_cast<float>(std::cos(Dec) * std::sin(Ra)),
+                                   static_cast<float>(std::sin(Dec)) };
+        bool AltitudeHolds = true;
+        for (float Latitude : { 0.0f, 45.0f, -26.19f, 51.5f })
+        {
+            double Sum = 0.0;
+            for (int Hour = 0; Hour < 24; ++Hour)
+            {
+                float Horizon[3];
+                EquatorialToHorizon(Polaris, static_cast<float>(Hour * 15.0), Latitude, Horizon);
+                Sum += std::asin(std::fmax(-1.0f, std::fmin(1.0f, Horizon[2]))) * 180.0 / 3.14159265358979323846;
+            }
+            // Polaris is 0.74 deg off the true pole, so it traces a small circle; the MEAN is the invariant.
+            if (std::fabs(Sum / 24.0 - static_cast<double>(Latitude)) > 1.0) AltitudeHolds = false;
+        }
+        Expect(AltitudeHolds, "Polaris stands at an altitude equal to the latitude");
+
+        const float Equator[3] = { 1.0f, 0.0f, 0.0f };
+        double Lowest = 1e9, Highest = -1e9;
+        for (int Hour = 0; Hour < 24; ++Hour)
+        {
+            float Horizon[3];
+            EquatorialToHorizon(Equator, static_cast<float>(Hour * 15.0), -26.19f, Horizon);
+            const double Altitude = std::asin(std::fmax(-1.0f, std::fmin(1.0f, Horizon[2]))) * 180.0 / 3.14159265358979323846;
+            Lowest = std::fmin(Lowest, Altitude); Highest = std::fmax(Highest, Altitude);
+        }
+        std::printf("     an equatorial star runs from %.1f to %.1f deg over a day\n", Lowest, Highest);
+        Expect(Lowest < -10.0 && Highest > 10.0, "a star on the celestial equator rises and sets");
+
+        // The inverse is what the star field actually calls, once per pixel. If it disagrees with the forward
+        //    transform the sky is simply empty, with no error anywhere.
+        double Worst = 0.0;
+        for (int I = 0; I < 2000; ++I)
+        {
+            const double A = I * 2.399963;
+            const double B = std::acos(1.0 - 2.0 * ((I + 0.5) / 2000.0));
+            const float Direction[3] = { static_cast<float>(std::sin(B) * std::cos(A)),
+                                         static_cast<float>(std::sin(B) * std::sin(A)),
+                                         static_cast<float>(std::cos(B)) };
+            float Horizon[3], Back[3];
+            EquatorialToHorizon(Direction, 137.4f, -26.19f, Horizon);
+            HorizonToEquatorial(Horizon, 137.4f, -26.19f, Back);
+            for (int K = 0; K < 3; ++K) Worst = std::fmax(Worst, std::fabs(static_cast<double>(Back[K]) - Direction[K]));
+        }
+        std::printf("     round trip over 2000 directions, worst error %.3e\n", Worst);
+        Expect(Worst < 1e-5, "horizon and equatorial transforms are exact inverses");
+    }
+
+    // ── 8. the patterns people can name are in the right places ───────────────────────────────────────────────
+    // Angular separations are the strongest available check: they are published, they do not depend on epoch
+    //    conventions, and a catalogue read with right ascension in degrees instead of hours still looks like a
+    //    sky while getting every one of these wrong.
+    std::printf("\n8. recognisable constellations at their true separations\n");
+    {
+        const std::vector<StarRecord>& All = Catalogue.QueryStars();
+        auto Nearest = [&](double RightAscensionHours, double DeclinationDegrees) -> const StarRecord*
+        {
+            const double Ra = RightAscensionHours * 15.0 * 3.14159265358979323846 / 180.0;
+            const double Dec = DeclinationDegrees * 3.14159265358979323846 / 180.0;
+            const float Target[3] = { static_cast<float>(std::cos(Dec) * std::cos(Ra)),
+                                      static_cast<float>(std::cos(Dec) * std::sin(Ra)),
+                                      static_cast<float>(std::sin(Dec)) };
+            const StarRecord* Best = nullptr; double Closest = 1e9;
+            for (const StarRecord& Star : All)
+            {
+                const double Dot = Star.DirectionX * Target[0] + Star.DirectionY * Target[1] + Star.DirectionZ * Target[2];
+                const double Angle = std::acos(std::fmax(-1.0, std::fmin(1.0, Dot)));
+                if (Angle < Closest) { Closest = Angle; Best = &Star; }
+            }
+            return Closest < 0.02 ? Best : nullptr;
+        };
+        struct Pattern { const char* Name; double Ra1, Dec1, Ra2, Dec2, Truth; };
+        const Pattern Patterns[] = {
+            { "Orion's belt, Mintaka to Alnitak",  5.5334,  -0.2991,  5.6793,  -1.9426,  2.70 },
+            { "the Plough, Dubhe to Alkaid",      11.0621,  61.7510, 13.7923,  49.3133, 25.60 },
+            { "Southern Cross, Acrux to Gacrux",  12.4433, -63.0991, 12.5194, -57.1132,  5.99 },
+            { "the Pointers, Rigil to Hadar",     14.6600, -60.8340, 14.0637, -60.3730,  4.44 },
+        };
+        for (const Pattern& P : Patterns)
+        {
+            const StarRecord* A = Nearest(P.Ra1, P.Dec1);
+            const StarRecord* B = Nearest(P.Ra2, P.Dec2);
+            char What[160];
+            if (A == nullptr || B == nullptr)
+            {
+                std::snprintf(What, sizeof(What), "%s is in the catalogue", P.Name);
+                Expect(false, What);
+                continue;
+            }
+            const double Dot = A->DirectionX * B->DirectionX + A->DirectionY * B->DirectionY + A->DirectionZ * B->DirectionZ;
+            const double Measured = std::acos(std::fmax(-1.0, std::fmin(1.0, Dot))) * 180.0 / 3.14159265358979323846;
+            std::snprintf(What, sizeof(What), "%s spans %.2f deg against %.2f", P.Name, Measured, P.Truth);
+            Expect(std::fabs(Measured - P.Truth) <= 0.15, What);
+        }
     }
 
     std::printf("\n>>> %s (%d failure%s)\n", Failures == 0 ? "ALL PASS" : "FAILURES", Failures, Failures == 1 ? "" : "s");
