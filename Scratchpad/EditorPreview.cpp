@@ -20,6 +20,8 @@
 #include "Engine/GeometricRaster/VisibilityRaster.h"
 #include "Engine/DisplayPresentation/TypefaceRegistry.h"
 #include "Engine/DisplayPresentation/FidelityClassifier.h"
+#include "Engine/DisplayPresentation/CelestialTier.h"
+#include "Projects/Project-Zero/Source/CelestialSequence.h"
 
 #include <chrono>
 #include <cmath>
@@ -198,6 +200,48 @@ void CollectLumi(const Frontier::SceneStructure& Level, std::vector<LumiTri>& Lu
     }
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE SKY THE PREVIEW SHOWS
+//------------------------------------------------------------------------------------------------------------------------
+
+// One celestial state for the preview, so the traced view and the raster view cannot show different weather.
+//    Filled from CelestialSequence exactly as Project Zero fills it — the point of the preview is to show what
+//    the project renders, not a second sky configured by hand here.
+Frontier::AtmosphereMedium SkyMedium{};
+Frontier::AtmosphereLight  SkyLight{};
+Frontier::TwilightSettings SkyTwilight{};
+float    SunElevationDegrees = 0.0f;
+uint32_t SkySamples      = 16u;
+uint32_t SkyLightSamples = 6u;
+
+// The preview's own world. Prepared once at the first use; the same defaults Project Zero starts with, so the
+//    sheet shows the weather somebody opening the editor would actually see.
+Frontier::ProjectZero::CelestialSequence PreviewSky;
+bool PreviewSkyReady = false;
+
+void PreparePreviewSky() noexcept
+{
+    if (PreviewSkyReady) return;
+    PreviewSky.Prepare();
+    // A late-afternoon sun rakes the box and makes the sky's contribution legible; noon overhead would light
+    //    the scene almost identically with or without an atmosphere, which would prove nothing.
+    PreviewSky.Observation.LocalHours = 16.4f;
+    const float Origin[3] = { 0.0f, 0.0f, 2.0f };
+    PreviewSky.Tick(0.0f, Origin, 0.0f);
+    PreviewSkyReady = true;
+}
+
+void SeatPreviewSky(const Frontier::ProjectZero::CelestialSequence& Sky, const Frontier::CelestialBudget& Budget) noexcept
+{
+    SkyMedium   = Sky.Medium;
+    SkyLight    = Sky.Light;
+    SkyTwilight = Sky.Twilight;
+    for (int C = 0; C < 3; ++C) SkyLight.Direction[C] = Sky.Frame().Sun.Direction[C];
+    SunElevationDegrees = Sky.Frame().Sun.Elevation;
+    SkySamples      = Budget.AtmosphereSamples;
+    SkyLightSamples = Budget.AtmosphereLightSamples;
+}
+
 // Next-event estimation over the level's own emissive triangles, two diffuse bounces, sky through the gaps.
 void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalIndex& Traversal,
                const Frontier::Vector3& Eye, const Frontier::Vector3& Forward,
@@ -208,6 +252,16 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
     using namespace Frontier;
     const auto& Flat    = Level.QueryFlatTriangles();
     const auto& Records = Level.QueryMaterials().QueryRecords();
+
+    // ⚠️ Seated here rather than at the caller. The first TraceView runs well before the raster block that also
+    //    wants the sky, so seating it there left the traced sheets rendering against an unprepared atmosphere —
+    //    a black sky in the GI view and a correct one in the raster view, from the same state. Seating at the
+    //    point of use makes that impossible.
+    PreparePreviewSky();
+    {
+        const FidelityCriteria Tier = FidelityClassifier{}.ConstructCriteria(FidelityCategory::StandardFidelity);
+        SeatPreviewSky(PreviewSky, CelestialTier::BudgetFor(Tier));
+    }
 
     std::vector<LumiTri> Lumi;
     CollectLumi(Level, Lumi);
@@ -284,8 +338,26 @@ void TraceView(const Frontier::SceneStructure& Level, const Frontier::TraversalI
                     float Dist = 0.0f; uint32_t Prim = 0u;
                     if (!TraceRay(O, D, Dist, Prim))
                     {
-                        constexpr float Miss[3] = { 0.30f, 0.42f, 0.63f };
-                        Path[0] += Thr[0] * Miss[0]; Path[1] += Thr[1] * Miss[1]; Path[2] += Thr[2] * Miss[2];
+                        // ⚠️ THIS IS THE GI-ON HALF OF THE SKY, and it is the whole reason a celestial system has
+                        //    to reach the tracer rather than only the raster. A flat constant here was fine while
+                        //    the sky was a backdrop: an escaped ray took one blue number and stopped. With a real
+                        //    atmosphere the escaped ray is a LIGHT SAMPLE — the sky is the scene's largest
+                        //    emitter, and it is what makes an unlit face take on the colour of the air above it.
+                        //
+                        //    It applies at every bounce, not just the primary: bounce 0 draws the sky behind the
+                        //    geometry, bounces 1 and 2 are the indirect light coming down out of it, which is
+                        //    exactly the contribution the old constant flattened.
+                        const AtmosphereSample Sky = AtmosphereModel::Integrate(
+                            SkyMedium, SkyLight, 2.0f, D, SkySamples, SkyLightSamples);
+                        float Escaped[3] = { Sky.Radiance[0], Sky.Radiance[1], Sky.Radiance[2] };
+                        float Glow[3];
+                        const float Bearing = std::atan2(D[0], D[1]);
+                        const float SunBearing = std::atan2(SkyLight.Direction[0], SkyLight.Direction[1]);
+                        float Delta = std::fabs(Bearing - SunBearing);
+                        if (Delta > 3.14159265f) Delta = 6.2831853f - Delta;
+                        Twilight::Evaluate(D, SunElevationDegrees, Delta, SkyTwilight, Glow);
+                        for (int C = 0; C < 3; ++C) Escaped[C] += Glow[C];
+                        Path[0] += Thr[0] * Escaped[0]; Path[1] += Thr[1] * Escaped[1]; Path[2] += Thr[2] * Escaped[2];
                         break;
                     }
                     float P[3], N[3];
@@ -429,6 +501,10 @@ int main()
     EditorFeedSequence Feed;
     EditorInstance Rows[kMaxEditorInstances] = {};
     uint32_t RowCount = Feed.FillRoster(Rows, Level);
+    // The celestial entities, exactly as GameExecution appends them — the preview's whole purpose is to show
+    //    what the project shows, so the roster is built the same way rather than described a second time.
+    PreparePreviewSky();
+    RowCount += PreviewSky.AppendRoster(Rows, RowCount, Frontier::kMaxEditorInstances);
     std::printf("[Preview] roster: %u rows over %zu placements\n", RowCount, Level.QueryPlacements().size());
 
     // The game's own boot camera for the Cornell level (see GameExecution's camera branch).
@@ -673,6 +749,18 @@ int main()
         std::printf("[Preview] shadows: %s, %u x %u map, %u tap kernel\n",
                     ShadowTechniqueLabel(Criteria.ShadowTechnique), Criteria.ShadowMapSide,
                     Criteria.ShadowMapSide, Criteria.ShadowFilterTapCount);
+
+        // The sky, from the same tier and through the same sequence Project Zero uses. Both preview views take
+        //    it: the raster directly, and the tracer through SeatPreviewSky, so the traced and rastered halves
+        //    of this sheet cannot disagree about the weather.
+        PreparePreviewSky();
+        const CelestialBudget Sky = CelestialTier::BudgetFor(Criteria);
+        PreviewSky.ApplyTo(Raster, Sky);
+        SeatPreviewSky(PreviewSky, Sky);
+        std::printf("[Preview] sky: sun %+.2f deg, %u x %u atmosphere samples, cloud %s\n",
+                    static_cast<double>(PreviewSky.Frame().Sun.Elevation),
+                    Sky.AtmosphereSamples, Sky.AtmosphereLightSamples,
+                    PreviewSky.Cloud.Enabled ? "on" : "off");
     }
     const auto RasterStart = std::chrono::steady_clock::now();
     double RasterLum = 0.0;

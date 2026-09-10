@@ -25,6 +25,9 @@ if ! g++ -std=c++20 -O2 -msse4.2 -mavx2 -DFRONTIER_DEVELOPMENT \
      -I ExternalPackages/imgui -I Engine/Editor -I Engine/DisplayPresentation -I ExternalPackages/tomlpp/include -I Scratchpad -I . -I Engine \
      -I Projects/Project-Zero/Source -I "$Cg" -I "$Ufbx" -I "$Stb" -I "$Bvh" -I "$Vkh" \
      Scratchpad/EditorPreview.cpp \
+     Projects/Project-Zero/Source/CelestialSequence.cpp \
+     Engine/DisplayPresentation/CelestialSolver.cpp \
+     Engine/GeometricRaster/StarCatalogueIndex.cpp \
      Engine/Editor/EditorHost.cpp \
      Engine/Editor/ControlPanel.cpp \
      Engine/Editor/OutlinerPanel.cpp \
@@ -69,7 +72,14 @@ fi
 "$Binary" || exit 1
 rm -f "$Binary"
 echo "[EditorPreview] quarantining the visibility raster (no ray query may appear)"
-if grep -nE 'TraceClosest|TraversalIndex|BuildBottomLevel|TraceRay|Intersect' Engine/GeometricRaster/VisibilityRaster.cpp Engine/GeometricRaster/VisibilityRaster.h; then
+# ⚠️ What this forbids is a SCENE ray query - traversal of the acceleration structure - because the GI-off path
+#    must stay renderable on hardware without ray support. It is not a ban on the word "intersect": the celestial
+#    sky solves a closed-form ray/sphere root for the planet and the atmosphere shell, which is a quadratic on an
+#    analytic surface with no BVH, no geometry and no traversal behind it.
+#
+#    The pattern was a bare `Intersect` and it caught AtmosphereModel::IntersectSphere, which is exactly the kind
+#    of false positive that gets a real guard deleted. It now names the traversal entry points instead.
+if grep -nE 'TraceClosest|TraversalIndex|BuildBottomLevel|TraceRay|IntersectTriangle|IntersectScene|rayQuery' Engine/GeometricRaster/VisibilityRaster.cpp Engine/GeometricRaster/VisibilityRaster.h; then
     echo "  >>> A RAY QUERY LEAKED INTO THE NO-RAY PATH"; exit 1
 fi
 echo "[EditorPreview] preview OK"
