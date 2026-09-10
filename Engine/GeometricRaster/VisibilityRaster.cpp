@@ -29,6 +29,11 @@ constexpr float kPi = 3.14159265359f;
 //    switched off, so the raster still produces a sensible background rather than black.
 constexpr float kSkyFallback[3] = { 0.30f, 0.42f, 0.63f };
 
+// [-] Sky luminance above which no star can be seen. Sirius reaches about 0.077 in these units through the
+//    catalogue's own gain, and a twilight sky passes that around the point the first stars appear, so the
+//    ceiling sits just above it rather than at an arbitrary time of day.
+constexpr float kStarVisibilityCeiling = 0.09f;
+
 } // namespace
 
 bool VisibilityRaster::Render(const SceneStructure& Level,
@@ -644,7 +649,17 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
         // Stars, before twilight, because they are behind it: the glow washes them out near the horizon rather
         //    than the other way round. Only the cell the ray falls in is tested — 8 920 stars binned into 1 024
         //    cells means about 9 candidates instead of the whole catalogue (StarCatalogueIndex).
-        if (SeesSpace && Celestial_.Stars != nullptr && !Celestial_.Stars->Empty())
+        // ⚠️ The star pass is gated on the SKY's own brightness, and the gate is a correctness matter before it
+        //    is a performance one: without it, stars are drawn over a noon sky and show through daylight. The
+        //    physical reason is that a star is only visible when it outshines the sky behind it — daylight does
+        //    not remove the star, it removes the CONTRAST — so the test is against the sky at this very pixel
+        //    rather than against a time of day.
+        //
+        //    It is also the measured win the reference branch kept (da4b0d7): skipping the cell lookup over the
+        //    lit half of the sky costs nothing to add and removes most of the star work from every day frame.
+        const float SkyLuminance = Out[0] * 0.2126f + Out[1] * 0.7152f + Out[2] * 0.0722f;
+        const bool  StarsVisible = SkyLuminance < kStarVisibilityCeiling;
+        if (SeesSpace && StarsVisible && Celestial_.Stars != nullptr && !Celestial_.Stars->Empty())
         {
             // The catalogue is equatorial J2000 and the ray is in the horizon frame, so the ray is rotated into
             //    the catalogue's frame rather than the catalogue into the ray's — one rotation per pixel instead

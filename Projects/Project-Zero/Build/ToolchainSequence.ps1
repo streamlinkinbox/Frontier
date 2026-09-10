@@ -707,6 +707,7 @@ $EngineRelative = @(
     'Engine\PlatformInterchange\MiniaudioTranslation.cpp'
     'Engine\PlatformInterchange\WaveCodec.cpp'
     'Engine\PhysicalDynamics\RigidBodySolver.cpp'
+    'Projects\Project-Zero\Source\CelestialSequence.cpp'
     'Projects\Project-Zero\Source\ShowroomStructure.cpp'
     'Projects\Project-Zero\Source\RayTracingSolver.cpp'
     'Projects\Project-Zero\Source\FlyThroughSolver.cpp'

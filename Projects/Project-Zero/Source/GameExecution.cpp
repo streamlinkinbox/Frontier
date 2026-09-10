@@ -13,6 +13,8 @@
 #include "../../../Engine/DisplayPresentation/ReSTIRIntegrator.h"
 #include "../../../Engine/DisplayPresentation/ShadingTableCodec.h"
 #include "../../../Engine/DisplayPresentation/RenderScheduler.h"
+#include "../../../Engine/DisplayPresentation/CelestialTier.h"
+#include "CelestialSequence.h"
 #include "../../../Engine/Editor/EditorInstance.h"
 #include "../../../Engine/DeviceExchange/DiagnosticMetrics.h"
 #include "../../../Engine/DisplayPresentation/ControlCentreHost.h"
@@ -505,6 +507,10 @@ int main(int argc, char** argv)
     // ImGui panel — apply theme once after context exists
     //──────────────────────────────────────────────────────────────────────────
     Frontier::RenderScheduler Panel;
+    // The sky, the weather and everything that carries them. Prepared once; ticked with the frame.
+    Frontier::ProjectZero::CelestialSequence Celestial;
+    Celestial.Prepare();
+    uint32_t CelestialFirstRow = Frontier::kNoEditorInstance;
 
     Panel.ApplyTheme();
 
@@ -601,6 +607,17 @@ int main(int argc, char** argv)
             }
             Surface.AssignShadowFrame(Shadow);
         }
+
+        // The celestial budget comes from the SAME tier, through CelestialTier — the one translation from a
+        //    quality tier to celestial settings (CheckCelestialTiers forbids reading those fields by hand).
+        //
+        // ⚠️ It is computed here and carried on the sequence rather than pushed at the swapchain, because the
+        //    GPU sky pass does not exist yet: the Celestial port built and proved every system against the CPU
+        //    raster, and SkyView.slang is still to be written. Wiring a call into SwapchainExchange now would be
+        //    a call to nothing. What this does buy today is that the editor, the outliner readouts and the
+        //    headless proofs all see the tier the user actually selected, and the day the GPU pass lands it
+        //    reads this same budget rather than a second copy of the ladder.
+        Celestial.Budget = Frontier::CelestialTier::BudgetFor(Criteria);
 
         if (Announce)
         {
@@ -812,6 +829,16 @@ int main(int argc, char** argv)
         Configuration.Advance(Δτ);
         Telemetry.RecordFrame(Δτ);
 
+        // ①a' The sky and the weather. Ticked here, beside the other per-frame advances, so the clock, the wind
+        //     phase and the precipitation pool all move exactly once and in a fixed order. The camera position
+        //     is what the precipitation emitter follows — it is a world-space cylinder about the viewer, with no
+        //     view direction, which is what keeps rain from following where you look.
+        {
+            const Frontier::Vector3 Eye = Camera.Convert<Frontier::Vector3>();
+            const float CameraWorld[3] = { Eye.x, Eye.y, Eye.z };
+            Celestial.Tick(static_cast<float>(Δτ), CameraWorld, 0.0f);
+        }
+
         // ①b' F3 debug popup: view / HiZ / alias-pick toggles persist to [render] and restart the accumulation.
         // R6 row 3: the scheduler's Alias-pick checkbox writes the integrator directly — mirror it into the popup
         //    member before edge-detecting F5 so both toggles converge on one flag.
@@ -981,6 +1008,10 @@ int main(int argc, char** argv)
         if (!SceneReady)
         {
             SceneRowCount = Feed.FillRoster(SceneInstances, Level);
+            // The celestial entities follow the scene's own rows, under their own folder. Appended rather
+            //    than merged so the scene walk stays exactly what it was.
+            CelestialFirstRow = SceneRowCount;
+            SceneRowCount += Celestial.AppendRoster(SceneInstances, SceneRowCount, Frontier::kMaxEditorInstances);
             Frontier::ViewportOrbit Home;
             float Middle[3] = { 0.0f, 0.0f, 0.0f };
             Frontier::ProjectZero::QueryLevelCentre(Level, Middle);
@@ -998,11 +1029,39 @@ int main(int argc, char** argv)
             SceneReady   = true;
         }
         const uint32_t PickedNow = Panel.QueryPickedInstance();
+        Frontier::ProjectZero::CelestialEntity PickedCelestial{};
+        const bool CelestialPicked = CelestialFirstRow != Frontier::kNoEditorInstance
+                                  && Celestial.Owns(PickedNow, CelestialFirstRow, PickedCelestial);
         if (PickedNow != SheetFor)
         {
-            TintMirror = Feed.BuildSheet(PickedNow, SceneInstances, SceneRowCount, &PickedSheet,
-                                         Camera, Level, AnimatedInstances);
+            if (CelestialPicked)
+            {
+                Celestial.BuildSheet(PickedCelestial, PickedSheet);
+                TintMirror = nullptr;   // celestial rows carry no folder tint to mirror back
+            }
+            else
+            {
+                TintMirror = Feed.BuildSheet(PickedNow, SceneInstances, SceneRowCount, &PickedSheet,
+                                             Camera, Level, AnimatedInstances);
+            }
             SheetFor   = PickedNow;
+        }
+        else if (CelestialPicked)
+        {
+            // The panel edits the sheet in place, so the write-back happens every tick the row stays picked.
+            //    Read-outs are then refreshed from the state the edit just changed.
+            Celestial.ApplySheet(PickedCelestial, PickedSheet);
+            Celestial.BuildSheet(PickedCelestial, PickedSheet);
+        }
+        // The outliner's eye toggles live on the rows; carry them back so hiding a row hides the thing.
+        if (CelestialFirstRow != Frontier::kNoEditorInstance)
+        {
+            Celestial.Enabled = SceneInstances[CelestialFirstRow].Visible;
+            for (uint32_t E = 0; E < Frontier::ProjectZero::kCelestialEntityCount; ++E)
+            {
+                const uint32_t Row = CelestialFirstRow + 1u + E;
+                if (Row < SceneRowCount) Celestial.Shown[E] = SceneInstances[Row].Visible;
+            }
         }
 #else
         (void)SceneReady; (void)SceneRowCount; (void)SheetFor; (void)TintMirror; (void)AppliedOrbit;

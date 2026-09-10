@@ -272,6 +272,7 @@ set(PROJECT_ZERO_SOURCES
     Engine/PlatformInterchange/MiniaudioTranslation.cpp
     Engine/PlatformInterchange/WaveCodec.cpp
     Engine/PhysicalDynamics/RigidBodySolver.cpp
+    Projects/Project-Zero/Source/CelestialSequence.cpp
     Projects/Project-Zero/Source/ShowroomStructure.cpp
     Engine/DisplayPresentation/DiagnosticInspector.cpp
     Engine/DisplayPresentation/ReSTIRIntegrator.cpp
