@@ -311,6 +311,43 @@ int main()
     }
     std::printf("           wrote Diagnostics/Celestial_02_Dawn_*.png (8 stages)\n");
 
+    // ── Leaving the atmosphere ─────────────────────────────────────────────────────────────────────────────────
+    // Two failures this guards, both reported from orbit. Rays that pass below the horizon must meet a PLANET:
+    //    the raster's miss path had no world of its own, so the only ground was whatever finite geometry the
+    //    scene held and from altitude that read as a slab hanging in space with stars shining through the earth.
+    //    And above the shell the sky must be black — a march with a distance limit but no planet gives neither.
+    std::printf("\n  leaving the atmosphere\n");
+    std::printf("  %-12s %10s %10s %10s   %s\n", "altitude", "up R", "up G", "up B", "looking down");
+    struct Rung { const char* Name; float Height; bool ExpectBlackAbove; };
+    const Rung Ladder[] = {
+        { "ground 2 m",   2.0f,       false },
+        { "top 60 km",    60000.0f,   true  },
+        { "ISS 400 km",   400000.0f,  true  },
+        { "3000 km",      3000000.0f, true  },
+    };
+    bool SpaceIsBlack = true, PlanetIsLit = true;
+    for (const Rung& R : Ladder)
+    {
+        AtmosphereMedium Medium{};
+        AtmosphereLight  Light{};
+        Light.Direction[0] = 0.0f; Light.Direction[1] = 0.6f; Light.Direction[2] = 0.8f;
+
+        const float Up[3]   = { 0.0f, 0.0f, 1.0f };
+        const float Down[3] = { 0.0f, 0.3f, -0.954f };
+        const AtmosphereSample Above = AtmosphereModel::Integrate(Medium, Light, R.Height, Up, 24u, 8u);
+        const AtmosphereSample Below = AtmosphereModel::Integrate(Medium, Light, R.Height, Down, 24u, 8u);
+
+        std::printf("  %-12s %10.5f %10.5f %10.5f   %s\n", R.Name,
+                    Above.Radiance[0], Above.Radiance[1], Above.Radiance[2],
+                    Below.HitGround ? "planet" : "space");
+
+        const float Sum = Above.Radiance[0] + Above.Radiance[1] + Above.Radiance[2];
+        if (R.ExpectBlackAbove && Sum > 1.0e-4f) SpaceIsBlack = false;
+        if (R.Height > 100000.0f && !Below.HitGround) PlanetIsLit = false;
+    }
+    Require("above the atmosphere the sky is black", SpaceIsBlack, "no scattering outside the shell");
+    Require("from orbit, looking down finds the planet", PlanetIsLit, "HitGround reported below the horizon");
+
     std::printf("\n  assertions\n");
     const double MeanNoon  = (Stats[1].Mean[0] + Stats[1].Mean[1] + Stats[1].Mean[2]) / 3.0;
     const double MeanDusk  = (Stats[2].Mean[0] + Stats[2].Mean[1] + Stats[2].Mean[2]) / 3.0;

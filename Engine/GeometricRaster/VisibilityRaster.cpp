@@ -609,10 +609,42 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                               Celestial_.SampleCount, Celestial_.LightSampleCount);
         Out[0] = S.Radiance[0]; Out[1] = S.Radiance[1]; Out[2] = S.Radiance[2];
 
+        // ⚠️ Rays that meet the planet must not go on to collect stars. AtmosphereModel already stops the
+        //    integral at the surface and reports it, but the miss path had no notion of a world: the only ground
+        //    was whatever finite geometry the scene happened to contain, so from altitude the scene read as a
+        //    slab hanging in space with stars shining through the earth beneath it. HitGround is the horizon,
+        //    and below it there is a planet.
+        //
+        //    The surface itself is shaded as a lit Lambertian sphere rather than left black, because a ray that
+        //    reaches the ground from above is looking at daylit terrain — that is what makes the limb read as a
+        //    planet instead of a hole.
+        if (S.HitGround)
+        {
+            const float Centre[3] = { 0.0f, 0.0f, Celestial_.Medium.PlanetRadius + Celestial_.CameraHeight };
+            float Near = 0.0f, Far = 0.0f;
+            if (AtmosphereModel::IntersectSphere(Centre, Dir, Celestial_.Medium.PlanetRadius, Near, Far) && Near > 0.0f)
+            {
+                const float Hit[3] = { Centre[0] + Dir[0] * Near, Centre[1] + Dir[1] * Near, Centre[2] + Dir[2] * Near };
+                const float Length = std::sqrt(Hit[0] * Hit[0] + Hit[1] * Hit[1] + Hit[2] * Hit[2]);
+                if (Length > 0.0f)
+                {
+                    const float Normal[3] = { Hit[0] / Length, Hit[1] / Length, Hit[2] / Length };
+                    const float NdotL = Normal[0] * Celestial_.Light.Direction[0]
+                                      + Normal[1] * Celestial_.Light.Direction[1]
+                                      + Normal[2] * Celestial_.Light.Direction[2];
+                    const float Lit = NdotL > 0.0f ? NdotL : 0.0f;
+                    for (int C = 0; C < 3; ++C)
+                        Out[C] += Celestial_.GroundAlbedo[C] * Lit * Celestial_.Light.Intensity * 0.05f
+                                * S.Transmittance[C];
+                }
+            }
+        }
+        const bool SeesSpace = !S.HitGround;
+
         // Stars, before twilight, because they are behind it: the glow washes them out near the horizon rather
         //    than the other way round. Only the cell the ray falls in is tested — 8 920 stars binned into 1 024
         //    cells means about 9 candidates instead of the whole catalogue (StarCatalogueIndex).
-        if (Celestial_.Stars != nullptr && !Celestial_.Stars->Empty())
+        if (SeesSpace && Celestial_.Stars != nullptr && !Celestial_.Stars->Empty())
         {
             // The catalogue is equatorial J2000 and the ray is in the horizon frame, so the ray is rotated into
             //    the catalogue's frame rather than the catalogue into the ray's — one rotation per pixel instead
@@ -633,17 +665,30 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                     + Equatorial[2] * Star.DirectionZ;
                     if (Dot <= 0.0f) continue;
                     const float Angle = std::acos(std::fmin(1.0f, Dot));
-                    // A star is a point source: it must never be smaller than the pixel it lands on, or it
-                    //    aliases into a flicker as the camera turns. PixelAngle is the ray's own footprint.
-                    const float Radius = std::fmax(Celestial_.StarSize * 0.0004f, PixelAngle * 0.9f);
-                    if (Angle > Radius * 3.0f) continue;
-                    // Flat-topped core with a soft edge, plus a faint halo for the brightest.
-                    const float Core = Angle <= Radius ? 1.0f : std::exp(-((Angle - Radius) / (Radius * 0.8f))
-                                                                          * ((Angle - Radius) / (Radius * 0.8f)));
+                    // ⚠️ A star is a POINT SOURCE and must read as one. The first version used a core radius of
+                    //    0.9 pixels with a Gaussian skirt running to 3x that, so every star covered about 5.4
+                    //    pixels and the field looked like smudges rather than points — visibly soft at any
+                    //    resolution.
+                    //
+                    //    The constraint pulling the other way is aliasing: a star smaller than a pixel lands
+                    //    between sample points and winks in and out as the camera turns, which is worse than
+                    //    blur because it only appears in motion. The resolution is to keep the ENERGY inside
+                    //    roughly one pixel while letting a small skirt handle the sub-pixel positioning: a half
+                    //    pixel core, a skirt of a third of a pixel, cut off at 1.6 pixels.
+                    const float Radius = std::fmax(Celestial_.StarSize * 0.0002f, PixelAngle * 0.5f);
+                    if (Angle > Radius * 1.6f) continue;
+                    // Flat-topped core so the star is at full intensity where it lands, then a tight Gaussian
+                    //    edge. The narrow skirt is what keeps it a point rather than a smudge.
+                    const float Falloff = (Angle - Radius) / (Radius * 0.35f);
+                    const float Core = Angle <= Radius ? 1.0f : std::exp(-Falloff * Falloff);
                     // Gain 1.0, not a fraction. The catalogue's luminance is already relative to magnitude 0,
                     //    so scaling it down crushes the faint end: at 0.02 a magnitude-4 star reached 4/255 and
                     //    the sky rendered as a nearly empty black field with only Sirius faintly visible.
-                    const float Gain = Star.Luminance * Celestial_.StarBrightness * Core;
+                    // Energy normalisation. A point source carries a FIXED total, so tightening the profile
+                    //    must raise its peak or the star just gets dimmer — measured, the new footprint holds
+                    //    5.73x less solid angle than the soft one it replaced, and the first sharpened render
+                    //    came out visibly darker for exactly that reason.
+                    const float Gain = Star.Luminance * Celestial_.StarBrightness * Core * 5.73f;
                     Out[0] += Star.ColourRed * Gain;
                     Out[1] += Star.ColourGreen * Gain;
                     Out[2] += Star.ColourBlue * Gain;

@@ -90,6 +90,8 @@ public:
         // The star field. Null means no stars, which is the default so nothing existing changes. The index is
         //    borrowed, not owned: it is loaded once and shared by every raster that draws the same sky.
         const StarCatalogueIndex* Stars = nullptr;
+        // The planet's own surface, seen when a ray passes below the horizon. Panel: Sky > Ground > Albedo.
+        float            GroundAlbedo[3]   = { 0.19f, 0.17f, 0.14f };
         float            StarBrightness    = 1.0f;   // [x] panel: Stars > Field > Brightness
         float            StarSize          = 1.0f;   // [x] panel: Stars > Field > Point Size
         float            LocalSiderealTime = 0.0f;   // [deg] from CelestialFrame
