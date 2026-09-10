@@ -1,0 +1,57 @@
+echo Phase 12 -- bridge, radial + linear array, named construction planes
+view iso
+gizmo off
+select none
+echo -- tile 1. bridge: a sheet connecting a horizontal and a vertical rectangle --
+rect (0,0) (4,2) --name=Bot
+workplane xz
+rect (0,0) (4,3) --name=Side
+workplane xy
+bridge Bot Side --name=Shell
+matcap Shell steel
+view fit
+render Phase12_Bridge
+echo -- end of tile 1
+reset
+echo -- tile 2. linear array: a row of five boxes along X --
+box (-0.5,0,0) (0.5,1,1) --name=Seed
+array Seed --count=5 --step=(1.6,0,0) --name=Linear
+list Seed Linear.1 Linear.4
+matcap Seed steel
+matcap Linear.1 pearl
+matcap Linear.2 gold
+matcap Linear.3 copper
+matcap Linear.4 plastic-blue
+view fit
+render Phase12_ArrayLinear
+echo -- end of tile 2
+reset
+echo -- tile 3. radial array: five spokes around a vertical axis through the origin --
+view top
+box (1.2,0,0) (1.7,0.3,0.3) --name=Spoke
+array Spoke --count=6 --axis=(0,0,0),(0,0,1) --angle=360 --name=Radial
+matcap Spoke steel
+matcap Radial.1 pearl
+matcap Radial.2 gold
+matcap Radial.3 copper
+matcap Radial.4 plastic-blue
+matcap Radial.5 carbon
+view fit
+render Phase12_ArrayRadial
+echo -- end of tile 3
+reset
+echo -- tile 4. named construction plane: save the current plane as "Deck", build a plane surface on a different workplane, then recall --
+plane (0,0,0) 4 2 --name=DeckSurface
+plane --name=Deck
+workplane yz
+plane (0,0,0) 4 2 --name=SideSurface
+workplane Deck
+plane (0,0,0) 4 2 --name=DeckFrame
+matcap SideSurface copper
+matcap DeckFrame gold
+view iso
+view fit
+render Phase12_NamedPlanes
+echo -- end of tile 4
+reset
+echo Phase 12 done.

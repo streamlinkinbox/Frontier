@@ -50,10 +50,14 @@
 `Submission`, `Footprint`, `Region`, `Tree`, `Vacancy`, `Ordinates`, `Draft`, `Draught`, `Paint`,
 `Depot`, `Ordinal`, `Actor`, `Source`, `API`.
 
-### 3.1 SolidArc Vocabulary (ParametricSketcher/)
-- The modelling tool is named **SolidArc** and lives in the top-level folder **`ParametricSketcher/`** (a sibling of `Engine/`, `Projects/`, `Tools/` — it is a tool, never a project).
+### 3.1 SolidArc Vocabulary (Editor/EditorTools/ParametricSketcher/)
+- The modelling tool is named **SolidArc** and lives in the folder **`Editor/EditorTools/ParametricSketcher/`** (one tool among the editor tools under `Editor/EditorTools/` — it is a tool, never a project).
 - The three-letter acronym for computer-aided design is **strictly banned** anywhere in this repository's SolidArc code, comments, file names, targets, scripts, proofs and documentation. Say `SolidArc`, `modelling tool`, `sketcher`, `kernel`, `NURBS`, `B-rep` instead.
 - Script files use the `.arc` extension; build targets are prefixed `SolidArc`.
+- **No generic programmer prefixes**: `Get…`, `Set…`, `Is…`, `Was…`, `Has…` are banned as identifier prefixes. Read a quantity by its noun (`Radius()`), write it by a verb that says what happens (`Anchor`, `Arrange`, `Resize`, `Cap`, `MovePole`), test a condition by the adjective or participle (`Closed()`, `Selected`, `Given(x)`).
+- **No web / framework jargon**: `API`, `Web`, `Family`, `Component`, `Widget`, `Session token`… stay out of names and comments.
+- **Names come from the domain**: geometry, topology, drafting and rendering vocabulary only (`Figure`, `Pole`, `Coedge`, `Lattice`, `Grip`, `Pivot`, `Timeline`). No office / literary words (`Journal`, `Ledger`, `Item`, `Handle`, `Frame`, `Probe`, `History`, `Kind`, `Store`, `Source`).
+- Compiled-in vocabulary: `SceneFigure` (not item/object), `FigureClassification` (not kind/type), `UndoSequence` + `timeline` (not history/ledger/journal), `GizmoGrip` (not handle), `PivotBasis` (not frame), `Lattice` (not grid), `Switch` (not flag), `Fit` (not frame), `inspect` (not probe).
 
 ---
 
@@ -166,7 +170,7 @@ Compiled conditionally with `#ifdef FRONTIER_DEVELOPMENT`.
 
 ## 8. Standalone & Embedded Content Creation Tools Architecture (`Tools/`)
 - Tools are structured as dual-target modular applications:
-  1. **Standalone Executables**: Can be compiled and run as independent desktop creation tools (e.g. `Tools/TexturePainter/`, `Tools/ParametricSketcher/`).
+  1. **Standalone Executables**: Can be compiled and run as independent desktop creation tools (e.g. `Tools/TexturePainter/`, `Editor/EditorTools/ParametricSketcher/`).
   2. **Embedded Development Workspaces**: Can be invoked inside the engine editor while testing or simulating a game via `#ifdef FRONTIER_DEVELOPMENT` within `DisplayPresentation/WorkspaceHost`.
 - Common Tool Suite:
   - **Texture Painting**: Interactive 3D surface texel painting, brush projection, PBR layer blending.

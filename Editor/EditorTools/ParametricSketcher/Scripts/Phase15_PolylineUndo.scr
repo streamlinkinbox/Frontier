@@ -1,0 +1,46 @@
+echo Phase 15 -- per-vertex polyline live edit, construction suppression, undo
+dim on
+view iso
+gizmo off
+
+echo -- tile 1: per-vertex polyline live edit
+reset
+polyline (0,0,0) (1,0,0) (1,1,0) (0,1,0) --name=Penta
+matcap Penta plastic-blue
+view fit
+render Phase15_PolylineBefore
+echo -- list the vertex dims
+dim list
+echo -- find vertex 2's Y dim, edit to 5
+dim edit Penta Y2 5
+matcap Penta plastic-red
+view fit
+render Phase15_PolylineAfter
+
+echo -- tile 2: construction geometry has NO dim set
+reset
+line (0,0,0) (2,0,0) --name=ConstLine --construction
+line (0,1,0) (2,1,0) --name=LiveLine
+matcap ConstLine chrome
+matcap LiveLine copper
+view fit
+render Phase15_ConstructionSuppression
+
+echo -- tile 3: undo rolls back a live dim edit
+reset
+box (0,0,0) (2,3,4) --name=B
+matcap B plastic-blue
+view fit
+render Phase15_UndoBefore
+echo -- edit Y dim to 7
+dim edit B Y 7
+matcap B plastic-red
+view fit
+render Phase15_UndoAfterEdit
+echo -- undo
+undo
+matcap B chrome
+view fit
+render Phase15_UndoAfterUndo
+
+echo Phase 15 done.

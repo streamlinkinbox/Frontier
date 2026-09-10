@@ -41,8 +41,10 @@ Projects/Project-Physics/Build/Output/
 Diagnostics/ProjectPhysics_TelemetryReport*.md
 
 # SolidArc build output (ParametricSketcher has its own standalone CMake project)
-ParametricSketcher/build/
-ParametricSketcher/Output/
+Editor/EditorTools/ParametricSketcher/build/
+Editor/EditorTools/ParametricSketcher/Output/
+# Sandbox-only g++ build script (kept for re-builds when cmake is unavailable, not part of the project)
+Editor/EditorTools/ParametricSketcher/build_gpp.sh
 
 # Project-Dyno / Phase A acoustics: build output and rendered audio (regenerate with --render); logs + PNG proofs are committed
 Projects/*/Build/Output/

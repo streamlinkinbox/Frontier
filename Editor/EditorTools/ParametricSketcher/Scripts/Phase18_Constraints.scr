@@ -1,0 +1,66 @@
+echo Phase 18 -- 2D constraint graph (Newton + analytic Jacobian, 9 constraint types, dim-edit re-solve hook)
+dim on
+view iso
+gizmo off
+
+echo -- tile 1: a 2x3 rectangle built from a constraint graph (4 lines, 4 distances, 4 coincident, 1 pin)
+reset
+line (0,0) (5,0) --name=L1
+line (5,0) (5,5) --name=L2
+line (5,5) (0,5) --name=L3
+line (0,5) (0,0) --name=L4
+constraint distance L1.start L1.end = 2
+constraint distance L2.start L2.end = 3
+constraint distance L3.start L3.end = 2
+constraint distance L4.start L4.end = 3
+constraint coincident L1.end L2.start
+constraint coincident L2.end L3.start
+constraint coincident L3.end L4.start
+constraint coincident L4.end L1.start
+constraint pin L1.start
+constraint solve
+view fit
+render Phase18_Rectangle
+
+echo -- tile 2: a 3-4-5 right triangle (3 lines, 3 distances, 1 coincident on each corner, 1 vertical)
+reset
+line (0,0) (3,0) --name=A
+line (3,0) (3,4) --name=B
+line (3,4) (0,0) --name=C
+constraint distance A.start A.end = 3
+constraint distance B.start B.end = 4
+constraint distance C.start C.end = 5
+constraint coincident A.end B.start
+constraint coincident B.end C.start
+constraint coincident C.end A.start
+constraint vertical B.start B.end
+constraint pin A.start
+constraint solve
+view fit
+render Phase18_Triangle
+
+echo -- tile 3: two circles with a distance-between-centres constraint
+reset
+circle (0,0) 1 --normal=(0,0,1) --name=C1
+circle (3,0) 1 --normal=(0,0,1) --name=C2
+constraint distance C1.centre C2.centre = 5
+constraint solve
+view fit
+render Phase18_TwoCircles
+
+echo -- tile 4: the closed-loop dim-edit re-solve hook (edit C1 radius, the centres move to keep the distance)
+reset
+dim on
+circle (0,0) 1 --normal=(0,0,1) --name=C1
+circle (3,0) 1 --normal=(0,0,1) --name=C2
+constraint distance C1.centre C2.centre = 5
+constraint solve
+echo -- initial state:
+list C1
+echo -- edit C1's radius (a non-distance slot) — the constraint graph doesn't move, the centre distance stays at 5
+dim edit C1 radius 1.5
+list C1
+view fit
+render Phase18_DimEditResolves
+
+echo Phase 18 done.

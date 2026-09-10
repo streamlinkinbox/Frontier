@@ -35,9 +35,9 @@ s = open("CMakeLists.txt").read()
 p = re.findall(r'^\s+((?:Engine|Projects|Scratchpad)/[A-Za-z0-9_/\.-]+\.(?:cpp|h))\s*$', s, re.M)
 report("CMakeLists.txt", p, [x for x in p if not os.path.exists(x)])
 
-s = open("ParametricSketcher/CMakeLists.txt").read()
+s = open("Editor/EditorTools/ParametricSketcher/CMakeLists.txt").read()
 p = re.findall(r'^\s+((?:Kernel|Presentation|Interaction|Document|Console|Verification)/[A-Za-z0-9_/\.-]+\.(?:cpp|h))\s*$', s, re.M)
-report("ParametricSketcher/CMakeLists.txt", p, [x for x in p if not os.path.exists("ParametricSketcher/" + x)])
+report("Editor/EditorTools/ParametricSketcher/CMakeLists.txt", p, [x for x in p if not os.path.exists("Editor/EditorTools/ParametricSketcher/" + x)])
 
 # ── Every submodule the scripts expect must be DECLARED and POPULATED ───────────────────────────────────────
 declared = set(re.findall(r"path\s*=\s*(\S+)", open(".gitmodules").read()))
