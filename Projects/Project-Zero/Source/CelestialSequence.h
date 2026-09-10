@@ -21,10 +21,12 @@
 
 #pragma once
 
+#include "../../../Engine/ContentInterchange/TextureIndex.h"
 #include "../../../Engine/DisplayPresentation/CelestialSolver.h"
 #include "../../../Engine/DisplayPresentation/CelestialTier.h"
 #include "../../../Engine/DisplayPresentation/AtmosphereModel.h"
 #include "../../../Engine/DisplayPresentation/AtmosphericOptics.h"
+#include "../../../Engine/DisplayPresentation/MoonConstantRecord.h"
 #include "../../../Engine/DisplayPresentation/Precipitation.h"
 #include "../../../Engine/DisplayPresentation/SkyConstantRecord.h"
 #include "../../../Engine/DisplayPresentation/VolumetricMedia.h"
@@ -80,6 +82,24 @@ struct CelestialClock
     float SpeedTimes = 8.0f;   // 1, 8, 30, 100 — the reference panel's Speed segment
 };
 
+// One roster slot: which atlas body it shows, where, and how bright. Placement defaults mirror the reference
+//    panel's makeMoon; a slot that follows the sky ignores Azimuth/Elevation/Phase and reads the solved lunar
+//    frame instead — the one place this port is deliberately NOT the panel, because the panel has no ephemeris
+//    and this engine does. Haze, tilt, gamma and tint are NOT slot state: they are read from the atlas preset
+//    live at fill time, so switching bodies re-skins the slot the way the panel's applyPreset does.
+struct MoonSlotState
+{
+    uint32_t Preset    = 0u;     // index into kMoonAtlas (0 = Luna)
+    bool     Visible   = true;
+    bool     FollowSky = false;  // true: direction + phase from Solved.Moon
+    float    Azimuth   = 300.0f; // [deg] clockwise from north
+    float    Elevation = 28.0f;  // [deg] above the horizon
+    float    Size      = 0.9f;   // [deg] angular DIAMETER (the record carries the radius in radians)
+    float    Bright    = 1.6f;   // panel default
+    float    Glow      = 0.8f;   // panel default
+    float    Phase     = 0.62f;  // ENGINE convention (0 = new): the panel's 0.12 default, half a turn over
+};
+
 class CelestialSequence
 {
 public:
@@ -97,6 +117,17 @@ public:
     //    mirrors ApplyTo — the solved direction, the tint and brightness on the radiance, a hidden sun as night —
     //    so the GI-on and GI-off skies cannot be handed different suns. One call, so a caller cannot pack half of it.
     [[nodiscard]] SkyConstantRecord PackSkyRecord() const noexcept;
+
+    // Lend the sequence its moon atlas: the bindless slots the project registered (before Textures.Decode) plus
+    //    the decoded descriptors (after it) — so this runs after Decode, once. Until it runs the roster packs a
+    //    zero count and the raster is lent nothing, so a caller without textures gets no moons, not bad ones.
+    void AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept;
+
+    // Hand the RAY-TRACING KERNEL the moons ApplyTo hands the raster, packed for binding 22. Every gate mirrors
+    //    ApplyTo — the solved lunar frame for a linked Luna, a hidden Moons entity as a moonless sky, an
+    //    unassigned atlas as no moons at all — so the GI-on and GI-off nights cannot be handed different moons.
+    //    One call, so a caller cannot pack half of it.
+    [[nodiscard]] MoonConstantRecord PackMoonRecord() const noexcept;
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                              THE OUTLINER FEED
@@ -140,6 +171,7 @@ public:
     PrecipitationSettings Precip{};
     RainbowSettings      Rainbow{};
     AtmosphericOptics::LensFlareSettings Flare{};
+    MoonSlotState        MoonSlots[kMoonDrawCount]{};   // the roster: up to four bodies, panel's MAXM
 
     // Sky appearance, which the reference panel exposes separately from the medium.
     float SkyTint[3]     = { 1.0f, 1.0f, 1.0f };
@@ -165,6 +197,16 @@ private:
     PrecipitationSystem Rain{};
     StarCatalogueIndex  Catalogue{};
     float               ElapsedHours = 0.0f;
+    // The moon atlas, lent by AssignMoonAtlas. Slots are bindless sampler2D[] indices for the kernel; views are
+    //    borrowed level-0 pixels for the CPU raster, stable once Decode has run (a later registration moves the
+    //    descriptors, never their texel heaps). Nothing is read until AtlasAssigned_ says both halves arrived.
+    uint32_t            MoonTextureSlots_[kMoonAtlasCount] = {};
+    MoonAlbedoView      MoonViews_[kMoonAtlasCount] = {};
+    bool                AtlasAssigned_ = false;
+    // ApplyTo's scratch, filled fresh on every call and lent to the raster. Mutable because ApplyTo is const —
+    //    the alternative is a caller-provided list, which is exactly the half-wired call the method's comment
+    //    forbids.
+    mutable MoonDrawList MoonDraw_{};
 };
 
 } // namespace Frontier::ProjectZero

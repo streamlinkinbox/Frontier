@@ -229,6 +229,9 @@ vec3 SkyAlong(vec3 Direction)
     bool HitGround;
     vec3 Radiance = SkyRadiance(Direction, Transmittance, HitGround);
     if (!HitGround) Radiance += SkyTwilightGlow(Direction);
+    // The moons ride the same transmittance the integral measured, and hide behind the planet like the twilight
+    //    does. MoonAlong is declared by MoonRecords.slang, which ReSTIRViewport includes BEFORE this file.
+    if (!HitGround) Radiance += MoonAlong(Direction, Transmittance);
     return Radiance;
 }
 

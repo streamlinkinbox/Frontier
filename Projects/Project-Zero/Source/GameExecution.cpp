@@ -169,6 +169,11 @@ int main(int argc, char** argv)
     Frontier::SceneStructure Level;
     Frontier::TextureIndex   Textures;
     uint32_t MaxTextureLevels = 1u;   // R6 row 3: deepest mip chain resident (F3 scene-census row; computed once below)
+    // Celestial moon atlas: bindless slots, filled right after the scene registers its own textures (below) and
+    //    handed to the sequence after Decode. Outer scope because registration and assignment straddle the scene
+    //    block; kNoMoonSlot until filled.
+    uint32_t MoonSlots[Frontier::kMoonAtlasCount];
+    for (uint32_t M = 0u; M < Frontier::kMoonAtlasCount; ++M) MoonSlots[M] = 0xFFFFFFFFu;
     {
         Frontier::SceneDecodeConfiguration Decode;
         Decode.UniformScale = SceneScale;
@@ -183,6 +188,16 @@ int main(int argc, char** argv)
             return 1;
         }
         if (!Error.empty()) std::cerr << "[Scene] " << Error << "\n";
+        // Celestial moons — the six albedos join the shared index BEFORE Textures.Decode, so they ride the same
+        //    decode/upload path as the scene and land in the bindless table the kernel samples. Colour, not
+        //    data (Linear=false): they upload SRGB and the shader reads linear albedos.
+        for (uint32_t M = 0u; M < Frontier::kMoonAtlasCount; ++M)
+        {
+            char MoonPath[128];
+            std::snprintf(MoonPath, sizeof(MoonPath), "%s%s",
+                          Frontier::kMoonTextureDirectory, Frontier::kMoonAtlas[M].File);
+            MoonSlots[M] = Textures.RegisterPath(MoonPath, /*Linear=*/false);
+        }
         Level.AssignName(std::filesystem::path(ScenePath).stem().string());
         const Frontier::Vector3 Lo = Level.QueryBoundsMinimum(), Hi = Level.QueryBoundsMaximum();
         char Line[256];
@@ -510,6 +525,10 @@ int main(int argc, char** argv)
     // The sky, the weather and everything that carries them. Prepared once; ticked with the frame.
     Frontier::ProjectZero::CelestialSequence Celestial;
     Celestial.Prepare();
+    // The moon atlas arrives after Decode: slots were registered with the scene (above), and the descriptors
+    //    now carry pixels the CPU raster can borrow. A missing file degrades to the index's 1x1 placeholder —
+    //    a pale disc, logged at decode — never a refusal to start.
+    Celestial.AssignMoonAtlas(MoonSlots, Textures);
     uint32_t CelestialFirstRow = Frontier::kNoEditorInstance;
 
     Panel.ApplyTheme();
@@ -1347,6 +1366,15 @@ int main(int argc, char** argv)
         {
             const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
             (void)Surface.RefreshSky(&Sky, sizeof(Sky));
+        }
+
+        // ④e GPU moons — the roster reads the packed record at binding 22 on every miss and every escaped
+        //     bounce, and the direct fill lights the primary hit. Pushed every frame beside the sky: 288 bytes,
+        //     and Luna moves. Same no-fallback shape as the sky — the previous roster stands, which is stale
+        //     moons rather than torn ones.
+        {
+            const Frontier::MoonConstantRecord Moons = Celestial.PackMoonRecord();
+            (void)Surface.RefreshMoons(&Moons, sizeof(Moons));
         }
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present

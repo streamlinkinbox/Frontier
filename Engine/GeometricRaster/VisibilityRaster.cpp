@@ -711,6 +711,16 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
             }
         }
 
+        // Moons, after the stars and before the twilight: they are behind both the glow and the air, so the
+        //    disc is multiplied by the same transmittance the integral measured rather than drawn over it. Gated
+        //    on SeesSpace like the stars — below the horizon there is a planet in the way, not a moonrise.
+        if (SeesSpace && Celestial_.Moons != nullptr && Celestial_.Moons->Count > 0u)
+        {
+            float MoonRgb[3];
+            EvaluateMoons(Celestial_.Moons->Entries, Celestial_.Moons->Count, Dir, S.Transmittance, MoonRgb);
+            Out[0] += MoonRgb[0]; Out[1] += MoonRgb[1]; Out[2] += MoonRgb[2];
+        }
+
         // Twilight rides on top of the physical integral. Single scattering cannot produce a lit sky once the sun
         //    is below the horizon (every sample is in the planet's shadow), so without this the pre-dawn sky is
         //    black. See the note above Twilight in AtmosphereModel.h.
@@ -730,6 +740,16 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
         // A hemisphere of sky at that radiance, times the Lambert 1/pi, is pi * L / pi = L. The 0.5 accounts for
         //    the ground taking the other half of the sphere.
         for (int C = 0; C < 3; ++C) SkyAmbient[C] = Probe.Radiance[C] * 0.5f;
+        // Moonlight joins the probe, not the pixels: the reference panel's ambient loop is a per-frame constant
+        //    too, and the kernel adds the identical term — so a moonlit frame cannot be bright on one path and
+        //    black on the other. At a moonless midnight this is zero and the night stays black, which is what
+        //    the kAmbient note below defends.
+        if (Celestial_.Moons != nullptr && Celestial_.Moons->Count > 0u)
+        {
+            float MoonAmb[3];
+            EvaluateMoonAmbient(Celestial_.Moons->Entries, Celestial_.Moons->Count, MoonAmb);
+            for (int C = 0; C < 3; ++C) SkyAmbient[C] += MoonAmb[C];
+        }
     }
 
     // Seed pass: sky where nothing won, ambient where something did, emission where it glows.

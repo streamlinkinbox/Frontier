@@ -118,12 +118,17 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
 layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
-// ── Binding 21 is the Celestial sky, declared in Shaders/SkyRecords.slang below. Round 9 vacated 21-24 when the
-//    sun/sky system was removed (947b8b9); 21 is now filled and 22-24 stay reserved for the transmittance and
-//    cloud-shadow surfaces if they are ever built. They remain undeclared until something writes them, because a
-//    declared-but-never-written descriptor is a validation error rather than free space.
-#include "Shaders/SkyRecords.slang"
+// ── Bindings 21-22 are the Celestial sky and moons, declared in Shaders/SkyRecords.slang and
+//    Shaders/MoonRecords.slang below. Round 9 vacated 21-24 when the sun/sky system was removed (947b8b9); 21-22
+//    are now filled and 23-24 stay reserved for the transmittance and cloud-shadow surfaces if they are ever
+//    built. They remain undeclared until something writes them, because a declared-but-never-written descriptor
+//    is a validation error rather than free space.
+//    ⚠️ The bindless table is declared BEFORE the includes: MoonAlong samples it, and SkyAlong calls MoonAlong,
+//    so the table and the moons must both be visible where the sky is defined. 25 is still the highest binding
+//    NUMBER in the set, which is what the variable-count rule constrains — source order is free.
 layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — ⚠️ moved 11 → 15 in R4b → 18 in R6 → 19 in R7a → 21 in R7 → 23 in A2 → 25 in A7: a variable-count binding must be the last one in the set
+#include "Shaders/MoonRecords.slang"
+#include "Shaders/SkyRecords.slang"
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
 const float kTemporalDepthTol  = 0.10;       // 10% relative depth validation
@@ -185,7 +190,7 @@ struct SurfaceFrame         // everything the kernel needs at a hit besides the 
     vec3  Geometric;        // face normal facing the viewer side (ray offsets, shadow rays)
     vec3  Emission;         // slab emission × texture [nit]
     float Opacity;          // geometry_opacity × texture alpha
-    float Occlusion;        // baked AO — multiplies the debug ambient floor only
+    float Occlusion;        // baked AO — multiplies the ambient fills (debug floor, moonlight), never the direct light
     float LodBias;          // ½ log2(uvArea / worldArea) + log2(coneWidth / |n·d|): add ½ log2(texW·texH) per texture
 };
 
@@ -1129,6 +1134,13 @@ void main()
     //------------------------------------------------------------------------------------------------------------------
     if ((FeatureFlags & kFeatureAmbientFloor) != 0u)
         accumulatedRadiance += albedo * frame.Occlusion * AmbientStrength;
+
+    // Moonlight, and it is NOT debug-only. The reference panel adds its moon loop to every shaded surface
+    //    unconditionally, and the CPU raster learned why: a scene lit only by the sky renders as black geometry
+    //    against a correct sky unless the environment light reaches the surfaces too. Escaped bounce rays collect
+    //    the discs through SkyAlong (the GI moonlight); this is the direct fill for the primary hit, so one
+    //    bounce is enough for moonlight to read. Zero when no moon is up, by the count in the block.
+    accumulatedRadiance += albedo * frame.Occlusion * MoonAmbient();
 
     // R7a: the primary hit's geometric normal and camera distance are what the next frame validates its
     //    back-projection against — the same pair R6 row 2 uses to validate reprojected reservoirs.

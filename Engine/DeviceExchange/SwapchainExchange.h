@@ -238,6 +238,11 @@ public:
     //    the same arrangement as UploadShadingTables. False when the bytes are null, the size is not 128, or the
     //    buffer does not exist yet; the previous contents stand, so a refusal degrades to a stale sky, not a tear.
     [[nodiscard]] bool          RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept;
+    // Celestial moon record → binding 22, safe every frame: the same arrangement as the sky record above, 288
+    //    bytes packed by MoonConstantRecord/PackMoonConstants. False when the bytes are null, the size is not
+    //    288, or the buffer does not exist yet; the previous contents stand, so a refusal degrades to stale
+    //    moons — and zero is no moons at all (MoonControl.x = 0), which is the kernel's early-out.
+    [[nodiscard]] bool          RefreshMoons(const void* Bytes, uint32_t ByteCount) noexcept;
     void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
@@ -328,6 +333,7 @@ private:
     [[nodiscard]] bool  BringDenoisePipeline()  noexcept;   // R7: à-trous filter, its own small descriptor set
     [[nodiscard]] bool  BringLuminanceReduction() noexcept; // A6b: the average-log-luminance pass
     [[nodiscard]] bool  BringSkyRecord() noexcept;   // Celestial sky uniform buffer (binding 21) — before BringDescriptorSet, which writes it
+    [[nodiscard]] bool  BringMoonRecord() noexcept;  // Celestial moon uniform buffer (binding 22) — beside the sky record, same ordering rule
     // Rewritten on every resize: this set binds HistoryImageView, which a resize destroys and recreates.
     void                WriteLuminanceDescriptors() noexcept;
     [[nodiscard]] bool  BringCommandRecording() noexcept;

@@ -61,6 +61,10 @@ static constexpr uint32_t kLuminanceSampleStride = 32u;
 //    DisplayPresentation/SkyConstantRecord.h. DeviceExchange must not include DisplayPresentation (it is the
 //    layer below it), so the size is restated here and CheckSkyKernel.sh fails the build if the two disagree.
 static constexpr uint32_t kSkyRecordBytes = 128u;
+// The Celestial moon uniform block (binding 22) is eighteen std140 rows — 288 B, pinned by static_assert in
+//    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
+//    gate fails the build if the two disagree.
+static constexpr uint32_t kMoonRecordBytes = 288u;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              VULKAN RECORD DEFINITION
@@ -152,6 +156,11 @@ struct SwapchainExchange::VulkanRecord
     VkBuffer                 SkyBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory           SkyMemory             = VK_NULL_HANDLE;
     void*                    SkyMapped             = nullptr;
+    // Celestial moon record (binding 22). Same arrangement as the sky record: one 288 B uniform buffer,
+    //    host-visible and persistently mapped, re-packed by the project every frame.
+    VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
+    VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
+    void*                    MoonMapped            = nullptr;
     // R6 temporal reservoirs: two W×H×64 B SSBOs (bindings 16/17), ping-ponged per presented frame. Record layout
     //    (std430, mirrors GpuReservoir in ReSTIRViewport.slang): Sample(xyz point, w WeightSum) · Counts(M, light,
     //    Visible, Age) · UvDepth(uv, W, view depth) · Normal(xyz geometric normal, w stride guard).
@@ -421,9 +430,10 @@ bool SwapchainExchange::Bring() noexcept
         { "BringDenoisePipeline",  &SwapchainExchange::BringDenoisePipeline  },
         // A6b after BringStorageImage (it binds HistoryImageView) and before BringDescriptorSet, same as above.
         { "BringLuminanceReduction", &SwapchainExchange::BringLuminanceReduction },
-        // The sky buffer must exist before BringDescriptorSet: that stage ends by calling WriteDescriptorSet(),
-        //    which writes binding 21 once the buffer is there and skips it otherwise.
+        // The sky and moon buffers must exist before BringDescriptorSet: that stage ends by calling
+        //    WriteDescriptorSet(), which writes bindings 21-22 once the buffers are there and skips them otherwise.
         { "BringSkyRecord",          &SwapchainExchange::BringSkyRecord          },
+        { "BringMoonRecord",         &SwapchainExchange::BringMoonRecord         },
         { "BringDescriptorSet",    &SwapchainExchange::BringDescriptorSet    },
         { "BringCycleSlots",       &SwapchainExchange::BringCycleSlots       },
         { "BringImGui",            &SwapchainExchange::BringImGui            },
@@ -500,6 +510,10 @@ void SwapchainExchange::Retire() noexcept
     if (Vulkan->SkyMapped)  vkUnmapMemory (Vulkan->Device, Vulkan->SkyMemory);
     if (Vulkan->SkyBuffer)  vkDestroyBuffer(Vulkan->Device, Vulkan->SkyBuffer, nullptr);
     if (Vulkan->SkyMemory)  vkFreeMemory   (Vulkan->Device, Vulkan->SkyMemory, nullptr);
+    // The moon record shares the arrangement: permanent, retired here, never in RetireSwapchain.
+    if (Vulkan->MoonMapped) vkUnmapMemory (Vulkan->Device, Vulkan->MoonMemory);
+    if (Vulkan->MoonBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->MoonBuffer, nullptr);
+    if (Vulkan->MoonMemory) vkFreeMemory   (Vulkan->Device, Vulkan->MoonMemory, nullptr);
 
     for (uint32_t Slot = 0u; Slot < kCycleSlotCount; ++Slot)
     {
@@ -1153,7 +1167,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     for (uint32_t B = 4u; B < kComputeBindingCount - 1u; ++B)
     {
         LayoutBindings[B].binding         = B;
-        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u || B == 22u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 21u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21 live sky UBO (SkyRecords.slang) · 22/24 retired sky holes, still declared, never written
+        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 21u || B == 22u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21 live sky UBO (SkyRecords.slang) · 22 live moon UBO (MoonRecords.slang) · 24 retired sky hole, still declared, never written
         LayoutBindings[B].descriptorCount = 1u;
         LayoutBindings[B].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
     }
@@ -1537,6 +1551,21 @@ bool SwapchainExchange::BringSkyRecord() noexcept
     return true;
 }
 
+bool SwapchainExchange::BringMoonRecord() noexcept
+{
+    // One 288 B uniform buffer, host-visible and persistently mapped — the same arrangement as the sky record.
+    constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kMoonRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                   HostVisible, Vulkan->MoonBuffer, Vulkan->MoonMemory);
+    if (!Vulkan->MoonBuffer) return false;
+    if (vkMapMemory(Vulkan->Device, Vulkan->MoonMemory, 0u, kMoonRecordBytes, 0u, &Vulkan->MoonMapped) != VK_SUCCESS)
+        return false;
+    // Zero is no moons at all (MoonControl.x = 0), so until the first RefreshMoons the kernel behaves exactly
+    //    as it did when the binding was an unwritten hole — minus the validation error.
+    std::memset(Vulkan->MoonMapped, 0, kMoonRecordBytes);
+    return true;
+}
+
 bool SwapchainExchange::BringDescriptorSet() noexcept
 {
     std::array<VkDescriptorPoolSize, 4u> PoolSizes{};
@@ -1551,14 +1580,14 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
     //    guaranteed to fail on another.
     PoolSizes[1].descriptorCount = 12u;                         // 1, 2, 6-12, 16-17, 23
     PoolSizes[2].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    PoolSizes[2].descriptorCount = 4u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // 13/14 material LUTs · 15 motion · 22 retired (still declared) · the bindless table
+    PoolSizes[2].descriptorCount = 3u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // 13/14 material LUTs · 15 motion · the bindless table (22 left for the UBOs below)
 
     VkDescriptorPoolCreateInfo PoolInfo{};
     PoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     PoolInfo.flags         = Vulkan->DescriptorIndexing ? static_cast<VkDescriptorPoolCreateFlags>(VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) : 0u;
     PoolInfo.maxSets       = 1u;
     PoolSizes[3].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    PoolSizes[3].descriptorCount = 2u;                          // 21 live sky record · 24 retired (counted: still declared)
+    PoolSizes[3].descriptorCount = 3u;                          // 21 live sky record · 22 live moon record · 24 retired (counted: still declared)
     PoolInfo.poolSizeCount = 4u;
     PoolInfo.pPoolSizes    = PoolSizes.data();
     (void)vkCreateDescriptorPool(Vulkan->Device, &PoolInfo, nullptr, &Vulkan->ComputeDescriptorPool);
@@ -1639,6 +1668,7 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     VkDescriptorBufferInfo PrevReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot],      0u, VK_WHOLE_SIZE };
     VkDescriptorBufferInfo CurrReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot ^ 1u], 0u, VK_WHOLE_SIZE };
     VkDescriptorBufferInfo SkyInfo{ Vulkan->SkyBuffer, 0u, VK_WHOLE_SIZE };   // Celestial sky record (binding 21)
+    VkDescriptorBufferInfo MoonInfo{ Vulkan->MoonBuffer, 0u, VK_WHOLE_SIZE }; // Celestial moon record (binding 22)
 
     std::array<VkWriteDescriptorSet, kComputeBindingCount> Writes{};
     uint32_t WriteCount = 0u;
@@ -1736,6 +1766,7 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     WriteImage (19u, MomentInfo);           // R7:  luminance moments, for the variance estimate
     WriteImage (20u, DenoiseInputInfo);     // R7:  linear radiance + variance, the à-trous input
     WriteUniform(21u, SkyInfo);             // Celestial sky record, for the kernel's miss branches
+    WriteUniform(22u, MoonInfo);            // Celestial moon record, for the discs and the moonlight
 
     // R4a: the texture table. Written in one go (partially bound: slots past the resident count stay undefined and are
     //    never indexed — the material records only reference resident slots).
@@ -2334,6 +2365,21 @@ bool SwapchainExchange::RefreshSky(const void* Bytes, uint32_t ByteCount) noexce
     //    adversarial scheduler could show one frame a half-old sky; RefreshTraversal accepts that shape for
     //    megabytes of BVH, which is where the argument ends for 128 coherent bytes.
     std::memcpy(Vulkan->SkyMapped, Bytes, kSkyRecordBytes);
+    return true;
+}
+
+bool SwapchainExchange::RefreshMoons(const void* Bytes, uint32_t ByteCount) noexcept
+{
+    // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
+    //    MoonConstantRecord/PackMoonConstants and hands over the 288 bytes, the way RefreshSky receives its 128.
+    //    The size is refused rather than trusted: a short write would leave half an old roster in the buffer,
+    //    and a long one would overrun the mapping.
+    if (!Vulkan->Device || !Vulkan->MoonMapped || !Bytes || ByteCount != kMoonRecordBytes) return false;
+    // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
+    //    same per-frame shape as RefreshSky. The buffer is shared by both cycle slots, so a sufficiently
+    //    adversarial scheduler could show one frame a half-old roster; RefreshTraversal accepts that shape for
+    //    megabytes of BVH, which is where the argument ends for 288 coherent bytes.
+    std::memcpy(Vulkan->MoonMapped, Bytes, kMoonRecordBytes);
     return true;
 }
 

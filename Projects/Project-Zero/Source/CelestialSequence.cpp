@@ -140,6 +140,69 @@ void ReadAxes(const EditorSheet& Sheet, const char* Label, float Out[3]) noexcep
     Out[0] = P->Axes[0]; Out[1] = P->Axes[1]; Out[2] = P->Axes[2];
 }
 
+// Horizon to unit vector, transcribed from CelestialSolver's ToDirection (east/north/up, azimuth clockwise from
+//    north). The solver owns the ephemeris, but a placed moon is project presentation, not astronomy.
+void AzElevToDirection(float ElevationDegrees, float AzimuthDegrees, float Out[3]) noexcept
+{
+    constexpr float kDeg = 3.14159265358979323846f / 180.0f;
+    const float CosE = std::cos(ElevationDegrees * kDeg);
+    Out[0] = CosE * std::sin(AzimuthDegrees * kDeg);   // east
+    Out[1] = CosE * std::cos(AzimuthDegrees * kDeg);   // north
+    Out[2] = std::sin(ElevationDegrees * kDeg);        // up
+}
+
+// The roster becomes a draw list. The ONE resolver both ApplyTo and PackMoonRecord call, so the raster and the
+//    kernel cannot be handed different moons: visibility, the linked-Luna ephemeris read, the phase conversion
+//    and the preset skinning happen here or nowhere.
+void ResolveMoonDrawList(const MoonSlotState* Slots, const CelestialFrame& Solved, const MoonAlbedoView* Views,
+                         const uint32_t* TextureSlots, MoonDrawList& Out) noexcept
+{
+    Out = MoonDrawList{};
+    if (Slots == nullptr || Views == nullptr || TextureSlots == nullptr) return;
+    constexpr float kDeg = 3.14159265358979323846f / 180.0f;
+    for (uint32_t S = 0u; S < kMoonDrawCount; ++S)
+    {
+        const MoonSlotState& M = Slots[S];
+        if (!M.Visible) continue;
+        const uint32_t P = M.Preset < kMoonAtlasCount ? M.Preset : 0u;
+        const MoonAtlasPreset& A = kMoonAtlas[P];
+        MoonDrawEntry& E = Out.Entries[Out.Count];
+        ++Out.Count;
+        if (M.FollowSky)
+        {
+            // ⚠️ The direction comes from the SOLVED frame — the same first-frame rule PackSkyRecord records
+            //    for the sun. Solved is written by Prepare as well as by Tick, so it is always right.
+            E.Direction[0] = Solved.Moon.Direction[0];
+            E.Direction[1] = Solved.Moon.Direction[1];
+            E.Direction[2] = Solved.Moon.Direction[2];
+            E.Phase = MoonPhaseToReference(Solved.MoonPhase);
+        }
+        else
+        {
+            AzElevToDirection(M.Elevation, M.Azimuth, E.Direction);
+            E.Phase = MoonPhaseToReference(M.Phase);
+        }
+        E.Tint[0] = A.Tint[0]; E.Tint[1] = A.Tint[1]; E.Tint[2] = A.Tint[2];
+        E.AngularRadius = (M.Size > 0.0f ? M.Size : 0.0f) * kDeg * 0.5f;
+        E.Brightness = M.Bright;
+        E.Glow = M.Glow;
+        E.Spin = 0.0f;
+        E.Tilt = A.TiltDegrees * kDeg;
+        E.Haze = A.Haze;
+        E.Gamma = A.Gamma;
+        E.Albedo = Views[P];
+        E.TextureSlot = TextureSlots[P];
+    }
+}
+
+// One label scheme for the four slot groups, shared by BuildSheet and ApplySheet: Find reads back BY LABEL, so
+//    four groups sharing "Azimuth" would all read slot one's value. The M1..M4 prefix keeps every label on the
+//    sheet unique.
+void MoonPropLabel(uint32_t Slot, const char* Leaf, char* Out, size_t OutSize) noexcept
+{
+    std::snprintf(Out, OutSize, "M%u %s", Slot + 1u, Leaf);
+}
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -219,6 +282,24 @@ void CelestialSequence::Prepare() noexcept
     //    result is deliberately not checked. StarCatalogueIndex reports Empty() and the star loop skips.
     (void)Catalogue.Load("EngineContent/StarCatalogue/BrightStars.bin");
 
+    // The roster opens the way the reference panel does: one moon, Luna — except ours follows the solved lunar
+    //    frame rather than sitting at a fixed chart position, because this engine HAS an ephemeris. The other
+    //    three slots are parked where the panel would put them (az 300+i*47, elev 28-i*6) and hidden, one
+    //    inspector toggle away.
+    for (uint32_t I = 0u; I < kMoonDrawCount; ++I) MoonSlots[I] = MoonSlotState{};
+    MoonSlots[0].Preset = 0u; MoonSlots[0].FollowSky = true; MoonSlots[0].Visible = true;
+    MoonSlots[0].Size = kMoonAtlas[0].SizeDegrees;
+    const uint32_t Parked[3] = { 1u, 2u, 3u };
+    for (uint32_t K = 0u; K < 3u; ++K)
+    {
+        MoonSlotState& M = MoonSlots[K + 1u];
+        M.Preset = Parked[K];
+        M.Visible = false;
+        M.Azimuth = static_cast<float>((300u + (K + 1u) * 47u) % 360u);
+        M.Elevation = 28.0f - static_cast<float>(K + 1u) * 6.0f;
+        M.Size = kMoonAtlas[Parked[K]].SizeDegrees;
+    }
+
     Solved = CelestialSolver::Solve(Observation);
 }
 
@@ -293,6 +374,16 @@ void CelestialSequence::ApplyTo(VisibilityRaster& Raster, const CelestialBudget&
     Settings.Latitude          = Observation.Latitude;
     for (int C = 0; C < 3; ++C) Settings.GroundAlbedo[C] = GroundAlbedo[C];
 
+    // The moons resolve from the same roster PackMoonRecord packs, through the same resolver — the raster and
+    //    the kernel cannot be handed different moons. Gated like the stars: the list is lent only when the
+    //    system is on, the entity is shown, and an atlas was actually assigned; anything else lends null, which
+    //    is the raster's default and what every existing proof renders against.
+    MoonDraw_ = MoonDrawList{};
+    const bool WantMoons = Enabled && AtlasAssigned_ && Shown[static_cast<uint32_t>(CelestialEntity::Moons)];
+    if (WantMoons)
+        ResolveMoonDrawList(MoonSlots, Solved, MoonViews_, MoonTextureSlots_, MoonDraw_);
+    Settings.Moons = (WantMoons && MoonDraw_.Count > 0u) ? &MoonDraw_ : nullptr;
+
     Raster.AssignCelestial(Settings);
 }
 
@@ -312,6 +403,46 @@ SkyConstantRecord CelestialSequence::PackSkyRecord() const noexcept
 
     return PackSkyConstants(Medium, Effective, Twilight, Solved.Sun.Elevation, /*CameraHeightMetres=*/2.0f,
                             Budget.AtmosphereSamples, Budget.AtmosphereLightSamples, Enabled);
+}
+
+void CelestialSequence::AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept
+{
+    const std::vector<TextureDescriptor>& All = Textures.QueryTextures();
+    for (uint32_t I = 0u; I < kMoonAtlasCount; ++I)
+    {
+        MoonTextureSlots_[I] = Slots[I];
+        MoonViews_[I] = MoonAlbedoView{};
+        // A slot past the index, or a descriptor with no level-0 pixels yet (registered but never decoded),
+        //    lends an empty view — which samples as white, the placeholder's own colour — rather than a
+        //    dangling pointer. The kernel side needs no such guard: an unassigned atlas packs a zero count in
+        //    PackMoonRecord, and zero moons sample no slots.
+        if (Slots[I] < All.size() && All[Slots[I]].TexelBytes() == 4u && !All[Slots[I]].Texels.empty())
+        {
+            const TextureDescriptor& T = All[Slots[I]];
+            const size_t Level0 = T.LevelOffsets.empty() ? 0u : T.LevelOffsets[0];
+            if (Level0 < T.Texels.size())
+            {
+                MoonViews_[I].Texels = T.Texels.data() + Level0;
+                MoonViews_[I].Width = T.Width;
+                MoonViews_[I].Height = T.Height;
+                MoonViews_[I].TexelBytes = T.TexelBytes();
+            }
+        }
+    }
+    AtlasAssigned_ = true;
+}
+
+MoonConstantRecord CelestialSequence::PackMoonRecord() const noexcept
+{
+    // ⚠️ Every gate here mirrors ApplyTo above, for the reasons recorded there. A hidden Moons entity is a
+    //    moonless sky, not a black one: the count goes to zero and the kernel's early-out leaves the stale
+    //    bytes unread. An unassigned atlas packs the same zero — a caller without textures gets no moons, not
+    //    slot 0's material.
+    MoonDrawList Draw{};
+    const bool WantMoons = Enabled && AtlasAssigned_ && Shown[static_cast<uint32_t>(CelestialEntity::Moons)];
+    if (WantMoons)
+        ResolveMoonDrawList(MoonSlots, Solved, MoonViews_, MoonTextureSlots_, Draw);
+    return PackMoonConstants(Draw.Entries, Draw.Count);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -480,6 +611,36 @@ void CelestialSequence::BuildSheet(CelestialEntity Entity, EditorSheet& Sheet) c
         Push(Live, MakeReadout("Azimuth", Text));
         std::snprintf(Text, sizeof(Text), "%.0f%% lit", static_cast<double>(Solved.MoonIllumination) * 100.0);
         Push(Live, MakeReadout("Illumination", Text));
+        // One group per roster slot after the solved readouts: 5 groups against a 6-group sheet, 9 properties
+        //    against 10 per group. Labels carry the M1..M4 prefix (MoonPropLabel): Find reads back BY LABEL, so
+        //    unprefixed groups would all land on slot one's fields.
+        static const char* const Presets[] = { "Luna", "Ember", "Glacier", "Sulfur", "Shroud", "Shard" };
+        char Title[24];
+        char Label[28];
+        for (uint32_t S = 0u; S < kMoonDrawCount; ++S)
+        {
+            const MoonSlotState& M = MoonSlots[S];
+            std::snprintf(Title, sizeof(Title), "Moon %u", S + 1u);
+            EditorPropertyGroup& Slot = OpenGroup(Sheet, Title);
+            MoonPropLabel(S, "Visible", Label, sizeof(Label));
+            Push(Slot, MakeSwitch(Label, M.Visible));
+            MoonPropLabel(S, "Preset", Label, sizeof(Label));
+            Push(Slot, MakeSelect(Label, Presets, 6u, M.Preset < 6u ? M.Preset : 0u));
+            MoonPropLabel(S, "Follow Sky", Label, sizeof(Label));
+            Push(Slot, MakeSwitch(Label, M.FollowSky));
+            MoonPropLabel(S, "Azimuth", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, 0.0f, 360.0f, M.Azimuth, 0, "deg"));
+            MoonPropLabel(S, "Elevation", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, -90.0f, 90.0f, M.Elevation, 1, "deg"));
+            MoonPropLabel(S, "Size", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, 0.1f, 40.0f, M.Size, 2, "deg"));
+            MoonPropLabel(S, "Bright", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, 0.0f, 6.0f, M.Bright, 2, "x"));
+            MoonPropLabel(S, "Glow", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, 0.0f, 3.0f, M.Glow, 2, "x"));
+            MoonPropLabel(S, "Phase", Label, sizeof(Label));
+            Push(Slot, MakeSlider(Label, 0.0f, 1.0f, M.Phase, 2, ""));
+        }
         break;
     }
     case CelestialEntity::HeightFog:
@@ -665,6 +826,44 @@ void CelestialSequence::ApplySheet(CelestialEntity Entity, const EditorSheet& Sh
         StarBrightness = ReadSlider(Sheet, "Brightness", StarBrightness);
         StarSize       = ReadSlider(Sheet, "Point Size", StarSize);
         break;
+    case CelestialEntity::Moons:
+    {
+        char Label[28];
+        for (uint32_t S = 0u; S < kMoonDrawCount; ++S)
+        {
+            MoonSlotState& M = MoonSlots[S];
+            MoonPropLabel(S, "Visible", Label, sizeof(Label));
+            M.Visible = ReadSwitch(Sheet, Label, M.Visible);
+            MoonPropLabel(S, "Preset", Label, sizeof(Label));
+            const uint32_t Picked = ReadSelect(Sheet, Label, M.Preset);
+            // A new body is a fresh body: the size resets to the preset's own, the way the panel's
+            //    applyPreset re-skins it — and the sheet's stale size slider is NOT read back over the reset,
+            //    because the sheet was built for the body just replaced. Haze, tilt and gamma need no reset
+            //    (the resolver reads them from the atlas live), and bright, glow and phase are the slot's own
+            //    and survive the switch.
+            const bool Reskinned = Picked < kMoonAtlasCount && Picked != M.Preset;
+            if (Reskinned)
+            {
+                M.Preset = Picked;
+                M.Size = kMoonAtlas[Picked].SizeDegrees;
+            }
+            MoonPropLabel(S, "Follow Sky", Label, sizeof(Label));
+            M.FollowSky = ReadSwitch(Sheet, Label, M.FollowSky);
+            MoonPropLabel(S, "Azimuth", Label, sizeof(Label));
+            M.Azimuth = ReadSlider(Sheet, Label, M.Azimuth);
+            MoonPropLabel(S, "Elevation", Label, sizeof(Label));
+            M.Elevation = ReadSlider(Sheet, Label, M.Elevation);
+            MoonPropLabel(S, "Size", Label, sizeof(Label));
+            if (!Reskinned) M.Size = ReadSlider(Sheet, Label, M.Size);
+            MoonPropLabel(S, "Bright", Label, sizeof(Label));
+            M.Bright = ReadSlider(Sheet, Label, M.Bright);
+            MoonPropLabel(S, "Glow", Label, sizeof(Label));
+            M.Glow = ReadSlider(Sheet, Label, M.Glow);
+            MoonPropLabel(S, "Phase", Label, sizeof(Label));
+            M.Phase = ReadSlider(Sheet, Label, M.Phase);
+        }
+        break;
+    }
     case CelestialEntity::HeightFog:
     {
         Fog.HeightEnabled = ReadSwitch(Sheet, "Enabled", Fog.HeightEnabled);

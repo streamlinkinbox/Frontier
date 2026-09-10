@@ -30,6 +30,7 @@
 
 #include "DisplayPresentation/AtmosphereModel.h"
 #include "DisplayPresentation/ColourTransfer.h"
+#include "DisplayPresentation/MoonConstantRecord.h"
 #include "StarCatalogueIndex.h"
 #include <cstdint>
 #include <vector>
@@ -90,6 +91,10 @@ public:
         // The star field. Null means no stars, which is the default so nothing existing changes. The index is
         //    borrowed, not owned: it is loaded once and shared by every raster that draws the same sky.
         const StarCatalogueIndex* Stars = nullptr;
+        // The moons. Null means no moons, which is the default so nothing existing changes. The list is
+        //    borrowed, not owned: the project resolves its roster plus the solved frame into one MoonDrawList
+        //    and lends it here, the same arrangement as the star catalogue above.
+        const MoonDrawList* Moons = nullptr;
         // The planet's own surface, seen when a ray passes below the horizon. Panel: Sky > Ground > Albedo.
         float            GroundAlbedo[3]   = { 0.19f, 0.17f, 0.14f };
         float            StarBrightness    = 1.0f;   // [x] panel: Stars > Field > Brightness
