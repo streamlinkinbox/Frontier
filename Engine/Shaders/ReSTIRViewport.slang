@@ -118,13 +118,11 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
 layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
-// ── Bindings 21-24 are RESERVED for the Celestial port (sky-view, transmittance, sun record, cloud shadow).
-//    Round 9 vacated them when the sun/sky system was removed (947b8b9) and they are still the right shape:
-//    below the bindless table, which must stay last because a variable-count binding has to be.
-//
-//    They are deliberately NOT declared here yet. A declared-but-never-written descriptor is not free — it is a
-//    validation error the moment the layout is created without it, and the R9 removal left exactly that kind of
-//    hole behind. They get declared in the step that first writes them, together with their descriptor writes.
+// ── Binding 21 is the Celestial sky, declared in Shaders/SkyRecords.slang below. Round 9 vacated 21-24 when the
+//    sun/sky system was removed (947b8b9); 21 is now filled and 22-24 stay reserved for the transmittance and
+//    cloud-shadow surfaces if they are ever built. They remain undeclared until something writes them, because a
+//    declared-but-never-written descriptor is a validation error rather than free space.
+#include "Shaders/SkyRecords.slang"
 layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — ⚠️ moved 11 → 15 in R4b → 18 in R6 → 19 in R7a → 21 in R7 → 23 in A2 → 25 in A7: a variable-count binding must be the last one in the set
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
@@ -796,8 +794,18 @@ void main()
 
     if (visibility == kVisibilityInvalid)
     {
-    // A missed primary ray sees no surface, and there is no environment light, so it contributes nothing.
-    Resolve(pixel, vec3(0.0));
+        // A missed primary ray sees the sky. This used to contribute nothing, which was correct only while the
+        //    renderer had no environment light — with a real atmosphere it is the background of every outdoor
+        //    frame. SkyAlong returns black when the sky is disabled, so the old behaviour is still reachable.
+        // The kernel reads pre-resolved surfaces and never builds a primary ray, so the direction for a MISSED
+        //    pixel has to be reconstructed here from the same camera basis SurfaceResolve used.
+        vec2  extent = vec2(float(ViewportWidth), float(ViewportHeight));
+        vec2  ndc    = ((vec2(pixel) + 0.5) / extent) * 2.0 - 1.0;
+        float aspect = extent.x / max(extent.y, 1.0);
+        vec3  direction = normalize(CameraForward
+                                  + CameraRight * (ndc.x * FieldOfViewTanHalf * aspect)
+                                  - CameraUp    * (ndc.y * FieldOfViewTanHalf));
+        Resolve(pixel, SkyAlong(direction));
         return;
     }
 
@@ -1055,7 +1063,18 @@ void main()
 
             Hit bounceHit = TraceScene(bounceRay);
 
-            // An escaped bounce ray contributes nothing: there is no environment light.
+            // ⚠️ An escaped bounce ray now collects the sky, and this is the half that changes the LIGHTING
+            //    rather than the background. In an outdoor scene the sky is the largest emitter present: it is
+            //    what makes an upward-facing surface read cool and an unlit face take the colour of the air
+            //    above it. Dropping it was correct when there was no environment light and is a missing light
+            //    source now.
+            //
+            //    The throughput already carries the BSDF and the cosine from the bounce, so the sky enters
+            //    exactly as any other emitter would — no separate ambient term, no second light path.
+            if (!bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
+            {
+                accumulatedRadiance += throughput * SkyAlong(bounceDir);
+            }
             if (bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
             {
                 GpuMaterial   bMat  = Materials[bounceHit.matIdx];
