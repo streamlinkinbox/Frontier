@@ -223,6 +223,94 @@ int main()
         std::printf("           wrote %s\n", Path.c_str());
     }
 
+    // ── The dawn transition ────────────────────────────────────────────────────────────────────────────────────
+    // Sampled by sun elevation, not by the clock: every twilight term is keyed to elevation, and at this latitude
+    //    the interesting range (-16 to +2 deg) is only about 70 minutes wide.
+    std::printf("\n  dawn transition (sampled by sun elevation)\n");
+    std::printf("  %-22s %8s %9s   %-22s %s\n", "stage", "sun el", "mean lum", "horizon RGB", "line sharpness");
+
+    struct Stage { const char* Name; float Elevation; };
+    const Stage Stages[] = {
+        { "astronomical -15", -15.0f },
+        { "nautical -10",     -10.0f },
+        { "civil -5.5",        -5.5f },   // the white line switches on here
+        { "line rising -4",    -4.0f },
+        { "line peak -2",      -2.0f },
+        { "horizon -0.5",      -0.5f },   // handing over to the disc
+        { "sunrise +1",         1.0f },
+        { "risen +4",           4.0f },
+    };
+
+    double PreviousLine = -1.0;
+    double LinePeak = 0.0; int LinePeakStage = -1;
+    for (int K = 0; K < 8; ++K)
+    {
+        VisibilityRaster::CelestialSettings Sky{};
+        Sky.Enabled = true;
+        Sky.CameraHeight = 2.0f;
+        Sky.SampleCount = Criteria.AtmosphereSampleCount;
+        Sky.LightSampleCount = Criteria.AtmosphereLightSampleCount;
+        // Sun due north (the scene faces +Y), at the requested elevation.
+        const float E = Stages[K].Elevation * 3.14159265f / 180.0f;
+        Sky.Light.Direction[0] = 0.0f;
+        Sky.Light.Direction[1] = std::cos(E);
+        Sky.Light.Direction[2] = std::sin(E);
+        Sky.Light.Intensity = 22.0f;
+
+        VisibilityRaster Raster;
+        Raster.AssignCelestial(Sky);
+        std::vector<unsigned char> Sheet(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        double MeanLuminance = 0.0;
+        const float Eye[3]     = { 0.0f, -6.0f, 1.7f };
+        const float Forward[3] = { 0.0f,  1.0f, 0.0f };
+        const float Right[3]   = { 1.0f,  0.0f, 0.0f };
+        const float Up[3]      = { 0.0f,  0.0f, 1.0f };
+        if (!Raster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
+                           kWidth, kHeight, Sheet.data(), MeanLuminance)) return 2;
+
+        const Statistics St = Measure(Sheet);
+
+        // ⚠️ The line is measured by SHARPNESS, not brightness. An earlier version took the brightest row in the
+        //    sky band, which rose monotonically all the way past sunrise — it was measuring daylight, and would
+        //    have "passed" with the hairline deleted. A hairline is a local step: a row markedly brighter than the
+        //    row a few pixels above it. That signature peaks below the horizon and collapses once the disc is up.
+        double Rows[kHeight];
+        for (uint32_t Y = 0; Y < kHeight; ++Y)
+        {
+            double Row = 0.0; uint32_t N = 0;
+            for (uint32_t X = kWidth * 3u / 8u; X < kWidth * 5u / 8u; ++X, ++N)
+                for (int C = 0; C < 3; ++C) Row += Sheet[(static_cast<size_t>(Y) * kWidth + X) * 4u + static_cast<size_t>(C)];
+            Rows[Y] = N ? Row / (N * 3.0) : 0.0;
+        }
+        double BrightestRow = 0.0;
+        for (uint32_t Y = kHeight * 40u / 100u; Y < kHeight * 56u / 100u; ++Y)
+        {
+            const double Step = Rows[Y] - Rows[Y - 4u];
+            if (Step > BrightestRow) BrightestRow = Step;
+        }
+        if (BrightestRow > LinePeak) { LinePeak = BrightestRow; LinePeakStage = K; }
+
+        std::printf("  %-22s %+7.1f %9.2f   %5.0f %5.0f %5.0f      %7.1f\n",
+                    Stages[K].Name, static_cast<double>(Stages[K].Elevation),
+                    (St.Mean[0] + St.Mean[1] + St.Mean[2]) / 3.0,
+                    St.HorizonRgb[0], St.HorizonRgb[1], St.HorizonRgb[2], BrightestRow);
+
+        char File[160];
+        std::snprintf(File, sizeof(File), "Diagnostics/Celestial_02_Dawn_%d_%s.png", K,
+                      Stages[K].Elevation < 0.0f ? "below" : "above");
+        std::vector<unsigned char> Rgb(static_cast<size_t>(kWidth) * kHeight * 3u);
+        for (size_t I = 0; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+        {
+            Rgb[I * 3u + 0u] = Sheet[I * 4u + 0u];
+            Rgb[I * 3u + 1u] = Sheet[I * 4u + 1u];
+            Rgb[I * 3u + 2u] = Sheet[I * 4u + 2u];
+        }
+        PngWriteShim::WritePng(File, static_cast<int>(kWidth), static_cast<int>(kHeight), 3, Rgb.data(),
+                               static_cast<int>(kWidth) * 3);
+        (void)PreviousLine;
+    }
+    std::printf("           wrote Diagnostics/Celestial_02_Dawn_*.png (8 stages)\n");
+
     std::printf("\n  assertions\n");
     const double MeanNoon  = (Stats[1].Mean[0] + Stats[1].Mean[1] + Stats[1].Mean[2]) / 3.0;
     const double MeanDusk  = (Stats[2].Mean[0] + Stats[2].Mean[1] + Stats[2].Mean[2]) / 3.0;
@@ -278,6 +366,19 @@ int main()
         std::snprintf(Detail, sizeof(Detail), "relative blue difference %.1f%%", Delta * 100.0);
         Require("zenith and horizon are not the same radiance", Delta > 0.10, Detail);
     }
+
+    // The white line must peak while the sun is still BELOW the horizon — that is what makes it the pre-sunrise
+    //    transition rather than just the sun coming up. Stages 2..5 are the -5.5 to -0.5 window.
+    std::snprintf(Detail, sizeof(Detail), "sharpest at stage %d (%.1f deg)", LinePeakStage,
+                  LinePeakStage >= 0 ? static_cast<double>(Stages[LinePeakStage].Elevation) : 0.0);
+    Require("the horizon edge sharpens before the sun rises", LinePeakStage >= 2 && LinePeakStage <= 5, Detail);
+
+    // ⚠️ Peak LOCATION alone does not prove the line exists: deleting the hairline entirely still leaves the
+    //    twilight glow peaking in the same window (measured: 14.9 at -2 deg with the line removed, against 25.2
+    //    with it). Only the MAGNITUDE separates a drawn hairline from a smooth gradient, because the line is
+    //    ~0.11 deg wide — about a fifth of the solar disc — and a glow simply cannot produce that step.
+    std::snprintf(Detail, sizeof(Detail), "peak sharpness %.1f (glow alone reaches only ~15)", LinePeak);
+    Require("the white line is a hairline, not just the glow", LinePeak > 20.0, Detail);
 
     std::printf("\n");
     for (int I = 0; I < 108; ++I) std::putchar('=');

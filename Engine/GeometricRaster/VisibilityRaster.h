@@ -79,6 +79,7 @@ public:
         bool             Enabled          = false;
         AtmosphereMedium Medium{};
         AtmosphereLight  Light{};
+        TwilightSettings Twilight{};                // the pre-dawn glow and the white line (see AtmosphereModel.h)
         float            CameraHeight     = 2.0f;   // [m] above the surface
         uint32_t         SampleCount      = 16u;    // FidelityCriteria::AtmosphereSampleCount
         uint32_t         LightSampleCount = 6u;     // FidelityCriteria::AtmosphereLightSampleCount

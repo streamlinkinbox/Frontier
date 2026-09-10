@@ -566,6 +566,20 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
     }
     const float Centre[3] = { (MinB[0] + MaxB[0]) * 0.5f, (MinB[1] + MaxB[1]) * 0.5f, (MinB[2] + MaxB[2]) * 0.5f };
 
+    // The sun's own elevation and compass bearing, needed by the twilight term. Derived from the light direction
+    //    the caller already supplied, so the raster never has to know about CelestialSolver.
+    const float SunElevationDegrees = std::asin(std::fmax(-1.0f, std::fmin(1.0f, Celestial_.Light.Direction[2])))
+                                    * 180.0f / kPi;
+    const float SunBearing = std::atan2(Celestial_.Light.Direction[0], Celestial_.Light.Direction[1]);
+    const auto AzimuthDeltaFor = [SunBearing](const float Dir[3]) -> float
+    {
+        // Angle between the view ray's horizontal bearing and the sun's, folded to [0, pi].
+        const float Bearing = std::atan2(Dir[0], Dir[1]);
+        float Delta = std::fabs(Bearing - SunBearing);
+        if (Delta > kPi) Delta = 2.0f * kPi - Delta;
+        return Delta;
+    };
+
     // The sky, evaluated per pixel along that pixel's own view ray. Sample counts come from the tier ladder so
     //    a Minimal frame integrates 8 steps and a Reference frame 32 — the panel never restates these.
     const float TanHalf = std::tan(FovYRadians * 0.5f);
@@ -590,6 +604,13 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                               Celestial_.CameraHeight, Dir,
                                                               Celestial_.SampleCount, Celestial_.LightSampleCount);
         Out[0] = S.Radiance[0]; Out[1] = S.Radiance[1]; Out[2] = S.Radiance[2];
+
+        // Twilight rides on top of the physical integral. Single scattering cannot produce a lit sky once the sun
+        //    is below the horizon (every sample is in the planet's shadow), so without this the pre-dawn sky is
+        //    black. See the note above Twilight in AtmosphereModel.h.
+        float Glow[3];
+        Twilight::Evaluate(Dir, SunElevationDegrees, AzimuthDeltaFor(Dir), Celestial_.Twilight, Glow);
+        Out[0] += Glow[0]; Out[1] += Glow[1]; Out[2] += Glow[2];
     };
 
     // The sky's contribution as an ambient term, evaluated ONCE for the frame (see the note at the fill below).

@@ -75,6 +75,128 @@ struct AtmosphereSample
     bool  HitGround        = false;
 };
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     TWILIGHT
+//------------------------------------------------------------------------------------------------------------------------
+
+// The band of colour before sunrise and after sunset, and the white line that runs along the horizon just before
+//    the disc appears.
+//
+// ⚠️ THIS TERM IS NOT PHYSICAL, AND THAT IS DELIBERATE. The integral above is SINGLE scattering. Once the sun is
+//    below the horizon every sample along the view ray is in the planet's shadow, the light march bails, and the
+//    sky goes black — which is why the step-1 night sheet was correctly black at -53 deg but the pre-dawn sky was
+//    also far too dark. Real twilight is lit by light that has scattered two or more times over the limb, and a
+//    single-scattering model cannot produce it at any sample count.
+//
+//    Rather than pretend otherwise with a multiple-scattering LUT (the source branch measured LUTs and reverted
+//    them, 2fe78ed), this is the reference demo's art-directed twilight, transcribed: an altitude-graded colour
+//    ramp, an azimuth envelope centred on the sun, and the hairline. It is added on top of the physical result and
+//    is labelled as an approximation everywhere it appears.
+struct TwilightSettings
+{
+    float GlowIntensity = 1.0f;   // [x] panel: Atmosphere > Twilight > Horizon Glow
+    float LineIntensity = 1.0f;   // [x] panel: Atmosphere > Twilight > White Line
+    bool  LineAtCivilOnly = true; // panel: "Line only at civil twilight"
+};
+
+class Twilight
+{
+public:
+    // Direction and sun elevation in the engine's Z-up frame. AzimuthDelta is the angle between the view ray's
+    //    horizontal bearing and the sun's, in radians — 0 looking straight at the sun's compass point.
+    static void Evaluate(const float Direction[3], float SunElevationDegrees, float AzimuthDelta,
+                         const TwilightSettings& Settings, float OutRgb[3]) noexcept
+    {
+        OutRgb[0] = OutRgb[1] = OutRgb[2] = 0.0f;
+
+        constexpr float kPi = 3.14159265358979323846f;
+        const float Altitude = std::asin(std::fmax(-1.0f, std::fmin(1.0f, Direction[2]))) * 180.0f / kPi;
+        if (Altitude < -2.0f) return;                    // below the horizon: the ground, not the sky
+        const float AltitudePositive = std::fmax(Altitude, 0.0f);
+
+        const float Az     = std::exp(-Square(AzimuthDelta / 0.95f));   // ~55 deg half width
+        const float AzWide = std::exp(-Square(AzimuthDelta / 1.8f));
+
+        // The twilight window: fades in as the sun drops past -16 deg (astronomical) and out once it is properly
+        //    up. Outside it this whole term is zero, so daylight is untouched by it.
+        const float Window = SmoothStep(-16.0f, -5.0f, SunElevationDegrees)
+                           * (1.0f - SmoothStep(0.5f, 6.0f, SunElevationDegrees));
+        if (Window <= 0.0f) return;
+
+        const float Depth = Clamp(-SunElevationDegrees / 10.0f, 0.0f, 1.0f);   // 1 = deep twilight
+
+        // Colour by altitude on a log scale: cream at the horizon through orange, salmon and violet to the blue
+        //    of the earth's own shadow overhead.
+        const float C0[3] = { 1.00f, 0.88f, 0.62f };
+        const float C1[3] = { 1.00f, 0.62f, 0.28f };
+        const float C2[3] = { 0.95f, 0.42f, 0.30f };
+        const float C3[3] = { 0.62f, 0.36f, 0.48f };
+        const float C4[3] = { 0.25f, 0.30f, 0.58f };
+
+        const float U = std::log2(1.0f + AltitudePositive * 2.0f);
+        float Colour[3];
+        MixInto(Colour, C0, C1, SmoothStep(0.0f, 1.6f, U));
+        MixInto(Colour, Colour, C2, SmoothStep(1.6f, 2.9f, U));
+        MixInto(Colour, Colour, C3, SmoothStep(2.9f, 4.0f, U));
+        MixInto(Colour, Colour, C4, SmoothStep(4.0f, 5.2f, U));
+        // Deep twilight loses the yellow and turns pink.
+        float Deep[3];
+        MixInto(Deep, C2, C4, 0.6f);
+        MixInto(Colour, Colour, Deep, Depth * 0.6f);
+
+        // A low, tight envelope so the glow hugs the horizon instead of bleaching the whole dome.
+        const float H    = Lerp(1.9f, 3.8f, Depth);
+        const float Env  = std::exp(-AltitudePositive / H) * (1.0f - Depth * 0.35f);
+        const float Rim  = std::exp(-AltitudePositive / 0.45f) * (1.0f - Depth);
+        const float Lobe = Az * 0.85f + AzWide * 0.15f;
+
+        for (int C = 0; C < 3; ++C)
+            OutRgb[C] = (Colour[C] * Env * 0.30f + C0[C] * Rim * 0.25f) * Lobe * Window;
+
+        // ── The white line ─────────────────────────────────────────────────────────────────────────────────────
+        // A soft hairline on the horizon, centred on the sun's bearing. With the auto gate on it appears around
+        //    -5.5 deg (the end of civil twilight), brightens as the sun climbs, and hands over to the disc itself
+        //    just before sunrise — which is the transition being looked for. With the gate off it is always on,
+        //    which is what the panel's toggle exposes.
+        const float LineWindow = Settings.LineAtCivilOnly
+            ? SmoothStep(-5.5f, -2.5f, SunElevationDegrees) * (1.0f - SmoothStep(-0.6f, 0.3f, SunElevationDegrees))
+            : 1.0f;
+        const float LineAz = std::exp(-Square(AzimuthDelta / 0.55f));
+        // The 0.11 deg width is what makes it a LINE rather than a glow: it is about a fifth of the sun's own
+        //    angular diameter, so it reads as a drawn edge on the horizon.
+        const float Line   = std::exp(-Square(Altitude / 0.11f)) * (0.7f + 0.3f * SmoothStep(-0.4f, 0.0f, Altitude));
+        const float LineWhite[3] = { 1.0f, 0.98f, 0.92f };
+        for (int C = 0; C < 3; ++C)
+            OutRgb[C] += LineWhite[C] * Line * LineAz * LineWindow * Settings.LineIntensity * 0.45f;
+
+        // The cool dome fill: the earth's shadow, bluest high up and away from the sun.
+        const float DomeWindow = SmoothStep(-16.0f, -8.0f, SunElevationDegrees)
+                               * (1.0f - SmoothStep(-2.0f, 4.0f, SunElevationDegrees));
+        const float Dome[3] = { 0.10f, 0.15f, 0.30f };
+        for (int C = 0; C < 3; ++C)
+            OutRgb[C] += Dome[C] * 0.035f * DomeWindow * (1.0f - std::exp(-AltitudePositive / 6.0f)) * (1.0f - 0.5f * Az);
+
+        for (int C = 0; C < 3; ++C) OutRgb[C] *= Settings.GlowIntensity;
+    }
+
+private:
+    static float Square(float V) noexcept { return V * V; }
+    static float Clamp(float V, float Lo, float Hi) noexcept { return V < Lo ? Lo : (V > Hi ? Hi : V); }
+    static float Lerp(float A, float B, float T) noexcept { return A + (B - A) * T; }
+    static float SmoothStep(float Edge0, float Edge1, float V) noexcept
+    {
+        const float T = Clamp((V - Edge0) / (Edge1 - Edge0), 0.0f, 1.0f);
+        return T * T * (3.0f - 2.0f * T);
+    }
+    static void MixInto(float Out[3], const float A[3], const float B[3], float T) noexcept
+    {
+        const float Ax = A[0], Ay = A[1], Az = A[2];   // A may alias Out
+        Out[0] = Ax + (B[0] - Ax) * T;
+        Out[1] = Ay + (B[1] - Ay) * T;
+        Out[2] = Az + (B[2] - Az) * T;
+    }
+};
+
 class AtmosphereModel
 {
 public:
