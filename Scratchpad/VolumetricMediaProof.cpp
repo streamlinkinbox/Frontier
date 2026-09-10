@@ -5,6 +5,7 @@
 
 #include "DisplayPresentation/VolumetricMedia.h"
 #include "SpatialInterface/VolumeMarker.h"
+#include "DisplayPresentation/FidelityClassifier.h"
 
 #include <cmath>
 #include <cstdio>
@@ -227,6 +228,163 @@ int main()
         Expect(VolumeMarkerProjection::GlyphPath(VolumeMarkerCategory::LocalCloud) != nullptr &&
                VolumeMarkerProjection::GlyphPath(VolumeMarkerCategory::LocalFog) != nullptr,
                "every marker category has an SVG glyph");
+    }
+
+    // ── ⑥ god rays ─────────────────────────────────────────────────────────────────────────────────────────────
+    // A crepuscular shaft is the sun-visibility term the march already computes, evaluated against SCENE
+    // occlusion rather than only against cloud density. The properties that matter, and that a screen-space
+    // radial blur cannot deliver:
+    //    · the beam is made of MEDIUM — no fog, no shaft, however sharp the shadow,
+    //    · gaps in the occluder produce brighter columns than the shadowed parts, which is the effect itself,
+    //    · it works with the sun off-screen, because nothing is being smeared outward from the sun's pixel.
+    std::printf("\n6. god rays are the sun-visibility term, carved by scene occlusion\n");
+    {
+        // A slatted occluder overhead: alternating 20 m bands of blocked and open sky. This is the classic
+        //    louvre / cloud-gap arrangement, and it makes the answer countable rather than impressionistic.
+        struct Louvre
+        {
+            static float Visibility(const float P[3], void* /*Context*/) noexcept
+            {
+                // Project to where the ray toward the sun crosses the occluder plane at z = 120 m.
+                if (P[2] >= 120.0f) return 1.0f;                 // above the slats: nothing blocks
+                const float Band = std::floor(P[0] / 20.0f);
+                return (static_cast<int>(Band) & 1) == 0 ? 1.0f : 0.0f;
+            }
+        };
+
+        LocalVolumeSettings Haze{};
+        Haze.Enabled = true;
+        Haze.Centre[0] = 0.0f; Haze.Centre[1] = 120.0f; Haze.Centre[2] = 60.0f;
+        Haze.HalfSize[0] = 200.0f; Haze.HalfSize[1] = 60.0f; Haze.HalfSize[2] = 60.0f;
+        Haze.Density = 2.2f; Haze.Coverage = 0.98f; Haze.Scale = 400.0f;
+        LocalVolumeSettings None{};
+        CloudLayerSettings NoCloud{};
+
+        VolumetricBudget Shafted = Budget;  Shafted.GodRaySamples = 16u;
+        VolumetricBudget Plain   = Budget;  Plain.GodRaySamples = 0u;
+
+        const float Eye[3] = { 0.0f, 0.0f, 40.0f };
+        const float Sun[3] = { 0.0f, 0.20f, 0.98f };
+        const float Radiance[3] = { 30.0f, 29.0f, 27.0f }, Ambient[3] = { 0.4f, 0.5f, 0.7f };
+
+        // Sample across the slats. A lit column and a shadowed one must differ; without the shaft term they
+        //    cannot, because nothing else in the march knows the occluder exists.
+        auto ColumnBrightness = [&](float X, const VolumetricBudget& B, bool WithScene) -> double
+        {
+            float Direction[3] = { X - Eye[0], 120.0f - Eye[1], 60.0f - Eye[2] };
+            const float L = std::sqrt(Direction[0]*Direction[0] + Direction[1]*Direction[1] + Direction[2]*Direction[2]);
+            for (int C = 0; C < 3; ++C) Direction[C] /= L;
+            const VolumetricSample S = VolumetricMedia::March(
+                NoCloud, Haze, None, Wind, B, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
+                WithScene ? &Louvre::Visibility : nullptr, nullptr);
+            return S.Scatter[0] + S.Scatter[1] + S.Scatter[2];
+        };
+
+        const double OpenBand    = ColumnBrightness(10.0f, Shafted, true);    // band 0: open
+        const double BlockedBand = ColumnBrightness(30.0f, Shafted, true);    // band 1: blocked
+        const double NoShafts    = ColumnBrightness(30.0f, Plain, false);
+        std::printf("     open column %.4f, blocked column %.4f, shafts off %.4f\n",
+                    OpenBand, BlockedBand, NoShafts);
+        Expect(OpenBand > BlockedBand * 1.5,
+               "a gap in the occluder is markedly brighter than the shadowed band");
+        Expect(NoShafts > BlockedBand,
+               "with shafts off the occluder is ignored entirely, as it was before");
+
+        // No medium, no shaft. This is what separates a real beam from a screen-space glow: the light is only
+        //    visible because something is scattering it toward the eye.
+        LocalVolumeSettings Vacuum = Haze;
+        Vacuum.Enabled = false;
+        float Direction[3] = { 10.0f - Eye[0], 120.0f, 20.0f };
+        const float DL = std::sqrt(Direction[0]*Direction[0] + Direction[1]*Direction[1] + Direction[2]*Direction[2]);
+        for (int C = 0; C < 3; ++C) Direction[C] /= DL;
+        const VolumetricSample Empty = VolumetricMedia::March(
+            NoCloud, Vacuum, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
+            &Louvre::Visibility, nullptr);
+        std::printf("     with no medium at all: %.6f\n",
+                    Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2]);
+        Expect(Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2] < 1e-6,
+               "no medium means no shaft, however sharp the shadow");
+
+        // The sun off-screen. A radial blur has no pixel to work from here; this does not care, because the
+        //    term is evaluated in world space at each march step.
+        const float Behind[3] = { 0.0f, -0.20f, 0.98f };
+        const VolumetricSample OffScreen = VolumetricMedia::March(
+            NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Behind, Radiance, Ambient, 0.0f,
+            &Louvre::Visibility, nullptr);
+        std::printf("     sun behind the camera: %.4f of in-scatter still resolved\n",
+                    OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2]);
+        Expect(OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2] > 0.0,
+               "shafts still resolve with the sun out of frame");
+
+        // The budget must actually gate the work, or the tier ladder is decorative.
+        const VolumetricSample Counted = VolumetricMedia::March(
+            NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
+            &Louvre::Visibility, nullptr);
+        const VolumetricSample Uncounted = VolumetricMedia::March(
+            NoCloud, Haze, None, Wind, Plain, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
+            &Louvre::Visibility, nullptr);
+        std::printf("     occlusion lookups: budget 16 -> %u, budget 0 -> %u\n",
+                    Counted.ShaftSamples, Uncounted.ShaftSamples);
+        Expect(Counted.ShaftSamples > 0u && Uncounted.ShaftSamples == 0u,
+               "GodRaySamples 0 costs nothing at all, so Minimal really is free");
+    }
+
+    // ── ⑦ the tier ladder actually reaches the march ───────────────────────────────────────────────────────────
+    // The budgets were seated in FidelityClassifier during step 0 and it is easy for them to stay decorative.
+    // This walks the five tiers, builds the budget the way a caller must, and checks the march responds.
+    std::printf("\n7. the tier ladder drives the march\n");
+    {
+        FidelityClassifier Classifier;
+        const FidelityCategory Tiers[5] = { FidelityCategory::MinimalFidelity, FidelityCategory::EconomyFidelity,
+                                            FidelityCategory::StandardFidelity, FidelityCategory::UltraFidelity,
+                                            FidelityCategory::ReferenceFidelity };
+        const char* Names[5] = { "Minimal", "Economy", "Standard", "Ultra", "Reference" };
+
+        struct Louvre2 { static float Visibility(const float P[3], void*) noexcept
+            { return (static_cast<int>(std::floor(P[0] / 20.0f)) & 1) == 0 ? 1.0f : 0.0f; } };
+
+        LocalVolumeSettings Haze{};
+        Haze.Enabled = true;
+        Haze.Centre[0] = 0.0f; Haze.Centre[1] = 120.0f; Haze.Centre[2] = 60.0f;
+        Haze.HalfSize[0] = 200.0f; Haze.HalfSize[1] = 80.0f; Haze.HalfSize[2] = 60.0f;
+        Haze.Density = 1.0f; Haze.Coverage = 0.95f; Haze.Scale = 500.0f;
+        LocalVolumeSettings None{};
+        CloudLayerSettings NoCloud{};
+
+        const float Eye[3] = { 0.0f, 0.0f, 40.0f };
+        float Direction[3] = { 0.05f, 0.94f, 0.34f };
+        const float DL = std::sqrt(Direction[0]*Direction[0] + Direction[1]*Direction[1] + Direction[2]*Direction[2]);
+        for (int C = 0; C < 3; ++C) Direction[C] /= DL;
+        const float Sun[3] = { 0.0f, 0.20f, 0.98f };
+        const float Radiance[3] = { 30.0f, 29.0f, 27.0f }, Ambient[3] = { 0.4f, 0.5f, 0.7f };
+
+        std::printf("     %-11s %7s %7s %9s %11s\n", "tier", "cloud", "local", "godray", "shaft taps");
+        uint32_t Previous = 0u;
+        bool Rising = true, MinimalFree = false;
+        for (int T = 0; T < 5; ++T)
+        {
+            const FidelityCriteria Criteria = Classifier.ConstructCriteria(Tiers[T]);
+            VolumetricBudget Budgeted{};
+            Budgeted.CloudSteps    = Criteria.CloudMarchStepCount;
+            Budgeted.LocalSteps    = Criteria.LocalVolumeStepCount;
+            Budgeted.LightTaps     = Criteria.CloudLightTapCount;
+            Budgeted.CoverageMargin= Criteria.CloudCoverageMargin;
+            Budgeted.GodRaySamples = Criteria.GodRaySampleCount;
+
+            const VolumetricSample Sample = VolumetricMedia::March(
+                NoCloud, Haze, None, Wind, Budgeted, Eye, Direction, 1000.0f,
+                Sun, Radiance, Ambient, 0.0f, &Louvre2::Visibility, nullptr);
+
+            std::printf("     %-11s %7u %7u %9u %11u\n", Names[T],
+                        Criteria.CloudMarchStepCount, Criteria.LocalVolumeStepCount,
+                        Criteria.GodRaySampleCount, Sample.ShaftSamples);
+
+            if (T == 0 && Sample.ShaftSamples == 0u) MinimalFree = true;
+            if (T > 0 && Sample.ShaftSamples < Previous) Rising = false;
+            Previous = Sample.ShaftSamples;
+        }
+        Expect(MinimalFree, "Minimal spends nothing on shafts, as the ladder says");
+        Expect(Rising, "higher tiers spend more on them");
     }
 
     std::printf("\n");

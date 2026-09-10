@@ -21,7 +21,7 @@ Report() { if [ "$1" = "0" ]; then printf '  %-66s PASS\n' "$2"; else printf '  
 
 echo "[VolumetricMedia] the media behave"
 Binary="$(mktemp -u /tmp/VolumetricMediaProof.XXXXXX)"
-if ! g++ -std=c++20 -O2 -Wall -Wextra -I . -I Engine -o "$Binary" Scratchpad/VolumetricMediaProof.cpp \
+if ! g++ -std=c++20 -O2 -Wall -Wextra -I . -I Engine -o "$Binary" Scratchpad/VolumetricMediaProof.cpp Engine/DisplayPresentation/FidelityClassifier.cpp \
      2>/tmp/VolumetricMedia.build; then
     echo "  PROOF FAILED TO BUILD"; sed 's/^/    /' /tmp/VolumetricMedia.build | head -20; exit 1
 fi
@@ -73,6 +73,22 @@ echo "[VolumetricMedia] the prohibited optimisations have not returned"
 #    version of this check matched its own documentation and failed forever — the same trap CheckShadowTiers
 #    records for the PCSS half-angle. Check the code, not the prose.
 MediaCode="$(sed 's;//.*;;' "$Header")"
+echo
+echo "[VolumetricMedia] god rays ride the march, not a screen-space pass"
+# A crepuscular shaft is the sun-visibility term the march already computes, evaluated against scene occlusion.
+#    A separate full-screen radial blur would be cheaper and would fail with the sun off-screen, which is exactly
+#    the shot shafts are wanted for.
+printf '%s' "$MediaCode" | grep -q 'SunVisibilityAt SceneVisibility'
+Report $? "the march takes a scene-occlusion source"
+printf '%s' "$MediaCode" | grep -q 'SunTransmittance \*= Visible'
+Report $? "occlusion multiplies the existing sun term rather than adding a pass"
+# The budget must subdivide the shaft term, not merely switch it on: a shadow edge is far sharper than the
+#    medium that carries it, and one sample per march step turns every beam edge into a step boundary.
+printf '%s' "$MediaCode" | grep -q 'Budget.GodRaySamples > 8u ? 8u : Budget.GodRaySamples'
+Report $? "GodRaySamples sets how finely the shaft is sampled across a step"
+! printf '%s' "$MediaCode" | grep -qiE 'radial.?blur|screenspace shaft'
+Report $? "no screen-space radial blur"
+
 ! printf '%s' "$MediaCode" | grep -qiE 'clear.?air strid|temporal reproject|reprojectionbuffer'
 Report $? "no clear-air striding or cloud temporal reprojection in the code"
 
