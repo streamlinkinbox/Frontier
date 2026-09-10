@@ -26,6 +26,7 @@
 #include "../../../Engine/DisplayPresentation/AtmosphereModel.h"
 #include "../../../Engine/DisplayPresentation/AtmosphericOptics.h"
 #include "../../../Engine/DisplayPresentation/Precipitation.h"
+#include "../../../Engine/DisplayPresentation/SkyConstantRecord.h"
 #include "../../../Engine/DisplayPresentation/VolumetricMedia.h"
 #include "../../../Engine/DisplayPresentation/WindField.h"
 #include "../../../Engine/Editor/EditorInstance.h"
@@ -91,6 +92,11 @@ public:
 
     // Hand the raster everything it needs to draw the sky. One call, so a caller cannot wire half of it.
     void ApplyTo(VisibilityRaster& Raster, const CelestialBudget& Budget) const noexcept;
+
+    // Hand the RAY-TRACING KERNEL the same sky ApplyTo hands the raster, packed for binding 21. Every adjustment
+    //    mirrors ApplyTo — the solved direction, the tint and brightness on the radiance, a hidden sun as night —
+    //    so the GI-on and GI-off skies cannot be handed different suns. One call, so a caller cannot pack half of it.
+    [[nodiscard]] SkyConstantRecord PackSkyRecord() const noexcept;
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                              THE OUTLINER FEED

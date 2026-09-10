@@ -296,6 +296,24 @@ void CelestialSequence::ApplyTo(VisibilityRaster& Raster, const CelestialBudget&
     Raster.AssignCelestial(Settings);
 }
 
+SkyConstantRecord CelestialSequence::PackSkyRecord() const noexcept
+{
+    // ⚠️ Every adjustment here mirrors ApplyTo above, for the reasons recorded there. The direction is the SOLVED
+    //    frame's, not Light's cache — a caller that packs before its first tick must still get the real sun, not
+    //    the struct default. The tint and brightness ride on the radiance, not the medium. A hidden sun removes
+    //    the radiance, not the sky. The eye height is the same fixed 2 m: the kernel's integral, like the
+    //    raster's, is evaluated for one observer, not per ray.
+    AtmosphereLight Effective = Light;
+    for (int C = 0; C < 3; ++C) Effective.Direction[C] = Solved.Sun.Direction[C];
+    Effective.Intensity *= SkyBrightness;
+    for (int C = 0; C < 3; ++C) Effective.Colour[C] *= SkyTint[C];
+    if (!Shown[static_cast<uint32_t>(CelestialEntity::Sun)])
+        Effective.Intensity = 0.0f;
+
+    return PackSkyConstants(Medium, Effective, Twilight, Solved.Sun.Elevation, /*CameraHeightMetres=*/2.0f,
+                            Budget.AtmosphereSamples, Budget.AtmosphereLightSamples, Enabled);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 uint32_t CelestialSequence::AppendRoster(EditorInstance* Instances, uint32_t Written, uint32_t Capacity) const noexcept

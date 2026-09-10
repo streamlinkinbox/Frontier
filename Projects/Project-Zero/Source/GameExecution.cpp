@@ -611,12 +611,11 @@ int main(int argc, char** argv)
         // The celestial budget comes from the SAME tier, through CelestialTier — the one translation from a
         //    quality tier to celestial settings (CheckCelestialTiers forbids reading those fields by hand).
         //
-        // ⚠️ It is computed here and carried on the sequence rather than pushed at the swapchain, because the
-        //    GPU sky pass does not exist yet: the Celestial port built and proved every system against the CPU
-        //    raster, and SkyView.slang is still to be written. Wiring a call into SwapchainExchange now would be
-        //    a call to nothing. What this does buy today is that the editor, the outliner readouts and the
-        //    headless proofs all see the tier the user actually selected, and the day the GPU pass lands it
-        //    reads this same budget rather than a second copy of the ladder.
+        // The sample counts in it reach the GPU every frame: PackSkyRecord folds Budget.AtmosphereSamples and
+        //    Budget.AtmosphereLightSamples into the record RefreshSky pushes to binding 21, so the kernel's sky
+        //    integral spends what the tier granted. (A dedicated raster sky pass, SkyView.slang, still does not
+        //    exist — the CPU raster reads the same budget through ApplyTo — but the kernel path is live, and both
+        //    consumers read this same budget rather than a second copy of the ladder.)
         Celestial.Budget = Frontier::CelestialTier::BudgetFor(Criteria);
 
         if (Announce)
@@ -1338,6 +1337,16 @@ int main(int argc, char** argv)
                 Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Instances",
                                      "RefreshInstances refused the row set - scripted motion disabled.");
             }
+        }
+
+        // ④d GPU sky — the kernel reads the packed record at binding 21 on every miss and every escaped bounce.
+        //     Pushed every frame like the instances: 128 bytes, and the sun moves. Refusal is impossible here by
+        //     construction (the size is pinned by static_assert and the device is up), so the nodiscard is cast
+        //     away — there is nothing to fall back to, and the previous contents stand, which is a stale sky
+        //     rather than a torn one.
+        {
+            const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
+            (void)Surface.RefreshSky(&Sky, sizeof(Sky));
         }
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present

@@ -57,6 +57,10 @@ static constexpr uint32_t kLocalGroupSizeY = 16u;
 static constexpr uint32_t kDenoiseGroupSize = 8u;
 // A6b: exposure is a whole-frame property, so the reduction subsamples. 32 px gives ~2 000 taps at 1080p.
 static constexpr uint32_t kLuminanceSampleStride = 32u;
+// The Celestial sky uniform block (binding 21) is eight std140 rows — 128 B, pinned by static_assert in
+//    DisplayPresentation/SkyConstantRecord.h. DeviceExchange must not include DisplayPresentation (it is the
+//    layer below it), so the size is restated here and CheckSkyKernel.sh fails the build if the two disagree.
+static constexpr uint32_t kSkyRecordBytes = 128u;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              VULKAN RECORD DEFINITION
@@ -141,6 +145,13 @@ struct SwapchainExchange::VulkanRecord
     VkDeviceMemory           TraversalNodeMemory   = VK_NULL_HANDLE;
     VkBuffer                 TraversalLeafBuffer   = VK_NULL_HANDLE;   // R3 CWBVH triangles (binding 9)
     VkDeviceMemory           TraversalLeafMemory   = VK_NULL_HANDLE;
+    // Celestial sky record (binding 21). One 128 B uniform buffer, host-visible and persistently mapped: the
+    //    project re-packs it every frame and RefreshSky is a memcpy, never a reallocation or a descriptor
+    //    rewrite. Zeroed at bring-up, which is the sky disabled (SunRadiance.w = 0) — a caller that never
+    //    pushes keeps the old no-environment-light behaviour rather than reading garbage.
+    VkBuffer                 SkyBuffer             = VK_NULL_HANDLE;
+    VkDeviceMemory           SkyMemory             = VK_NULL_HANDLE;
+    void*                    SkyMapped             = nullptr;
     // R6 temporal reservoirs: two W×H×64 B SSBOs (bindings 16/17), ping-ponged per presented frame. Record layout
     //    (std430, mirrors GpuReservoir in ReSTIRViewport.slang): Sample(xyz point, w WeightSum) · Counts(M, light,
     //    Visible, Age) · UvDepth(uv, W, view depth) · Normal(xyz geometric normal, w stride guard).
@@ -410,6 +421,9 @@ bool SwapchainExchange::Bring() noexcept
         { "BringDenoisePipeline",  &SwapchainExchange::BringDenoisePipeline  },
         // A6b after BringStorageImage (it binds HistoryImageView) and before BringDescriptorSet, same as above.
         { "BringLuminanceReduction", &SwapchainExchange::BringLuminanceReduction },
+        // The sky buffer must exist before BringDescriptorSet: that stage ends by calling WriteDescriptorSet(),
+        //    which writes binding 21 once the buffer is there and skips it otherwise.
+        { "BringSkyRecord",          &SwapchainExchange::BringSkyRecord          },
         { "BringDescriptorSet",    &SwapchainExchange::BringDescriptorSet    },
         { "BringCycleSlots",       &SwapchainExchange::BringCycleSlots       },
         { "BringImGui",            &SwapchainExchange::BringImGui            },
@@ -481,6 +495,11 @@ void SwapchainExchange::Retire() noexcept
     if (Vulkan->TraversalNodeMemory) vkFreeMemory   (Vulkan->Device, Vulkan->TraversalNodeMemory, nullptr);
     if (Vulkan->TraversalLeafBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->TraversalLeafBuffer, nullptr);
     if (Vulkan->TraversalLeafMemory) vkFreeMemory   (Vulkan->Device, Vulkan->TraversalLeafMemory, nullptr);
+    // The sky record is permanent, not swapchain-sized: it is torn down here, in Retire, and never in
+    //    RetireSwapchain — a resize must not unbind the sky.
+    if (Vulkan->SkyMapped)  vkUnmapMemory (Vulkan->Device, Vulkan->SkyMemory);
+    if (Vulkan->SkyBuffer)  vkDestroyBuffer(Vulkan->Device, Vulkan->SkyBuffer, nullptr);
+    if (Vulkan->SkyMemory)  vkFreeMemory   (Vulkan->Device, Vulkan->SkyMemory, nullptr);
 
     for (uint32_t Slot = 0u; Slot < kCycleSlotCount; ++Slot)
     {
@@ -1113,7 +1132,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     //    R3: 8: CWBVH node SSBO, 9: CWBVH triangle SSBO
     //    R4a: 10: material slab SSBO
     //    R4b: 11: vertex SSBO, 12: index SSBO, 13: GGX energy LUT, 14: LTC sheen LUT
-    //    R6: 15: motion sampler, 16: prev-reservoir SSBO, 17: curr-reservoir SSBO, 18: sampler2D Textures[] (bindless, partially bound, variable count — must be last)
+    //    R6: 15: motion sampler, 16: prev-reservoir SSBO, 17: curr-reservoir SSBO · 21: sky UBO · 25: sampler2D Textures[] (bindless, partially bound, variable count — must be last)
     std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> LayoutBindings{};
     LayoutBindings[0].binding         = 0u;
     LayoutBindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -1134,11 +1153,11 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     for (uint32_t B = 4u; B < kComputeBindingCount - 1u; ++B)
     {
         LayoutBindings[B].binding         = B;
-        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u || B == 21u || B == 22u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21/22/24 retired sky bindings (unwritten holes, like binding 23)
+        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u || B == 22u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 21u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21 live sky UBO (SkyRecords.slang) · 22/24 retired sky holes, still declared, never written
         LayoutBindings[B].descriptorCount = 1u;
         LayoutBindings[B].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
     }
-    const uint32_t TextureBinding = kComputeBindingCount - 1u;   // 23 (must be the highest binding)
+    const uint32_t TextureBinding = kComputeBindingCount - 1u;   // 25 (must be the highest binding)
     LayoutBindings[TextureBinding].binding         = TextureBinding;
     LayoutBindings[TextureBinding].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     LayoutBindings[TextureBinding].descriptorCount = Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u;
@@ -1501,6 +1520,23 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
     return true;
 }
 
+bool SwapchainExchange::BringSkyRecord() noexcept
+{
+    // One 128 B uniform buffer, host-visible and persistently mapped — the same arrangement as the A6b
+    //    luminance accumulators, for the same reason: mapping and unmapping a tiny buffer every frame is a
+    //    driver round trip for bytes that fit in two cache lines.
+    constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kSkyRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                   HostVisible, Vulkan->SkyBuffer, Vulkan->SkyMemory);
+    if (!Vulkan->SkyBuffer) return false;
+    if (vkMapMemory(Vulkan->Device, Vulkan->SkyMemory, 0u, kSkyRecordBytes, 0u, &Vulkan->SkyMapped) != VK_SUCCESS)
+        return false;
+    // Zero is the sky disabled (SunRadiance.w = 0), so until the first RefreshSky the kernel behaves exactly
+    //    as it did when the binding was an unwritten hole — minus the validation error.
+    std::memset(Vulkan->SkyMapped, 0, kSkyRecordBytes);
+    return true;
+}
+
 bool SwapchainExchange::BringDescriptorSet() noexcept
 {
     std::array<VkDescriptorPoolSize, 4u> PoolSizes{};
@@ -1515,14 +1551,14 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
     //    guaranteed to fail on another.
     PoolSizes[1].descriptorCount = 12u;                         // 1, 2, 6-12, 16-17, 23
     PoolSizes[2].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    PoolSizes[2].descriptorCount = 5u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // 13/14 material LUTs · 15 motion · the bindless table (5 counts retired 21/22, still declared)
+    PoolSizes[2].descriptorCount = 4u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // 13/14 material LUTs · 15 motion · 22 retired (still declared) · the bindless table
 
     VkDescriptorPoolCreateInfo PoolInfo{};
     PoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     PoolInfo.flags         = Vulkan->DescriptorIndexing ? static_cast<VkDescriptorPoolCreateFlags>(VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) : 0u;
     PoolInfo.maxSets       = 1u;
     PoolSizes[3].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    PoolSizes[3].descriptorCount = 1u;                          // 24 retired sky record (counted: still declared)
+    PoolSizes[3].descriptorCount = 2u;                          // 21 live sky record · 24 retired (counted: still declared)
     PoolInfo.poolSizeCount = 4u;
     PoolInfo.pPoolSizes    = PoolSizes.data();
     (void)vkCreateDescriptorPool(Vulkan->Device, &PoolInfo, nullptr, &Vulkan->ComputeDescriptorPool);
@@ -1602,6 +1638,7 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     const uint32_t PrevSlot = Vulkan->ReservoirParity ? 1u : 0u;
     VkDescriptorBufferInfo PrevReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot],      0u, VK_WHOLE_SIZE };
     VkDescriptorBufferInfo CurrReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot ^ 1u], 0u, VK_WHOLE_SIZE };
+    VkDescriptorBufferInfo SkyInfo{ Vulkan->SkyBuffer, 0u, VK_WHOLE_SIZE };   // Celestial sky record (binding 21)
 
     std::array<VkWriteDescriptorSet, kComputeBindingCount> Writes{};
     uint32_t WriteCount = 0u;
@@ -1665,6 +1702,15 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
         Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; Write.dstSet = Vulkan->ComputeDescriptorSet; Write.dstBinding = Binding;
         Write.descriptorCount = 1u; Write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; Write.pBufferInfo = &Info;
     };
+    // The sky record is the compute set's only UNIFORM buffer. A write's descriptorType must equal the layout's,
+    //    so this cannot go through WriteBuffer — one wrong constant here and binding 21 reads as the wrong kind.
+    const auto WriteUniform = [&](uint32_t Binding, const VkDescriptorBufferInfo& Info)
+    {
+        if (!Info.buffer) return;
+        VkWriteDescriptorSet& Write = Writes[WriteCount++];
+        Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; Write.dstSet = Vulkan->ComputeDescriptorSet; Write.dstBinding = Binding;
+        Write.descriptorCount = 1u; Write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; Write.pBufferInfo = &Info;
+    };
     WriteImage (4u, SurfaceInfo);
     WriteImage (5u, NormalInfo);
     WriteBuffer(6u, InstanceInfo);
@@ -1689,6 +1735,7 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     WriteImage (18u, HistorySurfaceInfo);   // R7a: history (normal, depth) for running-mean reprojection
     WriteImage (19u, MomentInfo);           // R7:  luminance moments, for the variance estimate
     WriteImage (20u, DenoiseInputInfo);     // R7:  linear radiance + variance, the à-trous input
+    WriteUniform(21u, SkyInfo);             // Celestial sky record, for the kernel's miss branches
 
     // R4a: the texture table. Written in one go (partially bound: slots past the resident count stay undefined and are
     //    never indexed — the material records only reference resident slots).
@@ -2268,6 +2315,21 @@ bool SwapchainExchange::RefreshTraversal(const TraversalIndex& Traversal, const 
     // The kernel resolves a hit's material and normal from Triangles[], so the flat triangles must move with the
     //    acceleration structure or shading would read the body's old position.
     UploadTriangles(Facets);
+    return true;
+}
+
+bool SwapchainExchange::RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept
+{
+    // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
+    //    SkyConstantRecord/PackSkyConstants and hands over the 128 bytes, the way UploadShadingTables receives
+    //    baked planes. The size is refused rather than trusted: a short write would leave half an old sky in
+    //    the buffer, and a long one would overrun the mapping.
+    if (!Vulkan->Device || !Vulkan->SkyMapped || !Bytes || ByteCount != kSkyRecordBytes) return false;
+    // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
+    //    same per-frame shape as RefreshTraversal. The buffer is shared by both cycle slots, so a sufficiently
+    //    adversarial scheduler could show one frame a half-old sky; RefreshTraversal accepts that shape for
+    //    megabytes of BVH, which is where the argument ends for 128 coherent bytes.
+    std::memcpy(Vulkan->SkyMapped, Bytes, kSkyRecordBytes);
     return true;
 }
 

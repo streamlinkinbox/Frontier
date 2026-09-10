@@ -65,7 +65,7 @@ static constexpr float    kLuminanceLog2High      =  30.0f;   // 1e9 cd/m², abo
 static constexpr float    kLuminanceMedianStops   = 6.0f;
 static constexpr uint32_t kLuminanceHistogramBytes = kLuminanceHistogramBins * 4u;
 
-static constexpr uint32_t kComputeBindingCount  = 26u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 motion · 16 prev reservoir · 17 curr reservoir · 18 history normal+depth (R7a) · 19 luminance moments (R7) · 20 denoise input (R7) · 21/22/24 retired sky bindings · 25 Textures[] (variable-count binding MUST stay last — Vulkan requires it on the highest binding number)
+static constexpr uint32_t kComputeBindingCount  = 26u;    // compute set 0: 0 out · 1 tris · 2 materials · 3 history · 4 surface · 5 normal · 6 instances · 7 luminaires · 8/9 CWBVH · 10 slabs · 11 vertices · 12 indices · 13 energy LUT · 14 sheen LUT · 15 motion · 16 prev reservoir · 17 curr reservoir · 18 history normal+depth (R7a) · 19 luminance moments (R7) · 20 denoise input (R7) · 21 sky record · 22/24 retired holes · 25 Textures[] (variable-count binding MUST stay last — Vulkan requires it on the highest binding number)
 static constexpr uint32_t kTextureSlotCapacity  = 1024u;  // bindless sampler2D[] size (variable-count binding; Pascal maxPerStageDescriptorSamplers ≥ 4000)
 class MaterialIndex;    // ContentInterchange/MaterialIndex.h (R4a)
 
@@ -232,6 +232,12 @@ public:
     //    material and normal through them and they must not lag the structure. False if a blob outgrew its
     //    allocation, in which case the caller should fall back to a full UploadTraversal.
     [[nodiscard]] bool          RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept;
+    // Celestial sky record → binding 21, safe every frame: a memcpy into the persistently mapped uniform buffer,
+    //    no reallocation and no descriptor rewrite. DeviceExchange must not include DisplayPresentation (it is the
+    //    layer below it), so the caller packs with SkyConstantRecord/PackSkyConstants and hands over plain bytes —
+    //    the same arrangement as UploadShadingTables. False when the bytes are null, the size is not 128, or the
+    //    buffer does not exist yet; the previous contents stand, so a refusal degrades to a stale sky, not a tear.
+    [[nodiscard]] bool          RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept;
     void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
@@ -321,6 +327,7 @@ private:
     [[nodiscard]] bool  BringDescriptorSet()    noexcept;
     [[nodiscard]] bool  BringDenoisePipeline()  noexcept;   // R7: à-trous filter, its own small descriptor set
     [[nodiscard]] bool  BringLuminanceReduction() noexcept; // A6b: the average-log-luminance pass
+    [[nodiscard]] bool  BringSkyRecord() noexcept;   // Celestial sky uniform buffer (binding 21) — before BringDescriptorSet, which writes it
     // Rewritten on every resize: this set binds HistoryImageView, which a resize destroys and recreates.
     void                WriteLuminanceDescriptors() noexcept;
     [[nodiscard]] bool  BringCommandRecording() noexcept;
