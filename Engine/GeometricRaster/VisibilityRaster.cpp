@@ -12,6 +12,7 @@
 #include "VisibilityRaster.h"
 
 #include "SceneStructure.h"
+#include "DisplayPresentation/AtmosphereModel.h"
 
 #include <algorithm>
 #include <cmath>
@@ -22,7 +23,9 @@ namespace Frontier {
 namespace {
 
 constexpr float kPi = 3.14159265359f;
-constexpr float kSky[3] = { 0.30f, 0.42f, 0.63f };
+// The flat blue that used to stand in for a sky. Kept only as the fallback for when the celestial model is
+//    switched off, so the raster still produces a sensible background rather than black.
+constexpr float kSkyFallback[3] = { 0.30f, 0.42f, 0.63f };
 
 } // namespace
 
@@ -541,7 +544,9 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                              const float Right[3], const float Up[3], float FovYRadians,
                              uint32_t Width, uint32_t Height, unsigned char* Rgba, double& MeanLum) noexcept
 {
-    (void)Forward; (void)Right; (void)Up; (void)FovYRadians;
+    // The camera basis used to be discarded here: the background was one flat colour, so the ray a pixel looked
+    //    along did not matter. With a real atmosphere it is the only thing that matters — the sky is a function of
+    //    direction, and a constant would throw away the whole gradient from zenith to horizon.
     const auto& Flat    = Level.QueryFlatTriangles();
     const auto& Records = Level.QueryMaterials().QueryRecords();
     const size_t Cells = static_cast<size_t>(Width) * static_cast<size_t>(Height);
@@ -561,20 +566,59 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
     }
     const float Centre[3] = { (MinB[0] + MaxB[0]) * 0.5f, (MinB[1] + MaxB[1]) * 0.5f, (MinB[2] + MaxB[2]) * 0.5f };
 
+    // The sky, evaluated per pixel along that pixel's own view ray. Sample counts come from the tier ladder so
+    //    a Minimal frame integrates 8 steps and a Reference frame 32 — the panel never restates these.
+    const float TanHalf = std::tan(FovYRadians * 0.5f);
+    const float Aspect  = static_cast<float>(Width) / static_cast<float>(Height);
+    const auto SkyAlong = [&](size_t Idx, float* Out)
+    {
+        if (!Celestial_.Enabled)
+        {
+            Out[0] = kSkyFallback[0]; Out[1] = kSkyFallback[1]; Out[2] = kSkyFallback[2];
+            return;
+        }
+        const uint32_t Px = static_cast<uint32_t>(Idx % Width);
+        const uint32_t Py = static_cast<uint32_t>(Idx / Width);
+        const float Sx = (2.0f * ((static_cast<float>(Px) + 0.5f) / static_cast<float>(Width)) - 1.0f) * TanHalf * Aspect;
+        const float Sy = (1.0f - 2.0f * ((static_cast<float>(Py) + 0.5f) / static_cast<float>(Height))) * TanHalf;
+        float Dir[3] = { Forward[0] + Right[0] * Sx + Up[0] * Sy,
+                         Forward[1] + Right[1] * Sx + Up[1] * Sy,
+                         Forward[2] + Right[2] * Sx + Up[2] * Sy };
+        const float Length = std::sqrt(Dir[0] * Dir[0] + Dir[1] * Dir[1] + Dir[2] * Dir[2]);
+        if (Length > 0.0f) { Dir[0] /= Length; Dir[1] /= Length; Dir[2] /= Length; }
+        const AtmosphereSample S = AtmosphereModel::Integrate(Celestial_.Medium, Celestial_.Light,
+                                                              Celestial_.CameraHeight, Dir,
+                                                              Celestial_.SampleCount, Celestial_.LightSampleCount);
+        Out[0] = S.Radiance[0]; Out[1] = S.Radiance[1]; Out[2] = S.Radiance[2];
+    };
+
+    // The sky's contribution as an ambient term, evaluated ONCE for the frame (see the note at the fill below).
+    float SkyAmbient[3] = { 0.0f, 0.0f, 0.0f };
+    if (Celestial_.Enabled)
+    {
+        const float Zenith[3] = { 0.0f, 0.0f, 1.0f };
+        const AtmosphereSample Probe = AtmosphereModel::Integrate(Celestial_.Medium, Celestial_.Light,
+                                                                  Celestial_.CameraHeight, Zenith,
+                                                                  Celestial_.SampleCount, Celestial_.LightSampleCount);
+        // A hemisphere of sky at that radiance, times the Lambert 1/pi, is pi * L / pi = L. The 0.5 accounts for
+        //    the ground taking the other half of the sphere.
+        for (int C = 0; C < 3; ++C) SkyAmbient[C] = Probe.Radiance[C] * 0.5f;
+    }
+
     // Seed pass: sky where nothing won, ambient where something did, emission where it glows.
     for (size_t Idx = 0u; Idx < Cells; ++Idx)
     {
         float* Out = &Acc_[Idx * 3u];
         if (TriId_[Idx] == kMiss)
         {
-            Out[0] = kSky[0]; Out[1] = kSky[1]; Out[2] = kSky[2];
+            SkyAlong(Idx, Out);
             continue;
         }
         uint32_t Slot = 0u;
         std::memcpy(&Slot, &Flat[TriId_[Idx]].MaterialSlot, sizeof(Slot));
         if (Slot >= Records.size())
         {
-            Out[0] = kSky[0]; Out[1] = kSky[1]; Out[2] = kSky[2];
+            SkyAlong(Idx, Out);
             TriId_[Idx] = kMiss;
             continue;
         }
@@ -584,9 +628,27 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
             Out[0] = R.EmissiveR; Out[1] = R.EmissiveG; Out[2] = R.EmissiveB;
             continue;
         }
-        Out[0] = R.AlbedoR * (1.0f - R.Metalness) * kAmbient;
-        Out[1] = R.AlbedoG * (1.0f - R.Metalness) * kAmbient;
-        Out[2] = R.AlbedoB * (1.0f - R.Metalness) * kAmbient;
+        // Ambient fill. With the celestial model off this is the flat kAmbient the raster has always used; with
+        //    it on, the sky IS the ambient — this is the GI-off path's environment light, and without it a scene
+        //    lit only by the sky renders as black geometry against a correct sky, which is exactly what the first
+        //    run of CelestialSkyProof showed.
+        //
+        //    The term is the sky's own radiance toward the zenith, scaled by the hemisphere the surface sees. A
+        //    single zenith evaluation rather than a cosine-weighted integral is deliberate: it is one atmosphere
+        //    evaluation per FRAME instead of one per pixel, which is the same trade the reference demo measured
+        //    and kept (source commit da4b0d7, "sky-ambient computed once per frame via a 4x1 probe pass instead
+        //    of 3 atmosphere evaluations per pixel").
+        //    kAmbient is REPLACED rather than added to when the sky is on. Adding them looked reasonable until
+        //    the night sheet: with the sun 53 deg below the horizon the sky contributes nothing, so the constant
+        //    was the only term left and it lit a moonless midnight to a flat grey floor brighter than dusk. The
+        //    flat fill exists precisely because there was no environment light; once there is one, it is the
+        //    environment light.
+        const float Fill[3] = { Celestial_.Enabled ? SkyAmbient[0] : kAmbient,
+                                Celestial_.Enabled ? SkyAmbient[1] : kAmbient,
+                                Celestial_.Enabled ? SkyAmbient[2] : kAmbient };
+        Out[0] = R.AlbedoR * (1.0f - R.Metalness) * Fill[0];
+        Out[1] = R.AlbedoG * (1.0f - R.Metalness) * Fill[1];
+        Out[2] = R.AlbedoB * (1.0f - R.Metalness) * Fill[2];
     }
 
     // One shadow map per tap, spent over every covered pixel before the next tap renders.

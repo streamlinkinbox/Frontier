@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include "DisplayPresentation/AtmosphereModel.h"
 #include <cstdint>
 #include <vector>
 
@@ -70,6 +71,20 @@ public:
     static constexpr float    kShadowBias   = 0.015f;        // [m] depth bias plus a slope term from NdotL
     static constexpr float    kAmbient      = 0.045f;        // [-] flat fill under the direct light
     static constexpr uint32_t kBlockerTaps  = 5u;            // [cnt] PCSS blocker-search kernel side, in texels
+
+    // The celestial background for subsequent renders. Off by default, so a caller that knows nothing about the
+    //    sky keeps the flat fallback colour the raster has always used and no existing proof shifts.
+    struct CelestialSettings
+    {
+        bool             Enabled          = false;
+        AtmosphereMedium Medium{};
+        AtmosphereLight  Light{};
+        float            CameraHeight     = 2.0f;   // [m] above the surface
+        uint32_t         SampleCount      = 16u;    // FidelityCriteria::AtmosphereSampleCount
+        uint32_t         LightSampleCount = 6u;     // FidelityCriteria::AtmosphereLightSampleCount
+    };
+    void AssignCelestial(const CelestialSettings& Settings) noexcept { Celestial_ = Settings; }
+    [[nodiscard]] const CelestialSettings& QueryCelestial() const noexcept { return Celestial_; }
 
     // Selects the shadow technique for subsequent renders. Defaults to the Standard tier's PCSS if never called.
     void AssignShadowCriteria(const ShadowCriteria& Criteria) noexcept;
@@ -142,6 +157,7 @@ private:
     LightTap              Taps_[kLightTaps] = {};
     uint32_t              TapCount_  = 0u;
 
+    CelestialSettings     Celestial_{};   // the sky behind the geometry (disabled = flat fallback colour)
     std::vector<float>    Depth_;    // [m] primary linear depth, Width×Height
     std::vector<uint32_t> TriId_;    // [idx] the visibility buffer: winning triangle or kMiss
     std::vector<float>    Bary_;     // [-] winning (w0, w1) per pixel; w2 = 1 − w0 − w1
