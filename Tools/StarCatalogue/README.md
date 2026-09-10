@@ -26,8 +26,22 @@ python3 Tools/StarCatalogue/ConvertHygCatalogue.py hygdata_v41.csv \
     EngineContent/StarCatalogue/BrightStars.bin
 ```
 
-That produces ~9 100 stars in ~256 KB. The engine reads whichever catalogue is present, so this is a drop-in
-upgrade with no code change.
+⚠️ Where `raw.githubusercontent.com` is unreachable — some sandboxes and CI runners block it, and curl reports
+HTTP 000 with an empty file — a sparse clone of the repository works and costs about the same:
+
+```
+git clone --depth 1 --filter=blob:none --sparse \
+    https://github.com/astronexus/HYG-Database.git /tmp/hygrepo
+git -C /tmp/hygrepo sparse-checkout set hyg/CURRENT
+python3 Tools/StarCatalogue/ConvertHygCatalogue.py \
+    /tmp/hygrepo/hyg/CURRENT/hygdata_v41.csv EngineContent/StarCatalogue/BrightStars.bin
+```
+
+Either way produces **8 920 stars in 244 KB** (the count depends on the HYG revision). The engine reads whichever
+catalogue is present, so this is a drop-in upgrade with no code change.
+
+The committed asset is now the full catalogue, not the 178-star subset. `BrightStars.csv` is kept because it is
+the fallback when HYG cannot be fetched, and because it is small enough to read.
 
 The converter is committed rather than only its output. A binary blob in a source tree that no one can regenerate
 is a liability: this way the asset is always reproducible from a documented source.

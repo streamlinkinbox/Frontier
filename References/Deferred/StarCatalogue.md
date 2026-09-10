@@ -4,6 +4,31 @@
 
 STATUS
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+🟢 **SUPERSEDED — the trigger this note named has fired.** The full HYG catalogue was obtained and converted:
+**8 920 stars in 244 KB**, installed at `EngineContent/StarCatalogue/BrightStars.bin`. The note below said the
+decision would change if `ConvertHygCatalogue.py` were run against the real HYG CSV, producing ~9 100 stars in
+~256 KB — that is exactly what happened, so the procedural-only decision no longer stands and the catalogue is
+being wired in during Celestial step 3.
+
+How it was obtained, since the README's method does not work here: `raw.githubusercontent.com` is blocked in this
+sandbox (curl returns HTTP 000), but a **sparse git clone** of the repository is not —
+`git clone --depth 1 --filter=blob:none --sparse https://github.com/astronexus/HYG-Database.git` then
+`git sparse-checkout set hyg/CURRENT`. The README has been updated with both methods.
+
+Two defects in the converter were found and fixed on the way:
+  · HYG **quotes its header row** as of v41 (`"id","hip",…`); the converter searched only for the bare `proper,`
+    and `id,` spellings, matched neither, and started reading one character before end-of-file.
+  · That produced **zero stars silently** — it printed a cheerful "0 stars to magnitude 6.5" and wrote a 16-byte
+    header-only asset over the good one. A zero count is now a hard error that refuses to write.
+
+Positions verified independently after conversion: Sirius RA 101.29 Dec −16.72, Canopus RA 95.99 Dec −52.70,
+Arcturus RA 213.92 Dec +19.18 — each matching published values to two decimals, with Sirius blue-white
+(0.79, 0.85, 1.00) and Arcturus orange (1.00, 0.83, 0.69). All 8 920 direction vectors are unit length.
+
+The original note follows, unchanged, because its reasoning is what made the trigger recognisable.
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 The renderer draws a **procedural** star field. That is the decision, not an interim state.
 
 This directory holds the catalogue work that was written before that decision, kept because it is finished and

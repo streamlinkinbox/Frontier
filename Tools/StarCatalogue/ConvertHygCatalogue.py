@@ -76,9 +76,17 @@ def Convert(SourcePath, TargetPath):
     #    header line lets one converter read both, rather than having two that can drift apart.
     with open(SourcePath, newline='', encoding='utf-8') as Handle:
         Text = Handle.read()
-    HeaderAt = Text.find('proper,')
-    if HeaderAt < 0:
-        HeaderAt = Text.find('id,')          # HYG's own header begins with the id column
+    # ⚠️ HYG quotes its header row as of v41 ("id","hip",...), where earlier revisions wrote it bare. Searching
+    #    only for `proper,` / `id,` matched neither, and because the fallback was a find() returning -1 the reader
+    #    started one character before the end of the file and produced a catalogue of ZERO stars — silently, with
+    #    a cheerful "0 stars to magnitude 6.5" and a 16-byte asset. Both spellings are accepted now, and a zero
+    #    count is a hard error rather than a successful-looking no-op.
+    HeaderAt = -1
+    for Candidate in ('proper,', '"proper"', 'id,', '"id"'):
+        HeaderAt = Text.find(Candidate)
+        if HeaderAt >= 0:
+            HeaderAt = Text.rfind('\n', 0, HeaderAt) + 1   # rewind to the start of that header LINE
+            break
     if HeaderAt < 0:
         raise SystemExit(f'{SourcePath}: no recognisable CSV header')
 
@@ -133,6 +141,9 @@ def Convert(SourcePath, TargetPath):
         for X, Y, Z, Luminance, Red, Green, Blue, _ in Stars:
             Handle.write(struct.pack('<7f', X, Y, Z, Luminance, Red, Green, Blue))
 
+    if not Stars:
+        raise SystemExit(f'{SourcePath}: parsed 0 stars — the header was found but no row survived '
+                         f'(check the ra/dec/mag/ci column names). Refusing to write an empty catalogue.')
     print(f'{len(Stars)} stars to magnitude {MAGNITUDE_LIMIT} → {TargetPath}')
     print(f'{16 + len(Stars) * 28} bytes')
     if Stars:

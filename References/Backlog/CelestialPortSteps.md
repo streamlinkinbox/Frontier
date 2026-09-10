@@ -97,19 +97,18 @@ Wire into **both** paths: replace `kSky` in `VisibilityRaster`; feed the miss br
     or reservoir identity.
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-┌─ STEP 2 · The Celestial panel UI, first vertical slice ────────────────────────────────────────────────────────┐
-Deliberately early — not at the end. Step 1 gives real parameters to bind, and building the panel now means every
-later entity plugs into a proven frame instead of a promise.
-  • The entity/section/property registry as **data** in C++ (mirroring the demo's `ENTITIES` structure).
-  • Panel chrome to the demo's design tokens: `--glass rgba(15,16,18,.74)`, `--stroke white .07`,
-    `--text white .94 / --t2 .56 / --t3 .32`, accent `#ffb454`, 28 px radius, 316 px outliner, hero readout.
-  • Widgets needed by Atmosphere/Sun/Sky only: `GAUGE`, `TOG`, `SEG`, `CURVE`, `KELVIN`, `COL`, plus the first
-    bespoke one — `ORB` (draggable solar orbit).
+┌─ STEP 2 · (was the panel UI — MOVED TO LAST) ──────────────────────────────────────────────────────────────────┐
+The panel was originally scheduled here. It is now built after every simulation component exists, by decision:
+see `References/Backlog/CelestialPanelUi.md` for the reasoning and for everything already in place for it.
 
-  **Proof**: `Diagnostics/CelestialPanel_01_Outliner.png`, `_02_Sun_Inspector.png`, `_03_Atmosphere_Inspector.png`
-  via the EditorProof mechanism · `Scratchpad/CheckCelestialPanel.sh` asserting numerically — outliner width 316,
-  panel radius, token colours sampled at known pixels, hero value matching the solver's own output, and the `ORB`
-  knob landing on its computed fraction (the `EditorKnobCheck` pattern, which already does exactly this).
+In short: the panel is a projection of the entity registry, so building it early means editing every entity twice
+and rebuilding widgets against parameters that are still moving. Nothing is blocked by its absence — each
+component is proved headless with committed sheets and numeric gates, which is stronger evidence than a
+screenshot of a slider.
+
+**While it is deferred**, every component must still keep its parameters in one settings struct per entity, named
+as the demo names them, with units in the comment — as `VisibilityRaster::CelestialSettings` and
+`TwilightSettings` already do. That is what keeps the eventual panel a projection rather than a rewrite.
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─ STEP 3 · Stars + Moons ───────────────────────────────────────────────────────────────────────────────────────┐
@@ -133,7 +132,7 @@ Cloud Layer, Local Cloud, Volumetric Clouds, Height Fog, Atmospheric Fog, Local 
 march over the union interval** with shared extinction and a shared sun-shadow march (`73737b6`), coarse probe
 through clear air, zero-coverage early-out. **Do not** add clear-air striding (`73b71d6`, reverted: speckled
 cloud), a low-res cloud FBO with temporal reprojection (`a152901`, reverted: slower and worse), or atmosphere LUTs
-(`2fe78ed`, reverted: no speedup, uglier).
+(deferred to last on measured evidence AND on looks — see `References/Deferred/AtmosphereLuts.md`).
   **Proof**: cloud sheets at several coverages, both paths · a gate asserting the single-march structure (one
   march function, not per-volume duplicates — the thing `73737b6` consolidated) · timestamp `volumetrics` span
   reporting separately from `sky` · SwiftShader dispatch correctness.
@@ -193,10 +192,14 @@ Height field; then aerial perspective, rainbow, lens flare, tonemap (`ACES/Reinh
   **Proof**: rainbow geometry at the analytic 42° · tonemap curve sheets · both paths.
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-┌─ STEP 8 · Panel completion ────────────────────────────────────────────────────────────────────────────────────┐
-The remaining bespoke widgets — `GLOBE`, `PAD`, `DISC`, `PLANET`, `ORBIT2`, `HORIZON`, `LENS`, `HIST`, `METER`,
-`TRK`, `STEP`, `DROP`, `LINKNOTE` — and all 16 entity inspectors.
-  **Proof**: a sheet per entity inspector, committed to `Diagnostics/`, each numerically gated.
+┌─ STEP 8 · The panel, in full ──────────────────────────────────────────────────────────────────────────────────┐
+All 16 entity inspectors and all 21 widget types, built once against a settled parameter set — including the
+bespoke ones: `ORB`, `GLOBE`, `PAD`, `DISC`, `PLANET`, `ORBIT2`, `WINDROSE`, `HORIZON`, `LENS`, `HIST`, `METER`,
+`TRK`, `KELVIN`, `STEP`, `DROP`, `LINKNOTE`. Design tokens and registry shape are recorded in
+`References/Backlog/CelestialPanelUi.md`.
+  **Proof**: a sheet per entity inspector committed to `Diagnostics/`, each numerically gated through the
+  `EditorProof` → `EditorKnobCheck` mechanism — knob positions against their computed fractions, token colours
+  sampled at known pixels, hero readouts against the solver's own output.
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─ STEP 9 · Tier integration and Auto ───────────────────────────────────────────────────────────────────────────┐
