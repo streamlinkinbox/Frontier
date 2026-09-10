@@ -43,6 +43,18 @@ Report $? "it takes the same AtmosphereMedium the sky uses"
 Report $? "no second copy of the scattering coefficients"
 
 echo
+echo "[AtmosphericOptics] all four lens types exist and differ"
+# Four optical assemblies, not one effect with an intensity slider: anamorphic turned up is not starburst.
+for Type in Cinematic Anamorphic Starburst Halo; do
+    printf '%s' "$Code" | grep -q "$Type"
+    Report $? "the $Type lens type is defined"
+done
+printf '%s' "$Code" | grep -q 'static LensFlareMix MixFor'
+Report $? "the component mix per type is a table, not scattered branches"
+printf '%s' "$Code" | grep -q 'ApertureBlades'
+Report $? "the starburst's spoke count comes from the aperture blades"
+
+echo
 echo "[AtmosphericOptics] the bow is in the world, the flare is in the lens"
 # These two look alike and behave oppositely. The rainbow must take a distance so geometry can hide it; the
 #    flare must not, because it is scattered on the sensor after the light entered and correctly lies over

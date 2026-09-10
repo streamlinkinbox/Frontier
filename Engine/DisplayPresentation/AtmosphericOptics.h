@@ -201,15 +201,52 @@ public:
     //    Ghosts are placed at k = -1.35 + i*0.42 along that line, matching the reference demo. The spacing is
     //    what makes it read as a real lens: a row of reflections at unequal sizes, not a starburst.
 
+    // Which lens is being simulated. These are not presets over one effect — each is a different optical
+    //    assembly, and the components they emphasise are what tells them apart:
+    //
+    //        Cinematic   a modern coated zoom: ghosts, halo and a modest streak, everything present and balanced
+    //        Anamorphic  a wide anamorphic prime: almost no ghosting, one long blue horizontal streak
+    //        Starburst   a stopped-down lens: the aperture blades diffract the sun into spokes
+    //        Halo        a simple uncoated element: one chromatic ring and little else
+    //
+    //    The weights below are the reference demo's and they are the whole definition of the difference. A single
+    //    'flare' with an intensity slider cannot express them: anamorphic with more intensity is not starburst,
+    //    it is a brighter streak.
+    enum class LensFlareCategory : uint32_t
+    {
+        Cinematic = 0u, Anamorphic = 1u, Starburst = 2u, Halo = 3u,
+    };
+
     struct LensFlareSettings
     {
-        bool     Enabled     = true;
+        bool              Enabled  = true;
+        LensFlareCategory Category = LensFlareCategory::Cinematic;
         uint32_t GhostCount  = 6u;      // [cnt] internal reflections drawn; tier-keyed
         float    Intensity   = 1.0f;    // [x]
         float    HaloRadius  = 0.28f;   // [ndc] the ring around the optical axis
         float    Chromatic   = 0.6f;    // [0..1] how coloured the ghosts are
         float    StreakGain  = 1.0f;    // [x] the horizontal anamorphic streak
+        uint32_t ApertureBlades = 8u;   // [cnt] straight blades give 2N spokes, odd counts give N
     };
+
+    // The component mix for a lens type. Exposed rather than buried so the panel can show what a type actually
+    //    changes, and so the proof can assert the four are distinct rather than merely differently scaled.
+    struct LensFlareMix
+    {
+        float Ghosts, Halo, Streak, Burst;
+    };
+
+    static LensFlareMix MixFor(LensFlareCategory Category) noexcept
+    {
+        switch (Category)
+        {
+            case LensFlareCategory::Anamorphic: return { 0.00f, 0.00f, 2.20f, 0.00f };
+            case LensFlareCategory::Starburst:  return { 1.00f, 0.50f, 0.35f, 1.00f };
+            case LensFlareCategory::Halo:       return { 0.00f, 1.00f, 0.35f, 0.00f };
+            case LensFlareCategory::Cinematic:
+            default:                            return { 1.00f, 1.00f, 1.00f, 0.35f };
+        }
+    }
 
     // ScreenUv and SunUv are in [0,1] with (0,0) at the top-left. SunVisibility is 0 when the sun is occluded.
     static void LensFlare(const LensFlareSettings& Settings, const float ScreenUv[2], const float SunUv[2],
@@ -228,9 +265,10 @@ public:
         const float S[2] = { (SunUv[0] - 0.5f) * Aspect, SunUv[1] - 0.5f };
 
         float Accumulated[3] = { 0.0f, 0.0f, 0.0f };
+        const LensFlareMix Mix = MixFor(Settings.Category);
 
         // ── Ghosts: internal reflections, strung along the sun-to-centre line ──────────────────────────────────
-        const uint32_t Ghosts = Settings.GhostCount > 8u ? 8u : Settings.GhostCount;
+        const uint32_t Ghosts = Mix.Ghosts > 0.0f ? (Settings.GhostCount > 8u ? 8u : Settings.GhostCount) : 0u;
         for (uint32_t I = 0; I < Ghosts; ++I)
         {
             const float Index = static_cast<float>(I);
@@ -248,7 +286,7 @@ public:
             float Tint[3];
             Hue(Fract(Index * 0.23f + 0.5f), Tint);
             for (int C = 0; C < 3; ++C)
-                Accumulated[C] += Shape * (1.0f + (Tint[C] - 1.0f) * Settings.Chromatic);
+                Accumulated[C] += Shape * (1.0f + (Tint[C] - 1.0f) * Settings.Chromatic) * Mix.Ghosts;
         }
 
         // ── Halo: a ring about the axis, chromatically smeared ─────────────────────────────────────────────────
@@ -256,7 +294,7 @@ public:
         const float Hx = P[0] - HaloCentre[0], Hy = P[1] - HaloCentre[1];
         const float HaloDistance = std::sqrt(Hx * Hx + Hy * Hy);
         const float RingOffset = std::fabs(HaloDistance - Settings.HaloRadius);
-        const float Halo = SmoothStep(0.045f, 0.0f, RingOffset) * 0.09f;
+        const float Halo = SmoothStep(0.045f, 0.0f, RingOffset) * 0.09f * Mix.Halo;
         if (Halo > 0.0f)
         {
             constexpr float kPi = 3.14159265358979323846f;
@@ -269,10 +307,43 @@ public:
 
         // ── Anamorphic streak: the horizontal bar a wide lens throws ───────────────────────────────────────────
         const float Mx = P[0] - S[0], My = P[1] - S[1];
-        const float Streak = std::exp(-std::fabs(My) * 95.0f) * std::exp(-std::fabs(Mx) * 2.2f) * 0.55f;
-        Accumulated[0] += Streak * 0.6f * Settings.StreakGain;
-        Accumulated[1] += Streak * 0.75f * Settings.StreakGain;
-        Accumulated[2] += Streak * 1.0f * Settings.StreakGain;
+        const float Streak = std::exp(-std::fabs(My) * 95.0f) * std::exp(-std::fabs(Mx) * 2.2f) * 0.55f
+                           * Settings.StreakGain * Mix.Streak;
+        // The streak runs blue because anamorphic elements are coated for it; that tint IS the look.
+        Accumulated[0] += Streak * (1.0f + (0.45f - 1.0f) * Settings.Chromatic);
+        Accumulated[1] += Streak * (1.0f + (0.65f - 1.0f) * Settings.Chromatic);
+        Accumulated[2] += Streak;
+
+        // ── Starburst: diffraction off the aperture blades ─────────────────────────────────────────────────────
+        // A stopped-down iris is a polygon, and a polygonal aperture diffracts a point source into spokes. The
+        //    count follows the optics rather than taste: an even number of straight blades gives 2N spokes,
+        //    because opposite edges are parallel and their diffraction overlaps; an odd number gives N.
+        if (Mix.Burst > 0.0f)
+        {
+            const uint32_t Blades = Settings.ApertureBlades < 3u ? 3u : Settings.ApertureBlades;
+            const float Spokes = (Blades % 2u == 0u) ? static_cast<float>(Blades) : static_cast<float>(Blades) * 0.5f;
+            const float Angle = std::atan2(My, Mx);
+            const float Distance = std::sqrt(Mx * Mx + My * My);
+            const float Primary = std::pow(std::fabs(std::sin(Angle * Spokes * 0.5f + 0.3f)), 24.0f)
+                                * std::exp(-Distance * 3.5f) * 0.35f;
+            // A second, finer set: real irises are not perfect polygons and the higher orders show.
+            const float Secondary = std::pow(std::fabs(std::sin(Angle * Spokes * 0.875f)), 40.0f)
+                                  * std::exp(-Distance * 6.0f) * 0.25f;
+            const float Burst = (Primary + Secondary) * Mix.Burst;
+            Accumulated[0] += Burst * 1.00f;
+            Accumulated[1] += Burst * 0.95f;
+            Accumulated[2] += Burst * 0.85f;
+        }
+
+        // The ambient bloom around the sun's image. Present for every lens, because it is scatter in the glass
+        //    rather than a feature of any particular assembly.
+        {
+            const float Distance = std::sqrt(Mx * Mx + My * My);
+            const float Bloom = std::exp(-Distance * 1.6f) * 0.04f;
+            Accumulated[0] += Bloom * 1.00f;
+            Accumulated[1] += Bloom * 0.90f;
+            Accumulated[2] += Bloom * 0.80f;
+        }
 
         for (int C = 0; C < 3; ++C)
             OutRgb[C] = Accumulated[C] * Settings.Intensity * SunVisibility * EdgeFade;

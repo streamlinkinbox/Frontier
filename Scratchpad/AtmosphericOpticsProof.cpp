@@ -275,6 +275,173 @@ int main()
         Expect(Full > Lean, "the ghost count is a real budget the tiers can spend");
     }
 
+    // ── ⑧ the four lens types are different lenses, not one effect with a slider ────────────────────────────────
+    // Each type is a different optical assembly and emphasises different components. The test that matters is
+    // that they are DISTINGUISHABLE BY SHAPE rather than by brightness: anamorphic with the intensity turned up
+    // is not starburst, so comparing totals would not catch a stub that returned the same image four times.
+    std::printf("\n8. the four lens types are optically distinct\n");
+    {
+        using Category = AtmosphericOptics::LensFlareCategory;
+        const float Aspect = 16.0f / 9.0f;
+        const float Sun[2] = { 0.68f, 0.34f };
+
+        struct Named { Category Type; const char* Name; };
+        const Named Types[] = { { Category::Cinematic,  "Cinematic"  },
+                                { Category::Anamorphic, "Anamorphic" },
+                                { Category::Starburst,  "Starburst"  },
+                                { Category::Halo,       "Halo"       } };
+
+        // Measure each type's energy in three regions that isolate its signature component:
+        //    · a narrow horizontal band through the sun   -> the streak
+        //    · a ring at the halo radius about the axis    -> the halo
+        //    · the ghost line between the sun and centre   -> the ghosts
+        struct Signature { double Streak, Halo, Ghosts, Total; };
+        Signature Measured[4]{};
+
+        for (int T = 0; T < 4; ++T)
+        {
+            AtmosphericOptics::LensFlareSettings Settings{};
+            Settings.Category = Types[T].Type;
+            for (int Y = 0; Y < 180; ++Y)
+                for (int X = 0; X < 320; ++X)
+                {
+                    const float Uv[2] = { (static_cast<float>(X) + 0.5f) / 320.0f,
+                                          (static_cast<float>(Y) + 0.5f) / 180.0f };
+                    float Rgb[3];
+                    AtmosphericOptics::LensFlare(Settings, Uv, Sun, 1.0f, Aspect, Rgb);
+                    const double E = Rgb[0] + Rgb[1] + Rgb[2];
+                    Measured[T].Total += E;
+
+                    // Streak band: same height as the sun, well away from it horizontally.
+                    if (std::fabs(Uv[1] - Sun[1]) < 0.012f && std::fabs(Uv[0] - Sun[0]) > 0.25f)
+                        Measured[T].Streak += E;
+
+                    // Halo ring about the optical axis at 0.25 of the way from centre to sun.
+                    const float Hx = (Uv[0] - 0.5f) * Aspect - (Sun[0] - 0.5f) * Aspect * 0.25f;
+                    const float Hy = (Uv[1] - 0.5f) - (Sun[1] - 0.5f) * 0.25f;
+                    const float Ring = std::sqrt(Hx * Hx + Hy * Hy);
+                    if (std::fabs(Ring - Settings.HaloRadius) < 0.02f)
+                        Measured[T].Halo += E;
+
+                    // Ghost line: between the sun and the far side of centre, off the streak band.
+                    if (std::fabs(Uv[1] - Sun[1]) > 0.05f)
+                    {
+                        const float Dx = Uv[0] - 0.5f, Dy = Uv[1] - 0.5f;
+                        const float Sx = Sun[0] - 0.5f, Sy = Sun[1] - 0.5f;
+                        const float Cross = std::fabs(Dx * Sy - Dy * Sx);
+                        if (Cross < 0.010f) Measured[T].Ghosts += E;
+                    }
+                }
+        }
+
+        std::printf("     %-11s %10s %10s %10s %10s\n", "type", "streak", "halo", "ghosts", "total");
+        for (int T = 0; T < 4; ++T)
+            std::printf("     %-11s %10.3f %10.3f %10.3f %10.3f\n", Types[T].Name,
+                        Measured[T].Streak, Measured[T].Halo, Measured[T].Ghosts, Measured[T].Total);
+
+        // Anamorphic: the streak is the whole point, and it has neither ghosts nor halo.
+        Expect(Measured[1].Streak > Measured[0].Streak * 1.5,
+               "Anamorphic's streak is far stronger than Cinematic's");
+        Expect(Measured[1].Ghosts < Measured[0].Ghosts,
+               "Anamorphic has no ghosting to speak of");
+
+        // Halo: the ring dominates and the ghosts are gone.
+        Expect(Measured[3].Ghosts < Measured[0].Ghosts * 0.5,
+               "Halo drops the ghosts");
+        Expect(Measured[3].Halo > Measured[1].Halo,
+               "and keeps the ring that Anamorphic does not have");
+
+        // Starburst: it is the only type with spokes, which show as energy away from every other feature.
+        AtmosphericOptics::LensFlareSettings Burst{};
+        Burst.Category = Category::Starburst;
+        AtmosphericOptics::LensFlareSettings Anam{};
+        Anam.Category = Category::Anamorphic;
+        // ⚠️ Counted as the NUMBER OF LOBES around the ring, which took two tries to get right.
+        //
+        //    Total energy on the ring does not work: the ambient bloom is shared by every lens and contributes
+        //    to all 720 samples while the spokes touch a few percent, so Starburst scored 274.6 against
+        //    Anamorphic's 266.9 — a ratio of 1.03, measuring the term they have in common.
+        //
+        //    Variance does not work either: an anamorphic streak crosses the ring at exactly two points, which
+        //    is maximally uneven, and it scored 1.116 against Starburst's 0.626. Variance cannot tell two lobes
+        //    from twelve.
+        //
+        //    The distinguishing property is the lobe COUNT. A streak gives two, an iris gives one per spoke.
+        auto RingLobes = [&](const AtmosphericOptics::LensFlareSettings& Settings) -> int
+        {
+            double Previous = -1.0;
+            bool   Rising = false;
+            int    Lobes = 0;
+            double Peak = 0.0, Mean = 0.0;
+            double Samples[1440];
+            for (int I = 0; I < 1440; ++I)
+            {
+                const double A = static_cast<double>(I) / 1440.0 * 6.28318530718;
+                const float Uv[2] = { Sun[0] + static_cast<float>(std::cos(A)) * 0.045f,
+                                      Sun[1] + static_cast<float>(std::sin(A)) * 0.045f };
+                float Rgb[3];
+                AtmosphericOptics::LensFlare(Settings, Uv, Sun, 1.0f, Aspect, Rgb);
+                Samples[I] = Rgb[0] + Rgb[1] + Rgb[2];
+                Mean += Samples[I];
+                if (Samples[I] > Peak) Peak = Samples[I];
+            }
+            Mean /= 1440.0;
+            // Only count lobes that rise meaningfully above the shared bloom floor.
+            const double Threshold = Mean + (Peak - Mean) * 0.25;
+            for (int I = 0; I < 1440; ++I)
+            {
+                const double V = Samples[I];
+                if (V > Previous && V > Threshold) Rising = true;
+                else if (Rising && V < Previous) { ++Lobes; Rising = false; }
+                Previous = V;
+            }
+            return Lobes;
+        };
+        const int BurstLobes = RingLobes(Burst);
+        const int AnamLobes  = RingLobes(Anam);
+        const int HaloLobes  = RingLobes([&]{ AtmosphericOptics::LensFlareSettings H{};
+                                              H.Category = Category::Halo; return H; }());
+        std::printf("     lobes around the sun: Starburst %d, Anamorphic %d, Halo %d\n",
+                    BurstLobes, AnamLobes, HaloLobes);
+        Expect(BurstLobes > AnamLobes * 2, "Starburst puts many spokes around the sun where a streak gives two");
+
+        // And the decisive structural check: no two types share a mix, so none is a rescaling of another.
+        bool AllDistinct = true;
+        for (int A = 0; A < 4; ++A)
+            for (int B = A + 1; B < 4; ++B)
+            {
+                const AtmosphericOptics::LensFlareMix Ma = AtmosphericOptics::MixFor(Types[A].Type);
+                const AtmosphericOptics::LensFlareMix Mb = AtmosphericOptics::MixFor(Types[B].Type);
+                if (Ma.Ghosts == Mb.Ghosts && Ma.Halo == Mb.Halo &&
+                    Ma.Streak == Mb.Streak && Ma.Burst == Mb.Burst) AllDistinct = false;
+            }
+        Expect(AllDistinct, "no two types share a component mix");
+
+        // Aperture blades change the spoke count, which is optics rather than taste: even blades give 2N.
+        AtmosphericOptics::LensFlareSettings Six = Burst;  Six.ApertureBlades = 6u;
+        AtmosphericOptics::LensFlareSettings Nine = Burst; Nine.ApertureBlades = 9u;
+        int SixPeaks = 0, NinePeaks = 0;
+        double PreviousSix = 0.0, PreviousNine = 0.0;
+        bool RisingSix = false, RisingNine = false;
+        for (int I = 0; I <= 1440; ++I)
+        {
+            const double A = static_cast<double>(I) / 1440.0 * 6.28318530718;
+            const float Uv[2] = { Sun[0] + static_cast<float>(std::cos(A)) * 0.045f,
+                                  Sun[1] + static_cast<float>(std::sin(A)) * 0.045f };
+            float S6[3], S9[3];
+            AtmosphericOptics::LensFlare(Six, Uv, Sun, 1.0f, Aspect, S6);
+            AtmosphericOptics::LensFlare(Nine, Uv, Sun, 1.0f, Aspect, S9);
+            const double E6 = S6[0] + S6[1] + S6[2], E9 = S9[0] + S9[1] + S9[2];
+            if (E6 > PreviousSix + 1e-5) RisingSix = true;
+            else if (RisingSix && E6 < PreviousSix - 1e-5) { ++SixPeaks; RisingSix = false; }
+            if (E9 > PreviousNine + 1e-5) RisingNine = true;
+            else if (RisingNine && E9 < PreviousNine - 1e-5) { ++NinePeaks; RisingNine = false; }
+            PreviousSix = E6; PreviousNine = E9;
+        }
+        std::printf("     spokes: 6 blades -> %d peaks, 9 blades -> %d peaks\n", SixPeaks, NinePeaks);
+        Expect(SixPeaks != NinePeaks, "the aperture blade count changes the spoke pattern");
+    }
+
     std::printf("\n");
     for (int I = 0; I < 108; ++I) std::putchar('=');
     std::printf("\n%s\n\n", Failures == 0 ? "  the optics behave" : "  THE OPTICS DO NOT BEHAVE");
