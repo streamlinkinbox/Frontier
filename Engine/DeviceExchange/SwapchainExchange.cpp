@@ -2232,6 +2232,10 @@ void SwapchainExchange::UploadShadingTables(const float* Energy, const float* Sh
     vkDestroyBuffer(Vulkan->Device, Staging, nullptr);
     vkFreeMemory(Vulkan->Device, StagingMemory, nullptr);
     std::cerr << "[SwapchainExchange] Shading tables: GGX energy + LTC sheen, 2 x " << N << "x" << N << " RGBA32F resident (bindings 13/14).\n";
+    // The tables arrive after UploadScene's descriptor writes (the game and the harness both shade-table last),
+    //    so without this rewrite bindings 13/14 stay unbound while the kernel samples them every pixel — silent
+    //    garbage on forgiving drivers, a fault on strict ones. The rewrite is idempotent for every other binding.
+    WriteDescriptorSet();
 }
 
 void* SwapchainExchange::SwapReservoirParity() noexcept
