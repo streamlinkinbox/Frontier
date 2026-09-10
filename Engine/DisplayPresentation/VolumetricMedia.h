@@ -109,7 +109,20 @@ struct VolumetricBudget
     uint32_t LocalSteps      = 28u;   // FidelityCriteria::LocalVolumeStepCount
     uint32_t LightTaps       = 4u;    // FidelityCriteria::CloudLightTapCount
     float    CoverageMargin  = 0.03f; // FidelityCriteria::CloudCoverageMargin
-    uint32_t GodRaySamples   = 16u;   // FidelityCriteria::GodRaySampleCount (0 = shafts off)
+    // ⚠️ THIS BUDGET IS FOR SCENE-GEOMETRY SHAFTS ONLY, and the name oversells it. Shafts have TWO sources and
+    //    only one of them is here:
+    //
+    //      · CLOUD AND FOG shafts come free from ShadowMarch, which already accumulates CloudDensity and
+    //        LocalDensity along the sun ray. Broken cumulus casts beams into haze whether or not this budget is
+    //        set — measured at 4.83x contrast with GodRaySamples at 0 and no callback supplied. That is the
+    //        common case and it cannot be switched off, because it is just the medium shadowing itself.
+    //
+    //      · SCENE shafts — light cut by buildings, terrain or foliage — need geometry the march knows nothing
+    //        about, so they arrive through the SunVisibilityAt callback, and THAT is what this counts.
+    //
+    //    Setting it to 0 therefore does not disable god rays; it disables the geometry half. Minimal still gets
+    //    cloud shafts, which is the right behaviour and not an accident worth removing.
+    uint32_t GodRaySamples   = 16u;   // FidelityCriteria::GodRaySampleCount (0 = no SCENE occlusion sampling)
 };
 
 //------------------------------------------------------------------------------------------------------------------------

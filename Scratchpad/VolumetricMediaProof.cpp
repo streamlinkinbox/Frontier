@@ -384,6 +384,78 @@ int main()
         }
     }
 
+    // ── ⑥b clouds cast their own shafts ────────────────────────────────────────────────────────────────────────
+    // The case that matters, and the one section ⑥ does NOT cover: it uses a synthetic louvre with clouds
+    // disabled. Broken cumulus over haze must produce beams with no callback at all, because ShadowMarch already
+    // accumulates cloud density along the sun ray — the medium shadows itself.
+    //
+    // This also pins the distinction the budget's name hides: GodRaySamples gates SCENE occlusion only. Cloud
+    // and fog shafts are not gated by it and cannot be switched off, which is correct.
+    std::printf("\n6b. broken cloud casts shafts into haze, with no callback\n");
+    {
+        CloudLayerSettings Broken{};
+        Broken.Enabled = true; Broken.Type = CloudTypeCategory::Cumulus;
+        Broken.Base = 800.0f; Broken.Thickness = 600.0f;
+        Broken.Coverage = 0.50f; Broken.Density = 2.4f; Broken.Scale = 0.35f;
+
+        LocalVolumeSettings Air{};
+        Air.Enabled = true;
+        Air.Centre[0] = 0.0f; Air.Centre[1] = 0.0f; Air.Centre[2] = 300.0f;
+        Air.HalfSize[0] = 3000.0f; Air.HalfSize[1] = 3000.0f; Air.HalfSize[2] = 300.0f;
+        Air.Density = 0.22f; Air.Coverage = 0.95f; Air.Scale = 1500.0f; Air.Anisotropy = 0.76f;
+        LocalVolumeSettings Nothing{};
+
+        float SunUp[3] = { -0.42f, 0.10f, 0.90f };
+        const float SL = std::sqrt(SunUp[0]*SunUp[0] + SunUp[1]*SunUp[1] + SunUp[2]*SunUp[2]);
+        for (int C = 0; C < 3; ++C) SunUp[C] /= SL;
+        const float Bright[3] = { 60.0f, 58.0f, 54.0f }, Fill[3] = { 0.35f, 0.45f, 0.62f };
+
+        VolumetricBudget CloudOnly = Budget;
+        CloudOnly.CloudSteps = 48u; CloudOnly.LocalSteps = 48u;
+        CloudOnly.LightTaps = 5u; CloudOnly.GodRaySamples = 0u;   // scene shafts OFF on purpose
+
+        double Lowest = 1e30, Highest = -1e30;
+        for (int I = 0; I < 41; ++I)
+        {
+            const float X = -1000.0f + static_cast<float>(I) * 50.0f;
+            const float Eye[3] = { X, 0.0f, 120.0f };
+            float Ray[3] = { 0.0f, 0.15f, 0.99f };
+            const float RL = std::sqrt(Ray[0]*Ray[0] + Ray[1]*Ray[1] + Ray[2]*Ray[2]);
+            for (int C = 0; C < 3; ++C) Ray[C] /= RL;
+            const VolumetricSample Sample = VolumetricMedia::March(
+                Broken, Air, Nothing, Wind, CloudOnly, Eye, Ray, 6000.0f,
+                SunUp, Bright, Fill, 0.0f);      // no callback, no context
+            const double Energy = Sample.Scatter[0] + Sample.Scatter[1] + Sample.Scatter[2];
+            Lowest = std::fmin(Lowest, Energy); Highest = std::fmax(Highest, Energy);
+        }
+        std::printf("     in-scatter across 2 km of broken cloud: %.3f .. %.3f (%.2fx)\n",
+                    Lowest, Highest, Highest / std::fmax(Lowest, 1e-9));
+        Expect(Highest > Lowest * 2.0,
+               "cloud gaps and cloud shadow differ strongly, so the beams are there");
+
+        // Overcast must NOT produce the same structure: no gaps, no beams. This is what separates a shaft from
+        //    ordinary brightness variation in the noise.
+        CloudLayerSettings Solid = Broken;
+        Solid.Coverage = 1.0f;
+        double SolidLow = 1e30, SolidHigh = -1e30;
+        for (int I = 0; I < 41; ++I)
+        {
+            const float X = -1000.0f + static_cast<float>(I) * 50.0f;
+            const float Eye[3] = { X, 0.0f, 120.0f };
+            float Ray[3] = { 0.0f, 0.15f, 0.99f };
+            const float RL = std::sqrt(Ray[0]*Ray[0] + Ray[1]*Ray[1] + Ray[2]*Ray[2]);
+            for (int C = 0; C < 3; ++C) Ray[C] /= RL;
+            const VolumetricSample Sample = VolumetricMedia::March(
+                Solid, Air, Nothing, Wind, CloudOnly, Eye, Ray, 6000.0f, SunUp, Bright, Fill, 0.0f);
+            const double Energy = Sample.Scatter[0] + Sample.Scatter[1] + Sample.Scatter[2];
+            SolidLow = std::fmin(SolidLow, Energy); SolidHigh = std::fmax(SolidHigh, Energy);
+        }
+        std::printf("     the same sweep under solid overcast:    %.3f .. %.3f (%.2fx)\n",
+                    SolidLow, SolidHigh, SolidHigh / std::fmax(SolidLow, 1e-9));
+        Expect((Highest / std::fmax(Lowest, 1e-9)) > (SolidHigh / std::fmax(SolidLow, 1e-9)),
+               "broken cloud beams more strongly than overcast — the gaps are what make shafts");
+    }
+
     // ── ⑦ the tier ladder actually reaches the march ───────────────────────────────────────────────────────────
     // The budgets were seated in FidelityClassifier during step 0 and it is easy for them to stay decorative.
     // This walks the five tiers, builds the budget the way a caller must, and checks the march responds.
