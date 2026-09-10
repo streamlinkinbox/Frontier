@@ -1,0 +1,248 @@
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════
+//  DEFERRED — this harness does not compile against the current tree, on purpose.
+//
+//  It measures a shadow-tap contribution cull that was written, measured and then REMOVED from
+//  VisibilityRaster (see References/Deferred/ShadowTapCulling.md for the numbers and the reasoning).
+//  It calls three accessors that no longer exist because the cull they controlled was reverted:
+//
+//      VisibilityRaster::AssignShadowCullThreshold(float)
+//      VisibilityRaster::ResetShadowWorkload()
+//      VisibilityRaster::QueryShadowWorkload()
+//
+//  Kept as .groundwork rather than deleted so the measurement can be re-run if the shading loop ever
+//  gains many-dim-light scenes, which is the only regime where the cull could pay. To revive it, restore
+//  those accessors plus the ceiling test in Shade(), then build with the line in the note.
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+//============================================================================================================================================
+//  ShadowCullCost.cpp — R10 #3: what does contribution culling actually save, and what does it cost?
+//============================================================================================================================================
+// The shadow lookup is the expensive part of the GI-off path: up to kBlockerTaps² + TapCount² texel fetches per
+// surface-tap pair — 25 + 81 = 106 at Reference — and it runs for every tap that passes the two cosine tests, no
+// matter how little that tap could contribute. A tap on the far side of a large room, grazing a surface at 88°,
+// pays exactly the same as the one directly overhead.
+//
+// #3 bounds the contribution BEFORE the lookup and skips taps that cannot matter. The bound must over-estimate or
+// the image silently darkens, so this program measures both halves of the trade against the real renderer:
+//
+//    · work    — texel fetches, from counters inside VisibilityRaster itself (not a reimplementation);
+//    · fidelity— the rendered sheet against the uncelled render, worst and mean 8-bit deviation.
+//
+// A threshold is only worth taking if it removes real work while leaving the picture indistinguishable. Built and
+// run by Scratchpad/CheckShadowCull.sh.
+
+#include "GeometricRaster/VisibilityRaster.h"
+#include "GeometricRaster/SceneStructure.h"
+#include "GeometricRaster/GeometryStructure.h"
+#include "DisplayPresentation/FidelityClassifier.h"
+
+#include <cmath>
+#include <cstdio>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+using namespace Frontier;
+
+namespace {
+
+constexpr uint32_t kWidth = 320u, kHeight = 240u;
+
+// ── The rig, lifted VERBATIM from Scratchpad/ShadowTierProof.cpp ─────────────────────────────────────────────
+// Copied rather than re-derived, and copied whole: a floor, a 1.2 m emitter overhead and two plates at different
+//    heights, which is what makes the penumbra behaviour visible. If this drifts from the tier proof's rig the two
+//    stop describing the same scene, so CheckShadowCull.sh diffs these functions against that file.
+
+void PushQuad(GeometryStructure& Mesh, float CentreX, float CentreY, float Z, float Half, bool FaceDown)
+{
+    const uint32_t Base = static_cast<uint32_t>(Mesh.QueryVertices().size());
+    const float X0 = CentreX - Half, X1 = CentreX + Half;
+    const float Y0 = CentreY - Half, Y1 = CentreY + Half;
+    const Vector3 N{ 0.0f, 0.0f, FaceDown ? -1.0f : 1.0f };
+
+    VertexRecord V[4]{};
+    const float Xs[4] = { X0, X1, X1, X0 };
+    const float Ys[4] = { Y0, Y0, Y1, Y1 };
+    for (int K = 0; K < 4; ++K)
+    {
+        V[K].SpatialLocation   = Vector3{ Xs[K], Ys[K], Z };
+        V[K].NormalDirection   = N;
+        V[K].TangentDirection  = Vector4{ 1.0f, 0.0f, 0.0f, 1.0f };
+        V[K].TextureCoordinateU = 0.0f;
+        V[K].TextureCoordinateV = 0.0f;
+    }
+    Mesh.AppendVertices(V, 4u);
+
+    const uint32_t Up[6]   = { Base + 0u, Base + 1u, Base + 2u, Base + 0u, Base + 2u, Base + 3u };
+    const uint32_t Down[6] = { Base + 0u, Base + 2u, Base + 1u, Base + 0u, Base + 3u, Base + 2u };
+    Mesh.AppendIndices(FaceDown ? Down : Up, 6u);
+}
+
+MaterialDescriptor DiffuseMaterial()
+{
+    MaterialDescriptor M;
+    M.Name = "RigDiffuse";
+    MaterialSlabDescriptor S{};
+    S.BaseColor[0] = S.BaseColor[1] = S.BaseColor[2] = 0.75f;
+    S.SpecularRoughness = 0.9f;
+    M.Slabs.push_back(S);
+    return M;
+}
+
+MaterialDescriptor EmitterMaterial()
+{
+    MaterialDescriptor M;
+    M.Name = "RigEmitter";
+    MaterialSlabDescriptor S{};
+    S.BaseColor[0] = S.BaseColor[1] = S.BaseColor[2] = 0.0f;
+    S.EmissionLuminance = 60.0f;
+    S.EmissionColor[0] = S.EmissionColor[1] = S.EmissionColor[2] = 1.0f;
+    M.Slabs.push_back(S);
+    return M;
+}
+
+void SeatCluster(GeometryStructure& Mesh)
+{
+    PolyhedralCluster C{};
+    C.BoundingCenter  = Vector3{ 0.0f, 0.0f, 0.0f };
+    C.BoundingRadius  = 100.0f;
+    C.ConeApex        = Vector3{ 0.0f, 0.0f, 0.0f };
+    C.ConeAxis        = Vector3{ 0.0f, 0.0f, 1.0f };
+    C.ConeCutoff      = 1.0f;              // never cone-culled
+    C.VertexOffset    = 0u;
+    C.TriangleOffset  = 0u;
+    C.TriangleCount   = static_cast<uint32_t>(Mesh.QueryIndices().size() / 3u);
+    Mesh.RegisterCluster(C);
+}
+
+void BuildRig(SceneStructure& Level,
+              GeometryStructure& Floor, GeometryStructure& Emitter,
+              GeometryStructure& NearPlate, GeometryStructure& FarPlate)
+{
+    PushQuad(Floor,     0.0f,  0.0f, 0.0f,  4.0f, false);   // floor
+    PushQuad(Emitter,   0.0f,  0.0f, 6.0f,  0.6f, true);    // 1.2 m square emitter overhead
+    PushQuad(NearPlate, -1.6f, 0.0f, 0.35f, 0.5f, false);   // near plate: 0.35 m over the floor
+    PushQuad(FarPlate,   1.0f, 0.0f, 3.00f, 0.5f, false);   // far  plate: 3.00 m over the floor
+    SeatCluster(Floor); SeatCluster(Emitter); SeatCluster(NearPlate); SeatCluster(FarPlate);
+
+    const uint32_t Diffuse = Level.RegisterMaterial(DiffuseMaterial());
+    const uint32_t Light   = Level.RegisterMaterial(EmitterMaterial());
+    const Matrix4x4 I = Matrix4x4::Identity();
+    Level.RegisterInstance(Floor,     I, Diffuse, 0u);
+    Level.RegisterInstance(Emitter,   I, Light,   0u);
+    Level.RegisterInstance(NearPlate, I, Diffuse, 0u);
+    Level.RegisterInstance(FarPlate,  I, Diffuse, 0u);
+    Level.Finalise();
+}
+
+struct Outcome
+{
+    std::vector<unsigned char>       Rgba;
+    VisibilityRaster::ShadowWorkload Work{};
+    double                           MeanLuminance = 0.0;
+};
+
+bool RenderAt(const SceneStructure& Level, const FidelityCriteria& Criteria, float Threshold, Outcome& Out)
+{
+    VisibilityRaster Raster;
+    ShadowCriteria Shadows{};
+    Shadows.Filter   = static_cast<ShadowFilterKind>(Criteria.ShadowTechnique);
+    Shadows.MapSide  = Criteria.ShadowMapSide;
+    Shadows.TapCount = Criteria.ShadowFilterTapCount;
+    Raster.AssignShadowCriteria(Shadows);
+    Raster.AssignShadowCullThreshold(Threshold);
+    Raster.ResetShadowWorkload();
+
+    constexpr float R2 = 0.70710678f;
+    const float Eye[3]     = { 0.0f, -8.0f,  8.0f };
+    const float Forward[3] = { 0.0f,   R2,   -R2  };
+    const float Right[3]   = { 1.0f,  0.0f,  0.0f };
+    const float Up[3]      = { 0.0f,   R2,    R2  };
+
+    Out.Rgba.assign(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+    const bool Ok = Raster.RenderOrthographic(Level, Eye, Forward, Right, Up, 3.2f, kWidth, kHeight,
+                                              Out.Rgba.data(), Out.MeanLuminance);
+    Out.Work = Raster.QueryShadowWorkload();
+    return Ok;
+}
+
+// Worst and mean 8-bit deviation against the unculled render. Worst is what decides visibility: a mean near zero
+//    can still hide one badly wrong pixel, and a single black speck in a lit region is exactly the artefact a
+//    contribution cull produces when its bound is not conservative.
+void Compare(const std::vector<unsigned char>& A, const std::vector<unsigned char>& B,
+             double& Worst, double& Mean, uint64_t& Changed)
+{
+    Worst = 0.0; Mean = 0.0; Changed = 0u;
+    const size_t Pixels = A.size() / 4u;
+    for (size_t I = 0u; I < Pixels; ++I)
+    {
+        int PixelWorst = 0;
+        for (int C = 0; C < 3; ++C)
+        {
+            const int D = std::abs(static_cast<int>(A[I * 4u + static_cast<size_t>(C)]) -
+                                   static_cast<int>(B[I * 4u + static_cast<size_t>(C)]));
+            if (D > PixelWorst) PixelWorst = D;
+        }
+        if (PixelWorst > 0) ++Changed;
+        if (static_cast<double>(PixelWorst) > Worst) Worst = static_cast<double>(PixelWorst);
+        Mean += static_cast<double>(PixelWorst);
+    }
+    Mean /= static_cast<double>(Pixels);
+}
+
+} // namespace
+
+int main()
+{
+    SceneStructure Level;
+    GeometryStructure Floor, Emitter, NearPlate, FarPlate;
+    BuildRig(Level, Floor, Emitter, NearPlate, FarPlate);
+
+    const FidelityCategory Tiers[] = { FidelityCategory::MinimalFidelity, FidelityCategory::EconomyFidelity,
+                                       FidelityCategory::StandardFidelity, FidelityCategory::UltraFidelity,
+                                       FidelityCategory::ReferenceFidelity };
+
+    std::printf("\nR10 #3 — shadow tap contribution culling, measured on the tier proof's rig\n");
+    std::printf("%s\n", std::string(108, '=').c_str());
+    std::printf("\nEvery number below comes from counters inside VisibilityRaster itself, and every sheet from the\n");
+    std::printf("same renderer the tier proof gates. Deviation is against the UNCULLED render at the same tier.\n");
+
+    const float Thresholds[] = { 0.0f, 1.0e-5f, 1.0e-4f, 5.0e-4f, 1.0e-3f, 5.0e-3f, 1.0e-2f };
+
+    int Worthwhile = 0;
+    for (FidelityCategory Tier : Tiers)
+    {
+        FidelityClassifier Classifier;
+        const FidelityCriteria Criteria = Classifier.ConstructCriteria(Tier);
+
+        Outcome Baseline;
+        if (!RenderAt(Level, Criteria, 0.0f, Baseline)) { std::printf("  render failed\n"); return 1; }
+
+        std::printf("\n  %s — %s, %u px map, %u taps\n", FidelityLabel(Tier),
+                    ShadowTechniqueLabel(Criteria.ShadowTechnique), Criteria.ShadowMapSide, Criteria.ShadowFilterTapCount);
+        std::printf("    baseline: %llu texel fetches over %llu tap evaluations\n",
+                    static_cast<unsigned long long>(Baseline.Work.TexelFetches),
+                    static_cast<unsigned long long>(Baseline.Work.TapsConsidered));
+        std::printf("    %-11s %13s %9s %10s %9s %9s\n", "threshold", "fetches", "saved", "culled", "worst", "mean");
+
+        for (float T : Thresholds)
+        {
+            Outcome Run;
+            if (!RenderAt(Level, Criteria, T, Run)) { std::printf("  render failed\n"); return 1; }
+            double Worst = 0.0, Mean = 0.0; uint64_t Changed = 0u;
+            Compare(Baseline.Rgba, Run.Rgba, Worst, Mean, Changed);
+            const double Saved = Baseline.Work.TexelFetches == 0u ? 0.0
+                               : 100.0 * static_cast<double>(Baseline.Work.TexelFetches - Run.Work.TexelFetches)
+                                       / static_cast<double>(Baseline.Work.TexelFetches);
+            std::printf("    %-11.5g %13llu %8.1f%% %10llu %9.0f %9.4f%s\n", static_cast<double>(T),
+                        static_cast<unsigned long long>(Run.Work.TexelFetches), Saved,
+                        static_cast<unsigned long long>(Run.Work.TapsCulled), Worst, Mean,
+                        (Worst == 0.0 && Saved > 1.0) ? "   <- free" : "");
+            if (Worst == 0.0 && Saved > 1.0) ++Worthwhile;
+        }
+    }
+
+    std::printf("\n%s\n", std::string(108, '=').c_str());
+    std::printf("  'free' = work removed with the rendered image bit-identical to the unculled one.\n\n");
+    return 0;
+}
