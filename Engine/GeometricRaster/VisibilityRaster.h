@@ -29,6 +29,7 @@
 #pragma once
 
 #include "DisplayPresentation/AtmosphereModel.h"
+#include "DisplayPresentation/ColourTransfer.h"
 #include <cstdint>
 #include <vector>
 
@@ -71,6 +72,11 @@ public:
     static constexpr float    kShadowBias   = 0.015f;        // [m] depth bias plus a slope term from NdotL
     static constexpr float    kAmbient      = 0.045f;        // [-] flat fill under the direct light
     static constexpr uint32_t kBlockerTaps  = 5u;            // [cnt] PCSS blocker-search kernel side, in texels
+
+    // How linear radiance becomes a display pixel. Defaults to ACES with low-light desaturation, matching the
+    //    ReSTIR kernel — see ColourTransfer.h for why the two must agree.
+    void AssignColourTransfer(const ColourTransfer& Transfer) noexcept { Colour_ = Transfer; }
+    [[nodiscard]] const ColourTransfer& QueryColourTransfer() const noexcept { return Colour_; }
 
     // The celestial background for subsequent renders. Off by default, so a caller that knows nothing about the
     //    sky keeps the flat fallback colour the raster has always used and no existing proof shifts.
@@ -159,6 +165,7 @@ private:
     uint32_t              TapCount_  = 0u;
 
     CelestialSettings     Celestial_{};   // the sky behind the geometry (disabled = flat fallback colour)
+    ColourTransfer        Colour_{};      // linear radiance -> display pixel, shared with the GPU paths
     std::vector<float>    Depth_;    // [m] primary linear depth, Width×Height
     std::vector<uint32_t> TriId_;    // [idx] the visibility buffer: winning triangle or kMiss
     std::vector<float>    Bary_;     // [-] winning (w0, w1) per pixel; w2 = 1 − w0 − w1

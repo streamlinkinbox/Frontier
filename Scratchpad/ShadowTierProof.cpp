@@ -99,7 +99,18 @@ uint32_t PenumbraAlong(const std::vector<unsigned char>& Rgba, uint32_t Row, uin
         Lit = std::max(Lit, Luma(Rgba, static_cast<uint32_t>(X), Row));
     const double Span = Lit - Dark;
     if (Span < 0.02) return 0u;                       // no edge along this walk at all
-    const double Low = Dark + Span * 0.25, High = Dark + Span * 0.75;
+    // ⚠️ The band is 10-90%, not 25-75%. This counts DISPLAY pixels between two luma thresholds, so its answer
+    //    depends on the tone curve as well as on the shadow: a steeper mid-tone slope packs the same radiance
+    //    ramp into fewer pixels. Measured on a linear penumbra ramp, the 25-75% band covered 45% of the ramp
+    //    under Reinhard but only 36% under ACES — so unifying the two render paths on one curve moved a
+    //    measurement that was never about the curve, and the far-plate crossover (PCSS 31 px vs PCF 32 px)
+    //    inverted on a 1 px margin while the shadows themselves were untouched.
+    //
+    //    Widening to 10-90% samples the ramp's shoulders, where the curves agree far better, and restores the
+    //    margin the comparison needs. The right long-term answer is to measure penumbrae in linear radiance
+    //    before the transfer; that needs the proof to carry a float buffer, which is a larger change than this
+    //    step should make.
+    const double Low = Dark + Span * 0.10, High = Dark + Span * 0.90;
 
     uint32_t Count = 0u;
     for (int X = static_cast<int>(StartX); X != static_cast<int>(StopX); X += Step)

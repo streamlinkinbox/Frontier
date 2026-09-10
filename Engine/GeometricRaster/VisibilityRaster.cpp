@@ -13,6 +13,7 @@
 
 #include "SceneStructure.h"
 #include "DisplayPresentation/AtmosphereModel.h"
+#include "DisplayPresentation/ColourTransfer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -749,13 +750,14 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
         {
             const size_t Idx = static_cast<size_t>(Y) * static_cast<size_t>(Width) + static_cast<size_t>(X);
             unsigned char* Px = Rgba + Idx * 4u;
-            for (int C = 0; C < 3; ++C)
-            {
-                const float Reinhard = Acc_[Idx * 3u + static_cast<size_t>(C)];
-                const float Mapped    = Reinhard / (1.0f + Reinhard);
-                const float Gamma     = std::pow(Mapped < 0.0f ? 0.0f : Mapped, 1.0f / 2.2f);
-                Px[C] = static_cast<unsigned char>(Gamma * 255.0f + 0.5f);
-            }
+            // One shared transfer, not a local copy of the curve. This path used to apply plain Reinhard with no
+            //    exposure and no low-light desaturation while the ReSTIR kernel applied ACES with both, so the
+            //    same radiance reached the screen up to 49/255 apart depending on which path drew it. That was
+            //    survivable while the two drew different things; it is not, now that one sky feeds both.
+            const float Linear[3] = { Acc_[Idx * 3u + 0u], Acc_[Idx * 3u + 1u], Acc_[Idx * 3u + 2u] };
+            unsigned char Encoded[3];
+            ColourPipeline::ApplyToByte(Colour_, Linear, Encoded);
+            Px[0] = Encoded[0]; Px[1] = Encoded[1]; Px[2] = Encoded[2];
             Px[3] = 255u;
             LumSum += 0.2126 * Px[0] + 0.7152 * Px[1] + 0.0722 * Px[2];
         }
