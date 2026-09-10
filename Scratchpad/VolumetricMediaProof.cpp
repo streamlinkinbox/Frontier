@@ -241,14 +241,22 @@ int main()
     {
         // A slatted occluder overhead: alternating 20 m bands of blocked and open sky. This is the classic
         //    louvre / cloud-gap arrangement, and it makes the answer countable rather than impressionistic.
+        // ⚠️ THE QUERY MUST FOLLOW THE SUN RAY. "Is the sun visible from P" means: walk from P toward the sun and
+        //    see what you meet. An earlier version of this occluder tested the slat directly above P, which
+        //    answers "which slat is P under" — a different question, and one that produces vertical columns
+        //    that do not move when the sun moves. The renders looked wrong and the assertions still passed,
+        //    because a gap was still brighter than a slat; only the shafts' ANGLE was meaningless.
         struct Louvre
         {
-            static float Visibility(const float P[3], void* /*Context*/) noexcept
+            static float Visibility(const float P[3], void* Context) noexcept
             {
-                // Project to where the ray toward the sun crosses the occluder plane at z = 120 m.
-                if (P[2] >= 120.0f) return 1.0f;                 // above the slats: nothing blocks
-                const float Band = std::floor(P[0] / 20.0f);
-                return (static_cast<int>(Band) & 1) == 0 ? 1.0f : 0.0f;
+                const float PlaneZ = 120.0f;
+                const float* Sun = static_cast<const float*>(Context);
+                if (P[2] >= PlaneZ) return 1.0f;                 // above the slats: nothing blocks
+                if (Sun[2] <= 1e-3f) return 1.0f;                // sun on the horizon: no shaft geometry
+                const float T = (PlaneZ - P[2]) / Sun[2];        // along the sun ray to the occluder plane
+                const float X = P[0] + Sun[0] * T;               // where it crosses
+                return (static_cast<int>(std::floor(X / 20.0f)) & 1) == 0 ? 1.0f : 0.0f;
             }
         };
 
@@ -276,7 +284,7 @@ int main()
             for (int C = 0; C < 3; ++C) Direction[C] /= L;
             const VolumetricSample S = VolumetricMedia::March(
                 NoCloud, Haze, None, Wind, B, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-                WithScene ? &Louvre::Visibility : nullptr, nullptr);
+                WithScene ? &Louvre::Visibility : nullptr, const_cast<float*>(Sun));
             return S.Scatter[0] + S.Scatter[1] + S.Scatter[2];
         };
 
@@ -299,7 +307,7 @@ int main()
         for (int C = 0; C < 3; ++C) Direction[C] /= DL;
         const VolumetricSample Empty = VolumetricMedia::March(
             NoCloud, Vacuum, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, nullptr);
+            &Louvre::Visibility, const_cast<float*>(Sun));
         std::printf("     with no medium at all: %.6f\n",
                     Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2]);
         Expect(Empty.Scatter[0] + Empty.Scatter[1] + Empty.Scatter[2] < 1e-6,
@@ -310,7 +318,7 @@ int main()
         const float Behind[3] = { 0.0f, -0.20f, 0.98f };
         const VolumetricSample OffScreen = VolumetricMedia::March(
             NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Behind, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, nullptr);
+            &Louvre::Visibility, const_cast<float*>(Sun));
         std::printf("     sun behind the camera: %.4f of in-scatter still resolved\n",
                     OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2]);
         Expect(OffScreen.Scatter[0] + OffScreen.Scatter[1] + OffScreen.Scatter[2] > 0.0,
@@ -319,14 +327,61 @@ int main()
         // The budget must actually gate the work, or the tier ladder is decorative.
         const VolumetricSample Counted = VolumetricMedia::March(
             NoCloud, Haze, None, Wind, Shafted, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, nullptr);
+            &Louvre::Visibility, const_cast<float*>(Sun));
         const VolumetricSample Uncounted = VolumetricMedia::March(
             NoCloud, Haze, None, Wind, Plain, Eye, Direction, 1000.0f, Sun, Radiance, Ambient, 0.0f,
-            &Louvre::Visibility, nullptr);
+            &Louvre::Visibility, const_cast<float*>(Sun));
         std::printf("     occlusion lookups: budget 16 -> %u, budget 0 -> %u\n",
                     Counted.ShaftSamples, Uncounted.ShaftSamples);
         Expect(Counted.ShaftSamples > 0u && Uncounted.ShaftSamples == 0u,
                "GodRaySamples 0 costs nothing at all, so Minimal really is free");
+
+        // ⚠️ THE SHAFTS MUST MOVE WHEN THE SUN MOVES. Every brightness assertion above passes even with an
+        //    occlusion query that ignores the sun entirely — a gap is still brighter than a slat, so brightness
+        //    alone cannot tell a real shaft from a vertical column sitting under a hole. That was the actual
+        //    defect: the renders looked wrong long before any check complained.
+        //
+        //    ⚠️ And the obvious test does not work either. Comparing two sun azimuths directly scored 21.3% for
+        //    the correct occluder and 13.3% for the broken one — because HenyeyGreenstein depends on the angle
+        //    between the view ray and the sun, so swinging the sun changes every sample whether or not anything
+        //    is occluding. The metric was mostly measuring the phase function.
+        //
+        //    So each sun angle is NORMALISED against an unoccluded march at the same angle. That divides the
+        //    phase change out and leaves only the shadow pattern, which is the thing under test.
+        {
+            const float East[3] = { 0.55f, 0.20f, 0.81f };
+            const float West[3] = { -0.55f, 0.20f, 0.81f };
+            double Difference = 0.0, Magnitude = 0.0;
+            for (int I = 0; I < 24; ++I)
+            {
+                const float X = -60.0f + static_cast<float>(I) * 5.0f;
+                float Ray[3] = { X - Eye[0], 120.0f - Eye[1], 60.0f - Eye[2] };
+                const float RL = std::sqrt(Ray[0]*Ray[0] + Ray[1]*Ray[1] + Ray[2]*Ray[2]);
+                for (int C = 0; C < 3; ++C) Ray[C] /= RL;
+
+                auto Shadowed = [&](const float* SunDirection) -> double
+                {
+                    const VolumetricSample Occluded = VolumetricMedia::March(
+                        NoCloud, Haze, None, Wind, Shafted, Eye, Ray, 1000.0f, SunDirection, Radiance, Ambient,
+                        0.0f, &Louvre::Visibility, const_cast<float*>(SunDirection));
+                    const VolumetricSample Open = VolumetricMedia::March(
+                        NoCloud, Haze, None, Wind, Plain, Eye, Ray, 1000.0f, SunDirection, Radiance, Ambient,
+                        0.0f, nullptr, nullptr);
+                    const double A = Occluded.Scatter[0] + Occluded.Scatter[1] + Occluded.Scatter[2];
+                    const double B = Open.Scatter[0] + Open.Scatter[1] + Open.Scatter[2];
+                    return B > 1e-9 ? A / B : 1.0;      // the shadow pattern alone, phase divided out
+                };
+
+                const double Ea = Shadowed(East), We = Shadowed(West);
+                Difference += std::fabs(Ea - We);
+                Magnitude  += Ea + We;
+            }
+            const double Relative = Magnitude > 1e-9 ? Difference / Magnitude : 0.0;
+            std::printf("     swinging the sun east/west moves the shadow pattern by %.1f%%\n", Relative * 100.0);
+            // 15.3% with a correct occluder against 2.7% for a sun-independent one, measured; 8% sits between them.
+            Expect(Relative > 0.08,
+                   "the shafts follow the sun — a sun-independent occluder scores near zero here");
+        }
     }
 
     // ── ⑦ the tier ladder actually reaches the march ───────────────────────────────────────────────────────────
