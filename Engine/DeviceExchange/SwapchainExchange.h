@@ -28,7 +28,11 @@ class TraversalIndex;   // GeometricRaster/TraversalIndex.h (R3 CWBVH)
 class TextureIndex;     // ContentInterchange/TextureIndex.h (R4a)
 // R7 à-trous levels. Five doublings reach an 81x81 pixel footprint (1+2+4+8+16 taps either side of centre) for
 //    5 x 25 taps instead of 6561 — the whole point of the "with holes" formulation.
-static constexpr uint32_t kDenoiseLevelCount    = 5u;
+static constexpr uint32_t kDenoiseLevelCount    = 5u;   // CEILING: descriptor sets and images are allocated for
+                                                       //    this many levels. R10 #8: how many actually DISPATCH is
+                                                       //    tier-keyed (DispatchConfiguration::DenoiseLevelCount),
+                                                       //    because the last level buys 5-9% less error for a full
+                                                       //    screen dispatch, two barriers and ~1.8M taps.
 
 // A6b/A7c adaptive-exposure metering. These mirror LuminanceReduce.slang; the gate checks they still agree.
 //    A HISTOGRAM rather than a running sum, because a percentile of the frame's own distribution has no
@@ -160,7 +164,8 @@ struct DispatchConfiguration
     //    else's machine. Anything that does not fit goes into a uniform buffer rather than growing this block.
     float    ColourSaturation;                                     // [-] A7d: 1 in daylight, 0 under starlight
     uint32_t SpatialTapCount;                                      // [-] spatial-reuse neighbours per pixel (0 = cross off); taken from the reserve, block still 128 B
-    uint32_t PushReserve[6];                                       // [-] keeps the block 128 B and 16-B aligned
+    uint32_t DenoiseLevelCount;                                    // [-] a-trous levels to dispatch, 1..kDenoiseLevelCount (tier-keyed); also from the reserve
+    uint32_t PushReserve[5];                                       // [-] keeps the block 128 B and 16-B aligned
 };
 
 // Bits of DispatchConfiguration::FeatureFlags — mirror kFeature* in ReSTIRViewport.slang.

@@ -2550,7 +2550,15 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
                     0u, 0u, nullptr, 0u, nullptr, 1u, &KernelOutput);
             }
 
-            for (uint32_t Level = 0u; Level < kDenoiseLevelCount; ++Level)
+            // R10 #8: how many levels run is tier-keyed. Descriptor sets exist for kDenoiseLevelCount, so a
+            //    shorter chain simply stops early — and because binding 3 (the presentation image) is written by
+            //    whichever level carries FinalLevel, the tone map still happens exactly once wherever we stop.
+            //    Clamped into 1..kDenoiseLevelCount: a 0 would leave the presentation image unwritten this frame,
+            //    and anything above the ceiling would index a descriptor set that was never allocated.
+            const uint32_t LiveDenoiseLevels =
+                std::clamp(Dispatch.DenoiseLevelCount == 0u ? kDenoiseLevelCount : Dispatch.DenoiseLevelCount,
+                           1u, kDenoiseLevelCount);
+            for (uint32_t Level = 0u; Level < LiveDenoiseLevels; ++Level)
             {
                 // Both ping-pong slots must be ordered against the previous level, in BOTH directions:
                 //   · read-after-write  — this level reads what the previous level wrote;
@@ -2586,7 +2594,7 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
                 Push.DepthScale     = 0.05f;
                 Push.LuminanceScale = 4.0f;
                 Push.Exposure       = Dispatch.Exposure;    // the filter owns the tone map, so it needs the exposure
-                Push.FinalLevel     = (Level + 1u == kDenoiseLevelCount) ? 1u : 0u;
+                Push.FinalLevel     = (Level + 1u == LiveDenoiseLevels) ? 1u : 0u;
                 Push.ColourSaturation = Dispatch.ColourSaturation;
 
                 vkCmdPushConstants(Command, Vulkan->DenoisePipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT,

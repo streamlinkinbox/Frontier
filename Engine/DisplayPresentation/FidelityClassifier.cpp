@@ -31,6 +31,7 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.ReSTIRCandidateSampleCount  = 1;
             Criteria.ReSTIRExtraCandidateCount      = 0;
             Criteria.ReSTIRSpatialTapCount       = 0;
+            Criteria.DenoiseLevelCount           = 4;
             Criteria.FluidVoxelGridResolution    = 16;
             Criteria.ParticleSimulationCapacity  = 2048;
             Criteria.ShadowTechnique             = ShadowTechniqueCategory::HardShadowMap;
@@ -46,6 +47,7 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.ReSTIRCandidateSampleCount  = 2;
             Criteria.ReSTIRExtraCandidateCount      = 1;
             Criteria.ReSTIRSpatialTapCount       = 1;
+            Criteria.DenoiseLevelCount           = 4;
             Criteria.FluidVoxelGridResolution    = 24;
             Criteria.ParticleSimulationCapacity  = 4096;
             Criteria.ShadowTechnique             = ShadowTechniqueCategory::WidePercentageCloserFilter;
@@ -61,6 +63,7 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.ReSTIRCandidateSampleCount  = 4;
             Criteria.ReSTIRExtraCandidateCount      = 2;
             Criteria.ReSTIRSpatialTapCount       = 2;
+            Criteria.DenoiseLevelCount           = 4;
             Criteria.FluidVoxelGridResolution    = 32;
             Criteria.ParticleSimulationCapacity  = 8192;
             Criteria.ShadowTechnique             = ShadowTechniqueCategory::PercentageCloserSoftShadow;
@@ -76,6 +79,7 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.ReSTIRCandidateSampleCount  = 8;
             Criteria.ReSTIRExtraCandidateCount      = 3;
             Criteria.ReSTIRSpatialTapCount       = 3;
+            Criteria.DenoiseLevelCount           = 5;
             Criteria.FluidVoxelGridResolution    = 48;
             Criteria.ParticleSimulationCapacity  = 16384;
             Criteria.ShadowTechnique             = ShadowTechniqueCategory::PercentageCloserSoftShadow;
@@ -92,6 +96,7 @@ FidelityCriteria FidelityClassifier::ConstructCriteria(FidelityCategory Category
             Criteria.ReSTIRCandidateSampleCount  = 16;
             Criteria.ReSTIRExtraCandidateCount      = 4;
             Criteria.ReSTIRSpatialTapCount       = 4;
+            Criteria.DenoiseLevelCount           = 5;
             Criteria.FluidVoxelGridResolution    = 64;
             Criteria.ParticleSimulationCapacity  = 65536;
             Criteria.ShadowTechnique             = ShadowTechniqueCategory::PercentageCloserSoftShadow;

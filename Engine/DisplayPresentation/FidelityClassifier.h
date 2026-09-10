@@ -132,6 +132,7 @@ struct FidelityCriteria
     uint32_t                ParticleSimulationCapacity;         // [count] maximum active compute particles
     uint32_t                ReSTIRExtraCandidateCount;        // [count] extra same-pixel RIS candidates (R6 row 3: renamed)
     uint32_t                ReSTIRSpatialTapCount;              // [count] spatial-reuse neighbours per pixel (0 = no cross)
+    uint32_t                DenoiseLevelCount;                  // [count] a-trous levels dispatched, 1 … kDenoiseLevelCount
     ShadowTechniqueCategory ShadowTechnique;                    // [category] GI-off shadow filter: hard · wide PCF · PCSS
     uint32_t                ShadowMapSide;                      // [px] shadow map side in texels (the tier's default)
     uint32_t                ShadowFilterTapCount;               // [count] filter kernel side in taps (1 = single comparison)

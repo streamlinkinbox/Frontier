@@ -570,6 +570,7 @@ int main(int argc, char** argv)
         Integrator.AssignCandidatesPerPixel(Criteria.ReSTIRCandidateSampleCount);
         Integrator.AssignExtraCandidateCount(Criteria.ReSTIRExtraCandidateCount);
         Integrator.AssignSpatialTapCount(Criteria.ReSTIRSpatialTapCount);
+        Integrator.AssignDenoiseLevelCount(Criteria.DenoiseLevelCount);
         Integrator.AssignGlobalIllumination(S.GlobalIllumination);
         Integrator.AssignAntiAliasing(S.AntiAliasing);
         Notifications.AssignEnabled(S.Notifications);

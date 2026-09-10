@@ -32,6 +32,8 @@ struct ReSTIRIntegratorConfiguration
     uint32_t    SpatialTapCount    = 4;   // [-]   R10: spatial-reuse neighbours per pixel, tier-keyed (0 = cross off).
                                           //       Defaults to the pre-R10 hardcoded 4, so a caller that never assigns
                                           //       it renders exactly as before rather than silently losing the cross.
+    uint32_t    DenoiseLevelCount = 5;    // [-]   R10 #8: a-trous levels dispatched, tier-keyed. Defaults to the
+                                          //       pre-R10 fixed 5 for the same reason: never silently filter less.
     float       Exposure;                   // [-]   ACES tone-map exposure scalar
     float       AmbientStrength;            // [-]   ambient fallback contribution
     bool        GlobalIllumination = true;  // [-]   secondary bounce on/off
@@ -82,6 +84,7 @@ public:
     void AssignCandidatesPerPixel(uint32_t Count) noexcept { if (ActiveConfiguration.CandidatesPerPixel != Count) { ActiveConfiguration.CandidatesPerPixel = Count; ResetAccumulation(); } }
     void AssignExtraCandidateCount  (uint32_t Count) noexcept { if (ActiveConfiguration.ExtraCandidateCount   != Count) { ActiveConfiguration.ExtraCandidateCount   = Count; ResetAccumulation(); } }
     void AssignSpatialTapCount      (uint32_t Count) noexcept { if (ActiveConfiguration.SpatialTapCount       != Count) { ActiveConfiguration.SpatialTapCount       = Count; ResetAccumulation(); } }
+    void AssignDenoiseLevelCount    (uint32_t Count) noexcept { if (ActiveConfiguration.DenoiseLevelCount     != Count) { ActiveConfiguration.DenoiseLevelCount     = Count; ResetAccumulation(); } }
     // A6b ⚠️ The slider writes BOTH the configuration and the exposure integrator's manual value. Keeping two
     //    copies and hoping they agree is exactly how a control ends up doing nothing in one mode.
     void AssignExposure          (float    Value) noexcept
