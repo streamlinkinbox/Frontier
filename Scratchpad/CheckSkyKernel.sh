@@ -68,9 +68,9 @@ echo
 echo "[SkyKernel] the block is declared where it was reserved"
 printf '%s' "$SkyCode" | grep -q 'layout(std140, binding = 21) uniform SkyConstants'
 Report $? "the sky uniform sits at binding 21"
-# 22-24 must stay undeclared: a declared-but-unwritten descriptor is a validation error, not free space.
-! printf '%s' "$Code$SkyCode" | grep -qE 'binding = 2[234]\)'
-Report $? "bindings 22-24 stay reserved rather than declared"
+# 23-24 must stay undeclared: a declared-but-unwritten descriptor is a validation error, not free space.
+! printf '%s' "$Code$SkyCode" | grep -qE 'binding = 2[34]\)'
+Report $? "bindings 23-24 stay reserved rather than declared"
 printf '%s' "$Code" | grep -q 'binding = 25) uniform sampler2D Textures'
 Report $? "the bindless table is still last, as a variable-count binding must be"
 
@@ -95,15 +95,15 @@ H=Engine/DeviceExchange/SwapchainExchange.h
 PackSite=Projects/Project-Zero/Source/CelestialSequence.cpp
 # The layout's descriptorType must equal the shader's declaration: 21 was a COMBINED_IMAGE_SAMPLER hole from
 #    Round 9, and a type mismatch is a validation error rather than a wrong picture.
-grep -q '(B == 21u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER' "$X"
+grep -q '(B == 21u || B == 22u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER' "$X"
 Report $? "binding 21 is laid out as a uniform buffer"
-grep -q 'B == 15u || B == 22u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER' "$X"
-Report $? "binding 21 is no longer typed as a sampler"
+grep -q 'B == 14u || B == 15u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER' "$X"
+Report $? "the sampler typing no longer claims binding 22"
 # The pool is counted explicitly, so moving 21 across types moves two counts: sampler 5 -> 4, UBO 1 -> 2.
-grep -q 'PoolSizes\[2\].descriptorCount = 4u' "$X"
-Report $? "the sampler pool no longer budgets binding 21"
-grep -q 'PoolSizes\[3\].descriptorCount = 2u' "$X"
-Report $? "the UBO pool budgets the live record plus the retired hole"
+grep -q 'PoolSizes\[2\].descriptorCount = 3u' "$X"
+Report $? "the sampler pool no longer budgets binding 22"
+grep -q 'PoolSizes\[3\].descriptorCount = 3u' "$X"
+Report $? "the UBO pool budgets sky, moons and the retired hole"
 # DeviceExchange may not include DisplayPresentation, so the 128 restated there is pinned by hand: if the mirror
 #    ever grows, this is the check that says the host allocation did not follow it.
 grep -q 'kSkyRecordBytes = 128u' "$X"
@@ -129,7 +129,7 @@ echo "[SkyKernel] the compiled kernel agrees with the host layout"
 # The source greps above pin each side separately; this pins them against each other. The kernel is compiled to
 #    real SPIR-V (glslang's WASM build, fetched on demand exactly as CheckShaderCompile does), its binding table
 #    is read back out of the binary, and every declared binding must carry the descriptor type the host layout
-#    assigns it. 22/23/24 must be absent from the shader entirely: the host declares them as holes, and a hole
+#    assigns it. 23/24 must be absent from the shader entirely: the host declares them as holes, and a hole
 #    the shader starts reading is a validation error, not free space.
 SkyCache="${TMPDIR:-/tmp}/frontier-glslang"
 SkyVersion="0.0.15"
@@ -219,9 +219,9 @@ PY
         rm -f "$Spv"
         # The host layout in SwapchainExchange::BringComputePipeline must declare exactly these types. Not derived
         #    from the host source: the point is that two independently written tables agree, so this is written out.
-        Expected="0:STORAGE_IMAGE 1:STORAGE_BUFFER 2:STORAGE_BUFFER 3:STORAGE_IMAGE 4:STORAGE_IMAGE 5:STORAGE_IMAGE 6:STORAGE_BUFFER 7:STORAGE_BUFFER 8:STORAGE_BUFFER 9:STORAGE_BUFFER 10:STORAGE_BUFFER 11:STORAGE_BUFFER 12:STORAGE_BUFFER 13:COMBINED_IMAGE_SAMPLER 14:COMBINED_IMAGE_SAMPLER 15:COMBINED_IMAGE_SAMPLER 16:STORAGE_BUFFER 17:STORAGE_BUFFER 18:STORAGE_IMAGE 19:STORAGE_IMAGE 20:STORAGE_IMAGE 21:UNIFORM_BUFFER 25:COMBINED_IMAGE_SAMPLER"
+        Expected="0:STORAGE_IMAGE 1:STORAGE_BUFFER 2:STORAGE_BUFFER 3:STORAGE_IMAGE 4:STORAGE_IMAGE 5:STORAGE_IMAGE 6:STORAGE_BUFFER 7:STORAGE_BUFFER 8:STORAGE_BUFFER 9:STORAGE_BUFFER 10:STORAGE_BUFFER 11:STORAGE_BUFFER 12:STORAGE_BUFFER 13:COMBINED_IMAGE_SAMPLER 14:COMBINED_IMAGE_SAMPLER 15:COMBINED_IMAGE_SAMPLER 16:STORAGE_BUFFER 17:STORAGE_BUFFER 18:STORAGE_IMAGE 19:STORAGE_IMAGE 20:STORAGE_IMAGE 21:UNIFORM_BUFFER 22:UNIFORM_BUFFER 25:COMBINED_IMAGE_SAMPLER"
         [ "$Actual" = "$Expected" ]
-        Report $? "all 22 declared bindings match the host layout"
+        Report $? "all 23 declared bindings match the host layout"
         if [ "$Actual" != "$Expected" ]; then printf '    shader: %s\n    host:   %s\n' "$Actual" "$Expected"; fi
     fi
 fi
