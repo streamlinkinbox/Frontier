@@ -345,3 +345,25 @@ AgenticInstructions/SKILL-Naming-Formatting.md
 
 That file is the final word on every rule in §2–§4 and §14–§15 above. Where this file and the
 skill file conflict, the skill file wins.
+
+---
+
+## 17. Proof-Image Fidelity (No Fakes)
+
+A proof image must show exactly what the project does — not what the author thinks it does, and never
+anything tuned to match a screenshot. Concretely:
+
+- Every pixel of every proof image is produced by SHIPPING translation units driven through PROJECT
+  wiring (the sequence prepares, ticks and applies; the tier table grants the budgets; the shipping
+  assets decode through the real codecs). A hand-built settings struct that bypasses the project's
+  own assembly is a mock with good rendering, and it is banned.
+- No Mock/Fake/Stub identifiers in any image-emitting proof. `CheckProofFidelity.sh` enforces this
+  and pins the project-wiring of the celestial sheets.
+- Test choices (a placed moon, a chosen hour, a facing camera) are allowed but must be DECLARED in
+  the proof's header next to its FIDELITY CONTRACT, and anything a measurement excludes (moons off
+  a twilight census, stars off a daylight pair) is excluded by the project's own visibility toggles,
+  never by editing the scene.
+- The one standing declared deviation: the proofs render the GI-off raster, the project's own
+  fallback path, because the displayed ReSTIR kernel needs a GPU and the proofs run headless on a
+  CPU. The kernel is held to the same models by the transcription parity proofs and the structural
+  gates instead. An honest declared deviation is not a fake; an undeclared one is.

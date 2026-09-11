@@ -10,6 +10,10 @@
 //     CelestialSequence (register → decode → assign → ApplyTo), at night. The gate reads the numbers — a bright
 //     disc where the moon sits, glow and limb inside sane bands, moonlit ground above the moonless baseline —
 //     and Diagnostics/MoonProof_Night.png is for the eye.
+//
+// FIDELITY CONTRACT (CLAUDE.md: proof images show what the project does). The sheet is rendered by shipping
+//    translation units through project wiring — the sequence is prepared, the atlas decodes through the real
+//    index, nothing is hand-built — with placed moons and a night hour as the only declared test choices.
 #include "GeometricRaster/VisibilityRaster.h"
 #include "GeometricRaster/SceneStructure.h"
 #include "GeometricRaster/GeometryStructure.h"

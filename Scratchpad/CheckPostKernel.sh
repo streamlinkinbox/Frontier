@@ -88,8 +88,16 @@ printf '%s' "$Code" | grep -q 'RainbowAlong(direction, SkySunDirection.xyz, 1.0e
 Report $? "a missed ray earns the full bow"
 printf '%s' "$Code" | grep -q 'RainbowAlong(-viewDir, SkySunDirection.xyz, primaryT)'
 Report $? "a shaded hit earns the bow its own column allows"
-printf '%s' "$Code" | grep -q 'mean += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));'
-Report $? "the resolve adds the flare to the linear mean"
+printf '%s' "$Code" | grep -q 'radiance += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));'
+Report $? "the resolve adds the flare to the sample, not the mean"
+# Regression: adding the flare to the MEAN stored it into the history and added a fresh one every frame, so the
+#    flare grew as (n+1)/2 — the blinding-white frame and the ever-changing size. The mean update must come after.
+! printf '%s' "$Code" | grep -q 'mean += FlareAlong'
+Report $? "the flare is never added to the mean (no accumulation)"
+FlareLine=$(grep -n 'radiance += FlareAlong' "$Kernel" | head -1 | cut -d: -f1); FlareLine=${FlareLine:-0}
+MeanLine=$(grep -n 'vec3 mean  = history.rgb' "$Kernel" | head -1 | cut -d: -f1); MeanLine=${MeanLine:-0}
+[ "$FlareLine" -gt 0 ] && [ "$FlareLine" -lt "$MeanLine" ]
+Report $? "the flare lands before the running-mean update"
 Entries=$(printf '%s' "$PostCode" | grep -c 'vec3 StarAlong(vec3 Direction, float SkyLuminance)')
 [ "$Entries" = "1" ]
 Report $? "PostRecords exposes exactly one StarAlong ($Entries found)"

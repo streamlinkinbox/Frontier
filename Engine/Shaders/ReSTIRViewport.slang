@@ -856,16 +856,18 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth)
         moments = imageLoad(MomentImage, ivec2(pixel)).xy;
     }
 
-    count      = count + 1.0;
-    vec3 mean  = history.rgb + (radiance - history.rgb) / count;
-
-    // The lens's answer to the sun, added to the LINEAR mean before either sink reads it — the denoiser's input
-    //    and the direct presentation agree by construction. Analytic, so no variance is booked for it: the moments
-    //    above already ran on the sample alone.
+    // The lens's answer to the sun, added to the SAMPLE before the running mean reads it — every frame's sample
+    //    carries exactly one flare, so the mean converges to E[radiance] + flare, bounded at any frame count.
+    //    (It used to be added to the MEAN after the update, which stored the flare into the history and added a
+    //    fresh one every frame — the flare grew as (n+1)/2, flooding the frame white within seconds and burying
+    //    the disc. Analytic, so no variance is booked for it: a constant offset leaves E[x²]−E[x]² unchanged.)
     {
         vec2 extent = vec2(float(ViewportWidth), float(ViewportHeight));
-        mean += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));
+        radiance += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));
     }
+
+    count      = count + 1.0;
+    vec3 mean  = history.rgb + (radiance - history.rgb) / count;
 
     // R7: the same incremental mean applied to the first two luminance moments. Variance is E[x²] − E[x]², which is
     //    the noise estimate the à-trous filter divides by; a pixel with many samples reports a small variance and

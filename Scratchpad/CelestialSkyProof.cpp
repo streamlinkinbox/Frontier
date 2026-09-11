@@ -1,23 +1,35 @@
 //============================================================================================================================================
-// 📦 Scratchpad/CelestialSkyProof.cpp — the sky, rendered through the real GI-off raster, at four times of day
+// 📦 Scratchpad/CelestialSkyProof.cpp — the project's own sky, rendered at four times of day
 //============================================================================================================================================
-// Celestial port, step 1. Renders the Cornell box through the real VisibilityRaster with the celestial background
-//    enabled, at times taken from the real CelestialSolver, and writes one sheet per time of day.
+// Celestial port, step 1. Renders the proof ground through the real VisibilityRaster, driven by a live
+//    CelestialSequence (prepare → tick → ApplyTo) exactly as GameExecution drives it, with the shipping star
+//    catalogue and the shipping moon atlas, and writes one sheet per time of day.
 //
-// This is the GI-off half of the dual-path proof. It is deliberately the SHIPPING raster and the SHIPPING solver,
-//    not a reimplementation: the whole point is that the thing which renders is the thing which is checked.
+// FIDELITY CONTRACT (CLAUDE.md: proof images show what the project does). Every pixel here is produced by
+//    SHIPPING translation units fed through PROJECT wiring: the sequence is prepared, not hand-built, so the
+//    22.0 sun intensity, the tier budgets (via CelestialTier::BudgetFor), the star catalogue, the moon roster
+//    and the twilight settings are the project's own — there is no settings struct in this file that bypasses
+//    ApplyTo. The one deliberate deviation is declared, not hidden: the project DISPLAYS the ReSTIR kernel's
+//    image, which needs a GPU, and this proof renders the GI-off raster, the project's own fallback path, which
+//    runs on a CPU. The kernel is held to the same models by the transcription parity proofs and the structural
+//    gates instead (SkyKernelParityProof, MoonRenderProof §1, CheckPostKernel.sh).
 //
 // The gate reads the numbers below, not the pictures — the sheets are for the eye, the assertions are the proof:
 //    • noon must be brighter than dusk, and dusk brighter than night (a sky that does not track the sun is the
 //      failure mode a screenshot hides),
-//    • the noon zenith must be blue-dominant and the sunset horizon red-dominant (the Rayleigh signature),
-//    • night must be essentially black rather than the old flat blue constant.
+//    • the noon zenith must be blue-dominant (the Rayleigh signature, asserted on linear radiance),
+//    • night must be essentially black rather than the old flat blue constant,
+//    • the night sheet must carry the star field (on/off census), while the noon sheet must not (the daylight
+//      gate, proved end to end rather than trusted).
 
 #include "GeometricRaster/VisibilityRaster.h"
 #include "GeometricRaster/SceneStructure.h"
 #include "GeometricRaster/GeometryStructure.h"
 #include "DisplayPresentation/CelestialSolver.h"
+#include "DisplayPresentation/CelestialTier.h"
 #include "DisplayPresentation/FidelityClassifier.h"
+#include "DisplayPresentation/MoonConstantRecord.h"
+#include "Projects/Project-Zero/Source/CelestialSequence.h"
 #include "PngWriteShim.h"
 
 #include <cmath>
@@ -28,6 +40,7 @@
 #include <deque>
 
 using namespace Frontier;
+using namespace Frontier::ProjectZero;
 
 namespace {
 
@@ -153,9 +166,42 @@ int main()
     std::deque<GeometryStructure> Owned;
     BuildScene(Level, Owned);
 
-    // Tier budgets come from the ladder, never from a literal here.
+    // Tier budgets come from the ladder, mapped through the project's own tier table — never from a literal here.
     FidelityClassifier Classifier;
     const FidelityCriteria Criteria = Classifier.ConstructCriteria(FidelityCategory::StandardFidelity);
+    const CelestialBudget Budget = CelestialTier::BudgetFor(Criteria);
+
+    // The project's own sky: prepared, not hand-built. Prepare loads the shipping catalogue, so the night sheet
+    //    below carries the same stars the app shows; the atlas decodes through the real index in GameExecution
+    //    order, so the moons ride with their shipping albedos; every entity is shown, which is the project's
+    //    default (EditorInstance::Visible is true until the outliner hides it).
+    CelestialSequence Sky;
+    Sky.Prepare();
+    {
+        char StarDetail[96];
+        std::snprintf(StarDetail, sizeof(StarDetail), "%u stars catalogued", Sky.Stars().QuerySourceCount());
+        Require("Prepare loads the shipping star catalogue", Sky.Stars().QuerySourceCount() > 0u, StarDetail);
+    }
+    TextureIndex Textures;
+    uint32_t AtlasSlots[kMoonAtlasCount];
+    for (uint32_t M = 0u; M < kMoonAtlasCount; ++M)
+    {
+        char Path[128];
+        std::snprintf(Path, sizeof(Path), "%s%s", kMoonTextureDirectory, kMoonAtlas[M].File);
+        AtlasSlots[M] = Textures.RegisterPath(Path, /*Linear=*/false);
+    }
+    std::vector<std::string> AtlasReport;
+    const uint32_t AtlasFailures = Textures.Decode(0u, &AtlasReport);
+    {
+        char AssetDetail[128];
+        std::snprintf(AssetDetail, sizeof(AssetDetail), "decoded %u textures, %u failures",
+                      Textures.QueryCount(), AtlasFailures);
+        Require("all six moon albedos decode", AtlasFailures == 0u && Textures.QueryCount() == 6u, AssetDetail);
+    }
+    Sky.AssignMoonAtlas(AtlasSlots, Textures);
+    for (uint32_t E = 0u; E < kCelestialEntityCount; ++E) Sky.Shown[E] = true;
+
+    const float TickOrigin[3] = { 0.0f, 0.0f, 2.0f };
 
     struct Moment { const char* Name; float Hour; };
     const Moment Moments[] = {
@@ -170,31 +216,24 @@ int main()
     std::printf("  %-7s %8s %9s   %-22s %-22s\n", "moment", "sun el", "mean lum", "zenith RGB", "horizon RGB");
 
     Statistics Stats[4];
+    const float Eye[3]     = { 0.0f, -6.0f, 1.7f };
+    const float Forward[3] = { 0.0f,  1.0f, 0.0f };
+    const float Right[3]   = { 1.0f,  0.0f, 0.0f };
+    const float Up[3]      = { 0.0f,  0.0f, 1.0f };
     for (int M = 0; M < 4; ++M)
     {
-        CelestialObservation At{};
-        At.Year = 2026; At.Month = 9; At.Day = 10;
-        At.LocalHours = Moments[M].Hour; At.UtcOffset = 2.0f;
-        At.Latitude = -26.19f; At.Longitude = 28.32f;
-        const CelestialFrame Frame = CelestialSolver::Solve(At);
-
-        VisibilityRaster::CelestialSettings Sky{};
-        Sky.Enabled = true;
-        Sky.CameraHeight = 2.0f;
-        Sky.SampleCount = Criteria.AtmosphereSampleCount;
-        Sky.LightSampleCount = Criteria.AtmosphereLightSampleCount;
-        for (int C = 0; C < 3; ++C) Sky.Light.Direction[C] = Frame.Sun.Direction[C];
-        Sky.Light.Intensity = 22.0f;
+        // The clock is the only input; the sun, the stars' rotation, the twilight and the moons all come out of
+        //    the tick, and the raster is fed by ApplyTo — the GameExecution order, with nothing hand-set.
+        Sky.Observation.Year = 2026; Sky.Observation.Month = 9; Sky.Observation.Day = 10;
+        Sky.Observation.LocalHours = Moments[M].Hour; Sky.Observation.UtcOffset = 2.0f;
+        Sky.Observation.Latitude = -26.19f; Sky.Observation.Longitude = 28.32f;
+        Sky.Tick(0.0f, TickOrigin, 0.0f);
 
         VisibilityRaster Raster;
-        Raster.AssignCelestial(Sky);
+        Sky.ApplyTo(Raster, Budget);
 
         std::vector<unsigned char> Sheet(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
         double MeanLuminance = 0.0;
-        const float Eye[3]     = { 0.0f, -6.0f, 1.7f };
-        const float Forward[3] = { 0.0f,  1.0f, 0.0f };
-        const float Right[3]   = { 1.0f,  0.0f, 0.0f };
-        const float Up[3]      = { 0.0f,  0.0f, 1.0f };
 
         if (!Raster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
                            kWidth, kHeight, Sheet.data(), MeanLuminance))
@@ -205,7 +244,7 @@ int main()
 
         Stats[M] = Measure(Sheet);
         std::printf("  %-7s %+7.2f %9.2f   %5.0f %5.0f %5.0f      %5.0f %5.0f %5.0f\n",
-                    Moments[M].Name, static_cast<double>(Frame.Sun.Elevation),
+                    Moments[M].Name, static_cast<double>(Sky.Frame().Sun.Elevation),
                     (Stats[M].Mean[0] + Stats[M].Mean[1] + Stats[M].Mean[2]) / 3.0,
                     Stats[M].ZenithRgb[0], Stats[M].ZenithRgb[1], Stats[M].ZenithRgb[2],
                     Stats[M].HorizonRgb[0], Stats[M].HorizonRgb[1], Stats[M].HorizonRgb[2]);
@@ -223,9 +262,66 @@ int main()
         std::printf("           wrote %s\n", Path.c_str());
     }
 
+    // ── The star field reaches the image (and only at night) ─────────────────────────────────────────────────
+    // The Night sheet above rendered with stars shown; re-render it hidden and count what changes. Then the same
+    //    pair at noon, where the daylight gate must hold every pixel equal. This is the end-to-end form of the
+    //    question "are the stars showing as they should": present on a dark sky, absent on a bright one.
+    {
+        auto Census = [&](float Hour, bool& Rendered) -> uint32_t
+        {
+            Rendered = false;
+            Sky.Observation.LocalHours = Hour;
+            Sky.Tick(0.0f, TickOrigin, 0.0f);
+            std::vector<unsigned char> On(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+            std::vector<unsigned char> Off(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+            double MeanLuminance = 0.0;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
+            {
+                VisibilityRaster Raster;
+                Sky.ApplyTo(Raster, Budget);
+                if (!Raster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
+                                   kWidth, kHeight, On.data(), MeanLuminance)) return 0u;
+            }
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+            {
+                VisibilityRaster Raster;
+                Sky.ApplyTo(Raster, Budget);
+                if (!Raster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
+                                   kWidth, kHeight, Off.data(), MeanLuminance)) return 0u;
+            }
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
+            Rendered = true;
+            uint32_t Changed = 0u;
+            for (size_t I = 0u; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+            {
+                int D = 0;
+                for (int C = 0; C < 3; ++C)
+                {
+                    const int A = On[I * 4u + static_cast<size_t>(C)];
+                    const int B = Off[I * 4u + static_cast<size_t>(C)];
+                    if (A > B + D) D = A - B;
+                }
+                if (D > 12) ++Changed;
+            }
+            return Changed;
+        };
+        bool NightRendered = false, NoonRendered = false;
+        const uint32_t NightStars = Census(22.0f, NightRendered);
+        const uint32_t NoonStars = Census(12.0f, NoonRendered);
+        char CensusDetail[128];
+        std::snprintf(CensusDetail, sizeof(CensusDetail), "%u pixels differ at night, %u at noon",
+                      NightStars, NoonStars);
+        std::printf("\n  star census: %s\n", CensusDetail);
+        Require("both census pairs render", NightRendered && NoonRendered, "VisibilityRaster.Render");
+        Require("stars reach the night image", NightStars > 20u && NightStars < 30000u, CensusDetail);
+        Require("daylight gates every star out", NoonStars == 0u, CensusDetail);
+    }
+
     // ── The dawn transition ────────────────────────────────────────────────────────────────────────────────────
     // Sampled by sun elevation, not by the clock: every twilight term is keyed to elevation, and at this latitude
-    //    the interesting range (-16 to +2 deg) is only about 70 minutes wide.
+    //    the interesting range (-16 to +2 deg) is only about 70 minutes wide. The hours below are SOLVED, not
+    //    chosen — CelestialSolver is asked when each elevation occurs, and the sequence ticks to that hour — so
+    //    the sun stands at its true dawn azimuth and the camera faces it, the way a photographer would.
     std::printf("\n  dawn transition (sampled by sun elevation)\n");
     std::printf("  %-22s %8s %9s   %-22s %s\n", "stage", "sun el", "mean lum", "horizon RGB", "line sharpness");
 
@@ -245,28 +341,71 @@ int main()
     double LinePeak = 0.0; int LinePeakStage = -1;
     for (int K = 0; K < 8; ++K)
     {
-        VisibilityRaster::CelestialSettings Sky{};
-        Sky.Enabled = true;
-        Sky.CameraHeight = 2.0f;
-        Sky.SampleCount = Criteria.AtmosphereSampleCount;
-        Sky.LightSampleCount = Criteria.AtmosphereLightSampleCount;
-        // Sun due north (the scene faces +Y), at the requested elevation.
-        const float E = Stages[K].Elevation * 3.14159265f / 180.0f;
-        Sky.Light.Direction[0] = 0.0f;
-        Sky.Light.Direction[1] = std::cos(E);
-        Sky.Light.Direction[2] = std::sin(E);
-        Sky.Light.Intensity = 22.0f;
+        // When does the sun stand at the requested elevation? Scan the morning with the shipping solver; the
+        //    ephemeris is smooth, so a coarse pass plus a fine pass lands within a few hundredths of a degree.
+        float StageHour = 6.0f;
+        {
+            CelestialObservation Probe{};
+            Probe.Year = 2026; Probe.Month = 9; Probe.Day = 10;
+            Probe.UtcOffset = 2.0f; Probe.Latitude = -26.19f; Probe.Longitude = 28.32f;
+            float Best = 1e9f;
+            for (float H = 3.0f; H <= 9.0f; H += 0.01f)
+            {
+                Probe.LocalHours = H;
+                const float Residual = std::fabs(CelestialSolver::Solve(Probe).Sun.Elevation - Stages[K].Elevation);
+                if (Residual < Best) { Best = Residual; StageHour = H; }
+            }
+            for (float H = StageHour - 0.02f; H <= StageHour + 0.02f; H += 0.001f)
+            {
+                Probe.LocalHours = H;
+                const float Residual = std::fabs(CelestialSolver::Solve(Probe).Sun.Elevation - Stages[K].Elevation);
+                if (Residual < Best) { Best = Residual; StageHour = H; }
+            }
+            if (Best > 0.15f)
+            {
+                std::printf("  stage %d: no hour reaches %+.1f deg (best residual %.2f)\n",
+                            K, static_cast<double>(Stages[K].Elevation), static_cast<double>(Best));
+                return 2;
+            }
+        }
 
+        Sky.Observation.Year = 2026; Sky.Observation.Month = 9; Sky.Observation.Day = 10;
+        Sky.Observation.LocalHours = StageHour; Sky.Observation.UtcOffset = 2.0f;
+        Sky.Observation.Latitude = -26.19f; Sky.Observation.Longitude = 28.32f;
+        Sky.Tick(0.0f, TickOrigin, 0.0f);
+
+        // Face the solved sun: its horizontal direction is the camera forward, and Right = Forward x WorldUp is
+        //    the project's camera convention (see RayGeneration.slang). The dawn then sits frame-centre, which is
+        //    what keeps the hairline measurement below pointed at the twilight instead of at empty sky.
+        float FaceForward[3] = { 0.0f, 1.0f, 0.0f };
+        {
+            const float Hx = Sky.Frame().Sun.Direction[0], Hy = Sky.Frame().Sun.Direction[1];
+            const float Hl = std::sqrt(Hx * Hx + Hy * Hy);
+            if (Hl > 1e-6f) { FaceForward[0] = Hx / Hl; FaceForward[1] = Hy / Hl; FaceForward[2] = 0.0f; }
+        }
+        const float FaceRight[3] = { FaceForward[1], -FaceForward[0], 0.0f };
+        const float FaceUp[3] = { 0.0f, 0.0f, 1.0f };
+        constexpr float kHalfFov = 55.0f * 3.14159265f / 180.0f;
+
+        // Two renders: the sheet keeps the project's moons and stars (it is the project's dawn), while the line
+        //    is measured on a bodies-off render — the hairline is atmosphere, and a moon limb crossing the band
+        //    would otherwise be measured as twilight. Same sky, same hour; only the outliner differs.
         VisibilityRaster Raster;
-        Raster.AssignCelestial(Sky);
+        Sky.ApplyTo(Raster, Budget);
         std::vector<unsigned char> Sheet(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
         double MeanLuminance = 0.0;
-        const float Eye[3]     = { 0.0f, -6.0f, 1.7f };
-        const float Forward[3] = { 0.0f,  1.0f, 0.0f };
-        const float Right[3]   = { 1.0f,  0.0f, 0.0f };
-        const float Up[3]      = { 0.0f,  0.0f, 1.0f };
-        if (!Raster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
+        if (!Raster.Render(Level, Eye, FaceForward, FaceRight, FaceUp, kHalfFov,
                            kWidth, kHeight, Sheet.data(), MeanLuminance)) return 2;
+
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+        VisibilityRaster BareRaster;
+        Sky.ApplyTo(BareRaster, Budget);
+        std::vector<unsigned char> Bare(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        if (!BareRaster.Render(Level, Eye, FaceForward, FaceRight, FaceUp, kHalfFov,
+                               kWidth, kHeight, Bare.data(), MeanLuminance)) return 2;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = true;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
 
         const Statistics St = Measure(Sheet);
 
@@ -279,7 +418,7 @@ int main()
         {
             double Row = 0.0; uint32_t N = 0;
             for (uint32_t X = kWidth * 3u / 8u; X < kWidth * 5u / 8u; ++X, ++N)
-                for (int C = 0; C < 3; ++C) Row += Sheet[(static_cast<size_t>(Y) * kWidth + X) * 4u + static_cast<size_t>(C)];
+                for (int C = 0; C < 3; ++C) Row += Bare[(static_cast<size_t>(Y) * kWidth + X) * 4u + static_cast<size_t>(C)];
             Rows[Y] = N ? Row / (N * 3.0) : 0.0;
         }
         double BrightestRow = 0.0;
@@ -291,7 +430,7 @@ int main()
         if (BrightestRow > LinePeak) { LinePeak = BrightestRow; LinePeakStage = K; }
 
         std::printf("  %-22s %+7.1f %9.2f   %5.0f %5.0f %5.0f      %7.1f\n",
-                    Stages[K].Name, static_cast<double>(Stages[K].Elevation),
+                    Stages[K].Name, static_cast<double>(Sky.Frame().Sun.Elevation),
                     (St.Mean[0] + St.Mean[1] + St.Mean[2]) / 3.0,
                     St.HorizonRgb[0], St.HorizonRgb[1], St.HorizonRgb[2], BrightestRow);
 

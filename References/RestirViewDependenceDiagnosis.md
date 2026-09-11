@@ -346,3 +346,70 @@ panels), `CelestialSolver.cpp` (`Solve`/`AirMass` from `CelestialSequence.obj`),
 `ShadeTick.cpp` (referenced by `EditorHost.h`) and `StarCatalogueIndex.cpp` (`Catalogue.Load`
 from `CelestialSequence.cpp:283`). All four are proven-required and added in this commit;
 matches your snippet's placement.
+
+## §12. The flare was accumulating — the white sun, the missing disc, the breathing size (2026‑09‑11)
+
+**Reported:** the sun renders blinding white with no visible disc, and the lens flare keeps changing size.
+Screenshots were linked but never arrived in the workspace (`/home/user/uploads` absent), so this proceeds
+from the code — which confessed immediately.
+
+**Root cause, one line:** the resolve added the flare to the running MEAN, after the temporal update, and
+then stored that mean into the history:
+
+```glsl
+vec3 mean = ...; mean = mix(mean, radiance, 1/n);   // the temporal update — correct
+...
+mean += FlareAlong(...);                             // ← the bug: fresh flare on top of the update…
+StoreHistory(pixel, vec4(mean, ...));                // …and then stored, so next frame's mean starts with it
+```
+
+A constant per-frame addition `c` after an incremental-mean update does not converge: `μₙ = μₙ₋₁ + (c − δ)/n
++ c` grows as **c·(n+1)/2** — the flare doubled every two frames. That is all three symptoms from one line:
+the white flood (any flare drowns the disc in seconds), the instability (brighter reads as bigger, and every
+reset restarts the climb, so the size breathes), and the buried disc (the 0.53° Duke core sits under an
+ever-growing white sheet). The moon and the stars were buried by the same flood, not broken themselves.
+
+**Fix:** the flare is a same-frame light term — scatter in the lens over this frame's photons — so it joins
+the SAMPLE before the update, where the sky, the bow and the stars already stand:
+
+```glsl
+radiance += FlareAlong(...);   // before the running-mean update
+```
+
+The temporal mean then converges to sky + flare honestly, the variance accounting is untouched
+(`Var(X+c) = Var(X)`), and the disc, the panel tuning and the Duke transcriptions needed no changes at all.
+`CheckPostKernel.sh` pins the fix three ways: the flare lands on `radiance`, `mean += FlareAlong` never
+returns, and the flare line precedes the mean update.
+
+**Checked while in there, and cleared:**
+
+1. **Miss-direction reconstruction** — the kernel rebuilds the primary direction from pixel centres as
+   `Forward + Right·(ndc.x·tanHalf·aspect) − Up·(ndc.y·tanHalf)`, which inverts `RayGeneration.slang`
+   exactly (`screenX`, `(1−2v)` Vulkan row, same aspect side). The disc, the moon and the star field all
+   stand where the lens points; nothing is misplaced.
+2. **Flare sun-UV** — `PackPostRecord`'s `SunU/SunV` inverts the same mapping (verified term by term), and
+   `FlareAlong` works in aspect-corrected UV about the frame centre, so the ghosts march the sun–centre
+   line at fixed radii. The flare MODEL has no view-dependent size term: ghosts fixed per index, halo at
+   the panel radius, streak/starburst/bloom fixed exponentials. The breathing was the accumulation alone.
+3. **Stars** — proved end to end, not trusted: the night sheet carries 598 star pixels the stars-off
+   re-render lacks, while the noon pair differs by exactly 0 pixels (the 0.09 daylight gate holds). The
+   night sheet in `Diagnostics/` shows the field the catalogue promises.
+4. **Moon** — `MoonRenderProof` still green (disc centre moon-bright, sane pixel band, moonlit ground above
+   baseline); the wire-up was never the problem, the flood was.
+
+**Proof fidelity (§17).** The report also questioned whether proof images show what the project does. Audit
+verdict: every image-emitting proof already renders through shipping translation units — real raster, real
+solver, real codecs, zero mock identifiers — with exactly one bypass: `CelestialSkyProof` hand-built its
+`CelestialSettings`, so its sheets showed a sky without stars, moons or sequence twilight. That bypass is
+closed: the moments and the dawn stages now run `Prepare → Tick → ApplyTo` through
+`CelestialTier::BudgetFor`, with the shipping catalogue (8 920 stars, asserted) and the shipping atlas, and
+the dawn hours are SOLVED per elevation with the camera facing the true dawn azimuth. The dawn hairline now
+peaks at 75.0 sharpness in the same −2° stage (the project's twilight, not struct defaults). The one
+deviation that cannot close headless is declared, not hidden: the sheets render the GI-off raster (the
+project's own fallback path) because the displayed kernel needs a GPU; the kernel is held to the same
+models by the parity proofs and the gates. `CheckProofFidelity.sh` (10 pins) plus CLAUDE.md §17 keep it so.
+
+**Expect the viewport to change a lot, and all of it is the fix:** the white flood drains over the first
+second after this ships (the history must wash out), the disc reappears at its tuned size, the flare holds
+still, and night brings the star field. Found but untouched: the disc's 12× literal, the glTF punctual
+lights (still stored-only), the d² floor epsilon.
