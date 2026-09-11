@@ -1052,17 +1052,17 @@ void OutlinerPanel::RecordFolderRow(EditorInstance* Instances, uint32_t Instance
 {
     EditorInstance& Row = Instances[Index];
     const float RowWidth = ImGui::GetContentRegionAvail().x;
-    ImGui::Dummy(ImVec2(RowWidth, 32.0f));
+    ImGui::Dummy(ImVec2(RowWidth, 28.0f));
     const ImVec2 PadMin = ImGui::GetItemRectMin();
     const ImVec2 PadMax = ImGui::GetItemRectMax();
     const ImVec2 Min(PadMin.x, PadMin.y + 4.0f);
     const ImVec2 Max(PadMax.x, PadMax.y);
 
     ImGui::SetCursorScreenPos(Min);
-    ImGui::InvisibleButton("##head", ImVec2(RowWidth, 28.0f));
+    ImGui::InvisibleButton("##head", ImVec2(RowWidth, 24.0f));
     const bool HeadHot = ImGui::IsItemHovered();
     ImGui::SetCursorScreenPos(Min);
-    ImGui::InvisibleButton("##caret", ImVec2(24.0f, 28.0f));
+    ImGui::InvisibleButton("##caret", ImVec2(24.0f, 24.0f));
     const bool CaretHot = ImGui::IsItemHovered();
 
     const bool RowHot   = HeadHot || CaretHot;
@@ -1080,14 +1080,14 @@ void OutlinerPanel::RecordFolderRow(EditorInstance* Instances, uint32_t Instance
     {
         BX -= 28.0f;
         ImGui::SetCursorScreenPos(ImVec2(BX, Min.y));
-        ImGui::InvisibleButton("##eye", ImVec2(28.0f, 28.0f));
+        ImGui::InvisibleButton("##eye", ImVec2(28.0f, 24.0f));
         EyeHot = ImGui::IsItemHovered();
         EyeHit = EyeHot && ImGui::IsMouseClicked(0);
     }
     if (SoloShow)
     {
         BX -= 2.0f + 22.0f;
-        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 3.0f));
+        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 1.0f));
         ImGui::InvisibleButton("##solo", ImVec2(22.0f, 22.0f));
         SoloHot = ImGui::IsItemHovered();
         SoloHit = SoloHot && ImGui::IsMouseClicked(0);
@@ -1095,7 +1095,7 @@ void OutlinerPanel::RecordFolderRow(EditorInstance* Instances, uint32_t Instance
     if (LockShow)
     {
         BX -= 2.0f + 22.0f;
-        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 3.0f));
+        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 1.0f));
         ImGui::InvisibleButton("##lock", ImVec2(22.0f, 22.0f));
         LockHot = ImGui::IsItemHovered();
         LockHit = LockHot && ImGui::IsMouseClicked(0);
@@ -1139,7 +1139,7 @@ void OutlinerPanel::RecordFolderRow(EditorInstance* Instances, uint32_t Instance
     ImDrawList* Draw  = ImGui::GetWindowDrawList();
     ImFont*     Small = Controls_->QuerySmall();
     ImFont*     Mono  = Controls_->QueryMonoSmall();
-    const float Cy = Min.y + 14.0f;
+    const float Cy = Min.y + 12.0f;
     // SolidArc draws no picked header; the label lifts one step so the pick still reads.
     const ImU32 Dim = !Row.Visible ? ControlPanel::FadeTint(kT3, 0.45f) : (Seated ? kT2 : kT3);
 
@@ -1235,14 +1235,14 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
 {
     EditorInstance& Row = Instances[Index];
     const float RowWidth = ImGui::GetContentRegionAvail().x;
-    ImGui::Dummy(ImVec2(RowWidth, 38.0f));
+    ImGui::Dummy(ImVec2(RowWidth, 34.0f));
     const ImVec2 Min = ImGui::GetItemRectMin();
     const ImVec2 Max = ImGui::GetItemRectMax();
-    const float Cy = Min.y + 19.0f;
+    const float Cy = Min.y + 17.0f;
     const float Indent = Row.Depth >= 2u ? static_cast<float>(Row.Depth - 1u) * 16.0f : 0.0f;
 
     ImGui::SetCursorScreenPos(Min);
-    ImGui::InvisibleButton("##row", ImVec2(RowWidth, 38.0f));
+    ImGui::InvisibleButton("##row", ImVec2(RowWidth, 34.0f));
     const bool RowHot = ImGui::IsItemHovered();
 
     const bool EyeShow  = RowHot || !Row.Visible;
@@ -1259,14 +1259,14 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
     {
         BX -= 28.0f;
         ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 5.0f));
-        ImGui::InvisibleButton("##eye", ImVec2(28.0f, 28.0f));
+        ImGui::InvisibleButton("##eye", ImVec2(28.0f, 24.0f));
         EyeHot = ImGui::IsItemHovered();
         EyeHit = EyeHot && ImGui::IsMouseClicked(0);
     }
     if (SoloShow)
     {
         BX -= 2.0f + 22.0f;
-        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 8.0f));
+        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 6.0f));
         ImGui::InvisibleButton("##solo", ImVec2(22.0f, 22.0f));
         SoloHot = ImGui::IsItemHovered();
         SoloHit = SoloHot && ImGui::IsMouseClicked(0);
@@ -1274,7 +1274,7 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
     if (LockShow)
     {
         BX -= 2.0f + 22.0f;
-        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 8.0f));
+        ImGui::SetCursorScreenPos(ImVec2(BX, Min.y + 6.0f));
         ImGui::InvisibleButton("##lock", ImVec2(22.0f, 22.0f));
         LockHot = ImGui::IsItemHovered();
         LockHit = LockHot && ImGui::IsMouseClicked(0);
@@ -1335,19 +1335,19 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
     }
 
     const ImU32 Tint = RowTint(Row);
-    const ImVec2 ChipMin(Min.x + 7.0f + Indent, Cy - 13.0f);
-    const ImVec2 ChipMax(ChipMin.x + 26.0f, ChipMin.y + 26.0f);
+    const ImVec2 ChipMin(Min.x + 7.0f + Indent, Cy - 11.0f);
+    const ImVec2 ChipMax(ChipMin.x + 22.0f, ChipMin.y + 26.0f);
     Draw->AddRectFilled(ChipMin, ChipMax, ControlPanel::FadeTint(WithAlpha(Tint, 36), DimFade), 8.0f);
     DrawChipGlyph(Draw, ImVec2(ChipMin.x + 13.0f, Cy), ControlPanel::FadeTint(Tint, DimFade), Row.Category);
 
-    const float TextX = ChipMin.x + 34.0f;
+    const float TextX = ChipMin.x + 30.0f;
     const float ClipR = (BX - 8.0f > TextX + 12.0f) ? (BX - 8.0f) : (TextX + 12.0f);
     const ImU32 NameTint = ControlPanel::FadeTint((Seated || AnyHot) ? kText : kT2, DimFade);
 
     if (Renaming_ && RenameIndex_ == Index)
     {
         const float EditW = ClipR - TextX;
-        ImGui::SetCursorScreenPos(ImVec2(TextX, Min.y + 8.0f));
+        ImGui::SetCursorScreenPos(ImVec2(TextX, Min.y + 6.0f));
         ImGui::PushItemWidth(EditW > 40.0f ? EditW : 40.0f);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_Border, RenameFocus_
@@ -1384,7 +1384,7 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
     {
         ImGui::PushFont(Ui);
         const ImVec2 NameGlyph = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f, Row.Label);
-        Draw->AddText(ImVec2(TextX, Min.y + 5.0f), NameTint, Row.Label);
+        Draw->AddText(ImVec2(TextX, Min.y + 2.0f), NameTint, Row.Label);
         ImGui::PopFont();
         if (QueryText_[0] != '\0')
         {
@@ -1396,8 +1396,8 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
                 const float HitW = Ui->CalcTextSizeA(Ui->LegacySize, FLT_MAX, 0.0f,
                     Hit, Hit + std::strlen(QueryText_)).x;
                 ImGui::PopFont();
-                Draw->AddRectFilled(ImVec2(TextX + PreW, Min.y + 5.0f),
-                    ImVec2(TextX + PreW + HitW, Min.y + 5.0f + NameGlyph.y),
+                Draw->AddRectFilled(ImVec2(TextX + PreW, Min.y + 2.0f),
+                    ImVec2(TextX + PreW + HitW, Min.y + 2.0f + NameGlyph.y),
                     ControlPanel::FadeTint(kWash, DimFade), 2.0f);
             }
         }
@@ -1409,7 +1409,7 @@ void OutlinerPanel::RecordLeafRow(EditorInstance* Instances, uint32_t InstanceCo
         ImGui::PushFont(Mono);
         const ImVec2 MetaGlyph = Mono->CalcTextSizeA(Mono->LegacySize, FLT_MAX, 0.0f, Meta);
         ImGui::PushClipRect(ImVec2(TextX, Min.y), ImVec2(ClipR, Max.y), true);
-        Draw->AddText(ImVec2(TextX, Min.y + 7.0f + NameGlyph.y),
+        Draw->AddText(ImVec2(TextX, Min.y + 3.0f + NameGlyph.y),
             ControlPanel::FadeTint(kT3, DimFade), Meta);
         ImGui::PopClipRect();
         ImGui::PopFont();
