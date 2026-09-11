@@ -476,10 +476,12 @@ uint32_t CelestialSequence::AppendRoster(EditorInstance* Instances, uint32_t Wri
         //    filter chips are built on these, so the sun lands under the lighting filter where people look.
         Row.Category = (Entity == CelestialEntity::Sun) ? EditorInstanceCategory::Light
                                                         : EditorInstanceCategory::Geometry;
-        // Dynamic marks what the tick moves, which is exactly what the DYN badge is for.
+        // Dynamic marks what the tick moves, which is exactly what the DYN badge is for. The moons qualify
+        //    through slot one's linked Luna: the slot's own values stand still, but the resolved direction
+        //    tracks the solved frame every tick, the same way the sun's does.
         Row.Dynamic = Entity == CelestialEntity::Sun || Entity == CelestialEntity::CloudLayer
                    || Entity == CelestialEntity::Wind || Entity == CelestialEntity::Precipitation
-                   || Entity == CelestialEntity::Stars;
+                   || Entity == CelestialEntity::Stars || Entity == CelestialEntity::Moons;
         switch (Entity)
         {
         case CelestialEntity::Atmosphere:     CopyTint(Row.Tint, kTintAtmosphere); break;

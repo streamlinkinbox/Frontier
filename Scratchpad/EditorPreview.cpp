@@ -982,5 +982,49 @@ int main()
     Park();
     if (!WriteSheet("Diagnostics/EditorPreviewTop.png"))
         return 1;
+
+    // Last of all, so its frames perturb no capture above: the Moons row proves a celestial sheet follows
+    //    the pick — five groups (Solved plus one per roster slot) through the real inspector — and an edit
+    //    on the rendered sheet lands back on the sequence, the BuildSheet → panel → ApplySheet round-trip
+    //    GameExecution runs every tick the row stays picked.
+    uint32_t MoonsRow = kNoEditorInstance;
+    for (uint32_t R = 0u; R < RowCount; ++R)
+        if (std::strcmp(Rows[R].Label, "Moons") == 0) { MoonsRow = R; break; }
+    if (MoonsRow == kNoEditorInstance)
+    {
+        std::printf("[Preview] the roster carries no Moons row\n");
+        return 1;
+    }
+    Editor.PickInstance(MoonsRow);
+    PreviewSky.BuildSheet(Frontier::ProjectZero::CelestialEntity::Moons, PickedSheet);
+    if (PickedSheet.GroupCount != 5u)
+    {
+        std::printf("[Preview] the picked Moons built %u groups\n", PickedSheet.GroupCount);
+        return 1;
+    }
+    Idle(10);
+    Park();
+    if (!WriteSheet("Diagnostics/EditorPreviewMoons.png"))
+        return 1;
+    Frontier::EditorProperty* BrightProp = nullptr;
+    for (uint32_t G = 0u; G < PickedSheet.GroupCount; ++G)
+        for (uint32_t P = 0u; P < PickedSheet.Groups[G].PropertyCount; ++P)
+        {
+            Frontier::EditorProperty& Prop = PickedSheet.Groups[G].Properties[P];
+            if (std::strcmp(Prop.Label, "M1 Bright") == 0) { Prop.Figure = 4.2f; BrightProp = &Prop; }
+        }
+    if (BrightProp == nullptr)
+    {
+        std::printf("[Preview] the moons sheet carries no M1 Bright\n");
+        return 1;
+    }
+    PreviewSky.ApplySheet(Frontier::ProjectZero::CelestialEntity::Moons, PickedSheet);
+    if (PreviewSky.MoonSlots[0].Bright != 4.2f)
+    {
+        std::printf("[Preview] the moons edit never landed\n");
+        return 1;
+    }
+    BrightProp->Figure = 1.6f;
+    PreviewSky.ApplySheet(Frontier::ProjectZero::CelestialEntity::Moons, PickedSheet);
     return 0;
 }
