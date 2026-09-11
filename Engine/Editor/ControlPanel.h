@@ -16,13 +16,17 @@ namespace Frontier {
 class ControlPanel final
 {
 public:
-    // The four faces the host loads. Until assigned, every widget falls back to the current font.
-    void AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall) noexcept;
+    // The six faces the host loads. Until assigned, every widget falls back to the current font. Title and
+    //    Display are the outliner's SolidArc faces: the panel title and the census numerals.
+    void AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall,
+                     ImFont* Title, ImFont* Display) noexcept;
 
     [[nodiscard]] ImFont* QueryUi() const noexcept;
     [[nodiscard]] ImFont* QuerySmall() const noexcept;
     [[nodiscard]] ImFont* QueryMono() const noexcept;
     [[nodiscard]] ImFont* QueryMonoSmall() const noexcept;
+    [[nodiscard]] ImFont* QueryTitle() const noexcept;
+    [[nodiscard]] ImFont* QueryDisplay() const noexcept;
 
     // The reference slider: a 92-pixel split pill beside a track pill as tall as the knob circle (26 over
     //    24). Thin drops the three figures to 18 over 10 over 18; the pill hides for the footer clock.
@@ -64,6 +68,8 @@ private:
     ImFont*  Small_     = nullptr;
     ImFont*  Mono_      = nullptr;
     ImFont*  MonoSmall_ = nullptr;
+    ImFont*  Title_     = nullptr;
+    ImFont*  Display_   = nullptr;
 
     char     TypeIn_[32]   = {};
     ImGuiID  TypeInId_     = 0u;

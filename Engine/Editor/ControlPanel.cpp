@@ -68,12 +68,15 @@ bool NearTint(const float A[3], const float B[3]) noexcept
 //                                                           FACES
 //------------------------------------------------------------------------------------------------------------------------
 
-void ControlPanel::AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall) noexcept
+void ControlPanel::AssignFonts(ImFont* Ui, ImFont* Small, ImFont* Mono, ImFont* MonoSmall,
+                            ImFont* Title, ImFont* Display) noexcept
 {
     Ui_        = Ui;
     Small_     = Small;
     Mono_      = Mono;
     MonoSmall_ = MonoSmall;
+    Title_     = Title;
+    Display_   = Display;
 }
 
 ImFont* ControlPanel::QueryUi() const noexcept
@@ -94,6 +97,16 @@ ImFont* ControlPanel::QueryMono() const noexcept
 ImFont* ControlPanel::QueryMonoSmall() const noexcept
 {
     return MonoSmall_ != nullptr ? MonoSmall_ : ImGui::GetFont();
+}
+
+ImFont* ControlPanel::QueryTitle() const noexcept
+{
+    return Title_ != nullptr ? Title_ : ImGui::GetFont();
+}
+
+ImFont* ControlPanel::QueryDisplay() const noexcept
+{
+    return Display_ != nullptr ? Display_ : ImGui::GetFont();
 }
 
 ImU32 ControlPanel::FadeTint(ImU32 Tint, float Fade) noexcept

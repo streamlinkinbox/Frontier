@@ -334,6 +334,8 @@ void EditorHost::ApplyTheme() noexcept
         ImGuiIO& IO = ImGui::GetIO();
         const char* SansFaces = "EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf";
         const char* MonoFaces = "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Regular.ttf";
+        const char* TitleFaces = "EngineContent/FontArchives/FiraSans/FiraSans-Light.ttf";
+        const char* DisplayFaces = "EngineContent/FontArchives/FiraSans/FiraSans-ExtraLight.ttf";
 
         // The chrome faces carry the punctuation the console placeholder speaks: the em dash, the curly
         //    quotes, the ellipsis, and the command key. The figure faces keep the raster default.
@@ -354,13 +356,15 @@ void EditorHost::ApplyTheme() noexcept
         ImFont* Small     = SeatFace(SansFaces, 11.0f, SansRanges);
         ImFont* Mono      = SeatFace(MonoFaces, 13.0f, nullptr);
         ImFont* MonoSmall = SeatFace(MonoFaces, 11.0f, nullptr);
+        ImFont* Title     = SeatFace(TitleFaces, 17.0f, SansRanges);
+        ImFont* Display   = SeatFace(DisplayFaces, 24.0f, SansRanges);
         FontCount_ = (Ui != nullptr ? 1 : 0) + (Small != nullptr ? 1 : 0)
                    + (Mono != nullptr ? 1 : 0) + (MonoSmall != nullptr ? 1 : 0);
         if (Ui != nullptr)
         {
             IO.FontDefault = Ui;
         }
-        Controls_.AssignFonts(Ui, Small, Mono, MonoSmall);
+        Controls_.AssignFonts(Ui, Small, Mono, MonoSmall, Title, Display);
     }
 #else
     // Without the define the editor draws nothing: the dockspace stays, the panels stay away.
