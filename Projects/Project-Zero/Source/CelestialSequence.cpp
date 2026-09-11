@@ -259,7 +259,10 @@ void CelestialSequence::Prepare() noexcept
 
     // A believable default sky rather than a blank one: mid-afternoon at the project's own latitude, broken
     //    cumulus, a light breeze, no rain. Somebody opening the editor should see weather, not a switch to find.
-    Observation.Year = 2026; Observation.Month = 9; Observation.Day = 10;
+    // The 10th was new-moon day: Luna a 0.3%-lit sliver lost in daylight and set at night, so the default
+    //    sky showed no moon at all. The 19th is first quarter — a half-lit moon high in the default afternoon
+    //    (el +51, az 102) and up all evening. The ephemeris stays exact; this only picks a date with a moon.
+    Observation.Year = 2026; Observation.Month = 9; Observation.Day = 19;
     Observation.LocalHours = 15.5f; Observation.UtcOffset = 2.0f;
     Observation.Latitude = -26.19f; Observation.Longitude = 28.32f;
 

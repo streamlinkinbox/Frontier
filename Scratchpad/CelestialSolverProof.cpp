@@ -46,6 +46,16 @@ void CheckAzimuth(const char* Label, double Actual, double Expected, double Tole
                 Label, Actual, Expected, Error, Ok ? "PASS" : "FAIL");
 }
 
+// Sun-moon separation from a solved frame, in degrees. Elongation says where the moon MUST stand relative
+//    to the sun whatever the model's absolute error, so this is the assertion the ranges cannot express.
+double SunMoonSeparation(const CelestialFrame& F)
+{
+    const double Dot = static_cast<double>(F.Sun.Direction[0]) * F.Moon.Direction[0]
+                     + static_cast<double>(F.Sun.Direction[1]) * F.Moon.Direction[1]
+                     + static_cast<double>(F.Sun.Direction[2]) * F.Moon.Direction[2];
+    return std::acos(std::fmax(-1.0, std::fmin(1.0, Dot))) * 180.0 / 3.14159265358979323846;
+}
+
 } // namespace
 
 int main()
@@ -204,6 +214,24 @@ int main()
                                       + static_cast<double>(F.Moon.Direction[1]) * F.Moon.Direction[1]
                                       + static_cast<double>(F.Moon.Direction[2]) * F.Moon.Direction[2]);
         Check("|moon direction|", Length, 1.0, 1e-5, "-");
+        // The azimuth quadrant is pinned, not just the length: an inverted morning/afternoon rule once put the
+        //    new moon 108° from the sun instead of 6° — the direction was unit and every range above was green
+        //    while the moon stood in the wrong quarter of the sky. Tolerances stay loose (the model is low-order)
+        //    but the wrong quadrant misses by tens of degrees, so these still bite.
+        {
+            CelestialObservation New{};
+            New.Year = 2026; New.Month = 9; New.Day = 10;
+            New.LocalHours = 15.5f; New.UtcOffset = 2.0f;
+            New.Latitude = -26.19f; New.Longitude = 28.32f;
+            Check("new moon sits with the sun", SunMoonSeparation(CelestialSolver::Solve(New)), 6.3, 2.0, "deg");
+        }
+        {
+            CelestialObservation Full{};
+            Full.Year = 2026; Full.Month = 9; Full.Day = 26;
+            Full.LocalHours = 22.0f; Full.UtcOffset = 2.0f;
+            Full.Latitude = -26.19f; Full.Longitude = 28.32f;
+            Check("full moon opposes the sun", SunMoonSeparation(CelestialSolver::Solve(Full)), 176.5, 3.0, "deg");
+        }
     }
     std::printf("\n");
 

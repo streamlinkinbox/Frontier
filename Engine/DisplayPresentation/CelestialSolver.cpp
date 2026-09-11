@@ -181,7 +181,7 @@ CelestialFrame CelestialSolver::Solve(const CelestialObservation& At) noexcept
     {
         const double CosAz = (std::sin(LatR) * std::cos(MoonZ) - std::sin(MoonDec)) / (std::cos(LatR) * MoonSinZ);
         MoonAzimuth = Degrees(std::acos(std::fmax(-1.0, std::fmin(1.0, CosAz))));
-        MoonAzimuth = std::sin(MoonHourAngle) > 0.0 ? Wrap360(540.0 - MoonAzimuth) : Wrap360(MoonAzimuth + 180.0);
+        MoonAzimuth = std::sin(MoonHourAngle) > 0.0 ? Wrap360(MoonAzimuth + 180.0) : Wrap360(540.0 - MoonAzimuth);
     }
 
     Frame.Moon.Elevation = static_cast<float>(MoonElevation);

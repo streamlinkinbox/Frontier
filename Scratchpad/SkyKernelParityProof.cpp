@@ -139,6 +139,38 @@ int main(){
         Expect(B.Mie[0] > A.Mie[0] * 3.5f, "changing the medium changes the block, so there is no second copy");
     }
 
+    // ── The analytic sun disc ──────────────────────────────────────────────────────────────────────────
+    // SkyRecords.slang appends the panel's sun body after the integral; AtmosphereModel has no disc, so parity
+    //    here means the FORMULA behaves as the panel specifies — full at the centre, zero off-disc, fading at
+    //    the horizon, dead when the pack zeroes the radiance. Transcribed from the same panel source, not copied
+    //    from the shader; the SPIR-V compile in the gate pins the shader's syntax, this pins the semantics.
+    {
+        const float kPi = 3.14159265358979323846f;
+        const float kSunRadius = 0.53f * (kPi / 180.0f) * 0.5f;
+        auto Smooth = [](float E0, float E1, float X){ float T = (X - E0) / (E1 - E0);
+            T = T < 0.0f ? 0.0f : (T > 1.0f ? 1.0f : T); return T * T * (3.0f - 2.0f * T); };
+        auto Disc = [&](float SunAng, float ViewElev, float& OutDisc, float& OutLimb, float& OutFade){
+            float SunSoftElev = 1.0f + (2.2f - 1.0f) * (1.0f - Smooth(0.0f, 4.0f, ViewElev));
+            OutDisc = 1.0f - Smooth(kSunRadius * (1.0f - 0.25f * 0.9f * SunSoftElev), kSunRadius, SunAng);
+            OutLimb = 1.0f + (0.55f - 1.0f) * Smooth(0.0f, kSunRadius, SunAng);
+            OutFade = 0.35f + (1.0f - 0.35f) * Smooth(-1.0f, 8.0f, ViewElev);
+        };
+        float D, L, Fd;
+        Disc(0.0f, 20.0f, D, L, Fd);
+        Expect(D == 1.0f, "the disc is full at the sun's centre");
+        Expect(L == 1.0f, "no limb darkening at the sun's centre");
+        Expect(Fd == 1.0f, "no horizon fade on a high sun");
+        Disc(5.0f * kPi / 180.0f, 20.0f, D, L, Fd);
+        Expect(D == 0.0f, "five degrees off the sun there is no disc");
+        Disc(0.0f, -1.0f, D, L, Fd);
+        Expect(D == 1.0f && Fd == 0.35f, "at the horizon the disc survives at 0.35, dimmed not popped");
+        float D2, L2, Fd2; Disc(0.0f, 8.0f, D2, L2, Fd2);
+        Expect(Fd2 == 1.0f && Fd < Fd2, "the fade rises monotonically from horizon to 8 deg");
+        const SkyConstantRecord Off = PackSkyConstants(Medium, Light, Twilight, 30.0f, 2.0f, 16u, 6u, false);
+        Expect(Off.SunRadiance[0] == 0.0f && Off.SunRadiance[1] == 0.0f && Off.SunRadiance[2] == 0.0f,
+               "a hidden sun packs zero radiance, which kills the disc's multiplier");
+    }
+
     std::printf("\n");
     for(int I=0;I<108;++I) std::putchar('=');
     std::printf("\n%s\n\n", Failures==0 ? "  the shader and the model agree" : "  THE SHADER AND THE MODEL DISAGREE");

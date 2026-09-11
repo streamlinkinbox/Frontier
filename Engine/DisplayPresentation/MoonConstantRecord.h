@@ -47,7 +47,9 @@ struct MoonAtlasPreset
     const char* File;        // "luna_2k.jpg" — under kMoonTextureDirectory
     float       Tint[3];     // all white in the reference; the slot tints, not the preset
     float       Haze;        // [0..1] atmosphere: limb softening, rim, phase wrap
-    float       SizeDegrees; // [deg] angular diameter default
+    float       SizeDegrees; // [deg] angular diameter default. Luna's is the real 0.52 — the panel's own
+                             // hint ('real moon ≈ 0.5°') and the kernel's 0.53° sun disc agree — while the fantasy
+                             // moons keep their stylised sizes.
     float       Gamma;       // contrast on the albedo (Shard's 0.9 deepens it)
     float       TiltDegrees; // [deg] axial tilt applied before the UV lookup
 };
@@ -57,7 +59,7 @@ inline constexpr uint32_t    kMoonAtlasCount       = 6u;   // bodies on disk
 inline constexpr uint32_t    kMoonDrawCount        = 4u;   // MAXM: bodies drawn at once
 
 inline constexpr MoonAtlasPreset kMoonAtlas[kMoonAtlasCount] = {
-    { "luna",    "Luna",    "luna_2k.jpg",    { 1.0f, 1.0f, 1.0f }, 0.00f, 0.9f, 1.0f,  6.7f },
+    { "luna",    "Luna",    "luna_2k.jpg",    { 1.0f, 1.0f, 1.0f }, 0.00f, 0.52f, 1.0f,  6.7f },
     { "ember",   "Ember",   "ember_2k.jpg",   { 1.0f, 1.0f, 1.0f }, 0.08f, 1.6f, 1.0f, 25.0f },
     { "glacier", "Glacier", "glacier_2k.jpg", { 1.0f, 1.0f, 1.0f }, 0.05f, 1.2f, 1.0f,  3.0f },
     { "sulfur",  "Sulfur",  "sulfur_2k.jpg",  { 1.0f, 1.0f, 1.0f }, 0.00f, 1.1f, 1.0f,  2.0f },

@@ -60,7 +60,7 @@ int main(){
         Expect(R.Control[0] == 1u, "the default roster packs exactly one moon");
         Expect(Nearly3(R.Direction[0], Sky.Frame().Moon.Direction), "a linked Luna reads the solved lunar direction");
         Expect(Nearly(R.Params[0][2], MoonPhaseToReference(Sky.Frame().MoonPhase)), "a linked Luna reads the solved phase, converted");
-        Expect(Nearly(R.Params[0][0], 0.9f * 3.14159265358979323846f / 360.0f), "the diameter packs as a radius in radians");
+        Expect(Nearly(R.Params[0][0], kMoonAtlas[0].SizeDegrees * 3.14159265358979323846f / 360.0f), "the diameter packs as a radius in radians");
         Expect(R.Slots[0] == Slots[0], "the Luna entry carries the Luna bindless slot");
         Expect(Nearly(R.Surface[0][1], 6.7f * 3.14159265358979323846f / 180.0f), "the skin (tilt) comes from the atlas preset");
         Expect(R.Surface[0][2] == 0.0f && R.Surface[0][3] == 1.0f, "the skin (haze, gamma) comes from the atlas preset");

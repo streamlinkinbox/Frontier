@@ -205,6 +205,48 @@ file-level port is invalid — the panel disc already transcribed (§6) *is* the
 sun model. Its engine-execution/module layout likewise has no celestial-record edge to copy;
 the compare-and-reset above follows this tree's own `Assign*` pattern instead.
 
+## §9 — The moon was broken three ways at once (all fixed); lens flare is model-only (scoped)
+
+**Moon cause 1 — the solver mirrored the moon east↔west (real bug, fixed).** The moon's azimuth
+quadrant rule was inverted relative to the sun's (`CelestialSolver.cpp:184` vs `:145`, the only two
+such rules in the tree). Measured with the repo's own solver: on Sept 10 15:30 the new moon stood
+**108° from the sun instead of 6°** — elongation says it must sit with the sun, so this was provably
+wrong, not approximately wrong. Fix is a one-line branch swap; post-fix the new moon sits 6.3° off
+the sun and the full moon opposes it at 176.5°, both now pinned as regression checks in
+`CelestialSolverProof.cpp` (they fail on the old code). Why it survived: the proof checked ranges
+and unit length only — a unit vector in the wrong quarter of the sky passed everything.
+
+**Moon cause 2 — the default date was new-moon day (fixed).** Sept 10 2026: Luna 0.3% lit, a sliver
+lost in daylight and below the horizon at night — the default sky could never show a moon. Default
+is now Sept 19 (first quarter: half-lit, elevation +51° in the default afternoon, up all evening).
+The ephemeris itself is untouched; only the picked date changed. Proofs set their own dates and are
+unaffected.
+
+**Moon cause 3 — Luna was 70% oversized next to the real-size sun (fixed).** Atlas default 0.9° vs
+the real 0.52° — glaring beside the 0.53° sun disc. Now 0.52, per the reference panel's own hint
+('real moon ≈ 0.5°'); the fantasy moons keep their stylised sizes. `MoonPackProof`'s size assert is
+now symbolic off the atlas instead of a 0.9 literal.
+
+**This turn's validation, no longer blind:** the sandbox fetched glslang, so the sun disc now
+compiles to real SPIR-V (`CheckSkyKernel` green, "all 23 bindings match"); the parity proof gained
+disc-formula pins (full centre, zero off-disc, 0.35 horizon survival, dead on hidden sun); and with
+vendored headers fetched, all three gates pass with compiled proofs enabled — Sky, CelestialSky
+(solver + renders), MoonKernel (pack + render + SPIR-V moon row), zero failures.
+
+**Lens flare — your "non-existent" is exactly right, with one cruel detail:** the model exists
+(`AtmosphericOptics::LensFlare`, four lens mixes), the CPU proof exists, and the panel round-trips
+fully (Type/Intensity/Ghosts/Halo/Blades build AND apply back to the struct) — but nothing consumes
+it in the engine. No record, no binding, no shader code. The panel knobs are live controls over a
+disconnected effect. Wiring it up means: a small flare record at binding 23 (the gates currently
+forbid declaring 23/24, so they move with it), a slang transcription of the model, per-frame SunUv
+projected on the CPU, and a SunVisibility occlusion feed (one ray per frame — CPU traversal or a GPU
+probe; the model's own spec demands occlusion, no flare through walls). That is a ~200-line blind
+change across five files plus descriptor layout — specified, not started. Say the word and it gets
+built; it will need your GPU to validate.
+
+**Found but untouched:** the GPU kernel draws no stars at all (catalogue + star loop are CPU-raster
+only) — the live night sky is atmosphere + moon. Same class of CPU/GPU gap as the flare.
+
 ## Appendix — build-script fix committed alongside
 
 Your pasted link errors were real on this branch too: `ToolchainSequence.ps1`'s

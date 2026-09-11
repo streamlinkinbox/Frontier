@@ -94,7 +94,7 @@ struct MoonSlotState
     bool     FollowSky = false;  // true: direction + phase from Solved.Moon
     float    Azimuth   = 300.0f; // [deg] clockwise from north
     float    Elevation = 28.0f;  // [deg] above the horizon
-    float    Size      = 0.9f;   // [deg] angular DIAMETER (the record carries the radius in radians)
+    float    Size      = 0.52f;  // [deg] angular DIAMETER (the record carries the radius in radians)
     float    Bright    = 1.6f;   // panel default
     float    Glow      = 0.8f;   // panel default
     float    Phase     = 0.62f;  // ENGINE convention (0 = new): the panel's 0.12 default, half a turn over
