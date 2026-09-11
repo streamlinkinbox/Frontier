@@ -108,7 +108,13 @@ public:
     //    post-process, and the A/B comparison the switch exists for would be impossible.
     void AssignDenoise           (bool     On)    noexcept { ActiveConfiguration.Denoise = On; }
 
-    void ResetAccumulation() noexcept { AccumulationIndex = 0u; }
+    // ⚠️ THE INCREMENT MUST NOT SWALLOW THE RESET. The frame loop reads the index for the dispatch,
+    //    the §8 record comparisons reset it when the sky changes, and the loop unconditionally increments it
+    //    after presenting. Without the flag, a reset-to-zero was incremented back to one before the next frame
+    //    read it — every slider reset dispatched with FrameIndex ≥ 1, the kernel kept blending at 1/n, and
+    //    panel edits only became visible when a camera move failed reprojection geometrically. The flag spends
+    //    one increment, so the frame after a reset dispatches with FrameIndex 0 and starts genuinely fresh.
+    void ResetAccumulation() noexcept { AccumulationIndex = 0u; ResetPending = true; }
 
     // A6b. Adaptive exposure. Held here because BuildDispatch is what fills the Exposure push constant, so the
     //    measured value and the value the shader receives cannot drift apart.
@@ -124,7 +130,7 @@ public:
         return ActiveConfiguration;
     }
 
-    void IncrementAccumulationIndex() noexcept { AccumulationIndex++; }
+    void IncrementAccumulationIndex() noexcept { if (ResetPending) ResetPending = false; else AccumulationIndex++; }
     [[nodiscard]] uint32_t QueryAccumulationIndex() const noexcept { return AccumulationIndex; }
 
     template<typename TargetType>
@@ -134,6 +140,7 @@ private:
     ReSTIRIntegratorConfiguration ActiveConfiguration;  // [-]  live-tunable parameters
     ExposureIntegrator Adaptation{};  // A6b: adaptive exposure
     uint32_t                      AccumulationIndex;    // [-]  temporal frame counter (incremented per frame)
+    bool                          ResetPending = false; // [-]  a reset landed after the dispatch read the index
 
     Vector3                       HistoryOrigin;        // [m]   camera position the history was accumulated from
     Vector3                       HistoryForward;       // [-]   camera forward the history was accumulated from

@@ -448,3 +448,28 @@ cannot run; the new pin passes inside it.
 bindless ?` capability line; (3) the `Textures: N resident` line; (4) the new `Moons:` census line; (5) the
 `Stars:` upload line. If the moon is still white with resident slots and bindless on, the bug is in the one
 place no headless proof can reach, and the numbers will say which.
+
+## §14. The increment ate every reset — sliders frozen until the camera moved (2026‑09‑11)
+
+**Reported, on a rebuilt build:** sun/sky/atmosphere sliders still only land when the camera moves. The user's
+parenthetical ("or is it the ReSTIR that stops when frame converges") was aimed at the right machinery but the
+wrong half of it: nothing stops at 256 (the "Baking complete" toast is notification-only), but no reset ever
+took effect either.
+
+**Root cause, three lines apart in the frame loop.** Each frame (1) reads `AccumulationIndex` into the dispatch
+(`GameExecution.cpp:1245`), (2) the §8 record comparisons call `ResetAccumulation()` when the sky changes
+(:1415/:1431/:1464), and (3) the loop unconditionally calls `IncrementAccumulationIndex()` after presenting
+(:1489). So a reset-to-zero was incremented straight back to one before any frame read it: every slider reset
+dispatched with `FrameIndex ≥ 1`, the kernel kept blending the old frame at 1/n, and edits only became visible
+when a camera move failed reprojection geometrically (motion vectors + the 25°/10% validation rule) — which is
+exactly the reported symptom, and why §8's correct detection changed nothing visible.
+
+**Fix:** `ResetAccumulation()` now raises a `ResetPending` flag and the increment spends it instead of counting
+(`ReSTIRIntegrator.h`): the frame after a reset dispatches with `FrameIndex 0` and starts genuinely fresh. All
+callers route through the same method (F3 popup, §8 sky/moon/post, `ObserveCamera`), so all are fixed together.
+`CheckAccumulationReset.sh` pins the flag on both methods plus the read→reset→present→increment order that
+demands it.
+
+**Not this bug:** the white giant moon in the same screenshots is unrelated (a converged mean of textured
+samples is still textured) and still open pending the console lines asked in §13 — the build in the shots may
+still predate the §13 census line, so pull first, then paste bindless/resident/`Moons:`/`Stars:`.
