@@ -487,6 +487,37 @@ int main()
                           "dimmed seat %.0f vs field ceiling %.0f (disc lifts the seat alone)",
                           DimSeat, DimField);
             Require("dimmed, the sun still shows its face", DimSeat > DimField + 40.0, SunDetail);
+
+            // The aureole never blows out: the wash 1-2 deg out from the sun compresses below the knee —
+            //    the reference's own rule ("normalised to its own peak, so it can never blow out"). The seat
+            //    self-locates (the brightest pixel in the sun's box, disc or wash peak); the ring around it
+            //    reads the wash. With the shoulder the ring renders 229.5, without it 244.3, and the gate
+            //    fails (mutation-proven) — the ring alone is the assertion, since the seat's own maximum
+            //    tracks the wash peak on either side and cannot tell the disc's presence.
+            double SeatMax = 0.0; uint32_t SeatX = kWidth / 2, SeatY = kHeight * 43u / 100u;
+            for (uint32_t Y = kHeight * 30u / 100u; Y < kHeight * 50u / 100u; ++Y)
+                for (uint32_t X = kWidth * 3u / 8u; X < kWidth * 5u / 8u; ++X)
+                {
+                    const size_t P = (static_cast<size_t>(Y) * kWidth + X) * 4u;
+                    const double Lum = (Bare[P + 0u] + Bare[P + 1u] + Bare[P + 2u]) / 3.0;
+                    if (Lum > SeatMax) { SeatMax = Lum; SeatX = X; SeatY = Y; }
+                }
+            double RingSum = 0.0, RingN = 0.0;
+            for (uint32_t Y = 0; Y < kHeight; ++Y)
+                for (uint32_t X = 0; X < kWidth; ++X)
+                {
+                    const int Dx = static_cast<int>(X) - static_cast<int>(SeatX);
+                    const int Dy = static_cast<int>(Y) - static_cast<int>(SeatY);
+                    const int D2 = Dx * Dx + Dy * Dy;
+                    if (D2 < 36 || D2 >= 144) continue;   // 6-12 px: 1-2 deg out, the disc excluded
+                    const size_t P = (static_cast<size_t>(Y) * kWidth + X) * 4u;
+                    RingSum += (Bare[P + 0u] + Bare[P + 1u] + Bare[P + 2u]) / 3.0; RingN += 1.0;
+                }
+            const double RingMean = RingN > 0.0 ? RingSum / RingN : 255.0;
+            char AureoleDetail[160];
+            std::snprintf(AureoleDetail, sizeof(AureoleDetail), "wash ring %.1f at the self-located seat (capped)",
+                          RingMean);
+            Require("risen, the aureole never blows out", RingMean < 238.0, AureoleDetail);
         }
 
         std::printf("  %-22s %+7.1f %9.2f   %5.0f %5.0f %5.0f      %7.1f\n",

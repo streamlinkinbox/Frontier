@@ -86,6 +86,23 @@ echo "[SkyKernel] the coefficients are not copied into the shader"
 Report $? "the medium arrives in the block rather than being restated"
 
 echo
+echo "[SkyKernel] the aureole shoulder is one value on both paths"
+# The compression knee/slope/width exist twice (GLSL + C++) with no shared header, so the literals are pinned
+#    pairwise: a retune that lands on one path and not the other fails here rather than shipping two suns.
+printf '%s' "$SkyCode" | grep -qE 'kAureoleKnee += 1\.0;'
+Report $? "the shader's knee is 1.0 linear"
+grep -qE 'kAureoleKnee += 1\.0f;' Engine/DisplayPresentation/SkyConstantRecord.h
+Report $? "the host's knee is the same 1.0"
+printf '%s' "$SkyCode" | grep -qE 'kAureoleSlope += 0\.06;'
+Report $? "the shader's shoulder slope is 0.06"
+grep -qE 'kAureoleSlope += 0\.06f;' Engine/DisplayPresentation/SkyConstantRecord.h
+Report $? "the host's shoulder slope is the same 0.06"
+printf '%s' "$SkyCode" | grep -qE 'kAureoleSigma = 5\.0'
+Report $? "the shader's aureole width is 5 deg"
+grep -qE 'kAureoleSigma = 5\.0f' Engine/DisplayPresentation/SkyConstantRecord.h
+Report $? "the host's aureole width is the same 5 deg"
+
+echo
 echo "[SkyKernel] the C++ mirror matches the shader's std140 layout"
 grep -q 'static_assert(sizeof(SkyConstantRecord) == 144u' Engine/DisplayPresentation/SkyConstantRecord.h
 Report $? "the record is pinned at 144 bytes"

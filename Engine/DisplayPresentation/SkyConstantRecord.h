@@ -40,6 +40,13 @@ namespace Frontier {
 //    kSunAngularRadius; the SkyKernelParityProof pins the shader's literal, this pins the host's.
 inline constexpr float kSunAngularRadius = 0.53f * (3.14159265358979323846f / 180.0f) * 0.5f;
 
+// Aureole compression: the knee [linear], shoulder slope and angular width [rad] of the soft shoulder SkyAlong
+//    (both paths) eases the single-scatter peak through. MUST equal SkyRecords.slang's kAureoleKnee/Slope/Sigma;
+//    the SkyKernelParityProof pins the three literals pairwise, like the sun's radius above.
+inline constexpr float kAureoleKnee  = 1.0f;
+inline constexpr float kAureoleSlope = 0.06f;
+inline constexpr float kAureoleSigma = 5.0f * (3.14159265358979323846f / 180.0f);
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORD
 //------------------------------------------------------------------------------------------------------------------------

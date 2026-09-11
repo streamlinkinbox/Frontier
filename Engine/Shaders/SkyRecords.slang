@@ -235,6 +235,29 @@ vec3 SkyAlong(vec3 Direction)
     vec3 Transmittance;
     bool HitGround;
     vec3 Radiance = SkyRadiance(Direction, Transmittance, HitGround);
+    // Aureole compression. Art-directed, twilight precedent: the single-scatter integral near the sun reaches
+    //    ~1.5 linear and the ACES curve renders that as near-white — no edge survives, so the sun reads as a
+    //    faded blob with no disk. The reference caps its halo the same way ("normalised to its own peak, so it
+    //    can never blow out") and draws the disc over the capped glow. Luminance-ratio soft shoulder inside an
+    //    angular gate: below the knee the sky passes through untouched (the dome, the horizons, the white line);
+    //    above it the peak eases toward the shoulder, so the aureole renders bright-but-not-clipped and the 12x
+    //    disc lands on top WITH a sharp edge. One ratio for all channels, so the hue survives; the gate fades
+    //    the effect out by ~15 deg off-sun. Function-locals like the disc's own boost (single consumer); the
+    //    values MUST equal SkyConstantRecord.h's kAureoleKnee/Slope/Sigma, pairwise-pinned by the parity proof.
+    if (!HitGround)
+    {
+        const float kAureoleKnee  = 1.0;
+        const float kAureoleSlope = 0.06;
+        const float kAureoleSigma = 5.0 * (3.14159265358979323846 / 180.0);
+        float AureoleAng = acos(clamp(dot(Direction, SkySunDirection.xyz), -1.0, 1.0));
+        float AureoleLum = dot(Radiance, vec3(0.2126, 0.7152, 0.0722));
+        float AureoleGate = exp(-AureoleAng / kAureoleSigma);
+        float AureoleTarget = AureoleLum <= kAureoleKnee
+            ? AureoleLum : kAureoleKnee + (AureoleLum - kAureoleKnee) * kAureoleSlope;
+        float AureoleMix = AureoleLum > 0.0
+            ? (AureoleLum + (AureoleTarget - AureoleLum) * AureoleGate) / AureoleLum : 1.0;
+        Radiance *= AureoleMix;
+    }
     // Stars read the integral's own luminance as their visibility gate — the raster's rule (a star shows only
     //    when it outshines the air behind it), evaluated before the moons and twilight join, exactly where the
     //    raster evaluates it. StarAlong is declared by PostRecords.slang, included before this file.

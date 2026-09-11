@@ -625,6 +625,26 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                               Celestial_.SampleCount, Celestial_.LightSampleCount);
         Out[0] = S.Radiance[0]; Out[1] = S.Radiance[1]; Out[2] = S.Radiance[2];
 
+        // Aureole compression, transcribed term for term from SkyAlong in SkyRecords.slang: the luminance-ratio
+        //    soft shoulder inside its angular gate (see the note there for why the knee exists). Runs here, on
+        //    the integral alone, so the twilight, the line, the moons and the disc all add afterward onto the
+        //    same capped air both paths share. Guarded on rock like everything below: the planet is shaded as
+        //    Lambertian terrain, not air, and must never see the shoulder.
+        if (!S.HitGround)
+        {
+            const float AureoleDot = Dir[0] * Celestial_.Light.Direction[0]
+                                   + Dir[1] * Celestial_.Light.Direction[1]
+                                   + Dir[2] * Celestial_.Light.Direction[2];
+            const float AureoleAng = std::acos(std::fmax(-1.0f, std::fmin(1.0f, AureoleDot)));
+            const float AureoleLum = Out[0] * 0.2126f + Out[1] * 0.7152f + Out[2] * 0.0722f;
+            const float AureoleGate = std::exp(-AureoleAng / kAureoleSigma);
+            const float AureoleTarget = AureoleLum <= kAureoleKnee
+                ? AureoleLum : kAureoleKnee + (AureoleLum - kAureoleKnee) * kAureoleSlope;
+            const float AureoleMix = AureoleLum > 0.0f
+                ? (AureoleLum + (AureoleTarget - AureoleLum) * AureoleGate) / AureoleLum : 1.0f;
+            Out[0] *= AureoleMix; Out[1] *= AureoleMix; Out[2] *= AureoleMix;
+        }
+
         // ⚠️ Rays that meet the planet must not go on to collect stars. AtmosphereModel already stops the
         //    integral at the surface and reports it, but the miss path had no notion of a world: the only ground
         //    was whatever finite geometry the scene happened to contain, so from altitude the scene read as a
