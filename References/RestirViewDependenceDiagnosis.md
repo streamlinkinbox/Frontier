@@ -180,6 +180,31 @@ DONE marks what the follow-up commit implements; the rest stays scoped, not star
 - **Stale vs negligence: neither.** The screenshots show the restyled outliner (this branch's
   work, built in), and the placeholder string is in current source (`ViewportPanel.cpp:973`).
 
+## §8 — Celestial sliders landed only when the camera moved (fixed)
+
+**Symptom (your words): slider changes update only after a camera move.** Mechanism,
+verified line by line, no guessing: the inspector write-back runs every tick
+(`Celestial.ApplySheet`, `GameExecution.cpp:1083`), the state re-solves and re-packs every
+tick (`PackSkyRecord`/`PackMoonRecord`), and the upload is a bare `memcpy` with no reset
+(`SwapchainExchange.cpp:2356-2379`). The kernel renders the new sky — but the running mean
+absorbs it at 1/n on a converged frame, so it is invisible until `ObserveCamera` restarts the
+history. The Control Centre path never had this bug (every `Integrator.Assign*` self-resets,
+`ReSTIRIntegrator.h:84-87`); the scene-editor path was simply missing the same edge.
+
+**Fix (this commit):** the packed bytes are compared after each push and a change restarts the
+accumulation the tick it lands (`GameExecution.cpp:600-601,1389-1407`) — sliders, presets,
+visibility toggles and the animating sun all show at once. Cost is 416 bytes of `memcmp` per
+frame, silent while the scene idles. While the sun animates the history restarts every tick:
+noisy while moving, exactly like the camera, instead of a smeared trail. Non-celestial sheet
+sliders (materials on static rows) never re-upload at all — a separate gap, noted, not touched.
+
+**Reference-branch check:** `arena/01a08682-frontier` @ `6c8b1a8` was fetched and searched. It
+carries no GPU sun disc (no limb/0.53/disc-boost anywhere in `.comp` or integrators) and its
+tree is renamed end to end (`.comp` shaders, `PhotometricIllumination/*Integrator.*`), so a
+file-level port is invalid — the panel disc already transcribed (§6) *is* the reference's
+sun model. Its engine-execution/module layout likewise has no celestial-record edge to copy;
+the compare-and-reset above follows this tree's own `Assign*` pattern instead.
+
 ## Appendix — build-script fix committed alongside
 
 Your pasted link errors were real on this branch too: `ToolchainSequence.ps1`'s

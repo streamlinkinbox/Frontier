@@ -597,6 +597,8 @@ int main(int argc, char** argv)
     uint32_t FixedRenderHeight         = 0u;     // [px] 0 = native  (Display → Resolution)   // AppearanceInspector::Apply bumps its own revision
     uint32_t AppliedInputRevision      = 0u;
     uint32_t AppliedNotifyRevision     = 0u;
+    Frontier::SkyConstantRecord  LastSky{};    // last sky bytes pushed (④d); a change restarts the accumulation
+    Frontier::MoonConstantRecord LastMoons{};  // last moon bytes pushed (④e); a change restarts the accumulation
     bool     BakeAnnounced             = false;  // "Baking Complete" = temporal accumulation reached BakeFrameCount
     constexpr uint32_t BakeFrameCount  = 256u;
     std::string LastSaveError;                   // de-duplicates the "Autosave Errors" toast
@@ -1378,6 +1380,17 @@ int main(int argc, char** argv)
         {
             const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
             (void)Surface.RefreshSky(&Sky, sizeof(Sky));
+            // A slider step on a converged frame is absorbed at 1/n — invisible until the camera restarts the
+            //    history, which is why panel edits used to land only when the view moved. Compare the packed
+            //    bytes and restart the accumulation the tick the sky changes, so sliders, presets, visibility
+            //    toggles and the moving sun all show at once. The packer zero-fills then assigns every field,
+            //    so padding is deterministic and the compare is exact; while the sun animates the history
+            //    restarts every tick — noisy while moving, exactly like the camera, instead of a smeared trail.
+            if (std::memcmp(&Sky, &LastSky, sizeof(Sky)) != 0)
+            {
+                LastSky = Sky;
+                Integrator.ResetAccumulation();
+            }
         }
 
         // ④e GPU moons — the roster reads the packed record at binding 22 on every miss and every escaped
@@ -1387,6 +1400,13 @@ int main(int argc, char** argv)
         {
             const Frontier::MoonConstantRecord Moons = Celestial.PackMoonRecord();
             (void)Surface.RefreshMoons(&Moons, sizeof(Moons));
+            // Same shape as the sky above: a moon slider step is absorbed at 1/n on a converged frame, so the
+            //    roster bytes are compared and the accumulation restarts the tick anything lands.
+            if (std::memcmp(&Moons, &LastMoons, sizeof(Moons)) != 0)
+            {
+                LastMoons = Moons;
+                Integrator.ResetAccumulation();
+            }
         }
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present
