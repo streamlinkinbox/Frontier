@@ -249,9 +249,11 @@ vec3 SkyAlong(vec3 Direction)
     //    own defaults (0.53 deg diameter, 0.25 softness, 12x disc radiance). Two deliberate differences: the
     //    reddening uses the integral's transmittance already in hand (the panel recomputes extinction from air
     //    mass; the view-ray value is exact for the disc pixel), and the panel's extra analytic sun-glow (sg) is
-    //    NOT transcribed — the Mie lobe already provides the forward glow and both would double it. A hidden sun
-    //    needs no extra gate: PackSkyRecord zeroes the radiance, which kills the disc while twilight and the
-    //    moons live on. Elevation reads Direction.z: the engine is Z-up, the panel Y-up.
+    //    NOT transcribed — the Mie lobe already provides the forward glow and both would double it. (Revisited
+    //    by porting it: sg peaks at ~5 linear against a ~20-linear forward field, <=7 LSB after the curve, and
+    //    no honest assertion separates it — so it stays out, and stays documented.) A hidden sun needs no extra
+    //    gate: PackSkyRecord zeroes the radiance, which kills the disc while twilight and the moons live on.
+    //    Elevation reads Direction.z: the engine is Z-up, the panel Y-up.
     if (!HitGround)
     {
         const float kPi = 3.14159265358979323846;
