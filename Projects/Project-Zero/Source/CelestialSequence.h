@@ -27,6 +27,7 @@
 #include "../../../Engine/DisplayPresentation/AtmosphereModel.h"
 #include "../../../Engine/DisplayPresentation/AtmosphericOptics.h"
 #include "../../../Engine/DisplayPresentation/MoonConstantRecord.h"
+#include "../../../Engine/DisplayPresentation/PostConstantRecord.h"
 #include "../../../Engine/DisplayPresentation/Precipitation.h"
 #include "../../../Engine/DisplayPresentation/SkyConstantRecord.h"
 #include "../../../Engine/DisplayPresentation/VolumetricMedia.h"
@@ -128,6 +129,13 @@ public:
     //    unassigned atlas as no moons at all — so the GI-on and GI-off nights cannot be handed different moons.
     //    One call, so a caller cannot pack half of it.
     [[nodiscard]] MoonConstantRecord PackMoonRecord() const noexcept;
+    // The post record (binding 24): star field state, flare settings + projected sun, rainbow state. The camera
+    //    basis projects the sun to screen UV (the Tick-takes-camera precedent); the visibility arrives traced —
+    //    GameExecution owns the traversal, so it fires the single camera→sun ray per frame, not this.
+    [[nodiscard]] PostConstantRecord PackPostRecord(const float CameraForward[3], const float CameraRight[3],
+                                                    const float CameraUp[3], float TanHalfFieldOfView,
+                                                    float AspectRatio, uint32_t ViewportHeightPx,
+                                                    float SunVisibility) const noexcept;
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                              THE OUTLINER FEED

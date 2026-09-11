@@ -65,6 +65,14 @@ static constexpr uint32_t kSkyRecordBytes = 128u;
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
 static constexpr uint32_t kMoonRecordBytes = 288u;
+// The Celestial post uniform block (binding 24) is eight std140 rows — 128 B, pinned by static_assert in
+//    DisplayPresentation/PostConstantRecord.h. Same restatement rule as the sky and moon records above.
+// The star tables (binding 23) are 1 024 cells of 8 B followed by N stars of 32 B — StarCellRecord and
+//    StarRecord, pinned in GeometricRaster/StarCatalogueIndex.h; the post gate fails the build on drift.
+static constexpr uint32_t kPostRecordBytes = 128u;
+static constexpr uint32_t kStarCellCount = 1024u;
+static constexpr uint32_t kStarCellBytes = 8u;
+static constexpr uint32_t kStarRecordBytes = 32u;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              VULKAN RECORD DEFINITION
@@ -161,6 +169,17 @@ struct SwapchainExchange::VulkanRecord
     VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
     VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
     void*                    MoonMapped            = nullptr;
+    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 128 B uniform
+    //    buffer, host-visible and persistently mapped, re-packed by the project every frame.
+    VkBuffer                 PostBuffer            = VK_NULL_HANDLE;
+    VkDeviceMemory           PostMemory            = VK_NULL_HANDLE;
+    void*                    PostMapped            = nullptr;
+    // Star tables (binding 23). Cells then binned stars in ONE storage buffer, host-visible and persistently
+    //    mapped like the records. Bring-up allocates the cells alone (zeroed = no stars); UploadStarTables
+    //    reallocates for the catalogue once the project has loaded it, so the binding is never an unwritten hole.
+    VkBuffer                 StarBuffer            = VK_NULL_HANDLE;
+    VkDeviceMemory           StarMemory            = VK_NULL_HANDLE;
+    void*                    StarMapped            = nullptr;
     // R6 temporal reservoirs: two W×H×64 B SSBOs (bindings 16/17), ping-ponged per presented frame. Record layout
     //    (std430, mirrors GpuReservoir in ReSTIRViewport.slang): Sample(xyz point, w WeightSum) · Counts(M, light,
     //    Visible, Age) · UvDepth(uv, W, view depth) · Normal(xyz geometric normal, w stride guard).
@@ -430,10 +449,13 @@ bool SwapchainExchange::Bring() noexcept
         { "BringDenoisePipeline",  &SwapchainExchange::BringDenoisePipeline  },
         // A6b after BringStorageImage (it binds HistoryImageView) and before BringDescriptorSet, same as above.
         { "BringLuminanceReduction", &SwapchainExchange::BringLuminanceReduction },
-        // The sky and moon buffers must exist before BringDescriptorSet: that stage ends by calling
-        //    WriteDescriptorSet(), which writes bindings 21-22 once the buffers are there and skips them otherwise.
+        // The sky, moon, post and star buffers must exist before BringDescriptorSet: that stage ends by
+        //    calling WriteDescriptorSet(), which writes bindings 21-24 once the buffers are there and skips them
+        //    otherwise. The star write at bring-up covers the cells alone; UploadStarTables rewrites it.
         { "BringSkyRecord",          &SwapchainExchange::BringSkyRecord          },
         { "BringMoonRecord",         &SwapchainExchange::BringMoonRecord         },
+        { "BringPostRecord",         &SwapchainExchange::BringPostRecord         },
+        { "BringStarTables",         &SwapchainExchange::BringStarTables         },
         { "BringDescriptorSet",    &SwapchainExchange::BringDescriptorSet    },
         { "BringCycleSlots",       &SwapchainExchange::BringCycleSlots       },
         { "BringImGui",            &SwapchainExchange::BringImGui            },
@@ -514,6 +536,13 @@ void SwapchainExchange::Retire() noexcept
     if (Vulkan->MoonMapped) vkUnmapMemory (Vulkan->Device, Vulkan->MoonMemory);
     if (Vulkan->MoonBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->MoonBuffer, nullptr);
     if (Vulkan->MoonMemory) vkFreeMemory   (Vulkan->Device, Vulkan->MoonMemory, nullptr);
+    // The post record and the star tables share it too: permanent, retired here, never in RetireSwapchain.
+    if (Vulkan->PostMapped) vkUnmapMemory (Vulkan->Device, Vulkan->PostMemory);
+    if (Vulkan->PostBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->PostBuffer, nullptr);
+    if (Vulkan->PostMemory) vkFreeMemory   (Vulkan->Device, Vulkan->PostMemory, nullptr);
+    if (Vulkan->StarMapped) vkUnmapMemory (Vulkan->Device, Vulkan->StarMemory);
+    if (Vulkan->StarBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->StarBuffer, nullptr);
+    if (Vulkan->StarMemory) vkFreeMemory   (Vulkan->Device, Vulkan->StarMemory, nullptr);
 
     for (uint32_t Slot = 0u; Slot < kCycleSlotCount; ++Slot)
     {
@@ -1167,7 +1196,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     for (uint32_t B = 4u; B < kComputeBindingCount - 1u; ++B)
     {
         LayoutBindings[B].binding         = B;
-        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 21u || B == 22u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21 live sky UBO (SkyRecords.slang) · 22 live moon UBO (MoonRecords.slang) · 24 retired sky hole, still declared, never written
+        LayoutBindings[B].descriptorType  = (B < 6u || B == 18u || B == 19u || B == 20u) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : (B == 13u || B == 14u || B == 15u) ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : (B == 21u || B == 22u || B == 24u) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;   // 18 R7a surface · 19/20 R7 moments + denoise input · 21 live sky UBO (SkyRecords.slang) · 22 live moon UBO (MoonRecords.slang) · 23 star tables SSBO (PostRecords.slang) · 24 live post UBO (PostRecords.slang)
         LayoutBindings[B].descriptorCount = 1u;
         LayoutBindings[B].stageFlags      = VK_SHADER_STAGE_COMPUTE_BIT;
     }
@@ -1566,6 +1595,36 @@ bool SwapchainExchange::BringMoonRecord() noexcept
     return true;
 }
 
+bool SwapchainExchange::BringPostRecord() noexcept
+{
+    // One 128 B uniform buffer, host-visible and persistently mapped — the same arrangement as the sky record.
+    constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kPostRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                   HostVisible, Vulkan->PostBuffer, Vulkan->PostMemory);
+    if (!Vulkan->PostBuffer) return false;
+    if (vkMapMemory(Vulkan->Device, Vulkan->PostMemory, 0u, kPostRecordBytes, 0u, &Vulkan->PostMapped) != VK_SUCCESS)
+        return false;
+    // Zero is everything off (star brightness 0, flare and bow disabled), so until the first RefreshPost the
+    //    kernel behaves exactly as it did when binding 24 was an unwritten hole — minus the validation error.
+    std::memset(Vulkan->PostMapped, 0, kPostRecordBytes);
+    return true;
+}
+
+bool SwapchainExchange::BringStarTables() noexcept
+{
+    // The cells alone, zeroed: every bucket is (First 0, Count 0), so the star loop walks nothing and the
+    //    binding is valid from the first frame. UploadStarTables reallocates for the catalogue once loaded.
+    constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    const uint32_t CellBytes = kStarCellCount * kStarCellBytes;
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, CellBytes, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                   HostVisible, Vulkan->StarBuffer, Vulkan->StarMemory);
+    if (!Vulkan->StarBuffer) return false;
+    if (vkMapMemory(Vulkan->Device, Vulkan->StarMemory, 0u, CellBytes, 0u, &Vulkan->StarMapped) != VK_SUCCESS)
+        return false;
+    std::memset(Vulkan->StarMapped, 0, CellBytes);
+    return true;
+}
+
 bool SwapchainExchange::BringDescriptorSet() noexcept
 {
     std::array<VkDescriptorPoolSize, 4u> PoolSizes{};
@@ -1578,7 +1637,7 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
     // ⚠️ Counted, and the count includes 23. It said 11 and the layout asks for 12, so every run began with
     //    "trying to allocate 12 ... but this pool only has a total of 11": allowed to succeed on this driver,
     //    guaranteed to fail on another.
-    PoolSizes[1].descriptorCount = 12u;                         // 1, 2, 6-12, 16-17, 23
+    PoolSizes[1].descriptorCount = 12u;                         // 1, 2, 6-12, 16-17, 23 star tables
     PoolSizes[2].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     PoolSizes[2].descriptorCount = 3u + (Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 1u);   // 13/14 material LUTs · 15 motion · the bindless table (22 left for the UBOs below)
 
@@ -1587,7 +1646,7 @@ bool SwapchainExchange::BringDescriptorSet() noexcept
     PoolInfo.flags         = Vulkan->DescriptorIndexing ? static_cast<VkDescriptorPoolCreateFlags>(VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) : 0u;
     PoolInfo.maxSets       = 1u;
     PoolSizes[3].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    PoolSizes[3].descriptorCount = 3u;                          // 21 live sky record · 22 live moon record · 24 retired (counted: still declared)
+    PoolSizes[3].descriptorCount = 3u;                          // 21 live sky record · 22 live moon record · 24 live post record
     PoolInfo.poolSizeCount = 4u;
     PoolInfo.pPoolSizes    = PoolSizes.data();
     (void)vkCreateDescriptorPool(Vulkan->Device, &PoolInfo, nullptr, &Vulkan->ComputeDescriptorPool);
@@ -1669,6 +1728,8 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     VkDescriptorBufferInfo CurrReservoirInfo{ Vulkan->ReservoirBuffers[PrevSlot ^ 1u], 0u, VK_WHOLE_SIZE };
     VkDescriptorBufferInfo SkyInfo{ Vulkan->SkyBuffer, 0u, VK_WHOLE_SIZE };   // Celestial sky record (binding 21)
     VkDescriptorBufferInfo MoonInfo{ Vulkan->MoonBuffer, 0u, VK_WHOLE_SIZE }; // Celestial moon record (binding 22)
+    VkDescriptorBufferInfo StarInfo{ Vulkan->StarBuffer, 0u, VK_WHOLE_SIZE }; // Star tables (binding 23)
+    VkDescriptorBufferInfo PostInfo{ Vulkan->PostBuffer, 0u, VK_WHOLE_SIZE }; // Celestial post record (binding 24)
 
     std::array<VkWriteDescriptorSet, kComputeBindingCount> Writes{};
     uint32_t WriteCount = 0u;
@@ -1767,6 +1828,8 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     WriteImage (20u, DenoiseInputInfo);     // R7:  linear radiance + variance, the à-trous input
     WriteUniform(21u, SkyInfo);             // Celestial sky record, for the kernel's miss branches
     WriteUniform(22u, MoonInfo);            // Celestial moon record, for the discs and the moonlight
+    WriteBuffer(23u, StarInfo);             // Star tables, for the catalogue (cells alone until UploadStarTables)
+    WriteUniform(24u, PostInfo);            // Celestial post record, for stars/flare/rainbow params
 
     // R4a: the texture table. Written in one go (partially bound: slots past the resident count stay undefined and are
     //    never indexed — the material records only reference resident slots).
@@ -2381,6 +2444,60 @@ bool SwapchainExchange::RefreshMoons(const void* Bytes, uint32_t ByteCount) noex
     //    megabytes of BVH, which is where the argument ends for 288 coherent bytes.
     std::memcpy(Vulkan->MoonMapped, Bytes, kMoonRecordBytes);
     return true;
+}
+
+bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept
+{
+    // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
+    //    PostConstantRecord/PackPostConstants and hands over the 128 bytes, the way RefreshSky receives its own.
+    //    The size is refused rather than trusted, for the same half-old-reading reason.
+    if (!Vulkan->Device || !Vulkan->PostMapped || !Bytes || ByteCount != kPostRecordBytes) return false;
+    // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
+    //    same per-frame shape as RefreshSky and RefreshMoons.
+    std::memcpy(Vulkan->PostMapped, Bytes, kPostRecordBytes);
+    return true;
+}
+
+void SwapchainExchange::UploadStarTables(const void* CellBytes, uint32_t CellCount,
+                                         const void* StarBytes, uint32_t StarCount) noexcept
+{
+    // Raw bytes, not catalogue types: DeviceExchange takes void* the way RefreshSky does, so no layer above
+    //    leaks in. The caller skips the call entirely when the catalogue is empty — the bring-up zeros stand.
+    if (!Vulkan->Device || !Vulkan->ComputeDescriptorSet) return;
+    if (CellCount != kStarCellCount || !CellBytes || (StarCount > 0u && !StarBytes)) return;
+    constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    const uint32_t TotalBytes = CellCount * kStarCellBytes + StarCount * kStarRecordBytes;
+    VkBuffer NewBuffer = VK_NULL_HANDLE; VkDeviceMemory NewMemory = VK_NULL_HANDLE; void* NewMapped = nullptr;
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, TotalBytes, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                   HostVisible, NewBuffer, NewMemory);
+    if (!NewBuffer) return;
+    if (vkMapMemory(Vulkan->Device, NewMemory, 0u, TotalBytes, 0u, &NewMapped) != VK_SUCCESS)
+    {
+        vkDestroyBuffer(Vulkan->Device, NewBuffer, nullptr);
+        vkFreeMemory(Vulkan->Device, NewMemory, nullptr);
+        return;
+    }
+    // Cells first, then the binned stars: the layout the shader's StarTable block declares.
+    std::memcpy(NewMapped, CellBytes, static_cast<size_t>(CellCount) * kStarCellBytes);
+    if (StarCount > 0u)
+        std::memcpy(static_cast<char*>(NewMapped) + static_cast<size_t>(CellCount) * kStarCellBytes,
+                    StarBytes, static_cast<size_t>(StarCount) * kStarRecordBytes);
+    // The old buffer dies only after the new one maps — a failure anywhere above keeps the previous tables
+    //    (or the zeroed cells) rather than an unwritten hole.
+    if (Vulkan->StarMapped) vkUnmapMemory(Vulkan->Device, Vulkan->StarMemory);
+    if (Vulkan->StarBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->StarBuffer, nullptr);
+    if (Vulkan->StarMemory) vkFreeMemory(Vulkan->Device, Vulkan->StarMemory, nullptr);
+    Vulkan->StarBuffer = NewBuffer; Vulkan->StarMemory = NewMemory; Vulkan->StarMapped = NewMapped;
+    // Re-point binding 23 at the reallocated buffer. A single write — re-running the whole set would stomp the
+    //    per-frame texture table state that UploadScene established after bring-up.
+    VkDescriptorBufferInfo StarInfo{ Vulkan->StarBuffer, 0u, VK_WHOLE_SIZE };
+    VkWriteDescriptorSet Write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+    Write.dstSet = Vulkan->ComputeDescriptorSet;
+    Write.dstBinding = 23u;
+    Write.descriptorCount = 1u;
+    Write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    Write.pBufferInfo = &StarInfo;
+    vkUpdateDescriptorSets(Vulkan->Device, 1u, &Write, 0u, nullptr);
 }
 
 void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures) noexcept

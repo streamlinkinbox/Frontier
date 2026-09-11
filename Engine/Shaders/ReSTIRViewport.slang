@@ -128,6 +128,7 @@ layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz
 //    NUMBER in the set, which is what the variable-count rule constrains — source order is free.
 layout(binding = 25) uniform sampler2D Textures[];   // R4a bindless table — ⚠️ moved 11 → 15 in R4b → 18 in R6 → 19 in R7a → 21 in R7 → 23 in A2 → 25 in A7: a variable-count binding must be the last one in the set
 #include "Shaders/MoonRecords.slang"
+#include "Shaders/PostRecords.slang"
 #include "Shaders/SkyRecords.slang"
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
@@ -741,6 +742,14 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth)
     count      = count + 1.0;
     vec3 mean  = history.rgb + (radiance - history.rgb) / count;
 
+    // The lens's answer to the sun, added to the LINEAR mean before either sink reads it — the denoiser's input
+    //    and the direct presentation agree by construction. Analytic, so no variance is booked for it: the moments
+    //    above already ran on the sample alone.
+    {
+        vec2 extent = vec2(float(ViewportWidth), float(ViewportHeight));
+        mean += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));
+    }
+
     // R7: the same incremental mean applied to the first two luminance moments. Variance is E[x²] − E[x]², which is
     //    the noise estimate the à-trous filter divides by; a pixel with many samples reports a small variance and
     //    is therefore barely filtered, which is how the denoiser fades out as the image converges.
@@ -810,7 +819,9 @@ void main()
         vec3  direction = normalize(CameraForward
                                   + CameraRight * (ndc.x * FieldOfViewTanHalf * aspect)
                                   - CameraUp    * (ndc.y * FieldOfViewTanHalf));
-        Resolve(pixel, SkyAlong(direction));
+        // A missed ray crosses the whole rain column, so it earns the full bow (the large distance saturates
+        //    the path fraction exactly as the model prescribes for the sky).
+        Resolve(pixel, SkyAlong(direction) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));
         return;
     }
 
@@ -1141,6 +1152,10 @@ void main()
     //    the discs through SkyAlong (the GI moonlight); this is the direct fill for the primary hit, so one
     //    bounce is enough for moonlight to read. Zero when no moon is up, by the count in the block.
     accumulatedRadiance += albedo * frame.Occlusion * MoonAmbient();
+    // The bow in the air the view ray crossed: primary rays only (a rasterizer's placement — the escaped bounce
+    //    is a transport path, not a view). The view direction runs camera-ward reversed, and the primary travel
+    //    is the rain column — short rays earn no bow, which keeps the arc off nearby geometry.
+    accumulatedRadiance += RainbowAlong(-viewDir, SkySunDirection.xyz, primaryT);
 
     // R7a: the primary hit's geometric normal and camera distance are what the next frame validates its
     //    back-projection against — the same pair R6 row 2 uses to validate reprojected reservoirs.

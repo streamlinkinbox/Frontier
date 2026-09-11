@@ -448,6 +448,70 @@ MoonConstantRecord CelestialSequence::PackMoonRecord() const noexcept
     return PackMoonConstants(Draw.Entries, Draw.Count);
 }
 
+PostConstantRecord CelestialSequence::PackPostRecord(const float CameraForward[3], const float CameraRight[3],
+                                                     const float CameraUp[3], float TanHalfFieldOfView,
+                                                     float AspectRatio, uint32_t ViewportHeightPx,
+                                                     float SunVisibility) const noexcept
+{
+    // Stars ride the solved sidereal time and the observer's latitude; a hidden Stars entity or a missing
+    //    catalogue packs zero brightness, which is the kernel's early-out (the tables upload never ran, but the
+    //    bring-up zeros stand and the brightness gate never touches them).
+    const bool WantStars = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Stars)] && !Catalogue.Empty();
+    const float StarBrightness = WantStars ? CelestialSequence::StarBrightness : 0.0f;
+    // The star core floors at half a pixel: the shader's PixelSpreadAngle(), computed here because the post
+    //    file reads no push constants. A zero height is a caller bug — guard rather than divide.
+    const float PixelSpread = ViewportHeightPx > 0u && TanHalfFieldOfView > 0.0f
+                            ? 2.0f * TanHalfFieldOfView / static_cast<float>(ViewportHeightPx) : 0.0f;
+
+    // The sun to screen UV: the kernel's ray reconstruction inverted. direction ∝ F + R·(ndc.x·t·a) − U·(ndc.y·t),
+    //    so ndc.x = (s·R/f)/(t·a) and ndc.y = −(s·U/f)/t with f = s·F. A sun behind the camera (f ≤ 0) parks at
+    //    (−10, −10), outside the flare's edge fade — framing, not occlusion, kills that flare.
+    float SunU = -10.0f, SunV = -10.0f;
+    const float F = Solved.Sun.Direction[0] * CameraForward[0] + Solved.Sun.Direction[1] * CameraForward[1]
+                  + Solved.Sun.Direction[2] * CameraForward[2];
+    if (F > 1e-6f && TanHalfFieldOfView > 0.0f && AspectRatio > 0.0f)
+    {
+        const float R = Solved.Sun.Direction[0] * CameraRight[0] + Solved.Sun.Direction[1] * CameraRight[1]
+                      + Solved.Sun.Direction[2] * CameraRight[2];
+        const float U = Solved.Sun.Direction[0] * CameraUp[0] + Solved.Sun.Direction[1] * CameraUp[1]
+                      + Solved.Sun.Direction[2] * CameraUp[2];
+        SunU = ((R / F) / (TanHalfFieldOfView * AspectRatio)) * 0.5f + 0.5f;
+        SunV = ((-(U / F)) / TanHalfFieldOfView) * 0.5f + 0.5f;
+    }
+    const bool WantFlare = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::LensFlare)] && Flare.Enabled;
+
+    // Rain visibility rises with the fall rate (10 mm/h moderate = full column); drizzle earns half, snow and
+    //    hail earn nothing — ice makes halos, not bows. Default off with the precipitation itself.
+    float RainVisibility = 0.0f;
+    if (Enabled && Precip.Enabled)
+    {
+        if (Precip.Category == Frontier::PrecipitationCategory::Rain)
+            RainVisibility = Precip.RateMillimetresPerHour / 10.0f > 1.0f ? 1.0f
+                           : Precip.RateMillimetresPerHour / 10.0f;
+        else if (Precip.Category == Frontier::PrecipitationCategory::Drizzle)
+            RainVisibility = Precip.RateMillimetresPerHour / 20.0f > 0.5f ? 0.5f
+                           : Precip.RateMillimetresPerHour / 20.0f;
+        if (RainVisibility < 0.0f) RainVisibility = 0.0f;
+    }
+    const bool WantBow = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Rainbow)] && Rainbow.Enabled;
+
+    // The horizon fade for the flare's visibility, −2..0° of sun elevation. The model's SmoothStep is private
+    //    to its class, so the three lines are restated here rather than reached for.
+    const float ElevT = (Solved.Sun.Elevation + 2.0f) / 2.0f;
+    const float ElevC = ElevT < 0.0f ? 0.0f : (ElevT > 1.0f ? 1.0f : ElevT);
+    const float ElevationFade = ElevC * ElevC * (3.0f - 2.0f * ElevC);
+
+    return PackPostConstants(Solved.LocalSiderealTime, Observation.Latitude, StarSize, StarBrightness, PixelSpread,
+                             static_cast<uint32_t>(Flare.Category), Flare.GhostCount, Flare.Intensity,
+                             Flare.HaloRadius, Flare.Chromatic, Flare.StreakGain, Flare.ApertureBlades,
+                             // Below-horizon suns flare nothing (no direct light enters the lens); faded over
+                             // −2..0° so the ghosts leave with the sunset rather than popping.
+                             SunVisibility * ElevationFade,
+                             SunU, SunV, WantFlare,
+                             Rainbow.Intensity, Rainbow.Width, Rainbow.SecondaryGain, Rainbow.AlexanderBand,
+                             Rainbow.MinimumPathMetres, RainVisibility, WantBow);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 uint32_t CelestialSequence::AppendRoster(EditorInstance* Instances, uint32_t Written, uint32_t Capacity) const noexcept

@@ -243,6 +243,15 @@ public:
     //    288, or the buffer does not exist yet; the previous contents stand, so a refusal degrades to stale
     //    moons — and zero is no moons at all (MoonControl.x = 0), which is the kernel's early-out.
     [[nodiscard]] bool          RefreshMoons(const void* Bytes, uint32_t ByteCount) noexcept;
+    // Celestial post record → binding 24, safe every frame: the same arrangement as the records above, 128
+    //    bytes packed by PostConstantRecord/PackPostConstants. False on null bytes, wrong size, or no buffer;
+    //    the previous contents stand. Zero is everything off (stars, flare, bow), the kernel's early-out.
+    [[nodiscard]] bool          RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept;
+    // Star tables → binding 23, once after the catalogue loads: 1 024 cells of 8 B then StarCount stars of
+    //    32 B, re-pointing the binding at the reallocated buffer. Skipped (never called) when the catalogue
+    //    is empty — the bring-up zeros stand. A refused upload keeps the previous tables, never a hole.
+    void                        UploadStarTables(const void* CellBytes, uint32_t CellCount,
+                                                 const void* StarBytes, uint32_t StarCount) noexcept;
     void*                       SwapReservoirParity() noexcept;   // R6: flip prev/curr reservoir bindings (16/17); returns the new prev buffer (null when unavailable)
 
     // R2 frame front end (cull → visibility raster → HiZ → resolve) recorded before the kernel each frame.
@@ -334,6 +343,8 @@ private:
     [[nodiscard]] bool  BringLuminanceReduction() noexcept; // A6b: the average-log-luminance pass
     [[nodiscard]] bool  BringSkyRecord() noexcept;   // Celestial sky uniform buffer (binding 21) — before BringDescriptorSet, which writes it
     [[nodiscard]] bool  BringMoonRecord() noexcept;  // Celestial moon uniform buffer (binding 22) — beside the sky record, same ordering rule
+    [[nodiscard]] bool  BringPostRecord() noexcept;  // Celestial post uniform buffer (binding 24) — with the records, same ordering rule
+    [[nodiscard]] bool  BringStarTables() noexcept;  // Star tables storage buffer (binding 23) — cells alone at bring-up, UploadStarTables grows it
     // Rewritten on every resize: this set binds HistoryImageView, which a resize destroys and recreates.
     void                WriteLuminanceDescriptors() noexcept;
     [[nodiscard]] bool  BringCommandRecording() noexcept;

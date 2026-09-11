@@ -228,6 +228,10 @@ vec3 SkyAlong(vec3 Direction)
     vec3 Transmittance;
     bool HitGround;
     vec3 Radiance = SkyRadiance(Direction, Transmittance, HitGround);
+    // Stars read the integral's own luminance as their visibility gate — the raster's rule (a star shows only
+    //    when it outshines the air behind it), evaluated before the moons and twilight join, exactly where the
+    //    raster evaluates it. StarAlong is declared by PostRecords.slang, included before this file.
+    if (!HitGround) Radiance += StarAlong(Direction, dot(Radiance, vec3(0.2126, 0.7152, 0.0722)));
     if (!HitGround) Radiance += SkyTwilightGlow(Direction);
     // The moons ride the same transmittance the integral measured, and hide behind the planet like the twilight
     //    does. MoonAlong is declared by MoonRecords.slang, which ReSTIRViewport includes BEFORE this file.

@@ -541,6 +541,28 @@ int main(int argc, char** argv)
     //    now carry pixels the CPU raster can borrow. A missing file degrades to the index's 1x1 placeholder —
     //    a pale disc, logged at decode — never a refusal to start.
     Celestial.AssignMoonAtlas(MoonSlots, Textures);
+    // The star tables upload once, now the catalogue is loaded: cells then binned stars into binding 23.
+    //    Skipped — never called — when the catalogue is empty, so the bring-up zeros stand and the packer's
+    //    zero brightness keeps the kernel's star loop off. Static for the run: the sky's rotation is time, not
+    //    data, and it rides the per-frame record instead.
+    {
+        const Frontier::StarCatalogueIndex& Stars = Celestial.Stars();
+        if (!Stars.Empty())
+        {
+            Surface.UploadStarTables(Stars.QueryCells().data(), static_cast<uint32_t>(Stars.QueryCells().size()),
+                                     Stars.QueryStars().data(), static_cast<uint32_t>(Stars.QueryStars().size()));
+            char StarLine[96];
+            std::snprintf(StarLine, sizeof(StarLine), "%u stars in %u cells uploaded to binding 23.",
+                          static_cast<uint32_t>(Stars.QueryStars().size()),
+                          static_cast<uint32_t>(Stars.QueryCells().size()));
+            Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Stars", StarLine);
+        }
+        else
+        {
+            Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Stars",
+                                 "Catalogue empty or missing — the night sky renders starless.");
+        }
+    }
     uint32_t CelestialFirstRow = Frontier::kNoEditorInstance;
 
     Panel.ApplyTheme();
@@ -599,6 +621,7 @@ int main(int argc, char** argv)
     uint32_t AppliedNotifyRevision     = 0u;
     Frontier::SkyConstantRecord  LastSky{};    // last sky bytes pushed (④d); a change restarts the accumulation
     Frontier::MoonConstantRecord LastMoons{};  // last moon bytes pushed (④e); a change restarts the accumulation
+    Frontier::PostConstantRecord LastPost{};   // last post bytes pushed (④f); a change restarts the accumulation
     bool     BakeAnnounced             = false;  // "Baking Complete" = temporal accumulation reached BakeFrameCount
     constexpr uint32_t BakeFrameCount  = 256u;
     std::string LastSaveError;                   // de-duplicates the "Autosave Errors" toast
@@ -1405,6 +1428,39 @@ int main(int argc, char** argv)
             if (std::memcmp(&Moons, &LastMoons, sizeof(Moons)) != 0)
             {
                 LastMoons = Moons;
+                Integrator.ResetAccumulation();
+            }
+        }
+
+        // ④f GPU post — stars, flare and rainbow ride one 128-byte record at binding 24. The flare's occlusion
+        //     is a single camera→sun ray through the CPU traversal: the header's "never per frame" guidance
+        //     targets per-pixel tracing, and one ray is microseconds — the one query the flare's own spec
+        //     demands (light that never entered the lens cannot bounce in it). Pushed every frame beside the
+        //     sky and moons, and compared like them, so star/flare/bow sliders land the tick they move.
+        {
+            const Frontier::Vector3 Eye = Camera.QuerySpatialLocation();
+            const float EyeArray[3] = { Eye.x, Eye.y, Eye.z };
+            const Frontier::CelestialFrame& Frame = Celestial.Frame();
+            float SunVisibility = 1.0f;
+            if (Traversal.IsReady())
+            {
+                float HitDistance = 0.0f; uint32_t HitPrimitive = 0u;
+                if (Traversal.TraceClosest(EyeArray, Frame.Sun.Direction, HitDistance, HitPrimitive))
+                    SunVisibility = 0.0f;
+            }
+            const Frontier::Vector3 Forward = Camera.QueryForwardVector();
+            const Frontier::Vector3 Right   = Camera.QueryRightVector();
+            const Frontier::Vector3 Upward  = Camera.QueryUpwardVector();
+            const float ForwardArray[3] = { Forward.x, Forward.y, Forward.z };
+            const float RightArray[3]   = { Right.x, Right.y, Right.z };
+            const float UpArray[3]      = { Upward.x, Upward.y, Upward.z };
+            const Frontier::PostConstantRecord Post =
+                Celestial.PackPostRecord(ForwardArray, RightArray, UpArray, Dispatch.FieldOfViewTanHalf,
+                                         Camera.QueryAspectRatio(), RenderHeight, SunVisibility);
+            (void)Surface.RefreshPost(&Post, sizeof(Post));
+            if (std::memcmp(&Post, &LastPost, sizeof(Post)) != 0)
+            {
+                LastPost = Post;
                 Integrator.ResetAccumulation();
             }
         }

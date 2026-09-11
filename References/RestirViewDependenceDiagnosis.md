@@ -247,6 +247,51 @@ built; it will need your GPU to validate.
 **Found but untouched:** the GPU kernel draws no stars at all (catalogue + star loop are CPU-raster
 only) — the live night sky is atmosphere + moon. Same class of CPU/GPU gap as the flare.
 
+## §10 — Stars, flare and rainbow now run on the GPU (wired end to end); kernel sun-direct stays absent by design
+
+**What was built:** the three effects §4/§9 found CPU-only now render on the RESTIR path through
+one seam. `PostConstantRecord.h` (128 B, 8 offset asserts) mirrors a std140 block at binding 24;
+the star catalogue rides a std430 SSBO at binding 23
+(`StarCells[1024]` + unsized `StarStars[]`, 32 B records); `PostRecords.slang` transcribes the
+three models (star octahedral-cell walk, flare ghosts/halo/streaks, Descartes bow with baked
+angles); the kernel hooks them in four places (stars into `SkyAlong` pre-twilight, bow on miss
+and on shaded hit with the hit's own column, flare onto the linear mean in the resolve);
+`SwapchainExchange` brings both buffers before the descriptor set, writes them, and retires
+without unbinding; `GameExecution` uploads the tables once the catalogue loads and packs +
+pushes the record every frame — including the single CPU sun-occlusion ray the flare's spec
+demands (`Traversal.TraceClosest`, eye→sun, per frame). A second pack lives nowhere: pack,
+push and record-compare sit beside the sky/moon frame logic already there.
+
+**The full panel→record→binding→shader→frame chain, all six effects, verified (not believed):**
+
+| Effect | Panel | Record | Binding | Shader | Frame |
+|---|---|---|---|---|---|
+| Sky | Celestial sheet (§8) | `PackSkyRecord` | sky block | `SkyAlong`, miss + escape | pushed + compared per frame |
+| Sun disc | Sun row (ang/soft/boost) | sky block gain rule | sky block | disc in `SkyAlong` (§6) | SPIR-V + parity pins |
+| Moons | Atlas rows, 4 at once | `PackMoonRecord` | moon block + atlas | `MoonRecords` textured disc | MoonKernel gate, 67 PASS |
+| Stars | Size/Brightness + clock | post row 0 (LST/lat/size/bright) | 24 + tables at 23 | `StarAlong` in `SkyAlong` | upload-once, pack per frame |
+| Flare | Type/Intensity/Ghosts/Halo/Blades | post rows 1-2 + FlareUv | 24 | `FlareAlong` in resolve | per-frame SunUv + occlusion ray |
+| Rainbow | Intensity/Width/Secondary/Rain | post rows 3-4 + rain vis | 24 | `RainbowAlong`, miss + hit | per-frame precip mapping |
+
+Every link has a gate: `CheckPostKernel` (pack proof, 28-angle Descartes match, shared 0.09
+ceiling, hook presence, no push-constant reach, mirror offsets, layout/pool/write/retire pins,
+single-caller pins), `CheckSkyKernel` (25-binding SPIR-V table incl. 23/24), `CheckShaderCompile`
+(all 7 shaders lower, viewport at 65 511 words), plus full `GameExecution`/`SwapchainExchange`
+syntax closure. Where a transcription could fork (bow angles, star ceiling), the gate diffs the
+shader literal against the model every run instead of trusting it.
+
+**Found scope, documented, NOT redesigned — the kernel sun gives no direct light or shadows.**
+The kernel's direct-light set is emissive mesh triangles only (`Luminaires[]`,
+`LightTriangleCount`, `PickLight` over the luminaire buffer, `SampleLightPoint` +
+`TraceShadow` occlusion — `ReSTIRViewport.slang:338,546-585`). The sun is not a luminaire:
+`SkySunDirection` feeds the sky integral, the disc and the bow, and nothing else. Sunlight
+reaches surfaces only through the sky integral on miss/escape rays plus the flat `MoonAmbient`
+indoor fill (`:1154`) — GI-skylight, no sun NEE, no sun shadows. The shadow machinery exists
+(`TraceShadow`, any-hit + cut-out walk) but has no sun target to aim at. Promoting the sun into
+the light set is a transport change (luminaire slot, NEE target, MIS weight against the mesh
+lights), not a wiring fix — out of this turn's scope by decision, recorded here so it stops
+being mistaken for a bug.
+
 ## Appendix — build-script fix committed alongside
 
 Your pasted link errors were real on this branch too: `ToolchainSequence.ps1`'s

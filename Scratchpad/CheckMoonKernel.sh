@@ -68,9 +68,11 @@ fi
 Kernel=Engine/Shaders/ReSTIRViewport.slang
 Moon=Engine/Shaders/MoonRecords.slang
 Sky=Engine/Shaders/SkyRecords.slang
+Post=Engine/Shaders/PostRecords.slang
 Code="$(sed 's;//.*;;' "$Kernel")"
 MoonCode="$(sed 's;//.*;;' "$Moon")"
 SkyCode="$(sed 's;//.*;;' "$Sky")"
+PostCode="$(sed 's;//.*;;' "$Post")"
 
 echo
 echo "[MoonKernel] the discs and the moonlight are wired into the kernel"
@@ -86,9 +88,12 @@ echo
 echo "[MoonKernel] the block is declared where it was reserved"
 printf '%s' "$MoonCode" | grep -q 'layout(std140, binding = 22) uniform MoonConstants'
 Report $? "the moon uniform sits at binding 22"
-# 23-24 must stay undeclared: a declared-but-unwritten descriptor is a validation error, not free space.
-! printf '%s' "$Code$MoonCode$SkyCode" | grep -qE 'binding = 2[34]\)'
-Report $? "bindings 23-24 stay reserved rather than declared"
+# 23-24 are the post seam's: star tables (storage) and the post record (UBO). Both are written at bring-up,
+#    so neither is the declared-but-unwritten hole this assert used to forbid.
+printf '%s' "$PostCode" | grep -q 'layout(std430, binding = 23) readonly buffer StarTable'
+Report $? "the star tables sit at binding 23"
+printf '%s' "$PostCode" | grep -q 'layout(std140, binding = 24) uniform PostConstants'
+Report $? "the post record sits at binding 24"
 printf '%s' "$Code" | grep -q 'binding = 25) uniform sampler2D Textures'
 Report $? "the bindless table is still last, as a variable-count binding must be"
 
@@ -154,8 +159,9 @@ Report $? "CelestialSettings defaults to no moons"
 echo
 echo "[MoonKernel] the compiled kernel agrees with the host layout"
 # The kernel is compiled to real SPIR-V (glslang's WASM build, fetched on demand exactly as CheckShaderCompile
-#    does) and binding 22 must come back a UNIFORM_BUFFER with 23/24 absent — the shader side of the host checks
-#    above. CheckSkyKernel pins the whole table; this pins the moon row, so either gate runs standalone.
+#    does) and binding 22 must come back a UNIFORM_BUFFER with 23/24 carrying the post seam (stars storage, post
+#    UBO) — the shader side of the host checks above. CheckSkyKernel pins the whole table; this pins the moon
+#    row plus the post rows, so either gate runs standalone.
 MoonCache="${TMPDIR:-/tmp}/frontier-glslang"
 MoonVersion="0.0.15"
 if ! command -v node >/dev/null 2>&1; then
@@ -247,8 +253,12 @@ PY
             *) Report 1 "binding 22 lowers as a uniform buffer"; printf '    table: %s\n' "$Actual";;
         esac
         case " $Actual " in
-            *" 23:"*|*" 24:"*) Report 1 "bindings 23-24 are absent from the binary"; printf '    table: %s\n' "$Actual";;
-            *) Report 0 "bindings 23-24 are absent from the binary";;
+            *" 23:STORAGE_BUFFER "*) Report 0 "binding 23 lowers as the star-table storage buffer";;
+            *) Report 1 "binding 23 lowers as the star-table storage buffer"; printf '    table: %s\n' "$Actual";;
+        esac
+        case " $Actual " in
+            *" 24:UNIFORM_BUFFER "*) Report 0 "binding 24 lowers as the post uniform buffer";;
+            *) Report 1 "binding 24 lowers as the post uniform buffer"; printf '    table: %s\n' "$Actual";;
         esac
     fi
 fi

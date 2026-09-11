@@ -43,15 +43,17 @@ rm -f "$Pack"
 
 Kernel=Engine/Shaders/ReSTIRViewport.slang
 Sky=Engine/Shaders/SkyRecords.slang
+Post=Engine/Shaders/PostRecords.slang
 Code="$(sed 's;//.*;;' "$Kernel")"
 SkyCode="$(sed 's;//.*;;' "$Sky")"
+PostCode="$(sed 's;//.*;;' "$Post")"
 
 echo
 echo "[SkyKernel] both miss branches collect the sky"
 # ⚠️ Comments are stripped first. Both files explain these branches at length and a bare word match would find
 #    the prose rather than the code — the trap CheckShadowTiers records for the PCSS half-angle.
-printf '%s' "$Code" | grep -q 'Resolve(pixel, SkyAlong(direction));'
-Report $? "a missed primary ray resolves to the sky"
+printf '%s' "$Code" | grep -q 'Resolve(pixel, SkyAlong(direction) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));'
+Report $? "a missed primary ray resolves to the sky and the bow"
 printf '%s' "$Code" | grep -q 'accumulatedRadiance += throughput \* SkyAlong(bounceDir);'
 Report $? "an escaped bounce ray adds the sky as a light"
 # The old text is the regression: if either branch says this again, the sky has been unwired.
@@ -68,9 +70,12 @@ echo
 echo "[SkyKernel] the block is declared where it was reserved"
 printf '%s' "$SkyCode" | grep -q 'layout(std140, binding = 21) uniform SkyConstants'
 Report $? "the sky uniform sits at binding 21"
-# 23-24 must stay undeclared: a declared-but-unwritten descriptor is a validation error, not free space.
-! printf '%s' "$Code$SkyCode" | grep -qE 'binding = 2[34]\)'
-Report $? "bindings 23-24 stay reserved rather than declared"
+# 23-24 are the post seam's: star tables (storage) and the post record (UBO). Both are written at bring-up,
+#    so neither is the declared-but-unwritten hole this assert used to forbid.
+printf '%s' "$PostCode" | grep -q 'layout(std430, binding = 23) readonly buffer StarTable'
+Report $? "the star tables sit at binding 23"
+printf '%s' "$PostCode" | grep -q 'layout(std140, binding = 24) uniform PostConstants'
+Report $? "the post record sits at binding 24"
 printf '%s' "$Code" | grep -q 'binding = 25) uniform sampler2D Textures'
 Report $? "the bindless table is still last, as a variable-count binding must be"
 
@@ -129,8 +134,8 @@ echo "[SkyKernel] the compiled kernel agrees with the host layout"
 # The source greps above pin each side separately; this pins them against each other. The kernel is compiled to
 #    real SPIR-V (glslang's WASM build, fetched on demand exactly as CheckShaderCompile does), its binding table
 #    is read back out of the binary, and every declared binding must carry the descriptor type the host layout
-#    assigns it. 23/24 must be absent from the shader entirely: the host declares them as holes, and a hole
-#    the shader starts reading is a validation error, not free space.
+#    assigns it, 23/24 included: the host writes the star tables and the post record at bring-up, so the
+#    table carries them like any other live binding.
 SkyCache="${TMPDIR:-/tmp}/frontier-glslang"
 SkyVersion="0.0.15"
 if ! command -v node >/dev/null 2>&1; then
@@ -219,9 +224,9 @@ PY
         rm -f "$Spv"
         # The host layout in SwapchainExchange::BringComputePipeline must declare exactly these types. Not derived
         #    from the host source: the point is that two independently written tables agree, so this is written out.
-        Expected="0:STORAGE_IMAGE 1:STORAGE_BUFFER 2:STORAGE_BUFFER 3:STORAGE_IMAGE 4:STORAGE_IMAGE 5:STORAGE_IMAGE 6:STORAGE_BUFFER 7:STORAGE_BUFFER 8:STORAGE_BUFFER 9:STORAGE_BUFFER 10:STORAGE_BUFFER 11:STORAGE_BUFFER 12:STORAGE_BUFFER 13:COMBINED_IMAGE_SAMPLER 14:COMBINED_IMAGE_SAMPLER 15:COMBINED_IMAGE_SAMPLER 16:STORAGE_BUFFER 17:STORAGE_BUFFER 18:STORAGE_IMAGE 19:STORAGE_IMAGE 20:STORAGE_IMAGE 21:UNIFORM_BUFFER 22:UNIFORM_BUFFER 25:COMBINED_IMAGE_SAMPLER"
+        Expected="0:STORAGE_IMAGE 1:STORAGE_BUFFER 2:STORAGE_BUFFER 3:STORAGE_IMAGE 4:STORAGE_IMAGE 5:STORAGE_IMAGE 6:STORAGE_BUFFER 7:STORAGE_BUFFER 8:STORAGE_BUFFER 9:STORAGE_BUFFER 10:STORAGE_BUFFER 11:STORAGE_BUFFER 12:STORAGE_BUFFER 13:COMBINED_IMAGE_SAMPLER 14:COMBINED_IMAGE_SAMPLER 15:COMBINED_IMAGE_SAMPLER 16:STORAGE_BUFFER 17:STORAGE_BUFFER 18:STORAGE_IMAGE 19:STORAGE_IMAGE 20:STORAGE_IMAGE 21:UNIFORM_BUFFER 22:UNIFORM_BUFFER 23:STORAGE_BUFFER 24:UNIFORM_BUFFER 25:COMBINED_IMAGE_SAMPLER"
         [ "$Actual" = "$Expected" ]
-        Report $? "all 23 declared bindings match the host layout"
+        Report $? "all 25 declared bindings match the host layout"
         if [ "$Actual" != "$Expected" ]; then printf '    shader: %s\n    host:   %s\n' "$Actual" "$Expected"; fi
     fi
 fi
