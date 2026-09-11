@@ -22,7 +22,7 @@
 //                                                   THE UNIFORM BLOCK
 //------------------------------------------------------------------------------------------------------------------------
 
-// 112 bytes, std140. Sized against Vulkan's guaranteed 128-byte push limit deliberately NOT applying here: the
+// 144 bytes, std140. Sized against Vulkan's guaranteed 128-byte push limit deliberately NOT applying here: the
 //    push block is already at that limit with five uint reserves left, and the sky needs 108 bytes of medium and
 //    control. A uniform buffer is the only place it fits, which is what the binding reservation anticipated.
 layout(std140, binding = 21) uniform SkyConstants
@@ -35,7 +35,13 @@ layout(std140, binding = 21) uniform SkyConstants
     vec4 SkyPlanet;          // x = planet radius [m], y = atmosphere height [m], z = camera height [m], w = unused
     uvec4 SkyControl;        // x = view samples, y = light samples, z = twilight flags, w = unused
     vec4 SkyTwilight;        // x = glow intensity, y = line intensity, z = 1 when the line is civil-only, w = unused
+    vec4 SkySunDirect;       // xyz = panel direct-sun factor 0.11·gain·colour·T (kernel: ÷Ω, ×Ω back); w = unused
 };
+
+// The sun's angular RADIUS, one definition for the two consumers: the disc below draws this body, and the
+//    viewport's next-event estimator samples it — a disc and a light that disagree on the sun's size would be
+//    two suns. (Was the disc's private literal; same value, now shared.)
+const float kSunAngularRadius = 0.53 * (3.14159265358979323846 / 180.0) * 0.5;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE INTEGRAL
@@ -249,7 +255,7 @@ vec3 SkyAlong(vec3 Direction)
     {
         const float kPi = 3.14159265358979323846;
         float SunAng = acos(clamp(dot(Direction, SkySunDirection.xyz), -1.0, 1.0));
-        const float kSunRadius = 0.53 * (kPi / 180.0) * 0.5;
+        const float kSunRadius = kSunAngularRadius;   // the shared body: the NEE cone samples this same disc
         const float kSunSoft = 0.25;
         const float kSunBoost = 12.0;
         float ViewElev = degrees(asin(clamp(Direction.z, -1.0, 1.0)));

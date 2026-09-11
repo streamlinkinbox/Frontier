@@ -171,6 +171,39 @@ int main(){
                "a hidden sun packs zero radiance, which kills the disc's multiplier");
     }
 
+    // ── The direct-sun row ─────────────────────────────────────────────────────────────────────────
+    // PackSkyConstants marches the sun path by the same Integrate the raster calls; the row must equal
+    //    0.11·gain·colour·T with T from an INDEPENDENT march, and be exactly zero whenever the sun cannot shine.
+    {
+        AtmosphereLight Sun = Light;
+        Sun.Direction[0] = 0.0f; Sun.Direction[1] = 0.6427876097f; Sun.Direction[2] = 0.7660444431f; // 50° elev
+        const AtmosphereSample March = AtmosphereModel::Integrate(Medium, Sun, 2.0f, Sun.Direction, 16u, 1u);
+        const SkyConstantRecord D = PackSkyConstants(Medium, Sun, Twilight, 50.0f, 2.0f, 16u, 6u, true);
+        bool Exact = D.SunDirect[0] > 0.0f && D.SunDirect[1] > 0.0f && D.SunDirect[2] > 0.0f;
+        for (int C = 0; C < 3; ++C)
+        {
+            const float Want = 0.11f * Sun.Colour[C] * Sun.Intensity * March.Transmittance[C];
+            Exact = Exact && std::fabs(D.SunDirect[C] - Want) <= 1e-6f * std::fabs(Want);
+        }
+        Expect(Exact, "daylight packs 0.11·colour·gain·T off an independent sun-path march");
+        const SkyConstantRecord D2 = PackSkyConstants(Medium, Sun, Twilight, 50.0f, 2.0f, 16u, 6u, true, 2.0f);
+        bool Doubled = true;
+        for (int C = 0; C < 3; ++C)
+            Doubled = Doubled && std::fabs(D2.SunDirect[C] - 2.0f * D.SunDirect[C]) <= 1e-6f * D.SunDirect[C];
+        Expect(Doubled, "the Direct gain scales the row, so the slider reaches the record");
+        const SkyConstantRecord OffD = PackSkyConstants(Medium, Sun, Twilight, 50.0f, 2.0f, 16u, 6u, false);
+        Expect(OffD.SunDirect[0] == 0.0f && OffD.SunDirect[1] == 0.0f && OffD.SunDirect[2] == 0.0f,
+               "a disabled sky packs zero direct sun");
+        const SkyConstantRecord Night = PackSkyConstants(Medium, Sun, Twilight, -5.0f, 2.0f, 16u, 6u, true);
+        Expect(Night.SunDirect[0] == 0.0f && Night.SunDirect[1] == 0.0f && Night.SunDirect[2] == 0.0f,
+               "below the horizon the planet shadows the direct sun (hard zero)");
+        AtmosphereLight Hidden = Sun; Hidden.Intensity = 0.0f;
+        const SkyConstantRecord Hid = PackSkyConstants(Medium, Hidden, Twilight, 50.0f, 2.0f, 16u, 6u, true);
+        Expect(Hid.SunDirect[0] == 0.0f && Hid.SunDirect[1] == 0.0f && Hid.SunDirect[2] == 0.0f,
+               "a hidden sun (zero intensity) packs zero direct sun");
+        Expect(D.SunDirect[3] == 0.0f, "the direct row's spare lane stays reserved");
+    }
+
     std::printf("\n");
     for(int I=0;I<108;++I) std::putchar('=');
     std::printf("\n%s\n\n", Failures==0 ? "  the shader and the model agree" : "  THE SHADER AND THE MODEL DISAGREE");

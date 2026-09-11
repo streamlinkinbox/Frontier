@@ -87,10 +87,10 @@ Report $? "the medium arrives in the block rather than being restated"
 
 echo
 echo "[SkyKernel] the C++ mirror matches the shader's std140 layout"
-grep -q 'static_assert(sizeof(SkyConstantRecord) == 128u' Engine/DisplayPresentation/SkyConstantRecord.h
-Report $? "the record is pinned at 128 bytes"
+grep -q 'static_assert(sizeof(SkyConstantRecord) == 144u' Engine/DisplayPresentation/SkyConstantRecord.h
+Report $? "the record is pinned at 144 bytes"
 Offsets=$(grep -c 'static_assert(offsetof(SkyConstantRecord' Engine/DisplayPresentation/SkyConstantRecord.h)
-[ "$Offsets" -ge 7 ]
+[ "$Offsets" -ge 8 ]
 Report $? "every member's offset is asserted ($Offsets of them)"
 
 echo
@@ -109,10 +109,10 @@ grep -q 'PoolSizes\[2\].descriptorCount = 3u' "$X"
 Report $? "the sampler pool no longer budgets binding 22"
 grep -q 'PoolSizes\[3\].descriptorCount = 3u' "$X"
 Report $? "the UBO pool budgets sky, moons and the retired hole"
-# DeviceExchange may not include DisplayPresentation, so the 128 restated there is pinned by hand: if the mirror
+# DeviceExchange may not include DisplayPresentation, so the 144 restated there is pinned by hand: if the mirror
 #    ever grows, this is the check that says the host allocation did not follow it.
-grep -q 'kSkyRecordBytes = 128u' "$X"
-Report $? "the host allocation agrees with the mirror's 128 bytes"
+grep -q 'kSkyRecordBytes = 144u' "$X"
+Report $? "the host allocation agrees with the mirror's 144 bytes"
 # A write's descriptorType must equal the layout's too, which is why 21 has its own helper rather than WriteBuffer.
 grep -q 'Write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; Write.pBufferInfo' "$X"
 Report $? "the write helper speaks uniform-buffer, not storage-buffer"

@@ -405,7 +405,7 @@ SkyConstantRecord CelestialSequence::PackSkyRecord() const noexcept
         Effective.Intensity = 0.0f;
 
     return PackSkyConstants(Medium, Effective, Twilight, Solved.Sun.Elevation, /*CameraHeightMetres=*/2.0f,
-                            Budget.AtmosphereSamples, Budget.AtmosphereLightSamples, Enabled);
+                            Budget.AtmosphereSamples, Budget.AtmosphereLightSamples, Enabled, SunDirect);
 }
 
 void CelestialSequence::AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept
@@ -636,6 +636,7 @@ void CelestialSequence::BuildSheet(CelestialEntity Entity, EditorSheet& Sheet) c
 
         EditorPropertyGroup& Beam = OpenGroup(Sheet, "Light");
         Push(Beam, MakeSlider("Intensity", 0.0f, 60.0f, Light.Intensity, 1, "x"));
+        Push(Beam, MakeSlider("Direct", 0.0f, 5.0f, SunDirect, 2, "x"));
 
         // Read-outs rather than sliders: these are SOLVED, and offering to edit them would imply the solver
         //    could be overridden, which it cannot.
@@ -880,6 +881,7 @@ void CelestialSequence::ApplySheet(CelestialEntity Entity, const EditorSheet& Sh
         Observation.Day        = static_cast<int32_t>(ReadSlider(Sheet, "Day of Month", static_cast<float>(Observation.Day)));
         Observation.Month      = static_cast<int32_t>(ReadSlider(Sheet, "Month", static_cast<float>(Observation.Month)));
         Light.Intensity        = ReadSlider(Sheet, "Intensity", Light.Intensity);
+        SunDirect              = ReadSlider(Sheet, "Direct", SunDirect);
         break;
     }
     case CelestialEntity::Sky:

@@ -57,10 +57,10 @@ static constexpr uint32_t kLocalGroupSizeY = 16u;
 static constexpr uint32_t kDenoiseGroupSize = 8u;
 // A6b: exposure is a whole-frame property, so the reduction subsamples. 32 px gives ~2 000 taps at 1080p.
 static constexpr uint32_t kLuminanceSampleStride = 32u;
-// The Celestial sky uniform block (binding 21) is eight std140 rows — 128 B, pinned by static_assert in
+// The Celestial sky uniform block (binding 21) is nine std140 rows — 144 B, pinned by static_assert in
 //    DisplayPresentation/SkyConstantRecord.h. DeviceExchange must not include DisplayPresentation (it is the
 //    layer below it), so the size is restated here and CheckSkyKernel.sh fails the build if the two disagree.
-static constexpr uint32_t kSkyRecordBytes = 128u;
+static constexpr uint32_t kSkyRecordBytes = 144u;
 // The Celestial moon uniform block (binding 22) is eighteen std140 rows — 288 B, pinned by static_assert in
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
@@ -157,7 +157,7 @@ struct SwapchainExchange::VulkanRecord
     VkDeviceMemory           TraversalNodeMemory   = VK_NULL_HANDLE;
     VkBuffer                 TraversalLeafBuffer   = VK_NULL_HANDLE;   // R3 CWBVH triangles (binding 9)
     VkDeviceMemory           TraversalLeafMemory   = VK_NULL_HANDLE;
-    // Celestial sky record (binding 21). One 128 B uniform buffer, host-visible and persistently mapped: the
+    // Celestial sky record (binding 21). One 144 B uniform buffer, host-visible and persistently mapped: the
     //    project re-packs it every frame and RefreshSky is a memcpy, never a reallocation or a descriptor
     //    rewrite. Zeroed at bring-up, which is the sky disabled (SunRadiance.w = 0) — a caller that never
     //    pushes keeps the old no-environment-light behaviour rather than reading garbage.
@@ -2419,14 +2419,14 @@ bool SwapchainExchange::RefreshTraversal(const TraversalIndex& Traversal, const 
 bool SwapchainExchange::RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept
 {
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
-    //    SkyConstantRecord/PackSkyConstants and hands over the 128 bytes, the way UploadShadingTables receives
+    //    SkyConstantRecord/PackSkyConstants and hands over the 144 bytes, the way UploadShadingTables receives
     //    baked planes. The size is refused rather than trusted: a short write would leave half an old sky in
     //    the buffer, and a long one would overrun the mapping.
     if (!Vulkan->Device || !Vulkan->SkyMapped || !Bytes || ByteCount != kSkyRecordBytes) return false;
     // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
     //    same per-frame shape as RefreshTraversal. The buffer is shared by both cycle slots, so a sufficiently
     //    adversarial scheduler could show one frame a half-old sky; RefreshTraversal accepts that shape for
-    //    megabytes of BVH, which is where the argument ends for 128 coherent bytes.
+    //    megabytes of BVH, which is where the argument ends for 144 coherent bytes.
     std::memcpy(Vulkan->SkyMapped, Bytes, kSkyRecordBytes);
     return true;
 }

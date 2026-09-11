@@ -292,6 +292,52 @@ the light set is a transport change (luminaire slot, NEE target, MIS weight agai
 lights), not a wiring fix — out of this turn's scope by decision, recorded here so it stops
 being mistaken for a bug.
 
+## §11 — The sun now lights and shadows the kernel (direct NEE); three estimator biases found and fixed
+
+**What was built:** the sun is a first-class light in the SAME RIS reservoir as the mesh lamps — not a side
+estimator — so temporal/spatial reuse, M-clamp and W apply to sunlight unchanged. Each candidate flips a pinned
+0.5 coin (sun-only and lamps-only scenes skip it); sun samples draw a uniform direction in the disc cone
+(0.53° shared body with the drawn disc, pdf 1/Ω in half-angle form), mesh samples draw as before; both answer
+w = p̂/p exactly and shadow through the same `TraceShadow`. The reservoir stores a sun win as a far point
+(10 km) under a sentinel light index the host can never read (it only sizes the buffer). Both DI gates run
+when EITHER light kind exists — a lamp-less outdoor scene used to skip direct light entirely. No feature flag:
+the sun switch is the record's direct row, so night, a hidden sun and a disabled sky take the lamps-only path,
+and the outliner SUN row is the kill switch.
+
+**The direct scale is the reference panel's, not an invention.** The panel lights its previews with
+`trans·colour·intensity·0.11·ndl·sh` (`CelestialPanel.html:1162,1182`); the packer packs exactly that factor
+(transmittance marched by the same `Integrate` the raster calls, zero below the horizon) and the kernel divides
+by Ω and multiplies back in the estimator — so the converged NEE EQUALS the panel's formula while sampling the
+real disc (soft shadows) and shadowing through the BVH (the panel's `sh`). Proven by value, not by reading: the
+new Monte Carlo proof converges to `f·Q·cos` with Q = 0.11·22·0.8. One deliberate difference: the panel fades
+direct sun over −2°..+12° elevation, which extinction already does physically here. New SUN-row **Direct slider**
+(0..5, default 1) scales the row only — the sky keeps its own brightness — and lands live through the §8
+compare-and-reset like every other celestial edit.
+
+**Three pre-existing biases came out with it (all fixed, all proven):**
+
+1. **The kernel forgot the area pdf** — weights divided by the pick alone, paying every lamp's contribution
+   divided by its area. The Cornell lamp (0.4 m² triangles) rendered **2.5× too bright**, and the kernel
+   disagreed with the CPU raster, which always carried the area (`Tap.Weight`). The proof pins the diagnosis:
+   the old weights converge to exactly C/A.
+2. **The kernel forgot the emitter cosine** — lamp quads lit from both sides with no falloff, so the room's
+   edges caught light the fixture never threw. The target, shade and bounce now pay the CPU's `LdotL`.
+3. **The bounce divided by the slot count instead of multiplying** — a plain MC sample divides by its pdf
+   (1/slots·1/area), i.e. multiplies by slots·area; the old line did the opposite, defended in-comment, paying
+   the whole second bounce divided by **N²** (4× too dim for the Cornell's 2 triangles). The proof caught this
+   in MY first draft (0.467 vs 0.917) before it shipped — the reason the proof exists.
+
+**Expect the light balance to move — that is the correction, not a regression.** Lamp pools dim 2.5× (they
+were wrong), the second bounce rises 4× (it was wrong), and the sun adds its shaft on top. `Sky Brightness`
+scales sky + sun together (panel line 1149 does the same), `Direct` scales the sun alone, exposure absorbs
+the rest. The estimator proof (24 checks: samplers, quadrature, mesh/sun/mixed reservoirs uniform + alias,
+bounce, panel parity, old-weights C/A) plus the structural gate (pdf lines, single drawer/target, sentinel
+discipline, shared body, panel gain, slider wiring, both gates) pin the new scale; all seven gates pass.
+
+**Found but untouched:** glTF punctual/directional lights are still parsed and stored only
+(`PunctualLuminaireRecord` — the kernel does not light from them yet); the disc's 12× boost stays a literal;
+the d² floors (+0.01 shade vs +0.001 target) still differ by a negligible epsilon, as before.
+
 ## Appendix — build-script fix committed alongside
 
 Your pasted link errors were real on this branch too: `ToolchainSequence.ps1`'s

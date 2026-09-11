@@ -47,7 +47,7 @@ struct PostConstantRecord
     float PostSpare1[4];   // reserved
 };
 
-static_assert(sizeof(PostConstantRecord) == 128u, "the post record is 128 bytes like the sky record");
+static_assert(sizeof(PostConstantRecord) == 128u, "the post record is eight std140 rows");
 static_assert(offsetof(PostConstantRecord, PostStar)    == 0u,   "PostStar at row 0");
 static_assert(offsetof(PostConstantRecord, PostFlare)   == 16u,  "PostFlare at row 1");
 static_assert(offsetof(PostConstantRecord, PostFlare2)  == 32u,  "PostFlare2 at row 2");

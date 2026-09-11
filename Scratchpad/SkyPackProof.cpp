@@ -24,7 +24,7 @@ bool Nearly(float A, float B)
 bool Nearly3(const float A[3], const float B[3]) { return Nearly(A[0],B[0]) && Nearly(A[1],B[1]) && Nearly(A[2],B[2]); }
 }
 
-static_assert(sizeof(SkyConstantRecord) == 128u, "the packed record is the shader's 128-byte block");
+static_assert(sizeof(SkyConstantRecord) == 144u, "the packed record is the shader's 144-byte block");
 
 int main(){
     std::printf("\nCelestialSequence::PackSkyRecord — the kernel is packed the raster's sky\n");

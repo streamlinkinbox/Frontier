@@ -118,11 +118,10 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
 layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
-// ── Bindings 21-22 are the Celestial sky and moons, declared in Shaders/SkyRecords.slang and
-//    Shaders/MoonRecords.slang below. Round 9 vacated 21-24 when the sun/sky system was removed (947b8b9); 21-22
-//    are now filled and 23-24 stay reserved for the transmittance and cloud-shadow surfaces if they are ever
-//    built. They remain undeclared until something writes them, because a declared-but-never-written descriptor
-//    is a validation error rather than free space.
+// ── Bindings 21-24 are the Celestial sky, moons, star tables and post record, declared in
+//    Shaders/SkyRecords.slang, Shaders/MoonRecords.slang and Shaders/PostRecords.slang below. Round 9 vacated
+//    21-24 when the sun/sky system was removed (947b8b9); all four are now filled, each written at bring-up —
+//    a declared-but-never-written descriptor is a validation error rather than free space.
 //    ⚠️ The bindless table is declared BEFORE the includes: MoonAlong samples it, and SkyAlong calls MoonAlong,
 //    so the table and the moons must both be visible where the sky is defined. 25 is still the highest binding
 //    NUMBER in the set, which is what the variable-count rule constrains — source order is free.
@@ -573,6 +572,60 @@ vec3 SampleLightPointFor(uint lightIndex, float u1, float u2)
     return SampleLightPoint(lightIndex, u1, u2);
 }
 
+// Face normal of a light triangle, winding side — the emitter cosine (CPU parity: VisibilityRaster's LdotL).
+//    A luminaire is single-sided: a sample seen from behind its face emits nothing.
+vec3 LightNormal(uint lightIndex)
+{
+    uint idx = LightTriangle(lightIndex);
+    vec3 e1 = Triangles[idx].v1.xyz - Triangles[idx].v0.xyz;
+    vec3 e2 = Triangles[idx].v2.xyz - Triangles[idx].v0.xyz;
+    vec3 n = cross(e1, e2);
+    float len = length(n);
+    return len > 0.0 ? n / len : vec3(0.0, 0.0, 1.0);
+}
+
+// ── The sun as a direct light ──────────────────────────────────────────────────────────────────────────
+// The light set used to be emissive mesh triangles only: sunlight entered through the sky integral on escaped
+//    rays plus the flat indoor fill, so no surface ever caught direct sun and nothing cast a sun shadow. The sun
+//    now joins the reservoir as a first-class candidate — a distant disc sampled uniformly in solid angle,
+//    shadowed by the same TraceShadow every mesh sample takes. It rides the SAME reservoir (not a side
+//    estimator), so temporal/spatial reuse, M-clamp and W apply to sunlight unchanged — the reservoir algebra
+//    only ever asks w = p̂/p, and both light kinds now answer it exactly.
+const float kSunPickProbability = 0.5;   // when sun and lamps coexist, each candidate flips this coin
+const uint  kSunLightIndex      = 0xFFFFFFFFu;   // SelectedLight sentinel: the sample is a sun direction, not a triangle
+const float kSunShadowDistance  = 1.0e4;   // [m] the far point sun samples are stored as — past any scene, inside float range
+
+// Solid angle of the solar disc. Half-angle form, not 2π(1−cosθ): at 0.0046 rad the subtraction cancels to a
+//    1 % error in float, and this Ω divides every sun weight — the bias would land directly on the sunlight.
+float SunSolidAngle()
+{
+    const float kPi = 3.14159265358979323846;
+    float s = sin(kSunAngularRadius * 0.5);
+    return 4.0 * kPi * s * s;
+}
+
+// Uniform direction within the sun's disc cone (pdf 1/Ω). The basis excludes the dominant axis, so it cannot
+//    degenerate wherever the sun stands — zenith included.
+vec3 SampleSunDirection(vec3 sunDir, float u1, float u2)
+{
+    float cosMax = cos(kSunAngularRadius);
+    float cosT = mix(1.0, cosMax, u1);
+    float sinT = sqrt(max(0.0, 1.0 - cosT * cosT));
+    float phi = 6.28318530718 * u2;
+    vec3 up = abs(sunDir.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    vec3 t = normalize(cross(up, sunDir));
+    vec3 b = cross(sunDir, t);
+    return normalize(t * (sinT * cos(phi)) + b * (sinT * sin(phi)) + sunDir * cosT);
+}
+
+// Effective disc radiance: the record carries the panel's direct-sun factor Q (0.11·gain·colour·T), and the
+//    estimator needs radiance — L·Ω must equal the panel's formula, so L = Q/Ω. One Ω, from the shared radius,
+//    which is also why the sun's d² is 1: the far point is a shadow-ray target, not a distance.
+vec3 SunEmission()
+{
+    return SkySunDirect.xyz / SunSolidAngle();
+}
+
 // R6 row 3: light-triangle pick. Alias ON (F5, default): one Walker-alias probe — col uniform, accept on
 //    Threshold else redirect to AliasSlot, source pdf = Probability[z] (power/total, SceneStructure.cpp).
 //    Alias OFF: uniform over luminaires with p = 1/N — bit-for-bit the R0 estimator (identity proof).
@@ -595,17 +648,42 @@ uint PickLight(inout uint seed, out float pSource)
 //                                  RIS DIRECT LIGHTING — WEIGHTED RESERVOIR SAMPLING (initial candidates)
 //------------------------------------------------------------------------------------------------------------------------
 
-// R6 row 2: full-BSDF target — f(wo,wi)·Le·cosθ/d². Any positive target keeps RIS unbiased (converged image
-//    unchanged); the BSDF-weighted one is required for correct re-evaluation at foreign pixels on reuse.
-float PHatFull(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 emit, vec3 toLight, float dist2)
+// R6 row 2: full-BSDF target — f(wo,wi)·Le·cosθ·cosφ/d², both cosines. The emitter cosine is the CPU raster's
+//    LdotL: a lamp quad is single-sided, and without it the room's edges catch light the fixture never threw.
+//    Any positive target keeps RIS unbiased (converged image unchanged); the BSDF-weighted one is required for
+//    correct re-evaluation at foreign pixels on reuse.
+float PHatFull(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 emit, vec3 toLight, float dist2, vec3 lightNormal)
 {
     float dist = max(sqrt(dist2), 1e-9);
     vec3  lDir = toLight / dist;
     float cosT = max(0.0, dot(F.Geometric, lDir));
     if (cosT <= 0.0) return 0.0;
+    float cosL = max(0.0, dot(lightNormal, -lDir));
+    if (cosL <= 0.0) return 0.0;
     vec3  wi = ToLocal(F, lDir);
     if (wi.z <= 0.0) return 0.0;
-    return max(dot(EvaluateBsdf(m, L, wo, wi), emit), 0.0) * cosT / (dist2 + 0.001);
+    return max(dot(EvaluateBsdf(m, L, wo, wi), emit), 0.0) * cosT * cosL / (dist2 + 0.001);
+}
+
+// Sun target: f·L·cos — the sun is at infinity, so no d². L is the record's attenuated direct radiance, which
+//    is zero at night and when the sun hides, so dead sun candidates carry p̂ = 0 and can never be selected.
+float PHatSun(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 sunEmit, vec3 sunDir)
+{
+    float cosT = max(0.0, dot(F.Geometric, sunDir));
+    if (cosT <= 0.0) return 0.0;
+    vec3 wi = ToLocal(F, sunDir);
+    if (wi.z <= 0.0) return 0.0;
+    return max(dot(EvaluateBsdf(m, L, wo, wi), sunEmit), 0.0) * cosT;
+}
+
+// p̂ of a STORED sample — the one question every merge asks, answered for both light kinds. A sun sample's
+//    direction is rebuilt from its far point, exactly: the point is 1e4 m out, so the rebuild differs from the
+//    sampled direction by ~1e-4 rad — inside the disc, where the pdf is still 1/Ω.
+float PHatSelected(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, uint light, vec3 toLight)
+{
+    if (light == kSunLightIndex)
+        return PHatSun(F, m, L, wo, SunEmission(), normalize(toLight));
+    return PHatFull(F, m, L, wo, LightEmission(light), toLight, dot(toLight, toLight), LightNormal(light));
 }
 
 struct Reservoir
@@ -628,6 +706,45 @@ void ResampleCandidate(inout Reservoir res, vec3 point, uint light, vec2 uv, flo
         res.SelectedPoint = point;
         res.SelectedLight = light;
         res.SelectedUv    = uv;
+    }
+}
+
+// One direct-light candidate, sun or lamp — the initial loop and the extras loop both draw through here, so the
+//    two cannot drift into different estimators. Weights answer w = p̂/p EXACTLY, both continuous pdfs included:
+//    a mesh sample's pdf is p_coin·p_light·(1/area) and a sun sample's is p_coin·(1/Ω). The kernel used to divide
+//    by the pick alone, which paid every lamp's contribution divided by its area (the Cornell lamp rendered 2.5x
+//    too bright) — the CPU raster never had this bug (Tap.Weight carries the area), and the SunDirectProof pins
+//    the corrected scale against quadrature. HitPos anchors the sun's far point; SunUp (any direct radiance)
+//    decides whether the coin is flipped at all.
+void DrawDirectCandidate(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 hitPos, bool sunUp,
+                         out vec3 point, out uint light, out vec2 uv, out float weight, inout uint seed)
+{
+    bool sun = sunUp && (LightTriangleCount == 0u || RandFloat(seed) < kSunPickProbability);
+    if (sun)
+    {
+        float u1 = RandFloat(seed);
+        float u2 = RandFloat(seed);
+        vec3 sunDir = SampleSunDirection(SkySunDirection.xyz, u1, u2);
+        point  = hitPos + sunDir * kSunShadowDistance;
+        light  = kSunLightIndex;
+        uv     = vec2(u1, u2);
+        float pHat = PHatSun(F, m, L, wo, SunEmission(), sunDir);
+        float pPick = LightTriangleCount > 0u ? kSunPickProbability : 1.0;
+        weight = pHat * SunSolidAngle() / pPick;
+    }
+    else
+    {
+        float  pSource;
+        uint   li = PickLight(seed, pSource);
+        float  u1 = RandFloat(seed);
+        float  u2 = RandFloat(seed);
+        point = SampleLightPointFor(li, u1, u2);
+        light = li;
+        uv    = vec2(u1, u2);
+        vec3 toLight = point - hitPos;
+        float pHat = PHatFull(F, m, L, wo, LightEmission(li), toLight, dot(toLight, toLight), LightNormal(li));
+        float pPick = sunUp ? 1.0 - kSunPickProbability : 1.0;
+        weight = pHat * Luminaires[li].Area / (pSource * pPick);
     }
 }
 
@@ -857,7 +974,11 @@ void main()
     //    spatiotemporal neighbour taps, shade.
     //------------------------------------------------------------------------------------------------------------------
 
-    if (LightTriangleCount > 0u)
+    // Sunlight counts as direct light: the block runs when EITHER light kind exists (a lamp-less outdoor scene
+    //    used to skip it entirely and shade with skylight alone). The sun switch is the record's direct row, so
+    //    night, a hidden sun and a disabled sky all take the lamps-only path with no flag to flip.
+    bool sunUp = dot(SkySunDirect.xyz, vec3(1.0)) > 0.0;
+    if (sunUp || LightTriangleCount > 0u)
     {
         // Initial reservoir from M = SamplesPerPixel candidates
         Reservoir res;
@@ -871,21 +992,9 @@ void main()
 
         for (uint s = 0u; s < SamplesPerPixel; ++s)
         {
-            float  pSource;
-            uint   li          = PickLight(seed, pSource);   // R6 row 3: alias (F5) or uniform (identity proof)
-            float  u1          = RandFloat(seed);
-            float  u2          = RandFloat(seed);
-            vec3   lp          = SampleLightPointFor(li, u1, u2);
-            vec3   toLight     = lp - hitPos;
-
-            // Get light material
-            vec3 lEmissive = LightEmission(li);
-
-            // Target function: full-BSDF unshadowed direct contribution (R6 row 2)
-            float pHat = PHatFull(frame, shading, layers, woLocal, lEmissive, toLight, dot(toLight, toLight));
-            float w    = pHat / pSource;   // p̂ / p_source — pSource is 1/N uniform or the alias Probability[z]
-
-            ResampleCandidate(res, lp, li, vec2(u1, u2), w, seed);
+            vec3  lp; uint li; vec2 luv; float w;
+            DrawDirectCandidate(frame, shading, layers, woLocal, hitPos, sunUp, lp, li, luv, w, seed);
+            ResampleCandidate(res, lp, li, luv, w, seed);
         }
 
         // Compute unbiased weight W (R6: the chosen light comes from the reservoir — no nearest-emissive search)
@@ -909,24 +1018,16 @@ void main()
             //    from THIS pixel, resampled with the same target function so the reservoir stays a valid RIS estimate.
             for (uint sp = 0u; sp < ExtraCandidateCount; ++sp)
             {
-                float  npSource;
-                uint   nli    = PickLight(seed, npSource);   // R6 row 3: same alias/uniform gate as the initial loop
-                float  nu1    = RandFloat(seed);
-                float  nu2    = RandFloat(seed);
-                vec3   nlp    = SampleLightPointFor(nli, nu1, nu2);
-                vec3   nToL   = nlp - hitPos;
-                vec3   nEmit  = LightEmission(nli);
-                float  nPHat  = PHatFull(frame, shading, layers, woLocal, nEmit, nToL, dot(nToL, nToL));
-                float  nW     = nPHat / npSource;   // p̂ / p_source, same as the initial loop
-                ResampleCandidate(res, nlp, nli, vec2(nu1, nu2), nW, seed);
+                vec3  nlp; uint nli; vec2 nuv; float nW;
+                DrawDirectCandidate(frame, shading, layers, woLocal, hitPos, sunUp, nlp, nli, nuv, nW, seed);
+                ResampleCandidate(res, nlp, nli, nuv, nW, seed);
             }
             // W for the final selection (the selected point may have changed in the loop above). This is the one
-            //    evaluation that establishes pSelected; everything downstream carries it.
-            vec3  emit2  = vec3(0.0);
+            //    evaluation that establishes pSelected; everything downstream carries it. PHatSelected answers for
+            //    whichever light kind the reservoir holds — the old code's emit2 temp only knew mesh lights.
             {
-                vec3  toSel2   = res.SelectedPoint - hitPos;
-                emit2          = LightEmission(res.SelectedLight);
-                pSelected      = PHatFull(frame, shading, layers, woLocal, emit2, toSel2, dot(toSel2, toSel2));
+                vec3 toSel2 = res.SelectedPoint - hitPos;
+                pSelected   = PHatSelected(frame, shading, layers, woLocal, res.SelectedLight, toSel2);
                 res.UnbiasedWeight = pSelected > 0.0 ? res.WeightSum / (float(res.SampleCount) * pSelected) : 0.0;
             }
 
@@ -951,9 +1052,8 @@ void main()
                     if (valid)
                     {
                         uint mPrevCapped = min(prevM, kTemporalMClamp * res.SampleCount);
-                        vec3 prevEmit = LightEmission(prev.Counts.y);
                         vec3 prevToL  = prev.Sample.xyz - hitPos;
-                        float pPrev = PHatFull(frame, shading, layers, woLocal, prevEmit, prevToL, dot(prevToL, prevToL));
+                        float pPrev = PHatSelected(frame, shading, layers, woLocal, prev.Counts.y, prevToL);
                         // pCur is p̂ at the current selection, and res has not been touched since pSelected was
                         //    established — so it IS pSelected, not something to evaluate again.
                         float pCur  = pSelected;
@@ -1008,9 +1108,8 @@ void main()
                         && abs(primaryT - neigh.UvDepth.w) / max(primaryT, 1e-3) < kTemporalDepthTol;
                     if (!nValid) continue;
                     uint mNeighCapped = min(neighM, kTemporalMClamp * res.SampleCount);
-                    vec3 neighEmit = LightEmission(neigh.Counts.y);
                     vec3 neighToL  = neigh.Sample.xyz - hitPos;
-                    float pNeigh = PHatFull(frame, shading, layers, woLocal, neighEmit, neighToL, dot(neighToL, neighToL));
+                    float pNeigh = PHatSelected(frame, shading, layers, woLocal, neigh.Counts.y, neighToL);
                     // Same identity as the temporal merge: p̂ at the current selection is the carried value.
                     float pSelf  = pSelected;
                     float wSelf  = pSelf * res.UnbiasedWeight * float(res.SampleCount);
@@ -1044,18 +1143,25 @@ void main()
             outRes.Normal  = vec4(hitNormal, float(ViewportWidth));
             CurrReservoirs[pixel.y * ViewportWidth + pixel.x] = outRes;
 
-            // Shade (R6: the stored selection carries its light — no search)
+            // Shade (R6: the stored selection carries its light — no search). The sun divides by nothing: it is at
+            //    infinity, so its d² is 1 by definition and the stored far point's is meaningless. Mesh lights pay
+            //    the emitter cosine the target pays (same quantity, same value — shade and target must agree).
             if (res.Visible == 1u)
             {
                 vec3 shadeDir = normalize(res.SelectedPoint - hitPos);
                 float shadeCos = max(0.0, dot(hitNormal, shadeDir));
 
-                vec3 chosenEmit = LightEmission(res.SelectedLight);
-
-                float dist2 = dot(res.SelectedPoint - hitPos, res.SelectedPoint - hitPos);
                 vec3  wiLocal = ToLocal(frame, shadeDir);
                 vec3  f = wiLocal.z > 0.0 ? EvaluateBsdf(shading, layers, woLocal, wiLocal) : vec3(0.0);   // R4b: full lobe stack
-                accumulatedRadiance += f * chosenEmit * shadeCos * res.UnbiasedWeight / (dist2 + 0.01);
+                if (res.SelectedLight == kSunLightIndex)
+                    accumulatedRadiance += f * SunEmission() * shadeCos * res.UnbiasedWeight;
+                else
+                {
+                    vec3 chosenEmit = LightEmission(res.SelectedLight);
+                    float shadeCosL = max(0.0, dot(LightNormal(res.SelectedLight), -shadeDir));
+                    float dist2 = dot(res.SelectedPoint - hitPos, res.SelectedPoint - hitPos);
+                    accumulatedRadiance += f * chosenEmit * shadeCos * shadeCosL * res.UnbiasedWeight / (dist2 + 0.01);
+                }
             }
         }
     }
@@ -1104,7 +1210,7 @@ void main()
                 {
                     accumulatedRadiance += throughput * bFrame.Emission;
                 }
-                else if (LightTriangleCount > 0u)
+                else if (sunUp || LightTriangleCount > 0u)
                 {
                     vec3  bHitPos    = bounceHit.pos;
                     vec3  bHitNormal = bFrame.Geometric;
@@ -1112,28 +1218,51 @@ void main()
                     if (bWo.z <= 0.0) bWo = vec3(bWo.xy, 1e-3);
                     ResolvedLayers bLayers = ResolveLayers(bShading, bWo);
 
-                    // The bounce samples a light uniformly over all triangles. The secondary bounce is a
-                    //    single unweighted sample rather than a reservoir, so a uniform pick is the correct
-                    //    estimator here.
-                    const uint bSlots = LightTriangleCount;
-                    uint  bLi  = min(uint(RandFloat(seed) * float(bSlots)), bSlots - 1u);
-                    vec3  bLp  = SampleLightPointFor(bLi, RandFloat(seed), RandFloat(seed));
-                    vec3  bToL = bLp - bHitPos;
-                    float bDist = length(bToL);
-                    vec3  bLDir = bToL / bDist;
-                    float bCos  = max(0.0, dot(bHitNormal, bLDir));
-                    vec3  bWi   = ToLocal(bFrame, bLDir);
-
-                    vec3 bLEmit = LightEmission(bLi);
-
-                    if (bCos > 0.0 && bWi.z > 0.0 && !TraceShadow(bHitPos + bHitNormal * kEps, bLp))
+                    // The bounce draws one light the same way the reservoir candidates do — sun or lamp by the same
+                    //    coin — because a single unweighted sample is a one-candidate reservoir and the pdfs are the
+                    //    same ones DrawDirectCandidate divides by. (The old mesh-only line divided by the slot count
+                    //    but not the area: the same 1/A bias the reservoir had, fixed here too.)
+                    bool sunBounce = sunUp && (LightTriangleCount == 0u || RandFloat(seed) < kSunPickProbability);
+                    if (sunBounce)
                     {
-                        float bDist2 = bDist * bDist;
-                        vec3  bF = EvaluateBsdf(bShading, bLayers, bWo, bWi);
-                        // ⚠️ Divide by the SLOT count, not the triangle count: the pick above chose from
-                        //    bSlots, and dividing by a different number than you sampled from is a bias that
-                        //    scales the whole second bounce.
-                        accumulatedRadiance += throughput * bF * bLEmit * bCos / ((bDist2 + 0.01) * float(bSlots));
+                        vec3 bSunDir = SampleSunDirection(SkySunDirection.xyz, RandFloat(seed), RandFloat(seed));
+                        float bCos = max(0.0, dot(bHitNormal, bSunDir));
+                        vec3  bWi  = ToLocal(bFrame, bSunDir);
+                        if (bCos > 0.0 && bWi.z > 0.0
+                            && !TraceShadow(bHitPos + bHitNormal * kEps, bHitPos + bSunDir * kSunShadowDistance))
+                        {
+                            vec3  bF = EvaluateBsdf(bShading, bLayers, bWo, bWi);
+                            float pPick = LightTriangleCount > 0u ? kSunPickProbability : 1.0;
+                            accumulatedRadiance += throughput * bF * SunEmission() * bCos * SunSolidAngle() / pPick;
+                        }
+                    }
+                    else
+                    {
+                        const uint bSlots = LightTriangleCount;
+                        uint  bLi  = min(uint(RandFloat(seed) * float(bSlots)), bSlots - 1u);
+                        vec3  bLp  = SampleLightPointFor(bLi, RandFloat(seed), RandFloat(seed));
+                        vec3  bToL = bLp - bHitPos;
+                        float bDist = length(bToL);
+                        vec3  bLDir = bToL / bDist;
+                        float bCos  = max(0.0, dot(bHitNormal, bLDir));
+                        float bCosL = max(0.0, dot(LightNormal(bLi), -bLDir));
+                        vec3  bWi   = ToLocal(bFrame, bLDir);
+
+                        vec3 bLEmit = LightEmission(bLi);
+
+                        if (bCos > 0.0 && bCosL > 0.0 && bWi.z > 0.0 && !TraceShadow(bHitPos + bHitNormal * kEps, bLp))
+                        {
+                            float bDist2 = bDist * bDist;
+                            vec3  bF = EvaluateBsdf(bShading, bLayers, bWo, bWi);
+                            // ⚠️ MULTIPLY by the slot count: the pick above chose one of bSlots uniformly (pdf
+                            //    1/bSlots) and the point uniformly on its triangle (pdf 1/area), so the sample's
+                            //    pdf is pMesh/(bSlots·area) and the estimate divides by the PDF — i.e. multiplies
+                            //    by slots·area. The old line divided by bSlots (a defended-in-comment inversion),
+                            //    which paid the whole second bounce divided by N² and forgot the area too.
+                            float pMesh = sunUp ? 1.0 - kSunPickProbability : 1.0;
+                            accumulatedRadiance += throughput * bF * bLEmit * bCos * bCosL
+                                                 * Luminaires[bLi].Area * float(bSlots) / ((bDist2 + 0.01) * pMesh);
+                        }
                     }
                 }
             }
