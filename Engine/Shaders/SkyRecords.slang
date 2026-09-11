@@ -38,9 +38,10 @@ layout(std140, binding = 21) uniform SkyConstants
     vec4 SkySunDirect;       // xyz = panel direct-sun factor 0.11·gain·colour·T (kernel: ÷Ω, ×Ω back); w = unused
 };
 
-// The sun's angular RADIUS, one definition for the two consumers: the disc below draws this body, and the
-//    viewport's next-event estimator samples it — a disc and a light that disagree on the sun's size would be
-//    two suns. (Was the disc's private literal; same value, now shared.)
+// The sun's angular RADIUS, one definition for the three consumers: the disc below draws this body, the
+//    viewport's next-event estimator samples it, and the CPU raster draws it a third time — a disc and a light
+//    that disagree on the sun's size would be two suns. (Was the disc's private literal; same value, now
+//    shared. SkyConstantRecord.h's kSunAngularRadius is the host's copy of this same body.)
 const float kSunAngularRadius = 0.53 * (3.14159265358979323846 / 180.0) * 0.5;
 
 //------------------------------------------------------------------------------------------------------------------------

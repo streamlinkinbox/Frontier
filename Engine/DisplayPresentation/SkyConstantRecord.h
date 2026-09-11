@@ -34,6 +34,12 @@
 
 namespace Frontier {
 
+// The sun's angular RADIUS, one definition for three consumers: the shader's disc draws this body, the
+//    viewport's next-event estimator samples it, and the CPU raster draws it a third time (VisibilityRaster) —
+//    a sun whose paths disagree on its size would be two suns. This MUST equal SkyRecords.slang's
+//    kSunAngularRadius; the SkyKernelParityProof pins the shader's literal, this pins the host's.
+inline constexpr float kSunAngularRadius = 0.53f * (3.14159265358979323846f / 180.0f) * 0.5f;
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORD
 //------------------------------------------------------------------------------------------------------------------------

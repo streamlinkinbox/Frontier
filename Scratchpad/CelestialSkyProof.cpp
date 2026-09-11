@@ -429,6 +429,66 @@ int main()
         }
         if (BrightestRow > LinePeak) { LinePeak = BrightestRow; LinePeakStage = K; }
 
+        // The sun's face: the brightest pixel in the sun's box (rows 30-50%, centre quarter) on the
+        //    bodies-off render. Below the horizon the box is dark sky — the planet gates the disc, so a bright
+        //    box there means the disc leaks through the earth; risen, the box holds the 12x Duke and clips.
+        //    Both ends are asserted where they are measured: stage 0 below, stage 7 risen.
+        double SunBox = 0.0;
+        for (uint32_t Y = kHeight * 30u / 100u; Y < kHeight * 50u / 100u; ++Y)
+            for (uint32_t X = kWidth * 3u / 8u; X < kWidth * 5u / 8u; ++X)
+            {
+                const size_t P = (static_cast<size_t>(Y) * kWidth + X) * 4u;
+                const double Lum = (Bare[P + 0u] + Bare[P + 1u] + Bare[P + 2u]) / 3.0;
+                if (Lum > SunBox) SunBox = Lum;
+            }
+        if (K == 0)
+        {
+            char SunDetail[128];
+            std::snprintf(SunDetail, sizeof(SunDetail), "sun-box max %.0f at -15 deg (dark sky, gated disc)", SunBox);
+            Require("below the horizon the sun's box is dark", SunBox < 60.0, SunDetail);
+        }
+        if (K == 7)
+        {
+            // The sun's face, proven by DIMMING the sun. At full brightness the wash itself reaches 245
+            //    in the sun's box (measured on the pre-disc sheet), so a "bright box" assertion would pass
+            //    with the disc deleted. Sky wash scales with the sunlight: at 5% brightness the wash
+            //    collapses while the 12x Duke stays bright — a bright cluster on a dark field that cannot
+            //    be the wash. The max pins the disc (no disc: ~12), the mean pins the dimming (unwired
+            //    brightness: the wash stays at 245 and the mean fails).
+            const float SavedBrightness = Sky.SkyBrightness;
+            Sky.SkyBrightness = 0.05f;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+            VisibilityRaster DimRaster;
+            Sky.ApplyTo(DimRaster, Budget);
+            std::vector<unsigned char> Dim(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+            if (!DimRaster.Render(Level, Eye, FaceForward, FaceRight, FaceUp, kHalfFov,
+                                  kWidth, kHeight, Dim.data(), MeanLuminance)) return 2;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = true;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
+            Sky.SkyBrightness = SavedBrightness;
+            // The seat window holds the 3 px sun (frame centre, v~0.43 at +4 deg) with room for its
+            //    soft edge; the field is the box minus the seat. Without the disc the two maxima agree (both
+            //    are twilight); the disc lifts the seat alone — so the field maximum is the measured ceiling
+            //    the disc must clear, printed every run so the margin is visible, not buried.
+            double DimMax = 0.0, DimSeat = 0.0, DimField = 0.0;
+            for (uint32_t Y = kHeight * 30u / 100u; Y < kHeight * 50u / 100u; ++Y)
+                for (uint32_t X = kWidth * 3u / 8u; X < kWidth * 5u / 8u; ++X)
+                {
+                    const size_t P = (static_cast<size_t>(Y) * kWidth + X) * 4u;
+                    const double Lum = (Dim[P + 0u] + Dim[P + 1u] + Dim[P + 2u]) / 3.0;
+                    if (Lum > DimMax) DimMax = Lum;
+                    const bool Seat = (Y >= 132u && Y <= 144u && X >= 234u && X <= 246u);
+                    if (Seat) { if (Lum > DimSeat) DimSeat = Lum; }
+                    else { if (Lum > DimField) DimField = Lum; }
+                }
+            char SunDetail[192];
+            std::snprintf(SunDetail, sizeof(SunDetail),
+                          "dimmed seat %.0f vs field ceiling %.0f (disc lifts the seat alone)",
+                          DimSeat, DimField);
+            Require("dimmed, the sun still shows its face", DimSeat > DimField + 40.0, SunDetail);
+        }
+
         std::printf("  %-22s %+7.1f %9.2f   %5.0f %5.0f %5.0f      %7.1f\n",
                     Stages[K].Name, static_cast<double>(Sky.Frame().Sun.Elevation),
                     (St.Mean[0] + St.Mean[1] + St.Mean[2]) / 3.0,
