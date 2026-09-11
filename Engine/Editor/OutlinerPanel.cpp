@@ -1155,7 +1155,7 @@ void OutlinerPanel::RecordFolderRow(EditorInstance* Instances, uint32_t Instance
     }
 
     char Upper[44] = {};
-    UpperCopy(Upper, sizeof(Upper), Row.Label);
+    UpperCopy(Upper, static_cast<uint32_t>(sizeof(Upper)), Row.Label);
     ImGui::PushFont(Small);
     const ImVec2 LabelGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Upper);
     ImGui::PopFont();
