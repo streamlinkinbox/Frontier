@@ -428,6 +428,82 @@ int main()
         Require("a giant Luna carries real texture variance, not flat white", Std > 0.10, DiscDetail);
     }
 
+    // ── ④ LINKED ───────────────────────────────────────────────────────────────────────────────
+    // Slot 0 as Prepare() leaves it: Luna FOLLOWING the solved lunar frame, not placed. §1 pins the link at
+    //    the resolver and §2 proves placed moons draw, but nothing renders the link end to end — the engine's
+    //    headline ("ours follows the solved lunar frame rather than sitting at a fixed chart position, because
+    //    this engine HAS an ephemeris"). This renders it: a fresh sequence, project defaults, aimed at the
+    //    SOLVED direction on a full-moon night. 26 Sep 2026 at 22h, when the solver puts the moon 48.6 deg up
+    //    at illumination 1.00 — NOT the
+    //    gates' Sep 10, whose moon is new (0.00) and below the horizon all night (verified hour by hour), so
+    //    the linked slot has nothing to show on that date. The stars stay off the way §2 keeps them off: with
+    //    no starfield, any moon-bright pixel at the aimed centre is the linked Luna — and a broken link renders
+    //    the slot's dead values (az 300 / el 28) a quarter of the sky away instead, which is the mutation that
+    //    proves this pin.
+    {
+        CelestialSequence Linked;
+        Linked.Prepare();
+        Linked.AssignMoonAtlas(Slots, Textures);
+        Require("slot 0 opens linked to the ephemeris", Linked.MoonSlots[0].FollowSky == true,
+                "Prepare links Luna; the roster's az/el sit dead while it does");
+        Linked.Observation.Year = 2026; Linked.Observation.Month = 9; Linked.Observation.Day = 26;
+        Linked.Observation.LocalHours = 22.0f; Linked.Observation.UtcOffset = 2.0f;
+        Linked.Observation.Latitude = -26.19f; Linked.Observation.Longitude = 28.32f;
+        const float LinkOrigin[3] = { 0.0f, 0.0f, 2.0f };
+        Linked.Tick(0.0f, LinkOrigin, 0.0f);
+        std::printf("\n  linked Luna: moon el %+.2f az %.1f illum %.2f at 22h on Sep 26\n",
+                    Linked.Frame().Moon.Elevation, Linked.Frame().Moon.Azimuth,
+                    Linked.Frame().MoonIllumination);
+
+        // Aim at the SOLVED direction in full 3D: Right = Forward x world-up, Up = Right x Forward.
+        const float* Md = Linked.Frame().Moon.Direction;
+        float LF[3] = { Md[0], Md[1], Md[2] };
+        float LR[3] = { LF[1], -LF[0], 0.0f };
+        {
+            const float Ll = std::sqrt(LR[0] * LR[0] + LR[1] * LR[1] + LR[2] * LR[2]);
+            LR[0] /= Ll; LR[1] /= Ll; LR[2] /= Ll;
+        }
+        const float LU[3] = { LR[1] * LF[2] - LR[2] * LF[1],
+                              LR[2] * LF[0] - LR[0] * LF[2],
+                              LR[0] * LF[1] - LR[1] * LF[0] };
+
+        Linked.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = true;
+        Linked.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+        VisibilityRaster LinkRaster;
+        Linked.ApplyTo(LinkRaster, Budget);
+        std::vector<unsigned char> WithLinked(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        double LinkLuminance = 0.0;
+        const bool OkLinked = LinkRaster.Render(Level, Eye, LF, LR, LU, 55.0f * 3.14159265f / 180.0f,
+                                                kWidth, kHeight, WithLinked.data(), LinkLuminance);
+        Linked.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
+        VisibilityRaster LinkBaseRaster;
+        Linked.ApplyTo(LinkBaseRaster, Budget);
+        std::vector<unsigned char> LinkBaseline(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        const bool OkLinkBase = LinkBaseRaster.Render(Level, Eye, LF, LR, LU, 55.0f * 3.14159265f / 180.0f,
+                                                      kWidth, kHeight, LinkBaseline.data(), LinkLuminance);
+        Require("the linked frame renders", OkLinked, "VisibilityRaster.Render");
+        Require("the linked baseline renders", OkLinkBase, "VisibilityRaster.Render");
+
+        // The aimed centre pixel must jump from night-black to moon-bright: the aim is the solved direction,
+        //    so only the linked Luna lands there. A broken link puts the dead slot values a quarter-sky away
+        //    and this stays black (mutation-proven).
+        const size_t LCentre = (static_cast<size_t>(kHeight / 2u) * kWidth + kWidth / 2u) * 4u;
+        char LinkDetail[128];
+        std::snprintf(LinkDetail, sizeof(LinkDetail), "R %u -> %u", LinkBaseline[LCentre], WithLinked[LCentre]);
+        Require("the linked disc lands on the solved direction",
+                OkLinked && OkLinkBase && WithLinked[LCentre] > LinkBaseline[LCentre] + 60u, LinkDetail);
+
+        // The sheet for the eye.
+        {
+            std::vector<unsigned char> Rgb(static_cast<size_t>(kWidth) * kHeight * 3u);
+            for (size_t I = 0u; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+                for (int C = 0; C < 3; ++C) Rgb[I * 3u + static_cast<size_t>(C)] = WithLinked[I * 4u + static_cast<size_t>(C)];
+            PngWriteShim::WritePng("Diagnostics/MoonProof_Linked.png", static_cast<int>(kWidth),
+                                   static_cast<int>(kHeight), 3, Rgb.data(), static_cast<int>(kWidth) * 3);
+            std::printf("\n  sheet: Diagnostics/MoonProof_Linked.png\n");
+        }
+    }
+
     std::printf("\n");
     for (int I = 0; I < 108; ++I) std::putchar('=');
     std::printf("\n%s\n\n", Failures==0 ? "  the moons reach the raster and match the shader" : "  THE MOONS DIVERGE");
