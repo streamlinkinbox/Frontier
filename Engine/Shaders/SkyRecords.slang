@@ -232,6 +232,30 @@ vec3 SkyAlong(vec3 Direction)
     // The moons ride the same transmittance the integral measured, and hide behind the planet like the twilight
     //    does. MoonAlong is declared by MoonRecords.slang, which ReSTIRViewport includes BEFORE this file.
     if (!HitGround) Radiance += MoonAlong(Direction, Transmittance);
+    // The sun's body. The integral above is skylight only, so without this the sun is a Mie glow with no
+    //    source — the "blurred disc". Transcribed from the reference panel (Diagnostics/CelestialPanel.html on
+    //    arena/01a08682-frontier): smoothstep-edged disc, limb-darkened, gated near the horizon, at the panel's
+    //    own defaults (0.53 deg diameter, 0.25 softness, 12x disc radiance). Two deliberate differences: the
+    //    reddening uses the integral's transmittance already in hand (the panel recomputes extinction from air
+    //    mass; the view-ray value is exact for the disc pixel), and the panel's extra analytic sun-glow (sg) is
+    //    NOT transcribed — the Mie lobe already provides the forward glow and both would double it. A hidden sun
+    //    needs no extra gate: PackSkyRecord zeroes the radiance, which kills the disc while twilight and the
+    //    moons live on. Elevation reads Direction.z: the engine is Z-up, the panel Y-up.
+    if (!HitGround)
+    {
+        const float kPi = 3.14159265358979323846;
+        float SunAng = acos(clamp(dot(Direction, SkySunDirection.xyz), -1.0, 1.0));
+        const float kSunRadius = 0.53 * (kPi / 180.0) * 0.5;
+        const float kSunSoft = 0.25;
+        const float kSunBoost = 12.0;
+        float ViewElev = degrees(asin(clamp(Direction.z, -1.0, 1.0)));
+        // The panel evaluates the edge twice and keeps the second (horizon-softened) form; only it is kept here.
+        float SunSoftElev = mix(1.0, 2.2, 1.0 - smoothstep(0.0, 4.0, ViewElev));
+        float SunDisc = 1.0 - smoothstep(kSunRadius * (1.0 - kSunSoft * 0.9 * SunSoftElev), kSunRadius, SunAng);
+        float SunLimb = mix(1.0, 0.55, smoothstep(0.0, kSunRadius, SunAng));
+        Radiance += SunDisc * SunLimb * SkySunRadiance.xyz * Transmittance * kSunBoost
+                  * mix(0.35, 1.0, smoothstep(-1.0, 8.0, ViewElev));
+    }
     return Radiance;
 }
 

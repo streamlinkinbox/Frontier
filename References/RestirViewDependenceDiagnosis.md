@@ -126,7 +126,21 @@ path. No setting turns them on.
 5. Standpoint: sky is miss-only — from *inside* the sealed box you should expect to see no
    sky at all. Step outside (or open the box) to judge the atmosphere.
 
-## 6. Fix directions (not implemented — this is the diagnosis you asked for)
+## 6. Fix directions
+
+DONE marks what the follow-up commit implements; the rest stays scoped, not started.
+
+- DONE — **F2-default (Manual exposure in the engine build).** `GameExecution.cpp` now seats
+  `ExposureMode::Manual` (slider value 1.05) right after constructing the integrator. The frame
+  is a pure function of scene + camera: no median metering (§2 gone), no 0.4/2.2 s lags (§3
+  gone). The struct default stays Adaptive so the proofs are untouched, and the F3 Exposure
+  slider now visibly works (in Adaptive it wrote a value nothing read). Adaptive remains
+  available — one assignment flips it back.
+- DONE — **F3 (sun disc).** `SkyRecords.slang:SkyAlong` gains the panel-transcribed analytic
+  disc (0.53° diameter, 0.25 softness, 12× disc radiance, limb-darkened, horizon-gated,
+  reddened by the integral's own transmittance). A hidden sun still kills it via the zeroed
+  radiance. The panel's extra analytic sun-glow was deliberately not transcribed (the Mie lobe
+  already provides it).
 
 - **F1 — trust reprojection:** stop resetting accumulation on camera motion (reset only on
   cut/teleport/resize/scene change). This alone makes turning stable and revives R7a +
@@ -144,6 +158,27 @@ path. No setting turns them on.
   see is accumulation restarts + exposure, not transport bias.
 
 ---
+
+## 7. Follow-up findings (same commit — from the user's screenshots)
+
+- **Moon "not proper": tuning + exposure, not a moon bug.** The disc path verifies end to end
+  (degrees→radians + diameter→radius at `CelestialSequence.cpp:185`, reference-phase pack,
+  textured phase-lit disc in `MoonRecords.slang`). Screenshot values (Glow 2.07, Size 1.60,
+  Phase 0.49) are inspector edits, not defaults (panel-parity defaults: Glow 0.8, Size 0.9 —
+  `CelestialSequence.h:97-100`); 0.49 engine ≈ full moon, correctly bright. The giant soft blob
+  is the 2.6×-overtuned glow under adaptive exposure. Fix: Manual exposure (done above) +
+  return Glow toward 0.8. No moon code changed.
+- **Viewport placeholder ("renders here in the engine build"): current behaviour, unwired,**
+  predates this branch's work. `AssignViewTexture` has zero engine callers
+  (`ViewportPanel.cpp:457`; only the headless proof seats an image). Seating the Vulkan target
+  needs sampled-view + descriptor lifecycle work that cannot be validated without a GPU — scoped,
+  not attempted blind.
+- **GI toggle: works as labelled.** The tile flips `kFeatureGlobalIllumination`
+  (`GameExecution.cpp:603`), which skips the bounce only; the UI itself promises "Direct only"
+  (`ControlCentreHost.cpp:1545`). No raster-presentation path exists (`DebugViewCategory` holds
+  buffer visualisations, not a shaded raster) — a GI-off raster fallback is a feature request.
+- **Stale vs negligence: neither.** The screenshots show the restyled outliner (this branch's
+  work, built in), and the placeholder string is in current source (`ViewportPanel.cpp:973`).
 
 ## Appendix — build-script fix committed alongside
 

@@ -391,6 +391,18 @@ int main(int argc, char** argv)
 
     Frontier::ReSTIRIntegrator Integrator(IntegratorConfig);
 
+    // User directive 2026-09-11: no adaptive exposure in the engine build. Frame-median metering keys to the
+    //    background on wide framings (small bright subject blows out) and the 0.4/2.2 s adaptation lags flash
+    //    white/black on every turn. Manual holds the slider value above, so the frame is a pure function of the
+    //    scene and the camera. The struct default stays Adaptive: the proofs seat their own configurations and
+    //    must be untouched by this.
+    {
+        Frontier::ExposureConfiguration ExposureSeed = Integrator.Exposure().QueryConfiguration();
+        ExposureSeed.Mode = Frontier::ExposureModeCategory::Manual;
+        ExposureSeed.ManualExposure = IntegratorConfig.Exposure;
+        Integrator.Exposure().AssignConfiguration(ExposureSeed);
+    }
+
     //──────────────────────────────────────────────────────────────────────────
     // Swapchain exchange — GLFW window + Vulkan surface + compute pipeline
     //──────────────────────────────────────────────────────────────────────────
