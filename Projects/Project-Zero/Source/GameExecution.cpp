@@ -541,6 +541,24 @@ int main(int argc, char** argv)
     //    now carry pixels the CPU raster can borrow. A missing file degrades to the index's 1x1 placeholder —
     //    a pale disc, logged at decode — never a refusal to start.
     Celestial.AssignMoonAtlas(MoonSlots, Textures);
+    // Moon atlas census: which bindless slots the kernel's MoonAlong will sample, against what is resident.
+    //    A slot past the resident count samples an unbound descriptor — white on most drivers — so this line
+    //    next to the "Textures: N resident" line is the whole diagnosis for a textureless moon.
+    {
+        uint32_t Lo = 0xFFFFFFFFu, Hi = 0u;
+        for (uint32_t M = 0u; M < Frontier::kMoonAtlasCount; ++M)
+        {
+            if (MoonSlots[M] < Lo) Lo = MoonSlots[M];
+            if (MoonSlots[M] > Hi) Hi = MoonSlots[M];
+        }
+        char MoonLine[128];
+        std::snprintf(MoonLine, sizeof(MoonLine), "%u textures resident, moon slots %u..%u%s.",
+                      Textures.QueryCount(), Lo, Hi,
+                      Hi < Textures.QueryCount() ? "" : " PAST THE TABLE (moons sample unbound)");
+        Logger.RecordMessage(Hi < Textures.QueryCount() ? Frontier::DiagnosticSeverity::Information
+                                                        : Frontier::DiagnosticSeverity::Warning,
+                             "Moons", MoonLine);
+    }
     // The star tables upload once, now the catalogue is loaded: cells then binned stars into binding 23.
     //    Skipped — never called — when the catalogue is empty, so the bring-up zeros stand and the packer's
     //    zero brightness keeps the kernel's star loop off. Static for the run: the sky's rotation is time, not

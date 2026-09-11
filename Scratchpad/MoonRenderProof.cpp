@@ -14,6 +14,10 @@
 // FIDELITY CONTRACT (CLAUDE.md: proof images show what the project does). The sheet is rendered by shipping
 //    translation units through project wiring — the sequence is prepared, the atlas decodes through the real
 //    index, nothing is hand-built — with placed moons and a night hour as the only declared test choices.
+//
+//  ③ CONTENT — the atlas files are not just decodable, they are MOONS: the real Luna, sampled through the
+//     real view construction, must show maria darker than highlands and real variance across a disc. Dimensions
+//     alone would pass a white rectangle; this is the check that answers "the moon has no textures".
 #include "GeometricRaster/VisibilityRaster.h"
 #include "GeometricRaster/SceneStructure.h"
 #include "GeometricRaster/GeometryStructure.h"
@@ -371,6 +375,57 @@ int main()
         PngWriteShim::WritePng("Diagnostics/MoonProof_Night.png", static_cast<int>(kWidth),
                                static_cast<int>(kHeight), 3, Rgb.data(), static_cast<int>(kWidth) * 3);
         std::printf("\n  sheet: Diagnostics/MoonProof_Night.png\n");
+    }
+
+    // ── ③ CONTENT ──────────────────────────────────────────────────────────────────────────────
+    // The decoded Luna, through the same view construction AssignMoonAtlas uses, must BE the moon: dark maria
+    //    against bright highlands, and real variance across a big disc. A white rectangle decodes to 2048x1024
+    //    just as happily — this pins the CONTENT the dimensions cannot.
+    {
+        const TextureDescriptor& Luna = Textures.QueryTextures()[Slots[0]];
+        MoonAlbedoView View{};
+        const size_t Level0 = Luna.LevelOffsets.empty() ? 0u : Luna.LevelOffsets[0];
+        if (!Luna.Texels.empty() && Level0 < Luna.Texels.size())
+        {
+            View.Texels = Luna.Texels.data() + Level0;
+            View.Width = Luna.Width; View.Height = Luna.Height; View.TexelBytes = Luna.TexelBytes();
+        }
+        float Maria[3], Highland[3];
+        SampleMoonAlbedo(View, 0.45f, 0.45f, Maria);      // maria country: dark basalt plains
+        SampleMoonAlbedo(View, 0.05f, 0.10f, Highland);   // far-side highlands: bright crust
+        const double MariaLum = (Maria[0] + Maria[1] + Maria[2]) / 3.0;
+        const double HighlandLum = (Highland[0] + Highland[1] + Highland[2]) / 3.0;
+        char ContentDetail[128];
+        std::snprintf(ContentDetail, sizeof(ContentDetail), "maria %.2f vs highlands %.2f (linear)",
+                      MariaLum, HighlandLum);
+        std::printf("\n  atlas content: %s\n", ContentDetail);
+        Require("Luna's maria read darker than its highlands",
+                MariaLum < 0.50 && HighlandLum > 0.55 && HighlandLum - MariaLum > 0.15, ContentDetail);
+
+        MoonDrawEntry Big{};
+        Big.Direction[0] = 0.0f; Big.Direction[1] = 0.9063f; Big.Direction[2] = 0.4226f;
+        Big.AngularRadius = 12.0f * 3.14159265f / 180.0f;   // a giant moon: texture fills the disc
+        Big.Brightness = 1.6f; Big.Glow = 0.0f; Big.Phase = 0.0f;
+        Big.Tilt = 6.7f * 3.14159265f / 180.0f; Big.Gamma = 1.0f;
+        Big.Tint[0] = Big.Tint[1] = Big.Tint[2] = 1.0f;
+        Big.Albedo = View;
+        const float Trans[3] = { 1.0f, 1.0f, 1.0f };
+        double Sum = 0.0, Sum2 = 0.0; int N = 0;
+        for (int Gy = -8; Gy <= 8; ++Gy)
+            for (int Gx = -8; Gx <= 8; ++Gx)
+            {
+                float Dx = Big.Direction[0] + Gx * 0.025f, Dz = Big.Direction[2] + Gy * 0.025f;
+                const float L = std::sqrt(Dx * Dx + Big.Direction[1] * Big.Direction[1] + Dz * Dz);
+                const float Dir[3] = { Dx / L, Big.Direction[1] / L, Dz / L };
+                float Out[3];
+                EvaluateMoons(&Big, 1u, Dir, Trans, Out);
+                const double Lum = (Out[0] + Out[1] + Out[2]) / 3.0;
+                Sum += Lum; Sum2 += Lum * Lum; ++N;
+            }
+        const double Mean = Sum / N, Std = std::sqrt(std::fmax(Sum2 / N - Mean * Mean, 0.0));
+        char DiscDetail[128];
+        std::snprintf(DiscDetail, sizeof(DiscDetail), "disc mean %.2f std %.2f", Mean, Std);
+        Require("a giant Luna carries real texture variance, not flat white", Std > 0.10, DiscDetail);
     }
 
     std::printf("\n");

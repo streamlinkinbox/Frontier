@@ -39,6 +39,29 @@ s = open("Editor/EditorTools/ParametricSketcher/CMakeLists.txt").read()
 p = re.findall(r'^\s+((?:Kernel|Presentation|Interaction|Document|Console|Verification)/[A-Za-z0-9_/\.-]+\.(?:cpp|h))\s*$', s, re.M)
 report("Editor/EditorTools/ParametricSketcher/CMakeLists.txt", p, [x for x in p if not os.path.exists("Editor/EditorTools/ParametricSketcher/" + x)])
 
+# ── Every shader include must be in the toolchain's re-lower list ─────────────────────────────────────────
+# The .ps1 skips lowering a .spv whose source AND listed includes are older than it. An include missing from
+#    $ShaderIncludeNames (PostRecords and MaterialEvaluation both were) means edits to it silently never reach
+#    the application on an incremental build — the developer runs a stale kernel and debugs a ghost.
+ps = "Projects/Project-Zero/Build/ToolchainSequence.ps1"
+s = open(ps).read()
+m = re.search(r"\$ShaderTable = @\((.*?)\)\s*\n\$ShaderIncludeNames", s, re.S)
+table_srcs = re.findall(r"Source\s*=\s*'([^']+)'", m.group(1)) if m else []
+m = re.search(r"\$ShaderIncludeNames = @\((.*?)\)", s, re.S)
+listed = set(re.findall(r"'([^']+)'", m.group(1))) if m else set()
+needed, absent = set(), []
+for src in table_srcs:
+    p = os.path.join("Engine/Shaders", src)
+    if not os.path.exists(p):
+        absent.append(src); continue
+    for inc in re.findall(r'#include\s+"([^"]+)"', open(p).read()):
+        needed.add(os.path.basename(inc))
+absent += sorted(needed - listed)
+print(f"  {ps}  [shader includes]: {len(table_srcs)} sources, {len(needed)} includes needed, {len(listed)} listed")
+for a in sorted(set(absent)):
+    print(f"       STALE-SPV RISK: {a}"); bad = 1
+if not absent: print("       every include re-lowers its dependents")
+
 # ── Every submodule the scripts expect must be DECLARED and POPULATED ───────────────────────────────────────
 declared = set(re.findall(r"path\s*=\s*(\S+)", open(".gitmodules").read()))
 expected = set()

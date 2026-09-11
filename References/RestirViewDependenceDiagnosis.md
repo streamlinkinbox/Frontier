@@ -413,3 +413,38 @@ models by the parity proofs and the gates. `CheckProofFidelity.sh` (10 pins) plu
 second after this ships (the history must wash out), the disc reappears at its tuned size, the flare holds
 still, and night brings the star field. Found but untouched: the disc's 12× literal, the glTF punctual
 lights (still stored-only), the d² floor epsilon.
+
+## §13. The screenshots arrived; the build they show predates its own fixes (2026‑09‑11)
+
+**Reported, with screenshots this time:** no sun disc (white blur instead), textureless moon, no stars,
+and sun/sky/atmosphere sliders that only land when the camera moves.
+
+**Three of the four are a stale build — dated, not guessed.** The screenshots' clock reads 21:01 SAST:
+the white flood is the §12 accumulation bug, fixed in `7d4d3fa` hours earlier; the frozen sliders are the
+pre-§8 behaviour, fixed by the per-frame record memcmp in `6ea26dc` (16:33 UTC). And the "no stars" frames
+are 15:30 daylight, where the 0.09 gate CORRECTLY shows nothing — the dusk frame in the same batch shows
+the star field working. The fix for all three is pull + full rebuild; there is no code left to write.
+
+**The white moon needed an experiment, not a review.** Every link of the texture path checks out on paper
+(slots, layout, positional upload, gamma, tracked files, sufficient capacity), so the real Luna was decoded
+and sampled through the real view construction headless: maria 0.38 vs highlands 0.62, disc std 0.25. The
+shared file→decode→view→UV→sample chain is PROVEN correct — the raster side cannot produce a white moon.
+What remains is GPU-side-only (stale .spv, unbound slot, or a driver without descriptor indexing), and it
+is now cornered from both ends: the proof permanently asserts CONTENT (maria darker than highlands, giant-
+disc variance — dimensions alone would pass a white rectangle), and the app logs a moon census
+("N textures resident, moon slots lo..hi", warning when past the table) beside the existing bindless +
+resident + star-upload lines. The next report of a white moon comes with the three console lines that
+settle it, and they are asked for below.
+
+**Found and fixed while here:** `PostRecords.slang` and `MaterialEvaluation.slang` were missing from the
+toolchain's `$ShaderIncludeNames`, so edits to either never re-lowered the kernel on an incremental build —
+the developer runs a stale kernel and debugs a ghost. Both are listed now, and `CheckBuildIntegrity.sh`
+pins the list against the actual `#include`s of every lowered source (verified green, plus a negative test
+on the old list). Note the gate itself stays red in this sandbox for the pre-existing reason — the
+`ExternalPackages` submodules are empty here, so its submodule census and its `GameExecution.cpp` parse
+cannot run; the new pin passes inside it.
+
+**Ask the user for, after they rebuild:** (1) GPU model + driver version; (2) the `[SwapchainExchange]
+bindless ?` capability line; (3) the `Textures: N resident` line; (4) the new `Moons:` census line; (5) the
+`Stars:` upload line. If the moon is still white with resident slots and bindless on, the bug is in the one
+place no headless proof can reach, and the numbers will say which.
