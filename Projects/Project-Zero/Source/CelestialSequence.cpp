@@ -272,10 +272,11 @@ void CelestialSequence::Prepare() noexcept
     // Calibrated against the march, not guessed: the old 0.52/1.4/1.0 put 80 of 81 zenith columns under cloud
     //    (a white sky — the fbm piles samples mid-range, so 0.52 thresholded nearly everything). Swept twice:
     //    zenith columns want 0.45, but a level camera's rays take ~17 samples to the zenith's 8, so the frames
-    //    stayed overcast. Swept again at frame-top geometry (27 deg rays): 0.38/2.4/0.35 gives 9 clear, 14
-    //    broken, 4 opaque in 27 — blue gaps overhead, veiling toward the horizon, opaque cores. The horizon
-    //    whitens by path length, which is what real broken skies do.
-    Cloud.Coverage = 0.38f; Cloud.Density = 2.4f; Cloud.Scale = 0.35f;
+    //    stayed overcast; swept at frame-top geometry (27 deg rays) the 4-octave field wanted 0.38. Dropping
+    //    the unresolvable fourth octave smoothed the field toward broader cloud, so swept a third time: 0.34
+    //    gives 10 clear, 13 broken, 4 opaque in 27 — blue gaps overhead, veiling toward the horizon, opaque
+    //    cores. The horizon whitens by path length, which is what real broken skies do.
+    Cloud.Coverage = 0.34f; Cloud.Density = 2.4f; Cloud.Scale = 0.35f;
 
     Wind.Speed = 7.0f; Wind.Bearing = 250.0f;
 

@@ -32,12 +32,14 @@ Header=Engine/DisplayPresentation/VolumetricMedia.h
 
 echo
 echo "[VolumetricMedia] the march is shared, not duplicated"
-# One March entry point. A second per-medium march is the regression 73737b6 removed.
+# One March entry point. A second March is the regression 73737b6 removed (a duplicated entry point); the
+#    per-medium loops inside the one entry are the structure — each medium marches its own span at its own
+#    pace, and the sun-shadow march stays shared (one per occupied step, whichever loop it sits in).
 Marches=$(grep -c 'static VolumetricSample March' "$Header")
 [ "$Marches" = "1" ]
 Report $? "exactly one March entry point ($Marches found)"
-grep -q 'ONE loop over the union' "$Header"
-Report $? "the union march is documented as the contract"
+grep -q 'THREE marches, one per medium' "$Header"
+Report $? "the per-medium march is documented as the contract"
 
 echo
 echo "[VolumetricMedia] the ceiling is enforced in code, not in a comment"
@@ -51,9 +53,10 @@ Report $? "CloudDensity refuses to sample outside the slab"
 
 echo
 echo "[VolumetricMedia] the step size is bounded, not the step count"
-# A fixed step COUNT means the step SIZE grows with the union interval, so enabling a distant volume silently
-#    coarsens a near one. Measured: adding fog raised transmittance from 0.2954 to 0.2963 — more medium, more
-#    light through, which is impossible.
+# A fixed step COUNT means the step SIZE grows with the span, so a long interval silently coarsens the
+#    sampling. Measured under the old union march: adding fog raised transmittance from 0.2954 to 0.2963 —
+#    more medium, more light through, which is impossible; separate marches make that structural failure
+#    impossible, and each medium still derives its count from a bounded step.
 grep -q 'kReferenceSpan' "$Header"
 Report $? "the march derives its count from a bounded step size"
 

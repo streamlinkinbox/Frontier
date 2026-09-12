@@ -57,6 +57,8 @@ struct CloudLayerSettings
     float             Coverage  = 0.55f;     // [0..1]
     float             Density   = 1.0f;      // [x]
     float             Scale     = 1.0f;      // [x] feature size
+    float             Anisotropy = 0.45f;    // Henyey-Greenstein g (the march used the box's; now per-medium)
+    float             Albedo[3] = { 0.92f, 0.94f, 0.97f };   // the cloud white (likewise)
     float             Anvil     = 0.5f;      // [0..1] cumulonimbus spreading
     bool              FollowWind = true;     // link to the Wind Field entity
 
@@ -118,7 +120,7 @@ struct VolumetricBudget
 {
     uint32_t CloudSteps      = 28u;   // FidelityCriteria::CloudMarchStepCount
     uint32_t LocalSteps      = 28u;   // FidelityCriteria::LocalVolumeStepCount
-    uint32_t LightTaps       = 4u;    // FidelityCriteria::CloudLightTapCount
+    uint32_t LightTaps       = 6u;    // FidelityCriteria::CloudLightTapCount (4 posterized the shading)
     float    CoverageMargin  = 0.03f; // FidelityCriteria::CloudCoverageMargin
 };
 
@@ -204,11 +206,14 @@ public:
                              (Position[1] + Drift[1]) * Inverse,
                              Position[2] * Inverse };
 
+        // Three octaves, not four: the march steps at ~143 m and the fourth octave's 38 m features alias
+        //    into long moire streaks (measured — the 11h layer smeared horizontally with hard smoothstepped
+        //    edges). What the steps cannot resolve must not be in the field; the lost detail lives below the
+        //    sampling floor anyway.
         float Shape = Noise(S[0], S[1], S[2]) * 0.5f
                     + Noise(S[0] * 2.02f + 3.1f, S[1] * 2.02f + 1.7f, S[2] * 2.02f + 9.2f) * 0.25f
-                    + Noise(S[0] * 4.10f + 7.7f, S[1] * 4.10f + 2.2f, S[2] * 4.10f + 1.1f) * 0.125f
-                    + Noise(S[0] * 8.30f + 1.3f, S[1] * 8.30f + 8.8f, S[2] * 8.30f + 4.4f) * 0.0625f;
-        Shape /= 0.9375f;
+                    + Noise(S[0] * 4.10f + 7.7f, S[1] * 4.10f + 2.2f, S[2] * 4.10f + 1.1f) * 0.125f;
+        Shape /= 0.875f;
         Shape = Shape * 0.5f + 0.5f;
 
         const float Threshold = 1.0f - Clamp(Cloud.Coverage, 0.0f, 1.0f);
@@ -280,10 +285,11 @@ public:
         const float S[3] = { (Position[0] + Drift[0]) * Inverse,
                              (Position[1] + Drift[1]) * Inverse,
                              Position[2] * Inverse };
+        // Two octaves: the box marches at half its feature scale, which resolves the first two and aliases
+        //    the third (a puff is smooth-walled anyway — the lost octave is sub-step ripple).
         float Shape = Noise(S[0], S[1], S[2]) * 0.5f
-                    + Noise(S[0] * 2.02f + 3.1f, S[1] * 2.02f + 1.7f, S[2] * 2.02f + 9.2f) * 0.25f
-                    + Noise(S[0] * 4.10f + 7.7f, S[1] * 4.10f + 2.2f, S[2] * 4.10f + 1.1f) * 0.125f;
-        Shape /= 0.875f;
+                    + Noise(S[0] * 2.02f + 3.1f, S[1] * 2.02f + 1.7f, S[2] * 2.02f + 9.2f) * 0.25f;
+        Shape /= 0.75f;
         Shape = Shape * 0.5f + 0.5f;
 
         const float Threshold = 1.0f - Clamp(Volume.Coverage, 0.0f, 1.0f);
@@ -317,12 +323,21 @@ public:
     //                                            THE UNIFIED MARCH
     //--------------------------------------------------------------------------------------------------------------------
 
-    // ⚠️ ONE loop over the union of every enabled volume's interval. Each medium contributes its own density and
-    //    albedo; the extinction, the sun-shadow march and the light loop are SHARED, so fog shadows cloud and
-    //    cloud shadows fog for free and the per-pixel cost is one march instead of one per volume (73737b6).
+    // ⚠️ THREE marches, one per medium, each at its own pace — and every step comb is anchored to the WORLD,
+    //    not to the span. An earlier revision marched the union of all three intervals in one loop (73737b6),
+    //    which looked efficient and rendered three defects: the layer's steps depended on whether the box was
+    //    in the union (enabling the box resampled the whole sky — a visible seam along its silhouette),
+    //    neighbouring rays sampled different step phases (their spans start at different distances, so the
+    //    field decorrelated vertically and the clouds smeared into horizontal streaks), and the 200 m box took
+    //    ~2 of the union's 143 m steps (a smooth white blob — no texture, no self-shadow).
     //
-    //    A second march would look almost identical in a still frame and cost double, which is why the structure
-    //    is asserted by the gate rather than trusted to review.
+    //    Each medium now marches its own span at half its feature scale (the layer keeps the tier's 143 m step
+    //    — near enough to half its 315 m features that the tier keeps quoting it), capped by its budget; steps
+    //    sit at absolute multiples of the step, so a span's comb never moves when another medium appears; the
+    //    media composite near-to-far, which is exact for disjoint spans (what parked volumes are — an
+    //    editor-dragged overlap composites in span order, approximately). Fog still shadows cloud and cloud
+    //    still shadows fog, because the SUN-shadow march samples the combined medium — one shadow march per
+    //    occupied step, whichever loop it sits in, which is the number the gate asserts.
     static VolumetricSample March(const CloudLayerSettings& Cloud, const LocalVolumeSettings& LocalCloud,
                                   const LocalVolumeSettings& LocalFog, const WindSettings& Wind,
                                   const VolumetricBudget& Budget,
@@ -332,96 +347,143 @@ public:
     {
         VolumetricSample Result{};
 
-        // ── The union interval ─────────────────────────────────────────────────────────────────────────────────
-        float Near = 1e30f, Far = -1e30f;
-        bool  Any  = false;
-
+        // ── Each medium's own interval ─────────────────────────────────────────────────────────────────────────
+        float SlabNear = 1e30f, SlabFar = -1e30f; bool SlabHit = false;
         if (Cloud.Enabled)
         {
             float Base = 0.0f, Top = 0.0f;
             if (SlabExtent(Cloud, Base, Top))
             {
                 // The slab is horizontal, so its interval is where the ray crosses the two altitudes.
-                float SlabNear = 0.0f, SlabFar = 0.0f;
-                if (SlabInterval(Origin[2], Direction[2], Base, Top, MaximumDistance, SlabNear, SlabFar))
+                float Lo = 0.0f, Hi = 0.0f;
+                if (SlabInterval(Origin[2], Direction[2], Base, Top, MaximumDistance, Lo, Hi))
                 {
-                    Near = std::fmin(Near, SlabNear); Far = std::fmax(Far, SlabFar); Any = true;
+                    SlabNear = std::fmax(Lo, 0.0f); SlabFar = Hi; SlabHit = SlabFar > SlabNear;
                 }
             }
         }
-        float BoxNear = 0.0f, BoxFar = 0.0f;
-        if (LocalCloud.Enabled && IntersectBox(LocalCloud.Centre, LocalCloud.HalfSize, Origin, Direction, BoxNear, BoxFar))
+        float BoxNear = 1e30f, BoxFar = -1e30f; bool BoxHit = false;
+        if (LocalCloud.Enabled
+            && IntersectBox(LocalCloud.Centre, LocalCloud.HalfSize, Origin, Direction, BoxNear, BoxFar))
         {
-            Near = std::fmin(Near, BoxNear); Far = std::fmax(Far, BoxFar); Any = true;
+            BoxNear = std::fmax(BoxNear, 0.0f); BoxFar = std::fmin(BoxFar, MaximumDistance);
+            BoxHit = BoxFar > BoxNear;
         }
-        if (LocalFog.Enabled && IntersectBox(LocalFog.Centre, LocalFog.HalfSize, Origin, Direction, BoxNear, BoxFar))
+        float FogNear = 1e30f, FogFar = -1e30f; bool FogHit = false;
+        if (LocalFog.Enabled
+            && IntersectBox(LocalFog.Centre, LocalFog.HalfSize, Origin, Direction, FogNear, FogFar))
         {
-            Near = std::fmin(Near, BoxNear); Far = std::fmax(Far, BoxFar); Any = true;
+            FogNear = std::fmax(FogNear, 0.0f); FogFar = std::fmin(FogFar, MaximumDistance);
+            FogHit = FogFar > FogNear;
         }
-        if (!Any) return Result;
+        if (!SlabHit && !BoxHit && !FogHit) return Result;
 
-        Near = std::fmax(Near, 0.0f);
-        Far  = std::fmin(Far, MaximumDistance);
-        if (Far <= Near) return Result;
-
-        // ⚠️ The step SIZE is bounded, not the step COUNT, and the difference is a correctness matter rather than
-        //    a quality one. Fixing the count means the size grows with the union interval, so enabling a distant
-        //    fog volume silently coarsens the sampling of a near cloud — measured, adding fog RAISED
-        //    transmittance from 0.2954 to 0.2963, i.e. more medium let more light through, which is impossible.
-        //
-        //    The budget therefore sets the step size for a reference span, and a longer interval takes more
-        //    steps rather than coarser ones. The cap keeps a pathological interval (a grazing ray through the
-        //    whole slab) from running away.
-        const uint32_t Budgeted = (Cloud.Enabled ? Budget.CloudSteps : Budget.LocalSteps);
-        const uint32_t Reference = Budgeted == 0u ? 1u : Budgeted;
-        constexpr float kReferenceSpan = 4000.0f;   // [m] the span the tier's step count is quoted against
-        const float StepSize = kReferenceSpan / static_cast<float>(Reference);
-        const uint32_t Cap = Reference * 4u;        // never more than 4x the tier's budget
-        uint32_t Count = static_cast<uint32_t>(std::ceil((Far - Near) / std::fmax(StepSize, 1e-3f)));
-        if (Count < 1u) Count = 1u;
-        if (Count > Cap) Count = Cap;
-        const float ActualStep = (Far - Near) / static_cast<float>(Count);
+        // March near-to-far over slab/box/fog by span start (a miss sorts last and is skipped), so an opaque
+        //    nearer medium hides the rest without marching them.
+        uint32_t Order[3] = { 0u, 1u, 2u };
+        const float Starts[3] = { SlabHit ? SlabNear : 1e30f, BoxHit ? BoxNear : 1e30f,
+                                  FogHit ? FogNear : 1e30f };
+        for (uint32_t A = 1u; A < 3u; ++A)
+            for (uint32_t B = A; B > 0u && Starts[Order[B]] < Starts[Order[B - 1u]]; --B)
+            {
+                const uint32_t Tmp = Order[B]; Order[B] = Order[B - 1u]; Order[B - 1u] = Tmp;
+            }
 
         const float CosTheta = Direction[0] * SunDirection[0] + Direction[1] * SunDirection[1]
                              + Direction[2] * SunDirection[2];
 
         float Transmittance = 1.0f;
-        for (uint32_t I = 0; I < Count; ++I)
+        constexpr float kReferenceSpan = 4000.0f;   // [m] the span the tier's step count is quoted against
+        for (uint32_t S = 0u; S < 3u; ++S)
         {
-            const float T = Near + (static_cast<float>(I) + 0.5f) * ActualStep;
-            const float P[3] = { Origin[0] + Direction[0] * T,
-                                 Origin[1] + Direction[1] * T,
-                                 Origin[2] + Direction[2] * T };
-            ++Result.StepsTaken;
+            if (Transmittance < 0.005f) break;      // an opaque nearer medium hides the rest
+            const uint32_t M = Order[S];
 
-            // Each medium's own density, summed into one extinction — this is what makes the march shared.
-            const float CloudPart = Cloud.Enabled ? CloudDensity(Cloud, Wind, P, Time) : 0.0f;
-            const float LocalCloudPart = LocalDensity(LocalCloud, Wind, P, Time);
-            const float LocalFogPart   = LocalDensity(LocalFog, Wind, P, Time);
-            const float Density = CloudPart + LocalCloudPart + LocalFogPart;
-            if (Density <= 1e-5f) continue;
-
-            // Sun visibility, marched once for the combined medium rather than per volume.
-            const float SunTransmittance = ShadowMarch(Cloud, LocalCloud, LocalFog, Wind, P, SunDirection,
-                                                 ActualStep, Budget.LightTaps, Time);
-            ++Result.ShadowMarches;
-
-
-            const float Phase = HenyeyGreenstein(CosTheta, LocalCloud.Anisotropy);
-            const float Extinction = Density * ActualStep * 0.01f;
-            const float StepTransmittance = std::exp(-Extinction);
-
-            // Albedo blended by which medium dominates here.
-            const float Total = std::fmax(Density, 1e-6f);
-            const float CloudWeight = (CloudPart + LocalCloudPart) / Total;
-            for (int C = 0; C < 3; ++C)
+            // The medium's span, step and phase function. The layer keeps the tier's reference step (4000 m
+            //    over the tier's count — 143 m at Standard); the volumes step at half their feature scale. A
+            //    longer span takes more steps rather than coarser ones (fixing the count once let added fog
+            //    RAISE transmittance — more medium letting more light through, which is impossible), and the
+            //    cap keeps a pathological span from running away. Steps sit at absolute multiples of the step:
+            //    at most one wasted step per span end (density-gated, so nearly free), in exchange for a comb
+            //    that never moves when another medium appears — the union-relative comb used to resample the
+            //    whole sky whenever the box entered it.
+            float SpanNear = 0.0f, SpanFar = 0.0f, StepSize = 1.0f, PhaseG = 0.45f;
+            uint32_t Cap = 1u;
+            if (M == 0u)
             {
-                const float Albedo = Lerp(0.88f, LocalCloud.Albedo[C], CloudWeight);
-                const float In = (SunRadiance[C] * SunTransmittance * Phase + AmbientRadiance[C]) * Albedo;
-                Result.Scatter[C] += In * (1.0f - StepTransmittance) * Transmittance;
+                if (!SlabHit) continue;
+                SpanNear = SlabNear; SpanFar = SlabFar;
+                const uint32_t Reference = Budget.CloudSteps == 0u ? 1u : Budget.CloudSteps;
+                StepSize = kReferenceSpan / static_cast<float>(Reference);
+                Cap = Reference * 4u;               // never more than 4x the tier's budget
+                PhaseG = Cloud.Anisotropy;
             }
-            Transmittance *= StepTransmittance;
-            if (Transmittance < 0.005f) break;      // fully occluded; nothing behind matters
+            else if (M == 1u)
+            {
+                if (!BoxHit) continue;
+                SpanNear = BoxNear; SpanFar = BoxFar;
+                StepSize = std::fmax(LocalCloud.Scale * 0.5f, 1.0f);
+                Cap = Budget.LocalSteps == 0u ? 1u : Budget.LocalSteps;
+                PhaseG = LocalCloud.Anisotropy;
+            }
+            else
+            {
+                if (!FogHit) continue;
+                SpanNear = FogNear; SpanFar = FogFar;
+                StepSize = std::fmax(LocalFog.Scale * 0.5f, 1.0f);
+                Cap = Budget.LocalSteps == 0u ? 1u : Budget.LocalSteps;
+                PhaseG = LocalFog.Anisotropy;
+            }
+            // The comb is frozen at the eye, uncapped, and span-derived: the anchor sits at zero for
+            //    every ray, the count covers the span, and the step is the span over the count — which wobbles
+            //    a few percent ray-to-ray as the span slides. That wobble is load-bearing, not slop: an exact
+            //    grid locks every ray onto the same shells and the undersampled 77 m octave folds into
+            //    coherent horizontal streaks (measured), while the wobble dithers the alias smoothly (white
+            //    per-ray dither also breaks the streaks but leaves speckle — measured). No cap: a cap would
+            //    stretch orbital rays clean over the slab (112 steps, T = 1.000 from 400 km, measured); the
+            //    ~2790 below-slab steps are density-gated before the shadow march and cost microseconds.
+            const float Anchor = 0.0f;
+            uint32_t Count = static_cast<uint32_t>(std::ceil(SpanFar / StepSize));
+            if (Count < 1u) Count = 1u;
+            const float ActualStep = (SpanFar - Anchor) / static_cast<float>(Count);
+            (void)Cap; (void)SpanNear;
+            const float Phase = HenyeyGreenstein(CosTheta, PhaseG);
+
+            for (uint32_t I = 0u; I < Count; ++I)
+            {
+                const float T = Anchor + (static_cast<float>(I) + 0.5f) * ActualStep;
+                const float P[3] = { Origin[0] + Direction[0] * T,
+                                     Origin[1] + Direction[1] * T,
+                                     Origin[2] + Direction[2] * T };
+                ++Result.StepsTaken;
+
+                float Density = 0.0f;
+                if (M == 0u)      Density = CloudDensity(Cloud, Wind, P, Time);
+                else if (M == 1u) Density = LocalDensity(LocalCloud, Wind, P, Time);
+                else              Density = LocalDensity(LocalFog, Wind, P, Time);
+                if (Density <= 1e-5f) continue;
+
+                // Sun visibility, marched once for the combined medium — fog shadows cloud and cloud shadows
+                //    fog for free, whichever loop this step sits in.
+                const float SunTransmittance = ShadowMarch(Cloud, LocalCloud, LocalFog, Wind, P, SunDirection,
+                                                     ActualStep, Budget.LightTaps, Time);
+                ++Result.ShadowMarches;
+
+                const float Extinction = Density * ActualStep * 0.01f;
+                const float StepTransmittance = std::exp(-Extinction);
+                for (int C = 0; C < 3; ++C)
+                {
+                    // Each medium its own albedo: the layer owns its white now (it used the box's), the fog
+                    //    keeps its fixed grey (the old blend's fog end).
+                    float Albedo = 0.88f;
+                    if (M == 0u)      Albedo = Cloud.Albedo[C];
+                    else if (M == 1u) Albedo = LocalCloud.Albedo[C];
+                    const float In = (SunRadiance[C] * SunTransmittance * Phase + AmbientRadiance[C]) * Albedo;
+                    Result.Scatter[C] += In * (1.0f - StepTransmittance) * Transmittance;
+                }
+                Transmittance *= StepTransmittance;
+                if (Transmittance < 0.005f) break;  // fully occluded; nothing behind matters
+            }
         }
 
         Result.Transmittance = Transmittance;
@@ -480,6 +542,8 @@ private:
                                 + LocalDensity(LocalCloud, Wind, Q, Time)
                                 + LocalDensity(LocalFog, Wind, Q, Time);
             OpticalDepth += Density * StepSize * 0.5f * 0.01f;
+            // Past opaque, further taps change transmittance by under 2% — invisible, so stop paying for them.
+            if (OpticalDepth > 4.0f) break;
         }
         return std::exp(-OpticalDepth);
     }
