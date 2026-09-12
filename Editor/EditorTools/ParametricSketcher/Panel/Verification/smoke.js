@@ -483,4 +483,12 @@ if(M.anyTool&&M.anyTool())M.selectTool();
   M.sub_.sel.clear();M.doc.sel=new Set([b.id]);M.renderInspector();const ih=document.querySelector('#insp').innerHTML||'';ok(ih.includes('Preview guarded')&&ih.includes('remove skipped edits'),'inspector explains and can remove the skipped edit');M.sub_.sel.clear();M.doc.sel.clear(); }
 
 
+// 32. explicit sketch context wins over the extrusion sitting on top of the
+// profile: selecting the curve and pressing B edits the 2D corner, not a body
+// vertex/edge projected at the same screen position.
+{ if(M.anyTool&&M.anyTool())M.selectTool();M.newDoc({silent:true});M.view.target=[0,0,0];M.view.dist=260;M.setView('top');M.resize();
+  M.startOp('rect');M.toolClick(380,300);M.toolClick(520,380);const R=M.doc.figures.filter(f=>f.kind==='curve').pop();M.selectTool();M.doc.sel=new Set([R.id]);M.startOp('extrude');M.solidKey({key:'2'});M.solidKey({key:'0'});M.solidKey({key:'Enter'});const b=M.doc.figures.filter(f=>f.kind==='body').pop();
+  M.doc.sel=new Set([R.id]);M.sub_.sel.clear();const q=R.params.pts[0];const s=M.project(M.xform(R,[q[0],q[1],0]));M.modStart('fillet');M.modDown({button:0,pointerId:1},s[0],s[1]);ok(M.getMod().drag&&M.getMod().drag.corner&&M.getMod().drag.corner.f===R,'selected sketch context picks the 2D corner above the extrusion');M.getMod().num='3';M.cornerApply();ok((R.params.bulge||[]).some(v=>v)&&!(b.edits||[]).length,'2D fillet changes the profile and does not add a solid edge edit');M.modEnd();M.sub_.sel.clear();M.doc.sel.clear(); }
+
+
 console.log(`smoke: ${n} checks OK · ${M.doc.figures.length} figures`);
