@@ -2,7 +2,7 @@
 #============================================================================================================================================
 # 📦 Scratchpad/CheckVolumetricMedia.sh — one march, a cloud ceiling, and markers for bodiless volumes
 #============================================================================================================================================
-# Celestial step 5. Three classes of regression are guarded here.
+# Celestial step 5. Four classes of regression are guarded here.
 #
 #  ① THE UNIFIED MARCH. The source branch consolidated the volumes into one loop at 73737b6 — shared extinction,
 #    one sun-shadow march, one light loop — so fog shadows cloud for free. Splitting them apart looks almost
@@ -14,6 +14,10 @@
 #  ③ THE PROHIBITED OPTIMISATIONS, each measured and reverted upstream: clear-air striding (73b71d6, speckled
 #    cloud), a low-res cloud FBO with temporal reprojection (a152901, slower and worse), and atmosphere LUTs
 #    (2fe78ed, no speedup and uglier — References/Deferred/AtmosphereLuts.md).
+#
+#  ④ THE DRIFT. Advecting each altitude by its own wind over time-of-day shredded the slab into horizontal
+#    streaks (measured: 76 km of shear offset across 1.1 km by 7am). The whole medium rides one reference
+#    flow plus a frozen shear offset — WindField::AdvectDrift, which both densities must call.
 set -u
 cd "$(dirname "$0")/.."
 Fail=0
@@ -59,6 +63,24 @@ echo "[VolumetricMedia] the step size is bounded, not the step count"
 #    impossible, and each medium still derives its count from a bounded step.
 grep -q 'kReferenceSpan' "$Header"
 Report $? "the march derives its count from a bounded step size"
+
+echo
+echo "[VolumetricMedia] advection is uniform plus frozen shear, never local flow times time"
+# The streak note lives in WindField::AdvectDrift: the local flow times time-of-day piled 76 km of offset
+#    across the slab by 7am and shredded the sampling grid into horizontal streaks. Both densities route
+#    through the one helper; the old inline form (flow times the clock at the art factor) must not return.
+DriftDefs=$(grep -c 'static void AdvectDrift' Engine/DisplayPresentation/WindField.h)
+[ "$DriftDefs" = "1" ]
+Report $? "exactly one AdvectDrift helper ($DriftDefs found)"
+DriftCalls=$(grep -c 'AdvectDrift(' "$Header")
+[ "$DriftCalls" = "2" ]
+Report $? "both densities route through it ($DriftCalls call sites)"
+grep -q '0.5f \* (Base + Top)' "$Header"
+Report $? "the layer advects by the slab-mid flow"
+grep -q 'Volume.Centre\[2\]' "$Header"
+Report $? "the box advects by the flow at its centre"
+! sed 's;//.*;;' "$Header" | grep -qE 'Time \* 0\.[86]f'
+Report $? "no inline flow-times-time drift in either density"
 
 echo
 echo "[VolumetricMedia] bodiless volumes have a marker to grab"

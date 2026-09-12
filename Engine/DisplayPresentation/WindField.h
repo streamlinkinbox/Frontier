@@ -74,6 +74,38 @@ public:
         OutVelocity[2] = 0.0f;
     }
 
+    // Uniform advection plus a frozen shear offset: how a cloud field follows the wind without shredding.
+    //
+    //    ⚠️ NEVER the local flow times time-of-day. That older form drifted every altitude by its own wind over
+    //    seconds-since-midnight, and the shear/veer piled 76 km of altitude-dependent offset across the 1.1 km
+    //    slab by 7am (measured): adjacent elevation rays sampled field points five cells apart — fully
+    //    decorrelated — while adjacent azimuth rays stayed correlated, which is exactly horizontal cloud
+    //    streaks that worsen through the day. Physically the error is accumulating shear over hours: real shear
+    //    shapes a cloud over its ~10-minute eddy life, not since midnight, and there is no formation term here
+    //    to replace the shredded field. So the whole medium advects by the flow at ReferenceAltitudeMetres —
+    //    coherent at every hour — and the shear/veer survive as a static lean, frozen at a young cloud's memory
+    //    (120 s) and clamped to ±2 cells, so no slider combination can shred the sampling grid again. With shear
+    //    and veer at zero the lean vanishes and this equals the old flow-times-time exactly.
+    //
+    //    Trig-only (two SampleSteps), so it is safe inside a march like SampleStep itself. Transcribed as
+    //    CloudDriftAt in Shaders/SkyRecords.slang; the sky-cloud proof renders through the twin.
+    static void AdvectDrift(const WindSettings& Wind, float AltitudeMetres, float ReferenceAltitudeMetres,
+                            float TimeSeconds, float CellMetres, float ArtFactor, float OutDrift[2]) noexcept
+    {
+        float Step[3], Reference[3];
+        SampleStep(Wind, AltitudeMetres, Step);
+        SampleStep(Wind, ReferenceAltitudeMetres, Reference);
+        constexpr float kShearMemory = 120.0f;   // [s] the lean a young cloud carries
+        const float Cell = Clamp(CellMetres, 1.0f, 1.0e6f);
+        for (int C = 0; C < 2; ++C)
+        {
+            float Shear = (Step[C] - Reference[C]) * kShearMemory * ArtFactor;
+            const float Limit = 2.0f * Cell;
+            Shear = Shear < -Limit ? -Limit : (Shear > Limit ? Limit : Shear);
+            OutDrift[C] = Reference[C] * TimeSeconds * ArtFactor + Shear;
+        }
+    }
+
     // The gust envelope. Three sines at deliberately incommensurate rates (1, 2.31, 4.7) so the pattern never
     //    repeats on a period a viewer can notice. Scalar, so it costs nothing to fold into a step.
     static float SampleGust(const WindSettings& Wind) noexcept

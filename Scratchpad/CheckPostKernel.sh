@@ -82,7 +82,9 @@ Report $? "raster and kernel gate stars at the same sky luminance ($CpuCeil)"
 
 echo
 echo "[PostKernel] the three effects are hooked into the frame"
-printf '%s' "$SkyCode" | grep -q 'Radiance += StarAlong(Direction, dot(Radiance, vec3(0.2126, 0.7152, 0.0722)));'
+# The catalogue rides behind the weather like every other celestial source: the transmittance suffix is the
+#    weather integration's, not drift — without it stars would punch through overcast.
+printf '%s' "$SkyCode" | grep -q 'Radiance += StarAlong(Direction, dot(Radiance, vec3(0.2126, 0.7152, 0.0722))) \* CloudTransmittance;'
 Report $? "the sky entry point adds the catalogue before the twilight"
 printf '%s' "$Code" | grep -q 'RainbowAlong(direction, SkySunDirection.xyz, 1.0e6)'
 Report $? "a missed ray earns the full bow"

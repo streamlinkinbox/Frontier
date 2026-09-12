@@ -235,6 +235,21 @@ vec3 CloudWindAt(float Altitude)
     return vec3(sin(Bearing), cos(Bearing), 0.0) * Speed;
 }
 
+// Uniform advection plus a frozen shear offset — the twin of WindField::AdvectDrift, which carries the streak
+//    note. NEVER the local flow times the clock: accumulating the altitude-varying wind over time-of-day piled
+//    76 km of offset across the slab by 7am and shredded the sampling grid into horizontal streaks. The whole
+//    medium rides the reference flow (slab-mid, box centre) and the shear/veer lean it statically: 120 s of
+//    shear memory, the caller's art factor, clamped to ±2 cells. The clock reads the record's own w lane.
+vec2 CloudDriftAt(float Altitude, float ReferenceAltitude, float Cell, float ArtFactor)
+{
+    vec3 Step = CloudWindAt(Altitude);
+    vec3 Reference = CloudWindAt(ReferenceAltitude);
+    const float kShearMemory = 120.0;
+    vec2 Shear = (Step.xy - Reference.xy) * (kShearMemory * ArtFactor);
+    Shear = clamp(Shear, vec2(-2.0 * Cell), vec2(2.0 * Cell));
+    return Reference.xy * (SkyCloudAlbedo.w * ArtFactor) + Shear;
+}
+
 float CloudDensityAt(vec3 Position)
 {
     float Ceiling = max(SkyCloudShape.y, 0.0);
@@ -248,7 +263,7 @@ float CloudDensityAt(vec3 Position)
 
     vec3 Drift = vec3(0.0);
     if ((SkyControl.z & kCloudFollowWindFlag) != 0u)
-        Drift = CloudWindAt(Position.z) * (SkyCloudAlbedo.w * 0.8);
+        Drift.xy = CloudDriftAt(Position.z, 0.5 * (Base + Top), max(SkyCloudShape.x * 900.0, 1.0), 0.8);
     float Inverse = 1.0 / max(SkyCloudShape.x * 900.0, 1.0);
     vec3 S = vec3((Position.xy + Drift.xy) * Inverse, Position.z * Inverse);
     float Shape = CloudNoise(S) * 0.5
@@ -280,7 +295,8 @@ float LocalDensityAt(vec3 Position, bool FogVolume)
 
     vec3 Drift = vec3(0.0);
     uint WindFlag = FogVolume ? kLocalFogWindFlag : kLocalCloudWindFlag;
-    if ((SkyControl.z & WindFlag) != 0u) Drift = CloudWindAt(Position.z) * (SkyCloudAlbedo.w * 0.6);
+    if ((SkyControl.z & WindFlag) != 0u)
+        Drift.xy = CloudDriftAt(Position.z, Centre.z, max(Params.z, 1.0), 0.6);
     float Inverse = 1.0 / max(Params.z, 1.0);
     vec3 S = (Position + Drift) * Inverse;
     float Shape = CloudNoise(S) * 0.5 + CloudNoise(S * 2.02 + vec3(3.1, 1.7, 9.2)) * 0.25;
@@ -331,26 +347,23 @@ bool CloudBoxInterval(vec3 Origin, vec3 Direction, vec3 Centre, vec3 HalfSize, f
     return Far > Near;
 }
 
-float CloudShadowMedium(vec3 Origin, vec3 Direction, float Maximum, uint Medium, uint Taps)
+float CloudShadowMedium(vec3 Origin, vec3 Direction, uint Medium, uint Taps)
 {
-    float Near = 0.0, Far = 0.0;
-    bool Hit = false;
-    if (Medium == 0u)
-        Hit = CloudSlabInterval(Origin, Direction, Maximum, Near, Far);
-    else if (Medium == 1u)
-        Hit = CloudBoxInterval(Origin, Direction, SkyLocalCloudCentre.xyz, max(SkyLocalCloudHalfSize.xyz, vec3(1e-3)), Maximum, Near, Far);
-    else
-        Hit = CloudBoxInterval(Origin, Direction, SkyLocalFogCentre.xyz, max(SkyLocalFogHalfSize.xyz, vec3(1e-3)), Maximum, Near, Far);
-    if (!Hit) return 1.0;
-
+    // Twin of VolumetricMedia::ShadowMarch: Taps half-step taps toward the sun from the sample point. The taps
+    //    pace the medium's own reference step (the view step the CPU march passes is the same size to 4% — the
+    //    rescale — so both paths resolve the same self-shadowing, the 4.83x gap/shadow contrast the CPU path
+    //    measured). A full-interval march was tried here first: at grazing its taps stride whole clouds between
+    //    samples and the shadow aliases into noise, while these local taps stay inside the structure.
+    float StepSize = Medium == 0u ? 4000.0 / float(max(SkyCloudControl.x, 1u))
+                   : max((Medium == 1u ? SkyLocalCloudParams.z : SkyLocalFogParams.z) * 0.5, 1.0);
     uint Count = max(Taps, 1u);
-    float Span = Far - Near, Step = Span / float(Count), Depth = 0.0;
-    for (uint I = 0u; I < Count; ++I)
+    float Depth = 0.0;
+    for (uint I = 1u; I <= Count; ++I)
     {
-        float T = Near + (float(I) + 0.5) * Step;
-        vec3 P = Origin + Direction * T;
-        float D = Medium == 0u ? CloudDensityAt(P) : LocalDensityAt(P, Medium == 2u);
-        Depth += D * Step * kCloudExtinctionScale;
+        float Distance = StepSize * float(I) * 0.5;
+        vec3 Q = Origin + Direction * Distance;
+        float D = Medium == 0u ? CloudDensityAt(Q) : LocalDensityAt(Q, Medium == 2u);
+        Depth += D * StepSize * 0.5 * kCloudExtinctionScale;
         if (Depth > 4.0) break;
     }
     return exp(-Depth);
@@ -359,11 +372,13 @@ float CloudShadowMedium(vec3 Origin, vec3 Direction, float Maximum, uint Medium,
 float CloudSunTransmittance(vec3 Origin, vec3 Direction)
 {
     if ((SkyControl.z & (kCloudLayerFlag | kLocalCloudFlag | kLocalFogFlag)) == 0u) return 1.0;
+    // Per-medium transmittances multiply, which is the combined medium's: optical depths add under the
+    //    exponential, so this equals the CPU shadow march's summed densities at the same tap points.
     uint Taps = max(SkyCloudControl.z, 1u);
     float Result = 1.0;
-    if ((SkyControl.z & kCloudLayerFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 0u, Taps);
-    if ((SkyControl.z & kLocalCloudFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 1u, Taps);
-    if ((SkyControl.z & kLocalFogFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 2u, Taps);
+    if ((SkyControl.z & kCloudLayerFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, 0u, Taps);
+    if ((SkyControl.z & kLocalCloudFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, 1u, Taps);
+    if ((SkyControl.z & kLocalFogFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, 2u, Taps);
     return Result;
 }
 
@@ -385,13 +400,17 @@ void CloudMarchMedium(vec3 Origin, vec3 Direction, float Near, float Far, uint M
                                  : max((Medium == 1u ? SkyLocalCloudParams.z : SkyLocalFogParams.z) * 0.5, 1.0);
     float DesiredStep = Medium == 0u ? 4000.0 / float(Budget) : Feature;
     uint Count = max(uint(ceil(Span / DesiredStep)), 1u);
-    // A horizon ray may cross a very long projection of the flat layer. Its density is sampled at the layer
-    //    interval only, so this cap bounds cost without stretching the actual cloud slab into a clear band.
-    Count = min(Count, max(Budget * 8u, 8u));
+    // The cap is the CPU march's (4x the tier's budget for the layer, the local budget for the boxes): the same
+    //    span takes the same steps on both paths, so a capped grazing ray shades identically in either.
+    Count = min(Count, Medium == 0u ? max(Budget * 4u, 4u) : Budget);
     float Step = Span / float(Count);
     float G = Medium == 0u ? SkyCloudShape.w : (Medium == 1u ? SkyLocalCloudParams.w : SkyLocalFogParams.w);
     float Phase = CloudHenyeyGreenstein(dot(Direction, SunDirection), G);
-    vec3 Albedo = Medium == 0u ? SkyCloudAlbedo.xyz : vec3(0.92, 0.94, 0.97);
+    // The layer's white rides the record; the box keeps the CPU default white (the sheet exposes no local
+    //    albedo, so the default is the only value both paths ever see); the fog keeps its fixed grey — the
+    //    same three albedos VolumetricMedia::March shades with.
+    vec3 Albedo = Medium == 0u ? SkyCloudAlbedo.xyz
+                : (Medium == 1u ? vec3(0.92, 0.94, 0.97) : vec3(0.88));
     for (uint I = 0u; I < Count; ++I)
     {
         float T = Near + (float(I) + 0.5) * Step;

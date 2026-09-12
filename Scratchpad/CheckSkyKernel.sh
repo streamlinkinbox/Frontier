@@ -6,12 +6,14 @@
 #    bounce ray. The first is the sky BEHIND the geometry; the second is the sky AS A LIGHT, and in an outdoor
 #    scene it is the largest emitter present. Both are now wired to Shaders/SkyRecords.slang at binding 21.
 #
-# Five ways this rots, all guarded:
+# Six ways this rots, all guarded:
 #    ① the shader drifts from AtmosphereModel, so the GI-on and GI-off skies stop matching,
 #    ② the std140 block and its C++ mirror disagree, which is a wrong picture rather than a compile error,
 #    ③ a miss branch quietly goes back to contributing nothing,
 #    ④ the sequence packs the kernel a different sky than the raster's (PackSkyRecord must mirror ApplyTo),
-#    ⑤ the host stops writing the descriptor — the layout, the pool, the write or the per-frame push.
+#    ⑤ the host stops writing the descriptor — the layout, the pool, the write or the per-frame push,
+#    ⑥ the kernel's cloud path drifts from the raster's march (drift, shadow taps, step caps, albedos), so the
+#       ReSTIR sky shows a different weather than the raster's — guarded by the twin proof and the pins below.
 set -u
 cd "$(dirname "$0")/.."
 Fail=0
@@ -40,6 +42,23 @@ if ! g++ -std=c++20 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -I . -
 fi
 "$Pack" || Fail=1
 rm -f "$Pack"
+
+echo
+echo "[SkyKernel] the kernel's cloud path renders the raster's clouds"
+# The shader cannot be dispatched here, so its cloud path is re-transcribed to C++ and rendered through the
+#    production pack at morning and at morning-plus-two-cloud-hours: both frames must be streak-free (the old
+#    flow-times-time drift shredded the slab progressively through the day) and the twin must match the raster
+#    march it mirrors. Links the sequence, solver, catalogue and classifier; re-renders the committed pin.
+CloudProof="$(mktemp -u /tmp/SkyCloudKernelProof.XXXXXX)"
+if ! g++ -std=c++20 -O2 -ffunction-sections -fdata-sections -Wall -Wextra -I . -I Engine -I Scratchpad \
+     -o "$CloudProof" Scratchpad/SkyCloudKernelProof.cpp Projects/Project-Zero/Source/CelestialSequence.cpp \
+     Engine/DisplayPresentation/CelestialSolver.cpp Engine/GeometricRaster/StarCatalogueIndex.cpp \
+     Engine/DisplayPresentation/FidelityClassifier.cpp \
+     -Wl,--gc-sections 2>/tmp/SkyCloudKernel.build; then
+    echo "  CLOUD PROOF FAILED TO BUILD"; sed 's/^/    /' /tmp/SkyCloudKernel.build | head -16; exit 1
+fi
+"$CloudProof" || Fail=1
+rm -f "$CloudProof"
 
 Kernel=Engine/Shaders/ReSTIRViewport.slang
 Sky=Engine/Shaders/SkyRecords.slang
@@ -76,6 +95,41 @@ printf '%s' "$Code" | grep -q 'CloudAlong(CameraOrigin, -viewDir, primaryT'
 Report $? "a primary surface composes the camera-to-hit weather segment"
 printf '%s' "$Code" | grep -q 'CloudSunTransmittance(hitPos, shadeDir)'
 Report $? "the selected ReSTIR sun is shadowed by the cloud field"
+
+echo
+echo "[SkyKernel] the kernel's drift cannot shred the slab"
+# The streak note lives in WindField::AdvectDrift: the local flow times time-of-day piled 76 km of offset
+#    across the slab by 7am. Both densities must route through the one CloudDriftAt twin, whose clamp and shear
+#    memory are pinned pairwise with the CPU's below.
+DriftDefs=$(printf '%s' "$SkyCode" | grep -c 'vec2 CloudDriftAt(float Altitude')
+[ "$DriftDefs" = "1" ]
+Report $? "exactly one CloudDriftAt twin ($DriftDefs found)"
+DriftCalls=$(printf '%s' "$SkyCode" | grep -c 'CloudDriftAt(Position')
+[ "$DriftCalls" = "2" ]
+Report $? "both densities route through it ($DriftCalls call sites)"
+printf '%s' "$SkyCode" | grep -q 'clamp(Shear, vec2(-2.0 \* Cell), vec2(2.0 \* Cell))'
+Report $? "the shear offset is clamped to two cells"
+printf '%s' "$SkyCode" | grep -q 'kShearMemory = 120.0;'
+Report $? "the shader's shear memory is 120 s"
+grep -q 'kShearMemory = 120.0f;' Engine/DisplayPresentation/WindField.h
+Report $? "the host's shear memory is the same 120 s"
+WindCalls=$(printf '%s' "$SkyCode" | grep -c 'CloudWindAt(')
+[ "$WindCalls" = "3" ]
+Report $? "the wind is sampled only inside the drift ($WindCalls sites: def + 2)"
+
+echo
+echo "[SkyKernel] the kernel's shadow, steps and whites match the march"
+# CloudShadowMedium marches local half-step taps like VolumetricMedia::ShadowMarch; the full-interval march it
+#    replaced strode whole clouds between taps at grazing angles. The pin forbids the midpoint-grid form inside
+#    the shadow body (the view march keeps it — that is the resolved-local-taps structure, asserted as one).
+sed -n '/float CloudShadowMedium/,/^}/p' "$Sky" | grep -q 'StepSize \* float(I) \* 0.5'
+Report $? "the shadow taps pace the medium's own step"
+! sed -n '/float CloudShadowMedium/,/^}/p' "$Sky" | sed 's;//.*;;' | grep -q '(float(I) + 0.5)'
+Report $? "no full-interval midpoint grid inside the shadow march"
+printf '%s' "$SkyCode" | grep -q 'max(Budget \* 4u, 4u)'
+Report $? "the layer's step cap is the CPU march's 4x budget"
+printf '%s' "$SkyCode" | grep -q 'vec3(0.88)'
+Report $? "the fog keeps the CPU march's fixed grey"
 
 echo
 echo "[SkyKernel] the block is declared where it was reserved"

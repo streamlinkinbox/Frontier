@@ -191,14 +191,17 @@ public:
         const float Profile = HeightProfile(Cloud.Type, Normalised, Cloud.Anvil);
         if (Profile <= 0.0f) return 0.0f;
 
-        // Advection. ⚠️ SampleStep only — this runs at every march step, and the swirl belongs once per pixel
-        //    (WindField.h, and the regression the source branch's last commit fixed).
+        // Advection, uniform plus frozen shear (WindField::AdvectDrift — the streak note lives there): the
+        //    whole slab rides the slab-mid flow, statically leaned by the shear. Trig-only, so it stays safe
+        //    inside the march like the SampleStep it replaces — and SampleStep-only, the swirl still belongs
+        //    once per pixel (the regression the source branch's last commit fixed).
         float Drift[3] = { 0.0f, 0.0f, 0.0f };
         if (Cloud.FollowWind)
         {
-            WindField::SampleStep(Wind, Altitude, Drift);
-            Drift[0] *= Time * 0.8f;
-            Drift[1] *= Time * 0.8f;
+            float Advected[2];
+            WindField::AdvectDrift(Wind, Altitude, 0.5f * (Base + Top), Time,
+                                   std::fmax(Cloud.Scale * 900.0f, 1.0f), 0.8f, Advected);
+            Drift[0] = Advected[0]; Drift[1] = Advected[1];
         }
 
         const float Inverse = 1.0f / std::fmax(Cloud.Scale * 900.0f, 1.0f);
@@ -273,12 +276,15 @@ public:
         const float Mask = 1.0f - SmoothStep(0.55f, 1.0f, R);
         if (Mask <= 0.0f) return 0.0f;
 
+        // Advection, uniform plus frozen shear like the layer's (WindField::AdvectDrift): the whole box
+        //    rides the flow at its centre altitude.
         float Drift[3] = { 0.0f, 0.0f, 0.0f };
         if (Volume.FollowWind)
         {
-            WindField::SampleStep(Wind, Position[2], Drift);
-            Drift[0] *= Time * 0.6f;
-            Drift[1] *= Time * 0.6f;
+            float Advected[2];
+            WindField::AdvectDrift(Wind, Position[2], Volume.Centre[2], Time,
+                                   std::fmax(Volume.Scale, 1.0f), 0.6f, Advected);
+            Drift[0] = Advected[0]; Drift[1] = Advected[1];
         }
 
         const float Inverse = 1.0f / std::fmax(Volume.Scale, 1.0f);
