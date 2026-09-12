@@ -24,7 +24,7 @@ bool Nearly(float A, float B)
 bool Nearly3(const float A[3], const float B[3]) { return Nearly(A[0],B[0]) && Nearly(A[1],B[1]) && Nearly(A[2],B[2]); }
 }
 
-static_assert(sizeof(SkyConstantRecord) == 144u, "the packed record is the shader's 144-byte block");
+static_assert(sizeof(SkyConstantRecord) == 320u, "the packed sky and weather record is the shader's 320-byte block");
 
 int main(){
     std::printf("\nCelestialSequence::PackSkyRecord — the kernel is packed the raster's sky\n");
@@ -100,7 +100,41 @@ int main(){
         Expect(On.SunRadiance[3]==1.0f, "an enabled sky marks the record live");
     }
 
-    // ⑥ The twilight terms pass through untouched.
+    // ⑥ Weather uses the same visibility gates as the raster and carries every GPU-facing control row.
+    Sky.Cloud.Enabled = true;
+    Sky.Cloud.Type = CloudTypeCategory::Cumulonimbus;
+    Sky.Cloud.Base = 1700.0f; Sky.Cloud.Thickness = 900.0f;
+    Sky.Cloud.Coverage = 0.42f; Sky.Cloud.Density = 1.7f;
+    Sky.Cloud.Scale = 0.8f; Sky.Cloud.Anvil = 0.65f; Sky.Cloud.Anisotropy = 0.32f;
+    Sky.LocalCloud.Enabled = true;
+    Sky.LocalCloud.Centre[0] = -12.0f; Sky.LocalCloud.Centre[1] = 23.0f; Sky.LocalCloud.Centre[2] = 140.0f;
+    Sky.LocalCloud.HalfSize[0] = 40.0f; Sky.LocalCloud.HalfSize[1] = 50.0f; Sky.LocalCloud.HalfSize[2] = 30.0f;
+    Sky.LocalCloud.Density = 2.1f; Sky.LocalCloud.Coverage = 0.73f; Sky.LocalCloud.Scale = 36.0f;
+    Sky.LocalFog.Enabled = true;
+    Sky.LocalFog.Centre[0] = 8.0f; Sky.LocalFog.Centre[1] = -7.0f; Sky.LocalFog.Centre[2] = 12.0f;
+    Sky.Wind.Speed = 9.0f; Sky.Wind.Bearing = 215.0f; Sky.Wind.Shear = 0.04f; Sky.Wind.Veer = 1.5f;
+    Sky.Budget.Volumetrics.CloudSteps = 17u;
+    Sky.Budget.Volumetrics.LocalSteps = 13u;
+    Sky.Budget.Volumetrics.LightTaps = 5u;
+    {
+        const SkyConstantRecord R = Sky.PackSkyRecord();
+        const uint32_t Media = (1u << 0u) | (1u << 1u) | (1u << 2u);
+        Expect((R.Control[2] & Media) == Media, "enabled global and local media reach the sky flags");
+        Expect(R.Control[3] == static_cast<uint32_t>(CloudTypeCategory::Cumulonimbus), "the cloud type reaches the control word");
+        Expect(Nearly(R.CloudLayer[0], 1700.0f) && Nearly(R.CloudLayer[1], 900.0f)
+            && Nearly(R.CloudLayer[2], 0.42f) && Nearly(R.CloudLayer[3], 1.7f), "cloud layer settings reach binding 21");
+        Expect(R.CloudControl[0] == 17u && R.CloudControl[1] == 13u && R.CloudControl[2] == 5u,
+               "the volumetric tier counts reach the weather rows");
+        Expect(Nearly(R.LocalCloudCentre[0], -12.0f) && Nearly(R.LocalCloudHalfSize[2], 30.0f),
+               "local volume bounds reach binding 21");
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = false;
+        const SkyConstantRecord Hidden = Sky.PackSkyRecord();
+        Expect((Hidden.Control[2] & (1u << 0u)) == 0u && (Hidden.Control[2] & (1u << 1u)) != 0u,
+               "hiding the global cloud leaves an independently shown local cloud live");
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = true;
+    }
+
+    // ⑦ The twilight terms pass through untouched.
     Sky.Twilight.GlowIntensity = 0.7f;
     Sky.Twilight.LineIntensity = 0.3f;
     {

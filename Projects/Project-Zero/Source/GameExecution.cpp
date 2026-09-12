@@ -1414,10 +1414,10 @@ int main(int argc, char** argv)
         }
 
         // ④d GPU sky — the kernel reads the packed record at binding 21 on every miss and every escaped bounce.
-        //     Pushed every frame like the instances: 128 bytes, and the sun moves. Refusal is impossible here by
-        //     construction (the size is pinned by static_assert and the device is up), so the nodiscard is cast
-        //     away — there is nothing to fall back to, and the previous contents stand, which is a stale sky
-        //     rather than a torn one.
+        //     Pushed every frame like the instances: 320 bytes of atmosphere and weather, and the sun moves.
+        //     Refusal is impossible here by construction (the size is pinned by static_assert and the device is up),
+        //     so the nodiscard is cast away — there is nothing to fall back to, and the previous contents stand,
+        //     which is a stale sky rather than a torn one.
         {
             const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
             (void)Surface.RefreshSky(&Sky, sizeof(Sky));

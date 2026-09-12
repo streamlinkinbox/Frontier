@@ -232,11 +232,11 @@ public:
     //    material and normal through them and they must not lag the structure. False if a blob outgrew its
     //    allocation, in which case the caller should fall back to a full UploadTraversal.
     [[nodiscard]] bool          RefreshTraversal(const TraversalIndex& Traversal, const std::vector<TriangleIndex>& Facets) noexcept;
-    // Celestial sky record → binding 21, safe every frame: a memcpy into the persistently mapped uniform buffer,
-    //    no reallocation and no descriptor rewrite. DeviceExchange must not include DisplayPresentation (it is the
-    //    layer below it), so the caller packs with SkyConstantRecord/PackSkyConstants and hands over plain bytes —
-    //    the same arrangement as UploadShadingTables. False when the bytes are null, the size is not 128, or the
-    //    buffer does not exist yet; the previous contents stand, so a refusal degrades to a stale sky, not a tear.
+    // Celestial sky and weather record → binding 21, safe every frame: a memcpy into the persistently mapped
+    //    uniform buffer, no reallocation and no descriptor rewrite. DeviceExchange must not include
+    //    DisplayPresentation (it is the layer below it), so the caller packs with SkyConstantRecord and hands over
+    //    plain bytes. False when the bytes are null, the size is not 320, or the buffer does not exist yet; the
+    //    previous contents stand, so a refusal degrades to a stale sky, not a tear.
     [[nodiscard]] bool          RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept;
     // Celestial moon record → binding 22, safe every frame: the same arrangement as the sky record above, 288
     //    bytes packed by MoonConstantRecord/PackMoonConstants. False when the bytes are null, the size is not

@@ -52,9 +52,9 @@ echo
 echo "[SkyKernel] both miss branches collect the sky"
 # ⚠️ Comments are stripped first. Both files explain these branches at length and a bare word match would find
 #    the prose rather than the code — the trap CheckShadowTiers records for the PCSS half-angle.
-printf '%s' "$Code" | grep -q 'Resolve(pixel, SkyAlong(direction) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));'
+printf '%s' "$Code" | grep -q 'Resolve(pixel, SkyAlong(direction, CameraOrigin) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));'
 Report $? "a missed primary ray resolves to the sky and the bow"
-printf '%s' "$Code" | grep -q 'accumulatedRadiance += throughput \* SkyAlong(bounceDir);'
+printf '%s' "$Code" | grep -q 'accumulatedRadiance += throughput \* SkyAlong(bounceDir, hitPos);'
 Report $? "an escaped bounce ray adds the sky as a light"
 # The old text is the regression: if either branch says this again, the sky has been unwired.
 ! printf '%s' "$Code" | grep -q 'Resolve(pixel, vec3(0.0));'
@@ -62,9 +62,20 @@ Report $? "no miss branch resolves to black any more"
 
 echo
 echo "[SkyKernel] one entry point, so the two branches cannot diverge"
-Entries=$(printf '%s' "$SkyCode" | grep -c 'vec3 SkyAlong(vec3 Direction)')
+Entries=$(printf '%s' "$SkyCode" | grep -c 'vec3 SkyAlong(vec3 Direction, vec3 Origin)')
 [ "$Entries" = "1" ]
 Report $? "SkyRecords exposes exactly one SkyAlong ($Entries found)"
+
+echo
+echo "[SkyKernel] weather crosses the same paths as the atmosphere"
+printf '%s' "$SkyCode" | grep -q 'Transmittance \*= CloudTransmittance;'
+Report $? "the atmosphere's celestial sources inherit cloud transmittance"
+printf '%s' "$SkyCode" | grep -q 'SkyTwilightGlow(Direction) \* CloudTransmittance'
+Report $? "twilight and stars stay behind the cloud layer"
+printf '%s' "$Code" | grep -q 'CloudAlong(CameraOrigin, -viewDir, primaryT'
+Report $? "a primary surface composes the camera-to-hit weather segment"
+printf '%s' "$Code" | grep -q 'CloudSunTransmittance(hitPos, shadeDir)'
+Report $? "the selected ReSTIR sun is shadowed by the cloud field"
 
 echo
 echo "[SkyKernel] the block is declared where it was reserved"
@@ -104,8 +115,8 @@ Report $? "the host's aureole width is the same 5 deg"
 
 echo
 echo "[SkyKernel] the C++ mirror matches the shader's std140 layout"
-grep -q 'static_assert(sizeof(SkyConstantRecord) == 144u' Engine/DisplayPresentation/SkyConstantRecord.h
-Report $? "the record is pinned at 144 bytes"
+grep -q 'static_assert(sizeof(SkyConstantRecord) == 320u' Engine/DisplayPresentation/SkyConstantRecord.h
+Report $? "the sky and weather record is pinned at 320 bytes"
 Offsets=$(grep -c 'static_assert(offsetof(SkyConstantRecord' Engine/DisplayPresentation/SkyConstantRecord.h)
 [ "$Offsets" -ge 8 ]
 Report $? "every member's offset is asserted ($Offsets of them)"
@@ -126,10 +137,10 @@ grep -q 'PoolSizes\[2\].descriptorCount = 3u' "$X"
 Report $? "the sampler pool no longer budgets binding 22"
 grep -q 'PoolSizes\[3\].descriptorCount = 3u' "$X"
 Report $? "the UBO pool budgets sky, moons and the retired hole"
-# DeviceExchange may not include DisplayPresentation, so the 144 restated there is pinned by hand: if the mirror
+# DeviceExchange may not include DisplayPresentation, so the 320 restated there is pinned by hand: if the mirror
 #    ever grows, this is the check that says the host allocation did not follow it.
-grep -q 'kSkyRecordBytes = 144u' "$X"
-Report $? "the host allocation agrees with the mirror's 144 bytes"
+grep -q 'kSkyRecordBytes = 320u' "$X"
+Report $? "the host allocation agrees with the mirror's 320 bytes"
 # A write's descriptorType must equal the layout's too, which is why 21 has its own helper rather than WriteBuffer.
 grep -q 'Write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; Write.pBufferInfo' "$X"
 Report $? "the write helper speaks uniform-buffer, not storage-buffer"

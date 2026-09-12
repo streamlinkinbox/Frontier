@@ -57,10 +57,10 @@ static constexpr uint32_t kLocalGroupSizeY = 16u;
 static constexpr uint32_t kDenoiseGroupSize = 8u;
 // A6b: exposure is a whole-frame property, so the reduction subsamples. 32 px gives ~2 000 taps at 1080p.
 static constexpr uint32_t kLuminanceSampleStride = 32u;
-// The Celestial sky uniform block (binding 21) is nine std140 rows — 144 B, pinned by static_assert in
+// The Celestial sky uniform block (binding 21) is twenty std140 rows — 320 B, pinned by static_assert in
 //    DisplayPresentation/SkyConstantRecord.h. DeviceExchange must not include DisplayPresentation (it is the
 //    layer below it), so the size is restated here and CheckSkyKernel.sh fails the build if the two disagree.
-static constexpr uint32_t kSkyRecordBytes = 144u;
+static constexpr uint32_t kSkyRecordBytes = 320u;
 // The Celestial moon uniform block (binding 22) is eighteen std140 rows — 288 B, pinned by static_assert in
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
@@ -157,9 +157,9 @@ struct SwapchainExchange::VulkanRecord
     VkDeviceMemory           TraversalNodeMemory   = VK_NULL_HANDLE;
     VkBuffer                 TraversalLeafBuffer   = VK_NULL_HANDLE;   // R3 CWBVH triangles (binding 9)
     VkDeviceMemory           TraversalLeafMemory   = VK_NULL_HANDLE;
-    // Celestial sky record (binding 21). One 144 B uniform buffer, host-visible and persistently mapped: the
-    //    project re-packs it every frame and RefreshSky is a memcpy, never a reallocation or a descriptor
-    //    rewrite. Zeroed at bring-up, which is the sky disabled (SunRadiance.w = 0) — a caller that never
+    // Celestial sky and weather record (binding 21). One 320 B uniform buffer, host-visible and persistently
+    //    mapped: the project re-packs it every frame and RefreshSky is a memcpy, never a reallocation or a
+    //    descriptor rewrite. Zeroed at bring-up, which is the sky and weather disabled — a caller that never
     //    pushes keeps the old no-environment-light behaviour rather than reading garbage.
     VkBuffer                 SkyBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory           SkyMemory             = VK_NULL_HANDLE;
@@ -2419,7 +2419,7 @@ bool SwapchainExchange::RefreshTraversal(const TraversalIndex& Traversal, const 
 bool SwapchainExchange::RefreshSky(const void* Bytes, uint32_t ByteCount) noexcept
 {
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
-    //    SkyConstantRecord/PackSkyConstants and hands over the 144 bytes, the way UploadShadingTables receives
+    //    SkyConstantRecord/PackSkyConstants and hands over the 320 bytes, the way UploadShadingTables receives
     //    baked planes. The size is refused rather than trusted: a short write would leave half an old sky in
     //    the buffer, and a long one would overrun the mapping.
     if (!Vulkan->Device || !Vulkan->SkyMapped || !Bytes || ByteCount != kSkyRecordBytes) return false;
@@ -2434,7 +2434,7 @@ bool SwapchainExchange::RefreshSky(const void* Bytes, uint32_t ByteCount) noexce
 bool SwapchainExchange::RefreshMoons(const void* Bytes, uint32_t ByteCount) noexcept
 {
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
-    //    MoonConstantRecord/PackMoonConstants and hands over the 288 bytes, the way RefreshSky receives its 128.
+    //    MoonConstantRecord/PackMoonConstants and hands over the 288 bytes, the way RefreshSky receives its 320.
     //    The size is refused rather than trusted: a short write would leave half an old roster in the buffer,
     //    and a long one would overrun the mapping.
     if (!Vulkan->Device || !Vulkan->MoonMapped || !Bytes || ByteCount != kMoonRecordBytes) return false;

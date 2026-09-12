@@ -667,22 +667,26 @@ float PHatFull(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 
 
 // Sun target: f·L·cos — the sun is at infinity, so no d². L is the record's attenuated direct radiance, which
 //    is zero at night and when the sun hides, so dead sun candidates carry p̂ = 0 and can never be selected.
-float PHatSun(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 sunEmit, vec3 sunDir)
+float PHatSun(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 hitPos,
+              vec3 sunEmit, vec3 sunDir)
 {
     float cosT = max(0.0, dot(F.Geometric, sunDir));
     if (cosT <= 0.0) return 0.0;
     vec3 wi = ToLocal(F, sunDir);
     if (wi.z <= 0.0) return 0.0;
-    return max(dot(EvaluateBsdf(m, L, wo, wi), sunEmit), 0.0) * cosT;
+    // Cloud transmittance belongs in the RIS target, not only in the final shade. Otherwise reservoir reuse
+    //    selects using an unshadowed p̂ but evaluates a cloud-shadowed contribution, which biases the sun.
+    return max(dot(EvaluateBsdf(m, L, wo, wi), sunEmit), 0.0) * cosT * CloudSunTransmittance(hitPos, sunDir);
 }
 
 // p̂ of a STORED sample — the one question every merge asks, answered for both light kinds. A sun sample's
 //    direction is rebuilt from its far point, exactly: the point is 1e4 m out, so the rebuild differs from the
 //    sampled direction by ~1e-4 rad — inside the disc, where the pdf is still 1/Ω.
-float PHatSelected(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, uint light, vec3 toLight)
+float PHatSelected(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 hitPos,
+                  uint light, vec3 toLight)
 {
     if (light == kSunLightIndex)
-        return PHatSun(F, m, L, wo, SunEmission(), normalize(toLight));
+        return PHatSun(F, m, L, wo, hitPos, SunEmission(), normalize(toLight));
     return PHatFull(F, m, L, wo, LightEmission(light), toLight, dot(toLight, toLight), LightNormal(light));
 }
 
@@ -728,7 +732,7 @@ void DrawDirectCandidate(SurfaceFrame F, ShadingRecord m, ResolvedLayers L, vec3
         point  = hitPos + sunDir * kSunShadowDistance;
         light  = kSunLightIndex;
         uv     = vec2(u1, u2);
-        float pHat = PHatSun(F, m, L, wo, SunEmission(), sunDir);
+        float pHat = PHatSun(F, m, L, wo, hitPos, SunEmission(), sunDir);
         float pPick = LightTriangleCount > 0u ? kSunPickProbability : 1.0;
         weight = pHat * SunSolidAngle() / pPick;
     }
@@ -940,7 +944,7 @@ void main()
                                   - CameraUp    * (ndc.y * FieldOfViewTanHalf));
         // A missed ray crosses the whole rain column, so it earns the full bow (the large distance saturates
         //    the path fraction exactly as the model prescribes for the sky).
-        Resolve(pixel, SkyAlong(direction) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));
+        Resolve(pixel, SkyAlong(direction, CameraOrigin) + RainbowAlong(direction, SkySunDirection.xyz, 1.0e6));
         return;
     }
 
@@ -952,14 +956,28 @@ void main()
     float primaryT   = length(toCamera);
     vec3  viewDir    = toCamera / max(primaryT, 1e-6);
     float coneWidth  = primaryT * PixelSpreadAngle();             // ray-cone footprint at the primary hit [m]
+    bool  weatherEnabled = (SkyControl.z & (kCloudLayerFlag | kLocalCloudFlag | kLocalFogFlag)) != 0u;
 
     SurfaceFrame  frame;
     ShadingRecord shading = ResolveMaterial(mat, primaryInstance, VisibilityPrimitive(visibility), hitPos, viewDir, coneWidth, frame);
 
-    // If we directly hit an emitter — return its radiance (slab emission × texture; the header's radiance drives the luminaire table)
+    // If we directly hit an emitter — return its radiance (slab emission × texture; the header's radiance drives the luminaire table).
+    // Apply the camera segment before this early return as well: a cloud deck between the eye and an emissive sign is
+    //    still in front of the sign, and must not disappear merely because the hit skipped surface lighting.
     if (dot(frame.Emission, frame.Emission) > 0.0)
     {
-        Resolve(pixel, frame.Emission);
+        vec3 emitterRadiance = frame.Emission;
+        if (weatherEnabled)
+        {
+            vec3 weatherScatter;
+            float weatherTransmittance;
+            float cloudDay = smoothstep(-12.0, 0.0, SkySunDirection.w);
+            CloudAlong(CameraOrigin, -viewDir, primaryT, SkySunDirection.xyz,
+                       SkySunRadiance.xyz * cloudDay, SkySunDirect.xyz * 0.5,
+                       weatherScatter, weatherTransmittance);
+            emitterRadiance = emitterRadiance * weatherTransmittance + weatherScatter;
+        }
+        Resolve(pixel, emitterRadiance);
         return;
     }
 
@@ -1029,7 +1047,7 @@ void main()
             //    whichever light kind the reservoir holds — the old code's emit2 temp only knew mesh lights.
             {
                 vec3 toSel2 = res.SelectedPoint - hitPos;
-                pSelected   = PHatSelected(frame, shading, layers, woLocal, res.SelectedLight, toSel2);
+                pSelected   = PHatSelected(frame, shading, layers, woLocal, hitPos, res.SelectedLight, toSel2);
                 res.UnbiasedWeight = pSelected > 0.0 ? res.WeightSum / (float(res.SampleCount) * pSelected) : 0.0;
             }
 
@@ -1055,7 +1073,7 @@ void main()
                     {
                         uint mPrevCapped = min(prevM, kTemporalMClamp * res.SampleCount);
                         vec3 prevToL  = prev.Sample.xyz - hitPos;
-                        float pPrev = PHatSelected(frame, shading, layers, woLocal, prev.Counts.y, prevToL);
+                        float pPrev = PHatSelected(frame, shading, layers, woLocal, hitPos, prev.Counts.y, prevToL);
                         // pCur is p̂ at the current selection, and res has not been touched since pSelected was
                         //    established — so it IS pSelected, not something to evaluate again.
                         float pCur  = pSelected;
@@ -1111,7 +1129,7 @@ void main()
                     if (!nValid) continue;
                     uint mNeighCapped = min(neighM, kTemporalMClamp * res.SampleCount);
                     vec3 neighToL  = neigh.Sample.xyz - hitPos;
-                    float pNeigh = PHatSelected(frame, shading, layers, woLocal, neigh.Counts.y, neighToL);
+                    float pNeigh = PHatSelected(frame, shading, layers, woLocal, hitPos, neigh.Counts.y, neighToL);
                     // Same identity as the temporal merge: p̂ at the current selection is the carried value.
                     float pSelf  = pSelected;
                     float wSelf  = pSelf * res.UnbiasedWeight * float(res.SampleCount);
@@ -1156,7 +1174,12 @@ void main()
                 vec3  wiLocal = ToLocal(frame, shadeDir);
                 vec3  f = wiLocal.z > 0.0 ? EvaluateBsdf(shading, layers, woLocal, wiLocal) : vec3(0.0);   // R4b: full lobe stack
                 if (res.SelectedLight == kSunLightIndex)
-                    accumulatedRadiance += f * SunEmission() * shadeCos * res.UnbiasedWeight;
+                {
+                    // The reservoir target carries this same visibility term (PHatSun), so the cloud does not
+                    //    turn into a post-hoc multiplier that would bias temporal/spatial reuse.
+                    accumulatedRadiance += f * SunEmission() * shadeCos * res.UnbiasedWeight
+                                         * CloudSunTransmittance(hitPos, shadeDir);
+                }
                 else
                 {
                     vec3 chosenEmit = LightEmission(res.SelectedLight);
@@ -1197,7 +1220,7 @@ void main()
             //    exactly as any other emitter would — no separate ambient term, no second light path.
             if (!bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
             {
-                accumulatedRadiance += throughput * SkyAlong(bounceDir);
+                accumulatedRadiance += throughput * SkyAlong(bounceDir, hitPos);
             }
             if (bounceHit.valid && dot(bounceDir, hitNormal) > 0.0)
             {
@@ -1235,7 +1258,10 @@ void main()
                         {
                             vec3  bF = EvaluateBsdf(bShading, bLayers, bWo, bWi);
                             float pPick = LightTriangleCount > 0u ? kSunPickProbability : 1.0;
-                            accumulatedRadiance += throughput * bF * SunEmission() * bCos * SunSolidAngle() / pPick;
+                            // The bounced sun is still travelling through the same cloud field as primary NEE; scene
+                            //    visibility alone only tests geometry and would leave indirect sunlight unshadowed by weather.
+                            accumulatedRadiance += throughput * bF * SunEmission() * bCos * SunSolidAngle()
+                                                 * CloudSunTransmittance(bHitPos, bSunDir) / pPick;
                         }
                     }
                     else
@@ -1287,6 +1313,20 @@ void main()
     //    is a transport path, not a view). The view direction runs camera-ward reversed, and the primary travel
     //    is the rain column — short rays earn no bow, which keeps the arc off nearby geometry.
     accumulatedRadiance += RainbowAlong(-viewDir, SkySunDirection.xyz, primaryT);
+
+    // Weather is the final camera segment, so every surface contribution above — direct sun, reused ReSTIR light,
+    //    escaped-bounce sky, ambient floor, moon fill and the bow — crosses the same cloud/fog layer exactly once.
+    //    Misses take this composition inside SkyAlong; surfaces need the companion segment from eye to hit.
+    if (weatherEnabled && primaryT > 0.0)
+    {
+        vec3 weatherScatter;
+        float weatherTransmittance;
+        float cloudDay = smoothstep(-12.0, 0.0, SkySunDirection.w);
+        CloudAlong(CameraOrigin, -viewDir, primaryT, SkySunDirection.xyz,
+                   SkySunRadiance.xyz * cloudDay, SkySunDirect.xyz * 0.5,
+                   weatherScatter, weatherTransmittance);
+        accumulatedRadiance = accumulatedRadiance * weatherTransmittance + weatherScatter;
+    }
 
     // R7a: the primary hit's geometric normal and camera distance are what the next frame validates its
     //    back-projection against — the same pair R6 row 2 uses to validate reprojected reservoirs.

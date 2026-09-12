@@ -43,10 +43,12 @@ Report $? "a mesh candidate pays p̂·A/(p·coin) (area pdf included)"
 Report $? "the old pick-only weight is gone"
 printf '%s' "$Code" | grep -q 'cosT \* cosL / (dist2 + 0.001)'
 Report $? "the mesh target carries the emitter cosine"
-printf '%s' "$Code" | grep -q 'return max(dot(EvaluateBsdf(m, L, wo, wi), sunEmit), 0.0) \* cosT;'
-Report $? "the sun target divides by no d² (infinity has none)"
-printf '%s' "$Code" | grep -q 'SunEmission() \* bCos \* SunSolidAngle() / pPick'
+printf '%s' "$Code" | grep -q 'return max(dot(EvaluateBsdf(m, L, wo, wi), sunEmit), 0.0) \* cosT \* CloudSunTransmittance(hitPos, sunDir);'
+Report $? "the sun target divides by no d² (infinity has none) and carries cloud visibility"
+printf '%s' "$Code" | grep -q 'SunEmission() \* bCos \* SunSolidAngle()'
 Report $? "the bounce sun sample pays p̂·Ω/p"
+printf '%s' "$Code" | grep -q 'CloudSunTransmittance(bHitPos, bSunDir) / pPick;'
+Report $? "the bounced sun sample carries cloud visibility"
 printf '%s' "$Code" | grep -q 'Luminaires\[bLi\]\.Area \* float(bSlots) / ((bDist2 + 0.01) \* pMesh)'
 Report $? "the bounce mesh sample multiplies by slots·area (pdf, not count)"
 ! printf '%s' "$Code" | grep -q '(bDist2 + 0.01) \* float(bSlots))'

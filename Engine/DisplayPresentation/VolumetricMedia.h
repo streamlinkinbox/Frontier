@@ -332,12 +332,12 @@ public:
     //    ~2 of the union's 143 m steps (a smooth white blob — no texture, no self-shadow).
     //
     //    Each medium now marches its own span at half its feature scale (the layer keeps the tier's 143 m step
-    //    — near enough to half its 315 m features that the tier keeps quoting it), capped by its budget; steps
-    //    sit at absolute multiples of the step, so a span's comb never moves when another medium appears; the
-    //    media composite near-to-far, which is exact for disjoint spans (what parked volumes are — an
-    //    editor-dragged overlap composites in span order, approximately). Fog still shadows cloud and cloud
-    //    still shadows fog, because the SUN-shadow march samples the combined medium — one shadow march per
-    //    occupied step, whichever loop it sits in, which is the number the gate asserts.
+    //    — near enough to half its 315 m features that the tier keeps quoting it), capped by its budget; midpoint
+    //    samples cover [SpanNear, SpanFar] exactly, so enabling another medium cannot stretch or resample this
+    //    medium's interval. The media composite near-to-far, which is exact for disjoint spans (what parked
+    //    volumes are — an editor-dragged overlap composites in span order, approximately). Fog still shadows
+    //    cloud and cloud still shadows fog, because the SUN-shadow march samples the combined medium — one
+    //    shadow march per occupied step, whichever loop it sits in, which is the number the gate asserts.
     static VolumetricSample March(const CloudLayerSettings& Cloud, const LocalVolumeSettings& LocalCloud,
                                   const LocalVolumeSettings& LocalFog, const WindSettings& Wind,
                                   const VolumetricBudget& Budget,
@@ -403,10 +403,8 @@ public:
             //    over the tier's count — 143 m at Standard); the volumes step at half their feature scale. A
             //    longer span takes more steps rather than coarser ones (fixing the count once let added fog
             //    RAISE transmittance — more medium letting more light through, which is impossible), and the
-            //    cap keeps a pathological span from running away. Steps sit at absolute multiples of the step:
-            //    at most one wasted step per span end (density-gated, so nearly free), in exchange for a comb
-            //    that never moves when another medium appears — the union-relative comb used to resample the
-            //    whole sky whenever the box entered it.
+            //    cap keeps a pathological span from running away. Midpoints cover this medium's actual interval
+            //    [SpanNear, SpanFar], so no samples are spent in the empty distance before its near boundary.
             float SpanNear = 0.0f, SpanFar = 0.0f, StepSize = 1.0f, PhaseG = 0.45f;
             uint32_t Cap = 1u;
             if (M == 0u)
@@ -434,24 +432,22 @@ public:
                 Cap = Budget.LocalSteps == 0u ? 1u : Budget.LocalSteps;
                 PhaseG = LocalFog.Anisotropy;
             }
-            // The comb is frozen at the eye, uncapped, and span-derived: the anchor sits at zero for
-            //    every ray, the count covers the span, and the step is the span over the count — which wobbles
-            //    a few percent ray-to-ray as the span slides. That wobble is load-bearing, not slop: an exact
-            //    grid locks every ray onto the same shells and the undersampled 77 m octave folds into
-            //    coherent horizontal streaks (measured), while the wobble dithers the alias smoothly (white
-            //    per-ray dither also breaks the streaks but leaves speckle — measured). No cap: a cap would
-            //    stretch orbital rays clean over the slab (112 steps, T = 1.000 from 400 km, measured); the
-            //    ~2790 below-slab steps are density-gated before the shadow march and cost microseconds.
-            const float Anchor = 0.0f;
-            uint32_t Count = static_cast<uint32_t>(std::ceil(SpanFar / StepSize));
+            // Sample the actual medium span, not the empty distance from the eye to its far face. The old zero
+            //    anchor made a near cloud use most of its samples in clear air and made an orbital view pay for
+            //    thousands of below-slab samples; both cases then had too few samples where density changed.
+            //    A span-relative midpoint grid keeps the cloud edges stable when another volume appears and gives
+            //    each medium the resolution promised by its own budget. The cap is only a safety bound for a
+            //    grazing ray; it cannot turn a short cloud into a one-step white blob.
+            const float Span = SpanFar - SpanNear;
+            uint32_t Count = static_cast<uint32_t>(std::ceil(Span / StepSize));
             if (Count < 1u) Count = 1u;
-            const float ActualStep = (SpanFar - Anchor) / static_cast<float>(Count);
-            (void)Cap; (void)SpanNear;
+            if (Count > Cap) Count = Cap;
+            const float ActualStep = Span / static_cast<float>(Count);
             const float Phase = HenyeyGreenstein(CosTheta, PhaseG);
 
             for (uint32_t I = 0u; I < Count; ++I)
             {
-                const float T = Anchor + (static_cast<float>(I) + 0.5f) * ActualStep;
+                const float T = SpanNear + (static_cast<float>(I) + 0.5f) * ActualStep;
                 const float P[3] = { Origin[0] + Direction[0] * T,
                                      Origin[1] + Direction[1] * T,
                                      Origin[2] + Direction[2] * T };

@@ -430,8 +430,22 @@ SkyConstantRecord CelestialSequence::PackSkyRecord() const noexcept
     if (!Shown[static_cast<uint32_t>(CelestialEntity::Sun)])
         Effective.Intensity = 0.0f;
 
-    return PackSkyConstants(Medium, Effective, Twilight, Solved.Sun.Elevation, /*CameraHeightMetres=*/2.0f,
-                            Budget.AtmosphereSamples, Budget.AtmosphereLightSamples, Enabled, SunDirect);
+    SkyConstantRecord Record = PackSkyConstants(Medium, Effective, Twilight, Solved.Sun.Elevation,
+                                                  /*CameraHeightMetres=*/2.0f, Budget.AtmosphereSamples,
+                                                  Budget.AtmosphereLightSamples, Enabled, SunDirect);
+
+    // The GPU path used to stop at the atmosphere record, so the CPU raster showed broken cumulus while ReSTIR
+    // showed a clear blue miss. Pack the same gated weather state that ApplyTo lends the raster; this is the only
+    // bridge for clouds, local volumes and their sun-shadow settings to binding 21.
+    const bool WantClouds = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)];
+    const bool WantLocalCloud = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)];
+    const bool WantLocalFog = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)];
+    PackSkyVolumes(Record, Enabled,
+                   WantClouds ? Cloud : CloudLayerSettings{},
+                   WantLocalCloud ? LocalCloud : LocalVolumeSettings{},
+                   WantLocalFog ? LocalFog : LocalVolumeSettings{},
+                   Wind, Budget.Volumetrics, Observation.LocalHours * 3600.0f);
+    return Record;
 }
 
 void CelestialSequence::AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept

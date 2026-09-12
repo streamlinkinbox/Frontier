@@ -22,9 +22,9 @@
 //                                                   THE UNIFORM BLOCK
 //------------------------------------------------------------------------------------------------------------------------
 
-// 144 bytes, std140. Sized against Vulkan's guaranteed 128-byte push limit deliberately NOT applying here: the
-//    push block is already at that limit with five uint reserves left, and the sky needs 108 bytes of medium and
-//    control. A uniform buffer is the only place it fits, which is what the binding reservation anticipated.
+// 320 bytes, std140. Sized against Vulkan's guaranteed 128-byte push limit deliberately NOT applying here: the
+//    push block is already at that limit with five uint reserves left, and the atmosphere plus weather need twenty
+//    16-byte rows. A uniform buffer is the only place it fits, which is what the binding reservation anticipated.
 layout(std140, binding = 21) uniform SkyConstants
 {
     vec4 SkySunDirection;    // xyz = unit, toward the sun (CelestialSolver's convention); w = elevation [deg]
@@ -33,9 +33,23 @@ layout(std140, binding = 21) uniform SkyConstants
     vec4 SkyMie;             // x = beta_M x strength [1/m], y = Mie scale height [m], z = anisotropy g, w = unused
     vec4 SkyOzone;           // xyz = beta_O x strength [1/m]; w = unused
     vec4 SkyPlanet;          // x = planet radius [m], y = atmosphere height [m], z = camera height [m], w = unused
-    uvec4 SkyControl;        // x = view samples, y = light samples, z = twilight flags, w = unused
+    uvec4 SkyControl;        // x = view samples, y = light samples, z = weather flags, w = cloud type
     vec4 SkyTwilight;        // x = glow intensity, y = line intensity, z = 1 when the line is civil-only, w = unused
     vec4 SkySunDirect;       // xyz = panel direct-sun factor 0.11·gain·colour·T (kernel: ÷Ω, ×Ω back); w = unused
+
+    // Weather is in the sky record, not a second binding, so primary misses, GI bounces and sun NEE share one
+    //    coherent update. All rows are std140-sized; disabled media are gated by SkyControl.z.
+    vec4 SkyCloudLayer;      // base, thickness, coverage, density
+    vec4 SkyCloudShape;      // feature scale, ceiling, anvil, HG anisotropy
+    vec4 SkyCloudWind;       // speed, bearing [deg], shear [/km], veer [deg/km]
+    vec4 SkyCloudAlbedo;     // rgb albedo, w = cloud clock seconds
+    uvec4 SkyCloudControl;   // cloud steps, local steps, sun-shadow taps, reserved
+    vec4 SkyLocalCloudCentre;
+    vec4 SkyLocalCloudHalfSize;
+    vec4 SkyLocalCloudParams; // density, coverage, feature scale, HG anisotropy
+    vec4 SkyLocalFogCentre;
+    vec4 SkyLocalFogHalfSize;
+    vec4 SkyLocalFogParams;
 };
 
 // The sun's angular RADIUS, one definition for the three consumers: the disc below draws this body, the
@@ -162,6 +176,267 @@ vec3 SkyRadiance(vec3 Direction, out vec3 OutTransmittance, out bool OutHitGroun
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                     CLOUDS
+//------------------------------------------------------------------------------------------------------------------------
+
+// The cloud field is deliberately evaluated here, beside the atmosphere, rather than as a post-process. A post
+//    blend cannot put a cloud between the camera and a surface, cannot shadow the sun NEE, and makes a GI bounce
+//    see a different sky from a primary miss. These functions are the GPU twin of VolumetricMedia.h's three-octave
+//    density and per-medium march; the record carries the live settings and budgets.
+const uint kCloudLayerFlag      = 1u << 0u;
+const uint kLocalCloudFlag      = 1u << 1u;
+const uint kLocalFogFlag        = 1u << 2u;
+const uint kCloudFollowWindFlag = 1u << 3u;
+const uint kLocalCloudWindFlag  = 1u << 4u;
+const uint kLocalFogWindFlag    = 1u << 5u;
+const float kCloudExtinctionScale = 0.01;
+const float kCloudMaxDistance = 200000.0; // [m] enough to cover the visible troposphere without grazing-ray runaway
+
+float CloudHash(vec3 P)
+{
+    float S = sin(P.x * 127.1 + P.y * 311.7 + P.z * 74.7) * 43758.5453;
+    return S - floor(S);
+}
+
+float CloudNoise(vec3 P)
+{
+    vec3 I = floor(P), F = P - I;
+    vec3 U = F * F * (3.0 - 2.0 * F);
+    float N000 = CloudHash(I);
+    float N100 = CloudHash(I + vec3(1.0, 0.0, 0.0));
+    float N010 = CloudHash(I + vec3(0.0, 1.0, 0.0));
+    float N110 = CloudHash(I + vec3(1.0, 1.0, 0.0));
+    float N001 = CloudHash(I + vec3(0.0, 0.0, 1.0));
+    float N101 = CloudHash(I + vec3(1.0, 0.0, 1.0));
+    float N011 = CloudHash(I + vec3(0.0, 1.0, 1.0));
+    float N111 = CloudHash(I + vec3(1.0, 1.0, 1.0));
+    float X00 = mix(N000, N100, U.x), X10 = mix(N010, N110, U.x);
+    float X01 = mix(N001, N101, U.x), X11 = mix(N011, N111, U.x);
+    return (mix(mix(X00, X10, U.y), mix(X01, X11, U.y), U.z) * 2.0) - 1.0;
+}
+
+float CloudHeightProfile(uint Type, float Normalised)
+{
+    float H = clamp(Normalised, 0.0, 1.0);
+    if (Type == 0u) return smoothstep(0.0, 0.08, H) * (1.0 - smoothstep(0.75, 1.0, H));
+    if (Type == 1u) return smoothstep(0.0, 0.12, H) * (1.0 - smoothstep(0.50, 0.95, H));
+    if (Type == 2u) return smoothstep(0.0, 0.07, H) * (1.0 - smoothstep(0.35, 1.0, H)) * 1.15;
+    if (Type == 3u) return smoothstep(0.0, 0.05, H) * (1.0 - smoothstep(0.85, 1.0, H))
+                         * mix(1.0, 1.6, smoothstep(0.7, 1.0, H) * SkyCloudShape.z);
+    if (Type == 4u) return smoothstep(0.0, 0.20, H) * (1.0 - smoothstep(0.55, 0.9, H)) * 0.75;
+    return smoothstep(0.0, 0.25, H) * (1.0 - smoothstep(0.4, 0.85, H)) * 0.45;
+}
+
+vec3 CloudWindAt(float Altitude)
+{
+    float Km = max(Altitude, 0.0) * 0.001;
+    float Speed = SkyCloudWind.x * (1.0 + SkyCloudWind.z * Km);
+    float Bearing = radians(SkyCloudWind.y + SkyCloudWind.w * Km);
+    return vec3(sin(Bearing), cos(Bearing), 0.0) * Speed;
+}
+
+float CloudDensityAt(vec3 Position)
+{
+    float Ceiling = max(SkyCloudShape.y, 0.0);
+    float Base = clamp(SkyCloudLayer.x, 0.0, Ceiling);
+    float Top = clamp(SkyCloudLayer.x + SkyCloudLayer.y, 0.0, Ceiling);
+    if (Position.z < Base || Position.z > Top || Top <= Base + 1.0) return 0.0;
+
+    float H = (Position.z - Base) / (Top - Base);
+    float Profile = CloudHeightProfile(SkyControl.w, H);
+    if (Profile <= 0.0) return 0.0;
+
+    vec3 Drift = vec3(0.0);
+    if ((SkyControl.z & kCloudFollowWindFlag) != 0u)
+        Drift = CloudWindAt(Position.z) * (SkyCloudAlbedo.w * 0.8);
+    float Inverse = 1.0 / max(SkyCloudShape.x * 900.0, 1.0);
+    vec3 S = vec3((Position.xy + Drift.xy) * Inverse, Position.z * Inverse);
+    float Shape = CloudNoise(S) * 0.5
+                + CloudNoise(S * 2.02 + vec3(3.1, 1.7, 9.2)) * 0.25
+                + CloudNoise(S * 4.10 + vec3(7.7, 2.2, 1.1)) * 0.125;
+    Shape /= 0.875;
+    Shape = Shape * 0.5 + 0.5;
+    float Threshold = 1.0 - clamp(SkyCloudLayer.z, 0.0, 1.0);
+    float Raw = clamp((Shape - Threshold) / max(1.0 - Threshold, 1e-3), 0.0, 1.0);
+    return smoothstep(0.0, 1.0, Raw) * Profile * max(SkyCloudLayer.w, 0.0);
+}
+
+float LocalDensityAt(vec3 Position, bool FogVolume)
+{
+    if (FogVolume)
+    {
+        if ((SkyControl.z & kLocalFogFlag) == 0u) return 0.0;
+    }
+    else if ((SkyControl.z & kLocalCloudFlag) == 0u) return 0.0;
+
+    vec3 Centre = FogVolume ? SkyLocalFogCentre.xyz : SkyLocalCloudCentre.xyz;
+    vec3 HalfSize = max(FogVolume ? SkyLocalFogHalfSize.xyz : SkyLocalCloudHalfSize.xyz, vec3(1e-3));
+    vec4 Params = FogVolume ? SkyLocalFogParams : SkyLocalCloudParams;
+    vec3 Local = (Position - Centre) / HalfSize;
+    float R = length(Local);
+    if (R >= 1.0) return 0.0;
+    float Mask = 1.0 - smoothstep(0.55, 1.0, R);
+    if (Mask <= 0.0) return 0.0;
+
+    vec3 Drift = vec3(0.0);
+    uint WindFlag = FogVolume ? kLocalFogWindFlag : kLocalCloudWindFlag;
+    if ((SkyControl.z & WindFlag) != 0u) Drift = CloudWindAt(Position.z) * (SkyCloudAlbedo.w * 0.6);
+    float Inverse = 1.0 / max(Params.z, 1.0);
+    vec3 S = (Position + Drift) * Inverse;
+    float Shape = CloudNoise(S) * 0.5 + CloudNoise(S * 2.02 + vec3(3.1, 1.7, 9.2)) * 0.25;
+    Shape /= 0.75;
+    Shape = Shape * 0.5 + 0.5;
+    float Threshold = 1.0 - clamp(Params.y, 0.0, 1.0);
+    float Raw = clamp((Shape - Threshold) / max(1.0 - Threshold, 1e-3), 0.0, 1.0);
+    return smoothstep(0.0, 1.0, Raw) * Mask * max(Params.x, 0.0);
+}
+
+bool CloudSlabInterval(vec3 Origin, vec3 Direction, float Maximum, out float Near, out float Far)
+{
+    float Ceiling = max(SkyCloudShape.y, 0.0);
+    float Base = clamp(SkyCloudLayer.x, 0.0, Ceiling);
+    float Top = clamp(SkyCloudLayer.x + SkyCloudLayer.y, 0.0, Ceiling);
+    if (Top <= Base + 1.0) return false;
+    if (abs(Direction.z) < 1e-6)
+    {
+        if (Origin.z < Base || Origin.z > Top) return false;
+        Near = 0.0; Far = Maximum; return Far > Near;
+    }
+    float T0 = (Base - Origin.z) / Direction.z;
+    float T1 = (Top - Origin.z) / Direction.z;
+    if (T0 > T1) { float Swap = T0; T0 = T1; T1 = Swap; }
+    Near = max(T0, 0.0); Far = min(T1, Maximum);
+    return Far > Near;
+}
+
+bool CloudBoxInterval(vec3 Origin, vec3 Direction, vec3 Centre, vec3 HalfSize, float Maximum,
+                      out float Near, out float Far)
+{
+    float Low = -1e30, High = 1e30;
+    for (int Axis = 0; Axis < 3; ++Axis)
+    {
+        if (abs(Direction[Axis]) < 1e-7)
+        {
+            if (abs(Origin[Axis] - Centre[Axis]) > HalfSize[Axis]) return false;
+            continue;
+        }
+        float Inv = 1.0 / Direction[Axis];
+        float T0 = (-HalfSize[Axis] - (Origin[Axis] - Centre[Axis])) * Inv;
+        float T1 = ( HalfSize[Axis] - (Origin[Axis] - Centre[Axis])) * Inv;
+        if (T0 > T1) { float Swap = T0; T0 = T1; T1 = Swap; }
+        Low = max(Low, T0); High = min(High, T1);
+    }
+    if (Low > High || High < 0.0) return false;
+    Near = max(Low, 0.0); Far = min(High, Maximum);
+    return Far > Near;
+}
+
+float CloudShadowMedium(vec3 Origin, vec3 Direction, float Maximum, uint Medium, uint Taps)
+{
+    float Near = 0.0, Far = 0.0;
+    bool Hit = false;
+    if (Medium == 0u)
+        Hit = CloudSlabInterval(Origin, Direction, Maximum, Near, Far);
+    else if (Medium == 1u)
+        Hit = CloudBoxInterval(Origin, Direction, SkyLocalCloudCentre.xyz, max(SkyLocalCloudHalfSize.xyz, vec3(1e-3)), Maximum, Near, Far);
+    else
+        Hit = CloudBoxInterval(Origin, Direction, SkyLocalFogCentre.xyz, max(SkyLocalFogHalfSize.xyz, vec3(1e-3)), Maximum, Near, Far);
+    if (!Hit) return 1.0;
+
+    uint Count = max(Taps, 1u);
+    float Span = Far - Near, Step = Span / float(Count), Depth = 0.0;
+    for (uint I = 0u; I < Count; ++I)
+    {
+        float T = Near + (float(I) + 0.5) * Step;
+        vec3 P = Origin + Direction * T;
+        float D = Medium == 0u ? CloudDensityAt(P) : LocalDensityAt(P, Medium == 2u);
+        Depth += D * Step * kCloudExtinctionScale;
+        if (Depth > 4.0) break;
+    }
+    return exp(-Depth);
+}
+
+float CloudSunTransmittance(vec3 Origin, vec3 Direction)
+{
+    if ((SkyControl.z & (kCloudLayerFlag | kLocalCloudFlag | kLocalFogFlag)) == 0u) return 1.0;
+    uint Taps = max(SkyCloudControl.z, 1u);
+    float Result = 1.0;
+    if ((SkyControl.z & kCloudLayerFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 0u, Taps);
+    if ((SkyControl.z & kLocalCloudFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 1u, Taps);
+    if ((SkyControl.z & kLocalFogFlag) != 0u) Result *= CloudShadowMedium(Origin, Direction, kCloudMaxDistance, 2u, Taps);
+    return Result;
+}
+
+float CloudHenyeyGreenstein(float CosTheta, float G)
+{
+    const float Pi = 3.14159265358979323846;
+    float Denominator = max(1.0 + G * G - 2.0 * G * CosTheta, 1e-4);
+    return (1.0 - G * G) / (4.0 * Pi * pow(Denominator, 1.5));
+}
+
+void CloudMarchMedium(vec3 Origin, vec3 Direction, float Near, float Far, uint Medium,
+                      vec3 SunDirection, vec3 SunRadiance, vec3 AmbientRadiance,
+                      inout vec3 Scatter, inout float Transmittance)
+{
+    float Span = Far - Near;
+    if (Span <= 0.0) return;
+    uint Budget = Medium == 0u ? max(SkyCloudControl.x, 1u) : max(SkyCloudControl.y, 1u);
+    float Feature = Medium == 0u ? max(SkyCloudShape.x * 900.0, 1.0)
+                                 : max((Medium == 1u ? SkyLocalCloudParams.z : SkyLocalFogParams.z) * 0.5, 1.0);
+    float DesiredStep = Medium == 0u ? 4000.0 / float(Budget) : Feature;
+    uint Count = max(uint(ceil(Span / DesiredStep)), 1u);
+    // A horizon ray may cross a very long projection of the flat layer. Its density is sampled at the layer
+    //    interval only, so this cap bounds cost without stretching the actual cloud slab into a clear band.
+    Count = min(Count, max(Budget * 8u, 8u));
+    float Step = Span / float(Count);
+    float G = Medium == 0u ? SkyCloudShape.w : (Medium == 1u ? SkyLocalCloudParams.w : SkyLocalFogParams.w);
+    float Phase = CloudHenyeyGreenstein(dot(Direction, SunDirection), G);
+    vec3 Albedo = Medium == 0u ? SkyCloudAlbedo.xyz : vec3(0.92, 0.94, 0.97);
+    for (uint I = 0u; I < Count; ++I)
+    {
+        float T = Near + (float(I) + 0.5) * Step;
+        vec3 P = Origin + Direction * T;
+        float Density = Medium == 0u ? CloudDensityAt(P) : LocalDensityAt(P, Medium == 2u);
+        if (Density <= 1e-5) continue;
+        float SunT = CloudSunTransmittance(P, SunDirection);
+        float Extinction = Density * Step * kCloudExtinctionScale;
+        float SegmentT = exp(-Extinction);
+        vec3 Incoming = SunRadiance * SunT * Phase + AmbientRadiance;
+        Scatter += Incoming * Albedo * (1.0 - SegmentT) * Transmittance;
+        Transmittance *= SegmentT;
+        if (Transmittance < 0.005) break;
+    }
+}
+
+void CloudAlong(vec3 Origin, vec3 Direction, float Maximum, vec3 SunDirection, vec3 SunRadiance,
+                vec3 AmbientRadiance, out vec3 Scatter, out float Transmittance)
+{
+    Scatter = vec3(0.0); Transmittance = 1.0;
+    float Nears[3] = float[3](1e30, 1e30, 1e30);
+    float Fars[3]  = float[3](-1.0, -1.0, -1.0);
+    bool Hits[3]   = bool[3](false, false, false);
+    Hits[0] = (SkyControl.z & kCloudLayerFlag) != 0u
+           && CloudSlabInterval(Origin, Direction, Maximum, Nears[0], Fars[0]);
+    Hits[1] = (SkyControl.z & kLocalCloudFlag) != 0u
+           && CloudBoxInterval(Origin, Direction, SkyLocalCloudCentre.xyz, max(SkyLocalCloudHalfSize.xyz, vec3(1e-3)), Maximum, Nears[1], Fars[1]);
+    Hits[2] = (SkyControl.z & kLocalFogFlag) != 0u
+           && CloudBoxInterval(Origin, Direction, SkyLocalFogCentre.xyz, max(SkyLocalFogHalfSize.xyz, vec3(1e-3)), Maximum, Nears[2], Fars[2]);
+    uint Order[3] = uint[3](0u, 1u, 2u);
+    for (uint A = 1u; A < 3u; ++A)
+        for (uint B = A; B > 0u && Nears[Order[B]] < Nears[Order[B - 1u]]; --B)
+        {
+            uint Swap = Order[B]; Order[B] = Order[B - 1u]; Order[B - 1u] = Swap;
+        }
+    for (uint I = 0u; I < 3u; ++I)
+    {
+        uint M = Order[I];
+        if (!Hits[M] || Transmittance < 0.005) continue;
+        CloudMarchMedium(Origin, Direction, Nears[M], Fars[M], M, SunDirection, SunRadiance,
+                         AmbientRadiance, Scatter, Transmittance);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      TWILIGHT
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -229,12 +504,27 @@ vec3 SkyTwilightGlow(vec3 Direction)
 //
 //    This is the ONE entry point the kernel calls, so the two miss branches cannot drift into treating the sky
 //    differently — a primary ray and a bounce ray must see the same air.
-vec3 SkyAlong(vec3 Direction)
+vec3 SkyAlong(vec3 Direction, vec3 Origin)
 {
     if (SkySunRadiance.w <= 0.0) return vec3(0.0);
     vec3 Transmittance;
     bool HitGround;
     vec3 Radiance = SkyRadiance(Direction, Transmittance, HitGround);
+
+    // Clouds sit between the observer and the atmosphere. Compose their in-scatter before stars, moons and the
+    //    sun body so all of those are attenuated by the same cloud transmittance. The day factor mirrors the CPU
+    //    raster's twilight hand-off: single-scattering clouds do not receive a full sun below the horizon.
+    vec3 CloudScatter;
+    float CloudTransmittance;
+    float CloudDay = smoothstep(-12.0, 0.0, SkySunDirection.w);
+    CloudAlong(Origin, Direction, kCloudMaxDistance, SkySunDirection.xyz,
+               SkySunRadiance.xyz * CloudDay, Radiance, CloudScatter, CloudTransmittance);
+    // Everything below this point is behind the weather too: stars, twilight, the lunar discs and the solar disc
+    //    must all use the same cloud transmittance as the atmospheric background. Keep the atmosphere's
+    //    transmittance multiplied in the value passed to MoonAlong and the sun body; otherwise clouds would
+    //    shade only the blue sky while leaving the brightest celestial sources pasted on top.
+    Transmittance *= CloudTransmittance;
+    Radiance = Radiance * CloudTransmittance + CloudScatter;
     // Aureole compression. Art-directed, twilight precedent: the single-scatter integral near the sun reaches
     //    ~1.5 linear and the ACES curve renders that as near-white — no edge survives, so the sun reads as a
     //    faded blob with no disk. The reference caps its halo the same way ("normalised to its own peak, so it
@@ -261,8 +551,8 @@ vec3 SkyAlong(vec3 Direction)
     // Stars read the integral's own luminance as their visibility gate — the raster's rule (a star shows only
     //    when it outshines the air behind it), evaluated before the moons and twilight join, exactly where the
     //    raster evaluates it. StarAlong is declared by PostRecords.slang, included before this file.
-    if (!HitGround) Radiance += StarAlong(Direction, dot(Radiance, vec3(0.2126, 0.7152, 0.0722)));
-    if (!HitGround) Radiance += SkyTwilightGlow(Direction);
+    if (!HitGround) Radiance += StarAlong(Direction, dot(Radiance, vec3(0.2126, 0.7152, 0.0722))) * CloudTransmittance;
+    if (!HitGround) Radiance += SkyTwilightGlow(Direction) * CloudTransmittance;
     // The moons ride the same transmittance the integral measured, and hide behind the planet like the twilight
     //    does. MoonAlong is declared by MoonRecords.slang, which ReSTIRViewport includes BEFORE this file.
     if (!HitGround) Radiance += MoonAlong(Direction, Transmittance);
