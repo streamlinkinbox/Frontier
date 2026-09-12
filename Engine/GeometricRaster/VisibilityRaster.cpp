@@ -588,6 +588,13 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
     //    the caller already supplied, so the raster never has to know about CelestialSolver.
     const float SunElevationDegrees = std::asin(std::fmax(-1.0f, std::fmin(1.0f, Celestial_.Light.Direction[2])))
                                     * 180.0f / kPi;
+    // The clouds' sunlight, shared by the pixels and the ambient probe below: full sun above the horizon, none
+    //    below -12 deg, a twilight ramp between. The march knows no planet shadow (see the note at the pixel
+    //    composite), so both call sites take this rather than restating the ramp.
+    const float CloudDayFactor = Smooth01(-12.0f, 0.0f, SunElevationDegrees);
+    const float CloudSunRad[3] = { Celestial_.Light.Colour[0] * Celestial_.Light.Intensity * CloudDayFactor,
+                                   Celestial_.Light.Colour[1] * Celestial_.Light.Intensity * CloudDayFactor,
+                                   Celestial_.Light.Colour[2] * Celestial_.Light.Intensity * CloudDayFactor };
     const float SunBearing = std::atan2(Celestial_.Light.Direction[0], Celestial_.Light.Direction[1]);
     const auto AzimuthDeltaFor = [SunBearing](const float Dir[3]) -> float
     {
@@ -654,12 +661,16 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
         //    The surface itself is shaded as a lit Lambertian sphere rather than left black, because a ray that
         //    reaches the ground from above is looking at daylit terrain — that is what makes the limb read as a
         //    planet instead of a hole.
+        // The cloud march's far plane: open sky, unless the ray meets the planet — then the surface, so no
+        //    cloud draws behind the limb it sits behind.
+        float CloudMaxDist = 1e30f;
         if (S.HitGround)
         {
             const float Centre[3] = { 0.0f, 0.0f, Celestial_.Medium.PlanetRadius + Celestial_.CameraHeight };
             float Near = 0.0f, Far = 0.0f;
             if (AtmosphereModel::IntersectSphere(Centre, Dir, Celestial_.Medium.PlanetRadius, Near, Far) && Near > 0.0f)
             {
+                CloudMaxDist = Near;
                 const float Hit[3] = { Centre[0] + Dir[0] * Near, Centre[1] + Dir[1] * Near, Centre[2] + Dir[2] * Near };
                 const float Length = std::sqrt(Hit[0] * Hit[0] + Hit[1] * Hit[1] + Hit[2] * Hit[2]);
                 if (Length > 0.0f)
@@ -676,6 +687,29 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
             }
         }
         const bool SeesSpace = !S.HitGround;
+
+        // Clouds, composited over the air as their own layer — the reference architecture (a separate cloud
+        //    system over SkyAtmosphere), not a second atmosphere. The march runs from the eye to the planet
+        //    when the ray meets it, so limb haze stays this side of the surface. The transmittance is kept:
+        //    every celestial add below (stars, moons, disc) sits behind the weather and is scaled by it,
+        //    while the twilight and the line are foreground airglow and are not.
+        //
+        //    The day factor, because the march knows no planet shadow: the air integral earns its night from
+        //    geometry (every sample sunk in shadow), but the march would light midnight clouds with the full
+        //    noon sun. Full sun above the horizon, none below -12 deg, a twilight ramp between — so night
+        //    clouds are dark occluders until moonlight lands (with Moon NEE), and overcast eats the stars.
+        //    Lit by the air just integrated: clouds shine with the sky around them, not in front of it.
+        float CloudT = 1.0f;
+        if (Celestial_.CloudLayer.Enabled || Celestial_.LocalCloud.Enabled || Celestial_.LocalFog.Enabled)
+        {
+            const VolumetricSample V = VolumetricMedia::March(Celestial_.CloudLayer, Celestial_.LocalCloud,
+                                                              Celestial_.LocalFog, Celestial_.Wind,
+                                                              Celestial_.CloudBudget, Eye, Dir, CloudMaxDist,
+                                                              Celestial_.Light.Direction, CloudSunRad, Out,
+                                                              Celestial_.CloudTime);
+            for (int C = 0; C < 3; ++C) Out[C] = Out[C] * V.Transmittance + V.Scatter[C];
+            CloudT = V.Transmittance;
+        }
 
         // Stars, before twilight, because they are behind it: the glow washes them out near the horizon rather
         //    than the other way round. Only the cell the ray falls in is tested — 8 920 stars binned into 1 024
@@ -735,9 +769,9 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                     //    5.73x less solid angle than the soft one it replaced, and the first sharpened render
                     //    came out visibly darker for exactly that reason.
                     const float Gain = Star.Luminance * Celestial_.StarBrightness * Core * 5.73f;
-                    Out[0] += Star.ColourRed * Gain;
-                    Out[1] += Star.ColourGreen * Gain;
-                    Out[2] += Star.ColourBlue * Gain;
+                    Out[0] += Star.ColourRed * Gain * CloudT;
+                    Out[1] += Star.ColourGreen * Gain * CloudT;
+                    Out[2] += Star.ColourBlue * Gain * CloudT;
                 }
             }
         }
@@ -745,11 +779,12 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
         // Moons, after the stars and before the twilight: they are behind both the glow and the air, so the
         //    disc is multiplied by the same transmittance the integral measured rather than drawn over it. Gated
         //    on SeesSpace like the stars — below the horizon there is a planet in the way, not a moonrise.
+        //    Behind the weather too: overcast eats the moon as it eats the stars (CloudT is 1 when clear).
         if (SeesSpace && Celestial_.Moons != nullptr && Celestial_.Moons->Count > 0u)
         {
             float MoonRgb[3];
             EvaluateMoons(Celestial_.Moons->Entries, Celestial_.Moons->Count, Dir, S.Transmittance, MoonRgb);
-            Out[0] += MoonRgb[0]; Out[1] += MoonRgb[1]; Out[2] += MoonRgb[2];
+            Out[0] += MoonRgb[0] * CloudT; Out[1] += MoonRgb[1] * CloudT; Out[2] += MoonRgb[2] * CloudT;
         }
 
         // Twilight rides on top of the physical integral. Single scattering cannot produce a lit sky once the sun
@@ -779,9 +814,10 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                   kSunAngularRadius, SunAng);
             const float SunLimb = Mix01(1.0f, 0.55f, Smooth01(0.0f, kSunAngularRadius, SunAng));
             const float SunGate = Mix01(0.35f, 1.0f, Smooth01(-1.0f, 8.0f, ViewElev));
+            // Behind the weather: overcast dims the disc as it dims the stars (CloudT is 1 when clear).
             for (int C = 0; C < 3; ++C)
                 Out[C] += SunDisc * SunLimb * Celestial_.Light.Colour[C] * Celestial_.Light.Intensity
-                        * S.Transmittance[C] * kSunBoost * SunGate;
+                        * S.Transmittance[C] * kSunBoost * SunGate * CloudT;
         }
     };
 
@@ -795,7 +831,21 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                                   Celestial_.SampleCount, Celestial_.LightSampleCount);
         // A hemisphere of sky at that radiance, times the Lambert 1/pi, is pi * L / pi = L. The 0.5 accounts for
         //    the ground taking the other half of the sphere.
-        for (int C = 0; C < 3; ++C) SkyAmbient[C] = Probe.Radiance[C] * 0.5f;
+        //
+        //    Marched through the weather first: one march per frame, so overcast darkens the world the clouds
+        //    shade. The probe looks straight up and never meets the planet, and it is lit by the air it just
+        //    measured — the same composite the pixels run, at a single direction.
+        float ProbeSky[3] = { Probe.Radiance[0], Probe.Radiance[1], Probe.Radiance[2] };
+        if (Celestial_.CloudLayer.Enabled || Celestial_.LocalCloud.Enabled || Celestial_.LocalFog.Enabled)
+        {
+            const VolumetricSample Pv = VolumetricMedia::March(Celestial_.CloudLayer, Celestial_.LocalCloud,
+                                                               Celestial_.LocalFog, Celestial_.Wind,
+                                                               Celestial_.CloudBudget, Eye, Zenith, 1e30f,
+                                                               Celestial_.Light.Direction, CloudSunRad, ProbeSky,
+                                                               Celestial_.CloudTime);
+            for (int C = 0; C < 3; ++C) ProbeSky[C] = ProbeSky[C] * Pv.Transmittance + Pv.Scatter[C];
+        }
+        for (int C = 0; C < 3; ++C) SkyAmbient[C] = ProbeSky[C] * 0.5f;
         // Moonlight joins the probe, not the pixels: the reference panel's ambient loop is a per-frame constant
         //    too, and the kernel adds the identical term — so a moonlit frame cannot be bright on one path and
         //    black on the other. At a moonless midnight this is zero and the night stays black, which is what
@@ -935,7 +985,32 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
             //    exposure and no low-light desaturation while the ReSTIR kernel applied ACES with both, so the
             //    same radiance reached the screen up to 49/255 apart depending on which path drew it. That was
             //    survivable while the two drew different things; it is not, now that one sky feeds both.
-            const float Linear[3] = { Acc_[Idx * 3u + 0u], Acc_[Idx * 3u + 1u], Acc_[Idx * 3u + 2u] };
+            float Linear[3] = { Acc_[Idx * 3u + 0u], Acc_[Idx * 3u + 1u], Acc_[Idx * 3u + 2u] };
+            // Weather in front of the world: a local volume between the eye and the surface occludes it. The
+            //    march runs eye-to-hit — the slab is kilometres above any scene triangle, so it can only ever
+            //    contribute nothing here, and the interval tests cost a rounding error. Lit by the environment
+            //    (SkyAmbient), not by the wall behind: the cloud shines with the sky, even over night ground.
+            if (Celestial_.Enabled && TriId_[Idx] != kMiss &&
+                (Celestial_.CloudLayer.Enabled || Celestial_.LocalCloud.Enabled || Celestial_.LocalFog.Enabled))
+            {
+                const uint32_t Tri = TriId_[Idx];
+                const float W0 = Bary_[Idx * 2u], W1 = Bary_[Idx * 2u + 1u], W2 = 1.0f - W0 - W1;
+                const float P[3] = { W0 * Flat[Tri].VertexAlphaX + W1 * Flat[Tri].VertexBetaX + W2 * Flat[Tri].VertexGammaX,
+                                     W0 * Flat[Tri].VertexAlphaY + W1 * Flat[Tri].VertexBetaY + W2 * Flat[Tri].VertexGammaY,
+                                     W0 * Flat[Tri].VertexAlphaZ + W1 * Flat[Tri].VertexBetaZ + W2 * Flat[Tri].VertexGammaZ };
+                float Hd[3] = { P[0] - Eye[0], P[1] - Eye[1], P[2] - Eye[2] };
+                const float Hl = std::sqrt(Hd[0] * Hd[0] + Hd[1] * Hd[1] + Hd[2] * Hd[2]);
+                if (Hl > 0.0f)
+                {
+                    Hd[0] /= Hl; Hd[1] /= Hl; Hd[2] /= Hl;
+                    const VolumetricSample Hv = VolumetricMedia::March(Celestial_.CloudLayer, Celestial_.LocalCloud,
+                                                                       Celestial_.LocalFog, Celestial_.Wind,
+                                                                       Celestial_.CloudBudget, Eye, Hd, Hl,
+                                                                       Celestial_.Light.Direction, CloudSunRad,
+                                                                       SkyAmbient, Celestial_.CloudTime);
+                    for (int C = 0; C < 3; ++C) Linear[C] = Linear[C] * Hv.Transmittance + Hv.Scatter[C];
+                }
+            }
             unsigned char Encoded[3];
             ColourPipeline::ApplyToByte(Colour_, Linear, Encoded);
             Px[0] = Encoded[0]; Px[1] = Encoded[1]; Px[2] = Encoded[2];

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                 PROJECTZEROSHOWCASE.CPP
 //============================================================================================================================================
-// 🧩 Project Zero's sky, sun, moon and stars as the game itself renders them — four aimed frames.
+// 🧩 Project Zero's sky, sun, moon and stars as the game itself renders them — five aimed frames.
 //
 //    WHAT THIS IS: the project's own CelestialSequence (prepare → tick → ApplyTo) driven exactly as GameExecution
 //    drives it — same tier budget via CelestialTier::BudgetFor, same shipping star catalogue, same six moon
@@ -22,7 +22,9 @@
 //    frame empty sky — the mistake this showcase made in its first draft). The placed-moon frame stays on
 //    10 Sep and drives the roster the way the reference panel does: slot 0 unlinked and put at az 0 / el 25 at
 //    2 deg, slot 1 (Ember) at az 14 / el 15 at 3 deg — the MoonRenderProof arrangement, with the stars left on so
-//    the frame carries moons and stars together.
+//    the frame carries moons and stars together. The fifth frame turns to the parked local volume at 11h, when
+//    its patch runs densest (probed 0.76 mean across the day): the enable is flipped — the volume parks off
+//    until the scene wants weather somewhere specific — and the camera aims at the box's live centre.
 
 #include "GeometricRaster/VisibilityRaster.h"
 #include "GeometricRaster/SceneStructure.h"
@@ -171,7 +173,7 @@ void AimAt(const float* Direction, float Forward[3], float Right[3], float Up[3]
 
 int main()
 {
-    std::printf("\nProject Zero showcase: the sky the game renders, four aimed frames\n");
+    std::printf("\nProject Zero showcase: the sky the game renders, five aimed frames\n");
     for (int I = 0; I < 70; ++I) std::putchar('='); std::printf("\n\n");
 
     SceneStructure Level;
@@ -298,6 +300,30 @@ int main()
         if (!Raster.Render(Level, Eye, F, R, U, kHalfFov, kWidth, kHeight, Frame.data(), MeanLuminance)) return 2;
         std::printf("  placed: Luna 2 deg full + Ember 3 deg gibbous at 22h on Sep 10 (stars on)\n");
         WriteFrame("Diagnostics/ProjectZero_Showcase_NightPlaced.png", Frame);
+    }
+
+    // ── 5. Morning, local: the parked volume with its enable flipped ────────────────────────────
+    {
+        TickTo(11.0f, 10);
+        Sky.LocalCloud.Enabled = true;
+        float Aim[3] = { Sky.LocalCloud.Centre[0] - Eye[0],
+                         Sky.LocalCloud.Centre[1] - Eye[1],
+                         Sky.LocalCloud.Centre[2] - Eye[2] };
+        {
+            const float Al = std::sqrt(Aim[0] * Aim[0] + Aim[1] * Aim[1] + Aim[2] * Aim[2]);
+            Aim[0] /= Al; Aim[1] /= Al; Aim[2] /= Al;
+        }
+        float F[3], R[3], U[3];
+        AimAt(Aim, F, R, U);
+        VisibilityRaster Raster;
+        Sky.ApplyTo(Raster, Budget);
+        std::vector<unsigned char> Frame(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        double MeanLuminance = 0.0;
+        if (!Raster.Render(Level, Eye, F, R, U, kHalfFov, kWidth, kHeight, Frame.data(), MeanLuminance)) return 2;
+        std::printf("  local: parked volume enabled at 11h on Sep 10 (box centre %.0f %.0f %.0f)\n",
+                    (double)Sky.LocalCloud.Centre[0], (double)Sky.LocalCloud.Centre[1],
+                    (double)Sky.LocalCloud.Centre[2]);
+        WriteFrame("Diagnostics/ProjectZero_Showcase_LocalCloud.png", Frame);
     }
 
     std::printf("\n  showcase rendered\n");

@@ -222,6 +222,9 @@ int main()
     const float Up[3]      = { 0.0f,  0.0f, 1.0f };
     for (int M = 0; M < 4; ++M)
     {
+        // Each moment starts from the full sky: the air-only re-render below hides bodies and weather on the
+        //    shared sequence, and without this reset every sheet after Dawn would render bare.
+        for (uint32_t E = 0u; E < kCelestialEntityCount; ++E) Sky.Shown[E] = true;
         // The clock is the only input; the sun, the stars' rotation, the twilight and the moons all come out of
         //    the tick, and the raster is fed by ApplyTo — the GameExecution order, with nothing hand-set.
         Sky.Observation.Year = 2026; Sky.Observation.Month = 9; Sky.Observation.Day = 10;
@@ -242,7 +245,28 @@ int main()
             return 2;
         }
 
-        Stats[M] = Measure(Sheet);
+        // The sheet above is the project's sky — moons, stars and weather on. The moment pins are about the
+        //    AIR (the Rayleigh signature, the tracking), so the stats are measured on an air-only re-render with
+        //    the bodies and the weather hidden — the same Bare rule the terminator section uses below. The sheet
+        //    shows the sky; the numbers prove the air; the weather section at the end proves the clouds.
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = false;
+        VisibilityRaster AirRaster;
+        Sky.ApplyTo(AirRaster, Budget);
+        std::vector<unsigned char> Air(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        double MeanAir = 0.0;
+        if (!AirRaster.Render(Level, Eye, Forward, Right, Up, 55.0f * 3.14159265f / 180.0f,
+                              kWidth, kHeight, Air.data(), MeanAir))
+        {
+            std::printf("  air render failed for %s\n", Moments[M].Name);
+            return 2;
+        }
+        (void)MeanAir;
+
+        Stats[M] = Measure(Air);
         std::printf("  %-7s %+7.2f %9.2f   %5.0f %5.0f %5.0f      %5.0f %5.0f %5.0f\n",
                     Moments[M].Name, static_cast<double>(Sky.Frame().Sun.Elevation),
                     (Stats[M].Mean[0] + Stats[M].Mean[1] + Stats[M].Mean[2]) / 3.0,
@@ -387,9 +411,10 @@ int main()
         const float FaceUp[3] = { 0.0f, 0.0f, 1.0f };
         constexpr float kHalfFov = 55.0f * 3.14159265f / 180.0f;
 
-        // Two renders: the sheet keeps the project's moons and stars (it is the project's dawn), while the line
-        //    is measured on a bodies-off render — the hairline is atmosphere, and a moon limb crossing the band
-        //    would otherwise be measured as twilight. Same sky, same hour; only the outliner differs.
+        // Two renders: the sheet keeps the project's moons, stars and weather (it is the project's dawn),
+        //    while the line is measured on a bodies-and-weather-off render — the hairline is atmosphere, and a
+        //    moon limb or a cloud band crossing the rows would otherwise be measured as twilight. Same sky, same
+        //    hour; only the outliner differs.
         VisibilityRaster Raster;
         Sky.ApplyTo(Raster, Budget);
         std::vector<unsigned char> Sheet(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
@@ -399,6 +424,9 @@ int main()
 
         Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
         Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = false;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = false;
         VisibilityRaster BareRaster;
         Sky.ApplyTo(BareRaster, Budget);
         std::vector<unsigned char> Bare(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
@@ -406,6 +434,9 @@ int main()
                                kWidth, kHeight, Bare.data(), MeanLuminance)) return 2;
         Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = true;
         Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = true;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = true;
+        Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = true;
 
         const Statistics St = Measure(Sheet);
 
@@ -457,8 +488,13 @@ int main()
             //    brightness: the wash stays at 245 and the mean fails).
             const float SavedBrightness = Sky.SkyBrightness;
             Sky.SkyBrightness = 0.05f;
+            // The disc, not the weather: at 5% brightness a cloud crossing the sun's box would occult the disc
+            //    and fail the seat pin, so the dimmed render hides the decks the way the Bare render does.
             Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = false;
             Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = false;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = false;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = false;
             VisibilityRaster DimRaster;
             Sky.ApplyTo(DimRaster, Budget);
             std::vector<unsigned char> Dim(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
@@ -466,6 +502,9 @@ int main()
                                   kWidth, kHeight, Dim.data(), MeanLuminance)) return 2;
             Sky.Shown[static_cast<uint32_t>(CelestialEntity::Moons)] = true;
             Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = true;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = true;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = true;
+            Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = true;
             Sky.SkyBrightness = SavedBrightness;
             // The seat window holds the 3 px sun (frame centre, v~0.43 at +4 deg) with room for its
             //    soft edge; the field is the box minus the seat. Without the disc the two maxima agree (both
@@ -537,6 +576,20 @@ int main()
         }
         PngWriteShim::WritePng(File, static_cast<int>(kWidth), static_cast<int>(kHeight), 3, Rgb.data(),
                                static_cast<int>(kWidth) * 3);
+        if (K == 7)
+        {
+            // The stage-7 sheet above now carries weather, so the disc's eye-proof moves to its own sheet: the
+            //    bare air-only render (disc, aureole, nothing else), from which the disc closeup is cropped.
+            std::vector<unsigned char> AirRgb(static_cast<size_t>(kWidth) * kHeight * 3u);
+            for (size_t I = 0; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+            {
+                AirRgb[I * 3u + 0u] = Bare[I * 4u + 0u];
+                AirRgb[I * 3u + 1u] = Bare[I * 4u + 1u];
+                AirRgb[I * 3u + 2u] = Bare[I * 4u + 2u];
+            }
+            PngWriteShim::WritePng("Diagnostics/Celestial_02_Dawn_7_air.png", static_cast<int>(kWidth),
+                                   static_cast<int>(kHeight), 3, AirRgb.data(), static_cast<int>(kWidth) * 3);
+        }
         (void)PreviousLine;
     }
     std::printf("           wrote Diagnostics/Celestial_02_Dawn_*.png (8 stages)\n");
@@ -654,6 +707,153 @@ int main()
     //    ~0.11 deg wide — about a fifth of the solar disc — and a glow simply cannot produce that step.
     std::snprintf(Detail, sizeof(Detail), "peak sharpness %.1f (glow alone reaches only ~15)", LinePeak);
     Require("the white line is a hairline, not just the glow", LinePeak > 20.0, Detail);
+
+    // ── The weather reaches the image ────────────────────────────────────────────────────────────────────────────
+    // The layer and the parked volume, end to end: each renders on and off at a stated hour and the census counts
+    //    what changes, the way the star census counts the night. The night pair asserts the SIGN, not just the
+    //    size — clouds must darken a starry sky, because occlusion wins and nothing glows — and the noon pair is
+    //    bounded both ways, so a march that whites out or blacks out fails. The evaluator at the end asserts the
+    //    parked box holds real body at 11h, so a reverted ghost (0.6/1.0 averages 0.09) fails without rendering.
+    {
+        auto RenderPair = [&](float Hour, CelestialEntity Toggled, bool BoxEnable, const float F[3],
+                              const float R[3], const float U[3], std::vector<unsigned char>& On,
+                              std::vector<unsigned char>& Off) -> bool
+        {
+            Sky.Observation.LocalHours = Hour;
+            Sky.Tick(0.0f, TickOrigin, 0.0f);
+            if (BoxEnable) Sky.LocalCloud.Enabled = true;
+            Sky.Shown[static_cast<uint32_t>(Toggled)] = true;
+            double MeanLuminance = 0.0;
+            {
+                VisibilityRaster Raster;
+                Sky.ApplyTo(Raster, Budget);
+                if (!Raster.Render(Level, Eye, F, R, U, 55.0f * 3.14159265f / 180.0f,
+                                   kWidth, kHeight, On.data(), MeanLuminance)) return false;
+            }
+            Sky.Shown[static_cast<uint32_t>(Toggled)] = false;
+            {
+                VisibilityRaster Raster;
+                Sky.ApplyTo(Raster, Budget);
+                if (!Raster.Render(Level, Eye, F, R, U, 55.0f * 3.14159265f / 180.0f,
+                                   kWidth, kHeight, Off.data(), MeanLuminance)) return false;
+            }
+            Sky.Shown[static_cast<uint32_t>(Toggled)] = true;
+            if (BoxEnable) Sky.LocalCloud.Enabled = false;
+            return true;
+        };
+        auto CountChanged = [&](const std::vector<unsigned char>& On,
+                                const std::vector<unsigned char>& Off) -> uint32_t
+        {
+            uint32_t Changed = 0u;
+            for (size_t I = 0u; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+            {
+                int D = 0;
+                for (int C = 0; C < 3; ++C)
+                {
+                    const int A = On[I * 4u + static_cast<size_t>(C)];
+                    const int B = Off[I * 4u + static_cast<size_t>(C)];
+                    if (A > B + D) D = A - B;
+                }
+                if (D > 12) ++Changed;
+            }
+            return Changed;
+        };
+        auto MeanLum = [&](const std::vector<unsigned char>& Buf) -> double
+        {
+            double Sum = 0.0;
+            for (size_t I = 0u; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+                Sum += (Buf[I * 4u + 0u] + Buf[I * 4u + 1u] + Buf[I * 4u + 2u]) / 3.0;
+            return Sum / (static_cast<double>(kWidth) * kHeight);
+        };
+        auto WriteSheet = [&](const char* Path, const std::vector<unsigned char>& Buf)
+        {
+            std::vector<unsigned char> Rgb(static_cast<size_t>(kWidth) * kHeight * 3u);
+            for (size_t I = 0; I < static_cast<size_t>(kWidth) * kHeight; ++I)
+            {
+                Rgb[I * 3u + 0u] = Buf[I * 4u + 0u];
+                Rgb[I * 3u + 1u] = Buf[I * 4u + 1u];
+                Rgb[I * 3u + 2u] = Buf[I * 4u + 2u];
+            }
+            PngWriteShim::WritePng(Path, static_cast<int>(kWidth), static_cast<int>(kHeight), 3, Rgb.data(),
+                                   static_cast<int>(kWidth) * 3);
+        };
+
+        std::vector<unsigned char> On(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        std::vector<unsigned char> Off(static_cast<size_t>(kWidth) * kHeight * 4u, 0u);
+        bool Rendered = RenderPair(12.0f, CelestialEntity::CloudLayer, false, Forward, Right, Up, On, Off);
+        const uint32_t NoonChanged = Rendered ? CountChanged(On, Off) : 0u;
+        const double NoonCloudy = Rendered ? MeanLum(On) : 0.0;
+        const double NoonClear = Rendered ? MeanLum(Off) : 0.0;
+        // No sheet for the noon pair: its on-render is pixel-identical to the Noon moment sheet above (same
+        //    sky, same hour, same camera — verified by hash), so Celestial_01_TimeOfDay_Noon.png IS its eye-proof.
+
+        // The box-aimed camera: Forward along eye-to-box-centre, Right = Forward x world-up — the showcase's
+        //    AimAt convention, inlined, so this frame and the showcase's local frame agree by construction.
+        float BoxF[3] = { Sky.LocalCloud.Centre[0] - Eye[0],
+                          Sky.LocalCloud.Centre[1] - Eye[1],
+                          Sky.LocalCloud.Centre[2] - Eye[2] };
+        {
+            const float Bl = std::sqrt(BoxF[0] * BoxF[0] + BoxF[1] * BoxF[1] + BoxF[2] * BoxF[2]);
+            BoxF[0] /= Bl; BoxF[1] /= Bl; BoxF[2] /= Bl;
+        }
+        float BoxR[3] = { BoxF[1], -BoxF[0], 0.0f };
+        {
+            const float Rl = std::sqrt(BoxR[0] * BoxR[0] + BoxR[1] * BoxR[1]);
+            BoxR[0] /= Rl; BoxR[1] /= Rl;
+        }
+        const float BoxU[3] = { BoxR[1] * BoxF[2] - BoxR[2] * BoxF[1],
+                                BoxR[2] * BoxF[0] - BoxR[0] * BoxF[2],
+                                BoxR[0] * BoxF[1] - BoxR[1] * BoxF[0] };
+        const bool BoxRendered = RenderPair(11.0f, CelestialEntity::LocalCloud, true, BoxF, BoxR, BoxU, On, Off);
+        const uint32_t BoxChanged = BoxRendered ? CountChanged(On, Off) : 0u;
+        if (BoxRendered) WriteSheet("Diagnostics/Celestial_03_Cloud_Box.png", On);
+        Rendered = Rendered && BoxRendered;
+
+        const bool NightRendered = RenderPair(22.0f, CelestialEntity::CloudLayer, false, Forward, Right, Up,
+                                              On, Off);
+        const uint32_t NightChanged = NightRendered ? CountChanged(On, Off) : 0u;
+        const double NightCloudy = NightRendered ? MeanLum(On) : 0.0;
+        const double NightClear = NightRendered ? MeanLum(Off) : 0.0;
+        Rendered = Rendered && NightRendered;
+
+        // LocalDensity honours the parked flag, and the box pair above restored it — enable for the probe.
+        Sky.LocalCloud.Enabled = true;
+        double BodySum = 0.0;
+        int BodyN = 0;
+        for (int Z = -1; Z <= 1; ++Z)
+            for (int Y = -1; Y <= 1; ++Y)
+                for (int X = -1; X <= 1; ++X)
+                {
+                    const float P[3] = { Sky.LocalCloud.Centre[0] + X * 50.0f,
+                                         Sky.LocalCloud.Centre[1] + Y * 50.0f,
+                                         Sky.LocalCloud.Centre[2] + Z * 25.0f };
+                    BodySum += VolumetricMedia::LocalDensity(Sky.LocalCloud, Sky.Wind, P, 11.0f * 3600.0f);
+                    ++BodyN;
+                }
+        const double BodyMean = BodySum / BodyN;
+
+        std::printf("\n  cloud census: noon %u changed (cloudy %.1f vs clear %.1f), box %u changed,\n"
+                    "                night %u changed (cloudy %.2f vs clear %.2f), box body %.3f at 11h\n",
+                    NoonChanged, NoonCloudy, NoonClear, BoxChanged, NightChanged, NightCloudy, NightClear,
+                    BodyMean);
+        Require("all three cloud pairs render", Rendered && NightRendered, "VisibilityRaster.Render");
+        std::snprintf(Detail, sizeof(Detail), "%u pixels differ at noon", NoonChanged);
+        Require("the layer reaches the noon image", NoonChanged > 5000u && NoonChanged < 150000u, Detail);
+        std::snprintf(Detail, sizeof(Detail), "cloudy noon mean %.1f (clear %.1f)", NoonCloudy, NoonClear);
+        Require("noon clouds neither white out nor black out", NoonCloudy > 60.0 && NoonCloudy < 220.0, Detail);
+        std::snprintf(Detail, sizeof(Detail), "%u pixels differ with the box", BoxChanged);
+        Require("the parked volume reaches the image", BoxChanged > 1000u && BoxChanged < 100000u, Detail);
+        std::snprintf(Detail, sizeof(Detail), "cloudy %.2f vs clear %.2f at 22h", NightCloudy, NightClear);
+        Require("night clouds darken the sky", NightRendered && NightCloudy < NightClear, Detail);
+        // The 22h patch is a veil, not a lid: it halves the airglow (0.08 vs 0.16) without a single pixel
+        //    crossing the D>12 census — no dense core sits over a star. So the pin asserts the veil (the ratio),
+        //    floored against a march that goes black (which would also halve, to zero).
+        std::snprintf(Detail, sizeof(Detail), "cloudy/clear ratio %.2f at %.2f LSB", NightCloudy / NightClear,
+                      NightCloudy);
+        Require("night clouds veil the airglow", NightCloudy < NightClear * 0.75 && NightCloudy > 0.01, Detail);
+        std::snprintf(Detail, sizeof(Detail), "mean box density %.3f at 11h (a ghost reads ~0.09)", BodyMean);
+        Require("the parked box holds real body at 11h", BodyMean > 0.30, Detail);
+    }
 
     std::printf("\n");
     for (int I = 0; I < 108; ++I) std::putchar('=');

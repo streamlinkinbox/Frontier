@@ -275,6 +275,9 @@ int main()
     const float TickOrigin[3] = { 0.0f, 0.0f, 2.0f };
     Sky.Tick(0.0f, TickOrigin, 0.0f);
     Sky.Shown[static_cast<uint32_t>(CelestialEntity::Stars)] = false;   // a moon-only sky keeps the counts honest
+    Sky.Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] = false;   // ... and no weather either
+    Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)] = false;
+    Sky.Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)] = false;
 
     // The atlas through the REAL index: register, decode at full resolution, assign — the GameExecution order.
     TextureIndex Textures;

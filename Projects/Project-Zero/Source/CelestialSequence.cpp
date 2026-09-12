@@ -269,12 +269,25 @@ void CelestialSequence::Prepare() noexcept
     Cloud.Enabled = true;
     Cloud.Type = CloudTypeCategory::Cumulus;
     Cloud.Base = 1400.0f; Cloud.Thickness = 1100.0f;
-    Cloud.Coverage = 0.52f; Cloud.Density = 1.4f; Cloud.Scale = 1.0f;
+    // Calibrated against the march, not guessed: the old 0.52/1.4/1.0 put 80 of 81 zenith columns under cloud
+    //    (a white sky — the fbm piles samples mid-range, so 0.52 thresholded nearly everything). Swept twice:
+    //    zenith columns want 0.45, but a level camera's rays take ~17 samples to the zenith's 8, so the frames
+    //    stayed overcast. Swept again at frame-top geometry (27 deg rays): 0.38/2.4/0.35 gives 9 clear, 14
+    //    broken, 4 opaque in 27 — blue gaps overhead, veiling toward the horizon, opaque cores. The horizon
+    //    whitens by path length, which is what real broken skies do.
+    Cloud.Coverage = 0.38f; Cloud.Density = 2.4f; Cloud.Scale = 0.35f;
 
     Wind.Speed = 7.0f; Wind.Bearing = 250.0f;
 
-    LocalCloud.Centre[0] = -60.0f; LocalCloud.Centre[1] = 120.0f; LocalCloud.Centre[2] = 90.0f;
-    LocalCloud.HalfSize[0] = 60.0f; LocalCloud.HalfSize[1] = 60.0f; LocalCloud.HalfSize[2] = 34.0f;
+    // A 200 m puff parked 300 m out with 40 m features. The first box (120 m at 160 m) took ~1 slab-paced
+    //    step per ray and rendered a smooth white blob; the second (300 m at 160 m) filled the frame and stared
+    //    back as a whiteout. Two hundred metres at 300 m takes 2 steps and subtends ~35 deg: a soft distant
+    //    puff, which is what slab-paced sampling can honestly draw — per-medium steps are the follow-up that
+    //    would texture a near box. Probed 9h-13h at 0.8/2.5: real body throughout (0.43-0.53 mean), best at 11h.
+    //    Parked off by default — the showcase and the pins enable it where they need it.
+    LocalCloud.Centre[0] = -100.0f; LocalCloud.Centre[1] = 260.0f; LocalCloud.Centre[2] = 130.0f;
+    LocalCloud.HalfSize[0] = 100.0f; LocalCloud.HalfSize[1] = 100.0f; LocalCloud.HalfSize[2] = 50.0f;
+    LocalCloud.Coverage = 0.8f; LocalCloud.Density = 2.5f; LocalCloud.Scale = 40.0f;
     LocalFog.Centre[0] = 70.0f; LocalFog.Centre[1] = 90.0f; LocalFog.Centre[2] = 14.0f;
     LocalFog.HalfSize[0] = 70.0f; LocalFog.HalfSize[1] = 70.0f; LocalFog.HalfSize[2] = 14.0f;
 
@@ -386,6 +399,18 @@ void CelestialSequence::ApplyTo(VisibilityRaster& Raster, const CelestialBudget&
     if (WantMoons)
         ResolveMoonDrawList(MoonSlots, Solved, MoonViews_, MoonTextureSlots_, MoonDraw_);
     Settings.Moons = (WantMoons && MoonDraw_.Count > 0u) ? &MoonDraw_ : nullptr;
+
+    // The clouds ride by value, gated the way the moons are: the system on, the entity shown. Anything else
+    //    lends a disabled struct, which is the march's own early-out — the raster never has to ask.
+    const bool WantClouds = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)];
+    const bool WantLocalCloud = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::LocalCloud)];
+    const bool WantLocalFog = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::LocalFog)];
+    Settings.CloudLayer = (WantClouds && Cloud.Enabled) ? Cloud : CloudLayerSettings{};
+    Settings.LocalCloud = (WantLocalCloud && LocalCloud.Enabled) ? LocalCloud : LocalVolumeSettings{};
+    Settings.LocalFog = (WantLocalFog && LocalFog.Enabled) ? LocalFog : LocalVolumeSettings{};
+    Settings.Wind = Wind;
+    Settings.CloudBudget = Budget.Volumetrics;
+    Settings.CloudTime = Observation.LocalHours * 3600.0f;
 
     Raster.AssignCelestial(Settings);
 }

@@ -31,6 +31,7 @@
 #include "DisplayPresentation/AtmosphereModel.h"
 #include "DisplayPresentation/ColourTransfer.h"
 #include "DisplayPresentation/MoonConstantRecord.h"
+#include "DisplayPresentation/VolumetricMedia.h"
 #include "StarCatalogueIndex.h"
 #include <cstdint>
 #include <vector>
@@ -95,6 +96,17 @@ public:
         //    borrowed, not owned: the project resolves its roster plus the solved frame into one MoonDrawList
         //    and lends it here, the same arrangement as the star catalogue above.
         const MoonDrawList* Moons = nullptr;
+        // The clouds, by value: the settings are small, and a disabled struct is the march's own early-out, so
+        //    lending values keeps the lifetimes trivial. All three default to disabled, so nothing existing
+        //    changes until the project lends live ones. The wind advects them, the budget paces the march, and
+        //    the clock is time-of-day seconds — the rain's precedent (Tick passes LocalHours * 3600 to the
+        //    precipitation pool), so scrubbing the day cycle drifts the sky and a still frame stays put.
+        CloudLayerSettings  CloudLayer{};
+        LocalVolumeSettings LocalCloud{};
+        LocalVolumeSettings LocalFog{};
+        WindSettings        Wind{};
+        VolumetricBudget    CloudBudget{};
+        float               CloudTime = 0.0f;
         // The planet's own surface, seen when a ray passes below the horizon. Panel: Sky > Ground > Albedo.
         float            GroundAlbedo[3]   = { 0.19f, 0.17f, 0.14f };
         float            StarBrightness    = 1.0f;   // [x] panel: Stars > Field > Brightness

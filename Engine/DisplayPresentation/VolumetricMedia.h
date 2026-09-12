@@ -212,7 +212,13 @@ public:
         Shape = Shape * 0.5f + 0.5f;
 
         const float Threshold = 1.0f - Clamp(Cloud.Coverage, 0.0f, 1.0f);
-        const float Body = Clamp((Shape - Threshold) / std::fmax(1.0f - Threshold, 1e-3f), 0.0f, 1.0f);
+        const float Raw = Clamp((Shape - Threshold) / std::fmax(1.0f - Threshold, 1e-3f), 0.0f, 1.0f);
+        // Sharpened, not linear: the fbm piles samples in the middle of its range, so a linear body paints
+        //    every threshold crossing as a broad translucent veil — measured, coverage 0.52 gave 1 clear column
+        //    in 81 with almost no opaque core anywhere (a white sky, not broken cloud). The smoothstep keeps
+        //    the mapping monotonic (the gate's coverage asserts hold) while thinning the veil toward clean
+        //    edges and opaque cores — what Coverage promises ("fraction of sky covered").
+        const float Body = SmoothStep(0.0f, 1.0f, Raw);
         return Body * Profile * Cloud.Density;
     }
 
@@ -281,7 +287,10 @@ public:
         Shape = Shape * 0.5f + 0.5f;
 
         const float Threshold = 1.0f - Clamp(Volume.Coverage, 0.0f, 1.0f);
-        const float Body = Clamp((Shape - Threshold) / std::fmax(1.0f - Threshold, 1e-3f), 0.0f, 1.0f);
+        const float Raw = Clamp((Shape - Threshold) / std::fmax(1.0f - Threshold, 1e-3f), 0.0f, 1.0f);
+        // Sharpened like the layer's body (see the note there): the local volumes share the fbm's middling
+        //    distribution, so they share its veil. Same monotonic curve, same gate guarantees.
+        const float Body = SmoothStep(0.0f, 1.0f, Raw);
         return Body * Mask * Volume.Density;
     }
 
