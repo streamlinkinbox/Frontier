@@ -1,0 +1,11 @@
+{
+  "name": "frontier-sdf-terrain",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Frontier SDF Terrain Studio — volumetric SDF open-world terrain with physics-based particle erosion (no heightmaps), node graph, procedural satellite shading.",
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "bake": "node bake.mjs"
+  },
+  "license": "UNLICENSED"
+}

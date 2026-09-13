@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · SDF Terrain Studio</title>
+<link rel="stylesheet" href="css/studio.css" />
+</head>
+<body>
+<div id="app">
+  <!-- ======================= TOP BAR ======================= -->
+  <header id="topbar">
+    <div class="brand"><span class="logo">FRONTIER</span><span class="sub">SDF TERRAIN STUDIO</span></div>
+    <div class="tb-group">
+      <label>Preset</label>
+      <select id="preset"></select>
+    </div>
+    <div class="tb-group">
+      <button id="btn-new" title="Empty graph">New</button>
+      <button id="btn-import" title="Load graph JSON">Import</button>
+      <button id="btn-export" title="Save graph JSON">Export</button>
+      <input type="file" id="file-import" accept=".json" hidden />
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <label>Voxels</label>
+      <select id="res">
+        <option value="96">96³</option>
+        <option value="128" selected>128³</option>
+        <option value="160">160³</option>
+      </select>
+      <button id="btn-regen" class="accent" title="Regenerate terrain from graph">⟳ Regen</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button id="btn-play" class="accent" title="Play/pause erosion (Space)">⏸ Pause</button>
+      <label>Speed</label>
+      <select id="sim-speed">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+      </select>
+      <button id="btn-bake" title="Bake 10 s of erosion as fast as possible">Bake 10 s</button>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-group">
+      <button id="btn-obj" title="Export mesh + vertex colors">OBJ</button>
+      <button id="btn-ply" title="Export PLY mesh">PLY</button>
+      <button id="btn-png" title="Screenshot viewport">PNG</button>
+    </div>
+    <div class="tb-right"><span id="fps">— fps</span></div>
+  </header>
+
+  <!-- ======================= MAIN ======================= -->
+  <div id="main">
+    <!-- LEFT: node graph -->
+    <section id="left">
+      <div class="pane-head">
+        <span>NODE GRAPH</span>
+        <button id="btn-add" title="Add node (or double-click canvas)">+ Add</button>
+      </div>
+      <div id="node-wrap"><canvas id="node-canvas"></canvas></div>
+      <div id="node-hint">drag&nbsp;·&nbsp;connect&nbsp;·&nbsp;dbl-click = add&nbsp;·&nbsp;Del = remove</div>
+    </section>
+
+    <!-- CENTER: viewport -->
+    <section id="center">
+      <div id="vp-wrap">
+        <canvas id="viewport"></canvas>
+        <div id="vp-toolbar">
+          <div class="seg" id="mode-seg">
+            <button data-mode="orbit" class="on" title="Orbit camera (V)">✥ Orbit</button>
+            <button data-mode="paint" title="Paint emitters (B)">🖌 Paint</button>
+          </div>
+          <div class="seg" id="paint-seg" hidden>
+            <button data-paint="rain" class="on" title="Paint rain emitters">🌧 Rain</button>
+            <button data-paint="harden" title="Paint hard rock">🪨 Harden</button>
+            <button data-paint="soften" title="Paint soft rock">⛏ Soften</button>
+            <button data-paint="erase" title="Erase emitters">⌫ Erase</button>
+          </div>
+          <div class="brush-ctl" id="brush-ctl" hidden>
+            <label>Size <input id="brush-size" type="range" min="0.03" max="0.45" step="0.005" value="0.12" /></label>
+            <label>Flow <input id="brush-flow" type="range" min="0.1" max="1" step="0.05" value="0.7" /></label>
+          </div>
+          <div class="seg">
+            <button id="tgl-rain" class="on" title="Show rain streaks">Rain FX</button>
+            <button id="tgl-emit" class="on" title="Show emitter mask">Mask</button>
+          </div>
+        </div>
+        <div id="progress" hidden><div id="progress-fill"></div><span id="progress-label"></span></div>
+        <div id="hud"></div>
+        <div id="gl-error" hidden></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: inspector -->
+    <section id="right">
+      <div class="pane-head"><span>INSPECTOR</span></div>
+      <div id="inspector"><div class="empty">Select a node to edit its parameters.<br /><br />Field nodes (Source / Noise / Shape / Op) regenerate the SDF volume.<br />Erode nodes drive the realtime simulation — no regen needed.</div></div>
+      <div class="pane-head"><span>EROSION</span></div>
+      <div id="sim-stats"></div>
+      <div class="btn-row">
+        <button id="btn-clear-emit" title="Remove all painted rain emitters">Clear rain paint</button>
+        <button id="btn-clear-stain" title="Wash sediment / wetness stains (keeps carving)">Wash stains</button>
+      </div>
+      <div class="pane-head"><span>LOG</span></div>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <!-- ======================= STATUS ======================= -->
+  <footer id="statusbar"><span id="status">Ready.</span><span id="vol-stats"></span></footer>
+</div>
+<div id="add-menu" hidden></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
