@@ -60,9 +60,10 @@ gate — the one thing this sandbox cannot do is compile the Slang-only shell
   report `Diagnostics/FogParity.txt`.
   Research: `Reviews/Fog-Research-2026-09-14.md`.
 - Integration: the engine patch (`PZIntegration/`) builds warning-free and
-  opens Project Zero on the 100-object showcase (sunset + moon + mist +
-  lens flare/halo/streak, `--sun 18.3` for a starry night); sky matches
-  the harness within 3 LDR, runs are byte-identical. See `INTEGRATION.md`.
+  opens Project Zero on the 100-object showcase (sunset + moon + mist,
+  sun-only lens flare/halo/streak, `--sun 18.3` for a starry night);
+  sky matches the harness within 3 LDR, runs are byte-identical.
+  See `INTEGRATION.md`.
 - Background: the review that specified this work is
   `Reviews/SunSky-Parity-2026-09-14.md`; the mirror proof answering the
   white-line question is `Reviews/SunSky-Mirror-Report-2026-09-14.md`.

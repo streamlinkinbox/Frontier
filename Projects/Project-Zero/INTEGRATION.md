@@ -106,12 +106,12 @@ interpreter is found. The PPM is byte-identical run to run
   2 starburst / 3 halo) with the panel's own defaults (ghosts 5,
   halo 0.55, streak 0.8, chroma 0.65). The driver
   (`RendererHost::ApplyLensFlare`) reproduces `AddLensFlare`'s
-  projection + visibility per luminaire: the sun carries the mirror
-  inputs (kelvin colour × intensity × 0.09), the moon is showcase
-  staging through the same verbatim kernel (the panel flares the
-  sun only). Each luminaire behind the camera contributes nothing,
-  so day frames flare from the sun and night frames from the moon.
-  `--flarevar` selects the variety (default 0).
+  projection + visibility + kelvin-colour × intensity × 0.09 scale
+  exactly. Flare is sun-only, like the panel: the moon and
+  stars never carry flare, and a sun behind the camera (the default
+  sunset view) or below the horizon ramp contributes nothing — night
+  frames are flare-free. Face the sun (`--yaw 220 --pitch -2`) to
+  see it; `--flarevar` selects the variety (default 0).
 
 ## Verification record (sandbox, g++ 12)
 
@@ -123,14 +123,17 @@ interpreter is found. The PPM is byte-identical run to run
 - Determinism: repeated runs are byte-identical, and three
   independent builds (dev `-O1`, patched-pristine-tree `-O1`, engine
   `make -O3`) produce the same sha256
-  (`382dadf4…46443` for the default 320×240 frame, mirror flare on).
+  (`f59ef151…ebd1` for the default 320×240 frame — the sun sits behind
+  the default camera, so the sun-only flare contributes exactly zero
+  and the frame is bit-identical to the pre-flare build).
 - Sky path matches the gated harness within 3 LDR after the identical
   post chain (unchanged from the courtyard proof; the sky algorithm
   is untouched, only its staging inputs moved).
 - Gates: `RunCelestialParity.py` OVERALL PASS (moon/cloud/stars ship
   present-but-off in the mirror configuration),
   `RunFogParity.py` OVERALL PASS (F1 0.001, F2 0.806 over 2000 rows).
-- Proofs: `PZIntegration/showcase_{sunset,night,anamorphic,moonzoom}.png`.
+- Proofs: `PZIntegration/showcase_{sunset,night,sunflare,anamorphic}.png`
+  (default view, night, facing the sun cinematic + anamorphic).
 
 ## Notes and limits
 

@@ -2829,7 +2829,7 @@ index 1f8aed1..eb07f1f 100644
  
  template<>
 diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
-index 07728ca..fdfa716 100644
+index 07728ca..f5d5b1f 100644
 --- a/Projects/Project-Zero/Source/RendererHost.cpp
 +++ b/Projects/Project-Zero/Source/RendererHost.cpp
 @@ -8,6 +8,13 @@
@@ -3013,13 +3013,13 @@ index 07728ca..fdfa716 100644
 +                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceSunCos * BounceSunVis) + MoonRadiance * (BounceMoonCos * BounceMoonVis) + SkyAmbient);
 +                    BouncePos = BounceHit.HitLocation;
 +                    BounceNormal = BounceHit.SurfaceNormal;
-                 }
++                }
 +                else
 +                {
 +                    // Open sky above the bounce point: bare diffuse sky
 +                    // ambient (the primary albedo applies at composition).
 +                    BounceRadiance = SkyAmbient;
-+                }
+                 }
 +
 +                float Weight = (BounceRadiance.x + BounceRadiance.y + BounceRadiance.z) * 0.3333f;
 +                GIReservoir.ResampleIndirect(BouncePos, BounceNormal, BounceRadiance, Weight, Dist(Rng));
@@ -3116,7 +3116,7 @@ index 07728ca..fdfa716 100644
                          WeightTotal += TotalW;
                      }
                  }
-@@ -344,47 +338,130 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -344,47 +338,109 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
  
              if (WeightTotal > 0.0f)
              {
@@ -3189,7 +3189,7 @@ index 07728ca..fdfa716 100644
 +    if (FlareEnabled)
 +    {
 +        float SunElevDeg = std::asin(std::clamp(SunWorld.z, -1.0f, 1.0f)) * 57.295779513f;
-+        ApplyLensFlare(ActiveCamera, SunWorld, MoonWorld, SunElevDeg, SkyFog.QuerySunFlareTint(), FlareVariety);
++        ApplyLensFlare(ActiveCamera, SunWorld, SunElevDeg, SkyFog.QuerySunFlareTint(), FlareVariety);
 +    }
  }
  
@@ -3197,7 +3197,7 @@ index 07728ca..fdfa716 100644
  //                                                  IMAGE EXPORT
  //------------------------------------------------------------------------------------------------------------------------
  
-+void RendererHost::ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld, const Vector3& MoonWorld,
++void RendererHost::ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld,
 +    float SunElevationDeg, const Vector3& SunFlareTint, float FlareVariety) noexcept
 +{
 +    FlarePostConfig FlareCfg = FlarePostDefaults();
@@ -3209,9 +3209,9 @@ index 07728ca..fdfa716 100644
 +    const Vector3& Rgt = ActiveCamera.QueryRightVector();
 +    const Vector3& Up = ActiveCamera.QueryUpwardVector();
 +
-+    // Reference `AddLensFlare` projection per luminaire: the sun carries the
-+    // mirror inputs, the moon is showcase staging through the same verbatim
-+    // kernel (the panel flares the sun only; the moon has no panel source).
++    // Reference `AddLensFlare` projection: the panel flares the sun only, so
++    // the showcase does the same — moon and stars never carry flare, and a
++    // sun behind the camera (or below the horizon ramp) contributes nothing.
 +    const float SunCx = OrientationClassifier::DotProduct(SunWorld, Rgt);
 +    const float SunCy = OrientationClassifier::DotProduct(SunWorld, Up);
 +    const float SunCz = OrientationClassifier::DotProduct(SunWorld, Fwd);
@@ -3220,18 +3220,7 @@ index 07728ca..fdfa716 100644
 +    const float SunV = SunFront ? SunCy / SunCz / TanHalf : 99.0f;
 +    const float SunVis = FlareSourceVisibility(SunCz, SunElevationDeg, SunU, SunV);
 +
-+    const float MoonCx = OrientationClassifier::DotProduct(MoonWorld, Rgt);
-+    const float MoonCy = OrientationClassifier::DotProduct(MoonWorld, Up);
-+    const float MoonCz = OrientationClassifier::DotProduct(MoonWorld, Fwd);
-+    const bool MoonFront = MoonCz > 0.02f;
-+    const float MoonU = MoonFront ? MoonCx / MoonCz / TanHalf : 99.0f;
-+    const float MoonV = MoonFront ? MoonCy / MoonCz / TanHalf : 99.0f;
-+    const float MoonElevDeg = std::asin(std::clamp(MoonWorld.z, -1.0f, 1.0f)) * 57.295779513f;
-+    const float MoonVis = FlareSourceVisibility(MoonCz, MoonElevDeg, MoonU, MoonV);
-+    const Vector3 MoonFlareTint{ 0.82f, 0.90f, 1.05f };
-+    const float MoonFlareGain = 1.5f;
-+
-+    if (SunVis <= 0.0f && MoonVis <= 0.0f)
++    if (SunVis <= 0.0f)
 +    {
 +        return;
 +    }
@@ -3243,20 +3232,10 @@ index 07728ca..fdfa716 100644
 +        {
 +            float u = ((static_cast<float>(x) + 0.5f) / static_cast<float>(Width) * 2.0f - 1.0f) * Aspect;
 +            size_t idx = static_cast<size_t>(y) * Width + x;
-+            if (SunVis > 0.0f)
-+            {
-+                float3 sunF = FlareLensKernel(u, v, SunU, SunV, SunVis, FlareCfg);
-+                AccumulatedBuffer[idx].x += sunF.x * SunFlareTint.x;
-+                AccumulatedBuffer[idx].y += sunF.y * SunFlareTint.y;
-+                AccumulatedBuffer[idx].z += sunF.z * SunFlareTint.z;
-+            }
-+            if (MoonVis > 0.0f)
-+            {
-+                float3 moonF = FlareLensKernel(u, v, MoonU, MoonV, MoonVis, FlareCfg);
-+                AccumulatedBuffer[idx].x += moonF.x * MoonFlareTint.x * MoonFlareGain;
-+                AccumulatedBuffer[idx].y += moonF.y * MoonFlareTint.y * MoonFlareGain;
-+                AccumulatedBuffer[idx].z += moonF.z * MoonFlareTint.z * MoonFlareGain;
-+            }
++            float3 sunF = FlareLensKernel(u, v, SunU, SunV, SunVis, FlareCfg);
++            AccumulatedBuffer[idx].x += sunF.x * SunFlareTint.x;
++            AccumulatedBuffer[idx].y += sunF.y * SunFlareTint.y;
++            AccumulatedBuffer[idx].z += sunF.z * SunFlareTint.z;
 +        }
 +    }
 +}
@@ -3264,7 +3243,7 @@ index 07728ca..fdfa716 100644
  bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
  {
      std::ofstream Out(OutputPath, std::ios::binary);
-@@ -413,10 +490,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+@@ -413,10 +469,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
                  return std::clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
              };
  
@@ -3278,7 +3257,7 @@ index 07728ca..fdfa716 100644
  
              // Gamma 2.2 correction
              constexpr float InvGamma = 1.0f / 2.2f;
-@@ -437,4 +513,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+@@ -437,4 +492,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
      return true;
  }
  
@@ -3316,7 +3295,7 @@ index 07728ca..fdfa716 100644
 +
  } // namespace Frontier::ProjectZero
 diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
-index 202b2bb..0c490fe 100644
+index 202b2bb..cc550fb 100644
 --- a/Projects/Project-Zero/Source/RendererHost.h
 +++ b/Projects/Project-Zero/Source/RendererHost.h
 @@ -6,6 +6,7 @@
@@ -3364,7 +3343,7 @@ index 202b2bb..0c490fe 100644
      [[nodiscard]] RayRecord GeneratePrimaryRay(const Frontier::CameraProjection& ActiveCamera, uint32_t PixelX, uint32_t PixelY, float JitterX, float JitterY) const noexcept;
      [[nodiscard]] Vector3   SampleCosineHemisphere(const Vector3& Normal, float u1, float u2) const noexcept;
      [[nodiscard]] float     EvaluateJacobian(const Vector3& x1, const Vector3& x2, const Vector3& y, const Vector3& n_y) const noexcept;
-+    void                    ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld, const Vector3& MoonWorld,
++    void                    ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld,
 +                                           float SunElevationDeg, const Vector3& SunFlareTint, float FlareVariety) noexcept;
  
      uint32_t                Width;                              // [px] viewport width
