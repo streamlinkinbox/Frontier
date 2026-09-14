@@ -44,24 +44,47 @@ cd Projects/Project-Zero && make
 ./bin/Project-Zero --width 1280 --height 720 --bounce 4 --passes 1   # speed test
 ```
 
-Windows (cmake + MSVC, Developer Command Prompt or VS Code CMake Tools):
+Windows (double-click build, no CMake needed — MSVC only):
 
 ```bat
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --target Project-Zero
-.\build\Release\Project-Zero.exe
+Projects\Project-Zero\Construct.bat            :: builds bin\Project-Zero.exe, opens the live window
+Projects\Project-Zero\Construct.bat -Rebuild -Run
 ```
+
+`Construct.bat` forwards to `Build/Construct.ps1`, the per-project
+direct `cl.exe`/`link.exe` driver (same convention as Project-F20):
+`/std:c++20 /O2 /W4 /WX`, engine objects reused unless stale, links
+`user32.lib` + `gdi32.lib` (window + frame presenter). CMake works
+too (`cmake --build build --config Release --target Project-Zero`,
+or open `build/FrontierEngine.sln` in the VS IDE and run the
+`Project-Zero` target) — the patch keeps `CMakeLists.txt` listing
+every source explicitly.
+
+The Windows `.exe` is windowed by default: it opens the native
+engine window (`WindowExchange`, same host Project-F20 uses — no
+GLFW install needed; the engine's `FRONTIER_ENABLE_GLFW` path stays
+off) and presents the CPU frame through GDI, so the window shows
+exactly the proof pixels. One full ReSTIR frame costs seconds, so
+the loop is render-on-demand: fly with `WASD` + `Q`/`E`, hold right
+mouse + drag to look (the patch feeds `WM_MOUSEMOVE` into the
+existing `InputExchange` delta tracker — the only shared-engine
+change), scroll for flight speed, `Shift` for boost, `ESC` closes.
+The cached frame re-renders only while the camera moves. `--headless`
+keeps the old render-to-file behaviour (Linux always runs headless).
 
 Flags: `--sun H` (any hour; below-horizon sun is clamped so night
 works), `--yaw D` `--pitch D` (aim; default `0 2`), `--fog
 clear|morning|backlit`, `--width W` `--height H`, `--bounce N` (GI
 candidates per pixel, default 8), `--passes N` (spatial reuse passes,
 default 2), `--flare 0|1` (lens flare, default 1), `--flarevar
-0|1|2|3` (cinematic/anamorphic/starburst/halo, default 0), `--help`.
+0|1|2|3` (cinematic/anamorphic/starburst/halo, default 0),
+`--window | --headless`, `--help`.
 Output lands in `./Diagnostics/`:
-`ProjectZero_Showcase.ppm` always, plus `.png` when a Python
-interpreter is found. The PPM is byte-identical run to run
-(seeded hashes; determinism is verified, not assumed).
+`ProjectZero_Showcase.ppm` always (every window session exports its
+final frame too), plus `.png` when a Python interpreter is found
+(off-Windows only; on Windows the window is the viewer). The PPM is
+byte-identical run to run (seeded hashes; determinism is verified,
+not assumed).
 
 ## Architecture
 
@@ -116,7 +139,12 @@ interpreter is found. The PPM is byte-identical run to run
 ## Verification record (sandbox, g++ 12)
 
 - `make` clean under `-Wall -Wextra -Werror -pedantic`; the cmake
-  target lists every source explicitly for MSVC.
+  target lists every source explicitly for MSVC. All showcase
+  translation units are additionally clean under GCC
+  `-Wconversion -Wsign-conversion -Wsign-compare -Wdouble-promotion`
+  (the closest local stand-in for MSVC `/W4 /WX`, which the
+  `Construct` drivers enforce) — 13 sign-conversion sites fixed with
+  behaviour-preserving casts, byte-identical output verified after.
 - Default 640×480: 6.0 s at `-O1`, 4.4 s at `-O3`. Night 320×240:
   1.4 s. Renders are single-threaded CPU path tracing; scale by
   `--width/--height/--bounce/--passes` for the speed test.

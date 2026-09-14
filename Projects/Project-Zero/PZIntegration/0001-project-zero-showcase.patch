@@ -11,6 +11,275 @@ index 0c9d720..801ac30 100644
      Projects/Project-Zero/Source/GameExecution.cpp
  )
  
+diff --git a/DeviceExchange/WindowExchange.cpp b/DeviceExchange/WindowExchange.cpp
+index acfbb3b..3d95117 100644
+--- a/DeviceExchange/WindowExchange.cpp
++++ b/DeviceExchange/WindowExchange.cpp
+@@ -279,6 +279,16 @@ void WindowExchange::PollEvents(InputExchange* TargetInputExchange) noexcept
+                     case WM_LBUTTONUP:   TargetInputExchange->AssignMouseButton(MouseButtonCategory::ButtonLeft, false); break;
+                     case WM_RBUTTONDOWN: TargetInputExchange->AssignMouseButton(MouseButtonCategory::ButtonRight, true); break;
+                     case WM_RBUTTONUP:   TargetInputExchange->AssignMouseButton(MouseButtonCategory::ButtonRight, false); break;
++                    case WM_MOUSEMOVE:
++                    {
++                        // Feed absolute cursor positions so InputExchange can
++                        // accumulate look deltas (RMB-drag steering). Callers
++                        // seed the tracker once after opening the window.
++                        int MouseX = static_cast<int>(static_cast<int16_t>(LOWORD(Message.lParam)));
++                        int MouseY = static_cast<int>(static_cast<int16_t>(HIWORD(Message.lParam)));
++                        TargetInputExchange->AssignCursorPosition(static_cast<float>(MouseX), static_cast<float>(MouseY));
++                        break;
++                    }
+                     case WM_MOUSEWHEEL:
+                     {
+                         int Delta = GET_WHEEL_DELTA_WPARAM(Message.wParam);
+diff --git a/Projects/Project-Zero/Build/Construct.ps1 b/Projects/Project-Zero/Build/Construct.ps1
+index 19dca51..1e9672d 100644
+--- a/Projects/Project-Zero/Build/Construct.ps1
++++ b/Projects/Project-Zero/Build/Construct.ps1
+@@ -1,17 +1,37 @@
+-# Direct Toolchain Build Driver for Project-Zero
++#=============================================================================================================================================
++# 📦 Project-Zero/Build/Construct.ps1 — Direct Toolchain Build Driver for Project-Zero Showcase Project
++#=============================================================================================================================================
++# Builds bin/Project-Zero.exe with cl.exe / link.exe directly (no CMake needed):
++#   powershell -NoProfile -ExecutionPolicy Bypass -File Build/Construct.ps1 [-Run] [-Rebuild] [-Configuration Release]
++# Or double-click ..\Construct.bat (builds and runs the live window).
++# The CMake path works too: cmake --build build --config Release --target Project-Zero
++
+ [CmdletBinding()]
+ param(
+     [ValidateSet('Debug', 'Release')] [string] $Configuration = 'Release',
+-    [switch] $Rebuild,
+-    [switch] $Run
++    [switch]                                   $Rebuild,
++    [switch]                                   $Run
+ )
++
+ $ErrorActionPreference = 'Stop'
+-$ProjectRoot = Split-Path -Parent $PSScriptRoot
++
++$ProjectRoot    = Split-Path -Parent $PSScriptRoot
+ $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $ProjectRoot)
++$BinRoot        = Join-Path $ProjectRoot 'bin'
++$OutputRoot     = Join-Path $ProjectRoot "build\$Configuration"
++$EngineOutRoot  = Join-Path $RepositoryRoot "build\$Configuration"
++
++#-------------------------------------------------------------------------------------------------------------------------
++#                                                 TOOLCHAIN IMPORT
++#-------------------------------------------------------------------------------------------------------------------------
+ 
+ function Import-ToolchainEnvironment
+ {
+-    if (Get-Command cl.exe -ErrorAction SilentlyContinue) { return }
++    if (Get-Command cl.exe -ErrorAction SilentlyContinue)
++    {
++        return
++    }
++
+     $Candidates = @(
+         'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat'
+         'C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvarsall.bat'
+@@ -21,38 +41,163 @@ function Import-ToolchainEnvironment
+         'C:\Program Files\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvarsall.bat'
+         'C:\Program Files\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat'
+     )
++
+     $Selected = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
++
+     if ($null -eq $Selected)
+     {
+         $VsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+         if (Test-Path $VsWhere)
+         {
+             $InstallPath = & $VsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+-            if ($InstallPath) { $Candidate = Join-Path $InstallPath 'VC\Auxiliary\Build\vcvarsall.bat'; if (Test-Path $Candidate) { $Selected = $Candidate } }
++            if ($InstallPath)
++            {
++                $Candidate = Join-Path $InstallPath 'VC\Auxiliary\Build\vcvarsall.bat'
++                if (Test-Path $Candidate)
++                {
++                    $Selected = $Candidate
++                }
++            }
+         }
+     }
+-    if ($null -eq $Selected) { throw 'No Visual Studio vcvarsall.bat toolchain was located.' }
++
++    if ($null -eq $Selected)
++    {
++        throw 'No Visual Studio vcvarsall.bat toolchain was located. Ensure MSVC C++ tools are installed.'
++    }
++
++    Write-Host "[Project-Zero Build] Importing MSVC environment from: $Selected" -ForegroundColor Cyan
++
+     $Captured = cmd.exe /c "`"$Selected`" x64 > nul & set"
+-    foreach ($Line in $Captured) { if ($Line -match '^([^=]+)=(.*)$') { Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] -ErrorAction SilentlyContinue } }
++    foreach ($Line in $Captured)
++    {
++        if ($Line -match '^([^=]+)=(.*)$')
++        {
++            Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] -ErrorAction SilentlyContinue
++        }
++    }
++
++    if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue))
++    {
++        throw 'vcvarsall.bat executed but cl.exe remains absent from current PATH.'
++    }
+ }
+ 
+ Import-ToolchainEnvironment
+ 
+-powershell -NoProfile -ExecutionPolicy Bypass -File "$RepositoryRoot\Build\Construct.ps1" -Configuration $Configuration
+-$OutputRoot = Join-Path $ProjectRoot "build\$Configuration"
+-$BinRoot = Join-Path $ProjectRoot 'bin'
+-if ($Rebuild -and (Test-Path $OutputRoot)) { Remove-Item -Path $OutputRoot -Recurse -Force }
+-if (-not (Test-Path $OutputRoot)) { New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null }
+-if (-not (Test-Path $BinRoot)) { New-Item -ItemType Directory -Path $BinRoot -Force | Out-Null }
+-$SourceFiles = @(Get-ChildItem -Path (Join-Path $ProjectRoot 'Source') -Filter '*.cpp' | ForEach-Object { $_.FullName })
+-$EngineObjFiles = Get-ChildItem -Path (Join-Path $RepositoryRoot "build\$Configuration") -Filter '*.obj' | Where-Object { $_.Name -notmatch 'EngineExecution\.obj' } | ForEach-Object { $_.FullName }
++#-------------------------------------------------------------------------------------------------------------------------
++#                                                 ENGINE OBJECTS
++#-------------------------------------------------------------------------------------------------------------------------
++
++# Reuse existing engine objects unless stale (any engine .cpp newer than the
++# oldest engine .obj), missing, or -Rebuild was passed.
++$EngineStale = $true
++if ((Test-Path $EngineOutRoot) -and -not $Rebuild)
++{
++    $EngineObjs = @(Get-ChildItem -Path $EngineOutRoot -Filter '*.obj')
++    if ($EngineObjs.Count -gt 0)
++    {
++        $OldestObj = ($EngineObjs | Sort-Object LastWriteTime | Select-Object -First 1).LastWriteTime
++        $NewestSrc = Get-ChildItem -Path $RepositoryRoot -Include '*.cpp' -Recurse |
++            Where-Object { $_.FullName -notmatch '\\Projects\\' } |
++            Sort-Object LastWriteTime -Descending | Select-Object -First 1
++        if (($null -ne $NewestSrc) -and ($NewestSrc.LastWriteTime -le $OldestObj))
++        {
++            $EngineStale = $false
++        }
++    }
++}
++
++if ($EngineStale)
++{
++    Write-Host '[Project-Zero Build] Compiling engine translation units...' -ForegroundColor Cyan
++    powershell -NoProfile -ExecutionPolicy Bypass -File "$RepositoryRoot\Build\Construct.ps1" -Configuration $Configuration
++}
++else
++{
++    Write-Host '[Project-Zero Build] Reusing up-to-date engine objects.' -ForegroundColor DarkGray
++}
++
++if ($Rebuild -and (Test-Path $OutputRoot))
++{
++    Remove-Item -Path $OutputRoot -Recurse -Force
++}
++
++if (-not (Test-Path $OutputRoot))
++{
++    New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
++}
++
++if (-not (Test-Path $BinRoot))
++{
++    New-Item -ItemType Directory -Path $BinRoot | Out-Null
++}
++
++$SourceFiles = @(
++    Get-ChildItem -Path (Join-Path $ProjectRoot 'Source') -Filter '*.cpp' | ForEach-Object { $_.FullName }
++)
++
++$EngineObjFiles = Get-ChildItem -Path $EngineOutRoot -Filter '*.obj' |
++    Where-Object { $_.Name -notmatch 'EngineExecution\.obj' } |
++    ForEach-Object { $_.FullName }
++
+ $TargetExe = Join-Path $BinRoot 'Project-Zero.exe'
+-$CompilerFlags = @('/nologo', '/c', '/EHsc', '/MP', '/MD', '/std:c++20', '/permissive-', '/fp:precise', '/W4', '/WX', '/wd4324', '/utf-8', '/Zc:__cplusplus', '/DWIN32_LEAN_AND_MEAN', '/DNOMINMAX', '/DFRONTIER_DEVELOPMENT', "/I`"$RepositoryRoot`"", "/I`"$ProjectRoot`"", "/Fo`"$OutputRoot\\`"")
+-if ($Configuration -eq 'Debug') { $CompilerFlags += @('/Od', '/Zi', '/Zf', '/DFRONTIER_DEBUG=1') } else { $CompilerFlags += @('/O2', '/Zi', '/Zf', '/DNDEBUG') }
++
++$CompilerFlags = @(
++    '/nologo',
++    '/c',
++    '/EHsc',
++    '/MP',
++    '/MD',
++    '/std:c++20',
++    '/permissive-',
++    '/fp:precise',
++    '/W4',
++    '/WX',
++    '/wd4324',
++    '/utf-8',
++    '/Zc:__cplusplus',
++    '/DWIN32_LEAN_AND_MEAN',
++    '/DNOMINMAX',
++    '/DFRONTIER_DEVELOPMENT',
++    "/I`"$RepositoryRoot`"",
++    "/I`"$ProjectRoot`"",
++    "/Fo`"$OutputRoot\\`""
++)
++
++if ($Configuration -eq 'Debug')
++{
++    $CompilerFlags += @('/Od', '/Zi', '/Zf', '/DFRONTIER_DEBUG=1')
++}
++else
++{
++    $CompilerFlags += @('/O2', '/Zi', '/Zf', '/DNDEBUG')
++}
++
+ & cl.exe $CompilerFlags $SourceFiles
+ if ($LASTEXITCODE -ne 0) { exit 1 }
++
+ $GameObjFiles = Get-ChildItem -Path $OutputRoot -Filter '*.obj' | ForEach-Object { $_.FullName }
+-& link.exe @('/nologo', '/DEBUG', "/OUT:`"$TargetExe`"", '/SUBSYSTEM:CONSOLE', 'user32.lib') $GameObjFiles $EngineObjFiles
++$LinkArgs     = @('/nologo', '/DEBUG', "/OUT:`"$TargetExe`"", '/SUBSYSTEM:CONSOLE', 'user32.lib', 'gdi32.lib') + $GameObjFiles + $EngineObjFiles
++
++& link.exe $LinkArgs
+ if ($LASTEXITCODE -ne 0) { exit 1 }
++
+ Write-Host "[Project-Zero] Executable built successfully: $TargetExe" -ForegroundColor Green
+-if ($Run) { & $TargetExe }
++
++if ($Run)
++{
++    if (-not (Test-Path (Join-Path $ProjectRoot 'Diagnostics')))
++    {
++        New-Item -ItemType Directory -Path (Join-Path $ProjectRoot 'Diagnostics') | Out-Null
++    }
++    Push-Location $ProjectRoot
++    try
++    {
++        & $TargetExe
++    }
++    finally
++    {
++        Pop-Location
++    }
++}
+diff --git a/Projects/Project-Zero/Construct.bat b/Projects/Project-Zero/Construct.bat
+new file mode 100644
+index 0000000..16d681b
+--- /dev/null
++++ b/Projects/Project-Zero/Construct.bat
+@@ -0,0 +1,16 @@
++@echo off
++rem ============================================================================================================================================
++rem Project-Zero/Construct.bat - One-click MSVC build (and run) for the Project-Zero showcase windowed .exe
++rem ============================================================================================================================================
++rem   Construct.bat                    builds Release and opens the live window
++rem   Construct.bat -Run               same as above (explicit)
++rem   Construct.bat -Rebuild -Run      full rebuild, then run
++rem   Construct.bat -Configuration Debug
++rem                                    builds Debug without running
++setlocal
++if "%~1"=="" (
++    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Construct.ps1" -Run
++) else (
++    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Construct.ps1" %*
++)
++exit /b %errorlevel%
 diff --git a/Projects/Project-Zero/Shaders/FlareSpecification.slang b/Projects/Project-Zero/Shaders/FlareSpecification.slang
 new file mode 100644
 index 0000000..5fd9b0d
@@ -1822,10 +2091,10 @@ index 0000000..7b19903
 +
 +#endif // FRONTIER_SLANG_INTERCHANGE_H
 diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
-index 6953a00..5a9d8d2 100644
+index 6953a00..dd47cbc 100644
 --- a/Projects/Project-Zero/Source/GameExecution.cpp
 +++ b/Projects/Project-Zero/Source/GameExecution.cpp
-@@ -1,125 +1,145 @@
+@@ -1,125 +1,318 @@
  //============================================================================================================================================
 -// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Photometric Test Ground Entry Point
 +// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Showcase Entry Point
@@ -1834,17 +2103,119 @@ index 6953a00..5a9d8d2 100644
  #include "RendererHost.h"
  #include "FlyThroughSolver.h"
 -#include "../../../DeviceExchange/DiagnosticMetrics.h"
--#include "../../../DeviceExchange/InputExchange.h"
++#include "../../../DeviceExchange/WindowExchange.h"
+ #include "../../../DeviceExchange/InputExchange.h"
  #include <iostream>
  #include <chrono>
  #include <cstdlib>
 +#include <filesystem>
 +#include <string>
++#include <vector>
  
- int main(int ArgumentCount, char** ArgumentValues)
+-int main(int ArgumentCount, char** ArgumentValues)
++#if defined(_WIN32)
++    #ifndef WIN32_LEAN_AND_MEAN
++        #define WIN32_LEAN_AND_MEAN
++    #endif
++    #ifndef NOMINMAX
++        #define NOMINMAX
++    #endif
++    #include <windows.h>
++#endif
++
++namespace {
++
++#if defined(_WIN32)
++// CPU-frame presenter: blits the renderer's LDR bytes into the native
++// window through GDI. No GPU context needed — the showcase is a CPU
++// path tracer, so the window is a dumb framebuffer viewer.
++void PresentRgbaToWindow(void* NativeWindowToken, const std::vector<uint8_t>& Rgba, uint32_t Width, uint32_t Height,
++    std::vector<uint8_t>& ScratchPad) noexcept
  {
 -    (void)ArgumentCount;
 -    (void)ArgumentValues;
++    HWND WindowHandle = static_cast<HWND>(NativeWindowToken);
++    if (WindowHandle == nullptr || Rgba.size() < static_cast<size_t>(Width) * static_cast<size_t>(Height) * 4U)
++    {
++        return;
++    }
++    HDC DeviceContext = GetDC(WindowHandle);
++    if (DeviceContext == nullptr)
++    {
++        return;
++    }
+ 
+-    std::cout << "================================================================================\n";
+-    std::cout << "                 PROJECT-ZERO — RESTIR PHOTOMETRIC TEST GROUND                  \n";
+-    std::cout << "================================================================================\n";
+-    std::cout << "[Project-Zero] Initializing analytical triangle test scene, UE camera, and ReSTIR pipeline...\n";
+-
+-    // Initialize Telemetry Logger with markdown table format
+-    Frontier::DiagnosticConfiguration ReportConfig{};
+-    ReportConfig.DestinationFolder          = "Diagnostics";
+-    ReportConfig.OutputFileStem             = "ProjectZero_TelemetryReport";
+-    ReportConfig.FileExtension              = ".md";
+-    ReportConfig.TimestampPrefixEnabled     = true;
+-    ReportConfig.ConsoleEchoEnabled         = false;
+-    ReportConfig.MarkdownTableFormatEnabled = true;
+-
+-    Frontier::DiagnosticMetrics ReportLogger(ReportConfig);
+-    if (ReportLogger.InitializeSink())
++    // GDI 32-bit BI_RGB expects byte order B,G,R,unused; swizzle once.
++    ScratchPad.resize(Rgba.size());
++    for (size_t i = 0; i + 3U < Rgba.size() + 1U; i += 4U)
+     {
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Bootstrap", "Project-Zero ReSTIR test ground initialized.");
++        ScratchPad[i + 0U] = Rgba[i + 2U];
++        ScratchPad[i + 1U] = Rgba[i + 1U];
++        ScratchPad[i + 2U] = Rgba[i + 0U];
++        ScratchPad[i + 3U] = 0U;
+     }
+ 
+-    constexpr uint32_t ViewportWidth  = 640;
+-    constexpr uint32_t ViewportHeight = 480;
++    BITMAPINFO BitmapInfo{};
++    BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
++    BitmapInfo.bmiHeader.biWidth = static_cast<LONG>(Width);
++    BitmapInfo.bmiHeader.biHeight = -static_cast<LONG>(Height);
++    BitmapInfo.bmiHeader.biPlanes = 1U;
++    BitmapInfo.bmiHeader.biBitCount = 32U;
++    BitmapInfo.bmiHeader.biCompression = BI_RGB;
++    (void)StretchDIBits(DeviceContext, 0, 0, static_cast<int>(Width), static_cast<int>(Height),
++        0, 0, static_cast<int>(Width), static_cast<int>(Height),
++        ScratchPad.data(), &BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
++    (void)ReleaseDC(WindowHandle, DeviceContext);
++}
++#endif
+ 
+-    // Initialize Unreal Engine style Fly-Through Camera
+-    Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{
+-        2.5f,                   // [m/s] base speed
+-        3.0f,                   // [x] boost when holding Shift
+-        0.0025f,                // [rad/px] mouse sensitivity
+-        0.5f,                   // [m/s] scroll increment
+-        12.0f                   // damping
+-    };
+-    Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
+-    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, 1.0f, -1.95f });
+-    Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
+-    Camera.AssignFieldOfView(55.0f);
+-    Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
++} // namespace
+ 
+-    // Simulate Unreal Engine Viewport Input Interaction (WASD + Q/E + RMB + Scroll)
+-    Frontier::InputExchange Input;
+-    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyW, true);          // Hold W to fly forward
+-    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyLeftShift, true);  // Hold Shift for speed boost
+-    Input.AssignMouseButton(Frontier::MouseButtonCategory::ButtonRight, true); // Hold RMB for look steering
+-    Input.AssignCursorDelta(15.0f, -5.0f);                                   // Slight yaw right, pitch up
+-    Input.AssignMouseScroll(2.0f);                                           // Scroll up to increase flight speed
+-
+-    // Advance camera kinematics through 5 simulation ticks
+-    std::cout << "[Project-Zero] Simulating Unreal-style Fly-Through Camera Navigation (WASD, Q/E, Shift, Scroll, RMB)...\n";
+-    for (int tick = 1; tick <= 5; ++tick)
++int main(int ArgumentCount, char** ArgumentValues)
++{
 +    double SunHour = 17.93;
 +    double LensYaw = 0.0;
 +    double LensPitch = 2.0;
@@ -1854,9 +2225,17 @@ index 6953a00..5a9d8d2 100644
 +    uint32_t SpatialPasses = 2;
 +    bool FlareEnabled = true;
 +    float FlareVariety = 0.0f;
++    bool WindowedMode = true;
 +    Frontier::ProjectZero::SkyFogIntegrator::FogScenario FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Morning;
 +    for (int i = 1; i < ArgumentCount; ++i)
-+    {
+     {
+-        Camera.AdvanceLocomotion(Input, 1.0f / 60.0f);
+-        const auto& Loc = Camera.QuerySpatialLocation();
+-        std::cout << "  Tick " << tick
+-                  << " | Cam Pos: (" << Loc.x << ", " << Loc.y << ", " << Loc.z << ")"
+-                  << " | Speed: " << Camera.QueryFlightSpeed() << " m/s"
+-                  << " | Pitch: " << (Camera.QueryPitchRadians() * 180.0f / 3.14159f) << " deg"
+-                  << " | Yaw: " << (Camera.QueryYawRadians() * 180.0f / 3.14159f) << " deg\n";
 +        std::string Arg = ArgumentValues[i];
 +        if (Arg == "--sun" && i + 1 < ArgumentCount)
 +        {
@@ -1906,14 +2285,23 @@ index 6953a00..5a9d8d2 100644
 +                FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Backlit;
 +            }
 +        }
++        else if (Arg == "--headless")
++        {
++            WindowedMode = false;
++        }
++        else if (Arg == "--window")
++        {
++            WindowedMode = true;
++        }
 +        else if (Arg == "--help")
 +        {
 +            std::cout << "usage: Project-Zero [--sun H] [--yaw D] [--pitch D] [--fog clear|morning|backlit]\n"
 +                      << "                      [--width W] [--height H] [--bounce N] [--passes N] [--flare 0|1]\n"
-+                      << "                      [--flarevar 0|1|2|3] (cinematic/anamorphic/starburst/halo)\n";
++                      << "                      [--flarevar 0|1|2|3] (cinematic/anamorphic/starburst/halo)\n"
++                      << "                      [--window | --headless] (live window is the default on Windows)\n";
 +            return 0;
 +        }
-+    }
+     }
 +    if (ViewportWidth < 8)
 +    {
 +        ViewportWidth = 8;
@@ -1922,106 +2310,51 @@ index 6953a00..5a9d8d2 100644
 +    {
 +        ViewportHeight = 8;
 +    }
++#if !defined(_WIN32)
++    WindowedMode = false;
++#endif
  
-     std::cout << "================================================================================\n";
-     std::cout << "                 PROJECT-ZERO — RESTIR PHOTOMETRIC TEST GROUND                  \n";
-     std::cout << "================================================================================\n";
--    std::cout << "[Project-Zero] Initializing analytical triangle test scene, UE camera, and ReSTIR pipeline...\n";
--
--    // Initialize Telemetry Logger with markdown table format
--    Frontier::DiagnosticConfiguration ReportConfig{};
--    ReportConfig.DestinationFolder          = "Diagnostics";
--    ReportConfig.OutputFileStem             = "ProjectZero_TelemetryReport";
--    ReportConfig.FileExtension              = ".md";
--    ReportConfig.TimestampPrefixEnabled     = true;
--    ReportConfig.ConsoleEchoEnabled         = false;
--    ReportConfig.MarkdownTableFormatEnabled = true;
--
--    Frontier::DiagnosticMetrics ReportLogger(ReportConfig);
--    if (ReportLogger.InitializeSink())
--    {
--        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Bootstrap", "Project-Zero ReSTIR test ground initialized.");
--    }
--
--    constexpr uint32_t ViewportWidth  = 640;
--    constexpr uint32_t ViewportHeight = 480;
+-    std::cout << "[Project-Zero] Viewport: " << ViewportWidth << "x" << ViewportHeight << " pixels.\n";
+-    std::cout << "[Project-Zero] Scene: Cornell Box with analytical triangle geometry & emissive ceiling luminaire.\n";
+-    std::cout << "[Project-Zero] Executing ReSTIR DI + ReSTIR GI from navigated camera viewpoint...\n";
++    std::cout << "================================================================================\n";
++    std::cout << "                 PROJECT-ZERO — RESTIR PHOTOMETRIC TEST GROUND                  \n";
++    std::cout << "================================================================================\n";
 +    std::cout << "[Project-Zero] Showcase: soil plain, one hundred analytical shapes, sunset sky,\n";
 +    std::cout << "[Project-Zero] moon, stars, clouds, and ground mist through ReSTIR DI + GI.\n";
- 
--    // Initialize Unreal Engine style Fly-Through Camera
--    Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{
--        2.5f,                   // [m/s] base speed
--        3.0f,                   // [x] boost when holding Shift
--        0.0025f,                // [rad/px] mouse sensitivity
--        0.5f,                   // [m/s] scroll increment
--        12.0f                   // damping
--    };
++
 +    constexpr float Deg2Rad = 3.14159265359f / 180.0f;
 +    Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{ 2.5f, 3.0f, 0.0025f, 0.5f, 12.0f };
-     Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
--    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, 1.0f, -1.95f });
--    Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
--    Camera.AssignFieldOfView(55.0f);
++    Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
 +    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -14.0f, 2.2f });
 +    Camera.AssignOrientationEuler(static_cast<float>(LensPitch) * Deg2Rad, static_cast<float>(LensYaw) * Deg2Rad, 0.0f);
 +    Camera.AssignFieldOfView(60.0f);
-     Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
++    Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
  
--    // Simulate Unreal Engine Viewport Input Interaction (WASD + Q/E + RMB + Scroll)
--    Frontier::InputExchange Input;
--    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyW, true);          // Hold W to fly forward
--    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyLeftShift, true);  // Hold Shift for speed boost
--    Input.AssignMouseButton(Frontier::MouseButtonCategory::ButtonRight, true); // Hold RMB for look steering
--    Input.AssignCursorDelta(15.0f, -5.0f);                                   // Slight yaw right, pitch up
--    Input.AssignMouseScroll(2.0f);                                           // Scroll up to increase flight speed
--
--    // Advance camera kinematics through 5 simulation ticks
--    std::cout << "[Project-Zero] Simulating Unreal-style Fly-Through Camera Navigation (WASD, Q/E, Shift, Scroll, RMB)...\n";
--    for (int tick = 1; tick <= 5; ++tick)
--    {
--        Camera.AdvanceLocomotion(Input, 1.0f / 60.0f);
--        const auto& Loc = Camera.QuerySpatialLocation();
--        std::cout << "  Tick " << tick
--                  << " | Cam Pos: (" << Loc.x << ", " << Loc.y << ", " << Loc.z << ")"
--                  << " | Speed: " << Camera.QueryFlightSpeed() << " m/s"
--                  << " | Pitch: " << (Camera.QueryPitchRadians() * 180.0f / 3.14159f) << " deg"
--                  << " | Yaw: " << (Camera.QueryYawRadians() * 180.0f / 3.14159f) << " deg\n";
--    }
--
-     std::cout << "[Project-Zero] Viewport: " << ViewportWidth << "x" << ViewportHeight << " pixels.\n";
--    std::cout << "[Project-Zero] Scene: Cornell Box with analytical triangle geometry & emissive ceiling luminaire.\n";
--    std::cout << "[Project-Zero] Executing ReSTIR DI + ReSTIR GI from navigated camera viewpoint...\n";
+-    auto StartTime = std::chrono::high_resolution_clock::now();
++    std::cout << "[Project-Zero] Viewport: " << ViewportWidth << "x" << ViewportHeight << " pixels.\n";
 +    std::cout << "[Project-Zero] Sun hour " << SunHour << ", yaw " << LensYaw << " deg, pitch " << LensPitch << " deg.\n";
- 
-     auto StartTime = std::chrono::high_resolution_clock::now();
  
      Frontier::ProjectZero::RendererHost Renderer(ViewportWidth, ViewportHeight);
 -    Renderer.RenderReSTIRFrame(Camera, 2); // 2 spatial resampling passes
-+    Renderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount, FlareEnabled, FlareVariety);
  
-     auto EndTime = std::chrono::high_resolution_clock::now();
-     double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
- 
--    std::cout << "[Project-Zero] ReSTIR render completed in " << DurationMs << " ms.\n";
+-    auto EndTime = std::chrono::high_resolution_clock::now();
+-    double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
 -
--    std::string PpmPath = "Diagnostics/ProjectZero_ReSTIR_GI.ppm";
--    std::string PngPath = "Diagnostics/ProjectZero_ReSTIR_GI.png";
-+    std::cout << "[Project-Zero] Showcase render completed in " << DurationMs << " ms.\n";
- 
--    if (Renderer.ExportPpmImage(PpmPath))
+-    std::cout << "[Project-Zero] ReSTIR render completed in " << DurationMs << " ms.\n";
 +    std::error_code DirCode;
 +    std::filesystem::create_directories("Diagnostics", DirCode);
 +    std::string PpmPath = "Diagnostics/ProjectZero_Showcase.ppm";
 +    std::string PngPath = "Diagnostics/ProjectZero_Showcase.png";
-+    if (Renderer.ExportShowcaseImage(PpmPath))
-     {
-         std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
--        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Exported PPM image to " + PpmPath);
--
--        // Convert PPM to PNG
--        std::string ConvertCmd = "python3 Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
--        int Result = std::system(ConvertCmd.c_str());
--        if (Result == 0)
++    auto ExportArtifacts = [&]() -> bool
++    {
++        if (!Renderer.ExportShowcaseImage(PpmPath))
++        {
++            std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
++            return false;
++        }
++        std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
++#if !defined(_WIN32)
 +        std::string ConvertPy3 = "python3 ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
 +        std::string ConvertPy = "python ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
 +        (void)std::system(ConvertPy3.c_str());
@@ -2030,33 +2363,145 @@ index 6953a00..5a9d8d2 100644
 +            (void)std::system(ConvertPy.c_str());
 +        }
 +        if (std::filesystem::exists(PngPath))
-         {
-             std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
--            ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Converted to PNG at " + PngPath);
-         }
-     }
-     else
++        {
++            std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
++        }
++#else
++        (void)PngPath;
++#endif
++        return true;
++    };
+ 
+-    std::string PpmPath = "Diagnostics/ProjectZero_ReSTIR_GI.ppm";
+-    std::string PngPath = "Diagnostics/ProjectZero_ReSTIR_GI.png";
++    auto RenderOnce = [&](const char* Label) -> double
++    {
++        auto StartTime = std::chrono::high_resolution_clock::now();
++        Renderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount, FlareEnabled, FlareVariety);
++        auto EndTime = std::chrono::high_resolution_clock::now();
++        double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
++        std::cout << "[Project-Zero] " << Label << " completed in " << DurationMs << " ms.\n";
++        return DurationMs;
++    };
+ 
+-    if (Renderer.ExportPpmImage(PpmPath))
++    if (!WindowedMode)
      {
-         std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
--        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Fatal, "Renderer", "Failed to export PPM image.");
-+        return 1;
+-        std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Exported PPM image to " + PpmPath);
++        (void)RenderOnce("Showcase render");
++        if (!ExportArtifacts())
++        {
++            return 1;
++        }
++        return 0;
++    }
+ 
+-        // Convert PPM to PNG
+-        std::string ConvertCmd = "python3 Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
+-        int Result = std::system(ConvertCmd.c_str());
+-        if (Result == 0)
++#if defined(_WIN32)
++    Frontier::WindowExchange Window;
++    Frontier::WindowConfiguration WindowConfig{ ViewportWidth, ViewportHeight,
++        "Project-Zero — ReSTIR Showcase (WASD/QE fly, RMB-drag look, ESC exits)", false, true };
++    if (!Window.OpenDisplayWindow(WindowConfig))
++    {
++        std::cerr << "[Project-Zero] Window failed to open; falling back to headless render.\n";
++        (void)RenderOnce("Showcase render");
++        if (!ExportArtifacts())
+         {
+-            std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
+-            ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Converted to PNG at " + PngPath);
++            return 1;
+         }
++        return 0;
      }
--
+-    else
++
++    Frontier::InputExchange Input;
+     {
+-        std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Fatal, "Renderer", "Failed to export PPM image.");
++        // Seed the cursor tracker with the true cursor position so the
++        // first mouse-look delta is zero instead of a viewport jump.
++        POINT CursorPoint{};
++        HWND WindowHandle = static_cast<HWND>(Window.QueryNativeWindowToken());
++        if (WindowHandle != nullptr && GetCursorPos(&CursorPoint) != 0 && ScreenToClient(WindowHandle, &CursorPoint) != 0)
++        {
++            Input.AssignCursorPosition(static_cast<float>(CursorPoint.x), static_cast<float>(CursorPoint.y));
++        }
+     }
+ 
 -    ReportLogger.RecordMeasurement("ViewportWidth", ViewportWidth, "px");
 -    ReportLogger.RecordMeasurement("ViewportHeight", ViewportHeight, "px");
 -    ReportLogger.RecordMeasurement("TotalPixels", ViewportWidth * ViewportHeight, "px");
 -    ReportLogger.RecordMeasurement("RenderDurationMs", DurationMs, "ms");
 -    ReportLogger.RecordMeasurement("SpatialResamplingPasses", 2, "count");
 -    ReportLogger.RecordMeasurement("CameraFlightSpeed", Camera.QueryFlightSpeed(), "m/s");
--
++    std::vector<uint8_t> LdrFrame;
++    std::vector<uint8_t> PresentScratch;
++    (void)RenderOnce("Showcase render");
++    Renderer.ExportLdrPixels(LdrFrame);
++    PresentRgbaToWindow(Window.QueryNativeWindowToken(), LdrFrame, ViewportWidth, ViewportHeight, PresentScratch);
++    (void)ExportArtifacts();
+ 
 -    ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Shutdown", "Project-Zero test ground completed successfully.");
 -    ReportLogger.TerminateSink();
--
++    // Render-on-demand loop: a full ReSTIR frame costs seconds, so the
++    // cached frame stays on screen until the fly camera actually moves.
++    int IdleFrames = 0;
++    while (!Window.ShouldClose())
++    {
++        Window.PollEvents(&Input);
++        if (Input.IsKeyPressed(Frontier::VirtualKeyCategory::KeyEscape))
++        {
++            break;
++        }
+ 
 -    std::cout << "[Project-Zero] Test complete. Telemetry report emitted to " << ReportLogger.QueryResolvedFilePath() << "\n";
++        Frontier::Vector3 BeforeLocation = Camera.QuerySpatialLocation();
++        float BeforePitch = Camera.QueryPitchRadians();
++        float BeforeYaw = Camera.QueryYawRadians();
++        Camera.AdvanceLocomotion(Input, 1.0f / 60.0f);
++        Input.PollInputDevices();
++
++        Frontier::Vector3 AfterLocation = Camera.QuerySpatialLocation();
++        bool CameraMoved = (AfterLocation.x != BeforeLocation.x) || (AfterLocation.y != BeforeLocation.y)
++            || (AfterLocation.z != BeforeLocation.z) || (Camera.QueryPitchRadians() != BeforePitch)
++            || (Camera.QueryYawRadians() != BeforeYaw);
++        if (CameraMoved)
++        {
++            (void)RenderOnce("Flight re-render");
++            Renderer.ExportLdrPixels(LdrFrame);
++            PresentRgbaToWindow(Window.QueryNativeWindowToken(), LdrFrame, ViewportWidth, ViewportHeight, PresentScratch);
++            IdleFrames = 0;
++        }
++        else
++        {
++            ++IdleFrames;
++            if (IdleFrames % 30 == 0)
++            {
++                PresentRgbaToWindow(Window.QueryNativeWindowToken(), LdrFrame, ViewportWidth, ViewportHeight, PresentScratch);
++            }
++            Sleep(static_cast<DWORD>(16));
++        }
++    }
++
++    Window.CloseDisplayWindow();
++    std::cout << "[Project-Zero] Window closed. Final frame kept at: " << PpmPath << "\n";
++    return 0;
++#else
++    (void)RenderOnce("Showcase render");
++    if (!ExportArtifacts())
++    {
++        return 1;
++    }
      return 0;
++#endif
  }
 diff --git a/Projects/Project-Zero/Source/RayTracingSolver.cpp b/Projects/Project-Zero/Source/RayTracingSolver.cpp
-index f0a2cad..b67562a 100644
+index f0a2cad..0a34b98 100644
 --- a/Projects/Project-Zero/Source/RayTracingSolver.cpp
 +++ b/Projects/Project-Zero/Source/RayTracingSolver.cpp
 @@ -3,9 +3,10 @@
@@ -2155,7 +2600,7 @@ index f0a2cad..b67562a 100644
 +    Vector3 MaxC{ -1e30f, -1e30f, -1e30f };
 +    for (int32_t i = 0; i < Count; ++i)
 +    {
-+        const auto& Tri = Tris[Order[Start + i]];
++        const auto& Tri = Tris[Order[static_cast<size_t>(Start + i)]];
 +        Vector3 Lo{};
 +        Vector3 Hi{};
 +        TriBounds(Tri, Lo, Hi);
@@ -2197,10 +2642,10 @@ index f0a2cad..b67562a 100644
 +    }
 +    int32_t Left = BuildRange(Nodes, Order, Tris, Start, Mid - Start);
 +    int32_t Right = BuildRange(Nodes, Order, Tris, Mid, Start + Count - Mid);
-+    Nodes[NodeIdx].ChildLeft = Left;
-+    Nodes[NodeIdx].ChildRight = Right;
-+    Nodes[NodeIdx].StartIndex = -1;
-+    Nodes[NodeIdx].PrimCount = 0;
++    Nodes[static_cast<size_t>(NodeIdx)].ChildLeft = Left;
++    Nodes[static_cast<size_t>(NodeIdx)].ChildRight = Right;
++    Nodes[static_cast<size_t>(NodeIdx)].StartIndex = -1;
++    Nodes[static_cast<size_t>(NodeIdx)].PrimCount = 0;
 +    return NodeIdx;
 +}
 +
@@ -2627,7 +3072,7 @@ index f0a2cad..b67562a 100644
 +    Stack[Depth++] = 0;
 +    while (Depth > 0)
 +    {
-+        const BvhBranch& Node = Bvh[Stack[--Depth]];
++        const BvhBranch& Node = Bvh[static_cast<size_t>(Stack[--Depth])];
 +        if (!SlabHit(Node.MinBounds, Node.MaxBounds, Ray.SpatialOrigin, Ray.RayDirection, Ray.MinimumDistance, ClosestHit.RayDistance))
          {
              continue;
@@ -2646,7 +3091,7 @@ index f0a2cad..b67562a 100644
 -            ClosestHit.ValidCondition = true;
 +            for (int32_t i = 0; i < Node.PrimCount; ++i)
 +            {
-+                const auto& Tri = Triangles[BvhOrder[Node.StartIndex + i]];
++                const auto& Tri = Triangles[BvhOrder[static_cast<size_t>(Node.StartIndex + i)]];
 +                float t = 0.0f;
 +                if (TriHit(Tri, Ray.SpatialOrigin, Ray.RayDirection, Ray.MinimumDistance, ClosestHit.RayDistance, t))
 +                {
@@ -2724,7 +3169,7 @@ index f0a2cad..b67562a 100644
 +    Stack[Depth++] = 0;
 +    while (Depth > 0)
 +    {
-+        const BvhBranch& Node = Bvh[Stack[--Depth]];
++        const BvhBranch& Node = Bvh[static_cast<size_t>(Stack[--Depth])];
 +        if (!SlabHit(Node.MinBounds, Node.MaxBounds, Origin, UnitDir, TMin, TMax))
          {
              continue;
@@ -2739,7 +3184,7 @@ index f0a2cad..b67562a 100644
 -            continue;
 +            for (int32_t i = 0; i < Node.PrimCount; ++i)
 +            {
-+                const auto& Tri = Triangles[BvhOrder[Node.StartIndex + i]];
++                const auto& Tri = Triangles[BvhOrder[static_cast<size_t>(Node.StartIndex + i)]];
 +                if (Tri.MaterialIndex == 3)
 +                {
 +                    continue;
@@ -2829,7 +3274,7 @@ index 1f8aed1..eb07f1f 100644
  
  template<>
 diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
-index 07728ca..f5d5b1f 100644
+index 07728ca..68255fc 100644
 --- a/Projects/Project-Zero/Source/RendererHost.cpp
 +++ b/Projects/Project-Zero/Source/RendererHost.cpp
 @@ -8,6 +8,13 @@
@@ -3035,8 +3480,12 @@ index 07728ca..f5d5b1f 100644
                  {
                      continue;
                  }
-@@ -250,7 +232,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
-                     size_t nIdx = ny * Width + nx;
+@@ -247,10 +229,10 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                         continue;
+                     }
+ 
+-                    size_t nIdx = ny * Width + nx;
++                    size_t nIdx = static_cast<size_t>(ny) * Width + static_cast<size_t>(nx);
                      const auto& NeighborHit = PrimaryHits[nIdx];
  
 -                    if (!NeighborHit.ValidCondition || NeighborHit.MaterialIndex == 3)
@@ -3085,8 +3534,12 @@ index 07728ca..f5d5b1f 100644
              {
                  continue;
              }
-@@ -318,7 +307,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
-                     size_t qIdx = qy * Width + qx;
+@@ -315,10 +304,10 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                         continue;
+                     }
+ 
+-                    size_t qIdx = qy * Width + qx;
++                    size_t qIdx = static_cast<size_t>(qy) * Width + static_cast<size_t>(qx);
                      const auto& NeighborHit = PrimaryHits[qIdx];
  
 -                    if (!NeighborHit.ValidCondition || NeighborHit.MaterialIndex == 3)
@@ -3257,10 +3710,33 @@ index 07728ca..f5d5b1f 100644
  
              // Gamma 2.2 correction
              constexpr float InvGamma = 1.0f / 2.2f;
-@@ -437,4 +492,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+@@ -437,4 +492,49 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
      return true;
  }
  
++// The gated panel post chain (exposure, tonemap, vignette) so the
++// showcase matches the harness proof frames pixel-structure. Single
++// shared LDR core: both the PPM file export and the live window feed
++// on these exact bytes, so the window shows what the proofs show.
++void RendererHost::ExportLdrPixels(std::vector<uint8_t>& OutRgba) const noexcept
++{
++    OutRgba.resize(static_cast<size_t>(Width) * static_cast<size_t>(Height) * 4U);
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = static_cast<size_t>(y) * Width + x;
++            Vector3 Display = SkyFog.ApplyPanelPost(AccumulatedBuffer[idx], x, y, Width, Height);
++
++            size_t o = idx * 4U;
++            OutRgba[o + 0U] = static_cast<uint8_t>(std::clamp(Display.x * 255.0f, 0.0f, 255.0f));
++            OutRgba[o + 1U] = static_cast<uint8_t>(std::clamp(Display.y * 255.0f, 0.0f, 255.0f));
++            OutRgba[o + 2U] = static_cast<uint8_t>(std::clamp(Display.z * 255.0f, 0.0f, 255.0f));
++            OutRgba[o + 3U] = 255U;
++        }
++    }
++}
++
 +bool RendererHost::ExportShowcaseImage(const std::string& OutputPath) const noexcept
 +{
 +    std::ofstream Out(OutputPath, std::ios::binary);
@@ -3271,23 +3747,13 @@ index 07728ca..f5d5b1f 100644
 +
 +    Out << "P6\n" << Width << " " << Height << "\n255\n";
 +
-+    // The gated panel post chain (exposure, tonemap, vignette) so the
-+    // showcase matches the harness proof frames pixel-structure.
-+    for (uint32_t y = 0; y < Height; ++y)
++    std::vector<uint8_t> LdrRgba;
++    ExportLdrPixels(LdrRgba);
++    for (size_t i = 0; i < LdrRgba.size(); i += 4U)
 +    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            Vector3 Display = SkyFog.ApplyPanelPost(AccumulatedBuffer[idx], x, y, Width, Height);
-+
-+            uint8_t R8 = static_cast<uint8_t>(std::clamp(Display.x * 255.0f, 0.0f, 255.0f));
-+            uint8_t G8 = static_cast<uint8_t>(std::clamp(Display.y * 255.0f, 0.0f, 255.0f));
-+            uint8_t B8 = static_cast<uint8_t>(std::clamp(Display.z * 255.0f, 0.0f, 255.0f));
-+
-+            Out.put(static_cast<char>(R8));
-+            Out.put(static_cast<char>(G8));
-+            Out.put(static_cast<char>(B8));
-+        }
++        Out.put(static_cast<char>(LdrRgba[i + 0U]));
++        Out.put(static_cast<char>(LdrRgba[i + 1U]));
++        Out.put(static_cast<char>(LdrRgba[i + 2U]));
 +    }
 +
 +    return true;
@@ -3295,18 +3761,21 @@ index 07728ca..f5d5b1f 100644
 +
  } // namespace Frontier::ProjectZero
 diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
-index 202b2bb..cc550fb 100644
+index 202b2bb..c73726d 100644
 --- a/Projects/Project-Zero/Source/RendererHost.h
 +++ b/Projects/Project-Zero/Source/RendererHost.h
-@@ -6,6 +6,7 @@
+@@ -6,8 +6,10 @@
  
  #include "SceneStructure.h"
  #include "RayTracingSolver.h"
 +#include "SkyFogIntegrator.h"
  #include "../../../GeometricRaster/CameraProjection.h"
  #include "../../../DeviceExchange/OrientationClassifier.h"
++#include <cstdint>
  #include <vector>
-@@ -49,16 +50,18 @@ struct IndirectGIReservoir
+ #include <string>
+ 
+@@ -49,16 +51,18 @@ struct IndirectGIReservoir
      float                   WeightSum;                          // [-] accumulated candidate weights
      uint32_t                SampleCount;                        // [count] considered indirect paths M
      float                   UnbiasedWeight;                     // [-] normalization weight W
@@ -3327,7 +3796,7 @@ index 202b2bb..cc550fb 100644
          }
      }
  };
-@@ -76,8 +79,10 @@ public:
+@@ -76,8 +80,11 @@ public:
      RendererHost(const RendererHost&) = delete;
      RendererHost& operator=(const RendererHost&) = delete;
  
@@ -3336,10 +3805,11 @@ index 202b2bb..cc550fb 100644
 +    void                    AssignToneExposure(float LinearExposure) noexcept { ToneExposure = LinearExposure; }
      [[nodiscard]] bool      ExportPpmImage(const std::string& OutputPath) const noexcept;
 +    [[nodiscard]] bool      ExportShowcaseImage(const std::string& OutputPath) const noexcept;
++    void                    ExportLdrPixels(std::vector<uint8_t>& OutRgba) const noexcept;
  
      [[nodiscard]] uint32_t  QueryWidth() const noexcept { return Width; }
      [[nodiscard]] uint32_t  QueryHeight() const noexcept { return Height; }
-@@ -91,10 +96,14 @@ private:
+@@ -91,10 +98,14 @@ private:
      [[nodiscard]] RayRecord GeneratePrimaryRay(const Frontier::CameraProjection& ActiveCamera, uint32_t PixelX, uint32_t PixelY, float JitterX, float JitterY) const noexcept;
      [[nodiscard]] Vector3   SampleCosineHemisphere(const Vector3& Normal, float u1, float u2) const noexcept;
      [[nodiscard]] float     EvaluateJacobian(const Vector3& x1, const Vector3& x2, const Vector3& y, const Vector3& n_y) const noexcept;
