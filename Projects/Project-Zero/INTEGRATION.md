@@ -38,9 +38,9 @@ Linux (`make`, the engine's own flags `-O3 -Wall -Wextra -Werror`):
 
 ```sh
 cd Projects/Project-Zero && make
-./bin/Project-Zero                                   # sunset showcase, 640x480
-./bin/Project-Zero --sun 18.3                        # moonlit night + stars
-./bin/Project-Zero --fog clear --yaw 40              # thin veil, look around
+./bin/Project-Zero                                   # sunset showcase facing the sun, 640x480
+./bin/Project-Zero --sun 18.3 --yaw 0 --pitch 2      # moonlit night + stars + moon
+./bin/Project-Zero --fog clear --yaw 40 --pitch 2    # thin veil, look around
 ./bin/Project-Zero --width 1280 --height 720 --bounce 4 --passes 1   # speed test
 ```
 
@@ -60,17 +60,27 @@ or open `build/FrontierEngine.sln` in the VS IDE and run the
 `Project-Zero` target) — the patch keeps `CMakeLists.txt` listing
 every source explicitly.
 
-The Windows `.exe` is windowed by default: it opens the native
-engine window (`WindowExchange`, same host Project-F20 uses — no
-GLFW install needed; the engine's `FRONTIER_ENABLE_GLFW` path stays
-off) and presents the CPU frame through GDI, so the window shows
-exactly the proof pixels. One full ReSTIR frame costs seconds, so
-the loop is render-on-demand: fly with `WASD` + `Q`/`E`, hold right
+The Windows `.exe` is windowed by default and opens facing the
+sunset, so the sun-only flare/halo/streak is visible on launch. The
+loop mirrors the Project-Zero main-loop pattern (window → input →
+Control Centre → fly camera → render → present, Δτ clamped at 0.1 s)
+on this tree's native pieces: `WindowExchange` (same host
+Project-F20 uses — no GLFW install needed; the engine's
+`FRONTIER_ENABLE_GLFW` path stays off), `InputExchange`, and the
+`FRONTIER_DEVELOPMENT` `ControlCentrePanel` notch (left-drag it;
+the camera looks with right-drag, so they never fight). One full
+ReSTIR frame costs seconds, so the render runs on a worker thread
+while the loop pumps messages — the window stays live (move,
+resize, fly keys) and frames stream in as they finish; resizing
+re-renders at the new size. Fly with `WASD` + `Q`/`E`, hold right
 mouse + drag to look (the patch feeds `WM_MOUSEMOVE` into the
 existing `InputExchange` delta tracker — the only shared-engine
 change), scroll for flight speed, `Shift` for boost, `ESC` closes.
 The cached frame re-renders only while the camera moves. `--headless`
 keeps the old render-to-file behaviour (Linux always runs headless).
+Note: the pattern branch's ImGui panels ride its Vulkan backend,
+which this tree does not have, so there is deliberately no ImGui
+here — the window shows exactly the proof pixels through GDI.
 
 Flags: `--sun H` (any hour; below-horizon sun is clamped so night
 works), `--yaw D` `--pitch D` (aim; default `0 2`), `--fog
@@ -78,7 +88,8 @@ clear|morning|backlit`, `--width W` `--height H`, `--bounce N` (GI
 candidates per pixel, default 8), `--passes N` (spatial reuse passes,
 default 2), `--flare 0|1` (lens flare, default 1), `--flarevar
 0|1|2|3` (cinematic/anamorphic/starburst/halo, default 0),
-`--window | --headless`, `--help`.
+`--window | --headless`, `--help` (defaults face the sunset:
+`--yaw 220 --pitch -2`; the moon view is `--yaw 0 --pitch 2`).
 Output lands in `./Diagnostics/`:
 `ProjectZero_Showcase.ppm` always (every window session exports its
 final frame too), plus `.png` when a Python interpreter is found
@@ -151,17 +162,16 @@ not assumed).
 - Determinism: repeated runs are byte-identical, and three
   independent builds (dev `-O1`, patched-pristine-tree `-O1`, engine
   `make -O3`) produce the same sha256
-  (`f59ef151…ebd1` for the default 320×240 frame — the sun sits behind
-  the default camera, so the sun-only flare contributes exactly zero
-  and the frame is bit-identical to the pre-flare build).
+  (`bbcb710c…e5b` for the default 320×240 frame, which now faces the
+  sunset with the sun flare in frame).
 - Sky path matches the gated harness within 3 LDR after the identical
   post chain (unchanged from the courtyard proof; the sky algorithm
   is untouched, only its staging inputs moved).
 - Gates: `RunCelestialParity.py` OVERALL PASS (moon/cloud/stars ship
   present-but-off in the mirror configuration),
   `RunFogParity.py` OVERALL PASS (F1 0.001, F2 0.806 over 2000 rows).
-- Proofs: `PZIntegration/showcase_{sunset,night,sunflare,anamorphic}.png`
-  (default view, night, facing the sun cinematic + anamorphic).
+- Proofs: `PZIntegration/showcase_{sunset,night,anamorphic}.png`
+  (default sun-facing view, moon night view, anamorphic variety).
 
 ## Notes and limits
 
