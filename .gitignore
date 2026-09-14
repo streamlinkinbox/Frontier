@@ -1,0 +1,7 @@
+# Project-Zero build + regenerable artifacts
+Projects/Project-Zero/Host/SkyViewport
+Projects/Project-Zero/Host/CpuPortDiff
+Projects/Project-Zero/Host/MediaProbe
+Projects/Project-Zero/Host/ReSTIRConvergence
+Projects/Project-Zero/Diagnostics/Proof/*.ppm
+Projects/Project-Zero/Diagnostics/Proof/media.csv
