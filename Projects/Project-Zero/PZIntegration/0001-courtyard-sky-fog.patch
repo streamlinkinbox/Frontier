@@ -1,0 +1,2434 @@
+Subject: [PATCH] Project-Zero: outdoor courtyard with celestial sky, sun, and fog
+Applies to: SultanAladin/Frontier- @ main (shallow f17fb6f, 2026-09-14)
+Apply with: git apply PZIntegration/0001-courtyard-sky-fog.patch  (from the engine checkout root)
+Then: cd Projects/Project-Zero && make clean && make && ./bin/Project-Zero --courtyard
+
+diff --git a/Projects/Project-Zero/Shaders/FogSpecification.slang b/Projects/Project-Zero/Shaders/FogSpecification.slang
+new file mode 100644
+index 0000000..38f2e87
+--- /dev/null
++++ b/Projects/Project-Zero/Shaders/FogSpecification.slang
+@@ -0,0 +1,457 @@
++//============================================================================================================================================
++// 📦 Frontier/Shaders/FogSpecification.slang — Atmospheric and Local Volumetric Fog (dual Slang/C++17)
++// Dual-compile: this file is the shipped GPU source AND the CPU implementation
++// (via SlangInterchange.h). Pure functions only: no globals, no textures, no
++// ray queries, no inout/out params (C++ passes by value). All march loops are
++// fixed-count and deterministic: the same inputs produce bit-identical outputs
++// on CPU and GPU by construction (integer-hash noise, no sin anywhere).
++//
++// Theory: Wronski 2014 (froxel pipeline), Hillaire/Frostbite 2015 (closed-form
++// slab integral), Crytek 2007 (analytic box/sphere volumes), Lin et al. 2021
++// (Volumetric ReSTIR: volumes reuse the winning ReSTIR DI light sample).
++// See Reviews/Fog-Research-2026-09-14.md.
++#ifndef FOG_SPECIFICATION_INCLUDED
++#define FOG_SPECIFICATION_INCLUDED
++
++#include "SkySpecification.slang"
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                 FOG SHAPES AND LIMITS                                                  
++//------------------------------------------------------------------------------------------------------------------------
++
++static const uint FogShapeBox = 0u;
++static const uint FogShapeSphere = 1u;
++static const uint FogVolumeLimit = 4u;
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                     FOG STRUCTURES                                                     
++//------------------------------------------------------------------------------------------------------------------------
++
++struct FogVolumeStructure
++{
++    uint shape;                 // [-] 0 box, 1 sphere
++    float3 center;              // [m] volume center in world space
++    float3 extents;             // [m] box half-extents, or sphere radius in .x
++    float density;              // [1/m] peak extinction coefficient
++    float heightFalloff;        // [1/m] vertical thinning above the center
++    float3 albedo;              // [0..1] single-scatter albedo
++    float phaseG;               // [-1..1] Henyey-Greenstein asymmetry
++    float3 emissive;            // [lux] source term per unit extinction
++    float noiseAmount;          // [0..1] density modulation by noise
++    float noiseScale;           // [1/m] noise spatial frequency
++};
++
++struct FogConfiguration
++{
++    float globalDensity;        // [1/m] height-fog extinction at/below base
++    float globalHeightFalloff;  // [1/m] height-fog vertical falloff
++    float globalBaseHeight;     // [m] height-fog full-density ceiling
++    float3 globalAlbedo;        // [0..1] height-fog single-scatter albedo
++    float globalPhaseG;         // [-1..1] height-fog HG asymmetry
++    float3 ambientRadiance;     // [lux] sky ambient (diffuse scatter stand-in)
++    float timeSeconds;          // [s] animation clock for noise drift
++    uint volumeCount;           // [count] active volumes (<= FogVolumeLimit)
++    uint marchSteps;            // [steps] fixed march steps per segment
++    float maxMarchDistance;     // [m] march far plane
++    FogVolumeStructure volumes[FogVolumeLimit];
++};
++
++struct FogMediumStructure
++{
++    float extinction;           // [1/m] sigma_t at the query point
++    float3 albedo;              // [0..1] density-weighted albedo
++    float phaseG;               // [-1..1] density-weighted asymmetry
++    float3 emissive;            // [lux] density-weighted emissive source
++};
++
++struct FogMarchStructure
++{
++    float3 scatter;             // [lux] integrated in-scatter along the ray
++    float transmittance;        // [0..1] surviving fraction (Beer-Lambert)
++};
++
++struct FogSlabStructure
++{
++    float3 scatterDelta;        // [lux] slab in-scatter before accumulation
++    float transmitStep;         // [0..1] slab transmittance
++};
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                  STRUCTURE FACTORIES                                                   
++//------------------------------------------------------------------------------------------------------------------------
++
++FogVolumeStructure FogVolumeMake(uint shape, float3 center, float3 extents,
++    float density, float heightFalloff, float3 albedo, float phaseG,
++    float3 emissive, float noiseAmount, float noiseScale)
++{
++    FogVolumeStructure v;
++    v.shape = shape;
++    v.center = center;
++    v.extents = extents;
++    v.density = density;
++    v.heightFalloff = heightFalloff;
++    v.albedo = albedo;
++    v.phaseG = phaseG;
++    v.emissive = emissive;
++    v.noiseAmount = noiseAmount;
++    v.noiseScale = noiseScale;
++    return v;
++}
++
++FogConfiguration FogConfigurationMake(float globalDensity,
++    float globalHeightFalloff, float globalBaseHeight, float3 globalAlbedo,
++    float globalPhaseG, float3 ambientRadiance, float timeSeconds,
++    uint marchSteps, float maxMarchDistance)
++{
++    FogConfiguration c;
++    c.globalDensity = globalDensity;
++    c.globalHeightFalloff = globalHeightFalloff;
++    c.globalBaseHeight = globalBaseHeight;
++    c.globalAlbedo = globalAlbedo;
++    c.globalPhaseG = globalPhaseG;
++    c.ambientRadiance = ambientRadiance;
++    c.timeSeconds = timeSeconds;
++    c.volumeCount = 0u;
++    c.marchSteps = marchSteps;
++    c.maxMarchDistance = maxMarchDistance;
++    for (uint i = 0u; i < FogVolumeLimit; i++)
++    {
++        c.volumes[i] = FogVolumeMake(FogShapeBox, float3(0.0f, 0.0f, 0.0f),
++            float3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f,
++            float3(1.0f, 1.0f, 1.0f), 0.0f, float3(0.0f, 0.0f, 0.0f),
++            0.0f, 1.0f);
++    }
++    return c;
++}
++
++FogMarchStructure FogMarchMake(float3 scatter, float transmittance)
++{
++    FogMarchStructure m;
++    m.scatter = scatter;
++    m.transmittance = transmittance;
++    return m;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                    DETERMINISTIC VALUE NOISE (INTEGER HASH, NO SIN)                                    
++//------------------------------------------------------------------------------------------------------------------------
++
++// 10 exact bits: uint->float is bit-exact below 2^24 on CPU and GPU alike.
++float FogHashCompute(uint3 cell)
++{
++    uint3 q = cell * 374761393u + 668265263u;
++    q = (q ^ (q >> 13u)) * 1274126177u;
++    uint h = q.x ^ q.y ^ q.z;
++    return float(h % 1024u) * 0.0009765625f;
++}
++
++float FogNoiseCompute(float3 p)
++{
++    int3 base = int3(int(floor(p.x)), int(floor(p.y)),
++                     int(floor(p.z)));
++    float3 f = float3(fract(p.x), fract(p.y), fract(p.z));
++    float3 u = f * f * f * (f * (f * 6.0f - 15.0f) + 10.0f);
++    float n000 = FogHashCompute(uint3(base));
++    float n100 = FogHashCompute(uint3(base + int3(1, 0, 0)));
++    float n010 = FogHashCompute(uint3(base + int3(0, 1, 0)));
++    float n110 = FogHashCompute(uint3(base + int3(1, 1, 0)));
++    float n001 = FogHashCompute(uint3(base + int3(0, 0, 1)));
++    float n101 = FogHashCompute(uint3(base + int3(1, 0, 1)));
++    float n011 = FogHashCompute(uint3(base + int3(0, 1, 1)));
++    float n111 = FogHashCompute(uint3(base + int3(1, 1, 1)));
++    return lerp(lerp(lerp(n000, n100, u.x), lerp(n010, n110, u.x), u.y),
++                lerp(lerp(n001, n101, u.x), lerp(n011, n111, u.x), u.y), u.z);
++}
++
++float FogNoiseFractal(float3 p)
++{
++    float v = FogNoiseCompute(p) * 0.57142857f;
++    v = v + FogNoiseCompute(p * 2.03f + 17.17f) * 0.28571429f;
++    v = v + FogNoiseCompute(p * 4.12f + 41.41f) * 0.14285714f;
++    return v;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                DENSITY AND MEDIUM QUERY                                                
++//------------------------------------------------------------------------------------------------------------------------
++
++// Smooth analytic mask in [0..1]: full core fading over the outer 30 %.
++float FogVolumeMaskCompute(float3 p, in FogVolumeStructure v)
++{
++    if (v.shape == FogShapeSphere)
++    {
++        float r = length((p - v.center) / max(v.extents.x, 1e-6f));
++        return 1.0f - smoothstep(0.7f, 1.0f, r);
++    }
++    float3 safeE = max(v.extents, float3(1e-6f, 1e-6f, 1e-6f));
++    float3 q = (p - v.center) / safeE;
++    float d = max(abs(q.x), max(abs(q.y), abs(q.z)));
++    return 1.0f - smoothstep(0.7f, 1.0f, d);
++}
++
++// Total medium at a point: global height fog plus density-weighted volumes
++// (Strand accumulation: scattering/extinction/emissive add, phase mixes).
++FogMediumStructure FogMediumQuery(float3 worldPos, in FogConfiguration cfg)
++{
++    float hgt = worldPos.y - cfg.globalBaseHeight;
++    float gExt = cfg.globalDensity * exp(-max(hgt, 0.0f)
++                 * cfg.globalHeightFalloff);
++    float3 aSum = cfg.globalAlbedo * gExt;
++    float gSum = cfg.globalPhaseG * gExt;
++    float3 eSum = float3(0.0f, 0.0f, 0.0f);
++    float ext = gExt;
++    for (uint i = 0u; i < cfg.volumeCount; i++)
++    {
++        FogVolumeStructure v = cfg.volumes[i];
++        if (v.density > 0.0f)
++        {
++            float mask = FogVolumeMaskCompute(worldPos, v);
++            if (mask <= 0.0f)
++            {
++                continue;
++            }
++            float hf = exp(-max(worldPos.y - v.center.y, 0.0f)
++                       * v.heightFalloff);
++            float n = FogNoiseFractal(worldPos * v.noiseScale
++                      + cfg.timeSeconds * 0.01f);
++            float vd = v.density * mask * hf
++                       * (1.0f - v.noiseAmount + v.noiseAmount * n);
++            ext = ext + vd;
++            aSum = aSum + v.albedo * vd;
++            gSum = gSum + v.phaseG * vd;
++            eSum = eSum + v.emissive * vd;
++        }
++    }
++    FogMediumStructure m;
++    m.extinction = ext;
++    float inv = 1.0f / max(ext, 1e-9f);
++    m.albedo = aSum * inv;
++    m.phaseG = gSum * inv;
++    m.emissive = eSum * inv;
++    return m;
++}
++
++// Scalar extinction: doubles as the FluidSolver grid-injection source.
++float FogDensityQuery(float3 worldPos, in FogConfiguration cfg)
++{
++    return FogMediumQuery(worldPos, cfg).extinction;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                               PHASE AND SLAB INTEGRATION                                               
++//------------------------------------------------------------------------------------------------------------------------
++
++// Henyey-Greenstein (matches AtmosphereIntegrator::SamplePhaseHenyeyGreenstein).
++float FogPhaseCompute(float cosTheta, float g)
++{
++    float g2 = g * g;
++    float denom = 1.0f + g2 - 2.0f * g * cosTheta;
++    return (1.0f - g2) / (12.56637061f * denom * sqrt(denom));
++}
++
++// Hillaire closed-form slab: constant source S over thickness D.
++FogSlabStructure FogSlabEvaluate(float3 source, float sigmaT, float stepLength)
++{
++    float tr = exp(-sigmaT * stepLength);
++    float sint = (1.0f - tr) / max(sigmaT, 1e-6f);
++    FogSlabStructure s;
++    s.scatterDelta = source * sint;
++    s.transmitStep = tr;
++    return s;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                  ANALYTIC VOLUME INTERSECTION (DIVISION-BY-ZERO SAFE)                                  
++//------------------------------------------------------------------------------------------------------------------------
++
++// Returns (t0, t1); t0 > t1 means miss. Parallel axes are branched, never
++// divided, so CPU IEEE and GPU agree by construction.
++float2 FogBoxIntersect(float3 origin, float3 dir, float3 center,
++    float3 extents)
++{
++    float3 lo = center - extents;
++    float3 hi = center + extents;
++    float t0 = -1e30f;
++    float t1 = 1e30f;
++    float oo;
++    float dd;
++    float ta;
++    float tb;
++    oo = origin.x; dd = dir.x;
++    if (abs(dd) < 1e-9f)
++    {
++        if (oo < lo.x || oo > hi.x) { return float2(1.0f, -1.0f); }
++    }
++    else
++    {
++        ta = (lo.x - oo) / dd; tb = (hi.x - oo) / dd;
++        t0 = max(t0, min(ta, tb)); t1 = min(t1, max(ta, tb));
++    }
++    oo = origin.y; dd = dir.y;
++    if (abs(dd) < 1e-9f)
++    {
++        if (oo < lo.y || oo > hi.y) { return float2(1.0f, -1.0f); }
++    }
++    else
++    {
++        ta = (lo.y - oo) / dd; tb = (hi.y - oo) / dd;
++        t0 = max(t0, min(ta, tb)); t1 = min(t1, max(ta, tb));
++    }
++    oo = origin.z; dd = dir.z;
++    if (abs(dd) < 1e-9f)
++    {
++        if (oo < lo.z || oo > hi.z) { return float2(1.0f, -1.0f); }
++    }
++    else
++    {
++        ta = (lo.z - oo) / dd; tb = (hi.z - oo) / dd;
++        t0 = max(t0, min(ta, tb)); t1 = min(t1, max(ta, tb));
++    }
++    return float2(t0, t1);
++}
++
++float2 FogSphereIntersect(float3 origin, float3 dir, float3 center,
++    float radius)
++{
++    float3 oc = origin - dir * dot(dir, origin - center);
++    float3 toC = center - origin;
++    float tca = dot(toC, dir);
++    float r2 = radius * radius;
++    float d2 = dot(oc - center, oc - center);
++    if (d2 > r2)
++    {
++        return float2(1.0f, -1.0f);
++    }
++    float thc = sqrt(max(r2 - d2, 0.0f));
++    return float2(tca - thc, tca + thc);
++}
++
++float2 FogVolumeIntersect(float3 origin, float3 dir,
++    in FogVolumeStructure v)
++{
++    if (v.shape == FogShapeSphere)
++    {
++        return FogSphereIntersect(origin, dir, v.center, v.extents.x);
++    }
++    return FogBoxIntersect(origin, dir, v.center, v.extents);
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                      VOLUME RAYMARCH (RESTIR-LIT SINGLE SCATTER)                                       
++//------------------------------------------------------------------------------------------------------------------------
++
++// Marches the merged volume segments along the ray. The direct term reuses
++// ONE light: the winning ReSTIR DI reservoir sample (direction + radiance +
++// visibility) passed by the caller — Volumetric-ReSTIR-style reuse (Lin et
++// al. 2021). The ambient term is the sky ambient stand-in for diffuse
++// multiple scattering. Fixed step counts: deterministic.
++FogMarchStructure FogMarchVolumes(float3 origin, float3 dir, float tMin,
++    float tMax, float3 lightDir, float3 lightRadiance, float lightVisibility,
++    in FogConfiguration cfg)
++{
++    float seg0[FogVolumeLimit];
++    float seg1[FogVolumeLimit];
++    uint segCount = 0u;
++    for (uint i = 0u; i < cfg.volumeCount; i++)
++    {
++        float2 hit = FogVolumeIntersect(origin, dir, cfg.volumes[i]);
++        float a = max(hit.x, tMin);
++        float b = min(hit.y, min(tMax, cfg.maxMarchDistance));
++        if (a < b)
++        {
++            seg0[segCount] = a;
++            seg1[segCount] = b;
++            segCount = segCount + 1u;
++        }
++    }
++    // Insertion sort by start, then merge overlaps (deterministic).
++    for (uint i = 1u; i < segCount; i++)
++    {
++        float a = seg0[i];
++        float b = seg1[i];
++        uint j = i;
++        while (j > 0u && seg0[j - 1u] > a)
++        {
++            seg0[j] = seg0[j - 1u];
++            seg1[j] = seg1[j - 1u];
++            j = j - 1u;
++        }
++        seg0[j] = a;
++        seg1[j] = b;
++    }
++    uint merged = 0u;
++    for (uint i = 0u; i < segCount; i++)
++    {
++        if (merged > 0u && seg0[i] <= seg1[merged - 1u])
++        {
++            seg1[merged - 1u] = max(seg1[merged - 1u], seg1[i]);
++        }
++        else
++        {
++            seg0[merged] = seg0[i];
++            seg1[merged] = seg1[i];
++            merged = merged + 1u;
++        }
++    }
++    // Scatter angle: incident travel is sun->point (-lightDir), scattered
++    // travel is point->camera (-dir); cos = (-lightDir).(-dir) = dir.lightDir.
++    float cosT = dot(dir, lightDir);
++    float3 scatter = float3(0.0f, 0.0f, 0.0f);
++    float tr = 1.0f;
++    for (uint s = 0u; s < merged; s++)
++    {
++        float len = seg1[s] - seg0[s];
++        float dt = len / max(float(cfg.marchSteps), 1.0f);
++        for (uint i = 0u; i < cfg.marchSteps; i++)
++        {
++            float tm = seg0[s] + (float(i) + 0.5f) * dt;
++            float3 pp = origin + dir * tm;
++            FogMediumStructure med = FogMediumQuery(pp, cfg);
++            if (med.extinction > 1e-6f)
++            {
++                float3 sigmaS = med.albedo * med.extinction;
++                float phase = FogPhaseCompute(cosT, med.phaseG);
++                float3 src = med.emissive * med.extinction
++                           + sigmaS * (cfg.ambientRadiance + lightRadiance
++                           * (phase * lightVisibility));
++                FogSlabStructure slab = FogSlabEvaluate(src, med.extinction,
++                                                        dt);
++                scatter = scatter + slab.scatterDelta * tr;
++                tr = tr * slab.transmitStep;
++            }
++        }
++    }
++    return FogMarchMake(scatter, tr);
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                    ATMOSPHERIC FOG FOR SURFACES (PROVEN MEDIA MATH)                                    
++//------------------------------------------------------------------------------------------------------------------------
++
++// Beer-Lambert sun-path transmittance over a short segment (PZ scale): exact
++// to < 0.3 % at 100 m; the full 20x8 integration is reserved for sky rays,
++// which carry their own f.trans through SkyPixelCompute.
++float3 FogSunTransmittance(float3 origin, float3 dir, float dist,
++    in SkyConfiguration sky)
++{
++    float3 betaR = float3(5.8e-6f, 13.5e-6f, 33.1e-6f) * sky.rayleigh;
++    float3 betaM = float3(21e-6f, 21e-6f, 21e-6f) * sky.mie;
++    float3 betaO = float3(0.65e-6f, 1.881e-6f, 0.085e-6f) * sky.ozone;
++    float hAvg = origin.y + dir.y * dist * 0.5f;
++    float fR = exp(-max(hAvg, 0.0f) / sky.rayleighH);
++    float fM = exp(-max(hAvg, 0.0f) / sky.mieH);
++    float3 tau = (betaR * fR + betaM * fM + betaO * fM) * dist;
++    return exp(-tau);
++}
++
++// Surface aerial perspective: the G3-gated sky media math (ground fog +
++// atmosphere-fog), applied along the camera ray to an opaque surface color.
++// hzGlow is the caller's dawn-glow at the ray direction (DawnGlowCompute).
++float3 FogAtmosphereApply(float3 surfaceColor, float3 rayOrigin,
++    float3 rayDir, float rayDistance, float3 hzGlow, in SkyConfiguration sky)
++{
++    float3 tr = FogSunTransmittance(rayOrigin, rayDir, rayDistance, sky);
++    return SkyMediaApply(surfaceColor, rayDir, rayDistance, hzGlow, tr, sky);
++}
++
++#endif // FOG_SPECIFICATION_INCLUDED
+diff --git a/Projects/Project-Zero/Shaders/SkySpecification.slang b/Projects/Project-Zero/Shaders/SkySpecification.slang
+new file mode 100644
+index 0000000..3247256
+--- /dev/null
++++ b/Projects/Project-Zero/Shaders/SkySpecification.slang
+@@ -0,0 +1,898 @@
++//@@HDR: 📦 Frontier/Shaders/SkySpecification.slang — Celestial Sun and Sky Mathematics (dual Slang/C++17)
++#ifndef SKY_SPECIFICATION_INCLUDED
++#define SKY_SPECIFICATION_INCLUDED
++
++// SkySpecification.slang — the celestial panel's sky + sun + analytic media +
++// stars, line by line (moons/clouds/volumes/plane/rainbow/flare/lights are
++// separate panel entities and live outside this core).
++//
++// Reference: docs/celestial/index.html on branch ref/celestial-html (the panel).
++// Panel citations are GLSL line numbers (rsi/atmosphere/dawnGlow/main/post).
++//
++// DUAL-COMPILE CONTRACT (checked by Diagnostics/CheckCelestialSlang.py):
++//   - pure functions of their arguments (no globals, no textures, no ray query)
++//   - multi-value returns use small structs, built by field assignment
++//   - struct parameters use the `in` modifier (empty in C++, input in Slang)
++//   - no `&` outside `&&`, no `out`/`inout` tokens, no `{...}` struct literals,
++//     no fixed-width int aliases (use uint/int), no leading-dot float literals
++//   - float32 only, matching the panel's WebGL precision
++//
++// Include path: the Host compiles this file as C++17 after SlangCompat.h; the
++// Vulkan engine compiles it as Slang via #include. Slang-only rendering code
++// (buffers, ray queries, entry points) lives in ReSTIRSequence.slang.
++#ifndef PROJECT_ZERO_CELESTIAL_CORE_SLANG
++#define PROJECT_ZERO_CELESTIAL_CORE_SLANG
++
++// Panel line 770: #define PI 3.14159265
++static const float SkyPi = 3.14159265f;
++static const float SkyDeg2Rad = 3.14159265f / 180.0f;
++
++// Parameters (filled by the host; the panel's uniforms + visibility = on).
++//@@BAN: SKY CONFIGURATION
++struct SkyConfiguration
++{
++    float3 sunDir;          // [-] unit, sky frame (+Y up)
++    float3 sunColor;        // [-] kelvinRGB(sun_temp)
++    float sunElevationDeg;  // [deg]
++    float sunIntensity;     // [x] uSunIntensity (22)
++    float sunAngularRadius; // [rad] uSunAng = sun_ang * D2R / 2
++    float sunSoftness;      // [-] uSunSoft (0.25)
++    float sunDiscBoost;     // [x] uSunDiscBoost (12)
++    float rayleigh;         // [x] uRayleigh (1)
++    float mie;              // [x] uMie (1)
++    float mieG;             // [-] uMieG (0.78)
++    float ozone;            // [x] uOzone (1.2)
++    float planetRadius;     // [m] uPlanetR (6371000)
++    float atmoHeight;       // [m] uAtmoH (100000)
++    float rayleighH;        // [m] uHr (8000)
++    float mieH;             // [m] uHm (1200)
++    float3 skyTint;         // [-] 1-(1-v)*.35 of sky_tint
++    float skyBright;        // [x] uSkyBright (1)
++    float3 groundAlbedo;    // [-] sky_ground (#2b2924)
++    float groundBright;     // [x] uGroundBright (1)
++    float dawnIntensity;    // [x] uDawnInt (1)
++    float lineIntensity;    // [x] uHLInt (1)
++    uint lineAuto;          // [-] uHLAuto (1)
++    float exposureStops;    // [EV] uEV (0.4)
++    uint tonemap;           // [-] 1 = ACES
++    float bloom;            // [x] uBloom (1)
++    float vignette;         // [-] uVignette (0.28)
++    float grain;            // [-] uGrain (0.1)
++    float camHeight;        // [m] uCamHeight (2)
++    float timeSeconds;      // [s] uTime (fract * 100 = the grain seed)
++    uint fogOn;             // [-] uFogOn (0, hardcoded off by the panel)
++    float fogDensity;       // [1/m] uFogDensity (0.011)
++    float fogHeight;        // [m] uFogHeight (42)
++    float fogScatter;       // [-] uFogScatter (0.7)
++    float3 fogColor;        // [-] uFogColor (#8fa4bb)
++    uint afOn;              // [-] uAFOn (1)
++    float afDensity;        // [1/m] uAFDensity (7e-5)
++    float afHeight;         // [m] uAFHeight (1200)
++    float afStart;          // [m] uAFStart (0)
++    float afMie;            // [-] uAFMie (0.35)
++    float afG;              // [-] uAFG (0.7)
++    float afSky;            // [x] uAFSky (1)
++    float3 afTint;          // [-] uAFTint (#ffffff)
++    float3 skyAmb;          // [-] uSkyAmb probe (linear HDR, per-frame)
++    uint starsOn;           // [-] uStarsOn (1)
++    float starDensity;      // [x] uStarDensity (1)
++    float starBright;       // [x] uStarBright (1)
++    float starSize;         // [x] uStarSize (1)
++    float starGlow;         // [x] uStarGlow (0.8)
++    float starTwinkle;      // [-] uStarTwinkle (0.5)
++    float starColor;        // [x] uStarColor (1)
++    float starLimit;        // [x] uStarLimit (1.5)
++    float starMilky;        // [x] uMilky (1)
++    float starRot;          // [rad] uStarRot (40 deg)
++    float starTilt;         // [rad] uMilkyTilt (-62 deg)
++    float starLayers;       // [-] load-time tier (3)
++    float starAA;           // [-] load-time tier (1; Ultra+ uses 2)
++    float starCeil;         // [-] uStarCeil, from the JS probe line
++    float pixAngle;         // [rad] 2*tanHalf/resY, the star footprint
++};
++
++//@@BAN: SKY PROJECTION
++struct SkyProjection
++{
++    float3 fwd;     // [-] unit, sky frame
++    float3 right;   // [-] unit, sky frame
++    float3 up;      // [-] unit, sky frame
++    float tanHalf;  // [-] tan(fov / 2)
++};
++
++//@@BAN: ATMOSPHERE STRUCTURES
++struct AtmosphereStructure
++{
++    float3 sky;     // panel `sky` after tint * brightness
++    float3 trans;   // panel `trans`
++    float ground;   // panel `ground` flag
++    float odR;      // integrated Rayleigh depth (ReSTIR reuse + tests)
++    float odM;      // integrated Mie depth
++};
++
++struct AtmosphereSpanStructure
++{
++    float t0;
++    float t1;
++    float ground;
++};
++
++AtmosphereSpanStructure AtmosphereSpanMake(float t0, float t1, float ground)
++{
++    AtmosphereSpanStructure s;
++    s.t0 = t0;
++    s.t1 = t1;
++    s.ground = ground;
++    return s;
++}
++
++//@@BAN: STRUCTURE FACTORIES
++AtmosphereStructure AtmosphereStructureMake(float3 sky, float3 trans, float ground, float odR, float odM)
++{
++    AtmosphereStructure o;
++    o.sky = sky;
++    o.trans = trans;
++    o.ground = ground;
++    o.odR = odR;
++    o.odM = odM;
++    return o;
++}
++
++// Scalar helpers. C++ bodies live in the prelude; Slang maps to builtins.
++#ifdef SLANG_COMPAT_CXX
++// (MathFract / MathExp2 / MathPow are declared in SlangCompat.h for the C++ path)
++#else
++float MathFract(float x) { return frac(x); }
++float MathExp2(float x) { return exp2(x); }
++float MathPow(float x, float y) { return pow(x, y); }
++#endif
++
++// Panel line 800, exactly:
++//   vec2 rsi(vec3 ro,vec3 rd,float r){ float b=dot(ro,rd); float c=dot(ro,ro)-r*r;
++//   float d=b*b-c; if(d<0.) return vec2(-1.,-1.); d=sqrt(d); return vec2(-b-d,-b+d); }
++float2 RaySphereIntersect(float3 ro, float3 dir, float r)
++{
++    float b = dot(ro, dir);
++    float c = dot(ro, ro) - r * r;
++    float d = b * b - c;
++    if (d < 0.0f)
++    {
++        return float2(-1.0f, -1.0f);
++    }
++    d = sqrt(d);
++    return float2(-b - d, -b + d);
++}
++
++// Panel lines 848-849:
++//   float Ra=uPlanetR+uAtmoH; vec2 ta=rsi(ro,rd,Ra); if(ta.y<0.) return;
++//   float t0=max(ta.x,0.), t1=ta.y; vec2 tg=rsi(ro,rd,uPlanetR);
++//   if(tg.x>0.){ t1=tg.x; ground=1.; }
++AtmosphereSpanStructure AtmosphereSpanCompute(float3 ro, float3 dir, in SkyConfiguration p)
++{
++    float Ra = p.planetRadius + p.atmoHeight;
++    float2 ta = RaySphereIntersect(ro, dir, Ra);
++    if (ta.y < 0.0f)
++    {
++        return AtmosphereSpanMake(0.0f, -1.0f, 0.0f);
++    }
++    float t0 = max(ta.x, 0.0f);
++    float t1 = ta.y;
++    float ground = 0.0f;
++    float2 tg = RaySphereIntersect(ro, dir, p.planetRadius);
++    if (tg.x > 0.0f)
++    {
++        t1 = tg.x;
++        ground = 1.0f;
++    }
++    return AtmosphereSpanMake(t0, t1, ground);
++}
++
++// Panel lines 861/863 shared extinction shape:
++//   exp(-(betaR*odR+betaM*1.1*odM+betaO*odR))
++//@@BAN: ATMOSPHERE INTEGRATION
++float3 ExtinctionAttenuation(float3 betaR, float3 betaM, float3 betaO, float odR, float odM)
++{
++    float ex = betaR.x * odR + betaM.x * 1.1f * odM + betaO.x * odR;
++    float ey = betaR.y * odR + betaM.y * 1.1f * odM + betaO.y * odR;
++    float ez = betaR.z * odR + betaM.z * 1.1f * odM + betaO.z * odR;
++    return float3(exp(-ex), exp(-ey), exp(-ez));
++}
++
++// Panel lines 847-863 (N=20 primary segs, NL=8 light segs, quadratic spacing).
++AtmosphereStructure AtmosphereCompute(float3 ro, float3 dir, in SkyConfiguration p)
++{
++    AtmosphereSpanStructure span = AtmosphereSpanCompute(ro, dir, p);
++    if (span.t1 < 0.0f)
++    {
++        return AtmosphereStructureMake(float3(0.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 1.0f),
++                           0.0f, 0.0f, 0.0f);
++    }
++    float t0 = span.t0;
++    float t1 = span.t1;
++    float ground = span.ground;
++    const int N = 20;
++    const int NL = 8;
++    float len = t1 - t0;
++    float3 betaR = float3(5.8e-6f, 13.5e-6f, 33.1e-6f) * p.rayleigh;
++    float3 betaM = float3(21e-6f, 21e-6f, 21e-6f) * p.mie;
++    float3 betaO = float3(0.65e-6f, 1.881e-6f, 0.085e-6f) * p.ozone;
++    float3 sumR = float3(0.0f, 0.0f, 0.0f);
++    float3 sumM = float3(0.0f, 0.0f, 0.0f);
++    float odR = 0.0f;
++    float odM = 0.0f;
++    float mu = dot(dir, p.sunDir);
++    float g = p.mieG;
++    float pR = 3.0f / (16.0f * SkyPi) * (1.0f + mu * mu);
++    float pM = 3.0f / (8.0f * SkyPi) * ((1.0f - g * g) * (1.0f + mu * mu))
++             / ((2.0f + g * g) * MathPow(1.0f + g * g - 2.0f * g * mu, 1.5f));
++    for (int i = 0; i < N; i++)
++    {
++        float s0 = float(i) / float(N);
++        float s1 = float(i + 1) / float(N);
++        s0 *= s0;
++        s1 *= s1;
++        float ta = t0 + len * s0;
++        float tb = t0 + len * s1;
++        float seg = tb - ta;
++        float tm = 0.5f * (ta + tb);
++        float3 pp = ro + dir * tm;
++        float h = length(pp) - p.planetRadius;
++        float hr = exp(-h / p.rayleighH) * seg;
++        float hm = exp(-h / p.mieH) * seg;
++        odR += hr;
++        odM += hm;
++        float2 tl = RaySphereIntersect(pp, p.sunDir, p.planetRadius + p.atmoHeight);
++        float lenL = tl.y;
++        float olR = 0.0f;
++        float olM = 0.0f;
++        bool ok = true;
++        for (int j = 0; j < NL; j++)
++        {
++            float q0 = float(j) / float(NL);
++            float q1 = float(j + 1) / float(NL);
++            q0 *= q0;
++            q1 *= q1;
++            float segL = lenL * (q1 - q0);
++            float3 qq = pp + p.sunDir * (lenL * 0.5f * (q0 + q1));
++            float hq = length(qq) - p.planetRadius;
++            if (hq < 0.0f)
++            {
++                ok = false;
++                break;
++            }
++            olR += exp(-hq / p.rayleighH) * segL;
++            olM += exp(-hq / p.mieH) * segL;
++        }
++        if (ok)
++        {
++            float3 att = ExtinctionAttenuation(betaR, betaM, betaO, odR + olR, odM + olM);
++            sumR += att * hr;
++            sumM += att * hm;
++        }
++    }
++    float3 trans = ExtinctionAttenuation(betaR, betaM, betaO, odR, odM);
++    float3 sky = (sumR * betaR * pR + sumM * betaM * pM) * p.sunIntensity * p.sunColor;
++    return AtmosphereStructureMake(sky, trans, ground, odR, odM);
++}
++
++// Panel line 1148: normalize(dir.xz + 1e-5) — the epsilon pads the components.
++float2 HorizonDirectionCompute(float3 v)
++{
++    float2 h = float2(v.x + 1e-5f, v.z + 1e-5f);
++    float l = sqrt(h.x * h.x + h.y * h.y);
++    return float2(h.x / l, h.y / l);
++}
++
++float SunFacingCompute(float3 dir, float3 sunDir)
++{
++    float2 h = HorizonDirectionCompute(dir);
++    float2 s = HorizonDirectionCompute(sunDir);
++    return 0.5f + 0.5f * (h.x * s.x + h.y * s.y);
++}
++
++// Panel lines 910-937. Multiplication order follows the panel term by term.
++//@@BAN: DAWN GLOW AND WHITE LINE
++float3 DawnGlowCompute(float3 dir, float elevDeg, float facing, in SkyConfiguration p)
++{
++    float alt = asin(clamp(dir.y, -1.0f, 1.0f)) / SkyDeg2Rad;
++    if (alt < -2.0f)
++    {
++        return float3(0.0f, 0.0f, 0.0f);
++    }
++    float altp = max(alt, 0.0f);
++    float dAz = acos(clamp(facing * 2.0f - 1.0f, -1.0f, 1.0f));
++    float az = exp(-MathPow(dAz / 0.95f, 2.0f));
++    float azW = exp(-MathPow(dAz / 1.8f, 2.0f));
++    float tw = smoothstep(-16.0f, -5.0f, elevDeg)
++             * (1.0f - smoothstep(0.5f, 6.0f, elevDeg));
++    float depth = clamp(-elevDeg / 10.0f, 0.0f, 1.0f);
++    float3 c0 = float3(1.0f, 0.88f, 0.62f);
++    float3 c1 = float3(1.0f, 0.62f, 0.28f);
++    float3 c2 = float3(0.95f, 0.42f, 0.30f);
++    float3 c3 = float3(0.62f, 0.36f, 0.48f);
++    float3 c4 = float3(0.25f, 0.30f, 0.58f);
++    float u = log2(1.0f + altp * 2.0f);
++    float3 c = lerp(c0, c1, smoothstep(0.0f, 1.6f, u));
++    c = lerp(c, c2, smoothstep(1.6f, 2.9f, u));
++    c = lerp(c, c3, smoothstep(2.9f, 4.0f, u));
++    c = lerp(c, c4, smoothstep(4.0f, 5.2f, u));
++    c = lerp(c, lerp(c2, c4, 0.6f), depth * 0.6f);
++    float H = lerp(1.9f, 3.8f, depth);
++    float env = exp(-altp / H) * (1.0f - depth * 0.35f);
++    float rim = exp(-altp / 0.45f) * (1.0f - depth);
++    float3 glow = (c * env * 0.30f + c0 * rim * 0.25f)
++                * (az * 0.85f + azW * 0.15f) * tw;
++    float wlWin = lerp(1.0f, smoothstep(-5.5f, -2.5f, elevDeg)
++                      * (1.0f - smoothstep(-0.6f, 0.3f, elevDeg)),
++                      p.lineAuto > 0u ? 1.0f : 0.0f);
++    float lineAz = exp(-MathPow(dAz / 0.55f, 2.0f));
++    float line = exp(-MathPow(alt / 0.11f, 2.0f))
++               * (0.7f + 0.3f * smoothstep(-0.4f, 0.0f, alt));
++    glow = glow + float3(1.0f, 0.98f, 0.92f) * line * lineAz * wlWin
++         * p.lineIntensity * 0.45f;
++    float domeWin = smoothstep(-16.0f, -8.0f, elevDeg)
++                  * (1.0f - smoothstep(-2.0f, 4.0f, elevDeg));
++    glow = glow + float3(0.10f, 0.15f, 0.30f) * 0.035f * domeWin
++         * (1.0f - exp(-altp / 6.0f)) * (1.0f - 0.5f * az);
++    return glow * p.dawnIntensity;
++}
++
++// Panel airMassOf: z = 90-e; z>=96 -> 40; else min(40, 1/(cos z + k))).
++float AirMassCompute(float e)
++{
++    float z = 90.0f - e;
++    if (z >= 96.0f)
++    {
++        return 40.0f;
++    }
++    return min(40.0f, 1.0f / (cos(z * SkyDeg2Rad)
++           + 0.50572f * MathPow(96.07995f - z, -1.6364f)));
++}
++
++// Panel lines 1240-1241:
++//   vec3 ext=exp(-(vec3(5.8e-6,13.5e-6,33.1e-6)*uRayleigh*uHr
++//                +vec3(21e-6)*1.1*uMie*uHm)*airMassOf(elevDeg));
++//   vec3 sunCol=uSunColor*max(ext,trans*trans);
++float3 SunSpectralCompute(float3 trans, in SkyConfiguration p)
++{
++    float m = AirMassCompute(p.sunElevationDeg);
++    float c0 = 5.8e-6f * p.rayleigh * p.rayleighH
++             + 21e-6f * 1.1f * p.mie * p.mieH;
++    float c1 = 13.5e-6f * p.rayleigh * p.rayleighH
++             + 21e-6f * 1.1f * p.mie * p.mieH;
++    float c2 = 33.1e-6f * p.rayleigh * p.rayleighH
++             + 21e-6f * 1.1f * p.mie * p.mieH;
++    float3 att = float3(c0 * m, c1 * m, c2 * m);
++    float3 ext = float3(exp(-att.x), exp(-att.y), exp(-att.z));
++    float3 trans2 = float3(trans.x * trans.x, trans.y * trans.y, trans.z * trans.z);
++    return p.sunColor * max(ext, trans2);
++}
++
++// Panel lines 1237-1242. The first disc assignment is overwritten by the
++// soft-edged one, so only the second is evaluated:
++//   float soft=mix(1.,2.2,1.-smoothstep(0.,4.,elevDeg));
++//   disc=1.-smoothstep(uSunAng*(1.-uSunSoft*.9*soft),uSunAng,ang);
++//   float limb=mix(1.,.55,smoothstep(0.,uSunAng,ang));
++//   col+=disc*limb*sunCol*uSunIntensity*uSunDiscBoost*mix(.35,1.,...);
++float3 SunDiscCompute(float3 dir, float3 trans, in SkyConfiguration p)
++{
++    float ang = acos(clamp(dot(dir, p.sunDir), -1.0f, 1.0f));
++    float edge = lerp(1.0f, 2.2f,
++                      1.0f - smoothstep(0.0f, 4.0f, p.sunElevationDeg));
++    float disc = 1.0f - smoothstep(p.sunAngularRadius
++                             * (1.0f - p.sunSoftness * 0.9f * edge),
++                             p.sunAngularRadius, ang);
++    float limb = lerp(1.0f, 0.55f, smoothstep(0.0f, p.sunAngularRadius, ang));
++    float3 sunCol = SunSpectralCompute(trans, p);
++    return disc * limb * sunCol * p.sunIntensity * p.sunDiscBoost
++         * lerp(0.35f, 1.0f, smoothstep(-1.0f, 8.0f, p.sunElevationDeg));
++}
++
++// Panel line 1243:
++//   float sg=exp(-ang*40.)*.35+exp(-ang*9.)*.03+exp(-ang*2.5)*.004;
++//   col+=sg*uBloom*sunCol*uSunIntensity*.6;
++float3 SunAureoleCompute(float3 dir, float3 trans, in SkyConfiguration p)
++{
++    float ang = acos(clamp(dot(dir, p.sunDir), -1.0f, 1.0f));
++    float3 sunCol = SunSpectralCompute(trans, p);
++    float sg = exp(-ang * 40.0f) * 0.35f + exp(-ang * 9.0f) * 0.03f
++             + exp(-ang * 2.5f) * 0.004f;
++    return sg * p.bloom * sunCol * p.sunIntensity * 0.6f;
++}
++
++// Panel line 1211 (planet ground, plane off):
++//   vec3 sunP=trans*uSunColor*uSunIntensity*.09*nd;
++float3 SunGroundCompute(float3 dir, float3 trans, in SkyConfiguration p)
++{
++    float3 ro = float3(0.0f, p.planetRadius + p.camHeight, 0.0f);
++    float2 t = RaySphereIntersect(ro, dir, p.planetRadius);
++    float3 hp = ro + dir * t.x;
++    float3 n = normalize(hp);
++    float nd = max(dot(n, p.sunDir), 0.0f);
++    return trans * p.sunColor * p.sunIntensity * 0.09f * nd;
++}
++
++// Panel lines 1141-1143 with sky/atmosphere visibility on:
++//   atmosphere(ro,dir,sky,trans,ground); sky*=uSkyTint*uSkyBright;
++AtmosphereStructure SkyFieldCompute(float3 dir, in SkyConfiguration p)
++{
++    float3 ro = float3(0.0f, p.planetRadius + p.camHeight, 0.0f);
++    AtmosphereStructure f = AtmosphereCompute(ro, dir, p);
++    f.sky = f.sky * p.skyTint * p.skyBright;
++    return f;
++}
++
++// Panel hash13, line 794:
++//   float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32);
++//   return fract((p.x+p.y)*p.z); }
++// The dot is expanded (dot(q, q.zyx+31.32) = q.x*(q.z+31.32)+...) so the dual
++// region needs no swizzle.
++float HashCompute13(float3 p)
++{
++    float3 q = float3(MathFract(p.x * 0.1031f), MathFract(p.y * 0.1031f),
++                      MathFract(p.z * 0.1031f));
++    float d = q.x * (q.z + 31.32f) + q.y * (q.y + 31.32f) + q.z * (q.x + 31.32f);
++    q = q + d;
++    return MathFract((q.x + q.y) * q.z);
++}
++
++// Panel line 793, swizzles expanded (the dual region has no .yxz):
++//   vec3 hash33(vec3 p){ p=fract(p*vec3(.1031,.1030,.0973));
++//   p+=dot(p,p.yxz+33.33); return fract((p.xxy+p.yxx)*p.zyx); }
++// dot(p,p.yxz+33.33) = px*(py+33.33)+py*(px+33.33)+pz*(pz+33.33) and
++// (p.xxy+p.yxx)*p.zyx = ((px+py)*pz, 2*px*py, (px+py)*px).
++float3 HashCompute33(float3 p)
++{
++    float3 q = float3(MathFract(p.x * 0.1031f), MathFract(p.y * 0.1030f),
++                      MathFract(p.z * 0.0973f));
++    float d = q.x * (q.y + 33.33f) + q.y * (q.x + 33.33f)
++            + q.z * (q.z + 33.33f);
++    q = q + d;
++    float s = q.x + q.y;
++    return float3(MathFract(s * q.z), MathFract(2.0f * q.x * q.y),
++                  MathFract(s * q.x));
++}
++
++// Panel lines 795-797: trilinear value noise over hash13, corner order kept.
++float NoiseValueCompute(float3 p)
++{
++    float3 ii = float3(floor(p.x), floor(p.y), floor(p.z));
++    float3 f = float3(MathFract(p.x), MathFract(p.y), MathFract(p.z));
++    f = f * f * (3.0f - 2.0f * f);
++    float n000 = HashCompute13(ii);
++    float n100 = HashCompute13(ii + float3(1.0f, 0.0f, 0.0f));
++    float n010 = HashCompute13(ii + float3(0.0f, 1.0f, 0.0f));
++    float n110 = HashCompute13(ii + float3(1.0f, 1.0f, 0.0f));
++    float n001 = HashCompute13(ii + float3(0.0f, 0.0f, 1.0f));
++    float n101 = HashCompute13(ii + float3(1.0f, 0.0f, 1.0f));
++    float n011 = HashCompute13(ii + float3(0.0f, 1.0f, 1.0f));
++    float n111 = HashCompute13(ii + float3(1.0f, 1.0f, 1.0f));
++    return lerp(lerp(lerp(n000, n100, f.x), lerp(n010, n110, f.x), f.y),
++                lerp(lerp(n001, n101, f.x), lerp(n011, n111, f.x), f.y), f.z);
++}
++
++// Panel lines 805-806.
++float3 RotateYCompute(float3 v, float a)
++{
++    float c = cos(a);
++    float s = sin(a);
++    return float3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
++}
++
++float3 RotateXCompute(float3 v, float a)
++{
++    float c = cos(a);
++    float s = sin(a);
++    return float3(v.x, c * v.y - s * v.z, s * v.y + c * v.z);
++}
++
++// Panel lines 808-809 (ternaries stand in for the sign steps).
++float2 OctahedralEncode(float3 n)
++{
++    float l1 = abs(n.x) + abs(n.y) + abs(n.z);
++    n = n / l1;
++    float2 p = float2(n.x, n.z);
++    if (n.y < 0.0f)
++    {
++        float ax = 1.0f - abs(p.y);
++        float ay = 1.0f - abs(p.x);
++        float sx = p.x >= 0.0f ? 1.0f : -1.0f;
++        float sy = p.y >= 0.0f ? 1.0f : -1.0f;
++        p = float2(ax * sx, ay * sy);
++    }
++    return p * 0.5f + 0.5f;
++}
++
++float3 OctahedralDecode(float2 f)
++{
++    f = f * 2.0f - 1.0f;
++    float3 n = float3(f.x, 1.0f - abs(f.x) - abs(f.y), f.y);
++    float t = max(-n.y, 0.0f);
++    n.x += n.x >= 0.0f ? -t : t;
++    n.z += n.z >= 0.0f ? -t : t;
++    return normalize(n);
++}
++
++// Panel lines 802-804: the shader-side blackbody ramp (star colours).
++float3 StarKelvinCompute(float t)
++{
++    float x = clamp((t - 2000.0f) / 10000.0f, 0.0f, 1.0f);
++    float3 c = lerp(float3(1.0f, 0.55f, 0.25f), float3(1.0f, 0.93f, 0.86f),
++                    smoothstep(0.0f, 0.4f, x));
++    c = lerp(c, float3(0.72f, 0.82f, 1.0f), smoothstep(0.4f, 1.0f, x));
++    return c;
++}
++
++// Panel line 945: the exact exp(-y/H) segment integral both fogs share.
++float ExpHeightKernel(float hh, float y0, float y1)
++{
++    float ya = max(0.0f, min(y0, y1));
++    float yb = max(0.0f, max(y0, y1));
++    if ((yb - ya) < 1e-3f)
++    {
++        return exp(-ya / hh);
++    }
++    return hh * (exp(-ya / hh) - exp(-yb / hh)) / (yb - ya);
++}
++
++// Panel line 946.
++float FogTransmittance(float d, float y0, float y1, in SkyConfiguration p)
++{
++    float od = p.fogDensity * d * ExpHeightKernel(max(1.0f, p.fogHeight), y0, y1);
++    return exp(-od * od);
++}
++
++// Panel lines 947-962: both analytic fogs in one shot. NOTE the panel uses
++// the literal 3.14159 (not PI) in the HG lobes and the AF sun term.
++//@@BAN: SKY MEDIA (FOG AND ATMOSPHERE-FOG)
++float3 SkyMediaApply(float3 col, float3 dir, float d, float3 hzGlow,
++                     float3 trans, in SkyConfiguration p)
++{
++    bool hf = p.fogOn > 0u && p.camHeight < 3000.0f;
++    bool af = p.afOn > 0u && p.camHeight < 6000.0f;
++    if (!hf && !af)
++    {
++        return col;
++    }
++    float y0 = p.camHeight;
++    float y1 = p.camHeight + dir.y * d;
++    float cosS = clamp(dot(dir, p.sunDir), -1.0f, 1.0f);
++    float3 sunL = trans * p.sunColor * p.sunIntensity * 0.02f;
++    float Tf = 1.0f;
++    float3 Lf = float3(0.0f, 0.0f, 0.0f);
++    if (hf)
++    {
++        Tf = FogTransmittance(d, y0, y1, p);
++        float g = 0.55f;
++        float hg = (1.0f - g * g)
++                 / (4.0f * 3.14159f
++                    * MathPow(1.0f + g * g - 2.0f * g * cosS, 1.5f));
++        Lf = p.fogColor * (p.skyAmb * 0.9f + hzGlow * 0.35f)
++           + p.fogScatter * hg * sunL * max(p.sunDir.y + 0.1f, 0.0f);
++    }
++    float3 Ta = float3(1.0f, 1.0f, 1.0f);
++    float3 La = float3(0.0f, 0.0f, 0.0f);
++    if (af)
++    {
++        float od = p.afDensity * max(0.0f, d - p.afStart)
++                 * ExpHeightKernel(max(1.0f, p.afHeight), y0, y1);
++        if (od > 1e-6f)
++        {
++            float3 beta = lerp(float3(5.8e-6f, 13.5e-6f, 33.1e-6f) / 13.5e-6f,
++                               float3(1.0f, 1.0f, 1.0f), p.afMie);
++            Ta = float3(exp(-beta.x * od), exp(-beta.y * od), exp(-beta.z * od));
++            float g = p.afG;
++            float hg = (1.0f - g * g)
++                     / (4.0f * 3.14159f
++                        * MathPow(1.0f + g * g - 2.0f * g * cosS, 1.5f));
++            La = ((p.skyAmb * 0.9f + hzGlow * 0.25f) * p.afSky
++                  + sunL * hg * 4.0f * 3.14159f
++                  * max(p.sunDir.y + 0.08f, 0.0f)
++                  * lerp(1.0f, 0.35f, p.afMie)) * p.afTint;
++        }
++    }
++    float3 T = Ta * Tf;
++    float3 Lin = La * (1.0f - Ta) * lerp(1.0f, Tf, 0.5f)
++               + Lf * (1.0f - Tf) * lerp(float3(1.0f, 1.0f, 1.0f), Ta, 0.5f);
++    return col * T + Lin;
++}
++
++// Panel lines 1133-1138 + the JS probe combine (amb = px0*.4+px1*.35+px2*.25):
++// zenith, sun-side horizon and anti-sun horizon through the same atmosphere.
++//@@BAN: SKY AMBIENT PROBE
++float3 SkyAmbientCompute(in SkyConfiguration p)
++{
++    // Panel ro = (0, uPlanetR + uCamHeight, 0), built inside SkyFieldCompute.
++    float3 hd = normalize(float3(p.sunDir.x + 1e-4f, 0.0f, p.sunDir.z));
++    AtmosphereStructure a0 = SkyFieldCompute(float3(0.0f, 1.0f, 0.0f), p);
++    AtmosphereStructure a1 = SkyFieldCompute(normalize(hd + float3(0.0f, 0.08f, 0.0f)), p);
++    AtmosphereStructure a2 = SkyFieldCompute(normalize(float3(0.0f, 0.0f, 0.0f) - hd
++                                       + float3(0.0f, 0.08f, 0.0f)), p);
++    return a0.sky * 0.4f + a1.sky * 0.35f + a2.sky * 0.25f;
++}
++
++// Panel lines 811-846: Milky Way band + 4 octahedral point-star layers.
++//@@BAN: STARS AND MILKY WAY
++float3 StarFieldCompute(float3 d, float pixAng, float am, in SkyConfiguration p)
++{
++    float3 sd = RotateXCompute(RotateYCompute(d, p.starRot), p.starTilt);
++    float3 col = float3(0.0f, 0.0f, 0.0f);
++    float band = exp(-MathPow(sd.y / 0.15f, 2.0f));
++    float n = NoiseValueCompute(sd * 6.0f) * 0.5f
++            + NoiseValueCompute(sd * 13.0f + 3.1f) * 0.3f
++            + NoiseValueCompute(sd * 29.0f + 7.3f) * 0.2f;
++    float dust = smoothstep(0.35f, 0.7f,
++                            NoiseValueCompute(sd * 9.0f + float3(5.2f, 1.1f, 8.8f)))
++               * exp(-MathPow(sd.y / 0.06f, 2.0f)) * 0.8f;
++    float mw = band * (0.35f + 0.65f * n) * (1.0f - dust) * p.starMilky;
++    col = col + lerp(float3(0.55f, 0.62f, 0.9f), float3(0.95f, 0.85f, 0.7f),
++                     dust * 0.6f) * mw * 3.2e-4f;
++    float2 ouv = OctahedralEncode(sd);
++    for (int o = 0; o < 4; o++)
++    {
++        if (float(o) >= p.starLayers)
++        {
++            break;
++        }
++        float freq = o == 0 ? 18.0f : (o == 1 ? 46.0f : (o == 2 ? 110.0f : 230.0f));
++        float density = o == 0 ? 0.28f : (o == 1 ? 0.42f : (o == 2 ? 0.6f : 0.7f));
++        float layerGain = o == 0 ? 1.0f : (o == 1 ? 0.4f : (o == 2 ? 0.15f : 0.06f));
++        float2 gp = ouv * freq;
++        float2 base = float2(floor(gp.x), floor(gp.y));
++        for (int j = -1; j <= 1; j++)
++        {
++            for (int i = -1; i <= 1; i++)
++            {
++                float2 cell = base + float2(float(i), float(j));
++                float3 h = HashCompute33(float3(cell.x, cell.y, float(o) * 17.0f));
++                if (h.x < 1.0f - density * p.starDensity)
++                {
++                    continue;
++                }
++                float2 suv = (cell + 0.5f + (float2(h.y, h.z) - 0.5f) * 0.9f)
++                           / freq;
++                float3 sdir = OctahedralDecode(float2(clamp(suv.x, 0.0f, 1.0f),
++                                                  clamp(suv.y, 0.0f, 1.0f)));
++                float ang = acos(clamp(dot(sd, sdir), -1.0f, 1.0f));
++                float bright = (MathPow(HashCompute13(float3(cell.x, cell.y,
++                                                        3.3f + float(o))),
++                                       8.0f) * 8.0f + 0.15f) * layerGain;
++                bright = bright * lerp(1.0f, band * 2.2f + 0.35f,
++                                       p.starMilky * 0.6f);
++                float ph = HashCompute13(float3(cell.x, cell.y, 5.7f)) * 6.283f;
++                float tw = 1.0f - p.starTwinkle
++                         * (0.3f + 0.5f * clamp(am / 6.0f, 0.0f, 1.0f))
++                         * (0.5f + 0.5f * sin(p.timeSeconds
++                           * (3.0f + HashCompute13(float3(cell.x, cell.y, 2.2f))
++                             * 8.0f) + ph));
++                float T = lerp(2800.0f, 11000.0f,
++                               MathPow(HashCompute13(float3(cell.x, cell.y, 9.1f)),
++                                      1.6f));
++                float3 sc = lerp(float3(1.0f, 1.0f, 1.0f), StarKelvinCompute(T),
++                                 p.starColor);
++                float ps = max(p.starSize * (0.0006f + bright * 0.00028f),
++                               pixAng * 0.9f);
++                float core = (1.0f - smoothstep(ps * 0.55f, ps, ang))
++                           * (1.0f + 0.6f * (bright >= 2.5f ? 1.0f : 0.0f));
++                core = core * 3.2f;
++                float halo = exp(-MathPow(ang / (ps * (2.0f + 6.0f * p.starGlow)),
++                                         1.5f)) * 0.045f * p.starGlow
++                           * (bright / 8.0f + 0.03f);
++                float spikes = 0.0f;
++                if (o == 0 && bright > 2.5f)
++                {
++                    float3 t1 = normalize(cross(sdir,
++                                                float3(0.001f, 1.0f, 0.0f)));
++                    float3 t2 = cross(sdir, t1);
++                    float3 dd = sd - sdir;
++                    float2 q = float2(dot(dd, t1), dot(dd, t2));
++                    float w = max(pixAng * 0.6f, ps * 0.35f);
++                    spikes = (exp(-abs(q.x) / w * 0.5f) * exp(-abs(q.y) * 70.0f)
++                            + exp(-abs(q.y) / w * 0.5f) * exp(-abs(q.x) * 70.0f))
++                           * 0.3f * p.starGlow * (bright / 8.0f);
++                }
++                col = col + sc * (core + halo + spikes) * bright * tw * 2.6e-3f;
++            }
++        }
++    }
++    return col * p.starBright;
++}
++
++// Panel lines 1221-1225: the 2x2 rotated-grid star supersample.
++float3 StarPixelCompute(float3 dir, float3 trans, in SkyProjection cam, in SkyConfiguration p)
++{
++    float am = AirMassCompute(asin(clamp(dir.y, -1.0f, 1.0f)) / SkyDeg2Rad);
++    float3 s0 = float3(0.0f, 0.0f, 0.0f);
++    for (int q = 0; q < 4; q++)
++    {
++        float2 o = q == 0 ? float2(-0.375f, -0.125f)
++                 : (q == 1 ? float2(0.125f, -0.375f)
++                 : (q == 2 ? float2(0.375f, 0.125f)
++                           : float2(-0.125f, 0.375f)));
++        float3 d2 = normalize(dir + (cam.right * o.x + cam.up * o.y)
++                                    * p.pixAngle);
++        s0 = s0 + StarFieldCompute(d2, p.pixAngle * 0.7f, am, p);
++    }
++    return s0 * 0.25f * trans;
++}
++
++// Panel line 1147: dot(sky, vec3(.2126,.7152,.0722)).
++float LuminanceCompute(float3 v)
++{
++    return v.x * 0.2126f + v.y * 0.7152f + v.z * 0.0722f;
++}
++
++// D65 relative luminance for ReSTIR target functions (display physics, not
++// the panel; kept next to LuminanceCompute so the two never get confused).
++float LuminanceDWCompute(float3 v)
++{
++    return v.x * 0.212671f + v.y * 0.715160f + v.z * 0.072169f;
++}
++
++// Full sky radiance before post: sky + glow + single-sample stars + disc +
++// aureole over the sky, then the shared analytic-media path length; the lit
++// planet disc over the ground (panel lines 1197-1245, plane/clouds/moons/
++// flare off). ReSTIR lighting calls this — the star AA branch is a primary-
++// ray reconstruction filter and lives in SkyPixelCompute instead.
++float3 SkyShadedCompute(in AtmosphereStructure f, float3 dir, in SkyConfiguration p)
++{
++    if (f.ground <= 0.5f)
++    {
++        float facing = SunFacingCompute(dir, p.sunDir);
++        float hdrScale = (p.sunIntensity / 22.0f) * p.skyBright;
++        float groundObs = 1.0f - smoothstep(1500.0f, 12000.0f, p.camHeight);
++        float3 glow = DawnGlowCompute(dir, p.sunElevationDeg, facing, p)
++                    * hdrScale * groundObs;
++        float3 hdir = normalize(float3(dir.x + 1e-5f, 1e-5f, dir.z + 1e-5f));
++        float3 hzGlow = DawnGlowCompute(hdir, p.sunElevationDeg, facing, p)
++                      * hdrScale * groundObs;
++        float3 col = f.sky + glow;
++        float skyLum = LuminanceCompute(f.sky);
++        float hzDip = -acos(clamp(p.planetRadius
++                                  / (p.planetRadius + p.camHeight),
++                                  0.0f, 1.0f));
++        float ext = smoothstep(hzDip - 0.01f,
++                               hzDip + 0.12f * groundObs + 0.002f, dir.y);
++        if (p.starsOn > 0u
++            && p.starCeil > max(skyLum, 1e-7f) * p.starLimit * 0.6f)
++        {
++            float am = AirMassCompute(asin(clamp(dir.y, -1.0f, 1.0f)) / SkyDeg2Rad);
++            float3 st = StarFieldCompute(dir, p.pixAngle, am, p) * f.trans;
++            float skyL = max(skyLum, 1e-7f);
++            float thresh = skyL * p.starLimit;
++            float l = LuminanceCompute(st);
++            float vis = smoothstep(thresh * 0.6f, thresh * 2.5f, l + 1e-9f);
++            col = col + st * vis * ext;
++        }
++        col = col + SunDiscCompute(dir, f.trans, p) + SunAureoleCompute(dir, f.trans, p);
++        float hRef = max(p.fogHeight * 4.0f, p.afHeight * 5.0f);
++        float dS = dir.y > 0.002f ? min(60000.0f, hRef / dir.y) : 60000.0f;
++        col = SkyMediaApply(col, dir, dS, hzGlow, f.trans, p);
++        return col;
++    }
++    float3 sunP = SunGroundCompute(dir, f.trans, p);
++    float3 amb = f.sky * 0.35f
++               + float3(0.002f, 0.003f, 0.006f) * p.skyBright;
++    return p.groundAlbedo * p.groundBright * (sunP + amb) + f.sky;
++}
++
++//@@BAN: SKY RADIANCE ASSEMBLY
++float3 SkyRadianceCompute(float3 dir, in SkyConfiguration p)
++{
++    AtmosphereStructure f = SkyFieldCompute(dir, p);
++    return SkyShadedCompute(f, dir, p);
++}
++
++// Full primary-ray pixel: SkyRadianceCompute plus the panel's star-AA branch
++// (lines 1219-1225). The single-sample star term is removed and the
++// supersampled one added back; the add-then-subtract is exact to the ulp,
++// far below the post chain's half-LSB budget.
++float3 SkyPixelCompute(float3 dir, in SkyProjection cam, in SkyConfiguration p)
++{
++    AtmosphereStructure f = SkyFieldCompute(dir, p);
++    float3 col = SkyShadedCompute(f, dir, p);
++    if (f.ground > 0.5f)
++    {
++        return col;
++    }
++    float skyLum = LuminanceCompute(f.sky);
++    if (p.starsOn > 0u && p.starCeil > max(skyLum, 1e-7f) * p.starLimit * 0.6f)
++    {
++        float aaNeed = p.starCeil >= max(skyLum, 1e-7f) * p.starLimit * 8.0f
++                     ? 1.0f : 0.0f;
++        if (p.starAA > 1.5f && aaNeed > 0.5f)
++        {
++            float am = AirMassCompute(asin(clamp(dir.y, -1.0f, 1.0f)) / SkyDeg2Rad);
++            float3 stS = StarFieldCompute(dir, p.pixAngle, am, p) * f.trans;
++            float3 stA = StarPixelCompute(dir, f.trans, cam, p);
++            float skyL = max(skyLum, 1e-7f);
++            float thresh = skyL * p.starLimit;
++            float hzDip = -acos(clamp(p.planetRadius
++                                      / (p.planetRadius + p.camHeight),
++                                      0.0f, 1.0f));
++            float groundObs = 1.0f - smoothstep(1500.0f, 12000.0f, p.camHeight);
++            float ext = smoothstep(hzDip - 0.01f,
++                                   hzDip + 0.12f * groundObs + 0.002f, dir.y);
++            float visS = smoothstep(thresh * 0.6f, thresh * 2.5f,
++                                    LuminanceCompute(stS) + 1e-9f);
++            float visA = smoothstep(thresh * 0.6f, thresh * 2.5f,
++                                    LuminanceCompute(stA) + 1e-9f);
++            col = col - stS * visS * ext + stA * visA * ext;
++        }
++    }
++    return col;
++}
++
++// Panel line 1128, exactly:
++//   vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
++float3 ToneAcesCompute(float3 v)
++{
++    float3 num = v * (2.51f * v + 0.03f);
++    float3 den = v * (2.43f * v + 0.59f) + 0.14f;
++    return clamp(num / den, 0.0f, 1.0f);
++}
++
++// Panel lines 1257-1261 (tonemap 1 = ACES):
++//   float autoEV=-.35*smoothstep(-8.,-1.,elevDeg)-1.0*smoothstep(-1.,6.,elevDeg)
++//                -.6*smoothstep(6.,30.,elevDeg);
++//   col*=exp2(uEV+autoEV);
++//   if(uTonemap==1.) col=aces(col); ...
++//   float vig=1.-uVignette*pow(length(uv*vec2(uRes.y/uRes.x,1.)*.9),2.2);
++//   col*=clamp(vig,0.,1.);
++//   col=pow(max(col,0.),vec3(1./2.2));
++//   col+=(hash13(vec3(gl_FragCoord.xy,fract(uTime)*100.))-.5)*uGrain*.12;
++// (px, py) are top-down framebuffer rows; the grain seed pattern matches the
++// oracle and the C++ port's per-pixel call, which use the same convention.
++//@@BAN: POST CHAIN AND VIEWPORT
++float3 SkyPostApply(float3 hdr, float uu, float vv, float w, float h,
++                    uint px, uint py, in SkyConfiguration p)
++{
++    float e = p.sunElevationDeg;
++    float autoEV = -0.35f * smoothstep(-8.0f, -1.0f, e)
++                 - 1.0f * smoothstep(-1.0f, 6.0f, e)
++                 - 0.6f * smoothstep(6.0f, 30.0f, e);
++    float3 col = hdr * MathExp2(p.exposureStops + autoEV);
++    if (p.tonemap == 1u)
++    {
++        col = ToneAcesCompute(col);
++    }
++    else
++    {
++        col = clamp(col, 0.0f, 1.0f);
++    }
++    float2 vk = float2(uu * (h / w), vv) * 0.9f;
++    float r = sqrt(vk.x * vk.x + vk.y * vk.y);
++    float vig = 1.0f - p.vignette * MathPow(r, 2.2f);
++    col = col * clamp(vig, 0.0f, 1.0f);
++    col = float3(MathPow(max(col.x, 0.0f), 1.0f / 2.2f),
++                 MathPow(max(col.y, 0.0f), 1.0f / 2.2f),
++                 MathPow(max(col.z, 0.0f), 1.0f / 2.2f));
++    float seed = MathFract(p.timeSeconds) * 100.0f;
++    float gr = HashCompute13(float3(float(px) + 0.5f, float(py) + 0.5f, seed));
++    return col + (gr - 0.5f) * p.grain * 0.12f;
++}
++
++// Panel line 1139: vec2 uv=(gl_FragCoord.xy*2.-uRes)/uRes.y — with fragY
++// mapped from the top-down row. Returns (uu, vv).
++float2 ViewportUVCompute(uint x, uint y, uint w, uint h)
++{
++    float uu = ((float(x) + 0.5f) * 2.0f - float(w)) / float(h);
++    float fragY = float(h) - (float(y) + 0.5f);
++    float vv = (fragY * 2.0f - float(h)) / float(h);
++    float2 uv;
++    uv.x = uu;
++    uv.y = vv;
++    return uv;
++}
++
++// Panel line 1140: dir=normalize(uCamFwd+uCamRight*uv.x*uTanHalf
++//                               +uCamUp*uv.y*uTanHalf), evaluated left to right.
++float3 ViewportDirectionCompute(in SkyProjection cam, float2 uv)
++{
++    return normalize(cam.fwd + cam.right * uv.x * cam.tanHalf
++                     + cam.up * uv.y * cam.tanHalf);
++}
++
++#endif // PROJECT_ZERO_CELESTIAL_CORE_SLANG
++
++#endif // SKY_SPECIFICATION_INCLUDED
+diff --git a/Projects/Project-Zero/Shaders/SlangInterchange.h b/Projects/Project-Zero/Shaders/SlangInterchange.h
+new file mode 100644
+index 0000000..7b19903
+--- /dev/null
++++ b/Projects/Project-Zero/Shaders/SlangInterchange.h
+@@ -0,0 +1,195 @@
++//============================================================================================================================================
++// 📦 Frontier/Shaders/SlangInterchange.h — Slang/C++ Dual-Compile Arithmetic Header
++// SlangInterchange.h — C++ dual header for compiling Integration/Shaders/*.slang as C++17.
++//
++// Include this BEFORE including any dual-compile .slang file from Host/. It
++// provides the vector types, the shared builtins, and the keyword macros so
++// that the shipped shader source executes verbatim on the CPU for verification.
++// Defines SLANG_COMPAT_CXX so Slang-only entry regions (entries, resources) are
++// excluded from the C++ translation unit.
++#ifndef FRONTIER_SLANG_INTERCHANGE_H
++#define FRONTIER_SLANG_INTERCHANGE_H
++
++#define SLANG_COMPAT_CXX 1
++
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++
++// Slang keywords that C++ spells differently (or not at all). NOTE: `out` and
++// `inout` have NO C++ spelling, so the dual-compile text never uses them —
++// multi-value returns use small structs instead (checked by Diagnostics).
++#define uniform
++#define in
++
++typedef unsigned int uint;
++
++struct float2
++{
++    float x, y;
++    float2() : x(0.0f), y(0.0f) {}
++    explicit float2(float s) : x(s), y(s) {}
++    float2(float ix, float iy) : x(ix), y(iy) {}
++};
++
++struct float3
++{
++    float x, y, z;
++    float3() : x(0.0f), y(0.0f), z(0.0f) {}
++    explicit float3(float s) : x(s), y(s), z(s) {}
++    float3(float ix, float iy, float iz) : x(ix), y(iy), z(iz) {}
++};
++
++struct float4
++{
++    float x, y, z, w;
++    float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
++    explicit float4(float s) : x(s), y(s), z(s), w(s) {}
++    float4(float ix, float iy, float iz, float iw) : x(ix), y(iy), z(iz), w(iw) {}
++    float4(const float3& v, float iw) : x(v.x), y(v.y), z(v.z), w(iw) {}
++};
++
++// ---- operators (mirror Slang/HLSL elementwise + splat semantics) ----
++inline float3 operator+(const float3& a, const float3& b) { return float3(a.x + b.x, a.y + b.y, a.z + b.z); }
++inline float3 operator-(const float3& a, const float3& b) { return float3(a.x - b.x, a.y - b.y, a.z - b.z); }
++inline float3 operator*(const float3& a, const float3& b) { return float3(a.x * b.x, a.y * b.y, a.z * b.z); }
++inline float3 operator/(const float3& a, const float3& b) { return float3(a.x / b.x, a.y / b.y, a.z / b.z); }
++inline float3 operator-(const float3& a) { return float3(-a.x, -a.y, -a.z); }
++
++inline float3 operator+(const float3& a, float s) { return float3(a.x + s, a.y + s, a.z + s); }
++inline float3 operator-(const float3& a, float s) { return float3(a.x - s, a.y - s, a.z - s); }
++inline float3 operator*(const float3& a, float s) { return float3(a.x * s, a.y * s, a.z * s); }
++inline float3 operator/(const float3& a, float s) { return float3(a.x / s, a.y / s, a.z / s); }
++inline float3 operator+(float s, const float3& a) { return float3(s + a.x, s + a.y, s + a.z); }
++inline float3 operator-(float s, const float3& a) { return float3(s - a.x, s - a.y, s - a.z); }
++inline float3 operator*(float s, const float3& a) { return float3(s * a.x, s * a.y, s * a.z); }
++inline float3 operator/(float s, const float3& a) { return float3(s / a.x, s / a.y, s / a.z); }
++
++inline float3& operator+=(float3& a, const float3& b) { a.x += b.x; a.y += b.y; a.z += b.z; return a; }
++inline float3& operator-=(float3& a, const float3& b) { a.x -= b.x; a.y -= b.y; a.z -= b.z; return a; }
++inline float3& operator*=(float3& a, const float3& b) { a.x *= b.x; a.y *= b.y; a.z *= b.z; return a; }
++inline float3& operator*=(float3& a, float s) { a.x *= s; a.y *= s; a.z *= s; return a; }
++
++inline float2 operator+(const float2& a, const float2& b) { return float2(a.x + b.x, a.y + b.y); }
++inline float2 operator-(const float2& a, const float2& b) { return float2(a.x - b.x, a.y - b.y); }
++inline float2 operator*(const float2& a, const float2& b) { return float2(a.x * b.x, a.y * b.y); }
++inline float2 operator*(const float2& a, float s) { return float2(a.x * s, a.y * s); }
++inline float2 operator*(float s, const float2& a) { return float2(s * a.x, s * a.y); }
++inline float2 operator/(const float2& a, float s) { return float2(a.x / s, a.y / s); }
++inline float2 operator+(const float2& a, float s) { return float2(a.x + s, a.y + s); }
++inline float2 operator-(const float2& a, float s) { return float2(a.x - s, a.y - s); }
++
++inline float4 operator+(const float4& a, const float4& b) { return float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
++inline float4 operator*(const float4& a, float s) { return float4(a.x * s, a.y * s, a.z * s, a.w * s); }
++
++// ---- scalar builtins live in std; vector overloads are defined here ----
++using std::exp;
++using std::log;
++using std::exp2;
++using std::log2;
++using std::pow;
++using std::sqrt;
++using std::sin;
++using std::cos;
++using std::acos;
++using std::asin;
++using std::atan2;
++using std::floor;
++using std::fmod;
++using std::min;
++using std::max;
++using std::abs;
++using std::clamp;
++
++inline float3 exp(const float3& v) { return float3(exp(v.x), exp(v.y), exp(v.z)); }
++inline float3 log(const float3& v) { return float3(log(v.x), log(v.y), log(v.z)); }
++inline float3 sqrt(const float3& v) { return float3(sqrt(v.x), sqrt(v.y), sqrt(v.z)); }
++inline float3 pow(const float3& v, float e) { return float3(pow(v.x, e), pow(v.y, e), pow(v.z, e)); }
++inline float3 abs(const float3& v) { return float3(abs(v.x), abs(v.y), abs(v.z)); }
++inline float3 min(const float3& a, const float3& b) { return float3(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)); }
++inline float3 max(const float3& a, const float3& b) { return float3(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)); }
++inline float3 min(const float3& a, float s) { return float3(min(a.x, s), min(a.y, s), min(a.z, s)); }
++inline float3 max(const float3& a, float s) { return float3(max(a.x, s), max(a.y, s), max(a.z, s)); }
++inline float3 clamp(const float3& v, const float3& lo, const float3& hi)
++{
++    return float3(clamp(v.x, lo.x, hi.x), clamp(v.y, lo.y, hi.y), clamp(v.z, lo.z, hi.z));
++}
++inline float3 clamp(const float3& v, float lo, float hi)
++{
++    return float3(clamp(v.x, lo, hi), clamp(v.y, lo, hi), clamp(v.z, lo, hi));
++}
++
++inline float MathFract(float x) { return x - floor(x); }
++inline float MathExp2(float x) { return exp2(x); }
++inline float MathPow(float x, float y) { return pow(x, y); }
++inline float fract(float x) { return x - floor(x); }
++inline float3 fract(const float3& v) { return float3(fract(v.x), fract(v.y), fract(v.z)); }
++
++inline float step(float edge, float x) { return x < edge ? 0.0f : 1.0f; }
++
++inline float smoothstep(float e0, float e1, float x)
++{
++    float t = clamp((x - e0) / (e1 - e0), 0.0f, 1.0f);
++    return t * t * (3.0f - 2.0f * t);
++}
++
++inline float lerp(float a, float b, float t) { return a + (b - a) * t; }
++inline float3 lerp(const float3& a, const float3& b, float t)
++{
++    return float3(lerp(a.x, b.x, t), lerp(a.y, b.y, t), lerp(a.z, b.z, t));
++}
++
++inline float saturate(float x) { return clamp(x, 0.0f, 1.0f); }
++inline float3 saturate(const float3& v) { return clamp(v, 0.0f, 1.0f); }
++
++inline float dot(const float3& a, const float3& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
++inline float dot(const float2& a, const float2& b) { return a.x * b.x + a.y * b.y; }
++inline float3 cross(const float3& a, const float3& b)
++{
++    return float3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
++}
++inline float length(const float3& v) { return sqrt(dot(v, v)); }
++inline float length(const float2& v) { return sqrt(dot(v, v)); }
++inline float3 normalize(const float3& v)
++{
++    float l = length(v);
++    return l > 1e-12f ? v / l : float3(0.0f, 0.0f, 0.0f);
++}
++inline float2 normalize(const float2& v)
++{
++    float l = length(v);
++    return l > 1e-12f ? v / l : float2(0.0f, 0.0f);
++}
++
++static_assert(sizeof(float3) == 12, "float3 must be tightly packed");
++static_assert(sizeof(uint) == 4, "uint must be 32-bit");
++
++// ---- int3/uint3 (mirror Slang integer vector semantics; wraparound) ----
++struct int3
++{
++    int x;
++    int y;
++    int z;
++    int3() : x(0), y(0), z(0) {}
++    int3(int s) : x(s), y(s), z(s) {}
++    int3(int ax, int ay, int az) : x(ax), y(ay), z(az) {}
++    explicit int3(const float3& v) : x(int(v.x)), y(int(v.y)), z(int(v.z)) {}
++};
++struct uint3
++{
++    unsigned int x;
++    unsigned int y;
++    unsigned int z;
++    uint3() : x(0u), y(0u), z(0u) {}
++    uint3(unsigned int s) : x(s), y(s), z(s) {}
++    uint3(unsigned int ax, unsigned int ay, unsigned int az) : x(ax), y(ay), z(az) {}
++    explicit uint3(const int3& v) : x(unsigned(v.x)), y(unsigned(v.y)), z(unsigned(v.z)) {}
++};
++inline uint3 operator+(const uint3& a, const uint3& b) { return uint3(a.x + b.x, a.y + b.y, a.z + b.z); }
++inline uint3 operator*(const uint3& a, const uint3& b) { return uint3(a.x * b.x, a.y * b.y, a.z * b.z); }
++inline uint3 operator*(const uint3& a, unsigned int s) { return uint3(a.x * s, a.y * s, a.z * s); }
++inline uint3 operator^(const uint3& a, const uint3& b) { return uint3(a.x ^ b.x, a.y ^ b.y, a.z ^ b.z); }
++inline uint3 operator>>(const uint3& a, unsigned int s) { return uint3(a.x >> s, a.y >> s, a.z >> s); }
++inline int3 operator+(const int3& a, const int3& b) { return int3(a.x + b.x, a.y + b.y, a.z + b.z); }
++
++#endif // FRONTIER_SLANG_INTERCHANGE_H
+diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
+index 6953a00..6286b83 100644
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -12,12 +12,91 @@
+ 
+ int main(int ArgumentCount, char** ArgumentValues)
+ {
+-    (void)ArgumentCount;
+-    (void)ArgumentValues;
++    bool CourtyardMode = false;
++    double SunHour = 6.4;
++    double LensYaw = 35.0;
++    double LensPitch = -6.0;
++    Frontier::ProjectZero::SkyFogIntegrator::FogScenario FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Morning;
++    for (int i = 1; i < ArgumentCount; ++i)
++    {
++        std::string Arg = ArgumentValues[i];
++        if (Arg == "--courtyard")
++        {
++            CourtyardMode = true;
++        }
++        else if (Arg == "--sun" && i + 1 < ArgumentCount)
++        {
++            SunHour = std::atof(ArgumentValues[++i]);
++        }
++        else if (Arg == "--yaw" && i + 1 < ArgumentCount)
++        {
++            LensYaw = std::atof(ArgumentValues[++i]);
++        }
++        else if (Arg == "--pitch" && i + 1 < ArgumentCount)
++        {
++            LensPitch = std::atof(ArgumentValues[++i]);
++        }
++        else if (Arg == "--fog" && i + 1 < ArgumentCount)
++        {
++            std::string Name = ArgumentValues[++i];
++            if (Name == "clear")
++            {
++                FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Clear;
++            }
++            else if (Name == "backlit")
++            {
++                FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Backlit;
++            }
++        }
++    }
+ 
+     std::cout << "================================================================================\n";
+     std::cout << "                 PROJECT-ZERO — RESTIR PHOTOMETRIC TEST GROUND                  \n";
+     std::cout << "================================================================================\n";
++
++    if (CourtyardMode)
++    {
++        constexpr float Deg2Rad = 3.14159265359f / 180.0f;
++        std::cout << "[Project-Zero] Courtyard mode: outdoor sun, sky, and fog over soil and block.\n";
++
++        constexpr uint32_t ViewportWidth  = 640;
++        constexpr uint32_t ViewportHeight = 480;
++
++        Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{ 2.5f, 3.0f, 0.0025f, 0.5f, 12.0f };
++        Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
++        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -14.0f, 2.2f });
++        Camera.AssignOrientationEuler(static_cast<float>(LensPitch) * Deg2Rad, static_cast<float>(LensYaw) * Deg2Rad, 0.0f);
++        Camera.AssignFieldOfView(60.0f);
++        Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
++
++        auto StartTime = std::chrono::high_resolution_clock::now();
++
++        Frontier::ProjectZero::RendererHost Renderer(ViewportWidth, ViewportHeight);
++        Renderer.RenderCourtyardFrame(Camera, SunHour, FogChoice, 2);
++
++        auto EndTime = std::chrono::high_resolution_clock::now();
++        double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
++        std::cout << "[Project-Zero] Courtyard render completed in " << DurationMs << " ms.\n";
++
++        std::string PpmPath = "Diagnostics/ProjectZero_Courtyard.ppm";
++        std::string PngPath = "Diagnostics/ProjectZero_Courtyard.png";
++        if (Renderer.ExportCourtyardImage(PpmPath))
++        {
++            std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
++            std::string ConvertCmd = "python3 ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
++            if (std::system(ConvertCmd.c_str()) == 0)
++            {
++                std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
++            }
++        }
++        else
++        {
++            std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
++            return 1;
++        }
++        return 0;
++    }
++
+     std::cout << "[Project-Zero] Initializing analytical triangle test scene, UE camera, and ReSTIR pipeline...\n";
+ 
+     // Initialize Telemetry Logger with markdown table format
+diff --git a/Projects/Project-Zero/Source/RayTracingSolver.cpp b/Projects/Project-Zero/Source/RayTracingSolver.cpp
+index f0a2cad..331e10e 100644
+--- a/Projects/Project-Zero/Source/RayTracingSolver.cpp
++++ b/Projects/Project-Zero/Source/RayTracingSolver.cpp
+@@ -62,6 +62,25 @@ void RayTracingSolver::ConstructCornellBoxScene() noexcept
+     AppendBox(Vector3{ 0.35f, 0.3f, 0.75f }, Vector3{ 0.28f, 0.3f, 0.28f }, -18.0f, 5);
+ }
+ 
++void RayTracingSolver::ConstructCourtyardScene() noexcept
++{
++    Triangles.clear();
++    Materials.clear();
++
++    // Material 0: courtyard soil, warm mid grey diffuse
++    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.30f, 0.28f, 0.24f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.9f, 0.0f, 0 });
++    // Material 1: courtyard block, pale warm diffuse
++    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.55f, 0.53f, 0.50f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.9f, 0.0f, 1 });
++
++    // Ground soil 1000 x 1000 [m] at Z = 0 with +Z normal (strict Z-up
++    // world). The sheet reaches the horizon inside the 1000 [m] far plane so
++    // below-horizon rays strike soil instead of the panel underground.
++    AppendQuad(Vector3{ -500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, 500.0f, 0.0f }, Vector3{ -500.0f, 500.0f, 0.0f }, 0);
++
++    // Courtyard block: 3 [m] cube centred at (3, -2, 1.5), resting on soil.
++    AppendBox(Vector3{ 3.0f, -2.0f, 1.5f }, Vector3{ 1.5f, 1.5f, 1.5f }, 0.0f, 1);
++}
++
+ void RayTracingSolver::AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept
+ {
+     TriangleGeometry Tri{};
+diff --git a/Projects/Project-Zero/Source/RayTracingSolver.h b/Projects/Project-Zero/Source/RayTracingSolver.h
+index 1f8aed1..ab265f2 100644
+--- a/Projects/Project-Zero/Source/RayTracingSolver.h
++++ b/Projects/Project-Zero/Source/RayTracingSolver.h
+@@ -20,6 +20,7 @@ public:
+     ~RayTracingSolver() noexcept = default;
+ 
+     void                    ConstructCornellBoxScene() noexcept;
++    void                    ConstructCourtyardScene() noexcept;
+     void                    AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept;
+     void                    AppendQuad(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3, uint32_t MaterialIdx) noexcept;
+     void                    AppendBox(const Vector3& Center, const Vector3& Extents, float RotationDegrees, uint32_t MaterialIdx) noexcept;
+diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
+index 07728ca..483e531 100644
+--- a/Projects/Project-Zero/Source/RendererHost.cpp
++++ b/Projects/Project-Zero/Source/RendererHost.cpp
+@@ -381,6 +381,281 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+     }
+ }
+ 
++//------------------------------------------------------------------------------------------------------------------------
++//                                     COURTYARD SUN SKY FOG RENDER PIPELINE
++//------------------------------------------------------------------------------------------------------------------------
++
++void RendererHost::RenderCourtyardFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount) noexcept
++{
++    std::mt19937 Rng(1337);
++    std::uniform_real_distribution<float> Dist(0.0f, 1.0f);
++
++    Scene.ConstructCourtyardScene();
++    SkyFog.AssignSunHour(SunHour);
++    SkyFog.AssignFogScenario(Scenario);
++
++    const auto& Materials = Scene.QueryMaterials();
++    const Vector3 SunWorld = SkyFog.QuerySunDirectionWorld();
++    const Vector3 SunRadiance = SkyFog.QuerySunRadiance();
++    const Vector3 SkyAmbient = SkyFog.QueryAmbientRadiance();
++    const float FogFar = SkyFog.QueryFogFarDistance();
++
++    // Phase 1: Visibility Buffer Primary Ray Trace from Active Camera
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            RayRecord PrimaryRay = GeneratePrimaryRay(ActiveCamera, x, y, 0.5f, 0.5f);
++            PrimaryHits[idx] = Scene.EvaluateIntersection(PrimaryRay);
++        }
++    }
++
++    // Phase 2: Direct Sun Illumination with Shadow Segment Test
++    std::vector<Vector3> DirectLight(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            const auto& Hit = PrimaryHits[idx];
++
++            if (!Hit.ValidCondition)
++            {
++                continue;
++            }
++
++            const auto& Mat = Materials[Hit.MaterialIndex];
++            float CosTheta = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, SunWorld));
++            float SunVisible = Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, Hit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++            DirectLight[idx] = Mat.AlbedoColor * (SunRadiance * (CosTheta * SunVisible));
++        }
++    }
++
++    // Phase 3: ReSTIR GI Initial Candidate Bounce Ray Tracing (8 samples)
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            const auto& Hit = PrimaryHits[idx];
++            IndirectGIReservoir GIReservoir{ Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 0.0f, 0.0f, 1.0f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.0f, 0, 0.0f };
++
++            if (!Hit.ValidCondition)
++            {
++                IndirectReservoirs[idx] = GIReservoir;
++                continue;
++            }
++
++            for (uint32_t s = 0; s < 8; ++s)
++            {
++                Vector3 BounceDir = SampleCosineHemisphere(Hit.SurfaceNormal, Dist(Rng), Dist(Rng));
++                RayRecord BounceRay{ Hit.HitLocation + Hit.SurfaceNormal * 0.001f, BounceDir, 0.001f, 200.0f };
++
++                HitIntersection BounceHit = Scene.EvaluateIntersection(BounceRay);
++                Vector3 BounceRadiance{ 0.0f, 0.0f, 0.0f };
++                Vector3 BouncePos = BounceRay.SpatialOrigin;
++                Vector3 BounceNormal = BounceDir;
++                if (BounceHit.ValidCondition)
++                {
++                    const auto& BounceMat = Materials[BounceHit.MaterialIndex];
++                    float BounceCos = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, SunWorld));
++                    float BounceVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceCos * BounceVis) + SkyAmbient);
++                    BouncePos = BounceHit.HitLocation;
++                    BounceNormal = BounceHit.SurfaceNormal;
++                }
++                else
++                {
++                    // Open sky above the bounce point: bare diffuse sky
++                    // ambient (the primary albedo applies at composition).
++                    BounceRadiance = SkyAmbient;
++                }
++
++                float Weight = (BounceRadiance.x + BounceRadiance.y + BounceRadiance.z) * 0.3333f;
++                GIReservoir.ResampleIndirect(BouncePos, BounceNormal, BounceRadiance, Weight, Dist(Rng));
++            }
++
++            if (GIReservoir.WeightSum > 0.0f && GIReservoir.SampleCount > 0)
++            {
++                GIReservoir.UnbiasedWeight = GIReservoir.WeightSum / static_cast<float>(GIReservoir.SampleCount);
++            }
++
++            IndirectReservoirs[idx] = GIReservoir;
++        }
++    }
++
++    // Phase 4: ReSTIR GI Spatial Resampling Pass with Jacobian Shift
++    std::vector<IndirectGIReservoir> SpatialIndirectReservoirs = IndirectReservoirs;
++    for (uint32_t pass = 0; pass < SpatialPassCount; ++pass)
++    {
++        for (uint32_t y = 0; y < Height; ++y)
++        {
++            for (uint32_t x = 0; x < Width; ++x)
++            {
++                size_t idx = y * Width + x;
++                const auto& CenterHit = PrimaryHits[idx];
++                if (!CenterHit.ValidCondition)
++                {
++                    continue;
++                }
++
++                IndirectGIReservoir SpatialGI = IndirectReservoirs[idx];
++
++                for (uint32_t n = 0; n < 8; ++n)
++                {
++                    int nx = static_cast<int>(x) + (static_cast<int>(Rng() % 11) - 5);
++                    int ny = static_cast<int>(y) + (static_cast<int>(Rng() % 11) - 5);
++
++                    if (nx < 0 || nx >= static_cast<int>(Width) || ny < 0 || ny >= static_cast<int>(Height))
++                    {
++                        continue;
++                    }
++
++                    size_t nIdx = ny * Width + nx;
++                    const auto& NeighborHit = PrimaryHits[nIdx];
++
++                    if (!NeighborHit.ValidCondition)
++                    {
++                        continue;
++                    }
++                    if (OrientationClassifier::DotProduct(CenterHit.SurfaceNormal, NeighborHit.SurfaceNormal) < 0.90f)
++                    {
++                        continue;
++                    }
++                    if (std::abs(CenterHit.RayDistance - NeighborHit.RayDistance) > 1.00f)
++                    {
++                        continue;
++                    }
++
++                    const auto& NeighborGI = IndirectReservoirs[nIdx];
++                    if (NeighborGI.WeightSum <= 0.0f)
++                    {
++                        continue;
++                    }
++
++                    float Jacobian = EvaluateJacobian(NeighborHit.HitLocation, CenterHit.HitLocation, NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal);
++                    float ShiftedWeight = (NeighborGI.IndirectRadiance.x + NeighborGI.IndirectRadiance.y + NeighborGI.IndirectRadiance.z) * 0.3333f * NeighborGI.UnbiasedWeight * Jacobian;
++
++                    SpatialGI.ResampleIndirect(NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal, NeighborGI.IndirectRadiance, ShiftedWeight, Dist(Rng));
++                }
++
++                if (SpatialGI.WeightSum > 0.0f && SpatialGI.SampleCount > 0)
++                {
++                    SpatialGI.UnbiasedWeight = SpatialGI.WeightSum / static_cast<float>(SpatialGI.SampleCount);
++                }
++
++                SpatialIndirectReservoirs[idx] = SpatialGI;
++            }
++        }
++        IndirectReservoirs = SpatialIndirectReservoirs;
++    }
++
++    // Phase 5: Indirect Radiosity Bilateral Spatial Filtering
++    std::vector<Vector3> FilteredIndirect(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            const auto& CenterHit = PrimaryHits[idx];
++
++            if (!CenterHit.ValidCondition)
++            {
++                continue;
++            }
++
++            Vector3 IndirectAcc{ 0.0f, 0.0f, 0.0f };
++            float   WeightTotal = 0.0f;
++
++            for (int dy = -3; dy <= 3; ++dy)
++            {
++                for (int dx = -3; dx <= 3; ++dx)
++                {
++                    int qx = static_cast<int>(x) + dx;
++                    int qy = static_cast<int>(y) + dy;
++
++                    if (qx < 0 || qx >= static_cast<int>(Width) || qy < 0 || qy >= static_cast<int>(Height))
++                    {
++                        continue;
++                    }
++
++                    size_t qIdx = qy * Width + qx;
++                    const auto& NeighborHit = PrimaryHits[qIdx];
++
++                    if (!NeighborHit.ValidCondition)
++                    {
++                        continue;
++                    }
++
++                    float SpatialDistSq = static_cast<float>(dx * dx + dy * dy);
++                    float SpatialW = std::exp(-SpatialDistSq / 9.0f);
++
++                    float NormalDot = std::max(0.0f, OrientationClassifier::DotProduct(CenterHit.SurfaceNormal, NeighborHit.SurfaceNormal));
++                    float NormalW = std::pow(NormalDot, 16.0f);
++
++                    float DepthDiff = std::abs(CenterHit.RayDistance - NeighborHit.RayDistance);
++                    float DepthW = std::exp(-DepthDiff * 3.0f);
++
++                    float TotalW = SpatialW * NormalW * DepthW;
++                    const auto& GIRes = IndirectReservoirs[qIdx];
++                    if (GIRes.WeightSum > 0.0f)
++                    {
++                        IndirectAcc += GIRes.IndirectRadiance * TotalW;
++                        WeightTotal += TotalW;
++                    }
++                }
++            }
++
++            if (WeightTotal > 0.0f)
++            {
++                FilteredIndirect[idx] = IndirectAcc * (1.0f / WeightTotal);
++            }
++        }
++    }
++
++    // Phase 6: Radiance Composition with Aerial Perspective and Fog March
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            const auto& Hit = PrimaryHits[idx];
++            RayRecord PrimaryRay = GeneratePrimaryRay(ActiveCamera, x, y, 0.5f, 0.5f);
++            const Vector3 RenderOrigin = SkyFogIntegrator::RenderFromWorld(PrimaryRay.SpatialOrigin);
++            const Vector3 RenderDir = SkyFogIntegrator::RenderFromWorld(PrimaryRay.RayDirection);
++
++            if (!Hit.ValidCondition)
++            {
++                const Vector3 MidPoint = PrimaryRay.SpatialOrigin + PrimaryRay.RayDirection * (FogFar * 0.5f);
++                float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++                float Transmittance = 1.0f;
++                Vector3 Scatter = SkyFog.MarchFog(RenderOrigin, RenderDir, 0.0f, FogFar, FogVisible, Transmittance);
++                // Below-horizon misses sample the horizon zenith instead of
++                // the panel underground: distant haze, not a black seam.
++                Vector3 SkyDir = RenderDir;
++                if (SkyDir.y < 0.0f)
++                {
++                    SkyDir.y = 0.0f;
++                    float SkyLenSq = SkyDir.x * SkyDir.x + SkyDir.z * SkyDir.z;
++                    SkyDir = (SkyLenSq > 1e-12f) ? SkyDir / std::sqrt(SkyLenSq) : RenderDir;
++                }
++                Vector3 Sky = SkyFog.ComputeSkyRadiance(SkyDir);
++                AccumulatedBuffer[idx] = Scatter + Sky * Transmittance;
++                continue;
++            }
++
++            Vector3 Surface = DirectLight[idx] + FilteredIndirect[idx];
++            Vector3 Aerial = SkyFog.ApplyAerialPerspective(Surface, RenderOrigin, RenderDir, Hit.RayDistance);
++            const Vector3 MidPoint = PrimaryRay.SpatialOrigin + PrimaryRay.RayDirection * (Hit.RayDistance * 0.5f);
++            float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++            float Transmittance = 1.0f;
++            Vector3 Scatter = SkyFog.MarchFog(RenderOrigin, RenderDir, 0.0f, Hit.RayDistance, FogVisible, Transmittance);
++            AccumulatedBuffer[idx] = Scatter + Aerial * Transmittance;
++        }
++    }
++}
++
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                                  IMAGE EXPORT
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -413,10 +688,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+                 return std::clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
+             };
+ 
+-            constexpr float Exposure = 1.05f;
+-            float r = AcesFilm(Radiance.x * Exposure);
+-            float g = AcesFilm(Radiance.y * Exposure);
+-            float b = AcesFilm(Radiance.z * Exposure);
++            float r = AcesFilm(Radiance.x * ToneExposure);
++            float g = AcesFilm(Radiance.y * ToneExposure);
++            float b = AcesFilm(Radiance.z * ToneExposure);
+ 
+             // Gamma 2.2 correction
+             constexpr float InvGamma = 1.0f / 2.2f;
+@@ -437,4 +711,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+     return true;
+ }
+ 
++bool RendererHost::ExportCourtyardImage(const std::string& OutputPath) const noexcept
++{
++    std::ofstream Out(OutputPath, std::ios::binary);
++    if (!Out.is_open())
++    {
++        return false;
++    }
++
++    Out << "P6\n" << Width << " " << Height << "\n255\n";
++
++    // The gated panel post chain (exposure, tonemap, vignette) so the
++    // courtyard matches the harness proof frames pixel-structure.
++    for (uint32_t y = 0; y < Height; ++y)
++    {
++        for (uint32_t x = 0; x < Width; ++x)
++        {
++            size_t idx = y * Width + x;
++            Vector3 Display = SkyFog.ApplyPanelPost(AccumulatedBuffer[idx], x, y, Width, Height);
++
++            uint8_t R8 = static_cast<uint8_t>(std::clamp(Display.x * 255.0f, 0.0f, 255.0f));
++            uint8_t G8 = static_cast<uint8_t>(std::clamp(Display.y * 255.0f, 0.0f, 255.0f));
++            uint8_t B8 = static_cast<uint8_t>(std::clamp(Display.z * 255.0f, 0.0f, 255.0f));
++
++            Out.put(static_cast<char>(R8));
++            Out.put(static_cast<char>(G8));
++            Out.put(static_cast<char>(B8));
++        }
++    }
++
++    return true;
++}
++
+ } // namespace Frontier::ProjectZero
+diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
+index 202b2bb..e5908a0 100644
+--- a/Projects/Project-Zero/Source/RendererHost.h
++++ b/Projects/Project-Zero/Source/RendererHost.h
+@@ -6,6 +6,7 @@
+ 
+ #include "SceneStructure.h"
+ #include "RayTracingSolver.h"
++#include "SkyFogIntegrator.h"
+ #include "../../../GeometricRaster/CameraProjection.h"
+ #include "../../../DeviceExchange/OrientationClassifier.h"
+ #include <vector>
+@@ -77,7 +78,10 @@ public:
+     RendererHost& operator=(const RendererHost&) = delete;
+ 
+     void                    RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCamera, uint32_t SpatialPassCount = 2) noexcept;
++    void                    RenderCourtyardFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2) noexcept;
++    void                    AssignToneExposure(float LinearExposure) noexcept { ToneExposure = LinearExposure; }
+     [[nodiscard]] bool      ExportPpmImage(const std::string& OutputPath) const noexcept;
++    [[nodiscard]] bool      ExportCourtyardImage(const std::string& OutputPath) const noexcept;
+ 
+     [[nodiscard]] uint32_t  QueryWidth() const noexcept { return Width; }
+     [[nodiscard]] uint32_t  QueryHeight() const noexcept { return Height; }
+@@ -94,7 +98,9 @@ private:
+ 
+     uint32_t                Width;                              // [px] viewport width
+     uint32_t                Height;                             // [px] viewport height
+-    RayTracingSolver        Scene;                              // [scene] analytical Cornell Box geometry
++    float                   ToneExposure = 1.05f;               // [-] linear pre-tonemap multiplier
++    RayTracingSolver        Scene;                              // [scene] analytical Cornell or courtyard geometry
++    SkyFogIntegrator        SkyFog;                             // [atmosphere] celestial sky and fog volumes
+     std::vector<HitIntersection>      PrimaryHits;              // [visibility] primary visibility buffer
+     std::vector<PhotometricReservoir> DirectReservoirs;         // [restir_di] direct illumination reservoirs
+     std::vector<IndirectGIReservoir>  IndirectReservoirs;       // [restir_gi] global illumination reservoirs
+diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.cpp b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
+new file mode 100644
+index 0000000..a8defe6
+--- /dev/null
++++ b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
+@@ -0,0 +1,292 @@
++//============================================================================================================================================
++// 📦 Project-Zero/Source/SkyFogIntegrator.cpp — Celestial Sky And Fog Volume Integrator Implementation Over Slang
++//============================================================================================================================================
++
++#include "SkyFogIntegrator.h"
++#include <algorithm>
++#include <cmath>
++#include "../Shaders/SlangInterchange.h"
++#include "../Shaders/SkySpecification.slang"
++#include "../Shaders/FogSpecification.slang"
++// The prelude above defines Slang keyword macros (`in`, `uniform`); undefine
++// them here so nothing below this line can be macro-rewritten.
++#undef in
++#undef uniform
++
++namespace Frontier::ProjectZero {
++
++namespace {
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                  RENDER CORE STATE
++//------------------------------------------------------------------------------------------------------------------------
++
++// The shipped .slang core is compiled here as C++ (single translation unit,
++// so its file-scope routines keep one definition). The courtyard owns the
++// single atmosphere; the header never names .slang types.
++SkyConfiguration    CoreSky{};                                  // [-] panel-default sky parameters
++FogConfiguration    CoreFog{};                                  // [-] active fog scenario configuration
++SkyFogIntegrator::FogScenario CoreScenario = SkyFogIntegrator::FogScenario::Morning;
++
++float3              CoreSunRadiance{};                          // [lux] trans * color * intensity, shared
++
++float3 ToFloat3(const Vector3& Source) noexcept
++{
++    return float3(Source.x, Source.y, Source.z);
++}
++
++Vector3 ToVector3(const float3& Source) noexcept
++{
++    return Vector3{ Source.x, Source.y, Source.z };
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                               SOLAR EPHEMERIS COPY
++//------------------------------------------------------------------------------------------------------------------------
++
++// Verbatim host-side copy of the harness solar solver (Frontier repo,
++// Projects/Project-Zero/Host/SunPosition.h): the panel's own sunDirAt plus
++// the Tanner Helland kelvin fit, in double precision. Solved in the Y-up
++// render frame; the world swizzle below rotates it into Z-up.
++
++struct SolarState
++{
++    double DirX, DirY, DirZ;                                    // [-] unit sun vector, Y-up render frame
++    double ElevationDeg;                                        // [deg] sun elevation above horizon
++    double ColorR, ColorG, ColorB;                              // [0..1] kelvin-fitted sun tint
++};
++
++SolarState SolveSolarState(double LocalHours, double LatitudeDeg, double AzimuthOffsetDeg, double ColourTemperatureK) noexcept
++{
++    constexpr double Pi = 3.141592653589793;
++    constexpr double Deg2Rad = Pi / 180.0;
++    const double Lat = LatitudeDeg * Deg2Rad;
++    const double HourAngle = (LocalHours - 12.0) / 24.0 * Pi * 2.0;
++    const double SinElev = std::cos(Lat) * std::cos(HourAngle);
++    const double Elev = std::asin(std::clamp(SinElev, -1.0, 1.0));
++    const double Azim = std::atan2(std::sin(HourAngle), std::cos(HourAngle) * std::sin(Lat)) + Pi + AzimuthOffsetDeg * Deg2Rad;
++    SolarState Sun{};
++    Sun.DirX = std::sin(Azim) * std::cos(Elev);
++    Sun.DirY = std::sin(Elev);
++    Sun.DirZ = -std::cos(Azim) * std::cos(Elev);
++    Sun.ElevationDeg = Elev / Deg2Rad;
++
++    const double Kelvin = ColourTemperatureK / 100.0;
++    double Red = (Kelvin <= 66.0) ? 255.0 : 329.7 * std::pow(Kelvin - 60.0, -0.133);
++    double Green = (Kelvin <= 66.0) ? 99.47 * std::log(Kelvin) - 161.1 : 288.1 * std::pow(Kelvin - 60.0, -0.0755);
++    double Blue = (Kelvin >= 66.0) ? 255.0 : ((Kelvin <= 19.0) ? 0.0 : 138.5 * std::log(Kelvin - 10.0) - 305.0);
++    Sun.ColorR = std::clamp(Red, 0.0, 255.0) / 255.0;
++    Sun.ColorG = std::clamp(Green, 0.0, 255.0) / 255.0;
++    Sun.ColorB = std::clamp(Blue, 0.0, 255.0) / 255.0;
++    return Sun;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                               PANEL DEFAULT COPY
++//------------------------------------------------------------------------------------------------------------------------
++
++// Verbatim host-side copy of the panel defaults routine (Frontier repo,
++// Projects/Project-Zero/Host/CelHost.h): every SkyConfiguration field the
++// reference defaults() assigns, so the courtyard sky cannot drift from the
++// gated mirror.
++
++SkyConfiguration MakeSkyDefaults(const SolarState& Sun) noexcept
++{
++    SkyConfiguration p;
++    p.sunDir = float3(float(Sun.DirX), float(Sun.DirY), float(Sun.DirZ));
++    p.sunColor = float3(float(Sun.ColorR), float(Sun.ColorG), float(Sun.ColorB));
++    p.sunElevationDeg = float(Sun.ElevationDeg);
++    p.sunIntensity = 22.0f;
++    p.sunAngularRadius = 0.53f * 3.14159265f / 180.0f / 2.0f;
++    p.sunSoftness = 0.25f;
++    p.sunDiscBoost = 12.0f;
++    p.rayleigh = 1.0f;
++    p.mie = 1.0f;
++    p.mieG = 0.78f;
++    p.ozone = 1.2f;
++    p.planetRadius = 6371000.0f;
++    p.atmoHeight = 100000.0f;
++    p.rayleighH = 8000.0f;
++    p.mieH = 1200.0f;
++    p.skyTint = float3(1.0f, 1.0f, 1.0f);
++    p.skyBright = 1.0f;
++    p.groundAlbedo = float3(0.16862746f, 0.16078432f, 0.14117648f);
++    p.groundBright = 1.0f;
++    p.dawnIntensity = 1.0f;
++    p.lineIntensity = 1.0f;
++    p.lineAuto = 1u;
++    p.exposureStops = 0.4f;
++    p.tonemap = 1u;
++    p.bloom = 1.0f;
++    p.vignette = 0.28f;
++    p.grain = 0.0f;
++    p.camHeight = 2.0f;
++    p.timeSeconds = 0.5f;
++    p.fogOn = 0u;
++    p.fogDensity = 0.011f;
++    p.fogHeight = 42.0f;
++    p.fogScatter = 0.7f;
++    p.fogColor = float3(0.5607843f, 0.6431373f, 0.73333335f);
++    p.afOn = 1u;
++    p.afDensity = 7.0f * 1e-5f;
++    p.afHeight = 1200.0f;
++    p.afStart = 0.0f;
++    p.afMie = 0.35f;
++    p.afG = 0.7f;
++    p.afSky = 1.0f;
++    p.afTint = float3(1.0f, 1.0f, 1.0f);
++    p.skyAmb = SkyAmbientCompute(p);
++    p.starsOn = 1u;
++    p.starDensity = 1.0f;
++    p.starBright = 1.0f;
++    p.starSize = 1.0f;
++    p.starGlow = 0.8f;
++    p.starTwinkle = 0.5f;
++    p.starColor = 1.0f;
++    p.starLimit = 1.5f;
++    p.starMilky = 1.0f;
++    p.starRot = 40.0f * 3.14159265f / 180.0f;
++    p.starTilt = -62.0f * 3.14159265f / 180.0f;
++    p.starLayers = 3.0f;
++    p.starAA = 1.0f;
++    p.starCeil = 8.0f * 2.6e-3f * (p.starBright != 0.0f ? p.starBright : 1.0f) * 3.2f * 1.6f;
++    p.pixAngle = 0.0f;
++    return p;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                 FOG SCENARIO COPY
++//------------------------------------------------------------------------------------------------------------------------
++
++// Verbatim copy of the harness fog scenarios (Frontier repo,
++// Projects/Project-Zero/Host/FogViewport.cpp): the same global veil plus
++// the morning ground-mist box and the backlit local sphere, all placed in
++// the Y-up render frame.
++
++FogConfiguration MakeFogScenario(SkyFogIntegrator::FogScenario Scenario, const float3& Ambient) noexcept
++{
++    FogConfiguration c = FogConfigurationMake(0.0006f, 0.15f, 0.0f, float3(0.75f, 0.78f, 0.82f), 0.55f, Ambient, 0.0f, 12u, 400.0f);
++    if (Scenario == SkyFogIntegrator::FogScenario::Morning)
++    {
++        c.globalDensity = 0.004f;
++        c.globalHeightFalloff = 0.25f;
++        c.volumeCount = 1u;
++        c.volumes[0] = FogVolumeMake(FogShapeBox, float3(0.0f, 1.0f, 2.0f), float3(12.0f, 1.2f, 10.0f), 0.020f, 0.35f,
++            float3(0.80f, 0.82f, 0.85f), 0.55f, float3(0.0f, 0.0f, 0.0f), 0.6f, 0.15f);
++    }
++    else if (Scenario == SkyFogIntegrator::FogScenario::Backlit)
++    {
++        c.globalDensity = 0.0015f;
++        c.volumeCount = 1u;
++        c.volumes[0] = FogVolumeMake(FogShapeSphere, float3(10.0f, 3.0f, 5.1f), float3(5.0f, 5.0f, 5.0f), 0.030f, 0.10f,
++            float3(0.85f, 0.82f, 0.78f), 0.70f, float3(0.0f, 0.0f, 0.0f), 0.5f, 0.20f);
++    }
++    return c;
++}
++
++} // namespace
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                LIFECYCLE IMPLEMENTATION
++//------------------------------------------------------------------------------------------------------------------------
++
++SkyFogIntegrator::SkyFogIntegrator() noexcept
++{
++    // Safe-by-default courtyard light: 06:24 sun over morning ground mist.
++    AssignSunHour(6.4);
++    AssignFogScenario(FogScenario::Morning);
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                 ASSIGNMENT QUERIES
++//------------------------------------------------------------------------------------------------------------------------
++
++void SkyFogIntegrator::AssignSunHour(double LocalHours) noexcept
++{
++    // Johannesburg latitude with panel-default longitude offset and lamp,
++    // identical to the gated harness invocation.
++    const SolarState Sun = SolveSolarState(LocalHours, -26.0, 0.0, 5800.0);
++    CoreSky = MakeSkyDefaults(Sun);
++    const float3 SkyOrigin = float3(0.0f, CoreSky.planetRadius + 2.0f, 0.0f);
++    const AtmosphereStructure SunPath = AtmosphereCompute(SkyOrigin, CoreSky.sunDir, CoreSky);
++    CoreSunRadiance = SunPath.trans * CoreSky.sunColor * CoreSky.sunIntensity;
++    CoreFog = MakeFogScenario(CoreScenario, SkyAmbientCompute(CoreSky));
++}
++
++void SkyFogIntegrator::AssignFogScenario(FogScenario Scenario) noexcept
++{
++    CoreScenario = Scenario;
++    CoreFog = MakeFogScenario(CoreScenario, SkyAmbientCompute(CoreSky));
++}
++
++Vector3 SkyFogIntegrator::QuerySunDirectionRender() const noexcept
++{
++    return ToVector3(CoreSky.sunDir);
++}
++
++Vector3 SkyFogIntegrator::QuerySunDirectionWorld() const noexcept
++{
++    return WorldFromRender(ToVector3(CoreSky.sunDir));
++}
++
++Vector3 SkyFogIntegrator::QuerySunRadiance() const noexcept
++{
++    return ToVector3(CoreSunRadiance);
++}
++
++Vector3 SkyFogIntegrator::QueryAmbientRadiance() const noexcept
++{
++    return ToVector3(SkyAmbientCompute(CoreSky));
++}
++
++float SkyFogIntegrator::QueryFogFarDistance() const noexcept
++{
++    return CoreFog.maxMarchDistance;
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                              RADIANCE INTEGRATION
++//------------------------------------------------------------------------------------------------------------------------
++
++Vector3 SkyFogIntegrator::ComputeSkyRadiance(const Vector3& RenderDir) const noexcept
++{
++    return ToVector3(SkyRadianceCompute(ToFloat3(RenderDir), CoreSky));
++}
++
++Vector3 SkyFogIntegrator::ApplyPanelPost(const Vector3& LinearColor, uint32_t PixelX, uint32_t PixelY, uint32_t ImageWidth, uint32_t ImageHeight) const noexcept
++{
++    const float2 Uv = ViewportUVCompute(uint(PixelX), uint(PixelY), uint(ImageWidth), uint(ImageHeight));
++    return ToVector3(SkyPostApply(ToFloat3(LinearColor), Uv.x, Uv.y, float(ImageWidth), float(ImageHeight), uint(PixelX), uint(PixelY), CoreSky));
++}
++
++Vector3 SkyFogIntegrator::MarchFog(const Vector3& RenderOrigin, const Vector3& RenderDir, float TMin, float TMax, float LightVisibility, float& Transmittance) const noexcept
++{
++    const FogMarchStructure March = FogMarchVolumes(ToFloat3(RenderOrigin), ToFloat3(RenderDir), TMin, TMax, CoreSky.sunDir, CoreSunRadiance, LightVisibility, CoreFog);
++    Transmittance = March.transmittance;
++    return ToVector3(March.scatter);
++}
++
++Vector3 SkyFogIntegrator::ApplyAerialPerspective(const Vector3& SurfaceColor, const Vector3& RenderOrigin, const Vector3& RenderDir, float Distance) const noexcept
++{
++    const float Facing = SunFacingCompute(ToFloat3(RenderDir), CoreSky.sunDir);
++    const float3 HorizonGlow = DawnGlowCompute(ToFloat3(RenderDir), CoreSky.sunElevationDeg, Facing, CoreSky);
++    return ToVector3(FogAtmosphereApply(ToFloat3(SurfaceColor), ToFloat3(RenderOrigin), ToFloat3(RenderDir), Distance, HorizonGlow, CoreSky));
++}
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                               FRAME CONVERSION
++//------------------------------------------------------------------------------------------------------------------------
++
++Vector3 SkyFogIntegrator::RenderFromWorld(const Vector3& World) noexcept
++{
++    // Proper rotation (determinant +1): X stays east, world up becomes
++    // render up, world north becomes render negative-Z.
++    return Vector3{ World.x, World.z, -World.y };
++}
++
++Vector3 SkyFogIntegrator::WorldFromRender(const Vector3& Render) noexcept
++{
++    return Vector3{ Render.x, -Render.z, Render.y };
++}
++
++} // namespace Frontier::ProjectZero
+diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.h b/Projects/Project-Zero/Source/SkyFogIntegrator.h
+new file mode 100644
+index 0000000..763cd96
+--- /dev/null
++++ b/Projects/Project-Zero/Source/SkyFogIntegrator.h
+@@ -0,0 +1,46 @@
++//============================================================================================================================================
++// 📦 Project-Zero/Source/SkyFogIntegrator.h — Celestial Sky And Fog Volume Integrator Over The Shipped Slang Core
++//============================================================================================================================================
++
++#pragma once
++
++#include "../../../DeviceExchange/OrientationClassifier.h"
++#include <cstdint>
++
++namespace Frontier::ProjectZero {
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                               SKY FOG INTEGRATOR
++//------------------------------------------------------------------------------------------------------------------------
++
++class SkyFogIntegrator
++{
++public:
++    enum class FogScenario : uint32_t
++    {
++        Clear   = 0,                                                        // [scenario] thin global veil only
++        Morning = 1,                                                        // [scenario] ground mist box plus veil
++        Backlit = 2                                                         // [scenario] glowing local sphere plus veil
++    };
++
++    SkyFogIntegrator() noexcept;
++
++    void                    AssignSunHour(double LocalHours) noexcept;
++    void                    AssignFogScenario(FogScenario Scenario) noexcept;
++
++    [[nodiscard]] Vector3   QuerySunDirectionRender() const noexcept;        // [-] unit sun vector, Y-up render frame
++    [[nodiscard]] Vector3   QuerySunDirectionWorld() const noexcept;         // [-] unit sun vector, Z-up world frame
++    [[nodiscard]] Vector3   QuerySunRadiance() const noexcept;              // [lux] atmosphere-attenuated sun
++    [[nodiscard]] Vector3   QueryAmbientRadiance() const noexcept;          // [lux] three-sample sky ambient
++    [[nodiscard]] float     QueryFogFarDistance() const noexcept;           // [m] march cutoff for sky rays
++
++    [[nodiscard]] Vector3   ComputeSkyRadiance(const Vector3& RenderDir) const noexcept;
++    [[nodiscard]] Vector3   ApplyPanelPost(const Vector3& LinearColor, uint32_t PixelX, uint32_t PixelY, uint32_t ImageWidth, uint32_t ImageHeight) const noexcept;
++    [[nodiscard]] Vector3   MarchFog(const Vector3& RenderOrigin, const Vector3& RenderDir, float TMin, float TMax, float LightVisibility, float& Transmittance) const noexcept;
++    [[nodiscard]] Vector3   ApplyAerialPerspective(const Vector3& SurfaceColor, const Vector3& RenderOrigin, const Vector3& RenderDir, float Distance) const noexcept;
++
++    [[nodiscard]] static Vector3 RenderFromWorld(const Vector3& World) noexcept; // (x, z, -y) rotation, Y-up render
++    [[nodiscard]] static Vector3 WorldFromRender(const Vector3& Render) noexcept; // (x, -z, y) rotation, Z-up world
++};
++
++} // namespace Frontier::ProjectZero

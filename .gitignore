@@ -5,3 +5,6 @@ Projects/Project-Zero/Host/MediaProbe
 Projects/Project-Zero/Host/ReSTIRConvergence
 Projects/Project-Zero/Diagnostics/Proof/*.ppm
 Projects/Project-Zero/Diagnostics/Proof/media.csv
+Projects/Project-Zero/Host/FogProbe
+Projects/Project-Zero/Host/FogViewport
+Projects/Project-Zero/Diagnostics/Proof/fog.csv

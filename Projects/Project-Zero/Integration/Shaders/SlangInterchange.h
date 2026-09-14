@@ -1,14 +1,14 @@
-//================================================================================
-// SlangCompat.h — C++ prelude for dual-compiling Shaders/*.slang as C++17.
+//============================================================================================================================================
+// 📦 Frontier/Shaders/SlangInterchange.h — Slang/C++ Dual-Compile Arithmetic Header
+// SlangInterchange.h — C++ dual header for compiling Integration/Shaders/*.slang as C++17.
 //
 // Include this BEFORE including any dual-compile .slang file from Host/. It
 // provides the vector types, the shared builtins, and the keyword macros so
 // that the shipped shader source executes verbatim on the CPU for verification.
-// Defines SLANG_COMPAT_CXX so Slang-only shells (entry points, buffers) are
+// Defines SLANG_COMPAT_CXX so Slang-only entry regions (entries, resources) are
 // excluded from the C++ translation unit.
-//================================================================================
-#ifndef PROJECT_ZERO_SLANG_COMPAT_H
-#define PROJECT_ZERO_SLANG_COMPAT_H
+#ifndef FRONTIER_SLANG_INTERCHANGE_H
+#define FRONTIER_SLANG_INTERCHANGE_H
 
 #define SLANG_COMPAT_CXX 1
 
@@ -17,7 +17,7 @@
 #include <cstdint>
 
 // Slang keywords that C++ spells differently (or not at all). NOTE: `out` and
-// `inout` have NO C++ spelling, so the dual-compile core never uses them —
+// `inout` have NO C++ spelling, so the dual-compile text never uses them —
 // multi-value returns use small structs instead (checked by Diagnostics).
 #define uniform
 #define in
@@ -119,9 +119,9 @@ inline float3 clamp(const float3& v, float lo, float hi)
     return float3(clamp(v.x, lo, hi), clamp(v.y, lo, hi), clamp(v.z, lo, hi));
 }
 
-inline float celFract(float x) { return x - floor(x); }
-inline float celExp2(float x) { return exp2(x); }
-inline float celPow(float x, float y) { return pow(x, y); }
+inline float MathFract(float x) { return x - floor(x); }
+inline float MathExp2(float x) { return exp2(x); }
+inline float MathPow(float x, float y) { return pow(x, y); }
 inline float fract(float x) { return x - floor(x); }
 inline float3 fract(const float3& v) { return float3(fract(v.x), fract(v.y), fract(v.z)); }
 
@@ -164,4 +164,32 @@ inline float2 normalize(const float2& v)
 static_assert(sizeof(float3) == 12, "float3 must be tightly packed");
 static_assert(sizeof(uint) == 4, "uint must be 32-bit");
 
-#endif // PROJECT_ZERO_SLANG_COMPAT_H
+// ---- int3/uint3 (mirror Slang integer vector semantics; wraparound) ----
+struct int3
+{
+    int x;
+    int y;
+    int z;
+    int3() : x(0), y(0), z(0) {}
+    int3(int s) : x(s), y(s), z(s) {}
+    int3(int ax, int ay, int az) : x(ax), y(ay), z(az) {}
+    explicit int3(const float3& v) : x(int(v.x)), y(int(v.y)), z(int(v.z)) {}
+};
+struct uint3
+{
+    unsigned int x;
+    unsigned int y;
+    unsigned int z;
+    uint3() : x(0u), y(0u), z(0u) {}
+    uint3(unsigned int s) : x(s), y(s), z(s) {}
+    uint3(unsigned int ax, unsigned int ay, unsigned int az) : x(ax), y(ay), z(az) {}
+    explicit uint3(const int3& v) : x(unsigned(v.x)), y(unsigned(v.y)), z(unsigned(v.z)) {}
+};
+inline uint3 operator+(const uint3& a, const uint3& b) { return uint3(a.x + b.x, a.y + b.y, a.z + b.z); }
+inline uint3 operator*(const uint3& a, const uint3& b) { return uint3(a.x * b.x, a.y * b.y, a.z * b.z); }
+inline uint3 operator*(const uint3& a, unsigned int s) { return uint3(a.x * s, a.y * s, a.z * s); }
+inline uint3 operator^(const uint3& a, const uint3& b) { return uint3(a.x ^ b.x, a.y ^ b.y, a.z ^ b.z); }
+inline uint3 operator>>(const uint3& a, unsigned int s) { return uint3(a.x >> s, a.y >> s, a.z >> s); }
+inline int3 operator+(const int3& a, const int3& b) { return int3(a.x + b.x, a.y + b.y, a.z + b.z); }
+
+#endif // FRONTIER_SLANG_INTERCHANGE_H

@@ -1,7 +1,7 @@
 //================================================================================
 // SunPosition.h — host-side solar ephemeris (the panel's own sunDirAt +
 // kelvinRGB, in double precision). The .slang core takes the solved sun as
-// inputs (see CelParams); this header solves them. Also used by the Vulkan
+// inputs (see SkyConfiguration); this header solves them. Also used by the Vulkan
 // engine to fill the uniform buffer.
 //================================================================================
 #ifndef PROJECT_ZERO_SUN_POSITION_H

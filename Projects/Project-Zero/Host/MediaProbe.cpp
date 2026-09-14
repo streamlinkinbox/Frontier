@@ -1,5 +1,5 @@
 //================================================================================
-// MediaProbe — samples the shipped core's celApplyMedia over seeded random
+// MediaProbe — samples the shipped core's SkyMediaApply over seeded random
 // inputs (plus the panel's dS regimes) and dumps a CSV. The parity gate's G3
 // recomputes every row with an independent numpy transcription of the panel's
 // applyMedia (lines 947-962) and bounds the difference.
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
             ProjectZero::SolveSun(suns[s], -26.0, 0.0, 5800.0);
         for (int combo = 0; combo < 4; ++combo)
         {
-            CelParams p = ProjectZero::MakePanelParams(sun);
+            SkyConfiguration p = ProjectZero::MakePanelParams(sun);
             const int fogOn = (combo & 1) != 0 ? 1 : 0;
             const int afOn = (combo & 2) != 0 ? 1 : 0;
             p.fogOn = uint(fogOn);
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
                 tr.x = uni(rng);
                 tr.y = uni(rng);
                 tr.z = uni(rng);
-                const float3 o = celApplyMedia(col, dir, d, hz, tr, p);
+                const float3 o = SkyMediaApply(col, dir, d, hz, tr, p);
                 std::fprintf(f, "%.6g,%d,%d,%.9g,%.9g,%.9g,%.9g,"
                                "%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,"
                                "%.9g,%.9g,%.9g,%.9g,%.9g,%.9g,"

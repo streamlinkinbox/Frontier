@@ -1,5 +1,5 @@
 //================================================================================
-// ReSTIRConvergence — T2/T3/T4 for the shipped CelestialReSTIR.slang dual core.
+// ReSTIRConvergence — T2/T3/T4 for the shipped ReSTIRSequence.slang dual core.
 //
 // Scene: a diffuse corner (infinite floor y = 0 + wall z = -4, y in [0, 4],
 // uniform albedo 0.5) under the celestial sky, all in the sky frame. The wall
@@ -16,7 +16,7 @@
 // Exit code 0 iff every gate passes. Prints the full numbers either way.
 //================================================================================
 #include "CelHost.h"
-#include "CelestialReSTIR.slang"
+#include "ReSTIRSequence.slang"
 
 #include <cmath>
 #include <cstdint>
@@ -155,7 +155,7 @@ inline float CornerVis(float3 o, float3 d) noexcept
     return TraceCorner(o, d, 1e-3f).hit ? 0.0f : 1.0f;
 }
 
-void BuildGBuffer(std::vector<GB>& gb, const CelCamera& cam) noexcept
+void BuildGBuffer(std::vector<GB>& gb, const SkyProjection& cam) noexcept
 {
     gb.resize(size_t(kW) * kH);
     const float3 eye = float3(0.0f, 2.0f, 3.0f);
@@ -198,8 +198,8 @@ void BuildGBuffer(std::vector<GB>& gb, const CelCamera& cam) noexcept
 
 // ---- Entry mirrors (same dual calls, same RNG streams as the .slang) ----
 
-void RunDiInitial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
-                  const CelParams& p, uint frame, uint gSeed) noexcept
+void RunDiInitial(const std::vector<GB>& gb, std::vector<DirectReservoirStructure>& cur,
+                  const SkyConfiguration& p, uint frame, uint RandomSeed) noexcept
 {
     for (uint32_t y = 0; y < kH; ++y)
     {
@@ -207,9 +207,9 @@ void RunDiInitial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResDI res = celResDIMake();
+            DirectReservoirStructure res = DirectReservoirMake();
             res.m0 = float(kM0);
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 0u) ^ gSeed);
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 0u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 const float3 nSky = normalize(g.normal);
@@ -217,31 +217,31 @@ void RunDiInitial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
                 for (uint i = 0u; i < kM0; i++)
                 {
                     const uint s = i % 4u;
-                    CelDraw d;
+                    CandidateStructure d;
                     if (s <= 1u)
                     {
-                        d = celDrawSunCone(rng, p);
+                        d = CandidateSunCone(rng, p);
                     }
                     else if (s == 2u)
                     {
-                        d = celDrawAureole(rng, p);
+                        d = CandidateAureole(rng, p);
                     }
                     else
                     {
-                        d = celDrawSphere(rng);
+                        d = CandidateSphere(rng);
                     }
                     rng = d.rng;
                     // DI lights with THE sky (disc + aureole + atmosphere +
-                    // glow + stars + media), the same celSkyFull GI uses.
-                    const float3 leFull = celSkyFull(d.dir, p);
-                    const float qmix = 0.5f * celPdfSunConeAt(d.dir, p)
-                                     + 0.25f * celPdfAureoleAt(d.dir, p)
-                                     + 0.25f * (1.0f / (4.0f * CEL_PI));
+                    // glow + stars + media), the same SkyRadianceCompute GI uses.
+                    const float3 leFull = SkyRadianceCompute(d.dir, p);
+                    const float qmix = 0.5f * DensitySunConeAt(d.dir, p)
+                                     + 0.25f * DensityAureoleAt(d.dir, p)
+                                     + 0.25f * (1.0f / (4.0f * SkyPi));
                     d.pdf = qmix;
                     const float vis = CornerVis(origin, d.dir);
                     const float cosT = max(dot(nSky, d.dir), 0.0f);
-                    res = celUpdateDI(res, d, leFull, cosT, g.albedo, rng, vis);
-                    const CelRandU ru = celRandNextU(rng);
+                    res = DirectReservoirUpdate(res, d, leFull, cosT, g.albedo, rng, vis);
+                    const RandomScalarStructure ru = RandomScalarNext(rng);
                     rng = ru.rng;
                 }
             }
@@ -250,8 +250,8 @@ void RunDiInitial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
     }
 }
 
-void RunDiTemporal(const std::vector<GB>& gb, const std::vector<CelResDI>& read,
-                   std::vector<CelResDI>& cur, uint frame, uint gSeed) noexcept
+void RunDiTemporal(const std::vector<GB>& gb, const std::vector<DirectReservoirStructure>& read,
+                   std::vector<DirectReservoirStructure>& cur, uint frame, uint RandomSeed) noexcept
 {
     for (uint32_t y = 0; y < kH; ++y)
     {
@@ -259,8 +259,8 @@ void RunDiTemporal(const std::vector<GB>& gb, const std::vector<CelResDI>& read,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResDI step = cur[idx];
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 1u) ^ gSeed);
+            DirectReservoirStructure step = cur[idx];
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 1u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 const float3 origin = g.pos + g.normal * 1e-3f;
@@ -270,7 +270,7 @@ void RunDiTemporal(const std::vector<GB>& gb, const std::vector<CelResDI>& read,
                 {
                     const size_t pidx = size_t(py) * kW + uint32_t(px);
                     const GB& gp = gb[pidx];
-                    CelResDI cad = read[pidx];
+                    DirectReservoirStructure cad = read[pidx];
                     const float dMax = max(g.depth, 0.1f);
                     const bool geomOk = fabsf(gp.depth - g.depth) < 0.1f * dMax
                                      && dot(gp.normal, g.normal) > 0.9f;
@@ -283,9 +283,9 @@ void RunDiTemporal(const std::vector<GB>& gb, const std::vector<CelResDI>& read,
                         }
                         const float3 nSky = normalize(g.normal);
                         const float3 nPSky = normalize(gp.normal);
-                        step = celCombineDI(step, nSky, g.albedo, cad, nPSky,
+                        step = DirectReservoirCombine(step, nSky, g.albedo, cad, nPSky,
                                             gp.albedo, rng);
-                        const CelRandU ru = celRandNextU(rng);
+                        const RandomScalarStructure ru = RandomScalarNext(rng);
                         rng = ru.rng;
                     }
                 }
@@ -299,8 +299,8 @@ void RunDiTemporal(const std::vector<GB>& gb, const std::vector<CelResDI>& read,
     }
 }
 
-void RunDiSpatial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
-                  uint frame, uint gSeed) noexcept
+void RunDiSpatial(const std::vector<GB>& gb, std::vector<DirectReservoirStructure>& cur,
+                  uint frame, uint RandomSeed) noexcept
 {
     for (uint32_t y = 0; y < kH; ++y)
     {
@@ -308,17 +308,17 @@ void RunDiSpatial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResDI step = cur[idx];
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 2u) ^ gSeed);
+            DirectReservoirStructure step = cur[idx];
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 2u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 const float3 nSky = normalize(g.normal);
                 const float3 origin = g.pos + g.normal * 1e-3f;
                 for (uint k = 0u; k < kSpatTaps; k++)
                 {
-                    const CelRandF r1 = celRandNextF(rng);
+                    const RandomFloatStructure r1 = RandomFloatNext(rng);
                     rng = r1.rng;
-                    const CelRandF r2 = celRandNextF(rng);
+                    const RandomFloatStructure r2 = RandomFloatNext(rng);
                     rng = r2.rng;
                     const float rr = 30.0f * sqrt(max(r1.f, 1e-6f));
                     const float aa = 6.2831853f * r2.f + 2.3999632f * float(k);
@@ -330,16 +330,16 @@ void RunDiSpatial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
                     }
                     const size_t nidx = size_t(ty) * kW + uint32_t(tx);
                     const GB& gn = gb[nidx];
-                    const CelResDI cad = cur[nidx];
+                    const DirectReservoirStructure cad = cur[nidx];
                     const float dMax = max(g.depth, 0.1f);
                     const bool geomOk = fabsf(gn.depth - g.depth) < 0.1f * dMax
                                      && dot(gn.normal, g.normal) > 0.9f;
                     if (gn.depth > 0.0f && geomOk && cad.m > 0.0f)
                     {
                         const float3 nNSky = normalize(gn.normal);
-                        step = celCombineDI(step, nSky, g.albedo, cad, nNSky,
+                        step = DirectReservoirCombine(step, nSky, g.albedo, cad, nNSky,
                                             gn.albedo, rng);
-                        const CelRandU ru = celRandNextU(rng);
+                        const RandomScalarStructure ru = RandomScalarNext(rng);
                         rng = ru.rng;
                     }
                 }
@@ -353,8 +353,8 @@ void RunDiSpatial(const std::vector<GB>& gb, std::vector<CelResDI>& cur,
     }
 }
 
-void RunGiInitial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
-                  const CelParams& p, uint frame, uint gSeed) noexcept
+void RunGiInitial(const std::vector<GB>& gb, std::vector<IndirectReservoirStructure>& cur,
+                  const SkyConfiguration& p, uint frame, uint RandomSeed) noexcept
 {
     const uint m0 = kM0 / 2u;
     for (uint32_t y = 0; y < kH; ++y)
@@ -363,31 +363,31 @@ void RunGiInitial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResGI res = celResGIMake();
+            IndirectReservoirStructure res = IndirectReservoirMake();
             res.m0 = float(m0);
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 3u) ^ gSeed);
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 3u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 const float3 nSky = normalize(g.normal);
                 const float3 origin = g.pos + g.normal * 1e-3f;
                 for (uint i = 0u; i < m0; i++)
                 {
-                    CelDraw d = celDrawCosine(rng, nSky);
+                    CandidateStructure d = CandidateCosine(rng, nSky);
                     rng = d.rng;
                     const TraceHit h = TraceCorner(origin, d.dir, 1e-3f);
                     const float cosT = max(dot(nSky, d.dir), 0.0f);
-                    float3 throughput = g.albedo * (cosT / CEL_PI);
+                    float3 throughput = g.albedo * (cosT / SkyPi);
                     float3 le;
                     float pdf = d.pdf;
                     if (h.hit)
                     {
                         const float3 n2 = h.normal;
                         const float3 p2 = origin + d.dir * h.t + n2 * 1e-3f;
-                        const CelDraw d2 = celDrawCosine(rng, n2);
+                        const CandidateStructure d2 = CandidateCosine(rng, n2);
                         rng = d2.rng;
                         const TraceHit h2 = TraceCorner(p2, d2.dir, 1e-3f);
                         const float cos2 = max(dot(n2, d2.dir), 0.0f);
-                        throughput = throughput * g.albedo * (cos2 / CEL_PI);
+                        throughput = throughput * g.albedo * (cos2 / SkyPi);
                         pdf = d.pdf * d2.pdf;
                         if (h2.hit)
                         {
@@ -395,15 +395,15 @@ void RunGiInitial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
                         }
                         else
                         {
-                            le = celSkyFull(d2.dir, p);
+                            le = SkyRadianceCompute(d2.dir, p);
                         }
                     }
                     else
                     {
-                        le = celSkyFull(d.dir, p);
+                        le = SkyRadianceCompute(d.dir, p);
                     }
-                    res = celUpdateGI(res, d, throughput, le, pdf, rng);
-                    const CelRandU ru = celRandNextU(rng);
+                    res = IndirectReservoirUpdate(res, d, throughput, le, pdf, rng);
+                    const RandomScalarStructure ru = RandomScalarNext(rng);
                     rng = ru.rng;
                 }
             }
@@ -412,8 +412,8 @@ void RunGiInitial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
     }
 }
 
-void RunGiTemporal(const std::vector<GB>& gb, const std::vector<CelResGI>& read,
-                   std::vector<CelResGI>& cur, uint frame, uint gSeed) noexcept
+void RunGiTemporal(const std::vector<GB>& gb, const std::vector<IndirectReservoirStructure>& read,
+                   std::vector<IndirectReservoirStructure>& cur, uint frame, uint RandomSeed) noexcept
 {
     for (uint32_t y = 0; y < kH; ++y)
     {
@@ -421,8 +421,8 @@ void RunGiTemporal(const std::vector<GB>& gb, const std::vector<CelResGI>& read,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResGI step = cur[idx];
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 4u) ^ gSeed);
+            IndirectReservoirStructure step = cur[idx];
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 4u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 const int px = int(x) + int(g.motion.x);
@@ -431,7 +431,7 @@ void RunGiTemporal(const std::vector<GB>& gb, const std::vector<CelResGI>& read,
                 {
                     const size_t pidx = size_t(py) * kW + uint32_t(px);
                     const GB& gp = gb[pidx];
-                    CelResGI cad = read[pidx];
+                    IndirectReservoirStructure cad = read[pidx];
                     const float dMax = max(g.depth, 0.1f);
                     const bool geomOk = fabsf(gp.depth - g.depth) < 0.1f * dMax
                                      && dot(gp.normal, g.normal) > 0.9f;
@@ -442,8 +442,8 @@ void RunGiTemporal(const std::vector<GB>& gb, const std::vector<CelResGI>& read,
                             cad.wsum *= float(kMCap) / cad.m;
                             cad.m = float(kMCap);
                         }
-                        step = celCombineGI(step, cad, rng);
-                        const CelRandU ru = celRandNextU(rng);
+                        step = IndirectReservoirCombine(step, cad, rng);
+                        const RandomScalarStructure ru = RandomScalarNext(rng);
                         rng = ru.rng;
                     }
                 }
@@ -453,8 +453,8 @@ void RunGiTemporal(const std::vector<GB>& gb, const std::vector<CelResGI>& read,
     }
 }
 
-void RunGiSpatial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
-                  uint frame, uint gSeed) noexcept
+void RunGiSpatial(const std::vector<GB>& gb, std::vector<IndirectReservoirStructure>& cur,
+                  uint frame, uint RandomSeed) noexcept
 {
     for (uint32_t y = 0; y < kH; ++y)
     {
@@ -462,15 +462,15 @@ void RunGiSpatial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
         {
             const size_t idx = size_t(y) * kW + x;
             const GB& g = gb[idx];
-            CelResGI step = cur[idx];
-            CelRng rng = celRngMake(celRngSeed(uint(x), uint(y), frame, 5u) ^ gSeed);
+            IndirectReservoirStructure step = cur[idx];
+            RandomSequenceStructure rng = RandomSequenceMake(RandomSequenceSeed(uint(x), uint(y), frame, 5u) ^ RandomSeed);
             if (g.depth > 0.0f)
             {
                 for (uint k = 0u; k < kSpatTaps; k++)
                 {
-                    const CelRandF r1 = celRandNextF(rng);
+                    const RandomFloatStructure r1 = RandomFloatNext(rng);
                     rng = r1.rng;
-                    const CelRandF r2 = celRandNextF(rng);
+                    const RandomFloatStructure r2 = RandomFloatNext(rng);
                     rng = r2.rng;
                     const float rr = 30.0f * sqrt(max(r1.f, 1e-6f));
                     const float aa = 6.2831853f * r2.f + 2.3999632f * float(k);
@@ -482,14 +482,14 @@ void RunGiSpatial(const std::vector<GB>& gb, std::vector<CelResGI>& cur,
                     }
                     const size_t nidx = size_t(ty) * kW + uint32_t(tx);
                     const GB& gn = gb[nidx];
-                    const CelResGI cad = cur[nidx];
+                    const IndirectReservoirStructure cad = cur[nidx];
                     const float dMax = max(g.depth, 0.1f);
                     const bool geomOk = fabsf(gn.depth - g.depth) < 0.1f * dMax
                                      && dot(gn.normal, g.normal) > 0.9f;
                     if (gn.depth > 0.0f && geomOk && cad.m > 0.0f)
                     {
-                        step = celCombineGI(step, cad, rng);
-                        const CelRandU ru = celRandNextU(rng);
+                        step = IndirectReservoirCombine(step, cad, rng);
+                        const RandomScalarStructure ru = RandomScalarNext(rng);
                         rng = ru.rng;
                     }
                 }
@@ -505,7 +505,7 @@ struct ShadeOut
     float3 gi;
 };
 
-ShadeOut ShadePixel(const GB& g, const CelResDI& rd, const CelResGI& rg) noexcept
+ShadeOut ShadePixel(const GB& g, const DirectReservoirStructure& rd, const IndirectReservoirStructure& rg) noexcept
 {
     ShadeOut o;
     o.di = float3(0.0f, 0.0f, 0.0f);
@@ -516,10 +516,10 @@ ShadeOut ShadePixel(const GB& g, const CelResDI& rd, const CelResGI& rg) noexcep
     }
     const float3 nSky = normalize(g.normal);
     const float cosT = max(dot(nSky, rd.dir), 0.0f);
-    const float pDI = (rd.m > 0.0f) ? celTargetDI(rd.le, cosT, g.albedo) : 0.0f;
+    const float pDI = (rd.m > 0.0f) ? DirectTargetCompute(rd.le, cosT, g.albedo) : 0.0f;
     const float wDI = (pDI > 0.0f) ? rd.wsum / max(rd.m * pDI, 1e-12f) : 0.0f;
-    o.di = wDI * rd.le * rd.vis * cosT * g.albedo / CEL_PI;
-    const float pGI = (rg.m > 0.0f) ? celTargetGI(rg.throughput, rg.le) : 0.0f;
+    o.di = wDI * rd.le * rd.vis * cosT * g.albedo / SkyPi;
+    const float pGI = (rg.m > 0.0f) ? IndirectTargetCompute(rg.throughput, rg.le) : 0.0f;
     const float wGI = (pGI > 0.0f) ? rg.wsum / max(rg.m * pGI, 1e-12f) : 0.0f;
     o.gi = wGI * rg.throughput * rg.le;
     return o;
@@ -551,7 +551,7 @@ void BatchStats(const double* batch, int kB, int kN, float& lum, float& sigma) n
     sigma = float(std::sqrt(v / (kB - 1)) / std::sqrt(double(kB)) * kB);
 }
 
-BruteRef BruteForceDI(const CelParams& p, uint64_t seed, float3 P, float3 N) noexcept
+BruteRef BruteForceDI(const SkyConfiguration& p, uint64_t seed, float3 P, float3 N) noexcept
 {
     constexpr int kN = 1 << 19;
     constexpr int kB = 32;
@@ -611,7 +611,7 @@ BruteRef BruteForceDI(const CelParams& p, uint64_t seed, float3 P, float3 N) noe
             dz = s * std::sin(a);
         }
         const float3 dir = float3(float(dx), float(dy), float(dz));
-        const float3 le = celSkyFull(dir, p);
+        const float3 le = SkyRadianceCompute(dir, p);
         const double cosSun = dx * sx + dy * sy + dz * sz;
         const double qCone = (cosSun >= cosR) ? 1.0 / std::max(omegaC, 1e-9) : 0.0;
         const double qAur = (cosSun > 0.0) ? 9.0 * std::pow(cosSun, 8.0) / (4.0 * kPiH) : 0.0;
@@ -630,7 +630,7 @@ BruteRef BruteForceDI(const CelParams& p, uint64_t seed, float3 P, float3 N) noe
     return r;
 }
 
-BruteRef BruteForceGI(const CelParams& p, uint64_t seed, float3 P, float3 N) noexcept
+BruteRef BruteForceGI(const SkyConfiguration& p, uint64_t seed, float3 P, float3 N) noexcept
 {
     constexpr int kN = 1 << 18;
     constexpr int kB = 32;
@@ -671,7 +671,7 @@ BruteRef BruteForceGI(const CelParams& p, uint64_t seed, float3 P, float3 N) noe
         double q = q1;
         if (!h1.hit)
         {
-            const float3 le = celSkyFull(d1, p);
+            const float3 le = SkyRadianceCompute(d1, p);
             leR = le.x;
             leG = le.y;
             leB = le.z;
@@ -709,7 +709,7 @@ BruteRef BruteForceGI(const CelParams& p, uint64_t seed, float3 P, float3 N) noe
             q = q1 * (cos2 / kPiH);
             if (!h2.hit)
             {
-                const float3 le = celSkyFull(d2, p);
+                const float3 le = SkyRadianceCompute(d2, p);
                 leR = le.x;
                 leG = le.y;
                 leB = le.z;
@@ -769,8 +769,8 @@ int main(int argc, char** argv)
 
     const ProjectZero::SunState sun =
         ProjectZero::SolveSun(7.6, -26.0, 0.0, 5800.0);
-    CelParams p = ProjectZero::MakePanelParams(sun);
-    const CelCamera cam = ProjectZero::MakePanelCamera(0.0, -10.0, 72.0);
+    SkyConfiguration p = ProjectZero::MakePanelParams(sun);
+    const SkyProjection cam = ProjectZero::MakePanelCamera(0.0, -10.0, 72.0);
     p.pixAngle = 2.0f * cam.tanHalf / float(kH); // panel line 1219
     std::printf("sun 7.60h elev %.3f deg, corner scene, %ux%u, %d frames x %d runs\n",
                 sun.elevationDeg, kW, kH, a.frames, a.runs);
@@ -793,63 +793,63 @@ int main(int argc, char** argv)
                     probes[i][0], probes[i][1], g.normal.x, g.normal.y, g.normal.z);
     }
 
-    std::vector<CelResDI> diRead(size_t(kW) * kH), diCur(size_t(kW) * kH);
-    std::vector<CelResGI> giRead(size_t(kW) * kH), giCur(size_t(kW) * kH);
+    std::vector<DirectReservoirStructure> diRead(size_t(kW) * kH), diCur(size_t(kW) * kH);
+    std::vector<IndirectReservoirStructure> giRead(size_t(kW) * kH), giCur(size_t(kW) * kH);
     std::vector<double> diEst[3], giEst[3];
     std::vector<float3> fbFirst;
     std::vector<float3> fbMean(size_t(kW) * kH, float3(0.0f, 0.0f, 0.0f));
-    std::vector<CelResDI> diFirst;
-    std::vector<CelResGI> giFirst;
+    std::vector<DirectReservoirStructure> diFirst;
+    std::vector<IndirectReservoirStructure> giFirst;
     bool deterministic = true;
 
     for (int run = 0; run < a.runs + 1; ++run)
     {
         const bool repeat = (run == a.runs);
         const int effRun = repeat ? 0 : run;
-        const uint gSeed = a.seed0 + uint(effRun);
+        const uint RandomSeed = a.seed0 + uint(effRun);
         for (auto& r : diRead)
         {
-            r = celResDIMake();
+            r = DirectReservoirMake();
         }
         for (auto& r : giRead)
         {
-            r = celResGIMake();
+            r = IndirectReservoirMake();
         }
         for (int f = 0; f < a.frames; ++f)
         {
             const uint frame = uint(f);
-            RunDiInitial(gb, diCur, p, frame, gSeed);
+            RunDiInitial(gb, diCur, p, frame, RandomSeed);
             if (a.temporal)
             {
-                RunDiTemporal(gb, diRead, diCur, frame, gSeed);
+                RunDiTemporal(gb, diRead, diCur, frame, RandomSeed);
             }
             if (a.spatial)
             {
-                RunDiSpatial(gb, diCur, frame, gSeed);
+                RunDiSpatial(gb, diCur, frame, RandomSeed);
             }
-            RunGiInitial(gb, giCur, p, frame, gSeed);
+            RunGiInitial(gb, giCur, p, frame, RandomSeed);
             if (a.temporal)
             {
-                RunGiTemporal(gb, giRead, giCur, frame, gSeed);
+                RunGiTemporal(gb, giRead, giCur, frame, RandomSeed);
             }
             if (a.spatial)
             {
-                RunGiSpatial(gb, giCur, frame, gSeed);
+                RunGiSpatial(gb, giCur, frame, RandomSeed);
             }
             diRead = diCur;
             giRead = giCur;
         }
         if (!repeat)
         {
-            std::printf("run %d (seed %u):", run, gSeed);
+            std::printf("run %d (seed %u):", run, RandomSeed);
             for (int i = 0; i < 3; ++i)
             {
                 const size_t idx = size_t(probes[i][1]) * kW + probes[i][0];
                 const ShadeOut s = ShadePixel(gb[idx], diCur[idx], giCur[idx]);
-                diEst[i].push_back(celLuminanceDW(s.di));
-                giEst[i].push_back(celLuminanceDW(s.gi));
+                diEst[i].push_back(LuminanceDWCompute(s.di));
+                giEst[i].push_back(LuminanceDWCompute(s.gi));
                 std::printf(" %s DI=%.4f GI=%.4f", probeNames[i],
-                            celLuminanceDW(s.di), celLuminanceDW(s.gi));
+                            LuminanceDWCompute(s.di), LuminanceDWCompute(s.gi));
             }
             std::printf("\n");
             for (size_t i = 0; i < fbMean.size(); ++i)
@@ -879,9 +879,9 @@ int main(int argc, char** argv)
                     && std::memcmp(fbFirst.data(), fb.data(),
                                    fb.size() * sizeof(float3)) == 0
                     && std::memcmp(diFirst.data(), diCur.data(),
-                                   diCur.size() * sizeof(CelResDI)) == 0
+                                   diCur.size() * sizeof(DirectReservoirStructure)) == 0
                     && std::memcmp(giFirst.data(), giCur.data(),
-                                   giCur.size() * sizeof(CelResGI)) == 0;
+                                   giCur.size() * sizeof(IndirectReservoirStructure)) == 0;
             }
         }
     }
@@ -945,19 +945,19 @@ int main(int argc, char** argv)
             for (uint32_t x = 0; x < kW; ++x)
             {
                 const size_t idx = size_t(y) * kW + x;
-                const float2 uv = celViewportUV(uint(x), uint(y), uint(kW), uint(kH));
+                const float2 uv = ViewportUVCompute(uint(x), uint(y), uint(kW), uint(kH));
                 if (gb[idx].depth > 0.0f)
                 {
-                    ldr[idx] = celApplyPost(fbFirst[idx], uv.x, uv.y, float(kW),
+                    ldr[idx] = SkyPostApply(fbFirst[idx], uv.x, uv.y, float(kW),
                                             float(kH), uint(x), uint(y), p);
-                    ldrMean[idx] = celApplyPost(fbMean[idx], uv.x, uv.y, float(kW),
+                    ldrMean[idx] = SkyPostApply(fbMean[idx], uv.x, uv.y, float(kW),
                                                 float(kH), uint(x), uint(y), p);
                 }
                 else
                 {
                     const float3 dir = normalize(gb[idx].pos);
-                    const float3 hdr = celSkyPixel(dir, cam, p);
-                    ldr[idx] = celApplyPost(hdr, uv.x, uv.y, float(kW), float(kH),
+                    const float3 hdr = SkyPixelCompute(dir, cam, p);
+                    ldr[idx] = SkyPostApply(hdr, uv.x, uv.y, float(kW), float(kH),
                                             uint(x), uint(y), p);
                     ldrMean[idx] = ldr[idx];
                 }

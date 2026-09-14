@@ -5,8 +5,8 @@
 #ifndef PROJECT_ZERO_CEL_HOST_H
 #define PROJECT_ZERO_CEL_HOST_H
 
-#include "SlangCompat.h"
-#include "CelestialCore.slang" // the SHIPPED shader core, compiled as C++
+#include "SlangInterchange.h"
+#include "SkySpecification.slang" // the SHIPPED shader core, compiled as C++
 #include "SunPosition.h"
 
 #include <cmath>
@@ -18,9 +18,9 @@
 namespace ProjectZero {
 
 // Panel defaults (the reference defaults() routine), in one place.
-inline CelParams MakePanelParams(const SunState& sun) noexcept
+inline SkyConfiguration MakePanelParams(const SunState& sun) noexcept
 {
-    CelParams p;
+    SkyConfiguration p;
     p.sunDir = float3(float(sun.dirX), float(sun.dirY), float(sun.dirZ));
     p.sunColor = float3(float(sun.colorR), float(sun.colorG), float(sun.colorB));
     p.sunElevationDeg = float(sun.elevationDeg);
@@ -63,7 +63,7 @@ inline CelParams MakePanelParams(const SunState& sun) noexcept
     p.afG = 0.7f;
     p.afSky = 1.0f;
     p.afTint = float3(1.0f, 1.0f, 1.0f);
-    p.skyAmb = celSkyAmbient(p); // the panel's 3-sample probe pass
+    p.skyAmb = SkyAmbientCompute(p); // the panel's 3-sample probe pass
     p.starsOn = 1u;
     p.starDensity = 1.0f;
     p.starBright = 1.0f;
@@ -85,11 +85,11 @@ inline CelParams MakePanelParams(const SunState& sun) noexcept
 }
 
 // The panel's own camera basis (frame(): yaw/pitch in degrees, fov in degrees).
-inline CelCamera MakePanelCamera(double yawDeg, double pitchDeg, double fovDeg) noexcept
+inline SkyProjection MakePanelCamera(double yawDeg, double pitchDeg, double fovDeg) noexcept
 {
     const double yaw = yawDeg * kDeg2RadPanel;
     const double pitch = pitchDeg * kDeg2RadPanel;
-    CelCamera c;
+    SkyProjection c;
     c.fwd = float3(float(std::sin(yaw) * std::cos(pitch)), float(std::sin(pitch)),
                    float(-std::cos(yaw) * std::cos(pitch)));
     c.right = float3(float(std::cos(yaw)), 0.0f, float(std::sin(yaw)));
@@ -101,11 +101,11 @@ inline CelCamera MakePanelCamera(double yawDeg, double pitchDeg, double fovDeg) 
 
 // Primary ray for pixel (x, y), via the shipped core's own viewport helpers
 // (panel lines 1139-1140) — the harness cannot drift from the shader.
-inline float3 PrimaryRay(const CelCamera& c, uint32_t x, uint32_t y,
+inline float3 PrimaryRay(const SkyProjection& c, uint32_t x, uint32_t y,
                          uint32_t w, uint32_t h) noexcept
 {
-    const float2 uv = celViewportUV(uint(x), uint(y), uint(w), uint(h));
-    return celViewportDir(c, uv);
+    const float2 uv = ViewportUVCompute(uint(x), uint(y), uint(w), uint(h));
+    return ViewportDirectionCompute(c, uv);
 }
 
 inline bool WritePpm(const std::string& path, uint32_t w, uint32_t h,

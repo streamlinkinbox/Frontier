@@ -115,7 +115,7 @@ int main(int argc, char** argv)
     Frontier::ProjectZero::CelestialIntegrator sky(c);
     sky.SolveFrame(0.5f); // fract * 100 = 50, the oracle's grain seed
 
-    const CelCamera cam = ProjectZero::MakePanelCamera(a.yaw, a.pitch, 72.0);
+    const SkyProjection cam = ProjectZero::MakePanelCamera(a.yaw, a.pitch, 72.0);
     Frontier::ProjectZero::ObserverFrame obs;
     obs.Position = Frontier::Vector3{ 0.0f, 2.0f, 0.0f };
     obs.Forward = Frontier::Vector3{ cam.fwd.x, cam.fwd.y, cam.fwd.z };
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
             const Frontier::Vector3 d{ dir.x, dir.y, dir.z };
             const Frontier::Vector3 rad =
                 sky.SampleSkyRadiance(d, obs, pixelAngle, x, y);
-            const float2 uv = celViewportUV(uint(x), uint(y), uint(a.width), uint(a.height));
+            const float2 uv = ViewportUVCompute(uint(x), uint(y), uint(a.width), uint(a.height));
             const float su = uv.x * (float(a.height) / float(a.width));
             const Frontier::Vector3 ldr =
                 sky.ResolveDisplay(rad, su, uv.y, x, y);

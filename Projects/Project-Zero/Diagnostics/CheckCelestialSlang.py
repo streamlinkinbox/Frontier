@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Static dual-compile rules for the shipped .slang files.
 
-The dual region of CelestialCore.slang / CelestialReSTIR.slang compiles as
-C++17 (Host harness) AND as Slang (Vulkan engine) from the same text. These
+The dual region of SkySpecification.slang / ReSTIRSequence.slang /
+FogSpecification.slang compiles as C++17 (Host harness, via
+SlangInterchange.h) AND as Slang (Vulkan engine) from the same text. These
 rules reject constructs that are valid in only one language, so a violation
 fails here instead of on the first GPU build. Exit code 0 iff all rules pass.
 """
@@ -11,10 +12,33 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SHADERS = ROOT / "Shaders"
-FILES = [SHADERS / "CelestialCore.slang", SHADERS / "CelestialReSTIR.slang"]
+SHADERS = ROOT / "Integration" / "Shaders"
+FILES = [SHADERS / "SkySpecification.slang",
+         SHADERS / "ReSTIRSequence.slang",
+         SHADERS / "FogSpecification.slang"]
 
 FAILURES = []
+
+STRUCT_TYPES = (r"Sky\w*|Fog\w*|Direct\w*|Indirect\w*|Visibility\w*|"
+                r"Instance\w*|Candidate\w*|Random\w*|Intersection\w*|"
+                r"Atmosphere\w*")
+VALUE_TYPES = r"float[234]|int3|uint3"
+
+# Shell API surface: cbuffer fields + resources. Dual code must not touch them.
+SHELL_SYMBOLS = {
+    "SunDirection", "SunColor", "SunFactors", "AtmosphereA", "AtmosphereB",
+    "SkyTint", "GroundAlbedo", "PostA", "PostB", "MiscFactors",
+    "MediaA", "MediaB", "MediaC", "MediaD", "MediaE",
+    "StarA", "StarB", "StarC",
+    "ViewportWidth", "ViewportHeight", "TemporalIndex", "InitialCandidates",
+    "ReservoirCap", "SpatialTaps", "RandomSeed", "LaunchPad",
+    "CameraForward", "CameraRight", "CameraUp", "CameraPad",
+    "VisibilityExtent", "SceneAcceleration", "PositionExtent", "NormalExtent",
+    "IndexExtent", "InstanceExtent", "DirectReservoirPrior",
+    "IndirectReservoirPrior", "DirectReservoirExtent",
+    "IndirectReservoirExtent", "DisplayExtent", "SkyAmbientExtent",
+    "SkyAmbient",
+}
 
 
 def fail(rule, path, lineno, text):
@@ -37,7 +61,7 @@ def check(path):
             in_shell = True
         dual.append((i, line, in_shell))
 
-    # R1: no `&` outside `&&` (no C++ references, no address-of).
+    # R1: no `&` outside `&&` (no C++ references, no address-of; use % not &).
     for i, line, _ in dual:
         if re.search(r"&(?!&)", line.replace("&&", "")):
             fail("R1-no-ref", path, i, line.strip()[:90])
@@ -57,7 +81,9 @@ def check(path):
     # R3b: a lone `{` opening a `= Type` / `return Type` literal across lines.
     prev = ""
     for i, line, _ in dual:
-        if line.strip() == "{" and re.search(r"(=\s*|return\s+)(Cel\w*|float[234])\s*$", prev):
+        if line.strip() == "{" and re.search(
+                r"(=\s*|return\s+)(%s|%s)\s*$" % (STRUCT_TYPES, VALUE_TYPES),
+                prev):
             fail("R3b-no-brace-init", path, i, (prev.strip() + " {")[:90])
         if line.strip():
             prev = line
@@ -72,9 +98,10 @@ def check(path):
         if re.search(r"\b[ui]int(8|16|32|64)_t\b", line):
             fail("R5-no-fixed-int", path, i, line.strip()[:90])
 
-    # R6: dual region must not reference shell globals (`gCapital`).
+    # R6: dual region must not reference shell globals (explicit API set).
+    sympat = re.compile(r"\b(%s)\b" % "|".join(sorted(SHELL_SYMBOLS)))
     for i, line, in_shell in dual:
-        if not in_shell and re.search(r"\bg[A-Z]\w*", line):
+        if not in_shell and sympat.search(line):
             fail("R6-dual-pure", path, i, line.strip()[:90])
 
     # R7: float32 only (the panel is WebGL float; no double/long/short/half).
@@ -96,7 +123,8 @@ def check(path):
     # R10: struct-typed params carry `in` (input in Slang, empty in C++).
     for m in re.finditer(r"\b(\w+)\s+(\w+)\s*\(([^;{}]*)\)", code):
         _, _, params = m.groups()
-        for pm in re.finditer(r"(?:^|,)\s*(in\s+)?(Cel\w+|Cel\w*)\s+\w+\s*(?=[,)])", "," + params):
+        for pm in re.finditer(r"(?:^|,)\s*(in\s+)?(%s)\s+\w+\s*(?=[,)])" % STRUCT_TYPES,
+                              "," + params):
             if not pm.group(1):
                 lineno = code.count("\n", 0, m.start()) + 1
                 fail("R10-in-param", path, lineno, ("...%s..." % params.strip()[:70]))
@@ -109,17 +137,21 @@ def main():
             print("missing: %s" % path)
             return 1
         check(path)
-    # R11: the ReSTIR shell exposes exactly the 8 documented entries.
-    shell = (SHADERS / "CelestialReSTIR.slang").read_text()
-    entries = set(re.findall(r"void\s+(diInitial|diTemporal|diSpatial|giInitial|giTemporal|giSpatial|shade|skyViewport)\s*\(", shell))
-    expected = {"diInitial", "diTemporal", "diSpatial", "giInitial",
-                "giTemporal", "giSpatial", "shade", "skyViewport"}
+    # R11: the ReSTIR shell exposes exactly the 9 documented entries.
+    shell = (SHADERS / "ReSTIRSequence.slang").read_text()
+    entries = set(re.findall(r"void\s+(SkyAmbient|DirectInitial|DirectTemporal|"
+                             r"DirectSpatial|IndirectInitial|IndirectTemporal|"
+                             r"IndirectSpatial|PixelShade|SkyViewport)\s*\(",
+                             shell))
+    expected = {"SkyAmbient", "DirectInitial", "DirectTemporal", "DirectSpatial",
+                "IndirectInitial", "IndirectTemporal", "IndirectSpatial",
+                "PixelShade", "SkyViewport"}
     if entries != expected:
-        FAILURES.append("CelestialReSTIR.slang: [R11-entries] found %s" % sorted(entries))
+        FAILURES.append("ReSTIRSequence.slang: [R11-entries] found %s" % sorted(entries))
     if FAILURES:
-        print("CheckCelestialSlang: %d violation(s)" % len(FAILURES))
         for f in FAILURES:
-            print("  " + f)
+            print(f)
+        print("CheckCelestialSlang: %d violation(s)" % len(FAILURES))
         return 1
     print("CheckCelestialSlang: all rules pass (%d files)" % len(FILES))
     return 0

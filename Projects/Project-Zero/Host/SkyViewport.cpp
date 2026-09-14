@@ -1,5 +1,5 @@
 //================================================================================
-// SkyViewport — renders the shipped CelestialCore.slang sky on the CPU.
+// SkyViewport — renders the shipped SkySpecification.slang sky on the CPU.
 //
 // Mirrors the `skyViewport` entry point 1:1 (same ray convention, same post).
 // Usage:
@@ -106,14 +106,14 @@ int main(int argc, char** argv)
 
     const ProjectZero::SunState sun =
         ProjectZero::SolveSun(a.sun, -26.0, 0.0, 5800.0);
-    CelParams p = ProjectZero::MakePanelParams(sun);
+    SkyConfiguration p = ProjectZero::MakePanelParams(sun);
     p.grain = a.grain;
     if (!a.media)
     {
         p.fogOn = 0u;
         p.afOn = 0u;
     }
-    const CelCamera cam = ProjectZero::MakePanelCamera(a.yaw, a.pitch, a.fov);
+    const SkyProjection cam = ProjectZero::MakePanelCamera(a.yaw, a.pitch, a.fov);
     p.pixAngle = 2.0f * cam.tanHalf / float(a.height); // panel line 1219
 
     std::printf("sun %.2fh elev %.3f deg yaw %.1f pitch %.1f %ux%u grain %.2f\n",
@@ -132,11 +132,11 @@ int main(int argc, char** argv)
         for (uint32_t x = 0; x < a.width; ++x)
         {
             const float3 dir = ProjectZero::PrimaryRay(cam, x, y, a.width, a.height);
-            const float3 hdr = celSkyPixel(dir, cam, p);
-            const float2 uv = celViewportUV(uint(x), uint(y), uint(a.width), uint(a.height));
+            const float3 hdr = SkyPixelCompute(dir, cam, p);
+            const float2 uv = ViewportUVCompute(uint(x), uint(y), uint(a.width), uint(a.height));
             img[size_t(y) * a.width + x] =
-                celApplyPost(hdr, uv.x, uv.y, float(a.width), float(a.height), uint(x), uint(y), p);
-            const float lum = celLuminance(hdr);
+                SkyPostApply(hdr, uv.x, uv.y, float(a.width), float(a.height), uint(x), uint(y), p);
+            const float lum = LuminanceCompute(hdr);
             lumSum += lum;
             lumMax = lum > lumMax ? lum : lumMax;
             if (lin)
