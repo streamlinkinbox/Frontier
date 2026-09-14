@@ -1,0 +1,23 @@
+CheckCelestialSlang: all rules pass (2 files)
+G1 oracle 0640_default: MAE=0.0003 max=1 diffrac=0.00027 -> PASS
+G2 cpu-port 0640_default (sky 43%): MAE=0.0001 max=1 diffrac=0.00005 -> PASS
+G1 oracle 0640_lookup: MAE=0.0001 max=1 diffrac=0.00013 -> PASS
+G2 cpu-port 0640_lookup (sky 71%): MAE=0.0000 max=1 diffrac=0.00003 -> PASS
+G1 oracle 0760_lookup: MAE=0.0001 max=1 diffrac=0.00009 -> PASS
+G2 cpu-port 0760_lookup (sky 71%): MAE=0.0001 max=1 diffrac=0.00008 -> PASS
+G1 oracle 1200_lookup: MAE=0.0000 max=1 diffrac=0.00003 -> PASS
+G2 cpu-port 1200_lookup (sky 71%): MAE=0.0000 max=1 diffrac=0.00001 -> PASS
+G1 oracle 0640_sun: MAE=0.0002 max=1 diffrac=0.00017 -> PASS
+G2 cpu-port 0640_sun (sky 55%): MAE=0.0001 max=1 diffrac=0.00007 -> PASS
+G1 oracle 0760_sun: MAE=0.0001 max=1 diffrac=0.00010 -> PASS
+G2 cpu-port 0760_sun (sky 75%): MAE=0.0000 max=1 diffrac=0.00004 -> PASS
+ReSTIRConvergence: PASS
+   T4 determinism: PASS
+   probe floor T2 DI: est 0.186489 se 0.025706 ref 0.163074 s 0.000487 -> PASS
+   probe floor T3 GI: est 0.124091 se 0.003528 ref 0.122966 s 0.000353 -> PASS
+   probe floor-left T2 DI: est 0.183752 se 0.026285 ref 0.171111 s 0.000446 -> PASS
+   probe floor-left T3 GI: est 0.122568 se 0.004630 ref 0.127299 s 0.000657 -> PASS
+   probe wall T2 DI: est 0.082772 se 0.008314 ref 0.095618 s 0.000500 -> PASS
+   probe wall T3 GI: est 0.113139 se 0.003174 ref 0.114195 s 0.000336 -> PASS
+   OVERALL: PASS
+OVERALL: PASS

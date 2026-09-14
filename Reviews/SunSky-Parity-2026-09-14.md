@@ -202,3 +202,22 @@ The work under review lives on `eosclient0001-rgb/Frontier` branch
 branch `arena/01a0a07b-frontier`, which currently holds only this review plus the
 oracle. Implementing §5 means bringing the Project Zero tree onto this branch
 (same vendor + entry-point pattern as before) and then landing P0–P1 on top.
+
+## Addendum 2026-09-14 — implemented in `.slang`, lit strictly by ReSTIR
+
+The build specified above is done (`Projects/Project-Zero/`):
+
+- `Shaders/CelestialCore.slang` — panel-exact sun + atmosphere (verified
+  against the freshly re-rendered oracle: max 1 LSB full-frame on all 6
+  cases, ground and sun disc included).
+- `Shaders/CelestialReSTIR.slang` — the only lighting there is: DI + GI
+  reservoirs, temporal + spatial reuse, T2/T3/T4 green against independent
+  brute-force references on an analytic corner scene (48 frames × 12 runs).
+- Second truth: the upstream C++ transcription vendored under
+  `Host/CpuPort/` agrees with the core at max 1 LSB on all above-limb rays;
+  its beauty path omits the planet branch (documented in
+  `Host/CpuPort/PROVENANCE.md`), so the ground is gated by the oracle.
+- Gates: `Diagnostics/RunCelestialParity.py` (green end-to-end, exit 0),
+  `Diagnostics/CheckCelestialSlang.py` (dual-compile contract),
+  `Diagnostics/Proof/` (proof renders). `CelestialParity.txt` holds the last
+  report. Vulkan integration guide: `Shaders/README.md`.

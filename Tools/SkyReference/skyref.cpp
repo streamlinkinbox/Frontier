@@ -15,6 +15,7 @@ struct V3 { float x,y,z;
   V3 operator-(const V3&o)const{return{x-o.x,y-o.y,z-o.z};}
   V3 operator*(float s)const{return{x*s,y*s,z*s};}
   V3 operator*(const V3&o)const{return{x*o.x,y*o.y,z*o.z};}
+  friend V3 operator*(float s,const V3&v){return{v.x*s,v.y*s,v.z*s};}
 };
 static float dot(const V3&a,const V3&b){return a.x*b.x+a.y*b.y+a.z*b.z;}
 static float len(const V3&a){return std::sqrt(dot(a,a));}
@@ -94,13 +95,13 @@ static V3 dawnGlow(const V3&dir,float elevDeg,float facing){
   float H=1.9f+(3.8f-1.9f)*depth;
   float env=(float)std::exp(-altp/H)*(1-depth*.35f);
   float rim=(float)std::exp(-altp/.45f)*(1-depth);
-  V3 glow=(c*(env*.30f)+c0*(rim*.25f))*((az*.85f+azW*.15f)*tw);
+  V3 glow=(c*env*.30f+c0*rim*.25f)*(az*.85f+azW*.15f)*tw;
   float wlWin=1+(sstep(-5.5f,-2.5f,elevDeg)*(1-sstep(-.6f,.3f,elevDeg))-1)*uHLAuto;
   float lineAz=(float)std::exp(-std::pow(dAz/.55f,2));
   float line=(float)std::exp(-std::pow(alt/.11f,2))*(.7f+.3f*sstep(-.4f,0,alt));
-  glow=glow+V3{1,.98f,.92f}*(line*lineAz*wlWin*uHLInt*.45f);
+  glow=glow+V3{1,.98f,.92f}*line*lineAz*wlWin*uHLInt*.45f;
   float domeWin=sstep(-16,-8,elevDeg)*(1-sstep(-2,4,elevDeg));
-  glow=glow+V3{.10f,.15f,.30f}*(.035f*domeWin*(1-(float)std::exp(-altp/6))*(1-.5f*az));
+  glow=glow+V3{.10f,.15f,.30f}*.035f*domeWin*(1-(float)std::exp(-altp/6))*(1-.5f*az);
   return glow*uDawnInt;
 }
 static float airMassOf(float e){ float z=90-e; if(z>=96) return 40;
@@ -111,8 +112,8 @@ static float hash13(float x,float y,float z){
   float px=x*.1031f,py=y*.1031f,pz=z*.1031f;
   auto fr=[](float v){return v-std::floor(v);};
   px=fr(px);py=fr(py);pz=fr(pz);
-  px+=py*pz+31.32f; py+=pz*px+31.32f; pz+=px*py+31.32f;
-  // note: scalar hash of (x,y) pixel + time seed; matches GLSL hash13(vec3(frag.xy, seed)) statistically
+  float dd=px*(pz+31.32f)+py*(py+31.32f)+pz*(px+31.32f); // dot(p,p.zyx+31.32), panel line 794
+  px+=dd;py+=dd;pz+=dd;
   return fr((px+py)*pz);
 }
 
@@ -126,27 +127,24 @@ static void render(float sunTime,float yawDeg,float pitchDeg,int W,int H,const s
   float elevDeg=(float)(std::asin(clampf(uSunDir.y,-1,1))/D2R);
   std::printf("sun %.2fh elev %.2f deg yaw %.0f pitch %.0f -> %s\n",sunTime,elevDeg,yawDeg,pitchDeg,path.c_str());
   V3 ro={0,uPlanetR+uCamHeight,0};
-  float aspect=(float)W/H;
   std::vector<uint8_t> px(W*H*3);
   for(int y=0;y<H;y++)for(int x=0;x<W;x++){
-    float uvx=((x+.5f)*2-W)/H, uvy=(H-2*(y+.5f))/H; // (frag*2-res)/res.y
-    V3 dir=norm(uCamFwd+uCamRight*(uvx*uTanHalf)+uCamUp*(uvy*uTanHalf));
+    float uvx=((x+.5f)*2-W)/H, fragY=H-(y+.5f), uvy=(fragY*2-H)/H; // panel line 1139
+    V3 dir=norm(uCamFwd+uCamRight*uvx*uTanHalf+uCamUp*uvy*uTanHalf); // panel line 1140
     V3 sky,trans; float ground; atmosphere(ro,dir,sky,trans,ground);
     sky=sky*uSkyTint*uSkyBright;
-    float hx=dir.x/((float)std::sqrt(dir.x*dir.x+dir.z*dir.z)+1e-5f);
-    float hz=dir.z/((float)std::sqrt(dir.x*dir.x+dir.z*dir.z)+1e-5f);
-    float sx=uSunDir.x/((float)std::sqrt(uSunDir.x*uSunDir.x+uSunDir.z*uSunDir.z)+1e-5f);
-    float sz=uSunDir.z/((float)std::sqrt(uSunDir.x*uSunDir.x+uSunDir.z*uSunDir.z)+1e-5f);
-    float facing=.5f+.5f*(hx*sx+hz*sz);
+    float hx=dir.x+1e-5f, hz=dir.z+1e-5f; { float l=(float)std::sqrt(hx*hx+hz*hz); hx/=l; hz/=l; }
+    float sx=uSunDir.x+1e-5f, sz=uSunDir.z+1e-5f; { float l=(float)std::sqrt(sx*sx+sz*sz); sx/=l; sz/=l; }
+    float facing=.5f+.5f*(hx*sx+hz*sz); // panel line 1148
     float hdrScale=uSunIntensity/22*uSkyBright;
     float groundObs=1-sstep(1500,12000,uCamHeight);
-    V3 glow=dawnGlow(dir,elevDeg,facing)*(hdrScale*groundObs);
+    V3 glow=dawnGlow(dir,elevDeg,facing)*hdrScale*groundObs;
     V3 col;
     if(ground>.5f){
       float gn,gf; rsi(ro,dir,uPlanetR,gn,gf); V3 hp=ro+dir*gn; V3 n=norm(hp);
       float nd=std::max(dot(n,uSunDir),0.f);
       V3 amb=sky*.35f+V3{.002f,.003f,.006f}*uSkyBright;
-      V3 sunP=trans*uSunColor*(uSunIntensity*.09f*nd);
+      V3 sunP=trans*uSunColor*uSunIntensity*.09f*nd;
       col=uGroundColor*uGroundBright*(sunP+amb)+sky;
     } else {
       col=sky+glow;
@@ -159,17 +157,16 @@ static void render(float sunTime,float yawDeg,float pitchDeg,int W,int H,const s
       V3 tr2=trans*trans;
       V3 mx={std::max(ext.x,tr2.x),std::max(ext.y,tr2.y),std::max(ext.z,tr2.z)};
       V3 sunCol=uSunColor*mx;
-      col=col+sunCol*(disc*limb*uSunIntensity*uSunDiscBoost*(.35f+.65f*sstep(-1,8,elevDeg)));
+      col=col+disc*limb*sunCol*uSunIntensity*uSunDiscBoost*(.35f+.65f*sstep(-1,8,elevDeg));
       float sg=(float)(std::exp(-ang*40)*.35+std::exp(-ang*9)*.03+std::exp(-ang*2.5)*.004);
-      col=col+sunCol*(sg*uBloom*uSunIntensity*.6f);
+      col=col+sg*uBloom*sunCol*uSunIntensity*.6f;
     }
     float autoEV=-.35f*sstep(-8,-1,elevDeg)-1.0f*sstep(-1,6,elevDeg)-.6f*sstep(6,30,elevDeg);
     col=col*(float)std::exp2(uEV+autoEV);
     col=aces(col);
-    float rx=uvx/H*H/W; (void)rx;
-    // vignette with aspect correction exactly as GLSL: length(uv*vec2(1/aspect,1)*.9)
-    float vx=uvx/aspect, vy=uvy;
-    float vig=1-uVignette*(float)std::pow(std::sqrt(vx*vx+vy*vy)*.9f,2.2f);
+    // panel line 1260: length(uv*vec2(uRes.y/uRes.x,1.)*.9)
+    float vx=uvx*(float(H)/float(W))*.9f, vy=uvy*.9f;
+    float vig=1-uVignette*(float)std::pow(std::sqrt(vx*vx+vy*vy),2.2f);
     col=col*clampf(vig,0,1);
     col={(float)std::pow(std::max(col.x,0.f),1/2.2f),(float)std::pow(std::max(col.y,0.f),1/2.2f),(float)std::pow(std::max(col.z,0.f),1/2.2f)};
     float gr=(hash13(x+.5f,y+.5f,50.f)-.5f)*uGrain*.12f;
