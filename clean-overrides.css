@@ -1,0 +1,63 @@
+/* Graphite / reference-inspired visual pass: flat surfaces, quiet chrome, readable hierarchy. */
+:root {
+  --bg: #111212;
+  --bg-deep: #101010;
+  --panel: #171818;
+  --panel-2: #1c1d1d;
+  --panel-3: #242525;
+  --stroke: #2a2b2b;
+  --stroke-soft: rgba(255, 255, 255, .075);
+  --text: #e9e9e5;
+  --muted: #929492;
+  --muted-2: #646765;
+  --orange: #c0c4ba;
+  --orange-bright: #f0f0ea;
+  --orange-dark: #858983;
+  --aqua: #9bbab3;
+  --aqua-dark: #708d87;
+  --cream: #eeeeea;
+  --shadow: 0 16px 46px rgba(0, 0, 0, .22);
+}
+body {
+  background: #111212;
+}
+.panel {
+  background: #171818;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, .22);
+}
+.panel-head,
+.graph-toolbar,
+.viewport-toolbar,
+.inspector,
+.render-footer,
+.dialog-foot {
+  border-color: rgba(255,255,255,.075);
+}
+.button.primary {
+  color: #171717;
+  background: #e8e7e1;
+  box-shadow: none;
+}
+.button.primary:hover { background: #fff; box-shadow: none; }
+.button.outline { background: #1a1b1b; border-color: #343535; }
+.button.outline:hover { border-color: #aeb1a8; color: #fff; }
+.status-dot { box-shadow: 0 0 0 3px rgba(192,196,186,.08); }
+.graph-canvas { background-color: #141515; }
+.graph-grid { opacity: .3; }
+.node {
+  border-color: #343737;
+  background: #1b1c1c;
+  box-shadow: 0 9px 18px rgba(0,0,0,.19);
+}
+.node:hover { border-color: #666a67; box-shadow: 0 10px 22px rgba(0,0,0,.25); }
+.node.selected { border-color: #aeb1a8; box-shadow: 0 0 0 1px rgba(220,220,210,.08), 0 10px 22px rgba(0,0,0,.26); }
+.node.hero-node { border-color: #60625d; background: #202222; }
+.node.output-node { border-color: #52615d; }
+.render-stage { background: #101111; }
+.render-stage::before { background: linear-gradient(180deg, rgba(10,12,12,.02), rgba(10,12,12,.52)); }
+.stage-vignette { box-shadow: inset 0 0 52px rgba(0,0,0,.4); }
+.metric-grid strong { color: #e5e5df; }
+.method-dialog { background: #1a1b1b; border-color: #3a3b3a; }
+.toast { background: #202222; border-color: #4f5954; }
+.icon-btn:hover { border-color: #858983; background: rgba(255,255,255,.06); }
+.terrain-fallback { opacity: .96; }

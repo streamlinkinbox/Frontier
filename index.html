@@ -7,6 +7,7 @@
   <meta name="description" content="STRATA — a depth-aware procedural terrain erosion lab." />
   <title>STRATA / Terrain Erosion Lab</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="clean-overrides.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -193,6 +194,14 @@
         </div>
 
         <div class="render-stage" id="renderStage">
+          <svg id="terrainFallback" class="terrain-fallback" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <radialGradient id="fallbackSky" cx="52%" cy="35%" r="72%"><stop offset="0" stop-color="#263735"/><stop offset=".52" stop-color="#142322"/><stop offset="1" stop-color="#0a1010"/></radialGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#fallbackSky)" />
+            <g id="fallbackTerrainFaces"></g>
+            <g id="fallbackTerrainLines"></g>
+          </svg>
           <canvas id="terrainCanvas" aria-label="Procedurally rendered eroded terrain"></canvas>
           <div class="stage-vignette"></div>
           <div class="render-corner top-left"><span>CAM 01</span><span>ORTHO / 38°</span></div>

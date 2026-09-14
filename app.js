@@ -471,12 +471,82 @@
     ctx.restore();
   }
 
+  function renderSvgFallback() {
+    const faces = $('#fallbackTerrainFaces');
+    const lines = $('#fallbackTerrainLines');
+    if (!faces || !lines || !state.terrain) return;
+    const sampleSize = 15;
+    const ox = 51;
+    const oy = 18;
+    const sx = 2.25;
+    const sy = 1.55;
+    const sz = 18;
+    const sourceSize = state.size;
+    const sample = (x, y, channel = 'terrain') => {
+      const ix = clamp(Math.round((x / (sampleSize - 1)) * (sourceSize - 1)), 0, sourceSize - 1);
+      const iy = clamp(Math.round((y / (sampleSize - 1)) * (sourceSize - 1)), 0, sourceSize - 1);
+      const value = state[channel][indexOf(ix, iy, sourceSize)];
+      return Number.isFinite(value) ? value : 0;
+    };
+    const point = (x, y) => ({
+      x: ox + (x - y) * sx,
+      y: oy + (x + y) * sy - sample(x, y) * sz
+    });
+    const colorFor = (x, y) => {
+      const color = paletteColor(sample(x, y));
+      const depth = clamp(sample(x, y, 'water') * 8, 0, 1);
+      return `rgb(${Math.round(lerp(color[0], 58, depth * .35))},${Math.round(lerp(color[1], 140, depth * .35))},${Math.round(lerp(color[2], 136, depth * .35))})`;
+    };
+    const svgNamespace = 'http://www.w3.org/2000/svg';
+    const nextFaces = [];
+    for (let sum = 0; sum < (sampleSize - 1) * 2; sum += 1) {
+      const start = Math.max(0, sum - (sampleSize - 2));
+      const end = Math.min(sampleSize - 2, sum);
+      for (let x = start; x <= end; x += 1) {
+        const y = sum - x;
+        const p00 = point(x, y); const p10 = point(x + 1, y); const p01 = point(x, y + 1); const p11 = point(x + 1, y + 1);
+        for (const points of [[p00, p10, p11], [p00, p11, p01]]) {
+          const polygon = document.createElementNS(svgNamespace, 'polygon');
+          polygon.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '));
+          polygon.setAttribute('fill', colorFor(x, y));
+          nextFaces.push(polygon);
+        }
+      }
+    }
+    const nextLines = [];
+    if (state.showContours || state.renderMode === 'flow') {
+      for (let y = 1; y < sampleSize - 1; y += 2) {
+        const points = [];
+        for (let x = 0; x < sampleSize; x += 1) {
+          const p = point(x, y);
+          points.push(`${p.x},${p.y}`);
+        }
+        const polyline = document.createElementNS(svgNamespace, 'polyline');
+        polyline.setAttribute('points', points.join(' '));
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', state.renderMode === 'depth' ? '#9fdbcf' : '#d9bc8b');
+        polyline.setAttribute('stroke-width', '.12');
+        polyline.setAttribute('opacity', '.22');
+        nextLines.push(polyline);
+      }
+    }
+    faces.replaceChildren(...nextFaces);
+    lines.replaceChildren(...nextLines);
+  }
+
   function renderTerrain() {
     if (!canvasWidth || !canvasHeight || !state.terrain) return;
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    drawBackground();
-    drawTerrain();
+    try {
+      drawBackground();
+      drawTerrain();
+    } catch (error) {
+      // Keep the terrain visible even on browsers with a restricted canvas context.
+      console.warn('Canvas preview fallback:', error);
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    }
+    renderSvgFallback();
   }
 
   function resizeCanvas() {
