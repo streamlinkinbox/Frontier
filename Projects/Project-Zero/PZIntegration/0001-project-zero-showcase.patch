@@ -1,14 +1,22 @@
-Subject: [PATCH] Project-Zero: outdoor courtyard with celestial sky, sun, and fog
-Applies to: SultanAladin/Frontier- @ main (shallow f17fb6f, 2026-09-14)
-Apply with: git apply PZIntegration/0001-courtyard-sky-fog.patch  (from the engine checkout root)
-Then: cd Projects/Project-Zero && make clean && make && ./bin/Project-Zero --courtyard
-
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0c9d720..801ac30 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -138,6 +138,8 @@ set(PROJECT_ZERO_SOURCES
+     Projects/Project-Zero/Source/FlyThroughSolver.cpp
+     Projects/Project-Zero/Source/RendererHost.h
+     Projects/Project-Zero/Source/RendererHost.cpp
++    Projects/Project-Zero/Source/SkyFogIntegrator.h
++    Projects/Project-Zero/Source/SkyFogIntegrator.cpp
+     Projects/Project-Zero/Source/GameExecution.cpp
+ )
+ 
 diff --git a/Projects/Project-Zero/Shaders/FogSpecification.slang b/Projects/Project-Zero/Shaders/FogSpecification.slang
 new file mode 100644
-index 0000000..38f2e87
+index 0000000..1401a49
 --- /dev/null
 +++ b/Projects/Project-Zero/Shaders/FogSpecification.slang
-@@ -0,0 +1,457 @@
+@@ -0,0 +1,470 @@
 +//============================================================================================================================================
 +// 📦 Frontier/Shaders/FogSpecification.slang — Atmospheric and Local Volumetric Fog (dual Slang/C++17)
 +// Dual-compile: this file is the shipped GPU source AND the CPU implementation
@@ -360,8 +368,8 @@ index 0000000..38f2e87
 +    float tMax, float3 lightDir, float3 lightRadiance, float lightVisibility,
 +    in FogConfiguration cfg)
 +{
-+    float seg0[FogVolumeLimit];
-+    float seg1[FogVolumeLimit];
++    float seg0[FogVolumeLimit + 1u];
++    float seg1[FogVolumeLimit + 1u];
 +    uint segCount = 0u;
 +    for (uint i = 0u; i < cfg.volumeCount; i++)
 +    {
@@ -372,6 +380,19 @@ index 0000000..38f2e87
 +        {
 +            seg0[segCount] = a;
 +            seg1[segCount] = b;
++            segCount = segCount + 1u;
++        }
++    }
++    // The global height fog rides the whole surviving span, not just the
++    // local volumes: without this segment the veil only exists inside
++    // boxes and every ray that misses them marches nothing.
++    if (cfg.globalDensity > 0.0f)
++    {
++        float fullB = min(tMax, cfg.maxMarchDistance);
++        if (tMin < fullB)
++        {
++            seg0[segCount] = tMin;
++            seg1[segCount] = fullB;
 +            segCount = segCount + 1u;
 +        }
 +    }
@@ -468,10 +489,10 @@ index 0000000..38f2e87
 +#endif // FOG_SPECIFICATION_INCLUDED
 diff --git a/Projects/Project-Zero/Shaders/SkySpecification.slang b/Projects/Project-Zero/Shaders/SkySpecification.slang
 new file mode 100644
-index 0000000..3247256
+index 0000000..d66eff5
 --- /dev/null
 +++ b/Projects/Project-Zero/Shaders/SkySpecification.slang
-@@ -0,0 +1,898 @@
+@@ -0,0 +1,972 @@
 +//@@HDR: 📦 Frontier/Shaders/SkySpecification.slang — Celestial Sun and Sky Mathematics (dual Slang/C++17)
 +#ifndef SKY_SPECIFICATION_INCLUDED
 +#define SKY_SPECIFICATION_INCLUDED
@@ -563,6 +584,13 @@ index 0000000..3247256
 +    float starAA;           // [-] load-time tier (1; Ultra+ uses 2)
 +    float starCeil;         // [-] uStarCeil, from the JS probe line
 +    float pixAngle;         // [rad] 2*tanHalf/resY, the star footprint
++    // Showcase extensions (moon/clouds): defaults keep the mirror bit-exact.
++    uint moonOn;            // [-] lunar disc + glow (0)
++    float3 moonDir;         // [-] unit, sky frame (+Y up)
++    float moonBright;       // [x] lunar radiance scale (2)
++    uint cloudOn;           // [-] procedural cirrus layer (0)
++    float cloudCoverage;    // [0..1] cirrus cover fraction (0.45)
++    float cloudScale;       // [-] cirrus plane scale (2)
 +};
 +
 +//@@BAN: SKY PROJECTION
@@ -945,6 +973,59 @@ index 0000000..3247256
 +                lerp(lerp(n001, n101, f.x), lerp(n011, n111, f.x), f.y), f.z);
 +}
 +
++// Showcase moon (no panel counterpart; same disc-plus-glow structure as the
++// sun): a pale full disc at the moon radius plus a tight halo, attenuated
++// by the view-path transmittance like any sky emitter.
++float3 MoonDiscCompute(float3 dir, float3 trans, in SkyConfiguration p)
++{
++    float ang = acos(clamp(dot(dir, p.moonDir), -1.0f, 1.0f));
++    float radius = p.sunAngularRadius * 0.98f;
++    float disc = 1.0f - smoothstep(radius * 0.90f, radius, ang);
++    float limb = lerp(1.0f, 0.72f, smoothstep(0.0f, radius, ang));
++    float halo = exp(-ang * 22.0f) * 0.30f + exp(-ang * 5.0f) * 0.04f;
++    float3 moonCol = float3(0.90f, 0.94f, 1.0f) * trans;
++    return (disc * limb + halo) * moonCol * p.moonBright;
++}
++
++// Showcase cirrus (no panel counterpart): the view direction projected onto
++// a wind-drifted plane, 3-octave value-noise fbm, coverage gate, horizon
++// fade. Returns the layer density in [0..1].
++float CloudFieldCompute(float3 dir, in SkyConfiguration p)
++{
++    if (dir.y <= 0.01f)
++    {
++        return 0.0f;
++    }
++    float2 cuv = float2(dir.x, dir.z) / dir.y * p.cloudScale
++               + float2(p.timeSeconds * 0.004f, p.timeSeconds * 0.0016f);
++    float3 cell = float3(cuv.x, cuv.y, 7.31f);
++    float fbm = NoiseValueCompute(cell) * 0.55f
++              + NoiseValueCompute(cell * 2.13f + 7.7f) * 0.27f
++              + NoiseValueCompute(cell * 4.41f + 3.1f) * 0.18f;
++    float gate = smoothstep(1.0f - p.cloudCoverage - 0.25f,
++                            1.0f - p.cloudCoverage + 0.35f, fbm);
++    return gate * smoothstep(0.01f, 0.12f, dir.y);
++}
++
++// Cirrus shading: atmosphere-reddened sunlight (silver lining toward the
++// sun) over sky-ambient shade.
++float3 CloudShadeCompute(float3 dir, float density, float3 trans,
++                         in SkyConfiguration p)
++{
++    float toward = max(dot(dir, p.sunDir), 0.0f);
++    float glow = pow(toward * 0.5f + 0.5f, 3.0f);
++    float3 lit = trans * p.sunColor * (0.6f + 2.5f * glow)
++               + float3(0.10f, 0.12f, 0.16f);
++    float mOn = p.moonOn > 0u ? 1.0f : 0.0f;
++    float mGlow = pow(max(dot(dir, p.moonDir), 0.0f) * 0.5f + 0.5f, 2.0f);
++    lit = lit + float3(0.55f, 0.65f, 0.85f) * (mGlow * p.moonBright * 0.12f)
++                * mOn;
++    float3 shade = p.skyAmb * 0.55f + float3(0.04f, 0.05f, 0.08f);
++    return lerp(shade, lit, clamp(glow + pow(toward, 8.0f), 0.0f, 1.0f))
++         * (0.35f + 0.65f * density);
++}
++
++
 +// Panel lines 805-806.
 +float3 RotateYCompute(float3 v, float a)
 +{
@@ -1239,9 +1320,23 @@ index 0000000..3247256
 +            col = col + st * vis * ext;
 +        }
 +        col = col + SunDiscCompute(dir, f.trans, p) + SunAureoleCompute(dir, f.trans, p);
++        if (p.moonOn > 0u)
++        {
++            col = col + MoonDiscCompute(dir, f.trans, p);
++        }
 +        float hRef = max(p.fogHeight * 4.0f, p.afHeight * 5.0f);
 +        float dS = dir.y > 0.002f ? min(60000.0f, hRef / dir.y) : 60000.0f;
 +        col = SkyMediaApply(col, dir, dS, hzGlow, f.trans, p);
++        if (p.cloudOn > 0u)
++        {
++            float density = CloudFieldCompute(dir, p);
++            if (density > 0.0f)
++            {
++                col = lerp(col,
++                           CloudShadeCompute(dir, density, f.trans, p),
++                           clamp(density * 1.15f, 0.0f, 0.92f));
++            }
++        }
 +        return col;
 +    }
 +    float3 sunP = SunGroundCompute(dir, f.trans, p);
@@ -1572,28 +1667,41 @@ index 0000000..7b19903
 +
 +#endif // FRONTIER_SLANG_INTERCHANGE_H
 diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
-index 6953a00..6286b83 100644
+index 6953a00..13a5699 100644
 --- a/Projects/Project-Zero/Source/GameExecution.cpp
 +++ b/Projects/Project-Zero/Source/GameExecution.cpp
-@@ -12,12 +12,91 @@
+@@ -1,125 +1,134 @@
+ //============================================================================================================================================
+-// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Photometric Test Ground Entry Point
++// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Showcase Entry Point
+ //============================================================================================================================================
+ 
+ #include "RendererHost.h"
+ #include "FlyThroughSolver.h"
+-#include "../../../DeviceExchange/DiagnosticMetrics.h"
+-#include "../../../DeviceExchange/InputExchange.h"
+ #include <iostream>
+ #include <chrono>
+ #include <cstdlib>
++#include <filesystem>
++#include <string>
  
  int main(int ArgumentCount, char** ArgumentValues)
  {
 -    (void)ArgumentCount;
 -    (void)ArgumentValues;
-+    bool CourtyardMode = false;
-+    double SunHour = 6.4;
-+    double LensYaw = 35.0;
-+    double LensPitch = -6.0;
++    double SunHour = 17.93;
++    double LensYaw = 0.0;
++    double LensPitch = 2.0;
++    uint32_t ViewportWidth = 640;
++    uint32_t ViewportHeight = 480;
++    uint32_t BounceCount = 8;
++    uint32_t SpatialPasses = 2;
 +    Frontier::ProjectZero::SkyFogIntegrator::FogScenario FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Morning;
 +    for (int i = 1; i < ArgumentCount; ++i)
 +    {
 +        std::string Arg = ArgumentValues[i];
-+        if (Arg == "--courtyard")
-+        {
-+            CourtyardMode = true;
-+        }
-+        else if (Arg == "--sun" && i + 1 < ArgumentCount)
++        if (Arg == "--sun" && i + 1 < ArgumentCount)
 +        {
 +            SunHour = std::atof(ArgumentValues[++i]);
 +        }
@@ -1604,6 +1712,22 @@ index 6953a00..6286b83 100644
 +        else if (Arg == "--pitch" && i + 1 < ArgumentCount)
 +        {
 +            LensPitch = std::atof(ArgumentValues[++i]);
++        }
++        else if (Arg == "--width" && i + 1 < ArgumentCount)
++        {
++            ViewportWidth = static_cast<uint32_t>(std::atoi(ArgumentValues[++i]));
++        }
++        else if (Arg == "--height" && i + 1 < ArgumentCount)
++        {
++            ViewportHeight = static_cast<uint32_t>(std::atoi(ArgumentValues[++i]));
++        }
++        else if (Arg == "--bounce" && i + 1 < ArgumentCount)
++        {
++            BounceCount = static_cast<uint32_t>(std::atoi(ArgumentValues[++i]));
++        }
++        else if (Arg == "--passes" && i + 1 < ArgumentCount)
++        {
++            SpatialPasses = static_cast<uint32_t>(std::atoi(ArgumentValues[++i]));
 +        }
 +        else if (Arg == "--fog" && i + 1 < ArgumentCount)
 +        {
@@ -1617,189 +1741,1096 @@ index 6953a00..6286b83 100644
 +                FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Backlit;
 +            }
 +        }
++        else if (Arg == "--help")
++        {
++            std::cout << "usage: Project-Zero [--sun H] [--yaw D] [--pitch D] [--fog clear|morning|backlit]\n"
++                      << "                      [--width W] [--height H] [--bounce N] [--passes N]\n";
++            return 0;
++        }
++    }
++    if (ViewportWidth < 8)
++    {
++        ViewportWidth = 8;
++    }
++    if (ViewportHeight < 8)
++    {
++        ViewportHeight = 8;
 +    }
  
      std::cout << "================================================================================\n";
      std::cout << "                 PROJECT-ZERO — RESTIR PHOTOMETRIC TEST GROUND                  \n";
      std::cout << "================================================================================\n";
-+
-+    if (CourtyardMode)
-+    {
-+        constexpr float Deg2Rad = 3.14159265359f / 180.0f;
-+        std::cout << "[Project-Zero] Courtyard mode: outdoor sun, sky, and fog over soil and block.\n";
-+
-+        constexpr uint32_t ViewportWidth  = 640;
-+        constexpr uint32_t ViewportHeight = 480;
-+
-+        Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{ 2.5f, 3.0f, 0.0025f, 0.5f, 12.0f };
-+        Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
-+        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -14.0f, 2.2f });
-+        Camera.AssignOrientationEuler(static_cast<float>(LensPitch) * Deg2Rad, static_cast<float>(LensYaw) * Deg2Rad, 0.0f);
-+        Camera.AssignFieldOfView(60.0f);
-+        Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
-+
-+        auto StartTime = std::chrono::high_resolution_clock::now();
-+
-+        Frontier::ProjectZero::RendererHost Renderer(ViewportWidth, ViewportHeight);
-+        Renderer.RenderCourtyardFrame(Camera, SunHour, FogChoice, 2);
-+
-+        auto EndTime = std::chrono::high_resolution_clock::now();
-+        double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
-+        std::cout << "[Project-Zero] Courtyard render completed in " << DurationMs << " ms.\n";
-+
-+        std::string PpmPath = "Diagnostics/ProjectZero_Courtyard.ppm";
-+        std::string PngPath = "Diagnostics/ProjectZero_Courtyard.png";
-+        if (Renderer.ExportCourtyardImage(PpmPath))
-+        {
-+            std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
-+            std::string ConvertCmd = "python3 ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
-+            if (std::system(ConvertCmd.c_str()) == 0)
-+            {
-+                std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
-+            }
-+        }
-+        else
-+        {
-+            std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
-+            return 1;
-+        }
-+        return 0;
-+    }
-+
-     std::cout << "[Project-Zero] Initializing analytical triangle test scene, UE camera, and ReSTIR pipeline...\n";
+-    std::cout << "[Project-Zero] Initializing analytical triangle test scene, UE camera, and ReSTIR pipeline...\n";
+-
+-    // Initialize Telemetry Logger with markdown table format
+-    Frontier::DiagnosticConfiguration ReportConfig{};
+-    ReportConfig.DestinationFolder          = "Diagnostics";
+-    ReportConfig.OutputFileStem             = "ProjectZero_TelemetryReport";
+-    ReportConfig.FileExtension              = ".md";
+-    ReportConfig.TimestampPrefixEnabled     = true;
+-    ReportConfig.ConsoleEchoEnabled         = false;
+-    ReportConfig.MarkdownTableFormatEnabled = true;
++    std::cout << "[Project-Zero] Showcase: soil plain, one hundred analytical shapes, sunset sky,\n";
++    std::cout << "[Project-Zero] moon, stars, clouds, and ground mist through ReSTIR DI + GI.\n";
  
-     // Initialize Telemetry Logger with markdown table format
+-    Frontier::DiagnosticMetrics ReportLogger(ReportConfig);
+-    if (ReportLogger.InitializeSink())
+-    {
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Bootstrap", "Project-Zero ReSTIR test ground initialized.");
+-    }
+-
+-    constexpr uint32_t ViewportWidth  = 640;
+-    constexpr uint32_t ViewportHeight = 480;
+-
+-    // Initialize Unreal Engine style Fly-Through Camera
+-    Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{
+-        2.5f,                   // [m/s] base speed
+-        3.0f,                   // [x] boost when holding Shift
+-        0.0025f,                // [rad/px] mouse sensitivity
+-        0.5f,                   // [m/s] scroll increment
+-        12.0f                   // damping
+-    };
++    constexpr float Deg2Rad = 3.14159265359f / 180.0f;
++    Frontier::ProjectZero::FlyThroughConfiguration CameraConfig{ 2.5f, 3.0f, 0.0025f, 0.5f, 12.0f };
+     Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
+-    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, 1.0f, -1.95f });
+-    Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
+-    Camera.AssignFieldOfView(55.0f);
++    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -14.0f, 2.2f });
++    Camera.AssignOrientationEuler(static_cast<float>(LensPitch) * Deg2Rad, static_cast<float>(LensYaw) * Deg2Rad, 0.0f);
++    Camera.AssignFieldOfView(60.0f);
+     Camera.AssignAspectRatio(static_cast<float>(ViewportWidth) / static_cast<float>(ViewportHeight));
+ 
+-    // Simulate Unreal Engine Viewport Input Interaction (WASD + Q/E + RMB + Scroll)
+-    Frontier::InputExchange Input;
+-    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyW, true);          // Hold W to fly forward
+-    Input.AssignKeyState(Frontier::VirtualKeyCategory::KeyLeftShift, true);  // Hold Shift for speed boost
+-    Input.AssignMouseButton(Frontier::MouseButtonCategory::ButtonRight, true); // Hold RMB for look steering
+-    Input.AssignCursorDelta(15.0f, -5.0f);                                   // Slight yaw right, pitch up
+-    Input.AssignMouseScroll(2.0f);                                           // Scroll up to increase flight speed
+-
+-    // Advance camera kinematics through 5 simulation ticks
+-    std::cout << "[Project-Zero] Simulating Unreal-style Fly-Through Camera Navigation (WASD, Q/E, Shift, Scroll, RMB)...\n";
+-    for (int tick = 1; tick <= 5; ++tick)
+-    {
+-        Camera.AdvanceLocomotion(Input, 1.0f / 60.0f);
+-        const auto& Loc = Camera.QuerySpatialLocation();
+-        std::cout << "  Tick " << tick
+-                  << " | Cam Pos: (" << Loc.x << ", " << Loc.y << ", " << Loc.z << ")"
+-                  << " | Speed: " << Camera.QueryFlightSpeed() << " m/s"
+-                  << " | Pitch: " << (Camera.QueryPitchRadians() * 180.0f / 3.14159f) << " deg"
+-                  << " | Yaw: " << (Camera.QueryYawRadians() * 180.0f / 3.14159f) << " deg\n";
+-    }
+-
+     std::cout << "[Project-Zero] Viewport: " << ViewportWidth << "x" << ViewportHeight << " pixels.\n";
+-    std::cout << "[Project-Zero] Scene: Cornell Box with analytical triangle geometry & emissive ceiling luminaire.\n";
+-    std::cout << "[Project-Zero] Executing ReSTIR DI + ReSTIR GI from navigated camera viewpoint...\n";
++    std::cout << "[Project-Zero] Sun hour " << SunHour << ", yaw " << LensYaw << " deg, pitch " << LensPitch << " deg.\n";
+ 
+     auto StartTime = std::chrono::high_resolution_clock::now();
+ 
+     Frontier::ProjectZero::RendererHost Renderer(ViewportWidth, ViewportHeight);
+-    Renderer.RenderReSTIRFrame(Camera, 2); // 2 spatial resampling passes
++    Renderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount);
+ 
+     auto EndTime = std::chrono::high_resolution_clock::now();
+     double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
+ 
+-    std::cout << "[Project-Zero] ReSTIR render completed in " << DurationMs << " ms.\n";
++    std::cout << "[Project-Zero] Showcase render completed in " << DurationMs << " ms.\n";
+ 
+-    std::string PpmPath = "Diagnostics/ProjectZero_ReSTIR_GI.ppm";
+-    std::string PngPath = "Diagnostics/ProjectZero_ReSTIR_GI.png";
+-
+-    if (Renderer.ExportPpmImage(PpmPath))
++    std::error_code DirCode;
++    std::filesystem::create_directories("Diagnostics", DirCode);
++    std::string PpmPath = "Diagnostics/ProjectZero_Showcase.ppm";
++    std::string PngPath = "Diagnostics/ProjectZero_Showcase.png";
++    if (Renderer.ExportShowcaseImage(PpmPath))
+     {
+         std::cout << "[Project-Zero] Exported raw PPM image to: " << PpmPath << "\n";
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Exported PPM image to " + PpmPath);
+-
+-        // Convert PPM to PNG
+-        std::string ConvertCmd = "python3 Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
+-        int Result = std::system(ConvertCmd.c_str());
+-        if (Result == 0)
++        std::string ConvertPy3 = "python3 ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
++        std::string ConvertPy = "python ../../Tools/PpmToPng.py " + PpmPath + " " + PngPath + " > /dev/null 2>&1";
++        (void)std::system(ConvertPy3.c_str());
++        if (!std::filesystem::exists(PngPath))
++        {
++            (void)std::system(ConvertPy.c_str());
++        }
++        if (std::filesystem::exists(PngPath))
+         {
+             std::cout << "[Project-Zero] Converted to PNG image: " << PngPath << "\n";
+-            ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Renderer", "Converted to PNG at " + PngPath);
+         }
+     }
+     else
+     {
+         std::cerr << "[Project-Zero Error] Failed to export PPM image!\n";
+-        ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Fatal, "Renderer", "Failed to export PPM image.");
++        return 1;
+     }
+-
+-    ReportLogger.RecordMeasurement("ViewportWidth", ViewportWidth, "px");
+-    ReportLogger.RecordMeasurement("ViewportHeight", ViewportHeight, "px");
+-    ReportLogger.RecordMeasurement("TotalPixels", ViewportWidth * ViewportHeight, "px");
+-    ReportLogger.RecordMeasurement("RenderDurationMs", DurationMs, "ms");
+-    ReportLogger.RecordMeasurement("SpatialResamplingPasses", 2, "count");
+-    ReportLogger.RecordMeasurement("CameraFlightSpeed", Camera.QueryFlightSpeed(), "m/s");
+-
+-    ReportLogger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Shutdown", "Project-Zero test ground completed successfully.");
+-    ReportLogger.TerminateSink();
+-
+-    std::cout << "[Project-Zero] Test complete. Telemetry report emitted to " << ReportLogger.QueryResolvedFilePath() << "\n";
+     return 0;
+ }
 diff --git a/Projects/Project-Zero/Source/RayTracingSolver.cpp b/Projects/Project-Zero/Source/RayTracingSolver.cpp
-index f0a2cad..331e10e 100644
+index f0a2cad..b67562a 100644
 --- a/Projects/Project-Zero/Source/RayTracingSolver.cpp
 +++ b/Projects/Project-Zero/Source/RayTracingSolver.cpp
-@@ -62,6 +62,25 @@ void RayTracingSolver::ConstructCornellBoxScene() noexcept
-     AppendBox(Vector3{ 0.35f, 0.3f, 0.75f }, Vector3{ 0.28f, 0.3f, 0.28f }, -18.0f, 5);
+@@ -3,9 +3,10 @@
+ //============================================================================================================================================
+ 
+ #include "RayTracingSolver.h"
++#include <algorithm>
+ #include <cmath>
+ #include <limits>
+-#include <algorithm>
++#include <random>
+ 
+ namespace Frontier::ProjectZero {
+ 
+@@ -15,51 +16,392 @@ namespace Frontier::ProjectZero {
+ 
+ RayTracingSolver::RayTracingSolver() noexcept
+ {
+-    ConstructCornellBoxScene();
++    ConstructShowcaseScene();
  }
  
-+void RayTracingSolver::ConstructCourtyardScene() noexcept
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                                SCENE GEOMETRY SETUP
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-void RayTracingSolver::ConstructCornellBoxScene() noexcept
++namespace {
++
++//------------------------------------------------------------------------------------------------------------------------
++//                                                  SHOWCASE HELPERS
++//------------------------------------------------------------------------------------------------------------------------
++
++Vector3 RotateZVector(const Vector3& p, float CosA, float SinA) noexcept
 +{
-+    Triangles.clear();
-+    Materials.clear();
-+
-+    // Material 0: courtyard soil, warm mid grey diffuse
-+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.30f, 0.28f, 0.24f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.9f, 0.0f, 0 });
-+    // Material 1: courtyard block, pale warm diffuse
-+    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.55f, 0.53f, 0.50f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.9f, 0.0f, 1 });
-+
-+    // Ground soil 1000 x 1000 [m] at Z = 0 with +Z normal (strict Z-up
-+    // world). The sheet reaches the horizon inside the 1000 [m] far plane so
-+    // below-horizon rays strike soil instead of the panel underground.
-+    AppendQuad(Vector3{ -500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, 500.0f, 0.0f }, Vector3{ -500.0f, 500.0f, 0.0f }, 0);
-+
-+    // Courtyard block: 3 [m] cube centred at (3, -2, 1.5), resting on soil.
-+    AppendBox(Vector3{ 3.0f, -2.0f, 1.5f }, Vector3{ 1.5f, 1.5f, 1.5f }, 0.0f, 1);
++    return Vector3{ p.x * CosA - p.y * SinA, p.x * SinA + p.y * CosA, p.z };
 +}
 +
- void RayTracingSolver::AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept
++Vector3 HslToRgb(float H, float S, float L) noexcept
++{
++    float C = (1.0f - std::abs(2.0f * L - 1.0f)) * S;
++    float X = C * (1.0f - std::abs(std::fmod(H * 6.0f, 2.0f) - 1.0f));
++    float M = L - C * 0.5f;
++    float Sector = std::fmod(H * 6.0f, 6.0f);
++    Vector3 Rgb{ 0.0f, 0.0f, 0.0f };
++    if (Sector < 1.0f)
++    {
++        Rgb = Vector3{ C, X, 0.0f };
++    }
++    else if (Sector < 2.0f)
++    {
++        Rgb = Vector3{ X, C, 0.0f };
++    }
++    else if (Sector < 3.0f)
++    {
++        Rgb = Vector3{ 0.0f, C, X };
++    }
++    else if (Sector < 4.0f)
++    {
++        Rgb = Vector3{ 0.0f, X, C };
++    }
++    else if (Sector < 5.0f)
++    {
++        Rgb = Vector3{ X, 0.0f, C };
++    }
++    else
++    {
++        Rgb = Vector3{ C, 0.0f, X };
++    }
++    return Vector3{ Rgb.x + M, Rgb.y + M, Rgb.z + M };
++}
++
++Vector3 TriCentroid(const TriangleGeometry& Tri) noexcept
++{
++    return (Tri.VertexAlpha + Tri.VertexBeta + Tri.VertexGamma) / 3.0f;
++}
++
++void TriBounds(const TriangleGeometry& Tri, Vector3& MinOut, Vector3& MaxOut) noexcept
++{
++    MinOut.x = std::min(Tri.VertexAlpha.x, std::min(Tri.VertexBeta.x, Tri.VertexGamma.x));
++    MinOut.y = std::min(Tri.VertexAlpha.y, std::min(Tri.VertexBeta.y, Tri.VertexGamma.y));
++    MinOut.z = std::min(Tri.VertexAlpha.z, std::min(Tri.VertexBeta.z, Tri.VertexGamma.z));
++    MaxOut.x = std::max(Tri.VertexAlpha.x, std::max(Tri.VertexBeta.x, Tri.VertexGamma.x));
++    MaxOut.y = std::max(Tri.VertexAlpha.y, std::max(Tri.VertexBeta.y, Tri.VertexGamma.y));
++    MaxOut.z = std::max(Tri.VertexAlpha.z, std::max(Tri.VertexBeta.z, Tri.VertexGamma.z));
++}
++
++// Median-split BVH build over BvhOrder[Start, Start + Count). Deterministic:
++// same triangles always produce the same tree (fixed axis rule, nth_element
++// on stable centroids).
++int32_t BuildRange(std::vector<BvhBranch>& Nodes, std::vector<uint32_t>& Order, const std::vector<TriangleGeometry>& Tris, int32_t Start, int32_t Count) noexcept
++{
++    Vector3 MinB{ 1e30f, 1e30f, 1e30f };
++    Vector3 MaxB{ -1e30f, -1e30f, -1e30f };
++    Vector3 MinC{ 1e30f, 1e30f, 1e30f };
++    Vector3 MaxC{ -1e30f, -1e30f, -1e30f };
++    for (int32_t i = 0; i < Count; ++i)
++    {
++        const auto& Tri = Tris[Order[Start + i]];
++        Vector3 Lo{};
++        Vector3 Hi{};
++        TriBounds(Tri, Lo, Hi);
++        MinB.x = std::min(MinB.x, Lo.x);
++        MinB.y = std::min(MinB.y, Lo.y);
++        MinB.z = std::min(MinB.z, Lo.z);
++        MaxB.x = std::max(MaxB.x, Hi.x);
++        MaxB.y = std::max(MaxB.y, Hi.y);
++        MaxB.z = std::max(MaxB.z, Hi.z);
++        Vector3 C = TriCentroid(Tri);
++        MinC.x = std::min(MinC.x, C.x);
++        MinC.y = std::min(MinC.y, C.y);
++        MinC.z = std::min(MinC.z, C.z);
++        MaxC.x = std::max(MaxC.x, C.x);
++        MaxC.y = std::max(MaxC.y, C.y);
++        MaxC.z = std::max(MaxC.z, C.z);
++    }
++    int32_t NodeIdx = static_cast<int32_t>(Nodes.size());
++    Nodes.push_back(BvhBranch{ MinB, MaxB, -1, -1, Start, Count });
++    if (Count <= 4)
++    {
++        return NodeIdx;
++    }
++    float Ex = MaxC.x - MinC.x;
++    float Ey = MaxC.y - MinC.y;
++    float Ez = MaxC.z - MinC.z;
++    int Axis = (Ex >= Ey && Ex >= Ez) ? 0 : ((Ey >= Ez) ? 1 : 2);
++    int32_t Mid = Start + Count / 2;
++    auto CentroidAxis = [&](uint32_t PrimIdx) -> float
++    {
++        Vector3 C = TriCentroid(Tris[PrimIdx]);
++        return (Axis == 0) ? C.x : ((Axis == 1) ? C.y : C.z);
++    };
++    std::nth_element(Order.begin() + Start, Order.begin() + Mid, Order.begin() + Start + Count,
++                     [&](uint32_t A, uint32_t B) { return CentroidAxis(A) < CentroidAxis(B); });
++    if (Mid == Start || Mid == Start + Count)
++    {
++        return NodeIdx;
++    }
++    int32_t Left = BuildRange(Nodes, Order, Tris, Start, Mid - Start);
++    int32_t Right = BuildRange(Nodes, Order, Tris, Mid, Start + Count - Mid);
++    Nodes[NodeIdx].ChildLeft = Left;
++    Nodes[NodeIdx].ChildRight = Right;
++    Nodes[NodeIdx].StartIndex = -1;
++    Nodes[NodeIdx].PrimCount = 0;
++    return NodeIdx;
++}
++
++} // namespace
++
++void RayTracingSolver::BuildBvh() noexcept
++{
++    Bvh.clear();
++    BvhOrder.clear();
++    BvhOrder.reserve(Triangles.size());
++    for (uint32_t i = 0; i < static_cast<uint32_t>(Triangles.size()); ++i)
++    {
++        BvhOrder.push_back(i);
++    }
++    if (!BvhOrder.empty())
++    {
++        BuildRange(Bvh, BvhOrder, Triangles, 0, static_cast<int32_t>(BvhOrder.size()));
++    }
++}
++
++void RayTracingSolver::ConstructShowcaseScene() noexcept
  {
-     TriangleGeometry Tri{};
+     Triangles.clear();
+     Materials.clear();
++    Bvh.clear();
++    BvhOrder.clear();
++
++    // Material 0: showcase soil, warm mid grey diffuse
++    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.30f, 0.28f, 0.24f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.9f, 0.0f, 0 });
++
++    // Ground soil 1000 x 1000 [m] at Z = 0 with +Z normal (strict Z-up).
++    AppendQuad(Vector3{ -500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, -500.0f, 0.0f }, Vector3{ 500.0f, 500.0f, 0.0f }, Vector3{ -500.0f, 500.0f, 0.0f }, 0);
++
++    // One hundred analytical shapes scattered near and far, each with a
++    // unique material. Deterministic seed: the same field every run.
++    std::mt19937 Rng(2026);
++    std::uniform_real_distribution<float> Unit(0.0f, 1.0f);
++    std::vector<Vector3> Placed;
++    Placed.reserve(100);
++    const Vector3 CameraSpot{ 0.0f, -14.0f, 2.2f };
++    uint32_t Built = 0;
++    uint32_t Guard = 0;
++    while (Built < 100 && Guard < 20000)
++    {
++        ++Guard;
++        float Band = Unit(Rng);
++        float Radius = (Band < 0.35f) ? (4.0f + Unit(Rng) * 14.0f)
++                     : ((Band < 0.75f) ? (18.0f + Unit(Rng) * 32.0f)
++                                       : (50.0f + Unit(Rng) * 70.0f));
++        float Angle = Unit(Rng) * 6.28318530718f;
++        Vector3 Spot{ Radius * std::cos(Angle), Radius * std::sin(Angle), 0.0f };
++        Vector3 ToCam = Spot - CameraSpot;
++        ToCam.z = 0.0f;
++        if (ToCam.Length() < 7.0f)
++        {
++            continue;
++        }
++        bool Crowded = false;
++        for (const auto& Other : Placed)
++        {
++            Vector3 D = Spot - Other;
++            D.z = 0.0f;
++            if (D.Length() < 4.0f)
++            {
++                Crowded = true;
++                break;
++            }
++        }
++        if (Crowded)
++        {
++            continue;
++        }
++        float Size = (0.6f + Unit(Rng) * 2.2f) * (1.0f + Radius / 60.0f);
++        float Spin = Unit(Rng) * 360.0f;
++        float Hue = std::fmod(float(Built) * 0.61803398875f + 0.13f * float(Built % 3), 1.0f);
++        float Sat = 0.50f + Unit(Rng) * 0.25f;
++        float Lit = 0.40f + Unit(Rng) * 0.20f;
++        uint32_t MatIdx = static_cast<uint32_t>(Materials.size());
++        Materials.push_back(AnalyticalMaterial{ HslToRgb(Hue, Sat, Lit), Vector3{ 0.0f, 0.0f, 0.0f }, 0.35f + Unit(Rng) * 0.50f, (Built % 4 == 0) ? 0.6f : 0.0f, MatIdx });
++        switch (Built % 8)
++        {
++        case 0:
++            AppendBoxUp(Spot + Vector3{ 0.0f, 0.0f, Size * 0.45f }, Vector3{ Size * 0.5f, Size * 0.35f, Size * 0.45f }, Spin, MatIdx);
++            break;
++        case 1:
++            AppendBoxUp(Spot + Vector3{ 0.0f, 0.0f, Size * 0.5f }, Vector3{ Size * 0.5f, Size * 0.5f, Size * 0.5f }, Spin, MatIdx);
++            break;
++        case 2:
++            AppendSphere(Spot + Vector3{ 0.0f, 0.0f, Size * 0.55f }, Size * 0.55f, MatIdx);
++            break;
++        case 3:
++            AppendCone(Spot + Vector3{ 0.0f, 0.0f, Size * 0.6f }, Size * 0.45f, Size * 1.2f, MatIdx);
++            break;
++        case 4:
++            AppendCylinder(Spot + Vector3{ 0.0f, 0.0f, Size * 0.5f }, Size * 0.4f, Size * 1.0f, MatIdx);
++            break;
++        case 5:
++            AppendPyramid(Spot + Vector3{ 0.0f, 0.0f, Size * 0.5f }, Size * 0.5f, Size * 1.0f, Spin, MatIdx);
++            break;
++        case 6:
++            AppendTetra(Spot + Vector3{ 0.0f, 0.0f, Size * 0.3f }, Size * 0.9f, Spin, MatIdx);
++            break;
++        default:
++            AppendWedge(Spot + Vector3{ 0.0f, 0.0f, Size * 0.4f }, Size * 0.9f, Size * 1.0f, Size * 1.1f, Spin, MatIdx);
++            break;
++        }
++        Placed.push_back(Spot);
++        ++Built;
++    }
++    BuildBvh();
++}
+ 
+-    // Material 0: White diffuse walls, floor, ceiling
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.75f, 0.75f, 0.75f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 0 });
+-    // Material 1: Left wall (vibrant red)
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.85f, 0.12f, 0.12f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 1 });
+-    // Material 2: Right wall (vibrant green)
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.12f, 0.85f, 0.15f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.5f, 0.0f, 2 });
+-    // Material 3: Ceiling Light (bright emissive white)
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 1.0f, 1.0f, 1.0f }, Vector3{ 32.0f, 32.0f, 32.0f }, 0.1f, 0.0f, 3 });
+-    // Material 4: Tall Box (warm white diffuse)
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 4 });
+-    // Material 5: Short Box (cool white diffuse)
+-    Materials.push_back(AnalyticalMaterial{ Vector3{ 0.78f, 0.78f, 0.78f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.4f, 0.0f, 5 });
+-
+-    // Cornell Box boundaries: X [-1..1], Y [0..2], Z [0..2]
+-    // Floor (Y = 0, normal +Y)
+-    AppendQuad(Vector3{ -1.0f, 0.0f, 2.0f }, Vector3{ 1.0f, 0.0f, 2.0f }, Vector3{ 1.0f, 0.0f, 0.0f }, Vector3{ -1.0f, 0.0f, 0.0f }, 0);
+-    // Ceiling (Y = 2, normal -Y)
+-    AppendQuad(Vector3{ -1.0f, 2.0f, 0.0f }, Vector3{ 1.0f, 2.0f, 0.0f }, Vector3{ 1.0f, 2.0f, 2.0f }, Vector3{ -1.0f, 2.0f, 2.0f }, 0);
+-    // Back Wall (Z = 2, normal -Z)
+-    AppendQuad(Vector3{ 1.0f, 0.0f, 2.0f }, Vector3{ -1.0f, 0.0f, 2.0f }, Vector3{ -1.0f, 2.0f, 2.0f }, Vector3{ 1.0f, 2.0f, 2.0f }, 0);
+-    // Left Wall (X = -1, Red, normal +X)
+-    AppendQuad(Vector3{ -1.0f, 0.0f, 2.0f }, Vector3{ -1.0f, 0.0f, 0.0f }, Vector3{ -1.0f, 2.0f, 0.0f }, Vector3{ -1.0f, 2.0f, 2.0f }, 1);
+-    // Right Wall (X = 1, Green, normal -X)
+-    AppendQuad(Vector3{ 1.0f, 0.0f, 0.0f }, Vector3{ 1.0f, 0.0f, 2.0f }, Vector3{ 1.0f, 2.0f, 2.0f }, Vector3{ 1.0f, 2.0f, 0.0f }, 2);
+-
+-    // Ceiling Light Quad (Y = 1.995, normal -Y)
+-    AppendQuad(Vector3{ -0.30f, 1.995f, 0.70f }, Vector3{ 0.30f, 1.995f, 0.70f }, Vector3{ 0.30f, 1.995f, 1.30f }, Vector3{ -0.30f, 1.995f, 1.30f }, 3);
+-
+-    // Tall Box inside room (Width 0.3, Height 0.6, Depth 0.3, rotated 22 deg)
+-    AppendBox(Vector3{ -0.35f, 0.6f, 1.35f }, Vector3{ 0.28f, 0.6f, 0.28f }, 22.0f, 4);
+-
+-    // Short Box inside room (Width 0.3, Height 0.3, Depth 0.3, rotated -18 deg)
+-    AppendBox(Vector3{ 0.35f, 0.3f, 0.75f }, Vector3{ 0.28f, 0.3f, 0.28f }, -18.0f, 5);
++void RayTracingSolver::AppendBoxUp(const Vector3& Center, const Vector3& Extents, float RotationDegrees, uint32_t MaterialIdx) noexcept
++{
++    float Rad = RotationDegrees * 3.14159265359f / 180.0f;
++    float CosA = std::cos(Rad);
++    float SinA = std::sin(Rad);
++    float hx = Extents.x;
++    float hy = Extents.y;
++    float hz = Extents.z;
++    Vector3 Corners[8] = {
++        Center + RotateZVector(Vector3{ -hx, -hy, -hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{  hx, -hy, -hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{  hx,  hy, -hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{ -hx,  hy, -hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{ -hx, -hy,  hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{  hx, -hy,  hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{  hx,  hy,  hz }, CosA, SinA),
++        Center + RotateZVector(Vector3{ -hx,  hy,  hz }, CosA, SinA)
++    };
++    AppendQuad(Corners[4], Corners[5], Corners[6], Corners[7], MaterialIdx);
++    AppendQuad(Corners[0], Corners[3], Corners[2], Corners[1], MaterialIdx);
++    AppendQuad(Corners[1], Corners[2], Corners[6], Corners[5], MaterialIdx);
++    AppendQuad(Corners[0], Corners[4], Corners[7], Corners[3], MaterialIdx);
++    AppendQuad(Corners[2], Corners[3], Corners[7], Corners[6], MaterialIdx);
++    AppendQuad(Corners[0], Corners[1], Corners[5], Corners[4], MaterialIdx);
++}
++
++void RayTracingSolver::AppendSphere(const Vector3& Center, float Radius, uint32_t MaterialIdx) noexcept
++{
++    constexpr int LatBands = 12;
++    constexpr int LonSteps = 16;
++    auto Point = [&](int j, int i) -> Vector3
++    {
++        float Theta = 3.14159265359f * float(j) / float(LatBands);
++        float Phi = 6.28318530718f * float(i % LonSteps) / float(LonSteps);
++        return Center + Vector3{ Radius * std::sin(Theta) * std::cos(Phi), Radius * std::sin(Theta) * std::sin(Phi), Radius * std::cos(Theta) };
++    };
++    Vector3 Top{ Center.x, Center.y, Center.z + Radius };
++    Vector3 Bottom{ Center.x, Center.y, Center.z - Radius };
++    for (int i = 0; i < LonSteps; ++i)
++    {
++        AppendTriangle(Top, Point(1, i), Point(1, i + 1), MaterialIdx);
++    }
++    for (int j = 1; j < LatBands - 1; ++j)
++    {
++        for (int i = 0; i < LonSteps; ++i)
++        {
++            AppendQuad(Point(j, i), Point(j + 1, i), Point(j + 1, i + 1), Point(j, i + 1), MaterialIdx);
++        }
++    }
++    for (int i = 0; i < LonSteps; ++i)
++    {
++        AppendTriangle(Bottom, Point(LatBands - 1, i + 1), Point(LatBands - 1, i), MaterialIdx);
++    }
++}
++
++void RayTracingSolver::AppendCone(const Vector3& Center, float Radius, float Height, uint32_t MaterialIdx) noexcept
++{
++    constexpr int Steps = 12;
++    Vector3 Apex{ Center.x, Center.y, Center.z + Height * 0.5f };
++    Vector3 Base{ Center.x, Center.y, Center.z - Height * 0.5f };
++    auto Ring = [&](int i) -> Vector3
++    {
++        float Phi = 6.28318530718f * float(i % Steps) / float(Steps);
++        return Vector3{ Center.x + Radius * std::cos(Phi), Center.y + Radius * std::sin(Phi), Base.z };
++    };
++    for (int i = 0; i < Steps; ++i)
++    {
++        AppendTriangle(Apex, Ring(i), Ring(i + 1), MaterialIdx);
++        AppendTriangle(Base, Ring(i + 1), Ring(i), MaterialIdx);
++    }
++}
++
++void RayTracingSolver::AppendCylinder(const Vector3& Center, float Radius, float Height, uint32_t MaterialIdx) noexcept
++{
++    constexpr int Steps = 12;
++    Vector3 TopC{ Center.x, Center.y, Center.z + Height * 0.5f };
++    Vector3 BotC{ Center.x, Center.y, Center.z - Height * 0.5f };
++    auto Ring = [&](float z, int i) -> Vector3
++    {
++        float Phi = 6.28318530718f * float(i % Steps) / float(Steps);
++        return Vector3{ Center.x + Radius * std::cos(Phi), Center.y + Radius * std::sin(Phi), z };
++    };
++    for (int i = 0; i < Steps; ++i)
++    {
++        AppendQuad(Ring(TopC.z, i), Ring(BotC.z, i), Ring(BotC.z, i + 1), Ring(TopC.z, i + 1), MaterialIdx);
++        AppendTriangle(TopC, Ring(TopC.z, i), Ring(TopC.z, i + 1), MaterialIdx);
++        AppendTriangle(BotC, Ring(BotC.z, i + 1), Ring(BotC.z, i), MaterialIdx);
++    }
++}
++
++void RayTracingSolver::AppendPyramid(const Vector3& Center, float HalfExtent, float Height, float RotationDegrees, uint32_t MaterialIdx) noexcept
++{
++    float Rad = RotationDegrees * 3.14159265359f / 180.0f;
++    float CosA = std::cos(Rad);
++    float SinA = std::sin(Rad);
++    Vector3 Apex{ Center.x, Center.y, Center.z + Height * 0.5f };
++    Vector3 K[4] = {
++        Center + RotateZVector(Vector3{  HalfExtent, -HalfExtent, -Height * 0.5f }, CosA, SinA),
++        Center + RotateZVector(Vector3{  HalfExtent,  HalfExtent, -Height * 0.5f }, CosA, SinA),
++        Center + RotateZVector(Vector3{ -HalfExtent,  HalfExtent, -Height * 0.5f }, CosA, SinA),
++        Center + RotateZVector(Vector3{ -HalfExtent, -HalfExtent, -Height * 0.5f }, CosA, SinA)
++    };
++    for (int i = 0; i < 4; ++i)
++    {
++        AppendTriangle(Apex, K[i], K[(i + 1) % 4], MaterialIdx);
++    }
++    AppendQuad(K[0], K[3], K[2], K[1], MaterialIdx);
++}
++
++void RayTracingSolver::AppendTetra(const Vector3& Center, float Size, float RotationDegrees, uint32_t MaterialIdx) noexcept
++{
++    float Rad = RotationDegrees * 3.14159265359f / 180.0f;
++    float CosA = std::cos(Rad);
++    float SinA = std::sin(Rad);
++    float H = Size * 1.2f;
++    Vector3 Apex{ Center.x, Center.y, Center.z + H * 0.75f };
++    Vector3 B[3];
++    for (int i = 0; i < 3; ++i)
++    {
++        float Phi = (90.0f + float(i) * 120.0f) * 3.14159265359f / 180.0f;
++        B[i] = Center + RotateZVector(Vector3{ Size * std::cos(Phi), Size * std::sin(Phi), -H * 0.25f }, CosA, SinA);
++    }
++    for (int i = 0; i < 3; ++i)
++    {
++        AppendTriangle(Apex, B[i], B[(i + 1) % 3], MaterialIdx);
++    }
++    AppendTriangle(B[0], B[2], B[1], MaterialIdx);
++}
++
++void RayTracingSolver::AppendWedge(const Vector3& Center, float Width, float Height, float Length, float RotationDegrees, uint32_t MaterialIdx) noexcept
++{
++    float Rad = RotationDegrees * 3.14159265359f / 180.0f;
++    float CosA = std::cos(Rad);
++    float SinA = std::sin(Rad);
++    auto Spin = [&](const Vector3& p) -> Vector3 { return Center + RotateZVector(p, CosA, SinA); };
++    float w = Width * 0.5f;
++    float hTop = Height * 0.6f;
++    float hBot = -Height * 0.4f;
++    float l = Length * 0.5f;
++    Vector3 F0 = Spin(Vector3{ 0.0f, l, hTop });
++    Vector3 F1 = Spin(Vector3{ -w, l, hBot });
++    Vector3 F2 = Spin(Vector3{ w, l, hBot });
++    Vector3 B0 = Spin(Vector3{ 0.0f, -l, hTop });
++    Vector3 B1 = Spin(Vector3{ -w, -l, hBot });
++    Vector3 B2 = Spin(Vector3{ w, -l, hBot });
++    AppendTriangle(F0, F2, F1, MaterialIdx);
++    AppendTriangle(B0, B1, B2, MaterialIdx);
++    AppendQuad(F1, F2, B2, B1, MaterialIdx);
++    AppendQuad(F0, F1, B1, B0, MaterialIdx);
++    AppendQuad(F2, F0, B0, B2, MaterialIdx);
+ }
+ 
+ void RayTracingSolver::AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept
+@@ -128,57 +470,134 @@ void RayTracingSolver::AppendBox(const Vector3& Center, const Vector3& Extents,
+ //                                           RAY-TRIANGLE INTERSECTION
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-HitIntersection RayTracingSolver::EvaluateIntersection(const RayRecord& Ray) const noexcept
+-{
+-    HitIntersection ClosestHit{};
+-    ClosestHit.RayDistance    = Ray.MaximumDistance;
+-    ClosestHit.ValidCondition = false;
++namespace {
+ 
+-    constexpr float Epsilon = 1e-7f;
++//------------------------------------------------------------------------------------------------------------------------
++//                                                  BVH TRAVERSAL
++//------------------------------------------------------------------------------------------------------------------------
+ 
+-    for (const auto& Tri : Triangles)
++bool TriHit(const TriangleGeometry& Tri, const Vector3& Origin, const Vector3& Dir, float TMin, float TMax, float& THit) noexcept
++{
++    constexpr float Epsilon = 1e-7f;
++    Vector3 Edge1 = Tri.VertexBeta - Tri.VertexAlpha;
++    Vector3 Edge2 = Tri.VertexGamma - Tri.VertexAlpha;
++    Vector3 PVec = OrientationClassifier::CrossProduct(Dir, Edge2);
++    float Det = OrientationClassifier::DotProduct(Edge1, PVec);
++    if (std::abs(Det) < Epsilon)
+     {
+-        Vector3 Edge1 = Tri.VertexBeta - Tri.VertexAlpha;
+-        Vector3 Edge2 = Tri.VertexGamma - Tri.VertexAlpha;
+-
+-        Vector3 PVec = OrientationClassifier::CrossProduct(Ray.RayDirection, Edge2);
+-        float Det = OrientationClassifier::DotProduct(Edge1, PVec);
++        return false;
++    }
++    float InvDet = 1.0f / Det;
++    Vector3 TVec = Origin - Tri.VertexAlpha;
++    float u = OrientationClassifier::DotProduct(TVec, PVec) * InvDet;
++    if (u < 0.0f || u > 1.0f)
++    {
++        return false;
++    }
++    Vector3 QVec = OrientationClassifier::CrossProduct(TVec, Edge1);
++    float v = OrientationClassifier::DotProduct(Dir, QVec) * InvDet;
++    if (v < 0.0f || (u + v) > 1.0f)
++    {
++        return false;
++    }
++    float t = OrientationClassifier::DotProduct(Edge2, QVec) * InvDet;
++    if (t < TMin || t > TMax)
++    {
++        return false;
++    }
++    THit = t;
++    return true;
++}
+ 
+-        if (std::abs(Det) < Epsilon)
++bool SlabHit(const Vector3& MinB, const Vector3& MaxB, const Vector3& Origin, const Vector3& Dir, float TMin, float TMax) noexcept
++{
++    float t0 = TMin;
++    float t1 = TMax;
++    const float o[3] = { Origin.x, Origin.y, Origin.z };
++    const float d[3] = { Dir.x, Dir.y, Dir.z };
++    const float lo[3] = { MinB.x, MinB.y, MinB.z };
++    const float hi[3] = { MaxB.x, MaxB.y, MaxB.z };
++    for (int a = 0; a < 3; ++a)
++    {
++        if (std::abs(d[a]) < 1e-12f)
+         {
+-            continue;
++            if (o[a] < lo[a] || o[a] > hi[a])
++            {
++                return false;
++            }
+         }
+-
+-        float InvDet = 1.0f / Det;
+-        Vector3 TVec = Ray.SpatialOrigin - Tri.VertexAlpha;
+-        float u = OrientationClassifier::DotProduct(TVec, PVec) * InvDet;
+-
+-        if (u < 0.0f || u > 1.0f)
++        else
+         {
+-            continue;
++            float ta = (lo[a] - o[a]) / d[a];
++            float tb = (hi[a] - o[a]) / d[a];
++            t0 = std::max(t0, std::min(ta, tb));
++            t1 = std::min(t1, std::max(ta, tb));
++            if (t0 > t1)
++            {
++                return false;
++            }
+         }
++    }
++    return true;
++}
+ 
+-        Vector3 QVec = OrientationClassifier::CrossProduct(TVec, Edge1);
+-        float v = OrientationClassifier::DotProduct(Ray.RayDirection, QVec) * InvDet;
++} // namespace
+ 
+-        if (v < 0.0f || (u + v) > 1.0f)
++HitIntersection RayTracingSolver::EvaluateIntersection(const RayRecord& Ray) const noexcept
++{
++    HitIntersection ClosestHit{};
++    ClosestHit.RayDistance = Ray.MaximumDistance;
++    ClosestHit.ValidCondition = false;
++    if (Bvh.empty())
++    {
++        for (const auto& Tri : Triangles)
++        {
++            float t = 0.0f;
++            if (TriHit(Tri, Ray.SpatialOrigin, Ray.RayDirection, Ray.MinimumDistance, ClosestHit.RayDistance, t))
++            {
++                ClosestHit.RayDistance = t;
++                ClosestHit.HitLocation = Ray.SpatialOrigin + Ray.RayDirection * t;
++                ClosestHit.SurfaceNormal = Tri.SurfaceNormal;
++                ClosestHit.MaterialIndex = Tri.MaterialIndex;
++                ClosestHit.TriangleIndex = Tri.TriangleIndex;
++                ClosestHit.ValidCondition = true;
++            }
++        }
++        return ClosestHit;
++    }
++    int Stack[64];
++    int Depth = 0;
++    Stack[Depth++] = 0;
++    while (Depth > 0)
++    {
++        const BvhBranch& Node = Bvh[Stack[--Depth]];
++        if (!SlabHit(Node.MinBounds, Node.MaxBounds, Ray.SpatialOrigin, Ray.RayDirection, Ray.MinimumDistance, ClosestHit.RayDistance))
+         {
+             continue;
+         }
+-
+-        float t = OrientationClassifier::DotProduct(Edge2, QVec) * InvDet;
+-
+-        if (t >= Ray.MinimumDistance && t < ClosestHit.RayDistance)
++        if (Node.ChildLeft < 0)
+         {
+-            ClosestHit.RayDistance    = t;
+-            ClosestHit.HitLocation    = Ray.SpatialOrigin + Ray.RayDirection * t;
+-            ClosestHit.SurfaceNormal  = Tri.SurfaceNormal;
+-            ClosestHit.MaterialIndex  = Tri.MaterialIndex;
+-            ClosestHit.TriangleIndex  = Tri.TriangleIndex;
+-            ClosestHit.ValidCondition = true;
++            for (int32_t i = 0; i < Node.PrimCount; ++i)
++            {
++                const auto& Tri = Triangles[BvhOrder[Node.StartIndex + i]];
++                float t = 0.0f;
++                if (TriHit(Tri, Ray.SpatialOrigin, Ray.RayDirection, Ray.MinimumDistance, ClosestHit.RayDistance, t))
++                {
++                    ClosestHit.RayDistance = t;
++                    ClosestHit.HitLocation = Ray.SpatialOrigin + Ray.RayDirection * t;
++                    ClosestHit.SurfaceNormal = Tri.SurfaceNormal;
++                    ClosestHit.MaterialIndex = Tri.MaterialIndex;
++                    ClosestHit.TriangleIndex = Tri.TriangleIndex;
++                    ClosestHit.ValidCondition = true;
++                }
++            }
++        }
++        else if (Depth + 2 <= 64)
++        {
++            Stack[Depth++] = Node.ChildRight;
++            Stack[Depth++] = Node.ChildLeft;
+         }
+     }
+-
+     return ClosestHit;
+ }
+ 
+@@ -190,56 +609,58 @@ bool RayTracingSolver::EvaluateOcclusion(const Vector3& PointA, const Vector3& P
+     {
+         return false;
+     }
+-
+     Vector3 UnitDir = Dir / Distance;
+-    RayRecord ShadowRay{ PointA + UnitDir * 1e-4f, UnitDir, 1e-4f, Distance - 1e-4f };
+-
+-    constexpr float Epsilon = 1e-7f;
+-
+-    for (const auto& Tri : Triangles)
++    Vector3 Origin = PointA + UnitDir * 1e-4f;
++    float TMin = 1e-4f;
++    float TMax = Distance - 1e-4f;
++    if (Bvh.empty())
+     {
+-        // Don't let light quad occlude itself
+-        if (Tri.MaterialIndex == 3)
++        for (const auto& Tri : Triangles)
+         {
+-            continue;
+-        }
+-
+-        Vector3 Edge1 = Tri.VertexBeta - Tri.VertexAlpha;
+-        Vector3 Edge2 = Tri.VertexGamma - Tri.VertexAlpha;
+-
+-        Vector3 PVec = OrientationClassifier::CrossProduct(ShadowRay.RayDirection, Edge2);
+-        float Det = OrientationClassifier::DotProduct(Edge1, PVec);
+-
+-        if (std::abs(Det) < Epsilon)
+-        {
+-            continue;
++            if (Tri.MaterialIndex == 3)
++            {
++                continue;
++            }
++            float t = 0.0f;
++            if (TriHit(Tri, Origin, UnitDir, TMin, TMax, t))
++            {
++                return true;
++            }
+         }
+-
+-        float InvDet = 1.0f / Det;
+-        Vector3 TVec = ShadowRay.SpatialOrigin - Tri.VertexAlpha;
+-        float u = OrientationClassifier::DotProduct(TVec, PVec) * InvDet;
+-
+-        if (u < 0.0f || u > 1.0f)
++        return false;
++    }
++    int Stack[64];
++    int Depth = 0;
++    Stack[Depth++] = 0;
++    while (Depth > 0)
++    {
++        const BvhBranch& Node = Bvh[Stack[--Depth]];
++        if (!SlabHit(Node.MinBounds, Node.MaxBounds, Origin, UnitDir, TMin, TMax))
+         {
+             continue;
+         }
+-
+-        Vector3 QVec = OrientationClassifier::CrossProduct(TVec, Edge1);
+-        float v = OrientationClassifier::DotProduct(ShadowRay.RayDirection, QVec) * InvDet;
+-
+-        if (v < 0.0f || (u + v) > 1.0f)
++        if (Node.ChildLeft < 0)
+         {
+-            continue;
++            for (int32_t i = 0; i < Node.PrimCount; ++i)
++            {
++                const auto& Tri = Triangles[BvhOrder[Node.StartIndex + i]];
++                if (Tri.MaterialIndex == 3)
++                {
++                    continue;
++                }
++                float t = 0.0f;
++                if (TriHit(Tri, Origin, UnitDir, TMin, TMax, t))
++                {
++                    return true;
++                }
++            }
+         }
+-
+-        float t = OrientationClassifier::DotProduct(Edge2, QVec) * InvDet;
+-
+-        if (t >= ShadowRay.MinimumDistance && t <= ShadowRay.MaximumDistance)
++        else if (Depth + 2 <= 64)
+         {
+-            return true; // Occluded
++            Stack[Depth++] = Node.ChildRight;
++            Stack[Depth++] = Node.ChildLeft;
+         }
+     }
+-
+     return false;
+ }
+ 
 diff --git a/Projects/Project-Zero/Source/RayTracingSolver.h b/Projects/Project-Zero/Source/RayTracingSolver.h
-index 1f8aed1..ab265f2 100644
+index 1f8aed1..eb07f1f 100644
 --- a/Projects/Project-Zero/Source/RayTracingSolver.h
 +++ b/Projects/Project-Zero/Source/RayTracingSolver.h
-@@ -20,6 +20,7 @@ public:
+@@ -5,10 +5,25 @@
+ #pragma once
+ 
+ #include "SceneStructure.h"
++#include <cstdint>
+ #include <vector>
+ 
+ namespace Frontier::ProjectZero {
+ 
++//------------------------------------------------------------------------------------------------------------------------
++//                                               BOUNDING VOLUME BRANCH
++//------------------------------------------------------------------------------------------------------------------------
++
++struct BvhBranch
++{
++    Vector3                 MinBounds;                          // [m] node bounding minimum
++    Vector3                 MaxBounds;                          // [m] node bounding maximum
++    int32_t                 ChildLeft;                          // [index] left child, -1 on leaves
++    int32_t                 ChildRight;                         // [index] right child, -1 on leaves
++    int32_t                 StartIndex;                         // [index] first primitive on leaves
++    int32_t                 PrimCount;                          // [count] leaf primitive count
++};
++
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                               RAY TRACING SOLVER
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -19,10 +34,17 @@ public:
+     RayTracingSolver() noexcept;
      ~RayTracingSolver() noexcept = default;
  
-     void                    ConstructCornellBoxScene() noexcept;
-+    void                    ConstructCourtyardScene() noexcept;
+-    void                    ConstructCornellBoxScene() noexcept;
++    void                    ConstructShowcaseScene() noexcept;
      void                    AppendTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, uint32_t MaterialIdx) noexcept;
      void                    AppendQuad(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3, uint32_t MaterialIdx) noexcept;
      void                    AppendBox(const Vector3& Center, const Vector3& Extents, float RotationDegrees, uint32_t MaterialIdx) noexcept;
++    void                    AppendBoxUp(const Vector3& Center, const Vector3& Extents, float RotationDegrees, uint32_t MaterialIdx) noexcept;
++    void                    AppendSphere(const Vector3& Center, float Radius, uint32_t MaterialIdx) noexcept;
++    void                    AppendCone(const Vector3& Center, float Radius, float Height, uint32_t MaterialIdx) noexcept;
++    void                    AppendCylinder(const Vector3& Center, float Radius, float Height, uint32_t MaterialIdx) noexcept;
++    void                    AppendPyramid(const Vector3& Center, float HalfExtent, float Height, float RotationDegrees, uint32_t MaterialIdx) noexcept;
++    void                    AppendTetra(const Vector3& Center, float Size, float RotationDegrees, uint32_t MaterialIdx) noexcept;
++    void                    AppendWedge(const Vector3& Center, float Width, float Height, float Length, float RotationDegrees, uint32_t MaterialIdx) noexcept;
+ 
+     [[nodiscard]] HitIntersection EvaluateIntersection(const RayRecord& Ray) const noexcept;
+     [[nodiscard]] bool            EvaluateOcclusion(const Vector3& PointA, const Vector3& PointB) const noexcept;
+@@ -35,8 +57,12 @@ public:
+     [[nodiscard]] TargetType Convert() const noexcept;
+ 
+ private:
++    void                    BuildBvh() noexcept;
++
+     std::vector<TriangleGeometry>   Triangles;                  // [primitives] scene triangle geometry
+     std::vector<AnalyticalMaterial> Materials;                  // [materials] scene photometric materials
++    std::vector<BvhBranch>          Bvh;                        // [index] bounding volume hierarchy nodes
++    std::vector<uint32_t>           BvhOrder;                   // [index] hierarchy primitive permutation
+ };
+ 
+ template<>
 diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
-index 07728ca..483e531 100644
+index 07728ca..b9c85d4 100644
 --- a/Projects/Project-Zero/Source/RendererHost.cpp
 +++ b/Projects/Project-Zero/Source/RendererHost.cpp
-@@ -381,6 +381,281 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -77,26 +77,34 @@ float RendererHost::EvaluateJacobian(const Vector3& x1, const Vector3& x2, const
+         return 0.0f;
      }
+ 
+-    return (cos2 * lenSq1) / (cos1 * lenSq2);
++    return std::min((cos2 * lenSq1) / (cos1 * lenSq2), 10.0f);
  }
  
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                           RESTIR DI & GI RENDER PIPELINE
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCamera, uint32_t SpatialPassCount) noexcept
 +//------------------------------------------------------------------------------------------------------------------------
-+//                                     COURTYARD SUN SKY FOG RENDER PIPELINE
++//                                     SHOWCASE SUN SKY FOG RENDER PIPELINE
 +//------------------------------------------------------------------------------------------------------------------------
 +
-+void RendererHost::RenderCourtyardFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount) noexcept
-+{
-+    std::mt19937 Rng(1337);
-+    std::uniform_real_distribution<float> Dist(0.0f, 1.0f);
-+
-+    Scene.ConstructCourtyardScene();
++void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount, uint32_t BounceCount) noexcept
+ {
+     std::mt19937 Rng(1337);
+     std::uniform_real_distribution<float> Dist(0.0f, 1.0f);
+ 
+-    const auto& Materials = Scene.QueryMaterials();
++    Scene.ConstructShowcaseScene();
 +    SkyFog.AssignSunHour(SunHour);
 +    SkyFog.AssignFogScenario(Scenario);
-+
+ 
+-    // Luminaire description: Ceiling Quad light
+-    Vector3 LightMin{ -0.28f, 1.995f, 0.72f };
+-    Vector3 LightMax{  0.28f, 1.995f, 1.28f };
+-    Vector3 LightNormal{ 0.0f, -1.0f, 0.0f };
+-    Vector3 LightEmission{ 12.0f, 12.0f, 12.0f };
+-    float   LightArea = (LightMax.x - LightMin.x) * (LightMax.z - LightMin.z);
 +    const auto& Materials = Scene.QueryMaterials();
 +    const Vector3 SunWorld = SkyFog.QuerySunDirectionWorld();
 +    const Vector3 SunRadiance = SkyFog.QuerySunRadiance();
++    const Vector3 MoonWorld = SkyFog.QueryMoonDirectionWorld();
++    const Vector3 MoonRadiance = SkyFog.QueryMoonRadiance();
++    const Vector3 FogLightWorld = SkyFogIntegrator::WorldFromRender(SkyFog.QueryFogLightDirection());
 +    const Vector3 SkyAmbient = SkyFog.QueryAmbientRadiance();
 +    const float FogFar = SkyFog.QueryFogFarDistance();
-+
-+    // Phase 1: Visibility Buffer Primary Ray Trace from Active Camera
-+    for (uint32_t y = 0; y < Height; ++y)
-+    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            RayRecord PrimaryRay = GeneratePrimaryRay(ActiveCamera, x, y, 0.5f, 0.5f);
-+            PrimaryHits[idx] = Scene.EvaluateIntersection(PrimaryRay);
-+        }
-+    }
-+
+ 
+     // Phase 1: Visibility Buffer Primary Ray Trace from Active Camera
+     for (uint32_t y = 0; y < Height; ++y)
+@@ -109,8 +117,8 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+         }
+     }
+ 
+-    // Phase 2: Direct Illumination with Stratified Luminaire Integration
+-    std::vector<Vector3> DirectBuffer(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
 +    // Phase 2: Direct Sun Illumination with Shadow Segment Test
 +    std::vector<Vector3> DirectLight(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
-+    for (uint32_t y = 0; y < Height; ++y)
-+    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            const auto& Hit = PrimaryHits[idx];
-+
+     for (uint32_t y = 0; y < Height; ++y)
+     {
+         for (uint32_t x = 0; x < Width; ++x)
+@@ -118,47 +126,17 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+             size_t idx = y * Width + x;
+             const auto& Hit = PrimaryHits[idx];
+ 
+-            if (!Hit.ValidCondition || Hit.MaterialIndex == 3)
 +            if (!Hit.ValidCondition)
-+            {
-+                continue;
-+            }
-+
-+            const auto& Mat = Materials[Hit.MaterialIndex];
-+            float CosTheta = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, SunWorld));
+             {
+                 continue;
+             }
+ 
+             const auto& Mat = Materials[Hit.MaterialIndex];
+-            Vector3 DirectSum{ 0.0f, 0.0f, 0.0f };
+-            constexpr int GridSteps = 4;
+-            float CellWeight = 1.0f / static_cast<float>(GridSteps * GridSteps);
+-
+-            for (int gy = 0; gy < GridSteps; ++gy)
+-            {
+-                for (int gx = 0; gx < GridSteps; ++gx)
+-                {
+-                    float u = (static_cast<float>(gx) + Dist(Rng)) / static_cast<float>(GridSteps);
+-                    float v = (static_cast<float>(gy) + Dist(Rng)) / static_cast<float>(GridSteps);
+-
+-                    float lx = LightMin.x + u * (LightMax.x - LightMin.x);
+-                    float lz = LightMin.z + v * (LightMax.z - LightMin.z);
+-                    Vector3 LightPoint{ lx, LightMin.y, lz };
+-
+-                    if (!Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, LightPoint))
+-                    {
+-                        Vector3 DirToLight = LightPoint - Hit.HitLocation;
+-                        float DistSq = DirToLight.LengthSquared();
+-                        float DistLen = std::sqrt(DistSq);
+-                        Vector3 L = DirToLight / DistLen;
+-
+-                        float CosTheta = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, L));
+-                        float CosLight = std::max(0.0f, OrientationClassifier::DotProduct(LightNormal, L * -1.0f));
+-
+-                        if (CosTheta > 0.0f && CosLight > 0.0f)
+-                        {
+-                            float Geom = (CosTheta * CosLight) / DistSq;
+-                            DirectSum += Mat.AlbedoColor * (LightEmission * (Geom * LightArea * CellWeight * 0.40f));
+-                        }
+-                    }
+-                }
+-            }
+-
+-            DirectBuffer[idx] = DirectSum;
++            float SunCos = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, SunWorld));
 +            float SunVisible = Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, Hit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
-+            DirectLight[idx] = Mat.AlbedoColor * (SunRadiance * (CosTheta * SunVisible));
-+        }
-+    }
-+
-+    // Phase 3: ReSTIR GI Initial Candidate Bounce Ray Tracing (8 samples)
-+    for (uint32_t y = 0; y < Height; ++y)
-+    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            const auto& Hit = PrimaryHits[idx];
-+            IndirectGIReservoir GIReservoir{ Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 0.0f, 0.0f, 1.0f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.0f, 0, 0.0f };
-+
++            float MoonCos = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, MoonWorld));
++            float MoonVisible = Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, Hit.HitLocation + MoonWorld * 1000.0f) ? 0.0f : 1.0f;
++            DirectLight[idx] = Mat.AlbedoColor * (SunRadiance * (SunCos * SunVisible) + MoonRadiance * (MoonCos * MoonVisible));
+         }
+     }
+ 
+@@ -169,46 +147,43 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+         {
+             size_t idx = y * Width + x;
+             const auto& Hit = PrimaryHits[idx];
+-            IndirectGIReservoir GIReservoir{ Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 0.0f, 1.0f, 0.0f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.0f, 0, 0.0f };
++            IndirectGIReservoir GIReservoir{ Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 0.0f, 0.0f, 1.0f }, Vector3{ 0.0f, 0.0f, 0.0f }, 0.0f, 0, 0.0f, 0.0f };
+ 
+-            if (!Hit.ValidCondition || Hit.MaterialIndex == 3)
 +            if (!Hit.ValidCondition)
-+            {
-+                IndirectReservoirs[idx] = GIReservoir;
-+                continue;
-+            }
-+
-+            for (uint32_t s = 0; s < 8; ++s)
-+            {
-+                Vector3 BounceDir = SampleCosineHemisphere(Hit.SurfaceNormal, Dist(Rng), Dist(Rng));
+             {
+                 IndirectReservoirs[idx] = GIReservoir;
+                 continue;
+             }
+ 
+-            for (uint32_t s = 0; s < 8; ++s)
++            for (uint32_t s = 0; s < BounceCount; ++s)
+             {
+                 Vector3 BounceDir = SampleCosineHemisphere(Hit.SurfaceNormal, Dist(Rng), Dist(Rng));
+-                RayRecord BounceRay{ Hit.HitLocation + Hit.SurfaceNormal * 0.001f, BounceDir, 0.001f, 50.0f };
 +                RayRecord BounceRay{ Hit.HitLocation + Hit.SurfaceNormal * 0.001f, BounceDir, 0.001f, 200.0f };
-+
-+                HitIntersection BounceHit = Scene.EvaluateIntersection(BounceRay);
+ 
+                 HitIntersection BounceHit = Scene.EvaluateIntersection(BounceRay);
+-                if (BounceHit.ValidCondition && BounceHit.MaterialIndex != 3)
 +                Vector3 BounceRadiance{ 0.0f, 0.0f, 0.0f };
 +                Vector3 BouncePos = BounceRay.SpatialOrigin;
 +                Vector3 BounceNormal = BounceDir;
 +                if (BounceHit.ValidCondition)
-+                {
-+                    const auto& BounceMat = Materials[BounceHit.MaterialIndex];
-+                    float BounceCos = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, SunWorld));
-+                    float BounceVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
-+                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceCos * BounceVis) + SkyAmbient);
+                 {
+                     const auto& BounceMat = Materials[BounceHit.MaterialIndex];
+-
+-                    float lx = LightMin.x + Dist(Rng) * (LightMax.x - LightMin.x);
+-                    float lz = LightMin.z + Dist(Rng) * (LightMax.z - LightMin.z);
+-                    Vector3 LightCenter{ lx, LightMin.y, lz };
+-
+-                    Vector3 ToLight = LightCenter - BounceHit.HitLocation;
+-                    float dSq = ToLight.LengthSquared();
+-                    float dLen = std::sqrt(dSq);
+-                    Vector3 L = ToLight / dLen;
+-
+-                    float CosTheta = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, L));
+-                    float CosLight = std::max(0.0f, OrientationClassifier::DotProduct(LightNormal, L * -1.0f));
+-
+-                    Vector3 BounceRadiance{ 0.0f, 0.0f, 0.0f };
+-                    if (!Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, LightCenter))
+-                    {
+-                        float Geom = (CosTheta * CosLight) / (dSq + 0.05f);
+-                        BounceRadiance = BounceMat.AlbedoColor * (LightEmission * (Geom * LightArea * 0.35f));
+-                    }
+-
+-                    float Weight = (BounceRadiance.x + BounceRadiance.y + BounceRadiance.z) * 0.3333f;
+-                    GIReservoir.ResampleIndirect(BounceHit.HitLocation, BounceHit.SurfaceNormal, BounceRadiance, Weight, Dist(Rng));
++                    float BounceSunCos = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, SunWorld));
++                    float BounceSunVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++                    float BounceMoonCos = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, MoonWorld));
++                    float BounceMoonVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + MoonWorld * 1000.0f) ? 0.0f : 1.0f;
++                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceSunCos * BounceSunVis) + MoonRadiance * (BounceMoonCos * BounceMoonVis) + SkyAmbient);
 +                    BouncePos = BounceHit.HitLocation;
 +                    BounceNormal = BounceHit.SurfaceNormal;
 +                }
@@ -1808,165 +2839,139 @@ index 07728ca..483e531 100644
 +                    // Open sky above the bounce point: bare diffuse sky
 +                    // ambient (the primary albedo applies at composition).
 +                    BounceRadiance = SkyAmbient;
-+                }
+                 }
 +
 +                float Weight = (BounceRadiance.x + BounceRadiance.y + BounceRadiance.z) * 0.3333f;
 +                GIReservoir.ResampleIndirect(BouncePos, BounceNormal, BounceRadiance, Weight, Dist(Rng));
-+            }
-+
-+            if (GIReservoir.WeightSum > 0.0f && GIReservoir.SampleCount > 0)
-+            {
-+                GIReservoir.UnbiasedWeight = GIReservoir.WeightSum / static_cast<float>(GIReservoir.SampleCount);
-+            }
-+
-+            IndirectReservoirs[idx] = GIReservoir;
-+        }
-+    }
-+
-+    // Phase 4: ReSTIR GI Spatial Resampling Pass with Jacobian Shift
-+    std::vector<IndirectGIReservoir> SpatialIndirectReservoirs = IndirectReservoirs;
-+    for (uint32_t pass = 0; pass < SpatialPassCount; ++pass)
-+    {
-+        for (uint32_t y = 0; y < Height; ++y)
-+        {
-+            for (uint32_t x = 0; x < Width; ++x)
-+            {
-+                size_t idx = y * Width + x;
-+                const auto& CenterHit = PrimaryHits[idx];
+             }
+ 
+             if (GIReservoir.WeightSum > 0.0f && GIReservoir.SampleCount > 0)
+@@ -230,7 +205,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+             {
+                 size_t idx = y * Width + x;
+                 const auto& CenterHit = PrimaryHits[idx];
+-                if (!CenterHit.ValidCondition || CenterHit.MaterialIndex == 3)
 +                if (!CenterHit.ValidCondition)
-+                {
-+                    continue;
-+                }
-+
-+                IndirectGIReservoir SpatialGI = IndirectReservoirs[idx];
-+
-+                for (uint32_t n = 0; n < 8; ++n)
-+                {
-+                    int nx = static_cast<int>(x) + (static_cast<int>(Rng() % 11) - 5);
-+                    int ny = static_cast<int>(y) + (static_cast<int>(Rng() % 11) - 5);
-+
-+                    if (nx < 0 || nx >= static_cast<int>(Width) || ny < 0 || ny >= static_cast<int>(Height))
-+                    {
-+                        continue;
-+                    }
-+
-+                    size_t nIdx = ny * Width + nx;
-+                    const auto& NeighborHit = PrimaryHits[nIdx];
-+
+                 {
+                     continue;
+                 }
+@@ -250,7 +225,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                     size_t nIdx = ny * Width + nx;
+                     const auto& NeighborHit = PrimaryHits[nIdx];
+ 
+-                    if (!NeighborHit.ValidCondition || NeighborHit.MaterialIndex == 3)
 +                    if (!NeighborHit.ValidCondition)
-+                    {
-+                        continue;
-+                    }
-+                    if (OrientationClassifier::DotProduct(CenterHit.SurfaceNormal, NeighborHit.SurfaceNormal) < 0.90f)
-+                    {
-+                        continue;
-+                    }
+                     {
+                         continue;
+                     }
+@@ -258,7 +233,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                     {
+                         continue;
+                     }
+-                    if (std::abs(CenterHit.RayDistance - NeighborHit.RayDistance) > 0.10f)
 +                    if (std::abs(CenterHit.RayDistance - NeighborHit.RayDistance) > 1.00f)
-+                    {
-+                        continue;
-+                    }
-+
-+                    const auto& NeighborGI = IndirectReservoirs[nIdx];
-+                    if (NeighborGI.WeightSum <= 0.0f)
-+                    {
-+                        continue;
-+                    }
-+
-+                    float Jacobian = EvaluateJacobian(NeighborHit.HitLocation, CenterHit.HitLocation, NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal);
-+                    float ShiftedWeight = (NeighborGI.IndirectRadiance.x + NeighborGI.IndirectRadiance.y + NeighborGI.IndirectRadiance.z) * 0.3333f * NeighborGI.UnbiasedWeight * Jacobian;
-+
-+                    SpatialGI.ResampleIndirect(NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal, NeighborGI.IndirectRadiance, ShiftedWeight, Dist(Rng));
-+                }
-+
-+                if (SpatialGI.WeightSum > 0.0f && SpatialGI.SampleCount > 0)
+                     {
+                         continue;
+                     }
+@@ -275,6 +250,13 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                     SpatialGI.ResampleIndirect(NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal, NeighborGI.IndirectRadiance, ShiftedWeight, Dist(Rng));
+                 }
+ 
++                const uint32_t MCap = 20u * (BounceCount > 0u ? BounceCount : 1u);
++                if (SpatialGI.SampleCount > MCap)
 +                {
-+                    SpatialGI.UnbiasedWeight = SpatialGI.WeightSum / static_cast<float>(SpatialGI.SampleCount);
++                    SpatialGI.WeightSum *= static_cast<float>(MCap) / static_cast<float>(SpatialGI.SampleCount);
++                    SpatialGI.SampleCount = MCap;
 +                }
 +
-+                SpatialIndirectReservoirs[idx] = SpatialGI;
-+            }
-+        }
-+        IndirectReservoirs = SpatialIndirectReservoirs;
-+    }
-+
-+    // Phase 5: Indirect Radiosity Bilateral Spatial Filtering
+                 if (SpatialGI.WeightSum > 0.0f && SpatialGI.SampleCount > 0)
+                 {
+                     SpatialGI.UnbiasedWeight = SpatialGI.WeightSum / static_cast<float>(SpatialGI.SampleCount);
+@@ -287,7 +269,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+     }
+ 
+     // Phase 5: Indirect Radiosity Bilateral Spatial Filtering
+-    std::vector<Vector3> FilteredIndirectBuffer(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
 +    std::vector<Vector3> FilteredIndirect(Width * Height, Vector3{ 0.0f, 0.0f, 0.0f });
-+    for (uint32_t y = 0; y < Height; ++y)
-+    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            const auto& CenterHit = PrimaryHits[idx];
-+
+     for (uint32_t y = 0; y < Height; ++y)
+     {
+         for (uint32_t x = 0; x < Width; ++x)
+@@ -295,7 +277,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+             size_t idx = y * Width + x;
+             const auto& CenterHit = PrimaryHits[idx];
+ 
+-            if (!CenterHit.ValidCondition || CenterHit.MaterialIndex == 3)
 +            if (!CenterHit.ValidCondition)
-+            {
-+                continue;
-+            }
-+
-+            Vector3 IndirectAcc{ 0.0f, 0.0f, 0.0f };
-+            float   WeightTotal = 0.0f;
-+
-+            for (int dy = -3; dy <= 3; ++dy)
-+            {
-+                for (int dx = -3; dx <= 3; ++dx)
-+                {
-+                    int qx = static_cast<int>(x) + dx;
-+                    int qy = static_cast<int>(y) + dy;
-+
-+                    if (qx < 0 || qx >= static_cast<int>(Width) || qy < 0 || qy >= static_cast<int>(Height))
-+                    {
-+                        continue;
-+                    }
-+
-+                    size_t qIdx = qy * Width + qx;
-+                    const auto& NeighborHit = PrimaryHits[qIdx];
-+
+             {
+                 continue;
+             }
+@@ -318,7 +300,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                     size_t qIdx = qy * Width + qx;
+                     const auto& NeighborHit = PrimaryHits[qIdx];
+ 
+-                    if (!NeighborHit.ValidCondition || NeighborHit.MaterialIndex == 3)
 +                    if (!NeighborHit.ValidCondition)
-+                    {
-+                        continue;
-+                    }
-+
-+                    float SpatialDistSq = static_cast<float>(dx * dx + dy * dy);
-+                    float SpatialW = std::exp(-SpatialDistSq / 9.0f);
-+
-+                    float NormalDot = std::max(0.0f, OrientationClassifier::DotProduct(CenterHit.SurfaceNormal, NeighborHit.SurfaceNormal));
-+                    float NormalW = std::pow(NormalDot, 16.0f);
-+
-+                    float DepthDiff = std::abs(CenterHit.RayDistance - NeighborHit.RayDistance);
+                     {
+                         continue;
+                     }
+@@ -330,13 +312,18 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+                     float NormalW = std::pow(NormalDot, 16.0f);
+ 
+                     float DepthDiff = std::abs(CenterHit.RayDistance - NeighborHit.RayDistance);
+-                    float DepthW = std::exp(-DepthDiff * 15.0f);
 +                    float DepthW = std::exp(-DepthDiff * 3.0f);
-+
-+                    float TotalW = SpatialW * NormalW * DepthW;
-+                    const auto& GIRes = IndirectReservoirs[qIdx];
-+                    if (GIRes.WeightSum > 0.0f)
-+                    {
-+                        IndirectAcc += GIRes.IndirectRadiance * TotalW;
-+                        WeightTotal += TotalW;
-+                    }
-+                }
-+            }
-+
-+            if (WeightTotal > 0.0f)
-+            {
+ 
+                     float TotalW = SpatialW * NormalW * DepthW;
+                     const auto& GIRes = IndirectReservoirs[qIdx];
+-                    if (GIRes.WeightSum > 0.0f)
++                    if (GIRes.WeightSum > 0.0f && GIRes.KeptWeight > 1e-6f)
+                     {
+-                        IndirectAcc += GIRes.IndirectRadiance * TotalW;
++                        // Each neighbor shades its own unbiased RIS estimate
++                        // (kept radiance times W over kept target weight); the
++                        // bilateral kernel averages estimates, not raw samples.
++                        float NormRatio = std::min(GIRes.UnbiasedWeight / GIRes.KeptWeight, 8.0f);
++                        Vector3 Estimate = GIRes.IndirectRadiance * NormRatio;
++                        IndirectAcc += Estimate * TotalW;
+                         WeightTotal += TotalW;
+                     }
+                 }
+@@ -344,39 +331,50 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+ 
+             if (WeightTotal > 0.0f)
+             {
+-                FilteredIndirectBuffer[idx] = IndirectAcc * (1.0f / WeightTotal);
 +                FilteredIndirect[idx] = IndirectAcc * (1.0f / WeightTotal);
-+            }
-+        }
-+    }
-+
+             }
+         }
+     }
+ 
+-    // Phase 6: Radiance Composition
 +    // Phase 6: Radiance Composition with Aerial Perspective and Fog March
-+    for (uint32_t y = 0; y < Height; ++y)
-+    {
-+        for (uint32_t x = 0; x < Width; ++x)
-+        {
-+            size_t idx = y * Width + x;
-+            const auto& Hit = PrimaryHits[idx];
+     for (uint32_t y = 0; y < Height; ++y)
+     {
+         for (uint32_t x = 0; x < Width; ++x)
+         {
+             size_t idx = y * Width + x;
+             const auto& Hit = PrimaryHits[idx];
 +            RayRecord PrimaryRay = GeneratePrimaryRay(ActiveCamera, x, y, 0.5f, 0.5f);
 +            const Vector3 RenderOrigin = SkyFogIntegrator::RenderFromWorld(PrimaryRay.SpatialOrigin);
 +            const Vector3 RenderDir = SkyFogIntegrator::RenderFromWorld(PrimaryRay.RayDirection);
-+
-+            if (!Hit.ValidCondition)
-+            {
+ 
+             if (!Hit.ValidCondition)
+             {
+-                AccumulatedBuffer[idx] = Vector3{ 0.02f, 0.02f, 0.03f };
+-                continue;
+-            }
+-
+-            const auto& Mat = Materials[Hit.MaterialIndex];
+-
+-            // Emissive surface (Ceiling light)
+-            if (Hit.MaterialIndex == 3)
+-            {
+-                AccumulatedBuffer[idx] = Mat.EmissiveRadiance;
 +                const Vector3 MidPoint = PrimaryRay.SpatialOrigin + PrimaryRay.RayDirection * (FogFar * 0.5f);
-+                float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++                float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + FogLightWorld * 1000.0f) ? 0.0f : 1.0f;
 +                float Transmittance = 1.0f;
 +                Vector3 Scatter = SkyFog.MarchFog(RenderOrigin, RenderDir, 0.0f, FogFar, FogVisible, Transmittance);
 +                // Below-horizon misses sample the horizon zenith instead of
@@ -1980,24 +2985,26 @@ index 07728ca..483e531 100644
 +                }
 +                Vector3 Sky = SkyFog.ComputeSkyRadiance(SkyDir);
 +                AccumulatedBuffer[idx] = Scatter + Sky * Transmittance;
-+                continue;
-+            }
-+
-+            Vector3 Surface = DirectLight[idx] + FilteredIndirect[idx];
+                 continue;
+             }
+ 
+-            Vector3 DirectRad = DirectBuffer[idx];
+-            Vector3 IndirectRad = Mat.AlbedoColor * (FilteredIndirectBuffer[idx] * 0.40f);
+-            Vector3 AmbientRad = Mat.AlbedoColor * 0.015f;
+-
+-            AccumulatedBuffer[idx] = DirectRad + IndirectRad + AmbientRad;
++            const auto& HitMat = Materials[Hit.MaterialIndex];
++            Vector3 Surface = DirectLight[idx] + HitMat.AlbedoColor * FilteredIndirect[idx];
 +            Vector3 Aerial = SkyFog.ApplyAerialPerspective(Surface, RenderOrigin, RenderDir, Hit.RayDistance);
 +            const Vector3 MidPoint = PrimaryRay.SpatialOrigin + PrimaryRay.RayDirection * (Hit.RayDistance * 0.5f);
-+            float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + SunWorld * 1000.0f) ? 0.0f : 1.0f;
++            float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + FogLightWorld * 1000.0f) ? 0.0f : 1.0f;
 +            float Transmittance = 1.0f;
 +            Vector3 Scatter = SkyFog.MarchFog(RenderOrigin, RenderDir, 0.0f, Hit.RayDistance, FogVisible, Transmittance);
 +            AccumulatedBuffer[idx] = Scatter + Aerial * Transmittance;
-+        }
-+    }
-+}
-+
- //------------------------------------------------------------------------------------------------------------------------
- //                                                  IMAGE EXPORT
- //------------------------------------------------------------------------------------------------------------------------
-@@ -413,10 +688,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+         }
+     }
+ }
+@@ -413,10 +411,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
                  return std::clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
              };
  
@@ -2011,11 +3018,11 @@ index 07728ca..483e531 100644
  
              // Gamma 2.2 correction
              constexpr float InvGamma = 1.0f / 2.2f;
-@@ -437,4 +711,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+@@ -437,4 +434,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
      return true;
  }
  
-+bool RendererHost::ExportCourtyardImage(const std::string& OutputPath) const noexcept
++bool RendererHost::ExportShowcaseImage(const std::string& OutputPath) const noexcept
 +{
 +    std::ofstream Out(OutputPath, std::ios::binary);
 +    if (!Out.is_open())
@@ -2026,7 +3033,7 @@ index 07728ca..483e531 100644
 +    Out << "P6\n" << Width << " " << Height << "\n255\n";
 +
 +    // The gated panel post chain (exposure, tonemap, vignette) so the
-+    // courtyard matches the harness proof frames pixel-structure.
++    // showcase matches the harness proof frames pixel-structure.
 +    for (uint32_t y = 0; y < Height; ++y)
 +    {
 +        for (uint32_t x = 0; x < Width; ++x)
@@ -2049,7 +3056,7 @@ index 07728ca..483e531 100644
 +
  } // namespace Frontier::ProjectZero
 diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
-index 202b2bb..e5908a0 100644
+index 202b2bb..b1c495f 100644
 --- a/Projects/Project-Zero/Source/RendererHost.h
 +++ b/Projects/Project-Zero/Source/RendererHost.h
 @@ -6,6 +6,7 @@
@@ -2060,34 +3067,56 @@ index 202b2bb..e5908a0 100644
  #include "../../../GeometricRaster/CameraProjection.h"
  #include "../../../DeviceExchange/OrientationClassifier.h"
  #include <vector>
-@@ -77,7 +78,10 @@ public:
+@@ -49,16 +50,18 @@ struct IndirectGIReservoir
+     float                   WeightSum;                          // [-] accumulated candidate weights
+     uint32_t                SampleCount;                        // [count] considered indirect paths M
+     float                   UnbiasedWeight;                     // [-] normalization weight W
++    float                   KeptWeight;                         // [-] target weight of the kept sample
+ 
+-    void ResampleIndirect(const Vector3& HitPos, const Vector3& HitNorm, const Vector3& Radiance, float Weight, float RandomScalar) noexcept
++    void ResampleIndirect(const Vector3& HitPos, const Vector3& HitNorm, const Vector3& Radiance, float Weight, float RandomScalar, uint32_t MergedCount = 1u) noexcept
+     {
+         WeightSum += Weight;
+-        SampleCount += 1;
++        SampleCount += MergedCount;
+         if (RandomScalar * WeightSum <= Weight)
+         {
+             BounceHitPosition = HitPos;
+             BounceHitNormal   = HitNorm;
+             IndirectRadiance  = Radiance;
++            KeptWeight        = Weight;
+         }
+     }
+ };
+@@ -76,8 +79,10 @@ public:
+     RendererHost(const RendererHost&) = delete;
      RendererHost& operator=(const RendererHost&) = delete;
  
-     void                    RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCamera, uint32_t SpatialPassCount = 2) noexcept;
-+    void                    RenderCourtyardFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2) noexcept;
+-    void                    RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCamera, uint32_t SpatialPassCount = 2) noexcept;
++    void                    RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2, uint32_t BounceCount = 8) noexcept;
 +    void                    AssignToneExposure(float LinearExposure) noexcept { ToneExposure = LinearExposure; }
      [[nodiscard]] bool      ExportPpmImage(const std::string& OutputPath) const noexcept;
-+    [[nodiscard]] bool      ExportCourtyardImage(const std::string& OutputPath) const noexcept;
++    [[nodiscard]] bool      ExportShowcaseImage(const std::string& OutputPath) const noexcept;
  
      [[nodiscard]] uint32_t  QueryWidth() const noexcept { return Width; }
      [[nodiscard]] uint32_t  QueryHeight() const noexcept { return Height; }
-@@ -94,7 +98,9 @@ private:
+@@ -94,7 +99,9 @@ private:
  
      uint32_t                Width;                              // [px] viewport width
      uint32_t                Height;                             // [px] viewport height
 -    RayTracingSolver        Scene;                              // [scene] analytical Cornell Box geometry
 +    float                   ToneExposure = 1.05f;               // [-] linear pre-tonemap multiplier
-+    RayTracingSolver        Scene;                              // [scene] analytical Cornell or courtyard geometry
++    RayTracingSolver        Scene;                              // [scene] analytical showcase geometry
 +    SkyFogIntegrator        SkyFog;                             // [atmosphere] celestial sky and fog volumes
      std::vector<HitIntersection>      PrimaryHits;              // [visibility] primary visibility buffer
      std::vector<PhotometricReservoir> DirectReservoirs;         // [restir_di] direct illumination reservoirs
      std::vector<IndirectGIReservoir>  IndirectReservoirs;       // [restir_gi] global illumination reservoirs
 diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.cpp b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
 new file mode 100644
-index 0000000..a8defe6
+index 0000000..306c802
 --- /dev/null
 +++ b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,368 @@
 +//============================================================================================================================================
 +// 📦 Project-Zero/Source/SkyFogIntegrator.cpp — Celestial Sky And Fog Volume Integrator Implementation Over Slang
 +//============================================================================================================================================
@@ -2119,6 +3148,21 @@ index 0000000..a8defe6
 +SkyFogIntegrator::FogScenario CoreScenario = SkyFogIntegrator::FogScenario::Morning;
 +
 +float3              CoreSunRadiance{};                          // [lux] trans * color * intensity, shared
++
++float3 MoonRadianceValue() noexcept
++{
++    return float3(0.42f, 0.54f, 0.72f);                         // [lux] cool showcase moonlight
++}
++
++void FogLightPick(float3& LightDir, float3& LightRadiance) noexcept
++{
++    float sunLum = CoreSunRadiance.x * 0.212671f + CoreSunRadiance.y * 0.715160f + CoreSunRadiance.z * 0.072169f;
++    float3 moon = MoonRadianceValue();
++    float moonLum = moon.x * 0.212671f + moon.y * 0.715160f + moon.z * 0.072169f;
++    bool sunWins = sunLum >= moonLum;
++    LightDir = sunWins ? CoreSky.sunDir : CoreSky.moonDir;
++    LightRadiance = sunWins ? CoreSunRadiance : moon;
++}
 +
 +float3 ToFloat3(const Vector3& Source) noexcept
 +{
@@ -2241,6 +3285,16 @@ index 0000000..a8defe6
 +    p.starAA = 1.0f;
 +    p.starCeil = 8.0f * 2.6e-3f * (p.starBright != 0.0f ? p.starBright : 1.0f) * 3.2f * 1.6f;
 +    p.pixAngle = 0.0f;
++    // Showcase sky: full moon, broken cirrus, boosted stars (artistic
++    // license for the group photo; the mirror gates keep these off).
++    p.moonOn = 1u;
++    p.moonDir = float3(0.2506f, 0.3509f, -0.9023f);
++    p.moonBright = 3.0f;
++    p.cloudOn = 1u;
++    p.cloudCoverage = 0.28f;
++    p.cloudScale = 2.0f;
++    p.starBright = 8.0f;
++    p.starCeil = 8.0f * 2.6e-3f * p.starBright * 3.2f * 1.6f;
 +    return p;
 +}
 +
@@ -2261,8 +3315,8 @@ index 0000000..a8defe6
 +        c.globalDensity = 0.004f;
 +        c.globalHeightFalloff = 0.25f;
 +        c.volumeCount = 1u;
-+        c.volumes[0] = FogVolumeMake(FogShapeBox, float3(0.0f, 1.0f, 2.0f), float3(12.0f, 1.2f, 10.0f), 0.020f, 0.35f,
-+            float3(0.80f, 0.82f, 0.85f), 0.55f, float3(0.0f, 0.0f, 0.0f), 0.6f, 0.15f);
++        c.volumes[0] = FogVolumeMake(FogShapeBox, float3(0.0f, 1.2f, 10.0f), float3(45.0f, 1.5f, 35.0f), 0.010f, 0.35f,
++            float3(0.80f, 0.82f, 0.85f), 0.55f, float3(0.0f, 0.0f, 0.0f), 0.25f, 0.15f);
 +    }
 +    else if (Scenario == SkyFogIntegrator::FogScenario::Backlit)
 +    {
@@ -2282,8 +3336,8 @@ index 0000000..a8defe6
 +
 +SkyFogIntegrator::SkyFogIntegrator() noexcept
 +{
-+    // Safe-by-default courtyard light: 06:24 sun over morning ground mist.
-+    AssignSunHour(6.4);
++    // Safe-by-default showcase light: sunset over evening ground mist.
++    AssignSunHour(17.93);
 +    AssignFogScenario(FogScenario::Morning);
 +}
 +
@@ -2293,13 +3347,22 @@ index 0000000..a8defe6
 +
 +void SkyFogIntegrator::AssignSunHour(double LocalHours) noexcept
 +{
-+    // Johannesburg latitude with panel-default longitude offset and lamp,
-+    // identical to the gated harness invocation.
-+    const SolarState Sun = SolveSolarState(LocalHours, -26.0, 0.0, 5800.0);
++    // Johannesburg latitude with the showcase azimuth staging (-60 deg puts
++    // the extinct sunset behind the default camera so the field catches a
++    // warm key while the northern sky goes twilight behind the full moon;
++    // the solar algorithm itself is the untouched gated copy).
++    const SolarState Sun = SolveSolarState(LocalHours, -26.0, -60.0, 5800.0);
 +    CoreSky = MakeSkyDefaults(Sun);
 +    const float3 SkyOrigin = float3(0.0f, CoreSky.planetRadius + 2.0f, 0.0f);
 +    const AtmosphereStructure SunPath = AtmosphereCompute(SkyOrigin, CoreSky.sunDir, CoreSky);
 +    CoreSunRadiance = SunPath.trans * CoreSky.sunColor * CoreSky.sunIntensity;
++    if (CoreSky.sunDir.y <= 0.0f)
++    {
++        // Below-horizon sun carries no direct light: without this clamp
++        // the unextinguished disc value (intensity ~22) would flood night
++        // scenes with daylight. The moon wins the fog-light pick instead.
++        CoreSunRadiance = float3(0.0f, 0.0f, 0.0f);
++    }
 +    CoreFog = MakeFogScenario(CoreScenario, SkyAmbientCompute(CoreSky));
 +}
 +
@@ -2324,9 +3387,48 @@ index 0000000..a8defe6
 +    return ToVector3(CoreSunRadiance);
 +}
 +
++Vector3 SkyFogIntegrator::QueryMoonDirectionRender() const noexcept
++{
++    return ToVector3(CoreSky.moonDir);
++}
++
++Vector3 SkyFogIntegrator::QueryMoonDirectionWorld() const noexcept
++{
++    return WorldFromRender(ToVector3(CoreSky.moonDir));
++}
++
++Vector3 SkyFogIntegrator::QueryMoonRadiance() const noexcept
++{
++    return ToVector3(MoonRadianceValue());
++}
++
++Vector3 SkyFogIntegrator::QueryFogLightDirection() const noexcept
++{
++    // The march scatters from one luminaire: the brighter of the setting
++    // sun and the showcase moon, compared by luminance.
++    float sunLum = CoreSunRadiance.x * 0.212671f + CoreSunRadiance.y * 0.715160f + CoreSunRadiance.z * 0.072169f;
++    float3 moon = MoonRadianceValue();
++    float moonLum = moon.x * 0.212671f + moon.y * 0.715160f + moon.z * 0.072169f;
++    return (sunLum >= moonLum) ? ToVector3(CoreSky.sunDir) : ToVector3(CoreSky.moonDir);
++}
++
++Vector3 SkyFogIntegrator::QueryFogLightRadiance() const noexcept
++{
++    float sunLum = CoreSunRadiance.x * 0.212671f + CoreSunRadiance.y * 0.715160f + CoreSunRadiance.z * 0.072169f;
++    float3 moon = MoonRadianceValue();
++    float moonLum = moon.x * 0.212671f + moon.y * 0.715160f + moon.z * 0.072169f;
++    return (sunLum >= moonLum) ? ToVector3(CoreSunRadiance) : ToVector3(moon);
++}
++
 +Vector3 SkyFogIntegrator::QueryAmbientRadiance() const noexcept
 +{
-+    return ToVector3(SkyAmbientCompute(CoreSky));
++    // The sky mean overestimates Lambert irradiance: the bright horizon
++    // band counts fully in the mean but feeds surfaces at grazing angles,
++    // so the surface fill is rescaled (the sky pixels themselves, and the
++    // fog's own ambient source, keep the unscaled mirror value).
++    const Vector3 Ambient = ToVector3(SkyAmbientCompute(CoreSky));
++    const Vector3 Moon = ToVector3(MoonRadianceValue());
++    return Vector3{ Ambient.x * 0.50f + Moon.x * 0.50f, Ambient.y * 0.50f + Moon.y * 0.50f, Ambient.z * 0.50f + Moon.z * 0.50f };
 +}
 +
 +float SkyFogIntegrator::QueryFogFarDistance() const noexcept
@@ -2351,7 +3453,10 @@ index 0000000..a8defe6
 +
 +Vector3 SkyFogIntegrator::MarchFog(const Vector3& RenderOrigin, const Vector3& RenderDir, float TMin, float TMax, float LightVisibility, float& Transmittance) const noexcept
 +{
-+    const FogMarchStructure March = FogMarchVolumes(ToFloat3(RenderOrigin), ToFloat3(RenderDir), TMin, TMax, CoreSky.sunDir, CoreSunRadiance, LightVisibility, CoreFog);
++    float3 LightDir{};
++    float3 LightRadiance{};
++    FogLightPick(LightDir, LightRadiance);
++    const FogMarchStructure March = FogMarchVolumes(ToFloat3(RenderOrigin), ToFloat3(RenderDir), TMin, TMax, LightDir, LightRadiance, LightVisibility, CoreFog);
 +    Transmittance = March.transmittance;
 +    return ToVector3(March.scatter);
 +}
@@ -2382,10 +3487,10 @@ index 0000000..a8defe6
 +} // namespace Frontier::ProjectZero
 diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.h b/Projects/Project-Zero/Source/SkyFogIntegrator.h
 new file mode 100644
-index 0000000..763cd96
+index 0000000..c93d23a
 --- /dev/null
 +++ b/Projects/Project-Zero/Source/SkyFogIntegrator.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,51 @@
 +//============================================================================================================================================
 +// 📦 Project-Zero/Source/SkyFogIntegrator.h — Celestial Sky And Fog Volume Integrator Over The Shipped Slang Core
 +//============================================================================================================================================
@@ -2419,6 +3524,11 @@ index 0000000..763cd96
 +    [[nodiscard]] Vector3   QuerySunDirectionRender() const noexcept;        // [-] unit sun vector, Y-up render frame
 +    [[nodiscard]] Vector3   QuerySunDirectionWorld() const noexcept;         // [-] unit sun vector, Z-up world frame
 +    [[nodiscard]] Vector3   QuerySunRadiance() const noexcept;              // [lux] atmosphere-attenuated sun
++    [[nodiscard]] Vector3   QueryMoonDirectionRender() const noexcept;       // [-] unit moon vector, Y-up render frame
++    [[nodiscard]] Vector3   QueryMoonDirectionWorld() const noexcept;        // [-] unit moon vector, Z-up world frame
++    [[nodiscard]] Vector3   QueryMoonRadiance() const noexcept;             // [lux] showcase moonlight, bluish
++    [[nodiscard]] Vector3   QueryFogLightDirection() const noexcept;         // [-] brighter luminaire, render frame
++    [[nodiscard]] Vector3   QueryFogLightRadiance() const noexcept;          // [lux] brighter luminaire radiance
 +    [[nodiscard]] Vector3   QueryAmbientRadiance() const noexcept;          // [lux] three-sample sky ambient
 +    [[nodiscard]] float     QueryFogFarDistance() const noexcept;           // [m] march cutoff for sky rays
 +

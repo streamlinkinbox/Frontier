@@ -25,6 +25,11 @@ struct Args
     double fov = 72.0;
     float grain = 0.1f;
     int media = 1;
+    int moon = 0;
+    int cloud = 0;
+    double stars = 1.0;
+    double coverage = 0.45;
+    double moonbright = 2.0;
     std::string out = "frame.ppm";
     std::string linear;
 };
@@ -76,6 +81,26 @@ bool Parse(int argc, char** argv, Args& a) noexcept
         {
             a.media = std::stoi(v);
         }
+        else if (k == "--moon" && need(v))
+        {
+            a.moon = std::stoi(v);
+        }
+        else if (k == "--cloud" && need(v))
+        {
+            a.cloud = std::stoi(v);
+        }
+        else if (k == "--stars" && need(v))
+        {
+            a.stars = std::stod(v);
+        }
+        else if (k == "--coverage" && need(v))
+        {
+            a.coverage = std::stod(v);
+        }
+        else if (k == "--moonbright" && need(v))
+        {
+            a.moonbright = std::stod(v);
+        }
         else if (k == "--out" && need(v))
         {
             a.out = v;
@@ -108,6 +133,13 @@ int main(int argc, char** argv)
         ProjectZero::SolveSun(a.sun, -26.0, 0.0, 5800.0);
     SkyConfiguration p = ProjectZero::MakePanelParams(sun);
     p.grain = a.grain;
+    p.moonOn = a.moon ? 1u : 0u;
+    p.cloudOn = a.cloud ? 1u : 0u;
+    p.starBright = float(a.stars);
+    p.starCeil = 8.0f * 2.6e-3f * (p.starBright != 0.0f ? p.starBright : 1.0f)
+               * 3.2f * 1.6f;
+    p.cloudCoverage = float(a.coverage);
+    p.moonBright = float(a.moonbright);
     if (!a.media)
     {
         p.fogOn = 0u;

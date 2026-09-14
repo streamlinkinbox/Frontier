@@ -81,6 +81,12 @@ inline SkyConfiguration MakePanelParams(const SunState& sun) noexcept
     p.starCeil = 8.0f * 2.6e-3f * (p.starBright != 0.0f ? p.starBright : 1.0f)
                * 3.2f * 1.6f;
     p.pixAngle = 0.0f; // view-dependent: the caller sets 2*tanHalf/resY
+    p.moonOn = 0u; // showcase-only; the mirror gates keep the moon off
+    p.moonDir = float3(0.6113f, 0.6891f, 0.3890f); // norm(0.55,0.62,0.35)
+    p.moonBright = 2.0f;
+    p.cloudOn = 0u; // showcase-only; the mirror gates keep clouds off
+    p.cloudCoverage = 0.45f;
+    p.cloudScale = 2.0f;
     return p;
 }
 

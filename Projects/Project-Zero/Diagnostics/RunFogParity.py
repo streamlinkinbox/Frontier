@@ -179,6 +179,16 @@ def fog_march(o, d, tmin, tmax, ld, lr, vis, g):
     m0.append(np.where(second, s0[:, 1], F32(1.0)))
     m1.append(np.where(second, s1[:, 1], F32(-1.0)))
     mh.append(second)
+    # Global height-fog span (see FogSpecification): when the global density
+    # is on and the surviving span is non-empty, the merged set is exactly
+    # [tmin, min(tmax, maxmarch)] — the global segment swallows every volume
+    # segment, which the .slang always clamps inside it.
+    fullb = np.minimum(tmax, g["maxmarch"])
+    gspan = (g["gdens"] > 0) & (tmin < fullb)
+    m0[0] = np.where(gspan, tmin, m0[0])
+    m1[0] = np.where(gspan, fullb, m1[0])
+    mh[0] = np.where(gspan, True, mh[0])
+    mh[1] = np.where(gspan, False, mh[1])
     # Scatter cosine: dot(dir, lightDir) (see FogSpecification comment).
     cost = (d[:, 0] * ld[:, 0] + d[:, 1] * ld[:, 1]
             + d[:, 2] * ld[:, 2])

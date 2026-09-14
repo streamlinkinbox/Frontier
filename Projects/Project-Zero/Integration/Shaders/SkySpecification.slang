@@ -89,6 +89,13 @@ struct SkyConfiguration
     float starAA;           // [-] load-time tier (1; Ultra+ uses 2)
     float starCeil;         // [-] uStarCeil, from the JS probe line
     float pixAngle;         // [rad] 2*tanHalf/resY, the star footprint
+    // Showcase extensions (moon/clouds): defaults keep the mirror bit-exact.
+    uint moonOn;            // [-] lunar disc + glow (0)
+    float3 moonDir;         // [-] unit, sky frame (+Y up)
+    float moonBright;       // [x] lunar radiance scale (2)
+    uint cloudOn;           // [-] procedural cirrus layer (0)
+    float cloudCoverage;    // [0..1] cirrus cover fraction (0.45)
+    float cloudScale;       // [-] cirrus plane scale (2)
 };
 
 //@@BAN: SKY PROJECTION
@@ -471,6 +478,59 @@ float NoiseValueCompute(float3 p)
                 lerp(lerp(n001, n101, f.x), lerp(n011, n111, f.x), f.y), f.z);
 }
 
+// Showcase moon (no panel counterpart; same disc-plus-glow structure as the
+// sun): a pale full disc at the moon radius plus a tight halo, attenuated
+// by the view-path transmittance like any sky emitter.
+float3 MoonDiscCompute(float3 dir, float3 trans, in SkyConfiguration p)
+{
+    float ang = acos(clamp(dot(dir, p.moonDir), -1.0f, 1.0f));
+    float radius = p.sunAngularRadius * 0.98f;
+    float disc = 1.0f - smoothstep(radius * 0.90f, radius, ang);
+    float limb = lerp(1.0f, 0.72f, smoothstep(0.0f, radius, ang));
+    float halo = exp(-ang * 22.0f) * 0.30f + exp(-ang * 5.0f) * 0.04f;
+    float3 moonCol = float3(0.90f, 0.94f, 1.0f) * trans;
+    return (disc * limb + halo) * moonCol * p.moonBright;
+}
+
+// Showcase cirrus (no panel counterpart): the view direction projected onto
+// a wind-drifted plane, 3-octave value-noise fbm, coverage gate, horizon
+// fade. Returns the layer density in [0..1].
+float CloudFieldCompute(float3 dir, in SkyConfiguration p)
+{
+    if (dir.y <= 0.01f)
+    {
+        return 0.0f;
+    }
+    float2 cuv = float2(dir.x, dir.z) / dir.y * p.cloudScale
+               + float2(p.timeSeconds * 0.004f, p.timeSeconds * 0.0016f);
+    float3 cell = float3(cuv.x, cuv.y, 7.31f);
+    float fbm = NoiseValueCompute(cell) * 0.55f
+              + NoiseValueCompute(cell * 2.13f + 7.7f) * 0.27f
+              + NoiseValueCompute(cell * 4.41f + 3.1f) * 0.18f;
+    float gate = smoothstep(1.0f - p.cloudCoverage - 0.25f,
+                            1.0f - p.cloudCoverage + 0.35f, fbm);
+    return gate * smoothstep(0.01f, 0.12f, dir.y);
+}
+
+// Cirrus shading: atmosphere-reddened sunlight (silver lining toward the
+// sun) over sky-ambient shade.
+float3 CloudShadeCompute(float3 dir, float density, float3 trans,
+                         in SkyConfiguration p)
+{
+    float toward = max(dot(dir, p.sunDir), 0.0f);
+    float glow = pow(toward * 0.5f + 0.5f, 3.0f);
+    float3 lit = trans * p.sunColor * (0.6f + 2.5f * glow)
+               + float3(0.10f, 0.12f, 0.16f);
+    float mOn = p.moonOn > 0u ? 1.0f : 0.0f;
+    float mGlow = pow(max(dot(dir, p.moonDir), 0.0f) * 0.5f + 0.5f, 2.0f);
+    lit = lit + float3(0.55f, 0.65f, 0.85f) * (mGlow * p.moonBright * 0.12f)
+                * mOn;
+    float3 shade = p.skyAmb * 0.55f + float3(0.04f, 0.05f, 0.08f);
+    return lerp(shade, lit, clamp(glow + pow(toward, 8.0f), 0.0f, 1.0f))
+         * (0.35f + 0.65f * density);
+}
+
+
 // Panel lines 805-806.
 float3 RotateYCompute(float3 v, float a)
 {
@@ -765,9 +825,23 @@ float3 SkyShadedCompute(in AtmosphereStructure f, float3 dir, in SkyConfiguratio
             col = col + st * vis * ext;
         }
         col = col + SunDiscCompute(dir, f.trans, p) + SunAureoleCompute(dir, f.trans, p);
+        if (p.moonOn > 0u)
+        {
+            col = col + MoonDiscCompute(dir, f.trans, p);
+        }
         float hRef = max(p.fogHeight * 4.0f, p.afHeight * 5.0f);
         float dS = dir.y > 0.002f ? min(60000.0f, hRef / dir.y) : 60000.0f;
         col = SkyMediaApply(col, dir, dS, hzGlow, f.trans, p);
+        if (p.cloudOn > 0u)
+        {
+            float density = CloudFieldCompute(dir, p);
+            if (density > 0.0f)
+            {
+                col = lerp(col,
+                           CloudShadeCompute(dir, density, f.trans, p),
+                           clamp(density * 1.15f, 0.0f, 0.92f));
+            }
+        }
         return col;
     }
     float3 sunP = SunGroundCompute(dir, f.trans, p);

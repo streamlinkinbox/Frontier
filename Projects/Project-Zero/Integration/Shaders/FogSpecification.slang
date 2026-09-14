@@ -349,8 +349,8 @@ FogMarchStructure FogMarchVolumes(float3 origin, float3 dir, float tMin,
     float tMax, float3 lightDir, float3 lightRadiance, float lightVisibility,
     in FogConfiguration cfg)
 {
-    float seg0[FogVolumeLimit];
-    float seg1[FogVolumeLimit];
+    float seg0[FogVolumeLimit + 1u];
+    float seg1[FogVolumeLimit + 1u];
     uint segCount = 0u;
     for (uint i = 0u; i < cfg.volumeCount; i++)
     {
@@ -361,6 +361,19 @@ FogMarchStructure FogMarchVolumes(float3 origin, float3 dir, float tMin,
         {
             seg0[segCount] = a;
             seg1[segCount] = b;
+            segCount = segCount + 1u;
+        }
+    }
+    // The global height fog rides the whole surviving span, not just the
+    // local volumes: without this segment the veil only exists inside
+    // boxes and every ray that misses them marches nothing.
+    if (cfg.globalDensity > 0.0f)
+    {
+        float fullB = min(tMax, cfg.maxMarchDistance);
+        if (tMin < fullB)
+        {
+            seg0[segCount] = tMin;
+            seg1[segCount] = fullB;
             segCount = segCount + 1u;
         }
     }

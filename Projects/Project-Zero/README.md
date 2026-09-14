@@ -12,10 +12,12 @@ ReSTIR direct + indirect, nothing else.
   `ReSTIRSequence.slang` (reservoirs + the 9 compute entries),
   `SlangInterchange.h` (dual-compile header). See `Integration/Shaders/README.md`
   for the contract and the Vulkan integration guide.
-- `INTEGRATION.md` + `PZIntegration/0001-courtyard-sky-fog.patch` — the
-  Project Zero integration: the patch drops the sky, sun, and fog into the
-  engine's courtyard renderer (verified: builds, runs, matches the harness
-  sky within 3 LDR). `Integration/Build/` holds port/format tooling.
+- `INTEGRATION.md` + `PZIntegration/0001-project-zero-showcase.patch` —
+  the Project Zero integration: the patch makes the engine open on the
+  100-object showcase scene (sunset sky, moon, stars, clouds, ground
+  mist through ReSTIR DI + GI; verified: builds warning-free, runs,
+  deterministic, matches the harness sky within 3 LDR).
+  `Integration/Build/` holds port/format tooling.
 - `Host/` — CPU harness that compiles the shipped `.slang` verbatim as C++17:
   `SkyViewport` (reference frames), `CpuPortDiff` (second-truth frames),
   `ReSTIRConvergence` (T2/T3/T4), `MediaProbe` (media sampler for G3),
@@ -52,12 +54,15 @@ gate — the one thing this sandbox cannot do is compile the Slang-only shell
 - ReSTIR: DI/GI estimates match independent brute-force references at all 3
   probes (floor, floor-left, wall); determinism bit-exact.
 - Fog: F1 density vs numpy worst 0.001 of tolerance, F2 march vs numpy worst
-  0.209 (both over 2000 seeded rows); F3 determinism byte-identical; proofs
-  `Diagnostics/Proof/fog_{clear,morning,backlit}.png`, report
-  `Diagnostics/FogParity.txt`. Research: `Reviews/Fog-Research-2026-09-14.md`.
+  0.806 (both over 2000 seeded rows; the march now covers the global
+  height-fog span, not just local volumes); F3 determinism
+  byte-identical; proofs `Diagnostics/Proof/fog_{clear,morning,backlit}.png`,
+  report `Diagnostics/FogParity.txt`.
+  Research: `Reviews/Fog-Research-2026-09-14.md`.
 - Integration: the engine patch (`PZIntegration/`) builds warning-free and
-  renders the courtyard in Project Zero (`--courtyard`); sky matches the
-  harness within 3 LDR, Cornell path unregressed. See `INTEGRATION.md`.
+  opens Project Zero on the 100-object showcase (sunset + moon + mist,
+  `--sun 18.3` for a starry night); sky matches the harness within
+  3 LDR, runs are byte-identical. See `INTEGRATION.md`.
 - Background: the review that specified this work is
   `Reviews/SunSky-Parity-2026-09-14.md`; the mirror proof answering the
   white-line question is `Reviews/SunSky-Mirror-Report-2026-09-14.md`.
