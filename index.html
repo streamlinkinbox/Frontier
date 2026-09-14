@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="STRATA — a depth-aware procedural terrain erosion lab." />
+  <title>STRATA / Terrain Erosion Lab</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <div class="brand-name">STRATA</div>
+          <div class="brand-sub">TERRAIN LAB <span class="slash">/</span> 0.8.4</div>
+        </div>
+      </div>
+
+      <div class="project-breadcrumb">
+        <span class="eyebrow">PROJECT</span>
+        <span class="crumb-divider"></span>
+        <strong id="projectName">Canyon study 04</strong>
+        <button class="icon-btn tiny" id="renameProject" aria-label="Rename project" title="Rename project">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.7 3.2 3.2-.7L18.6 6.9a2.1 2.1 0 0 0-3-3L3.5 16.1Z"/><path d="m14.4 5.8 3.8 3.8"/></svg>
+        </button>
+      </div>
+
+      <div class="top-actions">
+        <div class="status-chip"><i class="status-dot"></i><span id="saveStatus">All changes saved</span></div>
+        <button class="button ghost small" id="methodButton">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 10.5v5M12 7.5h.01"/></svg>
+          Method notes
+        </button>
+        <button class="button outline small" id="importButton">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 12 4-4m-4 4-4-4"/><path d="M5 15v4h14v-4"/></svg>
+          Import map
+        </button>
+        <input id="mapInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+        <button class="button primary" id="runButton">
+          <span class="play-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z"/></svg></span>
+          <span id="runLabel">Run simulation</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel node-panel" aria-label="Node editor">
+        <div class="panel-head node-head">
+          <div>
+            <div class="panel-kicker"><span class="signal"></span> PROCEDURAL GRAPH</div>
+            <h1>Build surface</h1>
+          </div>
+          <div class="panel-head-tools">
+            <span class="tiny-readout">GRAPH <b id="nodeCount">07</b></span>
+            <span class="head-rule"></span>
+            <button class="icon-btn" id="addNodeButton" aria-label="Add node" title="Add node">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="icon-btn" id="fitGraphButton" aria-label="Fit graph" title="Fit graph">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/><path d="M4 8 9 13M20 8l-5 5M4 16l5-5M20 16l-5-5" opacity=".45"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="graph-toolbar">
+          <div class="graph-tabs"><button class="active">EROSION STACK</button><button>MASKS <em>2</em></button></div>
+          <div class="graph-actions">
+            <button class="tool-chip" id="zoomOut" aria-label="Zoom out">−</button>
+            <span id="zoomReadout">100%</span>
+            <button class="tool-chip" id="zoomIn" aria-label="Zoom in">+</button>
+            <span class="toolbar-separator"></span>
+            <button class="tool-chip icon" id="resetGraph" aria-label="Reset graph" title="Reset graph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.7"/><path d="M4 4v4.7h4.7"/></svg></button>
+          </div>
+        </div>
+
+        <div class="graph-canvas" id="graphCanvas">
+          <div class="graph-grid"></div>
+          <div class="graph-layer" id="graphLayer">
+            <svg class="connection-layer" id="connectionLayer" aria-hidden="true"></svg>
+
+            <article class="node selected" data-node="source" style="left: 4%; top: 12%;">
+              <div class="node-topline"><span class="node-type source-type">SOURCE</span><button class="node-menu" aria-label="Source node menu">•••</button></div>
+              <div class="node-title">Canyon seed</div>
+              <div class="node-meta">FBM / RIDGE NOISE <span class="node-state">LIVE</span></div>
+              <div class="node-preview seed-preview"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="port port-right" data-port="out"></div>
+            </article>
+
+            <article class="node" data-node="rain" style="left: 4%; top: 59%;">
+              <div class="node-topline"><span class="node-type water-type">WATER</span><button class="node-menu" aria-label="Rain node menu">•••</button></div>
+              <div class="node-title">Rain source</div>
+              <div class="node-meta">MONSOON / 18 MM <span class="node-state">READY</span></div>
+              <div class="node-preview rain-preview"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="port port-right" data-port="out"></div>
+            </article>
+
+            <article class="node" data-node="ridge" style="left: 31%; top: 7%;">
+              <div class="node-topline"><span class="node-type terrain-type">SHAPE</span><button class="node-menu" aria-label="Ridge node menu">•••</button></div>
+              <div class="node-title">Ridge fold</div>
+              <div class="node-meta">MULTI-SCALE / 5 OCT</div>
+              <div class="node-preview ridge-preview"><i></i><i></i><i></i><i></i></div>
+              <div class="port port-left" data-port="in"></div><div class="port port-right" data-port="out"></div>
+            </article>
+
+            <article class="node hero-node" data-node="hydraulic" style="left: 33%; top: 39%;">
+              <div class="node-topline"><span class="node-type erosion-type">EROSION</span><span class="node-live"><i></i> ACTIVE</span></div>
+              <div class="node-title">Hydraulic pass</div>
+              <div class="node-meta">VIRTUAL PIPE / 72 ITER</div>
+              <div class="node-preview hydraulic-preview"><span class="river-line"></span><span class="river-line second"></span><span class="river-glint"></span></div>
+              <div class="node-params"><span><b>W</b> 0.42</span><span><b>S</b> 0.18</span><span><b>V</b> XY</span></div>
+              <div class="port port-left" data-port="in"></div><div class="port port-right" data-port="out"></div><div class="port port-bottom" data-port="aux"></div>
+            </article>
+
+            <article class="node" data-node="thermal" style="left: 34%; top: 75%;">
+              <div class="node-topline"><span class="node-type thermal-type">WEATHER</span><button class="node-menu" aria-label="Thermal node menu">•••</button></div>
+              <div class="node-title">Talus settle</div>
+              <div class="node-meta">SLOPE LIMIT / 34°</div>
+              <div class="node-preview thermal-preview"><i></i><i></i><i></i></div>
+              <div class="port port-top" data-port="in"></div><div class="port port-right" data-port="out"></div>
+            </article>
+
+            <article class="node" data-node="layer" style="left: 65%; top: 29%;">
+              <div class="node-topline"><span class="node-type layer-type">MATERIAL</span><button class="node-menu" aria-label="Layer node menu">•••</button></div>
+              <div class="node-title">Layer merge</div>
+              <div class="node-meta">SOIL + SEDIMENT + WATER</div>
+              <div class="node-preview layer-preview"><span></span><span></span><span></span></div>
+              <div class="port port-left" data-port="in"></div><div class="port port-bottom" data-port="aux"></div><div class="port port-right" data-port="out"></div>
+            </article>
+
+            <article class="node output-node" data-node="output" style="left: 70%; top: 64%;">
+              <div class="node-topline"><span class="node-type output-type">OUTPUT</span><span class="output-badge">MESH</span></div>
+              <div class="node-title">Terrain render</div>
+              <div class="node-meta">SURFACE + DEPTH + FLOW</div>
+              <div class="output-preview"><span class="output-mountain"></span><span class="output-shadow"></span></div>
+              <div class="port port-left" data-port="in"></div><div class="port port-top" data-port="aux"></div>
+            </article>
+          </div>
+          <div class="graph-minimap" aria-hidden="true"><span class="minimap-box"></span><i></i><i></i><i></i><i></i></div>
+          <div class="graph-hint"><span class="mouse-icon">✣</span> DRAG NODES TO REWIRE THE STACK</div>
+        </div>
+
+        <div class="inspector">
+          <div class="inspector-title-row">
+            <div><span class="inspector-kicker" id="inspectorType">SELECTED NODE / EROSION</span><h2 id="inspectorTitle">Hydraulic pass</h2></div>
+            <div class="inspector-status"><span class="status-dot aqua"></span><span id="inspectorStatus">Depth-aware</span></div>
+          </div>
+          <div class="inspector-content" id="inspectorContent">
+            <div class="control-group">
+              <label for="rainAmount"><span>Rainfall</span><output id="rainValue">18 mm</output></label>
+              <input id="rainAmount" type="range" min="0" max="40" value="18" step="1" />
+            </div>
+            <div class="control-group">
+              <label for="erosionAmount"><span>Pick-up</span><output id="erosionValue">42%</output></label>
+              <input id="erosionAmount" type="range" min="0" max="100" value="42" step="1" />
+            </div>
+            <div class="control-group">
+              <label for="talusAmount"><span>Talus angle</span><output id="talusValue">34°</output></label>
+              <input id="talusAmount" type="range" min="10" max="55" value="34" step="1" />
+            </div>
+            <div class="inspector-pill"><span class="pill-icon">↗</span><span>Transport vector</span><b>XY / FIELD</b></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel viewport-panel" aria-label="Rendered terrain view">
+        <div class="panel-head viewport-head">
+          <div>
+            <div class="panel-kicker"><span class="signal aqua"></span> RENDERED VIEW</div>
+            <h1>Surface / depth field</h1>
+          </div>
+          <div class="viewport-head-right">
+            <span class="resolution-readout"><b id="resolutionReadout">72 × 72</b><small>CELLS</small></span>
+            <button class="icon-btn" id="screenshotButton" aria-label="Export terrain preview" title="Export terrain preview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4Z"/><circle cx="12" cy="13.5" r="3.2"/></svg></button>
+          </div>
+        </div>
+
+        <div class="viewport-toolbar">
+          <div class="view-tabs" role="tablist" aria-label="Render mode">
+            <button class="active" data-render="surface" role="tab">SURFACE</button>
+            <button data-render="depth" role="tab">DEPTH</button>
+            <button data-render="flow" role="tab">FLOW <em>XY</em></button>
+          </div>
+          <div class="view-toggles">
+            <button class="toggle active" id="waterToggle"><span class="toggle-dot"></span>WATER</button>
+            <button class="toggle active" id="contourToggle"><span class="toggle-dot contour-dot"></span>CONTOURS</button>
+            <button class="toggle" id="vectorToggle"><span class="toggle-dot vector-dot"></span>VECTORS</button>
+          </div>
+        </div>
+
+        <div class="render-stage" id="renderStage">
+          <canvas id="terrainCanvas" aria-label="Procedurally rendered eroded terrain"></canvas>
+          <div class="stage-vignette"></div>
+          <div class="render-corner top-left"><span>CAM 01</span><span>ORTHO / 38°</span></div>
+          <div class="render-corner top-right"><span class="live-label"><i></i> LIVE PREVIEW</span><span id="frameReadout">FRAME 072</span></div>
+          <div class="render-corner bottom-left"><span>EXPOSURE <b>+0.4</b></span><span>AZIMUTH <b>128°</b></span></div>
+          <div class="render-corner bottom-right"><span id="cursorReadout">X 36.0 / Y 36.0</span><span>Z <b id="cursorHeight">0.72</b></span></div>
+          <div class="terrain-tooltip" id="terrainTooltip"><span class="tooltip-kicker">CELL SAMPLE</span><strong id="tooltipCoords">X 36 · Y 36</strong><span id="tooltipData">DEPTH 0.14 / FLOW 0.62</span></div>
+          <div class="loading-overlay" id="loadingOverlay"><div class="loader-ring"></div><span id="loadingText">SIMULATING WATER FLOW</span><small id="loadingProgress">00%</small></div>
+        </div>
+
+        <div class="render-footer">
+          <div class="legend-block">
+            <div class="legend-title"><span class="legend-line"></span> ELEVATION <span class="legend-range">LOW <i></i> HIGH</span></div>
+            <div class="elevation-gradient"></div>
+            <div class="legend-ticks"><span>0.08</span><span>0.44</span><span>0.81</span></div>
+          </div>
+          <div class="metric-grid">
+            <div><span>ERODED</span><strong id="erodedMetric">12.6%</strong></div>
+            <div><span>SEDIMENT</span><strong id="sedimentMetric">0.18 m³</strong></div>
+            <div><span>FLOW LENGTH</span><strong id="flowMetric">4.8 km</strong></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bottom-bar">
+      <div class="bottom-left"><span class="engine-mark">S</span><span>DEPTH-AWARE TERRAIN ENGINE</span><span class="bar-dot"></span><span id="engineMode">SHALLOW WATER / VIRTUAL PIPE</span></div>
+      <div class="bottom-right"><span>GPU PREVIEW</span><span class="gpu-lights"><i></i><i></i><i></i></span><span class="bar-divider"></span><button class="help-button" id="helpButton" aria-label="Keyboard shortcuts">?</button></div>
+    </footer>
+  </div>
+
+  <dialog class="method-dialog" id="methodDialog">
+    <div class="dialog-head"><div><span class="panel-kicker"><span class="signal aqua"></span> RESEARCH NOTES</span><h2>Why this is not only a height map</h2></div><button class="icon-btn" id="closeMethod" aria-label="Close dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="dialog-body">
+      <p class="dialog-lede">STRATA keeps an elevation surface for fast interactive rendering, but each cell also carries water depth, suspended sediment, local hardness and a horizontal velocity vector.</p>
+      <div class="method-grid">
+        <article><span class="method-index">01</span><h3>Shallow water flow</h3><p>Rain adds water. Surface pressure drives outflow across four virtual pipes, then velocity advects water and sediment in X/Y.</p></article>
+        <article><span class="method-index">02</span><h3>Pickup + deposit</h3><p>Transport capacity follows slope and flow speed. Soil is picked up when capacity is available, and deposited when the carrier saturates.</p></article>
+        <article><span class="method-index">03</span><h3>Talus settle</h3><p>A separate thermal pass moves material when a local slope exceeds the talus angle, preventing channels from becoming only vertical displacement.</p></article>
+        <article><span class="method-index">04</span><h3>Layer-ready output</h3><p>The graph exposes soil, sediment and water as separate channels so the next step can become true layered or voxel terrain.</p></article>
+      </div>
+      <div class="sources"><span class="sources-label">REFERENCES</span><a href="https://diglib.eg.org/server/api/core/bitstreams/a5c270b1-da1c-498d-bb6d-5fa372ec54e0/content" target="_blank" rel="noreferrer">Jákó &amp; Tóth · Fast Hydraulic and Thermal Erosion on GPU ↗</a><a href="https://www.cs.purdue.edu/cgvlab/www/resources/papers/Stava-2008-Interactive_Terrain_Modeling_Using_Hydraulic_Erosion.pdf" target="_blank" rel="noreferrer">Št’ava et al. · Interactive Terrain Modeling Using Hydraulic Erosion ↗</a><a href="https://github.com/kristofe/terrain-erosion" target="_blank" rel="noreferrer">kristofe / terrain-erosion · open source CPU shallow-water model ↗</a></div>
+    </div>
+    <div class="dialog-foot"><span>MODEL / MEI 2007 FAMILY + THERMAL SLIPPAGE</span><button class="button primary small" id="closeMethodBottom">Back to graph</button></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-mark">S</span><span id="toastMessage">Simulation complete</span></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
