@@ -4,10 +4,12 @@ Opening the Project-Zero executable renders the showcase: a soil plain
 scattered with one hundred analytical shapes (boxes, spheres, cones,
 cylinders, pyramids, tetrahedra, wedges — near and far, one unique
 material + colour each), under a sunset sky with full moon, stars,
-broken cirrus, and marching ground mist. The Cornell box and the
-courtyard scenes are deleted; this is the only scene, and it is the
-speed-test bed. Everything is lit strictly by ReSTIR DI + ReSTIR GI,
-nothing else.
+broken cirrus, and marching ground mist — plus camera lens flare,
+halo, and an anamorphic streak, all enabled by default. The Cornell
+box and the courtyard scenes are deleted; this is the only scene, and
+it is the speed-test bed. Everything is lit strictly by ReSTIR DI +
+ReSTIR GI, nothing else; the flare is a post-process camera artifact,
+not a light.
 
 ## Apply (engine checkout)
 
@@ -19,11 +21,11 @@ and apply-checked against):
 git apply PZIntegration/0001-project-zero-showcase.patch   # this file ships here
 ```
 
-It touches 11 files: `CMakeLists.txt` (the Project-Zero target gains
-the integrator sources — without this the target does not link), 3 new
+It touches 12 files: `CMakeLists.txt` (the Project-Zero target gains
+the integrator sources — without this the target does not link), 4 new
 shaders (`Shaders/SlangInterchange.h`, `Shaders/SkySpecification.slang`,
-`Shaders/FogSpecification.slang`), 2 new sources
-(`Source/SkyFogIntegrator.h/.cpp`), 5 rewritten sources
+`Shaders/FogSpecification.slang`, `Shaders/FlareSpecification.slang`),
+2 new sources (`Source/SkyFogIntegrator.h/.cpp`), 5 rewritten sources
 (`RayTracingSolver.h/.cpp`, `RendererHost.h/.cpp`,
 `GameExecution.cpp`). No Makefile change: the `Source/*.cpp` wildcard
 picks the integrator up. The `.slang` files compile as C++ through the
@@ -54,7 +56,8 @@ Flags: `--sun H` (any hour; below-horizon sun is clamped so night
 works), `--yaw D` `--pitch D` (aim; default `0 2`), `--fog
 clear|morning|backlit`, `--width W` `--height H`, `--bounce N` (GI
 candidates per pixel, default 8), `--passes N` (spatial reuse passes,
-default 2), `--help`. Output lands in `./Diagnostics/`:
+default 2), `--flare 0|1` (lens artifacts, default 1), `--help`.
+Output lands in `./Diagnostics/`:
 `ProjectZero_Showcase.ppm` always, plus `.png` when a Python
 interpreter is found. The PPM is byte-identical run to run
 (seeded hashes; determinism is verified, not assumed).
@@ -94,6 +97,16 @@ interpreter is found. The PPM is byte-identical run to run
 - Below-horizon miss rays sample the horizon zenith rather than the
   panel underground (distant haze, kills a black horizon seam), and
   the showcase exports through the panel post chain.
+- Phase 7 applies the lens artifacts in linear HDR before the post
+  chain: a `FlareSpecification.slang` core (bright-pass, separable
+  gaussian halo octaves, whole-frame ghost resamples on the
+  source/center axis, long horizontal streak) driven by
+  `RendererHost::ApplyLensFlare`, which projects the sun and moon
+  through the live camera. Each luminaire behind the camera fades
+  its own ghosts out, so day frames flare from the sun and night
+  frames from the moon. The core is `.slang` like the sky/fog cores
+  (compiled once, in `RendererHost.cpp`); thresholds and strengths
+  live in the C++ driver, so tuning never touches the shipped math.
 
 ## Verification record (sandbox, g++ 12)
 
@@ -105,7 +118,7 @@ interpreter is found. The PPM is byte-identical run to run
 - Determinism: repeated runs are byte-identical, and three
   independent builds (dev `-O1`, patched-pristine-tree `-O1`, engine
   `make -O3`) produce the same sha256
-  (`f59ef151…ebd1` for the default 320×240 frame).
+  (`92731d57…c7b13` for the default 320×240 frame, flare on).
 - Sky path matches the gated harness within 3 LDR after the identical
   post chain (unchanged from the courtyard proof; the sky algorithm
   is untouched, only its staging inputs moved).
@@ -119,8 +132,9 @@ interpreter is found. The PPM is byte-identical run to run
 - The vendored shader sources are byte-identical to this repo's
   `Integration/Shaders/` (sha256: `SlangInterchange.h 2945beda…`,
   `SkySpecification.slang 3c29aa2a…`, `FogSpecification.slang
-  a33588ce…`). Re-vendor by copying the three files over
-  `Projects/Project-Zero/Shaders/` in the engine checkout.
+  a33588ce…`, `FlareSpecification.slang 7acf9a9c…`). Re-vendor by
+  copying the four files over `Projects/Project-Zero/Shaders/` in the
+  engine checkout.
 - The moon, clouds, and star boost are showcase staging with no
   panel source (new features, default-off in the mirror gates).
   Placement/density are artist tuning, not physics errors — the

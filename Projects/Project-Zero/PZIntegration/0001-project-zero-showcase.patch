@@ -11,6 +11,216 @@ index 0c9d720..801ac30 100644
      Projects/Project-Zero/Source/GameExecution.cpp
  )
  
+diff --git a/Projects/Project-Zero/Shaders/FlareSpecification.slang b/Projects/Project-Zero/Shaders/FlareSpecification.slang
+new file mode 100644
+index 0000000..c26c089
+--- /dev/null
++++ b/Projects/Project-Zero/Shaders/FlareSpecification.slang
+@@ -0,0 +1,204 @@
++//============================================================================================================================================
++// FlareSpecification.slang — camera lens artifacts (halo, ghosts, anamorphic streak) over an HDR frame
++//
++// Dual-compile core (Slang + C++17 through SlangInterchange.h), same contract as the sky/fog cores: pure functions,
++// no file-scope state, no engine types. All images are interleaved RGB float planes; the C++ driver owns the buffers
++// (the engine's Vector3 frame store is 16-byte aligned, so it is packed in/out at the boundary, never aliased here).
++// Included by exactly ONE translation unit (RendererHost.cpp); the header never names these routines.
++//============================================================================================================================================
++
++#ifndef FLARE_SPECIFICATION_INCLUDED
++#define FLARE_SPECIFICATION_INCLUDED
++
++// Rec.709 luminance of one HDR pixel.
++float FlareLuminance(float3 c)
++{
++    return c.x * 0.2126f + c.y * 0.7152f + c.z * 0.0722f;
++}
++
++// Soft-knee bright-pass: keeps HDR highlights, kills everything below threshold.
++float3 FlareBrightPixel(float3 c, float threshold, float softness)
++{
++    float lum = FlareLuminance(c);
++    float w = smoothstep(threshold, threshold + max(softness, 1e-6f), lum);
++    return c * w;
++}
++
++// Clamped bilinear sample of an interleaved RGB float plane.
++float3 FlareSampleBilinear(const float* plane, int w, int h, float x, float y)
++{
++    float cx = clamp(x, 0.0f, float(w) - 1.0f);
++    float cy = clamp(y, 0.0f, float(h) - 1.0f);
++    int x0 = int(cx);
++    int y0 = int(cy);
++    int x1 = (x0 + 1 < w) ? (x0 + 1) : (w - 1);
++    int y1 = (y0 + 1 < h) ? (y0 + 1) : (h - 1);
++    float fx = cx - float(x0);
++    float fy = cy - float(y0);
++    int i00 = (y0 * w + x0) * 3;
++    int i10 = (y0 * w + x1) * 3;
++    int i01 = (y1 * w + x0) * 3;
++    int i11 = (y1 * w + x1) * 3;
++    float3 c00 = float3(plane[i00], plane[i00 + 1], plane[i00 + 2]);
++    float3 c10 = float3(plane[i10], plane[i10 + 1], plane[i10 + 2]);
++    float3 c01 = float3(plane[i01], plane[i01 + 1], plane[i01 + 2]);
++    float3 c11 = float3(plane[i11], plane[i11 + 1], plane[i11 + 2]);
++    return lerp(lerp(c00, c10, fx), lerp(c01, c11, fx), fy);
++}
++
++// One horizontal gaussian blur pass (radius <= 64).
++void FlareBlurH(const float* src, float* dst, int w, int h, int radius, float sigma)
++{
++    float kernel[129];
++    float total = 0.0f;
++    for (int o = -radius; o <= radius; o++)
++    {
++        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
++        kernel[o + radius] = g;
++        total = total + g;
++    }
++    float inv = 1.0f / total;
++    for (int y = 0; y < h; y++)
++    {
++        for (int x = 0; x < w; x++)
++        {
++            float3 acc = float3(0.0f, 0.0f, 0.0f);
++            for (int o = -radius; o <= radius; o++)
++            {
++                int sx = x + o;
++                sx = (sx < 0) ? 0 : ((sx > w - 1) ? (w - 1) : sx);
++                int si = (y * w + sx) * 3;
++                acc = acc + float3(src[si], src[si + 1], src[si + 2]) * kernel[o + radius];
++            }
++            int di = (y * w + x) * 3;
++            dst[di] = acc.x * inv;
++            dst[di + 1] = acc.y * inv;
++            dst[di + 2] = acc.z * inv;
++        }
++    }
++}
++
++// One vertical gaussian blur pass (radius <= 64).
++void FlareBlurV(const float* src, float* dst, int w, int h, int radius, float sigma)
++{
++    float kernel[129];
++    float total = 0.0f;
++    for (int o = -radius; o <= radius; o++)
++    {
++        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
++        kernel[o + radius] = g;
++        total = total + g;
++    }
++    float inv = 1.0f / total;
++    for (int y = 0; y < h; y++)
++    {
++        for (int x = 0; x < w; x++)
++        {
++            float3 acc = float3(0.0f, 0.0f, 0.0f);
++            for (int o = -radius; o <= radius; o++)
++            {
++                int sy = y + o;
++                sy = (sy < 0) ? 0 : ((sy > h - 1) ? (h - 1) : sy);
++                int si = (sy * w + x) * 3;
++                acc = acc + float3(src[si], src[si + 1], src[si + 2]) * kernel[o + radius];
++            }
++            int di = (y * w + x) * 3;
++            dst[di] = acc.x * inv;
++            dst[di + 1] = acc.y * inv;
++            dst[di + 2] = acc.z * inv;
++        }
++    }
++}
++
++// Anamorphic streak: long horizontal gaussian over the hard-thresholded highlights.
++void FlareStreakH(const float* src, float* dst, int w, int h, int radius, float sigma, float threshold, float3 tint)
++{
++    float kernel[129];
++    float total = 0.0f;
++    for (int o = -radius; o <= radius; o++)
++    {
++        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
++        kernel[o + radius] = g;
++        total = total + g;
++    }
++    float inv = 1.0f / total;
++    for (int y = 0; y < h; y++)
++    {
++        for (int x = 0; x < w; x++)
++        {
++            float3 acc = float3(0.0f, 0.0f, 0.0f);
++            for (int o = -radius; o <= radius; o++)
++            {
++                int sx = x + o;
++                sx = (sx < 0) ? 0 : ((sx > w - 1) ? (w - 1) : sx);
++                int si = (y * w + sx) * 3;
++                float3 c = float3(src[si], src[si + 1], src[si + 2]);
++                float lum = FlareLuminance(c);
++                float k = (lum > threshold) ? (lum - threshold) : 0.0f;
++                acc = acc + c * (k * kernel[o + radius]);
++            }
++            int di = (y * w + x) * 3;
++            dst[di] = acc.x * inv * tint.x;
++            dst[di + 1] = acc.y * inv * tint.y;
++            dst[di + 2] = acc.z * inv * tint.z;
++        }
++    }
++}
++
++// One lens ghost: a minified whole-frame copy on the source/center optical axis.
++// axisT places the ghost: 0 = on the source, 1 = mirrored past the center, >1 beyond, <0 past the source.
++void FlareGhostAccum(const float* src, float* dst, int w, int h,
++    float srcX, float srcY, float axisT, float size, float3 tint, float intensity)
++{
++    float cx = float(w) * 0.5f;
++    float cy = float(h) * 0.5f;
++    float dx = srcX - cx;
++    float dy = srcY - cy;
++    float dist = sqrt(dx * dx + dy * dy);
++    float ux = (dist > 1e-4f) ? (dx / dist) : 1.0f;
++    float uy = (dist > 1e-4f) ? (dy / dist) : 0.0f;
++    float gx = cx - ux * dist * axisT;
++    float gy = cy - uy * dist * axisT;
++    float minDim = (w < h) ? float(w) : float(h);
++    float rad = size * minDim * 0.5f;
++    float invSize = 1.0f / max(size, 1e-4f);
++    for (int y = 0; y < h; y++)
++    {
++        for (int x = 0; x < w; x++)
++        {
++            float rx = float(x) - gx;
++            float ry = float(y) - gy;
++            float r = sqrt(rx * rx + ry * ry) / max(rad, 1e-4f);
++            float mask = 1.0f - smoothstep(0.65f, 1.0f, r);
++            if (mask > 0.0f)
++            {
++                float3 c = FlareSampleBilinear(src, w, h, srcX + rx * invSize, srcY + ry * invSize);
++                int di = (y * w + x) * 3;
++                float k = mask * intensity;
++                dst[di] = dst[di] + c.x * tint.x * k;
++                dst[di + 1] = dst[di + 1] + c.y * tint.y * k;
++                dst[di + 2] = dst[di + 2] + c.z * tint.z * k;
++            }
++        }
++    }
++}
++
++// Composite: bilinear-upsample the half-res flare and add it into the full-res packed frame.
++void FlareCompositeAdd(float* fullPacked, int fw, int fh, const float* flareHalf, int hw, int hh, float strength)
++{
++    for (int y = 0; y < fh; y++)
++    {
++        for (int x = 0; x < fw; x++)
++        {
++            float hx = (float(x) + 0.5f) * float(hw) / float(fw) - 0.5f;
++            float hy = (float(y) + 0.5f) * float(hh) / float(fh) - 0.5f;
++            float3 f = FlareSampleBilinear(flareHalf, hw, hh, hx, hy) * strength;
++            int di = (y * fw + x) * 3;
++            fullPacked[di] = fullPacked[di] + f.x;
++            fullPacked[di + 1] = fullPacked[di + 1] + f.y;
++            fullPacked[di + 2] = fullPacked[di + 2] + f.z;
++        }
++    }
++}
++
++#endif // FLARE_SPECIFICATION_INCLUDED
 diff --git a/Projects/Project-Zero/Shaders/FogSpecification.slang b/Projects/Project-Zero/Shaders/FogSpecification.slang
 new file mode 100644
 index 0000000..1401a49
@@ -1667,10 +1877,10 @@ index 0000000..7b19903
 +
 +#endif // FRONTIER_SLANG_INTERCHANGE_H
 diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
-index 6953a00..13a5699 100644
+index 6953a00..50ff0ec 100644
 --- a/Projects/Project-Zero/Source/GameExecution.cpp
 +++ b/Projects/Project-Zero/Source/GameExecution.cpp
-@@ -1,125 +1,134 @@
+@@ -1,125 +1,139 @@
  //============================================================================================================================================
 -// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Photometric Test Ground Entry Point
 +// 📦 Project-Zero/Source/GameExecution.cpp — Project-Zero Standalone ReSTIR Showcase Entry Point
@@ -1697,6 +1907,7 @@ index 6953a00..13a5699 100644
 +    uint32_t ViewportHeight = 480;
 +    uint32_t BounceCount = 8;
 +    uint32_t SpatialPasses = 2;
++    bool FlareEnabled = true;
 +    Frontier::ProjectZero::SkyFogIntegrator::FogScenario FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Morning;
 +    for (int i = 1; i < ArgumentCount; ++i)
 +    {
@@ -1729,6 +1940,10 @@ index 6953a00..13a5699 100644
 +        {
 +            SpatialPasses = static_cast<uint32_t>(std::atoi(ArgumentValues[++i]));
 +        }
++        else if (Arg == "--flare" && i + 1 < ArgumentCount)
++        {
++            FlareEnabled = std::atoi(ArgumentValues[++i]) != 0;
++        }
 +        else if (Arg == "--fog" && i + 1 < ArgumentCount)
 +        {
 +            std::string Name = ArgumentValues[++i];
@@ -1744,7 +1959,7 @@ index 6953a00..13a5699 100644
 +        else if (Arg == "--help")
 +        {
 +            std::cout << "usage: Project-Zero [--sun H] [--yaw D] [--pitch D] [--fog clear|morning|backlit]\n"
-+                      << "                      [--width W] [--height H] [--bounce N] [--passes N]\n";
++                      << "                      [--width W] [--height H] [--bounce N] [--passes N] [--flare 0|1]\n";
 +            return 0;
 +        }
 +    }
@@ -1831,7 +2046,7 @@ index 6953a00..13a5699 100644
  
      Frontier::ProjectZero::RendererHost Renderer(ViewportWidth, ViewportHeight);
 -    Renderer.RenderReSTIRFrame(Camera, 2); // 2 spatial resampling passes
-+    Renderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount);
++    Renderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount, FlareEnabled);
  
      auto EndTime = std::chrono::high_resolution_clock::now();
      double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
@@ -2663,10 +2878,24 @@ index 1f8aed1..eb07f1f 100644
  
  template<>
 diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
-index 07728ca..b9c85d4 100644
+index 07728ca..06e22e5 100644
 --- a/Projects/Project-Zero/Source/RendererHost.cpp
 +++ b/Projects/Project-Zero/Source/RendererHost.cpp
-@@ -77,26 +77,34 @@ float RendererHost::EvaluateJacobian(const Vector3& x1, const Vector3& x2, const
+@@ -8,6 +8,13 @@
+ #include <algorithm>
+ #include <random>
+ #include <iostream>
++#include "../Shaders/SlangInterchange.h"
++#include "../Shaders/FlareSpecification.slang"
++// The flare core is compiled ONLY in this translation unit (its routines
++// are non-inline, like the sky/fog core in SkyFogIntegrator.cpp). Undefine
++// the prelude keyword macros so nothing below can be macro-rewritten.
++#undef in
++#undef uniform
+ 
+ namespace Frontier::ProjectZero {
+ 
+@@ -77,26 +84,34 @@ float RendererHost::EvaluateJacobian(const Vector3& x1, const Vector3& x2, const
          return 0.0f;
      }
  
@@ -2683,7 +2912,7 @@ index 07728ca..b9c85d4 100644
 +//                                     SHOWCASE SUN SKY FOG RENDER PIPELINE
 +//------------------------------------------------------------------------------------------------------------------------
 +
-+void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount, uint32_t BounceCount) noexcept
++void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount, uint32_t BounceCount, bool FlareEnabled) noexcept
  {
      std::mt19937 Rng(1337);
      std::uniform_real_distribution<float> Dist(0.0f, 1.0f);
@@ -2710,7 +2939,7 @@ index 07728ca..b9c85d4 100644
  
      // Phase 1: Visibility Buffer Primary Ray Trace from Active Camera
      for (uint32_t y = 0; y < Height; ++y)
-@@ -109,8 +117,8 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -109,8 +124,8 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
          }
      }
  
@@ -2721,7 +2950,7 @@ index 07728ca..b9c85d4 100644
      for (uint32_t y = 0; y < Height; ++y)
      {
          for (uint32_t x = 0; x < Width; ++x)
-@@ -118,47 +126,17 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -118,47 +133,17 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
              size_t idx = y * Width + x;
              const auto& Hit = PrimaryHits[idx];
  
@@ -2775,7 +3004,7 @@ index 07728ca..b9c85d4 100644
          }
      }
  
-@@ -169,46 +147,43 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -169,46 +154,43 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
          {
              size_t idx = y * Width + x;
              const auto& Hit = PrimaryHits[idx];
@@ -2846,7 +3075,7 @@ index 07728ca..b9c85d4 100644
              }
  
              if (GIReservoir.WeightSum > 0.0f && GIReservoir.SampleCount > 0)
-@@ -230,7 +205,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -230,7 +212,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
              {
                  size_t idx = y * Width + x;
                  const auto& CenterHit = PrimaryHits[idx];
@@ -2855,7 +3084,7 @@ index 07728ca..b9c85d4 100644
                  {
                      continue;
                  }
-@@ -250,7 +225,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -250,7 +232,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
                      size_t nIdx = ny * Width + nx;
                      const auto& NeighborHit = PrimaryHits[nIdx];
  
@@ -2864,7 +3093,7 @@ index 07728ca..b9c85d4 100644
                      {
                          continue;
                      }
-@@ -258,7 +233,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -258,7 +240,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
                      {
                          continue;
                      }
@@ -2873,7 +3102,7 @@ index 07728ca..b9c85d4 100644
                      {
                          continue;
                      }
-@@ -275,6 +250,13 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -275,6 +257,13 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
                      SpatialGI.ResampleIndirect(NeighborGI.BounceHitPosition, NeighborGI.BounceHitNormal, NeighborGI.IndirectRadiance, ShiftedWeight, Dist(Rng));
                  }
  
@@ -2887,7 +3116,7 @@ index 07728ca..b9c85d4 100644
                  if (SpatialGI.WeightSum > 0.0f && SpatialGI.SampleCount > 0)
                  {
                      SpatialGI.UnbiasedWeight = SpatialGI.WeightSum / static_cast<float>(SpatialGI.SampleCount);
-@@ -287,7 +269,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -287,7 +276,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
      }
  
      // Phase 5: Indirect Radiosity Bilateral Spatial Filtering
@@ -2896,7 +3125,7 @@ index 07728ca..b9c85d4 100644
      for (uint32_t y = 0; y < Height; ++y)
      {
          for (uint32_t x = 0; x < Width; ++x)
-@@ -295,7 +277,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -295,7 +284,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
              size_t idx = y * Width + x;
              const auto& CenterHit = PrimaryHits[idx];
  
@@ -2905,7 +3134,7 @@ index 07728ca..b9c85d4 100644
              {
                  continue;
              }
-@@ -318,7 +300,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -318,7 +307,7 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
                      size_t qIdx = qy * Width + qx;
                      const auto& NeighborHit = PrimaryHits[qIdx];
  
@@ -2914,7 +3143,7 @@ index 07728ca..b9c85d4 100644
                      {
                          continue;
                      }
-@@ -330,13 +312,18 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -330,13 +319,18 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
                      float NormalW = std::pow(NormalDot, 16.0f);
  
                      float DepthDiff = std::abs(CenterHit.RayDistance - NeighborHit.RayDistance);
@@ -2936,7 +3165,7 @@ index 07728ca..b9c85d4 100644
                          WeightTotal += TotalW;
                      }
                  }
-@@ -344,39 +331,50 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
+@@ -344,46 +338,199 @@ void RendererHost::RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCam
  
              if (WeightTotal > 0.0f)
              {
@@ -2961,15 +3190,6 @@ index 07728ca..b9c85d4 100644
              if (!Hit.ValidCondition)
              {
 -                AccumulatedBuffer[idx] = Vector3{ 0.02f, 0.02f, 0.03f };
--                continue;
--            }
--
--            const auto& Mat = Materials[Hit.MaterialIndex];
--
--            // Emissive surface (Ceiling light)
--            if (Hit.MaterialIndex == 3)
--            {
--                AccumulatedBuffer[idx] = Mat.EmissiveRadiance;
 +                const Vector3 MidPoint = PrimaryRay.SpatialOrigin + PrimaryRay.RayDirection * (FogFar * 0.5f);
 +                float FogVisible = Scene.EvaluateOcclusion(MidPoint, MidPoint + FogLightWorld * 1000.0f) ? 0.0f : 1.0f;
 +                float Transmittance = 1.0f;
@@ -2988,11 +3208,7 @@ index 07728ca..b9c85d4 100644
                  continue;
              }
  
--            Vector3 DirectRad = DirectBuffer[idx];
--            Vector3 IndirectRad = Mat.AlbedoColor * (FilteredIndirectBuffer[idx] * 0.40f);
--            Vector3 AmbientRad = Mat.AlbedoColor * 0.015f;
--
--            AccumulatedBuffer[idx] = DirectRad + IndirectRad + AmbientRad;
+-            const auto& Mat = Materials[Hit.MaterialIndex];
 +            const auto& HitMat = Materials[Hit.MaterialIndex];
 +            Vector3 Surface = DirectLight[idx] + HitMat.AlbedoColor * FilteredIndirect[idx];
 +            Vector3 Aerial = SkyFog.ApplyAerialPerspective(Surface, RenderOrigin, RenderDir, Hit.RayDistance);
@@ -3001,10 +3217,171 @@ index 07728ca..b9c85d4 100644
 +            float Transmittance = 1.0f;
 +            Vector3 Scatter = SkyFog.MarchFog(RenderOrigin, RenderDir, 0.0f, Hit.RayDistance, FogVisible, Transmittance);
 +            AccumulatedBuffer[idx] = Scatter + Aerial * Transmittance;
++        }
++    }
++
++    // Phase 7: camera lens artifacts (halo + ghosts + anamorphic streak),
++    // composited in linear HDR before the panel post chain in the export.
++    if (FlareEnabled)
++    {
++        ApplyLensFlare(ActiveCamera, SunWorld, MoonWorld);
++    }
++}
+ 
+-            // Emissive surface (Ceiling light)
+-            if (Hit.MaterialIndex == 3)
++//------------------------------------------------------------------------------------------------------------------------
++//                                                  IMAGE EXPORT
++//------------------------------------------------------------------------------------------------------------------------
++
++void RendererHost::ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld, const Vector3& MoonWorld) noexcept
++{
++    const int Fw = static_cast<int>(Width);
++    const int Fh = static_cast<int>(Height);
++    const int Hw = std::max(Fw / 2, 8);
++    const int Hh = std::max(Fh / 2, 8);
++
++    // Pack the 16-byte frame store into a contiguous RGB plane for the flare core.
++    std::vector<float> FullPacked(static_cast<size_t>(Fw) * static_cast<size_t>(Fh) * 3);
++    for (int y = 0; y < Fh; ++y)
++    {
++        for (int x = 0; x < Fw; ++x)
++        {
++            const Vector3& c = AccumulatedBuffer[static_cast<size_t>(y) * Width + static_cast<size_t>(x)];
++            size_t di = (static_cast<size_t>(y) * static_cast<size_t>(Fw) + static_cast<size_t>(x)) * 3;
++            FullPacked[di] = c.x;
++            FullPacked[di + 1] = c.y;
++            FullPacked[di + 2] = c.z;
++        }
++    }
++
++    // Bright-pass at full res through the soft knee, then peak-preserving
++    // max-downsample to half res (averaging would dilute the few-pixel
++    // moon below every threshold).
++    std::vector<float> Bright(static_cast<size_t>(Hw) * static_cast<size_t>(Hh) * 3, 0.0f);
++    for (int y = 0; y < Hh; ++y)
++    {
++        for (int x = 0; x < Hw; ++x)
++        {
++            int sx = std::min(x * 2, Fw - 2);
++            int sy = std::min(y * 2, Fh - 2);
++            float mx = 0.0f;
++            float my = 0.0f;
++            float mz = 0.0f;
++            for (int oy = 0; oy < 2; ++oy)
+             {
+-                AccumulatedBuffer[idx] = Mat.EmissiveRadiance;
+-                continue;
++                for (int ox = 0; ox < 2; ++ox)
++                {
++                    size_t si = (static_cast<size_t>(sy + oy) * static_cast<size_t>(Fw) + static_cast<size_t>(sx + ox)) * 3;
++                    float3 bp = FlareBrightPixel(float3(FullPacked[si], FullPacked[si + 1], FullPacked[si + 2]), 1.0f, 1.0f);
++                    mx = std::max(mx, bp.x);
++                    my = std::max(my, bp.y);
++                    mz = std::max(mz, bp.z);
++                }
+             }
++            size_t di = (static_cast<size_t>(y) * static_cast<size_t>(Hw) + static_cast<size_t>(x)) * 3;
++            Bright[di] = mx;
++            Bright[di + 1] = my;
++            Bright[di + 2] = mz;
++        }
++    }
+ 
+-            Vector3 DirectRad = DirectBuffer[idx];
+-            Vector3 IndirectRad = Mat.AlbedoColor * (FilteredIndirectBuffer[idx] * 0.40f);
+-            Vector3 AmbientRad = Mat.AlbedoColor * 0.015f;
++    // Halo: progressive 3-octave blur of the bright-pass.
++    std::vector<float> Halo(Bright.size(), 0.0f);
++    std::vector<float> TmpA = Bright;
++    std::vector<float> TmpB(Bright.size(), 0.0f);
++    const int HaloRadii[3] = { 2, 6, 16 };
++    const float HaloWeights[3] = { 0.50f, 0.30f, 0.20f };
++    for (int o = 0; o < 3; ++o)
++    {
++        int r = std::min(HaloRadii[o], std::min(Hw, Hh) / 4);
++        r = std::max(r, 1);
++        FlareBlurH(TmpA.data(), TmpB.data(), Hw, Hh, r, static_cast<float>(r) * 0.4f);
++        FlareBlurV(TmpB.data(), TmpA.data(), Hw, Hh, r, static_cast<float>(r) * 0.4f);
++        for (size_t i = 0; i < Halo.size(); ++i)
++        {
++            Halo[i] = Halo[i] + TmpA[i] * HaloWeights[o];
++        }
++    }
++
++    // Anamorphic streak: long horizontal blur of the hard highlights, cool tint.
++    std::vector<float> Streak(Bright.size(), 0.0f);
++    {
++        int r = std::min(Hw / 3, 64);
++        r = std::max(r, 4);
++        FlareStreakH(Bright.data(), Streak.data(), Hw, Hh, r, static_cast<float>(r) * 0.35f, 1.2f, float3(0.72f, 0.82f, 1.0f));
++    }
+ 
+-            AccumulatedBuffer[idx] = DirectRad + IndirectRad + AmbientRad;
++    // Ghosts: seven element reflections per luminaire, on the source/center
++    // axis. A luminaire behind the camera contributes nothing (facing ramp).
++    std::vector<float> Ghosts(Bright.size(), 0.0f);
++    const float TanHalf = std::tan(ActiveCamera.QueryFieldOfViewRadians() * 0.5f);
++    const float Aspect = ActiveCamera.QueryAspectRatio();
++    const Vector3& Fwd = ActiveCamera.QueryForwardVector();
++    const Vector3& Rgt = ActiveCamera.QueryRightVector();
++    const Vector3& Up = ActiveCamera.QueryUpwardVector();
++    const Vector3 Sources[2] = { SunWorld, MoonWorld };
++    const float GhostT[7] = { -1.2f, -0.6f, 0.45f, 0.75f, 1.1f, 1.6f, 2.3f };
++    const float GhostSize[7] = { 0.54f, 0.32f, 0.40f, 0.63f, 0.29f, 0.50f, 0.72f };
++    const float GhostTint[7][3] = { { 0.90f, 0.96f, 1.08f }, { 1.08f, 0.90f, 1.02f }, { 1.00f, 1.05f, 0.90f },
++        { 1.06f, 0.96f, 0.86f }, { 0.86f, 0.94f, 1.10f }, { 1.10f, 1.00f, 0.90f }, { 0.90f, 0.90f, 1.06f } };
++    const float GhostGain[7] = { 0.32f, 0.20f, 0.24f, 0.28f, 0.18f, 0.22f, 0.26f };
++    for (int s = 0; s < 2; ++s)
++    {
++        float sx = OrientationClassifier::DotProduct(Sources[s], Rgt);
++        float sy = OrientationClassifier::DotProduct(Sources[s], Up);
++        float sz = OrientationClassifier::DotProduct(Sources[s], Fwd);
++        if (sz <= 0.0f)
++        {
++            continue;
++        }
++        float facing = std::min(sz * 5.0f, 1.0f);
++        float u = (sx / (sz * TanHalf * Aspect)) * 0.5f + 0.5f;
++        float v = 0.5f - (sy / (sz * TanHalf)) * 0.5f;
++        float px = u * static_cast<float>(Hw);
++        float py = v * static_cast<float>(Hh);
++        for (int g = 0; g < 7; ++g)
++        {
++            FlareGhostAccum(Bright.data(), Ghosts.data(), Hw, Hh, px, py,
++                GhostT[g], GhostSize[g],
++                float3(GhostTint[g][0], GhostTint[g][1], GhostTint[g][2]),
++                GhostGain[g] * facing);
          }
      }
- }
-@@ -413,10 +411,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+-}
+ 
+-//------------------------------------------------------------------------------------------------------------------------
+-//                                                  IMAGE EXPORT
+-//------------------------------------------------------------------------------------------------------------------------
++    // Sum and composite back over the HDR frame.
++    std::vector<float> Flare(Bright.size(), 0.0f);
++    for (size_t i = 0; i < Flare.size(); ++i)
++    {
++        Flare[i] = Halo[i] * 0.6f + Streak[i] * 1.1f + Ghosts[i];
++    }
++    FlareCompositeAdd(FullPacked.data(), Fw, Fh, Flare.data(), Hw, Hh, 1.0f);
++    for (int y = 0; y < Fh; ++y)
++    {
++        for (int x = 0; x < Fw; ++x)
++        {
++            size_t di = (static_cast<size_t>(y) * static_cast<size_t>(Fw) + static_cast<size_t>(x)) * 3;
++            Vector3& c = AccumulatedBuffer[static_cast<size_t>(y) * Width + static_cast<size_t>(x)];
++            c.x = FullPacked[di];
++            c.y = FullPacked[di + 1];
++            c.z = FullPacked[di + 2];
++        }
++    }
++}
+ 
+ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+ {
+@@ -413,10 +560,9 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
                  return std::clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0f, 1.0f);
              };
  
@@ -3018,7 +3395,7 @@ index 07728ca..b9c85d4 100644
  
              // Gamma 2.2 correction
              constexpr float InvGamma = 1.0f / 2.2f;
-@@ -437,4 +434,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
+@@ -437,4 +583,36 @@ bool RendererHost::ExportPpmImage(const std::string& OutputPath) const noexcept
      return true;
  }
  
@@ -3056,7 +3433,7 @@ index 07728ca..b9c85d4 100644
 +
  } // namespace Frontier::ProjectZero
 diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
-index 202b2bb..b1c495f 100644
+index 202b2bb..62f15fd 100644
 --- a/Projects/Project-Zero/Source/RendererHost.h
 +++ b/Projects/Project-Zero/Source/RendererHost.h
 @@ -6,6 +6,7 @@
@@ -3093,14 +3470,18 @@ index 202b2bb..b1c495f 100644
      RendererHost& operator=(const RendererHost&) = delete;
  
 -    void                    RenderReSTIRFrame(const Frontier::CameraProjection& ActiveCamera, uint32_t SpatialPassCount = 2) noexcept;
-+    void                    RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2, uint32_t BounceCount = 8) noexcept;
++    void                    RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2, uint32_t BounceCount = 8, bool FlareEnabled = true) noexcept;
 +    void                    AssignToneExposure(float LinearExposure) noexcept { ToneExposure = LinearExposure; }
      [[nodiscard]] bool      ExportPpmImage(const std::string& OutputPath) const noexcept;
 +    [[nodiscard]] bool      ExportShowcaseImage(const std::string& OutputPath) const noexcept;
  
      [[nodiscard]] uint32_t  QueryWidth() const noexcept { return Width; }
      [[nodiscard]] uint32_t  QueryHeight() const noexcept { return Height; }
-@@ -94,7 +99,9 @@ private:
+@@ -91,10 +96,13 @@ private:
+     [[nodiscard]] RayRecord GeneratePrimaryRay(const Frontier::CameraProjection& ActiveCamera, uint32_t PixelX, uint32_t PixelY, float JitterX, float JitterY) const noexcept;
+     [[nodiscard]] Vector3   SampleCosineHemisphere(const Vector3& Normal, float u1, float u2) const noexcept;
+     [[nodiscard]] float     EvaluateJacobian(const Vector3& x1, const Vector3& x2, const Vector3& y, const Vector3& n_y) const noexcept;
++    void                    ApplyLensFlare(const Frontier::CameraProjection& ActiveCamera, const Vector3& SunWorld, const Vector3& MoonWorld) noexcept;
  
      uint32_t                Width;                              // [px] viewport width
      uint32_t                Height;                             // [px] viewport height
