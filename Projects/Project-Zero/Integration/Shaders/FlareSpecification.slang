@@ -1,204 +1,149 @@
 //============================================================================================================================================
-// FlareSpecification.slang — camera lens artifacts (halo, ghosts, anamorphic streak) over an HDR frame
+// FlareSpecification.slang — panel `post` lens flare mirror (reference `lensFlare`)
 //
-// Dual-compile core (Slang + C++17 through SlangInterchange.h), same contract as the sky/fog cores: pure functions,
-// no file-scope state, no engine types. All images are interleaved RGB float planes; the C++ driver owns the buffers
-// (the engine's Vector3 frame store is 16-byte aligned, so it is packed in/out at the boundary, never aliased here).
-// Included by exactly ONE translation unit (RendererHost.cpp); the header never names these routines.
+// Verbatim transcription of the celestial panel's flare kernel (upstream C++ port,
+// Host/CpuPort/CelestialIntegrator.cpp `LensFlare` + `HueOf` + `AddLensFlare` visibility):
+// 8-slot chromatic ghosts on the source axis, a chromatic halo ring, the blue
+// anamorphic streak, starburst diffraction spikes, and the hot core — weighted by
+// FlareVariety (0 Cinematic · 1 Anamorphic · 2 Starburst · 3 Halo).
+//
+// Dual-compile core (Slang + C++17 through SlangInterchange.h): pure functions, no
+// file-scope state. Coordinates are centered tan-half-angle units shared with the
+// driver: pixel (u,v) = ray slope over tan(fov/2), source (srcU,srcV) the same
+// projection of the luminaire direction. Included by exactly ONE translation unit
+// (RendererHost.cpp). Operation order matches the port term by term.
 //============================================================================================================================================
 
 #ifndef FLARE_SPECIFICATION_INCLUDED
 #define FLARE_SPECIFICATION_INCLUDED
 
-// Rec.709 luminance of one HDR pixel.
-float FlareLuminance(float3 c)
+// Panel entity `post` flare fields (CelestialSpecification.h PostCriteria).
+struct FlarePostConfig
 {
-    return c.x * 0.2126f + c.y * 0.7152f + c.z * 0.0722f;
+    float variety;              // 0 Cinematic · 1 Anamorphic · 2 Starburst · 3 Halo
+    float intensity;            // FlareIntensity master gain
+    float ghosts;               // Ghosts active ghost count (<= 8)
+    float halo;                 // Halo ring radius
+    float streak;               // Streak gain
+    float chroma;               // Chroma white-to-spectral blend
+};
+
+FlarePostConfig FlarePostDefaults() noexcept
+{
+    FlarePostConfig c;
+    c.variety = 0.0f;
+    c.intensity = 1.0f;
+    c.ghosts = 5.0f;
+    c.halo = 0.55f;
+    c.streak = 0.8f;
+    c.chroma = 0.65f;
+    return c;
 }
 
-// Soft-knee bright-pass: keeps HDR highlights, kills everything below threshold.
-float3 FlareBrightPixel(float3 c, float threshold, float softness)
+float FlareFract(float x) noexcept
 {
-    float lum = FlareLuminance(c);
-    float w = smoothstep(threshold, threshold + max(softness, 1e-6f), lum);
-    return c * w;
+    return x - floor(x);
 }
 
-// Clamped bilinear sample of an interleaved RGB float plane.
-float3 FlareSampleBilinear(const float* plane, int w, int h, float x, float y)
+float FlareStep(float edge, float x) noexcept
 {
-    float cx = clamp(x, 0.0f, float(w) - 1.0f);
-    float cy = clamp(y, 0.0f, float(h) - 1.0f);
-    int x0 = int(cx);
-    int y0 = int(cy);
-    int x1 = (x0 + 1 < w) ? (x0 + 1) : (w - 1);
-    int y1 = (y0 + 1 < h) ? (y0 + 1) : (h - 1);
-    float fx = cx - float(x0);
-    float fy = cy - float(y0);
-    int i00 = (y0 * w + x0) * 3;
-    int i10 = (y0 * w + x1) * 3;
-    int i01 = (y1 * w + x0) * 3;
-    int i11 = (y1 * w + x1) * 3;
-    float3 c00 = float3(plane[i00], plane[i00 + 1], plane[i00 + 2]);
-    float3 c10 = float3(plane[i10], plane[i10 + 1], plane[i10 + 2]);
-    float3 c01 = float3(plane[i01], plane[i01 + 1], plane[i01 + 2]);
-    float3 c11 = float3(plane[i11], plane[i11 + 1], plane[i11 + 2]);
-    return lerp(lerp(c00, c10, fx), lerp(c01, c11, fx), fy);
+    return x < edge ? 0.0f : 1.0f;
 }
 
-// One horizontal gaussian blur pass (radius <= 64).
-void FlareBlurH(const float* src, float* dst, int w, int h, int radius, float sigma)
+// GLSL smoothstep, including the port's edge-equal degeneracy guard.
+float FlareSmoothStep(float e0, float e1, float x) noexcept
 {
-    float kernel[129];
-    float total = 0.0f;
-    for (int o = -radius; o <= radius; o++)
+    float denom = e1 - e0;
+    if (abs(denom) < 1e-20f)
     {
-        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
-        kernel[o + radius] = g;
-        total = total + g;
+        return x < e0 ? 0.0f : 1.0f;
     }
-    float inv = 1.0f / total;
-    for (int y = 0; y < h; y++)
+    float t = clamp((x - e0) / denom, 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f * t);
+}
+
+float3 FlareSplat(float s) noexcept
+{
+    return float3(s, s, s);
+}
+
+// `hue` — the flare's chromatic ring. The channel lambda is spelled as a plain
+// helper ( Slang has no lambdas); the GLSL mod match is verbatim from the port.
+float FlareHueChannel(float x) noexcept
+{
+    float m = x - 6.0f * floor(x / 6.0f);
+    return clamp(abs(m - 3.0f) - 1.0f, 0.0f, 1.0f);
+}
+
+float3 FlareHue(float h) noexcept
+{
+    float base = h * 6.0f;
+    return float3(FlareHueChannel(base + 0.0f), FlareHueChannel(base + 4.0f), FlareHueChannel(base + 2.0f));
+}
+
+// Reference `lensFlare`, transcribed term by term: (u,v) is the pixel, (srcU,srcV)
+// the luminaire, both centered tan-half-angle units. Returns the flare radiance
+// before the luminaire colour/intensity scale, which the driver applies per source.
+float3 FlareLensKernel(float u, float v, float srcU, float srcV, float visibility, FlarePostConfig cfg) noexcept
+{
+    float3 f = float3(0.0f, 0.0f, 0.0f);
+    float mx = u - srcU;
+    float my = v - srcV;
+    float variety = cfg.variety;
+
+    float wGhost = (variety == 0.0f || variety == 2.0f) ? 1.0f : 0.0f;
+    float wHalo = (variety == 0.0f || variety == 3.0f) ? 1.0f : ((variety == 2.0f) ? 0.5f : 0.0f);
+    float wStreak = (variety == 1.0f) ? 2.2f : ((variety == 0.0f) ? 1.0f : 0.35f);
+    float wBurst = (variety == 2.0f) ? 1.0f : ((variety == 0.0f) ? 0.35f : 0.0f);
+
+    for (int i = 0; i < 8; ++i)
     {
-        for (int x = 0; x < w; x++)
+        if (float(i) >= cfg.ghosts)
         {
-            float3 acc = float3(0.0f, 0.0f, 0.0f);
-            for (int o = -radius; o <= radius; o++)
-            {
-                int sx = x + o;
-                sx = (sx < 0) ? 0 : ((sx > w - 1) ? (w - 1) : sx);
-                int si = (y * w + sx) * 3;
-                acc = acc + float3(src[si], src[si + 1], src[si + 2]) * kernel[o + radius];
-            }
-            int di = (y * w + x) * 3;
-            dst[di] = acc.x * inv;
-            dst[di + 1] = acc.y * inv;
-            dst[di + 2] = acc.z * inv;
+            break;
         }
+        float fi = float(i);
+        float k = -1.35f + fi * 0.42f;
+        float px = srcU * k;
+        float py = srcV * k;
+        float r = 0.035f + 0.07f * FlareFract(fi * 0.618f + 0.31f);
+        float dx = u - px;
+        float dy = v - py;
+        float dd = sqrt(dx * dx + dy * dy);
+        float g = FlareSmoothStep(r, r * 0.35f, dd) * 0.9f + FlareSmoothStep(r * 1.6f, r, dd) * 0.25f;
+        g = g * (0.06f + 0.06f * FlareFract(fi * 0.37f));
+        f = f + lerp(FlareSplat(1.0f), FlareHue(FlareFract(fi * 0.23f + 0.5f)), cfg.chroma) * (g * wGhost);
     }
+
+    float hx = u - srcU * 0.25f;
+    float hy = v - srcV * 0.25f;
+    float hr = sqrt(hx * hx + hy * hy);
+    float ringDist = abs(hr - cfg.halo);
+    float halo = FlareSmoothStep(0.045f, 0.0f, ringDist) * 0.09f;
+    float ringAngle = atan2(hy, hx);
+    f = f + lerp(FlareSplat(1.0f), FlareHue(FlareFract(ringAngle / 6.283f + ringDist * 8.0f)), cfg.chroma * 0.8f) * (halo * wHalo);
+
+    float streak = exp(-abs(my) * 95.0f) * exp(-abs(mx) * 2.2f) * 0.55f;
+    f = f + lerp(FlareSplat(1.0f), float3(0.45f, 0.65f, 1.0f), cfg.chroma) * (streak * cfg.streak * wStreak);
+
+    float a = atan2(my, mx);
+    float len = sqrt(mx * mx + my * my);
+    float burst = pow(abs(sin(a * 4.0f + 0.3f)), 24.0f) * exp(-len * 3.5f) * 0.35f
+                + pow(abs(sin(a * 7.0f)), 40.0f) * exp(-len * 6.0f) * 0.25f;
+    f = f + float3(1.0f, 0.95f, 0.85f) * (burst * wBurst);
+    f = f + float3(1.0f, 0.9f, 0.8f) * (exp(-len * 1.6f) * 0.04f);
+
+    return f * (visibility * cfg.intensity);
 }
 
-// One vertical gaussian blur pass (radius <= 64).
-void FlareBlurV(const float* src, float* dst, int w, int h, int radius, float sigma)
+// Reference `AddLensFlare` visibility: hard in-front gate, elevation ramp,
+// in-frame fade, below-horizon step.
+float FlareSourceVisibility(float cz, float elevDeg, float srcU, float srcV) noexcept
 {
-    float kernel[129];
-    float total = 0.0f;
-    for (int o = -radius; o <= radius; o++)
-    {
-        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
-        kernel[o + radius] = g;
-        total = total + g;
-    }
-    float inv = 1.0f / total;
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < w; x++)
-        {
-            float3 acc = float3(0.0f, 0.0f, 0.0f);
-            for (int o = -radius; o <= radius; o++)
-            {
-                int sy = y + o;
-                sy = (sy < 0) ? 0 : ((sy > h - 1) ? (h - 1) : sy);
-                int si = (sy * w + x) * 3;
-                acc = acc + float3(src[si], src[si + 1], src[si + 2]) * kernel[o + radius];
-            }
-            int di = (y * w + x) * 3;
-            dst[di] = acc.x * inv;
-            dst[di + 1] = acc.y * inv;
-            dst[di + 2] = acc.z * inv;
-        }
-    }
-}
-
-// Anamorphic streak: long horizontal gaussian over the hard-thresholded highlights.
-void FlareStreakH(const float* src, float* dst, int w, int h, int radius, float sigma, float threshold, float3 tint)
-{
-    float kernel[129];
-    float total = 0.0f;
-    for (int o = -radius; o <= radius; o++)
-    {
-        float g = exp(-0.5f * float(o * o) / (sigma * sigma));
-        kernel[o + radius] = g;
-        total = total + g;
-    }
-    float inv = 1.0f / total;
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < w; x++)
-        {
-            float3 acc = float3(0.0f, 0.0f, 0.0f);
-            for (int o = -radius; o <= radius; o++)
-            {
-                int sx = x + o;
-                sx = (sx < 0) ? 0 : ((sx > w - 1) ? (w - 1) : sx);
-                int si = (y * w + sx) * 3;
-                float3 c = float3(src[si], src[si + 1], src[si + 2]);
-                float lum = FlareLuminance(c);
-                float k = (lum > threshold) ? (lum - threshold) : 0.0f;
-                acc = acc + c * (k * kernel[o + radius]);
-            }
-            int di = (y * w + x) * 3;
-            dst[di] = acc.x * inv * tint.x;
-            dst[di + 1] = acc.y * inv * tint.y;
-            dst[di + 2] = acc.z * inv * tint.z;
-        }
-    }
-}
-
-// One lens ghost: a minified whole-frame copy on the source/center optical axis.
-// axisT places the ghost: 0 = on the source, 1 = mirrored past the center, >1 beyond, <0 past the source.
-void FlareGhostAccum(const float* src, float* dst, int w, int h,
-    float srcX, float srcY, float axisT, float size, float3 tint, float intensity)
-{
-    float cx = float(w) * 0.5f;
-    float cy = float(h) * 0.5f;
-    float dx = srcX - cx;
-    float dy = srcY - cy;
-    float dist = sqrt(dx * dx + dy * dy);
-    float ux = (dist > 1e-4f) ? (dx / dist) : 1.0f;
-    float uy = (dist > 1e-4f) ? (dy / dist) : 0.0f;
-    float gx = cx - ux * dist * axisT;
-    float gy = cy - uy * dist * axisT;
-    float minDim = (w < h) ? float(w) : float(h);
-    float rad = size * minDim * 0.5f;
-    float invSize = 1.0f / max(size, 1e-4f);
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < w; x++)
-        {
-            float rx = float(x) - gx;
-            float ry = float(y) - gy;
-            float r = sqrt(rx * rx + ry * ry) / max(rad, 1e-4f);
-            float mask = 1.0f - smoothstep(0.65f, 1.0f, r);
-            if (mask > 0.0f)
-            {
-                float3 c = FlareSampleBilinear(src, w, h, srcX + rx * invSize, srcY + ry * invSize);
-                int di = (y * w + x) * 3;
-                float k = mask * intensity;
-                dst[di] = dst[di] + c.x * tint.x * k;
-                dst[di + 1] = dst[di + 1] + c.y * tint.y * k;
-                dst[di + 2] = dst[di + 2] + c.z * tint.z * k;
-            }
-        }
-    }
-}
-
-// Composite: bilinear-upsample the half-res flare and add it into the full-res packed frame.
-void FlareCompositeAdd(float* fullPacked, int fw, int fh, const float* flareHalf, int hw, int hh, float strength)
-{
-    for (int y = 0; y < fh; y++)
-    {
-        for (int x = 0; x < fw; x++)
-        {
-            float hx = (float(x) + 0.5f) * float(hw) / float(fw) - 0.5f;
-            float hy = (float(y) + 0.5f) * float(hh) / float(fh) - 0.5f;
-            float3 f = FlareSampleBilinear(flareHalf, hw, hh, hx, hy) * strength;
-            int di = (y * fw + x) * 3;
-            fullPacked[di] = fullPacked[di] + f.x;
-            fullPacked[di + 1] = fullPacked[di + 1] + f.y;
-            fullPacked[di + 2] = fullPacked[di + 2] + f.z;
-        }
-    }
+    float inFront = (cz > 0.02f) ? 1.0f : 0.0f;
+    float sunUp = FlareSmoothStep(-6.0f, 4.0f, elevDeg);
+    float inFrame = 1.0f - FlareSmoothStep(1.25f, 2.2f, sqrt(srcU * srcU + srcV * srcV));
+    return inFront * sunUp * inFrame * FlareStep(0.0f, elevDeg + 0.5f);
 }
 
 #endif // FLARE_SPECIFICATION_INCLUDED

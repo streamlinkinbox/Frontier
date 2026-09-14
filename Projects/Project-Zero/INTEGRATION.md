@@ -56,7 +56,8 @@ Flags: `--sun H` (any hour; below-horizon sun is clamped so night
 works), `--yaw D` `--pitch D` (aim; default `0 2`), `--fog
 clear|morning|backlit`, `--width W` `--height H`, `--bounce N` (GI
 candidates per pixel, default 8), `--passes N` (spatial reuse passes,
-default 2), `--flare 0|1` (lens artifacts, default 1), `--help`.
+default 2), `--flare 0|1` (lens flare, default 1), `--flarevar
+0|1|2|3` (cinematic/anamorphic/starburst/halo, default 0), `--help`.
 Output lands in `./Diagnostics/`:
 `ProjectZero_Showcase.ppm` always, plus `.png` when a Python
 interpreter is found. The PPM is byte-identical run to run
@@ -97,16 +98,20 @@ interpreter is found. The PPM is byte-identical run to run
 - Below-horizon miss rays sample the horizon zenith rather than the
   panel underground (distant haze, kills a black horizon seam), and
   the showcase exports through the panel post chain.
-- Phase 7 applies the lens artifacts in linear HDR before the post
-  chain: a `FlareSpecification.slang` core (bright-pass, separable
-  gaussian halo octaves, whole-frame ghost resamples on the
-  source/center axis, long horizontal streak) driven by
-  `RendererHost::ApplyLensFlare`, which projects the sun and moon
-  through the live camera. Each luminaire behind the camera fades
-  its own ghosts out, so day frames flare from the sun and night
-  frames from the moon. The core is `.slang` like the sky/fog cores
-  (compiled once, in `RendererHost.cpp`); thresholds and strengths
-  live in the C++ driver, so tuning never touches the shipped math.
+- Phase 7 applies the panel `post` lens flare mirror in linear HDR
+  before the post chain. `FlareSpecification.slang` transcribes the
+  reference `lensFlare` term by term (8-slot chromatic ghosts, the
+  chromatic halo ring, the blue streak, starburst spikes, the hot
+  core, `FlareVariety` weights 0 cinematic / 1 anamorphic /
+  2 starburst / 3 halo) with the panel's own defaults (ghosts 5,
+  halo 0.55, streak 0.8, chroma 0.65). The driver
+  (`RendererHost::ApplyLensFlare`) reproduces `AddLensFlare`'s
+  projection + visibility per luminaire: the sun carries the mirror
+  inputs (kelvin colour × intensity × 0.09), the moon is showcase
+  staging through the same verbatim kernel (the panel flares the
+  sun only). Each luminaire behind the camera contributes nothing,
+  so day frames flare from the sun and night frames from the moon.
+  `--flarevar` selects the variety (default 0).
 
 ## Verification record (sandbox, g++ 12)
 
@@ -118,21 +123,21 @@ interpreter is found. The PPM is byte-identical run to run
 - Determinism: repeated runs are byte-identical, and three
   independent builds (dev `-O1`, patched-pristine-tree `-O1`, engine
   `make -O3`) produce the same sha256
-  (`92731d57…c7b13` for the default 320×240 frame, flare on).
+  (`382dadf4…46443` for the default 320×240 frame, mirror flare on).
 - Sky path matches the gated harness within 3 LDR after the identical
   post chain (unchanged from the courtyard proof; the sky algorithm
   is untouched, only its staging inputs moved).
 - Gates: `RunCelestialParity.py` OVERALL PASS (moon/cloud/stars ship
   present-but-off in the mirror configuration),
   `RunFogParity.py` OVERALL PASS (F1 0.001, F2 0.806 over 2000 rows).
-- Proofs: `PZIntegration/showcase_{sunset,night}.png`.
+- Proofs: `PZIntegration/showcase_{sunset,night,anamorphic,moonzoom}.png`.
 
 ## Notes and limits
 
 - The vendored shader sources are byte-identical to this repo's
   `Integration/Shaders/` (sha256: `SlangInterchange.h 2945beda…`,
   `SkySpecification.slang 3c29aa2a…`, `FogSpecification.slang
-  a33588ce…`, `FlareSpecification.slang 7acf9a9c…`). Re-vendor by
+  a33588ce…`, `FlareSpecification.slang c63662c4…`). Re-vendor by
   copying the four files over `Projects/Project-Zero/Shaders/` in the
   engine checkout.
 - The moon, clouds, and star boost are showcase staging with no
