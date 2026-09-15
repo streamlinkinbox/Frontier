@@ -77,7 +77,7 @@ constexpr float kSidePad      = 14.0f;    // .scene-stat / .search / .filters
 constexpr float kTreePad      = 10.0f;    // .tree padding 2px 10px 10px
 constexpr float kRowH         = 36.0f;
 constexpr float kRowHCompact  = 30.0f;
-constexpr float kRowRadius    = 11.0f;
+constexpr float kRowRadius    = 0.0f;    // rows are rectangles: selection, hover and drop ground all square
 constexpr float kRowGap       = 8.0f;
 constexpr float kChevBox      = 14.0f;
 constexpr float kIcoBox       = 24.0f;
@@ -1294,6 +1294,12 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
     ImGui::InvisibleButton("##row", ImVec2(Max.x - Min.x, RowH), ImGuiButtonFlags_MouseButtonLeft);
     const bool Hot     = ImGui::IsItemHovered();
     const bool Picked  = IsPicked(Index);
+    // A fresh pick scrolls into view once, the way the page's select() does; after that the scroll is the user's.
+    if (Picked && PickedCount_ > 0u && Picked_[PickedCount_ - 1u] == Index && Revealed_ != Index)
+    {
+        Revealed_ = Index;
+        ImGui::SetScrollHereY(0.5f);
+    }
     const bool Folder  = Row.Category == EditorInstanceCategory::Folder;
     const bool Dim     = !Row.Visible && !Folder;
     const bool IsOpen  = !Shut_[Index];
@@ -1328,7 +1334,7 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
     {
         Draw->AddRectFilled(Min, Max, kSelBg, kRowRadius);
         Draw->AddRect(Min, Max, kStroke2, kRowRadius, 0, 1.0f);
-        Draw->AddRectFilled(ImVec2(Min.x, Min.y + 8.0f), ImVec2(Min.x + 3.0f, Max.y - 8.0f), Accent, 3.0f);
+        Draw->AddRectFilled(ImVec2(Min.x, Min.y), ImVec2(Min.x + 3.0f, Max.y), Accent, 0.0f);
     }
     else if (Hot && DragLifted_ == kNoEditorInstance)
     {
@@ -1516,7 +1522,7 @@ void OutlinerPanel::RecordFooter() noexcept
     const float PadX = Compact_ ? 14.0f : 16.0f;
     const float PadT = Compact_ ? 8.0f : 10.0f;
     const float PadB = Compact_ ? 10.0f : 12.0f;
-    const uint32_t Cols = Compact_ ? 2u : 4u;
+    const uint32_t Cols = 5u;   // one line: every figure side by side
     const float ItemH = 26.0f;
     const uint32_t Items = 5u;
     const uint32_t Lines = (Items + Cols - 1u) / Cols;
@@ -1529,43 +1535,36 @@ void OutlinerPanel::RecordFooter() noexcept
     ImFont*     Mono = Controls_->QueryMono();
     Draw->AddLine(ImVec2(Cursor.x, Cursor.y), ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke, 1.0f);
 
-    const float ColW = (RowWidth - 2.0f * PadX - static_cast<float>(Cols - 1u) * 4.0f) / static_cast<float>(Cols);
-    char Fps[12], Sun[16], Moons[8], Cam[32];
+    // One line, five columns. The camera column is the widest figure, so it takes the room the others leave:
+    //    four narrow columns of equal width, the camera the remainder.
+    const float Gap   = 4.0f;
+    const float Inner = RowWidth - 2.0f * PadX - 4.0f * Gap;
+    const float NarrowW = Compact_ ? Inner * 0.17f : Inner * 0.16f;
+    const float CamW    = Inner - 4.0f * NarrowW;
+    char Fps[12], Sun[16], Moons[12], Cam[32];
     std::snprintf(Fps, sizeof(Fps), "%.0f", static_cast<double>(R.Fps));
     std::snprintf(Sun, sizeof(Sun), "%.1f\xc2\xb0", static_cast<double>(R.SunElevation));
-    std::snprintf(Moons, sizeof(Moons), "%u", R.MoonCount);
+    std::snprintf(Moons, sizeof(Moons), "%u/%u", R.MoonCount, R.MoonCap);
     std::snprintf(Cam, sizeof(Cam), "%.0f, %.1f, %.0f", static_cast<double>(R.Cam[0]), static_cast<double>(R.Cam[1]),
         static_cast<double>(R.Cam[2]));
-    char MoonCap[8];
-    std::snprintf(MoonCap, sizeof(MoonCap), "/ %u", R.MoonCap);
 
-    const char* Labels[5] = { "REALTIME", "QUALITY", "SUN", "MOONS", "CAM" };
+    const char* Labels[5]  = { "REALTIME", "QUALITY", "SUN", "MOONS", "CAM" };
     const char* Figures[5] = { Fps, R.Quality, Sun, Moons, Cam };
-    const char* Units[5]   = { "fps", R.Pixels, "", MoonCap, "" };
+    const char* Units[5]   = { "fps", "", "", "", "" };
+    float X = Cursor.x + PadX;
+    const float Y = Cursor.y + PadT;
     for (uint32_t i = 0u; i < Items; ++i)
     {
-        const uint32_t Col = i % Cols, Line = i / Cols;
-        const float X = Cursor.x + PadX + static_cast<float>(Col) * (ColW + 4.0f);
-        const float Y = Cursor.y + PadT + static_cast<float>(Line) * (ItemH + 4.0f);
+        const float Room = (i == 4u) ? CamW : NarrowW;
         DrawSpaced(Draw, Ui, 9.0f, ImVec2(X, Y), kT3, Labels[i], 0.9f);
-        const float FigPx = i == 1u ? 11.0f : 14.0f;
-        const float FigY  = Y + 11.0f + 1.0f;
+        const float FigPx = 12.0f;
+        const float FigY  = Y + 12.0f;
         ImFont* FigFont = (i == 1u) ? Ui : Mono;
         const float FigW = MeasureSized(FigFont, FigPx, Figures[i]);
-        // The figure is clipped to its column; the unit follows on the same line, except the pixels which sit below.
-        const float Room = ColW;
-        DrawClipped(Draw, FigFont, FigPx, X, FigY + 7.0f, Room, kText, Figures[i]);
-        if (i == 1u)
-        {
-            if (Units[i][0] != '\0')
-            {
-                DrawSized(Draw, Mono, 9.0f, X, FigY + 7.0f + 9.0f, kT3, Units[i]);
-            }
-        }
-        else if (Units[i][0] != '\0' && FigW + 3.0f < Room)
-        {
-            DrawSized(Draw, Ui, 10.0f, X + FigW + 3.0f, FigY + 8.0f, kT3, Units[i]);
-        }
+        DrawClipped(Draw, FigFont, FigPx, X, FigY + 6.0f, Room, kText, Figures[i]);
+        if (Units[i][0] != '\0' && FigW + 3.0f + MeasureSized(Ui, 9.0f, Units[i]) < Room)
+            DrawSized(Draw, Ui, 9.0f, X + FigW + 3.0f, FigY + 8.0f, kT3, Units[i]);
+        X += Room + Gap;
     }
 }
 

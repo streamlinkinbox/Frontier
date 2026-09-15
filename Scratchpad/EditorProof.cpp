@@ -13,10 +13,12 @@
 #include "EditorHost.h"
 #include "TypefaceRegistry.h"
 #include "PngWriteShim.h"
+#include "CpuReSTIRTrace.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 static_assert(sizeof(ImDrawIdx) == 2u, "the rasteriser below walks 16-bit indices");
@@ -67,6 +69,12 @@ float EdgeWeight(float Ax, float Ay, float Bx, float By, float Px, float Py) noe
     return (Px - Ax) * (By - Ay) - (Py - Ay) * (Bx - Ax);
 }
 
+// The traced scene bound to the viewport panel: pointer, size, and the texture id the panel was handed.
+const unsigned char* gSceneRgba  = nullptr;
+uint32_t             gSceneW     = 0u;
+uint32_t             gSceneH     = 0u;
+ImTextureID          gSceneTexId = static_cast<ImTextureID>(0);
+
 // Rasterises one draw list over the pixels. Textured the way every ImGui backend is: the glyph sheet modulated
 //    by the corner colours, composited over what is already there.
 void RasterizeList(const ImDrawList* List, const unsigned char* GlyphSheet, int GlyphSheetWidth, int GlyphSheetHeight,
@@ -77,6 +85,13 @@ void RasterizeList(const ImDrawList* List, const unsigned char* GlyphSheet, int 
     for (int Command = 0; Command < List->CmdBuffer.Size; ++Command)
     {
         const ImDrawCmd* Cmd = &List->CmdBuffer[Command];
+        // The viewport panel binds the traced scene as its own texture (an RGBA8 pointer in this CPU harness,
+        //    a descriptor set in the Vulkan build); everything else samples the glyph sheet.
+        const ImTextureID CmdTex = Cmd->TexRef._TexData != nullptr ? static_cast<ImTextureID>(0) : Cmd->TexRef._TexID;
+        const bool SceneTex = CmdTex != static_cast<ImTextureID>(0) && CmdTex == gSceneTexId;
+        const unsigned char* Sheet = SceneTex ? gSceneRgba : GlyphSheet;
+        const int SheetW = SceneTex ? static_cast<int>(gSceneW) : GlyphSheetWidth;
+        const int SheetH = SceneTex ? static_cast<int>(gSceneH) : GlyphSheetHeight;
         int ScissorLeft   = static_cast<int>((Cmd->ClipRect.x - Origin.x) * PixelScale.x);
         int ScissorTop    = static_cast<int>((Cmd->ClipRect.y - Origin.y) * PixelScale.y);
         int ScissorRight  = static_cast<int>((Cmd->ClipRect.z - Origin.x) * PixelScale.x);
@@ -123,7 +138,7 @@ void RasterizeList(const ImDrawList* List, const unsigned char* GlyphSheet, int 
                         continue;
                     const float U = W0 * A.uv.x + W1 * B.uv.x + W2 * C.uv.x;
                     const float V = W0 * A.uv.y + W1 * B.uv.y + W2 * C.uv.y;
-                    const Rgba Glyph = SampleGlyphSheet(GlyphSheet, GlyphSheetWidth, GlyphSheetHeight, U, V);
+                    const Rgba Glyph = SampleGlyphSheet(Sheet, SheetW, SheetH, U, V);
                     const Rgba Tinted = { (W0 * TintedA.R + W1 * TintedB.R + W2 * TintedC.R) * Glyph.R,
                                           (W0 * TintedA.G + W1 * TintedB.G + W2 * TintedC.G) * Glyph.G,
                                           (W0 * TintedA.B + W1 * TintedB.B + W2 * TintedC.B) * Glyph.B,
@@ -213,12 +228,55 @@ constexpr MirrorMaterial kMirrorMats[9] =
     { { 0.78f, 0.55f, 0.25f },  0.0f, 0.35f, 0.0f },
 };
 
-void FillMirrorInstances(Frontier::EditorInstance* Instances) noexcept
+// The rows the ReSTIR viewport renders: one per object span of the traced scene (Floor, Ceiling, the boxes, the
+//    sphere/cone/torus, the luminaire) under a "Cornell Box" folder, the fly camera under "Cameras", then the
+//    celestial page rows exactly as before. This is the same roster GameExecution seats from the level.
+uint32_t FillMirrorInstances(Frontier::EditorInstance* Instances, const Frontier::ProjectZero::RayTracingSolver& Scene) noexcept
 {
+    uint32_t N = 0u;
+    auto Seat = [&](const char* Label, Frontier::EditorInstanceCategory Cat, uint32_t Depth, const float* Tint,
+                    Frontier::EditorGlyph Glyph, Frontier::EditorNarrowing Narrow, const char* Meta, bool Dynamic, bool Pinned)
+    {
+        Frontier::EditorInstance& Row = Instances[N++];
+        Row = Frontier::EditorInstance{};
+        std::snprintf(Row.Label, sizeof(Row.Label), "%s", Label);
+        Row.Depth = Depth; Row.Category = Cat; Row.Glyph = Glyph; Row.Narrowing = Narrow;
+        Row.Tint[0] = Tint[0]; Row.Tint[1] = Tint[1]; Row.Tint[2] = Tint[2];
+        Row.Dynamic = Dynamic; Row.Pinned = Pinned;
+        std::snprintf(Row.Meta, sizeof(Row.Meta), "%s", Meta);
+        return N - 1u;
+    };
+    static constexpr float kRoom[3] = { 0.886f, 0.910f, 0.941f };
+    static constexpr float kCam[3]  = { 0.204f, 0.780f, 0.349f };
+    static constexpr float kLamp[3] = { 1.000f, 0.824f, 0.478f };
+    const uint32_t Folder = Seat("Cornell Box", Frontier::EditorInstanceCategory::Folder, 0u, kRoom,
+                                 Frontier::EditorGlyph::Ground, Frontier::EditorNarrowing::Auto, "", false, true);
+    const auto& Spans = Scene.QuerySpans();
+    const auto& Mats  = Scene.QueryMaterials();
+    const auto& Tris  = Scene.QueryTriangles();
+    for (const auto& Span : Spans)
+    {
+        char Meta[24]; std::snprintf(Meta, sizeof(Meta), "%u tris", Span.TriangleCount);
+        const auto& M = Mats[Tris[Span.FirstTriangle].MaterialIndex];
+        const bool Emissive = M.EmissiveRadiance.x + M.EmissiveRadiance.y + M.EmissiveRadiance.z > 0.0f;
+        const float Tint[3] = { M.AlbedoColor.x, M.AlbedoColor.y, M.AlbedoColor.z };
+        if (Emissive) std::snprintf(Meta, sizeof(Meta), "%.0f cd", static_cast<double>(M.EmissiveRadiance.x));
+        Seat(Span.Name.c_str(), Emissive ? Frontier::EditorInstanceCategory::Light : Frontier::EditorInstanceCategory::Geometry, 1u,
+             Emissive ? kLamp : Tint, Emissive ? Frontier::EditorGlyph::Bulb : Frontier::EditorGlyph::Lattice,
+             Emissive ? Frontier::EditorNarrowing::Lights : Frontier::EditorNarrowing::Geometry, Meta, Span.Dynamic, false);
+        ++Instances[Folder].KidCount;
+    }
+    const uint32_t Cams = Seat("Cameras", Frontier::EditorInstanceCategory::Folder, 0u, kCam,
+                               Frontier::EditorGlyph::Camera, Frontier::EditorNarrowing::Auto, "", false, true);
+    Seat("Main Camera", Frontier::EditorInstanceCategory::Camera, 1u, kCam, Frontier::EditorGlyph::Camera,
+         Frontier::EditorNarrowing::Camera, "55\xc2\xb0", false, false);
+    Instances[Cams].KidCount = 1u;
+
     for (uint32_t i = 0u; i < kMirrorEntryCount; ++i)
     {
         const MirrorEntry&        Entry = kMirrorEntries[i];
-        Frontier::EditorInstance&   Row   = Instances[i];
+        Frontier::EditorInstance&   Row   = Instances[N++];
+        Row = Frontier::EditorInstance{};
         std::snprintf(Row.Label, sizeof(Row.Label), "%s", Entry.Label);
         Row.Depth    = Entry.Depth;
         Row.KidCount = Entry.Kids;
@@ -236,6 +294,7 @@ void FillMirrorInstances(Frontier::EditorInstance* Instances) noexcept
         Row.Pinned   = Entry.Pinned;
         Row.Shut     = Entry.Shut;
     }
+    return N;
 }
 
 Frontier::EditorPropertyGroup& OpenMirrorGroup(Frontier::EditorSheet* Sheet, const char* Title) noexcept
@@ -405,11 +464,34 @@ int main()
     Readout.Cam[0] = 0.0f; Readout.Cam[1] = 2.0f; Readout.Cam[2] = 0.0f;
     Editor.AssignReadout(&Readout);
 
-    Frontier::EditorInstance CornellInstances[kMirrorEntryCount] = {};
+    // The scene the ReSTIR viewport renders, traced here on the CPU (the Vulkan build runs the same estimator on
+    //    the GPU) and handed to the Viewport panel as its texture.
+    Frontier::ProjectZero::RayTracingSolver Scene;
+    Scene.ConstructCornellBoxScene();
+    Frontier::ProjectZero::FlyThroughSolver Camera;
+    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -3.30f, 1.55f });
+    Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
+    constexpr uint32_t kViewW = 480u, kViewH = 300u;
+    Camera.AssignAspectRatio(static_cast<float>(kViewW) / static_cast<float>(kViewH));
+    static std::vector<unsigned char> SceneRgba(static_cast<size_t>(kViewW) * kViewH * 4u);
+    {
+        const char* FramesEnv = std::getenv("EDITORPROOF_FRAMES");
+        const uint32_t Frames = FramesEnv ? static_cast<uint32_t>(std::atoi(FramesEnv)) : 24u;
+        CpuReSTIR::Render(Scene, Camera, kViewW, kViewH, Frames, 8u, 1.05f, SceneRgba.data());
+        std::fprintf(stderr, "[EditorProof] traced the Cornell box: %ux%u, %u frames, %zu triangles, %zu spans\n",
+                     kViewW, kViewH, Frames, Scene.QueryTriangles().size(), Scene.QuerySpans().size());
+    }
+    gSceneRgba = SceneRgba.data(); gSceneW = kViewW; gSceneH = kViewH;
+    gSceneTexId = static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(gSceneRgba));
+    Editor.AssignViewTexture(gSceneTexId, kViewW, kViewH);
+
+    Frontier::EditorInstance CornellInstances[Frontier::kMaxEditorInstances] = {};
     Frontier::EditorSheet  PickedSheet = {};
-    FillMirrorInstances(CornellInstances);
-    Editor.PickInstance(2u);   // Sun, the page's default pick
-    BuildMirrorSheet(2u, CornellInstances, &PickedSheet);
+    const uint32_t RosterCount = FillMirrorInstances(CornellInstances, Scene);
+    const uint32_t CelestialFirst = RosterCount - kMirrorEntryCount;
+    const uint32_t SunRow = CelestialFirst + 2u;
+    Editor.PickInstance(SunRow);   // Sun, the page's default pick
+    BuildMirrorSheet(2u, CornellInstances + CelestialFirst, &PickedSheet);
 
     std::vector<unsigned char> Pixels(static_cast<size_t>(kWidth) * static_cast<size_t>(kHeight) * 3u);
 
@@ -430,7 +512,7 @@ int main()
             IO.AddMouseButtonEvent(0, Down);
         }
         ImGui::NewFrame();
-        Editor.Record(CornellInstances, kMirrorEntryCount, &PickedSheet);
+        Editor.Record(CornellInstances, RosterCount, &PickedSheet);
         ImGui::Render();
     };
     auto Rasterise = [&]()
@@ -723,8 +805,8 @@ int main()
 
     // Gate 7 — the palette opens: focusing the console and typing raises the suggestion stack, its
     //    standing row indigo. Back to Main Camera first, so the sheet matches the Tabs pass.
-    Editor.PickInstance(2u);
-    BuildMirrorSheet(2u, CornellInstances, &PickedSheet);
+    Editor.PickInstance(SunRow);
+    BuildMirrorSheet(2u, CornellInstances + CelestialFirst, &PickedSheet);
     Rest(5);
     Click(700.0f, 648.0f);
     Rest(3);

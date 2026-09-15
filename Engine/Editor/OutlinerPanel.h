@@ -66,6 +66,7 @@ private:
     bool     NarrowOn_[static_cast<uint32_t>(EditorNarrowing::Count)] = {};   // the lit pills; none lit shows all
     uint32_t Picked_[kMaxEditorPicked] = {};
     uint32_t PickedCount_ = 0u;
+    uint32_t Revealed_    = kNoEditorInstance;   // the pick last scrolled into view (the page's scrollIntoView on select)
     uint32_t Anchor_      = kNoEditorInstance;
     bool     Shut_[kMaxEditorInstances] = {};                                  // false reads open
     bool     PoseSeated_[kMaxEditorInstances] = {};                            // the feed's opening pose, taken once

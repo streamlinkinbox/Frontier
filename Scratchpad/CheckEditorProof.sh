@@ -23,7 +23,7 @@ fi
 echo "[EditorProof] compiling the patched vendor + Engine/Editor (headless: no Vulkan, no GLFW)"
 Binary="$(mktemp -u /tmp/EditorProof.XXXXXX)"
 if ! g++ -std=c++20 -O2 -Wall -Wextra -DFRONTIER_DEVELOPMENT \
-     -I ExternalPackages/imgui -I Engine/Editor -I Engine/DisplayPresentation -I ExternalPackages/tomlpp/include -I Scratchpad \
+     -I ExternalPackages/imgui -I Engine/Editor -I Engine/DisplayPresentation -I ExternalPackages/tomlpp/include -I Scratchpad -I Scratchpad/HostShim -pthread \
      Scratchpad/EditorProof.cpp \
      Engine/Editor/EditorHost.cpp \
      Engine/Editor/ControlPanel.cpp \
@@ -47,6 +47,10 @@ if ! g++ -std=c++20 -O2 -Wall -Wextra -DFRONTIER_DEVELOPMENT \
      Engine/DisplayPresentation/GlyphSpace.cpp \
      Engine/DisplayPresentation/FontCodec.cpp \
      Engine/DeviceExchange/InputExchange.cpp \
+     Projects/Project-Zero/Source/RayTracingSolver.cpp \
+     Projects/Project-Zero/Source/FlyThroughSolver.cpp \
+     Engine/GeometricRaster/CameraProjection.cpp \
+     Engine/DeviceExchange/OrientationClassifier.cpp \
      ExternalPackages/imgui/imgui.cpp \
      ExternalPackages/imgui/imgui_draw.cpp \
      ExternalPackages/imgui/imgui_tables.cpp \
