@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#05070d" />
+<title>TYRANNOSAURUS REX // Biomech Unit — Hydraulic Skeleton</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦖</text></svg>" />
+<link rel="stylesheet" href="styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./js/vendor/three.module.min.js",
+    "three/addons/": "./js/vendor/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="scene-container"></div>
+<div id="vignette"></div>
+
+<div id="loader">
+  <div class="loader-inner">
+    <div class="spinner"></div>
+    <h1>T-REX <span>// BIOMECH UNIT</span></h1>
+    <p id="loader-text">Articulating skeleton…</p>
+  </div>
+</div>
+
+<aside id="panel">
+  <div class="panel-head">
+    <div>
+      <h1>T-REX</h1>
+      <p class="sub">BIOMECH UNIT 07 · HYDRAULIC SKELETON</p>
+    </div>
+    <div id="state-pill" class="pill">IDLE</div>
+  </div>
+
+  <div class="group">
+    <h2>Locomotion — walk in place</h2>
+    <div class="btn-row">
+      <button class="btn mode active" data-mode="idle"><span class="k">1</span>Idle</button>
+      <button class="btn mode" data-mode="walk"><span class="k">2</span>Walk</button>
+    </div>
+    <label class="slider">Belt speed <span id="speed-val">1.20 m/s</span>
+      <input id="speed" type="range" min="40" max="220" value="120" />
+    </label>
+    <div class="phase-row">
+      <div class="phase-track"><i id="phase-bar"></i></div>
+      <div class="stance"><span><b id="stance-L" class="dot stance"></b>L</span><span><b id="stance-R" class="dot swing"></b>R</span></div>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Camera</h2>
+    <div class="btn-grid">
+      <button class="btn cam active" data-cam="overview">Overview</button>
+      <button class="btn cam" data-cam="skull">Skull</button>
+      <button class="btn cam" data-cam="leg">Hindlimb</button>
+      <button class="btn cam" data-cam="tail">Tail</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Systems</h2>
+    <div class="switch-grid">
+      <label class="switch"><input id="t-labels" type="checkbox" checked /><span></span>Labels</label>
+      <label class="switch"><input id="t-hydro" type="checkbox" checked /><span></span>Hydraulics</label>
+      <label class="switch"><input id="t-tail" type="checkbox" checked /><span></span>Tail physics</label>
+      <label class="switch"><input id="t-ghost" type="checkbox" /><span></span>Ghost X-ray</label>
+      <label class="switch"><input id="t-grid" type="checkbox" checked /><span></span>Grid</label>
+      <label class="switch"><input id="t-sound" type="checkbox" checked /><span></span>Sound</label>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Tail physics</h2>
+    <label class="slider">Stiffness <span id="tail-stiff-val">85%</span>
+      <input id="tail-stiff" type="range" min="10" max="120" value="85" />
+    </label>
+    <label class="slider">Damping <span id="tail-damp-val">96%</span>
+      <input id="tail-damp" type="range" min="80" max="99" value="96" />
+    </label>
+  </div>
+
+  <div class="group">
+    <h2>Hydraulics — piston extension</h2>
+    <div class="tele"><span>JAW</span><div class="bar"><i id="p-jaw-bar"></i></div><b id="p-jaw">100%</b></div>
+    <div class="tele"><span>LEG·L</span><div class="bar"><i id="p-legL-bar"></i></div><b id="p-legL">100%</b></div>
+    <div class="tele"><span>LEG·R</span><div class="bar"><i id="p-legR-bar"></i></div><b id="p-legR">100%</b></div>
+    <div class="tele"><span>ARM</span><div class="bar"><i id="p-arm-bar"></i></div><b id="p-arm">100%</b></div>
+    <div class="tele"><span>NECK</span><div class="bar"><i id="p-neck-bar"></i></div><b id="p-neck">100%</b></div>
+    <div class="tele"><span>TAIL</span><div class="bar"><i id="p-tail-bar"></i></div><b id="p-tail">100%</b></div>
+  </div>
+
+  <div class="group">
+    <h2>Bone inspector</h2>
+    <div id="bone-info">
+      <b id="bone-name">Click any bone</b>
+      <p id="bone-desc">Anatomical notes appear here.</p>
+    </div>
+  </div>
+
+  <p class="foot"><span id="t-speed">0.00 m/s</span> · <span><span id="t-fps">60</span> FPS</span> · IK legs · verlet tail</p>
+</aside>
+
+<button id="panel-toggle" aria-label="Toggle panel">☰</button>
+
+<div id="flash"></div>
+
+<div id="hint">
+  <span><kbd>1</kbd><kbd>2</kbd> gait</span><span><kbd>Space</kbd> toggle</span><span>click a bone to inspect</span><span>drag to orbit</span>
+</div>
+
+<script>
+(function () {
+  var el = document.getElementById('loader-text');
+  var reported = false;
+  var FILES = ['styles.css', 'js/main.js', 'js/dino.js', 'js/gait.js', 'js/ik.js',
+    'js/tail.js', 'js/hydro.js', 'js/vendor/three.module.min.js',
+    'js/vendor/controls/OrbitControls.js', 'js/vendor/renderers/CSS2DRenderer.js',
+    'js/vendor/environments/RoomEnvironment.js', 'js/textures.js'];
+  function fail(msg) {
+    if (window.__booted || !el || reported) return;
+    reported = true;
+    el.style.color = '#ff5470';
+    el.style.fontSize = '12px';
+    el.textContent = msg;
+  }
+  function diagnose(firstBad) {
+    Promise.all(FILES.map(function (f) {
+      return fetch(f, { cache: 'no-store' }).then(
+        function (r) { return f.split('/').pop() + ':' + r.status; },
+        function () { return f.split('/').pop() + ':FETCH-FAIL'; }
+      );
+    })).then(function (res) {
+      fail('Load problem (' + firstBad + '). Page URL: ' + location.href +
+        ' | files: ' + res.join(' '));
+    });
+  }
+  window.addEventListener('error', function (e) {
+    if (window.__booted || reported) return;
+    var src = (e.target && (e.target.src || e.target.href)) || '';
+    if (src) {
+      var file = src.split('/').pop().split('?')[0];
+      // This host blocks external module scripts: fall back to the
+      // single-file build (inline classic script, zero fetches).
+      if (file === 'main.js' && location.pathname.indexOf('standalone') === -1) {
+        fetch('standalone.html', { cache: 'no-store' }).then(function (r) {
+          if (r.ok) location.href = 'standalone.html';
+          else diagnose('cannot fetch main.js');
+        }, function () { diagnose('cannot fetch main.js'); });
+        return;
+      }
+      diagnose('cannot fetch ' + file);
+    }
+    else if (e.message) fail('Error: ' + e.message + ' @ ' + location.href);
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    if (window.__booted || reported) return;
+    fail('Error: ' + ((e.reason && (e.reason.message || e.reason)) || 'module failed') +
+      ' @ ' + location.href);
+  });
+  setTimeout(function () {
+    if (!window.__booted && !reported && el) {
+      el.textContent = 'Still loading… open this page through the preview web server (not as a file).';
+    }
+  }, 12000);
+})();
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
