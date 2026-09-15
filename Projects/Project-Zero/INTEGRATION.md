@@ -4,7 +4,8 @@ Opening the Project-Zero executable renders the showcase: a soil plain
 scattered with one hundred analytical shapes (boxes, spheres, cones,
 cylinders, pyramids, tetrahedra, wedges — near and far, one unique
 material + colour each), under a sunset sky with full moon, stars,
-broken cirrus, and marching ground mist — plus camera lens flare,
+broken cirrus, and marching ground mist, with drifting cloud shadows
+on the sunlit ground — plus camera lens flare,
 halo, and an anamorphic streak, all enabled by default. Everything is
 lit strictly by ReSTIR DI + ReSTIR GI in `.slang`, nothing else; the
 flare is a post-process camera artifact, not a light.
@@ -26,6 +27,7 @@ and apply-checked against), with the `streamlinkinbox/Frontier`
 git checkout arena/01a08d16-frontier -- Engine EngineContent Scripts Patches imgui.ini Projects/Project-Dyno Projects/Project-Zero
 git apply PZIntegration/0002-project-zero-gpu-transplant.patch   # this file ships here
 git apply PZIntegration/0003-project-zero-moon-textures.patch    # moon texture generator + moon dimming
+git apply PZIntegration/0004-project-zero-cloud-shadows.patch   # cloud shadows (default ON) + coverage generator
 ```
 
 The checkout is byte-identical by construction (git does the copying,
@@ -72,13 +74,17 @@ Release --target Project-Zero-CpuReference`.
 Flags: `--sun H`, `--yaw D` `--pitch D` (default `220 -2`, facing the
 sunset), `--fog clear|morning|backlit`, `--width W` `--height H`,
 `--bounce N` (default 8), `--passes N` (default 2), `--flare 0|1`,
-`--flarevar 0|1|2|3` (cinematic/anamorphic/starburst/halo). Output
-lands in `./Diagnostics/`: `ProjectZero_Showcase.ppm` always, plus
-`.png` when Python is found. The PPM is byte-identical run to run
-(`5f2b610d…e31` default, `d81cf940…03e` anamorphic, `78d6096b…2dd`
-night, after the 0003 moon dimming; determinism verified by repeat
-runs and by a pristine-tree fresh-apply rebuild producing the same
-hash).
+`--flarevar 0|1|2|3` (cinematic/anamorphic/starburst/halo),
+`--cloudshadow 0|1` (default 1), `--cloudtime S` (default 0),
+`--cloudfield scattered|broken|overcast|PATH` (default broken).
+Generate the cloud maps first (see below) or shadows fail open to
+clear-sky sun. Output lands in `./Diagnostics/`:
+`ProjectZero_Showcase.ppm` always, plus `.png` when Python is found.
+The PPM is byte-identical run to run (`cd60bdea…f94` default,
+`7f5bd9f6…ba3` anamorphic, `78d6096b…2dd` night — the night hash is
+unchanged from 0003, below-horizon sun carries no shadow;
+determinism verified by repeat runs and by a pristine-tree
+fresh-apply rebuild producing the same hash).
 
 ## What the delta contains
 
@@ -200,6 +206,49 @@ c86f3686…fd5c     triton_1k.ppm       d8242904…db3a    umbriel_1k.ppm
 0003 also dims the showcase moon (disc `moonBright` 3.0 → 1.2,
 moonlight ×0.45) — the night proof below is the after.
 
+## Cloud shadows (0004)
+
+`Tools/GenerateCloudTextures.py` (stdlib-only, seeded, deterministic —
+byte-identical on any Python 3) generates tileable 2-D cloud coverage
+(density) maps: `scattered` / `broken` / `overcast` decks plus a
+high-frequency `detail` breakup map. Run once from the engine root:
+
+```sh
+python Tools/GenerateCloudTextures.py --out EngineContent/CelestialTextures/Clouds
+# -> cloud_{scattered,broken,overcast,detail}.ppm (512x512 P6)
+```
+
+Both renderers project each shaded surface point ALONG THE SUN RAY up
+to the 500 m deck, wrap-sample the coverage there, and attenuate
+DIRECT SUN ONLY (primary + GI-bounce sun terms; moon, sky ambient,
+and fog light are untouched) — default ON, `--cloudshadow 0` restores
+the 0003 pixels exactly. The deck drifts with the wind (panel rose on
+the GPU, a fixed 8.5 m/s equivalent on the CPU twin); the sky's own
+procedural cirrus is an independent layer and never moves with it.
+Required step: without the generated maps both sides fail open to
+clear-sky sun (the GPU logs a `Clouds` console warning when the atlas
+is missing or unusable).
+
+File manifest (sha256 — re-running the script must reproduce these):
+
+```
+6bf72e02…475d5f  cloud_broken.ppm      be686296…880f39  cloud_detail.ppm
+cdb6f608…ec8e94b  cloud_overcast.ppm    5b62ce2c…0cf52b  cloud_scattered.ppm
+```
+
+GPU side (blind — review-verified, first runs on the user's build):
+shadow params ride the post record's spare rows (binding 24 — no new
+binding, descriptor, or pool change), sampled by `CloudShadowAt`
+(`PostRecords.slang`) at both sun multiplies; `STBI_NO_PNM` is
+removed so the PPMs decode (this also fixes 0003's moon PPMs, which
+claimed stb-readiness while PNM was compiled out). The moon script's
+branch copy drifted to `Projects/Project-Zero/MoonTextures/` while
+its patch path is `Tools/`; the cloud script uses `Tools/` in both.
+
+Proofs: `PZIntegration/clouds_contact.png` (the four maps),
+`cloudshadow_{sunset,sun10}_pair.png` (OFF left, ON right),
+`cloudshadow_sweep.png` (OFF + five wind instants).
+
 ## Verification record (sandbox, g++ 12, no GPU)
 
 - Include audit: all 321 quoted `#include`s across the transplanted
@@ -209,13 +258,21 @@ moonlight ×0.45) — the night proof below is the after.
 - CPU reference: clean build under `-std=c++20 -O2 -Wall -Wextra`
   (zero warnings) via `make`, via a direct `g++` line, and via a
   pristine-tree fresh-apply rebuild — all produce sha256
-  `5f2b610d…e31` for the default 640×480 frame, and repeat runs are
+  `cd60bdea…f94` for the default 640×480 frame, and repeat runs are
   byte-identical. C++17 and C++20 builds agree.
 - 0003: pristine tree → transplant → 0002 → 0003 applies cleanly,
   rebuilds warning-free, and reproduces the dimmed `5f2b610d…e31`
   hash; the generator runs from `Tools/` and lands all 22 textures
   in `EngineContent/CelestialTextures/Moons/` with the manifest
   hashes above.
+- 0004: pristine tree → transplant → 0002 → 0003 → 0004 applies
+  cleanly (`git apply --check` plus byte-compare of all 13 patched
+  files against the executed tree), rebuilds warning-free, and
+  reproduces `cd60bdea…f94` (default) and `78d6096b…2dd` (night);
+  `--cloudshadow 0` reproduces the 0003 `5f2b610d…e31` /
+  `d81cf940…03e` hashes exactly, night ON/OFF are byte-identical
+  (sun gate), and the generator reproduces its manifest — including
+  from the fresh-applied tree.
 - Export-path signatures checked against the branch headers:
   `BuildTriangleIndex` / `BuildMaterialDescriptors` take `const
   RayTracingSolver&`, `SceneEncodeConfiguration` carries `Name` +
@@ -229,9 +286,13 @@ moonlight ×0.45) — the night proof below is the after.
   are otherwise pixel-identical (view-verified).
 - GPU build: not runnable in this sandbox (no Vulkan SDK / GPU), but
   every GPU translation unit is branch-verbatim except the five
-  additive showcase edits and the two behaviour-neutral span-record
-  moves, all reviewed line by line; braces/parens balance and the
-  export-call arity were machine-checked.
+  additive showcase edits, the seven 0004 cloud-shadow edits, and
+  the two behaviour-neutral span-record moves. The 0004 GPU side is
+  blind (no Vulkan/slangc in the sandbox) and review-verified: sole
+  `PackPostConstants` caller updated, `std140` layout byte-identical
+  (comments only), single guarded `PostRecords.slang` includer,
+  placeholder-aware atlas refuse (white never reads as overcast),
+  braces/parens balance machine-checked with zero delta.
 - Proofs: `PZIntegration/showcase_{sunset,night,anamorphic}.png`
   (default sun-facing view, moon night view, anamorphic variety).
 
@@ -247,4 +308,5 @@ moonlight ×0.45) — the night proof below is the after.
   CPU-windowed era) is superseded by the transplant + `0002` and
   kept for the record; apply only ONE of them (`0001` onto bare
   `f17fb6f`, `0002` onto `f17fb6f` + transplant). `0003` stacks on
-  top of `0002` (moon textures + dimming).
+  top of `0002` (moon textures + dimming); `0004` stacks on top of
+  `0003` (cloud shadows + coverage generator).

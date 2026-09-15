@@ -1,0 +1,935 @@
+# 0004-project-zero-cloud-shadows.patch
+# Cloud shadows (default ON) + deterministic cloud coverage generator. Applies onto
+# the 0003-applied tree (0001 -> 0002 -> 0003 first): `git apply` from the repo root.
+# CPU side is executed-and-proved here; GPU side is written blind against the applied
+# tree and review-verified only — the user's first GPU build is its first execution.
+# After applying, run: python3 Tools/GenerateCloudTextures.py --out
+#   EngineContent/CelestialTextures/Clouds   (required: missing files = shadows off).
+
+diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.h b/Projects/Project-Zero/Source/SkyFogIntegrator.h
+index f234679..3ca4318 100644
+--- a/Projects/Project-Zero/Source/SkyFogIntegrator.h
++++ b/Projects/Project-Zero/Source/SkyFogIntegrator.h
+@@ -27,6 +27,7 @@ public:
+ 
+     void                    AssignSunHour(double LocalHours) noexcept;
+     void                    AssignFogScenario(FogScenario Scenario) noexcept;
++    void                    AssignCloudShadow(bool Enabled, float CloudTimeSeconds, const char* CoveragePath, const char* DetailPath) noexcept;
+ 
+     [[nodiscard]] Vector3   QuerySunDirectionRender() const noexcept;        // [-] unit sun vector, Y-up render frame
+     [[nodiscard]] Vector3   QuerySunDirectionWorld() const noexcept;         // [-] unit sun vector, Z-up world frame
+@@ -39,6 +40,7 @@ public:
+     [[nodiscard]] Vector3   QueryFogLightRadiance() const noexcept;          // [lux] brighter luminaire radiance
+     [[nodiscard]] Vector3   QueryAmbientRadiance() const noexcept;          // [lux] three-sample sky ambient
+     [[nodiscard]] float     QueryFogFarDistance() const noexcept;           // [m] march cutoff for sky rays
++    [[nodiscard]] float     QueryCloudShadow(const Vector3& WorldPos, const Vector3& SunWorldDir) const noexcept; // [-] 0..1 sun multiplier
+ 
+     [[nodiscard]] Vector3   ComputeSkyRadiance(const Vector3& RenderDir) const noexcept;
+     [[nodiscard]] Vector3   ApplyPanelPost(const Vector3& LinearColor, uint32_t PixelX, uint32_t PixelY, uint32_t ImageWidth, uint32_t ImageHeight) const noexcept;
+
+diff --git a/Projects/Project-Zero/Source/SkyFogIntegrator.cpp b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
+index c883cdf..c92e3a2 100644
+--- a/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
++++ b/Projects/Project-Zero/Source/SkyFogIntegrator.cpp
+@@ -5,6 +5,9 @@
+ #include "SkyFogIntegrator.h"
+ #include <algorithm>
+ #include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <vector>
+ #include "../Shaders/SlangInterchange.h"
+ #include "../Shaders/SkySpecification.slang"
+ #include "../Shaders/FogSpecification.slang"
+@@ -209,6 +212,117 @@ FogConfiguration MakeFogScenario(SkyFogIntegrator::FogScenario Scenario, const f
+     return c;
+ }
+ 
++//------------------------------------------------------------------------------------------------------------------------
++//                                                 CLOUD SHADOW FIELD
++//------------------------------------------------------------------------------------------------------------------------
++
++// Coverage maps from CloudTextures/GenerateCloudTextures.py (binary PPM P6,
++// grayscale-in-RGB). World frame is Z-up: the deck is the plane z = Height; a
++// surface point P projects ALONG THE SUN RAY to Q = P + sun * ((H - P.z)/sun.z)
++// and the maps are wrap-sampled at Q.xy/Repeat + wind*Time/Repeat. The formula
++// below MUST match the GPU side (PostRecords.slang CloudShadowAt plus the
++// CelestialSequence cloud pack) constant for constant.
++
++constexpr float   CloudPlaneHeightM  = 500.0f;                  // [m] shadow-casting deck altitude
++constexpr float   CloudRepeatM       = 180.0f;                  // [m] world size of one coverage tile
++constexpr float   CloudWindXMps      = 8.0f;                    // [m/s] deck drift, world +X (east)
++constexpr float   CloudWindYMps      = 3.0f;                    // [m/s] deck drift, world +Y (north)
++constexpr float   CloudShadeStrength = 0.75f;                   // [-] sun kept at full overcast: 1 - 0.75
++constexpr float   CloudDetailScale   = 6.0f;                    // [-] detail-map repeat inside one tile
++constexpr float   CloudDetailBiasU   = 0.37f;                   // [-] detail offset so its cells never align
++constexpr float   CloudDetailBiasV   = 0.73f;                   // [-] with the coverage lattice
++
++bool                    CloudEnabled = true;                    // [-] master switch, default ON
++float                   CloudTimeSec = 0.0f;                  // [s] fixed showcase instant (GPU: live clock)
++std::vector<uint8_t>    CloudCoverage;                          // [-] coverage texels, 0..255
++uint32_t                CloudCoverageSize = 0;                  // [px] coverage edge (square)
++std::vector<uint8_t>    CloudDetail;                            // [-] breakup texels, 0..255
++uint32_t                CloudDetailSize = 0;                    // [px] detail edge (square)
++
++bool LoadCoveragePpm(const char* Path, std::vector<uint8_t>& Texels, uint32_t& Edge) noexcept
++{
++    Texels.clear();
++    Edge = 0;
++    if (Path == nullptr || Path[0] == '\0')
++    {
++        return false;
++    }
++    FILE* File = std::fopen(Path, "rb");
++    if (File == nullptr)
++    {
++        return false;
++    }
++    char Magic[2] = { 0, 0 };
++    bool Ok = std::fread(Magic, 1, 2, File) == 2 && Magic[0] == 'P' && Magic[1] == '6';
++    long Values[3] = { 0, 0, 0 };
++    for (int v = 0; v < 3 && Ok; ++v)
++    {
++        int c = 0;
++        do
++        {
++            c = std::fgetc(File);
++            if (c == '#')
++            {
++                do { c = std::fgetc(File); } while (c != '\n' && c != EOF);
++            }
++            if (c == EOF) { Ok = false; break; }
++        } while (c != '-' && (c < '0' || c > '9'));
++        long Accum = 0;
++        bool Negative = false;
++        if (Ok && c == '-') { Negative = true; c = std::fgetc(File); }
++        while (Ok && c >= '0' && c <= '9') { Accum = Accum * 10 + (c - '0'); c = std::fgetc(File); }
++        if (c == EOF) { Ok = false; }
++        Values[v] = Negative ? -Accum : Accum;
++    }
++    // P6 stores RGB triples; the generator writes gray, so the red channel is the density.
++    if (Ok && (Values[0] <= 0 || Values[0] > 4096 || Values[0] != Values[1] || Values[2] != 255))
++    {
++        Ok = false;
++    }
++    if (Ok)
++    {
++        const uint32_t EdgePx = static_cast<uint32_t>(Values[0]);
++        Texels.resize(static_cast<size_t>(EdgePx) * EdgePx);
++        for (uint32_t i = 0; i < EdgePx * EdgePx && Ok; ++i)
++        {
++            int R = std::fgetc(File);
++            int G = std::fgetc(File);
++            int B = std::fgetc(File);
++            if (R == EOF || G == EOF || B == EOF) { Ok = false; break; }
++            (void)G; (void)B;
++            Texels[i] = static_cast<uint8_t>(R);
++        }
++        if (Ok) { Edge = EdgePx; }
++    }
++    if (!Ok) { Texels.clear(); Edge = 0; }
++    std::fclose(File);
++    return Ok;
++}
++
++float SampleCloudWrapped(const std::vector<uint8_t>& Texels, uint32_t Edge, float U, float V) noexcept
++{
++    if (Texels.empty() || Edge == 0)
++    {
++        return 0.0f;
++    }
++    const float Dim = static_cast<float>(Edge);
++    float X = std::fmod(U * Dim - 0.5f, Dim);
++    float Y = std::fmod(V * Dim - 0.5f, Dim);
++    if (X < 0.0f) { X += Dim; }
++    if (Y < 0.0f) { Y += Dim; }
++    const uint32_t X0 = static_cast<uint32_t>(X);
++    const uint32_t Y0 = static_cast<uint32_t>(Y);
++    const uint32_t X1 = (X0 + 1u) % Edge;
++    const uint32_t Y1 = (Y0 + 1u) % Edge;
++    const float Fx = X - static_cast<float>(X0);
++    const float Fy = Y - static_cast<float>(Y0);
++    const float A = static_cast<float>(Texels[static_cast<size_t>(Y0) * Edge + X0]);
++    const float B = static_cast<float>(Texels[static_cast<size_t>(Y0) * Edge + X1]);
++    const float C = static_cast<float>(Texels[static_cast<size_t>(Y1) * Edge + X0]);
++    const float D = static_cast<float>(Texels[static_cast<size_t>(Y1) * Edge + X1]);
++    return (A + (B - A) * Fx + (C - A) * Fy + (A - B - C + D) * Fx * Fy) * (1.0f / 255.0f);
++}
++
+ } // namespace
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -253,6 +367,64 @@ void SkyFogIntegrator::AssignFogScenario(FogScenario Scenario) noexcept
+     CoreFog = MakeFogScenario(CoreScenario, SkyAmbientCompute(CoreSky));
+ }
+ 
++void SkyFogIntegrator::AssignCloudShadow(bool Enabled, float CloudTimeSeconds, const char* CoveragePath, const char* DetailPath) noexcept
++{
++    CloudEnabled = Enabled;
++    CloudTimeSec = CloudTimeSeconds;
++    bool OkCoverage = false;
++    bool OkDetail = false;
++    try
++    {
++        OkCoverage = LoadCoveragePpm(CoveragePath, CloudCoverage, CloudCoverageSize);
++        OkDetail = LoadCoveragePpm(DetailPath, CloudDetail, CloudDetailSize);
++    }
++    catch (...)
++    {
++        OkCoverage = false;
++        OkDetail = false;
++    }
++    if (!OkCoverage)
++    {
++        // A missing coverage map must never crash the showcase: shadows fail open (multiplier 1).
++        CloudCoverage.clear();
++        CloudCoverageSize = 0;
++        CloudEnabled = false;
++        std::printf("[Project-Zero] CloudShadow: cannot load %s — cloud shadows OFF.\n",
++                    CoveragePath != nullptr ? CoveragePath : "(null)");
++        return;
++    }
++    if (!OkDetail)
++    {
++        // Detail is garnish: flat mid-gray keeps the coverage mean-neutral (0.65 + 0.7 * 0.5 = 1.0).
++        CloudDetail.assign(1, 128);
++        CloudDetailSize = 1;
++        std::printf("[Project-Zero] CloudShadow: cannot load %s — breakup disabled.\n",
++                    DetailPath != nullptr ? DetailPath : "(null)");
++    }
++    std::printf("[Project-Zero] CloudShadow: %s, field %s (%u px), t = %.1f s.\n",
++                CloudEnabled ? "ON" : "OFF", CoveragePath, CloudCoverageSize, CloudTimeSec);
++}
++
++float SkyFogIntegrator::QueryCloudShadow(const Vector3& WorldPos, const Vector3& SunWorldDir) const noexcept
++{
++    if (!CloudEnabled || CloudCoverage.empty() || SunWorldDir.z <= 1e-4f)
++    {
++        return 1.0f;
++    }
++    // Up the sun ray to the deck, then wrap-sample. Mirrors PostRecords.slang CloudShadowAt.
++    const float T = (CloudPlaneHeightM - WorldPos.z) / SunWorldDir.z;
++    const float Qx = WorldPos.x + SunWorldDir.x * T;
++    const float Qy = WorldPos.y + SunWorldDir.y * T;
++    const float U = (Qx + CloudWindXMps * CloudTimeSec) / CloudRepeatM;
++    const float V = (Qy + CloudWindYMps * CloudTimeSec) / CloudRepeatM;
++    float Coverage = SampleCloudWrapped(CloudCoverage, CloudCoverageSize, U, V);
++    const float Detail = SampleCloudWrapped(CloudDetail, CloudDetailSize,
++                                            U * CloudDetailScale + CloudDetailBiasU,
++                                            V * CloudDetailScale + CloudDetailBiasV);
++    Coverage = std::clamp(Coverage * (0.65f + 0.7f * Detail), 0.0f, 1.0f);
++    return 1.0f - CloudShadeStrength * Coverage;
++}
++
+ Vector3 SkyFogIntegrator::QuerySunDirectionRender() const noexcept
+ {
+     return ToVector3(CoreSky.sunDir);
+
+diff --git a/Projects/Project-Zero/Source/RendererHost.h b/Projects/Project-Zero/Source/RendererHost.h
+index 510abaa..c5262f2 100644
+--- a/Projects/Project-Zero/Source/RendererHost.h
++++ b/Projects/Project-Zero/Source/RendererHost.h
+@@ -80,7 +80,7 @@ public:
+     RendererHost(const RendererHost&) = delete;
+     RendererHost& operator=(const RendererHost&) = delete;
+ 
+-    void                    RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2, uint32_t BounceCount = 8, bool FlareEnabled = true, float FlareVariety = 0.0f) noexcept;
++    void                    RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount = 2, uint32_t BounceCount = 8, bool FlareEnabled = true, float FlareVariety = 0.0f, bool CloudShadows = true, float CloudTime = 0.0f, const char* CloudField = "../../EngineContent/CelestialTextures/Clouds/cloud_broken.ppm", const char* CloudDetail = "../../EngineContent/CelestialTextures/Clouds/cloud_detail.ppm") noexcept;
+     void                    AssignToneExposure(float LinearExposure) noexcept { ToneExposure = LinearExposure; }
+     [[nodiscard]] bool      ExportPpmImage(const std::string& OutputPath) const noexcept;
+     [[nodiscard]] bool      ExportShowcaseImage(const std::string& OutputPath) const noexcept;
+
+diff --git a/Projects/Project-Zero/Source/RendererHost.cpp b/Projects/Project-Zero/Source/RendererHost.cpp
+index c535a4f..0a59121 100644
+--- a/Projects/Project-Zero/Source/RendererHost.cpp
++++ b/Projects/Project-Zero/Source/RendererHost.cpp
+@@ -95,7 +95,7 @@ float RendererHost::EvaluateJacobian(const Vector3& x1, const Vector3& x2, const
+ //                                     SHOWCASE SUN SKY FOG RENDER PIPELINE
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount, uint32_t BounceCount, bool FlareEnabled, float FlareVariety) noexcept
++void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveCamera, double SunHour, SkyFogIntegrator::FogScenario Scenario, uint32_t SpatialPassCount, uint32_t BounceCount, bool FlareEnabled, float FlareVariety, bool CloudShadows, float CloudTime, const char* CloudField, const char* CloudDetail) noexcept
+ {
+     std::mt19937 Rng(1337);
+     std::uniform_real_distribution<float> Dist(0.0f, 1.0f);
+@@ -103,6 +103,7 @@ void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveC
+     Scene.ConstructShowcaseScene();
+     SkyFog.AssignSunHour(SunHour);
+     SkyFog.AssignFogScenario(Scenario);
++    SkyFog.AssignCloudShadow(CloudShadows, CloudTime, CloudField, CloudDetail);
+ 
+     const auto& Materials = Scene.QueryMaterials();
+     const Vector3 SunWorld = SkyFog.QuerySunDirectionWorld();
+@@ -143,7 +144,8 @@ void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveC
+             float SunVisible = Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, Hit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
+             float MoonCos = std::max(0.0f, OrientationClassifier::DotProduct(Hit.SurfaceNormal, MoonWorld));
+             float MoonVisible = Scene.EvaluateOcclusion(Hit.HitLocation + Hit.SurfaceNormal * 0.001f, Hit.HitLocation + MoonWorld * 1000.0f) ? 0.0f : 1.0f;
+-            DirectLight[idx] = Mat.AlbedoColor * (SunRadiance * (SunCos * SunVisible) + MoonRadiance * (MoonCos * MoonVisible));
++            float CloudShade = SkyFog.QueryCloudShadow(Hit.HitLocation, SunWorld);
++            DirectLight[idx] = Mat.AlbedoColor * (SunRadiance * (SunCos * SunVisible * CloudShade) + MoonRadiance * (MoonCos * MoonVisible));
+         }
+     }
+ 
+@@ -178,7 +180,8 @@ void RendererHost::RenderShowcaseFrame(const Frontier::CameraProjection& ActiveC
+                     float BounceSunVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + SunWorld * 1000.0f) ? 0.0f : 1.0f;
+                     float BounceMoonCos = std::max(0.0f, OrientationClassifier::DotProduct(BounceHit.SurfaceNormal, MoonWorld));
+                     float BounceMoonVis = Scene.EvaluateOcclusion(BounceHit.HitLocation + BounceHit.SurfaceNormal * 0.001f, BounceHit.HitLocation + MoonWorld * 1000.0f) ? 0.0f : 1.0f;
+-                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceSunCos * BounceSunVis) + MoonRadiance * (BounceMoonCos * BounceMoonVis) + SkyAmbient);
++                    float BounceCloudShade = SkyFog.QueryCloudShadow(BounceHit.HitLocation, SunWorld);
++                    BounceRadiance = BounceMat.AlbedoColor * (SunRadiance * (BounceSunCos * BounceSunVis * BounceCloudShade) + MoonRadiance * (BounceMoonCos * BounceMoonVis) + SkyAmbient);
+                     BouncePos = BounceHit.HitLocation;
+                     BounceNormal = BounceHit.SurfaceNormal;
+                 }
+
+diff --git a/Projects/Project-Zero/Source/CpuReferenceMain.cpp b/Projects/Project-Zero/Source/CpuReferenceMain.cpp
+index 61a73a3..c6dcb92 100644
+--- a/Projects/Project-Zero/Source/CpuReferenceMain.cpp
++++ b/Projects/Project-Zero/Source/CpuReferenceMain.cpp
+@@ -26,6 +26,9 @@ int main(int ArgumentCount, char** ArgumentValues)
+     uint32_t SpatialPasses = 2;
+     bool FlareEnabled = true;
+     float FlareVariety = 0.0f;
++    bool CloudShadows = true;
++    float CloudTime = 0.0f;
++    std::string CloudField = "../../EngineContent/CelestialTextures/Clouds/cloud_broken.ppm";
+     Frontier::ProjectZero::SkyFogIntegrator::FogScenario FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Morning;
+     for (int i = 1; i < ArgumentCount; ++i)
+     {
+@@ -78,11 +81,32 @@ int main(int ArgumentCount, char** ArgumentValues)
+                 FogChoice = Frontier::ProjectZero::SkyFogIntegrator::FogScenario::Backlit;
+             }
+         }
++        else if (Arg == "--cloudshadow" && i + 1 < ArgumentCount)
++        {
++            CloudShadows = std::atoi(ArgumentValues[++i]) != 0;
++        }
++        else if (Arg == "--cloudtime" && i + 1 < ArgumentCount)
++        {
++            CloudTime = static_cast<float>(std::atof(ArgumentValues[++i]));
++        }
++        else if (Arg == "--cloudfield" && i + 1 < ArgumentCount)
++        {
++            std::string Name = ArgumentValues[++i];
++            if (Name == "scattered" || Name == "broken" || Name == "overcast")
++            {
++                CloudField = "../../EngineContent/CelestialTextures/Clouds/cloud_" + Name + ".ppm";
++            }
++            else
++            {
++                CloudField = Name;
++            }
++        }
+         else if (Arg == "--help")
+         {
+             std::cout << "usage: Project-Zero [--sun H] [--yaw D] [--pitch D] [--fog clear|morning|backlit]\n"
+                       << "                      [--width W] [--height H] [--bounce N] [--passes N] [--flare 0|1]\n"
+                       << "                      [--flarevar 0|1|2|3] (cinematic/anamorphic/starburst/halo)\n"
++                      << "                      [--cloudshadow 0|1] [--cloudtime S] [--cloudfield scattered|broken|overcast|PATH]\n"
+                       << "                      (headless-only: this binary always renders and exits)\n"
+                       << "       defaults face the sunset (yaw 220, pitch -2); night moon view: --sun 18.3 --yaw 0 --pitch 2\n";
+             return 0;
+@@ -136,7 +160,8 @@ int main(int ArgumentCount, char** ArgumentValues)
+     auto RenderOnce = [&](Frontier::ProjectZero::RendererHost& ActiveRenderer, const char* Label) -> double
+     {
+         auto StartTime = std::chrono::high_resolution_clock::now();
+-        ActiveRenderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount, FlareEnabled, FlareVariety);
++        ActiveRenderer.RenderShowcaseFrame(Camera, SunHour, FogChoice, SpatialPasses, BounceCount, FlareEnabled, FlareVariety,
++                                            CloudShadows, CloudTime, CloudField.c_str(), "../../EngineContent/CelestialTextures/Clouds/cloud_detail.ppm");
+         auto EndTime = std::chrono::high_resolution_clock::now();
+         double DurationMs = std::chrono::duration<double, std::milli>(EndTime - StartTime).count();
+         std::cout << "[Project-Zero] " << Label << " completed in " << DurationMs << " ms.\n";
+
+diff --git a/Engine/ContentInterchange/TextureIndex.cpp b/Engine/ContentInterchange/TextureIndex.cpp
+index d985d02..28f42d8 100644
+--- a/Engine/ContentInterchange/TextureIndex.cpp
++++ b/Engine/ContentInterchange/TextureIndex.cpp
+@@ -6,7 +6,7 @@
+ #define STB_IMAGE_IMPLEMENTATION
+ #define STBI_NO_PSD
+ #define STBI_NO_PIC
+-#define STBI_NO_PNM
++// No STBI_NO_PNM: the cloud coverage maps ship as binary PPM (P6) and decode through this very TU.
+ #include <stb_image.h>
+ 
+ #include "TextureIndex.h"
+
+diff --git a/Engine/DisplayPresentation/PostConstantRecord.h b/Engine/DisplayPresentation/PostConstantRecord.h
+index 0f5d2a0..f85cbcb 100644
+--- a/Engine/DisplayPresentation/PostConstantRecord.h
++++ b/Engine/DisplayPresentation/PostConstantRecord.h
+@@ -33,8 +33,8 @@ namespace Frontier {
+ //        offset   48   PostFlareUv     sun U [0..1], sun V [0..1], enabled 0/1, unused (0)
+ //        offset   64   PostBow         intensity [x], width [x], secondary gain [0..1], rain visibility [0..1]
+ //        offset   80   PostBow2        alexander band 0/1, minimum path [m], enabled 0/1, unused (0)
+-//        offset   96   PostSpare0      pixel spread [rad], 0, 0, 0 (the star core floors at half of it)
+-//        offset  112   PostSpare1      reserved (zero)
++//        offset   96   PostSpare0      pixel spread [rad], coverage slot, detail slot, cloud enabled 0/1
++//        offset  112   PostSpare1      cloud offset U [tiles], cloud offset V [tiles], 0, 0
+ struct PostConstantRecord
+ {
+     float PostStar[4];     // LST, latitude, point size, brightness
+@@ -43,8 +43,8 @@ struct PostConstantRecord
+     float PostFlareUv[4];  // sun U, sun V, enabled, 0
+     float PostBow[4];      // intensity, width, secondary gain, rain visibility
+     float PostBow2[4];     // alexander, min path, enabled, 0
+-    float PostSpare0[4];   // pixel spread, 0, 0, 0
+-    float PostSpare1[4];   // reserved
++    float PostSpare0[4];   // pixel spread, cloud coverage slot, cloud detail slot, cloud enabled
++    float PostSpare1[4];   // cloud offset U, cloud offset V, 0, 0
+ };
+ 
+ static_assert(sizeof(PostConstantRecord) == 128u, "the post record is eight std140 rows");
+@@ -57,9 +57,21 @@ static_assert(offsetof(PostConstantRecord, PostBow2)    == 80u,  "PostBow2 at ro
+ static_assert(offsetof(PostConstantRecord, PostSpare0)  == 96u,  "PostSpare0 at row 6");
+ static_assert(offsetof(PostConstantRecord, PostSpare1)  == 112u, "PostSpare1 at row 7");
+ 
++// Cloud shadows ride the two spare rows: no new binding, no pool change. The deck constants below MUST match
++//    the CPU twin (SkyFogIntegrator.cpp cloud block) value for value — the host packs slots/enable/offsets per
++//    frame, the shader bakes the physics (strength, detail scale and bias live in CloudShadowAt and in the
++//    CPU twin's QueryCloudShadow, cross-commented). Slots pack as exact small floats (int(slot) in the kernel,
++//    MoonRecords' idiom).
++inline constexpr const char* kCloudTextureDirectory = "EngineContent/CelestialTextures/Clouds/";
++inline constexpr const char* kCloudCoverageFile     = "cloud_broken.ppm";
++inline constexpr const char* kCloudDetailFile       = "cloud_detail.ppm";
++inline constexpr float       kCloudPlaneHeightM     = 500.0f;   // [m] shadow-casting deck altitude (Tick reads it)
++inline constexpr float       kCloudRepeatM          = 180.0f;   // [m] world size of one coverage tile (Tick reads it)
++
+ // The one packer, called by CelestialSequence::PackPostRecord and by the post gate's pack proof. The sun UV and
+ //    visibility arrive computed — projection needs the camera and occlusion needs the traversal, and neither
+ //    lives in this header — while the rain visibility is derived by the caller from the precipitation state.
++//    The cloud tail arrives the same way: slots lent by AssignCloudAtlas, offsets integrated by Tick.
+ inline PostConstantRecord PackPostConstants(float LocalSiderealDegrees, float LatitudeDegrees,
+                                             float StarPointSize, float StarBrightness, float PixelSpreadRadians,
+                                             uint32_t FlareCategory, uint32_t FlareGhosts, float FlareIntensity,
+@@ -68,7 +80,8 @@ inline PostConstantRecord PackPostConstants(float LocalSiderealDegrees, float La
+                                             float SunU, float SunV, bool FlareEnabled,
+                                             float BowIntensity, float BowWidth, float BowSecondary,
+                                             bool BowAlexander, float BowMinimumPath, float RainVisibility,
+-                                            bool BowEnabled) noexcept
++                                            bool BowEnabled, uint32_t CloudCoverageSlot, uint32_t CloudDetailSlot,
++                                            bool CloudEnabled, float CloudOffsetU, float CloudOffsetV) noexcept
+ {
+     PostConstantRecord R{};
+     R.PostStar[0] = LocalSiderealDegrees;
+@@ -94,6 +107,11 @@ inline PostConstantRecord PackPostConstants(float LocalSiderealDegrees, float La
+     R.PostBow2[1] = BowMinimumPath;
+     R.PostBow2[2] = BowEnabled ? 1.0f : 0.0f;
+     R.PostSpare0[0] = PixelSpreadRadians;
++    R.PostSpare0[1] = static_cast<float>(CloudCoverageSlot);
++    R.PostSpare0[2] = static_cast<float>(CloudDetailSlot);
++    R.PostSpare0[3] = CloudEnabled ? 1.0f : 0.0f;
++    R.PostSpare1[0] = CloudOffsetU;
++    R.PostSpare1[1] = CloudOffsetV;
+     return R;
+ }
+ 
+
+diff --git a/Engine/Shaders/PostRecords.slang b/Engine/Shaders/PostRecords.slang
+index 8f6df79..cf359c6 100644
+--- a/Engine/Shaders/PostRecords.slang
++++ b/Engine/Shaders/PostRecords.slang
+@@ -11,6 +11,11 @@
+ //    file reads nothing but its own two bindings and can be included in any order. (MoonRecords showed the other
+ //    way: Textures[] forces its include position. This file samples no textures and declares no such debt.)
+ //
++//    ⚠️ CLOUDSHADOWAT IS THE EXCEPTION. It samples the bindless Textures[] table (coverage + detail at explicit
++//    LOD 0, MoonRecords' own idiom), so this file MUST be included after the table's declaration — today that
++//    means ReSTIRViewport.slang, the only includer, whose binding-25 line precedes the include. A future includer
++//    without a bindless table breaks the build here, loudly, which is the point.
++//
+ //    ⚠️ SMOOTHSTEP IS NEVER CALLED DIRECTLY. The C++ SmoothStep tolerates edge0 > edge1 (the ghost falloff uses
+ //    it); GLSL smoothstep with reversed edges is UNDEFINED. FrontierSmooth below is the C++ formula exactly, and
+ //    every falloff in this file goes through it.
+@@ -32,8 +37,8 @@ layout(std140, binding = 24) uniform PostConstants
+     vec4 PostFlareUv;   // xy = sun UV [0..1] top-left origin, z = enabled, w unused
+     vec4 PostBow;       // x = intensity, y = width, z = secondary gain, w = rain visibility
+     vec4 PostBow2;      // x = alexander band 0/1, y = minimum path [m], z = enabled, w unused
+-    vec4 PostSpare0;    // reserved
+-    vec4 PostSpare1;    // reserved
++    vec4 PostSpare0;    // x = pixel spread [rad], y = cloud coverage slot, z = cloud detail slot, w = enabled
++    vec4 PostSpare1;    // xy = cloud tile offset, zw unused
+ };
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -302,4 +307,27 @@ vec3 FlareAlong(vec2 ScreenUv, float Aspect)
+     return Accumulated * PostFlare.z * PostFlare2.w * EdgeFade;
+ }
+ 
++//------------------------------------------------------------------------------------------------------------------------
++//                                                     CLOUD SHADOWS
++//------------------------------------------------------------------------------------------------------------------------
++
++// The ground shadow of the cloud deck along a sun ray: arguments, not globals, per this file's rule — the surface
++//    position and the sun direction arrive from the caller, the slots/enable/offsets from the block, never from
++//    binding 21. The CPU twin is SkyFogIntegrator::QueryCloudShadow; the deck constants below MUST match it and
++//    PostConstantRecord.h value for value (500 m deck, 180 m tile, 0.75 strength, 6x detail at (0.37, 0.73)).
++//    fract(), not the sampler's wrap mode: explicit tiling is correct under either REPEAT or CLAMP.
++float CloudShadowAt(vec3 SurfacePos, vec3 SunDirection)
++{
++    if (PostSpare0.w <= 0.0 || SunDirection.z <= 1e-4) return 1.0;
++    const float kDeckHeight = 500.0;    // [m] == kCloudPlaneHeightM
++    const float kTileWorld  = 180.0;    // [m] == kCloudRepeatM
++    const float kStrength   = 0.75;     // [-] full overcast keeps 1 - 0.75 (CPU twin: CloudShadeStrength)
++    float T = (kDeckHeight - SurfacePos.z) / SunDirection.z;
++    vec2 Quv = (SurfacePos.xy + SunDirection.xy * T) / kTileWorld + PostSpare1.xy;
++    float Coverage = textureLod(Textures[nonuniformEXT(int(PostSpare0.y))], fract(Quv), 0.0).r;
++    float Detail = textureLod(Textures[nonuniformEXT(int(PostSpare0.z))], fract(Quv * 6.0 + vec2(0.37, 0.73)), 0.0).r;
++    Coverage = clamp(Coverage * (0.65 + 0.7 * Detail), 0.0, 1.0);
++    return 1.0 - kStrength * Coverage;
++}
++
+ #endif // FRONTIER_POST_RECORDS
+
+diff --git a/Engine/Shaders/ReSTIRViewport.slang b/Engine/Shaders/ReSTIRViewport.slang
+index b8a56c9..a0944c7 100644
+--- a/Engine/Shaders/ReSTIRViewport.slang
++++ b/Engine/Shaders/ReSTIRViewport.slang
+@@ -1156,7 +1156,7 @@ void main()
+                 vec3  wiLocal = ToLocal(frame, shadeDir);
+                 vec3  f = wiLocal.z > 0.0 ? EvaluateBsdf(shading, layers, woLocal, wiLocal) : vec3(0.0);   // R4b: full lobe stack
+                 if (res.SelectedLight == kSunLightIndex)
+-                    accumulatedRadiance += f * SunEmission() * shadeCos * res.UnbiasedWeight;
++                    accumulatedRadiance += f * SunEmission() * shadeCos * CloudShadowAt(hitPos, shadeDir) * res.UnbiasedWeight;
+                 else
+                 {
+                     vec3 chosenEmit = LightEmission(res.SelectedLight);
+@@ -1235,7 +1235,7 @@ void main()
+                         {
+                             vec3  bF = EvaluateBsdf(bShading, bLayers, bWo, bWi);
+                             float pPick = LightTriangleCount > 0u ? kSunPickProbability : 1.0;
+-                            accumulatedRadiance += throughput * bF * SunEmission() * bCos * SunSolidAngle() / pPick;
++                            accumulatedRadiance += throughput * bF * SunEmission() * bCos * CloudShadowAt(bHitPos, bSunDir) * SunSolidAngle() / pPick;
+                         }
+                     }
+                     else
+
+diff --git a/Projects/Project-Zero/Source/CelestialSequence.h b/Projects/Project-Zero/Source/CelestialSequence.h
+index e29a83f..5752d6a 100644
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -124,6 +124,12 @@ public:
+     //    zero count and the raster is lent nothing, so a caller without textures gets no moons, not bad ones.
+     void AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept;
+ 
++    // Lend the sequence its shadow deck: the two coverage slots the project registered (before Textures.Decode),
++    //    so this runs after Decode, once, beside AssignMoonAtlas. Slots only — the kernel samples the pixels
++    //    and the CPU twin reads the PPMs itself. Until it runs the deck packs enabled = 0, so a caller without
++    //    textures gets clear-sky sun, not slot 0's material sampled as coverage.
++    void AssignCloudAtlas(uint32_t CoverageSlot, uint32_t DetailSlot, const TextureIndex& Textures) noexcept;
++
+     // Hand the RAY-TRACING KERNEL the moons ApplyTo hands the raster, packed for binding 22. Every gate mirrors
+     //    ApplyTo — the solved lunar frame for a linked Luna, a hidden Moons entity as a moonless sky, an
+     //    unassigned atlas as no moons at all — so the GI-on and GI-off nights cannot be handed different moons.
+@@ -212,6 +218,16 @@ private:
+     uint32_t            MoonTextureSlots_[kMoonAtlasCount] = {};
+     MoonAlbedoView      MoonViews_[kMoonAtlasCount] = {};
+     bool                AtlasAssigned_ = false;
++    // The shadow deck's two bindless slots (coverage + detail), lent by AssignCloudAtlas and packed into
++    //    PostSpare0/1 for the kernel's CloudShadowAt. The offsets integrate the panel wind in Tick; the switch
++    //    defaults ON (the ask) and deliberately bypasses the entity toggles in v1 — no new CelestialEntity, so
++    //    the outliner, the sheets and the entity count all stand exactly as they were.
++    uint32_t            CloudCoverageSlot_ = 0u;
++    uint32_t            CloudDetailSlot_ = 0u;
++    float               CloudOffsetU_ = 0.0f;   // [tiles] wrapped to the unit tile: tiles repeat, floats must not grow
++    float               CloudOffsetV_ = 0.0f;   // [tiles] Tick integrates, PackPostRecord packs
++    bool                CloudShadowsEnabled_ = true;
++    bool                CloudAtlasAssigned_ = false;
+     // ApplyTo's scratch, filled fresh on every call and lent to the raster. Mutable because ApplyTo is const —
+     //    the alternative is a caller-provided list, which is exactly the half-wired call the method's comment
+     //    forbids.
+
+diff --git a/Projects/Project-Zero/Source/CelestialSequence.cpp b/Projects/Project-Zero/Source/CelestialSequence.cpp
+index c09a14c..dab4f8a 100644
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -344,6 +344,20 @@ void CelestialSequence::Tick(float DeltaSeconds, const float Camera[3], float Gr
+     Wind.GustPhase += DeltaSeconds * 0.35f;
+     if (Wind.GustPhase > 6.28318531f * 1024.0f) Wind.GustPhase -= 6.28318531f * 1024.0f;
+ 
++    // ③b The shadow deck's tile offset. The panel wind at deck altitude (shear and veer included — SampleStep's
++    //    own promise), integrated in tile units and wrapped: the kernel fract()s anyway, but floats that grow for
++    //    hours lose the sub-texel the bilinear needs. Unconditional like the gust phase — wind blows at a fixed
++    //    sun too. (The CPU twin integrates a fixed (8, 3) m/s instead — Speed 8.5 at Bearing 69°: set the rose
++    //    there to match it past t = 0. At t = 0 both agree exactly.)
++    {
++        float Flow[3] = { 0.0f, 0.0f, 0.0f };
++        WindField::SampleStep(Wind, kCloudPlaneHeightM, Flow);
++        CloudOffsetU_ += Flow[0] * DeltaSeconds / kCloudRepeatM;
++        CloudOffsetV_ += Flow[1] * DeltaSeconds / kCloudRepeatM;
++        CloudOffsetU_ -= std::floor(CloudOffsetU_);
++        CloudOffsetV_ -= std::floor(CloudOffsetV_);
++    }
++
+     // ④ Precipitation last: its emitter reads the cloud layer, which the wind has just moved.
+     const bool Falling = Precip.Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)];
+     PrecipitationSettings Active = Precip;
+@@ -461,6 +475,28 @@ void CelestialSequence::AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], c
+     AtlasAssigned_ = true;
+ }
+ 
++void CelestialSequence::AssignCloudAtlas(uint32_t CoverageSlot, uint32_t DetailSlot, const TextureIndex& Textures) noexcept
++{
++    // Slots only — the kernel samples the pixels; the CPU twin reads the PPMs itself. A slot past the index,
++    //    an empty descriptor, or a 1x1 decode-failure placeholder refuses the atlas (enabled packs 0, the kernel
++    //    multiplies by 1.0) rather than sampling white-as-overcast: the placeholder's own colour would read as
++    //    full coverage and darken the whole day. Missing files therefore degrade to the pre-cloud day, loudly
++    //    (the Clouds census warns).
++    const std::vector<TextureDescriptor>& All = Textures.QueryTextures();
++    const bool CoverageOk = CoverageSlot < All.size() && !All[CoverageSlot].Texels.empty()
++                            && !All[CoverageSlot].Placeholder;
++    const bool DetailOk = DetailSlot < All.size() && !All[DetailSlot].Texels.empty()
++                          && !All[DetailSlot].Placeholder;
++    CloudCoverageSlot_ = CoverageSlot;
++    CloudDetailSlot_ = DetailSlot;
++    CloudAtlasAssigned_ = CoverageOk && DetailOk;
++    if (!CloudAtlasAssigned_)
++    {
++        CloudCoverageSlot_ = 0u;
++        CloudDetailSlot_ = 0u;
++    }
++}
++
+ MoonConstantRecord CelestialSequence::PackMoonRecord() const noexcept
+ {
+     // ⚠️ Every gate here mirrors ApplyTo above, for the reasons recorded there. A hidden Moons entity is a
+@@ -535,7 +571,9 @@ PostConstantRecord CelestialSequence::PackPostRecord(const float CameraForward[3
+                              SunVisibility * ElevationFade,
+                              SunU, SunV, WantFlare,
+                              Rainbow.Intensity, Rainbow.Width, Rainbow.SecondaryGain, Rainbow.AlexanderBand,
+-                             Rainbow.MinimumPathMetres, RainVisibility, WantBow);
++                             Rainbow.MinimumPathMetres, RainVisibility, WantBow,
++                             CloudCoverageSlot_, CloudDetailSlot_,
++                             Enabled && CloudShadowsEnabled_ && CloudAtlasAssigned_, CloudOffsetU_, CloudOffsetV_);
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+
+diff --git a/Projects/Project-Zero/Source/GameExecution.cpp b/Projects/Project-Zero/Source/GameExecution.cpp
+index bf187ef..9bb7c93 100644
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -50,6 +50,7 @@
+ #include <algorithm>
+ #include <chrono>
+ #include <thread>
++#include <vector>
+ #include <string>
+ #include <cstdio>
+ #include <cstring>
+@@ -196,6 +197,9 @@ int main(int argc, char** argv)
+     //    block; kNoMoonSlot until filled.
+     uint32_t MoonSlots[Frontier::kMoonAtlasCount];
+     for (uint32_t M = 0u; M < Frontier::kMoonAtlasCount; ++M) MoonSlots[M] = 0xFFFFFFFFu;
++    // Cloud shadows — the two coverage slots, registered beside the moons (below) and lent after Decode.
++    uint32_t CloudCoverageSlot = 0xFFFFFFFFu;
++    uint32_t CloudDetailSlot = 0xFFFFFFFFu;
+     {
+         Frontier::SceneDecodeConfiguration Decode;
+         Decode.UniformScale = SceneScale;
+@@ -220,6 +224,18 @@ int main(int argc, char** argv)
+                           Frontier::kMoonTextureDirectory, Frontier::kMoonAtlas[M].File);
+             MoonSlots[M] = Textures.RegisterPath(MoonPath, /*Linear=*/false);
+         }
++        // Cloud shadows — coverage is DATA, not colour (Linear=true): no sRGB transfer on upload, the raw
++        //    density the shadow math expects. PPM by choice (see Tools/GenerateCloudTextures.py): stb decodes
++        //    it in TextureIndex.cpp, which keeps PNM enabled for exactly these two files.
++        {
++            char CloudPath[256];
++            std::snprintf(CloudPath, sizeof(CloudPath), "%s%s",
++                          Frontier::kCloudTextureDirectory, Frontier::kCloudCoverageFile);
++            CloudCoverageSlot = Textures.RegisterPath(CloudPath, /*Linear=*/true);
++            std::snprintf(CloudPath, sizeof(CloudPath), "%s%s",
++                          Frontier::kCloudTextureDirectory, Frontier::kCloudDetailFile);
++            CloudDetailSlot = Textures.RegisterPath(CloudPath, /*Linear=*/true);
++        }
+         Level.AssignName(std::filesystem::path(ScenePath).stem().string());
+         const Frontier::Vector3 Lo = Level.QueryBoundsMinimum(), Hi = Level.QueryBoundsMaximum();
+         char Line[256];
+@@ -588,6 +604,20 @@ int main(int argc, char** argv)
+                                                         : Frontier::DiagnosticSeverity::Warning,
+                              "Moons", MoonLine);
+     }
++    // Cloud shadows — the deck joins the sequence beside the moons. A refused atlas (files missing, slots past
++    //    the table) packs enabled = 0: the kernel multiplies by 1.0 and the day looks exactly as before.
++    Celestial.AssignCloudAtlas(CloudCoverageSlot, CloudDetailSlot, Textures);
++    {
++        const std::vector<TextureDescriptor>& All = Textures.QueryTextures();
++        const bool CloudOk = CloudCoverageSlot < All.size() && CloudDetailSlot < All.size()
++                             && !All[CloudCoverageSlot].Placeholder && !All[CloudDetailSlot].Placeholder;
++        char CloudLine[160];
++        std::snprintf(CloudLine, sizeof(CloudLine), "cloud slots %u/%u%s.",
++                      CloudCoverageSlot, CloudDetailSlot, CloudOk ? "" : " UNUSABLE (shadows off)");
++        Logger.RecordMessage(CloudOk ? Frontier::DiagnosticSeverity::Information
++                                     : Frontier::DiagnosticSeverity::Warning,
++                             "Clouds", CloudLine);
++    }
+     // The star tables upload once, now the catalogue is loaded: cells then binned stars into binding 23.
+     //    Skipped — never called — when the catalogue is empty, so the bring-up zeros stand and the packer's
+     //    zero brightness keeps the kernel's star loop off. Static for the run: the sky's rotation is time, not
+
+diff --git a/Tools/GenerateCloudTextures.py b/Tools/GenerateCloudTextures.py
+new file mode 100644
+index 0000000..397fae8
+--- /dev/null
++++ b/Tools/GenerateCloudTextures.py
+@@ -0,0 +1,260 @@
++#!/usr/bin/env python3
++"""GenerateCloudTextures.py — deterministic tileable cloud coverage maps for Frontier.
++
++What this makes
++---------------
++Four 2-D grayscale coverage (density) maps in binary PPM (P6) format, the single
++source of truth both renderers sample for CLOUD SHADOWS on the ground:
++
++    cloud_scattered.ppm   low coverage  (~0.28) — fair-weather cumulus deck
++    cloud_broken.ppm      mid coverage  (~0.55) — the DEFAULT shadow field
++    cloud_overcast.ppm    high coverage (~0.82) — heavy stratus deck
++    cloud_detail.ppm      unshaped high-frequency FBM — breakup multiplier
++
++Pixel value = cloud density in [0, 1] (0 = clear sky, 1 = fully overcast).
++The shadow shaders project a ground point along the sun ray up to the cloud
++plane, wrap-sample the coverage map there, and attenuate DIRECT SUN ONLY:
++
++    sun *= mix(1.0, 1.0 - coverage * strength, enabled)
++
++Tileability
++-----------
++Every octave wraps its lattice modulo its own period, and every sampled field
++— including the domain-warp offsets — uses the same wrapped lattice, so each
++map tiles seamlessly over [0, base_period)^2: opposing edges match to ~1e-13
++(the residual is float reassociation dust, far below half an LSB at 8 bit).
++The GPU samples with REPEAT wrap and the CPU wraps by hand; both agree. Run
++with --selftest to assert periodicity (tolerance 1e-9) and run-to-run
++determinism (byte-identical pixels).
++
++Determinism
++-----------
++Stdlib only (argparse/hashlib/struct/math/sys), fixed seeds, insertion-ordered
++iteration, no wall-clock input: the same flags produce byte-identical files on
++any machine. The sha256 manifest printed at the end is recorded in
++Projects/Project-Zero/INTEGRATION.md; re-running must reproduce it exactly.
++
++Deliberate non-goals
++--------------------
++These maps drive SHADOWS, not the visible sky: the sky's own cirrus/cloud
++layer stays procedural (an independent high layer, the way real cirrus sits
++above the shadow-casting deck). Coverage is DATA, so the GPU uploads it with
++Linear=true (never sRGB) and the CPU reads the raw bytes.
++
++Usage
++-----
++    python3 GenerateCloudTextures.py --out EngineContent/CelestialTextures/Clouds
++    python3 GenerateCloudTextures.py --out /tmp/clouds --size 1024 --preset broken
++    python3 GenerateCloudTextures.py --selftest
++"""
++
++import argparse
++import hashlib
++import math
++import os
++import struct
++import sys
++
++# ----------------------------------------------------------------------------
++# Fixed-point-friendly integer lattice hash (splitmix64 finalizer, 64-bit).
++# ----------------------------------------------------------------------------
++
++def _splitmix64(state):
++    state = (state + 0x9E3779B97F4A7C15) & 0xFFFFFFFFFFFFFFFF
++    z = state
++    z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF
++    z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF
++    z = z ^ (z >> 31)
++    return z
++
++_HASH_SEEDS = [0x243F6A8885A308D3, 0x452821E638D01377, 0xA4093822299F31D0, 0x13198A2E03707344]
++
++def lattice_hash(ix, iy, seed):
++    """Deterministic [0, 1) lattice value for integer (ix, iy) and stream seed."""
++    h = _splitmix64((ix & 0xFFFFFFFFFFFFFFFF) ^ _HASH_SEEDS[seed & 3])
++    h = _splitmix64((iy & 0xFFFFFFFFFFFFFFFF) ^ h)
++    h = _splitmix64((seed & 0xFFFFFFFFFFFFFFFF) ^ h)
++    return (h >> 11) * (1.0 / 9007199254740992.0)
++
++def _fade(t):
++    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
++
++def vnoise(x, y, period, seed):
++    """Tileable value noise over [0, period)^2. period must be a positive int."""
++    xi = int(math.floor(x))
++    yi = int(math.floor(y))
++    xf = x - xi
++    yf = y - yi
++    x0 = xi % period
++    y0 = yi % period
++    x1 = (x0 + 1) % period
++    y1 = (y0 + 1) % period
++    u = _fade(xf)
++    v = _fade(yf)
++    a = lattice_hash(x0, y0, seed)
++    b = lattice_hash(x1, y0, seed)
++    c = lattice_hash(x0, y1, seed)
++    d = lattice_hash(x1, y1, seed)
++    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v
++
++def fbm(x, y, base_period, octaves, seed, lacunarity=2.0, gain=0.5):
++    """Tileable fractal Brownian motion. Octave periods stay integral so every
++    octave wraps exactly over the tile (lacunarity 2 keeps periods integral)."""
++    total = 0.0
++    amplitude = 0.5
++    norm = 0.0
++    freq = 1.0
++    period = base_period
++    for o in range(octaves):
++        total += amplitude * vnoise(x * freq, y * freq, period, seed + o * 101)
++        norm += amplitude
++        amplitude *= gain
++        freq *= lacunarity
++        period = int(period * lacunarity)
++    return total / norm if norm > 0.0 else 0.0
++
++def billow(x, y, preset):
++    """Domain-warped FBM: two offset fields bend the sampling point of the
++    main field, which turns blobby value noise into billowing cloud puffs.
++    Every field shares the wrapped lattice, so the warp itself tiles."""
++    cells = preset["cells"]
++    octaves = preset["octaves"]
++    seed = preset["seed"]
++    warp = preset["warp"]
++    qx = fbm(x + 5.2, y + 1.3, cells, 3, seed + 11)
++    qy = fbm(x + 1.7, y + 9.1, cells, 3, seed + 12)
++    wx = x + warp * cells * (qx - 0.5) * 2.0
++    wy = y + warp * cells * (qy - 0.5) * 2.0
++    return fbm(wx, wy, cells, octaves, seed)
++
++def smoothstep(lo, hi, x):
++    if x <= lo:
++        return 0.0
++    if x >= hi:
++        return 1.0
++    t = (x - lo) / (hi - lo)
++    return t * t * (3.0 - 2.0 * t)
++
++PRESETS = {
++    # name:        coverage, softness, warp, cells, octaves, seed
++    "scattered": {"coverage": 0.28, "soft": 0.22, "warp": 0.18, "cells": 6, "octaves": 5, "seed": 1101},
++    "broken":    {"coverage": 0.55, "soft": 0.30, "warp": 0.20, "cells": 5, "octaves": 5, "seed": 2202},
++    "overcast":  {"coverage": 0.82, "soft": 0.20, "warp": 0.15, "cells": 4, "octaves": 5, "seed": 3303},
++    "detail":    {"coverage": -1.0, "soft": 0.0, "warp": 0.15, "cells": 24, "octaves": 6, "seed": 4404},
++}
++
++def render_preset(name, size):
++    """Render one preset to a bytes object of size*size grayscale samples."""
++    preset = PRESETS[name]
++    cells = preset["cells"]
++    out = bytearray(size * size)
++    if preset["coverage"] < 0.0:
++        # Detail map: raw warped FBM, full range, no coverage shaping.
++        for iy in range(size):
++            v = iy / size * cells
++            row = iy * size
++            for ix in range(size):
++                u = ix / size * cells
++                w = billow(u, v, preset)
++                out[row + ix] = max(0, min(255, int(w * 255.0 + 0.5)))
++    else:
++        # Calibrated shaping: FBM clusters around 0.5, so absolute thresholds
++        # would miss the target coverage. Instead the threshold is the realized
++        # (1 - coverage) quantile of THIS field (deterministic: same field, same
++        # quantile), with the softness as an absolute edge band around it.
++        field = [0.0] * (size * size)
++        for iy in range(size):
++            v = iy / size * cells
++            row = iy * size
++            for ix in range(size):
++                u = ix / size * cells
++                field[row + ix] = billow(u, v, preset)
++        ordered = sorted(field)
++        t = ordered[min(size * size - 1, int((1.0 - preset["coverage"]) * size * size))]
++        edge = preset["soft"] * 0.5
++        lo, hi = t - edge, t + edge
++        for i, w in enumerate(field):
++            d = smoothstep(lo, hi, w)
++            out[i] = max(0, min(255, int(d * 255.0 + 0.5)))
++    return bytes(out)
++
++def write_ppm_p6(path, size, gray):
++    with open(path, "wb") as f:
++        f.write(("P6\n%d %d\n255\n" % (size, size)).encode("ascii"))
++        rgb = bytearray(3 * len(gray))
++        rgb[0::3] = gray
++        rgb[1::3] = gray
++        rgb[2::3] = gray
++        f.write(rgb)
++
++def sha256_of_file(path):
++    h = hashlib.sha256()
++    with open(path, "rb") as f:
++        for chunk in iter(lambda: f.read(65536), b""):
++            h.update(chunk)
++    return h.hexdigest()
++
++def selftest():
++    """Assert exact tile periodicity and run-to-run determinism."""
++    failures = 0
++    for name, preset in PRESETS.items():
++        cells = preset["cells"]
++        # Periodicity: f(0, y) and f(x, 0) must equal the far edge bit-for-bit.
++        for k in range(9):
++            t = k / 8.0 * cells
++            a, b = billow(0.0, t, preset), billow(float(cells), t, preset)
++            c, d = billow(t, 0.0, preset), billow(t, float(cells), preset)
++            # Float reassociation across the seam (0+w vs cells+w, then *freq)
++            # leaves last-ulp dust (~1e-13); anything under 1e-9 tiles cleanly.
++            if abs(a - b) > 1e-9 or abs(c - d) > 1e-9:
++                print("FAIL periodicity %s t=%.6f: %r vs %r, %r vs %r" % (name, t, a, b, c, d))
++                failures += 1
++        # Determinism: same point twice must be identical (no hidden state).
++        p1 = billow(1.234, 2.345, preset)
++        p2 = billow(1.234, 2.345, preset)
++        if p1 != p2:
++            print("FAIL determinism %s" % name)
++            failures += 1
++    # Pixel determinism at small size.
++    a = render_preset("broken", 32)
++    b = render_preset("broken", 32)
++    if a != b:
++        print("FAIL pixel determinism")
++        failures += 1
++    if failures == 0:
++        print("selftest: periodicity + determinism OK (%d presets)" % len(PRESETS))
++    return failures
++
++def main(argv):
++    ap = argparse.ArgumentParser(description="Generate deterministic tileable cloud coverage maps (PPM P6).")
++    ap.add_argument("--out", default=".", help="output directory for cloud_*.ppm")
++    ap.add_argument("--size", type=int, default=512, help="map edge in pixels (default 512)")
++    ap.add_argument("--preset", choices=sorted(PRESETS) + ["all"], default="all")
++    ap.add_argument("--quiet", action="store_true", help="print only '<sha>  <file>' lines")
++    ap.add_argument("--selftest", action="store_true", help="assert periodicity + determinism, then exit")
++    args = ap.parse_args(argv)
++
++    if args.selftest:
++        return 1 if selftest() else 0
++
++    if args.size < 16 or args.size > 4096:
++        print("error: --size must be in [16, 4096]", file=sys.stderr)
++        return 2
++
++    names = sorted(PRESETS) if args.preset == "all" else [args.preset]
++    os.makedirs(args.out, exist_ok=True)
++    for name in names:
++        gray = render_preset(name, args.size)
++        path = os.path.join(args.out, "cloud_%s.ppm" % name)
++        write_ppm_p6(path, args.size, gray)
++        digest = sha256_of_file(path)
++        mean = sum(gray) / (len(gray) * 255.0)
++        cover = sum(1 for g in gray if g > 127) / len(gray)
++        if args.quiet:
++            print("%s  %s" % (digest, os.path.basename(path)))
++        else:
++            print("%s  %s  mean=%.3f cover=%.3f" % (digest, path, mean, cover))
++    return 0
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
