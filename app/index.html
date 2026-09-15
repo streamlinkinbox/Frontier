@@ -811,75 +811,146 @@
     }
     requestAnimationFrame(frame);
 
-    // Web Audio: a deliberately layered, rpm-following V12 synthesis. Start is user-gesture gated.
+    // Web Audio: an engine model built from evenly spaced V12 exhaust pulses.
+    // A LaFerrari is a 65° naturally aspirated V12: six exhaust events per crank
+    // revolution, a smooth high-order pitch, and a metallic intake resonance.
     const audio = {
-      ctx: null, master: null, engineGain: null, intakeGain: null, exhaustGain: null,
-      filter: null, intakeFilter: null, osc: [], intake: null, noise: null, noiseGain: null,
+      ctx: null, master: null, compressor: null,
+      exhaustBus: null, exhaustFilter: null, exhaustLow: null, exhaustHigh: null,
+      bankA: null, bankB: null, bankAGain: null, bankBGain: null,
+      body: null, bodyGain: null, bodyFilter: null,
+      intake: null, intakeGain: null, intakeFilter: null,
+      mech: null, mechGain: null, mechFilter: null,
+      noise: null, noiseGain: null, noiseFilter: null,
+      pulseWave: null, smoothWave: null, intakeWave: null,
+      previousThrottle: 0,
       active: false, muted: false,
+      makeWave(decay, tilt, phase) {
+        // Fourier coefficients for a short, damped exhaust pulse. Unlike a
+        // square/saw oscillator this has the dense harmonic falloff of a pulse.
+        const size = 72;
+        const real = new Float32Array(size);
+        const imag = new Float32Array(size);
+        for (let n = 1; n < size; n++) {
+          const amplitude = Math.exp(-n * decay) / Math.pow(n, tilt);
+          real[n] = amplitude * Math.cos(phase * n) * .22;
+          imag[n] = amplitude * Math.sin(phase * n) * .96;
+        }
+        return this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      },
       init() {
         if (this.ctx) { this.ctx.resume(); this.active = true; return; }
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) { setToast('Web Audio is not available in this browser'); return; }
         this.ctx = new AudioContext();
         this.master = this.ctx.createGain();
-        this.master.gain.value = .34;
-        const compressor = this.ctx.createDynamicsCompressor();
-        compressor.threshold.value = -18; compressor.knee.value = 16; compressor.ratio.value = 5; compressor.attack.value = .005; compressor.release.value = .16;
-        this.master.connect(compressor); compressor.connect(this.ctx.destination);
-        this.engineGain = this.ctx.createGain(); this.engineGain.gain.value = .09;
-        this.filter = this.ctx.createBiquadFilter(); this.filter.type = 'lowpass'; this.filter.frequency.value = 1500; this.filter.Q.value = .85;
-        this.engineGain.connect(this.filter); this.filter.connect(this.master);
-        [0.48, 1, 2, 3.01].forEach((multiplier, index) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = index === 0 ? 'sawtooth' : index === 3 ? 'triangle' : 'square';
-          gain.gain.value = [0.42, .18, .065, .026][index];
-          osc.connect(gain); gain.connect(this.engineGain); osc.start();
-          this.osc.push({ node: osc, gain, multiplier });
-        });
-        this.intakeGain = this.ctx.createGain(); this.intakeGain.gain.value = .02;
-        this.intakeFilter = this.ctx.createBiquadFilter(); this.intakeFilter.type = 'bandpass'; this.intakeFilter.frequency.value = 350; this.intakeFilter.Q.value = .55;
-        this.intake = this.ctx.createOscillator(); this.intake.type = 'sawtooth'; this.intake.connect(this.intakeGain); this.intakeGain.connect(this.intakeFilter); this.intakeFilter.connect(this.master); this.intake.start();
-        // Continuous filtered noise supplies the wind/exhaust texture under the pitched layers.
+        this.master.gain.value = .42;
+        this.compressor = this.ctx.createDynamicsCompressor();
+        this.compressor.threshold.value = -22;
+        this.compressor.knee.value = 18;
+        this.compressor.ratio.value = 5;
+        this.compressor.attack.value = .003;
+        this.compressor.release.value = .13;
+        this.master.connect(this.compressor);
+        this.compressor.connect(this.ctx.destination);
+
+        this.pulseWave = this.makeWave(.055, .82, .10);
+        this.smoothWave = this.makeWave(.13, .92, -.08);
+        this.intakeWave = this.makeWave(.19, .72, .18);
+
+        // Exhaust body: a low-pressure pulse bus plus two near-identical banks.
+        this.exhaustBus = this.ctx.createGain(); this.exhaustBus.gain.value = .34;
+        this.exhaustFilter = this.ctx.createBiquadFilter(); this.exhaustFilter.type = 'lowpass'; this.exhaustFilter.frequency.value = 2600; this.exhaustFilter.Q.value = .72;
+        this.exhaustBus.connect(this.exhaustFilter); this.exhaustFilter.connect(this.master);
+        this.bankAGain = this.ctx.createGain(); this.bankAGain.gain.value = .25;
+        this.bankBGain = this.ctx.createGain(); this.bankBGain.gain.value = .18;
+        this.bankA = this.ctx.createOscillator(); this.bankA.setPeriodicWave(this.pulseWave); this.bankA.connect(this.bankAGain); this.bankAGain.connect(this.exhaustBus); this.bankA.start();
+        this.bankB = this.ctx.createOscillator(); this.bankB.setPeriodicWave(this.smoothWave); this.bankB.detune.value = -4; this.bankB.connect(this.bankBGain); this.bankBGain.connect(this.exhaustBus); this.bankB.start();
+
+        // Mechanical body resonance is deliberately quiet; the Ferrari character
+        // should be a clean, rising V12 note rather than a coarse square-wave buzz.
+        this.bodyGain = this.ctx.createGain(); this.bodyGain.gain.value = .12;
+        this.bodyFilter = this.ctx.createBiquadFilter(); this.bodyFilter.type = 'lowpass'; this.bodyFilter.frequency.value = 500; this.bodyFilter.Q.value = .65;
+        this.body = this.ctx.createOscillator(); this.body.type = 'triangle'; this.body.connect(this.bodyGain); this.bodyGain.connect(this.bodyFilter); this.bodyFilter.connect(this.master); this.body.start();
+
+        // Tuned intake layer: a third-order resonance that opens with throttle.
+        this.intakeGain = this.ctx.createGain(); this.intakeGain.gain.value = .01;
+        this.intakeFilter = this.ctx.createBiquadFilter(); this.intakeFilter.type = 'bandpass'; this.intakeFilter.frequency.value = 900; this.intakeFilter.Q.value = 1.05;
+        this.intake = this.ctx.createOscillator(); this.intake.setPeriodicWave(this.intakeWave); this.intake.connect(this.intakeGain); this.intakeGain.connect(this.intakeFilter); this.intakeFilter.connect(this.master); this.intake.start();
+
+        // A very low mechanical order gives the idle some body without turning it
+        // into the deep V8 rumble the real 65° V12 does not have.
+        this.mechGain = this.ctx.createGain(); this.mechGain.gain.value = .025;
+        this.mechFilter = this.ctx.createBiquadFilter(); this.mechFilter.type = 'bandpass'; this.mechFilter.frequency.value = 1200; this.mechFilter.Q.value = .55;
+        this.mech = this.ctx.createOscillator(); this.mech.type = 'sine'; this.mech.connect(this.mechGain); this.mechGain.connect(this.mechFilter); this.mechFilter.connect(this.master); this.mech.start();
+
+        // Filtered noise supplies airflow and exhaust rasp under the pitched tone.
         const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
         this.noise = this.ctx.createBufferSource(); this.noise.buffer = buffer; this.noise.loop = true;
-        const noiseFilter = this.ctx.createBiquadFilter(); noiseFilter.type = 'bandpass'; noiseFilter.frequency.value = 700; noiseFilter.Q.value = .45;
+        this.noiseFilter = this.ctx.createBiquadFilter(); this.noiseFilter.type = 'bandpass'; this.noiseFilter.frequency.value = 1100; this.noiseFilter.Q.value = .48;
         this.noiseGain = this.ctx.createGain(); this.noiseGain.gain.value = .008;
-        this.noise.connect(noiseFilter); noiseFilter.connect(this.noiseGain); this.noiseGain.connect(this.master); this.noise.start();
+        this.noise.connect(this.noiseFilter); this.noiseFilter.connect(this.noiseGain); this.noiseGain.connect(this.master); this.noise.start();
         this.ctx.resume(); this.active = true;
       },
       update() {
         if (!this.ctx || !this.active) return;
         const now = this.ctx.currentTime;
-        const firingHz = Math.max(45, state.rpm / 60 * 6);
+        const rpm = Math.max(SPEC.idleRpm, state.rpm);
+        const firingHz = Math.max(55, rpm / 60 * 6); // 6 firing events per rev for a 4-stroke V12
         const throttle = state.throttle;
         const load = state.load / 100;
-        const rpmNorm = state.rpm / SPEC.redline;
-        this.osc.forEach(({ node, gain, multiplier }, index) => {
-          node.frequency.setTargetAtTime(firingHz * multiplier, now, .025);
-          gain.gain.setTargetAtTime([.32, .15, .055, .025][index] * (.65 + load * .8 + rpmNorm * .3), now, .04);
-        });
-        this.filter.frequency.setTargetAtTime(750 + rpmNorm * 4600 + load * 2600, now, .05);
-        this.engineGain.gain.setTargetAtTime(.045 + load * .115 + rpmNorm * .045, now, .045);
-        this.intake.frequency.setTargetAtTime(35 + state.rpm * .085, now, .05);
-        this.intakeGain.gain.setTargetAtTime(.008 + throttle * .05 + rpmNorm * .014, now, .06);
-        this.intakeFilter.frequency.setTargetAtTime(180 + rpmNorm * 1100 + throttle * 850, now, .08);
-        this.noiseGain.gain.setTargetAtTime(.004 + throttle * .025 + rpmNorm * .012 + Math.min(speedKphForAudio() / 350, .2), now, .06);
-        this.master.gain.setTargetAtTime(this.muted ? 0 : .34, now, .04);
+        const rpmNorm = clamp(rpm / SPEC.redline, 0, 1);
+        const openExhaust = .45 + load * .55;
+        this.bankA.frequency.setTargetAtTime(firingHz, now, .018);
+        this.bankB.frequency.setTargetAtTime(firingHz * 1.002, now, .021);
+        this.bankAGain.gain.setTargetAtTime(.17 + openExhaust * .24 + rpmNorm * .08, now, .035);
+        this.bankBGain.gain.setTargetAtTime(.12 + openExhaust * .19 + rpmNorm * .06, now, .04);
+        this.exhaustBus.gain.setTargetAtTime(.25 + openExhaust * .28, now, .04);
+        this.exhaustFilter.frequency.setTargetAtTime(2100 + rpmNorm * 8200 + load * 2300, now, .045);
+        this.body.frequency.setTargetAtTime(Math.max(25, rpm / 60), now, .04);
+        this.bodyGain.gain.setTargetAtTime(.025 + (1 - rpmNorm) * .04 + load * .025, now, .05);
+        this.bodyFilter.frequency.setTargetAtTime(240 + rpmNorm * 500, now, .06);
+        // The high intake resonance arrives on the 3rd harmonic and gets much louder at WOT.
+        this.intake.frequency.setTargetAtTime(firingHz * 3.02, now, .035);
+        this.intakeGain.gain.setTargetAtTime(.004 + throttle * .09 + load * .025, now, .06);
+        this.intakeFilter.frequency.setTargetAtTime(760 + rpmNorm * 4100 + throttle * 2600, now, .07);
+        this.mech.frequency.setTargetAtTime(rpm / 60 * 12, now, .05);
+        this.mechGain.gain.setTargetAtTime(.009 + rpmNorm * .022, now, .06);
+        this.mechFilter.frequency.setTargetAtTime(850 + rpmNorm * 1900, now, .07);
+        this.noiseGain.gain.setTargetAtTime(.003 + throttle * .035 + rpmNorm * .012 + Math.min(speedKphForAudio() / 350, .16), now, .06);
+        this.noiseFilter.frequency.setTargetAtTime(700 + rpmNorm * 3300 + throttle * 900, now, .07);
+        if (this.previousThrottle > .25 && throttle < .05 && rpmNorm > .34) this.crackle();
+        this.previousThrottle = throttle;
+        this.master.gain.setTargetAtTime(this.muted ? 0 : .42, now, .04);
+      },
+      crackle() {
+        // Short high-passed lift-off pulses add the dry, metallic overrun texture.
+        if (!this.ctx || !this.active || Math.random() > .72) return;
+        const length = Math.floor(this.ctx.sampleRate * .075);
+        const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.6);
+        const source = this.ctx.createBufferSource(); source.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = 1100 + Math.random() * 900;
+        const gain = this.ctx.createGain(); const now = this.ctx.currentTime;
+        gain.gain.setValueAtTime(.12, now); gain.gain.exponentialRampToValueAtTime(.001, now + .075);
+        source.connect(filter); filter.connect(gain); gain.connect(this.master); source.start(now);
       },
       shift(direction) {
         if (!this.ctx || !this.active) return;
         const now = this.ctx.currentTime;
         const thump = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-        thump.type = 'sine'; thump.frequency.setValueAtTime(direction > 0 ? 110 : 78, now); thump.frequency.exponentialRampToValueAtTime(42, now + .18);
-        gain.gain.setValueAtTime(.13, now); gain.gain.exponentialRampToValueAtTime(.001, now + .18);
-        thump.connect(gain); gain.connect(this.master); thump.start(now); thump.stop(now + .2);
+        thump.type = 'sine';
+        thump.frequency.setValueAtTime(direction > 0 ? 135 : 92, now);
+        thump.frequency.exponentialRampToValueAtTime(38, now + .2);
+        gain.gain.setValueAtTime(.19, now); gain.gain.exponentialRampToValueAtTime(.001, now + .2);
+        thump.connect(gain); gain.connect(this.master); thump.start(now); thump.stop(now + .22);
       },
       toggleMute() {
         this.muted = !this.muted;
-        if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : .34, this.ctx.currentTime, .04);
+        if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : .42, this.ctx.currentTime, .04);
         updateUI();
       }
     };
