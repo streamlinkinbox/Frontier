@@ -25,6 +25,7 @@ and apply-checked against), with the `streamlinkinbox/Frontier`
 ```sh
 git checkout arena/01a08d16-frontier -- Engine EngineContent Scripts Patches imgui.ini Projects/Project-Dyno Projects/Project-Zero
 git apply PZIntegration/0002-project-zero-gpu-transplant.patch   # this file ships here
+git apply PZIntegration/0003-project-zero-moon-textures.patch    # moon texture generator + moon dimming
 ```
 
 The checkout is byte-identical by construction (git does the copying,
@@ -74,7 +75,8 @@ sunset), `--fog clear|morning|backlit`, `--width W` `--height H`,
 `--flarevar 0|1|2|3` (cinematic/anamorphic/starburst/halo). Output
 lands in `./Diagnostics/`: `ProjectZero_Showcase.ppm` always, plus
 `.png` when Python is found. The PPM is byte-identical run to run
-(`852e74ea…192` for the default frame; determinism verified by repeat
+(`5f2b610d…e31` default, `d81cf940…03e` anamorphic, `78d6096b…2dd`
+night, after the 0003 moon dimming; determinism verified by repeat
 runs and by a pristine-tree fresh-apply rebuild producing the same
 hash).
 
@@ -154,6 +156,50 @@ hash).
   panel: the moon and stars never carry flare, and night frames are
   flare-free. `--flarevar` selects the variety (default 0).
 
+## Moon textures (0003)
+
+`Tools/GenerateMoonTextures.py` (stdlib-only, seeded, deterministic —
+byte-identical on any Python 3) generates equirectangular albedo maps
+for the 22 major moons: Luna, Phobos, Deimos, Io, Europa, Ganymede,
+Callisto, Mimas, Enceladus, Tethys, Dione, Rhea, Titan, Iapetus,
+Hyperion, Ariel, Umbriel, Titania, Oberon, Miranda, Triton, Charon.
+Every other known moon is a tiny rock; they can share generic
+variants if ever needed. Run once from the engine root:
+
+```sh
+python Tools/GenerateMoonTextures.py
+# -> EngineContent/CelestialTextures/Moons/<name>_<res>.ppm (22 files)
+```
+
+PPM (P6) loads directly via `stb_image` on the GPU side and is already
+git-ignored (`*.ppm`), so generated textures never dirty the tree.
+Each moon has a hand-tuned recipe (Luna's maria + rayed craters, Io's
+volcanoes + Pele ring, Europa's lineae, Titan's haze bands, Iapetus'
+dichotomy, Enceladus' tiger stripes, Triton's cantaloupe + wind
+streaks, Charon's Mordor pole, …). Proof: `PZIntegration/moons_contact.jpg`.
+Wiring the textures into the renderers (GPU atlas slots, CPU sampling,
+which moons hang in the showcase sky) is the next step after this patch.
+
+File manifest (sha256 of the generated files — re-running the script
+must reproduce these exactly):
+
+```
+8d2610bd…c524920  ariel_1k.ppm       5c5d35aa…1241e2  callisto_1k.ppm
+5543ecd8…386a8fc  charon_1k.ppm       22faddc6…10136  deimos_1k.ppm
+db6af57b…81b18ac  dione_1k.ppm        98966579…ad4d84  enceladus_1k.ppm
+643dd78f…8d65fd   europa_1k.ppm       d676aca6…52db4   ganymede_1k.ppm
+b4cfaaf9…bd843e   hyperion_1k.ppm     51fa64ce…6185ec  iapetus_1k.ppm
+9425defc…20033    io_1k.ppm           88490a69…22342   luna_2k.ppm
+3bea7395…bc7b4    mimas_1k.ppm        fffe0639…2856ab  miranda_1k.ppm
+648ed8d3…1200e7   oberon_1k.ppm       1ec7e9c8…80e5    phobos_1k.ppm
+751d97fc…fe54     rhea_1k.ppm         69676cd6…0de36   tethys_1k.ppm
+896eadb6…3545     titan_1k.ppm        7e2ef4e5…8d11    titania_1k.ppm
+c86f3686…fd5c     triton_1k.ppm       d8242904…db3a    umbriel_1k.ppm
+```
+
+0003 also dims the showcase moon (disc `moonBright` 3.0 → 1.2,
+moonlight ×0.45) — the night proof below is the after.
+
 ## Verification record (sandbox, g++ 12, no GPU)
 
 - Include audit: all 321 quoted `#include`s across the transplanted
@@ -162,9 +208,14 @@ hash).
   via `-I Engine`, the Dyno pair via `-I Project-Dyno/Source`).
 - CPU reference: clean build under `-std=c++20 -O2 -Wall -Wextra`
   (zero warnings) via `make`, via a direct `g++` line, and via a
-  pristine-tree fresh-apply rebuild — all three produce sha256
-  `852e74ea…192` for the default 640×480 frame, and repeat runs are
+  pristine-tree fresh-apply rebuild — all produce sha256
+  `5f2b610d…e31` for the default 640×480 frame, and repeat runs are
   byte-identical. C++17 and C++20 builds agree.
+- 0003: pristine tree → transplant → 0002 → 0003 applies cleanly,
+  rebuilds warning-free, and reproduces the dimmed `5f2b610d…e31`
+  hash; the generator runs from `Tools/` and lands all 22 textures
+  in `EngineContent/CelestialTextures/Moons/` with the manifest
+  hashes above.
 - Export-path signatures checked against the branch headers:
   `BuildTriangleIndex` / `BuildMaterialDescriptors` take `const
   RayTracingSolver&`, `SceneEncodeConfiguration` carries `Name` +
@@ -195,4 +246,5 @@ hash).
 - History: `0001-project-zero-showcase.patch` (commit `39443ad`,
   CPU-windowed era) is superseded by the transplant + `0002` and
   kept for the record; apply only ONE of them (`0001` onto bare
-  `f17fb6f`, `0002` onto `f17fb6f` + transplant).
+  `f17fb6f`, `0002` onto `f17fb6f` + transplant). `0003` stacks on
+  top of `0002` (moon textures + dimming).
