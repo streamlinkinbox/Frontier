@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0c0f" />
+  <meta name="description" content="A browser-based LaFerrari HY-KERS driving simulation." />
+  <title>LA FERRARI // HY-KERS SIM</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg: #090a0c;
+      --panel: #101216;
+      --panel-hi: #15171c;
+      --panel-low: #0d0f13;
+      --line: rgba(255,255,255,.085);
+      --line-bright: rgba(255,255,255,.17);
+      --text: #f5f4f0;
+      --muted: #8c9199;
+      --faint: #535861;
+      --red: #e72932;
+      --red-hot: #ff4550;
+      --red-deep: #aa1820;
+      --amber: #f7b847;
+      --green: #62d39a;
+      --mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 11% -15%, rgba(232, 39, 50, .16), transparent 34rem),
+        radial-gradient(circle at 100% 110%, rgba(130, 38, 32, .10), transparent 35rem),
+        var(--bg);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    button { font: inherit; color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--red-hot); outline-offset: 3px; }
+
+    .app { width: min(1540px, 100%); margin: 0 auto; padding: 22px 28px 24px; }
+    .topbar {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .crest {
+      width: 31px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: #f8d54a;
+      background: #161718;
+      border: 1px solid #3a3a37;
+      border-radius: 4px 4px 10px 10px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -.1em;
+      text-indent: -.1em;
+      box-shadow: inset 0 -7px 0 rgba(0,0,0,.18);
+    }
+    .brand-type { line-height: 1; min-width: 0; }
+    .brand-type strong { display: block; letter-spacing: .22em; font-size: 15px; font-weight: 800; white-space: nowrap; }
+    .brand-type span { display: block; color: var(--muted); font: 10px var(--mono); letter-spacing: .1em; margin-top: 7px; white-space: nowrap; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .top-btn {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgba(255,255,255,.025);
+      color: var(--muted);
+      height: 34px;
+      padding: 0 13px;
+      font: 10px var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: background .2s, color .2s, border-color .2s;
+    }
+    .top-btn:hover { color: var(--text); border-color: var(--line-bright); background: rgba(255,255,255,.06); }
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); margin-right: 8px; box-shadow: 0 0 12px rgba(231,39,50,.8); }
+    .status-dot.live { background: var(--green); box-shadow: 0 0 12px rgba(98,211,154,.85); }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 16px; padding-top: 18px; }
+    .card { background: linear-gradient(135deg, rgba(255,255,255,.035), transparent 30%), var(--panel); border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 18px 60px rgba(0,0,0,.22); }
+
+    .scene-card { min-width: 0; overflow: hidden; }
+    .scene-heading { height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+    .scene-heading h1 { margin: 0; font-size: 12px; letter-spacing: .17em; font-weight: 700; text-transform: uppercase; }
+    .scene-heading h1 span { color: var(--red-hot); }
+    .scene-heading p { margin: 6px 0 0; color: var(--muted); font: 10px var(--mono); letter-spacing: .02em; }
+    .track-meta { display: flex; align-items: center; gap: 9px; color: var(--muted); font: 10px var(--mono); white-space: nowrap; }
+    .track-meta i { width: 5px; height: 5px; display: inline-block; background: var(--red); border-radius: 50%; }
+
+    .scene-wrap { position: relative; min-height: 550px; height: min(64vh, 690px); background: #9aa9b4; overflow: hidden; }
+    #scene { width: 100%; height: 100%; display: block; }
+    .scene-vignette { pointer-events: none; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.36), transparent 25%, transparent 74%, rgba(0,0,0,.55)), linear-gradient(90deg, rgba(0,0,0,.26), transparent 21%, transparent 79%, rgba(0,0,0,.26)); }
+    .scene-corner { position: absolute; top: 17px; left: 19px; display: flex; align-items: center; gap: 8px; padding: 7px 9px; color: rgba(255,255,255,.8); background: rgba(6,8,10,.42); border: 1px solid rgba(255,255,255,.14); border-radius: 4px; font: 10px var(--mono); letter-spacing: .08em; backdrop-filter: blur(5px); }
+    .scene-corner b { color: var(--red-hot); font-weight: 500; }
+    .scene-info { position: absolute; right: 18px; top: 17px; text-align: right; color: rgba(255,255,255,.75); font: 10px var(--mono); line-height: 1.8; text-shadow: 0 1px 5px #000; }
+    .scene-info b { color: white; font-weight: 500; }
+    .engine-prompt { position: absolute; left: 50%; bottom: 30%; transform: translate(-50%, 50%); display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: rgba(255,255,255,.88); background: rgba(8,9,11,.68); border: 1px solid rgba(255,255,255,.18); border-radius: 5px; font: 11px var(--mono); letter-spacing: .04em; backdrop-filter: blur(8px); transition: opacity .3s, transform .3s; white-space: nowrap; }
+    .engine-prompt .pulse-ring { width: 8px; height: 8px; background: var(--red-hot); border-radius: 50%; box-shadow: 0 0 0 0 rgba(255,69,80,.7); animation: ring 1.8s infinite; }
+    .engine-prompt.hidden { opacity: 0; transform: translate(-50%, calc(50% + 8px)); pointer-events: none; }
+    @keyframes ring { 70% { box-shadow: 0 0 0 8px rgba(255,69,80,0); } 100% { box-shadow: 0 0 0 0 rgba(255,69,80,0); } }
+
+    .drive-strip { height: 68px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 0 20px; border-top: 1px solid var(--line); background: var(--panel-low); }
+    .drive-readout { min-width: 0; }
+    .drive-readout.right-readout { text-align: right; }
+    .drive-readout label { display: block; color: var(--faint); font: 9px var(--mono); letter-spacing: .13em; text-transform: uppercase; }
+    .drive-readout strong { display: inline-block; margin-top: 6px; font: 13px var(--mono); color: var(--text); }
+    .drive-readout em { color: var(--muted); font: normal 10px var(--mono); }
+    .drive-hint { display: flex; align-items: center; gap: 7px; font: 10px var(--mono); color: var(--muted); white-space: nowrap; }
+    .keycap { display: inline-grid; min-width: 21px; height: 21px; place-items: center; padding: 0 5px; border: 1px solid var(--line-bright); border-bottom-color: rgba(255,255,255,.3); border-radius: 3px; color: #ddd; background: #1c1e23; font: 10px var(--mono); box-shadow: 0 2px 0 #07080a; }
+    .drive-hint .keycap.active { color: white; background: var(--red-deep); border-color: var(--red); }
+
+    .telemetry { display: flex; min-width: 0; flex-direction: column; gap: 11px; }
+    .cluster { padding: 19px 19px 16px; }
+    .cluster-line { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .eyebrow { color: var(--muted); font: 9px var(--mono); letter-spacing: .15em; text-transform: uppercase; }
+    .live-state { color: var(--green); font: 9px var(--mono); letter-spacing: .09em; }
+    .live-state::before { content: ''; width: 5px; height: 5px; display: inline-block; margin: 0 6px 1px 0; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(98,211,154,.8); }
+    .digital-row { display: flex; justify-content: space-between; align-items: end; margin: 17px 0 10px; }
+    .speed-num { font: 500 clamp(54px, 6vw, 76px)/.82 var(--mono); letter-spacing: -.1em; color: #fafafa; }
+    .speed-unit { margin: 0 0 5px 7px; color: var(--muted); font: 10px var(--mono); letter-spacing: .1em; }
+    .gear-block { text-align: right; }
+    .gear-num { display: block; color: var(--red-hot); font: 500 38px/.83 var(--mono); text-shadow: 0 0 23px rgba(231,39,50,.24); }
+    .gear-block small { color: var(--muted); font: 9px var(--mono); letter-spacing: .1em; }
+    .rpm-label { display: flex; justify-content: space-between; color: var(--muted); font: 9px var(--mono); letter-spacing: .1em; }
+    .rpm-label b { color: var(--text); font-weight: 500; }
+    .rpm-track { position: relative; height: 9px; margin: 8px 0 8px; border-radius: 3px; overflow: hidden; background: #24262b; }
+    .rpm-track::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(255,255,255,.2) calc(10% - 1px) 10%); z-index: 2; }
+    .rpm-fill { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--red-deep), var(--red-hot) 72%, #ff9a4a); transition: width .08s linear; }
+    .rpm-track.over .rpm-fill { background: linear-gradient(90deg, var(--red-hot), #ffb34b); }
+    .cluster-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding-top: 7px; }
+    .mini-stat { border-left: 1px solid var(--line); padding-left: 10px; }
+    .mini-stat:first-child { border: 0; padding-left: 0; }
+    .mini-stat label { display: block; color: var(--faint); font: 9px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+    .mini-stat strong { display: block; margin-top: 5px; font: 12px var(--mono); color: #e3e3e1; }
+    .mini-stat strong.hot { color: var(--amber); }
+
+    .data-card { padding: 16px 18px 17px; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; }
+    .section-title h2 { margin: 0; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+    .section-title span { color: var(--faint); font: 9px var(--mono); }
+    .bar-row { display: grid; grid-template-columns: 100px 1fr 42px; align-items: center; gap: 10px; margin: 11px 0; }
+    .bar-row label { color: var(--muted); font: 9px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+    .bar { height: 5px; border-radius: 5px; background: #292b31; overflow: hidden; }
+    .bar i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--red); transition: width .12s linear, background .2s; }
+    .bar i.green { background: var(--green); }
+    .bar i.amber { background: var(--amber); }
+    .bar-value { text-align: right; color: var(--text); font: 10px var(--mono); }
+    .hybrid-top { display: flex; justify-content: space-between; align-items: center; }
+    .hybrid-top strong { color: var(--green); font: 13px var(--mono); }
+    .hybrid-top span { color: var(--muted); font: 9px var(--mono); }
+    .hybrid-battery { display: flex; gap: 3px; height: 17px; margin-top: 13px; }
+    .hybrid-battery i { flex: 1; border: 1px solid #35383d; background: #1e2328; border-radius: 2px; transition: background .2s, border-color .2s; }
+    .hybrid-battery i.on { border-color: rgba(98,211,154,.65); background: var(--green); box-shadow: 0 0 9px rgba(98,211,154,.15); }
+    .hybrid-foot { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font: 9px var(--mono); }
+    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 8px; }
+    .data-cell { min-width: 0; }
+    .data-cell label { display: block; color: var(--faint); font: 9px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .data-cell strong { display: block; overflow: hidden; margin-top: 4px; color: var(--text); font: 12px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+    .data-cell strong span { color: var(--muted); font-size: 9px; }
+
+    .bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 2px 0; }
+    .control-legend { display: flex; align-items: center; gap: 16px; color: var(--muted); font: 10px var(--mono); }
+    .legend-item { display: flex; align-items: center; gap: 7px; }
+    .key-cluster { display: flex; align-items: center; gap: 3px; }
+    .key-cluster .keycap { min-width: 19px; height: 19px; font-size: 9px; }
+    .key-cluster .vertical { display: flex; flex-direction: column; gap: 3px; }
+    .key-cluster .vertical .keycap:first-child { align-self: center; }
+    .bottom-actions { display: flex; gap: 8px; }
+    .action-btn { height: 39px; padding: 0 16px; border: 1px solid var(--line-bright); border-radius: 4px; background: rgba(255,255,255,.035); color: var(--muted); font: 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; transition: color .2s, border-color .2s, background .2s; }
+    .action-btn:hover { color: var(--text); background: rgba(255,255,255,.08); }
+    .action-btn.primary { color: white; border-color: var(--red); background: var(--red); box-shadow: 0 8px 26px rgba(231,39,50,.2); }
+    .action-btn.primary:hover { border-color: var(--red-hot); background: var(--red-hot); }
+    .action-btn.primary.stop { border-color: #5b252a; background: #31171a; color: #ff858b; box-shadow: none; }
+
+    .starter { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(7,8,10,.72); backdrop-filter: blur(15px); transition: opacity .35s, visibility .35s; }
+    .starter.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .starter-panel { width: min(520px, 100%); padding: 35px 37px 32px; border: 1px solid rgba(255,255,255,.17); border-radius: 7px; background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 42%), #111317; box-shadow: 0 25px 80px rgba(0,0,0,.52); }
+    .starter-kicker { color: var(--red-hot); font: 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; }
+    .starter-panel h2 { margin: 17px 0 12px; font-size: clamp(32px, 6vw, 49px); font-weight: 600; letter-spacing: -.055em; line-height: .93; }
+    .starter-panel h2 em { color: var(--red-hot); font-style: normal; }
+    .starter-panel p { max-width: 410px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .starter-specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 26px 0; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .starter-specs div { border-left: 1px solid var(--line); padding-left: 11px; }
+    .starter-specs div:first-child { border: 0; padding-left: 0; }
+    .starter-specs strong { display: block; font: 14px var(--mono); }
+    .starter-specs span { display: block; margin-top: 5px; color: var(--faint); font: 9px var(--mono); line-height: 1.35; text-transform: uppercase; }
+    .start-btn { width: 100%; height: 48px; border: 0; border-radius: 4px; background: var(--red); color: white; font: 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; box-shadow: 0 10px 28px rgba(231,39,50,.22); transition: background .2s, transform .2s; }
+    .start-btn:hover { background: var(--red-hot); transform: translateY(-1px); }
+    .starter-note { margin-top: 12px; text-align: center; color: var(--faint); font: 9px var(--mono); }
+
+    .modal { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(4,5,7,.75); backdrop-filter: blur(12px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+    .modal.open { opacity: 1; visibility: visible; }
+    .modal-panel { width: min(690px, 100%); max-height: min(720px, 90vh); overflow: auto; padding: 25px 27px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-hi); box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
+    .modal-header h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+    .modal-header p { margin: 7px 0 0; color: var(--muted); font: 10px var(--mono); }
+    .modal-close { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; }
+    .modal-close:hover { color: white; border-color: var(--line-bright); }
+    .spec-table { width: 100%; margin-top: 16px; border-collapse: collapse; }
+    .spec-table td { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .spec-table td:first-child { color: var(--muted); font: 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .spec-table td:last-child { text-align: right; font: 12px var(--mono); }
+    .source-note { margin-top: 18px; color: var(--faint); font: 10px/1.65 var(--mono); }
+    .source-note a { color: var(--muted); }
+    .source-note a:hover { color: var(--red-hot); }
+    .research-callout { margin-top: 19px; padding: 13px 14px; border-left: 2px solid var(--red); background: rgba(231,39,50,.06); color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .research-callout strong { color: var(--text); font-weight: 600; }
+
+    .toast { position: fixed; z-index: 30; left: 50%; bottom: 27px; transform: translate(-50%, 15px); padding: 10px 14px; color: #eee; background: #1b1e24; border: 1px solid var(--line-bright); border-radius: 4px; opacity: 0; pointer-events: none; font: 10px var(--mono); transition: opacity .25s, transform .25s; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: minmax(0, 1fr) 310px; }
+      .scene-wrap { min-height: 480px; height: 57vh; }
+      .drive-hint { display: none; }
+    }
+    @media (max-width: 840px) {
+      .app { padding: 14px 14px 20px; }
+      .topbar { height: 51px; }
+      .top-actions .top-btn:first-child { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .telemetry { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+      .telemetry .cluster { grid-column: 1 / -1; }
+      .scene-wrap { min-height: 410px; height: 57vw; max-height: 550px; }
+      .data-card:last-child { grid-column: 1 / -1; }
+      .bottom { align-items: flex-start; }
+    }
+    @media (max-width: 570px) {
+      .brand-type strong { font-size: 12px; letter-spacing: .15em; }
+      .brand-type span { font-size: 8px; }
+      .crest { width: 27px; height: 33px; font-size: 13px; }
+      .top-actions .top-btn:last-child { width: 34px; padding: 0; font-size: 0; }
+      .top-actions .top-btn:last-child::before { content: '◉'; font-size: 13px; }
+      .scene-heading { height: 58px; padding: 0 14px; }
+      .scene-heading p, .track-meta { display: none; }
+      .scene-wrap { min-height: 370px; height: 70vw; }
+      .scene-info { top: 13px; right: 13px; font-size: 8px; }
+      .scene-corner { top: 13px; left: 13px; font-size: 8px; }
+      .drive-strip { height: 60px; padding: 0 14px; gap: 9px; }
+      .drive-readout strong { font-size: 11px; }
+      .drive-readout em { display: block; margin-top: 2px; }
+      .telemetry { display: flex; }
+      .cluster { padding: 16px 15px; }
+      .data-card { padding: 15px; }
+      .control-legend { gap: 8px; }
+      .legend-item:last-child { display: none; }
+      .bottom-actions { flex: 1; justify-content: flex-end; }
+      .action-btn { padding: 0 11px; }
+      .starter-panel { padding: 27px 23px 24px; }
+      .starter-panel h2 { font-size: 37px; }
+      .starter-specs strong { font-size: 12px; }
+      .starter-specs span { font-size: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="crest" aria-hidden="true">ϟ</div>
+        <div class="brand-type">
+          <strong>LA FERRARI</strong>
+          <span>HY-KERS / DRIVING LABORATORY</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="top-btn" id="specBtn" type="button">Technical note</button>
+        <button class="top-btn" id="audioBtn" type="button"><span class="status-dot" id="audioDot"></span><span id="audioLabel">Audio ready</span></button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="scene-card card" aria-label="Driving view">
+        <div class="scene-heading">
+          <div>
+            <h1><span>01</span> / Fiorano test loop</h1>
+            <p>Dynamic road surface · active aero model · chase-free cockpit view</p>
+          </div>
+          <div class="track-meta"><i></i><span id="trackState">STANDBY / IGNITION OFF</span></div>
+        </div>
+        <div class="scene-wrap">
+          <canvas id="scene" aria-label="Animated road simulation"></canvas>
+          <div class="scene-vignette"></div>
+          <div class="scene-corner"><b>SIM</b><span>F150 // ROAD SPEC</span></div>
+          <div class="scene-info"><div>ROAD <b>FIORANO</b></div><div>SURFACE <b>DRY / 22°C</b></div><div>AERO <b id="aeroScene">LOW DRAG</b></div></div>
+          <div class="engine-prompt" id="enginePrompt"><span class="pulse-ring"></span><span>PRESS START ENGINE TO ARM HY-KERS</span></div>
+        </div>
+        <div class="drive-strip">
+          <div class="drive-readout">
+            <label>Lap / distance</label>
+            <strong id="lapReadout">01 / 00.0 km</strong>
+          </div>
+          <div class="drive-hint" aria-label="Keyboard controls">
+            <span class="keycap" data-key="w">W</span><span class="keycap" data-key="a">A</span><span class="keycap" data-key="s">S</span><span class="keycap" data-key="d">D</span>
+            <span>drive / steer</span>
+          </div>
+          <div class="drive-readout right-readout">
+            <label>Vehicle state</label>
+            <strong id="vehicleState">PARKED</strong> <em id="vehicleStateDetail">BRAKE HOLD</em>
+          </div>
+        </div>
+      </section>
+
+      <aside class="telemetry" aria-label="Vehicle telemetry">
+        <section class="card cluster">
+          <div class="cluster-line"><span class="eyebrow">Driver display / live telemetry</span><span class="live-state" id="liveState">OFFLINE</span></div>
+          <div class="digital-row">
+            <div><span class="speed-num" id="speed">000</span><span class="speed-unit">KM/H</span></div>
+            <div class="gear-block"><span class="gear-num" id="gear">P</span><small>TRANSMISSION</small></div>
+          </div>
+          <div class="rpm-label"><span>ENGINE SPEED</span><b><span id="rpm">1,000</span> / 9,250 RPM</b></div>
+          <div class="rpm-track" id="rpmTrack"><div class="rpm-fill" id="rpmFill"></div></div>
+          <div class="cluster-stats">
+            <div class="mini-stat"><label>Throttle</label><strong id="throttleValue">0%</strong></div>
+            <div class="mini-stat"><label>Load</label><strong id="loadValue">0%</strong></div>
+            <div class="mini-stat"><label>Shift</label><strong id="shiftValue">AUTO</strong></div>
+          </div>
+        </section>
+
+        <section class="card data-card">
+          <div class="section-title"><h2>Powertrain demand</h2><span>HY-KERS</span></div>
+          <div class="bar-row"><label>Engine load</label><div class="bar"><i id="loadBar"></i></div><span class="bar-value" id="loadBarValue">0%</span></div>
+          <div class="bar-row"><label>Throttle</label><div class="bar"><i id="throttleBar"></i></div><span class="bar-value" id="throttleBarValue">0%</span></div>
+          <div class="bar-row"><label>Brake pressure</label><div class="bar"><i class="amber" id="brakeBar"></i></div><span class="bar-value" id="brakeBarValue">0%</span></div>
+          <div class="bar-row"><label>Downforce</label><div class="bar"><i class="green" id="downforceBar"></i></div><span class="bar-value" id="downforceBarValue">0%</span></div>
+        </section>
+
+        <section class="card data-card">
+          <div class="section-title"><h2>Energy recovery</h2><span id="batteryMode">ASSIST READY</span></div>
+          <div class="hybrid-top"><strong id="batteryValue">74%</strong><span id="batteryFlow">BATTERY CHARGE</span></div>
+          <div class="hybrid-battery" id="batteryCells" aria-label="Battery state of charge"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="hybrid-foot"><span>HY-KERS 120 kW</span><span id="electricPower">0 kW assist</span></div>
+        </section>
+
+        <section class="card data-card">
+          <div class="section-title"><h2>Chassis data</h2><span>MODELLED</span></div>
+          <div class="data-grid">
+            <div class="data-cell"><label>Steering</label><strong id="steeringValue">0.0°</strong></div>
+            <div class="data-cell"><label>G-force</label><strong id="gForceValue">0.00 <span>G</span></strong></div>
+            <div class="data-cell"><label>Surface</label><strong>DRY <span>μ 1.08</span></strong></div>
+            <div class="data-cell"><label>Stability</label><strong id="stabilityValue">EF1-TRAC <span>ON</span></strong></div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="bottom">
+      <div class="control-legend">
+        <div class="legend-item"><div class="key-cluster"><div class="vertical"><span class="keycap">W</span><span class="keycap">S</span></div><span class="keycap">A</span><span class="keycap">D</span></div><span>throttle / brake / steer</span></div>
+        <div class="legend-item"><span class="keycap">R</span><span>reset run</span></div>
+        <div class="legend-item"><span class="keycap">M</span><span>mute audio</span></div>
+      </div>
+      <div class="bottom-actions">
+        <button class="action-btn" id="resetBtn" type="button">Reset run</button>
+        <button class="action-btn primary" id="engineBtn" type="button">Start engine</button>
+      </div>
+    </footer>
+  </div>
+
+  <div class="starter" id="starter" role="dialog" aria-modal="true" aria-label="Start simulation">
+    <div class="starter-panel">
+      <div class="starter-kicker">Ferrari driving simulation / 01</div>
+      <h2>Wake the<br><em>V12.</em></h2>
+      <p>Take the wheel of a modelled LaFerrari. This is a browser physics study: hold W to build speed, S to brake, and A / D to place the car on the road.</p>
+      <div class="starter-specs">
+        <div><strong>963 CV</strong><span>combined<br>system output</span></div>
+        <div><strong>9,250</strong><span>maximum<br>engine rpm</span></div>
+        <div><strong>120 kW</strong><span>HY-KERS<br>electric motor</span></div>
+      </div>
+      <button class="start-btn" id="startBtn" type="button">Start engine + enable sound</button>
+      <div class="starter-note">Audio begins after this click because browsers block autoplay.</div>
+    </div>
+  </div>
+
+  <div class="modal" id="specModal" role="dialog" aria-modal="true" aria-labelledby="specTitle">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div><h2 id="specTitle">Technical note</h2><p>LaFerrari (F150) / published road-car figures used by this simulation</p></div>
+        <button class="modal-close" id="closeModal" type="button" aria-label="Close">×</button>
+      </div>
+      <table class="spec-table">
+        <tbody>
+          <tr><td>Powertrain</td><td>65° naturally aspirated V12 + HY-KERS</td></tr>
+          <tr><td>Displacement</td><td>6,262 cc</td></tr>
+          <tr><td>Combustion output</td><td>800 CV @ 9,000 rpm</td></tr>
+          <tr><td>Electric motor</td><td>120 kW / 163 CV</td></tr>
+          <tr><td>System output</td><td>963 CV / &gt;900 Nm</td></tr>
+          <tr><td>Max engine speed</td><td>9,250 rpm</td></tr>
+          <tr><td>Transmission</td><td>7-speed dual-clutch F1 gearbox</td></tr>
+          <tr><td>Mass model</td><td>1,585 kg nominal kerb mass</td></tr>
+          <tr><td>Tyres / drive</td><td>265/30 R19 · 345/30 R20 / RWD</td></tr>
+          <tr><td>Performance target</td><td>&gt;350 km/h · 0–100 km/h under 3 sec</td></tr>
+        </tbody>
+      </table>
+      <div class="research-callout"><strong>How the model works.</strong> Torque is shaped around the published 700 Nm V12 peak, electric assist fills low-rpm demand, traction limits rear-wheel drive, aerodynamic drag rises with the square of speed, and the DCT shifts against the 9,250 rpm ceiling. The sound is synthesized in Web Audio from rpm, load, intake and exhaust layers — no audio file is required.</div>
+      <div class="source-note">Research: <a href="https://www.ferrari.com/en-EN/auto/laferrari" target="_blank" rel="noreferrer">Ferrari technical archive</a> · figures accessed for this build on 15 Sep 2026. This is an unofficial educational simulation, not a factory instrument.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    'use strict';
+
+    // Published reference figures are intentionally kept close to the Ferrari archive.
+    const SPEC = {
+      mass: 1585,
+      redline: 9250,
+      shiftRpm: 9000,
+      idleRpm: 1000,
+      maxSpeedKph: 350,
+      tyreRadius: .342,
+      finalDrive: 4.30,
+      wheelbase: 2.65,
+      gears: [3.15, 2.18, 1.68, 1.39, 1.16, .96, .84],
+      trackLength: 2740,
+      roadWidth: 10.5
+    };
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const fmt = (number) => Math.round(number).toLocaleString('en-US');
+    const approach = (value, target, rate, dt) => value + (target - value) * (1 - Math.exp(-rate * dt));
+
+    const canvas = $('#scene');
+    const ctx = canvas.getContext('2d');
+    const keys = { w: false, a: false, s: false, d: false };
+    const state = {
+      running: false,
+      speed: 0,
+      distance: 0,
+      lateral: 0,
+      lateralVelocity: 0,
+      steer: 0,
+      rpm: SPEC.idleRpm,
+      gear: 1,
+      throttle: 0,
+      brake: 0,
+      load: 0,
+      battery: 74,
+      electricPower: 0,
+      gForce: 0,
+      lap: 1,
+      bestLap: null,
+      lapTimer: 0,
+      lapProgress: 0,
+      shiftFlash: 0,
+      shiftDirection: '',
+      reverse: false,
+      skid: 0,
+      lastSpeed: 0,
+      time: 0
+    };
+
+    // Keep the road drawing crisp on high-density displays without changing its CSS size.
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function roadPath(metres) {
+      // A gentle, repeating test loop: one left hander, a right hander and a fast kink.
+      const a = Math.sin(metres / 155) * 2.7;
+      const b = Math.sin(metres / 390 + 1.2) * 3.4;
+      const c = Math.sin(metres / 74 + .6) * .48;
+      return a + b + c;
+    }
+    function roadHeading(metres) {
+      return (roadPath(metres + 2) - roadPath(metres - 2)) / 4;
+    }
+    function roadCurvature(metres) {
+      return (roadHeading(metres + 7) - roadHeading(metres - 7)) / 14;
+    }
+    function torqueCurve(rpm) {
+      // Smooth approximation of the high-revving 6.3L V12's usable torque curve.
+      const points = [[1000, 445], [2000, 545], [3500, 625], [5000, 675], [6750, 700], [8000, 690], [9000, 628], [9250, 570]];
+      if (rpm <= points[0][0]) return points[0][1];
+      for (let i = 1; i < points.length; i++) {
+        if (rpm <= points[i][0]) {
+          const [r0, t0] = points[i - 1];
+          const [r1, t1] = points[i];
+          return lerp(t0, t1, (rpm - r0) / (r1 - r0));
+        }
+      }
+      return 540;
+    }
+
+    function resetState() {
+      state.speed = 0;
+      state.distance = 0;
+      state.lateral = 0;
+      state.lateralVelocity = 0;
+      state.steer = 0;
+      state.rpm = SPEC.idleRpm;
+      state.gear = 1;
+      state.throttle = 0;
+      state.brake = 0;
+      state.load = 0;
+      state.battery = 74;
+      state.electricPower = 0;
+      state.gForce = 0;
+      state.lap = 1;
+      state.lapTimer = 0;
+      state.lapProgress = 0;
+      state.shiftFlash = 0;
+      state.shiftDirection = '';
+      state.reverse = false;
+      state.skid = 0;
+      state.lastSpeed = 0;
+      setToast('Run reset · HY-KERS reserve restored');
+      updateUI();
+    }
+
+    function shift(direction) {
+      const next = clamp(state.gear + direction, 1, SPEC.gears.length);
+      if (next === state.gear) return;
+      state.gear = next;
+      state.shiftDirection = direction > 0 ? 'UP' : 'DOWN';
+      state.shiftFlash = .35;
+      audio.shift(direction);
+    }
+
+    function updatePhysics(dt) {
+      const throttleInput = keys.w ? 1 : 0;
+      const brakeInput = keys.s ? 1 : 0;
+      const steeringInput = (keys.a ? -1 : 0) + (keys.d ? 1 : 0);
+      state.throttle = approach(state.throttle, throttleInput, 12, dt);
+      state.brake = approach(state.brake, brakeInput, 18, dt);
+      state.steer = approach(state.steer, steeringInput, 8, dt);
+      state.shiftFlash = Math.max(0, state.shiftFlash - dt);
+      state.lapTimer += dt;
+
+      const speedKph = state.speed * 3.6;
+      const wheelRpm = state.speed / (2 * Math.PI * SPEC.tyreRadius) * 60;
+      const coupledRpm = wheelRpm * SPEC.gears[state.gear - 1] * SPEC.finalDrive;
+      const launchSlip = state.throttle * Math.max(0, 1 - state.speed / 8);
+      state.rpm = clamp(Math.max(SPEC.idleRpm, coupledRpm + launchSlip * 2200), SPEC.idleRpm, SPEC.redline + 120);
+
+      if (state.rpm > SPEC.shiftRpm && state.gear < SPEC.gears.length && state.throttle > .42) shift(1);
+      if (state.rpm < 2800 && state.gear > 1 && state.throttle < .06 && speedKph < 70) shift(-1);
+
+      const engineTorque = torqueCurve(state.rpm) * state.throttle;
+      const batteryAvailable = clamp((state.battery - 4) / 25, 0, 1);
+      const electricAssist = state.throttle * 200 * batteryAvailable * clamp(1.1 - speedKph / 260, .23, 1);
+      const combinedTorque = engineTorque + electricAssist;
+      const wheelTorque = combinedTorque * SPEC.gears[state.gear - 1] * SPEC.finalDrive * .91;
+      const tractionLimit = SPEC.mass * 9.81 * .59 * (1.06 + clamp(state.speed / 90, 0, .32));
+      const rawDriveForce = wheelTorque / SPEC.tyreRadius;
+      const driveForce = Math.min(rawDriveForce, tractionLimit);
+      const aeroDownforce = .5 * 1.225 * 1.15 * 2.0 * state.speed * state.speed;
+      const aeroDrag = .5 * 1.225 * .35 * 2.0 * state.speed * state.speed;
+      const rollingResistance = SPEC.mass * 9.81 * .014;
+      const brakeForce = state.brake * (state.speed > .1 ? 24000 + aeroDownforce * .1 : 0);
+      const gradeForce = roadHeading(state.distance) * SPEC.mass * 9.81 * .012;
+
+      let acceleration = (driveForce - aeroDrag - rollingResistance - brakeForce - gradeForce) / SPEC.mass;
+      if (state.speed < .15 && state.brake > .1 && !state.throttle) {
+        // S is a brake at speed, and gives a controllable reverse creep from a stop.
+        state.reverse = true;
+        acceleration = -state.brake * 1.8;
+      } else if (state.throttle > .1) {
+        state.reverse = false;
+      }
+      if (state.reverse) {
+        acceleration = -state.brake * 1.8 - state.speed * 1.5;
+        if (state.brake < .05 && Math.abs(state.speed) < .15) { state.speed = 0; state.reverse = false; }
+      }
+      if (!state.running) acceleration = -state.speed * 4;
+      state.speed = clamp(state.speed + acceleration * dt, state.reverse ? -9 : 0, SPEC.maxSpeedKph / 3.6);
+      if (Math.abs(state.speed) < .015 && !state.throttle) state.speed = 0;
+
+      // Bicycle-model steering with stability and a small amount of road-edge punishment.
+      const steerAuthority = clamp(Math.abs(state.speed) / 8, 0, 1);
+      const roadPull = roadHeading(state.distance) * state.speed * .045;
+      const steeringForce = state.steer * (1.1 + Math.abs(state.speed) * .024) * steerAuthority;
+      state.lateralVelocity += (steeringForce - state.lateralVelocity * 4.5 - roadPull) * dt;
+      state.lateral += state.lateralVelocity * dt;
+      const edge = Math.abs(state.lateral) - SPEC.roadWidth * .5 + .55;
+      if (edge > 0) {
+        state.lateralVelocity -= Math.sign(state.lateral) * edge * 2.2 * dt;
+        state.speed = Math.max(0, state.speed - edge * 1.35 * dt);
+        state.skid = clamp(state.skid + dt * 3, 0, 1);
+      } else {
+        state.skid = Math.max(0, state.skid - dt * 2);
+      }
+
+      state.distance += Math.max(0, state.speed) * dt;
+      state.lapProgress = (state.distance % SPEC.trackLength) / SPEC.trackLength;
+      if (state.distance >= (state.lap * SPEC.trackLength)) {
+        if (!state.bestLap || state.lapTimer < state.bestLap) state.bestLap = state.lapTimer;
+        state.lap += 1;
+        state.lapTimer = 0;
+        setToast(`Lap ${String(state.lap - 1).padStart(2, '0')} complete`);
+      }
+
+      const regen = state.brake > .08 || (state.throttle < .05 && state.speed > 12);
+      const batteryDelta = regen ? .9 * dt : -electricAssist / 120000 * dt * 100;
+      state.battery = clamp(state.battery + batteryDelta, 3, 100);
+      state.electricPower = regen ? -Math.round(Math.min(120, state.brake * 120 * (state.speed / 35))) : Math.round(electricAssist * state.rpm / SPEC.redline * 1.07);
+      state.load = clamp(state.throttle * (0.35 + state.rpm / SPEC.redline * .65) * 100 + (state.brake > 0 ? 0 : Math.abs(state.lateralVelocity) * 7), 0, 100);
+      state.gForce = clamp(Math.abs(acceleration / 9.81) + Math.abs(state.lateralVelocity) * .07, 0, 1.7);
+      state.lastSpeed = state.speed;
+      state.time += dt;
+    }
+
+    function updateUI() {
+      const speedKph = Math.abs(state.speed * 3.6);
+      const rpm = Math.round(state.rpm);
+      const rpmPct = clamp(rpm / SPEC.redline * 100, 0, 100);
+      const loadPct = Math.round(state.load);
+      const throttlePct = Math.round(state.throttle * 100);
+      const brakePct = Math.round(state.brake * 100);
+      const downforcePct = Math.round(clamp((.5 * 1.225 * 1.15 * 2 * state.speed * state.speed) / 22000, 0, 1) * 100);
+      const steeringDeg = state.steer * 13;
+      $('#speed').textContent = String(Math.round(speedKph)).padStart(3, '0');
+      $('#gear').textContent = state.reverse ? 'R' : (state.running ? state.gear : 'P');
+      $('#rpm').textContent = fmt(rpm);
+      $('#rpmFill').style.width = `${rpmPct}%`;
+      $('#rpmTrack').classList.toggle('over', rpm > SPEC.shiftRpm);
+      $('#throttleValue').textContent = `${throttlePct}%`;
+      $('#loadValue').textContent = `${loadPct}%`;
+      $('#shiftValue').textContent = state.shiftFlash > 0 ? `SHIFT ${state.shiftDirection}` : 'AUTO';
+      $('#loadBar').style.width = `${loadPct}%`;
+      $('#loadBarValue').textContent = `${loadPct}%`;
+      $('#throttleBar').style.width = `${throttlePct}%`;
+      $('#throttleBarValue').textContent = `${throttlePct}%`;
+      $('#brakeBar').style.width = `${brakePct}%`;
+      $('#brakeBarValue').textContent = `${brakePct}%`;
+      $('#downforceBar').style.width = `${downforcePct}%`;
+      $('#downforceBarValue').textContent = `${downforcePct}%`;
+      $('#batteryValue').textContent = `${Math.round(state.battery)}%`;
+      $('#batteryFlow').textContent = state.electricPower < -2 ? 'REGENERATING' : 'BATTERY CHARGE';
+      $('#batteryMode').textContent = state.electricPower < -2 ? 'RECOVERY ACTIVE' : state.battery > 8 ? 'ASSIST READY' : 'RESERVE LOW';
+      $('#electricPower').textContent = `${Math.abs(state.electricPower)} kW ${state.electricPower < -2 ? 'recovery' : 'assist'}`;
+      $('#steeringValue').textContent = `${steeringDeg >= 0 ? '+' : ''}${steeringDeg.toFixed(1)}°`;
+      $('#gForceValue').innerHTML = `${state.gForce.toFixed(2)} <span>G</span>`;
+      $('#stabilityValue').innerHTML = state.skid > .1 ? 'EF1-TRAC <span>INTERVENING</span>' : 'EF1-TRAC <span>ON</span>';
+      $('#lapReadout').textContent = `${String(state.lap).padStart(2, '0')} / ${(state.distance / 1000).toFixed(1).padStart(4, '0')} km`;
+      $('#vehicleState').textContent = !state.running ? 'PARKED' : speedKph < 1 ? 'IDLE' : state.brake > .08 ? 'BRAKING' : state.reverse ? 'REVERSE' : 'DRIVING';
+      $('#vehicleStateDetail').textContent = !state.running ? 'BRAKE HOLD' : state.throttle > .04 ? 'POWER ON' : 'COAST';
+      $('#trackState').textContent = !state.running ? 'STANDBY / IGNITION OFF' : state.speed > 1 ? 'LIVE / TEST LOOP' : 'LIVE / IDLE';
+      $('#liveState').textContent = state.running ? 'ONLINE' : 'OFFLINE';
+      $('#audioDot').classList.toggle('live', audio.active && !audio.muted);
+      $('#audioLabel').textContent = audio.active && !audio.muted ? 'Audio live' : audio.muted ? 'Audio muted' : 'Audio ready';
+      $('#aeroScene').textContent = speedKph > 170 ? 'HIGH DOWNFORCE' : 'LOW DRAG';
+      $('#enginePrompt').classList.toggle('hidden', state.running);
+      $('#engineBtn').textContent = state.running ? 'Stop engine' : 'Start engine';
+      $('#engineBtn').classList.toggle('stop', state.running);
+      const cellCount = Math.round(state.battery / 10);
+      $$('#batteryCells i').forEach((cell, i) => cell.classList.toggle('on', i < cellCount));
+      $$('.keycap[data-key]').forEach((el) => el.classList.toggle('active', keys[el.dataset.key]));
+    }
+
+    // Canvas road, environment and a minimal LaFerrari bonnet/cockpit silhouette.
+    function drawScene() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (!w || !h) return;
+      const horizon = h * .405;
+      const t = state.time;
+      const speedKph = Math.abs(state.speed * 3.6);
+      const night = false;
+
+      const sky = ctx.createLinearGradient(0, 0, 0, horizon + 80);
+      sky.addColorStop(0, night ? '#131821' : '#8199a8');
+      sky.addColorStop(.58, night ? '#65707e' : '#c6d2d3');
+      sky.addColorStop(1, night ? '#a2a1a0' : '#e7dfcc');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+
+      // Distant haze and hills.
+      ctx.fillStyle = 'rgba(58,70,75,.42)';
+      ctx.beginPath();
+      ctx.moveTo(0, horizon + 40);
+      for (let x = 0; x <= w + 20; x += 12) {
+        const y = horizon + 22 + Math.sin(x * .009 + 1.5) * 18 + Math.sin(x * .022) * 10;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(w, horizon + 110); ctx.lineTo(0, horizon + 110); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(203,196,168,.6)';
+      ctx.fillRect(0, horizon + 57, w, h - horizon - 57);
+
+      const segments = 86;
+      const nearRoadWidth = Math.min(w * 1.28, 1080);
+      const farRoadWidth = Math.max(11, w * .042);
+      const roadScale = nearRoadWidth / SPEC.roadWidth;
+      const projection = (i) => {
+        const z = i / segments;
+        const p = Math.pow(1 - z, 1.73);
+        const y = horizon + (h - horizon) * p;
+        const width = lerp(nearRoadWidth, farRoadWidth, z);
+        const ahead = i * (speedKph < 30 ? 4.8 : 8.2) + 6;
+        const pathDelta = roadPath(state.distance + ahead) - roadPath(state.distance);
+        const center = w * .5 + pathDelta * roadScale * (1 - z) * .11 - state.lateral * roadScale * p * .66;
+        return { y, width, center, ahead };
+      };
+
+      // Grass / run-off surface.
+      ctx.fillStyle = '#777d70';
+      ctx.fillRect(0, horizon, w, h - horizon);
+      const roadPoints = [];
+      for (let i = 0; i <= segments; i++) roadPoints.push(projection(i));
+      for (let i = 0; i < segments; i++) {
+        const p1 = roadPoints[i], p2 = roadPoints[i + 1];
+        const stripe = Math.floor((state.distance + p1.ahead) / 19) % 2;
+        ctx.fillStyle = stripe ? '#747a6b' : '#818876';
+        ctx.beginPath(); ctx.moveTo(0, p1.y); ctx.lineTo(w, p1.y); ctx.lineTo(w, p2.y); ctx.lineTo(0, p2.y); ctx.closePath(); ctx.fill();
+      }
+
+      // Road, shoulder, curbs, center marks and occasional roadside poles.
+      for (let i = segments - 1; i >= 0; i--) {
+        const p1 = roadPoints[i], p2 = roadPoints[i + 1];
+        const roadL1 = p1.center - p1.width / 2, roadR1 = p1.center + p1.width / 2;
+        const roadL2 = p2.center - p2.width / 2, roadR2 = p2.center + p2.width / 2;
+        const shade = Math.floor((state.distance + p1.ahead) / 12) % 2 ? '#30343a' : '#353a40';
+        ctx.fillStyle = shade;
+        ctx.beginPath(); ctx.moveTo(roadL1, p1.y); ctx.lineTo(roadR1, p1.y); ctx.lineTo(roadR2, p2.y); ctx.lineTo(roadL2, p2.y); ctx.closePath(); ctx.fill();
+        const curb1 = Math.max(2, p1.width * .026), curb2 = Math.max(1, p2.width * .026);
+        const curbOn = Math.floor((state.distance + p1.ahead) / 8) % 2;
+        ctx.fillStyle = curbOn ? '#ded6cc' : '#c82f35';
+        ctx.beginPath(); ctx.moveTo(roadL1, p1.y); ctx.lineTo(roadL1 + curb1, p1.y); ctx.lineTo(roadL2 + curb2, p2.y); ctx.lineTo(roadL2, p2.y); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(roadR1 - curb1, p1.y); ctx.lineTo(roadR1, p1.y); ctx.lineTo(roadR2, p2.y); ctx.lineTo(roadR2 - curb2, p2.y); ctx.closePath(); ctx.fill();
+        if (Math.floor((state.distance + p1.ahead) / 18) % 2 === 0 && i < 65) {
+          const dashW1 = Math.max(1, p1.width * .008), dashW2 = Math.max(.5, p2.width * .008);
+          ctx.fillStyle = 'rgba(231,227,209,.64)';
+          ctx.beginPath(); ctx.moveTo(p1.center - dashW1, p1.y); ctx.lineTo(p1.center + dashW1, p1.y); ctx.lineTo(p2.center + dashW2, p2.y); ctx.lineTo(p2.center - dashW2, p2.y); ctx.closePath(); ctx.fill();
+        }
+        if (i % 13 === 0 && i > 5 && i < 70) {
+          const poleH = Math.max(2, p1.width * .16);
+          ctx.strokeStyle = 'rgba(36,43,39,.65)'; ctx.lineWidth = Math.max(1, p1.width * .008);
+          ctx.beginPath(); ctx.moveTo(roadL1 - p1.width * .17, p1.y); ctx.lineTo(roadL1 - p1.width * .17, p1.y - poleH); ctx.stroke();
+          ctx.fillStyle = '#c7bd95'; ctx.fillRect(roadL1 - p1.width * .17 - 2, p1.y - poleH, 4, Math.max(2, poleH * .07));
+        }
+      }
+
+      // Side blur and subtle motion lines make speed readable without hiding the sim.
+      if (speedKph > 90) {
+        ctx.strokeStyle = `rgba(255,255,255,${clamp((speedKph - 90) / 500, .03, .13)})`;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 12; i++) {
+          const y = horizon + ((i * 67 + t * speedKph * .35) % (h - horizon));
+          const side = i % 2 ? 1 : -1;
+          const x = side > 0 ? w * .75 + (i * 13) : w * .25 - (i * 13);
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + side * (8 + speedKph * .06), y); ctx.stroke();
+        }
+      }
+      drawCockpit(w, h, speedKph);
+    }
+
+    function drawCockpit(w, h, speedKph) {
+      const shake = state.skid * 1.5 + (speedKph > 240 ? Math.sin(state.time * 42) * .7 : 0);
+      ctx.save(); ctx.translate(shake, 0);
+      // Dark windshield/dashboard edge.
+      const dashboard = ctx.createLinearGradient(0, h - 92, 0, h);
+      dashboard.addColorStop(0, 'rgba(10,12,15,.08)'); dashboard.addColorStop(.36, 'rgba(10,12,15,.75)'); dashboard.addColorStop(1, '#08090b');
+      ctx.fillStyle = dashboard;
+      ctx.beginPath(); ctx.moveTo(0, h - 47); ctx.quadraticCurveTo(w * .5, h - 106, w, h - 47); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+      // LaFerrari's low red bonnet, black carbon centre and air cut-outs.
+      ctx.fillStyle = '#a31d25';
+      ctx.beginPath(); ctx.moveTo(w * .19, h); ctx.quadraticCurveTo(w * .25, h - 58, w * .42, h - 70); ctx.quadraticCurveTo(w * .5, h - 78, w * .58, h - 70); ctx.quadraticCurveTo(w * .75, h - 58, w * .81, h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#191b20';
+      ctx.beginPath(); ctx.moveTo(w * .39, h); ctx.quadraticCurveTo(w * .43, h - 57, w * .5, h - 67); ctx.quadraticCurveTo(w * .57, h - 57, w * .61, h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.beginPath(); ctx.ellipse(w * .31, h - 18, w * .07, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(w * .69, h - 18, w * .07, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,100,100,.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(w * .20, h - 1); ctx.quadraticCurveTo(w * .25, h - 52, w * .42, h - 65); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w * .80, h - 1); ctx.quadraticCurveTo(w * .75, h - 52, w * .58, h - 65); ctx.stroke();
+      // Small centre speed marker on the windscreen.
+      if (state.running) {
+        ctx.fillStyle = 'rgba(255,255,255,.72)';
+        ctx.fillRect(w * .5 - 1, h * .47, 2, 10);
+        ctx.fillStyle = 'rgba(255,69,80,.75)';
+        ctx.fillRect(w * .5 - 9, h * .47 + 5, 18, 1);
+      }
+      ctx.restore();
+    }
+
+    let lastFrame = performance.now();
+    function frame(now) {
+      const dt = Math.min(.045, Math.max(.001, (now - lastFrame) / 1000));
+      lastFrame = now;
+      if (state.running) updatePhysics(dt);
+      else state.time += dt * .25;
+      drawScene();
+      updateUI();
+      audio.update();
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    // Web Audio: a deliberately layered, rpm-following V12 synthesis. Start is user-gesture gated.
+    const audio = {
+      ctx: null, master: null, engineGain: null, intakeGain: null, exhaustGain: null,
+      filter: null, intakeFilter: null, osc: [], intake: null, noise: null, noiseGain: null,
+      active: false, muted: false,
+      init() {
+        if (this.ctx) { this.ctx.resume(); this.active = true; return; }
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) { setToast('Web Audio is not available in this browser'); return; }
+        this.ctx = new AudioContext();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = .34;
+        const compressor = this.ctx.createDynamicsCompressor();
+        compressor.threshold.value = -18; compressor.knee.value = 16; compressor.ratio.value = 5; compressor.attack.value = .005; compressor.release.value = .16;
+        this.master.connect(compressor); compressor.connect(this.ctx.destination);
+        this.engineGain = this.ctx.createGain(); this.engineGain.gain.value = .09;
+        this.filter = this.ctx.createBiquadFilter(); this.filter.type = 'lowpass'; this.filter.frequency.value = 1500; this.filter.Q.value = .85;
+        this.engineGain.connect(this.filter); this.filter.connect(this.master);
+        [0.48, 1, 2, 3.01].forEach((multiplier, index) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = index === 0 ? 'sawtooth' : index === 3 ? 'triangle' : 'square';
+          gain.gain.value = [0.42, .18, .065, .026][index];
+          osc.connect(gain); gain.connect(this.engineGain); osc.start();
+          this.osc.push({ node: osc, gain, multiplier });
+        });
+        this.intakeGain = this.ctx.createGain(); this.intakeGain.gain.value = .02;
+        this.intakeFilter = this.ctx.createBiquadFilter(); this.intakeFilter.type = 'bandpass'; this.intakeFilter.frequency.value = 350; this.intakeFilter.Q.value = .55;
+        this.intake = this.ctx.createOscillator(); this.intake.type = 'sawtooth'; this.intake.connect(this.intakeGain); this.intakeGain.connect(this.intakeFilter); this.intakeFilter.connect(this.master); this.intake.start();
+        // Continuous filtered noise supplies the wind/exhaust texture under the pitched layers.
+        const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        this.noise = this.ctx.createBufferSource(); this.noise.buffer = buffer; this.noise.loop = true;
+        const noiseFilter = this.ctx.createBiquadFilter(); noiseFilter.type = 'bandpass'; noiseFilter.frequency.value = 700; noiseFilter.Q.value = .45;
+        this.noiseGain = this.ctx.createGain(); this.noiseGain.gain.value = .008;
+        this.noise.connect(noiseFilter); noiseFilter.connect(this.noiseGain); this.noiseGain.connect(this.master); this.noise.start();
+        this.ctx.resume(); this.active = true;
+      },
+      update() {
+        if (!this.ctx || !this.active) return;
+        const now = this.ctx.currentTime;
+        const firingHz = Math.max(45, state.rpm / 60 * 6);
+        const throttle = state.throttle;
+        const load = state.load / 100;
+        const rpmNorm = state.rpm / SPEC.redline;
+        this.osc.forEach(({ node, gain, multiplier }, index) => {
+          node.frequency.setTargetAtTime(firingHz * multiplier, now, .025);
+          gain.gain.setTargetAtTime([.32, .15, .055, .025][index] * (.65 + load * .8 + rpmNorm * .3), now, .04);
+        });
+        this.filter.frequency.setTargetAtTime(750 + rpmNorm * 4600 + load * 2600, now, .05);
+        this.engineGain.gain.setTargetAtTime(.045 + load * .115 + rpmNorm * .045, now, .045);
+        this.intake.frequency.setTargetAtTime(35 + state.rpm * .085, now, .05);
+        this.intakeGain.gain.setTargetAtTime(.008 + throttle * .05 + rpmNorm * .014, now, .06);
+        this.intakeFilter.frequency.setTargetAtTime(180 + rpmNorm * 1100 + throttle * 850, now, .08);
+        this.noiseGain.gain.setTargetAtTime(.004 + throttle * .025 + rpmNorm * .012 + Math.min(speedKphForAudio() / 350, .2), now, .06);
+        this.master.gain.setTargetAtTime(this.muted ? 0 : .34, now, .04);
+      },
+      shift(direction) {
+        if (!this.ctx || !this.active) return;
+        const now = this.ctx.currentTime;
+        const thump = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+        thump.type = 'sine'; thump.frequency.setValueAtTime(direction > 0 ? 110 : 78, now); thump.frequency.exponentialRampToValueAtTime(42, now + .18);
+        gain.gain.setValueAtTime(.13, now); gain.gain.exponentialRampToValueAtTime(.001, now + .18);
+        thump.connect(gain); gain.connect(this.master); thump.start(now); thump.stop(now + .2);
+      },
+      toggleMute() {
+        this.muted = !this.muted;
+        if (this.ctx) this.master.gain.setTargetAtTime(this.muted ? 0 : .34, this.ctx.currentTime, .04);
+        updateUI();
+      }
+    };
+    function speedKphForAudio() { return Math.abs(state.speed * 3.6); }
+
+    function startEngine() {
+      audio.init();
+      state.running = true;
+      $('#starter').classList.add('hidden');
+      setToast('HY-KERS online · hold W to launch');
+      updateUI();
+    }
+    function stopEngine() {
+      state.running = false;
+      keys.w = keys.a = keys.s = keys.d = false;
+      setToast('Engine stopped · press Start engine to continue');
+      updateUI();
+    }
+    function setToast(message) {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(setToast.timer);
+      setToast.timer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    $('#startBtn').addEventListener('click', startEngine);
+    $('#engineBtn').addEventListener('click', () => state.running ? stopEngine() : startEngine());
+    $('#resetBtn').addEventListener('click', resetState);
+    $('#audioBtn').addEventListener('click', () => { if (!audio.active) audio.init(); else audio.toggleMute(); });
+    $('#specBtn').addEventListener('click', () => $('#specModal').classList.add('open'));
+    $('#closeModal').addEventListener('click', () => $('#specModal').classList.remove('open'));
+    $('#specModal').addEventListener('click', (event) => { if (event.target.id === 'specModal') event.currentTarget.classList.remove('open'); });
+
+    window.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      if (key === 'escape') { $('#specModal').classList.remove('open'); return; }
+      if (key === 'm') { audio.toggleMute(); return; }
+      if (key === 'r') { resetState(); return; }
+      if (key in keys) { keys[key] = true; event.preventDefault(); }
+    });
+    window.addEventListener('keyup', (event) => {
+      const key = event.key.toLowerCase();
+      if (key in keys) { keys[key] = false; event.preventDefault(); }
+    });
+    window.addEventListener('blur', () => { keys.w = keys.a = keys.s = keys.d = false; });
+
+    updateUI();
+  </script>
+</body>
+</html>
