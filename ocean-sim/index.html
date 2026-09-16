@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Ocean Simulator</title>
+<link rel="stylesheet" href="./styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="uw"></div>
+
+<header id="topbar">
+  <div class="brand">
+    <span class="logo">FRONTIER</span>
+    <span class="sub">Ocean Simulator · JONSWAP spectral waves · surf break · particle foam</span>
+  </div>
+  <nav id="preset-row">
+    <button data-action="preset" data-arg="glassy">Glassy</button>
+    <button data-action="preset" data-arg="trades">Trades</button>
+    <button data-action="preset" data-arg="storm">Storm</button>
+    <button data-action="preset" data-arg="surf">Surf</button>
+    <button data-action="preset" data-arg="cancel">Cancel</button>
+    <button data-action="preset" data-arg="cross">X-Seas</button>
+  </nav>
+  <div class="top-right">
+    <span class="chip"><b id="ro-fps">60</b> fps</span>
+    <button id="btn-pause" data-action="pause" title="play / pause (space)">⏸</button>
+    <button id="btn-panel" data-action="panel" title="toggle panel">⚙</button>
+  </div>
+</header>
+
+<aside id="panel">
+  <details open>
+    <summary>Sea state <span class="hint">JONSWAP · fetch laws</span></summary>
+    <div class="row"><label>Beaufort <span><output data-o="beaufort" data-fmt="beaufort"></output></span></label>
+      <input type="range" data-p="beaufort" min="0" max="9" step="1" /></div>
+    <div class="row"><label>Wind U<sub>10</sub> <span><output data-o="wind" data-fmt="f1"></output> m/s</span></label>
+      <input type="range" data-p="wind" min="0" max="25" step="0.1" /></div>
+    <div class="row"><label>Fetch <span><output data-o="fetch" data-fmt="int"></output> km</span></label>
+      <input type="range" data-p="fetch" min="5" max="500" step="5" /></div>
+    <div class="row"><label>Wind dir <span><output data-o="windDir" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="windDir" min="0" max="360" step="1" /></div>
+    <div class="row"><label>Choppiness <span><output data-o="chop" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="chop" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Swell × <span><output data-o="cascSwell" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="cascSwell" min="0" max="1.5" step="0.05" /></div>
+    <div class="row"><label>Wind-sea × <span><output data-o="cascSea" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="cascSea" min="0" max="1.5" step="0.05" /></div>
+    <div class="row"><label>Chop × <span><output data-o="cascChop" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="cascChop" min="0" max="1.5" step="0.05" /></div>
+    <div class="row btns"><button data-action="seed">↻ new random sea</button></div>
+  </details>
+
+  <details open>
+    <summary>Wave lab <span class="hint">interference · cancellation</span></summary>
+    <div class="meter"><div id="meter-fill"></div></div>
+    <div id="meter-label">lab idle</div>
+    <div class="lab-head"><label class="check"><input type="checkbox" data-p="labA.on" /> Train A</label></div>
+    <div class="row"><label>λ A <span><output data-o="labA.lambda" data-fmt="int"></output> m</span></label>
+      <input type="range" data-p="labA.lambda" min="5" max="200" step="1" /></div>
+    <div class="row"><label>amp A <span><output data-o="labA.amp" data-fmt="f2"></output> m</span></label>
+      <input type="range" data-p="labA.amp" min="0" max="3" step="0.05" /></div>
+    <div class="row"><label>dir A <span><output data-o="labA.dir" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="labA.dir" min="-180" max="180" step="1" /></div>
+    <div class="row"><label>phase A <span><output data-o="labA.phase" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="labA.phase" min="0" max="360" step="1" /></div>
+    <div class="lab-head"><label class="check"><input type="checkbox" data-p="labB.on" /> Train B</label></div>
+    <div class="row"><label>λ B <span><output data-o="labB.lambda" data-fmt="int"></output> m</span></label>
+      <input type="range" data-p="labB.lambda" min="5" max="200" step="1" /></div>
+    <div class="row"><label>amp B <span><output data-o="labB.amp" data-fmt="f2"></output> m</span></label>
+      <input type="range" data-p="labB.amp" min="0" max="3" step="0.05" /></div>
+    <div class="row"><label>dir B <span><output data-o="labB.dir" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="labB.dir" min="-180" max="180" step="1" /></div>
+    <div class="row"><label>phase B <span><output data-o="labB.phase" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="labB.phase" min="0" max="360" step="1" /></div>
+    <p class="note">Equal λ + equal amp + 180° phase → destructive cancellation inside the cyan ring. Opposite dirs → standing wave.</p>
+  </details>
+
+  <details open>
+    <summary>Surf break <span class="hint">shoaling · barrel · peel</span></summary>
+    <div class="row"><label class="check"><input type="checkbox" data-p="surfOn" /> Enable surf shaping</label></div>
+    <div class="row"><label>Break power <span><output data-o="breakAmp" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="breakAmp" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Barrel throw <span><output data-o="barrel" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="barrel" min="0" max="4" step="0.1" /></div>
+    <div class="row"><label>Peel speed <span><output data-o="peelSpeed" data-fmt="f1"></output> m/s</span></label>
+      <input type="range" data-p="peelSpeed" min="0" max="20" step="0.5" /></div>
+    <div class="row"><label>Peel width <span><output data-o="peelWidth" data-fmt="int"></output> m</span></label>
+      <input type="range" data-p="peelWidth" min="10" max="60" step="1" /></div>
+    <div class="row"><label>Reef angle <span><output data-o="reefAngle" data-fmt="deg"></output></span></label>
+      <input type="range" data-p="reefAngle" min="-30" max="30" step="1" /></div>
+    <div class="row"><label>Reef depth <span><output data-o="reefDepth" data-fmt="f1"></output> m</span></label>
+      <input type="range" data-p="reefDepth" min="0.5" max="4" step="0.1" /></div>
+  </details>
+
+  <details>
+    <summary>Foam &amp; spray <span class="hint">GPU particles</span></summary>
+    <div class="row"><label>Foam amount <span><output data-o="foamAmt" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="foamAmt" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Whitecaps <span><output data-o="whitecap" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="whitecap" min="0" max="3" step="0.05" /></div>
+    <div class="row"><label>Spray <span><output data-o="spray" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="spray" min="0" max="1.5" step="0.05" /></div>
+    <div class="row"><label>Particles <span><output data-o="particles" data-fmt="k"></output></span></label>
+      <input type="range" data-p="particles" min="10000" max="200000" step="10000" /></div>
+  </details>
+
+  <details>
+    <summary>Environment <span class="hint">sun · sky · optics</span></summary>
+    <div class="row"><label>Time of day <span><output data-o="hour" data-fmt="hour"></output></span></label>
+      <input type="range" data-p="hour" min="5" max="20.5" step="0.1" /></div>
+    <div class="row"><label>Clouds <span><output data-o="cloud" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="cloud" min="0" max="1" step="0.01" /></div>
+    <div class="row"><label>Fog <span><output data-o="fog" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="fog" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Exposure <span><output data-o="exposure" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="exposure" min="0.4" max="1.6" step="0.01" /></div>
+    <div class="row"><label>Micro detail <span><output data-o="micro" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="micro" min="0" max="1" step="0.05" /></div>
+    <div class="row"><label>SSS glow <span><output data-o="sss" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="sss" min="0" max="2" step="0.05" /></div>
+  </details>
+
+  <details>
+    <summary>View &amp; time</summary>
+    <div class="row"><label>Time scale <span><output data-o="timeScale" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="timeScale" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Quality</label>
+      <select data-p="quality">
+        <option value="low">low</option>
+        <option value="medium">medium</option>
+        <option value="high" selected>high</option>
+        <option value="ultra">ultra</option>
+      </select></div>
+    <div class="row"><label class="check"><input type="checkbox" data-p="wireframe" /> Wireframe</label></div>
+    <div class="row"><label class="check"><input type="checkbox" data-p="autorotate" /> Auto-orbit</label></div>
+    <div class="cam-grid">
+      <button data-action="cam" data-arg="orbit">Orbit</button>
+      <button data-action="cam" data-arg="surf">Surf</button>
+      <button data-action="cam" data-arg="shore">Shore</button>
+      <button data-action="cam" data-arg="aerial">Aerial</button>
+      <button data-action="cam" data-arg="lab">Lab</button>
+      <button data-action="cam" data-arg="buoy">Buoy</button>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Spectrum <span class="hint">live</span></summary>
+    <canvas id="spec" width="264" height="118"></canvas>
+    <div class="readouts">
+      <div><span>Sea</span><b id="ro-sea">—</b></div>
+      <div><span>Buoy lvl</span><b id="ro-buoy">—</b></div>
+      <div><span>Clock</span><b id="ro-clock">—</b></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>About</summary>
+    <p class="note">80-wave JONSWAP spectrum (3 cascades) summed on the GPU with Gerstner displacement, analytic normals and Jacobian whitecaps; surf shoaling over an analytic reef; 200k stateless GPU foam/spray particles; one CPU mirror drives buoy, probes and the interference meter. See RESEARCH.md for the 2024–2026 sources.</p>
+    <p class="note dim">drag orbit · wheel zoom · right-drag pan · WASD/QE fly (shift = fast) · space pause · 1–6 presets</p>
+  </details>
+</aside>
+
+<div id="loading"><div class="spin"></div><p>building ocean…</p></div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
