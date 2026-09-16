@@ -164,8 +164,8 @@ export class UI {
       (api.wave.saturated ? ' · fully developed' : ' · fetch-limited');
     const bh = api.buoyH();
     document.getElementById('ro-buoy').textContent = `${bh >= 0 ? '+' : ''}${bh.toFixed(2)} m`;
-    document.getElementById('ro-relief').textContent = `${api.wave.reliefAt(t).toFixed(1)} m`;
     const t = api.simTime();
+    document.getElementById('ro-relief').textContent = `${api.wave.reliefAt(t).toFixed(1)} m`;
     const hh = String(Math.floor(t / 3600)).padStart(2, '0');
     const mm = String(Math.floor(t / 60) % 60).padStart(2, '0');
     const ss = String(Math.floor(t) % 60).padStart(2, '0');
