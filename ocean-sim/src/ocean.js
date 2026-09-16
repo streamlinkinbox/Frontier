@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { GRID_HALF } from './config.js?v=5';
-import { OCEAN_VS, OCEAN_FS } from './glsl.js?v=5';
+import { OCEAN_VS, OCEAN_FS, OCEAN_CONTOUR_FS } from './glsl.js?v=5';
+
+// ?contour=1 swaps the water shading for a height-contour debug view while
+// keeping the exact same vertex displacement. Stripes = waves are real.
+const CONTOUR = (typeof location !== 'undefined') && new URLSearchParams(location.search).has('contour');
 
 // Camera-grade graded grid: dense at the center, coarse at the rim.
 export function buildGradedGrid(n, half, power) {
@@ -60,10 +64,11 @@ export const QUALITY_GRID = { low: 160, medium: 224, high: 288, ultra: 384 };
 
 export class Ocean {
   constructor(uniforms) {
+    if (CONTOUR) console.log('%cCONTOUR DEBUG VIEW (?contour=1) — stripes = true vertex height', 'color:#ffb02e;font-weight:bold');
     this.material = new THREE.ShaderMaterial({
       uniforms,
       vertexShader: OCEAN_VS,
-      fragmentShader: OCEAN_FS,
+      fragmentShader: CONTOUR ? OCEAN_CONTOUR_FS : OCEAN_FS,
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: true,

@@ -12,7 +12,7 @@ import { Props } from './props.js?v=5';
 import { UI } from './ui.js?v=5';
 
 // Build stamp — proves which code is actually running (console + subtitle).
-const BUILD = 'v5-uniform-arrays';
+const BUILD = 'v6-golden-vec4';
 console.log(`%cFRONTIER ocean-sim build ${BUILD}`, 'color:#35e0ff;font-weight:bold');
 try {
   const sub = document.querySelector('.brand .sub');
@@ -49,7 +49,7 @@ scene.add(hemi);
 // ---------------------------------------------------------------------------
 // Simulation + shared uniforms (one dict, shared by reference across materials)
 //
-// The spectrum travels as flat vec4 uniform arrays (uSpecA/uSpecB) shared by
+// The spectrum travels as arrays of THREE.Vector4 (uSpecA/uSpecB) shared by
 // reference: three re-uploads them every render, so spectrum regens flow to
 // the GPU with no texture upload, no needsUpdate, no driver-sensitive path.
 // ---------------------------------------------------------------------------
@@ -57,8 +57,8 @@ const wave = new WaveField();
 
 const U = {
   uTime: { value: 0 },
-  uSpecA: { value: wave.dataA },
-  uSpecB: { value: wave.dataB },
+  uSpecA: { value: wave.specA },
+  uSpecB: { value: wave.specB },
   uCascadeAmp: { value: new THREE.Vector3(1, 1, 1) },
   uLabA0: { value: new THREE.Vector4() },
   uLabA1: { value: new THREE.Vector4() },

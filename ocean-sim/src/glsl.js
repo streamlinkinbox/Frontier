@@ -573,3 +573,22 @@ void main() {
   #include <colorspace_fragment>
 }
 `;
+
+// Debug contour view (?contour=1): paints the ocean by TRUE VERTEX HEIGHT.
+// Blue = troughs, white = mean level, red = crests, black lines at every
+// odd metre. If displacement is dead the sea renders one flat grey — if it
+// is alive you see wandering contour stripes. Pure diagnosis, no physics.
+export const OCEAN_CONTOUR_FS = /* glsl */`
+varying vec3 vWorld;
+varying vec3 vNormal;
+varying vec4 vMisc;
+void main() {
+  float y = vWorld.y;
+  vec3 col = mix(vec3(0.15, 0.35, 1.0), vec3(1.0, 0.2, 0.15), clamp(y * 0.25 + 0.5, 0.0, 1.0));
+  float band = abs(fract(y * 0.5 + 0.5) - 0.5) * 2.0;
+  col = mix(col, vec3(0.02), smoothstep(0.93, 1.0, band) * 0.75);
+  gl_FragColor = vec4(col, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}
+`;

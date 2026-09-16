@@ -20,6 +20,40 @@ window.addEventListener('unhandledrejection', function (e) {
   var p = document.querySelector('#loading p');
   if (p && !done) { p.textContent = 'Error: ' + msg; p.style.color = '#ff7a7a'; }
 });
+// Persistent GPU-error badge: three.js reports shader/GL failures through
+// console.error, which users never see. Mirror anything suspicious on screen.
+(function () {
+  var badge = null;
+  function ensure() {
+    if (badge) return badge;
+    badge = document.createElement('div');
+    badge.id = 'errbadge';
+    badge.style.cssText = 'position:fixed;top:10px;right:10px;z-index:999;max-width:46ch;'
+      + 'background:rgba(60,8,10,0.92);color:#ffd7d7;border:1px solid #ff7a7a;border-radius:8px;'
+      + 'padding:8px 10px;font:12px/1.45 system-ui;white-space:pre-wrap;display:none;';
+    (document.body || document.documentElement).appendChild(badge);
+    return badge;
+  }
+  function show(msg) {
+    try {
+      var b = ensure();
+      b.style.display = 'block';
+      b.textContent = ((b.textContent ? b.textContent + '\n---\n' : '') + msg).slice(-1200);
+    } catch (_) {}
+  }
+  var origErr = console.error ? console.error.bind(console) : null;
+  console.error = function () {
+    try {
+      var msg = Array.prototype.map.call(arguments, function (a) {
+        if (a && a.stack) return a.stack;
+        try { return String(a); } catch (_) { return '[?]'; }
+      }).join(' ').slice(0, 600);
+      if (/THREE|WebGL|shader|GLSL|program|Error/i.test(msg)) show('GPU: ' + msg);
+    } catch (_) {}
+    if (origErr) return origErr.apply(null, arguments);
+  };
+  window.__showError = show;
+})();
 </script>
 <link rel="stylesheet" href="./styles.css" />
 <script type="importmap">

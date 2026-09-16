@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { G, NCOMP, PARAMS, LAB } from './config.js?v=5';
 import { SWELL_N, SEA_N, CHOP_N } from './config.js?v=5';
 
@@ -36,9 +37,17 @@ export class WaveField {
     this.dirX = new Float32Array(NCOMP);
     this.dirZ = new Float32Array(NCOMP);
     this.casc = new Float32Array(NCOMP);
-    // GPU pack: texA = dir.x, dir.z, k, omega | texB = amp, Q, phase, cascade
-    this.dataA = new Float32Array(NCOMP * 4);
-    this.dataB = new Float32Array(NCOMP * 4);
+    // GPU pack: specA = dir.x, dir.z, k, omega | specB = amp, Q, phase, cascade.
+    // Arrays of THREE.Vector4: the golden, documented path for feeding vec4
+    // uniform arrays in three.js (same mechanism skinning/morphs rely on).
+    // The SAME array instances live for the whole session; update() rewrites
+    // the Vector4s in place, and the shared uniform dicts keep pointing at them.
+    this.specA = [];
+    this.specB = [];
+    for (let v = 0; v < NCOMP; v++) {
+      this.specA.push(new THREE.Vector4());
+      this.specB.push(new THREE.Vector4());
+    }
 
     this.Hs = 1; this.Tp = 7; this.fp = 0.14; this.m0 = 0.06; this.swellK = 2.2;
     this.saturated = false;
@@ -137,14 +146,8 @@ export class WaveField {
       const th = wd + this.delta[j];
       this.dirX[j] = Math.cos(th);
       this.dirZ[j] = Math.sin(th);
-      this.dataA[j * 4] = this.dirX[j];
-      this.dataA[j * 4 + 1] = this.dirZ[j];
-      this.dataA[j * 4 + 2] = this.k[j];
-      this.dataA[j * 4 + 3] = this.om[j];
-      this.dataB[j * 4] = A;
-      this.dataB[j * 4 + 1] = Q;
-      this.dataB[j * 4 + 2] = this.phase[j];
-      this.dataB[j * 4 + 3] = c;
+      this.specA[j].set(this.dirX[j], this.dirZ[j], this.k[j], this.om[j]);
+      this.specB[j].set(A, Q, this.phase[j], c);
       if (c === 0) { swSum += A; if (j < 8) sw8 += A; }
     }
     this.m0 = m0 * scale * scale;
