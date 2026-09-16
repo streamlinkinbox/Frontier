@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PARAMS, PRESETS, CAMS, LAB, G, NCOMP, todPalette } from './config.js';
+import { PARAMS, PRESETS, CAMS, LAB, G, todPalette } from './config.js';
 import { BEACH_SLOPE, REEF_WIDTH } from './bathy.js';
 import { WaveField } from './spectrum.js';
 import { Ocean } from './ocean.js';
@@ -40,22 +40,17 @@ scene.add(hemi);
 
 // ---------------------------------------------------------------------------
 // Simulation + shared uniforms (one dict, shared by reference across materials)
+//
+// The spectrum travels as flat vec4 uniform arrays (uSpecA/uSpecB) shared by
+// reference: three re-uploads them every render, so spectrum regens flow to
+// the GPU with no texture upload, no needsUpdate, no driver-sensitive path.
 // ---------------------------------------------------------------------------
 const wave = new WaveField();
 
-const texA = new THREE.DataTexture(wave.dataA, NCOMP, 1, THREE.RGBAFormat, THREE.FloatType);
-texA.minFilter = THREE.NearestFilter;
-texA.magFilter = THREE.NearestFilter;
-texA.needsUpdate = true;
-const texB = new THREE.DataTexture(wave.dataB, NCOMP, 1, THREE.RGBAFormat, THREE.FloatType);
-texB.minFilter = THREE.NearestFilter;
-texB.magFilter = THREE.NearestFilter;
-texB.needsUpdate = true;
-
 const U = {
   uTime: { value: 0 },
-  uSpecA: { value: texA },
-  uSpecB: { value: texB },
+  uSpecA: { value: wave.dataA },
+  uSpecB: { value: wave.dataB },
   uCascadeAmp: { value: new THREE.Vector3(1, 1, 1) },
   uLabA0: { value: new THREE.Vector4() },
   uLabA1: { value: new THREE.Vector4() },
@@ -197,9 +192,7 @@ function syncUniforms() {
 let ui = null;
 let regenTimer = 0;
 function regen() {
-  wave.update();
-  texA.needsUpdate = true;
-  texB.needsUpdate = true;
+  wave.update(); // writes wave.dataA/dataB in place; shared uniform arrays pick it up
   U.uSwellK.value = wave.swellK;
   // auto-ranged whitecaps across sea states and relief settings
   U.uFoldGain.value = (1.7 / (0.5 + wave.Hs)) / Math.max(PARAMS.relief, 0.2);

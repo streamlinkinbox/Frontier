@@ -3,6 +3,10 @@
 // upgraded to ESSL3 on WebGL2). Rules observed: fixed loop bounds, no
 // reversed smoothstep, no pow() of negatives, no undeclared identifiers,
 // no shadowing of three-injected attributes (uv, position, ...).
+//
+// NOTE: the spectrum travels as plain vec4 uniform arrays (uSpecA/uSpecB),
+// not float textures — uniform arrays are the most driver-proof path for
+// vertex-stage data in WebGL (this is how skinning ships everywhere).
 // ---------------------------------------------------------------------------
 
 export const NOISE = /* glsl */`
@@ -102,8 +106,8 @@ vec3 skyColor(vec3 dir) {
 // ---------------------------------------------------------------- ocean ---
 export const OCEAN_VS = /* glsl */`
 uniform float uTime;
-uniform sampler2D uSpecA;
-uniform sampler2D uSpecB;
+uniform vec4 uSpecA[80];
+uniform vec4 uSpecB[80];
 uniform vec3 uCascadeAmp;
 uniform vec4 uLabA0;
 uniform vec4 uLabA1;
@@ -165,10 +169,8 @@ void main() {
   float swellAmp = 0.0;
   float rEdge = max(abs(pos.x), abs(pos.z));
   for (int i = 0; i < 80; i++) {
-    float fi = float(i);
-    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
-    vec4 A = texture2D(uSpecA, suv);
-    vec4 B = texture2D(uSpecB, suv);
+    vec4 A = uSpecA[i];
+    vec4 B = uSpecB[i];
     float casc = B.w;
     float wSwell = 1.0 - step(0.5, casc);
     float wSea = step(0.5, casc) * (1.0 - step(1.5, casc));
@@ -331,8 +333,8 @@ void main() {
 // wxz = (vUv - 0.5) * 1300 — the ocean shader uses the identical mapping.
 export const FOAM_FS = /* glsl */`
 uniform sampler2D uPrev;
-uniform sampler2D uSpecA;
-uniform sampler2D uSpecB;
+uniform vec4 uSpecA[80];
+uniform vec4 uSpecB[80];
 uniform vec3 uCascadeAmp;
 uniform float uSurfOn;
 uniform float uShoalGain;
@@ -356,10 +358,8 @@ void main() {
   float hSwell = 0.0;
   float swellAmp = 0.0;
   for (int i = 0; i < 28; i++) {
-    float fi = float(i);
-    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
-    vec4 A = texture2D(uSpecA, suv);
-    vec4 B = texture2D(uSpecB, suv);
+    vec4 A = uSpecA[i];
+    vec4 B = uSpecB[i];
     float wSwell = 1.0 - step(0.5, B.w);
     float cascAmp = wSwell * uCascadeAmp.x + (1.0 - wSwell) * uCascadeAmp.y;
     float swellness = wSwell + 0.45 * (1.0 - wSwell);
@@ -488,8 +488,8 @@ void main() {
 // is handled by the FoamSim advection buffer, not sprites.
 export const POINTS_VS = /* glsl */`
 uniform float uTime;
-uniform sampler2D uSpecA;
-uniform sampler2D uSpecB;
+uniform vec4 uSpecA[80];
+uniform vec4 uSpecB[80];
 uniform vec2 uDrift;
 uniform float uPointScale;
 uniform float uSprayAmt;
@@ -514,10 +514,8 @@ void main() {
   float age = tau * life;
   float h = 0.0;
   for (int i = 0; i < 8; i++) {
-    float fi = float(i);
-    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
-    vec4 A = texture2D(uSpecA, suv);
-    vec4 B = texture2D(uSpecB, suv);
+    vec4 A = uSpecA[i];
+    vec4 B = uSpecB[i];
     h += B.x * sin(A.z * dot(A.xy, anchor.xz) - A.w * uTime + B.z);
   }
   h *= uSwellK;

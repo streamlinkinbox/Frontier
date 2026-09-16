@@ -13,7 +13,7 @@ Any static server (ES modules + import map; three.js r160 loads from CDN):
 
 ```bash
 cd ocean-sim
-python -m http.server 8000
+python serve.py 8000        # cache-proof static server (plain refresh always runs current code)
 # open http://localhost:8000
 ```
 
