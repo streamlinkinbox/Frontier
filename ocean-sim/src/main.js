@@ -1,15 +1,23 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PARAMS, PRESETS, CAMS, LAB, G, todPalette } from './config.js';
-import { BEACH_SLOPE, REEF_WIDTH } from './bathy.js';
-import { WaveField } from './spectrum.js';
-import { Ocean } from './ocean.js';
-import { Sky } from './sky.js';
-import { Seabed } from './seabed.js';
-import { SprayParticles } from './particles.js';
-import { FoamSim } from './foam.js';
-import { Props } from './props.js';
-import { UI } from './ui.js';
+import { PARAMS, PRESETS, CAMS, LAB, G, todPalette } from './config.js?v=5';
+import { BEACH_SLOPE, REEF_WIDTH } from './bathy.js?v=5';
+import { WaveField } from './spectrum.js?v=5';
+import { Ocean } from './ocean.js?v=5';
+import { Sky } from './sky.js?v=5';
+import { Seabed } from './seabed.js?v=5';
+import { SprayParticles } from './particles.js?v=5';
+import { FoamSim } from './foam.js?v=5';
+import { Props } from './props.js?v=5';
+import { UI } from './ui.js?v=5';
+
+// Build stamp — proves which code is actually running (console + subtitle).
+const BUILD = 'v5-uniform-arrays';
+console.log(`%cFRONTIER ocean-sim build ${BUILD}`, 'color:#35e0ff;font-weight:bold');
+try {
+  const sub = document.querySelector('.brand .sub');
+  if (sub && !sub.textContent.includes('build')) sub.textContent += ` · build ${BUILD}`;
+} catch (_) { /* headless */ }
 
 // ---------------------------------------------------------------------------
 // Renderer / scene / camera

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SEABED_VS, SEABED_FS } from './glsl.js';
-import { bathyJS } from './bathy.js';
+import { SEABED_VS, SEABED_FS } from './glsl.js?v=5';
+import { bathyJS } from './bathy.js?v=5';
 
 export class Seabed {
   constructor(uniforms) {

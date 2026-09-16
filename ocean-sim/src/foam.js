@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FOAM_VS, FOAM_FS } from './glsl.js';
+import { FOAM_VS, FOAM_FS } from './glsl.js?v=5';
 
 export const FOAM_SIZE = 256;
 export const FOAM_SPAN = 1300; // world meters covered (matches the ±650 near grid)

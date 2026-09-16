@@ -1,4 +1,4 @@
-import { PARAMS, PRESETS, BEAUFORT_WIND, BEAUFORT_NAMES, G } from './config.js';
+import { PARAMS, PRESETS, BEAUFORT_WIND, BEAUFORT_NAMES, G } from './config.js?v=5';
 
 function getPath(o, p) {
   return p.split('.').reduce((a, k) => a[k], o);

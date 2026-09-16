@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GRID_HALF } from './config.js';
-import { OCEAN_VS, OCEAN_FS } from './glsl.js';
+import { GRID_HALF } from './config.js?v=5';
+import { OCEAN_VS, OCEAN_FS } from './glsl.js?v=5';
 
 // Camera-grade graded grid: dense at the center, coarse at the rim.
 export function buildGradedGrid(n, half, power) {

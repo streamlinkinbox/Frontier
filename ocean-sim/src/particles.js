@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { PARAMS } from './config.js';
-import { POINTS_VS, POINTS_FS } from './glsl.js';
-import { reefXAt, shoreXAt } from './bathy.js';
+import { PARAMS } from './config.js?v=5';
+import { POINTS_VS, POINTS_FS } from './glsl.js?v=5';
+import { reefXAt, shoreXAt } from './bathy.js?v=5';
 
 export const PMAX = 60000;
 

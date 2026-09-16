@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LAB, PARAMS } from './config.js';
+import { LAB, PARAMS } from './config.js?v=5';
 
 // Buoy + wave-lab marker ring + center spar.
 // The buoy and spar ride the SAME analytic WaveField the GPU draws,

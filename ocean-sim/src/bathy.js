@@ -1,4 +1,4 @@
-import { PARAMS } from './config.js';
+import { PARAMS } from './config.js?v=5';
 
 // ---------------------------------------------------------------------------
 // Analytic bathymetry — MUST match the GLSL `bathymetry()` in glsl.js exactly.

@@ -1,5 +1,5 @@
-import { G, NCOMP, PARAMS, LAB } from './config.js';
-import { SWELL_N, SEA_N, CHOP_N } from './config.js';
+import { G, NCOMP, PARAMS, LAB } from './config.js?v=5';
+import { SWELL_N, SEA_N, CHOP_N } from './config.js?v=5';
 
 // Cascade bands: [wavelengthMin, wavelengthMax, count]
 const BANDS = [[60, 600, SWELL_N], [8, 60, SEA_N], [1, 8, CHOP_N]];

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SKY_VS, SKY_FS } from './glsl.js';
+import { SKY_VS, SKY_FS } from './glsl.js?v=5';
 
 export class Sky {
   constructor(uniforms) {

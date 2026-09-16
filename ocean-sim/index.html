@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="dark" />
 <title>FRONTIER · Ocean Simulator</title>
+<script>
+// Boot net: if any module fails (import error, link error, exception before
+// first frame), the loading screen says so instead of spinning forever.
+window.addEventListener('error', function (e) {
+  var msg = (e && e.message) || 'failed to start';
+  var p = document.querySelector('#loading p');
+  if (p) { p.textContent = 'Error: ' + msg; p.style.color = '#ff7a7a'; }
+}, true);
+window.addEventListener('unhandledrejection', function (e) {
+  var r = e && e.reason;
+  var msg = 'rejected: ' + ((r && (r.message || r)) || 'unknown');
+  var done = document.getElementById('loading').classList.contains('done');
+  var p = document.querySelector('#loading p');
+  if (p && !done) { p.textContent = 'Error: ' + msg; p.style.color = '#ff7a7a'; }
+});
+</script>
 <link rel="stylesheet" href="./styles.css" />
 <script type="importmap">
 {
@@ -179,6 +195,6 @@
 
 <div id="loading"><div class="spin"></div><p>building ocean…</p></div>
 
-<script type="module" src="./src/main.js?v=4"></script>
+<script type="module" src="./src/main.js?v=5"></script>
 </body>
 </html>
