@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // All GLSL lives here. Three.js ShaderMaterial style (GLSL1 syntax, auto
 // upgraded to ESSL3 on WebGL2). Rules observed: fixed loop bounds, no
-// reversed smoothstep, no pow() of negatives, no undeclared identifiers.
+// reversed smoothstep, no pow() of negatives, no undeclared identifiers,
+// no shadowing of three-injected attributes (uv, position, ...).
 // ---------------------------------------------------------------------------
 
 export const NOISE = /* glsl */`
@@ -118,6 +119,7 @@ uniform float uPeelSpeed;
 uniform float uPeelWidth;
 uniform float uPeelOffset;
 uniform float uFoldGain;
+uniform float uRelief;
 attribute float aFlat;
 varying vec3 vWorld;
 varying vec3 vNormal;
@@ -127,7 +129,7 @@ void labWave(vec4 P0, vec4 P1, vec2 xz, inout vec3 disp, inout float dYdx, inout
   if (P1.w < 0.01 || P1.x <= 0.0) return;
   vec2 dd = (xz - uLabCenter) / uLabRadius;
   float env = exp(-dot(dd, dd) * 1.5);
-  float amp = P1.x * env;
+  float amp = P1.x * env * uRelief;
   float ph = P0.z * dot(P0.xy, xz) - P0.w * uTime + P1.z;
   float s = sin(ph);
   float c = cos(ph);
@@ -164,9 +166,9 @@ void main() {
   float rEdge = max(abs(pos.x), abs(pos.z));
   for (int i = 0; i < 80; i++) {
     float fi = float(i);
-    vec2 uv = vec2((fi + 0.5) / 80.0, 0.5);
-    vec4 A = texture2D(uSpecA, uv);
-    vec4 B = texture2D(uSpecB, uv);
+    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
+    vec4 A = texture2D(uSpecA, suv);
+    vec4 B = texture2D(uSpecB, suv);
     float casc = B.w;
     float wSwell = 1.0 - step(0.5, casc);
     float wSea = step(0.5, casc) * (1.0 - step(1.5, casc));
@@ -179,7 +181,7 @@ void main() {
     float shoal = uSurfOn * (1.0 - smoothstep(2.0, 18.0, depth)) * swellness;
     float kEff = A.z / mix(1.0, 0.55, shoal);
     float green = pow(clamp(20.0 / max(depth, 0.8), 1.0, 6.0), 0.25);
-    float ampE = B.x * cascAmp * (1.0 + shoal * (green - 1.0) * uShoalGain);
+    float ampE = B.x * cascAmp * (1.0 + shoal * (green - 1.0) * uShoalGain) * uRelief;
     float Qe = B.y * (1.0 + shoal * 1.5);
     float omE = A.w * mix(1.0, 0.8, shoal);
     float ph = kEff * dot(A.xy, pos.xz) - omE * uTime + B.z;
@@ -285,17 +287,20 @@ void main() {
   // sun/shade modeling on the wave faces — this is what makes swell read
   float ndl = dot(N, uSunDir) * 0.5 + 0.5;
   waterCol *= 0.72 + 0.56 * ndl;
+  // trough/crest depth cue: dark hollows, bright crowns
+  waterCol *= 0.85 + 0.30 * vMisc.z;
   vec3 R = reflect(-V, N);
   R.y = abs(R.y);
   vec3 skyRef = skyColor(R);
   float ndv = max(dot(N, V), 0.0);
-  float F = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+  float F = 0.02 + 0.94 * pow(1.0 - ndv, 4.0);
   vec3 col = mix(waterCol, skyRef, F);
   vec3 H = normalize(uSunDir + V);
   float ndh = max(dot(N, H), 0.0);
   float rough = clamp(0.08 + (1.0 - vMisc.z) * 0.06 + (1.0 - mfade) * 0.18, 0.05, 0.45);
-  float spec = pow(ndh, mix(900.0, 90.0, rough)) * (0.6 + 0.4 * nMid);
-  col += uSunColor * spec * 2.0 * (1.0 - clamp(foamMask, 0.0, 1.0));
+  float spec = pow(ndh, mix(700.0, 60.0, rough)) * (0.6 + 0.4 * nMid);
+  col += uSunColor * spec * 3.0 * (1.0 - clamp(foamMask, 0.0, 1.0));
+  col += uSunColor * pow(ndh, 24.0) * 0.12 * (1.0 - clamp(foamMask, 0.0, 1.0));
   float toward = clamp(dot(V, uSunDir), 0.0, 1.0);
   float sss = pow(toward, 3.0) * (0.25 + 0.75 * vMisc.z) * (0.35 + 0.65 * (1.0 - absorbT));
   col += uSSSColor * sss * uSSS * (1.0 - clamp(foamMask, 0.0, 1.0));
@@ -336,6 +341,7 @@ uniform float uPeelSpeed;
 uniform float uPeelWidth;
 uniform float uPeelOffset;
 uniform float uFoldGain;
+uniform float uRelief;
 uniform float uDt;
 uniform vec2 uFlow;
 uniform float uTime;
@@ -360,7 +366,7 @@ void main() {
     float shoal = uSurfOn * (1.0 - smoothstep(2.0, 18.0, depth)) * swellness;
     float kEff = A.z / mix(1.0, 0.55, shoal);
     float green = pow(clamp(20.0 / max(depth, 0.8), 1.0, 6.0), 0.25);
-    float ampE = B.x * cascAmp * (1.0 + shoal * (green - 1.0) * uShoalGain);
+    float ampE = B.x * cascAmp * (1.0 + shoal * (green - 1.0) * uShoalGain) * uRelief;
     float Qe = B.y * (1.0 + shoal * 1.5);
     float omE = A.w * mix(1.0, 0.8, shoal);
     float ph = kEff * dot(A.xy, wxz) - omE * uTime + B.z;
@@ -509,9 +515,9 @@ void main() {
   float h = 0.0;
   for (int i = 0; i < 8; i++) {
     float fi = float(i);
-    vec2 uv = vec2((fi + 0.5) / 80.0, 0.5);
-    vec4 A = texture2D(uSpecA, uv);
-    vec4 B = texture2D(uSpecB, uv);
+    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
+    vec4 A = texture2D(uSpecA, suv);
+    vec4 B = texture2D(uSpecB, suv);
     h += B.x * sin(A.z * dot(A.xy, anchor.xz) - A.w * uTime + B.z);
   }
   h *= uSwellK;

@@ -52,6 +52,8 @@
       <input type="range" data-p="windDir" min="0" max="360" step="1" /></div>
     <div class="row"><label>Choppiness <span><output data-o="chop" data-fmt="f2"></output></span></label>
       <input type="range" data-p="chop" min="0" max="2" step="0.05" /></div>
+    <div class="row"><label>Relief × <span><output data-o="relief" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="relief" min="0.5" max="3" step="0.05" /></div>
     <div class="row"><label>Swell × <span><output data-o="cascSwell" data-fmt="f2"></output></span></label>
       <input type="range" data-p="cascSwell" min="0" max="1.5" step="0.05" /></div>
     <div class="row"><label>Wind-sea × <span><output data-o="cascSea" data-fmt="f2"></output></span></label>
@@ -162,6 +164,7 @@
     <canvas id="spec" width="264" height="118"></canvas>
     <div class="readouts">
       <div><span>Sea</span><b id="ro-sea">—</b></div>
+      <div><span>Relief</span><b id="ro-relief">—</b></div>
       <div><span>Buoy lvl</span><b id="ro-buoy">—</b></div>
       <div><span>Clock</span><b id="ro-clock">—</b></div>
     </div>

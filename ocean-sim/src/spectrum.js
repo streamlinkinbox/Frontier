@@ -164,8 +164,9 @@ export class WaveField {
     return L.amp * env * Math.sin(k * (Math.cos(th) * x + Math.sin(th) * z) - om * t + L.phase * Math.PI / 180);
   }
 
-  // Full analytic surface height (deep-water part; shoaling/breaking is a
-  // GPU shaping stage on top, see ocean vertex shader).
+  // Full analytic surface height, including the relief (vertical exaggeration)
+  // factor so CPU probes stay glued to the rendered surface. (Deep-water part;
+  // shoaling/breaking is a GPU shaping stage on top, see ocean vertex shader.)
   height(x, z, t, useA, useB) {
     let h = 0;
     for (let j = 0; j < NCOMP; j++) {
@@ -174,7 +175,7 @@ export class WaveField {
     if (useA === undefined) { useA = true; useB = true; }
     h += this.labHeight(PARAMS.labA, x, z, t, useA);
     h += this.labHeight(PARAMS.labB, x, z, t, useB);
-    return h;
+    return h * PARAMS.relief;
   }
 
   grad(x, z, t) {
@@ -182,6 +183,20 @@ export class WaveField {
     const hx = this.height(x + e, z, t) - this.height(x - e, z, t);
     const hz = this.height(x, z + e, t) - this.height(x, z - e, t);
     return [hx / (2 * e), hz / (2 * e)];
+  }
+
+  // Measured crest-to-trough relief over the central field (includes relief
+  // factor) — the honest number behind "are there waves".
+  reliefAt(t) {
+    let mn = 1e9, mx = -1e9;
+    for (let j = 0; j < 12; j++) {
+      for (let k = 0; k < 12; k++) {
+        const h = this.height(-150 + j * (300 / 11), -150 + k * (300 / 11), t);
+        if (h < mn) mn = h;
+        if (h > mx) mx = h;
+      }
+    }
+    return mx - mn;
   }
 
   // Interference factor over the lab disc: var(A+B) / (varA + varB).

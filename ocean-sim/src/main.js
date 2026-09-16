@@ -71,6 +71,7 @@ const U = {
   uPeelWidth: { value: 26 },
   uPeelOffset: { value: 160 },
   uFoldGain: { value: 1 },
+  uRelief: { value: PARAMS.relief },
   uShoreX: { value: PARAMS.shoreX },
   uShoreAngle: { value: 0 },
   uBeachSlope: { value: BEACH_SLOPE },
@@ -173,6 +174,7 @@ function syncUniforms() {
   U.uBarrel.value = P.barrel;
   U.uPeelSpeed.value = P.peelSpeed;
   U.uPeelWidth.value = P.peelWidth;
+  U.uRelief.value = P.relief;
   U.uReefAngle.value = (P.reefAngle * Math.PI) / 180;
   U.uReefDepth.value = P.reefDepth;
   U.uReefX.value = P.reefX;
@@ -199,7 +201,8 @@ function regen() {
   texA.needsUpdate = true;
   texB.needsUpdate = true;
   U.uSwellK.value = wave.swellK;
-  U.uFoldGain.value = 1.7 / (0.5 + wave.Hs); // auto-ranged whitecaps across sea states
+  // auto-ranged whitecaps across sea states and relief settings
+  U.uFoldGain.value = (1.7 / (0.5 + wave.Hs)) / Math.max(PARAMS.relief, 0.2);
   if (ui) ui.drawSpectrum();
 }
 function scheduleRegen() {
@@ -251,6 +254,8 @@ const api = {
     if (path === 'wireframe') ocean.material.wireframe = !!PARAMS.wireframe;
     if (path === 'autorotate') controls.autoRotate = !!PARAMS.autorotate;
     if (GEO_KEYS.includes(path)) scheduleGeo();
+    // relief rescales fold, so recenter the whitecap auto-gain
+    if (path === 'relief') regen();
     // enabling a lab train flies the camera to the site so it never feels dead
     if (path === 'labA.on' && PARAMS.labA.on) setCam('lab');
     if (path === 'labB.on' && PARAMS.labB.on) setCam('lab');

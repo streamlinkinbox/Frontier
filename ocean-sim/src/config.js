@@ -18,11 +18,12 @@ export const LAB = { x: -190, z: 80, r: 75 };
 // ---------------------------------------------------------------------------
 export const PARAMS = {
   // sea state
-  beaufort: 5,
-  wind: 10.7,        // U10 (m/s)
-  fetch: 140,         // km (kept in the fetch-limited, responsive range)
+  beaufort: 6,
+  wind: 13.8,        // U10 (m/s)
+  fetch: 150,         // km (kept in the fetch-limited, responsive range)
   windDir: 38,        // deg, math angle in XZ plane (0 = +X, toward shore)
-  chop: 1.1,          // global steepness / choppiness multiplier
+  chop: 1.15,         // global steepness / choppiness multiplier
+  relief: 1.6,        // vertical exaggeration (maritime-sim style readability)
   cascSwell: 1.0, cascSea: 1.0, cascChop: 1.0,
 
   // surf break
@@ -64,40 +65,43 @@ export const BEAUFORT_NAMES = [
 export const PRESETS = {
   glassy: {
     label: 'Glassy Dawn',
-    p: { beaufort: 1, wind: 1.5, fetch: 120, chop: 0.7, hour: 6.4, cloud: 0.25,
+    p: { beaufort: 1, wind: 1.5, fetch: 120, chop: 0.7, relief: 1.2, hour: 6.4, cloud: 0.25,
          cascChop: 0.6, breakAmp: 0.4, spray: 0.5, particles: 12000, foamAmt: 0.8 },
     lab: { a: false, b: false }, cam: 'orbit',
   },
   trades: {
     label: 'Trade Winds',
-    p: { beaufort: 5, wind: 10.7, fetch: 140, windDir: 38, chop: 1.1, hour: 15.5, cloud: 0.45,
+    p: { beaufort: 6, wind: 13.8, fetch: 150, windDir: 38, chop: 1.15, relief: 1.6,
+         hour: 15.5, cloud: 0.45,
          cascSwell: 1, cascSea: 1, cascChop: 1, surfOn: 1, breakAmp: 1.0, barrel: 1.6,
          spray: 1.0, particles: 22000, foamAmt: 1.0 },
     lab: { a: false, b: false }, cam: 'orbit',
   },
   storm: {
     label: 'Open Storm',
-    p: { beaufort: 8, wind: 20.7, fetch: 400, chop: 1.3, hour: 11.2, cloud: 0.85,
+    p: { beaufort: 8, wind: 20.7, fetch: 400, chop: 1.3, relief: 1.6, hour: 11.2, cloud: 0.85,
          cascChop: 1.2, breakAmp: 1.3, spray: 1.4, particles: 45000, foamAmt: 1.25, whitecap: 1.2 },
     lab: { a: false, b: false }, cam: 'aerial',
   },
   surf: {
     label: 'Surf Break',
-    p: { beaufort: 4, wind: 9.0, fetch: 160, windDir: 14, chop: 0.95, hour: 16.8, cloud: 0.3,
+    p: { beaufort: 4, wind: 9.0, fetch: 160, windDir: 14, chop: 0.95, relief: 1.6,
+         hour: 16.8, cloud: 0.3,
          cascSwell: 1.25, cascSea: 1.0, cascChop: 0.35, surfOn: 1,
          breakAmp: 1.35, barrel: 2.2, peelSpeed: 8.0, spray: 1.2, particles: 34000 },
     lab: { a: false, b: false }, cam: 'surf',
   },
   cancel: {
     label: 'Wave Cancel',
-    p: { beaufort: 4, wind: 7.9, fetch: 140, windDir: 38, chop: 1.0, hour: 10.5, cloud: 0.4 },
+    p: { beaufort: 4, wind: 7.9, fetch: 140, windDir: 38, chop: 1.0, relief: 1.4,
+         hour: 10.5, cloud: 0.4 },
     lab: { a: { on: true, lambda: 60, amp: 1.4, dir: 90, phase: 0 },
            b: { on: true, lambda: 60, amp: 1.4, dir: 90, phase: 180 } },
     cam: 'lab',
   },
   cross: {
     label: 'Crossing Seas',
-    p: { beaufort: 3, wind: 5.4, fetch: 140, chop: 0.9, hour: 13.5, cloud: 0.5 },
+    p: { beaufort: 3, wind: 5.4, fetch: 140, chop: 0.9, relief: 1.4, hour: 13.5, cloud: 0.5 },
     lab: { a: { on: true, lambda: 80, amp: 1.1, dir: 60, phase: 0 },
            b: { on: true, lambda: 55, amp: 1.0, dir: -35, phase: 90 } },
     cam: 'lab',
@@ -105,7 +109,7 @@ export const PRESETS = {
 };
 
 export const CAMS = {
-  orbit: { pos: [18, 13, 72],    tgt: [-40, 2, -10] },
+  orbit: { pos: [8, 7, 54],      tgt: [-45, 2, -12] },
   surf:  { pos: [-2, 4.5, 52],   tgt: [-75, 4, -18] },
   shore: { pos: [112, 9, 62],    tgt: [-60, 2, -20] },
   aerial:{ pos: [-60, 230, 190], tgt: [-60, 0, -10] },

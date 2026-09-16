@@ -73,4 +73,6 @@ ocean-sim/
   horizon while sub-grid chop is culled instead of shimmering.
 - The sea readout tells you when the fetch law saturates ("fully developed"):
   beyond that point extra fetch is physically idle, not a bug.
+- Relief × is honest vertical exaggeration (1.0 = true JONSWAP heights);
+  it scales waves, normals, foam fold, buoy and probes together.
 - If a laptop struggles: Quality → medium/low, or lower the spray count.

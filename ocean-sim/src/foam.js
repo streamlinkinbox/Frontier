@@ -48,6 +48,7 @@ export class FoamSim {
       uPeelWidth: shared.uPeelWidth,
       uPeelOffset: shared.uPeelOffset,
       uFoldGain: shared.uFoldGain,
+      uRelief: shared.uRelief,
       uShoreX: shared.uShoreX,
       uShoreAngle: shared.uShoreAngle,
       uBeachSlope: shared.uBeachSlope,
