@@ -5,7 +5,7 @@ import { SWELL_N, SEA_N, CHOP_N } from './config.js';
 const BANDS = [[60, 600, SWELL_N], [8, 60, SEA_N], [1, 8, CHOP_N]];
 const SPREAD_SIGMA = [0.21, 0.44, 0.70];   // directional spread (rad, gaussian sigma)
 const SPREAD_S = [20, 8, 4];               // cos^2s directional shape exponents
-const STEEP = [0.55, 0.75, 0.95];          // per-cascade steepness targets
+const STEEP = [0.8, 1.0, 1.25];            // per-cascade steepness targets
 const GAMMA = 3.3;                         // JONSWAP peak enhancement
 
 function mulberry32(seed) {
@@ -41,6 +41,7 @@ export class WaveField {
     this.dataB = new Float32Array(NCOMP * 4);
 
     this.Hs = 1; this.Tp = 7; this.fp = 0.14; this.m0 = 0.06; this.swellK = 2.2;
+    this.saturated = false;
     this.seed = 1337;
     this.rollSeed(this.seed);
     this.update();
@@ -117,7 +118,9 @@ export class WaveField {
     }
 
     // Normalize energy to the fetch-limited significant wave height Hs = 4*sqrt(m0)
-    const HsT = (U * U / G) * Math.min(0.0016 * Math.sqrt(X), 0.21);
+    const fetchTerm = 0.0016 * Math.sqrt(X);
+    this.saturated = fetchTerm >= 0.21; // fully developed: fetch slider is honestly idle
+    const HsT = (U * U / G) * Math.min(fetchTerm, 0.21);
     const scale = HsT / Math.max(4 * Math.sqrt(m0), 1e-4);
 
     let swSum = 0, sw8 = 0;

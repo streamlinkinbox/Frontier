@@ -22,7 +22,7 @@
 <header id="topbar">
   <div class="brand">
     <span class="logo">FRONTIER</span>
-    <span class="sub">Ocean Simulator · JONSWAP spectral waves · surf break · particle foam</span>
+    <span class="sub">Ocean Simulator · JONSWAP spectral waves · surf break · simulated foam</span>
   </div>
   <nav id="preset-row">
     <button data-action="preset" data-arg="glassy">Glassy</button>
@@ -83,12 +83,14 @@
       <input type="range" data-p="labB.dir" min="-180" max="180" step="1" /></div>
     <div class="row"><label>phase B <span><output data-o="labB.phase" data-fmt="deg"></output></span></label>
       <input type="range" data-p="labB.phase" min="0" max="360" step="1" /></div>
-    <p class="note">Equal λ + equal amp + 180° phase → destructive cancellation inside the cyan ring. Opposite dirs → standing wave.</p>
+    <p class="note">Equal λ + equal amp + 180° phase → destructive cancellation inside the cyan ring (camera flies there when you enable a train). Opposite dirs → standing wave.</p>
   </details>
 
   <details open>
     <summary>Surf break <span class="hint">shoaling · barrel · peel</span></summary>
     <div class="row"><label class="check"><input type="checkbox" data-p="surfOn" /> Enable surf shaping</label></div>
+    <div class="row"><label>Shoal gain <span><output data-o="shoalGain" data-fmt="f2"></output></span></label>
+      <input type="range" data-p="shoalGain" min="0" max="2" step="0.05" /></div>
     <div class="row"><label>Break power <span><output data-o="breakAmp" data-fmt="f2"></output></span></label>
       <input type="range" data-p="breakAmp" min="0" max="2" step="0.05" /></div>
     <div class="row"><label>Barrel throw <span><output data-o="barrel" data-fmt="f2"></output></span></label>
@@ -104,15 +106,16 @@
   </details>
 
   <details>
-    <summary>Foam &amp; spray <span class="hint">GPU particles</span></summary>
+    <summary>Foam &amp; spray <span class="hint">simulated · advected</span></summary>
     <div class="row"><label>Foam amount <span><output data-o="foamAmt" data-fmt="f2"></output></span></label>
       <input type="range" data-p="foamAmt" min="0" max="2" step="0.05" /></div>
     <div class="row"><label>Whitecaps <span><output data-o="whitecap" data-fmt="f2"></output></span></label>
       <input type="range" data-p="whitecap" min="0" max="3" step="0.05" /></div>
     <div class="row"><label>Spray <span><output data-o="spray" data-fmt="f2"></output></span></label>
       <input type="range" data-p="spray" min="0" max="1.5" step="0.05" /></div>
-    <div class="row"><label>Particles <span><output data-o="particles" data-fmt="k"></output></span></label>
-      <input type="range" data-p="particles" min="10000" max="200000" step="10000" /></div>
+    <div class="row"><label>Spray count <span><output data-o="particles" data-fmt="k"></output></span></label>
+      <input type="range" data-p="particles" min="0" max="60000" step="2000" /></div>
+    <p class="note">Foam is a simulated field (injected from wave physics, drifted by current, decayed over time). The spray slider only feeds breaker spray.</p>
   </details>
 
   <details>
@@ -166,7 +169,7 @@
 
   <details>
     <summary>About</summary>
-    <p class="note">80-wave JONSWAP spectrum (3 cascades) summed on the GPU with Gerstner displacement, analytic normals and Jacobian whitecaps; surf shoaling over an analytic reef; 200k stateless GPU foam/spray particles; one CPU mirror drives buoy, probes and the interference meter. See RESEARCH.md for the 2024–2026 sources.</p>
+    <p class="note">80-wave JONSWAP spectrum (3 cascades) summed on the GPU with Gerstner displacement, analytic normals and Jacobian whitecaps; surf shoaling over an analytic reef; foam as a simulated advection field plus breaker-only spray; one CPU mirror drives buoy, probes and the interference meter. See RESEARCH.md for the 2024–2026 sources.</p>
     <p class="note dim">drag orbit · wheel zoom · right-drag pan · WASD/QE fly (shift = fast) · space pause · 1–6 presets</p>
   </details>
 </aside>

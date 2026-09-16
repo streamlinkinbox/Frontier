@@ -26,8 +26,8 @@ No build step, no npm install. Requires WebGL2 (all modern browsers).
 | Spectral waves | 80 JONSWAP components in 3 cascades (swell / wind-sea / chop), fetch-limited Hasselmann growth, `Hs = 4√m0` energy normalization, GPU Gerstner sum with analytic normals |
 | Wave lab | 2 localized trains (λ, amp, dir, phase) + live `var(A+B)/(varA+varB)` meter: destructive cancel, standing waves, crossing seas |
 | Surf break | Green's-law shoaling, wavelength shortening, breaker jack-up, barrel lip throw, travelling peel pulse over a skewed reef bar |
-| Foam | Tessendorf Jacobian fold → whitecaps + breaker + shoreline swash, advected noise breakup |
-| Particles | 200k stateless GPU particles (ballistic spray, riding foam, shore wash, wind streaks), peel-gated emission at the break line |
+| Foam | Simulated advection field (injected from fold/breaker physics, drifted, decayed) + instantaneous Jacobian whitecaps |
+| Spray | Breaker-only GPU spray, peel-gated, near/far faded |
 | Optics | depth absorption, Fresnel sky reflection, sun glitter, crest subsurface scattering, ACES, horizon-matched fog |
 | Probes | instrument buoy + lab spar ride the same analytic field the GPU draws; live spectrum plot with Hs / Tp readout |
 
@@ -69,6 +69,8 @@ ocean-sim/
 
 - Whitecaps auto-range with sea state (`uFoldGain` from Hs); the Whitecaps
   slider is an artistic multiplier on top.
-- Chop shimmer at distance is killed by per-cascade distance fades in the
-  vertex shader, not by fog.
-- If a laptop struggles: Quality → medium/low, or lower the particle count.
+- Detail fades per-component by wavelength, so long rollers survive to the
+  horizon while sub-grid chop is culled instead of shimmering.
+- The sea readout tells you when the fetch law saturates ("fully developed"):
+  beyond that point extra fetch is physically idle, not a bug.
+- If a laptop struggles: Quality → medium/low, or lower the spray count.

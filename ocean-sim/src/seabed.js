@@ -10,6 +10,12 @@ export class Seabed {
       fragmentShader: SEABED_FS,
       side: THREE.DoubleSide,
     });
+    this.mesh = new THREE.Mesh(this.buildGeometry(), this.material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = -2;
+  }
+
+  buildGeometry() {
     const g = new THREE.PlaneGeometry(1500, 1500, 150, 150);
     g.rotateX(-Math.PI / 2);
     const pos = g.getAttribute('position');
@@ -19,9 +25,14 @@ export class Seabed {
     }
     pos.needsUpdate = true;
     g.computeVertexNormals();
-    this.mesh = new THREE.Mesh(g, this.material);
-    this.mesh.frustumCulled = false;
-    this.mesh.renderOrder = -2;
+    return g;
+  }
+
+  // Rebuild when the user reshapes the reef/shore so sand and surf agree.
+  rebuild() {
+    const old = this.mesh.geometry;
+    this.mesh.geometry = this.buildGeometry();
+    old.dispose();
   }
 
   addTo(scene) {

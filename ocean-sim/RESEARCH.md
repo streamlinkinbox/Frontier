@@ -71,10 +71,12 @@ peel pulse over a skewed reef bar. Clean-up control via per-cascade gain
 
 **What we built:** two foam layers. (1) Surface foam from the Tessendorf
 **Jacobian fold factor** + breaker mask + shoreline swash, broken up by
-advected multi-scale noise. (2) A **stateless GPU particle system** (up to
-200k: ballistic spray, riding crest foam, shoreline wash, wind-advected
-streaks) whose emitters sit on the reef break line, gated by the same peel
-pulse that breaks the waves — emission follows physics, not timers.
+advected multi-scale noise. (2) A **ping-pong foam advection buffer**
+(256², half-float): each frame the swell/sea spectrum is re-evaluated per
+texel to inject foam from the same fold + breaker physics, then the field is
+advected with the surface flow, lightly diffused and decayed — so wakes and
+breaker foam persist, streak and fade instead of popping. Breaker spray is a
+small stateless GPU particle layer on top, peel-gated to active breaking.
 
 ## 4. Water optics checklist (all implemented)
 

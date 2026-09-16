@@ -160,7 +160,8 @@ export class UI {
     const api = this.api;
     document.getElementById('ro-fps').textContent = api.fps().toFixed(0);
     document.getElementById('ro-sea').textContent =
-      `Hs ${api.wave.Hs.toFixed(2)} m · Tp ${api.wave.Tp.toFixed(1)} s · U ${PARAMS.wind.toFixed(1)} m/s`;
+      `Hs ${api.wave.Hs.toFixed(2)} m · Tp ${api.wave.Tp.toFixed(1)} s · U ${PARAMS.wind.toFixed(1)} m/s` +
+      (api.wave.saturated ? ' · fully developed' : ' · fetch-limited');
     const bh = api.buoyH();
     document.getElementById('ro-buoy').textContent = `${bh >= 0 ? '+' : ''}${bh.toFixed(2)} m`;
     const t = api.simTime();

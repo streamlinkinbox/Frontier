@@ -162,8 +162,6 @@ void main() {
   float hSwell = 0.0;
   float swellAmp = 0.0;
   float rEdge = max(abs(pos.x), abs(pos.z));
-  float seaFade = exp(-rEdge * 0.0016);
-  float chopFade = exp(-rEdge * 0.005);
   for (int i = 0; i < 80; i++) {
     float fi = float(i);
     vec2 uv = vec2((fi + 0.5) / 80.0, 0.5);
@@ -173,7 +171,10 @@ void main() {
     float wSwell = 1.0 - step(0.5, casc);
     float wSea = step(0.5, casc) * (1.0 - step(1.5, casc));
     float wChop = step(1.5, casc);
-    float cascAmp = wSwell * uCascadeAmp.x + wSea * uCascadeAmp.y * seaFade + wChop * uCascadeAmp.z * chopFade;
+    // wavelength-relative fade: each component dies out only where the graded
+    // grid can no longer sample it — long rollers survive to the horizon.
+    float compFade = exp(-rEdge * A.z * 0.004);
+    float cascAmp = (wSwell * uCascadeAmp.x + wSea * uCascadeAmp.y + wChop * uCascadeAmp.z) * compFade;
     float swellness = wSwell + 0.45 * wSea;
     float shoal = uSurfOn * (1.0 - smoothstep(2.0, 18.0, depth)) * swellness;
     float kEff = A.z / mix(1.0, 0.55, shoal);
@@ -236,6 +237,7 @@ uniform float uSSS;
 uniform float uMicroAmp;
 uniform float uFogDensity;
 uniform vec3 uFogColor;
+uniform sampler2D uFoamTex;
 varying vec3 vWorld;
 varying vec3 vNormal;
 varying vec4 vMisc;
@@ -243,7 +245,7 @@ ${NOISE}
 ${SKYFN}
 vec2 microGrad(vec2 p, vec2 dir, float freq, float speed, float t) {
   float ph = dot(dir, p) * freq + t * speed;
-  return dir * (cos(ph) * freq * 0.055);
+  return dir * (cos(ph) * freq * 0.075);
 }
 void main() {
   vec3 toCam = cameraPosition - vWorld;
@@ -254,11 +256,16 @@ void main() {
   float nMid = fbm3(vWorld.xz * 1.35 - flow * 0.11 + 7.0);
   float shore = (1.0 - smoothstep(0.2, 2.4, vMisc.w)) * (0.55 + 0.45 * sin(uTime * 0.8 - vMisc.w * 2.2 + nBig * 4.0));
   float waterline = 1.0 - smoothstep(0.05, 0.5, abs(vMisc.w - 0.12));
-  float foamDrive = vMisc.x * uWhitecap + vMisc.y * 1.35 + shore * 0.9 + waterline * 0.8;
   float clump = fbm3(vWorld.xz * 2.6 + flow * 0.23);
+  // persistent simulated foam: coverage + fresh churn from the advection buffer
+  vec2 fuv = vWorld.xz / 1300.0 + 0.5;
+  float inR = step(abs(fuv.x - 0.5), 0.5) * step(abs(fuv.y - 0.5), 0.5);
+  vec2 pfoam = texture2D(uFoamTex, clamp(fuv, 0.0, 1.0)).rg * inR;
+  float foamDrive = vMisc.x * uWhitecap + vMisc.y * 1.35 + shore * 0.9 + waterline * 0.8
+    + pfoam.x * 1.15 + pfoam.y * 0.75;
   float foamMask = smoothstep(0.42, 0.72, foamDrive - (nBig * 0.55 + nMid * 0.25) * 0.8 + (clump - 0.5) * 0.35);
   foamMask *= uFoamAmt;
-  float mfade = exp(-dist * 0.006);
+  float mfade = exp(-dist * 0.0022);
   vec2 p = vWorld.xz;
   float t = uTime;
   vec2 grad = vec2(0.0);
@@ -267,12 +274,17 @@ void main() {
   grad += microGrad(p, vec2(0.30, -0.95), 2.0, 2.1, t);
   grad += microGrad(p, vec2(-0.90, -0.44), 2.8, 2.6, t);
   grad += microGrad(p, vec2(0.62, -0.78), 3.6, 3.0, t);
-  grad += (vec2(fbm3(p * 1.1 + flow * 0.15), fbm3(p * 1.1 + 31.7 - flow * 0.13)) - 0.5) * 0.9;
+  grad += microGrad(p, vec2(-0.34, 0.94), 5.4, 3.6, t);
+  grad += microGrad(p, vec2(0.94, 0.34), 7.8, 4.2, t);
+  grad += (vec2(fbm3(p * 1.1 + flow * 0.15), fbm3(p * 1.1 + 31.7 - flow * 0.13)) - 0.5) * 1.1;
   vec3 N = normalize(vNormal + vec3(-grad.x, 0.0, -grad.y) * uMicroAmp * mfade);
   N = normalize(mix(N, vec3(0.0, 1.0, 0.0), clamp(foamMask, 0.0, 1.0) * 0.55));
   float absorbT = exp(-max(vMisc.w, 0.0) * 0.16);
   vec3 waterCol = mix(uDeepCol, uShallowCol, absorbT);
   waterCol += uSkyAmb * 0.12;
+  // sun/shade modeling on the wave faces — this is what makes swell read
+  float ndl = dot(N, uSunDir) * 0.5 + 0.5;
+  waterCol *= 0.72 + 0.56 * ndl;
   vec3 R = reflect(-V, N);
   R.y = abs(R.y);
   vec3 skyRef = skyColor(R);
@@ -297,6 +309,98 @@ void main() {
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
+}
+`;
+
+// ---------------------------------------------------------------- foam ---
+export const FOAM_VS = /* glsl */`
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+
+// Foam advection buffer: inject from swell/sea fold + breaker + waterline
+// physics, advect with surface flow, diffuse, decay. World mapping:
+// wxz = (vUv - 0.5) * 1300 — the ocean shader uses the identical mapping.
+export const FOAM_FS = /* glsl */`
+uniform sampler2D uPrev;
+uniform sampler2D uSpecA;
+uniform sampler2D uSpecB;
+uniform vec3 uCascadeAmp;
+uniform float uSurfOn;
+uniform float uShoalGain;
+uniform float uBreakAmp;
+uniform float uPeelSpeed;
+uniform float uPeelWidth;
+uniform float uPeelOffset;
+uniform float uFoldGain;
+uniform float uDt;
+uniform vec2 uFlow;
+uniform float uTime;
+varying vec2 vUv;
+${BATHY}
+void main() {
+  vec2 wxz = (vUv - 0.5) * 1300.0;
+  float depth = bathymetry(wxz);
+  float Jxx = 0.0;
+  float Jxz = 0.0;
+  float Jzz = 0.0;
+  float hSwell = 0.0;
+  float swellAmp = 0.0;
+  for (int i = 0; i < 28; i++) {
+    float fi = float(i);
+    vec2 suv = vec2((fi + 0.5) / 80.0, 0.5);
+    vec4 A = texture2D(uSpecA, suv);
+    vec4 B = texture2D(uSpecB, suv);
+    float wSwell = 1.0 - step(0.5, B.w);
+    float cascAmp = wSwell * uCascadeAmp.x + (1.0 - wSwell) * uCascadeAmp.y;
+    float swellness = wSwell + 0.45 * (1.0 - wSwell);
+    float shoal = uSurfOn * (1.0 - smoothstep(2.0, 18.0, depth)) * swellness;
+    float kEff = A.z / mix(1.0, 0.55, shoal);
+    float green = pow(clamp(20.0 / max(depth, 0.8), 1.0, 6.0), 0.25);
+    float ampE = B.x * cascAmp * (1.0 + shoal * (green - 1.0) * uShoalGain);
+    float Qe = B.y * (1.0 + shoal * 1.5);
+    float omE = A.w * mix(1.0, 0.8, shoal);
+    float ph = kEff * dot(A.xy, wxz) - omE * uTime + B.z;
+    float s = sin(ph);
+    float qwa = Qe * kEff * ampE;
+    Jxx += A.x * A.x * qwa * s;
+    Jxz += A.x * A.y * qwa * s;
+    Jzz += A.y * A.y * qwa * s;
+    hSwell += wSwell * ampE * s;
+    swellAmp += wSwell * ampE;
+  }
+  float J = (1.0 - Jxx) * (1.0 - Jzz) - Jxz * Jxz;
+  float fold = (1.0 - J) * uFoldGain;
+  float peelZ = mod(uTime * uPeelSpeed + uPeelOffset, 320.0) - 160.0;
+  float pq = (wxz.y - peelZ) / uPeelWidth;
+  float pulse = exp(-pq * pq);
+  float breakZone = uSurfOn * (1.0 - smoothstep(1.2, 6.0, depth));
+  float crest = clamp(hSwell / max(swellAmp, 0.001) * 0.5 + 0.5, 0.0, 1.0);
+  float Bm = breakZone * (0.30 + 0.70 * pulse) * smoothstep(0.45, 0.9, crest) * uBreakAmp;
+  float wlq = (depth - 0.3) / 0.9;
+  float wl = exp(-wlq * wlq) * (0.45 + 0.55 * (0.5 + 0.5 * sin(uTime * 0.8 - depth * 2.2)));
+  float inject = smoothstep(0.5, 1.1, fold) * 0.9 + Bm * 2.2 + wl * 0.7;
+  float freshIn = clamp(Bm * 1.6 + smoothstep(0.9, 1.6, fold), 0.0, 1.5);
+  vec2 puv = vUv - uFlow * uDt / 1300.0;
+  vec2 cx = vec2(1.5 / 256.0, 0.0);
+  vec2 cy = vec2(0.0, 1.5 / 256.0);
+  vec2 pr = texture2D(uPrev, puv).rg;
+  pr += texture2D(uPrev, puv + cx).rg;
+  pr += texture2D(uPrev, puv - cx).rg;
+  pr += texture2D(uPrev, puv + cy).rg;
+  pr += texture2D(uPrev, puv - cy).rg;
+  pr /= 5.0;
+  float cov = max(pr.x * exp(-uDt / 18.0), clamp(inject, 0.0, 1.5));
+  float fresh = max(pr.y * exp(-uDt / 1.6), freshIn);
+  float edge = smoothstep(0.0, 0.03, vUv.x) * (1.0 - smoothstep(0.97, 1.0, vUv.x))
+    * smoothstep(0.0, 0.03, vUv.y) * (1.0 - smoothstep(0.97, 1.0, vUv.y));
+  cov *= edge;
+  fresh *= edge;
+  cov *= smoothstep(-1.6, -0.6, depth);
+  gl_FragColor = vec4(cov, fresh, 0.0, 1.0);
 }
 `;
 
@@ -373,7 +477,9 @@ void main() {
 }
 `;
 
-// ------------------------------------------------------------- particles ---
+// ----------------------------------------------------------------- spray ---
+// Breaker spray only: small, soft, short-lived, peel-gated. Persistent foam
+// is handled by the FoamSim advection buffer, not sprites.
 export const POINTS_VS = /* glsl */`
 uniform float uTime;
 uniform sampler2D uSpecA;
@@ -389,23 +495,15 @@ uniform float uPeelOffset;
 attribute vec4 aSeed;
 varying float vAlpha;
 varying float vShade;
-varying float vType;
 varying float vDist;
 ${BATHY}
 void main() {
   float r1 = aSeed.x;
   float r2 = aSeed.y;
   float r3 = aSeed.z;
-  int tp = int(aSeed.w + 0.5);
+  float cls = aSeed.w;
   vec3 anchor = position;
-  float life = 1.2;
-  float size0 = 0.5;
-  float size1 = 0.12;
-  float alpha0 = 0.85;
-  if (tp == 1) { life = 4.0 + 3.0 * r2; size0 = 0.8; size1 = 2.4; alpha0 = 0.75; }
-  else if (tp == 2) { life = 3.0 + 2.0 * r2; size0 = 1.2; size1 = 3.0; alpha0 = 0.60; }
-  else if (tp == 3) { life = 7.0 + 4.0 * r2; size0 = 1.5; size1 = 4.5; alpha0 = 0.30; }
-  else { life = 1.0 + 0.6 * r2; }
+  float life = 0.7 + 0.45 * r2;
   float tau = fract(uTime / life + r1 * 7.31 + r3 * 3.7);
   float age = tau * life;
   float h = 0.0;
@@ -424,40 +522,20 @@ void main() {
   float peelZ = mod(uTime * uPeelSpeed + uPeelOffset, 320.0) - 160.0;
   float pq = (anchor.z - peelZ) / uPeelWidth;
   float pulse = exp(-pq * pq);
-  float gate = 0.2 + 0.8 * pulse;
   float vis = uSprayAmt;
-  if (tp == 0 || tp == 1) { vis = step(r3, gate * uSprayAmt); }
-  vec3 p;
-  float size;
-  float alpha;
-  if (tp == 0) {
-    vec3 v0 = vec3(2.0 + 2.5 * r2, 4.5 + 3.5 * r1 * (0.4 + 0.6 * pulse), (r3 - 0.5) * 3.0);
-    p = anchor + vec3(0.0, h + 0.4, 0.0) + v0 * age + vec3(0.0, -4.5, 0.0) * age * age;
-    size = mix(size0, size1, tau);
-    alpha = (1.0 - tau) * smoothstep(0.0, 0.06, tau) * alpha0;
-  } else if (tp == 2) {
-    float sw = sin(uTime * 0.55 + r1 * 6.2831);
-    p = anchor;
-    p.x += sw * (4.0 + 3.0 * r2);
-    p.y = max(h, 0.0) + 0.12;
-    p.z += sin(uTime * 0.4 + r2 * 6.2831) * 1.5;
-    size = mix(size0, size1, tau);
-    alpha = sin(tau * 3.14159) * alpha0;
-  } else {
-    p = anchor;
-    p.y = h + 0.15;
-    p.x += uDrift.x * age + sin(age * 0.9 + r1 * 20.0) * 0.8;
-    p.z += uDrift.y * age + cos(age * 0.7 + r2 * 20.0) * 0.8;
-    size = mix(size0, size1, tau);
-    alpha = sin(tau * 3.14159) * alpha0;
-  }
+  if (cls < 0.5) { vis = step(r3, (0.15 + 0.85 * pulse) * uSprayAmt); }
+  vec3 v0 = vec3(1.2 + 1.8 * r2, 3.0 + 2.6 * r1 * (0.4 + 0.6 * pulse), (r3 - 0.5) * 2.4);
+  vec3 p = anchor + vec3(0.0, h + 0.3, 0.0) + v0 * age + vec3(0.0, -6.0, 0.0) * age * age;
+  p.xz += uDrift * age * 0.45;
+  float size = mix(0.30, 0.07, tau);
+  float alpha = (1.0 - tau) * smoothstep(0.0, 0.10, tau) * 0.55;
   alpha *= clamp(vis, 0.0, 1.0);
   vec4 mv = viewMatrix * vec4(p, 1.0);
   float dist = max(-mv.z, 0.5);
-  gl_PointSize = clamp(size * uPointScale / dist, 0.0, 190.0);
+  alpha *= smoothstep(2.0, 9.0, dist) * (1.0 - smoothstep(180.0, 320.0, dist));
+  gl_PointSize = clamp(size * uPointScale / dist, 0.0, 64.0);
   vAlpha = alpha;
   vShade = r2;
-  vType = float(tp);
   vDist = dist;
   gl_Position = projectionMatrix * mv;
 }
@@ -470,21 +548,20 @@ uniform float uFogDensity;
 uniform float uTime;
 varying float vAlpha;
 varying float vShade;
-varying float vType;
 varying float vDist;
 ${NOISE}
 void main() {
   if (vAlpha < 0.004) discard;
   vec2 pc = gl_PointCoord - 0.5;
   float d = length(pc) * 2.0;
-  float n = vnoise(pc * 6.0 + vShade * 37.0 + uTime * 0.35);
-  float n2 = vnoise(pc * 11.0 - vShade * 21.0 - uTime * 0.5);
-  float body = 1.0 - smoothstep(0.25, 1.0, d + (n - 0.5) * 0.7);
-  float a = body * (0.45 + 0.55 * n2) * vAlpha;
+  float n = vnoise(pc * 5.0 + vShade * 37.0 + uTime * 0.4);
+  float n2 = vnoise(pc * 9.0 - vShade * 21.0 - uTime * 0.5);
+  float body = 1.0 - smoothstep(0.15, 0.95, d + (n - 0.5) * 0.5);
+  float a = body * (0.35 + 0.40 * n2) * vAlpha;
   if (a < 0.01) discard;
-  vec3 col = mix(vec3(0.82, 0.88, 0.90), vec3(1.0), n2);
-  col *= 0.75 + 0.45 * vShade;
-  col += uSunColor * 0.12 * (1.0 - vType / 3.0);
+  vec3 col = mix(vec3(0.84, 0.89, 0.91), vec3(1.0), n2);
+  col *= 0.78 + 0.38 * vShade;
+  col += uSunColor * 0.10;
   float f = 1.0 - exp(-vDist * uFogDensity * 1.2);
   col = mix(col, uFogColor, clamp(f, 0.0, 1.0));
   gl_FragColor = vec4(col, a);

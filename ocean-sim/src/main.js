@@ -6,7 +6,8 @@ import { WaveField } from './spectrum.js';
 import { Ocean } from './ocean.js';
 import { Sky } from './sky.js';
 import { Seabed } from './seabed.js';
-import { FoamParticles } from './particles.js';
+import { SprayParticles } from './particles.js';
+import { FoamSim } from './foam.js';
 import { Props } from './props.js';
 import { UI } from './ui.js';
 
@@ -86,7 +87,7 @@ const U = {
   uFoamAmt: { value: 1 },
   uWhitecap: { value: 1 },
   uSSS: { value: 1 },
-  uMicroAmp: { value: 0.5 },
+  uMicroAmp: { value: 0.65 },
   uFogDensity: { value: 0.00042 },
   uFogColor: { value: new THREE.Color(0xbcd3e2) },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) },
@@ -107,6 +108,10 @@ const U = {
 };
 scene.background = U.uFogColor.value;
 
+// Foam simulation first: the ocean material samples its buffer.
+const foamSim = new FoamSim(renderer, U);
+U.uFoamTex = { value: foamSim.read.texture };
+
 const ocean = new Ocean(U);
 ocean.addTo(scene);
 ocean.setQuality(PARAMS.quality);
@@ -114,8 +119,8 @@ const sky = new Sky(U);
 sky.addTo(scene);
 const seabed = new Seabed(U);
 seabed.addTo(scene);
-const foam = new FoamParticles(U);
-foam.addTo(scene);
+const spray = new SprayParticles(U);
+spray.addTo(scene);
 const props = new Props();
 props.addTo(scene);
 
@@ -202,6 +207,15 @@ function scheduleRegen() {
   regenTimer = setTimeout(regen, 120);
 }
 
+let geoTimer = 0;
+function scheduleGeo() {
+  clearTimeout(geoTimer);
+  geoTimer = setTimeout(() => {
+    seabed.rebuild();
+    spray.rebuild();
+  }, 150);
+}
+
 function setCam(name) {
   const c = CAMS[name];
   if (!c) return;
@@ -224,6 +238,7 @@ function togglePause() {
 
 const REGEN_KEYS = ['beaufort', 'wind', 'fetch', 'windDir', 'chop'];
 const ENV_KEYS = ['hour', 'cloud', 'fog', 'exposure'];
+const GEO_KEYS = ['reefAngle', 'reefDepth', 'reefX', 'shoreX', 'shoreAngle'];
 let fpsEMA = 60;
 
 const api = {
@@ -231,10 +246,14 @@ const api = {
   after(path) {
     if (REGEN_KEYS.includes(path)) scheduleRegen();
     if (ENV_KEYS.includes(path)) applyEnv();
-    if (path === 'particles') foam.setCount(PARAMS.particles);
+    if (path === 'particles') spray.setCount(PARAMS.particles);
     if (path === 'quality') { ocean.setQuality(PARAMS.quality); applyPixelRatio(); }
     if (path === 'wireframe') ocean.material.wireframe = !!PARAMS.wireframe;
     if (path === 'autorotate') controls.autoRotate = !!PARAMS.autorotate;
+    if (GEO_KEYS.includes(path)) scheduleGeo();
+    // enabling a lab train flies the camera to the site so it never feels dead
+    if (path === 'labA.on' && PARAMS.labA.on) setCam('lab');
+    if (path === 'labB.on' && PARAMS.labB.on) setCam('lab');
   },
   preset(name) {
     const pr = PRESETS[name];
@@ -249,7 +268,7 @@ const api = {
     ui.refresh();
     regen();
     applyEnv();
-    foam.setCount(PARAMS.particles);
+    spray.setCount(PARAMS.particles);
     setCam(pr.cam);
   },
   setCam,
@@ -318,11 +337,14 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
   if (dt > 0) fpsEMA += (1 / dt - fpsEMA) * 0.05;
-  if (!PARAMS.paused) simTime += dt * PARAMS.timeScale;
+  const dtSim = PARAMS.paused ? 0 : dt * PARAMS.timeScale;
+  simTime += dtSim;
 
   fly(PARAMS.paused ? 0 : dt);
   controls.update();
   syncUniforms();
+  foamSim.update(dtSim, U.uDrift.value);
+  U.uFoamTex.value = foamSim.read.texture;
   sky.follow(camera);
   props.update(PARAMS.paused ? 0 : dt, simTime, wave);
 
