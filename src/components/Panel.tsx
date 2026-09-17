@@ -129,6 +129,7 @@ function LampCard({ index, lamp, onLamp }: { index: number; lamp: LampGroup; onL
           <Slider label="Glow" value={lamp.glow} min={0} max={3} step={0.1} onChange={(v) => onLamp({ glow: v })} />
           <ColorRow label="Paper" value={lamp.paperColor} swatches={PAPER_SWATCHES} onChange={(v) => onLamp({ paperColor: v })} />
           <ColorRow label="Frame" value={lamp.frameColor} onChange={(v) => onLamp({ frameColor: v })} />
+          <Toggle label="Tassels (fángsuì 房穗)" value={lamp.tassels} onChange={(v) => onLamp({ tassels: v })} />
           <label className="text-row">
             <span>Characters on paper</span>
             <input type="text" className="txt" maxLength={8} value={lamp.text} placeholder="祭" onChange={(e) => onLamp({ text: e.target.value })} />
@@ -320,6 +321,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Kasuga-dōrō: tall slender pedestal, hex/octagonal kasa; yukimi = broad snow roof — <i>magicstonegarden / Schneible Fine Arts</i></li>
             <li>Oribe: buried post, sun/moon windows; oki = movable; tsuri hangs from eaves — <i>enwik.org (Tōrō), kamisenro.co.jp</i></li>
             <li>Cast-concrete tiered pagoda lanterns (GFRC) — <i>Athena Garden</i></li>
+            <li>Hanging tassels (fángsuì), ribbed profiles, disc/melon/barrel/gourd/hex/diamond forms — <i>Chinese festival-lantern reference sketches</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>
         </details>

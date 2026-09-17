@@ -69,6 +69,7 @@ const designs: LampDesign[] = [
   'chochin-tube', 'chochin-round', 'kaku-chochin', 'andon', 'kiriko', 'bonbori',
   'gongdeng', 'zoumadeng', 'chorong', 'akari', 'toro', 'kasuga-toro',
   'yukimi-toro', 'oribe-toro', 'oki-toro', 'rankei-toro', 'pagoda-toro', 'concrete-bollard',
+  'disc-lantern', 'melon-lantern', 'barrel-lantern', 'gourd-lantern', 'hex-palace', 'diamond-gongdeng', 'roof-chochin',
 ];
 const mounts: LampMount[] = ['hanging', 'standing', 'stone'];
 for (const design of designs) {

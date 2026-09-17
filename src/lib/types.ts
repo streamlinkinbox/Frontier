@@ -10,7 +10,9 @@ export type LampDesign =
   | 'andon' | 'kiriko' | 'bonbori'
   | 'gongdeng' | 'zoumadeng' | 'chorong' | 'akari'
   | 'toro' | 'kasuga-toro' | 'yukimi-toro' | 'oribe-toro' | 'oki-toro'
-  | 'rankei-toro' | 'pagoda-toro' | 'concrete-bollard';
+  | 'rankei-toro' | 'pagoda-toro' | 'concrete-bollard'
+  | 'disc-lantern' | 'melon-lantern' | 'barrel-lantern' | 'gourd-lantern'
+  | 'hex-palace' | 'diamond-gongdeng' | 'roof-chochin';
 /** Hanging = cords under the eaves · Standing = paper/wood floor row · Stone = garden lanterns */
 export type LampMount = 'hanging' | 'standing' | 'stone';
 
@@ -28,6 +30,8 @@ export interface LampGroup {
   glow: number;
   /** characters drawn on the paper */
   text: string;
+  /** hanging tassels (fángsuì 房穗) + top ring */
+  tassels: boolean;
 }
 
 export const DEFAULT_LAMP_GROUP: LampGroup = {
@@ -40,6 +44,7 @@ export const DEFAULT_LAMP_GROUP: LampGroup = {
   frameColor: '#3a2c22',
   glow: 1.2,
   text: '祭',
+  tassels: true,
 };
 
 export interface LampMeta {
@@ -67,6 +72,13 @@ export const LAMP_META: Record<LampDesign, LampMeta> = {
   'rankei-toro': { name: 'Hanging tōrō', sub: '釣灯籠', cat: 'stone' },
   'pagoda-toro': { name: 'Pagoda lantern', sub: '塔灯籠', cat: 'stone' },
   'concrete-bollard': { name: 'Concrete bollard', sub: '現代', cat: 'stone' },
+  'disc-lantern': { name: 'Flat disc', sub: '扁灯笼', cat: 'paper' },
+  'melon-lantern': { name: 'Melon lantern', sub: '瓜灯', cat: 'paper' },
+  'barrel-lantern': { name: 'Barrel lantern', sub: '桶灯', cat: 'paper' },
+  'gourd-lantern': { name: 'Gourd lantern', sub: '葫芦灯', cat: 'paper' },
+  'hex-palace': { name: 'Hex palace', sub: '六角宫灯', cat: 'paper' },
+  'diamond-gongdeng': { name: 'Diamond lantern', sub: '菱形灯', cat: 'paper' },
+  'roof-chochin': { name: 'Roof-top chōchin', sub: '屋根提灯', cat: 'paper' },
 };
 
 export const STONE_DESIGNS: LampDesign[] = [

@@ -516,7 +516,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     if (!g.enabled) return;
     const n = clamp(Math.round(g.count), 1, 8);
     const grp = new THREE.Group();
-    const opts = { size: g.size, paperColor: g.paperColor, frameColor: g.frameColor, glow: g.glow, text: g.text };
+    const opts = { size: g.size, paperColor: g.paperColor, frameColor: g.frameColor, glow: g.glow, text: g.text, tassels: g.tassels };
     const isStoneLamp = STONE_DESIGNS.includes(g.design);
     const hangLamp = g.mount === 'hanging' && (!isStoneLamp || g.design === 'rankei-toro') && eaveFront;
     if (hangLamp && eaveFront) {
