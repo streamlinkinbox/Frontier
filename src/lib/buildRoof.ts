@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RoofParams } from './types';
+import { RoofParams, STONE_DESIGNS } from './types';
 import { RoofFace, faceGeometry } from './faces';
 import { clamp, smoothstep, mulberry32 } from './math';
 import { getMaterials, applyParamsToMaterials } from './materials';
@@ -517,7 +517,9 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const n = clamp(Math.round(g.count), 1, 8);
     const grp = new THREE.Group();
     const opts = { size: g.size, paperColor: g.paperColor, frameColor: g.frameColor, glow: g.glow, text: g.text };
-    if (g.mount === 'eave' && eaveFront) {
+    const isStoneLamp = STONE_DESIGNS.includes(g.design);
+    const hangLamp = g.mount === 'hanging' && !isStoneLamp && eaveFront;
+    if (hangLamp && eaveFront) {
       const face = eaveFront;
       const z = S / 2 + o * 0.5;
       const t = clamp((z - face.topL.z) / (face.botL.z - face.topL.z), 0.05, 0.98);
@@ -543,9 +545,10 @@ export function buildRoof(p: RoofParams): BuiltRoof {
         grp.add(pl);
       }
     } else {
-      // freestanding in front of the building
-      const z = S / 2 + o + 1.0;
-      const span = n === 1 ? 0 : Math.min(L * 0.9, n * 1.6);
+      // standing row, or stone garden setting further out
+      const garden = g.mount === 'stone' || isStoneLamp;
+      const z = S / 2 + o + (garden ? 1.7 : 1.0);
+      const span = n === 1 ? 0 : Math.min(garden ? L * 1.0 : L * 0.9, n * (garden ? 2.0 : 1.6));
       for (let i = 0; i < n; i++) {
         const x = n === 1 ? 0 : (i - (n - 1) / 2) * (span / (n - 1));
         const lamp = buildLamp(g.design, opts);
@@ -554,7 +557,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
       }
       if (p.lampLights && g.glow > 0.05) {
         const pl = new THREE.PointLight(0xffc27d, g.glow * 8, 11, 2);
-        pl.position.set(0, 1.0 * g.size, z);
+        pl.position.set(0, (garden ? 1.2 : 1.0) * g.size, z);
         grp.add(pl);
       }
     }
@@ -897,4 +900,5 @@ function buildDougongRow(
     parent.add(strut);
   }
   void wallTop;
+
 }

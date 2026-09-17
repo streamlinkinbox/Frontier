@@ -5,8 +5,13 @@ export type Region = 'japan' | 'china' | 'korea';
 /** Ridge-end ornament: demon tile (JP), chiwen beast (CN), or none. */
 export type Ornament = 'none' | 'onigawara' | 'chiwen';
 
-export type LampDesign = 'chochin-tube' | 'chochin-round' | 'andon' | 'kiriko' | 'akari' | 'toro';
-export type LampMount = 'eave' | 'ground';
+export type LampDesign =
+  | 'chochin-tube' | 'chochin-round' | 'kaku-chochin'
+  | 'andon' | 'kiriko' | 'bonbori'
+  | 'gongdeng' | 'zoumadeng' | 'chorong' | 'akari'
+  | 'toro' | 'kasuga-toro';
+/** Hanging = cords under the eaves · Standing = paper/wood floor row · Stone = garden lanterns */
+export type LampMount = 'hanging' | 'standing' | 'stone';
 
 export interface LampGroup {
   enabled: boolean;
@@ -27,7 +32,7 @@ export interface LampGroup {
 export const DEFAULT_LAMP_GROUP: LampGroup = {
   enabled: false,
   design: 'chochin-tube',
-  mount: 'eave',
+  mount: 'hanging',
   count: 3,
   size: 1,
   paperColor: '#c33b2a',
@@ -36,14 +41,28 @@ export const DEFAULT_LAMP_GROUP: LampGroup = {
   text: '祭',
 };
 
-export const LAMP_META: Record<LampDesign, { name: string; sub: string }> = {
-  'chochin-tube': { name: 'Tube chōchin', sub: '筒提灯' },
-  'chochin-round': { name: 'Round chōchin', sub: '丸提灯' },
-  andon: { name: 'Andon', sub: '行灯' },
-  kiriko: { name: 'Tall kiriko', sub: '切子' },
-  akari: { name: 'Paper globe', sub: '明かり' },
-  toro: { name: 'Stone tōrō', sub: '石灯籠' },
+export interface LampMeta {
+  name: string;
+  sub: string;
+  cat: 'paper' | 'stone';
+}
+
+export const LAMP_META: Record<LampDesign, LampMeta> = {
+  'chochin-tube': { name: 'Tube chōchin', sub: '筒提灯', cat: 'paper' },
+  'chochin-round': { name: 'Round chōchin', sub: '丸提灯', cat: 'paper' },
+  'kaku-chochin': { name: 'Square chōchin', sub: '角提灯', cat: 'paper' },
+  andon: { name: 'Andon', sub: '行灯', cat: 'paper' },
+  kiriko: { name: 'Tall kiriko', sub: '切子', cat: 'paper' },
+  bonbori: { name: 'Bonbori', sub: '雪洞', cat: 'paper' },
+  gongdeng: { name: 'Palace lantern', sub: '宫灯', cat: 'paper' },
+  zoumadeng: { name: 'Carousel lantern', sub: '走马灯', cat: 'paper' },
+  chorong: { name: 'Cheongsachorong', sub: '청사초롱', cat: 'paper' },
+  akari: { name: 'Paper globe', sub: '明かり', cat: 'paper' },
+  toro: { name: 'Stone tōrō', sub: '石灯籠', cat: 'stone' },
+  'kasuga-toro': { name: 'Kasuga tōrō', sub: '春日灯籠', cat: 'stone' },
 };
+
+export const STONE_DESIGNS: LampDesign[] = ['toro', 'kasuga-toro'];
 
 export interface RoofParams {
   style: RoofStyle;
@@ -127,8 +146,8 @@ export const DEFAULT_PARAMS: RoofParams = {
   lampLights: true,
   lamps: [
     { ...DEFAULT_LAMP_GROUP, enabled: true },
-    { ...DEFAULT_LAMP_GROUP, design: 'toro', mount: 'ground', count: 2, size: 1.1, text: '' },
-    { ...DEFAULT_LAMP_GROUP, design: 'andon', mount: 'eave', count: 2, paperColor: '#f2e4c8', text: '酒' },
+    { ...DEFAULT_LAMP_GROUP, design: 'toro', mount: 'stone', count: 2, size: 1.1, text: '' },
+    { ...DEFAULT_LAMP_GROUP, design: 'andon', mount: 'hanging', count: 2, paperColor: '#f2e4c8', text: '酒' },
   ],
 };
 

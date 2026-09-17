@@ -89,6 +89,7 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const roofRef = useRef<THREE.Group | null>(null);
+  const spinnersRef = useRef<THREE.Object3D[]>([]);
   const onReportRef = useRef(onReport);
   onReportRef.current = onReport;
 
@@ -154,8 +155,21 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
     extrasRef.current = { hemi, sun, fill, groundMat };
 
     let raf = 0;
+    const clock = new THREE.Clock();
+    let cachedRoof: THREE.Group | null = null;
     const loop = () => {
       raf = requestAnimationFrame(loop);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const roof = roofRef.current;
+      if (roof && roof !== cachedRoof) {
+        cachedRoof = roof;
+        spinnersRef.current = [];
+        roof.traverse((o) => { if (o.userData.spin) spinnersRef.current.push(o); });
+      } else if (!roof) {
+        cachedRoof = null;
+        spinnersRef.current = [];
+      }
+      for (const s of spinnersRef.current) s.rotation.y += (s.userData.spin as number) * dt;
       controls.update();
       renderer.render(scene, camera);
     };
@@ -262,3 +276,4 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
 });
 
 export default Viewer;
+

@@ -1,4 +1,4 @@
-import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, PRESETS, STYLE_META, LAMP_META } from '../lib/types';
+import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS } from '../lib/types';
 import { Check, RoofStats } from '../lib/buildRoof';
 
 interface Props {
@@ -79,11 +79,18 @@ function ColorRow(p: { label: string; value: string; onChange: (v: string) => vo
 const LAMP_LETTERS = ['A', 'B', 'C'];
 
 function LampCard({ index, lamp, onLamp }: { index: number; lamp: LampGroup; onLamp: (patch: Partial<LampGroup>) => void }) {
-  const designs: LampDesign[] = ['chochin-tube', 'chochin-round', 'andon', 'kiriko', 'akari', 'toro'];
+  const paperDesigns = (Object.keys(LAMP_META) as LampDesign[]).filter((d) => LAMP_META[d].cat === 'paper');
+  const stoneDesigns = (Object.keys(LAMP_META) as LampDesign[]).filter((d) => LAMP_META[d].cat === 'stone');
   const mounts: { id: LampMount; name: string }[] = [
-    { id: 'eave', name: 'Hang @ eaves' },
-    { id: 'ground', name: 'Standing' },
+    { id: 'hanging', name: 'Hanging' },
+    { id: 'standing', name: 'Standing' },
+    { id: 'stone', name: 'Stone' },
   ];
+  const pickDesign = (d: LampDesign) => {
+    if (STONE_DESIGNS.includes(d)) onLamp({ design: d, mount: 'stone' });
+    else if (lamp.mount === 'stone') onLamp({ design: d, mount: 'standing' });
+    else onLamp({ design: d });
+  };
   return (
     <div className={`lamp-card ${lamp.enabled ? 'on' : ''}`}>
       <div className="lamp-head">
@@ -94,9 +101,18 @@ function LampCard({ index, lamp, onLamp }: { index: number; lamp: LampGroup; onL
       </div>
       {lamp.enabled && (
         <>
+          <div className="design-label">Paper & wood 紙</div>
           <div className="design-grid">
-            {designs.map((d) => (
-              <button key={d} className={`design ${lamp.design === d ? 'on' : ''}`} onClick={() => onLamp({ design: d })} title={LAMP_META[d].sub}>
+            {paperDesigns.map((d) => (
+              <button key={d} className={`design ${lamp.design === d ? 'on' : ''}`} onClick={() => pickDesign(d)} title={LAMP_META[d].sub}>
+                {LAMP_META[d].name}
+              </button>
+            ))}
+          </div>
+          <div className="design-label">Stone & cement 石</div>
+          <div className="design-grid cols2">
+            {stoneDesigns.map((d) => (
+              <button key={d} className={`design ${lamp.design === d ? 'on' : ''}`} onClick={() => pickDesign(d)} title={LAMP_META[d].sub}>
                 {LAMP_META[d].name}
               </button>
             ))}
@@ -238,7 +254,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         {params.lamps.map((lamp, i) => (
           <LampCard key={i} index={i} lamp={lamp} onLamp={(patch) => onLamp(i, patch)} />
         ))}
-        <p className="hint">Eave groups tie their cords under the slopes; standing groups plant on the ground. Try Night mode in the viewer.</p>
+        <p className="hint">Hanging groups tie cords under the slopes; standing rows plant by the entrance; stone groups set out in the garden. Try Night mode in the viewer.</p>
       </Section>
 
       <Section title="Verification 検証">
@@ -295,6 +311,11 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Dougong: layered column-top + intermediate bracket sets under eaves — <i>Datong Guandi Temple (baike.baidu)</i></li>
             <li>Andon (Edo box lamp), chōchin (spiral bamboo, hung outside; aka = izakaya) — <i>HandWiki / Wikipedia</i></li>
             <li>Stone tōrō 6-part: base, pillar, platform, fire box, roof, hōju jewel — <i>Millennium Gallery JP</i></li>
+            <li>Square paper lanterns on entrance racks; kago/odawara/bura/tsuri chōchin forms — <i>hayakawajunpei (Views of Japan)</i></li>
+            <li>Bonbori: hexagonal festival lamp, hung from wire or stood on a post — <i>skdesu.com</i></li>
+            <li>Zou-ma-deng: Song-dynasty carousel, convection-driven paper-horse wheel — <i>baike.baidu (Revolving Lanterns)</i></li>
+            <li>Cheongsachorong: red-and-blue silk shade, weddings & rites — <i>paper-capers / Alamy</i></li>
+            <li>Kasuga-dōrō: tall slender pedestal, hex/octagonal kasa; yukimi = broad snow roof — <i>magicstonegarden / Schneible Fine Arts</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>
         </details>

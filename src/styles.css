@@ -202,6 +202,8 @@ input[type="range"] { width: 100%; accent-color: var(--acc); height: 22px; curso
 }
 .design:hover { border-color: var(--acc); }
 .design.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc) inset; color: var(--acc2); }
+.design-label { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin: 10px 0 5px; }
+.design-grid.cols2 { grid-template-columns: 1fr 1fr; }
 .text-row { display: flex; align-items: center; justify-content: space-between; margin: 9px 0 2px; font-size: 12.5px; }
 .txt {
   width: 110px; background: var(--bg2); border: 1px solid var(--line); border-radius: 6px;
