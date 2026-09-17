@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.bmp
+*.local
+.DS_Store

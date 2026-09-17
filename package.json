@@ -1,0 +1,40 @@
+{
+  "name": "frontier",
+  "version": "0.1.0",
+  "description": "Procedural generator for East-Asian ancient-style buildings",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/roof.test.ts",
+    "shot": "tsx test/shot.ts roof.bmp",
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/streamlinkinbox/Frontier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/streamlinkinbox/Frontier/issues"
+  },
+  "homepage": "https://github.com/streamlinkinbox/Frontier#readme",
+  "dependencies": {
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "@types/three": "^0.186.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "private": true,
+  "type": "module"
+}
