@@ -201,7 +201,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
       <Section title="Roof geometry 反り">
         <Slider label="Pitch (rise/run)" value={params.pitch} min={0.2} max={1.2} step={0.01} onChange={(v) => onChange({ pitch: v })} />
         <Slider label="Slope curve · sori" value={params.sori} min={0} max={0.45} step={0.01} onChange={(v) => onChange({ sori: v })} />
-        <Slider label="Corner lift" value={params.cornerLift} min={0} max={0.45} step={0.01} unit=" m" onChange={(v) => onChange({ cornerLift: v })} />
+        <Slider label="Corner lift" value={params.cornerLift} min={0} max={0.9} step={0.01} unit=" m" onChange={(v) => onChange({ cornerLift: v })} />
         <Slider label="Hip curl" value={params.hipSori} min={0} max={0.3} step={0.01} unit=" m" onChange={(v) => onChange({ hipSori: v })} />
         {params.style === 'irimoya' && (
           <Slider label="Gable share" value={params.gableFraction} min={0.2} max={0.75} step={0.01} onChange={(v) => onChange({ gableFraction: v })} />
@@ -245,6 +245,8 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         {params.hipBeasts && (
           <Slider label="Beasts per hip" value={params.beastCount} min={3} max={9} step={2} int onChange={(v) => onChange({ beastCount: Math.round(v) })} />
         )}
+        <Toggle label="Corner beasts (wing tips)" value={params.cornerBeasts} onChange={(v) => onChange({ cornerBeasts: v })} />
+        <Toggle label="Wind bells (fūrin)" value={params.windBells} onChange={(v) => onChange({ windBells: v })} />
         <Toggle label="Apex finial (hōgyō)" value={params.finial} onChange={(v) => onChange({ finial: v })} />
         <Toggle label="Karahafu cusped gables" value={params.karahafu} onChange={(v) => onChange({ karahafu: v })} />
       </Section>
@@ -316,6 +318,8 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Zou-ma-deng: Song-dynasty carousel, convection-driven paper-horse wheel — <i>baike.baidu (Revolving Lanterns)</i></li>
             <li>Cheongsachorong: red-and-blue silk shade, weddings & rites — <i>paper-capers / Alamy</i></li>
             <li>Kasuga-dōrō: tall slender pedestal, hex/octagonal kasa; yukimi = broad snow roof — <i>magicstonegarden / Schneible Fine Arts</i></li>
+            <li>Oribe: buried post, sun/moon windows; oki = movable; tsuri hangs from eaves — <i>enwik.org (Tōrō), kamisenro.co.jp</i></li>
+            <li>Cast-concrete tiered pagoda lanterns (GFRC) — <i>Athena Garden</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>
         </details>

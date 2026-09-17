@@ -518,7 +518,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const grp = new THREE.Group();
     const opts = { size: g.size, paperColor: g.paperColor, frameColor: g.frameColor, glow: g.glow, text: g.text };
     const isStoneLamp = STONE_DESIGNS.includes(g.design);
-    const hangLamp = g.mount === 'hanging' && !isStoneLamp && eaveFront;
+    const hangLamp = g.mount === 'hanging' && (!isStoneLamp || g.design === 'rankei-toro') && eaveFront;
     if (hangLamp && eaveFront) {
       const face = eaveFront;
       const z = S / 2 + o * 0.5;
@@ -568,6 +568,69 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     });
     lampTotal += n;
   });
+
+  // ================= wing-corner ornaments =================
+  const buildCornerBeast = (mm: ReturnType<typeof getMaterials>, yaw: number): THREE.Group => {
+    const b = new THREE.Group();
+    const m = mm.ridge;
+    b.add(box(0.14, 0.07, 0.14, m, 0, 0.035, 0));
+    const body = box(0.09, 0.2, 0.11, m, 0, 0.16, 0.01);
+    body.rotation.x = 0.35;
+    b.add(body);
+    const head = box(0.08, 0.09, 0.1, m, 0, 0.28, 0.05);
+    head.rotation.x = 0.5;
+    b.add(head);
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.14, 8), m);
+    horn.position.set(0, 0.36, 0.09);
+    horn.rotation.x = 0.9;
+    horn.castShadow = true;
+    b.add(horn);
+    b.rotation.y = yaw;
+    return b;
+  };
+  const buildWindBell = (bronze: THREE.Material, speed: number, phase: number): THREE.Group => {
+    const b = new THREE.Group(); // origin = hang point (sway pivot)
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 6), bronze);
+    str.position.y = -0.06;
+    b.add(str);
+    const pts = [[0.012, -0.12], [0.04, -0.15], [0.052, -0.19], [0.058, -0.21]].map(([x, y]) => new THREE.Vector2(x, y));
+    const cup = new THREE.Mesh(new THREE.LatheGeometry(pts, 14), bronze);
+    cup.castShadow = true;
+    b.add(cup);
+    const clap = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), bronze);
+    clap.position.y = -0.23;
+    b.add(clap);
+    b.userData.swaySpeed = speed;
+    b.userData.swayPhase = phase;
+    return b;
+  };
+  if ((p.cornerBeasts || p.windBells) && eaveFront && eaveBack) {
+    const corners = [
+      eaveFront.point(0, 1, new THREE.Vector3()),
+      eaveFront.point(1, 1, new THREE.Vector3()),
+      eaveBack.point(0, 1, new THREE.Vector3()),
+      eaveBack.point(1, 1, new THREE.Vector3()),
+    ];
+    const cg = new THREE.Group();
+    const bronze = new THREE.MeshStandardMaterial({ color: '#8a6d3b', metalness: 0.7, roughness: 0.4 });
+    corners.forEach((cp, ci) => {
+      const yaw = Math.atan2(cp.x, cp.z);
+      if (p.cornerBeasts) {
+        const beast = buildCornerBeast(mats, yaw);
+        beast.position.set(cp.x, cp.y - 0.04, cp.z);
+        cg.add(beast);
+      }
+      if (p.windBells) {
+        const bell = buildWindBell(bronze, 1.0 + (ci % 3) * 0.2, ci * 1.7);
+        bell.position.set(cp.x, cp.y - 0.04, cp.z);
+        cg.add(bell);
+      }
+    });
+    inner.add(cg);
+    parts.push({ name: 'corner-ornaments', label: 'Corner beasts & bells', box: new THREE.Box3().setFromObject(cg) });
+    const dressed = `${p.cornerBeasts ? 'guardian beasts' : ''}${p.cornerBeasts && p.windBells ? ' + ' : ''}${p.windBells ? 'wind bells' : ''}`;
+    checks.push({ id: 'corners', label: 'Wing corners', status: 'pass', detail: `4 swept corners dressed with ${dressed}.` });
+  }
 
   // ---- world transforms, then part boxes for instanced meshes ----
   group.updateMatrixWorld(true);

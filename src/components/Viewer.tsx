@@ -164,12 +164,21 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
       if (roof && roof !== cachedRoof) {
         cachedRoof = roof;
         spinnersRef.current = [];
-        roof.traverse((o) => { if (o.userData.spin) spinnersRef.current.push(o); });
+        roof.traverse((o) => { if (o.userData.spin || o.userData.swaySpeed) spinnersRef.current.push(o); });
       } else if (!roof) {
         cachedRoof = null;
         spinnersRef.current = [];
       }
-      for (const s of spinnersRef.current) s.rotation.y += (s.userData.spin as number) * dt;
+      const el = clock.elapsedTime;
+      for (const s of spinnersRef.current) {
+        if (s.userData.spin) s.rotation.y += (s.userData.spin as number) * dt;
+        if (s.userData.swaySpeed) {
+          const sp = s.userData.swaySpeed as number;
+          const ph = s.userData.swayPhase as number;
+          s.rotation.x = Math.sin(el * sp + ph) * 0.09;
+          s.rotation.z = Math.cos(el * sp * 0.9 + ph) * 0.07;
+        }
+      }
       controls.update();
       renderer.render(scene, camera);
     };

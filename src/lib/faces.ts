@@ -67,15 +67,25 @@ export class RoofFace {
   point(u: number, t: number, target: THREE.Vector3): THREE.Vector3 {
     const uc = clamp(u, 0, 1);
     const tc = clamp(t, 0, 1);
-    const x =
+    let x =
       lerp(lerp(this.topL.x, this.topR.x, uc), lerp(this.botL.x, this.botR.x, uc), tc);
-    const z =
+    let z =
       lerp(lerp(this.topL.z, this.topR.z, uc), lerp(this.botL.z, this.botR.z, uc), tc);
     const e = Math.abs(2 * uc - 1);
-    const edgeW = Math.pow(e, 8); // ~1 only right at the hip/barge edges
+    const edgeW = Math.pow(e, 6); // hip/barge edge line
+    // wing-corner sweep: rises over the outer span, not just the tip
+    const cw = e <= 0.3 ? 0 : Math.pow((e - 0.3) / 0.7, 1.6);
     let y = this.profY(tc);
     y += this.hipSori * Math.sin(Math.PI * tc) * edgeW; // curled hip rafter line
-    y += this.cornerLift * tc * tc * tc * e * e; // eave corner upturn
+    y += this.cornerLift * Math.pow(tc, 2.5) * cw; // flying-eave corner sweep
+    // corners also kick outward in plan (pure function of the shared edge
+    // params, so both faces meeting at a hip compute the identical curve)
+    const flare = this.cornerLift * 0.45 * Math.pow(tc, 4) * cw;
+    if (flare > 1e-6) {
+      const rl = Math.hypot(x, z) || 1;
+      x += (x / rl) * flare;
+      z += (z / rl) * flare;
+    }
     return target.set(x, y, z);
   }
 

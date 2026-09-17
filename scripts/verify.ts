@@ -54,48 +54,44 @@ scenario('rotated W<D', { width: 4.6, depth: 7.2, style: 'irimoya' });
 scenario('rotated W<D hip', { width: 4.2, depth: 6.8, style: 'yosemune' });
 scenario('square plan hip', { width: 5.5, depth: 5.5, style: 'yosemune' });
 // extremes
-scenario('extreme curves', { style: 'irimoya', pitch: 0.9, sori: 0.45, cornerLift: 0.45, hipSori: 0.3, overhang: 1.6 });
+scenario('extreme curves', { style: 'irimoya', pitch: 0.9, sori: 0.45, cornerLift: 0.9, hipSori: 0.3, overhang: 1.6 });
 scenario('extreme flat', { style: 'kirizuma', pitch: 0.2, sori: 0, cornerLift: 0, overhang: 0.3, tile: 'modern' });
-scenario('karahafu', { style: 'kirizuma', karahafu: true, sori: 0.3, cornerLift: 0.25 });
+scenario('karahafu', { style: 'kirizuma', karahafu: true, sori: 0.3, cornerLift: 0.4 });
 scenario('no rafters/structure', { style: 'yosemune', showRafters: false, showStructure: false });
 // ornaments
-scenario('chiwen+beasts+dougong palace', { style: 'irimoya', ornament: 'chiwen', hipBeasts: true, beastCount: 9, dougong: true });
-scenario('chiwen beasts hip', { style: 'yosemune', ornament: 'chiwen', hipBeasts: true, beastCount: 3, dougong: true });
-scenario('beasts pyramid', { style: 'hogyo', ornament: 'chiwen', hipBeasts: true, beastCount: 7, dougong: true });
-scenario('beasts on gable (no-op)', { style: 'kirizuma', hipBeasts: true, dougong: true });
-// lantern sweep: every design × every mount (stone designs force garden placement)
+scenario('chiwen+beasts+dougong palace', { style: 'irimoya', ornament: 'chiwen', hipBeasts: true, beastCount: 9, dougong: true, cornerBeasts: true, windBells: true, cornerLift: 0.6 });
+scenario('chiwen beasts hip', { style: 'yosemune', ornament: 'chiwen', hipBeasts: true, beastCount: 3, dougong: true, cornerBeasts: true, windBells: true });
+scenario('beasts pyramid', { style: 'hogyo', ornament: 'chiwen', hipBeasts: true, beastCount: 7, dougong: true, cornerBeasts: true, windBells: true });
+scenario('beasts on gable (no-op)', { style: 'kirizuma', hipBeasts: true, dougong: true, cornerBeasts: true, windBells: true });
+scenario('max wing sweep', { style: 'yosemune', cornerLift: 0.9, hipSori: 0.3, cornerBeasts: true, windBells: true });
+// lantern sweep: every design × every mount (stone forces garden, rankei may hang)
 const designs: LampDesign[] = [
   'chochin-tube', 'chochin-round', 'kaku-chochin', 'andon', 'kiriko', 'bonbori',
   'gongdeng', 'zoumadeng', 'chorong', 'akari', 'toro', 'kasuga-toro',
+  'yukimi-toro', 'oribe-toro', 'oki-toro', 'rankei-toro', 'pagoda-toro', 'concrete-bollard',
 ];
 const mounts: LampMount[] = ['hanging', 'standing', 'stone'];
 for (const design of designs) {
   for (const mount of mounts) {
-    if (STONE_DESIGNS.includes(design) && mount === 'hanging') {
-      scenario(`lamp ${design} @ ${mount} (forced garden)`, {
-        style: 'irimoya',
-        lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design, mount, count: 2, text: '祭酒' }],
-      });
-    } else {
-      scenario(`lamp ${design} @ ${mount}`, {
-        style: 'irimoya',
-        lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design, mount, count: 2, text: '祭酒' }],
-      });
-    }
+    const forced = STONE_DESIGNS.includes(design) && mount === 'hanging' && design !== 'rankei-toro';
+    scenario(`lamp ${design} @ ${mount}${forced ? ' (forced garden)' : ''}`, {
+      style: 'irimoya',
+      lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design, mount, count: 2, text: '祭酒' }],
+    });
   }
 }
 // lantern stress: all groups, big counts, big sizes
 scenario('lanterns all-groups max', {
   style: 'yosemune',
   lamps: [
-    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'zoumadeng', mount: 'hanging', count: 8, size: 1.4, text: '祭' },
-    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'kasuga-toro', mount: 'stone', count: 4, size: 1.3, text: '' },
-    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'gongdeng', mount: 'standing', count: 5, size: 1.2, text: '酒' },
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'rankei-toro', mount: 'hanging', count: 8, size: 1.4, text: '' },
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'yukimi-toro', mount: 'stone', count: 4, size: 1.3, text: '' },
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'oribe-toro', mount: 'stone', count: 5, size: 1.2, text: '' },
   ],
 });
 scenario('lanterns no lights', {
   style: 'kirizuma', lampLights: false,
-  lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'bonbori', mount: 'hanging', count: 4 }],
+  lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'pagoda-toro', mount: 'stone', count: 4 }],
 });
 
 // walls-hidden → grounding check must downgrade to info, never fail

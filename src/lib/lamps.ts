@@ -546,6 +546,155 @@ function buildKasugaToro(o: LampOpts): BuiltLamp {
   return finish(g, o.size, 1.5, 0);
 }
 
+function stoneMats(glow: number) {
+  return {
+    stone: new THREE.MeshStandardMaterial({ color: '#9aa0a3', roughness: 0.92 }),
+    stoneDark: new THREE.MeshStandardMaterial({ color: '#7e8489', roughness: 0.95 }),
+    glow: new THREE.MeshStandardMaterial({ color: '#ffd9a0', emissive: '#ffc27d', emissiveIntensity: Math.max(0.15, glow), roughness: 0.9 }),
+  };
+}
+
+function buildYukimiToro(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const { stone, stoneDark, glow } = stoneMats(o.glow);
+  // squat snow-viewing lantern on legs with a broad snow-catching kasa
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    g.add(mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.22, 8), stoneDark, sx * 0.16, 0.11, sz * 0.16));
+  g.add(mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), stone, 0, 0.26, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.34, 0.24, 0.34), stone, 0, 0.42, 0));
+  const win = new THREE.PlaneGeometry(0.17, 0.15);
+  for (const [x, z, ry] of [[0, 0.171, 0], [0, -0.171, Math.PI], [0.171, 0, Math.PI / 2], [-0.171, 0, -Math.PI / 2]] as const) {
+    const w = mesh(win, glow, x, 0.42, z);
+    w.rotation.y = ry;
+    w.castShadow = false;
+    g.add(w);
+  }
+  g.add(mesh(new THREE.ConeGeometry(0.46, 0.16, 6), stoneDark, 0, 0.62, 0));
+  g.add(mesh(new THREE.SphereGeometry(0.06, 12, 10), stone, 0, 0.74, 0));
+  return finish(g, o.size, 0.8, 0);
+}
+
+function buildOribeToro(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const { stone, stoneDark, glow } = stoneMats(o.glow);
+  // ikekomi: post buried directly, no base; moon windows; ~1.38 m
+  g.add(mesh(new THREE.CylinderGeometry(0.14, 0.17, 0.55, 10), stone, 0, 0.275, 0));
+  // subtle cross relief (kakure-kirishitan trademark of the Oribe type)
+  g.add(mesh(new THREE.BoxGeometry(0.025, 0.13, 0.012), stoneDark, 0, 0.32, 0.155));
+  g.add(mesh(new THREE.BoxGeometry(0.075, 0.025, 0.012), stoneDark, 0, 0.34, 0.155));
+  g.add(mesh(new THREE.BoxGeometry(0.4, 0.08, 0.4), stone, 0, 0.59, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.26, 0.3), stone, 0, 0.76, 0));
+  // front/rear square windows
+  const sq = new THREE.PlaneGeometry(0.14, 0.15);
+  for (const [z, ry] of [[0.151, 0], [-0.151, Math.PI]] as const) {
+    const w = mesh(sq, glow, 0, 0.76, z);
+    w.rotation.y = ry;
+    w.castShadow = false;
+    g.add(w);
+  }
+  // full moon (right) + crescent moon (left)
+  const moon = new THREE.CircleGeometry(0.07, 20);
+  const full = mesh(moon, glow, 0.151, 0.76, 0);
+  full.rotation.y = Math.PI / 2;
+  full.castShadow = false;
+  g.add(full);
+  const cres = mesh(moon, glow, -0.151, 0.76, 0);
+  cres.rotation.y = -Math.PI / 2;
+  cres.castShadow = false;
+  g.add(cres);
+  const bite = mesh(new THREE.CircleGeometry(0.07, 20), stone, -0.156, 0.775, 0.03);
+  bite.rotation.y = -Math.PI / 2;
+  g.add(bite);
+  const kasa = mesh(new THREE.ConeGeometry(0.3, 0.18, 4), stoneDark, 0, 0.98, 0);
+  kasa.rotation.y = Math.PI / 4;
+  g.add(kasa);
+  g.add(mesh(new THREE.SphereGeometry(0.05, 10, 8), stone, 0, 1.1, 0));
+  return finish(g, o.size, 1.16, 0);
+}
+
+function buildOkiToro(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const { stone, stoneDark, glow } = stoneMats(o.glow);
+  // movable: no post, rests directly on the ground
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.08, 0.3), stoneDark, 0, 0.04, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.24, 0.2, 0.24), stone, 0, 0.18, 0));
+  const win = new THREE.PlaneGeometry(0.12, 0.12);
+  for (const [x, z, ry] of [[0, 0.121, 0], [0, -0.121, Math.PI], [0.121, 0, Math.PI / 2], [-0.121, 0, -Math.PI / 2]] as const) {
+    const w = mesh(win, glow, x, 0.18, z);
+    w.rotation.y = ry;
+    w.castShadow = false;
+    g.add(w);
+  }
+  const kasa = mesh(new THREE.ConeGeometry(0.24, 0.14, 4), stoneDark, 0, 0.35, 0);
+  kasa.rotation.y = Math.PI / 4;
+  g.add(kasa);
+  g.add(mesh(new THREE.SphereGeometry(0.045, 10, 8), stone, 0, 0.45, 0));
+  return finish(g, o.size, 0.5, 0);
+}
+
+function buildRankeiToro(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const { stone, stoneDark, glow } = stoneMats(o.glow);
+  // tsuri-dōrō: hangs from eaves by a ring; firebox + bottom knob
+  g.add(mesh(new THREE.TorusGeometry(0.05, 0.012, 8, 16), stoneDark, 0, 0.34, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.26, 0.05, 0.26), stoneDark, 0, 0.25, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.2, 0.24, 0.2), stone, 0, 0.1, 0));
+  const win = new THREE.PlaneGeometry(0.1, 0.14);
+  for (const [x, z, ry] of [[0, 0.101, 0], [0, -0.101, Math.PI], [0.101, 0, Math.PI / 2], [-0.101, 0, -Math.PI / 2]] as const) {
+    const w = mesh(win, glow, x, 0.1, z);
+    w.rotation.y = ry;
+    w.castShadow = false;
+    g.add(w);
+  }
+  g.add(mesh(new THREE.BoxGeometry(0.24, 0.04, 0.24), stoneDark, 0, -0.04, 0));
+  g.add(mesh(new THREE.SphereGeometry(0.035, 10, 8), stone, 0, -0.08, 0));
+  return finish(g, o.size, 0.4, -0.12);
+}
+
+function buildPagodaToro(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const { stone, stoneDark, glow } = stoneMats(o.glow);
+  // cast-concrete tiered pagoda lantern with a light chamber
+  g.add(mesh(new THREE.BoxGeometry(0.44, 0.1, 0.44), stoneDark, 0, 0.05, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.3, 0.26, 0.3), stone, 0, 0.23, 0));
+  const win = new THREE.PlaneGeometry(0.13, 0.15);
+  for (const [x, z, ry] of [[0, 0.151, 0], [0, -0.151, Math.PI], [0.151, 0, Math.PI / 2], [-0.151, 0, -Math.PI / 2]] as const) {
+    const w = mesh(win, glow, x, 0.23, z);
+    w.rotation.y = ry;
+    w.castShadow = false;
+    g.add(w);
+  }
+  const roof1 = mesh(new THREE.ConeGeometry(0.34, 0.16, 4), stoneDark, 0, 0.44, 0);
+  roof1.rotation.y = Math.PI / 4;
+  g.add(roof1);
+  g.add(mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), stone, 0, 0.61, 0));
+  const roof2 = mesh(new THREE.ConeGeometry(0.26, 0.13, 4), stoneDark, 0, 0.765, 0);
+  roof2.rotation.y = Math.PI / 4;
+  g.add(roof2);
+  g.add(mesh(new THREE.BoxGeometry(0.15, 0.13, 0.15), stone, 0, 0.9, 0));
+  const roof3 = mesh(new THREE.ConeGeometry(0.19, 0.11, 4), stoneDark, 0, 1.02, 0);
+  roof3.rotation.y = Math.PI / 4;
+  g.add(roof3);
+  g.add(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 8), stone, 0, 1.14, 0));
+  for (const ry of [1.09, 1.14, 1.19]) {
+    const ring = mesh(new THREE.TorusGeometry(0.035, 0.01, 6, 14), stoneDark, 0, ry, 0);
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+  g.add(mesh(new THREE.SphereGeometry(0.025, 10, 8), stone, 0, 1.23, 0));
+  return finish(g, o.size, 1.26, 0);
+}
+
+function buildConcreteBollard(o: LampOpts): BuiltLamp {
+  const g = new THREE.Group();
+  const concrete = new THREE.MeshStandardMaterial({ color: '#b9bcbe', roughness: 0.95 });
+  const slit = new THREE.MeshStandardMaterial({ color: '#ffe7c0', emissive: '#ffc98a', emissiveIntensity: Math.max(0.2, o.glow), roughness: 0.8 });
+  g.add(mesh(new THREE.BoxGeometry(0.22, 0.9, 0.22), concrete, 0, 0.45, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.225, 0.07, 0.225), slit, 0, 0.68, 0));
+  g.add(mesh(new THREE.BoxGeometry(0.26, 0.05, 0.26), concrete, 0, 0.925, 0));
+  return finish(g, o.size, 0.95, 0);
+}
+
 export function buildLamp(design: LampDesign, o: LampOpts): BuiltLamp {
   switch (design) {
     case 'chochin-tube': return buildChochinTube(o);
@@ -560,5 +709,11 @@ export function buildLamp(design: LampDesign, o: LampOpts): BuiltLamp {
     case 'akari': return buildAkari(o);
     case 'toro': return buildToro(o);
     case 'kasuga-toro': return buildKasugaToro(o);
+    case 'yukimi-toro': return buildYukimiToro(o);
+    case 'oribe-toro': return buildOribeToro(o);
+    case 'oki-toro': return buildOkiToro(o);
+    case 'rankei-toro': return buildRankeiToro(o);
+    case 'pagoda-toro': return buildPagodaToro(o);
+    case 'concrete-bollard': return buildConcreteBollard(o);
   }
 }

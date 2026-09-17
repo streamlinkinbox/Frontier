@@ -9,7 +9,8 @@ export type LampDesign =
   | 'chochin-tube' | 'chochin-round' | 'kaku-chochin'
   | 'andon' | 'kiriko' | 'bonbori'
   | 'gongdeng' | 'zoumadeng' | 'chorong' | 'akari'
-  | 'toro' | 'kasuga-toro';
+  | 'toro' | 'kasuga-toro' | 'yukimi-toro' | 'oribe-toro' | 'oki-toro'
+  | 'rankei-toro' | 'pagoda-toro' | 'concrete-bollard';
 /** Hanging = cords under the eaves · Standing = paper/wood floor row · Stone = garden lanterns */
 export type LampMount = 'hanging' | 'standing' | 'stone';
 
@@ -60,9 +61,21 @@ export const LAMP_META: Record<LampDesign, LampMeta> = {
   akari: { name: 'Paper globe', sub: '明かり', cat: 'paper' },
   toro: { name: 'Stone tōrō', sub: '石灯籠', cat: 'stone' },
   'kasuga-toro': { name: 'Kasuga tōrō', sub: '春日灯籠', cat: 'stone' },
+  'yukimi-toro': { name: 'Yukimi tōrō', sub: '雪見灯籠', cat: 'stone' },
+  'oribe-toro': { name: 'Oribe tōrō', sub: '織部灯籠', cat: 'stone' },
+  'oki-toro': { name: 'Oki tōrō', sub: '置き灯籠', cat: 'stone' },
+  'rankei-toro': { name: 'Hanging tōrō', sub: '釣灯籠', cat: 'stone' },
+  'pagoda-toro': { name: 'Pagoda lantern', sub: '塔灯籠', cat: 'stone' },
+  'concrete-bollard': { name: 'Concrete bollard', sub: '現代', cat: 'stone' },
 };
 
-export const STONE_DESIGNS: LampDesign[] = ['toro', 'kasuga-toro'];
+export const STONE_DESIGNS: LampDesign[] = [
+  'toro', 'kasuga-toro', 'yukimi-toro', 'oribe-toro', 'oki-toro',
+  'rankei-toro', 'pagoda-toro', 'concrete-bollard',
+];
+
+/** Stone designs that may genuinely hang (tsuri-dōrō hang from eaves). */
+export const HANGABLE_STONE: LampDesign[] = ['rankei-toro'];
 
 export interface RoofParams {
   style: RoofStyle;
@@ -76,7 +89,7 @@ export interface RoofParams {
   pitch: number;
   /** Concave slope curvature (sorimashi), 0 = straight, ~0.45 = deep temple curve. */
   sori: number;
-  /** Eave corner upturn in meters (反り / cheoma / jiaoqiao). */
+  /** Flying-eave wing sweep at the corners in meters (photos: 0.4–0.9). */
   cornerLift: number;
   /** Hip-rafter curl in meters (sori of the hip rafter off the straight line). */
   hipSori: number;
@@ -102,6 +115,10 @@ export interface RoofParams {
   beastCount: number;
   /** Bracket sets (dougong-style) carrying the eaves. */
   dougong: boolean;
+  /** Guardian beasts perched on the four wing corners. */
+  cornerBeasts: boolean;
+  /** Wind bells (fūrin) swaying under the four wing corners. */
+  windBells: boolean;
   finial: boolean;
   eaveCaps: boolean;
   /** Cusped gable bargeboards (karahafu-style ogee curve) on gable styles. */
@@ -139,6 +156,8 @@ export const DEFAULT_PARAMS: RoofParams = {
   hipBeasts: false,
   beastCount: 5,
   dougong: false,
+  cornerBeasts: false,
+  windBells: false,
   finial: true,
   eaveCaps: true,
   karahafu: false,
@@ -168,7 +187,7 @@ export const PRESETS: Preset[] = [
       pitch: 0.45, sori: 0.16, cornerLift: 0.09, hipSori: 0.06, overhang: 0.9,
       roofColor: '#6e7278', ridgeColor: '#54575c', tileGlaze: 0.15,
       wallColor: '#e8e0d0', woodColor: '#6e5138', ornament: 'none', karahafu: false,
-      dougong: false, hipBeasts: false,
+      dougong: false, hipBeasts: false, cornerBeasts: false, windBells: false,
     },
   },
   {
@@ -180,7 +199,7 @@ export const PRESETS: Preset[] = [
       pitch: 0.55, sori: 0.3, cornerLift: 0.2, hipSori: 0.12, overhang: 1.25,
       roofColor: '#2e3238', ridgeColor: '#23262b', tileGlaze: 0.55,
       wallColor: '#efe6d4', woodColor: '#8a3d2b', ornament: 'onigawara', karahafu: false,
-      dougong: true, hipBeasts: false,
+      dougong: true, hipBeasts: false, cornerBeasts: false, windBells: true,
     },
   },
   {
@@ -189,10 +208,11 @@ export const PRESETS: Preset[] = [
     sub: '中国 · 歇山 + orange glaze',
     patch: {
       style: 'irimoya', region: 'china', tile: 'hongawara', gableFraction: 0.4,
-      pitch: 0.5, sori: 0.34, cornerLift: 0.3, hipSori: 0.16, overhang: 1.35,
+      pitch: 0.5, sori: 0.34, cornerLift: 0.5, hipSori: 0.16, overhang: 1.35,
       roofColor: '#d2792b', ridgeColor: '#a85a1c', tileGlaze: 0.7,
       wallColor: '#b03a2e', woodColor: '#5e3b26', trimColor: '#1f6f70',
       ornament: 'chiwen', hipBeasts: true, beastCount: 5, dougong: true, karahafu: false,
+      cornerBeasts: true, windBells: true,
     },
   },
   {
@@ -204,7 +224,7 @@ export const PRESETS: Preset[] = [
       pitch: 0.5, sori: 0.2, cornerLift: 0.12, hipSori: 0.09, overhang: 1.1,
       roofColor: '#3d444c', ridgeColor: '#31373e', tileGlaze: 0.25,
       wallColor: '#ece4d2', woodColor: '#7a5c42', ornament: 'none', karahafu: false,
-      dougong: false, hipBeasts: false,
+      dougong: false, hipBeasts: false, cornerBeasts: false, windBells: false,
     },
   },
   {
@@ -216,7 +236,7 @@ export const PRESETS: Preset[] = [
       pitch: 0.35, sori: 0.04, cornerLift: 0.02, hipSori: 0.02, overhang: 0.6,
       roofColor: '#2b2e33', ridgeColor: '#1f2125', tileGlaze: 0.5,
       wallColor: '#ddd8cc', woodColor: '#4a4038', ornament: 'none', karahafu: false,
-      dougong: false, hipBeasts: false,
+      dougong: false, hipBeasts: false, cornerBeasts: false, windBells: false,
     },
   },
 ];
@@ -224,7 +244,7 @@ export const PRESETS: Preset[] = [
 /** Regional curve defaults applied when the region changes (style/tiles kept). */
 export const REGION_CURVES: Record<Region, Partial<RoofParams>> = {
   japan: { sori: 0.24, cornerLift: 0.16, hipSori: 0.1, overhang: 1.0 },
-  china: { sori: 0.34, cornerLift: 0.3, hipSori: 0.16, overhang: 1.3 },
+  china: { sori: 0.34, cornerLift: 0.45, hipSori: 0.16, overhang: 1.3 },
   korea: { sori: 0.2, cornerLift: 0.12, hipSori: 0.09, overhang: 1.1 },
 };
 
