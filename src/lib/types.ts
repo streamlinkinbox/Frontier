@@ -1,0 +1,217 @@
+/** Canonical Japanese roof styles (with Chinese / Korean equivalents). */
+export type RoofStyle = 'kirizuma' | 'yosemune' | 'irimoya' | 'hogyo';
+export type TileSystem = 'hongawara' | 'sangawara' | 'modern';
+export type Region = 'japan' | 'china' | 'korea';
+/** Ridge-end ornament: demon tile (JP), chiwen beast (CN), or none. */
+export type Ornament = 'none' | 'onigawara' | 'chiwen';
+
+export type LampDesign = 'chochin-tube' | 'chochin-round' | 'andon' | 'kiriko' | 'akari' | 'toro';
+export type LampMount = 'eave' | 'ground';
+
+export interface LampGroup {
+  enabled: boolean;
+  design: LampDesign;
+  mount: LampMount;
+  /** lantern count in the row (1–8) */
+  count: number;
+  /** scale multiplier */
+  size: number;
+  paperColor: string;
+  frameColor: string;
+  /** emissive glow 0–3 */
+  glow: number;
+  /** characters drawn on the paper */
+  text: string;
+}
+
+export const DEFAULT_LAMP_GROUP: LampGroup = {
+  enabled: false,
+  design: 'chochin-tube',
+  mount: 'eave',
+  count: 3,
+  size: 1,
+  paperColor: '#c33b2a',
+  frameColor: '#3a2c22',
+  glow: 1.2,
+  text: '祭',
+};
+
+export const LAMP_META: Record<LampDesign, { name: string; sub: string }> = {
+  'chochin-tube': { name: 'Tube chōchin', sub: '筒提灯' },
+  'chochin-round': { name: 'Round chōchin', sub: '丸提灯' },
+  andon: { name: 'Andon', sub: '行灯' },
+  kiriko: { name: 'Tall kiriko', sub: '切子' },
+  akari: { name: 'Paper globe', sub: '明かり' },
+  toro: { name: 'Stone tōrō', sub: '石灯籠' },
+};
+
+export interface RoofParams {
+  style: RoofStyle;
+  region: Region;
+  seed: number;
+  /** Building footprint in meters (walls). Ridge auto-aligns to the long axis. */
+  width: number;
+  depth: number;
+  wallHeight: number;
+  /** Roof pitch as rise/run, e.g. 0.45 ≈ traditional 4.5-sun gradient. */
+  pitch: number;
+  /** Concave slope curvature (sorimashi), 0 = straight, ~0.45 = deep temple curve. */
+  sori: number;
+  /** Eave corner upturn in meters (反り / cheoma / jiaoqiao). */
+  cornerLift: number;
+  /** Hip-rafter curl in meters (sori of the hip rafter off the straight line). */
+  hipSori: number;
+  /** Horizontal eave overhang in meters. */
+  overhang: number;
+  /** Irimoya only: share of the rise occupied by the upper gable roof. */
+  gableFraction: number;
+  tile: TileSystem;
+  roofColor: string;
+  ridgeColor: string;
+  wallColor: string;
+  woodColor: string;
+  /** Painted trim color (brackets etc.) */
+  trimColor: string;
+  /** 0 = matte unglazed, 1 = glossy glazed tile. */
+  tileGlaze: number;
+  showRafters: boolean;
+  showStructure: boolean;
+  showWalls: boolean;
+  ornament: Ornament;
+  /** Small wenshou beasts marching down the hip ridges. */
+  hipBeasts: boolean;
+  beastCount: number;
+  /** Bracket sets (dougong-style) carrying the eaves. */
+  dougong: boolean;
+  finial: boolean;
+  eaveCaps: boolean;
+  /** Cusped gable bargeboards (karahafu-style ogee curve) on gable styles. */
+  karahafu: boolean;
+  rafterSpacing: number;
+  /** Real point lights inside lantern groups (off = emissive only). */
+  lampLights: boolean;
+  lamps: LampGroup[];
+}
+
+export const DEFAULT_PARAMS: RoofParams = {
+  style: 'irimoya',
+  region: 'japan',
+  seed: 7,
+  width: 6.4,
+  depth: 5.2,
+  wallHeight: 2.6,
+  pitch: 0.52,
+  sori: 0.24,
+  cornerLift: 0.16,
+  hipSori: 0.1,
+  overhang: 1.0,
+  gableFraction: 0.45,
+  tile: 'hongawara',
+  roofColor: '#3a4048',
+  ridgeColor: '#2c3138',
+  wallColor: '#e8e0d0',
+  woodColor: '#7a5c42',
+  trimColor: '#1f6f5e',
+  tileGlaze: 0.35,
+  showRafters: true,
+  showStructure: true,
+  showWalls: true,
+  ornament: 'onigawara',
+  hipBeasts: false,
+  beastCount: 5,
+  dougong: false,
+  finial: true,
+  eaveCaps: true,
+  karahafu: false,
+  rafterSpacing: 0.455,
+  lampLights: true,
+  lamps: [
+    { ...DEFAULT_LAMP_GROUP, enabled: true },
+    { ...DEFAULT_LAMP_GROUP, design: 'toro', mount: 'ground', count: 2, size: 1.1, text: '' },
+    { ...DEFAULT_LAMP_GROUP, design: 'andon', mount: 'eave', count: 2, paperColor: '#f2e4c8', text: '酒' },
+  ],
+};
+
+export interface Preset {
+  id: string;
+  label: string;
+  sub: string;
+  patch: Partial<RoofParams>;
+}
+
+export const PRESETS: Preset[] = [
+  {
+    id: 'minka',
+    label: 'Minka Farmhouse',
+    sub: '日本 · kirizuma + hongawara',
+    patch: {
+      style: 'kirizuma', region: 'japan', tile: 'hongawara',
+      pitch: 0.45, sori: 0.16, cornerLift: 0.09, hipSori: 0.06, overhang: 0.9,
+      roofColor: '#6e7278', ridgeColor: '#54575c', tileGlaze: 0.15,
+      wallColor: '#e8e0d0', woodColor: '#6e5138', ornament: 'none', karahafu: false,
+      dougong: false, hipBeasts: false,
+    },
+  },
+  {
+    id: 'temple',
+    label: 'Temple Hall',
+    sub: '日本 · irimoya + onigawara',
+    patch: {
+      style: 'irimoya', region: 'japan', tile: 'hongawara', gableFraction: 0.45,
+      pitch: 0.55, sori: 0.3, cornerLift: 0.2, hipSori: 0.12, overhang: 1.25,
+      roofColor: '#2e3238', ridgeColor: '#23262b', tileGlaze: 0.55,
+      wallColor: '#efe6d4', woodColor: '#8a3d2b', ornament: 'onigawara', karahafu: false,
+      dougong: true, hipBeasts: false,
+    },
+  },
+  {
+    id: 'palace',
+    label: 'Palace Hall · Xieshan',
+    sub: '中国 · 歇山 + orange glaze',
+    patch: {
+      style: 'irimoya', region: 'china', tile: 'hongawara', gableFraction: 0.4,
+      pitch: 0.5, sori: 0.34, cornerLift: 0.3, hipSori: 0.16, overhang: 1.35,
+      roofColor: '#d2792b', ridgeColor: '#a85a1c', tileGlaze: 0.7,
+      wallColor: '#b03a2e', woodColor: '#5e3b26', trimColor: '#1f6f70',
+      ornament: 'chiwen', hipBeasts: true, beastCount: 5, dougong: true, karahafu: false,
+    },
+  },
+  {
+    id: 'hanok',
+    label: 'Hanok · Ujin-gak',
+    sub: '한국 · hip roof, gentle curve',
+    patch: {
+      style: 'yosemune', region: 'korea', tile: 'hongawara',
+      pitch: 0.5, sori: 0.2, cornerLift: 0.12, hipSori: 0.09, overhang: 1.1,
+      roofColor: '#3d444c', ridgeColor: '#31373e', tileGlaze: 0.25,
+      wallColor: '#ece4d2', woodColor: '#7a5c42', ornament: 'none', karahafu: false,
+      dougong: false, hipBeasts: false,
+    },
+  },
+  {
+    id: 'modern',
+    label: 'Modern Machiya',
+    sub: '和モダン · flat seam metal',
+    patch: {
+      style: 'kirizuma', region: 'japan', tile: 'modern',
+      pitch: 0.35, sori: 0.04, cornerLift: 0.02, hipSori: 0.02, overhang: 0.6,
+      roofColor: '#2b2e33', ridgeColor: '#1f2125', tileGlaze: 0.5,
+      wallColor: '#ddd8cc', woodColor: '#4a4038', ornament: 'none', karahafu: false,
+      dougong: false, hipBeasts: false,
+    },
+  },
+];
+
+/** Regional curve defaults applied when the region changes (style/tiles kept). */
+export const REGION_CURVES: Record<Region, Partial<RoofParams>> = {
+  japan: { sori: 0.24, cornerLift: 0.16, hipSori: 0.1, overhang: 1.0 },
+  china: { sori: 0.34, cornerLift: 0.3, hipSori: 0.16, overhang: 1.3 },
+  korea: { sori: 0.2, cornerLift: 0.12, hipSori: 0.09, overhang: 1.1 },
+};
+
+export const STYLE_META: Record<RoofStyle, { kanji: string; name: string; sub: string }> = {
+  kirizuma: { kanji: '切妻', name: 'Kirizuma', sub: 'Gabled · 切妻造' },
+  yosemune: { kanji: '寄棟', name: 'Yosemune', sub: 'Hipped · 寄棟造' },
+  irimoya: { kanji: '入母屋', name: 'Irimoya', sub: 'Hip-and-gable · 入母屋造' },
+  hogyo: { kanji: '宝形', name: 'Hōgyō', sub: 'Pyramidal · 宝形造' },
+};
