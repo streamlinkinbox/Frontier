@@ -38,6 +38,31 @@ kirikomi flashing, onigawara demon tiles, hōju apex finial.
 coverage, hip closure — and a **connectivity check** proving every part touches the
 ground→plinth→walls→roof chain (no floating geometry).
 
+## Phase 1b — Ornaments & lanterns 提灯
+
+**Chinese ornament pack** (match the glazed-palace look): chiwen 螭吻 ridge-end beasts
+that "swallow" the ridge, wenshou hip beasts in rank-coded odd numbers (3–9 per hip),
+dougong-style painted bracket sets carrying the eaves, imperial orange/yellow glaze
+swatches. Japanese onigawara retained as the JP option.
+
+**Lantern generator** — 3 independent groups, each with 6 procedural designs:
+
+| Design | Form |
+|---|---|
+| Tube chōchin 筒提灯 | ribbed paper cylinder, hung (aka = izakaya red) |
+| Round chōchin 丸提灯 | squashed paper sphere |
+| Andon 行灯 | wooden-frame box lamp, Edo style |
+| Tall kiriko 切子 | 1 m festival box lantern on feet |
+| Paper globe 明かり | globe on tripod stand |
+| Stone tōrō 石灯籠 | 6-part: base, pillar, platform, fire box, roof, jewel |
+
+Each group: eave-hung (cords tie under the slopes) or standing placement, count,
+size, glow, paper/frame colors, and **custom characters drawn vertically on the
+paper**. Real point lights optional; **Night mode** in the viewer shows them off.
+
+`npm run verify` headlessly builds 47 scenarios (styles × tiles × ornaments ×
+lanterns × extremes) and asserts zero floating parts.
+
 ## Research sources
 
 - Roof types kirizuma / yosemune / irimoya / hōgyō — adayofzen.com, meguri-japan.com, note.com/kominkanist

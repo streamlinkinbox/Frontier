@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import Viewer, { ViewerApi, ViewOpts } from './components/Viewer';
 import Panel from './components/Panel';
-import { DEFAULT_PARAMS, PRESETS, REGION_CURVES, Region, RoofParams } from './lib/types';
+import { DEFAULT_PARAMS, PRESETS, REGION_CURVES, Region, RoofParams, LampGroup } from './lib/types';
 import { Check, RoofStats } from './lib/buildRoof';
 
 export default function App() {
   const [params, setParams] = useState<RoofParams>(DEFAULT_PARAMS);
-  const [view, setView] = useState<ViewOpts>({ wireframe: false, xray: false, autorotate: false });
+  const [view, setView] = useState<ViewOpts>({ wireframe: false, xray: false, autorotate: false, night: false });
   const [checks, setChecks] = useState<Check[]>([]);
   const [stats, setStats] = useState<RoofStats | null>(null);
   const viewerApi = useRef<ViewerApi>(null);
@@ -14,6 +14,13 @@ export default function App() {
   const patch = useCallback((p: Partial<RoofParams>) => setParams((prev) => ({ ...prev, ...p })), []);
   const patchView = useCallback((p: Partial<ViewOpts>) => setView((prev) => ({ ...prev, ...p })), []);
   const onReport = useCallback((c: Check[], s: RoofStats) => { setChecks(c); setStats(s); }, []);
+
+  const patchLamp = useCallback((index: number, lp: Partial<LampGroup>) => {
+    setParams((prev) => ({
+      ...prev,
+      lamps: prev.lamps.map((g, i) => (i === index ? { ...g, ...lp } : g)),
+    }));
+  }, []);
 
   const applyPreset = useCallback((id: string) => {
     const pr = PRESETS.find((x) => x.id === id);
@@ -47,7 +54,7 @@ export default function App() {
             <h1>FRONTIER <span>Procedural East-Asian Building Generator</span></h1>
           </div>
         </div>
-        <div className="phase-badge">Phase 1 · Roofs 屋根</div>
+        <div className="phase-badge">Phase 1 · Roofs + Lanterns 屋根・提灯</div>
       </header>
       <main className="layout">
         <Viewer
@@ -63,6 +70,7 @@ export default function App() {
           <Panel
             params={params}
             onChange={patch}
+            onLamp={patchLamp}
             onPreset={applyPreset}
             onRegion={applyRegion}
             checks={checks}

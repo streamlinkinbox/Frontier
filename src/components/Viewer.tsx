@@ -11,6 +11,7 @@ export interface ViewOpts {
   wireframe: boolean;
   xray: boolean;
   autorotate: boolean;
+  night: boolean;
 }
 
 export interface ViewerApi {
@@ -30,6 +31,13 @@ interface Props {
 const CAM_HOME = new THREE.Vector3(9.5, 6.6, 11.5);
 const TGT_HOME = new THREE.Vector3(0, 2.3, 0);
 
+interface SceneExtras {
+  hemi: THREE.HemisphereLight;
+  sun: THREE.DirectionalLight;
+  fill: THREE.DirectionalLight;
+  groundMat: THREE.MeshStandardMaterial;
+}
+
 function disposeGroup(g: THREE.Object3D): void {
   const shared = tileGeometries().set;
   g.traverse((o) => {
@@ -37,12 +45,47 @@ function disposeGroup(g: THREE.Object3D): void {
     if (mesh.geometry && !shared.has(mesh.geometry)) mesh.geometry.dispose();
     const im = o as unknown as THREE.InstancedMesh;
     if (im.isInstancedMesh) im.dispose();
+    const mat = (mesh as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+    const mats = Array.isArray(mat) ? mat : mat ? [mat] : [];
+    for (const mt of mats) {
+      if (mt.userData.shared) continue;
+      const sm = mt as THREE.MeshStandardMaterial;
+      if (sm.map && !sm.map.userData.shared) sm.map.dispose();
+      if (sm.emissiveMap && !sm.emissiveMap.userData.shared) sm.emissiveMap.dispose();
+      mt.dispose();
+    }
   });
+}
+
+function applyNight(scene: THREE.Scene, fx: SceneExtras, night: boolean): void {
+  if (night) {
+    scene.background = new THREE.Color('#070912');
+    (scene.fog as THREE.Fog).color.set('#070912');
+    fx.hemi.color.set('#8fa8d8');
+    fx.hemi.groundColor.set('#1a1410');
+    fx.hemi.intensity = 0.25;
+    fx.sun.color.set('#9fb8ff');
+    fx.sun.intensity = 0.35;
+    fx.fill.intensity = 0.05;
+    fx.groundMat.color.set('#14141c');
+  } else {
+    scene.background = new THREE.Color('#141318');
+    (scene.fog as THREE.Fog).color.set('#141318');
+    fx.hemi.color.set('#dfe8ff');
+    fx.hemi.groundColor.set('#3a2f28');
+    fx.hemi.intensity = 0.85;
+    fx.sun.color.set('#fff1dd');
+    fx.sun.intensity = 2.4;
+    fx.fill.color.set('#bcd0ff');
+    fx.fill.intensity = 0.5;
+    fx.groundMat.color.set('#232228');
+  }
 }
 
 const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onView, checks, stats, onReport }, ref) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const extrasRef = useRef<SceneExtras | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const roofRef = useRef<THREE.Group | null>(null);
@@ -98,10 +141,8 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
     fill.position.set(-8, 6, -9);
     scene.add(fill);
 
-    const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(34, 64),
-      new THREE.MeshStandardMaterial({ color: '#232228', roughness: 1 }),
-    );
+    const groundMat = new THREE.MeshStandardMaterial({ color: '#232228', roughness: 1 });
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(34, 64), groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
@@ -110,6 +151,7 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
     (grid.material as THREE.Material).transparent = true;
     (grid.material as THREE.Material).opacity = 0.55;
     scene.add(grid);
+    extrasRef.current = { hemi, sun, fill, groundMat };
 
     let raf = 0;
     const loop = () => {
@@ -163,6 +205,7 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
       m.needsUpdate = true;
     }
     if (controlsRef.current) controlsRef.current.autoRotate = view.autorotate;
+    if (sceneRef.current && extrasRef.current) applyNight(sceneRef.current, extrasRef.current, view.night);
   }, [view]);
 
   useImperativeHandle(ref, () => ({
@@ -201,12 +244,18 @@ const Viewer = forwardRef<ViewerApi, Props>(function Viewer({ params, view, onVi
         <button className={`pill ${view.wireframe ? 'on' : ''}`} onClick={() => onView({ wireframe: !view.wireframe })}>Wireframe</button>
         <button className={`pill ${view.xray ? 'on' : ''}`} onClick={() => onView({ xray: !view.xray })}>X-ray</button>
         <button className={`pill ${view.autorotate ? 'on' : ''}`} onClick={() => onView({ autorotate: !view.autorotate })}>Rotate</button>
+        <button className={`pill ${view.night ? 'on' : ''}`} onClick={() => onView({ night: !view.night })}>Night</button>
         <button className="pill" onClick={() => { cameraRef.current?.position.copy(CAM_HOME); controlsRef.current?.target.copy(TGT_HOME); }}>Reset view</button>
       </div>
       <div className="viewer-badge">
         <span className={`dot ${fails > 0 ? 'fail' : warns > 0 ? 'warn' : 'pass'}`} />
         {fails > 0 ? `${fails} check${fails > 1 ? 's' : ''} failing` : `${passes} passed${warns > 0 ? ` · ${warns} warning${warns > 1 ? 's' : ''}` : ''}`}
-        {stats && <span className="badge-stats">{stats.tileCount.toLocaleString()} tiles · {stats.rafterCount} rafters · {(stats.weightKg / 1000).toFixed(1)} t</span>}
+        {stats && (
+          <span className="badge-stats">
+            {stats.tileCount.toLocaleString()} tiles · {stats.rafterCount} rafters · {(stats.weightKg / 1000).toFixed(1)} t
+            {stats.lamps > 0 && ` · ${stats.lamps} lantern${stats.lamps > 1 ? 's' : ''}`}
+          </span>
+        )}
       </div>
     </div>
   );

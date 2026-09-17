@@ -21,6 +21,9 @@ export interface TileGeos {
   ridge: THREE.BufferGeometry;
   /** unit cylinder (Y axis) for rafters */
   rod: THREE.BufferGeometry;
+  /** wenshou hip-beast body + head */
+  beastBody: THREE.BufferGeometry;
+  beastHead: THREE.BufferGeometry;
   set: Set<THREE.BufferGeometry>;
 }
 
@@ -71,8 +74,11 @@ export function tileGeometries(): TileGeos {
 
   const rod = new THREE.CylinderGeometry(1, 1, 1, 10);
 
-  const geos: TileGeos = { hira, maru, cap, sanga, modern, ridge, rod, set: new Set() };
-  geos.set.add(hira).add(maru).add(cap).add(sanga).add(modern).add(ridge).add(rod);
+  const beastBody = new THREE.BoxGeometry(0.1, 0.13, 0.1);
+  const beastHead = new THREE.ConeGeometry(0.055, 0.1, 4);
+
+  const geos: TileGeos = { hira, maru, cap, sanga, modern, ridge, rod, beastBody, beastHead, set: new Set() };
+  geos.set.add(hira).add(maru).add(cap).add(sanga).add(modern).add(ridge).add(rod).add(beastBody).add(beastHead);
   cache = geos;
   return geos;
 }

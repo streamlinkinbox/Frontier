@@ -8,6 +8,7 @@ function canvasTex(size: number, draw: (ctx: CanvasRenderingContext2D, s: number
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
+  t.userData.shared = true;
   return t;
 }
 

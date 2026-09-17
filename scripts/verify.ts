@@ -1,14 +1,14 @@
 /**
- * Headless verification: builds every roof style × tile system combination
- * and asserts the "no floating" connectivity check passes.
- * Run: npx tsx scripts/verify.ts
+ * Headless verification: builds roof style × tile system × ornament × lantern
+ * combinations and asserts the "no floating" connectivity check passes.
+ * Run: npm run verify
  */
 
 // ---- minimal DOM stub for procedural canvas textures (node has no document) ----
 const fakeCtx = () => ({
-  fillStyle: '', strokeStyle: '', lineWidth: 1,
+  fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '',
   fillRect: () => {}, stroke: () => {}, beginPath: () => {}, moveTo: () => {},
-  bezierCurveTo: () => {}, putImageData: () => {},
+  lineTo: () => {}, bezierCurveTo: () => {}, fillText: () => {}, putImageData: () => {},
   getImageData: (_x: number, _y: number, w: number, h: number) => ({
     data: new Uint8ClampedArray(w * h * 4).fill(240), width: w, height: h,
   }),
@@ -18,10 +18,12 @@ const fakeCtx = () => ({
 };
 
 import { buildRoof } from '../src/lib/buildRoof';
-import { DEFAULT_PARAMS, PRESETS, RoofParams, RoofStyle, TileSystem } from '../src/lib/types';
+import { DEFAULT_PARAMS, DEFAULT_LAMP_GROUP, PRESETS, RoofParams, RoofStyle, TileSystem, LampDesign, LampMount } from '../src/lib/types';
 
 let failures = 0;
+let count = 0;
 function scenario(name: string, patch: Partial<RoofParams>) {
+  count++;
   const params: RoofParams = { ...DEFAULT_PARAMS, ...patch };
   const { checks, stats } = buildRoof(params);
   const fails = checks.filter((c) => c.status === 'fail');
@@ -29,7 +31,7 @@ function scenario(name: string, patch: Partial<RoofParams>) {
   const ok = fails.length === 0 && stats.tileCount > 50 && (params.showRafters ? stats.rafterCount > 4 : true);
   console.log(
     `${ok ? 'PASS' : 'FAIL'}  ${name}  | tiles=${stats.tileCount} rafters=${stats.rafterCount} ` +
-    `area=${stats.tileArea.toFixed(1)}m² eave=${stats.eaveY.toFixed(2)}m ridge=${stats.topY.toFixed(2)}m` +
+    `lamps=${stats.lamps} eave=${stats.eaveY.toFixed(2)}m ridge=${stats.topY.toFixed(2)}m` +
     (warns.length > 0 ? `  warns=[${warns.map((w) => w.label).join('; ')}]` : '') +
     (fails.length > 0 ? `  FAILS=[${fails.map((f) => f.detail).join('; ')}]` : ''),
   );
@@ -53,9 +55,39 @@ scenario('extreme curves', { style: 'irimoya', pitch: 0.9, sori: 0.45, cornerLif
 scenario('extreme flat', { style: 'kirizuma', pitch: 0.2, sori: 0, cornerLift: 0, overhang: 0.3, tile: 'modern' });
 scenario('karahafu', { style: 'kirizuma', karahafu: true, sori: 0.3, cornerLift: 0.25 });
 scenario('no rafters/structure', { style: 'yosemune', showRafters: false, showStructure: false });
+// ornaments
+scenario('chiwen+beasts+dougong palace', { style: 'irimoya', ornament: 'chiwen', hipBeasts: true, beastCount: 9, dougong: true });
+scenario('chiwen beasts hip', { style: 'yosemune', ornament: 'chiwen', hipBeasts: true, beastCount: 3, dougong: true });
+scenario('beasts pyramid', { style: 'hogyo', ornament: 'chiwen', hipBeasts: true, beastCount: 7, dougong: true });
+scenario('beasts on gable (no-op)', { style: 'kirizuma', hipBeasts: true, dougong: true });
+// lantern sweep: every design × every mount
+const designs: LampDesign[] = ['chochin-tube', 'chochin-round', 'andon', 'kiriko', 'akari', 'toro'];
+const mounts: LampMount[] = ['eave', 'ground'];
+for (const design of designs) {
+  for (const mount of mounts) {
+    scenario(`lamp ${design} @ ${mount}`, {
+      style: 'irimoya',
+      lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design, mount, count: 2, text: '祭酒' }],
+    });
+  }
+}
+// lantern stress: all groups, big counts, big sizes
+scenario('lanterns all-groups max', {
+  style: 'yosemune',
+  lamps: [
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'chochin-tube', mount: 'eave', count: 8, size: 1.4, text: '祭' },
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'toro', mount: 'ground', count: 4, size: 1.3, text: '' },
+    { ...DEFAULT_LAMP_GROUP, enabled: true, design: 'kiriko', mount: 'ground', count: 5, size: 1.2, text: '酒' },
+  ],
+});
+scenario('lanterns no lights', {
+  style: 'kirizuma', lampLights: false,
+  lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'andon', mount: 'eave', count: 4 }],
+});
 
 // walls-hidden → grounding check must downgrade to info, never fail
 {
+  count++;
   const { checks } = buildRoof({ ...DEFAULT_PARAMS, showWalls: false });
   const g = checks.find((c) => c.id === 'ground');
   const ok = g?.status === 'info';
@@ -63,5 +95,5 @@ scenario('no rafters/structure', { style: 'yosemune', showRafters: false, showSt
   if (!ok) failures++;
 }
 
-console.log(failures === 0 ? '\nALL SCENARIOS VERIFIED ✔' : `\n${failures} SCENARIO(S) FAILED ✘`);
+console.log(failures === 0 ? `\nALL ${count} SCENARIOS VERIFIED ✔` : `\n${failures}/${count} SCENARIO(S) FAILED ✘`);
 process.exit(failures === 0 ? 0 : 1);

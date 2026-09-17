@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { RoofParams } from './types';
 import { RoofFace, faceGeometry } from './faces';
-import { clamp, lerp, smoothstep, mulberry32 } from './math';
+import { clamp, smoothstep, mulberry32 } from './math';
 import { getMaterials, applyParamsToMaterials } from './materials';
+import { buildLamp } from './lamps';
 import {
   tileGeometries,
   newCollectors,
@@ -29,6 +30,7 @@ export interface RoofStats {
   eaveY: number;
   topY: number;
   footprint: string;
+  lamps: number;
 }
 
 export interface PartInfo {
@@ -57,6 +59,16 @@ function box(
   return m;
 }
 
+function tube(a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material): THREE.Mesh {
+  const dir = b.clone().sub(a);
+  const len = dir.length();
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(V(0, 1, 0), dir.normalize());
+  m.castShadow = true;
+  return m;
+}
+
 /** Bounding box of an InstancedMesh (setFromObject ignores instances). */
 function instancedBox(mesh: THREE.InstancedMesh): THREE.Box3 {
   const b = new THREE.Box3();
@@ -72,15 +84,27 @@ function instancedBox(mesh: THREE.InstancedMesh): THREE.Box3 {
   for (let i = 0; i < mesh.count; i++) {
     mesh.getMatrixAt(i, m);
     const p = new THREE.Vector3().setFromMatrixPosition(m);
-    // conservative: sphere around instance origin (geometry offset mostly < r)
     const s = new THREE.Vector3().setFromMatrixScale(m);
     const rr = r * Math.max(s.x, s.y, s.z) + c.length() * Math.max(s.x, s.y, s.z);
     b.expandByPoint(p.clone().addScalar(-rr));
     b.expandByPoint(p.clone().addScalar(rr));
   }
-  // transform to world
   mesh.updateWorldMatrix(true, false);
   return b.applyMatrix4(mesh.matrixWorld);
+}
+
+/** Invert x(u,t) for fixed t (x is monotonic in u on our faces). */
+function bisectU(face: RoofFace, t: number, x: number): number {
+  let lo = 0;
+  let hi = 1;
+  const v = new THREE.Vector3();
+  for (let k = 0; k < 14; k++) {
+    const mid = (lo + hi) / 2;
+    face.point(mid, t, v);
+    if (v.x < x) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
 }
 
 export function buildRoof(p: RoofParams): BuiltRoof {
@@ -114,7 +138,10 @@ export function buildRoof(p: RoofParams): BuiltRoof {
   const faces: RoofFace[] = [];
   const rafterJobs: { face: RoofFace; t0: number }[] = [];
   const ridgePaths: { pts: THREE.Vector3[]; lift: number; scale: number }[] = [];
+  const hipPaths: THREE.Vector3[][] = [];
   const oniSpots: THREE.Vector3[] = [];
+  let eaveFront: RoofFace | null = null;
+  let eaveBack: RoofFace | null = null;
   let ridgeBeamLen = 0;
   let ridgeBaseLen = 0;
   let apex: THREE.Vector3 | null = null;
@@ -130,11 +157,18 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     faces.push(f);
     return f;
   };
+  const pushHip = (f: RoofFace, u: number) => {
+    const pts = sampleFaceEdge(f, u);
+    ridgePaths.push({ pts, lift: 0.05, scale: 0.75 });
+    hipPaths.push(pts);
+  };
 
   // ================= style decomposition =================
   if (p.style === 'kirizuma') {
     const front = F('slope-front', V(-ex, ridgeY, 0), V(ex, ridgeY, 0), V(-ex, eaveY, ez), V(ex, eaveY, ez), ridgeY, eaveY, 0, p.cornerLift);
     const back = F('slope-back', V(-ex, ridgeY, 0), V(ex, ridgeY, 0), V(-ex, eaveY, -ez), V(ex, eaveY, -ez), ridgeY, eaveY, 0, p.cornerLift);
+    eaveFront = front;
+    eaveBack = back;
     rafterJobs.push({ face: front, t0: dWall / ez - 0.02 }, { face: back, t0: dWall / ez - 0.02 });
     ridgePaths.push({ pts: [V(-ex - 0.02, ridgeY, 0), V(ex + 0.02, ridgeY, 0)], lift: 0.1, scale: 1 });
     ridgeBaseLen = 2 * ex + 0.2;
@@ -156,12 +190,14 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const back = F('slope-back', V(-rx, ridgeY, 0), V(rx, ridgeY, 0), V(-ex, eaveY, -ez), V(ex, eaveY, -ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
     const east = F('slope-east', V(rx, ridgeY, 0), V(rx, ridgeY, 0), V(ex, eaveY, -ez), V(ex, eaveY, ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
     const west = F('slope-west', V(-rx, ridgeY, 0), V(-rx, ridgeY, 0), V(-ex, eaveY, -ez), V(-ex, eaveY, ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
+    eaveFront = front;
+    eaveBack = back;
     rafterJobs.push(
       { face: front, t0: dWall / ez - 0.02 }, { face: back, t0: dWall / ez - 0.02 },
       { face: east, t0: (L / 2 - rx) / (ex - rx) - 0.02 }, { face: west, t0: (L / 2 - rx) / (ex - rx) - 0.02 },
     );
     ridgePaths.push({ pts: [V(-rx, ridgeY, 0), V(rx, ridgeY, 0)], lift: 0.1, scale: 1 });
-    for (const f of [front, back]) for (const u of [0, 1]) ridgePaths.push({ pts: sampleFaceEdge(f, u), lift: 0.05, scale: 0.75 });
+    for (const f of [front, back]) for (const u of [0, 1]) pushHip(f, u);
     ridgeBaseLen = 2 * rx + 0.3;
     ridgeBeamLen = 2 * rx + 0.4;
     oniSpots.push(V(-rx, ridgeY + 0.1, 0), V(rx, ridgeY + 0.1, 0));
@@ -173,12 +209,14 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const back = F('slope-back', A, A, V(-ex, eaveY, -ez), V(ex, eaveY, -ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
     const east = F('slope-east', A, A, V(ex, eaveY, -ez), V(ex, eaveY, ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
     const west = F('slope-west', A, A, V(-ex, eaveY, -ez), V(-ex, eaveY, ez), ridgeY, eaveY, p.hipSori, p.cornerLift);
+    eaveFront = front;
+    eaveBack = back;
     rafterJobs.push(
       { face: front, t0: dWall / ez - 0.02 }, { face: back, t0: dWall / ez - 0.02 },
       { face: east, t0: L / 2 / ex - 0.02 }, { face: west, t0: L / 2 / ex - 0.02 },
     );
-    for (const f of [front, back]) for (const u of [0, 1]) ridgePaths.push({ pts: sampleFaceEdge(f, u), lift: 0.05, scale: 0.75 });
-    checks.push({ id: 'ridge', label: 'Main ridge', status: 'info', detail: 'Pyramidal roof: four hip ridges meet at the apex; no main ridge / onigawara pair.' });
+    for (const f of [front, back]) for (const u of [0, 1]) pushHip(f, u);
+    checks.push({ id: 'ridge', label: 'Main ridge', status: 'info', detail: 'Pyramidal roof: four hip ridges meet at the apex; no main ridge / ridge-end pair.' });
   } else {
     // ---- irimoya: upper gable roof astride a lower hip roof ----
     const frac = clamp(p.gableFraction, 0.2, 0.75);
@@ -193,6 +231,8 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const bLo = F('lower-back', V(-xg, yB, -zb), V(xg, yB, -zb), V(-ex, eaveY, -ez), V(ex, eaveY, -ez), yB, eaveY, p.hipSori, p.cornerLift);
     const eLo = F('lower-east', V(xg, yB, -zb), V(xg, yB, zb), V(ex, eaveY, -ez), V(ex, eaveY, ez), yB, eaveY, p.hipSori, p.cornerLift);
     const wLo = F('lower-west', V(-xg, yB, -zb), V(-xg, yB, zb), V(-ex, eaveY, -ez), V(-ex, eaveY, ez), yB, eaveY, p.hipSori, p.cornerLift);
+    eaveFront = fLo;
+    eaveBack = bLo;
     let tWallF = (dWall - zb) / (ez - zb) - 0.02;
     if (!(tWallF > 0.03)) {
       checks.push({ id: 'break', label: 'Gable break height', status: 'warn', detail: 'Break sits outside the wall line — rafters run the full lower slope.' });
@@ -203,7 +243,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
       { face: eLo, t0: 0.04 }, { face: wLo, t0: 0.04 },
     );
     ridgePaths.push({ pts: [V(-exu - 0.02, ridgeY, 0), V(exu + 0.02, ridgeY, 0)], lift: 0.1, scale: 1 });
-    for (const f of [fLo, bLo]) for (const u of [0, 1]) ridgePaths.push({ pts: sampleFaceEdge(f, u), lift: 0.05, scale: 0.75 });
+    for (const f of [fLo, bLo]) for (const u of [0, 1]) pushHip(f, u);
     ridgeBaseLen = 2 * exu + 0.2;
     ridgeBeamLen = 2 * exu;
     oniSpots.push(V(-exu - 0.04, ridgeY + 0.1, 0), V(exu + 0.04, ridgeY + 0.1, 0));
@@ -213,13 +253,11 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     buildBarge(inner, mats, fUp, 1, V(1, 0, 0), p, ridgeY - yUB, parts);
     buildBarge(inner, mats, bUp, 0, V(-1, 0, 0), p, ridgeY - yUB, parts);
     buildBarge(inner, mats, bUp, 1, V(1, 0, 0), p, ridgeY - yUB, parts);
-    buildFlashing(inner, mats, fUp, fLo, 1, ex, parts);
-    buildFlashing(inner, mats, bUp, bLo, -1, ex, parts);
+    buildFlashing(inner, mats, fUp, fLo, ex, parts);
+    buildFlashing(inner, mats, bUp, bLo, ex, parts);
     const cap = box(2 * xg, 0.06, 2 * zb, mats.underlay, 0, yB - 0.01, 0);
     inner.add(cap);
-    parts.push({ name: 'attic-cap', label: 'Attic cap', box: new THREE.Box3() });
-    (cap as THREE.Mesh).updateWorldMatrix(true, false);
-    parts[parts.length - 1].box.setFromObject(cap);
+    parts.push({ name: 'attic-cap', label: 'Attic cap', box: new THREE.Box3().setFromObject(cap) });
     buildOutlooks(inner, mats, fUp, bUp, xg, exu, parts);
     if (frac < 0.3 || frac > 0.6) checks.push({ id: 'frac', label: 'Gable share', status: 'warn', detail: `Gable fraction ${frac.toFixed(2)} is outside the typical 0.30–0.60 range.` });
   }
@@ -313,17 +351,59 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     inner.add(fin);
     parts.push({ name: 'finial', label: 'Apex finial (hōju)', box: new THREE.Box3().setFromObject(fin) });
   } else if (apex) {
-    const cap = box(0.24, 0.14, 0.24, mats.mortar, apex.x, apex.y + 0.04, apex.z);
-    inner.add(cap);
-    parts.push({ name: 'apex-cap', label: 'Apex cap', box: new THREE.Box3().setFromObject(cap) });
+    const capA = box(0.24, 0.14, 0.24, mats.mortar, apex.x, apex.y + 0.04, apex.z);
+    inner.add(capA);
+    parts.push({ name: 'apex-cap', label: 'Apex cap', box: new THREE.Box3().setFromObject(capA) });
   }
 
-  // ================= onigawara (demon ridge-end tiles) =================
-  if (p.onigawara && oniSpots.length > 0 && p.style !== 'hogyo') {
+  // ================= ridge-end ornaments =================
+  if (p.ornament !== 'none' && oniSpots.length > 0 && p.style !== 'hogyo') {
     const oniGroup = new THREE.Group();
-    for (const s of oniSpots) oniGroup.add(buildOnigawara(mats, s));
+    oniSpots.forEach((s, i) => {
+      const dir = Math.sign(s.x) || (i === 0 ? -1 : 1);
+      oniGroup.add(p.ornament === 'chiwen' ? buildChiwen(mats, s, dir) : buildOnigawara(mats, s));
+    });
     inner.add(oniGroup);
-    parts.push({ name: 'onigawara', label: 'Onigawara ×2', box: new THREE.Box3().setFromObject(oniGroup) });
+    parts.push({
+      name: 'ridge-ornaments', label: p.ornament === 'chiwen' ? 'Chiwen ×2' : 'Onigawara ×2',
+      box: new THREE.Box3().setFromObject(oniGroup),
+    });
+  }
+
+  // ================= hip beasts (wenshou / zōushòu) =================
+  if (p.hipBeasts) {
+    if (hipPaths.length === 0) {
+      checks.push({ id: 'beasts', label: 'Hip beasts', status: 'info', detail: 'Kirizuma has no hips — beasts need a hip, hip-and-gable or pyramid roof.' });
+    } else {
+      let n = clamp(Math.round(p.beastCount), 3, 9);
+      if (n % 2 === 0) n = n + 1 > 9 ? n - 1 : n + 1; // odd numbers only (1–9 by rank)
+      const bodyM: THREE.Matrix4[] = [];
+      const headM: THREE.Matrix4[] = [];
+      const q = new THREE.Quaternion();
+      const eul = new THREE.Euler();
+      const sc1 = V(1, 1, 1);
+      const mm = new THREE.Matrix4();
+      for (const path of hipPaths) {
+        for (let i = 0; i < n; i++) {
+          const s = n === 1 ? 0.5 : 0.2 + (0.58 * i) / (n - 1);
+          const { pos, tan } = samplePath(path, s);
+          q.setFromEuler(eul.set(0, Math.atan2(tan.x, tan.z), 0));
+          mm.compose(V(pos.x, pos.y + 0.22, pos.z), q, sc1);
+          bodyM.push(mm.clone());
+          mm.compose(V(pos.x, pos.y + 0.335, pos.z), q, sc1);
+          headM.push(mm.clone());
+        }
+      }
+      const imBB = addInst(geos.beastBody, mats.ridge, bodyM, null, 'beasts-body');
+      const imBH = addInst(geos.beastHead, mats.ridge, headM, null, 'beasts-head');
+      if (imBB || imBH) {
+        const b = new THREE.Box3();
+        if (imBB) b.union(instancedBox(imBB));
+        if (imBH) b.union(instancedBox(imBH));
+        parts.push({ name: 'hip-beasts', label: `Hip beasts ×${bodyM.length}`, box: b });
+      }
+      checks.push({ id: 'beasts', label: 'Hip beasts', status: 'pass', detail: `${n} beasts × ${hipPaths.length} hips (odd count = building rank, max 9).` });
+    }
   }
 
   // ================= rafters (taruki) =================
@@ -395,6 +475,16 @@ export function buildRoof(p: RoofParams): BuiltRoof {
   inner.add(struct);
   parts.push({ name: 'structure', label: 'Plates / beams / purlins', box: new THREE.Box3().setFromObject(struct) });
 
+  // ================= dougong-style bracket sets =================
+  if (p.dougong && eaveFront && eaveBack) {
+    const trimMat = new THREE.MeshStandardMaterial({ color: p.trimColor, roughness: 0.6 });
+    const dg = new THREE.Group();
+    buildDougongRow(dg, mats, trimMat, eaveFront, 1, { L, S, wallTop, o });
+    buildDougongRow(dg, mats, trimMat, eaveBack, -1, { L, S, wallTop, o });
+    inner.add(dg);
+    parts.push({ name: 'dougong', label: 'Bracket sets (dougong)', box: new THREE.Box3().setFromObject(dg) });
+  }
+
   // ================= walls (mounting context) =================
   if (p.showWalls) {
     const walls = new THREE.Group();
@@ -418,9 +508,66 @@ export function buildRoof(p: RoofParams): BuiltRoof {
   // synthetic ground part (the visible ground disc lives in the viewer)
   parts.push({ name: 'ground', label: 'Ground', box: new THREE.Box3(V(-60, -0.05, -60), V(60, 0.02, 60)) });
 
+  // ================= lanterns =================
+  let lampTotal = 0;
+  const cordMat = new THREE.MeshStandardMaterial({ color: '#241f1a', roughness: 0.9 });
+  const lampLetters = 'ABCDEFGH';
+  p.lamps.forEach((g, gi) => {
+    if (!g.enabled) return;
+    const n = clamp(Math.round(g.count), 1, 8);
+    const grp = new THREE.Group();
+    const opts = { size: g.size, paperColor: g.paperColor, frameColor: g.frameColor, glow: g.glow, text: g.text };
+    if (g.mount === 'eave' && eaveFront) {
+      const face = eaveFront;
+      const z = S / 2 + o * 0.5;
+      const t = clamp((z - face.topL.z) / (face.botL.z - face.topL.z), 0.05, 0.98);
+      const span = n === 1 ? 0 : Math.min(L * 0.8, n * 1.3);
+      for (let i = 0; i < n; i++) {
+        const x = n === 1 ? 0 : (i - (n - 1) / 2) * (span / (n - 1));
+        const lamp = buildLamp(g.design, opts);
+        const u = bisectU(face, t, x);
+        const fr = face.frame(u, t);
+        const anchor = fr.pos.clone().addScaledVector(fr.y, -0.1);
+        const cordLen = 0.22 + 0.18 * g.size;
+        const lampTopY = anchor.y - cordLen;
+        lamp.group.position.set(x, lampTopY - lamp.topY, z);
+        grp.add(lamp.group);
+        const a = V(x, lampTopY + 0.02, z);
+        const b = anchor.clone();
+        b.y += 0.05;
+        grp.add(tube(a, b, 0.012, cordMat));
+      }
+      if (p.lampLights && g.glow > 0.05) {
+        const pl = new THREE.PointLight(0xffc27d, g.glow * 8, 11, 2);
+        pl.position.set(0, face.point(0.5, t, new THREE.Vector3()).y - 0.8, z);
+        grp.add(pl);
+      }
+    } else {
+      // freestanding in front of the building
+      const z = S / 2 + o + 1.0;
+      const span = n === 1 ? 0 : Math.min(L * 0.9, n * 1.6);
+      for (let i = 0; i < n; i++) {
+        const x = n === 1 ? 0 : (i - (n - 1) / 2) * (span / (n - 1));
+        const lamp = buildLamp(g.design, opts);
+        lamp.group.position.set(x, -lamp.baseY - 0.02, z);
+        grp.add(lamp.group);
+      }
+      if (p.lampLights && g.glow > 0.05) {
+        const pl = new THREE.PointLight(0xffc27d, g.glow * 8, 11, 2);
+        pl.position.set(0, 1.0 * g.size, z);
+        grp.add(pl);
+      }
+    }
+    inner.add(grp);
+    parts.push({
+      name: `lamps-${lampLetters[gi] ?? gi}`, label: `Lanterns ${lampLetters[gi] ?? gi} (${g.design})`,
+      box: new THREE.Box3().setFromObject(grp),
+    });
+    lampTotal += n;
+  });
+
   // ---- world transforms, then part boxes for instanced meshes ----
   group.updateMatrixWorld(true);
-  // face part boxes were computed in local space; bring to world
   inner.updateWorldMatrix(true, false);
   for (const pt of parts) {
     if (pt.name.startsWith('slope') || pt.name.startsWith('upper') || pt.name.startsWith('lower'))
@@ -451,6 +598,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     eaveY,
     topY: ridgeY,
     footprint: `${p.width.toFixed(1)}×${p.depth.toFixed(1)} m + ${o.toFixed(2)} m eaves`,
+    lamps: lampTotal,
   };
 
   // ================= verification =================
@@ -478,6 +626,9 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     id: 'hips', label: 'Hip / valley closure', status: 'pass',
     detail: p.style === 'kirizuma' ? 'No hips — bargeboards cap both gable ends.' : 'Shared hip edges use identical profiles — watertight by construction.',
   });
+
+  if (lampTotal > 0) checks.push({ id: 'lamps', label: 'Lanterns', status: 'pass', detail: `${lampTotal} lantern(s) — eave cords tied under the slopes, ground bases on grade.` });
+  else checks.push({ id: 'lamps', label: 'Lanterns', status: 'info', detail: 'No lantern groups enabled.' });
 
   // ---- connectivity: every part must touch the ground chain (no floating) ----
   if (!p.showWalls) {
@@ -513,6 +664,18 @@ export function buildRoof(p: RoofParams): BuiltRoof {
 }
 
 // ---------------------------------------------------------------- helpers
+
+/** Sample a ridge path at fraction s → position + tangent. */
+function samplePath(path: THREE.Vector3[], s: number): { pos: THREE.Vector3; tan: THREE.Vector3 } {
+  const f = clamp(s, 0, 1) * (path.length - 1);
+  const i0 = Math.floor(f);
+  const i1 = Math.min(path.length - 1, i0 + 1);
+  const fr = f - i0;
+  return {
+    pos: path[i0].clone().lerp(path[i1], fr),
+    tan: path[i1].clone().sub(path[i0]).normalize(),
+  };
+}
 
 function buildGableRibbon(
   inner: THREE.Group, mats: ReturnType<typeof getMaterials>,
@@ -593,9 +756,8 @@ function buildBarge(
 /** Angled "kirikomi" flashing sealing upper-slope feet to the lower roof (irimoya). */
 function buildFlashing(
   inner: THREE.Group, mats: ReturnType<typeof getMaterials>,
-  upper: RoofFace, lower: RoofFace, sideSign: 1 | -1, ex: number, parts: PartInfo[],
+  upper: RoofFace, lower: RoofFace, ex: number, parts: PartInfo[],
 ): void {
-  void sideSign;
   const n = 14;
   const pos: number[] = [];
   const idx: number[] = [];
@@ -640,7 +802,6 @@ function buildOutlooks(
       }
     }
   }
-  void lerp(0, 0, 0);
   inner.add(grp);
   parts.push({ name: 'outlooks', label: 'Gable outlooks', box: new THREE.Box3().setFromObject(grp) });
 }
@@ -668,4 +829,72 @@ function buildOnigawara(mats: ReturnType<typeof getMaterials>, at: THREE.Vector3
   }
   g.position.copy(at);
   return g;
+}
+
+/**
+ * Stylized chiwen 螭吻 — dragon-head ridge-end beast that "swallows" the ridge,
+ * leaning outward with an upturned horn. dir = ±1 along the ridge axis.
+ */
+function buildChiwen(mats: ReturnType<typeof getMaterials>, at: THREE.Vector3, dir: number): THREE.Group {
+  const g = new THREE.Group();
+  const m = mats.ridge;
+  const add = (mesh: THREE.Mesh) => { mesh.castShadow = true; g.add(mesh); return mesh; };
+  add(box(0.26, 0.1, 0.3, m, 0, 0.05, 0));
+  const body = add(box(0.14, 0.32, 0.2, m, dir * 0.03, 0.25, 0));
+  body.rotation.z = -dir * 0.28;
+  const snout = add(box(0.13, 0.12, 0.16, m, dir * 0.13, 0.38, 0));
+  snout.rotation.z = -dir * 0.5;
+  const horn = add(new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.22, 8), m));
+  horn.position.set(dir * 0.11, 0.52, 0);
+  horn.rotation.z = -dir * 0.85;
+  const fin = add(box(0.05, 0.2, 0.3, m, -dir * 0.07, 0.3, 0));
+  fin.rotation.z = dir * 0.25;
+  // fangs
+  for (const sz of [-1, 1]) {
+    const fang = add(new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.07, 6), m));
+    fang.position.set(dir * 0.17, 0.31, sz * 0.05);
+    fang.rotation.x = Math.PI;
+  }
+  g.position.copy(at);
+  return g;
+}
+
+/** One row of dougong-style bracket sets carrying the front/back eaves. */
+function buildDougongRow(
+  parent: THREE.Group,
+  mats: ReturnType<typeof getMaterials>,
+  trim: THREE.Material,
+  face: RoofFace,
+  sideSign: 1 | -1,
+  dims: { L: number; S: number; wallTop: number; o: number },
+): void {
+  const { L, S, wallTop, o } = dims;
+  const zWall = sideSign * (S / 2);
+  const surfY = (z: number): number => {
+    const t = clamp((z - face.topL.z) / (face.botL.z - face.topL.z), 0, 1);
+    return face.point(0.5, t, new THREE.Vector3()).y;
+  };
+  const n = Math.max(2, Math.round(L / 1.4));
+  const span = Math.min(L - 0.8, (n - 1) * 1.4);
+  for (let i = 0; i < n; i++) {
+    const x = n === 1 ? 0 : (i - (n - 1) / 2) * (span / (n - 1));
+    const at = (off: number) => zWall + sideSign * off;
+    const topArmY = surfY(at(0.5)) - 0.165;
+    parent.add(box(0.13, 0.09, 0.55, mats.wood, x, topArmY, at(0.28))); // cantilever arm
+    parent.add(box(0.2, 0.1, 0.2, trim, x, topArmY - 0.095, at(0.15))); // block
+    parent.add(box(0.52, 0.09, 0.13, trim, x, topArmY - 0.19, at(0.1))); // cross arm
+    parent.add(box(0.2, 0.12, 0.2, trim, x, topArmY - 0.295, at(0.06))); // wall-head block
+    // angled strut: embedded in the wall → tucked into the rafter zone
+    const a = V(x, topArmY - 0.36, zWall - sideSign * 0.05);
+    const bz = at(o * 0.8);
+    const b = V(x, surfY(bz) - 0.06, bz);
+    const dir = b.clone().sub(a);
+    const len = dir.length();
+    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.11, len, 0.11), mats.wood);
+    strut.position.copy(a).add(b).multiplyScalar(0.5);
+    strut.quaternion.setFromUnitVectors(V(0, 1, 0), dir.normalize());
+    strut.castShadow = true;
+    parent.add(strut);
+  }
+  void wallTop;
 }

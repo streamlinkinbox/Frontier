@@ -31,6 +31,7 @@ export function getMaterials(): RoofMaterials {
   const stone = new THREE.MeshStandardMaterial({ color: '#8d9094', roughness: 0.9 });
   const flashing = new THREE.MeshStandardMaterial({ color: '#2c3138', roughness: 0.45, metalness: 0.55, side: THREE.DoubleSide });
   const all = [tile, ridge, underlay, underside, wood, woodDark, plaster, mortar, stone, flashing];
+  for (const m of all) m.userData.shared = true;
   mats = { tile, ridge, underlay, underside, wood, woodDark, plaster, mortar, stone, flashing, all };
   return mats;
 }
