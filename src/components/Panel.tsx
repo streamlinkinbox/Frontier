@@ -531,10 +531,10 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
       <Section title="Roadmap 工程">
         <ul className="roadmap">
           <li className="done"><span>Phase 1 · Roofs + ornaments + lanterns</span><em>done</em></li>
-          <li><span>Phase 2 · Walls, floors, building types (machiya / store / office)</span><em>next</em></li>
-          <li><span>Phase 3 · Openings, lattices, noren & signboards</span><em>planned</em></li>
-          <li><span>Phase 4 · Utility poles & wiring</span><em>planned</em></li>
-          <li><span>Phase 5 · Furniture & street props</span><em>planned</em></li>
+          <li className="done"><span>Phase 2 · Courtyard enclosure walls & planters</span><em>done</em></li>
+          <li className="done"><span>Phase 3 · Kanban wooden signage & bian'e plaques</span><em>done</em></li>
+          <li className="done"><span>Phase 4 · Furniture & street props (調度品)</span><em>done</em></li>
+          <li><span>Phase 5 · Openings, lattices, shoji / noren & interior spaces</span><em>next</em></li>
         </ul>
       </Section>
 
