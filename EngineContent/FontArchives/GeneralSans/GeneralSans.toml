@@ -1,0 +1,9 @@
+[font_archive]
+family         = "General Sans"
+category       = "SansSerif"
+description    = "Auto-discovered"
+format         = "TrueType"
+render_mode    = "MultiChannelSignedDistanceField"
+texture_extent = 1024
+
+[variants]
