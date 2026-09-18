@@ -121,6 +121,10 @@ scenario('signs bamboo takeniwa', { signsEnabled: true, groundSigns: 'bamboo_fra
 scenario('signs wall bracket toilet', { signsEnabled: true, wallSigns: 'bracket' });
 scenario('signs none', { signsEnabled: false });
 
+// furniture & street props sweep: density none, sparse, medium, dense
+scenario('props density dense', { propsEnabled: true, propDensity: 'dense' });
+scenario('props density sparse', { propsEnabled: true, propDensity: 'sparse' });
+scenario('props density none', { propsEnabled: false, propDensity: 'none' });
 // walls-hidden → grounding check must downgrade to info, never fail
 {
   count++;

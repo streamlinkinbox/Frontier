@@ -1,4 +1,4 @@
-import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, EavesPlaqueText, EavesPlaqueStyle, RoofSignType, WallSignType, GroundSignType, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS, EAVES_PLAQUE_TEXT_META } from '../lib/types';
+import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, EavesPlaqueText, EavesPlaqueStyle, RoofSignType, WallSignType, GroundSignType, PropDensity, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS, EAVES_PLAQUE_TEXT_META } from '../lib/types';
 import { Check, RoofStats } from '../lib/buildRoof';
 
 interface Props {
@@ -151,6 +151,12 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
     { id: 'hongawara', name: 'Hongawara', sub: '本瓦葺' },
     { id: 'sangawara', name: 'Sangawara', sub: '桟瓦葺' },
     { id: 'modern', name: 'Modern flat', sub: '和モダン' },
+  ];
+  const propDensities: { id: PropDensity; name: string; sub: string }[] = [
+    { id: 'none', name: 'None', sub: '無' },
+    { id: 'sparse', name: 'Sparse', sub: '小' },
+    { id: 'medium', name: 'Medium', sub: '中' },
+    { id: 'dense', name: 'Dense', sub: '大' },
   ];
   const entries: { id: EntryType; name: string }[] = [
     { id: 'none', name: 'None' },
@@ -395,6 +401,29 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         )}
       </Section>
 
+      <Section title="Furniture & Street Props 調度品">
+        <Toggle label="Asian street furniture" value={params.propsEnabled} onChange={(v) => onChange({ propsEnabled: v })} />
+        {params.propsEnabled && (
+          <>
+            <div className="design-label">Scatter density 配置密度</div>
+            <div className="seg-row">
+              {propDensities.map((pd) => (
+                <button
+                  key={pd.id}
+                  className={`seg ${params.propDensity === pd.id ? 'on' : ''}`}
+                  onClick={() => onChange({ propDensity: pd.id })}
+                >
+                  {pd.name}<span className="seg-sub">{pd.sub}</span>
+                </button>
+              ))}
+            </div>
+            <p className="hint">
+              Ming teahouse tables (八仙桌) with celadon teaset, square/drum stools (坐墩), scholar open bookshelf (书架) with vertical volumes & scrolls, tea/spice crates (茶箱), straw-wrapped sake barrels (菰樽), and woven bamboo bins (竹籠).
+            </p>
+          </>
+        )}
+      </Section>
+
       <Section title="Structure & ornaments 構造">
         <div className="seg-row">
           {ornaments.map((o) => (
@@ -437,6 +466,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <div><b>{stats.steps}</b><span>steps</span></div>
             <div><b>{stats.rampLen > 0 ? `${stats.rampLen.toFixed(1)} m` : '—'}</b><span>ramp</span></div>
             <div><b>{stats.signs}</b><span>signs</span></div>
+            <div><b>{stats.props}</b><span>props</span></div>
           </div>
         )}
         <ul className="checks">
@@ -492,6 +522,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Hanging tassels (fángsuì), ribbed profiles, disc/melon/barrel/gourd/hex/diamond forms — <i>Chinese festival-lantern reference sketches</i></li>
             <li>Entry steps: riser ≤197 mm, tread ≥254 mm + nosing, rails 860–970 mm — <i>IRC R311.7</i></li>
             <li>Traditional wooden signs: sode-kanban (袖看板 bracket), tatefuda (立て札 roofed post), torii-kanban (鳥居看板), yagura-kanban (櫓看板 ridge billboard), bian'e (匾额 grand plaque) — <i>Alan Scott Pate (Kanban), Lost Art Press</i></li>
+            <li>East Asian street props: Ming square/drum stools, eight-immortals tea tables (baxian-zhuo), open scholar bookshelves (shujia), tansu tea crates (chabako), straw-wrapped sake casks (komodaru), and woven bamboo bins (take-kago) — <i>Kyoto Emporium / Wikimedia Tansu / Edo Chōnin culture</i></li>
             <li>Access ramps 1:12 max, 0.9 m min width, 1.5 m landings — <i>ADA §405</i>; stone stairs + buried bedding — <i>Shinto architecture / Ketchell</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>

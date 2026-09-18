@@ -12,7 +12,7 @@ npm install
 npm run dev        # → interactive viewer at http://localhost:5173
 npm run build
 npm test           # headless geometry verification, exit code = pass/fail
-npm run verify     # the app's own 128-scenario sweep
+npm run verify     # the app's own 131-scenario sweep
 ```
 
 There are two subsystems in the tree right now, and they meet at the roof:
@@ -144,6 +144,11 @@ drawn vertically on the paper**, optional point lights. Night mode shows them of
 - **Roof signs**: Edo/Meiji roof-ridge shop billboard (*yagura-kanban* 櫓看板) splayed on timber trestles with shingle cap, plus gable pediment plaques (*hafu-gaku* 破風額).
 - **Side wall signs**: wall-projecting iron bracket sign (*sode-kanban* 袖看板) with double-sided weathered cedar "厠" and blue/red pictograms (photo 1), and flat wall plank (*tate-kanban* 縦看板 "手打蕎麦").
 - **Freestanding garden & entrance signs**: roofed post sign (*tatefuda* 立て札 "梅麗亭" with miniature timber rooflet, photo 2), twin-bamboo framed sign (*Take-niwa* 竹庭 with miniature pantile rooflet, photo 3), Torii-gate entrance sign (*Torii-kanban* "歓迎" 45-072 MALULANI ST., photo 4), and folding floor A-frame shop board (*koma-kanban* 駒看板 "営業中").
+**Street furniture & props (調度品)**: authentic East Asian street and teahouse furnishings scattered naturally around the building facade and garden:
+- **Ming teahouse tables (baxian-zhuo 八仙桌 / chabudai 茶ぶ台)** with apron waist rails, inward horse-hoof feet (manti 蹄), and celadon porcelain teapots & tea bowls.
+- **Stools**: 4-legged square stools with perimeter stretchers and round drum/barrel stools (zuodun 坐墩) with bronze stud rings.
+- **Scholar open bookshelf (shujia 书架 / hondana 本棚)**: 4-tier timber shelf with upright volumes (silk colors), stacked horizontal books, scrolls, and ceramic vases.
+- **Storage containers & bins**: stenciled wooden tea/spice crates (*chabako* 茶箱 "特選 銘茶" with tansu corner iron brackets), straw-wrapped sake barrels (*komodaru* 菰樽 "寿" with braided ropes), glazed tenmoku ceramic water urns (*kame* 甕), and woven bamboo waste/herb baskets (*take-kago* 竹籠).
 
 **Export**: any roof as `.GLB` (imports straight into Blender) or as `.JSON`
 parameters.
@@ -175,4 +180,4 @@ magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō),
 - **Phase 2** — Walls, floors, building types (machiya / store / office …)
 - **Phase 3** — Openings, lattices, noren & signboards (custom text)
 - **Phase 4** — Lights (types), utility poles & wiring, electricity hookup
-- **Phase 5** — Furniture & street props (all Asian-style, all optional)
+- **Phase 5** — Furniture & street props (*done: tables, stools, bookshelf, crates, barrels, bins*)

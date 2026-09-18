@@ -100,6 +100,8 @@ export const STONE_DESIGNS: LampDesign[] = [
 /** Stone designs that may genuinely hang (tsuri-dōrō hang from eaves). */
 export const HANGABLE_STONE: LampDesign[] = ['rankei-toro'];
 
+export type PropDensity = 'none' | 'sparse' | 'medium' | 'dense';
+
 export interface RoofParams {
   style: RoofStyle;
   region: Region;
@@ -158,6 +160,9 @@ export interface RoofParams {
   /** Ramp slope as 1:N run:rise (12 = barrier-free, 6 = steep). */
   rampSlope: number;
   /** Real point lights inside lantern groups (off = emissive only). */
+  /** Traditional East Asian street furniture & props (stools, tables, bookshelf, bins, crates, barrels). */
+  propsEnabled: boolean;
+  propDensity: PropDensity;
   lampLights: boolean;
   lamps: LampGroup[];
   /** Traditional wooden signs (kanban, bian'e, tatefuda, torii). */
@@ -215,6 +220,8 @@ export const DEFAULT_PARAMS: RoofParams = {
   stairMaterial: 'stone',
   entryRails: true,
   rampSlope: 8,
+  propsEnabled: true,
+  propDensity: 'medium',
   lampLights: true,
   lamps: [
     { ...DEFAULT_LAMP_GROUP, enabled: true },
