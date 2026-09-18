@@ -95,6 +95,18 @@ scenario('lanterns no lights', {
   lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'pagoda-toro', mount: 'stone', count: 4 }],
 });
 
+// entrance sweep: steps / ramp / both, stone + timber, rail on/off
+scenario('entry steps stone', { entryType: 'steps', stairMaterial: 'stone', floorHeight: 0.45 });
+scenario('entry steps wood no rails', { entryType: 'steps', stairMaterial: 'wood', entryRails: false, floorHeight: 0.6 });
+scenario('entry ramp gentle', { entryType: 'ramp', rampSlope: 12, floorHeight: 0.4 });
+scenario('entry ramp steep + cleats', { entryType: 'ramp', rampSlope: 6, floorHeight: 0.7 });
+scenario('entry both palace', { style: 'yosemune', entryType: 'both', stairMaterial: 'stone', floorHeight: 0.55, rampSlope: 8 });
+scenario('entry none', { entryType: 'none' });
+scenario('entry high narrow', { style: 'kirizuma', entryType: 'steps', floorHeight: 0.9, stairWidth: 0.9 });
+scenario('entry low wide + standing lamps', {
+  entryType: 'steps', floorHeight: 0.18, stairWidth: 2.4,
+  lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'andon', mount: 'standing', count: 3 }],
+});
 // walls-hidden → grounding check must downgrade to info, never fail
 {
   count++;

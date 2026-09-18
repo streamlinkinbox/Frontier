@@ -16,6 +16,10 @@ export type LampDesign =
 /** Hanging = cords under the eaves · Standing = paper/wood floor row · Stone = garden lanterns */
 export type LampMount = 'hanging' | 'standing' | 'stone';
 
+/** Entrance: raised-floor platform with steps and/or an access ramp. */
+export type EntryType = 'none' | 'steps' | 'ramp' | 'both';
+export type StairMaterial = 'stone' | 'wood';
+
 export interface LampGroup {
   enabled: boolean;
   design: LampDesign;
@@ -136,6 +140,16 @@ export interface RoofParams {
   /** Cusped gable bargeboards (karahafu-style ogee curve) on gable styles. */
   karahafu: boolean;
   rafterSpacing: number;
+  entryType: EntryType;
+  /** Raised-floor platform height in meters. */
+  floorHeight: number;
+  /** Stair flight width in meters. */
+  stairWidth: number;
+  stairMaterial: StairMaterial;
+  /** Handrails on steps + ramp. */
+  entryRails: boolean;
+  /** Ramp slope as 1:N run:rise (12 = barrier-free, 6 = steep). */
+  rampSlope: number;
   /** Real point lights inside lantern groups (off = emissive only). */
   lampLights: boolean;
   lamps: LampGroup[];
@@ -174,6 +188,12 @@ export const DEFAULT_PARAMS: RoofParams = {
   eaveCaps: true,
   karahafu: false,
   rafterSpacing: 0.455,
+  entryType: 'steps',
+  floorHeight: 0.45,
+  stairWidth: 1.5,
+  stairMaterial: 'stone',
+  entryRails: true,
+  rampSlope: 8,
   lampLights: true,
   lamps: [
     { ...DEFAULT_LAMP_GROUP, enabled: true },

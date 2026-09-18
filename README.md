@@ -12,7 +12,7 @@ npm install
 npm run dev        # → interactive viewer at http://localhost:5173
 npm run build
 npm test           # headless geometry verification, exit code = pass/fail
-npm run verify     # the app's own 111-scenario sweep
+npm run verify     # the app's own 119-scenario sweep
 ```
 
 There are two subsystems in the tree right now, and they meet at the roof:
@@ -138,6 +138,7 @@ and square chōchin 筒/丸/角提灯, andon 行灯, tall kiriko 切子, hexagon
 雪洞, palace lantern 宫灯, spinning carousel 走马灯, Korean cheongsachorong
 청사초롱, paper globe 明かり, stone tōrō 石灯籠, Kasuga tōrō 春日灯籠, yukimi, oribe (moon windows), oki, hanging tsuri, pagoda, concrete bollard, disc, melon, barrel, gourd, hex-palace, diamond and roof-top hanging lanterns (all with swaying tassels). Each group: count, size, glow, paper/frame colours, **custom characters
 drawn vertically on the paper**, optional point lights. Night mode shows them off.
+**Entrance**: raised-floor platform with stone/timber steps (IRC rise/run) and/or a 1:6–1:12 access ramp (ADA), handrails both sides, entry door slab.
 
 **Export**: any roof as `.GLB` (imports straight into Blender) or as `.JSON`
 parameters.
@@ -159,7 +160,7 @@ upturn — MDPI Buildings 2025 · CN roof hierarchy and parametric rules — She
 al. · chiwen / hip beasts / dougong — pgm.org.cn, ibiblio.org, baike.baidu ·
 chōchin forms, bonbori, zou-ma-deng, cheongsachorong, kasuga-dōrō —
 hayakawajunpei, skdesu.com, baike.baidu (Revolving Lanterns), paper-capers,
-magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō), kamisenro.co.jp · concrete pagoda lanterns — Athena Garden · hanging tassels (fangshui) & ribbed profiles — Chinese festival-lantern reference sketches.
+magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō), kamisenro.co.jp · concrete pagoda lanterns — Athena Garden · hanging tassels (fangshui) & ribbed profiles — Chinese festival-lantern reference sketches · entry steps — IRC R311.7 · ramps — ADA §405 · stone stairs — Shinto architecture.
 
 ## Roadmap
 

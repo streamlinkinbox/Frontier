@@ -4,6 +4,7 @@ import { RoofFace, faceGeometry } from './faces';
 import { clamp, smoothstep, mulberry32 } from './math';
 import { getMaterials, applyParamsToMaterials } from './materials';
 import { buildLamp } from './lamps';
+import { buildEntry } from './entry';
 import {
   tileGeometries,
   newCollectors,
@@ -31,6 +32,8 @@ export interface RoofStats {
   topY: number;
   footprint: string;
   lamps: number;
+  steps: number;
+  rampLen: number;
 }
 
 export interface PartInfo {
@@ -508,6 +511,17 @@ export function buildRoof(p: RoofParams): BuiltRoof {
   // synthetic ground part (the visible ground disc lives in the viewer)
   parts.push({ name: 'ground', label: 'Ground', box: new THREE.Box3(V(-60, -0.05, -60), V(60, 0.02, 60)) });
 
+  // ================= entrance: platform, steps, ramp, rails =================
+  const entry = buildEntry(p, { S });
+  const entryFrontZ = entry.frontZ;
+  const entrySteps = entry.steps;
+  const entryRampLen = entry.rampLen;
+  if (entry.part) {
+    inner.add(entry.group);
+    parts.push(entry.part);
+    for (const ch of entry.checks) checks.push(ch);
+  }
+
   // ================= lanterns =================
   let lampTotal = 0;
   const cordMat = new THREE.MeshStandardMaterial({ color: '#241f1a', roughness: 0.9 });
@@ -547,7 +561,8 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     } else {
       // standing row, or stone garden setting further out
       const garden = g.mount === 'stone' || isStoneLamp;
-      const z = S / 2 + o + (garden ? 1.7 : 1.0);
+      let z = S / 2 + o + (garden ? 1.7 : 1.0);
+      if (!garden && z < entryFrontZ + 0.5) z = entryFrontZ + 0.5; // clear the entrance
       const span = n === 1 ? 0 : Math.min(garden ? L * 1.0 : L * 0.9, n * (garden ? 2.0 : 1.6));
       for (let i = 0; i < n; i++) {
         const x = n === 1 ? 0 : (i - (n - 1) / 2) * (span / (n - 1));
@@ -665,6 +680,8 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     topY: ridgeY,
     footprint: `${p.width.toFixed(1)}×${p.depth.toFixed(1)} m + ${o.toFixed(2)} m eaves`,
     lamps: lampTotal,
+    steps: entrySteps,
+    rampLen: entryRampLen,
   };
 
   // ================= verification =================

@@ -1,4 +1,4 @@
-import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS } from '../lib/types';
+import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS } from '../lib/types';
 import { Check, RoofStats } from '../lib/buildRoof';
 
 interface Props {
@@ -152,6 +152,16 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
     { id: 'sangawara', name: 'Sangawara', sub: '桟瓦葺' },
     { id: 'modern', name: 'Modern flat', sub: '和モダン' },
   ];
+  const entries: { id: EntryType; name: string }[] = [
+    { id: 'none', name: 'None' },
+    { id: 'steps', name: 'Steps' },
+    { id: 'ramp', name: 'Ramp' },
+    { id: 'both', name: 'Both' },
+  ];
+  const stairMats: { id: StairMaterial; name: string; sub: string }[] = [
+    { id: 'stone', name: 'Stone', sub: '石' },
+    { id: 'wood', name: 'Wood', sub: '木' },
+  ];
   const ornaments: { id: Ornament; name: string; sub: string }[] = [
     { id: 'none', name: 'None', sub: '—' },
     { id: 'onigawara', name: 'Onigawara', sub: '鬼瓦' },
@@ -230,6 +240,35 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         <Slider label="Rafter spacing" value={params.rafterSpacing} min={0.3} max={0.9} step={0.005} unit=" m" onChange={(v) => onChange({ rafterSpacing: v })} />
       </Section>
 
+      <Section title="Entrance 玄関">
+        <div className="seg-row">
+          {entries.map((e) => (
+            <button key={e.id} className={`seg ${params.entryType === e.id ? 'on' : ''}`} onClick={() => onChange({ entryType: e.id })}>
+              {e.name}
+            </button>
+          ))}
+        </div>
+        {params.entryType !== 'none' && (
+          <>
+            <Slider label="Floor height" value={params.floorHeight} min={0.15} max={0.9} step={0.01} unit=" m" onChange={(v) => onChange({ floorHeight: v })} />
+            {(params.entryType === 'steps' || params.entryType === 'both') && (
+              <Slider label="Stair width" value={params.stairWidth} min={0.9} max={2.4} step={0.05} unit=" m" onChange={(v) => onChange({ stairWidth: v })} />
+            )}
+            <div className="seg-row">
+              {stairMats.map((m) => (
+                <button key={m.id} className={`seg ${params.stairMaterial === m.id ? 'on' : ''}`} onClick={() => onChange({ stairMaterial: m.id })}>
+                  {m.name}<span className="seg-sub">{m.sub}</span>
+                </button>
+              ))}
+            </div>
+            <Toggle label="Handrails" value={params.entryRails} onChange={(v) => onChange({ entryRails: v })} />
+            {(params.entryType === 'ramp' || params.entryType === 'both') && (
+              <Slider label="Ramp slope 1:N" value={params.rampSlope} min={6} max={12} step={0.5} onChange={(v) => onChange({ rampSlope: v })} />
+            )}
+          </>
+        )}
+      </Section>
+
       <Section title="Structure & ornaments 構造">
         <div className="seg-row">
           {ornaments.map((o) => (
@@ -269,6 +308,8 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <div><b>{(stats.weightKg / 1000).toFixed(2)} t</b><span>tile weight</span></div>
             <div><b>{stats.eaveY.toFixed(2)} m</b><span>eave height</span></div>
             <div><b>{stats.lamps}</b><span>lanterns</span></div>
+            <div><b>{stats.steps}</b><span>steps</span></div>
+            <div><b>{stats.rampLen > 0 ? `${stats.rampLen.toFixed(1)} m` : '—'}</b><span>ramp</span></div>
           </div>
         )}
         <ul className="checks">
@@ -322,6 +363,8 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Oribe: buried post, sun/moon windows; oki = movable; tsuri hangs from eaves — <i>enwik.org (Tōrō), kamisenro.co.jp</i></li>
             <li>Cast-concrete tiered pagoda lanterns (GFRC) — <i>Athena Garden</i></li>
             <li>Hanging tassels (fángsuì), ribbed profiles, disc/melon/barrel/gourd/hex/diamond forms — <i>Chinese festival-lantern reference sketches</i></li>
+            <li>Entry steps: riser ≤197 mm, tread ≥254 mm + nosing, rails 860–970 mm — <i>IRC R311.7</i></li>
+            <li>Access ramps 1:12 max, 0.9 m min width, 1.5 m landings — <i>ADA §405</i>; stone stairs + buried bedding — <i>Shinto architecture / Ketchell</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>
         </details>
