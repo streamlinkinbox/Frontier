@@ -228,17 +228,17 @@ function getToriiWelcomeTexture(): THREE.CanvasTexture {
 }
 
 /** Sign 5: Palace & Shop Eaves Grand Plaque (Bian'e 匾额 / Gaku 額) */
-function getEavesPlaqueTexture(textKey: EavesPlaqueText, styleKey: EavesPlaqueStyle): THREE.CanvasTexture {
-  const cacheKey = `eaves_${textKey}_${styleKey}`;
+function getEavesPlaqueTexture(textKey: EavesPlaqueText, styleKey: EavesPlaqueStyle, customText?: string): THREE.CanvasTexture {
+  const kanjiMap: Record<EavesPlaqueText, string> = {
+    taihedian: '太和殿',
+    tianxia: '天下第一',
+    fenghuang: '鳳凰堂',
+    chashitsu: '喫茶去',
+    daxiongbaodian: '大雄寶殿',
+  };
+  const kanji = (customText && customText.trim().length > 0) ? customText.trim() : (kanjiMap[textKey] || '太和殿');
+  const cacheKey = `eaves_${textKey}_${styleKey}_${kanji}`;
   return getSignTexture(cacheKey, 768, 320, (ctx, w, h) => {
-    const kanjiMap: Record<EavesPlaqueText, string> = {
-      taihedian: '太和殿',
-      tianxia: '天下第一',
-      fenghuang: '鳳凰堂',
-      chashitsu: '喫茶去',
-      daxiongbaodian: '大雄寶殿',
-    };
-    const kanji = kanjiMap[textKey] || '太和殿';
 
     if (styleKey === 'palace_gold') {
       // Deep black lacquer with gold leaf calligraphy & floral borders
@@ -784,7 +784,7 @@ function buildEavesPlaque(p: RoofParams, ctx: SignContext, mats: ReturnType<type
   const posZ = ctx.S / 2 + 0.06;
   const posY = Math.min(ctx.wallTop - 0.22, ctx.eaveY - 0.18);
 
-  const tex = getEavesPlaqueTexture(p.eavesPlaqueText, p.eavesPlaqueStyle);
+  const tex = getEavesPlaqueTexture(p.eavesPlaqueText, p.eavesPlaqueStyle, p.customEavesText);
   const plaqueFaceMat = new THREE.MeshStandardMaterial({
     map: tex,
     roughness: p.eavesPlaqueStyle === 'palace_gold' ? 0.4 : 0.8,

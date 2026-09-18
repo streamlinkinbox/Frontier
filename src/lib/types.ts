@@ -166,6 +166,8 @@ export interface RoofParams {
   showEavesPlaque: boolean;
   eavesPlaqueText: EavesPlaqueText;
   eavesPlaqueStyle: EavesPlaqueStyle;
+  /** Custom characters for the eaves plaque (overrides preset if non-empty). */
+  customEavesText: string;
   /** Roof-mounted sign: ridge billboard (yagura-kanban) or gable plaque. */
   roofSign: RoofSignType;
   /** Side-wall signs: wall-bracket projecting sign ("厠" restroom) and/or flat plank. */
@@ -223,6 +225,7 @@ export const DEFAULT_PARAMS: RoofParams = {
   showEavesPlaque: true,
   eavesPlaqueText: 'taihedian',
   eavesPlaqueStyle: 'palace_gold',
+  customEavesText: '',
   roofSign: 'ridge',
   wallSigns: 'both',
   groundSigns: 'all',

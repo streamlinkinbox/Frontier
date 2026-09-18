@@ -330,6 +330,26 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
                     </button>
                   ))}
                 </div>
+                <div className="slider-row" style={{ marginTop: '0.35rem' }}>
+                  <span className="slider-label" style={{ fontSize: '0.8rem', color: 'var(--sub)' }}>Custom plaque text (optional)</span>
+                  <input
+                    type="text"
+                    value={params.customEavesText || ''}
+                    placeholder="e.g. 龍泉寺, 天空, 明鏡止水..."
+                    onChange={(e) => onChange({ customEavesText: e.target.value })}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '4px',
+                      padding: '4px 8px',
+                      color: 'var(--text)',
+                      fontSize: '0.85rem',
+                      fontFamily: '"Noto Serif JP", serif',
+                      marginTop: '2px',
+                    }}
+                  />
+                </div>
               </>
             )}
 
