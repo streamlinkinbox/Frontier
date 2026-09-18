@@ -393,11 +393,15 @@ export function buildPerimeter(p: RoofParams, ctx: PerimeterContext): PerimeterR
     group.add(rightWing);
     totalWallLen += wingLen;
 
-    // Stone planter box with flowers / bamboo flanking the entrance stairs (photo 1 detail)
+    // Stone planter box with specimen pine trees, bamboo & support stakes flanking the entrance stairs (photo 1 detail)
     const planterW = 1.35;
     const planterH = 0.42;
     const planterD = 0.65;
     const planterMat = mats.stone;
+    const barkMat = mats.woodDark;
+    const stakeMat = mats.wood;
+    const needleMat = new THREE.MeshStandardMaterial({ color: '#1c3e24', roughness: 0.8 });
+    const bambooMat = new THREE.MeshStandardMaterial({ color: '#3d6c38', roughness: 0.5 });
     const leafMat = new THREE.MeshStandardMaterial({ color: '#2e5a32', roughness: 0.6 });
     const flowerMat = new THREE.MeshStandardMaterial({ color: '#f3efe6', roughness: 0.3 });
 
@@ -406,17 +410,92 @@ export function buildPerimeter(p: RoofParams, ctx: PerimeterContext): PerimeterR
       const pz = frontZ + 0.35;
       // Stone retaining box
       group.add(wbox(planterW, planterH, planterD, planterMat, px, planterH / 2, pz));
-      // Top earth
+      // Top earth (fertile garden soil)
       const soilMat = new THREE.MeshStandardMaterial({ color: '#2a231d', roughness: 0.95 });
       group.add(wbox(planterW - 0.08, 0.02, planterD - 0.08, soilMat, px, planterH + 0.01, pz));
-      // Decorative lilies / flowering bamboo plants
-      for (let f = 0; f < 5; f++) {
-        const fx = px - planterW * 0.35 + f * (planterW * 0.18);
-        const plantH = 0.38 + (f % 2) * 0.1;
-        // Stems & leaves
-        group.add(wcyl(0.012, 0.012, plantH, 6, leafMat, fx, planterH + plantH / 2, pz));
+
+      // Specimen ornamental tree (Chinese courtyard pine / scholar tree) with authentic tripod stake support (shujia 树架)
+      const treeX = px + sx * 0.18;
+      const treeZ = pz;
+      const baseGroundY = planterH + 0.02;
+
+      // 1. Gnarled trunk (curved/leaning realistic East Asian garden tree)
+      const trunkLowerH = 0.55;
+      const trunkLower = wcyl(0.045, 0.055, trunkLowerH, 8, barkMat, treeX, baseGroundY + trunkLowerH / 2, treeZ, 0.08, 0, sx * 0.12);
+      group.add(trunkLower);
+
+      const trunkUpperH = 0.5;
+      const trunkUpper = wcyl(0.035, 0.045, trunkUpperH, 8, barkMat, treeX + sx * 0.08, baseGroundY + trunkLowerH + trunkUpperH / 2 - 0.04, treeZ + 0.03, -0.1, 0, sx * 0.18);
+      group.add(trunkUpper);
+
+      // 2. Sculpted cloud foliage clusters (tamabuki style pine pads)
+      const crownBaseY = baseGroundY + trunkLowerH + trunkUpperH;
+      const padPositions = [
+        [treeX + sx * 0.16, crownBaseY + 0.05, treeZ + 0.06, 0.28, 0.14, 0.24],
+        [treeX + sx * 0.02, crownBaseY + 0.22, treeZ - 0.05, 0.34, 0.16, 0.28],
+        [treeX - sx * 0.12, crownBaseY + 0.14, treeZ + 0.04, 0.26, 0.13, 0.22],
+        [treeX + sx * 0.08, crownBaseY + 0.38, treeZ + 0.02, 0.22, 0.12, 0.2],
+      ];
+      for (const [cx, cy, cz, sw, sh, sd] of padPositions) {
+        const foliageMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), needleMat);
+        foliageMesh.scale.set(sw, sh, sd);
+        foliageMesh.position.set(cx, cy, cz);
+        foliageMesh.castShadow = true;
+        group.add(foliageMesh);
+      }
+
+      // 3. Authentic East Asian wooden tripod tree support stakes (zhijia 支架 / shujia 树架)
+      // Three angled timber poles tied together below the crown
+      const tieY = baseGroundY + 0.62;
+      const tieRing = wbox(0.12, 0.04, 0.12, mats.woodDark, treeX + sx * 0.05, tieY, treeZ);
+      group.add(tieRing);
+
+      // Support legs: 3 poles angling outward to the planter soil bed
+      const stakeAngles = [0.2, 2.3, 4.3];
+      for (const ang of stakeAngles) {
+        const legR = 0.18;
+        const footX = treeX + sx * 0.05 + Math.cos(ang) * legR;
+        const footZ = treeZ + Math.sin(ang) * legR;
+        const topX = treeX + sx * 0.05 + Math.cos(ang) * 0.04;
+        const topZ = treeZ + Math.sin(ang) * 0.04;
+
+        const pTop = new THREE.Vector3(topX, tieY + 0.03, topZ);
+        const pBot = new THREE.Vector3(footX, baseGroundY, footZ);
+        const dir = pTop.clone().sub(pBot);
+        const stakeLen = dir.length();
+        const stakeCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, stakeLen, 6), stakeMat);
+        stakeCyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+        stakeCyl.position.copy(pTop).add(pBot).multiplyScalar(0.5);
+        stakeCyl.castShadow = true;
+        group.add(stakeCyl);
+      }
+
+      // Horizontal cross-tie stretchers between support poles
+      for (let j = 0; j < 3; j++) {
+        const a1 = stakeAngles[j];
+        const a2 = stakeAngles[(j + 1) % 3];
+        const p1 = new THREE.Vector3(treeX + sx * 0.05 + Math.cos(a1) * 0.12, baseGroundY + 0.32, treeZ + Math.sin(a1) * 0.12);
+        const p2 = new THREE.Vector3(treeX + sx * 0.05 + Math.cos(a2) * 0.12, baseGroundY + 0.32, treeZ + Math.sin(a2) * 0.12);
+        const sDir = p2.clone().sub(p1);
+        const sLen = sDir.length();
+        const strut = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.025, sLen), stakeMat);
+        strut.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), sDir.clone().normalize());
+        strut.position.copy(p1).add(p2).multiplyScalar(0.5);
+        strut.castShadow = true;
+        group.add(strut);
+      }
+
+      // 4. Clustered flowering lilies & bamboo around planter base
+      for (let f = 0; f < 4; f++) {
+        const fx = px - sx * (planterW * 0.28) + (f - 1.5) * 0.16;
+        const fz = pz + (f % 2 === 0 ? 0.08 : -0.08);
+        const plantH = 0.32 + (f % 2) * 0.08;
+        // Bamboo stalks
+        group.add(wcyl(0.01, 0.012, plantH, 6, bambooMat, fx, baseGroundY + plantH / 2, fz));
+        // Bamboo leaf clusters
+        group.add(wbox(0.12, 0.03, 0.08, leafMat, fx, baseGroundY + plantH * 0.7, fz, 0, f * 0.5, 0.2));
         // White flower blossom
-        group.add(wbox(0.08, 0.06, 0.08, flowerMat, fx, planterH + plantH + 0.03, pz));
+        group.add(wbox(0.065, 0.05, 0.065, flowerMat, fx, baseGroundY + plantH + 0.02, fz));
       }
     }
   }

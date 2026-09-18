@@ -74,13 +74,15 @@ export class RoofFace {
     const e = Math.abs(2 * uc - 1);
     const edgeW = Math.pow(e, 6); // hip/barge edge line
     // wing-corner sweep: rises over the outer span, not just the tip
-    const cw = e <= 0.3 ? 0 : Math.pow((e - 0.3) / 0.7, 1.6);
+    const cw = e <= 0.25 ? 0 : Math.pow((e - 0.25) / 0.75, 1.5);
     let y = this.profY(tc);
     y += this.hipSori * Math.sin(Math.PI * tc) * edgeW; // curled hip rafter line
-    y += this.cornerLift * Math.pow(tc, 2.5) * cw; // flying-eave corner sweep
+    // Traditional East Asian yijiao corner curl (冲三翘四 / Jiangnan nenqiang sweep):
+    // smooth ramp in the body with progressive steepening towards the flying eave tip
+    y += this.cornerLift * (0.28 * Math.pow(tc, 2.0) + 0.72 * Math.pow(tc, 4.2)) * cw;
     // corners also kick outward in plan (pure function of the shared edge
     // params, so both faces meeting at a hip compute the identical curve)
-    const flare = this.cornerLift * 0.45 * Math.pow(tc, 4) * cw;
+    const flare = this.cornerLift * 0.45 * Math.pow(tc, 3.8) * cw;
     if (flare > 1e-6) {
       const rl = Math.hypot(x, z) || 1;
       x += (x / rl) * flare;

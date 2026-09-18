@@ -636,7 +636,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     lampTotal += n;
   });
 
-  // ================= wing-corner ornaments =================
+  // ================= wing-corner ornaments & authentic upturn curls =================
   const buildCornerBeast = (mm: ReturnType<typeof getMaterials>, yaw: number): THREE.Group => {
     const b = new THREE.Group();
     const m = mm.ridge;
@@ -671,7 +671,64 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     b.userData.swayPhase = phase;
     return b;
   };
-  if ((p.cornerBeasts || p.windBells) && eaveFront && eaveBack) {
+  // Traditional Chinese / East Asian flying eave corner curl (yijiao qiqiao 翼角起翘 / nenqiang 嫩戗)
+  const buildCornerEaveCurl = (mm: ReturnType<typeof getMaterials>, yaw: number, lift: number): THREE.Group => {
+    const g = new THREE.Group();
+    const curlMat = mm.ridge;
+    const woodMat = mm.woodDark;
+    const finialMat = mm.ridge;
+
+    // 1. Triple curved corner rafter heads (zi jiao liang 子角梁 / feichuan 飞椽 tails)
+    for (let r = -1; r <= 1; r++) {
+      const rafterYaw = (r * 14 * Math.PI) / 180;
+      const rLen = 0.42 + (1 - Math.abs(r) * 0.2) * 0.16;
+      const rafter = box(0.065, 0.075, rLen, woodMat, 0, 0, 0);
+      rafter.rotation.y = rafterYaw;
+      rafter.rotation.x = -0.22 - lift * 0.35;
+      rafter.position.set(r * 0.065, -0.04, rLen * 0.35);
+      g.add(rafter);
+    }
+
+    // 2. Sweeping corner ridge roll segment (shuixiang 水戗 tile roll)
+    const rollPts: THREE.Vector3[] = [];
+    const nPts = 8;
+    for (let i = 0; i <= nPts; i++) {
+      const frac = i / nPts;
+      const rz = -0.3 + frac * 0.65;
+      const ry = Math.pow(frac, 2.2) * (0.16 + lift * 0.3);
+      rollPts.push(new THREE.Vector3(0, ry, rz));
+    }
+    for (let i = 0; i < nPts; i++) {
+      const p0 = rollPts[i];
+      const p1 = rollPts[i + 1];
+      const dir = p1.clone().sub(p0);
+      const segLen = dir.length();
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.048, segLen, 10), curlMat);
+      cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      cyl.position.copy(p0).add(p1).multiplyScalar(0.5);
+      cyl.castShadow = true;
+      g.add(cyl);
+    }
+
+    // 3. Pronounced upturned decorative finial curl / scroll tip (qiqiao 戗角飞檐卷首)
+    const tipPt = rollPts[nPts];
+    const tipFinial = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), finialMat);
+    tipFinial.position.set(tipPt.x, tipPt.y + 0.03, tipPt.z + 0.03);
+    tipFinial.scale.set(0.9, 1.25, 0.9);
+    tipFinial.castShadow = true;
+    g.add(tipFinial);
+
+    // Upturn scroll horn curling upwards and backwards
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.036, 0.16, 8), finialMat);
+    horn.rotation.x = -1.15;
+    horn.position.set(tipPt.x, tipPt.y + 0.11, tipPt.z - 0.01);
+    horn.castShadow = true;
+    g.add(horn);
+
+    g.rotation.y = yaw;
+    return g;
+  };
+  if (eaveFront && eaveBack) {
     const corners = [
       eaveFront.point(0, 1, new THREE.Vector3()),
       eaveFront.point(1, 1, new THREE.Vector3()),
@@ -682,20 +739,25 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     const bronze = new THREE.MeshStandardMaterial({ color: '#8a6d3b', metalness: 0.7, roughness: 0.4 });
     corners.forEach((cp, ci) => {
       const yaw = Math.atan2(cp.x, cp.z);
+      // Always add authentic flying eave corner curls matching Chinese pavilion/pagoda architecture
+      const curl = buildCornerEaveCurl(mats, yaw, p.cornerLift);
+      curl.position.set(cp.x, cp.y - 0.02, cp.z);
+      cg.add(curl);
+
       if (p.cornerBeasts) {
         const beast = buildCornerBeast(mats, yaw);
-        beast.position.set(cp.x, cp.y - 0.04, cp.z);
+        beast.position.set(cp.x, cp.y + 0.06, cp.z);
         cg.add(beast);
       }
       if (p.windBells) {
         const bell = buildWindBell(bronze, 1.0 + (ci % 3) * 0.2, ci * 1.7);
-        bell.position.set(cp.x, cp.y - 0.04, cp.z);
+        bell.position.set(cp.x, cp.y - 0.06, cp.z);
         cg.add(bell);
       }
     });
     inner.add(cg);
-    parts.push({ name: 'corner-ornaments', label: 'Corner beasts & bells', box: new THREE.Box3().setFromObject(cg) });
-    const dressed = `${p.cornerBeasts ? 'guardian beasts' : ''}${p.cornerBeasts && p.windBells ? ' + ' : ''}${p.windBells ? 'wind bells' : ''}`;
+    parts.push({ name: 'corner-ornaments', label: 'Corner curls & ornaments', box: new THREE.Box3().setFromObject(cg) });
+    const dressed = `${p.cornerBeasts ? 'guardian beasts' : ''}${p.cornerBeasts && p.windBells ? ' + ' : ''}${p.windBells ? 'wind bells' : 'swept eave curls'}`;
     checks.push({ id: 'corners', label: 'Wing corners', status: 'pass', detail: `4 swept corners dressed with ${dressed}.` });
   }
 
@@ -822,13 +884,15 @@ function buildGableRibbon(
 ): void {
   // u at the gable plane (top edge is horizontal, so u is t-independent)
   const u = clamp((xg - face.topL.x) / (face.topR.x - face.topL.x), 0.02, 0.98);
-  const n = 22;
+  const n = 28;
   const pos: number[] = [];
   const idx: number[] = [];
   const v = new THREE.Vector3();
+  const zProfile: number[] = [];
   for (let i = 0; i <= n; i++) {
     face.point(u, i / n, v);
     pos.push(xg, yBase, v.z, xg, v.y + 0.005, v.z);
+    zProfile.push(v.z);
   }
   for (let i = 0; i < n; i++) {
     const a = i * 2;
@@ -842,10 +906,41 @@ function buildGableRibbon(
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   inner.add(mesh);
-  // timber trim: king stud + base beam on the gable face
+
+  // Traditional East Asian gable pediment timber framework (bofengban / geguan / kakeko)
   const trim = new THREE.Group();
   const apexY = face.point(u, 0, new THREE.Vector3()).y;
-  trim.add(box(0.1, apexY - yBase, 0.1, mats.wood, xg, (apexY + yBase) / 2, 0));
+  const zMin = Math.min(...zProfile);
+  const zMax = Math.max(...zProfile);
+  const zSpan = zMax - zMin;
+
+  // 1. Heavy tie beam / lintel across the base of the pediment (阑额 / 额枋)
+  trim.add(box(0.12, 0.12, zSpan + 0.1, mats.woodDark, xg, yBase + 0.06, 0));
+
+  // 2. Central vertical king stud (shuzhu 蜀柱) with sculpted base bracket
+  const studH = Math.max(0.2, apexY - yBase);
+  trim.add(box(0.12, studH, 0.12, mats.wood, xg, yBase + studH / 2, 0));
+  // Decorative bracket block under king stud apex
+  trim.add(box(0.22, 0.08, 0.18, mats.woodDark, xg, apexY - 0.08, 0));
+
+  // 3. Classical geguan timber lattice / vertical muntins (格板 / 竖棂)
+  const numSlats = 4;
+  for (let s = 1; s <= numSlats; s++) {
+    const sFrac = s / (numSlats + 1);
+    const zOffset = (sFrac - 0.5) * (zSpan * 0.7);
+    // Height of roof at this z position
+    const tFrac = Math.abs(zOffset) / (zSpan * 0.5 || 1);
+    const roofYAtS = apexY - (apexY - yBase) * Math.pow(tFrac, 1.3);
+    const slatH = Math.max(0.1, roofYAtS - yBase - 0.08);
+    if (slatH > 0.15) {
+      trim.add(box(0.08, slatH, 0.06, mats.wood, xg, yBase + 0.06 + slatH / 2, zOffset));
+    }
+  }
+
+  // 4. Horizontal collar purlin beam (chuan 穿枋) spanning mid-height
+  const midH = yBase + studH * 0.45;
+  trim.add(box(0.09, 0.08, zSpan * 0.55, mats.wood, xg, midH, 0));
+
   inner.add(trim);
   const bb = new THREE.Box3().setFromObject(mesh);
   bb.union(new THREE.Box3().setFromObject(trim));
