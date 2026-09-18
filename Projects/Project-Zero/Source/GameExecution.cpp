@@ -224,8 +224,11 @@ int main(int argc, char** argv)
     }
 
     Frontier::ConfigurationRegistry Configuration;
-    if (!Configuration.Load("Projects/Project-Zero/Content/Frontier.config.toml"))
-        std::cerr << "[Configuration] " << Configuration.QueryPath() << ": " << Configuration.QueryLastError() << " - using defaults\n";
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/ConfigurationLoad");
+        if (!Configuration.Load("Projects/Project-Zero/Content/Frontier.config.toml"))
+            std::cerr << "[Configuration] " << Configuration.QueryPath() << ": " << Configuration.QueryLastError() << " - using defaults\n";
+    }
 
     Frontier::SceneStructure Level;
     Frontier::TextureIndex   Textures;
@@ -236,6 +239,7 @@ int main(int argc, char** argv)
     uint32_t MoonSlots[Frontier::kMoonAtlasCount];
     for (uint32_t M = 0u; M < Frontier::kMoonAtlasCount; ++M) MoonSlots[M] = 0xFFFFFFFFu;
     {
+        FRONTIER_TELEMETRY_CONTENT("Bootstrap/SceneDecode");
         Frontier::SceneDecodeConfiguration Decode;
         Decode.UniformScale = SceneScale;
         Decode.SlabLimit    = Configuration.Query().Backend.SlabLimit;
@@ -312,6 +316,8 @@ int main(int argc, char** argv)
     //    the 28 ms rebuild D6 measured — far too expensive for a second-order lighting effect. The panel's average
     //    colour barely moves during the trial loop, so a static proxy is the honest trade.
     Frontier::InterfaceFidelityTier PanelTier = Frontier::InterfaceFidelityTier::Low;
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/PanelLightProxy");
     if (ShowroomLevelForLight)
     {
         Frontier::InterfaceStructure RestFigures;
@@ -370,6 +376,7 @@ int main(int argc, char** argv)
                                  ": no proxy registered (tier off, unavailable, or the panel emits nothing).");
         }
     }
+    }
 
     // R3: Tier A acceleration structure — tinybvh binned SAH → CWBVH over the flat world-space triangles.
     // D1: built through the bottom-level entry point. The whole level is currently ONE identity-transformed
@@ -377,6 +384,7 @@ int main(int argc, char** argv)
     //     (Scratchpad/CheckTraversalIdentity.sh is the gate). Per-instance transforms arrive in D2/D3.
     Frontier::TraversalIndex Traversal;
     {
+        FRONTIER_TELEMETRY_SHADER("Bootstrap/TraversalBuild");
         // SBVH; ~2× build time for ~10 % fewer steps. The drop level opts OUT: spatial splits cut triangles,
         //    which makes the tree unrefittable, and movable geometry is worth more here than the traversal gain.
         const bool HighQuality = !DropScene && Level.QueryTriangleCount() <= 2'000'000u;
@@ -402,71 +410,70 @@ int main(int argc, char** argv)
         12.0f       // [-]      acceleration damping
     };
 
-    // Z-up: stand 1.95 m in front of the open face (Y < 0), eye height 1 m, looking along +Y into the box.
     Frontier::ProjectZero::FlyThroughSolver Camera(CameraConfig);
-    // Pulled back and raised for the larger room (X ±2, Y 0-4, Z 0-3) so the whole box and the roof aperture are
-    //    in frame from the default position.
-    Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -3.30f, 1.55f });
-    Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
-    if (Level.QueryName() == "ShaderBall")
     {
-        // Shader ball: 5 m back from the front row, 2.6 m up, pitched down ~22° so all four rows fit at 55° FoV.
-        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.2f, 2.6f });
-        Camera.AssignOrientationEuler(-22.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
-    }
-    else if (Level.QueryName() == "Materials")
-    {
-        // Material library: 5 m back from the near row at 2.6 m, pitched down ~13° — the whole 7 × 6 grid sits in
-        //    frame at 55° FoV with the three sign panels on the backdrop behind it.
-        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -5.0f, 2.6f });
-        Camera.AssignOrientationEuler(-13.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
-    }
-    else if (Level.QueryName() == "Outdoor")
-    {
-        // Standing on open ground at eye height, looking north along +Y at the casters, pitched up 8° so the
-        //    horizon sits low in frame.
-        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.0f, 1.70f });
-        Camera.AssignOrientationEuler(8.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
-    }
-    else if (Level.QueryName() == "Showcase")
-    {
-        // Showcase: 9.5 m south of the material grid at 5.6 m, pitched down 21° and looking straight up +Y. The
-        //    elevation is what makes the six rows read AS six rows: from eye height they telescope into each other
-        //    and the back rows are hidden behind the front ones.
-        //
-        //    ⚠️ The old framing (0, −14, 2.2) at yaw 220° pointed AWAY from the grid — it was aimed at the sunset
-        //    for the lens flare, which made sense when the level was a scattered analytical field with nothing in
-        //    particular to look at. Pointed at the new level it would frame empty ground, which reads as "the new
-        //    scene did not load". This is the framing the CPU proof renders, so the two match shot for shot.
-        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -9.5f, 5.6f });
-        Camera.AssignOrientationEuler(-21.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
-    }
-    else if (Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop")
-    {
-        // Showroom: stand just outside the open −Y face at eye height, looking along +Y. This frames the panel
-        //    anchor (0, 1.55, 1.32) dead centre with the chrome sphere directly beneath it, so the panel and its
-        //    reflection are both in shot the moment the level opens.
-        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -1.70f, 1.45f });
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/CameraSetup");
+        // Z-up: stand 1.95 m in front of the open face (Y < 0), eye height 1 m, looking along +Y into the box.
+        // Pulled back and raised for the larger room (X ±2, Y 0-4, Z 0-3) so the whole box and the roof aperture are
+        //    in frame from the default position.
+        Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -3.30f, 1.55f });
         Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
+        if (Level.QueryName() == "ShaderBall")
+        {
+            // Shader ball: 5 m back from the front row, 2.6 m up, pitched down ~22° so all four rows fit at 55° FoV.
+            Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.2f, 2.6f });
+            Camera.AssignOrientationEuler(-22.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
+        }
+        else if (Level.QueryName() == "Materials")
+        {
+            // Material library: 5 m back from the near row at 2.6 m, pitched down ~13° — the whole 7 × 6 grid sits in
+            //    frame at 55° FoV with the three sign panels on the backdrop behind it.
+            Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -5.0f, 2.6f });
+            Camera.AssignOrientationEuler(-13.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
+        }
+        else if (Level.QueryName() == "Outdoor")
+        {
+            // Standing on open ground at eye height, looking north along +Y at the casters, pitched up 8° so the
+            //    horizon sits low in frame.
+            Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -6.0f, 1.70f });
+            Camera.AssignOrientationEuler(8.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
+        }
+        else if (Level.QueryName() == "Showcase")
+        {
+            // Showcase: 9.5 m south of the material grid at 5.6 m, pitched down 21° and looking straight up +Y. The
+            //    elevation is what makes the six rows read AS six rows: from eye height they telescope into each other
+            //    and the back rows are hidden behind the front ones.
+            //
+            //    ⚠️ The old framing (0, −14, 2.2) at yaw 220° pointed AWAY from the grid — it was aimed at the sunset
+            //    for the lens flare, which made sense when the level was a scattered analytical field with nothing in
+            //    particular to look at. Pointed at the new level it would frame empty ground, which reads as "the new
+            //    scene did not load". This is the framing the CPU proof renders, so the two match shot for shot.
+            Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -9.5f, 5.6f });
+            Camera.AssignOrientationEuler(-21.0f * 3.14159265f / 180.0f, 0.0f, 0.0f);
+        }
+        else if (Level.QueryName() == "Showroom" || Level.QueryName() == "ShowroomDrop")
+        {
+            // Showroom: stand just outside the open −Y face at eye height, looking along +Y. This frames the panel
+            //    anchor (0, 1.55, 1.32) dead centre with the chrome sphere directly beneath it, so the panel and its
+            //    reflection are both in shot the moment the level opens.
+            Camera.AssignSpatialLocation(Frontier::Vector3{ 0.0f, -1.70f, 1.45f });
+            Camera.AssignOrientationEuler(0.0f, 0.0f, 0.0f);
+        }
+        else if (Level.QueryName() != "CornellBox")
+        {
+            // Other levels: start at the centre of the bounds at ~eye height, looking along +Y; flight speed scales with the level.
+            const Frontier::Vector3 Lo = Level.QueryBoundsMinimum(), Hi = Level.QueryBoundsMaximum();
+            Camera.AssignSpatialLocation(Frontier::Vector3{ (Lo.x + Hi.x) * 0.5f, (Lo.y + Hi.y) * 0.5f, Lo.z + std::min(1.7f, (Hi.z - Lo.z) * 0.5f) });
+            CameraConfig.BaseFlightSpeed = std::max(2.5f, (Hi - Lo).Length() * 0.15f);
+            Camera.AssignConfiguration(CameraConfig);
+        }
+        Camera.AssignFieldOfView(55.0f);
+        Camera.AssignAspectRatio(1280.0f / 720.0f);
     }
-    else if (Level.QueryName() != "CornellBox")
-    {
-        // Other levels: start at the centre of the bounds at ~eye height, looking along +Y; flight speed scales with the level.
-        const Frontier::Vector3 Lo = Level.QueryBoundsMinimum(), Hi = Level.QueryBoundsMaximum();
-        Camera.AssignSpatialLocation(Frontier::Vector3{ (Lo.x + Hi.x) * 0.5f, (Lo.y + Hi.y) * 0.5f, Lo.z + std::min(1.7f, (Hi.z - Lo.z) * 0.5f) });
-        CameraConfig.BaseFlightSpeed = std::max(2.5f, (Hi - Lo).Length() * 0.15f);
-        Camera.AssignConfiguration(CameraConfig);
-    }
-    Camera.AssignFieldOfView(55.0f);
-    Camera.AssignAspectRatio(1280.0f / 720.0f);
 
     //──────────────────────────────────────────────────────────────────────────
     // ReSTIR integrator — owns dispatch parameters, accumulation index
     //──────────────────────────────────────────────────────────────────────────
-    // Designated initialisers, NOT positional. This list was positional and silently bound 1.05f (the exposure) to
-    //    SpatialTapCount the moment R10 added a tier-keyed field ahead of it — the struct's own defaults for the
-    //    new fields were skipped and the exposure landed in a uint32_t. Naming each member means a future field can
-    //    be inserted anywhere without quietly repointing every value after it.
     Frontier::ReSTIRIntegratorConfiguration IntegratorConfig
     {
         .CandidatesPerPixel  = 8u,      // [-]  primary DI candidates per pixel
@@ -476,13 +483,13 @@ int main(int argc, char** argv)
     };
 
     Frontier::ReSTIRIntegrator Integrator(IntegratorConfig);
-
-    // User directive 2026-09-11: no adaptive exposure in the engine build. Frame-median metering keys to the
-    //    background on wide framings (small bright subject blows out) and the 0.4/2.2 s adaptation lags flash
-    //    white/black on every turn. Manual holds the slider value above, so the frame is a pure function of the
-    //    scene and the camera. The struct default stays Adaptive: the proofs seat their own configurations and
-    //    must be untouched by this.
     {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/IntegratorSetup");
+        // User directive 2026-09-11: no adaptive exposure in the engine build. Frame-median metering keys to the
+        //    background on wide framings (small bright subject blows out) and the 0.4/2.2 s adaptation lags flash
+        //    white/black on every turn. Manual holds the slider value above, so the frame is a pure function of the
+        //    scene and the camera. The struct default stays Adaptive: the proofs seat their own configurations and
+        //    must be untouched by this.
         Frontier::ExposureConfiguration ExposureSeed = Integrator.Exposure().QueryConfiguration();
         ExposureSeed.Mode = Frontier::ExposureModeCategory::Manual;
         ExposureSeed.ManualExposure = IntegratorConfig.Exposure;
@@ -566,7 +573,9 @@ int main(int argc, char** argv)
     Frontier::ProjectZero::PhysicsInstanceSequence  BodyBridge;
     bool PhysicsReady = false;
 
-    if (DropScene && !AnimatedInstances.empty())
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/PhysicsInit");
+        if (DropScene && !AnimatedInstances.empty())
     {
         Frontier::RigidBodyConfiguration SolverConfiguration;
         SolverConfiguration.FixedStepSeconds = 1.0f / 60.0f;
@@ -600,9 +609,12 @@ int main(int argc, char** argv)
                                  TraceMovingBodies
                                      ? "Traced geometry follows the bodies (acceleration structure refitted per frame)."
                                      : "Acceleration structure is not refittable - bodies will move but their shadows will not.");
+        }
     }
 
-    if (AnimateInstances && !PhysicsReady && !AnimatedInstances.empty())
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/ScriptedMotionInit");
+        if (AnimateInstances && !PhysicsReady && !AnimatedInstances.empty())
     {
         // Drive the dynamic span the builders flagged, so the static scenery proves, in the same frame,
         //    that untouched rows really are untouched. A level with no flagged objects idles.
@@ -628,6 +640,7 @@ int main(int argc, char** argv)
                                  ? "Scripted instance motion on: " + std::to_string(InstanceMotion.QueryDrivenCount()) +
                                    " of " + std::to_string(AnimatedInstances.size()) + " instances animated."
                                  : "Scripted instance motion requested but no instances could be driven.");
+        }
     }
 
     //──────────────────────────────────────────────────────────────────────────
@@ -644,15 +657,12 @@ int main(int argc, char** argv)
     //    a refusal (or a level with a single instance) leaves the single-blob path exactly as it was before D6.
     Frontier::InstanceAcceleration InstanceStructure;
     std::vector<Frontier::InstanceRow> InstanceRows;
-    // The REST world matrix of each instance — the transform its triangles were baked with (SceneStructure::Finalise
-    //    writes the flat soup through it). A row therefore carries the RELATIVE transform World_now · World_rest⁻¹,
-    //    not World: the BLAS is built from the baked soup, so re-applying the absolute matrix would place the geometry
-    //    twice. A static instance's relative transform is EXACTLY identity (bit-compared below), which is what keeps
-    //    the two-level path byte-identical to the single world-space tree for everything that does not move.
     struct RestTransform { float World[16]; };
     std::vector<RestTransform> RestWorlds;
     bool InstancesResident = false;
-    if (AnimatedInstances.size() > 1u)
+    {
+        FRONTIER_TELEMETRY_SHADER("Bootstrap/TwoLevelBuild");
+        if (AnimatedInstances.size() > 1u)
     {
         std::vector<Frontier::MeshPrototype> Prototypes;
         Prototypes.reserve(AnimatedInstances.size());
@@ -698,6 +708,7 @@ int main(int argc, char** argv)
             Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Traversal",
                                  "Two-level build refused - the kernel keeps the single world-space structure.");
         }
+        }
     }
 
     //──────────────────────────────────────────────────────────────────────────
@@ -706,7 +717,9 @@ int main(int argc, char** argv)
     Frontier::RenderScheduler Panel;
     // The sky, the weather and everything that carries them. Prepared once; ticked with the frame.
     Frontier::ProjectZero::CelestialSequence Celestial;
-    Celestial.Prepare();
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/CelestialPrepare");
+        Celestial.Prepare();
     // Cloud-shadow weather by level, once at load: the 60 m showcase diorama stages the FIN3 diorama deck
     //    (visible broken shadow on its 46 m of ground), every other level the panel kilometre deck. Both
     //    instants are single-sourced in CloudShadowStaging.h; time stays frozen for accumulation parity.
@@ -758,6 +771,7 @@ int main(int argc, char** argv)
             Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Stars",
                                  "Catalogue empty or missing — the night sky renders starless.");
         }
+        }
     }
     uint32_t CelestialFirstRow = Frontier::kNoEditorInstance;
 
@@ -769,12 +783,18 @@ int main(int argc, char** argv)
     // Typefaces: every static face under EngineContent/FontArchives, loaded once into the dynamic atlas (Vulkan backend
     //    rasterises glyphs on demand). The Fonts tab reads the registry; PixelSpace text honours the applied face.
     Frontier::TypefaceRegistry Typefaces;
-    (void)Typefaces.Load("EngineContent/FontArchives");
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/TypefaceLoad");
+        (void)Typefaces.Load("EngineContent/FontArchives");
+    }
     Frontier::TypefaceRegistry::Install(&Typefaces);
 
     Frontier::ControlCentreHost ControlCentre;
-    ControlCentre.AssignProjectName("Project-Zero");
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/ControlCentreInit");
+        ControlCentre.AssignProjectName("Project-Zero");
     (void)ControlCentre.Initialize(Surface.QueryWidth(), Surface.QueryHeight());
+    }
 
     // The hosts are seeded from the configuration loaded before bring-up; every Apply / debounced dashboard change
     //    writes the file back.
@@ -939,7 +959,9 @@ int main(int argc, char** argv)
     // P2: previous-frame mouse state, so a press is detected as an edge rather than a level.
     bool PointerHeldLastFrame = false;
 
-    if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
+    {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/InterfaceBring");
+        if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
                         Surface.QueryCycleSlotCount(), Surface.QueryColourFormat(), Surface.QueryDepthFormat()))
     {
         // Place the panel in the ROOM rather than at the world origin. ShowroomStructure publishes the anchor it
@@ -1039,6 +1061,7 @@ int main(int argc, char** argv)
     {
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Warning, "Interface",
                              "Spatial interface unavailable - the scene renders without the panel.");
+        }
     }
 
     // Recorded after the scene resolves and before the blit, so the panel is part of the presented image.
@@ -1097,25 +1120,32 @@ int main(int argc, char** argv)
         if (Δτ > 0.1f) Δτ = 0.1f;
 
         // ① Poll input — GLFW callbacks forward into Input
-        Surface.PollInput(Input);
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/PollInput");
+            Surface.PollInput(Input);
+        }
 
         // ①b Control Centre owns the pointer while hovered / grabbed / pulled down; the camera never sees those clicks
         //    Display → UI Scale: the overlay lives in logical pixels (physical ÷ scale); the pointer is mapped the same way.
         const float    InterfaceScale = std::clamp(ControlCentre.QueryAppearance().QueryApplied().InterfaceScale / 100.0f, 0.5f, 2.0f);
         const uint32_t LogicalWidth   = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryWidth())  / InterfaceScale + 0.5f));
         const uint32_t LogicalHeight  = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryHeight()) / InterfaceScale + 0.5f));
-        ControlCentre.Resize(LogicalWidth, LogicalHeight);
-        ControlCentre.AdvanceInteraction(Input, Input.QueryCursorPositionX() / InterfaceScale, Input.QueryCursorPositionY() / InterfaceScale);
-        ControlCentre.AdvanceLocomotion(Δτ);
-        Notifications.Advance(Δτ);
-        Configuration.Advance(Δτ);
-        Telemetry.RecordFrame(Δτ);
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/ControlCentre");
+            ControlCentre.Resize(LogicalWidth, LogicalHeight);
+            ControlCentre.AdvanceInteraction(Input, Input.QueryCursorPositionX() / InterfaceScale, Input.QueryCursorPositionY() / InterfaceScale);
+            ControlCentre.AdvanceLocomotion(Δτ);
+            Notifications.Advance(Δτ);
+            Configuration.Advance(Δτ);
+            Telemetry.RecordFrame(Δτ);
+        }
 
         // ①a' The sky and the weather. Ticked here, beside the other per-frame advances, so the clock, the wind
         //     phase and the precipitation pool all move exactly once and in a fixed order. The camera position
         //     is what the precipitation emitter follows — it is a world-space cylinder about the viewer, with no
         //     view direction, which is what keeps rain from following where you look.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/CelestialTick");
             const Frontier::Vector3 Eye = Camera.Convert<Frontier::Vector3>();
             const float CameraWorld[3] = { Eye.x, Eye.y, Eye.z };
             Celestial.Tick(static_cast<float>(Δτ), CameraWorld, 0.0f);
@@ -1124,7 +1154,9 @@ int main(int argc, char** argv)
         // ①b' F3 debug popup: view / HiZ / alias-pick toggles persist to [render] and restart the accumulation.
         // R6 row 3: the scheduler's Alias-pick checkbox writes the integrator directly — mirror it into the popup
         //    member before edge-detecting F5 so both toggles converge on one flag.
-        Diagnostics.AssignAliasPick(Integrator.QueryConfiguration().AliasPick);
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/Diagnostics");
+            Diagnostics.AssignAliasPick(Integrator.QueryConfiguration().AliasPick);
         if (Diagnostics.AdvanceInteraction(Input))
         {
             Configuration.Access().Backend.DebugView        = static_cast<Frontier::DebugViewSelection>(Diagnostics.QueryView());
@@ -1133,10 +1165,12 @@ int main(int argc, char** argv)
             Configuration.MarkDirty();
             Integrator.AssignAliasPick(Diagnostics.QueryAliasPick());   // R6 row 3: F5 flips the kernel's pick live
             Integrator.ResetAccumulation();
+            }
         }
 
         // ①c Dashboard settings → renderer (only when something changed)
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/SettingsApply");
             const Frontier::ControlCentreSettings& S = ControlCentre.QuerySettings();
             if (S.Revision != AppliedSettingsRevision)
             {
@@ -1162,6 +1196,7 @@ int main(int argc, char** argv)
         //    here: V-Sync → swapchain present mode, fullscreen → GLFW monitor switch, frame cap → loop pacing below,
         //    resolution → render-target size (step ④).
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/AppearanceApply");
             const Frontier::AppearanceInspector& A = ControlCentre.QueryAppearance();
             if (A.QueryRevision() != AppliedAppearanceRevision)
             {
@@ -1199,6 +1234,7 @@ int main(int argc, char** argv)
         //    Invert Y-Axis into the fly-through configuration. Profile / shortcut fields are persisted but not yet
         //    consumed by the solver (flagged in the step report).
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/InputApply");
             const Frontier::InputInspector& I = ControlCentre.QueryInput();
             if (I.QueryRevision() != AppliedInputRevision)
             {
@@ -1223,6 +1259,7 @@ int main(int argc, char** argv)
 
         // ①f Notifications page → Save Preferences: overlay rows, toast dwell, alert gates.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/NotificationsApply");
             const Frontier::NotificationInspector& N = ControlCentre.QueryNotifications();
             if (N.QueryRevision() != AppliedNotifyRevision)
             {
@@ -1249,6 +1286,7 @@ int main(int argc, char** argv)
         //    the flag, and a preview request renders the shaderball PNG + stamps the header line. Selection alone
         //    never restarts the accumulation.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/MaterialsApply");
             Frontier::MaterialInspector& M = ControlCentre.AccessMaterials();
             M.Rebuild(&Level.AccessMaterials());
             if (M.QueryRevision() != AppliedMaterialsRevision)
@@ -1340,6 +1378,7 @@ int main(int argc, char** argv)
         // ①g Alert gates: "Autosave Errors" (preference writes), "Baking Complete" (accumulation converged),
         //    "Frame-rate Drops" (2 s average under 30 fps, once per episode).
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/AlertGates");
             const Frontier::NotificationPreferences& P = ControlCentre.QueryNotifications().QueryApplied();
             if (P.AutosaveErrors && !Configuration.QueryLastError().empty() && Configuration.QueryLastError() != LastSaveError)
             {
@@ -1361,19 +1400,25 @@ int main(int argc, char** argv)
 
         // ①c Text-queue drain. No text consumer remains — the development editor reads keystrokes
         //    through ImGui itself — so the queue is drained every tick and Escape still closes the window.
-        for (uint32_t I = 0u; I < Input.QueryEditKeyCount(); ++I)
-            if (Input.QueryEditKey(I) == 256u) Surface.RequestClose();
-        Input.ClearTextQueue();
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/TextQueue");
+            for (uint32_t I = 0u; I < Input.QueryEditKeyCount(); ++I)
+                if (Input.QueryEditKey(I) == 256u) Surface.RequestClose();
+            Input.ClearTextQueue();
+        }
 
         // ② Advance camera kinematics (frozen while the Control Centre owns the pointer, or an ImGui
         //    window has captured the pointer or keyboard — a drag that started on a panel must not fly
         //    the camera, and a keystroke typed into one must not fire a shortcut).
-        if (!ControlCentre.CoversPointer() && !Panel.QueryEditorCapturesPointer()
-            && !Panel.QueryEditorCapturesKeyboard())
-            Camera.AdvanceLocomotion(Input, Δτ);
-        Camera.AssignAspectRatio(
-            static_cast<float>(Surface.QueryWidth()) /
-            static_cast<float>(Surface.QueryHeight()));
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/CameraAdvance");
+            if (!ControlCentre.CoversPointer() && !Panel.QueryEditorCapturesPointer()
+                && !Panel.QueryEditorCapturesKeyboard())
+                Camera.AdvanceLocomotion(Input, Δτ);
+            Camera.AssignAspectRatio(
+                static_cast<float>(Surface.QueryWidth()) /
+                static_cast<float>(Surface.QueryHeight()));
+        }
 
         // ③ Build ImGui draw data (calls ImGui::NewFrame → ImGui::Render internally); the Control Centre records
         //    itself onto the foreground list between NewFrame and Render via the overlay hook.
@@ -1468,7 +1513,9 @@ int main(int argc, char** argv)
         (void)SceneReady; (void)SceneRowCount; (void)SheetFor; (void)TintMirror; (void)AppliedOrbit;
 #endif
 
-        Panel.Present(Integrator, Camera, Scene,
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/PanelPresent");
+            Panel.Present(Integrator, Camera, Scene,
                       Surface.QueryWidth(), Surface.QueryHeight(),
                       SceneInstances, SceneRowCount, &PickedSheet,
                       [&]()
@@ -1494,6 +1541,7 @@ int main(int argc, char** argv)
                           }
 
                       });
+        }
 
 #ifdef FRONTIER_DEVELOPMENT
         // ②d The tint write-back: a folder tint edited in the sheet lands back on its row.
@@ -1528,35 +1576,40 @@ int main(int argc, char** argv)
         const uint32_t RenderWidth  = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryWidth())  * RenderScale * FixedFactor + 0.5f));
         const uint32_t RenderHeight = std::max(1u, static_cast<uint32_t>(static_cast<float>(Surface.QueryHeight()) * RenderScale * FixedFactor + 0.5f));
 
-        // A6b — adaptive exposure. The measurement is one or two frames stale because it is read from the cycle
-        //    slot the GPU has already finished with; against time constants of half a second and up that is
-        //    invisible, and it is what keeps the read from stalling the CPU on the GPU.
+        Frontier::DispatchConfiguration Dispatch;
         {
-            const float Measured = Surface.QueryAverageLogLuminance();
-            if (Measured > -1.0e8f) Integrator.Exposure().ObserveLuminance(Measured);
-            Integrator.Exposure().Advance(Δτ);
-        }
+            FRONTIER_TELEMETRY_SCOPE("Frame/DispatchBuild");
+            // A6b — adaptive exposure. The measurement is one or two frames stale because it is read from the cycle
+            //    slot the GPU has already finished with; against time constants of half a second and up that is
+            //    invisible, and it is what keeps the read from stalling the CPU on the GPU.
+            {
+                const float Measured = Surface.QueryAverageLogLuminance();
+                if (Measured > -1.0e8f) Integrator.Exposure().ObserveLuminance(Measured);
+                Integrator.Exposure().Advance(Δτ);
+            }
 
-        Integrator.ObserveCamera(Camera, RenderWidth, RenderHeight);
-        if (Telemetry.QueryRows().ShowScene)
-        {
-            char Line[96];
-            std::snprintf(Line, sizeof(Line), "%s  |  %u tris  |  %u luminaire tris  |  %ux%u  |  frame %u  |  %s",
-                          Level.QueryName().c_str(), Level.QueryTriangleCount(), LuminaireCount, RenderWidth, RenderHeight, Integrator.QueryAccumulationIndex(),
-                          Frontier::RayTracingCapabilitySet::TierName(Surface.QueryRayTracingTier()));
-            Frontier::TelemetryRowStructure Rows = Telemetry.QueryRows(); Rows.SceneLine = Line; Telemetry.AssignRows(Rows);
-        }
+            Integrator.ObserveCamera(Camera, RenderWidth, RenderHeight);
+            if (Telemetry.QueryRows().ShowScene)
+            {
+                char Line[96];
+                std::snprintf(Line, sizeof(Line), "%s  |  %u tris  |  %u luminaire tris  |  %ux%u  |  frame %u  |  %s",
+                              Level.QueryName().c_str(), Level.QueryTriangleCount(), LuminaireCount, RenderWidth, RenderHeight, Integrator.QueryAccumulationIndex(),
+                              Frontier::RayTracingCapabilitySet::TierName(Surface.QueryRayTracingTier()));
+                Frontier::TelemetryRowStructure Rows = Telemetry.QueryRows(); Rows.SceneLine = Line; Telemetry.AssignRows(Rows);
+            }
 
-        const Frontier::DispatchConfiguration Dispatch = Integrator.BuildDispatch(
-            Camera,
-            RenderWidth,
-            RenderHeight,
-            AlphaMaskedMaterialCount,
-            LuminaireCount);
+            Dispatch = Integrator.BuildDispatch(
+                    Camera,
+                    RenderWidth,
+                    RenderHeight,
+                    AlphaMaskedMaterialCount,
+                    LuminaireCount);
+        }
 
         // ④b R2 front end: same camera, reverse-Z infinite projection; AA jitter is a per-frame Halton(2,3) offset shared
         //    by the raster and the resolve (pixel centre when AA is off).
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/VisibilityFrame");
             Frontier::VisibilityFrameConfiguration Frame{};
             Frame.Camera.Origin             = Camera.QuerySpatialLocation();
             Frame.Camera.Forward            = Camera.QueryForwardVector();
@@ -1579,7 +1632,9 @@ int main(int argc, char** argv)
         }
 
         // ④b Spatial interface — animate the figures, re-bind on a swapchain rebuild, publish this frame's view.
-        if (InterfaceReady)
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/InterfaceUpdate");
+            if (InterfaceReady)
         {
             // Every image view the interface renders into is destroyed by a swapchain rebuild, so re-Resize whenever
             //    the generation moves. Comparing generations (rather than extents) also catches a rebuild that keeps
@@ -1698,9 +1753,12 @@ int main(int argc, char** argv)
                                           InterfaceCompose.QueryInstanceCount(),
                                           Surface.QueryCycleSlot());
             }
+            }
         }
 
         // ④c D3 — advance instance transforms and refresh them in place. No reallocation and no device stall, so
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/PhysicsAdvance");
         //     unlike UploadScene this is safe every frame; the VkBuffer handle is unchanged so descriptors stand.
         if (PhysicsReady)
         {
@@ -1781,12 +1839,14 @@ int main(int argc, char** argv)
             }
         }
 
+        }
         // ④d GPU sky — the kernel reads the packed record at binding 21 on every miss and every escaped bounce.
         //     Pushed every frame like the instances: 128 bytes, and the sun moves. Refusal is impossible here by
         //     construction (the size is pinned by static_assert and the device is up), so the nodiscard is cast
         //     away — there is nothing to fall back to, and the previous contents stand, which is a stale sky
         //     rather than a torn one.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/SkyRefresh");
             const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
             (void)Surface.RefreshSky(&Sky, sizeof(Sky));
 
@@ -1828,6 +1888,7 @@ int main(int argc, char** argv)
         //     and Luna moves. Same no-fallback shape as the sky — the previous roster stands, which is stale
         //     moons rather than torn ones.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/MoonRefresh");
             const Frontier::MoonConstantRecord Moons = Celestial.PackMoonRecord();
             (void)Surface.RefreshMoons(&Moons, sizeof(Moons));
 
@@ -1891,6 +1952,7 @@ int main(int argc, char** argv)
         //     demands (light that never entered the lens cannot bounce in it). Pushed every frame beside the
         //     sky and moons, and compared like them, so star/flare/bow sliders land the tick they move.
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/PostRefresh");
             const Frontier::Vector3 Eye = Camera.QuerySpatialLocation();
             const float EyeArray[3] = { Eye.x, Eye.y, Eye.z };
             const Frontier::CelestialFrame& Frame = Celestial.Frame();
@@ -1919,7 +1981,10 @@ int main(int argc, char** argv)
         }
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present
-        Surface.RecordAndPresent(Dispatch);
+        {
+            FRONTIER_TELEMETRY_SCOPE("Frame/RecordAndPresent");
+            Surface.RecordAndPresent(Dispatch);
+        }
 
         Integrator.IncrementAccumulationIndex();
 
@@ -1941,6 +2006,7 @@ int main(int argc, char** argv)
         //    all, because everything the frame loop knew was written with RecordMessage (a sentence) and never with
         //    RecordMeasurement (a row).
         {
+            FRONTIER_TELEMETRY_SCOPE("Frame/PerformanceTelemetry");
             Frontier::ProjectZero::PerformanceWorkload Workload;
             Workload.RenderWidth     = Surface.QueryWidth();
             Workload.RenderHeight    = Surface.QueryHeight();

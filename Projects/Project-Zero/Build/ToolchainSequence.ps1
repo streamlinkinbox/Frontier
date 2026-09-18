@@ -802,7 +802,7 @@ $Overrides = @()
 if ($Development)
 {
     $Overrides += @{ Source = (Join-Path $RepositoryRoot 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp')
-                     Flags  = @('/DSHADERBALL_PREVIEW_LIB')
+                     Flags  = @('/DSHADERBALL_PREVIEW_LIB', '/wd4244', '/wd4305')
                      Label  = 'Project-Zero preview TU' }
 }
 

@@ -15,6 +15,9 @@
 #include <thorvg.h>
 
 #include "SwapchainExchange.h"
+#ifdef FRONTIER_DEVELOPMENT
+#include "../../Projects/Project-Zero/Source/FrameTelemetryLedger.h"
+#endif
 #include "../ContentInterchange/MaterialIndex.h"
 #include "../ContentInterchange/TextureIndex.h"
 #include "../GeometricRaster/TraversalIndex.h"
@@ -1274,6 +1277,7 @@ static_assert(ComputeBindingTypeCount(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 
 bool SwapchainExchange::BringComputePipeline() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/ComputePipeline");
     // ① Descriptor set layout — 0: output image, 1: triangle SSBO, 2: material SSBO, 3: history image,
     //    R2: 4: surface image, 5: normal image, 6: instance SSBO, 7: luminaire SSBO
     //    R3: 8: CWBVH node SSBO, 9: CWBVH triangle SSBO
@@ -1502,6 +1506,7 @@ void SwapchainExchange::WriteLuminanceDescriptors() noexcept
 
 bool SwapchainExchange::BringLuminanceReduction() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/LuminancePipeline");
     // ① Two bindings: the HDR source to read, and the accumulator to atomically sum into.
     std::array<VkDescriptorSetLayoutBinding, 2u> Bindings{};
     Bindings[0].binding         = 0u;
@@ -1596,6 +1601,7 @@ bool SwapchainExchange::BringLuminanceReduction() noexcept
 
 bool SwapchainExchange::BringDenoisePipeline() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/DenoisePipeline");
     // ① Set layout: source, target, surface, presentation.
     std::array<VkDescriptorSetLayoutBinding, 4u> Bindings{};
     for (uint32_t B = 0u; B < 4u; ++B)
@@ -1677,6 +1683,7 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
 
 bool SwapchainExchange::BringSkyRecord() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/SkyRecord");
     // One 128 B uniform buffer, host-visible and persistently mapped — the same arrangement as the A6b
     //    luminance accumulators, for the same reason: mapping and unmapping a tiny buffer every frame is a
     //    driver round trip for bytes that fit in two cache lines.
@@ -1694,6 +1701,7 @@ bool SwapchainExchange::BringSkyRecord() noexcept
 
 bool SwapchainExchange::BringMoonRecord() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/MoonRecord");
     // One 288 B uniform buffer, host-visible and persistently mapped — the same arrangement as the sky record.
     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kMoonRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -1709,6 +1717,7 @@ bool SwapchainExchange::BringMoonRecord() noexcept
 
 bool SwapchainExchange::BringPostRecord() noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Shader/PostRecord");
     // One 128 B uniform buffer, host-visible and persistently mapped — the same arrangement as the sky record.
     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kPostRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -2248,6 +2257,7 @@ void SwapchainExchange::DestroyTextures() noexcept
 
 void SwapchainExchange::UploadTextures(const TextureIndex& Textures) noexcept
 {
+    FRONTIER_TELEMETRY_CONTENT("Bootstrap/UploadTextures");
     if (!Vulkan->Device || !Vulkan->DescriptorIndexing) return;
     vkDeviceWaitIdle(Vulkan->Device);
     DestroyTextures();
@@ -2367,6 +2377,7 @@ void SwapchainExchange::UploadTextures(const TextureIndex& Textures) noexcept
 
 void SwapchainExchange::UploadShadingTables(const float* Energy, const float* Sheen, uint32_t Resolution) noexcept
 {
+    FRONTIER_TELEMETRY_SHADER("Bootstrap/ShadingTablesUpload");
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller bakes with
     //    ShadingTableCodec and hands over the two RGBA32F planes.
     if (!Vulkan->Device || Vulkan->ShadingTables[0].View || !Energy || !Sheen || Resolution == 0u) return;
@@ -2736,6 +2747,7 @@ void SwapchainExchange::UploadStarTables(const void* CellBytes, uint32_t CellCou
 
 void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures) noexcept
 {
+    FRONTIER_TELEMETRY_CONTENT("Bootstrap/UploadSceneDetail");
     if (!Vulkan->Device) return;
     Visibility.UploadScene(Scene);
     if (Textures) UploadTextures(*Textures);        // R4a: bindless table (binding 15) — before the descriptor writes below
@@ -2766,6 +2778,7 @@ bool SwapchainExchange::BringVisibility() noexcept
 
 void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) noexcept
 {
+    FRONTIER_TELEMETRY_SCOPE("Frame/RecordAndPresent");
     const uint32_t ActiveSlot = Vulkan->ActiveSlot;
 
     vkWaitForFences(Vulkan->Device, 1u, &Vulkan->CycleFences[ActiveSlot], VK_TRUE, UINT64_MAX);
@@ -2852,6 +2865,7 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
 
 void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const DispatchConfiguration& Dispatch) noexcept
 {
+    FRONTIER_TELEMETRY_SCOPE("Frame/RecordComputeCommands");
     VkCommandBuffer Command = Vulkan->ComputeCommands[ImageOrdinal];
 
     VkCommandBufferBeginInfo BeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };

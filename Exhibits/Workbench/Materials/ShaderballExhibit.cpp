@@ -65,7 +65,14 @@ inline vec4 FetchSheenFull(float mu, float alpha)
     return vec4(Out[0], Out[1], Out[2], Out[3]);
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4244 4305)
+#endif
 #include "MaterialEvaluation.slang"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #include "PngWriteCounterpart.h"
 #ifdef SHADERBALL_PREVIEW_LIB
 #include "ShaderballPreview.h"   // M7b preview entry (engine descriptor -> ball 0)

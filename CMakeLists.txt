@@ -321,6 +321,7 @@ add_dependencies(Project-Zero ReSTIRViewportSpirv)
 set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # tinybvh SIMD build
 set_source_files_properties(Engine/GeometricRaster/InstanceAcceleration.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # D6/D9: tiny_bvh.h's SIMD types, and the same flags the traversal batch is compiled with
 set_source_files_properties(Exhibits/Workbench/Materials/ShaderballExhibit.cpp PROPERTIES COMPILE_DEFINITIONS SHADERBALL_PREVIEW_LIB
+    COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4244;/wd4305>;$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-conversion;-Wno-float-conversion>"
     INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/Engine/DisplayPresentation;${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders;${CMAKE_CURRENT_SOURCE_DIR}/Exhibits/Workbench/Editor;${CMAKE_CURRENT_SOURCE_DIR}/Engine/ContentInterchange")   # M7b preview TU (FRONTIER_CPU_PORT is vestigial — no ifdefs — and intentionally not passed)
 
 target_include_directories(Project-Zero PRIVATE
