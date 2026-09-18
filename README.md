@@ -12,7 +12,7 @@ npm install
 npm run dev        # → interactive viewer at http://localhost:5173
 npm run build
 npm test           # headless geometry verification, exit code = pass/fail
-npm run verify     # the app's own 131-scenario sweep
+npm run verify     # the app's own 135-scenario sweep
 ```
 
 There are two subsystems in the tree right now, and they meet at the roof:
@@ -149,6 +149,13 @@ drawn vertically on the paper**, optional point lights. Night mode shows them of
 - **Stools**: 4-legged square stools with perimeter stretchers and round drum/barrel stools (zuodun 坐墩) with bronze stud rings.
 - **Scholar open bookshelf (shujia 书架 / hondana 本棚)**: 4-tier timber shelf with upright volumes (silk colors), stacked horizontal books, scrolls, and ceramic vases.
 - **Storage containers & bins**: stenciled wooden tea/spice crates (*chabako* 茶箱 "特選 銘茶" with tansu corner iron brackets), straw-wrapped sake barrels (*komodaru* 菰樽 "寿" with braided ropes), glazed tenmoku ceramic water urns (*kame* 甕), and woven bamboo waste/herb baskets (*take-kago* 竹籠).
+**Courtyard enclosure walls & fences (院墙・影壁)**: authentic tile-capped Chinese courtyard perimeter walls faithfully matching historical *Siheyuan* palace and temple compound architecture:
+- **Carved stone socle (须弥座 xumizuo)**: elevated foundation with classical Chinese relief cloud/ruyi scrolls (*ruyi juancaowen* 如意卷草纹).
+- **White plaster wall body (粉墙)** framed by vermilion timber columns (*zhuzi* 柱子) detailed with gold base and collar rings.
+- **Dentil bracket frieze & lintel beam (阑额 / 额枋)** beneath the roofline.
+- **Glazed pantile roof cap (瓦顶)**: pitched jade/turquoise tiles with half-round cylindrical crowns, continuous ridge tiles, and curved upturned finial ends (*chiwen* swallowtail sweep).
+- **Stone garden planters (花台)** flanking the entrance steps filled with flowering lilies and bamboo.
+- Configurable layouts: **Front Flank Wings (翼壁)**, **Courtyard Enclosure (四合院)**, or **Full Compound (大院)**.
 
 **Export**: any roof as `.GLB` (imports straight into Blender) or as `.JSON`
 parameters.
@@ -177,7 +184,7 @@ magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō),
 - **Now** — unify: point the app's viewer at the verified kernel
   (`generateRoof`), so there is one roof implementation rather than two, and the
   live panel's numbers come from `src/gen/verify.ts`.
-- **Phase 2** — Walls, floors, building types (machiya / store / office …)
+- **Phase 2** — Walls, floors, courtyard enclosure walls (*done: tile-capped compound walls, xumizuo socle, colonnade, planters*)
 - **Phase 3** — Openings, lattices, noren & signboards (custom text)
 - **Phase 4** — Lights (types), utility poles & wiring, electricity hookup
 - **Phase 5** — Furniture & street props (*done: tables, stools, bookshelf, crates, barrels, bins*)

@@ -5,6 +5,7 @@ import { clamp, smoothstep, mulberry32 } from './math';
 import { getMaterials, applyParamsToMaterials } from './materials';
 import { buildLamp } from './lamps';
 import { buildEntry } from './entry';
+import { buildPerimeter } from './perimeter';
 import { buildProps } from './props';
 import { buildSigns } from './signs';
 import {
@@ -38,6 +39,7 @@ export interface RoofStats {
   rampLen: number;
   signs: number;
   props: number;
+  wallLen: number;
 }
 
 export interface PartInfo {
@@ -515,6 +517,20 @@ export function buildRoof(p: RoofParams): BuiltRoof {
   // synthetic ground part (the visible ground disc lives in the viewer)
   parts.push({ name: 'ground', label: 'Ground', box: new THREE.Box3(V(-60, -0.05, -60), V(60, 0.02, 60)) });
 
+  // ================= exterior walls & fence enclosure =================
+  const perimeter = buildPerimeter(p, {
+    L,
+    S,
+    wallTop,
+    entryFrontZ: S / 2 + 0.45,
+    stairWidth: p.stairWidth || 1.5,
+  });
+  if (perimeter.part) {
+    inner.add(perimeter.group);
+    parts.push(perimeter.part);
+    for (const ch of perimeter.checks) checks.push(ch);
+  }
+
   // ================= entrance: platform, steps, ramp, rails =================
   const entry = buildEntry(p, { S });
   const entryFrontZ = entry.frontZ;
@@ -720,6 +736,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     rampLen: entryRampLen,
     signs: signs.signCount,
     props: props.itemCount,
+    wallLen: perimeter.wallLength,
   };
 
   // ================= verification =================

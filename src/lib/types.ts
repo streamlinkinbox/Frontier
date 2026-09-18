@@ -102,6 +102,8 @@ export const HANGABLE_STONE: LampDesign[] = ['rankei-toro'];
 
 export type PropDensity = 'none' | 'sparse' | 'medium' | 'dense';
 
+export type WallEnclosureMode = 'none' | 'front_flanks' | 'courtyard' | 'compound';
+
 export interface RoofParams {
   style: RoofStyle;
   region: Region;
@@ -161,6 +163,11 @@ export interface RoofParams {
   rampSlope: number;
   /** Real point lights inside lantern groups (off = emissive only). */
   /** Traditional East Asian street furniture & props (stools, tables, bookshelf, bins, crates, barrels). */
+  /** Chinese/East-Asian tile-capped courtyard enclosure walls & fences (院墙/花墙). */
+  wallEnclosureEnabled: boolean;
+  wallEnclosureMode: WallEnclosureMode;
+  wallPillarColor: string;
+  wallTileColor: string;
   propsEnabled: boolean;
   propDensity: PropDensity;
   lampLights: boolean;
@@ -220,6 +227,10 @@ export const DEFAULT_PARAMS: RoofParams = {
   stairMaterial: 'stone',
   entryRails: true,
   rampSlope: 8,
+  wallEnclosureEnabled: true,
+  wallEnclosureMode: 'front_flanks',
+  wallPillarColor: '#8a2b22',
+  wallTileColor: '#2f5255',
   propsEnabled: true,
   propDensity: 'medium',
   lampLights: true,

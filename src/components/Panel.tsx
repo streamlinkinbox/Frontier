@@ -1,4 +1,4 @@
-import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, EavesPlaqueText, EavesPlaqueStyle, RoofSignType, WallSignType, GroundSignType, PropDensity, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS, EAVES_PLAQUE_TEXT_META } from '../lib/types';
+import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, EavesPlaqueText, EavesPlaqueStyle, RoofSignType, WallSignType, GroundSignType, PropDensity, WallEnclosureMode, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS, EAVES_PLAQUE_TEXT_META } from '../lib/types';
 import { Check, RoofStats } from '../lib/buildRoof';
 
 interface Props {
@@ -158,6 +158,12 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
     { id: 'medium', name: 'Medium', sub: '中' },
     { id: 'dense', name: 'Dense', sub: '大' },
   ];
+  const enclosureModes: { id: WallEnclosureMode; name: string; sub: string }[] = [
+    { id: 'none', name: 'None', sub: '無' },
+    { id: 'front_flanks', name: 'Front Wings', sub: '翼壁' },
+    { id: 'courtyard', name: 'Courtyard', sub: '四合院' },
+    { id: 'compound', name: 'Full Compound', sub: '大院' },
+  ];
   const entries: { id: EntryType; name: string }[] = [
     { id: 'none', name: 'None' },
     { id: 'steps', name: 'Steps' },
@@ -275,6 +281,40 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         <ColorRow label="Plaster" value={params.wallColor} onChange={(v) => onChange({ wallColor: v })} />
         <ColorRow label="Painted trim" value={params.trimColor} onChange={(v) => onChange({ trimColor: v })} />
         <Slider label="Rafter spacing" value={params.rafterSpacing} min={0.3} max={0.9} step={0.005} unit=" m" onChange={(v) => onChange({ rafterSpacing: v })} />
+      </Section>
+
+      <Section title="Courtyard Walls & Fence 院墙・屏障">
+        <Toggle label="Tile-capped perimeter walls" value={params.wallEnclosureEnabled} onChange={(v) => onChange({ wallEnclosureEnabled: v })} />
+        {params.wallEnclosureEnabled && (
+          <>
+            <div className="design-label">Enclosure layout 围墙布局</div>
+            <div className="seg-row">
+              {enclosureModes.map((em) => (
+                <button
+                  key={em.id}
+                  className={`seg ${params.wallEnclosureMode === em.id ? 'on' : ''}`}
+                  onClick={() => onChange({ wallEnclosureMode: em.id })}
+                >
+                  {em.name}<span className="seg-sub">{em.sub}</span>
+                </button>
+              ))}
+            </div>
+
+            <ColorRow
+              label="Pillar / frieze color"
+              value={params.wallPillarColor}
+              onChange={(v) => onChange({ wallPillarColor: v })}
+            />
+            <ColorRow
+              label="Wall tile color"
+              value={params.wallTileColor}
+              onChange={(v) => onChange({ wallTileColor: v })}
+            />
+            <p className="hint">
+              Chinese courtyard enclosure wall (院墙): relief-carved stone socle (须弥座), white stucco wall, vermilion timber columns with gold rings, dentil bracket frieze, turquoise/jade pantile roof, and stone flower planters by the entrance.
+            </p>
+          </>
+        )}
       </Section>
 
       <Section title="Entrance 玄関">
@@ -467,6 +507,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <div><b>{stats.rampLen > 0 ? `${stats.rampLen.toFixed(1)} m` : '—'}</b><span>ramp</span></div>
             <div><b>{stats.signs}</b><span>signs</span></div>
             <div><b>{stats.props}</b><span>props</span></div>
+            <div><b>{stats.wallLen > 0 ? `${stats.wallLen.toFixed(1)} m` : '—'}</b><span>wall</span></div>
           </div>
         )}
         <ul className="checks">
@@ -523,6 +564,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Entry steps: riser ≤197 mm, tread ≥254 mm + nosing, rails 860–970 mm — <i>IRC R311.7</i></li>
             <li>Traditional wooden signs: sode-kanban (袖看板 bracket), tatefuda (立て札 roofed post), torii-kanban (鳥居看板), yagura-kanban (櫓看板 ridge billboard), bian'e (匾额 grand plaque) — <i>Alan Scott Pate (Kanban), Lost Art Press</i></li>
             <li>East Asian street props: Ming square/drum stools, eight-immortals tea tables (baxian-zhuo), open scholar bookshelves (shujia), tansu tea crates (chabako), straw-wrapped sake casks (komodaru), and woven bamboo bins (take-kago) — <i>Kyoto Emporium / Wikimedia Tansu / Edo Chōnin culture</i></li>
+            <li>Courtyard enclosure walls (院墙 / 影壁 / 四合院围墙): carved xumizuo stone socle, red lacquer timber colonnade with gold collar rings, dentil frieze, miniature pantile roof cap with swept ridge ends, stone garden planters — <i>Beijing Siheyuan / Prince Kung Palace Museum</i></li>
             <li>Access ramps 1:12 max, 0.9 m min width, 1.5 m landings — <i>ADA §405</i>; stone stairs + buried bedding — <i>Shinto architecture / Ketchell</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>

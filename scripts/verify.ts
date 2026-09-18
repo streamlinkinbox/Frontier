@@ -13,6 +13,7 @@ const fakeCtx = () => ({
   ellipse: () => {}, arc: () => {}, save: () => {}, restore: () => {},
   translate: () => {}, scale: () => {},
   measureText: (t: string) => ({ width: 12 * ((t && t.length) || 1) }),
+  createLinearGradient: () => ({ addColorStop: () => {} }),
   rect: () => {}, roundRect: () => {}, closePath: () => {}, strokeRect: () => {},
   getImageData: (_x: number, _y: number, w: number, h: number) => ({
     data: new Uint8ClampedArray(w * h * 4).fill(240), width: w, height: h,
@@ -125,6 +126,11 @@ scenario('signs none', { signsEnabled: false });
 scenario('props density dense', { propsEnabled: true, propDensity: 'dense' });
 scenario('props density sparse', { propsEnabled: true, propDensity: 'sparse' });
 scenario('props density none', { propsEnabled: false, propDensity: 'none' });
+// perimeter wall enclosure sweep: front flanks, courtyard compound, disabled
+scenario('wall enclosure front flanks', { wallEnclosureEnabled: true, wallEnclosureMode: 'front_flanks' });
+scenario('wall enclosure courtyard', { wallEnclosureEnabled: true, wallEnclosureMode: 'courtyard' });
+scenario('wall enclosure compound', { wallEnclosureEnabled: true, wallEnclosureMode: 'compound' });
+scenario('wall enclosure none', { wallEnclosureEnabled: false, wallEnclosureMode: 'none' });
 // walls-hidden → grounding check must downgrade to info, never fail
 {
   count++;
