@@ -727,6 +727,7 @@ $EngineRelative = @(
     'Projects\Project-Zero\Source\InterfaceTrialSequence.cpp'
     'Projects\Project-Zero\Source\InstanceMotionSequence.cpp'
     'Projects\Project-Zero\Source\PerformanceTelemetrySequence.cpp'
+    'Projects\Project-Zero\Source\FrameTelemetryLedger.cpp'   # verbose ledger; compiles to an empty TU without -Development
     'Projects\Project-Zero\Source\PhysicsInstanceSequence.cpp'
     'Projects\Project-Zero\Source\InterfaceAudioSequence.cpp'
     'Projects\Project-Dyno\Source\CrankClickIntegrator.cpp'
@@ -757,8 +758,21 @@ $EngineRelative = @(
     'Engine\ContentInterchange\SpaceCodec.cpp'                  # P1/P3 .space container
     'Engine\ContentInterchange\SpaceExport.cpp'                 # P2/P6 exporters
     'Projects\Project-Zero\Source\CommandLine.cpp'             # P4 the launch line both hosts parse
-    'Exhibits\Workbench\Materials\ShaderballExhibit.cpp'       # M7b preview entry — compiled with the override below
 )
+
+# ── Development-only translation units ───────────────────────────────────────────────────────────────────────────────
+#    ShaderballExhibit.cpp is the EDITOR's material-preview renderer. It #includes Engine/Shaders/MaterialEvaluation.slang
+#    as host C++ (through Exhibits/Workbench/Materials/SlangCpuShim.h) so the inspector can show a material without a
+#    GPU. A shipping build has no inspector and never calls it, so on -Development:$false it is dropped from the batch
+#    entirely rather than compiled and left unreferenced.
+#
+#    This is also where the long C4244/C4305 'conversion from double to float' run in a Release log comes from: those
+#    are the shader source being compiled as C++, not the GPU build. Dropping the TU drops the warnings with it, and
+#    the remaining Release output is the three known third-party lines (APIENTRY, tinybvh AVX, TraversalIndex pragma).
+if ($Development)
+{
+    $EngineRelative += 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp'   # M7b preview entry — see the override below
+}
 
 $EngineSources = New-Object System.Collections.Generic.List[string]
 foreach ($Rel in $EngineRelative)
@@ -782,11 +796,15 @@ if ($MissingSources.Count -gt 0) { throw ('missing source files in the translati
 #      · ShaderballExhibit.cpp IS the M7b preview entry (`RenderShaderballPreview`). SHADERBALL_PREVIEW_LIB compiles the
 #        renderer without the exhibit's own main(), which is what lets the showroom link it. Undefined, that file defines
 #        main() as well and the link fails on a duplicate entry point instead of a missing one.
-$Overrides = @(
-    @{ Source = (Join-Path $RepositoryRoot 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp')
-       Flags  = @('/DSHADERBALL_PREVIEW_LIB')
-       Label  = 'Project-Zero preview TU' }
-)
+#    The override is Development-only for the same reason the source is: on a ship build the file is not in the batch
+#    at all, and an override naming a file nobody compiles would silently produce an object the linker never sees.
+$Overrides = @()
+if ($Development)
+{
+    $Overrides += @{ Source = (Join-Path $RepositoryRoot 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp')
+                     Flags  = @('/DSHADERBALL_PREVIEW_LIB')
+                     Label  = 'Project-Zero preview TU' }
+}
 
 $OverridePaths = @($Overrides | ForEach-Object { $_.Source })
 

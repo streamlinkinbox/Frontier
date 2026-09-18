@@ -117,11 +117,25 @@ fi
 # ⑤ per-file overrides agree on both sides
 grep -q "SHADERBALL_PREVIEW_LIB" "$CMakeFile" || Fail "⑤ CMake no longer sets SHADERBALL_PREVIEW_LIB on the preview TU"
 grep -q "SHADERBALL_PREVIEW_LIB" "$Ps1File"   || Fail "⑤ the PowerShell script does not set SHADERBALL_PREVIEW_LIB on the preview TU"
+#    ShaderballExhibit.cpp is the editor's material-preview renderer and is DEVELOPMENT-ONLY: it #includes
+#    MaterialEvaluation.slang as host C++, which a shipping build has no use for. It therefore no longer sits in the
+#    unconditional list on either side — CMake adds it under FRONTIER_ZERO_DEVELOPMENT, the PowerShell batch under
+#    -Development. What must still agree is that BOTH gate it and BOTH set SHADERBALL_PREVIEW_LIB on it; a file
+#    conditional on one side and unconditional on the other is the rot this check exists to catch.
 if grep -q "SHADERBALL_PREVIEW_LIB" "$CMakeFile" && grep -q "SHADERBALL_PREVIEW_LIB" "$Ps1File"; then
-    if grep -q "ShaderballExhibit.cpp" "$Work/cmake.txt" && grep -qxF 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp' "$Work/ps1.txt"; then
-        Pass "⑤ ShaderballExhibit.cpp is built by both, with SHADERBALL_PREVIEW_LIB on both (so neither links a second main)"
+    CmakeGated=0; Ps1Gated=0
+    grep -q "FRONTIER_ZERO_DEVELOPMENT" "$CMakeFile" && \
+        grep -A3 "if(FRONTIER_ZERO_DEVELOPMENT)" "$CMakeFile" | grep -q "ShaderballExhibit.cpp" && CmakeGated=1
+    grep -B3 "ShaderballExhibit.cpp'   # M7b preview entry" "$Ps1File" | grep -q 'if ($Development)' && Ps1Gated=1
+
+    if [ "$CmakeGated" -eq 1 ] && [ "$Ps1Gated" -eq 1 ]; then
+        Pass "⑤ ShaderballExhibit.cpp is development-only in BOTH build systems, with SHADERBALL_PREVIEW_LIB on both"
+    elif [ "$CmakeGated" -eq 0 ] && [ "$Ps1Gated" -eq 0 ] && \
+         grep -q "ShaderballExhibit.cpp" "$Work/cmake.txt" && \
+         grep -qxF 'Exhibits\Workbench\Materials\ShaderballExhibit.cpp' "$Work/ps1.txt"; then
+        Pass "⑤ ShaderballExhibit.cpp is unconditional in both batches, with SHADERBALL_PREVIEW_LIB on both"
     else
-        Fail "⑤ ShaderballExhibit.cpp is not in both batches (the override's TU must be)"
+        Fail "⑤ ShaderballExhibit.cpp is gated in one build system and not the other (CMake gated=$CmakeGated, PowerShell gated=$Ps1Gated)"
     fi
 fi
 

@@ -51,6 +51,7 @@
 #include "InterfaceTrialSequence.h"
 #include "InstanceMotionSequence.h"
 #include "PerformanceTelemetrySequence.h"
+#include "FrameTelemetryLedger.h"
 #include "PhysicsInstanceSequence.h"
 #include "InterfaceAudioSequence.h"
 #include "../../../Engine/SpatialInterface/InterfaceScreenSequence.h"
@@ -268,7 +269,12 @@ int main(int argc, char** argv)
         {
             const Frontier::MaterialIndexMetrics& M = Level.QueryMaterials().QueryMetrics();
             std::vector<std::string> TextureReport;
-            (void)Textures.Decode(Configuration.Query().Backend.TextureEdgeLimit, &TextureReport);
+            {
+                // JPEG/PNG decode plus the mip chains. Seconds on a cold cache, and worth seeing separately from
+                //    the upload it precedes.
+                FRONTIER_TELEMETRY_CONTENT("Bootstrap/TextureDecode");
+                (void)Textures.Decode(Configuration.Query().Backend.TextureEdgeLimit, &TextureReport);
+            }
             for (const Frontier::TextureDescriptor& T : Textures.QueryTextures())
                 MaxTextureLevels = std::max(MaxTextureLevels, T.LevelCount);   // R6 row 3: LOD census for the F3 popup
             for (const std::string& L : TextureReport) Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Textures", L.c_str());
@@ -500,7 +506,15 @@ int main(int argc, char** argv)
     Frontier::SwapchainExchange Surface(SurfaceConfig);
     Surface.AssignRayTracingRequest(static_cast<Frontier::RayTracingRequestCategory>(Configuration.Query().Backend.RayTracingTier));
 
-    if (!Surface.Bring())
+    bool SurfaceUp = false;
+    {
+        // Device, window, swapchain, every pipeline and every shader module: the single largest startup cost and,
+        //    until now, an unmeasured one. The ledger records it as a phase so "why does it take so long to open"
+        //    has an answer that is a number.
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/SwapchainBring");
+        SurfaceUp = Surface.Bring();
+    }
+    if (!SurfaceUp)
     {
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Fatal,
                              "Bootstrap", "SwapchainExchange bring-up failed - see the [SwapchainExchange] lines above for the failing stage.");
@@ -514,10 +528,16 @@ int main(int argc, char** argv)
                          "Bootstrap", "Window and Vulkan swapchain ready.");
 
     {
+        FRONTIER_TELEMETRY_STARTUP("Bootstrap/ShadingTableBake");
         const Frontier::ShadingTableSet Tables = Frontier::ShadingTableCodec::Bake();   // R4b: GGX energy + LTC sheen LUTs
         Surface.UploadShadingTables(Tables.Energy.data(), Tables.Sheen.data(), Frontier::ShadingTableSet::kResolution);
     }
-    Surface.UploadScene(Level, Traversal, &Textures);
+    {
+        // Vertex/index/cluster/material/texture upload plus the acceleration structures — the other half of the
+        //    startup bill, and the half that scales with the level.
+        FRONTIER_TELEMETRY_CONTENT("Bootstrap/UploadScene");
+        Surface.UploadScene(Level, Traversal, &Textures);
+    }
 
     //──────────────────────────────────────────────────────────────────────────
     // D3 — scripted instance motion (--animate), proving the transform path before physics
@@ -1061,8 +1081,14 @@ int main(int argc, char** argv)
     //    end of the loop, and PerformanceTelemetrySequence.h for why rows exist at all.
     Frontier::ProjectZero::PerformanceTelemetrySequence PerformanceTelemetry{ 5.0f };
 
+    // Everything up to here was one-off. Close the startup phase so the report can separate "what it cost to open"
+    //    from "what it costs per frame" — two numbers that a single average would blend into something meaningless.
+    FRONTIER_TELEMETRY_FIRST_FRAME();
+
     while (!Surface.CloseRequested() && !Panel.Convert<bool>())
     {
+        FRONTIER_TELEMETRY_ADVANCE_FRAME();
+        FRONTIER_TELEMETRY_SCOPE("Frame");
         const auto  NowTime = Clock::now();
         float       Δτ      = std::chrono::duration_cast<Duration>(NowTime - PreviousTime).count();
         PreviousTime        = NowTime;
@@ -1280,7 +1306,19 @@ int main(int argc, char** argv)
                     Req.Material = &D; Req.Selection = Sel; Req.Size = 160; Req.Spp = 6; Req.OutPath = Out.c_str();
                     const auto T0 = std::chrono::steady_clock::now();
                     Frontier::ShaderballPreviewResult Res;
-                    const bool Ok = Frontier::RenderShaderballPreview(Req, Res);
+                    // The shaderball preview is an EDITOR feature: it exists to show the inspector what a material
+                    //    looks like after a commit. A shipping build has no inspector, so the whole CPU path-tracer
+                    //    behind it — ShaderballExhibit.cpp, which #includes MaterialEvaluation.slang as C++ through
+                    //    SlangCpuShim.h — is dead weight there. Undefining FRONTIER_DEVELOPMENT now drops that TU
+                    //    from the link entirely (see the build scripts), which is also what silences the C4244/C4305
+                    //    double→float warnings that file emits: they come from the shader source being compiled as
+                    //    host C++, not from anything the GPU build does.
+                    bool Ok = false;
+#ifdef FRONTIER_DEVELOPMENT
+                    Ok = Frontier::RenderShaderballPreview(Req, Res);
+#else
+                    (void)Req;
+#endif
                     const double Seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - T0).count();
                     M.NotifyPreviewRendered(Ok, D.Name.c_str(), Ok ? Out.c_str() : "write failed", Seconds, M.QueryCommitRevision());
                     if (ControlCentre.QueryNotifications().QueryApplied().RenderFinished)
@@ -1934,6 +1972,12 @@ int main(int argc, char** argv)
 
     Logger.RecordMessage(Frontier::DiagnosticSeverity::Information,
                          "Shutdown", "Render loop exited cleanly.");
+
+    // ⚠️ THIS is the only point the verbose ledger touches the disk. Every scope timed during the run lived in a
+    //    preallocated RAM ring so that measuring the renderer could not perturb it; the whole run is serialised
+    //    here, once, into a summary table and a per-sample log. Development builds only — on a ship build the macro
+    //    is `(false)` and none of this exists.
+    (void)FRONTIER_TELEMETRY_FLUSH("Projects/Project-Zero/Diagnostics", "ProjectZero_FrameTelemetry");
 
     if (RefitMillisecondsPeak > 0.0f)
     {
