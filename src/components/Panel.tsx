@@ -1,4 +1,4 @@
-import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS } from '../lib/types';
+import { RoofParams, RoofStyle, Region, TileSystem, Ornament, LampDesign, LampGroup, LampMount, EntryType, StairMaterial, EavesPlaqueText, EavesPlaqueStyle, RoofSignType, WallSignType, GroundSignType, PRESETS, STYLE_META, LAMP_META, STONE_DESIGNS, EAVES_PLAQUE_TEXT_META } from '../lib/types';
 import { Check, RoofStats } from '../lib/buildRoof';
 
 interface Props {
@@ -162,6 +162,37 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
     { id: 'stone', name: 'Stone', sub: '石' },
     { id: 'wood', name: 'Wood', sub: '木' },
   ];
+  const plaqueTexts: { id: EavesPlaqueText; kanji: string; label: string }[] = [
+    { id: 'taihedian', kanji: '太和殿', label: 'Palace' },
+    { id: 'tianxia', kanji: '天下第一', label: 'Top' },
+    { id: 'fenghuang', kanji: '鳳凰堂', label: 'Temple' },
+    { id: 'chashitsu', kanji: '喫茶去', label: 'Tea' },
+    { id: 'daxiongbaodian', kanji: '大雄寶殿', label: 'Hall' },
+  ];
+  const plaqueStyles: { id: EavesPlaqueStyle; name: string; sub: string }[] = [
+    { id: 'palace_gold', name: 'Gold', sub: '金箔' },
+    { id: 'natural_cedar', name: 'Cedar', sub: '杉' },
+    { id: 'vermilion', name: 'Vermilion', sub: '朱' },
+  ];
+  const roofSigns: { id: RoofSignType; name: string }[] = [
+    { id: 'none', name: 'None' },
+    { id: 'ridge', name: 'Ridge 櫓看板' },
+    { id: 'gable', name: 'Gable 破風額' },
+  ];
+  const wallSigns: { id: WallSignType; name: string }[] = [
+    { id: 'none', name: 'None' },
+    { id: 'bracket', name: 'Bracket 厠' },
+    { id: 'plank', name: 'Plank 蕎麦' },
+    { id: 'both', name: 'Both' },
+  ];
+  const groundSigns: { id: GroundSignType; name: string }[] = [
+    { id: 'none', name: 'None' },
+    { id: 'all', name: 'All signs' },
+    { id: 'torii', name: 'Torii 歓迎' },
+    { id: 'roofed_post', name: 'Roofed 梅麗亭' },
+    { id: 'bamboo_frame', name: 'Bamboo 竹庭' },
+    { id: 'a_frame', name: 'A-Frame 営業中' },
+  ];
   const ornaments: { id: Ornament; name: string; sub: string }[] = [
     { id: 'none', name: 'None', sub: '—' },
     { id: 'onigawara', name: 'Onigawara', sub: '鬼瓦' },
@@ -269,6 +300,81 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
         )}
       </Section>
 
+      <Section title="Signboards 看板">
+        <Toggle label="Wooden signs" value={params.signsEnabled} onChange={(v) => onChange({ signsEnabled: v })} />
+        {params.signsEnabled && (
+          <>
+            <Toggle label="Eaves plaque (bian'e / gaku)" value={params.showEavesPlaque} onChange={(v) => onChange({ showEavesPlaque: v })} />
+            {params.showEavesPlaque && (
+              <>
+                <div className="seg-row">
+                  {plaqueTexts.map((t) => (
+                    <button
+                      key={t.id}
+                      className={`seg ${params.eavesPlaqueText === t.id ? 'on' : ''}`}
+                      onClick={() => onChange({ eavesPlaqueText: t.id })}
+                      title={EAVES_PLAQUE_TEXT_META[t.id].meaning}
+                    >
+                      {t.kanji}<span className="seg-sub">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="seg-row">
+                  {plaqueStyles.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`seg ${params.eavesPlaqueStyle === s.id ? 'on' : ''}`}
+                      onClick={() => onChange({ eavesPlaqueStyle: s.id })}
+                    >
+                      {s.name}<span className="seg-sub">{s.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="hint" style={{ marginTop: '0.4rem', fontWeight: 600 }}>Roof-mounted sign 屋根看板</div>
+            <div className="seg-row">
+              {roofSigns.map((r) => (
+                <button
+                  key={r.id}
+                  className={`seg ${params.roofSign === r.id ? 'on' : ''}`}
+                  onClick={() => onChange({ roofSign: r.id })}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="hint" style={{ marginTop: '0.4rem', fontWeight: 600 }}>Side-wall signs 壁面看板</div>
+            <div className="seg-row">
+              {wallSigns.map((w) => (
+                <button
+                  key={w.id}
+                  className={`seg ${params.wallSigns === w.id ? 'on' : ''}`}
+                  onClick={() => onChange({ wallSigns: w.id })}
+                >
+                  {w.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="hint" style={{ marginTop: '0.4rem', fontWeight: 600 }}>Front & garden signs 店頭・庭看板</div>
+            <div className="seg-row">
+              {groundSigns.map((g) => (
+                <button
+                  key={g.id}
+                  className={`seg ${params.groundSigns === g.id ? 'on' : ''}`}
+                  onClick={() => onChange({ groundSigns: g.id })}
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </Section>
+
       <Section title="Structure & ornaments 構造">
         <div className="seg-row">
           {ornaments.map((o) => (
@@ -310,6 +416,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <div><b>{stats.lamps}</b><span>lanterns</span></div>
             <div><b>{stats.steps}</b><span>steps</span></div>
             <div><b>{stats.rampLen > 0 ? `${stats.rampLen.toFixed(1)} m` : '—'}</b><span>ramp</span></div>
+            <div><b>{stats.signs}</b><span>signs</span></div>
           </div>
         )}
         <ul className="checks">
@@ -364,6 +471,7 @@ export default function Panel({ params, onChange, onLamp, onPreset, onRegion, ch
             <li>Cast-concrete tiered pagoda lanterns (GFRC) — <i>Athena Garden</i></li>
             <li>Hanging tassels (fángsuì), ribbed profiles, disc/melon/barrel/gourd/hex/diamond forms — <i>Chinese festival-lantern reference sketches</i></li>
             <li>Entry steps: riser ≤197 mm, tread ≥254 mm + nosing, rails 860–970 mm — <i>IRC R311.7</i></li>
+            <li>Traditional wooden signs: sode-kanban (袖看板 bracket), tatefuda (立て札 roofed post), torii-kanban (鳥居看板), yagura-kanban (櫓看板 ridge billboard), bian'e (匾额 grand plaque) — <i>Alan Scott Pate (Kanban), Lost Art Press</i></li>
             <li>Access ramps 1:12 max, 0.9 m min width, 1.5 m landings — <i>ADA §405</i>; stone stairs + buried bedding — <i>Shinto architecture / Ketchell</i></li>
             <li>Rafter pitch default 455 mm (1.5 shaku); wall plate + ridge beam (munagi) + king post framing.</li>
           </ul>

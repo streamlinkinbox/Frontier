@@ -12,6 +12,8 @@ const fakeCtx = () => ({
   fillText: () => {}, strokeText: () => {}, putImageData: () => {},
   ellipse: () => {}, arc: () => {}, save: () => {}, restore: () => {},
   translate: () => {}, scale: () => {},
+  measureText: (t: string) => ({ width: 12 * ((t && t.length) || 1) }),
+  rect: () => {}, roundRect: () => {}, closePath: () => {}, strokeRect: () => {},
   getImageData: (_x: number, _y: number, w: number, h: number) => ({
     data: new Uint8ClampedArray(w * h * 4).fill(240), width: w, height: h,
   }),
@@ -107,6 +109,18 @@ scenario('entry low wide + standing lamps', {
   entryType: 'steps', floorHeight: 0.18, stairWidth: 2.4,
   lamps: [{ ...DEFAULT_LAMP_GROUP, enabled: true, design: 'andon', mount: 'standing', count: 3 }],
 });
+
+// wooden signs sweep: bian'e grand plaque, roof billboard, wall bracket toilet, torii, roofed post, bamboo frame
+scenario('signs all active', { signsEnabled: true, showEavesPlaque: true, roofSign: 'ridge', wallSigns: 'both', groundSigns: 'all' });
+scenario('signs palace gold taihedian', { signsEnabled: true, showEavesPlaque: true, eavesPlaqueText: 'taihedian', eavesPlaqueStyle: 'palace_gold', roofSign: 'ridge' });
+scenario('signs vermilion temple', { style: 'irimoya', signsEnabled: true, showEavesPlaque: true, eavesPlaqueText: 'daxiongbaodian', eavesPlaqueStyle: 'vermilion', roofSign: 'gable' });
+scenario('signs teahouse chashitsu', { signsEnabled: true, showEavesPlaque: true, eavesPlaqueText: 'chashitsu', eavesPlaqueStyle: 'natural_cedar', wallSigns: 'both', groundSigns: 'a_frame' });
+scenario('signs torii welcome', { signsEnabled: true, groundSigns: 'torii' });
+scenario('signs roofed post baireitei', { signsEnabled: true, groundSigns: 'roofed_post' });
+scenario('signs bamboo takeniwa', { signsEnabled: true, groundSigns: 'bamboo_frame' });
+scenario('signs wall bracket toilet', { signsEnabled: true, wallSigns: 'bracket' });
+scenario('signs none', { signsEnabled: false });
+
 // walls-hidden → grounding check must downgrade to info, never fail
 {
   count++;

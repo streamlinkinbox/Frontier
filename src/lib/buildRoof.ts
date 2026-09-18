@@ -5,6 +5,7 @@ import { clamp, smoothstep, mulberry32 } from './math';
 import { getMaterials, applyParamsToMaterials } from './materials';
 import { buildLamp } from './lamps';
 import { buildEntry } from './entry';
+import { buildSigns } from './signs';
 import {
   tileGeometries,
   newCollectors,
@@ -34,6 +35,7 @@ export interface RoofStats {
   lamps: number;
   steps: number;
   rampLen: number;
+  signs: number;
 }
 
 export interface PartInfo {
@@ -522,6 +524,24 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     for (const ch of entry.checks) checks.push(ch);
   }
 
+  // ================= wooden signs =================
+  const signs = buildSigns(p, {
+    L,
+    S,
+    wallTop,
+    ridgeY,
+    eaveY,
+    eaveFrontZ: S / 2 + o,
+    entryFrontZ,
+    stairWidth: p.stairWidth || 1.5,
+    style: p.style,
+  });
+  if (signs.part) {
+    inner.add(signs.group);
+    parts.push(signs.part);
+    for (const ch of signs.checks) checks.push(ch);
+  }
+
   // ================= lanterns =================
   let lampTotal = 0;
   const cordMat = new THREE.MeshStandardMaterial({ color: '#241f1a', roughness: 0.9 });
@@ -682,6 +702,7 @@ export function buildRoof(p: RoofParams): BuiltRoof {
     lamps: lampTotal,
     steps: entrySteps,
     rampLen: entryRampLen,
+    signs: signs.signCount,
   };
 
   // ================= verification =================

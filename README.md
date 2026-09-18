@@ -12,7 +12,7 @@ npm install
 npm run dev        # → interactive viewer at http://localhost:5173
 npm run build
 npm test           # headless geometry verification, exit code = pass/fail
-npm run verify     # the app's own 119-scenario sweep
+npm run verify     # the app's own 128-scenario sweep
 ```
 
 There are two subsystems in the tree right now, and they meet at the roof:
@@ -139,6 +139,11 @@ and square chōchin 筒/丸/角提灯, andon 行灯, tall kiriko 切子, hexagon
 청사초롱, paper globe 明かり, stone tōrō 石灯籠, Kasuga tōrō 春日灯籠, yukimi, oribe (moon windows), oki, hanging tsuri, pagoda, concrete bollard, disc, melon, barrel, gourd, hex-palace, diamond and roof-top hanging lanterns (all with swaying tassels). Each group: count, size, glow, paper/frame colours, **custom characters
 drawn vertically on the paper**, optional point lights. Night mode shows them off.
 **Entrance**: raised-floor platform with stone/timber steps (IRC rise/run) and/or a 1:6–1:12 access ramp (ADA), handrails both sides, entry door slab.
+**Wooden Signboards 看板 (Kanban & Bian'e)**: traditional East Asian architectural and commercial signage across the building:
+- **Eaves grand plaque (bian'e 匾额 / gaku 額)**: hung under front eave/lintel in Palace Gold (黒漆金箔), Natural Cedar, or Vermilion, with authentic calligraphy (*Taihedian* 太和殿, *Tianxia Diyi* 天下第一, *Hōō-dō* 鳳凰堂, *Kissa-ko* 喫茶去, *Daxiong Baodian* 大雄寶殿).
+- **Roof signs**: Edo/Meiji roof-ridge shop billboard (*yagura-kanban* 櫓看板) splayed on timber trestles with shingle cap, plus gable pediment plaques (*hafu-gaku* 破風額).
+- **Side wall signs**: wall-projecting iron bracket sign (*sode-kanban* 袖看板) with double-sided weathered cedar "厠" and blue/red pictograms (photo 1), and flat wall plank (*tate-kanban* 縦看板 "手打蕎麦").
+- **Freestanding garden & entrance signs**: roofed post sign (*tatefuda* 立て札 "梅麗亭" with miniature timber rooflet, photo 2), twin-bamboo framed sign (*Take-niwa* 竹庭 with miniature pantile rooflet, photo 3), Torii-gate entrance sign (*Torii-kanban* "歓迎" 45-072 MALULANI ST., photo 4), and folding floor A-frame shop board (*koma-kanban* 駒看板 "営業中").
 
 **Export**: any roof as `.GLB` (imports straight into Blender) or as `.JSON`
 parameters.
@@ -160,7 +165,7 @@ upturn — MDPI Buildings 2025 · CN roof hierarchy and parametric rules — She
 al. · chiwen / hip beasts / dougong — pgm.org.cn, ibiblio.org, baike.baidu ·
 chōchin forms, bonbori, zou-ma-deng, cheongsachorong, kasuga-dōrō —
 hayakawajunpei, skdesu.com, baike.baidu (Revolving Lanterns), paper-capers,
-magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō), kamisenro.co.jp · concrete pagoda lanterns — Athena Garden · hanging tassels (fangshui) & ribbed profiles — Chinese festival-lantern reference sketches · entry steps — IRC R311.7 · ramps — ADA §405 · stone stairs — Shinto architecture.
+magicstonegarden · oribe moon windows & oki/tsuri types — enwik.org (Tōrō), kamisenro.co.jp · concrete pagoda lanterns — Athena Garden · hanging tassels (fangshui) & ribbed profiles — Chinese festival-lantern reference sketches · entry steps — IRC R311.7 · ramps — ADA §405 · stone stairs — Shinto architecture · kanban signage — Alan Scott Pate (*Kanban: Traditional Shop Signs of Japan*), *Lost Art Press*.
 
 ## Roadmap
 

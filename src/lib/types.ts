@@ -20,6 +20,13 @@ export type LampMount = 'hanging' | 'standing' | 'stone';
 export type EntryType = 'none' | 'steps' | 'ramp' | 'both';
 export type StairMaterial = 'stone' | 'wood';
 
+/** Traditional East Asian wooden signs: grand plaques, roof billboards, wall signs, garden posts. */
+export type EavesPlaqueStyle = 'palace_gold' | 'natural_cedar' | 'vermilion';
+export type EavesPlaqueText = 'taihedian' | 'tianxia' | 'fenghuang' | 'chashitsu' | 'daxiongbaodian';
+export type RoofSignType = 'none' | 'ridge' | 'gable';
+export type WallSignType = 'none' | 'bracket' | 'plank' | 'both';
+export type GroundSignType = 'none' | 'all' | 'torii' | 'roofed_post' | 'bamboo_frame' | 'a_frame';
+
 export interface LampGroup {
   enabled: boolean;
   design: LampDesign;
@@ -153,6 +160,18 @@ export interface RoofParams {
   /** Real point lights inside lantern groups (off = emissive only). */
   lampLights: boolean;
   lamps: LampGroup[];
+  /** Traditional wooden signs (kanban, bian'e, tatefuda, torii). */
+  signsEnabled: boolean;
+  /** Front eaves / lintel grand plaque (bian'e / gaku). */
+  showEavesPlaque: boolean;
+  eavesPlaqueText: EavesPlaqueText;
+  eavesPlaqueStyle: EavesPlaqueStyle;
+  /** Roof-mounted sign: ridge billboard (yagura-kanban) or gable plaque. */
+  roofSign: RoofSignType;
+  /** Side-wall signs: wall-bracket projecting sign ("厠" restroom) and/or flat plank. */
+  wallSigns: WallSignType;
+  /** Freestanding ground / garden signs in front: torii gate, roofed tatefuda, bamboo framed, A-frame. */
+  groundSigns: GroundSignType;
 }
 
 export const DEFAULT_PARAMS: RoofParams = {
@@ -200,6 +219,27 @@ export const DEFAULT_PARAMS: RoofParams = {
     { ...DEFAULT_LAMP_GROUP, design: 'toro', mount: 'stone', count: 2, size: 1.1, text: '' },
     { ...DEFAULT_LAMP_GROUP, design: 'andon', mount: 'hanging', count: 2, paperColor: '#f2e4c8', text: '酒' },
   ],
+  signsEnabled: true,
+  showEavesPlaque: true,
+  eavesPlaqueText: 'taihedian',
+  eavesPlaqueStyle: 'palace_gold',
+  roofSign: 'ridge',
+  wallSigns: 'both',
+  groundSigns: 'all',
+};
+
+export const EAVES_PLAQUE_TEXT_META: Record<EavesPlaqueText, { kanji: string; name: string; meaning: string }> = {
+  taihedian: { kanji: '太和殿', name: 'Taihedian', meaning: 'Hall of Supreme Harmony (Forbidden City)' },
+  tianxia: { kanji: '天下第一', name: 'Tianxia Diyi', meaning: 'Number One Under Heaven' },
+  fenghuang: { kanji: '鳳凰堂', name: 'Hōō-dō', meaning: 'Phoenix Hall (Byōdō-in Temple)' },
+  chashitsu: { kanji: '喫茶去', name: 'Kissa-ko', meaning: 'Have a Cup of Tea (Zen Teahouse)' },
+  daxiongbaodian: { kanji: '大雄寶殿', name: 'Daxiong Baodian', meaning: 'Great Hero Treasure Hall (Temple)' },
+};
+
+export const EAVES_PLAQUE_STYLE_META: Record<EavesPlaqueStyle, { name: string; sub: string }> = {
+  palace_gold: { name: 'Palace Gold', sub: '黒漆金箔' },
+  natural_cedar: { name: 'Natural Cedar', sub: '天然杉木' },
+  vermilion: { name: 'Vermilion Red', sub: '朱漆金字' },
 };
 
 export interface Preset {
