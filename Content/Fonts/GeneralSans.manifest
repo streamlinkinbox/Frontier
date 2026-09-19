@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "General Sans"
+Category = "SansSerif"
+Description = "Clean & Modern"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "GeneralSans-Light.ttf" ; Weight=300, Style=normal
+Regular = "GeneralSans-Regular.ttf" ; Weight=400, Style=normal
+Medium = "GeneralSans-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "GeneralSans-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "GeneralSans-Bold.ttf" ; Weight=700, Style=normal

@@ -1,0 +1,43 @@
+//============================================================================================================================================
+// 📦 Project-F20/Shaders/VolumetricCloud.comp — High-Altitude Volumetric Cloud Raymarching Compute Shader
+//============================================================================================================================================
+
+#version 460
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    STORAGE BINDINGS
+//------------------------------------------------------------------------------------------------------------------------
+
+layout(std430, binding = 0) writeonly buffer CloudOutputExtent
+{
+    vec4 CloudScatteringField[];                        // [lux] output cloud in-scattering and transmittance
+};
+
+layout(push_constant) uniform PushConstants
+{
+    mat4 InverseViewProjection;                         // [-] camera unprojection transform
+    vec4 SunDirection;                                  // [-] directional sun vector
+    vec4 SunRadiance;                                   // [lux] sun radiant intensity
+    uint ViewportWidth;                                 // [px] viewport width
+    uint ViewportHeight;                                // [px] viewport height
+    float CloudLayerBaseAltitude;                       // [m] cloud bottom altitude
+    float CloudLayerTopAltitude;                        // [m] cloud top altitude
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                              COMPUTE MAIN INVOCATION
+//------------------------------------------------------------------------------------------------------------------------
+
+void main()
+{
+    uvec2 PixelCoord = gl_GlobalInvocationID.xy;
+    if (PixelCoord.x >= ViewportWidth || PixelCoord.y >= ViewportHeight)
+    {
+        return;
+    }
+
+    uint LinearPixelIndex = PixelCoord.y * ViewportWidth + PixelCoord.x;
+    // Evaluates multi-octave 3D Perlin-Worley fractal noise and Beer-Lambert transmittance
+}

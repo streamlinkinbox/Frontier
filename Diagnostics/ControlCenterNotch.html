@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slate Control Centre — Complete 1-to-1 Top Notch Subsystem</title>
+
+<!-- All Fonts from Slate / Notch Specification -->
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@300,400,500,600,700&f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   SLATE CONTROL CENTRE — DESIGN SYSTEM & THEME DEFINITIONS
+   ============================================================ */
+:root {
+  --main-bg: #000000;
+  --panel-bg: #0A0A0A;
+  --panel-border: rgba(255, 255, 255, 0.04);
+  --card-bg: #141415;
+  --card-sub: #1c1c1e;
+  --inset-bg: #121212;
+  --text-main: rgba(255, 255, 255, 0.95);
+  --text-muted: rgba(255, 255, 255, 0.40);
+  --text-faint: rgba(255, 255, 255, 0.25);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --divider: rgba(255, 255, 255, 0.04);
+  --active-bg: rgba(255, 255, 255, 0.08);
+
+  --accent-color: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --corner-radius: 24px;
+  --font-family: 'General Sans', 'Inter', system-ui, sans-serif;
+
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
+  --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+body[data-theme="oled"] {
+  --main-bg: #000000; --panel-bg: #0A0A0A; --panel-border: rgba(255,255,255,0.04);
+  --card-bg: #141415; --card-sub: #1c1c1e; --inset-bg: #121212;
+  --text-main: rgba(255,255,255,0.95); --text-muted: rgba(255,255,255,0.40);
+  --input-bg: rgba(255,255,255,0.05); --divider: rgba(255,255,255,0.04); --active-bg: rgba(255,255,255,0.08);
+}
+body[data-theme="dark"] {
+  --main-bg: #111111; --panel-bg: #1a1a1a; --panel-border: rgba(255,255,255,0.06);
+  --card-bg: #222225; --card-sub: #2c2c30; --inset-bg: #1c1c1f;
+  --text-main: rgba(255,255,255,0.90); --text-muted: rgba(255,255,255,0.50);
+  --input-bg: rgba(255,255,255,0.06); --divider: rgba(255,255,255,0.06); --active-bg: rgba(255,255,255,0.10);
+}
+body[data-theme="dim"] {
+  --main-bg: #0f172a; --panel-bg: #1e293b; --panel-border: rgba(51, 65, 85, 0.5);
+  --card-bg: #283548; --card-sub: #334155; --inset-bg: #0f172a;
+  --text-main: #f1f5f9; --text-muted: #94a3b8;
+  --input-bg: rgba(2, 6, 23, 0.5); --divider: rgba(51, 65, 85, 0.5); --active-bg: #334155;
+}
+body[data-theme="light"] {
+  --main-bg: #f1f5f9; --panel-bg: #ffffff; --panel-border: #e2e8f0;
+  --card-bg: #f8fafc; --card-sub: #e2e8f0; --inset-bg: #f1f5f9;
+  --text-main: #0f172a; --text-muted: #64748b;
+  --input-bg: #f8fafc; --divider: #e2e8f0; --active-bg: #f1f5f9;
+}
+body[data-theme="sepia"] {
+  --main-bg: #eaddcf; --panel-bg: #f4ebe1; --panel-border: #d8c3b0;
+  --card-bg: #faeed9; --card-sub: #eedcc3; --inset-bg: #eaddcf;
+  --text-main: #5c4b3a; --text-muted: #8c7a6b;
+  --input-bg: #f9f4ef; --divider: #d8c3b0; --active-bg: #eaddcf;
+}
+body[data-theme="dracula"] {
+  --main-bg: #282a36; --panel-bg: #44475a; --panel-border: rgba(98, 114, 164, 0.3);
+  --card-bg: #383a59; --card-sub: #6272a4; --inset-bg: #21222c;
+  --text-main: #f8f8f2; --text-muted: #6272a4;
+  --input-bg: #282a36; --divider: rgba(98, 114, 164, 0.3); --active-bg: rgba(98, 114, 164, 0.2);
+}
+body[data-theme="nord"] {
+  --main-bg: #2e3440; --panel-bg: #3b4252; --panel-border: #4c566a;
+  --card-bg: #434c5e; --card-sub: #4c566a; --inset-bg: #2b303c;
+  --text-main: #eceff4; --text-muted: #d8dee9;
+  --input-bg: #2e3440; --divider: #4c566a; --active-bg: #434c5e;
+}
+body[data-theme="github"] {
+  --main-bg: #0d1117; --panel-bg: #161b22; --panel-border: #30363d;
+  --card-bg: #21262d; --card-sub: #30363d; --inset-bg: #0d1117;
+  --text-main: #c9d1d9; --text-muted: #8b949e;
+  --input-bg: #0d1117; --divider: #30363d; --active-bg: #21262d;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--main-bg);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 14px;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth);
+}
+svg { display: block; }
+
+/* ── Workspace Desktop Background ── */
+#workspace-canvas {
+  position: fixed; inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.hero-box {
+  text-align: center; max-width: 680px; padding: 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 9999px;
+  background: var(--panel-bg); border: 1px solid var(--panel-border);
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+}
+.hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+.hero-title { font-size: 32px; font-weight: 700; letter-spacing: -0.6px; }
+.hero-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Backdrop Overlay (No Blur) ── */
+#notch-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  background: transparent;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.4s var(--ease-smooth);
+}
+#notch-backdrop.open { opacity: 1; pointer-events: auto; }
+
+/* ============================================================
+   TOP NOTCH PULLDOWN CONTAINER & SPRING LOCOMOTION
+   ============================================================ */
+#notch-container {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center;
+  transform: translateY(0px);
+  transition: transform 0.6s var(--ease-spring);
+  will-change: transform;
+}
+#notch-container.open {
+  transform: translateY(calc(100vh - 36px));
+}
+
+/* Pulldown Shade Background */
+.shade-wrapper {
+  position: absolute; bottom: 35px; left: 0; right: 0;
+  height: 2000px; background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+}
+.shade-content-box {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-bottom: 35px;
+  opacity: 0; transition: opacity 0.3s var(--ease-smooth);
+  pointer-events: none;
+}
+#notch-container.open .shade-content-box {
+  opacity: 1; pointer-events: auto;
+}
+
+/* Dynamic Stage Container */
+.modal-stage {
+  position: relative; width: 100%; max-width: 440px; height: 490px;
+  transition: max-width 0.5s var(--ease-spring), height 0.5s var(--ease-spring);
+}
+.modal-stage.expanded {
+  max-width: 860px; height: 620px;
+}
+
+/* View Transition Cards & Stepper Carousel Sliding */
+.view-card {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  opacity: 0; transform: translateX(60px);
+  pointer-events: none;
+  transition: opacity 0.28s var(--ease-spring), transform 0.32s var(--ease-spring);
+}
+.view-card.active {
+  opacity: 1; transform: translateX(0);
+  pointer-events: auto;
+}
+.view-card.slide-left {
+  opacity: 0; transform: translateX(-60px);
+}
+
+/* ── VIEW 1: Control Centre Dashboard (Slate C++ / Notch) ── */
+.cc-top-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 4px 18px; color: var(--text-muted); font-size: 13.5px; font-weight: 500;
+}
+.cc-top-actions { display: flex; align-items: center; gap: 14px; }
+.btn-icon-ghost {
+  width: 32px; height: 32px; border-radius: 50%; border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
+}
+.btn-icon-ghost:hover { color: var(--text-main); background: var(--input-bg); transform: scale(1.08); }
+.btn-icon-ghost:active { transform: scale(0.92); }
+
+.quick-grid-4x2 {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 16px;
+  margin-bottom: 24px;
+}
+.quick-btn-col {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
+}
+.quick-btn-circle {
+  width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
+  background: var(--card-sub); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s var(--ease-smooth), color 0.2s, transform 0.15s;
+}
+.quick-btn-circle:hover { transform: scale(1.05); color: var(--text-main); }
+.quick-btn-circle.active {
+  background: var(--accent-color); color: #ffffff;
+}
+.quick-btn-label {
+  font-size: 12px; font-weight: 500; color: var(--text-muted); text-align: center;
+}
+.quick-btn-col:hover .quick-btn-label { color: var(--text-main); }
+
+/* Sliders */
+.render-slider-pill {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card-sub); border: 1px solid var(--panel-border);
+  border-radius: 9999px; padding: 6px 14px; margin-bottom: 10px;
+}
+.slider-icon-cell { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.slider-bar-track {
+  flex: 1; height: 8px; border-radius: 9999px; background: rgba(0, 0, 0, 0.5);
+  position: relative; overflow: hidden; cursor: pointer;
+}
+.slider-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 80%;
+  background: var(--accent-color); border-radius: 9999px;
+  transition: width 0.08s linear;
+}
+.slider-val-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--text-muted); width: 44px; text-align: right;
+}
+
+/* ── VIEW 2: Settings Categories Menu ── */
+.settings-list-card {
+  background: var(--card-bg); border: 1px solid var(--panel-border);
+  border-radius: 24px; overflow: hidden; display: flex; flex-direction: column;
+}
+.settings-menu-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--divider);
+  cursor: pointer; transition: background 0.15s;
+}
+.settings-menu-row:last-child { border-bottom: none; }
+.settings-menu-row:hover { background: var(--active-bg); }
+.settings-row-icon-cell {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--main-bg); color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center; margin-right: 14px;
+}
+.settings-row-text { display: flex; flex-direction: column; gap: 2px; }
+.settings-row-main { font-size: 15px; font-weight: 500; color: var(--text-main); }
+.settings-row-sub { font-size: 13px; color: var(--text-muted); }
+
+/* ── VIEW 3: Full Modal Container ── */
+.modal-full-card {
+  background: var(--card-bg); border: 1px solid var(--panel-border);
+  border-radius: 32px; display: flex; flex-direction: column; height: 100%; overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+}
+.modal-top-bar {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 24px 32px 14px; shrink-0: 0;
+}
+.modal-heading { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; color: var(--text-main); margin-bottom: 2px; }
+.modal-subheading { font-size: 13.5px; color: var(--text-muted); }
+
+.modal-tab-strip {
+  display: flex; gap: 28px; padding: 0 32px;
+  border-bottom: 1px solid var(--divider);
+}
+.tab-strip-btn {
+  padding: 0 0 14px 0; font-size: 14px; font-weight: 500; color: var(--text-muted);
+  border: none; background: transparent; cursor: pointer; position: relative;
+  transition: color 0.15s;
+}
+.tab-strip-btn:hover { color: var(--text-main); }
+.tab-strip-btn.active { color: var(--text-main); }
+.tab-strip-btn.active::after {
+  content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px;
+  background: #ffffff;
+}
+
+.modal-scroll-area {
+  flex: 1; overflow-y: auto; padding: 24px 32px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.modal-scroll-area::-webkit-scrollbar { display: none; }
+
+.modal-bottom-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 32px; border-top: 1px solid var(--divider);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── UI COMPONENTS & THEME SECTION (From UIComponents.html) ── */
+.theme-unified-section {
+  background: var(--card-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--corner-radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.theme-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.theme-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text-main);
+}
+.theme-section-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.theme-section-divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 4px 0;
+}
+
+/* Control Row from UIComponents.html */
+.crow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 40px;
+}
+.crow > .clabel {
+  width: 120px;
+  flex-shrink: 0;
+  color: var(--text-main);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* Value Pill: [ number | unit ] */
+.vpill {
+  display: flex;
+  align-items: stretch;
+  height: 36px;
+  width: 104px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--panel-border);
+}
+.vpill .num {
+  flex: 1;
+  background: var(--input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+.vpill .unit {
+  width: 38px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 1px solid var(--panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Chunky Range Slider: [---O---] */
+input[type=range].slider {
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  flex: 1;
+  min-width: 100px;
+  height: 28px;
+  border-radius: 9999px;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(to right, var(--accent-color) 75%, rgba(255, 255, 255, 0.08) 75%);
+  transition: background 0.05s linear;
+}
+input[type=range].slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s var(--ease-smooth);
+}
+input[type=range].slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+input[type=range].slider:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+/* ── THEME PALETTE GRID & DETAILED MOCK VIEWPORT (Exact 1:1 from ThemeTab.tsx) ── */
+.theme-grid-4col {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+}
+.theme-select-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
+}
+.theme-mock-viewport {
+  width: 100%; aspect-ratio: 4 / 3; border-radius: 1.25rem;
+  border: 1px solid var(--panel-border); position: relative; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: outline 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.theme-select-card:hover .theme-mock-viewport {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.theme-select-card.active .theme-mock-viewport {
+  outline: 2px solid var(--accent-color); outline-offset: 4px;
+}
+.theme-select-card .theme-name-label {
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  transition: color 0.15s;
+}
+.theme-select-card.active .theme-name-label {
+  color: var(--text-main); font-weight: 600;
+}
+
+/* 1-to-1 Window Mockup from ThemeTab.tsx */
+.theme-sidebar-mock {
+  position: absolute; top: 20px; bottom: 0; left: 20px; right: 0;
+  display: flex;
+  border-top-left-radius: var(--corner-radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.theme-sidebar-col {
+  width: 30%; display: flex; flex-direction: column; padding: 10px; gap: 6px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08); position: relative; z-index: 10;
+}
+.theme-dots-row {
+  display: flex; gap: 4px; margin-bottom: 6px;
+}
+.theme-dot {
+  width: 5px; height: 5px; border-radius: 50%; opacity: 0.4; flex-shrink: 0;
+}
+.theme-line {
+  height: 5px; opacity: 0.2;
+  border-radius: calc(var(--corner-radius) * 0.25);
+}
+.theme-avatar-row {
+  margin-top: auto; display: flex; align-items: center; gap: 5px;
+}
+.theme-avatar-dot {
+  width: 9px; height: 9px; border-radius: 50%; opacity: 0.4; flex-shrink: 0;
+}
+
+.theme-panel-col {
+  flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px;
+  border-top-left-radius: var(--corner-radius);
+  position: relative; z-index: 10;
+}
+.theme-panel-header-1 {
+  width: 25%; height: 5px; opacity: 0.3; margin-bottom: 2px;
+  border-radius: calc(var(--corner-radius) * 0.25);
+}
+.theme-panel-header-2 {
+  width: 35%; height: 5px; opacity: 0.2;
+  border-radius: calc(var(--corner-radius) * 0.25);
+}
+.theme-squares-row {
+  display: flex; gap: 6px; margin: 4px 0;
+}
+.theme-square-card {
+  flex: 1; aspect-ratio: 1 / 1; opacity: 0.1;
+  border-radius: calc(var(--corner-radius) * 0.5);
+}
+.theme-panel-footer-line {
+  margin-top: auto; width: 20%; height: 5px; opacity: 0.2;
+  border-radius: calc(var(--corner-radius) * 0.25);
+}
+
+.accent-palette-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.accent-color-circle {
+  width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;
+  position: relative; transition: transform 0.15s;
+}
+.accent-color-circle:hover { transform: scale(1.15); }
+.accent-color-circle.active { box-shadow: 0 0 0 3px var(--card-bg), 0 0 0 5px var(--accent-color); }
+
+/* ── TYPOGRAPHY ROLE STRIPS (Slate C++ ControlCentrePanel) ── */
+.role-typography-card {
+  background: var(--input-bg); border: 1px solid var(--panel-border);
+  border-radius: var(--corner-radius); padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.role-header-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.role-name-tag { font-size: 13.5px; font-weight: 700; color: var(--text-main); }
+.role-spec-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+.role-weights-strip {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+}
+.role-weights-strip::-webkit-scrollbar { display: none; }
+.weight-pill-btn {
+  padding: 4px 12px; border-radius: 9999px; border: 1px solid var(--panel-border);
+  background: transparent; color: var(--text-muted); font-size: 11px; cursor: pointer;
+  white-space: nowrap; transition: background 0.15s, color 0.15s;
+}
+.weight-pill-btn:hover { background: var(--active-bg); color: var(--text-main); }
+.weight-pill-btn.active { background: #ffffff; color: #000000; font-weight: 600; }
+
+/* ── FORM ROWS & CONTROLS ── */
+.form-field-row {
+  display: grid; grid-template-columns: 200px 1fr; align-items: center;
+  padding: 14px 0; border-bottom: 1px solid var(--divider);
+}
+.form-field-row:last-child { border-bottom: none; }
+.form-field-label { font-size: 13.5px; color: var(--text-main); }
+.form-field-select {
+  width: 100%; padding: 10px 14px; border-radius: calc(var(--corner-radius) * 0.5);
+  border: 1px solid var(--panel-border); background: var(--input-bg);
+  color: var(--text-main); font-size: 13px; outline: none; cursor: pointer;
+}
+.form-toggle-switch {
+  width: 46px; height: 24px; border-radius: 9999px; background: rgba(255, 255, 255, 0.1);
+  border: none; cursor: pointer; position: relative; transition: background 0.2s;
+  justify-self: end;
+}
+.form-toggle-switch.active { background: var(--accent-color); }
+.form-toggle-thumb {
+  width: 20px; height: 20px; border-radius: 50%; background: #ffffff;
+  position: absolute; top: 2px; left: 2px; transition: transform 0.2s var(--ease-spring);
+}
+.form-toggle-switch.active .form-toggle-thumb { transform: translateX(22px); }
+
+/* ============================================================
+   ORGANIC SVG TOP NOTCH TAB HANDLE (ArcNotch Geometry)
+   ============================================================ */
+.notch-handle-bar {
+  position: relative; width: 400px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: transform 0.15s var(--ease-smooth);
+}
+.notch-handle-bar:hover { transform: translateY(2px); }
+.notch-svg-shape {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  color: var(--panel-bg); drop-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.notch-title-content {
+  position: relative; z-index: 10; display: flex; align-items: center; gap: 8px;
+  padding-bottom: 2px; font-size: 14.5px; font-weight: 500; color: #ffffff;
+}
+.logo-stack-mock {
+  position: relative; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+}
+.logo-layer-1 {
+  position: absolute; width: 14px; height: 14px; background: #FF6B6B; border-radius: 4px;
+  opacity: 0.9; transform: rotate(12deg); left: 1px; top: 1px;
+}
+.logo-layer-2 {
+  position: absolute; width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px; opacity: 0.9; transform: rotate(-12deg); left: 5px; top: 3px;
+}
+.logo-layer-3 {
+  position: absolute; width: 14px; height: 14px; background: #4D96FF; border-radius: 5px;
+  mix-blend-mode: screen; opacity: 0.95; left: 4px; top: 4px;
+}
+.status-indicator-green {
+  width: 8px; height: 8px; border-radius: 50%; background: #22C55E; margin-left: 2px;
+}
+
+/* Buttons */
+.btn-solid-white {
+  padding: 8px 24px; border-radius: 9999px; border: none;
+  background: #ffffff; color: #000000; font-weight: 600; font-size: 13.5px;
+  cursor: pointer; transition: opacity 0.15s, transform 0.12s;
+}
+.btn-solid-white:hover { opacity: 0.9; }
+.btn-solid-white:active { transform: scale(0.95); }
+.btn-ghost-cancel {
+  padding: 8px 20px; border-radius: 9999px; border: none;
+  background: transparent; color: var(--text-muted); font-size: 13.5px; font-weight: 500;
+  cursor: pointer; transition: color 0.15s;
+}
+.btn-ghost-cancel:hover { color: var(--text-main); }
+/* ── DIALOGUE MODALS (from UIComponents.html) ── */
+.dialog-overlay {
+  position: fixed; inset: 0; z-index: 250;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+.dialog-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--corner-radius);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85);
+  width: 100%; max-width: 460px;
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: scaleUp 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+}
+.dialog-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 24px; border-bottom: 1px solid var(--divider);
+  background: rgba(255, 255, 255, 0.02);
+}
+.dialog-body {
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;
+}
+.dialog-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+  padding: 16px 24px; border-top: 1px solid var(--divider);
+  background: rgba(0, 0, 0, 0.2);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+
+<body data-theme="oled">
+
+<!-- Workspace 3D Desktop Area -->
+<div id="workspace-canvas">
+  <div class="hero-box">
+    <div class="hero-badge">
+      <div class="dot"></div>
+      <span>Slate Control Centre v2.6 · Engine Mode</span>
+    </div>
+    <h1 class="hero-title">Complete 1-to-1 Top Notch Subsystem</h1>
+    <p class="hero-desc">Click the <b>Control Center</b> tab at the top edge of the screen to open the pulldown dashboard with full navigation across Dashboard, Settings, Display & Themes, Keybindings, Notifications, Render, Camera, and Import modals.</p>
+  </div>
+</div>
+
+<!-- Backdrop Blur Overlay -->
+<div id="notch-backdrop" onclick="closeNotch()"></div>
+
+<!-- Top Notch Pulldown Container -->
+<div id="notch-container">
+  <!-- Pulldown Shade Body -->
+  <div class="shade-wrapper">
+    <div class="shade-content-box">
+      <div class="modal-stage" id="modal-stage">
+
+        <!-- ============================================================
+             VIEW 1: Control Centre Dashboard (Page: Dashboard)
+             ============================================================ -->
+        <div class="view-card active" id="view-dashboard">
+          <div class="cc-top-row">
+            <span>Control Center</span>
+            <div class="cc-top-actions">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+              <button class="btn-icon-ghost" onclick="showView('view-settings')" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 8 Quick Action Toggle Buttons -->
+          <div class="quick-grid-4x2">
+            <div class="quick-btn-col" onclick="toggleQuickButton(this)">
+              <div class="quick-btn-circle active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+              <span class="quick-btn-label">Geometry</span>
+            </div>
+            <div class="quick-btn-col" onclick="toggleQuickButton(this)">
+              <div class="quick-btn-circle active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
+              <span class="quick-btn-label">Lighting</span>
+            </div>
+            <div class="quick-btn-col" onclick="showView('view-camera-modal')">
+              <div class="quick-btn-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+              <span class="quick-btn-label">Cameras</span>
+            </div>
+            <div class="quick-btn-col" onclick="toggleQuickButton(this)">
+              <div class="quick-btn-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m14 12-8.5 8.5a2.12 2.12 0 1 1-3-3L11 9"/><path d="M18 10l-4-4"/><path d="m19 15 3-3a2.83 2.83 0 0 0-4-4l-3 3"/></svg></div>
+              <span class="quick-btn-label">Materials</span>
+            </div>
+            <div class="quick-btn-col" onclick="toggleQuickButton(this)">
+              <div class="quick-btn-circle active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+              <span class="quick-btn-label">Simulate</span>
+            </div>
+            <div class="quick-btn-col" onclick="showView('view-render-modal')">
+              <div class="quick-btn-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+              <span class="quick-btn-label">Render</span>
+            </div>
+            <div class="quick-btn-col" onclick="toggleQuickButton(this)">
+              <div class="quick-btn-circle active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <span class="quick-btn-label">Show Grid</span>
+            </div>
+            <div class="quick-btn-col" onclick="showView('view-import-modal')">
+              <div class="quick-btn-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></div>
+              <span class="quick-btn-label">Import</span>
+            </div>
+          </div>
+
+          <!-- Render Scale Slider -->
+          <div class="render-slider-pill">
+            <div class="slider-icon-cell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+            <div class="slider-bar-track" onclick="dragRenderScale(event, this)">
+              <div class="slider-bar-fill" id="render-scale-bar-fill" style="width: 80%;"></div>
+            </div>
+            <div class="slider-val-tag" id="render-scale-val-tag">80%</div>
+          </div>
+
+          <!-- Volume / Audio Monitor Slider -->
+          <div class="render-slider-pill">
+            <div class="slider-icon-cell"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></div>
+            <div class="slider-bar-track" onclick="dragVolumeScale(event, this)">
+              <div class="slider-bar-fill" id="volume-scale-bar-fill" style="width: 67%;"></div>
+            </div>
+            <div class="slider-val-tag" id="volume-scale-val-tag">67%</div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 2: Settings Categories Menu (Page: Settings)
+             ============================================================ -->
+        <div class="view-card" id="view-settings">
+          <div class="cc-top-row" style="margin-bottom: 4px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn-icon-ghost" onclick="showView('view-dashboard', true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+              <span style="font-size:20px; font-weight:700; color:#ffffff;">Settings</span>
+            </div>
+          </div>
+
+          <div class="settings-list-card">
+            <!-- Appearance / Display Settings -->
+            <div class="settings-menu-row" onclick="openAppearanceModal('theme')">
+              <div style="display:flex; align-items:center;">
+                <div class="settings-row-icon-cell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg></div>
+                <div class="settings-row-text">
+                  <span class="settings-row-main">Appearance & Themes</span>
+                  <span class="settings-row-sub">Theme, fonts, typography roles, corner radius</span>
+                </div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+
+            <!-- Display & Workspace -->
+            <div class="settings-menu-row" onclick="showView('view-workspace-modal')">
+              <div style="display:flex; align-items:center;">
+                <div class="settings-row-icon-cell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg></div>
+                <div class="settings-row-text">
+                  <span class="settings-row-main">Display & Workspace</span>
+                  <span class="settings-row-sub">Resolution, scaling, refresh rate, VSync</span>
+                </div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+
+            <!-- Input & Keybindings -->
+            <div class="settings-menu-row" onclick="showView('view-input-modal')">
+              <div style="display:flex; align-items:center;">
+                <div class="settings-row-icon-cell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                <div class="settings-row-text">
+                  <span class="settings-row-main">Input Devices & Shortcuts</span>
+                  <span class="settings-row-sub">Navigation presets, mouse look, key mapping</span>
+                </div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+
+            <!-- Notifications & Telemetry -->
+            <div class="settings-menu-row" onclick="showView('view-telemetry-modal')">
+              <div style="display:flex; align-items:center;">
+                <div class="settings-row-icon-cell"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                <div class="settings-row-text">
+                  <span class="settings-row-main">Apps & Notifications</span>
+                  <span class="settings-row-sub">Alert sounds, RAM overlay, baking alerts</span>
+                </div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted);"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 3: Appearance & Display Modal (Page: Display)
+             ============================================================ -->
+        <div class="view-card" id="view-appearance-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Display Settings</h2>
+                <p class="modal-subheading">Appearance, typography & hardware preferences</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-settings', true)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <!-- Sub-Tabs: Theme | Fonts | Display -->
+            <div class="modal-tab-strip">
+              <button class="tab-strip-btn active" id="tab-btn-theme" onclick="switchAppearanceTab('theme')">Theme</button>
+              <button class="tab-strip-btn" id="tab-btn-fonts" onclick="switchAppearanceTab('fonts')">Fonts</button>
+              <button class="tab-strip-btn" id="tab-btn-display" onclick="switchAppearanceTab('display')">Display</button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <!-- SUB-TAB 1: UNIFIED THEME SECTION (8 Theme Tiles + Rounding Slider from UIComponents.html) -->
+              <div id="tab-content-theme" style="display:flex; flex-direction:column; gap:24px;">
+                <div class="theme-unified-section">
+                  <div class="theme-section-header">
+                    <span class="theme-section-title">Color Scheme & Surface Theme</span>
+                    <span class="theme-section-subtitle">Select global canvas theme and UI roundness</span>
+                  </div>
+
+                  <!-- 8 Detailed Theme Tiles / Cards (1-to-1 from ThemeTab.tsx) -->
+                  <div class="theme-grid-4col">
+                    <!-- 1. OLED -->
+                    <div class="theme-select-card active" onclick="selectTheme('oled', this)">
+                      <div class="theme-mock-viewport" style="background:#000000;">
+                        <div class="theme-sidebar-mock" style="background:#0A0A0A;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#ffffff;"></div>
+                            <div class="theme-line" style="width:66%; background:#ffffff;"></div>
+                            <div class="theme-line" style="width:50%; background:#ffffff;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#ffffff;"></div>
+                              <div class="theme-line" style="width:16px; background:#ffffff;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#141414;">
+                            <div class="theme-panel-header-1" style="background:#ffffff;"></div>
+                            <div class="theme-panel-header-2" style="background:#ffffff;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#ffffff;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">OLED</span>
+                    </div>
+
+                    <!-- 2. Dark -->
+                    <div class="theme-select-card" onclick="selectTheme('dark', this)">
+                      <div class="theme-mock-viewport" style="background:#18181a;">
+                        <div class="theme-sidebar-mock" style="background:#222224;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                              <div class="theme-dot" style="background:#ffffff;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#ffffff;"></div>
+                            <div class="theme-line" style="width:66%; background:#ffffff;"></div>
+                            <div class="theme-line" style="width:50%; background:#ffffff;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#ffffff;"></div>
+                              <div class="theme-line" style="width:16px; background:#ffffff;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#2c2c2e;">
+                            <div class="theme-panel-header-1" style="background:#ffffff;"></div>
+                            <div class="theme-panel-header-2" style="background:#ffffff;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                              <div class="theme-square-card" style="background:#ffffff;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#ffffff;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Dark</span>
+                    </div>
+
+                    <!-- 3. Dim -->
+                    <div class="theme-select-card" onclick="selectTheme('dim', this)">
+                      <div class="theme-mock-viewport" style="background:#0f172a;">
+                        <div class="theme-sidebar-mock" style="background:#1e293b;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#f1f5f9;"></div>
+                              <div class="theme-dot" style="background:#f1f5f9;"></div>
+                              <div class="theme-dot" style="background:#f1f5f9;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#f1f5f9;"></div>
+                            <div class="theme-line" style="width:66%; background:#f1f5f9;"></div>
+                            <div class="theme-line" style="width:50%; background:#f1f5f9;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#f1f5f9;"></div>
+                              <div class="theme-line" style="width:16px; background:#f1f5f9;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#283548;">
+                            <div class="theme-panel-header-1" style="background:#f1f5f9;"></div>
+                            <div class="theme-panel-header-2" style="background:#f1f5f9;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#f1f5f9;"></div>
+                              <div class="theme-square-card" style="background:#f1f5f9;"></div>
+                              <div class="theme-square-card" style="background:#f1f5f9;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#f1f5f9;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Dim</span>
+                    </div>
+
+                    <!-- 4. Light -->
+                    <div class="theme-select-card" onclick="selectTheme('light', this)">
+                      <div class="theme-mock-viewport" style="background:#e5e5e5; border-color:#d4d4d8;">
+                        <div class="theme-sidebar-mock" style="background:#f4f4f5;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#000000;"></div>
+                              <div class="theme-dot" style="background:#000000;"></div>
+                              <div class="theme-dot" style="background:#000000;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#000000;"></div>
+                            <div class="theme-line" style="width:66%; background:#000000;"></div>
+                            <div class="theme-line" style="width:50%; background:#000000;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#000000;"></div>
+                              <div class="theme-line" style="width:16px; background:#000000;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#ffffff;">
+                            <div class="theme-panel-header-1" style="background:#000000;"></div>
+                            <div class="theme-panel-header-2" style="background:#000000;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#000000;"></div>
+                              <div class="theme-square-card" style="background:#000000;"></div>
+                              <div class="theme-square-card" style="background:#000000;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#000000;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Light</span>
+                    </div>
+
+                    <!-- 5. Sepia -->
+                    <div class="theme-select-card" onclick="selectTheme('sepia', this)">
+                      <div class="theme-mock-viewport" style="background:#dca85b;">
+                        <div class="theme-sidebar-mock" style="background:#e6c697;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#825619;"></div>
+                              <div class="theme-dot" style="background:#825619;"></div>
+                              <div class="theme-dot" style="background:#825619;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#825619;"></div>
+                            <div class="theme-line" style="width:66%; background:#825619;"></div>
+                            <div class="theme-line" style="width:50%; background:#825619;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#825619;"></div>
+                              <div class="theme-line" style="width:16px; background:#825619;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#f1dab0;">
+                            <div class="theme-panel-header-1" style="background:#825619;"></div>
+                            <div class="theme-panel-header-2" style="background:#825619;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#825619;"></div>
+                              <div class="theme-square-card" style="background:#825619;"></div>
+                              <div class="theme-square-card" style="background:#825619;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#825619;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Sepia</span>
+                    </div>
+
+                    <!-- 6. Dracula -->
+                    <div class="theme-select-card" onclick="selectTheme('dracula', this)">
+                      <div class="theme-mock-viewport" style="background:#282a36;">
+                        <div class="theme-sidebar-mock" style="background:#44475a;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#f8f8f2;"></div>
+                              <div class="theme-dot" style="background:#f8f8f2;"></div>
+                              <div class="theme-dot" style="background:#f8f8f2;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#f8f8f2;"></div>
+                            <div class="theme-line" style="width:66%; background:#f8f8f2;"></div>
+                            <div class="theme-line" style="width:50%; background:#f8f8f2;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#f8f8f2;"></div>
+                              <div class="theme-line" style="width:16px; background:#f8f8f2;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#6272a4;">
+                            <div class="theme-panel-header-1" style="background:#f8f8f2;"></div>
+                            <div class="theme-panel-header-2" style="background:#f8f8f2;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#f8f8f2;"></div>
+                              <div class="theme-square-card" style="background:#f8f8f2;"></div>
+                              <div class="theme-square-card" style="background:#f8f8f2;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#f8f8f2;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Dracula</span>
+                    </div>
+
+                    <!-- 7. Nord -->
+                    <div class="theme-select-card" onclick="selectTheme('nord', this)">
+                      <div class="theme-mock-viewport" style="background:#2e3440;">
+                        <div class="theme-sidebar-mock" style="background:#3b4252;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#eceff4;"></div>
+                              <div class="theme-dot" style="background:#eceff4;"></div>
+                              <div class="theme-dot" style="background:#eceff4;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#eceff4;"></div>
+                            <div class="theme-line" style="width:66%; background:#eceff4;"></div>
+                            <div class="theme-line" style="width:50%; background:#eceff4;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#eceff4;"></div>
+                              <div class="theme-line" style="width:16px; background:#eceff4;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#4c566a;">
+                            <div class="theme-panel-header-1" style="background:#eceff4;"></div>
+                            <div class="theme-panel-header-2" style="background:#eceff4;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#eceff4;"></div>
+                              <div class="theme-square-card" style="background:#eceff4;"></div>
+                              <div class="theme-square-card" style="background:#eceff4;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#eceff4;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">Nord</span>
+                    </div>
+
+                    <!-- 8. GitHub -->
+                    <div class="theme-select-card" onclick="selectTheme('github', this)">
+                      <div class="theme-mock-viewport" style="background:#0d1117;">
+                        <div class="theme-sidebar-mock" style="background:#161b22;">
+                          <div class="theme-sidebar-col">
+                            <div class="theme-dots-row">
+                              <div class="theme-dot" style="background:#c9d1d9;"></div>
+                              <div class="theme-dot" style="background:#c9d1d9;"></div>
+                              <div class="theme-dot" style="background:#c9d1d9;"></div>
+                            </div>
+                            <div class="theme-line" style="width:100%; background:#c9d1d9;"></div>
+                            <div class="theme-line" style="width:66%; background:#c9d1d9;"></div>
+                            <div class="theme-line" style="width:50%; background:#c9d1d9;"></div>
+                            <div class="theme-avatar-row">
+                              <div class="theme-avatar-dot" style="background:#c9d1d9;"></div>
+                              <div class="theme-line" style="width:16px; background:#c9d1d9;"></div>
+                            </div>
+                          </div>
+                          <div class="theme-panel-col" style="background:#21262d;">
+                            <div class="theme-panel-header-1" style="background:#c9d1d9;"></div>
+                            <div class="theme-panel-header-2" style="background:#c9d1d9;"></div>
+                            <div class="theme-squares-row">
+                              <div class="theme-square-card" style="background:#c9d1d9;"></div>
+                              <div class="theme-square-card" style="background:#c9d1d9;"></div>
+                              <div class="theme-square-card" style="background:#c9d1d9;"></div>
+                            </div>
+                            <div class="theme-panel-footer-line" style="background:#c9d1d9;"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <span class="theme-name-label">GitHub</span>
+                    </div>
+                  </div>
+
+                  <div class="theme-section-divider"></div>
+
+                  <!-- Global UI Rounding Corner Radius Row (from UIComponents.html) -->
+                  <div class="crow">
+                    <span class="clabel">Corner Radius</span>
+                    <div class="vpill">
+                      <div class="num" id="radius-num">24</div>
+                      <div class="unit">px</div>
+                    </div>
+                    <input type="range" class="slider" id="rounding-range-slider" min="0" max="32" value="24" oninput="updateGlobalRounding(this.value)">
+                  </div>
+                </div>
+              </div>
+
+              <!-- SUB-TAB 2: FONTS & TYPOGRAPHY SYSTEM (1-to-1 from FontsTab.tsx) -->
+              <div id="tab-content-fonts" style="display:none; flex-direction:column; gap:28px;">
+                <!-- 1. Font Family Carousel Selection -->
+                <section>
+                  <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;">
+                    <div>
+                      <h3 style="font-size:14px; font-weight:600; color:var(--text-main);">Typography</h3>
+                      <p style="font-size:12px; color:var(--text-muted);">Typeface, type scale, and font weights</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                      <button class="btn-icon-ghost" style="border:1px solid var(--panel-border);" onclick="scrollFontCards('left')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+                      <button class="btn-icon-ghost" style="border:1px solid var(--panel-border);" onclick="scrollFontCards('right')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+                    </div>
+                  </div>
+
+                  <div id="font-carousel-scroll" style="display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; scroll-behavior:smooth;">
+                    <!-- 1. General Sans -->
+                    <div class="font-select-card active" onclick="selectLiveFontFamily('general', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--accent-color); border-radius:var(--corner-radius); background:var(--active-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'General Sans', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">General Sans</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Clean & Modern</div>
+                    </div>
+
+                    <!-- 2. Inter -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('inter', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Inter', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Inter</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Author</div>
+                    </div>
+
+                    <!-- 3. Archivo -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('archivo', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Archivo', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Archivo</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Technical & Solid</div>
+                    </div>
+
+                    <!-- 4. Space Grotesk -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('space', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Space Grotesk', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Space Grotesk</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Grotesque Display</div>
+                    </div>
+
+                    <!-- 5. Clash Display -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('clash', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Clash Display', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Clash Display</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Bold & Distinct</div>
+                    </div>
+
+                    <!-- 6. Montserrat -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('montserrat', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Montserrat', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Montserrat</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Geometric & Wide</div>
+                    </div>
+
+                    <!-- 7. Poppins -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('poppins', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'Poppins', sans-serif;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Poppins</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Friendly & Round</div>
+                    </div>
+
+                    <!-- 8. JetBrains Mono -->
+                    <div class="font-select-card" onclick="selectLiveFontFamily('mono', this)" style="flex-shrink:0; width:180px; padding:18px; border:1px solid var(--panel-border); border-radius:var(--corner-radius); background:var(--input-bg); cursor:pointer;">
+                      <div style="font-size:26px; font-weight:700; color:var(--text-main); margin-bottom:12px; font-family:'JetBrains Mono', monospace;">Aa</div>
+                      <div style="font-size:14px; font-weight:600; color:var(--text-main); margin-bottom:2px;">JetBrains Mono</div>
+                      <div style="font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Monospaced Code</div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 2. Style Playground (Typeface & Colors) -->
+                <section style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--corner-radius); padding:24px;">
+                  <h3 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:20px;">Typeface & Colors</h3>
+
+                  <div style="display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:stretch;">
+                    <!-- Left Hero Spec Box -->
+                    <div style="background:var(--card-bg); border:1px solid var(--panel-border); border-radius:calc(var(--corner-radius) * 0.8); padding:32px; display:flex; flex-direction:column; justify-content:center;">
+                      <div id="font-hero-display" style="font-size:54px; font-weight:700; letter-spacing:-1px; line-height:1; color:var(--text-main); margin-bottom:10px;">General Sans</div>
+                      <div style="font-size:13px; color:var(--text-muted);">(72px bold display)</div>
+                    </div>
+
+                    <!-- Right Specs & Swatches -->
+                    <div style="display:flex; flex-direction:column; justify-content:center; gap:16px;">
+                      <div style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-muted); line-height:1.6; display:flex; flex-direction:column; gap:2px;">
+                        <span>ABCDEFGHIJKLMNOPQRSTUVWXYZ</span>
+                        <span>abcdefghijklmnopqrstuvwxyz</span>
+                        <span>0123456789 !@#$%^&*()</span>
+                      </div>
+
+                      <div style="font-size:12px; color:var(--accent-color); font-weight:500;">
+                        <span style="font-weight:700;">Accent</span> — The quick brown fox jumps over...
+                      </div>
+
+                      <div style="display:flex; gap:16px; margin-top:4px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background:var(--accent-color); border:1px solid rgba(255,255,255,0.1);"></div>
+                          <span style="font-size:10px; font-weight:600; color:var(--text-main);">ACCENT</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background:#ffffff; border:1px solid rgba(255,255,255,0.1);"></div>
+                          <span style="font-size:10px; font-weight:600; color:var(--text-main);">#FFFFFF</span>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                          <div style="width:36px; height:36px; border-radius:50%; background:#000000; border:1px solid rgba(255,255,255,0.1);"></div>
+                          <span style="font-size:10px; font-weight:600; color:var(--text-main);">#000000</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 3. Type Scale - Desktop -->
+                <section>
+                  <h3 style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); margin-bottom:16px;">Type Scale - Desktop</h3>
+
+                  <div style="display:flex; flex-direction:column; gap:16px;">
+                    <!-- Title -->
+                    <div style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--corner-radius); padding:20px; display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:center;">
+                      <div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                          <span style="font-size:13.5px; font-weight:600; color:var(--text-main);">Title</span>
+                          <span id="scale-val-title" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted);">32px</span>
+                        </div>
+                        <div class="crow" style="min-height:32px;">
+                          <div class="vpill" style="height:32px; width:84px;">
+                            <div class="num" id="scale-num-title" style="font-size:13px;">32</div>
+                            <div class="unit">px</div>
+                          </div>
+                          <input type="range" class="slider" min="8" max="72" value="32" oninput="updateTypeScale('title', this.value)">
+                        </div>
+                        <div class="role-weights-strip" style="margin-top:14px;">
+                          <button class="weight-pill-btn" onclick="setTypeWeight('title', 'Light', this)">Light</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('title', 'Regular', this)">Regular</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('title', 'Medium', this)">Medium</button>
+                          <button class="weight-pill-btn active" onclick="setTypeWeight('title', 'Bold', this)">Bold</button>
+                        </div>
+                      </div>
+                      <div id="scale-preview-title" style="background:var(--card-bg); border:1px solid var(--panel-border); border-radius:calc(var(--corner-radius) * 0.7); padding:16px 20px; font-size:32px; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        Display Title
+                      </div>
+                    </div>
+
+                    <!-- Header -->
+                    <div style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--corner-radius); padding:20px; display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:center;">
+                      <div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                          <span style="font-size:13.5px; font-weight:600; color:var(--text-main);">Header</span>
+                          <span id="scale-val-header" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted);">24px</span>
+                        </div>
+                        <div class="crow" style="min-height:32px;">
+                          <div class="vpill" style="height:32px; width:84px;">
+                            <div class="num" id="scale-num-header" style="font-size:13px;">24</div>
+                            <div class="unit">px</div>
+                          </div>
+                          <input type="range" class="slider" min="8" max="72" value="24" oninput="updateTypeScale('header', this.value)">
+                        </div>
+                        <div class="role-weights-strip" style="margin-top:14px;">
+                          <button class="weight-pill-btn" onclick="setTypeWeight('header', 'Regular', this)">Regular</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('header', 'Medium', this)">Medium</button>
+                          <button class="weight-pill-btn active" onclick="setTypeWeight('header', 'SemiBold', this)">SemiBold</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('header', 'Bold', this)">Bold</button>
+                        </div>
+                      </div>
+                      <div id="scale-preview-header" style="background:var(--card-bg); border:1px solid var(--panel-border); border-radius:calc(var(--corner-radius) * 0.7); padding:16px 20px; font-size:24px; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        Section Header
+                      </div>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--corner-radius); padding:20px; display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:center;">
+                      <div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                          <span style="font-size:13.5px; font-weight:600; color:var(--text-main);">Body</span>
+                          <span id="scale-val-body" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted);">14px</span>
+                        </div>
+                        <div class="crow" style="min-height:32px;">
+                          <div class="vpill" style="height:32px; width:84px;">
+                            <div class="num" id="scale-num-body" style="font-size:13px;">14</div>
+                            <div class="unit">px</div>
+                          </div>
+                          <input type="range" class="slider" min="8" max="72" value="14" oninput="updateTypeScale('body', this.value)">
+                        </div>
+                        <div class="role-weights-strip" style="margin-top:14px;">
+                          <button class="weight-pill-btn" onclick="setTypeWeight('body', 'Light', this)">Light</button>
+                          <button class="weight-pill-btn active" onclick="setTypeWeight('body', 'Regular', this)">Regular</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('body', 'Medium', this)">Medium</button>
+                          <button class="weight-pill-btn" onclick="setTypeWeight('body', 'Bold', this)">Bold</button>
+                        </div>
+                      </div>
+                      <div id="scale-preview-body" style="background:var(--card-bg); border:1px solid var(--panel-border); border-radius:calc(var(--corner-radius) * 0.7); padding:16px 20px; font-size:14px; font-weight:400; color:var(--text-main); line-height:1.5;">
+                        The quick brown fox jumps over the lazy dog.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 4. Font Rendering Toggles -->
+                <section style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:var(--corner-radius); padding:20px;">
+                  <h3 style="font-size:14px; font-weight:700; color:var(--text-main); margin-bottom:16px;">Font Rendering</h3>
+                  <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <div>
+                        <div style="font-size:13.5px; font-weight:500; color:var(--text-main);">Antialiasing</div>
+                        <div style="font-size:12px; color:var(--text-muted);">Enable subpixel antialiasing</div>
+                      </div>
+                      <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+                    </div>
+                    <div style="height:1px; background:var(--divider);"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <div>
+                        <div style="font-size:13.5px; font-weight:500; color:var(--text-main);">Ligatures</div>
+                        <div style="font-size:12px; color:var(--text-muted);">Enable special character combinations</div>
+                      </div>
+                      <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <!-- SUB-TAB 3: HARDWARE DISPLAY & VULKAN -->
+              <div id="tab-content-display" style="display:none; flex-direction:column; gap:18px;">
+                <div class="form-field-row">
+                  <span class="form-field-label">Resolution</span>
+                  <select class="form-field-select">
+                    <option>3840 x 2160 (4K UHD)</option>
+                    <option selected>2560 x 1440 (2K QHD)</option>
+                    <option>1920 x 1080 (1080p FHD)</option>
+                  </select>
+                </div>
+                <div class="form-field-row">
+                  <span class="form-field-label">Refresh Rate</span>
+                  <select class="form-field-select">
+                    <option>240 Hz (Ultra High)</option>
+                    <option selected>144 Hz (Smooth)</option>
+                    <option>120 Hz</option>
+                    <option>60 Hz</option>
+                  </select>
+                </div>
+                <div class="form-field-row">
+                  <span class="form-field-label">Vertical Sync (VSync)</span>
+                  <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+                </div>
+                <div class="form-field-row">
+                  <span class="form-field-label">Vulkan Geometry AA</span>
+                  <select class="form-field-select">
+                    <option>TAA (Temporal Reconstruction)</option>
+                    <option>MSAA 8x</option>
+                    <option selected>MSAA 4x</option>
+                    <option>MSAA 2x</option>
+                    <option>None (Fast)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <span style="font-size:11px; color:var(--text-muted);">Slate Engine · Vulkan 1.3 · Right-Hand Z-Up</span>
+              <div style="display:flex; gap:12px;">
+                <button class="btn-ghost-cancel" onclick="openDiscardDialogue()">Discard</button>
+                <button class="btn-solid-white" onclick="openApplyDialogue()">Apply Preferences</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 4: Workspace Modal (Page: Display & Workspace)
+             ============================================================ -->
+        <div class="view-card" id="view-workspace-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Workspace & Viewports</h2>
+                <p class="modal-subheading">Multi-viewport rendering and scaling</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-settings', true)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div class="form-field-row">
+                <span class="form-field-label">Resolution Scale</span>
+                <select class="form-field-select">
+                  <option>100% (Native)</option>
+                  <option>200% (Retina/HiDPI)</option>
+                  <option>75% (Performance)</option>
+                  <option>50% (Fast)</option>
+                </select>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Show Grid in 3D Viewport</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Multiple Displays Mode</span>
+                <select class="form-field-select">
+                  <option>Single Window (Integrated)</option>
+                  <option>Dual Monitor (Detached Viewport)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <button class="btn-ghost-cancel" onclick="showView('view-settings', true)">Discard Changes</button>
+              <button class="btn-solid-white" onclick="closeNotch()">Apply Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 5: Input & Keybindings Modal (Page: Input)
+             ============================================================ -->
+        <div class="view-card" id="view-input-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Input Devices & Shortcuts</h2>
+                <p class="modal-subheading">Navigation presets and action keybindings</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-settings', true)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div class="form-field-row">
+                <span class="form-field-label">Navigation Preset</span>
+                <select class="form-field-select">
+                  <option>Blender (Default)</option>
+                  <option>Maya / Unity</option>
+                  <option>Unreal Engine</option>
+                </select>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Select Tool</span>
+                <input type="text" value="Q" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--panel-border); background:var(--input-bg); color:var(--text-main); font-size:13px; outline:none;">
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Translate Tool</span>
+                <input type="text" value="W" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--panel-border); background:var(--input-bg); color:var(--text-main); font-size:13px; outline:none;">
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Rotate Tool</span>
+                <input type="text" value="E" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--panel-border); background:var(--input-bg); color:var(--text-main); font-size:13px; outline:none;">
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Invert Y-Axis Look</span>
+                <button class="form-toggle-switch" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <button class="btn-ghost-cancel" onclick="showView('view-settings', true)">Discard</button>
+              <div style="display:flex; gap:12px;">
+                <button class="btn-ghost-cancel" style="border:1px solid var(--panel-border);">Reset Defaults</button>
+                <button class="btn-solid-white" onclick="closeNotch()">Save Keybindings</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 6: Notifications & Telemetry (Page: Notifications)
+             ============================================================ -->
+        <div class="view-card" id="view-telemetry-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Apps & Notifications</h2>
+                <p class="modal-subheading">Real-time telemetry and task alerts</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-settings', true)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div class="form-field-row">
+                <span class="form-field-label">Show FPS Overlay</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Show RAM Usage</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Baking Complete Alert</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Render Finished Alert</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <span style="font-size:11px; color:var(--text-muted);">Ready to apply preferences.</span>
+              <button class="btn-solid-white" onclick="closeNotch()">Save Preferences</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 7: Camera Settings Dialog
+             ============================================================ -->
+        <div class="view-card" id="view-camera-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Camera Optics</h2>
+                <p class="modal-subheading">Viewport focal length, clipping, and field of view</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-dashboard')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div class="form-field-row">
+                <span class="form-field-label">Lens Profile</span>
+                <select class="form-field-select">
+                  <option selected>Standard 50mm Prime</option>
+                  <option>Wide Angle 24mm</option>
+                  <option>Telephoto 85mm</option>
+                  <option>Macro 105mm</option>
+                </select>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Field of View</span>
+                <select class="form-field-select">
+                  <option selected>60° (Default)</option>
+                  <option>75°</option>
+                  <option>90°</option>
+                </select>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Depth of Field (Bokeh)</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <button class="btn-ghost-cancel" onclick="showView('view-dashboard')">Cancel</button>
+              <button class="btn-solid-white" onclick="closeNotch()">Apply Optics</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 8: Render Settings Dialog
+             ============================================================ -->
+        <div class="view-card" id="view-render-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Photometric Render Engine</h2>
+                <p class="modal-subheading">ReSTIR DI + GI samples and ray budget</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-dashboard')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div class="form-field-row">
+                <span class="form-field-label">Lighting Engine</span>
+                <select class="form-field-select">
+                  <option selected>ReSTIR GI (Spatiotemporal Resampling)</option>
+                  <option>Path Tracer (Unbiased)</option>
+                  <option>Tile Rasterizer (Fast Preview)</option>
+                </select>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Global Illumination</span>
+                <button class="form-toggle-switch active" onclick="this.classList.toggle('active')"><div class="form-toggle-thumb"></div></button>
+              </div>
+              <div class="form-field-row">
+                <span class="form-field-label">Spatial Resampling Passes</span>
+                <select class="form-field-select">
+                  <option>1 Pass</option>
+                  <option selected>2 Passes (Standard)</option>
+                  <option>4 Passes (High Quality)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <button class="btn-ghost-cancel" onclick="showView('view-dashboard')">Cancel</button>
+              <button class="btn-solid-white" onclick="closeNotch()">Apply Render Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             VIEW 9: Import Asset Dialog
+             ============================================================ -->
+        <div class="view-card" id="view-import-modal">
+          <div class="modal-full-card">
+            <div class="modal-top-bar">
+              <div>
+                <h2 class="modal-heading">Import Assets</h2>
+                <p class="modal-subheading">Load polyhedral meshes, textures, and manifests</p>
+              </div>
+              <button class="btn-icon-ghost" onclick="showView('view-dashboard')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            <div class="modal-scroll-area">
+              <div style="border:2px dashed var(--panel-border); border-radius:var(--corner-radius); padding:32px; display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer;">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <span style="font-size:13.5px; color:var(--text-muted);">Drag and drop 3D models or manifests here</span>
+                <span style="font-size:11.5px; color:var(--accent-color);">or click to browse files</span>
+              </div>
+            </div>
+
+            <div class="modal-bottom-bar">
+              <button class="btn-ghost-cancel" onclick="showView('view-dashboard')">Cancel</button>
+              <button class="btn-solid-white" onclick="closeNotch()">Start Import</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Organic Curved SVG Top Notch Handle Bar -->
+  <div class="notch-handle-bar" onclick="toggleNotch()">
+    <svg class="notch-svg-shape" viewBox="0 0 400 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <path d="M 0 0 C 15 0, 20 6, 25 15 L 35 28 C 40 34, 45 36, 52 36 L 348 36 C 355 36, 360 34, 365 28 L 375 15 C 380 6, 385 0, 400 0 Z" fill="currentColor"/>
+    </svg>
+    <div class="notch-title-content">
+      <div class="logo-stack-mock">
+        <div class="logo-layer-1"></div>
+        <div class="logo-layer-2"></div>
+        <div class="logo-layer-3"></div>
+      </div>
+      <span>Control Center</span>
+      <div class="status-indicator-green"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRMATION DIALOGUE MODAL 1: APPLY PREFERENCES
+     ============================================================ -->
+<div class="dialog-overlay" id="dialog-apply" style="display:none;" onclick="if(event.target===this)closeApplyDialogue()">
+  <div class="dialog-card">
+    <div class="dialog-header">
+      <div style="width:36px; height:36px; border-radius:10px; background:rgba(59,130,246,0.15); color:var(--accent-color); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px; font-weight:600; color:var(--text-main);">Apply Preferences</div>
+        <div style="font-size:12px; color:var(--text-muted);">Confirm active surface theming & typography settings</div>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <div style="background:var(--input-bg); border:1px solid var(--panel-border); border-radius:calc(var(--corner-radius) * 0.6); padding:16px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--text-muted);">Theme Surface:</span>
+          <span id="dlg-apply-theme" style="font-weight:600; color:var(--text-main);">OLED (Pure Black #000000)</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--text-muted);">Font Family:</span>
+          <span id="dlg-apply-font" style="font-weight:600; color:var(--text-main);">General Sans (Clean & Modern)</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--text-muted);">Corner Rounding:</span>
+          <span id="dlg-apply-radius" style="font-weight:600; color:var(--text-main);">24px</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span style="color:var(--text-muted);">Font Rendering:</span>
+          <span style="font-weight:600; color:var(--text-main);">Subpixel AA & Ligatures Enabled</span>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-ghost-cancel" onclick="closeApplyDialogue()">Keep Editing</button>
+      <button class="btn-solid-white" onclick="confirmApplyDialogue()">Confirm & Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRMATION DIALOGUE MODAL 2: DISCARD CHANGES
+     ============================================================ -->
+<div class="dialog-overlay" id="dialog-discard" style="display:none;" onclick="if(event.target===this)closeDiscardDialogue()">
+  <div class="dialog-card">
+    <div class="dialog-header">
+      <div style="width:36px; height:36px; border-radius:10px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div>
+        <div style="font-size:15px; font-weight:600; color:var(--text-main);">Discard Modifications?</div>
+        <div style="font-size:12px; color:var(--text-muted);">Revert all settings to previous session state</div>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15); border-radius:calc(var(--corner-radius) * 0.6); padding:16px; color:var(--text-main); font-size:13px; line-height:1.5;">
+        Any unsaved changes to color themes, typography scales, corner rounding, and hardware preferences will be permanently lost.
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-ghost-cancel" onclick="closeDiscardDialogue()">Cancel</button>
+      <button class="btn-solid-white" style="background:#ef4444; color:#ffffff;" onclick="confirmDiscardDialogue()">Discard All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SLATE CONTROL CENTRE — FULL INTERACTIVE CONTROLLER
+   ============================================================ */
+let isNotchOpen = false;
+
+function toggleNotch() {
+  if (isNotchOpen) closeNotch();
+  else openNotch();
+}
+
+function openNotch() {
+  isNotchOpen = true;
+  document.getElementById('notch-container').classList.add('open');
+  document.getElementById('notch-backdrop').classList.add('open');
+}
+
+function closeNotch() {
+  isNotchOpen = false;
+  document.getElementById('notch-container').classList.remove('open');
+  document.getElementById('notch-backdrop').classList.remove('open');
+  setTimeout(() => {
+    showView('view-dashboard');
+  }, 350);
+}
+
+let viewHistory = ['view-dashboard'];
+
+function showView(viewId, isBack = false) {
+  const currentActive = document.querySelector('.view-card.active');
+  const target = document.getElementById(viewId);
+  if (!target) return;
+
+  if (currentActive && currentActive !== target) {
+    if (isBack) {
+      currentActive.classList.add('slide-left');
+      target.style.transform = 'translateX(-60px)';
+    } else {
+      currentActive.classList.add('slide-left');
+      target.style.transform = 'translateX(60px)';
+    }
+  }
+
+  setTimeout(() => {
+    document.querySelectorAll('.view-card').forEach(el => {
+      el.classList.remove('active');
+      el.classList.remove('slide-left');
+      el.style.transform = '';
+    });
+    target.classList.add('active');
+
+    const stage = document.getElementById('modal-stage');
+    if (viewId === 'view-dashboard') {
+      stage.classList.remove('expanded');
+    } else {
+      stage.classList.add('expanded');
+    }
+  }, 30);
+}
+
+function openAppearanceModal(tab = 'theme') {
+  showView('view-appearance-modal');
+  switchAppearanceTab(tab);
+}
+
+function switchAppearanceTab(tab) {
+  document.querySelectorAll('.tab-strip-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`tab-btn-${tab}`);
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('tab-content-theme').style.display = (tab === 'theme' ? 'flex' : 'none');
+  document.getElementById('tab-content-fonts').style.display = (tab === 'fonts' ? 'flex' : 'none');
+  document.getElementById('tab-content-display').style.display = (tab === 'display' ? 'flex' : 'none');
+}
+
+/* Theme, Colors, Radius & Weights */
+function selectTheme(themeId, el) {
+  document.body.setAttribute('data-theme', themeId);
+  document.querySelectorAll('.theme-select-card').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function setLiveAccent(colorHex, el) {
+  document.documentElement.style.setProperty('--accent-color', colorHex);
+  document.querySelectorAll('.accent-color-circle').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function updateGlobalRounding(radiusPx) {
+  const r = parseInt(radiusPx, 10);
+  document.documentElement.style.setProperty('--corner-radius', `${r}px`);
+  const numEl = document.getElementById('radius-num');
+  if (numEl) numEl.innerText = `${r}`;
+
+  // Update slider fill track
+  const slider = document.getElementById('rounding-range-slider');
+  if (slider) {
+    const min = parseInt(slider.min || '0', 10);
+    const max = parseInt(slider.max || '32', 10);
+    const pct = ((r - min) / (max - min)) * 100;
+    slider.style.background = `linear-gradient(to right, var(--accent-color) ${pct}%, rgba(255, 255, 255, 0.08) ${pct}%)`;
+  }
+}
+
+function setLiveCornerRadius(radiusPx) {
+  updateGlobalRounding(radiusPx);
+}
+
+function selectWeight(el) {
+  const parent = el.closest('.role-weights-strip');
+  parent.querySelectorAll('.weight-pill-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function toggleQuickButton(el) {
+  const circle = el.querySelector('.quick-btn-circle');
+  circle.classList.toggle('active');
+}
+
+function dragRenderScale(e, el) {
+  const rect = el.getBoundingClientRect();
+  const pct = Math.round(Math.max(10, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+  document.getElementById('render-scale-bar-fill').style.width = `${pct}%`;
+  document.getElementById('render-scale-val-tag').innerText = `${pct}%`;
+}
+
+function dragVolumeScale(e, el) {
+  const rect = el.getBoundingClientRect();
+  const pct = Math.round(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+  document.getElementById('volume-scale-bar-fill').style.width = `${pct}%`;
+  document.getElementById('volume-scale-val-tag').innerText = `${pct}%`;
+}
+function openApplyDialogue() {
+  const themeEl = document.getElementById('dlg-apply-theme');
+  const fontEl = document.getElementById('dlg-apply-font');
+  const radiusEl = document.getElementById('dlg-apply-radius');
+  const activeFontCard = document.querySelector('.font-select-card.active');
+  const activeThemeCard = document.querySelector('.theme-select-card.active');
+
+  if (themeEl && activeThemeCard) {
+    const name = activeThemeCard.querySelector('.theme-name-label').textContent;
+    themeEl.textContent = name;
+  }
+  if (fontEl && activeFontCard) {
+    const name = activeFontCard.querySelector('div:nth-child(2)').textContent;
+    fontEl.textContent = name;
+  }
+  if (radiusEl) {
+    const r = document.getElementById('radius-num');
+    radiusEl.textContent = (r ? r.textContent : '24') + 'px';
+  }
+
+  const dlg = document.getElementById('dialog-apply');
+  if (dlg) dlg.style.display = 'flex';
+}
+
+function closeApplyDialogue() {
+  const dlg = document.getElementById('dialog-apply');
+  if (dlg) dlg.style.display = 'none';
+}
+
+function confirmApplyDialogue() {
+  closeApplyDialogue();
+  closeNotch();
+}
+
+function openDiscardDialogue() {
+  const dlg = document.getElementById('dialog-discard');
+  if (dlg) dlg.style.display = 'flex';
+}
+
+function closeDiscardDialogue() {
+  const dlg = document.getElementById('dialog-discard');
+  if (dlg) dlg.style.display = 'none';
+}
+
+function confirmDiscardDialogue() {
+  closeDiscardDialogue();
+  showView('view-settings', true);
+}
+</script>
+
+</body>
+</html>

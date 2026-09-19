@@ -1,0 +1,26 @@
+================================================================================
+ FRONTIER ENGINE DIAGNOSTIC LOG — RaceSessionLog
+================================================================================
+[2026-09-03 05:28:38.546] [   INFO] [   GameLifecycle] Launching Project-F20 session...
+[2026-09-03 05:28:38.670] [   INFO] [   GameLifecycle] Game launched successfully. Starting race simulation.
+[2026-09-03 05:28:38.741] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 0.376957 [km/h]
+[2026-09-03 05:28:38.741] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1010.1 [RPM]
+[2026-09-03 05:28:38.781] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 0.753913 [km/h]
+[2026-09-03 05:28:38.781] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1020.19 [RPM]
+[2026-09-03 05:28:38.822] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 1.13087 [km/h]
+[2026-09-03 05:28:38.822] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1030.29 [RPM]
+[2026-09-03 05:28:38.844] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 1.50782 [km/h]
+[2026-09-03 05:28:38.844] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1040.39 [RPM]
+[2026-09-03 05:28:38.867] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 1.88478 [km/h]
+[2026-09-03 05:28:38.867] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1050.49 [RPM]
+[2026-09-03 05:28:38.889] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 2.26173 [km/h]
+[2026-09-03 05:28:38.889] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1060.58 [RPM]
+[2026-09-03 05:28:38.910] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 2.63867 [km/h]
+[2026-09-03 05:28:38.910] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1070.68 [RPM]
+[2026-09-03 05:28:38.932] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 3.01562 [km/h]
+[2026-09-03 05:28:38.932] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1080.78 [RPM]
+[2026-09-03 05:28:38.961] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 3.39256 [km/h]
+[2026-09-03 05:28:38.961] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1090.87 [RPM]
+[2026-09-03 05:28:39.000] [   INFO] [TelemetryMetrics] Measurement: SpeedKph = 3.7695 [km/h]
+[2026-09-03 05:28:39.000] [   INFO] [TelemetryMetrics] Measurement: EngineRpm = 1100.97 [RPM]
+[2026-09-03 05:28:39.000] [   INFO] [   GameLifecycle] Race session completed successfully.

@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Poppins"
+Category = "GeometricSans"
+Description = "Friendly & Round"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "Poppins-Light.ttf" ; Weight=300, Style=normal
+Regular = "Poppins-Regular.ttf" ; Weight=400, Style=normal
+Medium = "Poppins-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "Poppins-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "Poppins-Bold.ttf" ; Weight=700, Style=normal

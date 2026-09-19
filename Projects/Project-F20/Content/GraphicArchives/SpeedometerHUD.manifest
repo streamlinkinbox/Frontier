@@ -1,0 +1,7 @@
+[Archive]
+Name = "SpeedometerHUD"
+Category = "Graphic"
+Format = "VectorSVG_And_BC7_Texture"
+Width = 512
+Height = 512
+DynamicElements = "AnalogNeedle, DigitalGearDisplay, LapTimeCounter, NitroBar"

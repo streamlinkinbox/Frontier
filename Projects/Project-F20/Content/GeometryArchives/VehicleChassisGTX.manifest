@@ -1,0 +1,8 @@
+[Archive]
+Name = "VehicleChassisGTX"
+Category = "Geometry"
+VertexFormat = "PositionFloat3_NormalFloat3_TangentFloat4_UvFloat2"
+ClusterCount = 128
+TriangleCount = 38400
+BoundingRadiusMeters = 2.45
+DeformableTopology = "TetrahedralXPBD"

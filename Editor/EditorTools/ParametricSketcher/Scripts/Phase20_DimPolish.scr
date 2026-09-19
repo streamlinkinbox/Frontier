@@ -1,0 +1,50 @@
+echo Phase 20 dim placement polish camera-facing side no source dim leakage black background
+echo every dim is on the side of the body that the camera actually sees
+echo once a curve is consumed by extrude revolve pipe sweep loft boolean bridge
+echo the source length radius arc auto dim set is hidden so only the result dim shows
+dim on
+view iso
+gizmo off
+reset
+
+echo tile 1 a circle drawn as a radius dim
+circle (0,0,0) 1 --name=C1
+view fit
+render Phase20_CircleRadius
+
+echo tile 2 extrude the circle the source radius dim is hidden only the length shows
+extrude C1 2 --name=E1
+view iso
+view fit
+render Phase20_ExtrudeLengthIso
+
+echo tile 3 orbit the camera the length dim stays on the side facing the camera
+view front
+view fit
+render Phase20_ExtrudeLengthFront
+view back
+view fit
+render Phase20_ExtrudeLengthBack
+view top
+view fit
+render Phase20_ExtrudeLengthTop
+
+echo tile 4 a box three bbox dims each on the camera-facing face
+reset
+box (0,0,0) 2 3 1.5 --name=B1
+view iso
+view fit
+render Phase20_BoxIso
+view front
+view fit
+render Phase20_BoxFront
+
+echo tile 5 a sphere radius dim from centre to a point on the surface that faces the camera
+reset
+sphere (0,0,0) 1 --name=S1
+view iso
+view fit
+render Phase20_SphereIso
+view right
+view fit
+render Phase20_SphereRight

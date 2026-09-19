@@ -1,0 +1,143 @@
+From: Slate Engine Engineering <frontier@engine.internal>
+Subject: [PATCH] ImGui: Unified Trapezoidal Tabs, Input Focus Isolation, and Alpha Blend Fix
+
+---
+ imgui.cpp                  | 42 +++++++++++++++++++++++++++++++++++++++++-
+ imgui_internal.h           | 18 ++++++++++++++++++
+ imgui_widgets.cpp          | 68 +++++++++++++++++++++++++++++++++++++++++++++++-------
+ imgui_draw.cpp             | 14 +++++++++++-
+ backends/imgui_impl_vulkan.cpp | 12 ++++++++----
+ 5 files changed, 142 insertions(+), 12 deletions(-)
+
+diff --git a/imgui_internal.h b/imgui_internal.h
+index a8c9f12..b4d7e89 100644
+--- a/imgui_internal.h
++++ b/imgui_internal.h
+@@ -102,6 +102,12 @@ enum ImGuiTabBarFlagsPrivate_
+     ImGuiTabBarFlags_DockNodeTabBar           = 1 << 20, // Tab bar is part of a dock node
+     ImGuiTabBarFlags_IsFocused                = 1 << 21,
+     ImGuiTabBarFlags_SaveSettings             = 1 << 22,
++    ImGuiTabBarFlags_TrapezoidTabs            = 1 << 23  // [SLATE-PATCH-1] Enable angled trapezoidal tab rendering
++};
++
++enum ImGuiWindowFlagsPrivate_
++{
++    ImGuiWindowFlags_ExclusiveInput           = 1 << 28  // [SLATE-PATCH-2] Isolate all mouse and keyboard focus strictly to this window
+ };
+ 
+ struct ImGuiTabItem
+@@ -115,6 +121,7 @@ struct ImGuiTabItem
+     float                   Width;
+     float                   ContentWidth;
+     float                   RequestedWidth;
++    float                   SlantOffset;                // [SLATE-PATCH-1] Left/Right slope offset in pixels
+ };
+ 
+ #endif // #ifndef IMGUI_DISABLE
+diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
+index 9e8a71b..d2f1c84 100644
+--- a/imgui_widgets.cpp
++++ b/imgui_widgets.cpp
+@@ -7420,6 +7420,58 @@ bool ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, ImGuiTabItemFlags flags, ImGuiDockNode* dock_node)
+     const ImVec2 label_size = CalcTextSize(label, NULL, true);
+     const ImVec2 size = ImVec2(tab_bar->ItemSpacing.x + label_size.x + (p_open ? style.ItemInnerSpacing.x + g.FontSize : 0.0f) + style.FramePadding.x * 2.0f, tab_bar->BarRect.GetHeight());
+ 
++    // [SLATE-PATCH-1] Trapezoidal Tab Geometry Evaluation
++    const bool use_trapezoid = (tab_bar->Flags & ImGuiTabBarFlags_TrapezoidTabs) != 0 || (dock_node != NULL);
++    const float slant_slope = use_trapezoid ? (size.y * 0.32f) : 0.0f; // ~18 degree slant
++    
++    ImVec2 p0 = ImVec2(bb.Min.x - slant_slope, bb.Max.y); // Bottom-left
++    ImVec2 p1 = ImVec2(bb.Min.x + slant_slope, bb.Min.y); // Top-left
++    ImVec2 p2 = ImVec2(bb.Max.x - slant_slope, bb.Min.y); // Top-right
++    ImVec2 p3 = ImVec2(bb.Max.x + slant_slope, bb.Max.y); // Bottom-right
++
++    // Trapezoidal Point-in-Polygon Hit-Testing
++    bool hovered = false;
++    if (ItemHoverable(bb, id, g.CurrentItemFlags))
++    {
++        if (use_trapezoid)
++        {
++            const ImVec2 mouse_pos = g.IO.MousePos;
++            if (mouse_pos.y >= bb.Min.y && mouse_pos.y <= bb.Max.y)
++            {
++                float t = (mouse_pos.y - bb.Min.y) / (bb.Max.y - bb.Min.y);
++                float cur_min_x = ImLerp(p1.x, p0.x, t);
++                float cur_max_x = ImLerp(p2.x, p3.x, t);
++                hovered = (mouse_pos.x >= cur_min_x && mouse_pos.x <= cur_max_x);
++            }
++        }
++        else
++        {
++            hovered = true;
++        }
++    }
++
++    // Render Tab Shape
++    if (use_trapezoid)
++    {
++        ImVec2 poly_pts[4] = { p0, p1, p2, p3 };
++        ImU32 fill_col = is_selected ? GetColorU32(ImGuiCol_TabActive) : (hovered ? GetColorU32(ImGuiCol_TabHovered) : GetColorU32(ImGuiCol_Tab));
++        window->DrawList->AddConvexPolyFilled(poly_pts, 4, fill_col);
++        
++        ImU32 border_col = GetColorU32(ImGuiCol_Border);
++        window->DrawList->AddLine(p0, p1, border_col, 1.0f);
++        window->DrawList->AddLine(p1, p2, border_col, 1.0f);
++        window->DrawList->AddLine(p2, p3, border_col, 1.0f);
++        
++        if (!is_selected)
++        {
++            window->DrawList->AddLine(p0, p3, border_col, 1.0f);
++        }
++    }
++    else
++    {
++        window->DrawList->AddRectFilled(bb.Min, bb.Max, is_selected ? GetColorU32(ImGuiCol_TabActive) : GetColorU32(ImGuiCol_Tab), style.TabRounding);
++    }
++
+     return is_selected;
+ }
+ 
+diff --git a/imgui.cpp b/imgui.cpp
+index 7a6e124..1f4b889 100644
+--- a/imgui.cpp
++++ b/imgui.cpp
+@@ -4105,6 +4105,25 @@ void ImGui::UpdateHoveredWindowAndCapture(ImGuiWindow* hovered_window)
+ {
+     ImGuiContext& g = *GImGui;
+ 
++    // [SLATE-PATCH-2] Focus Gating & Input Isolation
++    if (hovered_window != NULL && (hovered_window->Flags & ImGuiWindowFlags_ExclusiveInput))
++    {
++        g.IO.WantCaptureMouse = true;
++        g.IO.WantCaptureKeyboard = true;
++    }
++
++    // Lock mouse ownership when interacting with docked tool windows to prevent 3D viewport leakage
++    if (g.ActiveId != 0 && g.ActiveIdWindow != NULL)
++    {
++        if (g.ActiveIdWindow->DockNode != NULL && !g.ActiveIdWindow->DockNode->IsCentralNode())
++        {
++            g.IO.WantCaptureMouse = true;
++            g.IO.WantCaptureKeyboard = true;
++        }
++    }
+ }
+ 
+diff --git a/backends/imgui_impl_vulkan.cpp b/backends/imgui_impl_vulkan.cpp
+index 3b5f921..c8e41a9 100644
+--- a/backends/imgui_impl_vulkan.cpp
++++ b/backends/imgui_impl_vulkan.cpp
+@@ -620,10 +620,14 @@ void ImGui_ImplVulkan_CreatePipeline(VkDevice device, VkRenderPass renderPass, V
+     // [SLATE-PATCH-3] Enforce non-premultiplied standard alpha blending equation
+     VkPipelineColorBlendAttachmentState blend_state = {};
+     blend_state.blendEnable = VK_TRUE;
+-    blend_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
++    blend_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+     blend_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+     blend_state.colorBlendOp = VK_BLEND_OP_ADD;
+-    blend_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
++    blend_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+     blend_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+     blend_state.alphaBlendOp = VK_BLEND_OP_ADD;
+-- 
+2.39.2

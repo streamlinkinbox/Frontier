@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Clash Display"
+Category = "Display"
+Description = "Bold & Distinct"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "ClashDisplay-Light.ttf" ; Weight=300, Style=normal
+Regular = "ClashDisplay-Regular.ttf" ; Weight=400, Style=normal
+Medium = "ClashDisplay-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "ClashDisplay-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "ClashDisplay-Bold.ttf" ; Weight=700, Style=normal

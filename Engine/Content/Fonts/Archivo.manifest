@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Archivo"
+Category = "SansSerif"
+Description = "Technical & Solid"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "Archivo-Light.ttf" ; Weight=300, Style=normal
+Regular = "Archivo-Regular.ttf" ; Weight=400, Style=normal
+Medium = "Archivo-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "Archivo-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "Archivo-Bold.ttf" ; Weight=700, Style=normal

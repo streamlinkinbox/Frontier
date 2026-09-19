@@ -1,0 +1,31 @@
+# Build artifacts and binaries
+*.o
+*.obj
+*.exe
+*.a
+*.lib
+*.ppm
+bin/
+build/
+Projects/**/bin/
+Projects/**/build/
+Scratchpad/GenerateDialogueProofs
+Scratchpad/GenerateFontSectionProofs
+Scratchpad/GenerateThemeSectionProofs
+Scratchpad/GenerateCarouselProofs
+Scratchpad/GenerateControlPanelProof
+Scratchpad/VectorGlyphTest
+.DS_Store
+
+# SolidArc (ParametricSketcher) build output
+Editor/EditorTools/ParametricSketcher/build/
+# Sandbox-only g++ build script (kept for re-builds when cmake is unavailable, but not part of the project)
+Editor/EditorTools/ParametricSketcher/build_gpp.sh
+Verification/view.png
+Editor/EditorTools/ParametricSketcher/Panel/Verification/view.png
+
+# SolidArc proof renders are regenerated deterministically by the verification binaries (203 MB of PNG in the
+# source-of-truth tree). They stay out of this repository by default; commit a new phase proof deliberately with
+# `git add -f Editor/EditorTools/ParametricSketcher/Proofs/<Phase>.png`. See Proofs/README.md.
+Editor/EditorTools/ParametricSketcher/Proofs/*.png
+!Editor/EditorTools/ParametricSketcher/Proofs/Phase32z_*.png

@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Inter"
+Category = "SansSerif"
+Description = "Author"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "Inter-Light.ttf" ; Weight=300, Style=normal
+Regular = "Inter-Regular.ttf" ; Weight=400, Style=normal
+Medium = "Inter-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "Inter-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "Inter-Bold.ttf" ; Weight=700, Style=normal

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SolidArc — verified edge blend result</title>
+<style>
+  :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background:#101216; color:#eef3f7; }
+  body { margin:0; padding:32px; max-width:2300px; margin-inline:auto; }
+  h1 { margin:0 0 8px; font-size:26px; } p { color:#aebdca; margin:0 0 24px; }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+  figure { margin:0; border:1px solid #303945; background:#171b21; border-radius:10px; overflow:hidden; }
+  figcaption { padding:12px 14px; font-weight:700; letter-spacing:.01em; }
+  img { display:block; width:100%; height:auto; background:#000; }
+  code { color:#8dd3ff; }
+  @media (max-width:900px) { body{padding:16px}.grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+  <h1>Phase 21 — edge blend results</h1>
+  <p>Regenerated from <code>Scripts/Phase21_Blends.arc</code>. The selected top edge and the selected vertical arm-tip edge are each shown as a planar chamfer and a tangent fillet. The final four panels are the repaired re-entrant handle root: full-part views plus close views of the one clean bevel face and the one tangent circular roll.</p>
+  <section class="grid">
+    <figure><figcaption>Top edge — chamfer / bevel</figcaption><img src="Edge_Top_Chamfer.png" alt="Top edge planar chamfer"></figure>
+    <figure><figcaption>Top edge — fillet</figcaption><img src="Edge_Top_Fillet.png" alt="Top edge rounded fillet"></figure>
+    <figure><figcaption>Arm tip — chamfer / bevel</figcaption><img src="Edge_Vert_Chamfer.png" alt="Arm tip planar chamfer"></figure>
+    <figure><figcaption>Arm tip — fillet</figcaption><img src="Edge_Vert_Fillet.png" alt="Arm tip rounded fillet"></figure>
+    <figure><figcaption>Reflex handle root (210° material angle) — chamfer</figcaption><img src="Root_Concave_Chamfer.png" alt="Whole-part view: handle root planar chamfer"></figure>
+    <figure><figcaption>Reflex handle root (210° material angle) — fillet</figcaption><img src="Root_Concave_Fillet.png" alt="Whole-part view: handle root tangent fillet"></figure>
+    <figure><figcaption>Reflex root detail — one planar bevel face</figcaption><img src="Root_Concave_Chamfer_Detail.png" alt="Close view of the clean re-entrant root chamfer"></figure>
+    <figure><figcaption>Reflex root detail — one smooth R4 circular roll</figcaption><img src="Root_Concave_Fillet_Detail.png" alt="Close view of the clean re-entrant root fillet"></figure>
+  </section>
+</body>
+</html>

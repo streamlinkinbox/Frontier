@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Space Grotesk"
+Category = "Display"
+Description = "Grotesque Display"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "SpaceGrotesk-Light.ttf" ; Weight=300, Style=normal
+Regular = "SpaceGrotesk-Regular.ttf" ; Weight=400, Style=normal
+Medium = "SpaceGrotesk-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "SpaceGrotesk-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "SpaceGrotesk-Bold.ttf" ; Weight=700, Style=normal

@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "Montserrat"
+Category = "GeometricSans"
+Description = "Geometric & Wide"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "Montserrat-Light.ttf" ; Weight=300, Style=normal
+Regular = "Montserrat-Regular.ttf" ; Weight=400, Style=normal
+Medium = "Montserrat-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "Montserrat-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "Montserrat-Bold.ttf" ; Weight=700, Style=normal

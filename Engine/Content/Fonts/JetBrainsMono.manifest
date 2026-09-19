@@ -1,0 +1,14 @@
+[FontArchive]
+Family = "JetBrains Mono"
+Category = "Monospace"
+Description = "Monospaced Code"
+Format = "TrueType"
+RenderMode = "MultiChannelSignedDistanceField"
+TextureExtent = 1024
+
+[Variants]
+Light = "JetBrainsMono-Light.ttf" ; Weight=300, Style=normal
+Regular = "JetBrainsMono-Regular.ttf" ; Weight=400, Style=normal
+Medium = "JetBrainsMono-Medium.ttf" ; Weight=500, Style=normal
+SemiBold = "JetBrainsMono-SemiBold.ttf" ; Weight=600, Style=normal
+Bold = "JetBrainsMono-Bold.ttf" ; Weight=700, Style=normal

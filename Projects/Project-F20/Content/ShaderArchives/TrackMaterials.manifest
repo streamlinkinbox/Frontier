@@ -1,0 +1,5 @@
+[Archive]
+Name = "TrackMaterials"
+Category = "Shader"
+Shaders = "AsphaltMaterial.comp, VolumetricCloud.comp"
+ComputePipeline = "ComputeDrivenRaster"
