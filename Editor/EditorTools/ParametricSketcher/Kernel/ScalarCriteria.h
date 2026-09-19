@@ -2,13 +2,16 @@
 // 📦 Editor/EditorTools/ParametricSketcher/Kernel/ScalarCriteria.h — Tolerance policy, scalar comparison and numeric constants for the SolidArc kernel
 //============================================================================================================================================
 // One place for every epsilon. Every solver in the kernel reads its tolerance from here, so a tolerance change is a
-//    one-line edit rather than a hunt. Three bands exist, and they are deliberately far apart:
+//    one-line edit rather than a hunt. The constants fall into four families, deliberately far apart:
 //
-//      KernelTolerance   1e-9   [m]   exact-arithmetic stand-in: two coordinates closer than this ARE the same point
-//      MergeTolerance    1e-6   [m]   topological sewing: trim endpoints within this are joined into one vertex
-//      AngularTolerance  1e-7   [rad] parallel / perpendicular / tangent classification
+//      coincidence      KernelTolerance 1e-9 [m], GeometricTolerance 1e-8, ParametricEpsilon 1e-12 — exact-arithmetic
+//                       stand-ins: two coordinates closer than this ARE the same point
+//      classification   AngularTolerance 1e-7 [rad], DirectionTolerance / SweepTolerance / CircularTolerance 1e-6,
+//                       CurveTolerance / ScaledPositionTolerance 1e-7 — parallel / tangent / rim / radius decisions
+//      topology         MergeTolerance 1e-6 [m], DistanceTolerance 1e-6 — trims within this sew into one vertex or edge
+//      measurement      ChordTolerance 1e-4 [m] tessellation sagitta, VolumeTolerance 1e-3 relative analytic-vs-tessellated gate
 //
-// The bands never meet: MergeTolerance / KernelTolerance = 1000, so a merge decision is never flipped by round-off.
+// The families never meet: MergeTolerance / KernelTolerance = 1000, so a merge decision is never flipped by round-off.
 #pragma once
 
 #include <cmath>
@@ -25,23 +28,23 @@ namespace Frontier
 
 struct ScalarCriteria
 {
-    static constexpr double KernelTolerance   = 1e-9;                                   // [m]   coincidence
-    static constexpr double GeometricTolerance = 1e-8;                                // [m or -] strict geometric classification
-    static constexpr double MergeTolerance    = 1e-6;                                   // [m]   topological sewing
-    static constexpr double AngularTolerance  = 1e-7;                                   // [rad] direction equality
-    static constexpr double SweepTolerance  = 1e-6;                                   // [rad] arc endpoint classification
-    static constexpr double CircularTolerance = 1e-6;                               // [m] circular rim / radius matching
-    static constexpr double CurveTolerance = 1e-7;                                  // [m or -] curve intersection / subdivision
-    static constexpr double ScaledPositionTolerance = 1e-7;                      // [m or -] bounded rim / parameter positions
-    static constexpr double DirectionTolerance = 1e-6;                           // [rad or -] legacy face/edge direction tests
-    static constexpr double DistanceTolerance = 1e-6;                            // [m] local surface/intersection distance
-    static constexpr double ChordTolerance    = 1e-4;                                   // [m]   tessellation sagitta
-    static constexpr double VolumeTolerance  = 1e-3;                                   // [m³]  analytic-vs-tessellated volume gate
-    static constexpr double ParametricEpsilon = 1e-12;                                  // [-]   knot / parameter equality
-    static constexpr double Infinity          = std::numeric_limits<double>::infinity(); // [-]
-    static constexpr double Pi                = std::numbers::pi_v<double>;             // [rad]
-    static constexpr double TwoPi             = 2.0 * std::numbers::pi_v<double>;       // [rad]
-    static constexpr double HalfPi            = 0.5 * std::numbers::pi_v<double>;       // [rad]
+    static constexpr double KernelTolerance         = 1e-9;                             // [m]   coincidence
+    static constexpr double GeometricTolerance      = 1e-8;                             // [m|-] strict geometric classification
+    static constexpr double MergeTolerance          = 1e-6;                             // [m]   topological sewing
+    static constexpr double AngularTolerance        = 1e-7;                             // [rad] direction equality
+    static constexpr double SweepTolerance          = 1e-6;                             // [rad] arc endpoint classification
+    static constexpr double CircularTolerance       = 1e-6;                             // [m]   circular rim / radius matching
+    static constexpr double CurveTolerance          = 1e-7;                             // [m|-] curve intersection / subdivision
+    static constexpr double ScaledPositionTolerance = 1e-7;                             // [m|-] bounded rim / parameter positions
+    static constexpr double DirectionTolerance      = 1e-6;                             // [rad|-] legacy face/edge direction tests
+    static constexpr double DistanceTolerance       = 1e-6;                             // [m]   local surface/intersection distance
+    static constexpr double ChordTolerance          = 1e-4;                             // [m]   tessellation sagitta
+    static constexpr double VolumeTolerance         = 1e-3;                             // [-]   analytic-vs-tessellated volume gate, relative above 1 m³
+    static constexpr double ParametricEpsilon       = 1e-12;                            // [-]   knot / parameter equality
+    static constexpr double Infinity                = std::numeric_limits<double>::infinity(); // [-]
+    static constexpr double Pi                      = std::numbers::pi_v<double>;       // [rad]
+    static constexpr double TwoPi                   = 2.0 * std::numbers::pi_v<double>; // [rad]
+    static constexpr double HalfPi                  = 0.5 * std::numbers::pi_v<double>; // [rad]
 
     [[nodiscard]] static constexpr bool Coincident(double A, double B, double Tolerance = KernelTolerance) noexcept
     {

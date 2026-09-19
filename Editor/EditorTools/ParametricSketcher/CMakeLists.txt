@@ -180,11 +180,6 @@ add_executable(PlaneCylinderFilletVerification Verification/PlaneCylinderFilletV
 target_link_libraries(PlaneCylinderFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PlaneCylinderFilletVerification COMMAND PlaneCylinderFilletVerification)
 
-# Phase 32z: bounded asymmetric endpoint-support classification and tapered/radial reconstruction.
-add_executable(AsymmetricEndpointVerification Verification/AsymmetricEndpointVerification.cpp)
-target_link_libraries(AsymmetricEndpointVerification PRIVATE SolidArcConsoleKit)
-add_test(NAME AsymmetricEndpointVerification COMMAND AsymmetricEndpointVerification)
-
 # Phase 32a: G1 tangent-chain propagation across angular representation seams at that exact boss root.
 add_executable(TangentChainFilletVerification Verification/TangentChainFilletVerification.cpp)
 target_link_libraries(TangentChainFilletVerification PRIVATE SolidArcConsoleKit)
@@ -309,6 +304,11 @@ add_test(NAME MultiSideSteppedBlindBorePrismFilletVerification COMMAND MultiSide
 add_executable(MixedStageSideBlindBorePrismFilletVerification Verification/MixedStageSideBlindBorePrismFilletVerification.cpp)
 target_link_libraries(MixedStageSideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME MixedStageSideBlindBorePrismFilletVerification COMMAND MixedStageSideBlindBorePrismFilletVerification)
+
+# Phase 32z: first unequal-radius support pair — the exact plane–cone boss-root rolling ball and its prerequisites.
+add_executable(PlaneConeFilletVerification Verification/PlaneConeFilletVerification.cpp)
+target_link_libraries(PlaneConeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PlaneConeFilletVerification COMMAND PlaneConeFilletVerification)
 
 # Phase 22: versioned native .arc construction journals — atomic save/open and transactional failed opens.
 add_executable(DocumentVerification Verification/DocumentVerification.cpp)

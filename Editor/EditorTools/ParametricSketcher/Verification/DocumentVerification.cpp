@@ -2,7 +2,7 @@
 // 📦 Editor/EditorTools/ParametricSketcher/Verification/DocumentVerification.cpp — Phase 22: native .arc document persistence
 //============================================================================================================================================
 // A native .arc is a versioned construction journal, rather than a mesh export. These checks cover the properties that
-// matter to a CAD document: semantic replay preserves exact B-rep geometry and associative recipes; names containing
+// matter to a modelling document: semantic replay preserves exact B-rep geometry and associative recipes; names containing
 // whitespace remain valid; a subsequent save leaves a recovery copy; and a malformed document cannot damage the model
 // currently open in the host.
 #include "Console/ConsoleHost.h"

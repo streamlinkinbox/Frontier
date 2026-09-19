@@ -37,34 +37,43 @@
 namespace Frontier
 {
 
-// Local frame of a manifold edge shared by two planar faces.
-enum class AsymmetricSupportKind : uint8_t
+//------------------------------------------------------------------------------------------------------------------------
+//                                  PHASE 32z · ASYMMETRIC (UNEQUAL-RADIUS) SUPPORT PAIRS
+//------------------------------------------------------------------------------------------------------------------------
+// Two coaxial circular supports of unequal radius bound a conical (tapered) run instead of a cylindrical one. The
+//    specification-level validators below are the prerequisites the plane–cone boss-root fillet (see FilletEdge) and
+//    the later Phase 33 variable-radius work both rest on; they operate on explicit descriptors so their acceptance
+//    boundaries can be verified without a B-rep. The B-rep route itself classifies its supports from topology.
+
+enum class AsymmetricSupportClassification : uint8_t
 {
-    TaperedFrustum,
-    VariableRadiusRoll,
-    UnequalRadialCaps,
-    EqualRadiusAsymmetricPlanes,
-    PartialEndpointChain
+    TaperedFrustum,                                                                     // one conical run between two unequal coaxial circles
+    VariableRadiusRoll,                                                                 // linear radius law along one straight spine
+    UnequalRadialCaps,                                                                  // radial caps of unequal reach on one axis
+    EqualRadiusAsymmetricPlanes,                                                        // equal circles on parallel, non-coaxial planes
+    PartialEndpointChain                                                                // chain with one open continuation (refused)
 };
 
 struct EndpointSupport
 {
-    Vec3   Centre{};
-    Vec3   Normal{};
-    double Radius = 0.0;
-    double EndpointAngle = 0.0;                                                         // [rad] optional radial-cap angle
+    Vec3   Centre{};                                                                    // [m]   circle centre
+    Vec3   Normal{};                                                                    // [-]   support plane normal (any length)
+    double Radius = 0.0;                                                                // [m]   circle radius
+    double EndpointAngle = 0.0;                                                         // [rad] optional radial-cap angle, 0 = full circle
 };
 
+// r(T) = Start + (End − Start)·T on T ∈ [0, 1]: the only radius law Phase 32z admits.
 struct VariableRadiusLaw
 {
-    double Start = 0.0;
-    double End = 0.0;
+    double Start = 0.0;                                                                 // [m]
+    double End = 0.0;                                                                   // [m]
 
-    [[nodiscard]] double Evaluate(double T) const noexcept { return Start + (End - Start) * T; }
+    [[nodiscard]] double Radius(double T) const noexcept { return Start + (End - Start) * T; }
     [[nodiscard]] double Slope() const noexcept { return End - Start; }
     [[nodiscard]] bool Positive() const noexcept { return std::isfinite(Start) && std::isfinite(End) && Start > 0.0 && End > 0.0; }
     [[nodiscard]] bool Decreasing() const noexcept { return Slope() < -ScalarCriteria::CircularTolerance; }
     [[nodiscard]] bool Increasing() const noexcept { return Slope() > ScalarCriteria::CircularTolerance; }
+    // Frustum volume of the law swept along a straight spine of this length.
     [[nodiscard]] double SweptVolume(double Length) const noexcept
     {
         return ScalarCriteria::Pi * Length * (Start * Start + Start * End + End * End) / 3.0;
@@ -73,65 +82,70 @@ struct VariableRadiusLaw
 
 struct AsymmetricEndpointChain
 {
-    std::vector<EndpointSupport> Supports;
+    std::vector<EndpointSupport> Supports;                                              // [-] ordered along one straight axis
 };
 
-// Parametric ruled surface used by the bounded variable-radius route. It is kept separate from the B-rep
-// reconstruction until endpoint tangency and curvature acceptance have both passed.
+// Ruled surface of revolution P(T, θ) = Origin + A·L·T + (R cos θ + B sin θ)·r(T) with a linear r(T): a cone frustum
+//    written as a parametric surface so that endpoint tangency and curvature can be measured before any B-rep is built.
 struct VariableRadiusSurface
 {
-    Vec3 Origin{};
-    Vec3 Axis{ 0, 0, 1 };
-    Vec3 Radial{ 1, 0, 0 };
-    double Length = 0.0;
+    Vec3 Origin{};                                                                      // [m]
+    Vec3 Axis{ 0, 0, 1 };                                                               // [-]
+    Vec3 Radial{ 1, 0, 0 };                                                             // [-] any vector not parallel to Axis
+    double Length = 0.0;                                                                // [m]
     VariableRadiusLaw Law{};
 
-    [[nodiscard]] Vec3 Evaluate(double T, double Angle) const noexcept
+    [[nodiscard]] Vec3 Sample(double T, double Angle) const noexcept
     {
         Vec3 A = Axis.Normalised();
         Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
         Vec3 B = A.Cross(R);
         double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
-        return Origin + A * (Length * S) + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Evaluate(S);
+        return Origin + A * (Length * S) + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Radius(S);
     }
 
+    // ∂P/∂T: the generator direction at this angle. It is constant along T because the law is linear.
     [[nodiscard]] Vec3 TangentAlong(double Angle) const noexcept
     {
         Vec3 A = Axis.Normalised();
         Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
-        return A * Length + R * Law.Slope() * std::cos(Angle);
+        Vec3 B = A.Cross(R);
+        return A * Length + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Slope();
     }
 
+    // Outward unit normal (∂P/∂θ × ∂P/∂T), independent of T for a linear law.
     [[nodiscard]] Vec3 Normal(double Angle) const noexcept
     {
         Vec3 A = Axis.Normalised();
         Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
         Vec3 B = A.Cross(R);
-        Vec3 Circumferential = -R * std::sin(Angle) + B * std::cos(Angle);
+        Vec3 Circumferential = R * -std::sin(Angle) + B * std::cos(Angle);
         return Circumferential.Cross(TangentAlong(Angle)).Normalised();
     }
 
+    // Normal curvature around the axis: cos α / r(T) with tan α = slope / length. Infinite at a degenerate radius.
     [[nodiscard]] double CircumferentialCurvature(double T) const noexcept
     {
-        double Radius = Law.Evaluate(ScalarCriteria::Clamp(T, 0.0, 1.0));
+        double Radius = Law.Radius(ScalarCriteria::Clamp(T, 0.0, 1.0));
         if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
         return Radius > ScalarCriteria::GeometricTolerance
             ? 1.0 / (Radius * std::sqrt(1.0 + (Law.Slope() / Length) * (Law.Slope() / Length))) : ScalarCriteria::Infinity;
     }
 
-    [[nodiscard]] double MeridionalCurvature() const noexcept { return 0.0; }
+    [[nodiscard]] double MeridionalCurvature() const noexcept { return 0.0; }           // straight generators
 };
 
 struct AsymmetricBlendSpecification
 {
     EndpointSupport Low{};
     EndpointSupport High{};
-    AsymmetricSupportKind Kind = AsymmetricSupportKind::TaperedFrustum;
-    double MinimumClearance = 0.0;
-    double BlendRadius = 0.0;
+    AsymmetricSupportClassification Classification = AsymmetricSupportClassification::TaperedFrustum;
+    double MinimumClearance = 0.0;                                                      // [m]
+    double BlendRadius = 0.0;                                                           // [m]
     VariableRadiusLaw RadiusLaw{};
 };
 
+// Local frame of a straight manifold edge shared by two planar faces.
 struct EdgeCornerFrame
 {
     Vec3   Start, End;                                                                  // [m] edge endpoints

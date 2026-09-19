@@ -1,6 +1,6 @@
 # SolidArc capability roadmap — one validated capability at a time
 
-This plan turns the current NURBS/B-rep prototype into a capable CAD application without pretending that a closed body
+This plan turns the current NURBS/B-rep prototype into a capable modelling tool without pretending that a closed body
 or a rendered PNG proves an operation is production-ready. A phase is only complete when it has exact/analytic checks
 where applicable, adversarial regressions, refusal behaviour for unsupported cases, and a reproducible visual proof.
 
@@ -172,7 +172,7 @@ top/bottom, oblique/reversed construction, explicit circular-extrusion rejection
 volume observation, and console integration. It generates `Proofs/Phase26_CylinderFillets.png` directly from C++ commands
 (no HTML or browser implementation).
 
-The bounded feature follows established CAD fillet semantics: production kernels attach a constant radius to a selected
+The bounded feature follows established solid-modelling fillet semantics: production kernels attach a constant radius to a selected
 edge/contour and track its continuity to support faces.
 [OCCT constant-radius fillet API](https://dev.opencascade.org/doc/refman/html/class_b_rep_fillet_a_p_i___make_fillet.html)
 
@@ -467,9 +467,17 @@ The bounded side-stepped route now supports two through eight cavities with inde
 
 **Proof:** `MixedStageSideBlindBorePrismFilletVerification` (42 C++ checks) and `Proofs/Phase32y_MixedStageSideBlindBorePrism.png`.
 
+#### Phase 32z: first unequal-radius support pair — exact plane–cone boss root ✅
+
+The first asymmetric (unequal-radius) support pair is the native conical frustum boss standing on a planar annular shoulder: its foot circle `R_f` on the shoulder and its top circle `R_t ≠ R_f` are coaxial but unequal, so the boss wall is a cone with half-angle `tan α = (R_f − R_t) / H` (`α > 0` narrows upward, `α < 0` is an undercut flare). Plane and coaxial cone are both surfaces of revolution about one axis, so their `r`-offsets meet in an exact circular spine and the rolling ball sweeps an exact rational torus band rather than an approximation: contact height `z_t = r (1 − sin α)`, contact radius `ρ_t = R_f − z_t tan α`, spine radius `ρ_c = R_f + r (1 − sin α) / cos α`, meridian span `π/2 − α`. The wedge the roll adds is given in closed form by Pappus as `2π` times the first moment of the meridian region (quadrilateral minus circular sector); at `α = 0` the spine, the wedge formula, and the result coincide with Phase 31's plane–cylinder route to `1e-12`. Classification is structural — closed genus-zero `V4/E7/C14/L5/F5` source, root rim shared by a measured planar shoulder and a measured native cone whose tag agrees with its sampled end rows and straight generators, concentric outer rim into a native cylinder wall, and two planar caps with a top-rim radius check — never a face-order or tag-only shortcut. Reconstruction retains the outer cylinder, trims the shoulder to `ρ_c`, revolves the `π/2 − α` arc into a torus band tagged with its analytic identity, shortens the cone to start at `(ρ_t, z_t)`, and sews both caps into a genus-zero `V5/E9/C18/L6/F6` solid; the route refuses its own result if the tessellated volume disagrees with the closed form. Feasibility is explicit: `r > 0`, `z_t < H`, `ρ_c < R_outer`. Apex cones (`R_t = 0`), the conical top rim, the outer shoulder rim, and Boolean-built sources without a canonical root rim refuse rather than approximate. The specification-level validators the route rests on (unequal parallel endpoint pairs, collinear chains, the linear radius law and its ruled surface with measured tangent/normal/curvature, G1 endpoint matching, and the tapered-frustum reconstruction cross-check) are verified in the same suite; the partial-endpoint-chain and variable-radius-roll modes remain explicitly refused as Phase 33 work.
+
+**32z exit gate met:** `PlaneConeFilletVerification` proves narrowing (`α = +0.211`), undercut flaring (`α = −0.245`), steep 45°, `α = 0`, oblique-axis, and reversed-axis fixtures each give the exact topology, torus residual below `1e-9` (measured `≤ 3e-14`), both G1 breaks below `1e-10` (measured `0`), exact retained-support extents, the two analytic contact circles, total volume within the kernel's `1e-3` gate, and added material within `5e-3` of the Pappus wedge (measured `≤ 1.5e-3`, against a `3.8e-4` tessellation floor that even the sharp source carries); both feasibility limits refuse at the boundary and roll exactly at `0.98×` on fixtures where that limit binds first; transactional multi-edge dispatch, console commit, and deterministic rendering are verified.
+
+**Proof:** `Verification/PlaneConeFilletVerification.cpp` (61 C++ checks) and `Proofs/Phase32z_PlaneConeFillet.png` (2560 × 1600 C++-generated contact sheet).
+
 #### Still required before Phase 32 is complete
 
-Asymmetric or non-radial endpoint supports, unequal/non-orthogonal and partial corner networks, oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
+Cone–cone and cone–cylinder support pairs, apex cones, non-radial endpoint supports, unequal/non-orthogonal and partial corner networks, oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
 
 ### Phase 33: variable radius, setbacks, partial edges, and G2
 

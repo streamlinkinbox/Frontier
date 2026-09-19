@@ -22,7 +22,7 @@
 //    automatic differentiation — every gradient is hand-derived (see ConstraintSolver.cpp).
 //
 // The solver is intentionally simple: dense matrix, no sparsity, no incrementality. For sketch-scale problems
-//    (< 50 unknowns) the solve is O(N^3) per iteration, taking microseconds. Production CAD solvers use sparse
+//    (< 50 unknowns) the solve is O(N^3) per iteration, taking microseconds. Production constraint solvers use sparse
 //    Levenberg-Marquardt; we don't need that here.
 #pragma once
 

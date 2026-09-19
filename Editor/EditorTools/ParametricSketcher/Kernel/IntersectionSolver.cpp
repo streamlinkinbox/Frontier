@@ -185,7 +185,7 @@ namespace
     }
 
     // The SSI marcher correctly treats a face-on-face / edge-on-edge coincidence as non-transversal: there is no
-    // unique section curve to trace.  Axis-aligned boxes are a common CAD primitive with an exact constructive answer,
+    // unique section curve to trace.  Axis-aligned boxes are a common modelling primitive with an exact constructive answer,
     // though, so resolve their contact topology before invoking the general marcher.  This is deliberately structural
     // (six natural planar faces and eight box corners), never a loose bounding-box shortcut for an arbitrary body.
     struct AxisAlignedBox { Vec3 Low, High; };

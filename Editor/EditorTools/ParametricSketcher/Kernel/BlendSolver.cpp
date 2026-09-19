@@ -2019,6 +2019,279 @@ namespace
         return Result;
     }
 
+    //------------------------------------------------------------------------------------------------------------------------
+    // Phase 32z: the first unequal-radius (asymmetric) support pair. A native conical frustum boss leaves a planar
+    // annular shoulder; its foot circle (radius R_f, on the shoulder) and top circle (radius R_t ≠ R_f) are the two
+    // coaxial supports. Plane and coaxial cone are both surfaces of revolution about one axis, so their r-offsets meet
+    // in an exact circular spine and the rolling ball sweeps an exact rational torus band. With tan α = (R_f − R_t)/H
+    // (α > 0 narrows upward, α < 0 is an undercut flare):
+    //
+    //      cone contact height          z_t = r (1 − sin α)
+    //      cone contact radius          ρ_t = R_f − z_t tan α
+    //      spine = shoulder contact     ρ_c = R_f + r (1 − sin α) / cos α          (α = 0 recovers Phase 31's R_f + r)
+    //      meridian arc                 from angle π + α (cone contact) to 3π/2 (shoulder contact), span π/2 − α
+    //
+    // The wedge the roll adds is the meridian region bounded by the shoulder, the generator and the arc, revolved
+    // about the axis; Pappus gives its exact volume from the region's first moment, and the route refuses a result
+    // whose tessellated volume disagrees with that closed form.
+    struct PlaneConeRoot
+    {
+        Vec3   Base, Axis;                                                               // [m] outer-wall foot centre, [-] unit axis
+        double OuterRadius = 0.0, ShoulderHeight = 0.0;                                  // [m]
+        double FootRadius = 0.0, TopRadius = 0.0, BossHeight = 0.0;                      // [m] conical boss
+        [[nodiscard]] double HalfAngle() const noexcept { return std::atan2(FootRadius - TopRadius, BossHeight); }   // [rad]
+    };
+
+    // Analytic identity of a complete native conical frustum face, verified by sampling both end rows and the middle
+    // of the generators rather than trusted from the tag alone.
+    bool ConeEndCentres(const NurbsSurface& Cone, Vec3& Start, Vec3& End, double& RadiusStart, double& RadiusEnd) noexcept
+    {
+        if (Cone.Classification != SurfaceClassification::Cone || Cone.RadiusMajor <= Tol || Cone.RadiusMinor <= Tol) return false;
+        const double U0 = Cone.DomainStartU(), U1 = Cone.DomainEndU();
+        const double V0 = Cone.DomainStartV(), V1 = Cone.DomainEndV();
+        Vec3 Axis = Cone.Axis.Normalised();
+        if (Axis.Length() <= Tol) return false;
+        auto CentreAt = [&](double V) { Vec3 P = Cone.Sample(0.5 * (U0 + U1), V); return Cone.Origin + Axis * (P - Cone.Origin).Dot(Axis); };
+        Start = CentreAt(V0); End = CentreAt(V1);
+        const double Height = Start.Distance(End);
+        const double Scale = std::max({ 1.0, Cone.RadiusMajor, Cone.RadiusMinor, Height });
+        const double Epsilon = ScalarCriteria::GeometricTolerance * Scale;
+        if (Height <= Epsilon || (End - Start).Normalised().Cross(Axis).Length() > ScalarCriteria::GeometricTolerance) return false;
+        auto RowRadius = [&](double V, Vec3 Centre, double& Radius)
+        {
+            Radius = (Cone.Sample(U0, V) - Centre).Length();
+            for (int I = 0; I <= 8; ++I)
+            {
+                Vec3 Radial = Cone.Sample(U0 + (U1 - U0) * (static_cast<double>(I) / 8.0), V) - Centre;
+                if (std::fabs(Radial.Length() - Radius) > Epsilon || std::fabs(Radial.Dot(Axis)) > Epsilon) return false;
+            }
+            return Radius > Tol;
+        };
+        if (!RowRadius(V0, Start, RadiusStart) || !RowRadius(V1, End, RadiusEnd)) return false;
+        // Straight generators: the middle row sits exactly halfway in height and radius.
+        Vec3 MiddleCentre = (Start + End) * 0.5; double MiddleRadius = 0.0;
+        if (!RowRadius(0.5 * (V0 + V1), MiddleCentre, MiddleRadius) ||
+            std::fabs(MiddleRadius - 0.5 * (RadiusStart + RadiusEnd)) > Epsilon) return false;
+        // The tagged identity must agree with the measured one.
+        const bool FootFirst = Start.Distance(Cone.Origin) <= Epsilon;
+        const double TaggedStart = FootFirst ? Cone.RadiusMajor : Cone.RadiusMinor;
+        const double TaggedEnd = FootFirst ? Cone.RadiusMinor : Cone.RadiusMajor;
+        if (!FootFirst && End.Distance(Cone.Origin) > Epsilon) return false;
+        return std::fabs(TaggedStart - RadiusStart) <= Epsilon && std::fabs(TaggedEnd - RadiusEnd) <= Epsilon;
+    }
+
+    std::optional<PlaneConeRoot> PlaneConeBossRoot(const BrepBody& Body, int Edge) noexcept
+    {
+        // Bounded to the complete five-face stepped solid with one closed root rim (the Phase 31 closed topology).
+        if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()) || !Body.Validate().Solid() ||
+            Body.Vertices.size() != 4 || Body.Edges.size() != 7 || Body.Coedges.size() != 14 ||
+            Body.Loops.size() != 5 || Body.Faces.size() != 5) return std::nullopt;
+        const BrepEdge& RootEdge = Body.Edges[Edge];
+        if (!RootEdge.Closed() || RootEdge.Coedges.size() != 2) return std::nullopt;
+        Vec3 RootCentre, RootNormal; double FootRadius = 0.0;
+        if (!CircularFrame(RootEdge.Curve, RootCentre, RootNormal, FootRadius)) return std::nullopt;
+
+        int ShoulderFace = -1, BossFace = -1; Vec3 Axis;
+        for (int Coedge : RootEdge.Coedges)
+        {
+            if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return std::nullopt;
+            int Face = Body.Coedges[Coedge].Face;
+            if (Face < 0 || Face >= static_cast<int>(Body.Faces.size())) return std::nullopt;
+            if (Body.Faces[Face].Surface.Classification == SurfaceClassification::Cone)
+            {
+                if (BossFace >= 0) return std::nullopt;
+                BossFace = Face;
+            }
+            else
+            {
+                Vec3 Normal;
+                if (ShoulderFace >= 0 || !PlanarNormal(Body, Face, Normal)) return std::nullopt;
+                ShoulderFace = Face; Axis = Normal.Normalised();
+            }
+        }
+        if (ShoulderFace < 0 || BossFace < 0 || Axis.Length() <= Tol ||
+            std::fabs(RootNormal.Dot(Axis)) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+
+        // The conical boss stands on the root circle and rises along the shoulder's outward normal.
+        Vec3 ConeStart, ConeEnd; double RadiusStart = 0.0, RadiusEnd = 0.0;
+        if (!ConeEndCentres(Body.Faces[BossFace].Surface, ConeStart, ConeEnd, RadiusStart, RadiusEnd)) return std::nullopt;
+        const double BossScale = std::max({ 1.0, FootRadius, RadiusStart, RadiusEnd, ConeStart.Distance(ConeEnd) });
+        const double BossEpsilon = ScalarCriteria::GeometricTolerance * BossScale;
+        Vec3 BossTop; double TopRadius = 0.0, ClassifiedFoot = 0.0;
+        if (ConeStart.Distance(RootCentre) <= BossEpsilon) { BossTop = ConeEnd; TopRadius = RadiusEnd; ClassifiedFoot = RadiusStart; }
+        else if (ConeEnd.Distance(RootCentre) <= BossEpsilon) { BossTop = ConeStart; TopRadius = RadiusStart; ClassifiedFoot = RadiusEnd; }
+        else return std::nullopt;
+        const double BossHeight = BossTop.Distance(RootCentre);
+        if (std::fabs(ClassifiedFoot - FootRadius) > BossEpsilon || TopRadius <= Tol || BossHeight <= BossEpsilon ||
+            (BossTop - RootCentre).Normalised().Dot(Axis) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+
+        // The shoulder's other rim is the one concentric circle wider than the root (its revolution seam is skipped
+        // geometrically, as Phase 31 does); that rim's second face is the retained outer cylinder.
+        int OuterEdge = -1; Vec3 OuterCentre, OuterNormal; double OuterRadius = 0.0;
+        for (int Loop : Body.Faces[ShoulderFace].Loops)
+        {
+            if (Loop < 0 || Loop >= static_cast<int>(Body.Loops.size())) return std::nullopt;
+            for (int Coedge : Body.Loops[Loop].Coedges)
+            {
+                if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return std::nullopt;
+                int Candidate = Body.Coedges[Coedge].Edge;
+                if (Candidate < 0 || Candidate >= static_cast<int>(Body.Edges.size()) || Candidate == Edge) continue;
+                Vec3 CandidateCentre, CandidateNormal; double CandidateRadius = 0.0;
+                const double Epsilon = ScalarCriteria::GeometricTolerance * std::max(1.0, FootRadius);
+                if (!CircularFrame(Body.Edges[Candidate].Curve, CandidateCentre, CandidateNormal, CandidateRadius) ||
+                    CandidateCentre.Distance(RootCentre) > Epsilon ||
+                    std::fabs(CandidateNormal.Dot(Axis)) < 1.0 - ScalarCriteria::GeometricTolerance ||
+                    CandidateRadius <= FootRadius + Epsilon) continue;
+                if (OuterEdge >= 0 && OuterEdge != Candidate) return std::nullopt;
+                OuterEdge = Candidate; OuterCentre = CandidateCentre; OuterNormal = CandidateNormal; OuterRadius = CandidateRadius;
+            }
+        }
+        if (OuterEdge < 0 || !Body.Edges[OuterEdge].Closed() || Body.Edges[OuterEdge].Coedges.size() != 2) return std::nullopt;
+        int OuterFace = -1;
+        for (int Coedge : Body.Edges[OuterEdge].Coedges)
+        {
+            int Face = Body.Coedges[Coedge].Face;
+            if (Face == ShoulderFace) continue;
+            if (OuterFace >= 0 || Face < 0 || Face >= static_cast<int>(Body.Faces.size()) ||
+                Body.Faces[Face].Surface.Classification != SurfaceClassification::Cylinder) return std::nullopt;
+            OuterFace = Face;
+        }
+        if (OuterFace < 0) return std::nullopt;
+        Vec3 OuterStart, OuterEnd; double ClassifiedOuterRadius = 0.0;
+        if (!CylinderEndCentres(Body.Faces[OuterFace].Surface, OuterStart, OuterEnd, ClassifiedOuterRadius)) return std::nullopt;
+        const double WallEpsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, OuterRadius, OuterStart.Distance(OuterEnd) });
+        if (std::fabs(OuterRadius - ClassifiedOuterRadius) > WallEpsilon) return std::nullopt;
+        Vec3 Base;
+        if (OuterStart.Distance(RootCentre) <= WallEpsilon) Base = OuterEnd;
+        else if (OuterEnd.Distance(RootCentre) <= WallEpsilon) Base = OuterStart;
+        else return std::nullopt;
+        const double ShoulderHeight = Base.Distance(RootCentre);
+        if (ShoulderHeight <= WallEpsilon ||
+            (Base - RootCentre).Normalised().Dot(Axis) > -1.0 + ScalarCriteria::GeometricTolerance) return std::nullopt;
+
+        // The two remaining faces are the planar end caps: one at the outer base, one at the boss top with the top rim.
+        int BottomCaps = 0, TopCaps = 0;
+        const double CapEpsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, OuterRadius, ShoulderHeight, BossHeight });
+        for (size_t Face = 0; Face < Body.Faces.size(); ++Face)
+        {
+            const int FaceIndex = static_cast<int>(Face);
+            if (FaceIndex == ShoulderFace || FaceIndex == BossFace || FaceIndex == OuterFace) continue;
+            Vec3 Normal;
+            if (!PlanarNormal(Body, FaceIndex, Normal) || std::fabs(Normal.Dot(Axis)) < 1.0 - ScalarCriteria::GeometricTolerance ||
+                Body.Faces[Face].Loops.size() != 1) return std::nullopt;
+            const NurbsSurface& Cap = Body.Faces[Face].Surface;
+            Vec3 Point = Cap.Sample(0.5 * (Cap.DomainStartU() + Cap.DomainEndU()), 0.5 * (Cap.DomainStartV() + Cap.DomainEndV()));
+            if (std::fabs((Point - Base).Dot(Axis)) <= CapEpsilon) ++BottomCaps;
+            else if (std::fabs((Point - BossTop).Dot(Axis)) <= CapEpsilon)
+            {
+                const std::vector<int>& Rim = Body.Loops[Body.Faces[Face].Loops.front()].Coedges;
+                if (Rim.size() != 1) return std::nullopt;
+                Vec3 RimCentre, RimNormal; double RimRadius = 0.0;
+                if (!CircularFrame(Body.Edges[Body.Coedges[Rim.front()].Edge].Curve, RimCentre, RimNormal, RimRadius) ||
+                    RimCentre.Distance(BossTop) > CapEpsilon || std::fabs(RimRadius - TopRadius) > CapEpsilon) return std::nullopt;
+                ++TopCaps;
+            }
+            else return std::nullopt;
+        }
+        if (BottomCaps != 1 || TopCaps != 1) return std::nullopt;
+        return PlaneConeRoot{ Base, Axis, OuterRadius, ShoulderHeight, FootRadius, TopRadius, BossHeight };
+    }
+
+    // First moment about the axis (∫ρ dA) of the meridian wedge: quadrilateral (root corner, shoulder contact, arc
+    // centre, cone contact) minus the circular sector the arc cuts from it. 2π times this is the added volume.
+    double PlaneConeWedgeMoment(double FootRadius, double HalfAngle, double Radius) noexcept
+    {
+        const double SinA = std::sin(HalfAngle), CosA = std::cos(HalfAngle);
+        const double ContactHeight = Radius * (1.0 - SinA);
+        const double SpineRadius = FootRadius + Radius * (1.0 - SinA) / CosA;
+        const double ContactRadius = FootRadius - ContactHeight * std::tan(HalfAngle);
+        const double Quad[4][2] = { { FootRadius, 0.0 }, { SpineRadius, 0.0 }, { SpineRadius, Radius }, { ContactRadius, ContactHeight } };
+        double QuadMoment = 0.0;
+        for (int I = 0; I < 4; ++I)
+        {
+            const double* P = Quad[I]; const double* Q = Quad[(I + 1) % 4];
+            const double Cross = P[0] * Q[1] - Q[0] * P[1];
+            QuadMoment += (P[0] + Q[0]) * Cross;                                       // Σ (ρᵢ + ρᵢ₊₁)(ρᵢ zᵢ₊₁ − ρᵢ₊₁ zᵢ) / 6
+        }
+        QuadMoment = std::fabs(QuadMoment) / 6.0;
+        // Sector centred at (ρ_c, r) from angle π + α to 3π/2: ∫∫(ρ_c + s cos θ) s ds dθ.
+        const double Theta0 = ScalarCriteria::Pi + HalfAngle, Theta1 = 1.5 * ScalarCriteria::Pi;
+        const double SectorMoment = SpineRadius * Radius * Radius * (Theta1 - Theta0) / 2.0 +
+                                    Radius * Radius * Radius * (std::sin(Theta1) - std::sin(Theta0)) / 3.0;
+        return QuadMoment - SectorMoment;
+    }
+
+    double PlaneConeSourceVolume(const PlaneConeRoot& Root) noexcept
+    {
+        return ScalarCriteria::Pi * Root.OuterRadius * Root.OuterRadius * Root.ShoulderHeight +
+               ScalarCriteria::Pi * Root.BossHeight *
+               (Root.FootRadius * Root.FootRadius + Root.FootRadius * Root.TopRadius + Root.TopRadius * Root.TopRadius) / 3.0;
+    }
+
+    Deliver<BrepBody> FilletPlaneConeBossRoot(const PlaneConeRoot& Root, double Radius) noexcept
+    {
+        if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
+        const double HalfAngle = Root.HalfAngle();
+        const double SinA = std::sin(HalfAngle), CosA = std::cos(HalfAngle);
+        const double ContactHeight = Radius * (1.0 - SinA);
+        const double SpineRadius = Root.FootRadius + Radius * (1.0 - SinA) / CosA;
+        const double ContactRadius = Root.FootRadius - ContactHeight * std::tan(HalfAngle);
+        if (ContactHeight >= Root.BossHeight - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "fillet radius consumes the conical boss height");
+        if (SpineRadius >= Root.OuterRadius - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "fillet radius consumes the planar shoulder");
+        if (ContactRadius <= Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "fillet contact leaves no conical boss");
+
+        const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
+        const Vec3 Radial = Workplane::FromNormal(Root.Base, Root.Axis).AxisX;
+        if (Radial.Length() <= Tol || std::fabs(Radial.Dot(Root.Axis)) > ScalarCriteria::GeometricTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "plane-cone fillet radial frame is degenerate");
+
+        Deliver<NurbsSurface> Outer = NurbsSurface::Cylinder(Root.Base, Root.Axis, Root.OuterRadius, Root.ShoulderHeight);
+        Deliver<NurbsCurve> ShoulderLine = NurbsCurve::Line(ShoulderCentre + Radial * Root.OuterRadius,
+                                                            ShoulderCentre + Radial * SpineRadius);
+        Deliver<NurbsSurface> Shoulder = ShoulderLine
+            ? NurbsSurface::Revolution(ShoulderLine.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(ShoulderLine.Denial.Reason, ShoulderLine.Denial.Detail);
+
+        // Meridian: shoulder contact (angle 3π/2) → arc middle → cone contact (angle π + α), about the spine centre.
+        const Vec3 MeridianCentre = ShoulderCentre + Root.Axis * Radius + Radial * SpineRadius;
+        auto OnMeridian = [&](double Angle) { return MeridianCentre + (Radial * std::cos(Angle) + Root.Axis * std::sin(Angle)) * Radius; };
+        const Vec3 ShoulderContact = OnMeridian(1.5 * ScalarCriteria::Pi);
+        const Vec3 ConeContact = OnMeridian(ScalarCriteria::Pi + HalfAngle);
+        const Vec3 MeridianMiddle = OnMeridian(1.25 * ScalarCriteria::Pi + 0.5 * HalfAngle);
+        Deliver<NurbsCurve> Meridian = NurbsCurve::ArcThreePoints(ShoulderContact, MeridianMiddle, ConeContact);
+        Deliver<NurbsSurface> Roll = Meridian
+            ? NurbsSurface::Revolution(Meridian.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(Meridian.Denial.Reason, Meridian.Denial.Detail);
+
+        Deliver<NurbsSurface> Boss = NurbsSurface::Cone(ShoulderCentre + Root.Axis * ContactHeight, Root.Axis,
+                                                        ContactRadius, Root.TopRadius, Root.BossHeight - ContactHeight);
+        if (!Outer || !Shoulder || !Roll || !Boss)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "plane-cone fillet support is degenerate");
+
+        // Preserve exact partial-torus identity for checking, selection, and later support correspondence.
+        Roll.Payload.Classification = SurfaceClassification::Torus;
+        Roll.Payload.Origin = ShoulderCentre + Root.Axis * Radius;
+        Roll.Payload.Axis = Root.Axis;
+        Roll.Payload.RadiusMajor = SpineRadius;
+        Roll.Payload.RadiusMinor = Radius;
+
+        Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Roll.Payload, Boss.Payload });
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const BodyReport Report = Result.Payload.Validate();
+        const bool ExpectedTopology = Result.Payload.Vertices.size() == 5 && Result.Payload.Edges.size() == 9 &&
+            Result.Payload.Coedges.size() == 18 && Result.Payload.Loops.size() == 6 && Result.Payload.Faces.size() == 6;
+        if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || !ExpectedTopology)
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "plane-cone fillet did not reach its exact manifold topology");
+        const double ExactVolume = PlaneConeSourceVolume(Root) +
+                                   ScalarCriteria::TwoPi * PlaneConeWedgeMoment(Root.FootRadius, HalfAngle, Radius);
+        if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExactVolume))
+            return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "plane-cone fillet volume failed analytic acceptance");
+        return Result;
+    }
+
     struct ConeSide
     {
         Vec3 Base, Axis;
@@ -2480,17 +2753,19 @@ Deliver<std::vector<int>> BlendSolver::TangentChain(const BrepBody& Body, int Se
     return Deliver<std::vector<int>>::Accept(std::move(Chain));
 }
 
-bool BlendSolver::Frame(const BrepBody& Body, int Edge, EdgeCornerFrame& Out, std::string& Refusal) noexcept
+// The refusal texts below are literals with static storage, so a Refusal may carry them directly; the public Frame
+//    copies the text into the caller's string. Returns nullptr when Out is filled.
+static const char* CornerFrameRefusal(const BrepBody& Body, int Edge, EdgeCornerFrame& Out) noexcept
 {
-    if (Edge < 0 || Edge >= (int)Body.Edges.size()) { Refusal = "edge index out of range"; return false; }
+    if (Edge < 0 || Edge >= (int)Body.Edges.size()) return "edge index out of range";
     const BrepEdge& E = Body.Edges[Edge];
-    if (E.Coedges.size() != 2) { Refusal = "edge is not a manifold interior edge (a blend needs exactly two adjacent faces)"; return false; }
-    if (E.VertexStart < 0 || E.VertexEnd < 0) { Refusal = "edge has no stored vertices"; return false; }
+    if (E.Coedges.size() != 2) return "edge is not a manifold interior edge (a blend needs exactly two adjacent faces)";
+    if (E.VertexStart < 0 || E.VertexEnd < 0) return "edge has no stored vertices";
 
     Vec3 P0 = Body.Vertices[E.VertexStart].Point, P1 = Body.Vertices[E.VertexEnd].Point;
     Vec3 Along = P1 - P0;
     double Length = Along.Length();
-    if (Length <= Tol) { Refusal = "edge is degenerate (zero length)"; return false; }
+    if (Length <= Tol) return "edge is degenerate (zero length)";
     Vec3 Tangent = Along * (1.0 / Length);
 
     // The edge must be straight: the tool solids are prisms, so a curved edge would not be cut exactly.
@@ -2500,19 +2775,19 @@ bool BlendSolver::Frame(const BrepBody& Body, int Edge, EdgeCornerFrame& Out, st
         {
             Vec3 D = S - P0;
             double Deviation = (D - Tangent * D.Dot(Tangent)).Length();
-            if (Deviation > 1e-6 * std::max(1.0, Length)) { Refusal = "edge is not straight (blend of a curved edge is not supported)"; return false; }
+            if (Deviation > 1e-6 * std::max(1.0, Length)) return "edge is not straight (blend of a curved edge is not supported)";
         }
     }
 
     int FaceA = Body.Coedges[E.Coedges[0]].Face, FaceB = Body.Coedges[E.Coedges[1]].Face;
-    if (FaceA < 0 || FaceB < 0 || FaceA == FaceB) { Refusal = "edge has invalid adjacent faces"; return false; }
+    if (FaceA < 0 || FaceB < 0 || FaceA == FaceB) return "edge has invalid adjacent faces";
 
     Vec3 NA, NB;
-    if (!PlanarNormal(Body, FaceA, NA) || !PlanarNormal(Body, FaceB, NB)) { Refusal = "blend requires both adjacent faces to be planar (curvature detected)"; return false; }
-    if (std::fabs(Tangent.Dot(NA)) > 1e-6 || std::fabs(Tangent.Dot(NB)) > ScalarCriteria::DirectionTolerance) { Refusal = "edge does not lie in both face planes"; return false; }
+    if (!PlanarNormal(Body, FaceA, NA) || !PlanarNormal(Body, FaceB, NB)) return "blend requires both adjacent faces to be planar (curvature detected)";
+    if (std::fabs(Tangent.Dot(NA)) > 1e-6 || std::fabs(Tangent.Dot(NB)) > ScalarCriteria::DirectionTolerance) return "edge does not lie in both face planes";
 
     Vec3 Bisector = NA + NB;
-    if (Bisector.Length() <= Tol) { Refusal = "adjacent faces are opposite (degenerate corner)"; return false; }
+    if (Bisector.Length() <= Tol) return "adjacent faces are opposite (degenerate corner)";
     Bisector = Bisector.Normalised();
 
     // In-face directions: perpendicular to the edge, lying in each face, pointing away from the edge across the face.
@@ -2538,16 +2813,22 @@ bool BlendSolver::Frame(const BrepBody& Body, int Edge, EdgeCornerFrame& Out, st
         return Side >= 0.0 ? Direction : Direction * -1.0;
     };
     Vec3 InA = InFace(FaceA, NA), InB = InFace(FaceB, NB);
-    if (InA.Length() <= Tol || InB.Length() <= Tol) { Refusal = "cannot resolve the in-face direction of the edge"; return false; }
+    if (InA.Length() <= Tol || InB.Length() <= Tol) return "cannot resolve the in-face direction of the edge";
 
     // Interior dihedral: the angle the material subtends at the edge, measured between the two in-face directions.
     double Dihedral = std::acos(ScalarCriteria::Clamp(InA.Dot(InB), -1.0, 1.0));
-    if (Dihedral <= 1e-6 || Dihedral >= ScalarCriteria::Pi - 1e-6) { Refusal = "faces are tangent or folded at this edge (no corner to blend)"; return false; }
+    if (Dihedral <= 1e-6 || Dihedral >= ScalarCriteria::Pi - 1e-6) return "faces are tangent or folded at this edge (no corner to blend)";
 
     Out.Start = P0; Out.End = P1; Out.Tangent = Tangent;
     Out.NormalA = NA; Out.NormalB = NB; Out.InA = InA; Out.InB = InB;
     Out.Bisector = Bisector; Out.Length = Length; Out.Dihedral = Dihedral;
     Out.FaceA = FaceA; Out.FaceB = FaceB;
+    return nullptr;
+}
+
+bool BlendSolver::Frame(const BrepBody& Body, int Edge, EdgeCornerFrame& Out, std::string& Refusal) noexcept
+{
+    if (const char* Text = CornerFrameRefusal(Body, Edge, Out)) { Refusal = Text; return false; }
     return true;
 }
 
@@ -2572,8 +2853,8 @@ double BlendSolver::FilletRemoval(const EdgeCornerFrame& F, double Radius) noexc
 Deliver<BrepBody> BlendSolver::ChamferEdge(const BrepBody& Body, int Edge, double SetBack) noexcept
 {
     if (std::optional<CylinderCap> Cap = NativeCylinderCap(Body, Edge)) return ChamferCylinderCap(*Cap, SetBack);
-    EdgeCornerFrame F; std::string Why;
-    if (!Frame(Body, Edge, F, Why)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why.c_str());
+    EdgeCornerFrame F;
+    if (const char* Why = CornerFrameRefusal(Body, Edge, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why);
     if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
 
     // A re-entrant edge of a capped prism is a profile operation, not the exterior wedge removal below.
@@ -2621,8 +2902,10 @@ Deliver<BrepBody> BlendSolver::FilletEdge(const BrepBody& Body, int Edge, double
     if (std::optional<CylinderCap> Cap = NativeCylinderCap(Body, Edge)) return FilletCylinderCap(*Cap, Radius);
     if (std::optional<PlaneCylinderRoot> Root = PlaneCylinderBossRoot(Body, Edge))
         return FilletPlaneCylinderBossRoot(*Root, Radius);
-    EdgeCornerFrame F; std::string Why;
-    if (!Frame(Body, Edge, F, Why)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why.c_str());
+    if (std::optional<PlaneConeRoot> Root = PlaneConeBossRoot(Body, Edge))
+        return FilletPlaneConeBossRoot(*Root, Radius);
+    EdgeCornerFrame F;
+    if (const char* Why = CornerFrameRefusal(Body, Edge, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why);
     if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
 
     // A prismatic reflex root is rebuilt from its 2D profile so the roll stays on the material side of the corner.
@@ -3079,7 +3362,7 @@ bool BlendSolver::ValidateAsymmetricSpecification(const AsymmetricBlendSpecifica
 {
     if (Specification.MinimumClearance < 0.0 || !std::isfinite(Specification.MinimumClearance))
     { Refusal = "minimum clearance is invalid"; return false; }
-    if (Specification.Kind == AsymmetricSupportKind::EqualRadiusAsymmetricPlanes)
+    if (Specification.Classification == AsymmetricSupportClassification::EqualRadiusAsymmetricPlanes)
     {
         if (!std::isfinite(Specification.Low.Radius) || !std::isfinite(Specification.High.Radius) ||
             Specification.Low.Radius <= ScalarCriteria::MergeTolerance ||
@@ -3104,7 +3387,7 @@ bool BlendSolver::ValidateAsymmetricSpecification(const AsymmetricBlendSpecifica
                       Specification.Low.EndpointAngle >= ScalarCriteria::TwoPi - ScalarCriteria::SweepTolerance ||
                       Specification.High.EndpointAngle >= ScalarCriteria::TwoPi - ScalarCriteria::SweepTolerance))
     { Refusal = "endpoint angles must be finite partial sweeps"; return false; }
-    if (Specification.Kind == AsymmetricSupportKind::VariableRadiusRoll)
+    if (Specification.Classification == AsymmetricSupportClassification::VariableRadiusRoll)
     {
         if (Specification.BlendRadius <= ScalarCriteria::MergeTolerance)
         { Refusal = "variable-radius roll requires a positive blend radius"; return false; }
@@ -3120,9 +3403,9 @@ bool BlendSolver::ValidateAsymmetricSpecification(const AsymmetricBlendSpecifica
 Deliver<BrepBody> BlendSolver::ReconstructAsymmetricFrustum(const AsymmetricBlendSpecification& Specification) noexcept
 {
     std::string Refusal;
-    if (Specification.Kind != AsymmetricSupportKind::TaperedFrustum &&
-        Specification.Kind != AsymmetricSupportKind::UnequalRadialCaps &&
-        Specification.Kind != AsymmetricSupportKind::EqualRadiusAsymmetricPlanes)
+    if (Specification.Classification != AsymmetricSupportClassification::TaperedFrustum &&
+        Specification.Classification != AsymmetricSupportClassification::UnequalRadialCaps &&
+        Specification.Classification != AsymmetricSupportClassification::EqualRadiusAsymmetricPlanes)
         return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "frustum reconstruction requires a supported endpoint mode");
     if (!ValidateAsymmetricSpecification(Specification, Refusal))
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "invalid asymmetric frustum specification");
@@ -3149,11 +3432,11 @@ Deliver<BrepBody> BlendSolver::ReconstructAsymmetricFrustum(const AsymmetricBlen
 
 Deliver<BrepBody> BlendSolver::ReconstructAsymmetricSupport(const AsymmetricBlendSpecification& Specification) noexcept
 {
-    switch (Specification.Kind)
+    switch (Specification.Classification)
     {
-        case AsymmetricSupportKind::TaperedFrustum:
-        case AsymmetricSupportKind::UnequalRadialCaps:
-        case AsymmetricSupportKind::EqualRadiusAsymmetricPlanes:
+        case AsymmetricSupportClassification::TaperedFrustum:
+        case AsymmetricSupportClassification::UnequalRadialCaps:
+        case AsymmetricSupportClassification::EqualRadiusAsymmetricPlanes:
             return ReconstructAsymmetricFrustum(Specification);
         default:
             return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
@@ -3175,7 +3458,7 @@ bool BlendSolver::ValidateG1EndpointMatch(Vec3 SurfaceNormal, Vec3 SupportNormal
 
 Deliver<VariableRadiusSurface> BlendSolver::BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept
 {
-    if (Specification.Kind != AsymmetricSupportKind::VariableRadiusRoll)
+    if (Specification.Classification != AsymmetricSupportClassification::VariableRadiusRoll)
         return Deliver<VariableRadiusSurface>::Reject(RefusalReason::Unsupported, "variable surface requires variable-radius mode");
     std::string Refusal;
     if (!ValidateAsymmetricSpecification(Specification, Refusal))

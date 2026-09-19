@@ -93,6 +93,45 @@ explicitly and returns a seam-healed `V12/E18/C36/L8/F8` result. Positive/negati
 spans, and oblique axes are verified. The result volume is the absolute angular fraction of the full-ring analytic value.
 This does not cover unequal, mitred, free-form, or otherwise non-radial endpoint supports.
 
+### Exact plane–cone boss roots
+
+Phase 32z is the first unequal-radius support pair. The boss is a native conical frustum whose foot circle `R_f` sits on
+the planar annular shoulder and whose top circle `R_t ≠ R_f` closes the top cap, so the wall is a cone with half-angle
+`tan α = (R_f − R_t) / H`; `α > 0` narrows upward and `α < 0` is an undercut flare. The classifier requires the closed
+genus-zero `V4/E7/C14/L5/F5` stepped solid, a root rim shared by a measured planar shoulder and a native cone whose tag
+agrees with its sampled end rows and straight generators, a concentric outer rim into a native cylinder wall, and two
+planar caps with a top-rim radius check. The shoulder's revolution seam is skipped geometrically, as Phase 31 does.
+
+Plane and coaxial cone are both surfaces of revolution about one axis, so their `r`-offsets meet in an exact circular
+spine and the rolling ball sweeps an exact rational torus band:
+
+```
+z_t = r (1 − sin α)                      cone contact height above the shoulder
+ρ_t = R_f − z_t tan α                    cone contact radius
+ρ_c = R_f + r (1 − sin α) / cos α        spine radius = shoulder contact radius
+meridian arc from π + α to 3π/2          span π/2 − α, centred at (ρ_c, r)
+```
+
+At `α = 0` every quantity reduces to Phase 31 (`ρ_c = R_f + r`, quarter turn). The added wedge is the meridian region
+bounded by the shoulder, the generator and the arc, revolved about the axis; Pappus gives it exactly as `2π` times the
+region's first moment (quadrilateral `(R_f, 0)–(ρ_c, 0)–(ρ_c, r)–(ρ_t, z_t)` minus the circular sector), and that
+closed form equals Phase 31's `ΔV` at `α = 0` to `1e-12`. The route refuses its own result if the tessellated volume
+disagrees with `V_source + ΔV` beyond the kernel's `VolumeTolerance`.
+
+The supported radius interval is strictly `r > 0`, `z_t < H` (the cone contact stays below the top rim), and
+`ρ_c < R_outer` (the shoulder contact stays inside the outer wall); the contact radius `ρ_t` is always positive for a
+frustum because it reaches `R_t > 0` only at `z_t = H`, so that gate is defensive. Verification exercises each limit on
+a fixture where it binds first: the boundary radius refuses and `0.98×` rolls exactly. Apex cones (`R_t = 0`), the
+conical top rim, the outer shoulder rim, and Boolean-built sources without a canonical root rim all refuse. Cone–cone
+and cone–cylinder pairs, non-radial endpoint supports, and variable-radius laws are not claimed.
+
+**Declared measurement tolerances.** The kernel measures volume by tessellation at a `1e-4` sagitta, which leaves even
+the sharp source body `≈ 3.8e-4` below its exact volume; the total-volume check therefore uses the kernel's own `1e-3`
+gate. The sharper test is differential: `(V_rounded − V_source)` cancels that shared floor and follows the Pappus
+wedge to `≤ 1.5e-3` of the wedge across narrowing, flaring, steep, `α = 0`, oblique, reversed, and both boundary
+fixtures; it is gated at `5e-3`. Torus residual is gated at `1e-9` (measured `≤ 3e-14`) and both G1 breaks at `1e-10`
+(measured `0`).
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

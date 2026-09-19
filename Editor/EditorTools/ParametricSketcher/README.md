@@ -13,7 +13,7 @@ console, all visuals go to PNG proofs in `Proofs/`.
 cd ParametricSketcher
 cmake -B build -G Ninja
 cmake --build build
-ctest --test-dir build --output-on-failure      # 68 suites (55 C++ verification binaries + 13 script smoke tests)
+ctest --test-dir build --output-on-failure      # 69 suites (56 C++ verification binaries + 13 script smoke tests)
 ```
 
 No external packages. `-Wall -Wextra -Wpedantic -Werror`.
@@ -26,7 +26,7 @@ triangles. Opening is transactional (the current scene is not touched if replay 
 `.arc.bak` recovery copy. Proof scripts in `Scripts/` remain runnable scripts; they are not native documents and are
 intentionally refused by `open` unless they carry the v1 document header. See
 [`docs/NATIVE_DOCUMENTS.md`](docs/NATIVE_DOCUMENTS.md) for the on-disk contract and its verification coverage. The
-validated, incremental implementation plan is in [`docs/CAD_ROADMAP.md`](docs/CAD_ROADMAP.md).
+validated, incremental implementation plan is in [`docs/CAPABILITY_ROADMAP.md`](docs/CAPABILITY_ROADMAP.md).
 
 ## Adversarial planar NURBS safety (Phase 23)
 
@@ -314,6 +314,23 @@ Phase 32x scales the separated two-stage side route to `3 <= N <= 8` counterbore
 
 Phase 32y generalizes the bounded side-stepped route to `2 <= N <= 8` cavities with independently mixed `2 <= Sᵢ <= 8` stage counts and a total budget `M = ΣSᵢ <= 16`. All cavities share retained-frame Y or Z direction, may independently enter either parallel retained side, and retain concentric strictly decreasing radii, strictly increasing finite depths, every shoulder and floor, and positive combined axial/radial clearance for every pair of finite stage bands. Source topology is genus-zero `V=8+2M/E=12+3M/C=24+6M/L=6+3M/F=6+2M`; rounded topology is `V=16+2M/E=24+3M/C=48+6M/L=10+3M/F=10+2M`. Output contains `6+M` planes, `4+M` rational cylinders, `M` planar inner loops, and `2M` exact rational circles. Seventeen total stages, a ninth stage or cavity, one-stage members, intersecting bands, mixed axes, eccentric or non-decreasing stages, wall/end contact, and breakthrough refuse transactionally. `MixedStageSideBlindBorePrismFilletVerification` contributes 42 checks and `Proofs/Phase32y_MixedStageSideBlindBorePrism.png`.
 
+## Exact plane–cone boss-root fillet (Phase 32z)
+
+The first unequal-radius support pair rounds the circular root where a native conical frustum boss (foot radius `R_f` on
+the shoulder, top radius `R_t ≠ R_f`, half-angle `tan α = (R_f − R_t) / H`) leaves a planar annular shoulder. Both
+supports are surfaces of revolution about one axis, so their offsets meet on an exact circular spine at
+`ρ_c = R_f + r (1 − sin α) / cos α` and the roll is an exact rational torus band spanning `π/2 − α`, meeting the shoulder
+at `ρ_c` and the cone at `(ρ_t, z_t) = (R_f − z_t tan α, r (1 − sin α))` with G1 contact circles. Narrowing bosses
+(`α > 0`), undercut flares (`α < 0`) and the `α = 0` limit — which reproduces Phase 31's spine and closed-form volume to
+`1e-12` — all pass through one route. The added wedge is given exactly by Pappus, and the route refuses its own result
+if the tessellated volume disagrees with it. Feasibility is explicit (`z_t < H`, `ρ_c < R_outer`); apex cones, the
+conical top rim, the outer shoulder rim, and Boolean-built sources without a canonical root rim refuse rather than
+approximate. The suite also verifies the specification-level unequal-radius validators (endpoint pairs and chains, the
+linear radius law and its measured ruled surface, G1 endpoint matching, the tapered-frustum reconstruction cross-check)
+that Phase 33's variable-radius work will rest on; the partial-chain and variable-radius-roll modes remain refused.
+`PlaneConeFilletVerification` contributes 61 checks and `Proofs/Phase32z_PlaneConeFillet.png`; the declared measurement
+tolerances are recorded in [`docs/BLEND_LIMITS.md`](docs/BLEND_LIMITS.md#exact-plane–cone-boss-roots).
+
 ## Layout
 
 | Folder | Role | Status |
@@ -402,6 +419,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 32w | **Exactly two separated side-entering two-stage blind bores.** Same/opposite retained sides preserve finite-band clearance, four annular levels, and eight rational rims. | `DualSideSteppedBlindBorePrismFilletVerification` — 40 C++ checks; `Proofs/Phase32w_DualSideSteppedBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 32x | **Bounded side-entering two-stage blind-bore set.** Three through eight counterbores preserve all-pairs finite-band clearance, `2N` planar levels, and `4N` rational rims. | `MultiSideSteppedBlindBorePrismFilletVerification` — 41 C++ checks; `Proofs/Phase32x_MultiSideSteppedBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 32y | **Bounded mixed-stage side-entering blind-bore set.** Two through eight cavities, two through eight stages each and sixteen stages total preserve all finite bands, `M` planar levels, and `2M` rational rims. | `MixedStageSideBlindBorePrismFilletVerification` — 42 C++ checks; `Proofs/Phase32y_MixedStageSideBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
+| 32z | **Exact plane–cone boss-root fillet.** The first unequal-radius support pair: a native conical frustum boss on a planar shoulder rebuilds as trimmed exact supports and a rational `π/2 − α` torus band along the analytic spine, with the Pappus closed-form wedge and explicit feasibility limits. | `PlaneConeFilletVerification` — 61 C++ checks; `Proofs/Phase32z_PlaneConeFillet.png` (2560 × 1600 C++-generated contact sheet) |
 
 ## Console quick start
 
@@ -550,13 +568,13 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **68 suites** — 55 per-feature verification binaries (1,943 checks total) and 13 script smoke
-tests. The Phase 32y direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
+ctest now registers **69 suites** — 56 per-feature verification binaries (2,018 checks total) and 13 script smoke
+tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 
 | Suite | Checks |
 |---|---|
-| `KernelVerification`              | 76  |
+| `KernelVerification`              | 90  |
 | `InteractionVerification`         | 54  |
 | `SelectionVerification`           | 35  |
 | `RasterVerification`              | 24  |
@@ -601,6 +619,7 @@ are:
 | `DualSideSteppedBlindBorePrismFilletVerification` | 40  |
 | `MultiSideSteppedBlindBorePrismFilletVerification` | 41  |
 | `MixedStageSideBlindBorePrismFilletVerification` | 42  |
+| `PlaneConeFilletVerification`     | 61  |
 | `FairPatchVerification`           | 47  |
 | `BodyOpsVerification`             | 25  |
 | `BlendVerification`               | 33  |
@@ -611,7 +630,7 @@ are:
 | `ConstraintVerification`          | 51  |
 | `MirrorVerification`              | 40  |
 | `SuiteVerification`               | 65  |
-| **Total** | **1943** |
+| **Total** | **2018** |
 
 Phase 10 also adds two new console verbs that the other phases do not need: `reset` (clears the scene + undo +
 workplane + the contact-sheet tile buffer) and `render sheet <0|1|2|3> / render sheet finalize <name>` (the contact

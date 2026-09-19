@@ -3,7 +3,7 @@
 //============================================================================================================================================
 
 #include "Kernel/SurfaceSpecification.h"
-#include "Kernel/BlendSolver.h"
+#include "Kernel/ScalarCriteria.h"
 #include "VerificationPanel.h"
 #include <algorithm>
 #include <cstdarg>
@@ -46,90 +46,19 @@ int main()
 {
     VerificationPanel Panel("SolidArc · Phase 1 · Kernel Verification — VectorSpecification · CurveSpecification · SurfaceSpecification");
 
-    //------------------------------------------------------------------ asymmetric endpoint support classifier
-    Panel.Section("BlendSolver · asymmetric endpoint support classifier");
-    {
-        EndpointSupport Low{ { 0, 0, 0 }, { 0, 0, 1 }, 2.0 };
-        EndpointSupport High{ { 0, 0, 8 }, { 0, 0, -1 }, 1.25 };
-        std::string Refusal;
-        Panel.Expect("Asymmetric parallel endpoint supports are accepted", BlendSolver::ValidateAsymmetricEndpointPair(Low, High, 0.1, Refusal));
-        Panel.Expect("Equal endpoint radii are refused", !BlendSolver::ValidateAsymmetricEndpointPair(Low, EndpointSupport{ High.Centre, High.Normal, 2.0 }, 0.1, Refusal));
-        Panel.Expect("Non-parallel endpoint normals are refused", !BlendSolver::ValidateAsymmetricEndpointPair(Low, EndpointSupport{ High.Centre, { 1, 0, 0 }, 1.25 }, 0.1, Refusal));
-        Panel.Expect("Consumed endpoint ligament is refused", !BlendSolver::ValidateAsymmetricEndpointPair(Low, EndpointSupport{ { 3, 0, 0 }, High.Normal, 1.25 }, 0.1, Refusal));
-        Panel.Expect("Degenerate endpoint normals are refused", !BlendSolver::ValidateAsymmetricEndpointPair(Low, EndpointSupport{ High.Centre, {}, 1.25 }, 0.1, Refusal));
-        VariableRadiusSurface Surface{ Low.Centre, High.Centre - Low.Centre, { 1, 0, 0 }, 8.0, { 2.0, 1.25 } };
-        Panel.Expect("Variable-radius surface reaches both endpoint radii", Surface.Evaluate(0.0, 0.0).Distance(Low.Centre) == 2.0 && Surface.Evaluate(1.0, 0.0).Distance(High.Centre) == 1.25);
-        Panel.Expect("Variable-radius surface tangent is finite", Surface.TangentAlong(ScalarCriteria::HalfPi).Length() > 0.0);
-        Panel.Expect("Variable-radius surface normal is finite", Surface.Normal(ScalarCriteria::HalfPi).Length() > 0.0);
-        Panel.Expect("Linear radius law has zero meridional curvature", Surface.MeridionalCurvature() == 0.0);
-        Panel.Expect("Variable-radius surface has finite circumferential curvature", std::isfinite(Surface.CircumferentialCurvature(0.5)));
-        Panel.Expect("Variable-radius surface curvature stays within bound", BlendSolver::ValidateVariableSurfaceCurvature(Surface, 1.0, Refusal));
-        Panel.Expect("Variable-radius surface rejects a tight curvature bound", !BlendSolver::ValidateVariableSurfaceCurvature(Surface, 0.1, Refusal));
-        Panel.Expect("Variable-radius surface G1 endpoints align", BlendSolver::ValidateVariableSurfaceG1(Surface, Surface.Normal(ScalarCriteria::HalfPi), Surface.Normal(ScalarCriteria::HalfPi), ScalarCriteria::HalfPi, Refusal));
-        Panel.Expect("Variable-radius surface rejects a non-G1 support", !BlendSolver::ValidateVariableSurfaceG1(Surface, { 1, 0, 0 }, Surface.Normal(ScalarCriteria::HalfPi), ScalarCriteria::HalfPi, Refusal));
-        AsymmetricEndpointChain Chain{ { Low, High, EndpointSupport{ { 0, 0, 16 }, High.Normal, 0.75, ScalarCriteria::HalfPi } } };
-        Panel.Expect("Collinear asymmetric endpoint chain is accepted", BlendSolver::ValidateAsymmetricEndpointChain(Chain, 0.1, Refusal));
-        Chain.Supports[2].Centre = { 1, 0, 16 };
-        Panel.Expect("Bending endpoint chain is refused", !BlendSolver::ValidateAsymmetricEndpointChain(Chain, 0.1, Refusal));
-        Panel.Expect("G1 endpoint normals are accepted", BlendSolver::ValidateG1EndpointMatch({ 0, 0, 1 }, { 0, 0, -1 }, Refusal));
-        Panel.Expect("Non-G1 endpoint normals are refused", !BlendSolver::ValidateG1EndpointMatch({ 1, 0, 0 }, { 0, 0, 1 }, Refusal));
-        AsymmetricBlendSpecification Taper{ Low, EndpointSupport{ High.Centre, High.Normal, 1.25, ScalarCriteria::HalfPi }, AsymmetricSupportKind::TaperedFrustum, 0.1, 0.0 };
-        Taper.Low.EndpointAngle = ScalarCriteria::HalfPi;
-        Panel.Expect("Tapered asymmetric specification is accepted", BlendSolver::ValidateAsymmetricSpecification(Taper, Refusal));
-        Deliver<BrepBody> Frustum = BlendSolver::ReconstructAsymmetricFrustum(Taper);
-        Panel.Expect("Asymmetric tapered frustum reconstructs", Frustum && Frustum.Payload.Validate().Solid());
-        if (Frustum)
-        {
-            const BodyReport Report = Frustum.Payload.Validate();
-            Panel.Expect("Asymmetric frustum is closed and manifold", Report.Closed && Report.Manifold && Report.Oriented);
-            Panel.Expect("Asymmetric frustum has one hull", Report.Hulls == 1);
-            Panel.Expect("Asymmetric frustum has two endpoint circular rims", Report.Faces >= 3 && Report.Edges >= 3);
-        }
-        AsymmetricBlendSpecification Transformed = Taper;
-        Transformed.Low.Centre = { 4, -3, 2 };
-        Transformed.High.Centre = { 4, 5, 10 };
-        Transformed.Low.Normal = { 0, 1, 1 };
-        Transformed.High.Normal = { 0, -1, -1 };
-        Panel.Expect("Translated oblique asymmetric frustum reconstructs", BlendSolver::ReconstructAsymmetricFrustum(Transformed));
-        Panel.Within("Asymmetric frustum analytic volume", Frustum ? Frustum.Payload.Validate().Volume : 0.0,
-                     ScalarCriteria::Pi * 8.0 / 3.0 * (4.0 + 2.5 + 1.5625), 1e-6);
-        Panel.Expect("Non-tapered modes refuse frustum reconstruction", !BlendSolver::ReconstructAsymmetricFrustum(AsymmetricBlendSpecification{ Low, Taper.High, AsymmetricSupportKind::VariableRadiusRoll, 0.1, 0.25 }));
-        Taper.Kind = AsymmetricSupportKind::UnequalRadialCaps;
-        Panel.Expect("Unequal radial caps reconstruct through the bounded support route", BlendSolver::ReconstructAsymmetricSupport(Taper));
-        Taper.Kind = AsymmetricSupportKind::PartialEndpointChain;
-        Panel.Expect("Partial endpoint chain remains explicitly refused", !BlendSolver::ReconstructAsymmetricSupport(Taper));
-        Taper.Kind = AsymmetricSupportKind::VariableRadiusRoll;
-        Panel.Expect("Variable-radius roll requires a blend radius", !BlendSolver::ValidateAsymmetricSpecification(Taper, Refusal));
-        Taper.BlendRadius = 0.25;
-        Taper.RadiusLaw = { Taper.Low.Radius, Taper.High.Radius };
-        Panel.Expect("Variable-radius law is positive", Taper.RadiusLaw.Positive());
-        Panel.Expect("Variable-radius law interpolates endpoints", Taper.RadiusLaw.Evaluate(0.0) == Taper.Low.Radius && Taper.RadiusLaw.Evaluate(1.0) == Taper.High.Radius);
-        Panel.Expect("Variable-radius law decreases monotonically", Taper.RadiusLaw.Decreasing());
-        Panel.Expect("Variable-radius law swept volume is positive", Taper.RadiusLaw.SweptVolume(8.0) > 0.0);
-        Panel.Expect("Variable-radius roll accepts a matching linear law", BlendSolver::ValidateAsymmetricSpecification(Taper, Refusal));
-        Deliver<VariableRadiusSurface> BuiltSurface = BlendSolver::BuildVariableRadiusSurface(Taper);
-        Panel.Expect("Variable-radius surface builds from specification", BuiltSurface && BuiltSurface.Payload.Length > 0.0);
-        Deliver<BrepBody> Ruled = BlendSolver::ReconstructVariableRadiusRuledSolid(Taper);
-        Panel.Expect("Variable-radius ruled solid reconstructs", Ruled && Ruled.Payload.Validate().Solid());
-        Taper.Kind = AsymmetricSupportKind::EqualRadiusAsymmetricPlanes;
-        Panel.Expect("Equal-radius plane mode refuses unequal radii", !BlendSolver::ValidateAsymmetricSpecification(Taper, Refusal));
-        Taper.Low.Radius = Taper.High.Radius;
-        Panel.Expect("Equal-radius plane mode accepts equal radii", BlendSolver::ValidateAsymmetricSpecification(Taper, Refusal));
-        Panel.Expect("Equal-radius asymmetric planes reconstruct", BlendSolver::ReconstructAsymmetricSupport(Taper));
-    }
-
     //------------------------------------------------------------------ scalar tolerance policy
     Panel.Section("ScalarCriteria · centralized volume acceptance");
     {
         Panel.Expect("Volume gate accepts exact value", ScalarCriteria::WithinVolumeTolerance(12.0, 12.0));
-        Panel.Expect("Volume gate accepts its scaled boundary", ScalarCriteria::WithinVolumeTolerance(12.0 + ScalarCriteria::VolumeTolerance * 12.0, 12.0));
+        // Boundaries are probed just inside / just outside: an exact-boundary sum such as 12 + 0.012 is not representable.
+        Panel.Expect("Volume gate accepts just inside its scaled boundary", ScalarCriteria::WithinVolumeTolerance(12.0 + ScalarCriteria::VolumeTolerance * 11.9, 12.0));
         Panel.Expect("Volume gate refuses beyond scaled boundary", !ScalarCriteria::WithinVolumeTolerance(12.0 + ScalarCriteria::VolumeTolerance * 12.1, 12.0));
         Panel.Expect("Volume gate has absolute floor for small solids", ScalarCriteria::WithinVolumeTolerance(0.0, 0.25 * ScalarCriteria::VolumeTolerance));
         Panel.Expect("Generic scaled gate preserves strict geometry checks", ScalarCriteria::WithinScaledTolerance(2.0 + 2e-8, 2.0, 1e-8));
         Panel.Expect("Generic scaled gate rejects beyond its bound", !ScalarCriteria::WithinScaledTolerance(2.0 + 2.1e-8, 2.0, 1e-8));
-        Panel.Expect("Sweep gate accepts its boundary", ScalarCriteria::WithinAngularTolerance(ScalarCriteria::Pi + ScalarCriteria::SweepTolerance, ScalarCriteria::Pi));
+        Panel.Expect("Sweep gate accepts just inside its boundary", ScalarCriteria::WithinAngularTolerance(ScalarCriteria::Pi + 0.9 * ScalarCriteria::SweepTolerance, ScalarCriteria::Pi));
         Panel.Expect("Sweep gate rejects beyond boundary", !ScalarCriteria::WithinAngularTolerance(ScalarCriteria::Pi + 1.1 * ScalarCriteria::SweepTolerance, ScalarCriteria::Pi));
-        Panel.Expect("Circular gate accepts its boundary", ScalarCriteria::WithinCircularTolerance(2.0 + ScalarCriteria::CircularTolerance, 2.0));
+        Panel.Expect("Circular gate accepts just inside its boundary", ScalarCriteria::WithinCircularTolerance(2.0 + 0.9 * ScalarCriteria::CircularTolerance, 2.0));
         Panel.Expect("Circular gate rejects beyond boundary", !ScalarCriteria::WithinCircularTolerance(2.0 + 1.1 * ScalarCriteria::CircularTolerance, 2.0));
         Panel.Expect("Curve tolerance is tighter than merge tolerance", ScalarCriteria::CurveTolerance < ScalarCriteria::MergeTolerance);
         Panel.Expect("Scaled position tolerance is tighter than merge tolerance", ScalarCriteria::ScaledPositionTolerance < ScalarCriteria::MergeTolerance);

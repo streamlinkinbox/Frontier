@@ -58,7 +58,7 @@ The v1 journal covers all successful top-level C++ console operations, including
 workplanes, selection and display configuration. Replaying operations through the kernel preserves exact NURBS/B-rep
 rather than serialising display triangles.
 
-This is native persistence, **not interchange**. It does not make a `.arc` readable by other CAD systems and does not
+This is native persistence, **not interchange**. It does not make a `.arc` readable by other modelling tools and does not
 replace planned STEP, IGES, DXF, STL, 3MF, or OBJ import/export. The file version is intentionally explicit so future
 schema migrations can be made without guessing at older data.
 
