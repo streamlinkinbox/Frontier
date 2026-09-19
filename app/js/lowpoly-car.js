@@ -178,7 +178,7 @@ function meshes(gb, mats, castShadow = true) {
    2 · material keys + palette
    ------------------------------------------------------------ */
 export const MAT = {
-  paint: 'paint', roof: 'roof', trim: 'trim', clad: 'clad', liner: 'liner',
+  paint: 'paint', roof: 'roof', cabin: 'cabin', trim: 'trim', clad: 'clad', liner: 'liner',
   inner: 'inner', seat: 'seat', glass: 'glass', chrome: 'chrome',
   head: 'head', headGlass: 'headGlass', tail: 'tail', tyre: 'tyre',
   rim: 'rim', brake: 'brake', caliper: 'caliper', accent: 'accent', bay: 'bay',
@@ -216,6 +216,7 @@ function makeMaterials(spec) {
     liner: mk('#0e0f12', 0.95, 0.0),
     inner: mk('#191a1e', 0.9, 0.02),
     seat: mk(spec.interior || '#22242a', 0.92, 0.0),
+    cabin: (() => { const m = mk(spec.cabinColor || '#f4efe6', 0.55, 0.05); m.side = THREE.DoubleSide; return m; })(),
     bay: mk('#101114', 0.85, 0.08),
     glass: new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(spec.glassTint || '#101a26'), roughness: 0.06, metalness: 0.0,
@@ -242,6 +243,15 @@ function makeMaterials(spec) {
    3 · style presets
    ------------------------------------------------------------ */
 export const STYLES = {
+  proto: {
+    id: 'proto', name: 'Proto', length: 4.32, wheelbase: 2.56, halfWidth: 0.93,
+    ground: 0.17, belt: 0.84, roof: 1.26, floor: 0.42, wheelR: 0.345, tyreW: 0.315,
+    track: 0.80, cowlBack: 0.62, wsRun: 0.52, roofLen: 1.02, rrRun: 0.50,
+    doors: 1, tailgate: false, shelf: 0, bayDepth: 0.20, archGap: 0.035,
+    noseTop: 0.76, tailTop: 0.80, deckRear: 0.82, hoodFront: 0.68, tailDeck: 0.80,
+    roofHalf: 0.60, glassHalf: 0.80, crown: 0.17, flare: 0.0, wing: 0, splitter: 0,
+    quarterGlass: false, framedDoors: false, cladding: false, toy: true, ride: 0
+  },
   coupe: {
     id: 'coupe', name: 'Coupe', length: 4.44, wheelbase: 2.62, halfWidth: 0.94,
     ground: 0.135, belt: 0.95, roof: 1.275, floor: 0.37, wheelR: 0.345, tyreW: 0.245,
@@ -316,7 +326,7 @@ export function makeSpec(o = {}) {
   const roof = o.roof ?? st.roof * j(0.985, 1.02);
   const ground = clamp(o.ride ?? st.ground + st.ride + j(-0.012, 0.02), 0.055, 0.42);
   const wheelR = clamp(o.wheel ?? st.wheelR * j(0.97, 1.05), 0.24, 0.52);
-  const facets = o.facets ?? j(0.85, 1.2);
+  const facets = (o.facets ?? j(0.85, 1.2)) * (st.toy ? 0.5 : 1);
 
   // ---- seed-driven character ----------------------------------------
   const rimStyle = pick(['spoke', 'split', 'dish', 'turbine', 'mesh']);
@@ -350,10 +360,13 @@ export function makeSpec(o = {}) {
     livery: { on: liveryOn, color: r() < 0.5 ? '#f2f4f8' : (paint.id === 'frontier' ? '#f2f4f8' : '#1f5eff'), width: j(0.055, 0.10), gap: j(0.02, 0.05) },
     accent: '#1f5eff', interior: pick(['#22242a', '#1d1f24', '#2a2320', '#1b2130']),
     glassTint: pick(['#0f1a26', '#141416', '#101820']), glassOpacity: j(0.38, 0.52),
-    wipers: r() < 0.8, badges: true, spare: r() < 0.5, towHook: r() < 0.3,
+    wipers: !st.toy && r() < 0.8, badges: !st.toy, spare: !st.toy && r() < 0.5, towHook: !st.toy && r() < 0.3,
     exhaust: pick(['single', 'twin', 'quad', 'centre']),
-    archLip: r() < 0.6, roofRails: styleId === 'ute' || r() < 0.15,
-    lightbar: styleId === 'ute' && r() < 0.5
+    archLip: !st.toy && r() < 0.6, roofRails: !st.toy && (styleId === 'ute' || r() < 0.15),
+    lightbar: !st.toy && styleId === 'ute' && r() < 0.5,
+    toy: !!st.toy,
+    cabinColor: st.toy ? (r() < 0.62 ? pick(['#f4efe6', '#ffffff', '#e9e3d7']) : paint.body) : (paint.roof || paint.body),
+    whitewall: st.toy && r() < 0.45, roundel: st.toy && r() < 0.6,
   };
   spec.belt = clamp(spec.belt, ground + 0.34, roof - 0.16);
   spec.floor = clamp(spec.floor, ground + 0.10, spec.belt - 0.30);
@@ -435,6 +448,7 @@ export function layout(spec) {
   // ---- arch notch (faceted trapezoid) -----------------------------
   const archShape = t => { const a = Math.abs(t); return a < 0.46 ? 1 : a < 0.68 ? 0.80 : a < 0.85 ? 0.48 : a < 1 ? 0.16 : 0; };
   sp.archLift = x => {
+    if (spec.toy) return 0;                       // clay prototypes: no arch cut-outs
     const lift = spec.wheelR * 2 + spec.archGap - spec.ground;
     const f = archShape((x - xFA) / archSpanF) * (x > (xFA + xRA) / 2 ? 1 : 0);
     const r = archShape((x - xRA) / archSpanR) * (x <= (xFA + xRA) / 2 ? 1 : 0);
@@ -459,11 +473,11 @@ export function layout(spec) {
 
   // deck (outer top surface) height
   const deck = ramp([
-    [xR, spec.tailTop * 0.94], [xTrunkR, spec.deckRear],
+    [xR, spec.tailTop * (spec.toy ? 0.99 : 0.94)], [xTrunkR, spec.deckRear],
     [xCabR + 0.02, spec.deckRear + 0.005], [xCowl - 0.02, spec.belt + 0.02],
     [xCowl + 0.05, spec.belt - 0.02], [xHoodF + 0.15, spec.noseTop + (spec.belt - spec.noseTop) * 0.55],
     [xHoodF, spec.noseTop + (spec.belt - spec.noseTop) * 0.42],
-    [xF - 0.10, spec.noseTop * 0.97], [xF, spec.noseTop * 0.90]
+    [xF - 0.10, spec.noseTop * (spec.toy ? 1.0 : 0.97)], [xF, spec.noseTop * (spec.toy ? 0.98 : 0.90)]
   ]);
   sp.deckF = deck;
 
@@ -487,6 +501,10 @@ export function layout(spec) {
     [xCowl, spec.ground + 0.005], [xHoodF, spec.ground + 0.0],
     [xF - 0.30, spec.ground + 0.02], [xF - 0.08, spec.ground + 0.09], [xF, spec.ground + 0.14]
   ]);
+  if (spec.toy) {                                 // straight slab underside, wheels overlap it
+    const yb = spec.ground * 0.44;
+    sp.yBotF = ramp([[xR, yb + 0.05], [xR + 0.20, yb], [xF - 0.20, yb], [xF, yb + 0.05]]);
+  }
   sp.chamF = ramp([
     [xR, 0.075], [xTrunkR, 0.06], [xCabR, spec.cladding ? 0.10 : 0.075],
     [xCowl, 0.06], [xF - 0.2, 0.055], [xF, 0.085]
@@ -498,16 +516,17 @@ export function layout(spec) {
 
   // ---- station list ------------------------------------------------
   const must = new Set([xR, xR + 0.06, xTrunkR, xCabR, xCowl, xHoodF, xRoofF, xRoofR, xFA, xRA, xF, xF - 0.06, 0]);
+  if (spec.toy) [xR + 0.06, xF - 0.06, 0].forEach(x => must.delete(x));
   if (bed) [bed.x0, bed.x1, (bed.x0 + bed.x1) / 2].forEach(x => must.add(x));
-  [[xFA, archSpanF], [xRA, archSpanR]].forEach(([ax, s]) => {
-    [0.46, 0.68, 0.85, 1.0].forEach(k => { must.add(ax - s * k - 0.008); must.add(ax - s * k + 0.008); must.add(ax + s * k - 0.008); must.add(ax + s * k + 0.008); });
-    must.add(ax);
+  (spec.toy ? [] : [[xFA, archSpanF], [xRA, archSpanR]]).forEach(([ax, s]) => {
+    (spec.toy ? [0.62, 1.0] : [0.46, 0.68, 0.85, 1.0]).forEach(k => { must.add(ax - s * k - 0.008); must.add(ax - s * k + 0.008); must.add(ax + s * k - 0.008); must.add(ax + s * k + 0.008); });
+    if (!spec.toy) must.add(ax);
   });
   bays.forEach(b => { must.add(b.x0 - 0.014); must.add(b.x0 + 0.014); must.add(b.x1 - 0.014); must.add(b.x1 + 0.014); must.add((b.x0 + b.x1) / 2); });
   if (spec.shelf > 0) must.add(xCabR - spec.shelf);
 
   const sorted = [...must].filter(x => x >= xR - 1e-6 && x <= xF + 1e-6).sort((a, b) => a - b);
-  const seg = 0.235 * clamp(spec.facets, 0.5, 2);
+  const seg = (spec.toy ? 0.62 : 0.235) * clamp(spec.facets, 0.5, 2);
   const xs = [sorted[0]];
   for (let i = 1; i < sorted.length; i++) {
     const a = xs[xs.length - 1], b = sorted[i];
@@ -534,7 +553,7 @@ export function hullSection(sp, x) {
   const arch = sp.archN(x);
 
   const yBot = sp.yBotF(x) + lift;
-  const cham = sp.chamF(x) * (1 - arch * 0.35);
+  const cham = sp.toy ? 0.03 : sp.chamF(x) * (1 - arch * 0.35);
   const sillTop = yBot + cham;
 
   // belt / shoulder line -----------------------------------------
@@ -555,13 +574,14 @@ export function hullSection(sp, x) {
     yUp = sp.deckF(x) - sp.crown * (1 - arch * 0.6);
     hwU = sp.hwUpF(x);
     yTop = sp.deckF(x);
-    hwT = hwU - (sp.inBayWell(x) ? 0.105 : 0.055);
+    hwT = hwU - (sp.inBayWell(x) ? (sp.toy ? 0.06 : 0.105) : (sp.toy ? 0.02 : 0.055));
     if (sp.inBayWell(x)) yTop = sp.deckF(x) - sp.bayDepth;
   }
 
   const hwB = sp.hwBotFlared(x);
   const hwW = sp.hwWaistF(x) * (1 + sp.flare * 0.6 * arch);
-  const waistY = Math.max(sillTop + 0.035, sp.waistF(x), yUp - (yUp - sillTop) * 0.42);
+  let waistY = Math.max(sillTop + 0.035, sp.waistF(x), yUp - (yUp - sillTop) * 0.42);
+  if (sp.toy) { waistY = yUp - 0.09; }                    // flat slab side
 
   const P = [];
   P.push([yBot, 0]);
@@ -588,9 +608,10 @@ function hullMirror(i) { return HULL_COLS - 1 - i; }   // 0..6 left -> 13..7 rig
 function ghSection(sp, x) {
   const yb = sp.belt - 0.006;
   const yr = sp.roofF(x);
-  const hg = sp.hwGlassF(x), hr = sp.hwRoofF(x);
-  const t = 0.055;
-  const bev = 0.055;
+  let hg = sp.hwGlassF(x), hr = sp.hwRoofF(x);
+  if (sp.toy) hr = hg - 0.10;                       // blocky trapezoid cabin
+  const t = sp.toy ? 0.07 : 0.055;
+  const bev = sp.toy ? 0.02 : 0.055;
   const G = [
     [yb, hg], [yb + (yr - yb) * 0.30, hg], [yr - bev, hr], [yr, hr * 0.55], [yr, 0],
     [yr - 0.042, 0], [yr - bev - 0.03, hr - t], [yb + (yr - yb) * 0.30 - 0.03, hg - t], [yb, hg - t]
@@ -670,7 +691,7 @@ function buildHull(sp, gb) {
   loft(gb, sp, x => secs.get(x).P, st, keep, { capFrontMat: MAT.paint, capRearMat: MAT.paint });
 
   // --- cladding band: a chunky protective strip along the sills/arches
-  if (sp.cladding) {
+  if (sp.cladding && !sp.toy) {
     [1, -1].forEach(side => {
       let prev = null;
       for (const x of st) {
@@ -687,7 +708,7 @@ function buildHull(sp, gb) {
   }
 
   // --- arch lips ---------------------------------------------------
-  if (sp.archLip) {
+  if (sp.archLip && !sp.toy) {
     [[sp.xFA, sp.archSpanF], [sp.xRA, sp.archSpanR]].forEach(([ax, span]) => {
       const N = 7;
       [1, -1].forEach(side => {
@@ -711,9 +732,10 @@ function buildHull(sp, gb) {
    9 · greenhouse (pillars, roof, fixed glass)
    ------------------------------------------------------------ */
 function ghSideMat(sp, x) {
-  if (x < sp.xCowl || x > sp.xCabR) return null;
+  if (x > sp.xCowl || x < sp.xCabR) return null;
   // everything ahead of the leading door glass is the raked A-pillar wedge
   if (x >= sp.pillarFront) return MAT.paint;
+  if (sp.toy && (x > sp.xRoofF + 0.02 || x < sp.xRoofR - 0.02)) return MAT.cabin;  // solid A/C wedge
   const bay = sp.bayAt(x);
   if (bay) {
     const g0 = bay.x0 + 0.045, g1 = bay.x1 - 0.045;
@@ -723,9 +745,10 @@ function ghSideMat(sp, x) {
   // between the last bay and the cabin rear: C-pillar (+ quarter glass)
   const lastBay = sp.bays[sp.bays.length - 1];
   if (sp.quarterGlass && x > lastBay.x1 && x < sp.xCabR - 0.06 && !sp.tailgate) return MAT.glass;
-  return MAT.paint;
+  return sp.toy ? MAT.cabin : MAT.paint;
 }
 function ghTopMat(sp, x) {
+  if (sp.toy) return sp.tailgate && x <= sp.xRoofR ? null : MAT.cabin;    // solid prototype block
   if (x >= sp.xRoofF) return MAT.glass;                                   // windshield (+X = forwards)
   if (x <= sp.xRoofR) return sp.tailgate ? null : MAT.glass;              // rear glass
   return MAT.roof;                                                        // roof panel
@@ -763,7 +786,9 @@ export function buildGreenhouse(sp, gb) {
     if (SIDE_IN.has(k)) return side === 'open' ? null : MAT.inner;       // pillar trim
     return null;
   };
-  loft(gb, sp, x => ghSection(sp, x), stations, keep, { capFront: false, capRear: false });
+  loft(gb, sp, x => ghSection(sp, x), stations, keep, sp.toy
+    ? { capFront: true, capRear: true, capFrontMat: MAT.cabin, capRearMat: MAT.cabin }
+    : { capFront: false, capRear: false });
 
   // windshield/rear-glass reveals at the outer edge (thin trim)
   const reveal = (x, mat) => {
@@ -776,7 +801,7 @@ export function buildGreenhouse(sp, gb) {
     }
   };
   // roof rail / drip moulding over each opening --------------------
-  sp.bays.forEach(b => {
+  if (!sp.toy) sp.bays.forEach(b => {
     const x0 = b.x0 + 0.02, x1 = b.x1 - 0.02;
     [1, -1].forEach(side => {
       let prev = null;
@@ -794,9 +819,11 @@ export function buildGreenhouse(sp, gb) {
     });
   });
   // roof crown crease + antenna/shark fin --------------------------
-  const finX = sp.xRoofR + (sp.xCabR - sp.xRoofR) * 0.35;
-  gb.strut(MAT.trim, V3(finX, sp.roofF(finX) - 0.01, 0), V3(finX - 0.11, sp.roofF(finX - 0.11) + 0.055, 0), 0.02, 0.05);
-  reveal(sp.xCabR - 0.001, MAT.trim);
+  if (!sp.toy) {
+    const finX = sp.xRoofR + (sp.xCabR - sp.xRoofR) * 0.35;
+    gb.strut(MAT.trim, V3(finX, sp.roofF(finX) - 0.01, 0), V3(finX - 0.11, sp.roofF(finX - 0.11) + 0.055, 0), 0.02, 0.05);
+    reveal(sp.xCabR - 0.001, MAT.trim);
+  }
 }
 
 /* ------------------------------------------------------------
@@ -851,7 +878,7 @@ function buildBonnet(sp, mats) {
   deckPanel(sp, gb, xa, xb, 0.012, 0.05, MAT.paint, MAT.inner);
   // shut-line groove + vents from the seed
   const r = rng(sp.seed + 'bonnet');
-  if (r() < 0.55) {
+  if (r() < 0.55 && !sp.toy) {
     const vx = lerp(xa, xb, 0.30 + r() * 0.25);
     [-1, 1].forEach(s => {
       for (let i = 0; i < 3; i++) {
@@ -902,7 +929,7 @@ function buildTailgate(sp, mats) {
       // outer painted frame edge
       gb.quad(MAT.paint, V3(A.x, A.y, zo), V3(A.x, glassY(A), zo), V3(B.x, glassY(B), zo2), V3(B.x, B.y, zo2));
       // glass
-      gb.quad(MAT.glass, V3(A.x, glassY(A), zo * 0.995), V3(A.x, A.y - 0.03, zo * 0.995), V3(B.x, B.y - 0.03, zo2 * 0.995), V3(B.x, glassY(B), zo2 * 0.995));
+      gb.quad(sp.toy ? MAT.cabin : MAT.glass, V3(A.x, glassY(A), zo * 0.995), V3(A.x, A.y - 0.03, zo * 0.995), V3(B.x, B.y - 0.03, zo2 * 0.995), V3(B.x, glassY(B), zo2 * 0.995));
       // inner trim
       gb.quad(MAT.inner, V3(A.x, glassY(A), zi), V3(A.x, A.y - 0.02, zi), V3(B.x, B.y - 0.02, zi2), V3(B.x, glassY(B), zi2));
     });
@@ -980,41 +1007,51 @@ function buildDoor(sp, bay, mats) {
   gb.poly(MAT.paint, secs[secs.length - 1].map(p => V3(xs[xs.length - 1], p[0], p[1])), false);
 
   // --- character crease + shut-line shadow strip --------------------
-  const yC = lerp(sp.floor, sp.belt, 0.72);
-  gb.strut(MAT.paint, V3(x0 + 0.02, yC, side * (sp.hwUpF(x0) + 0.008)), V3(x1 - 0.02, yC, side * (sp.hwUpF(x1) + 0.008)), 0.014, 0.012);
+  if (!sp.toy) {
+    const yC = lerp(sp.floor, sp.belt, 0.72);
+    gb.strut(MAT.paint, V3(x0 + 0.02, yC, side * (sp.hwUpF(x0) + 0.008)), V3(x1 - 0.02, yC, side * (sp.hwUpF(x1) + 0.008)), 0.014, 0.012);
 
-  // --- handle -------------------------------------------------------
-  const hx = lerp(x1, x0, 0.20), hy = sp.belt - 0.085;
-  gb.strut(MAT.chrome, V3(hx, hy, side * (sp.hwUpF(hx) + 0.012)), V3(hx - 0.155, hy, side * (sp.hwUpF(hx - 0.155) + 0.012)), 0.028, 0.026);
+    // --- handle -----------------------------------------------------
+    const hx = lerp(x1, x0, 0.20), hy = sp.belt - 0.085;
+    gb.strut(MAT.chrome, V3(hx, hy, side * (sp.hwUpF(hx) + 0.012)), V3(hx - 0.155, hy, side * (sp.hwUpF(hx - 0.155) + 0.012)), 0.028, 0.026);
+  } else if (sp.roundel) {
+    // race roundel on the door slab
+    const rx = lerp(x0, x1, 0.5), ry = lerp(sp.floor, sp.belt, 0.52);
+    const g = new THREE.CylinderGeometry(0.16, 0.16, 0.012, 12);
+    g.rotateX(Math.PI / 2);
+    gb.geo(MAT.livery, g, rx, ry, side * (sp.hwUpF(rx) + 0.004));
+    g.dispose();
+  }
 
   // --- window glass (rolls down into the pocket) --------------------
   const gx0 = Math.max(bay.glassX0, x0 + 0.02), gx1 = Math.min(bay.glassX1, x1 - 0.02);
   const glassGB = new GeoBuf();
   const NG = Math.max(3, Math.round((gx1 - gx0) / 0.22));
   const gxs = Array.from({ length: NG + 1 }, (_, i) => lerp(gx0, gx1, i / NG));
-  const top = x => sp.roofF(clamp(x, sp.xCowl, sp.xCabR)) - 0.012;
+  const top = x => sp.roofF(clamp(x, sp.xCabR, sp.xCowl)) - 0.012;
   for (let i = 0; i < gxs.length - 1; i++) {
     const xa = gxs[i], xb = gxs[i + 1];
-    const za = side * (sp.hwGlassF(clamp(xa, sp.xCowl, sp.xCabR)) - 0.030);
-    const zb = side * (sp.hwGlassF(clamp(xb, sp.xCowl, sp.xCabR)) - 0.030);
+    const inset = sp.toy ? 0.028 : 0.030;
+    const za = side * (sp.hwGlassF(clamp(xa, sp.xCabR, sp.xCowl)) - inset);
+    const zb = side * (sp.hwGlassF(clamp(xb, sp.xCabR, sp.xCowl)) - inset);
     const ya = sp.belt - 0.10, yb = sp.belt - 0.10;
-    gb2quad(glassGB, MAT.glass, V3(xa, ya, za), V3(xa, top(xa), za), V3(xb, top(xb), zb), V3(xb, yb, zb));
+    gb2quad(glassGB, sp.toy ? MAT.cabin : MAT.glass, V3(xa, ya, za), V3(xa, top(xa), za), V3(xb, top(xb), zb), V3(xb, yb, zb));
   }
   // glass edge (a bright polished edge reads well when half down)
   for (let i = 0; i < gxs.length - 1; i++) {
     const xa = gxs[i], xb = gxs[i + 1];
-    const za = side * (sp.hwGlassF(clamp(xa, sp.xCowl, sp.xCabR)) - 0.030);
-    const zb = side * (sp.hwGlassF(clamp(xb, sp.xCowl, sp.xCabR)) - 0.030);
-    gb2quad(glassGB, MAT.chrome, V3(xa, top(xa), za), V3(xa, top(xa) + 0.006, za), V3(xb, top(xb) + 0.006, zb), V3(xb, top(xb), zb));
+    const za = side * (sp.hwGlassF(clamp(xa, sp.xCabR, sp.xCowl)) - (sp.toy ? 0.028 : 0.030));
+    const zb = side * (sp.hwGlassF(clamp(xb, sp.xCabR, sp.xCowl)) - (sp.toy ? 0.028 : 0.030));
+    gb2quad(glassGB, sp.toy ? MAT.trim : MAT.chrome, V3(xa, top(xa), za), V3(xa, top(xa) + 0.006, za), V3(xb, top(xb) + 0.006, zb), V3(xb, top(xb), zb));
   }
   const glass = meshes(glassGB, mats, false);
-  glass.renderOrder = 3;
+  glass.renderOrder = sp.toy ? 1 : 3;
 
   // --- framed door: window surround ---------------------------------
-  if (sp.framedDoors) {
+  if (sp.framedDoors && !sp.toy) {
     const fr = new GeoBuf();
-    const zf = side * (sp.hwGlassF(clamp(gx0, sp.xCowl, sp.xCabR)) - 0.012);
-    const zr = side * (sp.hwGlassF(clamp(gx1, sp.xCowl, sp.xCabR)) - 0.012);
+    const zf = side * (sp.hwGlassF(clamp(gx0, sp.xCabR, sp.xCowl)) - 0.012);
+    const zr = side * (sp.hwGlassF(clamp(gx1, sp.xCabR, sp.xCowl)) - 0.012);
     const yb = sp.belt + 0.02;
     fr.strut(MAT.paint, V3(gx0, yb, zf), V3(gx0, top(gx0) + 0.02, zf), 0.052, 0.034);
     fr.strut(MAT.paint, V3(gx1, yb, zr), V3(gx1, top(gx1) + 0.02, zr), 0.052, 0.034);
@@ -1022,7 +1059,7 @@ function buildDoor(sp, bay, mats) {
     let prev = null;
     for (let i = 0; i <= N2; i++) {
       const x = lerp(gx0, gx1, i / N2);
-      const z = side * (sp.hwGlassF(clamp(x, sp.xCowl, sp.xCabR)) - 0.012);
+      const z = side * (sp.hwGlassF(clamp(x, sp.xCabR, sp.xCowl)) - 0.012);
       const p = V3(x, top(x) + 0.02, z);
       if (prev) fr.strut(MAT.paint, prev, p, 0.05, 0.034);
       prev = p;
@@ -1031,6 +1068,19 @@ function buildDoor(sp, bay, mats) {
   }
 
   // --- mirror (rides on the door) ------------------------------------
+  if (sp.toy) {
+    const pivot0 = V3(x1, 0, side * (sp.hwUpF(x1) + 0.004));
+    const g0 = meshes(gb, mats);
+    g0.children.forEach(c => c.geometry.translate(-pivot0.x, -pivot0.y, -pivot0.z));
+    g0.position.copy(pivot0);
+    glass.children.forEach(c => c.geometry.translate(-pivot0.x, -pivot0.y, -pivot0.z));
+    glass.position.copy(pivot0);
+    return {
+      group: g0, pivot: pivot0, axis: 'y', dir: side > 0 ? 1 : -1, open: 1.14,
+      label: (bay.side > 0 ? 'Door · left' : 'Door · right') + (bay.front ? ' front' : ' rear'),
+      id: bay.id, glass, glassTravel: (sp.belt - 0.10) - (sp.floor + 0.06), bay
+    };
+  }
   const mir = new GeoBuf();
   const mx = x1 - 0.10, mz = side * (sp.hwUpF(mx) + 0.02), my = sp.belt + 0.045;
   mir.strut(MAT.trim, V3(mx, my - 0.03, side * (sp.hwUpF(mx))), V3(mx, my, mz + side * 0.06), 0.028, 0.026);
@@ -1066,6 +1116,16 @@ function gb2quad(gb, m, a, b, c, d) { gb.quad(m, a, b, c, d); }
    12 · interior, bays, glass house-keeping
    ------------------------------------------------------------ */
 function buildInterior(sp, gb) {
+  if (sp.toy) {                                     // prototype: clean empty wells
+    const bx0 = sp.xHoodF - 0.06, bx1 = sp.xCowl - 0.06;
+    const by = sp.deckF((bx0 + bx1) / 2) - sp.bayDepth;
+    gb.box(MAT.bay, (bx0 + bx1) / 2, by - 0.02, 0, (bx1 - bx0) * 0.94, 0.04, sp.hwUpF((bx0 + bx1) / 2) * 1.5);
+    if (!sp.tailgate && !sp.bed) {
+      const tx = (sp.xTrunkR + sp.xCabR) / 2, ty = sp.deckF(tx) - sp.bayDepth;
+      gb.box(MAT.bay, tx, ty - 0.02, 0, (sp.xCabR - sp.xTrunkR) * 0.9, 0.04, sp.hwUpF(tx) * 1.5);
+    }
+    return;
+  }
   const zS = sp.track * 0.52;                       // seat centres
   const yF = sp.floor;
   const dashX = sp.xCowl - 0.10;
@@ -1175,7 +1235,23 @@ function lathe(gb, mat, profile, segs, cx, cy, cz, axisZ = true) {
   g.dispose();
 }
 
+function buildToyWheel(sp, gb) {
+  const R = sp.wheelR, W = sp.tyreW;
+  const segs = 18;
+  lathe(gb, MAT.tyre, [
+    [R * 0.55, -W / 2], [R * 0.86, -W / 2], [R * 0.97, -W / 2 + 0.05], [R, -W * 0.18],
+    [R, W * 0.18], [R * 0.97, W / 2 - 0.05], [R * 0.86, W / 2], [R * 0.55, W / 2]
+  ], segs, 0, 0, 0);
+  if (sp.whitewall) {
+    lathe(gb, MAT.cabin, [[R * 0.60, W / 2 + 0.002], [R * 0.84, W / 2 + 0.002], [R * 0.84, W / 2 - 0.05], [R * 0.60, W / 2 - 0.05]], segs, 0, 0, 0);
+  }
+  // dished face + chrome dome hub
+  lathe(gb, MAT.tyre, [[R * 0.55, W * 0.30], [R * 0.34, W * 0.34], [R * 0.16, W * 0.36]], segs, 0, 0, 0);
+  lathe(gb, MAT.chrome, [[0.001, W * 0.42], [R * 0.10, W * 0.40], [R * 0.14, W * 0.34], [0.001, W * 0.30]], segs, 0, 0, 0);
+}
+
 function buildWheel(sp, gb, rim) {
+  if (sp.toy) return buildToyWheel(sp, gb);
   const R = sp.wheelR, W = sp.tyreW, rimR = R * 0.60;
   const segs = Math.round(clamp(11 * (sp.facets > 1.15 ? 1.25 : 1), 8, 18));
   // tyre -------------------------------------------------------------
@@ -1251,6 +1327,13 @@ function buildWheels(sp, mats, root) {
 function buildLamps(sp, gb) {
   const hf = sp.hwUpF(sp.xF - 0.02), nf = sp.hwUpF(sp.xHoodF);
   const yNose = sp.deckF(sp.xF);
+  if (sp.toy) {
+    // flat dark nose band + red tail wedges, exactly like a clay prototype
+    gb.box(MAT.trim, sp.xF - 0.02, yNose * 0.62, 0, 0.10, yNose * 0.34, hf * 1.72);
+    const hR = sp.hwUpF(sp.xR + 0.02), yT = sp.deckF(sp.xR);
+    [-1, 1].forEach(s => gb.box(MAT.tail, sp.xR + 0.015, yT * 0.72, s * hR * 0.86, 0.07, yT * 0.30, 0.10));
+    return;
+  }
   // headlamps ------------------------------------------------------------
   [-1, 1].forEach(s => {
     const z = s * (hf * (sp.lampStyle === 'bar' ? 0.55 : 0.62));
