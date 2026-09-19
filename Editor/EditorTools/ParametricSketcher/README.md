@@ -331,6 +331,33 @@ that Phase 33's variable-radius work will rest on; the partial-chain and variabl
 `PlaneConeFilletVerification` contributes 61 checks and `Proofs/Phase32z_PlaneConeFillet.png`; the declared measurement
 tolerances are recorded in [`docs/BLEND_LIMITS.md`](docs/BLEND_LIMITS.md#exact-plane–cone-boss-roots).
 
+## Worked model: a wooden toy car (`Scripts/ToyCar.arc`)
+
+The verifiers prove routes one at a time; this script proves the tool as a modelling tool by building a 20 cm wooden
+toy car the way a woodworker would, with a proof render at every stage (`./build/SolidArc Scripts/ToyCar.arc`):
+
+1. **Sketch** the side silhouette on the XZ workplane — one polyline, six per-corner sketch fillets (nose, cowl,
+   windscreen, roof, deck, chin) — plus two arch circles, and subtract them with the **2D profile Boolean**;
+2. **extrude** the silhouette 8 cm (the rational arcs become exact extrusion faces, `V10/E15/F7`);
+3. sketch the **plan view** on XY (tapered nose, rounded corners) and extrude it through the block height;
+4. **Boolean intersect** the two extrusions — the two-view carve gives the body, still genus 0;
+5. **Boolean union** two axle bearing blocks that close the arches between the wheels;
+6. **Boolean subtract** the two axle bores (genus 2: two tunnels) and six grille slots (pockets, genus unchanged);
+7. build the parts — wheels, dowel hubs and axles — and union each set into one genus-0 solid.
+
+Every intermediate is reported by `topology` as a closed, manifold, oriented solid with one hull, and the script ends with
+`0 refusal(s)`. Proofs: `Proofs/ToyCar_A_Construction.png` (sketch → block → plan → intersect),
+`Proofs/ToyCar_B_Features.png` (underside, grille close-up, wheelsets, assembly), `Proofs/ToyCar_C_FinalViews.png`
+(front and rear three-quarter, nose-on, plan) and `Proofs/ToyCar_Hero.png`; the eight stage renders `ToyCar_1…8` are
+written alongside. The kernel limits the exercise ran into — and the construction that honestly avoids each — are
+recorded in [`docs/CAPABILITY_ROADMAP.md`](docs/CAPABILITY_ROADMAP.md#kernel-limits-found-by-the-worked-model).
+
+The same exercise fixed a presentation defect that had made every proof render "x-ray": the camera's near plane
+collapsed to 1 mm after any `view fit`, so the constant line depth bias spanned hundreds of scene units and B-rep edges
+drew through walls. Depth planes now follow the eye every frame (`CameraProjection::NearDistance/FarDistance`) and the
+line bias is a per-view clip-space constant equal to 0.2 % of the view depth (`ViewRecord::DepthPolicy`), so edges lying
+on a face still win while edges behind a wall are occluded.
+
 ## Layout
 
 | Folder | Role | Status |

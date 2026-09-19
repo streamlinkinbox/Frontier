@@ -31,6 +31,7 @@ struct ViewRecord
     float Viewport[4];                                                                  // [px] xy size, zw reciprocal
     float LatticeStyle[4];                                                                 // x minor cell [m], y major every N, z fade radius [m], w half-width [px]
     float Illumination[4];                                                              // xyz key light dir, w ambient
+    float DepthPolicy[4] = {};                                                          // x line depth bias [clip z], yzw reserved
     float PixelAngle = 0.0f;                                                            // [rad] per pixel (perspective)
     float PixelWorld = 0.0f;                                                            // [m] per pixel (orthographic)
 };

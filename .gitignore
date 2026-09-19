@@ -29,3 +29,5 @@ Editor/EditorTools/ParametricSketcher/Panel/Verification/view.png
 # `git add -f Editor/EditorTools/ParametricSketcher/Proofs/<Phase>.png`. See Proofs/README.md.
 Editor/EditorTools/ParametricSketcher/Proofs/*.png
 !Editor/EditorTools/ParametricSketcher/Proofs/Phase32z_*.png
+!Editor/EditorTools/ParametricSketcher/Proofs/ToyCar_[ABC]_*.png
+!Editor/EditorTools/ParametricSketcher/Proofs/ToyCar_Hero.png

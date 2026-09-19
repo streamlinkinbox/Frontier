@@ -23,8 +23,16 @@ public:
     double Distance  = 12.0;                                                            // [m]
     double FovY      = ScalarCriteria::Radians(42.0);                                   // [rad]
     bool   Orthographic = false;                                                        // [-]
-    double NearPlane = 0.02;                                                            // [m] recomputed by Fit
-    double FarPlane  = 2000.0;                                                          // [m]
+    double Reach     = 5.0;                                                             // [m] bounding-sphere radius of the last Fit
+
+    // Depth planes follow the eye every frame rather than the last Fit, so dollying and orbiting never clip the fitted
+    //    scene and the depth buffer keeps its precision around it: in perspective the near plane sits just short of the
+    //    scene sphere or at 3 % of the eye distance, whichever is farther; both projections keep a generous far plane.
+    [[nodiscard]] double NearDistance() const noexcept;                                 // [m]
+    [[nodiscard]] double FarDistance() const noexcept;                                  // [m]
+    // Clip-space depth offset that pulls a line 0.2 % of its view depth toward the eye: enough for an edge lying ON a
+    //    face to win against that face's own fragments, small enough that edges behind a wall stay hidden.
+    [[nodiscard]] double LineDepthBias() const noexcept;                                // [-] clip z
 
     [[nodiscard]] Vec3 Eye() const noexcept;
     [[nodiscard]] Vec3 Forward() const noexcept;                                        // unit, eye → pivot

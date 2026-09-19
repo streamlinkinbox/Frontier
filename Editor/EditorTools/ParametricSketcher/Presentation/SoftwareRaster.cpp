@@ -135,6 +135,7 @@ static SM::ViewRecord MirrorView(const ViewRecord& V) noexcept
     R.Viewport     = { V.Viewport[0], V.Viewport[1], V.Viewport[2], V.Viewport[3] };
     R.LatticeStyle    = { V.LatticeStyle[0], V.LatticeStyle[1], V.LatticeStyle[2], V.LatticeStyle[3] };
     R.Illumination = { V.Illumination[0], V.Illumination[1], V.Illumination[2], V.Illumination[3] };
+    R.DepthPolicy  = { V.DepthPolicy[0], V.DepthPolicy[1], V.DepthPolicy[2], V.DepthPolicy[3] };
     return R;
 }
 

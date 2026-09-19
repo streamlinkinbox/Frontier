@@ -16,6 +16,7 @@ struct ViewRecord
     float4   Viewport;          // xy = size [px], zw = 1/size
     float4   LatticeStyle;         // x = minor cell [m], y = major every N cells, z = fade radius [m], w = line half-width [px]
     float4   Illumination;      // xyz = key light direction (unit, world), w = ambient
+    float4   DepthPolicy;       // x = line depth bias [clip z] (0.2 % of view depth toward the eye), yzw reserved
 };
 
 struct DrawRecord

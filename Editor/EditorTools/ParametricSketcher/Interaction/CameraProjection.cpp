@@ -27,14 +27,32 @@ Mat4 CameraProjection::ViewMatrix() const noexcept
     return Mat4::LookAt(Eye(), Pivot, UpHint);
 }
 
+double CameraProjection::NearDistance() const noexcept
+{
+    if (Orthographic) return Distance - 4.0 * Reach - 100.0;                            // may sit behind the eye: fine for a parallel projection
+    return std::max({ Distance - 2.0 * Reach, Distance * 0.03, 1e-3 });
+}
+
+double CameraProjection::FarDistance() const noexcept
+{
+    return Distance + 8.0 * Reach + 1000.0;
+}
+
+double CameraProjection::LineDepthBias() const noexcept
+{
+    const double Near = NearDistance(), Far = FarDistance(), Relative = 2e-3;
+    if (Orthographic) return Relative * Distance / (Far - Near);                        // z_ndc is linear in depth: Δz = Δd / (f − n)
+    return Relative * Far * Near / (Far - Near);                                        // z_ndc = A − B/d: Δz_clip = B·ε moves d by ε·d
+}
+
 Mat4 CameraProjection::ProjectionMatrix(double Aspect) const noexcept
 {
     if (Orthographic)
     {
         double HalfH = OrthographicHalfHeight();
-        return Mat4::Orthographic(HalfH * Aspect, HalfH, -FarPlane, FarPlane);
+        return Mat4::Orthographic(HalfH * Aspect, HalfH, NearDistance(), FarDistance());
     }
-    return Mat4::Perspective(FovY, Aspect, NearPlane, FarPlane);
+    return Mat4::Perspective(FovY, Aspect, NearDistance(), FarDistance());
 }
 
 void CameraProjection::Orbit(double DeltaYaw, double DeltaPitch) noexcept
@@ -88,8 +106,7 @@ void CameraProjection::Fit(const Box3& Bounds, double Aspect) noexcept
         Needed = std::max({ Needed, Side / TanH - Depth, Rise / TanV - Depth });
     }
     Distance = std::max(Needed * 1.08, Radius * 0.5);
-    NearPlane = std::max(0.001, Distance - Radius * 4.0);
-    FarPlane = Distance + Radius * 8.0 + 1000.0;
+    Reach = Radius;
 }
 
 Ray CameraProjection::PixelRay(double PixelX, double PixelY, double ViewportWidth, double ViewportHeight) const noexcept
@@ -119,6 +136,7 @@ ViewRecord CameraProjection::ToViewRecord(uint32_t Width, uint32_t Height, doubl
     R.LatticeStyle[0] = float(LatticeCell); R.LatticeStyle[1] = 10.0f; R.LatticeStyle[2] = float(std::max(Distance * 6.0, 40.0)); R.LatticeStyle[3] = 0.6f;
     Vec3 Key = Vec3{ -0.45, -0.35, 0.82 }.Normalised();
     R.Illumination[0] = float(Key.X); R.Illumination[1] = float(Key.Y); R.Illumination[2] = float(Key.Z); R.Illumination[3] = 0.42f;
+    R.DepthPolicy[0] = float(LineDepthBias());
     R.PixelAngle = Orthographic ? 0.0f : float(2.0 * std::tan(FovY * 0.5) / Height);
     R.PixelWorld = Orthographic ? float(2.0 * OrthographicHalfHeight() / Height) : 0.0f;
     return R;

@@ -479,6 +479,22 @@ The first asymmetric (unequal-radius) support pair is the native conical frustum
 
 Cone–cone and cone–cylinder support pairs, apex cones, non-radial endpoint supports, unequal/non-orthogonal and partial corner networks, oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
 
+#### Kernel limits found by the worked model
+
+`Scripts/ToyCar.arc` builds a wooden toy car through sketches, extrusions and eighteen Booleans, and every step it uses
+is exact. Three things it could not do are recorded here as Phase 33 candidates rather than worked around silently:
+
+1. **Cylinder tool parallel to an extrusion's rulings.** Subtracting a Y-axis wheel-arch cylinder from the Y-extruded
+   side silhouette refuses with "marching did not close" (both surfaces are ruled along Y, so their intersection is a
+   family of parallel lines the marcher cannot close), while the identical pocket into the Z-extruded plan block works.
+   The exact route today is to cut the arch in the 2D silhouette before extruding.
+2. **Union across a kink edge.** A box whose face plane crosses the edge where an arch cylinder meets the planar bottom
+   returns an open two-hull sheet (or "marching did not close"), while a box that meets only the cylinder above that
+   edge unions cleanly — the reason the bearing blocks start at z = 0.8 above the z = 0.7 underside.
+3. **Union order segfault.** `(wheel ∪ hub) ∪ axle`, then `∪ (wheel ∪ hub)` crashes instead of refusing; the other
+   four orders tried succeed. Reproducer: `Scratchpad/ToyCar/Repro_UnionSegfault.arc`. A crash is a defect by policy —
+   the kernel must refuse, never fault.
+
 ### Phase 33: variable radius, setbacks, partial edges, and G2
 
 Variable-radius blends need a radius law along the spine, feasibility detection, and a non-linear solve. G2 continuity

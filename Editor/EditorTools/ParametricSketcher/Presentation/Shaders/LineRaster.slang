@@ -4,7 +4,8 @@
 // One instance per segment (A, B) expanded in the vertex shaders to a screen-aligned quad of constant pixel width.
 //    Corner index 0..3 picks the quad vertex. Dashing is a per-draw option for construction geometry. Width and
 //    colour come from DrawRecord; selection brightens toward orange. Depth is taken from the true 3D segment so
-//    lines occlude correctly against surfaces, with a small bias so an edge lying ON a face still wins.
+//    lines occlude correctly against surfaces, pulled toward the eye by the view's DepthPolicy bias (0.2 % of the
+//    view depth, a per-view constant in clip z) so an edge lying ON a face still wins but edges behind a wall do not.
 
 #include "ShadingRecords.slang"
 
@@ -47,7 +48,7 @@ LineVarying LineVertex(ViewRecord View, DrawRecord Draw, float3 A, float3 B, uin
     Out.SegmentPixels = Pixels;
 
     float2 Ndc = Screen / (float2(0.5, 0.5) * View.Viewport.xy);
-    Out.Clip = float4(Ndc * Clip.w, Clip.z - Clip.w * 2e-4, Clip.w);        // depth bias toward the eye
+    Out.Clip = float4(Ndc * Clip.w, Clip.z - View.DepthPolicy.x, Clip.w);   // depth bias toward the eye
     return Out;
 }
 
