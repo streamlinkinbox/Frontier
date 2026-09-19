@@ -1,0 +1,25 @@
+# Build artifacts and binaries
+*.o
+*.obj
+*.exe
+*.a
+*.lib
+*.ppm
+bin/
+build/
+Projects/**/bin/
+Projects/**/build/
+Scratchpad/GenerateDialogueProofs
+Scratchpad/GenerateFontSectionProofs
+Scratchpad/GenerateThemeSectionProofs
+Scratchpad/GenerateCarouselProofs
+Scratchpad/GenerateControlPanelProof
+Scratchpad/VectorGlyphTest
+.DS_Store
+
+# SolidArc (ParametricSketcher) build output
+Editor/EditorTools/ParametricSketcher/build/
+# Sandbox-only g++ build script (kept for re-builds when cmake is unavailable, but not part of the project)
+Editor/EditorTools/ParametricSketcher/build_gpp.sh
+Verification/view.png
+Editor/EditorTools/ParametricSketcher/Panel/Verification/view.png
