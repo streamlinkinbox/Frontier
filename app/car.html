@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Garage</title>
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2) format('woff2')}
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --blue:#1f5eff; --blue-soft:#4d80ff; --blue-deep:#1a4fe0;
+  --bg:#0a0a0a; --panel:#121212; --inset:#1a1a1a; --field:#000; --raised:#222; --selected:#1c1c1c; --row:#161616;
+  --stroke:rgba(255,255,255,.06); --stroke-strong:#2e2e2e;
+  --text:#fff; --dim:#8a8a8a; --faint:#5c5c5c;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--blue);font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow:hidden;font-feature-settings:"cv11","ss01"}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+svg{display:block}
+.ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:6px}
+@keyframes rowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.85)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,94,255,.55)}70%{box-shadow:0 0 0 6px rgba(31,94,255,0)}}
+
+/* ============================================================
+   STAGE / DEVICE
+   ============================================================ */
+.stage{position:fixed;inset:0;display:grid;place-items:center;padding:4vh 4vw}
+.device{position:relative;width:min(1180px,100%,calc((100vh - 8vh) * 1.5));aspect-ratio:4/3;border-radius:38px;background:#111;padding:14px;box-shadow:0 60px 120px -30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 2px #2b2b2b}
+.device::before,.device::after{content:"";position:absolute;left:-3px;width:3px;height:9%;border-radius:2px 0 0 2px;background:#1b1b1b}
+.device::before{top:18%}.device::after{top:31%}
+.screen{position:relative;width:100%;height:100%;border-radius:26px;background:var(--bg);overflow:hidden}
+.ui{position:absolute;inset:0;width:1000px;height:750px;transform-origin:0 0;transform:scale(var(--s,1));overflow:hidden;display:flex;flex-direction:column}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{position:relative;flex:none;height:150px;background:var(--blue);padding:16px 24px 14px;display:flex;flex-direction:column}
+.nav{display:flex;align-items:center;gap:14px;height:32px}
+.logo{height:32px;padding:0 14px;border-radius:16px;background:#fff;color:var(--blue);font-weight:800;font-size:12px;letter-spacing:.14em;display:flex;align-items:center}
+.tabs{height:32px;padding:3px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;align-items:center;gap:2px;position:relative}
+.tab{position:relative;height:26px;padding:0 13px;border-radius:13px;font-size:12px;font-weight:500;color:#fff;white-space:nowrap;z-index:1;transition:color .2s;display:inline-flex;align-items:center;text-decoration:none}
+.tab.is-on{color:var(--blue)}
+.tab-ink{position:absolute;top:3px;height:26px;border-radius:13px;background:#fff;transition:left .35s var(--ease),width .35s var(--ease)}
+.hero-body{flex:1;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-width:0}
+.hero-left{min-width:0;display:flex;flex-direction:column;gap:8px}
+.hero h1{font-size:54px;font-weight:400;letter-spacing:-.045em;line-height:.85;white-space:nowrap}
+.hero .sub{font-size:11px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:8px}
+.hero .sub b{font-family:var(--mono);font-weight:600;font-size:10px;background:rgba(0,0,0,.28);padding:3px 7px;border-radius:6px;letter-spacing:.02em}
+.hero-actions{display:flex;gap:8px;align-items:center;flex:none}
+.hbtn{height:32px;padding:0 6px 0 14px;border-radius:16px;background:#fff;color:#111;font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:8px;transition:transform .2s var(--ease),box-shadow .2s;white-space:nowrap}
+.hbtn i{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none}
+.hbtn i .ic{width:12px;height:12px;stroke-width:2.5}
+.hbtn.ghost{background:rgba(255,255,255,.14);color:#fff;padding:0 14px}
+.hbtn.ghost:hover{background:rgba(255,255,255,.24)}
+.hbtn:hover{transform:translateY(-1px);box-shadow:0 8px 20px -8px rgba(0,0,0,.5)}
+.hbtn:active{transform:none}
+.hbtn.busy i{animation:spin .7s linear infinite}
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+.content{flex:1;min-height:0;display:grid;grid-template-columns:1fr 316px;gap:12px;padding:12px 24px 16px}
+.left,.right{min-width:0;min-height:0;display:flex;flex-direction:column}
+.panel{background:var(--panel);border:1px solid var(--stroke);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.03);display:flex;flex-direction:column;overflow:hidden}
+.right>.panel{flex:1;min-height:0}
+
+/* viewport ------------------------------------------------- */
+.vp{position:relative;flex:1;min-height:0;border-radius:20px;overflow:hidden;background:
+  radial-gradient(120% 90% at 50% 8%,#15161a 0%,#0b0c0e 55%,#070708 100%)}
+.vp canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.vp-hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:12px 14px}
+.hud-row{display:flex;align-items:flex-start;gap:8px}
+.hud-row.end{justify-content:flex-end;align-items:flex-end}
+.tag{pointer-events:none;font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--faint);background:rgba(0,0,0,.45);border:1px solid var(--stroke);border-radius:8px;padding:4px 8px;backdrop-filter:blur(4px)}
+.tag b{color:var(--blue-soft);font-weight:600}
+.tag.live{color:#fff;border-color:var(--stroke-strong)}
+.hud-btns{pointer-events:auto;display:flex;gap:4px;background:rgba(0,0,0,.5);border:1px solid var(--stroke);border-radius:12px;padding:3px;backdrop-filter:blur(6px)}
+.hud-btns button{width:26px;height:24px;border-radius:9px;color:var(--dim);display:grid;place-items:center;transition:background .15s,color .15s}
+.hud-btns button:hover{background:var(--raised);color:#fff}
+.hud-btns button.on{background:#fff;color:#111}
+.hud-btns button .ic{width:13px;height:13px}
+#tip{position:absolute;pointer-events:none;transform:translate(-50%,-140%);background:#fff;color:#111;font-size:10px;font-weight:600;padding:4px 9px;border-radius:8px;opacity:0;transition:opacity .12s;white-space:nowrap;box-shadow:0 8px 20px -8px rgba(0,0,0,.7)}
+#tip.show{opacity:1}
+#tip small{font-weight:500;color:#666;margin-left:6px;font-family:var(--mono);font-size:9px}
+.vp.rebuild::after{content:"";position:absolute;inset:0;background:rgba(10,10,10,.35);backdrop-filter:blur(1px);transition:opacity .3s;opacity:1}
+.vp:not(.rebuild)::after{opacity:0;pointer-events:none}
+
+/* right rail ------------------------------------------------ */
+.rail{flex:1;min-height:0;overflow:auto;scrollbar-width:none;padding:10px;display:flex;flex-direction:column;gap:10px}
+.rail::-webkit-scrollbar{display:none}
+.card{background:var(--inset);border:1px solid var(--stroke);border-radius:16px;padding:10px;animation:rowIn .4s var(--ease) both}
+.card+.card{animation-delay:70ms}
+.card h3{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin:0 2px 8px;display:flex;align-items:center;gap:7px}
+.card h3 .dot{width:5px;height:5px;border-radius:50%;background:var(--blue)}
+.card h3 .r{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:0;color:var(--dim);font-weight:500;text-transform:none}
+.seg{display:flex;background:var(--field);border:1px solid var(--stroke);border-radius:var(--r-pill);padding:3px;gap:3px;height:30px}
+.seg button{flex:1;color:var(--dim);font-size:10.5px;font-weight:500;border-radius:var(--r-pill);transition:background .15s,color .15s;white-space:nowrap}
+.seg button:hover{color:#fff}
+.seg button.active{background:#fff;color:#111;font-weight:600}
+.field{height:30px;border-radius:var(--r-pill);background:var(--field);border:1px solid var(--stroke);display:flex;align-items:center;gap:8px;padding:0 12px;min-width:0;transition:border-color .15s}
+.field:focus-within{border-color:var(--stroke-strong)}
+.field input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:11.5px;font-family:var(--mono)}
+.field .ic{color:var(--faint)}
+.rowline{display:flex;gap:6px;margin-top:6px}
+.rowline .field{flex:1}
+.btn{height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--stroke);background:var(--inset);color:#fff;font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .15s,transform .12s var(--ease),color .15s;position:relative;white-space:nowrap}
+.btn:hover{background:var(--raised)}
+.btn:active{transform:scale(.97)}
+.btn.icon{width:30px;padding:0}
+.btn.primary{background:var(--blue);border-color:transparent;font-weight:600}
+.btn.primary:hover{background:var(--blue-soft)}
+.btn.wide{flex:1}
+.btn.on{background:#fff;border-color:transparent;color:#111;font-weight:600}
+
+/* paint swatches */
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatches button{width:26px;height:26px;border-radius:9px;border:1px solid var(--stroke-strong);position:relative;transition:transform .15s var(--ease)}
+.swatches button:hover{transform:translateY(-1px)}
+.swatches button.on{box-shadow:0 0 0 2px var(--panel),0 0 0 3.5px #fff}
+.swatches button i{position:absolute;right:2px;bottom:2px;width:9px;height:9px;border-radius:3px;border:1px solid rgba(0,0,0,.4)}
+
+/* sliders */
+.sld{display:grid;grid-template-columns:74px 1fr 42px;align-items:center;gap:8px;height:26px}
+.sld label{font-size:10.5px;color:var(--dim);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sld output{font-family:var(--mono);font-size:9.5px;color:var(--faint);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;cursor:ew-resize}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(to right,var(--blue) var(--p,50%),#2a2a2a var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;margin-top:-5px;box-shadow:0 1px 4px rgba(0,0,0,.6);transition:transform .12s}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]::-moz-range-track{height:3px;border-radius:2px;background:#2a2a2a}
+input[type=range]::-moz-range-progress{height:3px;border-radius:2px;background:var(--blue)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border:0;border-radius:50%;background:#fff}
+
+/* panel (articulation) rows */
+.prow{display:grid;grid-template-columns:1fr 44px 58px;align-items:center;gap:8px;height:27px;border-radius:8px;padding:0 6px;margin:0 -6px;transition:background .12s;cursor:pointer}
+.prow:hover{background:var(--raised)}
+.prow .nm{font-size:10.5px;font-weight:500;color:var(--dim);display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow.open .nm{color:#fff}
+.prow .nm i{width:5px;height:5px;border-radius:50%;background:var(--faint);flex:none;transition:background .2s}
+.prow.open .nm i{background:var(--blue);animation:pulse 1.6s infinite}
+.prow .bar{height:3px;border-radius:2px;background:#2a2a2a;overflow:hidden;position:relative}
+.prow .bar u{position:absolute;inset:0;width:0%;background:var(--blue);border-radius:2px}
+.prow .st{font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;color:var(--faint);text-align:right}
+.prow.open .st{color:var(--blue-soft)}
+.wrow{margin-top:8px;padding-top:8px;border-top:1px solid var(--stroke)}
+
+/* readout */
+.ro{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.ro div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ro small{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.ro b{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro b.mono{font-family:var(--mono);font-size:10px;font-weight:500}
+.eos{margin-top:9px;padding-top:8px;border-top:1px dashed var(--stroke-strong);font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.02em;line-height:1.6}
+.eos b{color:var(--dim);font-weight:500}
+
+/* toast */
+.toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,10px);padding:9px 14px;border-radius:10px;background:#fff;color:#111;font-size:11.5px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--ease);white-space:nowrap;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);z-index:200}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast i{font-style:normal;color:#666;margin-left:8px;font-size:10.5px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="ui" id="ui">
+
+        <header class="hero">
+          <nav class="nav">
+            <span class="logo">FRNT</span>
+            <div class="tabs" id="tabs">
+              <i class="tab-ink" id="tabInk"></i>
+              <button class="tab">Home</button>
+              <a class="tab" href="index.html">Lobby</a>
+              <button class="tab">Leaderboard</button>
+              <button class="tab is-on">Garage</button>
+              <a class="tab" href="wallet.html">Wallet</a>
+            </div>
+          </nav>
+          <div class="hero-body">
+            <div class="hero-left">
+              <h1>Garage</h1>
+              <div class="sub">Procedural low-poly vehicle · <b id="subSeed">seed —</b> every panel is generated &amp; hinged at runtime</div>
+            </div>
+            <div class="hero-actions">
+              <button class="hbtn ghost" id="btnCloseAll" type="button">Close all</button>
+              <button class="hbtn ghost" id="btnOpenAll" type="button">Open all</button>
+              <button class="hbtn" id="btnReroll" type="button">Regenerate <i><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></i></button>
+            </div>
+          </div>
+        </header>
+
+        <main class="content">
+          <section class="left">
+            <div class="vp panel" id="vp">
+              <canvas id="gl"></canvas>
+              <div class="vp-hud">
+                <div class="hud-row">
+                  <span class="tag" id="hudStyle">STYLE · —</span>
+                  <span class="tag" id="hudTris">— tris</span>
+                  <span class="tag live" id="hudState">SEALED</span>
+                </div>
+                <div class="hud-row end">
+                  <span class="tag">drag&nbsp;orbit · scroll&nbsp;zoom · click&nbsp;a&nbsp;panel</span>
+                  <div class="hud-btns" id="cams">
+                    <button data-cam="iso" class="on" title="Three-quarter"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 8v8l9 5 9-5V8"/></svg></button>
+                    <button data-cam="side" title="Side"><svg class="ic" viewBox="0 0 24 24"><path d="M3 14h18"/><path d="M6 14l2-5h8l2 5"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/></svg></button>
+                    <button data-cam="front" title="Front"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/><path d="m6 10 6-6 6 6"/></svg></button>
+                    <button data-cam="rear" title="Rear"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v16"/><path d="m6 14 6 6 6-6"/></svg></button>
+                    <button data-cam="top" title="Top"><svg class="ic" viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="3"/><path d="M9 8h6"/></svg></button>
+                    <button data-spin="1" id="btnSpin" title="Turntable"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <div id="tip"></div>
+            </div>
+          </section>
+
+          <aside class="right">
+            <div class="panel">
+              <div class="rail" id="rail">
+
+                <div class="card">
+                  <h3><i class="dot"></i>Chassis <span class="r" id="rStyle"></span></h3>
+                  <div class="seg" id="segStyle"></div>
+                  <div class="rowline">
+                    <label class="field"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg><input id="seed" spellcheck="false" autocomplete="off" maxlength="24" /></label>
+                    <button class="btn icon" id="btnDice" title="New seed"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg></button>
+                  </div>
+                  <div class="rowline"><div class="swatches" id="swatches"></div></div>
+                </div>
+
+                <div class="card">
+                  <h3><i class="dot"></i>Procedural dials <span class="r">live rebuild</span></h3>
+                  <div id="dials"></div>
+                </div>
+
+                <div class="card">
+                  <h3><i class="dot"></i>Panels &amp; glass <span class="r" id="rPanels"></span></h3>
+                  <div id="parts"></div>
+                  <div class="wrow">
+                    <div class="sld"><label>Windows</label><input type="range" id="winAll" min="0" max="100" value="0" /><output id="winOut">up</output></div>
+                    <div class="rowline">
+                      <button class="btn wide" id="btnWinDown">Drop glass</button>
+                      <button class="btn wide" id="btnWinUp">Raise glass</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <h3><i class="dot"></i>Spec sheet</h3>
+                  <div class="ro" id="ro"></div>
+                  <div class="eos" id="eos"></div>
+                </div>
+
+              </div>
+            </div>
+          </aside>
+        </main>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
+import { buildCar, makeSpec, STYLES, STYLE_IDS, PAINTS, updateArticulation, setPart, setWindow, setSteer } from './js/lowpoly-car.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* scale the 1000×750 canvas to the screen */
+new ResizeObserver(([e]) => $('#ui').style.setProperty('--s', (e.contentRect.width / 1000).toFixed(4))).observe($('#screen'));
+const ink = t => { const i = $('#tabInk'); i.style.left = t.offsetLeft + 'px'; i.style.width = t.offsetWidth + 'px'; };
+ink($('.tab.is-on')); addEventListener('load', () => ink($('.tab.is-on')));
+$$('#tabs .tab').forEach(t => t.addEventListener('click', () => { if (t.tagName !== 'A') toast(`${t.textContent} — coming next`); }));
+
+function toast(msg, sub) { const t = $('#toast'); t.innerHTML = msg + (sub ? `<i>${sub}</i>` : ''); t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ------------------------------------------------------------
+   state
+   ------------------------------------------------------------ */
+const state = {
+  style: 'coupe',
+  seed: 'GT-X 0001',
+  paint: PAINTS[0],
+  dials: { length: 0, wheelbase: 0, width: 0, roof: 0, ride: 0, wheel: 0, facets: 0 },
+  open: {},          // partId -> 0|1
+  win: 0,            // master window drop 0..1
+  spin: false,
+  cam: 'iso'
+};
+const DIALS = [
+  { k: 'length', label: 'Length', min: -1, max: 1, fmt: v => `${(4.4 + v * 0.5).toFixed(2)} m` },
+  { k: 'wheelbase', label: 'Wheelbase', min: -1, max: 1, fmt: v => `${(2.7 + v * 0.35).toFixed(2)} m` },
+  { k: 'width', label: 'Width', min: -1, max: 1, fmt: v => `${(1.88 + v * 0.16).toFixed(2)} m` },
+  { k: 'roof', label: 'Roof line', min: -1, max: 1, fmt: v => `${(100 + v * 9).toFixed(0)} cm` },
+  { k: 'ride', label: 'Ride height', min: -1, max: 1, fmt: v => `${(15 + v * 9).toFixed(0)} mm` },
+  { k: 'wheel', label: 'Wheel Ø', min: -1, max: 1, fmt: v => `${(19 + v * 4).toFixed(0)}″` },
+  { k: 'facets', label: 'Facets', min: -1, max: 1, fmt: v => (v < -0.33 ? 'chunky' : v > 0.33 ? 'fine' : 'medium') }
+];
+
+/* ------------------------------------------------------------
+   three scene
+   ------------------------------------------------------------ */
+const vp = $('#vp'), canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0a0b0d');
+scene.fog = new THREE.Fog('#0a0b0d', 14, 30);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 3.2; controls.maxDistance = 14;
+controls.maxPolarAngle = Math.PI * 0.52;
+controls.target.set(0, 0.62, 0);
+
+const key = new THREE.DirectionalLight('#ffffff', 2.5);
+key.position.set(4.5, 6.5, 4); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -5; key.shadow.camera.right = 5;
+key.shadow.camera.top = 5; key.shadow.camera.bottom = -5;
+key.shadow.camera.far = 24; key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+scene.add(key);
+const rim = new THREE.DirectionalLight('#7fa4ff', 1.5); rim.position.set(-6, 3.2, -5); scene.add(rim);
+const fill = new THREE.DirectionalLight('#cfd8ff', 0.55); fill.position.set(-3, 2.4, 6); scene.add(fill);
+scene.add(new THREE.HemisphereLight('#20242c', '#050506', 0.7));
+
+/* floor: matte disc + grid + fake contact shadow */
+const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 64).rotateX(-Math.PI / 2),
+  new THREE.MeshStandardMaterial({ color: '#0c0d10', roughness: 0.92, metalness: 0.0 }));
+floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(24, 48, 0x23262c, 0x16181c);
+grid.position.y = 0.002; grid.material.transparent = true; grid.material.opacity = 0.5; scene.add(grid);
+const shadowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'); const r = g.createRadialGradient(128, 128, 8, 128, 128, 126);
+  r.addColorStop(0, 'rgba(0,0,0,.62)'); r.addColorStop(0.55, 'rgba(0,0,0,.28)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const ao = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+ao.position.y = 0.006; scene.add(ao);
+
+/* ------------------------------------------------------------
+   car lifecycle
+   ------------------------------------------------------------ */
+let car = null;
+const clock = new THREE.Clock();
+
+function specFromState() {
+  const st = STYLES[state.style];
+  const d = state.dials;
+  return makeSpec({
+    style: state.style, seed: state.seed,
+    paint: state.paint,
+    length: st.length + d.length * 0.5,
+    wheelbase: st.wheelbase + d.wheelbase * 0.35,
+    width: st.halfWidth * 2 + d.width * 0.16,
+    roof: st.roof + d.roof * 0.09,
+    ride: st.ground + d.ride * 0.09,
+    wheel: st.wheelR + d.wheel * 0.05,
+    facets: 1 + d.facets * 0.45
+  });
+}
+
+function rebuild(preserve = true) {
+  const prevOpen = preserve && car ? Object.assign({}, state.open) : state.open;
+  const prevWin = state.win;
+  if (car) { scene.remove(car.root); car.dispose(); }
+  car = buildCar(specFromState());
+  scene.add(car.root);
+  car.root.traverse(o => { if (o.isMesh) o.userData.pick = true; });
+  // restore articulation
+  state.open = {};
+  car.parts.forEach(p => { const want = prevOpen[p.id] ? 1 : 0; state.open[p.id] = want; p.t = want; p.group.rotation[p.axis] = p.dir * want * p.open; });
+  car.doors.forEach(d => { d.drop = prevWin; d.glass.position.y = -d.drop * d.glassTravel; });
+  // contact shadow footprint
+  const b = new THREE.Box3().setFromObject(car.root);
+  const s = b.getSize(new THREE.Vector3());
+  ao.scale.set(s.x * 1.22, 1, s.z * 1.5);
+  ao.position.x = (b.min.x + b.max.x) / 2;
+  syncUI();
+}
+
+/* ------------------------------------------------------------
+   UI: style / seed / paint
+   ------------------------------------------------------------ */
+const segStyle = $('#segStyle');
+segStyle.innerHTML = STYLE_IDS.map(k => `<button data-s="${k}">${STYLES[k].name}</button>`).join('');
+segStyle.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.style = b.dataset.s; rebuild(); flash();
+  toast(`Chassis · ${STYLES[state.style].name}`, 'regenerated from spec');
+});
+
+$('#swatches').innerHTML = PAINTS.map((p, i) =>
+  `<button data-i="${i}" title="${p.name}" style="background:${p.body}"><i style="background:${p.roof}"></i></button>`).join('');
+$('#swatches').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.paint = PAINTS[+b.dataset.i];
+  if (car) car.setPaint(state.paint.body, state.paint.roof);
+  syncUI();
+});
+
+const seedEl = $('#seed');
+seedEl.addEventListener('change', () => { state.seed = seedEl.value.trim() || 'GT-X 0001'; rebuild(); flash(); });
+const ADJ = ['Apex', 'Vanta', 'Kestrel', 'Mako', 'Aria', 'Sable', 'Onyx', 'Halo', 'Drift', 'Nova', 'Ridge', 'Ember'];
+const dice = () => {
+  const r = Math.random;
+  state.seed = `${ADJ[(r() * ADJ.length) | 0]}-${String(1000 + ((r() * 9000) | 0))}`;
+  rebuild(); flash();
+  toast('New seed', state.seed);
+};
+$('#btnDice').addEventListener('click', dice);
+$('#btnReroll').addEventListener('click', dice);
+
+/* dials */
+const dialsEl = $('#dials');
+dialsEl.innerHTML = DIALS.map(d =>
+  `<div class="sld"><label for="d_${d.k}">${d.label}</label><input id="d_${d.k}" data-k="${d.k}" type="range" min="-100" max="100" value="0" /><output id="o_${d.k}"></output></div>`).join('');
+let dialTimer = 0;
+dialsEl.addEventListener('input', e => {
+  const el = e.target.closest('input[type=range]'); if (!el) return;
+  state.dials[el.dataset.k] = (+el.value) / 100;
+  paintRange(el);
+  clearTimeout(dialTimer);
+  dialTimer = setTimeout(() => rebuild(), 70);
+});
+
+function paintRange(el) {
+  const p = ((+el.value - +el.min) / (+el.max - +el.min)) * 100;
+  el.style.setProperty('--p', p + '%');
+}
+
+/* ------------------------------------------------------------
+   UI: articulation rows
+   ------------------------------------------------------------ */
+const partsEl = $('#parts');
+function partRows() {
+  if (!car) return '';
+  return car.parts.map(p => `
+    <div class="prow" data-id="${p.id}" role="button" tabindex="0">
+      <span class="nm"><i></i>${p.label}</span>
+      <span class="bar"><u></u></span>
+      <span class="st">SEALED</span>
+    </div>`).join('');
+}
+partsEl.addEventListener('click', e => {
+  const row = e.target.closest('.prow'); if (!row) return;
+  togglePart(row.dataset.id);
+});
+partsEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('.prow'); if (row) { e.preventDefault(); togglePart(row.dataset.id); }
+});
+function togglePart(id) {
+  const p = car.parts.find(x => x.id === id); if (!p) return;
+  const on = !state.open[id];
+  state.open[id] = on ? 1 : 0;
+  setPart(car, id, on, clock.getElapsedTime());
+  syncUI();
+}
+$('#btnOpenAll').addEventListener('click', () => {
+  const t = clock.getElapsedTime();
+  car.parts.forEach(p => { state.open[p.id] = 1; setPart(car, p.id, true, t); });
+  setAllWindows(1); syncUI(); toast('All panels open');
+});
+$('#btnCloseAll').addEventListener('click', () => {
+  const t = clock.getElapsedTime();
+  car.parts.forEach(p => { state.open[p.id] = 0; setPart(car, p.id, false, t); });
+  setAllWindows(0); syncUI(); toast('All panels sealed');
+});
+function setAllWindows(v) {
+  state.win = v;
+  const t = clock.getElapsedTime();
+  car.doors.forEach(d => setWindow(car, d.id, v, t));
+  $('#winAll').value = Math.round(v * 100); paintRange($('#winAll'));
+}
+$('#winAll').addEventListener('input', e => {
+  const v = (+e.target.value) / 100; state.win = v;
+  paintRange(e.target);
+  const t = clock.getElapsedTime();
+  car.doors.forEach(d => setWindow(car, d.id, v, t));
+});
+$('#btnWinDown').addEventListener('click', () => { setAllWindows(1); syncUI(); toast('Glass dropped'); });
+$('#btnWinUp').addEventListener('click', () => { setAllWindows(0); syncUI(); toast('Glass raised'); });
+
+/* ------------------------------------------------------------
+   UI sync
+   ------------------------------------------------------------ */
+function syncUI() {
+  if (!car) return;
+  const sp = car.spec, s = car.stats;
+  $$('#segStyle button').forEach(b => b.classList.toggle('active', b.dataset.s === state.style));
+  $$('#swatches button').forEach(b => b.classList.toggle('on', PAINTS[+b.dataset.i].id === state.paint.id));
+  seedEl.value = state.seed;
+  $('#subSeed').textContent = `seed ${state.seed}`;
+  $('#rStyle').textContent = `${sp.styleName} · ${car.sp.doors * 2 > 2 ? '4' : '2'}-door`;
+  $('#hudStyle').innerHTML = `STYLE · <b>${sp.styleName.toUpperCase()}</b>`;
+  $('#hudTris').textContent = `${s.tris.toLocaleString()} tris · ${s.meshes} meshes`;
+  DIALS.forEach(d => { const o = $(`#o_${d.k}`); if (o) o.textContent = d.fmt(state.dials[d.k]); paintRange($(`#d_${d.k}`)); });
+  paintRange($('#winAll')); $('#winOut').textContent = state.win > 0.02 ? `${Math.round(state.win * 100)}%` : 'up';
+
+  if (partsEl.childElementCount !== car.parts.length) partsEl.innerHTML = partRows();
+  let openCount = 0;
+  car.parts.forEach(p => {
+    const row = partsEl.querySelector(`[data-id="${p.id}"]`); if (!row) return;
+    const on = state.open[p.id] ? 1 : 0; openCount += on;
+    row.classList.toggle('open', !!on);
+    row.querySelector('u').style.width = (on * 100) + '%';
+    row.querySelector('.st').textContent = on ? 'OPEN' : 'SEALED';
+  });
+  $('#rPanels').textContent = `${openCount}/${car.parts.length} open`;
+  $('#hudState').textContent = openCount ? `${openCount} OPEN` : 'SEALED';
+  $('#hudState').classList.toggle('live', !!openCount);
+
+  $('#ro').innerHTML = `
+    <div><small>Overall length</small><b>${s.L.toFixed(2)} m</b></div>
+    <div><small>Overall width</small><b>${s.W.toFixed(2)} m</b></div>
+    <div><small>Height</small><b>${s.H.toFixed(2)} m</b></div>
+    <div><small>Wheelbase</small><b>${car.sp.wheelbase.toFixed(2)} m</b></div>
+    <div><small>Wheels</small><b>Ø${(car.spec.wheelR * 2 * 39.37).toFixed(0)}″ · ${car.spec.rim.style}</b></div>
+    <div><small>Finish</small><b>${sp.paint.name}${sp.paint.roof !== sp.paint.body ? ' / blk roof' : ''}</b></div>
+    <div><small>Drive</small><b>${car.spec.rhd ? 'RHD' : 'LHD'}</b></div>
+    <div><small>Glazing</small><b>${car.doors.length} drop panes</b></div>`;
+  $('#eos').innerHTML =
+    `<b>EOS_Vehicle_SpawnProcedural</b> · seed ${state.seed}<br>` +
+    `BodyStyle=${sp.style} Doors=${car.sp.doors * 2} Tailgate=${car.spec.tailgate || !!car.spec.bed}<br>` +
+    `Hinges=${car.parts.length} GlassPanes=${car.doors.length} Tris=${s.tris} · no meshes imported`;
+}
+
+function flash() {
+  vp.classList.add('rebuild');
+  requestAnimationFrame(() => requestAnimationFrame(() => vp.classList.remove('rebuild')));
+}
+
+/* ------------------------------------------------------------
+   picking: click a panel to cycle it, hover to label it
+   ------------------------------------------------------------ */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const tip = $('#tip');
+let hovered = null;
+
+function pickAt(ev) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObject(car.root, true);
+  for (const h of hits) {
+    let o = h.object;
+    while (o && !o.userData.part) o = o.parent;
+    if (o && o.userData.part && o.userData.part !== 'body' && o.userData.part !== 'wheel') return { part: o.userData.part, point: h.point };
+  }
+  return null;
+}
+canvas.addEventListener('pointermove', ev => {
+  const hit = pickAt(ev);
+  const id = hit ? hit.part.split(':')[0] : null;
+  if (id !== hovered) {
+    hovered = id;
+    canvas.style.cursor = id ? 'pointer' : 'grab';
+    if (id) {
+      const p = car.parts.find(x => x.id === id);
+      tip.innerHTML = `${p.label}<small>${state.open[id] ? 'click to close' : 'click to open'}</small>`;
+      tip.classList.add('show');
+    } else tip.classList.remove('show');
+  }
+  if (id) {
+    const r = vp.getBoundingClientRect();
+    tip.style.left = (ev.clientX - r.left) + 'px';
+    tip.style.top = (ev.clientY - r.top) + 'px';
+  }
+});
+canvas.addEventListener('pointerleave', () => { hovered = null; tip.classList.remove('show'); });
+let downAt = null;
+canvas.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
+canvas.addEventListener('pointerup', ev => {
+  if (!downAt) return;
+  const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]);
+  downAt = null;
+  if (moved > 5) return;
+  const hit = pickAt(ev);
+  if (hit) togglePart(hit.part.split(':')[0]);
+});
+
+/* camera presets + turntable */
+const CAMS = {
+  iso: [4.6, 1.9, 4.6], side: [0.2, 1.0, 7.4], front: [7.6, 1.1, 0.4],
+  rear: [-7.4, 1.3, 0.6], top: [0.8, 7.6, 1.2]
+};
+function goCam(name) {
+  state.cam = name;
+  const [x, y, z] = CAMS[name];
+  const from = camera.position.clone(), to = new THREE.Vector3(x, y, z);
+  const t0 = performance.now();
+  const step = now => {
+    const k = clamp((now - t0) / 620, 0, 1), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    camera.position.lerpVectors(from, to, e);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  $$('#cams [data-cam]').forEach(b => b.classList.toggle('on', b.dataset.cam === name));
+}
+$('#cams').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.spin) { state.spin = !state.spin; b.classList.toggle('on', state.spin); return; }
+  goCam(b.dataset.cam);
+});
+
+addEventListener('keydown', e => {
+  if (/^(input|textarea)$/i.test(document.activeElement.tagName)) return;
+  const t = clock.getElapsedTime();
+  if (e.key === 'r' || e.key === 'R') dice();
+  else if (e.key === 'o' || e.key === 'O') $('#btnOpenAll').click();
+  else if (e.key === 'c' || e.key === 'C') $('#btnCloseAll').click();
+  else if (e.key === ' ') { e.preventDefault(); state.spin = !state.spin; $('#btnSpin').classList.toggle('on', state.spin); }
+  else if (e.key >= '1' && e.key <= '6') { const p = car.parts[+e.key - 1]; if (p) togglePart(p.id); }
+});
+
+/* ------------------------------------------------------------
+   loop
+   ------------------------------------------------------------ */
+function resize() {
+  const w = vp.clientWidth, h = vp.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(vp);
+resize();
+camera.position.set(...CAMS.iso);
+controls.update();
+goCam('iso');
+
+let uiTick = 0;
+renderer.setAnimationLoop(() => {
+  const t = clock.getElapsedTime();
+  updateArticulation(car, t);
+  if (state.spin) car.root.rotation.y += 0.0042;
+  controls.update();
+  renderer.render(scene, camera);
+  if (++uiTick % 6 === 0) {
+    // live progress bars while hinges move
+    car.parts.forEach(p => {
+      const row = partsEl.querySelector(`[data-id="${p.id}"]`); if (!row) return;
+      row.querySelector('u').style.width = (p.t * 100).toFixed(0) + '%';
+      const st = row.querySelector('.st');
+      st.textContent = p.t > 0.98 ? 'OPEN' : p.t < 0.02 ? 'SEALED' : `${Math.round(p.t * 100)}%`;
+      row.classList.toggle('open', p.t > 0.02);
+    });
+  }
+});
+
+/* boot */
+rebuild(false);
+state.open = {}; car.parts.forEach(p => state.open[p.id] = 0);
+syncUI();
+toast('Garage online', `${car.stats.tris.toLocaleString()} triangles, zero imported meshes`);
+</script>
+</body>
+</html>
