@@ -314,6 +314,24 @@ Phase 32x scales the separated two-stage side route to `3 <= N <= 8` counterbore
 
 Phase 32y generalizes the bounded side-stepped route to `2 <= N <= 8` cavities with independently mixed `2 <= Sᵢ <= 8` stage counts and a total budget `M = ΣSᵢ <= 16`. All cavities share retained-frame Y or Z direction, may independently enter either parallel retained side, and retain concentric strictly decreasing radii, strictly increasing finite depths, every shoulder and floor, and positive combined axial/radial clearance for every pair of finite stage bands. Source topology is genus-zero `V=8+2M/E=12+3M/C=24+6M/L=6+3M/F=6+2M`; rounded topology is `V=16+2M/E=24+3M/C=48+6M/L=10+3M/F=10+2M`. Output contains `6+M` planes, `4+M` rational cylinders, `M` planar inner loops, and `2M` exact rational circles. Seventeen total stages, a ninth stage or cavity, one-stage members, intersecting bands, mixed axes, eccentric or non-decreasing stages, wall/end contact, and breakthrough refuse transactionally. `MixedStageSideBlindBorePrismFilletVerification` contributes 42 checks and `Proofs/Phase32y_MixedStageSideBlindBorePrism.png`.
 
+## Bounded asymmetric endpoint supports and finite-support chains (Phase 32z)
+
+An asymmetric endpoint pair is `EndpointSupport{Centre, Normal, Radius, EndpointAngle}`. Pairs classify through one
+literal table: positive finite radii, strictly unequal radii, non-degenerate parallel normals, and a positive ligament.
+Tapered-frustum, equal-radius-plane, and unequal-radial-cap modes reconstruct as exact cones; the variable-radius roll
+builds a parametric ruled surface with G1 endpoint matching and a bounded curvature acceptance; every accepted result is
+gated on the centralised analytic volume policy.
+
+`chain` builds the finite-support network: consecutive supports walking one axis, each span a conical ruled surface between
+two parallel rims, sewn into one closed solid. Three supports give genus-zero `V3/E5/C10/L4/F4`, four give
+`V4/E7/C14/L5/F5`, and the volume is the analytic sum of the span frusta. Because each span is convex between its own rims
+and the support positions are strictly monotone, an accepted chain cannot self-intersect — the classification *is* the
+closed-manifold guarantee. Folding, off-axis, oblique, equal-radius, and non-positive chains refuse with their own reason
+and never mutate the supports they were given. Oblique (non-orthogonal) support planes, unequal corner networks, and
+interaction with other blends remain outside this batch and refuse rather than approximate.
+
+`AsymmetricEndpointVerification` contributes 50 checks and `Proofs/Phase32z_AsymmetricChain.png`.
+
 ## Layout
 
 | Folder | Role | Status |

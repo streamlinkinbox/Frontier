@@ -3227,54 +3227,83 @@ bool BlendSolver::ValidateVariableSurfaceG1(const VariableRadiusSurface& Surface
     return true;
 }
 
+namespace
+{
+    // Static-literal classification: the public validators report through a std::string, while Deliver::Reject stores a
+    //    non-owning const char*, so every reason has to exist as a literal. Returning the literal keeps one source of
+    //    truth and lets a reconstruction carry the classifier's own detail instead of a generic "does not classify".
+    const char* AsymmetricPairRefusal(const EndpointSupport& Low, const EndpointSupport& High, double MinimumClearance) noexcept
+    {
+        const double Scale = std::max({ 1.0, Low.Radius, High.Radius, MinimumClearance });
+        const double PositionTolerance = ScalarCriteria::GeometricTolerance * Scale;
+        if (!std::isfinite(Low.Radius) || !std::isfinite(High.Radius) || Low.Radius <= ScalarCriteria::MergeTolerance ||
+            High.Radius <= ScalarCriteria::MergeTolerance)
+            return "endpoint support radius is not positive";
+        if (std::fabs(Low.Radius - High.Radius) <= ScalarCriteria::CircularTolerance)
+            return "endpoint supports are not asymmetric";
+        if (Low.Normal.Length() <= ScalarCriteria::GeometricTolerance || High.Normal.Length() <= ScalarCriteria::GeometricTolerance)
+            return "endpoint support normal is degenerate";
+        if (std::fabs(std::fabs(Low.Normal.Normalised().Dot(High.Normal.Normalised())) - 1.0) > ScalarCriteria::AngularTolerance)
+            return "endpoint support normals are not parallel";
+        if ((High.Centre - Low.Centre).Length() <= Low.Radius + High.Radius + std::max(MinimumClearance, PositionTolerance))
+            return "endpoint support intervals have no positive ligament";
+        return nullptr;
+    }
+
+    const char* AsymmetricChainRefusal(const AsymmetricEndpointChain& Chain, double MinimumClearance) noexcept
+    {
+        if (Chain.Supports.size() < 2) return "endpoint chain requires at least two supports";
+        for (size_t I = 0; I + 1 < Chain.Supports.size(); ++I)
+        {
+            if (const char* Pair = AsymmetricPairRefusal(Chain.Supports[I], Chain.Supports[I + 1], MinimumClearance)) return Pair;
+            const Vec3 Axis = (Chain.Supports[I + 1].Centre - Chain.Supports[I].Centre).Normalised();
+            if (I + 2 < Chain.Supports.size())
+            {
+                const Vec3 Next = (Chain.Supports[I + 2].Centre - Chain.Supports[I + 1].Centre).Normalised();
+                if (std::fabs(std::fabs(Axis.Dot(Next)) - 1.0) > ScalarCriteria::AngularTolerance)
+                    return "endpoint chain changes axis direction";
+            }
+        }
+
+        // Network classification beyond the pairwise checks. Pairwise acceptance alone still admits three unbuildable
+        //    networks: a support leaving the common axis, a chain folding back into its own span, and an oblique support
+        //    plane (an oblique rim is not a circle, so no conical ruled span exists between it and its neighbour). A chain
+        //    that passes all of them cannot self-intersect: every span is convex between two parallel rims and the support
+        //    positions are strictly monotone, so the classification *is* the closed-manifold guarantee.
+        const double Scale = std::max({ 1.0, Chain.Supports.front().Radius, Chain.Supports.back().Radius, MinimumClearance });
+        const Vec3 Axis = (Chain.Supports[1].Centre - Chain.Supports[0].Centre).Normalised();
+        if (Axis.Length() <= ScalarCriteria::GeometricTolerance) return "endpoint chain has no finite axis";
+        double Previous = 0.0;
+        for (size_t I = 0; I < Chain.Supports.size(); ++I)
+        {
+            const EndpointSupport& Support = Chain.Supports[I];
+            const Vec3 Offset = Support.Centre - Chain.Supports[0].Centre;
+            const double Along = Offset.Dot(Axis);
+            if ((Offset - Axis * Along).Length() > ScalarCriteria::GeometricTolerance * Scale)
+                return "endpoint support leaves the chain axis";
+            if (I > 0 && Along - Previous <= ScalarCriteria::GeometricTolerance * Scale)
+                return "endpoint chain folds back on itself";
+            Previous = Along;
+            if (Support.Normal.Length() <= ScalarCriteria::GeometricTolerance ||
+                std::fabs(std::fabs(Support.Normal.Normalised().Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance)
+                return "endpoint support plane is oblique to the chain axis";
+        }
+        return nullptr;
+    }
+} // namespace
+
 bool BlendSolver::ValidateAsymmetricEndpointChain(const AsymmetricEndpointChain& Chain,
                                                     double MinimumClearance, std::string& Refusal) noexcept
 {
-    if (Chain.Supports.size() < 2) { Refusal = "endpoint chain requires at least two supports"; return false; }
-    for (size_t I = 0; I + 1 < Chain.Supports.size(); ++I)
-    {
-        if (!ValidateAsymmetricEndpointPair(Chain.Supports[I], Chain.Supports[I + 1], MinimumClearance, Refusal)) return false;
-        Vec3 Axis = (Chain.Supports[I + 1].Centre - Chain.Supports[I].Centre).Normalised();
-        if (I + 2 < Chain.Supports.size())
-        {
-            Vec3 Next = (Chain.Supports[I + 2].Centre - Chain.Supports[I + 1].Centre).Normalised();
-            if (std::fabs(std::fabs(Axis.Dot(Next)) - 1.0) > ScalarCriteria::AngularTolerance)
-            { Refusal = "endpoint chain changes axis direction"; return false; }
-        }
-    }
-
-    // Network classification beyond the pairwise checks. Pairwise acceptance alone still admits three unbuildable
-    //    networks: a support that leaves the common axis, a chain that folds back and re-enters its own span, and a
-    //    support plane that cuts the axis obliquely (an oblique rim is not a circle, so no conical ruled span exists
-    //    between it and its neighbour). All three are classified here rather than discovered during construction.
-    const double Scale = std::max({ 1.0, Chain.Supports.front().Radius, Chain.Supports.back().Radius, MinimumClearance });
-    const Vec3 Axis = (Chain.Supports[1].Centre - Chain.Supports[0].Centre).Normalised();
-    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
-    { Refusal = "endpoint chain has no finite axis"; return false; }
-    double Previous = 0.0;
-    for (size_t I = 0; I < Chain.Supports.size(); ++I)
-    {
-        const EndpointSupport& Support = Chain.Supports[I];
-        const Vec3 Offset = Support.Centre - Chain.Supports[0].Centre;
-        const double Along = Offset.Dot(Axis);
-        if ((Offset - Axis * Along).Length() > ScalarCriteria::GeometricTolerance * Scale)
-        { Refusal = "endpoint support leaves the chain axis"; return false; }
-        if (I > 0 && Along - Previous <= ScalarCriteria::GeometricTolerance * Scale)
-        { Refusal = "endpoint chain folds back on itself"; return false; }
-        Previous = Along;
-        if (Support.Normal.Length() <= ScalarCriteria::GeometricTolerance ||
-            std::fabs(std::fabs(Support.Normal.Normalised().Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance)
-        { Refusal = "endpoint support plane is oblique to the chain axis"; return false; }
-    }
+    if (const char* Reason = AsymmetricChainRefusal(Chain, MinimumClearance)) { Refusal = Reason; return false; }
     return true;
 }
 
 Deliver<BrepBody> BlendSolver::ReconstructAsymmetricChain(const AsymmetricEndpointChain& Chain,
                                                            double MinimumClearance) noexcept
 {
-    std::string Refusal;
-    if (!ValidateAsymmetricEndpointChain(Chain, MinimumClearance, Refusal))
-        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "endpoint chain does not classify as a closed network");
+    if (const char* Reason = AsymmetricChainRefusal(Chain, MinimumClearance))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, Reason);
     const Vec3 Axis = (Chain.Supports[1].Centre - Chain.Supports[0].Centre).Normalised();
     std::vector<NurbsSurface> Spans;
     Spans.reserve(Chain.Supports.size() - 1);
@@ -3303,19 +3332,7 @@ Deliver<BrepBody> BlendSolver::ReconstructAsymmetricChain(const AsymmetricEndpoi
 bool BlendSolver::ValidateAsymmetricEndpointPair(const EndpointSupport& Low, const EndpointSupport& High,
                                                    double MinimumClearance, std::string& Refusal) noexcept
 {
-    const double Scale = std::max({ 1.0, Low.Radius, High.Radius, MinimumClearance });
-    const double PositionTolerance = ScalarCriteria::GeometricTolerance * Scale;
-    if (!std::isfinite(Low.Radius) || !std::isfinite(High.Radius) || Low.Radius <= ScalarCriteria::MergeTolerance ||
-        High.Radius <= ScalarCriteria::MergeTolerance)
-    { Refusal = "endpoint support radius is not positive"; return false; }
-    if (std::fabs(Low.Radius - High.Radius) <= ScalarCriteria::CircularTolerance)
-    { Refusal = "endpoint supports are not asymmetric"; return false; }
-    if (Low.Normal.Length() <= ScalarCriteria::GeometricTolerance || High.Normal.Length() <= ScalarCriteria::GeometricTolerance)
-    { Refusal = "endpoint support normal is degenerate"; return false; }
-    if (std::fabs(std::fabs(Low.Normal.Normalised().Dot(High.Normal.Normalised())) - 1.0) > ScalarCriteria::AngularTolerance)
-    { Refusal = "endpoint support normals are not parallel"; return false; }
-    if ((High.Centre - Low.Centre).Length() <= Low.Radius + High.Radius + std::max(MinimumClearance, PositionTolerance))
-    { Refusal = "endpoint support intervals have no positive ligament"; return false; }
+    if (const char* Reason = AsymmetricPairRefusal(Low, High, MinimumClearance)) { Refusal = Reason; return false; }
     return true;
 }
 

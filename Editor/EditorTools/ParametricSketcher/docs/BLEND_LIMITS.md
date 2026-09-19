@@ -179,3 +179,52 @@ The rendered cases are reproducible with `Scripts/Phase21_Blends.arc`, including
 For a straight, end-capped prism, the solver traces the complete cap perimeter (including the pieces created by `PushFace`), identifies the reflex turn from the loop orientation, and rebuilds that perimeter through the selected edge. A chamfer replaces the root vertex with one line segment and correctly **adds** its triangular void wedge. A fillet uses an exact rational circular arc with tangent distance `R / tan(void-angle / 2)`, extrudes the arc as its own cylindrical face, and caps the two circular end arcs. Other geometry remains on the existing blend path.
 
 `BlendVerification` checks more than solidity here: the R4 chamfer adds exactly the analytic 210° wedge and has the expected 11-face / 27-edge topology; the R4 fillet adds the analytic circular wedge and has the same clean topology plus exactly two radius-4 cap arcs. `Root_Concave_{Chamfer,Fillet}.png` show the full parts, while their `_Detail` counterparts show the single bevel face and smooth roll close-up. A full-face direct push changes the transient edge-table numbering: the geometric arm-tip edge previously reached as `e26` is now `e19`; it is the same left-hand vertical edge of the moved cap, with no hidden micro-rim in front of it.
+
+## Asymmetric endpoint supports and finite-support chains
+
+`BlendSolver::ValidateAsymmetricEndpointPair` classifies an explicitly paired support set: positive finite radii, strictly
+unequal radii, non-degenerate parallel normals, and a positive ligament between the support intervals. The tapered
+frustum, equal-radius plane, unequal radial cap, and variable-radius roll modes build as exact cones or ruled surfaces and
+gate on `ScalarCriteria::WithinVolumeTolerance`.
+
+`ReconstructAsymmetricChain` extends this to a finite-support network: consecutive orthogonal supports walking one axis,
+each span a conical ruled surface between two parallel rims, sewn by the generic `BrepBody::Sew`. The monotonicity
+classification is the closed-manifold guarantee — a chain whose support positions strictly increase cannot self-intersect,
+because every span is convex between its own rims. Measured topology is `V3/E5/C10/L4/F4` for three supports and
+`V4/E7/C14/L5/F5` for four, both genus-zero with one hull, and the volume matches the analytic sum of the span frusta.
+Folding, off-axis, oblique, equal-radius, and non-positive chains refuse with a per-class reason; the validator and the
+builder share one literal table, so the reported reason is the classified one.
+
+## What the measured volume actually is
+
+The volume a caller reads from `BrepBody::Validate()` is a divergence-theorem integral over the *face tessellations*, not
+a closed form. Its distance from the analytic value is therefore a property of the tessellation, and `ChordTolerance`
+alone does not explain it: the per-span subdivision cap (`ChordSubdivision`, 32) is reached long before the requested
+sagitta is. Measured with `Scratchpad/ProbeVolumeBand.cpp` on a tapered frustum (`r 2.0 → 1.25`, `h 8 m`, analytic
+`67.544242052181 m³`):
+
+| chord | span cap | measured volume | absolute error | relative error |
+|---|---:|---:|---:|---:|
+| `1e-4` | 32 (shipping) | 67.5186361640 | 2.561e-2 | 3.79e-4 |
+| `1e-4` | 128 | 67.5392696666 | 4.972e-3 | 7.36e-5 |
+| `1e-6` | 512 | 67.5405594536 | 3.683e-3 | 5.45e-5 |
+| `1e-7` | 2048 | 67.5406400661 | 3.602e-3 | 5.33e-5 |
+
+The floor does not fall further because the residual is the *trim sampling* of the trimmed planar caps, not the sagitta: a
+wall-only body keeps converging (sphere `1.02e-3 → 2.48e-7` relative), while any body with trimmed caps stalls near
+`5e-5` relative. Consequences:
+
+- The shipping acceptance gate stays `VolumeTolerance` (`1e-3` relative), which the default tessellation clears with a
+  measured `2.6x` margin. Tightening that gate without also chord-driving the trim rings would start refusing valid
+  geometry for a reason that has nothing to do with the geometry.
+- Verification states the measured band instead of hiding behind the acceptance gate: `Validate` now takes an optional
+  chord **and span cap**, and analytic claims are compared against `ScalarCriteria::MeasuredVolumeBand` (`2e-4` relative)
+  at `VerificationChord`/`VerificationCap`. That is five times tighter than what the kernel accepts.
+- Chord-driving the trim rings is the open work item; it would let the analytic gates tighten by another order of
+  magnitude. It is not claimed here.
+
+A tolerance is also a boundary decision, and `ScalarCriteria` now treats it as one: `BoundarySlack` (`1e-9` relative)
+absorbs the rounding of a limit the caller reconstructed as `Exact ± Tolerance`. `(π + 1e-6) − π` is
+`1.0000000000288e-6`, not `1e-6`, and a value exactly on a limit is inside it. The widening is `1e-12` of the volume gate
+— nothing that was refused before is accepted now — but every boundary-acceptance check now holds for all four gates
+instead of for the two that happened to avoid the rounding.

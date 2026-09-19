@@ -467,9 +467,36 @@ The bounded side-stepped route now supports two through eight cavities with inde
 
 **Proof:** `MixedStageSideBlindBorePrismFilletVerification` (42 C++ checks) and `Proofs/Phase32y_MixedStageSideBlindBorePrism.png`.
 
+#### Phase 32z: bounded asymmetric endpoint supports and finite-support chains 🟡
+
+A bounded asymmetric endpoint route now exists beside the symmetric builders. `EndpointSupport` pairs classify through one
+shared source of truth (`AsymmetricPairRefusal`): positive finite radii, strictly unequal radii, non-degenerate parallel
+normals, and a positive ligament between the support intervals. `AsymmetricBlendSpecification` adds the tapered-frustum,
+equal-radius-plane, unequal-radial-cap, and variable-radius-roll modes; `ReconstructAsymmetricFrustum` and
+`ReconstructAsymmetricSupport` build them as exact cones and gate the result on the centralised analytic volume policy.
+The variable-radius mode carries its own ruled surface, G1 endpoint matching, and a bounded curvature acceptance.
+
+`ReconstructAsymmetricChain` adds the finite-support network: consecutive orthogonal supports walking one axis, each span
+a conical ruled surface between two parallel circular rims, sewn into one closed solid. The classification is the
+guarantee — every span is convex between its own rims and the support positions are strictly monotone, so an accepted
+chain cannot self-intersect. Three supports give `V3/E5/C10/L4/F4`, four give `V4/E7/C14/L5/F5`, both genus-zero and
+one hull, and the swept volume is the analytic sum of the span frusta. Open, folding, off-axis, oblique, equal-radius, and
+non-positive chains refuse with their own classified reason; a refusal never mutates the supports it was given.
+
+**32z exit gate (partial):** `AsymmetricEndpointVerification` proves pair/specification classification, the tapered
+frustum, unequal radial caps, equal-radius planes, the variable-radius surface and ruled solid, the three- and
+four-support chains, rigid-transform and span-order invariance, exact support counts, the analytic volume against the
+centralised gate and against a tightened measured band, six failure-oriented refusal fixtures with per-class reasons, and a
+deterministic `960 x 600` proof render.
+**Proof:** `Verification/AsymmetricEndpointVerification.cpp` (50 C++ checks) and `Proofs/Phase32z_AsymmetricChain.png`.
+
+**Still open in this batch:** non-orthogonal (oblique) support planes, unequal or non-orthogonal corner networks, and
+interaction of an accepted network with other blends. Oblique supports are classified and refused rather than
+approximated; no general non-box blend/blend intersection is claimed.
+
 #### Still required before Phase 32 is complete
 
-Asymmetric or non-radial endpoint supports, unequal/non-orthogonal and partial corner networks, oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
+Oblique (non-orthogonal) endpoint supports, unequal/non-orthogonal corner networks and their interaction with other blends (the bounded orthogonal asymmetric and finite-support chain routes now exist — see Phase 32z), oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
 
 ### Phase 33: variable radius, setbacks, partial edges, and G2
 
