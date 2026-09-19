@@ -1,0 +1,57 @@
+echo Phase 13 redo -- Plasticity-style dims (white, world-space, live edit)
+dim on
+view iso
+gizmo off
+select none
+
+echo --- tile 1: a box, then live-edit the Y dim to 7.0
+reset
+box (0,0,0) (2,3,4) --name=Box
+matcap Box pearl
+view fit
+render Phase13b_BoxBefore
+echo --- find the Y dim id and live-edit it
+dim list
+dim edit 2 7.0
+view fit
+render Phase13b_BoxAfter
+echo --- end of tile 1
+
+echo --- tile 2: a cone - live edit the height to 6.0
+reset
+cone (0,0,0) 2.0 0.5 4.0 --name=Cone
+matcap Cone clay
+view fit
+render Phase13b_ConeBefore
+dim list
+dim edit 7 6.0
+view fit
+render Phase13b_ConeAfter
+echo --- end of tile 2
+
+echo --- tile 3: a chamfered box - live edit the setback
+reset
+box (0,0,0) (3,1,1) --name=Plank
+chamfer Plank 0.1 --edges=0 --name=PlankCham
+matcap PlankCham gold
+view fit
+render Phase13b_ChamferBefore
+dim list
+dim edit 12 0.3
+view fit
+render Phase13b_ChamferAfter
+echo --- end of tile 3
+
+echo --- tile 4: a sphere plus a torus plus a cylinder
+reset
+sphere (0,0,0) 1.0 --name=Sph
+cylinder (3,0,0) 0.6 2.0 --name=Cyl
+torus (6,0,0) 0.7 0.2 --name=Trs
+matcap Sph chrome
+matcap Cyl copper
+matcap Trs steel
+view fit
+render Phase13b_Round
+echo --- end of tile 4
+
+echo Phase 13 redo done.
