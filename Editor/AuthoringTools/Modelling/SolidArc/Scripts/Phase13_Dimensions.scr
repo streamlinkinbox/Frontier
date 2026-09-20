@@ -1,0 +1,44 @@
+echo Phase 13 -- dimensions: auto-emit, explicit dim, angle, edit, hide
+dim on
+view iso
+gizmo off
+select none
+echo -- tile 1: a box with auto-emitted bbox dims
+box (0,0,0) (2,1.5,1) --name=Box
+matcap Box pearl
+view fit
+render Phase13_BoxDims
+echo -- end of tile 1
+reset
+echo -- tile 2: a circle + an ellipse with auto-emitted radius and circumference dims
+circle (0,0,0) 1 --name=Circ
+matcap Circ chrome
+ellipse (0,0,0) 1.5 0.7 --name=Ov
+matcap Ov copper
+view fit
+render Phase13_CurveDims
+echo -- end of tile 2
+reset
+echo -- tile 3: explicit dim + free dim + edit
+box (0,0,0) (3,2,1) --name=Box2
+matcap Box2 plastic-blue
+dim Box2 --along=Y
+dim Box2 (0,0,0) (0,0,4)
+echo -- dim list (so we know the IDs)
+dim list
+echo -- edit the Y user dim
+dim edit 12 9.999
+matcap Box2 plastic-blue
+view fit
+render Phase13_DimEdit
+echo -- end of tile 3
+reset
+echo -- tile 4: angle dim on a polyline
+polyline (0,0) (4,0) (4,3) --name=Tri
+matcap Tri plastic-red
+angle Tri --at=1
+view fit
+render Phase13_Angle
+echo -- end of tile 4
+reset
+echo Phase 13 done.
