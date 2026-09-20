@@ -64,11 +64,11 @@ done
 
 echo "[SolidArc] kernel, console and interaction targets link"
 
-for TEST in FaceLoft Tweak DirectModeling ChamferLoop; do
+for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak; do
     TEST_OBJ="$WORK/obj/${TEST}Verification.o"
     "$CXX_BIN" "${FLAGS[@]}" -c "$SRC/Verification/${TEST}Verification.cpp" -o "$TEST_OBJ"
     "$CXX_BIN" "${OBJECTS[@]}" "$TEST_OBJ" -o "$WORK/${TEST}Verification"
     "$WORK/${TEST}Verification"
 done
 
-echo "[SolidArc] Phase 34a/34b loft+tweak and Phase 34c/34d planar chamfer gates passed"
+echo "[SolidArc] Phase 34a–34e loft, tweak, chamfer and transform-tweak gates passed"

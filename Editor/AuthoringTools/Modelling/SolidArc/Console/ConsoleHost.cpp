@@ -2589,6 +2589,64 @@ void ConsoleHost::Register() noexcept
         }
         return Done > 0;
     });
+    Add("rotate", "rotate <body> angleDeg --face=i [--axis=(x,y,z)] [--warp] [--name=…] — rotate one planar face on fixed topology",
+        [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "rotate")) return false;
+        double Degrees = 0.0; if (!NumberArg(C, 1, Degrees, "rotate")) return false;
+        auto FaceText = C.SwitchText("face");
+        if (!FaceText) return Refuse("rotate: --face=i is required — use `topology <body>` to list the faces");
+        const int Face = std::atoi(FaceText->c_str());
+        Vec3 Axis{};
+        const bool ExplicitAxis = C.SwitchText("axis").has_value();
+        if (auto Text = C.SwitchText("axis"))
+        {
+            auto Parsed = CommandCodec::ParsePoint(*Text); if (!Parsed) return Refuse("rotate: --axis requires (x,y,z)");
+            Axis = *Parsed;
+        }
+        int Done = 0; CommandLine Sub = C; Sub.Arguments.erase(Sub.Arguments.begin() + 1);
+        const bool Warp = C.Switch("warp");
+        for (SceneFigure* I : ResolveMany(Sub, 0))
+        {
+            if (I->Classification != FigureClassification::Body) { Refuse("rotate: '%s' is not a body", I->Name.c_str()); continue; }
+            Vec3 RotationAxis = Axis;
+            if (!ExplicitAxis && Face >= 0 && Face < static_cast<int>(I->Body.Faces.size()))
+                RotationAxis = I->Body.FaceNormal(Face, 0.5, 0.5);
+            Deliver<BrepBody> R = TweakSolver::RotateFace(I->Body, Face, RotationAxis, ScalarCriteria::Radians(Degrees), Warp);
+            if (!R) { Refuse("rotate %s: %s", I->Name.c_str(), R.Denial.Detail); continue; }
+            std::string Name = I->Name; uint32_t Id = I->Identity; bool Selected = I->Selected; double Before = I->Body.Validate().Volume;
+            Scene.Remove(Id);
+            SceneFigure& Out = Scene.AddBody(C.SwitchText("name").value_or(Name + ".Rotated"), std::move(R.Payload));
+            Out.Selected = Selected; DescribeFigure(Out);
+            Row("rotate %s → %s  face %d  angle %.4f°  volume %.4f → %.4f", Name.c_str(), Out.Name.c_str(), Face, Degrees, Before, Out.Body.Validate().Volume);
+            ++Done;
+        }
+        return Done > 0;
+    });
+    Add("scale", "scale <body> factor --face=i [--warp] [--name=…] — uniformly scale one planar face about its vertex centroid on fixed topology",
+        [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "scale")) return false;
+        double Factor = 0.0; if (!NumberArg(C, 1, Factor, "scale")) return false;
+        auto FaceText = C.SwitchText("face");
+        if (!FaceText) return Refuse("scale: --face=i is required — use `topology <body>` to list the faces");
+        const int Face = std::atoi(FaceText->c_str());
+        int Done = 0; CommandLine Sub = C; Sub.Arguments.erase(Sub.Arguments.begin() + 1);
+        const bool Warp = C.Switch("warp");
+        for (SceneFigure* I : ResolveMany(Sub, 0))
+        {
+            if (I->Classification != FigureClassification::Body) { Refuse("scale: '%s' is not a body", I->Name.c_str()); continue; }
+            Deliver<BrepBody> R = TweakSolver::ScaleFace(I->Body, Face, Factor, Warp);
+            if (!R) { Refuse("scale %s: %s", I->Name.c_str(), R.Denial.Detail); continue; }
+            std::string Name = I->Name; uint32_t Id = I->Identity; bool Selected = I->Selected; double Before = I->Body.Validate().Volume;
+            Scene.Remove(Id);
+            SceneFigure& Out = Scene.AddBody(C.SwitchText("name").value_or(Name + ".Scaled"), std::move(R.Payload));
+            Out.Selected = Selected; DescribeFigure(Out);
+            Row("scale %s → %s  face %d  factor %.4f  volume %.4f → %.4f", Name.c_str(), Out.Name.c_str(), Face, Factor, Before, Out.Body.Validate().Volume);
+            ++Done;
+        }
+        return Done > 0;
+    });
     Add("offset", "offset <curve...> distance [--copy] — parallel curve; + is left of travel (inward for ccw loops), lines and arcs stay exact (Plasticity O)", [=, this](const CommandLine& C)
     {
         if (!Need(C, 1, "offset")) return false;

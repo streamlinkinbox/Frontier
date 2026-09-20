@@ -21,8 +21,9 @@ If CMake is not available, the focused gate is dependency-free:
 Tools/Build/CheckSolidArc.sh
 ```
 
-That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs and the Phase 34c/34d planar-chamfer proofs.
-No external packages. `-Wall -Wextra -Wpedantic`.
+That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
+the Phase 34c/34d planar-chamfer proofs, and the Phase 34e face-transform proof. No external packages.
+`-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
 
@@ -44,6 +45,12 @@ This increment answers the solid-to-solid workflow directly instead of treating 
   over-large/self-intersecting, non-convex-unproven and failed members refuse without consuming the source. Complete native
   cylinder-cap rims retain their exact conical-frustum route. Curve profiles still support
   `chamfer Curve setback --corners=i,j`.
+- `rotate Body angleDeg --face=i [--axis=(x,y,z)] [--warp]` rotates a planar face around its centroid while preserving
+  the body's V/E/F topology. `scale Body factor --face=i [--warp]` applies a positive uniform centroid scale. Both are
+  transactional: the source is untouched on a refusal, curved edges/faces and unsupported surfaces are explicit refusals,
+  and the result must remain a closed, manifold, oriented solid. Adjacent natural quads are re-fitted; a non-coplanar
+  bilinear side is refused by default and accepted only with explicit `--warp`. This is intentionally bounded support,
+  not unrestricted curved-face or general CAD transform support.
 
 Examples:
 
@@ -57,11 +64,16 @@ tweak Transition (0,0,1.5) --face=1 --name=Raised
 # Vertex/edge edits that would introduce a non-planar quad require the explicit opt-in:
 tweak Raised (0.25,0,0.5) --vertex=6 --warp --name=Peaked
 chamfer Raised 0.2 --edges=3 --name=EdgeBevel
+
+box (8,0,0) (12,3,2) --name=TransformSource
+scale TransformSource 0.5 --face=1 --name=Scaled
+rotate Scaled 12 --face=1 --axis=(0,0,1) --warp --name=Rotated
 ```
 
 `FaceLoftVerification` runs 29 checks, `TweakVerification` runs 41 checks, `DirectModelingVerification` checks the
-closed single-edge and console edge-loop routes, and `ChamferLoopVerification` runs 18 arbitrary-dihedral, miter,
-feasibility and proof checks. The focused script runs all four.
+closed single-edge and console edge-loop routes, `ChamferLoopVerification` runs 18 arbitrary-dihedral, miter,
+feasibility and proof checks, and `TransformTweakVerification` runs 14 scale/rotation, refusal, topology, numerical
+and visible-proof checks. The focused script runs all five.
 
 ## Native `.arc` documents (Phase 22)
 

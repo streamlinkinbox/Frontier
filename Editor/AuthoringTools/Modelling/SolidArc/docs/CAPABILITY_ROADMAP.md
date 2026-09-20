@@ -598,11 +598,29 @@ visible `Proofs/Phase34c_SingleEdgeChamfer.png`. `ChamferLoopVerification` adds 
 four-edge box loop, a 45° triangular-prism dihedral, analytic wedge volume, transactional source preservation, and the
 visible `Proofs/Phase34d_ChamferLoop.png`.
 
+#### Phase 34e: bounded planar face rotation and uniform scale tweaks ✅
+
+`TweakSolver::RotateFace` and `ScaleFace` apply a centroid-pivoted arbitrary-axis rotation or positive uniform scale to
+one planar face while preserving fixed topology. The target face is transformed rigidly; adjacent natural degree-1×1
+quads are re-fitted from their four corners. If that refit leaves a quad non-coplanar, the default route refuses with an
+explicit adjacent-warp diagnostic; `--warp` opts into a bilinear free-form side. Trimmed planar faces remain planar, while
+curved edges/faces and unsupported surfaces refuse rather than being approximated. The result is delivered transactionally
+only after `Validate()` confirms a closed, manifold, oriented solid with positive numerical volume.
+
+The console commands are `rotate Body angleDeg --face=i [--axis=(x,y,z)] [--warp] [--name=]` and
+`scale Body factor --face=i [--warp] [--name=]`. Both preserve the source on refusal. The bounded scope is deliberate:
+this is not unrestricted curved-face rotation, arbitrary CAD transform support, or topology-changing face editing.
+
+**34e exit gate met:** `TransformTweakVerification` checks the analytic tapered-box scale (`V8/E12/F6`, volume 14),
+source immutability, default refusal of an in-plane rotation that would warp adjacent quads, explicit warp acceptance,
+fixed topology and positive numerical volume, curved-rim refusal, and both console commands. It also writes the visible
+`Proofs/Phase34e_TransformTweaks.png` proof (1600 × 800).
+
 #### Still required in Phase 34
 
 Face lofts with intermediate sections or guide curves, lofts between two faces of one body (handles), faces with holes,
-and tweaks of curved edges and faces, rotation and scaling tweaks remain unsupported. Concave/non-convex planar chamfer
-networks, curved-edge chamfers, and arbitrary non-planar edge loops still need dedicated topology and intersection routes.
+and tweaks of curved faces/edges remain unsupported. Concave/non-convex planar chamfer networks, curved-edge chamfers,
+and arbitrary non-planar edge loops still need dedicated topology and intersection routes.
 
 ## Later direct modelling and platform work
 

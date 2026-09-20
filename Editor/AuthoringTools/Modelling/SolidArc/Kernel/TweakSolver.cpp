@@ -179,6 +179,138 @@ namespace
         }
         return true;
     }
+
+    Deliver<BrepBody> TransformFaceTargets(const BrepBody& Body, int Face, const Mat4& Transform,
+                                            bool AllowWarp, const char* Operation) noexcept
+    {
+        const BodyReport Before = Body.Validate();
+        if (!Before.Solid()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak needs a closed solid");
+        if (Face < 0 || Face >= static_cast<int>(Body.Faces.size()))
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face index out of range");
+
+        const std::vector<int> Moved = TweakSolver::FaceVertices(Body, Face);
+        if (Moved.empty()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face has no vertices to transform");
+        const double Reach = Scale(Body);
+        std::vector<char> IsMoved(Body.Vertices.size(), 0);
+        std::vector<Vec3> Targets(Body.Vertices.size());
+        for (size_t I = 0; I < Body.Vertices.size(); ++I) Targets[I] = Body.Vertices[I].Point;
+        for (int Vertex : Moved)
+        {
+            if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+                return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face vertex index out of range");
+            IsMoved[Vertex] = 1;
+            Targets[Vertex] = Transform.TransformPoint(Body.Vertices[Vertex].Point);
+        }
+
+        std::vector<int> AffectedEdges;
+        std::vector<AffectedFace> Affected;
+        std::vector<char> FaceSeen(Body.Faces.size(), 0);
+        for (size_t E = 0; E < Body.Edges.size(); ++E)
+        {
+            const BrepEdge& Edge = Body.Edges[E];
+            if (Edge.VertexStart < 0 || Edge.VertexEnd < 0 ||
+                (!IsMoved[Edge.VertexStart] && !IsMoved[Edge.VertexEnd])) continue;
+            if (!Straight(Edge))
+                return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak touches a curved edge");
+            AffectedEdges.push_back(static_cast<int>(E));
+            for (int Coedge : Edge.Coedges)
+            {
+                int Adjacent = Body.Coedges[Coedge].Face;
+                if (Adjacent < 0 || Adjacent >= static_cast<int>(Body.Faces.size()))
+                    return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "coedge without a face");
+                if (!FaceSeen[Adjacent]) { FaceSeen[Adjacent] = 1; Affected.push_back({ Adjacent, FaceRefit::Rigid, false }); }
+            }
+        }
+
+        for (AffectedFace& Entry : Affected)
+        {
+            const BrepFace& SourceFace = Body.Faces[Entry.Face];
+            const std::vector<int> Corners = TweakSolver::FaceVertices(Body, Entry.Face);
+            bool AllMoved = true;
+            for (int Vertex : Corners) if (!IsMoved[Vertex]) { AllMoved = false; break; }
+            if (AllMoved) { Entry.Refit = FaceRefit::Rigid; continue; }
+
+            if (NaturalQuad(Body, SourceFace))
+            {
+                Entry.Refit = FaceRefit::NaturalQuad;
+                Vec3 CornersAfter[4]; int K = 0;
+                for (int I = 0; I < 2; ++I)
+                    for (int J = 0; J < 2; ++J)
+                    {
+                        int Vertex = CornerVertex(Body, SourceFace, Corners, I, J, Reach);
+                        if (Vertex < 0) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "natural quad corner has no matching vertex");
+                        CornersAfter[K++] = Targets[Vertex];
+                    }
+                Entry.Warps = !Coplanar(CornersAfter, 4, Reach);
+                if (Entry.Warps && !AllowWarp)
+                    return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak would warp an adjacent planar face; allow warping to accept bilinear faces");
+                continue;
+            }
+            if (PlanarTrimmed(SourceFace))
+            {
+                Entry.Refit = FaceRefit::PlanarTrimmed;
+                const PlaneFrame Frame = FrameOf(SourceFace.Surface);
+                for (int Vertex : Corners)
+                    if (IsMoved[Vertex] && std::fabs(Frame.Height(Targets[Vertex])) > ScalarCriteria::GeometricTolerance * Reach)
+                        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak would move a trimmed face out of its plane");
+                continue;
+            }
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak supports planar faces and natural quads only");
+        }
+
+        BrepBody Out = Body;
+        for (int Vertex : Moved) Out.Vertices[Vertex].Point = Targets[Vertex];
+        for (int EdgeIndex : AffectedEdges)
+        {
+            BrepEdge& Edge = Out.Edges[EdgeIndex];
+            Deliver<NurbsCurve> Line = NurbsCurve::Line(Out.Vertices[Edge.VertexStart].Point, Out.Vertices[Edge.VertexEnd].Point);
+            if (!Line) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "transform tweak collapses an edge");
+            Edge.Curve = std::move(Line.Payload);
+        }
+
+        for (const AffectedFace& Entry : Affected)
+        {
+            BrepFace& Destination = Out.Faces[Entry.Face];
+            if (Entry.Refit == FaceRefit::Rigid)
+            {
+                Destination.Surface = Destination.Surface.Transformed(Transform);
+            }
+            else if (Entry.Refit == FaceRefit::NaturalQuad)
+            {
+                const std::vector<int> Corners = TweakSolver::FaceVertices(Body, Entry.Face);
+                for (int I = 0; I < 2; ++I)
+                    for (int J = 0; J < 2; ++J)
+                    {
+                        int Vertex = CornerVertex(Body, Body.Faces[Entry.Face], Corners, I, J, Reach);
+                        Destination.Surface.Pole(I, J) = Vec4(Targets[Vertex], 1.0);
+                    }
+                const PlaneFrame Frame = FrameOf(Destination.Surface);
+                if (Frame.Du.Cross(Frame.Dv).Length() <= Tol * Reach * Reach)
+                    return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "transform tweak collapses a face");
+                Destination.Surface.Origin = Frame.Origin;
+                Destination.Surface.Axis = Frame.Normal;
+                Destination.Surface.Classification = Entry.Warps ? SurfaceClassification::Freeform : SurfaceClassification::Plane;
+            }
+            else
+            {
+                const PlaneFrame Frame = FrameOf(Destination.Surface);
+                for (int Loop : Destination.Loops)
+                    for (int Coedge : Out.Loops[Loop].Coedges)
+                    {
+                        const BrepEdge& Edge = Out.Edges[Out.Coedges[Coedge].Edge];
+                        if (Edge.VertexStart < 0 || Edge.VertexEnd < 0) continue;
+                        Out.Coedges[Coedge].Trace = { Frame.Uv(Out.CoedgeStart(Coedge)), Frame.Uv(Out.CoedgeEnd(Coedge)) };
+                    }
+            }
+        }
+
+        const BodyReport After = Out.Validate();
+        if (!After.Solid()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "transform tweak did not leave a closed solid");
+        if (After.Volume <= ScalarCriteria::VolumeTolerance * std::max(1.0, Before.Volume))
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "transform tweak inverts or collapses the solid");
+        (void)Operation;
+        return Deliver<BrepBody>::Accept(std::move(Out));
+    }
 }
 
 std::vector<int> TweakSolver::FaceVertices(const BrepBody& Body, int Face) noexcept
@@ -330,6 +462,33 @@ Deliver<BrepBody> TweakSolver::TranslateVertex(const BrepBody& Body, int Vertex,
 {
     if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size())) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "vertex index out of range");
     return TranslateVertices(Body, { Vertex }, Delta, AllowWarp);
+}
+
+Deliver<BrepBody> TweakSolver::RotateFace(const BrepBody& Body, int Face, Vec3 Axis, double Angle, bool AllowWarp) noexcept
+{
+    if (!std::isfinite(Angle) || std::fabs(Angle) <= ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "rotation angle is zero or invalid");
+    if (Axis.Length() <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "rotation axis is zero");
+    const std::vector<int> Vertices = FaceVertices(Body, Face);
+    if (Vertices.empty()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face index out of range or has no vertices");
+    Vec3 Pivot{};
+    for (int Vertex : Vertices) Pivot = Pivot + Body.Vertices[Vertex].Point;
+    Pivot = Pivot * (1.0 / static_cast<double>(Vertices.size()));
+    const Mat4 Transform = Mat4::Translation(Pivot) * Mat4::Rotation(Axis.Normalised(), Angle) * Mat4::Translation(-Pivot);
+    return TransformFaceTargets(Body, Face, Transform, AllowWarp, "rotation");
+}
+
+Deliver<BrepBody> TweakSolver::ScaleFace(const BrepBody& Body, int Face, double Factor, bool AllowWarp) noexcept
+{
+    if (!std::isfinite(Factor) || Factor <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "scale factor must be positive");
+    const std::vector<int> Vertices = FaceVertices(Body, Face);
+    if (Vertices.empty()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face index out of range or has no vertices");
+    Vec3 Pivot{};
+    for (int Vertex : Vertices) Pivot = Pivot + Body.Vertices[Vertex].Point;
+    Pivot = Pivot * (1.0 / static_cast<double>(Vertices.size()));
+    const Mat4 Transform = Mat4::Translation(Pivot) * Mat4::Scaling({ Factor, Factor, Factor }) * Mat4::Translation(-Pivot);
+    return TransformFaceTargets(Body, Face, Transform, AllowWarp, "scale");
 }
 
 } // namespace Frontier

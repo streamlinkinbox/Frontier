@@ -46,6 +46,14 @@ public:
     [[nodiscard]] static Deliver<BrepBody> TranslateFace(const BrepBody& Body, int Face, Vec3 Delta, bool AllowWarp) noexcept;
     [[nodiscard]] static Deliver<BrepBody> TranslateEdge(const BrepBody& Body, int Edge, Vec3 Delta, bool AllowWarp) noexcept;
     [[nodiscard]] static Deliver<BrepBody> TranslateVertex(const BrepBody& Body, int Vertex, Vec3 Delta, bool AllowWarp) noexcept;
+
+    // Uniformly rotate or scale one planar face about its vertex centroid while retaining the original topology. Adjacent
+    // natural quads are re-fitted; a resulting bilinear warp requires AllowWarp. Curved faces and non-planar trim edits
+    // refuse rather than silently approximate their surfaces.
+    [[nodiscard]] static Deliver<BrepBody> RotateFace(const BrepBody& Body, int Face, Vec3 Axis, double Angle,
+                                                      bool AllowWarp = false) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ScaleFace(const BrepBody& Body, int Face, double Factor,
+                                                     bool AllowWarp = false) noexcept;
 };
 
 } // namespace Frontier

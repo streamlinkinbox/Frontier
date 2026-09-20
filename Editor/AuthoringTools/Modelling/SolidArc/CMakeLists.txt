@@ -1,7 +1,7 @@
 #=============================================================================================================================================
 # Editor/AuthoringTools/Modelling/SolidArc/CMakeLists.txt — SolidArc standalone NURBS / B-rep modelling tool.
-#   Builds with no engine dependency and no external packages. The Phase 34 direct-modelling gates are
-#   FaceLoftVerification and TweakVerification.
+#   Builds with no engine dependency and no external packages. The Phase 34 direct-modelling gates cover
+#   face loft, fixed-topology tweaks, planar chamfers, and bounded planar face transforms.
 #=============================================================================================================================================
 
 cmake_minimum_required(VERSION 3.20)
@@ -163,6 +163,11 @@ add_test(NAME BlendVerification COMMAND BlendVerification)
 add_executable(ChamferLoopVerification Verification/ChamferLoopVerification.cpp)
 target_link_libraries(ChamferLoopVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ChamferLoopVerification COMMAND ChamferLoopVerification)
+
+# Phase 34e: bounded planar face rotation and uniform scale tweaks on fixed topology.
+add_executable(TransformTweakVerification Verification/TransformTweakVerification.cpp)
+target_link_libraries(TransformTweakVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TransformTweakVerification COMMAND TransformTweakVerification)
 
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
