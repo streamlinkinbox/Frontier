@@ -1,0 +1,358 @@
+#=============================================================================================================================================
+# Editor/AuthoringTools/Modelling/SolidArc/CMakeLists.txt — SolidArc standalone NURBS / B-rep modelling tool.
+#   Builds with no engine dependency and no external packages. The Phase 34 direct-modelling gates are
+#   FaceLoftVerification and TweakVerification.
+#=============================================================================================================================================
+
+cmake_minimum_required(VERSION 3.20)
+project(SolidArc LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if(MSVC)
+    add_compile_options(/W4 /WX /permissive- /utf-8)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wno-unused-function)
+endif()
+
+# ─── Kernel: pure geometry, zero dependencies ───────────────────────────────────────────────────────────────────────────────────────────────
+add_library(SolidArcKernel STATIC
+    Kernel/CurveSpecification.cpp
+    Kernel/SurfaceSpecification.cpp
+    Kernel/TopologySpecification.cpp
+    Kernel/SkinSolver.cpp
+    Kernel/IntersectionSolver.cpp
+    Kernel/FairPatchSolver.cpp
+    Kernel/ProfileSolver.cpp
+    Kernel/ConstraintSolver.cpp
+    Kernel/ConstraintGraph.cpp
+    Kernel/MirrorSolver.cpp
+    Kernel/BlendSolver.cpp
+    Kernel/TweakSolver.cpp
+)
+target_include_directories(SolidArcKernel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# ─── Presentation + Interaction: RasterExchange rule, CPU SoftwareRaster (Slang shaders mirrored in C++), camera ─────────────────────────
+add_library(SolidArcPresentation STATIC
+    Presentation/SoftwareRaster.cpp
+    Presentation/ScenePresentation.cpp
+    Interaction/CameraProjection.cpp
+    Interaction/SnapResolution.cpp
+    Interaction/InputEvent.cpp
+    Interaction/HotkeyChart.cpp
+    Interaction/ToolSession.cpp
+    Interaction/TransformGizmo.cpp
+)
+target_link_libraries(SolidArcPresentation PUBLIC SolidArcKernel)
+target_include_directories(SolidArcPresentation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Presentation)
+set(SOLIDARC_PROOF_FOLDER "${CMAKE_CURRENT_BINARY_DIR}/Proofs")
+file(MAKE_DIRECTORY "${SOLIDARC_PROOF_FOLDER}")
+target_compile_definitions(SolidArcPresentation PUBLIC SOLIDARC_PROOF_FOLDER="${SOLIDARC_PROOF_FOLDER}")
+
+# ─── Document + Console: figure store, command codec, console host, SolidArc executable ───────────────────────────────────────────────────────
+add_library(SolidArcConsoleKit STATIC
+    Document/SceneDocument.cpp
+    Document/FigureRecipe.cpp
+    Document/UndoSequence.cpp
+    Console/CommandCodec.cpp
+    Console/ConsoleHost.cpp
+    Console/ConsoleInteraction.cpp
+    Console/ConsoleSelection.cpp
+)
+target_link_libraries(SolidArcConsoleKit PUBLIC SolidArcPresentation)
+
+add_executable(SolidArc Console/SolidArcConsole.cpp)
+target_link_libraries(SolidArc PRIVATE SolidArcConsoleKit)
+
+# ─── Verification: console proofs, one executable per phase, registered with ctest ──────────────────────────────────────────────────────────
+enable_testing()
+
+add_executable(KernelVerification Verification/KernelVerification.cpp)
+target_link_libraries(KernelVerification PRIVATE SolidArcKernel)
+add_test(NAME KernelVerification COMMAND KernelVerification)
+
+add_executable(RasterVerification Verification/RasterVerification.cpp)
+target_link_libraries(RasterVerification PRIVATE SolidArcPresentation)
+add_test(NAME RasterVerification COMMAND RasterVerification)
+
+add_test(NAME Phase2_Primitives COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase2_Primitives.arc)
+
+add_executable(InteractionVerification Verification/InteractionVerification.cpp)
+target_link_libraries(InteractionVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME InteractionVerification COMMAND InteractionVerification)
+add_executable(SelectionVerification Verification/SelectionVerification.cpp)
+target_link_libraries(SelectionVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SelectionVerification COMMAND SelectionVerification)
+add_executable(TopologyVerification Verification/TopologyVerification.cpp)
+target_link_libraries(TopologyVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TopologyVerification COMMAND TopologyVerification)
+add_executable(ProfileVerification Verification/ProfileVerification.cpp)
+target_link_libraries(ProfileVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ProfileVerification COMMAND ProfileVerification)
+
+# Phase 23: adversarial 2D contacts, self-crossing NURBS, and free-form Boolean/offset quality.
+add_executable(ProfileAdversarialVerification Verification/ProfileAdversarialVerification.cpp)
+target_link_libraries(ProfileAdversarialVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ProfileAdversarialVerification COMMAND ProfileAdversarialVerification)
+add_test(NAME Phase3_Sketching COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase3_Sketching.arc)
+add_test(NAME Phase4_Selection COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase4_Selection.arc)
+add_test(NAME Phase3b_GizmoShading COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase3b_GizmoShading.arc)
+
+add_executable(SkinVerification Verification/SkinVerification.cpp)
+target_link_libraries(SkinVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SkinVerification COMMAND SkinVerification)
+
+add_executable(IntersectionVerification Verification/IntersectionVerification.cpp)
+target_link_libraries(IntersectionVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME IntersectionVerification COMMAND IntersectionVerification)
+
+# Phase 24/24b/24c/24d: exact B-rep Boolean contact, identity, parameter and periodic-seam equivalence.
+add_executable(BooleanContactVerification Verification/BooleanContactVerification.cpp)
+target_link_libraries(BooleanContactVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BooleanContactVerification COMMAND BooleanContactVerification)
+add_executable(BooleanIdentityVerification Verification/BooleanIdentityVerification.cpp)
+target_link_libraries(BooleanIdentityVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BooleanIdentityVerification COMMAND BooleanIdentityVerification)
+add_executable(BooleanEquivalenceVerification Verification/BooleanEquivalenceVerification.cpp)
+target_link_libraries(BooleanEquivalenceVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BooleanEquivalenceVerification COMMAND BooleanEquivalenceVerification)
+add_executable(BooleanCylinderSeamVerification Verification/BooleanCylinderSeamVerification.cpp)
+target_link_libraries(BooleanCylinderSeamVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BooleanCylinderSeamVerification COMMAND BooleanCylinderSeamVerification)
+add_executable(FairPatchVerification Verification/FairPatchVerification.cpp)
+target_link_libraries(FairPatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME FairPatchVerification COMMAND FairPatchVerification)
+
+# Phase 11a: Solidify (single-surface shell), Loft with guides, and the body operations added next.
+add_executable(BodyOpsVerification Verification/BodyOpsVerification.cpp)
+target_link_libraries(BodyOpsVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BodyOpsVerification COMMAND BodyOpsVerification)
+add_executable(ArrayAndBridgeVerification Verification/ArrayAndBridgeVerification.cpp)
+target_link_libraries(ArrayAndBridgeVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ArrayAndBridgeVerification COMMAND ArrayAndBridgeVerification)
+add_executable(DimensionVerification Verification/DimensionVerification.cpp)
+target_link_libraries(DimensionVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DimensionVerification COMMAND DimensionVerification)
+
+# Phase 17: sub-entity dimensions (face / edge), leader lines, `dim sub` (auto-emit all sub-entity dims).
+add_executable(SubEntityDimensionVerification Verification/SubEntityDimensionVerification.cpp)
+target_link_libraries(SubEntityDimensionVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SubEntityDimensionVerification COMMAND SubEntityDimensionVerification)
+
+# Phase 18: 2D constraint solver — 9 constraint types, Newton + analytic Jacobian, dof analysis, dim-edit re-solve hook.
+add_executable(ConstraintVerification Verification/ConstraintVerification.cpp)
+target_link_libraries(ConstraintVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConstraintVerification COMMAND ConstraintVerification)
+
+# Phase 19: mirror / radial / empty operations — 3D reflection (plane / axis / multi-axis) + radial rotation around a 3D line.
+add_executable(MirrorVerification Verification/MirrorVerification.cpp)
+target_link_libraries(MirrorVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MirrorVerification COMMAND MirrorVerification)
+
+# Blend operations: chamfer / fillet / face push, each checked against its closed-form volume.
+add_executable(BlendVerification Verification/BlendVerification.cpp)
+target_link_libraries(BlendVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BlendVerification COMMAND BlendVerification)
+
+# Phase 34c/34d: convex planar arbitrary-dihedral single edges and transactional connected edge loops.
+add_executable(ChamferLoopVerification Verification/ChamferLoopVerification.cpp)
+target_link_libraries(ChamferLoopVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ChamferLoopVerification COMMAND ChamferLoopVerification)
+
+# Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
+add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
+target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CylinderChamferVerification COMMAND CylinderChamferVerification)
+add_executable(CylinderFilletVerification Verification/CylinderFilletVerification.cpp)
+target_link_libraries(CylinderFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CylinderFilletVerification COMMAND CylinderFilletVerification)
+add_executable(CylinderPushVerification Verification/CylinderPushVerification.cpp)
+target_link_libraries(CylinderPushVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CylinderPushVerification COMMAND CylinderPushVerification)
+add_executable(CylinderSidePushVerification Verification/CylinderSidePushVerification.cpp)
+target_link_libraries(CylinderSidePushVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CylinderSidePushVerification COMMAND CylinderSidePushVerification)
+add_executable(ConeSidePushVerification Verification/ConeSidePushVerification.cpp)
+target_link_libraries(ConeSidePushVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeSidePushVerification COMMAND ConeSidePushVerification)
+add_executable(ConeCapPushVerification Verification/ConeCapPushVerification.cpp)
+target_link_libraries(ConeCapPushVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeCapPushVerification COMMAND ConeCapPushVerification)
+
+# Phase 31: first general smooth-support rolling-ball fillet — a planar annular shoulder meeting a cylindrical boss.
+add_executable(PlaneCylinderFilletVerification Verification/PlaneCylinderFilletVerification.cpp)
+target_link_libraries(PlaneCylinderFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PlaneCylinderFilletVerification COMMAND PlaneCylinderFilletVerification)
+
+# Phase 32a: G1 tangent-chain propagation across angular representation seams at that exact boss root.
+add_executable(TangentChainFilletVerification Verification/TangentChainFilletVerification.cpp)
+target_link_libraries(TangentChainFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TangentChainFilletVerification COMMAND TangentChainFilletVerification)
+
+# Phase 32b: exact finite semicircular boss-root chain with two planar-cap endpoint meridians.
+add_executable(OpenChainFilletVerification Verification/OpenChainFilletVerification.cpp)
+target_link_libraries(OpenChainFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME OpenChainFilletVerification COMMAND OpenChainFilletVerification)
+
+# Phase 32c: deterministic transactional multi-edge sets with chain-member deduplication and corner refusal.
+add_executable(MultiEdgeFilletVerification Verification/MultiEdgeFilletVerification.cpp)
+target_link_libraries(MultiEdgeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiEdgeFilletVerification COMMAND MultiEdgeFilletVerification)
+
+# Phase 32d: exact general-angle plane-cylinder chains terminated by two radial caps and one axis edge.
+add_executable(SectorEndpointFilletVerification Verification/SectorEndpointFilletVerification.cpp)
+target_link_libraries(SectorEndpointFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SectorEndpointFilletVerification COMMAND SectorEndpointFilletVerification)
+
+# Phase 32e: equal-radius orthogonal three-edge box corner with a rational spherical octant transition.
+add_executable(CornerFilletVerification Verification/CornerFilletVerification.cpp)
+target_link_libraries(CornerFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CornerFilletVerification COMMAND CornerFilletVerification)
+
+# Phase 32f: complete equal-radius rectangular edge network with twelve cylinders and eight spherical corners.
+add_executable(RoundedBoxFilletVerification Verification/RoundedBoxFilletVerification.cpp)
+target_link_libraries(RoundedBoxFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME RoundedBoxFilletVerification COMMAND RoundedBoxFilletVerification)
+
+# Phase 32g: complete four-edge parallel family rebuilt as an exact rounded prism with cross-wall feasibility.
+add_executable(RoundedPrismFilletVerification Verification/RoundedPrismFilletVerification.cpp)
+target_link_libraries(RoundedPrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME RoundedPrismFilletVerification COMMAND RoundedPrismFilletVerification)
+
+# Phase 32h: preserve one centred coaxial circular through-hole while rebuilding that outer parallel family.
+add_executable(PerforatedPrismFilletVerification Verification/PerforatedPrismFilletVerification.cpp)
+target_link_libraries(PerforatedPrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PerforatedPrismFilletVerification COMMAND PerforatedPrismFilletVerification)
+
+# Phase 32i: extend that single through-hole route to safe offsets using the exact rounded-wall inward offset.
+add_executable(OffsetBorePrismFilletVerification Verification/OffsetBorePrismFilletVerification.cpp)
+target_link_libraries(OffsetBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME OffsetBorePrismFilletVerification COMMAND OffsetBorePrismFilletVerification)
+
+# Phase 32j: preserve exactly two separated axis-parallel bores with pairwise ligament feasibility.
+add_executable(TwinBorePrismFilletVerification Verification/TwinBorePrismFilletVerification.cpp)
+target_link_libraries(TwinBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TwinBorePrismFilletVerification COMMAND TwinBorePrismFilletVerification)
+
+# Phase 32k: scale exact geometric rim pairing to a bounded set of at most eight separated bores.
+add_executable(MultiBorePrismFilletVerification Verification/MultiBorePrismFilletVerification.cpp)
+target_link_libraries(MultiBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiBorePrismFilletVerification COMMAND MultiBorePrismFilletVerification)
+
+# Phase 32l: preserve one axis-parallel blind cylindrical cavity entering either rounded-prism end.
+add_executable(BlindBorePrismFilletVerification Verification/BlindBorePrismFilletVerification.cpp)
+target_link_libraries(BlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME BlindBorePrismFilletVerification COMMAND BlindBorePrismFilletVerification)
+
+# Phase 32m: preserve exactly two separated axis-parallel blind cavities entering the same or opposite prism ends.
+add_executable(DualBlindBorePrismFilletVerification Verification/DualBlindBorePrismFilletVerification.cpp)
+target_link_libraries(DualBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DualBlindBorePrismFilletVerification COMMAND DualBlindBorePrismFilletVerification)
+
+# Phase 32n: scale the same exact finite-cylinder route to a bounded set of at most eight blind cavities.
+add_executable(MultiBlindBorePrismFilletVerification Verification/MultiBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MultiBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiBlindBorePrismFilletVerification COMMAND MultiBlindBorePrismFilletVerification)
+
+# Phase 32o: preserve one coaxial two-diameter stepped blind cavity with an exact annular shoulder.
+add_executable(SteppedBlindBorePrismFilletVerification Verification/SteppedBlindBorePrismFilletVerification.cpp)
+target_link_libraries(SteppedBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SteppedBlindBorePrismFilletVerification COMMAND SteppedBlindBorePrismFilletVerification)
+
+# Phase 32p: scale one coaxial stepped cavity to a bounded chain of at most eight decreasing diameters.
+add_executable(MultiStageBlindBorePrismFilletVerification Verification/MultiStageBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MultiStageBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiStageBlindBorePrismFilletVerification COMMAND MultiStageBlindBorePrismFilletVerification)
+
+# Phase 32q: preserve exactly two separated coaxial two-stage blind cavities with finite-band clearance.
+add_executable(DualSteppedBlindBorePrismFilletVerification Verification/DualSteppedBlindBorePrismFilletVerification.cpp)
+target_link_libraries(DualSteppedBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DualSteppedBlindBorePrismFilletVerification COMMAND DualSteppedBlindBorePrismFilletVerification)
+
+# Phase 32r: preserve one orthogonal blind cavity entering any retained planar rounded-prism side.
+add_executable(SideBlindBorePrismFilletVerification Verification/SideBlindBorePrismFilletVerification.cpp)
+target_link_libraries(SideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SideBlindBorePrismFilletVerification COMMAND SideBlindBorePrismFilletVerification)
+
+# Phase 32s: preserve exactly two separated parallel blind cavities entering retained planar sides.
+add_executable(DualSideBlindBorePrismFilletVerification Verification/DualSideBlindBorePrismFilletVerification.cpp)
+target_link_libraries(DualSideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DualSideBlindBorePrismFilletVerification COMMAND DualSideBlindBorePrismFilletVerification)
+
+# Phase 32t: preserve three through eight separated parallel blind cavities entering retained planar sides.
+add_executable(MultiSideBlindBorePrismFilletVerification Verification/MultiSideBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MultiSideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiSideBlindBorePrismFilletVerification COMMAND MultiSideBlindBorePrismFilletVerification)
+
+# Phase 32u: preserve one orthogonal two-diameter stepped blind cavity entering a retained planar side.
+add_executable(SideSteppedBlindBorePrismFilletVerification Verification/SideSteppedBlindBorePrismFilletVerification.cpp)
+target_link_libraries(SideSteppedBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SideSteppedBlindBorePrismFilletVerification COMMAND SideSteppedBlindBorePrismFilletVerification)
+
+# Phase 32v: preserve one orthogonal side-entering stepped cavity with three through eight decreasing diameters.
+add_executable(MultiStageSideBlindBorePrismFilletVerification Verification/MultiStageSideBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MultiStageSideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiStageSideBlindBorePrismFilletVerification COMMAND MultiStageSideBlindBorePrismFilletVerification)
+
+# Phase 32w: preserve exactly two separated two-stage cavities entering parallel retained sides.
+add_executable(DualSideSteppedBlindBorePrismFilletVerification Verification/DualSideSteppedBlindBorePrismFilletVerification.cpp)
+target_link_libraries(DualSideSteppedBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DualSideSteppedBlindBorePrismFilletVerification COMMAND DualSideSteppedBlindBorePrismFilletVerification)
+
+# Phase 32x: scale separated parallel side-entering two-stage cavities to a bounded set of three through eight.
+add_executable(MultiSideSteppedBlindBorePrismFilletVerification Verification/MultiSideSteppedBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MultiSideSteppedBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MultiSideSteppedBlindBorePrismFilletVerification COMMAND MultiSideSteppedBlindBorePrismFilletVerification)
+
+# Phase 32y: generalize bounded side-stepped sets to mixed two-through-eight-stage chains with sixteen total stages.
+add_executable(MixedStageSideBlindBorePrismFilletVerification Verification/MixedStageSideBlindBorePrismFilletVerification.cpp)
+target_link_libraries(MixedStageSideBlindBorePrismFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME MixedStageSideBlindBorePrismFilletVerification COMMAND MixedStageSideBlindBorePrismFilletVerification)
+
+# Phase 32z: first unequal-radius support pair — the exact plane–cone boss-root rolling ball and its prerequisites.
+add_executable(PlaneConeFilletVerification Verification/PlaneConeFilletVerification.cpp)
+target_link_libraries(PlaneConeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PlaneConeFilletVerification COMMAND PlaneConeFilletVerification)
+
+# Phase 34a: face loft — one solid from two through a chosen face of each (rims shared exactly, no Boolean).
+add_executable(FaceLoftVerification Verification/FaceLoftVerification.cpp)
+target_link_libraries(FaceLoftVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME FaceLoftVerification COMMAND FaceLoftVerification)
+
+# Phase 34b: tweak — translate a face, an edge or a vertex of a solid on fixed topology (planar stays planar; --warp admits bilinear faces).
+add_executable(TweakVerification Verification/TweakVerification.cpp)
+target_link_libraries(TweakVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TweakVerification COMMAND TweakVerification)
+
+# Direct-modelling regression: the user-facing chamfer accepts one edge and refuses an edge loop transactionally.
+add_executable(DirectModelingVerification Verification/DirectModelingVerification.cpp)
+target_link_libraries(DirectModelingVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DirectModelingVerification COMMAND DirectModelingVerification)
+
+# Phase 22: versioned native .arc construction journals — atomic save/open and transactional failed opens.
+add_executable(DocumentVerification Verification/DocumentVerification.cpp)
+target_link_libraries(DocumentVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME DocumentVerification COMMAND DocumentVerification)
+
+# Phase 10: chain-run every per-phase script and check the contact sheet.
+add_executable(SuiteVerification Verification/SuiteVerification.cpp)
+target_link_libraries(SuiteVerification PRIVATE SolidArcConsoleKit)
+target_compile_definitions(SuiteVerification PRIVATE SUITEVERIFICATION_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+add_test(NAME SuiteVerification COMMAND SuiteVerification)
+
+# Per-phase script smoke tests (the suite is the regression net; these are fast individual reruns so a broken phase
+#    fails locally before the whole suite does).
+add_test(NAME Phase6_Topology COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase6_Topology.arc)
+add_test(NAME Phase7_Profiles COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase7_Profiles.arc)
+add_test(NAME Phase7b_Areas COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase7b_Areas.arc)
+add_test(NAME Phase8_Skins COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase8_Skins.arc)
+add_test(NAME Phase9_Booleans COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase9_Booleans.arc)
+add_test(NAME Phase9b_FairPatch COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase9b_FairPatch.arc)
+add_test(NAME Phase10_Suite COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase10_Suite.arc)
+add_test(NAME Phase10_ContactSheet COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase10_ContactSheet.arc)
+add_test(NAME Phase23_AdversarialProfiles COMMAND SolidArc ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Phase23_AdversarialProfiles.arc)

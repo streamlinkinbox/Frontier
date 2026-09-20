@@ -1,0 +1,52 @@
+echo Phase 19 -- mirror / radial / empty operations
+echo   -- mirror <fig> --across=<xy|xz|yz|name|(n)|(o,d)> [--also=...] [--copy|--in-place] [--name=stem>
+echo   -- radial <fig> --count=N --axis=(o),(d) [--angle=deg] [--name=stem>
+echo   -- empty --name=E --at=(x,y,z) | list empty | delete empty <name>|all>
+dim on
+view iso
+gizmo off
+reset
+
+echo -- tile 1: a single line reflected across the XY plane (z negated)
+line (1, 2, 3) (4, 5, 6) --name=L1
+mirror L1 --across=xy
+view fit
+render Phase19_MirrorLine
+
+echo -- tile 2: a box reflected across the YZ plane (x negated)
+reset
+box (1, 2, 3) (4, 5, 6) --name=B1
+mirror B1 --across=yz
+view fit
+render Phase19_MirrorBox
+
+echo -- tile 3: a polyline mirrored 4 ways by two perpendicular planes (1 source + 3 copies)
+reset
+polyline (1, 1, 1) (2, 2, 1) (3, 1, 1) --name=P1
+mirror P1 --across=xy --also=xz
+view fit
+render Phase19_MultiAxis
+
+echo -- tile 4: a sphere radial-patterned 8 times around the Z axis
+reset
+sphere (1, 0, 0) 0.2 --name=S1
+radial S1 --count=8 --axis=(0,0,0),(0,0,1) --angle=360
+view fit
+render Phase19_RadialSphere
+
+echo -- tile 5: an in-place reflection of a polyline (source mutates, no copy)
+reset
+polyline (1, 1, 1) (2, 0, 1) (3, 1, 1) (4, 0, 1) --name=P1
+mirror P1 --in-place --across=xy
+view fit
+render Phase19_InPlace
+
+echo -- tile 6: three Empties as transform handles at the corners of a triangle
+reset
+empty --name=E_A --at=(2, 0, 0)
+empty --name=E_B --at=(-1, 1.732, 0)
+empty --name=E_C --at=(-1, -1.732, 0)
+view fit
+render Phase19_Empties
+
+list empty
