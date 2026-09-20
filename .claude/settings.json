@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(CLAUDE.md)",
+      "Write(CLAUDE.md)",
+      "Edit(./CLAUDE.md)",
+      "Write(./CLAUDE.md)",
+      "Edit(RULES/**)",
+      "Write(RULES/**)",
+      "Edit(./RULES/**)",
+      "Write(./RULES/**)",
+      "Edit(.claude/**)",
+      "Write(.claude/**)",
+      "Edit(./.claude/**)",
+      "Write(./.claude/**)",
+      "Edit(.githooks/**)",
+      "Write(.githooks/**)",
+      "Edit(./.githooks/**)",
+      "Write(./.githooks/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard_locked_rules.py\" || python \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard_locked_rules.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+#!/bin/sh
+# 🔒 Rules guard — rejects any commit that touches the locked rule files.
+#
+# Locked paths: CLAUDE.md, RULES/**, .claude/**, .githooks/**
+#
+# This hook belongs to the user. If you (a human) genuinely intend to change the
+# rules, commit with:   git commit --no-verify
+# Agents must never use that flag — the PreToolUse hook blocks them if they try.
+
+blocked=""
+for f in $(git diff --cached --name-only); do
+  case "$f" in
+    CLAUDE.md|RULES/*|.claude/*|.githooks/*)
+      blocked="$blocked $f"
+      ;;
+  esac
+done
+
+if [ -n "$blocked" ]; then
+  cat >&2 <<EOF
+🔒 LOCKED RULES: refusing to commit changes to:$blocked
+
+These files are user-owned. If you really are the user and intend this change,
+re-run with:  git commit --no-verify
+EOF
+  exit 1
+fi
+
+exit 0
