@@ -10,6 +10,7 @@
 #include "Kernel/ConstraintGraph.h"
 #include "Kernel/MirrorSolver.h"
 #include "Kernel/BlendSolver.h"
+#include "Kernel/TweakSolver.h"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -2454,7 +2455,14 @@ void ConsoleHost::Register() noexcept
                 if (I->Classification != FigureClassification::Body) { Refuse("chamfer: '%s' is not a body", I->Name.c_str()); continue; }
                 BrepBody Working = I->Body;
                 std::vector<int> Targets;
-                if (Some) { if (EdgeList.empty()) { Refuse("chamfer: --edges= is empty"); continue; } Targets = { EdgeList.front() }; }
+                if (Some)
+                {
+                    if (EdgeList.empty()) { Refuse("chamfer: --edges= is empty"); continue; }
+                    // One edge per call: a set would be cut sequentially and the second cut refuses at the first
+                    //    chamfer's corner, so a list must refuse rather than silently bevel only its first member.
+                    if (EdgeList.size() > 1) { Refuse("chamfer %s: the body chamfer takes one edge (--edges=i); edge sets and loops are not supported yet", I->Name.c_str()); continue; }
+                    Targets = { EdgeList.front() };
+                }
                 else { for (size_t E = 0; E < Working.Edges.size(); ++E) if (Working.Edges[E].Coedges.size() == 2) Targets.push_back(int(E)); }
                 int EdgesChamfered = 0;
                 std::string FailureDetail;
@@ -2553,6 +2561,47 @@ void ConsoleHost::Register() noexcept
             BodyReport Check = Out.Body.Validate();
             if (!Check.Solid()) Row("  ⚠ open %d  non-manifold %d  misoriented %d", Check.OpenEdges, Check.NonManifoldEdges, Check.MisorientedEdges);
             Row("push %s → %s  face %d  distance %.4f  volume %.4f → %.4f", Name.c_str(), Out.Name.c_str(), Face, D, Before, Check.Volume);
+            ++Done;
+        }
+        return Done > 0;
+    });
+    Add("tweak", "tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp] [--name=…] — translate one face, edge or vertex of a solid on fixed topology: neighbours are re-fitted, planar faces stay planar; --warp admits bilinear four-sided faces", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "tweak")) return false;
+        Vec3 Delta; if (!PointArg(C, C.Count() - 1, Delta, "tweak")) return false;
+        CommandLine Sub = C; Sub.Arguments.pop_back();
+        auto FaceText = C.SwitchText("face"), EdgeText = C.SwitchText("edge"), VertexText = C.SwitchText("vertex");
+        const int Given = (FaceText ? 1 : 0) + (EdgeText ? 1 : 0) + (VertexText ? 1 : 0);
+        if (Given != 1) return Refuse("tweak: exactly one of --face=i, --edge=i, --vertex=i is required — use `topology <body>` to list them");
+        const bool Warp = C.Switch("warp");
+        int Done = 0;
+        for (SceneFigure* I : ResolveMany(Sub, 0))
+        {
+            if (I->Classification != FigureClassification::Body) { Refuse("tweak: '%s' is not a body", I->Name.c_str()); continue; }
+            const BrepBody& B = I->Body;
+            std::vector<int> Moved; const char* Kind = "face"; int Index = 0;
+            if (FaceText) { Index = std::atoi(FaceText->c_str()); Moved = TweakSolver::FaceVertices(B, Index); }
+            else if (EdgeText) { Kind = "edge"; Index = std::atoi(EdgeText->c_str()); Moved = TweakSolver::EdgeVertices(B, Index); }
+            else { Kind = "vertex"; Index = std::atoi(VertexText->c_str()); if (Index >= 0 && Index < int(B.Vertices.size())) Moved = { Index }; }
+            if (Moved.empty()) { Refuse("tweak %s: %s %d does not exist or has no vertices", I->Name.c_str(), Kind, Index); continue; }
+            std::vector<int> Warped = TweakSolver::WarpedFaces(B, Moved, Delta);
+            if (!Warped.empty() && !Warp)
+            {
+                std::string List; for (int F : Warped) List += (List.empty() ? "f" : " f") + std::to_string(F);
+                Refuse("tweak %s: moving %s %d by (%.3f, %.3f, %.3f) would warp %s out of plane — add --warp to accept bilinear faces, or move a whole face/edge",
+                       I->Name.c_str(), Kind, Index, Delta.X, Delta.Y, Delta.Z, List.c_str());
+                continue;
+            }
+            Deliver<BrepBody> R = TweakSolver::TranslateVertices(B, Moved, Delta, Warp);
+            if (!R) { Refuse("tweak %s: %s", I->Name.c_str(), R.Denial.Detail); continue; }
+            std::string Name = I->Name; uint32_t Id = I->Identity; bool Sel = I->Selected;
+            double Before = B.Validate().Volume;
+            Scene.Remove(Id);
+            SceneFigure& Out = Scene.AddBody(C.SwitchText("name").value_or(Name + ".Tweaked"), std::move(R.Payload));
+            Out.Selected = Sel; DescribeFigure(Out);
+            BodyReport Check = Out.Body.Validate();
+            Row("tweak %s → %s  %s %d  by (%.4f, %.4f, %.4f)  volume %.4f → %.4f  %s", Name.c_str(), Out.Name.c_str(), Kind, Index, Delta.X, Delta.Y, Delta.Z,
+                Before, Check.Volume, Warped.empty() ? "all faces planar" : "bilinear faces admitted");
             ++Done;
         }
         return Done > 0;

@@ -13,7 +13,7 @@ console, all visuals go to PNG proofs in `Proofs/`.
 cd ParametricSketcher
 cmake -B build -G Ninja
 cmake --build build
-ctest --test-dir build --output-on-failure      # 70 suites (57 C++ verification binaries + 13 script smoke tests)
+ctest --test-dir build --output-on-failure      # 71 suites (58 C++ verification binaries + 13 script smoke tests)
 ```
 
 No external packages. `-Wall -Wextra -Wpedantic -Werror`.
@@ -341,6 +341,21 @@ prism, and a cap can meet a smaller cap as the exact frustum. Faces with holes, 
 one body, open sheets and faces that do not face each other refuse. `FaceLoftVerification` contributes 29 checks and
 `Proofs/Phase34a_FaceLoft.png`.
 
+## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
+
+`tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp]` translates the selected vertices and re-fits only
+the geometry that touches them, so V/E/F never change. Straight edges are rebuilt; a four-sided natural face stays a
+plane when its corners remain coplanar and otherwise becomes an exact bilinear patch (only with `--warp`); a trimmed
+planar cap keeps its plane and its loop is refitted (and its patch grown) as long as the moved vertices stay in it. So a
+box face can go anywhere and every face stays planar (`V8/E12/F6`, volume by Cavalieri — compare `push`, which offsets
+through a slab Boolean and leaves `V12/E20/F10`); a box edge lifts into a ridge with all faces planar and warps only the
+end faces when slid along itself; a box corner warps only the faces whose planes do not contain the move — refused by
+default with the faces named, exact bilinear faces with `--warp`, volumes pinned by the trilinear hexahedron integral.
+The same work fixed the tessellator's assumption that degree-1 directions are flat (twisted bilinear cells were two
+triangles). `TweakVerification` contributes 41 checks and `Proofs/Phase34b_Tweak.png`. Single-edge chamfers beyond box
+edges and edge-loop chamfers are recorded as Phase 34c candidates in the roadmap; `chamfer --edges=` now refuses a list
+instead of silently bevelling its first member.
+
 ## Worked model: a wooden toy car (`Scripts/ToyCar.arc`)
 
 The verifiers prove routes one at a time; this script proves the tool as a modelling tool by building a 20 cm wooden
@@ -489,6 +504,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 32x | **Bounded side-entering two-stage blind-bore set.** Three through eight counterbores preserve all-pairs finite-band clearance, `2N` planar levels, and `4N` rational rims. | `MultiSideSteppedBlindBorePrismFilletVerification` — 41 C++ checks; `Proofs/Phase32x_MultiSideSteppedBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 32y | **Bounded mixed-stage side-entering blind-bore set.** Two through eight cavities, two through eight stages each and sixteen stages total preserve all finite bands, `M` planar levels, and `2M` rational rims. | `MixedStageSideBlindBorePrismFilletVerification` — 42 C++ checks; `Proofs/Phase32y_MixedStageSideBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 34a | **Face loft between two solids.** A chosen face of each solid is dropped and the two rims skinned and sewn into one exact solid — no Boolean. | `FaceLoftVerification` — 29 C++ checks; `Proofs/Phase34a_FaceLoft.png` (2560 × 1600 C++-generated contact sheet) |
+| 34b | **Tweaks on fixed topology.** Translate a face, an edge or a vertex: straight edges rebuilt, four-sided faces re-fitted (planar stays planar, bilinear with `--warp`), trimmed caps refitted in-plane; box volumes exact by Cavalieri and the trilinear integral. | `TweakVerification` — 41 C++ checks; `Proofs/Phase34b_Tweak.png` (2560 × 1600 C++-generated contact sheet) |
 | 32z | **Exact plane–cone boss-root fillet.** The first unequal-radius support pair: a native conical frustum boss on a planar shoulder rebuilds as trimmed exact supports and a rational `π/2 − α` torus band along the analytic spine, with the Pappus closed-form wedge and explicit feasibility limits. | `PlaneConeFilletVerification` — 61 C++ checks; `Proofs/Phase32z_PlaneConeFillet.png` (2560 × 1600 C++-generated contact sheet) |
 
 ## Console quick start
@@ -638,7 +654,7 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **70 suites** — 57 per-feature verification binaries (2,047 checks total) and 13 script smoke
+ctest now registers **71 suites** — 58 per-feature verification binaries (2,088 checks total) and 13 script smoke
 tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 
@@ -691,6 +707,7 @@ are:
 | `MixedStageSideBlindBorePrismFilletVerification` | 42  |
 | `PlaneConeFilletVerification`     | 61  |
 | `FaceLoftVerification`            | 29  |
+| `TweakVerification`               | 41  |
 | `FairPatchVerification`           | 47  |
 | `BodyOpsVerification`             | 25  |
 | `BlendVerification`               | 33  |
@@ -701,7 +718,7 @@ are:
 | `ConstraintVerification`          | 51  |
 | `MirrorVerification`              | 40  |
 | `SuiteVerification`               | 65  |
-| **Total** | **2047** |
+| **Total** | **2088** |
 
 Phase 10 also adds two new console verbs that the other phases do not need: `reset` (clears the scene + undo +
 workplane + the contact-sheet tile buffer) and `render sheet <0|1|2|3> / render sheet finalize <name>` (the contact

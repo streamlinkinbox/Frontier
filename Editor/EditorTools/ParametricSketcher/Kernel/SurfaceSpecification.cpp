@@ -591,7 +591,31 @@ int NurbsSurface::SpanSubdivision(const std::vector<double>& Knots, int Degree, 
             Deviation = std::max(Deviation, (A - B * 2.0 + C).Length());
         }
     }
-    if (Degree == 1) return Minimum;
+    if (Degree == 1)
+    {
+        // Straight in this direction, but a bilinear cell whose fourth pole stands off the plane of the other three
+        //    (a twisted quad, e.g. a tweaked box face or a twisted ruled loft) deviates from its two triangles by a
+        //    quarter of that height. Planar and developable cells — extrusions, cones — measure zero and keep Minimum.
+        //    When the other direction is linear too it applies the same rule, so a doubling here quarters the cell
+        //    twist; against a curved direction only this direction can be relied on, so a doubling merely halves it.
+        const int OtherDegree = AlongU ? DegreeV : DegreeU;
+        double Twist = 0.0;
+        for (int K = 0; K + 1 < Other; ++K)
+        {
+            Vec3 P00 = (AlongU ? Pole(First, K) : Pole(K, First)).Divide();
+            Vec3 P10 = (AlongU ? Pole(First + 1, K) : Pole(K, First + 1)).Divide();
+            Vec3 P01 = (AlongU ? Pole(First, K + 1) : Pole(K + 1, First)).Divide();
+            Vec3 P11 = (AlongU ? Pole(First + 1, K + 1) : Pole(K + 1, First + 1)).Divide();
+            Vec3 N = (P10 - P00).Cross(P01 - P00);
+            if (N.LengthSquared() <= 1e-24) continue;
+            Twist = std::max(Twist, std::fabs(N.Normalised().Dot(P11 - P00)));
+        }
+        const double Shrink = OtherDegree == 1 ? 0.25 : 0.5;
+        double Height = Twist * 0.25;
+        int N = Minimum;
+        while (Height > ChordTolerance && N < Maximum) { Height *= Shrink; N *= 2; }
+        return std::min(std::max(N, Minimum), Maximum);
+    }
     // A quadratic Bézier with second difference d deviates from its chord by at most d/4; halving the span quarters it.
     double Sagitta = Deviation * 0.25;
     int N = Minimum;

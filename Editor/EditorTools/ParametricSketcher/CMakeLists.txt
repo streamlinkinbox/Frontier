@@ -32,6 +32,7 @@ add_library(SolidArcKernel STATIC
     Kernel/ConstraintGraph.cpp
     Kernel/MirrorSolver.cpp
     Kernel/BlendSolver.cpp
+    Kernel/TweakSolver.cpp
 )
 target_include_directories(SolidArcKernel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -314,6 +315,11 @@ add_test(NAME PlaneConeFilletVerification COMMAND PlaneConeFilletVerification)
 add_executable(FaceLoftVerification Verification/FaceLoftVerification.cpp)
 target_link_libraries(FaceLoftVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME FaceLoftVerification COMMAND FaceLoftVerification)
+
+# Phase 34b: tweak — translate a face, an edge or a vertex of a solid on fixed topology (planar stays planar; --warp admits bilinear faces).
+add_executable(TweakVerification Verification/TweakVerification.cpp)
+target_link_libraries(TweakVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TweakVerification COMMAND TweakVerification)
 
 # Phase 22: versioned native .arc construction journals — atomic save/open and transactional failed opens.
 add_executable(DocumentVerification Verification/DocumentVerification.cpp)

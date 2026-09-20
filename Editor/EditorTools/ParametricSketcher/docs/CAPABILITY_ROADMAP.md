@@ -544,11 +544,54 @@ with and without `--keep`, and the deterministic proof.
 **Proof:** `Verification/FaceLoftVerification.cpp` (29 C++ checks) and `Proofs/Phase34a_FaceLoft.png` (2560 × 1600
 C++-generated contact sheet).
 
+#### Phase 34b: tweaks — translate a face, an edge or a vertex on fixed topology ✅
+
+`TweakSolver` moves a set of body vertices by one vector and re-fits only the geometry that touches them; no vertex,
+edge, loop or face is created or destroyed, so closure is structural. Edges touching moved vertices must be straight and
+are rebuilt as lines; a face whose vertices all move is translated rigidly; a natural four-sided face (degree 1×1 — box
+faces, extrusion sides, loft rectangles) has its poles set to its corners and stays a `Plane` when they remain coplanar,
+otherwise it becomes an exact bilinear patch that is accepted only with `--warp`; a trimmed planar face (extrusion and
+prism caps, n-gons) keeps its plane and has its coedge traces refitted — and its underlying plane patch grown when the
+moved loop leaves it — provided every moved vertex stays in that plane, since an n-gon cannot warp. The answers this
+gives a modeller are exact: translating a box face by *any* vector keeps all six faces planar (the neighbours become
+parallelograms and the volume follows Cavalieri), translating a box edge keeps the two faces along it planar and warps
+the end faces only for a component along the edge, and lifting a box corner warps only the faces whose planes do not
+contain the direction — the top, not the two vertical sides. The default refuses any warp and names the faces; the
+tweak never detects a face passing through another and refuses only an inverted or degenerate result. Console:
+`tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp] [--name=]`. `push` remains the offset operation;
+on a general body it adds a slab through a Boolean (`V12/E20/F10` on a box), while the tweak is the true face move
+(`V8/E12/F6`).
+
+Found on the way: `NurbsSurface::SpanSubdivision` returned the minimum subdivision for every degree-1 direction, so a
+twisted bilinear cell (a tweaked face, a twisted ruled loft) was tessellated as two triangles — the lifted box corner
+measured 27.25 against an exact 27. Degree-1 spans now subdivide on the height of each cell's fourth pole above the
+plane of the other three (zero for planar and developable cells), and the corner measures 27.001 at the 32-span cap.
+
+**34b exit gate met:** `TweakVerification` proves face moves along the normal (volume 42 exactly, `V8/E12/F6`
+unchanged, six planes), in-plane shear (volume 24 preserved), oblique (42) and composition; edge lift (30) and
+out-of-plane perpendicular move (section area × length to `1e-16`); the along-edge move names exactly the two end faces
+and refuses without `--warp`, then matches the trilinear hexahedron integral (2×2×2 Gauss, exact for the trilinear
+Jacobian) with two bilinear faces; the lifted corner names only the top, refuses by default, then measures
+`24 + ∫∫(x/4)(y/3) = 27` to `3.6e-5` with the bilinear top through all four corners; the oblique corner pull matches
+the integral with three bilinear faces; a hexagonal prism's cap moves obliquely (base × 2.8 exactly), one vertical edge
+pushes outward with both caps refitted and grown (`(6√3 + 0.6√3)·2` to `1.6e-16`), a cap vertex refuses to leave its
+plane and moves within it; cylinder caps, zero vectors, bad indices, open sheets and inverting moves refuse; console
+commit, refusal texts and the proof `Proofs/Phase34b_Tweak.png` are verified (41 checks).
+
+#### Chamfer findings (Phase 34c candidates)
+
+Probing the single-edge chamfer for this increment found: a box edge chamfers correctly; `--edges=a,b,c` silently
+bevelled only the first edge — the console now refuses a list; the adjacent top edge of a chamfered box refuses ("no
+cutter placement reached the exact chamfer tolerance"), so edge loops are not reachable by repetition; and one vertical
+edge of a hexagonal prism returns **genus 1 with the volume of a 90° wedge** instead of the 120° one, with no refusal
+(`Scratchpad/Phase34b/Repro_HexChamfer.arc`). The planar-setback chamfer needs a topological route for general dihedral
+angles and for loops before it can be claimed beyond box edges.
+
 #### Still required in Phase 34
 
 Face lofts with intermediate sections or guide curves, lofts between two faces of one body (handles), faces with holes,
-sub-entity moves (vertex / edge / face tweaks with exact bilinear re-fit of quad faces), and single-edge and
-edge-loop chamfers on planar bodies each need their own bounded route, verifier and proof.
+tweaks of curved edges and faces, rotation and scaling tweaks, and single-edge (general dihedral) and edge-loop chamfers
+on planar bodies each need their own bounded route, verifier and proof.
 
 ## Later direct modelling and platform work
 
