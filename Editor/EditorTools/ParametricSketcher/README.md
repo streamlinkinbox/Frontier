@@ -358,6 +358,38 @@ drew through walls. Depth planes now follow the eye every frame (`CameraProjecti
 line bias is a per-view clip-space constant equal to 0.2 % of the view depth (`ViewRecord::DepthPolicy`), so edges lying
 on a face still win while edges behind a wall are occluded.
 
+## Worked models: toy biplane and sailboat (`Scripts/ToyBiplane.arc`, `Scripts/ToySailboat.arc`)
+
+Two more reference toys exercise the features the car did not: lofting, NURBS surfaces, sweeps, radial and linear
+arrays, mirrors and exact edge fillets. Both scripts end with `0 refusal(s)` and every body reports as a closed manifold
+solid.
+
+**Biplane.** Fuselage = degree-1 `loft` of four rounded-rectangle sections on YZ workplanes (a tapering wooden bar);
+tail fin = open interpolating `spline` joined to a straight base and extruded, unioned with the stabilizer slab; cowl =
+native cylinder with the exact Phase 26 cap fillet plus six dowel plugs placed by `radial --count=6` and unioned one by
+one; propeller = one slat with four exact tip fillets unioned through the ball nose; wings = rounded-rectangle slabs,
+the upper wing's trailing-edge notch cut as a 2D Boolean before the extrude; struts = `pipe` × linear `array` ×
+`mirror --across=xz`; landing gear = wheels, axle pipe and V-legs mirrored. Proofs: `Proofs/Biplane_A_Construction.png`,
+`Proofs/Biplane_B_Assembly.png`, `Proofs/Biplane_C_FinalViews.png`, `Proofs/Biplane_Hero.png`.
+
+**Sailboat.** Hull = degree-2 `loft` of seven ellipses rotated so the loft seam runs along the keel, cut flat with a
+Boolean intersect 0.4 cm below the widest section; mast = a circle `sweep --scale=0.5` (tapering) unioned into the hull;
+sails = luff, headboard, interpolating-spline leech and foot `join`ed into closed outlines and extruded 1.5 mm (veneer, as
+in the reference); the bellied `fillpatch` (Coons) and `bridge` NURBS sheets are rendered as a separate proof tile.
+Proofs: `Proofs/Boat_A_Construction.png`, `Proofs/Boat_B_SailsAndAssembly.png`, `Proofs/Boat_C_FinalViews.png`,
+`Proofs/Boat_Hero.png`.
+
+**Defects these two models found and fixed.** `radial` and `mirror` rotated or reflected a figure's *Blueprint* cells and
+rebuilt the figure from them: direction cells (`Axis`, `Normal`) were moved as points, so any axis or plane not through
+the origin skewed them; a rotated `box` was rebuilt as the axis-aligned box between its rotated corners (a 1.47 cm³ blade
+came back at 21.8 cm³); derived figures were not transformed at all; and the documented `((o),(d))` axis form of
+`mirror --across` never parsed. Both verbs now apply one exact affine map to the geometry, move Blueprint positions with
+the map and directions with its linear part, bake forms the Blueprint cannot represent, and read `(dx,dy,dz)` as a
+direction like `array --axis=`. The kernel limits they exposed are recorded in
+[`docs/CAPABILITY_ROADMAP.md`](docs/CAPABILITY_ROADMAP.md#kernel-limits-found-by-the-worked-models).
+
+Colour note: `tint` is only visible under `show shading plastic|flat`; the default matcap studios ignore it.
+
 ## Layout
 
 | Folder | Role | Status |

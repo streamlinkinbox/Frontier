@@ -479,10 +479,11 @@ The first asymmetric (unequal-radius) support pair is the native conical frustum
 
 Cone–cone and cone–cylinder support pairs, apex cones, non-radial endpoint supports, unequal/non-orthogonal and partial corner networks, oblique or mixed-axis cavity sets, more-than-eight side cavities, more-than-sixteen total side-cavity stages, undercut/non-decreasing/eccentric stages beyond named routes, more-than-two stepped or multiple multistage selected-axis cavities, more-than-eight simple cavities/through-holes, non-box thin walls, and general non-box blend/blend intersections each need separate topology and visual regressions. This increment does not claim them.
 
-#### Kernel limits found by the worked model
+#### Kernel limits found by the worked models
 
-`Scripts/ToyCar.arc` builds a wooden toy car through sketches, extrusions and eighteen Booleans, and every step it uses
-is exact. Three things it could not do are recorded here as Phase 33 candidates rather than worked around silently:
+`Scripts/ToyCar.arc`, `Scripts/ToyBiplane.arc` and `Scripts/ToySailboat.arc` build three reference toys through sketches,
+extrusions, lofts, sweeps, arrays, mirrors and Booleans, and every step they use is exact. What they could not do is
+recorded here as Phase 33 candidates rather than worked around silently:
 
 1. **Cylinder tool parallel to an extrusion's rulings.** Subtracting a Y-axis wheel-arch cylinder from the Y-extruded
    side silhouette refuses with "marching did not close" (both surfaces are ruled along Y, so their intersection is a
@@ -494,6 +495,25 @@ is exact. Three things it could not do are recorded here as Phase 33 candidates 
 3. **Union order segfault.** `(wheel ∪ hub) ∪ axle`, then `∪ (wheel ∪ hub)` crashes instead of refusing; the other
    four orders tried succeed. Reproducer: `Scratchpad/ToyCar/Repro_UnionSegfault.arc`. A crash is a defect by policy —
    the kernel must refuse, never fault.
+
+4. **Tool faces crossing a rounded-rectangle rim.** A box or cylinder subtracted through the rim edge of a
+   rounded-rectangle extrusion (the wing notch) refuses with "edge–surface refinement did not converge at a face
+   boundary"; the same tool through the face interior works (the car's grille). The 2D profile Boolean before the extrude
+   is the exact route.
+5. **Second union into a trimmed sphere.** One filleted blade unions into the ball nose; the mirror-image second blade
+   then returns an open two-hull sheet in either order, while a single slat through the ball works. A
+   rounded-rectangle *extrusion* unioned with the sphere refuses as "tangent or coincident" although it is transversal.
+6. **Waterline through tiny loft tip caps.** Intersecting the spindle loft with a half-space whose plane passes through
+   the two small end caps returned only the deck disc — the skin pieces were dropped without a refusal. Cutting below
+   the caps (deck at z = −0.4) is correct and closed.
+7. **Union into a degree-1 loft with kinks.** A slab unioned into the four-section fuselage loft refuses at the loft's
+   cap boundary; the tail is therefore one body seated on the fuselage.
+8. **`solidify` is a Phase 11a MVP.** Its side wall is a tessellated polyline that never sews to a spline-bounded Coons
+   or bridge patch (three open hulls, no refusal) and it is not exact; veneer sails are extruded from their outlines
+   instead, and the bellied sheets are shown as NURBS surfaces.
+
+Fixed on the way (verb layer, not kernel): `radial` and `mirror` now transform geometry with one exact affine map (see
+the README's worked-models section); previously a rotated box changed volume and offset axes skewed direction cells.
 
 ### Phase 33: variable radius, setbacks, partial edges, and G2
 

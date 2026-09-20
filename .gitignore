@@ -31,3 +31,7 @@ Editor/EditorTools/ParametricSketcher/Proofs/*.png
 !Editor/EditorTools/ParametricSketcher/Proofs/Phase32z_*.png
 !Editor/EditorTools/ParametricSketcher/Proofs/ToyCar_[ABC]_*.png
 !Editor/EditorTools/ParametricSketcher/Proofs/ToyCar_Hero.png
+!Editor/EditorTools/ParametricSketcher/Proofs/Biplane_[ABC]_*.png
+!Editor/EditorTools/ParametricSketcher/Proofs/Biplane_Hero.png
+!Editor/EditorTools/ParametricSketcher/Proofs/Boat_[ABC]_*.png
+!Editor/EditorTools/ParametricSketcher/Proofs/Boat_Hero.png

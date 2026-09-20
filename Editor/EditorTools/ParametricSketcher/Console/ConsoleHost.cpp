@@ -1557,27 +1557,22 @@ void ConsoleHost::RebuildFigureFromBlueprint(SceneFigure& F) noexcept
     // Named workplane.
     auto It = NamedPlanes.find(Tok);
     if (It != NamedPlanes.end()) { Out.Kind = MirrorSpec::Kind::Plane; Out.Origin = It->second.Origin; Out.NormalOrDir = It->second.Normal(); return true; }
-    // (a,b,c) — a plane through the origin with that normal.
+    // ((ox,oy,oz),(dx,dy,dz)) — reflection through an axis (a half-turn about that line); (dx,dy,dz) is a direction.
+    //    (a,b,c) — a plane through the origin with that normal.
     if (Tok.size() > 1 && Tok.front() == '(' && Tok.back() == ')')
     {
         std::string Inner = Tok.substr(1, Tok.size() - 2);
-        // Try to split on "),(" for axis form, or just a point for plane form.
-        auto P1 = CommandCodec::ParsePoint(Inner);
-        if (P1)
+        size_t Sep = Inner.find("),(");
+        if (Sep != std::string::npos)
         {
-            // Check if the inner is a single point (plane normal) or an axis.
-            //    An axis form is "(origin),(dir)" — look for "),(" inside.
-            size_t Sep = Inner.find("),(");
-            if (Sep != std::string::npos)
-            {
-                std::string OStr = Inner.substr(0, Sep + 1);
-                std::string DStr = Inner.substr(Sep + 2);
-                auto O = CommandCodec::ParsePoint(OStr);
-                auto D = CommandCodec::ParsePoint(DStr);
-                if (O && D) { Out.Kind = MirrorSpec::Kind::Axis; Out.Origin = *O; Out.NormalOrDir = (*D - *O).Normalised(); return true; }
-            }
-            // Plane normal through origin.
-            Out.Kind = MirrorSpec::Kind::Plane; Out.Origin = Vec3{}; Out.NormalOrDir = P1->Normalised(); return true;
+            auto O = CommandCodec::ParsePoint(Inner.substr(0, Sep + 1));
+            auto D = CommandCodec::ParsePoint(Inner.substr(Sep + 2));
+            if (O && D && D->LengthSquared() > 1e-12) { Out.Kind = MirrorSpec::Kind::Axis; Out.Origin = *O; Out.NormalOrDir = D->Normalised(); return true; }
+            return false;
+        }
+        if (auto Normal = CommandCodec::ParsePoint(Tok); Normal && Normal->LengthSquared() > 1e-12)
+        {
+            Out.Kind = MirrorSpec::Kind::Plane; Out.Origin = Vec3{}; Out.NormalOrDir = Normal->Normalised(); return true;
         }
     }
     return false;
@@ -1596,43 +1591,80 @@ void ConsoleHost::RebuildFigureFromBlueprint(SceneFigure& F) noexcept
 
 // Reflect every position-bearing Blueprint cell of a figure. Returns true if the figure is one we
 //    know how to reflect; false if the form is not yet supported.
+// Reflection and rotation are applied as one exact affine map: the geometry (curve / surface / body) is transformed
+//    by the matrix, Blueprint positions follow the same map and Blueprint directions (Axis, Normal) only its linear
+//    part, so a plane or axis that does not pass through the origin cannot smear a direction cell. Forms whose
+//    Blueprint cannot represent the moved figure — an axis-aligned Box or Rectangle under anything but an axis
+//    permutation — are baked to authored geometry rather than rebuilt into the wrong box; derived recipes are baked
+//    too, so a regenerate can never snap the copy back onto its untransformed sources.
+namespace
+{
+    template<typename Map>
+    [[nodiscard]] Mat4 AffineOf(Map&& Apply) noexcept
+    {
+        const Vec3 T = Apply(Vec3{ 0, 0, 0 });
+        const Vec3 X = Apply(Vec3{ 1, 0, 0 }) - T, Y = Apply(Vec3{ 0, 1, 0 }) - T, Z = Apply(Vec3{ 0, 0, 1 }) - T;
+        Mat4 M;
+        M.M[0] = X.X; M.M[1] = X.Y; M.M[2]  = X.Z;
+        M.M[4] = Y.X; M.M[5] = Y.Y; M.M[6]  = Y.Z;
+        M.M[8] = Z.X; M.M[9] = Z.Y; M.M[10] = Z.Z;
+        M.M[12] = T.X; M.M[13] = T.Y; M.M[14] = T.Z;
+        return M;
+    }
+
+    // True when the linear part maps every axis onto ± an axis, so an axis-aligned box stays an axis-aligned box.
+    [[nodiscard]] bool AxisPermutation(const Mat4& M) noexcept
+    {
+        for (int Column = 0; Column < 3; ++Column)
+        {
+            int Hits = 0;
+            for (int Row = 0; Row < 3; ++Row)
+            {
+                const double V = std::fabs(M.M[Column * 4 + Row]);
+                if (V > 1e-9 && std::fabs(V - 1.0) > 1e-9) return false;
+                if (V > 0.5) ++Hits;
+            }
+            if (Hits != 1) return false;
+        }
+        return true;
+    }
+
+    void TransformFigure(SceneFigure& F, const Mat4& M) noexcept
+    {
+        using Form = SceneFigure::ParametricForm;
+        switch (F.Classification)
+        {
+            case FigureClassification::Surface: F.Surface = F.Surface.Transformed(M); break;
+            case FigureClassification::Body:    F.Body = F.Body.Transformed(M); break;
+            default:                            F.Curve = F.Curve.Transformed(M); break;
+        }
+        auto& B = F.Blueprint;
+        B.A = M.TransformPoint(B.A); B.B = M.TransformPoint(B.B); B.C = M.TransformPoint(B.C);
+        B.Axis = M.TransformDirection(B.Axis); B.Normal = M.TransformDirection(B.Normal);
+        for (Vec3& P : B.PolylinePoints) P = M.TransformPoint(P);
+        if ((B.Form == Form::Box || B.Form == Form::Rectangle) && !AxisPermutation(M)) B.Form = Form::None;
+        F.Recipe = FigureRecipe();
+    }
+}
+
 [[nodiscard]] bool ConsoleHost::ReflectBlueprint(SceneFigure& F, const std::vector<MirrorSpec>& Specs) const noexcept
 {
-    auto Apply = [&](Vec3 P) { return ApplyMirrors(P, Specs); };
-    auto& B = F.Blueprint;
-    B.A = Apply(B.A);
-    B.B = Apply(B.B);
-    B.C = Apply(B.C);
-    B.Axis = Apply(B.Axis);
-    B.Normal = Apply(B.Normal);                                              // normal flips sign, not a real position
-    for (auto& P : B.PolylinePoints) P = Apply(P);
+    TransformFigure(F, AffineOf([&](Vec3 P) { return ApplyMirrors(P, Specs); }));
     return true;
 }
 
-// Rotate every position-bearing Blueprint cell around an axis by θ radians. Mirrors the same set
-//    of cells as ReflectBlueprint.
 [[nodiscard]] bool ConsoleHost::RotateBlueprint(SceneFigure& F, MirrorAxis Axis, double ThetaRadians) const noexcept
 {
-    auto Apply = [&](Vec3 P) { return RotateAroundAxis(P, Axis, ThetaRadians); };
-    auto& B = F.Blueprint;
-    B.A = Apply(B.A);
-    B.B = Apply(B.B);
-    B.C = Apply(B.C);
-    B.Axis = Apply(B.Axis);
-    B.Normal = Apply(B.Normal);
-    for (auto& P : B.PolylinePoints) P = Apply(P);
+    TransformFigure(F, AffineOf([&](Vec3 P) { return RotateAroundAxis(P, Axis, ThetaRadians); }));
     return true;
 }
 
-// Create a copy of a figure, with every Blueprint cell reflected, and rebuild its geometry. Returns
-//    the new figure by reference (added to the scene) or refuses.
+// Create a copy of a figure reflected through every spec; the geometry is already exact, the Blueprint follows.
 [[nodiscard]] SceneFigure& ConsoleHost::MirrorFigureCopy(const SceneFigure& Source, const std::vector<ConsoleHost::MirrorSpec>& Specs, const std::string& NewName) noexcept
 {
-    // Deep-clone the source via Scene.Duplicate, then reflect + rebuild.
     SceneFigure& New = Scene.Duplicate(Source);
     New.Name = NewName;
     (void)ReflectBlueprint(New, Specs);
-    RebuildFigureFromBlueprint(New);
     AutoEmitDimensions(New);
     return New;
 }
@@ -1643,7 +1675,6 @@ void ConsoleHost::RebuildFigureFromBlueprint(SceneFigure& F) noexcept
     SceneFigure& New = Scene.Duplicate(Source);
     New.Name = NewName;
     (void)RotateBlueprint(New, Axis, ThetaRadians);
-    RebuildFigureFromBlueprint(New);
     AutoEmitDimensions(New);
     return New;
 }
@@ -2877,7 +2908,6 @@ void ConsoleHost::Register() noexcept
                 SceneFigure* Mutable = Resolve(Target);
                 if (!Mutable) return Refuse("mirror: figure '%s' disappeared after in-place edit", Target.c_str());
                 (void)ReflectBlueprint(*Mutable, Specs);
-                RebuildFigureFromBlueprint(*Mutable);
                 AutoEmitDimensions(*Mutable);
                 Row("mirror: '%s' reflected in-place (%zu ops)", Target.c_str(), Specs.size());
                 continue;
@@ -2896,7 +2926,7 @@ void ConsoleHost::Register() noexcept
         Row("mirror: %zu copies from %zu figures × %d axes", TotalCopies, Targets.size(), (int)Specs.size());
         return true;
     });
-    Add("radial", "radial <fig...|selected> --count=N --axis=((ox,oy,oz),(dx,dy,dz)) [--angle=deg=360] [--name=<stem>]  ·  source + (N-1) copies around the axis at evenly-spaced angles. Default --angle=360 (full circle), default --count=2 (source + 1 copy).", [=, this](const CommandLine& C)
+    Add("radial", "radial <fig...|selected> --count=N --axis=(ox,oy,oz),(dx,dy,dz) [--angle=deg=360] [--name=<stem>]  ·  source + (N-1) copies around the axis at evenly-spaced angles. Default --angle=360 (full circle), default --count=2 (source + 1 copy).", [=, this](const CommandLine& C)
     {
         if (!Need(C, 1, "radial")) return false;
         int Count = int(C.SwitchNumber("count").value_or(2.0));
@@ -2914,7 +2944,7 @@ void ConsoleHost::Register() noexcept
         auto O = CommandCodec::ParsePoint(OStr);
         auto D = CommandCodec::ParsePoint(DStr);
         if (!O || !D) return Refuse("radial: bad --axis points (got '%s' / '%s')", OStr.c_str(), DStr.c_str());
-        Axis.Origin = *O; Axis.Direction = (*D - *O).Normalised();
+        Axis.Origin = *O; Axis.Direction = D->Normalised();                         // (dx,dy,dz) is a direction, as in `array --axis=`
         if (Axis.Direction.LengthSquared() < 1e-12) return Refuse("radial: axis direction is zero");
         std::string NameStem = C.SwitchText("name").value_or("Radial");
         // Collect target figures.
