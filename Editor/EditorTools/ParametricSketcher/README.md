@@ -13,7 +13,7 @@ console, all visuals go to PNG proofs in `Proofs/`.
 cd ParametricSketcher
 cmake -B build -G Ninja
 cmake --build build
-ctest --test-dir build --output-on-failure      # 71 suites (58 C++ verification binaries + 13 script smoke tests)
+ctest --test-dir build --output-on-failure      # 72 suites (59 C++ verification binaries + 13 script smoke tests)
 ```
 
 No external packages. `-Wall -Wextra -Wpedantic -Werror`.
@@ -352,9 +352,22 @@ through a slab Boolean and leaves `V12/E20/F10`); a box edge lifts into a ridge 
 end faces when slid along itself; a box corner warps only the faces whose planes do not contain the move — refused by
 default with the faces named, exact bilinear faces with `--warp`, volumes pinned by the trilinear hexahedron integral.
 The same work fixed the tessellator's assumption that degree-1 directions are flat (twisted bilinear cells were two
-triangles). `TweakVerification` contributes 41 checks and `Proofs/Phase34b_Tweak.png`. Single-edge chamfers beyond box
-edges and edge-loop chamfers are recorded as Phase 34c candidates in the roadmap; `chamfer --edges=` now refuses a list
-instead of silently bevelling its first member.
+triangles). `TweakVerification` contributes 41 checks and `Proofs/Phase34b_Tweak.png`.
+
+## Exact planar chamfers by topology (Phase 34c)
+
+`chamfer <body> d --edges=i` and `chamfer <body> d --face=i` (or `--edges=` naming exactly a face's rim) are Euler
+operations, not Booleans: the edge becomes a planar face whose long sides are the set-back lines in the two neighbouring
+faces, each end vertex splits so the short edge between the cuts lies in the third face there, and the neighbours are
+re-trimmed on their unchanged planes. Nothing is intersected numerically, so a 120° prism edge loses exactly
+`½·d²·sin 120°·L` — the cutter route it replaces returned genus 1 with a 90° wedge, unrefused, because a 1e-3 volume
+gate cannot tell the two apart — and a chamfer can be chained onto an already-chamfered body. A rim bevels with mitred
+corners: the cap insets, each side face drops by the set-back, and one quad per rim edge shares mitre edges with its
+neighbours (`P·d²/2 − Σcot(αᵢ/2)·d³/3` removed from a right prism's cap). Straight convex edges between planar faces
+with three-valent ends are the declared domain; concave edges, curved edges, holes, over-long set-backs, arbitrary edge
+sets and rim corners that would need a vertex face refuse with the source untouched, native cylinder cap rims keep their
+own exact route, and live dims re-derive through the same solver. `PlanarChamferVerification` contributes 38 checks and
+`Proofs/Phase34c_PlanarChamfer.png`.
 
 ## Worked model: a wooden toy car (`Scripts/ToyCar.arc`)
 
@@ -505,6 +518,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 32y | **Bounded mixed-stage side-entering blind-bore set.** Two through eight cavities, two through eight stages each and sixteen stages total preserve all finite bands, `M` planar levels, and `2M` rational rims. | `MixedStageSideBlindBorePrismFilletVerification` — 42 C++ checks; `Proofs/Phase32y_MixedStageSideBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 34a | **Face loft between two solids.** A chosen face of each solid is dropped and the two rims skinned and sewn into one exact solid — no Boolean. | `FaceLoftVerification` — 29 C++ checks; `Proofs/Phase34a_FaceLoft.png` (2560 × 1600 C++-generated contact sheet) |
 | 34b | **Tweaks on fixed topology.** Translate a face, an edge or a vertex: straight edges rebuilt, four-sided faces re-fitted (planar stays planar, bilinear with `--warp`), trimmed caps refitted in-plane; box volumes exact by Cavalieri and the trilinear integral. | `TweakVerification` — 41 C++ checks; `Proofs/Phase34b_Tweak.png` (2560 × 1600 C++-generated contact sheet) |
+| 34c | **Exact planar chamfers by topology.** One straight edge of any dihedral angle, or a planar face's whole rim with mitred corners, as an Euler operation with the removed wedge exact; concave, curved and vertex-face corners refuse. | `PlanarChamferVerification` — 38 C++ checks; `Proofs/Phase34c_PlanarChamfer.png` (2560 × 1600 C++-generated contact sheet) |
 | 32z | **Exact plane–cone boss-root fillet.** The first unequal-radius support pair: a native conical frustum boss on a planar shoulder rebuilds as trimmed exact supports and a rational `π/2 − α` torus band along the analytic spine, with the Pappus closed-form wedge and explicit feasibility limits. | `PlaneConeFilletVerification` — 61 C++ checks; `Proofs/Phase32z_PlaneConeFillet.png` (2560 × 1600 C++-generated contact sheet) |
 
 ## Console quick start
@@ -654,8 +668,8 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **71 suites** — 58 per-feature verification binaries (2,088 checks total) and 13 script smoke
-tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
+ctest now registers **72 suites** — 59 per-feature verification binaries (2,126 checks total) and 13 script smoke
+tests. The Phase 34c direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 
 | Suite | Checks |
@@ -708,6 +722,7 @@ are:
 | `PlaneConeFilletVerification`     | 61  |
 | `FaceLoftVerification`            | 29  |
 | `TweakVerification`               | 41  |
+| `PlanarChamferVerification`       | 38  |
 | `FairPatchVerification`           | 47  |
 | `BodyOpsVerification`             | 25  |
 | `BlendVerification`               | 33  |
@@ -718,7 +733,7 @@ are:
 | `ConstraintVerification`          | 51  |
 | `MirrorVerification`              | 40  |
 | `SuiteVerification`               | 65  |
-| **Total** | **2088** |
+| **Total** | **2126** |
 
 Phase 10 also adds two new console verbs that the other phases do not need: `reset` (clears the scene + undo +
 workplane + the contact-sheet tile buffer) and `render sheet <0|1|2|3> / render sheet finalize <name>` (the contact

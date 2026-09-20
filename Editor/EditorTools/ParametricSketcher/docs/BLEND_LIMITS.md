@@ -55,6 +55,17 @@ The ladder now includes micro-margins from `1e-8` through `1e-3` in both directi
 
 Analytic-volume acceptance gates are centralized as `ScalarCriteria::VolumeTolerance` (`1e-3` in model units) instead of repeating a solver-local literal. The current acceptance behavior is unchanged; future tolerance tightening is now a single reviewed policy change.
 
+### Planar chamfers no longer use the cutter
+
+Phase 34c moved every straight-edge chamfer between planar faces off the cutter: `ChamferSolver` performs the chamfer
+as an Euler operation (the edge becomes a planar face between the two set-back lines; each end vertex splits within its
+third face; a face's rim bevels with mitred corners), so the result is exact for any dihedral angle and the volume gate
+above is only a self-check against the removed wedge computed as tetrahedra. This matters because the gate is what let
+the cutter route return a 120° prism edge as genus 1 with a 90° wedge volume — a 1e-3 relative difference. The cutter
+remains only behind the native cylinder-cap route, which is exact in its own right. Declared refusals: concave edges,
+curved edges or faces, faces with holes, set-backs reaching an adjacent edge's far end or folding the inset rim, and rim
+corners whose two chamfer planes cut the side edge at different points (a vertex face is Phase 34 work).
+
 ## Fillets
 
 `FilletEdge` first makes the tangent-set-back flat and then replaces that face with the rolling cylindrical surface. It evaluates both the original cap edges and square-end circular cap sections, retaining the valid closed body closer to the analytic removal. A candidate that leaves less material than the flat it replaces is rejected: a convex roll must add material back relative to its tangent chamfer.

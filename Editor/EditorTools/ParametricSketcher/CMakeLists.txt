@@ -33,6 +33,7 @@ add_library(SolidArcKernel STATIC
     Kernel/MirrorSolver.cpp
     Kernel/BlendSolver.cpp
     Kernel/TweakSolver.cpp
+    Kernel/ChamferSolver.cpp
 )
 target_include_directories(SolidArcKernel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -320,6 +321,11 @@ add_test(NAME FaceLoftVerification COMMAND FaceLoftVerification)
 add_executable(TweakVerification Verification/TweakVerification.cpp)
 target_link_libraries(TweakVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME TweakVerification COMMAND TweakVerification)
+
+# Phase 34c: exact planar chamfers by topology — one straight edge of any dihedral angle, or a planar face's whole rim with mitred corners.
+add_executable(PlanarChamferVerification Verification/PlanarChamferVerification.cpp)
+target_link_libraries(PlanarChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PlanarChamferVerification COMMAND PlanarChamferVerification)
 
 # Phase 22: versioned native .arc construction journals — atomic save/open and transactional failed opens.
 add_executable(DocumentVerification Verification/DocumentVerification.cpp)

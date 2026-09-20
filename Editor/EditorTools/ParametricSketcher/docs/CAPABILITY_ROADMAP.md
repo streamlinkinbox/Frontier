@@ -578,20 +578,42 @@ pushes outward with both caps refitted and grown (`(6√3 + 0.6√3)·2` to `1.6
 plane and moves within it; cylinder caps, zero vectors, bad indices, open sheets and inverting moves refuse; console
 commit, refusal texts and the proof `Proofs/Phase34b_Tweak.png` are verified (41 checks).
 
-#### Chamfer findings (Phase 34c candidates)
+#### Phase 34c: exact planar chamfers by topology ✅
 
-Probing the single-edge chamfer for this increment found: a box edge chamfers correctly; `--edges=a,b,c` silently
-bevelled only the first edge — the console now refuses a list; the adjacent top edge of a chamfered box refuses ("no
-cutter placement reached the exact chamfer tolerance"), so edge loops are not reachable by repetition; and one vertical
-edge of a hexagonal prism returns **genus 1 with the volume of a 90° wedge** instead of the 120° one, with no refusal
-(`Scratchpad/Phase34b/Repro_HexChamfer.arc`). The planar-setback chamfer needs a topological route for general dihedral
-angles and for loops before it can be claimed beyond box edges.
+Probing the cutter chamfer for 34b found that a box edge worked, an edge set silently bevelled only its first member,
+the adjacent edge of a chamfered box refused, and one vertical edge of a hexagonal prism came back **genus 1 with the
+volume of a 90° wedge, unrefused** — a 1e-3 volume gate cannot tell a 120° wedge from a 90° one. `ChamferSolver` replaces
+that route with an Euler operation: the chamfered edge becomes a planar face whose long sides are the set-back lines in
+the two neighbouring faces, each end vertex is split so the short edge between the two cuts lies in the third face there,
+and the neighbours are re-trimmed on their unchanged planes (natural quads become trimmed planes with materialised
+traces). Nothing is intersected numerically, so any dihedral angle is exact. A planar face's whole rim bevels the same
+way with mitred corners — the rim vertices become the inset polygon, new vertices take the one cut both neighbouring
+chamfer planes make on each side edge, and one chamfer quad per rim edge shares mitre edges with its neighbours. The
+domain is declared: straight convex edges between planar faces, three-valent end vertices, one-loop faces; concave
+edges, curved edges or faces, holes, a set-back that reaches an adjacent edge's far end or folds the inset rim, and rim
+corners whose two chamfer planes cut the side edge at different points (they need a vertex face) refuse with the source
+untouched. Every result is validated closed/manifold/oriented and its volume checked against the exact removed wedge
+(three tetrahedra per edge). Console: `chamfer <body> d --edges=i[,j,…] | --face=i [--name=]` — one edge, or exactly a
+face's rim as a set, dispatches to the planar route; a native cylinder cap rim keeps its exact rolling route; live dims
+re-derive through the same solver (the old `BrepBody::ChamferEdge` path that left open sheets is no longer reachable).
+
+**34c exit gate met:** `PlanarChamferVerification` proves a box edge (`V10/E15/F7`, volume `24 − ½d²·4` to `1e-16`, the
+bisector face of area `d√2·4`), all twelve box edges, a second chamfer on a chamfered box, the 120° prism edge
+(`½d²·sin 120°·2`, the reproducer's expected `20.646046`), a cap edge whose end faces lean at 120° (`½d² × (L + 2·(d/3)·cot 60°)`),
+all eighteen prism edges, the box top bevel (`P·d²/2 − 4·d³/3`, four bisector faces, inset `(4 − 2d) × (3 − 2d)`), all
+six box faces, the hexagon cap by face and by its six-edge set (`12·d²/2 − 6·cot 60°·d³/3`), both caps in turn
+(`V24/E42/F20`), the side-face rim refusal, nine refusals including the L-block's concave edge and the cylinder rim,
+console commit through `--edges` and `--face`, the native cap fallback, and the deterministic proof (38 checks).
+
+**Proof:** `Verification/PlanarChamferVerification.cpp` (38 C++ checks) and `Proofs/Phase34c_PlanarChamfer.png`
+(2560 × 1600 C++-generated contact sheet).
 
 #### Still required in Phase 34
 
 Face lofts with intermediate sections or guide curves, lofts between two faces of one body (handles), faces with holes,
-tweaks of curved edges and faces, rotation and scaling tweaks, and single-edge (general dihedral) and edge-loop chamfers
-on planar bodies each need their own bounded route, verifier and proof.
+tweaks of curved edges and faces, rotation and scaling tweaks, chamfer corners that need a vertex face (rims of oblique
+prisms, two chamfers meeting at a vertex), open edge chains, unequal set-backs, and chamfers of curved edges each need
+their own bounded route, verifier and proof.
 
 ## Later direct modelling and platform work
 

@@ -11,6 +11,7 @@
 #include "Kernel/MirrorSolver.h"
 #include "Kernel/BlendSolver.h"
 #include "Kernel/TweakSolver.h"
+#include "Kernel/ChamferSolver.h"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -737,15 +738,13 @@ bool ConsoleHost::ApplyLiveEdit(DimensionEntry& D, double NewValue) noexcept
             // Re-apply the chamfer to the pre-operation body (so re-editing doesn't chain chamfers
             //    and break the edge count).
             BrepBody NewBody = S.PreOpBody;                                            // start from a clean copy
-            int EdgeIdx = S.I0;
-            double Dist = S.R0;
-            if (EdgeIdx >= 0 && EdgeIdx < (int)NewBody.Edges.size())
-            {
-                Deliver<BrepBody> R = NewBody.ChamferEdge(EdgeIdx, Dist);
-                if (!R) return false;
-                NewBody = std::move(R.Payload);
-            }
-            Fig->Body = std::move(NewBody);
+            const int EdgeIdx = S.I0, RimIdx = S.I1;
+            const double Dist = S.R0;
+            Deliver<BrepBody> R = RimIdx >= 0 ? ChamferSolver::ChamferFaceRim(NewBody, RimIdx, Dist)
+                                              : ChamferSolver::ChamferEdge(NewBody, EdgeIdx, Dist);
+            if (!R && RimIdx < 0) R = BlendSolver::ChamferEdge(NewBody, EdgeIdx, Dist);   // native cylinder cap rims
+            if (!R) return false;
+            Fig->Body = std::move(R.Payload);
             Replaced = true;
             break;
         }
@@ -2437,91 +2436,64 @@ void ConsoleHost::Register() noexcept
         }
         return Done > 0;
     });
-    Add("chamfer", "chamfer <figure...> setback [--corners=i,j,…]  or  --edges=i --name=…  — bevel the corners of a polyline / polygon / rectangle, or planar-setback chamfer a body edge (rolling-ball fillet is Phase 11b). The two switches are mutually exclusive: --corners is the curve mode, --edges is the body mode.", [=, this](const CommandLine& C)
+    Add("chamfer", "chamfer <figure...> setback [--corners=i,j,…]  or  <body> setback --edges=i[,j,…] | --face=i [--name=…] — bevel the corners of a polyline / polygon / rectangle, or chamfer a body: one straight edge of any dihedral angle, or the whole rim of a planar face (--face, or the complete edge set), exactly and by topology; native cylinder cap rims keep their own route. The two switches --corners and --edges/--face are mutually exclusive: --corners is the curve mode.", [=, this](const CommandLine& C)
     {
         if (!Need(C, 1, "chamfer")) return false;
         double D = 0; if (!NumberArg(C, C.Count() - 1, D, "chamfer")) return false;
         CommandLine Sub = C; Sub.Arguments.pop_back();
         if (D <= 0) return Refuse("chamfer: setback must be positive");
-        bool BodyMode = C.Switch("edges") || C.Switch("name");                          // --edges or --name imply body chamfer
+        bool BodyMode = C.Switch("edges") || C.Switch("face") || C.Switch("name");        // --edges / --face / --name imply body chamfer
         int Done = 0;
         if (BodyMode)
         {
-            // Parse --edges=i (single edge for the body verb).
-            std::vector<int> EdgeList; bool Some = false;
-            if (auto T = C.SwitchText("edges")) { Some = true; size_t P = 0; while (P < T->size()) { size_t Q = T->find(',', P); EdgeList.push_back(std::atoi(T->substr(P, Q == std::string::npos ? std::string::npos : Q - P).c_str())); if (Q == std::string::npos) break; P = Q + 1; } }
+            std::vector<int> EdgeList; bool SomeEdges = false;
+            if (auto T = C.SwitchText("edges")) { SomeEdges = true; size_t P = 0; while (P < T->size()) { size_t Q = T->find(',', P); EdgeList.push_back(std::atoi(T->substr(P, Q == std::string::npos ? std::string::npos : Q - P).c_str())); if (Q == std::string::npos) break; P = Q + 1; } }
+            std::optional<int> FaceRim; if (auto T = C.SwitchText("face")) FaceRim = std::atoi(T->c_str());
+            if (SomeEdges && FaceRim) return Refuse("chamfer: give --edges= or --face=, not both");
+            if (SomeEdges && EdgeList.empty()) return Refuse("chamfer: --edges= is empty");
             for (SceneFigure* I : ResolveMany(Sub, 0))
             {
                 if (I->Classification != FigureClassification::Body) { Refuse("chamfer: '%s' is not a body", I->Name.c_str()); continue; }
-                BrepBody Working = I->Body;
-                std::vector<int> Targets;
-                if (Some)
+                Deliver<BrepBody> R = Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "nothing to chamfer");
+                const char* Route = "planar";
+                if (FaceRim) R = ChamferSolver::ChamferFaceRim(I->Body, *FaceRim, D);
+                else if (SomeEdges)
                 {
-                    if (EdgeList.empty()) { Refuse("chamfer: --edges= is empty"); continue; }
-                    // One edge per call: a set would be cut sequentially and the second cut refuses at the first
-                    //    chamfer's corner, so a list must refuse rather than silently bevel only its first member.
-                    if (EdgeList.size() > 1) { Refuse("chamfer %s: the body chamfer takes one edge (--edges=i); edge sets and loops are not supported yet", I->Name.c_str()); continue; }
-                    Targets = { EdgeList.front() };
-                }
-                else { for (size_t E = 0; E < Working.Edges.size(); ++E) if (Working.Edges[E].Coedges.size() == 2) Targets.push_back(int(E)); }
-                int EdgesChamfered = 0;
-                std::string FailureDetail;
-                // Resolve the targets by midpoint against the original body: a chamfer renumbers the edge table, so
-                //    index 2 after the first cut is not the edge the user asked for. (BrepBody::ChamferEdge, which
-                //    this replaces, also left the body an open sheet — see Kernel/BlendSolver.h.)
-                std::vector<Vec3> Wanted;
-                for (int E : Targets)
-                {
-                    if (E < 0 || E >= (int)I->Body.Edges.size()) { FailureDetail = "edge index out of range"; continue; }
-                    const BrepEdge& Edge = I->Body.Edges[E];
-                    if (Edge.VertexStart < 0 || Edge.VertexEnd < 0) continue;
-                    Wanted.push_back((I->Body.Vertices[Edge.VertexStart].Point + I->Body.Vertices[Edge.VertexEnd].Point) * 0.5);
-                }
-                for (Vec3 Midpoint : Wanted)
-                {
-                    int Found = -1; double Best = 1e-6;
-                    for (size_t E = 0; E < Working.Edges.size(); ++E)
+                    R = ChamferSolver::ChamferEdges(I->Body, EdgeList, D);
+                    // One edge that is not polyhedral (a native cylinder cap rim) still has its exact rolling route.
+                    if (!R && EdgeList.size() == 1 && R.Denial.Reason != RefusalReason::DegenerateInput)
                     {
-                        const BrepEdge& Edge = Working.Edges[E];
-                        if (Edge.VertexStart < 0 || Edge.VertexEnd < 0) continue;
-                        double Gap = ((Working.Vertices[Edge.VertexStart].Point + Working.Vertices[Edge.VertexEnd].Point) * 0.5 - Midpoint).Length();
-                        if (Gap < Best) { Best = Gap; Found = (int)E; }
+                        Deliver<BrepBody> Native = BlendSolver::ChamferEdge(I->Body, EdgeList.front(), D);
+                        if (Native) { R = std::move(Native); Route = "native"; }
                     }
-                    if (Found < 0) { FailureDetail = "edge no longer exists after the previous chamfer"; continue; }
-                    Deliver<BrepBody> R = BlendSolver::ChamferEdge(Working, Found, D);
-                    if (!R) { FailureDetail = R.Denial.Detail; continue; }
-                    Working = std::move(R.Payload);
-                    ++EdgesChamfered;
                 }
-                Targets.resize(Wanted.size());
-                if (EdgesChamfered == 0) { Refuse("chamfer %s: %s", I->Name.c_str(), FailureDetail.c_str()); continue; }
+                else return Refuse("chamfer %s: --edges=i[,j,…] or --face=i is required — use `topology %s` to list them", I->Name.c_str(), I->Name.c_str());
+                if (!R) { Refuse("chamfer %s: %s", I->Name.c_str(), R.Denial.Detail); continue; }
                 std::string Name = I->Name; uint32_t Id = I->Identity; bool Sel = I->Selected;
-                BrepBody PreOp = I->Body;                                              // capture the pre-chamfer body BEFORE the remove
+                BrepBody PreOp = I->Body;                                              // the pre-chamfer body, for live re-derivation
+                const BodyReport Report = R.Payload.Validate();
                 Scene.Remove(Id);
-                SceneFigure& F = Scene.AddBody(C.SwitchText("name").value_or(Name + ".Chamfered"), std::move(Working));
+                SceneFigure& F = Scene.AddBody(C.SwitchText("name").value_or(Name + ".Chamfered"), std::move(R.Payload));
                 F.Selected = Sel;
-                // Record the parametric source so a live dim can re-derive the chamfer with a new distance.
-                //    PreOpBody = the body before the chamfer, so a live edit re-applies the operation
-                //    to a clean copy (otherwise the edge count grows and the second chamfer fails).
-                if (!Targets.empty())
+                // Parametric source so a live dim can re-derive the chamfer with a new distance: I0 = the edge (−1 for a
+                //    rim), I1 = the rim face (−1 for an edge), R0 = the set-back, PreOpBody = the clean source.
+                SceneFigure::ParametricBlueprint S; S.Form = SceneFigure::ParametricForm::ChamferEdge;
+                S.I0 = FaceRim ? -1 : EdgeList.front();
+                S.I1 = FaceRim ? *FaceRim : (EdgeList.size() > 1 ? ChamferSolver::RimFace(PreOp, EdgeList) : -1);
+                S.R0 = D;
+                if (S.I0 >= 0 && S.I0 < int(PreOp.Edges.size()))
                 {
-                    SceneFigure::ParametricBlueprint S; S.Form = SceneFigure::ParametricForm::ChamferEdge;
-                    S.I0 = Targets.front();
-                    S.R0 = D;
-                    S.PreOpBody = std::move(PreOp);
-                    if (S.PreOpBody.Edges.size() > size_t(Targets.front()))
-                    {
-                        const BrepEdge& E = S.PreOpBody.Edges[Targets.front()];
-                        Vec3 Lo = E.Curve.Sample(E.Curve.DomainStart());
-                        Vec3 Hi = E.Curve.Sample(E.Curve.DomainEnd());
-                        S.A = (Lo + Hi) * 0.5;
-                        S.Axis = (Hi - Lo).Normalised();
-                    }
-                    F.Blueprint = std::move(S);
+                    const BrepEdge& Ed = PreOp.Edges[S.I0];
+                    Vec3 Lo = Ed.Curve.Sample(Ed.Curve.DomainStart()), Hi = Ed.Curve.Sample(Ed.Curve.DomainEnd());
+                    S.A = (Lo + Hi) * 0.5; S.Axis = (Hi - Lo).Normalised();
                 }
+                S.PreOpBody = std::move(PreOp);
+                F.Blueprint = std::move(S);
+                DescribeFigure(F);
                 if (!C.Switch("no-dim") && ShowDimensions) AutoEmitDimensions(F);
                 ++Done;
-                Row("chamfer %s → %s  setback %.4f  edges %d/%d", Name.c_str(), F.Name.c_str(), D, EdgesChamfered, int(Targets.size()));
+                Row("chamfer %s → %s  setback %.4f  %s route  %s  V%d E%d F%d", Name.c_str(), F.Name.c_str(), D,
+                    Route, FaceRim || S.I1 >= 0 ? "rim" : "edge", Report.Vertices, Report.Edges, Report.Faces);
             }
         }
         else
