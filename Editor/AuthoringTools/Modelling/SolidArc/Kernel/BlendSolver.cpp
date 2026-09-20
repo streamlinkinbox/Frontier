@@ -2926,13 +2926,35 @@ namespace
                 Refusal = "edge has an invalid adjacent face";
                 return false;
             }
-            for (int Loop : Body.Faces[Face].Loops)
-                for (int Coedge : Body.Loops[Loop].Coedges)
+            const Vec3 Direction = Face == Frame.FaceA ? Frame.InA : Frame.InB;
+            const Vec3 Along = Frame.Tangent;
+            const auto Cross2 = [](double AX, double AY, double BX, double BY) noexcept { return AX * BY - AY * BX; };
+            for (const int Loop : Body.Faces[Face].Loops)
+                for (const int Coedge : Body.Loops[Loop].Coedges)
                 {
                     int OtherEdge = Body.Coedges[Coedge].Edge;
-                    if (OtherEdge < 0 || OtherEdge >= static_cast<int>(Body.Edges.size())) continue;
-                    if (OtherEdge == SelectedEdge) continue;
+                    if (OtherEdge < 0 || OtherEdge >= static_cast<int>(Body.Edges.size()) || OtherEdge == SelectedEdge) continue;
                     const BrepEdge& Boundary = Body.Edges[OtherEdge];
+                    // Intersect each face-boundary segment with the ray that carries the setback from either selected
+                    // endpoint. This catches an acute/oblique polygon where the ray reaches a side before it reaches
+                    // that side's endpoint; a vertex-distance-only test would miss exactly that self-crossing.
+                    const std::vector<Vec3> Samples = Body.EdgePolyline(OtherEdge, 1e-5);
+                    for (const Vec3& Origin : { Frame.Start, Frame.End })
+                        for (size_t I = 0; I + 1 < Samples.size(); ++I)
+                        {
+                            Vec3 Q = Samples[I] - Origin, S = Samples[I + 1] - Samples[I];
+                            double QX = Q.Dot(Direction), QY = Q.Dot(Along);
+                            double SX = S.Dot(Direction), SY = S.Dot(Along);
+                            double Denominator = Cross2(1.0, 0.0, SX, SY);
+                            if (std::fabs(Denominator) <= ScalarCriteria::GeometricTolerance) continue;
+                            double T = Cross2(QX, QY, SX, SY) / Denominator;
+                            double U = Cross2(QX, QY, 1.0, 0.0) / Denominator;
+                            if (T > Epsilon && U >= -Epsilon && U <= 1.0 + Epsilon && T <= SetBack + Epsilon)
+                            {
+                                Refusal = "set-back would self-intersect the next planar boundary";
+                                return false;
+                            }
+                        }
                     for (int Vertex : { Boundary.VertexStart, Boundary.VertexEnd })
                     {
                         if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size())) continue;
