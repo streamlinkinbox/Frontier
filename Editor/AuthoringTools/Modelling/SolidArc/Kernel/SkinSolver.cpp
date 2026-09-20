@@ -448,13 +448,13 @@ namespace
         return true;
     }
 
-    // Copies every face of Source except Skip into Out; edges and vertices merge by geometry, so the two rims left by
-    //    the skipped faces are exactly the edges their neighbours still use.
-    void AppendFaces(const BrepBody& Source, int Skip, BrepBody& Out) noexcept
+    // Copies every face of Source except SkipA/SkipB into Out; edges and vertices merge by geometry, so the skipped
+    //    faces leave exactly the open rims their neighbours still use. The two-skip form is the safe same-body route.
+    void AppendFaces(const BrepBody& Source, int SkipA, int SkipB, BrepBody& Out) noexcept
     {
         for (int F = 0; F < static_cast<int>(Source.Faces.size()); ++F)
         {
-            if (F == Skip) continue;
+            if (F == SkipA || F == SkipB) continue;
             const BrepFace& Face = Source.Faces[F];
             const int NF = Out.AddFace(Face.Surface);
             Out.Faces[NF].Reversed = Face.Reversed; Out.Faces[NF].Natural = Face.Natural;
@@ -472,9 +472,35 @@ namespace
         }
     }
 
+    void AppendFaces(const BrepBody& Source, int Skip, BrepBody& Out) noexcept
+    {
+        AppendFaces(Source, Skip, -1, Out);
+    }
+
     // The open rim (edges with one coedge) through Anchor, walked head to tail from the vertex nearest Anchor. An open
     //    edge is walked against its surviving coedge — the sense the skin must use to keep the edge manifold.
     struct RimStep { int Edge; bool Reversed; };
+    [[nodiscard]] bool FacesConnected(const BrepBody& Body, int Start, int Goal) noexcept
+    {
+        if (Start == Goal) return true;
+        std::vector<char> Seen(Body.Faces.size(), 0);
+        std::vector<int> Pending{ Start };
+        Seen[Start] = 1;
+        while (!Pending.empty())
+        {
+            const int Face = Pending.back(); Pending.pop_back();
+            for (int Loop : Body.Faces[Face].Loops)
+                for (int Coedge : Body.Loops[Loop].Coedges)
+                    for (int User : Body.Edges[Body.Coedges[Coedge].Edge].Coedges)
+                    {
+                        const int Next = Body.Coedges[User].Face;
+                        if (Next == Goal) return true;
+                        if (Next >= 0 && Next < static_cast<int>(Seen.size()) && !Seen[Next]) { Seen[Next] = 1; Pending.push_back(Next); }
+                    }
+        }
+        return false;
+    }
+
     std::vector<RimStep> OpenRimFrom(const BrepBody& Body, Vec3 Anchor, double Tolerance) noexcept
     {
         auto Open = [&](int E) { return Body.Edges[E].Coedges.size() == 1; };
@@ -513,10 +539,13 @@ namespace
 Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const BrepBody& B, int FaceB) noexcept
 {
     using Body = Deliver<BrepBody>;
-    if (&A == &B) return Body::Reject(RefusalReason::Unsupported, "face loft between two faces of one body is not supported");
-    if (!A.Validate().Solid() || !B.Validate().Solid()) return Body::Reject(RefusalReason::OpenWire, "face loft needs two closed solids");
+    const bool SameBody = &A == &B;
+    if (!A.Validate().Solid() || !B.Validate().Solid()) return Body::Reject(RefusalReason::OpenWire, "face loft needs a closed solid");
+    if (SameBody && FaceA == FaceB) return Body::Reject(RefusalReason::Unsupported, "face loft needs two distinct faces");
     if (FaceA < 0 || FaceA >= static_cast<int>(A.Faces.size()) || FaceB < 0 || FaceB >= static_cast<int>(B.Faces.size()))
         return Body::Reject(RefusalReason::OutOfDomain, "no such face");
+    if (SameBody && FacesConnected(A, FaceA, FaceB))
+        return Body::Reject(RefusalReason::Unsupported, "same-body face loft requires faces on different disconnected hulls");
     for (const auto& [Owner, Face] : { std::pair<const BrepBody*, int>{ &A, FaceA }, std::pair<const BrepBody*, int>{ &B, FaceB } })
     {
         const BrepFace& F = Owner->Faces[Face];
@@ -532,7 +561,9 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     if (!FaceFrame(A, FaceA, CentreA, NormalA) || !FaceFrame(B, FaceB, CentreB, NormalB))
         return Body::Reject(RefusalReason::DegenerateInput, "face loft: a chosen face has no area");
     const Vec3 Across = CentreB - CentreA;
-    if (Across.Length() <= ScalarCriteria::MergeTolerance || NormalA.Dot(Across) <= 0.0 || NormalB.Dot(Across) >= 0.0)
+    if (Across.Length() <= ScalarCriteria::MergeTolerance)
+        return Body::Reject(RefusalReason::Unsupported, "face loft: the selected face centres are coincident");
+    if (!SameBody && (NormalA.Dot(Across) <= 0.0 || NormalB.Dot(Across) >= 0.0))
         return Body::Reject(RefusalReason::Unsupported, "face loft: the two faces must face each other across a gap");
 
     // Sections: the two rims as closed curves; the second is sense-aligned and re-seamed for least twist.
@@ -549,10 +580,11 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     const Vec3 SeamA = S.Sample(U0, V0), SeamB = S.Sample(U0, V1);
     const double Tol = ScalarCriteria::MergeTolerance * 10.0;
 
-    // Assemble: both bodies minus their faces, then put the seam foot of each rim onto a real vertex.
+    // Assemble: remove each selected face once. For a same-body handle this leaves two open rims in one source shell;
+    //    the new skin is the only added bridge, so no source face or edge is duplicated.
     BrepBody Out;
-    AppendFaces(A, FaceA, Out);
-    AppendFaces(B, FaceB, Out);
+    if (SameBody) AppendFaces(A, FaceA, FaceB, Out);
+    else { AppendFaces(A, FaceA, Out); AppendFaces(B, FaceB, Out); }
     for (Vec3 Seam : { SeamA, SeamB })
     {
         bool OnVertex = false;
@@ -577,7 +609,19 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     const int Loop = Out.AddLoop(Face, true);
     Deliver<NurbsCurve> SeamLine = NurbsCurve::Line(SeamA, SeamB);
     if (!SeamLine) return Body::Reject(SeamLine.Denial.Reason, SeamLine.Denial.Detail);
-    const int SeamEdge = Out.AddEdge(SeamLine.Payload, ScalarCriteria::MergeTolerance);
+    int SeamEdge = -1;
+    if (SameBody)
+    {
+        // A same-body bridge may have a seam ruling coincident with an existing side edge. Do not merge the new
+        //    bridge seam with that surviving edge: they are distinct topological rails with distinct face users.
+        BrepEdge Edge;
+        Edge.VertexStart = Out.AddVertex(SeamLine.Payload.StartPoint(), ScalarCriteria::MergeTolerance);
+        Edge.VertexEnd = Out.AddVertex(SeamLine.Payload.EndPoint(), ScalarCriteria::MergeTolerance);
+        Edge.Curve = std::move(SeamLine.Payload);
+        Out.Edges.push_back(std::move(Edge));
+        SeamEdge = static_cast<int>(Out.Edges.size() - 1);
+    }
+    else SeamEdge = Out.AddEdge(SeamLine.Payload, ScalarCriteria::MergeTolerance);
     auto RimTrace = [&](const NurbsCurve& Row, const NurbsCurve& EdgeCurve, bool Reversed, double V, bool Ascending)
     {
         std::vector<Vec2> Trace;
@@ -611,7 +655,12 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
 
     Out.Orient();
     const BodyReport Report = Out.Validate();
-    if (!Report.Solid() || Report.Hulls != 1) return Body::Reject(RefusalReason::Unsupported, "face loft did not close into one solid");
+    if (!Report.Closed) return Body::Reject(RefusalReason::Unsupported, "face loft did not close its boundary");
+    if (!Report.Manifold) return Body::Reject(RefusalReason::NonManifold, "face loft produced a non-manifold same-body bridge");
+    if (!Report.Oriented) return Body::Reject(RefusalReason::Unsupported, "face loft produced an unoriented bridge");
+    const double MinimumVolume = ScalarCriteria::VolumeTolerance * std::max(1.0, A.Validate().Volume);
+    if (Report.Hulls != 1 || Report.Volume <= MinimumVolume)
+        return Body::Reject(RefusalReason::DegenerateInput, "face loft did not enclose one positive-volume solid");
     return Body::Accept(std::move(Out));
 }
 

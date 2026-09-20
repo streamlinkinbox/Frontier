@@ -394,9 +394,11 @@ tolerances are recorded in [`docs/BLEND_LIMITS.md`](docs/BLEND_LIMITS.md#exact-p
 become the sections of a ruled loft (least-twist seam, split onto a real rim vertex by `BrepBody::SplitEdge`), and the
 skin is sewn to the surviving faces along the very edges the dropped faces used. No Boolean is involved, so the shared
 rims are exact and a box can meet a cylinder cap as a square-to-round transition, a box can meet a box as the analytic
-prism, and a cap can meet a smaller cap as the exact frustum. Faces with holes, seam-bearing side faces, two faces of
-one body, open sheets and faces that do not face each other refuse. `FaceLoftVerification` contributes 29 checks and
-`Proofs/Phase34a_FaceLoft.png`.
+prism, and a cap can meet a smaller cap as the exact frustum. Faces with holes, seam-bearing side faces, open sheets and
+faces that do not face each other refuse. Two distinct faces of one B-rep are also supported when they belong to
+separate disconnected hulls: the bounded route joins those hulls into one positive-volume genus-zero handle bridge.
+Connected same-body zero-volume cases remain explicit refusals. `FaceLoftVerification` contributes 33 checks and
+`Proofs/Phase34a_FaceLoft.png` plus `Proofs/Phase34f_SameBodyFaceLoft.png`.
 
 ## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
 

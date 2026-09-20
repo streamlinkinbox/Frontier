@@ -71,4 +71,4 @@ for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak; do
     "$WORK/${TEST}Verification"
 done
 
-echo "[SolidArc] Phase 34a–34e loft, tweak, chamfer and transform-tweak gates passed"
+echo "[SolidArc] Phase 34a–34f loft, tweak, chamfer and transform-tweak gates passed"

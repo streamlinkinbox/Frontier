@@ -616,11 +616,24 @@ source immutability, default refusal of an in-plane rotation that would warp adj
 fixed topology and positive numerical volume, curved-rim refusal, and both console commands. It also writes the visible
 `Proofs/Phase34e_TransformTweaks.png` proof (1600 × 800).
 
+#### Phase 34f: bounded same-body face loft handles ✅
+
+`SkinSolver::LoftFaces` and the `loft A:fN B:fM` console route now accept two distinct faces owned by one B-rep
+when that B-rep contains two disconnected, valid hulls. The selected rims are removed exactly once and one ruled skin
+bridges them into a single positive-volume solid; coincident faces, connected same-body selections that collapse to a
+zero-volume duplicate shell, faces with holes, seam-bearing faces, and non-facing selections still refuse transactionally.
+This is an explicit multi-hull handle bridge, not unrestricted same-solid face surgery.
+
+`FaceLoftVerification` now covers the two-hull source, V16/E25/F11 genus-zero bridge, volume 224, console `--keep`
+integration, source preservation, and the visible `Proofs/Phase34f_SameBodyFaceLoft.png` proof.
+
 #### Still required in Phase 34
 
-Face lofts with intermediate sections or guide curves, lofts between two faces of one body (handles), faces with holes,
-and tweaks of curved faces/edges remain unsupported. Concave/non-convex planar chamfer networks, curved-edge chamfers,
-and arbitrary non-planar edge loops still need dedicated topology and intersection routes.
+Face lofts between connected faces of one body, curved-face and curved-edge tweaks, concave/non-convex planar chamfer
+networks, curved-edge chamfers beyond the verified native cylinder-cap route, and arbitrary non-planar edge loops still
+need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
+lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing
+verification coverage.
 
 ## Later direct modelling and platform work
 
