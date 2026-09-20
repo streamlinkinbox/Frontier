@@ -615,6 +615,43 @@ std::vector<Vec3> BrepBody::EdgePolyline(int Edge, double ChordTolerance) const 
     return Out;
 }
 
+int BrepBody::SplitEdge(int Edge, double T) noexcept
+{
+    if (Edge < 0 || Edge >= static_cast<int>(Edges.size())) return -1;
+    const double T0 = Edges[Edge].Curve.DomainStart(), T1 = Edges[Edge].Curve.DomainEnd();
+    const double Margin = ScalarCriteria::ParametricEpsilon * std::max(1.0, T1 - T0);
+    if (T <= T0 + Margin || T >= T1 - Margin) return -1;
+
+    auto [Head, Tail] = Edges[Edge].Curve.Split(T);
+    ClassifyEdgeCurve(Head); ClassifyEdgeCurve(Tail);
+    const int Vertex = static_cast<int>(Vertices.size());                              // interior to the edge: never merged
+    Vertices.push_back(BrepVertex{ Head.EndPoint() });
+
+    const int OldEnd = Edges[Edge].VertexEnd;
+    const std::vector<int> Users = Edges[Edge].Coedges;
+    Edges[Edge].Curve = std::move(Head); Edges[Edge].VertexEnd = Vertex;
+    BrepEdge Second; Second.Curve = std::move(Tail); Second.VertexStart = Vertex; Second.VertexEnd = OldEnd;
+    const int NewEdge = static_cast<int>(Edges.size());
+    Edges.push_back(std::move(Second));
+
+    for (int Ce : Users)
+    {
+        BrepCoedge Copy = Coedges[Ce];                                                  // walks the second piece
+        Copy.Edge = NewEdge; Copy.Trace.clear();
+        Coedges[Ce].Trace.clear();
+        const int NewCe = static_cast<int>(Coedges.size());
+        Coedges.push_back(Copy);
+        Edges[NewEdge].Coedges.push_back(NewCe);
+        if (Copy.Loop < 0 || Copy.Loop >= static_cast<int>(Loops.size())) continue;
+        std::vector<int>& Walk = Loops[Copy.Loop].Coedges;
+        auto At = std::find(Walk.begin(), Walk.end(), Ce);
+        if (At == Walk.end()) continue;
+        // Forward the loop meets the first piece then the second; reversed it meets the second piece first.
+        if (Copy.Reversed) Walk.insert(At, NewCe); else Walk.insert(At + 1, NewCe);
+    }
+    return Vertex;
+}
+
 std::vector<Vec2> BrepBody::CoedgeTrace(int Coedge, std::vector<double>* Parameters, int Samples) const noexcept
 {
     const BrepCoedge& Ce = Coedges[Coedge];

@@ -2663,8 +2663,32 @@ void ConsoleHost::Register() noexcept
         }
         return true;
     };
-    Add("loft", "loft <sections...>|selected [--degree=3] [--loop] [--sheet] [--no-align] [--guides=a,b] [--guide-weight=w] [--guide-rounds=n] — sections are curves, areas (aN), body edges (Body:eN) or Outer+Hole groups in flow order; closed sections → solid (areas with holes → through-holes); --guides bends the sheet through each named curve", [=, this](const CommandLine& C)
+    Add("loft", "loft <sections...>|selected [--degree=3] [--loop] [--sheet] [--no-align] [--guides=a,b] [--guide-weight=w] [--guide-rounds=n] — sections are curves, areas (aN), body edges (Body:eN) or Outer+Hole groups in flow order; closed sections → solid (areas with holes → through-holes); --guides bends the sheet through each named curve  ·  loft <A:fN> <B:fM> [--keep] [--name=] — face loft: skin between one face of each solid and sew the two solids into one (the faces are dropped, their rims shared exactly)", [=, this](const CommandLine& C)
     {
+        // Face loft (Phase 34a): exactly two Name:fN tokens → one solid bridging the two bodies through those faces.
+        auto FaceToken = [this](const std::string& Tok, SceneFigure*& Owner, int& Face) -> bool
+        {
+            size_t Colon = Tok.find(":f"); if (Colon == std::string::npos) return false;
+            Owner = Resolve(Tok.substr(0, Colon)); Face = std::atoi(Tok.c_str() + Colon + 2);
+            return Owner && Owner->Classification == FigureClassification::Body && Face >= 0 && Face < int(Owner->Body.Faces.size());
+        };
+        if (C.Count() >= 1 && C.Arguments[0].find(":f") != std::string::npos)
+        {
+            SceneFigure* OwnerA = nullptr; SceneFigure* OwnerB = nullptr; int FaceA = -1, FaceB = -1;
+            if (C.Count() != 2 || !FaceToken(C.Arguments[0], OwnerA, FaceA) || !FaceToken(C.Arguments[1], OwnerB, FaceB))
+                return Refuse("loft: a face loft takes exactly two body faces, Name:fN Name:fM (see `topology`)");
+            if (OwnerA == OwnerB) return Refuse("loft: face loft between two faces of the same body is not supported");
+            Deliver<BrepBody> R = SkinSolver::LoftFaces(OwnerA->Body, FaceA, OwnerB->Body, FaceB);
+            if (!R) return Refuse("loft %s %s: %s — %s", C.Arguments[0].c_str(), C.Arguments[1].c_str(), Refusal::Describe(R.Denial.Reason), R.Denial.Detail);
+            Row("loft %s → %s  ·  face loft, rims shared exactly (no Boolean)", C.Arguments[0].c_str(), C.Arguments[1].c_str());
+            const uint32_t IdA = OwnerA->Identity, IdB = OwnerB->Identity;
+            Scene.ClearSelection();
+            if (!C.Switch("keep")) { Scene.Remove(IdA); Scene.Remove(IdB); }              // before adding: pointers die with the erase
+            SceneFigure::ParametricBlueprint BP;
+            BP.Form = SceneFigure::ParametricForm::Loft;
+            BP.I0 = 1;
+            return AddBody(C, "FaceLoft", std::move(R), BP);
+        }
         std::vector<SweepSource> Sections; if (!CollectSections(C, 0, "loft", Sections)) return false;
         if (Sections.size() < 2) return Refuse("loft: at least two sections");
         FigureRecipe R; R.Operation = RecipeOperation::Loft;

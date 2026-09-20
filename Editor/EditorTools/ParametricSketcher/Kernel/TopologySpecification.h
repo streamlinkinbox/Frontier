@@ -161,6 +161,10 @@ public:
     int  AddLoop(int Face, bool Outer) noexcept;
     // Appends the natural boundary loop(s) of a face's surface; merges edges/vertices within tolerance.
     void AddNaturalBoundary(int Face, double Tolerance) noexcept;
+    // Euler operator: splits an edge at curve parameter T into two edges meeting at a new vertex. Every loop that walked
+    //    the edge now walks both pieces in its own sense, so the body stays exactly as closed and manifold as it was.
+    //    Returns the new vertex, or −1 when T is at an end of the edge or the edge does not exist.
+    int  SplitEdge(int Edge, double T) noexcept;
 
 private:
     [[nodiscard]] int FindCoincidentEdge(const NurbsCurve& Curve, double Tolerance, bool& ReversedOut) const noexcept;

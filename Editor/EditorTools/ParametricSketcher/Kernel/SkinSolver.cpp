@@ -418,6 +418,195 @@ Deliver<NurbsCurve> SkinSolver::LoopCurve(const BrepBody& Body, int Loop) noexce
     return Deliver<NurbsCurve>::Accept(std::move(Out));
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  FACE LOFT
+//------------------------------------------------------------------------------------------------------------------------
+namespace
+{
+    // Outward unit normal and centroid of a face, from its tessellation (exact enough for a facing test).
+    bool FaceFrame(const BrepBody& Body, int Face, Vec3& Centroid, Vec3& Normal) noexcept
+    {
+        BrepBody::FaceTriangles T = Body.TessellateFace(Face, ScalarCriteria::ChordTolerance * 10.0);
+        Vec3 Sum, Area; double Weight = 0.0;
+        for (size_t I = 0; I + 2 < T.Triangles.size(); I += 3)
+        {
+            const Vec3& P = T.Positions[T.Triangles[I]]; const Vec3& Q = T.Positions[T.Triangles[I + 1]]; const Vec3& R = T.Positions[T.Triangles[I + 2]];
+            Vec3 Cross = (Q - P).Cross(R - P);
+            double A = 0.5 * Cross.Length();
+            Sum = Sum + (P + Q + R) * (A / 3.0); Area = Area + Cross; Weight += A;
+        }
+        if (Weight <= ScalarCriteria::KernelTolerance || Area.LengthSquared() <= 1e-24) return false;
+        Centroid = Sum * (1.0 / Weight); Normal = Area.Normalised();
+        return true;
+    }
+
+    // Copies every face of Source except Skip into Out; edges and vertices merge by geometry, so the two rims left by
+    //    the skipped faces are exactly the edges their neighbours still use.
+    void AppendFaces(const BrepBody& Source, int Skip, BrepBody& Out) noexcept
+    {
+        for (int F = 0; F < static_cast<int>(Source.Faces.size()); ++F)
+        {
+            if (F == Skip) continue;
+            const BrepFace& Face = Source.Faces[F];
+            const int NF = Out.AddFace(Face.Surface);
+            Out.Faces[NF].Reversed = Face.Reversed; Out.Faces[NF].Natural = Face.Natural;
+            for (int L : Face.Loops)
+            {
+                const int NL = Out.AddLoop(NF, Source.Loops[L].Outer);
+                for (int Ce : Source.Loops[L].Coedges)
+                {
+                    const BrepCoedge& C = Source.Coedges[Ce];
+                    const int NE = Out.AddEdge(Source.Edges[C.Edge].Curve, ScalarCriteria::MergeTolerance);
+                    const int NC = Out.AddCoedge(NE, C.Reversed, NF, NL);
+                    Out.Coedges[NC].Trace = C.Trace;
+                }
+            }
+        }
+    }
+
+    // The open rim (edges with one coedge) through Anchor, walked head to tail from the vertex nearest Anchor. An open
+    //    edge is walked against its surviving coedge — the sense the skin must use to keep the edge manifold.
+    struct RimStep { int Edge; bool Reversed; };
+    std::vector<RimStep> OpenRimFrom(const BrepBody& Body, Vec3 Anchor, double Tolerance) noexcept
+    {
+        auto Open = [&](int E) { return Body.Edges[E].Coedges.size() == 1; };
+        auto SkinReversed = [&](int E) { return !Body.Coedges[Body.Edges[E].Coedges[0]].Reversed; };
+        auto HeadOf = [&](int E) { return SkinReversed(E) ? Body.Edges[E].VertexEnd : Body.Edges[E].VertexStart; };
+        auto TailOf = [&](int E) { return SkinReversed(E) ? Body.Edges[E].VertexStart : Body.Edges[E].VertexEnd; };
+        std::vector<RimStep> Out;
+        int Start = -1; double Best = ScalarCriteria::Infinity;
+        for (int E = 0; E < static_cast<int>(Body.Edges.size()); ++E)
+        {
+            if (!Open(E)) continue;
+            const double D = Body.Vertices[HeadOf(E)].Point.Distance(Anchor);
+            if (D < Best) { Best = D; Start = E; }
+        }
+        if (Start < 0 || Best > Tolerance) return Out;
+        const int Origin = HeadOf(Start);
+        std::vector<bool> Used(Body.Edges.size(), false);
+        int Edge = Start;
+        for (size_t Guard = 0; Guard <= Body.Edges.size(); ++Guard)
+        {
+            Out.push_back({ Edge, SkinReversed(Edge) });
+            Used[Edge] = true;
+            const int Tail = TailOf(Edge);
+            if (Tail == Origin) return Out;
+            int Next = -1;
+            for (int E = 0; E < static_cast<int>(Body.Edges.size()); ++E)
+                if (Open(E) && !Used[E] && HeadOf(E) == Tail) { Next = E; break; }
+            if (Next < 0) break;
+            Edge = Next;
+        }
+        Out.clear();
+        return Out;
+    }
+}
+
+Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const BrepBody& B, int FaceB) noexcept
+{
+    using Body = Deliver<BrepBody>;
+    if (&A == &B) return Body::Reject(RefusalReason::Unsupported, "face loft between two faces of one body is not supported");
+    if (!A.Validate().Solid() || !B.Validate().Solid()) return Body::Reject(RefusalReason::OpenWire, "face loft needs two closed solids");
+    if (FaceA < 0 || FaceA >= static_cast<int>(A.Faces.size()) || FaceB < 0 || FaceB >= static_cast<int>(B.Faces.size()))
+        return Body::Reject(RefusalReason::OutOfDomain, "no such face");
+    for (const auto& [Owner, Face] : { std::pair<const BrepBody*, int>{ &A, FaceA }, std::pair<const BrepBody*, int>{ &B, FaceB } })
+    {
+        const BrepFace& F = Owner->Faces[Face];
+        if (F.Loops.size() != 1) return Body::Reject(RefusalReason::Unsupported, "face loft needs a face bounded by one loop (no holes)");
+        const std::vector<int>& Walk = Owner->Loops[F.Loops[0]].Coedges;
+        for (size_t I = 0; I < Walk.size(); ++I)
+            for (size_t J = I + 1; J < Walk.size(); ++J)
+                if (Owner->Coedges[Walk[I]].Edge == Owner->Coedges[Walk[J]].Edge)
+                    return Body::Reject(RefusalReason::Unsupported, "face loft needs a face without a seam (choose a cap or planar face)");
+    }
+
+    Vec3 CentreA, NormalA, CentreB, NormalB;
+    if (!FaceFrame(A, FaceA, CentreA, NormalA) || !FaceFrame(B, FaceB, CentreB, NormalB))
+        return Body::Reject(RefusalReason::DegenerateInput, "face loft: a chosen face has no area");
+    const Vec3 Across = CentreB - CentreA;
+    if (Across.Length() <= ScalarCriteria::MergeTolerance || NormalA.Dot(Across) <= 0.0 || NormalB.Dot(Across) >= 0.0)
+        return Body::Reject(RefusalReason::Unsupported, "face loft: the two faces must face each other across a gap");
+
+    // Sections: the two rims as closed curves; the second is sense-aligned and re-seamed for least twist.
+    Deliver<NurbsCurve> RimA = LoopCurve(A, A.Faces[FaceA].Loops[0]), RimB = LoopCurve(B, B.Faces[FaceB].Loops[0]);
+    if (!RimA) return Body::Reject(RimA.Denial.Reason, RimA.Denial.Detail);
+    if (!RimB) return Body::Reject(RimB.Denial.Reason, RimB.Denial.Detail);
+    Deliver<std::vector<NurbsCurve>> Rows = Harmonise({ RimA.Payload, RimB.Payload }, true, true);
+    if (!Rows) return Body::Reject(Rows.Denial.Reason, Rows.Denial.Detail);
+    LoftOptions Ruled; Ruled.DegreeV = 1; Ruled.AlignSeams = false; Ruled.AlignSense = false; Ruled.Solid = false;
+    Deliver<NurbsSurface> Skin = LoftSheet(Rows.Payload, Ruled);
+    if (!Skin) return Body::Reject(Skin.Denial.Reason, Skin.Denial.Detail);
+    const NurbsSurface& S = Skin.Payload;
+    const double U0 = S.DomainStartU(), U1 = S.DomainEndU(), V0 = S.DomainStartV(), V1 = S.DomainEndV();
+    const Vec3 SeamA = S.Sample(U0, V0), SeamB = S.Sample(U0, V1);
+    const double Tol = ScalarCriteria::MergeTolerance * 10.0;
+
+    // Assemble: both bodies minus their faces, then put the seam foot of each rim onto a real vertex.
+    BrepBody Out;
+    AppendFaces(A, FaceA, Out);
+    AppendFaces(B, FaceB, Out);
+    for (Vec3 Seam : { SeamA, SeamB })
+    {
+        bool OnVertex = false;
+        for (const BrepVertex& V : Out.Vertices) if (V.Point.Distance(Seam) <= Tol) { OnVertex = true; break; }
+        if (OnVertex) continue;
+        int Split = -1; double SplitT = 0.0;
+        for (int E = 0; E < static_cast<int>(Out.Edges.size()) && Split < 0; ++E)
+        {
+            if (Out.Edges[E].Coedges.size() != 1) continue;
+            double D = 0.0; const double T = Out.Edges[E].Curve.ClosestParameter(Seam, &D);
+            if (D <= Tol) { Split = E; SplitT = T; }
+        }
+        if (Split < 0 || Out.SplitEdge(Split, SplitT) < 0) return Body::Reject(RefusalReason::Unsupported, "face loft: the least-twist seam does not lie on a rim");
+    }
+    std::vector<RimStep> WalkA = OpenRimFrom(Out, SeamA, Tol), WalkB = OpenRimFrom(Out, SeamB, Tol);
+    if (WalkA.empty() || WalkB.empty()) return Body::Reject(RefusalReason::Unsupported, "face loft: a rim does not chain into one ring");
+
+    // The skin face: one keyhole loop — rim A forward, seam up, rim B backward, seam down — with explicit (u,v) traces
+    //    so the two seam coedges land on their own sides of the periodic sheet.
+    const int Face = Out.AddFace(S);
+    Out.Faces[Face].Natural = true;
+    const int Loop = Out.AddLoop(Face, true);
+    Deliver<NurbsCurve> SeamLine = NurbsCurve::Line(SeamA, SeamB);
+    if (!SeamLine) return Body::Reject(SeamLine.Denial.Reason, SeamLine.Denial.Detail);
+    const int SeamEdge = Out.AddEdge(SeamLine.Payload, ScalarCriteria::MergeTolerance);
+    auto RimTrace = [&](const NurbsCurve& Row, const NurbsCurve& EdgeCurve, bool Reversed, double V, bool Ascending)
+    {
+        std::vector<Vec2> Trace;
+        std::vector<Vec3> Points; EdgeCurve.Tessellate(Points, nullptr, ScalarCriteria::ChordTolerance * 4.0);
+        if (Reversed) std::reverse(Points.begin(), Points.end());
+        double Previous = Ascending ? U0 : U1;
+        for (size_t I = 0; I < Points.size(); ++I)
+        {
+            double U = Row.ClosestParameter(Points[I]);
+            if (I == 0) U = Ascending ? U0 : U1;
+            else if (I + 1 == Points.size()) U = Ascending ? U1 : U0;
+            else if (Ascending ? U < Previous : U > Previous) U = Previous;                // never step back across the seam
+            Previous = U;
+            Trace.emplace_back(U, V);
+        }
+        return Trace;
+    };
+    for (const RimStep& Step : WalkA)
+    {
+        const int Ce = Out.AddCoedge(Step.Edge, Step.Reversed, Face, Loop);
+        Out.Coedges[Ce].Trace = RimTrace(Rows.Payload[0], Out.Edges[Step.Edge].Curve, Step.Reversed, V0, true);
+    }
+    { const int Ce = Out.AddCoedge(SeamEdge, false, Face, Loop); Out.Coedges[Ce].Trace = { Vec2{ U1, V0 }, Vec2{ U1, V1 } }; }
+    // Rim B must run against the sheet's u: walk it in the manifold-forced sense, which for facing solids is exactly that.
+    for (const RimStep& Step : WalkB)
+    {
+        const int Ce = Out.AddCoedge(Step.Edge, Step.Reversed, Face, Loop);
+        Out.Coedges[Ce].Trace = RimTrace(Rows.Payload[1], Out.Edges[Step.Edge].Curve, Step.Reversed, V1, false);
+    }
+    { const int Ce = Out.AddCoedge(SeamEdge, true, Face, Loop); Out.Coedges[Ce].Trace = { Vec2{ U0, V1 }, Vec2{ U0, V0 } }; }
+
+    Out.Orient();
+    const BodyReport Report = Out.Validate();
+    if (!Report.Solid() || Report.Hulls != 1) return Body::Reject(RefusalReason::Unsupported, "face loft did not close into one solid");
+    return Body::Accept(std::move(Out));
+}
+
 namespace
 {
     // Non-rational, degree-3, [0,1] version of a boundary (exact for integral cubics and lower; refit otherwise).

@@ -521,6 +521,35 @@ Variable-radius blends need a radius law along the spine, feasibility detection,
 requires its own surface construction and curvature acceptance measurements. These are not small extensions of the
 current constant-radius planar implementation.
 
+### Phase 34: direct modelling — in progress
+
+#### Phase 34a: face loft between two solids ✅
+
+One solid from two closed solids through a chosen face of each. The two faces are dropped, their boundary loops become
+the sections of a ruled (two-section) loft with the second rim sense-aligned and re-seamed for least twist, the seam
+foot is put onto a real rim vertex by the new Euler operator `BrepBody::SplitEdge` when it lands mid-edge, and the skin
+is sewn to the surviving faces along the very edges the dropped faces used (`SkinSolver::LoftFaces`). No Boolean is
+involved, so the two shared rims are exact and the coincident-face refusal that a union would raise never arises. Each
+chosen face must be bounded by one loop without a seam (a cap or a planar face), the faces must face each other across
+a gap, and both bodies must be closed; a face with a hole, a cylinder side face, two faces of one body, an open sheet,
+or an out-of-range face refuses with the sources untouched. Console: `loft A:fN B:fM [--keep] [--name=]`.
+
+**34a exit gate met:** `FaceLoftVerification` proves box→box is the analytic prism (volume 224 and area 256 to
+`1e-16`, `V16/E25/F11`, all eight rim edges shared, every edge two-coedged), cap→cap is the exact frustum (volume
+`12π + 7π + 3π` within the `1e-3` tessellation gate, seam ruling exactly `√10`, skin area `π(r₁+r₂)·slant`), box→cylinder
+is a genus-zero `V11/E17/F8` solid whose cap circle is split into two arcs at the least-twist seam (ruling length
+`√(3² + (2√2 − 2.4)²)` to `2e-15`) with the skin volume between the two end-area prisms, six refusals, console commit
+with and without `--keep`, and the deterministic proof.
+
+**Proof:** `Verification/FaceLoftVerification.cpp` (29 C++ checks) and `Proofs/Phase34a_FaceLoft.png` (2560 × 1600
+C++-generated contact sheet).
+
+#### Still required in Phase 34
+
+Face lofts with intermediate sections or guide curves, lofts between two faces of one body (handles), faces with holes,
+sub-entity moves (vertex / edge / face tweaks with exact bilinear re-fit of quad faces), and single-edge and
+edge-loop chamfers on planar bodies each need their own bounded route, verifier and proof.
+
 ## Later direct modelling and platform work
 
 After the 2D and blend foundations are reliable, implement and validate these as isolated features:

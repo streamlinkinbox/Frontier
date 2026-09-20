@@ -87,6 +87,13 @@ struct SkinSolver
     [[nodiscard]] static std::vector<NurbsCurve> RingOrder(std::vector<NurbsCurve> Pieces, double Tolerance) noexcept;
     // Curve for one face loop of a body (coedges joined in loop order); rejects when the pieces do not chain.
     [[nodiscard]] static Deliver<NurbsCurve> LoopCurve(const BrepBody& Body, int Loop) noexcept;
+
+    // Face loft (Phase 34a): one solid from two closed solids by skinning between one face of each. The two faces are
+    //    dropped, their boundary loops become the sections of a ruled loft (least-twist seam, split onto a real vertex
+    //    of each rim), and the skin is sewn to the remaining faces along the very edges the dropped faces used — no
+    //    Boolean, so the two shared rims are exact. Each chosen face must be bounded by one loop without a seam, and
+    //    the two faces must face each other; anything else refuses and the sources are untouched.
+    [[nodiscard]] static Deliver<BrepBody> LoftFaces(const BrepBody& A, int FaceA, const BrepBody& B, int FaceB) noexcept;
 };
 
 } // namespace Frontier

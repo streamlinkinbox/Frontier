@@ -310,6 +310,11 @@ add_executable(PlaneConeFilletVerification Verification/PlaneConeFilletVerificat
 target_link_libraries(PlaneConeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PlaneConeFilletVerification COMMAND PlaneConeFilletVerification)
 
+# Phase 34a: face loft — one solid from two through a chosen face of each (rims shared exactly, no Boolean).
+add_executable(FaceLoftVerification Verification/FaceLoftVerification.cpp)
+target_link_libraries(FaceLoftVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME FaceLoftVerification COMMAND FaceLoftVerification)
+
 # Phase 22: versioned native .arc construction journals — atomic save/open and transactional failed opens.
 add_executable(DocumentVerification Verification/DocumentVerification.cpp)
 target_link_libraries(DocumentVerification PRIVATE SolidArcConsoleKit)
