@@ -208,6 +208,19 @@ This is not a general cone/cylinder solver. Cone–cone pairs, non-coaxial or ob
 reflex or arbitrary trimmed arcs, branched/incomplete chains, multiple curved roots, freeform supports, curved
 networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
 
+### Partial cone–cone root chamfers
+
+Phase 36l accepts one canonical open coaxial root shared by two native conical frusta. With lower contact setback
+`z_l = sH_l / sqrt(H_l² + (R_base − R_b)²)` and upper contact setback
+`z_u = sH_u / sqrt(H_u² + (R_top − R_b)²)`, the exact meridian replaces the old two-segment corner by the straight
+chord between the two measured cone contacts. The retained lower and upper cones, axial caps, and radial endpoint caps
+remain analytic. The accepted general topology is `V10/E15/C30/L7/F7`; the half-turn is `V10/E14/C28/L6/F6`, and the
+wedge volume is the Pappus volume of the triangle between the old corner and the setback chord.
+
+This is not a general cone–cone solver. Non-coaxial or oblique supports, apex/zero-radius cones, reflex or arbitrary
+trimmed arcs, branched/incomplete chains, multiple curved roots, freeform supports, curved networks/corner patches, and
+general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

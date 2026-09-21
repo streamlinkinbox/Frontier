@@ -806,10 +806,24 @@ Cone–cone pairs, non-coaxial or oblique supports, apex/zero-radius cones, arbi
 branched/incomplete chains, curved networks/corner patches, freeform supports, and general intersection/trim/sew
 healing remain explicit refusals.
 
+#### Phase 36l: bounded partial cone–cone root chamfer ✅
+
+The next mixed-support route accepts two native coaxial conical frusta meeting at one measured open circular root chain.
+It supports the canonical half-turn and one non-reflex general sector, measures both cone endpoint pairs and common
+root frame, derives equal slant setbacks, reconstructs the retained lower cone, exact conical chamfer band, retained upper
+cone, and axial caps, then heals radial endpoint caps transactionally. The accepted general-sector result is genus-zero
+`V10/E15/C30/L7/F7`; the half-turn identity is `V10/E14/C28/L6/F6`. `PartialConeConeChamferVerification` covers
+source `V11/E19/C38/L10/F10`, half-turn classification, chain propagation, the cone–cone meridian volume identity,
+console dispatch, refusal boundaries, and `Proofs/Phase36l_PartialConeConeChamfer.png`.
+
+Non-coaxial or oblique cone/cylinder or cone/cone supports, apex/zero-radius cones, arbitrary trimmed or reflex arcs,
+branched/incomplete chains, curved networks/corner patches, freeform supports, and general intersection/trim/sew healing
+remain explicit refusals.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, and partial cone/cylinder root slices, further mixed-support chamfers, arbitrary non-prismatic
+the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, and partial cone/cone root slices, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
 and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
 application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,
