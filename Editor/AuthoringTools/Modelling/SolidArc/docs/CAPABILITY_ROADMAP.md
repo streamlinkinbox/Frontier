@@ -752,10 +752,24 @@ This remains a canonical complete coaxial route only. Partial circular loops, no
 intersections, multiple curved roots, curved networks/corner patches, concave/non-convex networks, and general
 intersection/trim/sew healing remain explicit refusals.
 
+#### Phase 36h: bounded half-turn partial curved-root chamfer ✅
+
+The curved-root chamfer family now accepts one physical semicircular root chain shared by a planar shoulder and
+cylindrical boss. A selected open rational arc propagates through the complete two-member chain; reconstruction keeps the
+endpoint meridians and one planar diameter cap while inserting the exact conical setback band. The result is one
+manifold genus-zero `V12/E17/F7` half-turn, with the differential wedge volume exactly one-half of the complete ring
+route within tessellation tolerance. Selecting either chain member, source immutability, zero/consuming refusals,
+console dispatch, and a visible source/result proof are covered by `PartialCurvedChamferVerification` and
+`Proofs/Phase36h_PartialCurvedChamfer.png`.
+
+This is deliberately a half-turn topology slice. General-angle sectors, arbitrary partial arcs, mixed cone/cylinder
+partial roots, branched or incomplete chains, curved networks/corner patches, and general intersection/trim/sew healing
+remain explicit refusals.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder, plane/cone, and cylinder/cone roots, further mixed-support chamfers, arbitrary non-prismatic
+the complete plane/cylinder, plane/cone, cylinder/cone, and half-turn partial root slices, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
 and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
 application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,

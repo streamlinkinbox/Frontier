@@ -158,6 +158,18 @@ Only the canonical complete `V5/E9/C18/L6/F6` source is accepted. Zero/negative 
 non-coaxial or oblique cone/cylinder intersections, multiple curved roots, arbitrary freeform edges, curved
 networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
 
+### Half-turn partial curved-root chamfers
+
+Phase 36h extends the plane–cylinder root route to one physical semicircle represented by two open rational arc members.
+Selecting either member propagates the complete chain and rebuilds the outer wall, annular shoulder, conical band,
+retained boss, endpoint meridians, and one planar diameter cap. The exact accepted result is genus-zero `V12/E17/F7`; its
+added annular-cone wedge is one-half of the complete-ring value. The source topology is the bounded split-chain
+`V14/E23/C46/L11/F11` form.
+
+Only the half-turn is accepted in this slice. General-angle sectors, arbitrary partial arcs, incomplete or branched
+chains, partial cone/cylinder pairs, multiple curved roots, freeform edges, curved networks/corner patches, and general
+intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

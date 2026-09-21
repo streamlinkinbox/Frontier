@@ -215,6 +215,11 @@ add_executable(CylinderConeChamferVerification Verification/CylinderConeChamferV
 target_link_libraries(CylinderConeChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME CylinderConeChamferVerification COMMAND CylinderConeChamferVerification)
 
+# Phase 36h: bounded half-turn partial curved-root chamfer; general-angle sectors and arbitrary partial loops remain refused.
+add_executable(PartialCurvedChamferVerification Verification/PartialCurvedChamferVerification.cpp)
+target_link_libraries(PartialCurvedChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialCurvedChamferVerification COMMAND PartialCurvedChamferVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)

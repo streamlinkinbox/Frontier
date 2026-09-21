@@ -1911,8 +1911,58 @@ namespace
     Deliver<BrepBody> ChamferPlaneCylinderBossRoot(const PlaneCylinderRoot& Root, double SetBack) noexcept
     {
         if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
-        if (!ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::TwoPi))
-            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "curved root chamfer currently requires a complete circular edge loop");
+        const bool Closed = ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::TwoPi);
+        if (!Closed)
+        {
+            // First partial-loop chamfer slice: a physical half-turn with two endpoint meridians. General-angle
+            // sectors still require their dedicated radial-cap healing and refuse rather than being approximated.
+            if (!ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::Pi))
+                return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial curved chamfer currently requires a complete half-turn loop");
+            if (SetBack >= Root.BossHeight - Tol || Root.BossRadius + SetBack >= Root.OuterRadius - Tol)
+                return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the boss height or shoulder wall");
+            const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
+            const Vec3 BossTop = ShoulderCentre + Root.Axis * Root.BossHeight;
+            const Vec3 Radial = Root.RadialStart.Normalised();
+            if (Radial.Length() <= Tol || std::fabs(Radial.Dot(Root.Axis)) > ScalarCriteria::GeometricTolerance)
+                return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial curved chamfer radial frame is degenerate");
+            auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+            {
+                Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+                return Line ? NurbsSurface::Revolution(Line.Payload, Root.Base, Root.Axis, Root.SweepAngle)
+                            : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+            };
+            Deliver<NurbsSurface> Outer = RevolveLine(Root.Base + Radial * Root.OuterRadius,
+                                                       ShoulderCentre + Radial * Root.OuterRadius);
+            Deliver<NurbsSurface> Shoulder = RevolveLine(ShoulderCentre + Radial * Root.OuterRadius,
+                                                          ShoulderCentre + Radial * (Root.BossRadius + SetBack));
+            Deliver<NurbsSurface> Chamfer = RevolveLine(ShoulderCentre + Radial * (Root.BossRadius + SetBack),
+                                                         ShoulderCentre + Root.Axis * SetBack + Radial * Root.BossRadius);
+            Deliver<NurbsSurface> Boss = RevolveLine(ShoulderCentre + Root.Axis * SetBack + Radial * Root.BossRadius,
+                                                      BossTop + Radial * Root.BossRadius);
+            Deliver<NurbsSurface> Bottom = RevolveLine(Root.Base, Root.Base + Radial * Root.OuterRadius);
+            Deliver<NurbsSurface> Top = RevolveLine(BossTop + Radial * Root.BossRadius, BossTop);
+            if (!Outer || !Shoulder || !Chamfer || !Boss || !Bottom || !Top)
+                return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial curved chamfer support is degenerate");
+            Outer.Payload.Classification = SurfaceClassification::Cylinder;
+            Outer.Payload.Origin = Root.Base; Outer.Payload.Axis = Root.Axis;
+            Outer.Payload.RadiusMajor = Outer.Payload.RadiusMinor = Root.OuterRadius;
+            Chamfer.Payload.Classification = SurfaceClassification::Cone;
+            Chamfer.Payload.Origin = ShoulderCentre; Chamfer.Payload.Axis = Root.Axis;
+            Chamfer.Payload.RadiusMajor = Root.BossRadius + SetBack; Chamfer.Payload.RadiusMinor = Root.BossRadius;
+            Boss.Payload.Classification = SurfaceClassification::Cylinder;
+            Boss.Payload.Origin = ShoulderCentre + Root.Axis * SetBack; Boss.Payload.Axis = Root.Axis;
+            Boss.Payload.RadiusMajor = Boss.Payload.RadiusMinor = Root.BossRadius;
+            Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Chamfer.Payload,
+                                                       Boss.Payload, Bottom.Payload, Top.Payload });
+            if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+            const BodyReport Report = Result.Payload.Validate();
+            if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+                Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 12 ||
+                Result.Payload.Edges.size() != 17 || Result.Payload.Coedges.size() != 34 ||
+                Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+                return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial curved chamfer did not reach exact half-turn topology");
+            return Result;
+        }
         if (SetBack >= Root.BossHeight - Tol || Root.BossRadius + SetBack >= Root.OuterRadius - Tol)
             return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the boss height or shoulder wall");
 
