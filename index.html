@@ -9,26 +9,14 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="./">
-    <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 8l5 5-5 5"/><path d="M8 8l5 5-5 5"/><path d="M13 8l5 5-5 5"/></svg>
-    </span>
-    FRONTIER <span style="font-weight:400;opacity:.5;letter-spacing:.08em;margin-left:8px">POND LAB</span>
-  </a>
-  <div class="top-actions">
-    <button class="icon-btn" id="help" aria-label="About">?</button>
-  </div>
-</header>
-
-<!-- Material presets — simplified, no bus counts -->
+<!-- Material presets — fullscreen, no header -->
 <div class="filter-row" role="group" aria-label="Water material">
   <button class="filter-pill active" data-mat="clean">Clean</button>
   <button class="filter-pill" data-mat="ocean">Ocean</button>
   <button class="filter-pill" data-mat="swamp">Swamp</button>
   <button class="filter-pill" data-mat="puddle">Puddle</button>
   <button class="filter-pill" data-mat="dirty">Dirty</button>
-  <span class="filter-meta"><span class="dot"></span> IOR 1.333 · anti-tiled shader</span>
+  <span class="filter-meta"><span class="dot"></span> IOR 1.333 <button class="icon-btn small" id="help" aria-label="About" style="margin-left:8px">?</button></span>
 </div>
 
         <div class="layout">
