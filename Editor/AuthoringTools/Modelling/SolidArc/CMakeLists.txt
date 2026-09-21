@@ -210,6 +210,11 @@ add_executable(PlaneConeChamferVerification Verification/PlaneConeChamferVerific
 target_link_libraries(PlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PlaneConeChamferVerification COMMAND PlaneConeChamferVerification)
 
+# Phase 36g: bounded complete coaxial cylinder–cone boss-root chamfer; general/non-coaxial pairs remain refused.
+add_executable(CylinderConeChamferVerification Verification/CylinderConeChamferVerification.cpp)
+target_link_libraries(CylinderConeChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CylinderConeChamferVerification COMMAND CylinderConeChamferVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)

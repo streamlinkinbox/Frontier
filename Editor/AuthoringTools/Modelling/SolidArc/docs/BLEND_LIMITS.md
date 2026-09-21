@@ -145,6 +145,19 @@ The route refuses non-positive or consuming setbacks, zero-radius/apex cones, pa
 edges, cone–cylinder or non-coaxial support pairs, curved networks/corner patches, and general intersection/trim/sew
 healing. These are not inferred from a visually similar edge: only the canonical complete plane–cone topology is accepted.
 
+### Complete cylinder–cone boss-root chamfers
+
+Phase 36g covers the next complete coaxial mixed-support root: a cylindrical boss ending at a conical frustum. A setback
+`s` moves down the cylindrical support by `s` and along the cone by `sH / sqrt(H² + (R_t − R_b)²)`. The exact chamfer
+band is the revolved straight meridian between those two measured contacts; the retained cylinder and cone are rebuilt
+with native analytic supports. The result is required to be genus-zero `V6/E11/F7` with two cylinders, two cones, one
+revolved shoulder, and two caps. Differential volume is checked against the exact square-radius integral of the band
+minus the original cylinder/cone boundary, including both narrowing and flaring cones.
+
+Only the canonical complete `V5/E9/C18/L6/F6` source is accepted. Zero/negative or consuming setbacks, partial rings,
+non-coaxial or oblique cone/cylinder intersections, multiple curved roots, arbitrary freeform edges, curved
+networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
