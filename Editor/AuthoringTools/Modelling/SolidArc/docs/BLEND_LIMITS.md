@@ -194,6 +194,20 @@ This route is not a generic partial cone solver. Reflex/arbitrary trimmed sector
 non-coaxial or oblique supports, branched/incomplete chains, multiple curved roots, freeform edges, curved
 networks/corner patches, and general intersection/trim/sew healing refuse transactionally.
 
+### Partial cone–cylinder root chamfers
+
+Phase 36k accepts one canonical open coaxial cone/cylinder root sector. The cone ends at radius `R_b` and the cylinder
+continues above that same circle; a setback `s` travels `s` along both measured supports. If the cone slant is
+`q = sqrt(H² + (R_base − R_b)²)`, the retained cone contact is `z = H − sH/q` and
+`R_contact = R_b + (R_base − R_b)s/q`; the retained cylinder begins at `z = H + s`. The new straight meridian
+between those points is revolved exactly, with the half-turn or general sector radial caps healed explicitly. The general
+accepted topology is `V10/E15/C30/L7/F7`; the half-turn is `V10/E14/C28/L6/F6`. The measured wedge volume follows
+Pappus for the triangle between the original cone/cylinder corner and the setback chord.
+
+This is not a general cone/cylinder solver. Cone–cone pairs, non-coaxial or oblique supports, apex/zero-radius cones,
+reflex or arbitrary trimmed arcs, branched/incomplete chains, multiple curved roots, freeform supports, curved
+networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

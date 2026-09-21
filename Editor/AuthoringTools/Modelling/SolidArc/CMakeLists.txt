@@ -230,6 +230,11 @@ add_executable(PartialPlaneConeChamferVerification Verification/PartialPlaneCone
 target_link_libraries(PartialPlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialPlaneConeChamferVerification COMMAND PartialPlaneConeChamferVerification)
 
+# Phase 36k: bounded partial coaxial cone–cylinder root chamfer with radial endpoint-cap healing.
+add_executable(PartialConeCylinderChamferVerification Verification/PartialConeCylinderChamferVerification.cpp)
+target_link_libraries(PartialConeCylinderChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialConeCylinderChamferVerification COMMAND PartialConeCylinderChamferVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)
