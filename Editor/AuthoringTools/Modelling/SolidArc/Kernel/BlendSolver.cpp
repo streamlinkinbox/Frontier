@@ -3181,6 +3181,85 @@ namespace
         return Point.Length() < ScalarCriteria::Infinity;
     }
 
+    [[nodiscard]] bool IsNonPlanarClosedEdgeLoop(const BrepBody& Body, const std::vector<int>& Edges) noexcept
+    {
+        if (Edges.size() < 4) return false;
+        std::vector<int> Vertices;
+        for (int Edge : Edges)
+        {
+            if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size())) return false;
+            const BrepEdge& E = Body.Edges[Edge];
+            if (E.VertexStart < 0 || E.VertexEnd < 0) return false;
+            Vertices.push_back(E.VertexStart); Vertices.push_back(E.VertexEnd);
+        }
+        std::sort(Vertices.begin(), Vertices.end());
+        Vertices.erase(std::unique(Vertices.begin(), Vertices.end()), Vertices.end());
+        if (Vertices.size() != Edges.size()) return false;
+        for (int Vertex : Vertices)
+        {
+            int Degree = 0;
+            for (int Edge : Edges)
+                Degree += Body.Edges[Edge].VertexStart == Vertex || Body.Edges[Edge].VertexEnd == Vertex;
+            if (Degree != 2) return false;
+        }
+        std::vector<int> Component{ Vertices.front() };
+        for (size_t Cursor = 0; Cursor < Component.size(); ++Cursor)
+        {
+            const int Vertex = Component[Cursor];
+            for (int Edge : Edges)
+            {
+                const BrepEdge& E = Body.Edges[Edge];
+                if (E.VertexStart != Vertex && E.VertexEnd != Vertex) continue;
+                const int Other = E.VertexStart == Vertex ? E.VertexEnd : E.VertexStart;
+                if (std::find(Component.begin(), Component.end(), Other) == Component.end()) Component.push_back(Other);
+            }
+        }
+        if (Component.size() != Vertices.size()) return false;
+
+        const double Scale = std::max(1.0, Body.Bounds().Diagonal());
+        const double Epsilon = ScalarCriteria::ScaledPositionTolerance * Scale * 10.0;
+        Vec3 A = Body.Vertices[Vertices[0]].Point, B{}, C{};
+        bool FoundB = false, FoundC = false;
+        for (size_t I = 1; I < Vertices.size() && !FoundB; ++I)
+            if (Body.Vertices[Vertices[I]].Point.Distance(A) > Epsilon) { B = Body.Vertices[Vertices[I]].Point; FoundB = true; }
+        if (!FoundB) return false;
+        for (size_t I = 1; I < Vertices.size() && !FoundC; ++I)
+            if ((Body.Vertices[Vertices[I]].Point - A).Cross(B - A).Length() > Epsilon * Epsilon) { C = Body.Vertices[Vertices[I]].Point; FoundC = true; }
+        if (!FoundC) return false;
+        const Vec3 Normal = (B - A).Cross(C - A).Normalised();
+        for (int Vertex : Vertices)
+            if (std::fabs((Body.Vertices[Vertex].Point - A).Dot(Normal)) > Epsilon) return true;
+        return false;
+    }
+
+    [[nodiscard]] bool IsNonPlanarEdgeSelection(const BrepBody& Body, const std::vector<int>& Edges) noexcept
+    {
+        std::vector<int> Vertices;
+        for (int Edge : Edges)
+        {
+            if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size())) return false;
+            Vertices.push_back(Body.Edges[Edge].VertexStart);
+            Vertices.push_back(Body.Edges[Edge].VertexEnd);
+        }
+        std::sort(Vertices.begin(), Vertices.end());
+        Vertices.erase(std::unique(Vertices.begin(), Vertices.end()), Vertices.end());
+        if (Vertices.size() < 4) return false;
+        const double Scale = std::max(1.0, Body.Bounds().Diagonal());
+        const double Epsilon = ScalarCriteria::ScaledPositionTolerance * Scale * 10.0;
+        const Vec3 A = Body.Vertices[Vertices[0]].Point;
+        int BIndex = -1, CIndex = -1;
+        for (size_t I = 1; I < Vertices.size() && BIndex < 0; ++I)
+            if (Body.Vertices[Vertices[I]].Point.Distance(A) > Epsilon) BIndex = static_cast<int>(I);
+        if (BIndex < 0) return false;
+        for (size_t I = 1; I < Vertices.size() && CIndex < 0; ++I)
+            if ((Body.Vertices[Vertices[I]].Point - A).Cross(Body.Vertices[Vertices[BIndex]].Point - A).Length() > Epsilon * Epsilon) CIndex = static_cast<int>(I);
+        if (CIndex < 0) return false;
+        const Vec3 Normal = (Body.Vertices[Vertices[BIndex]].Point - A).Cross(Body.Vertices[Vertices[CIndex]].Point - A).Normalised();
+        for (int Vertex : Vertices)
+            if (std::fabs((Body.Vertices[Vertex].Point - A).Dot(Normal)) > Epsilon) return true;
+        return false;
+    }
+
     // Reconstruct a convex planar polyhedron from its supporting planes. This is the deterministic topology route for
     // connected edge loops: all original faces and all new chamfer planes are solved together, so shared vertices become
     // real mitres instead of coincident Boolean end caps. The convexity guard is deliberate; concave planar networks still
@@ -3351,6 +3430,33 @@ Deliver<BrepBody> BlendSolver::ChamferEdges(const BrepBody& Body, const std::vec
     double SumRemoval = 0.0;
     for (const EdgeCornerFrame& Frame : Frames) SumRemoval += ChamferRemoval(Frame, SetBack);
     const double VolumeTolerance = std::max(1e-5, std::fabs(SourceVolume) * 2e-7);
+
+    // A non-planar selection is accepted only when it is one closed loop. An open or branched
+    // selection has no unambiguous cyclic boundary pairing, so refuse before any reconstruction.
+    if (IsNonPlanarEdgeSelection(Body, Unique) && !IsNonPlanarClosedEdgeLoop(Body, Unique))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+            "non-planar edge selections must form one closed loop with an unambiguous boundary");
+
+    // A closed non-planar edge loop is a distinct selection semantic: its vertices do not lie on one
+    // cutting profile, but every adjacent support is still planar. Solve the full convex half-space
+    // system in one transaction; never fall back to sequential edge-table chamfers, which can twist
+    // the loop or publish a partially mitred result.
+    if (IsNonPlanarClosedEdgeLoop(Body, Unique))
+    {
+        if (Deliver<BrepBody> Exact = ConvexPlanarChamfer(Body, Frames, SetBack))
+        {
+            const BodyReport Report = Exact.Payload.Validate();
+            const double Removed = SourceVolume - Report.Volume;
+            if (Report.Solid() && Report.Hulls == 1 && Report.OpenEdges == 0 && Report.NonManifoldEdges == 0 &&
+                Report.MisorientedEdges == 0 && Removed > VolumeTolerance && Removed <= SumRemoval + VolumeTolerance)
+            {
+                if (AppliedEdges) *AppliedEdges = static_cast<int>(Unique.size());
+                return Exact;
+            }
+        }
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+            "non-planar edge loop needs one convex planar support system with a closed manifold result");
+    }
 
     if (Unique.size() > 1)
         if (std::optional<BrepBody> Prism = PrismaticChamferNetwork(Body, Frames, SetBack))

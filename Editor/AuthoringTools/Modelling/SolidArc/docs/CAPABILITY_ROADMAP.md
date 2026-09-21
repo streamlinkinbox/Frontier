@@ -703,12 +703,22 @@ concave wedge volume is checked analytically. Partial circular loops, torus/free
 and consuming setbacks refuse transactionally; console dispatch and a visible source/result proof are covered by
 `GeneralCurvedChamferVerification` and `Proofs/Phase36c_GeneralCurvedChamfer.png`.
 
+#### Phase 36d: bounded convex non-planar edge-loop chamfers ✅
+
+`BlendSolver::ChamferEdges` now recognizes a closed non-planar edge loop whose members are still straight and bounded by
+planar supports. The loop must have one connected degree-two boundary with an unambiguous cyclic pairing; open or branched
+non-planar selections refuse before reconstruction. Accepted convex sources are solved through one shared supporting-plane
+system, producing real mitre vertices and a single transactional `V14/E24/F12` manifold result for the covered six-edge
+loop. Curved supports, non-convex sources, and general freeform/non-planar faces remain outside this route. The console,
+source immutability, refusal boundaries, and visible source/result proof are covered by
+`ArbitraryNonPlanarEdgeLoopVerification` and `Proofs/Phase36d_ArbitraryNonPlanarEdgeLoop.png`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
 the complete plane/cylinder root, mixed support pairs such as cone/cylinder and plane/cone chamfers, arbitrary non-prismatic
-concave/non-convex planar chamfer networks, and arbitrary non-planar edge loops still need dedicated topology and
-intersection/trim/sew routes. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
+concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches, and general
+intersection/trim/sew resolution still need dedicated topology routes. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
 already exist in the earlier SkinSolver routes and remain separately bounded by their existing verification coverage.
 
 ## Later direct modelling and platform work

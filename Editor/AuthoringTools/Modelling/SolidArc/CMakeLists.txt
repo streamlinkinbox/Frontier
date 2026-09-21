@@ -205,6 +205,11 @@ add_executable(GeneralCurvedChamferVerification Verification/GeneralCurvedChamfe
 target_link_libraries(GeneralCurvedChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME GeneralCurvedChamferVerification COMMAND GeneralCurvedChamferVerification)
 
+# Phase 36d: bounded convex non-planar closed edge-loop chamfers.
+add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
+target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ArbitraryNonPlanarEdgeLoopVerification COMMAND ArbitraryNonPlanarEdgeLoopVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
