@@ -181,8 +181,10 @@ int main()
                      SameSource(Narrowing.Source.Payload, Before));
     }
     const Fixture Apex(8.0, 4.0, 5.0, 0.0, 6.0, 0.5);
-    Panel.Expect("An apex/zero-radius cone remains an explicit refusal", !Apex.Source || Apex.Edge < 0 ||
-                 !BlendSolver::ChamferEdge(Apex.Source.Payload, Apex.Edge, Apex.SetBack));
+    Deliver<BrepBody> ApexResult = Apex.Source && Apex.Edge >= 0
+        ? BlendSolver::ChamferEdge(Apex.Source.Payload, Apex.Edge, Apex.SetBack)
+        : Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "canonical apex fixture is unavailable");
+    Panel.Expect("The canonical coaxial apex cone now commits its bounded root chamfer", ApexResult && ApexResult.Payload.Validate().Solid());
     auto Torus = BrepBody::Torus({ 20, 0, 0 }, { 0, 0, 1 }, 4.0, 1.0);
     Panel.Expect("An arbitrary freeform-like torus curved edge remains an explicit refusal", Torus &&
                  !BlendSolver::ChamferEdge(Torus.Payload, 0, Narrowing.SetBack));

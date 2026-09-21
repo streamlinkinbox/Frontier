@@ -217,9 +217,20 @@ chord between the two measured cone contacts. The retained lower and upper cones
 remain analytic. The accepted general topology is `V10/E15/C30/L7/F7`; the half-turn is `V10/E14/C28/L6/F6`, and the
 wedge volume is the Pappus volume of the triangle between the old corner and the setback chord.
 
-This is not a general cone–cone solver. Non-coaxial or oblique supports, apex/zero-radius cones, reflex or arbitrary
-trimmed arcs, branched/incomplete chains, multiple curved roots, freeform supports, curved networks/corner patches, and
-general intersection/trim/sew healing remain explicit refusals.
+This is not a general cone–cone solver. Non-coaxial or oblique supports, partial apex sectors, cone–cone/cylinder–cone
+apex networks, reflex or arbitrary trimmed arcs, branched/incomplete chains, multiple curved roots, freeform supports,
+curved networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
+### Complete apex plane–cone root chamfers
+
+Phase 36m accepts one complete coaxial native conical boss whose top endpoint has radius zero. The root remains the measured
+circular plane–cone contact; the apex is validated as a single finite endpoint on the cone axis, not as a fabricated top cap.
+The exact route retains the apex cone, reconstructs the outer cylinder and shoulder, and inserts the setback band. The output
+is genus-zero `V6/E9/C18/L5/F5`, with the wedge volume checked against the square-radius meridian integral.
+
+This is a complete-root apex slice only. Partial apex sectors, non-coaxial or oblique supports, apex networks, arbitrary
+trimmed/reflex/branched/incomplete roots, freeform supports, curved corner patches, and general intersection/trim/sew
+healing remain explicit refusals.
 
 ### Intentional multi-edge sets
 
