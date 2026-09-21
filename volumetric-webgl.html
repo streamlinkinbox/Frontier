@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Frontier — Volumetric Fluid (WebGL)</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
+<link rel="stylesheet" href="gpu-fluid.css?v=webgl1">
+<style>
+/* fallback badge */
+.fallback-badge{position:absolute;top:12px;right:12px;z-index:3;background:rgba(10,18,28,.92);border:1px solid rgba(255,255,255,.12);color:#9ef;padding:6px 10px;border-radius:999px;font:600 11px/1 JetBrains Mono,monospace}
+.fallback-badge.err{color:#ffb3b3;border-color:rgba(255,80,80,.4)}
+</style>
+</head>
+<body>
+<header><b>FRONTIER <span>/ VOLUMETRIC — WebGL</span></b><div><span id="deviceBadge">WebGL · running</span><a href="index.html">Pond ↗</a> <a href="gpu-fluid.html" style="margin-left:8px;opacity:.8">WebGPU ↗</a></div></header>
+<main class="workspace">
+<aside>
+<div class="panel-title">OUTLINER <span>volumetric</span></div>
+<nav class="outliner" aria-label="Scene objects">
+<button data-object="tub" class="selected" aria-pressed="true">▱ <span>Tub</span><small>7.5 × 5 m</small></button>
+<button data-object="fluid" aria-pressed="false">≋ <span>Water</span><small>CPU · particles</small></button>
+<button data-object="rock" aria-pressed="false">◆ <span>Rock</span><small>Static sphere</small></button>
+</nav>
+<div class="panel-title inspector-title">INSPECTOR <span id="selectionName">Fluid</span></div>
+<div class="inspector">
+<section data-inspector="tub">
+<h2>Container</h2>
+<label for="tubPreset">SIZE PRESET</label>
+<select id="tubPreset"><option value="5,3.4">Compact · 5 × 3.4 m</option><option value="7.5,5" selected>Large · 7.5 × 5 m</option><option value="10,6.8">Wide · 10 × 6.8 m</option></select>
+<dl><dt>Footprint</dt><dd id="activeSize">7.5 × 5 m</dd><dt>Particles</dt><dd id="particleCountI">—</dd><dt>Mode</dt><dd>CPU volumetric</dd></dl>
+<p class="help">No WebGPU required. This WebGL fallback runs everywhere (preview + phones). For AAA WebGPU volumetric (depth → bilateral → surface) open <a href="gpu-fluid.html">gpu-fluid.html</a> in Chrome/Edge with hardware acceleration.</p>
+</section>
+<section data-inspector="fluid" hidden>
+<h2>Particle fluid</h2>
+<label for="view">DISPLAY</label>
+<select id="view"><option value="spheres" selected>Instanced spheres (volumetric look)</option><option value="points">Points</option><option value="surface">Surface mesh</option></select>
+<label for="renderQuality">RENDER QUALITY</label>
+<select id="renderQuality"><option value="low">Fast · low spheres</option><option value="mid" selected>Balanced · 6k spheres</option><option value="high">High · 12k spheres</option></select>
+<label>VISCOSITY & GRAVITY</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+<label>Gravity<input id="gravity" type="range" min="0" max="2" step="0.05" value="1"><output id="gravityValue" style="font:11px JetBrains Mono,monospace">1.00</output></label>
+<label>Damping<input id="damping" type="range" min="0" max="0.1" step="0.002" value="0.015"><output id="dampingValue" style="font:11px JetBrains Mono,monospace">0.015</output></label>
+</div>
+<p class="help">CPU SPH-lite: grid hashed neighbors, pressure relax + viscosity, 3 substeps/frame. Motion is real 3-D volumetric (not heightfield).</p>
+</section>
+<section data-inspector="rock" hidden>
+<h2>Rock collider</h2>
+<dl><dt>Motion</dt><dd>Static</dd><dt>Position</dt><dd id="rockPos">-1.0 / 0.42 / -0.5</dd></dl>
+<p class="help">SDF sphere collision. Walls are reflecting.</p>
+</section>
+</div>
+<div class="sidebar-bottom" id="solverBadge">WebGL · CPU SPH-lite</div>
+</aside>
+<div class="stage">
+<div class="stage-top"><div class="tools" role="group" aria-label="Viewport tool"><button data-tool="orbit" class="selected">Orbit</button><button data-tool="push">Push</button></div><div class="actions"><button id="play">Ⅱ Pause</button><button id="reset">↻ Reset</button><button id="splash">Splash</button><button id="home">Frame</button></div></div>
+<div id="viewport" style="position:relative"><canvas id="fluid" aria-label="Volumetric fluid — WebGL fallback" style="display:block;width:100%;height:100%"></canvas>
+<div class="fallback-badge" id="fallbackBadge">WebGL · CPU — running</div>
+<div id="status" hidden style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,15,22,.78);backdrop-filter:blur(6px);z-index:2;text-align:center;padding:24px"><div><b id="statusTitle"></b><p id="statusDetail"></p></div></div>
+<div class="stage-label"><span id="runningBadge">LIVE · CPU SPH</span><span id="dimensionsLabel">7.5 × 5 m</span></div>
+<div class="hint" id="hint">Drag to orbit · switch to Push to jet water</div>
+</div>
+<div class="telemetry"><span><b id="particleCount">—</b> particles</span><span><b id="fps">—</b> fps</span><span id="time">0.00 s</span><span id="backend">WebGL</span></div>
+</div>
+</main>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from './vendor/OrbitControls.js';
+const $=id=>document.getElementById(id);
+const canvas=$('fluid'), viewport=$('viewport');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x0a1018, 1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a1018);
+scene.fog = new THREE.Fog(0x0a1018, 12, 32);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.12; controls.enablePan=false; controls.minDistance=4; controls.maxDistance=22; controls.maxPolarAngle=Math.PI*0.47;
+function home(){ const fit=1; camera.position.set(5.1,5.4,7.3); controls.target.set(0,0.55,0); controls.update(); }
+home(); $('home').onclick=home;
+// lights
+scene.add(new THREE.HemisphereLight(0xbfdfff, 0x0a1018, 1.1));
+const dir = new THREE.DirectionalLight(0xffffff, 1.4); dir.position.set(6,10,4); dir.castShadow=true; dir.shadow.mapSize.set(2048,2048);
+dir.shadow.camera.near=0.5; dir.shadow.camera.far=30; dir.shadow.camera.left=-10; dir.shadow.camera.right=10; dir.shadow.camera.top=10; dir.shadow.camera.bottom=-10;
+scene.add(dir);
+scene.add(new THREE.AmbientLight(0x404a5a, 0.4));
+// tub
+let tubW=7.5, tubD=5, tubH=2.2;
+const tubGroup = new THREE.Group(); scene.add(tubGroup);
+let floor, walls=[];
+function buildTub(){
+  tubGroup.clear(); walls=[];
+  const floorGeo = new THREE.BoxGeometry(tubW, 0.18, tubD);
+  const floorMat = new THREE.MeshStandardMaterial({color:0x1b2530, roughness:0.9, metalness:0.05});
+  floor = new THREE.Mesh(floorGeo, floorMat); floor.position.y=-0.09; floor.receiveShadow=true;
+  tubGroup.add(floor);
+  // walls - 4 sides with thin boxes (visible)
+  const wallMat = new THREE.MeshStandardMaterial({color:0x253445, roughness:0.8, transparent:true, opacity:0.95});
+  const t=0.12, h=tubH;
+  const wallData = [
+    {s:[tubW+2*t, h, t], p:[0, h/2, tubD/2 + t/2]},
+    {s:[tubW+2*t, h, t], p:[0, h/2, -tubD/2 - t/2]},
+    {s:[t, h, tubD], p:[tubW/2 + t/2, h/2, 0]},
+    {s:[t, h, tubD], p:[-tubW/2 - t/2, h/2, 0]},
+  ];
+  for(const w of wallData){ const g=new THREE.BoxGeometry(...w.s); const m=new THREE.Mesh(g, wallMat); m.position.set(...w.p); m.castShadow=false; m.receiveShadow=true; tubGroup.add(m); walls.push(m); }
+  // waterline rim
+  const rimGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(tubW, 0.02, tubD));
+  const rim = new THREE.LineSegments(rimGeo, new THREE.LineBasicMaterial({color:0x3a4a5e})); rim.position.y=0.62; tubGroup.add(rim);
+  $('activeSize').textContent = $('dimensionsLabel').textContent = tubW.toFixed(1)+' × '+tubD.toFixed(1)+' m';
+}
+buildTub();
+// rock
+const rockPos = new THREE.Vector3(-1.05, 0.34, -0.55);
+const rockRadius = 0.48;
+const rockGeo = new THREE.SphereGeometry(rockRadius, 32, 32);
+const rockMat = new THREE.MeshStandardMaterial({color:0x8b7a65, roughness:0.85});
+const rockMesh = new THREE.Mesh(rockGeo, rockMat); rockMesh.position.copy(rockPos); rockMesh.castShadow=true; rockMesh.receiveShadow=true;
+scene.add(rockMesh);
+// particles
+let COUNT=6000;
+let positions, velocities, colors;
+let instancedMesh=null, points=null;
+let spacing=0.11, radius=0.052, h=0.18;
+let gravity=1.0, damping=0.015; // matched to UI
+let time=0;
+function alloc(n){
+  COUNT=n;
+  positions = new Float32Array(n*3);
+  velocities = new Float32Array(n*3);
+  colors = new Float32Array(n*3);
+  const margin=0.4;
+  for(let i=0;i<n;i++){
+    // fill volume ~ 7.5x5 but keep center
+    const x=(Math.random()-0.5)*(tubW - margin*2);
+    const z=(Math.random()-0.5)*(tubD - margin*2);
+    const y=0.12 + Math.random()*0.42;
+    positions[i*3]=x; positions[i*3+1]=y; positions[i*3+2]=z;
+    velocities[i*3]=(Math.random()-0.5)*0.04;
+    velocities[i*3+1]=(Math.random()-0.5)*0.02;
+    velocities[i*3+2]=(Math.random()-0.5)*0.04;
+  }
+}
+alloc(COUNT);
+function buildRender(mode){
+  if(instancedMesh){ scene.remove(instancedMesh); instancedMesh.geometry.dispose(); instancedMesh.material.dispose(); instancedMesh=null; }
+  if(points){ scene.remove(points); points.geometry.dispose(); points.material.dispose(); points=null; }
+  if(mode==='points'){
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+    const mat=new THREE.PointsMaterial({size: radius*2.2, color:0x4fc3f7, sizeAttenuation:true, transparent:true, opacity:0.95});
+    points=new THREE.Points(geo, mat);
+    scene.add(points);
+  } else {
+    // instanced spheres - shared low poly
+    const sphereGeo=new THREE.SphereGeometry(radius, 10, 8);
+    const sphereMat=new THREE.MeshPhysicalMaterial({
+      color:0x2fa8ff, roughness:0.18, metalness:0.02,
+      transparent:true, opacity:0.92, clearcoat:0.6, clearcoatRoughness:0.25,
+      transmission:0.15, thickness:0.25
+    });
+    instancedMesh=new THREE.InstancedMesh(sphereGeo, sphereMat, COUNT);
+    instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    instancedMesh.castShadow=false;
+    instancedMesh.receiveShadow=false;
+    scene.add(instancedMesh);
+    updateInstanced();
+  }
+}
+const dummy=new THREE.Object3D();
+function updateInstanced(){
+  if(!instancedMesh) return;
+  for(let i=0;i<COUNT;i++){
+    dummy.position.set(positions[i*3], positions[i*3+1], positions[i*3+2]);
+    // slight scale variation for volumetric thickness
+    const s = 1.0 + Math.sin(i*0.13)*0.04;
+    dummy.scale.setScalar(s);
+    dummy.updateMatrix();
+    instancedMesh.setMatrixAt(i, dummy.matrix);
+    // color variation by speed/height
+    const vy=velocities[i*3+1];
+    const y=positions[i*3+1];
+    const speed=Math.hypot(velocities[i*3],vy,velocities[i*3+2]);
+    // store in instance color if available
+    if(instancedMesh.instanceColor){
+      const c = new THREE.Color();
+      // deeper = darker blue
+      const t = THREE.MathUtils.clamp((y-0.05)/0.6,0,1);
+      c.setHSL(0.56 + speed*0.02, 0.85, 0.45 + t*0.18);
+      instancedMesh.setColorAt(i, c);
+    }
+  }
+  instancedMesh.instanceMatrix.needsUpdate=true;
+  if(instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate=true;
+}
+buildRender('spheres');
+$('view').onchange=()=>{ buildRender($('view').value==='points' ? 'points' : 'spheres'); };
+$('renderQuality').onchange=()=>{
+  const v=$('renderQuality').value;
+  const n = v==='low' ? 3000 : v==='high' ? 12000 : 6000;
+  if(n!==COUNT){ alloc(n); buildRender($('view').value==='points' ? 'points' : 'spheres'); $('particleCount').textContent=COUNT.toLocaleString(); $('particleCountI').textContent=COUNT.toLocaleString(); }
+};
+// params
+$('gravity').oninput=e=>{ gravity=Number(e.target.value); $('gravityValue').textContent=gravity.toFixed(2); };
+$('damping').oninput=e=>{ damping=Number(e.target.value); $('dampingValue').textContent=damping.toFixed(3); };
+// hash grid for neighbors (simple)
+const cellSize=h;
+function hashGrid(){
+  const map=new Map();
+  for(let i=0;i<COUNT;i++){
+    const x=positions[i*3], y=positions[i*3+1], z=positions[i*3+2];
+    const cx=Math.floor(x/cellSize), cy=Math.floor(y/cellSize), cz=Math.floor(z/cellSize);
+    const key=cx+"|"+cy+"|"+cz;
+    let arr=map.get(key); if(!arr){arr=[]; map.set(key,arr);} arr.push(i);
+  }
+  return map;
+}
+const kernelH=h;
+const restDensity=1000;
+const gasK=2.2; // stiffness
+const visc=0.018;
+let running=true;
+$('play').onclick=()=>{ running=!running; $('play').textContent=running?'Ⅱ Pause':'▶ Play'; $('runningBadge').textContent=running?'LIVE · CPU SPH':'PAUSED'; };
+$('reset').onclick=()=>{ alloc(COUNT); buildRender($('view').value==='points' ? 'points' : 'spheres'); time=0; };
+$('splash').onclick=()=>{ for(let i=0;i<COUNT;i++){ if(positions[i*3+1]<0.6 && Math.random()<0.12){ velocities[i*3]+= (Math.random()-0.5)*1.2; velocities[i*3+1]+= 1.0 + Math.random()*0.8; velocities[i*3+2]+= (Math.random()-0.5)*1.2; } } };
+let tool='orbit';
+function setTool(v){ tool=v; controls.enabled=v==='orbit'; document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('selected', b.dataset.tool===v)); $('hint').textContent = v==='orbit' ? 'Drag to orbit · scroll to zoom' : 'Click & drag to jet water'; }
+for(const b of document.querySelectorAll('[data-tool]')) b.onclick=()=>setTool(b.dataset.tool);
+const raycaster=new THREE.Raycaster(), plane=new THREE.Plane(new THREE.Vector3(0,1,0), -0.1), hit=new THREE.Vector3();
+let pointerDown=false;
+canvas.addEventListener('pointerdown', e=>{
+  if(tool!=='push') return;
+  pointerDown=true; canvas.setPointerCapture(e.pointerId);
+  // jet at cursor
+  interact(e);
+});
+canvas.addEventListener('pointermove', e=>{ if(pointerDown) interact(e); });
+canvas.addEventListener('pointerup', ()=> pointerDown=false);
+function interact(e){
+  const rect=canvas.getBoundingClientRect();
+  const ndc=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1, -(e.clientY-rect.top)/rect.height*2+1);
+  raycaster.setFromCamera(ndc, camera);
+  if(!raycaster.ray.intersectPlane(plane, hit)) return;
+  // push particles near hit
+  const radiusJet=1.1;
+  for(let i=0;i<COUNT;i++){
+    const dx=positions[i*3]-hit.x, dz=positions[i*3+2]-hit.z, dy=positions[i*3+1]-0.2;
+    const d2=dx*dx+dz*dz+dy*dy*0.6;
+    if(d2 < radiusJet*radiusJet){
+      const inv = 1 - Math.sqrt(d2)/radiusJet;
+      velocities[i*3] += (Math.random()-0.5)*1.4*inv;
+      velocities[i*3+1] += 0.8*inv;
+      velocities[i*3+2] += (Math.random()-0.5)*1.4*inv;
+    }
+  }
+}
+// select outliner
+for(const b of document.querySelectorAll('[data-object]')) b.onclick=()=>{
+  document.querySelectorAll('[data-object]').forEach(x=>x.classList.toggle('selected', x===b));
+  document.querySelectorAll('[data-inspector]').forEach(s=>s.hidden = s.dataset.inspector!==b.dataset.object);
+  $('selectionName').textContent = b.querySelector('span').textContent;
+};
+// tub preset
+$('tubPreset').onchange=()=>{
+  const [w,d]=$('tubPreset').value.split(',').map(Number);
+  tubW=w; tubD=d; buildTub(); alloc(COUNT); buildRender($('view').value==='points'?'points':'spheres');
+};
+// physics step - SPH-lite with grid
+function step(dt){
+  const map=hashGrid();
+  // density & pressure
+  const densities=new Float32Array(COUNT);
+  const pressures=new Float32Array(COUNT);
+  for(let i=0;i<COUNT;i++) densities[i]=0;
+  for(const [key, arr] of map.entries()){
+    const [cx,cy,cz]=key.split('|').map(Number);
+    // gather 27 neighbors
+    for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++) for(let dz=-1;dz<=1;dz++){
+      const nkey=(cx+dx)+"|"+(cy+dy)+"|"+(cz+dz);
+      const barr=map.get(nkey); if(!barr) continue;
+      // pairwise within cells -> O(n * avg neighbors) ~ small
+    }
+  }
+  // faster: brute radius search using grid loops per particle
+  for(let i=0;i<COUNT;i++){
+    const xi=positions[i*3], yi=positions[i*3+1], zi=positions[i*3+2];
+    const cx=Math.floor(xi/cellSize), cy=Math.floor(yi/cellSize), cz=Math.floor(zi/cellSize);
+    let dens=0;
+    for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++) for(let dz=-1;dz<=1;dz++){
+      const arr=map.get((cx+dx)+"|"+(cy+dy)+"|"+(cz+dz)); if(!arr) continue;
+      for(const j of arr){
+        const dxp=xi-positions[j*3], dyp=yi-positions[j*3+1], dzp=zi-positions[j*3+2];
+        const r2=dxp*dxp+dyp*dyp+dzp*dzp;
+        if(r2 < kernelH*kernelH){
+          const r=Math.sqrt(r2);
+          const q=1 - r/kernelH;
+          // poly6
+          dens += 315/(64*Math.PI*Math.pow(kernelH,9)) * Math.pow(kernelH*kernelH - r2, 3);
+        }
+      }
+    }
+    densities[i]=Math.max(dens*0.00055, 1); // scale
+  }
+  for(let i=0;i<COUNT;i++){
+    pressures[i]= gasK * (densities[i] - 1.0);
+  }
+  // forces
+  for(let i=0;i<COUNT;i++){
+    let fx=0, fy=-gravity * densities[i]*0.55, fz=0; // gravity
+    const xi=positions[i*3], yi=positions[i*3+1], zi=positions[i*3+2];
+    const vi= new THREE.Vector3(velocities[i*3], velocities[i*3+1], velocities[i*3+2]);
+    const cx=Math.floor(xi/cellSize), cy=Math.floor(yi/cellSize), cz=Math.floor(zi/cellSize);
+    for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++) for(let dz=-1;dz<=1;dz++){
+      const arr=map.get((cx+dx)+"|"+(cy+dy)+"|"+(cz+dz)); if(!arr) continue;
+      for(const j of arr){
+        if(j===i) continue;
+        const dxp=xi-positions[j*3], dyp=yi-positions[j*3+1], dzp=zi-positions[j*3+2];
+        const r2=dxp*dxp+dyp*dyp+dzp*dzp;
+        if(r2 < kernelH*kernelH && r2>1e-6){
+          const r=Math.sqrt(r2);
+          const q = -45/(Math.PI*Math.pow(kernelH,6)) * Math.pow(kernelH - r, 2);
+          const avgP = (pressures[i]+pressures[j])/(2*densities[j]+1e-6);
+          fx += -dxp/r * avgP * q * 0.00018;
+          fy += -dyp/r * avgP * q * 0.00018;
+          fz += -dzp/r * avgP * q * 0.00018;
+          // viscosity
+          const vj=new THREE.Vector3(velocities[j*3], velocities[j*3+1], velocities[j*3+2]);
+          const dv = vj.clone().sub(vi);
+          const lap = 45/(Math.PI*Math.pow(kernelH,6)) * (kernelH - r);
+          fx += dv.x * visc * lap * 0.00012 / (densities[j]+1e-6);
+          fy += dv.y * visc * lap * 0.00012 / (densities[j]+1e-6);
+          fz += dv.z * visc * lap * 0.00012 / (densities[j]+1e-6);
+        }
+      }
+    }
+    // integrate
+    velocities[i*3] = (velocities[i*3] + fx/densities[i]*dt) * (1 - damping);
+    velocities[i*3+1] = (velocities[i*3+1] + fy/densities[i]*dt) * (1 - damping);
+    velocities[i*3+2] = (velocities[i*3+2] + fz/densities[i]*dt) * (1 - damping);
+  }
+  // rock SDF collision + walls
+  for(let i=0;i<COUNT;i++){
+    let x=positions[i*3]+velocities[i*3]*dt;
+    let y=positions[i*3+1]+velocities[i*3+1]*dt;
+    let z=positions[i*3+2]+velocities[i*3+2]*dt;
+    // walls
+    const hw=tubW/2 - radius*0.9, hd=tubD/2 - radius*0.9;
+    if(x < -hw){ x=-hw; velocities[i*3]*=-0.55; }
+    if(x >  hw){ x= hw; velocities[i*3]*=-0.55; }
+    if(z < -hd){ z=-hd; velocities[i*3+2]*=-0.55; }
+    if(z >  hd){ z= hd; velocities[i*3+2]*=-0.55; }
+    if(y < radius){ y=radius; velocities[i*3+1]*=-0.35; velocities[i*3]*=0.92; velocities[i*3+2]*=0.92; }
+    if(y > tubH - 0.12){ y=tubH-0.12; velocities[i*3+1]*=-0.4; }
+    // rock
+    const dx=x-rockPos.x, dy=y-rockPos.y, dz=z-rockPos.z;
+    const d=Math.hypot(dx,dy,dz);
+    if(d < rockRadius+radius){
+      const n = d>1e-6 ? new THREE.Vector3(dx/d, dy/d, dz/d) : new THREE.Vector3(0,1,0);
+      const penetration = rockRadius+radius - d + 0.001;
+      x += n.x*penetration; y += n.y*penetration; z += n.z*penetration;
+      const vdot = velocities[i*3]*n.x + velocities[i*3+1]*n.y + velocities[i*3+2]*n.z;
+      if(vdot < 0){
+        velocities[i*3] -= (1.25*vdot)*n.x;
+        velocities[i*3+1] -= (1.25*vdot)*n.y;
+        velocities[i*3+2] -= (1.25*vdot)*n.z;
+      }
+    }
+    positions[i*3]=x; positions[i*3+1]=y; positions[i*3+2]=z;
+  }
+}
+// render loop
+let last=performance.now(), frames=0, fpsT=last;
+function resize(){
+  const rect=viewport.getBoundingClientRect();
+  renderer.setSize(rect.width, rect.height, false);
+  camera.aspect=rect.width/rect.height; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewport); resize();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.033, (now-last)/1000); last=now;
+  controls.update();
+  if(running){
+    const substeps=3, sdt=0.005;
+    for(let s=0;s<substeps;s++){ step(sdt); time+=sdt; }
+    if(instancedMesh) updateInstanced();
+    if(points) points.geometry.attributes.position.needsUpdate=true;
+  }
+  renderer.render(scene, camera);
+  frames++;
+  if(now-fpsT>700){ $('fps').textContent=Math.round(frames*1000/(now-fpsT)); $('particleCount').textContent=COUNT.toLocaleString(); $('particleCountI').textContent=COUNT.toLocaleString(); $('time').textContent=time.toFixed(2)+' s'; frames=0; fpsT=now; }
+}
+$('particleCount').textContent=COUNT.toLocaleString(); $('particleCountI').textContent=COUNT.toLocaleString();
+animate(performance.now());
+$('fallbackBadge').textContent='WebGL · CPU — WebGPU not required';
+</script>
+</body></html>
