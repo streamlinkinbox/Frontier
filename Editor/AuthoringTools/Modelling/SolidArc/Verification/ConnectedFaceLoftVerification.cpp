@@ -74,7 +74,8 @@ int main()
     const BrepBody Round = BrepBody::Cylinder({ 12, 0, 0 }, { 0, 0, 1 }, 2.0, 5.0).Payload;
     const int RoundTop = FaceToward(Round, { 0, 0, 1 });
     const int RoundBottom = FaceToward(Round, { 0, 0, -1 });
-    Panel.Expect("Connected cylinder caps remain outside the rectangular identity route", !SkinSolver::LoftFaces(Round, RoundTop, Round, RoundBottom));
+    Deliver<BrepBody> CylinderIdentity = SkinSolver::LoftFaces(Round, RoundTop, Round, RoundBottom);
+    Panel.Expect("Connected native-cylinder caps take the exact analytic identity route", CylinderIdentity && CylinderIdentity.Payload.Validate().Solid());
     Panel.Expect("A connected curved side selection remains outside the route", !SkinSolver::LoftFaces(Round, RoundTop, Round, CylinderSide(Round)));
     Panel.Expect("A same-body cap/side refusal leaves the cylinder unchanged", Round.Faces.size() == 3 && std::fabs(Round.Validate().Volume - ScalarCriteria::Pi * 4.0 * 5.0) / (ScalarCriteria::Pi * 4.0 * 5.0) < 2e-3);
 

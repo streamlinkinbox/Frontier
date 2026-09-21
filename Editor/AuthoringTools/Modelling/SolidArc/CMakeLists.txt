@@ -195,6 +195,11 @@ add_executable(FaceEditVerification Verification/FaceEditVerification.cpp)
 target_link_libraries(FaceEditVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME FaceEditVerification COMMAND FaceEditVerification)
 
+# Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
+add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
+target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME GeneralConnectedFaceLoftVerification COMMAND GeneralConnectedFaceLoftVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

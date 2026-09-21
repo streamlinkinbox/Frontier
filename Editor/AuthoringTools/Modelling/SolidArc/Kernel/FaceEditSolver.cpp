@@ -253,6 +253,12 @@ Deliver<BrepBody> FaceEditSolver::Heal(const BrepBody& Source, double Tolerance)
         if (E.Curve.Length() <= Tolerance) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "sliver edge detected; healing refused to collapse it");
     if (R.NonManifoldEdges != 0 || R.MisorientedEdges != 0)
         return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "healing left non-manifold or misoriented topology");
+    // Re-sewing natural analytic faces can split seam edges into a disconnected shell even when
+    // the source is already a valid solid (notably a ruled face loft with a periodic side). Never
+    // return that approximation: preserve the validated source transactionally instead.
+    const BodyReport Existing = Source.Validate();
+    if (Existing.Solid() && (!R.Solid() || R.Hulls != Existing.Hulls || R.OpenEdges != 0))
+        return Deliver<BrepBody>::Accept(Source);
     return Result;
 }
 

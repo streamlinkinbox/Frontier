@@ -448,28 +448,30 @@ namespace
         return true;
     }
 
+    void AppendFace(const BrepBody& Source, int F, BrepBody& Out) noexcept
+    {
+        const BrepFace& Face = Source.Faces[F];
+        const int NF = Out.AddFace(Face.Surface);
+        Out.Faces[NF].Reversed = Face.Reversed; Out.Faces[NF].Natural = Face.Natural;
+        for (int L : Face.Loops)
+        {
+            const int NL = Out.AddLoop(NF, Source.Loops[L].Outer);
+            for (int Ce : Source.Loops[L].Coedges)
+            {
+                const BrepCoedge& C = Source.Coedges[Ce];
+                const int NE = Out.AddEdge(Source.Edges[C.Edge].Curve, ScalarCriteria::MergeTolerance);
+                const int NC = Out.AddCoedge(NE, C.Reversed, NF, NL);
+                Out.Coedges[NC].Trace = C.Trace;
+            }
+        }
+    }
+
     // Copies every face of Source except SkipA/SkipB into Out; edges and vertices merge by geometry, so the skipped
     //    faces leave exactly the open rims their neighbours still use. The two-skip form is the safe same-body route.
     void AppendFaces(const BrepBody& Source, int SkipA, int SkipB, BrepBody& Out) noexcept
     {
         for (int F = 0; F < static_cast<int>(Source.Faces.size()); ++F)
-        {
-            if (F == SkipA || F == SkipB) continue;
-            const BrepFace& Face = Source.Faces[F];
-            const int NF = Out.AddFace(Face.Surface);
-            Out.Faces[NF].Reversed = Face.Reversed; Out.Faces[NF].Natural = Face.Natural;
-            for (int L : Face.Loops)
-            {
-                const int NL = Out.AddLoop(NF, Source.Loops[L].Outer);
-                for (int Ce : Source.Loops[L].Coedges)
-                {
-                    const BrepCoedge& C = Source.Coedges[Ce];
-                    const int NE = Out.AddEdge(Source.Edges[C.Edge].Curve, ScalarCriteria::MergeTolerance);
-                    const int NC = Out.AddCoedge(NE, C.Reversed, NF, NL);
-                    Out.Coedges[NC].Trace = C.Trace;
-                }
-            }
-        }
+            if (F != SkipA && F != SkipB) AppendFace(Source, F, Out);
     }
 
     void AppendFaces(const BrepBody& Source, int Skip, BrepBody& Out) noexcept
@@ -501,6 +503,17 @@ namespace
         return false;
     }
 
+    [[nodiscard]] bool FacesShareEdge(const BrepBody& Body, int A, int B) noexcept
+    {
+        if (A < 0 || B < 0 || A >= static_cast<int>(Body.Faces.size()) || B >= static_cast<int>(Body.Faces.size())) return false;
+        for (int LA : Body.Faces[A].Loops)
+            for (int CA : Body.Loops[LA].Coedges)
+                for (int LB : Body.Faces[B].Loops)
+                    for (int CB : Body.Loops[LB].Coedges)
+                        if (Body.Coedges[CA].Edge == Body.Coedges[CB].Edge) return true;
+        return false;
+    }
+
     // A connected same-body request has no empty gap to bridge in the general case. One useful direct-modelling
     // operation is nevertheless exact and common: remove the two opposite end caps of a canonical axis-aligned box,
     // loft their congruent rims through the existing prism, and heal the result back to the same box. This is kept as
@@ -528,6 +541,71 @@ namespace
         const bool OnBounds = (std::fabs(A0 - Bounds.Low[Axis]) <= ScalarCriteria::MergeTolerance * 10.0 && std::fabs(B0 - Bounds.High[Axis]) <= ScalarCriteria::MergeTolerance * 10.0) ||
                               (std::fabs(B0 - Bounds.Low[Axis]) <= ScalarCriteria::MergeTolerance * 10.0 && std::fabs(A0 - Bounds.High[Axis]) <= ScalarCriteria::MergeTolerance * 10.0);
         return OnBounds && std::fabs(A0 - B0) > ScalarCriteria::MergeTolerance * 10.0;
+    }
+
+    // A native cylinder or cone has two planar end caps and one analytic side. Re-lofting those
+    // two caps inside the same connected solid is an exact identity replacement: the existing side
+    // is already the unique material between the rims, so the safe result is a copy of the source,
+    // not a duplicate overlapping skin.
+    [[nodiscard]] bool HasNativeAnalyticSide(const BrepBody& Body, int* SideOut = nullptr) noexcept
+    {
+        if (Body.Faces.size() != 3) return false;
+        int Side = -1;
+        for (int F = 0; F < static_cast<int>(Body.Faces.size()); ++F)
+            if (Body.Faces[F].Surface.Classification == SurfaceClassification::Cylinder || Body.Faces[F].Surface.Classification == SurfaceClassification::Cone)
+            {
+                if (Side >= 0) return false;
+                Side = F;
+            }
+        if (SideOut) *SideOut = Side;
+        return Side >= 0;
+    }
+
+    [[nodiscard]] bool IsNativeAnalyticCapPair(const BrepBody& Body, int FaceA, int FaceB) noexcept
+    {
+        const BodyReport R = Body.Validate();
+        if (!R.Solid() || Body.Faces.size() != 3 || FaceA == FaceB) return false;
+        if (FaceA < 0 || FaceB < 0 || FaceA >= static_cast<int>(Body.Faces.size()) || FaceB >= static_cast<int>(Body.Faces.size())) return false;
+        int Side = -1;
+        for (int F = 0; F < static_cast<int>(Body.Faces.size()); ++F)
+            if (Body.Faces[F].Surface.Classification == SurfaceClassification::Cylinder || Body.Faces[F].Surface.Classification == SurfaceClassification::Cone) Side = F;
+        if (Side < 0 || FaceA == Side || FaceB == Side) return false;
+        if (Body.Faces[FaceA].Surface.Classification != SurfaceClassification::Plane || Body.Faces[FaceB].Surface.Classification != SurfaceClassification::Plane) return false;
+        if (Body.Faces[FaceA].Loops.size() != 1 || Body.Faces[FaceB].Loops.size() != 1) return false;
+        const BrepFace& A = Body.Faces[FaceA], &B = Body.Faces[FaceB];
+        const Vec3 NA = Body.FaceNormal(FaceA, 0.5 * (A.Surface.DomainStartU() + A.Surface.DomainEndU()), 0.5 * (A.Surface.DomainStartV() + A.Surface.DomainEndV()));
+        const Vec3 NB = Body.FaceNormal(FaceB, 0.5 * (B.Surface.DomainStartU() + B.Surface.DomainEndU()), 0.5 * (B.Surface.DomainStartV() + B.Surface.DomainEndV()));
+        return NA.Dot(NB) < -1.0 + 1e-8;
+    }
+
+    // A general prismatic extrusion is a safe connected replacement case: keep the two planar
+    // end-cap boundaries, discard all generated side faces, and rebuild the ruled side band from
+    // one closed boundary profile. This is intentionally narrower than arbitrary connected surgery;
+    // every surviving boundary is one outer loop and every discarded face is a native extrusion side.
+    [[nodiscard]] bool IsPrismaticCapPair(const BrepBody& Body, int FaceA, int FaceB) noexcept
+    {
+        const BodyReport R = Body.Validate();
+        if (!R.Solid() || R.Hulls != 1 || Body.Faces.size() < 5 || FaceA == FaceB) return false;
+        if (FaceA < 0 || FaceB < 0 || FaceA >= static_cast<int>(Body.Faces.size()) || FaceB >= static_cast<int>(Body.Faces.size())) return false;
+        if (Body.Faces[FaceA].Surface.Classification != SurfaceClassification::Plane || Body.Faces[FaceB].Surface.Classification != SurfaceClassification::Plane) return false;
+        if (Body.Faces[FaceA].Loops.size() != 1 || Body.Faces[FaceB].Loops.size() != 1) return false;
+        for (int F = 0; F < static_cast<int>(Body.Faces.size()); ++F)
+        {
+            if (F == FaceA || F == FaceB) continue;
+            if (Body.Faces[F].Surface.Classification != SurfaceClassification::Extrusion || Body.Faces[F].Loops.size() != 1) return false;
+        }
+        Vec3 CentreA, NormalA, CentreB, NormalB;
+        if (!FaceFrame(Body, FaceA, CentreA, NormalA) || !FaceFrame(Body, FaceB, CentreB, NormalB)) return false;
+        if (NormalA.Dot(NormalB) >= -1.0 + 1e-8) return false;
+        for (int Face : { FaceA, FaceB })
+        {
+            const std::vector<int>& Coedges = Body.Loops[Body.Faces[Face].Loops[0]].Coedges;
+            std::vector<int> Edges;
+            for (int Coedge : Coedges) Edges.push_back(Body.Coedges[Coedge].Edge);
+            std::sort(Edges.begin(), Edges.end());
+            if (std::adjacent_find(Edges.begin(), Edges.end()) != Edges.end()) return false;
+        }
+        return true;
     }
 
     std::vector<RimStep> OpenRimFrom(const BrepBody& Body, Vec3 Anchor, double Tolerance) noexcept
@@ -573,10 +651,8 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     if (SameBody && FaceA == FaceB) return Body::Reject(RefusalReason::Unsupported, "face loft needs two distinct faces");
     if (FaceA < 0 || FaceA >= static_cast<int>(A.Faces.size()) || FaceB < 0 || FaceB >= static_cast<int>(B.Faces.size()))
         return Body::Reject(RefusalReason::OutOfDomain, "no such face");
-    if (SameBody && FacesConnected(A, FaceA, FaceB))
+    if (SameBody && FacesConnected(A, FaceA, FaceB) && IsAxisAlignedBoxCapPair(A, FaceA, FaceB))
     {
-        if (!IsAxisAlignedBoxCapPair(A, FaceA, FaceB))
-            return Body::Reject(RefusalReason::Unsupported, "same-body face loft supports only opposite caps of a canonical rectangular prism");
         const Box3 Bounds = A.Bounds();
         Deliver<BrepBody> IdentityLoft = BrepBody::Box(Bounds.Low, Bounds.High);
         if (!IdentityLoft) return Body::Reject(IdentityLoft.Denial.Reason, IdentityLoft.Denial.Detail);
@@ -585,6 +661,35 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
         if (!Result.Solid() || std::fabs(Result.Volume - Source.Volume) > ScalarCriteria::VolumeTolerance * std::max(1.0, Source.Volume))
             return Body::Reject(RefusalReason::NoConvergence, "same-body cap loft did not reproduce its prism");
         return IdentityLoft;
+    }
+    bool PreserveCapFaces = false;
+    if (SameBody)
+    {
+        int NativeSide = -1;
+        if (HasNativeAnalyticSide(A, &NativeSide) && (FaceA == NativeSide || FaceB == NativeSide))
+            return Body::Reject(RefusalReason::Unsupported, "same-body analytic side selections refuse; only the two end caps have an unambiguous identity route");
+        if (IsNativeAnalyticCapPair(A, FaceA, FaceB))
+            return Body::Accept(A);
+        PreserveCapFaces = IsPrismaticCapPair(A, FaceA, FaceB);
+    }
+    if (SameBody && !PreserveCapFaces && FacesShareEdge(A, FaceA, FaceB))
+        return Body::Reject(RefusalReason::Unsupported, "same-body face loft refuses adjacent faces; select disjoint face rims or a bounded identity prism pair");
+    if (PreserveCapFaces)
+    {
+        Vec3 CentreA, NormalA, CentreB, NormalB;
+        if (!FaceFrame(A, FaceA, CentreA, NormalA) || !FaceFrame(A, FaceB, CentreB, NormalB))
+            return Body::Reject(RefusalReason::DegenerateInput, "prismatic cap replacement has no measurable span");
+        const Vec3 Across = CentreB - CentreA;
+        if (Across.Length() <= ScalarCriteria::MergeTolerance)
+            return Body::Reject(RefusalReason::DegenerateInput, "prismatic cap replacement has coincident caps");
+        Deliver<NurbsCurve> Profile = LoopCurve(A, A.Faces[FaceA].Loops[0]);
+        if (!Profile) return Body::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+        Deliver<BrepBody> Replacement = BrepBody::Extrude(Profile.Payload, Across.Normalised(), Across.Length());
+        if (!Replacement) return Body::Reject(Replacement.Denial.Reason, Replacement.Denial.Detail);
+        const BodyReport R = Replacement.Payload.Validate();
+        if (!R.Solid() || R.Hulls != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 || R.MisorientedEdges != 0)
+            return Body::Reject(RefusalReason::NonManifold, "prismatic cap replacement did not heal to one solid");
+        return Replacement;
     }
     for (const auto& [Owner, Face] : { std::pair<const BrepBody*, int>{ &A, FaceA }, std::pair<const BrepBody*, int>{ &B, FaceB } })
     {
@@ -699,8 +804,8 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     if (!Report.Manifold) return Body::Reject(RefusalReason::NonManifold, "face loft produced a non-manifold same-body bridge");
     if (!Report.Oriented) return Body::Reject(RefusalReason::Unsupported, "face loft produced an unoriented bridge");
     const double MinimumVolume = ScalarCriteria::VolumeTolerance * std::max(1.0, A.Validate().Volume);
-    if (Report.Hulls != 1 || Report.Volume <= MinimumVolume)
-        return Body::Reject(RefusalReason::DegenerateInput, "face loft did not enclose one positive-volume solid");
+    if (Report.Hulls != 1) return Body::Reject(RefusalReason::DegenerateInput, "face loft produced more than one hull");
+    if (Report.Volume <= MinimumVolume) return Body::Reject(RefusalReason::DegenerateInput, "face loft did not enclose one positive-volume solid");
     return Body::Accept(std::move(Out));
 }
 
