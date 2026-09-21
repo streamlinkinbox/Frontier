@@ -1914,10 +1914,11 @@ namespace
         const bool Closed = ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::TwoPi);
         if (!Closed)
         {
-            // First partial-loop chamfer slice: a physical half-turn with two endpoint meridians. General-angle
-            // sectors still require their dedicated radial-cap healing and refuse rather than being approximated.
-            if (!ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::Pi))
-                return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial curved chamfer currently requires a complete half-turn loop");
+            // Partial-loop reconstruction first covers a physical half-turn, then uses the existing radial-cap
+            // healer for one bounded general-angle sector. Arbitrary/branched chains still fail classification.
+            const bool HalfTurn = ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::Pi);
+            if (std::fabs(Root.SweepAngle) > ScalarCriteria::Pi + ScalarCriteria::AngularTolerance)
+                return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "reflex partial curved chamfers remain unsupported");
             if (SetBack >= Root.BossHeight - Tol || Root.BossRadius + SetBack >= Root.OuterRadius - Tol)
                 return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the boss height or shoulder wall");
             const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
@@ -1955,12 +1956,22 @@ namespace
             Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Chamfer.Payload,
                                                        Boss.Payload, Bottom.Payload, Top.Payload });
             if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+            if (!HalfTurn)
+            {
+                const Vec3 BossTopPoint = ShoulderCentre + Root.Axis * Root.BossHeight;
+                if (!CapRadialSector(Result.Payload, Root.Base, BossTopPoint, Radial, Root.SweepAngle, Root.OuterRadius))
+                    return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                        "general-angle partial curved chamfer could not close its radial endpoint caps");
+            }
             const BodyReport Report = Result.Payload.Validate();
-            if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
-                Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 12 ||
-                Result.Payload.Edges.size() != 17 || Result.Payload.Coedges.size() != 34 ||
-                Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
-                return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial curved chamfer did not reach exact half-turn topology");
+            const bool ExactTopology = HalfTurn
+                ? Result.Payload.Vertices.size() == 12 && Result.Payload.Edges.size() == 17 &&
+                  Result.Payload.Coedges.size() == 34 && Result.Payload.Loops.size() == 7 && Result.Payload.Faces.size() == 7
+                : Result.Payload.Vertices.size() == 12 && Result.Payload.Edges.size() == 18 &&
+                  Result.Payload.Coedges.size() == 36 && Result.Payload.Loops.size() == 8 && Result.Payload.Faces.size() == 8;
+            if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 ||
+                Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || !ExactTopology)
+                return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial curved chamfer did not reach exact manifold topology");
             return Result;
         }
         if (SetBack >= Root.BossHeight - Tol || Root.BossRadius + SetBack >= Root.OuterRadius - Tol)

@@ -766,6 +766,18 @@ This is deliberately a half-turn topology slice. General-angle sectors, arbitrar
 partial roots, branched or incomplete chains, curved networks/corner patches, and general intersection/trim/sew healing
 remain explicit refusals.
 
+#### Phase 36i: bounded general-angle partial curved-root chamfer ✅
+
+The partial curved-root route now accepts one measured non-reflex sector with two radial endpoint caps. The same complete
+open chain is propagated from either member; exact outer/shoulder/chamfer/boss endpoint surfaces are reconstructed, then
+the two radial cap faces are healed transactionally. Accepted results are one genus-zero `V12/E18/F8` manifold with no
+open, non-manifold, or misoriented edges. The added wedge follows the exact angular fraction of the full circular
+analytic value. `SectorCurvedChamferVerification` covers source `V14/E24/C48/L12/F12` classification, chain selection,
+volume, source immutability, refusal boundaries, console dispatch, and `Proofs/Phase36i_GeneralSectorChamfer.png`.
+
+Reflex sectors, arbitrary partial arcs, mixed cone/cylinder partial roots, branched or incomplete chains, curved
+networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

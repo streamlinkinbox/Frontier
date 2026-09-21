@@ -170,6 +170,16 @@ Only the half-turn is accepted in this slice. General-angle sectors, arbitrary p
 chains, partial cone/cylinder pairs, multiple curved roots, freeform edges, curved networks/corner patches, and general
 intersection/trim/sew healing remain explicit refusals.
 
+### General-angle partial curved-root chamfers
+
+Phase 36i accepts one bounded non-reflex sector of the same planar-shoulder/cylindrical-boss chain. The two endpoint
+meridians and radial cap faces are healed explicitly; the accepted result is genus-zero `V12/E18/C36/L8/F8`, and its
+added annular-cone wedge is `|θ|/(2π)` of the complete-ring value. The source remains the split-chain
+`V14/E24/C48/L12/F12` topology.
+
+Reflex sectors, arbitrary partial arcs, incomplete or branched chains, partial cone/cylinder pairs, multiple curved roots,
+freeform edges, curved networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

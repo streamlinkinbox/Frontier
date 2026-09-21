@@ -624,6 +624,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 36f | **Bounded complete plane–cone boss-root chamfer.** A complete circular planar-shoulder/conical-frustum root reconstructs an exact conical setback band and retained supports as one `V5/E9/F6` solid; narrowing/flaring fixtures and refusal boundaries are verified. | `PlaneConeChamferVerification` — 19 C++ checks; `Proofs/Phase36f_PlaneConeChamfer.png` |
 | 36g | **Bounded complete cylinder–cone boss-root chamfer.** A canonical coaxial cylindrical/conical root reconstructs one exact `V6/E11/F7` solid with retained cylinder, conical band, retained cone, source immutability, and explicit non-coaxial/freeform refusals. | `CylinderConeChamferVerification` — 18 C++ checks; `Proofs/Phase36g_CylinderConeChamfer.png` |
 | 36h | **Bounded half-turn partial curved-root chamfer.** Either member of a two-arc planar-shoulder/cylindrical-boss root resolves one exact `V12/E17/F7` half-turn with endpoint caps; general-angle and arbitrary partial loops remain refused. | `PartialCurvedChamferVerification` — 14 C++ checks; `Proofs/Phase36h_PartialCurvedChamfer.png` |
+| 36i | **Bounded general-angle partial curved-root chamfer.** A measured non-reflex sector with two radial endpoint caps reconstructs one exact `V12/E18/F8` manifold; reflex, branched, and arbitrary partial loops remain refused. | `SectorCurvedChamferVerification` — 12 C++ checks; `Proofs/Phase36i_GeneralSectorChamfer.png` |
 
 ## Console quick start
 
