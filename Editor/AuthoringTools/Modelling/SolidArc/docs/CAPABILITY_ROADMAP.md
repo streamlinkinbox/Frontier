@@ -833,10 +833,22 @@ Partial apex sectors, non-coaxial or oblique supports, cone–cone/cylinder–co
 roots, branched/incomplete chains, curved corner patches, freeform supports, and general intersection/trim/sew healing
 remain explicit refusals.
 
+#### Phase 36n: bounded partial apex plane–cone root chamfer ✅
+
+The apex slice now extends to one canonical coaxial partial sector. The classifier accepts the half-turn or one non-reflex
+general open root chain, measures the zero-radius cone endpoint and endpoint caps, and reconstructs exact partial outer,
+shoulder, chamfer, and retained apex-cone surfaces. The accepted general-sector result is genus-zero
+`V10/E15/C30/L7/F7`; the half-turn identity is `V10/E14/C28/L6/F6`. `PartialApexPlaneConeChamferVerification` covers
+source `V11/E19/C38/L10/F10`, chain propagation, apex meridian volume, source immutability, console dispatch, refusal
+boundaries, and `Proofs/Phase36n_PartialApexPlaneConeChamfer.png`.
+
+Non-coaxial or oblique supports, apex networks, arbitrary trimmed/reflex/branched/incomplete roots, curved corner patches,
+freeform supports, and general intersection/trim/sew healing remain explicit refusals.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, and complete apex plane/cone root slices, further mixed-support chamfers, arbitrary non-prismatic
+the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, complete apex plane/cone, and partial apex plane/cone root slices, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
 and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
 application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,

@@ -245,6 +245,11 @@ add_executable(ApexPlaneConeChamferVerification Verification/ApexPlaneConeChamfe
 target_link_libraries(ApexPlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ApexPlaneConeChamferVerification COMMAND ApexPlaneConeChamferVerification)
 
+# Phase 36n: bounded partial coaxial apex plane–cone root chamfer.
+add_executable(PartialApexPlaneConeChamferVerification Verification/PartialApexPlaneConeChamferVerification.cpp)
+target_link_libraries(PartialApexPlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialApexPlaneConeChamferVerification COMMAND PartialApexPlaneConeChamferVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)

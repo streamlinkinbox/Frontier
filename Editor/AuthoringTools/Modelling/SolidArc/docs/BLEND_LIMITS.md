@@ -232,6 +232,16 @@ This is a complete-root apex slice only. Partial apex sectors, non-coaxial or ob
 trimmed/reflex/branched/incomplete roots, freeform supports, curved corner patches, and general intersection/trim/sew
 healing remain explicit refusals.
 
+### Partial apex plane–cone root chamfers
+
+Phase 36n accepts one canonical open coaxial apex sector. The zero-radius endpoint is measured as the cone-axis apex and
+is retained as one vertex; the half-turn or non-reflex general sector keeps exact outer/shoulder/chamfer/apex-cone supports
+and heals the radial endpoint caps. General topology is `V10/E15/C30/L7/F7`; half-turn topology is `V10/E14/C28/L6/F6`,
+with the wedge volume checked against the apex square-radius meridian integral.
+
+Partial apex networks, non-coaxial or oblique supports, arbitrary trimmed/reflex/branched/incomplete roots, freeform
+supports, curved corner patches, and general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

@@ -2488,6 +2488,179 @@ namespace
         return Result;
     }
 
+    struct PlaneConeApexPartialRoot
+    {
+        Vec3   Base, Axis, RadialStart;
+        double OuterRadius = 0.0, ShoulderHeight = 0.0, FootRadius = 0.0, BossHeight = 0.0;
+        double SweepAngle = 0.0;
+    };
+
+    std::optional<PlaneConeApexPartialRoot> PlaneConeApexPartialBossRoot(const BrepBody& Body, int Edge) noexcept
+    {
+        if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()) || !Body.Validate().Solid()) return std::nullopt;
+        Deliver<std::vector<int>> ChainResult = BlendSolver::TangentChain(Body, Edge);
+        if (!ChainResult || ChainResult.Payload.empty()) return std::nullopt;
+        const std::vector<int>& RootEdges = ChainResult.Payload;
+        const size_t SegmentCount = RootEdges.size();
+        const bool SemicircleTopology = SegmentCount == 2 && Body.Vertices.size() == 11 && Body.Edges.size() == 18 &&
+            Body.Coedges.size() == 36 && Body.Loops.size() == 9 && Body.Faces.size() == 9;
+        const bool SectorTopology = SegmentCount == 2 && Body.Vertices.size() == 11 && Body.Edges.size() == 19 &&
+            Body.Coedges.size() == 38 && Body.Loops.size() == 10 && Body.Faces.size() == 10;
+        if (!SemicircleTopology && !SectorTopology) return std::nullopt;
+        Vec3 RootCentre, Axis; double FootRadius = 0.0; bool FirstRoot = true;
+        std::vector<int> ShoulderFaces, ConeFaces;
+        for (int RootIndex : RootEdges)
+        {
+            const BrepEdge& RootEdge = Body.Edges[RootIndex];
+            if (RootEdge.Coedges.size() != 2) return std::nullopt;
+            Vec3 Centre, Normal; double Radius = 0.0;
+            if (!CircularFrame(RootEdge.Curve, Centre, Normal, Radius)) return std::nullopt;
+            int ShoulderFace = -1, ConeFace = -1;
+            for (int Coedge : RootEdge.Coedges)
+            {
+                if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return std::nullopt;
+                const int Face = Body.Coedges[Coedge].Face;
+                if (Face < 0 || Face >= static_cast<int>(Body.Faces.size())) return std::nullopt;
+                const SurfaceClassification Class = Body.Faces[Face].Surface.Classification;
+                if (Class == SurfaceClassification::Revolution) { if (ShoulderFace >= 0) return std::nullopt; ShoulderFace = Face; }
+                else if (Class == SurfaceClassification::Cone) { if (ConeFace >= 0) return std::nullopt; ConeFace = Face; }
+                else return std::nullopt;
+            }
+            if (ShoulderFace < 0 || ConeFace < 0) return std::nullopt;
+            const Vec3 CandidateAxis = Body.Faces[ConeFace].Surface.Axis.Normalised();
+            if (CandidateAxis.Length() <= Tol || std::fabs(Normal.Dot(CandidateAxis)) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+            Vec3 Start, End; double StartRadius = 0.0, EndRadius = 0.0;
+            if (!ConeEndCentresAllowApex(Body.Faces[ConeFace].Surface, Start, End, StartRadius, EndRadius)) return std::nullopt;
+            const double Epsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, Radius, Start.Distance(End) });
+            const bool RootAtStart = Start.Distance(Centre) <= Epsilon;
+            const double MeasuredFoot = RootAtStart ? StartRadius : EndRadius;
+            const double ApexRadius = RootAtStart ? EndRadius : StartRadius;
+            const Vec3 Apex = RootAtStart ? End : Start;
+            if ((RootAtStart ? End : Start).Distance(Centre) <= Epsilon || std::fabs(MeasuredFoot - Radius) > Epsilon ||
+                ApexRadius > Epsilon || (Apex - Centre).Normalised().Dot(CandidateAxis) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+            if (FirstRoot) { RootCentre = Centre; Axis = CandidateAxis; FootRadius = Radius; FirstRoot = false; }
+            else if (Centre.Distance(RootCentre) > Epsilon || CandidateAxis.Dot(Axis) < 1.0 - ScalarCriteria::GeometricTolerance ||
+                     std::fabs(Radius - FootRadius) > Epsilon) return std::nullopt;
+            ShoulderFaces.push_back(ShoulderFace); ConeFaces.push_back(ConeFace);
+        }
+        double RootSpan = 0.0;
+        if (FirstRoot || ShoulderFaces.size() != SegmentCount || ConeFaces.size() != SegmentCount ||
+            !CircularChain(Body, RootEdges, RootCentre, Axis, FootRadius, false, &RootSpan) ||
+            std::fabs(RootSpan) > ScalarCriteria::Pi + ScalarCriteria::AngularTolerance ||
+            (SemicircleTopology && !ScalarCriteria::WithinAngularTolerance(std::fabs(RootSpan), ScalarCriteria::Pi)) ||
+            (!SemicircleTopology && ScalarCriteria::WithinAngularTolerance(std::fabs(RootSpan), ScalarCriteria::Pi))) return std::nullopt;
+        std::vector<int> OuterEdges, OuterFaces; double OuterRadius = 0.0;
+        for (int ShoulderFace : ShoulderFaces)
+        {
+            int Found = -1;
+            for (int Loop : Body.Faces[ShoulderFace].Loops) for (int Coedge : Body.Loops[Loop].Coedges)
+            {
+                const int Candidate = Body.Coedges[Coedge].Edge;
+                if (Candidate < 0 || Candidate >= static_cast<int>(Body.Edges.size()) || std::find(RootEdges.begin(), RootEdges.end(), Candidate) != RootEdges.end()) continue;
+                Vec3 C, N; double R = 0.0;
+                if (!CircularFrame(Body.Edges[Candidate].Curve, C, N, R) || C.Distance(RootCentre) > ScalarCriteria::GeometricTolerance * std::max(1.0, FootRadius) ||
+                    std::fabs(N.Dot(Axis)) < 1.0 - ScalarCriteria::GeometricTolerance || R <= FootRadius) continue;
+                if (Found >= 0 && Found != Candidate) return std::nullopt;
+                Found = Candidate; OuterRadius = R;
+            }
+            if (Found < 0) return std::nullopt;
+            OuterEdges.push_back(Found);
+            int OuterFace = -1;
+            for (int Coedge : Body.Edges[Found].Coedges)
+            {
+                const int Face = Body.Coedges[Coedge].Face;
+                if (Face == ShoulderFace) continue;
+                if (OuterFace >= 0 || Face < 0 || Face >= static_cast<int>(Body.Faces.size()) || Body.Faces[Face].Surface.Classification != SurfaceClassification::Cylinder) return std::nullopt;
+                OuterFace = Face;
+            }
+            if (OuterFace < 0) return std::nullopt;
+            OuterFaces.push_back(OuterFace);
+        }
+        if (OuterEdges.size() != SegmentCount || OuterFaces.size() != SegmentCount ||
+            !CircularChain(Body, OuterEdges, RootCentre, Axis, OuterRadius, false, nullptr)) return std::nullopt;
+        Vec3 Base, Apex; double ShoulderHeight = 0.0, BossHeight = 0.0; bool FirstOuter = true;
+        for (int OuterFace : OuterFaces)
+        {
+            Vec3 A, B; double R = 0.0;
+            if (!CylinderEndCentres(Body.Faces[OuterFace].Surface, A, B, R)) return std::nullopt;
+            const double Epsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, OuterRadius, A.Distance(B) });
+            Vec3 Shoulder, CandidateBase;
+            if (A.Distance(RootCentre) < B.Distance(RootCentre)) { Shoulder = A; CandidateBase = B; }
+            else { Shoulder = B; CandidateBase = A; }
+            const double H = Shoulder.Distance(CandidateBase);
+            if (H <= Epsilon || (Shoulder - CandidateBase).Normalised().Dot(Axis) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+            if (FirstOuter) { Base = CandidateBase; ShoulderHeight = H; FirstOuter = false; }
+            else if (Shoulder.Distance(RootCentre) > Epsilon || CandidateBase.Distance(Base) > Epsilon || std::fabs(H - ShoulderHeight) > Epsilon) return std::nullopt;
+        }
+        if (FirstOuter) return std::nullopt;
+        int BottomPatches = 0; std::vector<Vec3> RadialNormals;
+        const double CapEpsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, OuterRadius, ShoulderHeight });
+        for (size_t Face = 0; Face < Body.Faces.size(); ++Face)
+        {
+            const int F = static_cast<int>(Face);
+            if (std::find(ShoulderFaces.begin(), ShoulderFaces.end(), F) != ShoulderFaces.end() ||
+                std::find(ConeFaces.begin(), ConeFaces.end(), F) != ConeFaces.end() ||
+                std::find(OuterFaces.begin(), OuterFaces.end(), F) != OuterFaces.end()) continue;
+            Vec3 N; if (!PlanarNormal(Body, F, N)) return std::nullopt;
+            const NurbsSurface& S = Body.Faces[F].Surface;
+            const Vec3 P = S.Sample(.5*(S.DomainStartU()+S.DomainEndU()), .5*(S.DomainStartV()+S.DomainEndV()));
+            if (std::fabs(N.Dot(Axis)) > 1.0 - ScalarCriteria::GeometricTolerance)
+            {
+                if (std::fabs((P - Base).Dot(Axis)) > CapEpsilon) return std::nullopt;
+                ++BottomPatches;
+            }
+            else if (std::fabs(N.Dot(Axis)) < ScalarCriteria::GeometricTolerance) RadialNormals.push_back(N);
+            else return std::nullopt;
+        }
+        if (BottomPatches != static_cast<int>(SegmentCount) || RadialNormals.size() != (SemicircleTopology ? 1u : 2u)) return std::nullopt;
+        Vec3 Radial; double Sweep = 0.0;
+        if (!OpenChainSweep(Body, RootEdges, RootCentre, Axis, Radial, Sweep) || !ScalarCriteria::WithinAngularTolerance(std::fabs(Sweep), RootSpan)) return std::nullopt;
+        Apex = RootCentre + Axis * 1.0; // the height is recovered from the apex endpoint below
+        Vec3 ConeStart, ConeEnd; double RS = 0.0, RE = 0.0;
+        if (!ConeEndCentresAllowApex(Body.Faces[ConeFaces.front()].Surface, ConeStart, ConeEnd, RS, RE)) return std::nullopt;
+        Apex = ConeStart.Distance(RootCentre) <= ScalarCriteria::GeometricTolerance ? ConeEnd : ConeStart;
+        BossHeight = Apex.Distance(RootCentre);
+        if (BossHeight <= Tol) return std::nullopt;
+        return PlaneConeApexPartialRoot{ Base, Axis, Radial, OuterRadius, ShoulderHeight, FootRadius, BossHeight, Sweep };
+    }
+
+    Deliver<BrepBody> ChamferPlaneConeApexPartialBossRoot(const PlaneConeApexPartialRoot& Root, double SetBack) noexcept
+    {
+        if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
+        if (std::fabs(Root.SweepAngle) >= ScalarCriteria::TwoPi - ScalarCriteria::AngularTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial apex chamfer requires an open root");
+        if (SetBack >= Root.BossHeight - Tol || Root.FootRadius + SetBack >= Root.OuterRadius - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the apex cone or wall");
+        const double Slant = std::hypot(Root.BossHeight, Root.FootRadius);
+        if (SetBack >= Slant - Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the apex slant");
+        const double Axial = SetBack * Root.BossHeight / Slant;
+        const double Contact = Root.FootRadius * (1.0 - Axial / Root.BossHeight);
+        if (Axial <= Tol || Axial >= Root.BossHeight - Tol || Contact <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "apex partial contact is degenerate");
+        const Vec3 Shoulder = Root.Base + Root.Axis * Root.ShoulderHeight;
+        const Vec3 Apex = Shoulder + Root.Axis * Root.BossHeight;
+        const Vec3 Radial = Root.RadialStart.Normalised();
+        auto Revolve = [&](Vec3 A, Vec3 B) -> Deliver<NurbsSurface>
+        { Deliver<NurbsCurve> L = NurbsCurve::Line(A, B); return L ? NurbsSurface::Revolution(L.Payload, Root.Base, Root.Axis, Root.SweepAngle) : Deliver<NurbsSurface>::Reject(L.Denial.Reason, L.Denial.Detail); };
+        Deliver<NurbsSurface> Outer = Revolve(Root.Base + Radial*Root.OuterRadius, Shoulder + Radial*Root.OuterRadius);
+        Deliver<NurbsSurface> ShoulderSurface = Revolve(Shoulder + Radial*Root.OuterRadius, Shoulder + Radial*(Root.FootRadius+SetBack));
+        Deliver<NurbsSurface> Chamfer = Revolve(Shoulder + Radial*(Root.FootRadius+SetBack), Shoulder + Root.Axis*Axial + Radial*Contact);
+        Deliver<NurbsSurface> Boss = Revolve(Shoulder + Root.Axis*Axial + Radial*Contact, Apex);
+        Deliver<NurbsSurface> Bottom = Revolve(Root.Base, Root.Base + Radial*Root.OuterRadius);
+        if (!Outer || !ShoulderSurface || !Chamfer || !Boss || !Bottom) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial apex support is degenerate");
+        Outer.Payload.Classification=SurfaceClassification::Cylinder; Outer.Payload.Origin=Root.Base; Outer.Payload.Axis=Root.Axis; Outer.Payload.RadiusMajor=Outer.Payload.RadiusMinor=Root.OuterRadius;
+        Chamfer.Payload.Classification=SurfaceClassification::Cone; Chamfer.Payload.Origin=Shoulder; Chamfer.Payload.Axis=Root.Axis; Chamfer.Payload.RadiusMajor=Root.FootRadius+SetBack; Chamfer.Payload.RadiusMinor=Contact;
+        Boss.Payload.Classification=SurfaceClassification::Cone; Boss.Payload.Origin=Shoulder+Root.Axis*Axial; Boss.Payload.Axis=Root.Axis; Boss.Payload.RadiusMajor=Contact; Boss.Payload.RadiusMinor=0.0;
+        Deliver<BrepBody> Result = BrepBody::Sew({Outer.Payload,ShoulderSurface.Payload,Chamfer.Payload,Boss.Payload,Bottom.Payload});
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const bool Half = ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::Pi);
+        if (!Half && !CapRadialSector(Result.Payload, Root.Base, Apex, Radial, Root.SweepAngle, Root.OuterRadius)) return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial apex radial caps could not heal");
+        const BodyReport Report = Result.Payload.Validate();
+        const bool Exact = Half ? Result.Payload.Vertices.size()==10 && Result.Payload.Edges.size()==14 && Result.Payload.Coedges.size()==28 && Result.Payload.Loops.size()==6 && Result.Payload.Faces.size()==6
+                                : Result.Payload.Vertices.size()==10 && Result.Payload.Edges.size()==15 && Result.Payload.Coedges.size()==30 && Result.Payload.Loops.size()==7 && Result.Payload.Faces.size()==7;
+        if (!Report.Solid() || Report.Hulls!=1 || Report.Genus!=0 || Report.OpenEdges!=0 || Report.NonManifoldEdges!=0 || Report.MisorientedEdges!=0 || !Exact) return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,"partial apex chamfer did not reach exact topology");
+        return Result;
+    }
+
     struct CylinderConeRoot
     {
         Vec3   Base, Axis;
@@ -4164,6 +4337,8 @@ Deliver<BrepBody> BlendSolver::ChamferEdge(const BrepBody& Body, int Edge, doubl
         return ChamferPlaneConeBossRoot(*Root, SetBack);
     if (std::optional<PlaneConeApexRoot> Root = PlaneConeApexBossRoot(Body, Edge))
         return ChamferPlaneConeApexBossRoot(*Root, SetBack);
+    if (std::optional<PlaneConeApexPartialRoot> Root = PlaneConeApexPartialBossRoot(Body, Edge))
+        return ChamferPlaneConeApexPartialBossRoot(*Root, SetBack);
     if (std::optional<PlaneConePartialRoot> Root = PlaneConePartialBossRoot(Body, Edge))
         return ChamferPlaneConePartialBossRoot(*Root, SetBack);
     if (std::optional<ConeCylinderPartialRoot> Root = ConeCylinderPartialBossRoot(Body, Edge))
@@ -4548,7 +4723,8 @@ Deliver<BrepBody> BlendSolver::ChamferEdges(const BrepBody& Body, const std::vec
     // preserve their exact curved-support routes before the planar-setback classifier.
     if (SeedEdges.size() == 1 && (NativeCylinderCap(Body, SeedEdges.front()) || NativeConeCapEdge(Body, SeedEdges.front()) ||
                                   PlaneCylinderBossRoot(Body, SeedEdges.front()) || PlaneConeBossRoot(Body, SeedEdges.front()) ||
-                                  PlaneConeApexBossRoot(Body, SeedEdges.front()) || PlaneConePartialBossRoot(Body, SeedEdges.front()) || ConeCylinderPartialBossRoot(Body, SeedEdges.front()) ||
+                                  PlaneConeApexBossRoot(Body, SeedEdges.front()) || PlaneConeApexPartialBossRoot(Body, SeedEdges.front()) ||
+                                  PlaneConePartialBossRoot(Body, SeedEdges.front()) || ConeCylinderPartialBossRoot(Body, SeedEdges.front()) ||
                                   ConeConePartialBossRoot(Body, SeedEdges.front()) || CylinderConeBossRoot(Body, SeedEdges.front())))
     {
         Deliver<BrepBody> Result = ChamferEdge(Body, SeedEdges.front(), SetBack);
