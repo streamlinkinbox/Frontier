@@ -2433,6 +2433,47 @@ namespace
             }
         return std::nullopt;
     }
+
+    std::optional<ConeCap> NativeConeCapEdge(const BrepBody& Body, int Edge) noexcept
+    {
+        if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()) || !Body.Edges[Edge].Closed() ||
+            Body.Edges[Edge].Curve.Classification != CurveClassification::Circle || Body.Edges[Edge].Coedges.size() != 2) return std::nullopt;
+        for (int Coedge : Body.Edges[Edge].Coedges)
+        {
+            const int Face = Body.Coedges[Coedge].Face;
+            if (std::optional<ConeCap> Cap = NativeConeCapFace(Body, Face)) return Cap;
+        }
+        return std::nullopt;
+    }
+
+    Deliver<BrepBody> ChamferConeCap(const ConeCap& Cap, double SetBack) noexcept
+    {
+        const ConeSide& Shape = Cap.Shape;
+        const double DeltaRadius = Shape.RadiusTop - Shape.RadiusFoot;
+        const double Slant = std::hypot(Shape.Height, DeltaRadius);
+        if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
+        if (SetBack >= Shape.Height || SetBack >= std::min(Shape.RadiusFoot, Shape.RadiusTop) - Tol || SetBack >= Slant - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "conical cap set-back collapses the cone");
+
+        const double JoinHeight = SetBack * Shape.Height / Slant;
+        const double JoinRadius = Cap.Upper
+            ? Shape.RadiusTop - SetBack * DeltaRadius / Slant
+            : Shape.RadiusFoot + SetBack * DeltaRadius / Slant;
+        const double CapRadius = (Cap.Upper ? Shape.RadiusTop : Shape.RadiusFoot) - SetBack;
+        if (JoinHeight <= Tol || JoinHeight >= Shape.Height - Tol || JoinRadius <= Tol || CapRadius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "conical cap set-back is infeasible");
+
+        Deliver<NurbsSurface> Retained = Cap.Upper
+            ? NurbsSurface::Cone(Shape.Base, Shape.Axis, Shape.RadiusFoot, JoinRadius, JoinHeight)
+            : NurbsSurface::Cone(Shape.Base + Shape.Axis * JoinHeight, Shape.Axis, JoinRadius, Shape.RadiusTop, Shape.Height - JoinHeight);
+        Deliver<NurbsSurface> Bevel = Cap.Upper
+            ? NurbsSurface::Cone(Shape.Base + Shape.Axis * JoinHeight, Shape.Axis, JoinRadius, CapRadius, Shape.Height - JoinHeight)
+            : NurbsSurface::Cone(Shape.Base, Shape.Axis, CapRadius, JoinRadius, JoinHeight);
+        if (!Retained || !Bevel) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "conical cap chamfer support is degenerate");
+        Deliver<BrepBody> Result = BrepBody::Sew({ std::move(Retained.Payload), std::move(Bevel.Payload) });
+        if (!Result || !Result.Payload.Validate().Solid()) return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "conical cap chamfer did not sew into a solid");
+        return Result;
+    }
+
     Deliver<BrepBody> PushConeCap(const ConeCap& Cap, double Distance) noexcept
     {
         const double Slope = (Cap.Shape.RadiusTop - Cap.Shape.RadiusFoot) / Cap.Shape.Height, Height = Cap.Shape.Height + Distance;
@@ -2950,6 +2991,7 @@ double BlendSolver::FilletRemoval(const EdgeCornerFrame& F, double Radius) noexc
 Deliver<BrepBody> BlendSolver::ChamferEdge(const BrepBody& Body, int Edge, double SetBack) noexcept
 {
     if (std::optional<CylinderCap> Cap = NativeCylinderCap(Body, Edge)) return ChamferCylinderCap(*Cap, SetBack);
+    if (std::optional<ConeCap> Cap = NativeConeCapEdge(Body, Edge)) return ChamferConeCap(*Cap, SetBack);
     EdgeCornerFrame F;
     if (const char* Why = CornerFrameRefusal(Body, Edge, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why);
     if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
@@ -3244,7 +3286,7 @@ Deliver<BrepBody> BlendSolver::ChamferEdges(const BrepBody& Body, const std::vec
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
 
     // A native circular rim has no planar edge frame; preserve its exact conical-cap route.
-    if (SeedEdges.size() == 1 && NativeCylinderCap(Body, SeedEdges.front()))
+    if (SeedEdges.size() == 1 && (NativeCylinderCap(Body, SeedEdges.front()) || NativeConeCapEdge(Body, SeedEdges.front())))
     {
         Deliver<BrepBody> Result = ChamferEdge(Body, SeedEdges.front(), SetBack);
         if (Result && AppliedEdges) *AppliedEdges = 1;

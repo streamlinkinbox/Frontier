@@ -421,6 +421,14 @@ verified with analytic profile-area × length volumes, fixed topology counts, tr
 integration, and `Proofs/Phase35b_ConcaveChamferNetwork.png`. This does not claim arbitrary concave B-rep chamfering:
 non-prismatic, curved, self-intersecting or otherwise unproven non-convex networks retain explicit refusal.
 
+## Native conical-cap chamfers (Phase 35c)
+
+The exact native curved-edge route now covers a right-cone's rational circular cap rim. A set-back is solved on the
+cone's meridian: the retained cone ends at the tangent point, a second conical frustum is sewn to the cap, and the
+reduced planar cap closes the result. `ConeChamferVerification` checks the exact two-frustum volume, `V3/E5/F4`
+topology, source immutability, feasibility refusal, general-torus refusal, console integration, and
+`Proofs/Phase35c_ConeCapChamfer.png`. General NURBS curved-edge chamfers remain refused.
+
 ## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
 
 `tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp]` translates the selected vertices and re-fits only

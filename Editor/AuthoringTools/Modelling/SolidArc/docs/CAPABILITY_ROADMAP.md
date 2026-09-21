@@ -654,11 +654,24 @@ refuse.
 chamfered-profile volume, source immutability, over-large transactional refusal, console integration, and the visible
 `Proofs/Phase35b_ConcaveChamferNetwork.png` proof.
 
+#### Phase 35c: native right-cone circular-cap chamfers ✅
+
+The native curved-edge chamfer route now recognizes a structurally verified right cone with one rational circular cap
+edge. The meridian set-back is solved analytically from the cone slant: the retained cone ends at the tangent point,
+a conical bevel frustum runs from that point to the reduced planar cap, and both exact NURBS support faces are sewn into
+one `V3/E5/F4` solid. Set-backs that reach the top radius/apex, general torus edges, arbitrary NURBS curves and all
+unproven curved-edge networks refuse transactionally.
+
+**35c exit gate met:** `ConeChamferVerification` checks the two-frustum closed-form volume, topology, source preservation,
+feasibility boundaries, generic curved-edge refusal, console integration, and the visible
+`Proofs/Phase35c_ConeCapChamfer.png` proof.
+
 #### Still required in Phase 34/35
 
-Face lofts between connected faces of one body, general curved-face and curved-edge tweaks beyond the native cylinder
-cap route, arbitrary non-prismatic concave/non-convex planar chamfer networks, curved-edge chamfers beyond the verified
-native cylinder-cap route, and arbitrary non-planar edge loops still need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
+Face lofts between connected faces of one body, general curved-face and curved-edge tweaks beyond the native analytic
+cylinder/cone routes, arbitrary non-prismatic concave/non-convex planar chamfer networks, curved-edge chamfers beyond the
+verified native cylinder/cone routes, and arbitrary non-planar edge loops still need dedicated topology and intersection
+routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
 lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing
 verification coverage.
 

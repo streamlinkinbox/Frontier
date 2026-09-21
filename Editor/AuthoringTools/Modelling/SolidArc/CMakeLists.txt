@@ -179,6 +179,11 @@ add_executable(ConcaveChamferVerification Verification/ConcaveChamferVerificatio
 target_link_libraries(ConcaveChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConcaveChamferVerification COMMAND ConcaveChamferVerification)
 
+# Phase 35c: exact native-cone circular-cap chamfer route.
+add_executable(ConeChamferVerification Verification/ConeChamferVerification.cpp)
+target_link_libraries(ConeChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeChamferVerification COMMAND ConeChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
