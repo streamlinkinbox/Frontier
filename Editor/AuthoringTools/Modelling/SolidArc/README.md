@@ -22,7 +22,7 @@ Tools/Build/CheckSolidArc.sh
 ```
 
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
-the Phase 34c/34d planar-chamfer proofs, and the Phase 34e face-transform proof. No external packages.
+the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, and the Phase 35a native curved-cap proof. No external packages.
 `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
@@ -32,13 +32,15 @@ This increment answers the solid-to-solid workflow directly instead of treating 
 - `loft Box:fN Cylinder:fM` drops one closed, single-loop face from each closed solid, harmonises the two
   boundary rims (sense and least-twist seam), and sews an exact NURBS skin onto the surviving faces. The result is
   one closed manifold solid; no Boolean is used. `--keep` preserves the two source bodies and `--name=...` names
-  the result. Box-to-box, cap-to-cap and box-to-cylinder cap transitions are verified. Faces with holes, periodic
-  side faces, same-body selections, open sheets and non-facing faces refuse transactionally.
+  the result. Box-to-box, cap-to-cap and box-to-cylinder cap transitions are verified. A bounded same-body route also
+  joins two selected faces when they belong to separate disconnected hulls in one B-rep; faces with holes, periodic side
+  faces, connected same-body zero-volume cases, open sheets and non-facing faces refuse transactionally.
 - `tweak Body (dx,dy,dz) --face=i` translates every vertex on a face while preserving V/E/F topology. `--edge=i`
   moves both endpoints of one edge; `--vertex=i` moves one vertex. Straight edges are rebuilt exactly, planar faces
   stay planes when possible, and a four-sided face may become an exact bilinear face only when `--warp` is explicit.
-  The default refuses a move that would silently warp a trimmed n-gon, invert a solid, collapse an edge, or touch a
-  curved edge. This makes a box-face move a true direct-modeling edit rather than a slab Boolean.
+  The bounded native right-cylinder route also moves a complete circular cap or its circular rim axially, rebuilding an
+  exact cylinder. Arbitrary curved faces, arcs and non-native curved edges still refuse. This makes a box-face move a
+  true direct-modeling edit rather than a slab Boolean.
 - `chamfer Body setback --edges=i[,j,…]` accepts one or more straight edges whose adjacent faces are planar. Convex
   planar bodies use a common half-space reconstruction, so adjacent selections produce real endpoint mitres and arbitrary
   dihedral angles without sequential edge-table drift. The operation is transactional: duplicate, curved/non-planar,
@@ -399,6 +401,15 @@ faces that do not face each other refuse. Two distinct faces of one B-rep are al
 separate disconnected hulls: the bounded route joins those hulls into one positive-volume genus-zero handle bridge.
 Connected same-body zero-volume cases remain explicit refusals. `FaceLoftVerification` contributes 33 checks and
 `Proofs/Phase34a_FaceLoft.png` plus `Proofs/Phase34f_SameBodyFaceLoft.png`.
+
+## Native curved-cap and curved-edge tweaks (Phase 35a)
+
+`TweakSolver::TranslateFace` and `TranslateEdge` have a deliberately narrow analytic exception for a native right
+cylinder: translating a complete planar cap or its rational closed circular rim along the cylinder axis rebuilds the exact
+cylinder with unchanged `V2/E3/F3` topology. Lateral cap motion, the cylindrical side face, spheres, arbitrary arcs and
+other curved edges refuse instead of being approximated. `CurvedTweakVerification` contributes 16 checks for the exact
+volumes, topology, source immutability, refusal boundaries, console commands, and
+`Proofs/Phase35a_CurvedCapTweaks.png`.
 
 ## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
 

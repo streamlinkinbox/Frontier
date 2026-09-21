@@ -627,11 +627,24 @@ This is an explicit multi-hull handle bridge, not unrestricted same-solid face s
 `FaceLoftVerification` now covers the two-hull source, V16/E25/F11 genus-zero bridge, volume 224, console `--keep`
 integration, source preservation, and the visible `Proofs/Phase34f_SameBodyFaceLoft.png` proof.
 
-#### Still required in Phase 34
+#### Phase 35a: native curved-cylinder cap and circular-edge tweaks ✅
 
-Face lofts between connected faces of one body, curved-face and curved-edge tweaks, concave/non-convex planar chamfer
-networks, curved-edge chamfers beyond the verified native cylinder-cap route, and arbitrary non-planar edge loops still
-need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
+The curved-tweak route is intentionally analytic and narrow. A native right-cylinder cap is recognized structurally as
+one rational circular closed edge, two planar caps, one cylindrical side, and the canonical `V2/E3/F3` topology. Moving
+the cap face or its complete circular rim along the cylinder axis rebuilds the exact cylinder with the new height and
+preserves topology. Lateral motion, the cylindrical side face, spheres, arcs, and non-native curved edges refuse rather
+than becoming sampled approximations. The source remains immutable on every refusal.
+
+**35a exit gate met:** `CurvedTweakVerification` checks exact source/result volumes (`16π` and `20π`), fixed topology,
+face/edge route equivalence, lateral and non-native curved refusals, console commit, and the visible
+`Proofs/Phase35a_CurvedCapTweaks.png` proof. The existing `TweakVerification` cap regression now asserts the same
+analytic route instead of expecting the old blanket curved-edge refusal.
+
+#### Still required in Phase 34/35
+
+Face lofts between connected faces of one body, general curved-face and curved-edge tweaks beyond the native cylinder
+cap route, concave/non-convex planar chamfer networks, curved-edge chamfers beyond the verified native cylinder-cap route,
+and arbitrary non-planar edge loops still need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
 lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing
 verification coverage.
 

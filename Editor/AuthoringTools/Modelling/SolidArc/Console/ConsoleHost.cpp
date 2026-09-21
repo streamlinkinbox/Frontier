@@ -2548,7 +2548,7 @@ void ConsoleHost::Register() noexcept
         }
         return Done > 0;
     });
-    Add("tweak", "tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp] [--name=…] — translate one face, edge or vertex of a solid on fixed topology: neighbours are re-fitted, planar faces stay planar; --warp admits bilinear four-sided faces", [=, this](const CommandLine& C)
+    Add("tweak", "tweak <body> (dx,dy,dz) --face=i | --edge=i | --vertex=i [--warp] [--name=…] — translate one face, edge or vertex on fixed topology; neighbours are re-fitted, --warp admits bilinear quads, and native circular cylinder caps/edges may move axially exactly", [=, this](const CommandLine& C)
     {
         if (!Need(C, 2, "tweak")) return false;
         Vec3 Delta; if (!PointArg(C, C.Count() - 1, Delta, "tweak")) return false;
@@ -2575,7 +2575,9 @@ void ConsoleHost::Register() noexcept
                        I->Name.c_str(), Kind, Index, Delta.X, Delta.Y, Delta.Z, List.c_str());
                 continue;
             }
-            Deliver<BrepBody> R = TweakSolver::TranslateVertices(B, Moved, Delta, Warp);
+            Deliver<BrepBody> R = FaceText ? TweakSolver::TranslateFace(B, Index, Delta, Warp)
+                : EdgeText ? TweakSolver::TranslateEdge(B, Index, Delta, Warp)
+                : TweakSolver::TranslateVertex(B, Index, Delta, Warp);
             if (!R) { Refuse("tweak %s: %s", I->Name.c_str(), R.Denial.Detail); continue; }
             std::string Name = I->Name; uint32_t Id = I->Identity; bool Sel = I->Selected;
             double Before = B.Validate().Volume;
@@ -2584,7 +2586,7 @@ void ConsoleHost::Register() noexcept
             Out.Selected = Sel; DescribeFigure(Out);
             BodyReport Check = Out.Body.Validate();
             Row("tweak %s → %s  %s %d  by (%.4f, %.4f, %.4f)  volume %.4f → %.4f  %s", Name.c_str(), Out.Name.c_str(), Kind, Index, Delta.X, Delta.Y, Delta.Z,
-                Before, Check.Volume, Warped.empty() ? "all faces planar" : "bilinear faces admitted");
+                Before, Check.Volume, Warped.empty() ? "fixed topology" : "bilinear faces admitted");
             ++Done;
         }
         return Done > 0;

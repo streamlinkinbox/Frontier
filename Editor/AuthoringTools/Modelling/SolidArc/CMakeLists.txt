@@ -169,6 +169,11 @@ add_executable(TransformTweakVerification Verification/TransformTweakVerificatio
 target_link_libraries(TransformTweakVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME TransformTweakVerification COMMAND TransformTweakVerification)
 
+# Phase 35a: bounded exact native-cylinder curved-cap and circular-edge axial tweaks.
+add_executable(CurvedTweakVerification Verification/CurvedTweakVerification.cpp)
+target_link_libraries(CurvedTweakVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CurvedTweakVerification COMMAND CurvedTweakVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

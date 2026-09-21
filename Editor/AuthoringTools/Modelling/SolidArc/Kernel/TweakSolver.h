@@ -16,7 +16,9 @@
 // What that means for the questions a modeller asks: translating a box face by ANY vector keeps all six faces planar
 //    (the neighbours become parallelograms); translating a box edge keeps the two faces along it planar and warps the
 //    two end faces unless the vector has no component along the edge; translating a box vertex warps its three faces.
-//    The tweak never detects a face passing through another; it refuses only an inverted or degenerate result.
+//    The tweak never detects a face passing through another; it refuses only an inverted or degenerate result. The one
+//    curved exception is the exact native right-cylinder route: a complete circular cap/edge may move axially, while
+//    arbitrary curved faces, arcs and non-native curved edges continue to refuse explicitly.
 #pragma once
 
 #include "Kernel/TopologySpecification.h"

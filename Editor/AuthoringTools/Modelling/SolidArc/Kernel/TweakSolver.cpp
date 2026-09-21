@@ -5,6 +5,7 @@
 #include "Kernel/TweakSolver.h"
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace Frontier
 {
@@ -26,6 +27,92 @@ namespace
     [[nodiscard]] bool Straight(const BrepEdge& E) noexcept
     {
         return !E.Closed() && E.Curve.Degree == 1 && E.Curve.Poles.size() == 2;
+    }
+
+    struct NativeCylinderCap
+    {
+        Vec3   Base, Axis;
+        double Radius = 0.0, Height = 0.0;
+        bool   Upper = false;
+    };
+
+    [[nodiscard]] std::optional<NativeCylinderCap> NativeCylinderCapForFace(const BrepBody& Body, int Face) noexcept
+    {
+        if (Face < 0 || Face >= static_cast<int>(Body.Faces.size()) || Body.Faces.size() != 3 ||
+            Body.Edges.size() != 3 || Body.Vertices.size() != 2 || Body.Loops.size() != 3 || Body.Coedges.size() != 6 ||
+            Body.Faces[Face].Surface.Classification != SurfaceClassification::Plane) return std::nullopt;
+        int CylinderFace = -1;
+        for (int I = 0; I < static_cast<int>(Body.Faces.size()); ++I)
+            if (Body.Faces[I].Surface.Classification == SurfaceClassification::Cylinder)
+            {
+                if (CylinderFace >= 0) return std::nullopt;
+                CylinderFace = I;
+            }
+        if (CylinderFace < 0 || Body.Faces[Face].Loops.size() != 1) return std::nullopt;
+        int CircularEdge = -1;
+        for (int Coedge : Body.Loops[Body.Faces[Face].Loops[0]].Coedges)
+        {
+            const BrepEdge& Edge = Body.Edges[Body.Coedges[Coedge].Edge];
+            if (Edge.Closed() && Edge.Curve.Classification == CurveClassification::Circle && Edge.Curve.Rational() && Edge.Coedges.size() == 2)
+            {
+                if (CircularEdge >= 0) return std::nullopt;
+                CircularEdge = Body.Coedges[Coedge].Edge;
+            }
+        }
+        if (CircularEdge < 0) return std::nullopt;
+        const NurbsSurface& Cylinder = Body.Faces[CylinderFace].Surface;
+        Vec3 Centres[2]; int Count = 0;
+        for (int I = 0; I < static_cast<int>(Body.Faces.size()); ++I)
+            if (Body.Faces[I].Surface.Classification == SurfaceClassification::Plane)
+            {
+                const NurbsSurface& Plane = Body.Faces[I].Surface;
+                Centres[Count++] = Plane.Sample(0.5 * (Plane.DomainStartU() + Plane.DomainEndU()), 0.5 * (Plane.DomainStartV() + Plane.DomainEndV()));
+            }
+        if (Count != 2 || Cylinder.Axis.Length() <= Tol || Cylinder.RadiusMajor <= Tol) return std::nullopt;
+        const Vec3 Axis = Cylinder.Axis.Normalised();
+        double T[2] = { (Centres[0] - Cylinder.Origin).Dot(Axis), (Centres[1] - Cylinder.Origin).Dot(Axis) };
+        const double Low = std::min(T[0], T[1]), High = std::max(T[0], T[1]);
+        const double Height = High - Low;
+        const double Reach = std::max({ 1.0, Cylinder.RadiusMajor, Height });
+        if (Height <= ScalarCriteria::GeometricTolerance * Reach) return std::nullopt;
+        const Vec3 SelectedCentre = Body.Faces[Face].Surface.Sample(0.5 * (Body.Faces[Face].Surface.DomainStartU() + Body.Faces[Face].Surface.DomainEndU()),
+                                                                     0.5 * (Body.Faces[Face].Surface.DomainStartV() + Body.Faces[Face].Surface.DomainEndV()));
+        const double SelectedT = (SelectedCentre - Cylinder.Origin).Dot(Axis);
+        if (std::fabs(SelectedT - Low) > ScalarCriteria::GeometricTolerance * Reach && std::fabs(SelectedT - High) > ScalarCriteria::GeometricTolerance * Reach)
+            return std::nullopt;
+        return NativeCylinderCap{ Cylinder.Origin + Axis * Low, Axis, Cylinder.RadiusMajor, Height,
+                                  std::fabs(SelectedT - High) <= ScalarCriteria::GeometricTolerance * Reach };
+    }
+
+    [[nodiscard]] Deliver<BrepBody> TranslateNativeCylinderCap(const BrepBody& Body, int Face, Vec3 Delta, bool& Recognized) noexcept
+    {
+        Recognized = false;
+        const std::optional<NativeCylinderCap> Cap = NativeCylinderCapForFace(Body, Face);
+        if (!Cap) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "not a native cylinder cap");
+        Recognized = true;
+        const double Along = Delta.Dot(Cap->Axis);
+        const Vec3 Lateral = Delta - Cap->Axis * Along;
+        if (Lateral.Length() > ScalarCriteria::GeometricTolerance * std::max({ 1.0, Cap->Radius, Cap->Height }))
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "native circular-cap tweak only supports translation along the cylinder axis");
+        const double Height = Cap->Height + Along;
+        if (Height <= ScalarCriteria::GeometricTolerance * std::max(1.0, Cap->Height))
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "native circular-cap tweak collapses the cylinder");
+        const Vec3 Base = Cap->Upper ? Cap->Base : Cap->Base - Cap->Axis * Along;
+        Deliver<BrepBody> Result = BrepBody::Cylinder(Base, Cap->Axis, Cap->Radius, Height);
+        if (!Result || !Result.Payload.Validate().Solid()) return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "native circular-cap tweak did not rebuild a solid");
+        return Result;
+    }
+
+    [[nodiscard]] int NativeCylinderCapFaceForEdge(const BrepBody& Body, int Edge) noexcept
+    {
+        if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()) || !Body.Edges[Edge].Closed() ||
+            Body.Edges[Edge].Curve.Classification != CurveClassification::Circle || Body.Edges[Edge].Coedges.size() != 2) return -1;
+        for (int Coedge : Body.Edges[Edge].Coedges)
+        {
+            const int Face = Body.Coedges[Coedge].Face;
+            if (Face >= 0 && NativeCylinderCapForFace(Body, Face)) return Face;
+        }
+        return -1;
     }
 
     [[nodiscard]] bool FourPoleBilinear(const NurbsSurface& S) noexcept
@@ -448,13 +535,18 @@ Deliver<BrepBody> TweakSolver::TranslateVertices(const BrepBody& Body, const std
 Deliver<BrepBody> TweakSolver::TranslateFace(const BrepBody& Body, int Face, Vec3 Delta, bool AllowWarp) noexcept
 {
     if (Face < 0 || Face >= static_cast<int>(Body.Faces.size())) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "face index out of range");
+    bool Recognized = false;
+    Deliver<BrepBody> Curved = TranslateNativeCylinderCap(Body, Face, Delta, Recognized);
+    if (Recognized) return Curved;
     return TranslateVertices(Body, FaceVertices(Body, Face), Delta, AllowWarp);
 }
 
 Deliver<BrepBody> TweakSolver::TranslateEdge(const BrepBody& Body, int Edge, Vec3 Delta, bool AllowWarp) noexcept
 {
     if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size())) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "edge index out of range");
-    if (Body.Edges[Edge].Closed()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "a closed edge has no vertices to move");
+    const int CapFace = NativeCylinderCapFaceForEdge(Body, Edge);
+    if (CapFace >= 0) return TranslateFace(Body, CapFace, Delta, AllowWarp);
+    if (Body.Edges[Edge].Closed()) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "a closed curved edge is unsupported outside the native circular-cylinder cap route");
     return TranslateVertices(Body, EdgeVertices(Body, Edge), Delta, AllowWarp);
 }
 

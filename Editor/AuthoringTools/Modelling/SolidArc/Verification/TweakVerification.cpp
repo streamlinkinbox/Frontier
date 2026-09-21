@@ -236,7 +236,12 @@ int main()
         }());
     }
     const BrepBody Drum = BrepBody::Cylinder({ 6, 0, 0 }, { 0, 0, 1 }, 1.0, 2.0).Payload;
-    Panel.Expect("A cylinder cap (closed circular rim) refuses: tweak moves straight edges only", !TweakSolver::TranslateFace(Drum, FaceToward(Drum, { 0, 0, 1 }), { 0, 0, 1 }, true));
+    Panel.Expect("A native cylinder cap (closed circular rim) translates axially with exact cylinder topology", [&]
+    {
+        Deliver<BrepBody> R = TweakSolver::TranslateFace(Drum, FaceToward(Drum, { 0, 0, 1 }), { 0, 0, 1 }, true);
+        return R && R.Payload.Validate().Solid() && R.Payload.Vertices.size() == 2 && R.Payload.Edges.size() == 3 && R.Payload.Faces.size() == 3 &&
+               std::fabs(R.Payload.Validate().Volume - ScalarCriteria::Pi * 3.0) / (ScalarCriteria::Pi * 3.0) < 2e-3;
+    }());
     Panel.Expect("A zero vector, a bad index and an open sheet refuse", !TweakSolver::TranslateFace(Source, Top, { 0, 0, 0 }, true) && !TweakSolver::TranslateVertex(Source, 99, { 0, 0, 1 }, true) &&
                  !TweakSolver::TranslateFace(BrepBody::FromSurface(NurbsSurface::Plane({ 0, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, 1, 1).Payload), 0, { 0, 0, 1 }, true));
     Panel.Expect("A move that would invert the solid refuses", !TweakSolver::TranslateFace(Source, Top, { 0, 0, -3.0 }, true));
