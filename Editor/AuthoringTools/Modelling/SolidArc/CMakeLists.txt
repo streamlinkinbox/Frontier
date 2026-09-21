@@ -1,7 +1,7 @@
 #=============================================================================================================================================
 # Editor/AuthoringTools/Modelling/SolidArc/CMakeLists.txt — SolidArc standalone NURBS / B-rep modelling tool.
-#   Builds with no engine dependency and no external packages. The Phase 34 direct-modelling gates cover
-#   face loft, fixed-topology tweaks, planar chamfers, and bounded planar face transforms.
+#   Builds with no engine dependency and no external packages. The direct-modelling gates cover face loft,
+#   fixed-topology tweaks, planar chamfers, bounded planar face transforms, and the Phase 36a face-edit batch.
 #=============================================================================================================================================
 
 cmake_minimum_required(VERSION 3.20)
@@ -34,6 +34,7 @@ add_library(SolidArcKernel STATIC
     Kernel/MirrorSolver.cpp
     Kernel/BlendSolver.cpp
     Kernel/TweakSolver.cpp
+    Kernel/FaceEditSolver.cpp
 )
 target_include_directories(SolidArcKernel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -188,6 +189,11 @@ add_test(NAME ConeChamferVerification COMMAND ConeChamferVerification)
 add_executable(ConnectedFaceLoftVerification Verification/ConnectedFaceLoftVerification.cpp)
 target_link_libraries(ConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConnectedFaceLoftVerification COMMAND ConnectedFaceLoftVerification)
+
+# Phase 36a: conservative general face-edit batch — exact box offset/shell/draft/delete/replace/extend/trim and healing.
+add_executable(FaceEditVerification Verification/FaceEditVerification.cpp)
+target_link_libraries(FaceEditVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME FaceEditVerification COMMAND FaceEditVerification)
 
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)

@@ -11,6 +11,7 @@
 #include "Kernel/MirrorSolver.h"
 #include "Kernel/BlendSolver.h"
 #include "Kernel/TweakSolver.h"
+#include "Kernel/FaceEditSolver.h"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -1920,6 +1921,24 @@ void ConsoleHost::Register() noexcept
         Out = Planar ? Plane.ToWorld({ P->X, P->Y }) : *P;
         return true;
     };
+    // Face-edit commands all cross the same transaction boundary: the kernel receives an immutable
+    // source, and the scene replaces it only after a delivered result has passed validation. Keeping
+    // this small commit helper shared prevents a refusal in one route from partially consuming a body.
+    auto CommitFaceBody = [this](const CommandLine& C, const char* Stem, SceneFigure* Source, Deliver<BrepBody> Result) -> bool
+    {
+        if (!Result) return Refuse("%s %s: %s — %s", Stem, Source ? Source->Name.c_str() : "<none>", Refusal::Describe(Result.Denial.Reason), Result.Denial.Detail);
+        if (Source == nullptr || Source->Classification != FigureClassification::Body) return Refuse("%s: source is not a body", Stem);
+        const std::string OldName = Source->Name; const uint32_t OldId = Source->Identity; const bool Selected = Source->Selected;
+        const BodyReport Before = Source->Body.Validate();
+        Scene.Remove(OldId);
+        SceneFigure& Out = Scene.AddBody(C.SwitchText("name").value_or(OldName + "." + Stem), std::move(Result.Payload));
+        Out.Selected = Selected;
+        DescribeFigure(Out);
+        const BodyReport After = Out.Body.Validate();
+        Row("%s %s → %s  V%d E%d F%d  volume %.5f → %.5f%s", Stem, OldName.c_str(), Out.Name.c_str(), After.Vertices, After.Edges, After.Faces,
+            Before.Volume, After.Volume, After.Solid() ? "  [solid]" : (After.OpenEdges ? "  [open sheet]" : ""));
+        return true;
+    };
 
     //---------------------------------------------- native document ----------------------------------------------
     Add("save", "save [path.arc] — write the current parametric model as a versioned native .arc document (an existing document is backed up to .arc.bak)", [=, this](const CommandLine& C)
@@ -2520,6 +2539,68 @@ void ConsoleHost::Register() noexcept
             }
         }
         return Done > 0;
+    });
+    Add("offsetface", "offsetface <body> distance --face=i [--name=…] — exact outward/inward offset of a planar canonical-box face; unsupported B-reps refuse", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "offsetface")) return false;
+        double Distance = 0.0; if (!NumberArg(C, 1, Distance, "offsetface")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("offsetface: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("offsetface: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "OffsetFace", I, FaceEditSolver::OffsetFace(I->Body, std::atoi(FaceText->c_str()), Distance));
+    });
+    Add("shell", "shell <body> thickness --face=i [--name=…] — exact box shell/thicken with the selected face removed as the opening; arbitrary curved/trimmed sources refuse", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "shell")) return false;
+        double Thickness = 0.0; if (!NumberArg(C, 1, Thickness, "shell")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("shell: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("shell: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "Shell", I, FaceEditSolver::Shell(I->Body, std::atoi(FaceText->c_str()), Thickness));
+    });
+    Add("draft", "draft <body> angleDeg --face=i [--name=…] — exact bounded draft of a vertical canonical-box side; positive angle leans the wall outward at +Z", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "draft")) return false;
+        double Degrees = 0.0; if (!NumberArg(C, 1, Degrees, "draft")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("draft: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("draft: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "Draft", I, FaceEditSolver::Draft(I->Body, std::atoi(FaceText->c_str()), ScalarCriteria::Radians(Degrees)));
+    });
+    Add("deleteface", "deleteface <body> --face=i [--name=…] — remove one exact box face and return the five-face open sheet", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 1, "deleteface")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("deleteface: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("deleteface: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "DeleteFace", I, FaceEditSolver::DeleteFace(I->Body, std::atoi(FaceText->c_str())));
+    });
+    Add("replaceface", "replaceface <body> <surface> --face=i [--name=…] — replace an exact four-edge face rim without mutating either source", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "replaceface")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("replaceface: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); SceneFigure* R = Resolve(C.Arguments[1]);
+        if (!I) return Refuse("replaceface: no body '%s'", C.Arguments[0].c_str());
+        if (!R || R->Classification != FigureClassification::Surface) return Refuse("replaceface: '%s' must be a NURBS surface replacement", C.Arguments[1].c_str());
+        return CommitFaceBody(C, "ReplaceFace", I, FaceEditSolver::ReplaceFace(I->Body, std::atoi(FaceText->c_str()), R->Surface));
+    });
+    Add("extendface", "extendface <body> distance --face=i [--name=…] — grow the selected box face in both in-plane directions and rebuild adjacent walls", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "extendface")) return false;
+        double Distance = 0.0; if (!NumberArg(C, 1, Distance, "extendface")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("extendface: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("extendface: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "ExtendFace", I, FaceEditSolver::ExtendFace(I->Body, std::atoi(FaceText->c_str()), Distance));
+    });
+    Add("trimface", "trimface <body> distance --face=i [--name=…] — shrink the selected box face in both in-plane directions and rebuild adjacent walls", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 2, "trimface")) return false;
+        double Distance = 0.0; if (!NumberArg(C, 1, Distance, "trimface")) return false;
+        auto FaceText = C.SwitchText("face"); if (!FaceText) return Refuse("trimface: --face=i is required");
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("trimface: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "TrimFace", I, FaceEditSolver::TrimFace(I->Body, std::atoi(FaceText->c_str()), Distance));
+    });
+    Add("heal", "heal <body> [--name=…] — transactionally re-sew natural faces, orient, and reject rather than collapse slivers", [=, this](const CommandLine& C)
+    {
+        if (!Need(C, 1, "heal")) return false;
+        SceneFigure* I = Resolve(C.Arguments[0]); if (!I) return Refuse("heal: no figure '%s'", C.Arguments[0].c_str());
+        return CommitFaceBody(C, "Heal", I, FaceEditSolver::RemoveSlivers(I->Body));
     });
     Add("push", "push <body> distance --face=i [--name=…] — move a face along its outward normal; planar faces and full native cylinder/cone cap or side faces have direct exact routes", [=, this](const CommandLine& C)
     {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dependency-free SolidArc gate for environments without CMake.
-# It compiles the modelling kernel and runs the Phase 34a/34b direct-modelling proofs.
+# It compiles the modelling kernel and runs the direct-modelling proofs, including Phase 36a face editing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -34,6 +34,7 @@ CORE=(
     Kernel/MirrorSolver.cpp
     Kernel/BlendSolver.cpp
     Kernel/TweakSolver.cpp
+    Kernel/FaceEditSolver.cpp
     Presentation/SoftwareRaster.cpp
     Presentation/ScenePresentation.cpp
     Interaction/CameraProjection.cpp
@@ -64,11 +65,11 @@ done
 
 echo "[SolidArc] kernel, console and interaction targets link"
 
-for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft; do
+for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft FaceEdit; do
     TEST_OBJ="$WORK/obj/${TEST}Verification.o"
     "$CXX_BIN" "${FLAGS[@]}" -c "$SRC/Verification/${TEST}Verification.cpp" -o "$TEST_OBJ"
     "$CXX_BIN" "${OBJECTS[@]}" "$TEST_OBJ" -o "$WORK/${TEST}Verification"
     "$WORK/${TEST}Verification"
 done
 
-echo "[SolidArc] Phase 34a–34f and Phase 35a–35d loft, tweak, chamfer and curved/concave gates passed"
+echo "[SolidArc] Phase 34a–34f, Phase 35a–35d, and Phase 36a face-edit gates passed"
