@@ -778,10 +778,24 @@ volume, source immutability, refusal boundaries, console dispatch, and `Proofs/P
 Reflex sectors, arbitrary partial arcs, mixed cone/cylinder partial roots, branched or incomplete chains, curved
 networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
 
+#### Phase 36j: bounded partial plane–cone root chamfer ✅
+
+The partial mixed-support route now accepts one measured coaxial conical-frustum sector shared by a planar annular
+shoulder. It supports the canonical half-turn and a non-reflex general sector, derives the setback contact from the
+measured frustum slant, reconstructs the exact shoulder/chamfer-band/retained-cone meridian, and heals the radial endpoint
+caps transactionally. The accepted general-sector result is genus-zero `V12/E18/C36/L8/F8`; the half-turn identity uses
+`V12/E17/L7/F7`. `PartialPlaneConeChamferVerification` covers the `V14/E24/C48/L12/F12` general-sector source,
+chain propagation, angular square-radius volume, source immutability, console dispatch, refusal boundaries, and
+`Proofs/Phase36j_PartialPlaneConeChamfer.png`.
+
+The route remains intentionally narrow: reflex or arbitrary trimmed sectors, mixed cone/cylinder partial roots,
+non-coaxial or oblique supports, branched/incomplete chains, curved networks/corner patches, and general
+intersection/trim/sew healing refuse explicitly.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder, plane/cone, cylinder/cone, and half-turn partial root slices, further mixed-support chamfers, arbitrary non-prismatic
+the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, and partial plane/cone root slices, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
 and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
 application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,

@@ -180,6 +180,20 @@ added annular-cone wedge is `|θ|/(2π)` of the complete-ring value. The source 
 Reflex sectors, arbitrary partial arcs, incomplete or branched chains, partial cone/cylinder pairs, multiple curved roots,
 freeform edges, curved networks/corner patches, and general intersection/trim/sew healing remain explicit refusals.
 
+### Partial plane–cone root chamfers
+
+Phase 36j accepts one canonical open coaxial conical-frustum sector shared by a planar annular shoulder. The classifier
+measures the complete open root chain, shoulder outer cylinder, cone endpoints/radii, and radial endpoint caps; it accepts
+the physical half-turn or one non-reflex general sector only. Setback `s` follows the measured cone slant
+`q = sqrt(H² + (R_t − R_f)²)`, so the axial contact is `z = sH/q` and the retained cone contact radius is
+`R_f + (R_t − R_f)z/H`. The exact reconstruction retains the outer wall and top, inserts the straight meridian
+between `(R_f+s, 0)` and `(R_contact, z)`, and heals each radial endpoint cap without a general Boolean trim/sew.
+The general-sector result is `V12/E18/C36/L8/F8`; the half-turn result is `V12/E17/L7/F7`.
+
+This route is not a generic partial cone solver. Reflex/arbitrary trimmed sectors, mixed cone/cylinder partial roots,
+non-coaxial or oblique supports, branched/incomplete chains, multiple curved roots, freeform edges, curved
+networks/corner patches, and general intersection/trim/sew healing refuse transactionally.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

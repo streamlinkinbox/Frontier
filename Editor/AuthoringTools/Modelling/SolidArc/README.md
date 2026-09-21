@@ -22,8 +22,9 @@ Tools/Build/CheckSolidArc.sh
 ```
 
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
-the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, and the Phase 35a–35d curved,
-concave-chamfer and same-body-loft proofs. No external packages. `-Wall -Wextra -Wpedantic`.
+the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, the Phase 35a–35d curved,
+concave-chamfer and same-body-loft proofs, and the Phase 36a–36j face-edit and bounded curved-root proofs. No external
+packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
 
@@ -625,6 +626,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 36g | **Bounded complete cylinder–cone boss-root chamfer.** A canonical coaxial cylindrical/conical root reconstructs one exact `V6/E11/F7` solid with retained cylinder, conical band, retained cone, source immutability, and explicit non-coaxial/freeform refusals. | `CylinderConeChamferVerification` — 18 C++ checks; `Proofs/Phase36g_CylinderConeChamfer.png` |
 | 36h | **Bounded half-turn partial curved-root chamfer.** Either member of a two-arc planar-shoulder/cylindrical-boss root resolves one exact `V12/E17/F7` half-turn with endpoint caps; general-angle and arbitrary partial loops remain refused. | `PartialCurvedChamferVerification` — 14 C++ checks; `Proofs/Phase36h_PartialCurvedChamfer.png` |
 | 36i | **Bounded general-angle partial curved-root chamfer.** A measured non-reflex sector with two radial endpoint caps reconstructs one exact `V12/E18/F8` manifold; reflex, branched, and arbitrary partial loops remain refused. | `SectorCurvedChamferVerification` — 12 C++ checks; `Proofs/Phase36i_GeneralSectorChamfer.png` |
+| 36j | **Bounded partial plane–cone root chamfer.** A coaxial conical-frustum sector, including the canonical half-turn, reconstructs the exact setback band with radial endpoint-cap healing as `V12/E18/F8`; mixed partial roots, reflex/arbitrary sectors, and non-coaxial/freeform supports remain refused. | `PartialPlaneConeChamferVerification` — 15 C++ checks; `Proofs/Phase36j_PartialPlaneConeChamfer.png` |
 
 ## Console quick start
 

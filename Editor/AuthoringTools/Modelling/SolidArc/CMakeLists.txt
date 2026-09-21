@@ -225,6 +225,11 @@ add_executable(SectorCurvedChamferVerification Verification/SectorCurvedChamferV
 target_link_libraries(SectorCurvedChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME SectorCurvedChamferVerification COMMAND SectorCurvedChamferVerification)
 
+# Phase 36j: bounded general-angle partial plane-cone chamfer with radial endpoint-cap healing.
+add_executable(PartialPlaneConeChamferVerification Verification/PartialPlaneConeChamferVerification.cpp)
+target_link_libraries(PartialPlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialPlaneConeChamferVerification COMMAND PartialPlaneConeChamferVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)
