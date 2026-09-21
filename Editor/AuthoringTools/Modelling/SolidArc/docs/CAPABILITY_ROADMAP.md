@@ -682,15 +682,34 @@ general connected multi-face replacement or multi-section lofting.
 **35d exit gate met:** `ConnectedFaceLoftVerification` has 16 checks for exact topology, volume and area, source
 immutability, refusal boundaries, both console commit modes, and the visible `Proofs/Phase35d_ConnectedFaceLoft.png`.
 
-#### Still required in Phase 34/35
+#### Phase 36b: bounded general connected same-body face lofts ✅
 
-General connected same-body face lofts beyond the verified opposite-cap prism identity, general curved-face and curved-edge
-tweaks beyond the native analytic cylinder/cone routes, arbitrary non-prismatic concave/non-convex planar chamfer networks,
-curved-edge chamfers beyond the
-verified native cylinder/cone routes, and arbitrary non-planar edge loops still need dedicated topology and intersection
-routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
-lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing
-verification coverage.
+`SkinSolver::LoftFaces` now accepts a conservative set of connected same-body replacements beyond the canonical box identity:
+validated native cylinder/cone cap identities, hole-free prismatic extrusion cap replacements, and separated planar side
+faces on real prismatic solids. The generic same-body bridge now rejects adjacent faces before it can duplicate an existing
+band, while accepted results are checked for one positive-volume hull. Dissimilar disconnected hulls in one B-rep remain
+covered as non-identity ruled replacements. Healing preserves a validated solid when a natural-face re-sew would split a
+periodic seam or open the shell; no source is mutated. The console, transactional refusal paths, unequal prism fixture,
+source immutability, and visible proof are covered by `GeneralConnectedFaceLoftVerification` and
+`Proofs/Phase36b_GeneralConnectedFaceLoft.png`.
+
+#### Phase 36c: first general curved-edge chamfer ✅
+
+The first arbitrary curved-edge chamfer beyond native cylinder/cone caps is bounded to a complete circular root where a
+planar annular shoulder meets a native cylindrical boss. Structural classification reuses the measured tangent chain,
+circular support frames, and mixed plane/cylinder adjacency; reconstruction trims the shoulder radius by the setback,
+raises the boss start by the same axial setback, inserts an exact conical band, and sews a `V5/E9/F6` manifold. The
+concave wedge volume is checked analytically. Partial circular loops, torus/freeform edges, non-closed mixed supports,
+and consuming setbacks refuse transactionally; console dispatch and a visible source/result proof are covered by
+`GeneralCurvedChamferVerification` and `Proofs/Phase36c_GeneralCurvedChamfer.png`.
+
+#### Still required in Phase 34–36
+
+General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
+the complete plane/cylinder root, mixed support pairs such as cone/cylinder and plane/cone chamfers, arbitrary non-prismatic
+concave/non-convex planar chamfer networks, and arbitrary non-planar edge loops still need dedicated topology and
+intersection/trim/sew routes. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
+already exist in the earlier SkinSolver routes and remain separately bounded by their existing verification coverage.
 
 ## Later direct modelling and platform work
 

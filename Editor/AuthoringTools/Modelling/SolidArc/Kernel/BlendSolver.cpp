@@ -1908,6 +1908,38 @@ namespace
                                   BossRadius, BossHeight, SweepAngle };
     }
 
+    Deliver<BrepBody> ChamferPlaneCylinderBossRoot(const PlaneCylinderRoot& Root, double SetBack) noexcept
+    {
+        if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
+        if (!ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::TwoPi))
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "curved root chamfer currently requires a complete circular edge loop");
+        if (SetBack >= Root.BossHeight - Tol || Root.BossRadius + SetBack >= Root.OuterRadius - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back consumes the boss height or shoulder wall");
+
+        Workplane Frame = Workplane::FromNormal(Root.Base, Root.Axis);
+        const Vec3 Radial = Frame.AxisX;
+        const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
+        Deliver<NurbsSurface> Outer = NurbsSurface::Cylinder(Root.Base, Root.Axis, Root.OuterRadius, Root.ShoulderHeight);
+        Deliver<NurbsCurve> ShoulderLine = NurbsCurve::Line(ShoulderCentre + Radial * Root.OuterRadius,
+                                                            ShoulderCentre + Radial * (Root.BossRadius + SetBack));
+        Deliver<NurbsSurface> Shoulder = ShoulderLine
+            ? NurbsSurface::Revolution(ShoulderLine.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(ShoulderLine.Denial.Reason, ShoulderLine.Denial.Detail);
+        Deliver<NurbsSurface> Chamfer = NurbsSurface::Cone(ShoulderCentre, Root.Axis,
+                                                           Root.BossRadius + SetBack, Root.BossRadius, SetBack);
+        Deliver<NurbsSurface> Boss = NurbsSurface::Cylinder(ShoulderCentre + Root.Axis * SetBack, Root.Axis,
+                                                            Root.BossRadius, Root.BossHeight - SetBack);
+        if (!Outer || !Shoulder || !Chamfer || !Boss)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "curved root chamfer support is degenerate");
+        Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Chamfer.Payload, Boss.Payload });
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const BodyReport Report = Result.Payload.Validate();
+        if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+            Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0)
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "curved root chamfer did not heal to one manifold solid");
+        return Result;
+    }
+
     Deliver<BrepBody> FilletPlaneCylinderBossRoot(const PlaneCylinderRoot& Root, double Radius) noexcept
     {
         if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
@@ -2992,6 +3024,8 @@ Deliver<BrepBody> BlendSolver::ChamferEdge(const BrepBody& Body, int Edge, doubl
 {
     if (std::optional<CylinderCap> Cap = NativeCylinderCap(Body, Edge)) return ChamferCylinderCap(*Cap, SetBack);
     if (std::optional<ConeCap> Cap = NativeConeCapEdge(Body, Edge)) return ChamferConeCap(*Cap, SetBack);
+    if (std::optional<PlaneCylinderRoot> Root = PlaneCylinderBossRoot(Body, Edge))
+        return ChamferPlaneCylinderBossRoot(*Root, SetBack);
     EdgeCornerFrame F;
     if (const char* Why = CornerFrameRefusal(Body, Edge, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Why);
     if (SetBack <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
@@ -3285,8 +3319,10 @@ Deliver<BrepBody> BlendSolver::ChamferEdges(const BrepBody& Body, const std::vec
     if (!std::isfinite(SetBack) || SetBack <= Tol)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "set-back is zero or negative");
 
-    // A native circular rim has no planar edge frame; preserve its exact conical-cap route.
-    if (SeedEdges.size() == 1 && (NativeCylinderCap(Body, SeedEdges.front()) || NativeConeCapEdge(Body, SeedEdges.front())))
+    // Native circular rims and the bounded plane–cylinder root have no straight planar edge frame;
+    // preserve their exact curved-support routes before the planar-setback classifier.
+    if (SeedEdges.size() == 1 && (NativeCylinderCap(Body, SeedEdges.front()) || NativeConeCapEdge(Body, SeedEdges.front()) ||
+                                  PlaneCylinderBossRoot(Body, SeedEdges.front())))
     {
         Deliver<BrepBody> Result = ChamferEdge(Body, SeedEdges.front(), SetBack);
         if (Result && AppliedEdges) *AppliedEdges = 1;

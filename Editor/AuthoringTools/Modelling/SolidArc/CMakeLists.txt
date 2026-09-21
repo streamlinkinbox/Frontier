@@ -200,6 +200,11 @@ add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnecte
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME GeneralConnectedFaceLoftVerification COMMAND GeneralConnectedFaceLoftVerification)
 
+# Phase 36c: bounded mixed plane/cylinder curved-root chamfer.
+add_executable(GeneralCurvedChamferVerification Verification/GeneralCurvedChamferVerification.cpp)
+target_link_libraries(GeneralCurvedChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME GeneralCurvedChamferVerification COMMAND GeneralCurvedChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
