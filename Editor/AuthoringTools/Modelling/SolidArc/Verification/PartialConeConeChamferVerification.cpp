@@ -262,7 +262,7 @@ int main()
     const bool Rendered = SourceResult && ProofResult &&
         ProofHost.Document().AddBody("SharpPartialConeCone", Source.Transformed(Mat4::Translation({ -11, 0, 0 }))).Identity > 0 &&
         ProofHost.Document().AddBody("ChamferedPartialConeCone", ProofResult.Payload.Transformed(Mat4::Translation({ 11, 0, 0 }))).Identity > 0 &&
-        ProofHost.Execute("view iso") && ProofHost.Execute("view fit") && ProofHost.Execute("render Phase36l_PartialConeConeChamfer");
+        ProofHost.Execute("view top") && ProofHost.Execute("view fit") && ProofHost.Execute("render Phase36l_PartialConeConeChamfer");
     Panel.Expect("The cone–cone source/result proof render completes", Rendered);
     Panel.Expect("The cone–cone proof PNG is visible", std::filesystem::exists(Proof) && std::filesystem::file_size(Proof, Error) > 100000);
     return Panel.Conclude();
