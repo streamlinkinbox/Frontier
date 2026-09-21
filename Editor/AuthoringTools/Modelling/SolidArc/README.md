@@ -44,9 +44,10 @@ This increment answers the solid-to-solid workflow directly instead of treating 
 - `chamfer Body setback --edges=i[,j,…]` accepts one or more straight edges whose adjacent faces are planar. Convex
   planar bodies use a common half-space reconstruction, so adjacent selections produce real endpoint mitres and arbitrary
   dihedral angles without sequential edge-table drift. The operation is transactional: duplicate, curved/non-planar,
-  over-large/self-intersecting, non-convex-unproven and failed members refuse without consuming the source. Complete native
-  cylinder-cap rims retain their exact conical-frustum route. Curve profiles still support
-  `chamfer Curve setback --corners=i,j`.
+  over-large/self-intersecting and failed members refuse without consuming the source. A bounded prismatic route now
+  reconstructs multiple selected reflex corners from one complete simple concave extrusion profile (U/L handles), while
+  arbitrary non-convex solids still refuse rather than entering a Boolean guess. Complete native cylinder-cap rims retain
+  their exact conical-frustum route. Curve profiles still support `chamfer Curve setback --corners=i,j`.
 - `rotate Body angleDeg --face=i [--axis=(x,y,z)] [--warp]` rotates a planar face around its centroid while preserving
   the body's V/E/F topology. `scale Body factor --face=i [--warp]` applies a positive uniform centroid scale. Both are
   transactional: the source is untouched on a refusal, curved edges/faces and unsupported surfaces are explicit refusals,
@@ -410,6 +411,15 @@ cylinder with unchanged `V2/E3/F3` topology. Lateral cap motion, the cylindrical
 other curved edges refuse instead of being approximated. `CurvedTweakVerification` contributes 16 checks for the exact
 volumes, topology, source immutability, refusal boundaries, console commands, and
 `Proofs/Phase35a_CurvedCapTweaks.png`.
+
+## Concave planar chamfer networks (Phase 35b)
+
+`BlendSolver::ChamferEdges` now has a bounded prismatic route for a simple concave planar profile extruded along one
+axis. Multiple selected parallel reflex edges are edited in one complete 2D outline pass, then re-extruded and validated;
+this avoids order-dependent convex cutter Booleans and preserves exact planar bevel faces. U/L-handle profiles are
+verified with analytic profile-area × length volumes, fixed topology counts, transactional over-large refusal, console
+integration, and `Proofs/Phase35b_ConcaveChamferNetwork.png`. This does not claim arbitrary concave B-rep chamfering:
+non-prismatic, curved, self-intersecting or otherwise unproven non-convex networks retain explicit refusal.
 
 ## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
 

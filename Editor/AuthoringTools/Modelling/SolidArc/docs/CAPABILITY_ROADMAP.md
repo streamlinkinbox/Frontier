@@ -640,11 +640,25 @@ face/edge route equivalence, lateral and non-native curved refusals, console com
 `Proofs/Phase35a_CurvedCapTweaks.png` proof. The existing `TweakVerification` cap regression now asserts the same
 analytic route instead of expecting the old blanket curved-edge refusal.
 
+#### Phase 35b: bounded concave planar chamfer networks ✅
+
+`BlendSolver::ChamferEdges` now recognizes a simple prismatic network: every selected edge is a straight parallel edge
+running through the same planar cap profile, and the complete cap perimeter is a single simple polygon. All selected
+reflex corners are inset in one 2D outline operation and the profile is extruded again, producing one transactional
+solid with exact planar bevels. The route is deterministic for multiple U/L-handle corners and avoids sequential cutter
+order and coincident Boolean caps. Analytic profile-area × extrusion-length volume checks and the V/E/F counts guard the
+rebuild; over-large setbacks, curved/non-prismatic members, self-intersections and arbitrary non-convex solids still
+refuse.
+
+**35b exit gate met:** `ConcaveChamferVerification` checks a two-reflex U profile, V20/E30/F12 topology, exact
+chamfered-profile volume, source immutability, over-large transactional refusal, console integration, and the visible
+`Proofs/Phase35b_ConcaveChamferNetwork.png` proof.
+
 #### Still required in Phase 34/35
 
 Face lofts between connected faces of one body, general curved-face and curved-edge tweaks beyond the native cylinder
-cap route, concave/non-convex planar chamfer networks, curved-edge chamfers beyond the verified native cylinder-cap route,
-and arbitrary non-planar edge loops still need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
+cap route, arbitrary non-prismatic concave/non-convex planar chamfer networks, curved-edge chamfers beyond the verified
+native cylinder-cap route, and arbitrary non-planar edge loops still need dedicated topology and intersection routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
 lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing
 verification coverage.
 

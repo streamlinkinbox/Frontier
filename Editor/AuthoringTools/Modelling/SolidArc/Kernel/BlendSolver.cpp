@@ -2709,6 +2709,99 @@ namespace
         if (!Rebuilt || !Rebuilt.Payload.Validate().Solid()) return std::nullopt;
         return std::move(Rebuilt.Payload);
     }
+    // Exact planar-prism network route. A simple extrusion is reconstructed from its complete cap perimeter, replacing
+    //    every selected parallel edge corner in one 2D pass. Unlike sequential cutter/Boolean attempts this is stable for
+    //    multiple reflex corners and for concave U/L profiles; any non-prismatic or ambiguous network returns nullopt so
+    //    the normal convex/refusal routes remain authoritative.
+    std::optional<BrepBody> PrismaticChamferNetwork(const BrepBody& Body, const std::vector<EdgeCornerFrame>& Frames, double Amount) noexcept
+    {
+        if (Frames.size() < 2) return std::nullopt;
+        const EdgeCornerFrame& Seed = Frames.front();
+        if (Seed.Length <= Tol || Seed.Tangent.Length() <= Tol) return std::nullopt;
+        const Vec3 Axis = Seed.Tangent.Normalised();
+        const double CapLevel = Seed.Start.Dot(Axis);
+        const double Reach = std::max(1.0, Body.Bounds().Diagonal());
+        const double Epsilon = ScalarCriteria::GeometricTolerance * Reach * 10.0;
+        for (const EdgeCornerFrame& F : Frames)
+        {
+            if (F.Length <= Tol || std::fabs(std::fabs(F.Tangent.Normalised().Dot(Axis)) - 1.0) > 1e-6) return std::nullopt;
+            if (std::fabs(F.Start.Dot(Axis) - CapLevel) > Epsilon && std::fabs(F.End.Dot(Axis) - CapLevel) > Epsilon) return std::nullopt;
+        }
+
+        std::vector<std::vector<std::pair<int, int>>> Neighbours(Body.Vertices.size());
+        for (size_t E = 0; E < Body.Edges.size(); ++E)
+        {
+            const BrepEdge& Edge = Body.Edges[E];
+            if (Edge.VertexStart < 0 || Edge.VertexEnd < 0 || Edge.Closed() || Edge.Curve.Degree > 1) return std::nullopt;
+            if (std::fabs(Body.Vertices[Edge.VertexStart].Point.Dot(Axis) - CapLevel) > Epsilon ||
+                std::fabs(Body.Vertices[Edge.VertexEnd].Point.Dot(Axis) - CapLevel) > Epsilon) continue;
+            int CapUsers = 0;
+            for (int Coedge : Edge.Coedges)
+            {
+                Vec3 Normal;
+                if (PlanarNormal(Body, Body.Coedges[Coedge].Face, Normal) && std::fabs(Normal.Dot(Axis)) > 0.999999) ++CapUsers;
+            }
+            if (CapUsers != 1) continue;
+            Neighbours[Edge.VertexStart].push_back({ static_cast<int>(E), Edge.VertexEnd });
+            Neighbours[Edge.VertexEnd].push_back({ static_cast<int>(E), Edge.VertexStart });
+        }
+
+        int Start = -1;
+        for (size_t V = 0; V < Body.Vertices.size() && Start < 0; ++V)
+        {
+            for (const EdgeCornerFrame& F : Frames)
+            {
+                if (Body.Vertices[V].Point.Distance(F.Start) <= Epsilon || Body.Vertices[V].Point.Distance(F.End) <= Epsilon)
+                {
+                    if (std::fabs(Body.Vertices[V].Point.Dot(Axis) - CapLevel) <= Epsilon) { Start = static_cast<int>(V); break; }
+                }
+            }
+        }
+        if (Start < 0 || Neighbours[Start].size() != 2) return std::nullopt;
+
+        std::vector<Vec3> Points;
+        int Current = Start, PreviousEdge = -1;
+        for (size_t Guard = 0; Guard <= Body.Vertices.size(); ++Guard)
+        {
+            Points.push_back(Body.Vertices[Current].Point);
+            if (Neighbours[Current].size() != 2) return std::nullopt;
+            const auto& Step = Neighbours[Current][Neighbours[Current][0].first == PreviousEdge ? 1 : 0];
+            PreviousEdge = Step.first; Current = Step.second;
+            if (Current == Start) break;
+            if (Guard == Body.Vertices.size()) return std::nullopt;
+        }
+        if (Points.size() < 3 || Current != Start) return std::nullopt;
+
+        std::vector<int> Selected;
+        for (const EdgeCornerFrame& F : Frames)
+        {
+            Vec3 Anchor = std::fabs(F.Start.Dot(Axis) - CapLevel) <= Epsilon ? F.Start : F.End;
+            int Found = -1;
+            for (size_t I = 0; I < Points.size(); ++I)
+                if (Points[I].Distance(Anchor) <= Epsilon) { Found = static_cast<int>(I); break; }
+            if (Found < 0 || std::find(Selected.begin(), Selected.end(), Found) != Selected.end()) return std::nullopt;
+            Selected.push_back(Found);
+        }
+
+        std::vector<Vec3> Outline;
+        Outline.reserve(Points.size() + Selected.size());
+        for (size_t I = 0; I < Points.size(); ++I)
+        {
+            const bool IsSelected = std::find(Selected.begin(), Selected.end(), static_cast<int>(I)) != Selected.end();
+            if (!IsSelected) { Outline.push_back(Points[I]); continue; }
+            const Vec3 Previous = Points[(I + Points.size() - 1) % Points.size()];
+            const Vec3 Next = Points[(I + 1) % Points.size()];
+            const double ALength = Points[I].Distance(Previous), BLength = Points[I].Distance(Next);
+            if (Amount <= Tol || Amount >= ALength - Tol || Amount >= BLength - Tol) return std::nullopt;
+            Outline.push_back(Points[I] + (Previous - Points[I]) * (Amount / ALength));
+            Outline.push_back(Points[I] + (Next - Points[I]) * (Amount / BLength));
+        }
+        Deliver<NurbsCurve> Profile = NurbsCurve::Polyline(Outline, true);
+        if (!Profile) return std::nullopt;
+        Deliver<BrepBody> Rebuilt = BrepBody::Extrude(Profile.Payload, Axis, Seed.Length);
+        if (!Rebuilt || !Rebuilt.Payload.Validate().Solid()) return std::nullopt;
+        return std::move(Rebuilt.Payload);
+    }
 }
 
 Deliver<std::vector<int>> BlendSolver::TangentChain(const BrepBody& Body, int SeedEdge) noexcept
@@ -3180,6 +3273,18 @@ Deliver<BrepBody> BlendSolver::ChamferEdges(const BrepBody& Body, const std::vec
     double SumRemoval = 0.0;
     for (const EdgeCornerFrame& Frame : Frames) SumRemoval += ChamferRemoval(Frame, SetBack);
     const double VolumeTolerance = std::max(1e-5, std::fabs(SourceVolume) * 2e-7);
+
+    if (Unique.size() > 1)
+        if (std::optional<BrepBody> Prism = PrismaticChamferNetwork(Body, Frames, SetBack))
+        {
+            const BodyReport Report = Prism->Validate();
+            const double Removed = SourceVolume - Report.Volume;
+            if (Report.Solid() && Removed > VolumeTolerance)
+            {
+                if (AppliedEdges) *AppliedEdges = static_cast<int>(Unique.size());
+                return Deliver<BrepBody>::Accept(std::move(*Prism));
+            }
+        }
 
     if (Unique.size() == 1)
     {
