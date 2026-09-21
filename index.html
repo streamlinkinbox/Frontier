@@ -9,41 +9,27 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="stage">
-  <div class="device">
-    <div class="screen" id="screen">
-      <div class="ui" id="ui">
-        <!-- TOP NAV — mimics Traffic Management header -->
-        <header class="topbar">
-          <a class="brand" href="./">
-            <span class="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 8l5 5-5 5"/><path d="M8 8l5 5-5 5"/><path d="M13 8l5 5-5 5"/></svg>
-            </span>
-            FRONTIER
-          </a>
-          <nav class="nav-pills" id="navPills" aria-label="Sections">
-            <button class="pill active" data-nav="live">Live Map</button>
-            <button class="pill" data-nav="fleet">Fleet</button>
-            <button class="pill" data-nav="routes">Routes</button>
-            <button class="pill" data-nav="analytics">Analytics</button>
-            <button class="pill" data-nav="maintenance">Maintenance</button>
-            <button class="pill" data-nav="incidents">Incidents</button>
-          </nav>
-          <div class="top-actions">
-            <button class="icon-btn" id="help" aria-label="About">?</button>
-            <a class="top-link" href="app/index.html">Lobby →</a>
-          </div>
-        </header>
+<header class="topbar">
+  <a class="brand" href="./">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 8l5 5-5 5"/><path d="M8 8l5 5-5 5"/><path d="M13 8l5 5-5 5"/></svg>
+    </span>
+    FRONTIER <span style="font-weight:400;opacity:.5;letter-spacing:.08em;margin-left:8px">POND LAB</span>
+  </a>
+  <div class="top-actions">
+    <button class="icon-btn" id="help" aria-label="About">?</button>
+  </div>
+</header>
 
-        <!-- FILTER PILLS — row like 24 Bus | 100 Taxi | 12 Trains | 13 Trams  → repurposed as water materials -->
-        <div class="filter-row" role="group" aria-label="Water material">
-          <button class="filter-pill active" data-mat="clean"><b>24</b> Clean</button>
-          <button class="filter-pill" data-mat="ocean"><b>100</b> Ocean</button>
-          <button class="filter-pill" data-mat="swamp"><b>12</b> Swamp</button>
-          <button class="filter-pill" data-mat="puddle"><b>13</b> Puddle</button>
-          <button class="filter-pill" data-mat="dirty"><b>—</b> Dirty</button>
-          <span class="filter-meta"><span class="dot"></span> 5 presets · IOR 1.333</span>
-        </div>
+<!-- Material presets — simplified, no bus counts -->
+<div class="filter-row" role="group" aria-label="Water material">
+  <button class="filter-pill active" data-mat="clean">Clean</button>
+  <button class="filter-pill" data-mat="ocean">Ocean</button>
+  <button class="filter-pill" data-mat="swamp">Swamp</button>
+  <button class="filter-pill" data-mat="puddle">Puddle</button>
+  <button class="filter-pill" data-mat="dirty">Dirty</button>
+  <span class="filter-meta"><span class="dot"></span> IOR 1.333 · anti-tiled shader</span>
+</div>
 
         <div class="layout">
           <!-- LEFT: properties (traffic image left) -->
@@ -169,7 +155,7 @@
 
           <!-- RIGHT: viewport (traffic map side) -->
           <section class="right">
-            <div class="viewport-viewport">
+              <div class="viewport-viewport">
               <div class="viewport-head">
                 <div class="vm-title"><span class="dot"></span> The garden pond <em>Interactive 3D scene</em> <span class="view-pill">PERSPECTIVE <b>XYZ</b></span></div>
                 <div class="vm-actions">
@@ -183,10 +169,6 @@
                 <canvas id="fluid" aria-label="3D garden pond. Drag to orbit. Select Ripple then click water, Move lily to drag leaves, Move duck to drag the yellow duck."></canvas>
                 <div class="canvas-top">
                   <span class="live-badge" id="liveBadge"><i></i> LIVE POND</span>
-                  <span class="vp-labels">
-                    <span id="liveVerbose">Traffic Man — Pond Lab</span>
-                    <span class="search-pill">Bus 6023 <b>⌃</b></span>
-                  </span>
                 </div>
                 <div class="pond-tools" role="group" aria-label="Interaction tool">
                   <button data-tool="orbit" class="active">↻ <span>Orbit</span> <small>1</small></button>
@@ -199,28 +181,18 @@
                 <div id="webglError" hidden>WebGL unavailable — enable hardware acceleration</div>
               </div>
               <div class="viewport-foot">
-                <span>↳ <strong>Follow the wake.</strong> Select Move duck, drag the yellow duck, and let go — compare clean, ocean, swamp, puddle, dirty water. <span id="bus6023">Bus 6023</span> is selected.</span>
+                <span>↳ <strong>Follow the wake.</strong> Select Move duck, drag the yellow duck, and let go — compare clean, ocean, swamp, puddle, dirty water.</span>
                 <span class="version">SURFACE / v3.1 · Frontier</span>
               </div>
             </div>
-
-            <!-- bottom mini metrics like image timeline -->
-            <div class="timeline-card">
-              <div class="tl-head">Fleet rhythm <span>last 45 s simulation</span></div>
-              <canvas id="tlCanvas" width="900" height="90"></canvas>
-            </div>
           </section>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <dialog id="about"><button id="closeHelp" class="icon-btn small close" aria-label="Close">×</button><div class="eyebrow">UNDER THE SURFACE</div><h2>A 2D simulation. A 3D little world.</h2><p>Heightfield wave equation <code>h_tt = c²∇²h − damping·h_t</code> on a fixed world-space grid, velocity-Verlet, CFL-limited. Five water optics with IOR 1.333, Beer–Lambert, Schlick/GXX, planar reflections. Anti-tiled FBM shader (2026). Resize preserves spacing, not stretching.</p><p>Controls: Orbit / scroll, Ripple / click, Move lily / drag leaf, Move duck / drag duck (1–4). Space pause, R reset.</p><button id="gotIt" class="btn primary">Back to the pond</button></dialog>
 
 <script type="module" src="app.js"></script>
 <script type="module">
-// UI glue for traffic-management skin — keepspond app.js intact
+// UI glue — pond material pills ↔ select (no nav pills any more)
 const $ = id => document.getElementById(id);
 const pills = [...document.querySelectorAll('.filter-pill')];
 const sel = $('waterMaterial');
@@ -236,17 +208,6 @@ pills.forEach(p=>{
   p.addEventListener('click', ()=>{
     const m = p.dataset.mat;
     if(sel){ sel.value = m; sel.dispatchEvent(new Event('change', {bubbles:true})); syncPillsFromSelect(); }
-    // also trigger toast via app.js if available is global? mimic
-  });
-});
-// nav pills toast (Live Map etc)
-document.querySelectorAll('.nav-pills .pill').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.nav-pills .pill').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    if(b.dataset.nav !== 'live'){
-      const t=$('toast'); if(t){ t.textContent = b.textContent + ' — coming next'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-    }
   });
 });
 
@@ -263,9 +224,9 @@ setInterval(()=>{
   if(fpsEl&&$('statOffline')) $('statOffline').textContent = fpsEl.textContent==='—'? '—' : fpsEl.textContent;
 },400);
 
-// efficiency graph — Operational Efficiency mimic + timeline
-const energyGraph=$('energyGraph'), tlCanvas=$('tlCanvas');
-const egCtx=energyGraph?.getContext('2d'), tlCtx=tlCanvas?.getContext('2d');
+// efficiency graph — Operational Efficiency (timeline removed — fullscreen focus)
+const energyGraph=$('energyGraph');
+const egCtx=energyGraph?.getContext('2d');
 const history=[];
 let baseEnergy=null;
 function getDiag(){ try{ return window.pondDiagnostics?.(); }catch{ return null; } }
@@ -329,21 +290,11 @@ setInterval(()=>{
   const num=$('efficiencyNum'), dec=$('efficiencyDec');
   if(num&&dec){ const s=eff.toFixed(1).split('.'); num.textContent=s[0]; dec.textContent=s[1]; }
   drawGraph(egCtx, energyGraph, history);
-  // timeline is same history but stretched
-  if(tlCtx) drawGraph(tlCtx, tlCanvas, history, {light:true});
 }, 220);
 
 // initial draw
 for(let i=0;i<50;i++) pushHistory();
 drawGraph(egCtx, energyGraph, history);
-if(tlCtx) drawGraph(tlCtx, tlCanvas, history);
-
-// mirror material select -> bus6023 label
-if(sel){
-  sel.addEventListener('change', ()=>{
-    const lb=$('bus6023'); if(lb) lb.textContent = 'Pond ' + ($('dimensionsLabel')?.textContent || '');
-  });
-}
 </script>
 </body>
 </html>
