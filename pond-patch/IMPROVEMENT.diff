@@ -1,0 +1,112 @@
+--- pond-patch/water-materials.original.mjs	2026-09-21 13:14:21.902948526 +0000
++++ pond-patch/water-materials.improved.mjs	2026-09-21 13:14:21.898948496 +0000
+@@ -23,18 +23,68 @@
+   varying vec3 vPosition,vNormal; varying vec4 vReflection;
+   #include <packing>
+   const float PI=3.14159265359;
+-  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+-  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
++  // ---- anti-tiling hash/noise (2026 fix) ----
++  // IQ-style hash12 with mod289 permutation — no sin periodicity tiling
++  float hash12(vec2 p){
++    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
++    p3 += dot(p3, p3.yzx + 33.33);
++    return fract((p3.x + p3.y) * p3.z);
++  }
++  float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
++  float valueNoise(vec2 p){
++    vec2 i = floor(p);
++    vec2 f = fract(p);
++    f = f*f*(3.0-2.0*f);
++    float a = hash12(i);
++    float b = hash12(i+vec2(1.0,0.0));
++    float c = hash12(i+vec2(0.0,1.0));
++    float d = hash12(i+vec2(1.0,1.0));
++    return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);
++  }
++  // 2D rotation matrix for domain warp (23 deg)
++  mat2 rot23(){ float c=0.9205, s=0.3907; return mat2(c,-s,s,c); }
++  float fbm(vec2 p){
++    // 3 octaves, decorrelated frequency/rotation, domain warp
++    float v=0.0; float amp=0.5; mat2 R=rot23();
++    for(int i=0;i<3;i++){
++      v += amp * valueNoise(p);
++      p = R * p * 2.07 + vec2(5.11, 3.77);
++      amp *= 0.48;
++    }
++    return v;
++  }
++  float fbmWarp(vec2 p){
++    // domain-warped FBM — breaks axis alignment
++    vec2 q = vec2(fbm(p+vec2(0.0,0.0)), fbm(p+vec2(5.2,1.3)));
++    vec2 r = vec2(fbm(p + 3.7*q + vec2(1.7,9.2)), fbm(p + 3.7*q + vec2(8.3,2.8)));
++    return fbm(p + 3.0*r);
++  }
+   vec2 environmentUV(vec3 r){return vec2(atan(r.z,r.x)/(2.*PI)+.5,asin(clamp(r.y,-1.,1.))/PI+.5);}
+   float smith(float nd,float a2){return 2.*nd/(nd+sqrt(a2+(1.-a2)*nd*nd));}
+   void main(){
+     if(distance(vPosition.xz,vec2(-2.4,-1.65))<.64||distance(vPosition.xz,vec2(2.7,1.65))<.45)discard;
+     vec2 p=vPosition.xz;
+-    // Wind/capillary-scale detail affects shading only; resolved waves come from the solver.
+-    vec2 micro=vec2(cos(p.x*8.1+p.y*3.7+uTime*1.7)+.42*cos(p.x*19.-p.y*11.+uTime*2.3),
+-      sin(p.y*9.7-p.x*4.1+uTime*1.2)+.42*sin(p.y*17.+p.x*12.-uTime*2.1));
++    // ---- micro / capillary detail: two decorrelated octaves with flow ----
++    // flow vector varies slowly to avoid static grid; footprint fade unchanged
++    vec2 flow = vec2(uTime*0.07, uTime*0.04);
++    vec2 micro = vec2(0.0);
++    {
++      // octave 1: large capillary (~0.12 m)
++      vec2 p1 = (p + flow) * 7.3;
++      micro += vec2(
++        fbmWarp(p1*0.85 + vec2(0.0, uTime*0.55)) - 0.5,
++        fbmWarp(p1*1.15 + vec2(3.1, uTime*0.41)) - 0.5
++      ) * 1.0;
++      // octave 2: small ripple (~0.05 m), orthogonal bias
++      vec2 p2 = mat2(0.866,-0.5,0.5,0.866) * p * 18.5 + flow*1.7;
++      micro += vec2(
++        fbmWarp(p2 + vec2(uTime*0.62, 0.0)) - 0.5,
++        fbmWarp(p2.yx*1.07 + vec2(uTime*0.37, 0.0)) - 0.5
++      ) * 0.42;
++    }
+     float footprint=max(length(dFdx(p)),length(dFdy(p)));
+     float detailFilter=1.-smoothstep(.04,.20,footprint);
++    // micro normal scaled by preset uMicro, with stochastic jitter to break last grid
+     vec3 N=normalize(vNormal+vec3(micro.x,0.,micro.y)*uMicro*detailFilter);
+     float variance=dot(dFdx(N),dFdx(N))+dot(dFdy(N),dFdy(N));
+     float roughness=clamp(sqrt(uRoughness*uRoughness+min(.18,variance*.6)),.025,.65);
+@@ -58,9 +108,15 @@
+     vec3 extinction=uAbsorption+vec3(uScattering);
+     vec3 transmittance=exp(-extinction*path);
+     vec3 transmission=bed*transmittance+uScatterColor*(vec3(1.)-transmittance);
+-    // Decorative focusing pattern, attenuated twice along the underwater optical path.
+-    float caustic=pow(abs(sin(bedPoint.x*5.+sin(bedPoint.z*3.+uTime*.35))*sin(bedPoint.z*5.+sin(bedPoint.x*3.-uTime*.27))),14.);
+-    transmission+=vec3(.13,.13,.085)*caustic*transmittance*transmittance;
++    // ---- caustic: two decorrelated layers, no single sin grid ----
++    {
++      float c1 = fbmWarp(bedPoint.xz*2.2 + vec2(uTime*0.12, uTime*0.08));
++      float c2 = fbmWarp(bedPoint.zx*3.1 - vec2(uTime*0.09, uTime*0.11));
++      float caustic = pow(c1 * c2, 2.4);
++      // modulate by depth to avoid tiling flash on shallow rim
++      caustic *= smoothstep(0.02, 0.12, depth);
++      transmission+=vec3(.13,.13,.085)*caustic*0.9*transmittance*transmittance;
++    }
+     vec3 R=reflect(-V,N);
+     vec3 reflected=texture2D(uEnvironment,environmentUV(R),roughness*7.).rgb;
+     vec2 reflectUV=vReflection.xy/vReflection.w;
+@@ -80,8 +136,14 @@
+     color+=vec3(1.,.93,.77)*spec*nl*2.1;
+     // Local contact-darkening under the floating body is a shading approximation.
+     color*=1.-.18*exp(-dot(p-uDuck,p-uDuck)/.28);
+-    float film=smoothstep(.48,.72,noise(p*2.5+sin(p.yx*1.7)*.3))*uFilm;
+-    color=mix(color,vec3(.12,.18,.035),film*.6);
++    // ---- algae film: warped FBM, not single noise(p*2.5) ----
++    {
++      vec2 fp = p*1.6 + vec2(fbm(p*0.7+vec2(0.0,uTime*0.02)), fbm(p*0.7+vec2(1.7,uTime*0.015))) * 0.9;
++      float fn = fbmWarp(fp*1.8);
++      float film=smoothstep(.48,.72,fn)*uFilm;
++      film *= 1.0 - 0.35*fbmWarp(p*6.0); // break uniform blobs
++      color=mix(color,vec3(.12,.18,.035),film*.6);
++    }
+     gl_FragColor=vec4(color,1.);
+     #include <tonemapping_fragment>
+     #include <colorspace_fragment>
