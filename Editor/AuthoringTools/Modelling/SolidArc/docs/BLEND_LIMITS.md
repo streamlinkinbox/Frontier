@@ -132,6 +132,19 @@ wedge to `≤ 1.5e-3` of the wedge across narrowing, flaring, steep, `α = 0`, o
 fixtures; it is gated at `5e-3`. Torus residual is gated at `1e-9` (measured `≤ 3e-14`) and both G1 breaks at `1e-10`
 (measured `0`).
 
+### Complete plane–cone boss-root chamfers
+
+Phase 36f adds a separate, deliberately bounded chamfer route for the same complete circular plane–cone root. The native
+cone is sampled at both end rows and through its straight generators; a setback `s` travels along the measured cone slant,
+so the axial contact is `z = sH / sqrt(H² + (R_t − R_f)²)` and the contact radius is the linear cone radius at `z`.
+The exact reconstruction keeps the outer cylinder, annular shoulder, and top support, and inserts the straight conical
+band between `(R_f + s, 0)` and `(R_contact, z)`. The result is checked as one genus-zero `V5/E9/F6` solid, and the
+added material is measured against the exact square-radius meridian integral. Narrowing and flaring frusta are covered.
+
+The route refuses non-positive or consuming setbacks, zero-radius/apex cones, partial root loops, arbitrary torus/freeform
+edges, cone–cylinder or non-coaxial support pairs, curved networks/corner patches, and general intersection/trim/sew
+healing. These are not inferred from a visually similar edge: only the canonical complete plane–cone topology is accepted.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to

@@ -1,7 +1,7 @@
 #=============================================================================================================================================
 # Editor/AuthoringTools/Modelling/SolidArc/CMakeLists.txt — SolidArc standalone NURBS / B-rep modelling tool.
 #   Builds with no engine dependency and no external packages. The direct-modelling gates cover face loft,
-#   fixed-topology tweaks, planar chamfers, bounded planar face transforms, and the Phase 36a face-edit batch.
+#   fixed-topology tweaks, planar chamfers, bounded curved-support chamfers, face transforms, and the Phase 36a face-edit batch.
 #=============================================================================================================================================
 
 cmake_minimum_required(VERSION 3.20)
@@ -204,6 +204,11 @@ add_test(NAME GeneralConnectedFaceLoftVerification COMMAND GeneralConnectedFaceL
 add_executable(GeneralCurvedChamferVerification Verification/GeneralCurvedChamferVerification.cpp)
 target_link_libraries(GeneralCurvedChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME GeneralCurvedChamferVerification COMMAND GeneralCurvedChamferVerification)
+
+# Phase 36f: bounded complete circular plane–cone boss-root chamfer; arbitrary mixed/freeform curved edges remain refused.
+add_executable(PlaneConeChamferVerification Verification/PlaneConeChamferVerification.cpp)
+target_link_libraries(PlaneConeChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PlaneConeChamferVerification COMMAND PlaneConeChamferVerification)
 
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)

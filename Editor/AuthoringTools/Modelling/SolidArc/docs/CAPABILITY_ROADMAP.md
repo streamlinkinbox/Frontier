@@ -722,15 +722,31 @@ laws, non-axial endpoints, partial endpoint chains, nonlinear laws, variable set
 explicit refusals. The law/surface/reconstruction and adversarial checks are covered by
 `Phase33VariableRadiusVerification`.
 
+#### Phase 36f: bounded complete plane–cone boss-root chamfer ✅
+
+Set 3 now has one verified mixed-support chamfer slice: a complete circular root shared by a planar annular shoulder and
+a native coaxial conical frustum. `PlaneConeBossRoot` measures the cone end rows and straight generators, derives the
+setback point from the cone slant, and transactionally rebuilds the retained outer cylinder, shoulder of revolution,
+conical band, retained cone and caps. Accepted results are one genus-zero `V5/E9/F6` solid with no open,
+non-manifold, or misoriented edges; the differential volume follows the exact square-radius meridian wedge within the
+kernel's tessellation floor, and the source is left unchanged. Narrowing and flaring fixtures, console dispatch,
+zero/negative/consuming/apex refusals, arbitrary torus refusal, and a visible source/result proof are covered by
+`PlaneConeChamferVerification` and `Proofs/Phase36f_PlaneConeChamfer.png`.
+
+This does not claim general curved-edge support: partial loops, cone–cylinder pairs, non-coaxial or freeform supports,
+curved networks/corner patches, concave/non-convex networks, and general intersection/trim/sew healing remain explicit
+refusals for later slices.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder root, mixed support pairs such as cone/cylinder and plane/cone chamfers, arbitrary non-prismatic
-concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches, and general
-intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet application,
-variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone, cone/cylinder, apex,
-unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
-already exist in the earlier SkinSolver routes and remain separately bounded by their existing verification coverage.
+the complete plane/cylinder and plane/cone roots, mixed support pairs such as cone/cylinder chamfers, arbitrary
+non-prismatic concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
+and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
+application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,
+cone/cylinder, apex, unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide
+curves, and multi-loop lofts with through-holes already exist in the earlier SkinSolver routes and remain separately
+bounded by their existing verification coverage.
 
 ## Later direct modelling and platform work
 
