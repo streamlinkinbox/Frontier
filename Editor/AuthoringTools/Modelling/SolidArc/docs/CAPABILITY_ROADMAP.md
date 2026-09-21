@@ -713,12 +713,23 @@ loop. Curved supports, non-convex sources, and general freeform/non-planar faces
 source immutability, refusal boundaries, and visible source/result proof are covered by
 `ArbitraryNonPlanarEdgeLoopVerification` and `Proofs/Phase36d_ArbitraryNonPlanarEdgeLoop.png`.
 
+#### Phase 36e: bounded Phase 33 linear variable-radius foundation ✅
+
+The first Phase 33 increment accepts an explicit complete-circular linear radius law and reconstructs its ruled surface as
+an exact native frustum. It validates endpoint radii, axial support correspondence, positive radius, sampled
+circumferential curvature, analytic swept volume, and one-hull topology. Partial circular supports, zero-radius/apex
+laws, non-axial endpoints, partial endpoint chains, nonlinear laws, variable setback fillets, and G2 continuity remain
+explicit refusals. The law/surface/reconstruction and adversarial checks are covered by
+`Phase33VariableRadiusVerification`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
 the complete plane/cylinder root, mixed support pairs such as cone/cylinder and plane/cone chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches, and general
-intersection/trim/sew resolution still need dedicated topology routes. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
+intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet application,
+variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone, cone/cylinder, apex,
+unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide curves, and multi-loop lofts with through-holes
 already exist in the earlier SkinSolver routes and remain separately bounded by their existing verification coverage.
 
 ## Later direct modelling and platform work

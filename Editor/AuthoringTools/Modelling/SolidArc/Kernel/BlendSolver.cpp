@@ -4130,6 +4130,9 @@ Deliver<VariableRadiusSurface> BlendSolver::BuildVariableRadiusSurface(const Asy
     if (Length <= ScalarCriteria::MergeTolerance)
         return Deliver<VariableRadiusSurface>::Reject(RefusalReason::DegenerateInput, "variable surface has zero axial length");
     Vec3 Axis = Delta / Length;
+    if (std::fabs(std::fabs(Axis.Dot(Specification.Low.Normal.Normalised())) - 1.0) > ScalarCriteria::AngularTolerance ||
+        std::fabs(std::fabs(Axis.Dot(Specification.High.Normal.Normalised())) - 1.0) > ScalarCriteria::AngularTolerance)
+        return Deliver<VariableRadiusSurface>::Reject(RefusalReason::Unsupported, "variable-radius supports must be normal to the axial spine");
     Vec3 Radial = Axis.Cross(Vec3::UnitX());
     if (Radial.Length() <= ScalarCriteria::GeometricTolerance) Radial = Axis.Cross(Vec3::UnitY());
     if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
@@ -4139,10 +4142,18 @@ Deliver<VariableRadiusSurface> BlendSolver::BuildVariableRadiusSurface(const Asy
 
 Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept
 {
+    if (std::fabs(Specification.Low.EndpointAngle) > ScalarCriteria::SweepTolerance ||
+        std::fabs(Specification.High.EndpointAngle) > ScalarCriteria::SweepTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "variable-radius ruled reconstruction requires complete circular supports");
     auto Surface = BuildVariableRadiusSurface(Specification);
     if (!Surface) return Deliver<BrepBody>::Reject(Surface.Denial.Reason, "invalid variable-radius ruled surface");
-    return BrepBody::Cone(Surface.Payload.Origin, Surface.Payload.Axis, Surface.Payload.Law.Start,
-                          Surface.Payload.Law.End, Surface.Payload.Length);
+    Deliver<BrepBody> Result = BrepBody::Cone(Surface.Payload.Origin, Surface.Payload.Axis, Surface.Payload.Law.Start,
+                                               Surface.Payload.Law.End, Surface.Payload.Length);
+    if (!Result) return Result;
+    const double ExactVolume = Surface.Payload.Law.SweptVolume(Surface.Payload.Length);
+    if (!ScalarCriteria::WithinVolumeTolerance(Result.Payload.Validate().Volume, ExactVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "variable-radius ruled volume failed analytic acceptance");
+    return Result;
 }
 
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,

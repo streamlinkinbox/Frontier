@@ -210,6 +210,11 @@ add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonP
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ArbitraryNonPlanarEdgeLoopVerification COMMAND ArbitraryNonPlanarEdgeLoopVerification)
 
+# Phase 36e: bounded Phase 33 linear variable-radius ruled-solid foundation.
+add_executable(Phase33VariableRadiusVerification Verification/Phase33VariableRadiusVerification.cpp)
+target_link_libraries(Phase33VariableRadiusVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME Phase33VariableRadiusVerification COMMAND Phase33VariableRadiusVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
