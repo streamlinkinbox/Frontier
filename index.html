@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Frontier — Pond Lab · Live View</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/"}}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <div class="screen" id="screen">
+      <div class="ui" id="ui">
+        <!-- TOP NAV — mimics Traffic Management header -->
+        <header class="topbar">
+          <a class="brand" href="./">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 8l5 5-5 5"/><path d="M8 8l5 5-5 5"/><path d="M13 8l5 5-5 5"/></svg>
+            </span>
+            FRONTIER
+          </a>
+          <nav class="nav-pills" id="navPills" aria-label="Sections">
+            <button class="pill active" data-nav="live">Live Map</button>
+            <button class="pill" data-nav="fleet">Fleet</button>
+            <button class="pill" data-nav="routes">Routes</button>
+            <button class="pill" data-nav="analytics">Analytics</button>
+            <button class="pill" data-nav="maintenance">Maintenance</button>
+            <button class="pill" data-nav="incidents">Incidents</button>
+          </nav>
+          <div class="top-actions">
+            <button class="icon-btn" id="help" aria-label="About">?</button>
+            <a class="top-link" href="app/index.html">Lobby →</a>
+          </div>
+        </header>
+
+        <!-- FILTER PILLS — row like 24 Bus | 100 Taxi | 12 Trains | 13 Trams  → repurposed as water materials -->
+        <div class="filter-row" role="group" aria-label="Water material">
+          <button class="filter-pill active" data-mat="clean"><b>24</b> Clean</button>
+          <button class="filter-pill" data-mat="ocean"><b>100</b> Ocean</button>
+          <button class="filter-pill" data-mat="swamp"><b>12</b> Swamp</button>
+          <button class="filter-pill" data-mat="puddle"><b>13</b> Puddle</button>
+          <button class="filter-pill" data-mat="dirty"><b>—</b> Dirty</button>
+          <span class="filter-meta"><span class="dot"></span> 5 presets · IOR 1.333</span>
+        </div>
+
+        <div class="layout">
+          <!-- LEFT: properties (traffic image left) -->
+          <aside class="left">
+            <!-- twin status cards — Online 12 / Offline 4  → Grid / FPS -->
+            <div class="twin">
+              <div class="stat-card">
+                <div class="stat-head"><span class="ic green">✓</span> Online</div>
+                <div class="stat-num"><span id="statOnline">12</span><small id="statOnlineSub">×64</small></div>
+                <div class="stat-label"><span id="gridCount">96×64</span> · <span id="refineState">Base</span></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-head"><span class="ic red">▲</span> Offline</div>
+                <div class="stat-num"><span id="statOffline">4</span><small>fps</small></div>
+                <div class="stat-label"><span id="fps">—</span> fps · <span id="spacing">84</span> mm</div>
+              </div>
+            </div>
+
+            <!-- operational efficiency → wave energy graph -->
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">Operational Efficiency</div>
+                  <div class="card-sub">Wave energy · damping <span id="dampingValueInline">0.45</span> · target 78.3%</div>
+                </div>
+                <button class="mini-arrow" aria-label="Expand">↗</button>
+              </div>
+              <div class="big-metric"><span id="efficiencyNum">78</span>.<small id="efficiencyDec">3</small><em>%</em></div>
+              <div class="target-row">Target: <span>stable &lt; 0.30 m peak</span></div>
+              <div class="graph-wrap">
+                <canvas id="energyGraph" width="520" height="140" aria-label="Energy history"></canvas>
+                <div class="graph-axis">
+                  <span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span>
+                </div>
+              </div>
+              <div class="bus-row">
+                <span class="bus-chip"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M5 8h14v8H5z"/><path d="M7 16v2"/><path d="M17 16v2"/><circle cx="8" cy="18" r="1"/><circle cx="16" cy="18" r="1"/></svg> Pond <span id="dimensionsLabel">12.0 × 8.0 m · 96 m²</span></span>
+                <span class="bus-chip subtle" id="materialBadge">CLEAN WATER</span>
+              </div>
+            </div>
+
+            <!-- controls — collapsed into scrollable properties -->
+            <div class="card scroll">
+              <div class="card-head tight"><div class="card-title">Properties</div><span class="tiny">SURFACE WATER LAB</span></div>
+
+              <label class="field-label" for="scene">Water mood</label>
+              <select id="scene">
+                <option value="pond">Gentle ripples</option>
+                <option value="rain">Rain on the pond</option>
+                <option value="still" selected>Still water</option>
+                <option value="pulse">A single splash</option>
+              </select>
+              <div class="row between"><label for="autoRipples">Automatic ripples & wind</label><input id="autoRipples" class="switch" type="checkbox"></div>
+              <p class="help">Off by default — turn on for rain / wind</p>
+
+              <div class="divider"></div>
+              <div class="section-title">Pond dimensions <span>METRES</span></div>
+              <label class="range-label" for="pondWidth">Width <output id="pondWidthValue">12 m</output></label>
+              <input id="pondWidth" type="range" min="8" max="20" step="1" value="12">
+              <label class="range-label" for="pondDepth">Length <output id="pondDepthValue">8 m</output></label>
+              <input id="pondDepth" type="range" min="6" max="14" step="1" value="8">
+              <button class="btn primary full" id="applySize" disabled>Apply dimensions</button>
+              <p class="help" id="sizeStatus">Resets water & objects. Preserves grid spacing.</p>
+
+              <div class="divider"></div>
+              <div class="section-title">Water material <span>OPTICS</span></div>
+              <label class="field-label" for="waterMaterial">Material preset</label>
+              <select id="waterMaterial">
+                <option value="clean">Clean water</option>
+                <option value="ocean">Ocean water</option>
+                <option value="swamp">Swamp water</option>
+                <option value="puddle">Puddle</option>
+                <option value="dirty">Dirty water</option>
+              </select>
+              <p class="help" id="materialDescription">Clear transmission, subtle blue absorption, and crisp reflections.</p>
+              <label class="range-label" for="roughness">Surface roughness <output id="roughnessValue">0.065</output></label>
+              <input id="roughness" type="range" min="0.025" max="0.5" step="0.005" value="0.065">
+              <label class="range-label" for="turbidity">Turbidity multiplier <output id="turbidityValue">1.0×</output></label>
+              <input id="turbidity" type="range" min="0.25" max="3" step="0.05" value="1">
+
+              <div class="divider"></div>
+              <div class="section-title">Water & motion <span>01</span></div>
+              <label class="range-label" for="wave">Wave speed <output id="waveValue">1.4 m/s</output></label>
+              <input id="wave" type="range" min="0.5" max="3" step="0.1" value="1.4">
+              <label class="range-label" for="damping">Damping <output id="dampingValue">0.45</output></label>
+              <input id="damping" type="range" min="0.05" max="2" step="0.05" value="0.45">
+              <label class="range-label" for="strength">Splash strength <output id="strengthValue">0.65</output></label>
+              <input id="strength" type="range" min="0.1" max="1.5" step="0.05" value="0.65">
+              <label class="range-label" for="level">Water level <output id="levelValue">0.65 m</output></label>
+              <input id="level" type="range" min="0.3" max="0.95" step="0.01" value="0.65">
+
+              <div class="divider"></div>
+              <div class="section-title">Surface resolution <span>02</span></div>
+              <div class="segmented" id="quality">
+                <button data-quality="64">Low</button>
+                <button data-quality="96" class="selected">Medium</button>
+                <button data-quality="128">High</button>
+              </div>
+              <div class="row between"><label for="adaptive">Refine on steep waves</label><input id="adaptive" class="switch" type="checkbox" checked></div>
+              <div class="row between"><label for="lilies">Floating lilies</label><input id="lilies" class="switch" type="checkbox" checked></div>
+              <div class="row between"><label for="wireframe">Show surface mesh</label><input id="wireframe" class="switch" type="checkbox"></div>
+              <p class="help">CFL-limited surface-wave solver · Anti-tiled FBM shader (2026)</p>
+            </div>
+
+            <!-- metrics row like image but integrated -->
+            <div class="card compact metrics-card">
+              <div class="metrics-grid">
+                <div><span>SURFACE GRID</span><b id="gridCountDup">96×64</b><small id="refineStateDup">Base</small></div>
+                <div><span>TIME STEP</span><b id="dt">—</b><small>ms</small></div>
+                <div><span>CELL</span><b id="spacingDup">84</b><small>mm</small></div>
+                <div><span>CLOCK</span><b id="clock">00:00.00</b></div>
+              </div>
+            </div>
+
+            <div class="card compact">
+              <div class="playback">
+                <button id="play" class="btn primary"><span id="playIcon">Ⅱ</span> <span id="playText">Pause</span></button>
+                <button id="reset" class="btn ghost">↺ Reset</button>
+                <button id="duckReset" class="btn ghost">Reset duck</button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- RIGHT: viewport (traffic map side) -->
+          <section class="right">
+            <div class="viewport-viewport">
+              <div class="viewport-head">
+                <div class="vm-title"><span class="dot"></span> The garden pond <em>Interactive 3D scene</em> <span class="view-pill">PERSPECTIVE <b>XYZ</b></span></div>
+                <div class="vm-actions">
+                  <span class="canvas-coordinates" id="materialName">Clean water</span>
+                  <button class="icon-btn small" id="viewReset" title="Reset view">◎</button>
+                  <button class="icon-btn small" id="fullscreen" title="Fullscreen">⛶</button>
+                  <button class="icon-btn small" id="capture" title="Snapshot">◯</button>
+                </div>
+              </div>
+              <div class="viewport" id="viewport">
+                <canvas id="fluid" aria-label="3D garden pond. Drag to orbit. Select Ripple then click water, Move lily to drag leaves, Move duck to drag the yellow duck."></canvas>
+                <div class="canvas-top">
+                  <span class="live-badge" id="liveBadge"><i></i> LIVE POND</span>
+                  <span class="vp-labels">
+                    <span id="liveVerbose">Traffic Man — Pond Lab</span>
+                    <span class="search-pill">Bus 6023 <b>⌃</b></span>
+                  </span>
+                </div>
+                <div class="pond-tools" role="group" aria-label="Interaction tool">
+                  <button data-tool="orbit" class="active">↻ <span>Orbit</span> <small>1</small></button>
+                  <button data-tool="ripple">◎ <span>Ripple</span> <small>2</small></button>
+                  <button data-tool="lily">❧ <span>Move lily</span> <small>3</small></button>
+                  <button data-tool="duck" title="Move rubber duck (4)"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M4 13c-1-2-1-3-1-3l4 2h3V8a4 4 0 1 1 7 2l4 1-4 2v2c0 4-3 6-7 6s-7-3-7-6z" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="0.7" fill="#111"/><path d="M7 15c1 3 5 3 6 0" fill="none" stroke="currentColor"/></svg><span>Move duck</span> <small>4</small></button>
+                </div>
+                <div class="canvas-hint" id="hint">Drag to orbit · click Ripple to disturb · grab the yellow duck</div>
+                <div id="toast" role="status"></div>
+                <div id="webglError" hidden>WebGL unavailable — enable hardware acceleration</div>
+              </div>
+              <div class="viewport-foot">
+                <span>↳ <strong>Follow the wake.</strong> Select Move duck, drag the yellow duck, and let go — compare clean, ocean, swamp, puddle, dirty water. <span id="bus6023">Bus 6023</span> is selected.</span>
+                <span class="version">SURFACE / v3.1 · Frontier</span>
+              </div>
+            </div>
+
+            <!-- bottom mini metrics like image timeline -->
+            <div class="timeline-card">
+              <div class="tl-head">Fleet rhythm <span>last 45 s simulation</span></div>
+              <canvas id="tlCanvas" width="900" height="90"></canvas>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="about"><button id="closeHelp" class="icon-btn small close" aria-label="Close">×</button><div class="eyebrow">UNDER THE SURFACE</div><h2>A 2D simulation. A 3D little world.</h2><p>Heightfield wave equation <code>h_tt = c²∇²h − damping·h_t</code> on a fixed world-space grid, velocity-Verlet, CFL-limited. Five water optics with IOR 1.333, Beer–Lambert, Schlick/GXX, planar reflections. Anti-tiled FBM shader (2026). Resize preserves spacing, not stretching.</p><p>Controls: Orbit / scroll, Ripple / click, Move lily / drag leaf, Move duck / drag duck (1–4). Space pause, R reset.</p><button id="gotIt" class="btn primary">Back to the pond</button></dialog>
+
+<script type="module" src="app.js"></script>
+<script type="module">
+// UI glue for traffic-management skin — keepspond app.js intact
+const $ = id => document.getElementById(id);
+const pills = [...document.querySelectorAll('.filter-pill')];
+const sel = $('waterMaterial');
+function syncPillsFromSelect(){
+  const v = sel?.value;
+  pills.forEach(p => p.classList.toggle('active', p.dataset.mat === v));
+}
+if(sel){
+  sel.addEventListener('change', syncPillsFromSelect);
+  syncPillsFromSelect();
+}
+pills.forEach(p=>{
+  p.addEventListener('click', ()=>{
+    const m = p.dataset.mat;
+    if(sel){ sel.value = m; sel.dispatchEvent(new Event('change', {bubbles:true})); syncPillsFromSelect(); }
+    // also trigger toast via app.js if available is global? mimic
+  });
+});
+// nav pills toast (Live Map etc)
+document.querySelectorAll('.nav-pills .pill').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-pills .pill').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    if(b.dataset.nav !== 'live'){
+      const t=$('toast'); if(t){ t.textContent = b.textContent + ' — coming next'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+    }
+  });
+});
+
+// duplicate metrics sync + efficiency inline
+setInterval(()=>{
+  const gc=$('gridCount'), gcd=$('gridCountDup'); if(gc&&gcd) gcd.textContent=gc.textContent;
+  const rs=$('refineState'), rsd=$('refineStateDup'); if(rs&&rsd) rsd.textContent=rs.textContent;
+  const sp=$('spacing'), spd=$('spacingDup'); if(sp&&spd) spd.textContent=sp.textContent;
+  const dv=$('dampingValue'), dvi=$('dampingValueInline'); if(dv&&dvi) dvi.textContent=dv.textContent;
+  // statOnline / statOffline mirroring grid/fps
+  const so=$('statOnline'), soSub=$('statOnlineSub');
+  const fpsEl=$('fps');
+  if(gc&&so){ const m=gc.textContent.match(/(\d+)/); if(m) so.textContent=m[1]; }
+  if(fpsEl&&$('statOffline')) $('statOffline').textContent = fpsEl.textContent==='—'? '—' : fpsEl.textContent;
+},400);
+
+// efficiency graph — Operational Efficiency mimic + timeline
+const energyGraph=$('energyGraph'), tlCanvas=$('tlCanvas');
+const egCtx=energyGraph?.getContext('2d'), tlCtx=tlCanvas?.getContext('2d');
+const history=[];
+let baseEnergy=null;
+function getDiag(){ try{ return window.pondDiagnostics?.(); }catch{ return null; } }
+function pushHistory(){
+  const d=getDiag();
+  const energy = d?.energy ?? 0;
+  if(baseEnergy===null) baseEnergy = energy || 1;
+  // efficiency as stability: 78.3% baseline modulated by energy
+  // when energy high (waves), efficiency dips to 68%, when calm 84%
+  const norm = Math.max(0, Math.min(1, 1 - Math.abs(energy - baseEnergy*0.12)/(baseEnergy*2 + 1e-6)));
+  const eff = 78.3 + (Math.random()-0.5)*1.2 + (norm-0.5)*6 - (d?.maxHeight? Math.min(4, Math.abs(d.maxHeight)*8):0);
+  const clamped = Math.max(52, Math.min(92, eff));
+  history.push(clamped);
+  if(history.length>80) history.shift();
+  return clamped;
+}
+function drawGraph(ctx, canvas, hist, opts={}){
+  if(!ctx||!canvas) return;
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  // background grid
+  ctx.strokeStyle= opts.light ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)';
+  ctx.lineWidth=1;
+  // horizontal dashed target 80%
+  const y80 = H - 0.8*H*0.86 - H*0.07;
+  ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.moveTo(18, y80); ctx.lineTo(W-12, y80); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='10px JetBrains Mono'; ctx.fillText('>80%', W-48, y80-6);
+  // vertical axis labels on right
+  ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.textAlign='right';
+  [100,75,50,25].forEach((v,i)=>{ const y = H*0.07 + (1-v/100)*H*0.86; ctx.fillText(v+'%', W-8, y+3); });
+  // history line
+  if(hist.length<2) return;
+  const padL=18, padR=38, padT=H*0.07, padB=H*0.08;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  ctx.strokeStyle='rgba(180,180,180,0.9)'; ctx.lineWidth=1.2; ctx.beginPath();
+  hist.forEach((v,i)=>{
+    const x = padL + (i/(hist.length-1))*plotW;
+    const y = padT + (1 - (v-25)/75)*plotH; // map 25-100% to plotH
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // highlight orange dips (like image) — find local minima
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(245,158,11,0.95)';
+  for(let i=1;i<hist.length-1;i++){
+    if(hist[i] < hist[i-1] && hist[i] < hist[i+1] && hist[i] < 75){
+      const x = padL + (i/(hist.length-1))*plotW;
+      const y = padT + (1 - (hist[i]-25)/75)*plotH;
+      // small orange segment
+      ctx.beginPath(); ctx.moveTo(x-8, y+6); ctx.lineTo(x-2, y); ctx.lineTo(x+6, y+8); ctx.stroke();
+      // white dots like image
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x-6, y+3, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+4, y+5, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(245,158,11,0.18)';
+      const bw = plotW/hist.length*6;
+      ctx.fillRect(x-bw/2, padT, bw, plotH);
+    }
+  }
+}
+setInterval(()=>{
+  const eff = pushHistory();
+  const num=$('efficiencyNum'), dec=$('efficiencyDec');
+  if(num&&dec){ const s=eff.toFixed(1).split('.'); num.textContent=s[0]; dec.textContent=s[1]; }
+  drawGraph(egCtx, energyGraph, history);
+  // timeline is same history but stretched
+  if(tlCtx) drawGraph(tlCtx, tlCanvas, history, {light:true});
+}, 220);
+
+// initial draw
+for(let i=0;i<50;i++) pushHistory();
+drawGraph(egCtx, energyGraph, history);
+if(tlCtx) drawGraph(tlCtx, tlCanvas, history);
+
+// mirror material select -> bus6023 label
+if(sel){
+  sel.addEventListener('change', ()=>{
+    const lb=$('bus6023'); if(lb) lb.textContent = 'Pond ' + ($('dimensionsLabel')?.textContent || '');
+  });
+}
+</script>
+</body>
+</html>
