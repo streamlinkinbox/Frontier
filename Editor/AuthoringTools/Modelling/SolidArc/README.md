@@ -23,7 +23,7 @@ Tools/Build/CheckSolidArc.sh
 
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
 the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, the Phase 35a–35d curved,
-concave-chamfer and same-body-loft proofs, and the Phase 36a–36j face-edit and bounded curved-root proofs. No external
+concave-chamfer and same-body-loft proofs, and the Phase 36a–36o face-edit and bounded curved-root proofs. No external
 packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
@@ -631,6 +631,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 36l | **Bounded partial cone–cone root chamfer.** Two native coaxial conical frusta share one measured open root chain; the half-turn and general sector reconstruct exact retained cones and a conical setback band as `V10/E15/F7`, while non-coaxial, apex, arbitrary, and branched supports remain refused. | `PartialConeConeChamferVerification` — 14 C++ checks; `Proofs/Phase36l_PartialConeConeChamfer.png` |
 | 36m | **Bounded complete apex plane–cone root chamfer.** A native coaxial cone terminating at a true apex reconstructs the retained apex cone and exact setback band as `V6/E9/F5`; partial apex sectors, non-coaxial supports, and arbitrary apex networks remain refused. | `ApexPlaneConeChamferVerification` — 10 C++ checks; `Proofs/Phase36m_ApexPlaneConeChamfer.png` |
 | 36n | **Bounded partial apex plane–cone root chamfer.** A coaxial apex sector, including the half-turn, reconstructs exact retained outer/shoulder/chamfer/apex supports as `V10/E15/F7` in the general sector; non-coaxial, branched, and arbitrary apex networks remain refused. | `PartialApexPlaneConeChamferVerification` — 14 C++ checks; `Proofs/Phase36n_PartialApexPlaneConeChamfer.png` |
+| 36o | **Bounded partial plane–cone root fillet.** A coaxial non-reflex conical-frustum sector, including the half-turn, reconstructs an exact circular meridian roll and heals only general-sector radial caps as `V12/E18/F8`; apex, reflex, arbitrary, variable-radius, and non-coaxial routes remain refused. | `PartialPlaneConeFilletVerification` — 15 C++ checks; `Proofs/Phase36o_PartialPlaneConeFillet.png` |
 
 ## Console quick start
 

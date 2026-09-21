@@ -3093,6 +3093,75 @@ namespace
         return Result;
     }
 
+    Deliver<BrepBody> FilletPlaneConePartialBossRoot(const PlaneConePartialRoot& Root, double Radius) noexcept
+    {
+        if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
+        if (std::fabs(Root.SweepAngle) >= ScalarCriteria::TwoPi - ScalarCriteria::AngularTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial plane-cone fillet requires an open curved root");
+        const double HalfAngle = std::atan2(Root.FootRadius - Root.TopRadius, Root.BossHeight);
+        const double SinA = std::sin(HalfAngle), CosA = std::cos(HalfAngle);
+        if (CosA <= ScalarCriteria::GeometricTolerance) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial plane-cone fillet angle is unsupported");
+        const double ContactHeight = Radius * (1.0 - SinA);
+        const double SpineRadius = Root.FootRadius + Radius * (1.0 - SinA) / CosA;
+        const double ContactRadius = Root.FootRadius - ContactHeight * std::tan(HalfAngle);
+        if (ContactHeight >= Root.BossHeight - Tol || SpineRadius >= Root.OuterRadius - Tol || ContactRadius <= Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial plane-cone fillet consumes its supports");
+        const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
+        const Vec3 BossTop = ShoulderCentre + Root.Axis * Root.BossHeight;
+        const Vec3 Radial = Root.RadialStart.Normalised();
+        if (Radial.Length() <= Tol || std::fabs(Radial.Dot(Root.Axis)) > ScalarCriteria::GeometricTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial plane-cone fillet radial frame is degenerate");
+        auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+        {
+            Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+            return Line ? NurbsSurface::Revolution(Line.Payload, Root.Base, Root.Axis, Root.SweepAngle)
+                        : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+        };
+        Deliver<NurbsSurface> Outer = RevolveLine(Root.Base + Radial * Root.OuterRadius,
+                                                   ShoulderCentre + Radial * Root.OuterRadius);
+        Deliver<NurbsSurface> Shoulder = RevolveLine(ShoulderCentre + Radial * Root.OuterRadius,
+                                                      ShoulderCentre + Radial * SpineRadius);
+        const Vec3 MeridianCentre = ShoulderCentre + Root.Axis * Radius + Radial * SpineRadius;
+        auto OnMeridian = [&](double Angle) noexcept
+        {
+            return MeridianCentre + (Radial * std::cos(Angle) + Root.Axis * std::sin(Angle)) * Radius;
+        };
+        const Vec3 ShoulderContact = OnMeridian(1.5 * ScalarCriteria::Pi);
+        const Vec3 ConeContact = OnMeridian(ScalarCriteria::Pi + HalfAngle);
+        const Vec3 MeridianMiddle = OnMeridian(1.25 * ScalarCriteria::Pi + 0.5 * HalfAngle);
+        Deliver<NurbsCurve> Meridian = NurbsCurve::ArcThreePoints(ShoulderContact, MeridianMiddle, ConeContact);
+        Deliver<NurbsSurface> Roll = Meridian
+            ? NurbsSurface::Revolution(Meridian.Payload, Root.Base, Root.Axis, Root.SweepAngle)
+            : Deliver<NurbsSurface>::Reject(Meridian.Denial.Reason, Meridian.Denial.Detail);
+        Deliver<NurbsSurface> Boss = RevolveLine(ShoulderCentre + Root.Axis * ContactHeight + Radial * ContactRadius,
+                                                  BossTop + Radial * Root.TopRadius);
+        Deliver<NurbsSurface> Bottom = RevolveLine(Root.Base, Root.Base + Radial * Root.OuterRadius);
+        Deliver<NurbsSurface> Top = RevolveLine(BossTop + Radial * Root.TopRadius, BossTop);
+        if (!Outer || !Shoulder || !Roll || !Boss || !Bottom || !Top)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial plane-cone fillet support is degenerate");
+        Roll.Payload.Classification = SurfaceClassification::Torus;
+        Roll.Payload.Origin = ShoulderCentre + Root.Axis * Radius;
+        Roll.Payload.Axis = Root.Axis;
+        Roll.Payload.RadiusMajor = SpineRadius;
+        Roll.Payload.RadiusMinor = Radius;
+        Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Roll.Payload,
+                                                   Boss.Payload, Bottom.Payload, Top.Payload });
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const bool HalfTurn = ScalarCriteria::WithinAngularTolerance(std::fabs(Root.SweepAngle), ScalarCriteria::Pi);
+        if (!HalfTurn && !CapRadialSector(Result.Payload, Root.Base, BossTop, Radial, Root.SweepAngle, Root.OuterRadius))
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial plane-cone fillet radial caps could not heal");
+        const BodyReport Report = Result.Payload.Validate();
+        const bool ExactTopology = HalfTurn
+            ? Result.Payload.Vertices.size() == 12 && Result.Payload.Edges.size() == 17 && Result.Payload.Coedges.size() == 34 &&
+              Result.Payload.Loops.size() == 7 && Result.Payload.Faces.size() == 7
+            : Result.Payload.Vertices.size() == 12 && Result.Payload.Edges.size() == 18 && Result.Payload.Coedges.size() == 36 &&
+              Result.Payload.Loops.size() == 8 && Result.Payload.Faces.size() == 8;
+        if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+            Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || !ExactTopology)
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial plane-cone fillet did not reach exact topology");
+        return Result;
+    }
+
     struct ConeCylinderPartialRoot
     {
         Vec3   Base, Axis, RadialStart;
@@ -4888,6 +4957,8 @@ Deliver<BrepBody> BlendSolver::FilletEdge(const BrepBody& Body, int Edge, double
     if (std::optional<CylinderCap> Cap = NativeCylinderCap(Body, Edge)) return FilletCylinderCap(*Cap, Radius);
     if (std::optional<PlaneCylinderRoot> Root = PlaneCylinderBossRoot(Body, Edge))
         return FilletPlaneCylinderBossRoot(*Root, Radius);
+    if (std::optional<PlaneConePartialRoot> Root = PlaneConePartialBossRoot(Body, Edge))
+        return FilletPlaneConePartialBossRoot(*Root, Radius);
     if (std::optional<PlaneConeRoot> Root = PlaneConeBossRoot(Body, Edge))
         return FilletPlaneConeBossRoot(*Root, Radius);
     EdgeCornerFrame F;

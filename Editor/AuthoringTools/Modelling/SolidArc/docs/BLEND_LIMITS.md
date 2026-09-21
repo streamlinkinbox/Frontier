@@ -242,6 +242,18 @@ with the wedge volume checked against the apex square-radius meridian integral.
 Partial apex networks, non-coaxial or oblique supports, arbitrary trimmed/reflex/branched/incomplete roots, freeform
 supports, curved corner patches, and general intersection/trim/sew healing remain explicit refusals.
 
+### Partial plane–cone root fillets
+
+Phase 36o accepts one canonical open coaxial plane–cone sector with a positive-radius conical top. The constant-radius
+rolling circle is solved analytically from the cone half-angle, the exact circular meridian is revolved over the measured
+half-turn or non-reflex sweep, and only the general sector's two radial endpoint caps are healed. The accepted result is
+`V12/E18/C36/L8/F8` for a general sector and `V12/E17/C34/L7/F7` for a half-turn; the wedge volume follows the Pappus
+first-moment identity within the tessellation floor.
+
+This is not a generic partial-edge or variable-radius fillet solver. Apex/zero-radius cones, non-coaxial or oblique
+supports, reflex or arbitrary trims, branched/incomplete chains, cone–cone/cylinder–cone apex networks, curved corner
+patches, nonlinear/G2 construction, and general intersection/trim/sew healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
