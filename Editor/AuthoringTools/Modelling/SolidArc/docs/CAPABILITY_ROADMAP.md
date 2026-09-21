@@ -666,10 +666,27 @@ unproven curved-edge networks refuse transactionally.
 feasibility boundaries, generic curved-edge refusal, console integration, and the visible
 `Proofs/Phase35c_ConeCapChamfer.png` proof.
 
+#### Phase 35d: connected same-body opposite-cap identity loft ✅
+
+A connected same-body request is no longer blanket-refused. One exact and useful boundary is now recognized structurally:
+two opposite planar end caps of a canonical axis-aligned rectangular prism (`V8/E12/F6`, one hull, all six planar
+faces). The selected caps are the two sections through material already enclosed by that prism, so the mathematically
+correct loft is an identity prism. The route rebuilds the box from its measured bounds only after validating the source,
+selected normals, opposite bound planes, topology, and positive volume; it does not accept the generic periodic skin,
+which would be a genus-one/zero-volume shell. Both console `--keep` and consuming commits are transactional.
+
+Adjacent connected faces, connected native-cylinder caps, curved side faces, holed or open bodies, rotated/non-canonical
+prisms and arbitrary same-body face surgery remain explicit refusals. This is a bounded same-body seed, not a claim of
+general connected multi-face replacement or multi-section lofting.
+
+**35d exit gate met:** `ConnectedFaceLoftVerification` has 16 checks for exact topology, volume and area, source
+immutability, refusal boundaries, both console commit modes, and the visible `Proofs/Phase35d_ConnectedFaceLoft.png`.
+
 #### Still required in Phase 34/35
 
-Face lofts between connected faces of one body, general curved-face and curved-edge tweaks beyond the native analytic
-cylinder/cone routes, arbitrary non-prismatic concave/non-convex planar chamfer networks, curved-edge chamfers beyond the
+General connected same-body face lofts beyond the verified opposite-cap prism identity, general curved-face and curved-edge
+tweaks beyond the native analytic cylinder/cone routes, arbitrary non-prismatic concave/non-convex planar chamfer networks,
+curved-edge chamfers beyond the
 verified native cylinder/cone routes, and arbitrary non-planar edge loops still need dedicated topology and intersection
 routes. Generic multi-section curve/area lofts, guide curves, and multi-loop
 lofts with through-holes already exist in the earlier SkinSolver routes and remain separately bounded by their existing

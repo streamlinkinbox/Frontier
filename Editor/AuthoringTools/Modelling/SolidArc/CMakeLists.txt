@@ -184,6 +184,11 @@ add_executable(ConeChamferVerification Verification/ConeChamferVerification.cpp)
 target_link_libraries(ConeChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConeChamferVerification COMMAND ConeChamferVerification)
 
+# Phase 35d: connected same-body face lofts, bounded to the exact opposite-cap identity of a canonical prism.
+add_executable(ConnectedFaceLoftVerification Verification/ConnectedFaceLoftVerification.cpp)
+target_link_libraries(ConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConnectedFaceLoftVerification COMMAND ConnectedFaceLoftVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

@@ -22,8 +22,8 @@ Tools/Build/CheckSolidArc.sh
 ```
 
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
-the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, and the Phase 35a native curved-cap proof. No external packages.
-`-Wall -Wextra -Wpedantic`.
+the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, and the Phase 35a–35d curved,
+concave-chamfer and same-body-loft proofs. No external packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
 
@@ -33,8 +33,9 @@ This increment answers the solid-to-solid workflow directly instead of treating 
   boundary rims (sense and least-twist seam), and sews an exact NURBS skin onto the surviving faces. The result is
   one closed manifold solid; no Boolean is used. `--keep` preserves the two source bodies and `--name=...` names
   the result. Box-to-box, cap-to-cap and box-to-cylinder cap transitions are verified. A bounded same-body route also
-  joins two selected faces when they belong to separate disconnected hulls in one B-rep; faces with holes, periodic side
-  faces, connected same-body zero-volume cases, open sheets and non-facing faces refuse transactionally.
+  joins two selected faces when they belong to separate disconnected hulls in one B-rep; Phase 35d adds the exact
+  opposite-cap identity loft for a canonical axis-aligned rectangular prism. Faces with holes, periodic side faces,
+  adjacent or other connected same-body selections, open sheets and non-facing faces refuse transactionally.
 - `tweak Body (dx,dy,dz) --face=i` translates every vertex on a face while preserving V/E/F topology. `--edge=i`
   moves both endpoints of one edge; `--vertex=i` moves one vertex. Straight edges are rebuilt exactly, planar faces
   stay planes when possible, and a four-sided face may become an exact bilinear face only when `--warp` is explicit.
@@ -73,10 +74,11 @@ scale TransformSource 0.5 --face=1 --name=Scaled
 rotate Scaled 12 --face=1 --axis=(0,0,1) --warp --name=Rotated
 ```
 
-`FaceLoftVerification` runs 29 checks, `TweakVerification` runs 41 checks, `DirectModelingVerification` checks the
-closed single-edge and console edge-loop routes, `ChamferLoopVerification` runs 18 arbitrary-dihedral, miter,
-feasibility and proof checks, and `TransformTweakVerification` runs 14 scale/rotation, refusal, topology, numerical
-and visible-proof checks. The focused script runs all five.
+`FaceLoftVerification` covers the two-solid and disconnected same-body routes, `TweakVerification` covers fixed-topology
+translation, `DirectModelingVerification` checks the closed single-edge and console edge-loop routes,
+`ChamferLoopVerification` covers arbitrary-dihedral mitres, and `TransformTweakVerification` covers scale/rotation.
+The focused script also runs the Phase 35a–35d curved-cap, concave-network, native-cone and connected-face proofs;
+`ConnectedFaceLoftVerification` contributes 16 checks and `Proofs/Phase35d_ConnectedFaceLoft.png`.
 
 ## Native `.arc` documents (Phase 22)
 
@@ -400,8 +402,9 @@ rims are exact and a box can meet a cylinder cap as a square-to-round transition
 prism, and a cap can meet a smaller cap as the exact frustum. Faces with holes, seam-bearing side faces, open sheets and
 faces that do not face each other refuse. Two distinct faces of one B-rep are also supported when they belong to
 separate disconnected hulls: the bounded route joins those hulls into one positive-volume genus-zero handle bridge.
-Connected same-body zero-volume cases remain explicit refusals. `FaceLoftVerification` contributes 33 checks and
-`Proofs/Phase34a_FaceLoft.png` plus `Proofs/Phase34f_SameBodyFaceLoft.png`.
+The connected opposite-cap identity case is implemented separately in Phase 35d; adjacent, curved and other connected
+same-body cases remain explicit refusals. `FaceLoftVerification` covers the two-solid and disconnected-hull routes;
+`Proofs/Phase34a_FaceLoft.png` and `Proofs/Phase34f_SameBodyFaceLoft.png` remain its visible proofs.
 
 ## Native curved-cap and curved-edge tweaks (Phase 35a)
 
@@ -428,6 +431,19 @@ cone's meridian: the retained cone ends at the tangent point, a second conical f
 reduced planar cap closes the result. `ConeChamferVerification` checks the exact two-frustum volume, `V3/E5/F4`
 topology, source immutability, feasibility refusal, general-torus refusal, console integration, and
 `Proofs/Phase35c_ConeCapChamfer.png`. General NURBS curved-edge chamfers remain refused.
+
+## Connected same-body cap lofts (Phase 35d)
+
+`SkinSolver::LoftFaces` now accepts one deliberately bounded connected same-body case: the two opposite planar end
+caps of a structurally verified, axis-aligned rectangular prism. The route is an exact identity loft — the two cap rims
+are the sections through the already existing prism, so the result is rebuilt as the same `V8/E12/F6` box rather than
+accepting the invalid genus-one/zero-volume periodic skin a generic same-body seam would create. Source geometry remains
+immutable, `--keep` and consuming console commits are transactional, and adjacent caps of a connected body, cylinder
+caps, curved side faces, holed faces, open sheets and arbitrary connected selections refuse explicitly.
+
+`ConnectedFaceLoftVerification` contributes 16 checks for exact topology, volume/area, source preservation, refusal
+boundaries, both console commit modes, and the visible [`Proofs/Phase35d_ConnectedFaceLoft.png`](Proofs/Phase35d_ConnectedFaceLoft.png).
+This is a first connected same-body boundary, not unrestricted face surgery or a general multi-section replacement loft.
 
 ## Tweaks: move a face, an edge or a vertex on fixed topology (Phase 34b)
 
@@ -603,6 +619,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 32y | **Bounded mixed-stage side-entering blind-bore set.** Two through eight cavities, two through eight stages each and sixteen stages total preserve all finite bands, `M` planar levels, and `2M` rational rims. | `MixedStageSideBlindBorePrismFilletVerification` — 42 C++ checks; `Proofs/Phase32y_MixedStageSideBlindBorePrism.png` (2560 × 1600 C++-generated contact sheet) |
 | 34a | **Face loft between two solids.** A chosen face of each solid is dropped and the two rims skinned and sewn into one exact solid — no Boolean. | `FaceLoftVerification` — 29 C++ checks; `Proofs/Phase34a_FaceLoft.png` (2560 × 1600 C++-generated contact sheet) |
 | 34b | **Tweaks on fixed topology.** Translate a face, an edge or a vertex: straight edges rebuilt, four-sided faces re-fitted (planar stays planar, bilinear with `--warp`), trimmed caps refitted in-plane; box volumes exact by Cavalieri and the trilinear integral. | `TweakVerification` — 41 C++ checks; `Proofs/Phase34b_Tweak.png` (2560 × 1600 C++-generated contact sheet) |
+| 35d | **Connected same-body opposite-cap identity loft.** Two opposite caps of a canonical axis-aligned rectangular prism rebuild as the exact `V8/E12/F6` identity loft; adjacent, curved, holed, open and other connected selections refuse. | `ConnectedFaceLoftVerification` — 16 checks; `Proofs/Phase35d_ConnectedFaceLoft.png` |
 | 32z | **Exact plane–cone boss-root fillet.** The first unequal-radius support pair: a native conical frustum boss on a planar shoulder rebuilds as trimmed exact supports and a rational `π/2 − α` torus band along the analytic spine, with the Pappus closed-form wedge and explicit feasibility limits. | `PlaneConeFilletVerification` — 61 C++ checks; `Proofs/Phase32z_PlaneConeFillet.png` (2560 × 1600 C++-generated contact sheet) |
 
 ## Console quick start

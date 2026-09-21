@@ -88,12 +88,13 @@ struct SkinSolver
     // Curve for one face loop of a body (coedges joined in loop order); rejects when the pieces do not chain.
     [[nodiscard]] static Deliver<NurbsCurve> LoopCurve(const BrepBody& Body, int Loop) noexcept;
 
-    // Face loft (Phase 34a/34f): one solid from two closed solids, or from two distinct faces of one B-rep that owns
-    //    disconnected hulls, by skinning between selected faces. The selected faces are dropped exactly once, their
-    //    boundary loops become the sections of a ruled loft (least-twist seam, split onto real rim vertices), and the
-    //    skin is sewn to the surviving faces — no Boolean, so the shared rims are exact. Same-body support is bounded
-    //    to a positive-volume multi-hull bridge; coincident, connected zero-volume, holed or seam-bearing faces refuse.
-    //    The sources are never modified and the result must validate as one positive-volume solid.
+    // Face loft (Phase 34a/34f/35d): one solid from two closed solids, two distinct faces of one B-rep that owns
+    //    disconnected hulls, or the verified opposite-cap identity of one canonical axis-aligned prism. In the bridge
+    //    routes, selected faces are dropped exactly once, their boundary loops become the sections of a ruled loft
+    //    (least-twist seam, split onto real rim vertices), and the skin is sewn to the surviving faces — no Boolean, so
+    //    the shared rims are exact. The connected same-body route is deliberately only the exact prism identity;
+    //    coincident, adjacent/other connected, holed or seam-bearing faces refuse. The sources are never modified and
+    //    the result must validate as one positive-volume solid.
     [[nodiscard]] static Deliver<BrepBody> LoftFaces(const BrepBody& A, int FaceA, const BrepBody& B, int FaceB) noexcept;
 };
 

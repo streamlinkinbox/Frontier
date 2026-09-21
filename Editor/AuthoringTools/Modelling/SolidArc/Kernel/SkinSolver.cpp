@@ -501,6 +501,35 @@ namespace
         return false;
     }
 
+    // A connected same-body request has no empty gap to bridge in the general case. One useful direct-modelling
+    // operation is nevertheless exact and common: remove the two opposite end caps of a canonical axis-aligned box,
+    // loft their congruent rims through the existing prism, and heal the result back to the same box. This is kept as
+    // a structural identity route — never inferred from face numbers or a loose planar test — so arbitrary connected
+    // selections still refuse rather than producing the genus-one/zero-volume shell that a generic periodic skin would.
+    [[nodiscard]] bool IsAxisAlignedBoxCapPair(const BrepBody& Body, int FaceA, int FaceB) noexcept
+    {
+        const BodyReport R = Body.Validate();
+        if (!R.Solid() || R.Hulls != 1 || Body.Vertices.size() != 8 || Body.Edges.size() != 12 || Body.Faces.size() != 6 || Body.Loops.size() != 6) return false;
+        for (const BrepFace& F : Body.Faces)
+            if (F.Surface.Classification != SurfaceClassification::Plane || F.Loops.size() != 1) return false;
+        Vec3 CentreA, NormalA, CentreB, NormalB;
+        if (!FaceFrame(Body, FaceA, CentreA, NormalA) || !FaceFrame(Body, FaceB, CentreB, NormalB)) return false;
+        if (NormalA.Dot(NormalB) > -1.0 + 1e-8) return false;
+        const Box3 Bounds = Body.Bounds();
+        const Vec3 Extent = Bounds.Extent();
+        if (Extent.X <= ScalarCriteria::MergeTolerance || Extent.Y <= ScalarCriteria::MergeTolerance || Extent.Z <= ScalarCriteria::MergeTolerance) return false;
+        const Vec3 AbsNormal = NormalA.Abs();
+        const int Axis = AbsNormal.X >= AbsNormal.Y && AbsNormal.X >= AbsNormal.Z ? 0 : (AbsNormal.Y >= AbsNormal.Z ? 1 : 2);
+        // The selected caps must be perpendicular to one world axis and occupy its two distinct bound planes. The
+        // other four planar faces are checked above, so rebuilding this canonical prism is an exact cap-loft result.
+        const Vec3 Unit = Axis == 0 ? Vec3::UnitX() : (Axis == 1 ? Vec3::UnitY() : Vec3::UnitZ());
+        if (std::fabs(std::fabs(NormalA.Dot(Unit)) - 1.0) > 1e-8 || std::fabs(std::fabs(NormalB.Dot(Unit)) - 1.0) > 1e-8) return false;
+        const double A0 = CentreA[Axis], B0 = CentreB[Axis];
+        const bool OnBounds = (std::fabs(A0 - Bounds.Low[Axis]) <= ScalarCriteria::MergeTolerance * 10.0 && std::fabs(B0 - Bounds.High[Axis]) <= ScalarCriteria::MergeTolerance * 10.0) ||
+                              (std::fabs(B0 - Bounds.Low[Axis]) <= ScalarCriteria::MergeTolerance * 10.0 && std::fabs(A0 - Bounds.High[Axis]) <= ScalarCriteria::MergeTolerance * 10.0);
+        return OnBounds && std::fabs(A0 - B0) > ScalarCriteria::MergeTolerance * 10.0;
+    }
+
     std::vector<RimStep> OpenRimFrom(const BrepBody& Body, Vec3 Anchor, double Tolerance) noexcept
     {
         auto Open = [&](int E) { return Body.Edges[E].Coedges.size() == 1; };
@@ -545,7 +574,18 @@ Deliver<BrepBody> SkinSolver::LoftFaces(const BrepBody& A, int FaceA, const Brep
     if (FaceA < 0 || FaceA >= static_cast<int>(A.Faces.size()) || FaceB < 0 || FaceB >= static_cast<int>(B.Faces.size()))
         return Body::Reject(RefusalReason::OutOfDomain, "no such face");
     if (SameBody && FacesConnected(A, FaceA, FaceB))
-        return Body::Reject(RefusalReason::Unsupported, "same-body face loft requires faces on different disconnected hulls");
+    {
+        if (!IsAxisAlignedBoxCapPair(A, FaceA, FaceB))
+            return Body::Reject(RefusalReason::Unsupported, "same-body face loft supports only opposite caps of a canonical rectangular prism");
+        const Box3 Bounds = A.Bounds();
+        Deliver<BrepBody> IdentityLoft = BrepBody::Box(Bounds.Low, Bounds.High);
+        if (!IdentityLoft) return Body::Reject(IdentityLoft.Denial.Reason, IdentityLoft.Denial.Detail);
+        const BodyReport Result = IdentityLoft.Payload.Validate();
+        const BodyReport Source = A.Validate();
+        if (!Result.Solid() || std::fabs(Result.Volume - Source.Volume) > ScalarCriteria::VolumeTolerance * std::max(1.0, Source.Volume))
+            return Body::Reject(RefusalReason::NoConvergence, "same-body cap loft did not reproduce its prism");
+        return IdentityLoft;
+    }
     for (const auto& [Owner, Face] : { std::pair<const BrepBody*, int>{ &A, FaceA }, std::pair<const BrepBody*, int>{ &B, FaceB } })
     {
         const BrepFace& F = Owner->Faces[Face];
