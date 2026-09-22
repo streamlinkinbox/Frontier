@@ -256,6 +256,24 @@ The oblique planar corner route is deliberately bounded to one explicit finite s
 Variable laws, partial-edge selection, arbitrary edge selection, apexes, freeform supports, and
 arbitrary healing remain explicitly unsupported. This route is not a rolling-ball G2 solution.
 
+## Stage 38f coverage
+
+The partial oblique route is deliberately bounded to one strict interior interval on one explicit
+finite straight edge:
+
+- `ObliquePartialEdgeFilletSpecification` retains the Stage 38e support frame and adds finite
+  `Length`, `Start`, and `End` with `0 < Start < End < Length`;
+- the constant-radius tangent distance remains `r cot(theta/2)`, with sharp continuation walls
+  outside the interval, a rational fillet band inside it, transition caps at both stations, and
+  explicit finite end-cap patches;
+- `ObliquePartialEdgeFilletVerification` performs 19 checks covering deterministic
+  `V20/E38/F20/L20` topology, analytic interval volume, tangent fit, boundary normals,
+  transactional refusals, and the sharp/partial comparison;
+- `Proofs/Phase38f_ObliquePartialEdgeFillet.png` is the distinct exterior sharp/partial proof.
+
+Variable radius, arbitrary edge selection, apexes, freeform supports, rolling-ball G2, and arbitrary
+healing remain explicitly unsupported.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

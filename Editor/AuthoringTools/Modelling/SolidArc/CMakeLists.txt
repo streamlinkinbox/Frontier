@@ -345,6 +345,11 @@ add_executable(ObliquePlanarCornerFilletVerification Verification/ObliquePlanarC
 target_link_libraries(ObliquePlanarCornerFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ObliquePlanarCornerFilletVerification COMMAND ObliquePlanarCornerFilletVerification)
 
+# Stage 4f: one strict-interior constant-radius oblique partial-edge fillet.
+add_executable(ObliquePartialEdgeFilletVerification Verification/ObliquePartialEdgeFilletVerification.cpp)
+target_link_libraries(ObliquePartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ObliquePartialEdgeFilletVerification COMMAND ObliquePartialEdgeFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

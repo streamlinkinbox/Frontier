@@ -1016,6 +1016,18 @@ by `ObliquePlanarCornerFilletVerification` and
 `Proofs/Phase38e_ObliquePlanarCornerFillet.png`. Variable laws, partial edges, arbitrary
 selection, apexes, freeform supports, and healing remain unsupported; this is not rolling-ball G2.
 
+#### Phase 38f: bounded oblique partial-edge fillet ✅
+
+A strict interior interval on one explicit finite straight edge now accepts the same constant-radius
+oblique planar corner construction while retaining the sharp corner before and after the interval.
+The route splits retained support and outer walls at both stations, adds rational circular-band and
+transition-cap surfaces, and sews deterministic `V20/E38/F20/L20` topology. The analytic volume is
+`Length * sharp wedge area - (End - Start) * removed oblique-corner area`; tangent distance, boundary
+normals, interval/radius refusals, and a distinct sharp/partial proof render are covered by
+`ObliquePartialEdgeFilletVerification` and `Proofs/Phase38f_ObliquePartialEdgeFillet.png`.
+Variable radius, arbitrary edge selection, freeform supports, apexes, rolling-ball G2, and healing
+remain unsupported. Its plan is `docs/PLAN_ObliquePartialEdgeFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

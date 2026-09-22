@@ -649,6 +649,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 38c | **Bounded quadratic-radius partial-edge fillet.** The explicit Stage 4a strict-interior corner route now accepts one genuinely nonlinear quadratic radius law over the selected interval, with three station sections, quadratic support-surface lofts, explicit sector caps, integrated radius-square volume, and deterministic `V34/E67/F35/L35` topology. Arbitrary variable-radius support handling, rolling-ball G2, apexes, freeform supports, and healing remain refused. | `QuadraticPartialEdgeFilletVerification` — 27 C++ checks; `Proofs/Phase38c_QuadraticPartialEdgeFillet.png` |
 | 38d | **Bounded partial coaxial conical-apex spherical fillet.** One right circular cone, exact spherical apex cap, partial base sector, and two explicit planar meridian Coons caps are sewn over a strict non-reflex sweep as `V6/E9/F5/L5`; the canonical half-turn verifies the frustum-plus-spherical-cap sector volume, classifications, outward normals, and transactional fit/sweep refusals. Arbitrary apex selection, mixed/non-coaxial supports, rolling-ball G2, freeform geometry, and healing remain refused. | `PartialConeApexFilletVerification` — 16 C++ checks; `Proofs/Phase38d_PartialConeApexFillet.png` |
 | 38e | **Bounded oblique planar corner fillet.** Two explicit planar support directions define a strict non-orthogonal wedge; the exact circular tangent offset `r cot(θ/2)` and rational fillet extrusion sew with the retained outer face and end caps as `V8/E12/F6/L6`. Oblique wedge-minus-segment volume, outward normals, finite-extent refusals, and a sharp/rounded comparison are verified. Variable laws, partial edges, arbitrary edge selection, apexes, freeform supports, and healing remain refused. | `ObliquePlanarCornerFilletVerification` — 19 C++ checks; `Proofs/Phase38e_ObliquePlanarCornerFillet.png` |
+| 38f | **Bounded oblique partial-edge fillet.** One strict interior interval of one explicit finite straight edge replaces the oblique corner only over `Start < t < End`; sharp corner walls remain before and after the interval, with a rational circular band, transition sectors, finite caps, and `V20/E38/F20/L20` topology. The analytic `Length * sharp wedge area − interval * removed corner area` volume, tangent distance, normals, and transactional refusals are verified. Variable radius, arbitrary edge selection, freeform supports, apexes, and healing remain refused. | `ObliquePartialEdgeFilletVerification` — 19 C++ checks; `Proofs/Phase38f_ObliquePartialEdgeFillet.png` |
 
 ## Console quick start
 
@@ -797,7 +798,7 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **71 suites** — 58 per-feature verification binaries (2,088 checks total) and 13 script smoke
+ctest now registers **72 suites** — 59 per-feature verification binaries (2,107 checks total) and 13 script smoke
 tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 

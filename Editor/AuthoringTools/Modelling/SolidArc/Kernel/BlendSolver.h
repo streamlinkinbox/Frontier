@@ -213,6 +213,22 @@ struct ObliquePlanarCornerFilletSpecification
     double Radius = 0.0;
 };
 
+// A strict interior interval of the oblique planar route. The sharp corner is retained outside
+// Start/End; arbitrary edge selection and variable-radius laws remain outside this descriptor.
+struct ObliquePartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+};
+
 struct ConeApexFilletSpecification
 {
     Vec3 Base{};
@@ -420,6 +436,8 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePlanarCornerFillet(
         const ObliquePlanarCornerFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePartialEdgeFillet(
+        const ObliquePartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
         const PartialConeApexFilletSpecification& Specification) noexcept;

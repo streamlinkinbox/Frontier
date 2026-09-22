@@ -65,7 +65,7 @@ done
 
 echo "[SolidArc] kernel, console and interaction targets link"
 
-for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft GeneralConnectedFaceLoft GeneralCurvedChamfer PlaneConeChamfer CylinderConeChamfer PartialCurvedChamfer SectorCurvedChamfer PartialPlaneConeChamfer PartialConeCylinderChamfer PartialConeConeChamfer ApexPlaneConeChamfer PartialApexPlaneConeChamfer PartialPlaneConeFillet CylinderConeFillet ConeConeFillet PartialConeConeFillet PartialConeCylinderFillet ArbitraryNonPlanarEdgeLoop Phase33VariableRadius VariableRadiusCornerFillet VariableSetbackCornerFillet NonlinearVariableRadiusCorner G2PlanarCorner NonlinearVariableSetbackCorner UnequalSetbackCorner NonlinearUnequalSetbackCorner PartialEdgeFillet ConeApexFillet QuadraticPartialEdgeFillet PartialConeApexFillet ObliquePlanarCornerFillet CylinderChamfer CylinderFillet PlaneCylinderFillet TangentChainFillet OpenChainFillet MultiEdgeFillet SectorEndpointFillet CornerFillet PlaneConeFillet FaceEdit; do
+for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft GeneralConnectedFaceLoft GeneralCurvedChamfer PlaneConeChamfer CylinderConeChamfer PartialCurvedChamfer SectorCurvedChamfer PartialPlaneConeChamfer PartialConeCylinderChamfer PartialConeConeChamfer ApexPlaneConeChamfer PartialApexPlaneConeChamfer PartialPlaneConeFillet CylinderConeFillet ConeConeFillet PartialConeConeFillet PartialConeCylinderFillet ArbitraryNonPlanarEdgeLoop Phase33VariableRadius VariableRadiusCornerFillet VariableSetbackCornerFillet NonlinearVariableRadiusCorner G2PlanarCorner NonlinearVariableSetbackCorner UnequalSetbackCorner NonlinearUnequalSetbackCorner PartialEdgeFillet ConeApexFillet QuadraticPartialEdgeFillet PartialConeApexFillet ObliquePlanarCornerFillet ObliquePartialEdgeFillet CylinderChamfer CylinderFillet PlaneCylinderFillet TangentChainFillet OpenChainFillet MultiEdgeFillet SectorEndpointFillet CornerFillet PlaneConeFillet FaceEdit; do
     TEST_OBJ="$WORK/obj/${TEST}Verification.o"
     "$CXX_BIN" "${FLAGS[@]}" -c "$SRC/Verification/${TEST}Verification.cpp" -o "$TEST_OBJ"
     "$CXX_BIN" "${OBJECTS[@]}" "$TEST_OBJ" -o "$WORK/${TEST}Verification"
@@ -91,6 +91,7 @@ PERSISTED_PROOFS=(
     Phase38d_PartialConeApexFillet.png
     Phase37g_NonlinearUnequalSetbackCorner.png
     Phase38e_ObliquePlanarCornerFillet.png
+    Phase38f_ObliquePartialEdgeFillet.png
 )
 mkdir -p "$ROOT/Proofs"
 for PROOF in "${PERSISTED_PROOFS[@]}"; do
