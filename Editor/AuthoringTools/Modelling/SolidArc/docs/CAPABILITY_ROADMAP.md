@@ -923,14 +923,29 @@ box with the variable-radius result. Zero/negative/consuming laws, degenerate ed
 selection, G2 continuity, apexes, and arbitrary support/healing remain refused. Coverage is in
 `VariableRadiusCornerFilletVerification` and `Proofs/Phase37_VariableRadiusCornerFillet.png`.
 
+#### Phase 37b: bounded variable support-setback corner fillet ✅
+
+The same finite straight, perpendicular planar corner now accepts an independent positive linear
+support-setback law. At each station the far support extent is `d(t) = r(t) + s(t)`, so the
+quarter-circle rolling section remains exact while the available planar clearance changes along
+the edge. Four straight support boundaries, one ruled quarter-circle surface, and two planar end
+caps produce the same one-hull `V10/E15/C30/L7/F7` topology. The volume is checked against the
+integrated variable-extent prism minus the rounded-corner area, and the verifier samples
+`d(t) - r(t) = s(t)` at multiple stations. Zero/negative laws, degenerate frames, and zero
+length refuse transactionally. Nonlinear radius/setback laws, unequal support setbacks,
+partial-edge selection, G2 continuity, apexes, and arbitrary support/healing remain refused.
+Coverage is in `VariableSetbackCornerFilletVerification`, its plan is
+`docs/PLAN_VariableSetbackLaw.md`, and its distinct proof is
+`Proofs/Phase37b_VariableSetbackCornerFillet.png`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
 the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, complete apex plane/cone, partial apex plane/cone root chamfers, and complete narrowing cylinder/cone root fillets, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
-and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
-application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,
-cone/cylinder, apex, unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide
+and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires broader variable-radius
+application, partial-edge blends, nonlinear/G2 surface construction, unequal support-setback variants, and broader
+cone/cone, cone/cylinder, apex, unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide
 curves, and multi-loop lofts with through-holes already exist in the earlier SkinSolver routes and remain separately
 bounded by their existing verification coverage.
 

@@ -156,6 +156,20 @@ struct VariableRadiusCornerSpecification
     VariableRadiusLaw RadiusLaw{};
 };
 
+// A bounded follow-on route with an independent linear support-clearance law. At station T the
+// two perpendicular support extents are Radius(T) + Setback(T); Setback is measured from the
+// quarter-circle tangent point to the far boundary on each planar support. The radius and
+// setback laws are intentionally both linear: nonlinear laws need their own surface and
+// curvature acceptance, rather than being silently lofted through this route.
+struct VariableSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+    VariableRadiusLaw SetbackLaw{};
+};
+
 // Local frame of a straight manifold edge shared by two planar faces.
 struct EdgeCornerFrame
 {
@@ -191,6 +205,7 @@ public:
     [[nodiscard]] static Deliver<VariableRadiusSurface> BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;

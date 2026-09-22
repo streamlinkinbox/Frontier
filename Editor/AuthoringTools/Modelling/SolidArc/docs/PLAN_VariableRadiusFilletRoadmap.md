@@ -19,11 +19,15 @@ Boundaries for this stage:
   arbitrary input B-rep;
 - input selection/console dispatch is a later slice if the explicit reconstruction is sound.
 
-## Stage 2 — variable setback laws
+## Stage 2 — variable setback laws ✅
 
-Add a separate law for support setback/clearance and prove it against the station geometry.
-Nonlinear radius and setback laws remain refused until their own surface and curvature checks
-exist.
+`VariableSetbackCornerSpecification` adds a separate positive linear law for support
+setback/clearance on the same bounded straight planar corner. At each station the measured
+support extent is `d(t) = r(t) + s(t)`, and the verifier checks that identity at multiple
+stations, the analytic volume, topology, normals, refusals, and a distinct comparison render.
+The route is intentionally one common setback law for the two perpendicular supports; unequal
+support setbacks, nonlinear laws, and general input-edge selection remain outside the stage.
+See `docs/PLAN_VariableSetbackLaw.md`.
 
 ## Stage 3 — nonlinear laws and G2 continuity
 

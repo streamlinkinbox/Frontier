@@ -17,9 +17,10 @@ law, same frustum reconstruction, same topology/volume/refusal assertions, and o
 method name and camera. The Phase 36t alias, verifier, plan, and PNG were removed. Phase 36e
 remains the proof of the **linear ruled/frustum foundation**.
 
-That foundation is **not** proof of a rolling-ball variable-radius fillet. The following remain
-unproved and intentionally unsupported: variable-radius rolling fillets, variable setbacks,
-partial-edge blends, nonlinear laws, and G2 continuity.
+That foundation is **not** proof of a rolling-ball variable-radius fillet. Stage 37a now proves
+one bounded rolling-ball application, and Stage 37b separately proves one bounded linear
+support-setback law; the following remain unproved and intentionally unsupported: general
+variable-radius rolling fillets, partial-edge blends, nonlinear laws, and G2 continuity.
 
 ## Current Phase 34–36 coverage
 
@@ -32,14 +33,17 @@ These are distinct routes, not duplicates:
 - 36f–36n: complete/partial plane–cone, cylinder–cone, cone–cylinder, cone–cone, and apex
   **chamfer** routes;
 - 36o–36s: partial plane–cone, complete cylinder–cone, complete cone–cone, partial cone–cone,
-  and partial cone–cylinder **fillet** routes.
+  and partial cone–cylinder **fillet** routes;
+- 37a–37b: one straight planar rolling-ball variable-radius corner and its distinct linear
+  support-setback extension.
 
 The Phase 36s visual proof is the corrected exterior-facing proof; it is not a substitute for
-other route families.
+other route families. The Phase 37b comparison proof is likewise not proof of unequal-support,
+nonlinear, partial-edge, or general selected-edge setback application.
 
 ## Existing verifier coverage not in the current direct gate
 
-The current `CheckSolidArc.sh` loop runs 29 focused tests. It does not run these older, distinct
+The current `CheckSolidArc.sh` loop runs 30 focused tests. It does not run these older, distinct
 fillet/chamfer baselines:
 
 - Phase 25 cylinder chamfer;
@@ -61,12 +65,28 @@ Many older CMake verification targets for bores, pushes, booleans, constraints, 
 and the Phase 10 suite are likewise not in the focused direct gate. They should not be described
 as newly proven by a Phase 36 proof.
 
+## Stage 37b coverage
+
+The variable-setback extension is deliberately narrower than its name might suggest:
+
+- `VariableSetbackCornerSpecification` accepts one finite straight edge, perpendicular planar
+  support directions, positive linear radius and positive linear common setback laws;
+- the setback is measured as `support extent − rolling radius` at multiple stations;
+- the analytic volume is the integrated tapered-square support extent minus the integrated
+  quarter-circle removal;
+- zero/negative laws and degenerate frames refuse transactionally;
+- `VariableSetbackCornerFilletVerification` is in the focused gate and
+  `Proofs/Phase37b_VariableSetbackCornerFillet.png` is the distinct visible comparison.
+
+It does **not** prove unequal setback laws on the two supports, nonlinear laws, general edge
+selection, partial-edge blends, apexes, G2 continuity, freeform supports, or arbitrary healing.
+
 ## Actual remaining proof/capability gaps
 
-1. The general rolling-ball variable-radius application is still bounded: Stage 37a now covers
-   only one finite straight planar corner with a linear law. General edge selection, curved
-   roots, and support-specific variable rolls remain open.
-2. Variable setback laws, partial-edge blends, nonlinear radius laws, and G2 continuity.
+1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37b cover
+   only one finite straight planar corner with linear laws. General edge selection, curved roots,
+   unequal support setbacks, and support-specific variable rolls remain open.
+2. Partial-edge blends, nonlinear radius/setback laws, and G2 continuity.
 3. Complete and partial apex **fillets**; only apex chamfers are covered.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted
    constant-radius routes.

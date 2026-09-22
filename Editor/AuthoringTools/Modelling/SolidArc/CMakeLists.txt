@@ -290,6 +290,11 @@ add_executable(VariableRadiusCornerFilletVerification Verification/VariableRadiu
 target_link_libraries(VariableRadiusCornerFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME VariableRadiusCornerFilletVerification COMMAND VariableRadiusCornerFilletVerification)
 
+# Stage 2: the same exact rolling section with an independent linear support-setback law.
+add_executable(VariableSetbackCornerFilletVerification Verification/VariableSetbackCornerFilletVerification.cpp)
+target_link_libraries(VariableSetbackCornerFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME VariableSetbackCornerFilletVerification COMMAND VariableSetbackCornerFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

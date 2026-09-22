@@ -6092,6 +6092,93 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusCornerBlend(const Variab
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) ||
+        Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable setback corner length must be positive");
+    if (!Specification.RadiusLaw.Positive())
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable setback corner radii must be finite and positive");
+    if (!Specification.SetbackLaw.Positive())
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable support setbacks must be finite and positive");
+
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable setback corner edge axis is degenerate");
+
+    const double R0 = Specification.RadiusLaw.Start;
+    const double R1 = Specification.RadiusLaw.End;
+    const double S0 = Specification.SetbackLaw.Start;
+    const double S1 = Specification.SetbackLaw.End;
+    const double D0 = R0 + S0;
+    const double D1 = R1 + S1;
+    if (!std::isfinite(D0) || !std::isfinite(D1) ||
+        D0 <= ScalarCriteria::MergeTolerance || D1 <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable support extent is degenerate");
+
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable setback corner frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    auto Point = [&](double T, double AlongU, double AlongV)
+    {
+        return Specification.Origin + Axis * (Specification.Length * T) + U * AlongU + V * AlongV;
+    };
+    auto SectionLine = [&](double T, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        return NurbsCurve::Line(Point(T, A.X, A.Y), Point(T, B.X, B.Y));
+    };
+    auto SectionArc = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double Radius = Specification.RadiusLaw.Radius(T);
+        const Vec3 A{ Radius, 0, 0 }, E{ 0, Radius, 0 };
+        const double Offset = Radius - Radius / std::sqrt(2.0);
+        const Vec3 Middle{ Offset, Offset, 0 };
+        return NurbsCurve::ArcThreePoints(Point(T, E.X, E.Y), Point(T, Middle.X, Middle.Y), Point(T, A.X, A.Y));
+    };
+    auto LoftTwo = [&](const Deliver<NurbsCurve>& A, const Deliver<NurbsCurve>& B) -> Deliver<NurbsSurface>
+    {
+        if (!A || !B)
+            return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "variable setback corner section is degenerate");
+        return NurbsSurface::Loft({ A.Payload, B.Payload }, 1);
+    };
+
+    const Vec3 A0{ R0, 0, 0 }, B0{ D0, 0, 0 }, C0{ D0, D0, 0 }, D0Point{ 0, D0, 0 }, E0{ 0, R0, 0 };
+    const Vec3 A1{ R1, 0, 0 }, B1{ D1, 0, 0 }, C1{ D1, D1, 0 }, D1Point{ 0, D1, 0 }, E1{ 0, R1, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    auto Add = [&](const Deliver<NurbsCurve>& Low, const Deliver<NurbsCurve>& High) -> bool
+    {
+        Deliver<NurbsSurface> Surface = LoftTwo(Low, High);
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    if (!Add(SectionLine(0.0, A0, B0), SectionLine(1.0, A1, B1)) ||
+        !Add(SectionLine(0.0, B0, C0), SectionLine(1.0, B1, C1)) ||
+        !Add(SectionLine(0.0, C0, D0Point), SectionLine(1.0, C1, D1Point)) ||
+        !Add(SectionLine(0.0, D0Point, E0), SectionLine(1.0, D1Point, E1)) ||
+        !Add(SectionArc(0.0), SectionArc(1.0)))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable setback corner surfaces could not be constructed");
+
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const BodyReport Report = Result.Payload.Validate();
+    const double ExpectedOuterVolume = Specification.Length * (D0 * D0 + D0 * D1 + D1 * D1) / 3.0;
+    const double RemovedCornerVolume = (1.0 - ScalarCriteria::Pi / 4.0) * Specification.Length *
+        (R0 * R0 + R0 * R1 + R1 * R1) / 3.0;
+    const double ExpectedVolume = ExpectedOuterVolume - RemovedCornerVolume;
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "variable setback corner blend did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "variable setback corner volume failed analytic acceptance");
+    return Result;
+}
+
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                        double MaximumCircumferentialCurvature,
                                                        std::string& Refusal) noexcept
