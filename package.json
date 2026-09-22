@@ -1,0 +1,12 @@
+{
+  "name": "frontier-engine-dashboard",
+  "version": "1.0.0",
+  "description": "Game Engine UI Dashboard with Outliner, Inspector, Sun Gizmo and Tactile Cards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["game-engine", "ui", "dashboard", "sun-gizmo", "outliner", "inspector"],
+  "author": "Frontier Team",
+  "license": "MIT"
+}

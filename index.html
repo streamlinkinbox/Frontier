@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>FRONTIER ENGINE // Core Studio Dashboard</title>
+  
+  <!-- Sleek Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app-root">
+    
+    <!-- ============================================================
+         TOP APP HEADER BAR (Engine Navigation & Global Stats)
+         ============================================================ -->
+    <header class="top-header">
+      <div class="brand-section">
+        <!-- Modern minimalist geometric diagonal bars logo (recreation from Image 1) -->
+        <div class="engine-logo" title="Frontier Core Engine">
+          <div class="bar b1"></div>
+          <div class="bar b2"></div>
+          <div class="bar b3"></div>
+          <div class="bar b4"></div>
+          <div class="bar b5"></div>
+        </div>
+        <div class="engine-title">
+          <div class="engine-name">
+            FRONTIER <span class="engine-version">v4.8 LTS</span>
+          </div>
+          <div class="engine-breadcrumb">
+            World_Level_01 <span style="opacity:0.4;">/</span> Lighting_Rig
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Pill Switcher (Matching Image 1 Pill Navigation) -->
+      <nav class="header-nav-pills" id="nav-mode-selector">
+        <button class="nav-pill active" data-mode="studio">
+          <span class="nav-pill-icon">☀️</span> Sun &amp; Sky Studio
+        </button>
+        <button class="nav-pill" data-mode="photometrics">
+          <span class="nav-pill-icon">⚡</span> Photometrics
+        </button>
+        <button class="nav-pill" data-mode="shadows">
+          <span class="nav-pill-icon">🌑</span> CSM Shadows
+        </button>
+        <button class="nav-pill" data-mode="atmosphere">
+          <span class="nav-pill-icon">☁️</span> Atmosphere
+        </button>
+        <button class="nav-pill" data-mode="raytracing">
+          <span class="nav-pill-icon">📈</span> RT Telemetry
+        </button>
+        <button class="nav-pill" data-mode="presets">
+          <span class="nav-pill-icon">⚙️</span> Presets
+        </button>
+      </nav>
+
+      <!-- Right Header Actions & Telemetry -->
+      <div class="header-actions">
+        <div class="quick-telemetry-tags">
+          <div class="telemetry-pill green-dot" id="hdr-pill-lux">
+            <strong id="hdr-lux-val">120.4k</strong> lx
+          </div>
+          <div class="telemetry-pill" id="hdr-pill-kelvin">
+            <strong id="hdr-kelvin-val">5,600</strong> K
+          </div>
+          <div class="telemetry-pill" id="hdr-pill-csm">
+            <strong>4</strong> Cascades
+          </div>
+          <div class="telemetry-pill" id="hdr-pill-rt">
+            <strong id="hdr-rt-val">0.38</strong> ms RT
+          </div>
+        </div>
+
+        <button class="action-btn" id="btn-export-json" title="Export Light Rig JSON">
+          <span>{ }</span> Export JSON
+        </button>
+        <button class="action-btn primary" id="btn-hlsl-code" title="Generate HLSL / C++ Binding Header">
+          <span>&lt;/&gt;</span> HLSL Struct
+        </button>
+      </div>
+    </header>
+
+    <!-- ============================================================
+         3-COLUMN WORKSPACE: Outliner | Dashboard | Inspector
+         (STRICTLY NO 3D VIEWPORT CANVAS - UI DASHBOARD ONLY)
+         ============================================================ -->
+    <main class="workspace-body">
+      
+      <!-- ============================================================
+           LEFT PANEL: OUTLINER (Scene Hierarchy)
+           ============================================================ -->
+      <aside class="outliner-panel" aria-label="Scene Outliner">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <div class="panel-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              Scene Outliner
+            </div>
+            <span class="entity-counter-badge" id="outliner-count">14 Entities</span>
+          </div>
+
+          <!-- Outliner Search -->
+          <div class="search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" id="outliner-search" placeholder="Filter entities... (⌘F)" />
+            <span class="search-shortcut">⌘F</span>
+          </div>
+
+          <!-- Category Filter Pills (Image 1 style) -->
+          <div class="outliner-filter-row" id="outliner-filters">
+            <button class="filter-chip active" data-filter="all">All 14</button>
+            <button class="filter-chip" data-filter="lights">Lights 4</button>
+            <button class="filter-chip" data-filter="cameras">Cameras 2</button>
+            <button class="filter-chip" data-filter="environment">Environment 3</button>
+            <button class="filter-chip" data-filter="geometry">Geometry 3</button>
+            <button class="filter-chip" data-filter="post">Post 2</button>
+          </div>
+        </div>
+
+        <!-- Outliner Tree -->
+        <div class="tree-container" id="tree-root">
+          
+          <!-- Folder: Environment & Atmosphere -->
+          <div class="tree-folder" data-folder="env">
+            <div class="tree-folder-header">
+              <span class="folder-arrow">▼</span>
+              <span>Environment &amp; Sky</span>
+            </div>
+            <div class="tree-children">
+              <!-- SELECTED SUN LIGHT ITEM -->
+              <div class="tree-item selected" data-id="sun" data-type="lights" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">☀️</span>
+                  <span class="entity-name">Directional Light (Sun)</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge movable">M</span>
+                  <button class="icon-toggle active" title="Toggle Visibility">👁</button>
+                  <button class="icon-toggle" title="Toggle Lock">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="atmo" data-type="environment" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">☁️</span>
+                  <span class="entity-name">Sky Atmosphere &amp; Fog</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge stationary">S</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="clouds" data-type="environment" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🌌</span>
+                  <span class="entity-name">Volumetric Clouds (VDB)</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge movable">M</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Folder: Local Lights -->
+          <div class="tree-folder" data-folder="lights">
+            <div class="tree-folder-header">
+              <span class="folder-arrow">▼</span>
+              <span>Local Illumination</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-item" data-id="campfire" data-type="lights" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🔥</span>
+                  <span class="entity-name">Point Light (Campfire)</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge movable">M</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="spotlight" data-type="lights" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🔦</span>
+                  <span class="entity-name">Spot Light (Watchtower)</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge stationary">S</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="rectlight" data-type="lights" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">💡</span>
+                  <span class="entity-name">Rect Light (Window Ingress)</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Folder: Cameras -->
+          <div class="tree-folder" data-folder="cameras">
+            <div class="tree-folder-header">
+              <span class="folder-arrow">▼</span>
+              <span>Cinematics &amp; Cameras</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-item" data-id="camera-hero" data-type="cameras" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🎥</span>
+                  <span class="entity-name">Cinematic Hero Camera</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge movable">M</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="camera-editor" data-type="cameras" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">📷</span>
+                  <span class="entity-name">Editor Perspective Camera</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge movable">M</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Folder: World Geometry -->
+          <div class="tree-folder" data-folder="geo">
+            <div class="tree-folder-header">
+              <span class="folder-arrow">▼</span>
+              <span>World Geometry</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-item" data-id="citadel" data-type="geometry" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🏰</span>
+                  <span class="entity-name">Citadel Keep Hero LOD0</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="terrain" data-type="geometry" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">⛰️</span>
+                  <span class="entity-name">Landscape Mountain Chunk</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="forest" data-type="geometry" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🌲</span>
+                  <span class="entity-name">Pine Forest Foliage</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Folder: Post Processing -->
+          <div class="tree-folder" data-folder="post">
+            <div class="tree-folder-header">
+              <span class="folder-arrow">▼</span>
+              <span>Post Processing</span>
+            </div>
+            <div class="tree-children">
+              <div class="tree-item" data-id="tonemap" data-type="post" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">🎞️</span>
+                  <span class="entity-name">Global ACES Tonemapping</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+
+              <div class="tree-item" data-id="bloom" data-type="post" tabindex="0">
+                <div class="tree-item-left">
+                  <span class="entity-icon">✨</span>
+                  <span class="entity-name">Convolution Bloom &amp; Flare</span>
+                </div>
+                <div class="tree-item-actions">
+                  <span class="mobility-badge static">St</span>
+                  <button class="icon-toggle active">👁</button>
+                  <button class="icon-toggle">🔓</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Outliner Footer (Matching Image 1 counts) -->
+        <div class="outliner-footer">
+          <span>Active: <strong>10</strong></span>
+          <span>Static: <strong>4</strong></span>
+          <span>1.42M Tris</span>
+          <span>8 Probes</span>
+        </div>
+      </aside>
+
+      <!-- ============================================================
+           CENTER PANEL: UI DASHBOARD (Interactive Tactile Cards)
+           Strictly NO 3D viewport canvas window! UI Dashboard ONLY!
+           ============================================================ -->
+      <section class="dashboard-center" id="dashboard-center" aria-label="Engine Dashboard">
+        
+        <!-- Active Entity Hero Banner -->
+        <div class="entity-hero-banner" id="entity-banner">
+          <div class="hero-left">
+            <div class="hero-avatar" id="hero-avatar">☀️</div>
+            <div class="hero-title-group">
+              <div class="hero-entity-title">
+                <span id="hero-title-text">Directional Light (Sun)</span>
+                <span class="hero-type-pill" id="hero-type-badge">Primary Directional</span>
+              </div>
+              <div class="hero-subtitle" id="hero-subtitle-text">
+                Atmosphere coupled · Cascaded Shadow Maps (4 splits) · Raytraced Penumbra
+              </div>
+            </div>
+          </div>
+          <div class="hero-quick-toggles">
+            <button class="action-btn" id="btn-snap-zenith" title="Align Sun to High Noon Zenith">
+              <span>☀️</span> Snap Zenith
+            </button>
+            <button class="action-btn" id="btn-golden-hour" title="Align to Golden Hour">
+              <span>🌅</span> Golden Hour
+            </button>
+            <button class="action-btn" id="btn-reset-rig" title="Reset Rig Parameters">
+              <span>↺</span> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Status Row (Directly matching Image 1 Online/Offline Cards) -->
+        <div class="quick-status-row">
+          <!-- Card 1: Online status (Green check circle) -->
+          <div class="quick-status-card">
+            <div class="status-left">
+              <div class="status-icon-badge online-green">✓</div>
+              <div class="status-labels">
+                <span class="status-name">Solar State</span>
+                <span class="status-sub" id="stat-solar-sub">Elevation: +58.2°</span>
+              </div>
+            </div>
+            <div class="status-big-num" id="stat-solar-state" style="font-size: 20px; font-weight:700;">ZENITH</div>
+          </div>
+
+          <!-- Card 2: Penumbra Alert / Metric (Red Alert Triangle) -->
+          <div class="quick-status-card">
+            <div class="status-left">
+              <div class="status-icon-badge offline-red">▲</div>
+              <div class="status-labels">
+                <span class="status-name">Sun Angular Size</span>
+                <span class="status-sub">Contact Hardening</span>
+              </div>
+            </div>
+            <div class="status-big-num" id="stat-angular-size">0.533°</div>
+          </div>
+
+          <!-- Card 3: GPU Shadow Time (Cyan Radar) -->
+          <div class="quick-status-card">
+            <div class="status-left">
+              <div class="status-icon-badge info-cyan">◎</div>
+              <div class="status-labels">
+                <span class="status-name">Shadow GPU Pass</span>
+                <span class="status-sub">Target &lt; 0.60ms</span>
+              </div>
+            </div>
+            <div class="status-big-num" id="stat-gpu-cost">0.38<span style="font-size:14px; font-weight:400; color:var(--text-muted); margin-left:3px;">ms</span></div>
+          </div>
+        </div>
+
+        <!-- ============================================================
+             THE 8 BESPOKE UNIQUE INTERACTIVE CARDS
+             (Faithfully matching Image 1 and Image 2 styles)
+             ============================================================ -->
+        <div class="cards-grid" id="cards-container">
+          
+          <!-- ============================================================
+               CARD 1: THE CELESTIAL SUN GIZMO CARD
+               Interactive Celestial Orbit & Direction Gizmo
+               ============================================================ -->
+          <div class="tactile-card" id="card-gizmo">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-solar"></div>
+                <h2 class="card-title">Solar Vector &amp; Direction Gizmo</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Gizmo" data-card="gizmo">↗</div>
+            </div>
+
+            <!-- Hero Metric Display (Image 2 style) -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-azimuth-major">42.</span>
+                <span class="metric-fraction" id="val-azimuth-fraction">8°</span>
+                <span class="metric-unit">Az / </span>
+                <span class="metric-major" id="val-elevation-major" style="margin-left:8px;">58.</span>
+                <span class="metric-fraction" id="val-elevation-fraction">2°</span>
+                <span class="metric-unit">El</span>
+              </div>
+              <div class="metric-delta-tag green">
+                <span>●</span> Realtime Track
+              </div>
+            </div>
+
+            <!-- Recessed Gizmo Stage -->
+            <div class="recessed-display" style="padding: 10px;">
+              <div class="gizmo-stage" id="gizmo-stage" title="Click and drag anywhere on the dome to aim the Sun">
+                <svg class="gizmo-svg" id="gizmo-svg" viewBox="0 0 380 180">
+                  <defs>
+                    <radialGradient id="sun-glow-grad" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                      <stop offset="35%" stop-color="#fde047" stop-opacity="0.9" />
+                      <stop offset="70%" stop-color="#f97316" stop-opacity="0.4" />
+                      <stop offset="100%" stop-color="#f97316" stop-opacity="0" />
+                    </radialGradient>
+                    <linearGradient id="ground-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(255,255,255,0.06)" />
+                      <stop offset="100%" stop-color="rgba(255,255,255,0.01)" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Ground Horizon Ellipse -->
+                  <ellipse cx="190" cy="140" rx="160" ry="32" fill="url(#ground-grad)" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-dasharray="3,3" />
+
+                  <!-- Cardinal Compass Directions -->
+                  <text x="190" y="178" fill="rgba(255,255,255,0.4)" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="middle">S (180°)</text>
+                  <text x="190" y="112" fill="rgba(255,255,255,0.4)" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="middle">N (0°)</text>
+                  <text x="358" y="144" fill="rgba(255,255,255,0.4)" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="start">E (90°)</text>
+                  <text x="22" y="144" fill="rgba(255,255,255,0.4)" font-size="10" font-family="'JetBrains Mono', monospace" text-anchor="end">W (270°)</text>
+
+                  <!-- Celestial Dome Meridian Arcs -->
+                  <path d="M 30,140 A 160,110 0 0,1 350,140" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.2" />
+                  <path d="M 190,30 L 190,140" fill="none" stroke="rgba(255,255,255,0.08)" stroke-dasharray="2,2" stroke-width="1" />
+                  
+                  <!-- Diurnal Sun Trajectory Path -->
+                  <path id="gizmo-diurnal-arc" d="M 45,140 Q 190,18 335,140" fill="none" stroke="rgba(245, 158, 11, 0.4)" stroke-width="1.5" stroke-dasharray="4,4" />
+
+                  <!-- Origin Pivot Reticle -->
+                  <circle cx="190" cy="140" r="3" fill="#ffffff" opacity="0.8" />
+                  <circle cx="190" cy="140" r="8" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
+
+                  <!-- Sun Ray to Ground Origin -->
+                  <line id="gizmo-ray-line" x1="190" y1="140" x2="235" y2="60" stroke="#fde047" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.6" />
+
+                  <!-- Interactive Draggable Sun Handle -->
+                  <g id="gizmo-sun-disc" transform="translate(235, 60)" style="cursor: grab;">
+                    <!-- Outer Corona Glow -->
+                    <circle cx="0" cy="0" r="24" fill="url(#sun-glow-grad)" />
+                    <!-- Sun Spokes -->
+                    <circle cx="0" cy="0" r="10" fill="#fde047" stroke="#ffffff" stroke-width="2" />
+                    <!-- Center Core -->
+                    <circle cx="0" cy="0" r="4" fill="#ffffff" />
+                  </g>
+                </svg>
+
+                <div class="reticle-icon"></div>
+              </div>
+            </div>
+
+            <!-- Controls and Readout -->
+            <div class="gizmo-controls-row">
+              <div class="vector-readout-pill" id="gizmo-vec-readout">
+                Dir: <span id="vec-x">X: 0.518</span> <span id="vec-y">Y: 0.850</span> <span id="vec-z">Z: -0.092</span>
+              </div>
+              <div class="preset-pills-row">
+                <button class="mini-pill-btn active" data-preset="noon">Noon 85°</button>
+                <button class="mini-pill-btn" data-preset="golden">Golden 14°</button>
+                <button class="mini-pill-btn" data-preset="sunrise">Dawn 2°</button>
+                <button class="mini-pill-btn" data-preset="dusk">Dusk -2°</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 2: DIRECT SOLAR ILLUMINANCE & PHOTOMETRIC PROBES
+               Directly styled after Image 2 (eAG Blood card) & Image 1
+               ============================================================ -->
+          <div class="tactile-card" id="card-illuminance">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-lux"></div>
+                <h2 class="card-title">Direct Illuminance (Lux)</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Illuminance" data-card="lux">↗</div>
+            </div>
+
+            <!-- Hero Metric Display (Exact Image 2 style: 113.1 mg/dl) -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-lux-major">120,</span>
+                <span class="metric-fraction" id="val-lux-fraction">450</span>
+                <span class="metric-unit">lx</span>
+              </div>
+              <div class="metric-delta-tag">
+                +4,200 lx (Peak)
+              </div>
+            </div>
+
+            <!-- Sunken Recessed Display Screen (Identical recreation of Image 2 bottom recess) -->
+            <div class="recessed-display probes-display-window" id="probes-window">
+              <!-- Horizontal Reference Line -->
+              <div class="threshold-line"></div>
+
+              <!-- Interactive Draggable Red Indicator Dot (Image 2 style) -->
+              <div class="red-indicator-dot" id="lux-threshold-dot" title="Drag to adjust exposure target threshold" style="left: 36%;"></div>
+
+              <!-- Scattered Photometric Sensor Probe Dots (Image 2 style) -->
+              <div class="sensor-dot" style="top: 22%; left: 16%;" data-name="Ground Plane Probe" data-lux="118,500 lx" title="Ground Plane: 118,500 lx"></div>
+              <div class="sensor-dot" style="top: 68%; left: 24%;" data-name="Foliage Canopy Probe" data-lux="84,200 lx" title="Foliage Canopy: 84,200 lx"></div>
+              <div class="sensor-dot" style="top: 32%; left: 48%;" data-name="Castle Courtyard Probe" data-lux="105,000 lx" title="Castle Courtyard: 105,000 lx"></div>
+              <div class="sensor-dot" style="top: 78%; left: 62%;" data-name="Cave Entrance Shadow" data-lux="14,800 lx" title="Cave Entrance: 14,800 lx"></div>
+              <div class="sensor-dot" style="top: 18%; left: 74%;" data-name="Cloud Top Probe" data-lux="132,000 lx" title="Cloud Top: 132,000 lx"></div>
+              <div class="sensor-dot" style="top: 54%; left: 88%;" data-name="Water Surface Mirror" data-lux="98,400 lx" title="Water Mirror: 98,400 lx"></div>
+
+              <!-- Reticle Target Icon in bottom-right corner (Image 2 style) -->
+              <div class="reticle-icon"></div>
+
+              <div class="probe-tooltip" id="probe-tooltip">Hover any sensor probe to inspect calibrated scene lux</div>
+            </div>
+
+            <!-- Interactive Direct Sliders -->
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <span>Direct Solar Intensity</span>
+                <span class="slider-val-readout" id="lux-slider-label">120,450 lx</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-lux" min="0" max="150000" step="500" value="120450" />
+            </div>
+
+            <div class="slider-control-group" style="margin-top: 8px;">
+              <div class="slider-label-row">
+                <span>Auto-Exposure Bias (EV)</span>
+                <span class="slider-val-readout" id="ev-slider-label">+0.00 EV</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-ev" min="-4.0" max="4.0" step="0.1" value="0.0" />
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 3: COLOR TEMPERATURE & BLACKBODY SPECTRUM
+               Unique Interactive Color Blackbody Locus Card
+               ============================================================ -->
+          <div class="tactile-card" id="card-kelvin">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-kelvin"></div>
+                <h2 class="card-title">Color Temperature (Kelvin)</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Temperature" data-card="kelvin">↗</div>
+            </div>
+
+            <!-- Hero Metric Display -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-kelvin-major">5,600</span>
+                <span class="metric-fraction"></span>
+                <span class="metric-unit">K</span>
+              </div>
+              <div class="metric-delta-tag" id="kelvin-tag-desc">
+                Daylight (D55)
+              </div>
+            </div>
+
+            <!-- Interactive Swatch & CIE Coordinates -->
+            <div class="kelvin-display-content">
+              <!-- Physical Color Swatch with Bloom Emission Glow -->
+              <div class="chroma-swatch-box" id="kelvin-swatch">
+                <span id="kelvin-hex-label" style="font-size:10px; font-family:var(--font-mono); font-weight:700; color:#1a1a1a;">#FFF4E8</span>
+              </div>
+              <div class="kelvin-info-box">
+                <div style="font-size: 11.5px; color: var(--text-secondary);">CIE 1931 Chromaticity Coordinates:</div>
+                <div style="font-family: var(--font-mono); font-size: 11px; color: #ffffff;" id="cie-xy-readout">
+                  x: 0.332 &nbsp;|&nbsp; y: 0.344
+                </div>
+                <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
+                  Planckian Blackbody Radiation Curve
+                </div>
+              </div>
+            </div>
+
+            <!-- Continuous Physical Kelvin Gradient Slider -->
+            <div class="kelvin-gradient-track"></div>
+            <input type="range" class="custom-range" id="slider-kelvin" min="1800" max="12000" step="50" value="5600" />
+
+            <!-- Presets -->
+            <div class="preset-pills-row" style="margin-top: 10px;">
+              <button class="mini-pill-btn" data-kelvin="2000">Candle 2000K</button>
+              <button class="mini-pill-btn" data-kelvin="3200">Sunset 3200K</button>
+              <button class="mini-pill-btn active" data-kelvin="5600">Sun 5600K</button>
+              <button class="mini-pill-btn" data-kelvin="6500">Overcast 6500K</button>
+              <button class="mini-pill-btn" data-kelvin="9500">Sky 9500K</button>
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 4: CASCADED SHADOW MAPS (CSM) & SPLITS
+               Unique Interactive Multi-Split Cascade Partition Card
+               ============================================================ -->
+          <div class="tactile-card" id="card-csm">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-shadow"></div>
+                <h2 class="card-title">Cascaded Shadow Maps (CSM)</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect CSM" data-card="csm">↗</div>
+            </div>
+
+            <!-- Hero Metric Display -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major">4</span>
+                <span class="metric-fraction">.0</span>
+                <span class="metric-unit">Cascades &nbsp;|&nbsp; 4096 px</span>
+              </div>
+              <div class="metric-delta-tag cyan">
+                PCF 5x5 Soft
+              </div>
+            </div>
+
+            <!-- Interactive Cascade Split Partition Bar -->
+            <div class="csm-splits-bar" id="csm-bar">
+              <div class="csm-cascade-segment" style="flex: 15; background: rgba(6, 182, 212, 0.22);" title="Cascade 0: 0 - 15m (Characters & Foliage)">
+                <span class="cascade-title">Cascade 0</span>
+                <span class="cascade-range" id="cas-0-range">0 - 15m</span>
+                <div class="cascade-split-handle" data-handle="0"></div>
+              </div>
+              <div class="csm-cascade-segment" style="flex: 25; background: rgba(6, 182, 212, 0.16);" title="Cascade 1: 15 - 50m (Props & Structures)">
+                <span class="cascade-title">Cascade 1</span>
+                <span class="cascade-range" id="cas-1-range">15 - 50m</span>
+                <div class="cascade-split-handle" data-handle="1"></div>
+              </div>
+              <div class="csm-cascade-segment" style="flex: 35; background: rgba(6, 182, 212, 0.10);" title="Cascade 2: 50 - 150m (Buildings & Terrain)">
+                <span class="cascade-title">Cascade 2</span>
+                <span class="cascade-range" id="cas-2-range">50 - 150m</span>
+                <div class="cascade-split-handle" data-handle="2"></div>
+              </div>
+              <div class="csm-cascade-segment" style="flex: 25; background: rgba(6, 182, 212, 0.05);" title="Cascade 3: 150 - 600m (Far Vista & Mountains)">
+                <span class="cascade-title">Cascade 3</span>
+                <span class="cascade-range" id="cas-3-range">150 - 600m</span>
+              </div>
+            </div>
+
+            <!-- Interactive Controls -->
+            <div class="slider-control-group">
+              <div class="slider-label-row">
+                <span>Sun Angular Diameter (Soft Contact Penumbra)</span>
+                <span class="slider-val-readout" id="angular-diameter-val">0.533°</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-angular-dia" min="0.100" max="3.000" step="0.010" value="0.533" />
+            </div>
+
+            <div class="slider-control-group" style="margin-top: 8px;">
+              <div class="slider-label-row">
+                <span>Shadow Depth Bias / Slope Bias</span>
+                <span class="slider-val-readout" id="shadow-bias-val">0.005 / 0.50</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-shadow-bias" min="0.001" max="0.020" step="0.001" value="0.005" />
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 5: ATMOSPHERIC SCATTERING & RAYLEIGH OPTICAL DEPTH
+               Unique Interactive Atmospheric Column Simulation Card
+               ============================================================ -->
+          <div class="tactile-card" id="card-atmosphere">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-atmo"></div>
+                <h2 class="card-title">Atmospheric Rayleigh &amp; Mie</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Atmosphere" data-card="atmo">↗</div>
+            </div>
+
+            <!-- Hero Metric Display -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-atmo-major">0.0</span>
+                <span class="metric-fraction" id="val-atmo-fraction">42</span>
+                <span class="metric-unit">Turbidity</span>
+              </div>
+              <div class="metric-delta-tag" style="background: rgba(129, 140, 248, 0.15); color: #a5b4fc; border-color: rgba(129, 140, 248, 0.25);">
+                Ozone Active
+              </div>
+            </div>
+
+            <!-- Recessed Visual Atmospheric Column Box with Animated Particles -->
+            <div class="atmo-visualizer-box" id="atmo-box">
+              <canvas class="atmo-canvas" id="atmo-canvas"></canvas>
+              <div class="atmo-altitude-labels">
+                <span>80 km (Mesosphere)</span>
+                <span>50 km (Ozone Peak)</span>
+                <span>12 km (Rayleigh Troposphere)</span>
+                <span>0 km (Ground Boundary)</span>
+              </div>
+              <div class="reticle-icon"></div>
+            </div>
+
+            <!-- Interactive Sliders -->
+            <div class="slider-control-group" style="margin-top: 10px;">
+              <div class="slider-label-row">
+                <span>Rayleigh Scattering (λ⁻⁴ Blue Phase)</span>
+                <span class="slider-val-readout" id="rayleigh-val">0.033</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-rayleigh" min="0.010" max="0.100" step="0.001" value="0.033" />
+            </div>
+
+            <div class="slider-control-group" style="margin-top: 8px;">
+              <div class="slider-label-row">
+                <span>Mie Aerosol Turbidity (Forward Halo)</span>
+                <span class="slider-val-readout" id="mie-val">0.042</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-mie" min="0.005" max="0.150" step="0.001" value="0.042" />
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 6: DIURNAL 24-HOUR TIMELINE SCRUBBER
+               Directly modeled on Image 1 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
+               ============================================================ -->
+          <div class="tactile-card" id="card-timeline">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-time"></div>
+                <h2 class="card-title">Diurnal Solar Timeline</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Timeline" data-card="timeline">↗</div>
+            </div>
+
+            <!-- Hero Metric Display -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-time-major">13:</span>
+                <span class="metric-fraction" id="val-time-fraction">42</span>
+                <span class="metric-unit" id="val-time-seconds">:15</span>
+              </div>
+              <div class="metric-delta-tag" id="time-phase-tag" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.25);">
+                Afternoon Phase
+              </div>
+            </div>
+
+            <!-- Diurnal Interactive Scrubber -->
+            <div class="diurnal-timeline-container">
+              <!-- Time Marks (06:00, 09:00, 12:00, 15:00, 18:00, 21:00 - identical to Image 1) -->
+              <div class="time-axis-labels">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>09:00</span>
+                <span>12:00</span>
+                <span>15:00</span>
+                <span>18:00</span>
+                <span>21:00</span>
+                <span>24:00</span>
+              </div>
+
+              <!-- Interactive Timeline Bar with Day/Night Spectral Gradient -->
+              <div class="diurnal-bar-wrapper" id="diurnal-bar">
+                <div class="diurnal-gradient-fill"></div>
+                <div class="diurnal-thumb" id="diurnal-thumb" style="left: 57%;">
+                  <span class="diurnal-thumb-icon" id="thumb-celestial-icon">☀️</span>
+                </div>
+              </div>
+
+              <!-- Timeline Controls Row -->
+              <div class="timeline-playback-row">
+                <button class="play-pause-btn" id="btn-toggle-diurnal">
+                  <span id="play-icon">▶</span> <span id="play-text">Simulate Cycle</span>
+                </button>
+                <div class="speed-chips-row">
+                  <button class="mini-pill-btn active" data-speed="1">1x</button>
+                  <button class="mini-pill-btn" data-speed="10">10x</button>
+                  <button class="mini-pill-btn" data-speed="60">60x</button>
+                  <button class="mini-pill-btn" data-speed="300">300x</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 7: VOLUMETRIC CREPUSCULAR GOD RAYS
+               Unique Interactive Volumetric Shaft Canvas Card
+               ============================================================ -->
+          <div class="tactile-card" id="card-volumetric">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-rays"></div>
+                <h2 class="card-title">Volumetric Crepuscular Shafts</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Volumetrics" data-card="volumetric">↗</div>
+            </div>
+
+            <!-- Hero Metric Display -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-godrays-major">1.</span>
+                <span class="metric-fraction" id="val-godrays-fraction">85</span>
+                <span class="metric-unit">Scatter Mult</span>
+              </div>
+              <div class="metric-delta-tag" style="background: rgba(244, 63, 94, 0.15); color: #fb7185; border-color: rgba(244, 63, 94, 0.25);">
+                Temporal Jitter ON
+              </div>
+            </div>
+
+            <!-- Volumetric Light Shaft Stage Canvas -->
+            <div class="volumetric-stage" id="volumetric-stage">
+              <canvas class="volumetric-canvas" id="volumetric-canvas"></canvas>
+              <div class="reticle-icon"></div>
+            </div>
+
+            <!-- Interactive Sliders -->
+            <div class="slider-control-group" style="margin-top: 10px;">
+              <div class="slider-label-row">
+                <span>Phase Anisotropy (g Factor: Forward Scatter)</span>
+                <span class="slider-val-readout" id="anisotropy-val">+0.75</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-anisotropy" min="-0.90" max="0.95" step="0.05" value="0.75" />
+            </div>
+
+            <div class="slider-control-group" style="margin-top: 8px;">
+              <div class="slider-label-row">
+                <span>Raymarch Sample Steps</span>
+                <span class="slider-val-readout" id="samples-val">64 Samples</span>
+              </div>
+              <input type="range" class="custom-range" id="slider-ray-samples" min="16" max="128" step="16" value="64" />
+            </div>
+          </div>
+
+          <!-- ============================================================
+               CARD 8: RAYTRACING SUN TELEMETRY & FRAME BUDGET
+               Directly inspired by Image 1 "Operational Efficiency" Card
+               ============================================================ -->
+          <div class="tactile-card" id="card-telemetry">
+            <div class="card-top-row">
+              <div class="card-title-group">
+                <div class="accent-pill accent-perf"></div>
+                <h2 class="card-title">Raytracing Sun Telemetry</h2>
+              </div>
+              <div class="card-action-arrow" title="Inspect Performance" data-card="perf">↗</div>
+            </div>
+
+            <!-- Hero Metric Display (Directly matching Image 1: 78.3 %) -->
+            <div class="hero-metric-row">
+              <div class="metric-value-container">
+                <span class="metric-major" id="val-rt-major">0.</span>
+                <span class="metric-fraction" id="val-rt-fraction">38</span>
+                <span class="metric-unit">ms</span>
+              </div>
+              <div class="metric-delta-tag green">
+                BVH Optimized
+              </div>
+            </div>
+
+            <!-- Realtime Telemetry Canvas with Stepped Area and Dotted Budget Line (Image 1 style) -->
+            <div class="telemetry-chart-container">
+              <canvas class="telemetry-canvas" id="telemetry-canvas"></canvas>
+              <div class="target-budget-badge">
+                Target: <span>&lt; 0.60 ms</span>
+              </div>
+              <div class="reticle-icon"></div>
+            </div>
+
+            <!-- Telemetry Hardware Feature Toggles -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+              <span style="font-size: 11px; color: var(--text-secondary);">Inline RT Shadows</span>
+              <label class="switch-toggle">
+                <input type="checkbox" id="toggle-rt-shadows" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+              <span style="font-size: 11px; color: var(--text-secondary);">SVGF Spatio-Temporal Denoiser</span>
+              <label class="switch-toggle">
+                <input type="checkbox" id="toggle-rt-denoiser" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================================================
+           RIGHT PANEL: INSPECTOR PANEL (Engine Property Editor)
+           ============================================================ -->
+      <aside class="inspector-panel" aria-label="Entity Inspector">
+        <div class="inspector-header">
+          <div class="inspector-title-row">
+            <div class="inspector-title">
+              <span id="insp-header-icon">☀️</span>
+              <span id="insp-header-name">Directional Light (Sun)</span>
+            </div>
+            <button class="action-btn" id="insp-options-btn" style="padding: 4px 8px;">•••</button>
+          </div>
+
+          <!-- Mobility Segmented Control (Static / Stationary / Movable) -->
+          <div class="mobility-segmented-control" id="insp-mobility">
+            <button class="mobility-btn" data-mob="static">Static</button>
+            <button class="mobility-btn" data-mob="stationary">Stationary</button>
+            <button class="mobility-btn active" data-mob="movable">Movable</button>
+          </div>
+        </div>
+
+        <!-- Section 1: Transform (Interactive Drag-Scrub Inputs) -->
+        <div class="inspector-accordion-section" id="sec-transform">
+          <div class="accordion-header">
+            <span>Transform</span>
+            <span class="accordion-arrow">▼</span>
+          </div>
+          <div class="accordion-content">
+            <!-- Location -->
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Location (m)</span>
+                <span style="font-size: 10px; color: var(--text-muted);">World Units</span>
+              </div>
+              <div class="xyz-inputs-row">
+                <div class="xyz-input-box">
+                  <span class="xyz-label x">X</span>
+                  <input type="number" class="xyz-field" id="trans-pos-x" value="0.0" step="1.0" />
+                </div>
+                <div class="xyz-input-box">
+                  <span class="xyz-label y">Y</span>
+                  <input type="number" class="xyz-field" id="trans-pos-y" value="0.0" step="1.0" />
+                </div>
+                <div class="xyz-input-box">
+                  <span class="xyz-label z">Z</span>
+                  <input type="number" class="xyz-field" id="trans-pos-z" value="500.0" step="1.0" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Rotation (Pitch / Yaw / Roll - 2-way synced with Sun Gizmo!) -->
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Rotation (deg)</span>
+                <span style="font-size: 10px; color: var(--accent-solar);">Synced with Gizmo</span>
+              </div>
+              <div class="xyz-inputs-row">
+                <div class="xyz-input-box" title="Drag to scrub Pitch">
+                  <span class="xyz-label x">P</span>
+                  <input type="number" class="xyz-field" id="trans-rot-pitch" value="-58.2" step="0.5" />
+                </div>
+                <div class="xyz-input-box" title="Drag to scrub Yaw">
+                  <span class="xyz-label y">Y</span>
+                  <input type="number" class="xyz-field" id="trans-rot-yaw" value="42.8" step="0.5" />
+                </div>
+                <div class="xyz-input-box" title="Roll">
+                  <span class="xyz-label z">R</span>
+                  <input type="number" class="xyz-field" id="trans-rot-roll" value="0.0" step="0.5" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Scale -->
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Scale</span>
+              </div>
+              <div class="xyz-inputs-row">
+                <div class="xyz-input-box">
+                  <span class="xyz-label x">X</span>
+                  <input type="number" class="xyz-field" value="1.0" step="0.1" />
+                </div>
+                <div class="xyz-input-box">
+                  <span class="xyz-label y">Y</span>
+                  <input type="number" class="xyz-field" value="1.0" step="0.1" />
+                </div>
+                <div class="xyz-input-box">
+                  <span class="xyz-label z">Z</span>
+                  <input type="number" class="xyz-field" value="1.0" step="0.1" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Light Component Properties -->
+        <div class="inspector-accordion-section" id="sec-light-props">
+          <div class="accordion-header">
+            <span>Light Component</span>
+            <span class="accordion-arrow">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Intensity (Lux)</span>
+                <span class="slider-val-readout" id="insp-lux-val">120,450.0 lx</span>
+              </div>
+              <input type="number" class="xyz-field" id="insp-lux-field" value="120450" style="background:var(--bg-recess); padding:6px 10px; border-radius:8px; border:1px solid var(--border-subtle);" />
+            </div>
+
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Light Color &amp; Temperature</span>
+                <span class="slider-val-readout" id="insp-kelvin-val">5,600 K</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="color" id="insp-color-picker" value="#FFF4E8" style="width:36px; height:32px; border:none; border-radius:6px; background:none; cursor:pointer;" />
+                <input type="text" id="insp-hex-field" value="#FFF4E8" class="xyz-field" style="background:var(--bg-recess); padding:6px 10px; border-radius:8px; border:1px solid var(--border-subtle); width:100px;" />
+                <label class="switch-toggle" title="Use Temperature Kelvin">
+                  <input type="checkbox" id="insp-use-temp" checked />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Source Angle (deg)</span>
+                <span class="slider-val-readout" id="insp-src-angle-val">0.533°</span>
+              </div>
+              <input type="range" class="custom-range" id="insp-slider-angle" min="0.1" max="3.0" step="0.01" value="0.533" />
+            </div>
+
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Indirect Lighting Multiplier</span>
+                <span class="slider-val-readout">1.00</span>
+              </div>
+              <input type="range" class="custom-range" min="0.0" max="4.0" step="0.05" value="1.0" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Cascaded Shadows -->
+        <div class="inspector-accordion-section" id="sec-csm-props">
+          <div class="accordion-header">
+            <span>Cascaded Shadows</span>
+            <span class="accordion-arrow">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="toggle-row">
+              <span>Cast Dynamic Shadows</span>
+              <label class="switch-toggle">
+                <input type="checkbox" id="insp-cast-shadows" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Shadow Resolution</span>
+              </div>
+              <div class="mobility-segmented-control">
+                <button class="mobility-btn">1024</button>
+                <button class="mobility-btn">2048</button>
+                <button class="mobility-btn active">4096</button>
+                <button class="mobility-btn">8192</button>
+              </div>
+            </div>
+
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Max Distance</span>
+                <span class="slider-val-readout">600.0 m</span>
+              </div>
+              <input type="range" class="custom-range" min="100" max="2000" step="50" value="600" />
+            </div>
+
+            <div class="toggle-row">
+              <span>Contact Shadows</span>
+              <label class="switch-toggle">
+                <input type="checkbox" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Atmosphere Coupling -->
+        <div class="inspector-accordion-section" id="sec-atmo-props">
+          <div class="accordion-header">
+            <span>Atmosphere Coupling</span>
+            <span class="accordion-arrow">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="toggle-row">
+              <span>Atmosphere Sun Light</span>
+              <label class="switch-toggle">
+                <input type="checkbox" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <span>Per-Pixel Transmittance</span>
+              <label class="switch-toggle">
+                <input type="checkbox" checked />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <div class="prop-row">
+              <div class="prop-label">
+                <span>Sun Disk Multiplier</span>
+                <span class="slider-val-readout">1.00</span>
+              </div>
+              <input type="range" class="custom-range" min="0.0" max="5.0" step="0.1" value="1.0" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Engine Actions -->
+        <div class="inspector-actions-section">
+          <button class="action-btn" id="insp-btn-noon" style="justify-content:center; padding:10px;">
+            <span>☀️</span> Reset to Solar High Noon
+          </button>
+          <button class="action-btn" id="insp-btn-copy-hlsl" style="justify-content:center; padding:10px;">
+            <span>&lt;/&gt;</span> Copy HLSL Constant Buffer
+          </button>
+          <button class="action-btn" id="insp-btn-export-preset" style="justify-content:center; padding:10px;">
+            <span>💾</span> Save as Environment Preset
+          </button>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- ============================================================
+         MODAL DIALOG (For HLSL Code & JSON Rig Exports)
+         ============================================================ -->
+    <div class="modal-overlay" id="code-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modal-title">HLSL Shader Constant Buffer</h3>
+          <button class="icon-toggle" id="modal-close" style="font-size:16px;">✕</button>
+        </div>
+        <div class="modal-body" id="modal-code"></div>
+        <div class="modal-footer">
+          <button class="action-btn" id="modal-copy-btn">Copy to Clipboard</button>
+          <button class="action-btn primary" id="modal-dismiss-btn">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+  </div>
+
+  <!-- Main Engine Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
