@@ -52,6 +52,13 @@ law while the radius may remain constant or linear. Three exact station sections
 lofted, with analytic extent/removal volume and positivity/refusal checks. See
 `docs/PLAN_NonlinearSetbackLaw.md`.
 
+## Stage 3c.1 — unequal support-setback laws ✅
+
+`UnequalSetbackCornerSpecification` adds independent positive linear clearance laws to the two
+perpendicular supports. Equal laws refuse to keep this route distinct from the common-setback
+construction; the product-of-extents volume and asymmetric topology are verified. See
+`docs/PLAN_UnequalSetbackLaw.md`.
+
 ## Stage 3d — rolling-ball G2 continuity
 
 Still open. Replace the circular/rolling support join with a construction whose tangent and

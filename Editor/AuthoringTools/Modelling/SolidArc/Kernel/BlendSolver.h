@@ -170,6 +170,19 @@ struct VariableSetbackCornerSpecification
     VariableRadiusLaw SetbackLaw{};
 };
 
+// A first asymmetric-support slice: the two perpendicular planar supports have independent
+// positive linear clearance laws. Equality is intentionally rejected so this route cannot be
+// mistaken for the common-setback construction above.
+struct UnequalSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+    VariableRadiusLaw SetbackALaw{};
+    VariableRadiusLaw SetbackBLaw{};
+};
+
 // Quadratic interpolating law used by the first nonlinear-radius slice. The middle value is the
 // radius at T = 0.5, which lets the verifier distinguish a true nonlinear law from the linear
 // endpoint interpolation.
@@ -325,6 +338,7 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,

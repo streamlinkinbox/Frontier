@@ -6179,6 +6179,84 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const Varia
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructUnequalSetbackCornerBlend(
+    const UnequalSetbackCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal setback corner length must be positive");
+    if (!Specification.RadiusLaw.Positive() || !Specification.SetbackALaw.Positive() ||
+        !Specification.SetbackBLaw.Positive())
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal setback laws must be finite and positive");
+    const bool Unequal = std::fabs(Specification.SetbackALaw.Start - Specification.SetbackBLaw.Start) > ScalarCriteria::GeometricTolerance ||
+                         std::fabs(Specification.SetbackALaw.End - Specification.SetbackBLaw.End) > ScalarCriteria::GeometricTolerance;
+    if (!Unequal)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "equal support setbacks belong to the common-setback route");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal setback corner edge axis is degenerate");
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal setback corner frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    auto Point = [&](double T, double AlongU, double AlongV)
+    {
+        return Specification.Origin + Axis * (Specification.Length * T) + U * AlongU + V * AlongV;
+    };
+    auto LineSection = [&](double T, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        return NurbsCurve::Line(Point(T, A.X, A.Y), Point(T, B.X, B.Y));
+    };
+    auto ArcSection = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double R = Specification.RadiusLaw.Radius(T);
+        const double Offset = R - R / std::sqrt(2.0);
+        return NurbsCurve::ArcThreePoints(Point(T, 0.0, R), Point(T, Offset, Offset), Point(T, R, 0.0));
+    };
+    auto LoftTwo = [&](const Deliver<NurbsCurve>& A, const Deliver<NurbsCurve>& B) -> Deliver<NurbsSurface>
+    {
+        if (!A || !B) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "unequal setback section is degenerate");
+        return NurbsSurface::Loft({ A.Payload, B.Payload }, 1);
+    };
+    const double R0 = Specification.RadiusLaw.Start, R1 = Specification.RadiusLaw.End;
+    const double SA0 = Specification.SetbackALaw.Start, SA1 = Specification.SetbackALaw.End;
+    const double SB0 = Specification.SetbackBLaw.Start, SB1 = Specification.SetbackBLaw.End;
+    const double UA0 = R0 + SA0, UA1 = R1 + SA1;
+    const double VB0 = R0 + SB0, VB1 = R1 + SB1;
+    const Vec3 A0{ R0, 0, 0 }, B0{ UA0, 0, 0 }, C0{ UA0, VB0, 0 }, D0{ 0, VB0, 0 }, E0{ 0, R0, 0 };
+    const Vec3 A1{ R1, 0, 0 }, B1{ UA1, 0, 0 }, C1{ UA1, VB1, 0 }, D1{ 0, VB1, 0 }, E1{ 0, R1, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    auto Add = [&](const Deliver<NurbsCurve>& Low, const Deliver<NurbsCurve>& High) -> bool
+    {
+        Deliver<NurbsSurface> Surface = LoftTwo(Low, High);
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    if (!Add(LineSection(0.0, A0, B0), LineSection(1.0, A1, B1)) ||
+        !Add(LineSection(0.0, B0, C0), LineSection(1.0, B1, C1)) ||
+        !Add(LineSection(0.0, C0, D0), LineSection(1.0, C1, D1)) ||
+        !Add(LineSection(0.0, D0, E0), LineSection(1.0, D1, E1)) ||
+        !Add(ArcSection(0.0), ArcSection(1.0)))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal setback corner surfaces could not be constructed");
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const double OuterVolume = Specification.Length * (2.0 * UA0 * VB0 + UA0 * VB1 + UA1 * VB0 + 2.0 * UA1 * VB1) / 6.0;
+    const double RemovedVolume = (1.0 - ScalarCriteria::Pi / 4.0) * Specification.Length *
+        (R0 * R0 + R0 * R1 + R1 * R1) / 3.0;
+    const double ExpectedVolume = OuterVolume - RemovedVolume;
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "unequal setback corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "unequal setback corner volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<QuadraticVariableRadiusSurface> BlendSolver::BuildQuadraticVariableRadiusSurface(
     const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
 {

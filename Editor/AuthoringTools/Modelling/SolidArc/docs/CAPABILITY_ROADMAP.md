@@ -979,6 +979,19 @@ outward normals, and a nonlinear-versus-linear comparison proof are covered by
 This does not claim unequal setback laws, rolling-ball G2 continuity, partial edges, apexes,
 freeform supports, or general healing. Its plan is `docs/PLAN_NonlinearSetbackLaw.md`.
 
+#### Phase 37f: bounded unequal support-setback corner blend ✅
+
+The two perpendicular planar supports now accept independent positive linear clearance laws.
+Equal laws refuse so this is not a renamed common-setback fixture. The accepted non-square
+station sections retain exact quarter-circle rolling sections; the product-of-extents volume,
+`V10/E15/C30/L7/F7` topology, outward normals, transactional refusals, and asymmetric
+comparison proof are covered by `UnequalSetbackCornerVerification` and
+`Proofs/Phase37f_UnequalSetbackCorner.png`.
+
+This remains a complete finite straight corner. Nonlinear laws on both supports, rolling-ball G2
+continuity, partial edges, apexes, freeform supports, and general healing remain open. Its plan
+is `docs/PLAN_UnequalSetbackLaw.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

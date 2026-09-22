@@ -310,6 +310,11 @@ add_executable(NonlinearVariableSetbackCornerVerification Verification/Nonlinear
 target_link_libraries(NonlinearVariableSetbackCornerVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME NonlinearVariableSetbackCornerVerification COMMAND NonlinearVariableSetbackCornerVerification)
 
+# Phase 37f: independent positive linear setbacks on the two perpendicular supports.
+add_executable(UnequalSetbackCornerVerification Verification/UnequalSetbackCornerVerification.cpp)
+target_link_libraries(UnequalSetbackCornerVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME UnequalSetbackCornerVerification COMMAND UnequalSetbackCornerVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
