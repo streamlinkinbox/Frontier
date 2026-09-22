@@ -260,6 +260,11 @@ add_executable(CylinderConeFilletVerification Verification/CylinderConeFilletVer
 target_link_libraries(CylinderConeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME CylinderConeFilletVerification COMMAND CylinderConeFilletVerification)
 
+# Phase 36q: bounded complete coaxial cone–cone root fillet.
+add_executable(ConeConeFilletVerification Verification/ConeConeFilletVerification.cpp)
+target_link_libraries(ConeConeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeConeFilletVerification COMMAND ConeConeFilletVerification)
+
 # Phase 36d: bounded convex non-planar closed edge-loop chamfers.
 add_executable(ArbitraryNonPlanarEdgeLoopVerification Verification/ArbitraryNonPlanarEdgeLoopVerification.cpp)
 target_link_libraries(ArbitraryNonPlanarEdgeLoopVerification PRIVATE SolidArcConsoleKit)

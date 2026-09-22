@@ -2946,6 +2946,183 @@ namespace
         return Result;
     }
 
+    struct ConeConeRoot
+    {
+        Vec3 Base, Axis;
+        double BaseRadius = 0.0, RootRadius = 0.0, TopRadius = 0.0;
+        double LowerHeight = 0.0, UpperHeight = 0.0;
+    };
+
+    std::optional<ConeConeRoot> ConeConeBossRoot(const BrepBody& Body, int Edge) noexcept
+    {
+        if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()) || !Body.Validate().Solid() ||
+            Body.Vertices.size() != 5 || Body.Edges.size() != 7 || Body.Coedges.size() != 14 ||
+            Body.Loops.size() != 4 || Body.Faces.size() != 4) return std::nullopt;
+        const BrepEdge& RootEdge = Body.Edges[Edge];
+        if (!RootEdge.Closed() || RootEdge.Coedges.size() != 2) return std::nullopt;
+        int LowerFace = -1, UpperFace = -1;
+        Vec3 RootCentre, Axis; double RootRadius = 0.0; bool First = true;
+        Vec3 Base, Top; double BaseRadius = 0.0, TopRadius = 0.0, LowerHeight = 0.0, UpperHeight = 0.0;
+        for (int Coedge : RootEdge.Coedges)
+        {
+            if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return std::nullopt;
+            const int Face = Body.Coedges[Coedge].Face;
+            if (Face < 0 || Face >= static_cast<int>(Body.Faces.size()) ||
+                Body.Faces[Face].Surface.Classification != SurfaceClassification::Cone) return std::nullopt;
+            Vec3 Centre, Normal; double Radius = 0.0;
+            if (!CircularFrame(RootEdge.Curve, Centre, Normal, Radius)) return std::nullopt;
+            Vec3 Start, End; double StartRadius = 0.0, EndRadius = 0.0;
+            if (!ConeEndCentres(Body.Faces[Face].Surface, Start, End, StartRadius, EndRadius)) return std::nullopt;
+            Vec3 Far; double FarRadius = 0.0;
+            const double Epsilon = ScalarCriteria::GeometricTolerance * std::max({ 1.0, Radius, Start.Distance(End) });
+            if (Start.Distance(Centre) <= Epsilon) { Far = End; FarRadius = EndRadius; }
+            else if (End.Distance(Centre) <= Epsilon) { Far = Start; FarRadius = StartRadius; }
+            else return std::nullopt;
+            if (std::fabs(FarRadius - Radius) <= Epsilon || FarRadius <= Tol) return std::nullopt;
+            if (First)
+            {
+                RootCentre = Centre; RootRadius = Radius; Axis = Body.Faces[Face].Surface.Axis.Normalised(); First = false;
+            }
+            else if (Centre.Distance(RootCentre) > Epsilon || std::fabs(Radius - RootRadius) > Epsilon ||
+                     Body.Faces[Face].Surface.Axis.Normalised().Dot(Axis) < 1.0 - ScalarCriteria::GeometricTolerance) return std::nullopt;
+            const double Along = (Far - RootCentre).Dot(Axis);
+            if (std::fabs(Along) <= Epsilon) return std::nullopt;
+            if (Along < 0.0)
+            {
+                if (LowerFace >= 0) return std::nullopt;
+                LowerFace = Face; Base = Far; BaseRadius = FarRadius; LowerHeight = -Along;
+            }
+            else
+            {
+                if (UpperFace >= 0) return std::nullopt;
+                UpperFace = Face; Top = Far; TopRadius = FarRadius; UpperHeight = Along;
+            }
+        }
+        if (First || LowerFace < 0 || UpperFace < 0 || LowerHeight <= Tol || UpperHeight <= Tol ||
+            Axis.Length() <= Tol || BaseRadius <= Tol || TopRadius <= Tol) return std::nullopt;
+        int Caps = 0;
+        for (size_t Face = 0; Face < Body.Faces.size(); ++Face)
+        {
+            const int FaceIndex = static_cast<int>(Face);
+            if (FaceIndex == LowerFace || FaceIndex == UpperFace) continue;
+            Vec3 Normal;
+            if (!PlanarNormal(Body, FaceIndex, Normal) || std::fabs(Normal.Dot(Axis)) < 1.0 - ScalarCriteria::GeometricTolerance ||
+                Body.Faces[FaceIndex].Loops.size() != 1) return std::nullopt;
+            const NurbsSurface& Surface = Body.Faces[FaceIndex].Surface;
+            const Vec3 Point = Surface.Sample(0.5 * (Surface.DomainStartU() + Surface.DomainEndU()),
+                                              0.5 * (Surface.DomainStartV() + Surface.DomainEndV()));
+            const double CapEpsilon = ScalarCriteria::GeometricTolerance * std::max(1.0, LowerHeight + UpperHeight);
+            if (std::fabs((Point - Base).Dot(Axis)) <= CapEpsilon ||
+                std::fabs((Point - Top).Dot(Axis)) <= CapEpsilon) ++Caps;
+            else return std::nullopt;
+        }
+        if (Caps != 2 || std::fabs(BaseRadius - RootRadius) <= Tol || std::fabs(TopRadius - RootRadius) <= Tol ||
+            std::fabs(BaseRadius - TopRadius) <= Tol) return std::nullopt;
+        return ConeConeRoot{ Base, Axis, BaseRadius, RootRadius, TopRadius, LowerHeight, UpperHeight };
+    }
+
+    double ConeConeSourceVolume(const ConeConeRoot& Root) noexcept
+    {
+        return ScalarCriteria::Pi * Root.LowerHeight *
+                   (Root.BaseRadius * Root.BaseRadius + Root.BaseRadius * Root.RootRadius + Root.RootRadius * Root.RootRadius) / 3.0 +
+               ScalarCriteria::Pi * Root.UpperHeight *
+                   (Root.RootRadius * Root.RootRadius + Root.RootRadius * Root.TopRadius + Root.TopRadius * Root.TopRadius) / 3.0;
+    }
+
+    double ConeConeFilletRemoval(const ConeConeRoot& Root, double Radius) noexcept
+    {
+        const double LowerAngle = std::atan2(Root.BaseRadius - Root.RootRadius, Root.LowerHeight);
+        const double UpperAngle = std::atan2(Root.RootRadius - Root.TopRadius, Root.UpperHeight);
+        const double Det = std::sin(UpperAngle - LowerAngle);
+        const double LowerCos = std::cos(LowerAngle), LowerSin = std::sin(LowerAngle);
+        const double UpperCos = std::cos(UpperAngle), UpperSin = std::sin(UpperAngle);
+        const double CentreR = Root.RootRadius + Radius * (LowerSin - UpperSin) / Det;
+        const double CentreZ = Radius * (UpperCos - LowerCos) / Det;
+        const double LowerContactZ = CentreZ + Radius * LowerSin;
+        const double UpperContactZ = CentreZ + Radius * UpperSin;
+        const double LowerContactR = CentreR + Radius * LowerCos;
+        const double UpperContactR = CentreR + Radius * UpperCos;
+        auto SegmentMoment = [](double R0, double Z0, double R1, double Z1) noexcept
+        { return (Z1 - Z0) * (R0 * R0 + R0 * R1 + R1 * R1) / 6.0; };
+        auto ArcMoment = [&](double Start, double End) noexcept
+        {
+            const double S0 = std::sin(Start), S1 = std::sin(End);
+            const double S20 = std::sin(2.0 * Start), S21 = std::sin(2.0 * End);
+            return Radius / 2.0 * (CentreR * CentreR * (S1 - S0) +
+                2.0 * CentreR * Radius * ((End - Start) / 2.0 + (S21 - S20) / 4.0) +
+                Radius * Radius * ((S1 - S0) - (S1 * S1 * S1 - S0 * S0 * S0) / 3.0));
+        };
+        const double Moment = SegmentMoment(LowerContactR, LowerContactZ, Root.RootRadius, 0.0) +
+            SegmentMoment(Root.RootRadius, 0.0, UpperContactR, UpperContactZ) + ArcMoment(UpperAngle, LowerAngle);
+        return ScalarCriteria::TwoPi * std::fabs(Moment);
+    }
+
+    Deliver<BrepBody> FilletConeConeBossRoot(const ConeConeRoot& Root, double Radius) noexcept
+    {
+        if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
+        const double LowerAngle = std::atan2(Root.BaseRadius - Root.RootRadius, Root.LowerHeight);
+        const double UpperAngle = std::atan2(Root.RootRadius - Root.TopRadius, Root.UpperHeight);
+        if (LowerAngle <= ScalarCriteria::AngularTolerance || UpperAngle <= LowerAngle + ScalarCriteria::AngularTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cone-cone fillet requires an increasing narrowing slope");
+        const double Det = std::sin(UpperAngle - LowerAngle);
+        const double LowerCos = std::cos(LowerAngle), LowerSin = std::sin(LowerAngle);
+        const double UpperCos = std::cos(UpperAngle), UpperSin = std::sin(UpperAngle);
+        const double CentreR = Root.RootRadius + Radius * (LowerSin - UpperSin) / Det;
+        const double CentreZ = Radius * (UpperCos - LowerCos) / Det;
+        const double LowerContactZ = CentreZ + Radius * LowerSin;
+        const double UpperContactZ = CentreZ + Radius * UpperSin;
+        const double LowerContactR = CentreR + Radius * LowerCos;
+        const double UpperContactR = CentreR + Radius * UpperCos;
+        if (-LowerContactZ >= Root.LowerHeight - Tol || UpperContactZ >= Root.UpperHeight - Tol ||
+            LowerContactR <= Tol || UpperContactR <= Tol || CentreR <= Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone-cone fillet consumes its supports");
+        const Vec3 RootCentre = Root.Base + Root.Axis * Root.LowerHeight;
+        const Vec3 Top = RootCentre + Root.Axis * Root.UpperHeight;
+        const Vec3 Radial = Workplane::FromNormal(Root.Base, Root.Axis).AxisX;
+        auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+        {
+            Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+            return Line ? NurbsSurface::Revolution(Line.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+                        : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+        };
+        Deliver<NurbsSurface> Lower = RevolveLine(Root.Base + Radial * Root.BaseRadius,
+                                                   RootCentre + Root.Axis * LowerContactZ + Radial * LowerContactR);
+        Deliver<NurbsSurface> Upper = RevolveLine(RootCentre + Root.Axis * UpperContactZ + Radial * UpperContactR,
+                                                   Top + Radial * Root.TopRadius);
+        const Vec3 MeridianCentre = RootCentre + Root.Axis * CentreZ + Radial * CentreR;
+        auto OnMeridian = [&](double Angle) noexcept
+        {
+            return MeridianCentre + (Radial * std::cos(Angle) + Root.Axis * std::sin(Angle)) * Radius;
+        };
+        Deliver<NurbsCurve> Meridian = NurbsCurve::ArcThreePoints(
+            OnMeridian(LowerAngle), OnMeridian(0.5 * (LowerAngle + UpperAngle)), OnMeridian(UpperAngle));
+        Deliver<NurbsSurface> Roll = Meridian
+            ? NurbsSurface::Revolution(Meridian.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(Meridian.Denial.Reason, Meridian.Denial.Detail);
+        if (!Lower || !Roll || !Upper)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone-cone fillet support is degenerate");
+        Lower.Payload.Classification = SurfaceClassification::Cone;
+        Lower.Payload.Origin = Root.Base; Lower.Payload.Axis = Root.Axis;
+        Lower.Payload.RadiusMajor = Root.BaseRadius; Lower.Payload.RadiusMinor = LowerContactR;
+        Roll.Payload.Classification = SurfaceClassification::Torus;
+        Roll.Payload.Origin = RootCentre + Root.Axis * CentreZ; Roll.Payload.Axis = Root.Axis;
+        Roll.Payload.RadiusMajor = CentreR; Roll.Payload.RadiusMinor = Radius;
+        Upper.Payload.Classification = SurfaceClassification::Cone;
+        Upper.Payload.Origin = RootCentre + Root.Axis * UpperContactZ; Upper.Payload.Axis = Root.Axis;
+        Upper.Payload.RadiusMajor = UpperContactR; Upper.Payload.RadiusMinor = Root.TopRadius;
+        Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Roll.Payload, Upper.Payload });
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const BodyReport Report = Result.Payload.Validate();
+        const bool ExactTopology = Report.Hulls == 1 && Report.Genus == 0 && Result.Payload.Vertices.size() == 4 &&
+            Result.Payload.Edges.size() == 7 && Result.Payload.Coedges.size() == 14 &&
+            Result.Payload.Loops.size() == 5 && Result.Payload.Faces.size() == 5;
+        const double TargetVolume = ConeConeSourceVolume(Root) - ConeConeFilletRemoval(Root, Radius);
+        if (!Report.Solid() || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+            !ExactTopology || !ScalarCriteria::WithinVolumeTolerance(Report.Volume, TargetVolume))
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "cone-cone fillet did not reach exact analytic topology");
+        return Result;
+    }
+
     struct PlaneConePartialRoot
     {
         Vec3   Base, Axis, RadialStart;
@@ -5063,6 +5240,8 @@ Deliver<BrepBody> BlendSolver::FilletEdge(const BrepBody& Body, int Edge, double
         return FilletPlaneConePartialBossRoot(*Root, Radius);
     if (std::optional<CylinderConeRoot> Root = CylinderConeBossRoot(Body, Edge))
         return FilletCylinderConeBossRoot(*Root, Radius);
+    if (std::optional<ConeConeRoot> Root = ConeConeBossRoot(Body, Edge))
+        return FilletConeConeBossRoot(*Root, Radius);
     if (std::optional<PlaneConeRoot> Root = PlaneConeBossRoot(Body, Edge))
         return FilletPlaneConeBossRoot(*Root, Radius);
     EdgeCornerFrame F;

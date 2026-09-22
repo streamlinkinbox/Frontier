@@ -872,10 +872,23 @@ boundaries, and the exterior-readable `Proofs/Phase36p_CylinderConeFillet.png`.
 The slice is constant-radius only; variable-radius/nonlinear/G2 construction, curved corner patches, and general
 intersection/trim/sew healing remain explicit refusals.
 
+#### Phase 36q: bounded complete cone–cone root fillet ✅
+
+The complete cone–cone fillet family now accepts one canonical coaxial pair of conical frusta with positive far radii
+and an increasing narrowing slope across the shared root. The classifier measures both cone endpoint rows, the common
+root circle, exact axis and cap geometry; reconstruction solves the shared circular meridian tangencies analytically and
+retains both cones around one toroidal roll. The result is genus-zero `V4/E7/C14/L5/F5`, with volume checked by the exact
+first moment of the removed cone–cone meridian wedge. `ConeConeFilletVerification` covers 16 checks, source
+immutability, console dispatch, refusal boundaries, and the exterior-readable `Proofs/Phase36q_ConeConeFillet.png`.
+
+Partial sectors, flaring/equal-slope pairs, apex/zero-radius cones, non-coaxial or oblique supports, arbitrary or branched
+roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew healing
+remain explicit refusals.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
-the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, complete apex plane/cone, partial apex plane/cone root chamfers, and partial plane/cone root fillets, complete narrowing cylinder/cone root fillets, further mixed-support chamfers, arbitrary non-prismatic
+the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, complete apex plane/cone, partial apex plane/cone root chamfers, and partial plane/cone root fillets, complete narrowing cylinder/cone root fillets, complete increasing-slope cone/cone root fillets, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
 and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
 application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,

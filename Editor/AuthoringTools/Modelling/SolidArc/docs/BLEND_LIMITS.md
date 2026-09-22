@@ -266,6 +266,17 @@ Flaring or zero-angle pairs, apex/zero-radius cones, partial roots, non-coaxial 
 branched roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
 healing remain explicit refusals.
 
+### Complete cone–cone root fillets
+
+Phase 36q accepts one complete coaxial pair of conical frusta whose narrowing slope increases across the shared root.
+The two cone generators determine one exact circular meridian roll; the retained lower cone, toroidal roll, retained upper
+cone, and planar caps sew to genus-zero `V4/E7/C14/L5/F5`. The accepted volume is checked against the analytic first
+moment of the removed cone–cone meridian wedge.
+
+Partial sectors, flaring or equal-slope pairs, apex/zero-radius cones, non-coaxial or oblique supports, arbitrary or
+branched roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
+healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
