@@ -70,15 +70,16 @@ a rolling-ball solution.
 Each is a separate classifier/reconstruction slice:
 
 - partial-edge blends with exact endpoint caps — **Stage 4a bounded slice complete**;
-- complete and partial apex fillets;
+- complete and partial apex fillets — **Stage 4b bounded coaxial cone route complete**;
 - non-coaxial/oblique/mixed-support routes;
 - arbitrary curved edge loops and corner patches;
 - general intersection/trim/sew healing only after explicit topology ownership exists.
 
 Stage 4a is intentionally only `PartialEdgeFilletSpecification`: one straight orthogonal corner,
 constant positive radius, and strict interior interval. See `docs/PLAN_PartialEdgeBlend.md`.
-Variable-radius partial edges, arbitrary input-edge selection, apex fillets, freeform supports,
-and general healing remain open.
+Variable-radius partial edges, arbitrary input-edge selection, partial/mixed apex fillets,
+freeform supports, and general healing remain open. Stage 4b is documented in
+`docs/PLAN_ConeApexFillet.md`.
 
 ## Stage 5 — proof coverage ✅
 

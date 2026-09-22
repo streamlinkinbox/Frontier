@@ -197,6 +197,17 @@ struct PartialEdgeFilletSpecification
     double Radius = 0.0;
 };
 
+// A bounded complete conical-apex route: an exact spherical cap replaces the apex of one
+// coaxial right circular cone. General vertex selection and mixed apex supports remain outside.
+struct ConeApexFilletSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double FilletRadius = 0.0;
+};
+
 // Quadratic interpolating law used by the first nonlinear-radius slice. The middle value is the
 // radius at T = 0.5, which lets the verifier distinguish a true nonlinear law from the linear
 // endpoint interpolation.
@@ -354,6 +365,7 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,

@@ -6411,6 +6411,83 @@ Deliver<BrepBody> BlendSolver::ReconstructPartialEdgeFillet(const PartialEdgeFil
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||
+        !std::isfinite(Specification.Base.Z) || !std::isfinite(Specification.BaseRadius) ||
+        !std::isfinite(Specification.Height) || !std::isfinite(Specification.FilletRadius) ||
+        Specification.BaseRadius <= Tol || Specification.Height <= Tol || Specification.FilletRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex dimensions and radius must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex axis is degenerate");
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const double R = Specification.BaseRadius;
+    const double H = Specification.Height;
+    const double Q = Specification.FilletRadius;
+    const double Slant = std::hypot(H, R);
+    const double MaximumFilletRadius = H * R / Slant;
+    if (Q >= MaximumFilletRadius - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cone apex sphere consumes the cone before a positive frustum remains");
+
+    Vec3 Radial = Axis.Cross(Vec3::UnitX());
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance) Radial = Axis.Cross(Vec3::UnitY());
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex radial frame is degenerate");
+    Radial = Radial.Normalised();
+    const Vec3 Base = Specification.Base;
+    const double CentreHeight = H - Q * Slant / R;
+    const double SeamRadius = Q * H / Slant;
+    const double SeamHeight = H - Q * H * H / (R * Slant);
+    const double TopHeight = CentreHeight + Q;
+    if (CentreHeight <= Tol || SeamRadius <= Tol || SeamHeight <= Tol || TopHeight >= H - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex sphere has a degenerate tangent seam");
+    const Vec3 Centre = Base + Axis * CentreHeight;
+    const Vec3 Seam = Base + Axis * SeamHeight + Radial * SeamRadius;
+    const double CosTheta = ScalarCriteria::Clamp((SeamHeight - CentreHeight) / Q, -1.0, 1.0);
+    const double Theta = std::acos(CosTheta);
+    const double HalfTheta = 0.5 * Theta;
+    const Vec3 Pole = Base + Axis * TopHeight;
+    const Vec3 Middle = Centre + Axis * (Q * std::cos(HalfTheta)) + Radial * (Q * std::sin(HalfTheta));
+
+    Deliver<NurbsCurve> ConeProfile = NurbsCurve::Line(Base + Radial * R, Seam);
+    Deliver<NurbsCurve> CapProfile = NurbsCurve::ArcThreePoints(Pole, Middle, Seam);
+    Deliver<NurbsCurve> DiskProfile = NurbsCurve::Line(Base, Base + Radial * R);
+    if (!ConeProfile || !CapProfile || !DiskProfile)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex profiles are degenerate");
+    Deliver<NurbsSurface> Cone = NurbsSurface::Revolution(ConeProfile.Payload, Base, Axis, ScalarCriteria::TwoPi);
+    Deliver<NurbsSurface> Cap = NurbsSurface::Revolution(CapProfile.Payload, Base, Axis, ScalarCriteria::TwoPi);
+    Deliver<NurbsSurface> Disk = NurbsSurface::Revolution(DiskProfile.Payload, Base, Axis, ScalarCriteria::TwoPi);
+    if (!Cone || !Cap || !Disk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone apex revolution surfaces are degenerate");
+    Cone.Payload.Classification = SurfaceClassification::Cone;
+    Cone.Payload.Origin = Base; Cone.Payload.Axis = Axis;
+    Cone.Payload.RadiusMajor = R; Cone.Payload.RadiusMinor = SeamRadius;
+    Cap.Payload.Classification = SurfaceClassification::Sphere;
+    Cap.Payload.Origin = Centre; Cap.Payload.Axis = Axis;
+    Cap.Payload.RadiusMajor = Q; Cap.Payload.RadiusMinor = Q;
+    Disk.Payload.Classification = SurfaceClassification::Plane;
+    Disk.Payload.Origin = Base; Disk.Payload.Axis = Axis;
+
+    const Vec3 ConeNormal = (Radial * H + Axis * R).Normalised();
+    const Vec3 CapNormal = (Radial * SeamRadius + Axis * (SeamHeight - CentreHeight)).Normalised();
+    if (ConeNormal.Dot(CapNormal) < 1.0 - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "cone apex spherical cap is not G1 tangent at the analytic seam");
+    Deliver<BrepBody> Result = BrepBody::Sew({ Cone.Payload, Cap.Payload, Disk.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "cone apex surfaces could not be sewn");
+    const BodyReport Report = Result.Payload.Validate();
+    const double FrustumVolume = ScalarCriteria::Pi * SeamHeight * (R * R + R * SeamRadius + SeamRadius * SeamRadius) / 3.0;
+    const double CapHeight = TopHeight - SeamHeight;
+    const double SphericalCapVolume = ScalarCriteria::Pi * CapHeight * CapHeight * (3.0 * Q - CapHeight) / 3.0;
+    const double ExpectedVolume = FrustumVolume + SphericalCapVolume;
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "cone apex fillet did not reach closed manifold topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "cone apex fillet volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(
     const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
 {

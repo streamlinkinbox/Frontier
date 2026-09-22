@@ -320,6 +320,11 @@ add_executable(PartialEdgeFilletVerification Verification/PartialEdgeFilletVerif
 target_link_libraries(PartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialEdgeFilletVerification COMMAND PartialEdgeFilletVerification)
 
+# Stage 4b: one coaxial right-cone apex rounded by an exact tangent spherical cap.
+add_executable(ConeApexFilletVerification Verification/ConeApexFilletVerification.cpp)
+target_link_libraries(ConeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeApexFilletVerification COMMAND ConeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

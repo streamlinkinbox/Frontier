@@ -24,7 +24,7 @@ Stage 37d proves one separate non-rolling G2 planar profile, Stage 37e proves on
 quadratic nonlinear-setback application, and Stage 37f proves independent linear clearances on
 the two supports. The following remain unproved and intentionally unsupported: general
 variable-radius rolling fillets, rolling-ball G2 joins, nonlinear two-support setback laws, and
-partial-edge blends.
+variable-radius partial-edge blends and arbitrary selected-edge partial routes.
 
 ## Current Phase 34–36 coverage
 
@@ -47,9 +47,9 @@ The Phase 36s visual proof is the corrected exterior-facing proof; it is not a s
 other route families. The Phase 37b–37f comparison proofs are likewise not proof of rolling-ball
 G2, nonlinear two-support laws, partial-edge, or general selected-edge application.
 
-## Existing verifier coverage not in the current direct gate
+## Existing verifier coverage and durable baseline artifacts
 
-The current `CheckSolidArc.sh` loop runs 44 focused tests. It now also compiles and executes
+The current `CheckSolidArc.sh` loop runs 45 focused tests. It now also compiles and executes
 nine older, distinct baseline verifiers and persists their existing proof names:
 
 - Phase 25 cylinder chamfer → `Proofs/Phase25_CylinderChamfers.png`;
@@ -86,8 +86,8 @@ The variable-setback extension is deliberately narrower than its name might sugg
   `Proofs/Phase37b_VariableSetbackCornerFillet.png` is the distinct visible comparison.
 
 It does **not** prove unequal setback laws on the two supports, nonlinear setback laws, general
-edge selection, partial-edge blends, apexes, G2 continuity, freeform supports, or arbitrary
-healing.
+edge selection, variable-radius partial-edge blends, conical apex fillets outside Stage 4b, G2
+continuity, freeform supports, or arbitrary healing.
 
 ## Stage 37c coverage
 
@@ -104,8 +104,8 @@ positive setback:
   `Proofs/Phase37c_NonlinearVariableRadiusCorner.png`.
 
 The stage intentionally does **not** claim G2 at the rolling/support junction. Nonlinear setback
-laws, unequal support setbacks, general edge selection, partial-edge blends, apexes, freeform
-supports, and arbitrary healing remain open.
+laws, unequal support setbacks, general edge selection, variable-radius partial edges, mixed
+apexes, freeform supports, and arbitrary healing remain open.
 
 ## Stage 37d coverage
 
@@ -134,9 +134,10 @@ The nonlinear-setback extension is deliberately bounded:
   `NonlinearVariableSetbackCornerVerification` and
   `Proofs/Phase37e_NonlinearVariableSetbackCorner.png`.
 
-Rolling-ball G2 joins, general edge selection, partial-edge variable-radius blends, apexes,
+Rolling-ball G2 joins, general edge selection, variable-radius partial blends, mixed apexes,
 freeform supports, and arbitrary healing remain open; unequal support setbacks are covered by
-Stage 37f and the bounded constant-radius partial route is covered by Stage 4a.
+Stage 37f, the bounded constant-radius partial route by Stage 4a, and the bounded coaxial
+conical apex route by Stage 4b.
 
 ## Stage 37f coverage
 
@@ -149,8 +150,8 @@ The unequal-setback extension is deliberately distinct from the common-setback r
   `UnequalSetbackCornerVerification` and `Proofs/Phase37f_UnequalSetbackCorner.png`.
 
 Nonlinear laws on both supports, rolling-ball G2 joins, general edge selection, variable-radius
-partial edges, apexes, freeform supports, and arbitrary healing remain open. Stage 4a covers only
-an explicit constant-radius strict-interior partial interval.
+partial edges, mixed apexes, freeform supports, and arbitrary healing remain open. Stage 4a covers
+only an explicit constant-radius strict-interior partial interval.
 
 ## Stage 38a coverage
 
@@ -166,8 +167,25 @@ The partial-edge route is deliberately narrower than general edge blending:
   `PartialEdgeFilletVerification` and
   `Proofs/Phase38a_PartialEdgeFillet.png`.
 
-Variable-radius partial edges, arbitrary input-edge selection, apex fillets, freeform supports,
-and arbitrary healing remain explicitly unsupported.
+Variable-radius partial edges, arbitrary input-edge selection, partial/mixed apex fillets,
+freeform supports, and arbitrary healing remain explicitly unsupported.
+
+## Stage 38b coverage
+
+The cone-apex route is deliberately bounded to one exact coaxial construction:
+
+- `ConeApexFilletSpecification` accepts one right circular cone and a positive spherical radius
+  below the analytic fit limit `H R / sqrt(H² + R²)`;
+- the cone is trimmed at the sphere/cone tangent circle, and exact revolution surfaces create
+  the cone frustum, spherical cap, and planar base disk;
+- the verifier checks deterministic `V4/E5/F3/L3` topology, frustum-plus-cap volume, G1 seam
+  alignment, analytic pole height, face classifications, normals, refusals, and an exterior
+  sharp/rounded comparison;
+- `ConeApexFilletVerification` and `Proofs/Phase38b_ConeApexFillet.png` provide the dedicated
+  visible proof.
+
+General vertex selection, partial or mixed-support apex fillets, rolling-ball G2 continuity,
+freeform supports, and arbitrary healing remain explicitly unsupported.
 
 ## Actual remaining proof/capability gaps
 
@@ -175,9 +193,10 @@ and arbitrary healing remain explicitly unsupported.
    one finite straight planar corner, while Stage 4a is constant-radius only. General edge
    selection, curved roots, and support-specific variable rolls remain open.
 2. Rolling-ball G2 joins, nonlinear two-support laws beyond the named common route, variable-radius
-   partial-edge blends, apex fillets, and broader support combinations.
-3. Complete and partial apex **fillets**; only apex chamfers and the bounded Stage 4a corner route
-   are covered.
+   partial-edge blends, partial/mixed-support apex fillets, and broader support combinations.
+3. General vertex-selected apex **fillets**; the bounded Stage 4b route covers only one explicit
+   coaxial right-cone spherical cap, while apex chamfers and the Stage 4a corner route remain
+   separate bounded capabilities.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted
    constant-radius routes.
 5. Non-coaxial/oblique/freeform supports, arbitrary curved edge loops, corner patches, and
