@@ -270,6 +270,18 @@ struct QuadraticRadiusLaw
     }
 };
 
+// A bounded nonlinear extension of the unequal support-setback route. Both independent
+// clearance laws must be genuinely quadratic; equal/common laws belong to other routes.
+struct NonlinearUnequalSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    QuadraticRadiusLaw SetbackALaw{};
+    QuadraticRadiusLaw SetbackBLaw{};
+};
+
 // A bounded nonlinear partial-edge route: one genuinely quadratic radius law over a strict
 // interior interval of one straight orthogonal corner. This is not arbitrary variable-radius support handling.
 struct QuadraticPartialEdgeFilletSpecification
@@ -389,6 +401,8 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(
+        const NonlinearUnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(

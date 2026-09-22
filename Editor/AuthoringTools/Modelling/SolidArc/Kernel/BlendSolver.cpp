@@ -8,6 +8,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <array>
 
 namespace Frontier
 {
@@ -6177,6 +6178,177 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const Varia
         return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "variable setback corner blend did not reach exact capped topology");
     if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
         return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "variable setback corner volume failed analytic acceptance");
+    return Result;
+}
+
+Deliver<BrepBody> BlendSolver::ReconstructNonlinearUnequalSetbackCornerBlend(
+    const NonlinearUnequalSetbackCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback corner length must be positive");
+    if (!Specification.RadiusLaw.Positive() || !Specification.SetbackALaw.Positive() ||
+        !Specification.SetbackBLaw.Positive())
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback laws must be finite and positive");
+    if (!Specification.SetbackALaw.Nonlinear() || !Specification.SetbackBLaw.Nonlinear())
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "both nonlinear unequal support setbacks must be genuinely quadratic");
+    const auto UnequalAt = [&](double T) noexcept
+    {
+        return std::fabs(Specification.SetbackALaw.Radius(T) - Specification.SetbackBLaw.Radius(T)) >
+               ScalarCriteria::GeometricTolerance;
+    };
+    if (!UnequalAt(0.0) && !UnequalAt(0.5) && !UnequalAt(1.0))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "equal nonlinear support setbacks belong to the common-setback route");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback corner edge axis is degenerate");
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback corner frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    auto Point = [&](double T, double AlongU, double AlongV)
+    {
+        return Specification.Origin + Axis * (Specification.Length * T) + U * AlongU + V * AlongV;
+    };
+    auto LineSection = [&](double T, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        return NurbsCurve::Line(Point(T, A.X, A.Y), Point(T, B.X, B.Y));
+    };
+    auto ArcSection = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double R = Specification.RadiusLaw.Radius(T);
+        const double Offset = R - R / std::sqrt(2.0);
+        return NurbsCurve::ArcThreePoints(Point(T, 0.0, R), Point(T, Offset, Offset), Point(T, R, 0.0));
+    };
+    auto LoftThree = [&](const std::vector<Deliver<NurbsCurve>>& Sections) -> Deliver<NurbsSurface>
+    {
+        std::vector<NurbsCurve> Curves;
+        Curves.reserve(Sections.size());
+        for (const Deliver<NurbsCurve>& Section : Sections)
+        {
+            if (!Section) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                "nonlinear unequal setback section is degenerate");
+            Curves.push_back(Section.Payload);
+        }
+        int Degree = 1;
+        for (const NurbsCurve& Curve : Curves) Degree = std::max(Degree, Curve.Degree);
+        std::vector<NurbsCurve> Rows;
+        for (const NurbsCurve& Curve : Curves)
+            Rows.push_back((Curve.Degree < Degree ? Curve.Elevated(Degree) : Curve).Reparameterised(0.0, 1.0));
+        std::vector<double> Distinct;
+        for (const NurbsCurve& Curve : Rows) for (double Knot : Curve.Knots) Distinct.push_back(Knot);
+        std::sort(Distinct.begin(), Distinct.end());
+        Distinct.erase(std::unique(Distinct.begin(), Distinct.end(),
+                                   [](double A, double B) { return ScalarCriteria::Coincident(A, B, ScalarCriteria::ParametricEpsilon); }),
+                       Distinct.end());
+        const auto Multiplicity = [](const std::vector<double>& Knots, double T)
+        {
+            int Count = 0; for (double Knot : Knots) if (ScalarCriteria::Coincident(Knot, T, ScalarCriteria::ParametricEpsilon)) ++Count; return Count;
+        };
+        for (double Knot : Distinct)
+        {
+            int Target = 0; for (const NurbsCurve& Curve : Rows) Target = std::max(Target, Multiplicity(Curve.Knots, Knot));
+            for (NurbsCurve& Curve : Rows)
+            {
+                const int Need = Target - Multiplicity(Curve.Knots, Knot);
+                if (Need > 0) Curve = Curve.InsertKnot(Knot, Need);
+            }
+        }
+        const int CountU = Rows.front().PoleCount();
+        const std::vector<double> StationParameters{ 0.0, 0.5, 1.0 };
+        std::vector<NurbsCurve> Columns;
+        std::vector<double> KnotsV;
+        for (int I = 0; I < CountU; ++I)
+        {
+            std::vector<Vec4> Through;
+            for (const NurbsCurve& Curve : Rows) Through.push_back(Curve.Poles[I]);
+            Deliver<NurbsCurve> Column = NurbsCurve::InterpolateHomogeneous(Through, 2, &StationParameters);
+            if (!Column) return Deliver<NurbsSurface>::Reject(Column.Denial.Reason, Column.Denial.Detail);
+            if (Columns.empty()) KnotsV = Column.Payload.Knots;
+            Columns.push_back(std::move(Column.Payload));
+        }
+        NurbsSurface Surface;
+        Surface.DegreeU = Degree; Surface.DegreeV = 2; Surface.CountU = CountU;
+        Surface.CountV = Columns.front().PoleCount(); Surface.KnotsU = Rows.front().Knots; Surface.KnotsV = KnotsV;
+        Surface.Poles.resize(static_cast<size_t>(Surface.CountU) * Surface.CountV);
+        for (int I = 0; I < Surface.CountU; ++I)
+            for (int J = 0; J < Surface.CountV; ++J) Surface.Pole(I, J) = Columns[I].Poles[J];
+        Surface.Classification = SurfaceClassification::Loft;
+        return Deliver<NurbsSurface>::Accept(std::move(Surface));
+    };
+    auto Add = [&](const std::vector<Deliver<NurbsCurve>>& Sections,
+                   std::vector<NurbsSurface>& Surfaces) -> bool
+    {
+        Deliver<NurbsSurface> Surface = LoftThree(Sections);
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    const double R0 = Specification.RadiusLaw.Radius(0.0);
+    const double Rm = Specification.RadiusLaw.Radius(0.5);
+    const double R1 = Specification.RadiusLaw.Radius(1.0);
+    const double A0 = R0 + Specification.SetbackALaw.Radius(0.0);
+    const double Am = Rm + Specification.SetbackALaw.Radius(0.5);
+    const double A1 = R1 + Specification.SetbackALaw.Radius(1.0);
+    const double B0 = R0 + Specification.SetbackBLaw.Radius(0.0);
+    const double Bm = Rm + Specification.SetbackBLaw.Radius(0.5);
+    const double B1 = R1 + Specification.SetbackBLaw.Radius(1.0);
+    if (A0 <= R0 || Am <= Rm || A1 <= R1 || B0 <= R0 || Bm <= Rm || B1 <= R1)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback extents do not leave a positive corner");
+    const Vec3 P00{ R0, 0, 0 }, Q00{ A0, 0, 0 }, R00{ A0, B0, 0 }, S00{ 0, B0, 0 }, T00{ 0, R0, 0 };
+    const Vec3 Pm{ Rm, 0, 0 }, Qm{ Am, 0, 0 }, RmPoint{ Am, Bm, 0 }, Sm{ 0, Bm, 0 }, Tm{ 0, Rm, 0 };
+    const Vec3 P11{ R1, 0, 0 }, Q11{ A1, 0, 0 }, R11{ A1, B1, 0 }, S11{ 0, B1, 0 }, T11{ 0, R1, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    if (!Add({ LineSection(0.0, P00, Q00), LineSection(0.5, Pm, Qm), LineSection(1.0, P11, Q11) }, Surfaces) ||
+        !Add({ LineSection(0.0, Q00, R00), LineSection(0.5, Qm, RmPoint), LineSection(1.0, Q11, R11) }, Surfaces) ||
+        !Add({ LineSection(0.0, R00, S00), LineSection(0.5, RmPoint, Sm), LineSection(1.0, R11, S11) }, Surfaces) ||
+        !Add({ LineSection(0.0, S00, T00), LineSection(0.5, Sm, Tm), LineSection(1.0, S11, T11) }, Surfaces) ||
+        !Add({ ArcSection(0.0), ArcSection(0.5), ArcSection(1.0) }, Surfaces))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear unequal setback corner surfaces could not be constructed");
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const auto Coefficients = [](const QuadraticRadiusLaw& Law)
+    {
+        return std::array<double, 3>{ Law.Start, -3.0 * Law.Start + 4.0 * Law.Middle - Law.End,
+                                      2.0 * Law.Start - 4.0 * Law.Middle + 2.0 * Law.End };
+    };
+    const auto IntegralProduct = [&](const QuadraticRadiusLaw& First, const QuadraticRadiusLaw& Second)
+    {
+        const auto A = Coefficients(First); const auto B = Coefficients(Second);
+        double Integral = 0.0;
+        for (int I = 0; I <= 2; ++I) for (int J = 0; J <= 2; ++J)
+            Integral += A[I] * B[J] * Specification.Length / static_cast<double>(I + J + 1);
+        return Integral;
+    };
+    const QuadraticRadiusLaw OuterALaw{
+        Specification.RadiusLaw.Start + Specification.SetbackALaw.Start,
+        Specification.RadiusLaw.Middle + Specification.SetbackALaw.Middle,
+        Specification.RadiusLaw.End + Specification.SetbackALaw.End };
+    const QuadraticRadiusLaw OuterBLaw{
+        Specification.RadiusLaw.Start + Specification.SetbackBLaw.Start,
+        Specification.RadiusLaw.Middle + Specification.SetbackBLaw.Middle,
+        Specification.RadiusLaw.End + Specification.SetbackBLaw.End };
+    const double ExpectedVolume = IntegralProduct(OuterALaw, OuterBLaw) -
+        (1.0 - ScalarCriteria::Pi / 4.0) * Specification.RadiusLaw.IntegratedSquare(Specification.Length);
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "nonlinear unequal setback corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "nonlinear unequal setback corner volume failed analytic acceptance");
     return Result;
 }
 

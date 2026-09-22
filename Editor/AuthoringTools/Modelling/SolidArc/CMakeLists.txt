@@ -315,6 +315,11 @@ add_executable(UnequalSetbackCornerVerification Verification/UnequalSetbackCorne
 target_link_libraries(UnequalSetbackCornerVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME UnequalSetbackCornerVerification COMMAND UnequalSetbackCornerVerification)
 
+# Stage 3e: independent genuinely nonlinear quadratic setbacks on the two perpendicular supports.
+add_executable(NonlinearUnequalSetbackCornerVerification Verification/NonlinearUnequalSetbackCornerVerification.cpp)
+target_link_libraries(NonlinearUnequalSetbackCornerVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME NonlinearUnequalSetbackCornerVerification COMMAND NonlinearUnequalSetbackCornerVerification)
+
 # Stage 4a: one explicit strict-interior constant-radius partial-edge blend with planar transition sectors.
 add_executable(PartialEdgeFilletVerification Verification/PartialEdgeFilletVerification.cpp)
 target_link_libraries(PartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)

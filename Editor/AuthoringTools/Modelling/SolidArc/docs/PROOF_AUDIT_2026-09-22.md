@@ -21,10 +21,11 @@ That foundation is **not** proof of a rolling-ball variable-radius fillet. Stage
 one bounded rolling-ball application, Stage 37b separately proves one bounded linear
 support-setback law, Stage 37c proves one bounded quadratic nonlinear-radius application,
 Stage 37d proves one separate non-rolling G2 planar profile, Stage 37e proves one bounded
-quadratic nonlinear-setback application, and Stage 37f proves independent linear clearances on
-the two supports. The following remain unproved and intentionally unsupported: general
-variable-radius rolling fillets, rolling-ball G2 joins, nonlinear two-support setback laws, and
-variable-radius partial-edge blends and arbitrary selected-edge partial routes.
+quadratic nonlinear-setback application, Stage 37f proves independent linear clearances on
+the
+two supports, and Stage 37g proves independent genuinely nonlinear clearances on both supports. The following remain unproved and intentionally unsupported: general variable-radius rolling
+fillets, rolling-ball G2 joins, arbitrary variable-radius partial-edge blends, and arbitrary
+selected-edge partial routes.
 
 ## Current Phase 34–36 coverage
 
@@ -38,10 +39,10 @@ These are distinct routes, not duplicates:
   **chamfer** routes;
 - 36o–36s: partial plane–cone, complete cylinder–cone, complete cone–cone, partial cone–cone,
   and partial cone–cylinder **fillet** routes;
-- 37a–37f: one straight planar rolling-ball variable-radius corner, its distinct linear
+- 37a–37g: one straight planar rolling-ball variable-radius corner, its distinct linear
   support-setback extension, a quadratic nonlinear-radius extension, a separate non-rolling G2
-  planar transition, a quadratic nonlinear-setback extension, and independent two-support
-  clearances.
+  planar transition, a quadratic nonlinear-setback extension, independent linear two-support
+  clearances, and independent nonlinear two-support clearances.
 
 The Phase 36s visual proof is the corrected exterior-facing proof; it is not a substitute for
 other route families. The Phase 37b–37f comparison proofs are likewise not proof of rolling-ball
@@ -49,7 +50,7 @@ G2, nonlinear two-support laws, partial-edge, or general selected-edge applicati
 
 ## Existing verifier coverage and durable baseline artifacts
 
-The current `CheckSolidArc.sh` loop runs 46 focused tests. It now also compiles and executes
+The current `CheckSolidArc.sh` loop runs 48 focused tests. It now also compiles and executes
 nine older, distinct baseline verifiers and persists their existing proof names:
 
 - Phase 25 cylinder chamfer → `Proofs/Phase25_CylinderChamfers.png`;
@@ -152,6 +153,24 @@ The unequal-setback extension is deliberately distinct from the common-setback r
 Nonlinear laws on both supports, rolling-ball G2 joins, general edge selection, variable-radius
 partial edges, mixed apexes, freeform supports, and arbitrary healing remain open. Stage 4a covers
 only an explicit constant-radius strict-interior partial interval.
+
+## Stage 37g coverage
+
+The nonlinear unequal support-setback route is deliberately bounded to one explicit asymmetric
+corner:
+
+- `NonlinearUnequalSetbackCornerSpecification` requires one positive quadratic radius law and two
+  independent positive, genuinely nonlinear quadratic setback laws;
+- three exact station sections drive five quadratic lofts using a shared station parameterization,
+  preserving the asymmetric longitudinal seams as one watertight body;
+- the analytic volume integrates the product of the two quadratic outer extents and subtracts the
+  integrated quarter-circle removal;
+- `NonlinearUnequalSetbackCornerVerification` performs 34 checks covering `V10/E15/C30/L7/F7`
+  topology, positivity, extent identities, normals, refusals, and the distinct comparison proof
+  `Proofs/Phase37g_NonlinearUnequalSetbackCorner.png`.
+
+Rolling-ball G2, arbitrary selected-edge application, freeform supports, and general healing remain
+explicitly unsupported.
 
 ## Stage 38a coverage
 

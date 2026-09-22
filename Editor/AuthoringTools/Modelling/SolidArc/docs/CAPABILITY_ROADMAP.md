@@ -992,6 +992,20 @@ This remains a complete finite straight corner. Nonlinear laws on both supports,
 continuity, partial edges, apexes, freeform supports, and general healing remain open. Its plan
 is `docs/PLAN_UnequalSetbackLaw.md`.
 
+#### Phase 37g: bounded nonlinear unequal support-setback corner blend ✅
+
+The two perpendicular planar supports now accept independent genuinely nonlinear quadratic
+clearance laws. Three exact station sections drive five quadratic lofts with a shared station
+parameterization, preserving the asymmetric seams as one watertight `V10/E15/C30/L7/F7`
+solid. The exact volume integrates the product of the two quadratic outer extents and subtracts
+the integrated quarter-circle removal. `NonlinearUnequalSetbackCornerVerification` covers 34
+checks, positivity, extent identities, outward normals, linear/equal-law refusals, and the
+comparison proof `Proofs/Phase37g_NonlinearUnequalSetbackCorner.png`.
+
+This remains one explicit finite straight corner; rolling-ball G2, arbitrary edge selection,
+freeform supports, and general healing remain unsupported. Its plan is
+`docs/PLAN_NonlinearUnequalSetbackLaw.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

@@ -65,6 +65,18 @@ Still open. Replace the circular/rolling support join with a construction whose 
 curvature match are measured on both sides, without describing the Stage 3b quintic profile as
 a rolling-ball solution.
 
+## Stage 3e — nonlinear unequal support-setback laws
+
+A bounded two-support nonlinear extension is complete: `NonlinearUnequalSetbackCornerSpecification`
+requires one positive quadratic radius law and two independent positive, genuinely nonlinear
+quadratic clearance laws. Three exact stations drive five quadratic lofts with a shared station
+parameterization so the asymmetric longitudinal seams remain watertight. The analytic volume is
+the integral of the product of the two quadratic extents minus the integrated quarter-circle
+removal. `V10/E15/C30/L7/F7` topology, normals, positivity, linear/equal-law refusals, and the
+comparison proof are covered by `NonlinearUnequalSetbackCornerVerification`. This does not
+approximate rolling-ball G2, general edge selection, freeform supports, or healing. See
+`docs/PLAN_NonlinearUnequalSetbackLaw.md`.
+
 ## Stage 4 — partial edges, apexes, broader supports, curved loops, and healing
 
 Each is a separate classifier/reconstruction slice:
