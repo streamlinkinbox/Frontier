@@ -6488,6 +6488,145 @@ Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpe
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructQuadraticPartialEdgeFillet(
+    const QuadraticPartialEdgeFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Origin.X) || !std::isfinite(Specification.Origin.Y) ||
+        !std::isfinite(Specification.Origin.Z) || !std::isfinite(Specification.Length) ||
+        !std::isfinite(Specification.Start) || !std::isfinite(Specification.End) ||
+        !std::isfinite(Specification.Width) || Specification.Length <= Tol || Specification.Width <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge dimensions must be finite and positive");
+    if (Specification.Start <= Tol || Specification.End >= Specification.Length - Tol ||
+        Specification.End <= Specification.Start + Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "quadratic partial-edge interval must be strict and interior");
+    if (!Specification.RadiusLaw.Positive() || !Specification.RadiusLaw.Nonlinear())
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "quadratic partial-edge route requires a genuinely nonlinear positive radius law");
+    if (!std::isfinite(Specification.EdgeAxis.X) || !std::isfinite(Specification.EdgeAxis.Y) ||
+        !std::isfinite(Specification.EdgeAxis.Z) || Specification.EdgeAxis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge axis is degenerate");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    const double S = Specification.Start;
+    const double E = Specification.End;
+    const double M = 0.5 * (S + E);
+    const double W = Specification.Width;
+    const double R0 = Specification.RadiusLaw.Radius(0.0);
+    const double Rm = Specification.RadiusLaw.Radius(0.5);
+    const double R1 = Specification.RadiusLaw.Radius(1.0);
+    for (int I = 0; I <= 32; ++I)
+    {
+        const double T = static_cast<double>(I) / 32.0;
+        const double Radius = Specification.RadiusLaw.Radius(T);
+        if (!std::isfinite(Radius) || Radius <= Tol || Radius >= W - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge radius leaves the positive support clearance");
+    }
+    const Vec3 Origin = Specification.Origin;
+    auto At = [&](double T, double AlongU, double AlongV) noexcept
+    {
+        return Origin + Axis * T + U * AlongU + V * AlongV;
+    };
+    auto Line = [](Vec3 A, Vec3 B) -> Deliver<NurbsCurve> { return NurbsCurve::Line(A, B); };
+    auto SectionLine = [&](double T, double Radius, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        (void)Radius;
+        return Line(At(T, A.X, A.Y), At(T, B.X, B.Y));
+    };
+    auto SectionArc = [&](double T, double Radius) -> Deliver<NurbsCurve>
+    {
+        const double Offset = Radius - Radius / std::sqrt(2.0);
+        return NurbsCurve::ArcThreePoints(At(T, Radius, 0.0), At(T, Offset, Offset), At(T, 0.0, Radius));
+    };
+    std::vector<NurbsSurface> Faces;
+    auto AddPlane = [&](Vec3 Corner, Vec3 UAxis, Vec3 VAxis, double LU, double LV) -> bool
+    {
+        Deliver<NurbsSurface> Face = NurbsSurface::Plane(Corner, UAxis, VAxis, LU, LV);
+        if (!Face) return false;
+        Faces.push_back(std::move(Face.Payload));
+        return true;
+    };
+    auto AddWallInterval = [&](double A, double B, double Radius) -> bool
+    {
+        const double D = B - A;
+        return AddPlane(At(A, 0.0, 0.0), Axis, U, D, Radius) &&
+               AddPlane(At(A, Radius, 0.0), Axis, U, D, W - Radius) &&
+               AddPlane(At(A, W, 0.0), Axis, V, D, Radius) &&
+               AddPlane(At(A, W, Radius), Axis, V, D, W - Radius) &&
+               AddPlane(At(A, 0.0, W), Axis, U, D, Radius) &&
+               AddPlane(At(A, Radius, W), Axis, U, D, W - Radius) &&
+               AddPlane(At(A, 0.0, 0.0), Axis, V, D, Radius) &&
+               AddPlane(At(A, 0.0, Radius), Axis, V, D, W - Radius);
+    };
+    auto Loft = [&](std::vector<Deliver<NurbsCurve>> Sections) -> Deliver<NurbsSurface>
+    {
+        std::vector<NurbsCurve> Curves;
+        Curves.reserve(Sections.size());
+        for (const Deliver<NurbsCurve>& Section : Sections)
+        {
+            if (!Section) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge section is degenerate");
+            Curves.push_back(Section.Payload);
+        }
+        return NurbsSurface::Loft(Curves, 2);
+    };
+    // The blend section endpoints are expressed directly at each station; this keeps the six
+    // support patches explicit rather than broadening the route into arbitrary variable support handling.
+    auto BlendLine = [&](double T, double Radius, Vec3 A, Vec3 B) { return SectionLine(T, Radius, A, B); };
+    auto AddThree = [&](std::vector<Deliver<NurbsCurve>> Curves) -> bool
+    {
+        Deliver<NurbsSurface> Surface = Loft(std::move(Curves));
+        if (!Surface) return false;
+        Faces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    if (!AddWallInterval(0.0, S, R0) || !AddWallInterval(E, Specification.Length, R1) ||
+        !AddThree({ BlendLine(S, R0, { R0, 0, 0 }, { W, 0, 0 }), BlendLine(M, Rm, { Rm, 0, 0 }, { W, 0, 0 }), BlendLine(E, R1, { R1, 0, 0 }, { W, 0, 0 }) }) ||
+        !AddThree({ BlendLine(S, R0, { W, 0, 0 }, { W, R0, 0 }), BlendLine(M, Rm, { W, 0, 0 }, { W, Rm, 0 }), BlendLine(E, R1, { W, 0, 0 }, { W, R1, 0 }) }) ||
+        !AddThree({ BlendLine(S, R0, { W, R0, 0 }, { W, W, 0 }), BlendLine(M, Rm, { W, Rm, 0 }, { W, W, 0 }), BlendLine(E, R1, { W, R1, 0 }, { W, W, 0 }) }) ||
+        !AddThree({ BlendLine(S, R0, { 0, W, 0 }, { R0, W, 0 }), BlendLine(M, Rm, { 0, W, 0 }, { Rm, W, 0 }), BlendLine(E, R1, { 0, W, 0 }, { R1, W, 0 }) }) ||
+        !AddThree({ BlendLine(S, R0, { R0, W, 0 }, { W, W, 0 }), BlendLine(M, Rm, { Rm, W, 0 }, { W, W, 0 }), BlendLine(E, R1, { R1, W, 0 }, { W, W, 0 }) }) ||
+        !AddThree({ BlendLine(S, R0, { 0, R0, 0 }, { 0, W, 0 }), BlendLine(M, Rm, { 0, Rm, 0 }, { 0, W, 0 }), BlendLine(E, R1, { 0, R1, 0 }, { 0, W, 0 }) }) ||
+        !AddThree({ SectionArc(S, R0), SectionArc(M, Rm), SectionArc(E, R1) }))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge surfaces could not be constructed");
+    auto AddTransition = [&](double T, double Radius) -> bool
+    {
+        Deliver<NurbsCurve> OA = Line(At(T, 0.0, 0.0), At(T, Radius, 0.0));
+        Deliver<NurbsCurve> AE = SectionArc(T, Radius);
+        Deliver<NurbsCurve> EO = Line(At(T, 0.0, Radius), At(T, 0.0, 0.0));
+        if (!OA || !AE || !EO) return false;
+        Deliver<NurbsSurface> Cap = SkinSolver::CoonsPatch({ OA.Payload, AE.Payload, EO.Payload });
+        if (!Cap) return false;
+        Faces.push_back(std::move(Cap.Payload));
+        return true;
+    };
+    auto AddEndCap = [&](double T, double Radius) -> bool
+    {
+        return AddPlane(At(T, 0.0, 0.0), U, V, Radius, Radius) &&
+               AddPlane(At(T, Radius, 0.0), U, V, W - Radius, Radius) &&
+               AddPlane(At(T, Radius, Radius), U, V, W - Radius, W - Radius) &&
+               AddPlane(At(T, 0.0, Radius), U, V, Radius, W - Radius);
+    };
+    if (!AddTransition(S, R0) || !AddTransition(E, R1) || !AddEndCap(0.0, R0) || !AddEndCap(Specification.Length, R1))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "quadratic partial-edge caps are degenerate");
+    Deliver<BrepBody> Result = BrepBody::Sew(Faces, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "quadratic partial-edge surfaces could not be sewn");
+    const BodyReport Report = Result.Payload.Validate();
+    const double IntervalLength = E - S;
+    const double ExpectedVolume = Specification.Length * W * W -
+        (1.0 - ScalarCriteria::Pi / 4.0) * Specification.RadiusLaw.IntegratedSquare(IntervalLength);
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 34 || Result.Payload.Edges.size() != 67 ||
+        Result.Payload.Faces.size() != 35 || Result.Payload.Loops.size() != 35)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "quadratic partial-edge blend did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "quadratic partial-edge volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(
     const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
 {

@@ -325,6 +325,11 @@ add_executable(ConeApexFilletVerification Verification/ConeApexFilletVerificatio
 target_link_libraries(ConeApexFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConeApexFilletVerification COMMAND ConeApexFilletVerification)
 
+# Stage 4c: one explicit strict-interior quadratic-radius partial-edge blend.
+add_executable(QuadraticPartialEdgeFilletVerification Verification/QuadraticPartialEdgeFilletVerification.cpp)
+target_link_libraries(QuadraticPartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME QuadraticPartialEdgeFilletVerification COMMAND QuadraticPartialEdgeFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

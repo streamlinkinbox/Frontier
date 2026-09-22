@@ -81,6 +81,13 @@ Variable-radius partial edges, arbitrary input-edge selection, partial/mixed ape
 freeform supports, and general healing remain open. Stage 4b is documented in
 `docs/PLAN_ConeApexFillet.md`.
 
+## Stage 4c — quadratic-radius partial edge
+
+A bounded nonlinear extension of Stage 4a is complete: `QuadraticPartialEdgeFilletSpecification`
+accepts one genuinely quadratic positive law over one strict interior interval, but does not
+claim arbitrary variable-radius support handling or rolling-ball G2. See
+`docs/PLAN_QuadraticPartialEdgeBlend.md`.
+
 ## Stage 5 — proof coverage ✅
 
 The nine older Phase 25/26/31/32/32z baseline verifiers now run in the focused gate and persist

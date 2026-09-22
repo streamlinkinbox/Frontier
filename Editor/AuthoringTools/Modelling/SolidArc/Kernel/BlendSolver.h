@@ -258,6 +258,19 @@ struct QuadraticRadiusLaw
     }
 };
 
+// A bounded nonlinear partial-edge route: one genuinely quadratic radius law over a strict
+// interior interval of one straight orthogonal corner. This is not arbitrary variable-radius support handling.
+struct QuadraticPartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double Width = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
 struct NonlinearVariableRadiusCornerSpecification
 {
     Vec3 Origin{};
@@ -366,6 +379,8 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructQuadraticPartialEdgeFillet(
+        const QuadraticPartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,

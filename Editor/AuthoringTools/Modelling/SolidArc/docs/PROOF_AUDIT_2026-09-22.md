@@ -49,7 +49,7 @@ G2, nonlinear two-support laws, partial-edge, or general selected-edge applicati
 
 ## Existing verifier coverage and durable baseline artifacts
 
-The current `CheckSolidArc.sh` loop runs 45 focused tests. It now also compiles and executes
+The current `CheckSolidArc.sh` loop runs 46 focused tests. It now also compiles and executes
 nine older, distinct baseline verifiers and persists their existing proof names:
 
 - Phase 25 cylinder chamfer → `Proofs/Phase25_CylinderChamfers.png`;
@@ -187,13 +187,30 @@ The cone-apex route is deliberately bounded to one exact coaxial construction:
 General vertex selection, partial or mixed-support apex fillets, rolling-ball G2 continuity,
 freeform supports, and arbitrary healing remain explicitly unsupported.
 
+## Stage 38c coverage
+
+The quadratic partial-edge route is a distinct nonlinear extension, not a general variable-radius
+claim:
+
+- `QuadraticPartialEdgeFilletSpecification` requires one positive, genuinely nonlinear quadratic
+  law and one strict interior interval on a straight orthogonal corner;
+- three exact quarter-circle station sections drive quadratic lofts only over the selected span;
+- the analytic volume subtracts `(1 − π/4) ∫ r(t)² dt` over that interval;
+- the verifier checks deterministic `V34/E67/F35/L35` topology, sampled positivity and width,
+  volume, transition normals, refusal transactions, and the sharp/nonlinear exterior proof in
+  `Proofs/Phase38c_QuadraticPartialEdgeFillet.png`.
+
+Arbitrary variable-radius support handling, rolling-ball G2 continuity, selected B-rep edge
+application, apex fillets beyond the bounded routes, freeform supports, and general healing remain
+unsupported.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover
    one finite straight planar corner, while Stage 4a is constant-radius only. General edge
    selection, curved roots, and support-specific variable rolls remain open.
-2. Rolling-ball G2 joins, nonlinear two-support laws beyond the named common route, variable-radius
-   partial-edge blends, partial/mixed-support apex fillets, and broader support combinations.
+2. Rolling-ball G2 joins, nonlinear two-support laws beyond the named common route, arbitrary
+   variable-radius support handling, partial/mixed-support apex fillets, and broader support combinations.
 3. General vertex-selected apex **fillets**; the bounded Stage 4b route covers only one explicit
    coaxial right-cone spherical cap, while apex chamfers and the Stage 4a corner route remain
    separate bounded capabilities.
