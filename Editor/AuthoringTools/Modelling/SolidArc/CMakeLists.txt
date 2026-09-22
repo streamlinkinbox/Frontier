@@ -285,6 +285,11 @@ add_executable(Phase33VariableRadiusVerification Verification/Phase33VariableRad
 target_link_libraries(Phase33VariableRadiusVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME Phase33VariableRadiusVerification COMMAND Phase33VariableRadiusVerification)
 
+# Stage 1: bounded rolling-ball variable-radius fillet on one straight planar corner.
+add_executable(VariableRadiusCornerFilletVerification Verification/VariableRadiusCornerFilletVerification.cpp)
+target_link_libraries(VariableRadiusCornerFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME VariableRadiusCornerFilletVerification COMMAND VariableRadiusCornerFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

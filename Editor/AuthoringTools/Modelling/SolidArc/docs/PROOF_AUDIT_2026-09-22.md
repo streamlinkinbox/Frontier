@@ -63,8 +63,9 @@ as newly proven by a Phase 36 proof.
 
 ## Actual remaining proof/capability gaps
 
-1. A real rolling-ball variable-radius fillet application, rather than the existing ruled
-   frustum foundation.
+1. The general rolling-ball variable-radius application is still bounded: Stage 37a now covers
+   only one finite straight planar corner with a linear law. General edge selection, curved
+   roots, and support-specific variable rolls remain open.
 2. Variable setback laws, partial-edge blends, nonlinear radius laws, and G2 continuity.
 3. Complete and partial apex **fillets**; only apex chamfers are covered.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted

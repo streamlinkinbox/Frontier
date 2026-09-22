@@ -913,6 +913,16 @@ The opposite narrowing orientation, equal-slope/zero-radius/apex supports, compl
 incomplete roots, non-coaxial or oblique supports, variable-radius/nonlinear/G2 construction, curved corner patches, and
 general intersection/trim/sew healing remain explicit refusals.
 
+#### Phase 37a: bounded straight-edge rolling-ball variable-radius fillet ✅
+
+The first actual variable-radius fillet application is bounded to one finite straight edge shared by two perpendicular
+planar supports. A positive linear law changes the quarter-circle rolling section from station to station; five ruled/lofted
+side surfaces and two planar end caps form an exact `V10/E15/C30/L7/F7` solid. The integrated rounded-corner area gives
+the analytic volume, every result tessellation is checked for outward normals, and the exterior proof compares the sharp
+box with the variable-radius result. Zero/negative/consuming laws, degenerate edge frames, nonlinear laws, partial-edge
+selection, G2 continuity, apexes, and arbitrary support/healing remain refused. Coverage is in
+`VariableRadiusCornerFilletVerification` and `Proofs/Phase37_VariableRadiusCornerFillet.png`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

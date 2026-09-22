@@ -6018,6 +6018,80 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusRuledSolid(const Asymmet
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || !std::isfinite(Specification.Width) ||
+        Specification.Length <= ScalarCriteria::MergeTolerance || Specification.Width <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner dimensions must be positive");
+    if (!Specification.RadiusLaw.Positive())
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner radii must be finite and positive");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner edge axis is degenerate");
+    const double MaximumRadius = std::max(Specification.RadiusLaw.Start, Specification.RadiusLaw.End);
+    if (MaximumRadius >= Specification.Width - ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner radius consumes the planar supports");
+
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    auto Point = [&](double T, double AlongU, double AlongV)
+    {
+        return Specification.Origin + Axis * (Specification.Length * T) + U * AlongU + V * AlongV;
+    };
+    auto SectionLine = [&](double T, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        return NurbsCurve::Line(Point(T, A.X, A.Y), Point(T, B.X, B.Y));
+    };
+    auto SectionArc = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double Radius = Specification.RadiusLaw.Radius(T);
+        const Vec3 A{ Radius, 0, 0 }, E{ 0, Radius, 0 };
+        const Vec3 Middle{ Radius - Radius / std::sqrt(2.0), Radius - Radius / std::sqrt(2.0), 0 };
+        return NurbsCurve::ArcThreePoints(Point(T, E.X, E.Y), Point(T, Middle.X, Middle.Y), Point(T, A.X, A.Y));
+    };
+    auto LoftTwo = [&](const Deliver<NurbsCurve>& A, const Deliver<NurbsCurve>& B) -> Deliver<NurbsSurface>
+    {
+        if (!A || !B) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "variable corner section is degenerate");
+        return NurbsSurface::Loft({ A.Payload, B.Payload }, 1);
+    };
+    const double Width = Specification.Width;
+    const Vec3 A0{ Specification.RadiusLaw.Start, 0, 0 }, B0{ Width, 0, 0 }, C0{ Width, Width, 0 }, D0{ 0, Width, 0 }, E0{ 0, Specification.RadiusLaw.Start, 0 };
+    const Vec3 A1{ Specification.RadiusLaw.End, 0, 0 }, B1{ Width, 0, 0 }, C1{ Width, Width, 0 }, D1{ 0, Width, 0 }, E1{ 0, Specification.RadiusLaw.End, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    auto Add = [&](const Deliver<NurbsCurve>& Low, const Deliver<NurbsCurve>& High) -> bool
+    {
+        Deliver<NurbsSurface> Surface = LoftTwo(Low, High);
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    if (!Add(SectionLine(0.0, A0, B0), SectionLine(1.0, A1, B1)) ||
+        !Add(SectionLine(0.0, B0, C0), SectionLine(1.0, B1, C1)) ||
+        !Add(SectionLine(0.0, C0, D0), SectionLine(1.0, C1, D1)) ||
+        !Add(SectionLine(0.0, D0, E0), SectionLine(1.0, D1, E1)) ||
+        !Add(SectionArc(0.0), SectionArc(1.0)))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "variable corner surfaces could not be constructed");
+
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const BodyReport Report = Result.Payload.Validate();
+    const double R0 = Specification.RadiusLaw.Start, R1 = Specification.RadiusLaw.End;
+    const double Removed = (1.0 - ScalarCriteria::Pi / 4.0) * Specification.Length * (R0 * R0 + R0 * R1 + R1 * R1) / 3.0;
+    const double ExpectedVolume = Specification.Length * Width * Width - Removed;
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "variable corner blend did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "variable corner blend volume failed analytic acceptance");
+    return Result;
+}
+
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                        double MaximumCircumferentialCurvature,
                                                        std::string& Refusal) noexcept

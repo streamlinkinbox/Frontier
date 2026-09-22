@@ -145,6 +145,17 @@ struct AsymmetricBlendSpecification
     VariableRadiusLaw RadiusLaw{};
 };
 
+// A bounded variable-radius rolling corner: one finite straight edge, two perpendicular planes,
+// and a linear positive radius law measured along the edge.
+struct VariableRadiusCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Width = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+};
+
 // Local frame of a straight manifold edge shared by two planar faces.
 struct EdgeCornerFrame
 {
@@ -179,6 +190,7 @@ public:
                                                          double Angle, std::string& Refusal) noexcept;
     [[nodiscard]] static Deliver<VariableRadiusSurface> BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;
