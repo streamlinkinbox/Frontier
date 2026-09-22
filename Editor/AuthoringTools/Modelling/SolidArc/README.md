@@ -23,7 +23,7 @@ Tools/Build/CheckSolidArc.sh
 
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
 the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, the Phase 35a–35d curved,
-concave-chamfer and same-body-loft proofs, and the Phase 36a–36q face-edit and bounded curved-root proofs. No external
+concave-chamfer and same-body-loft proofs, and the Phase 36a–36r face-edit and bounded curved-root proofs. No external
 packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
@@ -634,6 +634,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 36o | **Bounded partial plane–cone root fillet.** A coaxial non-reflex conical-frustum sector, including the half-turn, reconstructs an exact circular meridian roll and heals only general-sector radial caps as `V12/E18/F8`; apex, reflex, arbitrary, variable-radius, and non-coaxial routes remain refused. | `PartialPlaneConeFilletVerification` — 15 C++ checks; `Proofs/Phase36o_PartialPlaneConeFillet.png` |
 | 36p | **Bounded complete cylinder–cone root fillet.** A narrowing coaxial cylindrical/conical boss root reconstructs an exact toroidal roll with retained cylinder and cone as `V6/E11/F7`; flaring, zero-angle, apex, partial, variable-radius, and non-coaxial routes remain refused. | `CylinderConeFilletVerification` — 15 C++ checks; `Proofs/Phase36p_CylinderConeFillet.png` |
 | 36q | **Bounded complete cone–cone root fillet.** Two coaxial conical frusta with an increasing narrowing slope reconstruct retained cones and one exact circular roll as `V4/E7/F5`; partial, flaring, equal-slope, apex, variable-radius, and non-coaxial routes remain refused. | `ConeConeFilletVerification` — 16 C++ checks; `Proofs/Phase36q_ConeConeFillet.png` |
+| 36r | **Bounded partial cone–cone root fillet.** A coaxial non-reflex cone–cone sector, including the half-turn, reconstructs an exact circular roll with radial endpoint-cap healing as `V10/E15/F7`; flaring, arbitrary, apex, variable-radius, and non-coaxial roots remain refused. | `PartialConeConeFilletVerification` — 15 C++ checks; `Proofs/Phase36r_PartialConeConeFillet.png` |
 
 ## Console quick start
 

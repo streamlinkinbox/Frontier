@@ -277,6 +277,17 @@ Partial sectors, flaring or equal-slope pairs, apex/zero-radius cones, non-coaxi
 branched roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
 healing remain explicit refusals.
 
+### Partial cone–cone root fillets
+
+Phase 36r extends the cone–cone roll to one canonical open coaxial non-reflex sector or half-turn. It measures the two
+cone slopes, solves one circular meridian roll, retains both cone supports and the axial caps, and heals only the general
+sector's radial endpoint caps. The accepted topology is `V10/E15/C30/L7/F7` for a general sector and `V10/E14/C28/L6/F6`
+for the half-turn; the volume follows the angular fraction of the analytic cone–cone first-moment wedge.
+
+Flaring, equal-slope, reflex or arbitrary sectors, apex/zero-radius cones, non-coaxial or oblique supports, branched or
+incomplete roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
+healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
