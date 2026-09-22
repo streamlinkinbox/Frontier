@@ -160,6 +160,22 @@ namespace
            After.MisorientedEdges == Before.MisorientedEdges && std::fabs(After.Volume - Before.Volume) < 1e-9;
 }
 
+[[nodiscard]] bool ExteriorFaceNormals(const BrepBody& Body) noexcept
+{
+    const Box3 Bounds = Body.Bounds();
+    const Vec3 Centre = (Bounds.Low + Bounds.High) * 0.5;
+    for (size_t Face = 0; Face < Body.Faces.size(); ++Face)
+    {
+        const BrepBody::FaceTriangles T = Body.TessellateFace(static_cast<int>(Face));
+        if (T.Positions.empty() || T.Normals.size() != T.Positions.size()) return false;
+        Vec3 Position{ 0, 0, 0 }, Normal{ 0, 0, 0 };
+        for (size_t I = 0; I < T.Positions.size(); ++I) { Position += T.Positions[I]; Normal += T.Normals[I]; }
+        Position = Position / static_cast<double>(T.Positions.size());
+        if (Normal.Normalised().Dot(Position - Centre) <= ScalarCriteria::MergeTolerance) return false;
+    }
+    return true;
+}
+
 [[nodiscard]] double FilletRemoval(double BaseRadius, double RootRadius, double ConeHeight,
                                    double Radius, double SweepAngle) noexcept
 {
@@ -238,6 +254,7 @@ int main()
                      Result.Payload.Vertices.size() == 10 && Result.Payload.Edges.size() == 15 &&
                      Result.Payload.Coedges.size() == 30 && Result.Payload.Loops.size() == 7 && Result.Payload.Faces.size() == 7 &&
                      Report.OpenEdges == 0 && Report.NonManifoldEdges == 0 && Report.MisorientedEdges == 0);
+        Panel.Expect("The reconstructed face tessellations carry outward normals", ExteriorFaceNormals(Result.Payload));
         const double Fraction = std::fabs(SweepAngle) / ScalarCriteria::TwoPi;
         const double SourceTarget = Fraction * ScalarCriteria::Pi *
             (ConeHeight * (BaseRadius * BaseRadius + BaseRadius * RootRadius + RootRadius * RootRadius) / 3.0 +
@@ -277,7 +294,7 @@ int main()
     const bool Rendered = SourceResult && ProofResult &&
         ProofHost.Document().AddBody("SharpPartialConeCylinder", Source.Transformed(Mat4::Translation({ -11, 0, 0 }))).Identity > 0 &&
         ProofHost.Document().AddBody("FilletedPartialConeCylinder", ProofResult.Payload.Transformed(Mat4::Translation({ 11, 0, 0 }))).Identity > 0 &&
-        ProofHost.Execute("view iso") && ProofHost.Execute("view fit") && ProofHost.Execute("render Phase36s_PartialConeCylinderFillet");
+        ProofHost.Execute("show shading flat") && ProofHost.Execute("view iso") && ProofHost.Execute("view orbit 190 -10") && ProofHost.Execute("view fit") && ProofHost.Execute("render Phase36s_PartialConeCylinderFillet");
     Panel.Expect("The cone–cylinder source/result proof render completes", Rendered);
     Panel.Expect("The cone–cylinder proof PNG is visible", std::filesystem::exists(Proof) && std::filesystem::file_size(Proof, Error) > 100000);
     return Panel.Conclude();
