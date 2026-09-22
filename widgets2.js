@@ -329,7 +329,7 @@ WIDGETS.lodPyramid = function (api) {
       b.row.style.setProperty('--i', i);
     });
     hero.set({ num: fmt(lods[0].tris, 0), unit: 'TRIS', badge: lods.length + ' LODS',
-               sub: 'Chain total ' + fmt(total(), 0) + ' · reduction ' + fmt((1 - lods[lods.length - 1].tris / lods[0].tris) * 100, 1) + '%' });
+               sub: 'Chain total ' + fmt(total(), 0) + ' · ' + fmt((1 - lods[lods.length - 1].tris / lods[0].tris) * 100, 2) + '% reduction vs LOD0' });
     rd.innerHTML = lods.map((L, i) =>
       '<div class="rgrid__c"><span class="rgrid__k">' + L.name.split(' ')[0].toUpperCase() + '</span><span class="rgrid__v">' + fmt(L.screen * 100, 0) + '%</span></div>').join('');
   }

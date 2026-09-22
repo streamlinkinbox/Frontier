@@ -670,6 +670,8 @@ WIDGETS.cascadeSplits = function (api) {
    ============================================================ */
 WIDGETS.diurnalTimeline = function (api) {
   const st = S.sun;
+  const hero = api.hero({ num: '13:42', unit: 'SOLAR', badge: 'AFTERNOON', sub: 'Local apparent solar time · drag the playhead across the day' });
+
   const strip = h('div', 'dial-strip');
   strip.innerHTML = '<span class="dial-strip__grad"></span>';
   const head = h('div', 'dial-strip__hd');
@@ -681,8 +683,6 @@ WIDGETS.diurnalTimeline = function (api) {
   marks.innerHTML = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00', '24:00']
     .map(t => '<span>' + t + '</span>').join('');
   api.body.appendChild(marks);
-
-  const hero = api.hero({ num: '13:42', unit: 'SOLAR', badge: 'AFTERNOON', sub: 'Local apparent solar time · 42.8° azimuth' });
 
   function phaseName(t) {
     if (t < 4.5) return 'Deep Night';
@@ -702,12 +702,10 @@ WIDGETS.diurnalTimeline = function (api) {
   function sync(fromTime) {
     head.style.left = (st.time / 24 * 100) + '%';
     if (fromTime !== false) {
-      /* time → azimuth / elevation on a simple circular path */
-      const a = (st.time - 6) / 12 * 180;             /* 06:00 east horizon → 18:00 west horizon */
-      st.az = clamp(a, -12, 372) % 360;
-      if (st.az < 0) st.az += 360;
-      st.el = 62 * Math.sin(clamp(a, 0, 180) * Math.PI / 180) - (a < 0 || a > 180 ? 8 : 0);
-      st.el = Math.round(clamp(st.el, -14, 90) * 10) / 10;
+      /* solar time → hour angle (0 at sunrise, 180 at sunset) */
+      const a = (st.time - 6) / 12 * 180;
+      st.az = Math.round(((90 + a) % 360 + 360) % 360 * 10) / 10;   /* 06:00 → 90° E · 12:00 → 180° S · 18:00 → 270° W */
+      st.el = Math.round(clamp(62 * Math.sin(a * Math.PI / 180), -14, 90) * 10) / 10;
       if (st.autoK !== false) st.kelvin = autoKelvin(st.el);
       st.lux = Math.round(132000 * Math.max(0, Math.sin(clamp(st.el, -6, 90) * Math.PI / 180)) + 120);
     }

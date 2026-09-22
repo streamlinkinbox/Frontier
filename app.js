@@ -164,6 +164,7 @@ function renderInspector() {
       const f = h('div', 'nf nf--' + ax.toLowerCase());
       f.innerHTML = '<span class="nf__ax">' + ax + '</span><span class="nf__v"></span>';
       const vEl = f.querySelector('.nf__v');
+      const show = v => Number(v).toFixed(dp);
       const stepFor = dp === 2 ? 0.005 : dp === 1 ? 0.25 : 1;
       let last = 0, crossed = 0;
       bindDrag(f, {
@@ -173,7 +174,7 @@ function renderInspector() {
           const before = e.transform[key][i];
           e.transform[key][i] = round(before + d * stepFor, dp);
           if (e.transform[key][i] !== before) {
-            vEl.textContent = fmt(e.transform[key][i], dp);
+            vEl.textContent = show(e.transform[key][i]);
             crossed += Math.abs(d);
             if (crossed > 7) { crossed = 0; tick(); }
           }
@@ -192,7 +193,7 @@ function renderInspector() {
 
   window.__paintTransform = () => {
     groups.forEach(([, key, , dp]) => e.transform[key].forEach((v, i) => {
-      if (fields[key] && fields[key][i]) fields[key][i].textContent = fmt(v, dp);
+      if (fields[key] && fields[key][i]) fields[key][i].textContent = Number(v).toFixed(dp);
     }));
   };
   window.__paintTransform();
