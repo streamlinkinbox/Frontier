@@ -6321,6 +6321,144 @@ Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(
     return Result;
 }
 
+Deliver<NurbsCurve> BlendSolver::BuildG2CornerProfile(const G2PlanarCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Radius) || !std::isfinite(Specification.Width) ||
+        Specification.Radius <= ScalarCriteria::MergeTolerance ||
+        Specification.Width <= Specification.Radius + ScalarCriteria::MergeTolerance)
+        return Deliver<NurbsCurve>::Reject(RefusalReason::DegenerateInput,
+                                            "G2 corner radius and width are not feasible");
+    if (!std::isfinite(Specification.HandleFraction) || Specification.HandleFraction <= ScalarCriteria::GeometricTolerance ||
+        Specification.HandleFraction >= 0.5 - ScalarCriteria::GeometricTolerance)
+        return Deliver<NurbsCurve>::Reject(RefusalReason::DegenerateInput,
+                                            "G2 corner handle fraction must lie strictly between zero and one half");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<NurbsCurve>::Reject(RefusalReason::DegenerateInput, "G2 corner edge axis is degenerate");
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<NurbsCurve>::Reject(RefusalReason::DegenerateInput, "G2 corner frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    const double R = Specification.Radius;
+    const double H = R * Specification.HandleFraction;
+    const auto Point = [&](double AlongU, double AlongV) { return Specification.Origin + U * AlongU + V * AlongV; };
+    // E -> A: vertical tangent at E, horizontal tangent at A, and zero second derivative at both ends.
+    return NurbsCurve::Bezier({ Point(0.0, R), Point(0.0, R - H), Point(0.0, R - 2.0 * H),
+                                Point(R - 2.0 * H, 0.0), Point(R - H, 0.0), Point(R, 0.0) });
+}
+
+bool BlendSolver::ValidateG2CornerProfile(const NurbsCurve& Profile,
+                                             const G2PlanarCornerSpecification& Specification,
+                                             std::string& Refusal) noexcept
+{
+    if (Profile.Degree != 5 || Profile.PoleCount() != 6 || Profile.Validate())
+    { Refusal = "G2 corner profile is not a valid quintic"; return false; }
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+    { Refusal = "G2 corner profile frame is degenerate"; return false; }
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    const double CurvatureTolerance = 1e-8 / std::max(1.0, Specification.Radius);
+    auto EndpointCurvature = [&](double T) noexcept
+    {
+        Vec3 Derivatives[3]; Profile.Derivatives(T, 2, Derivatives);
+        const double Speed = Derivatives[1].Length();
+        return Speed > ScalarCriteria::GeometricTolerance
+            ? Derivatives[1].Cross(Derivatives[2]).Length() / (Speed * Speed * Speed) : ScalarCriteria::Infinity;
+    };
+    if (EndpointCurvature(0.0) > CurvatureTolerance || EndpointCurvature(1.0) > CurvatureTolerance)
+    { Refusal = "G2 corner profile has non-zero curvature at a planar support join"; return false; }
+    Vec3 StartDerivative[3], EndDerivative[3];
+    Profile.Derivatives(0.0, 1, StartDerivative); Profile.Derivatives(1.0, 1, EndDerivative);
+    if (StartDerivative[1].Normalised().Dot(-V) < 1.0 - ScalarCriteria::AngularTolerance ||
+        EndDerivative[1].Normalised().Dot(U) < 1.0 - ScalarCriteria::AngularTolerance)
+    { Refusal = "G2 corner profile endpoint tangents do not follow the supports"; return false; }
+    for (int I = 0; I <= 32; ++I)
+    {
+        const Vec3 P = Profile.Sample(static_cast<double>(I) / 32.0) - Specification.Origin;
+        const double X = P.Dot(U), Y = P.Dot(V);
+        if (X < -ScalarCriteria::MergeTolerance || Y < -ScalarCriteria::MergeTolerance ||
+            X > Specification.Radius + ScalarCriteria::MergeTolerance ||
+            Y > Specification.Radius + ScalarCriteria::MergeTolerance)
+        { Refusal = "G2 corner profile leaves its support quadrant"; return false; }
+    }
+    return true;
+}
+
+double BlendSolver::G2CornerRemovalArea(double Radius, double HandleFraction) noexcept
+{
+    const double H = Radius * HandleFraction;
+    // Green's theorem on the quintic control polygon, reduced symbolically for this symmetric
+    // control net. The sign is reversed from the E->A traversal, so this is the removed area.
+    return 0.5 * Radius * Radius - (55.0 / 42.0) * Radius * H + (65.0 / 84.0) * H * H;
+}
+
+Deliver<BrepBody> BlendSolver::ReconstructG2PlanarCorner(const G2PlanarCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "G2 corner length must be positive");
+    auto Profile = BuildG2CornerProfile(Specification);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    std::string Refusal;
+    if (!ValidateG2CornerProfile(Profile.Payload, Specification, Refusal))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "G2 corner profile failed endpoint acceptance");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    const double W = Specification.Width;
+    auto Point = [&](double AlongU, double AlongV)
+    {
+        return Specification.Origin + U * AlongU + V * AlongV;
+    };
+    const double R = Specification.Radius;
+    const Vec3 A{ R, 0, 0 }, B{ W, 0, 0 }, C{ W, W, 0 }, D{ 0, W, 0 }, E{ 0, R, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    // The profile curve is already in world coordinates; the four straight boundaries are
+    // represented directly as edge-axis extrusions.
+    std::vector<NurbsCurve> Boundaries;
+    auto MakeLine = [&](Vec3 P0, Vec3 P1) -> bool
+    {
+        Deliver<NurbsCurve> Curve = NurbsCurve::Line(P0, P1);
+        if (!Curve) return false;
+        Boundaries.push_back(std::move(Curve.Payload));
+        return true;
+    };
+    if (!MakeLine(Point(A.X, A.Y), Point(B.X, B.Y)) ||
+        !MakeLine(Point(B.X, B.Y), Point(C.X, C.Y)) ||
+        !MakeLine(Point(C.X, C.Y), Point(D.X, D.Y)) ||
+        !MakeLine(Point(D.X, D.Y), Point(E.X, E.Y)))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "G2 corner support boundary is degenerate");
+    for (const NurbsCurve& Boundary : Boundaries)
+    {
+        Deliver<NurbsSurface> Surface = NurbsSurface::Extrusion(Boundary, Axis, Specification.Length);
+        if (!Surface) return Deliver<BrepBody>::Reject(Surface.Denial.Reason, "G2 corner support surface failed");
+        Surfaces.push_back(std::move(Surface.Payload));
+    }
+    Deliver<NurbsSurface> Roll = NurbsSurface::Extrusion(Profile.Payload, Axis, Specification.Length);
+    if (!Roll) return Deliver<BrepBody>::Reject(Roll.Denial.Reason, "G2 corner transition surface failed");
+    Surfaces.push_back(std::move(Roll.Payload));
+
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const BodyReport Report = Result.Payload.Validate();
+    const double ExpectedVolume = Specification.Length *
+        (Specification.Width * Specification.Width - G2CornerRemovalArea(Specification.Radius, Specification.HandleFraction));
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "G2 planar corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "G2 planar corner volume failed analytic acceptance");
+    return Result;
+}
+
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                        double MaximumCircumferentialCurvature,
                                                        std::string& Refusal) noexcept

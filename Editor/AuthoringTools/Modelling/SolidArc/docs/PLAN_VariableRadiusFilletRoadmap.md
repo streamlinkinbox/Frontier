@@ -37,11 +37,19 @@ quarter-circle sections reconstructs one bounded straight planar corner, with an
 and sampled circumferential/meridional curvature acceptance. See
 `docs/PLAN_NonlinearRadiusLaw.md`.
 
-## Stage 3b — G2 continuity
+## Stage 3b — bounded G2 continuity profile ✅
 
-Still open. Add a separate endpoint/inner-join construction whose tangent and curvature match
-are measured on both sides. Do not describe the Stage 3a quadratic loft as G2: its rolling/
-support junction is accepted as a bounded G1 transition only.
+`G2PlanarCornerSpecification` adds a separate quintic non-rolling corner profile with
+support-aligned tangents and zero endpoint curvature. The profile is extruded and its endpoint
+curvature is measured against both planar supports. This proves the G2 construction boundary,
+not G2 for the circular rolling-ball or nonlinear-radius routes. See
+`docs/PLAN_G2PlanarCorner.md`.
+
+## Stage 3c — rolling-ball G2 continuity
+
+Still open. Replace the circular/rolling support join with a construction whose tangent and
+curvature match are measured on both sides, without describing the Stage 3b quintic profile as
+a rolling-ball solution.
 
 ## Stage 4 — partial edges, apexes, broader supports, curved loops, and healing
 

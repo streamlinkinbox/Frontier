@@ -19,9 +19,10 @@ remains the proof of the **linear ruled/frustum foundation**.
 
 That foundation is **not** proof of a rolling-ball variable-radius fillet. Stage 37a now proves
 one bounded rolling-ball application, Stage 37b separately proves one bounded linear
-support-setback law, and Stage 37c proves one bounded quadratic nonlinear-radius application.
-The following remain unproved and intentionally unsupported: general variable-radius rolling
-fillets, nonlinear setback laws, partial-edge blends, and G2 continuity.
+support-setback law, Stage 37c proves one bounded quadratic nonlinear-radius application, and
+Stage 37d proves one separate non-rolling G2 planar profile. The following remain unproved and
+intentionally unsupported: general variable-radius rolling fillets, rolling-ball G2 joins,
+nonlinear setback laws, and partial-edge blends.
 
 ## Current Phase 34–36 coverage
 
@@ -35,16 +36,18 @@ These are distinct routes, not duplicates:
   **chamfer** routes;
 - 36o–36s: partial plane–cone, complete cylinder–cone, complete cone–cone, partial cone–cone,
   and partial cone–cylinder **fillet** routes;
-- 37a–37c: one straight planar rolling-ball variable-radius corner, its distinct linear
-  support-setback extension, and a quadratic nonlinear-radius extension.
+- 37a–37d: one straight planar rolling-ball variable-radius corner, its distinct linear
+  support-setback extension, a quadratic nonlinear-radius extension, and a separate non-rolling
+  G2 planar transition.
 
 The Phase 36s visual proof is the corrected exterior-facing proof; it is not a substitute for
-other route families. The Phase 37b and 37c comparison proofs are likewise not proof of unequal-
-support, nonlinear-setback, partial-edge, G2, or general selected-edge application.
+other route families. The Phase 37b, 37c, and 37d comparison proofs are likewise not proof of
+unequal-support, rolling-ball G2, nonlinear-setback, partial-edge, or general selected-edge
+application.
 
 ## Existing verifier coverage not in the current direct gate
 
-The current `CheckSolidArc.sh` loop runs 31 focused tests. It does not run these older, distinct
+The current `CheckSolidArc.sh` loop runs 32 focused tests. It does not run these older, distinct
 fillet/chamfer baselines:
 
 - Phase 25 cylinder chamfer;
@@ -101,12 +104,27 @@ The stage intentionally does **not** claim G2 at the rolling/support junction. N
 laws, unequal support setbacks, general edge selection, partial-edge blends, apexes, freeform
 supports, and arbitrary healing remain open.
 
+## Stage 37d coverage
+
+The G2 extension is a separate non-rolling profile family:
+
+- `G2PlanarCornerSpecification` builds a quintic profile with support-aligned endpoint tangents;
+- both endpoint curvatures are measured as zero, matching the planar supports;
+- the profile is extruded into a capped one-hull solid and its Green's-theorem area identity is
+  checked;
+- the comparison proof places it beside the existing circular rolling route.
+
+This does **not** prove G2 for a rolling-ball or nonlinear-radius fillet. Rolling-ball G2 joins,
+nonlinear setback laws, unequal support setbacks, general edge selection, partial-edge blends,
+apexes, freeform supports, and arbitrary healing remain open.
+
 ## Actual remaining proof/capability gaps
 
-1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37c cover
+1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37d cover
    only one finite straight planar corner. General edge selection, curved roots, unequal support
    setbacks, and support-specific variable rolls remain open.
-2. Nonlinear setback laws, partial-edge blends, and G2 continuity.
+2. Rolling-ball G2 joins, nonlinear setback laws, partial-edge blends, apex fillets, and broader
+   support combinations.
 3. Complete and partial apex **fillets**; only apex chamfers are covered.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted
    constant-radius routes.

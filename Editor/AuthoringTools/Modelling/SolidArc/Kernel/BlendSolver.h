@@ -229,6 +229,19 @@ struct NonlinearVariableRadiusCornerSpecification
     QuadraticRadiusLaw RadiusLaw{};
 };
 
+// A bounded non-rolling planar corner patch whose profile has zero curvature at both support
+// joins. The quintic transition is accepted as G2 to the two planes; it is intentionally not
+// described as a quarter-circle rolling-ball fillet.
+struct G2PlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+    double HandleFraction = 1.0 / 3.0;                                                   // [-] quintic tangent handle / Radius
+};
+
 // A parametric surface of revolution with a quadratic radius law. Its explicit first and
 // second derivatives are accepted before any lofted solid is built; this prevents a nonlinear
 // law from being silently treated as a ruled approximation.
@@ -307,6 +320,11 @@ public:
                                                                 double MaximumMeridionalCurvature,
                                                                 std::string& Refusal) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableRadiusCornerBlend(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<NurbsCurve> BuildG2CornerProfile(const G2PlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateG2CornerProfile(const NurbsCurve& Profile, const G2PlanarCornerSpecification& Specification,
+                                                      std::string& Refusal) noexcept;
+    [[nodiscard]] static double G2CornerRemovalArea(double Radius, double HandleFraction) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructG2PlanarCorner(const G2PlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;

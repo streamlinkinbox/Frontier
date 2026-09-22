@@ -953,6 +953,19 @@ This slice remains one complete finite straight corner with a common positive se
 not claim G2 continuity at the rolling/support junction, nonlinear setback laws, partial edges,
 unequal support setbacks, apexes, freeform supports, or general healing.
 
+#### Phase 37d: bounded G2 planar corner transition ✅
+
+A separate quintic non-rolling corner profile now has support-aligned tangents and zero endpoint
+curvature. Its extrusion joins the two planar support faces with measured G2 position/tangent/
+curvature continuity, while retaining one-hull `V10/E15/C30/L7/F7` topology and an exact
+Green's-theorem profile-area volume. The verifier compares this G2 profile against the circular
+rolling route and refuses degenerate handles, consuming radii, and invalid frames.
+
+This is explicitly **not** a rolling-ball or nonlinear-radius G2 fillet. Rolling-ball G2 joins,
+nonlinear setbacks, partial edges, unequal support setbacks, apexes, freeform supports, and
+general healing remain open. Coverage is in `G2PlanarCornerVerification`, its plan is
+`docs/PLAN_G2PlanarCorner.md`, and its proof is `Proofs/Phase37d_G2PlanarCorner.png`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

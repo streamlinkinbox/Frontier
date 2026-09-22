@@ -300,6 +300,11 @@ add_executable(NonlinearVariableRadiusCornerVerification Verification/NonlinearV
 target_link_libraries(NonlinearVariableRadiusCornerVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME NonlinearVariableRadiusCornerVerification COMMAND NonlinearVariableRadiusCornerVerification)
 
+# Stage 3b: quintic G2 planar corner transition; this is a non-rolling profile family.
+add_executable(G2PlanarCornerVerification Verification/G2PlanarCornerVerification.cpp)
+target_link_libraries(G2PlanarCornerVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME G2PlanarCornerVerification COMMAND G2PlanarCornerVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
