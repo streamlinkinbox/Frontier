@@ -2844,6 +2844,108 @@ namespace
         return Result;
     }
 
+    double CylinderConeSourceVolume(const CylinderConeRoot& Root) noexcept
+    {
+        return ScalarCriteria::Pi * Root.OuterRadius * Root.OuterRadius * Root.ShoulderHeight +
+               ScalarCriteria::Pi * Root.BossRadius * Root.BossRadius * Root.CylinderHeight +
+               ScalarCriteria::Pi * Root.ConeHeight *
+                   (Root.BossRadius * Root.BossRadius + Root.BossRadius * Root.TopRadius + Root.TopRadius * Root.TopRadius) / 3.0;
+    }
+
+    double CylinderConeFilletRemoval(const CylinderConeRoot& Root, double Radius) noexcept
+    {
+        const double HalfAngle = std::atan2(Root.BossRadius - Root.TopRadius, Root.ConeHeight);
+        const double CentreZ = -Radius * std::tan(0.5 * HalfAngle);
+        const double CentreR = Root.BossRadius - Radius;
+        const double ContactR = CentreR + Radius * std::cos(HalfAngle);
+        const double ContactZ = CentreZ + Radius * std::sin(HalfAngle);
+        auto SegmentMoment = [](double R0, double Z0, double R1, double Z1) noexcept
+        {
+            return (Z1 - Z0) * (R0 * R0 + R0 * R1 + R1 * R1) / 6.0;
+        };
+        auto ArcMoment = [&](double Start, double End) noexcept
+        {
+            const double S0 = std::sin(Start), S1 = std::sin(End);
+            const double S20 = std::sin(2.0 * Start), S21 = std::sin(2.0 * End);
+            return Radius / 2.0 * (CentreR * CentreR * (S1 - S0) +
+                2.0 * CentreR * Radius * ((End - Start) / 2.0 + (S21 - S20) / 4.0) +
+                Radius * Radius * ((S1 - S0) - (S1 * S1 * S1 - S0 * S0 * S0) / 3.0));
+        };
+        const double Moment = SegmentMoment(Root.BossRadius, CentreZ, Root.BossRadius, 0.0) +
+            SegmentMoment(Root.BossRadius, 0.0, ContactR, ContactZ) + ArcMoment(HalfAngle, 0.0);
+        return ScalarCriteria::TwoPi * std::fabs(Moment);
+    }
+
+    Deliver<BrepBody> FilletCylinderConeBossRoot(const CylinderConeRoot& Root, double Radius) noexcept
+    {
+        if (Radius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "radius is zero or negative");
+        if (Root.TopRadius <= Tol) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cylinder-cone apex fillets remain unsupported");
+        const double HalfAngle = std::atan2(Root.BossRadius - Root.TopRadius, Root.ConeHeight);
+        if (HalfAngle <= ScalarCriteria::AngularTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cylinder-cone fillet requires a narrowing cone");
+        const double CentreZ = -Radius * std::tan(0.5 * HalfAngle);
+        const double CentreR = Root.BossRadius - Radius;
+        const double ContactR = CentreR + Radius * std::cos(HalfAngle);
+        const double ContactZ = CentreZ + Radius * std::sin(HalfAngle);
+        if (CentreR <= Tol || ContactR <= Tol || -CentreZ >= Root.CylinderHeight - Tol ||
+            ContactZ <= Tol || ContactZ >= Root.ConeHeight - Tol)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cylinder-cone fillet consumes its supports");
+        const Vec3 ShoulderCentre = Root.Base + Root.Axis * Root.ShoulderHeight;
+        const Vec3 RootCentre = ShoulderCentre + Root.Axis * Root.CylinderHeight;
+        const Vec3 ConeTop = RootCentre + Root.Axis * Root.ConeHeight;
+        const Vec3 Radial = Workplane::FromNormal(Root.Base, Root.Axis).AxisX;
+        auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+        {
+            Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+            return Line ? NurbsSurface::Revolution(Line.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+                        : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+        };
+        Deliver<NurbsSurface> Outer = NurbsSurface::Cylinder(Root.Base, Root.Axis, Root.OuterRadius, Root.ShoulderHeight);
+        Deliver<NurbsCurve> ShoulderLine = NurbsCurve::Line(ShoulderCentre + Radial * Root.OuterRadius,
+                                                            ShoulderCentre + Radial * Root.BossRadius);
+        Deliver<NurbsSurface> Shoulder = ShoulderLine
+            ? NurbsSurface::Revolution(ShoulderLine.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(ShoulderLine.Denial.Reason, ShoulderLine.Denial.Detail);
+        const Vec3 CylinderContact = RootCentre + Root.Axis * CentreZ + Radial * Root.BossRadius;
+        const Vec3 ConeContact = RootCentre + Root.Axis * ContactZ + Radial * ContactR;
+        Deliver<NurbsSurface> Boss = RevolveLine(ShoulderCentre + Radial * Root.BossRadius, CylinderContact);
+        const Vec3 MeridianCentre = RootCentre + Root.Axis * CentreZ + Radial * CentreR;
+        auto OnMeridian = [&](double Angle) noexcept
+        {
+            return MeridianCentre + (Radial * std::cos(Angle) + Root.Axis * std::sin(Angle)) * Radius;
+        };
+        Deliver<NurbsCurve> Meridian = NurbsCurve::ArcThreePoints(
+            OnMeridian(0.0), OnMeridian(0.5 * HalfAngle), OnMeridian(HalfAngle));
+        Deliver<NurbsSurface> Roll = Meridian
+            ? NurbsSurface::Revolution(Meridian.Payload, Root.Base, Root.Axis, ScalarCriteria::TwoPi)
+            : Deliver<NurbsSurface>::Reject(Meridian.Denial.Reason, Meridian.Denial.Detail);
+        Deliver<NurbsSurface> Cone = RevolveLine(ConeContact, ConeTop + Radial * Root.TopRadius);
+        if (!Outer || !Shoulder || !Boss || !Roll || !Cone)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cylinder-cone fillet support is degenerate");
+        Boss.Payload.Classification = SurfaceClassification::Cylinder;
+        Boss.Payload.Origin = ShoulderCentre; Boss.Payload.Axis = Root.Axis;
+        Boss.Payload.RadiusMajor = Boss.Payload.RadiusMinor = Root.BossRadius;
+        Roll.Payload.Classification = SurfaceClassification::Torus;
+        Roll.Payload.Origin = RootCentre + Root.Axis * CentreZ;
+        Roll.Payload.Axis = Root.Axis;
+        Roll.Payload.RadiusMajor = CentreR; Roll.Payload.RadiusMinor = Radius;
+        Cone.Payload.Classification = SurfaceClassification::Cone;
+        Cone.Payload.Origin = RootCentre + Root.Axis * ContactZ;
+        Cone.Payload.Axis = Root.Axis;
+        Cone.Payload.RadiusMajor = ContactR; Cone.Payload.RadiusMinor = Root.TopRadius;
+        Deliver<BrepBody> Result = BrepBody::Sew({ Outer.Payload, Shoulder.Payload, Boss.Payload, Roll.Payload, Cone.Payload });
+        if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, Result.Denial.Detail);
+        const BodyReport Report = Result.Payload.Validate();
+        const bool ExactTopology = Report.Hulls == 1 && Report.Genus == 0 && Result.Payload.Vertices.size() == 6 &&
+            Result.Payload.Edges.size() == 11 && Result.Payload.Coedges.size() == 22 &&
+            Result.Payload.Loops.size() == 7 && Result.Payload.Faces.size() == 7;
+        const double TargetVolume = CylinderConeSourceVolume(Root) - CylinderConeFilletRemoval(Root, Radius);
+        if (!Report.Solid() || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+            !ExactTopology || !ScalarCriteria::WithinVolumeTolerance(Report.Volume, TargetVolume))
+            return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "cylinder-cone fillet did not reach exact analytic topology");
+        return Result;
+    }
+
     struct PlaneConePartialRoot
     {
         Vec3   Base, Axis, RadialStart;
@@ -4959,6 +5061,8 @@ Deliver<BrepBody> BlendSolver::FilletEdge(const BrepBody& Body, int Edge, double
         return FilletPlaneCylinderBossRoot(*Root, Radius);
     if (std::optional<PlaneConePartialRoot> Root = PlaneConePartialBossRoot(Body, Edge))
         return FilletPlaneConePartialBossRoot(*Root, Radius);
+    if (std::optional<CylinderConeRoot> Root = CylinderConeBossRoot(Body, Edge))
+        return FilletCylinderConeBossRoot(*Root, Radius);
     if (std::optional<PlaneConeRoot> Root = PlaneConeBossRoot(Body, Edge))
         return FilletPlaneConeBossRoot(*Root, Radius);
     EdgeCornerFrame F;

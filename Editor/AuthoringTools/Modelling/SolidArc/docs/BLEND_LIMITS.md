@@ -254,6 +254,18 @@ This is not a generic partial-edge or variable-radius fillet solver. Apex/zero-r
 supports, reflex or arbitrary trims, branched/incomplete chains, cone–cone/cylinder–cone apex networks, curved corner
 patches, nonlinear/G2 construction, and general intersection/trim/sew healing remain explicit refusals.
 
+### Complete cylinder–cone root fillets
+
+Phase 36p accepts one complete coaxial narrowing cylinder–cone root with a positive conical top radius. The exact
+meridian roll is tangent to the cylindrical wall below the measured root and the conical wall above it; the retained
+outer cylinder, planar shoulder, shortened boss cylinder, toroidal roll, retained cone, and caps sew to one genus-zero
+`V6/E11/C22/L7/F7` solid. The removed volume is checked by the analytic first moment of the cylinder/cone/arc meridian
+wedge.
+
+Flaring or zero-angle pairs, apex/zero-radius cones, partial roots, non-coaxial or oblique supports, arbitrary or
+branched roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
+healing remain explicit refusals.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
