@@ -340,6 +340,11 @@ add_executable(PartialConeApexFilletVerification Verification/PartialConeApexFil
 target_link_libraries(PartialConeApexFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialConeApexFilletVerification COMMAND PartialConeApexFilletVerification)
 
+# Stage 4e: one explicit constant-radius oblique planar corner fillet.
+add_executable(ObliquePlanarCornerFilletVerification Verification/ObliquePlanarCornerFilletVerification.cpp)
+target_link_libraries(ObliquePlanarCornerFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ObliquePlanarCornerFilletVerification COMMAND ObliquePlanarCornerFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

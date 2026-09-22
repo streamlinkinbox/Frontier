@@ -199,6 +199,20 @@ struct PartialEdgeFilletSpecification
 
 // A bounded complete conical-apex route: an exact spherical cap replaces the apex of one
 // coaxial right circular cone. General vertex selection and mixed apex supports remain outside.
+// A bounded constant-radius fillet on one explicit finite oblique planar corner. SupportA and
+// SupportB are the two unit directions into the retained wedge, perpendicular to EdgeAxis.
+struct ObliquePlanarCornerFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+};
+
 struct ConeApexFilletSpecification
 {
     Vec3 Base{};
@@ -404,6 +418,8 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(
         const NonlinearUnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePlanarCornerFillet(
+        const ObliquePlanarCornerFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
         const PartialConeApexFilletSpecification& Specification) noexcept;

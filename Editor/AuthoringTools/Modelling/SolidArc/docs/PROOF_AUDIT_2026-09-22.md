@@ -50,7 +50,7 @@ G2, nonlinear two-support laws, partial-edge, or general selected-edge applicati
 
 ## Existing verifier coverage and durable baseline artifacts
 
-The current `CheckSolidArc.sh` loop runs 48 focused tests. It now also compiles and executes
+The current `CheckSolidArc.sh` loop runs 49 focused tests. It now also compiles and executes
 nine older, distinct baseline verifiers and persists their existing proof names:
 
 - Phase 25 cylinder chamfer → `Proofs/Phase25_CylinderChamfers.png`;
@@ -238,6 +238,23 @@ The partial apex route is deliberately bounded to one exact coaxial sector:
 
 General apex selection, partial/mixed-support apex networks, non-coaxial supports, rolling-ball G2
 continuity, freeform geometry, and arbitrary healing remain explicitly unsupported.
+
+## Stage 38e coverage
+
+The oblique planar corner route is deliberately bounded to one explicit finite support frame:
+
+- `ObliquePlanarCornerFilletSpecification` accepts two support directions perpendicular to one
+  straight edge, a strict interior angle `0 < theta < pi`, finite widths, and one positive
+  constant radius;
+- exact tangent distance `r cot(theta/2)` defines the circular profile, which is extruded with
+  the retained outer support and capped at both finite ends;
+- `ObliquePlanarCornerFilletVerification` performs 19 checks covering deterministic
+  `V8/E12/F6/L6` topology, the wedge-minus-circular-segment volume, rational fillet presence,
+  outward normals, tangent-fit limits, and transactional frame/extent refusals;
+- `Proofs/Phase38e_ObliquePlanarCornerFillet.png` is the distinct exterior sharp/rounded proof.
+
+Variable laws, partial-edge selection, arbitrary edge selection, apexes, freeform supports, and
+arbitrary healing remain explicitly unsupported. This route is not a rolling-ball G2 solution.
 
 ## Actual remaining proof/capability gaps
 

@@ -111,6 +111,17 @@ and degenerate dimensions refuse transactionally. Arbitrary apex selection, mixe
 supports, rolling-ball G2, freeform geometry, and general healing remain unsupported. See
 `docs/PLAN_PartialConeApexFillet.md`.
 
+## Stage 4e — oblique planar corner fillet
+
+A bounded broader-support route is complete: `ObliquePlanarCornerFilletSpecification` accepts
+one explicit finite straight edge frame, two planar support directions, one strict interior wedge
+angle, finite support extents, and one positive constant radius. Exact tangent distance
+`r cot(theta/2)`, a rational circular extrusion, retained outer support, and two end caps produce
+`V8/E12/F6/L6`; the analytic wedge-minus-circular-segment volume, normals, and refusal boundaries
+are covered by `ObliquePlanarCornerFilletVerification`. Variable laws, partial edges, arbitrary
+edge selection, apexes, freeform supports, and healing remain unsupported. See
+`docs/PLAN_ObliquePlanarCornerFillet.md`.
+
 ## Stage 5 — proof coverage ✅
 
 The nine older Phase 25/26/31/32/32z baseline verifiers now run in the focused gate and persist

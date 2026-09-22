@@ -6583,6 +6583,89 @@ Deliver<BrepBody> BlendSolver::ReconstructPartialEdgeFillet(const PartialEdgeFil
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructObliquePlanarCornerFillet(
+    const ObliquePlanarCornerFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Origin.X) || !std::isfinite(Specification.Origin.Y) ||
+        !std::isfinite(Specification.Origin.Z) || !std::isfinite(Specification.Length) ||
+        !std::isfinite(Specification.WidthA) || !std::isfinite(Specification.WidthB) ||
+        !std::isfinite(Specification.Radius) || Specification.Length <= ScalarCriteria::MergeTolerance ||
+        Specification.WidthA <= ScalarCriteria::MergeTolerance || Specification.WidthB <= ScalarCriteria::MergeTolerance ||
+        Specification.Radius <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique corner dimensions and radius must be finite and positive");
+    if (Specification.EdgeAxis.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportA.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportB.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique corner frame contains a degenerate direction");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    const Vec3 SupportA = Specification.SupportA.Normalised();
+    const Vec3 SupportB = Specification.SupportB.Normalised();
+    if (std::fabs(Axis.Dot(SupportA)) > ScalarCriteria::AngularTolerance ||
+        std::fabs(Axis.Dot(SupportB)) > ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique corner supports must be planar and perpendicular to the edge");
+    const double CosTheta = ScalarCriteria::Clamp(SupportA.Dot(SupportB), -1.0, 1.0);
+    const double Theta = std::acos(CosTheta);
+    if (Theta <= ScalarCriteria::AngularTolerance || Theta >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique corner support angle must be strictly between zero and pi");
+    const double HalfTheta = 0.5 * Theta;
+    const double SinHalfTheta = std::sin(HalfTheta);
+    const double TangentDistance = Specification.Radius * std::cos(HalfTheta) / SinHalfTheta;
+    if (TangentDistance >= Specification.WidthA - ScalarCriteria::MergeTolerance ||
+        TangentDistance >= Specification.WidthB - ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique corner radius consumes a finite support extent");
+    const Vec3 Origin = Specification.Origin;
+    const Vec3 TangentA = Origin + SupportA * TangentDistance;
+    const Vec3 TangentB = Origin + SupportB * TangentDistance;
+    const Vec3 OuterA = Origin + SupportA * Specification.WidthA;
+    const Vec3 OuterB = Origin + SupportB * Specification.WidthB;
+    const Vec3 Centre = Origin + (SupportA + SupportB).Normalised() * (Specification.Radius / SinHalfTheta);
+    const Vec3 RadialA = (TangentA - Centre).Normalised();
+    const Vec3 RadialB = (TangentB - Centre).Normalised();
+    if ((RadialA + RadialB).Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique corner arc midpoint is degenerate");
+    const Vec3 ArcMiddle = Centre + (RadialA + RadialB).Normalised() * Specification.Radius;
+    Deliver<NurbsCurve> WallA = NurbsCurve::Line(TangentA, OuterA);
+    Deliver<NurbsCurve> Outer = NurbsCurve::Line(OuterA, OuterB);
+    Deliver<NurbsCurve> WallB = NurbsCurve::Line(OuterB, TangentB);
+    Deliver<NurbsCurve> Fillet = NurbsCurve::ArcThreePoints(TangentB, ArcMiddle, TangentA);
+    if (!WallA || !Outer || !WallB || !Fillet)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique corner profile is degenerate");
+    Deliver<NurbsSurface> FaceA = NurbsSurface::Extrusion(WallA.Payload, Axis, Specification.Length);
+    Deliver<NurbsSurface> OuterFace = NurbsSurface::Extrusion(Outer.Payload, Axis, Specification.Length);
+    Deliver<NurbsSurface> FaceB = NurbsSurface::Extrusion(WallB.Payload, Axis, Specification.Length);
+    Deliver<NurbsSurface> FilletFace = NurbsSurface::Extrusion(Fillet.Payload, Axis, Specification.Length);
+    if (!FaceA || !OuterFace || !FaceB || !FilletFace)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique corner extrusion surfaces are degenerate");
+    Deliver<BrepBody> Result = BrepBody::Sew({ FaceA.Payload, OuterFace.Payload, FaceB.Payload, FilletFace.Payload },
+                                              ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "oblique corner surfaces could not be sewn");
+    const double SharpArea = 0.5 * Specification.WidthA * Specification.WidthB * std::sin(Theta);
+    const double RemovedArea = 0.5 * std::sin(Theta) *
+        (TangentDistance * TangentDistance + Specification.Radius * Specification.Radius) -
+        0.5 * Specification.Radius * Specification.Radius * (ScalarCriteria::Pi - Theta);
+    const double ExpectedVolume = Specification.Length * (SharpArea - RemovedArea);
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 8 || Result.Payload.Edges.size() != 12 ||
+        Result.Payload.Coedges.size() != 24 || Result.Payload.Loops.size() != 6 || Result.Payload.Faces.size() != 6)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "oblique corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "oblique corner volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||

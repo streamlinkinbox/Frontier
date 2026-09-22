@@ -1006,6 +1006,16 @@ This remains one explicit finite straight corner; rolling-ball G2, arbitrary edg
 freeform supports, and general healing remain unsupported. Its plan is
 `docs/PLAN_NonlinearUnequalSetbackLaw.md`.
 
+#### Phase 38e: bounded oblique planar corner fillet ✅
+
+An explicit finite straight edge frame now accepts two planar support directions with a strict
+non-orthogonal interior angle and one constant rolling radius. The exact tangent offset
+`r cot(theta/2)`, rational circular extrusion, retained outer support, and finite end caps sew as
+`V8/E12/F6/L6`; wedge-minus-circular-segment volume, normals, and refusal boundaries are covered
+by `ObliquePlanarCornerFilletVerification` and
+`Proofs/Phase38e_ObliquePlanarCornerFillet.png`. Variable laws, partial edges, arbitrary
+selection, apexes, freeform supports, and healing remain unsupported; this is not rolling-ball G2.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
