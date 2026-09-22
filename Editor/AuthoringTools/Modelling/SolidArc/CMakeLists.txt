@@ -295,6 +295,11 @@ add_executable(VariableSetbackCornerFilletVerification Verification/VariableSetb
 target_link_libraries(VariableSetbackCornerFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME VariableSetbackCornerFilletVerification COMMAND VariableSetbackCornerFilletVerification)
 
+# Stage 3a: quadratic nonlinear radius law with explicit derivative/curvature acceptance.
+add_executable(NonlinearVariableRadiusCornerVerification Verification/NonlinearVariableRadiusCornerVerification.cpp)
+target_link_libraries(NonlinearVariableRadiusCornerVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME NonlinearVariableRadiusCornerVerification COMMAND NonlinearVariableRadiusCornerVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

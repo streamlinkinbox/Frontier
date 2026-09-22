@@ -29,11 +29,19 @@ The route is intentionally one common setback law for the two perpendicular supp
 support setbacks, nonlinear laws, and general input-edge selection remain outside the stage.
 See `docs/PLAN_VariableSetbackLaw.md`.
 
-## Stage 3 — nonlinear laws and G2 continuity
+## Stage 3a — quadratic nonlinear radius law ✅
 
-Add explicit law descriptors and a surface-construction/curvature acceptance test. Do not reuse
-the linear ruled route as an approximation. Reject a law when endpoint tangent or curvature
-constraints cannot be measured and satisfied.
+`QuadraticRadiusLaw` and `QuadraticVariableRadiusSurface` add an explicit nonlinear radius
+interpolant through endpoint and middle-station values. A quadratic loft through three exact
+quarter-circle sections reconstructs one bounded straight planar corner, with analytic volume
+and sampled circumferential/meridional curvature acceptance. See
+`docs/PLAN_NonlinearRadiusLaw.md`.
+
+## Stage 3b — G2 continuity
+
+Still open. Add a separate endpoint/inner-join construction whose tangent and curvature match
+are measured on both sides. Do not describe the Stage 3a quadratic loft as G2: its rolling/
+support junction is accepted as a bounded G1 transition only.
 
 ## Stage 4 — partial edges, apexes, broader supports, curved loops, and healing
 

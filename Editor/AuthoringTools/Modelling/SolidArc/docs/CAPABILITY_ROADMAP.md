@@ -938,6 +938,21 @@ Coverage is in `VariableSetbackCornerFilletVerification`, its plan is
 `docs/PLAN_VariableSetbackLaw.md`, and its distinct proof is
 `Proofs/Phase37b_VariableSetbackCornerFillet.png`.
 
+#### Phase 37c: bounded quadratic nonlinear-radius corner fillet ✅
+
+The variable-radius corner now accepts a genuinely nonlinear quadratic law specified by its
+radii at the two endpoints and at the middle station. Five quadratic lofts pass through three
+exact quarter-circle sections, so the result is not a renamed linear ruled surface. Explicit
+first and second radius derivatives provide circumferential and meridional curvature bounds
+before sewing; the integrated quadratic volume, outward normals, capped `V10/E15/C30/L7/F7`
+topology, refusals, and an exterior comparison proof are covered by
+`NonlinearVariableRadiusCornerVerification` and
+`Proofs/Phase37c_NonlinearVariableRadiusCorner.png`.
+
+This slice remains one complete finite straight corner with a common positive setback. It does
+not claim G2 continuity at the rolling/support junction, nonlinear setback laws, partial edges,
+unequal support setbacks, apexes, freeform supports, or general healing.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

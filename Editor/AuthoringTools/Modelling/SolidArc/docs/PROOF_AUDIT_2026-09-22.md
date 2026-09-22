@@ -18,9 +18,10 @@ method name and camera. The Phase 36t alias, verifier, plan, and PNG were remove
 remains the proof of the **linear ruled/frustum foundation**.
 
 That foundation is **not** proof of a rolling-ball variable-radius fillet. Stage 37a now proves
-one bounded rolling-ball application, and Stage 37b separately proves one bounded linear
-support-setback law; the following remain unproved and intentionally unsupported: general
-variable-radius rolling fillets, partial-edge blends, nonlinear laws, and G2 continuity.
+one bounded rolling-ball application, Stage 37b separately proves one bounded linear
+support-setback law, and Stage 37c proves one bounded quadratic nonlinear-radius application.
+The following remain unproved and intentionally unsupported: general variable-radius rolling
+fillets, nonlinear setback laws, partial-edge blends, and G2 continuity.
 
 ## Current Phase 34–36 coverage
 
@@ -34,16 +35,16 @@ These are distinct routes, not duplicates:
   **chamfer** routes;
 - 36o–36s: partial plane–cone, complete cylinder–cone, complete cone–cone, partial cone–cone,
   and partial cone–cylinder **fillet** routes;
-- 37a–37b: one straight planar rolling-ball variable-radius corner and its distinct linear
-  support-setback extension.
+- 37a–37c: one straight planar rolling-ball variable-radius corner, its distinct linear
+  support-setback extension, and a quadratic nonlinear-radius extension.
 
 The Phase 36s visual proof is the corrected exterior-facing proof; it is not a substitute for
-other route families. The Phase 37b comparison proof is likewise not proof of unequal-support,
-nonlinear, partial-edge, or general selected-edge setback application.
+other route families. The Phase 37b and 37c comparison proofs are likewise not proof of unequal-
+support, nonlinear-setback, partial-edge, G2, or general selected-edge application.
 
 ## Existing verifier coverage not in the current direct gate
 
-The current `CheckSolidArc.sh` loop runs 30 focused tests. It does not run these older, distinct
+The current `CheckSolidArc.sh` loop runs 31 focused tests. It does not run these older, distinct
 fillet/chamfer baselines:
 
 - Phase 25 cylinder chamfer;
@@ -78,15 +79,34 @@ The variable-setback extension is deliberately narrower than its name might sugg
 - `VariableSetbackCornerFilletVerification` is in the focused gate and
   `Proofs/Phase37b_VariableSetbackCornerFillet.png` is the distinct visible comparison.
 
-It does **not** prove unequal setback laws on the two supports, nonlinear laws, general edge
-selection, partial-edge blends, apexes, G2 continuity, freeform supports, or arbitrary healing.
+It does **not** prove unequal setback laws on the two supports, nonlinear setback laws, general
+edge selection, partial-edge blends, apexes, G2 continuity, freeform supports, or arbitrary
+healing.
+
+## Stage 37c coverage
+
+The nonlinear-radius extension is deliberately bounded to one quadratic law and one common
+positive setback:
+
+- `QuadraticRadiusLaw` interpolates endpoint and middle-station radii explicitly;
+- a quadratic loft through three exact quarter-circle sections reconstructs the five side
+  surfaces rather than reusing the linear ruled route;
+- explicit first/second derivatives provide sampled circumferential and meridional curvature
+  acceptance;
+- the analytic quadratic volume, capped topology, outward normals, refusals, and comparison
+  render are covered by `NonlinearVariableRadiusCornerVerification` and
+  `Proofs/Phase37c_NonlinearVariableRadiusCorner.png`.
+
+The stage intentionally does **not** claim G2 at the rolling/support junction. Nonlinear setback
+laws, unequal support setbacks, general edge selection, partial-edge blends, apexes, freeform
+supports, and arbitrary healing remain open.
 
 ## Actual remaining proof/capability gaps
 
-1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37b cover
-   only one finite straight planar corner with linear laws. General edge selection, curved roots,
-   unequal support setbacks, and support-specific variable rolls remain open.
-2. Partial-edge blends, nonlinear radius/setback laws, and G2 continuity.
+1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37c cover
+   only one finite straight planar corner. General edge selection, curved roots, unequal support
+   setbacks, and support-specific variable rolls remain open.
+2. Nonlinear setback laws, partial-edge blends, and G2 continuity.
 3. Complete and partial apex **fillets**; only apex chamfers are covered.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted
    constant-radius routes.

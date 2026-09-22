@@ -170,6 +170,101 @@ struct VariableSetbackCornerSpecification
     VariableRadiusLaw SetbackLaw{};
 };
 
+// Quadratic interpolating law used by the first nonlinear-radius slice. The middle value is the
+// radius at T = 0.5, which lets the verifier distinguish a true nonlinear law from the linear
+// endpoint interpolation.
+struct QuadraticRadiusLaw
+{
+    double Start = 0.0;
+    double Middle = 0.0;
+    double End = 0.0;
+
+    [[nodiscard]] double Radius(double T) const noexcept
+    {
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        const double A = Start;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        return A + B * S + C * S * S;
+    }
+    [[nodiscard]] double FirstDerivative(double T) const noexcept
+    {
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        return -3.0 * Start + 4.0 * Middle - End +
+               (4.0 * Start - 8.0 * Middle + 4.0 * End) * S;
+    }
+    [[nodiscard]] double SecondDerivative() const noexcept { return 4.0 * Start - 8.0 * Middle + 4.0 * End; }
+    [[nodiscard]] bool Positive() const noexcept
+    {
+        if (!std::isfinite(Start) || !std::isfinite(Middle) || !std::isfinite(End) ||
+            Start <= 0.0 || Middle <= 0.0 || End <= 0.0) return false;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        if (C > 0.0)
+        {
+            const double Vertex = -B / (2.0 * C);
+            if (Vertex > 0.0 && Vertex < 1.0 && Radius(Vertex) <= 0.0) return false;
+        }
+        return true;
+    }
+    [[nodiscard]] bool Nonlinear() const noexcept
+    {
+        return std::fabs(Middle - (Start + End) * 0.5) > ScalarCriteria::GeometricTolerance;
+    }
+    [[nodiscard]] double IntegratedSquare(double Length) const noexcept
+    {
+        const double A = Start;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        return Length * (A * A + A * B + (B * B + 2.0 * A * C) / 3.0 + B * C / 2.0 + C * C / 5.0);
+    }
+};
+
+struct NonlinearVariableRadiusCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Setback = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
+// A parametric surface of revolution with a quadratic radius law. Its explicit first and
+// second derivatives are accepted before any lofted solid is built; this prevents a nonlinear
+// law from being silently treated as a ruled approximation.
+struct QuadraticVariableRadiusSurface
+{
+    Vec3 Origin{};
+    Vec3 Axis{ 0, 0, 1 };
+    Vec3 Radial{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw Law{};
+
+    [[nodiscard]] Vec3 Sample(double T, double Angle) const noexcept
+    {
+        const Vec3 A = Axis.Normalised();
+        const Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
+        const Vec3 B = A.Cross(R);
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        return Origin + A * (Length * S) + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Radius(S);
+    }
+    [[nodiscard]] double CircumferentialCurvature(double T) const noexcept
+    {
+        if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
+        const double Radius = Law.Radius(T);
+        const double Slope = Law.FirstDerivative(T) / Length;
+        return Radius > ScalarCriteria::GeometricTolerance
+            ? 1.0 / (Radius * std::sqrt(1.0 + Slope * Slope)) : ScalarCriteria::Infinity;
+    }
+    [[nodiscard]] double MeridionalCurvature(double T) const noexcept
+    {
+        if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
+        const double Slope = Law.FirstDerivative(T) / Length;
+        const double Curvature = Law.SecondDerivative() / (Length * Length);
+        return -Curvature / std::pow(1.0 + Slope * Slope, 1.5);
+    }
+};
+
 // Local frame of a straight manifold edge shared by two planar faces.
 struct EdgeCornerFrame
 {
@@ -206,6 +301,12 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
+                                                                double MaximumCircumferentialCurvature,
+                                                                double MaximumMeridionalCurvature,
+                                                                std::string& Refusal) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableRadiusCornerBlend(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;

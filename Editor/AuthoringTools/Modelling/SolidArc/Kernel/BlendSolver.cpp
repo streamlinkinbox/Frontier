@@ -6179,6 +6179,148 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const Varia
     return Result;
 }
 
+Deliver<QuadraticVariableRadiusSurface> BlendSolver::BuildQuadraticVariableRadiusSurface(
+    const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<QuadraticVariableRadiusSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                 "nonlinear variable-radius length must be positive");
+    if (!Specification.RadiusLaw.Positive() || !Specification.RadiusLaw.Nonlinear())
+        return Deliver<QuadraticVariableRadiusSurface>::Reject(RefusalReason::Unsupported,
+                                                                 "nonlinear surface requires a positive non-linear quadratic law");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<QuadraticVariableRadiusSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                 "nonlinear variable-radius edge axis is degenerate");
+    Vec3 Radial = Axis.Cross(Vec3::UnitX());
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance) Radial = Axis.Cross(Vec3::UnitY());
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<QuadraticVariableRadiusSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                 "nonlinear variable-radius frame is degenerate");
+    return Deliver<QuadraticVariableRadiusSurface>::Accept(
+        QuadraticVariableRadiusSurface{ Specification.Origin, Axis, Radial, Specification.Length, Specification.RadiusLaw });
+}
+
+bool BlendSolver::ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
+                                                      double MaximumCircumferentialCurvature,
+                                                      double MaximumMeridionalCurvature,
+                                                      std::string& Refusal) noexcept
+{
+    if (!std::isfinite(MaximumCircumferentialCurvature) || MaximumCircumferentialCurvature <= 0.0 ||
+        !std::isfinite(MaximumMeridionalCurvature) || MaximumMeridionalCurvature < 0.0)
+    { Refusal = "quadratic surface curvature bounds are invalid"; return false; }
+    if (Surface.Length <= ScalarCriteria::GeometricTolerance || !Surface.Law.Positive())
+    { Refusal = "quadratic variable-radius surface is degenerate"; return false; }
+    for (int I = 0; I <= 32; ++I)
+    {
+        const double T = static_cast<double>(I) / 32.0;
+        const double Circumferential = Surface.CircumferentialCurvature(T);
+        const double Meridional = std::fabs(Surface.MeridionalCurvature(T));
+        if (!std::isfinite(Circumferential) || !std::isfinite(Meridional) ||
+            Circumferential > MaximumCircumferentialCurvature + ScalarCriteria::GeometricTolerance ||
+            Meridional > MaximumMeridionalCurvature + ScalarCriteria::GeometricTolerance)
+        { Refusal = "quadratic variable-radius curvature exceeds the declared bounds"; return false; }
+    }
+    return true;
+}
+
+Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(
+    const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Setback) || Specification.Setback <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "nonlinear variable-radius setback must be positive");
+    auto Surface = BuildQuadraticVariableRadiusSurface(Specification);
+    if (!Surface) return Deliver<BrepBody>::Reject(Surface.Denial.Reason, Surface.Denial.Detail);
+
+    double MaximumCircumferential = 0.0;
+    double MaximumMeridional = 0.0;
+    for (int I = 0; I <= 32; ++I)
+    {
+        const double T = static_cast<double>(I) / 32.0;
+        MaximumCircumferential = std::max(MaximumCircumferential, Surface.Payload.CircumferentialCurvature(T));
+        MaximumMeridional = std::max(MaximumMeridional, std::fabs(Surface.Payload.MeridionalCurvature(T)));
+    }
+    std::string CurvatureRefusal;
+    if (!ValidateQuadraticSurfaceCurvature(Surface.Payload, MaximumCircumferential + 1e-9,
+                                            MaximumMeridional + 1e-9, CurvatureRefusal))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "nonlinear variable-radius curvature acceptance failed");
+
+    const Vec3 Axis = Surface.Payload.Axis;
+    const Vec3 U = (Surface.Payload.Radial - Axis * Surface.Payload.Radial.Dot(Axis)).Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    auto Point = [&](double T, double AlongU, double AlongV)
+    {
+        return Specification.Origin + Axis * (Specification.Length * T) + U * AlongU + V * AlongV;
+    };
+    auto SectionLine = [&](double T, Vec3 A, Vec3 B) -> Deliver<NurbsCurve>
+    {
+        return NurbsCurve::Line(Point(T, A.X, A.Y), Point(T, B.X, B.Y));
+    };
+    auto SectionArc = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double Radius = Specification.RadiusLaw.Radius(T);
+        const double Offset = Radius - Radius / std::sqrt(2.0);
+        return NurbsCurve::ArcThreePoints(Point(T, 0.0, Radius),
+                                          Point(T, Offset, Offset), Point(T, Radius, 0.0));
+    };
+    auto LoftThree = [&](const std::vector<Deliver<NurbsCurve>>& Sections) -> Deliver<NurbsSurface>
+    {
+        std::vector<NurbsCurve> Curves;
+        Curves.reserve(Sections.size());
+        for (const Deliver<NurbsCurve>& Section : Sections)
+        {
+            if (!Section) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                "nonlinear variable-radius section is degenerate");
+            Curves.push_back(Section.Payload);
+        }
+        return NurbsSurface::Loft(Curves, 2);
+    };
+    auto Add = [&](const std::vector<Deliver<NurbsCurve>>& Sections, std::vector<NurbsSurface>& Surfaces) -> bool
+    {
+        Deliver<NurbsSurface> SurfacePart = LoftThree(Sections);
+        if (!SurfacePart) return false;
+        Surfaces.push_back(std::move(SurfacePart.Payload));
+        return true;
+    };
+
+    const double R0 = Specification.RadiusLaw.Radius(0.0);
+    const double Rm = Specification.RadiusLaw.Radius(0.5);
+    const double R1 = Specification.RadiusLaw.Radius(1.0);
+    const double D0 = R0 + Specification.Setback;
+    const double Dm = Rm + Specification.Setback;
+    const double D1 = R1 + Specification.Setback;
+    const Vec3 A0{ R0, 0, 0 }, B0{ D0, 0, 0 }, C0{ D0, D0, 0 }, D0Point{ 0, D0, 0 }, E0{ 0, R0, 0 };
+    const Vec3 Am{ Rm, 0, 0 }, Bm{ Dm, 0, 0 }, Cm{ Dm, Dm, 0 }, DmPoint{ 0, Dm, 0 }, Em{ 0, Rm, 0 };
+    const Vec3 A1{ R1, 0, 0 }, B1{ D1, 0, 0 }, C1{ D1, D1, 0 }, D1Point{ 0, D1, 0 }, E1{ 0, R1, 0 };
+    std::vector<NurbsSurface> Surfaces;
+    if (!Add({ SectionLine(0.0, A0, B0), SectionLine(0.5, Am, Bm), SectionLine(1.0, A1, B1) }, Surfaces) ||
+        !Add({ SectionLine(0.0, B0, C0), SectionLine(0.5, Bm, Cm), SectionLine(1.0, B1, C1) }, Surfaces) ||
+        !Add({ SectionLine(0.0, C0, D0Point), SectionLine(0.5, Cm, DmPoint), SectionLine(1.0, C1, D1Point) }, Surfaces) ||
+        !Add({ SectionLine(0.0, D0Point, E0), SectionLine(0.5, DmPoint, Em), SectionLine(1.0, D1Point, E1) }, Surfaces) ||
+        !Add({ SectionArc(0.0), SectionArc(0.5), SectionArc(1.0) }, Surfaces))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "nonlinear variable-radius surfaces could not be constructed");
+
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const BodyReport Report = Result.Payload.Validate();
+    const QuadraticRadiusLaw OuterLaw{ R0 + Specification.Setback, Rm + Specification.Setback,
+                                       R1 + Specification.Setback };
+    const double ExpectedVolume = OuterLaw.IntegratedSquare(Specification.Length) -
+        (1.0 - ScalarCriteria::Pi / 4.0) * Specification.RadiusLaw.IntegratedSquare(Specification.Length);
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 10 || Result.Payload.Edges.size() != 15 ||
+        Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 || Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "nonlinear variable-radius corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "nonlinear variable-radius volume failed analytic acceptance");
+    return Result;
+}
+
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                        double MaximumCircumferentialCurvature,
                                                        std::string& Refusal) noexcept
