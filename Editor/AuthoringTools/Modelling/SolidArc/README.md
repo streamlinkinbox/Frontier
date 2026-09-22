@@ -390,7 +390,7 @@ if the tessellated volume disagrees with it. Feasibility is explicit (`z_t < H`,
 conical top rim, the outer shoulder rim, and Boolean-built sources without a canonical root rim refuse rather than
 approximate. The suite also verifies the specification-level unequal-radius validators (endpoint pairs and chains, the
 linear radius law and its measured ruled surface, G1 endpoint matching, the tapered-frustum reconstruction cross-check)
-that Phase 33's variable-radius work will rest on; the partial-chain and variable-radius-roll modes remain refused.
+that Phase 33's variable-radius work will rest on; partial-chain, nonlinear, variable-setback, and G2 modes remain refused.
 `PlaneConeFilletVerification` contributes 61 checks and `Proofs/Phase32z_PlaneConeFillet.png`; the declared measurement
 tolerances are recorded in [`docs/BLEND_LIMITS.md`](docs/BLEND_LIMITS.md#exact-plane–cone-boss-roots).
 
@@ -636,6 +636,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 36q | **Bounded complete cone–cone root fillet.** Two coaxial conical frusta with an increasing narrowing slope reconstruct retained cones and one exact circular roll as `V4/E7/F5`; partial, flaring, equal-slope, apex, variable-radius, and non-coaxial routes remain refused. | `ConeConeFilletVerification` — 16 C++ checks; `Proofs/Phase36q_ConeConeFillet.png` |
 | 36r | **Bounded partial cone–cone root fillet.** A coaxial non-reflex cone–cone sector, including the half-turn, reconstructs an exact circular roll with radial endpoint-cap healing as `V10/E15/F7`; flaring, arbitrary, apex, variable-radius, and non-coaxial roots remain refused. | `PartialConeConeFilletVerification` — 15 C++ checks; `Proofs/Phase36r_PartialConeConeFillet.png` |
 | 36s | **Bounded partial cone–cylinder root fillet.** A coaxial non-reflex cone–cylinder sector, including the half-turn, accepts the exact cone-widens-toward-cylinder orientation and reconstructs one toroidal roll with radial endpoint-cap healing as `V10/E15/F7`; narrowing, complete, apex, arbitrary, variable-radius, and non-coaxial roots remain refused. | `PartialConeCylinderFilletVerification` — 15 C++ checks; `Proofs/Phase36s_PartialConeCylinderFillet.png` |
+| 36t | **Bounded linear variable-radius root blend.** Complete coaxial circular supports with measured positive endpoint radii accept the existing linear radius law as an exact native ruled/frustum solid with analytic volume; partial edges, apex/zero radius, nonlinear, variable-setback, and G2 routes remain refused. | `VariableRadiusRootBlendVerification` — 18 C++ checks; `Proofs/Phase36t_VariableRadiusRootBlend.png` |
 
 ## Console quick start
 
