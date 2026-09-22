@@ -1028,6 +1028,19 @@ normals, interval/radius refusals, and a distinct sharp/partial proof render are
 Variable radius, arbitrary edge selection, freeform supports, apexes, rolling-ball G2, and healing
 remain unsupported. Its plan is `docs/PLAN_ObliquePartialEdgeFillet.md`.
 
+#### Phase 38g: bounded oblique quadratic partial-edge fillet ✅
+
+The explicit Stage 4f oblique interval now accepts one genuinely nonlinear positive quadratic
+radius law without broadening into arbitrary variable-radius support handling. Fixed station
+parameterization produces exact start, middle, and end circular sections with shared tangent
+boundary curves, rational quadratic lofts, sharp continuation walls, transition sectors, and
+finite caps as `V20/E38/F20/L20`. The integrated radius-square oblique removal volume, exact
+station tangent distances, boundary normals, and transactional law/frame/interval refusals are
+covered by `ObliqueQuadraticPartialEdgeFilletVerification` and
+`Proofs/Phase38g_ObliqueQuadraticPartialEdgeFillet.png`. Arbitrary variable laws, edge selection,
+freeform supports, apexes, rolling-ball G2, and healing remain unsupported. Its plan is
+`docs/PLAN_ObliqueQuadraticPartialEdgeFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
