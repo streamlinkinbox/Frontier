@@ -913,23 +913,13 @@ The opposite narrowing orientation, equal-slope/zero-radius/apex supports, compl
 incomplete roots, non-coaxial or oblique supports, variable-radius/nonlinear/G2 construction, curved corner patches, and
 general intersection/trim/sew healing remain explicit refusals.
 
-#### Phase 36t: bounded linear variable-radius root blend ✅
-
-The Phase 33 law now has a named bounded root-blend entry point, `ReconstructVariableRadiusRootBlend`,
-for complete coaxial circular supports only. It accepts the measured positive endpoint radii and a positive linear law,
-reconstructs the exact native ruled/frustum solid, and rechecks one-hull topology plus the analytic swept volume.
-The proof uses flat shading and an exterior-facing camera so every visible face is completely filled. This is deliberately
-not a rolling-ball variable-radius fillet: partial supports/edges, zero-radius or apex endpoints, non-axial supports,
-open endpoint chains, nonlinear laws, variable setback laws, and G2 continuity remain explicit refusals.
-`VariableRadiusRootBlendVerification` covers the route and writes `Proofs/Phase36t_VariableRadiusRootBlend.png`.
-
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
 the complete plane/cylinder, plane/cone, cylinder/cone, half-turn partial plane/cylinder, partial plane/cone, partial cone/cylinder, partial cone/cone, complete apex plane/cone, partial apex plane/cone root chamfers, and complete narrowing cylinder/cone root fillets, further mixed-support chamfers, arbitrary non-prismatic
 concave/non-convex planar chamfer networks, non-planar loops on non-planar/freeform supports, corner patches,
-and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires rolling-ball variable-radius
-fillet application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,
+and general intersection/trim/sew resolution remain future topology work. Phase 33 still requires variable-radius fillet
+application, variable setback laws, partial-edge blends, nonlinear/G2 surface construction, and broader cone/cone,
 cone/cylinder, apex, unequal-radius, and non-orthogonal support pairs. Generic multi-section curve/area lofts, guide
 curves, and multi-loop lofts with through-holes already exist in the earlier SkinSolver routes and remain separately
 bounded by their existing verification coverage.

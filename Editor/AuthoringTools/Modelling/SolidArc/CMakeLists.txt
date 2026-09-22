@@ -285,11 +285,6 @@ add_executable(Phase33VariableRadiusVerification Verification/Phase33VariableRad
 target_link_libraries(Phase33VariableRadiusVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME Phase33VariableRadiusVerification COMMAND Phase33VariableRadiusVerification)
 
-# Phase 36t: bounded linear variable-radius root blend entry point.
-add_executable(VariableRadiusRootBlendVerification Verification/VariableRadiusRootBlendVerification.cpp)
-target_link_libraries(VariableRadiusRootBlendVerification PRIVATE SolidArcConsoleKit)
-add_test(NAME VariableRadiusRootBlendVerification COMMAND VariableRadiusRootBlendVerification)
-
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

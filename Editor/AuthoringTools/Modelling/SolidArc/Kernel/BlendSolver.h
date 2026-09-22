@@ -179,8 +179,6 @@ public:
                                                          double Angle, std::string& Refusal) noexcept;
     [[nodiscard]] static Deliver<VariableRadiusSurface> BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
-    // Bounded Phase 36t entry point: complete coaxial linear-law endpoint supports only.
-    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRootBlend(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;

@@ -6018,16 +6018,6 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusRuledSolid(const Asymmet
     return Result;
 }
 
-Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusRootBlend(const AsymmetricBlendSpecification& Specification) noexcept
-{
-    if (Specification.Classification != AsymmetricSupportClassification::VariableRadiusRoll)
-        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "variable-radius root blend requires variable-radius mode");
-    if (std::fabs(Specification.Low.EndpointAngle) > ScalarCriteria::SweepTolerance ||
-        std::fabs(Specification.High.EndpointAngle) > ScalarCriteria::SweepTolerance)
-        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "variable-radius root blend requires complete circular supports");
-    return ReconstructVariableRadiusRuledSolid(Specification);
-}
-
 bool BlendSolver::ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                        double MaximumCircumferentialCurvature,
                                                        std::string& Refusal) noexcept
