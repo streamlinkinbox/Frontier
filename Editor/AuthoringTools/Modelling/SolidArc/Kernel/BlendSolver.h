@@ -183,6 +183,20 @@ struct UnequalSetbackCornerSpecification
     VariableRadiusLaw SetbackBLaw{};
 };
 
+// A deliberately bounded partial-edge route: a constant-radius blend occupies a strict interior
+// interval of one straight orthogonal planar corner. The two transition sectors are explicit caps;
+// variable-radius, arbitrary-edge selection, and apex requests remain outside this descriptor.
+struct PartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+};
+
 // Quadratic interpolating law used by the first nonlinear-radius slice. The middle value is the
 // radius at T = 0.5, which lets the verifier distinguish a true nonlinear law from the linear
 // endpoint interpolation.
@@ -339,6 +353,7 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,

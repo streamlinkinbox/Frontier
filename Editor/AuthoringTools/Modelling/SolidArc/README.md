@@ -21,10 +21,11 @@ If CMake is not available, the focused gate is dependency-free:
 Tools/Build/CheckSolidArc.sh
 ```
 
-That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 34a/34b loft+tweak proofs,
-the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f face-transform proofs, the Phase 35a–35d curved,
-concave-chamfer and same-body-loft proofs, and the Phase 36a–36r face-edit and bounded curved-root proofs. No external
-packages. `-Wall -Wextra -Wpedantic`.
+That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 25/26/31/32/32z baseline
+fillet/chamfer proofs, the Phase 34a/34b loft+tweak proofs, the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f
+face-transform proofs, the Phase 35a–35d curved, concave-chamfer and same-body-loft proofs, and the Phase 36a–36r
+face-edit and bounded curved-root proofs. It runs 44 verifier targets and persists each target's distinct PNG where
+provided. No external packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
 
@@ -642,6 +643,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 37d | **Bounded G2 planar corner transition.** A separate quintic non-rolling profile has support-aligned tangents and zero endpoint curvature, yielding measured G2 joins to both planar supports with exact profile-area volume and capped `V10/E15/C30/L7/F7` topology. Rolling-ball G2, nonlinear setbacks, partial edges, apexes, and arbitrary healing remain refused. | `G2PlanarCornerVerification` — 19 C++ checks; `Proofs/Phase37d_G2PlanarCorner.png` |
 | 37e | **Bounded nonlinear support-setback corner blend.** A genuinely nonlinear quadratic clearance law is combined with an independently constant rolling radius through exact quarter-circle stations and quadratic lofts; extent identity, analytic volume, positivity, and capped `V10/E15/C30/L7/F7` topology are verified. Unequal setbacks, rolling-ball G2, partial edges, apexes, and arbitrary healing remain refused. | `NonlinearVariableSetbackCornerVerification` — 24 C++ checks; `Proofs/Phase37e_NonlinearVariableSetbackCorner.png` |
 | 37f | **Bounded unequal support-setback corner blend.** The two perpendicular supports receive independent positive linear clearances, producing non-square rounded sections with product-of-extents volume, capped `V10/E15/C30/L7/F7` topology, and explicit equal-law refusal. Nonlinear two-support laws, rolling-ball G2, partial edges, apexes, and arbitrary healing remain refused. | `UnequalSetbackCornerVerification` — 29 C++ checks; `Proofs/Phase37f_UnequalSetbackCorner.png` |
+| 38a | **Bounded strict-interior partial-edge fillet.** An explicit orthogonal planar corner keeps its sharp portions and applies one constant-radius blend only on `0 < Start < End < Length`; split support walls, two planar sector transition caps, and full end caps sew to one closed genus-zero `V34/E65/F33/L33` solid with analytic selected-interval volume. Variable-radius partial edges, arbitrary input-edge selection, apexes, freeform supports, and healing remain refused. | `PartialEdgeFilletVerification` — 23 C++ checks; `Proofs/Phase38a_PartialEdgeFillet.png` |
 
 ## Console quick start
 

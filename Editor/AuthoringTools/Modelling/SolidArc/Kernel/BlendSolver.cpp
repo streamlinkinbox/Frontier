@@ -3,6 +3,7 @@
 //============================================================================================================================================
 #include "BlendSolver.h"
 #include "IntersectionSolver.h"
+#include "SkinSolver.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -6300,6 +6301,114 @@ bool BlendSolver::ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiu
         { Refusal = "quadratic variable-radius curvature exceeds the declared bounds"; return false; }
     }
     return true;
+}
+
+Deliver<BrepBody> BlendSolver::ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || !std::isfinite(Specification.Start) ||
+        !std::isfinite(Specification.End) || !std::isfinite(Specification.Width) ||
+        !std::isfinite(Specification.Radius) || Specification.Length <= Tol || Specification.Width <= Tol ||
+        Specification.Radius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge dimensions and radius must be finite and positive");
+    if (Specification.Start <= Tol || Specification.End >= Specification.Length - Tol ||
+        Specification.End <= Specification.Start + Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial edge interval must be a strict interior segment");
+    if (Specification.Radius >= Specification.Width - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge radius consumes the planar supports");
+    if (!std::isfinite(Specification.EdgeAxis.X) || !std::isfinite(Specification.EdgeAxis.Y) ||
+        !std::isfinite(Specification.EdgeAxis.Z) || Specification.EdgeAxis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge axis is degenerate");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    Vec3 U = Axis.Cross(Vec3::UnitX());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance) U = Axis.Cross(Vec3::UnitY());
+    if (U.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge frame is degenerate");
+    U = U.Normalised();
+    const Vec3 V = Axis.Cross(U).Normalised();
+    const double R = Specification.Radius;
+    const double W = Specification.Width;
+    const double S = Specification.Start;
+    const double E = Specification.End;
+    const Vec3 O = Specification.Origin;
+    auto At = [&](double T, double AlongU, double AlongV) noexcept
+    {
+        return O + Axis * T + U * AlongU + V * AlongV;
+    };
+    auto Line = [](Vec3 A, Vec3 B) -> Deliver<NurbsCurve> { return NurbsCurve::Line(A, B); };
+    auto Arc = [&](double T) -> Deliver<NurbsCurve>
+    {
+        const double Offset = R - R / std::sqrt(2.0);
+        return NurbsCurve::ArcThreePoints(At(T, R, 0.0), At(T, Offset, Offset), At(T, 0.0, R));
+    };
+    std::vector<NurbsSurface> Faces;
+    auto AddPlane = [&](Vec3 Corner, Vec3 UAxis, Vec3 VAxis, double LU, double LV) -> bool
+    {
+        Deliver<NurbsSurface> Face = NurbsSurface::Plane(Corner, UAxis, VAxis, LU, LV);
+        if (!Face) return false;
+        Faces.push_back(std::move(Face.Payload));
+        return true;
+    };
+    auto AddWallInterval = [&](double A, double B) -> bool
+    {
+        const double D = B - A;
+        return AddPlane(At(A, 0.0, 0.0), Axis, U, D, R) &&
+               AddPlane(At(A, R, 0.0), Axis, U, D, W - R) &&
+               AddPlane(At(A, W, 0.0), Axis, V, D, R) &&
+               AddPlane(At(A, W, R), Axis, V, D, W - R) &&
+               AddPlane(At(A, 0.0, W), Axis, U, D, R) &&
+               AddPlane(At(A, R, W), Axis, U, D, W - R) &&
+               AddPlane(At(A, 0.0, 0.0), Axis, V, D, R) &&
+               AddPlane(At(A, 0.0, R), Axis, V, D, W - R);
+    };
+    auto AddBlendInterval = [&](double A, double B) -> bool
+    {
+        const double D = B - A;
+        // Inside the selected interval the two support strips nearest the corner are removed;
+        // the remaining four-sided boundary is the two shortened walls plus split outer walls.
+        return AddPlane(At(A, R, 0.0), Axis, U, D, W - R) &&
+               AddPlane(At(A, W, 0.0), Axis, V, D, R) &&
+               AddPlane(At(A, W, R), Axis, V, D, W - R) &&
+               AddPlane(At(A, 0.0, W), Axis, U, D, R) &&
+               AddPlane(At(A, R, W), Axis, U, D, W - R) &&
+               AddPlane(At(A, 0.0, R), Axis, V, D, W - R);
+    };
+    if (!AddWallInterval(0.0, S) || !AddBlendInterval(S, E) || !AddWallInterval(E, Specification.Length))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge support patches are degenerate");
+    Deliver<NurbsCurve> StartArc = Arc(S), EndArc = Arc(E);
+    if (!StartArc || !EndArc)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge arc is degenerate");
+    Deliver<NurbsSurface> Blend = NurbsSurface::Loft({ StartArc.Payload, EndArc.Payload }, 1);
+    if (!Blend) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge blend surface is degenerate");
+    Faces.push_back(std::move(Blend.Payload));
+    auto AddTransition = [&](double T) -> bool
+    {
+        Deliver<NurbsCurve> OA = Line(At(T, 0.0, 0.0), At(T, R, 0.0));
+        Deliver<NurbsCurve> AE = Arc(T);
+        Deliver<NurbsCurve> EO = Line(At(T, 0.0, R), At(T, 0.0, 0.0));
+        if (!OA || !AE || !EO) return false;
+        Deliver<NurbsSurface> Cap = SkinSolver::CoonsPatch({ OA.Payload, AE.Payload, EO.Payload });
+        if (!Cap) return false;
+        Faces.push_back(std::move(Cap.Payload));
+        return true;
+    };
+    if (!AddTransition(S) || !AddTransition(E))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge transition cap is degenerate");
+    auto AddEndCap = [&](double T) -> bool
+    {
+        return AddPlane(At(T, 0.0, 0.0), U, V, R, R) &&
+               AddPlane(At(T, R, 0.0), U, V, W - R, R) &&
+               AddPlane(At(T, R, R), U, V, W - R, W - R) &&
+               AddPlane(At(T, 0.0, R), U, V, R, W - R);
+    };
+    if (!AddEndCap(0.0) || !AddEndCap(Specification.Length))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial edge end cap is degenerate");
+    Deliver<BrepBody> Result = BrepBody::Sew(Faces, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "partial edge support patches could not be sewn");
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial edge blend did not reach closed manifold topology");
+    return Result;
 }
 
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(

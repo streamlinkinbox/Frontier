@@ -69,17 +69,23 @@ a rolling-ball solution.
 
 Each is a separate classifier/reconstruction slice:
 
-- partial-edge blends with exact endpoint caps;
+- partial-edge blends with exact endpoint caps — **Stage 4a bounded slice complete**;
 - complete and partial apex fillets;
 - non-coaxial/oblique/mixed-support routes;
 - arbitrary curved edge loops and corner patches;
 - general intersection/trim/sew healing only after explicit topology ownership exists.
 
-## Stage 5 — proof coverage
+Stage 4a is intentionally only `PartialEdgeFilletSpecification`: one straight orthogonal corner,
+constant positive radius, and strict interior interval. See `docs/PLAN_PartialEdgeBlend.md`.
+Variable-radius partial edges, arbitrary input-edge selection, apex fillets, freeform supports,
+and general healing remain open.
 
-Persist only distinct proof images. Add the older Phase 25/31/32 baseline PNGs and gate entries
-where they are still part of the required visible-proof set; do not create renamed copies of an
-existing fixture.
+## Stage 5 — proof coverage ✅
+
+The nine older Phase 25/26/31/32/32z baseline verifiers now run in the focused gate and persist
+their original distinct PNG names. This is durable proof coverage only; it does not add a new
+geometry capability or relabel any existing fixture. See `docs/PLAN_BaselineProofArtifacts.md`
+and `docs/PROOF_AUDIT_2026-09-22.md`.
 
 ## Immediate exit gate
 

@@ -315,6 +315,11 @@ add_executable(UnequalSetbackCornerVerification Verification/UnequalSetbackCorne
 target_link_libraries(UnequalSetbackCornerVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME UnequalSetbackCornerVerification COMMAND UnequalSetbackCornerVerification)
 
+# Stage 4a: one explicit strict-interior constant-radius partial-edge blend with planar transition sectors.
+add_executable(PartialEdgeFilletVerification Verification/PartialEdgeFilletVerification.cpp)
+target_link_libraries(PartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialEdgeFilletVerification COMMAND PartialEdgeFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
