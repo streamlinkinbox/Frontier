@@ -291,6 +291,23 @@ strict interior interval, with one genuinely nonlinear positive quadratic radius
 Arbitrary variable-radius laws, arbitrary edge selection, apexes, freeform supports, rolling-ball
 G2, and arbitrary healing remain explicitly unsupported.
 
+## Stage 38h coverage
+
+The complete-edge oblique quadratic route is bounded to one explicit finite straight edge:
+
+- `ObliqueQuadraticEdgeFilletSpecification` accepts the same planar oblique support frame as
+  Stage 38g, but applies one genuinely nonlinear positive quadratic radius law across the full
+  edge;
+- fixed-weight tensor-product station surfaces preserve shared tangent boundaries while retaining
+  exact start, middle, and end circular sections, fixed outer supports, and finite end caps;
+- `ObliqueQuadraticEdgeFilletVerification` performs 25 checks covering deterministic
+  `V8/E12/F6/L6` topology, integrated oblique volume, tangent stations, outward normals,
+  rational-band presence, transactional refusals, and the sharp/rounded proof;
+- `Proofs/Phase38h_ObliqueQuadraticEdgeFillet.png` is the distinct exterior proof.
+
+Partial intervals, arbitrary variable laws, arbitrary edge selection, apexes, freeform supports,
+rolling-ball G2, and arbitrary healing remain explicitly unsupported.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

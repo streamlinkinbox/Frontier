@@ -355,6 +355,11 @@ add_executable(ObliqueQuadraticPartialEdgeFilletVerification Verification/Obliqu
 target_link_libraries(ObliqueQuadraticPartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ObliqueQuadraticPartialEdgeFilletVerification COMMAND ObliqueQuadraticPartialEdgeFilletVerification)
 
+# Stage 4h: one complete-edge genuinely nonlinear oblique quadratic fillet.
+add_executable(ObliqueQuadraticEdgeFilletVerification Verification/ObliqueQuadraticEdgeFilletVerification.cpp)
+target_link_libraries(ObliqueQuadraticEdgeFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ObliqueQuadraticEdgeFilletVerification COMMAND ObliqueQuadraticEdgeFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

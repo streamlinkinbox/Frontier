@@ -7356,6 +7356,172 @@ Deliver<BrepBody> BlendSolver::ReconstructQuadraticPartialEdgeFillet(
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructObliqueQuadraticEdgeFillet(
+    const ObliqueQuadraticEdgeFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Origin.X) || !std::isfinite(Specification.Origin.Y) ||
+        !std::isfinite(Specification.Origin.Z) || !std::isfinite(Specification.Length) ||
+        !std::isfinite(Specification.WidthA) || !std::isfinite(Specification.WidthB) ||
+        Specification.Length <= ScalarCriteria::MergeTolerance ||
+        Specification.WidthA <= ScalarCriteria::MergeTolerance ||
+        Specification.WidthB <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique quadratic edge dimensions must be finite and positive");
+    if (!Specification.RadiusLaw.Positive() || !Specification.RadiusLaw.Nonlinear())
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique quadratic edge route requires a genuinely nonlinear positive radius law");
+    if (Specification.EdgeAxis.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportA.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportB.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique quadratic edge frame contains a degenerate direction");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    const Vec3 SupportA = Specification.SupportA.Normalised();
+    const Vec3 SupportB = Specification.SupportB.Normalised();
+    if (std::fabs(Axis.Dot(SupportA)) > ScalarCriteria::AngularTolerance ||
+        std::fabs(Axis.Dot(SupportB)) > ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique quadratic edge supports must be perpendicular to the edge");
+    const double Theta = std::acos(ScalarCriteria::Clamp(SupportA.Dot(SupportB), -1.0, 1.0));
+    if (Theta <= ScalarCriteria::AngularTolerance || Theta >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique quadratic edge support angle must be strictly between zero and pi");
+    const double HalfTheta = Theta * 0.5;
+    const double CotHalf = std::cos(HalfTheta) / std::sin(HalfTheta);
+    const Vec3 Origin = Specification.Origin;
+    const Vec3 OuterA = Origin + SupportA * Specification.WidthA;
+    const Vec3 OuterB = Origin + SupportB * Specification.WidthB;
+    const auto RadiusAt = [&](double T) noexcept { return Specification.RadiusLaw.Radius(T); };
+    for (int I = 0; I <= 64; ++I)
+    {
+        const double T = static_cast<double>(I) / 64.0;
+        const double Radius = RadiusAt(T);
+        const double TangentDistance = Radius * CotHalf;
+        if (!std::isfinite(Radius) || Radius <= ScalarCriteria::MergeTolerance ||
+            TangentDistance >= Specification.WidthA - ScalarCriteria::MergeTolerance ||
+            TangentDistance >= Specification.WidthB - ScalarCriteria::MergeTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                              "oblique quadratic edge radius consumes a finite support extent");
+    }
+    const auto Point = [&](double Along, Vec3 Planar) noexcept { return Origin + Axis * Along + Planar; };
+    const auto TangentA = [&](double Along, double Radius) noexcept
+    {
+        return Point(Along, SupportA * (Radius * CotHalf));
+    };
+    const auto TangentB = [&](double Along, double Radius) noexcept
+    {
+        return Point(Along, SupportB * (Radius * CotHalf));
+    };
+    const auto ArcMiddle = [&](double Along, double Radius) noexcept
+    {
+        const Vec3 Centre = Origin + Axis * Along + (SupportA + SupportB).Normalised() * (Radius / std::sin(HalfTheta));
+        const Vec3 RadialA = (TangentA(Along, Radius) - Centre).Normalised();
+        const Vec3 RadialB = (TangentB(Along, Radius) - Centre).Normalised();
+        return Centre + (RadialA + RadialB).Normalised() * Radius;
+    };
+    const auto Line = [](Vec3 A, Vec3 B) -> Deliver<NurbsCurve> { return NurbsCurve::Line(A, B); };
+    const auto WallAAt = [&](double Along, double Radius)
+    {
+        return Line(TangentA(Along, Radius), Point(Along, OuterA - Origin));
+    };
+    const auto OuterAt = [&](double Along)
+    {
+        return Line(Point(Along, OuterA - Origin), Point(Along, OuterB - Origin));
+    };
+    const auto WallBAt = [&](double Along, double Radius)
+    {
+        return Line(Point(Along, OuterB - Origin), TangentB(Along, Radius));
+    };
+    const auto ArcAt = [&](double Along, double Radius)
+    {
+        return NurbsCurve::ArcThreePoints(TangentA(Along, Radius), ArcMiddle(Along, Radius), TangentB(Along, Radius));
+    };
+    const auto StationSurface = [&](std::vector<Deliver<NurbsCurve>> Sections) -> Deliver<NurbsSurface>
+    {
+        if (Sections.size() != 3) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                        "oblique quadratic edge requires three stations");
+        std::vector<NurbsCurve> Rows;
+        Rows.reserve(3);
+        for (const Deliver<NurbsCurve>& Section : Sections)
+        {
+            if (!Section) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                "oblique quadratic edge station is degenerate");
+            Rows.push_back(Section.Payload.Degree < 2 ? Section.Payload.Elevated(2) : Section.Payload);
+        }
+        for (NurbsCurve& Row : Rows) Row = Row.Reparameterised(0.0, 1.0);
+        const int CountU = Rows.front().PoleCount();
+        for (const NurbsCurve& Row : Rows)
+            if (Row.PoleCount() != CountU || Row.Knots != Rows.front().Knots)
+                return Deliver<NurbsSurface>::Reject(RefusalReason::NoConvergence,
+                                                      "oblique quadratic edge station curves are incompatible");
+        std::vector<Vec4> Poles(static_cast<size_t>(CountU) * 3);
+        for (int I = 0; I < CountU; ++I)
+        {
+            Poles[static_cast<size_t>(I) * 3] = Rows[0].Poles[I];
+            Poles[static_cast<size_t>(I) * 3 + 1] = Rows[1].Poles[I] * 2.0 -
+                (Rows[0].Poles[I] + Rows[2].Poles[I]) * 0.5;
+            Poles[static_cast<size_t>(I) * 3 + 2] = Rows[2].Poles[I];
+        }
+        Deliver<NurbsSurface> Surface = NurbsSurface::Build(2, 2, CountU, 3, std::move(Poles),
+                                                              Rows.front().Knots, { 0, 0, 0, 1, 1, 1 });
+        if (Surface) Surface.Payload.Classification = SurfaceClassification::Loft;
+        return Surface;
+    };
+    const double R0 = RadiusAt(0.0);
+    const double Rm = RadiusAt(0.5);
+    const double R1 = RadiusAt(1.0);
+    std::vector<NurbsSurface> Surfaces;
+    auto Add = [&](std::vector<Deliver<NurbsCurve>> Sections) -> bool
+    {
+        Deliver<NurbsSurface> Surface = StationSurface(std::move(Sections));
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    if (!Add({ WallAAt(0.0, R0), WallAAt(Specification.Length * 0.5, Rm), WallAAt(Specification.Length, R1) }) ||
+        !Add({ OuterAt(0.0), OuterAt(Specification.Length * 0.5), OuterAt(Specification.Length) }) ||
+        !Add({ WallBAt(0.0, R0), WallBAt(Specification.Length * 0.5, Rm), WallBAt(Specification.Length, R1) }) ||
+        !Add({ ArcAt(0.0, R0), ArcAt(Specification.Length * 0.5, Rm), ArcAt(Specification.Length, R1) }))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique quadratic edge support surfaces are degenerate");
+    const auto AddEndCap = [&](double Along, double Radius) -> bool
+    {
+        const Mat4 Transform = Mat4::Translation(Axis * Along);
+        Deliver<NurbsCurve> WallA = WallAAt(0.0, Radius);
+        Deliver<NurbsCurve> Outer = OuterAt(0.0);
+        Deliver<NurbsCurve> WallB = WallBAt(0.0, Radius);
+        Deliver<NurbsCurve> Arc = ArcAt(0.0, Radius);
+        if (!WallA || !Outer || !WallB || !Arc) return false;
+        Deliver<NurbsSurface> EndCap = SkinSolver::CoonsPatch({ WallA.Payload.Transformed(Transform),
+                                                                  Outer.Payload.Transformed(Transform),
+                                                                  WallB.Payload.Transformed(Transform),
+                                                                  Arc.Payload.Reversed().Transformed(Transform) });
+        if (!EndCap) return false;
+        Surfaces.push_back(std::move(EndCap.Payload));
+        return true;
+    };
+    if (!AddEndCap(0.0, R0) || !AddEndCap(Specification.Length, R1))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique quadratic edge finite caps are degenerate");
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, false);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "oblique quadratic edge surfaces could not be sewn");
+    const double SharpArea = 0.5 * Specification.WidthA * Specification.WidthB * std::sin(Theta);
+    const double RemovedCoefficient = 0.5 * std::sin(Theta) * (CotHalf * CotHalf + 1.0) -
+        0.5 * (ScalarCriteria::Pi - Theta);
+    const double ExpectedVolume = Specification.Length * SharpArea -
+        RemovedCoefficient * Specification.RadiusLaw.IntegratedSquare(Specification.Length);
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "oblique quadratic edge did not reach closed manifold topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "oblique quadratic edge volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableRadiusCornerBlend(
     const NonlinearVariableRadiusCornerSpecification& Specification) noexcept
 {

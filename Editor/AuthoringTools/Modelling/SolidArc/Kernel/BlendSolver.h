@@ -341,6 +341,20 @@ struct ObliqueQuadraticPartialEdgeFilletSpecification
     QuadraticRadiusLaw RadiusLaw{};
 };
 
+// A complete-edge nonlinear extension of the bounded oblique planar route. This descriptor
+// intentionally accepts one explicit edge frame only; partial intervals use the Stage 4g route.
+struct ObliqueQuadraticEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
 struct NonlinearVariableRadiusCornerSpecification
 {
     Vec3 Origin{};
@@ -461,6 +475,8 @@ public:
         const QuadraticPartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueQuadraticPartialEdgeFillet(
         const ObliqueQuadraticPartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueQuadraticEdgeFillet(
+        const ObliqueQuadraticEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,

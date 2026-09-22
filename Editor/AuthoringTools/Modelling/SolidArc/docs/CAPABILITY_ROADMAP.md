@@ -1041,6 +1041,19 @@ covered by `ObliqueQuadraticPartialEdgeFilletVerification` and
 freeform supports, apexes, rolling-ball G2, and healing remain unsupported. Its plan is
 `docs/PLAN_ObliqueQuadraticPartialEdgeFillet.md`.
 
+#### Phase 38h: bounded oblique quadratic full-edge fillet ✅
+
+The complete-edge counterpart now accepts one genuinely nonlinear positive quadratic radius law
+across the full explicit oblique frame. A fixed-weight tensor-product station construction keeps
+shared tangent boundaries exact while preserving rational circular sections, fixed retained outer
+supports, and explicit finite caps as `V8/E12/F6/L6`. The analytic volume integrates the oblique
+removed-corner coefficient against the quadratic radius square; station tangent distances,
+outward normals, rational-band presence, transactional refusals, and a distinct sharp/rounded
+proof are covered by `ObliqueQuadraticEdgeFilletVerification` and
+`Proofs/Phase38h_ObliqueQuadraticEdgeFillet.png`. Partial intervals, arbitrary variable laws,
+freeform supports, apexes, rolling-ball G2, and healing remain unsupported. Its plan is
+`docs/PLAN_ObliqueQuadraticEdgeFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

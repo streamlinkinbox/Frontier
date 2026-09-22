@@ -17,7 +17,3 @@ law; no sharp continuation or interval transition is introduced.
 - closed genus-zero topology, outward-normal and station-fit checks, and transactional refusals;
 - partial intervals, arbitrary variable-radius laws, arbitrary edge selection, non-planar/freeform
   supports, apexes, rolling-ball G2, and healing remain unsupported.
-
-The plan is committed separately from production implementation. The route must not be integrated
-until the exact surface construction passes the analytic volume gate without healing or acceptance
-bypasses.
