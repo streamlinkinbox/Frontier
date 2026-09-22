@@ -242,6 +242,17 @@ struct G2PlanarCornerSpecification
     double HandleFraction = 1.0 / 3.0;                                                   // [-] quintic tangent handle / Radius
 };
 
+// A separate quadratic clearance law for the support setback. The radius law may be constant,
+// linear, or quadratic; the setback law must be genuinely nonlinear in this bounded slice.
+struct NonlinearVariableSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    QuadraticRadiusLaw SetbackLaw{};
+};
+
 // A parametric surface of revolution with a quadratic radius law. Its explicit first and
 // second derivatives are accepted before any lofted solid is built; this prevents a nonlinear
 // law from being silently treated as a ruled approximation.
@@ -325,6 +336,8 @@ public:
                                                       std::string& Refusal) noexcept;
     [[nodiscard]] static double G2CornerRemovalArea(double Radius, double HandleFraction) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructG2PlanarCorner(const G2PlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
+        const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
                                                                 double MaximumCircumferentialCurvature,
                                                                 std::string& Refusal) noexcept;

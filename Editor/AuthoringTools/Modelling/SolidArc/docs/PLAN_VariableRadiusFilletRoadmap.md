@@ -45,7 +45,14 @@ curvature is measured against both planar supports. This proves the G2 construct
 not G2 for the circular rolling-ball or nonlinear-radius routes. See
 `docs/PLAN_G2PlanarCorner.md`.
 
-## Stage 3c — rolling-ball G2 continuity
+## Stage 3c — nonlinear setback laws ✅
+
+`NonlinearVariableSetbackCornerSpecification` adds a genuinely nonlinear quadratic support-setback
+law while the radius may remain constant or linear. Three exact station sections are quadratic-
+lofted, with analytic extent/removal volume and positivity/refusal checks. See
+`docs/PLAN_NonlinearSetbackLaw.md`.
+
+## Stage 3d — rolling-ball G2 continuity
 
 Still open. Replace the circular/rolling support join with a construction whose tangent and
 curvature match are measured on both sides, without describing the Stage 3b quintic profile as

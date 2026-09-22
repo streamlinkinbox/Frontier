@@ -305,6 +305,11 @@ add_executable(G2PlanarCornerVerification Verification/G2PlanarCornerVerificatio
 target_link_libraries(G2PlanarCornerVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME G2PlanarCornerVerification COMMAND G2PlanarCornerVerification)
 
+# Stage 3c: genuinely nonlinear support-setback law with quadratic extent/volume acceptance.
+add_executable(NonlinearVariableSetbackCornerVerification Verification/NonlinearVariableSetbackCornerVerification.cpp)
+target_link_libraries(NonlinearVariableSetbackCornerVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME NonlinearVariableSetbackCornerVerification COMMAND NonlinearVariableSetbackCornerVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

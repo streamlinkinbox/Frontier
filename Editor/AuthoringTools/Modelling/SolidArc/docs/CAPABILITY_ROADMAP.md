@@ -966,6 +966,19 @@ nonlinear setbacks, partial edges, unequal support setbacks, apexes, freeform su
 general healing remain open. Coverage is in `G2PlanarCornerVerification`, its plan is
 `docs/PLAN_G2PlanarCorner.md`, and its proof is `Proofs/Phase37d_G2PlanarCorner.png`.
 
+#### Phase 37e: bounded nonlinear support-setback corner blend ✅
+
+The support-setback family now accepts a genuinely nonlinear quadratic clearance law while the
+rolling radius remains independently constant in the proof fixture. Five quadratic lofts pass
+through exact quarter-circle sections at three stations; the extent identity `d(t) = r(t) +
+s(t)`, analytic quadratic volume, positivity/refusals, capped `V10/E15/C30/L7/F7` topology,
+outward normals, and a nonlinear-versus-linear comparison proof are covered by
+`NonlinearVariableSetbackCornerVerification` and
+`Proofs/Phase37e_NonlinearVariableSetbackCorner.png`.
+
+This does not claim unequal setback laws, rolling-ball G2 continuity, partial edges, apexes,
+freeform supports, or general healing. Its plan is `docs/PLAN_NonlinearSetbackLaw.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
