@@ -6488,6 +6488,109 @@ Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpe
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructPartialConeApexFillet(
+    const PartialConeApexFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||
+        !std::isfinite(Specification.Base.Z) || !std::isfinite(Specification.BaseRadius) ||
+        !std::isfinite(Specification.Height) || !std::isfinite(Specification.FilletRadius) ||
+        !std::isfinite(Specification.SweepAngle) || Specification.BaseRadius <= Tol ||
+        Specification.Height <= Tol || Specification.FilletRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex dimensions must be finite and positive");
+    if (Specification.SweepAngle <= ScalarCriteria::SweepTolerance ||
+        Specification.SweepAngle >= ScalarCriteria::TwoPi - ScalarCriteria::SweepTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial cone-apex sweep must be strictly between zero and a full turn");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex axis is degenerate");
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const double R = Specification.BaseRadius;
+    const double H = Specification.Height;
+    const double Q = Specification.FilletRadius;
+    const double Slant = std::hypot(H, R);
+    const double MaximumFilletRadius = H * R / Slant;
+    if (Q >= MaximumFilletRadius - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial cone-apex sphere consumes the cone before a positive frustum remains");
+    const Vec3 Base = Specification.Base;
+    const Vec3 Radial = Workplane::FromNormal(Base, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex radial frame is degenerate");
+    const double CentreHeight = H - Q * Slant / R;
+    const double SeamRadius = Q * H / Slant;
+    const double SeamHeight = H - Q * H * H / (R * Slant);
+    const double TopHeight = CentreHeight + Q;
+    if (CentreHeight <= Tol || SeamRadius <= Tol || SeamHeight <= Tol || TopHeight >= H - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex sphere has a degenerate tangent seam");
+    const Vec3 Centre = Base + Axis * CentreHeight;
+    const Vec3 Seam = Base + Axis * SeamHeight + Radial * SeamRadius;
+    const double CosTheta = ScalarCriteria::Clamp((SeamHeight - CentreHeight) / Q, -1.0, 1.0);
+    const double HalfTheta = 0.5 * std::acos(CosTheta);
+    const Vec3 Pole = Base + Axis * TopHeight;
+    const Vec3 Middle = Centre + Axis * (Q * std::cos(HalfTheta)) + Radial * (Q * std::sin(HalfTheta));
+    Deliver<NurbsCurve> ConeProfile = NurbsCurve::Line(Base + Radial * R, Seam);
+    Deliver<NurbsCurve> CapProfile = NurbsCurve::ArcThreePoints(Pole, Middle, Seam);
+    Deliver<NurbsCurve> DiskProfile = NurbsCurve::Line(Base, Base + Radial * R);
+    Deliver<NurbsCurve> AxisProfile = NurbsCurve::Line(Pole, Base);
+    if (!ConeProfile || !CapProfile || !DiskProfile || !AxisProfile)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex meridian profiles are degenerate");
+    Deliver<NurbsSurface> Cone = NurbsSurface::Revolution(ConeProfile.Payload, Base, Axis, Specification.SweepAngle);
+    Deliver<NurbsSurface> Cap = NurbsSurface::Revolution(CapProfile.Payload, Base, Axis, Specification.SweepAngle);
+    Deliver<NurbsSurface> Disk = NurbsSurface::Revolution(DiskProfile.Payload, Base, Axis, Specification.SweepAngle);
+    if (!Cone || !Cap || !Disk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex revolution surfaces are degenerate");
+    Cone.Payload.Classification = SurfaceClassification::Cone;
+    Cone.Payload.Origin = Base; Cone.Payload.Axis = Axis;
+    Cone.Payload.RadiusMajor = R; Cone.Payload.RadiusMinor = SeamRadius;
+    Cap.Payload.Classification = SurfaceClassification::Sphere;
+    Cap.Payload.Origin = Centre; Cap.Payload.Axis = Axis;
+    Cap.Payload.RadiusMajor = Q; Cap.Payload.RadiusMinor = Q;
+    Disk.Payload.Classification = SurfaceClassification::Plane;
+    Disk.Payload.Origin = Base; Disk.Payload.Axis = Axis;
+    auto MeridianCap = [&](const Mat4& Transform) -> Deliver<NurbsSurface>
+    {
+        const NurbsCurve D = DiskProfile.Payload.Transformed(Transform);
+        const NurbsCurve C = ConeProfile.Payload.Transformed(Transform);
+        const NurbsCurve S = CapProfile.Payload.Reversed().Transformed(Transform);
+        const NurbsCurve A = AxisProfile.Payload.Transformed(Transform);
+        if (D.Validate() || C.Validate() || S.Validate() || A.Validate())
+            return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "partial cone-apex meridian cap is invalid");
+        return SkinSolver::CoonsPatch({ D, C, S, A });
+    };
+    const Mat4 StartTransform = Mat4::Identity();
+    const Mat4 EndTransform = Mat4::Translation(Base) * Mat4::Rotation(Axis, Specification.SweepAngle) * Mat4::Translation(-Base);
+    Deliver<NurbsSurface> StartCap = MeridianCap(StartTransform);
+    Deliver<NurbsSurface> EndCap = StartCap
+        ? Deliver<NurbsSurface>::Accept(StartCap.Payload.Transformed(EndTransform))
+        : Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput, "partial cone-apex end cap is invalid");
+    if (!StartCap || !EndCap)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial cone-apex meridian caps could not be constructed");
+    Deliver<BrepBody> Result = BrepBody::Sew({ Cone.Payload, Cap.Payload, Disk.Payload, StartCap.Payload, EndCap.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "partial cone-apex surfaces could not be sewn");
+    // The generic sew orientation walk intentionally prefers the source surface orientation at a meridian;
+    // the end meridian is the one bounded case where the positive-volume walk needs an explicit face flip.
+    const Vec3 EndRadial = Mat4::Rotation(Axis, Specification.SweepAngle).TransformDirection(Radial).Normalised();
+    for (BrepFace& Face : Result.Payload.Faces)
+    {
+        if (Face.Surface.Classification != SurfaceClassification::Coons) continue;
+        const double U = 0.5 * (Face.Surface.DomainStartU() + Face.Surface.DomainEndU());
+        const double V = 0.5 * (Face.Surface.DomainStartV() + Face.Surface.DomainEndV());
+        const Vec3 P = Face.Surface.Sample(U, V);
+        const Vec3 RDirection = (P - Base - Axis * (P - Base).Dot(Axis)).Normalised();
+        if (RDirection.Dot(EndRadial) > 1.0 - 1e-6) Face.Reversed = !Face.Reversed;
+    }
+    const BodyReport Report = Result.Payload.Validate();
+    const double FrustumVolume = ScalarCriteria::Pi * SeamHeight * (R * R + R * SeamRadius + SeamRadius * SeamRadius) / 3.0;
+    const double CapHeight = TopHeight - SeamHeight;
+    const double SphericalCapVolume = ScalarCriteria::Pi * CapHeight * CapHeight * (3.0 * Q - CapHeight) / 3.0;
+    const double ExpectedVolume = (FrustumVolume + SphericalCapVolume) * Specification.SweepAngle / ScalarCriteria::TwoPi;
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial cone-apex fillet did not reach closed manifold topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "partial cone-apex volume failed analytic acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructQuadraticPartialEdgeFillet(
     const QuadraticPartialEdgeFilletSpecification& Specification) noexcept
 {

@@ -167,7 +167,7 @@ The partial-edge route is deliberately narrower than general edge blending:
   `PartialEdgeFilletVerification` and
   `Proofs/Phase38a_PartialEdgeFillet.png`.
 
-Variable-radius partial edges, arbitrary input-edge selection, partial/mixed apex fillets,
+Variable-radius partial edges, arbitrary input-edge selection, mixed/non-coaxial apex fillets,
 freeform supports, and arbitrary healing remain explicitly unsupported.
 
 ## Stage 38b coverage
@@ -203,6 +203,22 @@ claim:
 Arbitrary variable-radius support handling, rolling-ball G2 continuity, selected B-rep edge
 application, apex fillets beyond the bounded routes, freeform supports, and general healing remain
 unsupported.
+
+## Stage 38d coverage
+
+The partial apex route is deliberately bounded to one exact coaxial sector:
+
+- `PartialConeApexFilletSpecification` accepts one right circular cone, one positive spherical
+  radius below `H R / sqrt(H² + R²)`, and one strict sweep `0 < SweepAngle < 2π`;
+- exact partial revolutions create the retained cone frustum, spherical cap, and base sector;
+  two explicit planar meridian Coons caps close the radial boundaries;
+- the canonical half-turn verifies deterministic `V6/E9/F5/L5` topology, genus-zero closure,
+  frustum-plus-spherical-cap sector volume, face classifications, and outward normals;
+- `PartialConeApexFilletVerification` performs 16 checks and persists
+  `Proofs/Phase38d_PartialConeApexFillet.png` as the distinct exterior sharp/rounded proof.
+
+General apex selection, partial/mixed-support apex networks, non-coaxial supports, rolling-ball G2
+continuity, freeform geometry, and arbitrary healing remain explicitly unsupported.
 
 ## Actual remaining proof/capability gaps
 

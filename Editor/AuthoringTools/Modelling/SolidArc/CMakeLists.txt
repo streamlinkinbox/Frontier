@@ -330,6 +330,11 @@ add_executable(QuadraticPartialEdgeFilletVerification Verification/QuadraticPart
 target_link_libraries(QuadraticPartialEdgeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME QuadraticPartialEdgeFilletVerification COMMAND QuadraticPartialEdgeFilletVerification)
 
+# Stage 4d: one strict partial coaxial cone-apex spherical cap with explicit meridian caps.
+add_executable(PartialConeApexFilletVerification Verification/PartialConeApexFilletVerification.cpp)
+target_link_libraries(PartialConeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialConeApexFilletVerification COMMAND PartialConeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

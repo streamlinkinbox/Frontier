@@ -77,9 +77,9 @@ Each is a separate classifier/reconstruction slice:
 
 Stage 4a is intentionally only `PartialEdgeFilletSpecification`: one straight orthogonal corner,
 constant positive radius, and strict interior interval. See `docs/PLAN_PartialEdgeBlend.md`.
-Variable-radius partial edges, arbitrary input-edge selection, partial/mixed apex fillets,
-freeform supports, and general healing remain open. Stage 4b is documented in
-`docs/PLAN_ConeApexFillet.md`.
+Variable-radius partial edges, arbitrary input-edge selection beyond the named bounded routes,
+mixed/non-coaxial apex fillets, freeform supports, and general healing remain open. Stage 4b is
+documented in `docs/PLAN_ConeApexFillet.md`.
 
 ## Stage 4c — quadratic-radius partial edge
 
@@ -87,6 +87,17 @@ A bounded nonlinear extension of Stage 4a is complete: `QuadraticPartialEdgeFill
 accepts one genuinely quadratic positive law over one strict interior interval, but does not
 claim arbitrary variable-radius support handling or rolling-ball G2. See
 `docs/PLAN_QuadraticPartialEdgeBlend.md`.
+
+## Stage 4d — partial coaxial conical-apex spherical fillet
+
+A second bounded apex route is complete: `PartialConeApexFilletSpecification` accepts one right
+circular cone, one exact spherical apex cap below the tangent-circle fit limit, one strict
+non-reflex sweep, one partial base sector, and two explicit planar meridian Coons caps. The
+canonical half-turn proves `V6/E9/F5/L5` topology, genus-zero closure, outward normals, and the
+analytic frustum-plus-spherical-cap sector volume. Zero/full/negative sweeps, consuming radii,
+and degenerate dimensions refuse transactionally. Arbitrary apex selection, mixed or non-coaxial
+supports, rolling-ball G2, freeform geometry, and general healing remain unsupported. See
+`docs/PLAN_PartialConeApexFillet.md`.
 
 ## Stage 5 — proof coverage ✅
 
