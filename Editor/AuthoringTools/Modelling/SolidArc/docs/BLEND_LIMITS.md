@@ -288,6 +288,19 @@ Flaring, equal-slope, reflex or arbitrary sectors, apex/zero-radius cones, non-c
 incomplete roots, variable-radius/nonlinear/G2 construction, curved corner patches, and general intersection/trim/sew
 healing remain explicit refusals.
 
+### Partial cone–cylinder root fillets
+
+Phase 36s adds one mixed-support sector route for a native cone meeting a coaxial cylinder. The accepted orientation is
+specific: the lower cone's base radius is smaller than the shared cylinder/root radius, so the cone widens toward the
+cylinder. The exact roll is the rational circular meridian tangent to the cone generator and the upper constant-radius
+cylinder. The retained cone, toroidal band, cylinder, planar caps, and general-sector radial caps are sewn as
+`V10/E15/C30/L7/F7`; the half-turn is `V10/E14/C28/L6/F6`. The volume target is the angular fraction of the analytic
+cone-plus-cylinder source minus the circular-meridian first moment of the removed corner.
+
+The opposite narrowing orientation, equal-slope/zero-radius/apex supports, complete sectors, reflex or arbitrary sectors,
+non-coaxial or oblique roots, branched/incomplete chains, variable-radius/nonlinear/G2 construction, curved corner patches,
+and general intersection/trim/sew healing remain explicit refusals. This is not a general cone–cylinder fillet solver.
+
 ### Intentional multi-edge sets
 
 Phase 32c introduces `FilletEdges` as a transactional composition layer. Every source seed is validated and expanded to
