@@ -102,7 +102,7 @@ int main()
         const double Expected = Specification.Length * Specification.Width * Specification.Width -
             BlendSolver::G2RollingBallRemovalArea(UnitProfile.Payload) *
             Specification.RadiusLaw.IntegratedSquare(Specification.Length);
-        Panel.Expect("Variable station surfaces sew as V12/E18/F8/L8 topology",
+        Panel.Expect("Variable station surfaces sew as V14/E21/F9/L9 topology",
                      Report.Vertices == 14 && Report.Edges == 21 && Result.Payload.Coedges.size() == 42 &&
                      Report.Faces == 9 && Report.Loops == 9 && Report.Hulls == 1 && Report.Genus == 0 &&
                      Report.OpenEdges == 0 && Report.NonManifoldEdges == 0 && Report.MisorientedEdges == 0);
