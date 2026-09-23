@@ -636,6 +636,25 @@ This does not prove equal-setback routes beyond 38w, mixed or partial apexes, ap
 oblique/non-coaxial or freeform supports, variable-radius laws, healing, or source replacement.
 The bounded plan is `docs/PLAN_UnequalConeApexUnequalSetbackChamfer.md`.
 
+## Phase 38y — unequal-radius coaxial bicone apex fillet (2026-09-23)
+
+This phase is a distinct fillet route, not a chamfer rename:
+
+- `UnequalConeApexFilletVerification` uses a new 4.5/2.75-radius, 6.5/4.5-height source and a
+  0.75 toroidal fillet radius over the exact point-contact `V5/E6/C12/L4/F4` topology.
+- `ClassifyUnequalConeApexFilletVertex` retains the shared apex and source dimensions, then
+  validates the torus feasibility limits before any reconstruction.
+- `ReconstructUnequalConeApexFillet` solves the unequal cone tangent geometry analytically,
+  creates two tangent cone frusta and one torus patch, and returns `V6/E9/C18/L5/F5` with two
+  cone faces, one torus, and two planar caps.
+- The durable proof is `Proofs/Phase38y_UnequalConeApexFillet.png`; the verifier performs 31
+  checks over tangent contacts, exact torus metadata, outward normals, the torus-meridian volume,
+  deterministic dispatch, source immutability, and refusal boundaries.
+
+This does not prove equal-radius, partial, mixed cone/plane/cylinder, oblique/non-coaxial,
+freeform, variable-radius, arbitrary-selection, or healing apex fillets. The bounded plan is
+`docs/PLAN_UnequalConeApexFillet.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

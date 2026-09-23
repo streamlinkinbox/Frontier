@@ -7834,6 +7834,181 @@ BlendSolver::ClassifyUnequalConeApexUnequalSetbackChamferVertex(
     return Deliver<UnequalConeApexUnequalSetbackChamferSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructUnequalConeApexFillet(
+    const UnequalConeApexFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Apex.X) || !std::isfinite(Specification.Apex.Y) ||
+        !std::isfinite(Specification.Apex.Z) || !std::isfinite(Specification.LowerRadius) ||
+        !std::isfinite(Specification.UpperRadius) || !std::isfinite(Specification.LowerHeight) ||
+        !std::isfinite(Specification.UpperHeight) || !std::isfinite(Specification.FilletRadius) ||
+        Specification.LowerRadius <= Tol || Specification.UpperRadius <= Tol ||
+        Specification.LowerHeight <= Tol || Specification.UpperHeight <= Tol || Specification.FilletRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone fillet dimensions must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone fillet axis is degenerate");
+    const double RadiusScale = std::max({ 1.0, Specification.LowerRadius, Specification.UpperRadius });
+    if (std::fabs(Specification.LowerRadius - Specification.UpperRadius) <=
+        ScalarCriteria::GeometricTolerance * RadiusScale)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone fillet route requires distinct support radii");
+
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const Vec3 Apex = Specification.Apex;
+    const double LowerAngle = std::atan2(Specification.LowerRadius, Specification.LowerHeight);
+    const double UpperAngle = std::atan2(Specification.UpperRadius, Specification.UpperHeight);
+    const double SinSum = std::sin(LowerAngle + UpperAngle);
+    if (SinSum <= ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone fillet support angles are degenerate");
+    const double SinLower = std::sin(LowerAngle), SinUpper = std::sin(UpperAngle);
+    const double CosLower = std::cos(LowerAngle), CosUpper = std::cos(UpperAngle);
+    const double Q = Specification.FilletRadius;
+    const double Major = Q * (SinLower + SinUpper) / SinSum;
+    const double CentreOffset = Q * (CosUpper - CosLower) / SinSum;
+    if (Major <= Q + Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone torus would cross the axis");
+    const double LowerTangent = Major * SinLower - CentreOffset * CosLower;
+    const double UpperTangent = Major * SinUpper + CentreOffset * CosUpper;
+    const double LowerSlant = std::hypot(Specification.LowerHeight, Specification.LowerRadius);
+    const double UpperSlant = std::hypot(Specification.UpperHeight, Specification.UpperRadius);
+    if (LowerTangent <= Tol || UpperTangent <= Tol || LowerTangent >= LowerSlant - Tol ||
+        UpperTangent >= UpperSlant - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone torus contact consumes a conical support");
+
+    const Vec3 Radial = Workplane::FromNormal(Apex, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone fillet radial frame is degenerate");
+    const Vec3 LowerBase = Apex - Axis * Specification.LowerHeight;
+    const Vec3 UpperBase = Apex + Axis * Specification.UpperHeight;
+    const Vec3 LowerContact = Apex - Axis * (LowerTangent * CosLower) + Radial * (LowerTangent * SinLower);
+    const Vec3 UpperContact = Apex + Axis * (UpperTangent * CosUpper) + Radial * (UpperTangent * SinUpper);
+    const Vec3 TubeCentre = Apex + Axis * CentreOffset + Radial * Major;
+    const Vec3 InnerPoint = Apex + Axis * CentreOffset + Radial * (Major - Q);
+    const double LowerContactRadius = LowerTangent * SinLower;
+    const double UpperContactRadius = UpperTangent * SinUpper;
+    if (LowerContactRadius <= Tol || UpperContactRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone torus contact ring is degenerate");
+
+    Deliver<NurbsCurve> LowerProfile = NurbsCurve::Line(LowerBase + Radial * Specification.LowerRadius, LowerContact);
+    Deliver<NurbsCurve> UpperProfile = NurbsCurve::Line(UpperContact, UpperBase + Radial * Specification.UpperRadius);
+    Deliver<NurbsCurve> TorusProfile = NurbsCurve::ArcThreePoints(LowerContact, InnerPoint, UpperContact);
+    Deliver<NurbsCurve> LowerDiskProfile = NurbsCurve::Line(LowerBase, LowerBase + Radial * Specification.LowerRadius);
+    Deliver<NurbsCurve> UpperDiskProfile = NurbsCurve::Line(UpperBase, UpperBase + Radial * Specification.UpperRadius);
+    if (!LowerProfile || !UpperProfile || !TorusProfile || !LowerDiskProfile || !UpperDiskProfile)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone torus profiles are degenerate");
+    auto Revolve = [&](const Deliver<NurbsCurve>& Profile) -> Deliver<NurbsSurface>
+    {
+        return NurbsSurface::Revolution(Profile.Payload, Apex, Axis, ScalarCriteria::TwoPi);
+    };
+    Deliver<NurbsSurface> Lower = Revolve(LowerProfile);
+    Deliver<NurbsSurface> Upper = Revolve(UpperProfile);
+    Deliver<NurbsSurface> Torus = Revolve(TorusProfile);
+    Deliver<NurbsSurface> LowerDisk = Revolve(LowerDiskProfile);
+    Deliver<NurbsSurface> UpperDisk = Revolve(UpperDiskProfile);
+    if (!Lower || !Upper || !Torus || !LowerDisk || !UpperDisk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone torus surfaces are degenerate");
+
+    Lower.Payload.Classification = SurfaceClassification::Cone;
+    Lower.Payload.Origin = LowerBase; Lower.Payload.Axis = Axis;
+    Lower.Payload.RadiusMajor = Specification.LowerRadius; Lower.Payload.RadiusMinor = LowerContactRadius;
+    Lower.Payload.HalfAngle = std::atan2(Specification.LowerRadius - LowerContactRadius,
+                                         Specification.LowerHeight - LowerTangent * CosLower);
+    Upper.Payload.Classification = SurfaceClassification::Cone;
+    Upper.Payload.Origin = UpperContact; Upper.Payload.Axis = Axis;
+    Upper.Payload.RadiusMajor = UpperContactRadius; Upper.Payload.RadiusMinor = Specification.UpperRadius;
+    Upper.Payload.HalfAngle = std::atan2(Specification.UpperRadius - UpperContactRadius,
+                                         Specification.UpperHeight - UpperTangent * CosUpper);
+    Torus.Payload.Classification = SurfaceClassification::Torus;
+    Torus.Payload.Origin = Apex + Axis * CentreOffset; Torus.Payload.Axis = Axis;
+    Torus.Payload.RadiusMajor = Major; Torus.Payload.RadiusMinor = Q;
+    LowerDisk.Payload.Classification = SurfaceClassification::Plane;
+    LowerDisk.Payload.Origin = LowerBase; LowerDisk.Payload.Axis = Axis;
+    UpperDisk.Payload.Classification = SurfaceClassification::Plane;
+    UpperDisk.Payload.Origin = UpperBase; UpperDisk.Payload.Axis = Axis;
+
+    Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Torus.Payload, Upper.Payload,
+                                                LowerDisk.Payload, UpperDisk.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "unequal bicone torus surfaces could not be sewn");
+
+    const double LowerDepth = LowerTangent * CosLower;
+    const double UpperDepth = UpperTangent * CosUpper;
+    const double LowerRetained = Specification.LowerHeight - LowerDepth;
+    const double UpperRetained = Specification.UpperHeight - UpperDepth;
+    const double ThetaLower = std::atan2(-LowerTangent * CosLower - CentreOffset,
+                                          LowerContactRadius - Major);
+    double ThetaUpper = std::atan2(UpperTangent * CosUpper - CentreOffset,
+                                   UpperContactRadius - Major);
+    double ThetaStart = ThetaLower;
+    while (ThetaUpper >= ThetaStart) ThetaUpper -= ScalarCriteria::TwoPi;
+    const double ArcSpan = ThetaUpper - ThetaStart;
+    if (ArcSpan >= -ScalarCriteria::AngularTolerance || ArcSpan < -ScalarCriteria::Pi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "unequal bicone torus meridian selected an invalid contact arc");
+    auto TorusIntegral = [&](double Theta) noexcept
+    {
+        const double Sine = std::sin(Theta);
+        return Major * Major * Sine + Major * Q * (Theta + std::sin(2.0 * Theta) / 2.0) +
+               Q * Q * (Sine - Sine * Sine * Sine / 3.0);
+    };
+    const double MeridionalIntegral = Q * (TorusIntegral(ThetaUpper) - TorusIntegral(ThetaStart));
+    const double ExpectedVolume =
+        ScalarCriteria::Pi * LowerRetained *
+            (Specification.LowerRadius * Specification.LowerRadius +
+             Specification.LowerRadius * LowerContactRadius + LowerContactRadius * LowerContactRadius) / 3.0 +
+        ScalarCriteria::Pi * MeridionalIntegral +
+        ScalarCriteria::Pi * UpperRetained *
+            (UpperContactRadius * UpperContactRadius + UpperContactRadius * Specification.UpperRadius +
+             Specification.UpperRadius * Specification.UpperRadius) / 3.0;
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 6 || Result.Payload.Edges.size() != 9 ||
+        Result.Payload.Coedges.size() != 18 || Result.Payload.Loops.size() != 5 || Result.Payload.Faces.size() != 5)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "unequal bicone torus fillet did not reach V6/E9/C18/L5/F5 topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "unequal bicone torus fillet volume failed analytic acceptance");
+    (void)TubeCentre;
+    return Result;
+}
+
+Deliver<UnequalConeApexFilletSpecification> BlendSolver::ClassifyUnequalConeApexFilletVertex(
+    const BrepBody& Body, int Vertex, double FilletRadius) noexcept
+{
+    if (!std::isfinite(FilletRadius) || FilletRadius <= ScalarCriteria::MergeTolerance)
+        return Deliver<UnequalConeApexFilletSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                     "unequal bicone fillet radius must be finite and positive");
+    const Box3 SourceBounds = Body.Bounds();
+    const double ProbeSetBack = std::max(ScalarCriteria::MergeTolerance * 10.0,
+                                         SourceBounds.High.Distance(SourceBounds.Low) * 1e-3);
+    const Deliver<UnequalConeApexChamferSpecification> Base =
+        ClassifyUnequalConeApexChamferVertex(Body, Vertex, ProbeSetBack);
+    if (!Base) return Deliver<UnequalConeApexFilletSpecification>::Reject(Base.Denial.Reason, Base.Denial.Detail);
+    UnequalConeApexFilletSpecification Specification;
+    Specification.Apex = Base.Payload.Apex;
+    Specification.Axis = Base.Payload.Axis;
+    Specification.LowerRadius = Base.Payload.LowerRadius;
+    Specification.UpperRadius = Base.Payload.UpperRadius;
+    Specification.LowerHeight = Base.Payload.LowerHeight;
+    Specification.UpperHeight = Base.Payload.UpperHeight;
+    Specification.FilletRadius = FilletRadius;
+    const Deliver<BrepBody> Feasible = ReconstructUnequalConeApexFillet(Specification);
+    if (!Feasible) return Deliver<UnequalConeApexFilletSpecification>::Reject(Feasible.Denial.Reason,
+                                                                                 Feasible.Denial.Detail);
+    return Deliver<UnequalConeApexFilletSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||

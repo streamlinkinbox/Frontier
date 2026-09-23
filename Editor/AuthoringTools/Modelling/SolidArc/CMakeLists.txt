@@ -440,6 +440,11 @@ add_executable(UnequalSetbackBiconeApexChamferVerification Verification/UnequalS
 target_link_libraries(UnequalSetbackBiconeApexChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME UnequalSetbackBiconeApexChamferVerification COMMAND UnequalSetbackBiconeApexChamferVerification)
 
+# Phase 38y: preserve unequal coaxial cone supports while replacing the shared apex with a tangent toroidal fillet.
+add_executable(UnequalConeApexFilletVerification Verification/UnequalConeApexFilletVerification.cpp)
+target_link_libraries(UnequalConeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME UnequalConeApexFilletVerification COMMAND UnequalConeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
