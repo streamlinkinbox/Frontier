@@ -423,7 +423,9 @@ namespace
             Body.Faces[Face].Natural = false;
             int Loop = Body.AddLoop(Face, true);
             for (const auto& [Edge, Reversed] : Path) Body.AddCoedge(Edge, Reversed, Face, Loop);
-            bool ReverseAxis = Body.Edges[AxisEdge].VertexStart == EndVertex;
+            // The radial boundary already walks from the lower axial centre to the upper axial
+            // centre; the shared axis edge must close it in the opposite direction.
+            const bool ReverseAxis = Body.Edges[AxisEdge].VertexStart == StartVertex;
             Body.AddCoedge(AxisEdge, ReverseAxis, Face, Loop);
             return true;
         };

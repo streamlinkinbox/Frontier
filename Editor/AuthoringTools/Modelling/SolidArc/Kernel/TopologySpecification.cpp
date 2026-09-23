@@ -721,6 +721,41 @@ BrepBody::FaceTriangles BrepBody::TessellateFace(int Face, double ChordTolerance
         //    the rings, ring edges at the lattice lines, the planar arrangement is walked into cells, and each small cell is
         //    ear clipped. Every triangle therefore spans at most one lattice cell, as on a natural face.
         const NurbsSurface& S = F.Surface;
+        // A trimmed planar face has no surface lattice to clip. Tessellate its boundary directly so
+        // reversing a cap cannot make the planar-cell walker discard the entire (valid) polygon.
+        // This is especially important for radial sector caps, whose two meridian ends have opposite
+        // topological orientations after Orient().
+        if (S.Classification == SurfaceClassification::Plane)
+        {
+            std::vector<Vec2> P;
+            std::vector<std::vector<uint32_t>> Rings;
+            for (int L : F.Loops)
+            {
+                std::vector<uint32_t> Ring;
+                for (int C : Loops[L].Coedges)
+                {
+                    const std::vector<Vec2> Trace = CoedgeTrace(C);
+                    for (size_t I = 0; I + 1 < Trace.size(); ++I)
+                    {
+                        if (!Ring.empty() && P[Ring.back()].Distance(Trace[I]) <= 1e-9) continue;
+                        Ring.push_back(static_cast<uint32_t>(P.size()));
+                        P.push_back(Trace[I]);
+                    }
+                }
+                if (Ring.size() > 1 && P[Ring.front()].Distance(P[Ring.back()]) <= 1e-9) Ring.pop_back();
+                if (Ring.size() >= 3) Rings.push_back(std::move(Ring));
+            }
+            Out.Parameters = P;
+            Out.Positions.reserve(P.size()); Out.Normals.reserve(P.size());
+            for (const Vec2& Q : P) { Out.Positions.push_back(S.Sample(Q.X, Q.Y)); Out.Normals.push_back(S.Normal(Q.X, Q.Y)); }
+            Out.Triangles = TriangulatePolygon(P, Rings);
+            if (F.Reversed)
+            {
+                for (Vec3& N : Out.Normals) N = N * -1.0;
+                for (size_t T = 0; T + 2 < Out.Triangles.size(); T += 3) std::swap(Out.Triangles[T + 1], Out.Triangles[T + 2]);
+            }
+            return Out;
+        }
         const double U0 = S.DomainStartU(), U1 = S.DomainEndU(), V0 = S.DomainStartV(), V1 = S.DomainEndV();
         const double Eps = 1e-9 * (U1 - U0 + V1 - V0);
         std::vector<double> SamplesU{ U0, U1 }, SamplesV{ V0, V1 };

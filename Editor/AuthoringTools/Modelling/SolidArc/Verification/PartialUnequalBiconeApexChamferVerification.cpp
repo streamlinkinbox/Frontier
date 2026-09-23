@@ -72,7 +72,9 @@ struct Fixture
         Body.Faces[Face].Natural = false;
         const int Loop = Body.AddLoop(Face, true);
         for (const auto& [Edge, Reversed] : Path) Body.AddCoedge(Edge, Reversed, Face, Loop);
-        Body.AddCoedge(AxisEdge, Body.Edges[AxisEdge].VertexStart == EndVertex, Face, Loop);
+        // The meridian path already runs from the lower axial centre to the upper one;
+        // close the radial cap with the shared axis edge in reverse.
+        Body.AddCoedge(AxisEdge, Body.Edges[AxisEdge].VertexStart == StartVertex, Face, Loop);
         return true;
     };
     return AddCap(StartEdges, RadialStart) && AddCap(EndEdges, RadialEnd) && Body.Orient();
