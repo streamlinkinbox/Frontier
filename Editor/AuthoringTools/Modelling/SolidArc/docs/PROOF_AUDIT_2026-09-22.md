@@ -673,6 +673,26 @@ This does not prove partial, mixed cone/plane/cylinder, oblique/non-coaxial, fre
 variable-radius, arbitrary-selection, or healing apex fillets. The bounded plan is
 `docs/PLAN_EqualRadiusBiconeApexFillet.md`.
 
+## Phase 39a — partial unequal-radius bicone apex chamfer (2026-09-23)
+
+This phase is a distinct sector route, not a full-turn fixture rename:
+
+- `PartialUnequalBiconeApexChamferVerification` constructs a capped native partial source with
+  exact `V7/E11/C22/L6/F6` topology, radii 4.2/2.8, heights 6.4/4.8, a 100-degree sweep, and
+  a 0.9 set-back. It does not reuse the complete-turn 38w/38x sources.
+- `ClassifyPartialUnequalConeApexChamferVertex` accepts only the unique apex of that capped native
+  non-reflex partial sector and retains the actual sweep, axis, unequal support dimensions, and
+  set-back without mutating the source.
+- `ReconstructPartialUnequalConeApexChamfer` returns `V10/E15/C30/L7/F7`, retaining three cone
+  surfaces, two base caps, and two radial endpoint caps; its volume is checked against the exact
+  sector-scaled three-frustum identity.
+- The durable proof is `Proofs/Phase39a_PartialUnequalBiconeApexChamfer.png`; 29 checks cover
+  exact extraction, radial-cap closure, normals, topology, volume, refusals, and immutability.
+
+This does not prove complete/half/reflex partial sectors, equal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, or healing.
+The bounded plan is `docs/PLAN_PartialUnequalBiconeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

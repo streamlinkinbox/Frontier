@@ -450,6 +450,11 @@ add_executable(EqualRadiusBiconeApexFilletVerification Verification/EqualRadiusB
 target_link_libraries(EqualRadiusBiconeApexFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME EqualRadiusBiconeApexFilletVerification COMMAND EqualRadiusBiconeApexFilletVerification)
 
+# Phase 39a: preserve one strict non-reflex partial unequal-radius bicone sector with radial endpoint caps.
+add_executable(PartialUnequalBiconeApexChamferVerification Verification/PartialUnequalBiconeApexChamferVerification.cpp)
+target_link_libraries(PartialUnequalBiconeApexChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialUnequalBiconeApexChamferVerification COMMAND PartialUnequalBiconeApexChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

@@ -1369,6 +1369,24 @@ This is one full-turn equal-radius coaxial combination only. Unequal radii remai
 partial, mixed, oblique, freeform, variable-radius, arbitrary-selection, and healing cases remain
 unsupported. Its bounded plan is `docs/PLAN_EqualRadiusBiconeApexFillet.md`.
 
+#### Phase 39a: bounded partial unequal-radius bicone apex chamfer ✅
+
+The shared-apex combination family now accepts one strict non-reflex partial sector. The structural
+classifier recognizes the capped native partial-bicone topology `V7/E11/C22/L6/F6`, derives the
+selected apex, unequal radii/heights, canonical axis, and native sweep, and preserves the source
+transactionally.
+
+`ReconstructPartialUnequalConeApexChamfer` retains the partial sweep, preserves both support
+frusta, inserts one conical bridge, and closes both meridian ends with radial planar caps. The
+separate transaction returns closed genus-zero `V10/E15/C30/L7/F7` topology. `PartialUnequalBiconeApexChamferVerification`
+performs 29 checks over a distinct 4.2/2.8-radius, 6.4/4.8-height, 100-degree source with 0.9
+set-back, covering exact sweep/radius extraction, topology, radial-cap closure, normals, sector
+volume, immutability, refusal boundaries, and `Proofs/Phase39a_PartialUnequalBiconeApexChamfer.png`.
+
+This remains limited to one canonical non-reflex partial sector. Complete turns, half/reflex
+sectors, equal radii, mixed/oblique/freeform supports, variable-radius laws, arbitrary vertices,
+and healing remain unsupported. Its bounded plan is `docs/PLAN_PartialUnequalBiconeApexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
