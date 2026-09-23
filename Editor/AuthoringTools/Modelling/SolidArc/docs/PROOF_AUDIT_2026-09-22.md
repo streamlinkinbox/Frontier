@@ -540,6 +540,26 @@ sweeps beyond their separately named routes, mixed supports, arbitrary cones, fr
 edge loops, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
 
+## Stage 38u coverage
+
+The native-cone apex chamfer dispatch is a distinct vertex-selection layer over the exact frustum
+construction route:
+
+- `ClassifyConeApexChamferVertex` accepts only the exact closed native-cone source with `V2/E2/C4/L2/F2`
+  topology, one cone face, one planar base face, and the selected unique apex;
+- the returned `ConeApexChamferSpecification` retains the base, normalized axis, positive base radius,
+  height, and finite generator setback; `ReconstructConeApexChamfer` replaces the apex with an exact
+  planar cap using a transactional `V2/E3/C6/L3/F3` frustum;
+- `ConeApexVertexChamferDispatchVerification` covers exact extraction, deterministic dispatch, exact
+  retained-height/cap-radius geometry, analytic outward normals, source immutability, and base/non-apex/
+  invalid/consuming/frustum/cylinder/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38u_ConeApexVertexChamferDispatch.png` as the distinct sharp-versus-chamfered apex proof.
+
+This does not prove arbitrary vertex chamfering, partial-sector or mixed-support apex edits, freeform
+geometry, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_ConeApexVertexChamferDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

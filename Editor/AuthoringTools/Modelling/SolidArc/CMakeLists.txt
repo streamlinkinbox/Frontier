@@ -420,6 +420,11 @@ add_executable(ReflexPartialConeApexVertexDispatchVerification Verification/Refl
 target_link_libraries(ReflexPartialConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ReflexPartialConeApexVertexDispatchVerification COMMAND ReflexPartialConeApexVertexDispatchVerification)
 
+# Stage 4u: bounded dispatch from the unique apex vertex of a canonical native right cone to an exact chamfered frustum.
+add_executable(ConeApexVertexChamferDispatchVerification Verification/ConeApexVertexChamferDispatchVerification.cpp)
+target_link_libraries(ConeApexVertexChamferDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeApexVertexChamferDispatchVerification COMMAND ConeApexVertexChamferDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

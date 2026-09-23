@@ -1256,6 +1256,22 @@ vertex-selected apex filleting. Mixed supports, arbitrary cones, freeform/curved
 healing, and source-body replacement remain unsupported. Its plan is
 `docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
 
+#### Phase 38u: bounded native-cone apex vertex chamfer dispatch
+
+The vertex-selection layer now accepts one canonical native right cone with exact `V2/E2/C4/L2/F2`
+topology and its unique apex vertex. It retains the base, normalized axis, base radius, height, and
+generator setback, then reconstructs a separate exact frustum with the apex replaced by a planar cap.
+The setback is deliberately measured along the cone generator, and consuming requests refuse.
+
+`ConeApexVertexChamferDispatchVerification` covers exact extraction, deterministic dispatch, separate
+`V2/E3/C6/L3/F3` frustum reconstruction, exact retained-height/cap-radius geometry, analytic outward
+normals, source immutability, base/non-apex/invalid/consuming/frustum/cylinder/malformed refusals,
+and `Proofs/Phase38u_ConeApexVertexChamferDispatch.png`.
+
+This remains one native-cone apex chamfer, not arbitrary vertex chamfering, partial-sector or
+mixed-support apex edits. Freeform geometry, healing, and source-body replacement remain unsupported.
+Its plan is `docs/PLAN_ConeApexVertexChamferDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
