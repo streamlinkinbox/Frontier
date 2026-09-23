@@ -377,6 +377,31 @@ struct G2PlanarCornerSpecification
     double HandleFraction = 1.0 / 3.0;                                                   // [-] quintic tangent handle / Radius
 };
 
+// A bounded rolling-ball-core transition. The exact circular core is deliberately separated from
+// the quintic support transitions: a pure quarter-circle cannot be G2 to a plane because its
+// normal curvature jumps from zero to 1/R at the contact.
+struct G2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+    double TransitionAngle = ScalarCriteria::Pi / 8.0;                                 // [rad] each support-to-core transition
+};
+
+struct G2RollingBallProfile
+{
+    std::vector<NurbsCurve> Pieces;                                                     // start transition, exact core, end transition
+    Vec3 Origin{};
+    Vec3 AxisU{ 0, 1, 0 };
+    Vec3 AxisV{ 0, 0, 1 };
+    double Radius = 0.0;
+    double TransitionAngle = 0.0;
+};
+
 // A separate quadratic clearance law for the support setback. The radius law may be constant,
 // linear, or quadratic; the setback law must be genuinely nonlinear in this bounded slice.
 struct NonlinearVariableSetbackCornerSpecification
@@ -488,6 +513,14 @@ public:
                                                       std::string& Refusal) noexcept;
     [[nodiscard]] static double G2CornerRemovalArea(double Radius, double HandleFraction) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructG2PlanarCorner(const G2PlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<G2RollingBallProfile> BuildG2RollingBallProfile(
+        const G2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateG2RollingBallProfile(const G2RollingBallProfile& Profile,
+                                                           const G2RollingBallPlanarCornerSpecification& Specification,
+                                                           std::string& Refusal) noexcept;
+    [[nodiscard]] static double G2RollingBallRemovalArea(const G2RollingBallProfile& Profile) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructG2RollingBallPlanarCorner(
+        const G2RollingBallPlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,

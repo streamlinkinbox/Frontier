@@ -1054,6 +1054,20 @@ proof are covered by `ObliqueQuadraticEdgeFilletVerification` and
 freeform supports, apexes, rolling-ball G2, and healing remain unsupported. Its plan is
 `docs/PLAN_ObliqueQuadraticEdgeFillet.md`.
 
+#### Phase 38i: bounded rolling-ball-core G2 planar transition ✅
+
+The explicit perpendicular planar corner now has a distinct curvature-matched route: quintic
+support transitions leave each plane with zero curvature, meet an exact rational circular
+rolling-ball core at `1/r`, and retain the core through the middle of the profile. Three split
+profile surfaces plus four retained support surfaces sew as `V14/E21/F9/L9`; the exact profile
+line-integral volume, curvature joins, rational core, outward normals, refusal boundaries, and
+the distinct G2/core-versus-pure-rolling proof are covered by `G2RollingBallVerification` and
+`Proofs/Phase38i_G2RollingBall.png`.
+
+This is not a pure quarter-circle G2-to-plane join and does not claim rolling-ball G2 on arbitrary
+B-reps. Variable-radius cores, oblique/freeform supports, arbitrary edge selection, apexes, and
+healing remain unsupported. Its plan is `docs/PLAN_G2RollingBall.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

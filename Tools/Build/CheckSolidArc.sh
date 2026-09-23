@@ -65,7 +65,7 @@ done
 
 echo "[SolidArc] kernel, console and interaction targets link"
 
-for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft GeneralConnectedFaceLoft GeneralCurvedChamfer PlaneConeChamfer CylinderConeChamfer PartialCurvedChamfer SectorCurvedChamfer PartialPlaneConeChamfer PartialConeCylinderChamfer PartialConeConeChamfer ApexPlaneConeChamfer PartialApexPlaneConeChamfer PartialPlaneConeFillet CylinderConeFillet ConeConeFillet PartialConeConeFillet PartialConeCylinderFillet ArbitraryNonPlanarEdgeLoop Phase33VariableRadius VariableRadiusCornerFillet VariableSetbackCornerFillet NonlinearVariableRadiusCorner G2PlanarCorner NonlinearVariableSetbackCorner UnequalSetbackCorner NonlinearUnequalSetbackCorner PartialEdgeFillet ConeApexFillet QuadraticPartialEdgeFillet PartialConeApexFillet ObliquePlanarCornerFillet ObliquePartialEdgeFillet ObliqueQuadraticPartialEdgeFillet ObliqueQuadraticEdgeFillet CylinderChamfer CylinderFillet PlaneCylinderFillet TangentChainFillet OpenChainFillet MultiEdgeFillet SectorEndpointFillet CornerFillet PlaneConeFillet FaceEdit; do
+for TEST in FaceLoft Tweak DirectModeling ChamferLoop TransformTweak CurvedTweak ConcaveChamfer ConeChamfer ConnectedFaceLoft GeneralConnectedFaceLoft GeneralCurvedChamfer PlaneConeChamfer CylinderConeChamfer PartialCurvedChamfer SectorCurvedChamfer PartialPlaneConeChamfer PartialConeCylinderChamfer PartialConeConeChamfer ApexPlaneConeChamfer PartialApexPlaneConeChamfer PartialPlaneConeFillet CylinderConeFillet ConeConeFillet PartialConeConeFillet PartialConeCylinderFillet ArbitraryNonPlanarEdgeLoop Phase33VariableRadius VariableRadiusCornerFillet VariableSetbackCornerFillet NonlinearVariableRadiusCorner G2PlanarCorner NonlinearVariableSetbackCorner UnequalSetbackCorner NonlinearUnequalSetbackCorner PartialEdgeFillet ConeApexFillet QuadraticPartialEdgeFillet PartialConeApexFillet ObliquePlanarCornerFillet ObliquePartialEdgeFillet ObliqueQuadraticPartialEdgeFillet ObliqueQuadraticEdgeFillet G2RollingBall CylinderChamfer CylinderFillet PlaneCylinderFillet TangentChainFillet OpenChainFillet MultiEdgeFillet SectorEndpointFillet CornerFillet PlaneConeFillet FaceEdit; do
     TEST_OBJ="$WORK/obj/${TEST}Verification.o"
     "$CXX_BIN" "${FLAGS[@]}" -c "$SRC/Verification/${TEST}Verification.cpp" -o "$TEST_OBJ"
     "$CXX_BIN" "${OBJECTS[@]}" "$TEST_OBJ" -o "$WORK/${TEST}Verification"
@@ -94,6 +94,7 @@ PERSISTED_PROOFS=(
     Phase38f_ObliquePartialEdgeFillet.png
     Phase38g_ObliqueQuadraticPartialEdgeFillet.png
     Phase38h_ObliqueQuadraticEdgeFillet.png
+    Phase38i_G2RollingBall.png
 )
 mkdir -p "$ROOT/Proofs"
 for PROOF in "${PERSISTED_PROOFS[@]}"; do
@@ -104,4 +105,4 @@ for PROOF in "${PERSISTED_PROOFS[@]}"; do
     cp "$PROOF_FOLDER/$PROOF" "$ROOT/Proofs/$PROOF"
 done
 
-echo "[SolidArc] Phase 33/34a–34f, Phase 35a–35d, Phase 36a–36s, Stages 1–3c/3e, unequal setbacks, bounded partial-edge/apex blends, bounded quadratic partial-edge, bounded partial cone-apex/oblique corner, bounded oblique quadratic partial/full-edge, and durable Phase 25/26/31/32/32z proof gates passed"
+echo "[SolidArc] Phase 33/34a–34f, Phase 35a–35d, Phase 36a–36s, Stages 1–3c/3e, unequal setbacks, bounded partial-edge/apex blends, bounded quadratic partial-edge, bounded partial cone-apex/oblique corner, bounded oblique quadratic partial/full-edge, bounded rolling-ball-core G2, and durable Phase 25/26/31/32/32z proof gates passed"

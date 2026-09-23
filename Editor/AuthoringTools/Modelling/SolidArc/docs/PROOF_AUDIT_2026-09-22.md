@@ -22,10 +22,11 @@ one bounded rolling-ball application, Stage 37b separately proves one bounded li
 support-setback law, Stage 37c proves one bounded quadratic nonlinear-radius application,
 Stage 37d proves one separate non-rolling G2 planar profile, Stage 37e proves one bounded
 quadratic nonlinear-setback application, Stage 37f proves independent linear clearances on
-the
-two supports, and Stage 37g proves independent genuinely nonlinear clearances on both supports. The following remain unproved and intentionally unsupported: general variable-radius rolling
-fillets, rolling-ball G2 joins, arbitrary variable-radius partial-edge blends, and arbitrary
-selected-edge partial routes.
+the two supports, Stage 37g proves independent genuinely nonlinear clearances on both supports,
+and Stage 38i proves one bounded rolling-ball-core G2 planar transition. The following remain
+unproved and intentionally unsupported: general variable-radius rolling fillets, rolling-ball
+G2 on arbitrary B-reps, arbitrary variable-radius partial-edge blends, and arbitrary selected-edge
+partial routes.
 
 ## Current Phase 34–36 coverage
 
@@ -306,7 +307,27 @@ The complete-edge oblique quadratic route is bounded to one explicit finite stra
 - `Proofs/Phase38h_ObliqueQuadraticEdgeFillet.png` is the distinct exterior proof.
 
 Partial intervals, arbitrary variable laws, arbitrary edge selection, apexes, freeform supports,
-rolling-ball G2, and arbitrary healing remain explicitly unsupported.
+rolling-ball G2 on arbitrary B-reps, and arbitrary healing remain explicitly unsupported.
+
+## Stage 38i coverage
+
+The bounded rolling-ball-core G2 route is deliberately separate from the Stage 37d quintic
+non-rolling profile:
+
+- `G2RollingBallPlanarCornerSpecification` accepts one explicit finite straight edge, two
+  positively oriented perpendicular support directions, one constant radius, and one strict
+  transition angle that leaves a circular core;
+- each support transition is a quintic with zero endpoint curvature and meets an exact rational
+  circular core at `1/r`, so the support and core joins are measured G2 joins rather than a
+  mislabeled quarter-circle contact;
+- `G2RollingBallVerification` performs 29 checks covering the three-piece profile, exact core
+  radius, curvature joins, deterministic `V14/E21/F9/L9` topology, profile line-integral volume,
+  outward normals, transactional refusals, and a distinct comparison proof;
+- `Proofs/Phase38i_G2RollingBall.png` is the distinct exterior G2/core-versus-pure-rolling proof.
+
+Variable-radius cores, arbitrary B-rep rolling-ball G2, oblique/freeform supports, edge selection,
+apexes, and arbitrary healing remain explicitly unsupported. The bounded plan is
+`docs/PLAN_G2RollingBall.md`.
 
 ## Actual remaining proof/capability gaps
 

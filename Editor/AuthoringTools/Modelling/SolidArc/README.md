@@ -24,7 +24,7 @@ Tools/Build/CheckSolidArc.sh
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 25/26/31/32/32z baseline
 fillet/chamfer proofs, the Phase 34a/34b loft+tweak proofs, the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f
 face-transform proofs, the Phase 35a–35d curved, concave-chamfer and same-body-loft proofs, and the Phase 36a–36r
-face-edit and bounded curved-root proofs. It runs 46 verifier targets and persists each target's distinct PNG where
+face-edit and bounded curved-root proofs. It runs 47 verifier targets and persists each target's distinct PNG where
 provided. No external packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
@@ -652,6 +652,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 38f | **Bounded oblique partial-edge fillet.** One strict interior interval of one explicit finite straight edge replaces the oblique corner only over `Start < t < End`; sharp corner walls remain before and after the interval, with a rational circular band, transition sectors, finite caps, and `V20/E38/F20/L20` topology. The analytic `Length * sharp wedge area − interval * removed corner area` volume, tangent distance, normals, and transactional refusals are verified. Variable radius, arbitrary edge selection, freeform supports, apexes, and healing remain refused. | `ObliquePartialEdgeFilletVerification` — 19 C++ checks; `Proofs/Phase38f_ObliquePartialEdgeFillet.png` |
 | 38g | **Bounded oblique quadratic partial-edge fillet.** The same explicit oblique frame accepts one genuinely nonlinear positive quadratic radius law over a strict interior interval, with exact station tangent distances, fixed sharp continuations, rational quadratic lofts, transition sectors, finite caps, and `V20/E38/F20/L20` topology. Integrated radius-square volume, station fit, normals, and transactional refusals are verified. Arbitrary variable-radius handling, edge selection, freeform supports, apexes, rolling-ball G2, and healing remain refused. | `ObliqueQuadraticPartialEdgeFilletVerification` — 29 C++ checks; `Proofs/Phase38g_ObliqueQuadraticPartialEdgeFillet.png` |
 | 38h | **Bounded oblique quadratic full-edge fillet.** One complete explicit finite straight edge accepts a genuinely nonlinear positive quadratic radius law over the entire edge, with exact tangent stations, fixed retained supports, rational quadratic fillet band, finite caps, and `V8/E12/F6/L6` topology. Integrated oblique removed-corner volume, outward normals, rational-band presence, and transactional refusals are verified. Partial intervals, arbitrary variable-radius handling, freeform supports, apexes, rolling-ball G2, and healing remain refused. | `ObliqueQuadraticEdgeFilletVerification` — 25 C++ checks; `Proofs/Phase38h_ObliqueQuadraticEdgeFillet.png` |
+| 38i | **Bounded rolling-ball-core G2 planar transition.** Each planar support uses a quintic zero-curvature transition into an exact rational circular core of constant radius; transition/core curvature is matched at both joins and the split sections sew as `V14/E21/F9/L9`. The profile line-integral volume, outward normals, topology, refusal boundaries, and a distinct G2/core-versus-pure-rolling proof are verified. Arbitrary B-rep rolling-ball G2, variable cores, oblique/freeform supports, apexes, edge selection, and healing remain refused. | `G2RollingBallVerification` — 29 C++ checks; `Proofs/Phase38i_G2RollingBall.png` |
 
 ## Console quick start
 
@@ -800,7 +801,7 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **74 suites** — 61 per-feature verification binaries (2,161 checks total) and 13 script smoke
+ctest now registers **75 suites** — 62 per-feature verification binaries (2,190 checks total) and 13 script smoke
 tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 

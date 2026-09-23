@@ -360,6 +360,11 @@ add_executable(ObliqueQuadraticEdgeFilletVerification Verification/ObliqueQuadra
 target_link_libraries(ObliqueQuadraticEdgeFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ObliqueQuadraticEdgeFilletVerification COMMAND ObliqueQuadraticEdgeFilletVerification)
 
+# Stage 4i: exact rolling-ball core with curvature-matched planar support transitions.
+add_executable(G2RollingBallVerification Verification/G2RollingBallVerification.cpp)
+target_link_libraries(G2RollingBallVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME G2RollingBallVerification COMMAND G2RollingBallVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
