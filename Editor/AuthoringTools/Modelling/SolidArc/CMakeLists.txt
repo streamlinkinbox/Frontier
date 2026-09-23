@@ -445,6 +445,11 @@ add_executable(UnequalConeApexFilletVerification Verification/UnequalConeApexFil
 target_link_libraries(UnequalConeApexFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME UnequalConeApexFilletVerification COMMAND UnequalConeApexFilletVerification)
 
+# Phase 38z: preserve equal coaxial cone radii while replacing their shared apex with a tangent toroidal fillet.
+add_executable(EqualRadiusBiconeApexFilletVerification Verification/EqualRadiusBiconeApexFilletVerification.cpp)
+target_link_libraries(EqualRadiusBiconeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME EqualRadiusBiconeApexFilletVerification COMMAND EqualRadiusBiconeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

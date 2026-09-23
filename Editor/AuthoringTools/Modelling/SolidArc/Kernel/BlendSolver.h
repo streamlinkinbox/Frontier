@@ -300,6 +300,17 @@ struct UnequalConeApexFilletSpecification
     double FilletRadius = 0.0;
 };
 
+// A bounded equal-radius coaxial bicone apex toroidal fillet.
+struct EqualRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+};
+
 // A bounded partial sector of the coaxial cone-apex spherical cap. Full revolution remains the
 // separate complete-apex route; arbitrary vertex/mixed-support selection is still unsupported.
 struct PartialConeApexFilletSpecification
@@ -634,6 +645,10 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexFillet(
         const UnequalConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<UnequalConeApexFilletSpecification> ClassifyUnequalConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructEqualRadiusBiconeApexFillet(
+        const EqualRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<EqualRadiusBiconeApexFilletSpecification> ClassifyEqualRadiusBiconeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
     // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
     [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(

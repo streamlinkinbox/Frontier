@@ -655,6 +655,24 @@ This does not prove equal-radius, partial, mixed cone/plane/cylinder, oblique/no
 freeform, variable-radius, arbitrary-selection, or healing apex fillets. The bounded plan is
 `docs/PLAN_UnequalConeApexFillet.md`.
 
+## Phase 38z — equal-radius coaxial bicone apex fillet (2026-09-23)
+
+This is a distinct equal-radius combination route, not a duplicate of the unequal-radius proof:
+
+- `EqualRadiusBiconeApexFilletVerification` uses a new radius-3.5, height-6/4.5 source and a
+  0.65 toroidal radius over the exact `V5/E6/C12/L4/F4` point-contact topology.
+- `ClassifyEqualRadiusBiconeApexFilletVertex` accepts equal circular rims only, derives the selected
+  apex, deterministic axis, and both support heights, and refuses unequal-radius sources.
+- `ReconstructEqualRadiusBiconeApexFillet` returns `V6/E9/C18/L5/F5` with two cones, one torus,
+  and two planar caps, validated by tangent contacts and the analytic torus-meridian volume.
+- The durable proof is `Proofs/Phase38z_EqualRadiusBiconeApexFillet.png`; 31 checks cover exact
+  equal-radius extraction, tangent contacts, metadata, normals, deterministic dispatch, source
+  immutability, and refusal boundaries.
+
+This does not prove partial, mixed cone/plane/cylinder, oblique/non-coaxial, freeform,
+variable-radius, arbitrary-selection, or healing apex fillets. The bounded plan is
+`docs/PLAN_EqualRadiusBiconeApexFillet.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

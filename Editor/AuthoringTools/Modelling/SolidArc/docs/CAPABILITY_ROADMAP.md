@@ -1352,6 +1352,23 @@ This is one full-turn coaxial unequal-radius toroidal apex fillet only. Equal-ra
 mixed, oblique, freeform, variable-radius, arbitrary-selection, and healing cases remain refused.
 Its bounded plan is `docs/PLAN_UnequalConeApexFillet.md`.
 
+#### Phase 38z: bounded equal-radius coaxial bicone apex toroidal fillet ✅
+
+The shared-apex family now also accepts one exact equal-radius combination. The classifier requires
+native point-contact `V5/E6/C12/L4/F4` topology, equal circular rim radii, one selected shared apex,
+and coaxial finite supports, while keeping the unequal-radius route separate.
+
+`ReconstructEqualRadiusBiconeApexFillet` solves the tangent torus geometry for the equal-radius
+support pair and returns a separate closed genus-zero `V6/E9/C18/L5/F5` body with two cones, one
+torus, and two planar caps. `EqualRadiusBiconeApexFilletVerification` performs 31 checks over a
+distinct radius-3.5, height-6/4.5 source and 0.65 toroidal radius, covering exact equal-radius
+extraction, tangent contacts, torus metadata, outward normals, analytic volume, source immutability,
+refusals, and `Proofs/Phase38z_EqualRadiusBiconeApexFillet.png`.
+
+This is one full-turn equal-radius coaxial combination only. Unequal radii remain on 38y, while
+partial, mixed, oblique, freeform, variable-radius, arbitrary-selection, and healing cases remain
+unsupported. Its bounded plan is `docs/PLAN_EqualRadiusBiconeApexFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
