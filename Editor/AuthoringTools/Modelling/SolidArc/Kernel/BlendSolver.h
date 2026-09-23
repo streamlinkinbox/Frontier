@@ -275,6 +275,19 @@ struct UnequalConeApexChamferSpecification
     double SetBack = 0.0;
 };
 
+// A bounded unequal-radius bicone apex chamfer with independent support set-backs.
+struct UnequalConeApexUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+};
+
 // A bounded partial sector of the coaxial cone-apex spherical cap. Full revolution remains the
 // separate complete-apex route; arbitrary vertex/mixed-support selection is still unsupported.
 struct PartialConeApexFilletSpecification
@@ -601,6 +614,11 @@ public:
     // Bounded unequal-radius bicone apex dispatch: one shared apex and two unequal coaxial cone supports.
     [[nodiscard]] static Deliver<UnequalConeApexChamferSpecification> ClassifyUnequalConeApexChamferVertex(
         const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexUnequalSetbackChamfer(
+        const UnequalConeApexUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<UnequalConeApexUnequalSetbackChamferSpecification>
+        ClassifyUnequalConeApexUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
     // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
     [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;

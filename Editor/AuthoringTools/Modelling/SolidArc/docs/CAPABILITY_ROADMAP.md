@@ -1315,6 +1315,24 @@ general mixed cone/plane/cylinder apexes, arbitrary vertex dispatch, apex fillet
 oblique/non-coaxial or freeform supports, variable-radius laws, intersection/trim/sew healing, or
 source replacement. Its bounded plan is `docs/PLAN_UnequalConeApexChamfer.md`.
 
+#### Phase 38x: bounded unequal-setback unequal-radius bicone apex chamfer ✅
+
+The unequal-radius bicone route now has one independent axial contact distance per support. The
+new classifier retains the exact native point-contact `V5/E6/C12/L4/F4` source contract while
+requiring distinct lower and upper set-backs, and it derives both contact radii independently.
+
+`ReconstructUnequalConeApexUnequalSetbackChamfer` preserves the two support frusta and inserts one
+full-turn conical bridge between the independently placed contact rings. The separate transaction
+returns the same closed genus-zero `V6/E9/C18/L5/F5` topology with three cone faces and two planar
+caps. `UnequalSetbackBiconeApexChamferVerification` performs 31 checks over a distinct radius-five /
+radius-two-and-a-half, height-seven/four source with 0.8/1.3 set-backs, including exact independent
+extraction, deterministic dispatch, contact radii, normals, three-frustum volume, immutability,
+refusals, and `Proofs/Phase38x_UnequalSetbackBiconeApexChamfer.png`.
+
+This remains a single full-turn coaxial unequal-radius route. Equal set-backs remain on Phase 38w;
+partial, mixed, oblique, freeform, variable-radius, fillet, and healing cases remain unsupported.
+Its bounded plan is `docs/PLAN_UnequalConeApexUnequalSetbackChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

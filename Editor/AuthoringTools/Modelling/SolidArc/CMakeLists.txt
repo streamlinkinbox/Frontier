@@ -435,6 +435,11 @@ add_executable(UnequalConeApexChamferVerification Verification/UnequalConeApexCh
 target_link_libraries(UnequalConeApexChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME UnequalConeApexChamferVerification COMMAND UnequalConeApexChamferVerification)
 
+# Phase 38x: preserve unequal support radii while allowing one independent axial set-back per bicone side.
+add_executable(UnequalSetbackBiconeApexChamferVerification Verification/UnequalSetbackBiconeApexChamferVerification.cpp)
+target_link_libraries(UnequalSetbackBiconeApexChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME UnequalSetbackBiconeApexChamferVerification COMMAND UnequalSetbackBiconeApexChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

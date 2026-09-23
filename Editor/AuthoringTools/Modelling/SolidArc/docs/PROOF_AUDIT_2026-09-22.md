@@ -617,6 +617,25 @@ apex fillets, partial sectors, oblique/non-coaxial or freeform supports, variabl
 intersection/trim/sew healing, arbitrary vertex selections, or source replacement. The bounded
 plan is `docs/PLAN_UnequalConeApexChamfer.md`.
 
+## Phase 38x — unequal support set-backs (2026-09-23)
+
+This is a distinct follow-on to 38w, not a renamed fixture:
+
+- `UnequalSetbackBiconeApexChamferVerification` uses a new radius-five/radius-two-and-a-half,
+  height-seven/four fixture and independent 0.8/1.3 set-backs while retaining the exact
+  point-contact `V5/E6/C12/L4/F4` source topology.
+- `ClassifyUnequalConeApexUnequalSetbackChamferVertex` reuses only the completed structural source
+  recognizer, then requires unequal finite support set-backs and validates the independent route.
+- `ReconstructUnequalConeApexUnequalSetbackChamfer` creates independently placed contact rings and
+  a single connecting conical bridge, returning `V6/E9/C18/L5/F5` with three cones and two caps.
+- The durable proof is `Proofs/Phase38x_UnequalSetbackBiconeApexChamfer.png`; the focused verifier
+  performs 31 checks over extraction, determinism, contact radii, volume, normals, immutability,
+  malformed inputs, and explicit equal-setback/equal-radius/single-support refusals.
+
+This does not prove equal-setback routes beyond 38w, mixed or partial apexes, apex fillets,
+oblique/non-coaxial or freeform supports, variable-radius laws, healing, or source replacement.
+The bounded plan is `docs/PLAN_UnequalConeApexUnequalSetbackChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
