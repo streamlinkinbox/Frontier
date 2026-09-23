@@ -1201,6 +1201,24 @@ This is not general vertex-selected apex filleting: mixed supports, partial sect
 freeform/curved roots, edge loops, healing, and source-body replacement remain unsupported. Its plan
 is `docs/PLAN_ConeApexVertexDispatch.md`.
 
+#### Phase 38r: bounded half-turn partial-cone apex vertex dispatch ✅
+
+The apex selection layer now covers one canonical closed half-turn partial cone. The classifier
+recognizes the exact `V4/E6/C12/L4/F4` native revolution/base topology, derives its unique base-center
+and axis-apex pair plus equal base-rim radius, and returns a half-turn
+`PartialConeApexFilletSpecification` only for the selected apex. The existing partial spherical-cap
+route performs the separate reconstruction transaction.
+
+`PartialConeApexVertexDispatchVerification` performs 27 checks over a distinct 5-by-7 half-turn
+source: exact base/axis/radius/height/sweep extraction, deterministic dispatch, separate
+`V6/E9/F5/L5` reconstruction, outward normals, source immutability, non-apex/full-turn/invalid/
+consuming/cylinder/malformed refusals, and `Proofs/Phase38r_PartialConeApexVertexDispatch.png`.
+
+This remains a half-turn partial-apex slice, not general partial-sector or vertex-selected apex
+filleting. Non-half-turn sectors, mixed supports, arbitrary cones, freeform/curved roots, edge loops,
+healing, and source-body replacement remain unsupported. Its plan is
+`docs/PLAN_PartialConeApexVertexDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

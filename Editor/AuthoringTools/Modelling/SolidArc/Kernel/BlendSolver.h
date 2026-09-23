@@ -552,6 +552,9 @@ public:
     // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
     [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded partial-apex dispatch: a canonical closed half-turn partial cone and its unique axis vertex only.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
         const PartialConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructQuadraticPartialEdgeFillet(

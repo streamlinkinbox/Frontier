@@ -405,6 +405,11 @@ add_executable(ConeApexVertexDispatchVerification Verification/ConeApexVertexDis
 target_link_libraries(ConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConeApexVertexDispatchVerification COMMAND ConeApexVertexDispatchVerification)
 
+# Stage 4r: bounded dispatch from the unique apex vertex of a canonical half-turn partial cone.
+add_executable(PartialConeApexVertexDispatchVerification Verification/PartialConeApexVertexDispatchVerification.cpp)
+target_link_libraries(PartialConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialConeApexVertexDispatchVerification COMMAND PartialConeApexVertexDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

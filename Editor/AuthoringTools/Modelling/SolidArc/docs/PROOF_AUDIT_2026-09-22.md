@@ -480,6 +480,24 @@ This does not prove general vertex-selected apex fillets, mixed supports, partia
 cones, freeform/curved roots, edge loops, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_ConeApexVertexDispatch.md`.
 
+## Stage 38r coverage
+
+The half-turn partial-cone apex dispatch is a distinct vertex-selection layer over the verified Stage 4d route:
+
+- `ClassifyPartialConeApexFilletVertex` accepts only a closed canonical `V4/E6/C12/L4/F4` half-turn
+  native revolution/base source and its unique axis apex vertex;
+- it derives the base-center/axis-apex pair, equal positive base-rim radius, height, and `pi` sweep,
+  validates the requested partial spherical-cap fit, and does not mutate the source;
+- `PartialConeApexVertexDispatchVerification` performs 27 checks over a distinct 5-by-7 source,
+  covering exact extraction, deterministic dispatch, separate `V6/E9/F5/L5` reconstruction, outward
+  normals, source immutability, non-apex/full-turn/invalid/consuming/cylinder/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38r_PartialConeApexVertexDispatch.png` as the distinct sharp-versus-rounded partial-apex proof.
+
+This does not prove general partial-sector or vertex-selected apex filleting, non-half-turn sectors,
+mixed supports, arbitrary cones, freeform/curved roots, edge loops, healing, or source-body replacement.
+The bounded plan is `docs/PLAN_PartialConeApexVertexDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

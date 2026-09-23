@@ -7216,6 +7216,89 @@ Deliver<ConeApexFilletSpecification> BlendSolver::ClassifyConeApexFilletVertex(
     return Deliver<ConeApexFilletSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<PartialConeApexFilletSpecification> BlendSolver::ClassifyPartialConeApexFilletVertex(
+    const BrepBody& Body, int Vertex, double FilletRadius) noexcept
+{
+    if (!std::isfinite(FilletRadius) || FilletRadius <= ScalarCriteria::MergeTolerance)
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                    "partial cone-apex vertex fillet radius must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Body.Vertices.size() != 4 || Body.Edges.size() != 6 || Body.Coedges.size() != 12 ||
+        Body.Loops.size() != 4 || Body.Faces.size() != 4)
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::NonManifold,
+                                                                    "source is not the bounded canonical half-turn partial cone topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected partial cone-apex vertex is out of range");
+    int RevolutionFaces = 0, PlaneFaces = 0;
+    for (const BrepFace& Face : Body.Faces)
+    {
+        if (Face.Loops.size() != 1) return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                                  "partial cone face loops are outside the bounded route");
+        if (Face.Surface.Classification == SurfaceClassification::Revolution) ++RevolutionFaces;
+        else if (Face.Surface.Classification == SurfaceClassification::Plane) ++PlaneFaces;
+        else return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                          "source is not a bounded partial cone surface set");
+    }
+    if (RevolutionFaces != 3 || PlaneFaces != 1)
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "source does not have three partial cone revolutions and one base plane");
+
+    int BaseVertex = -1, Apex = -1, RimA = -1, RimB = -1;
+    Vec3 Base{}, Axis{};
+    double Height = 0.0, BaseRadius = 0.0;
+    for (int CandidateBase = 0; CandidateBase < static_cast<int>(Body.Vertices.size()); ++CandidateBase)
+    {
+        for (int CandidateApex = 0; CandidateApex < static_cast<int>(Body.Vertices.size()); ++CandidateApex)
+        {
+            if (CandidateBase == CandidateApex) continue;
+            const Vec3 Delta = Body.Vertices[CandidateApex].Point - Body.Vertices[CandidateBase].Point;
+            const double CandidateHeight = Delta.Length();
+            if (CandidateHeight <= ScalarCriteria::MergeTolerance) continue;
+            const Vec3 CandidateAxis = Delta / CandidateHeight;
+            int FirstRim = -1, SecondRim = -1; double Radius = 0.0; bool Valid = true;
+            for (int Other = 0; Other < static_cast<int>(Body.Vertices.size()); ++Other)
+            {
+                if (Other == CandidateBase || Other == CandidateApex) continue;
+                const Vec3 FromBase = Body.Vertices[Other].Point - Body.Vertices[CandidateBase].Point;
+                const double Along = FromBase.Dot(CandidateAxis);
+                const Vec3 Radial = FromBase - CandidateAxis * Along;
+                if (std::fabs(Along) > ScalarCriteria::GeometricTolerance * std::max(1.0, CandidateHeight) ||
+                    Radial.Length() <= ScalarCriteria::MergeTolerance)
+                { Valid = false; break; }
+                if (FirstRim < 0) { FirstRim = Other; Radius = Radial.Length(); }
+                else { SecondRim = Other; if (std::fabs(Radial.Length() - Radius) > ScalarCriteria::GeometricTolerance * std::max(1.0, Radius)) Valid = false; }
+            }
+            if (!Valid || FirstRim < 0 || SecondRim < 0 || Radius <= ScalarCriteria::MergeTolerance) continue;
+            const Vec3 R0 = (Body.Vertices[FirstRim].Point - Body.Vertices[CandidateBase].Point).Normalised();
+            const Vec3 R1 = (Body.Vertices[SecondRim].Point - Body.Vertices[CandidateBase].Point).Normalised();
+            const double Sweep = std::acos(ScalarCriteria::Clamp(R0.Dot(R1), -1.0, 1.0));
+            if (std::fabs(Sweep - ScalarCriteria::Pi) > ScalarCriteria::AngularTolerance) continue;
+            if (BaseVertex >= 0) return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                               "partial cone has multiple half-turn apex frames");
+            BaseVertex = CandidateBase; Apex = CandidateApex; RimA = FirstRim; RimB = SecondRim;
+            Base = Body.Vertices[CandidateBase].Point; Axis = CandidateAxis; Height = CandidateHeight; BaseRadius = Radius;
+        }
+    }
+    if (BaseVertex < 0 || Apex < 0 || Vertex != Apex)
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected vertex is not the unique half-turn partial-cone apex");
+    if (RimA < 0 || RimB < 0 || BaseRadius <= ScalarCriteria::MergeTolerance)
+        return Deliver<PartialConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "partial cone base rim is not a positive equal-radius pair");
+    PartialConeApexFilletSpecification Specification;
+    Specification.Base = Base;
+    Specification.Axis = Axis;
+    Specification.BaseRadius = BaseRadius;
+    Specification.Height = Height;
+    Specification.FilletRadius = FilletRadius;
+    Specification.SweepAngle = ScalarCriteria::Pi;
+    const Deliver<BrepBody> Feasible = ReconstructPartialConeApexFillet(Specification);
+    if (!Feasible) return Deliver<PartialConeApexFilletSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<PartialConeApexFilletSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructPartialConeApexFillet(
     const PartialConeApexFilletSpecification& Specification) noexcept
 {
