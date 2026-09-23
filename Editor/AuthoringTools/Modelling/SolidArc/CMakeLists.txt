@@ -410,6 +410,11 @@ add_executable(PartialConeApexVertexDispatchVerification Verification/PartialCon
 target_link_libraries(PartialConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialConeApexVertexDispatchVerification COMMAND PartialConeApexVertexDispatchVerification)
 
+# Stage 4s: bounded dispatch from the unique apex vertex of a canonical non-reflex partial-cone revolve.
+add_executable(GeneralPartialConeApexVertexDispatchVerification Verification/GeneralPartialConeApexVertexDispatchVerification.cpp)
+target_link_libraries(GeneralPartialConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME GeneralPartialConeApexVertexDispatchVerification COMMAND GeneralPartialConeApexVertexDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

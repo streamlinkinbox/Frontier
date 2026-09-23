@@ -555,6 +555,9 @@ public:
     // Bounded partial-apex dispatch: a canonical closed half-turn partial cone and its unique axis vertex only.
     [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyPartialConeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded non-reflex general-angle extension: exact native partial-revolve surface topology only; half-turns use the route above.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyGeneralPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
         const PartialConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructQuadraticPartialEdgeFillet(
