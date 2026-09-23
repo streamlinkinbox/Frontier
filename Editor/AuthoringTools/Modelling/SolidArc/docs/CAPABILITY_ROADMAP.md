@@ -1130,6 +1130,24 @@ This remains bounded dispatch, not arbitrary B-rep rolling-ball G2: edge loops, 
 replacement, healing, curved/freeform supports, unequal widths, oblique dispatch, and arbitrary
 selected-edge routes remain unsupported. Its plan is `docs/PLAN_EligibleG2EdgeDispatch.md`.
 
+#### Phase 38n: bounded eligible-edge dispatch for oblique G2 reconstruction ✅
+
+The selection layer now covers one strict non-orthogonal rectangular prism corner without broadening
+into arbitrary B-rep filleting. A straight manifold edge shared by two planar rectangular faces is
+classified from its topology and vertices; finite support widths may be unequal, and deterministic
+orientation returns the existing `ObliqueG2RollingBallPlanarCornerSpecification` with its exact
+interior angle, edge length, radius, and transition angle.
+
+`EligibleObliqueG2EdgeDispatchVerification` performs 23 checks over a six-vertex triangular-prism
+source: exact `60°` frame and `8/6/5` dimensions, deterministic orientation, separate
+`V12/E18/F8/L8` reconstruction, outward normals, source immutability, and orthogonal/curved/
+non-manifold/out-of-range/consuming-radius/invalid-transition refusals. The distinct proof is
+`Proofs/Phase38n_EligibleObliqueG2EdgeDispatch.png`.
+
+This remains bounded dispatch, not arbitrary oblique B-rep G2: edge loops, source-body replacement,
+healing, curved/freeform supports, invalid corners, and arbitrary selected-edge routes remain
+unsupported. Its plan is `docs/PLAN_EligibleObliqueG2EdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

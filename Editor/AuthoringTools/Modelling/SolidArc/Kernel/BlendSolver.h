@@ -594,6 +594,10 @@ public:
     // equal finite support widths, and valid profile inputs. Returns the explicit G2 specification without mutating Body.
     [[nodiscard]] static Deliver<G2RollingBallPlanarCornerSpecification> ClassifyG2RollingBallEdge(
         const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
+    // Bounded oblique application dispatch: the same source restrictions with a strict non-orthogonal corner and
+    // independently extracted finite support widths. Returns the explicit oblique G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<ObliqueG2RollingBallPlanarCornerSpecification> ClassifyObliqueG2RollingBallEdge(
+        const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
