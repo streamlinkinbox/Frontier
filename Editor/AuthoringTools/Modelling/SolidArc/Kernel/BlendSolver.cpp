@@ -7438,6 +7438,258 @@ Deliver<PartialConeApexChamferSpecification> BlendSolver::ClassifyPartialConeApe
     return Deliver<PartialConeApexChamferSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructUnequalConeApexChamfer(
+    const UnequalConeApexChamferSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Apex.X) || !std::isfinite(Specification.Apex.Y) ||
+        !std::isfinite(Specification.Apex.Z) || !std::isfinite(Specification.LowerRadius) ||
+        !std::isfinite(Specification.UpperRadius) || !std::isfinite(Specification.LowerHeight) ||
+        !std::isfinite(Specification.UpperHeight) || !std::isfinite(Specification.SetBack) ||
+        Specification.LowerRadius <= Tol || Specification.UpperRadius <= Tol ||
+        Specification.LowerHeight <= Tol || Specification.UpperHeight <= Tol || Specification.SetBack <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone apex dimensions must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "unequal bicone apex axis is degenerate");
+    const double RadiusScale = std::max({ 1.0, Specification.LowerRadius, Specification.UpperRadius });
+    if (std::fabs(Specification.LowerRadius - Specification.UpperRadius) <=
+        ScalarCriteria::GeometricTolerance * RadiusScale)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone apex route requires distinct support radii");
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const Vec3 Apex = Specification.Apex;
+    const double LowerHeight = Specification.LowerHeight;
+    const double UpperHeight = Specification.UpperHeight;
+    const double SetBack = Specification.SetBack;
+    if (SetBack >= std::min(LowerHeight, UpperHeight) - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "unequal bicone apex set-back consumes one conical support");
+    const Vec3 Radial = Workplane::FromNormal(Apex, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone apex radial frame is degenerate");
+    const Vec3 LowerBase = Apex - Axis * LowerHeight;
+    const Vec3 UpperBase = Apex + Axis * UpperHeight;
+    const Vec3 LowerContact = Apex - Axis * SetBack;
+    const Vec3 UpperContact = Apex + Axis * SetBack;
+    const double LowerContactRadius = Specification.LowerRadius * SetBack / LowerHeight;
+    const double UpperContactRadius = Specification.UpperRadius * SetBack / UpperHeight;
+    if (LowerContactRadius <= Tol || UpperContactRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone apex chamfer contact ring is degenerate");
+
+    auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+    {
+        Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+        return Line ? NurbsSurface::Revolution(Line.Payload, Apex, Axis, ScalarCriteria::TwoPi)
+                    : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+    };
+    Deliver<NurbsSurface> Lower = RevolveLine(LowerBase + Radial * Specification.LowerRadius,
+                                               LowerContact + Radial * LowerContactRadius);
+    Deliver<NurbsSurface> Chamfer = RevolveLine(LowerContact + Radial * LowerContactRadius,
+                                                UpperContact + Radial * UpperContactRadius);
+    Deliver<NurbsSurface> Upper = RevolveLine(UpperContact + Radial * UpperContactRadius,
+                                               UpperBase + Radial * Specification.UpperRadius);
+    Deliver<NurbsSurface> LowerDisk = RevolveLine(LowerBase, LowerBase + Radial * Specification.LowerRadius);
+    Deliver<NurbsSurface> UpperDisk = RevolveLine(UpperBase, UpperBase + Radial * Specification.UpperRadius);
+    if (!Lower || !Chamfer || !Upper || !LowerDisk || !UpperDisk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "unequal bicone apex chamfer surfaces are degenerate");
+
+    Lower.Payload.Classification = SurfaceClassification::Cone;
+    Lower.Payload.Origin = LowerBase; Lower.Payload.Axis = Axis;
+    Lower.Payload.RadiusMajor = Specification.LowerRadius;
+    Lower.Payload.RadiusMinor = LowerContactRadius;
+    Lower.Payload.HalfAngle = std::atan2(Specification.LowerRadius - LowerContactRadius,
+                                         LowerHeight - SetBack);
+    Chamfer.Payload.Classification = SurfaceClassification::Cone;
+    Chamfer.Payload.Origin = LowerContact; Chamfer.Payload.Axis = Axis;
+    Chamfer.Payload.RadiusMajor = LowerContactRadius;
+    Chamfer.Payload.RadiusMinor = UpperContactRadius;
+    Chamfer.Payload.HalfAngle = std::atan2(UpperContactRadius - LowerContactRadius, 2.0 * SetBack);
+    Upper.Payload.Classification = SurfaceClassification::Cone;
+    Upper.Payload.Origin = UpperContact; Upper.Payload.Axis = Axis;
+    Upper.Payload.RadiusMajor = UpperContactRadius;
+    Upper.Payload.RadiusMinor = Specification.UpperRadius;
+    Upper.Payload.HalfAngle = std::atan2(Specification.UpperRadius - UpperContactRadius,
+                                         UpperHeight - SetBack);
+    LowerDisk.Payload.Classification = SurfaceClassification::Plane;
+    LowerDisk.Payload.Origin = LowerBase; LowerDisk.Payload.Axis = Axis;
+    UpperDisk.Payload.Classification = SurfaceClassification::Plane;
+    UpperDisk.Payload.Origin = UpperBase; UpperDisk.Payload.Axis = Axis;
+
+    Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Chamfer.Payload, Upper.Payload,
+                                                LowerDisk.Payload, UpperDisk.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "unequal bicone apex chamfer surfaces could not be sewn");
+    const BodyReport Report = Result.Payload.Validate();
+    const double LowerRetained = LowerHeight - SetBack;
+    const double UpperRetained = UpperHeight - SetBack;
+    const double ExpectedVolume = ScalarCriteria::Pi * LowerRetained *
+        (Specification.LowerRadius * Specification.LowerRadius +
+         Specification.LowerRadius * LowerContactRadius + LowerContactRadius * LowerContactRadius) / 3.0 +
+        ScalarCriteria::Pi * (2.0 * SetBack) *
+        (LowerContactRadius * LowerContactRadius + LowerContactRadius * UpperContactRadius +
+         UpperContactRadius * UpperContactRadius) / 3.0 +
+        ScalarCriteria::Pi * UpperRetained *
+        (UpperContactRadius * UpperContactRadius + UpperContactRadius * Specification.UpperRadius +
+         Specification.UpperRadius * Specification.UpperRadius) / 3.0;
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 6 || Result.Payload.Edges.size() != 9 ||
+        Result.Payload.Coedges.size() != 18 || Result.Payload.Loops.size() != 5 ||
+        Result.Payload.Faces.size() != 5)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "unequal bicone apex chamfer did not reach V6/E9/C18/L5/F5 topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "unequal bicone apex chamfer volume failed analytic acceptance");
+    return Result;
+}
+
+Deliver<UnequalConeApexChamferSpecification> BlendSolver::ClassifyUnequalConeApexChamferVertex(
+    const BrepBody& Body, int Vertex, double SetBack) noexcept
+{
+    if (!std::isfinite(SetBack) || SetBack <= ScalarCriteria::MergeTolerance)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                      "unequal bicone apex set-back must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 2 || Report.Genus != 1 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Body.Vertices.size() != 5 || Body.Edges.size() != 6 || Body.Coedges.size() != 12 ||
+        Body.Loops.size() != 4 || Body.Faces.size() != 4)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::NonManifold,
+                                                                      "source is not the canonical unequal bicone apex topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "selected unequal bicone apex vertex is out of range");
+    for (const BrepFace& Face : Body.Faces)
+        if (Face.Loops.size() != 1 || Face.Surface.Classification != SurfaceClassification::Revolution)
+            return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                          "source is not the exact native unequal bicone revolve set");
+
+    std::vector<int> RimEdges, LineEdges;
+    for (const BrepEdge& EdgeData : Body.Edges)
+    {
+        if (EdgeData.Coedges.size() != 2) return Deliver<UnequalConeApexChamferSpecification>::Reject(
+            RefusalReason::NonManifold, "unequal bicone edge is not manifold");
+        if (EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Circle &&
+            EdgeData.Curve.Degree == 2 && EdgeData.Curve.Rational()) RimEdges.push_back(&EdgeData - Body.Edges.data());
+        else if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Line &&
+                 EdgeData.Curve.Degree == 1) LineEdges.push_back(&EdgeData - Body.Edges.data());
+        else return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                            "native unequal bicone has unsupported edge geometry");
+    }
+    if (RimEdges.size() != 2 || LineEdges.size() != 4)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "native unequal bicone does not have two rims and four generator lines");
+    const int RimA = RimEdges[0], RimB = RimEdges[1];
+    const int RimVertexA = Body.Edges[RimA].VertexStart, RimVertexB = Body.Edges[RimB].VertexStart;
+    int Apex = -1;
+    for (int Candidate = 0; Candidate < static_cast<int>(Body.Vertices.size()); ++Candidate)
+    {
+        if (Candidate == RimVertexA || Candidate == RimVertexB) continue;
+        bool ToA = false, ToB = false;
+        for (int Edge : LineEdges)
+        {
+            const BrepEdge& Data = Body.Edges[Edge];
+            const int Other = Data.VertexStart == Candidate ? Data.VertexEnd :
+                              (Data.VertexEnd == Candidate ? Data.VertexStart : -1);
+            if (Other == RimVertexA) ToA = true;
+            if (Other == RimVertexB) ToB = true;
+        }
+        if (ToA && ToB)
+        {
+            if (Apex >= 0) return Deliver<UnequalConeApexChamferSpecification>::Reject(
+                RefusalReason::Unsupported, "native unequal bicone has multiple shared apex vertices");
+            Apex = Candidate;
+        }
+    }
+    if (Apex < 0 || Vertex != Apex)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "selected vertex is not the unique unequal bicone apex");
+
+    struct RimGeometry { Vec3 Centre, Normal; double Radius = 0.0; int Edge = -1; int ConeFace = -1; int PlaneFace = -1; };
+    RimGeometry Geometry[2]{};
+    for (int K = 0; K < 2; ++K)
+    {
+        Geometry[K].Edge = RimEdges[K];
+        if (!CircularFrame(Body.Edges[Geometry[K].Edge].Curve, Geometry[K].Centre,
+                           Geometry[K].Normal, Geometry[K].Radius))
+            return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                           "native unequal bicone rim is not circular");
+        for (size_t F = 0; F < Body.Faces.size(); ++F)
+        {
+            bool UsesRim = false, UsesApexLine = false;
+            for (int Loop : Body.Faces[F].Loops)
+                for (int Coedge : Body.Loops[Loop].Coedges)
+                {
+                    const int Edge = Body.Coedges[Coedge].Edge;
+                    if (Edge == Geometry[K].Edge) UsesRim = true;
+                    if (Edge >= 0 && Edge < static_cast<int>(Body.Edges.size()) &&
+                        std::find(LineEdges.begin(), LineEdges.end(), Edge) != LineEdges.end())
+                    {
+                        const BrepEdge& Data = Body.Edges[Edge];
+                        if (Data.VertexStart == Apex || Data.VertexEnd == Apex) UsesApexLine = true;
+                    }
+                }
+            if (!UsesRim) continue;
+            if (UsesApexLine) Geometry[K].ConeFace = static_cast<int>(F);
+            else Geometry[K].PlaneFace = static_cast<int>(F);
+        }
+        if (Geometry[K].ConeFace < 0 || Geometry[K].PlaneFace < 0)
+            return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                           "native unequal bicone support pair is incomplete");
+        Vec3 PlaneNormal;
+        if (!PlanarNormal(Body, Geometry[K].PlaneFace, PlaneNormal))
+            return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                           "native unequal bicone cap is not planar");
+    }
+    if (Geometry[0].Radius <= Tol || Geometry[1].Radius <= Tol)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "native unequal bicone rim radius is not positive");
+    const double RadiusScale = std::max({ 1.0, Geometry[0].Radius, Geometry[1].Radius });
+    if (std::fabs(Geometry[0].Radius - Geometry[1].Radius) <=
+        ScalarCriteria::GeometricTolerance * RadiusScale)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "apex combination has equal rather than unequal radii");
+    Vec3 Axis = (Geometry[1].Centre - Geometry[0].Centre).Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                      "unequal bicone support axis is degenerate");
+    if ((std::fabs(Axis.X) > ScalarCriteria::GeometricTolerance && Axis.X < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) > ScalarCriteria::GeometricTolerance && Axis.Y < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) <= ScalarCriteria::GeometricTolerance && Axis.Z < 0.0)) Axis = -Axis;
+    for (const RimGeometry& G : Geometry)
+    {
+        if (std::fabs(std::fabs(G.Normal.Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance ||
+            (G.Centre - Body.Vertices[Apex].Point - Axis * (G.Centre - Body.Vertices[Apex].Point).Dot(Axis)).Length() >
+                ScalarCriteria::GeometricTolerance * std::max(1.0, G.Centre.Distance(Body.Vertices[Apex].Point)))
+            return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                           "native unequal bicone rims are not coaxial with the apex");
+    }
+    if ((Geometry[0].Centre - Geometry[1].Centre).Dot(Axis) > 0.0) std::swap(Geometry[0], Geometry[1]);
+    const Vec3 ApexPoint = Body.Vertices[Apex].Point;
+    const double LowerHeight = ApexPoint.Distance(Geometry[0].Centre);
+    const double UpperHeight = ApexPoint.Distance(Geometry[1].Centre);
+    if (LowerHeight <= Tol || UpperHeight <= Tol)
+        return Deliver<UnequalConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                      "native unequal bicone height is degenerate");
+    UnequalConeApexChamferSpecification Specification;
+    Specification.Apex = ApexPoint;
+    Specification.Axis = Axis;
+    Specification.LowerRadius = Geometry[0].Radius;
+    Specification.UpperRadius = Geometry[1].Radius;
+    Specification.LowerHeight = LowerHeight;
+    Specification.UpperHeight = UpperHeight;
+    Specification.SetBack = SetBack;
+    const Deliver<BrepBody> Feasible = ReconstructUnequalConeApexChamfer(Specification);
+    if (!Feasible) return Deliver<UnequalConeApexChamferSpecification>::Reject(Feasible.Denial.Reason,
+                                                                                  Feasible.Denial.Detail);
+    return Deliver<UnequalConeApexChamferSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||

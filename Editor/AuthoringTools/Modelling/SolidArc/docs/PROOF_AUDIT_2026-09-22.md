@@ -594,6 +594,29 @@ freeform apexes, or general intersection/trim/sew healing. The bounded plan is
 5. Non-coaxial/oblique/freeform supports, arbitrary curved edge loops, corner patches, and
    general intersection/trim/sew healing.
 
+## Phase 38w — unequal-radius apex combination (2026-09-23)
+
+This phase adds one distinct unequal-radius route rather than broad mixed-apex support:
+
+- `UnequalConeApexChamferVerification` constructs a new point-contact coaxial bicone source with
+  lower radius 4 and upper radius 3, lower/upper heights 6/5, and exact `V5/E6/C12/L4/F4`
+  topology. It does not reuse the complete-cone or partial-cone apex fixtures.
+- `ClassifyUnequalConeApexChamferVertex` accepts only the unique shared apex of that exact native
+  two-cone/two-planar-cap revolution set. The source report is intentionally `Hulls == 2` and
+  `Genus == 1` because the two closed supports meet at one point; the route converts it into one
+  genus-zero output rather than pretending the source is a general one-hull B-rep.
+- `ReconstructUnequalConeApexChamfer` inserts a single full-turn conical bridge between unequal
+  contact rings and returns `V6/E9/C18/L5/F5`, with three analytic cones and two planar caps.
+- The proof is `Proofs/Phase38w_UnequalConeApexChamfer.png`, a new sharp-source versus unequal
+  conical-cap comparison. The verifier checks exact radii/heights/axis extraction, deterministic
+  dispatch, refusal and malformed-input boundaries, source immutability, contact radii, outward
+  normals, and the three-frustum volume.
+
+This is not proof of equal-radius combinations, arbitrary mixed cone/plane/cylinder apexes,
+apex fillets, partial sectors, oblique/non-coaxial or freeform supports, variable-radius laws,
+intersection/trim/sew healing, arbitrary vertex selections, or source replacement. The bounded
+plan is `docs/PLAN_UnequalConeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

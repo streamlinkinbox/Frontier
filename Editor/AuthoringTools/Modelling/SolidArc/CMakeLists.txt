@@ -430,6 +430,11 @@ add_executable(PartialConeApexVertexChamferVerification Verification/PartialCone
 target_link_libraries(PartialConeApexVertexChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialConeApexVertexChamferVerification COMMAND PartialConeApexVertexChamferVerification)
 
+# Phase 38w: preserve one exact unequal-radius coaxial bicone apex combination with a conical chamfer bridge.
+add_executable(UnequalConeApexChamferVerification Verification/UnequalConeApexChamferVerification.cpp)
+target_link_libraries(UnequalConeApexChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME UnequalConeApexChamferVerification COMMAND UnequalConeApexChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

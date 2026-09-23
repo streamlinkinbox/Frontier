@@ -1294,6 +1294,27 @@ vertex-selected chamfers, mixed cone/plane/cylinder supports, freeform apexes, o
 Its plan is `docs/PLAN_PartialConeApexVertexChamfer.md`. The 120-degree fixture and planar-cap proof
 are distinct from the existing complete-cone and partial-cone spherical-filleting proofs.
 
+#### Phase 38w: bounded unequal-radius coaxial bicone apex chamfer ✅
+
+The apex layer now accepts one exact unequal-radius shared-apex combination: two closed coaxial
+right-circular cone supports with distinct radii and a selected common apex. The structural route
+requires the native point-contact `V5/E6/C12/L4/F4` source made from two cone sides and two planar
+base caps, derives the deterministic axis, lower/upper radii and heights, and refuses equal-radius,
+non-coaxial, partial, mixed, freeform, variable-radius, and healing inputs.
+
+`ReconstructUnequalConeApexChamfer` retains the two support frusta and inserts one analytic
+full-turn conical bridge between the unequal contact rings. The separate transaction produces a
+single closed genus-zero `V6/E9/C18/L5/F5` body with three cone faces and two planar caps.
+`UnequalConeApexChamferVerification` performs 33 checks over a distinct six-by-five, radius-four /
+radius-three source, including exact dispatch extraction, deterministic classification, source
+immutability, refusal boundaries, exact contact radii, outward normals, analytic three-frustum
+volume, and `Proofs/Phase38w_UnequalConeApexChamfer.png`.
+
+This is one bounded unequal-radius apex chamfer only. It does not prove equal-radius combinations,
+general mixed cone/plane/cylinder apexes, arbitrary vertex dispatch, apex fillets, partial sectors,
+oblique/non-coaxial or freeform supports, variable-radius laws, intersection/trim/sew healing, or
+source replacement. Its bounded plan is `docs/PLAN_UnequalConeApexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
