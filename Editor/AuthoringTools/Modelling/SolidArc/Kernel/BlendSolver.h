@@ -602,6 +602,12 @@ public:
     // genuinely nonlinear quadratic radius law. Returns the explicit variable G2 specification without mutating Body.
     [[nodiscard]] static Deliver<VariableG2RollingBallPlanarCornerSpecification> ClassifyVariableG2RollingBallEdge(
         const BrepBody& Body, int Edge, const QuadraticRadiusLaw& RadiusLaw, double TransitionAngle) noexcept;
+    // Bounded oblique nonlinear application dispatch: the Stage 4n oblique eligibility route plus one positive,
+    // genuinely nonlinear quadratic radius law. Returns the explicit oblique variable G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<ObliqueVariableG2RollingBallPlanarCornerSpecification>
+        ClassifyObliqueVariableG2RollingBallEdge(const BrepBody& Body, int Edge,
+                                                  const QuadraticRadiusLaw& RadiusLaw,
+                                                  double TransitionAngle) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
