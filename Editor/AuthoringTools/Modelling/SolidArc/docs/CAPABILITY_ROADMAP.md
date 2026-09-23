@@ -1274,6 +1274,26 @@ This is an axial chamfer of one native cone apex only, not a general vertex-sele
 apex support, arbitrary cone/frustum editing, freeform/curved support, edge-loop healing, or source
 replacement. Its plan is `docs/PLAN_ConeApexVertexChamfer.md`.
 
+#### Phase 38v: bounded native partial-cone apex vertex chamfer ✅
+
+The apex-chamfer layer now accepts the exact native partial-cone revolve topology `V4/E6/C8/L3/F3`
+and its unique axis apex. `ClassifyPartialConeApexChamferVertex` unwraps the rational circular
+base-rim curve and retains the actual native sweep for every strict partial sector, including
+non-reflex, half-turn, and reflex sectors. It derives the base, normalized axis, positive base
+radius, and height, and accepts only a finite positive axial set-back below the height.
+
+`ReconstructPartialConeApexChamfer` replaces the apex with a planar cap and preserves the angular
+sector. The separate transaction returns a closed `V6/E9/C18/L5/F5` partial frustum with two radial
+caps. `PartialConeApexVertexChamferVerification` performs 29 checks over a distinct 120-degree
+5-by-7 source: exact base/axis/radius/height/sweep/set-back extraction, deterministic dispatch,
+exact frustum radii, sector volume, outward normals, source immutability, non-apex/invalid/full-turn/
+cylinder/malformed refusals, and `Proofs/Phase38v_PartialConeApexVertexChamfer.png`.
+
+This remains bounded to native partial-revolve cones and planar axial apex caps, not arbitrary
+vertex-selected chamfers, mixed cone/plane/cylinder supports, freeform apexes, or general healing.
+Its plan is `docs/PLAN_PartialConeApexVertexChamfer.md`. The 120-degree fixture and planar-cap proof
+are distinct from the existing complete-cone and partial-cone spherical-filleting proofs.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

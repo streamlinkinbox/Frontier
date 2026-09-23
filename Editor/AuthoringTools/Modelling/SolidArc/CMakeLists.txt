@@ -425,6 +425,11 @@ add_executable(ConeApexChamferVerification Verification/ConeApexChamferVerificat
 target_link_libraries(ConeApexChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConeApexChamferVerification COMMAND ConeApexChamferVerification)
 
+# Stage 4v: bounded dispatch from the unique apex vertex of a canonical native partial cone to an exact planar cap.
+add_executable(PartialConeApexVertexChamferVerification Verification/PartialConeApexVertexChamferVerification.cpp)
+target_link_libraries(PartialConeApexVertexChamferVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialConeApexVertexChamferVerification COMMAND PartialConeApexVertexChamferVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)
