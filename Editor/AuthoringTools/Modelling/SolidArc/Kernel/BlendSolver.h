@@ -590,6 +590,10 @@ public:
         const VariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueVariableG2RollingBallPlanarCorner(
         const ObliqueVariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    // Bounded application dispatch: one straight manifold edge, two planar rectangular faces, strict orthogonal corner,
+    // equal finite support widths, and valid profile inputs. Returns the explicit G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<G2RollingBallPlanarCornerSpecification> ClassifyG2RollingBallEdge(
+        const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,

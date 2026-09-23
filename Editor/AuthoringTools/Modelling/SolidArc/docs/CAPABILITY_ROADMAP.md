@@ -1110,6 +1110,26 @@ Freeform or mixed supports, arbitrary edge selection, variable-radius apexes, pu
 G2-to-plane contacts, and healing remain unsupported. Its plan is
 `docs/PLAN_ObliqueVariableG2RollingBall.md`.
 
+#### Phase 38m: bounded eligible-edge dispatch for G2 reconstruction ✅
+
+The selected-edge layer now accepts one explicit edge from an existing B-rep only when it is
+straight and manifold, its two adjacent faces are planar rectangles, and the interior corner is
+strictly orthogonal. Adjacent face vertices provide finite positive support widths; unequal widths,
+curved or non-rectangular supports, and oblique parallelogram supports refuse because the existing
+G2 specification has one common width parameter.
+
+`ClassifyG2RollingBallEdge` validates the radius and transition angle, deterministically orients the
+support vectors, and returns the already-verified `G2RollingBallPlanarCornerSpecification`. It does
+not mutate the source; reconstruction remains a separate transactional call. The distinct
+`EligibleG2EdgeDispatchVerification` performs 21 checks for discovery, exact length/width/radius
+extraction, `V14/E21/F9/L9` reconstruction, outward normals, source immutability, consuming-radius
+and invalid-transition refusals, curved/unequal-width/non-manifold refusals, and an oblique/parallelogram refusal.
+The proof is `Proofs/Phase38m_EligibleG2EdgeDispatch.png`.
+
+This remains bounded dispatch, not arbitrary B-rep rolling-ball G2: edge loops, source-body
+replacement, healing, curved/freeform supports, unequal widths, oblique dispatch, and arbitrary
+selected-edge routes remain unsupported. Its plan is `docs/PLAN_EligibleG2EdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

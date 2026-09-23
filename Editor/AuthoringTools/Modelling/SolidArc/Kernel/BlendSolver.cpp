@@ -8577,6 +8577,115 @@ Deliver<BrepBody> BlendSolver::ReconstructObliqueVariableG2RollingBallPlanarCorn
     return Result;
 }
 
+Deliver<G2RollingBallPlanarCornerSpecification> BlendSolver::ClassifyG2RollingBallEdge(
+    const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept
+{
+    if (!std::isfinite(Radius) || Radius <= ScalarCriteria::MergeTolerance ||
+        !std::isfinite(TransitionAngle) || TransitionAngle <= 0.0)
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                         "selected G2 edge radius or transition is invalid");
+    const BodyReport BodyReportValue = Body.Validate();
+    if (!BodyReportValue.Solid())
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::NonManifold,
+                                                                         "selected G2 source is not a closed manifold B-rep");
+    EdgeCornerFrame FrameResult;
+    std::string Refusal;
+    if (!Frame(Body, Edge, FrameResult, Refusal))
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                         "selected edge is outside the bounded G2 dispatch");
+    if (std::fabs(FrameResult.Dihedral - ScalarCriteria::HalfPi) > ScalarCriteria::AngularTolerance)
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                         "selected edge is not a strict orthogonal corner");
+    const auto IsRectangularPlanarFace = [&](int Face) noexcept
+    {
+        if (Face < 0 || Face >= static_cast<int>(Body.Faces.size()) || Body.Faces[Face].Loops.size() != 1)
+            return false;
+        const int Loop = Body.Faces[Face].Loops.front();
+        if (Loop < 0 || Loop >= static_cast<int>(Body.Loops.size()) || Body.Loops[Loop].Coedges.size() != 4)
+            return false;
+        std::vector<int> Boundary;
+        Boundary.reserve(4);
+        int PreviousEnd = -1;
+        for (int Coedge : Body.Loops[Loop].Coedges)
+        {
+            if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return false;
+            const BrepCoedge& Use = Body.Coedges[Coedge];
+            if (Use.Edge < 0 || Use.Edge >= static_cast<int>(Body.Edges.size())) return false;
+            const BrepEdge& BoundaryEdge = Body.Edges[Use.Edge];
+            if (BoundaryEdge.Closed() || BoundaryEdge.Curve.Classification != CurveClassification::Line) return false;
+            const int Start = Use.Reversed ? BoundaryEdge.VertexEnd : BoundaryEdge.VertexStart;
+            const int End = Use.Reversed ? BoundaryEdge.VertexStart : BoundaryEdge.VertexEnd;
+            if (Start < 0 || Start >= static_cast<int>(Body.Vertices.size()) ||
+                End < 0 || End >= static_cast<int>(Body.Vertices.size())) return false;
+            if (PreviousEnd >= 0 && PreviousEnd != Start) return false;
+            Boundary.push_back(Start);
+            PreviousEnd = End;
+            if (Boundary.size() == 4 && End != Boundary.front()) return false;
+        }
+        for (size_t I = 0; I < Boundary.size(); ++I)
+        {
+            const Vec3 Here = Body.Vertices[Boundary[I]].Point;
+            const Vec3 Previous = Body.Vertices[Boundary[(I + 3) % 4]].Point - Here;
+            const Vec3 Next = Body.Vertices[Boundary[(I + 1) % 4]].Point - Here;
+            if (Previous.Length() <= ScalarCriteria::MergeTolerance || Next.Length() <= ScalarCriteria::MergeTolerance ||
+                std::fabs(Previous.Normalised().Dot(Next.Normalised())) > ScalarCriteria::AngularTolerance)
+                return false;
+        }
+        return true;
+    };
+    if (!IsRectangularPlanarFace(FrameResult.FaceA) || !IsRectangularPlanarFace(FrameResult.FaceB))
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                         "selected corner faces are not planar rectangles");
+    const auto FaceWidth = [&](int Face, const Vec3& Direction) noexcept
+    {
+        if (Face < 0 || Face >= static_cast<int>(Body.Faces.size()) || Body.Faces[Face].Loops.size() != 1)
+            return 0.0;
+        std::vector<int> Vertices;
+        const int Loop = Body.Faces[Face].Loops.front();
+        if (Loop < 0 || Loop >= static_cast<int>(Body.Loops.size())) return 0.0;
+        for (int Coedge : Body.Loops[Loop].Coedges)
+        {
+            if (Coedge < 0 || Coedge >= static_cast<int>(Body.Coedges.size())) return 0.0;
+            const int EdgeIndex = Body.Coedges[Coedge].Edge;
+            if (EdgeIndex < 0 || EdgeIndex >= static_cast<int>(Body.Edges.size())) return 0.0;
+            const int Candidate[] = { Body.Edges[EdgeIndex].VertexStart, Body.Edges[EdgeIndex].VertexEnd };
+            for (int Vertex : Candidate)
+                if (std::find(Vertices.begin(), Vertices.end(), Vertex) == Vertices.end()) Vertices.push_back(Vertex);
+        }
+        if (Vertices.size() != 4) return 0.0;
+        double Width = 0.0;
+        for (int Vertex : Vertices)
+        {
+            if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size())) return 0.0;
+            Width = std::max(Width, (Body.Vertices[Vertex].Point - FrameResult.Start).Dot(Direction));
+        }
+        return Width;
+    };
+    double WidthA = FaceWidth(FrameResult.FaceA, FrameResult.InA);
+    double WidthB = FaceWidth(FrameResult.FaceB, FrameResult.InB);
+    if (WidthA <= ScalarCriteria::MergeTolerance || WidthB <= ScalarCriteria::MergeTolerance)
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                         "selected corner does not have two rectangular support faces");
+    if (std::fabs(WidthA - WidthB) > ScalarCriteria::GeometricTolerance * std::max({ 1.0, WidthA, WidthB }))
+        return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                         "selected G2 dispatch requires equal support widths");
+    Vec3 SupportA = FrameResult.InA;
+    Vec3 SupportB = FrameResult.InB;
+    if (FrameResult.Tangent.Dot(SupportA.Cross(SupportB)) < 0.0) std::swap(SupportA, SupportB);
+    G2RollingBallPlanarCornerSpecification Specification;
+    Specification.Origin = FrameResult.Start;
+    Specification.EdgeAxis = FrameResult.Tangent;
+    Specification.SupportA = SupportA;
+    Specification.SupportB = SupportB;
+    Specification.Length = FrameResult.Length;
+    Specification.Width = (WidthA + WidthB) * 0.5;
+    Specification.Radius = Radius;
+    Specification.TransitionAngle = TransitionAngle;
+    Deliver<G2RollingBallProfile> Profile = BuildG2RollingBallProfile(Specification);
+    if (!Profile) return Deliver<G2RollingBallPlanarCornerSpecification>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    return Deliver<G2RollingBallPlanarCornerSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableSetbackCornerBlend(
     const NonlinearVariableSetbackCornerSpecification& Specification) noexcept
 {

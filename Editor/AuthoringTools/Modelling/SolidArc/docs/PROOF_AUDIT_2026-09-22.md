@@ -382,6 +382,26 @@ Freeform or mixed supports, arbitrary B-rep rolling-ball G2, arbitrary edge sele
 variable-radius apexes, pure quarter-circle G2-to-plane contacts, and arbitrary healing remain
 explicitly unsupported. The bounded plan is `docs/PLAN_ObliqueVariableG2RollingBall.md`.
 
+## Stage 38m coverage
+
+The eligible-edge dispatch is a distinct bounded application layer over the verified Stage 38i route:
+
+- `ClassifyG2RollingBallEdge` accepts one explicit edge only when it is in range, straight, manifold,
+  adjacent to two planar rectangular faces, and a strict orthogonal interior corner;
+- the classifier extracts finite positive support widths from face vertices, requires equal widths for
+  the one-width explicit G2 specification, validates radius/transition inputs, and deterministically
+  orients the frame;
+- `EligibleG2EdgeDispatchVerification` performs 21 checks covering a valid cube dispatch, exact
+  `Length`/`Width`/`Radius` extraction, source immutability, separate `V14/E21/F9/L9` reconstruction,
+  outward normals, out-of-range/curved/unequal-width/non-manifold/consuming-radius/invalid-transition
+  refusals, and an oblique parallelogram refusal;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38m_EligibleG2EdgeDispatch.png` as the distinct source-versus-dispatched-result proof.
+
+This does not prove arbitrary B-rep rolling-ball G2, arbitrary edge selection, oblique or unequal-width
+dispatch, curved/freeform supports, edge loops, healing, or source-body replacement. The bounded plan
+is `docs/PLAN_EligibleG2EdgeDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover
