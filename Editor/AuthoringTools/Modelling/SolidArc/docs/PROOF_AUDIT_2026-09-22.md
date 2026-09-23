@@ -329,6 +329,24 @@ Variable-radius cores, arbitrary B-rep rolling-ball G2, oblique/freeform support
 apexes, and arbitrary healing remain explicitly unsupported. The bounded plan is
 `docs/PLAN_G2RollingBall.md`.
 
+## Stage 38j coverage
+
+The oblique rolling-ball-core route is a distinct extension of Stage 4i:
+
+- `ObliqueG2RollingBallPlanarCornerSpecification` accepts one explicit finite straight edge, two
+  positively oriented support directions perpendicular to it, a strict non-reflex angle, unequal
+  finite support widths, one constant radius, and a transition angle leaving a circular core;
+- exact `r cot(theta/2)` tangent distance and the `pi - theta` core arc are retained, while each
+  support join has zero curvature and each core join matches `1/r`;
+- `ObliqueG2RollingBallVerification` performs 29 checks covering exact rational core geometry,
+  deterministic `V12/E18/F8/L8` topology, profile line-integral volume, outward normals,
+  transactional refusals, and a distinct sharp-versus-oblique proof;
+- `Proofs/Phase38j_ObliqueG2RollingBall.png` is the distinct exterior proof.
+
+Variable-radius cores, freeform or mixed supports, arbitrary B-rep rolling-ball G2, edge selection,
+apexes, pure quarter-circle G2-to-plane contacts, and arbitrary healing remain explicitly
+unsupported. The bounded plan is `docs/PLAN_ObliqueG2RollingBall.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

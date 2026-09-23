@@ -1068,6 +1068,20 @@ This is not a pure quarter-circle G2-to-plane join and does not claim rolling-ba
 B-reps. Variable-radius cores, oblique/freeform supports, arbitrary edge selection, apexes, and
 healing remain unsupported. Its plan is `docs/PLAN_G2RollingBall.md`.
 
+#### Phase 38j: bounded oblique rolling-ball-core G2 transition ✅
+
+The Stage 4i core-and-transition construction now accepts one explicit strict non-orthogonal
+support wedge with unequal finite widths. Exact tangent distance `r cot(theta/2)` defines the
+support contacts; quintic zero-curvature transitions meet an exact rational circular core over
+the oblique `pi - theta` arc, and three profile surfaces plus three retained support surfaces
+sew as `V12/E18/F8/L8`. Curvature joins, the profile line-integral volume, outward normals,
+transactional frame/angle/width refusals, and the distinct sharp-versus-oblique proof are covered
+by `ObliqueG2RollingBallVerification` and `Proofs/Phase38j_ObliqueG2RollingBall.png`.
+
+Variable-radius cores, freeform or mixed supports, arbitrary edge selection, apexes, pure
+quarter-circle G2-to-plane contacts, and healing remain unsupported. Its plan is
+`docs/PLAN_ObliqueG2RollingBall.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

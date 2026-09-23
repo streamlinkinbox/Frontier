@@ -7992,6 +7992,264 @@ Deliver<BrepBody> BlendSolver::ReconstructG2RollingBallPlanarCorner(
     return Result;
 }
 
+Deliver<ObliqueG2RollingBallProfile> BlendSolver::BuildObliqueG2RollingBallProfile(
+    const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Radius) || Specification.Radius <= ScalarCriteria::MergeTolerance ||
+        !std::isfinite(Specification.WidthA) || !std::isfinite(Specification.WidthB) ||
+        Specification.WidthA <= ScalarCriteria::MergeTolerance || Specification.WidthB <= ScalarCriteria::MergeTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::DegenerateInput,
+                                                              "oblique G2 rolling-ball radius and widths are not feasible");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    const Vec3 A = Specification.SupportA.Normalised();
+    const Vec3 B = Specification.SupportB.Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance ||
+        A.Length() <= ScalarCriteria::GeometricTolerance || B.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::DegenerateInput,
+                                                              "oblique G2 rolling-ball frame is degenerate");
+    if (std::fabs(Axis.Dot(A)) > ScalarCriteria::AngularTolerance ||
+        std::fabs(Axis.Dot(B)) > ScalarCriteria::AngularTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::Unsupported,
+                                                              "oblique G2 rolling-ball supports must be perpendicular to the edge");
+    const double CosTheta = ScalarCriteria::Clamp(A.Dot(B), -1.0, 1.0);
+    const double Theta = std::acos(CosTheta);
+    const double Orientation = Axis.Dot(A.Cross(B));
+    if (!std::isfinite(Theta) || Theta <= ScalarCriteria::AngularTolerance ||
+        Theta >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance ||
+        std::fabs(Orientation) <= ScalarCriteria::AngularTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::Unsupported,
+                                                              "oblique G2 rolling-ball angle must be strict and non-reflex");
+    if (Orientation < 0.0)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::Unsupported,
+                                                              "oblique G2 rolling-ball support orientation is reversed");
+    const double HalfTheta = Theta * 0.5;
+    const double TangentDistance = Specification.Radius / std::tan(HalfTheta);
+    const double CoreSweep = ScalarCriteria::Pi - Theta;
+    if (!std::isfinite(Specification.TransitionAngle) ||
+        Specification.TransitionAngle <= 4.0 * ScalarCriteria::AngularTolerance ||
+        Specification.TransitionAngle >= CoreSweep * 0.5 - 4.0 * ScalarCriteria::AngularTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::DegenerateInput,
+                                                              "oblique G2 rolling-ball transition leaves no circular core");
+    if (TangentDistance >= Specification.WidthA - ScalarCriteria::MergeTolerance ||
+        TangentDistance >= Specification.WidthB - ScalarCriteria::MergeTolerance)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(RefusalReason::DegenerateInput,
+                                                              "oblique G2 rolling-ball tangent distance consumes a support");
+
+    const double R = Specification.Radius;
+    const double Transition = Specification.TransitionAngle;
+    const Vec3 Bisector = (A + B).Normalised();
+    const Vec3 Centre = Specification.Origin + Bisector * (R / std::sin(HalfTheta));
+    const Vec3 TangentA = Specification.Origin + A * TangentDistance;
+    const Vec3 TangentB = Specification.Origin + B * TangentDistance;
+    const Vec3 RadialA = (TangentA - Centre).Normalised();
+    const auto RotatedRadial = [&](const Vec3& Radial, double Angle) noexcept
+    {
+        return (Radial * std::cos(Angle) - Axis.Cross(Radial) * std::sin(Angle)).Normalised();
+    };
+    const auto CirclePoint = [&](const Vec3& Radial) noexcept { return Centre + Radial * R; };
+    const Vec3 CoreStartRadial = RotatedRadial(RadialA, Transition);
+    const Vec3 CoreEndRadial = RotatedRadial(RadialA, CoreSweep - Transition);
+    const Vec3 CoreStart = CirclePoint(CoreStartRadial);
+    const Vec3 CoreEnd = CirclePoint(CoreEndRadial);
+    const double Speed = R * Transition;
+    const Vec3 StartTangent = (-Axis.Cross(RadialA)).Normalised();
+    const Vec3 StartCoreTangent = (-Axis.Cross(CoreStartRadial)).Normalised();
+    const Vec3 StartD0 = StartTangent * Speed;
+    const Vec3 StartD1 = StartCoreTangent * Speed;
+    const Vec3 StartD2 = -CoreStartRadial * (R * Transition * Transition);
+    const std::vector<Vec3> StartControls{
+        TangentA,
+        TangentA + StartD0 / 5.0,
+        TangentA + StartD0 * (2.0 / 5.0),
+        CoreStart - StartD1 * (2.0 / 5.0) + StartD2 / 20.0,
+        CoreStart - StartD1 / 5.0,
+        CoreStart };
+    Deliver<NurbsCurve> StartTransition = NurbsCurve::Bezier(StartControls);
+    if (!StartTransition)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(StartTransition.Denial.Reason,
+                                                              "oblique G2 rolling-ball start transition failed");
+
+    const Vec3 CoreEndTangent = (-Axis.Cross(CoreEndRadial)).Normalised();
+    const Vec3 EndD0 = CoreEndTangent * Speed;
+    const Vec3 EndD2 = -CoreEndRadial * (R * Transition * Transition);
+    const Vec3 EndTangent = (-Axis.Cross((TangentB - Centre).Normalised())).Normalised();
+    const std::vector<Vec3> EndControls{
+        CoreEnd,
+        CoreEnd + EndD0 / 5.0,
+        CoreEnd + EndD0 * (2.0 / 5.0) + EndD2 / 20.0,
+        TangentB - EndTangent * (2.0 * Speed / 5.0),
+        TangentB - EndTangent * (Speed / 5.0),
+        TangentB };
+    Deliver<NurbsCurve> EndTransition = NurbsCurve::Bezier(EndControls);
+    if (!EndTransition)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(EndTransition.Denial.Reason,
+                                                              "oblique G2 rolling-ball end transition failed");
+    const Vec3 CoreMiddle = CirclePoint(RotatedRadial(RadialA, CoreSweep * 0.5));
+    Deliver<NurbsCurve> Core = NurbsCurve::ArcThreePoints(CoreStart, CoreMiddle, CoreEnd);
+    if (!Core)
+        return Deliver<ObliqueG2RollingBallProfile>::Reject(Core.Denial.Reason,
+                                                              "oblique G2 rolling-ball exact circular core failed");
+
+    ObliqueG2RollingBallProfile Result;
+    Result.Pieces.reserve(3);
+    Result.Pieces.push_back(std::move(StartTransition.Payload));
+    Result.Pieces.push_back(std::move(Core.Payload));
+    Result.Pieces.push_back(std::move(EndTransition.Payload));
+    Result.Origin = Specification.Origin;
+    Result.EdgeAxis = Axis;
+    Result.SupportA = A;
+    Result.SupportB = B;
+    Result.Centre = Centre;
+    Result.Radius = R;
+    Result.InteriorAngle = Theta;
+    Result.TransitionAngle = Transition;
+    return Deliver<ObliqueG2RollingBallProfile>::Accept(std::move(Result));
+}
+
+bool BlendSolver::ValidateObliqueG2RollingBallProfile(
+    const ObliqueG2RollingBallProfile& Profile,
+    const ObliqueG2RollingBallPlanarCornerSpecification& Specification,
+    std::string& Refusal) noexcept
+{
+    if (Profile.Pieces.size() != 3)
+    { Refusal = "oblique G2 rolling-ball profile does not have three sections"; return false; }
+    for (const NurbsCurve& Piece : Profile.Pieces)
+        if (Piece.Validate())
+        { Refusal = "oblique G2 rolling-ball profile contains an invalid section"; return false; }
+    const Vec3 Axis = Profile.EdgeAxis;
+    const Vec3 A = Profile.SupportA;
+    const Vec3 B = Profile.SupportB;
+    const double Theta = Profile.InteriorAngle;
+    const double HalfTheta = Theta * 0.5;
+    const double D = Profile.Radius / std::tan(HalfTheta);
+    const double Sweep = ScalarCriteria::Pi - Theta;
+    const Vec3 TangentA = Specification.Origin + A * D;
+    const Vec3 TangentB = Specification.Origin + B * D;
+    const auto Coincident = [](const Vec3& Left, const Vec3& Right) noexcept
+    {
+        return Left.Distance(Right) <= ScalarCriteria::MergeTolerance;
+    };
+    if (!Coincident(Profile.Pieces[0].StartPoint(), TangentA) ||
+        !Coincident(Profile.Pieces[0].EndPoint(), Profile.Pieces[1].StartPoint()) ||
+        !Coincident(Profile.Pieces[1].EndPoint(), Profile.Pieces[2].StartPoint()) ||
+        !Coincident(Profile.Pieces[2].EndPoint(), TangentB))
+    { Refusal = "oblique G2 rolling-ball profile sections do not share exact boundaries"; return false; }
+    const double CurvatureTolerance = 2e-7 / std::max(1.0, Profile.Radius);
+    const double StartSupportCurvature = Profile.Pieces[0].Curvature(0.0);
+    const double StartCoreCurvature = Profile.Pieces[0].Curvature(1.0);
+    const double ExactCoreCurvature = Profile.Pieces[1].Curvature(0.5);
+    const double EndCoreCurvature = Profile.Pieces[2].Curvature(0.0);
+    const double EndSupportCurvature = Profile.Pieces[2].Curvature(1.0);
+    if (!std::isfinite(StartSupportCurvature) || !std::isfinite(StartCoreCurvature) ||
+        !std::isfinite(ExactCoreCurvature) || !std::isfinite(EndCoreCurvature) || !std::isfinite(EndSupportCurvature) ||
+        StartSupportCurvature > CurvatureTolerance || EndSupportCurvature > CurvatureTolerance ||
+        std::fabs(StartCoreCurvature - 1.0 / Profile.Radius) > CurvatureTolerance ||
+        std::fabs(ExactCoreCurvature - 1.0 / Profile.Radius) > CurvatureTolerance ||
+        std::fabs(EndCoreCurvature - 1.0 / Profile.Radius) > CurvatureTolerance)
+    { Refusal = "oblique G2 rolling-ball profile fails curvature matching"; return false; }
+    if (!Profile.Pieces[1].Rational())
+    { Refusal = "oblique G2 rolling-ball core is not rational"; return false; }
+    const Vec3 StartRadial = (TangentA - Profile.Centre).Normalised();
+    const Vec3 CoreStartRadial = (Profile.Pieces[1].StartPoint() - Profile.Centre).Normalised();
+    const Vec3 CoreEndRadial = (Profile.Pieces[1].EndPoint() - Profile.Centre).Normalised();
+    if (std::fabs(CoreStartRadial.Dot(StartRadial) - std::cos(Profile.TransitionAngle)) > 2e-10 ||
+        std::fabs(CoreEndRadial.Dot(StartRadial) - std::cos(Sweep - Profile.TransitionAngle)) > 2e-10)
+    { Refusal = "oblique G2 rolling-ball core sweep is not exact"; return false; }
+    const double Det = Axis.Dot(A.Cross(B));
+    for (const NurbsCurve& Piece : Profile.Pieces)
+        for (int I = 0; I <= 32; ++I)
+        {
+            const Vec3 Q = Piece.Sample(static_cast<double>(I) / 32.0) - Specification.Origin;
+            const double Alpha = Axis.Dot(Q.Cross(B)) / Det;
+            const double Beta = Axis.Dot(A.Cross(Q)) / Det;
+            if (Alpha < -ScalarCriteria::MergeTolerance || Beta < -ScalarCriteria::MergeTolerance ||
+                Alpha > Specification.WidthA + ScalarCriteria::MergeTolerance ||
+                Beta > Specification.WidthB + ScalarCriteria::MergeTolerance)
+            { Refusal = "oblique G2 rolling-ball transition leaves its finite wedge"; return false; }
+        }
+    return true;
+}
+
+double BlendSolver::ObliqueG2RollingBallRemovalArea(const ObliqueG2RollingBallProfile& Profile) noexcept
+{
+    constexpr double Nodes[8] = { -0.9602898564975363, -0.7966664774136267, -0.5255324099163290,
+                                   -0.1834346424956498,  0.1834346424956498,  0.5255324099163290,
+                                    0.7966664774136267,  0.9602898564975363 };
+    constexpr double Weights[8] = { 0.1012285362903763, 0.2223810344533745, 0.3137066458778873,
+                                     0.3626837833783620, 0.3626837833783620, 0.3137066458778873,
+                                     0.2223810344533745, 0.1012285362903763 };
+    double Integral = 0.0;
+    for (const NurbsCurve& Piece : Profile.Pieces)
+        for (int I = 0; I < 8; ++I)
+        {
+            const double T = 0.5 * (Nodes[I] + 1.0);
+            Vec3 D[2];
+            Piece.Derivatives(T, 1, D);
+            Integral += Weights[I] * 0.25 * Profile.EdgeAxis.Dot((D[0] - Profile.Origin).Cross(D[1]));
+        }
+    // The profile runs from support A to support B, so its positive orientation bounds the removed corner.
+    return Integral;
+}
+
+Deliver<BrepBody> BlendSolver::ReconstructObliqueG2RollingBallPlanarCorner(
+    const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "oblique G2 rolling-ball length must be positive");
+    Deliver<ObliqueG2RollingBallProfile> Profile = BuildObliqueG2RollingBallProfile(Specification);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    std::string Refusal;
+    if (!ValidateObliqueG2RollingBallProfile(Profile.Payload, Specification, Refusal))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "oblique G2 rolling-ball profile failed acceptance");
+    const Vec3 A = Profile.Payload.SupportA;
+    const Vec3 B = Profile.Payload.SupportB;
+    const double Theta = Profile.Payload.InteriorAngle;
+    const double D = Specification.Radius / std::tan(Theta * 0.5);
+    const auto Point = [&](const Vec3& Direction, double Distance) noexcept
+    {
+        return Specification.Origin + Direction * Distance;
+    };
+    const Vec3 TangentA = Point(A, D);
+    const Vec3 OuterA = Point(A, Specification.WidthA);
+    const Vec3 OuterB = Point(B, Specification.WidthB);
+    const Vec3 TangentB = Point(B, D);
+    const auto AddLineExtrusion = [&](Vec3 P0, Vec3 P1, std::vector<NurbsSurface>& Surfaces) noexcept -> bool
+    {
+        Deliver<NurbsCurve> Boundary = NurbsCurve::Line(P0, P1);
+        if (!Boundary) return false;
+        Deliver<NurbsSurface> Surface = NurbsSurface::Extrusion(Boundary.Payload, Profile.Payload.EdgeAxis, Specification.Length);
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    std::vector<NurbsSurface> Surfaces;
+    if (!AddLineExtrusion(TangentA, OuterA, Surfaces) ||
+        !AddLineExtrusion(OuterA, OuterB, Surfaces) ||
+        !AddLineExtrusion(OuterB, TangentB, Surfaces))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "oblique G2 rolling-ball support surface failed");
+    for (const NurbsCurve& Piece : Profile.Payload.Pieces)
+    {
+        Deliver<NurbsSurface> Surface = NurbsSurface::Extrusion(Piece, Profile.Payload.EdgeAxis, Specification.Length);
+        if (!Surface) return Deliver<BrepBody>::Reject(Surface.Denial.Reason, "oblique G2 rolling-ball transition surface failed");
+        Surfaces.push_back(std::move(Surface.Payload));
+    }
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    const BodyReport Report = Result.Payload.Validate();
+    const double SharpArea = 0.5 * Specification.WidthA * Specification.WidthB * std::sin(Theta);
+    const double ExpectedVolume = Specification.Length * (SharpArea - ObliqueG2RollingBallRemovalArea(Profile.Payload));
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 12 || Result.Payload.Edges.size() != 18 ||
+        Result.Payload.Coedges.size() != 36 || Result.Payload.Loops.size() != 8 || Result.Payload.Faces.size() != 8)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "oblique G2 rolling-ball corner did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "oblique G2 rolling-ball volume failed profile line-integral acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableSetbackCornerBlend(
     const NonlinearVariableSetbackCornerSpecification& Specification) noexcept
 {

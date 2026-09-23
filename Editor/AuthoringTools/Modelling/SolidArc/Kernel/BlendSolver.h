@@ -402,6 +402,34 @@ struct G2RollingBallProfile
     double TransitionAngle = 0.0;
 };
 
+// A strict oblique extension of the bounded rolling-ball-core route. The circular core is
+// separated from both quintic support transitions so the planar joins can be accepted as G2.
+struct ObliqueG2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+    double TransitionAngle = ScalarCriteria::Pi / 12.0;                                 // [rad] each support-to-core transition
+};
+
+struct ObliqueG2RollingBallProfile
+{
+    std::vector<NurbsCurve> Pieces;                                                     // start transition, exact core, end transition
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    Vec3 Centre{};
+    double Radius = 0.0;
+    double InteriorAngle = 0.0;
+    double TransitionAngle = 0.0;
+};
+
 // A separate quadratic clearance law for the support setback. The radius law may be constant,
 // linear, or quadratic; the setback law must be genuinely nonlinear in this bounded slice.
 struct NonlinearVariableSetbackCornerSpecification
@@ -521,6 +549,16 @@ public:
     [[nodiscard]] static double G2RollingBallRemovalArea(const G2RollingBallProfile& Profile) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructG2RollingBallPlanarCorner(
         const G2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<ObliqueG2RollingBallProfile> BuildObliqueG2RollingBallProfile(
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateObliqueG2RollingBallProfile(
+        const ObliqueG2RollingBallProfile& Profile,
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification,
+        std::string& Refusal) noexcept;
+    [[nodiscard]] static double ObliqueG2RollingBallRemovalArea(
+        const ObliqueG2RollingBallProfile& Profile) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueG2RollingBallPlanarCorner(
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
