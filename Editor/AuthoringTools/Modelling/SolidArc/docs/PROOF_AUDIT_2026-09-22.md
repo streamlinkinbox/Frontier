@@ -518,6 +518,28 @@ This does not prove reflex/zero/full sweeps, arbitrary partial-sector or vertex-
 mixed supports, arbitrary cones, freeform/curved roots, edge loops, healing, or source-body replacement.
 The bounded plan is `docs/PLAN_GeneralPartialConeApexVertexDispatch.md`.
 
+## Stage 38t coverage
+
+The reflex partial-cone apex dispatch is a distinct vertex-selection layer over the verified Stage 4d route:
+
+- `ClassifyReflexPartialConeApexFilletVertex` accepts only the exact native reflex partial-revolve
+  surface set with `V4/E6/C8/L3/F3` topology and a selected unique axis apex;
+- it unwraps and retains the actual native circular base-rim sweep, accepts only `pi < sweep < 2pi`,
+  derives the base-center/axis-apex pair, equal positive base-rim radius, height, and normalized axis,
+  validates the existing partial spherical-cap route, and does not mutate the source;
+- `ReflexPartialConeApexVertexDispatchVerification` performs 28 checks over a distinct 270-degree
+  5-by-7 source, covering exact extraction, deterministic dispatch, separate `V6/E9/F5/L5`
+  reconstruction, outward normals, source immutability, non-apex/non-reflex/zero/half-turn/full-turn/
+  invalid/consuming/cylinder/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38t_ReflexPartialConeApexVertexDispatch.png` as the distinct sharp-versus-rounded
+  reflex partial-apex proof.
+
+This does not prove arbitrary partial-sector or vertex-selected apex filleting, non-reflex/zero/full
+sweeps beyond their separately named routes, mixed supports, arbitrary cones, freeform/curved roots,
+edge loops, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

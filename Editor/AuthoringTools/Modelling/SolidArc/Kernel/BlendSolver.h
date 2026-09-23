@@ -558,6 +558,9 @@ public:
     // Bounded non-reflex general-angle extension: exact native partial-revolve surface topology only; half-turns use the route above.
     [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyGeneralPartialConeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded reflex extension: exact native partial-revolve surface topology and a sampled sweep greater than pi.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyReflexPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
         const PartialConeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructQuadraticPartialEdgeFillet(

@@ -1237,6 +1237,25 @@ filleting. Reflex/zero/full sweeps, mixed supports, arbitrary cones, freeform/cu
 healing, and source-body replacement remain unsupported. Its plan is
 `docs/PLAN_GeneralPartialConeApexVertexDispatch.md`.
 
+#### Phase 38t: bounded reflex partial-cone apex vertex dispatch ✅
+
+The partial-apex vertex layer now accepts one canonical reflex native revolve surface set with
+`V4/E6/C8/L3/F3` topology and a strict sweep between `pi` and `2pi`. It unwraps the native base-rim
+circular path rather than reducing the endpoints to the minor angle, derives the unique base-center/
+axis-apex pair and equal positive base-rim radius, then returns the existing partial spherical-cap
+specification; reconstruction remains a separate transaction.
+
+`ReflexPartialConeApexVertexDispatchVerification` performs 28 checks over a distinct 270-degree
+5-by-7 source: exact base/normalized-axis/radius/height/reflex-sweep extraction, deterministic dispatch,
+separate `V6/E9/F5/L5` reconstruction, outward normals, source immutability, non-apex/non-reflex/
+zero/half-turn/full-turn/invalid/consuming/cylinder/malformed refusals, and
+`Proofs/Phase38t_ReflexPartialConeApexVertexDispatch.png`.
+
+This remains bounded to native reflex partial-revolve sectors, not arbitrary partial-sector or
+vertex-selected apex filleting. Mixed supports, arbitrary cones, freeform/curved roots, edge loops,
+healing, and source-body replacement remain unsupported. Its plan is
+`docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
