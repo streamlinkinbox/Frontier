@@ -258,7 +258,9 @@ int main()
         Host.Document().AddBody("PartialUnequalApexSource", Source.Transformed(Mat4::Translation({ -9, 0, 0 }))).Identity > 0 &&
         Host.Document().AddBody("PartialUnequalApexChamfer", Result.Payload.Transformed(Mat4::Translation({ 9, 0, 0 }))).Identity > 0;
     const bool Rendered = Added && Host.Execute("show shading flat") && Host.Execute("view iso") &&
-        Host.Execute("view orbit 205 -12") && Host.Execute("view fit") &&
+        // Keep the camera outside the 100-degree sector so the translated proof bodies
+        // avoid the shader's intentional red back-face diagnostic.
+        Host.Execute("view orbit 300 -12") && Host.Execute("view fit") &&
         Host.Execute("render Phase39a_PartialUnequalBiconeApexChamfer");
     Panel.Expect("The partial unequal-apex proof render completes", Rendered);
     Panel.Expect("The partial unequal-apex proof PNG is visible", std::filesystem::exists(Proof) && std::filesystem::file_size(Proof, Error) > 100000);
