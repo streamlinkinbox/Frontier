@@ -693,6 +693,26 @@ This does not prove complete/half/reflex partial sectors, equal radii, mixed con
 oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, or healing.
 The bounded plan is `docs/PLAN_PartialUnequalBiconeApexChamfer.md`.
 
+## Phase 39b — partial unequal-radius bicone apex toroidal fillet (2026-09-23)
+
+This is a separate finite-sweep toroidal route, not a chamfer/set-back rename:
+
+- `PartialUnequalBiconeApexFilletVerification` builds a distinct capped native partial source with
+  exact `V7/E11/C22/L6/F6` topology, radii 4.5/2.7, heights 6.8/4.6, a 95-degree sweep, and
+  a 0.62 fillet radius.
+- `ClassifyPartialUnequalBiconeApexFilletVertex` derives the apex, unequal support pair, axis, and
+  native sweep transactionally while retaining the toroidal radius as an independent input.
+- `ReconstructPartialUnequalBiconeApexFillet` solves analytic tangent contacts and returns
+  `V10/E15/C30/L7/F7`: two cones, one torus, two axial base planes, and two radial sector caps.
+  The verifier checks the sector-scaled cone/torus volume identity, contacts, metadata, normals,
+  topology, refusals, and source immutability.
+- The durable proof is `Proofs/Phase39b_PartialUnequalBiconeApexFillet.png`; 32 checks pass.
+
+This does not prove full/half/reflex sectors, equal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, invalid or
+consuming fillet radii, or healing. The bounded plan is
+`docs/PLAN_PartialUnequalBiconeApexFillet.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

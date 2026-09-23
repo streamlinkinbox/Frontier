@@ -455,6 +455,11 @@ add_executable(PartialUnequalBiconeApexChamferVerification Verification/PartialU
 target_link_libraries(PartialUnequalBiconeApexChamferVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialUnequalBiconeApexChamferVerification COMMAND PartialUnequalBiconeApexChamferVerification)
 
+# Phase 39b: retain the same bounded partial source contract while replacing the apex with a toroidal fillet.
+add_executable(PartialUnequalBiconeApexFilletVerification Verification/PartialUnequalBiconeApexFilletVerification.cpp)
+target_link_libraries(PartialUnequalBiconeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialUnequalBiconeApexFilletVerification COMMAND PartialUnequalBiconeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

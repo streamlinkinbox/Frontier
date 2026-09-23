@@ -1387,6 +1387,27 @@ This remains limited to one canonical non-reflex partial sector. Complete turns,
 sectors, equal radii, mixed/oblique/freeform supports, variable-radius laws, arbitrary vertices,
 and healing remain unsupported. Its bounded plan is `docs/PLAN_PartialUnequalBiconeApexChamfer.md`.
 
+#### Phase 39b: bounded partial unequal-radius bicone apex toroidal fillet ✅
+
+The shared-apex combination family now has a separate strict non-reflex partial-sector toroidal
+fillet route. `ClassifyPartialUnequalBiconeApexFilletVertex` accepts the capped native partial
+source contract without mutating it, derives the unequal coaxial support pair and native sweep, and
+keeps the fillet radius separate from the Phase 39a chamfer set-back.
+
+`ReconstructPartialUnequalBiconeApexFillet` solves the two cone tangent contacts, revolves two
+support cones, one analytic torus, and two base caps over the finite sweep, and closes both radial
+ends. The transaction returns a closed genus-zero `V10/E15/C30/L7/F7` solid with two cones, one
+torus, two base planes, and two radial planes. `PartialUnequalBiconeApexFilletVerification`
+performs 32 checks over a distinct 4.5/2.7-radius, 6.8/4.6-height, 95-degree source with a 0.62
+fillet radius, covering exact extraction, tangent contacts, torus metadata, topology, radial-cap
+closure, normals, sector volume, immutability, refusal boundaries, and
+`Proofs/Phase39b_PartialUnequalBiconeApexFillet.png`.
+
+This remains limited to one canonical non-reflex partial sector. Complete turns, half/reflex
+sectors, equal radii, mixed/oblique/freeform supports, variable-radius laws, arbitrary vertices,
+invalid or consuming radii, and healing remain unsupported. Its bounded plan is
+`docs/PLAN_PartialUnequalBiconeApexFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
