@@ -1256,6 +1256,24 @@ vertex-selected apex filleting. Mixed supports, arbitrary cones, freeform/curved
 healing, and source-body replacement remain unsupported. Its plan is
 `docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
 
+#### Phase 38u: bounded native-cone apex vertex chamfer ✅
+
+The native-cone vertex layer now accepts one canonical closed right-circular cone and its unique
+axis apex for an exact axial truncation. `ClassifyConeApexChamferVertex` structurally recognizes
+`V2/E2/C4/L2/F2` topology, derives the base, normalized axis, positive base radius, and height,
+and retains a finite positive set-back strictly below the apex height. Reconstruction is a separate
+transaction through the native frustum route, producing `V2/E3/C6/L3/F3` with a new planar apex cap.
+
+`ConeApexChamferVerification` performs 29 checks over a distinct 5-by-7 source: exact
+base/axis/radius/height/set-back extraction, deterministic dispatch, separate planar-cap
+reconstruction, exact cap placement, outward normals, source immutability, non-apex/out-of-range/
+zero/negative/non-finite/consuming/oversized/cylinder/frustum/malformed refusals, and
+`Proofs/Phase38u_ConeApexVertexChamfer.png`.
+
+This is an axial chamfer of one native cone apex only, not a general vertex-selected chamfer, mixed
+apex support, arbitrary cone/frustum editing, freeform/curved support, edge-loop healing, or source
+replacement. Its plan is `docs/PLAN_ConeApexVertexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

@@ -540,6 +540,24 @@ sweeps beyond their separately named routes, mixed supports, arbitrary cones, fr
 edge loops, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_ReflexPartialConeApexVertexDispatch.md`.
 
+## Stage 38u coverage
+
+The native-cone apex chamfer is a distinct vertex-selection layer for the canonical closed cone:
+
+- `ClassifyConeApexChamferVertex` accepts only the unique axis apex of a closed canonical `V2/E2/C4/L2/F2`
+  native cone with one cone side, one planar base, one circular rim, and one straight base-to-apex seam;
+- it derives the base, normalized axis, positive base radius, and height, accepts a finite positive axial
+  set-back strictly below the height, validates the exact frustum reconstruction, and leaves the source untouched;
+- `ConeApexChamferVerification` performs 29 checks over a distinct 5-by-7 source, covering exact extraction,
+  deterministic dispatch, separate `V2/E3/C6/L3/F3` planar-cap reconstruction, exact cap placement, outward
+  normals, source immutability, non-apex/out-of-range/invalid/consuming/cylinder/frustum/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38u_ConeApexVertexChamfer.png` as the distinct sharp-versus-planar-cap apex proof.
+
+This does not prove general vertex-selected chamfers, mixed apex supports, arbitrary cone/frustum editing,
+partial sectors, freeform/curved roots, edge loops, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_ConeApexVertexChamfer.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover
@@ -547,9 +565,9 @@ edge loops, healing, or source-body replacement. The bounded plan is
    selection, curved roots, and support-specific variable rolls remain open.
 2. Rolling-ball G2 joins, nonlinear two-support laws beyond the named common route, arbitrary
    variable-radius support handling, partial/mixed-support apex fillets, and broader support combinations.
-3. General vertex-selected apex **fillets**; the bounded Stage 4b route covers only one explicit
-   coaxial right-cone spherical cap, while apex chamfers and the Stage 4a corner route remain
-   separate bounded capabilities.
+3. General vertex-selected apex **fillets and chamfers** remain open; the bounded Stage 4b route
+   covers one explicit coaxial right-cone spherical cap, and Stage 4u covers only one axial chamfer
+   of the canonical native right cone. Mixed supports and arbitrary apex selections remain refused.
 4. Broader flaring/narrowing and mixed-support combinations outside the explicitly accepted
    constant-radius routes.
 5. Non-coaxial/oblique/freeform supports, arbitrary curved edge loops, corner patches, and

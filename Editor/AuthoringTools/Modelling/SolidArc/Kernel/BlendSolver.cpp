@@ -7037,6 +7037,166 @@ Deliver<BrepBody> BlendSolver::ReconstructObliqueQuadraticPartialEdgeFillet(
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructConeApexChamfer(
+    const ConeApexChamferSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||
+        !std::isfinite(Specification.Base.Z) || !std::isfinite(Specification.BaseRadius) ||
+        !std::isfinite(Specification.Height) || !std::isfinite(Specification.SetBack) ||
+        Specification.BaseRadius <= Tol || Specification.Height <= Tol || Specification.SetBack <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "cone-apex chamfer dimensions and set-back must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone-apex chamfer axis is degenerate");
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const double R = Specification.BaseRadius;
+    const double H = Specification.Height;
+    const double SetBack = Specification.SetBack;
+    if (SetBack >= H - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "apex chamfer set-back consumes the native cone height");
+    const double RetainedHeight = H - SetBack;
+    const double CapRadius = R * RetainedHeight / H;
+    if (!std::isfinite(CapRadius) || CapRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "apex chamfer leaves a degenerate planar cap");
+
+    Deliver<BrepBody> Result = BrepBody::Cone(Specification.Base, Axis, R, CapRadius, RetainedHeight);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "native cone apex chamfer could not be reconstructed");
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 2 || Result.Payload.Edges.size() != 3 ||
+        Result.Payload.Coedges.size() != 6 || Result.Payload.Loops.size() != 3 ||
+        Result.Payload.Faces.size() != 3)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "native cone apex chamfer did not reach V2/E3/C6/L3/F3 topology");
+    const double ExpectedVolume = ScalarCriteria::Pi * RetainedHeight *
+        (R * R + R * CapRadius + CapRadius * CapRadius) / 3.0;
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "native cone apex chamfer volume failed analytic acceptance");
+    return Result;
+}
+
+Deliver<ConeApexChamferSpecification> BlendSolver::ClassifyConeApexChamferVertex(
+    const BrepBody& Body, int Vertex, double SetBack) noexcept
+{
+    if (!std::isfinite(SetBack) || SetBack <= ScalarCriteria::MergeTolerance)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                              "cone-apex vertex chamfer set-back must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Body.Vertices.size() != 2 || Body.Edges.size() != 2 || Body.Coedges.size() != 4 ||
+        Body.Loops.size() != 2 || Body.Faces.size() != 2)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::NonManifold,
+                                                              "source is not the bounded canonical native cone topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                              "selected cone-apex chamfer vertex is out of range");
+
+    int ConeFace = -1, PlaneFace = -1;
+    for (size_t I = 0; I < Body.Faces.size(); ++I)
+    {
+        const BrepFace& Face = Body.Faces[I];
+        if (Face.Loops.size() != 1)
+            return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                  "native cone face has an unsupported loop count");
+        if (Face.Surface.Classification == SurfaceClassification::Cone)
+        {
+            if (ConeFace >= 0) return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                       "source has multiple cone faces");
+            ConeFace = static_cast<int>(I);
+        }
+        else if (Face.Surface.Classification == SurfaceClassification::Plane)
+        {
+            if (PlaneFace >= 0) return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                       "source has multiple planar cap faces");
+            PlaneFace = static_cast<int>(I);
+        }
+        else return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "source is not a native cone and planar base pair");
+    }
+    if (ConeFace < 0 || PlaneFace < 0)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                              "native cone is missing its cone or base face");
+    const NurbsSurface& Cone = Body.Faces[ConeFace].Surface;
+    if (!std::isfinite(Cone.Origin.X) || !std::isfinite(Cone.Origin.Y) || !std::isfinite(Cone.Origin.Z) ||
+        !std::isfinite(Cone.RadiusMajor) || !std::isfinite(Cone.RadiusMinor) ||
+        Cone.RadiusMajor <= ScalarCriteria::MergeTolerance ||
+        std::fabs(Cone.RadiusMinor) > ScalarCriteria::GeometricTolerance ||
+        Cone.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                              "native cone does not have a positive base and zero apex radius");
+
+    const Vec3 Axis = Cone.Axis.Normalised();
+    const Vec3 Base = Cone.Origin;
+    int Apex = -1, BaseVertex = -1;
+    double Height = 0.0;
+    for (size_t I = 0; I < Body.Vertices.size(); ++I)
+    {
+        const Vec3 Delta = Body.Vertices[I].Point - Base;
+        const double Along = Delta.Dot(Axis);
+        const double Radial = (Delta - Axis * Along).Length();
+        if (std::fabs(Along) <= ScalarCriteria::GeometricTolerance &&
+            std::fabs(Radial - Cone.RadiusMajor) <= ScalarCriteria::GeometricTolerance *
+                                                     std::max(1.0, Cone.RadiusMajor))
+        {
+            if (BaseVertex >= 0) return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                         "native cone has multiple base vertices");
+            BaseVertex = static_cast<int>(I);
+        }
+        else if (Along > ScalarCriteria::MergeTolerance &&
+                 Radial <= ScalarCriteria::GeometricTolerance * std::max(1.0, Along))
+        {
+            if (Apex >= 0) return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "native cone has multiple axis apex vertices");
+            Apex = static_cast<int>(I);
+            Height = Along;
+        }
+        else return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "native cone vertex geometry is not a base rim and apex pair");
+    }
+    if (Apex < 0 || BaseVertex < 0 || Height <= ScalarCriteria::MergeTolerance || Vertex != Apex)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                              "selected vertex is not the unique native cone apex");
+
+    int Rim = 0, Seam = 0;
+    for (const BrepEdge& EdgeData : Body.Edges)
+    {
+        if (EdgeData.Coedges.size() != 2)
+            return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::NonManifold,
+                                                                  "native cone edge is not manifold");
+        if (EdgeData.Closed() && EdgeData.VertexStart == BaseVertex &&
+            EdgeData.Curve.Classification == CurveClassification::Circle && EdgeData.Curve.Degree == 2 &&
+            EdgeData.Curve.Rational()) ++Rim;
+        else if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Line &&
+                 EdgeData.Curve.Degree == 1 &&
+                 ((EdgeData.VertexStart == BaseVertex && EdgeData.VertexEnd == Apex) ||
+                  (EdgeData.VertexStart == Apex && EdgeData.VertexEnd == BaseVertex))) ++Seam;
+        else return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "native cone has unsupported edge geometry");
+    }
+    Vec3 PlaneNormal;
+    if (Rim != 1 || Seam != 1 || !PlanarNormal(Body, PlaneFace, PlaneNormal) ||
+        std::fabs(std::fabs(PlaneNormal.Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance)
+        return Deliver<ConeApexChamferSpecification>::Reject(RefusalReason::Unsupported,
+                                                              "native cone base cap or rim is not exact");
+
+    ConeApexChamferSpecification Specification;
+    Specification.Base = Base;
+    Specification.Axis = Axis;
+    Specification.BaseRadius = Cone.RadiusMajor;
+    Specification.Height = Height;
+    Specification.SetBack = SetBack;
+    const Deliver<BrepBody> Feasible = ReconstructConeApexChamfer(Specification);
+    if (!Feasible) return Deliver<ConeApexChamferSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<ConeApexChamferSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||

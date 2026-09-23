@@ -238,6 +238,18 @@ struct ConeApexFilletSpecification
     double FilletRadius = 0.0;
 };
 
+// A bounded native-cone apex chamfer. SetBack is the exact axial distance removed from
+// the apex; the resulting planar cap is perpendicular to Axis and the retained cone height
+// is Height - SetBack. General vertex-selected chamfers and mixed apex supports remain outside.
+struct ConeApexChamferSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double SetBack = 0.0;
+};
+
 // A bounded partial sector of the coaxial cone-apex spherical cap. Full revolution remains the
 // separate complete-apex route; arbitrary vertex/mixed-support selection is still unsupported.
 struct PartialConeApexFilletSpecification
@@ -549,6 +561,11 @@ public:
     [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePartialEdgeFillet(
         const ObliquePartialEdgeFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexChamfer(
+        const ConeApexChamferSpecification& Specification) noexcept;
+    // Bounded native-cone apex chamfer dispatch: only the unique apex of the canonical closed cone topology is eligible.
+    [[nodiscard]] static Deliver<ConeApexChamferSpecification> ClassifyConeApexChamferVertex(
+        const BrepBody& Body, int Vertex, double SetBack) noexcept;
     // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
     [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(
         const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
