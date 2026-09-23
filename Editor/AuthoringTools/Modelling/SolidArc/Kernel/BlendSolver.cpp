@@ -7114,6 +7114,108 @@ Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpe
     return Result;
 }
 
+Deliver<ConeApexFilletSpecification> BlendSolver::ClassifyConeApexFilletVertex(
+    const BrepBody& Body, int Vertex, double FilletRadius) noexcept
+{
+    if (!std::isfinite(FilletRadius) || FilletRadius <= ScalarCriteria::MergeTolerance)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                             "cone-apex vertex fillet radius must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 ||
+        Body.Vertices.size() != 2 || Body.Edges.size() != 2 || Body.Coedges.size() != 4 ||
+        Body.Loops.size() != 2 || Body.Faces.size() != 2)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::NonManifold,
+                                                             "source is not the bounded canonical native cone topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                             "selected cone-apex vertex is out of range");
+    int ConeFace = -1, PlaneFace = -1;
+    for (size_t I = 0; I < Body.Faces.size(); ++I)
+    {
+        const SurfaceClassification Classification = Body.Faces[I].Surface.Classification;
+        if (Classification == SurfaceClassification::Cone)
+        {
+            if (ConeFace >= 0) return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                     "source has multiple cone faces");
+            ConeFace = static_cast<int>(I);
+        }
+        else if (Classification == SurfaceClassification::Plane)
+        {
+            if (PlaneFace >= 0) return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                      "source has multiple planar cap faces");
+            PlaneFace = static_cast<int>(I);
+        }
+        else return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                   "source is not a native cone and planar base pair");
+    }
+    if (ConeFace < 0 || PlaneFace < 0 || Body.Faces[ConeFace].Loops.size() != 1 ||
+        Body.Faces[PlaneFace].Loops.size() != 1)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                             "native cone faces do not have the bounded single loops");
+    const NurbsSurface& Cone = Body.Faces[ConeFace].Surface;
+    if (!std::isfinite(Cone.RadiusMajor) || Cone.RadiusMajor <= ScalarCriteria::MergeTolerance ||
+        !std::isfinite(Cone.RadiusMinor) || std::fabs(Cone.RadiusMinor) > ScalarCriteria::GeometricTolerance ||
+        Cone.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                             "native cone does not have a positive base and zero apex radius");
+    const Vec3 Axis = Cone.Axis.Normalised();
+    const Vec3 Base = Cone.Origin;
+    int Apex = -1, BaseVertex = -1;
+    double Height = 0.0;
+    for (size_t I = 0; I < Body.Vertices.size(); ++I)
+    {
+        const Vec3 Delta = Body.Vertices[I].Point - Base;
+        const double Along = Delta.Dot(Axis);
+        const double Radial = (Delta - Axis * Along).Length();
+        if (std::fabs(Along) <= ScalarCriteria::GeometricTolerance &&
+            std::fabs(Radial - Cone.RadiusMajor) <= ScalarCriteria::GeometricTolerance * std::max(1.0, Cone.RadiusMajor))
+        {
+            if (BaseVertex >= 0) return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                        "native cone has multiple base vertices");
+            BaseVertex = static_cast<int>(I);
+        }
+        else if (Along > ScalarCriteria::MergeTolerance && Radial <= ScalarCriteria::GeometricTolerance * std::max(1.0, Along))
+        {
+            if (Apex >= 0) return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                 "native cone has multiple axis apex vertices");
+            Apex = static_cast<int>(I);
+            Height = Along;
+        }
+        else return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                   "native cone vertex geometry is not a base rim and apex pair");
+    }
+    if (Apex < 0 || BaseVertex < 0 || Height <= ScalarCriteria::MergeTolerance || Vertex != Apex)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                             "selected vertex is not the unique native cone apex");
+    int Rim = 0, Seam = 0;
+    for (const BrepEdge& EdgeData : Body.Edges)
+    {
+        if (EdgeData.Coedges.size() != 2) return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::NonManifold,
+                                                                                                "native cone edge is not manifold");
+        if (EdgeData.Closed() && EdgeData.VertexStart == BaseVertex &&
+            EdgeData.Curve.Classification == CurveClassification::Circle && EdgeData.Curve.Rational()) ++Rim;
+        else if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Line &&
+                 ((EdgeData.VertexStart == BaseVertex && EdgeData.VertexEnd == Apex) ||
+                  (EdgeData.VertexStart == Apex && EdgeData.VertexEnd == BaseVertex))) ++Seam;
+        else return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                   "native cone has unsupported edge geometry");
+    }
+    Vec3 PlaneNormal;
+    if (Rim != 1 || Seam != 1 || !PlanarNormal(Body, PlaneFace, PlaneNormal) ||
+        std::fabs(std::fabs(PlaneNormal.Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance)
+        return Deliver<ConeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                             "native cone base cap or rim is not exact");
+    ConeApexFilletSpecification Specification;
+    Specification.Base = Base;
+    Specification.Axis = Axis;
+    Specification.BaseRadius = Cone.RadiusMajor;
+    Specification.Height = Height;
+    Specification.FilletRadius = FilletRadius;
+    const Deliver<BrepBody> Feasible = ReconstructConeApexFillet(Specification);
+    if (!Feasible) return Deliver<ConeApexFilletSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<ConeApexFilletSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructPartialConeApexFillet(
     const PartialConeApexFilletSpecification& Specification) noexcept
 {

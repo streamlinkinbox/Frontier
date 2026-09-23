@@ -400,6 +400,11 @@ add_executable(EligibleObliqueVariableG2EdgeDispatchVerification Verification/El
 target_link_libraries(EligibleObliqueVariableG2EdgeDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME EligibleObliqueVariableG2EdgeDispatchVerification COMMAND EligibleObliqueVariableG2EdgeDispatchVerification)
 
+# Stage 4q: bounded dispatch from the unique apex vertex of a canonical native cone to the spherical-cap route.
+add_executable(ConeApexVertexDispatchVerification Verification/ConeApexVertexDispatchVerification.cpp)
+target_link_libraries(ConeApexVertexDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConeApexVertexDispatchVerification COMMAND ConeApexVertexDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

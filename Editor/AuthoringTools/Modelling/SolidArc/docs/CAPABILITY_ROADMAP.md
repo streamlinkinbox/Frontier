@@ -1184,6 +1184,23 @@ This remains bounded oblique variable dispatch only: arbitrary B-rep variable fi
 healing, curved/freeform supports, invalid corners, and source-body replacement remain unsupported.
 Its plan is `docs/PLAN_EligibleObliqueVariableG2EdgeDispatch.md`.
 
+#### Phase 38q: bounded native-cone apex vertex dispatch ✅
+
+The verified Stage 4b spherical-cap route now has a conservative vertex-selection layer for one
+canonical native right-circular cone. `ClassifyConeApexFilletVertex` structurally recognizes the
+closed `V2/E2/F2` cone topology, its native cone/planar-face pair, circular base rim, straight apex
+seam, and unique axis vertex; it derives the base, axis, base radius, and height instead of trusting
+face order or a caller-supplied specification. Reconstruction remains a separate transaction.
+
+`ConeApexVertexDispatchVerification` performs 24 checks using a distinct 5-by-7 cone and 0.6 fillet:
+exact apex extraction, deterministic dispatch, separate `V4/E5/F3/L3` spherical-cap reconstruction,
+outward normals, source immutability, base/out-of-range/invalid/consuming/cylinder/malformed refusals,
+and the distinct proof `Proofs/Phase38q_ConeApexVertexDispatch.png`.
+
+This is not general vertex-selected apex filleting: mixed supports, partial sectors, arbitrary cones,
+freeform/curved roots, edge loops, healing, and source-body replacement remain unsupported. Its plan
+is `docs/PLAN_ConeApexVertexDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

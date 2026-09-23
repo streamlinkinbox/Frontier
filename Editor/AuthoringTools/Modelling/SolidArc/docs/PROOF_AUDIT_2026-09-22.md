@@ -461,6 +461,25 @@ This does not prove arbitrary oblique variable B-rep filleting, arbitrary edge s
 curved/freeform supports, edge loops, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_EligibleObliqueVariableG2EdgeDispatch.md`.
 
+## Stage 38q coverage
+
+The native-cone apex vertex dispatch is a distinct selection layer over the verified Stage 4b route:
+
+- `ClassifyConeApexFilletVertex` accepts only the unique axis vertex of a closed canonical `V2/E2/F2`
+  native cone with one cone side, one planar base, one circular rim, and one straight apex seam;
+- it derives the base, normalized axis, positive base radius, and height from the source topology and
+  geometry, validates the requested fillet feasibility through the existing spherical-cap route, and
+  does not mutate the source;
+- `ConeApexVertexDispatchVerification` performs 24 checks over a distinct 5-by-7 cone with a 0.6
+  radius, covering exact extraction, deterministic dispatch, separate `V4/E5/F3/L3` reconstruction,
+  outward normals, source immutability, base/out-of-range/invalid/consuming/cylinder/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38q_ConeApexVertexDispatch.png` as the distinct sharp-versus-rounded apex proof.
+
+This does not prove general vertex-selected apex fillets, mixed supports, partial sectors, arbitrary
+cones, freeform/curved roots, edge loops, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_ConeApexVertexDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover
