@@ -364,6 +364,24 @@ Oblique variable G2, freeform/mixed supports, arbitrary B-rep rolling-ball G2, e
 variable-radius apexes, pure quarter-circle G2-to-plane contacts, and arbitrary healing remain
 explicitly unsupported. The bounded plan is `docs/PLAN_VariableG2RollingBall.md`.
 
+## Stage 38l coverage
+
+The oblique variable-radius G2 route is a distinct extension of Stage 4j:
+
+- `ObliqueVariableG2RollingBallPlanarCornerSpecification` requires a genuinely nonlinear positive
+  `QuadraticRadiusLaw`, one complete explicit edge, strict non-orthogonal supports, and unequal
+  finite widths;
+- exact `r(t) cot(theta/2)` tangent distances and `pi - theta` rational cores are retained at
+  three stations, with fixed homogeneous surfaces preserving the radius-square law;
+- `ObliqueVariableG2RollingBallVerification` performs 31 checks covering exact station profiles,
+  deterministic `V12/E18/F8/L8` topology, integrated volume, outward normals, refusals, and the
+  distinct variable-versus-constant proof;
+- `Proofs/Phase38l_ObliqueVariableG2.png` is the distinct exterior proof.
+
+Freeform or mixed supports, arbitrary B-rep rolling-ball G2, arbitrary edge selection,
+variable-radius apexes, pure quarter-circle G2-to-plane contacts, and arbitrary healing remain
+explicitly unsupported. The bounded plan is `docs/PLAN_ObliqueVariableG2RollingBall.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

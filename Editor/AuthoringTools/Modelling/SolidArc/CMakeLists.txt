@@ -375,6 +375,11 @@ add_executable(VariableG2RollingBallVerification Verification/VariableG2RollingB
 target_link_libraries(VariableG2RollingBallVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME VariableG2RollingBallVerification COMMAND VariableG2RollingBallVerification)
 
+# Stage 4l: genuinely nonlinear oblique variable-radius rolling-ball core with G2 transitions.
+add_executable(ObliqueVariableG2RollingBallVerification Verification/ObliqueVariableG2RollingBallVerification.cpp)
+target_link_libraries(ObliqueVariableG2RollingBallVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ObliqueVariableG2RollingBallVerification COMMAND ObliqueVariableG2RollingBallVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

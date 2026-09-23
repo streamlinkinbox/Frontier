@@ -8414,6 +8414,169 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableG2RollingBallPlanarCorner(
     return Result;
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructObliqueVariableG2RollingBallPlanarCorner(
+    const ObliqueVariableG2RollingBallPlanarCornerSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Length) || Specification.Length <= ScalarCriteria::MergeTolerance ||
+        !std::isfinite(Specification.WidthA) || !std::isfinite(Specification.WidthB) ||
+        Specification.WidthA <= ScalarCriteria::MergeTolerance || Specification.WidthB <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique variable G2 dimensions must be finite and positive");
+    if (!Specification.RadiusLaw.Positive() || !Specification.RadiusLaw.Nonlinear())
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique variable G2 route requires a genuinely nonlinear positive radius law");
+    if (Specification.EdgeAxis.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportA.Length() <= ScalarCriteria::GeometricTolerance ||
+        Specification.SupportB.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "oblique variable G2 frame is degenerate");
+    const Vec3 Axis = Specification.EdgeAxis.Normalised();
+    const Vec3 SupportA = Specification.SupportA.Normalised();
+    const Vec3 SupportB = Specification.SupportB.Normalised();
+    if (std::fabs(Axis.Dot(SupportA)) > ScalarCriteria::AngularTolerance ||
+        std::fabs(Axis.Dot(SupportB)) > ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique variable G2 supports must be perpendicular to the edge");
+    const double Theta = std::acos(ScalarCriteria::Clamp(SupportA.Dot(SupportB), -1.0, 1.0));
+    if (Theta <= ScalarCriteria::AngularTolerance || Theta >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance ||
+        Axis.Dot(SupportA.Cross(SupportB)) <= ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "oblique variable G2 angle must be strict and positively oriented");
+    const double HalfTheta = Theta * 0.5;
+    const double CotHalf = std::cos(HalfTheta) / std::sin(HalfTheta);
+    const double CoreSweep = ScalarCriteria::Pi - Theta;
+    if (!std::isfinite(Specification.TransitionAngle) ||
+        Specification.TransitionAngle <= 4.0 * ScalarCriteria::AngularTolerance ||
+        Specification.TransitionAngle >= CoreSweep * 0.5 - 4.0 * ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique variable G2 transition leaves no circular core");
+    for (int I = 0; I <= 64; ++I)
+    {
+        const double T = static_cast<double>(I) / 64.0;
+        const double Radius = Specification.RadiusLaw.Radius(T);
+        const double TangentDistance = Radius * CotHalf;
+        if (!std::isfinite(Radius) || Radius <= ScalarCriteria::MergeTolerance ||
+            TangentDistance >= Specification.WidthA - ScalarCriteria::MergeTolerance ||
+            TangentDistance >= Specification.WidthB - ScalarCriteria::MergeTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                              "oblique variable G2 radius consumes a finite support");
+    }
+    const auto MakeSection = [&](double Along, double Radius) -> Deliver<ObliqueG2RollingBallProfile>
+    {
+        ObliqueG2RollingBallPlanarCornerSpecification Section;
+        Section.Origin = Specification.Origin + Axis * Along;
+        Section.EdgeAxis = Axis;
+        Section.SupportA = SupportA;
+        Section.SupportB = SupportB;
+        Section.Length = 1.0;
+        Section.WidthA = Specification.WidthA;
+        Section.WidthB = Specification.WidthB;
+        Section.Radius = Radius;
+        Section.TransitionAngle = Specification.TransitionAngle;
+        return BuildObliqueG2RollingBallProfile(Section);
+    };
+    Deliver<ObliqueG2RollingBallProfile> S0 = MakeSection(0.0, Specification.RadiusLaw.Radius(0.0));
+    Deliver<ObliqueG2RollingBallProfile> Sm = MakeSection(Specification.Length * 0.5, Specification.RadiusLaw.Radius(0.5));
+    Deliver<ObliqueG2RollingBallProfile> S1 = MakeSection(Specification.Length, Specification.RadiusLaw.Radius(1.0));
+    if (!S0 || !Sm || !S1)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique variable G2 station profile is degenerate");
+
+    const auto StationSurface = [&](std::vector<NurbsCurve> Rows) -> Deliver<NurbsSurface>
+    {
+        if (Rows.size() != 3) return Deliver<NurbsSurface>::Reject(RefusalReason::DegenerateInput,
+                                                                    "oblique variable G2 requires three stations");
+        for (NurbsCurve& Row : Rows)
+        {
+            if (Row.Degree < 2) Row = Row.Elevated(2);
+            Row = Row.Reparameterised(0.0, 1.0);
+        }
+        const int CountU = Rows.front().PoleCount();
+        for (const NurbsCurve& Row : Rows)
+            if (Row.PoleCount() != CountU || Row.Knots != Rows.front().Knots)
+                return Deliver<NurbsSurface>::Reject(RefusalReason::NoConvergence,
+                                                      "oblique variable G2 station curves are incompatible");
+        std::vector<Vec4> Poles(static_cast<size_t>(CountU) * 3);
+        for (int I = 0; I < CountU; ++I)
+        {
+            Poles[static_cast<size_t>(I) * 3] = Rows[0].Poles[I];
+            Poles[static_cast<size_t>(I) * 3 + 1] = Rows[1].Poles[I] * 2.0 -
+                (Rows[0].Poles[I] + Rows[2].Poles[I]) * 0.5;
+            Poles[static_cast<size_t>(I) * 3 + 2] = Rows[2].Poles[I];
+        }
+        Deliver<NurbsSurface> Surface = NurbsSurface::Build(Rows.front().Degree, 2, CountU, 3,
+                                                              std::move(Poles), Rows.front().Knots,
+                                                              { 0, 0, 0, 1, 1, 1 });
+        if (Surface) Surface.Payload.Classification = SurfaceClassification::Loft;
+        return Surface;
+    };
+    const auto Point = [&](double Along, const Vec3& Direction, double Distance) noexcept
+    {
+        return Specification.Origin + Axis * Along + Direction * Distance;
+    };
+    const auto Add = [&](std::vector<NurbsCurve> Rows, std::vector<NurbsSurface>& Surfaces) noexcept -> bool
+    {
+        Deliver<NurbsSurface> Surface = StationSurface(std::move(Rows));
+        if (!Surface) return false;
+        Surfaces.push_back(std::move(Surface.Payload));
+        return true;
+    };
+    const Vec3 S0A = S0.Payload.Pieces[0].StartPoint();
+    const Vec3 SmA = Sm.Payload.Pieces[0].StartPoint();
+    const Vec3 S1A = S1.Payload.Pieces[0].StartPoint();
+    const Vec3 S0B = S0.Payload.Pieces[2].EndPoint();
+    const Vec3 SmB = Sm.Payload.Pieces[2].EndPoint();
+    const Vec3 S1B = S1.Payload.Pieces[2].EndPoint();
+    const auto Line = [](Vec3 P0, Vec3 P1) -> Deliver<NurbsCurve> { return NurbsCurve::Line(P0, P1); };
+    Deliver<NurbsCurve> A0 = Line(S0A, Point(0.0, SupportA, Specification.WidthA));
+    Deliver<NurbsCurve> Am = Line(SmA, Point(Specification.Length * 0.5, SupportA, Specification.WidthA));
+    Deliver<NurbsCurve> A1 = Line(S1A, Point(Specification.Length, SupportA, Specification.WidthA));
+    Deliver<NurbsCurve> O0 = Line(Point(0.0, SupportA, Specification.WidthA), Point(0.0, SupportB, Specification.WidthB));
+    Deliver<NurbsCurve> Om = Line(Point(Specification.Length * 0.5, SupportA, Specification.WidthA), Point(Specification.Length * 0.5, SupportB, Specification.WidthB));
+    Deliver<NurbsCurve> O1 = Line(Point(Specification.Length, SupportA, Specification.WidthA), Point(Specification.Length, SupportB, Specification.WidthB));
+    Deliver<NurbsCurve> B0 = Line(Point(0.0, SupportB, Specification.WidthB), S0B);
+    Deliver<NurbsCurve> Bm = Line(Point(Specification.Length * 0.5, SupportB, Specification.WidthB), SmB);
+    Deliver<NurbsCurve> B1 = Line(Point(Specification.Length, SupportB, Specification.WidthB), S1B);
+    std::vector<NurbsSurface> Surfaces;
+    if (!A0 || !Am || !A1 || !O0 || !Om || !O1 || !B0 || !Bm || !B1 ||
+        !Add({ A0.Payload, Am.Payload, A1.Payload }, Surfaces) ||
+        !Add({ O0.Payload, Om.Payload, O1.Payload }, Surfaces) ||
+        !Add({ B0.Payload, Bm.Payload, B1.Payload }, Surfaces) ||
+        !Add({ S0.Payload.Pieces[0], Sm.Payload.Pieces[0], S1.Payload.Pieces[0] }, Surfaces) ||
+        !Add({ S0.Payload.Pieces[1], Sm.Payload.Pieces[1], S1.Payload.Pieces[1] }, Surfaces) ||
+        !Add({ S0.Payload.Pieces[2], Sm.Payload.Pieces[2], S1.Payload.Pieces[2] }, Surfaces))
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "oblique variable G2 surfaces are degenerate");
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Result;
+    ObliqueG2RollingBallPlanarCornerSpecification Unit;
+    Unit.Origin = Specification.Origin;
+    Unit.EdgeAxis = Axis;
+    Unit.SupportA = SupportA;
+    Unit.SupportB = SupportB;
+    Unit.Length = 1.0;
+    Unit.WidthA = Specification.WidthA;
+    Unit.WidthB = Specification.WidthB;
+    Unit.Radius = 1.0;
+    Unit.TransitionAngle = Specification.TransitionAngle;
+    Deliver<ObliqueG2RollingBallProfile> UnitProfile = BuildObliqueG2RollingBallProfile(Unit);
+    if (!UnitProfile) return Deliver<BrepBody>::Reject(UnitProfile.Denial.Reason, "oblique variable G2 unit profile failed");
+    const double RemovedCoefficient = ObliqueG2RollingBallRemovalArea(UnitProfile.Payload);
+    const double SharpArea = 0.5 * Specification.WidthA * Specification.WidthB * std::sin(Theta);
+    const double ExpectedVolume = Specification.Length * SharpArea -
+        RemovedCoefficient * Specification.RadiusLaw.IntegratedSquare(Specification.Length);
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Result.Payload.Vertices.size() != 12 || Result.Payload.Edges.size() != 18 ||
+        Result.Payload.Coedges.size() != 36 || Result.Payload.Loops.size() != 8 || Result.Payload.Faces.size() != 8)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "oblique variable G2 did not reach exact capped topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "oblique variable G2 volume failed integrated radius-square acceptance");
+    return Result;
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableSetbackCornerBlend(
     const NonlinearVariableSetbackCornerSpecification& Specification) noexcept
 {

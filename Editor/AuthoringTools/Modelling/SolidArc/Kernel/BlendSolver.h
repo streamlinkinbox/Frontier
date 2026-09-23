@@ -443,6 +443,20 @@ struct VariableG2RollingBallPlanarCornerSpecification
     double TransitionAngle = ScalarCriteria::Pi / 8.0;                                 // [rad] fixed transition angle at every station
 };
 
+// A genuinely nonlinear complete-edge extension of the oblique rolling-ball-core G2 route.
+struct ObliqueVariableG2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    double TransitionAngle = ScalarCriteria::Pi / 18.0;                                // [rad] fixed transition angle at every station
+};
+
 // A separate quadratic clearance law for the support setback. The radius law may be constant,
 // linear, or quadratic; the setback law must be genuinely nonlinear in this bounded slice.
 struct NonlinearVariableSetbackCornerSpecification
@@ -574,6 +588,8 @@ public:
         const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableG2RollingBallPlanarCorner(
         const VariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueVariableG2RollingBallPlanarCorner(
+        const ObliqueVariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,

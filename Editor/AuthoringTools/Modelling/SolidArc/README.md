@@ -24,7 +24,7 @@ Tools/Build/CheckSolidArc.sh
 That gate compiles the C++20 kernel, console and interaction layers, then runs the Phase 25/26/31/32/32z baseline
 fillet/chamfer proofs, the Phase 34a/34b loft+tweak proofs, the Phase 34c/34d planar-chamfer proofs, the Phase 34e/34f
 face-transform proofs, the Phase 35a–35d curved, concave-chamfer and same-body-loft proofs, and the Phase 36a–36r
-face-edit and bounded curved-root proofs. It runs 49 verifier targets and persists each target's distinct PNG where
+face-edit and bounded curved-root proofs. It runs 50 verifier targets and persists each target's distinct PNG where
 provided. No external packages. `-Wall -Wextra -Wpedantic`.
 
 ## Direct solid modelling (Phase 34)
@@ -655,6 +655,7 @@ outside. Verified numerically in `KernelVerification` — this is what booleans 
 | 38i | **Bounded rolling-ball-core G2 planar transition.** Each planar support uses a quintic zero-curvature transition into an exact rational circular core of constant radius; transition/core curvature is matched at both joins and the split sections sew as `V14/E21/F9/L9`. The profile line-integral volume, outward normals, topology, refusal boundaries, and a distinct G2/core-versus-pure-rolling proof are verified. Arbitrary B-rep rolling-ball G2, variable cores, oblique/freeform supports, apexes, edge selection, and healing remain refused. | `G2RollingBallVerification` — 29 C++ checks; `Proofs/Phase38i_G2RollingBall.png` |
 | 38j | **Bounded oblique rolling-ball-core G2 transition.** One strict non-orthogonal support wedge accepts exact tangent distance `r cot(theta/2)`, quintic zero-curvature support transitions, and an exact rational core over the `π − θ` oblique arc; retained unequal support strips and caps sew as `V12/E18/F8/L8`. Curvature joins, line-integral volume, normals, strict-frame refusals, and a sharp-versus-oblique proof are verified. Variable radius, freeform/mixed supports, arbitrary edge selection, apexes, pure quarter-circle G2 contacts, and healing remain refused. | `ObliqueG2RollingBallVerification` — 29 C++ checks; `Proofs/Phase38j_ObliqueG2RollingBall.png` |
 | 38k | **Bounded quadratic variable-radius rolling-ball-core G2 transition.** One explicit complete perpendicular edge accepts a genuinely nonlinear positive quadratic radius law. Fixed homogeneous station surfaces preserve exact start/middle/end G2 profiles and rational circular cores, with retained supports and caps sewing as `V14/E21/F9/L9`. Integrated radius-square volume, station curvature, normals, transactional law/frame refusals, and a variable-versus-constant proof are verified. Oblique variable G2, freeform supports, arbitrary edge selection, apexes, pure quarter-circle G2 contacts, and healing remain refused. | `VariableG2RollingBallVerification` — 32 C++ checks; `Proofs/Phase38k_VariableG2RollingBall.png` |
+| 38l | **Bounded oblique quadratic variable-radius rolling-ball-core G2 transition.** One strict non-orthogonal wedge with unequal support widths accepts a genuinely nonlinear positive quadratic radius law. Exact `r(t) cot(theta/2)` tangent stations, rational oblique cores over the `π − θ` arc, homogeneous station surfaces, retained wedge strips, and caps sew as `V12/E18/F8/L8`. Integrated radius-square volume, station curvature, normals, frame/law refusals, and a variable-versus-constant proof are verified. Freeform or mixed supports, arbitrary edge selection, apexes, pure quarter-circle G2 contacts, and healing remain refused. | `ObliqueVariableG2RollingBallVerification` — 31 C++ checks; `Proofs/Phase38l_ObliqueVariableG2.png` |
 
 ## Console quick start
 
@@ -803,7 +804,7 @@ runs the Phase 10 suite + contact sheet, and finally drives a `ConsoleHost` dire
 sheet` / `reset` / `recipe` verbs exist and refuse garbage. It is the single executable that proves the console,
 the scene, the kernel and the raster still all agree after every commit.
 
-ctest now registers **77 suites** — 64 per-feature verification binaries (2,251 checks total) and 13 script smoke
+ctest now registers **78 suites** — 65 per-feature verification binaries (2,282 checks total) and 13 script smoke
 tests. The Phase 32z direct C++ verifier sweep is green, including `DimensionVerification`; the per-suite check counts
 are:
 

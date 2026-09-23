@@ -1096,6 +1096,20 @@ Oblique variable G2, freeform/mixed supports, arbitrary edge selection, variable
 pure quarter-circle G2-to-plane contacts, and healing remain unsupported. Its plan is
 `docs/PLAN_VariableG2RollingBall.md`.
 
+#### Phase 38l: bounded oblique quadratic variable-radius rolling-ball-core G2 ✅
+
+The oblique Stage 4j route now accepts one genuinely nonlinear positive quadratic radius law
+across one complete explicit edge with unequal finite support widths. Exact `r(t) cot(theta/2)`
+tangent stations retain rational `pi - theta` cores and zero-to-`1/r(t)` curvature joins;
+fixed homogeneous station surfaces and three retained wedge strips sew as `V12/E18/F8/L8`.
+Integrated radius-square volume, station curvature, outward normals, transactional frame/law
+refusals, and the distinct variable-versus-constant proof are covered by
+`ObliqueVariableG2RollingBallVerification` and `Proofs/Phase38l_ObliqueVariableG2.png`.
+
+Freeform or mixed supports, arbitrary edge selection, variable-radius apexes, pure quarter-circle
+G2-to-plane contacts, and healing remain unsupported. Its plan is
+`docs/PLAN_ObliqueVariableG2RollingBall.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
