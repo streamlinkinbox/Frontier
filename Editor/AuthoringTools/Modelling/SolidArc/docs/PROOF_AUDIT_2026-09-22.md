@@ -421,6 +421,26 @@ This does not prove arbitrary oblique B-rep G2, arbitrary edge selection, curved
 edge loops, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_EligibleObliqueG2EdgeDispatch.md`.
 
+## Stage 38o coverage
+
+The variable-radius dispatch is a distinct bounded application layer over the verified Stage 38k route:
+
+- `ClassifyVariableG2RollingBallEdge` inherits the Stage 4m orthogonal rectangular-edge eligibility
+  boundary and additionally requires a positive genuinely nonlinear `QuadraticRadiusLaw`;
+- it retains exact edge length, common support width, frame orientation, three radius stations, and
+  transition angle, then validates the full variable specification against finite support feasibility
+  without mutating the source;
+- `EligibleVariableG2EdgeDispatchVerification` performs 26 checks covering exact `4/4/.25/.35/.50`
+  extraction, deterministic orientation, separate `V14/E21/F9/L9` reconstruction, outward normals,
+  source immutability, and constant/non-positive/consuming-law, invalid-transition, oblique/unequal-
+  width/curved/non-manifold refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38o_EligibleVariableG2EdgeDispatch.png` as the distinct sharp-versus-variable result proof.
+
+This does not prove oblique variable dispatch, arbitrary B-rep variable filleting, arbitrary edge
+selection, curved/freeform supports, edge loops, healing, or source-body replacement. The bounded
+plan is `docs/PLAN_EligibleVariableG2EdgeDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

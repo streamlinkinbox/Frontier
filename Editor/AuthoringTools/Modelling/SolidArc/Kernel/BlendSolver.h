@@ -598,6 +598,10 @@ public:
     // independently extracted finite support widths. Returns the explicit oblique G2 specification without mutating Body.
     [[nodiscard]] static Deliver<ObliqueG2RollingBallPlanarCornerSpecification> ClassifyObliqueG2RollingBallEdge(
         const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
+    // Bounded nonlinear application dispatch: the Stage 4m orthogonal eligibility route plus one positive,
+    // genuinely nonlinear quadratic radius law. Returns the explicit variable G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<VariableG2RollingBallPlanarCornerSpecification> ClassifyVariableG2RollingBallEdge(
+        const BrepBody& Body, int Edge, const QuadraticRadiusLaw& RadiusLaw, double TransitionAngle) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
         const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,

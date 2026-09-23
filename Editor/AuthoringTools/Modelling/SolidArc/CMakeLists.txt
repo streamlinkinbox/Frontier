@@ -390,6 +390,11 @@ add_executable(EligibleObliqueG2EdgeDispatchVerification Verification/EligibleOb
 target_link_libraries(EligibleObliqueG2EdgeDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME EligibleObliqueG2EdgeDispatchVerification COMMAND EligibleObliqueG2EdgeDispatchVerification)
 
+# Stage 4o: bounded dispatch from one eligible orthogonal rectangular B-rep edge to the variable-radius G2 route.
+add_executable(EligibleVariableG2EdgeDispatchVerification Verification/EligibleVariableG2EdgeDispatchVerification.cpp)
+target_link_libraries(EligibleVariableG2EdgeDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME EligibleVariableG2EdgeDispatchVerification COMMAND EligibleVariableG2EdgeDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

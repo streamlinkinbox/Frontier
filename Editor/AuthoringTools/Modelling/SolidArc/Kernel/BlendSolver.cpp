@@ -8802,6 +8802,33 @@ Deliver<ObliqueG2RollingBallPlanarCornerSpecification> BlendSolver::ClassifyObli
     return Deliver<ObliqueG2RollingBallPlanarCornerSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<VariableG2RollingBallPlanarCornerSpecification> BlendSolver::ClassifyVariableG2RollingBallEdge(
+    const BrepBody& Body, int Edge, const QuadraticRadiusLaw& RadiusLaw, double TransitionAngle) noexcept
+{
+    if (!RadiusLaw.Positive() || !RadiusLaw.Nonlinear())
+        return Deliver<VariableG2RollingBallPlanarCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "variable G2 edge dispatch requires a positive nonlinear radius law");
+    const Deliver<G2RollingBallPlanarCornerSpecification> Constant =
+        ClassifyG2RollingBallEdge(Body, Edge, RadiusLaw.Start, TransitionAngle);
+    if (!Constant)
+        return Deliver<VariableG2RollingBallPlanarCornerSpecification>::Reject(Constant.Denial.Reason,
+                                                                                  Constant.Denial.Detail);
+    VariableG2RollingBallPlanarCornerSpecification Specification;
+    Specification.Origin = Constant.Payload.Origin;
+    Specification.EdgeAxis = Constant.Payload.EdgeAxis;
+    Specification.SupportA = Constant.Payload.SupportA;
+    Specification.SupportB = Constant.Payload.SupportB;
+    Specification.Length = Constant.Payload.Length;
+    Specification.Width = Constant.Payload.Width;
+    Specification.RadiusLaw = RadiusLaw;
+    Specification.TransitionAngle = TransitionAngle;
+    const Deliver<BrepBody> Feasible = ReconstructVariableG2RollingBallPlanarCorner(Specification);
+    if (!Feasible)
+        return Deliver<VariableG2RollingBallPlanarCornerSpecification>::Reject(Feasible.Denial.Reason,
+                                                                                  Feasible.Denial.Detail);
+    return Deliver<VariableG2RollingBallPlanarCornerSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructNonlinearVariableSetbackCornerBlend(
     const NonlinearVariableSetbackCornerSpecification& Specification) noexcept
 {

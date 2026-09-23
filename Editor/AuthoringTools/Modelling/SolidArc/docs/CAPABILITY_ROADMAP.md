@@ -1148,6 +1148,24 @@ This remains bounded dispatch, not arbitrary oblique B-rep G2: edge loops, sourc
 healing, curved/freeform supports, invalid corners, and arbitrary selected-edge routes remain
 unsupported. Its plan is `docs/PLAN_EligibleObliqueG2EdgeDispatch.md`.
 
+#### Phase 38o: bounded eligible-edge dispatch for variable-radius G2 reconstruction ✅
+
+The orthogonal eligible-edge layer now accepts one genuinely nonlinear positive quadratic radius law
+without broadening the source-selection boundary. The classifier inherits Stage 4m's straight,
+manifold, planar-rectangular, strict-orthogonal, equal-width conditions, extracts the explicit frame,
+validates the full radius law and finite support feasibility, and returns the verified
+`VariableG2RollingBallPlanarCornerSpecification` without mutating the source.
+
+`EligibleVariableG2EdgeDispatchVerification` performs 26 checks covering exact `4/4/.25/.35/.50`
+frame and station extraction, deterministic orientation, separate `V14/E21/F9/L9` reconstruction,
+outward normals, source immutability, and constant/non-positive/consuming-law, invalid-transition,
+oblique/unequal-width/curved/non-manifold refusals. The distinct proof is
+`Proofs/Phase38o_EligibleVariableG2EdgeDispatch.png`.
+
+This remains orthogonal variable-radius dispatch only: oblique variable dispatch, arbitrary B-rep
+variable filleting, edge loops, healing, curved/freeform supports, and source-body replacement remain
+unsupported. Its plan is `docs/PLAN_EligibleVariableG2EdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
