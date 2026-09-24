@@ -347,6 +347,21 @@ struct PartialEqualRadiusBiconeApexChamferSpecification
     double SweepAngle = 0.0;
 };
 
+// A bounded strict non-reflex partial sector of an unequal-radius bicone apex chamfer with
+// independent lower and upper axial set-backs.
+struct PartialUnequalBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
 // A bounded partial sector of an unequal-radius coaxial bicone apex toroidal fillet.
 struct PartialUnequalBiconeApexFilletSpecification
 {
@@ -726,6 +741,11 @@ public:
     [[nodiscard]] static Deliver<PartialEqualRadiusBiconeApexChamferSpecification>
         ClassifyPartialEqualRadiusBiconeApexChamferVertex(
             const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialUnequalBiconeUnequalSetbackChamfer(
+        const PartialUnequalBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialUnequalBiconeUnequalSetbackChamferSpecification>
+        ClassifyPartialUnequalBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructPartialUnequalBiconeApexFillet(
         const PartialUnequalBiconeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<PartialUnequalBiconeApexFilletSpecification>

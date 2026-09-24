@@ -769,6 +769,25 @@ oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary select
 consuming set-backs, or healing. The bounded plan is
 `docs/PLAN_EqualRadiusBiconeApexChamfer.md`.
 
+## Phase 39f — partial unequal-radius bicone chamfer with independent set-backs (2026-09-24)
+
+This is a separate finite-sector independent-setback route, not a full-turn or equal-setback rename:
+
+- `PartialUnequalBiconeUnequalSetbackChamferVerification` builds a capped native partial source with
+  exact `V7/E11/C22/L6/F6` topology, radii 4.8/2.6, heights 6.7/4.3, a 110-degree sweep, and
+  lower/upper set-backs 0.75/1.15.
+- `ClassifyPartialUnequalBiconeUnequalSetbackChamferVertex` derives the shared apex, coaxial axis,
+  unequal radii, native sweep, and two independent set-backs, rejecting equal-setback inputs.
+- `ReconstructPartialUnequalBiconeUnequalSetbackChamfer` returns `V10/E15/C30/L7/F7` with three
+  cones, two axial base planes, and two radial sector caps. The verifier checks exact contact radii,
+  independent-setback volume, outward normals, topology, refusals, and source immutability.
+- The durable proof is `Proofs/Phase39f_PartialUnequalBiconeUnequalSetbackChamfer.png`; 32 checks pass.
+
+Equal set-backs remain on Phase 39a. This does not prove complete/half/reflex sectors, equal radii,
+mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary
+selection, invalid or consuming set-backs, or healing. The bounded plan is
+`docs/PLAN_PartialUnequalBiconeUnequalSetbackChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
