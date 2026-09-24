@@ -1,0 +1,20 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -206,6 +206,7 @@
+     const uint16_t* Pixels=nullptr;
+     uint32_t Width=0, Height=0;
+     uint64_t Revision=0;
++    float BakedSunDirection[3]={1,0,0};
+     bool Stale=false, Resident=false, Pending=false, RequestBake=false;
+ };
+ struct EditorMoonBody {
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -1582,6 +1582,7 @@
+     auto& Image=Sheet.SkyImage;
+     if(SkyPreviewHalves.size()==size_t(kSkyDomeSide)*kSkyDomeSide*8u){
+         Image.Pixels=SkyPreviewHalves.data();Image.Width=kSkyDomeSide;Image.Height=kSkyDomeSide*2;
++        for(int C=0;C<3;++C)Image.BakedSunDirection[C]=SkyDomeRecord.SunDirection[C];
+         Image.Revision=SkyPreviewRevision;Image.Stale=!SkyDomeStagingMatches(SkyDomeRecord,PackSkyRecord());
+     }
+     Image.Resident=SkyDomeSlot!=kNoSkyDomeSlot;

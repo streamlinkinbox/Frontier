@@ -1,0 +1,19 @@
+{
+  "browser": "153.0.8010.0",
+  "size": 256,
+  "format": "FIB1 + LE uint32 width,height,SVG-byte-count + exact SVG bytes + straight RGBA8",
+  "icons": [
+    {
+      "name": "sun",
+      "sourceSHA256": "4784b0b90011b710a1345a8048901404a4cc8a1f15c98e886589f47133f6a1c3",
+      "bakeSHA256": "c77c394a8f268e7766eb08a8411f11d82df7ae6f0373a1a0e26138642472e6ee",
+      "pngSHA256": "d79525d6387b70ee84930b31abe148d0535ff449a96d42943ebad2669df1b7ad"
+    },
+    {
+      "name": "moon",
+      "sourceSHA256": "e3272801cd5d98b7edc5ffc02407cb2694593c0fcbaef59938daa648f9980b2f",
+      "bakeSHA256": "51524d01c540085ec5436fe999c67bef3e2f2b193ea02baf2273f941c19e858c",
+      "pngSHA256": "cf719a3d06a30c504d8ab2b01b83460a50def9a533fed7beb52dbdd25427ac7b"
+    }
+  ]
+}

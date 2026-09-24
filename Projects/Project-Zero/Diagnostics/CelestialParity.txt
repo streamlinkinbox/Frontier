@@ -1,0 +1,32 @@
+CheckCelestialSlang: all rules pass (3 files)
+G1 oracle 0640_default: MAE=0.0003 max=1 diffrac=0.00028 -> PASS
+G2 cpu-port 0640_default (sky 43%): MAE=0.0001 max=1 diffrac=0.00005 -> PASS
+G1 oracle 0640_lookup: MAE=0.0001 max=1 diffrac=0.00011 -> PASS
+G2 cpu-port 0640_lookup (sky 71%): MAE=0.0000 max=1 diffrac=0.00003 -> PASS
+G1 oracle 0760_lookup: MAE=0.0001 max=1 diffrac=0.00005 -> PASS
+G2 cpu-port 0760_lookup (sky 71%): MAE=0.0001 max=1 diffrac=0.00008 -> PASS
+G1 oracle 1200_lookup: MAE=0.0000 max=1 diffrac=0.00003 -> PASS
+G2 cpu-port 1200_lookup (sky 71%): MAE=0.0000 max=1 diffrac=0.00001 -> PASS
+G1 oracle 0640_sun: MAE=0.0001 max=1 diffrac=0.00014 -> PASS
+G2 cpu-port 0640_sun (sky 55%): MAE=0.0001 max=1 diffrac=0.00007 -> PASS
+G1 oracle 0760_sun: MAE=0.0001 max=1 diffrac=0.00009 -> PASS
+G2 cpu-port 0760_sun (sky 75%): MAE=0.0000 max=1 diffrac=0.00004 -> PASS
+G1 oracle 0589_sun: MAE=0.0000 max=1 diffrac=0.00005 -> PASS
+G2 cpu-port 0589_sun (sky 47%): MAE=0.0003 max=1 diffrac=0.00034 -> PASS
+G1 oracle 0600_sun: MAE=0.0000 max=1 diffrac=0.00003 -> PASS
+G2 cpu-port 0600_sun (sky 48%): MAE=0.0002 max=1 diffrac=0.00022 -> PASS
+G1 oracle 1811_sun: MAE=0.0001 max=1 diffrac=0.00005 -> PASS
+G2 cpu-port 1811_sun (sky 47%): MAE=0.0002 max=1 diffrac=0.00023 -> PASS
+G1 oracle 0000_night: MAE=0.0015 max=1 diffrac=0.00154 -> PASS
+G2 cpu-port 0000_night (sky 100%): MAE=0.0017 max=2 diffrac=0.00166 -> PASS
+G3 media-numpy (36000 rows): worst 0.517 tol -> PASS
+ReSTIRConvergence: PASS
+   T4 determinism: PASS
+   probe floor T2 DI: est 0.287147 se 0.027644 ref 0.226939 s 0.000671 -> PASS
+   probe floor T3 GI: est 0.188659 se 0.004058 ref 0.184292 s 0.000351 -> PASS
+   probe floor-left T2 DI: est 0.277476 se 0.028947 ref 0.237659 s 0.000634 -> PASS
+   probe floor-left T3 GI: est 0.186154 se 0.005797 ref 0.189269 s 0.000578 -> PASS
+   probe wall T2 DI: est 0.153432 se 0.020071 ref 0.160219 s 0.000977 -> PASS
+   probe wall T3 GI: est 0.187664 se 0.004457 ref 0.190209 s 0.000401 -> PASS
+   OVERALL: PASS
+OVERALL: PASS

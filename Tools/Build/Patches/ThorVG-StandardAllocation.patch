@@ -1,0 +1,14 @@
+--- a/src/renderer/tvgInitializer.cpp
++++ b/src/renderer/tvgInitializer.cpp
+@@ -133,11 +133,4 @@
+ }
+ 
+ 
+-void* operator new(std::size_t size) {
+-    return tvg::malloc(size);
+-}
+-
+-
+-void operator delete(void* ptr) noexcept {
+-    tvg::free(ptr);
+-}+// Frontier: retain the standard C++ allocation functions.

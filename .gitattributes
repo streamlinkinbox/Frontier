@@ -1,0 +1,13 @@
+# Unified diffs contain intentional single-space context lines.
+Tools/Build/Patches/*.patch whitespace=-blank-at-eol,-blank-at-eof
+# Verified native icon bakes embed the exact SVG bytes; keep them stable on Windows.
+EngineContent/Icons/*.svg text eol=lf
+Experimental/FrontierEditor/custom-icons/*.svg text eol=lf
+Experimental/FrontierEditor/ui-icons/*.svg text eol=lf
+EngineContent/Icons/Baked/*.rgba binary
+# Preserve the reviewed upstream snapshot byte-for-byte, including its whitespace.
+Experimental/FrontierEditor/vendor/slate-new-icons/App.tsx -whitespace
+
+# Preserve imported upstream font licence bytes, including original line endings.
+EngineContent/FontArchives/*/OFL.txt -whitespace
+EngineContent/FontArchives/*/LICENSE.txt -whitespace

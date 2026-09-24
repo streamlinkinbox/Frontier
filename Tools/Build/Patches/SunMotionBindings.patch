@@ -1,0 +1,35 @@
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -991,12 +991,13 @@
+         std::snprintf(When.Caption, sizeof(When.Caption), "24-hour local clock, not a manual direction control. Use the native slider to change time.");
+         Push(When, MakeSlider("Local Hours", 0.0f, 24.0f, Observation.LocalHours, 2, "h"));
+         Push(When, MakeSwitch("Animate", Clock.Animate));
++        Push(When, MakeSlider("Day duration", 0.01f, 168.0f, 24.0f / Clock.SpeedTimes, 2, "h"));
+         {
+-            static const char* const Speeds[] = { "x1", "x8", "x30", "x100" };
++            static const char* const Speeds[] = { "x1", "x8", "x30", "x100", "Custom" };
+             const float Rates[4] = { 1.0f, 8.0f, 30.0f, 100.0f };
+-            uint32_t Picked = 1u;
++            uint32_t Picked = 4u;
+             for (uint32_t I = 0; I < 4u; ++I) if (std::fabs(Clock.SpeedTimes - Rates[I]) < 0.01f) Picked = I;
+-            Push(When, MakeSelect("Speed", Speeds, 4u, Picked));
++            Push(When, MakeSelect("Speed", Speeds, 5u, Picked));
+         }
+ 
+         EditorPropertyGroup& Where = OpenGroup(Sheet, "Observer / date");
+@@ -1340,7 +1341,14 @@
+         Observation.LocalHours = ReadSlider(Sheet, "Local Hours", Observation.LocalHours);
+         Clock.Animate          = ReadSwitch(Sheet, "Animate", Clock.Animate);
+         const float Rates[4] = { 1.0f, 8.0f, 30.0f, 100.0f };
+-        Clock.SpeedTimes       = Rates[ReadSelect(Sheet, "Speed", 1u) & 3u];
++        const float CurrentDuration = 24.0f / Clock.SpeedTimes;
++        const float Duration = ReadSlider(Sheet, "Day duration", CurrentDuration);
++        uint32_t CurrentPreset = 4u;
++        for (uint32_t I=0; I<4u; ++I) if (std::fabs(Clock.SpeedTimes-Rates[I])<0.01f) CurrentPreset=I;
++        const uint32_t Preset = ReadSelect(Sheet, "Speed", CurrentPreset);
++        if (std::isfinite(Duration) && Duration != CurrentDuration)
++            Clock.SpeedTimes = 24.0f / std::clamp(Duration, 0.01f, 168.0f);
++        else if (Preset < 4u && Preset != CurrentPreset) Clock.SpeedTimes = Rates[Preset];
+         Observation.Latitude   = ReadSlider(Sheet, "Latitude", Observation.Latitude);
+         Observation.Longitude  = ReadSlider(Sheet, "Longitude", Observation.Longitude);
+         Observation.Day        = static_cast<int32_t>(ReadSlider(Sheet, "Day of Month", static_cast<float>(Observation.Day)));

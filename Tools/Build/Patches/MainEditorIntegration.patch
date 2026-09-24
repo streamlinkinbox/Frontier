@@ -1,0 +1,278 @@
+--- a/Engine/DisplayPresentation/RenderScheduler.h
++++ b/Engine/DisplayPresentation/RenderScheduler.h
+@@ -79,6 +79,20 @@
+     [[nodiscard]] float QueryEditorViewHeight() const noexcept;
+ 
+     // The outliner's foot strip figures — the game refreshes the struct it hands in every tick.
++    void AssignInspectorExchange(EditorSheet* (*Fn)(uint32_t,bool,void*) noexcept,void* Context) noexcept {
++#ifdef FRONTIER_DEVELOPMENT
++        Editor_.AssignInspectorExchange(Fn,Context);
++#else
++        (void)Fn;(void)Context;
++#endif
++    }
++    void AssignInspectorWorkspace(bool On) noexcept {
++#ifdef FRONTIER_DEVELOPMENT
++        Editor_.AssignInspectorWorkspace(On);
++#else
++        (void)On;
++#endif
++    }
+     void AssignEditorReadout(const EditorReadout* Readout) noexcept;
+     // Bumps when the outliner reparents a row by drag; the game re-reads the roster order.
+     [[nodiscard]] uint32_t QueryEditorOrderRevision() const noexcept;
+--- a/Engine/Editor/EditorHost.cpp
++++ b/Engine/Editor/EditorHost.cpp
+@@ -508,6 +508,10 @@
+     ImGuiID Left = 0u, CentreAndRight = 0u, Centre = 0u, Right = 0u;
+     const float LeftShare = Main->Size.x > 0.0f ? std::clamp(316.0f / Main->Size.x, 0.15f, 0.34f) : 0.25f;
+     ImGui::DockBuilderSplitNode(DockId, ImGuiDir_Left, LeftShare, &Left, &CentreAndRight);
++    if(InspectorWorkspace_){
++        ImGui::DockBuilderDockWindow("Outliner",Left);ImGui::DockBuilderDockWindow("Inspector",CentreAndRight);
++        LeftColumn_=Left;CentreColumn_=CentreAndRight;RightColumn_=CentreAndRight;ImGui::DockBuilderFinish(DockId);return;
++    }
+     const float RestWidth = std::max(1.0f, Main->Size.x * (1.0f - LeftShare));
+     const float RightShare = std::clamp(340.0f / RestWidth, 0.18f, 0.38f);
+     ImGui::DockBuilderSplitNode(CentreAndRight, ImGuiDir_Right, RightShare, &Right, &Centre);
+@@ -563,11 +567,13 @@
+     ImGui::PopStyleVar(2);
+ 
+     Outliner_.Record(Instances, InstanceCount);
+-    Viewport_.Record(Instances, InstanceCount);
++    if(!InspectorWorkspace_)Viewport_.Record(Instances, InstanceCount);
+ 
+     const uint32_t Picked = Outliner_.QueryPicked();
+     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
+-    Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? PickedSheet : nullptr);
++    EditorSheet* Current=InspectorExchange_?InspectorExchange_(Picked,false,InspectorContext_):PickedSheet;
++    Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? Current : nullptr);
++    if(InspectorExchange_)InspectorExchange_(Picked,true,InspectorContext_);
+     if (!OutlinerRaised_)
+     {
+         // The sheet opens on the outliner: raise its tab once, then leave the choice to the user.
+--- a/Engine/Editor/EditorHost.h
++++ b/Engine/Editor/EditorHost.h
+@@ -39,6 +39,10 @@
+     //    four faces. Idempotent: the faces seat once (a second seating would duplicate the glyph sheet), the style
+     //    re-seats freely. Runs last, over the scheduler's own seating, so the editor's tokens win everywhere.
+     void ApplyTheme() noexcept;
++    using InspectorExchange = EditorSheet* (*)(uint32_t, bool, void*) noexcept;
++    void AssignInspectorExchange(InspectorExchange Fn,void* Context) noexcept {InspectorExchange_=Fn;InspectorContext_=Context;}
++    void AssignInspectorWorkspace(bool On) noexcept {if(InspectorWorkspace_!=On){InspectorWorkspace_=On;LayoutSeated_=false;}}
++
+ 
+     // Seats the shade on a display: the original host opens its springs on Width × Height logical pixels.
+     //    TickShade and the overlay branch of Record rest until this returns true.
+@@ -157,6 +161,9 @@
+     bool ShadeOpen_    = false;           // shut at boot, Android-style; shared with the viewport gear
+     bool OpenEcho_     = false;           // the gear's last obeyed figure: only an edge moves the shade
+     bool OutlinerTabOpen_  = true;        // the outliner tab's close mark clears this; the add menu seats it
++    InspectorExchange InspectorExchange_=nullptr;
++    void* InspectorContext_=nullptr;
++    bool InspectorWorkspace_=false;
+     bool ViewportTabOpen_  = true;        // the viewport tab's close mark clears this; the add menu seats it
+     bool InspectorTabOpen_ = true;        // the inspector tab's close mark clears this; the add menu seats it
+     ImGuiID LeftColumn_    = 0u;          // the left column's address, for the add control and its poll
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -74,6 +74,7 @@
+ //    panel renders the hierarchy without any links of its own.
+ struct EditorInstance
+ {
++    uint64_t InspectorKey=0; // Stable project identity; never inferred from row order or display name.
+     char             Label[44] = {};                        // display name; the panel renames in place
+     char             Notes[256] = {};                       // per-instance scratch; the inspector's notes card
+     uint32_t         Depth     = 0u;                        // Depth in the preorder walk
+@@ -218,6 +219,7 @@
+ struct EditorWeatherPreview { float Wind[8]={}; uint32_t Alive=0; float SnowDepth=0, RainVisibility=0; bool AboveWeather=false; };
+ struct EditorSheet
+ {
++    uint64_t InspectorKey=0;
+     EditorWeatherPreview WeatherPreview{};
+     bool CameraLive=false;float CameraAspect=1.5f;
+     EditorSkyImage SkyImage{};
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -817,15 +817,15 @@
+     // The folder, then its entities one level deeper — the same preorder the scene rows use. The folder is the
+     //    reference page's World: globe glyph, blue accent, pinned (no drag, no eye).
+     EditorInstance& Folder = Instances[Written];
+-    Folder = EditorInstance{};
+-    std::snprintf(Folder.Label, sizeof(Folder.Label), "World (Sun & Sky)");
++    Folder = EditorInstance{};Folder.InspectorKey=0x300000000ull;
++    std::snprintf(Folder.Label, sizeof(Folder.Label), "Environment");
+     Folder.Depth    = 0u;
+     Folder.Category = EditorInstanceCategory::Folder;
+     Folder.KidCount = 0u;
+     Folder.Visible  = Enabled;
+     Folder.Glyph    = EditorGlyph::Globe;
+-    Folder.Artwork  = IconSymbol::FolderWorld;
+-    Folder.Pinned   = true;
++    Folder.Artwork  = IconSymbol::FolderEnvironment;
++    Folder.Pinned   = false;
+     Folder.Shut     = false;
+     CopyTint(Folder.Tint, kTintFolder);
+     ++Count;
+@@ -836,7 +836,7 @@
+         const CelestialEntity Entity = kOutlinerEntities[I];
+         const uint32_t EntityIdx = static_cast<uint32_t>(Entity);
+         EditorInstance& Row = Instances[Written + Count];
+-        Row = EditorInstance{};
++        Row = EditorInstance{};Row.InspectorKey=0x200000000ull+EntityIdx+1;
+         std::snprintf(Row.Label, sizeof(Row.Label), "%s", CelestialEntityName(Entity));
+         Row.Depth   = Entity == CelestialEntity::Precipitation ? 2u : 1u;
+         Row.Visible = Shown[EntityIdx];
+@@ -865,7 +865,7 @@
+     switch (Entity)
+     {
+     case CelestialEntity::Atmosphere:
+-        CopyTint(Row.Tint, kTintAtmosphere); Row.Glyph = EditorGlyph::Atmosphere;
++        CopyTint(Row.Tint, kTintAtmosphere); Row.Glyph = EditorGlyph::Atmosphere;Row.Artwork=IconSymbol::SkyScattering;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "AM %.2f", static_cast<double>(AirMassOf(Solved.Sun.Elevation)));
+         break;
+     case CelestialEntity::Sun:
+--- a/Projects/Project-Zero/Source/EditorFeedSequence.cpp
++++ b/Projects/Project-Zero/Source/EditorFeedSequence.cpp
+@@ -284,6 +284,7 @@
+     for (uint32_t R = 0u; R < Rows && R < TargetCapacity; ++R)
+     {
+         EditorInstance& Row = Instances[R];
++        Row.InspectorKey=0x100000000ull+R+1;
+         Row.Visible = true;
+         Row.Locked  = false;
+         Row.Solo    = false;
+@@ -335,7 +336,7 @@
+             std::snprintf(Row.Label, sizeof(Row.Label), "Main Camera");
+             Row.Depth    = 1u;
+             Row.Category = EditorInstanceCategory::Camera;
+-            Row.Glyph    = EditorGlyph::Camera;
++            Row.Glyph    = EditorGlyph::Camera;Row.Artwork=IconSymbol::Camera;
+             Row.Narrowing = EditorNarrowing::Camera;
+             std::snprintf(Row.Meta, sizeof(Row.Meta), "Live");
+             CopyTint(Row.Tint, kCameraTint);
+@@ -344,7 +345,7 @@
+             std::snprintf(Row.Label, sizeof(Row.Label), "Cine Camera");
+             Row.Depth    = 1u;
+             Row.Category = EditorInstanceCategory::Camera;
+-            Row.Glyph    = EditorGlyph::Aperture;
++            Row.Glyph    = EditorGlyph::Camera;Row.Artwork=IconSymbol::Camera;
+             Row.Narrowing = EditorNarrowing::Camera;
+             std::snprintf(Row.Meta, sizeof(Row.Meta), "Study");
+             CopyTint(Row.Tint, kCameraTint);
+@@ -435,9 +436,10 @@
+     constexpr float kRadToDeg = 57.29578f;
+     std::vector<FeedRow> Layout(RowCount);
+     const uint32_t StockRows = BuildLayout(Level, Layout.data(), RowCount);
+-    if (Index >= StockRows)
++    const uint32_t SourceIndex=(Instances[Index].InspectorKey>>32)==1?uint32_t(Instances[Index].InspectorKey)-1:Index;
++    if (SourceIndex >= StockRows)
+         return nullptr;
+-    const FeedRow& Picked = Layout[Index];
++    const FeedRow& Picked = Layout[SourceIndex];
+     EditorProperty* TintMirror = nullptr;
+ 
+     if (Picked.Kind == FeedRowKind::Folder)
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -44,6 +44,7 @@
+ #include "../../../Engine/ContentInterchange/MaterialSwatchStructure.h"
+ #include "ShowroomStructure.h"
+ #include "EditorFeedSequence.h"
++#include "EditorInspectorSequence.h"
+ #include "../../../Engine/DeviceExchange/InterfaceExchange.h"
+ #include "../../../Engine/DeviceExchange/GizmoExchange.h"
+ #include "../../../Engine/SpatialInterface/InterfaceSequence.h"
+@@ -1317,9 +1318,13 @@
+     Frontier::EditorReadout  EditorFooter{};
+ #endif
+     uint32_t                 SceneRowCount = 0u;
+-    uint32_t                 SheetFor     = Frontier::kNoEditorInstance;
+-    Frontier::EditorProperty* TintMirror  = nullptr;
+     uint32_t                 AppliedOrbit = 0u;
++
++#ifdef FRONTIER_DEVELOPMENT
++    Frontier::ProjectZero::EditorInspectorSequence InspectorSession{Feed,Celestial,Camera,Level,AnimatedInstances,SceneInstances.data(),SceneRowCount,PickedSheet};
++    Panel.AssignInspectorExchange(&Frontier::ProjectZero::EditorInspectorSequence::Exchange,&InspectorSession);
++    Panel.AssignInspectorWorkspace(true);
++#endif
+ 
+     // The performance reporter: owns the 5 s window, the prose lines and the measurement rows. See the block at the
+     //    end of the loop, and PerformanceTelemetrySequence.h for why rows exist at all.
+@@ -1638,53 +1643,7 @@
+             AppliedOrbit = 0u;
+             SceneReady   = true;
+         }
+-        const uint32_t PickedNow = Panel.QueryPickedInstance();
+-        Frontier::ProjectZero::CelestialEntity PickedCelestial{};
+-        const bool CelestialPicked = CelestialFirstRow != Frontier::kNoEditorInstance
+-                                  && Celestial.Owns(PickedNow, CelestialFirstRow, PickedCelestial);
+-        if (PickedNow != SheetFor)
+-        {
+-            if (CelestialPicked)
+-            {
+-                Celestial.BuildSheet(PickedCelestial, PickedSheet);
+-                TintMirror = nullptr;   // celestial rows carry no folder tint to mirror back
+-            }
+-            else
+-            {
+-                TintMirror = Feed.BuildSheet(PickedNow, SceneInstances.data(), SceneRowCount, &PickedSheet,
+-                                             Camera, Level, AnimatedInstances);
+-            }
+-            SheetFor   = PickedNow;
+-        }
+-        else if (CelestialPicked)
+-        {
+-            // The panel edits the sheet in place, so the write-back happens every tick the row stays picked.
+-            //    Read-outs are then refreshed from the state the edit just changed.
+-            Celestial.ApplySheet(PickedCelestial, PickedSheet);
+-            Celestial.BuildSheet(PickedCelestial, PickedSheet);
+-        }
+-        else if(PickedSheet.Appearance==Frontier::EditorSheetAppearance::Camera){
+-            const float PreviousCameraFov=Camera.QueryFieldOfViewRadians();
+-            Feed.ApplyCameraSheet(PickedNow,SceneRowCount,Level,PickedSheet,Camera);
+-            if(Camera.QueryFieldOfViewRadians()!=PreviousCameraFov)Integrator.ResetAccumulation();
+-            TintMirror=Feed.BuildSheet(PickedNow,SceneInstances.data(),SceneRowCount,&PickedSheet,Camera,Level,AnimatedInstances);
+-        }
+-        // The outliner's eye toggles live on the rows; carry them back so hiding a row hides the thing.
+-        if (CelestialFirstRow != Frontier::kNoEditorInstance)
+-        {
+-            Celestial.Enabled = SceneInstances[CelestialFirstRow].Visible;
+-            for (uint32_t R = CelestialFirstRow + 1u; R < SceneRowCount; ++R)
+-            {
+-                Frontier::ProjectZero::CelestialEntity E{};
+-                if (Celestial.Owns(R, CelestialFirstRow, E))
+-                    Celestial.Shown[static_cast<uint32_t>(E)] = SceneInstances[R].Visible;
+-            }
+-        }
+-        // ②e The metas move with the clock (sun degrees, air mass, wind rose), so the celestial rows are re-derived
+-        //    every tick; the footer readout is seated the same way, and the viewport panel is handed the scene
+-        //    image whenever a swapchain rebuild has re-created it.
+-        if (CelestialFirstRow != Frontier::kNoEditorInstance)
+-            Celestial.RefreshRoster(SceneInstances.data(), CelestialFirstRow, SceneRowCount);
++        InspectorSession.Synchronize();
+ 
+         {
+             EditorFooter.Fps = Telemetry.QueryAverageFramesPerSecond();
+@@ -1706,7 +1665,7 @@
+             Panel.AssignEditorReadout(&EditorFooter);
+         }
+ #else
+-        (void)SceneReady; (void)SceneRowCount; (void)SheetFor; (void)TintMirror; (void)AppliedOrbit;
++        (void)SceneReady; (void)SceneRowCount; (void)AppliedOrbit;
+ #endif
+ 
+         const float    RenderScale  = ControlCentre.QuerySettings().RenderScale;
+@@ -1747,12 +1706,7 @@
+ 
+ #ifdef FRONTIER_DEVELOPMENT
+         // ②d The tint write-back: a folder tint edited in the sheet lands back on its row.
+-        if (TintMirror != nullptr && PickedNow < SceneRowCount)
+-        {
+-            SceneInstances[PickedNow].Tint[0] = TintMirror->ColourTint[0];
+-            SceneInstances[PickedNow].Tint[1] = TintMirror->ColourTint[1];
+-            SceneInstances[PickedNow].Tint[2] = TintMirror->ColourTint[2];
+-        }
++        if(InspectorSession.TakeProjectionChanged())Integrator.ResetAccumulation();
+         // ②f The view write-back: a fresh orbit revision poses the fly camera (the eye off the orbit's
+         //    figures), so the views menu and the gizmo steer the rendered view when explicitly changed.
+         const Frontier::ViewportOrbit& Orbit = Panel.QueryViewportOrbit();

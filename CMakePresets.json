@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {"major": 3, "minor": 21, "patch": 0},
+  "configurePresets": [
+    {"name": "native-proof", "displayName": "Native editor and CPU renderer verification", "generator": "Ninja", "binaryDir": "${sourceDir}/build/native-proof", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "FRONTIER_PROOF_ONLY": "ON"}},
+    {"name": "linux-app", "displayName": "Linux Vulkan application (requires Vulkan SDK and window-system development packages)", "generator": "Ninja", "binaryDir": "${sourceDir}/build/linux-app", "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "FRONTIER_PROOF_ONLY": "OFF"}}
+  ],
+  "buildPresets": [{"name": "native-proof", "configurePreset": "native-proof", "jobs": 3}, {"name": "linux-app", "configurePreset": "linux-app", "jobs": 3}],
+  "testPresets": [{"name": "native-proof", "configurePreset": "native-proof", "output": {"outputOnFailure": true}}]
+}

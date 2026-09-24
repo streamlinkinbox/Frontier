@@ -1,0 +1,17 @@
+0005 real-cloud-shadow proof hashes (640x480 PPM, Showcase, sun 10.5)
+Generated 2026-09-15, moonwork/engine CPU reference, clean rebuild.
+
+OFF (cloudshadow 0):
+260aa1f6d161c121d03821081814d6fb879080f75a8bd75029c403d9a39ce85f
+
+FIN3 default ON (cumulus 250/200/0.55/4.0/0.05, anvil 0.5, wind 7@250, t=40s):
+8688374c66b7f0becb3d436cfa561aad03d85b6d686387d10928d907102bada4
+
+OVERCAST (cloudcover 1.0):
+3b488241b95b91a34ae87d40e3e1f2266635b64e408ca83f5ade922e7bf7f553
+
+Determinism: FIN3 re-run identical (8688374c66b7f0be prefix match).
+Refactor: 4205-sample bit-identical (pre/post Core split, cmp clean).
+Wrapper: 13/13 grid points exact (0.360 centre + 12-row @3 decimals).
+Cost: +921 ms / +19.7% @640x480 (median of 3).
+Frames: 0005_OFF.png / 0005_FIN3.png / 0005_OVC.png (this folder).
