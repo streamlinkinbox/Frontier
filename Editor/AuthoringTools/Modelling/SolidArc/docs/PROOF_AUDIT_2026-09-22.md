@@ -928,6 +928,28 @@ inputs, mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, arb
 invalid or consuming radii, or healing. Chamfer set-backs remain on their dedicated routes. The
 bounded plan is `docs/PLAN_HalfTurnUnequalRadiusBiconeApexFillet.md`.
 
+## Phase 39m — half-turn equal-radius bicone apex chamfer (2026-09-24)
+
+This is a separate exact-half-turn equal-radius chamfer route, not a partial-sector or complete-turn
+alias:
+
+- `HalfTurnEqualRadiusBiconeApexChamferVerification` builds the capped half-turn source with exact
+  `V7/E11/C22/L6/F6` topology, equal radii 3.8/3.8, heights 6.1/4.6, and set-back 0.85.
+- `ClassifyHalfTurnEqualRadiusBiconeApexChamferVertex` derives the shared apex, canonical coaxial
+  axis, equal support radius, support heights, and exactly `pi` sweep while refusing unsupported
+  source families transactionally.
+- `ReconstructHalfTurnEqualRadiusBiconeApexChamfer` returns `V10/E15/C30/L7/F7` with three cone
+  faces, two axial base planes, and two radial sector planes. The verifier checks radial-cap closure,
+  outward normals, exact contact radii, the three-frustum identity scaled by `sweep / (2 pi)`,
+  source immutability, deterministic dispatch, and complete/partial/reflex refusal boundaries.
+- The durable proof is `Proofs/Phase39m_HalfTurnEqualRadiusBiconeApexChamfer.png`; 31 checks pass
+  in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh` and CMake.
+
+This does not prove unequal radii, complete/strict non-half partial/reflex sectors as accepted
+half-turn inputs, mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, arbitrary
+selection, invalid or consuming set-backs, or healing. Independent set-backs remain on their
+dedicated routes. The bounded plan is `docs/PLAN_HalfTurnEqualRadiusBiconeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

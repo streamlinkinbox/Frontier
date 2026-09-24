@@ -1631,6 +1631,29 @@ supports, arbitrary vertices, invalid or consuming radii, and healing remain uns
 set-backs remain on their dedicated routes. Its bounded plan is
 `docs/PLAN_HalfTurnUnequalRadiusBiconeApexFillet.md`.
 
+#### Phase 39m: bounded half-turn equal-radius bicone apex chamfer ✅
+
+The equal-radius bicone apex chamfer family now includes its exact half-turn companion. This is a
+distinct route from the complete-turn Phase 39e and strict non-reflex partial Phase 39d routes: the
+classifier requires the capped native half-turn `V7/E11/C22/L6/F6` topology, equal circular support
+radii, one positive non-consuming set-back, and exactly `pi` sweep.
+
+`ClassifyHalfTurnEqualRadiusBiconeApexChamferVertex` derives the shared apex, canonical coaxial axis,
+equal support radius, support heights, and exact half-turn transactionally.
+`ReconstructHalfTurnEqualRadiusBiconeApexChamfer` retains both support frusta, inserts one conical
+bridge at the shared axial set-back, and closes both radial sector ends. It returns one genus-zero
+`V10/E15/C30/L7/F7` solid with three cone faces, two axial base planes, and two radial sector planes.
+`HalfTurnEqualRadiusBiconeApexChamferVerification` performs 31 checks over the distinct radius-3.8,
+height-6.1/4.6 source with set-back 0.85, covering exact half-turn/equal-radius extraction, contact
+radii, topology, radial-cap normals, the sector-scaled three-frustum volume identity, source
+immutability, deterministic dispatch, and complete/partial/reflex and unsupported refusal boundaries.
+The durable proof is `Proofs/Phase39m_HalfTurnEqualRadiusBiconeApexChamfer.png`.
+
+Complete, strict non-half partial, or reflex sectors, unequal radii, mixed or freeform/non-coaxial
+supports, arbitrary vertices, invalid or consuming set-backs, and healing remain unsupported.
+Independent lower/upper set-backs remain on their dedicated routes. Its bounded plan is
+`docs/PLAN_HalfTurnEqualRadiusBiconeApexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
