@@ -858,6 +858,31 @@ or freeform supports, variable-radius laws, arbitrary selection, invalid or cons
 healing. The bounded plan is
 `docs/PLAN_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.md`.
 
+## Phase 39j — half-turn unequal-radius bicone chamfer with independent set-backs (2026-09-24)
+
+This is a separate exact-half-turn unequal-radius route, not a radius-generalized alias of the
+Phase 39i equal-radius verifier:
+
+- `HalfTurnUnequalRadiusBiconeUnequalSetbackChamferVerification` builds the capped half-turn source
+  with exact `V7/E11/C22/L6/F6` topology, radii 4.8/2.6, heights 6.7/4.3, and lower/upper
+  set-backs 0.75/1.15.
+- `ClassifyHalfTurnUnequalRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical
+  coaxial axis, unequal support radii, support heights, and exactly `pi` sweep while refusing equal
+  radii, equal set-backs, and unsupported source families transactionally.
+- `ReconstructHalfTurnUnequalRadiusBiconeUnequalSetbackChamfer` returns `V10/E15/C30/L7/F7` with
+  three cone faces, two axial base planes, and two radial sector planes. The verifier checks radial-cap
+  closure, outward normals, exact contact radii, the three-frustum identity scaled by `sweep / (2 pi)`,
+  source immutability, deterministic dispatch, and complete/partial/reflex refusal boundaries.
+- The durable proof is `Proofs/Phase39j_HalfTurnUnequalRadiusBiconeUnequalSetbackChamfer.png`; 37
+  checks pass in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh`
+  and CMake.
+
+Equal set-backs remain on the existing equal-setback routes. This does not prove complete/strict
+non-half partial/reflex sectors as accepted half-turn inputs, equal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, invalid or
+consuming set-backs, or healing. The bounded plan is
+`docs/PLAN_HalfTurnUnequalRadiusBiconeUnequalSetbackChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

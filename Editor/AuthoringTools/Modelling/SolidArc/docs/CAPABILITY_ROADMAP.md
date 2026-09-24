@@ -1558,6 +1558,31 @@ radii, mixed or freeform/non-coaxial supports, arbitrary vertices, invalid or co
 healing remain unsupported. Its bounded plan is
 `docs/PLAN_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.md`.
 
+#### Phase 39j: bounded half-turn unequal-radius bicone chamfer with independent set-backs ✅
+
+The independent-setback bicone family now includes its exact half-turn unequal-radius companion.
+This is a distinct route from the half-turn equal-radius Phase 39i and the strict non-reflex partial
+Phase 39f routes: the classifier requires the capped native half-turn `V7/E11/C22/L6/F6` topology,
+unequal circular support radii, and two positive unequal set-backs below their respective support
+heights.
+
+`ClassifyHalfTurnUnequalRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical
+coaxial axis, unequal support radii, support heights, and exactly `pi` sweep transactionally.
+`ReconstructHalfTurnUnequalRadiusBiconeUnequalSetbackChamfer` retains both support frusta, inserts
+one conical bridge between independently placed contact rings, and closes both radial sector ends.
+It returns one genus-zero `V10/E15/C30/L7/F7` solid with three cone faces, two axial base planes,
+and two radial sector planes. `HalfTurnUnequalRadiusBiconeUnequalSetbackChamferVerification`
+performs 37 checks over the distinct radius-4.8/2.6, height-6.7/4.3 source with 0.75/1.15 set-backs,
+covering exact half-turn and unequal-radius extraction, contact radii, topology, radial-cap normals,
+the sector-scaled three-frustum volume identity, source immutability, deterministic dispatch, and
+complete/partial/reflex and unsupported refusal boundaries. The durable proof is
+`Proofs/Phase39j_HalfTurnUnequalRadiusBiconeUnequalSetbackChamfer.png`.
+
+Equal set-backs remain on the existing equal-setback routes. Complete, strict non-half partial, or
+reflex sectors, equal radii, mixed or freeform/non-coaxial supports, arbitrary vertices, invalid or
+consuming set-backs, and healing remain unsupported. Its bounded plan is
+`docs/PLAN_HalfTurnUnequalRadiusBiconeUnequalSetbackChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
