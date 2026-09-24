@@ -1447,6 +1447,26 @@ Complete/half/reflex sectors, unequal radii, mixed/oblique/freeform supports, va
 arbitrary vertices, invalid or consuming set-backs, and healing remain unsupported. Its bounded plan
 is `docs/PLAN_PartialEqualRadiusBiconeApexChamfer.md`.
 
+#### Phase 39e: bounded full-turn equal-radius bicone apex chamfer ✅
+
+The full-turn apex chamfer family now has its missing equal-radius companion. The structural route
+requires the native point-contact `V5/E6/C12/L4/F4` bicone topology, one shared apex, coaxial
+circular rims, and equal radii, while remaining separate from both the unequal-radius full-turn
+chamfer and the partial equal-radius chamfer.
+
+`ClassifyEqualRadiusBiconeApexChamferVertex` derives the canonical axis, equal radius, support
+heights, and set-back transactionally. `ReconstructEqualRadiusBiconeApexChamfer` preserves the
+full turn, retains both support frusta, inserts one conical bridge, and returns closed genus-zero
+`V6/E9/C18/L5/F5` topology with three cones and two planar caps. `EqualRadiusBiconeApexChamferVerification`
+performs 34 checks over a distinct radius-3.25, height-5.8/4.9 source with a 0.7 set-back,
+covering exact equal-radius extraction, contact radii, topology, outward normals, analytic volume,
+source immutability, refusal boundaries, and
+`Proofs/Phase39e_EqualRadiusBiconeApexChamfer.png`.
+
+Partial/half/reflex sectors, unequal radii, mixed/oblique/freeform supports, variable-radius laws,
+arbitrary vertices, invalid or consuming set-backs, and healing remain unsupported. Its bounded plan
+is `docs/PLAN_EqualRadiusBiconeApexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

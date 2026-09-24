@@ -275,6 +275,17 @@ struct UnequalConeApexChamferSpecification
     double SetBack = 0.0;
 };
 
+// A bounded equal-radius coaxial bicone apex chamfer.
+struct EqualRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+};
+
 // A bounded unequal-radius bicone apex chamfer with independent support set-backs.
 struct UnequalConeApexUnequalSetbackChamferSpecification
 {
@@ -687,6 +698,11 @@ public:
     // Bounded unequal-radius bicone apex dispatch: one shared apex and two unequal coaxial cone supports.
     [[nodiscard]] static Deliver<UnequalConeApexChamferSpecification> ClassifyUnequalConeApexChamferVertex(
         const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructEqualRadiusBiconeApexChamfer(
+        const EqualRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<EqualRadiusBiconeApexChamferSpecification>
+        ClassifyEqualRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexUnequalSetbackChamfer(
         const UnequalConeApexUnequalSetbackChamferSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<UnequalConeApexUnequalSetbackChamferSpecification>

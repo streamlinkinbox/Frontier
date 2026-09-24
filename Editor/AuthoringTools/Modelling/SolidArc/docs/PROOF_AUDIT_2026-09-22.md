@@ -751,6 +751,24 @@ oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary select
 consuming set-backs, or healing. The bounded plan is
 `docs/PLAN_PartialEqualRadiusBiconeApexChamfer.md`.
 
+## Phase 39e — full-turn equal-radius bicone apex chamfer (2026-09-24)
+
+This is a separate full-turn equal-radius route, not an unequal-radius or partial-sector rename:
+
+- `EqualRadiusBiconeApexChamferVerification` builds a native point-contact source with exact
+  `V5/E6/C12/L4/F4` topology, equal radius 3.25, heights 5.8/4.9, and a 0.7 axial set-back.
+- `ClassifyEqualRadiusBiconeApexChamferVertex` requires equal circular rims, derives the selected
+  apex, coaxial axis, support heights, and full-turn source contract, and rejects unequal sources.
+- `ReconstructEqualRadiusBiconeApexChamfer` returns `V6/E9/C18/L5/F5` with three cones and two
+  planar caps. The verifier checks exact contact radii, analytic three-frustum volume, normals,
+  topology, refusals, and source immutability.
+- The durable proof is `Proofs/Phase39e_EqualRadiusBiconeApexChamfer.png`; 34 checks pass.
+
+This does not prove partial/half/reflex sectors, unequal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, invalid or
+consuming set-backs, or healing. The bounded plan is
+`docs/PLAN_EqualRadiusBiconeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
