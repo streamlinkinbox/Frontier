@@ -375,6 +375,19 @@ struct HalfTurnUnequalRadiusBiconeApexChamferSpecification
     double SweepAngle = ScalarCriteria::Pi;
 };
 
+// A bounded canonical reflex unequal-radius bicone apex chamfer.
+struct ReflexUnequalRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = 4.0 * ScalarCriteria::Pi / 3.0;
+};
+
 // A bounded half-turn unequal-radius bicone apex toroidal fillet.
 struct HalfTurnUnequalRadiusBiconeApexFilletSpecification
 {
@@ -860,6 +873,11 @@ public:
         const HalfTurnUnequalRadiusBiconeApexChamferSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<HalfTurnUnequalRadiusBiconeApexChamferSpecification>
         ClassifyHalfTurnUnequalRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructReflexUnequalRadiusBiconeApexChamfer(
+        const ReflexUnequalRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<ReflexUnequalRadiusBiconeApexChamferSpecification>
+        ClassifyReflexUnequalRadiusBiconeApexChamferVertex(
             const BrepBody& Body, int Vertex, double SetBack) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexFillet(
         const UnequalConeApexFilletSpecification& Specification) noexcept;

@@ -974,6 +974,33 @@ equal radii, mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports
 selection, invalid or consuming set-backs, independent set-backs, or healing. The bounded plan is
 `docs/PLAN_HalfTurnUnequalRadiusBiconeApexChamfer.md`.
 
+## Phase 39o — reflex unequal-radius bicone apex chamfer (2026-09-24)
+
+This is a distinct canonical-reflex unequal-radius chamfer route, not a renamed strict partial,
+exact half-turn, complete-turn, independent-setback, or equal-radius route:
+
+- `ReflexUnequalRadiusBiconeApexChamferVerification` builds the capped reflex source with exact
+  `V7/E11/C22/L6/F6` topology, radii 4.7/2.6, heights 6.3/5.2, exact `4 pi / 3` sweep, and
+  set-back 0.8.
+- `ClassifyReflexUnequalRadiusBiconeApexChamferVertex` derives the shared apex, canonical coaxial
+  axis, unequal support radii, support heights, and oriented reflex sweep using the rim arc's
+  midpoint and endpoints. It refuses non-canonical sweeps and unsupported source families
+  transactionally.
+- `ReconstructReflexUnequalRadiusBiconeApexChamfer` returns `V10/E15/C30/L7/F7` with three cone
+  faces, two axial base planes, and two radial sector planes. The verifier checks radial-cap closure,
+  outward normals, the unequal three-frustum identity scaled by `sweep / (2 pi)`, source immutability,
+  deterministic dispatch, and complete/strict-partial/half-turn/non-canonical-reflex/equal-radius/
+  malformed refusal boundaries. Healing-dependent sew is not used.
+- The durable proof is `Proofs/Phase39o_ReflexUnequalRadiusBiconeApexChamfer.png`; 32 checks pass
+  in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh` and
+  CMake.
+
+Only the canonical `4 pi / 3` reflex angle is accepted. This does not prove other reflex angles,
+complete/strict non-half partial/half-turn sectors as accepted reflex inputs, equal radii, mixed
+cone/plane/cylinder, oblique/non-coaxial or freeform supports, arbitrary selection, invalid or
+consuming set-backs, independent set-backs, or healing. The bounded plan is
+`docs/PLAN_Phase39o_ReflexUnequalRadiusBiconeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

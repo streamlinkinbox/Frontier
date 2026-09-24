@@ -1677,6 +1677,30 @@ supports, arbitrary vertices, invalid or consuming set-backs, and healing remain
 Independent lower/upper set-backs remain on their dedicated routes. Its bounded plan is
 `docs/PLAN_HalfTurnUnequalRadiusBiconeApexChamfer.md`.
 
+#### Phase 39o: bounded reflex unequal-radius bicone apex chamfer ✅
+
+The bicone apex chamfer family now has one explicitly bounded reflex-sector route. This is not a
+renamed strict partial, exact half-turn, complete-turn, independent-setback, or equal-radius route:
+the classifier requires the capped native `V7/E11/C22/L6/F6` topology, unequal coaxial circular
+rims, the canonical reflex sweep `4 pi / 3`, and one positive non-consuming equal set-back.
+
+`ClassifyReflexUnequalRadiusBiconeApexChamferVertex` derives the shared apex, canonical axis,
+unequal radii, support heights, and oriented reflex sweep from the rational rim arc midpoint and
+endpoints. `ReconstructReflexUnequalRadiusBiconeApexChamfer` retains both support frusta, inserts
+the unequal conical bridge at the shared set-back, and closes both radial sector ends without
+healing. It returns one genus-zero `V10/E15/C30/L7/F7` solid with three cone faces, two axial base
+planes, and two radial sector planes. `ReflexUnequalRadiusBiconeApexChamferVerification` performs
+32 checks over the distinct radius-4.7/2.6, height-6.3/5.2 source with set-back 0.8, covering
+oriented reflex extraction, topology, normals, the sector-scaled three-frustum volume identity,
+source immutability, and complete/strict-partial/half-turn/non-canonical-reflex/equal-radius/
+malformed refusal boundaries. The durable proof is
+`Proofs/Phase39o_ReflexUnequalRadiusBiconeApexChamfer.png`.
+
+Only the canonical `4 pi / 3` reflex angle is accepted. Complete turns, strict non-half partials,
+exact half-turns, other reflex angles, equal radii, mixed or freeform/non-coaxial supports, arbitrary
+vertices, invalid or consuming set-backs, independent set-backs, and healing remain unsupported.
+Its bounded plan is `docs/PLAN_Phase39o_ReflexUnequalRadiusBiconeApexChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
