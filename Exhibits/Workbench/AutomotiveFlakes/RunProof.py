@@ -15,7 +15,7 @@ if a.skip_render and any(O.glob('paint-*.png')):
 def limit():resource.setrlimit(resource.RLIMIT_STACK,(256*1024,256*1024))
 reports=[]
 for mode,opt in [('Release',['-O2']),('Debug',['-O0']),('Sanitized',['-O1','-fsanitize=address,undefined','-fno-omit-frame-pointer'])]:
- command=['g++','-std=c++20','-g','-fstack-usage','-Wall','-Wextra','-Werror','-Wno-unused-function',*opt,'-I'+str(R/'Engine/Shaders'),'-I'+str(T/'Engine/Shaders'),'-I'+str(T/'Exhibits/Workbench/Editor'),str(R/'Exhibits/Workbench/AutomotiveFlakes/NativeFlakeProof.cpp'),'-pthread','-o',str(B/mode)]
+ command=['g++','-std=c++20','-g','-fstack-usage','-Wall','-Wextra','-Werror','-Wno-unused-function',*opt,'-I'+str(T/'Engine/Shaders'),'-I'+str(R/'Engine/Shaders'),'-I'+str(T/'Exhibits/Workbench/Editor'),str(R/'Exhibits/Workbench/AutomotiveFlakes/NativeFlakeProof.cpp'),'-pthread','-o',str(B/mode)]
  subprocess.run(command,cwd=R,check=True)
  run=[str(B/mode),str(O)]+([] if mode=='Release' and not a.skip_render else ['--test'])
  result=subprocess.run(run,cwd=R,text=True,capture_output=True,env=dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1'),preexec_fn=None if mode=='Sanitized' else limit)

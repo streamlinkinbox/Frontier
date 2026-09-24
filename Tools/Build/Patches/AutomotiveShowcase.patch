@@ -1,0 +1,647 @@
+--- a/Engine/ContentInterchange/ShowcaseStructure.cpp
++++ b/Engine/ContentInterchange/ShowcaseStructure.cpp
+@@ -29,6 +29,7 @@
+ //    makes every sphere drop a visible shadow.
+ 
+ #include "ShowcaseStructure.h"
++#include "AutomotiveShowcasePresets.h"
+ #include "SceneCodec.h"
+ #include "../DeviceExchange/OrientationClassifier.h"
+ #include <cmath>
+@@ -139,6 +140,7 @@
+             const float Hue = static_cast<float>(Col) / static_cast<float>(kShowcaseGridSide);        // hue wheel
+             char Name[64];
+             std::snprintf(Name, sizeof(Name), "grid_r%02u_c%02u", Row, Col);
++            if (Row >= 15u) std::snprintf(Name,sizeof(Name),"%s %02u",kAutomotiveFamilyNames[Row-15u],Col+1u);
+             MaterialDescriptor D = MakeMaterial(Name);
+             MaterialSlabDescriptor& S = D.Slabs[0];
+             switch (Row)
+@@ -246,7 +248,7 @@
+                 S.SpecularRoughness = 0.05f;
+                 D.VolumeThickness = 1.1f;
+                 break;
+-            default:  // row 14 — showpieces: five hand-picked hero combinations cycling with a hue accent
++            case 14:  // row 14 — showpieces: five hand-picked hero combinations cycling with a hue accent
+             {
+                 const uint32_t Kind = Col % 5u;
+                 if (Kind == 0u)      { SetColor(S.BaseColor, 0.95f, 0.96f, 0.97f); S.BaseMetalness = 1.0f; S.SpecularRoughness = 0.03f; }                                   // chrome mirror
+@@ -258,6 +260,9 @@
+                                        S.SpecularIor = 1.5f; S.SpecularRoughness = 0.30f; D.VolumeThickness = 1.1f; }                                                        // frosted glass
+                 break;
+             }
++            case 15: case 16: case 17: case 18: case 19:
++                AuthorAutomotiveShowcase(S, Row - 14u, t);
++                break;
+             }
+             Materials.push_back(D);
+         }
+@@ -418,8 +423,8 @@
+             // r4: the ring is centred on the GRID's centre (0, 8.7) and starts past its corner reach (√2·10.5 ≈
+             //    14.8 m + the largest shape), so no scattered body can land inside the 15×15 field.
+             const float Angle  = Rng.Range(0.0f, 2.0f * kPi);
+-            const float Radial = Rng.Range(16.5f, 27.0f);
+-            const Vector3 Spot{ Radial * std::cos(Angle), 8.7f + Radial * std::sin(Angle), 0.0f };
++            const float Radial = Rng.Range(std::sqrt(2.0f)*kGridEdge+2.5f, 25.0f);
++            const Vector3 Spot{ Radial * std::cos(Angle), (-1.8f+kGridEdge) + Radial * std::sin(Angle), 0.0f };
+ 
+             const float Size     = Rng.Range(0.5f, 1.9f);
+             const float Spin     = Rng.Range(0.0f, 2.0f * kPi);
+--- a/Engine/ContentInterchange/ShowcaseStructure.h
++++ b/Engine/ContentInterchange/ShowcaseStructure.h
+@@ -30,11 +30,11 @@
+ 
+ // Revision of the authored level. Bump whenever Construct() changes what the level contains, so an already-exported
+ //    Showcase.gltf from an older revision is regenerated instead of being reused forever by the export-once rule.
+-inline constexpr uint32_t kShowcaseRevision = 5u;   // r5: two spot fixtures (emissive disc in an open hood) flanking the grid
++inline constexpr uint32_t kShowcaseRevision = 6u;   // r6: 20 x 20, five finite-flake clearcoat families
+ 
+-// The r4 grid's side: 15 rows (material families) × 15 columns (hue/parameter sweeps) = 225 spheres, 225 materials.
++// The r6 grid: 20 families x 20 variations = 400 spheres and 400 materials.
+ //    Published so the structure, the CPU reference harness and any proof agree on the layout without restating it.
+-inline constexpr uint32_t kShowcaseGridSide = 15u;
++inline constexpr uint32_t kShowcaseGridSide = 20u;
+ 
+ // ── The interface panel's berth ─────────────────────────────────────────────────────────────────────────────────────
+ // The showcase carries Project-Zero's spatial-interface panel as a physical exhibit: a stand and a housing slab are
+--- a/Engine/ContentInterchange/MaterialDescriptor.h
++++ b/Engine/ContentInterchange/MaterialDescriptor.h
+@@ -116,6 +116,9 @@
+     float SlateAnisotropyRotation        = 0.0f;                  // [rad] M2: added to the anisotropy texture direction angle (KHR_materials_anisotropy)
+     float SlateDirectF0Weight            = 0.0f;                  // [-]   M6 (reserved): 0 = IOR-derived F0 (plan D-f0)
+ 
++    float SlateAutomotiveProfile = 0.0f; // 0 = original BSDF, 1..5 = coated finite-flake families
++    float SlateAutomotiveSweep = 0.0f;   // [0,1], discrete profile is never interpolated
++
+     TextureReference Textures[kMaterialTextureChannelCount];
+ 
+     [[nodiscard]] TextureReference&       Texture(MaterialTextureChannel C)       noexcept { return Textures[static_cast<uint32_t>(C)]; }
+--- a/Engine/ContentInterchange/MaterialIndex.cpp
++++ b/Engine/ContentInterchange/MaterialIndex.cpp
+@@ -236,8 +236,8 @@
+     R.MixWeight           = MixWeight;
+     R.AnisotropyRotation  = S.SlateAnisotropyRotation;
+     R.DirectF0Weight      = S.SlateDirectF0Weight;
+-    R.Reserved0           = 0.0f;
+-    R.Reserved1           = 0.0f;
++    R.Reserved0           = S.SlateAutomotiveProfile>=1.0f && S.SlateAutomotiveProfile<=5.0f && std::floor(S.SlateAutomotiveProfile)==S.SlateAutomotiveProfile ? S.SlateAutomotiveProfile : 0.0f;
++    R.Reserved1           = std::isfinite(S.SlateAutomotiveSweep) ? std::clamp(S.SlateAutomotiveSweep, 0.0f, 1.0f) : 0.0f;
+     return R;
+ }
+ 
+@@ -245,7 +245,7 @@
+ {
+     if (Slabs.size() > 1u) return MaterialComplexityComplex;
+     const MaterialSlabDescriptor& S = Slabs.empty() ? MaterialSlabDescriptor{} : Slabs.front();
+-    const bool Special = S.TransmissionWeight > 0.0f || S.SubsurfaceWeight > 0.0f || S.SlateGlintDensity > 0.0f || S.ThinFilmWeight > 0.0f;
++    const bool Special = S.SlateAutomotiveProfile > 0.0f || S.TransmissionWeight > 0.0f || S.SubsurfaceWeight > 0.0f || S.SlateGlintDensity > 0.0f || S.ThinFilmWeight > 0.0f;
+     if (Special) return MaterialComplexitySpecial;
+     const bool Extra = S.CoatWeight > 0.0f || S.FuzzWeight > 0.0f || S.SlateHazinessWeight > 0.0f || S.SpecularRoughnessAnisotropy != 0.0f;
+     return Extra ? MaterialComplexitySingle : MaterialComplexitySimple;
+--- a/Engine/ContentInterchange/MaterialIndex.h
++++ b/Engine/ContentInterchange/MaterialIndex.h
+@@ -90,7 +90,7 @@
+     // M2 extension vec4 (appended — every earlier offset is unchanged, so pre-M2 readers keep working):
+     float    AnisotropyRotation;            // [rad] added to the anisotropy direction angle (SlateAnisotropyRotation)
+     float    DirectF0Weight;                // [-]   M6 reserved, always 0 until then (0 = IOR-derived F0)
+-    float    Reserved0, Reserved1;          // zero
++    float    Reserved0, Reserved1;          // automotive profile ID / sweep; Slate2.zw, ABI unchanged
+ };
+ static_assert(sizeof(MaterialSlabRecord) == 304u, "MaterialSlabRecord must be 304 bytes = 19 vec4 (std430 mirror)");
+ 
+--- a/Engine/ContentInterchange/MaterialCodec.cpp
++++ b/Engine/ContentInterchange/MaterialCodec.cpp
+@@ -42,6 +42,7 @@
+     SLATE_PARAM("thin_film_weight", ThinFilmWeight, 1), SLATE_PARAM("thin_film_thickness", ThinFilmThickness, 1), SLATE_PARAM("thin_film_ior", ThinFilmIor, 1),
+     SLATE_PARAM("geometry_opacity", GeometryOpacity, 1),
+     SLATE_PARAM("slate_haziness_weight", SlateHazinessWeight, 1), SLATE_PARAM("slate_haziness_roughness", SlateHazinessRoughness, 1),
++    SLATE_PARAM("slate_automotive_profile", SlateAutomotiveProfile, 1), SLATE_PARAM("slate_automotive_sweep", SlateAutomotiveSweep, 1),
+     SLATE_PARAM("slate_glint_density", SlateGlintDensity, 1), SLATE_PARAM("slate_glint_uv_scale", SlateGlintUvScale, 1),
+     SLATE_PARAM("slate_anisotropy_rotation", SlateAnisotropyRotation, 1), SLATE_PARAM("slate_direct_f0_weight", SlateDirectF0Weight, 1),
+ };
+--- /dev/null
++++ b/Engine/ContentInterchange/AutomotiveShowcasePresets.h
+@@ -0,0 +1,40 @@
++#pragma once
++#include "MaterialDescriptor.h"
++#include <algorithm>
++
++namespace Frontier {
++// IDs persist in extras.slate_automotive_profile. Zero preserves the standard BSDF.
++// Colours are LINEAR Rec.709; coat colour is normal-incidence round-trip transmittance.
++inline constexpr const char* kAutomotiveFamilyNames[5] = {
++    "Candy Ruby", "RGB Glitter", "Iridescent Pearl", "Metallic Cobalt", "Metallic Copper"
++};
++inline void AuthorAutomotiveShowcase(MaterialSlabDescriptor& s, unsigned profile, float sweep) noexcept {
++    if (profile < 1 || profile > 5) return;
++    const float t=std::clamp(sweep,0.0f,1.0f);
++    s.SlateAutomotiveProfile=static_cast<float>(profile);s.SlateAutomotiveSweep=t;
++    s.CoatWeight=1.0f;s.CoatIor=1.5f;s.CoatRoughness=0.08f+0.14f*t;
++    s.CoatDarkening=1.0f;s.SpecularIor=1.5f;s.SpecularWeight=1.0f;
++    s.SpecularColor[0]=.72f;s.SpecularColor[1]=.77f;s.SpecularColor[2]=.82f;
++    s.SpecularRoughness=.055f+.045f*t;s.SlateGlintUvScale=1.0f;
++    s.SlateGlintDensity=1.0f+7.0f*t;
++    // Conventional fields remain a useful approximation for non-Frontier readers.
++    s.BaseMetalness=.8f;s.BaseColor[0]=.014f;s.BaseColor[1]=.045f;s.BaseColor[2]=.13f;
++    if(profile==1){ // transparent red candy dye over silver flakes; neutral outer reflection
++        s.BaseColor[0]=.18f;s.BaseColor[1]=.18f;s.BaseColor[2]=.18f;
++        s.CoatColor[0]=.88f;s.CoatColor[1]=.012f+.028f*t;s.CoatColor[2]=.006f+.01f*t;
++        s.SlateGlintDensity=4.0f+8.0f*t;s.CoatRoughness=.08f+.04f*t;
++    } else if(profile==2){
++        s.BaseColor[0]=.004f;s.BaseColor[1]=.008f;s.BaseColor[2]=.022f;
++        s.SlateGlintDensity=.5f+15.5f*t;s.CoatColor[0]=.5f;s.CoatColor[1]=.72f;s.CoatColor[2]=1.0f;
++    } else if(profile==3){
++        s.BaseColor[0]=.12f;s.BaseColor[1]=.16f;s.BaseColor[2]=.22f;
++        s.SpecularColor[0]=.04f;s.SpecularColor[1]=.04f;s.SpecularColor[2]=.04f;
++        s.ThinFilmWeight=1.0f;s.ThinFilmThickness=.22f+.63f*t;s.ThinFilmIor=2.3f;
++        s.SlateGlintDensity=2.0f+6.0f*t;
++    } else if(profile==5){
++        s.BaseColor[0]=.16f;s.BaseColor[1]=.034f;s.BaseColor[2]=.009f;
++        s.SpecularColor[0]=.95f;s.SpecularColor[1]=.64f;s.SpecularColor[2]=.42f;
++        s.SlateGlintDensity=2.0f+10.0f*t;
++    }
++}
++} // namespace Frontier
+--- a/Engine/Shaders/MaterialEvaluation.slang
++++ b/Engine/Shaders/MaterialEvaluation.slang
+@@ -84,6 +84,15 @@
+ 
+ struct ShadingRecord
+ {
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++#ifdef __cplusplus
++    vec4 AutomotiveData = vec4(0.0f); // profile, sweep, UV metres
++    float AutomotiveDensity = 0.0f, AutomotiveFootprint = 0.0f;
++#else
++    vec4 AutomotiveData;
++    float AutomotiveDensity, AutomotiveFootprint;
++#endif
++#endif
+     vec3  BaseColor;          // base_weight × base_color (× texture)
+     float Metalness;          // base_metalness
+     float DiffuseRoughness;   // base_diffuse_roughness (EON r)
+@@ -882,8 +891,18 @@
+     return L.SssMix * m.SssColor * trans * (B * (6.0 / 5.0) * kInvPi) * exitT;
+ }
+ 
+-vec3 EvaluateBsdf(ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 wi)
+-{
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++#include "AutomotiveShowcase.slang"
++#define FRONTIER_BSDF_INPUT(T) AP_INPUT(T)
++#else
++#define FRONTIER_BSDF_INPUT(T) T
++#endif
++
++vec3 EvaluateBsdf(FRONTIER_BSDF_INPUT(ShadingRecord) m, FRONTIER_BSDF_INPUT(ResolvedLayers) L, vec3 wo, vec3 wi)
++{
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++    if(m.AutomotiveData.x >= 1.0 && m.AutomotiveData.x <= 5.0) return AutomotiveShowcaseEvaluate(m, wo, wi);
++#endif
+     if (wo.z <= 0.0) return vec3(0.0);
+     // M4: the below-horizon arm — lights behind the surface. M5: the SSS wrap joins it (same gate, same exit
+     // stack — both leave through the coat/fuzz above the substrate, so the layer scales apply once to the sum).
+@@ -946,8 +965,11 @@
+     return vec3(r * cos(phi), r * sin(phi), -sqrt(max(0.0, 1.0 - u.x)));
+ }
+ 
+-float PdfBsdf(ShadingRecord m, ResolvedLayers L, vec3 wo, vec3 wi)
+-{
++float PdfBsdf(FRONTIER_BSDF_INPUT(ShadingRecord) m, FRONTIER_BSDF_INPUT(ResolvedLayers) L, vec3 wo, vec3 wi)
++{
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++    if(m.AutomotiveData.x >= 1.0 && m.AutomotiveData.x <= 5.0) return AutomotiveShowcasePdf(m, wo, wi);
++#endif
+     if (wo.z <= 0.0) return 0.0;
+     if (wi.z <= 0.0 && L.TransmitMix <= 0.0)   // below with no T arm: the dipole density, or nothing (opaque)
+     {
+@@ -991,8 +1013,11 @@
+ }
+ 
+ // u = 4 uniforms (lobe pick + 2D + the R/T branch pick). Returns wi in .xyz, pdf in .w (0 = failed sample).
+-vec4 SampleBsdf(ShadingRecord m, ResolvedLayers L, vec3 wo, vec4 u)
+-{
++vec4 SampleBsdf(FRONTIER_BSDF_INPUT(ShadingRecord) m, FRONTIER_BSDF_INPUT(ResolvedLayers) L, vec3 wo, vec4 u)
++{
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++    if(m.AutomotiveData.x >= 1.0 && m.AutomotiveData.x <= 5.0) return AutomotiveShowcaseSample(m, wo, u);
++#endif
+     vec3 wi;
+     bool transmitted = false;
+     bool sssBelow = false;   // M5 v2: the dipole branch (below-sampling for pure SSS — exempt from the kill rule)
+--- a/Engine/Shaders/AutomotiveMaterialProfiles.slang
++++ b/Engine/Shaders/AutomotiveMaterialProfiles.slang
+@@ -17,6 +17,9 @@
+ ShadingRecord AutomotiveDefaults()
+ {
+     ShadingRecord M;
++#ifdef FRONTIER_AUTOMOTIVE_SHOWCASE
++    M.AutomotiveData=vec4(0.0);M.AutomotiveDensity=0.0;M.AutomotiveFootprint=0.0;
++#endif
+     M.BaseColor = vec3(0.5);
+     M.Metalness = 0.0;
+     M.DiffuseRoughness = 0.5;
+--- /dev/null
++++ b/Engine/Shaders/AutomotiveFlakePaint.slang
+@@ -0,0 +1,183 @@
++// Automotive paint v2: finite, object/UV-locked flakes beneath an independent coat.
++// Include after MaterialEvaluation.slang (uses its existing thin-film Fresnel).
++// Original finite-cell approximation, NOT an implementation of DB23 binomial glints.
++// All directions in the unperturbed material tangent frame; +Z is the surface normal.
++// UV coordinates and derivatives are in metres. Returns BRDF, without incident cosine.
++#ifndef FRONTIER_AUTOMOTIVE_FLAKE_PAINT
++#define FRONTIER_AUTOMOTIVE_FLAKE_PAINT
++#ifdef FRONTIER_NATIVE_FLAKES
++#define AP_INPUT(T) const T&
++#else
++#define AP_INPUT(T) T
++#endif
++struct AutomotivePaintParameters {
++    vec3 Pigment;
++    vec3 FlakeReflectance;
++    float Density;           // expected flakes per cell, [0,16]; extra independent populations above 1
++    float DiameterMm;        // largest in-plane flake diameter
++    float NormalSpread;     // RMS slope spread, NOT clearcoat roughness
++    float FlakeRoughness;    // Beckmann slope width of an individual flake
++    float CoatRoughness;    // GGX perceptual roughness
++    float CoatWeight;
++    vec3 CoatTint;           // artistic coating tint, independent of pigment and flake palette
++    float CoatTintStrength;
++    float PearlWeight;
++    float FilmThicknessNm;
++    float FilmIor;
++    uint Seed;
++};
++// Up to eight weighted colour families, each with a linear-RGB endpoint range.
++// Count=0 (or all weights zero) retains the legacy FlakeReflectance fallback.
++struct AutomotiveFlakePalette {
++    int Count;
++    vec3 Minimum[8];
++    vec3 Maximum[8];
++    float Weight[8];
++};
++AutomotiveFlakePalette AutomotivePaletteDefaults() {
++    AutomotiveFlakePalette palette;palette.Count=0;
++    for(int i=0;i<8;++i){palette.Minimum[i]=vec3(0.72,0.77,0.82);palette.Maximum[i]=palette.Minimum[i];palette.Weight[i]=1.0;}
++    return palette;
++}
++AutomotiveFlakePalette AutomotiveRgbPalette() {
++    AutomotiveFlakePalette p=AutomotivePaletteDefaults();p.Count=3;
++    p.Minimum[0]=vec3(0.42,0.006,0.004);p.Maximum[0]=vec3(0.95,0.055,0.018);
++    p.Minimum[1]=vec3(0.004,0.24,0.025);p.Maximum[1]=vec3(0.035,0.8,0.15);
++    p.Minimum[2]=vec3(0.003,0.025,0.35);p.Maximum[2]=vec3(0.025,0.18,0.95);
++    return p;
++}
++struct AutomotiveFlakeSurface {
++    uint FacetKey;
++    vec3 Colour;
++    vec3 MeanColour;
++    vec2 Slope;
++    float Weight;
++    float MeanWeight;
++    float Unresolved;
++    float Alpha;
++    float PopulationAlpha;
++};
++float APRange(float x,float lo,float hi) { return !(x>=lo)?lo:min(x,hi); }
++AutomotivePaintParameters AutomotivePaintDefaults() {
++    AutomotivePaintParameters p;
++    p.Pigment=vec3(0.014,0.045,0.13);p.FlakeReflectance=vec3(0.72,0.77,0.82);
++    p.Density=0.8;p.DiameterMm=0.35;p.NormalSpread=0.24;p.FlakeRoughness=0.065;
++    p.CoatRoughness=0.23;p.CoatWeight=1.0;p.CoatTint=vec3(1.0);p.CoatTintStrength=0.0;p.PearlWeight=0.0;p.FilmThicknessNm=420.0;p.FilmIor=1.48;p.Seed=17u;
++    return p;
++}
++uint APHash(uint x) { x^=x>>16; x*=0x7feb352du; x^=x>>15; x*=0x846ca68bu; return x^(x>>16); }
++float APRandom(uint x) { return float(APHash(x)>>8)*(1.0/16777216.0); }
++AutomotiveFlakeSurface AutomotivePrepareFlakes(AP_INPUT(AutomotivePaintParameters) p,vec2 uv,vec2 dx,vec2 dy) {
++    AutomotiveFlakeSurface s;
++    const float radius=0.36;
++    float frequency=2.0*radius/(APRange(p.DiameterMm,0.02,2.0)*0.001);
++    if(!(abs(uv.x)<1000.0&&abs(uv.y)<1000.0))uv=vec2(0.0);
++    vec2 q=uv*frequency;float cx=float(floor(q.x)),cy=float(floor(q.y));
++    float density=APRange(p.Density,0.0,16.0);
++    float footprint=max(length(dx),length(dy))*frequency;
++    footprint=APRange(footprint,0.0,10000.0);
++    float aa=max(0.0001,min(0.5,footprint*0.6));
++    s.Weight=0.0;uint key=0u;
++    // Full-cell jitter with a fixed 3x3 neighbourhood, rather than visible centred dots.
++    // Overlapping flakes select the topmost (largest coverage) facet; no additive energy.
++    for(int layer=0;layer<16;++layer){
++      float occupancy=clamp(density-float(layer),0.0,1.0);
++      if(occupancy<=0.0)break;
++      for(int oy=-1;oy<=1;++oy)for(int ox=-1;ox<=1;++ox){
++        float nx=cx+float(ox),ny=cy+float(oy);
++        uint ix=uint(nx-float(floor(nx/65536.0))*65536.0),iy=uint(ny-float(floor(ny/65536.0))*65536.0);
++        uint candidate=APHash(ix^APHash(iy)^p.Seed);
++        if(layer>0)candidate=APHash(candidate^APHash(uint(layer)*0x9e3779b9u));
++        vec2 centre=vec2(nx,ny)+vec2(APRandom(candidate+1u),APRandom(candidate+2u));
++        vec2 local=q-centre;
++        float angle=6.28318530718*APRandom(candidate+3u),c=cos(angle),sn=sin(angle);
++        vec2 ell=vec2(c*local.x+sn*local.y,(-sn*local.x+c*local.y)/0.65);
++        float occupied=APRandom(candidate)<occupancy?1.0:0.0;
++        float coverage=occupied*(1.0-smoothstep(radius-aa,radius+aa,length(ell)));
++        if(coverage>s.Weight){s.Weight=coverage;key=candidate;}
++    }
++    }
++    s.FacetKey=key;s.Colour=clamp(p.FlakeReflectance,vec3(0.0),vec3(0.98));s.MeanColour=s.Colour;
++    // Poisson coverage approximation for overlaps, not an exact footprint integral.
++    s.MeanWeight=1.0-exp(-density*3.14159265359*radius*radius*0.65);
++    s.Unresolved=smoothstep(0.35,1.5,footprint);
++    float spread=APRange(p.NormalSpread,0.0,0.7);
++    float radial=spread*sqrt(-float(log(max(0.000001,APRandom(key+4u)))));
++    float azimuth=6.28318530718*APRandom(key+5u);
++    s.Slope=radial*vec2(cos(azimuth),sin(azimuth));
++    s.Alpha=APRange(p.FlakeRoughness,0.025,0.5);
++    s.PopulationAlpha=sqrt(s.Alpha*s.Alpha+spread*spread);
++    return s;
++}
++AutomotiveFlakeSurface AutomotiveApplyFlakePalette(AutomotiveFlakeSurface s,AP_INPUT(AutomotiveFlakePalette) palette) {
++    int count=int(APRange(float(palette.Count),0.0,8.0));
++    float total=0.0;vec3 average=vec3(0.0);
++    for(int i=0;i<8;++i){if(i>=count)break;
++        float weight=APRange(palette.Weight[i],0.0,1000.0);
++        vec3 lo=clamp(palette.Minimum[i],vec3(0.0),vec3(0.98)),hi=clamp(palette.Maximum[i],vec3(0.0),vec3(0.98));
++        total+=weight;average+=(lo+hi)*(0.5*weight);
++    }
++    if(total<=0.0)return s;
++    s.MeanColour=average/total;
++    float pick=min(APRandom(s.FacetKey+0xa511e9b3u),0.999999)*total;
++    float cumulative=0.0;
++    for(int i=0;i<8;++i){if(i>=count)break;
++        cumulative+=APRange(palette.Weight[i],0.0,1000.0);
++        if(pick<cumulative){
++            s.Colour=mix(clamp(palette.Minimum[i],vec3(0.0),vec3(0.98)),clamp(palette.Maximum[i],vec3(0.0),vec3(0.98)),APRandom(s.FacetKey+0x63d83595u));
++            break;
++        }
++    }
++    return s;
++}
++vec3 AutomotiveCoatTint(AP_INPUT(AutomotivePaintParameters) p) {
++    return mix(vec3(1.0),clamp(p.CoatTint,vec3(0.0),vec3(1.0)),APRange(p.CoatTintStrength,0.0,1.0));
++}
++vec3 AutomotiveFlakeFresnel(AP_INPUT(AutomotivePaintParameters) p,vec3 colour,float vh) {
++    vec3 f=FresnelSchlick(colour,vh);
++    float pearl=APRange(p.PearlWeight,0.0,1.0);
++    if(pearl>0.0)f=mix(f,ThinFilmReflectance(vh,APRange(p.FilmIor,1.01,2.5),APRange(p.FilmThicknessNm,0.0,1500.0)*0.001,f,false),pearl);
++    return f;
++}
++float APBeckmann(vec3 h,vec2 centre,float alpha) {
++    if(!(h.z>0.0001))return 0.0;
++    vec2 d=vec2(h.x,h.y)/h.z-centre;
++    float z2=h.z*h.z;
++    return exp(-dot(d,d)/(alpha*alpha))/(3.14159265359*alpha*alpha*z2*z2);
++}
++float APSmithG1(float cosine,float alpha) {
++    float c2=cosine*cosine;
++    return 2.0*cosine/(cosine+sqrt(alpha*alpha+(1.0-alpha*alpha)*c2));
++}
++float APGgx(vec3 h,float alpha) {
++    float a2=alpha*alpha,t=h.z*h.z*(a2-1.0)+1.0;
++    return a2/(3.14159265359*t*t);
++}
++vec3 AutomotiveEvaluateCoat(AP_INPUT(AutomotivePaintParameters) p,vec3 v,vec3 l) {
++    if(!(v.z>0.0001&&l.z>0.0001))return vec3(0.0);
++    vec3 sum=v+l;float len=length(sum);if(!(len>0.0001&&len<3.0))return vec3(0.0);
++    vec3 h=sum/len;float r=APRange(p.CoatRoughness,0.06,0.7),a=r*r;
++    float f=FresnelDielectric(clamp(dot(v,h),0.0,1.0),1.5);
++    return AutomotiveCoatTint(p)*(APRange(p.CoatWeight,0.0,1.0)*f*APGgx(h,a)*APSmithG1(v.z,a)*APSmithG1(l.z,a)/(4.0*v.z*l.z));
++}
++vec3 AutomotiveEvaluatePaint(AP_INPUT(AutomotivePaintParameters) p,AP_INPUT(AutomotiveFlakeSurface) s,vec3 v,vec3 l) {
++    if(!(v.z>0.0001&&l.z>0.0001))return vec3(0.0);
++    vec3 sum=v+l;float len=length(sum);if(!(len>0.0001&&len<3.0))return vec3(0.0);
++    vec3 h=sum/len;float vh=clamp(dot(v,h),0.0,1.0);
++    float coverage=mix(s.Weight,s.MeanWeight,s.Unresolved);
++    float discrete=s.Weight*APBeckmann(h,s.Slope,s.Alpha);
++    float population=s.MeanWeight*APBeckmann(h,vec2(0.0),s.PopulationAlpha);
++
++    // Macro masking is a bounded approximation for the tilted, finite flake population.
++    float masking=APSmithG1(v.z,s.PopulationAlpha)*APSmithG1(l.z,s.PopulationAlpha);
++    vec3 resolvedF=AutomotiveFlakeFresnel(p,s.Colour,vh),populationF=AutomotiveFlakeFresnel(p,s.MeanColour,vh);
++    vec3 flakes=mix(resolvedF*discrete,populationF*population,s.Unresolved)*(masking/(4.0*v.z*l.z));
++    vec3 base=(1.0-coverage)*clamp(p.Pigment,vec3(0.0),vec3(0.95))*0.31830988618+flakes;
++    float coat=APRange(p.CoatWeight,0.0,1.0);
++    float transmission=(1.0-coat*FresnelDielectric(v.z,1.5))*(1.0-coat*FresnelDielectric(l.z,1.5));
++    // Thin-layer two-interface attenuation. No refracted-direction/multiple-bounce solver claim.
++    // Artistic attenuation/tinted reflection; not a spectral dye/Beer-Lambert coating model.
++    vec3 tint=mix(vec3(1.0),AutomotiveCoatTint(p),coat);
++    return base*transmission*tint+AutomotiveEvaluateCoat(p,v,l);
++}
++#endif
+--- /dev/null
++++ b/Engine/Shaders/AutomotiveShowcase.slang
+@@ -0,0 +1,65 @@
++// Native/GPU showcase adapter. Include inside MaterialEvaluation after its Fresnel/GGX helpers.
++// The outer dielectric stays neutral: CoatColor is absorption beneath it, not metallic F0.
++#ifndef FRONTIER_AUTOMOTIVE_SHOWCASE_FUNCTIONS
++#define FRONTIER_AUTOMOTIVE_SHOWCASE_FUNCTIONS
++#ifdef __cplusplus
++#ifndef FRONTIER_NATIVE_FLAKES
++#define FRONTIER_NATIVE_FLAKES 1
++#endif
++#endif
++#include "AutomotiveFlakePaint.slang"
++AutomotivePaintParameters AutomotiveShowcasePaint(AP_INPUT(ShadingRecord) m) {
++    AutomotivePaintParameters p=AutomotivePaintDefaults();
++    float t=APRange(m.AutomotiveData.y,0.0,1.0);
++    p.Pigment=m.BaseColor;p.FlakeReflectance=m.SpecularColor;
++    p.Density=m.AutomotiveDensity;p.CoatRoughness=m.CoatRoughness;p.CoatWeight=m.CoatWeight;
++    p.FlakeRoughness=m.SpecularRoughness;p.NormalSpread=0.18+0.12*t;
++    p.PearlWeight=m.ThinFilmWeight;p.FilmThicknessNm=m.ThinFilmThickness*1000.0;p.FilmIor=m.ThinFilmIor;
++    p.DiameterMm=m.AutomotiveData.x==2.0?0.45+0.65*t:0.08+0.22*t;
++    return p;
++}
++AutomotiveFlakePalette AutomotiveShowcasePalette(AP_INPUT(ShadingRecord) m) {
++    if(m.AutomotiveData.x==2.0)return AutomotiveRgbPalette();
++    return AutomotivePaletteDefaults(); // use the slab's F0 for silver / copper
++}
++vec3 AutomotiveShowcaseCoat(AP_INPUT(ShadingRecord) m,vec3 wo,vec3 wi) {
++    if(wo.z<=0.0001||wi.z<=0.0001)return vec3(0.0);
++    vec3 h=normalize(wo+wi);float r=APRange(m.CoatRoughness,0.06,0.7),a=r*r;
++    return vec3(APRange(m.CoatWeight,0.0,1.0)*FresnelDielectric(dot(wo,h),APRange(m.CoatIor,1.01,2.5))*APGgx(h,a)*APSmithG1(wo.z,a)*APSmithG1(wi.z,a)/(4.0*wo.z*wi.z));
++}
++vec3 AutomotiveShowcaseEvaluatePrepared(AP_INPUT(ShadingRecord) m,AutomotivePaintParameters p,AP_INPUT(AutomotiveFlakeSurface) s,vec3 wo,vec3 wi) {
++    if(wo.z<=0.0001||wi.z<=0.0001)return vec3(0.0);
++    // Use the native material's IOR (not the artistic reflection-tint control in the web lab).
++    float eta=APRange(m.CoatIor,1.01,2.5),coat=APRange(m.CoatWeight,0.0,1.0);
++    float co=sqrt(max(0.0001,1.0-(1.0-wo.z*wo.z)/(eta*eta)));
++    float ci=sqrt(max(0.0001,1.0-(1.0-wi.z*wi.z)/(eta*eta)));
++    vec3 absorption=pow(clamp(m.CoatColor,vec3(0.0001),vec3(1.0)),vec3(0.5/co+0.5/ci));
++    float transmission=(1.0-coat*FresnelDielectric(wo.z,eta))*(1.0-coat*FresnelDielectric(wi.z,eta));
++    vec3 reflection=AutomotiveShowcaseCoat(m,wo,wi);
++    p.CoatWeight=0.0;
++    return reflection+transmission*mix(vec3(1.0),absorption,coat)*AutomotiveEvaluatePaint(p,s,wo,wi);
++}
++vec3 AutomotiveShowcaseEvaluate(AP_INPUT(ShadingRecord) m,vec3 wo,vec3 wi) {
++    if(wo.z<=0.0001||wi.z<=0.0001)return vec3(0.0);
++    AutomotivePaintParameters p=AutomotiveShowcasePaint(m);
++    float footprint=max(0.0,m.AutomotiveFootprint);
++    AutomotiveFlakeSurface s=AutomotivePrepareFlakes(p,vec2(m.AutomotiveData.z,m.AutomotiveData.w),vec2(footprint,0.0),vec2(0.0,footprint));
++    s=AutomotiveApplyFlakePalette(s,AutomotiveShowcasePalette(m));
++    return AutomotiveShowcaseEvaluatePrepared(m,p,s,wo,wi);
++}
++// Matching full-support proposal: half cosine, half smooth-coat GGX VNDF.
++// Valid (but not glint-optimised) importance sampling; below-horizon GGX draws are null events.
++float AutomotiveShowcasePdf(AP_INPUT(ShadingRecord) m,vec3 wo,vec3 wi) {
++    if(wo.z<=0.0001||wi.z<=0.0)return 0.0;
++    vec3 h=normalize(wo+wi);float r=APRange(m.CoatRoughness,0.06,0.7);
++    return 0.5*wi.z*kInvPi+0.5*GgxVndfPdf(wo,h,vec2(r*r))/(4.0*max(dot(wo,h),0.000001));
++}
++vec4 AutomotiveShowcaseSample(AP_INPUT(ShadingRecord) m,vec3 wo,vec4 u) {
++    if(wo.z<=0.0001)return vec4(0.0);
++    vec3 wi;
++    if(u.x<0.5){float r=sqrt(u.y),phi=2.0*kPi*u.z;wi=vec3(r*cos(phi),r*sin(phi),sqrt(max(0.0,1.0-u.y)));}
++    else{float r=APRange(m.CoatRoughness,0.06,0.7);wi=reflect(-wo,SampleGgxVndf(wo,vec2(r*r),vec2(u.y,u.z)));}
++    if(wi.z<=0.0)return vec4(0.0);
++    return vec4(wi,AutomotiveShowcasePdf(m,wo,wi));
++}
++#endif
+--- a/Engine/Shaders/ReSTIRViewport.slang
++++ b/Engine/Shaders/ReSTIRViewport.slang
+@@ -85,7 +85,7 @@
+     uvec4 TextureSlots0;
+     uvec4 TextureSlots1;
+     uvec4 Runtime;
+-    vec4  Slate2;           // M2: x = anisotropy_rotation [rad], y = direct_f0_weight (M6, 0), zw = 0
++    vec4  Slate2;           // M2: x = anisotropy_rotation [rad], y = direct_f0_weight (M6, 0), zw = automotive profile / sweep
+ };
+ 
+ struct GpuInstance          // InstanceRecord (SceneStructure.h / SceneRecords.slang) — only MaterialIndex is read here
+@@ -196,6 +196,7 @@
+ 
+ const uint kMaterialTextureNone = 0xFFFFFFFFu;
+ 
++#define FRONTIER_AUTOMOTIVE_SHOWCASE 1
+ #include "MaterialEvaluation.slang"
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -227,7 +228,7 @@
+     return (Word >> ((C & 1u) * 16u)) & 0xFFFFu;
+ }
+ // M3: kChannel* / kReflectance* / ReflectanceConsumes live in MaterialEvaluation.slang now (single source of truth,
+-// CPU-tested 1:1); visible here through #include "MaterialEvaluation.slang".
++// CPU-tested 1:1); included above.
+ uint MaterialSelection(GpuMaterial mat) { return (mat.Slabs.z >> 8u) & 0xFu; }
+ 
+ struct SurfaceFrame         // everything the kernel needs at a hit besides the ShadingRecord
+@@ -307,6 +308,7 @@
+     F.LodBias = (uvArea > 0.0 && worldArea > 0.0) ? 0.5 * log2(uvArea / worldArea) + log2(max(coneWidth, 1e-6) / max(abs(dot(ng, viewDir)), 1e-3)) : 0.0;
+ 
+     ShadingRecord m;
++    m.AutomotiveData=vec4(0.0);m.AutomotiveDensity=0.0;m.AutomotiveFootprint=0.0;
+     m.BaseColor = mat.Albedo.xyz; m.Metalness = mat.Emissive.w; m.DiffuseRoughness = 0.0;
+     m.SpecularWeight = 1.0; m.SpecularColor = vec3(1.0); m.SpecularRoughness = mat.Albedo.w; m.SpecularAnisotropy = 0.0; m.AnisotropyAngle = 0.0; m.SpecularIor = 1.5;
+     m.ThinFilmWeight = 0.0; m.ThinFilmThickness = 0.5; m.ThinFilmIor = 1.4;
+@@ -381,6 +383,9 @@
+                                P12.z > 0.0 || ReflectanceConsumes(selection, kChannelThinFilm)).x;
+         m.ThinFilmThickness  = P12.w;
+         m.ThinFilmIor        = P13.x;
++        m.AutomotiveData=vec4(S.Slate2.zw,uv*vec2(3.4557519,1.7278760));
++        m.AutomotiveDensity=P14.x;
++        m.AutomotiveFootprint=exp2(F.LodBias)*3.4557519;
+         m.HazinessWeight     = P13.z;
+         m.HazinessRoughness  = P13.w;
+         F.ThinWalled = (floatBitsToUint(P14.z) & 1u) != 0u;   // K4: SlabFlags bit0 (exact bit-cast — the record is a memcpy mirror)
+@@ -407,7 +412,7 @@
+         //    sparkle to dense metallic salt; uv_scale × 3 brackets the preview's own frequency (24) across the
+         //    row's 4 → 12. Applied AFTER the normal map (flakes ride the mapped surface) and BEFORE the coat
+         //    frame derives (the coat follows the base surface, flakes included — the preview's own order).
+-        if (P14.x > 0.0)
++        if (P14.x > 0.0 && m.AutomotiveData.x == 0.0)
+         {
+             float glintCoverage = 1.0 - exp(-P14.x * 0.25);
+             vec3 gn = AutomotiveApplyTriCoatFlakeNormal(n, hitPos, glintCoverage, P14.y * 3.0, 0.37);
+--- a/Projects/Project-Zero/Host/MaterialLevelViewport.cpp
++++ b/Projects/Project-Zero/Host/MaterialLevelViewport.cpp
+@@ -85,6 +85,7 @@
+     return vec4(Out[0], Out[1], Out[2], Out[3]);
+ }
+ 
++#define FRONTIER_AUTOMOTIVE_SHOWCASE 1
+ #include "MaterialEvaluation.slang"   // the shipped OpenPBR lobe set, compiled 1:1 as C++ (see the file's own header)
+ 
+ // ── The spatial interface's figure evaluation, compiled 1:1 as C++ (the R4b discipline, same as the lobe set) ──────
+@@ -152,6 +153,15 @@
+ };
+ 
+ // [nit] the emissive triangles' total power, for the discrete selection pdf (see PickLight).
++float g_AutomotiveRaySpread=0.001f;
++void BindAutomotiveHit(ShadingRecord& m,const RenderTriangle& t,float u,float v,float distance,vec3 direction,vec3 normal) {
++    if(m.AutomotiveData.x<1.0f||m.AutomotiveData.x>5.0f)return;
++    m.AutomotiveData.z=(t.U0*(1-u-v)+t.U1*u+t.U2*v)*3.4557519f;
++    m.AutomotiveData.w=(t.V0*(1-u-v)+t.V1*u+t.V2*v)*1.7278760f;
++    float worldArea=length(cross(t.P1-t.P0,t.P2-t.P0));
++    float uvArea=std::abs((t.U1-t.U0)*(t.V2-t.V0)-(t.V1-t.V0)*(t.U2-t.U0));
++    m.AutomotiveFootprint=3.4557519f*std::sqrt(uvArea/std::max(worldArea,1e-12f))*distance*g_AutomotiveRaySpread/std::max(std::abs(dot(direction,normal)),.001f);
++}
+ float TotalLightPower();
+ 
+ struct EmissiveTriangle
+@@ -256,6 +266,7 @@
+ ShadingRecord TranscribeShadingRecord(const MaterialSlabRecord& S, uint32_t Selection)
+ {
+     ShadingRecord m;
++    m.AutomotiveData=vec4(S.Reserved0,S.Reserved1,0.0f,0.0f);m.AutomotiveDensity=S.SlateGlintDensity;
+     m.BaseColor          = vec3(S.BaseWeight * S.BaseColorR, S.BaseWeight * S.BaseColorG, S.BaseWeight * S.BaseColorB);
+     m.Metalness          = S.BaseMetalness;
+     m.DiffuseRoughness   = S.BaseDiffuseRoughness;
+@@ -1720,7 +1731,7 @@
+         if (dot(Ns, D) > 0.0f) Ns = -Ns;
+         // M6 glints — the same perturbation the primary surface takes; a bounce that lands on a glinting
+         //    material must see the same microsurface or the two paths shade two different materials.
+-        if (!g_MatGlintsOff && g_MatGlintDensity[T.Material] > 0.0f)
++        if (!g_MatGlintsOff && g_MatGlintDensity[T.Material] > 0.0f && Mat.AutomotiveData.x == 0.0f)
+         {
+             const float GlintCoverage = 1.0f - expf(-g_MatGlintDensity[T.Material] * 0.25f);
+             const vec3 Gn = AutomotiveApplyTriCoatFlakeNormal(Ns, O + D * H.T, GlintCoverage,
+@@ -1731,7 +1742,9 @@
+         ShadingFrame(Ns, Tt, Bt);
+         vec3 wo(dot(-D, Tt), dot(-D, Bt), dot(-D, Ns));
+ 
+-        ShadingRecord m = Mat;                                  // local copy: the nested fallback may zero transmission
++        ShadingRecord m = Mat;
++        BindAutomotiveHit(m,T,H.U,H.V,H.T,D,Ns);
++        if(g_MatGlintsOff)m.AutomotiveDensity=0; // local copy: the nested fallback may zero transmission
+         const bool SolidHit = m.TransmissionWeight > 0.0f && (g_MatFlags[T.Material] & Frontier::MaterialFlagThinWalled) == 0u;
+         const bool FromInside = Inside && T.Material == EntryMat;
+         if (Inside && T.Material != EntryMat && m.TransmissionWeight > 0.0f)
+@@ -1987,6 +2000,7 @@
+     const std::vector<MaterialRecord>& Records = Index.QueryRecords();
+     const std::vector<MaterialSlabRecord>& Slabs = Index.QuerySlabRecords();
+     g_Mat.resize(Records.size());
++    g_MatGlintDensity.resize(Records.size());g_MatGlintUvScale.resize(Records.size());
+     g_MatFlags.resize(Records.size(), 0u);
+     g_MatCutoff.resize(Records.size(), 0.5f);
+     for (size_t I = 0; I < Records.size(); ++I)
+@@ -1994,6 +2008,7 @@
+         const uint32_t Selection = (Records[I].Flags & Frontier::kMaterialReflectanceMask) >> Frontier::kMaterialReflectanceShift;
+         const MaterialSlabRecord& S = Slabs[std::min(static_cast<size_t>(Records[I].SlabOffset), Slabs.size() - 1u)];
+         g_Mat[I] = TranscribeShadingRecord(S, Selection);
++        g_MatGlintDensity[I]=S.SlateGlintDensity;g_MatGlintUvScale[I]=S.SlateGlintUvScale;
+         g_MatFlags[I] = Records[I].Flags;
+         g_MatCutoff[I] = Records[I].AlphaCutoff;
+     }
+@@ -2185,6 +2200,7 @@
+     Base.AssignSpatialLocation(VP.Position);
+     Base.AssignOrientationEuler(VP.PitchDegrees * kPi / 180.0f, VP.YawDegrees * kPi / 180.0f, 0.0f);
+     Base.AssignFieldOfView(VP.FieldOfView);
++    g_AutomotiveRaySpread=2.0f*std::tan(VP.FieldOfView*kPi/360.0f)/static_cast<float>(Height);
+     Base.AssignAspectRatio(static_cast<float>(Width) / static_cast<float>(Height));
+ 
+     const bool SunUp = dot(g_SunDirRender, g_SunDirRender) > 0.0f && SkyRadianceWorld(g_SunDirRender).y > 0.0f;
+@@ -2299,7 +2315,7 @@
+                     if (dot(Surf.Ns, D) > 0.0f) Surf.Ns = -Surf.Ns;
+                     // M6 glints — the kernel's rule, line for line: coverage 1 - exp(-D/4), frequency x3,
+                     //    jitter 0.37, applied before the frame builds, below-surface rejected against Ng.
+-                    if (!g_MatGlintsOff && g_MatGlintDensity[Tri.Material] > 0.0f)
++                    if (!g_MatGlintsOff && g_MatGlintDensity[Tri.Material] > 0.0f && g_Mat[Tri.Material].AutomotiveData.x == 0.0f)
+                     {
+                         const float GlintCoverage = 1.0f - expf(-g_MatGlintDensity[Tri.Material] * 0.25f);
+                         const vec3 Gn = AutomotiveApplyTriCoatFlakeNormal(Surf.Ns, Surf.P, GlintCoverage,
+@@ -2309,6 +2325,8 @@
+                     ShadingFrame(Surf.Ns, Surf.T, Surf.B);
+                     Surf.Wo = vec3(dot(-D, Surf.T), dot(-D, Surf.B), dot(-D, Surf.Ns));
+                     Surf.Mat = g_Mat[Tri.Material];
++                    BindAutomotiveHit(Surf.Mat,Tri,H.U,H.V,H.T,D,Surf.Ns);
++                    if(g_MatGlintsOff)Surf.Mat.AutomotiveDensity=0;
+                     Surf.Layers = ResolveLayers(Surf.Mat, Surf.Wo);
+                     const bool SolidHit = Surf.Mat.TransmissionWeight > 0.0f
+                         && (g_MatFlags[Tri.Material] & Frontier::MaterialFlagThinWalled) == 0u;
