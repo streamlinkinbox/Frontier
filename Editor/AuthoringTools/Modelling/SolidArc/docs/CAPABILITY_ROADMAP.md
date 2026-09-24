@@ -1511,6 +1511,29 @@ freeform/non-coaxial supports, arbitrary vertices, invalid or consuming set-back
 unsupported. Its bounded plan is
 `docs/PLAN_PartialEqualRadiusBiconeUnequalSetbackChamfer.md`.
 
+#### Phase 39h: bounded full-turn equal-radius bicone chamfer with independent set-backs ✅
+
+The full-turn equal-radius bicone chamfer now has its independent-setback companion. This route
+is distinct from the equal-setback Phase 39e reconstruction and the unequal-radius independent-setback
+route: it requires the native point-contact `V5/E6/C12/L4/F4` bicone topology, equal circular support
+radii, and two positive unequal set-backs below their respective support heights.
+
+`ClassifyEqualRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical coaxial
+axis, equal support radius, support heights, and independent set-backs transactionally.
+`ReconstructEqualRadiusBiconeUnequalSetbackChamfer` retains both support frusta, inserts one
+conical bridge between independently placed contact rings, and preserves the two axial base caps.
+It returns one genus-zero `V6/E9/C18/L5/F5` solid with three cone faces and two planar base faces.
+`EqualRadiusBiconeUnequalSetbackChamferVerification` performs 36 checks over the distinct radius-3.6,
+height-6.2/4.7 source with 0.7/1.1 set-backs, covering exact contact radii, topology, outward
+normals, the three-frustum volume identity, source immutability, deterministic dispatch, and
+full/partial/half/reflex and unsupported refusal boundaries. The durable proof is
+`Proofs/Phase39h_EqualRadiusBiconeUnequalSetbackChamfer.png`.
+
+Equal set-backs remain on Phase 39e. Partial, half, or reflex sectors, unequal radii, mixed or
+freeform/non-coaxial supports, arbitrary vertices, invalid or consuming set-backs, and healing remain
+unsupported. Its bounded plan is
+`docs/PLAN_EqualRadiusBiconeUnequalSetbackChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
