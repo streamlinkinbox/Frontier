@@ -563,6 +563,11 @@ public:
     // nonlinear positive quadratic radius law and a positive common setback.
     [[nodiscard]] static Deliver<NonlinearVariableRadiusCornerSpecification> ClassifyNonlinearVariableRadiusCornerEdge(
         const BrepBody& Body, int Edge, double Setback, const QuadraticRadiusLaw& RadiusLaw) noexcept;
+    // Bounded Stage 4y application dispatch: one constant rolling radius and one symmetric nonlinear
+    // quadratic support-setback law on the same eligible rectangular-box edge.
+    [[nodiscard]] static Deliver<NonlinearVariableSetbackCornerSpecification> ClassifyNonlinearVariableSetbackCornerEdge(
+        const BrepBody& Body, int Edge, const QuadraticRadiusLaw& RadiusLaw,
+        const QuadraticRadiusLaw& SetbackLaw) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(

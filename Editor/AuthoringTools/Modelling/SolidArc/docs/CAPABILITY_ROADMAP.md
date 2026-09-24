@@ -1322,6 +1322,23 @@ This remains one eligible rectangular-box edge and the symmetric-endpoint nonlin
 partial edges, loops, apexes, unequal/mixed supports, freeform supports, healing, or source-body
 replacement. Its plan is `docs/PLAN_NonlinearVariableRadiusCornerEdgeDispatch.md`.
 
+#### Phase 38y: bounded eligible-edge dispatch for a nonlinear support-setback corner
+
+The application layer now accepts the same canonical rectangular-box edge frame for the Stage 37e
+route. It validates exact `V8/E12/C24/L6/F6` topology, strict orthogonality, equal support widths,
+a constant positive rolling radius, and a genuinely nonlinear endpoint-symmetric quadratic setback
+law whose sampled combined extents fit the source supports. Reconstruction remains a separate transaction.
+
+`NonlinearVariableSetbackCornerEdgeDispatchVerification` covers exact edge/frame/length/law extraction,
+constant-radius and nonlinear-setback identities, deterministic dispatch, separate
+`V10/E15/C30/L7/F7` reconstruction, integrated quadratic volume, outward normals, source immutability,
+unequal-width/non-corner/variable-radius/linear/asymmetric-endpoint/invalid/consuming/cylinder/malformed
+refusals, and `Proofs/Phase38y_NonlinearVariableSetbackCornerEdgeDispatch.png`.
+
+This remains one eligible rectangular-box edge and the constant-radius nonlinear-setback route, not
+partial edges, loops, apexes, unequal/mixed supports, freeform supports, healing, or source-body
+replacement. Its plan is `docs/PLAN_NonlinearVariableSetbackCornerEdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
