@@ -554,6 +554,11 @@ public:
     // strict orthogonality, equal support widths, and a positive linear law only.
     [[nodiscard]] static Deliver<VariableRadiusCornerSpecification> ClassifyVariableRadiusCornerEdge(
         const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw) noexcept;
+    // Bounded Stage 4w application dispatch: the same rectangular-box edge frame plus independent positive
+    // linear radius and support-setback laws whose combined extents fit the source supports.
+    [[nodiscard]] static Deliver<VariableSetbackCornerSpecification> ClassifyVariableSetbackCornerEdge(
+        const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw,
+        const VariableRadiusLaw& SetbackLaw) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(

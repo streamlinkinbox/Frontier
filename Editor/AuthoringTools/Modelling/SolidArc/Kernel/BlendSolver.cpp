@@ -6168,6 +6168,36 @@ Deliver<VariableRadiusCornerSpecification> BlendSolver::ClassifyVariableRadiusCo
     return Deliver<VariableRadiusCornerSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<VariableSetbackCornerSpecification> BlendSolver::ClassifyVariableSetbackCornerEdge(
+    const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw,
+    const VariableRadiusLaw& SetbackLaw) noexcept
+{
+    if (!SetbackLaw.Positive())
+        return Deliver<VariableSetbackCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                     "selected variable setback law must be finite and positive");
+    const Deliver<VariableRadiusCornerSpecification> FrameSpecification =
+        ClassifyVariableRadiusCornerEdge(Body, Edge, RadiusLaw);
+    if (!FrameSpecification)
+        return Deliver<VariableSetbackCornerSpecification>::Reject(FrameSpecification.Denial.Reason,
+                                                                     FrameSpecification.Denial.Detail);
+    const double StartExtent = RadiusLaw.Start + SetbackLaw.Start;
+    const double EndExtent = RadiusLaw.End + SetbackLaw.End;
+    if (!std::isfinite(StartExtent) || !std::isfinite(EndExtent) ||
+        StartExtent <= ScalarCriteria::MergeTolerance || EndExtent <= ScalarCriteria::MergeTolerance ||
+        std::max(StartExtent, EndExtent) >= FrameSpecification.Payload.Width - ScalarCriteria::MergeTolerance)
+        return Deliver<VariableSetbackCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                     "variable support setback consumes the selected box supports");
+    VariableSetbackCornerSpecification Specification;
+    Specification.Origin = FrameSpecification.Payload.Origin;
+    Specification.EdgeAxis = FrameSpecification.Payload.EdgeAxis;
+    Specification.Length = FrameSpecification.Payload.Length;
+    Specification.RadiusLaw = RadiusLaw;
+    Specification.SetbackLaw = SetbackLaw;
+    const Deliver<BrepBody> Feasible = ReconstructVariableSetbackCornerBlend(Specification);
+    if (!Feasible) return Deliver<VariableSetbackCornerSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<VariableSetbackCornerSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Length) ||

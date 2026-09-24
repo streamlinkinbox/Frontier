@@ -582,6 +582,29 @@ This does not prove partial edges, loops, apexes, unequal or mixed supports, non
 freeform geometry, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_VariableRadiusCornerEdgeDispatch.md`.
 
+## Stage 38w coverage
+
+The variable support-setback edge dispatch is a distinct application-selection layer over the verified
+Stage 37b reconstruction:
+
+- `ClassifyVariableSetbackCornerEdge` accepts only the exact rectangular-box `V8/E12/C24/L6/F6`
+  topology, a selected straight manifold edge, two planar rectangular support faces meeting at a
+  right angle, equal support widths, and positive linear radius/setback laws whose combined extents
+  fit the measured source supports;
+- it returns `VariableSetbackCornerSpecification` with the selected origin, normalized edge axis,
+  length, and independent laws, validates the existing `V10/E15/C30/L7/F7` reconstruction, and leaves
+  the source unchanged;
+- `VariableSetbackCornerEdgeDispatchVerification` covers exact extraction, station identities,
+  deterministic dispatch, separate reconstruction, outward normals, source immutability, unequal-width/
+  non-corner/invalid/consuming/cylinder/malformed refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38w_VariableSetbackCornerEdgeDispatch.png` as the distinct sharp-versus-variable-setback
+  proof.
+
+This does not prove partial edges, loops, apexes, unequal or mixed supports, nonlinear laws, G2 joins,
+freeform geometry, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_VariableSetbackCornerEdgeDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

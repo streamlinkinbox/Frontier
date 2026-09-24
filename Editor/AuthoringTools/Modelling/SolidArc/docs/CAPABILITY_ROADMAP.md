@@ -1288,6 +1288,23 @@ This remains one eligible rectangular-box edge and the equal-width linear-law ro
 loops, apexes, freeform supports, healing, or source-body replacement. Its plan is
 `docs/PLAN_VariableRadiusCornerEdgeDispatch.md`.
 
+#### Phase 38w: bounded eligible-edge dispatch for a variable support-setback corner
+
+The application layer now accepts the same canonical rectangular-box edge frame for the Stage 37b
+route. It validates exact `V8/E12/C24/L6/F6` topology, strict orthogonality, equal support widths,
+and independent positive linear radius and setback laws whose combined endpoint extents remain inside
+the source supports. Reconstruction remains a separate transaction.
+
+`VariableSetbackCornerEdgeDispatchVerification` covers exact edge/frame/length/law extraction,
+independent radius-plus-setback station identities, deterministic dispatch, separate
+`V10/E15/C30/L7/F7` reconstruction, outward normals, source immutability, unequal-width/non-corner/
+invalid/consuming/cylinder/malformed refusals, and
+`Proofs/Phase38w_VariableSetbackCornerEdgeDispatch.png`.
+
+This remains one eligible rectangular-box edge and the independent linear-setback route, not partial
+edges, loops, apexes, unequal/mixed supports, nonlinear laws, freeform supports, healing, or source-body
+replacement. Its plan is `docs/PLAN_VariableSetbackCornerEdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
