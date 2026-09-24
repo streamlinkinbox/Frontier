@@ -559,6 +559,10 @@ public:
     [[nodiscard]] static Deliver<VariableSetbackCornerSpecification> ClassifyVariableSetbackCornerEdge(
         const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw,
         const VariableRadiusLaw& SetbackLaw) noexcept;
+    // Bounded Stage 4x application dispatch: the same eligible rectangular-box edge plus one genuinely
+    // nonlinear positive quadratic radius law and a positive common setback.
+    [[nodiscard]] static Deliver<NonlinearVariableRadiusCornerSpecification> ClassifyNonlinearVariableRadiusCornerEdge(
+        const BrepBody& Body, int Edge, double Setback, const QuadraticRadiusLaw& RadiusLaw) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(

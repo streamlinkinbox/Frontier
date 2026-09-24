@@ -605,6 +605,30 @@ This does not prove partial edges, loops, apexes, unequal or mixed supports, non
 freeform geometry, healing, or source-body replacement. The bounded plan is
 `docs/PLAN_VariableSetbackCornerEdgeDispatch.md`.
 
+## Stage 38x coverage
+
+The nonlinear variable-radius corner edge dispatch is a distinct application-selection layer over the
+verified Stage 37c reconstruction:
+
+- `ClassifyNonlinearVariableRadiusCornerEdge` accepts only the exact rectangular-box `V8/E12/C24/L6/F6`
+  topology, a selected straight manifold edge, two planar rectangular support faces meeting at a right
+  angle, equal support widths, a positive genuinely nonlinear quadratic law with equal endpoint radii,
+  and a positive common setback whose sampled extents fit the source supports;
+- it returns `NonlinearVariableRadiusCornerSpecification` with the selected origin, normalized edge
+  axis, length, setback, and law, validates the existing `V10/E15/C30/L7/F7` reconstruction, and leaves
+  the source unchanged;
+- `NonlinearVariableRadiusCornerEdgeDispatchVerification` covers exact extraction, nonlinear-law identity,
+  deterministic dispatch, separate reconstruction, integrated quadratic volume, outward normals, source
+  immutability, unequal-width/non-corner/linear/asymmetric-endpoint/invalid/consuming/cylinder/malformed
+  refusals;
+- `Tools/Build/CheckSolidArc.sh` compiles and runs the verifier, and persists
+  `Proofs/Phase38x_NonlinearVariableRadiusCornerEdgeDispatch.png` as the distinct sharp-versus-nonlinear
+  radius proof.
+
+This does not prove partial edges, loops, apexes, unequal or mixed supports, asymmetric endpoint laws,
+G2 joins, freeform geometry, healing, or source-body replacement. The bounded plan is
+`docs/PLAN_NonlinearVariableRadiusCornerEdgeDispatch.md`.
+
 ## Actual remaining proof/capability gaps
 
 1. The general rolling-ball variable-radius application is still bounded: Stage 37a–37f cover

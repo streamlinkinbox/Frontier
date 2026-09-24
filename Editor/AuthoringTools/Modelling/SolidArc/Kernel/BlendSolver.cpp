@@ -6198,6 +6198,44 @@ Deliver<VariableSetbackCornerSpecification> BlendSolver::ClassifyVariableSetback
     return Deliver<VariableSetbackCornerSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<NonlinearVariableRadiusCornerSpecification> BlendSolver::ClassifyNonlinearVariableRadiusCornerEdge(
+    const BrepBody& Body, int Edge, double Setback, const QuadraticRadiusLaw& RadiusLaw) noexcept
+{
+    if (!std::isfinite(Setback) || Setback <= ScalarCriteria::MergeTolerance)
+        return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                              "selected nonlinear corner setback must be finite and positive");
+    if (!RadiusLaw.Positive() || !RadiusLaw.Nonlinear())
+        return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                              "selected nonlinear corner law must be positive and genuinely quadratic");
+    if (std::fabs(RadiusLaw.Start - RadiusLaw.End) > ScalarCriteria::GeometricTolerance)
+        return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                              "bounded nonlinear corner dispatch requires equal endpoint radii");
+    const VariableRadiusLaw EndpointLaw{ RadiusLaw.Start, RadiusLaw.End };
+    const Deliver<VariableRadiusCornerSpecification> FrameSpecification =
+        ClassifyVariableRadiusCornerEdge(Body, Edge, EndpointLaw);
+    if (!FrameSpecification)
+        return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(FrameSpecification.Denial.Reason,
+                                                                             FrameSpecification.Denial.Detail);
+    double MaximumExtent = 0.0;
+    for (int I = 0; I <= 64; ++I)
+    {
+        const double T = static_cast<double>(I) / 64.0;
+        MaximumExtent = std::max(MaximumExtent, RadiusLaw.Radius(T) + Setback);
+    }
+    if (!std::isfinite(MaximumExtent) || MaximumExtent >= FrameSpecification.Payload.Width - ScalarCriteria::MergeTolerance)
+        return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                             "nonlinear radius plus setback consumes the selected box supports");
+    NonlinearVariableRadiusCornerSpecification Specification;
+    Specification.Origin = FrameSpecification.Payload.Origin;
+    Specification.EdgeAxis = FrameSpecification.Payload.EdgeAxis;
+    Specification.Length = FrameSpecification.Payload.Length;
+    Specification.Setback = Setback;
+    Specification.RadiusLaw = RadiusLaw;
+    const Deliver<BrepBody> Feasible = ReconstructNonlinearVariableRadiusCornerBlend(Specification);
+    if (!Feasible) return Deliver<NonlinearVariableRadiusCornerSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<NonlinearVariableRadiusCornerSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Length) ||
