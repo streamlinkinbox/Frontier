@@ -1,0 +1,5 @@
+The initial 768x768 attempt was terminated by the sandbox's ~3.72 GiB memory limit
+(cgroup oom_kill counter incremented). The overview uses 512x512; close-ups use 384x384. These are finite-
+sample CPU ReSTIR DI/GI reference captures, not hardware Vulkan execution or
+converged production renders. Raw and native three-level atrous-filtered images
+are both retained. No image upscaling or AI generation is used.

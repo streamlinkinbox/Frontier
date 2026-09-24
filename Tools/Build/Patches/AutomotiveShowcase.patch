@@ -583,7 +583,32 @@
      m.BaseColor          = vec3(S.BaseWeight * S.BaseColorR, S.BaseWeight * S.BaseColorG, S.BaseWeight * S.BaseColorB);
      m.Metalness          = S.BaseMetalness;
      m.DiffuseRoughness   = S.BaseDiffuseRoughness;
-@@ -1720,7 +1731,7 @@
+@@ -327,6 +338,15 @@
+ //    whole point of this harness: the sheet must be the shot the product gives you, not a flattering angle.
+ Viewpoint ShowcaseViewpointFor(const std::string& Name)
+ {
++    // R6 review cameras use the actual 400-sphere scene, not a separate studio.
++    if (Name == "grid400") return { Frontier::Vector3{0.0f,-9.0f,42.0f},-62.0f,0.0f,44.0f };
++    const char* PaintViews[5]={"paint-candy","paint-glitter","paint-iridescent","paint-cobalt","paint-copper"};
++    for(int family=0;family<5;++family){
++        const float rowY=-1.8f+1.5f*static_cast<float>(15+family);
++        if(Name==PaintViews[family])return {Frontier::Vector3{-16.2f,rowY,1.25f},-18.5f,90.0f,42.0f};
++        if(Name==std::string(PaintViews[family])+"-macro")return {Frontier::Vector3{-14.99f,rowY,.60f},0.0f,90.0f,40.0f};
++    }
++
+     if (Name == "grid")   return { Frontier::Vector3{  0.0f, -9.50f, 4.20f }, -10.0f,  0.0f, 55.0f };  // closer on the grid's front rows
+     if (Name == "metals") return { Frontier::Vector3{ -1.0f, -5.40f, 1.60f },  -7.0f,  0.0f, 50.0f };  // row 0: anisotropic metals
+     if (Name == "glass")  return { Frontier::Vector3{ -1.0f, -3.90f, 1.60f },  -6.0f,  0.0f, 50.0f };  // row 1: the IOR ramp
+@@ -1310,6 +1330,8 @@
+     ShadingFrame(VNs, VT, VB);
+ 
+     ShadingRecord vm = g_Mat[Rt.Material];
++    BindAutomotiveHit(vm,Rt,H.U,H.V,H.T,Dir,VNs);
++    if(g_MatGlintsOff)vm.AutomotiveDensity=0;
+     if (vm.Selection == static_cast<uint>(kReflectanceEmissiveOnly))
+     {
+         V.Terminal = Beta * vm.Emission;
+@@ -1720,7 +1742,7 @@
          if (dot(Ns, D) > 0.0f) Ns = -Ns;
          // M6 glints — the same perturbation the primary surface takes; a bounce that lands on a glinting
          //    material must see the same microsurface or the two paths shade two different materials.
@@ -592,7 +617,7 @@
          {
              const float GlintCoverage = 1.0f - expf(-g_MatGlintDensity[T.Material] * 0.25f);
              const vec3 Gn = AutomotiveApplyTriCoatFlakeNormal(Ns, O + D * H.T, GlintCoverage,
-@@ -1731,7 +1742,9 @@
+@@ -1731,7 +1753,9 @@
          ShadingFrame(Ns, Tt, Bt);
          vec3 wo(dot(-D, Tt), dot(-D, Bt), dot(-D, Ns));
  
@@ -603,7 +628,7 @@
          const bool SolidHit = m.TransmissionWeight > 0.0f && (g_MatFlags[T.Material] & Frontier::MaterialFlagThinWalled) == 0u;
          const bool FromInside = Inside && T.Material == EntryMat;
          if (Inside && T.Material != EntryMat && m.TransmissionWeight > 0.0f)
-@@ -1987,6 +2000,7 @@
+@@ -1987,6 +2011,7 @@
      const std::vector<MaterialRecord>& Records = Index.QueryRecords();
      const std::vector<MaterialSlabRecord>& Slabs = Index.QuerySlabRecords();
      g_Mat.resize(Records.size());
@@ -611,7 +636,7 @@
      g_MatFlags.resize(Records.size(), 0u);
      g_MatCutoff.resize(Records.size(), 0.5f);
      for (size_t I = 0; I < Records.size(); ++I)
-@@ -1994,6 +2008,7 @@
+@@ -1994,6 +2019,7 @@
          const uint32_t Selection = (Records[I].Flags & Frontier::kMaterialReflectanceMask) >> Frontier::kMaterialReflectanceShift;
          const MaterialSlabRecord& S = Slabs[std::min(static_cast<size_t>(Records[I].SlabOffset), Slabs.size() - 1u)];
          g_Mat[I] = TranscribeShadingRecord(S, Selection);
@@ -619,7 +644,7 @@
          g_MatFlags[I] = Records[I].Flags;
          g_MatCutoff[I] = Records[I].AlphaCutoff;
      }
-@@ -2185,6 +2200,7 @@
+@@ -2185,6 +2211,7 @@
      Base.AssignSpatialLocation(VP.Position);
      Base.AssignOrientationEuler(VP.PitchDegrees * kPi / 180.0f, VP.YawDegrees * kPi / 180.0f, 0.0f);
      Base.AssignFieldOfView(VP.FieldOfView);
@@ -627,7 +652,7 @@
      Base.AssignAspectRatio(static_cast<float>(Width) / static_cast<float>(Height));
  
      const bool SunUp = dot(g_SunDirRender, g_SunDirRender) > 0.0f && SkyRadianceWorld(g_SunDirRender).y > 0.0f;
-@@ -2299,7 +2315,7 @@
+@@ -2299,7 +2326,7 @@
                      if (dot(Surf.Ns, D) > 0.0f) Surf.Ns = -Surf.Ns;
                      // M6 glints — the kernel's rule, line for line: coverage 1 - exp(-D/4), frequency x3,
                      //    jitter 0.37, applied before the frame builds, below-surface rejected against Ng.
@@ -636,7 +661,7 @@
                      {
                          const float GlintCoverage = 1.0f - expf(-g_MatGlintDensity[Tri.Material] * 0.25f);
                          const vec3 Gn = AutomotiveApplyTriCoatFlakeNormal(Surf.Ns, Surf.P, GlintCoverage,
-@@ -2309,6 +2325,8 @@
+@@ -2309,6 +2336,8 @@
                      ShadingFrame(Surf.Ns, Surf.T, Surf.B);
                      Surf.Wo = vec3(dot(-D, Surf.T), dot(-D, Surf.B), dot(-D, Surf.Ns));
                      Surf.Mat = g_Mat[Tri.Material];
@@ -645,3 +670,42 @@
                      Surf.Layers = ResolveLayers(Surf.Mat, Surf.Wo);
                      const bool SolidHit = Surf.Mat.TransmissionWeight > 0.0f
                          && (g_MatFlags[Tri.Material] & Frontier::MaterialFlagThinWalled) == 0u;
+@@ -2970,6 +2999,7 @@
+ {
+     std::setlocale(LC_ALL, "C");
+     std::string OutPath = "Exhibits/Gallery/Materials/MaterialLibrary_View.png";
++    std::string RawOutPath;
+     std::string ClassMapPath;   // roadmap #5 diagnostic: per-pixel GI class, written as a grey PNG when asked for
+     std::string View = "default";
+     std::string FogName = "clear";
+@@ -2995,6 +3025,7 @@
+             return ArgumentValues[++I];
+         };
+         if      (A == "--out")      OutPath = Next("--out");
++        else if (A == "--raw-out")  RawOutPath = Next("--raw-out");
+         else if (A == "--level")    g_Level = Next("--level");   // materials (M10 library) | showcase (the product default)
+         else if (A == "--view")     View = Next("--view");
+         else if (A == "--fog")      FogName = Next("--fog");
+@@ -3043,7 +3074,7 @@
+         {
+             std::printf("usage: MaterialLevelViewport [--out file.png] [--level materials|showcase]\n"
+                         "                            [--view default|wide|glass|row5]   (materials)\n"
+-                        "                            [--view default|grid|metals|glass|wide] (showcase) [--row N]\n"
++                        "                            [--view default|grid|metals|glass|wide|grid400|paint-candy|paint-glitter|paint-iridescent|paint-cobalt|paint-copper] (showcase) [--row N]\n"
+                         "                            [--width W] [--height H] [--spp N] [--bounce N] [--sun H]\n"
+                         "                            [--fog clear|morning|backlit] [--exposure X] [--threads N]\n"
+                         "                            [--frames N] [--pan metres] [--restir] [--no-reproject]\n"
+@@ -3153,6 +3184,13 @@
+     // The interface overlay composites on LINEAR radiance, straight after the resolve — the engine's own order.
+     //    (With --denoise the filter then runs over the composited film; the gallery render does not filter.)
+     CompositeInterfaceOverlay(Sequence, VP, Width, Height);
++    if(!RawOutPath.empty()){
++        ColourTransfer RawTransfer;RawTransfer.ToneMap=Frontier::ToneMapCategory::Aces;RawTransfer.Exposure=Exposure;RawTransfer.Saturation=1.0f;
++        std::vector<unsigned char> RawPng(Sequence.Mean.size());
++        for(size_t i=0;i<Sequence.Mean.size();i+=3)ColourPipeline::ApplyToByte(RawTransfer,Sequence.Mean.data()+i,RawPng.data()+i);
++        if(!PngWriteCounterpart::WritePng(RawOutPath.c_str(),Width,Height,3,RawPng.data(),Width*3))return 2;
++        std::printf("[material-level] unfiltered accumulated film -> %s\n",RawOutPath.c_str());
++    }
+     if (Denoise) ApplyAtrousChain(Sequence, Width, DenoiseLevels, Exposure);
+     const std::vector<float>& Film = Sequence.Mean;
+     if (UseRestir)

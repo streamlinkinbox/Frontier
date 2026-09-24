@@ -338,6 +338,15 @@ Viewpoint ViewpointFor(const std::string& Name)
 //    whole point of this harness: the sheet must be the shot the product gives you, not a flattering angle.
 Viewpoint ShowcaseViewpointFor(const std::string& Name)
 {
+    // R6 review cameras use the actual 400-sphere scene, not a separate studio.
+    if (Name == "grid400") return { Frontier::Vector3{0.0f,-9.0f,42.0f},-62.0f,0.0f,44.0f };
+    const char* PaintViews[5]={"paint-candy","paint-glitter","paint-iridescent","paint-cobalt","paint-copper"};
+    for(int family=0;family<5;++family){
+        const float rowY=-1.8f+1.5f*static_cast<float>(15+family);
+        if(Name==PaintViews[family])return {Frontier::Vector3{-16.2f,rowY,1.25f},-18.5f,90.0f,42.0f};
+        if(Name==std::string(PaintViews[family])+"-macro")return {Frontier::Vector3{-14.99f,rowY,.60f},0.0f,90.0f,40.0f};
+    }
+
     if (Name == "grid")   return { Frontier::Vector3{  0.0f, -9.50f, 4.20f }, -10.0f,  0.0f, 55.0f };  // closer on the grid's front rows
     if (Name == "metals") return { Frontier::Vector3{ -1.0f, -5.40f, 1.60f },  -7.0f,  0.0f, 50.0f };  // row 0: anisotropic metals
     if (Name == "glass")  return { Frontier::Vector3{ -1.0f, -3.90f, 1.60f },  -6.0f,  0.0f, 50.0f };  // row 1: the IOR ramp
@@ -1321,6 +1330,8 @@ CpuGiReservoir RestirGiTemporalReservoir(const RestirSurface& Surface, int Candi
     ShadingFrame(VNs, VT, VB);
 
     ShadingRecord vm = g_Mat[Rt.Material];
+    BindAutomotiveHit(vm,Rt,H.U,H.V,H.T,Dir,VNs);
+    if(g_MatGlintsOff)vm.AutomotiveDensity=0;
     if (vm.Selection == static_cast<uint>(kReflectanceEmissiveOnly))
     {
         V.Terminal = Beta * vm.Emission;
@@ -2988,6 +2999,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 {
     std::setlocale(LC_ALL, "C");
     std::string OutPath = "Exhibits/Gallery/Materials/MaterialLibrary_View.png";
+    std::string RawOutPath;
     std::string ClassMapPath;   // roadmap #5 diagnostic: per-pixel GI class, written as a grey PNG when asked for
     std::string View = "default";
     std::string FogName = "clear";
@@ -3013,6 +3025,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             return ArgumentValues[++I];
         };
         if      (A == "--out")      OutPath = Next("--out");
+        else if (A == "--raw-out")  RawOutPath = Next("--raw-out");
         else if (A == "--level")    g_Level = Next("--level");   // materials (M10 library) | showcase (the product default)
         else if (A == "--view")     View = Next("--view");
         else if (A == "--fog")      FogName = Next("--fog");
@@ -3061,7 +3074,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         {
             std::printf("usage: MaterialLevelViewport [--out file.png] [--level materials|showcase]\n"
                         "                            [--view default|wide|glass|row5]   (materials)\n"
-                        "                            [--view default|grid|metals|glass|wide] (showcase) [--row N]\n"
+                        "                            [--view default|grid|metals|glass|wide|grid400|paint-candy|paint-glitter|paint-iridescent|paint-cobalt|paint-copper] (showcase) [--row N]\n"
                         "                            [--width W] [--height H] [--spp N] [--bounce N] [--sun H]\n"
                         "                            [--fog clear|morning|backlit] [--exposure X] [--threads N]\n"
                         "                            [--frames N] [--pan metres] [--restir] [--no-reproject]\n"
@@ -3171,6 +3184,13 @@ int main(int ArgumentCount, char** ArgumentValues)
     // The interface overlay composites on LINEAR radiance, straight after the resolve — the engine's own order.
     //    (With --denoise the filter then runs over the composited film; the gallery render does not filter.)
     CompositeInterfaceOverlay(Sequence, VP, Width, Height);
+    if(!RawOutPath.empty()){
+        ColourTransfer RawTransfer;RawTransfer.ToneMap=Frontier::ToneMapCategory::Aces;RawTransfer.Exposure=Exposure;RawTransfer.Saturation=1.0f;
+        std::vector<unsigned char> RawPng(Sequence.Mean.size());
+        for(size_t i=0;i<Sequence.Mean.size();i+=3)ColourPipeline::ApplyToByte(RawTransfer,Sequence.Mean.data()+i,RawPng.data()+i);
+        if(!PngWriteCounterpart::WritePng(RawOutPath.c_str(),Width,Height,3,RawPng.data(),Width*3))return 2;
+        std::printf("[material-level] unfiltered accumulated film -> %s\n",RawOutPath.c_str());
+    }
     if (Denoise) ApplyAtrousChain(Sequence, Width, DenoiseLevels, Exposure);
     const std::vector<float>& Film = Sequence.Mean;
     if (UseRestir)

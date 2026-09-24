@@ -1,5 +1,7 @@
 # Native automotive showcase — 20 × 20
 
+**Update:** actual CPU ReSTIR DI/GI scene captures are now included in `Exhibits/Gallery/AutomotiveShowcase/ReSTIR/`. See “Executed ReSTIR viewport captures” below. The earlier standalone studio swatches are not those captures.
+
 The default C++ `ShowcaseStructure` now constructs **400 spheres**, with **20 material families × 20 parameter variations**. Families 0–14 remain their original kinds; their sweeps now have 20 positions instead of 15. The five additional families occupy rows 15–19 (zero-based). Scene revision **6** invalidates an exported revision-5 showcase.
 
 The complete scene has 415 materials, 405,026 triangles and 849 spans, including plinths, the original scattered field, studio fixtures and interface housing. The scatter ring was moved outside the wider grid while retaining the 80 m floor.
@@ -66,3 +68,25 @@ python3 Exhibits/Workbench/AutomotiveShowcase/RunProof.py \
 The runner uses the configured `gh` connection to retrieve pinned dependencies, validates their Git blob hashes, and builds an isolated overlay under `.cache/automotive-showcase`. It never changes the immutable dependency baseline. Vulkan declarations in the native geometry proof are type-only stubs. `--skip-render` rejects changed native source inputs; omit it after shader/preset changes.
 
 Review `Exhibits/Gallery/AutomotiveShowcase/index.html`, `Grid.json` and `NativeProof.json` for the five native samples, the complete 400-item material census and exact commands/results.
+
+## Executed ReSTIR viewport captures (follow-up)
+
+The earlier delivery contained only isolated studio renders. This follow-up builds and **executes** `Projects/Project-Zero/Host/MaterialLevelViewport.cpp` with `--restir` against the actual default scene. It does not substitute the standalone `NativeShowcaseProof` studio. The native host uses ReSTIR DI temporal/spatial reuse and its GI vertex pool, real BVH traversal, actual baked shading tables, the scene's sky/sun, emissive geometry and interface proxy.
+
+- `ReSTIR/grid400.png`: 512×512, 32 accumulation frames. The default scene includes all 400 spheres. Physical light-panel backs obscure some spheres from the review camera; they have not been hidden for the capture.
+- Five `ReSTIR/paint-*.png` family close-ups plus `paint-glitter-macro.png`: 384×384, 16 frames, first variation of each family. All 400 spheres remain in the scene.
+- Every capture retains `*-raw.png` before the native three-level à-trous filter. The PNGs use the engine's ACES/manual-exposure output, with no external retouching or upscaling.
+- A missing automotive UV/footprint binding at the GI pool's vertex was corrected, in addition to the existing primary and path-trace surface bindings.
+- `RenderProof.json` records the actual compile command, execution arguments, source/binary hashes, durations and output hashes. Per-view logs distinguish this estimator from brute-force path tracing and report invalid sample counts.
+- The 768×768 attempt was killed by the sandbox's roughly 3.72 GiB memory limit. The overview was reduced to 512×512. These are finite-sample diagnostic renders, not convergence/performance certification.
+
+**CPU ReSTIR execution is now verified; hardware Vulkan execution and the Windows editor application remain unverified.** `NativeProof.json` at the gallery root is the earlier studio/unit-test report from commit `0a4bc23`, not the execution record for this follow-up. Use `ReSTIR/RenderProof.json` for the new captures.
+
+Reproduce from the repository root (the builder restores and hash-verifies the pinned dependencies):
+
+```sh
+python3 Exhibits/Workbench/AutomotiveShowcase/BuildReSTIR.py
+python3 Exhibits/Workbench/AutomotiveShowcase/RenderReSTIR.py
+```
+
+The capture script resumes only source- and hash-matching results. For a fresh capture after native source changes, move the old `ReSTIR/RenderProof.json` aside before running it. Preserve its associated images/logs if keeping historical evidence.

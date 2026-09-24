@@ -12,7 +12,7 @@ OVERLAYS=[
  'Engine/ContentInterchange/'+n for n in ['ShowcaseStructure.cpp','ShowcaseStructure.h','MaterialDescriptor.h','MaterialIndex.cpp','MaterialIndex.h','MaterialCodec.cpp','AutomotiveShowcasePresets.h']
 ]+['Engine/Shaders/'+n for n in ['MaterialEvaluation.slang','AutomotiveMaterialProfiles.slang','AutomotiveFlakePaint.slang','AutomotiveShowcase.slang','ReSTIRViewport.slang']]+['Projects/Project-Zero/Host/MaterialLevelViewport.cpp']
 SEARCH=['Engine/GeometricRaster','Engine/DisplayPresentation','Engine/ContentInterchange','Engine/DeviceExchange','Engine/FunctionCore','Projects/Project-Zero/Source','Exhibits/Workbench/Materials']
-def prepare():
+def prepare(extra_sources=()):
     tree=json.loads(subprocess.check_output(['gh','api',f'repos/SultanAladin/Frontier-/git/trees/{PIN}?recursive=1']))
     entries={x['path']:x for x in tree['tree'] if x['type']=='blob'}
     visited=set()
@@ -31,7 +31,7 @@ def prepare():
             else:
                 matches=[p for p in entries if p.endswith('/'+inc)]
                 if len(matches)==1:fetch(matches[0])
-    for name in OVERLAYS+['Engine/DeviceExchange/OrientationClassifier.cpp','Tools/Build/Gates/ShowcaseLevelGate.cpp','Tools/Build/Gates/ShowcaseLevelGateCodecStub.cpp','Engine/ContentInterchange/PngWriteCounterpart.h']:
+    for name in OVERLAYS+['Engine/DeviceExchange/OrientationClassifier.cpp','Tools/Build/Gates/ShowcaseLevelGate.cpp','Tools/Build/Gates/ShowcaseLevelGateCodecStub.cpp','Engine/ContentInterchange/PngWriteCounterpart.h']+list(extra_sources):
         fetch(name)
     for name in visited:
         dest=STAGE/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(BASE/name,dest)
