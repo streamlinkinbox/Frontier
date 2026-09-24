@@ -788,6 +788,29 @@ mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, variable-ra
 selection, invalid or consuming set-backs, or healing. The bounded plan is
 `docs/PLAN_PartialUnequalBiconeUnequalSetbackChamfer.md`.
 
+## Phase 39g — partial equal-radius bicone chamfer with independent set-backs (2026-09-24)
+
+This is a separate equal-radius finite-sector route, not a renamed equal-setback or unequal-radius
+fixture:
+
+- `PartialEqualRadiusBiconeUnequalSetbackChamferVerification` builds the distinct capped native
+  partial source with exact `V7/E11/C22/L6/F6` topology, equal radii 3.7/3.7, heights 6.4/4.8,
+  a 115-degree sweep, and lower/upper set-backs 0.65/1.05.
+- `ClassifyPartialEqualRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical
+  coaxial axis, equal support radius, support heights, native sweep, and independent set-backs while
+  refusing equal set-backs and unsupported source families transactionally.
+- `ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer` returns `V10/E15/C30/L7/F7` with
+  three cone faces, two axial base planes, and two radial sector planes. Its volume acceptance uses
+  the exact three-frustum identity scaled by `sweep / (2 pi)`, and the verifier checks outward normals,
+  source immutability, deterministic dispatch, and refusal boundaries.
+- The durable proof is `Proofs/Phase39g_PartialEqualBiconeUnequalSetbackChamfer.png`; 32 checks pass
+  in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh` and CMake.
+
+Equal set-backs remain on Phase 39d. This does not prove complete/half/reflex sectors, unequal
+radii, mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, variable-radius laws,
+arbitrary selection, invalid or consuming set-backs, or healing. The bounded plan is
+`docs/PLAN_PartialEqualRadiusBiconeUnequalSetbackChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

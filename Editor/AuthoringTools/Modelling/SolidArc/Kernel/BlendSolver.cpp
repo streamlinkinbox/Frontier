@@ -9065,6 +9065,145 @@ BlendSolver::ClassifyPartialUnequalBiconeUnequalSetbackChamferVertex(
     return Deliver<PartialUnequalBiconeUnequalSetbackChamferSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer(
+    const PartialEqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Apex.X) || !std::isfinite(Specification.Apex.Y) ||
+        !std::isfinite(Specification.Apex.Z) || !std::isfinite(Specification.Radius) ||
+        !std::isfinite(Specification.LowerHeight) || !std::isfinite(Specification.UpperHeight) ||
+        !std::isfinite(Specification.LowerSetBack) || !std::isfinite(Specification.UpperSetBack) ||
+        !std::isfinite(Specification.SweepAngle) || Specification.Radius <= Tol ||
+        Specification.LowerHeight <= Tol || Specification.UpperHeight <= Tol ||
+        Specification.LowerSetBack <= Tol || Specification.UpperSetBack <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial independent-setback bicone dimensions must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial independent-setback bicone axis is degenerate");
+    if (Specification.SweepAngle <= ScalarCriteria::AngularTolerance ||
+        Specification.SweepAngle >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "partial independent-setback route requires a strict non-reflex sector");
+    const double SetbackScale = std::max({ 1.0, Specification.LowerSetBack, Specification.UpperSetBack });
+    if (std::fabs(Specification.LowerSetBack - Specification.UpperSetBack) <=
+        ScalarCriteria::GeometricTolerance * SetbackScale)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "equal set-backs belong to the bounded partial equal route");
+    if (Specification.LowerSetBack >= Specification.LowerHeight - Tol ||
+        Specification.UpperSetBack >= Specification.UpperHeight - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "partial independent-setback chamfer consumes a support");
+    const Vec3 Apex = Specification.Apex;
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const Vec3 Radial = Workplane::FromNormal(Apex, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial independent-setback radial frame is degenerate");
+    const Vec3 LowerBase = Apex - Axis * Specification.LowerHeight;
+    const Vec3 UpperBase = Apex + Axis * Specification.UpperHeight;
+    const Vec3 LowerContact = Apex - Axis * Specification.LowerSetBack;
+    const Vec3 UpperContact = Apex + Axis * Specification.UpperSetBack;
+    const double LowerContactRadius = Specification.Radius * Specification.LowerSetBack / Specification.LowerHeight;
+    const double UpperContactRadius = Specification.Radius * Specification.UpperSetBack / Specification.UpperHeight;
+    if (LowerContactRadius <= Tol || UpperContactRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial independent-setback contact ring is degenerate");
+    auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+    {
+        Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+        return Line ? NurbsSurface::Revolution(Line.Payload, Apex, Axis, Specification.SweepAngle)
+                    : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+    };
+    Deliver<NurbsSurface> Lower = RevolveLine(LowerBase + Radial * Specification.Radius,
+                                               LowerContact + Radial * LowerContactRadius);
+    Deliver<NurbsSurface> Chamfer = RevolveLine(LowerContact + Radial * LowerContactRadius,
+                                                UpperContact + Radial * UpperContactRadius);
+    Deliver<NurbsSurface> Upper = RevolveLine(UpperContact + Radial * UpperContactRadius,
+                                               UpperBase + Radial * Specification.Radius);
+    Deliver<NurbsSurface> LowerDisk = RevolveLine(LowerBase, LowerBase + Radial * Specification.Radius);
+    Deliver<NurbsSurface> UpperDisk = RevolveLine(UpperBase, UpperBase + Radial * Specification.Radius);
+    if (!Lower || !Chamfer || !Upper || !LowerDisk || !UpperDisk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial independent-setback bicone surfaces are degenerate");
+    Lower.Payload.Classification = SurfaceClassification::Cone;
+    Lower.Payload.Origin = LowerBase; Lower.Payload.Axis = Axis;
+    Lower.Payload.RadiusMajor = Specification.Radius; Lower.Payload.RadiusMinor = LowerContactRadius;
+    Chamfer.Payload.Classification = SurfaceClassification::Cone;
+    Chamfer.Payload.Origin = LowerContact; Chamfer.Payload.Axis = Axis;
+    Chamfer.Payload.RadiusMajor = LowerContactRadius; Chamfer.Payload.RadiusMinor = UpperContactRadius;
+    Upper.Payload.Classification = SurfaceClassification::Cone;
+    Upper.Payload.Origin = UpperContact; Upper.Payload.Axis = Axis;
+    Upper.Payload.RadiusMajor = UpperContactRadius; Upper.Payload.RadiusMinor = Specification.Radius;
+    LowerDisk.Payload.Classification = SurfaceClassification::Plane;
+    LowerDisk.Payload.Origin = LowerBase; LowerDisk.Payload.Axis = Axis;
+    UpperDisk.Payload.Classification = SurfaceClassification::Plane;
+    UpperDisk.Payload.Origin = UpperBase; UpperDisk.Payload.Axis = Axis;
+    Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Chamfer.Payload, Upper.Payload,
+                                                LowerDisk.Payload, UpperDisk.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "partial independent-setback bicone surfaces could not be sewn");
+    if (!CapRadialSector(Result.Payload, LowerBase, UpperBase, Radial, Specification.SweepAngle,
+                         Specification.Radius) || !Result.Payload.Orient())
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "partial independent-setback bicone radial caps could not heal");
+    const double BridgeLength = Specification.LowerSetBack + Specification.UpperSetBack;
+    const double ExpectedVolume =
+        (ScalarCriteria::Pi * (Specification.LowerHeight - Specification.LowerSetBack) *
+            (Specification.Radius * Specification.Radius + Specification.Radius * LowerContactRadius +
+             LowerContactRadius * LowerContactRadius) / 3.0 +
+         ScalarCriteria::Pi * BridgeLength *
+            (LowerContactRadius * LowerContactRadius + LowerContactRadius * UpperContactRadius +
+             UpperContactRadius * UpperContactRadius) / 3.0 +
+         ScalarCriteria::Pi * (Specification.UpperHeight - Specification.UpperSetBack) *
+            (UpperContactRadius * UpperContactRadius + UpperContactRadius * Specification.Radius +
+             Specification.Radius * Specification.Radius) / 3.0) *
+        Specification.SweepAngle / ScalarCriteria::TwoPi;
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 10 ||
+        Result.Payload.Edges.size() != 15 || Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 ||
+        Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "partial independent-setback bicone did not reach V10/E15/C30/L7/F7 topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "partial independent-setback bicone volume failed analytic acceptance");
+    return Result;
+}
+
+Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>
+BlendSolver::ClassifyPartialEqualRadiusBiconeUnequalSetbackChamferVertex(
+    const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept
+{
+    if (!std::isfinite(LowerSetBack) || !std::isfinite(UpperSetBack) ||
+        LowerSetBack <= ScalarCriteria::MergeTolerance || UpperSetBack <= ScalarCriteria::MergeTolerance)
+        return Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::DegenerateInput, "partial independent-setback values must be finite and positive");
+    const double SetbackScale = std::max({ 1.0, LowerSetBack, UpperSetBack });
+    if (std::fabs(LowerSetBack - UpperSetBack) <= ScalarCriteria::GeometricTolerance * SetbackScale)
+        return Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "equal set-backs belong to the bounded partial equal route");
+    const double ProbeSetBack = std::min(LowerSetBack, UpperSetBack);
+    const Deliver<PartialEqualRadiusBiconeApexChamferSpecification> Base =
+        ClassifyPartialEqualRadiusBiconeApexChamferVertex(Body, Vertex, ProbeSetBack);
+    if (!Base) return Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+        Base.Denial.Reason, Base.Denial.Detail);
+    PartialEqualRadiusBiconeUnequalSetbackChamferSpecification Specification;
+    Specification.Apex = Base.Payload.Apex;
+    Specification.Axis = Base.Payload.Axis;
+    Specification.Radius = Base.Payload.Radius;
+    Specification.LowerHeight = Base.Payload.LowerHeight;
+    Specification.UpperHeight = Base.Payload.UpperHeight;
+    Specification.LowerSetBack = LowerSetBack;
+    Specification.UpperSetBack = UpperSetBack;
+    Specification.SweepAngle = Base.Payload.SweepAngle;
+    const Deliver<BrepBody> Feasible = ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer(Specification);
+    if (!Feasible) return Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+        Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructPartialUnequalBiconeApexFillet(
     const PartialUnequalBiconeApexFilletSpecification& Specification) noexcept
 {

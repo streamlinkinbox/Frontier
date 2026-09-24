@@ -1489,6 +1489,28 @@ supports, variable-radius laws, arbitrary vertices, invalid or consuming set-bac
 remain unsupported. Its bounded plan is
 `docs/PLAN_PartialUnequalBiconeUnequalSetbackChamfer.md`.
 
+#### Phase 39g: bounded partial equal-radius bicone chamfer with independent set-backs ✅
+
+The equal-radius partial bicone chamfer now has a distinct independent-setback route rather than
+reusing either the equal-setback partial chamfer or the unequal-radius independent-setback route.
+The classifier accepts only a capped native strict non-reflex partial bicone with `V7/E11/C22/L6/F6`
+topology, equal circular support radii, and two positive unequal set-backs below their respective
+support heights. It derives the shared apex, canonical coaxial axis, equal radius, support heights,
+and native sweep transactionally.
+
+`ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer` retains both support frusta, inserts
+one conical bridge between independently derived contact rings, and closes both radial sector ends.
+It returns one genus-zero `V10/E15/C30/L7/F7` solid with three cone faces, two axial base planes,
+and two radial sector planes. The focused verifier performs 32 checks over the distinct radius-3.7,
+height-6.4/4.8, 115-degree fixture with 0.65/1.05 set-backs, including the exact three-frustum
+sector volume identity, outward normals, source immutability, deterministic dispatch, refusal
+boundaries, and `Proofs/Phase39g_PartialEqualBiconeUnequalSetbackChamfer.png`.
+
+Equal set-backs remain on Phase 39d. Complete, half, or reflex sectors, unequal radii, mixed or
+freeform/non-coaxial supports, arbitrary vertices, invalid or consuming set-backs, and healing remain
+unsupported. Its bounded plan is
+`docs/PLAN_PartialEqualRadiusBiconeUnequalSetbackChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
