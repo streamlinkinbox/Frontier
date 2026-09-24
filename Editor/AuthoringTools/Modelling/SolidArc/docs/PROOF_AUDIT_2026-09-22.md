@@ -732,6 +732,25 @@ oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary select
 consuming fillet radii, or healing. The bounded plan is
 `docs/PLAN_PartialEqualRadiusBiconeApexFillet.md`.
 
+## Phase 39d — partial equal-radius bicone apex chamfer (2026-09-24)
+
+This is a separate equal-radius finite-sweep chamfer route, not an unequal-radius or toroidal rename:
+
+- `PartialEqualRadiusBiconeApexChamferVerification` builds a capped native partial source with exact
+  `V7/E11/C22/L6/F6` topology, equal radius 3.8, heights 6.1/4.6, a 105-degree sweep, and a
+  0.85 axial set-back.
+- `ClassifyPartialEqualRadiusBiconeApexChamferVertex` requires equal circular rims, derives the
+  selected apex, coaxial axis, support heights, and native sweep, and rejects unequal sources.
+- `ReconstructPartialEqualRadiusBiconeApexChamfer` returns `V10/E15/C30/L7/F7` with three cones,
+  two axial base planes, and two radial sector caps. The verifier checks the equal three-frustum
+  volume identity, outward normals, topology, refusals, and source immutability.
+- The durable proof is `Proofs/Phase39d_PartialEqualBiconeApexChamfer.png`; 29 checks pass.
+
+This does not prove full/half/reflex sectors, unequal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, invalid or
+consuming set-backs, or healing. The bounded plan is
+`docs/PLAN_PartialEqualRadiusBiconeApexChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
