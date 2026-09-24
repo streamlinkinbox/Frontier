@@ -386,8 +386,9 @@ namespace
             Vec3 Radial = Middle - (AxisStart + Axis * (Middle - AxisStart).Dot(Axis));
             if (Radial.Length() <= Tol) return false;
             Radial = Radial.Normalised();
-            double AtStart = std::fabs(Radial.Dot(RadialStart));
-            double AtEnd = std::fabs(Radial.Dot(RadialEnd));
+            const bool HalfTurn = std::fabs(std::fabs(SweepAngle) - ScalarCriteria::Pi) <= ScalarCriteria::SweepTolerance;
+            double AtStart = HalfTurn ? Radial.Dot(RadialStart) : std::fabs(Radial.Dot(RadialStart));
+            double AtEnd = HalfTurn ? Radial.Dot(RadialEnd) : std::fabs(Radial.Dot(RadialEnd));
             (AtStart >= AtEnd ? StartEdges : EndEdges).push_back(static_cast<int>(Edge));
         }
         if (StartEdges.empty() || EndEdges.empty()) return false;
@@ -9202,6 +9203,237 @@ BlendSolver::ClassifyPartialUnequalBiconeUnequalSetbackChamferVertex(
         Feasible.Denial.Reason, Feasible.Denial.Detail);
     return Deliver<PartialUnequalBiconeUnequalSetbackChamferSpecification>::Accept(std::move(Specification));
 }
+
+Deliver<BrepBody> BlendSolver::ReconstructHalfTurnEqualRadiusBiconeUnequalSetbackChamfer(
+    const HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Apex.X) || !std::isfinite(Specification.Apex.Y) ||
+        !std::isfinite(Specification.Apex.Z) || !std::isfinite(Specification.Radius) ||
+        !std::isfinite(Specification.LowerHeight) || !std::isfinite(Specification.UpperHeight) ||
+        !std::isfinite(Specification.LowerSetBack) || !std::isfinite(Specification.UpperSetBack) ||
+        !std::isfinite(Specification.SweepAngle) || Specification.Radius <= Tol ||
+        Specification.LowerHeight <= Tol || Specification.UpperHeight <= Tol ||
+        Specification.LowerSetBack <= Tol || Specification.UpperSetBack <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "half-turn equal-radius independent-setback bicone dimensions must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "half-turn equal-radius independent-setback bicone axis is degenerate");
+    if (std::fabs(Specification.SweepAngle - ScalarCriteria::Pi) > ScalarCriteria::SweepTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "half-turn equal-radius independent-setback route requires exactly a half turn");
+    const double SetbackScale = std::max({ 1.0, Specification.LowerSetBack, Specification.UpperSetBack });
+    if (std::fabs(Specification.LowerSetBack - Specification.UpperSetBack) <=
+        ScalarCriteria::GeometricTolerance * SetbackScale)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "equal set-backs belong to the bounded partial equal route");
+    if (Specification.LowerSetBack >= Specification.LowerHeight - Tol ||
+        Specification.UpperSetBack >= Specification.UpperHeight - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "half-turn equal-radius independent-setback chamfer consumes a support");
+    const Vec3 Apex = Specification.Apex;
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const Vec3 Radial = Workplane::FromNormal(Apex, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "half-turn equal-radius independent-setback radial frame is degenerate");
+    const Vec3 LowerBase = Apex - Axis * Specification.LowerHeight;
+    const Vec3 UpperBase = Apex + Axis * Specification.UpperHeight;
+    const Vec3 LowerContact = Apex - Axis * Specification.LowerSetBack;
+    const Vec3 UpperContact = Apex + Axis * Specification.UpperSetBack;
+    const double LowerContactRadius = Specification.Radius * Specification.LowerSetBack / Specification.LowerHeight;
+    const double UpperContactRadius = Specification.Radius * Specification.UpperSetBack / Specification.UpperHeight;
+    if (LowerContactRadius <= Tol || UpperContactRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "half-turn equal-radius independent-setback contact ring is degenerate");
+    auto RevolveLine = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsSurface>
+    {
+        Deliver<NurbsCurve> Line = NurbsCurve::Line(Start, End);
+        return Line ? NurbsSurface::Revolution(Line.Payload, Apex, Axis, Specification.SweepAngle)
+                    : Deliver<NurbsSurface>::Reject(Line.Denial.Reason, Line.Denial.Detail);
+    };
+    Deliver<NurbsSurface> Lower = RevolveLine(LowerBase + Radial * Specification.Radius,
+                                               LowerContact + Radial * LowerContactRadius);
+    Deliver<NurbsSurface> Chamfer = RevolveLine(LowerContact + Radial * LowerContactRadius,
+                                                UpperContact + Radial * UpperContactRadius);
+    Deliver<NurbsSurface> Upper = RevolveLine(UpperContact + Radial * UpperContactRadius,
+                                               UpperBase + Radial * Specification.Radius);
+    Deliver<NurbsSurface> LowerDisk = RevolveLine(LowerBase, LowerBase + Radial * Specification.Radius);
+    Deliver<NurbsSurface> UpperDisk = RevolveLine(UpperBase, UpperBase + Radial * Specification.Radius);
+    if (!Lower || !Chamfer || !Upper || !LowerDisk || !UpperDisk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "half-turn equal-radius independent-setback bicone surfaces are degenerate");
+    Lower.Payload.Classification = SurfaceClassification::Cone;
+    Lower.Payload.Origin = LowerBase; Lower.Payload.Axis = Axis;
+    Lower.Payload.RadiusMajor = Specification.Radius; Lower.Payload.RadiusMinor = LowerContactRadius;
+    Chamfer.Payload.Classification = SurfaceClassification::Cone;
+    Chamfer.Payload.Origin = LowerContact; Chamfer.Payload.Axis = Axis;
+    Chamfer.Payload.RadiusMajor = LowerContactRadius; Chamfer.Payload.RadiusMinor = UpperContactRadius;
+    Upper.Payload.Classification = SurfaceClassification::Cone;
+    Upper.Payload.Origin = UpperContact; Upper.Payload.Axis = Axis;
+    Upper.Payload.RadiusMajor = UpperContactRadius; Upper.Payload.RadiusMinor = Specification.Radius;
+    LowerDisk.Payload.Classification = SurfaceClassification::Plane;
+    LowerDisk.Payload.Origin = LowerBase; LowerDisk.Payload.Axis = Axis;
+    UpperDisk.Payload.Classification = SurfaceClassification::Plane;
+    UpperDisk.Payload.Origin = UpperBase; UpperDisk.Payload.Axis = Axis;
+    Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Chamfer.Payload, Upper.Payload,
+                                                LowerDisk.Payload, UpperDisk.Payload }, Tol, false);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason,
+                                                   "half-turn equal-radius independent-setback bicone surfaces could not be sewn");
+    if (!CapRadialSector(Result.Payload, LowerBase, UpperBase, Radial, Specification.SweepAngle,
+                         Specification.Radius) || !Result.Payload.Orient())
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "half-turn equal-radius independent-setback bicone radial caps could not heal");
+    const double BridgeLength = Specification.LowerSetBack + Specification.UpperSetBack;
+    const double ExpectedVolume =
+        (ScalarCriteria::Pi * (Specification.LowerHeight - Specification.LowerSetBack) *
+            (Specification.Radius * Specification.Radius + Specification.Radius * LowerContactRadius +
+             LowerContactRadius * LowerContactRadius) / 3.0 +
+         ScalarCriteria::Pi * BridgeLength *
+            (LowerContactRadius * LowerContactRadius + LowerContactRadius * UpperContactRadius +
+             UpperContactRadius * UpperContactRadius) / 3.0 +
+         ScalarCriteria::Pi * (Specification.UpperHeight - Specification.UpperSetBack) *
+            (UpperContactRadius * UpperContactRadius + UpperContactRadius * Specification.Radius +
+             Specification.Radius * Specification.Radius) / 3.0) *
+        Specification.SweepAngle / ScalarCriteria::TwoPi;
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 10 ||
+        Result.Payload.Edges.size() != 15 || Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 ||
+        Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold,
+                                          "half-turn equal-radius independent-setback bicone did not reach V10/E15/C30/L7/F7 topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence,
+                                          "half-turn equal-radius independent-setback bicone volume failed analytic acceptance");
+    return Result;
+}
+
+Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>
+BlendSolver::ClassifyHalfTurnEqualRadiusBiconeUnequalSetbackChamferVertex(
+    const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept
+{
+    if (!std::isfinite(LowerSetBack) || !std::isfinite(UpperSetBack) ||
+        LowerSetBack <= ScalarCriteria::MergeTolerance || UpperSetBack <= ScalarCriteria::MergeTolerance)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::DegenerateInput, "half-turn equal bicone set-backs must be finite and positive");
+    const double SetbackScale = std::max({ 1.0, LowerSetBack, UpperSetBack });
+    if (std::fabs(LowerSetBack - UpperSetBack) <= ScalarCriteria::GeometricTolerance * SetbackScale)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "equal set-backs belong to the full-turn equal-radius route");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Body.Vertices.size() != 7 ||
+        Body.Edges.size() != 11 || Body.Coedges.size() != 22 || Body.Loops.size() != 6 || Body.Faces.size() != 6)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::NonManifold, "source is not the capped half-turn equal bicone topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "selected half-turn equal bicone vertex is out of range");
+    int RevolutionFaces = 0, PlaneFaces = 0;
+    for (const BrepFace& Face : Body.Faces)
+    {
+        if (Face.Loops.size() != 1)
+            return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                RefusalReason::Unsupported, "half-turn equal bicone face is not single-loop");
+        if (Face.Surface.Classification == SurfaceClassification::Revolution) ++RevolutionFaces;
+        else if (Face.Surface.Classification == SurfaceClassification::Plane) ++PlaneFaces;
+        else return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "half-turn equal bicone has unsupported face geometry");
+    }
+    if (RevolutionFaces != 4 || PlaneFaces != 2)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "half-turn equal bicone does not have four revolve faces and two radial caps");
+    std::vector<int> RimEdges, LineEdges;
+    for (size_t I = 0; I < Body.Edges.size(); ++I)
+    {
+        const BrepEdge& EdgeData = Body.Edges[I];
+        if (EdgeData.Coedges.size() != 2)
+            return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                RefusalReason::NonManifold, "half-turn equal bicone edge is not manifold");
+        if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Arc &&
+            EdgeData.Curve.Degree == 2 && EdgeData.Curve.Rational()) RimEdges.push_back(static_cast<int>(I));
+        else if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Line &&
+                 EdgeData.Curve.Degree == 1) LineEdges.push_back(static_cast<int>(I));
+        else return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "half-turn equal bicone has unsupported edge geometry");
+    }
+    if (RimEdges.size() != 2 || LineEdges.size() != 9)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "half-turn equal bicone does not have two arc rims and nine lines");
+    int Apex = -1;
+    for (int Candidate = 0; Candidate < static_cast<int>(Body.Vertices.size()); ++Candidate)
+    {
+        int Degree = 0;
+        for (int Edge : LineEdges)
+            if (Body.Edges[Edge].VertexStart == Candidate || Body.Edges[Edge].VertexEnd == Candidate) ++Degree;
+        if (Degree == 4)
+        {
+            if (Apex >= 0) return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                RefusalReason::Unsupported, "half-turn equal bicone has multiple apex candidates");
+            Apex = Candidate;
+        }
+    }
+    if (Apex < 0 || Vertex != Apex)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "selected vertex is not the half-turn equal bicone apex");
+    struct Rim { Vec3 Centre, Normal; double Radius = 0.0; int Edge = -1; } G[2];
+    for (int K = 0; K < 2; ++K)
+    {
+        G[K].Edge = RimEdges[K];
+        if (!CircularFrame(Body.Edges[G[K].Edge].Curve, G[K].Centre, G[K].Normal, G[K].Radius) || G[K].Radius <= Tol)
+            return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                RefusalReason::Unsupported, "half-turn equal bicone rim is not circular");
+    }
+    Vec3 Axis = (G[1].Centre - G[0].Centre).Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::DegenerateInput, "half-turn equal bicone axis is degenerate");
+    if ((std::fabs(Axis.X) > ScalarCriteria::GeometricTolerance && Axis.X < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) > ScalarCriteria::GeometricTolerance && Axis.Y < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) <= ScalarCriteria::GeometricTolerance && Axis.Z < 0.0)) Axis = -Axis;
+    const Vec3 ApexPoint = Body.Vertices[Apex].Point;
+    for (const Rim& R : G)
+        if (std::fabs(std::fabs(R.Normal.Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance ||
+            (R.Centre - ApexPoint - Axis * (R.Centre - ApexPoint).Dot(Axis)).Length() >
+                ScalarCriteria::GeometricTolerance * std::max(1.0, R.Centre.Distance(ApexPoint)))
+            return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                RefusalReason::Unsupported, "half-turn equal bicone rims are not coaxial");
+    if ((G[0].Centre - G[1].Centre).Dot(Axis) > 0.0) std::swap(G[0], G[1]);
+    const Vec3 CanonicalRadial = Workplane::FromNormal(ApexPoint, Axis).AxisX.Normalised();
+    const Vec3 StartVector = (Body.Vertices[Body.Edges[G[0].Edge].VertexStart].Point - G[0].Centre).Normalised();
+    const double Sweep = std::atan2(Axis.Dot(StartVector.Cross(
+        (Body.Vertices[Body.Edges[G[0].Edge].VertexEnd].Point - G[0].Centre).Normalised())),
+        ScalarCriteria::Clamp(StartVector.Dot(
+            (Body.Vertices[Body.Edges[G[0].Edge].VertexEnd].Point - G[0].Centre).Normalised()), -1.0, 1.0));
+    if (std::fabs(Sweep - ScalarCriteria::Pi) > ScalarCriteria::SweepTolerance ||
+        CanonicalRadial.Distance(StartVector) > ScalarCriteria::GeometricTolerance)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "half-turn equal bicone sweep is not exactly a canonical half turn");
+    for (size_t I = 0; I < Body.Faces.size(); ++I)
+        if (Body.Faces[I].Surface.Classification == SurfaceClassification::Plane)
+        {
+            Vec3 Normal;
+            if (!PlanarNormal(Body, static_cast<int>(I), Normal) || std::fabs(Normal.Dot(Axis)) > ScalarCriteria::AngularTolerance)
+                return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+                    RefusalReason::Unsupported, "half-turn equal bicone radial cap is not planar");
+        }
+    const double RadiusScale = std::max(1.0, G[0].Radius);
+    if (std::fabs(G[0].Radius - G[1].Radius) > ScalarCriteria::GeometricTolerance * RadiusScale)
+        return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+            RefusalReason::Unsupported, "partial equal route requires equal rim radii");
+    HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification Specification;
+    Specification.Apex = ApexPoint; Specification.Axis = Axis; Specification.Radius = G[0].Radius;
+    Specification.LowerHeight = ApexPoint.Distance(G[0].Centre); Specification.UpperHeight = ApexPoint.Distance(G[1].Centre);
+    Specification.LowerSetBack = LowerSetBack; Specification.UpperSetBack = UpperSetBack;
+    Specification.SweepAngle = ScalarCriteria::Pi;
+    const Deliver<BrepBody> Feasible = ReconstructHalfTurnEqualRadiusBiconeUnequalSetbackChamfer(Specification);
+    if (!Feasible) return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Reject(
+        Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>::Accept(std::move(Specification));
+}
+
 
 Deliver<BrepBody> BlendSolver::ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer(
     const PartialEqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept

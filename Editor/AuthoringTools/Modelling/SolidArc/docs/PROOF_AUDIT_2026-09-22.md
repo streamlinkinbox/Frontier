@@ -834,6 +834,30 @@ full-turn inputs, unequal radii, mixed cone/plane/cylinder, oblique/non-coaxial 
 variable-radius laws, arbitrary selection, invalid or consuming set-backs, or healing. The bounded
 plan is `docs/PLAN_EqualRadiusBiconeUnequalSetbackChamfer.md`.
 
+## Phase 39i — half-turn equal-radius bicone chamfer with independent set-backs (2026-09-24)
+
+This is a separate exact-half-turn route, not a complete-turn or strict-partial alias:
+
+- `HalfTurnEqualRadiusBiconeUnequalSetbackChamferVerification` builds the capped half-turn source
+  with exact `V7/E11/C22/L6/F6` topology, equal radii 3.6/3.6, heights 6.2/4.7, and lower/upper
+  set-backs 0.7/1.1.
+- `ClassifyHalfTurnEqualRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical
+  coaxial axis, equal support radius, support heights, and exactly `pi` sweep while refusing equal
+  set-backs and unsupported source families transactionally.
+- `ReconstructHalfTurnEqualRadiusBiconeUnequalSetbackChamfer` returns `V10/E15/C30/L7/F7` with
+  three cone faces, two axial base planes, and two radial sector planes. The verifier checks radial-cap
+  closure, outward normals, exact contact radii, the three-frustum identity scaled by `sweep / (2 pi)`,
+  source immutability, deterministic dispatch, and complete/partial/reflex refusal boundaries.
+- The durable proof is `Proofs/Phase39i_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.png`; 37
+  checks pass in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh`
+  and CMake.
+
+Equal set-backs remain on Phase 39h. This does not prove complete/strict non-half partial/reflex
+sectors as accepted half-turn inputs, unequal radii, mixed cone/plane/cylinder, oblique/non-coaxial
+or freeform supports, variable-radius laws, arbitrary selection, invalid or consuming set-backs, or
+healing. The bounded plan is
+`docs/PLAN_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

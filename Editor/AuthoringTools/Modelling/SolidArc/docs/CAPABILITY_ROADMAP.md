@@ -1534,6 +1534,30 @@ freeform/non-coaxial supports, arbitrary vertices, invalid or consuming set-back
 unsupported. Its bounded plan is
 `docs/PLAN_EqualRadiusBiconeUnequalSetbackChamfer.md`.
 
+#### Phase 39i: bounded half-turn equal-radius bicone chamfer with independent set-backs ✅
+
+The equal-radius bicone independent-setback family now includes an exact half-turn route. This is
+distinct from both the complete-turn Phase 39h route and the strict non-reflex partial Phase 39g
+route: the classifier requires the capped native half-turn `V7/E11/C22/L6/F6` topology, equal
+circular support radii, and two positive unequal set-backs below their respective support heights.
+
+`ClassifyHalfTurnEqualRadiusBiconeUnequalSetbackChamferVertex` derives the shared apex, canonical
+coaxial axis, equal support radius, support heights, and exactly `pi` sweep transactionally.
+`ReconstructHalfTurnEqualRadiusBiconeUnequalSetbackChamfer` retains both support frusta, inserts
+one conical bridge between independently placed contact rings, and closes both radial sector ends.
+It returns one genus-zero `V10/E15/C30/L7/F7` solid with three cone faces, two axial base planes,
+and two radial sector planes. `HalfTurnEqualRadiusBiconeUnequalSetbackChamferVerification`
+performs 37 checks over the distinct radius-3.6, height-6.2/4.7 source with 0.7/1.1 set-backs,
+covering exact half-turn extraction, contact radii, topology, radial-cap normals, the sector-scaled
+three-frustum volume identity, source immutability, deterministic dispatch, and complete/partial/reflex
+and unsupported refusal boundaries. The durable proof is
+`Proofs/Phase39i_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.png`.
+
+Equal set-backs remain on Phase 39h. Complete, strict non-half partial, or reflex sectors, unequal
+radii, mixed or freeform/non-coaxial supports, arbitrary vertices, invalid or consuming set-backs, and
+healing remain unsupported. Its bounded plan is
+`docs/PLAN_HalfTurnEqualRadiusBiconeUnequalSetbackChamfer.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
