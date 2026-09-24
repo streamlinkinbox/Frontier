@@ -1,0 +1,81 @@
+================================================================================
+   PROJECT-ZERO — SHOWCASE, THE DEFAULT LEVEL, CPU RENDER OF THE VULKAN SCENE   
+================================================================================
+[material-level] interface panel: 14 figures composed (5 illuminant contributors), light rgb (0.141 0.012 0.048), 26% coverage, gain 120 — proxy quad and luminaire registered by the engine
+[material-level] level: 405028 triangles, 415 material records (415 slabs), 4490 emissive triangles
+[material-level] sky: sun hour 13.00, sun dir render (-0.496 0.868 0.012), fog clear
+[material-level] sun pick: 0.950 power-proportional (was the fixed 0.5 coin)
+[material-level] view 'paint-cobalt': eye (-16.20 25.20 1.25), pitch -18.5°, yaw 90.0°, FoV 42°, 384x384 @ 1 spp, 6 bounces, 16 frames, RESTIR DI (CPU mirror), à-trous
+[material-level] estimator: the kernel's DI block on the CPU — RIS candidates, temporal + spatial reuse (25° / 10 % validation, 20× M-clamp, pairwise MIS), visibility re-trace; indirect from the same BSDF-sampled bounce.
+[film]   frame   1: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   1: 136808 surface pixels, reservoirs on 100.0% of them, mean M 1.0 (max M 1), shaded M 4.8, occluded selections 42.4%, 0 bad samples
+[restir gi] frame   1: indirect pool on 48.6% of surface pixels, mean M 0.5, shaded M 3.2, occluded selections 49.4%
+[restir] D10 identity: 0 film reads + 0 DI merges + 0 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (0 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   2: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   2: 136955 surface pixels, reservoirs on 100.0% of them, mean M 1.8 (max M 2), shaded M 8.5, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   2: indirect pool on 48.6% of surface pixels, mean M 0.7, shaded M 5.4, occluded selections 50.3%
+[restir] D10 identity: 180 film reads + 103 DI merges + 18 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (180 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   3: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   3: 136714 surface pixels, reservoirs on 100.0% of them, mean M 2.5 (max M 3), shaded M 12.0, occluded selections 42.3%, 0 bad samples
+[restir gi] frame   3: indirect pool on 48.4% of surface pixels, mean M 0.8, shaded M 6.9, occluded selections 50.4%
+[restir] D10 identity: 330 film reads + 288 DI merges + 48 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (330 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   4: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   4: 136875 surface pixels, reservoirs on 100.0% of them, mean M 3.2 (max M 4), shaded M 15.3, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   4: indirect pool on 48.5% of surface pixels, mean M 0.9, shaded M 8.1, occluded selections 50.2%
+[restir] D10 identity: 336 film reads + 477 DI merges + 78 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (336 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   5: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   5: 136981 surface pixels, reservoirs on 100.0% of them, mean M 3.9 (max M 5), shaded M 18.6, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   5: indirect pool on 48.5% of surface pixels, mean M 1.0, shaded M 9.0, occluded selections 50.7%
+[restir] D10 identity: 300 film reads + 706 DI merges + 98 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (300 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   6: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   6: 136768 surface pixels, reservoirs on 100.0% of them, mean M 4.5 (max M 6), shaded M 21.7, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   6: indirect pool on 48.4% of surface pixels, mean M 1.1, shaded M 9.8, occluded selections 50.5%
+[restir] D10 identity: 265 film reads + 922 DI merges + 110 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (265 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   7: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   7: 136913 surface pixels, reservoirs on 100.0% of them, mean M 5.1 (max M 7), shaded M 24.8, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   7: indirect pool on 48.4% of surface pixels, mean M 1.1, shaded M 10.3, occluded selections 50.3%
+[restir] D10 identity: 291 film reads + 1158 DI merges + 125 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (291 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   8: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   8: 137021 surface pixels, reservoirs on 100.0% of them, mean M 5.7 (max M 8), shaded M 27.6, occluded selections 42.1%, 0 bad samples
+[restir gi] frame   8: indirect pool on 48.6% of surface pixels, mean M 1.2, shaded M 10.7, occluded selections 50.4%
+[restir] D10 identity: 417 film reads + 1387 DI merges + 174 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (417 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame   9: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame   9: 136687 surface pixels, reservoirs on 100.0% of them, mean M 6.3 (max M 9), shaded M 30.4, occluded selections 42.2%, 0 bad samples
+[restir gi] frame   9: indirect pool on 48.7% of surface pixels, mean M 1.2, shaded M 11.2, occluded selections 50.4%
+[restir] D10 identity: 387 film reads + 1591 DI merges + 204 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (387 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  10: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  10: 136820 surface pixels, reservoirs on 100.0% of them, mean M 6.9 (max M 10), shaded M 33.1, occluded selections 42.1%, 0 bad samples
+[restir gi] frame  10: indirect pool on 48.4% of surface pixels, mean M 1.2, shaded M 11.6, occluded selections 50.4%
+[restir] D10 identity: 177 film reads + 1691 DI merges + 217 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (177 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  11: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  11: 136950 surface pixels, reservoirs on 100.0% of them, mean M 7.4 (max M 11), shaded M 35.7, occluded selections 42.2%, 0 bad samples
+[restir gi] frame  11: indirect pool on 48.3% of surface pixels, mean M 1.2, shaded M 11.9, occluded selections 50.8%
+[restir] D10 identity: 291 film reads + 1927 DI merges + 236 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (291 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  12: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  12: 136744 surface pixels, reservoirs on 100.0% of them, mean M 7.9 (max M 12), shaded M 38.2, occluded selections 42.2%, 0 bad samples
+[restir gi] frame  12: indirect pool on 48.5% of surface pixels, mean M 1.3, shaded M 12.1, occluded selections 50.6%
+[restir] D10 identity: 413 film reads + 2261 DI merges + 264 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (413 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  13: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  13: 136887 surface pixels, reservoirs on 100.0% of them, mean M 8.5 (max M 13), shaded M 40.8, occluded selections 42.2%, 0 bad samples
+[restir gi] frame  13: indirect pool on 48.2% of surface pixels, mean M 1.3, shaded M 12.3, occluded selections 50.5%
+[restir] D10 identity: 298 film reads + 2500 DI merges + 283 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (298 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  14: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  14: 136997 surface pixels, reservoirs on 100.0% of them, mean M 8.9 (max M 14), shaded M 43.1, occluded selections 42.1%, 0 bad samples
+[restir gi] frame  14: indirect pool on 48.4% of surface pixels, mean M 1.3, shaded M 12.5, occluded selections 50.6%
+[restir] D10 identity: 186 film reads + 2610 DI merges + 301 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (186 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  15: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  15: 136762 surface pixels, reservoirs on 100.0% of them, mean M 9.4 (max M 15), shaded M 45.3, occluded selections 42.3%, 0 bad samples
+[restir gi] frame  15: indirect pool on 48.7% of surface pixels, mean M 1.3, shaded M 12.5, occluded selections 50.3%
+[restir] D10 identity: 334 film reads + 2805 DI merges + 328 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (334 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[film]   frame  16: running mean reprojected on 0.0% of surface pixels (0.0% of those to a moved texel), 0.0% restarted on disocclusion, 0 samples behind the mean
+[restir] frame  16: 136941 surface pixels, reservoirs on 100.0% of them, mean M 9.8 (max M 16), shaded M 47.4, occluded selections 42.2%, 0 bad samples
+[restir gi] frame  16: indirect pool on 48.5% of surface pixels, mean M 1.3, shaded M 12.7, occluded selections 50.5%
+[restir] D10 identity: 464 film reads + 3081 DI merges + 379 GI merges agreed on normal+depth and belonged to a DIFFERENT surface (464 of the reads showed a different MATERIAL) — refused (identity validation ON)
+[restir gi] reasons: bad 16148 escape 1108918 emitter 229 unlit 0 unusable 3166 vertex 745549 noPHat 0
+[restir gi] temporal: tried 414483, refused for a MISSING previous vertex record 33, merged 410643
+[material-level] interface overlay: 0 film pixels composited (14 figures)
+[material-level] unfiltered accumulated film -> /home/user/Frontier/Exhibits/Gallery/AutomotiveShowcase/ReSTIR/paint-cobalt-raw.png
+[material-level] reservoirs: 100.0 % of surface pixels held one, mean M 9.8
+[material-level] visibility reuse: 2189823 spatial-pass shadow rays skipped (the winner's stored test answered) — the A/B arm is --restir-final-visibility
+[material-level] film: mean 0.1290, 0 non-finite/out-of-range samples
+[material-level] wrote -> /home/user/Frontier/Exhibits/Gallery/AutomotiveShowcase/ReSTIR/paint-cobalt.png
