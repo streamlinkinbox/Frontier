@@ -905,6 +905,29 @@ half-turn inputs, mixed cone/plane/cylinder, oblique/non-coaxial or freeform sup
 selection, invalid or consuming radii, or healing. Chamfer set-backs remain on their dedicated routes.
 The bounded plan is `docs/PLAN_HalfTurnEqualRadiusBiconeApexFillet.md`.
 
+## Phase 39l — half-turn unequal-radius bicone apex toroidal fillet (2026-09-24)
+
+This is a separate exact-half-turn unequal-radius toroidal route, not a partial-sector or
+complete-turn alias:
+
+- `HalfTurnUnequalRadiusBiconeApexFilletVerification` builds the capped half-turn source with exact
+  `V7/E11/C22/L6/F6` topology, radii 4.5/2.7, heights 6.8/4.6, and fillet radius 0.62.
+- `ClassifyHalfTurnUnequalRadiusBiconeApexFilletVertex` derives the shared apex, canonical coaxial
+  axis, unequal support radii, support heights, and exactly `pi` sweep while refusing equal radii
+  and unsupported source families transactionally.
+- `ReconstructHalfTurnUnequalRadiusBiconeApexFillet` solves the unequal tangent contacts and analytic
+  torus, returns `V10/E15/C30/L7/F7` with two cones, one torus, two axial base planes, and two radial
+  sector planes, and checks radial-cap closure, outward normals, torus metadata, and the cone-plus-torus
+  identity scaled by `sweep / (2 pi)`.
+- The durable proof is `Proofs/Phase39l_HalfTurnUnequalRadiusBiconeApexFillet.png`; 34 checks
+  pass in the focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh` and
+  CMake.
+
+This does not prove equal radii, complete/strict non-half partial/reflex sectors as accepted half-turn
+inputs, mixed cone/plane/cylinder, oblique/non-coaxial or freeform supports, arbitrary selection,
+invalid or consuming radii, or healing. Chamfer set-backs remain on their dedicated routes. The
+bounded plan is `docs/PLAN_HalfTurnUnequalRadiusBiconeApexFillet.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

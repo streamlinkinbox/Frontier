@@ -1607,6 +1607,30 @@ supports, arbitrary vertices, invalid or consuming radii, and healing remain uns
 set-backs remain on their dedicated routes. Its bounded plan is
 `docs/PLAN_HalfTurnEqualRadiusBiconeApexFillet.md`.
 
+#### Phase 39l: bounded half-turn unequal-radius bicone apex toroidal fillet ✅
+
+The unequal-radius bicone apex fillet family now includes its exact half-turn companion. This is a
+distinct route from the full-turn Phase 38y and strict non-reflex partial Phase 39b routes: the
+classifier requires the capped native half-turn `V7/E11/C22/L6/F6` topology, unequal circular
+support radii, a feasible positive fillet radius, and exactly `pi` sweep.
+
+`ClassifyHalfTurnUnequalRadiusBiconeApexFilletVertex` derives the shared apex, canonical coaxial axis,
+unequal support radii, support heights, and exact half-turn transactionally.
+`ReconstructHalfTurnUnequalRadiusBiconeApexFillet` solves the two unequal-radius cone tangencies,
+revolves two retained support cones, one analytic torus, and two axial caps, and closes both radial
+sector ends. It returns one genus-zero `V10/E15/C30/L7/F7` solid with two cone faces, one torus,
+two axial base planes, and two radial sector planes. `HalfTurnUnequalRadiusBiconeApexFilletVerification`
+performs 34 checks over the distinct radius-4.5/2.7, height-6.8/4.6 source with fillet radius 0.62,
+covering exact half-turn and unequal-radius extraction, tangent contacts, torus metadata, topology,
+radial-cap normals, the sector-scaled cone-plus-torus volume identity, source immutability, and
+complete/partial/reflex and unsupported refusal boundaries. The durable proof is
+`Proofs/Phase39l_HalfTurnUnequalRadiusBiconeApexFillet.png`.
+
+Complete, strict non-half partial, or reflex sectors, equal radii, mixed or freeform/non-coaxial
+supports, arbitrary vertices, invalid or consuming radii, and healing remain unsupported. Chamfer
+set-backs remain on their dedicated routes. Its bounded plan is
+`docs/PLAN_HalfTurnUnequalRadiusBiconeApexFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
