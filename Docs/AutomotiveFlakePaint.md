@@ -116,7 +116,7 @@ With the existing pinned reconstruction available:
 
 ```sh
 python3 Exhibits/Workbench/AutomotiveFlakes/RunProof.py
-python3 -m http.server 5188 --bind 0.0.0.0 --directory Exhibits/Gallery/AutomotiveFlakes
+python3 Exhibits/Workbench/AutomotiveFlakes/Serve.py
 ```
 
 The first command compiles the same material source as C++, runs all three modes, renders the native images and emits flattened GLSL for the gallery. `--skip-render` reruns the checks without regenerating the native images; only use it when the existing image provenance is still appropriate.
@@ -129,3 +129,7 @@ node Exhibits/Workbench/AutomotiveFlakes/TestBrowser.mjs
 ```
 
 The new material does not change the immutable baseline. The proof uses the reconstructed target's existing math shim, thin-film implementation and PNG writer; their hashes are recorded alongside the new sources.
+
+### Asset cache safety
+
+The preview server sends `Cache-Control: no-store`. HTML loads a content-versioned `paint.js`, which requests a content-versioned shader with caching disabled. `RunProof.py` refreshes both cache keys automatically; after JavaScript-only edits run `python3 Exhibits/Workbench/AutomotiveFlakes/VersionAssets.py`. The browser regression test blocks both old unversioned asset URLs and still verifies compilation, all 64 probes, and the palette/density controls.

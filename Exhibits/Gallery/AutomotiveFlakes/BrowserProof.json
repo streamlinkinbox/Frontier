@@ -33,8 +33,8 @@
   "pageErrors": [],
   "sha256": {
     "shared.glsl": "b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024",
-    "paint.js": "ba6bea9c52cf12a16288c4bc09d105b2ce295fd357e8861e7b5a0dc4931f3d78",
-    "index.html": "3c8afe7272bc3bb9fff094063a396fe3cfee48ccc213f00935559316a64e98c8",
+    "paint.js": "10dcd1f8181f733c04057b0ac2a5702854c72bf0d8c39eddf3f5b7fee3fa7aae",
+    "index.html": "678f53b2f1b4d99400a290783901a801278615b44874db45a4c340d58e52338a",
     "CpuProbes.json": "b5d458b369c287fd7073be1b92eafc233071a018f59f5975a630a13ef9ff6f0e",
     "PaintLab.png": "770656e19d4ec89e59e6ff8b69602d652b7996ec7382452948d245b638f20dc8",
     "PaintLab-Colours.png": "65d983e47d15dd81d7694ed3025034fe497ec7a9a99c538565293d904033e3fa"

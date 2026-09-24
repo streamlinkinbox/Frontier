@@ -1,3 +1,4 @@
+const shaderRevision='b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024';
 const $=id=>document.getElementById(id),canvas=$('paint');
 const defaults={density:.8,diameter:.35,spread:.24,roughness:.065,coat:.23,tint:0,pearl:0,film:420,light:0,distance:.19};
 const silver={name:'Silver',min:[.72,.77,.82],max:[.72,.77,.82],weight:1};
@@ -57,7 +58,7 @@ result=vec4(AutomotiveEvaluatePaint(p,s,normalize(vec3(.1,0,1)),normalize(vec3((
  const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,64,1,0,gl.RGBA,gl.FLOAT,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE)throw Error('Incomplete float framebuffer');gl.viewport(0,0,64,1);gl.useProgram(probe);gl.drawArrays(gl.TRIANGLES,0,3);const data=new Float32Array(256);gl.readPixels(0,0,64,1,gl.RGBA,gl.FLOAT,data);const error=gl.getError();gl.deleteFramebuffer(fb);gl.deleteTexture(tex);gl.deleteProgram(probe);render();if(error!==gl.NO_ERROR)throw Error('GL probe error '+error);return Array.from({length:64},(_,i)=>Array.from(data.slice(i*4,i*4+3)));
 }
 window.paintReady=(async()=>{try{
- gl=canvas.getContext('webgl2',{antialias:false,alpha:false,preserveDrawingBuffer:true});if(!gl)throw Error('WebGL 2 is unavailable. Native reference PNGs below remain available.');const response=await fetch('shared.glsl');if(!response.ok)throw Error('Shared shader could not be loaded');shared=await response.text();
+ gl=canvas.getContext('webgl2',{antialias:false,alpha:false,preserveDrawingBuffer:true});if(!gl)throw Error('WebGL 2 is unavailable. Native reference PNGs below remain available.');const response=await fetch('shared.glsl?v='+shaderRevision,{cache:'no-store'});if(!response.ok)throw Error('Shared shader could not be loaded');shared=await response.text();
  program=build(`
 uniform vec2 resolution;uniform vec3 pigment,coatColour;uniform float yaw;
 uniform float u_density,u_diameter,u_spread,u_roughness,u_coat,u_tint,u_pearl,u_film,u_light,u_distance;

@@ -10,8 +10,8 @@
     "Exhibits/Workbench/AutomotiveFlakes/CpuShader.h": "77e40d0e7efc97c8a148f60d75ccd1d8a14c047c848c749567356c93f180d946",
     "Exhibits/Workbench/AutomotiveFlakes/NativeFlakeProof.cpp": "2b31c5e8e46f155b9e8d731e39cb6f7429a4e4423695d72109d7dd47549f3305",
     "Exhibits/Workbench/AutomotiveFlakes/PaintScene.slang": "1b89666595754c9e9bcd5098bb51aaafcc8c9224ff0767d1382feff5f899357a",
-    "Exhibits/Workbench/AutomotiveFlakes/RunProof.py": "989f98a6893a54f10fe9c30f4ad9e889536b1532d686e86193bca2f316e78da4",
-    "Exhibits/Workbench/AutomotiveFlakes/TestBrowser.mjs": "9f6743b0ecbad3934ab749f022c8fd15645a1a96af5137c84d856c60b49bca27",
+    "Exhibits/Workbench/AutomotiveFlakes/RunProof.py": "1b1e3cdc3c7f453f2a8c9f4fbf71255b9360179bafdc0687cfaaf9c4fa0a9977",
+    "Exhibits/Workbench/AutomotiveFlakes/TestBrowser.mjs": "684e297b4f4a333c44278abe83375e17c72b88e8e305c874f64548aaa853d2fc",
     "Exhibits/Gallery/AutomotiveFlakes/light-0.png": "8184bf090cf6e29df756ed66c72b2372983d70dd4fb577461a45682ec97be618",
     "Exhibits/Gallery/AutomotiveFlakes/light-1.png": "e672210f68a38957b548f07064499cba10195a1e0dd079dcb43d75a9984d2658",
     "Exhibits/Gallery/AutomotiveFlakes/light-2.png": "11aebb1eccf6d2d6d210a368db79d09c7fd3a5c47102a6a80f0796792aba0781",
@@ -25,6 +25,8 @@
     "Exhibits/Gallery/AutomotiveFlakes/paint-smooth.png": "fd4ff740a608ca0fd87e97b345d737787739af1bc02003fcd28d2399fb75fa79",
     "Exhibits/Gallery/AutomotiveFlakes/paint-rgb-coat.png": "d74eff83e74785d6d6d504a983619c19961e29149464f4ea640755b053359a08",
     "Exhibits/Gallery/AutomotiveFlakes/paint-rgb-dense.png": "a14dfff4fc3fa91d3acccdc0eef4997900717be648908ee84fb42acd18bd3501",
-    "Exhibits/Gallery/AutomotiveFlakes/shared.glsl": "b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024"
+    "Exhibits/Gallery/AutomotiveFlakes/shared.glsl": "b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024",
+    "Exhibits/Workbench/AutomotiveFlakes/Serve.py": "b53022b265a2e1b4549c09dca47e4de44763780b835d321f79ccf778a161a91a",
+    "Exhibits/Workbench/AutomotiveFlakes/VersionAssets.py": "ace01b302537bdc7febe240976c70553677dbc06da1fd2023923b0c72b3ac966"
   }
 }

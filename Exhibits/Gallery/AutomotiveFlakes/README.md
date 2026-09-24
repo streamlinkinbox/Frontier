@@ -17,3 +17,7 @@ This is a live shader, not a PNG slideshow. Use **Move light**, drag the swatch 
 - The new material is a standalone review implementation. Production Project-Zero bindings, sampling/PDF integration, Vulkan and Windows certification are not delivered here.
 
 Details, measured stack and limitations: `Docs/AutomotiveFlakePaint.md`.
+
+### Asset cache safety
+
+The preview server sends `Cache-Control: no-store`. HTML loads a content-versioned `paint.js`, which requests a content-versioned shader with caching disabled. `RunProof.py` refreshes both cache keys automatically; after JavaScript-only edits run `python3 Exhibits/Workbench/AutomotiveFlakes/VersionAssets.py`. The browser regression test blocks both old unversioned asset URLs and still verifies compilation, all 64 probes, and the palette/density controls.

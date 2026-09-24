@@ -13,6 +13,9 @@ const browser=await playwright.launch({executablePath:await chromium.executableP
 const page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(120000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
 const out=path.join(root,'Exhibits/Gallery/AutomotiveFlakes');
 try{
+ // A stale cache entry at either legacy URL must never be used.
+ await page.route('**/paint.js', route=>route.abort());
+ await page.route('**/shared.glsl', route=>route.abort());
  await page.goto(process.argv[2]||'http://127.0.0.1:5188/',{waitUntil:'networkidle',timeout:120000});
  if(!await page.evaluate(()=>window.paintReady))throw Error(await page.evaluate(()=>window.paintFailure));
  const gpu=await page.evaluate(()=>window.paintProbes());const cpu=JSON.parse(await readFile(path.join(out,'CpuProbes.json'),'utf8'));

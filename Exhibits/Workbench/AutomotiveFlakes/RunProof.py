@@ -41,6 +41,8 @@ vec4 FetchSheenFull(float a,float b){return vec4(0.0);}
 '''
 shader=preamble+engine+'\n'+(R/'Engine/Shaders/AutomotiveFlakePaint.slang').read_text()+'\n'+(R/'Exhibits/Workbench/AutomotiveFlakes/PaintScene.slang').read_text()
 (O/'shared.glsl').write_text(shader)
+from VersionAssets import version_assets
+version_assets()
 for path in O.glob('*.png'):
  if path.name.startswith('PaintLab'):continue # Browser screenshot has its own provenance.
  blob=path.read_bytes();chunks=[];i=8
