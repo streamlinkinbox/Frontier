@@ -6094,6 +6094,80 @@ Deliver<BrepBody> BlendSolver::ReconstructVariableRadiusCornerBlend(const Variab
     return Result;
 }
 
+Deliver<VariableRadiusCornerSpecification> BlendSolver::ClassifyVariableRadiusCornerEdge(
+    const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw) noexcept
+{
+    if (!RadiusLaw.Positive())
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                    "selected variable corner law must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 ||
+        Body.Vertices.size() != 8 || Body.Edges.size() != 12 || Body.Coedges.size() != 24 ||
+        Body.Loops.size() != 6 || Body.Faces.size() != 6)
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::NonManifold,
+                                                                    "source is not the bounded rectangular-box dispatch topology");
+    if (Edge < 0 || Edge >= static_cast<int>(Body.Edges.size()))
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected variable corner edge is out of range");
+    for (const BrepFace& Face : Body.Faces)
+    {
+        if (Face.Surface.Classification != SurfaceClassification::Plane || Face.Loops.size() != 1)
+            return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                        "variable corner supports must be single-loop planes");
+        const int Loop = Face.Loops.front();
+        if (Loop < 0 || Loop >= static_cast<int>(Body.Loops.size()) || Body.Loops[Loop].Coedges.size() != 4)
+            return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                        "variable corner supports must be rectangular loops");
+    }
+    for (const BrepEdge& EdgeData : Body.Edges)
+        if (EdgeData.Closed() || EdgeData.Coedges.size() != 2 ||
+            EdgeData.Curve.Classification != CurveClassification::Line)
+            return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                        "variable corner source has a curved, closed, or non-manifold edge");
+    EdgeCornerFrame FrameResult;
+    std::string Refusal;
+    if (!Frame(Body, Edge, FrameResult, Refusal))
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected edge is outside the bounded variable corner dispatch");
+    if (std::fabs(FrameResult.Dihedral - ScalarCriteria::HalfPi) > ScalarCriteria::AngularTolerance)
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected variable corner is not strictly orthogonal");
+    const auto FaceWidth = [&](int Face, const Vec3& Direction) noexcept
+    {
+        if (Face < 0 || Face >= static_cast<int>(Body.Faces.size())) return 0.0;
+        const int Loop = Body.Faces[Face].Loops.front();
+        std::vector<int> Vertices;
+        for (int Coedge : Body.Loops[Loop].Coedges)
+        {
+            const int Boundary = Body.Coedges[Coedge].Edge;
+            for (int Candidate : { Body.Edges[Boundary].VertexStart, Body.Edges[Boundary].VertexEnd })
+                if (std::find(Vertices.begin(), Vertices.end(), Candidate) == Vertices.end()) Vertices.push_back(Candidate);
+        }
+        if (Vertices.size() != 4) return 0.0;
+        double Width = 0.0;
+        for (int Vertex : Vertices) Width = std::max(Width, (Body.Vertices[Vertex].Point - FrameResult.Start).Dot(Direction));
+        return Width;
+    };
+    const double WidthA = FaceWidth(FrameResult.FaceA, FrameResult.InA);
+    const double WidthB = FaceWidth(FrameResult.FaceB, FrameResult.InB);
+    if (WidthA <= ScalarCriteria::MergeTolerance || WidthB <= ScalarCriteria::MergeTolerance)
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected corner does not have two positive rectangular widths");
+    if (std::fabs(WidthA - WidthB) > ScalarCriteria::GeometricTolerance * std::max({ 1.0, WidthA, WidthB }))
+        return Deliver<VariableRadiusCornerSpecification>::Reject(RefusalReason::Unsupported,
+                                                                    "selected variable corner requires equal support widths");
+    VariableRadiusCornerSpecification Specification;
+    Specification.Origin = FrameResult.Start;
+    Specification.EdgeAxis = FrameResult.Tangent;
+    Specification.Length = FrameResult.Length;
+    Specification.Width = (WidthA + WidthB) * 0.5;
+    Specification.RadiusLaw = RadiusLaw;
+    const Deliver<BrepBody> Feasible = ReconstructVariableRadiusCornerBlend(Specification);
+    if (!Feasible) return Deliver<VariableRadiusCornerSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<VariableRadiusCornerSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Length) ||

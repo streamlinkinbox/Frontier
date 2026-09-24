@@ -1272,6 +1272,22 @@ This remains one native-cone apex chamfer, not arbitrary vertex chamfering, part
 mixed-support apex edits. Freeform geometry, healing, and source-body replacement remain unsupported.
 Its plan is `docs/PLAN_ConeApexVertexChamferDispatch.md`.
 
+#### Phase 38v: bounded eligible-edge dispatch for a variable-radius corner
+
+The variable-radius application layer now accepts one explicit straight edge of a canonical
+rectangular box with exact `V8/E12/C24/L6/F6` topology. It validates the two adjacent planar
+rectangles, strict orthogonality, equal positive support widths, and a finite positive linear radius
+law, then returns the existing Stage 37a specification; reconstruction remains a separate transaction.
+
+`VariableRadiusCornerEdgeDispatchVerification` covers exact edge/frame/length/width/law extraction,
+deterministic dispatch, separate `V10/E15/C30/L7/F7` reconstruction, outward normals, source
+immutability, unequal-width/non-corner/invalid/consuming/cylinder/malformed refusals, and
+`Proofs/Phase38v_VariableRadiusCornerEdgeDispatch.png`.
+
+This remains one eligible rectangular-box edge and the equal-width linear-law route, not partial edges,
+loops, apexes, freeform supports, healing, or source-body replacement. Its plan is
+`docs/PLAN_VariableRadiusCornerEdgeDispatch.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

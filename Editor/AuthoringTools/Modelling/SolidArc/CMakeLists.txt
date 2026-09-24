@@ -425,6 +425,11 @@ add_executable(ConeApexVertexChamferDispatchVerification Verification/ConeApexVe
 target_link_libraries(ConeApexVertexChamferDispatchVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConeApexVertexChamferDispatchVerification COMMAND ConeApexVertexChamferDispatchVerification)
 
+# Stage 4v: bounded dispatch from one eligible straight edge of a rectangular box to the variable-radius corner route.
+add_executable(VariableRadiusCornerEdgeDispatchVerification Verification/VariableRadiusCornerEdgeDispatchVerification.cpp)
+target_link_libraries(VariableRadiusCornerEdgeDispatchVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME VariableRadiusCornerEdgeDispatchVerification COMMAND VariableRadiusCornerEdgeDispatchVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

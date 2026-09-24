@@ -550,6 +550,10 @@ public:
     [[nodiscard]] static Deliver<VariableRadiusSurface> BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
+    // Bounded Stage 4v application dispatch: one explicit straight edge of a rectangular box,
+    // strict orthogonality, equal support widths, and a positive linear law only.
+    [[nodiscard]] static Deliver<VariableRadiusCornerSpecification> ClassifyVariableRadiusCornerEdge(
+        const BrepBody& Body, int Edge, const VariableRadiusLaw& RadiusLaw) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(
