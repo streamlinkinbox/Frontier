@@ -713,6 +713,25 @@ oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary select
 consuming fillet radii, or healing. The bounded plan is
 `docs/PLAN_PartialUnequalBiconeApexFillet.md`.
 
+## Phase 39c — partial equal-radius bicone apex toroidal fillet (2026-09-23)
+
+This is a separate equal-radius finite-sweep route, not a full-turn or unequal-radius duplicate:
+
+- `PartialEqualRadiusBiconeApexFilletVerification` builds a capped native partial source with exact
+  `V7/E11/C22/L6/F6` topology, equal radius 3.6, heights 6.2/4.7, a 100-degree sweep, and a
+  0.58 fillet radius.
+- `ClassifyPartialEqualRadiusBiconeApexFilletVertex` requires equal circular rims, derives the
+  selected apex, coaxial axis, support heights, and native sweep, and rejects unequal sources.
+- `ReconstructPartialEqualRadiusBiconeApexFillet` returns `V10/E15/C30/L7/F7` with two cones,
+  one torus, two base planes, and two radial sector caps. The verifier checks equal tangent contacts,
+  torus metadata, sector-scaled volume, normals, topology, refusals, and source immutability.
+- The durable proof is `Proofs/Phase39c_PartialEqualBiconeApexFillet.png`; 31 checks pass.
+
+This does not prove full/half/reflex sectors, unequal radii, mixed cone/plane/cylinder,
+oblique/non-coaxial or freeform supports, variable-radius laws, arbitrary selection, invalid or
+consuming fillet radii, or healing. The bounded plan is
+`docs/PLAN_PartialEqualRadiusBiconeApexFillet.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

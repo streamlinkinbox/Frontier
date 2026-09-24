@@ -337,6 +337,18 @@ struct PartialUnequalBiconeApexFilletSpecification
     double SweepAngle = 0.0;
 };
 
+// A bounded strict non-reflex partial sector of an equal-radius coaxial bicone apex toroidal fillet.
+struct PartialEqualRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = 0.0;
+};
+
 // A bounded partial sector of the coaxial cone-apex spherical cap. Full revolution remains the
 // separate complete-apex route; arbitrary vertex/mixed-support selection is still unsupported.
 struct PartialConeApexFilletSpecification
@@ -685,6 +697,11 @@ public:
         const PartialUnequalBiconeApexFilletSpecification& Specification) noexcept;
     [[nodiscard]] static Deliver<PartialUnequalBiconeApexFilletSpecification>
         ClassifyPartialUnequalBiconeApexFilletVertex(
+            const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEqualRadiusBiconeApexFillet(
+        const PartialEqualRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialEqualRadiusBiconeApexFilletSpecification>
+        ClassifyPartialEqualRadiusBiconeApexFilletVertex(
             const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
     // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
     [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(

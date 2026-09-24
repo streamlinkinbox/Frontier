@@ -8529,6 +8529,237 @@ BlendSolver::ClassifyPartialUnequalBiconeApexFilletVertex(const BrepBody& Body, 
     return Deliver<PartialUnequalBiconeApexFilletSpecification>::Accept(std::move(Specification));
 }
 
+Deliver<BrepBody> BlendSolver::ReconstructPartialEqualRadiusBiconeApexFillet(
+    const PartialEqualRadiusBiconeApexFilletSpecification& Specification) noexcept
+{
+    if (!std::isfinite(Specification.Apex.X) || !std::isfinite(Specification.Apex.Y) ||
+        !std::isfinite(Specification.Apex.Z) || !std::isfinite(Specification.Radius) ||
+        !std::isfinite(Specification.LowerHeight) || !std::isfinite(Specification.UpperHeight) ||
+        !std::isfinite(Specification.FilletRadius) || Specification.Radius <= Tol ||
+        Specification.LowerHeight <= Tol || Specification.UpperHeight <= Tol || Specification.FilletRadius <= Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput,
+                                          "partial equal bicone fillet dimensions must be finite and positive");
+    if (!std::isfinite(Specification.Axis.X) || !std::isfinite(Specification.Axis.Y) ||
+        !std::isfinite(Specification.Axis.Z) || Specification.Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial equal bicone fillet axis is degenerate");
+    if (!std::isfinite(Specification.SweepAngle) || Specification.SweepAngle <= ScalarCriteria::AngularTolerance ||
+        Specification.SweepAngle >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported,
+                                          "partial equal bicone fillet requires a strict non-reflex sector");
+    const Vec3 Axis = Specification.Axis.Normalised();
+    const Vec3 Apex = Specification.Apex;
+    const double LowerAngle = std::atan2(Specification.Radius, Specification.LowerHeight);
+    const double UpperAngle = std::atan2(Specification.Radius, Specification.UpperHeight);
+    const double SinSum = std::sin(LowerAngle + UpperAngle);
+    if (SinSum <= ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "equal bicone fillet support angles are degenerate");
+    const double SinLower = std::sin(LowerAngle), SinUpper = std::sin(UpperAngle);
+    const double CosLower = std::cos(LowerAngle), CosUpper = std::cos(UpperAngle);
+    const double Q = Specification.FilletRadius;
+    const double Major = Q * (SinLower + SinUpper) / SinSum;
+    const double CentreOffset = Q * (CosUpper - CosLower) / SinSum;
+    if (Major <= Q + Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial equal bicone torus would cross the axis");
+    const double LowerTangent = Major * SinLower - CentreOffset * CosLower;
+    const double UpperTangent = Major * SinUpper + CentreOffset * CosUpper;
+    if (LowerTangent <= Tol || UpperTangent <= Tol ||
+        LowerTangent >= std::hypot(Specification.LowerHeight, Specification.Radius) - Tol ||
+        UpperTangent >= std::hypot(Specification.UpperHeight, Specification.Radius) - Tol)
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "partial equal bicone torus consumes a support");
+    const Vec3 Radial = Workplane::FromNormal(Apex, Axis).AxisX.Normalised();
+    if (Radial.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial equal bicone fillet radial frame is degenerate");
+    const Vec3 LowerBase = Apex - Axis * Specification.LowerHeight;
+    const Vec3 UpperBase = Apex + Axis * Specification.UpperHeight;
+    const double LowerContactRadius = LowerTangent * SinLower;
+    const double UpperContactRadius = UpperTangent * SinUpper;
+    const Vec3 LowerContact = Apex - Axis * (LowerTangent * CosLower) + Radial * LowerContactRadius;
+    const Vec3 UpperContact = Apex + Axis * (UpperTangent * CosUpper) + Radial * UpperContactRadius;
+    const Vec3 InnerPoint = Apex + Axis * CentreOffset + Radial * (Major - Q);
+    auto Line = [&](Vec3 Start, Vec3 End) -> Deliver<NurbsCurve> { return NurbsCurve::Line(Start, End); };
+    Deliver<NurbsCurve> LowerProfile = Line(LowerBase + Radial * Specification.Radius, LowerContact);
+    Deliver<NurbsCurve> UpperProfile = Line(UpperContact, UpperBase + Radial * Specification.Radius);
+    Deliver<NurbsCurve> TorusProfile = NurbsCurve::ArcThreePoints(LowerContact, InnerPoint, UpperContact);
+    Deliver<NurbsCurve> LowerDiskProfile = Line(LowerBase, LowerBase + Radial * Specification.Radius);
+    Deliver<NurbsCurve> UpperDiskProfile = Line(UpperBase, UpperBase + Radial * Specification.Radius);
+    if (!LowerProfile || !UpperProfile || !TorusProfile || !LowerDiskProfile || !UpperDiskProfile)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial equal bicone fillet profiles are degenerate");
+    auto Revolve = [&](const Deliver<NurbsCurve>& Profile) -> Deliver<NurbsSurface>
+    {
+        return NurbsSurface::Revolution(Profile.Payload, Apex, Axis, Specification.SweepAngle);
+    };
+    Deliver<NurbsSurface> Lower = Revolve(LowerProfile);
+    Deliver<NurbsSurface> Upper = Revolve(UpperProfile);
+    Deliver<NurbsSurface> Torus = Revolve(TorusProfile);
+    Deliver<NurbsSurface> LowerDisk = Revolve(LowerDiskProfile);
+    Deliver<NurbsSurface> UpperDisk = Revolve(UpperDiskProfile);
+    if (!Lower || !Upper || !Torus || !LowerDisk || !UpperDisk)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "partial equal bicone fillet surfaces are degenerate");
+    Lower.Payload.Classification = SurfaceClassification::Cone;
+    Lower.Payload.Origin = LowerBase; Lower.Payload.Axis = Axis;
+    Lower.Payload.RadiusMajor = Specification.Radius; Lower.Payload.RadiusMinor = LowerContactRadius;
+    Upper.Payload.Classification = SurfaceClassification::Cone;
+    Upper.Payload.Origin = UpperContact; Upper.Payload.Axis = Axis;
+    Upper.Payload.RadiusMajor = UpperContactRadius; Upper.Payload.RadiusMinor = Specification.Radius;
+    Torus.Payload.Classification = SurfaceClassification::Torus;
+    Torus.Payload.Origin = Apex + Axis * CentreOffset; Torus.Payload.Axis = Axis;
+    Torus.Payload.RadiusMajor = Major; Torus.Payload.RadiusMinor = Q;
+    LowerDisk.Payload.Classification = SurfaceClassification::Plane;
+    LowerDisk.Payload.Origin = LowerBase; LowerDisk.Payload.Axis = Axis;
+    UpperDisk.Payload.Classification = SurfaceClassification::Plane;
+    UpperDisk.Payload.Origin = UpperBase; UpperDisk.Payload.Axis = Axis;
+    Deliver<BrepBody> Result = BrepBody::Sew({ Lower.Payload, Torus.Payload, Upper.Payload,
+                                                LowerDisk.Payload, UpperDisk.Payload }, Tol, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "partial equal bicone fillet surfaces could not be sewn");
+    if (!CapRadialSector(Result.Payload, LowerBase, UpperBase, Radial, Specification.SweepAngle,
+                         Specification.Radius) || !Result.Payload.Orient())
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial equal bicone fillet radial caps could not heal");
+
+    const double LowerDepth = LowerTangent * CosLower, UpperDepth = UpperTangent * CosUpper;
+    const double ThetaLower = std::atan2(-LowerDepth - CentreOffset, LowerContactRadius - Major);
+    double ThetaUpper = std::atan2(UpperDepth - CentreOffset, UpperContactRadius - Major);
+    while (ThetaUpper >= ThetaLower) ThetaUpper -= ScalarCriteria::TwoPi;
+    const auto Primitive = [&](double Theta) noexcept
+    {
+        const double Sine = std::sin(Theta);
+        return Major * Major * Sine + Major * Q * (Theta + std::sin(2.0 * Theta) / 2.0) +
+               Q * Q * (Sine - Sine * Sine * Sine / 3.0);
+    };
+    const double MeridionalIntegral = Q * (Primitive(ThetaUpper) - Primitive(ThetaLower));
+    const double ExpectedVolume =
+        ScalarCriteria::Pi * (Specification.LowerHeight - LowerDepth) *
+            (Specification.Radius * Specification.Radius + Specification.Radius * LowerContactRadius +
+             LowerContactRadius * LowerContactRadius) / 3.0 +
+        ScalarCriteria::Pi * MeridionalIntegral +
+        ScalarCriteria::Pi * (Specification.UpperHeight - UpperDepth) *
+            (UpperContactRadius * UpperContactRadius + UpperContactRadius * Specification.Radius +
+             Specification.Radius * Specification.Radius) / 3.0;
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 10 ||
+        Result.Payload.Edges.size() != 15 || Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 ||
+        Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "partial equal bicone fillet did not reach V10/E15/C30/L7/F7 topology");
+    if (!ScalarCriteria::WithinVolumeTolerance(Report.Volume, ExpectedVolume * Specification.SweepAngle / ScalarCriteria::TwoPi))
+        return Deliver<BrepBody>::Reject(RefusalReason::NoConvergence, "partial equal bicone fillet volume failed analytic acceptance");
+    return Result;
+}
+
+
+Deliver<PartialEqualRadiusBiconeApexFilletSpecification>
+BlendSolver::ClassifyPartialEqualRadiusBiconeApexFilletVertex(const BrepBody& Body, int Vertex, double FilletRadius) noexcept
+{
+    if (!std::isfinite(FilletRadius) || FilletRadius <= ScalarCriteria::MergeTolerance)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                                  "partial equal bicone fillet radius must be finite and positive");
+    const BodyReport Report = Body.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Body.Vertices.size() != 7 ||
+        Body.Edges.size() != 11 || Body.Coedges.size() != 22 || Body.Loops.size() != 6 || Body.Faces.size() != 6)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::NonManifold,
+                                                                                  "source is not the capped partial equal bicone topology");
+    if (Vertex < 0 || Vertex >= static_cast<int>(Body.Vertices.size()))
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "selected partial equal bicone vertex is out of range");
+    int RevolutionFaces = 0, PlaneFaces = 0;
+    for (const BrepFace& Face : Body.Faces)
+    {
+        if (Face.Loops.size() != 1)
+            return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                      "partial equal bicone face is not single-loop");
+        if (Face.Surface.Classification == SurfaceClassification::Revolution) ++RevolutionFaces;
+        else if (Face.Surface.Classification == SurfaceClassification::Plane) ++PlaneFaces;
+        else return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                      "partial equal bicone has unsupported face geometry");
+    }
+    if (RevolutionFaces != 4 || PlaneFaces != 2)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "partial equal bicone does not have four revolve faces and two radial caps");
+    std::vector<int> RimEdges, LineEdges;
+    for (size_t I = 0; I < Body.Edges.size(); ++I)
+    {
+        const BrepEdge& EdgeData = Body.Edges[I];
+        if (EdgeData.Coedges.size() != 2)
+            return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::NonManifold,
+                                                                                      "partial equal bicone edge is not manifold");
+        if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Arc &&
+            EdgeData.Curve.Degree == 2 && EdgeData.Curve.Rational()) RimEdges.push_back(static_cast<int>(I));
+        else if (!EdgeData.Closed() && EdgeData.Curve.Classification == CurveClassification::Line &&
+                 EdgeData.Curve.Degree == 1) LineEdges.push_back(static_cast<int>(I));
+        else return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                       "partial equal bicone has unsupported edge geometry");
+    }
+    if (RimEdges.size() != 2 || LineEdges.size() != 9)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "partial equal bicone does not have two arc rims and nine lines");
+    int Apex = -1;
+    for (int Candidate = 0; Candidate < static_cast<int>(Body.Vertices.size()); ++Candidate)
+    {
+        int Degree = 0;
+        for (int Edge : LineEdges)
+            if (Body.Edges[Edge].VertexStart == Candidate || Body.Edges[Edge].VertexEnd == Candidate) ++Degree;
+        if (Degree == 4)
+        {
+            if (Apex >= 0) return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(
+                RefusalReason::Unsupported, "partial equal bicone has multiple apex candidates");
+            Apex = Candidate;
+        }
+    }
+    if (Apex < 0 || Vertex != Apex)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "selected vertex is not the partial equal bicone apex");
+    struct Rim { Vec3 Centre, Normal; double Radius = 0.0; int Edge = -1; } G[2];
+    for (int K = 0; K < 2; ++K)
+    {
+        G[K].Edge = RimEdges[K];
+        if (!CircularFrame(Body.Edges[G[K].Edge].Curve, G[K].Centre, G[K].Normal, G[K].Radius) || G[K].Radius <= Tol)
+            return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                      "partial equal bicone rim is not circular");
+    }
+    Vec3 Axis = (G[1].Centre - G[0].Centre).Normalised();
+    if (Axis.Length() <= ScalarCriteria::GeometricTolerance)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::DegenerateInput,
+                                                                                  "partial equal bicone axis is degenerate");
+    if ((std::fabs(Axis.X) > ScalarCriteria::GeometricTolerance && Axis.X < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) > ScalarCriteria::GeometricTolerance && Axis.Y < 0.0) ||
+        (std::fabs(Axis.X) <= ScalarCriteria::GeometricTolerance && std::fabs(Axis.Y) <= ScalarCriteria::GeometricTolerance && Axis.Z < 0.0)) Axis = -Axis;
+    const Vec3 ApexPoint = Body.Vertices[Apex].Point;
+    for (const Rim& R : G)
+        if (std::fabs(std::fabs(R.Normal.Dot(Axis)) - 1.0) > ScalarCriteria::AngularTolerance ||
+            (R.Centre - ApexPoint - Axis * (R.Centre - ApexPoint).Dot(Axis)).Length() >
+                ScalarCriteria::GeometricTolerance * std::max(1.0, R.Centre.Distance(ApexPoint)))
+            return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                       "partial equal bicone rims are not coaxial");
+    if ((G[0].Centre - G[1].Centre).Dot(Axis) > 0.0) std::swap(G[0], G[1]);
+    const Vec3 CanonicalRadial = Workplane::FromNormal(ApexPoint, Axis).AxisX.Normalised();
+    const Vec3 StartVector = (Body.Vertices[Body.Edges[G[0].Edge].VertexStart].Point - G[0].Centre).Normalised();
+    const Vec3 EndVector = (Body.Vertices[Body.Edges[G[0].Edge].VertexEnd].Point - G[0].Centre).Normalised();
+    const double Sweep = std::atan2(Axis.Dot(StartVector.Cross(EndVector)), ScalarCriteria::Clamp(StartVector.Dot(EndVector), -1.0, 1.0));
+    if (Sweep <= ScalarCriteria::AngularTolerance || Sweep >= ScalarCriteria::Pi - ScalarCriteria::AngularTolerance ||
+        CanonicalRadial.Distance(StartVector) > ScalarCriteria::GeometricTolerance)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "partial equal bicone sweep is not the bounded canonical sector");
+    for (size_t I = 0; I < Body.Faces.size(); ++I)
+        if (Body.Faces[I].Surface.Classification == SurfaceClassification::Plane)
+        {
+            Vec3 Normal;
+            if (!PlanarNormal(Body, static_cast<int>(I), Normal) || std::fabs(Normal.Dot(Axis)) > ScalarCriteria::AngularTolerance)
+                return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                          "partial equal bicone radial cap is not planar");
+        }
+    const double RadiusScale = std::max(1.0, G[0].Radius);
+    if (std::fabs(G[0].Radius - G[1].Radius) > ScalarCriteria::GeometricTolerance * RadiusScale)
+        return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(RefusalReason::Unsupported,
+                                                                                  "partial equal route requires equal rim radii");
+    PartialEqualRadiusBiconeApexFilletSpecification Specification;
+    Specification.Apex = ApexPoint; Specification.Axis = Axis; Specification.Radius = G[0].Radius;
+    Specification.LowerHeight = ApexPoint.Distance(G[0].Centre); Specification.UpperHeight = ApexPoint.Distance(G[1].Centre);
+    Specification.FilletRadius = FilletRadius; Specification.SweepAngle = Sweep;
+    const Deliver<BrepBody> Feasible = ReconstructPartialEqualRadiusBiconeApexFillet(Specification);
+    if (!Feasible) return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Reject(Feasible.Denial.Reason, Feasible.Denial.Detail);
+    return Deliver<PartialEqualRadiusBiconeApexFilletSpecification>::Accept(std::move(Specification));
+}
+
 Deliver<BrepBody> BlendSolver::ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept
 {
     if (!std::isfinite(Specification.Base.X) || !std::isfinite(Specification.Base.Y) ||

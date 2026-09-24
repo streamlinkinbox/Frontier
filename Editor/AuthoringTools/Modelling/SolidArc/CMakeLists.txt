@@ -460,6 +460,11 @@ add_executable(PartialUnequalBiconeApexFilletVerification Verification/PartialUn
 target_link_libraries(PartialUnequalBiconeApexFilletVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PartialUnequalBiconeApexFilletVerification COMMAND PartialUnequalBiconeApexFilletVerification)
 
+# Phase 39c: bounded equal-radius companion of the partial toroidal bicone route.
+add_executable(PartialEqualRadiusBiconeApexFilletVerification Verification/PartialEqualRadiusBiconeApexFilletVerification.cpp)
+target_link_libraries(PartialEqualRadiusBiconeApexFilletVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PartialEqualRadiusBiconeApexFilletVerification COMMAND PartialEqualRadiusBiconeApexFilletVerification)
+
 # Phase 25–30: exact cylinder cap blends and exact native cylinder/frustum face pushes.
 add_executable(CylinderChamferVerification Verification/CylinderChamferVerification.cpp)
 target_link_libraries(CylinderChamferVerification PRIVATE SolidArcConsoleKit)

@@ -1408,6 +1408,25 @@ sectors, equal radii, mixed/oblique/freeform supports, variable-radius laws, arb
 invalid or consuming radii, and healing remain unsupported. Its bounded plan is
 `docs/PLAN_PartialUnequalBiconeApexFillet.md`.
 
+#### Phase 39c: bounded partial equal-radius bicone apex toroidal fillet ✅
+
+The partial-sector toroidal family now has its equal-radius companion as a separate route.
+`ClassifyPartialEqualRadiusBiconeApexFilletVertex` accepts only the capped native partial-bicone
+contract with equal rim radii, derives the shared apex, coaxial axis, support heights, and native
+sweep transactionally, and keeps the toroidal radius independent from the unequal-radius route.
+
+`ReconstructPartialEqualRadiusBiconeApexFillet` solves the equal-radius pair's tangent contacts,
+revolves two cones, one torus, and two axial base caps over the finite sweep, and closes both radial
+ends. It returns closed genus-zero `V10/E15/C30/L7/F7` topology. `PartialEqualRadiusBiconeApexFilletVerification`
+performs 31 checks over a distinct radius-3.6, height-6.2/4.7, 100-degree source with a 0.58
+fillet radius, covering exact equal-radius extraction, contacts, torus metadata, topology, radial
+cap closure, normals, sector volume, immutability, refusals, and
+`Proofs/Phase39c_PartialEqualBiconeApexFillet.png`.
+
+Complete/half/reflex sectors, unequal radii, mixed/oblique/freeform supports, variable-radius laws,
+arbitrary vertices, invalid or consuming radii, and healing remain unsupported. Its bounded plan is
+`docs/PLAN_PartialEqualRadiusBiconeApexFillet.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
