@@ -22,6 +22,10 @@ public:
     // with an open cavity (a real shell, not a visual offset); the selected face is the opening.
     [[nodiscard]] static Deliver<BrepBody> Shell(const BrepBody& Source, int Face, double Thickness) noexcept;
 
+    // Bounded non-box shell route for a six-sided straight convex prism selected through its upper cap.
+    // The existing rectangular-box route remains separate and is not widened by this API.
+    [[nodiscard]] static Deliver<BrepBody> ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept;
+
     // Draft one vertical (+/-X or +/-Y) face about the source Z direction. Angle is in radians and
     // positive moves the selected wall outward at the high-Z end.
     [[nodiscard]] static Deliver<BrepBody> Draft(const BrepBody& Source, int Face, double AngleRadians) noexcept;

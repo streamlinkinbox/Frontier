@@ -195,6 +195,11 @@ add_executable(FaceEditVerification Verification/FaceEditVerification.cpp)
 target_link_libraries(FaceEditVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME FaceEditVerification COMMAND FaceEditVerification)
 
+# Phase 40: bounded non-box extruded convex-prism shell.
+add_executable(ExtrudedConvexPrismShellVerification Verification/ExtrudedConvexPrismShellVerification.cpp)
+target_link_libraries(ExtrudedConvexPrismShellVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ExtrudedConvexPrismShellVerification COMMAND ExtrudedConvexPrismShellVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

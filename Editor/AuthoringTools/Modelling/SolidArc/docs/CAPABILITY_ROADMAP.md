@@ -1701,6 +1701,26 @@ exact half-turns, other reflex angles, equal radii, mixed or freeform/non-coaxia
 vertices, invalid or consuming set-backs, independent set-backs, and healing remain unsupported.
 Its bounded plan is `docs/PLAN_Phase39o_ReflexUnequalRadiusBiconeApexChamfer.md`.
 
+#### Phase 40: bounded non-box extruded convex-prism shell ✅
+
+The shell/thicken family now has a genuinely different topology slice beyond the axis-aligned box
+route. `FaceEditSolver::ShellExtrudedConvexPrism` accepts a closed six-sided straight convex prism
+with a selected upper planar cap, offsets its ordered cap polygon inward by one positive wall
+thickness, and reconstructs six retained outer walls, six inner walls, six top-rim planes, an outer
+bottom cap, and an inner floor. The route is separate from the existing box shell implementation
+and uses no cone/bicone geometry.
+
+`ExtrudedConvexPrismShellVerification` constructs a regular hexagonal prism with exact
+`V12/E18/C36/L8/F8` source topology and validates the closed genus-zero shell at
+`V24/E42/C84/L20/F20`, analytic outer-minus-inner volume, planar wall/floor/rim support counts,
+source immutability, public dispatch, and triangle/concave/box/cylinder/invalid/malformed refusals.
+The durable proof is `Proofs/Phase40_ExtrudedConvexPrismShell.png`.
+
+The route remains bounded to six-sided vertical convex prisms and upper-cap openings. Boxes remain
+on the legacy route; tilted/non-prismatic, curved, concave, non-six-sided, arbitrary trimmed, and
+healing-dependent shell sources remain unsupported. Its bounded plan is
+`docs/PLAN_Phase40_ExtrudedConvexPrismShell.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

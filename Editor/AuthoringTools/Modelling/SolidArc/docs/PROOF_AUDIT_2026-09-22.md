@@ -1001,6 +1001,26 @@ cone/plane/cylinder, oblique/non-coaxial or freeform supports, arbitrary selecti
 consuming set-backs, independent set-backs, or healing. The bounded plan is
 `docs/PLAN_Phase39o_ReflexUnequalRadiusBiconeApexChamfer.md`.
 
+## Phase 40 — non-box extruded convex-prism shell (2026-09-24)
+
+This phase deliberately leaves the cone/bicone apex sequence and targets a different topology:
+
+- `ExtrudedConvexPrismShellVerification` constructs a regular hexagonal prism with exact
+  `V12/E18/C36/L8/F8` source topology, height 8, circumradius 5, and shell thickness 0.65.
+- `FaceEditSolver::ShellExtrudedConvexPrism` recognizes only a six-sided vertical convex prism
+  and its upper planar cap, then builds six outer walls, six inner walls, six top-rim planes, an
+  outer bottom cap, and an inner floor without using the box-shell route.
+- The accepted shell is closed genus-zero `V24/E42/C84/L20/F20`; volume follows outer hexagonal
+  prism volume minus the recessed inner cavity. The verifier covers source immutability, public
+  dispatch, support classifications, and triangle/concave/box/cylinder/invalid/malformed refusal
+  boundaries.
+- The durable proof is `Proofs/Phase40_ExtrudedConvexPrismShell.png`; 19 checks pass in the
+  focused direct gate, and the verifier/target are registered in `CheckSolidArc.sh` and CMake.
+
+This does not prove arbitrary shell/thicken, boxes through the new API, tilted/non-prismatic or
+curved profiles, concave/non-six-sided profiles, arbitrary openings, general offsets, or healing.
+The bounded plan is `docs/PLAN_Phase40_ExtrudedConvexPrismShell.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

@@ -181,6 +181,167 @@ struct FaceFrame
     return true;
 }
 
+[[nodiscard]] bool ReadExtrudedHexPrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
+                                       double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 12 || Source.Edges.size() != 18 ||
+        Source.Coedges.size() != 36 || Source.Loops.size() != 8 || Source.Faces.size() != 8)
+        return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    const int Loop = Cap.Loops.front();
+    if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != 6) return false;
+    for (int Vertex = 0; Vertex < static_cast<int>(Source.Vertices.size()); ++Vertex)
+    {
+        const double Z = Source.Vertices[Vertex].Point.Z;
+        if (Vertex == 0) { Low = Z; High = Z; }
+        else { Low = std::min(Low, Z); High = std::max(High, Z); }
+    }
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+    Polygon.clear(); Polygon.reserve(6);
+    for (int Coedge : Source.Loops[Loop].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepCoedge& C = Source.Coedges[Coedge];
+        if (C.Edge < 0 || C.Edge >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[C.Edge];
+        if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 ||
+            E.Coedges.size() != 2 || E.VertexStart < 0 || E.VertexEnd < 0) return false;
+        const int Start = C.Reversed ? E.VertexEnd : E.VertexStart;
+        const int End = C.Reversed ? E.VertexStart : E.VertexEnd;
+        if (Start < 0 || End < 0 || Start == End) return false;
+        Polygon.push_back(Source.Vertices[Start].Point);
+        if (std::fabs(Source.Vertices[Start].Point.Z - High) > ScalarCriteria::GeometricTolerance ||
+            std::fabs(Source.Vertices[End].Point.Z - High) > ScalarCriteria::GeometricTolerance) return false;
+    }
+    if (Polygon.size() != 6) return false;
+    double Area2 = 0.0;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        Area2 += A.X * B.Y - B.X * A.Y;
+    }
+    if (std::fabs(Area2) <= ScalarCriteria::GeometricTolerance) return false;
+    double Sign = 0.0;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        const Vec3& C = Polygon[(I + 2) % Polygon.size()];
+        const double Cross = (B.X - A.X) * (C.Y - B.Y) - (B.Y - A.Y) * (C.X - B.X);
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance ||
+            (Sign != 0.0 && Cross * Sign <= 0.0)) return false;
+        if (Sign == 0.0) Sign = Cross;
+    }
+    return true;
+}
+
+[[nodiscard]] bool OffsetConvexPolygon(const std::vector<Vec3>& Polygon, double Thickness,
+                                       std::vector<Vec3>& Inner) noexcept
+{
+    if (Polygon.size() != 6 || !std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance) return false;
+    double Area2 = 0.0;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+        Area2 += Polygon[I].X * Polygon[(I + 1) % Polygon.size()].Y -
+                 Polygon[(I + 1) % Polygon.size()].X * Polygon[I].Y;
+    if (std::fabs(Area2) <= ScalarCriteria::GeometricTolerance) return false;
+    const double Orientation = Area2 > 0.0 ? 1.0 : -1.0;
+    struct Line { Vec3 Point, Direction; } Lines[6];
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        const Vec3 D = B - A;
+        const double Length = std::hypot(D.X, D.Y);
+        if (Length <= ScalarCriteria::MergeTolerance) return false;
+        const Vec3 Inward = Orientation > 0.0 ? Vec3(-D.Y / Length, D.X / Length, 0.0)
+                                              : Vec3(D.Y / Length, -D.X / Length, 0.0);
+        Lines[I] = { A + Inward * Thickness, D / Length };
+    }
+    Inner.clear(); Inner.reserve(6);
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Line& A = Lines[(I + Polygon.size() - 1) % Polygon.size()];
+        const Line& B = Lines[I];
+        const double Cross = A.Direction.X * B.Direction.Y - A.Direction.Y * B.Direction.X;
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance) return false;
+        const Vec3 Delta = B.Point - A.Point;
+        const double T = (Delta.X * B.Direction.Y - Delta.Y * B.Direction.X) / Cross;
+        Vec3 P = A.Point + A.Direction * T;
+        P.Z = Polygon[I].Z;
+        Inner.push_back(P);
+    }
+    for (size_t I = 0; I < Inner.size(); ++I)
+    {
+        const Vec3& A = Inner[I];
+        const Vec3& B = Inner[(I + 1) % Inner.size()];
+        const Vec3& C = Inner[(I + 2) % Inner.size()];
+        const double Cross = (B.X - A.X) * (C.Y - B.Y) - (B.Y - A.Y) * (C.X - B.X);
+        if (Cross * Orientation <= ScalarCriteria::GeometricTolerance) return false;
+    }
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedConvexPrismShell(const BrepBody& Source, int Face, double Thickness) noexcept
+{
+    std::vector<Vec3> OuterTop;
+    double Low = 0.0, High = 0.0;
+    if (!ReadExtrudedHexPrism(Source, Face, OuterTop, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "convex-prism shell requires a six-sided vertical prism and its upper cap");
+    if (!std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "prism shell thickness must be finite and positive");
+    if (Thickness * 2.0 >= High - Low)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "prism shell thickness leaves no positive floor or wall");
+    std::vector<Vec3> InnerTop;
+    if (!OffsetConvexPolygon(OuterTop, Thickness, InnerTop))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "prism shell profile is not a feasible convex offset");
+    std::vector<NurbsSurface> Surfaces;
+    Surfaces.reserve(18);
+    const Vec3 Axis = Vec3::UnitZ();
+    for (size_t I = 0; I < OuterTop.size(); ++I)
+    {
+        const size_t J = (I + 1) % OuterTop.size();
+        const Vec3 OuterBottomA{ OuterTop[I].X, OuterTop[I].Y, Low };
+        const Vec3 OuterBottomB{ OuterTop[J].X, OuterTop[J].Y, Low };
+        const Vec3 InnerFloorA{ InnerTop[I].X, InnerTop[I].Y, Low + Thickness };
+        const Vec3 InnerFloorB{ InnerTop[J].X, InnerTop[J].Y, Low + Thickness };
+        const Vec3 OuterA = OuterTop[I], OuterB = OuterTop[J];
+        const Vec3 InnerA = InnerTop[I], InnerB = InnerTop[J];
+        const Deliver<NurbsCurve> OuterLine = NurbsCurve::Line(OuterBottomA, OuterBottomB);
+        const Deliver<NurbsCurve> InnerLine = NurbsCurve::Line(InnerFloorA, InnerFloorB);
+        const Deliver<NurbsCurve> RimOuter = NurbsCurve::Line(OuterA, OuterB);
+        const Deliver<NurbsCurve> RimInner = NurbsCurve::Line(InnerA, InnerB);
+        if (!OuterLine || !InnerLine || !RimOuter || !RimInner)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "prism shell generated a degenerate boundary");
+        const Deliver<NurbsSurface> OuterWall = NurbsSurface::Extrusion(OuterLine.Payload, Axis, High - Low);
+        const Deliver<NurbsSurface> InnerWall = NurbsSurface::Extrusion(InnerLine.Payload, Axis, High - Low - Thickness);
+        const Deliver<NurbsSurface> Rim = NurbsSurface::Ruled(RimOuter.Payload, RimInner.Payload);
+        if (!OuterWall || !InnerWall || !Rim)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "prism shell generated a degenerate wall");
+        Surfaces.push_back(OuterWall.Payload);
+        Surfaces.push_back(InnerWall.Payload);
+        Surfaces.push_back(Rim.Payload);
+    }
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "prism shell surfaces could not be sewn");
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 24 ||
+        Result.Payload.Edges.size() != 42 || Result.Payload.Coedges.size() != 84 || Result.Payload.Loops.size() != 20 ||
+        Result.Payload.Faces.size() != 20)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "prism shell did not reach V24/E42/C84/L20/F20 topology");
+    return Result;
+}
+
 [[nodiscard]] Deliver<BrepBody> ShellByExtrudedU(const BoxFrame& B, int Axis, int Sign, double T) noexcept
 {
     // Offset a rectangular prism in a local 2D cross-section and extrude it along the
@@ -353,13 +514,18 @@ Deliver<BrepBody> FaceEditSolver::ReplaceFace(const BrepBody& Source, int Face, 
 Deliver<BrepBody> FaceEditSolver::Shell(const BrepBody& Source, int Face, double Thickness) noexcept
 {
     FaceFrame F;
-    if (!ReadFace(Source, Face, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "shell/thicken currently requires a canonical axis-aligned box");
+    if (!ReadFace(Source, Face, F)) return ShellExtrudedConvexPrism(Source, Face, Thickness);
     if (!std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "shell thickness must be positive");
     const Vec3 D = F.Box.High - F.Box.Low;
     if (Thickness * 2.0 >= std::min(D.X, std::min(D.Y, D.Z)))
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "shell thickness leaves no positive inner cavity");
     return ShellByExtrudedU(F.Box, F.Axis, F.Sign, Thickness);
+}
+
+Deliver<BrepBody> FaceEditSolver::ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept
+{
+    return BuildExtrudedConvexPrismShell(Source, Face, Thickness);
 }
 
 } // namespace Frontier
