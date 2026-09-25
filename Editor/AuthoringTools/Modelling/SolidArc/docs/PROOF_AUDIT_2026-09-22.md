@@ -1166,6 +1166,29 @@ non-circular loops, lower/side faces, boxes through the new API, cylinders, tilt
 mixed supports, invalid offsets, malformed topology, healing, or general shell/thicken behavior. The
 bounded plan is `docs/PLAN_Phase46_TwinHoledPrismFaceOffset.md`.
 
+## Phase 47 — orthogonal concave-prism face offset (2026-09-25)
+
+This proof advances the non-box face-offset family into a non-convex single-loop profile domain,
+rather than replaying a convex polygon or adding another hole count:
+
+- `ConcavePrismFaceOffsetVerification` constructs the exact counter-clockwise L profile
+  `(-6,-4) -> (6,-4) -> (6,-1) -> (-1,-1) -> (-1,4) -> (-6,4)`, height 6, and upper-cap offset
+  1.5. Source and result retain closed genus-zero `V12/E18/C36/L8/F8` topology.
+- `FaceEditSolver::OffsetExtrudedConcavePrism` recognizes six line edges, two Z levels, vertical
+  generators, axis-aligned profile edges, and exactly one reflex turn on the selected upper planar
+  cap. It rebuilds the same L profile at the extended height without convexification or healing.
+- The focused verifier checks the L-profile area-times-height volume identity, reflex-loop recognition,
+  analytic planar/extrusion supports, source immutability, public dispatcher routing, and explicit
+  refusal of boxes, convex or other-sided profiles, non-orthogonal concavity, cylinders, lower/side
+  faces, invalid offsets, and malformed topology.
+- The durable proof is `Proofs/Phase47_ConcavePrismFaceOffset.png`; 24 checks pass in the focused
+  direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+The route remains bounded to the exact six-edge orthogonal concave-prism profile domain. It does not
+prove arbitrary concave or self-intersecting profiles, holes, lower/side faces, boxes through the new
+API, tilted/oblique/freeform/mixed supports, invalid offsets, malformed topology, healing, or general
+face editing. The bounded plan is `docs/PLAN_Phase47_ConcavePrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

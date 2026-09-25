@@ -389,6 +389,111 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadExtrudedConcavePrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
+                                             double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    constexpr size_t Sides = 6;
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 2 * Sides || Source.Edges.size() != 3 * Sides ||
+        Source.Coedges.size() != 6 * Sides || Source.Loops.size() != Sides + 2 || Source.Faces.size() != Sides + 2)
+        return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    const int Loop = Cap.Loops.front();
+    if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != Sides) return false;
+    Low = Source.Bounds().Low.Z; High = Source.Bounds().High.Z;
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& Vertex : Source.Vertices)
+    {
+        if (std::fabs(Vertex.Point.Z - Low) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(Vertex.Point.Z - High) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != static_cast<int>(Sides) || HighVertices != static_cast<int>(Sides)) return false;
+
+    for (const BrepEdge& Edge : Source.Edges)
+    {
+        if (Edge.Curve.Classification != CurveClassification::Line || Edge.Curve.Degree != 1 || Edge.Coedges.size() != 2 ||
+            Edge.VertexStart < 0 || Edge.VertexEnd < 0 || Edge.VertexStart >= static_cast<int>(Source.Vertices.size()) ||
+            Edge.VertexEnd >= static_cast<int>(Source.Vertices.size()) || Edge.VertexStart == Edge.VertexEnd) return false;
+        const Vec3 A = Source.Vertices[Edge.VertexStart].Point, B = Source.Vertices[Edge.VertexEnd].Point;
+        const bool AOnLevel = std::fabs(A.Z - Low) <= ScalarCriteria::GeometricTolerance ||
+                              std::fabs(A.Z - High) <= ScalarCriteria::GeometricTolerance;
+        const bool BOnLevel = std::fabs(B.Z - Low) <= ScalarCriteria::GeometricTolerance ||
+                              std::fabs(B.Z - High) <= ScalarCriteria::GeometricTolerance;
+        if (!AOnLevel || !BOnLevel) return false;
+        if (std::fabs(A.Z - B.Z) > ScalarCriteria::GeometricTolerance &&
+            (!Close(A.X, B.X, ScalarCriteria::GeometricTolerance) || !Close(A.Y, B.Y, ScalarCriteria::GeometricTolerance))) return false;
+    }
+    for (const BrepFace& FaceData : Source.Faces)
+        if (FaceData.Loops.size() != 1 || (FaceData.Surface.Classification != SurfaceClassification::Plane &&
+                                           FaceData.Surface.Classification != SurfaceClassification::Extrusion)) return false;
+
+    Polygon.clear(); Polygon.reserve(Sides);
+    for (int Coedge : Source.Loops[Loop].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepCoedge& C = Source.Coedges[Coedge];
+        if (C.Edge < 0 || C.Edge >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[C.Edge];
+        if (E.Curve.Classification != CurveClassification::Line || E.Coedges.size() != 2) return false;
+        const int Start = C.Reversed ? E.VertexEnd : E.VertexStart;
+        const int End = C.Reversed ? E.VertexStart : E.VertexEnd;
+        if (Start < 0 || End < 0 || Start == End ||
+            std::fabs(Source.Vertices[Start].Point.Z - High) > ScalarCriteria::GeometricTolerance ||
+            std::fabs(Source.Vertices[End].Point.Z - High) > ScalarCriteria::GeometricTolerance) return false;
+        Polygon.push_back(Source.Vertices[Start].Point);
+    }
+    if (Polygon.size() != Sides) return false;
+    double Area2 = 0.0;
+    int PositiveTurns = 0, NegativeTurns = 0;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        const Vec3& C = Polygon[(I + 2) % Polygon.size()];
+        const double DX = B.X - A.X, DY = B.Y - A.Y;
+        if ((std::fabs(DX) <= ScalarCriteria::GeometricTolerance) == (std::fabs(DY) <= ScalarCriteria::GeometricTolerance)) return false;
+        Area2 += A.X * B.Y - B.X * A.Y;
+        const double Cross = DX * (C.Y - B.Y) - DY * (C.X - B.X);
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance) return false;
+        if (Cross > 0.0) ++PositiveTurns; else ++NegativeTurns;
+    }
+    if (std::fabs(Area2) <= ScalarCriteria::GeometricTolerance ||
+        std::min(PositiveTurns, NegativeTurns) != 1 || std::max(PositiveTurns, NegativeTurns) != 5) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedConcavePrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    std::vector<Vec3> Polygon; double Low = 0.0, High = 0.0;
+    if (!ReadExtrudedConcavePrism(Source, Face, Polygon, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "concave-prism offset requires a six-edge orthogonal L-profile and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism offset distance must be finite and positive");
+    std::vector<Vec3> Profile;
+    Profile.reserve(Polygon.size());
+    for (const Vec3& P : Polygon) Profile.push_back({ P.X, P.Y, Low });
+    const Deliver<NurbsCurve> Curve = NurbsCurve::Polyline(Profile, true);
+    if (!Curve) return Deliver<BrepBody>::Reject(Curve.Denial.Reason, Curve.Denial.Detail);
+    Deliver<BrepBody> Result = BrepBody::Extrude(Curve.Payload, Vec3::UnitZ(), High - Low + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 12 || Result.Payload.Edges.size() != 18 ||
+        Result.Payload.Coedges.size() != 36 || Result.Payload.Loops.size() != 8 || Result.Payload.Faces.size() != 8)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "concave-prism offset did not retain V12/E18/C36/L8/F8 topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadExtrudedHoledPrism(const BrepBody& Source, int Face, Vec3& Low, Vec3& High,
                                           Vec3& HoleCentre, double& HoleRadius) noexcept
 {
@@ -1124,6 +1229,8 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
     {
         Deliver<BrepBody> Pentagon = OffsetExtrudedConvexPrism(Source, Face, Distance);
         if (Pentagon) return Pentagon;
+        Deliver<BrepBody> Concave = OffsetExtrudedConcavePrism(Source, Face, Distance);
+        if (Concave) return Concave;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
         if (Holed) return Holed;
         Deliver<BrepBody> TwinHoled = OffsetExtrudedTwinHoledPrism(Source, Face, Distance);
@@ -1235,6 +1342,11 @@ Deliver<BrepBody> FaceEditSolver::ShellExtrudedConvexPrism(const BrepBody& Sourc
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildPentagonalPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildExtrudedConcavePrismFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept

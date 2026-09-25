@@ -230,6 +230,11 @@ add_executable(TwinHoledPrismFaceOffsetVerification Verification/TwinHoledPrismF
 target_link_libraries(TwinHoledPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME TwinHoledPrismFaceOffsetVerification COMMAND TwinHoledPrismFaceOffsetVerification)
 
+# Phase 47: bounded orthogonal concave-prism upper-cap face offset.
+add_executable(ConcavePrismFaceOffsetVerification Verification/ConcavePrismFaceOffsetVerification.cpp)
+target_link_libraries(ConcavePrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConcavePrismFaceOffsetVerification COMMAND ConcavePrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
