@@ -20,6 +20,7 @@
 
 #include "CommandLine.h"
 
+#include <array>
 #include <cmath>
 #include <cstdarg>
 #include <cstddef>
@@ -181,7 +182,7 @@ namespace
         Writer.WriteBytes(Source.Indices.data(), Source.Indices.size() * sizeof(uint32_t));
         Writer.EndTable();
         Writer.BeginTable(kTagClst);
-        for (const ClusterRecord& Cluster : Source.Clusters) Writer.WriteRow(Cluster);
+        for (const ClusterRecord& Cluster : Source.Clusters) Writer.WriteRow(&Cluster, 48u);
         Writer.EndTable();
         std::vector<uint8_t> Out;
         std::string Error;
@@ -209,7 +210,10 @@ namespace
         Out.Indices.resize(IndexCount);
         std::memcpy(Out.Indices.data(), Payload.data() + IndicesAt, IndexCount * sizeof(uint32_t));
         std::string ClusterError;
-        Out.Clusters = Reader.Rows<ClusterRecord>(kTagClst, ClusterError);
+        Out.Clusters.clear();
+        for (const auto& Row : Reader.Rows<std::array<uint32_t,12>>(kTagClst, ClusterError))
+        { ClusterRecord C{}; std::memcpy(reinterpret_cast<unsigned char*>(&C), Row.data(), kSpaceClusterPrefixBytes); Out.Clusters.push_back(C); }
+        if (!ClusterError.empty()) { OutError = ClusterError; return false; }
         return true;
     }
 } // namespace
@@ -271,7 +275,7 @@ int main()
             const SpaceArchiveEntry Archive{};
 
             if (Type.Required == kTagMesh)        RowTable(kTagMesh, &Vertex, sizeof(Vertex));
-            else if (Type.Required == kTagClst)   RowTable(kTagClst, &Cluster, sizeof(Cluster));
+            else if (Type.Required == kTagClst)   RowTable(kTagClst, &Cluster, 48u);
             else if (Type.Required == kTagUvsp)   RowTable(kTagUvsp, &Island, sizeof(Island));
             else if (Type.Required == kTagPigm)   RowTable(kTagPigm, &Channel, sizeof(Channel));
             else if (Type.Required == kTagInst)   RowTable(kTagInst, &Instance, sizeof(Instance));
@@ -286,7 +290,7 @@ int main()
                 // .solution / .script / .runtime: META is the required table, so their own vocabulary rides on top.
                 if (Type.Tag == SpaceTag("SCRP")) RowTable(kTagStat, &State, sizeof(State));
                 if (Type.Tag == SpaceTag("RUNT")) RowTable(kTagStat, &State, sizeof(State));
-                if (Type.Tag == SpaceTag("SOLN")) RowTable(kTagClst, &Cluster, sizeof(Cluster));
+                if (Type.Tag == SpaceTag("SOLN")) RowTable(kTagClst, &Cluster, 48u);
                 RowTable(kTagRefs, &Slot, sizeof(SpaceMaterialSlot));   // a row, so the file is not vacuous
             }
             // Every file in the family may carry a camera and a luminaire: their presence is what makes the "unknown

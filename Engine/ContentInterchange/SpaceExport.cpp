@@ -77,7 +77,7 @@ bool SpaceExportGeometry(const SpaceExportContext& Context, const std::string& N
     Writer.WriteBytes(Indices, size_t(IndexCount) * sizeof(uint32_t));
     Writer.EndTable();
     Writer.BeginTable(kTagClst);
-    for (uint32_t I = 0u; I < ClusterCount; ++I) Writer.WriteRow(Clusters[I]);
+    for (uint32_t I = 0u; I < ClusterCount; ++I) Writer.WriteRow(&Clusters[I], kSpaceClusterPrefixBytes); // CLST v1 prefix; runtime LOD tail is derived cache data
     Writer.EndTable();
     if (!Writer.Finish(OutBytes, OutError)) return false;
     return true;

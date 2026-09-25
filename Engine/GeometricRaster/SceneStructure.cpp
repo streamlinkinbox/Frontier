@@ -5,6 +5,7 @@
 
 #include "SceneStructure.h"
 #include "ClipProjection.h"
+#include "PatchGeometry.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -135,12 +136,13 @@ uint32_t SceneStructure::RegisterInstance(const GeometryStructure& Mesh, const M
     const uint32_t VertexOffset = static_cast<uint32_t>(Vertices.size());
     Vertices.insert(Vertices.end(), MeshVertices.begin(), MeshVertices.end());
 
-    const bool DoubleSided = (Flags & InstanceFlagDoubleSided) != 0u;
+    // Reserve half of the primitive-token range for alternate indices.
+    constexpr uint32_t PatchInstanceCapacity = kInstanceTriangleCapacity / 2u;
 
-    // ③ Emit ≤ 16 384-triangle instances, each made of ≤ 128-triangle clusters.
-    for (uint32_t InstanceStart = 0u; InstanceStart < TriangleTotal; InstanceStart += kInstanceTriangleCapacity)
+    // ③ Emit ≤ 8 192-fine-triangle instances, each made of ≤ 128-triangle clusters.
+    for (uint32_t InstanceStart = 0u; InstanceStart < TriangleTotal; InstanceStart += PatchInstanceCapacity)
     {
-        const uint32_t InstanceTriangles = std::min(kInstanceTriangleCapacity, TriangleTotal - InstanceStart);
+        const uint32_t InstanceTriangles = std::min(PatchInstanceCapacity, TriangleTotal - InstanceStart);
         const uint32_t InstanceIndex     = static_cast<uint32_t>(Instances.size());
 
         InstanceRecord Instance{};
@@ -168,7 +170,7 @@ uint32_t SceneStructure::RegisterInstance(const GeometryStructure& Mesh, const M
                 LocalIndices.push_back(MeshIndices[Source * 3u + 2u]);
             }
 
-            ClusterRecord Cluster = ConstructCluster(MeshVertices.data(), LocalIndices.data(), ClusterTriangles, DoubleSided);
+            ClusterRecord Cluster = ConstructCluster(MeshVertices.data(), LocalIndices.data(), ClusterTriangles, false); // keep cone for LOD; culling still checks instance flags
             Cluster.InstanceIndex  = InstanceIndex;
             Cluster.FirstIndex     = static_cast<uint32_t>(Indices.size());
             Cluster.FirstPrimitive = ClusterStart;
@@ -178,6 +180,19 @@ uint32_t SceneStructure::RegisterInstance(const GeometryStructure& Mesh, const M
         }
 
         Instance.ClusterCount = static_cast<uint32_t>(Clusters.size()) - Instance.ClusterOffset;
+        // Append only AFTER all original indices: BVH, luminaires and shadow draws keep the original ranges.
+        for (uint32_t C = Instance.ClusterOffset; C < Clusters.size(); ++C)
+        {
+            auto& Patch = Clusters[C];
+            std::vector<uint32_t> Fine(Indices.begin()+Patch.FirstIndex, Indices.begin()+Patch.FirstIndex+Patch.TriangleCount*3u);
+            auto Coarse = PatchGeometry::LoadOrBake(MeshVertices, Fine);
+            if (Coarse.Indices.size() >= Fine.size()) continue;
+            Patch.CoarseFirstIndex = static_cast<uint32_t>(Indices.size());
+            Patch.CoarseFirstPrimitive = (Patch.CoarseFirstIndex-Instance.FirstIndex)/3u;
+            Patch.CoarseTriangleCount = static_cast<uint32_t>(Coarse.Indices.size()/3u);
+            Patch.CoarseError = Coarse.Error;
+            Indices.insert(Indices.end(),Coarse.Indices.begin(),Coarse.Indices.end());
+        }
         Instances.push_back(Instance);
     }
     return FirstInstance;

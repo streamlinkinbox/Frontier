@@ -36,7 +36,7 @@ FRONTIER_NAMES(ThemeCategory,            "Oled", "Dark", "Dim", "Light", "Sepia"
 FRONTIER_NAMES(AccentCategory,           "White", "Orange", "Amber", "Lime", "Emerald", "Cyan", "Blue", "Violet", "Fuchsia", "Rose");
 FRONTIER_NAMES(InputProfileCategory,     "Blender", "MayaUnity", "Unreal");
 FRONTIER_NAMES(RayTracingTierRequestCategory, "Auto", "Software", "RayQuery", "Pipeline");
-FRONTIER_NAMES(DebugViewSelection,       "Off", "Depth", "Visibility", "Motion", "Cluster", "HiZ", "Albedo", "Normal", "Roughness", "Metalness", "ShadingNormal", "ReservoirM", "ReservoirW", "ReservoirAge");
+FRONTIER_NAMES(DebugViewSelection,       "Off", "Depth", "Visibility", "Motion", "Cluster", "HiZ", "Albedo", "Normal", "Roughness", "Metalness", "ShadingNormal", "ReservoirM", "ReservoirW", "ReservoirAge", "PatchTiles", "PatchWire");
 FRONTIER_NAMES(FontWeightCategory,       "Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black");
 #undef FRONTIER_NAMES
 

@@ -59,7 +59,7 @@ struct HiZPushRecord { uint32_t SourceExtent[2]; uint32_t TargetExtent[2]; uint3
 
 const char* DebugViewName(DebugViewCategory View) noexcept
 {
-    static const char* Names[] = { "Off", "Depth", "Visibility ID", "Motion Vectors", "Cluster ID", "HiZ (level 3)", "Albedo", "Normal", "Roughness", "Metalness", "Shading Normal", "Reservoir M", "Reservoir W", "Reservoir Age" };
+    static const char* Names[] = { "Off", "Depth", "Visibility ID", "Motion Vectors", "Cluster ID", "HiZ (level 3)", "Albedo", "Normal", "Roughness", "Metalness", "Shading Normal", "Reservoir M", "Reservoir W", "Reservoir Age", "Patch Tiles", "Tiles + Wireframe" };
     const uint32_t I = static_cast<uint32_t>(View);
     return I < static_cast<uint32_t>(DebugViewCategory::Count) ? Names[I] : Names[0];
 }
@@ -101,7 +101,7 @@ struct VisibilityExchange::VulkanRecord
     VkBuffer  BorrowedReservoir = VK_NULL_HANDLE;             // R6 row 3: kernel's prev-frame reservoirs (resolve binding 13, M/W/Age views)
     VkSampler BorrowedSampler = VK_NULL_HANDLE;                 // R4b: bindless table sampler + views (raster binding 7)
     std::vector<VkImageView> BorrowedTextures;
-    uint32_t  TextureSlotCapacity = 0u;                         // 0 = no descriptor indexing: raster set stops at binding 5
+    uint32_t  TextureSlotCapacity = 0u;                         // 0 = no descriptor indexing: raster set stops at binding 6
     GpuBuffer Draws, Counters, VisibleBitsA, VisibleBitsB;      // per-frame cull state (device-local except counters)
     GpuBuffer CounterReadback[kMaximumCycleSlots];              // host-visible copies for telemetry
     GpuBuffer FrameConstants[kMaximumCycleSlots][2];            // [slot][phase]
@@ -494,18 +494,16 @@ bool VisibilityExchange::BringPipelines() noexcept
     constexpr VkShaderStageFlags CS = VK_SHADER_STAGE_COMPUTE_BIT, VS = VK_SHADER_STAGE_VERTEX_BIT, FS = VK_SHADER_STAGE_FRAGMENT_BIT;
     constexpr VkDescriptorType UBO = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SSBO = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, IMG = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, TEX = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-    // ① Cull: 0 frame, 1 instances, 2 clusters, 3 draws, 4 counters, 5 previous bits, 6 current bits, 7 HiZ
-    if (!MakeLayout({ Binding(0, UBO, CS), Binding(1, SSBO, CS), Binding(2, SSBO, CS), Binding(3, SSBO, CS), Binding(4, SSBO, CS), Binding(5, SSBO, CS), Binding(6, SSBO, CS), Binding(7, TEX, CS) }, Vulkan->CullLayout)) return false;
+    // ① Cull: 0 frame, 1 instances, 2 clusters, 3 draws, 4 counters, 5 previous bits, 6 current bits, 7 HiZ, 8 live materials, 9 live slabs
+    if (!MakeLayout({ Binding(0, UBO, CS), Binding(1, SSBO, CS), Binding(2, SSBO, CS), Binding(3, SSBO, CS), Binding(4, SSBO, CS), Binding(5, SSBO, CS), Binding(6, SSBO, CS), Binding(7, TEX, CS), Binding(8, SSBO, CS), Binding(9, SSBO, CS) }, Vulkan->CullLayout)) return false;
     if (!MakePipelineLayout(Vulkan->CullLayout, 0u, 0u, Vulkan->CullPipelineLayout)) return false;
     if (!MakeCompute("Engine/Shaders/ClusterCull.spv", Vulkan->CullPipelineLayout, Vulkan->CullPipeline)) return false;
 
     // ② Raster: 0 frame, 1 instances, 2 clusters, 3 vertices — R4b: 4 (unused), 5 materials, 6 slabs, 7 Textures[] (variable count, last) for the alpha mask
     {
-        std::vector<VkDescriptorSetLayoutBinding> RasterBindings{ Binding(0, UBO, VS | FS), Binding(1, SSBO, VS | FS), Binding(2, SSBO, VS | FS), Binding(3, SSBO, VS) };
+        std::vector<VkDescriptorSetLayoutBinding> RasterBindings{ Binding(0, UBO, VS | FS), Binding(1, SSBO, VS | FS), Binding(2, SSBO, VS | FS), Binding(3, SSBO, VS), Binding(5, SSBO, VS | FS), Binding(6, SSBO, VS | FS) };
         if (Vulkan->TextureSlotCapacity > 0u)
         {
-            RasterBindings.push_back(Binding(5, SSBO, FS));
-            RasterBindings.push_back(Binding(6, SSBO, FS));
             VkDescriptorSetLayoutBinding Table = Binding(7, TEX, FS); Table.descriptorCount = Vulkan->TextureSlotCapacity;
             RasterBindings.push_back(Table);
             std::vector<VkDescriptorBindingFlags> Flags(RasterBindings.size(), 0u);
@@ -979,17 +977,16 @@ void VisibilityExchange::WriteDescriptorSets() noexcept
             Buffer(C, 4u, SSBO, Vulkan->Counters.Buffer);
             // bindings 5/6 (previous / current bits) are written per frame in RecordFrame (parity swaps)
             Image (C, 7u, TEX,  Vulkan->HiZ.View);
+            Buffer(C, 8u, SSBO, Vulkan->Materials.Buffer);
+            Buffer(C, 9u, SSBO, Vulkan->BorrowedSlabs ? Vulkan->BorrowedSlabs : Vulkan->Materials.Buffer);
 
             VkDescriptorSet R = Vulkan->RasterSets[S][P];
             Buffer(R, 0u, UBO,  Vulkan->FrameConstants[S][P].Buffer);
             Buffer(R, 1u, SSBO, Vulkan->Instances.Buffer);
             Buffer(R, 2u, SSBO, Vulkan->Clusters.Buffer);
             Buffer(R, 3u, SSBO, Vulkan->Vertices.Buffer);
-            if (Vulkan->TextureSlotCapacity > 0u)
-            {
-                Buffer(R, 5u, SSBO, Vulkan->Materials.Buffer);
-                if (Vulkan->BorrowedSlabs) Buffer(R, 6u, SSBO, Vulkan->BorrowedSlabs);
-            }
+            Buffer(R, 5u, SSBO, Vulkan->Materials.Buffer);
+            Buffer(R, 6u, SSBO, Vulkan->BorrowedSlabs ? Vulkan->BorrowedSlabs : Vulkan->Materials.Buffer);
         }
         VkDescriptorSet X = Vulkan->ResolveSets[S];
         Buffer(X, 0u, UBO,  Vulkan->FrameConstants[S][1].Buffer);
@@ -1087,7 +1084,7 @@ void VisibilityExchange::WriteFrameConstants(uint32_t Slot, uint32_t Phase, cons
     R.Jitter[2] = Frame.JitterX; R.Jitter[3] = Frame.JitterY;
     R.Extent[0] = Frame.RenderWidth; R.Extent[1] = Frame.RenderHeight; R.Extent[2] = Vulkan->HiZ.Levels; R.Extent[3] = ClusterCount;
     R.Control[0] = Phase; R.Control[1] = Frame.FrameIndex; R.Control[2] = static_cast<uint32_t>(Frame.DebugView);
-    R.Control[3] = (Frame.OcclusionCulling && PreviousValid ? 1u : 0u) | (Frame.ConeCulling ? 2u : 0u);
+    R.Control[3] = (Frame.OcclusionCulling && PreviousValid ? 1u : 0u) | (Frame.ConeCulling ? 2u : 0u) | (Vulkan->BorrowedSlabs ? 4u : 0u);
     R.Projection[0] = ViewClip.Columns[0][0]; R.Projection[1] = std::fabs(ViewClip.Columns[1][1]);
     if (Vulkan->FrameConstants[Slot][Phase - 1u].Mapped) std::memcpy(Vulkan->FrameConstants[Slot][Phase - 1u].Mapped, &R, sizeof(R));
     if (Phase == 2u) { PreviousViewClip = ViewClip; PreviousValid = true; }

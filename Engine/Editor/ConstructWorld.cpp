@@ -47,7 +47,30 @@ void Build(GeometryStructure& M, ConstructKind K) {
             Vector3 N{std::cos(V)*std::cos(U),std::cos(V)*std::sin(U),std::sin(V)};
             return {{(.35f+.15f*std::cos(V))*std::cos(U),(.35f+.15f*std::cos(V))*std::sin(U),.15f*std::sin(V)},N};
         };
-        for(int I=0;I<32;++I) for(int J=0;J<Rings;++J) Quad(M,Sample(I,J),Sample(I+1,J),Sample(I+1,J+1),Sample(I,J+1));
+        // Indexed parametric grid: share interior edges while retaining the UV seam.
+        // Triangle soup with per-triangle UVs locks every edge against safe patch reduction.
+        std::vector<VertexRecord> Vertices;
+        const uint32_t Offset=static_cast<uint32_t>(M.QueryVertices().size());
+        for(int I=0;I<=32;++I) for(int J=0;J<=Rings;++J) {
+            auto P=Sample(I==32?0:I,K==ConstructKind::Torus&&J==Rings?0:J);
+            if(K==ConstructKind::Sphere&&(J==0||J==Rings)) P.N={0,0,J==0?1.f:-1.f},P.P=P.N*.5f;
+            float U=2*Pi*float(I==32?0:I)/32;
+            VertexRecord V{}; V.SpatialLocation=P.P;V.NormalDirection=P.N.Normalized();
+            V.TangentDirection={-std::sin(U),std::cos(U),0,1};
+            V.TextureCoordinateU=float(I)/32;V.TextureCoordinateV=float(J)/Rings;
+            Vertices.push_back(V);
+        }
+        M.AppendVertices(Vertices.data(),Vertices.size());
+        auto Emit=[&](uint32_t A,uint32_t B,uint32_t C) {
+            auto Cross=OrientationClassifier::CrossProduct(Vertices[B].SpatialLocation-Vertices[A].SpatialLocation,Vertices[C].SpatialLocation-Vertices[A].SpatialLocation);
+            if(Cross.LengthSquared()<1e-14f)return;
+            if(OrientationClassifier::DotProduct(Cross,Vertices[A].NormalDirection+Vertices[B].NormalDirection+Vertices[C].NormalDirection)<0)std::swap(B,C);
+            uint32_t Ix[]={Offset+A,Offset+B,Offset+C};M.AppendIndices(Ix,3);
+        };
+        for(uint32_t I=0;I<32;++I)for(uint32_t J=0;J<uint32_t(Rings);++J) {
+            uint32_t A=I*(Rings+1)+J,B=(I+1)*(Rings+1)+J,C=B+1,D=A+1;
+            Emit(A,B,C);Emit(A,C,D);
+        }
     } else {
         for(int I=0;I<32;++I) {
             float A=2*Pi*I/32,B=2*Pi*(I+1)/32;

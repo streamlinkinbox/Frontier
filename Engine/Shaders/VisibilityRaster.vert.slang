@@ -19,6 +19,11 @@ layout(location = 1)      out vec4  OutPreviousClip;    // previous frame, unjit
 layout(location = 2)      out vec4  OutCurrentClip;     // current frame, unjittered
 layout(location = 3)      out vec2  OutTexcoord;        // R4b: uv for the alpha-mask test in the fragment stage
 
+layout(std430, set=0, binding=5) readonly buffer PatchMaterialExtent { MaterialRecord Materials[]; };
+layout(std430, set=0, binding=6) readonly buffer PatchSlabExtent { MaterialSlabRecord MaterialSlabs[]; };
+#include "Shaders/PatchSelection.slang"
+layout(location=4) flat out uint OutFirstPrimitive;
+
 void main()
 {
     uint           ClusterIndex = uint(gl_InstanceIndex);
@@ -33,6 +38,7 @@ void main()
     OutCurrentClip  = Clip;
     OutPreviousClip = PreviousViewClip * Previous;
     OutCluster      = ClusterIndex;
+    OutFirstPrimitive = SelectPatchCoarse(Cluster, Instance) ? Cluster.CoarseFirstPrimitive : Cluster.FirstPrimitive;
     OutTexcoord     = Vertices[uint(gl_VertexIndex)].Texcoord.xy;
 
     Clip.xy    += Jitter.xy * Clip.w;   // sub-pixel jitter (AA) on the rasterised position only

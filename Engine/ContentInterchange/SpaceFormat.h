@@ -65,7 +65,7 @@ namespace Frontier
     inline constexpr SpaceTag kTagType  = SpaceTag("TYPE");   // what this file IS: a four-byte type tag + a revision
     inline constexpr SpaceTag kTagMeta  = SpaceTag("META");   // name, exporter, revisions, build config, sources
     inline constexpr SpaceTag kTagMesh  = SpaceTag("MESH");   // VertexRecord[] + u32 indices
-    inline constexpr SpaceTag kTagClst  = SpaceTag("CLST");   // ClusterRecord[] — LOD/cluster ranges
+    inline constexpr SpaceTag kTagClst  = SpaceTag("CLST");   // frozen 48-byte ClusterRecord prefix[]; runtime patch tail is NOT serialized here
     inline constexpr SpaceTag kTagUvsp  = SpaceTag("UVSP");   // UV islands: ranges, seams, texel density
     inline constexpr SpaceTag kTagMatl  = SpaceTag("MATL");   // MaterialRecord + MaterialSlabRecord[]
     inline constexpr SpaceTag kTagPigm  = SpaceTag("PIGM");   // paint layers, channels, resolution, stroke blobs

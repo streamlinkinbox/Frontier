@@ -25,6 +25,7 @@ layout(location = 1)      in vec4  InPreviousClip;
 layout(location = 2)      in vec4  InCurrentClip;
 layout(location = 3)      in vec2  InTexcoord;
 
+layout(location=4) flat in uint InFirstPrimitive;
 layout(location = 0) out uint OutVisibility;
 layout(location = 1) out vec2 OutMotion;
 
@@ -38,7 +39,7 @@ void main()
                       * texture(Textures[nonuniformEXT(Material.Textures.x)], InTexcoord).a;
         if (Opacity < Material.AlphaCutoff) discard;
     }
-    OutVisibility = PackVisibility(Cluster.InstanceIndex, Cluster.FirstPrimitive + uint(gl_PrimitiveID));
+    OutVisibility = PackVisibility(Cluster.InstanceIndex, InFirstPrimitive + uint(gl_PrimitiveID));
 
     vec2 CurrentUv  = InCurrentClip.xy  / InCurrentClip.w  * 0.5 + 0.5;
     vec2 PreviousUv = InPreviousClip.xy / InPreviousClip.w * 0.5 + 0.5;

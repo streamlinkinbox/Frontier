@@ -55,7 +55,9 @@ enum class DebugViewCategory : uint32_t
     ReservoirM   = 11,  // R6 row 3: reservoir sample count M (white ramp, saturates at 256)
     ReservoirW   = 12,  // R6 row 3: reservoir unbiased weight W (1−exp(−W·k) heat ramp)
     ReservoirAge = 13,  // R6 row 3: reservoir age in frames (ramp, saturates at 16)
-    Count        = 14
+    PatchTiles   = 14,
+    PatchWire    = 15,
+    Count        = 16
 };
 
 [[nodiscard]] const char* DebugViewName(DebugViewCategory View) noexcept;

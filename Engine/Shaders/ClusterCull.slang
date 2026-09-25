@@ -100,6 +100,10 @@ bool OccludedByHiZ(vec3 Center, float Radius)
 //                                                        MAIN
 //------------------------------------------------------------------------------------------------------------------------
 
+layout(std430, set=0, binding=8) readonly buffer PatchMaterialExtent { MaterialRecord Materials[]; };
+layout(std430, set=0, binding=9) readonly buffer PatchSlabExtent { MaterialSlabRecord MaterialSlabs[]; };
+#include "Shaders/PatchSelection.slang"
+
 void main()
 {
     uint ClusterIndex = gl_GlobalInvocationID.x;
@@ -153,14 +157,16 @@ void main()
     uint Slot = atomicAdd(Counters[Phase == 1u ? kCounterDrawCount : kCounterDrawCountPhaseTwo], 1u);
     uint Base = Phase == 1u ? 0u : Extent.w;
 
+    bool Coarse = SelectPatchCoarse(Cluster, Instance);
+    uint TriangleCount = Coarse ? Cluster.CoarseTriangleCount : Cluster.TriangleCount;
     DrawCommand Draw;
-    Draw.IndexCount    = Cluster.TriangleCount * 3u;
+    Draw.IndexCount    = TriangleCount * 3u;
     Draw.InstanceCount = 1u;
-    Draw.FirstIndex    = Cluster.FirstIndex;
+    Draw.FirstIndex    = Coarse ? Cluster.CoarseFirstIndex : Cluster.FirstIndex;
     Draw.VertexOffset  = int(Instance.VertexOffset);
     Draw.FirstInstance = ClusterIndex;
     Draws[Base + Slot] = Draw;
 
-    atomicAdd(Counters[kCounterTriangleDrawn], Cluster.TriangleCount);
+    atomicAdd(Counters[kCounterTriangleDrawn], TriangleCount);
     if (Phase == 1u) { atomicAdd(Counters[kCounterPhaseOneDrawn], 1u); atomicOr(IsVisible[Word], Bit); }
 }

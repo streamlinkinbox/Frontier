@@ -829,6 +829,7 @@ constexpr QuickTileStructure TileTable[static_cast<size_t>(QuickTileCategory::Co
     { QuickTileCategory::FrameRateOverlay,   ControlCentreIconCategory::GaugeFrameRate,       "FPS Overlay",         false },
     { QuickTileCategory::Notifications,      ControlCentreIconCategory::NotificationsBell,    "Notifications",       false },
     { QuickTileCategory::Quality,            ControlCentreIconCategory::SlidersQuality,       "Quality",             true  },
+    { QuickTileCategory::PatchGeometry, ControlCentreIconCategory::SlidersQuality, "Patch Geometry", true },
 };
 
 constexpr uint32_t GridColumns = 4u;
@@ -912,6 +913,7 @@ bool ControlCentreHost::IsTileActive(QuickTileCategory Tile) const noexcept
         case QuickTileCategory::AntiAliasing:       return Settings.AntiAliasing;
         case QuickTileCategory::FrameRateOverlay:   return Settings.FrameRateOverlay;
         case QuickTileCategory::Notifications:      return Settings.Notifications;
+        case QuickTileCategory::PatchGeometry:      return Settings.PatchDebug != 0u;
         case QuickTileCategory::Quality:            return true;   // a cycler is always "lit"; its label carries the state
         default:                                    return false;
     }
@@ -931,6 +933,7 @@ void ControlCentreHost::ToggleTile(QuickTileCategory Tile) noexcept
         case QuickTileCategory::AntiAliasing:       Settings.AntiAliasing       = !Settings.AntiAliasing;       break;
         case QuickTileCategory::FrameRateOverlay:   Settings.FrameRateOverlay   = !Settings.FrameRateOverlay; NotificationPage.MirrorFrameRateOverlay(Settings.FrameRateOverlay); break;
         case QuickTileCategory::Notifications:      Settings.Notifications      = !Settings.Notifications;      break;
+        case QuickTileCategory::PatchGeometry:      Settings.PatchDebug = (Settings.PatchDebug + 1u) % 3u; break;
         case QuickTileCategory::Quality:            Settings.Quality            = NextFidelity(Settings.Quality); break;
         default: return;
     }
@@ -1084,6 +1087,8 @@ void ControlCentreHost::ConstructTileLayout(PixelSpace& Surface, uint32_t Slot, 
     {
         Label = FidelityLabel(Settings.Quality);
     }
+    else if (Tile.Category == QuickTileCategory::PatchGeometry)
+    { Label = Settings.PatchDebug == 0u ? "Patches: Off" : Settings.PatchDebug == 1u ? "Patch Tiles" : "Tiles + Wireframe"; }
     else if (Tile.Category == QuickTileCategory::Reflections)
     {
         if (Settings.ReflectionBounces == 0u) std::snprintf(DynamicLabel, sizeof(DynamicLabel), "Refl: Off");

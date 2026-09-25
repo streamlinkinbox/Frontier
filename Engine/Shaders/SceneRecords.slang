@@ -57,7 +57,7 @@ struct InstanceRecord          // 160 B — SceneStructure.h
     uint FlatTriangleOffset;
 };
 
-struct ClusterRecord           // 48 B — SceneStructure.h
+struct ClusterRecord           // 64 B — SceneStructure.h
 {
     vec4 Sphere;               // xyz = object-space centre, w = radius
     vec4 Cone;                 // xyz = object-space axis,   w = cutoff (1.0 = never culled)
@@ -65,6 +65,10 @@ struct ClusterRecord           // 48 B — SceneStructure.h
     uint FirstIndex;
     uint TriangleCount;
     uint FirstPrimitive;
+    uint CoarseFirstIndex;
+    uint CoarseTriangleCount;
+    uint CoarseFirstPrimitive;
+    float CoarseError;
 };
 
 struct MaterialRecord          // 64 B — ContentInterchange/MaterialIndex.h (R4a header; Tier A fast path)

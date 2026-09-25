@@ -7,7 +7,7 @@
 // Layout contract (mirrored in Shaders/SceneRecords.slang — change both or neither):
 //    VertexRecord     64 B  GeometryStructure.h   (pos.xyz pad | normal.xyz pad | tangent.xyzw | u v pad pad)
 //    InstanceRecord  160 B  World, PreviousWorld (column-major), mesh range, material, cluster range
-//    ClusterRecord    48 B  object-space bounding sphere + normal cone + triangle range   (cull unit, ≤ 128 triangles)
+//    ClusterRecord    64 B  object-space bounding sphere + normal cone + triangle range   (cull unit, ≤ 128 triangles)
 //    LuminaireRecord  32 B  emissive triangle + Walker alias entry for O(1) light selection
 //    MaterialRecord   64 B  ContentInterchange/MaterialIndex.h (header) + MaterialSlabRecord 288 B per slab (R4a)
 //    TriangleIndex    64 B  SwapchainExchange.h — flattened world-space triangles addressed by the CWBVH primitive index
@@ -15,7 +15,7 @@
 //    PlacementRecord / CameraRecord / PunctualLuminaireRecord — CPU-only scene-graph rows (R4a, data only, no UI).
 //
 // Visibility identifier (GeometricRaster/VisibilityProjection.h): 18-bit instance token << 14 | 14-bit primitive token.
-//    A mesh with more than 16 384 triangles is split into several InstanceRecords sharing one transform, so the
+//    A mesh with more than 8 192 fine triangles is split into several InstanceRecords sharing one transform, so the
 //    primitive token never overflows. 0xFFFFFFFF = nothing rasterised.
 
 #pragma once
@@ -28,6 +28,7 @@
 #include "../DeviceExchange/SwapchainExchange.h"
 #include "../ContentInterchange/MaterialIndex.h"
 #include <cstdint>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -49,7 +50,7 @@ struct InstanceRecord
     float    PreviousWorld[16];         // [-]   last frame's object → world (motion vectors)
     uint32_t VertexOffset;              // [idx] added to every index of this instance (vertexOffset of the draw)
     uint32_t FirstIndex;                // [idx] first index in the shared index buffer
-    uint32_t TriangleCount;             // [cnt] triangles in this instance (≤ 16 384)
+    uint32_t TriangleCount;             // [cnt] triangles in this instance (≤ 8 192)
     uint32_t MaterialIndex;             // [idx] RadianceStructure slot
     uint32_t ClusterOffset;             // [idx] first ClusterRecord of this instance (clusters are contiguous per instance)
     uint32_t ClusterCount;              // [cnt]
@@ -72,8 +73,13 @@ struct ClusterRecord
     uint32_t FirstIndex;                // [idx] absolute first index in the shared index buffer
     uint32_t TriangleCount;             // [cnt] ≤ kClusterTriangleCapacity
     uint32_t FirstPrimitive;            // [idx] primitive token of the first triangle (within the instance)
+    uint32_t CoarseFirstIndex = 0, CoarseTriangleCount = 0, CoarseFirstPrimitive = 0;
+    float CoarseError = 0;              // conservative accumulated object-space endpoint displacement
 };
-static_assert(sizeof(ClusterRecord) == 48u, "ClusterRecord must be 48 bytes (std430 mirror)");
+static_assert(sizeof(ClusterRecord) == 64u, "ClusterRecord must be 64 bytes (std430 mirror)");
+
+inline constexpr size_t kSpaceClusterPrefixBytes = 48u; // frozen CLST v1 ABI
+static_assert(offsetof(ClusterRecord,CoarseFirstIndex)==kSpaceClusterPrefixBytes);
 
 static constexpr uint32_t kClusterTriangleCapacity = 128u;
 static constexpr uint32_t kInstanceTriangleCapacity = 1u << 14;   // 14-bit primitive token
@@ -158,7 +164,7 @@ public:
     SceneStructure(const SceneStructure&) = delete;
     SceneStructure& operator=(const SceneStructure&) = delete;
 
-    // Append one mesh (object space) under a world transform. The mesh is split into ≤ 16 384-triangle instances and
+    // Append one mesh (object space) under a world transform. The mesh is split into ≤ 8 192-triangle instances and
     //    ≤ 128-triangle clusters; returns the first InstanceRecord index. Indices are into `Mesh`'s vertex span.
     uint32_t                RegisterInstance(const GeometryStructure& Mesh, const Matrix4x4& World, uint32_t MaterialIndex, uint32_t Flags) noexcept;
     uint32_t                RegisterMaterial(const MaterialDescriptor& Material) noexcept;
@@ -191,7 +197,7 @@ public:
     [[nodiscard]] const std::vector<LuminaireRecord>&   QueryLuminaires() const noexcept { return Luminaires; }
     [[nodiscard]] const std::vector<TriangleIndex>&     QueryFlatTriangles() const noexcept { return FlatTriangles; }
     [[nodiscard]] float                                 QueryLuminairePower() const noexcept { return TotalLuminairePower; }
-    [[nodiscard]] uint32_t                              QueryTriangleCount() const noexcept { return static_cast<uint32_t>(Indices.size() / 3u); }
+    [[nodiscard]] uint32_t                              QueryTriangleCount() const noexcept { uint32_t Count = 0; for (const auto& I : Instances) Count += I.TriangleCount; return Count; }
     [[nodiscard]] const std::string&                    QueryName() const noexcept { return Name; }
     void                                                AssignName(std::string NewName) noexcept { Name = std::move(NewName); }
 

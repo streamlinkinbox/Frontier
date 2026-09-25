@@ -1569,6 +1569,11 @@ int main(int argc, char** argv)
             if (M.QueryCommitRevision() != AppliedMaterialsCommit)
             {
                 AppliedMaterialsCommit = M.QueryCommitRevision();
+                // Patch selection must see the same live glass/opacity/emission state as shading.
+                // Apply previously only derived CPU records. This authoring-time, idle upload is
+                // deliberately conservative (not a per-frame fast path); it also refreshes emitters.
+                Level.Finalise(std::max(1u, Level.QueryMaterials().QueryMetrics().SlabLimit));
+                Surface.UploadScene(Level, Traversal, &Textures);
                 Integrator.ResetAccumulation();   // committed constants change the shading - restart like any look change
                 if (ControlCentre.QueryNotifications().QueryApplied().RenderFinished)
                 {
@@ -1831,7 +1836,7 @@ int main(int argc, char** argv)
             Frame.JitterX          = Jittered ? Halton(Integrator.QueryAccumulationIndex(), 2u) : 0.5f;
             Frame.JitterY          = Jittered ? Halton(Integrator.QueryAccumulationIndex(), 3u) : 0.5f;
             Frame.FrameIndex       = Integrator.QueryAccumulationIndex();
-            Frame.DebugView        = Diagnostics.QueryView();
+            Frame.DebugView        = ControlCentre.QuerySettings().PatchDebug == 1u ? Frontier::DebugViewCategory::PatchTiles : ControlCentre.QuerySettings().PatchDebug == 2u ? Frontier::DebugViewCategory::PatchWire : Diagnostics.QueryView();
             Frame.OcclusionCulling = Diagnostics.QueryOcclusion();
             Frame.ConeCulling      = false;   // the kernel shades both faces; cone culling would remove back-facing walls seen from outside
             Surface.AssignVisibilityFrame(Frame);

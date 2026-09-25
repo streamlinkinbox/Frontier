@@ -102,7 +102,8 @@ enum class QuickTileCategory : uint32_t
     FrameRateOverlay   = 3,
     Notifications      = 4,
     Quality            = 5,
-    Count              = 6
+    PatchGeometry      = 6,
+    Count              = 7
 };
 
 // One entry of the 4 × 2 quick-settings grid. Slots ≥ Count are empty and draw nothing.
@@ -132,6 +133,7 @@ struct ControlCentreSettings
     bool             SkyReservoir       = true;     // [-] #27B: sky-light reuse — the dome rides the DI reservoir
                                                     //     (less shimmer on glass/gloss facing sky). Render page row,
                                                     //     deliberately NOT a quick tile.
+    uint32_t         PatchDebug = 0u; // 0 Off / 1 Patch Tiles / 2 Tiles + Wireframe (session-local)
     uint32_t         Revision           = 0u;       // [-] bumps on every change; projects compare to react
 };
 

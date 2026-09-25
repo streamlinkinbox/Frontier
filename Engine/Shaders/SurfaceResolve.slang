@@ -81,6 +81,7 @@ void main()
     vec3  Position   = vec3(0.0);
     vec3  Normal     = vec3(0.0, 0.0, 1.0);
     uint  Material   = 0u;
+    float WireDistance = 1e20;
     uint  ClusterId  = 0u;
     vec3  ShadingNormal = vec3(0.0, 0.0, 1.0);
 
@@ -95,6 +96,25 @@ void main()
         vec3 C = (Instance.World * vec4(Vertices[Indices[Base + 2u] + Instance.VertexOffset].Position.xyz, 1.0)).xyz;
         Material  = Instance.MaterialIndex;
         ClusterId = Instance.ClusterOffset + Primitive / 128u;
+        if (Primitive >= Instance.TriangleCount) {
+            for(uint q=0u;q<Instance.ClusterCount;++q) {
+                ClusterRecord P=Clusters[Instance.ClusterOffset+q];
+                if(Primitive>=P.CoarseFirstPrimitive && Primitive<P.CoarseFirstPrimitive+P.CoarseTriangleCount) {ClusterId=Instance.ClusterOffset+q;break;}
+            }
+        }
+        if(Control.z==15u) {
+            vec4 CA=ViewClip*vec4(A,1),CB=ViewClip*vec4(B,1),CC=ViewClip*vec4(C,1);
+            if(min(CA.w,min(CB.w,CC.w))>1e-6) {
+                vec2 P[3]=vec2[3]((CA.xy/CA.w+Jitter.xy+1.0)*0.5*vec2(Extent.xy),
+                                 (CB.xy/CB.w+Jitter.xy+1.0)*0.5*vec2(Extent.xy),
+                                 (CC.xy/CC.w+Jitter.xy+1.0)*0.5*vec2(Extent.xy));
+                for(int e=0;e<3;++e) {
+                    vec2 E=P[(e+1)%3]-P[e], D=vec2(Pixel)+0.5-P[e];
+                    WireDistance=min(WireDistance,abs(E.x*D.y-E.y*D.x)/max(length(E),1e-6));
+                }
+            }
+        }
+
 
         CameraBasis Camera;
         Camera.Origin = CameraOrigin.xyz; Camera.Forward = CameraForward.xyz; Camera.Right = CameraRight.xyz; Camera.Up = CameraUp.xyz;
@@ -142,7 +162,7 @@ void main()
         Colour = Hit ? vec3(1.0 - exp(-Linear * 0.1)) : vec3(0.0);
     }
     else if (View == kDebugVisibility) Colour = Hit ? HashColour(Visibility) : vec3(0.0);
-    else if (View == kDebugCluster)    Colour = Hit ? HashColour(ClusterId * 2654435761u) : vec3(0.0);
+    else if (View == kDebugCluster || View == 14u || View == 15u)    Colour = Hit ? HashColour(ClusterId * 2654435761u) : vec3(0.0);
     else if (View == kDebugMotion)
     {
         vec2 Motion = texelFetch(MotionImage, ivec2(Pixel), 0).rg * vec2(Extent.xy);   // pixels
@@ -170,5 +190,6 @@ void main()
         else                                  Colour = vec3(1.0 - exp(-R.UvDepth.z * 0.25));
     }
 
+    if(View==15u && Hit) Colour *= mix(0.12,1.0,smoothstep(0.5,1.3,WireDistance));
     imageStore(OutputImage, ivec2(Pixel), vec4(Colour, 1.0));
 }
