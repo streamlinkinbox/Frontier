@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 VULKAN_ROOT=""
-for Candidate in ExternalPackages/Vulkan-Headers "${MATERIAL_SCENES_EXT:-}/Vulkan-Headers" "$HOME/.cache/m7/Vulkan-Headers"; do
+for Candidate in ExternalPackages/vulkan-headers ExternalPackages/Vulkan-Headers "${MATERIAL_SCENES_EXT:-}/Vulkan-Headers" "$HOME/.cache/m7/Vulkan-Headers"; do
     if [ -f "$Candidate/include/vulkan/vulkan.h" ]; then VULKAN_ROOT="$Candidate"; break; fi
 done
 if [ -z "$VULKAN_ROOT" ]; then

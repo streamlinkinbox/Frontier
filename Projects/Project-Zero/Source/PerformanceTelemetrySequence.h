@@ -45,6 +45,11 @@ struct PerformanceWorkload
     uint32_t    ExtraCandidates  = 0u;        // [cnt]
     uint32_t    SpatialTaps      = 0u;        // [cnt]
     uint32_t    DenoiseLevels    = 0u;        // [cnt] à-trous levels
+    double CpuCelestialTickMs=0, CpuSunMoonSolveMs=0, CpuSkyPackUploadMs=0, CpuWeatherPostPackUploadMs=0;
+    uint64_t CelestialBufferPayloadBytes=0, CelestialBufferAllocationBytes=0;
+    uint32_t SkySunUniformBytes=0, CloudFogUniformBytes=0, PostUniformBytes=0;
+    uint32_t CloudSteps=0, LocalSteps=0, LightTaps=0;
+    bool SunShown=false, SkyShown=false, CloudActive=false, LocalCloudActive=false, FogActive=false;
     const char* PresentMode      = "";        // [-]   resolved VkPresentModeKHR name, for the prose line
 };
 
@@ -74,6 +79,7 @@ public:
     [[nodiscard]] uint32_t QueryReportCount()      const noexcept { return ReportCount; }
 
 private:
+    double CelestialCpuSum[4]{};
     float    ReportInterval   = 5.0f;   // [s]
     float    WindowSeconds    = 0.0f;   // [s]   accumulated since the last report
     float    PeakSeconds      = 0.0f;   // [s]   worst single frame in the window

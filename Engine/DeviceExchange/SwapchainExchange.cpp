@@ -194,6 +194,9 @@ struct SwapchainExchange::VulkanRecord
     //    project re-packs it every frame and RefreshSky is a memcpy, never a reallocation or a descriptor
     //    rewrite. Zeroed at bring-up, which is the sky disabled (SunRadiance.w = 0) — a caller that never
     //    pushes keeps the old no-environment-light behaviour rather than reading garbage.
+    mutable VkBuffer CelestialUsageHandles[4]{};
+    mutable CelestialBufferUsage CelestialUsage{};
+    uint64_t StarPayloadBytes=kStarCellCount*kStarCellBytes;
     VkBuffer                 SkyBuffer             = VK_NULL_HANDLE;
     VkDeviceMemory           SkyMemory             = VK_NULL_HANDLE;
     void*                    SkyMapped             = nullptr;
@@ -2895,6 +2898,23 @@ bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexc
     return true;
 }
 
+CelestialBufferUsage SwapchainExchange::QueryCelestialBufferUsage() const noexcept
+{
+    if(!Vulkan || !Vulkan->Device)return {};
+    const VkBuffer Handles[4]={Vulkan->SkyBuffer,Vulkan->MoonBuffer,Vulkan->PostBuffer,Vulkan->StarBuffer};
+    if(std::memcmp(Handles,Vulkan->CelestialUsageHandles,sizeof(Handles))!=0){
+        Vulkan->CelestialUsage={};
+        const uint64_t Payloads[4]={kSkyRecordBytes,kMoonRecordBytes,kPostRecordBytes,Vulkan->StarPayloadBytes};
+        for(unsigned I=0;I<4;++I)if(Handles[I]){
+            VkMemoryRequirements R{};vkGetBufferMemoryRequirements(Vulkan->Device,Handles[I],&R);
+            Vulkan->CelestialUsage.AllocationBytes+=R.size;
+            Vulkan->CelestialUsage.PayloadBytes+=Payloads[I];
+        }
+        std::memcpy(Vulkan->CelestialUsageHandles,Handles,sizeof(Handles));
+    }
+    return Vulkan->CelestialUsage;
+}
+
 void SwapchainExchange::UploadStarTables(const void* CellBytes, uint32_t CellCount,
                                          const void* StarBytes, uint32_t StarCount) noexcept
 {
@@ -2924,6 +2944,7 @@ void SwapchainExchange::UploadStarTables(const void* CellBytes, uint32_t CellCou
     if (Vulkan->StarMapped) vkUnmapMemory(Vulkan->Device, Vulkan->StarMemory);
     if (Vulkan->StarBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->StarBuffer, nullptr);
     if (Vulkan->StarMemory) vkFreeMemory(Vulkan->Device, Vulkan->StarMemory, nullptr);
+    Vulkan->StarPayloadBytes=TotalBytes;
     Vulkan->StarBuffer = NewBuffer; Vulkan->StarMemory = NewMemory; Vulkan->StarMapped = NewMapped;
     // Re-point binding 23 at the reallocated buffer. A single write — re-running the whole set would stomp the
     //    per-frame texture table state that UploadScene established after bring-up.

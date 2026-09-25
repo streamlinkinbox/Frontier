@@ -1136,6 +1136,7 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
             if (!Have(A) || !Have(B) || Value(B) <= Value(A)) return 0.0f;
             return static_cast<float>(static_cast<double>(Value(B) - Value(A)) * Vulkan->TimestampPeriod * 1e-6);
         };
+        Telemetry.FrameMilliseconds=Ms(0,11);
         Telemetry.CullMilliseconds    = Ms(0, 1) + Ms(6, 7);
         Telemetry.RasterMilliseconds  = Ms(2, 3) + Ms(8, 9);
         Telemetry.HiZMilliseconds     = Ms(4, 5);

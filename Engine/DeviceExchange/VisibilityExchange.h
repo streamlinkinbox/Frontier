@@ -91,11 +91,12 @@ struct VisibilityTelemetry
     uint32_t PhaseOneDraws     = 0u;    // [cnt] clusters re-drawn from last frame's set
     uint32_t PhaseTwoDraws     = 0u;    // [cnt] newly visible clusters
     uint32_t TrianglesDrawn    = 0u;    // [cnt] both phases
+    float    FrameMilliseconds=0.0f; // timestamp 0..11: visibility through trailing compute, excludes UI/present
     float    CullMilliseconds     = 0.0f;
     float    RasterMilliseconds   = 0.0f;
     float    HiZMilliseconds      = 0.0f;
     float    ResolveMilliseconds  = 0.0f;
-    float    KernelMilliseconds   = 0.0f;   // post-resolve compute MINUS the shadow stage (denoise + luminance + ReSTIR)
+    float    KernelMilliseconds   = 0.0f;   // legacy: ReSTIR if present, otherwise non-shadow trailing work
     float    ShadowMilliseconds   = 0.0f;   // R10 ②: the GI-off shadow stage — maps rasterised + ShadowResolve
     float    RestirMilliseconds   = 0.0f;   // R10 ②: the ReSTIR dispatch alone (0 when GI is off)
     float    PostMilliseconds     = 0.0f;   // trailing compute excluding shadow/ReSTIR/weather spans and history snapshot; includes denoise + luminance

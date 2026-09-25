@@ -11,8 +11,15 @@ export default defineConfig({
   server: { host: '0.0.0.0', allowedHosts: ['.e2b.app'], proxy: { '/api/construct': 'http://127.0.0.1:5191' } },
   plugins: [{
     name: 'standalone-experimental-pages',
+    configureServer(server) {
+      // Optional dedicated lab landing page; normal editor startup is unchanged.
+      if (process.env.FRONTIER_LOD_DEMO === '1') server.middlewares.use((req, _res, next) => {
+        if (req.url === '/') req.url = '/cluster-lod.html';
+        next();
+      });
+    },
     closeBundle() {
-      for (const page of ['icons.html', 'collection-icon-options.html']) {
+      for (const page of ['icons.html', 'collection-icon-options.html', 'cluster-lod.html', 'cluster-lod-core.js', 'cluster-lod-demo.js']) {
         copyFileSync(resolve(root, page), resolve(root, 'dist', page));
       }
       for (const directory of ['custom-icons', 'ui-icons']) {

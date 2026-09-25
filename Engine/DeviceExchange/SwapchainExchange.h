@@ -206,6 +206,10 @@ static_assert(sizeof(DispatchConfiguration) == 128u, "DispatchConfiguration must
 //                                                  SWAPCHAIN EXCHANGE
 //------------------------------------------------------------------------------------------------------------------------
 
+struct CelestialBufferUsage {
+    uint64_t PayloadBytes=0, AllocationBytes=0;
+};
+
 class SwapchainExchange
 {
 public:
@@ -325,6 +329,7 @@ public:
     [[nodiscard]] bool          QueryFullscreen() const noexcept { return FullscreenActive; }
     [[nodiscard]] const char*   QueryPresentModeName() const noexcept;   // resolved VkPresentModeKHR, for diagnostics
 
+    [[nodiscard]] CelestialBufferUsage QueryCelestialBufferUsage() const noexcept;
     [[nodiscard]] uint32_t      QueryWidth()  const noexcept { return Configuration.Width;  }
     [[nodiscard]] uint32_t      QueryHeight() const noexcept { return Configuration.Height; }
 

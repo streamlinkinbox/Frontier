@@ -228,6 +228,7 @@ public:
     void ApplyWindComponentSheet(uint32_t Id,const EditorSheet& Sheet) noexcept;
     void BuildWindBinding(CelestialEntity Entity,EditorSheet& Sheet) const noexcept;
     void ApplyWindBinding(CelestialEntity Entity,const EditorSheet& Sheet) noexcept;
+    double CpuSunMoonSolveMs=0; // measured CPU ephemeris call, not GPU sunlight
     CloudLayerSettings   Cloud{};
     LocalVolumeSettings  LocalCloud{};
     LocalVolumeSettings  LocalFog{};

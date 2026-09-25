@@ -1412,6 +1412,8 @@ int main(int argc, char** argv)
         Telemetry.RecordFrame(Δτ);
         FRONTIER_PROBE_LAP(InputAndUi);
 
+        double CpuCelestialTickMs=0, CpuSkyPackUploadMs=0, CpuWeatherPostPackUploadMs=0;
+        const auto CelestialTickStart=std::chrono::steady_clock::now();
         // ①a' The sky and the weather. Ticked here, beside the other per-frame advances, so the clock, the wind
         //     phase and the precipitation pool all move exactly once and in a fixed order. The camera position
         //     is what the precipitation emitter follows — it is a world-space cylinder about the viewer, with no
@@ -1421,6 +1423,7 @@ int main(int argc, char** argv)
             const float CameraWorld[3] = { Eye.x, Eye.y, Eye.z };
             Celestial.Tick(static_cast<float>(Δτ), CameraWorld, 0.0f);
         }
+        CpuCelestialTickMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-CelestialTickStart).count();
         FRONTIER_PROBE_LAP(CelestialTick);
 
         // ①b' F3 debug popup: view / HiZ / alias-pick toggles persist to [render] and restart the accumulation.
@@ -2364,8 +2367,10 @@ int main(int argc, char** argv)
         //     away — there is nothing to fall back to, and the previous contents stand, which is a stale sky
         //     rather than a torn one.
         {
+            const auto SkyPackStart=std::chrono::steady_clock::now();
             const Frontier::SkyConstantRecord Sky = Celestial.PackSkyRecord();
             (void)Surface.RefreshSky(&Sky, sizeof(Sky));
+            CpuSkyPackUploadMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-SkyPackStart).count();
 
             // ⚠️ The sun casts a shadow, and this is where it is told to. The ReSTIR kernel has sampled the sun as a
             //    direct light since it landed (kSunLightIndex / PHatSun), but the GI-off shadow stage only ever
@@ -2549,10 +2554,12 @@ int main(int argc, char** argv)
             const float ForwardArray[3] = { Forward.x, Forward.y, Forward.z };
             const float RightArray[3]   = { Right.x, Right.y, Right.z };
             const float UpArray[3]      = { Upward.x, Upward.y, Upward.z };
+            const auto WeatherPackStart=std::chrono::steady_clock::now();
             const Frontier::PostConstantRecord Post =
                 Celestial.PackPostRecord(ForwardArray, RightArray, UpArray, Dispatch.FieldOfViewTanHalf,
                                          Camera.QueryAspectRatio(), RenderHeight, SunVisibility);
             (void)Surface.RefreshPost(&Post, sizeof(Post));
+            CpuWeatherPostPackUploadMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-WeatherPackStart).count();
             // Weather composites after clean lighting history; wind must not reset GI.
             if (std::memcmp(&Post, &LastPost, offsetof(Frontier::PostConstantRecord, Weather)) != 0)
             {
@@ -2595,8 +2602,29 @@ int main(int argc, char** argv)
         //    RecordMeasurement (a row).
         {
             Frontier::ProjectZero::PerformanceWorkload Workload;
-            Workload.RenderWidth     = Surface.QueryWidth();
-            Workload.RenderHeight    = Surface.QueryHeight();
+            Workload.CpuCelestialTickMs=CpuCelestialTickMs;
+            Workload.CpuSunMoonSolveMs=Celestial.CpuSunMoonSolveMs;
+            Workload.CpuSkyPackUploadMs=CpuSkyPackUploadMs;
+            Workload.CpuWeatherPostPackUploadMs=CpuWeatherPostPackUploadMs;
+            const auto CelestialMemory=Surface.QueryCelestialBufferUsage();
+            Workload.CelestialBufferPayloadBytes=CelestialMemory.PayloadBytes;
+            Workload.CelestialBufferAllocationBytes=CelestialMemory.AllocationBytes;
+            Workload.SkySunUniformBytes=sizeof(Frontier::SkyConstantRecord);
+            Workload.CloudFogUniformBytes=sizeof(Frontier::WeatherConstantRecord);
+            Workload.PostUniformBytes=sizeof(Frontier::PostConstantRecord);
+            Workload.CloudSteps=Celestial.Budget.Volumetrics.CloudSteps;
+            Workload.LocalSteps=Celestial.Budget.Volumetrics.LocalSteps;
+            Workload.LightTaps=Celestial.Budget.Volumetrics.LightTaps;
+            auto Shown=[&](Frontier::ProjectZero::CelestialEntity E){return Celestial.Enabled&&Celestial.Shown[uint32_t(E)];};
+            Workload.SunShown=Shown(Frontier::ProjectZero::CelestialEntity::Sun);
+            Workload.SkyShown=Shown(Frontier::ProjectZero::CelestialEntity::Sky);
+            Workload.CloudActive=Shown(Frontier::ProjectZero::CelestialEntity::CloudLayer)&&Celestial.Cloud.Enabled;
+            Workload.LocalCloudActive=Shown(Frontier::ProjectZero::CelestialEntity::LocalCloud)&&Celestial.LocalCloud.Enabled;
+            Workload.FogActive=(Shown(Frontier::ProjectZero::CelestialEntity::LocalFog)&&Celestial.LocalFog.Enabled)
+                ||(Shown(Frontier::ProjectZero::CelestialEntity::HeightFog)&&Celestial.Fog.HeightEnabled)
+                ||(Shown(Frontier::ProjectZero::CelestialEntity::AtmosphericFog)&&Celestial.Fog.AerialEnabled);
+            Workload.RenderWidth     = RenderWidth;
+            Workload.RenderHeight    = RenderHeight;
             Workload.PresentMode     = Surface.QueryPresentModeName();
             const Frontier::ReSTIRIntegratorConfiguration& C = Integrator.QueryConfiguration();
             Workload.Candidates      = C.CandidatesPerPixel;
@@ -2618,8 +2646,8 @@ int main(int argc, char** argv)
         if (VisTelem.Valid)
         {
             Frontier::TelemetryGpuTimings Gpu;
-            Gpu.FrameTotalMs = VisTelem.CullMilliseconds + VisTelem.RasterMilliseconds + VisTelem.HiZMilliseconds + VisTelem.ResolveMilliseconds + VisTelem.KernelMilliseconds + VisTelem.ShadowMilliseconds;
-            Gpu.ReSTIRMs = VisTelem.RestirMilliseconds > 0.0f ? VisTelem.RestirMilliseconds : VisTelem.KernelMilliseconds;
+            Gpu.FrameTotalMs = VisTelem.FrameMilliseconds;
+            Gpu.ReSTIRMs = VisTelem.RestirMilliseconds;
             Gpu.RasterMs = VisTelem.RasterMilliseconds;
             Gpu.ResolveMs = VisTelem.ResolveMilliseconds;
             Gpu.PostMs = VisTelem.PostMilliseconds;

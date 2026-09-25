@@ -20,6 +20,10 @@ bool PerformanceTelemetrySequence::AdvanceFrame(float DeltaSeconds,
                                                 float                      FramesPerSecond,
                                                 float                      ResidentMebibytes) noexcept
 {
+    CelestialCpuSum[0]+=Workload.CpuCelestialTickMs;
+    CelestialCpuSum[1]+=Workload.CpuSunMoonSolveMs;
+    CelestialCpuSum[2]+=Workload.CpuSkyPackUploadMs;
+    CelestialCpuSum[3]+=Workload.CpuWeatherPostPackUploadMs;
     SampleCount   += 1u;
     WindowSeconds += DeltaSeconds;
     PeakSeconds    = std::max(PeakSeconds, DeltaSeconds);
@@ -46,6 +50,30 @@ bool PerformanceTelemetrySequence::AdvanceFrame(float DeltaSeconds,
     Logger.RecordMeasurement("FrameSampleCount", static_cast<double>(SampleCount),       "count");
     Logger.RecordMeasurement("ResidentMemory",   static_cast<double>(ResidentMebibytes), "MiB");
 
+    const char* CpuNames[4]={"CpuCelestialTickMeanMs","CpuSunMoonSolveMeanMs","CpuSkyPackUploadMeanMs","CpuWeatherPostPackUploadMeanMs"};
+    for(unsigned I=0;I<4;++I){Logger.RecordMeasurement(CpuNames[I],CelestialCpuSum[I]/SampleCount,"ms");CelestialCpuSum[I]=0;}
+    Logger.RecordMeasurement("CelestialBufferPayloadBytes",double(Workload.CelestialBufferPayloadBytes),"bytes");
+    Logger.RecordMeasurement("CelestialBufferAllocationBytes",double(Workload.CelestialBufferAllocationBytes),"bytes");
+    Logger.RecordMeasurement("SkySunUniformPayloadBytes",Workload.SkySunUniformBytes,"bytes");
+    Logger.RecordMeasurement("CloudFogUniformPayloadBytes",Workload.CloudFogUniformBytes,"bytes");
+    Logger.RecordMeasurement("PostUniformPayloadBytes",Workload.PostUniformBytes,"bytes");
+    Logger.RecordMeasurement("WeatherDedicatedVolumeImageBytes",0,"bytes");
+    Logger.RecordMeasurement("CloudViewStepBudget",Workload.CloudSteps,"steps");
+    Logger.RecordMeasurement("LocalVolumeStepBudget",Workload.LocalSteps,"steps");
+    Logger.RecordMeasurement("CloudLightTapBudget",Workload.LightTaps,"taps");
+    Logger.RecordMeasurement("SunShown",Workload.SunShown,"bool");
+    Logger.RecordMeasurement("SkyShown",Workload.SkyShown,"bool");
+    Logger.RecordMeasurement("CloudActive",Workload.CloudActive,"bool");
+    Logger.RecordMeasurement("LocalCloudActive",Workload.LocalCloudActive,"bool");
+    Logger.RecordMeasurement("FogActive",Workload.FogActive,"bool");
+    Logger.RecordMeasurement("GpuSeparateSkySunCloudTimersAvailable",0,"bool");
+    Logger.RecordMessage(DiagnosticSeverity::Information,"CelestialTiming",
+        "On the ReSTIR path sky, sun lighting, clouds and fog execute INLINE: separate timings N/A, not zero cost. "
+        "Map-only sun lighting instead shares the shadow stage. "
+        "GpuReSTIRMs includes geometry/materials/lighting/weather. CPU pack timings are not GPU execution. "
+        "Buffer bytes cover sky+moon+post+stars only; textures, shared targets/history and shadow maps are excluded; "
+        "cloud density has no dedicated volume image. Budgets are limits, not measured step counts.");
+
     LastMeanMs = MeanMs;
     LastPeakMs = PeakMs;
 
@@ -54,24 +82,19 @@ bool PerformanceTelemetrySequence::AdvanceFrame(float DeltaSeconds,
         //──────────────────────────────────────────────────────────────────────
         // GPU stage timings — the device's own timestamps
         //──────────────────────────────────────────────────────────────────────
-        // ⚠️ KernelMilliseconds ALREADY CONTAINS RestirMilliseconds + PostMilliseconds — it is "all post-resolve
-        //    compute except the shadow stage", and the other two are its breakdown, not additional stages. Adding
-        //    Restir or Post to this sum double-counts them and inflates the total by ~60 %, which would then make
-        //    every percentage-of-frame figure wrong in the direction that hides a problem. Sum the parents only:
-        //    cull, raster, HiZ, resolve, kernel, shadow, sky, volume.
-        const float GpuTotal = Gpu.CullMilliseconds + Gpu.RasterMilliseconds + Gpu.HiZMilliseconds
-                             + Gpu.ResolveMilliseconds + Gpu.KernelMilliseconds + Gpu.ShadowMilliseconds
-                             + Gpu.SkyMilliseconds + Gpu.VolumeMilliseconds;
+        // One measured span, not a sum of overlapping stage intervals. The former
+        // KernelMilliseconds assumption became stale when it changed to ReSTIR-only.
+        // This ends before editor overlay/presentation, so it is not total board time.
+        const float GpuTotal = Gpu.FrameMilliseconds;
 
         std::snprintf(Line, sizeof(Line),
                       "GPU %.2f ms total | cull %.2f · raster %.2f · HiZ %.2f · resolve %.2f · "
-                      "ReSTIR %.2f · shadow %.2f · post %.2f · sky %.2f · volume %.2f",
+                      "ReSTIR %.2f · shadow %.2f · post %.2f · sky/sun/cloud N/A (shared stages)",
                       static_cast<double>(GpuTotal),
                       static_cast<double>(Gpu.CullMilliseconds),   static_cast<double>(Gpu.RasterMilliseconds),
                       static_cast<double>(Gpu.HiZMilliseconds),    static_cast<double>(Gpu.ResolveMilliseconds),
                       static_cast<double>(Gpu.RestirMilliseconds), static_cast<double>(Gpu.ShadowMilliseconds),
-                      static_cast<double>(Gpu.PostMilliseconds),   static_cast<double>(Gpu.SkyMilliseconds),
-                      static_cast<double>(Gpu.VolumeMilliseconds));
+                      static_cast<double>(Gpu.PostMilliseconds));
         Logger.RecordMessage(DiagnosticSeverity::Information, "GpuTiming", Line);
 
         // A stage that did not run this frame reports 0 rather than being omitted, so the row set is the same
@@ -86,6 +109,9 @@ bool PerformanceTelemetrySequence::AdvanceFrame(float DeltaSeconds,
         Logger.RecordMeasurement("GpuPostMs",       static_cast<double>(Gpu.PostMilliseconds),     "ms");
         Logger.RecordMeasurement("GpuSkyMs",        static_cast<double>(Gpu.SkyMilliseconds),      "ms");
         Logger.RecordMeasurement("GpuVolumeMs",     static_cast<double>(Gpu.VolumeMilliseconds),   "ms");
+        Logger.RecordMeasurement("GpuHistorySnapshotMs",Gpu.HistorySnapshotMilliseconds,"ms");
+        for(unsigned I=0;I<5;++I){char Name[40];std::snprintf(Name,sizeof(Name),"GpuDenoiseL%uMs",I);Logger.RecordMeasurement(Name,Gpu.DenoiseLevelMilliseconds[I],"ms");}
+
 
         //──────────────────────────────────────────────────────────────────────
         // What the culling threw away

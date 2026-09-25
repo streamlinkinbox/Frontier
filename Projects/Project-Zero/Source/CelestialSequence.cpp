@@ -1,3 +1,4 @@
+#include <chrono>
 //============================================================================================================================================
 //                                                 CELESTIALSEQUENCE.CPP
 //============================================================================================================================================
@@ -365,7 +366,9 @@ void CelestialSequence::Tick(float DeltaSeconds, const float Camera[3], float Gr
     }
 
     // ② The ephemeris, from whatever the clock now says.
+    const auto SolveStart=std::chrono::steady_clock::now();
     Solved = CelestialSolver::Solve(Observation);
+    CpuSunMoonSolveMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-SolveStart).count();
     for (int C = 0; C < 3; ++C) Light.Direction[C] = Solved.Sun.Direction[C];
 
     // ③ The wind's gust phase. Everything downstream advects by this, so it moves before they do.

@@ -69,6 +69,7 @@ VisibilityTelemetry SyntheticGpuFrame()
     G.RasterMilliseconds  = 1.80f;
     G.HiZMilliseconds     = 0.31f;
     G.ResolveMilliseconds = 0.95f;
+    G.FrameMilliseconds = 19.5f; // measured 0..11 span, not a sum of overlapping intervals
     G.KernelMilliseconds  = 11.20f;
     G.RestirMilliseconds  = 11.20f;
     G.ShadowMilliseconds  = 2.60f;
@@ -95,6 +96,9 @@ PerformanceWorkload SyntheticWorkload()
     W.SpatialTaps     = 3u;
     W.DenoiseLevels   = 5u;
     W.PresentMode     = "MAILBOX";
+    W.CpuCelestialTickMs=.4;W.CpuSunMoonSolveMs=.1;W.CpuSkyPackUploadMs=.2;W.CpuWeatherPostPackUploadMs=.3;
+    W.CelestialBufferPayloadBytes=1024;W.CelestialBufferAllocationBytes=4096;
+    W.SkySunUniformBytes=144;W.CloudFogUniformBytes=336;W.PostUniformBytes=544;
     return W;
 }
 
@@ -166,7 +170,7 @@ int main()
         Check(Sequence.QueryReportCount() == 2u, "the sequence counts its own reports");
         Check(Sequence.QueryMeanMilliseconds() > 15.0f && Sequence.QueryMeanMilliseconds() < 17.0f,
               "the reported mean frame time is the 16 ms it was fed");
-        Check(Sequence.QueryGpuBound(), "18.9 ms of GPU against a 16 ms frame is correctly called GPU-BOUND");
+        Check(Sequence.QueryGpuBound(), "19.5 ms of GPU against a 16 ms frame is correctly called GPU-BOUND");
     }
 
     // ── ③ the rows are actually in the file ─────────────────────────────────────────────────────────────────────
@@ -175,6 +179,16 @@ int main()
 
     struct Expected { const char* Token; const char* Unit; double Value; };
     const Expected Required[] = {
+        { "CpuCelestialTickMeanMs", "ms", .4 },
+        { "CpuSunMoonSolveMeanMs", "ms", .1 },
+        { "CpuSkyPackUploadMeanMs", "ms", .2 },
+        { "CpuWeatherPostPackUploadMeanMs", "ms", .3 },
+        { "CelestialBufferPayloadBytes", "bytes", 1024 },
+        { "CelestialBufferAllocationBytes", "bytes", 4096 },
+        { "GpuSeparateSkySunCloudTimersAvailable", "bool", 0 },
+        { "SkySunUniformPayloadBytes", "bytes", 144 },
+        { "CloudFogUniformPayloadBytes", "bytes", 336 },
+        { "PostUniformPayloadBytes", "bytes", 544 },
         // CPU
         { "FrameTimeMeanMs",   "ms",      16.0   },
         { "FrameTimePeakMs",   "ms",      16.0   },
@@ -182,9 +196,7 @@ int main()
         { "FrameSampleCount",  "count",    0.0   },   // value varies with the window; presence and unit are the point
         { "ResidentMemory",    "MiB",    512.0   },
         // GPU — the device timestamp pool
-        { "GpuFrameTotalMs",   "ms",      18.18  },   // cull+raster+HiZ+resolve+KERNEL+shadow+sky+volume;
-                                                       //    Kernel already includes ReSTIR and Post, so they are
-                                                       //    NOT added again (that bug inflates the total by ~60 %)
+        { "GpuFrameTotalMs",   "ms",      19.5  },   // directly measured 0..11 span; stage intervals are not summed
         { "GpuCullMs",         "ms",       0.42  },
         { "GpuRasterMs",       "ms",       1.80  },
         { "GpuHiZMs",          "ms",       0.31  },
@@ -229,8 +241,8 @@ int main()
     // The two that are range-checked rather than pinned.
     {
         const auto Share = Rows.find("ReSTIRShareOfFrame");
-        Check(Share != Rows.end() && Share->second.first > 58.0 && Share->second.first < 65.0,
-              "ReSTIRShareOfFrame is ~62 % — 11.2 of 18.18 ms, the number that explains a pegged GPU");
+        Check(Share != Rows.end() && Share->second.first > 56.0 && Share->second.first < 59.0,
+              "ReSTIRShareOfFrame uses measured 19.5 ms, not the overlapping component sum");
         const auto Samples = Rows.find("FrameSampleCount");
         Check(Samples != Rows.end() && Samples->second.first > 50.0,
               "FrameSampleCount reports the frames actually in the window");
@@ -242,6 +254,10 @@ int main()
         std::ifstream In(Path);
         std::ostringstream Buffer; Buffer << In.rdbuf();
         const std::string Text = Buffer.str();
+        Check(Rows.at("GpuSeparateSkySunCloudTimersAvailable").first==0,
+              "unavailable inline GPU timing is explicitly flagged, not sold as zero cost");
+        Check(Text.find("N/A, not zero cost")!=std::string::npos,
+              "celestial timing limitations are actually written to the report");
         Check(Text.find("CPU 16.00 ms/frame") != std::string::npos,
               "the human-readable prose line is still written (it was never the problem)");
         Check(Text.find("GPU-BOUND") != std::string::npos,
