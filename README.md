@@ -128,3 +128,7 @@ Flux/Ripple are included with a tested **load-time Ripple mesh bridge**, not liv
 ## GPU fluid tests and startup memory logs
 
 Project-Zero now has `--fluid-preview`, `--fluid-gpu-test` and `--fluid-cpu-test` modes. The GPU extraction implementation has a tested CPU mirror; hardware execution remains unverified. [Build/run instructions, scope, logging and RAM investigation](Docs/FluidGpuTesting.md).
+
+## Startup timing and RAM reports
+
+Use `python Tools/Build/ReportStartup.py PATH_TO_STARTUP.csv --output Build/Diagnostics/startup-report.md` to count overlapping worker intervals once and inspect resident/peak/committed memory separately. [How to compare logs with Task Manager](Docs/StartupReporting.md). New logs include the process ID and render-loop memory samples about every ten seconds.

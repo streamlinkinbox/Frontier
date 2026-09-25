@@ -1382,6 +1382,7 @@ int main(int argc, char** argv)
     Frontier::ProjectZero::PerformanceTelemetrySequence PerformanceTelemetry{ 5.0f };
 
     Startup.Mark("FrameLoopReady"); uint32_t StartupFrames=0;
+    auto LastMemorySample = Frontier::ProjectZero::StartupLog::Now();
     while (!Surface.CloseRequested() && !Panel.Convert<bool>())
     {
         const auto  NowTime = Clock::now();
@@ -2583,6 +2584,10 @@ int main(int argc, char** argv)
         Surface.RecordAndPresent(FinalDispatch);
         if(++StartupFrames==1)Startup.Mark("FirstPresentReturned");
         if(StartupFrames==120)Startup.Mark("After120Frames");
+        // Sample after presentation, not on a background thread: this measures the render-loop
+        // process without pretending that a sample is attributable to one asynchronous job.
+        if (Frontier::ProjectZero::StartupLog::Elapsed(LastMemorySample) >= 10000.0)
+        { Startup.Mark("RuntimeMemory"); LastMemorySample = Frontier::ProjectZero::StartupLog::Now(); }
         FRONTIER_PROBE_LAP(RecordAndPresent);
 
         Integrator.IncrementAccumulationIndex();
