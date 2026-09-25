@@ -1828,6 +1828,29 @@ drafts. It does not prove boxes through this API, other polygonal profiles, obli
 freeform/mixed supports, cap drafts, healing, or general non-box draft networks. Its bounded plan is
 `docs/PLAN_Phase45_TriangularPrismDraft.md`.
 
+#### Phase 46: bounded genus-two twin-holed-prism upper-cap face offset ✅
+
+The face-offset family now covers a bounded multi-loop genus-two profile. `FaceEditSolver::OffsetExtrudedTwinHoledPrism`
+recognizes only a closed axis-aligned rectangular prism with exactly two separate circular through-holes and
+an upper planar cap containing one four-edge outer loop plus two one-edge inner loops. It extends the
+upper cap by a positive distance while rebuilding the same two-hole prism, preserving both circular
+rims and loop identities; it is distinct from the prior genus-one holed-prism route.
+
+`TwinHoledPrismFaceOffsetVerification` constructs the exact 16 x 10 x 6 fixture with radius-1.25 holes at
+(-4,0) and (4,0), offset 1.5, and validates source/result `V12/E18/C36/L12/F8` topology, genus two,
+closed-manifold status, four rational circular rims, the rectangle-minus-two-hole volume identity,
+source immutability, deterministic loop pairing, public dispatch, and transactional refusal of hole-free,
+one-hole, three-hole, overlapping, non-circular, non-rectangular, lower/side, box, cylinder, invalid,
+malformed, and healing-dependent cases. The durable proof is `Proofs/Phase46_TwinHoledPrismFaceOffset.png`;
+24 checks pass in the focused direct gate. The verifier and proof are registered in `CMakeLists.txt` and
+`Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to the exact rectangular genus-two twin-holed prism and positive upper-cap
+extension. It does not prove arbitrary multi-loop profiles, four-or-more holes, wall-consuming or
+intersecting loops, non-circular holes, non-rectangular outers, lower/side faces, cylinders, tilted,
+oblique, freeform, mixed, healing-dependent, or general shell/thicken face editing. Its bounded plan is
+`docs/PLAN_Phase46_TwinHoledPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

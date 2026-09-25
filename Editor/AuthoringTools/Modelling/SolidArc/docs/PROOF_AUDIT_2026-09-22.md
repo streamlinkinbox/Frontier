@@ -1141,6 +1141,31 @@ This does not prove boxes through this API, other polygonal profiles, oblique pr
 mixed supports, cap drafts, healing, or general non-box draft networks. The bounded plan is
 `docs/PLAN_Phase45_TriangularPrismDraft.md`.
 
+## Phase 46 — genus-two twin-holed-prism face offset (2026-09-25)
+
+This proof adds a distinct bounded multi-loop topology domain rather than another cone/bicone blend or
+single-hole replay:
+
+- `TwinHoledPrismFaceOffsetVerification` constructs the exact axis-aligned 16 x 10 x 6 rectangular
+  prism with separate radius-1.25 through-holes centered at (-4,0) and (4,0), then offsets its upper
+  three-loop cap by 1.5. Source and result retain `V12/E18/C36/L12/F8` and genus two.
+- `FaceEditSolver::OffsetExtrudedTwinHoledPrism` recognizes one four-edge rectangular outer loop and
+  exactly two one-edge rational circular inner loops, validates separate interior holes, and rebuilds
+  the upper-cap extension with both hole rims intact. Loop order is normalized by center, so pairing is
+  deterministic; no healing or generic fallback is used.
+- The focused verifier checks the rectangle-minus-two-hole volume identity, closed-manifold and exact
+  topology reports, four circular rims, source immutability, public dispatcher routing, reversed-loop
+  determinism, and explicit refusal of hole-free/one-hole/three-hole, overlapping or non-circular
+  loops, cylinders, lower/side faces, invalid offsets, and malformed input.
+- The durable proof is `Proofs/Phase46_TwinHoledPrismFaceOffset.png`; 24 checks pass in the focused
+  direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+The route remains bounded to the exact closed rectangular genus-two twin-holed prism. It does not
+prove arbitrary multi-loop or non-rectangular profiles, three-or-more holes, wall-consuming holes,
+non-circular loops, lower/side faces, boxes through the new API, cylinders, tilted/oblique/freeform/
+mixed supports, invalid offsets, malformed topology, healing, or general shell/thicken behavior. The
+bounded plan is `docs/PLAN_Phase46_TwinHoledPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

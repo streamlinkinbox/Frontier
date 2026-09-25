@@ -225,6 +225,11 @@ add_executable(TriangularPrismDraftVerification Verification/TriangularPrismDraf
 target_link_libraries(TriangularPrismDraftVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME TriangularPrismDraftVerification COMMAND TriangularPrismDraftVerification)
 
+# Phase 46: bounded genus-two rectangular twin-holed-prism upper-cap face offset.
+add_executable(TwinHoledPrismFaceOffsetVerification Verification/TwinHoledPrismFaceOffsetVerification.cpp)
+target_link_libraries(TwinHoledPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TwinHoledPrismFaceOffsetVerification COMMAND TwinHoledPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
