@@ -35,6 +35,10 @@ public:
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
+    // Bounded curved-profile offset route for a straight prism with one axis-aligned exact ellipse.
+    // Only its upper planar cap is supported; circles, tilted profiles, and freeform curves remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedEllipticalPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
     // Draft one vertical (+/-X or +/-Y) face about the source Z direction. Angle is in radians and
     // positive moves the selected wall outward at the high-Z end.
     [[nodiscard]] static Deliver<BrepBody> Draft(const BrepBody& Source, int Face, double AngleRadians) noexcept;

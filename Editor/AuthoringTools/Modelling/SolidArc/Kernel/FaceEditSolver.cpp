@@ -531,6 +531,113 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ExactAxisAlignedEllipse(const NurbsCurve& Curve, double& MajorRadius, double& MinorRadius,
+                                            Vec3& Centre) noexcept
+{
+    if (!Curve.Closed() || !Curve.Rational() || Curve.Degree != 2 || Curve.PoleCount() != 9 ||
+        std::fabs(Curve.AxisZ.Normalised().Dot(Vec3::UnitZ())) < 1.0 - UnitTolerance) return false;
+    const Box3 Bounds = Curve.Bounds();
+    const double SpanX = Bounds.High.X - Bounds.Low.X;
+    const double SpanY = Bounds.High.Y - Bounds.Low.Y;
+    if (SpanX <= ScalarCriteria::MergeTolerance || SpanY <= ScalarCriteria::MergeTolerance ||
+        std::fabs(SpanX - SpanY) <= ScalarCriteria::GeometricTolerance) return false;
+    MajorRadius = std::max(SpanX, SpanY) * 0.5;
+    MinorRadius = std::min(SpanX, SpanY) * 0.5;
+    Centre = { 0.5 * (Bounds.Low.X + Bounds.High.X), 0.5 * (Bounds.Low.Y + Bounds.High.Y), Bounds.Low.Z };
+    const Deliver<NurbsCurve> Expected = NurbsCurve::Ellipse(Centre, Vec3::UnitZ(), Vec3::UnitX(), MajorRadius, MinorRadius);
+    if (!Expected || std::fabs(Bounds.High.Z - Bounds.Low.Z) > ScalarCriteria::GeometricTolerance) return false;
+    for (int I = 0; I <= 32; ++I)
+    {
+        const double T = Curve.DomainStart() + (Curve.DomainEnd() - Curve.DomainStart()) * I / 32.0;
+        double Distance = 0.0;
+        (void)Expected.Payload.ClosestParameter(Curve.Sample(T), &Distance);
+        if (Distance > ScalarCriteria::GeometricTolerance * 100.0) return false;
+    }
+    return true;
+}
+
+[[nodiscard]] bool ReadExtrudedEllipticalPrism(const BrepBody& Source, int Face, Vec3& Low, Vec3& High,
+                                               double& MajorRadius, double& MinorRadius, Vec3& Centre) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 2 || Source.Edges.size() != 3 ||
+        Source.Coedges.size() != 6 || Source.Loops.size() != 3 || Source.Faces.size() != 3)
+        return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+
+    Low = Source.Bounds().Low;
+    High = Source.Bounds().High;
+    if (High.Z - Low.Z <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& Vertex : Source.Vertices)
+    {
+        if (std::fabs(Vertex.Point.Z - Low.Z) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(Vertex.Point.Z - High.Z) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != 1 || HighVertices != 1) return false;
+
+    int EllipseEdges = 0, LineEdges = 0;
+    double FirstMajor = 0.0, FirstMinor = 0.0;
+    Vec3 FirstCentre{};
+    for (const BrepEdge& Edge : Source.Edges)
+    {
+        if (Edge.Coedges.size() != 2) return false;
+        if (Edge.Closed())
+        {
+            double EdgeMajor = 0.0, EdgeMinor = 0.0; Vec3 EdgeCentre{};
+            if (!ExactAxisAlignedEllipse(Edge.Curve, EdgeMajor, EdgeMinor, EdgeCentre)) return false;
+            if (EllipseEdges++ == 0) { FirstMajor = EdgeMajor; FirstMinor = EdgeMinor; FirstCentre = EdgeCentre; }
+            else if (std::fabs(EdgeMajor - FirstMajor) > ScalarCriteria::GeometricTolerance ||
+                     std::fabs(EdgeMinor - FirstMinor) > ScalarCriteria::GeometricTolerance ||
+                     std::fabs(EdgeCentre.X - FirstCentre.X) > ScalarCriteria::GeometricTolerance ||
+                     std::fabs(EdgeCentre.Y - FirstCentre.Y) > ScalarCriteria::GeometricTolerance) return false;
+        }
+        else
+        {
+            if (Edge.Curve.Classification != CurveClassification::Line || Edge.Curve.Degree != 1 ||
+                Edge.VertexStart < 0 || Edge.VertexEnd < 0 || Edge.VertexStart == Edge.VertexEnd) return false;
+            ++LineEdges;
+        }
+    }
+    if (EllipseEdges != 2 || LineEdges != 1) return false;
+    for (const BrepFace& F : Source.Faces)
+        if ((F.Surface.Classification != SurfaceClassification::Plane && F.Surface.Classification != SurfaceClassification::Extrusion) ||
+            F.Loops.size() != 1) return false;
+    MajorRadius = FirstMajor; MinorRadius = FirstMinor; Centre = FirstCentre;
+    if (Centre.X <= Low.X || Centre.X >= High.X || Centre.Y <= Low.Y || Centre.Y >= High.Y) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedEllipticalPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    Vec3 Low{}, High{}, Centre{};
+    double MajorRadius = 0.0, MinorRadius = 0.0;
+    if (!ReadExtrudedEllipticalPrism(Source, Face, Low, High, MajorRadius, MinorRadius, Centre))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "elliptical-prism offset requires an exact axis-aligned elliptical prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "elliptical-prism offset distance must be finite and positive");
+    const Deliver<NurbsCurve> Profile = NurbsCurve::Ellipse({ Centre.X, Centre.Y, Low.Z }, Vec3::UnitZ(), Vec3::UnitX(), MajorRadius, MinorRadius);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    Deliver<BrepBody> Result = BrepBody::Extrude(Profile.Payload, Vec3::UnitZ(), High.Z - Low.Z + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 2 ||
+        Result.Payload.Edges.size() != 3 || Result.Payload.Coedges.size() != 6 || Result.Payload.Loops.size() != 3 ||
+        Result.Payload.Faces.size() != 3)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "elliptical-prism offset did not retain V2/E3/C6/L3/F3 topology");
+    return Result;
+}
+
 [[nodiscard]] Deliver<BrepBody> ShellByExtrudedU(const BoxFrame& B, int Axis, int Sign, double T) noexcept
 {
     // Offset a rectangular prism in a local 2D cross-section and extrude it along the
@@ -623,7 +730,9 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
     if (!ReadFace(Source, Face, F))
     {
         Deliver<BrepBody> Pentagon = OffsetExtrudedConvexPrism(Source, Face, Distance);
-        return Pentagon ? Pentagon : OffsetExtrudedHoledPrism(Source, Face, Distance);
+        if (Pentagon) return Pentagon;
+        Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
+        return Holed ? Holed : OffsetExtrudedEllipticalPrism(Source, Face, Distance);
     }
     if (!std::isfinite(Distance) || std::fabs(Distance) <= ScalarCriteria::KernelTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "face offset distance is zero or non-finite");
@@ -729,6 +838,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Sour
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildExtrudedHoledPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildExtrudedEllipticalPrismFaceOffset(Source, Face, Distance);
 }
 
 } // namespace Frontier

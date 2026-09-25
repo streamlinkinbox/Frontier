@@ -210,6 +210,11 @@ add_executable(HoledPrismFaceOffsetVerification Verification/HoledPrismFaceOffse
 target_link_libraries(HoledPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME HoledPrismFaceOffsetVerification COMMAND HoledPrismFaceOffsetVerification)
 
+# Phase 43: bounded non-circular rational elliptical-prism upper-cap face offset.
+add_executable(EllipticalPrismFaceOffsetVerification Verification/EllipticalPrismFaceOffsetVerification.cpp)
+target_link_libraries(EllipticalPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME EllipticalPrismFaceOffsetVerification COMMAND EllipticalPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

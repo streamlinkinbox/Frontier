@@ -1070,6 +1070,31 @@ offsets, tilted/non-prismatic supports, curved/freeform/mixed faces, arbitrary t
 healing, or general shell/thicken behavior. The bounded plan is
 `docs/PLAN_Phase42_HoledPrismFaceOffset.md`.
 
+## Phase 43 — elliptical-prism face offset (2026-09-25)
+
+This phase targets a distinct curved-profile modelling domain rather than another cone/bicone blend
+variant or a circular-radius change:
+
+- `EllipticalPrismFaceOffsetVerification` constructs a rational axis-aligned ellipse with major
+  radius 6, minor radius 3, height 5, and positive upper-cap offset distance 2. The source and
+  result retain exact `V2/E3/C6/L3/F3` genus-zero topology.
+- `FaceEditSolver::OffsetExtrudedEllipticalPrism` validates the selected upper planar cap, two Z
+  levels, two closed rational degree-2 ellipse rims, the major/minor bounds, axis orientation, and
+  exact profile samples before rebuilding the ellipse at the extended height. No polygonal
+  approximation or healing fallback is used.
+- The verifier checks the pi-area volume identity within the NURBS circular/ellipse tolerance,
+  both ellipse rims, analytic planar/extrusion support classifications, public `OffsetFace`
+  dispatch, source immutability, and circular/polygonal/holed/freeform/side/invalid/malformed
+  refusal boundaries.
+- The durable proof is `Proofs/Phase43_EllipticalPrismFaceOffset.png`; 20 checks pass in the
+  focused direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and
+  CMake.
+
+This does not prove circular cylinders through this API, rotated ellipses, tilted/non-prismatic
+supports, arbitrary conics, freeform profiles, multi-loop profiles, lower/side-face offsets,
+healing, or general shell/thicken behavior. The bounded plan is
+`docs/PLAN_Phase43_EllipticalPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
