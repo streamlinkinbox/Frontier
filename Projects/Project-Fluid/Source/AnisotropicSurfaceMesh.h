@@ -49,6 +49,10 @@ private:
     std::array<Chunk,Bx*By*Bz> Chunks_{};
     std::vector<SurfaceKernel> Previous_;
     SurfaceMesh Mesh_;
+    std::vector<uint32_t> Weld_,Adjacent_;
+    std::vector<uint64_t> Edges_,EdgeScratch_;
+    std::vector<size_t> Offsets_,Cursor_;
+    std::vector<Vec3> Next_;
     std::uint32_t DirtyBrickCount_{};
     std::uint32_t OpenEdgeCount_{};
     std::uint32_t NonManifoldEdgeCount_{};

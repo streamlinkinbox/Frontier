@@ -36,6 +36,15 @@
         "FRONTIER_FLUID_ONLY": "ON",
         "FRONTIER_BUILD_PROJECT_FLUID_VULKAN": "OFF"
       }
+    },
+    {
+      "name": "fluid-parallel",
+      "inherits": "fluid-cpu",
+      "displayName": "Flux / Ripple OpenMP CPU verification",
+      "binaryDir": "${sourceDir}/build/fluid-parallel-proof",
+      "cacheVariables": {
+        "FRONTIER_FLUID_OPENMP": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -53,6 +62,11 @@
       "name": "fluid-cpu",
       "configurePreset": "fluid-cpu",
       "jobs": 3
+    },
+    {
+      "name": "fluid-parallel",
+      "configurePreset": "fluid-parallel",
+      "jobs": 3
     }
   ],
   "testPresets": [
@@ -66,6 +80,16 @@
     {
       "name": "fluid-cpu",
       "configurePreset": "fluid-cpu",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "fluid-parallel",
+      "configurePreset": "fluid-parallel",
+      "environment": {
+        "OMP_NUM_THREADS": "2"
+      },
       "output": {
         "outputOnFailure": true
       }

@@ -23,6 +23,7 @@ param(
     [ValidateSet('SSE2', 'AVX', 'AVX2')] [string] $Isa = 'SSE2',
     # Development editor (outliner / viewport / inspector over the live scene). On by default; pass
     #    -Development:$false for a ship build — the editor compiles out and the game runs without it.
+    [switch] $FluidOpenMP, # optional CPU fluid parallel stages; MSVC OpenMP runtime required
     [switch] $Development = $true
 )
 
@@ -34,6 +35,7 @@ $PackageRoot    = Join-Path $RepositoryRoot 'ExternalPackages'
 $ScriptRoot     = Join-Path $RepositoryRoot 'Scripts'
 $ProjectRoot    = Join-Path $RepositoryRoot 'Projects\Project-Zero'
 $OutputRoot     = Join-Path $ProjectRoot    "Build\Output\Windows\$Configuration"
+if ($FluidOpenMP) { $OutputRoot += '-FluidOpenMP' } # keep compiler-mode objects isolated
 
 $script:GlfwBuilt   = $false
 $script:ThorVGBuilt = $false
@@ -158,6 +160,7 @@ function Get-CompilationFlags([string] $Selection, [bool] $Development)
     # The editor lives behind FRONTIER_DEVELOPMENT: defined, the panels record over the live scene;
     #    undefined, the host compiles to empty shells and the game runs without them.
     if ($Development) { $Common += '/DFRONTIER_DEVELOPMENT' }
+    if ($FluidOpenMP) { $Common += '/openmp' }
     # Baseline SSE2 emits no /arch at all (it is the x64 default); anything else is opt-in via -Isa.
     #    tinybvh falls back to its scalar path cleanly when AVX is absent.
     if ($Isa -ne 'SSE2') { $Common += "/arch:$Isa" }

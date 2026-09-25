@@ -1,10 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+#include <array>
+#include <cmath>
 #include <string_view>
 #include <vector>
 
 namespace Frontier::ProjectFluid {
+class SpatialIndex;
 
 struct Vec3 {
     float x{}, y{}, z{};
@@ -12,13 +16,13 @@ struct Vec3 {
     Vec3& operator+=(Vec3 b) noexcept { x += b.x; y += b.y; z += b.z; return *this; }
     Vec3& operator-=(Vec3 b) noexcept { x -= b.x; y -= b.y; z -= b.z; return *this; }
 };
-Vec3 operator+(Vec3 a, Vec3 b) noexcept;
-Vec3 operator-(Vec3 a, Vec3 b) noexcept;
-Vec3 operator*(Vec3 a, float s) noexcept;
-Vec3 operator/(Vec3 a, float s) noexcept;
-float Dot(Vec3 a, Vec3 b) noexcept;
-float Length(Vec3 a) noexcept;
-Vec3 Normalized(Vec3 a) noexcept;
+inline Vec3 operator+(Vec3 a, Vec3 b) noexcept { return {a.x+b.x,a.y+b.y,a.z+b.z}; }
+inline Vec3 operator-(Vec3 a, Vec3 b) noexcept { return {a.x-b.x,a.y-b.y,a.z-b.z}; }
+inline Vec3 operator*(Vec3 a, float s) noexcept { return {a.x*s,a.y*s,a.z*s}; }
+inline Vec3 operator/(Vec3 a, float s) noexcept { return a * (1.0f/s); }
+inline float Dot(Vec3 a, Vec3 b) noexcept { return a.x*b.x+a.y*b.y+a.z*b.z; }
+inline float Length(Vec3 a) noexcept { return std::sqrt(Dot(a,a)); }
+inline Vec3 Normalized(Vec3 a) noexcept { const float l=Length(a); return l>1e-8f?a/l:Vec3{}; }
 
 struct FluidMaterial {
     std::string_view Name;
@@ -51,6 +55,9 @@ struct SolverDiagnostics {
 
 class PbfFluid final {
 public:
+    struct StepTimings { double NeighboursMs{},SurfaceTensionMs{},PressureMs{},ViscosityMs{},TotalMs{}; };
+    std::size_t BoundarySampleCount() const noexcept {return BoundaryPositions_.size();}
+    const StepTimings& LastTimings() const noexcept {return Timings_;}
     void SetReferenceNeighbourSearch(bool enabled) noexcept { ReferenceSearch_=enabled; }
     static constexpr std::uint32_t MaxParticles = 2800;
     static constexpr float SmoothingRadius = 0.31f;
@@ -79,7 +86,15 @@ public:
     static constexpr float ObstacleRadius() noexcept { return 0.36f; }
 
 private:
+    StepTimings Timings_{};
     bool ReferenceSearch_=false;
+    std::shared_ptr<const SpatialIndex> BoundaryIndex_;
+    bool BoundaryObstacleEnabled_=true;
+    std::vector<Vec3> SurfaceNormals_;
+    struct ViscosityEdge {std::uint16_t a,b;Vec3 n;float w;};
+    std::vector<ViscosityEdge> ViscosityEdges_;
+    std::vector<std::array<float,9>> Diagonal_,BoundaryBlocks_,Inverse_;
+    std::vector<Vec3> ViscosityX_,Residual_,Preconditioned_,Direction_,Product_;
     void Add(Vec3 position, Vec3 velocity = {});
     void Collide(Vec3& position);
     void BuildNeighbours();

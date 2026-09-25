@@ -13,6 +13,11 @@ add_library(ProjectFluidCore STATIC
     Source/MarchingCubesTables.h)
 target_include_directories(ProjectFluidCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 target_compile_features(ProjectFluidCore PUBLIC cxx_std_20)
+option(FRONTIER_FLUID_OPENMP "Parallel fluid CPU stages (requires OpenMP)" OFF)
+if(FRONTIER_FLUID_OPENMP)
+    find_package(OpenMP REQUIRED COMPONENTS CXX)
+    target_link_libraries(ProjectFluidCore PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(Project-Fluid-CPU Source/CpuProofMain.cpp)
 target_link_libraries(Project-Fluid-CPU PRIVATE ProjectFluidCore)

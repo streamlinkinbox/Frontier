@@ -1,3 +1,5 @@
+> **CPU pass 2:** [parallel optimization and measured pipeline](../../Docs/FluidCpuPass2.md). Two-thread pipeline median: 18.67 ms over the timed fixture; GPU extraction remains outstanding. Foam/splash are queued afterward.
+
 > **CPU performance update:** see [measured optimization results](../../Docs/FluidOptimization.md). The optimized CPU path and exhaustive reference tests are included; GPU mesh extraction is not yet implemented.
 
 > **Consolidated Frontier integration (2026-09-25):** see [Water integration and review](../../Docs/WaterIntegration.md) for current build commands, the Project-Zero snapshot bridge, measured performance and limitations. The original project documentation follows. Vulkan is now opt-in rather than auto-enabled.

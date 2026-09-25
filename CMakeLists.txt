@@ -460,3 +460,8 @@ target_link_libraries(Project-Physics PRIVATE Jolt pthread)
 
 # Standalone fluid research host alongside the native application.
 add_subdirectory(Projects/Project-Fluid)
+if(FRONTIER_FLUID_OPENMP)
+    find_package(OpenMP REQUIRED COMPONENTS CXX)
+    # Project-Zero compiles the fluid sources directly, rather than linking Core.
+    target_link_libraries(Project-Zero PRIVATE OpenMP::OpenMP_CXX)
+endif()

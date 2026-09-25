@@ -1,3 +1,5 @@
+> **CPU pass 2:** [parallel optimization and measured pipeline](FluidCpuPass2.md). Two-thread pipeline median: 18.67 ms over the timed fixture; GPU extraction remains outstanding. Foam/splash are queued afterward.
+
 # Flux CPU optimization — measured results and remaining GPU work
 
 2026-09-25. This completes the first CPU optimization pass and stage instrumentation. **GPU-resident extraction and GPU timestamp measurements are NOT implemented in this change.** Project-Zero still loads a pond snapshot; no live engine water integration was added here.

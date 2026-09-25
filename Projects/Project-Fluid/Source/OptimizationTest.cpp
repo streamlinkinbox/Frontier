@@ -12,10 +12,24 @@ int main(){try{
     points.push_back({-.31f,0,0});points.push_back({0,0,0});points.push_back({.31f,0,0});
     SpatialIndex index(points,.31f);std::vector<uint32_t> found,wanted;
     for(const auto p:points){index.Query(p,found);wanted.clear();for(uint32_t j=0;j<points.size();++j){const auto d=points[j]-p;if(Dot(d,d)<.31f*.31f)wanted.push_back(j);}Check(found==wanted,"spatial neighbours/order mismatch");}
+    SpatialIndex empty({},.31f);empty.Query({},found);Check(found.empty(),"empty index");
+    const std::vector<Vec3> sparse{{-10000,-10000,-10000},{10000,10000,10000}};
+    SpatialIndex sparseIndex(sparse,.31f);sparseIndex.Query(sparse[0],found);Check(found==std::vector<uint32_t>{0},"sparse fallback");
+    PbfFluid toggled,reset;const auto before=toggled.BoundarySampleCount();toggled.SetObstacle(false);reset.SetObstacle(false);reset.SetReferenceNeighbourSearch(true);
+    toggled.Step(1.f/60);reset.Step(1.f/60);Check(toggled.BoundarySampleCount()<before,"obstacle cache invalidation");
+    for(size_t i=0;i<toggled.Positions().size();++i)Near(toggled.Positions()[i],reset.Positions()[i]);
+    // A copied solver must not retain references into another solver's buffers.
+    PbfFluid copy=reset;reset.Reset();copy.Step(1.f/60);toggled.Step(1.f/60);
+    for(size_t i=0;i<copy.Positions().size();++i)Near(copy.Positions()[i],toggled.Positions()[i]);
     PbfFluid fast,reference;reference.SetReferenceNeighbourSearch(true);
     for(int frame=0;frame<12;++frame){fast.Step(1.f/60);reference.Step(1.f/60);
         Check(fast.Positions().size()==reference.Positions().size(),"particle count");
         for(size_t i=0;i<fast.Positions().size();++i){Near(fast.Positions()[i],reference.Positions()[i]);Near(fast.Velocities()[i],reference.Velocities()[i]);}}
+    for(auto material:{Material::Milk,Material::Honey,Material::Chocolate}){
+        PbfFluid a,b;a.SetMaterial(material);b.SetMaterial(material);b.SetReferenceNeighbourSearch(true);
+        for(int frame=0;frame<4;++frame){a.Step(1.f/60);b.Step(1.f/60);}
+        for(size_t i=0;i<a.Positions().size();++i){Near(a.Positions()[i],b.Positions()[i]);Near(a.Velocities()[i],b.Velocities()[i]);}
+    }
     SurfaceReconstruction pca,oracle;oracle.SetReferenceNeighbourSearch(true);pca.Update(fast.Positions());oracle.Update(fast.Positions());
     for(size_t i=0;i<pca.Kernels().size();++i){const auto&a=pca.Kernels()[i];const auto&b=oracle.Kernels()[i];Near(a.Centre,b.Centre);Near(a.AxisA,b.AxisA);Near(a.AxisB,b.AxisB);Near(a.AxisC,b.AxisC);Check(std::abs(a.VolumeWeight-b.VolumeWeight)<1e-5f,"weight mismatch");}
     // Real solver-generated kernels: full build, incremental motion and removal.
