@@ -220,6 +220,11 @@ add_executable(ObliqueTriangularPrismFaceOffsetVerification Verification/Oblique
 target_link_libraries(ObliqueTriangularPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ObliqueTriangularPrismFaceOffsetVerification COMMAND ObliqueTriangularPrismFaceOffsetVerification)
 
+# Phase 45: bounded axis-aligned triangular-prism side draft.
+add_executable(TriangularPrismDraftVerification Verification/TriangularPrismDraftVerification.cpp)
+target_link_libraries(TriangularPrismDraftVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TriangularPrismDraftVerification COMMAND TriangularPrismDraftVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

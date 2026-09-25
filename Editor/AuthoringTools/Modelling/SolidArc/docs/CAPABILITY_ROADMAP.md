@@ -1807,6 +1807,27 @@ non-parallel generators, tilted cap planes, curved/freeform/mixed supports, mult
 lower/side-face offsets, healing, or general oblique B-rep editing. Its bounded plan is
 `docs/PLAN_Phase44_ObliqueTriangularPrismFaceOffset.md`.
 
+#### Phase 45: bounded triangular-prism side draft ✅
+
+The draft family now has a non-box planar-profile route. `FaceEditSolver::DraftExtrudedTriangularPrism`
+recognizes an axis-aligned triangular prism and one selected vertical extrusion wall, moves only the
+corresponding high-Z profile edge by `tan(angle) * height` along the wall's outward normal, and
+rebuilds two planar caps plus three ruled walls. The existing canonical-box draft route remains
+separate.
+
+`TriangularPrismDraftVerification` constructs the exact `V6/E9/C18/L5/F5` source with profile
+`(-4,-2)/(5,-2)/(0,4)`, height 6, and a 12-degree side draft. It validates the drafted topology,
+mean-section triangle volume identity, selected-edge displacement, unchanged opposite vertex,
+planar/ruled support counts, inward-draft acceptance, source immutability, public dispatch, and
+box/pentagon/cylinder/cap/invalid/malformed refusal boundaries. The durable proof is
+`Proofs/Phase45_TriangularPrismDraft.png`; 22 checks pass in the focused direct gate. The verifier
+and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to axis-aligned triangular prisms and non-collapsing vertical side-face
+drafts. It does not prove boxes through this API, other polygonal profiles, oblique prisms, curved/
+freeform/mixed supports, cap drafts, healing, or general non-box draft networks. Its bounded plan is
+`docs/PLAN_Phase45_TriangularPrismDraft.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

@@ -748,6 +748,132 @@ struct FaceFrame
     return Deliver<BrepBody>::Accept(std::move(Output));
 }
 
+[[nodiscard]] bool ReadTriangularPrismDraft(const BrepBody& Source, int Face, std::vector<Vec3>& Bottom,
+                                            std::vector<Vec3>& Top, int& SelectedA, int& SelectedB,
+                                            Vec3& OutwardNormal, double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 6 || Source.Edges.size() != 9 ||
+        Source.Coedges.size() != 18 || Source.Loops.size() != 5 || Source.Faces.size() != 5)
+        return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Wall = Source.Faces[Face];
+    if (Wall.Surface.Classification != SurfaceClassification::Extrusion || Wall.Loops.size() != 1 ||
+        Source.Loops[Wall.Loops.front()].Coedges.size() != 4) return false;
+    Low = Source.Bounds().Low.Z; High = Source.Bounds().High.Z;
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& Vertex : Source.Vertices)
+    {
+        if (std::fabs(Vertex.Point.Z - Low) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(Vertex.Point.Z - High) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != 3 || HighVertices != 3) return false;
+    OutwardNormal = Source.FaceNormal(Face, 0.5 * (Wall.Surface.DomainStartU() + Wall.Surface.DomainEndU()),
+                                      0.5 * (Wall.Surface.DomainStartV() + Wall.Surface.DomainEndV())).Normalised();
+    OutwardNormal.Z = 0.0; OutwardNormal = OutwardNormal.Normalised();
+    if (OutwardNormal.LengthSquared() <= 0.5) return false;
+
+    for (const BrepFace& F : Source.Faces)
+        if ((F.Surface.Classification != SurfaceClassification::Plane && F.Surface.Classification != SurfaceClassification::Extrusion) ||
+            F.Loops.size() != 1) return false;
+    for (const BrepEdge& E : Source.Edges)
+        if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.Coedges.size() != 2 ||
+            E.VertexStart < 0 || E.VertexEnd < 0 || E.VertexStart == E.VertexEnd) return false;
+
+    const int WallLoop = Wall.Loops.front();
+    std::vector<int> WallLowVertices;
+    for (int Coedge : Source.Loops[WallLoop].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepCoedge& C = Source.Coedges[Coedge];
+        const BrepEdge& E = Source.Edges[C.Edge];
+        const Vec3 A = Source.Vertices[E.VertexStart].Point, B = Source.Vertices[E.VertexEnd].Point;
+        const bool ALow = std::fabs(A.Z - Low) <= ScalarCriteria::GeometricTolerance;
+        const bool BLow = std::fabs(B.Z - Low) <= ScalarCriteria::GeometricTolerance;
+        const bool AHigh = std::fabs(A.Z - High) <= ScalarCriteria::GeometricTolerance;
+        const bool BHigh = std::fabs(B.Z - High) <= ScalarCriteria::GeometricTolerance;
+        if (ALow && BLow) { WallLowVertices.push_back(E.VertexStart); WallLowVertices.push_back(E.VertexEnd); }
+        else if (!(AHigh && BHigh) && !((ALow && BHigh) || (AHigh && BLow))) return false;
+    }
+    if (WallLowVertices.size() != 2) return false;
+    const auto IsSameXY = [&](Vec3 A, Vec3 B) { return std::fabs(A.X - B.X) <= ScalarCriteria::GeometricTolerance &&
+                                                       std::fabs(A.Y - B.Y) <= ScalarCriteria::GeometricTolerance; };
+    for (const BrepVertex& V : Source.Vertices) if (std::fabs(V.Point.Z - Low) <= ScalarCriteria::GeometricTolerance) Bottom.push_back(V.Point);
+    if (Bottom.size() != 3) return false;
+    const Vec3 Centroid = (Bottom[0] + Bottom[1] + Bottom[2]) / 3.0;
+    std::sort(Bottom.begin(), Bottom.end(), [&](Vec3 A, Vec3 B) {
+        return std::atan2(A.Y - Centroid.Y, A.X - Centroid.X) < std::atan2(B.Y - Centroid.Y, B.X - Centroid.X);
+    });
+    Top.reserve(3);
+    for (const Vec3& P : Bottom)
+    {
+        bool Found = false;
+        for (const BrepVertex& V : Source.Vertices)
+            if (std::fabs(V.Point.Z - High) <= ScalarCriteria::GeometricTolerance && IsSameXY(P, { V.Point.X, V.Point.Y, Low }))
+            { Top.push_back(V.Point); Found = true; break; }
+        if (!Found) return false;
+    }
+    auto FindIndex = [&](int VertexIndex) {
+        const Vec3 P = Source.Vertices[VertexIndex].Point;
+        for (int I = 0; I < static_cast<int>(Bottom.size()); ++I) if (IsSameXY(Bottom[I], P)) return I;
+        return -1;
+    };
+    SelectedA = FindIndex(WallLowVertices[0]); SelectedB = FindIndex(WallLowVertices[1]);
+    if (SelectedA < 0 || SelectedB < 0 || SelectedA == SelectedB) return false;
+    const double Area2 = (Bottom[1].X - Bottom[0].X) * (Bottom[2].Y - Bottom[0].Y) -
+                         (Bottom[1].Y - Bottom[0].Y) * (Bottom[2].X - Bottom[0].X);
+    const double TopArea2 = (Top[1].X - Top[0].X) * (Top[2].Y - Top[0].Y) -
+                            (Top[1].Y - Top[0].Y) * (Top[2].X - Top[0].X);
+    return std::fabs(Area2) > ScalarCriteria::GeometricTolerance && Area2 * TopArea2 > 0.0;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildTriangularPrismDraft(const BrepBody& Source, int Face, double AngleRadians) noexcept
+{
+    std::vector<Vec3> Bottom, Top;
+    int SelectedA = -1, SelectedB = -1;
+    Vec3 OutwardNormal{};
+    double Low = 0.0, High = 0.0;
+    if (!ReadTriangularPrismDraft(Source, Face, Bottom, Top, SelectedA, SelectedB, OutwardNormal, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "triangular-prism draft requires a vertical triangular side face");
+    if (!std::isfinite(AngleRadians) || std::fabs(AngleRadians) < ScalarCriteria::KernelTolerance ||
+        std::fabs(AngleRadians) >= ScalarCriteria::HalfPi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "triangular-prism draft angle must be finite, non-zero, and below 90 degrees");
+    const double Delta = std::tan(AngleRadians) * (High - Low);
+    if (!std::isfinite(Delta) || std::fabs(Delta) <= ScalarCriteria::KernelTolerance) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "triangular-prism draft produces no measurable change");
+    Top[SelectedA] += OutwardNormal * Delta;
+    Top[SelectedB] += OutwardNormal * Delta;
+    const double TopArea2 = (Top[1].X - Top[0].X) * (Top[2].Y - Top[0].Y) -
+                            (Top[1].Y - Top[0].Y) * (Top[2].X - Top[0].X);
+    const double BottomArea2 = (Bottom[1].X - Bottom[0].X) * (Bottom[2].Y - Bottom[0].Y) -
+                               (Bottom[1].Y - Bottom[0].Y) * (Bottom[2].X - Bottom[0].X);
+    if (BottomArea2 * TopArea2 <= ScalarCriteria::GeometricTolerance) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "triangular-prism draft collapses or inverts the upper profile");
+
+    std::vector<NurbsSurface> Surfaces;
+    for (int I = 0; I < 3; ++I)
+    {
+        const int J = (I + 1) % 3;
+        const Deliver<NurbsCurve> Lower = NurbsCurve::Line(Bottom[I], Bottom[J]);
+        const Deliver<NurbsCurve> Upper = NurbsCurve::Line(Top[I], Top[J]);
+        if (!Lower || !Upper) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "triangular-prism draft generated a degenerate edge");
+        const Deliver<NurbsSurface> Wall = NurbsSurface::Ruled(Lower.Payload, Upper.Payload);
+        if (!Wall) return Deliver<BrepBody>::Reject(Wall.Denial.Reason, Wall.Denial.Detail);
+        Surfaces.push_back(Wall.Payload);
+    }
+    Deliver<BrepBody> Sewn = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Sewn) return Sewn;
+    Sewn.Payload.Orient();
+    const BodyReport Report = Sewn.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Sewn.Payload.Vertices.size() != 6 ||
+        Sewn.Payload.Edges.size() != 9 || Sewn.Payload.Coedges.size() != 18 || Sewn.Payload.Loops.size() != 5 ||
+        Sewn.Payload.Faces.size() != 5)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "triangular-prism draft did not retain V6/E9/C18/L5/F5 topology");
+    return Sewn;
+}
+
 [[nodiscard]] Deliver<BrepBody> ShellByExtrudedU(const BoxFrame& B, int Axis, int Sign, double T) noexcept
 {
     // Offset a rectangular prism in a local 2D cross-section and extrude it along the
@@ -888,7 +1014,12 @@ Deliver<BrepBody> FaceEditSolver::TrimFace(const BrepBody& Source, int Face, dou
 Deliver<BrepBody> FaceEditSolver::Draft(const BrepBody& Source, int Face, double AngleRadians) noexcept
 {
     FaceFrame F;
-    if (!ReadFace(Source, Face, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "exact draft currently requires a canonical axis-aligned box face");
+    if (!ReadFace(Source, Face, F))
+    {
+        Deliver<BrepBody> Triangular = DraftExtrudedTriangularPrism(Source, Face, AngleRadians);
+        if (Triangular) return Triangular;
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "exact draft currently requires a canonical box or bounded triangular-prism side face");
+    }
     if (!std::isfinite(AngleRadians) || std::fabs(AngleRadians) >= ScalarCriteria::HalfPi - ScalarCriteria::AngularTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "draft angle must be finite and strictly below 90 degrees");
     const double Delta = std::tan(AngleRadians) * (F.Box.High.Z - F.Box.Low.Z);
@@ -960,6 +1091,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalPrism(const BrepBody& 
 Deliver<BrepBody> FaceEditSolver::OffsetObliqueTriangularPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildObliqueTriangularPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::DraftExtrudedTriangularPrism(const BrepBody& Source, int Face, double AngleRadians) noexcept
+{
+    return BuildTriangularPrismDraft(Source, Face, AngleRadians);
 }
 
 } // namespace Frontier

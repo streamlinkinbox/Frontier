@@ -1118,6 +1118,29 @@ generators, tilted cap planes, curved/freeform/mixed supports, multi-loop profil
 offsets, healing, or general oblique B-rep editing. The bounded plan is
 `docs/PLAN_Phase44_ObliqueTriangularPrismFaceOffset.md`.
 
+## Phase 45 — triangular-prism side draft (2026-09-25)
+
+This phase adds a distinct non-box draft operation rather than another cone/bicone blend or face
+offset variant:
+
+- `TriangularPrismDraftVerification` constructs an axis-aligned triangular prism with exact
+  `V6/E9/C18/L5/F5` topology, profile `(-4,-2)/(5,-2)/(0,4)`, height 6, and 12-degree selected
+  side-wall draft.
+- `FaceEditSolver::DraftExtrudedTriangularPrism` validates the selected vertical extrusion wall,
+  two Z levels, three line profile edges, and triangular source topology. It moves only the
+  selected upper profile edge by `tan(angle) * height` along its outward normal and rebuilds two
+  planar caps and three ruled walls without healing.
+- The verifier checks the mean-section volume identity with the kernel's ruled-surface tolerance,
+  topology, exact edge displacement, unchanged opposite vertex, support classifications, a bounded
+  inward draft, source immutability, public `Draft` dispatch, and box/pentagon/cylinder/cap/invalid/
+  malformed refusal boundaries.
+- The durable proof is `Proofs/Phase45_TriangularPrismDraft.png`; 22 checks pass in the focused
+  direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+This does not prove boxes through this API, other polygonal profiles, oblique prisms, curved/freeform/
+mixed supports, cap drafts, healing, or general non-box draft networks. The bounded plan is
+`docs/PLAN_Phase45_TriangularPrismDraft.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

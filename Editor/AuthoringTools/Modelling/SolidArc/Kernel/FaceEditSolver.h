@@ -3,7 +3,7 @@
 //
 // The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
 // rectangular prisms, bounded pentagonal-prism, genus-one holed-prism, elliptical-prism, and oblique
-// triangular-prism routes, and natural NURBS replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
+// triangular-prism routes, a bounded triangular-prism draft route, and natural NURBS replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
 // source. This is the safe foundation for extending the routes to arbitrary trimmed and curved B-reps later.
 #pragma once
 
@@ -42,6 +42,10 @@ public:
     // Bounded non-axis-aligned offset route for an oblique triangular straight prism.
     // Only the planar cap normal to its common non-vertical generator axis is supported.
     [[nodiscard]] static Deliver<BrepBody> OffsetObliqueTriangularPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded draft route for an axis-aligned triangular prism side face. Angle is in radians.
+    // The existing canonical-box draft route remains separate.
+    [[nodiscard]] static Deliver<BrepBody> DraftExtrudedTriangularPrism(const BrepBody& Source, int Face, double AngleRadians) noexcept;
 
     // Draft one vertical (+/-X or +/-Y) face about the source Z direction. Angle is in radians and
     // positive moves the selected wall outward at the high-Z end.
