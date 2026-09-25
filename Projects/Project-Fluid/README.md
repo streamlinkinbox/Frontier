@@ -1,3 +1,5 @@
+> **CPU performance update:** see [measured optimization results](../../Docs/FluidOptimization.md). The optimized CPU path and exhaustive reference tests are included; GPU mesh extraction is not yet implemented.
+
 > **Consolidated Frontier integration (2026-09-25):** see [Water integration and review](../../Docs/WaterIntegration.md) for current build commands, the Project-Zero snapshot bridge, measured performance and limitations. The original project documentation follows. Vulkan is now opt-in rather than auto-enabled.
 
 # Project Fluid — Flux native port

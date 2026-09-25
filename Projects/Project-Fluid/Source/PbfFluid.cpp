@@ -1,4 +1,5 @@
 #include "PbfFluid.h"
+#include "SpatialIndex.h"
 
 #include <algorithm>
 #include <array>
@@ -77,10 +78,13 @@ float PbfFluid::Poly6(float r2) const noexcept {
 
 void PbfFluid::BuildNeighbours() {
     const float h2=SmoothingRadius*SmoothingRadius;
+    const SpatialIndex index(Positions_,SmoothingRadius);
+    std::vector<uint32_t> candidates;
     for(auto& list:Neighbours_) list.clear();
     for(std::uint32_t i=0;i<Positions_.size();++i) {
         auto& list=Neighbours_[i];
-        for(std::uint32_t j=0;j<Positions_.size();++j) {
+        index.Query(Positions_[i],candidates,ReferenceSearch_);
+        for(auto j:candidates) {
             Vec3 d=Positions_[i]-Positions_[j];
             if(Dot(d,d)<h2 && list.size()<128) list.push_back(static_cast<std::uint16_t>(j));
         }
@@ -108,7 +112,9 @@ void PbfFluid::RebuildBoundarySamples() {
 void PbfFluid::BuildBoundaryNeighbours() {
     const float h2=SmoothingRadius*SmoothingRadius;
     if(BoundaryNeighbours_.size()!=Positions_.size())BoundaryNeighbours_.resize(Positions_.size());
-    for(std::size_t i=0;i<Positions_.size();++i){auto& list=BoundaryNeighbours_[i];list.clear();for(std::size_t b=0;b<BoundaryPositions_.size();++b)if(Dot(Positions_[i]-BoundaryPositions_[b],Positions_[i]-BoundaryPositions_[b])<h2&&list.size()<96)list.push_back(static_cast<std::uint16_t>(b));}
+    const SpatialIndex index(BoundaryPositions_,SmoothingRadius);
+    std::vector<uint32_t> candidates;
+    for(std::size_t i=0;i<Positions_.size();++i){index.Query(Positions_[i],candidates,ReferenceSearch_);auto& list=BoundaryNeighbours_[i];list.clear();for(auto b:candidates)if(Dot(Positions_[i]-BoundaryPositions_[b],Positions_[i]-BoundaryPositions_[b])<h2&&list.size()<96)list.push_back(static_cast<std::uint16_t>(b));}
 }
 
 void PbfFluid::ComputeDensity(bool computeLambda) {

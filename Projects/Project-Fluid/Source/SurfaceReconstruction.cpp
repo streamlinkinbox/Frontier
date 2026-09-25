@@ -1,4 +1,5 @@
 #include "SurfaceReconstruction.h"
+#include "SpatialIndex.h"
 #include <algorithm>
 #include <cmath>
 
@@ -16,8 +17,11 @@ void SurfaceReconstruction::Diagonalize(std::array<float,9>& c,std::array<float,
 void SurfaceReconstruction::Update(const std::vector<Vec3>& positions) {
     constexpr float support=.42f,support2=support*support;
     Kernels_.resize(positions.size());
+    const SpatialIndex index(positions,support);
+    std::vector<uint32_t> candidates;
     for(std::size_t i=0;i<positions.size();++i){const Vec3 origin=positions[i];float weight=0,xx=0,xy=0,xz=0,yy=0,yz=0,zz=0;Vec3 mean{};int neighbors=0;
-        for(const Vec3& sample:positions){const Vec3 d=sample-origin;const float r2=Dot(d,d);if(r2>=support2)continue;const float w=1-r2*std::sqrt(r2)/(support*support2);weight+=w;mean+=d*w;xx+=w*d.x*d.x;xy+=w*d.x*d.y;xz+=w*d.x*d.z;yy+=w*d.y*d.y;yz+=w*d.y*d.z;zz+=w*d.z*d.z;++neighbors;}
+        index.Query(origin,candidates,ReferenceSearch_);
+        for(auto id:candidates){const Vec3& sample=positions[id];const Vec3 d=sample-origin;const float r2=Dot(d,d);if(r2>=support2)continue;const float w=1-r2*std::sqrt(r2)/(support*support2);weight+=w;mean+=d*w;xx+=w*d.x*d.x;xy+=w*d.x*d.y;xz+=w*d.x*d.z;yy+=w*d.y*d.y;yz+=w*d.y*d.z;zz+=w*d.z*d.z;++neighbors;}
         SurfaceKernel& kernel=Kernels_[i];
         auto sphere=[&](float radius){kernel={origin,{radius,0,0},{0,radius,0},{0,0,radius},(1.0f/PbfFluid::RestDensity)/(4*Pi/3*radius*radius*radius)};};
         if(neighbors<8||weight<1e-8f){sphere(.097f);continue;}mean=mean/weight;

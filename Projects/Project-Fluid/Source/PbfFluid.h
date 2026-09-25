@@ -51,6 +51,7 @@ struct SolverDiagnostics {
 
 class PbfFluid final {
 public:
+    void SetReferenceNeighbourSearch(bool enabled) noexcept { ReferenceSearch_=enabled; }
     static constexpr std::uint32_t MaxParticles = 2800;
     static constexpr float SmoothingRadius = 0.31f;
     static constexpr float RestDensity = 265.0f;
@@ -78,6 +79,7 @@ public:
     static constexpr float ObstacleRadius() noexcept { return 0.36f; }
 
 private:
+    bool ReferenceSearch_=false;
     void Add(Vec3 position, Vec3 velocity = {});
     void Collide(Vec3& position);
     void BuildNeighbours();

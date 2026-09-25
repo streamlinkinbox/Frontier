@@ -1,5 +1,7 @@
 # Water integration and quality review
 
+> **CPU optimization update:** the historical timings below describe the initial import. The subsequent [optimization report](FluidOptimization.md) records a controlled five-run comparison: changed extraction reduced from 2592 ms to 18.05 ms, solver from 31.65 to 17.05 ms. GPU extraction remains outstanding.
+
 Date: 2026-09-25. **Verdict: useful research prototype; not production-ready water.** Ripple is the more practical starting point for broad, calm water surfaces. Flux is useful for small-basin experiments, but its current CPU mesh extraction is far too slow for live engine geometry on the measured machine.
 
 ## Import and exact integration scope

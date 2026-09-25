@@ -15,6 +15,10 @@ struct SurfaceMesh {
 // Sparse-brick summed anisotropic field and watertight Marching Cubes surface.
 class AnisotropicSurfaceMesh final {
 public:
+    struct Timings { double IndexMs{},FieldMs{},TrianglesMs{},AssemblyMs{},SmoothingMs{}; };
+    const Timings& LastTimings() const noexcept { return Timings_; }
+    // Exhaustive mode is retained as a correctness oracle, not a fast path.
+    void SetReferenceEvaluation(bool enabled) { Reference_=enabled; ForceRebuild_=true; }
     void Update(const std::vector<SurfaceKernel>& kernels);
     [[nodiscard]] const SurfaceMesh& Mesh() const noexcept { return Mesh_; }
     [[nodiscard]] bool SaveObj(const std::string& path) const;
@@ -35,6 +39,12 @@ private:
     void RebuildFieldBrick(int bx,int by,int bz,const std::vector<SurfaceKernel>& kernels);
     void RebuildMeshBrick(int bx,int by,int bz);
     void AssembleAndSmooth();
+    struct PreparedKernel { Vec3 Centre,A,B,C; float Weight; Vec3 Extent; };
+    std::vector<PreparedKernel> Prepared_;
+    std::array<std::vector<uint32_t>,Bx*By*Bz> Candidates_;
+    void Prepare(const std::vector<SurfaceKernel>& kernels);
+    Timings Timings_{};
+    bool Reference_=false,ForceRebuild_=false;
     std::vector<float> Field_=std::vector<float>(Nx*Ny*Nz);
     std::array<Chunk,Bx*By*Bz> Chunks_{};
     std::vector<SurfaceKernel> Previous_;

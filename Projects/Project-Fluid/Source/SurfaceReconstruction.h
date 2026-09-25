@@ -16,9 +16,11 @@ struct SurfaceKernel {
 // the authoritative Flux reconstruction.ts. Physics positions are untouched.
 class SurfaceReconstruction final {
 public:
+    void SetReferenceNeighbourSearch(bool enabled) noexcept { ReferenceSearch_=enabled; }
     void Update(const std::vector<Vec3>& positions);
     [[nodiscard]] const std::vector<SurfaceKernel>& Kernels() const noexcept { return Kernels_; }
 private:
+    bool ReferenceSearch_=false;
     static void Diagonalize(std::array<float,9>& covariance,std::array<float,9>& rotation) noexcept;
     std::vector<SurfaceKernel> Kernels_;
 };

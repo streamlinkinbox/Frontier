@@ -16,6 +16,8 @@ int main(){
  std::cout<<"extraction_unchanged_mean_ms="<<Ms([&]{for(int I=0;I<100;++I)Surface.Update(Reconstruction.Kernels());})/100<<'\n';
  Fluid.Step(1.f/60);Reconstruction.Update(Fluid.Positions());
  std::cout<<"extraction_changed_ms="<<Ms([&]{Surface.Update(Reconstruction.Kernels());})<<"\ndirty_bricks="<<Surface.DirtyBrickCount()<<'\n';
+ const auto& T=Surface.LastTimings();
+ std::cout<<"index_ms="<<T.IndexMs<<"\nfield_ms="<<T.FieldMs<<"\ntriangles_ms="<<T.TrianglesMs<<"\nassembly_smoothing_ms="<<T.AssemblyMs<<"\nsmoothing_subset_ms="<<T.SmoothingMs<<'\n';
  PondWave Pond;Pond.Disturb(0,0,.8f,.4f);
  std::cout<<"pond_cells="<<Pond.Rows()*Pond.Columns()<<"\npond_step_mean_ms="<<Ms([&]{for(int I=0;I<360;++I)Pond.Step(Pond.StableDt());})/360<<'\n';
 }
