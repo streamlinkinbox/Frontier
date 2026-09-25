@@ -1095,6 +1095,29 @@ supports, arbitrary conics, freeform profiles, multi-loop profiles, lower/side-f
 healing, or general shell/thicken behavior. The bounded plan is
 `docs/PLAN_Phase43_EllipticalPrismFaceOffset.md`.
 
+## Phase 44 — oblique triangular-prism face offset (2026-09-25)
+
+This phase advances face editing into a non-axis-aligned support domain:
+
+- `ObliqueTriangularPrismFaceOffsetVerification` constructs a triangular prism with exact
+  `V6/E9/C18/L5/F5` topology, normalized generator direction `(0.35, 0.20, 1.0)`, source generator
+  length 7, and upper-cap normal offset 1.4.
+- `FaceEditSolver::OffsetObliqueTriangularPrism` validates the selected horizontal planar cap,
+  two Z levels, three line cap edges, three parallel oblique generators, and non-vertical common
+  translation. It rebuilds the same triangle from the lower profile with the cap translated along
+  its normal; no healing fallback is used.
+- The verifier checks topology, cap selection, genuinely oblique generators, the projected prism
+  volume identity, cap-normal vertex placement, source immutability, public `OffsetFace` dispatch,
+  and vertical/box/cylinder/side/invalid/malformed refusal boundaries.
+- The durable proof is `Proofs/Phase44_ObliqueTriangularPrismFaceOffset.png`; 20 checks pass in
+  the focused direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and
+  CMake.
+
+This does not prove vertical prisms through this API, arbitrary polygonal profiles, non-parallel
+generators, tilted cap planes, curved/freeform/mixed supports, multi-loop profiles, lower/side-face
+offsets, healing, or general oblique B-rep editing. The bounded plan is
+`docs/PLAN_Phase44_ObliqueTriangularPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

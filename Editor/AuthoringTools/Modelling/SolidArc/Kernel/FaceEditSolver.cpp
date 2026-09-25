@@ -638,6 +638,116 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadObliqueTriangularPrism(const BrepBody& Source, int Face, std::vector<Vec3>& Top,
+                                              Vec3& Translation) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 6 || Source.Edges.size() != 9 ||
+        Source.Coedges.size() != 18 || Source.Loops.size() != 5 || Source.Faces.size() != 5)
+        return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1 ||
+        Source.Loops[Cap.Loops.front()].Coedges.size() != 3) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+
+    const Box3 Bounds = Source.Bounds();
+    if (Bounds.High.Z - Bounds.Low.Z <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& Vertex : Source.Vertices)
+    {
+        if (std::fabs(Vertex.Point.Z - Bounds.Low.Z) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(Vertex.Point.Z - Bounds.High.Z) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != 3 || HighVertices != 3) return false;
+
+    std::vector<int> CapEdges;
+    Top.clear(); Top.reserve(3);
+    for (int Coedge : Source.Loops[Cap.Loops.front()].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepCoedge& C = Source.Coedges[Coedge];
+        if (C.Edge < 0 || C.Edge >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[C.Edge];
+        if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.Coedges.size() != 2 ||
+            E.VertexStart < 0 || E.VertexEnd < 0 || E.VertexStart == E.VertexEnd) return false;
+        const int Start = C.Reversed ? E.VertexEnd : E.VertexStart;
+        const int End = C.Reversed ? E.VertexStart : E.VertexEnd;
+        if (Start < 0 || End < 0 || Start >= static_cast<int>(Source.Vertices.size()) ||
+            End >= static_cast<int>(Source.Vertices.size())) return false;
+        const Vec3 A = Source.Vertices[Start].Point, B = Source.Vertices[End].Point;
+        if (std::fabs(A.Z - Bounds.High.Z) > ScalarCriteria::GeometricTolerance ||
+            std::fabs(B.Z - Bounds.High.Z) > ScalarCriteria::GeometricTolerance) return false;
+        CapEdges.push_back(C.Edge); Top.push_back(A);
+    }
+    if (Top.size() != 3) return false;
+    const double TriangleCross = (Top[1].X - Top[0].X) * (Top[2].Y - Top[0].Y) -
+                                 (Top[1].Y - Top[0].Y) * (Top[2].X - Top[0].X);
+    if (std::fabs(TriangleCross) <= ScalarCriteria::GeometricTolerance) return false;
+
+    for (const BrepEdge& E : Source.Edges)
+        if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.Coedges.size() != 2 ||
+            E.VertexStart < 0 || E.VertexEnd < 0 || E.VertexStart == E.VertexEnd) return false;
+
+    bool FoundTranslation = false;
+    for (size_t I = 0; I < Source.Edges.size(); ++I)
+    {
+        if (std::find(CapEdges.begin(), CapEdges.end(), static_cast<int>(I)) != CapEdges.end()) continue;
+        const BrepEdge& E = Source.Edges[I];
+        const Vec3 A = Source.Vertices[E.VertexStart].Point, B = Source.Vertices[E.VertexEnd].Point;
+        const bool AHigh = std::fabs(A.Z - Bounds.High.Z) <= ScalarCriteria::GeometricTolerance;
+        const bool BHigh = std::fabs(B.Z - Bounds.High.Z) <= ScalarCriteria::GeometricTolerance;
+        const bool ALow = std::fabs(A.Z - Bounds.Low.Z) <= ScalarCriteria::GeometricTolerance;
+        const bool BLow = std::fabs(B.Z - Bounds.Low.Z) <= ScalarCriteria::GeometricTolerance;
+        if (AHigh == BHigh || !(ALow || BLow) || !(AHigh || BHigh)) continue;
+        const Vec3 Candidate = AHigh ? A - B : B - A;
+        if (!FoundTranslation) { Translation = Candidate; FoundTranslation = true; }
+        else if (!ClosePoint(Candidate, Translation, ScalarCriteria::GeometricTolerance)) return false;
+    }
+    if (!FoundTranslation || Translation.Z <= ScalarCriteria::MergeTolerance ||
+        std::hypot(Translation.X, Translation.Y) <= ScalarCriteria::MergeTolerance) return false;
+    int SideFaces = 0;
+    for (const BrepFace& F : Source.Faces)
+    {
+        if ((F.Surface.Classification != SurfaceClassification::Plane && F.Surface.Classification != SurfaceClassification::Extrusion) ||
+            F.Loops.size() != 1) return false;
+        if (F.Loops.front() == Cap.Loops.front()) continue;
+        ++SideFaces;
+    }
+    return SideFaces == 4;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildObliqueTriangularPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    std::vector<Vec3> Top;
+    Vec3 Translation{};
+    if (!ReadObliqueTriangularPrism(Source, Face, Top, Translation))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "oblique triangular-prism offset requires a non-vertical straight prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "oblique triangular-prism offset distance must be finite and positive");
+    const Vec3 BaseA = Top[0] - Translation;
+    const Vec3 BaseB = Top[1] - Translation;
+    const Vec3 BaseC = Top[2] - Translation;
+    const Deliver<NurbsCurve> Profile = NurbsCurve::Polyline({ BaseA, BaseB, BaseC }, true);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    const Vec3 NewTranslation = Translation + Vec3::UnitZ() * Distance;
+    const Deliver<BrepBody> Result = BrepBody::Extrude(Profile.Payload, NewTranslation.Normalised(), NewTranslation.Length());
+    if (!Result) return Result;
+    BrepBody Output = Result.Payload;
+    Output.Orient();
+    const BodyReport Report = Output.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Output.Vertices.size() != 6 ||
+        Output.Edges.size() != 9 || Output.Coedges.size() != 18 || Output.Loops.size() != 5 || Output.Faces.size() != 5)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "oblique triangular-prism offset did not retain V6/E9/C18/L5/F5 topology");
+    return Deliver<BrepBody>::Accept(std::move(Output));
+}
+
 [[nodiscard]] Deliver<BrepBody> ShellByExtrudedU(const BoxFrame& B, int Axis, int Sign, double T) noexcept
 {
     // Offset a rectangular prism in a local 2D cross-section and extrude it along the
@@ -732,7 +842,9 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         Deliver<BrepBody> Pentagon = OffsetExtrudedConvexPrism(Source, Face, Distance);
         if (Pentagon) return Pentagon;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
-        return Holed ? Holed : OffsetExtrudedEllipticalPrism(Source, Face, Distance);
+        if (Holed) return Holed;
+        Deliver<BrepBody> Elliptical = OffsetExtrudedEllipticalPrism(Source, Face, Distance);
+        return Elliptical ? Elliptical : OffsetObliqueTriangularPrism(Source, Face, Distance);
     }
     if (!std::isfinite(Distance) || std::fabs(Distance) <= ScalarCriteria::KernelTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "face offset distance is zero or non-finite");
@@ -843,6 +955,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetExtrudedHoledPrism(const BrepBody& Sourc
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildExtrudedEllipticalPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetObliqueTriangularPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildObliqueTriangularPrismFaceOffset(Source, Face, Distance);
 }
 
 } // namespace Frontier
