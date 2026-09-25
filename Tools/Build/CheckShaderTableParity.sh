@@ -26,7 +26,7 @@ trap 'rm -rf "$Stage"' EXIT
 
 # CMake table entries look like:   "ShadowResolve.slang|compute|ShadowResolve.spv"
 sed -n '/^set(SHADER_TABLE/,/^$/p' "$Cmake" \
-  | grep -oE '"[A-Za-z0-9._]+\.slang\|[a-z]+\|[A-Za-z0-9._]+\.spv"' \
+  | grep -oE '"[A-Za-z0-9._/-]+\.slang\|[a-z]+\|[A-Za-z0-9._]+\.spv"' \
   | tr -d '"' | awk -F'|' '{print $1" "$2" "$3}' | sort > "$Stage/cmake.txt"
 
 # PowerShell entries look like:    @{ Source = 'ShadowResolve.slang'; Stage = 'compute'; Output = 'ShadowResolve.spv' }

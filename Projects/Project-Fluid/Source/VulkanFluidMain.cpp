@@ -4,6 +4,14 @@
 
 #include "PbfFluid.h"
 #include "SurfaceReconstruction.h"
+#ifdef PROJECT_FLUID_EMBEDDED
+#include "GpuSurfaceExtractor.h"
+#include <filesystem>
+#include <memory>
+#define PROJECT_FLUID_CLEAR_SPV "Engine/Shaders/FluidParticleClear.spv"
+#define PROJECT_FLUID_SPLAT_SPV "Engine/Shaders/FluidParticleSplat.spv"
+#define PROJECT_FLUID_RESOLVE_SPV "Engine/Shaders/FluidSurfaceResolve.spv"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -81,7 +89,8 @@ public:
     ~FluidApplication() { Shutdown(); }
 
     void Run() {
-        Initialize();
+        const auto initStart=std::chrono::steady_clock::now();Initialize();
+        std::cerr<<"[FluidPreview] setup_wall_ms="<<std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-initStart).count()<<'\n';
         auto previous = std::chrono::steady_clock::now();
         while (!glfwWindowShouldClose(Window_)) {
             glfwPollEvents();
@@ -130,10 +139,16 @@ private:
     Buffer ThicknessBuffer_;
     Buffer PixelBuffer_;
     Buffer UniformBuffer_;
+#ifdef PROJECT_FLUID_EMBEDDED
+    std::unique_ptr<PF::GpuSurfaceExtractor> Extractor_;
+    std::ofstream Perf_;
+    uint64_t PerfFrame_{};
+#endif
     PF::PbfFluid Fluid_;
     PF::SurfaceReconstruction Reconstruction_;
     Parameters Params_{};
     std::vector<GpuParticle> GpuParticles_;
+    double LastPcaMs_{};
     float StepAccumulator_{};
     bool PauseLatch_{false};
     bool ResetLatch_{false};
@@ -194,7 +209,7 @@ private:
         app.pApplicationName = "Project Fluid";
         app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         app.pEngineName = "Frontier";
-        app.apiVersion = VK_API_VERSION_1_1;
+        app.apiVersion = VK_API_VERSION_1_2;
         VkInstanceCreateInfo instanceInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         instanceInfo.pApplicationInfo = &app;
         instanceInfo.enabledExtensionCount = extensionCount;
@@ -209,6 +224,16 @@ private:
         Params_.Height = Extent_.height;
         Params_.ObstacleEnabled = 1;
         GpuParticles_.resize(PF::PbfFluid::MaxParticles);
+#ifdef PROJECT_FLUID_EMBEDDED
+        Extractor_=std::make_unique<PF::GpuSurfaceExtractor>(Physical_,Device_,Queue_,QueueFamily_,"Engine/Shaders/FluidExtract.spv");
+        std::filesystem::create_directories("Build/FluidTests");
+        const auto stamp=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        const auto log="Build/FluidTests/preview-"+std::to_string(stamp)+".csv";
+        Perf_.open(log);if(!Perf_)Fail("Cannot create fluid preview performance log");
+        Perf_<<"frame,particles,sim_steps,physics_wall_ms,pca_ms,prepare_ms,extract_wall_ms,update_wall_ms,gpu_field_ms,gpu_edges_ms,gpu_triangles_ms,indices,overflow\n";
+        VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(Physical_,&properties);
+        std::cerr<<"[FluidPreview] GPU="<<properties.deviceName<<" allocation_bytes="<<Extractor_->AllocatedBytes()<<" CSV="<<log<<"\nCPU physics/PCA; GPU raw mesh extraction. Display uses particle optics, NOT the extracted mesh.\n";
+#endif
         UploadParticles();
         std::cout << "Project Fluid / Flux controls: Space pause, R reset, S stir, P toggle pour, 1-4 materials, Esc quit\n";
     }
@@ -219,6 +244,8 @@ private:
         std::vector<VkPhysicalDevice> devices(count);
         vkEnumeratePhysicalDevices(Instance_, &count, devices.data());
         for (VkPhysicalDevice candidate : devices) {
+            VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(candidate,&properties);
+            if(properties.apiVersion<VK_API_VERSION_1_2)continue;
             std::uint32_t familyCount = 0;
             vkGetPhysicalDeviceQueueFamilyProperties(candidate, &familyCount, nullptr);
             std::vector<VkQueueFamilyProperties> families(familyCount);
@@ -257,6 +284,9 @@ private:
         vkGetPhysicalDeviceSurfaceFormatsKHR(Physical_, WindowSurface_, &formatCount, nullptr);
         std::vector<VkSurfaceFormatKHR> formats(formatCount);
         vkGetPhysicalDeviceSurfaceFormatsKHR(Physical_, WindowSurface_, &formatCount, formats.data());
+        if(formats.empty())Fail("No surface formats");
+        if(!(capabilities.supportedUsageFlags&VK_IMAGE_USAGE_TRANSFER_DST_BIT))Fail("Swapchain does not support fluid transfer destination");
+        if(!(capabilities.supportedCompositeAlpha&VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR))Fail("Swapchain does not support opaque alpha");
         VkSurfaceFormatKHR selected = formats.front();
         for (const auto& format : formats)
             if (format.format == VK_FORMAT_B8G8R8A8_UNORM) selected = format;
@@ -389,7 +419,9 @@ private:
 
     void UploadParticles() {
         const auto& positions = Fluid_.Positions();
+        const auto pcaStart=std::chrono::steady_clock::now();
         Reconstruction_.Update(positions);
+        LastPcaMs_=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-pcaStart).count();
         const auto& kernels = Reconstruction_.Kernels();
         for (std::size_t i = 0; i < positions.size(); ++i) {
             const auto& k = kernels[i];
@@ -416,6 +448,7 @@ private:
     }
 
     void Update(float dt) {
+        const auto updateStart=std::chrono::steady_clock::now();
         if (glfwGetKey(Window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(Window_, GLFW_TRUE);
         if (Pressed(GLFW_KEY_SPACE, PauseLatch_)) Params_.Paused ^= 1u;
         if (Pressed(GLFW_KEY_R, ResetLatch_)) Fluid_.Reset();
@@ -425,17 +458,33 @@ private:
         if (glfwGetKey(Window_, GLFW_KEY_2) == GLFW_PRESS) Fluid_.SetMaterial(PF::Material::Milk);
         if (glfwGetKey(Window_, GLFW_KEY_3) == GLFW_PRESS) Fluid_.SetMaterial(PF::Material::Honey);
         if (glfwGetKey(Window_, GLFW_KEY_4) == GLFW_PRESS) Fluid_.SetMaterial(PF::Material::Chocolate);
+        const auto physicsStart=std::chrono::steady_clock::now();uint32_t simulationSteps=0;
         if (!Params_.Paused) {
             constexpr float fixedDelta = 1.0f / 60.0f;
             StepAccumulator_ = std::min(StepAccumulator_ + dt, fixedDelta * 2.0f);
             int steps = 0;
             while (StepAccumulator_ >= fixedDelta && steps++ < 2) {
                 if (Pouring_) Fluid_.Pour(fixedDelta);
-                Fluid_.Step(fixedDelta);
+                Fluid_.Step(fixedDelta);++simulationSteps;
                 StepAccumulator_ -= fixedDelta;
             }
         }
+        const auto physicsMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-physicsStart).count();
         UploadParticles();
+#ifdef PROJECT_FLUID_EMBEDDED
+        const auto prepareStart=std::chrono::steady_clock::now();
+        const auto prepared=PF::PrepareGpuSurface(Reconstruction_.Kernels());
+        const auto prepareMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-prepareStart).count();
+        const auto extractStart=std::chrono::steady_clock::now();
+        const auto timing=Extractor_->Update(prepared);
+        const auto extractMs=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-extractStart).count();
+        if(timing.Overflow)Fail("Fluid GPU mesh capacity exceeded");
+        const auto ms=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-updateStart).count();
+        Perf_<<PerfFrame_++<<','<<Fluid_.Positions().size()<<','<<simulationSteps<<','<<physicsMs<<','<<LastPcaMs_<<','<<prepareMs<<','<<extractMs<<','<<ms<<',';
+        if(timing.Timestamps)Perf_<<timing.FieldMs<<','<<timing.EdgesMs<<','<<timing.TrianglesMs;else Perf_<<"NA,NA,NA";
+        Perf_<<','<<timing.Indices<<','<<timing.Overflow<<'\n';
+        if(PerfFrame_%60==0){Perf_.flush();std::cerr<<"[FluidPreview] update_ms="<<ms<<" triangles="<<timing.Indices/3<<'\n';}
+#endif
         std::memcpy(UniformBuffer_.Mapped, &Params_, sizeof(Params_));
         const auto& d = Fluid_.Diagnostics();
         std::string title = "Project Fluid | Flux PBF | " + std::string(Fluid_.ActiveMaterial().Name) +
@@ -446,10 +495,10 @@ private:
 
     void Draw() {
         vkWaitForFences(Device_, 1, &FrameFence_, VK_TRUE, UINT64_MAX);
-        vkResetFences(Device_, 1, &FrameFence_);
         std::uint32_t imageIndex = 0;
         VkResult acquired = vkAcquireNextImageKHR(Device_, Swapchain_, UINT64_MAX, Acquired_, VK_NULL_HANDLE, &imageIndex);
         if (acquired != VK_SUCCESS && acquired != VK_SUBOPTIMAL_KHR) Fail("Swapchain acquisition failed");
+        VkCheck(vkResetFences(Device_,1,&FrameFence_),"reset preview fence");
         vkResetCommandBuffer(Command_, 0);
         VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         VkCheck(vkBeginCommandBuffer(Command_, &begin), "vkBeginCommandBuffer");
@@ -545,6 +594,9 @@ private:
             if (SetLayout_) vkDestroyDescriptorSetLayout(Device_, SetLayout_, nullptr);
             DestroyBuffer(ParticleBuffer_); DestroyBuffer(DepthBuffer_); DestroyBuffer(ThicknessBuffer_); DestroyBuffer(PixelBuffer_); DestroyBuffer(UniformBuffer_);
             if (Swapchain_) vkDestroySwapchainKHR(Device_, Swapchain_, nullptr);
+#ifdef PROJECT_FLUID_EMBEDDED
+            Extractor_.reset();
+#endif
             vkDestroyDevice(Device_, nullptr);
         }
         if (WindowSurface_) vkDestroySurfaceKHR(Instance_, WindowSurface_, nullptr);
@@ -556,7 +608,11 @@ private:
 };
 } // namespace
 
+#ifdef PROJECT_FLUID_EMBEDDED
+int RunProjectFluidPreview() {
+#else
 int main() {
+#endif
     try {
         FluidApplication application;
         application.Run();

@@ -105,3 +105,7 @@ Older research documents describe the former multi-repository arrangement. Histo
 ## Water prototype
 
 Flux/Ripple are included with a tested **load-time Ripple mesh bridge**, not live main-engine fluid simulation. Build/test with `cmake --preset fluid-cpu`, `cmake --build --preset fluid-cpu`, then `ctest --preset fluid-cpu`. The rebuilt Project-Zero accepts `--water-body-snapshot`. See [scope, commands, measurements and limitations](Docs/WaterIntegration.md).
+
+## GPU fluid tests and startup memory logs
+
+Project-Zero now has `--fluid-preview`, `--fluid-gpu-test` and `--fluid-cpu-test` modes. The GPU extraction implementation has a tested CPU mirror; hardware execution remains unverified. [Build/run instructions, scope, logging and RAM investigation](Docs/FluidGpuTesting.md).

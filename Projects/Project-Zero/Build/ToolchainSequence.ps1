@@ -375,6 +375,10 @@ function Resolve-ShaderCompiler([string] $VulkanRoot)
 # Shader table: source (under Engine\Shaders), glslc stage, output .spv. Every file includes SceneRecords.slang except the
 # kernel's own includes; the include list below re-lowers all of them when any shared header changes.
 $ShaderTable = @(
+    @{ Source = 'FluidExtract.slang'; Stage = 'compute'; Output = 'FluidExtract.spv' }
+    @{ Source = '../../Projects/Project-Fluid/Shaders/ParticleClear.slang'; Stage = 'compute'; Output = 'FluidParticleClear.spv' }
+    @{ Source = '../../Projects/Project-Fluid/Shaders/ParticleSplat.slang'; Stage = 'compute'; Output = 'FluidParticleSplat.spv' }
+    @{ Source = '../../Projects/Project-Fluid/Shaders/SurfaceResolve.slang'; Stage = 'compute'; Output = 'FluidSurfaceResolve.spv' }
     @{ Source = 'ReSTIRViewport.slang';        Stage = 'compute';  Output = 'ReSTIRViewport.spv' }
     @{ Source = 'ClusterCull.slang';           Stage = 'compute';  Output = 'ClusterCull.spv' }
     @{ Source = 'HiZReduce.slang';             Stage = 'compute';  Output = 'HiZReduce.spv' }
@@ -563,6 +567,11 @@ $ImGuiSources = @(
 )
 
 $EngineRelative = @(
+    'Projects\Project-Fluid\Source\SurfaceReconstruction.cpp'
+    'Projects\Project-Fluid\Source\GpuSurfaceData.cpp'
+    'Projects\Project-Fluid\Source\GpuSurfaceExtractor.cpp'
+    'Projects\Project-Fluid\Source\FluidGpuTest.cpp'
+    'Projects\Project-Fluid\Source\VulkanFluidMain.cpp'
     'Projects\Project-Zero\Source\WaterBodySequence.cpp'
     'Projects\Project-Fluid\Source\PbfFluid.cpp'
     'Projects\Project-Fluid\Source\PondWave.cpp'
@@ -709,6 +718,9 @@ if ($MissingSources.Count -gt 0) { throw ('missing source files in the translati
 #        renderer without the exhibit's own main(), which is what lets the showroom link it. Undefined, that file defines
 #        main() as well and the link fails on a duplicate entry point instead of a missing one.
 $Overrides = @(
+    @{ Source = (Join-Path $RepositoryRoot 'Projects\Project-Fluid\Source\VulkanFluidMain.cpp')
+       Flags = @('/DPROJECT_FLUID_EMBEDDED')
+       Label = 'Project-Zero fluid preview TU' }
     @{ Source = (Join-Path $RepositoryRoot 'Engine\ContentInterchange\ShaderballPreview.cpp')
        Flags  = @('/DSHADERBALL_PREVIEW_LIB')
        Label  = 'Project-Zero preview TU' }

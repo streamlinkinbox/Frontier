@@ -106,3 +106,7 @@ empty geometry, invalid indices, open/non-manifold edges, or a dirty-cache miss.
 - [`PAPER_FIDELITY.md`](PAPER_FIDELITY.md) is the acceptance checklist for the
   strict sampled-boundary, PCG, Yu–Turk mesh, dynamic-rigid, and Vulkan RT path;
   unchecked items are explicitly not claimed as implemented.
+
+## GPU fluid tests and startup memory logs
+
+Project-Zero now has `--fluid-preview`, `--fluid-gpu-test` and `--fluid-cpu-test` modes. The GPU extraction implementation has a tested CPU mirror; hardware execution remains unverified. [Build/run instructions, scope, logging and RAM investigation](../../Docs/FluidGpuTesting.md).

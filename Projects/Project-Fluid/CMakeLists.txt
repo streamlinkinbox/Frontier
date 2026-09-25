@@ -5,6 +5,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 get_filename_component(FRONTIER_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 add_library(ProjectFluidCore STATIC
+    Source/GpuSurfaceData.cpp Source/GpuSurfaceData.h
     Source/PbfFluid.cpp Source/PbfFluid.h
     Source/SurfaceReconstruction.cpp Source/SurfaceReconstruction.h
     Source/AnisotropicSurfaceMesh.cpp Source/AnisotropicSurfaceMesh.h
@@ -128,4 +129,10 @@ add_executable(Project-Fluid-Optimization-Test Source/OptimizationTest.cpp)
 target_link_libraries(Project-Fluid-Optimization-Test PRIVATE ProjectFluidCore)
 if(BUILD_TESTING)
     add_test(NAME ProjectFluidOptimization COMMAND Project-Fluid-Optimization-Test)
+endif()
+
+add_executable(Project-Fluid-Gpu-Mirror-Test Source/GpuSurfaceMirrorTest.cpp)
+target_link_libraries(Project-Fluid-Gpu-Mirror-Test PRIVATE ProjectFluidCore)
+if(BUILD_TESTING)
+    add_test(NAME ProjectFluidGpuMirror COMMAND Project-Fluid-Gpu-Mirror-Test)
 endif()

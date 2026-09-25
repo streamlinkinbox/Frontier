@@ -397,6 +397,8 @@ static void AllocateBuffer(
             break;
         }
     }
+    std::cerr << "[Allocation] buffer requested=" << ByteCount << " allocated=" << Requirements.size
+              << " memory_flags=" << MemoryProperties.memoryTypes[AllocateInfo.memoryTypeIndex].propertyFlags << " (request, not live total)\n";
     (void)vkAllocateMemory(Device, &AllocateInfo, nullptr, &OutMemory);
     vkBindBufferMemory(Device, OutBuffer, OutMemory, 0);
 }
@@ -1214,6 +1216,8 @@ static bool CreateStorageImage(VkDevice Device, const VkPhysicalDeviceMemoryProp
             break;
         }
     }
+    std::cerr << "[Allocation] image=" << Label << " extent=" << Extent.width << 'x' << Extent.height
+              << " allocated=" << Requirements.size << " memory_flags=" << MemoryProperties.memoryTypes[AllocateInfo.memoryTypeIndex].propertyFlags << "\n";
     if (vkAllocateMemory(Device, &AllocateInfo, nullptr, &OutMemory) != VK_SUCCESS)
     {
         std::cerr << "[SwapchainExchange] vkAllocateMemory (" << Label << ") failed.\n";
@@ -2400,6 +2404,7 @@ void SwapchainExchange::UploadTextures(const TextureIndex& Textures) noexcept
     // ① Staging buffer with every texture's full mip chain back to back.
     VkDeviceSize StagingBytes = 0u;
     for (uint32_t I = 0u; I < Count; ++I) StagingBytes += Source[I].Texels.size();
+    std::cerr << "[Allocation] texture_staging_payload=" << StagingBytes << " (CPU texels retained separately)\n";
     VkBuffer Staging = VK_NULL_HANDLE; VkDeviceMemory StagingMemory = VK_NULL_HANDLE;
     AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, std::max<VkDeviceSize>(StagingBytes, 16u), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, Staging, StagingMemory);

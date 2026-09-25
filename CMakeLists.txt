@@ -99,6 +99,10 @@ set(SHADER_INCLUDES "${CMAKE_SOURCE_DIR}/Engine/DisplayPresentation/LensFlareKer
                     "${SHADER_ROOT}/ShadowRecords.slang" "${SHADER_ROOT}/ShadowSample.slang"
                     "${SHADER_ROOT}/OutlineRecords.slang" "${SHADER_ROOT}/GizmoRecords.slang")
 set(SHADER_TABLE
+    "FluidExtract.slang|compute|FluidExtract.spv"
+    "../../Projects/Project-Fluid/Shaders/ParticleClear.slang|compute|FluidParticleClear.spv"
+    "../../Projects/Project-Fluid/Shaders/ParticleSplat.slang|compute|FluidParticleSplat.spv"
+    "../../Projects/Project-Fluid/Shaders/SurfaceResolve.slang|compute|FluidSurfaceResolve.spv"
     "ReSTIRViewport.slang|compute|ReSTIRViewport.spv"
     "ClusterCull.slang|compute|ClusterCull.spv"
     "HiZReduce.slang|compute|HiZReduce.spv"
@@ -251,6 +255,11 @@ set(FRONTIER_ENGINE_INCLUDES
 #============================================================================================================================================
 
 set(PROJECT_ZERO_SOURCES
+    Projects/Project-Fluid/Source/SurfaceReconstruction.cpp
+    Projects/Project-Fluid/Source/GpuSurfaceData.cpp
+    Projects/Project-Fluid/Source/GpuSurfaceExtractor.cpp
+    Projects/Project-Fluid/Source/FluidGpuTest.cpp
+    Projects/Project-Fluid/Source/VulkanFluidMain.cpp
     Projects/Project-Zero/Source/WaterBodySequence.cpp
     Projects/Project-Fluid/Source/PbfFluid.cpp
     Projects/Project-Fluid/Source/PondWave.cpp
@@ -303,6 +312,7 @@ if(FRONTIER_MISSING_SOURCES)
 endif()
 
 add_executable(Project-Zero ${PROJECT_ZERO_SOURCES})
+target_compile_definitions(Project-Zero PRIVATE PROJECT_FLUID_EMBEDDED)
 add_dependencies(Project-Zero ReSTIRViewportSpirv)
 set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # tinybvh SIMD build
 set_source_files_properties(Engine/GeometricRaster/InstanceAcceleration.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # D6/D9: tiny_bvh.h's SIMD types, and the same flags the traversal batch is compiled with

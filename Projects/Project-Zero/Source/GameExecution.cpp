@@ -42,6 +42,9 @@
 #include "../../../Engine/ContentInterchange/ShaderBallStructure.h"
 #include "../../../Engine/ContentInterchange/ShowcaseStructure.h"
 #include "WaterBodySequence.h"
+#include "StartupLog.h"
+#include "../../Project-Fluid/Source/GpuSurfaceExtractor.h"
+int RunProjectFluidPreview();
 #include "../../../Engine/ContentInterchange/MaterialSwatchStructure.h"
 #include "ShowroomStructure.h"
 #include "EditorFeedSequence.h"
@@ -141,6 +144,12 @@ int main(int argc, char** argv)
     // Dev/debug-only in-RAM telemetry probe (TelemetryProbe.h): pins the boot epoch FIRST so every startup phase,
     //    shader load and frame row is measured against the true start of main. Ship builds compile this to nothing.
     FRONTIER_PROBE_BOOT();
+    Frontier::ProjectZero::StartupLog Startup;
+    for(int I=1;I<argc;++I){
+        if(std::strcmp(argv[I],"--fluid-gpu-test")==0||std::strcmp(argv[I],"--fluid-cpu-test")==0)
+            return Frontier::ProjectFluid::RunFluidGpuTest(argc,argv);
+        if(std::strcmp(argv[I],"--fluid-preview")==0)return RunProjectFluidPreview();
+    }
 
     // D4: how many rigid bodies the --scene drop level contains. Fixed so the exported glTF and the solver agree
     //    on instance ordinals without either having to inspect the other.
@@ -297,6 +306,7 @@ int main(int argc, char** argv)
         }
     }
 
+    Startup.Mark("BuiltInSceneReady");
     Frontier::ConfigurationRegistry Configuration;
     if (!Configuration.Load("Projects/Project-Zero/Content/Frontier.config.toml"))
         std::cerr << "[Configuration] " << Configuration.QueryPath() << ": " << Configuration.QueryLastError() << " - using defaults\n";
@@ -320,6 +330,7 @@ int main(int argc, char** argv)
     bool TextureDecodeStarted = false;
     {
         FRONTIER_PROBE_PHASE_BEGIN("SceneDecode");
+        Startup.Mark("SceneDecode:begin"); const auto SceneDecodeStart=Frontier::ProjectZero::StartupLog::Now();
         Frontier::SceneDecodeConfiguration Decode;
         Decode.UniformScale = SceneScale;
         Decode.SlabLimit    = Configuration.Query().Backend.SlabLimit;
@@ -363,6 +374,7 @@ int main(int argc, char** argv)
                       (size_t)Level.QueryMaterials().QueryCount(), Level.QueryLuminaires().size(), Lo.x, Lo.y, Lo.z, Hi.x, Hi.y, Hi.z);
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "Scene", Line);
         FRONTIER_PROBE_PHASE_END("SceneDecode");
+        Startup.Mark("SceneDecode:end",Frontier::ProjectZero::StartupLog::Elapsed(SceneDecodeStart));
         const Frontier::MaterialIndexMetrics& M = Level.QueryMaterials().QueryMetrics();
         std::snprintf(Line, sizeof(Line), "Materials: %u descriptors -> %u records, %u slabs (limit %u, %u folded), %zu placements, %zu cameras, %zu punctual lights",
                       M.DescriptorCount, M.DescriptorCount, M.SlabCount, M.SlabLimit, M.FoldedCount, Level.QueryPlacements().size(), Level.QueryCameras().size(), Level.QueryPunctualLuminaires().size());
@@ -372,14 +384,16 @@ int main(int argc, char** argv)
         //    (including the moon atlas entries) are registered. Kick it to a worker and join only before the first
         //    scene upload needs the decoded mip payloads.
         const uint32_t TextureEdgeLimit = Configuration.Query().Backend.TextureEdgeLimit;
-        TextureDecodeFuture = std::async(std::launch::async, [&Textures, TextureEdgeLimit]() -> TextureDecodeAsyncResult
+        TextureDecodeFuture = std::async(std::launch::async, [&Textures, &Startup, TextureEdgeLimit]() -> TextureDecodeAsyncResult
         {
             TextureDecodeAsyncResult Result;
             FRONTIER_PROBE_PHASE_BEGIN("TextureDecode");
+        Startup.Mark("TextureDecode:begin"); const auto TextureDecodeStart=Frontier::ProjectZero::StartupLog::Now();
             Result.DecodeFailureCount = Textures.Decode(TextureEdgeLimit, &Result.Report);
             for (const Frontier::TextureDescriptor& T : Textures.QueryTextures())
                 Result.DeepestLevelCount = std::max(Result.DeepestLevelCount, T.LevelCount);   // R6 row 3: LOD census for the F3 popup
             FRONTIER_PROBE_PHASE_END("TextureDecode");
+        Startup.Mark("TextureDecode:end",Frontier::ProjectZero::StartupLog::Elapsed(TextureDecodeStart));
             return Result;
         });
         TextureDecodeStarted = true;
@@ -496,11 +510,13 @@ int main(int argc, char** argv)
         // SBVH; ~2× build time for ~10 % fewer steps. The drop level opts OUT: spatial splits cut triangles,
         //    which makes the tree unrefittable, and movable geometry is worth more here than the traversal gain.
         const bool HighQuality = !DropScene && Level.QueryTriangleCount() <= 2'000'000u;
-        TraversalBuildFuture = std::async(std::launch::async, [&Traversal, &Level, HighQuality]()
+        TraversalBuildFuture = std::async(std::launch::async, [&Traversal, &Level, &Startup, HighQuality]()
         {
             FRONTIER_PROBE_PHASE_BEGIN("CwbvhBuild");
+        Startup.Mark("CwbvhBuild:begin"); const auto CwbvhBuildStart=Frontier::ProjectZero::StartupLog::Now();
             Traversal.BuildBottomLevel(Level.QueryFlatTriangles(), HighQuality);
             FRONTIER_PROBE_PHASE_END("CwbvhBuild");
+        Startup.Mark("CwbvhBuild:end",Frontier::ProjectZero::StartupLog::Elapsed(CwbvhBuildStart));
         });
         TraversalBuildStarted = true;
     }
@@ -626,6 +642,7 @@ int main(int argc, char** argv)
     Surface.AssignRayTracingRequest(static_cast<Frontier::RayTracingRequestCategory>(Configuration.Query().Backend.RayTracingTier));
 
     FRONTIER_PROBE_PHASE_BEGIN("VulkanBringUp");
+        Startup.Mark("VulkanBringUp:begin"); const auto VulkanBringUpStart=Frontier::ProjectZero::StartupLog::Now();
     if (!Surface.Bring())
     {
         Logger.RecordMessage(Frontier::DiagnosticSeverity::Fatal,
@@ -637,14 +654,18 @@ int main(int argc, char** argv)
     }
 
     FRONTIER_PROBE_PHASE_END("VulkanBringUp");
+        Startup.Mark("VulkanBringUp:end",Frontier::ProjectZero::StartupLog::Elapsed(VulkanBringUpStart));
     Logger.RecordMessage(Frontier::DiagnosticSeverity::Information,
                          "Bootstrap", "Window and Vulkan swapchain ready.");
 
     {
         FRONTIER_PROBE_PHASE_BEGIN("ShadingTableBake");
+        Startup.Mark("ShadingTableBake:begin"); const auto ShadingTableBakeStart=Frontier::ProjectZero::StartupLog::Now();
         const Frontier::ShadingTableSet Tables = Frontier::ShadingTableCodec::Bake();   // R4b: GGX energy + LTC sheen LUTs
+        Startup.Mark("ShadingLutPayload",-1,(Tables.Energy.size()+Tables.Sheen.size())*sizeof(float));
         Surface.UploadShadingTables(Tables.Energy.data(), Tables.Sheen.data(), Frontier::ShadingTableSet::kResolution);
         FRONTIER_PROBE_PHASE_END("ShadingTableBake");
+        Startup.Mark("ShadingTableBake:end",Frontier::ProjectZero::StartupLog::Elapsed(ShadingTableBakeStart));
     }
     if (TraversalBuildStarted && TraversalBuildFuture.valid())
     {
@@ -683,8 +704,15 @@ int main(int argc, char** argv)
     }
 
     FRONTIER_PROBE_PHASE_BEGIN("SceneUpload");
+        Startup.Mark("SceneUpload:begin"); const auto SceneUploadStart=Frontier::ProjectZero::StartupLog::Now();
+    uint64_t TexturePayload=0,TextureCapacity=0;
+    for(const auto& T:Textures.QueryTextures()){TexturePayload+=T.Texels.size();TextureCapacity+=T.Texels.capacity();}
+    Startup.Mark("DecodedTexturePayload",-1,TexturePayload);
+    Startup.Mark("DecodedTextureCapacity",-1,TextureCapacity);
+    Startup.Mark("CpuGeometryPayload",-1,Level.QueryVertices().size()*sizeof(Frontier::VertexRecord)+Level.QueryIndices().size()*sizeof(uint32_t)+Level.QueryFlatTriangles().size()*sizeof(Frontier::TriangleIndex));
     Surface.UploadScene(Level, Traversal, &Textures);
     FRONTIER_PROBE_PHASE_END("SceneUpload");
+        Startup.Mark("SceneUpload:end",Frontier::ProjectZero::StartupLog::Elapsed(SceneUploadStart));
 
     //──────────────────────────────────────────────────────────────────────────
     // D3 — scripted instance motion (--animate), proving the transform path before physics
@@ -698,6 +726,7 @@ int main(int argc, char** argv)
     //    the bodies' traced positions follow their drawn positions. Off unless the level actually has bodies, and
     //    disabled at run time if the refit ever refuses, so a failure degrades to static shadows rather than a crash.
     std::vector<Frontier::TriangleIndex> TracedFacets = Level.QueryFlatTriangles();
+    Startup.Mark("CpuAnimationMirrorCapacity",-1,AnimatedInstances.capacity()*sizeof(Frontier::InstanceRecord)+TracedFacets.capacity()*sizeof(Frontier::TriangleIndex));
     bool  TraceMovingBodies      = false;
     float RefitMillisecondsPeak  = 0.0f;   // [ms]
     Frontier::ProjectZero::InstanceMotionSequence InstanceMotion;
@@ -925,12 +954,16 @@ int main(int argc, char** argv)
     // Typefaces: every static face under EngineContent/FontArchives, loaded once into the dynamic atlas (Vulkan backend
     //    rasterises glyphs on demand). The Fonts tab reads the registry; PixelSpace text honours the applied face.
     Frontier::TypefaceRegistry Typefaces;
+    Startup.Mark("Fonts:begin");const auto FontStart=Frontier::ProjectZero::StartupLog::Now();
     (void)Typefaces.Load("EngineContent/FontArchives");
+    Startup.Mark("Fonts:end",Frontier::ProjectZero::StartupLog::Elapsed(FontStart));
     Frontier::TypefaceRegistry::Install(&Typefaces);
 
     Frontier::ControlCentreHost ControlCentre;
     ControlCentre.AssignProjectName("Project-Zero");
+    Startup.Mark("ControlCentre:begin");const auto ControlStart=Frontier::ProjectZero::StartupLog::Now();
     (void)ControlCentre.Initialize(Surface.QueryWidth(), Surface.QueryHeight());
+    Startup.Mark("ControlCentre:end",Frontier::ProjectZero::StartupLog::Elapsed(ControlStart));
 
     // The hosts are seeded from the configuration loaded before bring-up; every Apply / debounced dashboard change
     //    writes the file back.
@@ -1150,6 +1183,7 @@ int main(int argc, char** argv)
     bool PointerHeldLastFrame = false;
 
     FRONTIER_PROBE_PHASE_BEGIN("InterfaceBringUp");
+        Startup.Mark("InterfaceBringUp:begin"); const auto InterfaceBringUpStart=Frontier::ProjectZero::StartupLog::Now();
     if (Interface.Bring(Surface.QueryDevice(), Surface.QueryPhysicalDevice(),
                         Surface.QueryCycleSlotCount(), Surface.QueryColourFormat(), Surface.QueryDepthFormat()))
     {
@@ -1268,6 +1302,7 @@ int main(int argc, char** argv)
                              "Spatial interface unavailable - the scene renders without the panel.");
     }
     FRONTIER_PROBE_PHASE_END("InterfaceBringUp");
+        Startup.Mark("InterfaceBringUp:end",Frontier::ProjectZero::StartupLog::Elapsed(InterfaceBringUpStart));
 
 #ifdef FRONTIER_DEVELOPMENT
     // The transform gizmo's device side, beside the interface it composites with. Development only: the
@@ -1346,6 +1381,7 @@ int main(int argc, char** argv)
     //    end of the loop, and PerformanceTelemetrySequence.h for why rows exist at all.
     Frontier::ProjectZero::PerformanceTelemetrySequence PerformanceTelemetry{ 5.0f };
 
+    Startup.Mark("FrameLoopReady"); uint32_t StartupFrames=0;
     while (!Surface.CloseRequested() && !Panel.Convert<bool>())
     {
         const auto  NowTime = Clock::now();
@@ -2528,6 +2564,8 @@ int main(int argc, char** argv)
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present
         Surface.RecordAndPresent(Dispatch);
+        if(++StartupFrames==1)Startup.Mark("FirstPresentReturned");
+        if(StartupFrames==120)Startup.Mark("After120Frames");
         FRONTIER_PROBE_LAP(RecordAndPresent);
 
         Integrator.IncrementAccumulationIndex();
