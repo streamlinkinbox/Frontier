@@ -8,7 +8,7 @@
 #     bash Projects/Project-Dyno/Build/ToolchainSequence.sh --run -- --null --seconds 3
 #
 #   Output: Projects/Project-Dyno/Build/Output/Linux/<Configuration>/Binary/Project-Dyno
-#   Requires: ExternalPackages/miniaudio (git submodule update --init -- ExternalPackages/miniaudio)
+#   Requires: ExternalPackages/miniaudio (python3 Tools/Bootstrap.py --package miniaudio)
 
 set -euo pipefail
 
@@ -44,11 +44,8 @@ if [[ -z "$Compiler" ]]; then
         echo "[FAILED]   neither g++ nor clang++ is on PATH" >&2; exit 1; fi
 fi
 
-if [[ ! -f "$PackageRoot/miniaudio/miniaudio.h" ]]; then
-    echo "[Build]    initialising ExternalPackages/miniaudio submodule..."
-    (cd "$RepositoryRoot" && git submodule update --init -- ExternalPackages/miniaudio) || {
-        echo "[FAILED]   ExternalPackages/miniaudio is missing and could not be fetched" >&2; exit 1; }
-fi
+# Builds never fetch dependencies. Install/repair explicitly before building.
+python3 "$RepositoryRoot/Tools/Bootstrap.py" --package miniaudio --check || exit 1
 
 CommonFlags=(-std=c++20 -Wall -Wextra -pthread -DFRONTIER_DEVELOPMENT)
 if [[ "$Configuration" == "Debug" ]]; then

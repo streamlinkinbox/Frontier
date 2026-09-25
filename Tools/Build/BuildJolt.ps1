@@ -71,7 +71,7 @@ if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue))
 
 if (-not (Test-Path (Join-Path $JoltRoot 'Jolt\Jolt.h')))
 {
-    throw "Jolt submodule is absent at $JoltRoot; run: git submodule update --init ExternalPackages/jolt"
+    throw "Jolt dependency is absent at $JoltRoot; run: python Tools/Bootstrap.py --package jolt"
 }
 
 if ($Rebuild -and (Test-Path $BuildDir))

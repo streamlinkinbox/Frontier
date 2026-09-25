@@ -37,7 +37,7 @@ report() { printf '%-10s %s\n' "[$1]" "$2"; }
 
 if [ ! -f "$JoltRoot/Jolt/Jolt.h" ]
 then
-    report 'FAILED' "Jolt submodule is absent at $JoltRoot; run: git submodule update --init ExternalPackages/jolt"
+    report 'FAILED' "Jolt dependency is absent at $JoltRoot; run: python Tools/Bootstrap.py --package jolt"
     exit 1
 fi
 

@@ -4,6 +4,25 @@
 
 The engine/editor sources are checked in directly. You do **not** need to clone another Frontier repository, find missing source files or apply the old engine patch chain. Third-party libraries are downloaded automatically from an immutable, checksummed dependency lockfile.
 
+## Build guide and dependency recovery
+
+**[Complete project build instructions and external-package troubleshooting](Docs/Building.md)** — Project-Zero, Dyno, Fluid, the native CPU proof, SolidArc and browser projects.
+
+Normal native builds now **check installed dependencies without downloading**. Install/repair is a separate step; Windows drivers accept `-SetupDependencies` only when you explicitly want setup during a build.
+
+If packages are already downloaded, **do not delete the whole `ExternalPackages` folder**:
+
+```powershell
+# Diagnose all dependencies locally, with no network:
+python Tools/Bootstrap.py --check
+# Example: restore only a damaged managed ImGui installation from the archive cache:
+python Tools/Bootstrap.py --package imgui --repair --offline
+# If a download is actually needed and Python HTTPS fails, use verified curl:
+python Tools/Bootstrap.py --package imgui --repair --downloader curl
+```
+
+Repair preserves the previous managed folder in `ExternalPackages/.frontier-backups/`. Keep `.cache/dependency-archives/` when updating the codebase, or use `FRONTIER_DEPENDENCY_CACHE` for a shared cache. Ready installations never need their archives redownloaded. See the guide for pin mismatches, unmanaged folders, missing `.lib` files, Vulkan SDK errors, proxies and trusted CA bundles. **Never disable TLS verification.**
+
 ## Start here
 
 Prerequisites: **Python 3.11+, Git, CMake 3.21+, Ninja and a C++20 compiler**. On Windows, use a Visual Studio x64 developer terminal with the C++ desktop workload installed.

@@ -10,6 +10,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')] [string] $Configuration = 'Release',
+    [switch] $SetupDependencies, # explicit opt-in to downloads
     [switch] $Rebuild,
     [switch] $Run,
     [int]    $Parallel = 0,
@@ -525,8 +526,10 @@ Write-Building "Vulkan SDK $VulkanRoot"
 
 # Consolidated checkout: immutable public dependencies, no nested repositories and no SSL bypass.
 Write-Building 'Checking locked dependencies...'
-& python (Join-Path $RepositoryRoot 'Tools\Bootstrap.py') --profile all
-if ($LASTEXITCODE -ne 0) { throw 'Dependency setup failed' }
+$DependencyArguments = @('--profile', 'all')
+if (-not $SetupDependencies) { $DependencyArguments += '--check' }
+& python (Join-Path $RepositoryRoot 'Tools\Bootstrap.py') @DependencyArguments
+if ($LASTEXITCODE -ne 0) { throw 'Dependency check/setup failed. Run python Tools/Bootstrap.py --profile all separately (see Docs/Building.md).' }
 & python (Join-Path $RepositoryRoot 'Tools\Build\BuildNativeLibraries.py') --configuration $Configuration
 if ($LASTEXITCODE -ne 0) { throw 'Native dependency libraries failed to build' }
 $ThorVGLib = Join-Path $PackageRoot "thorvg\lib\$Configuration\thorvg.lib"

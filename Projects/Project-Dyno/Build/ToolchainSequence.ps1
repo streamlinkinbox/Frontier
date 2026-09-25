@@ -15,6 +15,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')] [string] $Configuration = 'Release',
+    [switch]   $SetupDependencies, # explicit opt-in to downloads
     [switch]   $Rebuild,
     [switch]   $Run,
     [string[]] $RunArguments = @(),
@@ -309,8 +310,10 @@ function Invoke-Translation([string[]] $Sources, [string] $Label, [string] $Obje
 Import-ToolchainEnvironment
 
 # Shared locked dependency setup; no nested repositories or disabled TLS verification.
-& python (Join-Path $RepositoryRoot 'Tools\Bootstrap.py') --profile all
-if ($LASTEXITCODE -ne 0) { throw 'Dependency setup failed' }
+$DependencyArguments = @('--package', 'miniaudio')
+if (-not $SetupDependencies) { $DependencyArguments += '--check' }
+& python (Join-Path $RepositoryRoot 'Tools\Bootstrap.py') @DependencyArguments
+if ($LASTEXITCODE -ne 0) { throw 'Dependency check/setup failed. Run python Tools/Bootstrap.py --package miniaudio separately (see Docs/Building.md).' }
 
 if (-not (Test-Path (Join-Path $PackageRoot 'miniaudio\miniaudio.h')))
 {
