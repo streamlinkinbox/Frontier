@@ -50,6 +50,8 @@
 #   include <unistd.h>
 #endif
 
+#include "DriverProgress.h"
+
 namespace Frontier {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -526,14 +528,20 @@ bool SwapchainExchange::Bring() noexcept
         { "BringVisibility",       &SwapchainExchange::BringVisibility       },
     };
 
+    std::cerr << "[GPU startup] Driver preparation may run on the CPU. Stage counts are milestones, not a compilation percentage.\n";
+    uint32_t StageNumber = 0;
     for (const Stage& Current : Stages)
     {
+        const auto StageStart = std::chrono::steady_clock::now();
+        std::cerr << "[GPU startup] STAGE " << ++StageNumber << "/" << (sizeof(Stages)/sizeof(Stages[0])) << " BEGIN " << Current.Name << std::endl;
         FRONTIER_PROBE_STAGE_SCOPE(Current.Name);   // dev/debug only: every Bring* stage gets an exact duration row
         if (!(this->*Current.Fn)())
         {
             std::cerr << "[SwapchainExchange] Bring-up stopped at stage " << Current.Name << ".\n";
             return false;
         }
+        std::cerr << "[GPU startup] STAGE " << StageNumber << " DONE " << Current.Name << " elapsed="
+                  << std::chrono::duration<double>(std::chrono::steady_clock::now()-StageStart).count() << "s" << std::endl;
     }
 
     std::cerr << "[SwapchainExchange] Bring-up complete.\n";
@@ -789,6 +797,8 @@ bool SwapchainExchange::BringInstance() noexcept
     std::vector<const char*> Extensions(GlfwExtensions, GlfwExtensions + GlfwExtensionCount);
     std::vector<const char*> Layers;
 
+    std::cerr << "[GPU startup] Application-requested validation=" << (Configuration.ValidationEnabled ? "ON" : "OFF")
+              << " (externally injected layers are not audited here)" << std::endl;
     if (Configuration.ValidationEnabled)
     {
         Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -1042,6 +1052,11 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
             ValidCache = true;
         }
     }
+    std::error_code CachePathError;
+    const auto CachePath = std::filesystem::absolute("ShaderCache.bin", CachePathError);
+    std::cerr << "[GPU startup] Pipeline cache path=" << (CachePathError ? std::string("ShaderCache.bin (absolute path unavailable)") : CachePath.string())
+              << " read_bytes=" << CacheBlob.size() << " input=" << (ValidCache ? "compatible" : "absent/invalid")
+              << " (compatible input does not guarantee a shader cache hit)" << std::endl;
     if (!ValidCache)
     {
         CacheBlob.clear();
@@ -1053,8 +1068,10 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
         CacheInfo.pInitialData    = CacheBlob.data();
     }
     const VkResult CacheResult = vkCreatePipelineCache(Vulkan->Device, &CacheInfo, nullptr, &Vulkan->PipelineCache);
+    std::cerr << "[GPU startup] vkCreatePipelineCache VkResult=" << int(CacheResult) << std::endl;
     if (CacheResult != VK_SUCCESS && !CacheBlob.empty())
     {
+        std::cerr << "[GPU startup] Retrying pipeline cache creation without saved data" << std::endl;
         CacheInfo.initialDataSize = 0u;
         CacheInfo.pInitialData    = nullptr;
         (void)vkCreatePipelineCache(Vulkan->Device, &CacheInfo, nullptr, &Vulkan->PipelineCache);
@@ -1502,7 +1519,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     ShaderModuleInfo.codeSize = Spirv.size() * 4u;
     ShaderModuleInfo.pCode    = Spirv.data();
     VkShaderModule ShaderModule = VK_NULL_HANDLE;
-    if (vkCreateShaderModule(Vulkan->Device, &ShaderModuleInfo, nullptr, &ShaderModule) != VK_SUCCESS)
+    if (DriverProgress::Call("shader module: ReSTIRViewport", [&] { return vkCreateShaderModule(Vulkan->Device, &ShaderModuleInfo, nullptr, &ShaderModule); }) != VK_SUCCESS)
     {
         std::cerr << "[SwapchainExchange] vkCreateShaderModule failed - the SPIR-V blob is invalid.\n";
         return false;
@@ -1516,8 +1533,8 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     ComputeInfo.stage.pName  = "main";
     ComputeInfo.layout       = Vulkan->ComputePipelineLayout;
 
-    const VkResult PipelineResult = vkCreateComputePipelines(
-        Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr, &Vulkan->ComputePipeline);
+    const VkResult PipelineResult = DriverProgress::Call("compute pipeline (driver compile/cache lookup): ReSTIRViewport", [&] { return vkCreateComputePipelines(
+        Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr, &Vulkan->ComputePipeline); });
     vkDestroyShaderModule(Vulkan->Device, ShaderModule, nullptr);
 
     if (PipelineResult != VK_SUCCESS)
@@ -1749,7 +1766,7 @@ bool SwapchainExchange::BringLuminanceReduction() noexcept
     ModuleInfo.codeSize = Spirv.size() * 4u;
     ModuleInfo.pCode    = Spirv.data();
     VkShaderModule Module = VK_NULL_HANDLE;
-    if (vkCreateShaderModule(Vulkan->Device, &ModuleInfo, nullptr, &Module) != VK_SUCCESS) return false;
+    if (DriverProgress::Call("shader module: LuminanceReduce", [&] { return vkCreateShaderModule(Vulkan->Device, &ModuleInfo, nullptr, &Module); }) != VK_SUCCESS) return false;
 
     VkComputePipelineCreateInfo ComputeInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
     ComputeInfo.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1757,8 +1774,8 @@ bool SwapchainExchange::BringLuminanceReduction() noexcept
     ComputeInfo.stage.module = Module;
     ComputeInfo.stage.pName  = "main";
     ComputeInfo.layout       = Vulkan->LuminanceLayout;
-    const VkResult Created = vkCreateComputePipelines(Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr,
-                                                      &Vulkan->LuminancePipeline);
+    const VkResult Created = DriverProgress::Call("compute pipeline (driver compile/cache lookup): LuminanceReduce", [&] { return vkCreateComputePipelines(Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr,
+                                                      &Vulkan->LuminancePipeline); });
     vkDestroyShaderModule(Vulkan->Device, Module, nullptr);
     return Created == VK_SUCCESS;
 }
@@ -1821,7 +1838,7 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
     ModuleInfo.codeSize = Spirv.size() * 4u;
     ModuleInfo.pCode    = Spirv.data();
     VkShaderModule Module = VK_NULL_HANDLE;
-    if (vkCreateShaderModule(Vulkan->Device, &ModuleInfo, nullptr, &Module) != VK_SUCCESS) return false;
+    if (DriverProgress::Call("shader module: AtrousDenoise", [&] { return vkCreateShaderModule(Vulkan->Device, &ModuleInfo, nullptr, &Module); }) != VK_SUCCESS) return false;
 
     VkComputePipelineCreateInfo ComputeInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
     ComputeInfo.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1830,8 +1847,8 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
     ComputeInfo.stage.pName  = "main";
     ComputeInfo.layout       = Vulkan->DenoisePipelineLayout;
 
-    const VkResult Result = vkCreateComputePipelines(Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr,
-                                                     &Vulkan->DenoisePipeline);
+    const VkResult Result = DriverProgress::Call("compute pipeline (driver compile/cache lookup): AtrousDenoise", [&] { return vkCreateComputePipelines(Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr,
+                                                     &Vulkan->DenoisePipeline); });
     vkDestroyShaderModule(Vulkan->Device, Module, nullptr);
     if (Result != VK_SUCCESS)
     {

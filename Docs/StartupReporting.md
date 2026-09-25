@@ -60,3 +60,28 @@ python Tools/Tests/TestStartupReport.py
 ```
 
 12 tests exercise overlapping/nested/disjoint intervals, repeated phases, missing endpoints, incomplete startup, old CSV compatibility, process IDs and unavailable memory counters. A native Linux logger smoke test also verifies the appended CSV field. Windows Task Manager counter comparison and the full renderer remain unexecuted here for this change.
+
+## Live shader / Vulkan preparation progress
+
+After rebuilding, the console emits `[GPU startup]` records in Release as well as development builds. No runtime option is necessary.
+
+- `STAGE n/N BEGIN/DONE`: named renderer initialization milestones and their elapsed wall time. These are not equal-cost stages or a percentage.
+- `BEGIN`: a specific shader-module, compute-pipeline or graphics-pipeline creation call is about to execute.
+- `WAIT`: emitted every five seconds on an independent observer thread while that call has not returned; includes elapsed seconds, process ID, resident/peak resident RAM, and private commit on Windows.
+- `DONE VkResult=0`: that Vulkan call returned successfully. Nonzero results use `RESULT` and retain the numeric Vulkan result.
+
+The observer never calls Vulkan and never moves driver work off the calling thread. A heartbeat proves that the observer can run and that the call is still pending; **it does not prove that compilation is making progress**. It cannot distinguish optimization from an internal driver wait/deadlock. There is no invented percentage, ETA, GPU-utilization figure, cancellation or timeout. Pipeline preparation can be CPU work inside the driver.
+
+Coverage includes ReSTIR, denoising, luminance reduction, visibility/cluster/HiZ/resolve compute pipelines, and visibility/shadow raster graphics pipelines. This is console progress, not an in-window loading screen. The application window may still appear unresponsive while the original main-thread driver call blocks. Runtime-memory CSV samples begin only after presentation; these new console heartbeats work during the instrumented startup calls.
+
+Pipeline-cache diagnostics print the resolved `ShaderCache.bin` path, bytes read, compatible versus absent/invalid input, and cache-creation result. Compatible input is **not** proof that a particular shader hit the cache. Application-requested validation is printed separately; externally injected layers are not audited by this message. This change does not alter compilation flags, shader semantics, cache persistence or the existing save-on-shutdown policy, and is not a compile-time optimization.
+
+Capture console output to retain the heartbeat history:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Projects/Project-Zero/Build/ToolchainSequence.ps1 -Rebuild -Run 2>&1 | Tee-Object gpu-startup.log
+```
+
+If `shader module: ReSTIRViewport` completes and `compute pipeline ... ReSTIRViewport` continues producing `WAIT`, the long-running API call has been isolated. Include those records, cache/validation lines and the eventual result when reporting the stall. The newly built executable must be restarted; an already-running old executable cannot gain these messages.
+
+Verification: `SANITIZE=1 bash Tools/Build/CheckDriverProgress.sh` exercises a simulated blocking call, heartbeat, immediate completion, negative result propagation, original-thread execution, exception cleanup and no orphan reporting thread under ASan/UBSan. Both modified Vulkan translation units syntax-checked with real downloaded headers. Windows counter collection and real driver compilation remain hardware follow-up, not verified by this CPU simulation.

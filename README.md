@@ -132,3 +132,5 @@ Project-Zero now has `--fluid-preview`, `--fluid-gpu-test` and `--fluid-cpu-test
 ## Startup timing and RAM reports
 
 Use `python Tools/Build/ReportStartup.py PATH_TO_STARTUP.csv --output Build/Diagnostics/startup-report.md` to count overlapping worker intervals once and inspect resident/peak/committed memory separately. [How to compare logs with Task Manager](Docs/StartupReporting.md). New logs include the process ID and render-loop memory samples about every ten seconds.
+
+Shader startup also prints `[GPU startup]` stage names and five-second heartbeats while shader-module/pipeline creation calls are pending, including elapsed time and process RAM. This is diagnostic activity reporting, not a GPU compilation percentage. See [live startup progress](Docs/StartupReporting.md#live-shader--vulkan-preparation-progress).

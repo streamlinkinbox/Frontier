@@ -6,6 +6,7 @@
 
 #include <vulkan/vulkan.h>
 #include "VisibilityExchange.h"
+#include "DriverProgress.h"
 #include "TelemetryProbe.h"   // dev/debug-only shader-load timing; compiles out of ship builds
 #include "../GeometricRaster/SceneStructure.h"
 #include <algorithm>
@@ -208,7 +209,7 @@ VkShaderModule LoadShader(VkDevice Device, const char* Relative)
     Info.codeSize = Code.size() * 4u;
     Info.pCode    = Code.data();
     VkShaderModule Module = VK_NULL_HANDLE;
-    if (vkCreateShaderModule(Device, &Info, nullptr, &Module) != VK_SUCCESS) { std::cerr << "[VisibilityExchange] vkCreateShaderModule failed: " << Relative << "\n"; return VK_NULL_HANDLE; }
+    if (DriverProgress::Call(std::string("shader module: ")+Relative, [&] { return vkCreateShaderModule(Device, &Info, nullptr, &Module); }) != VK_SUCCESS) { std::cerr << "[VisibilityExchange] vkCreateShaderModule failed: " << Relative << "\n"; return VK_NULL_HANDLE; }
     std::cerr << "[VisibilityExchange] Loaded SPIR-V: " << Path.string() << "\n";
     return Module;
 }
@@ -485,7 +486,7 @@ bool VisibilityExchange::BringPipelines() noexcept
         VkComputePipelineCreateInfo Info{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
         Info.stage = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0u, VK_SHADER_STAGE_COMPUTE_BIT, Module, "main", nullptr };
         Info.layout = Layout;
-        const VkResult R = vkCreateComputePipelines(D, VK_NULL_HANDLE, 1u, &Info, nullptr, &Out);
+        const VkResult R = DriverProgress::Call(std::string("compute pipeline (driver compile/cache lookup): ")+Spirv, [&] { return vkCreateComputePipelines(D, VK_NULL_HANDLE, 1u, &Info, nullptr, &Out); });
         vkDestroyShaderModule(D, Module, nullptr);
         if (R != VK_SUCCESS) std::cerr << "[VisibilityExchange] compute pipeline failed: " << Spirv << "\n";
         return R == VK_SUCCESS;
@@ -601,9 +602,9 @@ bool VisibilityExchange::BringPipelines() noexcept
     Graphics.pColorBlendState = &BlendState; Graphics.pDynamicState = &DynamicState;
     Graphics.layout = Vulkan->RasterPipelineLayout;
     Graphics.renderPass = Vulkan->RasterPassClear;
-    VkResult R = vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &Graphics, nullptr, &Vulkan->RasterPipelineClear);
+    VkResult R = DriverProgress::Call("graphics pipeline (driver compile/cache lookup): VisibilityRaster clear", [&] { return vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &Graphics, nullptr, &Vulkan->RasterPipelineClear); });
     Graphics.renderPass = Vulkan->RasterPassLoad;
-    if (R == VK_SUCCESS) R = vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &Graphics, nullptr, &Vulkan->RasterPipelineLoad);
+    if (R == VK_SUCCESS) R = DriverProgress::Call("graphics pipeline (driver compile/cache lookup): VisibilityRaster load", [&] { return vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &Graphics, nullptr, &Vulkan->RasterPipelineLoad); });
     vkDestroyShaderModule(D, Vertex, nullptr);
     vkDestroyShaderModule(D, Fragment, nullptr);
     if (R != VK_SUCCESS) { std::cerr << "[VisibilityExchange] visibility raster pipeline failed (VkResult " << static_cast<int>(R) << ").\n"; return false; }
@@ -724,7 +725,7 @@ bool VisibilityExchange::BringPipelines() noexcept
         ShadowGraphics.pDynamicState       = &DynamicState;
         ShadowGraphics.layout              = Vulkan->ShadowRasterPipelineLayout;
         ShadowGraphics.renderPass          = Vulkan->ShadowPass;
-        const VkResult ShadowResult = vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &ShadowGraphics, nullptr, &Vulkan->ShadowRasterPipeline);
+        const VkResult ShadowResult = DriverProgress::Call("graphics pipeline (driver compile/cache lookup): ShadowRaster", [&] { return vkCreateGraphicsPipelines(D, VK_NULL_HANDLE, 1u, &ShadowGraphics, nullptr, &Vulkan->ShadowRasterPipeline); });
         vkDestroyShaderModule(D, ShadowVertex, nullptr);
         vkDestroyShaderModule(D, ShadowFragment, nullptr);
         if (ShadowResult != VK_SUCCESS)
