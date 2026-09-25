@@ -10,6 +10,12 @@ project(FrontierEngine LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(FRONTIER_FLUID_ONLY "Build Flux/Ripple and scene adapter tests without external dependencies" OFF)
+if(FRONTIER_FLUID_ONLY)
+    enable_testing()
+    add_subdirectory(Projects/Project-Fluid)
+    return()
+endif()
 option(FRONTIER_PROOF_ONLY "Build native editor/renderer verification without a GPU SDK" OFF)
 if(FRONTIER_PROOF_ONLY)
     include(Tools/Build/NativeProof.cmake)
@@ -245,6 +251,9 @@ set(FRONTIER_ENGINE_INCLUDES
 #============================================================================================================================================
 
 set(PROJECT_ZERO_SOURCES
+    Projects/Project-Zero/Source/WaterBodySequence.cpp
+    Projects/Project-Fluid/Source/PbfFluid.cpp
+    Projects/Project-Fluid/Source/PondWave.cpp
     ${FRONTIER_ENGINE_SOURCES}
     Engine/DeviceExchange/SwapchainExchange.cpp
     Engine/DeviceExchange/RayTracingCapabilitySet.cpp
@@ -448,3 +457,6 @@ target_include_directories(Project-Physics PRIVATE
 target_compile_definitions(Project-Physics PRIVATE FRONTIER_DEVELOPMENT "$<$<CONFIG:Debug>:FRONTIER_DEBUG=1>")
 target_compile_options(Project-Physics PRIVATE -Wall -Wextra -Wno-psabi)
 target_link_libraries(Project-Physics PRIVATE Jolt pthread)
+
+# Standalone fluid research host alongside the native application.
+add_subdirectory(Projects/Project-Fluid)

@@ -41,6 +41,7 @@
 #include "../../../Engine/ContentInterchange/ShaderballPreview.h"
 #include "../../../Engine/ContentInterchange/ShaderBallStructure.h"
 #include "../../../Engine/ContentInterchange/ShowcaseStructure.h"
+#include "WaterBodySequence.h"
 #include "../../../Engine/ContentInterchange/MaterialSwatchStructure.h"
 #include "ShowroomStructure.h"
 #include "EditorFeedSequence.h"
@@ -148,10 +149,12 @@ int main(int argc, char** argv)
     // Showcase is the default level (the Cornell box stays one --scene path away, untouched as the reference).
     std::string ScenePath  = "Projects/Project-Zero/Content/Scenes/Showcase.gltf";
     float       SceneScale = 1.0f;
+    bool        WaterSnapshot = false; // opt-in load-time Ripple mesh, not live GPU simulation
     bool        AnimateInstances = false;   // D3: --animate drives instance transforms from a scripted path
     bool        SilentAudio      = false;   // --silent: open the null audio driver (no sound card, or CI)
     for (int I = 1; I < argc; ++I)
     {
+        if (std::strcmp(argv[I], "--water-body-snapshot") == 0) { WaterSnapshot=true; continue; }
         if (std::strcmp(argv[I], "--animate") == 0) { AnimateInstances = true; continue; }
         if (std::strcmp(argv[I], "--silent")  == 0) { SilentAudio      = true; continue; }   // null audio driver
         if (I + 1 >= argc) break;
@@ -330,6 +333,18 @@ int main(int argc, char** argv)
             return 1;
         }
         if (!Error.empty()) std::cerr << "[Scene] " << Error << "\n";
+        if (WaterSnapshot) {
+            try {
+                const auto Water=Frontier::ProjectZero::AppendPondSnapshot(Level);
+                Level.Finalise(Decode.SlabLimit,nullptr);
+                std::cerr << "[Water] Ripple snapshot: " << Water.InstanceCount
+                          << " mesh instance(s), normal scene picking/materials; simulation is not live.\n";
+            } catch (const std::exception& E) {
+                std::cerr << "[Water] Cannot register water body: " << E.what() << "\n";
+                Logger.TerminateSink();return 1;
+            }
+        }
+
         // Celestial moons — the six albedos join the shared index BEFORE Textures.Decode, so they ride the same
         //    decode/upload path as the scene and land in the bindless table the kernel samples. Colour, not
         //    data (Linear=false): they upload SRGB and the shader reads linear albedos.

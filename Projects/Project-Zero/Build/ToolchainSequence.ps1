@@ -560,6 +560,9 @@ $ImGuiSources = @(
 )
 
 $EngineRelative = @(
+    'Projects\Project-Zero\Source\WaterBodySequence.cpp'
+    'Projects\Project-Fluid\Source\PbfFluid.cpp'
+    'Projects\Project-Fluid\Source\PondWave.cpp'
     # NOTE: this list must match BOTH the .cpp files in the tree AND CMakeLists.txt's Project-Zero target — the two
     # Windows build paths have to name the same translation units, or one of them links an exe the other cannot.
     # 2026-09-04: phantom entries from a foreign module layout were removed and two DisplayPresentation files added.

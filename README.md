@@ -32,6 +32,7 @@ For setup without compiling, run `python Tools/Setup.py`. To install all applica
 | `Editor/AuthoringTools/Modelling/SolidArc/` | Native CAD/modelling tool and its verification suite |
 | `Projects/Project-Zero/` | Main application, native project integration and CPU reference hosts |
 | `Projects/Project-Dyno/` | Dyno/audio project |
+| `Projects/Project-Fluid/` | Flux particle fluid, Ripple pond and CPU tests; [integration/review](Docs/WaterIntegration.md) |
 | `EngineContent/` | Runtime icons, font licences, fonts, celestial textures and star data |
 | `Experimental/FrontierEditor/` | Browser editor prototype, icon gallery and collection studies |
 | `Experimental/{Liquid,Ocean,Water}/` | Separate inherited research experiments—not integrated runtime features |
@@ -100,3 +101,7 @@ ctest --test-dir build/solidarc --output-on-failure
 - [Native billboards and renderer evidence](Exhibits/Workbench/Billboards/Native.md)
 
 Older research documents describe the former multi-repository arrangement. Historical patches and reconstruction scripts are preserved for provenance; **they are not the normal setup/build route**. Start with the commands above. Large untracked historical screenshot bundles are not needed to build; previously committed automotive evidence is retained; new proof captures are generated in `build/`. Browser design history is preserved in [Docs/BrowserEditorHistory.md](Docs/BrowserEditorHistory.md).
+
+## Water prototype
+
+Flux/Ripple are included with a tested **load-time Ripple mesh bridge**, not live main-engine fluid simulation. Build/test with `cmake --preset fluid-cpu`, `cmake --build --preset fluid-cpu`, then `ctest --preset fluid-cpu`. The rebuilt Project-Zero accepts `--water-body-snapshot`. See [scope, commands, measurements and limitations](Docs/WaterIntegration.md).
