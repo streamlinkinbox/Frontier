@@ -2553,7 +2553,8 @@ int main(int argc, char** argv)
                 Celestial.PackPostRecord(ForwardArray, RightArray, UpArray, Dispatch.FieldOfViewTanHalf,
                                          Camera.QueryAspectRatio(), RenderHeight, SunVisibility);
             (void)Surface.RefreshPost(&Post, sizeof(Post));
-            if (std::memcmp(&Post, &LastPost, sizeof(Post)) != 0)
+            // Weather composites after clean lighting history; wind must not reset GI.
+            if (std::memcmp(&Post, &LastPost, offsetof(Frontier::PostConstantRecord, Weather)) != 0)
             {
                 LastPost = Post;
                 Integrator.ResetAccumulation();
@@ -2563,7 +2564,11 @@ int main(int argc, char** argv)
         FRONTIER_PROBE_LAP(ScenePush);
 
         // ⑤ Cull → raster → HiZ → resolve → kernel, blit to swapchain, submit ImGui, present
-        Surface.RecordAndPresent(Dispatch);
+        // Celestial uploads above may reset history AFTER Dispatch was assembled.
+        // Seat lighting/sky/post resets in this frame; weather uses clean history below.
+        auto FinalDispatch = Dispatch;
+        FinalDispatch.AccumulationIndex = Integrator.QueryAccumulationIndex();
+        Surface.RecordAndPresent(FinalDispatch);
         if(++StartupFrames==1)Startup.Mark("FirstPresentReturned");
         if(StartupFrames==120)Startup.Mark("After120Frames");
         FRONTIER_PROBE_LAP(RecordAndPresent);

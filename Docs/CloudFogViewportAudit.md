@@ -1,6 +1,8 @@
 # Clouds and fog missing from the GPU viewport
 
-Status: **cause confirmed; renderer repair not implemented in this audit.**
+Historical audit: **the missing wiring below was confirmed before the repair.**
+
+The GPU view-ray repair is now implemented; see [CloudFogViewportRepair.md](CloudFogViewportRepair.md) for current behavior, tests and remaining verification limits. Raw pre-fix evidence below is preserved.
 
 Audited after icon repair `f1e7ef9`. The missing scene volumes are separate from the ThorVG/outliner icon issue.
 

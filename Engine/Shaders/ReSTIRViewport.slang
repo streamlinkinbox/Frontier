@@ -177,6 +177,7 @@ layout(binding = 31) uniform sampler2D Textures[];   // R4a bindless table — �
 #include "Shaders/PostRecords.slang"
 #include "Shaders/SkyRecords.slang"
 #include "Shaders/CloudShadow.slang"
+#include "Shaders/WeatherMedia.slang"
 
 const float kTemporalNormalCos = 0.906308;   // cos(25°): temporal/spatial normal validation
 const float kTemporalDepthTol  = 0.10;       // 10% relative depth validation
@@ -1272,10 +1273,9 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
     //    (It used to be added to the MEAN after the update, which stored the flare into the history and added a
     //    fresh one every frame — the flare grew as (n+1)/2, flooding the frame white within seconds and burying
     //    the disc. Analytic, so no variance is booked for it: a constant offset leaves E[x²]−E[x]² unchanged.)
-    {
-        vec2 extent = vec2(float(ViewportWidth), float(ViewportHeight));
-        radiance += FlareAlong((vec2(pixel) + 0.5) / extent, extent.x / max(extent.y, 1.0));
-    }
+    vec2 lensExtent=vec2(float(ViewportWidth),float(ViewportHeight));
+    vec3 lensRadiance=FlareAlong((vec2(pixel)+.5)/lensExtent,lensExtent.x/max(lensExtent.y,1.0));
+    radiance+=lensRadiance;
 
     count      = count + 1.0;
     vec3 mean  = history.rgb + (radiance - history.rgb) / count;
@@ -1304,6 +1304,21 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
     //    the feature is on or not — it is one channel write, and a history written while the feature was off must not
     //    make the first frame with it on restart every pixel in the image.
     imageStore(MomentImage,      ivec2(pixel), vec4(moments, IdentityLow(identity), IdentityHigh(identity)));
+
+    // Composite deterministic weather AFTER storing clean lighting history: wind and
+    // volume edits cannot smear old clouds or restart surface GI every frame.
+    // Common resolve covers sky, emissive, unlit and ordinary surface branches.
+    // Use the actual visibility hit even when an early return uses depth=-1.
+    if (Weather[17].w > 0.0) {
+        vec4 weatherSurface=imageLoad(SurfaceImage,ivec2(pixel));
+        bool surfaceHit=floatBitsToUint(weatherSurface.w)!=kVisibilityInvalid;
+        vec2 extent=vec2(float(ViewportWidth),float(ViewportHeight));
+        vec2 ndc=((vec2(pixel)+.5)/extent)*2.0-1.0;
+        vec3 direction=normalize(CameraForward+CameraRight*(ndc.x*FieldOfViewTanHalf*extent.x/extent.y)-CameraUp*(ndc.y*FieldOfViewTanHalf));
+        float distance=100000.0;
+        if(surfaceHit){vec3 delta=weatherSurface.xyz-CameraOrigin;distance=length(delta);direction=delta/max(distance,1e-6);}
+        mean=ApplyWeather(CameraOrigin,direction,distance,max(mean-lensRadiance,vec3(0)))+lensRadiance;
+    }
 
     // With the denoiser on, the filter owns the tone map: it needs LINEAR radiance, and tone mapping before a blur
     //    would average display-space values and darken every gradient. The final à-trous level writes OutputImage.

@@ -41,7 +41,7 @@ int main(){
     Check(std::isfinite(AtSource[0])&&std::isfinite(AtSource[1])&&std::isfinite(AtSource[2]),"source-centre angular guard");
     const float Forward[]={0,0,1},Right[]={1,0,0},Up[]={0,1,0};
     auto Packed=Scene->PackPostRecord(Forward,Right,Up,1,640.f/280,280,1);
-    Check(sizeof(Packed)==208&&offsetof(PostConstantRecord,PostLayers)==128,"extended ABI preserves original offsets");
+    Check(sizeof(Packed)==512&&offsetof(PostConstantRecord,PostLayers)==128,"extended ABI preserves original offsets");
     Check(Packed.PostFlareUv[3]==1&&Packed.PostLayers[2]==1&&Packed.PostLayers[3]==0&&Packed.PostLayers[4]==1,"layer flags reach actual renderer record");
     Check(Packed.PostLayers[10]==6&&Packed.PostLayers[13]==Defaults.Layers.HaloWidth,"shape and halo width reach actual renderer record");
     Find(*Sheet,"Type").Picked=1;Apply();Check(!Scene->Flare.CustomMix,"legacy preset restores old path");Find(*Sheet,"Halo width").Figure=.08f;Apply();Check(Scene->Flare.CustomMix,"algorithm-specific edit activates custom layers");

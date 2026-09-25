@@ -76,11 +76,11 @@ static constexpr uint32_t kSkyRecordBytes = 144u;
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
 static constexpr uint32_t kMoonRecordBytes = 288u;
-// The Celestial post uniform block (binding 24) is thirteen std140 rows — 208 B, pinned by static_assert in
+// The Celestial post uniform block (binding 24) is 32 std140 rows — 512 B, pinned by static_assert in
 //    DisplayPresentation/PostConstantRecord.h. Same restatement rule as the sky and moon records above.
 // The star tables (binding 23) are 1 024 cells of 8 B followed by N stars of 32 B — StarCellRecord and
 //    StarRecord, pinned in GeometricRaster/StarCatalogueIndex.h; the post gate fails the build on drift.
-static constexpr uint32_t kPostRecordBytes = 208u;
+static constexpr uint32_t kPostRecordBytes = 512u;
 static constexpr uint32_t kStarCellCount = 1024u;
 static constexpr uint32_t kStarCellBytes = 8u;
 static constexpr uint32_t kStarRecordBytes = 32u;
@@ -195,11 +195,13 @@ struct SwapchainExchange::VulkanRecord
     VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
     VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
     void*                    MoonMapped            = nullptr;
-    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 208 B uniform
-    //    buffer, host-visible and persistently mapped, re-packed by the project every frame.
+    // Celestial post/weather record (binding 24), 512 bytes. The mapping is for initialization;
+    //    per-frame pending bytes are copied by an ordered command, not by an in-flight host write.
     VkBuffer                 PostBuffer            = VK_NULL_HANDLE;
     VkDeviceMemory           PostMemory            = VK_NULL_HANDLE;
     void*                    PostMapped            = nullptr;
+    alignas(4) std::array<uint8_t,kPostRecordBytes> PostPending{};
+    bool PostWeatherActive=false;
     // Star tables (binding 23). Cells then binned stars in ONE storage buffer, host-visible and persistently
     //    mapped like the records. Bring-up allocates the cells alone (zeroed = no stars); UploadStarTables
     //    reallocates for the catalogue once the project has loaded it, so the binding is never an unwritten hole.
@@ -1841,9 +1843,9 @@ bool SwapchainExchange::BringMoonRecord() noexcept
 
 bool SwapchainExchange::BringPostRecord() noexcept
 {
-    // One 128 B uniform buffer, host-visible and persistently mapped — the same arrangement as the sky record.
+    // 512-byte post/weather UBO. Mapping initializes it; per-frame writes are queue ordered.
     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kPostRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+    AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kPostRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                    HostVisible, Vulkan->PostBuffer, Vulkan->PostMemory);
     if (!Vulkan->PostBuffer) return false;
     if (vkMapMemory(Vulkan->Device, Vulkan->PostMemory, 0u, kPostRecordBytes, 0u, &Vulkan->PostMapped) != VK_SUCCESS)
@@ -2851,12 +2853,15 @@ bool SwapchainExchange::RefreshMoons(const void* Bytes, uint32_t ByteCount) noex
 bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept
 {
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
-    //    PostConstantRecord/PackPostConstants and hands over the 208 bytes, the way RefreshSky receives its own.
+    //    PostConstantRecord/PackPostConstants and hands over the 512 bytes, the way RefreshSky receives its own.
     //    The size is refused rather than trusted, for the same half-old-reading reason.
     if (!Vulkan->Device || !Vulkan->PostMapped || !Bytes || ByteCount != kPostRecordBytes) return false;
-    // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
-    //    same per-frame shape as RefreshSky and RefreshMoons.
-    std::memcpy(Vulkan->PostMapped, Bytes, kPostRecordBytes);
+    // Stage host bytes without touching the in-flight device buffer; recording uploads them.
+    // Copy into command-owned storage at record time, never overwrite an in-flight UBO.
+    std::memcpy(Vulkan->PostPending.data(), Bytes, kPostRecordBytes);
+    // std140 row 13+17, component w; mirrored by WeatherConstantRecord ABI tests.
+    float WeatherActive=0;std::memcpy(&WeatherActive,Vulkan->PostPending.data()+492u,sizeof(float));
+    Vulkan->PostWeatherActive=WeatherActive>0;
     return true;
 }
 
@@ -3025,6 +3030,21 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     VkCommandBufferBeginInfo BeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     (void)vkBeginCommandBuffer(Command, &BeginInfo);
+    // Queue-ordered update protects the shared post/weather UBO across cycle slots.
+    // vkCmdUpdateBuffer copies these 512 bytes while recording the command.
+    if(Vulkan->PostBuffer){
+        VkBufferMemoryBarrier B{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+        B.srcAccessMask=VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;B.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+        B.srcQueueFamilyIndex=B.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+        B.buffer=Vulkan->PostBuffer;B.offset=0;B.size=kPostRecordBytes;
+        vkCmdPipelineBarrier(Command,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,0,nullptr,1,&B,0,nullptr);
+        vkCmdUpdateBuffer(Command,Vulkan->PostBuffer,0,kPostRecordBytes,Vulkan->PostPending.data());
+        B.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;B.dstAccessMask=VK_ACCESS_UNIFORM_READ_BIT;
+        vkCmdPipelineBarrier(Command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0,0,nullptr,1,&B,0,nullptr);
+    }
+
 
     // ① Storage image → GENERAL for compute write
     {
@@ -3157,7 +3177,10 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     //    the kernel is the honest failure, since that path always writes every pixel.
     const bool GlobalIlluminationOff = (Dispatch.FeatureFlags & DispatchFeatureGlobalIllumination) == 0u;
     bool ShadowStageRecorded = false;
-    if (Frame.DebugView == DebugViewCategory::Off && GlobalIlluminationOff && ShadowFrameValid && Visibility.IsShadowReady())
+    // ShadowResolve has no celestial bindings. Use the existing compute fallback when
+    // weather is active; the GI feature flag remains OFF (zero secondary bounces).
+    // Disabling weather restores the map-only path. This costs direct shadow rays.
+    if (Frame.DebugView == DebugViewCategory::Off && GlobalIlluminationOff && !Vulkan->PostWeatherActive && ShadowFrameValid && Visibility.IsShadowReady())
     {
         ShadowFrameConfiguration Shadow = ShadowFrame;
         if (Visibility.PlaceShadowTaps(Shadow))

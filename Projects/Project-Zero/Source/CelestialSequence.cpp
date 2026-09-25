@@ -747,6 +747,25 @@ PostConstantRecord CelestialSequence::PackPostRecord(const float CameraForward[3
     Record.PostLayers[13]=P.HaloWidth;
     Record.PostLayers[14]=Flare.Chromatic;
     Record.PostLayers[15]=Flare.StreakGain;
+    auto ActiveCloud=Cloud;auto ActiveLocal=LocalCloud;auto ActiveFog=LocalFog;auto Analytic=Fog;auto Flow=Wind;
+    ActiveCloud.Enabled=Enabled&&Cloud.Enabled&&Shown[uint32_t(CelestialEntity::CloudLayer)];
+    ActiveLocal.Enabled=Enabled&&LocalCloud.Enabled&&Shown[uint32_t(CelestialEntity::LocalCloud)];
+    ActiveFog.Enabled=Enabled&&LocalFog.Enabled&&Shown[uint32_t(CelestialEntity::LocalFog)];
+    Analytic.HeightEnabled=Enabled&&Fog.HeightEnabled&&Shown[uint32_t(CelestialEntity::HeightFog)];
+    Analytic.AerialEnabled=Enabled&&Fog.AerialEnabled&&Shown[uint32_t(CelestialEntity::AtmosphericFog)];
+    if(!Shown[uint32_t(CelestialEntity::Wind)])Flow.Speed=0;
+    Record.Weather=PackWeatherConstants(ActiveCloud,ActiveLocal,ActiveFog,Analytic,Flow,Budget.Volumetrics,float(WeatherSeconds));
+    if(Record.Weather.Rows[17][3]>0){
+        AtmosphereLight Effective=Light;
+        for(int C=0;C<3;++C){Effective.Direction[C]=Solved.Sun.Direction[C];Effective.Colour[C]*=SkyTint[C];}
+        Effective.Intensity*=SkyBrightness;
+        if(!Shown[uint32_t(CelestialEntity::Sun)])Effective.Intensity=0;
+        const float Zenith[3]={0,0,1};
+        const auto Ambient=AtmosphereModel::Integrate(Medium,Effective,2.f,Zenith,
+            std::max(1u,Budget.AtmosphereSamples),std::max(1u,Budget.AtmosphereLightSamples));
+        for(int C=0;C<3;++C)Record.Weather.Rows[8][C+1]=Ambient.Radiance[C]*.5f;
+    }
+
     return Record;
 }
 

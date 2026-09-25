@@ -19,6 +19,7 @@
 #pragma once
 
 #include "CloudShadowStaging.h"
+#include "WeatherConstantRecord.h"
 
 #include <cmath>
 #include <cstddef>
@@ -49,10 +50,12 @@ struct PostConstantRecord
     float PostSpare1[4];   // shadow drift X/Y, anvil, ceiling
     float PostLayers[16]; // four appended rows; active only when PostFlareUv.w = 1
     float PostStarEffects[4]; // min luminance, depth, rate Hz, time seconds
+    WeatherConstantRecord Weather; // live clouds/local volumes/analytic fog
 
 };
 
-static_assert(sizeof(PostConstantRecord) == 208u, "the post record is thirteen std140 rows");
+static_assert(sizeof(PostConstantRecord) == 512u, "post + weather record is 32 std140 rows");
+static_assert(offsetof(PostConstantRecord, Weather) == 208u, "weather starts at row 13");
 static_assert(offsetof(PostConstantRecord, PostStar)    == 0u,   "PostStar at row 0");
 static_assert(offsetof(PostConstantRecord, PostFlare)   == 16u,  "PostFlare at row 1");
 static_assert(offsetof(PostConstantRecord, PostFlare2)  == 32u,  "PostFlare2 at row 2");
