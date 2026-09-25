@@ -1872,6 +1872,28 @@ It does not prove arbitrary concave polygons, self-intersecting profiles, holes,
 the new API, lower/side faces, tilted/oblique/freeform/mixed supports, cylinders, healing, or general
 face editing. Its bounded plan is `docs/PLAN_Phase47_ConcavePrismFaceOffset.md`.
 
+#### Phase 48: bounded orthogonal concave-prism shell ✅
+
+The shell/thicken family now covers a bounded non-convex planar-profile domain. `FaceEditSolver::ShellExtrudedConcavePrism`
+recognizes only a closed axis-aligned straight prism whose upper cap is one six-edge orthogonal L-shaped
+concave loop. It offsets the retained profile inward, rebuilds six outer walls, six inset walls, six
+top-rim faces, an outer bottom, and an inset floor, while preserving the concavity without healing.
+The public `Shell` dispatcher reaches this route only after the canonical-box and convex-prism routes decline.
+
+`ConcavePrismShellVerification` constructs the Phase 47 L profile at height 6 with shell thickness 0.75.
+It validates source `V12/E18/C36/L8/F8`, closed shell `V24/E42/C84/L20/F20`, genus zero, the inset
+concave floor, two planar caps, twelve extrusion walls, six ruled rim faces, the outer-prism-minus-inner-
+cavity volume identity, source immutability, public dispatch, and convex, other-sided, non-orthogonal,
+curved, lower/side, invalid, over-thick, and malformed refusal boundaries. The durable proof is
+`Proofs/Phase48_ConcavePrismShell.png`; 23 checks pass in the focused direct gate. The verifier and
+proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one six-edge orthogonal concave prism and positive feasible upper-cap
+shell thickness. It does not prove arbitrary concave polygons, convex profiles through the new API,
+boxes through the new API, holes, lower/side faces, tilted/oblique/freeform/mixed supports, cylinders,
+healing, or general shell/thicken behavior. Its bounded plan is
+`docs/PLAN_Phase48_ConcavePrismShell.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

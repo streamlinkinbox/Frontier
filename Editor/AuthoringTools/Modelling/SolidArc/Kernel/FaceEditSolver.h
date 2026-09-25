@@ -3,7 +3,8 @@
 //
 // The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
 // rectangular prisms, bounded pentagonal-prism, concave-prism, genus-one holed-prism, elliptical-prism,
-// and oblique triangular-prism routes, a bounded triangular-prism draft route, a bounded twin-holed-prism route,
+// and oblique triangular-prism routes, bounded concave-prism shell and triangular-prism draft routes,
+// a bounded twin-holed-prism route,
 // and natural NURBS replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
 // source. This is the safe foundation for extending the routes to arbitrary trimmed and curved B-reps later.
 #pragma once
@@ -27,6 +28,10 @@ public:
     // Bounded non-box shell route for a six-sided straight convex prism selected through its upper cap.
     // The existing rectangular-box route remains separate and is not widened by this API.
     [[nodiscard]] static Deliver<BrepBody> ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept;
+
+    // Bounded non-box shell route for an axis-aligned orthogonal L-shaped prism.
+    // Only its upper planar cap is supported; arbitrary concave shell sources remain refused.
+    [[nodiscard]] static Deliver<BrepBody> ShellExtrudedConcavePrism(const BrepBody& Source, int Face, double Thickness) noexcept;
 
     // Bounded non-box offset route for a five-sided straight convex prism selected through its upper cap.
     // Positive distance extends the upper cap along +Z; arbitrary polygonal/freeform offsets remain refused.

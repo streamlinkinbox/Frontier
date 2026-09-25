@@ -311,6 +311,61 @@ struct FaceFrame
     return true;
 }
 
+[[nodiscard]] bool ReadExtrudedConcavePrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
+                                             double& Low, double& High) noexcept;
+
+[[nodiscard]] bool OffsetConcavePolygon(const std::vector<Vec3>& Polygon, double Thickness,
+                                        std::vector<Vec3>& Inner) noexcept
+{
+    if (Polygon.size() != 6 || !std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance) return false;
+    double Area2 = 0.0;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+        Area2 += Polygon[I].X * Polygon[(I + 1) % Polygon.size()].Y -
+                 Polygon[(I + 1) % Polygon.size()].X * Polygon[I].Y;
+    if (std::fabs(Area2) <= ScalarCriteria::GeometricTolerance) return false;
+    const double Orientation = Area2 > 0.0 ? 1.0 : -1.0;
+    struct Line { Vec3 Point, Direction; } Lines[6];
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        const Vec3 D = B - A;
+        const double Length = std::hypot(D.X, D.Y);
+        if (Length <= ScalarCriteria::MergeTolerance) return false;
+        const Vec3 Inward = Orientation > 0.0 ? Vec3(-D.Y / Length, D.X / Length, 0.0)
+                                              : Vec3(D.Y / Length, -D.X / Length, 0.0);
+        Lines[I] = { A + Inward * Thickness, D / Length };
+    }
+    Inner.clear(); Inner.reserve(Polygon.size());
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Line& A = Lines[(I + Polygon.size() - 1) % Polygon.size()];
+        const Line& B = Lines[I];
+        const double Cross = A.Direction.X * B.Direction.Y - A.Direction.Y * B.Direction.X;
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance) return false;
+        const Vec3 Delta = B.Point - A.Point;
+        const double T = (Delta.X * B.Direction.Y - Delta.Y * B.Direction.X) / Cross;
+        Vec3 P = A.Point + A.Direction * T;
+        P.Z = Polygon[I].Z;
+        Inner.push_back(P);
+    }
+    double InnerArea2 = 0.0;
+    int PositiveTurns = 0, NegativeTurns = 0;
+    for (size_t I = 0; I < Inner.size(); ++I)
+    {
+        const Vec3& A = Inner[I];
+        const Vec3& B = Inner[(I + 1) % Inner.size()];
+        const Vec3& C = Inner[(I + 2) % Inner.size()];
+        InnerArea2 += A.X * B.Y - B.X * A.Y;
+        const double Cross = (B.X - A.X) * (C.Y - B.Y) - (B.Y - A.Y) * (C.X - B.X);
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance) return false;
+        if (Cross > 0.0) ++PositiveTurns; else ++NegativeTurns;
+    }
+    if (std::fabs(InnerArea2) <= ScalarCriteria::GeometricTolerance ||
+        std::min(PositiveTurns, NegativeTurns) != 1 || std::max(PositiveTurns, NegativeTurns) != 5) return false;
+    return true;
+}
+
 [[nodiscard]] Deliver<BrepBody> BuildExtrudedConvexPrismShell(const BrepBody& Source, int Face, double Thickness) noexcept
 {
     std::vector<Vec3> OuterTop;
@@ -360,6 +415,58 @@ struct FaceFrame
         Result.Payload.Edges.size() != 42 || Result.Payload.Coedges.size() != 84 || Result.Payload.Loops.size() != 20 ||
         Result.Payload.Faces.size() != 20)
         return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "prism shell did not reach V24/E42/C84/L20/F20 topology");
+    return Result;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedConcavePrismShell(const BrepBody& Source, int Face, double Thickness) noexcept
+{
+    std::vector<Vec3> OuterTop;
+    double Low = 0.0, High = 0.0;
+    if (!ReadExtrudedConcavePrism(Source, Face, OuterTop, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "concave-prism shell requires a six-edge orthogonal L-profile and its upper cap");
+    if (!std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism shell thickness must be finite and positive");
+    if (Thickness * 2.0 >= High - Low)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism shell thickness leaves no positive floor or wall");
+    std::vector<Vec3> InnerTop;
+    if (!OffsetConcavePolygon(OuterTop, Thickness, InnerTop))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "concave-prism shell profile is not a feasible inward offset");
+    std::vector<NurbsSurface> Surfaces;
+    Surfaces.reserve(18);
+    const Vec3 Axis = Vec3::UnitZ();
+    for (size_t I = 0; I < OuterTop.size(); ++I)
+    {
+        const size_t J = (I + 1) % OuterTop.size();
+        const Vec3 OuterBottomA{ OuterTop[I].X, OuterTop[I].Y, Low };
+        const Vec3 OuterBottomB{ OuterTop[J].X, OuterTop[J].Y, Low };
+        const Vec3 InnerFloorA{ InnerTop[I].X, InnerTop[I].Y, Low + Thickness };
+        const Vec3 InnerFloorB{ InnerTop[J].X, InnerTop[J].Y, Low + Thickness };
+        const Vec3 OuterA = OuterTop[I], OuterB = OuterTop[J];
+        const Vec3 InnerA = InnerTop[I], InnerB = InnerTop[J];
+        const Deliver<NurbsCurve> OuterLine = NurbsCurve::Line(OuterBottomA, OuterBottomB);
+        const Deliver<NurbsCurve> InnerLine = NurbsCurve::Line(InnerFloorA, InnerFloorB);
+        const Deliver<NurbsCurve> RimOuter = NurbsCurve::Line(OuterA, OuterB);
+        const Deliver<NurbsCurve> RimInner = NurbsCurve::Line(InnerA, InnerB);
+        if (!OuterLine || !InnerLine || !RimOuter || !RimInner)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism shell generated a degenerate boundary");
+        const Deliver<NurbsSurface> OuterWall = NurbsSurface::Extrusion(OuterLine.Payload, Axis, High - Low);
+        const Deliver<NurbsSurface> InnerWall = NurbsSurface::Extrusion(InnerLine.Payload, Axis, High - Low - Thickness);
+        const Deliver<NurbsSurface> Rim = NurbsSurface::Ruled(RimOuter.Payload, RimInner.Payload);
+        if (!OuterWall || !InnerWall || !Rim)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism shell generated a degenerate wall");
+        Surfaces.push_back(OuterWall.Payload);
+        Surfaces.push_back(InnerWall.Payload);
+        Surfaces.push_back(Rim.Payload);
+    }
+    Deliver<BrepBody> Result = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Result) return Deliver<BrepBody>::Reject(Result.Denial.Reason, "concave-prism shell surfaces could not be sewn");
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 24 ||
+        Result.Payload.Edges.size() != 42 || Result.Payload.Coedges.size() != 84 || Result.Payload.Loops.size() != 20 ||
+        Result.Payload.Faces.size() != 20)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "concave-prism shell did not reach V24/E42/C84/L20/F20 topology");
     return Result;
 }
 
@@ -1325,7 +1432,11 @@ Deliver<BrepBody> FaceEditSolver::ReplaceFace(const BrepBody& Source, int Face, 
 Deliver<BrepBody> FaceEditSolver::Shell(const BrepBody& Source, int Face, double Thickness) noexcept
 {
     FaceFrame F;
-    if (!ReadFace(Source, Face, F)) return ShellExtrudedConvexPrism(Source, Face, Thickness);
+    if (!ReadFace(Source, Face, F))
+    {
+        Deliver<BrepBody> Convex = ShellExtrudedConvexPrism(Source, Face, Thickness);
+        return Convex ? Convex : ShellExtrudedConcavePrism(Source, Face, Thickness);
+    }
     if (!std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "shell thickness must be positive");
     const Vec3 D = F.Box.High - F.Box.Low;
@@ -1337,6 +1448,11 @@ Deliver<BrepBody> FaceEditSolver::Shell(const BrepBody& Source, int Face, double
 Deliver<BrepBody> FaceEditSolver::ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept
 {
     return BuildExtrudedConvexPrismShell(Source, Face, Thickness);
+}
+
+Deliver<BrepBody> FaceEditSolver::ShellExtrudedConcavePrism(const BrepBody& Source, int Face, double Thickness) noexcept
+{
+    return BuildExtrudedConcavePrismShell(Source, Face, Thickness);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept

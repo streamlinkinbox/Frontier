@@ -1189,6 +1189,32 @@ prove arbitrary concave or self-intersecting profiles, holes, lower/side faces, 
 API, tilted/oblique/freeform/mixed supports, invalid offsets, malformed topology, healing, or general
 face editing. The bounded plan is `docs/PLAN_Phase47_ConcavePrismFaceOffset.md`.
 
+## Phase 48 — orthogonal concave-prism shell (2026-09-25)
+
+This proof advances shell/thicken into the same non-convex profile domain as Phase 47, but as a
+separate operation and topology reconstruction rather than a face-offset replay:
+
+- `ConcavePrismShellVerification` constructs the exact L profile
+  `(-6,-4) -> (6,-4) -> (6,-1) -> (-1,-1) -> (-1,4) -> (-6,4)`, height 6, and shell thickness
+  0.75. The source is closed genus-zero `V12/E18/C36/L8/F8`; the shell is closed
+  `V24/E42/C84/L20/F20`.
+- `FaceEditSolver::ShellExtrudedConcavePrism` recognizes six orthogonal cap edges, one reflex turn,
+  vertical generators, and the selected upper planar cap. It offsets adjacent profile lines inward,
+  rebuilds six outer walls, six inset walls, and six ruled top-rim faces, then validates the sewn outer
+  bottom and inset floor. No healing or generic fallback is used.
+- The focused verifier checks closed-manifold topology, the inset L floor, planar/extrusion/ruled
+  support counts, the outer-prism-minus-inner-cavity volume identity, source immutability, public
+  `Shell` dispatch, and explicit refusal of convex/other-sided/non-orthogonal profiles, cylinders,
+  lower/side faces, invalid and over-thick thicknesses, and malformed input.
+- The durable proof is `Proofs/Phase48_ConcavePrismShell.png`; 23 checks pass in the focused direct
+  gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+The route remains bounded to the exact six-edge orthogonal concave-prism shell domain. It does not
+prove arbitrary concave polygons, convex profiles through the new API, boxes through the new API,
+holes, lower/side faces, tilted/oblique/freeform/mixed supports, invalid thicknesses, malformed
+topology, healing, or general shell/thicken behavior. The bounded plan is
+`docs/PLAN_Phase48_ConcavePrismShell.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

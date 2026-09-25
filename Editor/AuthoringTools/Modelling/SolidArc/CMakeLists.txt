@@ -235,6 +235,11 @@ add_executable(ConcavePrismFaceOffsetVerification Verification/ConcavePrismFaceO
 target_link_libraries(ConcavePrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConcavePrismFaceOffsetVerification COMMAND ConcavePrismFaceOffsetVerification)
 
+# Phase 48: bounded orthogonal concave-prism shell.
+add_executable(ConcavePrismShellVerification Verification/ConcavePrismShellVerification.cpp)
+target_link_libraries(ConcavePrismShellVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME ConcavePrismShellVerification COMMAND ConcavePrismShellVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
