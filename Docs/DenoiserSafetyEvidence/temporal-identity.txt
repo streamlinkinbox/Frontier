@@ -1,0 +1,23 @@
+[D10] building the CPU mirror of the kernel (Projects/Project-Zero/Host/MaterialLevelViewport)
+  PASS  the mirror builds clean (-Wall -Wextra -Werror)
+  PASS  ReSTIRViewport.slang lowers to SPIR-V with the D10 identity path in it (515428 B)
+  PASS  the kernel still declares the identity feature bit (bit 9)
+  PASS  the kernel validates on the OBJECT (the tesselation cannot flip the identity)
+  PASS  the host's reservoir record is the shader's (80 B with Identity[4], static_asserted)
+[D10] ① does the moving object's shadow follow it?
+    [shadow-probe] sun (-0.380 0.899 -0.219), floor y -2.000, grid 96 x 96 over x[-0.58,1.30] z[1.04,2.71]
+    [shadow-probe] object: x[-2.60,-1.80] y[3.50,4.30] z[0.00,0.80]
+    [shadow-probe] rest        : 865 of 9216 floor points blocked by material 24 (centroid 0.35 -2.00 1.99)
+    [shadow-probe] peak 0.320 m : 1072 of 9216 floor points blocked by material 24 (815 kept the same point)
+    [shadow-probe] footprint: 307 points changed state, centroid moved (0.081 -0.000 0.040) = 0.091 m
+    [shadow-probe] PASS — both poses cast a shadow ONTO the floor, and the footprint moved with the object (307 of 9216 points changed state)
+  PASS  ① both poses cast a shadow onto the floor (865 / 1072 grid points) and the footprint moved with the object (307 points changed state)
+[D10] ② the moving sequence, with and without the identity rule, against a ground truth
+  PASS  ② the rule refuses history that the normal/depth test alone would merge: D10 identity: 42 film reads + 50 DI merges + 4 GI merges reads (final frame)
+    identity ON  RMSE vs the static ground truth: 455.63
+    identity OFF RMSE vs the static ground truth: 954.924   (the pre-D10 rule, ghosts inherited)
+  PASS  ② the identity rule is closer to the ground truth than the pre-D10 rule (2.10x lower RMSE)
+[D10] ③ a STILL scene: the rule must not disturb what did not move
+  PASS  ③ on a still scene the two arms agree to 0.54 % of pixels (104 of 19200) — no phantom restarts; D10 identity: 42 film reads of them
+
+[TemporalIdentity] GREEN — moving geometry keeps its own history, and only its own

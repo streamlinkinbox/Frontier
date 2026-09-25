@@ -94,7 +94,7 @@ find_program(GLSLC_EXECUTABLE glslc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/us
 find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/usr/local/bin")
 
 set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
-set(SHADER_INCLUDES "${SHADER_ROOT}/WeatherMedia.slang" "${SHADER_ROOT}/CloudShadow.slang" "${SHADER_ROOT}/SkyRecords.slang" "${SHADER_ROOT}/MoonRecords.slang" "${SHADER_ROOT}/PostRecords.slang" "${CMAKE_SOURCE_DIR}/Engine/DisplayPresentation/LensFlareKernel.h" "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
+set(SHADER_INCLUDES "${SHADER_ROOT}/PresentationDither.slang" "${SHADER_ROOT}/WeatherMedia.slang" "${SHADER_ROOT}/CloudShadow.slang" "${SHADER_ROOT}/SkyRecords.slang" "${SHADER_ROOT}/MoonRecords.slang" "${SHADER_ROOT}/PostRecords.slang" "${CMAKE_SOURCE_DIR}/Engine/DisplayPresentation/LensFlareKernel.h" "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
                     "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang"
                     "${SHADER_ROOT}/ShadowRecords.slang" "${SHADER_ROOT}/ShadowSample.slang"
                     "${SHADER_ROOT}/OutlineRecords.slang" "${SHADER_ROOT}/GizmoRecords.slang")

@@ -5,7 +5,7 @@
 # 🧩 The four mechanical substitutions that turn Engine/Shaders/AtrousDenoise.slang into compilable C++, each one asserted
 #    against the shader text so a reformatted shader fails loudly instead of being silently mis-ported:
 #
-#      ① drop the two prologue lines  — `#version 460` and `layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;`
+#      ① drop #version, the GLSL include extension and the local workgroup declaration
 #      ② the B₃ kernel's GLSL array constructor → a brace initialiser, the five literals carried over verbatim
 #      ③ `layout(push_constant) uniform DenoiseConstants` → `struct DenoiseConstants`
 #      ④ the block's closing `};` → `} DenoiseParameters;`, so the fields are an instance the mirror can write
@@ -28,9 +28,9 @@ if not stage:
 source = "Engine/Shaders/AtrousDenoise.slang"
 lines = open(source, encoding="utf-8").read().split("\n")
 
-prologue = [i for i, l in enumerate(lines) if l.startswith("#") or l.startswith("layout(local_size")]
-assert len(prologue) == 2, f"expected 2 prologue lines (#version + the workgroup size), found {len(prologue)}"
-assert lines[prologue[0]].startswith("#version") and lines[prologue[1]].startswith("layout(local_size"), "unexpected prologue"
+prologue = [i for i, l in enumerate(lines) if (l.startswith("#version") or l.startswith("#extension")) or l.startswith("layout(local_size")]
+assert len(prologue) == 3, f"expected 3 prologue lines (#version, include extension, workgroup size), found {len(prologue)}"
+assert lines[prologue[0]].startswith("#version") and lines[prologue[1]].startswith("#extension GL_GOOGLE_include_directive") and lines[prologue[2]].startswith("layout(local_size"), "unexpected prologue"
 array_lines = [i for i, l in enumerate(lines) if "float[5](" in l]
 assert len(array_lines) == 1, f"expected 1 GLSL array constructor, found {len(array_lines)}"
 closers = [i for i, l in enumerate(lines) if l.strip() == "};"]
@@ -60,6 +60,7 @@ open(os.path.join(stage, "transform.manifest"), "w", encoding="utf-8").write(
     f"source {source}\n"
     f"dropped {lines[prologue[0]]}\n"
     f"dropped {lines[prologue[1]]}\n"
+    f"dropped {lines[prologue[2]]}\n"
     f"rewrote {lines[array].strip()}\n"
     f"        -> {body[array - shift].strip()}\n"
     f"rewrote {lines[push[0]].strip()}\n"

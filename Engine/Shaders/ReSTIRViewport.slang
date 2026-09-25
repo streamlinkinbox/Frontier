@@ -53,7 +53,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 //------------------------------------------------------------------------------------------------------------------------
 
 layout(rgba8,   binding = 0) uniform writeonly image2D OutputImage;    // tone-mapped 8-bit presentation image
-layout(rgba32f, binding = 3) uniform          image2D HistoryImage;   // linear HDR running mean, .a = sample count
+layout(rgba32f, binding = 3) uniform          image2D HistoryPair[2];   // linear HDR running mean, .a = sample count
 layout(rgba32f, binding = 4) uniform readonly image2D SurfaceImage;   // R2 SurfaceResolve: xyz = world position, w = visibility id bits
 layout(rgba16f, binding = 5) uniform readonly image2D NormalImage;    // R2 SurfaceResolve: xyz = camera-facing geometric normal
 
@@ -162,8 +162,8 @@ layout(std430, binding = 17) writeonly buffer CurrReservoirExtent { GpuReservoir
 //    needs no buffer: this kernel is one dispatch, so the receiver's vertex is in registers where it was built.
 layout(std430, binding = 25) readonly buffer GiPrevReservoirExtent { GpuReservoir GiPrevReservoirs[]; };
 layout(std430, binding = 26) writeonly buffer GiCurrReservoirExtent { GpuReservoir GiCurrReservoirs[]; };
-layout(rgba16f, binding = 18) uniform image2D HistorySurfaceImage;   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
-layout(rgba32f, binding = 19) uniform image2D MomentImage;           // R7: x = E[luma], y = E[luma²], reprojected with the mean
+layout(rgba16f, binding = 18) uniform image2D HistorySurfacePair[2];   // R7a: xyz = normal, w = depth the history mean was shaded at (w ≤ 0 = no surface)
+layout(rgba32f, binding = 19) uniform image2D MomentPair[2];           // R7: x = E[luma], y = E[luma²], reprojected with the mean
 layout(rgba32f, binding = 20) uniform writeonly image2D DenoiseImage; // R7: xyz = linear radiance, w = variance — the à-trous input
 // ── Bindings 21-24 are the Celestial sky, moons, star tables and post record, declared in
 //    Shaders/SkyRecords.slang, Shaders/MoonRecords.slang and Shaders/PostRecords.slang below. Round 9 vacated
@@ -1204,6 +1204,17 @@ const float kMovingHistoryBound = 32.0;
 //
 // Depth < 0 marks "no surface" (background); such a pixel never reprojects and never becomes a valid source.
 // `identity` is 0xFFFFFFFF for a pixel with no surface.
+#include "PresentationDither.slang"
+
+#define HistoryImage HistoryPair[0]
+#define PreviousHistoryImage HistoryPair[1]
+
+#define HistorySurfaceImage HistorySurfacePair[0]
+#define PreviousHistorySurfaceImage HistorySurfacePair[1]
+
+#define MomentImage MomentPair[0]
+#define PreviousMomentImage MomentPair[1]
+
 void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint identity, vec3 albedo)
 {
     vec4  history   = vec4(0.0);
@@ -1223,11 +1234,11 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
 
         if (all(greaterThanEqual(prevPx, ivec2(0))) && prevPx.x < int(ViewportWidth) && prevPx.y < int(ViewportHeight))
         {
-            vec4 prevSurface = imageLoad(HistorySurfaceImage, prevPx);
+            vec4 prevSurface = imageLoad(PreviousHistorySurfaceImage, prevPx);
             // The moments were already being read here for the reprojected mean; D10 makes that same load carry the
             //    identity too, so the feature costs no additional fetch — and when it is off, the z/w decode is simply
             //    never looked at.
-            const vec4 prevMoments = imageLoad(MomentImage, prevPx);
+            const vec4 prevMoments = imageLoad(PreviousMomentImage, prevPx);
             bool identityOk = true;
             if ((FeatureFlags & kFeatureTemporalIdentity) != 0u)
                 identityOk = IdentityObject(DecodeIdentity(prevMoments)) == IdentityObject(identity);
@@ -1237,7 +1248,7 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
                 && dot(normal, prevSurface.xyz) > kReprojectNormalCos
                 && abs(depth - prevSurface.w) / max(depth, 1e-3) < kReprojectDepthTol)
             {
-                history  = imageLoad(HistoryImage, prevPx);
+                history  = imageLoad(PreviousHistoryImage, prevPx);
                 count    = history.a;
                 moments  = prevMoments.xy;   // the moments follow the same reprojection
                 // SVGF-style history bound (Schied et al. 2017 §4.1, the α clamp), applied ONLY to a pixel that
@@ -1263,9 +1274,9 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
         // Either reprojection is disabled, or this pixel has no surface to reproject through (background, direct
         //    emitters). Both read the pixel's own history, which is exactly the pre-R7a behaviour — so with the
         //    feature bit clear this function is byte-identical to the accumulator it replaced.
-        history = imageLoad(HistoryImage, ivec2(pixel));
+        history = imageLoad(PreviousHistoryImage, ivec2(pixel));
         count   = history.a;
-        moments = imageLoad(MomentImage, ivec2(pixel)).xy;
+        moments = imageLoad(PreviousMomentImage, ivec2(pixel)).xy;
     }
 
     // The lens's answer to the sun, added to the SAMPLE before the running mean reads it — every frame's sample
@@ -1331,7 +1342,8 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
     //    IRRADIANCE, and the final à-trous level multiplies the albedo back, so texture detail never passes
     //    through the blur at all. The variance channel rides in luminance² units, so it rescales by the albedo
     //    luminance squared. The albedo is quantised HERE exactly as the rgba8 store will quantise it, so the
-    //    divide and the filter's read-back multiply are inverses to the last bit.
+    //    divide and read-back multiply use the same representable value, including dark channels.
+    //    Clamp BEFORE quantization: a post-quantization 0.02 floor rounds to 5/255 on storage.
     //    Where the albedo travels: with the denoiser on, OutputImage is otherwise unwritten this frame — the
     //    kernel parks the albedo there and the final level reads it back before overwriting. No new image and no
     //    new binding (0-31 of this set are all taken, and 31, the variable-count table, must stay last).
@@ -1339,15 +1351,15 @@ void ResolveSurface(uvec2 pixel, vec3 radiance, vec3 normal, float depth, uint i
     float storedVariance = variance;
     if ((FeatureFlags & kFeatureDenoise) != 0u)
     {
-        vec3  demodAlbedo = max(floor(albedo * 255.0 + 0.5) / 255.0, vec3(0.02));
-        float demodLum    = max(Luminance(demodAlbedo), 0.02);
+        vec3  demodAlbedo = floor(clamp(albedo, vec3(0.02), vec3(1.0)) * 255.0 + 0.5) / 255.0;
+        float demodLum    = Luminance(demodAlbedo);
         storedMean        = mean / demodAlbedo;
         storedVariance    = variance / (demodLum * demodLum);
         imageStore(OutputImage, ivec2(pixel), vec4(demodAlbedo, 1.0));
     }
     imageStore(DenoiseImage, ivec2(pixel), vec4(storedMean, storedVariance));
     if ((FeatureFlags & kFeatureDenoise) == 0u)
-        imageStore(OutputImage, ivec2(pixel), vec4(ToneMap(mean), 1.0));
+        imageStore(OutputImage, ivec2(pixel), vec4(ToneMap(mean) + vec3(PresentationDither(ivec2(pixel))), 1.0));
 }
 
 // Background and other surface-less writes: no normal, no depth, never a reprojection source.

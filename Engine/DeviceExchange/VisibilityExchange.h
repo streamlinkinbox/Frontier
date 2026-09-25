@@ -98,9 +98,11 @@ struct VisibilityTelemetry
     float    KernelMilliseconds   = 0.0f;   // post-resolve compute MINUS the shadow stage (denoise + luminance + ReSTIR)
     float    ShadowMilliseconds   = 0.0f;   // R10 ②: the GI-off shadow stage — maps rasterised + ShadowResolve
     float    RestirMilliseconds   = 0.0f;   // R10 ②: the ReSTIR dispatch alone (0 when GI is off)
-    float    PostMilliseconds     = 0.0f;   // R10 ②: trailing compute that is neither — denoise + luminance
+    float    PostMilliseconds     = 0.0f;   // trailing compute excluding shadow/ReSTIR/weather spans and history snapshot; includes denoise + luminance
     float    SkyMilliseconds      = 0.0f;   // Celestial: the sky/atmosphere pass (0 until it exists)
     float    VolumeMilliseconds   = 0.0f;   // Celestial: the unified cloud/fog march (0 until it exists)
+    float    DenoiseLevelMilliseconds[5]{};
+    float    HistorySnapshotMilliseconds=0.0f;
     bool     Valid                = false;
 };
 
@@ -111,6 +113,9 @@ struct VisibilityTelemetry
 class VisibilityExchange
 {
 public:
+    void RecordDenoiseBoundary(void* Command,uint32_t Slot,uint32_t Level,bool End) noexcept;
+    void RecordHistorySnapshotBoundary(void* Command,uint32_t Slot,bool End) noexcept;
+
     VisibilityExchange() noexcept;
     ~VisibilityExchange() noexcept;
 

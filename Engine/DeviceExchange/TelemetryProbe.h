@@ -87,6 +87,8 @@ struct ProbeFrameRow
     float    GpuShadowMs     = 0.0f;
     float    GpuRestirMs     = 0.0f;
     float    GpuPostMs       = 0.0f;
+    float    GpuDenoiseLevelMs[5]{};
+    float    GpuHistorySnapshotMs=0.0f;
     float    GpuSkyMs        = 0.0f;
     float    GpuVolumeMs     = 0.0f;
     uint32_t ClusterTotal    = 0u;      // [cnt] clusters tested
@@ -129,7 +131,7 @@ public:
         EndFrameRow(Gpu.Valid,
                     Gpu.CullMilliseconds, Gpu.RasterMilliseconds, Gpu.HiZMilliseconds, Gpu.ResolveMilliseconds,
                     Gpu.KernelMilliseconds, Gpu.ShadowMilliseconds, Gpu.RestirMilliseconds, Gpu.PostMilliseconds,
-                    Gpu.SkyMilliseconds, Gpu.VolumeMilliseconds,
+                    Gpu.SkyMilliseconds, Gpu.VolumeMilliseconds, Gpu.DenoiseLevelMilliseconds, Gpu.HistorySnapshotMilliseconds,
                     Gpu.ClusterTotal, Gpu.OcclusionPassed, Gpu.TrianglesDrawn, Fps, ResidentMiB);
     }
 
@@ -142,7 +144,7 @@ private:
 
     void EndFrameRow(bool Valid,
                      float Cull, float Raster, float HiZ, float Resolve, float Kernel,
-                     float Shadow, float Restir, float Post, float Sky, float Volume,
+                     float Shadow, float Restir, float Post, float Sky, float Volume, const float* Denoise, float HistorySnapshot,
                      uint32_t Clusters, uint32_t Visible, uint32_t Triangles,
                      float Fps, float ResidentMiB) noexcept;
 

@@ -1,0 +1,5 @@
+PASS Engine/DeviceExchange/SwapchainExchange.cpp
+PASS Engine/DeviceExchange/VisibilityExchange.cpp
+PASS Engine/DeviceExchange/TelemetryProbe.cpp
+PASS Engine/DisplayPresentation/DiagnosticInspector.cpp
+PASS Projects/Project-Zero/Source/GameExecution.cpp

@@ -21,6 +21,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 #include "Shaders/SceneRecords.slang"
 #include "Shaders/ShadowSample.slang"
+#include "PresentationDither.slang"
 
 layout(std430, set = 0, binding = 1) readonly buffer InstanceExtent { InstanceRecord Instances[]; };
 layout(std430, set = 0, binding = 5) readonly buffer MaterialExtent { MaterialRecord Materials[]; };
@@ -42,7 +43,7 @@ void main()
     uint Visibility = floatBitsToUint(Surface.w);
     if (Visibility == kVisibilityInvalid)
     {
-        imageStore(OutputImage, ivec2(Pixel), vec4(pow(kMiss / (1.0 + kMiss), vec3(1.0 / 2.2)), 1.0));
+        imageStore(OutputImage, ivec2(Pixel), vec4(pow(kMiss / (1.0 + kMiss), vec3(1.0 / 2.2)) + vec3(PresentationDither(ivec2(Pixel))), 1.0));
         return;
     }
 
@@ -58,7 +59,7 @@ void main()
     if (dot(M.Emissive.xyz, vec3(1.0)) > 0.0)
     {
         vec3 E = M.Emissive.xyz;
-        imageStore(OutputImage, ivec2(Pixel), vec4(pow(E / (1.0 + E), vec3(1.0 / 2.2)), 1.0));
+        imageStore(OutputImage, ivec2(Pixel), vec4(pow(E / (1.0 + E), vec3(1.0 / 2.2)) + vec3(PresentationDither(ivec2(Pixel))), 1.0));
         return;
     }
 
@@ -142,5 +143,5 @@ void main()
     }
 
     vec3 Mapped = Accumulated / (1.0 + Accumulated);           // Reinhard, as on the CPU path
-    imageStore(OutputImage, ivec2(Pixel), vec4(pow(max(Mapped, vec3(0.0)), vec3(1.0 / 2.2)), 1.0));
+    imageStore(OutputImage, ivec2(Pixel), vec4(pow(max(Mapped, vec3(0.0)), vec3(1.0 / 2.2)) + vec3(PresentationDither(ivec2(Pixel))), 1.0));
 }

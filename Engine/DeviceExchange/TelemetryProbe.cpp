@@ -132,7 +132,7 @@ void TelemetryProbe::Lap(ProbeSection Section) noexcept
 
 void TelemetryProbe::EndFrameRow(bool Valid,
                                  float Cull, float Raster, float HiZ, float Resolve, float Kernel,
-                                 float Shadow, float Restir, float Post, float Sky, float Volume,
+                                 float Shadow, float Restir, float Post, float Sky, float Volume, const float* Denoise, float HistorySnapshot,
                                  uint32_t Clusters, uint32_t Visible, uint32_t Triangles,
                                  float Fps, float ResidentMiB) noexcept
 {
@@ -149,6 +149,8 @@ void TelemetryProbe::EndFrameRow(bool Valid,
     PendingFrame.GpuPostMs       = Valid ? Post    : 0.0f;
     PendingFrame.GpuSkyMs        = Valid ? Sky     : 0.0f;
     PendingFrame.GpuVolumeMs     = Valid ? Volume  : 0.0f;
+    for(unsigned I=0;I<5;++I)PendingFrame.GpuDenoiseLevelMs[I]=Valid?Denoise[I]:0.0f;
+    PendingFrame.GpuHistorySnapshotMs=Valid?HistorySnapshot:0.0f;
     PendingFrame.ClusterTotal    = Clusters;
     PendingFrame.ClustersVisible = Visible;
     PendingFrame.TrianglesDrawn  = Triangles;
@@ -188,7 +190,7 @@ void TelemetryProbe::SaveReport(const char* Directory) noexcept
             Csv << "Frame,WallSeconds,DeltaMs";
             for (const char* Name : kSectionNames) Csv << ",Cpu" << Name << "Ms";
             Csv << ",GpuValid,GpuCullMs,GpuRasterMs,GpuHiZMs,GpuResolveMs,GpuKernelMs,GpuShadowMs,GpuRestirMs,"
-                   "GpuPostMs,GpuSkyMs,GpuVolumeMs,ClusterTotal,ClustersVisible,TrianglesDrawn,Fps,ResidentMiB\n";
+                   "GpuPostMs,GpuSkyMs,GpuVolumeMs,ClusterTotal,ClustersVisible,TrianglesDrawn,Fps,ResidentMiB,GpuDenoiseL0Ms,GpuDenoiseL1Ms,GpuDenoiseL2Ms,GpuDenoiseL3Ms,GpuDenoiseL4Ms,GpuHistorySnapshotMs\n";
             char Line[640];
             for (const ProbeFrameRow& R : Frames)
             {
@@ -206,7 +208,9 @@ void TelemetryProbe::SaveReport(const char* Directory) noexcept
                               static_cast<double>(R.GpuSkyMs), static_cast<double>(R.GpuVolumeMs),
                               R.ClusterTotal, R.ClustersVisible, R.TrianglesDrawn,
                               static_cast<double>(R.Fps), static_cast<double>(R.ResidentMiB));
-                Csv << Line << '\n';
+                Csv << Line;
+                for(float Ms:R.GpuDenoiseLevelMs)Csv << ',' << Ms;
+                Csv << ',' << R.GpuHistorySnapshotMs << '\n';
             }
         }
     }

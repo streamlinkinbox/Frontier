@@ -33,7 +33,8 @@ static constexpr uint32_t kMaximumCycleSlots = 3u;
 //    16/17 and 18/19 are the Celestial port's sky and volumetrics spans, reserved by step 0 so the stages are
 //    measured from their first frame rather than instrumented afterwards — the shadow round showed that a stage
 //    added without its own span silently borrows another's time.
-static constexpr uint32_t kTimestampCount    = 20u;
+// 20..29: five denoise levels; 30/31: immutable history snapshot copy.
+static constexpr uint32_t kTimestampCount    = 32u;
 static constexpr uint32_t kCounterCount      = 8u;    // SceneRecords.slang kCounterCount
 static constexpr uint32_t kCounterDrawPhaseTwoByte = 7u * 4u;
 
@@ -1115,7 +1116,7 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
     //    not zero, so without the availability word a GI-on frame would subtract garbage from the kernel figure.
     //    The flag makes the driver tell us which stamps are real; unavailable ones are treated as "stage absent".
     uint64_t Stamps[kTimestampCount * 2u]{};
-    // ⚠️ VK_NOT_READY is the EXPECTED result here, not a failure. The slot's whole 20-query range is reset every
+    // ⚠️ VK_NOT_READY is the EXPECTED result here, not a failure. The slot's whole 32-query range is reset every
     //    frame but only conditionally written — the shadow pair exists only in GI-off frames, ReSTIR / sky /
     //    volume only when those stages ran — so the range virtually always contains reset-but-never-written
     //    queries, which stay unavailable forever. Per the specification, vkGetQueryPoolResults without WAIT or
@@ -1161,6 +1162,8 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
         Telemetry.RestirMilliseconds = Restir;
         Telemetry.SkyMilliseconds    = Sky;
         Telemetry.VolumeMilliseconds = Volume;
+        for(uint32_t I=0;I<5;++I)Telemetry.DenoiseLevelMilliseconds[I]=Ms(20+I*2,21+I*2);
+        Telemetry.HistorySnapshotMilliseconds=Ms(30,31);
         // The kernel figure is now the ReSTIR dispatch when it ran, and otherwise whatever trailing work remains
         //    once the shadow stage is removed. Both are exact; neither silently borrows the other's time.
         Telemetry.KernelMilliseconds = Restir > 0.0f ? Restir
@@ -1169,7 +1172,7 @@ void VisibilityExchange::ReadTelemetry(uint32_t Slot) noexcept
         //    rather than folded into "kernel".
         // Everything in the trailing span that some stage owns. Sky and volumetrics are added here as they land
         //    so "post" keeps meaning strictly denoise + luminance rather than quietly absorbing the new work.
-        const float Owned = (Restir > 0.0f ? Restir : Shadow) + Sky + Volume;
+        const float Owned = (Restir > 0.0f ? Restir : Shadow) + Sky + Volume + Telemetry.HistorySnapshotMilliseconds;
         Telemetry.PostMilliseconds = Trailing > Owned ? Trailing - Owned : 0.0f;
     }
     Telemetry.Valid = true;
@@ -1781,6 +1784,21 @@ void VisibilityExchange::RecordKernelBegin(void* Command, uint32_t Slot) noexcep
 }
 
 // R10 ② — the ReSTIR dispatch's own span. Separate from RecordKernelEnd, which closes the whole trailing block.
+// TOP/BOTTOM brackets include the level's barriers and retire its work before
+// the next interval; unavailable queries report zero for skipped passes.
+void VisibilityExchange::RecordDenoiseBoundary(void* Command,uint32_t Slot,uint32_t Level,bool End) noexcept
+{
+    if(!IsReady() || Slot>=kMaximumCycleSlots || !Vulkan->SlotRecorded[Slot] || Level>=5)return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(Command),End?VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        Vulkan->Timestamps,Slot*kTimestampCount+20+2*Level+(End?1:0));
+}
+void VisibilityExchange::RecordHistorySnapshotBoundary(void* Command,uint32_t Slot,bool End) noexcept
+{
+    if(!IsReady() || Slot>=kMaximumCycleSlots || !Vulkan->SlotRecorded[Slot])return;
+    vkCmdWriteTimestamp(static_cast<VkCommandBuffer>(Command),End?VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        Vulkan->Timestamps,Slot*kTimestampCount+30+(End?1:0));
+}
+
 void VisibilityExchange::RecordRestirBegin(void* CommandHandle, uint32_t Slot) noexcept
 {
     if (!IsReady() || !Vulkan->SlotRecorded[Slot]) return;

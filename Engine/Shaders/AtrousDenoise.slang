@@ -2,8 +2,8 @@
 // 📦 Engine/Shaders/AtrousDenoise.slang — R7: edge-avoiding à-trous wavelet filter over the accumulated radiance
 //============================================================================================================================================
 // One dispatch per wavelet level. Level i reads the previous level and writes the next, sampling a 5×5 neighbourhood
-//    whose taps are spaced 2^i pixels apart. Five levels therefore reach a 81×81 pixel footprint for the cost of
-//    5 × 25 taps instead of 6561, which is the entire point of the à-trous ("with holes") formulation.
+//    whose taps are spaced 2^i pixels apart. Five chained levels therefore reach a maximum 125×125 pixel support for the cost of
+//    5 × 25 taps instead of 15625, which is the entire point of the à-trous ("with holes") formulation.
 //
 // The filter is EDGE-AVOIDING: each tap is weighted by how much it agrees with the centre pixel, so the blur runs
 //    along surfaces and stops at silhouettes. Three weights multiply together (Dammertz et al. 2010, and the
@@ -25,6 +25,7 @@
 // NOTE: GLSL source lowered by glslc -fshader-stage=compute.
 
 #version 460
+#extension GL_GOOGLE_include_directive : require
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -83,13 +84,7 @@ float AcesFilm(float x)
 // Half-LSB hash dither for the rgba8 presentation write. Smooth sky and fog gradients otherwise quantise into
 //    visible bands; +-0.5/255 of position-hashed noise trades them for imperceptible grain (measured: 185 -> 249
 //    distinct levels across a sky gradient). Position-hashed, not frame-hashed, so a still frame stays still.
-float DitherOffset(ivec2 Pixel)
-{
-    uint H = uint(Pixel.x) * 1664525u + uint(Pixel.y) * 1013904223u;
-    H = (H ^ (H >> 16u)) * 2246822519u;
-    H = H ^ (H >> 13u);
-    return (float(H & 1023u) / 1023.0 - 0.5) / 255.0;
-}
+#include "PresentationDither.slang"
 
 vec3 ToneMap(vec3 Hdr)
 {
@@ -131,7 +126,7 @@ void main()
             //    owns the presentation). Read it back before overwriting — a same-texel load-then-store inside one
             //    invocation is well-defined, and no other invocation touches this texel.
             vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;
-            float Grain  = DitherOffset(Pixel);
+            float Grain  = PresentationDither(Pixel);
             imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
         }
         return;
@@ -201,7 +196,7 @@ void main()
             //    owns the presentation). Read it back before overwriting — a same-texel load-then-store inside one
             //    invocation is well-defined, and no other invocation touches this texel.
             vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;
-            float Grain  = DitherOffset(Pixel);
+            float Grain  = PresentationDither(Pixel);
             imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
         }
         return;
@@ -303,7 +298,7 @@ void main()
     if (FinalLevel != 0u)
     {
         vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;   // the albedo the kernel parked (see the early-out sites)
-        float Grain  = DitherOffset(Pixel);
+        float Grain  = PresentationDither(Pixel);
         imageStore(OutputImage, Pixel, vec4(ToneMap(Result.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
     }
 }

@@ -1,5 +1,7 @@
 # V8 denoiser review
 
+> Follow-through: [Denoiser safety fixes and GPU measurement workflow](DenoiserSafetyFollowup.md). The quantization and in-place history findings below describe the reviewed baseline; subsequent code fixes and remaining hardware validation are recorded there.
+
 Reviewed engine revision: `00c380db5e6392f2618c90e18a21bb86071ece4f`.
 
 Scope: source inspection of the production accumulation shader, a-trous shader, Vulkan descriptors/barriers/dispatch, fidelity tiers, glint material hook, and CPU proof. No renderer changes. No GPU execution or timing measurement in this review. The earlier 97/97 gate result is a CPU/shader-mirror result, not a concurrency or GPU-image guarantee. The quoted DenoiserLab PSNR/firefly metrics were not independently rerun for this report.

@@ -241,7 +241,7 @@ int main()
             { "ReSTIRViewport", "imageStore(DenoiseImage, ivec2(pixel), vec4(storedMean, storedVariance));", 1u, "B10 one denoise store site for every material (storedMean = demodulated when the filter runs)" },
             { "ReSTIRViewport", "imageStore(DenoiseImage", 1u, "B11 the denoise store is not duplicated per lobe (material-agnostic)" },
             { "ReSTIRViewport", "if ((FeatureFlags & kFeatureDenoise) == 0u)", 1u, "B12 with the filter off the kernel tone-maps itself" },
-            { "ReSTIRViewport", "imageStore(OutputImage, ivec2(pixel), vec4(ToneMap(mean), 1.0));", 1u, "B13 ...through the same tone map the filter uses" },
+            { "ReSTIRViewport", "imageStore(OutputImage, ivec2(pixel), vec4(ToneMap(mean) + vec3(PresentationDither(ivec2(pixel))), 1.0));", 1u, "B13 ...through the same tone map the filter uses" },
 
             { "AtrousDenoise", "layout(set = 0, binding = 0, rgba32f) uniform readonly  image2D SourceImage;", 1u, "B14 filter binding 0: radiance + variance" },
             { "AtrousDenoise", "layout(set = 0, binding = 3, rgba8)   uniform           image2D OutputImage;", 1u, "B15 filter binding 3: the presentation image (read: the kernel's parked albedo; write: the tone map)" },
@@ -308,13 +308,13 @@ int main()
             size_t   ArrayLine = 0u, CloseLine = 0u, PushLine = 0u;
             for (size_t I = 0u; I < Lines.size(); ++I)
             {
-                if ((!Lines[I].empty() && Lines[I][0] == '#') || Lines[I].rfind("layout(local_size", 0u) == 0u) { ++Prologue; }
+                if ((Lines[I].rfind("#version", 0u) == 0u || Lines[I].rfind("#extension", 0u) == 0u) || Lines[I].rfind("layout(local_size", 0u) == 0u) { ++Prologue; }
                 if (Lines[I].find("float[5](") != std::string::npos) { ++ArrayCtor; ArrayLine = I; }
                 if (Lines[I] == "};") { ++Closers; CloseLine = I; }
                 if (Lines[I].find("push_constant") != std::string::npos) { ++PushBlocks; PushLine = I; }
             }
-            Check(Prologue == 2u && ArrayCtor == 1u && Closers == 1u && PushBlocks == 1u && CloseLine > PushLine,
-                  "C0.2 the shader still has exactly 2 prologue lines, 1 array constructor, 1 push-constant block");
+            Check(Prologue == 3u && ArrayCtor == 1u && Closers == 1u && PushBlocks == 1u && CloseLine > PushLine,
+                  "C0.2 the shader still has exactly 3 prologue lines, 1 array constructor, 1 push-constant block");
 
             std::string Part1, Part2;
             const bool ReadBoth = ReadFile((std::string(Stage) + "/AtrousDenoise.cpu.1.h").c_str(), Part1)
@@ -327,7 +327,7 @@ int main()
                 //    with its instance, split there.
                 const auto IsPrologue = [&](size_t Index)
                 {
-                    return (!Lines[Index].empty() && Lines[Index][0] == '#') || Lines[Index].rfind("layout(local_size", 0u) == 0u;
+                    return (Lines[Index].rfind("#version", 0u) == 0u || Lines[Index].rfind("#extension", 0u) == 0u) || Lines[Index].rfind("layout(local_size", 0u) == 0u;
                 };
                 std::vector<std::string> Body;
                 for (size_t I = 0u; I < Lines.size(); ++I) if (!IsPrologue(I)) Body.push_back(Lines[I]);
@@ -351,7 +351,7 @@ int main()
 
                 Check(Part1 == Expected1, "C0.5 the staged first half is the shader text with the prologue dropped and the push block closed by its instance");
                 Check(Part2 == Expected2, "C0.6 the staged second half is the shader text with only the array constructor rewritten");
-                std::printf("[denoise] transform: 2 prologue lines dropped, 1 array constructor rewritten, 1 split at the push-constant block\n");
+                std::printf("[denoise] transform: 3 prologue lines dropped, 1 array constructor rewritten, 1 split at the push-constant block\n");
             }
         }
     }

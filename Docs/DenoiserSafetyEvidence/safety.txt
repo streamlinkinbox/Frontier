@@ -1,0 +1,5 @@
+PASS 102429 actual shader-expression/dither arithmetic checks (CPU, not Vulkan)
+PASS real telemetry CSV round-trip / invalid-frame zeroing
+PASS snapshot ownership/copy/reset/descriptor and shared-dither source guards
+PASS 200 adversarial invocation-order history models; unsafe in-place control detected
+PASS denoise safety suite; Vulkan dispatch/validation/performance still required

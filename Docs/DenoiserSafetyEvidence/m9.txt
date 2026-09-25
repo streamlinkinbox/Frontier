@@ -1,0 +1,136 @@
+[MaterialDenoise] headers: /home/user/Frontier/.cache/denoiser
+[StageAtrousDenoise] staged /tmp/DenoiseMirror.SjX2mb
+    source Engine/Shaders/AtrousDenoise.slang
+    dropped #version 460
+    dropped #extension GL_GOOGLE_include_directive : require
+    dropped layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+    rewrote const float Weights[5] = float[5](0.0625, 0.25, 0.375, 0.25, 0.0625);
+            -> const float Weights[5] = { 0.0625f, 0.25f, 0.375f, 0.25f, 0.0625f };
+    rewrote layout(push_constant) uniform DenoiseConstants
+            -> struct DenoiseConstants
+    split after } DenoiseParameters;
+[MaterialDenoise] warnings:
+    Engine/DisplayPresentation/ReSTIRIntegrator.cpp: In static member function 'static std::vector<Frontier::TriangleIndex> Frontier::ReSTIRIntegrator::BuildTriangleIndex(const Frontier::ProjectZero::RayTracingSolver&)':
+    Engine/DisplayPresentation/ReSTIRIntegrator.cpp:173:33: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+      173 |         Record.MaterialSlot  = *reinterpret_cast<const float*>(&Triangle.MaterialIndex);
+          |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ok 1 - A1 denoiser defaults ON (ReSTIRIntegratorConfiguration::Denoise)
+ok 2 - A2 motion-vector reprojection defaults ON
+ok 3 - A3 the R6 reuse switches stay on around them
+ok 4 - A4 default denoise chain = the descriptor ceiling (5 levels), 4 spatial taps
+ok 5 - A5 default dispatch carries exactly the R6/R7/GI/#27B feature bits (9 bits named)
+ok 6 - A6 DispatchFeatureDenoise set (kernel defers the tone map)
+ok 7 - A7 DispatchFeatureTemporalReprojection set
+ok 8 - A8 dispatch carries the 5-level chain
+ok 9 - A9 engine feature bits 64/128 are the shader's kFeatureTemporalReprojection/kFeatureDenoise
+ok 10 - A10 all four denoise × reprojection combinations drive exactly their own bits
+ok 11 - A11 AssignDenoise does not restart accumulation (post-process, so the A/B stays comparable)
+ok 12 - A12 AssignTemporalReprojection restarts accumulation (sampling change), spending the reset flag
+[denoise] tier Minimal   denoise levels 4
+[denoise] tier Economy   denoise levels 4
+[denoise] tier Standard  denoise levels 4
+[denoise] tier Ultra     denoise levels 5
+[denoise] tier Reference denoise levels 5
+ok 13 - A13 every tier's à-trous chain sits in 1..kDenoiseLevelCount (never zero, never over the ceiling)
+ok 14 - B0 the shader and dispatcher sources are readable
+ok 15 - B1 kernel bit 6 = reprojection (64)
+ok 16 - B2 kernel bit 7 = denoise (128)
+ok 17 - B3 reprojection gated by the feature bit and a surface
+ok 18 - B4 motion vector read at all three reuse sites (accumulator + direct reservoir + GI reservoir)
+ok 19 - B5 back-projection rule (§D mirrors this line)
+ok 20 - B6 running-mean sample count
+ok 21 - B7 running mean
+ok 22 - B8 filter input = variance OF THE MEAN
+ok 23 - B9 a first sample stays permissive (disocclusion)
+ok 24 - B10 one denoise store site for every material (storedMean = demodulated when the filter runs)
+ok 25 - B11 the denoise store is not duplicated per lobe (material-agnostic)
+ok 26 - B12 with the filter off the kernel tone-maps itself
+ok 27 - B13 ...through the same tone map the filter uses
+ok 28 - B14 filter binding 0: radiance + variance
+ok 29 - B15 filter binding 3: the presentation image (read: the kernel's parked albedo; write: the tone map)
+ok 30 - B16 early-out is derived from an 8-bit step
+ok 31 - B17 ...as a variance, not a tuned constant
+ok 32 - B18 normal edge stop
+ok 33 - B19 depth edge stop
+ok 34 - B20 luminance edge stop (noise-relative)
+ok 35 - B21 variance propagates with the SQUARED weights
+ok 36 - B22 weighted-mean variance of the filtered value
+ok 37 - B23 dispatcher uses the filter's 8×8 workgroup
+ok 38 - B24 tap spacing doubles per level
+ok 39 - B25 the engine's σn reaches the shader
+ok 40 - B26 the engine's σz reaches the shader
+ok 41 - B27 the engine's σl schedule reaches the shader (tightening as the taps widen)
+ok 42 - B28 the tone map happens exactly once, at the last live level
+ok 43 - B29 the level count is clamped into the allocated sets
+ok 44 - B30 the header's default is ON (as §A asserts by value)
+ok 45 - B31 the header's reprojection default is ON
+ok 46 - B32 the filter carries no lobe or material vocabulary (radiance, variance, normal, depth only)
+ok 47 - C0.1 the transform stage directory is provided by the gate script
+ok 48 - C0.2 the shader still has exactly 3 prologue lines, 1 array constructor, 1 push-constant block
+ok 49 - C0.3 the gate script staged both halves of the transformed shader
+ok 50 - C0.4 the push-constant opener is what the transform expects
+ok 51 - C0.5 the staged first half is the shader text with the prologue dropped and the push block closed by its instance
+ok 52 - C0.6 the staged second half is the shader text with only the array constructor rewritten
+[denoise] transform: 3 prologue lines dropped, 1 array constructor rewritten, 1 split at the push-constant block
+ok 53 - C1.1 Enabled = 0 is a bit-exact copy (the identity switch)
+ok 54 - C1.2 the disabled pass still writes the presentation image through the shader's own tone map (within the dither half-LSB)
+ok 55 - C2 a uniform radiance field survives the 25-tap weighted mean unchanged (no energy added)
+ok 56 - C3.1 a converged field passes through bit-exactly (early-out, radiance and variance)
+ok 57 - C3.2 A/B AT CONVERGENCE: denoise ON == denoise OFF within the dither half-LSB
+ok 58 - C3.3 A/B BEFORE CONVERGENCE: the filtered image really is filtered
+ok 59 - C4 the early-out and the full tap loop agree on the radiance they hand back (variance differs, radiance does not)
+ok 60 - C5.1 no cross-silhouette leak: 4× radiance step stays at 1.0 / 4.0 (normals orthogonal)
+ok 61 - C5.2 ...nor across a 100× depth step (σz = 0.05 relative)
+[denoise] in-region deviation 11.99993 -> 8.83713 (26.4% removed)
+ok 62 - C5.3 in-region: the filter removes a quarter or more of the noise off its own signal
+ok 63 - C6.0 the shader's KernelWeight is the B₃ spline (1/16, 1/4, 3/8, 1/4, 1/16)
+ok 64 - C6.1 the B₃ spline kernel is normalised (Σw = 1)
+ok 65 - C6.2 filtered variance == σ²·Σw²/(Σw)² = 7.47681e-05 (worst relative error 2.23e-07)
+[denoise] variance: unfiltered 0.000968963, filtered 6.62178e-05 (ratio 0.0683, theory 0.0748)
+ok 66 - C6.3 Monte-Carlo: filtered/unfiltered spread = Σw²/(Σw)² with data-independent weights (±20 %, 512 trials)
+ok 67 - C6.4 Monte-Carlo: the unfiltered spread matches the input variance (±20 %)
+ok 68 - D1 a static frame reprojects onto its own pixel (motion = 0 is the identity)
+ok 69 - D2 a surface that moved (+3, −2) px between frames reads the pixel it came from
+ok 70 - D3 a back-projection off screen is a disocclusion, not a clamp
+[denoise] translation: reprojected history error 0.000000, same-pixel 4.800000
+ok 71 - D4 reprojected history tracks a translation exactly; same-pixel history smears by one step per frame
+ok 72 - D5 a 90° normal disagreement is rejected (25° rule)
+ok 73 - D6 a 2× depth disagreement is rejected (10 % rule)
+ok 74 - D7 history that held no surface inherits nothing
+ok 75 - D8 a background pixel (depth ≤ 0) reprojects onto itself — never a source, never a consumer
+ok 76 - D9 with the feature bit clear the rule is the pre-R7a same-pixel read (byte-identical accumulator)
+[denoise] lambertian   hold   512: MSE raw 1.975e-08 vs filtered 1.242e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] lambertian   hold  2048: MSE raw 4.717e-09 vs filtered 1.238e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] lambertian   hold  8192: MSE raw 1.39e-09 vs filtered 1.24e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] lambertian   frame 512: MSE filtered 1.24217e-06 vs unfiltered 1.97455e-08, linear image-mean drift 0.0000%
+ok 77 - E1 lambertian: at 1 sample the filter lowers presentation MSE (0.004344 < 0.01797)
+ok 78 - E2 lambertian: at convergence the filter preserves the linear image mean (0.0000 % drift)
+ok 79 - E2b lambertian: the frame-one redistribution is bounded (0.008 % drift)
+ok 80 - E3 lambertian: the running mean converges to the analytic truth (0.060 % after 512 frames)
+ok 81 - E4 lambertian: every pixel the early-out accepts matches within the dither half-LSB (576/576/576 accepted at the three holds, 0 differ)
+ok 82 - E4b lambertian: the early-out engages as the estimate converges (0.0 % at frame 1, 100.0 % at hold 8192)
+ok 83 - E4c lambertian: acceptance grows with the hold, it never falls back (100.0 % -> 100.0 % -> 100.0 %)
+[denoise] glass-btdf   hold   512: MSE raw 3.869e-06 vs filtered 3.263e-06, early-out accepts   0.0%, of those 0 differ
+[denoise] glass-btdf   hold  2048: MSE raw 9.601e-07 vs filtered 2.044e-06, early-out accepts   0.0%, of those 0 differ
+[denoise] glass-btdf   hold  8192: MSE raw 2.313e-07 vs filtered 1.517e-06, early-out accepts  80.7%, of those 0 differ
+[denoise] glass-btdf   frame 512: MSE filtered 3.26271e-06 vs unfiltered 3.86856e-06, linear image-mean drift 0.0165%
+ok 84 - E1 glass-btdf: at 1 sample the filter lowers presentation MSE (0.1062 < 0.3674)
+ok 85 - E2 glass-btdf: at convergence the filter preserves the linear image mean (0.0165 % drift)
+ok 86 - E2b glass-btdf: the frame-one redistribution is bounded (0.220 % drift)
+ok 87 - E3 glass-btdf: the running mean converges to the analytic truth (0.626 % after 512 frames)
+ok 88 - E4 glass-btdf: every pixel the early-out accepts matches within the dither half-LSB (0/0/465 accepted at the three holds, 0 differ)
+ok 89 - E4b glass-btdf: the early-out engages as the estimate converges (0.0 % at frame 1, 80.7 % at hold 8192)
+ok 90 - E4c glass-btdf: acceptance grows with the hold, it never falls back (0.0 % -> 0.0 % -> 80.7 %)
+[denoise] subsurface   hold   512: MSE raw 9.894e-08 vs filtered 1.353e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] subsurface   hold  2048: MSE raw 2.35e-08 vs filtered 1.249e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] subsurface   hold  8192: MSE raw 7.135e-09 vs filtered 1.234e-06, early-out accepts 100.0%, of those 0 differ
+[denoise] subsurface   frame 512: MSE filtered 1.35253e-06 vs unfiltered 9.89409e-08, linear image-mean drift 0.0000%
+ok 91 - E1 subsurface: at 1 sample the filter lowers presentation MSE (0.01176 < 0.08233)
+ok 92 - E2 subsurface: at convergence the filter preserves the linear image mean (0.0000 % drift)
+ok 93 - E2b subsurface: the frame-one redistribution is bounded (0.019 % drift)
+ok 94 - E3 subsurface: the running mean converges to the analytic truth (0.100 % after 512 frames)
+ok 95 - E4 subsurface: every pixel the early-out accepts matches within the dither half-LSB (576/576/576 accepted at the three holds, 0 differ)
+ok 96 - E4b subsurface: the early-out engages as the estimate converges (0.0 % at frame 1, 100.0 % at hold 8192)
+ok 97 - E4c subsurface: acceptance grows with the hold, it never falls back (100.0 % -> 100.0 % -> 100.0 %)
+MATERIAL DENOISE: PASS (97/97)
+[MaterialDenoise] GREEN — checks passed: 97
