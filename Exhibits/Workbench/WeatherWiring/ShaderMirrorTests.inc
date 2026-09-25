@@ -4,7 +4,7 @@ int main(){try{
  auto Check=[&](bool value,const char* text){if(!value)throw std::runtime_error(text);++checks;};
  CloudLayerSettings C;LocalVolumeSettings L,F;FogSettings Fog;WindSettings Wind;Wind.Speed=0;
  VolumetricBudget Budget;Budget.CloudSteps=64;Budget.LocalSteps=64;
- auto Pack=[&](){auto r=PackWeatherConstants(C,L,F,Fog,Wind,Budget,3);for(int i=0;i<19;++i)Weather[i]=vec4(r.Rows[i][0],r.Rows[i][1],r.Rows[i][2],r.Rows[i][3]);Weather[8].y=Weather[8].z=Weather[8].w=.2f;};
+ auto Pack=[&](){auto r=PackWeatherConstants(C,L,F,Fog,Wind,Budget,3);for(int i=0;i<21;++i)Weather[i]=vec4(r.Rows[i][0],r.Rows[i][1],r.Rows[i][2],r.Rows[i][3]);Weather[8].y=Weather[8].z=Weather[8].w=.2f;};
  vec3 O(0,0,2),D(0,0,1),White(1);
  Pack();Check(ApplyWeather(O,D,200,White)==White,"disabled weather exact identity");
  C.Enabled=true;C.Base=10;C.Thickness=100;C.Coverage=1;C.Density=3;Pack();
@@ -46,5 +46,15 @@ int main(){try{
  // Wind noise is evaluated at sample altitude, not frozen at volume centre.
  Wind.Speed=12;Wind.Shear=.2f;Wind.Veer=3;Pack();
  float p[3]={12,20,50};Check(std::abs(VolumetricMedia::CloudDensity(C,Wind,p,3)-WeatherDensity(0,vec3(12,20,50)))<.003f,"wind-advection density matches CPU");
+ // Distinct per-medium references must reach the actual shader density functions.
+ WindSettings Media[3]={Wind,Wind,Wind};Media[0].Speed=4;Media[0].Bearing=10;Media[1].Speed=23;Media[1].Bearing=90;Media[2].Speed=11;Media[2].Bearing=270;
+ C.Enabled=L.Enabled=F.Enabled=true;
+ auto Bound=PackWeatherConstants(C,L,F,Fog,Wind,Budget,13,Media);
+ for(int I=0;I<21;++I)Weather[I]=vec4(Bound.Rows[I][0],Bound.Rows[I][1],Bound.Rows[I][2],Bound.Rows[I][3]);
+ for(int I=0;I<24;++I){float Point[3]={float(I-12),float(I*.5),float(25+I)};
+  Check(std::abs(WeatherDensity(0,vec3(Point[0],Point[1],Point[2]))-VolumetricMedia::CloudDensity(C,Media[0],Point,13))<.003f,"layer uses its resolved source");
+  Check(std::abs(WeatherDensity(1,vec3(Point[0],Point[1],Point[2]))-VolumetricMedia::LocalDensity(L,Media[1],Point,13))<.003f,"local cloud uses its resolved source");
+  Check(std::abs(WeatherDensity(2,vec3(Point[0],Point[1],Point[2]))-VolumetricMedia::LocalDensity(F,Media[2],Point,13))<.003f,"local fog uses its resolved source");
+ }
  std::printf("PASS %d shader-source mirror checks (CPU execution, not Vulkan)\n",checks);return 0;
 }catch(const std::exception& e){std::fprintf(stderr,"FAIL %s\n",e.what());return 1;}}

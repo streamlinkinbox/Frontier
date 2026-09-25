@@ -22,7 +22,8 @@ void Box(SceneStructure& L,const char* Name,float X,float Y,float Z,float SX,flo
  for(unsigned F=0;F<6;++F){VertexRecord A[4]{};for(unsigned I=0;I<4;++I){auto* P=V[Faces[F][I]];A[I].SpatialLocation={P[0],P[1],P[2]};A[I].NormalDirection={Normals[F][0],Normals[F][1],Normals[F][2]};}Mesh.AppendVertices(A,4);unsigned Base=F*4,Indices[]={Base,Base+1,Base+2,Base,Base+2,Base+3};Mesh.AppendIndices(Indices,6);}
  Matrix4x4 Identity;auto First=L.RegisterInstance(Mesh,Identity,Mat,InstanceFlagDoubleSided);auto Place=L.RegisterPlacement(Name,0xffffffffu,Identity,Identity);L.AttachInstances(Place,First,1);
 }
-int main(){try{
+#include "../WindBindings/NativeWindProof.h"
+int main(int argc,char** argv){if(argc>1&&!std::strcmp(argv[1],"--wind-bindings"))return RunWindBindings();try{
  auto Level=std::make_unique<SceneStructure>();
  Box(*Level,"Ground",0,500,-4,1500,1800,4,.25f,.29f,.24f);
  for(int I=0;I<7;++I){float Y=60.f+I*95;Box(*Level,"Distance columns left",-45-I*70,Y,0,7,9,27+I*3,.55f,.43f,.29f);Box(*Level,"Distance columns right",45+I*70,Y,0,7,9,40+I*4,.25f,.36f,.45f);}
@@ -63,7 +64,7 @@ int main(){try{
  if(BlockInput)ImGui::OpenPopup("Input ownership proof");
  if(ImGui::BeginPopupModal("Input ownership proof",nullptr,ImGuiWindowFlags_AlwaysAutoResize)){ImGui::TextUnformatted("Modal owns input");if(CloseModal)ImGui::CloseCurrentPopup();ImGui::EndPopup();}
  Host->Record(Rows.get(),Count,Sheet.get());ImGui::Render();FrontierProof::AcknowledgeTextures();};
- auto Click=[&](ImVec2 At){Check(At.x>=0&&At.y>=0,"billboard or native control in view");IO.AddMousePosEvent(At.x,At.y);Tick();IO.AddMouseButtonEvent(0,true);Tick();IO.AddMouseButtonEvent(0,false);Tick();};
+ auto Click=[&](ImVec2 At){Check(At.x>=0&&At.y>=0&&At.x<IO.DisplaySize.x&&At.y<IO.DisplaySize.y,"billboard or native control in view");IO.AddMousePosEvent(At.x,At.y);Tick();IO.AddMouseButtonEvent(0,true);Tick();IO.AddMouseButtonEvent(0,false);Tick();};
  auto Capture=[&](const char* Name){std::vector<unsigned char> RGB(1600*1000*3,24);for(auto* D:ImGui::GetDrawData()->CmdLists)FrontierProof::Draw(D,RGB.data(),1600,1000,{0,0},{1,1},ImTextureID(reinterpret_cast<uintptr_t>(Pixels.data())),{Pixels.data(),W,H,4});std::string Path="Exhibits/Gallery/NativeBillboards/";Path+=Name;Path+=".png";Check(stbi_write_png(Path.c_str(),1600,1000,3,RGB.data(),1600*3)!=0,"real native editor capture");};
  for(int I=0;I<5;++I)Tick();
  EditorBillboard TestMarkers[32];EditorBillboardCamera TestCamera;TestCamera.ViewWidth=800;TestCamera.ViewHeight=600;
@@ -83,7 +84,11 @@ int main(){try{
  auto FogMouseBefore=Render("Fog-mouse-before");
  Slider=nullptr;for(auto* Win:ImGui::GetCurrentContext()->Windows)if(Win->Active&&std::strstr(Win->Name,"/Density_"))Slider=Win;
  Check(Slider!=nullptr,"actual native Height Fog density slider mounted");
- Click({Slider->Pos.x+Slider->Size.x*.65f,Slider->Pos.y+15});auto FogMouseAfter=Render("Fog-mouse-after");
+ // The wind source controls add content above the cards. Scroll the real parent
+ // rather than trying to click a mounted child outside the viewport.
+ ImGui::ScrollToRect(Slider->ParentWindow,Slider->Rect(),ImGuiScrollFlags_KeepVisibleEdgeX|ImGuiScrollFlags_AlwaysCenterY);Tick();Tick();
+ const float OldFogDensity=Sky->Fog.HeightDensity;
+ Click({Slider->Pos.x+Slider->Size.x*.65f,Slider->Pos.y+15});Check(Sky->Fog.HeightDensity!=OldFogDensity,"native mouse edit commits fog density after scrolling");auto FogMouseAfter=Render("Fog-mouse-after");
  Difference("Native mouse Fog edit changes rendered pixels",FogMouseBefore,FogMouseAfter);Tick();Capture("Editor-Fog-edited");Edit(CelestialEntity::HeightFog,"Density",.001f);Render(nullptr);Tick();
  Click(Host->QueryBillboardCentre(Key(CelestialEntity::Sky)));Capture("Editor-Atmosphere");
  Click(Host->QueryBillboardCentre(Key(CelestialEntity::LocalCloud)));Capture("Editor-Local-cloud");

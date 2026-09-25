@@ -271,7 +271,7 @@ public:
     //    288, or the buffer does not exist yet; the previous contents stand, so a refusal degrades to stale
     //    moons — and zero is no moons at all (MoonControl.x = 0), which is the kernel's early-out.
     [[nodiscard]] bool          RefreshMoons(const void* Bytes, uint32_t ByteCount) noexcept;
-    // Celestial post/weather record → binding 24: staged for a queue-ordered command update, 512
+    // Celestial post/weather record → binding 24: staged for a queue-ordered command update, 544
     //    bytes packed by PostConstantRecord/PackPostConstants. False on null bytes, wrong size, or no buffer;
     //    the previous contents stand. Zero is everything off (stars, flare, bow), the kernel's early-out.
     [[nodiscard]] bool          RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept;

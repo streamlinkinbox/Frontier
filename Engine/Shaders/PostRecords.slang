@@ -23,7 +23,7 @@
 //                                              THE UNIFORM BLOCK (24)
 //------------------------------------------------------------------------------------------------------------------------
 
-// 512 bytes, std140 — PostConstantRecord pins the original offsets; Weather appends 19 rows. Per-frame scalars
+// 544 bytes, std140 — PostConstantRecord pins the original offsets; Weather appends 21 rows. Per-frame scalars
 //    only; the star tables are static and ride binding 23 instead.
 layout(std140, binding = 24) uniform PostConstants
 {
@@ -40,7 +40,7 @@ layout(std140, binding = 24) uniform PostConstants
     vec4 PostLayers2;
     vec4 PostLayers3;
     vec4 PostStarEffects; // min luminance, depth, rate Hz, time seconds
-    vec4 Weather[19]; // WeatherConstantRecord: live volume/fog state
+    vec4 Weather[21]; // WeatherConstantRecord: live volume/fog state
 };
 
 //------------------------------------------------------------------------------------------------------------------------

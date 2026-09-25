@@ -76,11 +76,11 @@ static constexpr uint32_t kSkyRecordBytes = 144u;
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
 static constexpr uint32_t kMoonRecordBytes = 288u;
-// The Celestial post uniform block (binding 24) is 32 std140 rows — 512 B, pinned by static_assert in
+// The Celestial post uniform block (binding 24) is 34 std140 rows — 544 B, pinned by static_assert in
 //    DisplayPresentation/PostConstantRecord.h. Same restatement rule as the sky and moon records above.
 // The star tables (binding 23) are 1 024 cells of 8 B followed by N stars of 32 B — StarCellRecord and
 //    StarRecord, pinned in GeometricRaster/StarCatalogueIndex.h; the post gate fails the build on drift.
-static constexpr uint32_t kPostRecordBytes = 512u;
+static constexpr uint32_t kPostRecordBytes = 544u;
 static constexpr uint32_t kStarCellCount = 1024u;
 static constexpr uint32_t kStarCellBytes = 8u;
 static constexpr uint32_t kStarRecordBytes = 32u;
@@ -195,7 +195,7 @@ struct SwapchainExchange::VulkanRecord
     VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
     VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
     void*                    MoonMapped            = nullptr;
-    // Celestial post/weather record (binding 24), 512 bytes. The mapping is for initialization;
+    // Celestial post/weather record (binding 24), 544 bytes. The mapping is for initialization;
     //    per-frame pending bytes are copied by an ordered command, not by an in-flight host write.
     VkBuffer                 PostBuffer            = VK_NULL_HANDLE;
     VkDeviceMemory           PostMemory            = VK_NULL_HANDLE;
@@ -1843,7 +1843,7 @@ bool SwapchainExchange::BringMoonRecord() noexcept
 
 bool SwapchainExchange::BringPostRecord() noexcept
 {
-    // 512-byte post/weather UBO. Mapping initializes it; per-frame writes are queue ordered.
+    // 544-byte post/weather UBO. Mapping initializes it; per-frame writes are queue ordered.
     constexpr uint32_t HostVisible = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     AllocateBuffer(Vulkan->Device, Vulkan->MemoryProperties, kPostRecordBytes, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                    HostVisible, Vulkan->PostBuffer, Vulkan->PostMemory);
@@ -2853,7 +2853,7 @@ bool SwapchainExchange::RefreshMoons(const void* Bytes, uint32_t ByteCount) noex
 bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept
 {
     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
-    //    PostConstantRecord/PackPostConstants and hands over the 512 bytes, the way RefreshSky receives its own.
+    //    PostConstantRecord/PackPostConstants and hands over the 544 bytes, the way RefreshSky receives its own.
     //    The size is refused rather than trusted, for the same half-old-reading reason.
     if (!Vulkan->Device || !Vulkan->PostMapped || !Bytes || ByteCount != kPostRecordBytes) return false;
     // Stage host bytes without touching the in-flight device buffer; recording uploads them.
@@ -3031,7 +3031,7 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     (void)vkBeginCommandBuffer(Command, &BeginInfo);
     // Queue-ordered update protects the shared post/weather UBO across cycle slots.
-    // vkCmdUpdateBuffer copies these 512 bytes while recording the command.
+    // vkCmdUpdateBuffer copies these 544 bytes while recording the command.
     if(Vulkan->PostBuffer){
         VkBufferMemoryBarrier B{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
         B.srcAccessMask=VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;B.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;

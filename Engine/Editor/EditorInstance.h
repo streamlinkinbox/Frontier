@@ -97,7 +97,8 @@ struct EditorInstance
     char             Meta[24]  = {};                        // the right-hand live figure ("12.4°", "AM 1.02")
     char             Tag[8]    = {};                        // the small pill after the name ("Comp")
     bool             Pinned    = false;                     // true: no drag, no eye — the page's World / Lights
-    bool             Shut      = false;                     // the feed's opening pose (false reads open)
+    bool             Component = false;                    // owned leaf: cannot be reparented independently
+    bool             Shut      = false;                     // row-owned collapse pose (false reads open)
 };
 
 // The foot strips: one height across the outliner, the inspector and the viewport, so the three hems
@@ -185,6 +186,7 @@ struct EditorProperty
 
     // Select + Readout.
     char     Options[kMaxEditorOptions][kMaxEditorOptionChars] = {};
+    uint32_t OptionValues[kMaxEditorOptions] = {}; // stable reference IDs when a selector needs them
     uint32_t OptionCount = 0u;
     uint32_t Picked      = 0u;
     char     Text[48]    = {};

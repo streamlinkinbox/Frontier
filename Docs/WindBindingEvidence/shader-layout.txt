@@ -1,0 +1,15 @@
+PostStar: offset 0, type 8b52, size 1, index 1, binding -1, stages 32
+PostSpare0: offset 96, type 8b52, size 1, index 1, binding -1, stages 32
+PostStarEffects: offset 192, type 8b52, size 1, index 1, binding -1, stages 32
+PostBow2: offset 80, type 8b52, size 1, index 1, binding -1, stages 32
+PostBow: offset 64, type 8b52, size 1, index 1, binding -1, stages 32
+PostFlareUv: offset 48, type 8b52, size 1, index 1, binding -1, stages 32
+PostFlare2: offset 32, type 8b52, size 1, index 1, binding -1, stages 32
+PostLayers0: offset 128, type 8b52, size 1, index 1, binding -1, stages 32
+PostLayers1: offset 144, type 8b52, size 1, index 1, binding -1, stages 32
+PostLayers2: offset 160, type 8b52, size 1, index 1, binding -1, stages 32
+PostLayers3: offset 176, type 8b52, size 1, index 1, binding -1, stages 32
+PostFlare: offset 16, type 8b52, size 1, index 1, binding -1, stages 32
+PostSpare1: offset 112, type 8b52, size 1, index 1, binding -1, stages 32
+Weather: offset 208, type 8b52, size 21, index 1, binding -1, stages 32, arrayStride 16, topLevelArrayStride 16
+PostConstants: offset -1, type ffffffff, size 544, index 1, binding 24, stages 32, numMembers 14

@@ -212,6 +212,22 @@ public:
     AtmosphereLight      Light{};
     TwilightSettings     Twilight{};
     WindSettings         Wind{};
+    // Stable component IDs: 0 = global, 1..5 = wind owned by a cloud/fog entity.
+    // References resolve to settings, never to another reference (no cycles).
+    struct OwnedWind { WindSettings Settings{}; bool Present=false, Shown=true; };
+    OwnedWind WindComponents[5]{};
+    uint32_t WindSources[5]{};
+    static int WindSlot(CelestialEntity Entity) noexcept;
+    static CelestialEntity WindOwner(uint32_t Id) noexcept;
+    void SetOwnedWind(CelestialEntity Owner,bool Present) noexcept;
+    bool BindWind(CelestialEntity Consumer,uint32_t Id) noexcept;
+    const WindSettings* ResolveWind(CelestialEntity Consumer) const noexcept;
+    WindSettings EffectiveWind(CelestialEntity Consumer) const noexcept;
+    void SynchronizeWindRows(EditorInstance* Rows,uint32_t& Count,uint32_t Capacity) noexcept;
+    void BuildWindComponentSheet(uint32_t Id,EditorSheet& Sheet) const noexcept;
+    void ApplyWindComponentSheet(uint32_t Id,const EditorSheet& Sheet) noexcept;
+    void BuildWindBinding(CelestialEntity Entity,EditorSheet& Sheet) const noexcept;
+    void ApplyWindBinding(CelestialEntity Entity,const EditorSheet& Sheet) noexcept;
     CloudLayerSettings   Cloud{};
     LocalVolumeSettings  LocalCloud{};
     LocalVolumeSettings  LocalFog{};
@@ -279,7 +295,7 @@ private:
     void BuildSunSheet(EditorSheet& Sheet) const noexcept;
     void BuildAtmosphereSkySheet(EditorSheet& Sheet) const noexcept;
     void BuildFlareSheet(EditorSheet& Sheet) const noexcept;
-    void BuildWindSheet(EditorSheet& Sheet) const noexcept;
+    void BuildWindSheet(EditorSheet& Sheet,const WindSettings& SourceWind) const noexcept;
     void BuildPrecipitationSheet(EditorSheet& Sheet) const noexcept;
     void BuildPrecipitationBehaviour(EditorSheet& Sheet) const noexcept;
     void BuildRainbowSheet(EditorSheet& Sheet) const noexcept;

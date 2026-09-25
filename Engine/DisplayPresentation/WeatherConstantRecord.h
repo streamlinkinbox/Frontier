@@ -4,15 +4,15 @@
 #include <cstddef>
 
 namespace Frontier {
-// Appended to binding 24; 19 std140 vec4 rows. No new descriptor binding.
+// Appended to binding 24; 21 std140 vec4 rows. No new descriptor binding.
 // 0..3 cloud, 4..8 local cloud, 9..13 local fog, 14..16 analytic fog,
 // Row 8 yzw also holds the per-frame sky ambient probe (set by the sequence).
-// 17 budgets/active, 18 wind speed/bearing/shear/veer. All coordinates Z-up.
-struct WeatherConstantRecord { float Rows[19][4]{}; };
-static_assert(sizeof(WeatherConstantRecord)==304);
+// 17 budgets/active, 18..20 resolved layer/local-cloud/local-fog wind speed/bearing/shear/veer. All coordinates Z-up.
+struct WeatherConstantRecord { float Rows[21][4]{}; };
+static_assert(sizeof(WeatherConstantRecord)==336);
 inline WeatherConstantRecord PackWeatherConstants(const CloudLayerSettings& C,
     const LocalVolumeSettings& L,const LocalVolumeSettings& F,const FogSettings& Fog,
-    const WindSettings& Wind,const VolumetricBudget& Budget,float Time) noexcept {
+    const WindSettings& Wind,const VolumetricBudget& Budget,float Time,const WindSettings* MediaWinds=nullptr) noexcept {
     WeatherConstantRecord R;auto& W=R.Rows;
     if(C.Enabled){
         W[0][0]=C.Base;W[0][1]=C.Thickness;W[0][2]=C.Coverage;W[0][3]=C.Density;
@@ -31,8 +31,11 @@ inline WeatherConstantRecord PackWeatherConstants(const CloudLayerSettings& C,
     const bool Volumes=C.Enabled||L.Enabled||F.Enabled;
     if(Volumes){W[17][0]=float(std::clamp(Budget.CloudSteps,1u,128u));W[17][1]=float(std::clamp(Budget.LocalSteps,1u,128u));W[17][2]=float(std::clamp(Budget.LightTaps,1u,16u));}
     W[17][3]=(Volumes||Fog.HeightEnabled||Fog.AerialEnabled)?1.f:0.f;
-    const bool Moving=(C.Enabled&&C.FollowWind)||(L.Enabled&&L.FollowWind)||(F.Enabled&&F.FollowWind);
-    if(Moving&&Wind.Speed!=0){W[3][0]=Time;W[18][0]=Wind.Speed;W[18][1]=Wind.Bearing;W[18][2]=Wind.Shear;W[18][3]=Wind.Veer;}
+    const bool Follow[3]={C.Enabled&&C.FollowWind,L.Enabled&&L.FollowWind,F.Enabled&&F.FollowWind};
+    bool Moving=false;
+    for(int I=0;I<3;++I){const auto& Source=MediaWinds?MediaWinds[I]:Wind;
+        if(Follow[I]&&Source.Speed!=0){Moving=true;W[18+I][0]=Source.Speed;W[18+I][1]=Source.Bearing;W[18+I][2]=Source.Shear;W[18+I][3]=Source.Veer;}}
+    if(Moving)W[3][0]=Time;
     return R;
 }
 }

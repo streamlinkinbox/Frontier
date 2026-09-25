@@ -1,5 +1,7 @@
 # Cloud/fog GPU viewport repair
 
+> Historical repair record for `0eb8a0b`. The later [outliner/wind component change](OutlinerWindBindings.md) expands Weather to **21 rows / 336 bytes** and PostConstants to **544 bytes**. The 19-row/512-byte validation results below and in `WeatherEvidence` describe the earlier revision.
+
 The missing **view-ray cloud/fog rendering** identified in [the audit](CloudFogViewportAudit.md) is now implemented. This is production renderer code, not an outliner-only change or a baked sky image.
 
 ## What changed

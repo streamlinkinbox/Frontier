@@ -18,7 +18,9 @@ struct EditorInspectorSequence {
   return true;
  }
  void Synchronize() noexcept {
+  Celestial.SynchronizeWindRows(Rows,Count,kMaxEditorInstances);
   for(uint32_t I=0;I<Count;++I){const auto Key=Rows[I].InspectorKey;
+   if((Key>>32)==4&&uint32_t(Key)>=1&&uint32_t(Key)<=5)Celestial.WindComponents[uint32_t(Key)-1].Shown=Effective(I);
    if(Key==0x300000000ull)Celestial.Enabled=Effective(I);
    if((Key>>32)==2&&uint32_t(Key)>0&&uint32_t(Key)<=kCelestialEntityCount){
     const auto E=static_cast<CelestialEntity>(uint32_t(Key)-1);
@@ -38,11 +40,17 @@ struct EditorInspectorSequence {
   const auto Entity=static_cast<CelestialEntity>(uint32_t(Key)-1);
   if(!Commit){
    Synchronize();Tint=nullptr;
-   if(Environment)Celestial.BuildSheet(Entity,Sheet);
+   if(Pick>=Count||Rows[Pick].InspectorKey!=Key){
+    Pick=0;while(Pick<Count&&Rows[Pick].InspectorKey!=Key)++Pick;
+    if(Pick==Count)return nullptr;
+   }
+   if((Key>>32)==4)Celestial.BuildWindComponentSheet(uint32_t(Key),Sheet);
+   else if(Environment)Celestial.BuildSheet(Entity,Sheet);
    else Tint=Feed.BuildSheet(Pick,Rows,Count,&Sheet,Camera,Level,Live);
    Sheet.InspectorKey=Key;if(auto* P=StarSwitch())StarBefore=P->On;
   }else if(Sheet.InspectorKey==Key){
-   if(Environment){
+   if((Key>>32)==4)Celestial.ApplyWindComponentSheet(uint32_t(Key),Sheet);
+   else if(Environment){
     if(Entity==CelestialEntity::Stars)if(auto* P=StarSwitch();P&&P->On!=StarBefore)Rows[Pick].Visible=P->On;
     Celestial.ApplySheet(Entity,Sheet);
    }else if((Key>>32)==1){

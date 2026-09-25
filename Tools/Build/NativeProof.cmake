@@ -82,3 +82,6 @@ add_test(NAME BootstrapSafety COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DI
 add_test(NAME NativeBillboards COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Build/RunNativeProof.py"
     $<TARGET_FILE:FrontierNativeProof> "${CMAKE_BINARY_DIR}/evidence")
 set_tests_properties(NativeBillboards PROPERTIES TIMEOUT 900)
+
+add_test(NAME NativeWindBindings COMMAND FrontierNativeProof --wind-bindings)
+set_tests_properties(NativeWindBindings PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")

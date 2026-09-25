@@ -708,7 +708,7 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                               Celestial_.LocalFog, Celestial_.Wind,
                                                               Celestial_.CloudBudget, Eye, Dir, CloudMaxDist,
                                                               Celestial_.Light.Direction, CloudSunRad, Out,
-                                                              Celestial_.CloudTime);
+                                                              Celestial_.CloudTime, Celestial_.OverrideMediaWinds?Celestial_.MediaWinds:nullptr);
             for (int C = 0; C < 3; ++C) Out[C] = Out[C] * V.Transmittance + V.Scatter[C];
             CloudT = V.Transmittance;
         }
@@ -850,7 +850,7 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                                Celestial_.LocalFog, Celestial_.Wind,
                                                                Celestial_.CloudBudget, Eye, Zenith, 1e30f,
                                                                Celestial_.Light.Direction, CloudSunRad, ProbeSky,
-                                                               Celestial_.CloudTime);
+                                                               Celestial_.CloudTime, Celestial_.OverrideMediaWinds?Celestial_.MediaWinds:nullptr);
             for (int C = 0; C < 3; ++C) ProbeSky[C] = ProbeSky[C] * Pv.Transmittance + Pv.Scatter[C];
         }
         for (int C = 0; C < 3; ++C) SkyAmbient[C] = ProbeSky[C] * 0.5f;
@@ -1015,7 +1015,7 @@ void VisibilityRaster::Shade(const SceneStructure& Level, const float Eye[3], co
                                                                        Celestial_.LocalFog, Celestial_.Wind,
                                                                        Celestial_.CloudBudget, Eye, Hd, Hl,
                                                                        Celestial_.Light.Direction, CloudSunRad,
-                                                                       SkyAmbient, Celestial_.CloudTime);
+                                                                       SkyAmbient, Celestial_.CloudTime, Celestial_.OverrideMediaWinds?Celestial_.MediaWinds:nullptr);
                     for (int C = 0; C < 3; ++C) Linear[C] = Linear[C] * Hv.Transmittance + Hv.Scatter[C];
                 }
             }

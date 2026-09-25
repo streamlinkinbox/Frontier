@@ -106,6 +106,8 @@ public:
         LocalVolumeSettings LocalFog{};
         FogSettings Fog{};
         WindSettings        Wind{};
+        WindSettings MediaWinds[3]{}; // resolved layer/local-cloud/local-fog sources
+        bool OverrideMediaWinds=false;
         VolumetricBudget    CloudBudget{};
         float               CloudTime = 0.0f;
         // The planet's own surface, seen when a ray passes below the horizon. Panel: Sky > Ground > Albedo.

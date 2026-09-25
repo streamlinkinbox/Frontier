@@ -1,0 +1,11 @@
+Test project /home/user/Frontier/build/wind-native
+    Start 1: BootstrapSafety
+1/3 Test #1: BootstrapSafety ..................   Passed    0.08 sec
+    Start 2: NativeBillboards
+2/3 Test #2: NativeBillboards .................   Passed  284.59 sec
+    Start 3: NativeWindBindings
+3/3 Test #3: NativeWindBindings ...............   Passed    0.05 sec
+
+100% tests passed out of 3
+
+Total Test time (real) = 284.72 sec

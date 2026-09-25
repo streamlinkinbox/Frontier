@@ -25,7 +25,7 @@ int main(){
  S->Medium.MieStrength+=2;Audit("atmosphere Mie positive control");
  auto Pack=[&](){return S->PackPostRecord(F,R,U,.577f,1.777f,720,1);};
  auto Check=[](bool V,const char* Name){if(!V)throw std::runtime_error(Name);printf("PASS %s\n",Name);};
- Check(sizeof(PostConstantRecord)==512&&offsetof(PostConstantRecord,Weather)==208,"post/weather ABI size and offset");
+ Check(sizeof(PostConstantRecord)==544&&offsetof(PostConstantRecord,Weather)==208,"post/weather ABI size and offset");
  Check(offsetof(PostConstantRecord,Weather)+17*16+3*4==492,"device weather-active byte offset");
  S->LocalCloud.Enabled=S->LocalFog.Enabled=S->Fog.HeightEnabled=S->Fog.AerialEnabled=true;
  for(auto Entity:{CelestialEntity::CloudLayer,CelestialEntity::LocalCloud,CelestialEntity::LocalFog,CelestialEntity::HeightFog,CelestialEntity::AtmosphericFog}){

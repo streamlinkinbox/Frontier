@@ -392,7 +392,7 @@ public:
                                   const VolumetricBudget& Budget,
                                   const float Origin[3], const float Direction[3], float MaximumDistance,
                                   const float SunDirection[3], const float SunRadiance[3],
-                                  const float AmbientRadiance[3], float Time) noexcept
+                                  const float AmbientRadiance[3], float Time, const WindSettings* MediaWinds=nullptr) noexcept
     {
         VolumetricSample Result{};
 
@@ -507,15 +507,15 @@ public:
                 ++Result.StepsTaken;
 
                 float Density = 0.0f;
-                if (M == 0u)      Density = CloudDensity(Cloud, Wind, P, Time);
-                else if (M == 1u) Density = LocalDensity(LocalCloud, Wind, P, Time);
-                else              Density = LocalDensity(LocalFog, Wind, P, Time);
+                if (M == 0u)      Density = CloudDensity(Cloud, MediaWinds?MediaWinds[0]:Wind, P, Time);
+                else if (M == 1u) Density = LocalDensity(LocalCloud, MediaWinds?MediaWinds[1]:Wind, P, Time);
+                else              Density = LocalDensity(LocalFog, MediaWinds?MediaWinds[2]:Wind, P, Time);
                 if (Density <= 1e-5f) continue;
 
                 // Sun visibility, marched once for the combined medium — fog shadows cloud and cloud shadows
                 //    fog for free, whichever loop this step sits in.
                 const float SunTransmittance = ShadowMarch(Cloud, LocalCloud, LocalFog, Wind, P, SunDirection,
-                                                     ActualStep, Budget.LightTaps, Time);
+                                                     ActualStep, Budget.LightTaps, Time, MediaWinds);
                 ++Result.ShadowMarches;
 
                 const float Extinction = Density * ActualStep * 0.01f;
@@ -577,7 +577,7 @@ private:
     static float ShadowMarch(const CloudLayerSettings& Cloud, const LocalVolumeSettings& LocalCloud,
                              const LocalVolumeSettings& LocalFog, const WindSettings& Wind,
                              const float Position[3], const float SunDirection[3],
-                             float StepSize, uint32_t Taps, float Time) noexcept
+                             float StepSize, uint32_t Taps, float Time, const WindSettings* MediaWinds) noexcept
     {
         const uint32_t Count = Taps == 0u ? 1u : Taps;
         float OpticalDepth = 0.0f;
@@ -587,9 +587,9 @@ private:
             const float Q[3] = { Position[0] + SunDirection[0] * Distance,
                                  Position[1] + SunDirection[1] * Distance,
                                  Position[2] + SunDirection[2] * Distance };
-            const float Density = (Cloud.Enabled ? CloudDensity(Cloud, Wind, Q, Time) : 0.0f)
-                                + LocalDensity(LocalCloud, Wind, Q, Time)
-                                + LocalDensity(LocalFog, Wind, Q, Time);
+            const float Density = (Cloud.Enabled ? CloudDensity(Cloud, MediaWinds?MediaWinds[0]:Wind, Q, Time) : 0.0f)
+                                + LocalDensity(LocalCloud, MediaWinds?MediaWinds[1]:Wind, Q, Time)
+                                + LocalDensity(LocalFog, MediaWinds?MediaWinds[2]:Wind, Q, Time);
             OpticalDepth += Density * StepSize * 0.5f * 0.01f;
             // Past opaque, further taps change transmittance by under 2% — invisible, so stop paying for them.
             if (OpticalDepth > 4.0f) break;

@@ -2,11 +2,12 @@
 #define FRONTIER_WEATHER_MEDIA
 // Live camera-ray media. WeatherConstantRecord supplies binding-24 rows.
 // Density matches VolumetricMedia; overlapping media share extinction/source terms.
-vec2 WeatherDrift(float z, float factor)
+vec2 WeatherDrift(int medium, float z, float factor)
 {
     float km=max(z,0.0)*.001;
-    float a=radians(Weather[18].y+Weather[18].w*km);
-    return vec2(sin(a),cos(a))*Weather[18].x*(1.0+Weather[18].z*km)*(Weather[3].x*factor);
+    vec4 wind=Weather[18+medium];
+    float a=radians(wind.y+wind.w*km);
+    return vec2(sin(a),cos(a))*wind.x*(1.0+wind.z*km)*(Weather[3].x*factor);
 }
 float WeatherDensity(int medium, vec3 p)
 {
@@ -14,14 +15,14 @@ float WeatherDensity(int medium, vec3 p)
         if(Weather[3].w==0.0)return 0.0;
         float base,top;
         if(!CloudShadowExtent(Weather[0].x,Weather[0].y,Weather[1].z,base,top)||p.z<base||p.z>top)return 0.0;
-        vec2 drift=Weather[3].y>0.0?WeatherDrift(p.z,.8):vec2(0);
+        vec2 drift=Weather[3].y>0.0?WeatherDrift(0,p.z,.8):vec2(0);
         return max(0.0,CloudShadowDensity(uint(Weather[1].w),base,top,Weather[0].z,Weather[0].w,Weather[1].x,Weather[1].y,drift.x,drift.y,p));
     }
     int b=medium==1?4:9;
     if(Weather[b].w==0.0)return 0.0;
     float r=length((p-Weather[b].xyz)/max(Weather[b+1].xyz,vec3(.001)));
     if(r>=1.0)return 0.0;
-    vec2 drift=Weather[b+4].x>0.0?WeatherDrift(p.z,.6):vec2(0);
+    vec2 drift=Weather[b+4].x>0.0?WeatherDrift(medium,p.z,.6):vec2(0);
     vec3 s=(p+vec3(drift,0))/max(Weather[b+1].w,1.0);
     float shape=(CloudShadowNoise(s.x,s.y,s.z)*.5+CloudShadowNoise(s.x*2.02+3.1,s.y*2.02+1.7,s.z*2.02+9.2)*.25)/.75;
     float threshold=1.0-clamp(Weather[b+2].y,0.0,1.0);

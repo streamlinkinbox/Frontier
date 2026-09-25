@@ -372,6 +372,10 @@ void CelestialSequence::Tick(float DeltaSeconds, const float Camera[3], float Gr
     Wind.GustPhase += DeltaSeconds * 0.35f;
     if (Wind.GustPhase > 6.28318531f * 1024.0f) Wind.GustPhase -= 6.28318531f * 1024.0f;
 
+    for(auto& Component:WindComponents)if(Component.Present){
+        Component.Settings.GustPhase+=DeltaSeconds*.35f;
+        if(Component.Settings.GustPhase>6.28318531f*1024.f)Component.Settings.GustPhase-=6.28318531f*1024.f;
+    }
     // ④ Precipitation last: its emitter reads the cloud layer, which the wind has just moved.
     const bool Falling = Enabled && Precip.Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)];
     PrecipitationSettings Active = Precip;
@@ -451,6 +455,10 @@ void CelestialSequence::ApplyTo(VisibilityRaster& Raster, const CelestialBudget&
     if(!Shown[static_cast<uint32_t>(CelestialEntity::Wind)])Settings.Wind.Speed=0;
     Settings.CloudBudget = Limits.Volumetrics;
     Settings.CloudTime = static_cast<float>(WeatherSeconds);
+    Settings.OverrideMediaWinds=true;
+    Settings.MediaWinds[0]=EffectiveWind(CelestialEntity::CloudLayer);
+    Settings.MediaWinds[1]=EffectiveWind(CelestialEntity::LocalCloud);
+    Settings.MediaWinds[2]=EffectiveWind(CelestialEntity::LocalFog);
 
     Raster.AssignCelestial(Settings);
 }
@@ -754,7 +762,8 @@ PostConstantRecord CelestialSequence::PackPostRecord(const float CameraForward[3
     Analytic.HeightEnabled=Enabled&&Fog.HeightEnabled&&Shown[uint32_t(CelestialEntity::HeightFog)];
     Analytic.AerialEnabled=Enabled&&Fog.AerialEnabled&&Shown[uint32_t(CelestialEntity::AtmosphericFog)];
     if(!Shown[uint32_t(CelestialEntity::Wind)])Flow.Speed=0;
-    Record.Weather=PackWeatherConstants(ActiveCloud,ActiveLocal,ActiveFog,Analytic,Flow,Budget.Volumetrics,float(WeatherSeconds));
+    const WindSettings MediaWinds[3]={EffectiveWind(CelestialEntity::CloudLayer),EffectiveWind(CelestialEntity::LocalCloud),EffectiveWind(CelestialEntity::LocalFog)};
+    Record.Weather=PackWeatherConstants(ActiveCloud,ActiveLocal,ActiveFog,Analytic,Flow,Budget.Volumetrics,float(WeatherSeconds),MediaWinds);
     if(Record.Weather.Rows[17][3]>0){
         AtmosphereLight Effective=Light;
         for(int C=0;C<3;++C){Effective.Direction[C]=Solved.Sun.Direction[C];Effective.Colour[C]*=SkyTint[C];}
@@ -1035,12 +1044,13 @@ void CelestialSequence::BuildSheet(CelestialEntity Entity, EditorSheet& Sheet) c
     else if (Entity == CelestialEntity::Atmosphere || Entity == CelestialEntity::Sky) BuildAtmosphereSkySheet(Sheet);
     else if (Entity == CelestialEntity::Moons) BuildMoonSheet(Sheet);
     else if (Entity == CelestialEntity::Stars) BuildStarsSheet(Sheet);
-    else if(Entity==CelestialEntity::Wind)BuildWindSheet(Sheet);
+    else if(Entity==CelestialEntity::Wind)BuildWindSheet(Sheet,Wind);
     else if(Entity==CelestialEntity::Precipitation)BuildPrecipitationSheet(Sheet);
     else if(Entity==CelestialEntity::Rainbow)BuildRainbowSheet(Sheet);
     else if(Entity==CelestialEntity::HeightFog||Entity==CelestialEntity::AtmosphericFog||Entity==CelestialEntity::LocalFog)BuildFogSheet(Entity,Sheet);
     else if (Entity == CelestialEntity::CloudLayer || Entity == CelestialEntity::LocalCloud) BuildCloudSheet(Entity==CelestialEntity::LocalCloud,Sheet);
     else BuildOtherSheet(Entity, Sheet);
+    if(WindSlot(Entity)>=0)BuildWindBinding(Entity,Sheet);
 }
 
 void CelestialSequence::BuildSunSheet(EditorSheet& Sheet) const noexcept
@@ -1237,27 +1247,27 @@ void CelestialSequence::BuildFogSheet(CelestialEntity Entity,EditorSheet& Sheet)
     }
 }
 
-void CelestialSequence::BuildWindSheet(EditorSheet& Sheet) const noexcept
+void CelestialSequence::BuildWindSheet(EditorSheet& Sheet,const WindSettings& SourceWind) const noexcept
 {
     Sheet.Appearance=EditorSheetAppearance::Wind;
  char Text[48];
     auto& P=Sheet.WeatherPreview;
-    P.Wind[0]=Wind.Speed;P.Wind[1]=Wind.Bearing;P.Wind[2]=Wind.Shear;P.Wind[3]=Wind.Veer;P.Wind[4]=Wind.Gust;P.Wind[5]=Wind.Turbulence;P.Wind[6]=Wind.Steadiness;P.Wind[7]=Wind.GustPhase;
+    P.Wind[0]=SourceWind.Speed;P.Wind[1]=SourceWind.Bearing;P.Wind[2]=SourceWind.Shear;P.Wind[3]=SourceWind.Veer;P.Wind[4]=SourceWind.Gust;P.Wind[5]=SourceWind.Turbulence;P.Wind[6]=SourceWind.Steadiness;P.Wind[7]=SourceWind.GustPhase;
     P.Alive=Rain.Telemetry().Alive;P.SnowDepth=Rain.Field().DeepestMetres();P.AboveWeather=Rain.Telemetry().AboveWeather;P.RainVisibility=WeatherDiagnostics::RainVisibility(Precip,Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)]);
 
         EditorPropertyGroup& Flow = OpenGroup(Sheet, "Flow");
-        Push(Flow, MakeSlider("Speed", 0.0f, 40.0f, Wind.Speed, 1, "m/s"));
-        Push(Flow, MakeSlider("Bearing", 0.0f, 360.0f, Wind.Bearing, 0, "deg"));
-        Push(Flow, MakeSlider("Shear", 0.0f, 2.0f, Wind.Shear, 2, "/km"));
-        Push(Flow, MakeSlider("Veer", -60.0f, 60.0f, Wind.Veer, 0, "d/km"));
+        Push(Flow, MakeSlider("Speed", 0.0f, 40.0f, SourceWind.Speed, 1, "m/s"));
+        Push(Flow, MakeSlider("Bearing", 0.0f, 360.0f, SourceWind.Bearing, 0, "deg"));
+        Push(Flow, MakeSlider("Shear", 0.0f, 2.0f, SourceWind.Shear, 2, "/km"));
+        Push(Flow, MakeSlider("Veer", -60.0f, 60.0f, SourceWind.Veer, 0, "d/km"));
 
         EditorPropertyGroup& Gust = OpenGroup(Sheet, "Gust");
-        Push(Gust, MakeSlider("Gust", 0.0f, 1.0f, Wind.Gust, 2, ""));
-        Push(Gust, MakeSlider("Turbulence", 0.0f, 1.0f, Wind.Turbulence, 2, ""));
-        Push(Gust, MakeSlider("Steadiness", 0.0f, 1.0f, Wind.Steadiness, 2, ""));
+        Push(Gust, MakeSlider("Gust", 0.0f, 1.0f, SourceWind.Gust, 2, ""));
+        Push(Gust, MakeSlider("Turbulence", 0.0f, 1.0f, SourceWind.Turbulence, 2, ""));
+        Push(Gust, MakeSlider("Steadiness", 0.0f, 1.0f, SourceWind.Steadiness, 2, ""));
 
         EditorPropertyGroup& Live = OpenGroup(Sheet, "Beaufort");
-        const uint32_t Force = WindField::BeaufortForce(Wind.Speed);
+        const uint32_t Force = WindField::BeaufortForce(SourceWind.Speed);
         std::snprintf(Text, sizeof(Text), "%u %s", Force, WindField::BeaufortName(Force));
         Push(Live, MakeReadout("Force", Text));
 }
@@ -1322,6 +1332,7 @@ void CelestialSequence::BuildOtherSheet(CelestialEntity, EditorSheet&) const noe
 
 void CelestialSequence::ApplySheet(CelestialEntity Entity, const EditorSheet& Sheet) noexcept
 {
+    if(WindSlot(Entity)>=0)ApplyWindBinding(Entity,Sheet);
     switch (Entity)
     {
     case CelestialEntity::Atmosphere:
@@ -1749,4 +1760,103 @@ void Frontier::ProjectZero::CelestialSequence::BuildMoonSheet(EditorSheet& Sheet
 
  for(uint32_t I=0;I<kMoonDrawCount;++I)BuildMoonSlot(Sheet,I);
  auto& Orientation=OpenGroup(Sheet,"Orientation");char Label[28];for(uint32_t I=0;I<kMoonDrawCount;++I){MoonPropLabel(I,"Roll",Label,sizeof(Label));Push(Orientation,MakeSlider(Label,0,360,MoonSlots[I].Roll,1,"deg"));MoonPropLabel(I,"Pitch",Label,sizeof(Label));Push(Orientation,MakeSlider(Label,-180,180,MoonSlots[I].Pitch,1,"deg"));}
+}
+
+namespace Frontier::ProjectZero {
+namespace {
+constexpr CelestialEntity WindOwners[5]={CelestialEntity::CloudLayer,CelestialEntity::LocalCloud,
+    CelestialEntity::LocalFog,CelestialEntity::HeightFog,CelestialEntity::AtmosphericFog};
+constexpr const char* WindNames[6]={"Global wind","Cloud wind","Local cloud wind","Local fog wind","Height fog wind","Aerial fog wind"};
+}
+int CelestialSequence::WindSlot(CelestialEntity Entity) noexcept {
+    for(int I=0;I<5;++I)if(WindOwners[I]==Entity)return I;return -1;
+}
+CelestialEntity CelestialSequence::WindOwner(uint32_t Id) noexcept {return Id>=1&&Id<=5?WindOwners[Id-1]:CelestialEntity::Count;}
+void CelestialSequence::SetOwnedWind(CelestialEntity Owner,bool Present) noexcept {
+    int Slot=WindSlot(Owner);if(Slot<0)return;auto& Component=WindComponents[Slot];
+    if(Present&&!Component.Present){Component.Settings=Wind;Component.Shown=true;Component.Present=true;WindSources[Slot]=uint32_t(Slot+1);}
+    if(!Present){Component.Present=false;for(auto& Ref:WindSources)if(Ref==uint32_t(Slot+1))Ref=0;}
+}
+bool CelestialSequence::BindWind(CelestialEntity Consumer,uint32_t Id) noexcept {
+    int Slot=WindSlot(Consumer);if(Slot<0||Id>5||(Id&&!WindComponents[Id-1].Present))return false;
+    WindSources[Slot]=Id;return true;
+}
+const WindSettings* CelestialSequence::ResolveWind(CelestialEntity Consumer) const noexcept {
+    int Slot=WindSlot(Consumer);uint32_t Id=Slot<0?0:WindSources[Slot];
+    return Id>=1&&Id<=5&&WindComponents[Id-1].Present?&WindComponents[Id-1].Settings:&Wind;
+}
+WindSettings CelestialSequence::EffectiveWind(CelestialEntity Consumer) const noexcept {
+    const auto* Source=ResolveWind(Consumer);WindSettings Result=*Source;
+    bool Visible=Source==&Wind?Shown[uint32_t(CelestialEntity::Wind)]:true;
+    for(const auto& Component:WindComponents)if(Source==&Component.Settings)Visible=Component.Shown;
+    if(!Enabled||!Visible)Result.Speed=0;return Result;
+}
+void CelestialSequence::BuildWindBinding(CelestialEntity Entity,EditorSheet& Sheet) const noexcept {
+    const int Slot=WindSlot(Entity);if(Slot<0)return;
+    auto& Group=OpenGroup(Sheet,"Wind source");
+    Push(Group,MakeSwitch("Own Wind",WindComponents[Slot].Present));
+    EditorProperty P=MakeSelect("Wind Source",WindNames,1,0);
+    P.OptionValues[0]=0;
+    for(uint32_t Id=1;Id<=5;++Id)if(WindComponents[Id-1].Present){
+        const uint32_t I=P.OptionCount++;P.OptionValues[I]=Id;
+        std::snprintf(P.Options[I],sizeof(P.Options[I]),"%s",WindNames[Id]);
+        if(WindSources[Slot]==Id)P.Picked=I;
+    }
+    Push(Group,P);
+}
+void CelestialSequence::ApplyWindBinding(CelestialEntity Entity,const EditorSheet& Sheet) noexcept {
+    int Slot=WindSlot(Entity);if(Slot<0)return;
+    const bool Was=WindComponents[Slot].Present,Want=ReadSwitch(Sheet,"Own Wind",Was);
+    uint32_t Selected=WindSources[Slot];
+    if(const auto* P=Find(Sheet,"Wind Source");P&&P->Picked<P->OptionCount&&P->Picked<kMaxEditorOptions)Selected=P->OptionValues[P->Picked];
+    SetOwnedWind(Entity,Want);
+    // Creating an owned wind selects it. Otherwise the explicit reference wins.
+    if(!(Want&&!Was)&&!BindWind(Entity,Selected))WindSources[Slot]=0;
+}
+void CelestialSequence::BuildWindComponentSheet(uint32_t Id,EditorSheet& Sheet) const noexcept {
+    BuildSheet(CelestialEntity::Wind,Sheet);
+    if(Id<1||Id>5||!WindComponents[Id-1].Present)return;
+    Sheet.GroupCount=0;for(auto& G:Sheet.Groups)G.PropertyCount=0;
+    BuildWindSheet(Sheet,WindComponents[Id-1].Settings);
+}
+void CelestialSequence::ApplyWindComponentSheet(uint32_t Id,const EditorSheet& Sheet) noexcept {
+    if(Id<1||Id>5||!WindComponents[Id-1].Present)return;
+    auto& V=WindComponents[Id-1].Settings;
+    auto Safe=[&](const char* N,float Old,float Lo,float Hi){float Value=ReadSlider(Sheet,N,Old);return std::isfinite(Value)?std::clamp(Value,Lo,Hi):Old;};
+    V.Speed=Safe("Speed",V.Speed,0,40);V.Bearing=Safe("Bearing",V.Bearing,0,360);
+    V.Shear=Safe("Shear",V.Shear,0,2);V.Veer=Safe("Veer",V.Veer,-60,60);
+    V.Gust=Safe("Gust",V.Gust,0,1);V.Turbulence=Safe("Turbulence",V.Turbulence,0,1);V.Steadiness=Safe("Steadiness",V.Steadiness,0,1);
+}
+void CelestialSequence::SynchronizeWindRows(EditorInstance* Rows,uint32_t& Count,uint32_t Capacity) noexcept {
+    if(!Rows)return;
+    for(uint32_t Id=1;Id<=5;++Id)if(WindComponents[Id-1].Present){
+        const uint64_t OwnerKey=0x200000000ull+uint32_t(WindOwner(Id))+1;
+        bool Found=false;for(uint32_t I=0;I<Count;++I)if(Rows[I].InspectorKey==OwnerKey){Found=true;break;}
+        if(!Found)SetOwnedWind(WindOwner(Id),false);
+    }
+    // Components cannot be reparented independently. Remove only the owned leaf,
+    // never rebuild the roster (that would lose user names, order and collapse state).
+    for(uint32_t I=0;I<Count;){uint64_t Key=Rows[I].InspectorKey;uint32_t Id=uint32_t(Key);
+        if((Key>>32)==4&&(Id<1||Id>5||!WindComponents[Id-1].Present)){
+            for(uint32_t J=I+1;J<Count;++J)Rows[J-1]=Rows[J];--Count;
+        }else ++I;
+    }
+    for(uint32_t Id=1;Id<=5;++Id){if(!WindComponents[Id-1].Present)continue;
+        uint32_t Owner=Count,Child=Count;uint64_t OwnerKey=0x200000000ull+uint32_t(WindOwner(Id))+1;
+        for(uint32_t I=0;I<Count;++I){if(Rows[I].InspectorKey==OwnerKey)Owner=I;if(Rows[I].InspectorKey==0x400000000ull+Id)Child=I;}
+        if(Child<Count){std::snprintf(Rows[Child].Meta,sizeof(Rows[Child].Meta),"%.1f m/s",double(WindComponents[Id-1].Settings.Speed));continue;}
+        if(Owner==Count||Count>=Capacity){SetOwnedWind(WindOwner(Id),false);continue;}
+        uint32_t At=Owner+1;while(At<Count&&Rows[At].Depth>Rows[Owner].Depth)++At;
+        for(uint32_t I=Count;I>At;--I)Rows[I]=Rows[I-1];++Count;
+        auto& Row=Rows[At];Row=EditorInstance{};Row.InspectorKey=0x400000000ull+Id;
+        Row.Depth=Rows[Owner].Depth+1;Row.Category=EditorInstanceCategory::Geometry;Row.Component=true;
+        Row.Artwork=IconSymbol::Wind;Row.Glyph=EditorGlyph::Wind;Row.Narrowing=EditorNarrowing::Sky;
+        Row.Visible=WindComponents[Id-1].Shown;std::snprintf(Row.Label,sizeof(Row.Label),"Wind");
+        std::snprintf(Row.Tag,sizeof(Row.Tag),"Comp");CopyTint(Row.Tint,kTintWind);
+        Rows[Owner].Shut=false;
+    }
+    for(uint32_t I=0;I<Count;++I){Rows[I].KidCount=0;
+        for(uint32_t J=I+1;J<Count&&Rows[J].Depth>Rows[I].Depth;++J)if(Rows[J].Depth==Rows[I].Depth+1)++Rows[I].KidCount;
+    }
+}
 }

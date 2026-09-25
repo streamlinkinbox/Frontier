@@ -801,6 +801,7 @@ uint32_t OutlinerPanel::QueryPickedAt(uint32_t Slot) const noexcept
 
 void OutlinerPanel::PickInstance(uint32_t Index) noexcept
 {
+    ExplicitPick_=true;
     Picked_[0]   = Index;
     PickedCount_ = 1u;
     Anchor_      = Index;
@@ -893,7 +894,7 @@ void OutlinerPanel::HandleRowClick(uint32_t Index, uint32_t InstanceCount) noexc
 bool OutlinerPanel::MoveRun(EditorInstance* Instances, uint32_t InstanceCount, uint32_t Lifted, uint32_t Target,
                             bool Before) noexcept
 {
-    if (Lifted >= InstanceCount || Instances[Lifted].Pinned)
+    if (Lifted >= InstanceCount || Instances[Lifted].Pinned || Instances[Lifted].Component)
     {
         return false;
     }
@@ -905,7 +906,7 @@ bool OutlinerPanel::MoveRun(EditorInstance* Instances, uint32_t InstanceCount, u
     uint32_t Seat     = InstanceCount;
     if (Target != kNoEditorInstance)
     {
-        if (Target >= InstanceCount || (Target >= Lifted && Target < LiftedEnd))
+        if (Target >= InstanceCount || Instances[Target].Component || (Target >= Lifted && Target < LiftedEnd))
         {
             return false;
         }
@@ -1049,15 +1050,23 @@ void OutlinerPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
         InstanceCount = kMaxEditorInstances;
     }
 
-    // The feed's opening pose, taken the first time a row is seen; after that the pose is the user's.
-    for (uint32_t i = 0u; i < InstanceCount; ++i)
-    {
-        if (!PoseSeated_[i])
-        {
-            PoseSeated_[i] = true;
-            Shut_[i]       = Instances[i].Shut;
-        }
+    // Inserted/deleted components must not shift selection onto a different entity.
+    if(RosterCount_&&!ExplicitPick_){
+        auto Relocate=[&](uint32_t Old){
+            if(Old>=RosterCount_)return kNoEditorInstance;
+            const uint64_t Key=RosterKeys_[Old];
+            if(!Key)return Old<InstanceCount?Old:kNoEditorInstance;
+            for(uint32_t I=0;I<InstanceCount;++I)if(Instances[I].InspectorKey==Key)return I;
+            return kNoEditorInstance;
+        };
+        uint32_t Written=0;
+        for(uint32_t I=0;I<PickedCount_;++I){const auto Next=Relocate(Picked_[I]);if(Next!=kNoEditorInstance)Picked_[Written++]=Next;}
+        PickedCount_=Written;Anchor_=Relocate(Anchor_);Revealed_=Relocate(Revealed_);
     }
+    ExplicitPick_=false;
+    // Collapse pose belongs to the row, not its transient array index. It survives
+    // component insertion/removal, reparenting and renames with the row itself.
+    for (uint32_t i=0;i<InstanceCount;++i){Shut_[i]=Instances[i].Shut;}
 
     // The page's keys: Tab compacts (outside a text field), Ctrl+Shift+F lands in the search.
     ImGuiIO& IO = ImGui::GetIO();
@@ -1084,6 +1093,8 @@ void OutlinerPanel::Record(EditorInstance* Instances, uint32_t InstanceCount) no
     }
     (void)RecordOutline(Instances, InstanceCount);
     RecordFooter();
+    for(uint32_t i=0;i<InstanceCount;++i){Instances[i].Shut=Shut_[i];RosterKeys_[i]=Instances[i].InspectorKey;}
+    RosterCount_=InstanceCount;
     ImGui::End();
 }
 
@@ -1571,8 +1582,12 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
     const ImVec2 Min(Origin.x + kTreePad, Origin.y);
     const ImVec2 Max(Origin.x + Width - kTreePad, Origin.y + RowH);
     ImGui::PushID(static_cast<int>(Index));
-    ImGui::SetCursorScreenPos(Min);
-    ImGui::InvisibleButton("##row", ImVec2(Max.x - Min.x, RowH), ImGuiButtonFlags_MouseButtonLeft);
+    // Keep the row's hit target out of the chevron/eye columns. A full-width
+    // InvisibleButton consumed their press before the small controls could see it.
+    const float HitLeft=Min.x+8.0f+float(Row.Depth)*13.0f+kChevBox+kRowGap;
+    const float HitRight=Max.x-(Row.Pinned?0.0f:kEyeBox+6.0f);
+    ImGui::SetCursorScreenPos(ImVec2(HitLeft,Min.y));
+    ImGui::InvisibleButton("##row", ImVec2(std::max(1.0f,HitRight-HitLeft), RowH), ImGuiButtonFlags_MouseButtonLeft);
     const bool Hot     = ImGui::IsItemHovered();
     const bool Picked  = IsPicked(Index);
     // A fresh pick scrolls into view once, the way the page's select() does; after that the scroll is the user's.
@@ -1587,7 +1602,7 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
     const ImU32 Accent = RowTint(Row);
 
     // Drag: the page's HTML5 drag. A press that travels starts one; pinned folders never do.
-    if (ImGui::IsItemActive() && !Row.Pinned && DragLifted_ == kNoEditorInstance
+    if (ImGui::IsItemActive() && !Row.Pinned && !Row.Component && DragLifted_ == kNoEditorInstance
         && ImGui::IsMouseDragging(0, 4.0f))
     {
         DragLifted_ = Index;

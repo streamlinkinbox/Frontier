@@ -54,7 +54,7 @@ struct PostConstantRecord
 
 };
 
-static_assert(sizeof(PostConstantRecord) == 512u, "post + weather record is 32 std140 rows");
+static_assert(sizeof(PostConstantRecord) == 544u, "post + weather record is 34 std140 rows");
 static_assert(offsetof(PostConstantRecord, Weather) == 208u, "weather starts at row 13");
 static_assert(offsetof(PostConstantRecord, PostStar)    == 0u,   "PostStar at row 0");
 static_assert(offsetof(PostConstantRecord, PostFlare)   == 16u,  "PostFlare at row 1");

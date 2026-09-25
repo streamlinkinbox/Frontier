@@ -1,4 +1,5 @@
 #include "FogInspectorPanel.h"
+#include "WindBindingControls.h"
 #include "ControlPanel.h"
 #include "SunReferenceDraw.h"
 #include "FogModel.h"
@@ -33,6 +34,7 @@ void Update(Profile& P,const Models& M,float Range){const auto& F=M.Fog;const au
 void Axes(Panel& U,float X,float Y,float W,const char* N,const char* Caption){auto& P=*Find(U.Sheet,N);U.Text(X,Y,Caption,11,Muted);ImGui::SetCursorScreenPos(U.At(X,Y+24));ImGui::BeginChild(N,{W,32},ImGuiChildFlags_None,ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);U.Controls.AxisVec3("##axes",P.Axes,1,true);ImGui::EndChild();}
 }
 void RecordFogInspector(ControlPanel& Controls,EditorInstance&,EditorSheet& Sheet){
+ RecordWindBindingControls(Sheet);
  if(!Find(Sheet,"Density")||!Find(Sheet,"Enabled")){ImGui::TextUnformatted("Fog properties unavailable");return;}
  auto* Font=ImGui::GetFont();for(auto* F:ImGui::GetIO().Fonts->Fonts)if(!std::strcmp(F->GetDebugName(),"Sun reference / regular"))Font=F;ImGui::PushFont(Font,14);ImGui::PushID(static_cast<int>(Sheet.Appearance));ImVec2 O=ImGui::GetCursorScreenPos();O.x+=20;O.y+=20;float W=std::max(240.f,ImGui::GetContentRegionAvail().x-40);Panel U{Controls,Sheet,ImGui::GetWindowDrawList(),O,Font};Models M=Read(Sheet);char Text[160];
  U.Text(0,8,"Inspector / Environment",8,Muted);U.Text(0,48,"Fog",25);U.Text(0,83,M.Local?"LOCAL VOLUMETRIC FOG · bounded medium":M.Aerial?"AERIAL PERSPECTIVE · surface-distance fog":"HEIGHT FOG · exponential vertical density",10,Muted);
@@ -51,6 +53,6 @@ void RecordFogInspector(ControlPanel& Controls,EditorInstance&,EditorSheet& Shee
   Axes(U,X2+24,Y2+270,CW-48,"Centre","Centre · world X / Y / Z (m)");Axes(U,X2+24,Y2+343,CW-48,"Half Size","Half extents · X / Y / Z (m)");
  }else if(M.Aerial){for(int C=0;C<3;++C){std::snprintf(Text,sizeof(Text),"%s     %.1f%%",C==0?"RED":C==1?"GREEN":"BLUE",double(T[C]*100));U.Text(X2+24,Y2+76+C*61,Text,22,Colours[C]);}U.Wrap(X2+24,Y2+277,CW-48,"At the selected probe distance. These values come from the same analytic extinction used by the CPU surface renderer.");}
  else{U.Wrap(X2+24,Y2+64,CW-48,"Relative density versus height above world Z = 0");float L=X2+50,R=X2+CW-30,Top=Y2+112,Bottom=Y2+265;U.D->AddLine(U.At(L,Top),U.At(L,Bottom),IM_COL32(130,164,165,100));U.D->AddLine(U.At(L,Bottom),U.At(R,Bottom),IM_COL32(130,164,165,100));for(int I=1;I<=64;++I){float H0=(I-1)*3000.f/64,H1=I*3000.f/64;U.D->AddLine(U.At(L+std::exp(-H0/M.Fog.FalloffHeight)*(R-L),Bottom-H0/3000*(Bottom-Top)),U.At(L+std::exp(-H1/M.Fog.FalloffHeight)*(R-L),Bottom-H1/3000*(Bottom-Top)),IM_COL32(168,209,210,255),1.5f);}U.Text(X2+24,Top-16,"3 km",9,Muted);U.Text(X2+24,Bottom+9,"0 m",9,Muted);U.Text(R-54,Bottom+9,"100%",9,Muted);U.Text(X2+24,Y2+329,"Fog tint · linear RGB",11,Muted);ImGui::SetCursorScreenPos(U.At(X2+24,Y2+353));ImGui::BeginChild("Colour",{CW-48,32},ImGuiChildFlags_None,ImGuiWindowFlags_NoScrollbar);Controls.ColourChip("##fog-colour",Find(Sheet,"Colour")->ColourTint);ImGui::EndChild();}
- float End=Y2+432;U.Card(0,End,W,132,"Neutral-light reference");for(int C=0;C<3;++C)RGB[C]=std::clamp(RGB[C],0.f,1.f);U.D->AddRectFilled(U.At(24,End+67),U.At(70,End+108),Colour(255*RGB[0],255*RGB[1],255*RGB[2]),8);U.Wrap(88,End+67,W-112,"A neutral target through this medium under fixed probe lighting. Not a scene-camera render; changing scattering may change this swatch without changing transmission.");End+=154;U.Wrap(0,End,W,"CPU fog controls. Height and aerial fog now reach the main CPU raster; local fog uses the existing shared volume march. No GPU fog-volume path is claimed.");ImGui::SetCursorScreenPos(U.At(0,End+86));ImGui::Dummy({W,1});ImGui::PopID();ImGui::PopFont();
+ float End=Y2+432;U.Card(0,End,W,132,"Neutral-light reference");for(int C=0;C<3;++C)RGB[C]=std::clamp(RGB[C],0.f,1.f);U.D->AddRectFilled(U.At(24,End+67),U.At(70,End+108),Colour(255*RGB[0],255*RGB[1],255*RGB[2]),8);U.Wrap(88,End+67,W-112,"A neutral target through this medium under fixed probe lighting. Not a scene-camera render; changing scattering may change this swatch without changing transmission.");End+=154;U.Wrap(0,End,W,"Live CPU/GPU fog controls. Local fog uses its selected wind source; analytic fog has no horizontal noise to advect.");ImGui::SetCursorScreenPos(U.At(0,End+86));ImGui::Dummy({W,1});ImGui::PopID();ImGui::PopFont();
 }
 }

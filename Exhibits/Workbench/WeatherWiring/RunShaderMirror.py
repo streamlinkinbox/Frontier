@@ -28,7 +28,7 @@ header='''#define GLM_FORCE_SWIZZLE
 #include "FogModel.h"
 using namespace glm;
 using uint=unsigned;
-vec4 Weather[19],SkySunRadiance(1,1,1,1),SkySunDirection(0,0,1,90),SkyRayleigh(0.0000058f,0.0000135f,0.0000331f,8000),SkyMie(0.000021f,1200,0,0);
+vec4 Weather[21],SkySunRadiance(1,1,1,1),SkySunDirection(0,0,1,90),SkyRayleigh(0.0000058f,0.0000135f,0.0000331f,8000),SkyMie(0.000021f,1200,0,0);
 '''
 (b/'WeatherShaderMirror.cpp').write_text(header+adapt(cloud)+adapt(weather)+(R/'Exhibits/Workbench/WeatherWiring/ShaderMirrorTests.inc').read_text())
 cmd=['g++','-std=c++20','-O1' if a.sanitize else '-O2','-I'+str(a.glm.resolve()),'-I'+str(R/'Engine/DisplayPresentation'),str(b/'WeatherShaderMirror.cpp'),'-o',str(b/'WeatherShaderMirror')]
