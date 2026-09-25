@@ -1215,6 +1215,32 @@ holes, lower/side faces, tilted/oblique/freeform/mixed supports, invalid thickne
 topology, healing, or general shell/thicken behavior. The bounded plan is
 `docs/PLAN_Phase48_ConcavePrismShell.md`.
 
+## Phase 49 — orthogonal concave-prism side draft (2026-09-25)
+
+This proof advances the draft family into the non-convex single-loop profile domain as a distinct
+side-wall operation, not another cap offset or shell replay:
+
+- `ConcavePrismDraftVerification` constructs the exact L profile
+  `(-6,-4) -> (6,-4) -> (6,-1) -> (-1,-1) -> (-1,4) -> (-6,4)`, height 6, and drafts its
+  `y = -4` wall by 12 degrees. Source and result retain closed genus-zero `V12/E18/C36/L8/F8`
+  topology.
+- `FaceEditSolver::DraftExtrudedConcavePrism` recognizes six orthogonal cap edges, one reflex turn,
+  two Z levels, and a selected vertical extrusion wall. It moves only the selected high-Z edge by
+  `tan(angle) * height` along the wall normal, then rebuilds six ruled walls and two planar caps.
+- The focused verifier checks the mean-section L-profile volume identity, selected-edge displacement,
+  unchanged opposite profile vertices, reflex-cap recognition, planar/ruled support counts, bounded
+  inward drafting, source immutability, public `Draft` dispatch, and explicit refusal of convex or
+  other-sided profiles, non-orthogonal concavity, cylinders, cap faces, invalid angles, and malformed
+  topology.
+- The durable proof is `Proofs/Phase49_ConcavePrismDraft.png`; 26 checks pass in the focused direct
+  gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+The route remains bounded to the exact six-edge orthogonal concave-prism side-draft domain. It does
+not prove arbitrary concave profiles, convex profiles through the new API, boxes through the new API,
+cap drafts, holes, tilted/oblique/freeform/mixed supports, invalid angles, malformed topology,
+healing, or general draft networks. The bounded plan is
+`docs/PLAN_Phase49_ConcavePrismDraft.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

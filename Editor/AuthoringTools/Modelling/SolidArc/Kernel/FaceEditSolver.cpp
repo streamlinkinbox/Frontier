@@ -1117,6 +1117,135 @@ struct FaceFrame
     return Deliver<BrepBody>::Accept(std::move(Output));
 }
 
+[[nodiscard]] bool ReadConcavePrismDraft(const BrepBody& Source, int Face, std::vector<Vec3>& Bottom,
+                                         std::vector<Vec3>& Top, int& SelectedA, int& SelectedB,
+                                         Vec3& OutwardNormal, double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 12 || Source.Edges.size() != 18 ||
+        Source.Coedges.size() != 36 || Source.Loops.size() != 8 || Source.Faces.size() != 8) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Wall = Source.Faces[Face];
+    if (Wall.Surface.Classification != SurfaceClassification::Extrusion || Wall.Loops.size() != 1) return false;
+    const int WallLoop = Wall.Loops.front();
+    if (WallLoop < 0 || WallLoop >= static_cast<int>(Source.Loops.size()) || Source.Loops[WallLoop].Coedges.size() != 4) return false;
+    Low = Source.Bounds().Low.Z; High = Source.Bounds().High.Z;
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+
+    int UpperCap = -1;
+    for (int I = 0; I < static_cast<int>(Source.Faces.size()); ++I)
+    {
+        const BrepFace& Candidate = Source.Faces[I];
+        if (Candidate.Surface.Classification != SurfaceClassification::Plane || Candidate.Loops.size() != 1) continue;
+        const Vec3 N = Source.FaceNormal(I, 0.5 * (Candidate.Surface.DomainStartU() + Candidate.Surface.DomainEndU()),
+                                         0.5 * (Candidate.Surface.DomainStartV() + Candidate.Surface.DomainEndV())).Normalised();
+        if (N.Dot(Vec3::UnitZ()) >= 1.0 - UnitTolerance)
+        {
+            if (UpperCap >= 0) return false;
+            UpperCap = I;
+        }
+    }
+    if (UpperCap < 0 || UpperCap == Face) return false;
+    if (!ReadExtrudedConcavePrism(Source, UpperCap, Top, Low, High)) return false;
+    Bottom = Top;
+    for (Vec3& P : Bottom) P.Z = Low;
+    OutwardNormal = Source.FaceNormal(Face,
+        0.5 * (Wall.Surface.DomainStartU() + Wall.Surface.DomainEndU()),
+        0.5 * (Wall.Surface.DomainStartV() + Wall.Surface.DomainEndV())).Normalised();
+    OutwardNormal.Z = 0.0;
+    if (OutwardNormal.LengthSquared() <= 0.5) return false;
+    OutwardNormal = OutwardNormal.Normalised();
+
+    std::vector<int> UpperVertices;
+    for (int Coedge : Source.Loops[WallLoop].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepCoedge& C = Source.Coedges[Coedge];
+        if (C.Edge < 0 || C.Edge >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[C.Edge];
+        if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.VertexStart < 0 || E.VertexEnd < 0) return false;
+        const Vec3 A = Source.Vertices[E.VertexStart].Point, B = Source.Vertices[E.VertexEnd].Point;
+        const bool ALow = std::fabs(A.Z - Low) <= ScalarCriteria::GeometricTolerance;
+        const bool BLow = std::fabs(B.Z - Low) <= ScalarCriteria::GeometricTolerance;
+        const bool AHigh = std::fabs(A.Z - High) <= ScalarCriteria::GeometricTolerance;
+        const bool BHigh = std::fabs(B.Z - High) <= ScalarCriteria::GeometricTolerance;
+        if (AHigh && BHigh) { UpperVertices.push_back(E.VertexStart); UpperVertices.push_back(E.VertexEnd); }
+        else if (ALow && BLow) continue;
+        else if (!(ALow && BHigh) && !(AHigh && BLow)) return false;
+    }
+    if (UpperVertices.size() != 2) return false;
+    auto FindIndex = [&](int VertexIndex, const std::vector<Vec3>& Points) {
+        const Vec3 P = Source.Vertices[VertexIndex].Point;
+        for (int I = 0; I < static_cast<int>(Points.size()); ++I)
+            if (Close(P.X, Points[I].X, ScalarCriteria::GeometricTolerance) &&
+                Close(P.Y, Points[I].Y, ScalarCriteria::GeometricTolerance)) return I;
+        return -1;
+    };
+    SelectedA = FindIndex(UpperVertices[0], Bottom);
+    SelectedB = FindIndex(UpperVertices[1], Bottom);
+    if (SelectedA < 0 || SelectedB < 0 || SelectedA == SelectedB) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildConcavePrismDraft(const BrepBody& Source, int Face, double AngleRadians) noexcept
+{
+    std::vector<Vec3> Bottom, Top;
+    int SelectedA = -1, SelectedB = -1;
+    Vec3 OutwardNormal{};
+    double Low = 0.0, High = 0.0;
+    if (!ReadConcavePrismDraft(Source, Face, Bottom, Top, SelectedA, SelectedB, OutwardNormal, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "concave-prism draft requires one vertical wall of an orthogonal L-profile");
+    if (!std::isfinite(AngleRadians) || std::fabs(AngleRadians) < ScalarCriteria::KernelTolerance ||
+        std::fabs(AngleRadians) >= ScalarCriteria::HalfPi - ScalarCriteria::AngularTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft angle must be finite, non-zero, and below 90 degrees");
+    const double Delta = std::tan(AngleRadians) * (High - Low);
+    if (!std::isfinite(Delta) || std::fabs(Delta) <= ScalarCriteria::KernelTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft produces no measurable change");
+    Top[SelectedA] += OutwardNormal * Delta;
+    Top[SelectedB] += OutwardNormal * Delta;
+    double Area2 = 0.0;
+    int PositiveTurns = 0, NegativeTurns = 0;
+    for (size_t I = 0; I < Top.size(); ++I)
+    {
+        const Vec3& A = Top[I], B = Top[(I + 1) % Top.size()], C = Top[(I + 2) % Top.size()];
+        const double DX = B.X - A.X, DY = B.Y - A.Y;
+        if ((std::fabs(DX) <= ScalarCriteria::GeometricTolerance) == (std::fabs(DY) <= ScalarCriteria::GeometricTolerance))
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft lost an orthogonal profile edge");
+        Area2 += A.X * B.Y - B.X * A.Y;
+        const double Cross = DX * (C.Y - B.Y) - DY * (C.X - B.X);
+        if (std::fabs(Cross) <= ScalarCriteria::GeometricTolerance)
+            return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft collapsed a profile corner");
+        if (Cross > 0.0) ++PositiveTurns; else ++NegativeTurns;
+    }
+    if (std::fabs(Area2) <= ScalarCriteria::GeometricTolerance ||
+        std::min(PositiveTurns, NegativeTurns) != 1 || std::max(PositiveTurns, NegativeTurns) != 5)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft inverted or lost its reflex profile");
+
+    std::vector<NurbsSurface> Surfaces;
+    Surfaces.reserve(6);
+    for (size_t I = 0; I < Bottom.size(); ++I)
+    {
+        const size_t J = (I + 1) % Bottom.size();
+        const Deliver<NurbsCurve> Lower = NurbsCurve::Line(Bottom[I], Bottom[J]);
+        const Deliver<NurbsCurve> Upper = NurbsCurve::Line(Top[I], Top[J]);
+        if (!Lower || !Upper) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "concave-prism draft generated a degenerate edge");
+        const Deliver<NurbsSurface> WallSurface = NurbsSurface::Ruled(Lower.Payload, Upper.Payload);
+        if (!WallSurface) return Deliver<BrepBody>::Reject(WallSurface.Denial.Reason, WallSurface.Denial.Detail);
+        Surfaces.push_back(WallSurface.Payload);
+    }
+    Deliver<BrepBody> Sewn = BrepBody::Sew(Surfaces, ScalarCriteria::MergeTolerance, true);
+    if (!Sewn) return Sewn;
+    Sewn.Payload.Orient();
+    const BodyReport Report = Sewn.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Sewn.Payload.Vertices.size() != 12 ||
+        Sewn.Payload.Edges.size() != 18 || Sewn.Payload.Coedges.size() != 36 || Sewn.Payload.Loops.size() != 8 ||
+        Sewn.Payload.Faces.size() != 8)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "concave-prism draft did not retain V12/E18/C36/L8/F8 topology");
+    return Sewn;
+}
+
 [[nodiscard]] bool ReadTriangularPrismDraft(const BrepBody& Source, int Face, std::vector<Vec3>& Bottom,
                                             std::vector<Vec3>& Top, int& SelectedA, int& SelectedB,
                                             Vec3& OutwardNormal, double& Low, double& High) noexcept
@@ -1391,7 +1520,9 @@ Deliver<BrepBody> FaceEditSolver::Draft(const BrepBody& Source, int Face, double
     {
         Deliver<BrepBody> Triangular = DraftExtrudedTriangularPrism(Source, Face, AngleRadians);
         if (Triangular) return Triangular;
-        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "exact draft currently requires a canonical box or bounded triangular-prism side face");
+        Deliver<BrepBody> Concave = DraftExtrudedConcavePrism(Source, Face, AngleRadians);
+        if (Concave) return Concave;
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "exact draft currently requires a canonical box or bounded triangular/concave-prism side face");
     }
     if (!std::isfinite(AngleRadians) || std::fabs(AngleRadians) >= ScalarCriteria::HalfPi - ScalarCriteria::AngularTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "draft angle must be finite and strictly below 90 degrees");
@@ -1488,6 +1619,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetObliqueTriangularPrism(const BrepBody& S
 Deliver<BrepBody> FaceEditSolver::DraftExtrudedTriangularPrism(const BrepBody& Source, int Face, double AngleRadians) noexcept
 {
     return BuildTriangularPrismDraft(Source, Face, AngleRadians);
+}
+
+Deliver<BrepBody> FaceEditSolver::DraftExtrudedConcavePrism(const BrepBody& Source, int Face, double AngleRadians) noexcept
+{
+    return BuildConcavePrismDraft(Source, Face, AngleRadians);
 }
 
 } // namespace Frontier

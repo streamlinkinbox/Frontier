@@ -1894,6 +1894,28 @@ boxes through the new API, holes, lower/side faces, tilted/oblique/freeform/mixe
 healing, or general shell/thicken behavior. Its bounded plan is
 `docs/PLAN_Phase48_ConcavePrismShell.md`.
 
+#### Phase 49: bounded orthogonal concave-prism side draft ✅
+
+The draft family now covers a bounded non-convex planar-profile domain. `FaceEditSolver::DraftExtrudedConcavePrism`
+recognizes an axis-aligned straight prism with the six-edge orthogonal L profile, one selected vertical
+extrusion wall, and exactly one reflex turn. It moves only that wall's high-Z profile edge by
+tan(angle) times the source height along the wall's outward horizontal normal, then rebuilds two planar
+caps and six ruled walls. The public `Draft` dispatcher reaches it only after the canonical-box and
+triangular-prism routes decline.
+
+`ConcavePrismDraftVerification` uses the Phase 47/48 L profile at height 6 and a 12-degree draft on
+the `y = -4` wall. It validates source/result `V12/E18/C36/L8/F8` topology, the mean-section L-profile
+volume identity, exact selected-edge displacement, unchanged opposite profile vertices, reflex-cap
+recognition, planar/ruled supports, bounded inward acceptance, source immutability, public dispatch,
+and convex, other-sided, non-orthogonal, curved, cap, invalid, and malformed refusal boundaries. The
+durable proof is `Proofs/Phase49_ConcavePrismDraft.png`; 26 checks pass in the focused direct gate.
+The verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one six-edge orthogonal concave prism and non-collapsing vertical side
+wall drafts. It does not prove arbitrary concave polygons, convex profiles through the new API, boxes
+through the new API, cap drafts, holes, tilted/oblique/freeform/mixed supports, cylinders, healing,
+or general draft networks. Its bounded plan is `docs/PLAN_Phase49_ConcavePrismDraft.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
