@@ -754,6 +754,14 @@ if (Test-Path $GlfwDll)
     catch { if (-not (Test-Path (Join-Path $BinaryRoot 'glfw3.dll'))) { throw $_ } }
 }
 
+# Ship SVG sources and ThorVG vector variants, never the old offline raster bakes.
+$IconSource = Join-Path $EngineRoot '..\EngineContent\Icons'
+$IconTarget = Join-Path $BinaryRoot 'EngineContent\Icons'
+New-Item -ItemType Directory -Force -Path (Join-Path $IconTarget 'ThorVG') | Out-Null
+Copy-Item (Join-Path $IconSource '*.svg') $IconTarget -Force
+Copy-Item (Join-Path $IconSource 'ThorVG\*.svg') (Join-Path $IconTarget 'ThorVG') -Force
+Copy-Item (Join-Path $IconSource 'ThorVG\manifest.json') (Join-Path $IconTarget 'ThorVG') -Force
+
 # Copy the lowered shaders beside the executable so double-clicking the .exe works
 # (the runtime searches <cwd>\Engine\Shaders first, then <exe dir>\Engine\Shaders and its parents).
 $SpirvTarget = Join-Path $BinaryRoot 'Engine\Shaders'

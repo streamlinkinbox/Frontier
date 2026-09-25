@@ -312,6 +312,14 @@ if(FRONTIER_MISSING_SOURCES)
 endif()
 
 add_executable(Project-Zero ${PROJECT_ZERO_SOURCES})
+# Ship SVG sources + vector compatibility artwork; never offline baked icon pixels.
+file(GLOB FRONTIER_ICON_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/EngineContent/Icons/*.svg")
+add_custom_command(TARGET Project-Zero POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Project-Zero>/EngineContent/Icons"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FRONTIER_ICON_SOURCES} "$<TARGET_FILE_DIR:Project-Zero>/EngineContent/Icons"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/EngineContent/Icons/ThorVG" "$<TARGET_FILE_DIR:Project-Zero>/EngineContent/Icons/ThorVG"
+    COMMENT "Staging ThorVG SVG icons" VERBATIM)
+
 target_compile_definitions(Project-Zero PRIVATE PROJECT_FLUID_EMBEDDED)
 add_dependencies(Project-Zero ReSTIRViewportSpirv)
 set_source_files_properties(Engine/GeometricRaster/TraversalIndex.cpp PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma;-msse4.2")   # tinybvh SIMD build

@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 namespace Frontier {
+// Legacy exhibit/test helper ONLY. IconArt never calls this; native icons use ThorVG SVGs.
 // Build-time browser rasterization of approved local SVGs. Exact source bytes are
 // embedded to reject stale bakes. Never silently strips unsupported SVG filters.
 inline bool LoadApprovedIconBake(const std::filesystem::path& Path,const std::string& Source,IconRaster& Out){

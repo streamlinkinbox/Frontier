@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <cstdio>
 #include <memory>
 
 namespace Frontier {
@@ -56,6 +57,9 @@ struct Presentation {
             Tile.Max = ImVec2(float(X + Size) / Next->Texture.Width, float(Y + Size) / Next->Texture.Height);
             Tile.Result = Raster->Result;
             Tile.Diagnostic = Raster->Diagnostic;
+            if (Raster->Substitute)
+                std::fprintf(stderr, "[Icons] %s: %s (%s)\n", IconArt::Filename(static_cast<IconSymbol>(I)),
+                    IconArt::ResultName(Raster->Result), Raster->Diagnostic.c_str());
         }
         ImGui::RegisterUserTexture(&Next->Texture);
         if (Current) { Current->Texture.WantDestroyNextFrame = true; Retired = std::move(Current); }

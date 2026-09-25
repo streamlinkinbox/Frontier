@@ -1,4 +1,6 @@
-# Sun and Moon outliner artwork
+# Sun and Moon outliner artwork (historical bake experiment)
+
+**Superseded:** the native icon runtime no longer loads these bakes. All registered icons now render SVGs through ThorVG; see [NativeIconRepair.md](NativeIconRepair.md). The implementation and verification below describe the previous experiment only.
 
 Browser reference paths in this document are relative to `Experimental/FrontierEditor/`.
 

@@ -1,5 +1,4 @@
 #include "IconArt.h"
-#include "BakedIconArt.h"
 #include <thorvg.h>
 #include <algorithm>
 #include <cmath>
@@ -9,6 +8,14 @@
 #include <cctype>
 #include <set>
 #include <tuple>
+#include <sstream>
+#include <iomanip>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace Frontier {
 namespace {
@@ -44,6 +51,52 @@ std::string Unsupported(const std::string& Svg) {
     for(const auto& Tag:Found){if(!Message.empty())Message+=", ";Message+=Tag;}
     return Message;
 }
+// Only the default asset root is discovered. Explicit custom roots must fail honestly.
+std::filesystem::path ResolveRoot(const std::filesystem::path& Root) {
+    namespace fs = std::filesystem;
+    std::error_code Error;
+    if (Root != fs::path("EngineContent/Icons") || fs::is_directory(Root, Error))
+        return fs::absolute(Root);
+    fs::path Executable;
+#ifdef _WIN32
+    wchar_t Buffer[32768];
+    const DWORD Length = GetModuleFileNameW(nullptr, Buffer, 32768);
+    if (Length && Length < 32768) Executable = std::wstring(Buffer, Length);
+#elif defined(__linux__)
+    Executable = fs::read_symlink("/proc/self/exe", Error);
+#endif
+    if (!Executable.empty()) {
+        for (auto Parent = Executable.parent_path(); !Parent.empty();) {
+            const auto Candidate = Parent / Root;
+            if (fs::is_regular_file(Candidate / "sun.svg", Error)) return Candidate;
+            const auto Next = Parent.parent_path();
+            if (Next == Parent) break;
+            Parent = Next;
+        }
+    }
+    return fs::absolute(Root);
+}
+std::string SourceMarker(const std::string& Source) {
+    uint64_t Hash = 14695981039346656037ull;
+    for (unsigned char Byte : Source) { Hash ^= Byte; Hash *= 1099511628211ull; }
+    std::ostringstream Text;
+    Text << "<!-- frontier-source-fnv1a64:" << std::hex << std::setfill('0') << std::setw(16) << Hash << " -->";
+    return Text.str();
+}
+// Compatibility files are SVG, not baked pixels. Refuse stale or unsupported variants.
+// This fingerprint is a freshness check for trusted local assets, not authentication.
+bool LoadVectorVariant(const std::filesystem::path& Path, std::string& Source, std::string& Warning) {
+    std::ifstream File(Path, std::ios::binary | std::ios::ate);
+    if (!File) { Warning += "; vector variant missing: " + Path.string(); return false; }
+    if (File.tellg() <= 0 || File.tellg() > 1024*1024) { Warning += "; invalid vector variant size"; return false; }
+    std::string Variant(static_cast<size_t>(File.tellg()), '\0');
+    File.seekg(0); File.read(Variant.data(), Variant.size());
+    if (!File || Variant.rfind(SourceMarker(Source), 0) != 0) { Warning += "; stale/unreadable vector variant"; return false; }
+    if (!Unsupported(Variant).empty()) { Warning += "; vector variant contains unsupported SVG"; return false; }
+    Source = std::move(Variant);
+    Warning = "ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): " + Warning;
+    return true;
+}
 void Substitute(IconRaster& Raster) {
     Raster.Substitute=true;
     Raster.Rgba.assign(size_t(Raster.Width)*Raster.Height*4,0);
@@ -67,7 +120,7 @@ struct IconArt::Details {
     // Original SVG text is read once per symbol, so alternate display scales do not reopen files.
     struct Document { std::string Text, Warning; IconResult Result=IconResult::Ready; };
     std::map<IconSymbol,Document> Documents;
-    Details(std::filesystem::path Path,size_t Budget):Root(std::move(Path)),Limit(Budget),
+    Details(std::filesystem::path Path,size_t Budget):Root(ResolveRoot(Path)),Limit(Budget),
         Initialized(tvg::Initializer::init(0)==tvg::Result::Success){if(!Initialized)tvg::Initializer::term();}
     ~Details(){Completed.clear();Documents.clear();if(Initialized)tvg::Initializer::term();}
 };
@@ -98,17 +151,17 @@ std::shared_ptr<const IconRaster> IconArt::Rasterize(IconSymbol Symbol,float Log
         auto [I,Inserted]=D.Documents.try_emplace(Symbol);auto& Document=I->second;
         if(Inserted){
             std::ifstream File(D.Root/Filename(Symbol),std::ios::binary|std::ios::ate);
-            if(!File){Document.Result=IconResult::Missing;Document.Warning="SVG file could not be opened.";}
+            if(!File){Document.Result=IconResult::Missing;Document.Warning="SVG file could not be opened: "+(D.Root/Filename(Symbol)).string();}
             else if(File.tellg()<=0||File.tellg()>1024*1024){Document.Result=IconResult::DecodeFailure;Document.Warning="SVG must contain 1 to 1048576 bytes.";}
             else {const auto Length=static_cast<size_t>(File.tellg());Document.Text.resize(Length);File.seekg(0);File.read(Document.Text.data(),Length);
                 if(!File){Document.Result=IconResult::DecodeFailure;Document.Warning="SVG read failed.";}
-                else{Document.Warning=Unsupported(Document.Text);if(!Document.Warning.empty())Document.Result=IconResult::Unsupported;}}
+                else{Document.Warning=Unsupported(Document.Text);if(!Document.Warning.empty()) {
+                    Document.Result=LoadVectorVariant(D.Root/"ThorVG"/Filename(Symbol),Document.Text,Document.Warning)
+                        ? IconResult::Ready : IconResult::Unsupported;
+                }}}
         }
         Raster->Result=Document.Result;Raster->Diagnostic=Document.Warning;
-        // Optional browser bake for approved artwork; exact SVG bytes are verified
-        // by the loader. In particular, preserve cloud filters and compact folders.
-        const bool Baked=LoadApprovedIconBake(D.Root/"Baked"/std::filesystem::path(Filename(Symbol)).replace_extension(".rgba"),Document.Text,*Raster);
-        if(!Baked&&(Document.Result==IconResult::Ready||(Document.Result==IconResult::Unsupported&&Policy==IconPolicy::Diagnostic))){
+        if(Document.Result==IconResult::Ready||(Document.Result==IconResult::Unsupported&&Policy==IconPolicy::Diagnostic)){
             std::vector<uint32_t> Packed(size_t(Width)*Height,0);
             std::unique_ptr<tvg::SwCanvas> Canvas(tvg::SwCanvas::gen());
             std::unique_ptr<tvg::Picture,ReleasePaint> Picture(tvg::Picture::gen());

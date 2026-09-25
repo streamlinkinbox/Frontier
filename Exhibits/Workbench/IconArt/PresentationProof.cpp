@@ -49,7 +49,7 @@ int main() {
             Check(Pixels[0] == 17,"outside icon unchanged");
         }
     }
-    Check(Ready == 82 && Blocked == 69,"all 151 strict symbols accounted for");
+    Check(Ready == 151 && Blocked == 0,"all 151 strict symbols accounted for");
     for (int N=0; N<90; ++N) {
         IO.DisplayFramebufferScale = ImVec2(float(1+N%5),float(1+N%5));
         ImGui::NewFrame();
@@ -84,5 +84,5 @@ int main() {
     // CPU backend owns no GPU allocations; imitate device shutdown before context shutdown.
     for (auto* T : ImGui::GetPlatformIO().Textures) { T->SetTexID(ImTextureID_Invalid); T->SetStatus(ImTextureStatus_Destroyed); }
     ImGui::DestroyContext();
-    std::printf("PASS %d checks; 151 symbols at 1x/2x; 82 ready / 69 blocked; DPI retirement bounded; context destroyed\n",Checks);
+    std::printf("PASS %d checks; 151 symbols at 1x/2x; 151 ready / 0 blocked; DPI retirement bounded; context destroyed\n",Checks);
 }

@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -66,6 +67,39 @@ void Verify(const fs::path& Root,const fs::path& Scratch){
     auto Diagnostic=UnsupportedArt.Rasterize(IconSymbol::Sun,40,40,1,IconPolicy::Diagnostic);
     Require(Diagnostic->Result==IconResult::Unsupported&&!Diagnostic->Substitute,"opt-in diagnostic rendering retains unsupported designation");
     Png(Scratch/"Unsupported.png",*U);
+    const auto Beam=Art.Rasterize(IconSymbol::SlateSpotlight,128,128);
+    Require(Byte(*Beam,64,94,0)>150&&Byte(*Beam,64,94,1)>130&&Byte(*Beam,64,94,3)>0&&Byte(*Beam,64,94,3)<180,
+        "spotlight beam retains warm translucent gradient, not opaque black rgba fallback");
+    // Real compatibility artwork, including source freshness and failure paths.
+    auto Read=[](const fs::path& P){std::ifstream F(P,std::ios::binary);return std::string(std::istreambuf_iterator<char>(F),{});};
+    const auto VariantRoot=Scratch/"vector-variant";
+    const auto Original=Read(Root/"clouds.svg"),Variant=Read(Root/"ThorVG/clouds.svg");
+    Write(VariantRoot/"clouds.svg",Original);
+    fs::remove(VariantRoot/"ThorVG/clouds.svg");
+    IconArt V(VariantRoot);
+    Require(V.Rasterize(IconSymbol::Clouds,40,40)->Result==IconResult::Unsupported,"missing vector variant cannot bypass strict admission");
+    Write(VariantRoot/"ThorVG/clouds.svg",Variant);V.Clear();
+    auto Valid=V.Rasterize(IconSymbol::Clouds,40,40);
+    Require(Valid->Result==IconResult::Ready&&!Valid->Substitute&&Valid->Diagnostic.find("vector compatibility")!=std::string::npos,"fingerprinted vector variant renders with disclosed compatibility changes");
+    Write(VariantRoot/"clouds.svg",Original+" ");V.Clear();
+    Require(V.Rasterize(IconSymbol::Clouds,40,40)->Result==IconResult::Unsupported,"stale vector variant refused after source edit");
+    Write(VariantRoot/"clouds.svg",Original);
+    Write(VariantRoot/"ThorVG/clouds.svg",Variant.substr(0,Variant.find('\n')+1)+"not an SVG");V.Clear();
+    Require(V.Rasterize(IconSymbol::Clouds,40,40)->Result==IconResult::DecodeFailure,"malformed matching variant refused by ThorVG");
+    Write(VariantRoot/"ThorVG/clouds.svg",Variant+"<feTurbulence/>");V.Clear();
+    Require(V.Rasterize(IconSymbol::Clouds,40,40)->Result==IconResult::Unsupported,"unsupported variant still refused");
+    Write(VariantRoot/"ThorVG/clouds.svg",Variant);fs::remove(VariantRoot/"clouds.svg");V.Clear();
+    Require(V.Rasterize(IconSymbol::Clouds,40,40)->Result==IconResult::Missing,"variant cannot conceal missing original source");
+    // A valid legacy FIB1 bake with different pixels must have no runtime effect.
+    const auto RedSource=Svg("<rect width=\"40\" height=\"40\" fill=\"red\"/>");
+    Write(Scratch/"no-bakes/sun.svg",RedSource);
+    std::string Bake="FIB1";
+    auto U32=[&](uint32_t N){for(int I=0;I<4;++I)Bake+=char((N>>(8*I))&255);};
+    U32(256);U32(256);U32(uint32_t(RedSource.size()));Bake+=RedSource;
+    for(int I=0;I<256*256;++I){Bake+=char(0);Bake+=char(0);Bake+=char(255);Bake+=char(255);}
+    Write(Scratch/"no-bakes/Baked/sun.rgba",Bake);IconArt NoBake(Scratch/"no-bakes");
+    const auto Red=NoBake.Rasterize(IconSymbol::Sun,40,40);
+    Require(Byte(*Red,20,20,0)==255&&Byte(*Red,20,20,2)==0&&NoBake.Statistics().Rasterizations==1,"valid offline bake ignored; ThorVG renders SVG source");
     Require(tvg::Initializer::init(0)==tvg::Result::Success,"existing host can retain ThorVG lifetime");
     std::shared_ptr<const IconRaster> Survives;
     for(int I=0;I<8;++I){IconArt Scoped(Root);Survives=Scoped.Rasterize(IconSymbol::CollectionBracketedObjects,24,24);}
@@ -87,10 +121,12 @@ int main(int Argc,char** Argv){try{
     for(int I=0;I<Count;++I){const auto Symbol=static_cast<IconSymbol>(I);int X=(I%Columns)*CellW+16,Y=60+(I/Columns)*CellH;
         auto R=Art.Rasterize(Symbol,96,96);Report<<IconArt::Name(Symbol)<<'\t'<<IconArt::Filename(Symbol)<<'\t'<<IconArt::ResultName(R->Result)<<'\t'<<R->Substitute<<'\t'<<(R->Diagnostic.empty()?"-":R->Diagnostic)<<'\n';
         if(R->Result==IconResult::Ready)++Ready;else if(R->Result==IconResult::Unsupported)++UnsupportedCount;
-        Require(R->Result==IconResult::Ready||R->Result==IconResult::Unsupported,"shipped SVG decoded or explicitly unsupported");
+        Require(R->Result==IconResult::Ready&&!R->Substitute,"every shipped SVG renders through ThorVG");
         Strict.Text(X,Y,IconArt::Name(Symbol));Diagnostic.Text(X,Y,IconArt::Name(Symbol));
         Strict.Text(X,Y+145,IconArt::ResultName(R->Result));Diagnostic.Text(X,Y+145,IconArt::ResultName(R->Result));
-        int Offset=0;for(int Size:{24,30,48,96}){auto S=Art.Rasterize(Symbol,float(Size),float(Size));auto D=Art.Rasterize(Symbol,float(Size),float(Size),1,IconPolicy::Diagnostic);Strict.Draw(X+Offset,Y+30+96-Size,*S);Diagnostic.Draw(X+Offset,Y+30+96-Size,*D);Offset+=Size+18;}
+        int Offset=0;for(int Size:{24,30,48,96}){auto S=Art.Rasterize(Symbol,float(Size),float(Size));auto D=Art.Rasterize(Symbol,float(Size),float(Size),1,IconPolicy::Diagnostic);
+            bool Visible=false;for(size_t P=3;P<S->Rgba.size();P+=4)Visible|=S->Rgba[P]>0;
+            Require(S->Result==IconResult::Ready&&!S->Substitute&&Visible,"shipped SVG has visible artwork at requested size");Strict.Draw(X+Offset,Y+30+96-Size,*S);Diagnostic.Draw(X+Offset,Y+30+96-Size,*D);Offset+=Size+18;}
         auto Large=Art.Rasterize(Symbol,128,128,1,IconPolicy::Diagnostic);if(Large->Substitute)throw std::runtime_error(std::string("Diagnostic decode failed: ")+IconArt::Name(Symbol));Png(Out/"Raster"/(std::string(IconArt::Name(Symbol))+".png"),*Large);
     }
     Strict.Save(Out/"IconArtStrict.png");Diagnostic.Save(Out/"IconArtDiagnostic.png");
