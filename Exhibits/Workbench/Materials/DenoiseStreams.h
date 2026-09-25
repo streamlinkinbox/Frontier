@@ -268,8 +268,13 @@ inline StreamMeasurement MeasureStream(StreamCategory Category, uint32_t Extent,
                     const float* S = Source.At(X, Y);
                     float Presented[3];
                     DenoiseMirror::ToneMap(S[0], S[1], S[2], Config.Exposure, Config.ColourSaturation, Presented);
+                    // V5 dither: the presentation write adds a ±half-LSB positional hash, so "untouched" is
+                    //    asserted within that bound rather than bit-exactly (the pre-dither value IS bit-exact:
+                    //    the early-out hands Centre through unchanged, as C3.1 still proves on the radiance side).
+                    const float kHalfLsb = 0.5f / 255.0f + 1.0e-6f;
                     bool Same = true;
-                    for (uint32_t C = 0u; C < 3u; ++C) Same = Same && O[C] == Presented[C];
+                    for (uint32_t C = 0u; C < 3u; ++C)
+                        Same = Same && (O[C] - Presented[C]) <= kHalfLsb && (Presented[C] - O[C]) <= kHalfLsb;
                     if (!Same) ++Bad;
                 }
             Result.MilestoneAcceptance[M] = static_cast<double>(Accepted) / PixelCount;

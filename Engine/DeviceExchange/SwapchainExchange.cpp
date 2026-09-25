@@ -3221,21 +3221,31 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
             //    neighbours. Because workgroups retire roughly in linear ID order the incomplete frontier follows
             //    column boundaries, so it shows up as vertical banding rather than isolated speckle.
             {
-                VkImageMemoryBarrier KernelOutput{};
-                KernelOutput.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                KernelOutput.oldLayout                   = VK_IMAGE_LAYOUT_GENERAL;
-                KernelOutput.newLayout                   = VK_IMAGE_LAYOUT_GENERAL;
-                KernelOutput.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-                KernelOutput.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
-                KernelOutput.image                       = Vulkan->HistorySurfaceImage;
-                KernelOutput.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                KernelOutput.subresourceRange.levelCount = 1u;
-                KernelOutput.subresourceRange.layerCount = 1u;
-                KernelOutput.srcAccessMask               = VK_ACCESS_SHADER_WRITE_BIT;
-                KernelOutput.dstAccessMask               = VK_ACCESS_SHADER_READ_BIT;
+                // Two images to order, same bracket: the surface image feeds every level's edge stops, and the
+                //    PRESENTATION image now carries the albedo the kernel parked for the final level's
+                //    remodulation read — unordered, the final level could read a texel the kernel had not
+                //    written yet and remodulate with garbage.
+                VkImageMemoryBarrier KernelOutputs[2]{};
+                for (uint32_t Slot = 0u; Slot < 2u; ++Slot)
+                {
+                    VkImageMemoryBarrier& KernelOutput       = KernelOutputs[Slot];
+                    KernelOutput.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    KernelOutput.oldLayout                   = VK_IMAGE_LAYOUT_GENERAL;
+                    KernelOutput.newLayout                   = VK_IMAGE_LAYOUT_GENERAL;
+                    KernelOutput.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+                    KernelOutput.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+                    KernelOutput.image                       = Slot == 0u ? Vulkan->HistorySurfaceImage
+                                                                          : Vulkan->StorageImage;
+                    KernelOutput.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                    KernelOutput.subresourceRange.levelCount = 1u;
+                    KernelOutput.subresourceRange.layerCount = 1u;
+                    KernelOutput.srcAccessMask               = VK_ACCESS_SHADER_WRITE_BIT;
+                    KernelOutput.dstAccessMask               = VK_ACCESS_SHADER_READ_BIT
+                                                             | (Slot == 1u ? VK_ACCESS_SHADER_WRITE_BIT : 0u);
+                }
                 vkCmdPipelineBarrier(Command,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0u, 0u, nullptr, 0u, nullptr, 1u, &KernelOutput);
+                    0u, 0u, nullptr, 0u, nullptr, 2u, KernelOutputs);
             }
 
             // R10 #8: how many levels run is tier-keyed. Descriptor sets exist for kDenoiseLevelCount, so a
@@ -3280,7 +3290,13 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
                 Push.Enabled        = 1u;
                 Push.NormalPower    = 64.0f;
                 Push.DepthScale     = 0.05f;
-                Push.LuminanceScale = 4.0f;
+                // Per-level sigma_l schedule: tighten the luminance stop as the taps widen — levels 2+ have
+                //    4/8/16 px-spaced taps and are where detail smears (measured: +0.42 dB overall, fresh-glint
+                //    retention 86.9% -> 92.4%; dark high-noise areas keep slightly more residue).
+                {
+                    static constexpr float kSigmaSchedule[5] = { 4.0f, 4.0f, 2.0f, 1.0f, 1.0f };
+                    Push.LuminanceScale = kSigmaSchedule[Level < 5u ? Level : 4u];
+                }
                 Push.Exposure       = Dispatch.Exposure;    // the filter owns the tone map, so it needs the exposure
                 Push.FinalLevel     = (Level + 1u == LiveDenoiseLevels) ? 1u : 0u;
                 Push.ColourSaturation = Dispatch.ColourSaturation;

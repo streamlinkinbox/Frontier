@@ -86,6 +86,10 @@ void Run(const RunConfiguration& Configuration, const float* Source, const float
     LoadImage(SurfaceImage, ExtentPixels, Surface);
     LoadImage(TargetImage, ExtentPixels, Source);        // pre-fill: an untouched texel must be visibly untouched, not zero
     OutputImage.Assign(static_cast<int>(ExtentPixels), static_cast<int>(ExtentPixels));
+    // V7 demodulation: the kernel parks the primary surface's albedo in the presentation image and the final level
+    //    reads it back to remodulate. The mirror's streams feed radiance directly — unit albedo — so the parked
+    //    value is 1 and every pre-demodulation expectation keeps its meaning unchanged.
+    for (vec4& Texel : OutputImage.Texels) Texel = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
     DenoiseParameters.Extent[0]        = ExtentPixels;
     DenoiseParameters.Extent[1]        = ExtentPixels;

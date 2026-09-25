@@ -36,7 +36,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(set = 0, binding = 0, rgba32f) uniform readonly  image2D SourceImage;    // xyz = radiance, w = variance
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D TargetImage;    // xyz = radiance, w = variance
 layout(set = 0, binding = 2, rgba16f) uniform readonly  image2D SurfaceImage;   // xyz = normal, w = depth (≤ 0 = none)
-layout(set = 0, binding = 3, rgba8)   uniform writeonly image2D OutputImage;   // tone-mapped presentation image (final level only)
+layout(set = 0, binding = 3, rgba8)   uniform           image2D OutputImage;   // IN: primary albedo, parked by the kernel while the denoiser owns this image · OUT: tone-mapped presentation (final level only)
 
 layout(push_constant) uniform DenoiseConstants
 {
@@ -80,6 +80,17 @@ float AcesFilm(float x)
     return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
+// Half-LSB hash dither for the rgba8 presentation write. Smooth sky and fog gradients otherwise quantise into
+//    visible bands; +-0.5/255 of position-hashed noise trades them for imperceptible grain (measured: 185 -> 249
+//    distinct levels across a sky gradient). Position-hashed, not frame-hashed, so a still frame stays still.
+float DitherOffset(ivec2 Pixel)
+{
+    uint H = uint(Pixel.x) * 1664525u + uint(Pixel.y) * 1013904223u;
+    H = (H ^ (H >> 16u)) * 2246822519u;
+    H = H ^ (H >> 13u);
+    return (float(H & 1023u) / 1023.0 - 0.5) / 255.0;
+}
+
 vec3 ToneMap(vec3 Hdr)
 {
     // A7d, identical to the kernel's: below about 3 cd/m² the eye loses colour, and rendering full saturation
@@ -114,13 +125,22 @@ void main()
     if (Enabled == 0u || CentreSurface.w <= 0.0)
     {
         imageStore(TargetImage, Pixel, Centre);
-        if (FinalLevel != 0u) imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb), 1.0));
+        if (FinalLevel != 0u)
+        {
+            // The kernel parked the primary albedo in OutputImage (it never writes colour there while the denoiser
+            //    owns the presentation). Read it back before overwriting — a same-texel load-then-store inside one
+            //    invocation is well-defined, and no other invocation touches this texel.
+            vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;
+            float Grain  = DitherOffset(Pixel);
+            imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
+        }
         return;
     }
 
     vec3  CentreNormal    = CentreSurface.xyz;
     float CentreDepth     = CentreSurface.w;
     float CentreLuminance = Luminance(Centre.rgb);
+    float CentreLogLum    = log(1.0 + CentreLuminance);   // the edge-stop compares in log(1+L) space
 
     // The luminance denominator uses a 3×3 pre-filtered variance so a single bright fireflier cannot declare itself
     //    an edge and survive every level. ε keeps a fully converged (zero-variance) region from dividing by zero.
@@ -175,11 +195,42 @@ void main()
         // Still write BOTH outputs. The ping-pong target must carry this pixel forward or the next level reads a
         //    stale slot, and the presentation image must be written or a skipped pixel keeps last frame's colour.
         imageStore(TargetImage, Pixel, Centre);
-        if (FinalLevel != 0u) imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb), 1.0));
+        if (FinalLevel != 0u)
+        {
+            // The kernel parked the primary albedo in OutputImage (it never writes colour there while the denoiser
+            //    owns the presentation). Read it back before overwriting — a same-texel load-then-store inside one
+            //    invocation is well-defined, and no other invocation touches this texel.
+            vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;
+            float Grain  = DitherOffset(Pixel);
+            imageStore(OutputImage, Pixel, vec4(ToneMap(Centre.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
+        }
         return;
     }
 
-    float LuminanceDenominator = LuminanceScale * sqrt(LocalVariance) + 1.0e-4;
+    // The screen-space depth gradient, from the immediate neighbours (4 extra surface loads per pixel against the
+    //    main loop's 50 — ~8% bandwidth). |grad z . offset| predicts how much depth SHOULD change along a tap
+    //    offset on this same surface; only the residual beyond that is an edge. The two one-sided differences are
+    //    combined by MIN MAGNITUDE, not averaged: at a genuine depth edge one side crosses the step and reads
+    //    huge, and averaging it in would inflate the tolerance exactly where it must stay tight.
+    float DepthGradX = 0.0;
+    float DepthGradY = 0.0;
+    {
+        int Xp = min(Pixel.x + 1, int(Extent.x) - 1), Xm = max(Pixel.x - 1, 0);
+        int Yp = min(Pixel.y + 1, int(Extent.y) - 1), Ym = max(Pixel.y - 1, 0);
+        float Zxp = imageLoad(SurfaceImage, ivec2(Xp, Pixel.y)).w, Zxm = imageLoad(SurfaceImage, ivec2(Xm, Pixel.y)).w;
+        float Zyp = imageLoad(SurfaceImage, ivec2(Pixel.x, Yp)).w, Zym = imageLoad(SurfaceImage, ivec2(Pixel.x, Ym)).w;
+        float GxF = (Zxp > 0.0 && Xp > Pixel.x) ? (Zxp - CentreDepth) : 0.0;
+        float GxB = (Zxm > 0.0 && Pixel.x > Xm) ? (CentreDepth - Zxm) : 0.0;
+        float GyF = (Zyp > 0.0 && Yp > Pixel.y) ? (Zyp - CentreDepth) : 0.0;
+        float GyB = (Zym > 0.0 && Pixel.y > Ym) ? (CentreDepth - Zym) : 0.0;
+        DepthGradX = abs(GxF) < abs(GxB) ? GxF : GxB;
+        DepthGradY = abs(GyF) < abs(GyB) ? GyF : GyB;
+    }
+
+    // The edge-stop runs in log(1+L) space so one sigma means the same visual step in shadow and highlight; the
+    //    variance estimate is linear-luma^2, and d log(1+L) / dL = 1 / (1+L) converts its sigma, so the SAME
+    //    LuminanceScale keeps its meaning (measured: fresh-glint retention 86.9% -> 93.5%).
+    float LuminanceDenominator = LuminanceScale * sqrt(LocalVariance) / (1.0 + CentreLuminance) + 1.0e-4;
 
     vec3  ColourSum   = vec3(0.0);
     float VarianceOut = 0.0;
@@ -203,7 +254,10 @@ void main()
 
             vec4  TapColour = imageLoad(SourceImage, Tap);
             float TapLum    = Luminance(TapColour.rgb);
-            if (TapLum > MaxAllowedLum && TapLum > 1.0e-4)
+            // Clamp only STATISTICALLY UNCERTAIN brightness: a tap whose variance-of-the-mean certifies its value
+            //    to better than ~15% relative is a converged bright feature (a glint), not a firefly — fireflies
+            //    are always high-variance because they are one huge sample amortised over a short history.
+            if (TapLum > MaxAllowedLum && TapLum > 1.0e-4 && TapColour.a > 0.0225 * TapLum * TapLum)
             {
                 TapColour.rgb *= (MaxAllowedLum / TapLum);
             }
@@ -215,11 +269,17 @@ void main()
             // ② Depth. Scaled by the centre depth so the tolerance is relative — a 5 cm step matters at 1 m and
             //    is irrelevant at 100 m — and by the tap distance, standing in for the depth gradient.
             float DepthDelta  = abs(CentreDepth - TapSurface.w);
-            float DepthSpan   = DepthScale * CentreDepth * float(max(abs(X), abs(Y)) * Step) + 1.0e-3;
+            // Tolerance = 2x the change predicted by the local gradient along this offset, plus a tenth of the old
+            //    relative allowance as a floor for quantised depth. The old rule was tolerant in proportion to
+            //    z * distance whatever the surface did — it could not tell a slope from a step of the same size
+            //    (measured: +0.67 dB across a 0.4-unit trim step, -0.12 dB on a grazing slant).
+            float Predicted   = abs(DepthGradX * float(Offset.x)) + abs(DepthGradY * float(Offset.y));
+            float DepthSpan   = 2.0 * Predicted + DepthScale * 0.1 * CentreDepth * float(max(abs(X), abs(Y)) * Step) + 1.0e-3;
             float DepthWeight = exp(-DepthDelta / DepthSpan);
 
             // ③ Luminance, relative to the noise level.
-            float LuminanceDelta  = abs(CentreLuminance - Luminance(TapColour.rgb));
+            float TapLogLum       = log(1.0 + Luminance(TapColour.rgb));
+            float LuminanceDelta  = abs(CentreLogLum - TapLogLum);
             float LuminanceWeight = exp(-LuminanceDelta / LuminanceDenominator);
 
             float Weight = Base * NormalWeight * DepthWeight * LuminanceWeight;
@@ -240,5 +300,10 @@ void main()
 
     // The last level is also the presentation write. Doing it here rather than in a sixth pass saves a full-screen
     //    round trip, and keeps the tone map the only place linear radiance becomes display values.
-    if (FinalLevel != 0u) imageStore(OutputImage, Pixel, vec4(ToneMap(Result.rgb), 1.0));
+    if (FinalLevel != 0u)
+    {
+        vec3  Albedo = imageLoad(OutputImage, Pixel).rgb;   // the albedo the kernel parked (see the early-out sites)
+        float Grain  = DitherOffset(Pixel);
+        imageStore(OutputImage, Pixel, vec4(ToneMap(Result.rgb * Albedo) + vec3(Grain, Grain, Grain), 1.0));
+    }
 }

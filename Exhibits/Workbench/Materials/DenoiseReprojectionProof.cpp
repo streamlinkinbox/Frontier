@@ -39,6 +39,10 @@
 using DenoiseStreams::EarlyOutAccepts;
 using DenoiseStreams::Field;
 using DenoiseStreams::MeasureStream;
+
+// V5 output dither: the filter's presentation write carries a ±half-LSB positional hash, so every "same
+//    presentation image" assertion is made within this bound rather than bit-exactly.
+static constexpr float kDitherHalfLsb = 0.5f / 255.0f + 1.0e-6f;
 using DenoiseStreams::Pcg;
 using DenoiseStreams::StreamBase;
 using DenoiseStreams::StreamCategory;
@@ -139,8 +143,8 @@ int main()
         //    which is exactly how this expectation went stale for one commit when the pool arrived.
         const uint32_t Expected = DispatchFeatureGlobalIllumination | DispatchFeatureAntiAliasing | DispatchFeatureTemporalReuse
                                 | DispatchFeatureSpatialReuse | DispatchFeatureAliasPick | DispatchFeatureTemporalReprojection
-                                | DispatchFeatureDenoise | DispatchFeatureGiReuse;
-        Check(Dispatch.FeatureFlags == Expected, "A5 default dispatch carries exactly the R6/R7/GI feature bits (8 bits named)");
+                                | DispatchFeatureDenoise | DispatchFeatureGiReuse | DispatchFeatureSkyReservoir;
+        Check(Dispatch.FeatureFlags == Expected, "A5 default dispatch carries exactly the R6/R7/GI/#27B feature bits (9 bits named)");
         Check((Dispatch.FeatureFlags & DispatchFeatureDenoise) != 0u, "A6 DispatchFeatureDenoise set (kernel defers the tone map)");
         Check((Dispatch.FeatureFlags & DispatchFeatureTemporalReprojection) != 0u, "A7 DispatchFeatureTemporalReprojection set");
         Check(Dispatch.DenoiseLevelCount == kDenoiseLevelCount, "A8 dispatch carries the 5-level chain");
@@ -234,13 +238,13 @@ int main()
             { "ReSTIRViewport", "vec3 mean  = history.rgb + (radiance - history.rgb) / count;", 1u, "B7 running mean" },
             { "ReSTIRViewport", "float variance = sampleVariance / count;", 1u, "B8 filter input = variance OF THE MEAN" },
             { "ReSTIRViewport", "if (count < 2.0) variance = luma * luma;", 1u, "B9 a first sample stays permissive (disocclusion)" },
-            { "ReSTIRViewport", "imageStore(DenoiseImage, ivec2(pixel), vec4(mean, variance));", 1u, "B10 one denoise store site for every material" },
+            { "ReSTIRViewport", "imageStore(DenoiseImage, ivec2(pixel), vec4(storedMean, storedVariance));", 1u, "B10 one denoise store site for every material (storedMean = demodulated when the filter runs)" },
             { "ReSTIRViewport", "imageStore(DenoiseImage", 1u, "B11 the denoise store is not duplicated per lobe (material-agnostic)" },
             { "ReSTIRViewport", "if ((FeatureFlags & kFeatureDenoise) == 0u)", 1u, "B12 with the filter off the kernel tone-maps itself" },
             { "ReSTIRViewport", "imageStore(OutputImage, ivec2(pixel), vec4(ToneMap(mean), 1.0));", 1u, "B13 ...through the same tone map the filter uses" },
 
             { "AtrousDenoise", "layout(set = 0, binding = 0, rgba32f) uniform readonly  image2D SourceImage;", 1u, "B14 filter binding 0: radiance + variance" },
-            { "AtrousDenoise", "layout(set = 0, binding = 3, rgba8)   uniform writeonly image2D OutputImage;", 1u, "B15 filter binding 3: the presentation image" },
+            { "AtrousDenoise", "layout(set = 0, binding = 3, rgba8)   uniform           image2D OutputImage;", 1u, "B15 filter binding 3: the presentation image (read: the kernel's parked albedo; write: the tone map)" },
             { "AtrousDenoise", "const float kEarlyOutStepFraction = 0.2;", 1u, "B16 early-out is derived from an 8-bit step" },
             { "AtrousDenoise", "const float kEarlyOutVariance     = (kEarlyOutStepFraction / 255.0)", 1u, "B17 ...as a variance, not a tuned constant" },
             { "AtrousDenoise", "float NormalWeight = pow(max(dot(CentreNormal, TapSurface.xyz), 0.0), NormalPower);", 1u, "B18 normal edge stop" },
@@ -253,7 +257,7 @@ int main()
             { "SwapchainExchange", "Push.StepSize       = 1u << Level;", 1u, "B24 tap spacing doubles per level" },
             { "SwapchainExchange", "Push.NormalPower    = 64.0f;", 1u, "B25 the engine's σn reaches the shader" },
             { "SwapchainExchange", "Push.DepthScale     = 0.05f;", 1u, "B26 the engine's σz reaches the shader" },
-            { "SwapchainExchange", "Push.LuminanceScale = 4.0f;", 1u, "B27 the engine's σl reaches the shader" },
+            { "SwapchainExchange", "static constexpr float kSigmaSchedule[5] = { 4.0f, 4.0f, 2.0f, 1.0f, 1.0f };", 1u, "B27 the engine's σl schedule reaches the shader (tightening as the taps widen)" },
             { "SwapchainExchange", "Push.FinalLevel     = (Level + 1u == LiveDenoiseLevels) ? 1u : 0u;", 1u, "B28 the tone map happens exactly once, at the last live level" },
             { "SwapchainExchange", "1u, kDenoiseLevelCount);", 1u, "B29 the level count is clamped into the allocated sets" },
 
@@ -382,9 +386,13 @@ int main()
                 const float* S = Source.At(X, Y);
                 DenoiseMirror::ToneMap(S[0], S[1], S[2], 1.0f, 1.0f, Expected);
                 const float* O = Output.At(X, Y);
-                Mapped = O[0] == Expected[0] && O[1] == Expected[1] && O[2] == Expected[2];
+                // The write remodulates the parked unit albedo and adds the ±half-LSB dither, so the tone-map
+                //    equivalence is asserted within that bound.
+                Mapped = std::fabs(O[0] - Expected[0]) <= kDitherHalfLsb
+                      && std::fabs(O[1] - Expected[1]) <= kDitherHalfLsb
+                      && std::fabs(O[2] - Expected[2]) <= kDitherHalfLsb;
             }
-        Check(Mapped, "C1.2 the disabled pass still writes the presentation image through the shader's own tone map");
+        Check(Mapped, "C1.2 the disabled pass still writes the presentation image through the shader's own tone map (within the dither half-LSB)");
     }
 
     // §C2 — a constant radiance field is returned unchanged (a weighted mean of equals is that value).
@@ -442,10 +450,13 @@ int main()
                 float Expected[3];
                 DenoiseMirror::ToneMap(S[0], S[1], S[2], Config.Exposure, Config.ColourSaturation, Expected);
                 const float* O = Output.At(X, Y);
-                PassthroughOutput = PassthroughOutput && O[0] == Expected[0] && O[1] == Expected[1] && O[2] == Expected[2];
+                PassthroughOutput = PassthroughOutput
+                                 && std::fabs(O[0] - Expected[0]) <= kDitherHalfLsb
+                                 && std::fabs(O[1] - Expected[1]) <= kDitherHalfLsb
+                                 && std::fabs(O[2] - Expected[2]) <= kDitherHalfLsb;
             }
         Check(PassthroughTarget, "C3.1 a converged field passes through bit-exactly (early-out, radiance and variance)");
-        Check(PassthroughOutput, "C3.2 A/B AT CONVERGENCE: denoise ON == denoise OFF, presentation images bit-identical");
+        Check(PassthroughOutput, "C3.2 A/B AT CONVERGENCE: denoise ON == denoise OFF within the dither half-LSB");
 
         // ...and the same field with noise must NOT be identical, or C3.2 would be vacuous.
         for (uint32_t Y = 0u; Y < kExtent; ++Y)
@@ -776,7 +787,7 @@ int main()
             // E4. Every pixel the shipped convergence test accepts, at EVERY hold, comes back out untouched: that is
             //    the A. It is not a tautology — the check is made from outside the filter, on the presentation image,
             //    against the tone map the kernel would have written itself.
-            std::snprintf(Label, sizeof(Label), "E4 %s: every pixel the early-out accepts is bit-identical (%u/%u/%u accepted at the three holds, %u differ)",
+            std::snprintf(Label, sizeof(Label), "E4 %s: every pixel the early-out accepts matches within the dither half-LSB (%u/%u/%u accepted at the three holds, %u differ)",
                           Name, Measured.MilestoneAccepted[0], Measured.MilestoneAccepted[1], Measured.MilestoneAccepted[2],
                           Measured.MilestoneBad[0] + Measured.MilestoneBad[1] + Measured.MilestoneBad[2]);
             Check(Measured.MilestoneBad[0] + Measured.MilestoneBad[1] + Measured.MilestoneBad[2] == 0u && Measured.MilestoneAccepted[2] > 0u, Label);
