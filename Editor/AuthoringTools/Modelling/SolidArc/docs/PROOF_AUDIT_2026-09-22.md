@@ -1021,6 +1021,31 @@ This does not prove arbitrary shell/thicken, boxes through the new API, tilted/n
 curved profiles, concave/non-six-sided profiles, arbitrary openings, general offsets, or healing.
 The bounded plan is `docs/PLAN_Phase40_ExtrudedConvexPrismShell.md`.
 
+## Phase 41 — non-box pentagonal-prism face offset (2026-09-25)
+
+This phase continues the strategic move away from cone/bicone apex variants and targets a distinct
+five-sided prism topology with a different face-edit operation:
+
+- `PentagonalPrismFaceOffsetVerification` constructs a regular pentagonal prism with exact
+  `V10/E15/C30/L7/F7` source topology, circumradius 4.5, height 7, and positive upper-cap offset
+  distance 1.25.
+- `FaceEditSolver::OffsetExtrudedConvexPrism` recognizes only a closed five-sided straight convex
+  prism, validates two Z levels, line generators, planar/extruded supports, strict convexity, and
+  the selected upper cap, then rebuilds the unchanged profile at the extended height. The source
+  is never mutated and no healing fallback is used.
+- The result remains closed genus zero with `V10/E15/C30/L7/F7` topology. The verifier checks the
+  exact pentagonal-prism volume increase, profile preservation, analytic support classifications,
+  public `OffsetFace` dispatch, source immutability, and box/hex/triangle/concave/cylinder/lower-cap/
+  invalid/malformed refusal boundaries.
+- The durable proof is `Proofs/Phase41_PentagonalPrismFaceOffset.png`; 22 checks pass in the
+  focused direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and
+  CMake.
+
+This does not prove arbitrary polygonal or multi-loop offsets, side-face/lower-cap offsets, tilted
+or non-prismatic supports, curved/freeform/mixed faces, arbitrary trimmed B-reps, healing, or
+general shell/thicken behavior. The bounded plan is
+`docs/PLAN_Phase41_PentagonalPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

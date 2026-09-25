@@ -200,6 +200,11 @@ add_executable(ExtrudedConvexPrismShellVerification Verification/ExtrudedConvexP
 target_link_libraries(ExtrudedConvexPrismShellVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ExtrudedConvexPrismShellVerification COMMAND ExtrudedConvexPrismShellVerification)
 
+# Phase 41: bounded non-box pentagonal-prism upper-cap face offset.
+add_executable(PentagonalPrismFaceOffsetVerification Verification/PentagonalPrismFaceOffsetVerification.cpp)
+target_link_libraries(PentagonalPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME PentagonalPrismFaceOffsetVerification COMMAND PentagonalPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

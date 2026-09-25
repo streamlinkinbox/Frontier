@@ -1,10 +1,10 @@
 //=============================================================================================================================================
 // SolidArc · bounded general face editing
 //
-// The public face-edit surface is deliberately conservative.  It accepts canonical, axis-aligned
-// rectangular prisms and natural NURBS replacement faces whose rim is identical to the selected rim.
-// Operations are copy-in/copy-out: a refusal never mutates the source.  This is the safe foundation
-// for extending the routes to arbitrary trimmed and curved B-reps in later phases.
+// The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
+// rectangular prisms, one bounded pentagonal-prism route, and natural NURBS replacement faces whose
+// rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
+// source. This is the safe foundation for extending the routes to arbitrary trimmed and curved B-reps later.
 #pragma once
 
 #include "TopologySpecification.h"
@@ -15,7 +15,8 @@ namespace Frontier
 class FaceEditSolver
 {
 public:
-    // Exact normal offset of one planar box face. Positive distance is outward from the source face.
+    // Exact normal offset of one supported planar face. Canonical boxes use the legacy route;
+    // the bounded pentagonal-prism upper-cap route is selected when the box route declines.
     [[nodiscard]] static Deliver<BrepBody> OffsetFace(const BrepBody& Source, int Face, double Distance) noexcept;
 
     // Hollow an axis-aligned rectangular prism through one selected face. The result is a closed solid
@@ -25,6 +26,10 @@ public:
     // Bounded non-box shell route for a six-sided straight convex prism selected through its upper cap.
     // The existing rectangular-box route remains separate and is not widened by this API.
     [[nodiscard]] static Deliver<BrepBody> ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept;
+
+    // Bounded non-box offset route for a five-sided straight convex prism selected through its upper cap.
+    // Positive distance extends the upper cap along +Z; arbitrary polygonal/freeform offsets remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
     // Draft one vertical (+/-X or +/-Y) face about the source Z direction. Angle is in radians and
     // positive moves the selected wall outward at the high-Z end.

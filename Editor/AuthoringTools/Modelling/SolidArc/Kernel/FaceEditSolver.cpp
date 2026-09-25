@@ -181,13 +181,13 @@ struct FaceFrame
     return true;
 }
 
-[[nodiscard]] bool ReadExtrudedHexPrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
-                                       double& Low, double& High) noexcept
+[[nodiscard]] bool ReadExtrudedConvexPrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
+                                       double& Low, double& High, size_t Sides) noexcept
 {
     const BodyReport R = Source.Validate();
-    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
-        R.MisorientedEdges != 0 || Source.Vertices.size() != 12 || Source.Edges.size() != 18 ||
-        Source.Coedges.size() != 36 || Source.Loops.size() != 8 || Source.Faces.size() != 8)
+    if (Sides < 3 || !R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 2 * Sides || Source.Edges.size() != 3 * Sides ||
+        Source.Coedges.size() != 6 * Sides || Source.Loops.size() != Sides + 2 || Source.Faces.size() != Sides + 2)
         return false;
     if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
     const BrepFace& Cap = Source.Faces[Face];
@@ -197,7 +197,7 @@ struct FaceFrame
         0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
     if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
     const int Loop = Cap.Loops.front();
-    if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != 6) return false;
+    if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != Sides) return false;
     for (int Vertex = 0; Vertex < static_cast<int>(Source.Vertices.size()); ++Vertex)
     {
         const double Z = Source.Vertices[Vertex].Point.Z;
@@ -205,7 +205,27 @@ struct FaceFrame
         else { Low = std::min(Low, Z); High = std::max(High, Z); }
     }
     if (High - Low <= ScalarCriteria::MergeTolerance) return false;
-    Polygon.clear(); Polygon.reserve(6);
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& Vertex : Source.Vertices)
+    {
+        if (std::fabs(Vertex.Point.Z - Low) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(Vertex.Point.Z - High) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != static_cast<int>(Sides) || HighVertices != static_cast<int>(Sides)) return false;
+    for (const BrepEdge& Edge : Source.Edges)
+    {
+        if (Edge.Curve.Classification != CurveClassification::Line || Edge.Curve.Degree != 1 ||
+            Edge.Coedges.size() != 2 || Edge.VertexStart < 0 || Edge.VertexEnd < 0 ||
+            Edge.VertexStart >= static_cast<int>(Source.Vertices.size()) || Edge.VertexEnd >= static_cast<int>(Source.Vertices.size()) ||
+            Edge.VertexStart == Edge.VertexEnd) return false;
+    }
+    for (const BrepFace& FaceData : Source.Faces)
+    {
+        if (FaceData.Loops.size() != 1 || (FaceData.Surface.Classification != SurfaceClassification::Plane &&
+                                           FaceData.Surface.Classification != SurfaceClassification::Extrusion)) return false;
+    }
+    Polygon.clear(); Polygon.reserve(Sides);
     for (int Coedge : Source.Loops[Loop].Coedges)
     {
         if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
@@ -221,7 +241,7 @@ struct FaceFrame
         if (std::fabs(Source.Vertices[Start].Point.Z - High) > ScalarCriteria::GeometricTolerance ||
             std::fabs(Source.Vertices[End].Point.Z - High) > ScalarCriteria::GeometricTolerance) return false;
     }
-    if (Polygon.size() != 6) return false;
+    if (Polygon.size() != Sides) return false;
     double Area2 = 0.0;
     for (size_t I = 0; I < Polygon.size(); ++I)
     {
@@ -294,7 +314,7 @@ struct FaceFrame
 {
     std::vector<Vec3> OuterTop;
     double Low = 0.0, High = 0.0;
-    if (!ReadExtrudedHexPrism(Source, Face, OuterTop, Low, High))
+    if (!ReadExtrudedConvexPrism(Source, Face, OuterTop, Low, High, 6))
         return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "convex-prism shell requires a six-sided vertical prism and its upper cap");
     if (!std::isfinite(Thickness) || Thickness <= ScalarCriteria::MergeTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "prism shell thickness must be finite and positive");
@@ -339,6 +359,32 @@ struct FaceFrame
         Result.Payload.Edges.size() != 42 || Result.Payload.Coedges.size() != 84 || Result.Payload.Loops.size() != 20 ||
         Result.Payload.Faces.size() != 20)
         return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "prism shell did not reach V24/E42/C84/L20/F20 topology");
+    return Result;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildPentagonalPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    std::vector<Vec3> Top;
+    double Low = 0.0, High = 0.0;
+    if (!ReadExtrudedConvexPrism(Source, Face, Top, Low, High, 5))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "pentagonal-prism offset requires a five-sided vertical prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "pentagonal-prism offset distance must be finite and positive");
+
+    std::vector<Vec3> Base;
+    Base.reserve(Top.size());
+    for (const Vec3& P : Top) Base.push_back({ P.X, P.Y, Low });
+    const Deliver<NurbsCurve> Profile = NurbsCurve::Polyline(Base, true);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    Deliver<BrepBody> Result = BrepBody::Extrude(Profile.Payload, Vec3::UnitZ(), High - Low + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 10 ||
+        Result.Payload.Edges.size() != 15 || Result.Payload.Coedges.size() != 30 || Result.Payload.Loops.size() != 7 ||
+        Result.Payload.Faces.size() != 7)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "pentagonal-prism offset did not retain V10/E15/C30/L7/F7 topology");
     return Result;
 }
 
@@ -431,7 +477,7 @@ Deliver<BrepBody> FaceEditSolver::RemoveSlivers(const BrepBody& Source, double T
 Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, double Distance) noexcept
 {
     FaceFrame F;
-    if (!ReadFace(Source, Face, F)) return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "exact face offset currently requires a canonical axis-aligned box face");
+    if (!ReadFace(Source, Face, F)) return OffsetExtrudedConvexPrism(Source, Face, Distance);
     if (!std::isfinite(Distance) || std::fabs(Distance) <= ScalarCriteria::KernelTolerance)
         return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "face offset distance is zero or non-finite");
     BoxFrame B = F.Box;
@@ -526,6 +572,11 @@ Deliver<BrepBody> FaceEditSolver::Shell(const BrepBody& Source, int Face, double
 Deliver<BrepBody> FaceEditSolver::ShellExtrudedConvexPrism(const BrepBody& Source, int Face, double Thickness) noexcept
 {
     return BuildExtrudedConvexPrismShell(Source, Face, Thickness);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildPentagonalPrismFaceOffset(Source, Face, Distance);
 }
 
 } // namespace Frontier

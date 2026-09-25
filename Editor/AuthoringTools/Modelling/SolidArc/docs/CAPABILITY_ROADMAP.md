@@ -1721,6 +1721,27 @@ on the legacy route; tilted/non-prismatic, curved, concave, non-six-sided, arbit
 healing-dependent shell sources remain unsupported. Its bounded plan is
 `docs/PLAN_Phase40_ExtrudedConvexPrismShell.md`.
 
+#### Phase 41: bounded non-box pentagonal-prism face offset ✅
+
+The face-offset family now has a distinct non-box route rather than another cone/bicone blend
+variant. `FaceEditSolver::OffsetExtrudedConvexPrism` recognizes a closed five-sided straight
+convex prism with its upper planar cap selected, preserves the exact ordered polygon, and extends
+that cap by one positive distance through a fresh extrusion. The public `OffsetFace` dispatcher
+reaches this route only after the canonical-box route declines.
+
+`PentagonalPrismFaceOffsetVerification` constructs a regular pentagonal prism with exact
+`V10/E15/C30/L7/F7` source topology, circumradius 4.5, height 7, and offset 1.25. It validates
+closed genus-zero result topology, analytic volume, lower-profile preservation, the exact elevated
+upper profile, source immutability, analytic support classifications, public dispatch, and
+box/hex/triangle/concave/cylinder/lower-cap/invalid/malformed refusal boundaries. The durable
+proof is `Proofs/Phase41_PentagonalPrismFaceOffset.png`; 22 checks pass in the focused direct gate.
+The verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to five-sided vertical convex prisms and positive upper-cap extension.
+It does not prove arbitrary polygonal or multi-loop offsets, side-face/lower-cap offsets, tilted or
+non-prismatic supports, curved/freeform/mixed faces, healing, or general shell/thicken behavior.
+Its bounded plan is `docs/PLAN_Phase41_PentagonalPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
