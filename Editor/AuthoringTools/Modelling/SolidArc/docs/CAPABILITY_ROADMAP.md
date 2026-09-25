@@ -1742,6 +1742,27 @@ It does not prove arbitrary polygonal or multi-loop offsets, side-face/lower-cap
 non-prismatic supports, curved/freeform/mixed faces, healing, or general shell/thicken behavior.
 Its bounded plan is `docs/PLAN_Phase41_PentagonalPrismFaceOffset.md`.
 
+#### Phase 42: bounded genus-one holed-prism face offset ✅
+
+The face-offset family now crosses into a multi-loop genus-one topology. `FaceEditSolver::OffsetExtrudedHoledPrism`
+recognizes a closed rectangular prism with one exact circular through-hole and a selected upper annular
+cap, then rebuilds the unchanged outer rectangle and hole at the extended height. It is separate
+from both the canonical-box and hole-free pentagonal-prism routes, and does not use Boolean healing.
+
+`HoledPrismFaceOffsetVerification` constructs a `12 x 9 x 6` rectangular prism with a centered
+radius-1.5 through-hole and validates the genus-one `V10/E15/C30/L9/F7` source and result, two
+annular caps, two exact rational circular hole rims, the rectangle-minus-hole volume identity,
+analytic support classifications, source immutability, public dispatch, and
+box/pentagon/two-hole/non-circular-hole/cylinder/side-face/invalid/malformed refusal boundaries.
+The durable proof is `Proofs/Phase42_HoledPrismFaceOffset.png`; 23 checks pass in the focused direct
+gate. The verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one axis-aligned rectangular outer loop, one circular through-hole, and
+positive upper-annular-cap extension. It does not prove hole-free arbitrary polygons, multiple holes,
+non-circular or multi-loop profiles, lower/side-face offsets, tilted/non-prismatic supports,
+curved/freeform/mixed faces, healing, or general shell/thicken behavior. Its bounded plan is
+`docs/PLAN_Phase42_HoledPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

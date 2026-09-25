@@ -2,8 +2,8 @@
 // SolidArc · bounded general face editing
 //
 // The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
-// rectangular prisms, one bounded pentagonal-prism route, and natural NURBS replacement faces whose
-// rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
+// rectangular prisms, bounded pentagonal-prism and genus-one holed-prism routes, and natural NURBS
+// replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
 // source. This is the safe foundation for extending the routes to arbitrary trimmed and curved B-reps later.
 #pragma once
 
@@ -30,6 +30,10 @@ public:
     // Bounded non-box offset route for a five-sided straight convex prism selected through its upper cap.
     // Positive distance extends the upper cap along +Z; arbitrary polygonal/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded genus-one offset route for a straight rectangular prism with one exact circular through-hole.
+    // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
     // Draft one vertical (+/-X or +/-Y) face about the source Z direction. Angle is in radians and
     // positive moves the selected wall outward at the high-Z end.

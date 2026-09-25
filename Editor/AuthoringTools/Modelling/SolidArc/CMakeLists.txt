@@ -205,6 +205,11 @@ add_executable(PentagonalPrismFaceOffsetVerification Verification/PentagonalPris
 target_link_libraries(PentagonalPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME PentagonalPrismFaceOffsetVerification COMMAND PentagonalPrismFaceOffsetVerification)
 
+# Phase 42: bounded genus-one rectangular holed-prism upper-annular-cap face offset.
+add_executable(HoledPrismFaceOffsetVerification Verification/HoledPrismFaceOffsetVerification.cpp)
+target_link_libraries(HoledPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME HoledPrismFaceOffsetVerification COMMAND HoledPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

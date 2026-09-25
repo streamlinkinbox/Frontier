@@ -1046,6 +1046,30 @@ or non-prismatic supports, curved/freeform/mixed faces, arbitrary trimmed B-reps
 general shell/thicken behavior. The bounded plan is
 `docs/PLAN_Phase41_PentagonalPrismFaceOffset.md`.
 
+## Phase 42 — genus-one holed-prism face offset (2026-09-25)
+
+This phase advances the face-edit domain from hole-free genus-zero prisms to a distinct multi-loop
+through-hole topology:
+
+- `HoledPrismFaceOffsetVerification` constructs a `12 x 9 x 6` rectangular prism with one centered
+  radius-1.5 circular through-hole. The source and result are validated as closed genus-one
+  `V10/E15/C30/L9/F7` bodies with two annular planar caps.
+- `FaceEditSolver::OffsetExtrudedHoledPrism` validates the selected upper annular cap, exact
+  rational circular hole rims, axis-aligned line generators, two Z levels, and the rectangular outer
+  loop before rebuilding the same two-loop extrusion at the extended height. No Boolean or healing
+  fallback is used, and the source remains immutable.
+- The verifier checks the rectangle-minus-hole volume identity with the kernel's circular tolerance,
+  annular cap identity, circular rim preservation, analytic support classifications, public
+  `OffsetFace` dispatch, and box/pentagon/two-hole/non-circular-hole/cylinder/side-face/invalid/
+  malformed refusal boundaries.
+- The durable proof is `Proofs/Phase42_HoledPrismFaceOffset.png`; 23 checks pass in the focused
+  direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+This does not prove arbitrary multi-loop or non-circular profiles, multiple holes, lower/side-face
+offsets, tilted/non-prismatic supports, curved/freeform/mixed faces, arbitrary trimmed B-reps,
+healing, or general shell/thicken behavior. The bounded plan is
+`docs/PLAN_Phase42_HoledPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
