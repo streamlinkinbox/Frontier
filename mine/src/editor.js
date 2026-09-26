@@ -7,7 +7,8 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import { EdgeSpline } from './network.js';
 
 export class Editor {
-  constructor({ scene, camera, dom, getNet, onChange }) {
+  constructor({ scene, camera, dom, getNet, getParams, onChange }) {
+    this.getParams = getParams || (() => ({}));
     this.scene = scene; this.camera = camera; this.dom = dom;
     this.getNet = getNet; this.onChange = onChange;
     this.group = new THREE.Group();
@@ -96,7 +97,8 @@ export class Editor {
   updateLines() {
     const net = this.getNet();
     this.lines.forEach((l) => {
-      const sp = new EdgeSpline(net, net.edges[l.userData.edge]);
+      const P = this.getParams();
+      const sp = new EdgeSpline(net, net.edges[l.userData.edge], { minCrestRadius: P.minCrestRadius, maxGrade: P.maxGrade });
       const pts = sp.curve.getSpacedPoints(Math.ceil(sp.length / 2)).map((p) => p.add(new THREE.Vector3(0, 0.4, 0)));
       l.geometry.dispose();
       l.geometry = new THREE.BufferGeometry().setFromPoints(pts);

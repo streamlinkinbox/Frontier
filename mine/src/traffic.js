@@ -42,6 +42,7 @@ export class Traffic {
       if (!this.outgoing.has(l.from)) this.outgoing.set(l.from, []);
       this.outgoing.get(l.from).push(l);
     });
+    this.computeAllowed();
     const nTrains = Math.max(0, Math.round(count / 2.5));
     const lanes = mine.lanes.slice().sort(() => this.rnd() - 0.5);
     for (let i = 0; i < nTrains && i < lanes.length; i++) {
@@ -85,30 +86,67 @@ export class Traffic {
     return samplePath(last, last.length + d, out);
   }
 
-  extend(train) {
-    const last = train.segments[train.segments.length - 1];
-    if (!last.lane) return; // transitions are always followed by a lane (added together)
-    const node = last.lane.to;
-    const p0 = last.pts[last.pts.length - 1], pm = last.pts[last.pts.length - 2];
-    const tin = p0.clone().sub(pm).setY(0).normalize();
-    const all = this.outgoing.get(node) || [];
-    // no hairpins: carts only take turns up to ~115 degrees
-    let options = all.filter((l) => l.edge !== last.lane.edge && tin.dot(l.pts[1].clone().sub(l.pts[0]).setY(0).normalize()) > -0.42);
-    if (!options.length) options = all.filter((l) => l.edge !== last.lane.edge);
-    if (!options.length) options = all;
-    const next = options[Math.floor(this.rnd() * options.length)];
-    const p3 = next.pts[0], p4 = next.pts[1];
+  // Bezier transition from the end of lane `lin` to the start of lane `lout`
+  transitionPts(lin, lout, handle = 0.42) {
+    const p0 = lin.pts[lin.pts.length - 1], pm = lin.pts[lin.pts.length - 2];
+    const p3 = lout.pts[0], p4 = lout.pts[1];
     const t0 = p0.clone().sub(pm).normalize(), t3 = p4.clone().sub(p3).normalize();
     const dist = p0.distanceTo(p3);
-    const c1 = p0.clone().addScaledVector(t0, dist * 0.42), c2 = p3.clone().addScaledVector(t3, -dist * 0.42);
+    const c1 = p0.clone().addScaledVector(t0, dist * handle), c2 = p3.clone().addScaledVector(t3, -dist * handle);
     const pts = [];
-    const n = Math.max(6, Math.ceil(dist / 0.8));
+    const n = Math.max(8, Math.ceil(dist * (1 + handle) / 0.8));
     for (let i = 0; i <= n; i++) {
       const t = i / n, it = 1 - t;
       pts.push(new THREE.Vector3()
         .addScaledVector(p0, it * it * it).addScaledVector(c1, 3 * it * it * t)
         .addScaledVector(c2, 3 * it * t * t).addScaledVector(p3, t * t * t));
     }
+    return pts;
+  }
+
+  // which junction moves are allowed: no U-turns, no hairpins (> ~115 deg), and
+  // the swept cart body must clear the actual cave mesh
+  computeAllowed() {
+    this.allowed = new Map();
+    this.transitionCache = new Map();
+    const probe = new THREE.Vector3();
+    for (const lin of this.mine.lanes) {
+      const p0 = lin.pts[lin.pts.length - 1], pm = lin.pts[lin.pts.length - 2];
+      const tin = p0.clone().sub(pm).setY(0).normalize();
+      const ok = [];
+      for (const lout of this.outgoing.get(lin.to) || []) {
+        if (lout.edge === lin.edge) continue;
+        const tout = lout.pts[1].clone().sub(lout.pts[0]).setY(0).normalize();
+        if (tin.dot(tout) <= -0.9) continue; // no U-turns
+        // try a tight arc first, then wider swings through the junction (hairpins)
+        let pts = null;
+        for (const handle of [0.42, 0.7, 1.0, 1.35]) {
+          const cand = this.transitionPts(lin, lout, handle);
+          let clear = true;
+          for (const p of cand) {
+            const hit = this.world.sphereContact(probe.set(p.x, p.y + 1.3, p.z), 1.0);
+            if (hit && hit.depth > 0.2) { clear = false; break; } // wall closer than ~0.8 m (cart half-width)
+          }
+          if (clear) { pts = cand; break; }
+        }
+        if (!pts) continue;
+        ok.push(lout);
+        this.transitionCache.set(lin, (this.transitionCache.get(lin) || new Map()).set(lout, pts));
+      }
+      this.allowed.set(lin, ok);
+    }
+  }
+
+  extend(train) {
+    const last = train.segments[train.segments.length - 1];
+    if (!last.lane) return; // transitions are always followed by a lane (added together)
+    const node = last.lane.to;
+    let options = this.allowed ? this.allowed.get(last.lane) : null;
+    if (!options || !options.length) options = (this.outgoing.get(node) || []).filter((l) => l.edge !== last.lane.edge);
+    if (!options.length) options = this.outgoing.get(node) || [];
+    const next = options[Math.floor(this.rnd() * options.length)];
+    const cached = this.transitionCache && this.transitionCache.get(last.lane);
+    const pts = (cached && cached.get(next)) || this.transitionPts(last.lane, next);
     train.segments.push(makePath(pts, null));
     train.segments.push(makePath(next.pts, next));
   }
@@ -134,7 +172,10 @@ export class Traffic {
       } else tr.ghost -= dt;
       if (blocked) { tr.wait += dt; if (tr.wait > 2.5) { tr.ghost = 2.5; tr.wait = 0; } }
       else tr.wait = 0;
-      const target = blocked ? 0 : tr.cruise;
+      // slow down through junction transitions (tighter curves, crossing traffic)
+      let d = tr.head + 4, onTransition = false;
+      for (const seg of tr.segments) { if (d <= seg.length) { onTransition = !seg.lane; break; } d -= seg.length; }
+      const target = blocked ? 0 : (onTransition ? Math.min(tr.cruise, 6.5) : tr.cruise);
       tr.speed += THREE.MathUtils.clamp(target - tr.speed, -12 * dt, 3 * dt);
       tr.head += tr.speed * dt;
       while (tr.head + 8 > this.totalLen(tr)) this.extend(tr);

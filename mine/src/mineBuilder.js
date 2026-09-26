@@ -89,7 +89,7 @@ function bezier(p0, p1, p2, p3, t, out = new THREE.Vector3()) {
 }
 
 // Coons patch on an (S+1)x(T+1) grid given 4 boundary index arrays.
-function coonsFill(md, bottom, top, left, right, mat, rockFn, uvFn, colFn) {
+function coonsFill(md, bottom, top, left, right, mat, rockFn, uvFn, colFn, posFn = null) {
   // bottom: G[s][0], top: G[s][T], left: G[0][t], right: G[S][t]
   const S = bottom.length - 1, T = left.length - 1;
   const G = [];
@@ -109,6 +109,7 @@ function coonsFill(md, bottom, top, left, right, mat, rockFn, uvFn, colFn) {
         .addScaledVector(Pb[s], 1 - v).addScaledVector(Pt[s], v)
         .addScaledVector(c00, -(1 - u) * (1 - v)).addScaledVector(c10, -u * (1 - v))
         .addScaledVector(c01, -(1 - u) * v).addScaledVector(c11, -u * v);
+      if (posFn) posFn(p);
       const uv = uvFn(p, u, v);
       G[s].push(md.add(p, mat, rockFn(u, v), uv[0], uv[1], colFn ? colFn(p, u, v) : null));
     }
@@ -116,14 +117,19 @@ function coonsFill(md, bottom, top, left, right, mat, rockFn, uvFn, colFn) {
   return G;
 }
 
-export function buildMine(net, P) {
+export function buildMine(net, P, opts = {}) {
   const t0 = performance.now();
+  // preview = fast rebuild while dragging in the editor (coarser loops, no rock noise)
+  const rockForLayout = P.rockNoise; // junction sizes must not change between preview and full builds
+  if (opts.preview) P = { ...P, ringSpacing: P.ringSpacing * 2.2, rockNoise: 0 };
   const prof = buildProfile(P);
   const { a, w, r, N } = prof;
   const md = new MeshData();
   const warnings = [];
 
-  const splines = net.edges.map((e) => new EdgeSpline(net, e));
+  const vOpts = { minCrestRadius: P.minCrestRadius, maxGrade: P.maxGrade };
+  // pass 1 only needs the horizontal layout (junction angles) -> skip vertical relaxation
+  let splines = net.edges.map((e) => new EdgeSpline(net, e, { ...vOpts, skipVertical: true }));
 
   // ---------- 1. junction arms & cut distances ----------
   const hubs = net.nodes.map((n) => ({ node: n, arms: [] }));
@@ -132,7 +138,7 @@ export function buildMine(net, P) {
     hubs[e.a].arms.push({ edge: ei, end: 'a' });
     hubs[e.b].arms.push({ edge: ei, end: 'b' });
   });
-  const halfW = P.roadHalfWidth + P.wallBulge + P.rockNoise * 0.6;
+  const halfW = P.roadHalfWidth + P.wallBulge + rockForLayout * 0.6;
   const cut = net.edges.map(() => ({ a: 10, b: 10 }));
   for (const hub of hubs) {
     const c = new THREE.Vector3(...hub.node.p);
@@ -154,6 +160,14 @@ export function buildMine(net, P) {
       cur.R = R;
     }
   }
+  // second pass: rebuild splines so each tunnel stays level all the way to its
+  // junction mouth (+4 m) -> hub floors meet the tunnels without a slope kink
+  net.edges.forEach((e, ei) => {
+    const ha = hubs[e.a].arms.find((x) => x.edge === ei && x.end === 'a');
+    const hb = hubs[e.b].arms.find((x) => x.edge === ei && x.end === 'b');
+    if (!ha || !hb) return;
+    splines[ei] = new EdgeSpline(net, e, { ...vOpts, levelA: ha.R + 4, levelB: hb.R + 4 });
+  });
   // clamp to edge length
   net.edges.forEach((e, ei) => {
     const L = splines[ei].length;
@@ -311,6 +325,35 @@ export function buildMine(net, P) {
     const C = new THREE.Vector3();
     arms.forEach((A) => C.add(A.center));
     C.multiplyScalar(1 / K);
+
+    // Junction floor height field: every tunnel's road surface is extended into
+    // the hub and blended with inverse-distance weights (power 3) to the tunnel
+    // mouths. On a mouth only that tunnel contributes, so height AND slope are
+    // continuous -> no crease/ramp where a sloped tunnel meets the junction.
+    const armFields = arms.map((A) => {
+      const mid = A.center.clone();
+      const e0 = md.P(A.floorL2R[0]), e1 = md.P(A.floorL2R[a]);
+      const slope = A.T.y / Math.max(1e-4, Math.hypot(A.T.x, A.T.z));
+      return { mid, e0, e1, slope, Th: A.Th };
+    });
+    const segDist = (p, a0, a1) => {
+      const ax = a1.x - a0.x, az = a1.z - a0.z;
+      const t = THREE.MathUtils.clamp(((p.x - a0.x) * ax + (p.z - a0.z) * az) / (ax * ax + az * az || 1), 0, 1);
+      return Math.hypot(p.x - (a0.x + ax * t), p.z - (a0.z + az * t));
+    };
+    const floorY = (p) => {
+      let sw = 0, sy = 0;
+      for (const f of armFields) {
+        const dOut = (p.x - f.mid.x) * f.Th.x + (p.z - f.mid.z) * f.Th.z;
+        const y = f.mid.y + f.slope * dOut;
+        const d = segDist(p, f.e0, f.e1);
+        if (d < 1e-4) return y;
+        const w = 1 / (d * d * d);
+        sw += w; sy += w * y;
+      }
+      return sy / sw;
+    };
+    const fixFloor = (p) => { p.y = floorY(p); return p; };
     // corner fillets (floor & spring line)
     const floorFillet = [], springFillet = [];
     const hubCenterForWalls = C.clone().add(new THREE.Vector3(0, P.springHeight * 0.5, 0));
@@ -324,6 +367,7 @@ export function buildMine(net, P) {
         const out = [ia];
         for (let q = 1; q < 2 * k; q++) {
           const p = bezier(pa, c1, c2, pb, q / (2 * k));
+          if (!liftRock) fixFloor(p);
           out.push(md.add(p, liftRock ? MAT.ROCK : MAT.CURB, liftRock ? 1 : 0, p.x * 0.5, p.z * 0.5));
         }
         out.push(ib);
@@ -366,6 +410,7 @@ export function buildMine(net, P) {
           const t = q / segs;
           const p = pL.clone().lerp(pR, t);
           p.y += archH * Math.sin(Math.PI * t);
+          if (!isRoof) fixFloor(p);
           out.push(md.add(p, mat, rockW, p.x * 0.5, p.z * 0.5, colFn ? colFn(p) : null));
         }
         out.push(iR);
@@ -376,7 +421,7 @@ export function buildMine(net, P) {
         const jp = (j + K - 1) % K;
         const leftSide = fil[j].slice(0, k + 1);            // mouth-left  -> P_j
         const rightSide = fil[jp].slice(k).reverse();       // mouth-right -> P_{j-1}
-        const G = coonsFill(md, lines[j], inner[j], leftSide, rightSide, mat, () => rockW, uvFn, colFn);
+        const G = coonsFill(md, lines[j], inner[j], leftSide, rightSide, mat, () => rockW, uvFn, colFn, isRoof ? null : fixFloor);
         md.gridPatch(`hub${hub.node.id}_${isRoof ? 'roof' : 'floor'}Strip${j}`, G, () => (isRoof ? new THREE.Vector3(0, -1, 0) : UP.clone()));
       });
       // pole
@@ -384,7 +429,7 @@ export function buildMine(net, P) {
       const Cc = new THREE.Vector3();
       mids.forEach((m) => Cc.add(m));
       Cc.multiplyScalar(1 / K);
-      if (isRoof) Cc.y += 0.45;
+      if (isRoof) Cc.y += 0.45; else fixFloor(Cc);
       let sx = 0, sy = 0;
       mids.forEach((m, j) => {
         const ang = Math.atan2(-(m.z - Cc.z), m.x - Cc.x) - (2 * Math.PI * j) / K;
@@ -402,6 +447,7 @@ export function buildMine(net, P) {
         const out = [cIdx];
         for (let q = 1; q < half; q++) {
           const p = bezier(Cc, c1, c2, M, q / half);
+          if (!isRoof) fixFloor(p);
           out.push(md.add(p, mat, rockW, p.x * 0.5, p.z * 0.5, colFn ? colFn(p) : null));
         }
         out.push(l[half]);
@@ -411,7 +457,7 @@ export function buildMine(net, P) {
         const jn = (j + 1) % K;
         const side1 = inner[j].slice(0, half + 1).reverse();   // M_j -> P_j
         const side2 = inner[jn].slice(half);                   // M_{j+1} -> P_j
-        const G = coonsFill(md, spokes[j], side2, spokes[jn], side1, mat, () => rockW, uvFn, colFn);
+        const G = coonsFill(md, spokes[j], side2, spokes[jn], side1, mat, () => rockW, uvFn, colFn, isRoof ? null : fixFloor);
         md.gridPatch(`hub${hub.node.id}_${isRoof ? 'roof' : 'floor'}${j}`, G, () => (isRoof ? new THREE.Vector3(0, -1, 0) : UP.clone()));
       }
       return Cc;
@@ -426,7 +472,7 @@ export function buildMine(net, P) {
   const nv = md.pos.length / 3;
   let normals = computeNormals(md);
   const p = new THREE.Vector3();
-  for (let i = 0; i < nv; i++) {
+  for (let i = 0; i < nv && !opts.preview; i++) {
     const wgt = md.rock[i];
     if (wgt <= 0) continue;
     md.P(i, p);
@@ -440,7 +486,7 @@ export function buildMine(net, P) {
     const strata = 0.85 + 0.3 * Math.sin(p.y * 2.1 + fbm3(p.x * 0.1, 0, p.z * 0.1) * 6);
     md.col[i * 3] *= cv * strata; md.col[i * 3 + 1] *= cv * strata * 0.97; md.col[i * 3 + 2] *= cv * strata * 0.92;
   }
-  normals = computeNormals(md);
+  if (!opts.preview) normals = computeNormals(md);
 
   // ---------- 5. triangulate (shorter diagonal) ----------
   const nq = md.quads.length / 4;
@@ -466,7 +512,7 @@ export function buildMine(net, P) {
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
 
-  const conflicts = findConflicts(net, centerline, cut, P, halfW);
+  const conflicts = opts.preview ? [] : findConflicts(net, centerline, cut, P, halfW);
   conflicts.forEach((c) => warnings.push(`tunnels ${c.a} and ${c.b} intersect near (${c.p.x.toFixed(0)}, ${c.p.y.toFixed(0)}, ${c.p.z.toFixed(0)})`));
 
   return {

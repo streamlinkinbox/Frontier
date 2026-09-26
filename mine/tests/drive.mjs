@@ -26,7 +26,7 @@ let impacts = 0; car.impactFn = (v) => { impacts++; };
 let maxSpeed = 0, minClear = 99, flips = 0, airborne = 0, dist = 0;
 const dt = 1 / 60;
 let routeD = route.head;
-let stuck = 0, reverseT = 0;
+let stuck = 0, reverseT = 0, airStreak = 0;
 for (let f = 0; f < 60 * 60; f++) {
   // advance route parameter to the projection of the car
   const p = new THREE.Vector3();
@@ -46,15 +46,18 @@ for (let f = 0; f < 60 * 60; f++) {
   const angle = Math.atan2(cross, f2.dot(toT));
   // car's left is +X local; steering + turns left (towards +X of the car)
   const steer = THREE.MathUtils.clamp(-angle * 2.2, -1, 1);
-  // slow down for sharp junction turns ahead
+  // speed planner: max lateral accel on the route ahead + braking distance
   let tgt = targetSpeed;
-  for (let la = 5; la < 45; la += 5) {
-    const a0 = traffic.pointAt(route, routeD + la, new THREE.Vector3()), a1 = traffic.pointAt(route, routeD + la + 6, new THREE.Vector3());
-    const dir = a1.sub(a0).setY(0).normalize();
-    const turn = Math.acos(THREE.MathUtils.clamp(dir.dot(f2), -1, 1));
-    if (turn > 0.4) tgt = Math.min(tgt, 6 + la * 0.4 + (1.8 - Math.min(turn, 1.8)) * 12);
+  const q = (x) => traffic.pointAt(route, routeD + x, new THREE.Vector3()).setY(0);
+  for (let la = 3; la < 70; la += 3) {
+    const a = q(la - 3), b = q(la), c = q(la + 3);
+    const ab = a.distanceTo(b), bc = b.distanceTo(c), ca = c.distanceTo(a);
+    const area2 = Math.abs((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
+    const R = area2 > 1e-6 ? (ab * bc * ca) / (2 * area2) : 1e9;
+    const vCurve = Math.sqrt(9.0 * R);
+    tgt = Math.min(tgt, Math.sqrt(vCurve * vCurve + 2 * 7 * Math.max(0, la - 6)));
   }
-  const input = { throttle: car.speed < tgt ? 1 : 0, brake: car.speed > tgt + 2 ? 1 : 0, steer, handbrake: false, boost: false };
+  const input = { throttle: car.speed < tgt ? 1 : 0, brake: car.speed > tgt + 1 ? 1 : 0, steer, handbrake: false, boost: false };
   if (car.speed < 1) stuck += dt; else if (reverseT <= 0) stuck = 0;
   if (stuck > 1.5) { reverseT = 1.2; stuck = 0; }
   if (reverseT > 0) { reverseT -= dt; input.throttle = 0; input.brake = 1; input.steer = -steer; }
@@ -63,7 +66,13 @@ for (let f = 0; f < 60 * 60; f++) {
   dist += car.pos.distanceTo(before);
   maxSpeed = Math.max(maxSpeed, car.speed);
   if (car.up().y < 0.3) flips++;
-  if (car.grounded === 0) airborne++;
+  if (car.grounded === 0) { airborne++; airStreak++; } else {
+    if (airStreak > 12 && process.env.AIR) {
+      let hd = 1e9; for (const h of mine.hubs) hd = Math.min(hd, h.center.distanceTo(car.pos));
+      console.log(`air ${airStreak} frames ending at ${car.pos.toArray().map(v=>v.toFixed(0))} v=${(car.speed*3.6).toFixed(0)} nearest hub ${hd.toFixed(0)} m`);
+    }
+    airStreak = 0;
+  }
   const lat = traffic.pointAt(route, routeD, new THREE.Vector3()).distanceTo(car.pos);
   minClear = Math.min(minClear, 6 - lat);
   if (f % (process.env.EVERY ? +process.env.EVERY : 600) === 0) console.log(`t=${(f / 60).toFixed(0)}s pos=${car.pos.toArray().map((v) => v.toFixed(1))} v=${(car.speed * 3.6).toFixed(0)}km/h grounded=${car.grounded} up.y=${car.up().y.toFixed(2)} offRoute=${lat.toFixed(2)}`);

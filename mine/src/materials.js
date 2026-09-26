@@ -43,7 +43,7 @@ export function createMineMaterial() {
         varying vec3 vWNrm;
         ${NOISE_GLSL}
         float surfHeight(vec3 p, float metalW, float floorW){
-          float rock = mfbm(p*1.3)*0.7 + mfbm(p*6.0)*0.3;
+          float rock = mfbm(p*1.3)*0.8 + mnoise(p*4.0)*0.2;
           // tread plate: diamond bumps on junction plates
           vec2 q = p.xz*3.0; vec2 g = abs(fract(q)-0.5);
           float tread = smoothstep(0.18, 0.05, abs(g.x-g.y)) * 0.35 + mnoise(p*9.0)*0.08;
@@ -60,7 +60,7 @@ export function createMineMaterial() {
         diffuseColor.rgb *= 1.0 - wet*0.35;`)
       .replace('#include <roughnessmap_fragment>', `
         float roughnessFactor = mix(roughness, 0.35, clamp(vMetal,0.0,1.0));
-        roughnessFactor = mix(roughnessFactor, 0.28, wet);`)
+        roughnessFactor = mix(roughnessFactor, 0.5, wet);`)
       .replace('#include <metalnessmap_fragment>', `float metalnessFactor = vMetal;`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
         {
@@ -69,7 +69,7 @@ export function createMineMaterial() {
           float dhx = dFdx(h), dhy = dFdy(h);
           vec3 r1 = cross(dpdy, normal), r2 = cross(normal, dpdx);
           float det = dot(dpdx, r1);
-          float strength = mix(0.9, 0.18, floorW);
+          float strength = mix(0.7, 0.18, floorW);
           vec3 grad = sign(det) * (dhx * r1 + dhy * r2);
           normal = normalize(abs(det) * normal - strength * grad);
         }`);

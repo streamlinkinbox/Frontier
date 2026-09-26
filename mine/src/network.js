@@ -21,6 +21,8 @@ export const DEFAULT_PARAMS = {
   filletSegs: 3,          // k: each junction corner gets 2k segments
   rockNoise: 0.42,        // m, rock displacement amplitude
   bankMax: 0.10,          // rad, max road banking in curves
+  minCrestRadius: 65,     // m, vertical curvature limit (lower = more jumps)
+  maxGrade: 0.16,         // max slope (rise/run)
   supportSpacing: 7.0,    // m
   lampEvery: 2,           // lamp on every Nth support
   cartCount: 26,
@@ -34,10 +36,13 @@ export function createMaze(seed = 7, spacing = 58) {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const jx = (rnd() - 0.5) * 16, jz = (rnd() - 0.5) * 16;
-      const h = Math.sin(c * 1.3 + seed) * 3.2 + Math.cos(r * 1.7 + seed * 0.5) * 2.6;
+      const h = Math.sin(c * 1.3 + seed) * 2.2 + Math.cos(r * 1.7 + seed * 0.5) * 1.6;
       nodes.push({ id: id(c, r), p: [c * spacing + jx - (cols - 1) * spacing / 2, h, r * spacing + jz - (rows - 1) * spacing / 2] });
     }
   }
+  // overpass junctions get fixed heights BEFORE any tunnel control points are generated
+  nodes[id(2, 0)].p[1] = 1.5; nodes[id(2, 1)].p[1] = 1.0;
+  nodes[id(1, 0)].p[1] = 0; nodes[id(3, 1)].p[1] = 0;
   const edges = [];
   const has = new Set();
   const addEdge = (a, b, cps) => {
@@ -55,7 +60,7 @@ export function createMaze(seed = 7, spacing = 58) {
       const t = i / (n + 1);
       const p = A.clone().lerp(B, t);
       p.addScaledVector(side, (rnd() - 0.5) * 12);
-      p.y += (rnd() - 0.5) * 3.6;
+      p.y += (rnd() - 0.5) * 3.0;
       cps.push([p.x, p.y, p.z]);
     }
     return cps;
@@ -107,13 +112,11 @@ export function createMaze(seed = 7, spacing = 58) {
 
   // --- OVERPASS: tunnel (2,0)-(2,1) crests high while a diagonal (1,0)->(3,1) dives under it
   const nA = nodes[id(2, 0)], nB = nodes[id(2, 1)];
-  nA.p[1] = 1.5; nB.p[1] = 1.0;
-  const mid = [(nA.p[0] + nB.p[0]) / 2, 5.0, (nA.p[2] + nB.p[2]) / 2];
+  const mid = [(nA.p[0] + nB.p[0]) / 2, 5.5, (nA.p[2] + nB.p[2]) / 2];
   addEdge(id(2, 0), id(2, 1), [mid]);
   const d0 = nodes[id(1, 0)], d1 = nodes[id(3, 1)];
-  d0.p[1] = 0; d1.p[1] = 0;
   const L = (t) => [d0.p[0] + (d1.p[0] - d0.p[0]) * t, d0.p[2] + (d1.p[2] - d0.p[2]) * t];
-  const cross = [mid[0], -6.5, mid[2]];
+  const cross = [mid[0], -7.0, mid[2]];
   const q1 = L(0.22), q3 = L(0.78);
   addEdge(id(1, 0), id(3, 1), [
     [q1[0] - 4, -1.8, q1[1] + 6],
@@ -126,20 +129,70 @@ export function createMaze(seed = 7, spacing = 58) {
 
 // ---------- spline evaluation ----------
 export class EdgeSpline {
-  constructor(net, edge) {
+  // opts.minCrestRadius: vertical curvature limit (m) so crests don't launch the car
+  // opts.maxGrade: slope limit (rise / run)
+  constructor(net, edge, opts = {}) {
+    const minCrest = opts.minCrestRadius ?? 65;
+    const maxGrade = opts.maxGrade ?? 0.16;
     const raw = [net.nodes[edge.a].p, ...edge.cps, net.nodes[edge.b].p].map((p) => new THREE.Vector3(...p));
     // "approach" points: tunnels leave a junction straight and level for a few
     // metres, so hub floors meet the tunnels without kinks (no accidental ramps)
+    const leadLen = (A, B) => Math.min(13, Math.hypot(B.x - A.x, B.z - A.z) * 0.28);
     const lead = (A, B) => {
       const d = new THREE.Vector3(B.x - A.x, 0, B.z - A.z);
-      const len = d.length();
-      const k = Math.min(13, len * 0.28);
+      const k = leadLen(A, B);
       return new THREE.Vector3(A.x, A.y, A.z).addScaledVector(d.normalize(), k);
     };
     const A = raw[0], B = raw[raw.length - 1];
     const pts = [A, lead(A, raw[1]), ...raw.slice(1, -1), lead(B, raw[raw.length - 2]), B];
-    this.curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    this.curve.arcLengthDivisions = Math.max(200, Math.ceil(pts.length * 160));
+    const base = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    base.arcLengthDivisions = Math.max(200, pts.length * 160);
+
+    // ---- vertical profile: resample every 1 m, then relax heights until the
+    // grade and crest/sag curvature limits hold. Junction ends stay pinned & level.
+    const L0 = base.getLength();
+    const n = Math.max(8, Math.ceil(L0));
+    const P = base.getSpacedPoints(n);
+    const ds = L0 / n;
+    const y = P.map((p) => p.y);
+    // level zone at each end: at least the approach length, or the junction's cut distance (+margin)
+    const levelA = Math.min(Math.max(leadLen(A, raw[1]), opts.levelA || 0), L0 * 0.4);
+    const levelB = Math.min(Math.max(leadLen(B, raw[raw.length - 2]), opts.levelB || 0), L0 * 0.4);
+    // hard pin only on the short approach; the rest of the mouth zone is "near level" (soft grade limit)
+    const pinA = Math.ceil(leadLen(A, raw[1]) / ds), pinB = n - Math.ceil(leadLen(B, raw[raw.length - 2]) / ds);
+    const zoneA = Math.ceil(levelA / ds), zoneB = n - Math.ceil(levelB / ds);
+    const mouthGrade = 0.035;
+    for (let i = 0; i <= pinA; i++) y[i] = A.y;
+    for (let i = pinB; i <= n; i++) y[i] = B.y;
+    const kMax = 1 / minCrest, kSag = 1.6 / minCrest;
+    const Y = Float64Array.from(y);
+    const inv2 = 1 / (ds * ds), invd = 1 / ds;
+    let lastWorst = Infinity;
+    // in-place (Gauss-Seidel) relaxation: only points violating a limit are smoothed
+    for (let pass = 0; pass < (opts.skipVertical ? 0 : 6000); pass++) {
+      let worst = 0;
+      for (let i = pinA + 1; i < pinB; i++) {
+        const yl = Y[i - 1], yc = Y[i], yr = Y[i + 1];
+        const k = (yr - 2 * yc + yl) * inv2;
+        const g = Math.max(Math.abs(yr - yc), Math.abs(yc - yl)) * invd;
+        const gLim = i <= zoneA || i >= zoneB ? mouthGrade : maxGrade;
+        const over = Math.max(k < 0 ? -k / kMax : k / kSag, g / gLim);
+        if (over > 1) { Y[i] = yc * 0.5 + (yl + yr) * 0.25; if (over > worst) worst = over; }
+      }
+      if (worst <= 1.0001) break;
+      // infeasible limits (e.g. big height change on a short tunnel): stop once it stagnates
+      if (pass % 100 === 0) {
+        if (pass > 0 && worst > lastWorst * 0.998) break;
+        lastWorst = worst;
+      }
+    }
+    for (let i = 0; i <= n; i++) y[i] = Y[i];
+    const out = [];
+    const step = Math.max(1, Math.round(3 / ds));
+    for (let i = 0; i <= n; i += step) out.push(new THREE.Vector3(P[i].x, y[i], P[i].z));
+    if ((n % step) !== 0) out.push(new THREE.Vector3(P[n].x, y[n], P[n].z));
+    this.curve = new THREE.CatmullRomCurve3(out, false, 'centripetal');
+    this.curve.arcLengthDivisions = Math.max(200, out.length * 12);
     this.length = this.curve.getLength();
   }
   // arclength-parametrised sample

@@ -88,7 +88,7 @@ car.impactFn = (v) => { shake = Math.min(1, shake + v * 0.04); if (v > 9) flash(
 // ---------------------------------------------------------------- build / rebuild
 let buildTimer = null, lastQuick = 0;
 function rebuild(full = true) {
-  mine = buildMine(net, P);
+  mine = buildMine(net, P, { preview: !full });
   mineMesh.geometry.dispose();
   mineMesh.geometry = mine.geometry;
   if (topoLines) { scene.remove(topoLines); topoLines.children.forEach((c) => c.geometry.dispose()); topoLines = null; }
@@ -328,7 +328,7 @@ function updateAudio(inp) {
 }
 
 // ---------------------------------------------------------------- editor + GUI
-const editor = new Editor({ scene, camera, dom: renderer.domElement, getNet: () => net, onChange: (full) => scheduleRebuild(full) });
+const editor = new Editor({ scene, camera, dom: renderer.domElement, getNet: () => net, getParams: () => P, onChange: (full) => scheduleRebuild(full) });
 const gui = new GUI({ title: 'Mine generator' });
 gui.hide();
 const actions = {
@@ -364,6 +364,8 @@ fShape.add(P, 'wallBulge', 0, 1, 0.05).name('wall bulge').onFinishChange(rb);
 fShape.add(P, 'grooveDepth', 0.04, 0.25, 0.01).name('groove depth').onFinishChange(rb);
 fShape.add(P, 'rockNoise', 0, 0.9, 0.02).name('rock noise').onFinishChange(rb);
 fShape.add(P, 'bankMax', 0, 0.2, 0.01).name('max banking').onFinishChange(rb);
+fShape.add(P, 'minCrestRadius', 15, 150, 1).name('min crest radius (jumps)').onFinishChange(rb);
+fShape.add(P, 'maxGrade', 0.05, 0.35, 0.01).name('max grade').onFinishChange(rb);
 const fTopo = gui.addFolder('Topology');
 fTopo.add(P, 'ringSpacing', 0.4, 2, 0.05).name('edge-loop spacing').onFinishChange(rb);
 fTopo.add(P, 'wallSegs', 2, 10, 1).name('wall loops').onFinishChange(rb);
@@ -438,6 +440,8 @@ function updateCamera(dt) {
   const dir = want.clone().sub(origin); const dl = dir.length(); dir.normalize();
   const hit = world.raycast(origin, dir, dl + 0.4);
   if (hit && camMode !== 2) want = origin.addScaledVector(dir, Math.max(0.5, hit.distance - 0.45));
+  // teleport (reset / respawn): snap instead of flying through the rock
+  if (camPos.distanceTo(want) > 25) { camPos.copy(want); camLook.copy(look); }
   const k = camMode === 2 ? 1 : 1 - Math.exp(-dt * 9);
   camPos.lerp(want, k); camLook.lerp(look, camMode === 2 ? 1 : 1 - Math.exp(-dt * 14));
   camera.position.copy(camPos);
