@@ -371,15 +371,15 @@
   function setLights() {
     const carWorld = worldXY(car.x, car.y); const nearLights = lights.map((light) => { const p = worldXY(light.x, light.y); return { d: Math.hypot(p[0] - carWorld[0], p[1] - carWorld[1]), p, light }; }).sort((a, b) => a.d - b.d).slice(0, 8);
     const positions = new Float32Array(24); const colors = new Float32Array(24); const powers = new Float32Array(8);
-    for (let i = 0; i < 8; i += 1) { const item = nearLights[i] || nearLights[0]; const p = item ? item.p : [0, 0]; positions.set([p[0], 14, p[1]], i * 3); const c = item && item.light.index % 4 === 0 ? [1, .64, .28] : [.44, 1, .84]; colors.set(c, i * 3); powers[i] = item ? 1.2 : 0; }
+    for (let i = 0; i < 8; i += 1) { const item = nearLights[i] || nearLights[0]; const p = item ? item.p : [0, 0]; positions.set([p[0], 52, p[1]], i * 3); const c = item && item.light.index % 4 === 0 ? [1, .64, .28] : [.44, 1, .84]; colors.set(c, i * 3); powers[i] = item ? 1.2 : 0; }
     gl.uniform3fv(uniforms.lightPos, positions); gl.uniform3fv(uniforms.lightColor, colors); gl.uniform1fv(uniforms.lightPower, powers);
   }
 
   function render(time) {
     gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(.018, .035, .04, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.useProgram(program);
-    const carWorld = worldXY(car.x, car.y); const forwardX = Math.cos(car.angle), forwardZ = Math.sin(car.angle); const cameraWorld = [carWorld[0] - forwardX * 158, 39 + Math.min(Math.abs(car.speed) * .025, 5), carWorld[1] - forwardZ * 158]; const targetWorld = [carWorld[0] + forwardX * 122, 4.2, carWorld[1] + forwardZ * 122];
-    const projection = perspective(Math.PI / 3.15, viewport.width / Math.max(1, viewport.height), .1, 2400); const view = lookAt(cameraWorld, targetWorld);
+    const carWorld = worldXY(car.x, car.y); const forwardX = Math.cos(car.angle), forwardZ = Math.sin(car.angle); const cameraWorld = [carWorld[0] - forwardX * 86, 22 + Math.min(Math.abs(car.speed) * .018, 3), carWorld[1] - forwardZ * 86]; const targetWorld = [carWorld[0] + forwardX * 156, 5.8, carWorld[1] + forwardZ * 156];
+    const projection = perspective(Math.PI / 3.35, viewport.width / Math.max(1, viewport.height), .1, 1900); const view = lookAt(cameraWorld, targetWorld);
     gl.uniformMatrix4fv(uniforms.projection, false, projection); gl.uniformMatrix4fv(uniforms.view, false, view); gl.uniform3fv(uniforms.camera, new Float32Array(cameraWorld)); gl.uniform3fv(uniforms.fogColor, color('#071315')); gl.uniform1f(uniforms.fogNear, 380); gl.uniform1f(uniforms.fogFar, 950); setLights();
 
     // Opaque cavern shell.
@@ -392,7 +392,7 @@
   function drawCavernWalls() {
     // Low side shelves catch light and make the playable chamber feel carved out of rock.
     const walls = [
-      [-795, 13, -340, 20, 28, 880], [795, 13, -340, 20, 28, 880], [0, 13, -480, 1560, 28, 18], [0, 13, 480, 1560, 28, 18]
+      [-795, 26, -340, 20, 54, 880], [795, 26, -340, 20, 54, 880], [0, 26, -480, 1560, 54, 18], [0, 26, 480, 1560, 54, 18]
     ];
     walls.forEach(([x, y, z, sx, sy, sz]) => draw(meshes.cube, modelMatrix(x, y, z, 0, sx, sy, sz), hex.rock));
   }
@@ -414,22 +414,23 @@
   }
   function drawSupports() {
     renderables.support.forEach((support) => {
-      draw(meshes.cube, modelMatrix(support.leftX, 8, support.leftZ, -support.angle, 7, 16, 7), hex.timber);
-      draw(meshes.cube, modelMatrix(support.rightX, 8, support.rightZ, -support.angle, 7, 16, 7), hex.timber);
-      draw(meshes.cube, modelMatrix(support.x, 17, support.z, -support.angle, 7, 3.5, 118), hex.steelDark);
-      draw(meshes.cube, modelMatrix(support.x, 18.2, support.z, -support.angle, 3, .45, 112), hex.steel);
-      draw(meshes.cube, modelMatrix(support.x, 25, support.z, -support.angle, 118, 2.5, 5), hex.steelDark);
-      draw(meshes.cube, modelMatrix(support.x, 26.3, support.z, -support.angle, 108, .35, 1.2), hex.timber);
+      // Tall timber legs, a cross-beam over the road, and a second roof rail make the tunnel height legible in chase view.
+      draw(meshes.cube, modelMatrix(support.leftX, 27, support.leftZ, -support.angle, 8, 54, 8), hex.timber);
+      draw(meshes.cube, modelMatrix(support.rightX, 27, support.rightZ, -support.angle, 8, 54, 8), hex.timber);
+      draw(meshes.cube, modelMatrix(support.x, 55, support.z, -support.angle, 8, 5, 138), hex.steelDark);
+      draw(meshes.cube, modelMatrix(support.x, 57, support.z, -support.angle, 3, .6, 128), hex.steel);
+      draw(meshes.cube, modelMatrix(support.x, 64, support.z, -support.angle, 138, 3, 6), hex.steelDark);
+      draw(meshes.cube, modelMatrix(support.x, 65.6, support.z, -support.angle, 126, .45, 1.5), hex.timber);
     });
   }
   function drawCeilingDetails() {
     // Repeated dark ribs connect to the support beams and make the roof readable in perspective.
     for (let x = -720; x <= 720; x += 150) draw(meshes.cube, modelMatrix(x, 75, 0, 0, 7, 5, 930), hex.rock);
-    lights.forEach((light) => { const p = worldXY(light.x, light.y); draw(meshes.cube, modelMatrix(p[0], 20, p[1], 0, 8, 2, 8), hex.steelDark); draw(meshes.sphere, modelMatrix(p[0], 17.8, p[1], 0, 4.5, 4.5, 4.5), hex.white, light.index % 4 === 0 ? emissive.amber : emissive.cyan); });
+    lights.forEach((light) => { const p = worldXY(light.x, light.y); draw(meshes.cube, modelMatrix(p[0], 58, p[1], 0, 8, 2, 8), hex.steelDark); draw(meshes.sphere, modelMatrix(p[0], 55.8, p[1], 0, 4.5, 4.5, 4.5), hex.white, light.index % 4 === 0 ? emissive.amber : emissive.cyan); });
   }
   function drawLightBeams(time) {
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.depthMask(false);
-    lights.forEach((light) => { const p = worldXY(light.x, light.y); const pulse = .055 + Math.sin(time * .002 + light.phase) * .012; draw(meshes.beam, modelMatrix(p[0], 9, p[1], 0, 25, 17, 25), hex.cyan, light.index % 4 === 0 ? emissive.amber : emissive.cyan, pulse); });
+    lights.forEach((light) => { const p = worldXY(light.x, light.y); const pulse = .045 + Math.sin(time * .002 + light.phase) * .01; draw(meshes.beam, modelMatrix(p[0], 28, p[1], 0, 30, 56, 30), hex.cyan, light.index % 4 === 0 ? emissive.amber : emissive.cyan, pulse); });
     gl.depthMask(true); gl.disable(gl.BLEND);
   }
   function drawDust3D(time) {
