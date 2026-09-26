@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontier — Procedural Tunnel Generator</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="panel">
+      <header>
+        <h1>FRONTIER</h1>
+        <p class="tagline">Procedural tunnel generator<br/>spline paths &rarr; one quad-topology mesh</p>
+      </header>
+
+      <section>
+        <h2>Scene</h2>
+        <div class="row">
+          <select id="preset">
+            <option value="full">Full network (X + Y + overpass)</option>
+            <option value="x">X crossing</option>
+            <option value="y">Y junction</option>
+            <option value="overpass">Overpass (different levels)</option>
+            <option value="hills">Hills &mdash; varying height</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="row btn-row">
+          <button id="addSpline">+ Spline</button>
+          <button id="delSpline">− Spline</button>
+          <button id="clearAll">Clear</button>
+        </div>
+        <p class="hint" id="editHint">
+          Click ground: add point &nbsp;·&nbsp; drag <b>&#9679;</b>: move<br/>
+          <b>Shift+drag</b>: height &nbsp;·&nbsp; <b>Del</b>: remove point
+        </p>
+      </section>
+
+      <section>
+        <h2>Selected point</h2>
+        <div class="row">
+          <label>Height <span id="ptYVal" class="val">–</span></label>
+          <input type="range" id="ptY" min="-10" max="40" step="0.25" value="0" />
+        </div>
+        <div class="row btn-row">
+          <button id="delPoint">Delete point</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Tunnel profile</h2>
+        <div class="row">
+          <label>Road width <span id="halfWVal" class="val">4.2</span></label>
+          <input type="range" id="halfW" min="2" max="8" step="0.1" value="4.2" />
+        </div>
+        <div class="row">
+          <label>Wall tiers <span id="tiersVal" class="val">3</span></label>
+          <input type="range" id="tiers" min="1" max="5" step="1" value="3" />
+        </div>
+        <div class="row">
+          <label>Tier height <span id="tierHVal" class="val">2.3</span></label>
+          <input type="range" id="tierH" min="1" max="4" step="0.1" value="2.3" />
+        </div>
+        <div class="row">
+          <label>Ledge depth <span id="ledgeDVal" class="val">1.15</span></label>
+          <input type="range" id="ledgeD" min="0.3" max="2.5" step="0.05" value="1.15" />
+        </div>
+        <div class="row">
+          <label>Wall noise <span id="wallNoiseVal" class="val">0.40</span></label>
+          <input type="range" id="wallNoise" min="0" max="1" step="0.02" value="0.4" />
+        </div>
+      </section>
+
+      <section>
+        <h2>Vault &amp; path</h2>
+        <div class="row">
+          <label>Arch rise <span id="archRiseVal" class="val">3.4</span></label>
+          <input type="range" id="archRise" min="1.2" max="7" step="0.1" value="3.4" />
+        </div>
+        <div class="row">
+          <label>Height variation <span id="archRiseVarVal" class="val">0.50</span></label>
+          <input type="range" id="archRiseVar" min="0" max="1" step="0.02" value="0.5" />
+        </div>
+        <div class="row">
+          <label>Station spacing <span id="stationSpacingVal" class="val">3.0</span></label>
+          <input type="range" id="stationSpacing" min="1.5" max="6" step="0.1" value="3" />
+        </div>
+        <div class="row">
+          <label>Detail (road/arc pts) <span id="roadPtsVal" class="val">5</span></label>
+          <input type="range" id="roadPts" min="3" max="9" step="1" value="5" />
+        </div>
+        <div class="row">
+          <label>Seed <span id="seedVal" class="val">1</span></label>
+          <div class="seed-row">
+            <input type="range" id="seed" min="1" max="200" step="1" value="1" />
+            <button id="randomSeed" class="small">&#8635;</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Display</h2>
+        <div class="row toggles">
+          <label><input type="checkbox" id="showWire" checked /> Quad topology</label>
+          <label><input type="checkbox" id="showSplines" checked /> Splines</label>
+          <label><input type="checkbox" id="showMesh" checked /> Mesh</label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Mesh stats</h2>
+        <div id="stats" class="stats">
+          <div class="stat"><span>vertices</span><b id="stVerts">–</b></div>
+          <div class="stat"><span>quads</span><b id="stQuads">–</b></div>
+          <div class="stat"><span>arms</span><b id="stArms">–</b></div>
+          <div class="stat"><span>junctions</span><b id="stJunctions">–</b></div>
+          <div class="stat"><span>overpasses</span><b id="stOverpasses">–</b></div>
+          <div class="stat"><span>components</span><b id="stComponents">–</b></div>
+        </div>
+        <div id="topoBadge" class="badge ok">✓ one connected topology</div>
+      </section>
+
+      <section>
+        <div class="row btn-row">
+          <button id="exportObj" class="primary">Export OBJ (quads)</button>
+        </div>
+        <p class="hint">OBJ keeps quad faces — import into Blender / Maya / Houdini with topology intact.</p>
+      </section>
+
+      <footer>pure procedural · all-quad · shared-vertex seams</footer>
+    </aside>
+    <main id="viewport"></main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

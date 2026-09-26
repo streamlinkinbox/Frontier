@@ -1,0 +1,19 @@
+{
+  "name": "frontier-tunnel-generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Procedural tunnel / pathway mesh generator from splines — clean quad topology, one connected mesh",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node tools/check.mjs"
+  },
+  "dependencies": {
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
