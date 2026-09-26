@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#071012" />
+  <meta name="description" content="Dustline — a mine-shaft race prototype." />
+  <title>DUSTLINE // Mine Run</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="experience" aria-label="Dustline mine race prototype">
+    <canvas id="scene" aria-label="Interactive mine race scene"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="hud-header">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <div class="eyebrow">FRONTIER // UNDERGROUND OPERATIONS</div>
+          <div class="brand-name">DUST<span>LINE</span></div>
+        </div>
+      </div>
+
+      <div class="run-readout">
+        <div class="eyebrow">LIVE COURSE / MINE 07</div>
+        <div class="run-title">SUBTERRANEAN <strong>SPRINT</strong></div>
+        <div class="run-meta"><i class="live-dot"></i><span id="trackStatus">TRACK LIVE</span><b></b><span id="timer">00:00.00</span></div>
+      </div>
+
+      <div class="header-actions">
+        <button class="hud-button" id="resetButton" type="button"><span class="button-icon">↻</span> RESET RUN</button>
+        <button class="hud-button icon-only" id="cinematicButton" type="button" aria-label="Toggle cinematic interface">◈</button>
+      </div>
+    </header>
+
+    <section class="map-card glass-panel" aria-label="Route map">
+      <div class="panel-heading">
+        <div><span class="section-kicker">ROUTE MAP</span><strong>RIFTLINE / 07</strong></div>
+        <span class="signal"><i></i> LIVE</span>
+      </div>
+      <canvas id="minimap"></canvas>
+      <div class="map-legend"><span><i class="legend-player"></i> YOU</span><span><i class="legend-cart"></i> CARTS</span><span><i class="legend-route"></i> RACE LINE</span></div>
+    </section>
+
+    <section class="telemetry-card glass-panel" aria-label="Vehicle telemetry">
+      <div class="telemetry-topline"><span class="section-kicker">VEHICLE TELEMETRY</span><span id="tractionState">GRIP / GOOD</span></div>
+      <div class="telemetry-main">
+        <div class="speed-readout"><strong id="speedValue">000</strong><span>KM/H</span></div>
+        <div class="gear"><small>GEAR</small><b id="gearValue">N</b></div>
+        <div class="vehicle-type"><span class="vehicle-status"></span><div><b>BOXCAR / MK-IV</b><small id="surfaceValue">TRACK SURFACE</small></div></div>
+      </div>
+      <div class="telemetry-bars">
+        <div class="bar-label"><span>BOOST</span><b id="boostValue">86%</b></div><div class="bar"><i id="boostBar"></i></div>
+        <div class="bar-label"><span>CHASSIS</span><b id="healthValue">100%</b></div><div class="bar red"><i id="healthBar"></i></div>
+      </div>
+    </section>
+
+    <section class="traffic-card glass-panel" aria-label="Mine traffic">
+      <div class="panel-heading traffic-heading"><div><span class="section-kicker">TRAFFIC CONTROL</span><strong id="trafficHeadline">ORE LINE / CLEAR</strong></div><span class="traffic-count"><i></i><b id="cartCount">03</b></span></div>
+      <div class="traffic-alert" id="trafficAlert"><span class="alert-icon">!</span><div><b id="trafficAlertTitle">RAIL TRAFFIC</b><small id="trafficAlertCopy">Mining carts cycle through the crosscuts.</small></div></div>
+      <div class="cart-list" id="cartList">
+        <div class="cart-row"><span class="cart-code amber">C-12</span><span class="cart-line"><i></i> EAST HAUL</span><span class="cart-state">MOVING</span></div>
+        <div class="cart-row"><span class="cart-code orange">C-04</span><span class="cart-line"><i></i> DEEP LOOP</span><span class="cart-state">MOVING</span></div>
+        <div class="cart-row"><span class="cart-code pale">C-19</span><span class="cart-line"><i></i> WEST CUT</span><span class="cart-state">STANDBY</span></div>
+      </div>
+    </section>
+
+    <div class="route-chip glass-panel"><span class="route-chip-dot"></span><div><small>SECTOR PROGRESS</small><strong><span id="sectorValue">01</span> <i>/</i> 08</strong></div><div class="route-line"><i id="routeProgress"></i></div></div>
+
+    <div class="drive-hint" id="driveHint"><span class="keys"><b>W</b><b>A</b><b>S</b><b>D</b></span><span><strong>DRIVE THE BOXCAR</strong><small>ARROWS ALSO ONLINE · SPACE / BOOST</small></span></div>
+
+    <div class="incident-toast" id="incidentToast" role="status" aria-live="polite"><span class="incident-bar"></span><div class="incident-copy"><small>TRAFFIC ADVISORY</small><strong id="incidentTitle">CART INBOUND</strong><span id="incidentDetail">Hold the line. Check the crossing.</span></div><span class="incident-mark">!</span></div>
+
+    <div class="cinematic-badge" id="cinematicBadge">CINEMATIC HUD OFF <span>C</span></div>
+    <div class="build-stamp">DUSTLINE / PROTOTYPE 0.7.4 <span>·</span> RIFTLINE MINE</div>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>
