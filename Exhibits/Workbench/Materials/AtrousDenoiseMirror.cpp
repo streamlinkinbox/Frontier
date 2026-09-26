@@ -79,9 +79,12 @@ void StoreImage(const image2D& Image, uint32_t ExtentPixels, float* Values)
 //                                                       DISPATCH
 //------------------------------------------------------------------------------------------------------------------------
 
-void Run(const RunConfiguration& Configuration, const float* Source, const float* Surface, float* Target, float* Output)
+void Run(const RunConfiguration& Configuration, const float* Source, const float* Surface, float* Target, float* Output, const float* ValidSamples)
 {
     const uint32_t ExtentPixels = Configuration.Extent;
+    HistoryImage.Assign(static_cast<int>(ExtentPixels), static_cast<int>(ExtentPixels));
+    for (size_t I = 0; I < HistoryImage.Texels.size(); ++I)
+        HistoryImage.Texels[I] = vec4(0.0f, 0.0f, 0.0f, ValidSamples ? ValidSamples[I] : 1.0f);
     LoadImage(SourceImage, ExtentPixels, Source);
     LoadImage(SurfaceImage, ExtentPixels, Surface);
     LoadImage(TargetImage, ExtentPixels, Source);        // pre-fill: an untouched texel must be visibly untouched, not zero

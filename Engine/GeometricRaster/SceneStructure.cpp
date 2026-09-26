@@ -6,6 +6,7 @@
 #include "SceneStructure.h"
 #include "ClipProjection.h"
 #include "PatchGeometry.h"
+#include "VertexIdentity.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -111,6 +112,8 @@ uint32_t SceneStructure::RegisterInstance(const GeometryStructure& Mesh, const M
     const uint32_t FirstInstance = static_cast<uint32_t>(Instances.size());
     if (TriangleTotal == 0u || MeshVertices.empty()) return FirstInstance;
 
+    const auto Canonical = CanonicalVertexIndices(MeshVertices);
+
     // ① Morton order the triangles by centroid inside the mesh's own bounds.
     Vector3 Minimum{  std::numeric_limits<float>::max(),  std::numeric_limits<float>::max(),  std::numeric_limits<float>::max() };
     Vector3 Maximum{ -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() };
@@ -165,9 +168,9 @@ uint32_t SceneStructure::RegisterInstance(const GeometryStructure& Mesh, const M
             for (uint32_t T = 0u; T < ClusterTriangles; ++T)
             {
                 const uint32_t Source = Order[InstanceStart + ClusterStart + T].second;
-                LocalIndices.push_back(MeshIndices[Source * 3u + 0u]);
-                LocalIndices.push_back(MeshIndices[Source * 3u + 1u]);
-                LocalIndices.push_back(MeshIndices[Source * 3u + 2u]);
+                LocalIndices.push_back(Canonical[MeshIndices[Source * 3u + 0u]]);
+                LocalIndices.push_back(Canonical[MeshIndices[Source * 3u + 1u]]);
+                LocalIndices.push_back(Canonical[MeshIndices[Source * 3u + 2u]]);
             }
 
             ClusterRecord Cluster = ConstructCluster(MeshVertices.data(), LocalIndices.data(), ClusterTriangles, false); // keep cone for LOD; culling still checks instance flags

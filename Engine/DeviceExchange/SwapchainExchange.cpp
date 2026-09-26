@@ -1802,9 +1802,9 @@ bool SwapchainExchange::BringLuminanceReduction() noexcept
 
 bool SwapchainExchange::BringDenoisePipeline() noexcept
 {
-    // ① Set layout: source, target, surface, presentation.
-    std::array<VkDescriptorSetLayoutBinding, 4u> Bindings{};
-    for (uint32_t B = 0u; B < 4u; ++B)
+    // ① Set layout: source, target, surface, presentation, valid history.
+    std::array<VkDescriptorSetLayoutBinding, 5u> Bindings{};
+    for (uint32_t B = 0u; B < 5u; ++B)
     {
         Bindings[B].binding         = B;
         Bindings[B].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -1813,7 +1813,7 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
     }
 
     VkDescriptorSetLayoutCreateInfo LayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-    LayoutInfo.bindingCount = 4u;
+    LayoutInfo.bindingCount = 5u;
     LayoutInfo.pBindings    = Bindings.data();
     if (vkCreateDescriptorSetLayout(Vulkan->Device, &LayoutInfo, nullptr, &Vulkan->DenoiseSetLayout) != VK_SUCCESS)
         return false;
@@ -1831,7 +1831,7 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
         return false;
 
     // ② Pool and one set per level.
-    VkDescriptorPoolSize PoolSize{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 4u * kDenoiseLevelCount };
+    VkDescriptorPoolSize PoolSize{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5u * kDenoiseLevelCount };
     VkDescriptorPoolCreateInfo PoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     PoolInfo.maxSets       = kDenoiseLevelCount;
     PoolInfo.poolSizeCount = 1u;
@@ -2192,22 +2192,23 @@ void SwapchainExchange::WriteDescriptorSet() noexcept
     //    depends on which slot it ended in.
     if (Vulkan->DenoiseSetLayout && Vulkan->DenoiseImageViews[0] && Vulkan->HistorySurfaceImageView)
     {
-        std::array<VkDescriptorImageInfo,  4u * kDenoiseLevelCount> DenoiseInfos{};
-        std::array<VkWriteDescriptorSet,   4u * kDenoiseLevelCount> DenoiseWrites{};
+        std::array<VkDescriptorImageInfo,  5u * kDenoiseLevelCount> DenoiseInfos{};
+        std::array<VkWriteDescriptorSet,   5u * kDenoiseLevelCount> DenoiseWrites{};
         uint32_t DenoiseCount = 0u;
 
         for (uint32_t Level = 0u; Level < kDenoiseLevelCount; ++Level)
         {
             const uint32_t Source = Level & 1u;
-            const VkImageView Views[4] =
+            const VkImageView Views[5] =
             {
                 Vulkan->DenoiseImageViews[Source],        // 0 source
                 Vulkan->DenoiseImageViews[Source ^ 1u],   // 1 target
                 Vulkan->HistorySurfaceImageView,          // 2 normal + depth (shared with R7a)
-                Vulkan->StorageImageView                  // 3 presentation (written by the final level only)
+                Vulkan->StorageImageView,                 // 3 presentation (written by the final level only)
+                Vulkan->HistoryImageView                  // 4 current valid sample count
             };
 
-            for (uint32_t Binding = 0u; Binding < 4u; ++Binding)
+            for (uint32_t Binding = 0u; Binding < 5u; ++Binding)
             {
                 VkDescriptorImageInfo& Info = DenoiseInfos[DenoiseCount];
                 Info.imageView   = Views[Binding];
@@ -3348,12 +3349,13 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
             //    neighbours. Because workgroups retire roughly in linear ID order the incomplete frontier follows
             //    column boundaries, so it shows up as vertical banding rather than isolated speckle.
             {
-                // Two images to order, same bracket: the surface image feeds every level's edge stops, and the
+                // Three images to order, same bracket: the surface image feeds every level's edge stops, and the
                 //    PRESENTATION image now carries the albedo the kernel parked for the final level's
                 //    remodulation read — unordered, the final level could read a texel the kernel had not
                 //    written yet and remodulate with garbage.
-                VkImageMemoryBarrier KernelOutputs[2]{};
-                for (uint32_t Slot = 0u; Slot < 2u; ++Slot)
+                // Current history alpha feeds progressive strength at every level.
+                VkImageMemoryBarrier KernelOutputs[3]{};
+                for (uint32_t Slot = 0u; Slot < 3u; ++Slot)
                 {
                     VkImageMemoryBarrier& KernelOutput       = KernelOutputs[Slot];
                     KernelOutput.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -3362,7 +3364,7 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
                     KernelOutput.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
                     KernelOutput.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
                     KernelOutput.image                       = Slot == 0u ? Vulkan->HistorySurfaceImage
-                                                                          : Vulkan->StorageImage;
+                                                                          : (Slot == 1u ? Vulkan->StorageImage : Vulkan->HistoryImage);
                     KernelOutput.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                     KernelOutput.subresourceRange.levelCount = 1u;
                     KernelOutput.subresourceRange.layerCount = 1u;
@@ -3372,7 +3374,7 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
                 }
                 vkCmdPipelineBarrier(Command,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                    0u, 0u, nullptr, 0u, nullptr, 2u, KernelOutputs);
+                    0u, 0u, nullptr, 0u, nullptr, 3u, KernelOutputs);
             }
 
             // R10 #8: how many levels run is tier-keyed. Descriptor sets exist for kDenoiseLevelCount, so a

@@ -5,7 +5,7 @@
 //    DenoiseCpuShim.h for the port's three mechanical substitutions), driven through a plain-float API so the proof
 //    never touches the shim's types.
 //
-//    Nothing here is a re-implementation. `Run` fills the shader's four image2D bindings and the push constant, sets
+//    Nothing here is a re-implementation. `Run` fills the shader's five image2D bindings and the push constant, sets
 //    one invocation id and calls the shader's own `main()`. `ToneMap`, `AcesFilm`, `KernelWeight` and the early-out
 //    threshold are the shader's own functions and constants, called directly — which is what makes the presentation
 //    A/B in §C3 a statement about the shipped filter rather than about a transcription of it.
@@ -29,10 +29,11 @@ struct RunConfiguration
     float    ColourSaturation = 1.0f;   // [-]   the engine's Dispatch.ColourSaturation
 };
 
+// ValidSamples, when supplied, is one count per pixel; nullptr means young history (1).
 // One dispatch over an Extent × Extent image. `Source` and `Surface` are 4-float texels (xyz = linear radiance,
 //    w = variance / depth ≤ 0 = none); `Target` receives the filtered texels and `Output`, when non-null, the
 //    tone-mapped presentation texels. All four arrays are Extent × Extent × 4 floats.
-void Run(const RunConfiguration& Configuration, const float* Source, const float* Surface, float* Target, float* Output);
+void Run(const RunConfiguration& Configuration, const float* Source, const float* Surface, float* Target, float* Output, const float* ValidSamples = nullptr);
 
 // The shader's own functions and constants, for the proof's parity and sanity checks.
 float AcesFilm(float X);

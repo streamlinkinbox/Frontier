@@ -17,7 +17,8 @@
 //    means a difference that is small RELATIVE TO THE NOISE is smoothed, while a difference much larger than the
 //    noise is a real edge and is preserved. Where variance is high (few samples) the filter is permissive and
 //    blurs hard; where the estimate has converged it barely touches the image. That is the property that lets the
-//    denoiser fade out as the running mean converges rather than permanently softening a still frame.
+//    denoiser reduce its footprint as variance falls. A separate valid-history fade below also guarantees
+//    an identity limit even where floors or moment precision keep the variance test from engaging.
 //
 // Variance is carried in the alpha channel and filtered alongside the colour with the SQUARE of the colour weights,
 //    which is the correct propagation for a weighted mean of independent samples.
@@ -26,18 +27,21 @@
 
 #version 460
 #extension GL_GOOGLE_include_directive : require
+#include "ProgressiveDenoise.shared.h"
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       BINDINGS
 //------------------------------------------------------------------------------------------------------------------------
-// A private descriptor set. The ReSTIR kernel's set is full to its variable-count texture array, and a filter that
-//    only needs three images has no business being bolted onto it.
+// A private descriptor set. The ReSTIR kernel's set is full to its variable-count texture array;
+//    the filter uses its own small image set.
 
 layout(set = 0, binding = 0, rgba32f) uniform readonly  image2D SourceImage;    // xyz = radiance, w = variance
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D TargetImage;    // xyz = radiance, w = variance
 layout(set = 0, binding = 2, rgba16f) uniform readonly  image2D SurfaceImage;   // xyz = normal, w = depth (≤ 0 = none)
 layout(set = 0, binding = 3, rgba8)   uniform           image2D OutputImage;   // IN: primary albedo, parked by the kernel while the denoiser owns this image · OUT: tone-mapped presentation (final level only)
+
+layout(set = 0, binding = 4, rgba32f) uniform readonly image2D HistoryImage; // alpha = valid per-pixel sample count (not filtered)
 
 layout(push_constant) uniform DenoiseConstants
 {
@@ -290,6 +294,20 @@ void main()
     vec4 Result = WeightSum > 1.0e-8
                 ? vec4(ColourSum / WeightSum, VarianceOut / (WeightSum * WeightSum))
                 : Centre;
+
+    // Variance edge stops alone do not guarantee an identity limit (they have
+    // floors and finite precision). Fade EACH level with valid pixel age, not
+    // global frame age: resets/disocclusions immediately regain full filtering.
+    // Blend the current demodulated input, NOT clean HistoryImage.rgb: the input
+    // includes weather, whereas history deliberately excludes it.
+    float Strength = ProgressiveDenoiseStrength(imageLoad(HistoryImage, Pixel).a);
+    if (Strength < 1.0)
+    {
+        // The centre and filtered estimate are correlated. A convex blend of
+        // standard deviations bounds the mixed variance without assuming independence.
+        float Sigma = mix(sqrt(max(Centre.a, 0.0)), sqrt(max(Result.a, 0.0)), Strength);
+        Result = vec4(mix(Centre.rgb, Result.rgb, Strength), Sigma * Sigma);
+    }
 
     imageStore(TargetImage, Pixel, Result);
 

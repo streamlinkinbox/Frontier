@@ -86,6 +86,25 @@ for shader in ['ReSTIRViewport','AtrousDenoise','ShadowResolve']:
  text=(R/f'Engine/Shaders/{shader}.slang').read_text()
  assert '#include "PresentationDither.slang"' in text
  assert 'PresentationDither(' in text
+# Progressive filter must read CURRENT history count, not the previous snapshot,
+# and all levels must receive binding 4 with kernel-write -> filter-read ordering.
+f=(R/'Engine/Shaders/AtrousDenoise.slang').read_text()
+assert 'layout(set = 0, binding = 4, rgba32f) uniform readonly image2D HistoryImage;' in f
+assert 'ProgressiveDenoiseStrength(imageLoad(HistoryImage, Pixel).a)' in f
+assert 'imageLoad(HistoryImage, Pixel).rgb' not in f
+layout=h[h.index('bool SwapchainExchange::BringDenoisePipeline()'):h.index('bool SwapchainExchange::BringDenoisePipeline()')+3500]
+assert 'LayoutInfo.bindingCount = 5u' in layout
+assert 'VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5u * kDenoiseLevelCount' in layout
+writes=h[h.index('std::array<VkDescriptorImageInfo,  5u * kDenoiseLevelCount>'):]
+assert 'Views[5]' in writes and 'Binding < 5u' in writes
+assert 'Vulkan->HistoryImageView                  // 4 current valid sample count' in writes
+assert 'VkImageMemoryBarrier KernelOutputs[3]' in record
+assert 'Slot < 3u' in record and 'nullptr, 3u, KernelOutputs' in record
+assert '(Slot == 1u ? Vulkan->StorageImage : Vulkan->HistoryImage)' in record
+assert 'KernelOutput.srcAccessMask               = VK_ACCESS_SHADER_WRITE_BIT' in record
+assert 'KernelOutput.dstAccessMask               = VK_ACCESS_SHADER_READ_BIT' in record
+assert 'const float kMovingHistoryBound = 32.0;' in s # strength policy's 33 = 32 + new sample
+print('PASS current-history denoise descriptor / pool / barrier / moving-age contract')
 print('PASS snapshot ownership/copy/reset/descriptor and shared-dither source guards')
 # Explicit concurrency MODEL: each tuple represents aligned mean/surface/moments.
 # A ring reprojection deliberately creates read-after-write dependencies.

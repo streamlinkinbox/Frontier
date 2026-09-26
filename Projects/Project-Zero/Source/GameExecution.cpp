@@ -1649,7 +1649,7 @@ int main(int argc, char** argv)
             else if (!BakeAnnounced)
             {
                 BakeAnnounced = true;
-                if (P.BakingComplete) { char Body[64]; std::snprintf(Body, sizeof(Body), "%u frames accumulated", BakeFrameCount); Notifications.Push("Baking complete", Body); }
+                if (P.BakingComplete) { char Body[96]; std::snprintf(Body, sizeof(Body), "%u frames accumulated; refinement continues", BakeFrameCount); Notifications.Push("Initial accumulation ready", Body); }
             }
             if (Telemetry.ConsumeFrameRateDrop(30.0f) && P.FrameRateDrops)
             {

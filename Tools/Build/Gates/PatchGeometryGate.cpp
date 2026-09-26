@@ -1,5 +1,6 @@
 #include "Engine/GeometricRaster/PatchReference.h"
 #include "Engine/Editor/ConstructWorld.h"
+#include "Engine/GeometricRaster/VertexIdentity.h"
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -55,6 +56,41 @@ int main(int argc,char**argv){try{
  ConstructRequest request;request.Kind=ConstructKind::Sphere;Check(bool(ConstructEntity(sphere,request)),"sphere reference");
  auto fine=uint32_t(sphere.QueryFlatTriangles().size());auto far=Selected(sphere,1000);Check(far<fine,"far selection reduces");Check(Selected(sphere,1.7f)>=far,"distance policy");
  if(argc>1){std::filesystem::create_directories(argv[1]);Svg(sphere,std::string(argv[1])+"/native-sphere-fine.svg",1.7f,false);Svg(sphere,std::string(argv[1])+"/native-sphere-coarse.svg",1000,true);}
+ // Real triangle-soup registration: identical sphere attributes, one vertex per corner.
+ // Without canonical identity every edge is classified as a boundary and no patch reduces.
+ {
+  std::vector<VertexRecord> soup; std::vector<uint32_t> sequential;
+  for(const auto& instance:sphere.QueryInstances())
+   for(uint32_t k=0;k<instance.TriangleCount*3;++k){
+    soup.push_back(sphere.QueryVertices()[instance.VertexOffset+sphere.QueryIndices()[instance.FirstIndex+k]]);
+    sequential.push_back(uint32_t(sequential.size()));
+   }
+  std::vector<uint32_t> first(sequential.begin(),sequential.begin()+384);
+  Check(Bake(soup,first).Indices.size()==first.size(),"unindexed soup reproduces locked-boundary failure");
+  GeometryStructure mesh;mesh.AppendVertices(soup.data(),soup.size());mesh.AppendIndices(sequential.data(),sequential.size());
+  SceneStructure restored;MaterialDescriptor material;material.Slabs.emplace_back();
+  restored.RegisterInstance(mesh,Matrix4x4{},restored.RegisterMaterial(material),0);restored.Finalise();Validate(restored);
+  auto nearCount=Selected(restored,1.7f),farCount=Selected(restored,1000);
+  Check(farCount<nearCount,"triangle soup changes detail with distance");
+  Check(Selected(restored,1000,false)==fine,"soup production and ray mesh retain fine count");
+  Check(farCount<fine,"soup has usable coarse alternatives despite vertex-numbering-dependent collapse ties");
+  std::cout<<"Triangle soup: near="<<nearCount<<", far="<<farCount<<", production="<<fine<<"\n";
+  // Every fine corner keeps its exact attributes, despite a change of vertex identity.
+  auto key=CanonicalVertexIndices(soup);
+  for(size_t k=0;k<soup.size();++k){
+   Check(key[k]<=k,"deterministic first identical attribute wins");
+   Check(restored.QueryIndices()[restored.QueryInstances()[0].FirstIndex+k]==key[k],"fine corners retain exact complete original attributes and order");
+  }
+  VertexRecord base{};base.TangentDirection={1,0,0,1};
+  std::vector<VertexRecord> seams(8,base);
+  seams[1].Padding[0]=123; // padding must not manufacture a seam
+  seams[2].TextureCoordinateU=1;seams[3].TextureCoordinateV=1;
+  seams[4].NormalDirection.z=1;seams[5].TangentDirection.y=1;
+  seams[6].TangentDirection.w=-1;seams[7].SpatialLocation.x=1.e-8f;
+  auto identities=CanonicalVertexIndices(seams);
+  Check(identities[0]==0&&identities[1]==0,"ignore padding only");
+  for(uint32_t k=2;k<seams.size();++k)Check(identities[k]==k,"UV normal tangent handedness and close positions remain separate");
+ }
  auto& desc=*sphere.AccessMaterials().AccessDescriptor(0);desc.Slabs[0].TransmissionWeight=1;sphere.Finalise();Check(Selected(sphere,1000)==fine,"LIVE opaque-to-glass edit protects complete shell");Validate(sphere);
  desc.Slabs[0].TransmissionWeight=0;desc.Slabs[0].GeometryOpacity=.5f;sphere.Finalise();Check(Selected(sphere,1000)==fine,"opacity edit protected");
  for(int flags:{2,4,16,32})Check(!PatchOpaque(1,flags,0,0,1,false,false,false),"material flags protected");
