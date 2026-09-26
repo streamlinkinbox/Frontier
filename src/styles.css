@@ -1,0 +1,132 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0c1418;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #e8ecec;
+  user-select: none;
+}
+
+#app { position: fixed; inset: 0; }
+
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud { position: absolute; inset: 0; pointer-events: none; }
+
+#crosshair {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px; color: rgba(255,255,255,0.75);
+  text-shadow: 0 0 4px rgba(0,0,0,0.6);
+  font-weight: 300;
+}
+
+#objective {
+  position: absolute; top: 22px; left: 24px;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(10, 18, 22, 0.55);
+  border-left: 3px solid #e8b64c;
+  padding: 10px 16px;
+  backdrop-filter: blur(6px);
+  border-radius: 0 6px 6px 0;
+}
+
+.tag {
+  font-size: 10px; letter-spacing: 0.18em; font-weight: 700;
+  color: #e8b64c;
+}
+
+#objective-text { font-size: 14px; font-weight: 600; }
+
+#tide, #health {
+  position: absolute; right: 24px;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(10, 18, 22, 0.55);
+  padding: 10px 16px;
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
+}
+#tide { top: 22px; }
+#health { top: 66px; }
+
+.bar {
+  width: 130px; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.15); overflow: hidden;
+}
+#tide-fill { height: 100%; width: 0%; background: #4cb3c6; transition: width 0.4s; }
+#health-fill { height: 100%; width: 100%; background: #67c17a; transition: width 0.25s; }
+#tide-text { font-size: 11px; color: #9fd7e2; min-width: 52px; }
+
+#prompt {
+  position: absolute; left: 50%; bottom: 22%;
+  transform: translateX(-50%);
+  font-size: 15px; font-weight: 600; letter-spacing: 0.06em;
+  background: rgba(10,18,22,0.7); padding: 10px 18px; border-radius: 6px;
+  opacity: 0; transition: opacity 0.2s;
+}
+#prompt.show { opacity: 1; }
+
+#speedo {
+  position: absolute; right: 24px; bottom: 24px;
+  font-size: 30px; font-weight: 800; letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+#speedo small { font-size: 12px; font-weight: 600; color: #9fb2b8; margin-left: 4px; }
+
+#damage-flash {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(180, 20, 20, 0.55) 100%);
+  opacity: 0; transition: opacity 0.35s;
+}
+
+/* ---------- Menu / End ---------- */
+#menu, #end {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, rgba(28, 52, 62, 0.88), rgba(8, 14, 18, 0.96));
+  z-index: 10;
+}
+
+.menu-card {
+  max-width: 520px; padding: 46px 52px;
+  background: rgba(12, 22, 27, 0.82);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.menu-card h1 {
+  font-size: 64px; font-weight: 900; letter-spacing: 0.22em;
+  color: #f2f5f4;
+}
+.menu-card h2 {
+  font-size: 15px; font-weight: 700; letter-spacing: 0.55em;
+  color: #e8b64c; margin: 4px 0 24px;
+}
+.brief { font-size: 15px; line-height: 1.65; color: #c3d0d4; margin-bottom: 22px; }
+.controls { list-style: none; font-size: 13px; line-height: 2.1; color: #9fb2b8; margin-bottom: 18px; }
+.controls b { color: #e8ecec; letter-spacing: 0.05em; }
+.warn {
+  font-size: 12px; color: #d98b6b; letter-spacing: 0.04em;
+  margin-bottom: 28px;
+}
+
+button {
+  font-family: inherit; font-size: 15px; font-weight: 800; letter-spacing: 0.28em;
+  color: #10202a; background: #e8b64c;
+  border: none; border-radius: 8px;
+  padding: 15px 46px 15px 52px; cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+}
+button:hover { background: #f2c766; transform: translateY(-2px); }
+button:active { transform: translateY(0); }
+
+#end-title { letter-spacing: 0.18em; }
+#end-text { font-size: 16px; color: #c3d0d4; margin: 18px 0 30px; line-height: 1.6; }
