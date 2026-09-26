@@ -12,6 +12,7 @@ import { World } from './world.js';
 import { CarPhysics, createCarMesh, syncCarMesh } from './car.js';
 import { Traffic } from './traffic.js';
 import { buildProps, disposeGroup } from './props.js';
+import { buildTracks } from './tracks.js';
 import { createMineMaterial } from './materials.js';
 import { Editor } from './editor.js';
 import { mineToOBJ, exportGLB, download } from './exporters.js';
@@ -54,6 +55,8 @@ mineMesh.receiveShadow = true;
 scene.add(mineMesh);
 let props = new THREE.Group();
 scene.add(props);
+let tracks = new THREE.Group();
+scene.add(tracks);
 const topoMat = new THREE.LineBasicMaterial({ color: 0x46d8ff, transparent: true, opacity: 0.55 });
 let topoLines = null;
 let showTopo = false;
@@ -87,18 +90,26 @@ car.impactFn = (v) => { shake = Math.min(1, shake + v * 0.04); if (v > 9) flash(
 
 // ---------------------------------------------------------------- build / rebuild
 let buildTimer = null, lastQuick = 0;
+function spawnTrains() {
+  traffic.spawn({ count: P.trainCount, speed: P.trainSpeed, wagons: P.maxWagons, seed: P.seed + 5 });
+}
 function rebuild(full = true) {
   mine = buildMine(net, P, { preview: !full });
   mineMesh.geometry.dispose();
   mineMesh.geometry = mine.geometry;
   if (topoLines) { scene.remove(topoLines); topoLines.children.forEach((c) => c.geometry.dispose()); topoLines = null; }
   if (showTopo) makeTopo();
+  tracks.visible = full; // rails are rebuilt when the drag ends
   if (!full) return;
-  world.setGeometry(mine.geometry);
+  world.setGeometry(mine.collisionGeometry);
   scene.remove(props); disposeGroup(props);
   props = buildProps(mine, P);
   scene.add(props);
-  traffic.rebuild(mine, P.cartCount, P.seed + 5);
+  traffic.setMine(mine);   // lane graph + clearance-checked junction routes
+  spawnTrains();
+  scene.remove(tracks); disposeGroup(tracks);
+  tracks = buildTracks(mine, P, world, traffic); // rails follow every lane + junction route
+  scene.add(tracks);
   lamps = mine.lamps.map((l) => l.p);
   setupRace();
   drawMinimapBase();
@@ -147,6 +158,7 @@ function updateStats() {
   const s = mine.stats;
   document.getElementById('stats').textContent =
     `mine mesh: 1 continuous closed quad surface\n${s.verts.toLocaleString()} verts · ${s.quads.toLocaleString()} quads · build ${s.ms.toFixed(0)} ms` +
+    (tracks.userData.stats ? `\ntrack: ${tracks.userData.stats.railKm.toFixed(1)} km of rail · ${tracks.userData.stats.routes} junction routes · ${tracks.userData.stats.sleepers.toLocaleString()} sleepers` : '') +
     (mine.warnings.length ? `\n⚠ ${mine.warnings.join('\n⚠ ')}` : '');
 }
 
@@ -337,7 +349,7 @@ const actions = {
   delCP: () => editor.deleteControlPoint() || message('<small>select a cyan control point (edge keeps ≥1)</small>', 1.5),
   topology: () => toggleTopo(),
   exportOBJ: () => download(mineToOBJ(mine), `frontier_mine_seed${P.seed}.obj`),
-  exportGLB: async () => download(await exportGLB([mineMesh, props]), `frontier_mine_seed${P.seed}.glb`),
+  exportGLB: async () => download(await exportGLB([mineMesh, props, tracks]), `frontier_mine_seed${P.seed}.glb`),
   saveJSON: () => download(JSON.stringify({ params: P, net }, null, 1), `frontier_mine_seed${P.seed}.json`, 'application/json'),
   loadJSON: () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
@@ -361,7 +373,7 @@ fShape.add(P, 'roadHalfWidth', 3.2, 6, 0.1).name('road half width').onFinishChan
 fShape.add(P, 'springHeight', 2.4, 4.5, 0.1).name('wall height').onFinishChange(rb);
 fShape.add(P, 'roofHeight', 4.6, 8, 0.1).name('roof crown').onFinishChange(rb);
 fShape.add(P, 'wallBulge', 0, 1, 0.05).name('wall bulge').onFinishChange(rb);
-fShape.add(P, 'grooveDepth', 0.04, 0.25, 0.01).name('groove depth').onFinishChange(rb);
+fShape.add(P, 'grooveDepth', 0.12, 0.3, 0.01).name('track bed depth').onFinishChange(rb);
 fShape.add(P, 'rockNoise', 0, 0.9, 0.02).name('rock noise').onFinishChange(rb);
 fShape.add(P, 'bankMax', 0, 0.2, 0.01).name('max banking').onFinishChange(rb);
 fShape.add(P, 'minCrestRadius', 15, 150, 1).name('min crest radius (jumps)').onFinishChange(rb);
@@ -375,10 +387,14 @@ fTopo.add(actions, 'topology').name('show quad wireframe [T]');
 const fProps = gui.addFolder('Props & traffic');
 fProps.add(P, 'supportSpacing', 3, 16, 0.5).name('support spacing').onFinishChange(rb);
 fProps.add(P, 'lampEvery', 1, 6, 1).name('lamp every N').onFinishChange(rb);
-fProps.add(P, 'cartCount', 0, 60, 1).name('traffic (carts)').onFinishChange(() => traffic.rebuild(mine, P.cartCount, P.seed + 5));
+const fTrains = gui.addFolder('Trains (traffic)');
+fTrains.add(P, 'trainCount', 0, 40, 1).name('number of trains').onFinishChange(spawnTrains);
+fTrains.add(P, 'trainSpeed', 0.2, 2.5, 0.05).name('train speed ×').onChange((v) => traffic.setSpeed(v));
+fTrains.add(P, 'maxWagons', 1, 6, 1).name('max wagons / train').onFinishChange(spawnTrains);
+fTrains.add({ respawn: () => { P.seed2 = (P.seed2 || 0) + 1; traffic.spawn({ count: P.trainCount, speed: P.trainSpeed, wagons: P.maxWagons, seed: P.seed + 5 + P.seed2 * 97 }); } }, 'respawn').name('↻ reshuffle trains');
 const fIO = gui.addFolder('Export');
 fIO.add(actions, 'exportOBJ').name('⤓ OBJ (quads)');
-fIO.add(actions, 'exportGLB').name('⤓ GLB (mesh + props)');
+fIO.add(actions, 'exportGLB').name('⤓ GLB (mesh + tracks + props)');
 fIO.add(actions, 'saveJSON').name('⤓ save splines JSON');
 fIO.add(actions, 'loadJSON').name('⤒ load splines JSON');
 gui.add(actions, 'drive').name('▶ back to driving [TAB]');

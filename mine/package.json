@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 5173",
-    "test": "node tests/validate.mjs && node tests/profile.mjs && node tests/lanes.mjs",
+    "test": "node tests/validate.mjs && node tests/profile.mjs && node tests/lanes.mjs && node tests/traffic.mjs",
     "test:drive": "node tests/drive.mjs 7 30"
   },
   "dependencies": {

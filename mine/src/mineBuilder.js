@@ -29,7 +29,7 @@ const smoothstep = (e0, e1, x) => {
 const COLORS = {
   [MAT.ROCK]: [0.105, 0.075, 0.052],
   [MAT.ROAD]: [0.16, 0.15, 0.135],
-  [MAT.GROOVE]: [0.025, 0.022, 0.02],
+  [MAT.GROOVE]: [0.075, 0.068, 0.062], // ballast bed
   [MAT.RAIL]: [0.42, 0.40, 0.38],
   [MAT.CURB]: [0.24, 0.215, 0.18],
   [MAT.PLATE]: [0.10, 0.095, 0.09],
@@ -38,7 +38,7 @@ const METAL = { [MAT.ROCK]: 0, [MAT.ROAD]: 0, [MAT.GROOVE]: 0, [MAT.RAIL]: 1, [M
 
 class MeshData {
   constructor() {
-    this.pos = []; this.col = []; this.metal = []; this.rock = []; this.uv = []; this.surf = [];
+    this.pos = []; this.col = []; this.metal = []; this.rock = []; this.uv = []; this.surf = []; this.lift = new Map(); // vertex -> [dx,dy,dz] to the drivable (road-level) surface
     this.quads = []; // flat, 4 per quad
     this.patchInfo = []; // {name, start, count}
   }
@@ -236,7 +236,10 @@ export function buildMine(net, P, opts = {}) {
             METAL[MAT.PLATE] + (METAL[q.m] - METAL[MAT.PLATE]) * ww];
         }
         _v.copy(f.p).addScaledVector(f.N, n).addScaledVector(f.B, b);
-        ring.push(md.add(_v, m, q.rock, prof.arc[j] * 0.5, s * 0.5, col));
+        const vi = md.add(_v, m, q.rock, prof.arc[j] * 0.5, s * 0.5, col);
+        // track bed: collision surface stays at road level (rails are flush with it)
+        if (j <= a && b < 0) md.lift.set(vi, [-f.B.x * b, -f.B.y * b, -f.B.z * b]);
+        ring.push(vi);
       }
       rings.push(ring);
       fwd.push(f.p.clone().addScaledVector(f.N, -P.laneOffset));
@@ -511,6 +514,16 @@ export function buildMine(net, P, opts = {}) {
   geo.setIndex(new THREE.BufferAttribute(index, 1));
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
+  // collision geometry: identical topology, track beds lifted to road level so
+  // the car rolls over the (flush) rails instead of dropping into the channel
+  let collisionGeometry = geo;
+  if (!opts.preview && md.lift.size) {
+    const cp = Float32Array.from(md.pos);
+    for (const [vi, d] of md.lift) { cp[vi * 3] += d[0]; cp[vi * 3 + 1] += d[1]; cp[vi * 3 + 2] += d[2]; }
+    collisionGeometry = new THREE.BufferGeometry();
+    collisionGeometry.setAttribute('position', new THREE.BufferAttribute(cp, 3));
+    collisionGeometry.setIndex(new THREE.BufferAttribute(index.slice(), 1)); // BVH reorders its index in place
+  }
 
   const conflicts = opts.preview ? [] : findConflicts(net, centerline, cut, P, halfW);
   conflicts.forEach((c) => warnings.push(`tunnels ${c.a} and ${c.b} intersect near (${c.p.x.toFixed(0)}, ${c.p.y.toFixed(0)}, ${c.p.z.toFixed(0)})`));
@@ -518,6 +531,7 @@ export function buildMine(net, P, opts = {}) {
   return {
     conflicts,
     geometry: geo,
+    collisionGeometry,
     quads: Uint32Array.from(md.quads),
     patchInfo: md.patchInfo,
     lanes, supports, lamps, centerline, hubs: hubInfo, splines, cut, warnings,

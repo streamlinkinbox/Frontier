@@ -1,13 +1,14 @@
 // Tunnel cross-section. One closed edge ring:
 //
-//   index 0 ............ a   : floor (road + grooves + rails), arm-left -> arm-right
+//   index 0 ............ a   : floor (road + curbs + track beds), arm-left -> arm-right
 //   a+1 ....... a+w          : right wall going up (a+w = right spring point)
 //   a+w+1 ... a+w+r-1        : roof arch interior
 //   a+w+r                    : left spring point
 //   a+w+r+1 ... a+2w+r-1     : left wall going down (wraps to index 0)
 //
-// The floor carries the grooves + rail heads, so the cart TRACKS are part
-// of the same continuous surface as the road and the cave.
+// The floor carries the recessed track beds, so the cart track channels are part
+// of the same continuous surface as the road and the cave (rails + sleepers
+// are laid into them as separate swept / instanced geometry).
 // "n" = lateral offset (+ = left of travel direction), "b" = height.
 
 export const MAT = { ROCK: 0, ROAD: 1, GROOVE: 2, RAIL: 3, CURB: 4, PLATE: 5 };
@@ -20,16 +21,18 @@ export function buildProfile(P) {
   key.push({ n: hw, b: 0.12, m: MAT.CURB });
   key.push({ n: hw - 0.22, b: 0.12, m: MAT.CURB });
   key.push({ n: hw - 0.3, b: 0.0, m: MAT.ROAD });
-  const rails = [P.laneOffset + P.gauge / 2, P.laneOffset - P.gauge / 2, -(P.laneOffset - P.gauge / 2), -(P.laneOffset + P.gauge / 2)];
-  for (const r of rails) {
-    key.push({ n: r + 0.13, b: 0, m: MAT.ROAD });
-    key.push({ n: r + 0.09, b: -D, m: MAT.GROOVE });
-    key.push({ n: r + 0.035, b: -D, m: MAT.GROOVE });
-    key.push({ n: r + 0.035, b: -0.025, m: MAT.RAIL });
-    key.push({ n: r - 0.035, b: -0.025, m: MAT.RAIL });
-    key.push({ n: r - 0.035, b: -D, m: MAT.GROOVE });
-    key.push({ n: r - 0.09, b: -D, m: MAT.GROOVE });
-    key.push({ n: r - 0.13, b: 0, m: MAT.ROAD });
+  // one recessed track bed (ballast channel) per cart lane; the rails + sleepers
+  // are real geometry laid into it (see tracks.js)
+  const bedHalf = P.gauge / 2 + 0.42;
+  for (const c of [P.laneOffset, -P.laneOffset]) {
+    key.push({ n: c + bedHalf + 0.05, b: 0, m: MAT.ROAD });       // edge
+    key.push({ n: c + bedHalf, b: -D * 0.35, m: MAT.CURB });       // chamfer
+    key.push({ n: c + bedHalf - 0.05, b: -D, m: MAT.GROOVE });
+    const k = 6;
+    for (let i = 1; i < k; i++) key.push({ n: c + bedHalf - 0.05 - (2 * (bedHalf - 0.05) * i) / k, b: -D - 0.012 * Math.sin((i / k) * Math.PI), m: MAT.GROOVE });
+    key.push({ n: c - bedHalf + 0.05, b: -D, m: MAT.GROOVE });
+    key.push({ n: c - bedHalf, b: -D * 0.35, m: MAT.CURB });
+    key.push({ n: c - bedHalf - 0.05, b: 0, m: MAT.ROAD });
   }
   key.push({ n: -(hw - 0.3), b: 0.0, m: MAT.ROAD });
   key.push({ n: -(hw - 0.22), b: 0.12, m: MAT.CURB });

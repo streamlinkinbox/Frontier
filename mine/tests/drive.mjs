@@ -13,7 +13,7 @@ const net = createMaze(seed);
 const P = { ...DEFAULT_PARAMS };
 const mine = buildMine(net, P);
 const world = new World();
-world.setGeometry(mine.geometry);
+world.setGeometry(mine.collisionGeometry);
 const traffic = new Traffic(new THREE.Scene(), world);
 traffic.rebuild(mine, 3, 11);
 const route = traffic.trains[0];

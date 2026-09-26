@@ -4,7 +4,7 @@ Procedural mine race level built on splines. It runs in the browser (Three.js) a
 
 ```bash
 cd mine && npm install && npm run dev      # http://localhost:5173
-npm test                                   # mesh topology + vertical profile + cart-lane clearance checks
+npm test                                   # mesh topology + vertical profile + cart-lane clearance + train traffic checks
 npm run test:drive                         # headless autopilot drive through the maze
 ```
 
@@ -23,6 +23,25 @@ A junction with K tunnels is built like this:
 3. **Y / + pole.** The rest of the floor is a K-gon (and the roof has a matching domed K-gon). It is filled with K quad patches that meet in **one pole of valence K**. The spokes leave that pole at equal angles and curve into the arms. A 3-way junction is a clean **Y**, not a `V + |` with a flattened 180° corner.
 
 With this layout the only irregular vertices are the centre pole of each junction (one on the floor, one on the roof) and a single valence-5 vertex per corner on the floor and on the roof. That is the smallest number of irregular vertices this shape allows.
+
+## Tracks and trains
+
+- **Track bed**: each cart lane has a recessed ballast channel (0.22 m deep, `track bed depth`), which is part of the one continuous quad mesh.
+- **Rails** (`src/tracks.js`) use a swept flat-bottom rail profile (foot, web, head) built from quads.
+  The running surface and gauge face are polished and the rest is rusty.
+  Rails follow the drivable surface exactly (ray casts), so they bank, climb and dip with the road.
+  Rail tops sit 1.5 cm above the road.
+- **Sleepers + tie plates** are instanced in the tunnel beds, one every 0.7 m.
+- **Junctions**: rails follow every allowed cart route through the hub, like a switch yard, with dark flangeways beside the heads.
+  Crossing trackwork can't be one manifold surface, so rails and sleepers are separate meshes.
+  The GLB export includes them.
+- **Collision**: the car uses a copy of the mine mesh with the track beds lifted to road level, so it rolls over the flush rails.
+  Trains ride on the rail heads.
+- **Trains GUI**: `number of trains` (0-40), `train speed ×` (0.2-2.5, applies live), `max wagons / train` (1-6), and `reshuffle trains`.
+- **Signalling**: trains keep braking-distance headway and reserve a junction before entering it, releasing it when the last wagon clears.
+  Waiting trains queue first-in, first-out, and a train only enters if its exit lane has room for the whole train ("don't block the box").
+  Trains running the other way on the parallel track are ignored.
+  If traffic ever gridlocks at extreme settings, a train passes through the others for a moment instead.
 
 ## Drivable vertical profile
 

@@ -14,7 +14,7 @@ export const DEFAULT_PARAMS = {
   roofHeight: 5.8,        // m, crown of the arch
   laneOffset: 1.75,       // m, cart lane center from tunnel axis
   gauge: 1.0,             // m, rail gauge
-  grooveDepth: 0.13,      // m
+  grooveDepth: 0.22,      // m, track bed depth (sleepers + rails sit in it, rail tops flush with the road)
   ringSpacing: 0.75,      // m, distance between tunnel edge-loops
   wallSegs: 5,            // edge loops up each wall
   roofSegs: 12,           // edge loops across the arch (even)
@@ -25,7 +25,9 @@ export const DEFAULT_PARAMS = {
   maxGrade: 0.16,         // max slope (rise/run)
   supportSpacing: 7.0,    // m
   lampEvery: 2,           // lamp on every Nth support
-  cartCount: 26,
+  trainCount: 10,
+  trainSpeed: 1.0,        // multiplier on cruise speed (8-13 m/s)
+  maxWagons: 3,
 };
 
 export function createMaze(seed = 7, spacing = 58) {

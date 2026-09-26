@@ -9,7 +9,7 @@ let failed = false;
 for (const seed of [7, 1, 2, 3, 42]) {
   const net = createMaze(seed);
   const mine = buildMine(net, DEFAULT_PARAMS);
-  const world = new World(); world.setGeometry(mine.geometry);
+  const world = new World(); world.setGeometry(mine.collisionGeometry);
   const tr = new Traffic(new THREE.Scene(), world); tr.rebuild(mine, 0, 1);
   let allowed = 0, rejected = 0, deadEnds = 0, minClear = 9;
   const probe = new THREE.Vector3();
