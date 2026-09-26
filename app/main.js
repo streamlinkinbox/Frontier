@@ -1,24 +1,26 @@
-/* Dustline — a self-contained top-down mine race prototype. */
+/* Dustline — real WebGL mine-race prototype. No 2D scene fallback or external engine required. */
 (() => {
   'use strict';
 
-  const scene = document.getElementById('scene');
-  const ctx = scene.getContext('2d');
+  const canvas = document.getElementById('scene');
   const minimap = document.getElementById('minimap');
   const mapCtx = minimap.getContext('2d');
   const experience = document.getElementById('experience');
-
   const $ = (id) => document.getElementById(id);
   const TAU = Math.PI * 2;
   const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
   const lerp = (a, b, t) => a + (b - a) * t;
-  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const pad = (n, size = 2) => String(Math.max(0, Math.round(n))).padStart(size, '0');
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const color = (hex) => {
+    const value = hex.replace('#', '');
+    return [parseInt(value.slice(0, 2), 16) / 255, parseInt(value.slice(2, 4), 16) / 255, parseInt(value.slice(4, 6), 16) / 255];
+  };
 
   const viewport = { width: 0, height: 0, dpr: 1 };
   const worldBounds = { left: 45, right: 1600, top: 48, bottom: 963 };
 
-  // The mine is deliberately built as a readable criss-crossing service network.
+  // The mine is a real 3D space; these are the centerlines used to build the road mesh and gameplay routes.
   const roads = [
     { id: 'ore-line', width: 86, points: [[120, 874], [320, 874], [320, 680], [518, 680], [518, 412], [760, 412], [760, 202], [1042, 202], [1042, 392], [1375, 392], [1375, 646], [1146, 646], [1146, 874], [1518, 874]] },
     { id: 'west-cut', width: 76, points: [[320, 680], [142, 500], [300, 302], [518, 412]] },
@@ -28,56 +30,33 @@
     { id: 'lower-bypass', width: 70, points: [[320, 874], [500, 936], [823, 918], [1146, 874]] },
     { id: 'service-spur', width: 63, points: [[760, 412], [900, 350], [1042, 392]] }
   ];
-
   const mainRoute = makeRoute(roads[0].points);
-  const trafficRoutes = [
-    makeRoute(roads[0].points),
-    makeRoute(roads[2].points),
-    makeRoute(roads[1].points),
-    makeRoute(roads[3].points)
-  ];
-
+  const trafficRoutes = [makeRoute(roads[0].points), makeRoute(roads[2].points), makeRoute(roads[1].points), makeRoute(roads[3].points)];
   const raceCheckpoints = [
     { x: 120, y: 874 }, { x: 320, y: 680 }, { x: 518, y: 412 }, { x: 760, y: 202 },
     { x: 1042, y: 392 }, { x: 1375, y: 392 }, { x: 1375, y: 646 }, { x: 1518, y: 874 }
   ];
-
   const supports = [
     [254, 874, 0], [320, 754, Math.PI / 2], [438, 680, 0], [518, 535, Math.PI / 2],
     [635, 412, 0], [760, 310, Math.PI / 2], [903, 202, 0], [1042, 300, Math.PI / 2],
     [1198, 392, 0], [1375, 520, Math.PI / 2], [1257, 646, 0], [1146, 762, Math.PI / 2],
     [690, 747, 0], [1000, 694, 0], [875, 84, 0], [1114, 84, 0], [300, 302, 0], [500, 936, 0]
   ].map(([x, y, angle], index) => ({ x, y, angle, index }));
-
   const lights = [
     [185, 874, 0], [320, 805, Math.PI / 2], [320, 680, 0], [425, 680, 0], [518, 598, Math.PI / 2],
     [518, 412, 0], [640, 412, 0], [760, 307, Math.PI / 2], [760, 202, 0], [900, 202, 0],
     [1042, 294, Math.PI / 2], [1042, 392, 0], [1210, 392, 0], [1375, 515, Math.PI / 2],
     [1375, 646, 0], [1256, 646, 0], [1146, 762, Math.PI / 2], [1146, 874, 0], [1420, 874, 0],
-    [250, 500, -0.85], [300, 302, 0.15], [760, 775, 0.35], [995, 692, -0.3], [920, 532, 1.0],
+    [250, 500, -.85], [300, 302, .15], [760, 775, .35], [995, 692, -.3], [920, 532, 1],
     [940, 84, 0], [1180, 84, 0], [500, 936, 0]
   ].map(([x, y, angle], index) => ({ x, y, angle, index, phase: index * .73 }));
-
   const caveShape = [[38, 66], [170, 38], [418, 58], [612, 35], [816, 65], [1034, 37], [1252, 60], [1456, 40], [1608, 91], [1582, 258], [1632, 426], [1596, 608], [1624, 810], [1577, 952], [1390, 984], [1176, 950], [984, 987], [766, 956], [566, 986], [338, 955], [128, 980], [34, 895], [65, 710], [28, 526], [57, 332]];
+  const dust = createDust(160);
+  const rocks = createRocks(76);
 
-  const dust = createDust(310);
-  const rocks = createRocks(96);
-
-  const keys = Object.create(null);
-  const car = {
-    x: 120, y: 874, angle: 0, speed: 0,
-    health: 100, boost: 86, hitFlash: 0,
-    offRoad: false, roadDistance: 0, checkpoint: 0,
-    inputSeen: false
-  };
+  const car = { x: 120, y: 874, angle: 0, speed: 0, health: 100, boost: 86, hitFlash: 0, offRoad: false, roadDistance: 0, checkpoint: 0, inputSeen: false };
   const camera = { x: car.x, y: car.y };
-  let carts = [
-    makeCart('C-12', 0, 1260, 112, 'amber'),
-    makeCart('C-04', 1, 720, 92, 'orange'),
-    makeCart('C-19', 2, 310, 72, 'pale'),
-    makeCart('C-27', 3, 238, 80, 'amber')
-  ];
-
+  let carts = [makeCart('C-12', 0, 1260, 112, 'amber'), makeCart('C-04', 1, 720, 92, 'orange'), makeCart('C-19', 2, 310, 72, 'pale'), makeCart('C-27', 3, 238, 80, 'amber')];
   let elapsed = 0;
   let lastTime = performance.now();
   let toastTimer = 0;
@@ -99,628 +78,430 @@
     }
     return { points, segments, total };
   }
-
   function pointAtRoute(route, distanceAlong) {
-    let d = ((distanceAlong % route.total) + route.total) % route.total;
+    const d = ((distanceAlong % route.total) + route.total) % route.total;
     for (const segment of route.segments) {
       if (d <= segment.start + segment.length) {
         const t = segment.length ? (d - segment.start) / segment.length : 0;
-        return {
-          x: lerp(segment.a.x, segment.b.x, t),
-          y: lerp(segment.a.y, segment.b.y, t),
-          angle: segment.angle
-        };
+        return { x: lerp(segment.a.x, segment.b.x, t), y: lerp(segment.a.y, segment.b.y, t), angle: segment.angle };
       }
     }
     const last = route.segments[route.segments.length - 1];
     return { x: last.b.x, y: last.b.y, angle: last.angle };
   }
-
-  function makeCart(id, routeIndex, offset, speed, color) {
-    return { id, routeIndex, offset, speed, color, x: 0, y: 0, angle: 0, hitCooldown: 0, distance: 0 };
-  }
-
+  function makeCart(id, routeIndex, offset, speed, colorName) { return { id, routeIndex, offset, speed, color: colorName, x: 0, y: 0, angle: 0, hitCooldown: 0, distance: 0 }; }
   function createDust(count) {
-    let seed = 401;
-    const next = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-    return Array.from({ length: count }, () => ({
-      x: 55 + next() * 1510,
-      y: 52 + next() * 900,
-      r: .4 + next() * 1.9,
-      a: .12 + next() * .32,
-      phase: next() * TAU
-    }));
+    let seed = 401; const next = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    return Array.from({ length: count }, () => ({ x: 55 + next() * 1510, y: 52 + next() * 900, r: .5 + next() * 1.8, a: .12 + next() * .3, phase: next() * TAU }));
   }
-
   function createRocks(count) {
-    let seed = 811;
-    const next = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
-    return Array.from({ length: count }, () => ({
-      x: 65 + next() * 1510,
-      y: 58 + next() * 900,
-      r: 13 + next() * 38,
-      rotation: next() * TAU,
-      tone: next()
-    }));
+    let seed = 811; const next = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    return Array.from({ length: count }, () => ({ x: 65 + next() * 1510, y: 58 + next() * 900, r: 13 + next() * 38, rotation: next() * TAU, tone: next() }));
   }
 
-  function resize() {
-    viewport.width = window.innerWidth;
-    viewport.height = window.innerHeight;
-    viewport.dpr = Math.min(2, window.devicePixelRatio || 1);
-    scene.width = Math.floor(viewport.width * viewport.dpr);
-    scene.height = Math.floor(viewport.height * viewport.dpr);
-    scene.style.width = `${viewport.width}px`;
-    scene.style.height = `${viewport.height}px`;
-    mapWidth = minimap.clientWidth || 238;
-    mapHeight = minimap.clientHeight || 161;
-    minimap.width = Math.floor(mapWidth * viewport.dpr);
-    minimap.height = Math.floor(mapHeight * viewport.dpr);
+  // -------------------------------------------------------------------------
+  // Tiny WebGL renderer: enough geometry for a proper perspective mine while
+  // keeping the prototype dependency-free and instantly runnable.
+  // -------------------------------------------------------------------------
+  const gl = canvas.getContext('webgl', { antialias: true, alpha: false, preserveDrawingBuffer: false });
+  if (!gl) {
+    const fallback = document.createElement('div'); fallback.textContent = 'WEBGL REQUIRED // ENABLE HARDWARE ACCELERATION'; fallback.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;color:#8de8e3;font:12px monospace;letter-spacing:.15em;background:#050a0c;z-index:20;';
+    experience.appendChild(fallback);
+    return;
   }
 
-  function projectNearest(point, road) {
-    let best = { distance: Infinity, x: point.x, y: point.y, angle: 0, width: road.width };
-    for (const segment of road.segments) {
-      const vx = segment.b.x - segment.a.x;
-      const vy = segment.b.y - segment.a.y;
-      const lengthSq = vx * vx + vy * vy || 1;
-      const t = clamp(((point.x - segment.a.x) * vx + (point.y - segment.a.y) * vy) / lengthSq, 0, 1);
-      const x = segment.a.x + vx * t;
-      const y = segment.a.y + vy * t;
-      const d = Math.hypot(point.x - x, point.y - y);
-      if (d < best.distance) best = { distance: d, x, y, angle: segment.angle, width: road.width };
+  const vertexSource = `
+    attribute vec3 aPosition;
+    attribute vec3 aNormal;
+    uniform mat4 uProjection;
+    uniform mat4 uView;
+    uniform mat4 uModel;
+    varying vec3 vWorldPosition;
+    varying vec3 vNormal;
+    void main() {
+      vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+      vWorldPosition = worldPosition.xyz;
+      vNormal = normalize(mat3(uModel) * aNormal);
+      gl_Position = uProjection * uView * worldPosition;
     }
-    return best;
-  }
-
-  function nearestRoad(point) {
-    let best = { distance: Infinity, x: point.x, y: point.y, angle: 0, width: 0 };
-    for (const road of roads) {
-      const candidate = projectNearest(point, makeRoute(road.points));
-      if (candidate.distance < best.distance) best = candidate;
+  `;
+  const fragmentSource = `
+    precision mediump float;
+    uniform vec3 uColor;
+    uniform vec3 uEmissive;
+    uniform vec3 uFogColor;
+    uniform vec3 uLightPos[8];
+    uniform vec3 uLightColor[8];
+    uniform float uLightPower[8];
+    uniform vec3 uCamera;
+    uniform float uAlpha;
+    uniform float uFogNear;
+    uniform float uFogFar;
+    varying vec3 vWorldPosition;
+    varying vec3 vNormal;
+    void main() {
+      vec3 normal = normalize(vNormal);
+      vec3 lit = vec3(0.10, 0.13, 0.13);
+      for (int i = 0; i < 8; i++) {
+        vec3 toLight = uLightPos[i] - vWorldPosition;
+        float lightDistance = length(toLight);
+        vec3 lightDir = normalize(toLight);
+        float diffuse = max(dot(normal, lightDir), 0.0);
+        float falloff = max(0.0, 1.0 - lightDistance / 270.0);
+        lit += uLightColor[i] * diffuse * falloff * falloff * uLightPower[i];
+      }
+      vec3 shaded = uColor * lit + uEmissive;
+      float distanceToCamera = distance(uCamera, vWorldPosition);
+      float fogAmount = smoothstep(uFogNear, uFogFar, distanceToCamera);
+      shaded = mix(shaded, uFogColor, fogAmount * 0.82);
+      gl_FragColor = vec4(shaded, uAlpha);
     }
-    return best;
-  }
+  `;
 
-  // Input / interaction -----------------------------------------------------
-  const keyMap = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright', ' ']);
-  window.addEventListener('keydown', (event) => {
-    const key = event.key.toLowerCase();
-    if (keyMap.has(key)) {
-      event.preventDefault();
-      keys[key] = true;
-      if (!car.inputSeen) {
-        car.inputSeen = true;
-        $('driveHint').classList.add('is-hidden');
+  function compileShader(type, source) {
+    const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+    return shader;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vertexSource));
+  gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fragmentSource));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  gl.useProgram(program);
+
+  const attrib = { position: gl.getAttribLocation(program, 'aPosition'), normal: gl.getAttribLocation(program, 'aNormal') };
+  const uniforms = {
+    projection: gl.getUniformLocation(program, 'uProjection'), view: gl.getUniformLocation(program, 'uView'), model: gl.getUniformLocation(program, 'uModel'),
+    color: gl.getUniformLocation(program, 'uColor'), emissive: gl.getUniformLocation(program, 'uEmissive'), fogColor: gl.getUniformLocation(program, 'uFogColor'),
+    lightPos: gl.getUniformLocation(program, 'uLightPos[0]'), lightColor: gl.getUniformLocation(program, 'uLightColor[0]'), lightPower: gl.getUniformLocation(program, 'uLightPower[0]'),
+    camera: gl.getUniformLocation(program, 'uCamera'), alpha: gl.getUniformLocation(program, 'uAlpha'), fogNear: gl.getUniformLocation(program, 'uFogNear'), fogFar: gl.getUniformLocation(program, 'uFogFar')
+  };
+
+  function createMesh(data) {
+    const positionBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data.positions), gl.STATIC_DRAW);
+    const normalBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data.normals), gl.STATIC_DRAW);
+    return { position: positionBuffer, normal: normalBuffer, count: data.positions.length / 3 };
+  }
+  function cubeGeometry() {
+    const positions = [], normals = [];
+    const faces = [
+      [[0, 0, 1], [[-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]]],
+      [[0, 0, -1], [[.5, -.5, -.5], [-.5, -.5, -.5], [-.5, .5, -.5], [.5, .5, -.5]]],
+      [[1, 0, 0], [[.5, -.5, .5], [.5, -.5, -.5], [.5, .5, -.5], [.5, .5, .5]]],
+      [[-1, 0, 0], [[-.5, -.5, -.5], [-.5, -.5, .5], [-.5, .5, .5], [-.5, .5, -.5]]],
+      [[0, 1, 0], [[-.5, .5, .5], [.5, .5, .5], [.5, .5, -.5], [-.5, .5, -.5]]],
+      [[0, -1, 0], [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, -.5, .5], [-.5, -.5, .5]]]
+    ];
+    faces.forEach(([normal, corners]) => {
+      [0, 1, 2, 0, 2, 3].forEach((index) => { positions.push(...corners[index]); normals.push(...normal); });
+    });
+    return createMesh({ positions, normals });
+  }
+  function cylinderGeometry(radius = 1, height = 1, sides = 12) {
+    const positions = [], normals = [];
+    for (let i = 0; i < sides; i += 1) {
+      const a = (i / sides) * TAU; const b = ((i + 1) / sides) * TAU;
+      const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+      const verts = [[radius * ca, -height / 2, radius * sa], [radius * cb, -height / 2, radius * sb], [radius * cb, height / 2, radius * sb], [radius * ca, height / 2, radius * sa]];
+      const ns = [[ca, 0, sa], [cb, 0, sb], [cb, 0, sb], [ca, 0, sa]];
+      [0, 1, 2, 0, 2, 3].forEach((index) => { positions.push(...verts[index]); normals.push(...ns[index]); });
+      // caps
+      positions.push(0, height / 2, 0, radius * cb, height / 2, radius * sb, radius * ca, height / 2, radius * sa); normals.push(0, 1, 0, 0, 1, 0, 0, 1, 0);
+      positions.push(0, -height / 2, 0, radius * ca, -height / 2, radius * sa, radius * cb, -height / 2, radius * sb); normals.push(0, -1, 0, 0, -1, 0, 0, -1, 0);
+    }
+    return createMesh({ positions, normals });
+  }
+  function sphereGeometry(rows = 8, columns = 12) {
+    const positions = [], normals = [];
+    for (let y = 0; y < rows; y += 1) {
+      const v0 = y / rows; const v1 = (y + 1) / rows; const p0 = Math.PI * v0; const p1 = Math.PI * v1;
+      for (let x = 0; x < columns; x += 1) {
+        const u0 = x / columns; const u1 = (x + 1) / columns;
+        const vertex = (p, u) => [Math.sin(p) * Math.cos(u * TAU), Math.cos(p), Math.sin(p) * Math.sin(u * TAU)];
+        const a = vertex(p0, u0), b = vertex(p0, u1), c = vertex(p1, u1), d = vertex(p1, u0);
+        [a, b, c, a, c, d].forEach((v) => { positions.push(...v); normals.push(...v); });
       }
     }
-    if (key === 'r') resetRun();
-    if (key === 'c') toggleCinematic();
+    return createMesh({ positions, normals });
+  }
+  function frustumGeometry(topRadius = .1, bottomRadius = 1, height = 1, sides = 16) {
+    const positions = [], normals = [];
+    for (let i = 0; i < sides; i += 1) {
+      const a = i / sides * TAU; const b = (i + 1) / sides * TAU; const ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+      const slope = bottomRadius - topRadius;
+      const normalA = [ca, slope, sa]; const normalB = [cb, slope, sb];
+      const va = [[bottomRadius * ca, -height / 2, bottomRadius * sa], [bottomRadius * cb, -height / 2, bottomRadius * sb], [topRadius * cb, height / 2, topRadius * sb], [topRadius * ca, height / 2, topRadius * sa]];
+      [0, 1, 2, 0, 2, 3].forEach((index) => { positions.push(...va[index]); normals.push(...index === 1 || index === 2 ? normalB : normalA); });
+    }
+    return createMesh({ positions, normals });
+  }
+  const meshes = { cube: cubeGeometry(), cylinder: cylinderGeometry(1, 1, 12), wheel: cylinderGeometry(1, 1, 12), sphere: sphereGeometry(), rock: sphereGeometry(5, 7), beam: frustumGeometry(.08, 1, 1, 16) };
+
+  // Matrix helpers, column-major to match WebGL.
+  const identity = () => new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  function multiply(a, b) {
+    const out = new Float32Array(16);
+    for (let column = 0; column < 4; column += 1) for (let row = 0; row < 4; row += 1) out[column * 4 + row] = a[row] * b[column * 4] + a[4 + row] * b[column * 4 + 1] + a[8 + row] * b[column * 4 + 2] + a[12 + row] * b[column * 4 + 3];
+    return out;
+  }
+  function translation(x, y, z) { const m = identity(); m[12] = x; m[13] = y; m[14] = z; return m; }
+  function scaling(x, y, z) { const m = identity(); m[0] = x; m[5] = y; m[10] = z; return m; }
+  function rotateY(angle) { const m = identity(); const c = Math.cos(angle), s = Math.sin(angle); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m; }
+  function rotateX(angle) { const m = identity(); const c = Math.cos(angle), s = Math.sin(angle); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; }
+  function modelMatrix(x, y, z, angle, sx, sy, sz, localX = 0, localY = 0, localZ = 0, localRX = 0, localRY = 0) {
+    let m = translation(x, y, z); m = multiply(m, rotateY(angle)); m = multiply(m, translation(localX, localY, localZ));
+    if (localRX) m = multiply(m, rotateX(localRX)); if (localRY) m = multiply(m, rotateY(localRY));
+    return multiply(m, scaling(sx, sy, sz));
+  }
+  function perspective(fov, aspect, near, far) {
+    const f = 1 / Math.tan(fov / 2); const range = near - far; const m = new Float32Array(16);
+    m[0] = f / aspect; m[5] = f; m[10] = (near + far) / range; m[11] = -1; m[14] = 2 * near * far / range; return m;
+  }
+  function lookAt(eye, target) {
+    let zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2]; let length = Math.hypot(zx, zy, zz); zx /= length; zy /= length; zz /= length;
+    let xx = -zz, xy = 0, xz = zx; length = Math.hypot(xx, xy, xz) || 1; xx /= length; xz /= length;
+    const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+    const m = identity(); m[0] = xx; m[1] = yx; m[2] = zx; m[4] = xy; m[5] = yy; m[6] = zy; m[8] = xz; m[9] = yz; m[10] = zz; m[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]); m[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]); m[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]); return m;
+  }
+  const hex = { floor: color('#101b1d'), floorEdge: color('#1e2b2a'), asphalt: color('#1b2323'), asphaltEdge: color('#364440'), steel: color('#667971'), steelDark: color('#263532'), timber: color('#4e5b50'), rock: color('#172528'), rockLight: color('#33413e'), black: color('#061012'), cyan: color('#a8ffe8'), blue: color('#5aade7'), amber: color('#c27a30'), orange: color('#a4512f'), pale: color('#879d86'), glass: color('#4e9ea5'), white: color('#eefef2') };
+  const emissive = { none: [0, 0, 0], cyan: color('#57dec8'), white: color('#c9fff1'), amber: color('#e9983b'), red: color('#e74d3d'), blue: color('#4d9ae2') };
+
+  function draw(mesh, matrix, material, glow = emissive.none, alpha = 1) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.position); gl.enableVertexAttribArray(attrib.position); gl.vertexAttribPointer(attrib.position, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normal); gl.enableVertexAttribArray(attrib.normal); gl.vertexAttribPointer(attrib.normal, 3, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(uniforms.model, false, matrix); gl.uniform3fv(uniforms.color, material); gl.uniform3fv(uniforms.emissive, glow); gl.uniform1f(uniforms.alpha, alpha); gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+  }
+  function worldXY(x, y) { return [x - 800, y - 500]; }
+  function segmentData(a, b) {
+    const dx = b[0] - a[0], dz = b[1] - a[1], length = Math.hypot(dx, dz); return { x: (a[0] + b[0]) / 2 - 800, z: (a[1] + b[1]) / 2 - 500, length, angle: Math.atan2(dz, dx) };
+  }
+
+  const renderables = { road: [], groove: [], tie: [], junction: [], support: [], rock: [], wallRock: [], floor: null, roof: null };
+  function buildMine() {
+    renderables.floor = { x: 0, y: -1, z: 0, sx: 1820, sy: 2, sz: 1190, material: hex.floor };
+    renderables.roof = { x: 0, y: 82, z: 0, sx: 1820, sy: 5, sz: 1190, material: hex.black };
+    roads.forEach((road) => {
+      for (let i = 0; i < road.points.length - 1; i += 1) {
+        const part = segmentData(road.points[i], road.points[i + 1]); part.width = road.width; renderables.road.push(part);
+        [-17, 17].forEach((offset) => { const normalX = -Math.sin(part.angle), normalZ = Math.cos(part.angle); renderables.groove.push({ ...part, x: part.x + normalX * offset, z: part.z + normalZ * offset, offset }); });
+        const count = Math.floor(part.length / 37);
+        for (let j = 1; j < count; j += 1) { const t = j / count; const px = lerp(road.points[i][0], road.points[i + 1][0], t); const pz = lerp(road.points[i][1], road.points[i + 1][1], t); renderables.tie.push({ ...part, x: px - 800, z: pz - 500 }); }
+      }
+    });
+    [[320, 680], [518, 412], [760, 412], [1042, 392], [1146, 646], [760, 202], [518, 680], [995, 692]].forEach(([x, y]) => renderables.junction.push({ x: x - 800, z: y - 500 }));
+    supports.forEach((support) => {
+      const p = worldXY(support.x, support.y); const normalX = -Math.sin(support.angle), normalZ = Math.cos(support.angle);
+      renderables.support.push({ ...support, x: p[0], z: p[1], leftX: p[0] + normalX * 48, leftZ: p[1] + normalZ * 48, rightX: p[0] - normalX * 48, rightZ: p[1] - normalZ * 48 });
+    });
+    rocks.forEach((rock) => {
+      if (nearestRoad(rock).distance > 70) renderables.rock.push(rock);
+    });
+    // Rockfall along the cavern walls, so the roof feels supported by a real chamber rather than a flat plane.
+    for (let i = 0; i < 34; i += 1) {
+      const side = i % 4; const t = (i * .193) % 1; const r = 28 + (i % 5) * 9;
+      const point = side === 0 ? { x: 68 + t * 1500, y: 70 + (i % 3) * 28 } : side === 1 ? { x: 1530 - (i % 3) * 24, y: 100 + t * 820 } : side === 2 ? { x: 80 + t * 1450, y: 915 - (i % 4) * 25 } : { x: 78 + (i % 3) * 24, y: 100 + t * 820 };
+      renderables.wallRock.push({ x: point.x, y: point.y, r, rotation: i * .51, tone: .3 + (i % 3) * .2 });
+    }
+  }
+  buildMine();
+
+  // Input / interaction -----------------------------------------------------
+  const keys = Object.create(null); const keyMap = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright', ' ']);
+  window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    if (keyMap.has(key)) { event.preventDefault(); keys[key] = true; if (!car.inputSeen) { car.inputSeen = true; $('driveHint').classList.add('is-hidden'); } }
+    if (key === 'r') resetRun(); if (key === 'c') toggleCinematic();
   });
   window.addEventListener('keyup', (event) => { keys[event.key.toLowerCase()] = false; });
   window.addEventListener('blur', () => { Object.keys(keys).forEach((key) => { keys[key] = false; }); });
-  $('resetButton').addEventListener('click', resetRun);
-  $('cinematicButton').addEventListener('click', toggleCinematic);
-
+  $('resetButton').addEventListener('click', resetRun); $('cinematicButton').addEventListener('click', toggleCinematic);
   function resetRun() {
-    car.x = 120; car.y = 874; car.angle = 0; car.speed = 0; car.health = 100; car.boost = 86; car.hitFlash = 0; car.checkpoint = 0; car.inputSeen = false;
-    elapsed = 0;
-    camera.x = car.x; camera.y = car.y;
-    carts = [
-      makeCart('C-12', 0, 1260, 112, 'amber'),
-      makeCart('C-04', 1, 720, 92, 'orange'),
-      makeCart('C-19', 2, 310, 72, 'pale'),
-      makeCart('C-27', 3, 238, 80, 'amber')
-    ];
-    $('driveHint').classList.remove('is-hidden');
-    $('trackStatus').textContent = 'TRACK LIVE';
-    $('incidentToast').classList.remove('visible');
-    warningActive = false;
-    toastTimer = 0;
+    car.x = 120; car.y = 874; car.angle = 0; car.speed = 0; car.health = 100; car.boost = 86; car.hitFlash = 0; car.checkpoint = 0; car.inputSeen = false; elapsed = 0; camera.x = car.x; camera.y = car.y;
+    carts = [makeCart('C-12', 0, 1260, 112, 'amber'), makeCart('C-04', 1, 720, 92, 'orange'), makeCart('C-19', 2, 310, 72, 'pale'), makeCart('C-27', 3, 238, 80, 'amber')];
+    carts.forEach((cart) => { const p = pointAtRoute(trafficRoutes[cart.routeIndex], cart.offset); cart.x = p.x; cart.y = p.y; cart.angle = p.angle; });
+    $('driveHint').classList.remove('is-hidden'); $('trackStatus').textContent = 'TRACK LIVE'; $('incidentToast').classList.remove('visible'); warningActive = false; toastTimer = 0;
   }
-
   function toggleCinematic() {
-    cinematic = !cinematic;
-    experience.classList.toggle('cinematic', cinematic);
-    const badge = $('cinematicBadge');
-    badge.innerHTML = cinematic ? 'CINEMATIC HUD ON <span>C</span>' : 'CINEMATIC HUD OFF <span>C</span>';
-    badge.classList.add('visible');
-    window.clearTimeout(toggleCinematic.timer);
-    toggleCinematic.timer = window.setTimeout(() => badge.classList.remove('visible'), 1300);
+    cinematic = !cinematic; experience.classList.toggle('cinematic', cinematic); const badge = $('cinematicBadge'); badge.innerHTML = cinematic ? 'CINEMATIC HUD ON <span>C</span>' : 'CINEMATIC HUD OFF <span>C</span>'; badge.classList.add('visible'); window.clearTimeout(toggleCinematic.timer); toggleCinematic.timer = window.setTimeout(() => badge.classList.remove('visible'), 1300);
   }
 
   // Simulation --------------------------------------------------------------
   function update(dt) {
-    elapsed += dt;
-    car.hitFlash = Math.max(0, car.hitFlash - dt * 2.8);
-    toastTimer = Math.max(0, toastTimer - dt);
-
-    const forward = keys.w || keys.arrowup;
-    const reverse = keys.s || keys.arrowdown;
-    const left = keys.a || keys.arrowleft;
-    const right = keys.d || keys.arrowright;
-    const throttle = forward ? 1 : reverse ? -1 : 0;
-    const steering = (right ? 1 : 0) - (left ? 1 : 0);
-    const boostOn = !!keys[' '] && forward && car.boost > 0 && car.speed > 28;
-
-    const road = nearestRoad(car);
-    car.roadDistance = road.distance;
-    car.offRoad = road.distance > road.width * .58;
-    const grip = car.offRoad ? .48 : 1;
-    const maxSpeed = boostOn ? 390 : 276;
-    const acceleration = boostOn ? 245 : 180;
-
-    if (throttle !== 0) {
-      car.speed += throttle * acceleration * dt * grip;
-    } else {
-      car.speed *= Math.pow(car.offRoad ? .89 : .935, dt * 60);
-    }
-    if (boostOn) car.boost = Math.max(0, car.boost - dt * 22);
-    else car.boost = Math.min(100, car.boost + dt * 6.5);
-    car.speed = clamp(car.speed, -115, maxSpeed);
-
-    const steerStrength = (0.72 + Math.min(Math.abs(car.speed) / 200, .72)) * (car.offRoad ? .65 : 1);
-    if (steering) car.angle += steering * steerStrength * dt * (car.speed >= 0 ? 1 : -1);
-
-    // A small amount of momentum makes the boxy car feel weighty without needing a physics package.
-    car.x += Math.cos(car.angle) * car.speed * dt;
-    car.y += Math.sin(car.angle) * car.speed * dt;
-    car.x = clamp(car.x, worldBounds.left, worldBounds.right);
-    car.y = clamp(car.y, worldBounds.top, worldBounds.bottom);
-
-    if (car.speed > 6 && car.checkpoint < raceCheckpoints.length - 1) {
-      const nextCheckpoint = raceCheckpoints[car.checkpoint + 1];
-      if (Math.hypot(car.x - nextCheckpoint.x, car.y - nextCheckpoint.y) < 76) {
-        car.checkpoint += 1;
-        showIncident(car.checkpoint === raceCheckpoints.length - 1 ? 'EXIT GATE AHEAD' : `SECTOR ${pad(car.checkpoint + 1)} CLEARED`, car.checkpoint === raceCheckpoints.length - 1 ? 'Finish line acquired. Keep it clean.' : 'Crosscut registered. Find the next beam marker.', 'info');
-      }
-    }
-
+    elapsed += dt; car.hitFlash = Math.max(0, car.hitFlash - dt * 2.8); toastTimer = Math.max(0, toastTimer - dt);
+    const forward = keys.w || keys.arrowup; const reverse = keys.s || keys.arrowdown; const left = keys.a || keys.arrowleft; const right = keys.d || keys.arrowright; const throttle = forward ? 1 : reverse ? -1 : 0; const steering = (right ? 1 : 0) - (left ? 1 : 0); const boostOn = !!keys[' '] && forward && car.boost > 0 && car.speed > 28;
+    const road = nearestRoad(car); car.roadDistance = road.distance; car.offRoad = road.distance > road.width * .58; const grip = car.offRoad ? .48 : 1; const maxSpeed = boostOn ? 390 : 276; const acceleration = boostOn ? 245 : 180;
+    if (throttle !== 0) car.speed += throttle * acceleration * dt * grip; else car.speed *= Math.pow(car.offRoad ? .89 : .935, dt * 60);
+    if (boostOn) car.boost = Math.max(0, car.boost - dt * 22); else car.boost = Math.min(100, car.boost + dt * 6.5); car.speed = clamp(car.speed, -115, maxSpeed);
+    const steerStrength = (.72 + Math.min(Math.abs(car.speed) / 200, .72)) * (car.offRoad ? .65 : 1); if (steering) car.angle += steering * steerStrength * dt * (car.speed >= 0 ? 1 : -1);
+    car.x = clamp(car.x + Math.cos(car.angle) * car.speed * dt, worldBounds.left, worldBounds.right); car.y = clamp(car.y + Math.sin(car.angle) * car.speed * dt, worldBounds.top, worldBounds.bottom);
+    if (car.speed > 6 && car.checkpoint < raceCheckpoints.length - 1) { const next = raceCheckpoints[car.checkpoint + 1]; if (Math.hypot(car.x - next.x, car.y - next.y) < 76) { car.checkpoint += 1; showIncident(car.checkpoint === raceCheckpoints.length - 1 ? 'EXIT GATE AHEAD' : `SECTOR ${pad(car.checkpoint + 1)} CLEARED`, car.checkpoint === raceCheckpoints.length - 1 ? 'Finish line acquired. Keep it clean.' : 'Crosscut registered. Find the next beam marker.', 'info'); } }
     carts.forEach((cart) => {
-      cart.distance = (cart.distance + cart.speed * dt) % trafficRoutes[cart.routeIndex].total;
-      const position = pointAtRoute(trafficRoutes[cart.routeIndex], cart.offset + cart.distance);
-      cart.x = position.x; cart.y = position.y; cart.angle = position.angle;
-      cart.hitCooldown = Math.max(0, cart.hitCooldown - dt);
-      if (Math.hypot(car.x - cart.x, car.y - cart.y) < 43 && cart.hitCooldown <= 0) {
-        cart.hitCooldown = 2.4;
-        car.health = Math.max(0, car.health - 15);
-        car.speed *= -.28;
-        car.x -= Math.cos(cart.angle) * 18;
-        car.y -= Math.sin(cart.angle) * 18;
-        car.hitFlash = 1;
-        showIncident('IMPACT // CART', 'Chassis damage registered. Give the ore line room.', 'danger');
-      }
+      cart.distance = (cart.distance + cart.speed * dt) % trafficRoutes[cart.routeIndex].total; const p = pointAtRoute(trafficRoutes[cart.routeIndex], cart.offset + cart.distance); cart.x = p.x; cart.y = p.y; cart.angle = p.angle; cart.hitCooldown = Math.max(0, cart.hitCooldown - dt);
+      if (Math.hypot(car.x - cart.x, car.y - cart.y) < 43 && cart.hitCooldown <= 0) { cart.hitCooldown = 2.4; car.health = Math.max(0, car.health - 15); car.speed *= -.28; car.x -= Math.cos(cart.angle) * 18; car.y -= Math.sin(cart.angle) * 18; car.hitFlash = 1; showIncident('IMPACT // CART', 'Chassis damage registered. Give the ore line room.', 'danger'); }
     });
-
     updateTrafficWarning();
-    const cameraTargetX = car.x + Math.cos(car.angle) * 108;
-    const cameraTargetY = car.y + Math.sin(car.angle) * 68;
-    const cameraEase = 1 - Math.pow(.0008, dt);
-    camera.x = lerp(camera.x, cameraTargetX, cameraEase);
-    camera.y = lerp(camera.y, cameraTargetY, cameraEase);
+    const cameraTargetX = car.x + Math.cos(car.angle) * 108; const cameraTargetY = car.y + Math.sin(car.angle) * 68; const cameraEase = 1 - Math.pow(.0008, dt); camera.x = lerp(camera.x, cameraTargetX, cameraEase); camera.y = lerp(camera.y, cameraTargetY, cameraEase);
     updateInterface();
   }
-
   function updateTrafficWarning() {
     let nearest = null;
-    carts.forEach((cart) => {
-      const dx = cart.x - car.x;
-      const dy = cart.y - car.y;
-      const d = Math.hypot(dx, dy);
-      const ahead = dx * Math.cos(car.angle) + dy * Math.sin(car.angle);
-      if (ahead > -46 && d < 210 && (!nearest || d < nearest.d)) nearest = { cart, d, ahead };
-    });
+    carts.forEach((cart) => { const dx = cart.x - car.x, dy = cart.y - car.y, d = Math.hypot(dx, dy), ahead = dx * Math.cos(car.angle) + dy * Math.sin(car.angle); if (ahead > -46 && d < 210 && (!nearest || d < nearest.d)) nearest = { cart, d, ahead }; });
     const shouldWarn = !!nearest && nearest.d < 172;
-    if (shouldWarn && !warningActive && toastTimer <= 0) {
-      const detail = nearest.d < 88 ? 'Crossing now. Brake or take the next cut.' : 'Ore line inbound. Check the crossing.';
-      showIncident('CART INBOUND', detail, 'warning');
-    }
+    if (shouldWarn && !warningActive && toastTimer <= 0) showIncident('CART INBOUND', nearest.d < 88 ? 'Crossing now. Brake or take the next cut.' : 'Ore line inbound. Check the crossing.', 'warning');
     warningActive = shouldWarn;
     if (toastTimer <= 0 && (!shouldWarn || toastType !== 'warning')) $('incidentToast').classList.remove('visible');
-    if (shouldWarn && toastType === 'warning') {
-      $('incidentTitle').textContent = nearest.d < 80 ? 'CROSSING ACTIVE' : 'CART INBOUND';
-      $('incidentDetail').textContent = nearest.d < 80 ? 'Brake or take the next cut.' : 'Ore line inbound. Check the crossing.';
-    }
+    if (shouldWarn && toastType === 'warning') { $('incidentTitle').textContent = nearest.d < 80 ? 'CROSSING ACTIVE' : 'CART INBOUND'; $('incidentDetail').textContent = nearest.d < 80 ? 'Brake or take the next cut.' : 'Ore line inbound. Check the crossing.'; }
   }
-
   function showIncident(title, detail, type = 'warning') {
-    toastType = type;
-    toastTimer = type === 'info' ? 2.4 : 2.1;
-    $('incidentTitle').textContent = title;
-    $('incidentDetail').textContent = detail;
-    const toast = $('incidentToast');
-    toast.classList.toggle('is-info', type === 'info');
-    toast.classList.toggle('is-danger', type === 'danger');
-    toast.classList.add('visible');
+    toastType = type; toastTimer = type === 'info' ? 2.4 : 2.1; $('incidentTitle').textContent = title; $('incidentDetail').textContent = detail; const toast = $('incidentToast'); toast.classList.toggle('is-info', type === 'info'); toast.classList.toggle('is-danger', type === 'danger'); toast.classList.add('visible');
   }
-
   function updateInterface() {
-    const kmh = Math.abs(car.speed) * .36;
-    $('speedValue').textContent = pad(kmh, 3);
-    $('gearValue').textContent = car.speed < -4 ? 'R' : car.speed > 5 ? 'D' : 'N';
-    $('boostValue').textContent = `${Math.round(car.boost)}%`;
-    $('healthValue').textContent = `${Math.round(car.health)}%`;
-    $('boostBar').style.width = `${car.boost}%`;
-    $('healthBar').style.width = `${car.health}%`;
-    $('sectorValue').textContent = pad(Math.min(car.checkpoint + 1, 8));
-    const progress = (car.checkpoint / (raceCheckpoints.length - 1)) * 100;
-    $('routeProgress').style.width = `${Math.max(3, progress)}%`;
-    $('trackStatus').textContent = car.health <= 0 ? 'CHASSIS CRITICAL' : car.offRoad ? 'OFF ROUTE' : car.checkpoint === raceCheckpoints.length - 1 ? 'EXIT GATE' : 'TRACK LIVE';
-    $('tractionState').textContent = car.offRoad ? 'GRIP / LOOSE' : boostActive() ? 'GRIP / BOOST' : 'GRIP / GOOD';
-    $('surfaceValue').textContent = car.offRoad ? 'LOOSE SHALE' : 'GROOVED PAVING';
-    $('cartCount').textContent = pad(carts.length);
-    $('timer').textContent = formatTime(elapsed);
+    const kmh = Math.abs(car.speed) * .36; $('speedValue').textContent = pad(kmh, 3); $('gearValue').textContent = car.speed < -4 ? 'R' : car.speed > 5 ? 'D' : 'N'; $('boostValue').textContent = `${Math.round(car.boost)}%`; $('healthValue').textContent = `${Math.round(car.health)}%`; $('boostBar').style.width = `${car.boost}%`; $('healthBar').style.width = `${car.health}%`; $('sectorValue').textContent = pad(Math.min(car.checkpoint + 1, 8)); $('routeProgress').style.width = `${Math.max(3, car.checkpoint / (raceCheckpoints.length - 1) * 100)}%`; $('trackStatus').textContent = car.health <= 0 ? 'CHASSIS CRITICAL' : car.offRoad ? 'OFF ROUTE' : car.checkpoint === raceCheckpoints.length - 1 ? 'EXIT GATE' : 'TRACK LIVE'; $('tractionState').textContent = car.offRoad ? 'GRIP / LOOSE' : boostActive() ? 'GRIP / BOOST' : 'GRIP / GOOD'; $('surfaceValue').textContent = car.offRoad ? 'LOOSE SHALE' : 'GROOVED PAVING'; $('cartCount').textContent = pad(carts.length); $('timer').textContent = formatTime(elapsed);
   }
-
   function boostActive() { return !!keys[' '] && (keys.w || keys.arrowup) && car.boost > 0 && car.speed > 28; }
-  function formatTime(time) {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${pad(minutes)}:${seconds.toFixed(2).padStart(5, '0')}`;
+  function formatTime(time) { return `${pad(Math.floor(time / 60))}:${(time % 60).toFixed(2).padStart(5, '0')}`; }
+
+  // 3D scene ---------------------------------------------------------------
+  function resize() {
+    viewport.width = window.innerWidth; viewport.height = window.innerHeight; viewport.dpr = Math.min(2, window.devicePixelRatio || 1); canvas.width = Math.floor(viewport.width * viewport.dpr); canvas.height = Math.floor(viewport.height * viewport.dpr); canvas.style.width = `${viewport.width}px`; canvas.style.height = `${viewport.height}px`; gl.viewport(0, 0, canvas.width, canvas.height);
+    mapWidth = minimap.clientWidth || 238; mapHeight = minimap.clientHeight || 161; minimap.width = Math.floor(mapWidth * viewport.dpr); minimap.height = Math.floor(mapHeight * viewport.dpr);
   }
 
-  // Main scene --------------------------------------------------------------
+  function setLights() {
+    const carWorld = worldXY(car.x, car.y); const nearLights = lights.map((light) => { const p = worldXY(light.x, light.y); return { d: Math.hypot(p[0] - carWorld[0], p[1] - carWorld[1]), p, light }; }).sort((a, b) => a.d - b.d).slice(0, 8);
+    const positions = new Float32Array(24); const colors = new Float32Array(24); const powers = new Float32Array(8);
+    for (let i = 0; i < 8; i += 1) { const item = nearLights[i] || nearLights[0]; const p = item ? item.p : [0, 0]; positions.set([p[0], 14, p[1]], i * 3); const c = item && item.light.index % 4 === 0 ? [1, .64, .28] : [.44, 1, .84]; colors.set(c, i * 3); powers[i] = item ? 1.2 : 0; }
+    gl.uniform3fv(uniforms.lightPos, positions); gl.uniform3fv(uniforms.lightColor, colors); gl.uniform1fv(uniforms.lightPower, powers);
+  }
+
   function render(time) {
-    ctx.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
-    ctx.clearRect(0, 0, viewport.width, viewport.height);
-    drawBackdrop(time);
+    gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(.018, .035, .04, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.useProgram(program);
+    const carWorld = worldXY(car.x, car.y); const forwardX = Math.cos(car.angle), forwardZ = Math.sin(car.angle); const cameraWorld = [carWorld[0] - forwardX * 158, 39 + Math.min(Math.abs(car.speed) * .025, 5), carWorld[1] - forwardZ * 158]; const targetWorld = [carWorld[0] + forwardX * 122, 4.2, carWorld[1] + forwardZ * 122];
+    const projection = perspective(Math.PI / 3.15, viewport.width / Math.max(1, viewport.height), .1, 2400); const view = lookAt(cameraWorld, targetWorld);
+    gl.uniformMatrix4fv(uniforms.projection, false, projection); gl.uniformMatrix4fv(uniforms.view, false, view); gl.uniform3fv(uniforms.camera, new Float32Array(cameraWorld)); gl.uniform3fv(uniforms.fogColor, color('#071315')); gl.uniform1f(uniforms.fogNear, 380); gl.uniform1f(uniforms.fogFar, 950); setLights();
 
-    const sceneScale = clamp(Math.min(viewport.width / 1290, viewport.height / 760), .65, 1.04);
-    ctx.save();
-    ctx.translate(viewport.width / 2 - camera.x * sceneScale, viewport.height / 2 - camera.y * sceneScale);
-    ctx.scale(sceneScale, sceneScale);
-    drawMine(time);
-    ctx.restore();
-
-    drawScreenAtmosphere(time);
-    renderMinimap();
+    // Opaque cavern shell.
+    const f = renderables.floor; draw(meshes.cube, modelMatrix(f.x, f.y, f.z, 0, f.sx, f.sy, f.sz), f.material);
+    const r = renderables.roof; draw(meshes.cube, modelMatrix(r.x, r.y, r.z, 0, r.sx, r.sy, r.sz), r.material);
+    drawCavernWalls(); drawRocks(); drawRoads(); drawSupports(); drawCeilingDetails(); drawLabels3D(); drawFinish3D(); drawCarts3D(); drawPlayer3D();
+    drawLightBeams(time); drawDust3D(time);
   }
 
-  function drawBackdrop(time) {
-    const gradient = ctx.createRadialGradient(viewport.width * .49, viewport.height * .48, 60, viewport.width * .5, viewport.height * .5, Math.max(viewport.width, viewport.height) * .75);
-    gradient.addColorStop(0, '#162b2d');
-    gradient.addColorStop(.44, '#0c1a1d');
-    gradient.addColorStop(1, '#04090b');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, viewport.width, viewport.height);
-    ctx.globalAlpha = .13;
-    ctx.strokeStyle = '#88aaa5';
-    ctx.lineWidth = 1;
-    const drift = (time * .004) % 32;
-    for (let x = -viewport.height; x < viewport.width + viewport.height; x += 32) {
-      ctx.beginPath(); ctx.moveTo(x + drift, 0); ctx.lineTo(x - viewport.height + drift, viewport.height); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawMine(time) {
-    ctx.fillStyle = '#0a1214';
-    ctx.fillRect(-500, -400, 2700, 1800);
-
-    ctx.save();
-    ctx.beginPath();
-    caveShape.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.closePath();
-    ctx.fillStyle = '#101e1f';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(149, 184, 174, .22)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-
-    drawCeilingRibs();
-    drawDust(time);
-    rocks.forEach(drawRock);
-    roads.forEach(drawRoad);
-    drawJunctions();
-    drawSupportsAndLights(time);
-    drawRouteDetails();
-    drawFinishGate();
-    carts.forEach((cart) => drawCart(cart, time));
-    drawPlayerCar(time);
-  }
-
-  function drawCeilingRibs() {
-    ctx.save();
-    ctx.globalAlpha = .22;
-    ctx.strokeStyle = '#314544';
-    ctx.lineWidth = 1.5;
-    for (let x = 80; x < 1640; x += 145) {
-      ctx.beginPath();
-      ctx.moveTo(x - 70, 65);
-      ctx.quadraticCurveTo(x + 35, 140, x - 10, 232);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + 35, 780);
-      ctx.quadraticCurveTo(x + 100, 850, x + 30, 958);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = .15;
-    ctx.lineWidth = 7;
-    ctx.strokeStyle = '#071012';
-    caveShape.forEach(([x, y], index) => {
-      if (index === caveShape.length - 1) return;
-      const next = caveShape[index + 1];
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(next[0], next[1]); ctx.stroke();
-    });
-    ctx.restore();
-  }
-
-  function drawDust(time) {
-    ctx.save();
-    for (const mote of dust) {
-      const bob = Math.sin(time * .0007 + mote.phase) * 3;
-      ctx.globalAlpha = mote.a * (.65 + Math.sin(time * .001 + mote.phase) * .35);
-      ctx.fillStyle = '#abc5bc';
-      ctx.beginPath(); ctx.arc(mote.x, mote.y + bob, mote.r, 0, TAU); ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawRock(rock) {
-    ctx.save();
-    ctx.translate(rock.x, rock.y);
-    ctx.rotate(rock.rotation);
-    ctx.shadowColor = 'rgba(0, 0, 0, .55)'; ctx.shadowBlur = 15; ctx.shadowOffsetY = 8;
-    const colors = rock.tone > .64 ? ['#182526', '#2a3937', '#42504a'] : rock.tone > .3 ? ['#111c1e', '#243230', '#35413d'] : ['#0f191b', '#202c2b', '#303b37'];
-    ctx.fillStyle = colors[0];
-    ctx.beginPath();
-    for (let i = 0; i < 7; i += 1) {
-      const angle = (i / 7) * TAU;
-      const radius = rock.r * (.74 + ((i * 13) % 7) / 18);
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius * .72;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.closePath(); ctx.fill();
-    ctx.shadowColor = 'transparent';
-    ctx.strokeStyle = colors[1]; ctx.lineWidth = 2; ctx.stroke();
-    ctx.globalAlpha = .55; ctx.fillStyle = colors[2];
-    ctx.beginPath(); ctx.moveTo(-rock.r * .34, -rock.r * .15); ctx.lineTo(rock.r * .12, -rock.r * .44); ctx.lineTo(rock.r * .34, -rock.r * .04); ctx.lineTo(-rock.r * .05, rock.r * .08); ctx.closePath(); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawRoad(road) {
-    const points = road.points;
-    strokePolyline(points, road.width + 21, 'rgba(0, 0, 0, .46)');
-    strokePolyline(points, road.width + 8, '#202b2a');
-    strokePolyline(points, road.width, '#171e1e');
-    strokePolyline(points, road.width - 10, '#1c2624');
-    strokePolyline(points, road.width - 26, 'rgba(27, 36, 34, .82)');
-
-    // Steel-edged service paving.
-    strokePolyline(points, road.width - 8, 'rgba(88, 100, 91, .21)', 1.5);
-    drawGrooves(points, road.width);
-    drawPavingScars(points, road.width);
-  }
-
-  function strokePolyline(points, width, color, lineWidth = width) {
-    ctx.save(); ctx.beginPath();
-    points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = lineWidth; ctx.strokeStyle = color; ctx.stroke(); ctx.restore();
-  }
-
-  function drawGrooves(points, width) {
-    const offsets = [-17, 17];
-    offsets.forEach((offset) => {
-      ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(3, 8, 9, .98)'; ctx.lineWidth = 6;
-      ctx.beginPath();
-      for (let i = 0; i < points.length - 1; i += 1) {
-        const [x1, y1] = points[i]; const [x2, y2] = points[i + 1];
-        const length = Math.hypot(x2 - x1, y2 - y1) || 1; const nx = -(y2 - y1) / length; const ny = (x2 - x1) / length;
-        if (i === 0) ctx.moveTo(x1 + nx * offset, y1 + ny * offset); else ctx.lineTo(x1 + nx * offset, y1 + ny * offset);
-        ctx.lineTo(x2 + nx * offset, y2 + ny * offset);
-      }
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(126, 139, 126, .42)'; ctx.lineWidth = 1.3;
-      ctx.stroke(); ctx.restore();
-    });
-
-    // Short ties make the repeated mine-cart grooves read clearly at junctions.
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const [x1, y1] = points[i]; const [x2, y2] = points[i + 1];
-      const segmentLength = Math.hypot(x2 - x1, y2 - y1); const angle = Math.atan2(y2 - y1, x2 - x1);
-      const count = Math.floor(segmentLength / 37);
-      for (let j = 1; j < count; j += 1) {
-        const t = j / count; const x = lerp(x1, x2, t); const y = lerp(y1, y2, t);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
-        ctx.strokeStyle = 'rgba(62, 70, 64, .32)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(0, 30); ctx.stroke();
-        ctx.restore();
-      }
-    }
-  }
-
-  function drawPavingScars(points, width) {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(127, 151, 137, .15)'; ctx.lineWidth = 1;
-    for (let i = 0; i < points.length - 1; i += 1) {
-      const [x1, y1] = points[i]; const [x2, y2] = points[i + 1];
-      const angle = Math.atan2(y2 - y1, x2 - x1); const length = Math.hypot(x2 - x1, y2 - y1);
-      for (let d = 18; d < length - 15; d += 67) {
-        const t = d / length; const x = lerp(x1, x2, t); const y = lerp(y1, y2, t);
-        ctx.save(); ctx.translate(x, y); ctx.rotate(angle + Math.PI / 2);
-        ctx.beginPath(); ctx.moveTo(-width * .28, 0); ctx.lineTo(width * .28, 0); ctx.stroke(); ctx.restore();
-      }
-    }
-    ctx.restore();
-  }
-
-  function drawJunctions() {
-    const nodes = [[320, 680], [518, 412], [760, 412], [1042, 392], [1146, 646], [760, 202], [518, 680], [995, 692]];
-    nodes.forEach(([x, y]) => {
-      ctx.save();
-      ctx.globalAlpha = .22;
-      ctx.fillStyle = '#94afa3'; ctx.beginPath(); ctx.arc(x, y, 33, 0, TAU); ctx.fill();
-      ctx.globalAlpha = .34; ctx.strokeStyle = '#99b9aa'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(x, y, 27, 0, TAU); ctx.stroke();
-      ctx.restore();
-    });
-  }
-
-  function drawSupportsAndLights(time) {
-    lights.forEach((light) => drawLight(light, time));
-    supports.forEach((support) => drawSupport(support));
-  }
-
-  function drawLight(light, time) {
-    const pulse = .86 + Math.sin(time * .003 + light.phase) * .08;
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    const glow = ctx.createRadialGradient(light.x, light.y, 2, light.x, light.y, 94);
-    glow.addColorStop(0, `rgba(176, 244, 219, ${.23 * pulse})`);
-    glow.addColorStop(.32, `rgba(93, 192, 169, ${.08 * pulse})`);
-    glow.addColorStop(1, 'rgba(62, 122, 112, 0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(light.x, light.y, 94, 0, TAU); ctx.fill();
-    const beam = 130;
-    const spread = .42;
-    ctx.fillStyle = `rgba(142, 231, 203, ${.035 * pulse})`;
-    ctx.beginPath(); ctx.moveTo(light.x, light.y); ctx.lineTo(light.x + Math.cos(light.angle - spread) * beam, light.y + Math.sin(light.angle - spread) * beam); ctx.lineTo(light.x + Math.cos(light.angle + spread) * beam, light.y + Math.sin(light.angle + spread) * beam); ctx.closePath(); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#a8ffe5'; ctx.shadowColor = '#9effdb'; ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.arc(light.x, light.y, 3.2, 0, TAU); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawSupport(support) {
-    const { x, y, angle } = support;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
-    ctx.globalAlpha = .7;
-    ctx.fillStyle = 'rgba(0,0,0,.48)';
-    ctx.fillRect(-6, -58, 13, 18); ctx.fillRect(-6, 40, 13, 18);
-    ctx.strokeStyle = '#0a1010'; ctx.lineWidth = 14; ctx.lineCap = 'square'; ctx.beginPath(); ctx.moveTo(0, -62); ctx.lineTo(0, 62); ctx.stroke();
-    ctx.strokeStyle = '#4c5f57'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(0, -62); ctx.lineTo(0, 62); ctx.stroke();
-    ctx.strokeStyle = '#82948a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-2, -61); ctx.lineTo(-2, 61); ctx.stroke();
-    // roof brace, a second member set back from the light bar
-    ctx.strokeStyle = 'rgba(100, 129, 116, .55)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-18, -55); ctx.lineTo(18, -55); ctx.stroke();
-    ctx.strokeStyle = 'rgba(25, 40, 36, .9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-17, -54); ctx.lineTo(17, -54); ctx.stroke();
-    ctx.fillStyle = '#1d302d'; ctx.fillRect(-9, -68, 18, 8);
-    ctx.fillStyle = '#b5f6d9'; ctx.shadowColor = '#93e2c6'; ctx.shadowBlur = 7; ctx.beginPath(); ctx.arc(0, -63, 2.5, 0, TAU); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawRouteDetails() {
-    const labels = [
-      [196, 854, 'ORE LINE 05', 0], [350, 659, 'CROSSCUT // 01', -Math.PI / 2], [550, 391, 'BEAMMARK 02', 0],
-      [788, 181, 'NORTH HAUL', 0], [1067, 370, 'CROSSCUT // 03', 0], [1290, 625, 'DEEP LEVEL', 0],
-      [720, 807, 'LOWER BYPASS', .1]
+  function drawCavernWalls() {
+    // Low side shelves catch light and make the playable chamber feel carved out of rock.
+    const walls = [
+      [-795, 13, -340, 20, 28, 880], [795, 13, -340, 20, 28, 880], [0, 13, -480, 1560, 28, 18], [0, 13, 480, 1560, 28, 18]
     ];
-    ctx.save();
-    labels.forEach(([x, y, label, angle]) => {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = 'rgba(178, 217, 201, .35)'; ctx.font = '8px "DM Mono", monospace'; ctx.letterSpacing = '1px'; ctx.fillText(label, 0, 0); ctx.restore();
+    walls.forEach(([x, y, z, sx, sy, sz]) => draw(meshes.cube, modelMatrix(x, y, z, 0, sx, sy, sz), hex.rock));
+  }
+  function drawRocks() {
+    renderables.wallRock.forEach((rock) => drawRock3D(rock, true)); renderables.rock.forEach((rock) => drawRock3D(rock, false));
+  }
+  function drawRock3D(rock, wall) {
+    const [x, z] = worldXY(rock.x, rock.y); const scale = wall ? [rock.r * 1.45, rock.r * .72, rock.r * .92] : [rock.r, rock.r * .7, rock.r * .82]; const material = rock.tone > .62 ? hex.rockLight : hex.rock;
+    draw(meshes.rock, modelMatrix(x, wall ? rock.r * .45 : rock.r * .38, z, rock.rotation, scale[0], scale[1], scale[2]), material);
+  }
+  function drawRoads() {
+    renderables.road.forEach((part) => {
+      draw(meshes.cube, modelMatrix(part.x, .25, part.z, -part.angle, part.length + 2, .5, part.width), hex.asphalt);
+      draw(meshes.cube, modelMatrix(part.x, .53, part.z, -part.angle, part.length, .05, part.width - 15), hex.asphaltEdge);
     });
-    ctx.restore();
+    renderables.groove.forEach((part) => { draw(meshes.cube, modelMatrix(part.x, .61, part.z, -part.angle, part.length, .09, 4), hex.steelDark); draw(meshes.cube, modelMatrix(part.x, .67, part.z, -part.angle, part.length, .025, 1.2), hex.steel); });
+    renderables.tie.forEach((tie) => draw(meshes.cube, modelMatrix(tie.x, .59, tie.z, -tie.angle, 6, .08, tie.width * .88), hex.timber));
+    renderables.junction.forEach((node) => draw(meshes.cylinder, modelMatrix(node.x, .55, node.z, 0, 42, .15, 42), hex.asphaltEdge));
+  }
+  function drawSupports() {
+    renderables.support.forEach((support) => {
+      draw(meshes.cube, modelMatrix(support.leftX, 8, support.leftZ, -support.angle, 7, 16, 7), hex.timber);
+      draw(meshes.cube, modelMatrix(support.rightX, 8, support.rightZ, -support.angle, 7, 16, 7), hex.timber);
+      draw(meshes.cube, modelMatrix(support.x, 17, support.z, -support.angle, 7, 3.5, 118), hex.steelDark);
+      draw(meshes.cube, modelMatrix(support.x, 18.2, support.z, -support.angle, 3, .45, 112), hex.steel);
+      draw(meshes.cube, modelMatrix(support.x, 25, support.z, -support.angle, 118, 2.5, 5), hex.steelDark);
+      draw(meshes.cube, modelMatrix(support.x, 26.3, support.z, -support.angle, 108, .35, 1.2), hex.timber);
+    });
+  }
+  function drawCeilingDetails() {
+    // Repeated dark ribs connect to the support beams and make the roof readable in perspective.
+    for (let x = -720; x <= 720; x += 150) draw(meshes.cube, modelMatrix(x, 75, 0, 0, 7, 5, 930), hex.rock);
+    lights.forEach((light) => { const p = worldXY(light.x, light.y); draw(meshes.cube, modelMatrix(p[0], 20, p[1], 0, 8, 2, 8), hex.steelDark); draw(meshes.sphere, modelMatrix(p[0], 17.8, p[1], 0, 4.5, 4.5, 4.5), hex.white, light.index % 4 === 0 ? emissive.amber : emissive.cyan); });
+  }
+  function drawLightBeams(time) {
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.depthMask(false);
+    lights.forEach((light) => { const p = worldXY(light.x, light.y); const pulse = .055 + Math.sin(time * .002 + light.phase) * .012; draw(meshes.beam, modelMatrix(p[0], 9, p[1], 0, 25, 17, 25), hex.cyan, light.index % 4 === 0 ? emissive.amber : emissive.cyan, pulse); });
+    gl.depthMask(true); gl.disable(gl.BLEND);
+  }
+  function drawDust3D(time) {
+    // Small emissive dust motes sell depth as they drift through the lamps.
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.depthMask(false);
+    dust.slice(0, 50).forEach((mote) => { const [x, z] = worldXY(mote.x, mote.y); const bob = Math.sin(time * .0007 + mote.phase) * 2.5; draw(meshes.sphere, modelMatrix(x, 5 + bob, z, 0, mote.r, mote.r, mote.r), hex.white, emissive.cyan, mote.a * .28); });
+    gl.depthMask(true); gl.disable(gl.BLEND);
+  }
+  function drawLabels3D() {
+    // Thin raised markers are intentionally geometric; the HTML HUD carries the type labels.
+    [[196, 854], [550, 391], [788, 181], [1067, 370], [1290, 625]].forEach(([x, z], index) => { const p = worldXY(x, z); draw(meshes.cube, modelMatrix(p[0], 1.2, p[1], 0, 18, .18, 1.4), index % 2 ? hex.blue : hex.steel); });
+  }
+  function drawFinish3D() { const p = worldXY(1518, 874); draw(meshes.cube, modelMatrix(p[0], 9, p[1] - 48, 0, 5, 18, 5), hex.steel); draw(meshes.cube, modelMatrix(p[0], 18, p[1], 0, 5, 4, 92), hex.steel); draw(meshes.sphere, modelMatrix(p[0], 28, p[1], 0, 5, 5, 5), hex.white, emissive.cyan); }
+
+  function entityMatrix(worldX, worldY, worldZ, angle, localX, localY, localZ, sx, sy, sz, localRX = 0, localRY = 0) { return modelMatrix(worldX, worldY, worldZ, -angle, sx, sy, sz, localX, localY, localZ, localRX, localRY); }
+  function drawCarts3D(time) {
+    const cartMaterials = { amber: hex.amber, orange: hex.orange, pale: hex.pale };
+    carts.forEach((cart) => {
+      const [x, z] = worldXY(cart.x, cart.y); const body = cartMaterials[cart.color];
+      draw(meshes.cube, entityMatrix(x, 4.5, z, cart.angle, 0, 0, 0, 62, 8, 34), body);
+      draw(meshes.cube, entityMatrix(x, 9.2, z, cart.angle, -2, 0, 0, 51, 2.5, 27), body);
+      draw(meshes.cube, entityMatrix(x, 10.5, z, cart.angle, -5, 0, 0, 43, 3.5, 23), cart.color === 'pale' ? hex.rockLight : hex.amber);
+      [-22, 22].forEach((localX) => [-20, 20].forEach((localZ) => draw(meshes.wheel, entityMatrix(x, 2.4, z, cart.angle, localX, 0, localZ, 7, 4, 7, Math.PI / 2), hex.black)));
+      draw(meshes.cube, entityMatrix(x, 6, z, cart.angle, 32, 0, -10, 5, 3, 5), hex.white, emissive.amber);
+      draw(meshes.cube, entityMatrix(x, 6, z, cart.angle, 32, 0, 10, 5, 3, 5), hex.white, emissive.amber);
+      if (cart.hitCooldown > 1.6) draw(meshes.cube, entityMatrix(x, 9, z, cart.angle, 0, 0, 0, 76, 2, 45), hex.white, emissive.red, .42);
+    });
+  }
+  function drawPlayer3D(time) {
+    const [x, z] = worldXY(car.x, car.y); const body = car.hitFlash > 0 ? hex.white : color('#4c7c85');
+    draw(meshes.cube, entityMatrix(x, 4.5, z, car.angle, 0, 0, 0, 76, 8, 43), body);
+    draw(meshes.cube, entityMatrix(x, 8.5, z, car.angle, -6, 0, 0, 33, 8, 35), hex.glass);
+    draw(meshes.cube, entityMatrix(x, 11.7, z, car.angle, -6, 0, 0, 36, 1.4, 38), hex.steel);
+    // glass panels split the roof cabin into two readable windows
+    draw(meshes.cube, entityMatrix(x, 9.2, z, car.angle, 10, 0, -17.4, 13, 3.3, 1.2), hex.glass, emissive.blue);
+    draw(meshes.cube, entityMatrix(x, 9.2, z, car.angle, 10, 0, 17.4, 13, 3.3, 1.2), hex.glass, emissive.blue);
+    draw(meshes.cube, entityMatrix(x, 5, z, car.angle, -18, 0, 0, 24, 1.4, 39), hex.steel);
+    draw(meshes.cube, entityMatrix(x, 4.2, z, car.angle, 10, 0, -22, 9, 1, 2), hex.white, emissive.white);
+    draw(meshes.cube, entityMatrix(x, 4.2, z, car.angle, 10, 0, 22, 9, 1, 2), hex.white, emissive.white);
+    draw(meshes.cube, entityMatrix(x, 4.2, z, car.angle, -37, 0, -15, 5, 2, 4), hex.red, emissive.red);
+    draw(meshes.cube, entityMatrix(x, 4.2, z, car.angle, -37, 0, 15, 5, 2, 4), hex.red, emissive.red);
+    [-23, 23].forEach((localX) => [-23, 23].forEach((localZ) => draw(meshes.wheel, entityMatrix(x, 2.5, z, car.angle, localX, 0, localZ, 9, 5, 8, Math.PI / 2), hex.black)));
+    // roof rails
+    draw(meshes.cylinder, entityMatrix(x, 14, z, car.angle, -20, 0, -17, 1.5, 28, 1.5, 0, Math.PI / 2), hex.steel);
+    draw(meshes.cylinder, entityMatrix(x, 14, z, car.angle, 14, 0, -17, 1.5, 28, 1.5, 0, Math.PI / 2), hex.steel);
+    if (boostActive()) { draw(meshes.cube, entityMatrix(x, 4, z, car.angle, -48, 0, -9, 22, 2, 4), hex.cyan, emissive.cyan, .8); draw(meshes.cube, entityMatrix(x, 4, z, car.angle, -48, 0, 9, 22, 2, 4), hex.cyan, emissive.cyan, .8); }
+    if (car.hitFlash > 0) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.depthMask(false); draw(meshes.sphere, modelMatrix(x, 8, z, 0, 48, 20, 38), hex.white, emissive.red, car.hitFlash * .15); gl.depthMask(true); gl.disable(gl.BLEND); }
   }
 
-  function drawFinishGate() {
-    const x = 1518; const y = 874; const angle = 0;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
-    ctx.globalAlpha = .85; ctx.strokeStyle = '#6fb9b5'; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(0, -44); ctx.lineTo(0, 44); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(141, 232, 227, .18)'; ctx.fillRect(-2, -46, 4, 92);
-    ctx.fillStyle = '#a8fff0'; ctx.shadowColor = '#8de8e3'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(0, -48, 4, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = '#bafbf0'; ctx.font = '9px "DM Mono", monospace'; ctx.fillText('EXIT GATE', 12, -57);
-    ctx.restore();
+  // Gameplay geometry query -------------------------------------------------
+  function projectNearest(point, road) {
+    let best = { distance: Infinity, x: point.x, y: point.y, angle: 0, width: road.width };
+    const route = road.segments || makeRoute(road.points).segments;
+    for (const segment of route) { const vx = segment.b.x - segment.a.x, vy = segment.b.y - segment.a.y, lengthSq = vx * vx + vy * vy || 1; const t = clamp(((point.x - segment.a.x) * vx + (point.y - segment.a.y) * vy) / lengthSq, 0, 1); const x = segment.a.x + vx * t, y = segment.a.y + vy * t, d = Math.hypot(point.x - x, point.y - y); if (d < best.distance) best = { distance: d, x, y, angle: segment.angle, width: road.width }; }
+    return best;
   }
-
-  function drawCart(cart, time) {
-    ctx.save(); ctx.translate(cart.x, cart.y); ctx.rotate(cart.angle);
-    ctx.globalAlpha = .55; ctx.fillStyle = '#020607'; ctx.beginPath(); ctx.ellipse(0, 19, 39, 13, 0, 0, TAU); ctx.fill();
-    // wheels and low undercarriage
-    ctx.fillStyle = '#090f10'; ctx.fillRect(-24, -22, 12, 8); ctx.fillRect(12, -22, 12, 8); ctx.fillRect(-24, 14, 12, 8); ctx.fillRect(12, 14, 12, 8);
-    ctx.strokeStyle = '#5a4d3e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-30, -18); ctx.lineTo(31, -18); ctx.moveTo(-30, 18); ctx.lineTo(31, 18); ctx.stroke();
-    const body = cart.color === 'orange' ? '#a9552e' : cart.color === 'pale' ? '#6b806e' : '#b17a38';
-    ctx.fillStyle = '#35271f'; ctx.fillRect(-28, -15, 57, 30);
-    ctx.fillStyle = body; ctx.fillRect(-22, -12, 45, 24);
-    ctx.fillStyle = cart.color === 'pale' ? '#9fbda0' : '#e0a04e';
-    ctx.globalAlpha = .72; ctx.beginPath(); ctx.moveTo(-18, -8); ctx.lineTo(-8, -14); ctx.lineTo(5, -9); ctx.lineTo(17, -13); ctx.lineTo(21, 5); ctx.lineTo(-20, 7); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-    ctx.strokeStyle = 'rgba(255,224,157,.45)'; ctx.lineWidth = 1; ctx.strokeRect(-22, -12, 45, 24);
-    ctx.fillStyle = '#f7c168'; ctx.shadowColor = '#ffbd57'; ctx.shadowBlur = 9; ctx.beginPath(); ctx.arc(28, -8, 3, 0, TAU); ctx.arc(28, 8, 3, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = '#0a1111'; ctx.font = '7px "DM Mono", monospace'; ctx.fillText(cart.id, -17, 3);
-    if (cart.hitCooldown > 1.6) { ctx.strokeStyle = '#ff8060'; ctx.lineWidth = 2; ctx.strokeRect(-35, -25, 70, 50); }
-    ctx.restore();
-  }
-
-  function drawPlayerCar(time) {
-    ctx.save(); ctx.translate(car.x, car.y); ctx.rotate(car.angle);
-    ctx.globalAlpha = .6; ctx.fillStyle = '#010405'; ctx.beginPath(); ctx.ellipse(-2, 24, 50, 24, 0, 0, TAU); ctx.fill();
-    // chunky wheels, slightly offset to read as a boxy vehicle from above
-    ctx.fillStyle = '#050a0b';
-    roundedRect(ctx, -27, -27, 20, 12, 3); roundedRect(ctx, 14, -27, 20, 12, 3); roundedRect(ctx, -27, 15, 20, 12, 3); roundedRect(ctx, 14, 15, 20, 12, 3);
-    ctx.strokeStyle = '#34484a'; ctx.lineWidth = 2; ctx.strokeRect(-27, -27, 20, 12); ctx.strokeRect(14, -27, 20, 12); ctx.strokeRect(-27, 15, 20, 12); ctx.strokeRect(14, 15, 20, 12);
-
-    const body = ctx.createLinearGradient(-38, 0, 40, 0); body.addColorStop(0, '#213a42'); body.addColorStop(.46, '#4f808a'); body.addColorStop(1, '#a8e4dc');
-    ctx.fillStyle = body; ctx.strokeStyle = '#c2fff1'; ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(39, -18); ctx.lineTo(28, -24); ctx.lineTo(-25, -21); ctx.lineTo(-36, -13); ctx.lineTo(-36, 13); ctx.lineTo(-25, 21); ctx.lineTo(28, 24); ctx.lineTo(39, 17); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // cabin and glass
-    ctx.fillStyle = '#101e24'; ctx.strokeStyle = 'rgba(193, 252, 242, .62)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(11, -17); ctx.lineTo(26, -14); ctx.lineTo(29, 14); ctx.lineTo(11, 17); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(131, 220, 225, .34)'; ctx.beginPath(); ctx.moveTo(13, -13); ctx.lineTo(24, -11); ctx.lineTo(25, -2); ctx.lineTo(13, -2); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(13, 2); ctx.lineTo(25, 2); ctx.lineTo(24, 11); ctx.lineTo(13, 13); ctx.closePath(); ctx.fill();
-    // hood panel, doors, bumpers and marker lights
-    ctx.strokeStyle = 'rgba(205,255,242,.42)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-26, -17); ctx.lineTo(7, -14); ctx.moveTo(-26, 17); ctx.lineTo(7, 14); ctx.moveTo(-4, -19); ctx.lineTo(-4, 19); ctx.stroke();
-    ctx.fillStyle = '#dffff1'; ctx.shadowColor = '#a7fff1'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(36, -10, 3.1, 0, TAU); ctx.arc(36, 10, 3.1, 0, TAU); ctx.fill();
-    ctx.shadowBlur = 0; ctx.fillStyle = '#f07059'; ctx.beginPath(); ctx.arc(-34, -10, 2, 0, TAU); ctx.arc(-34, 10, 2, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#14282c'; ctx.fillRect(-39, -5, 5, 10);
-    // roof rail, the tiny extra detail that sells the industrial boxcar silhouette
-    ctx.strokeStyle = '#d0fff0'; ctx.globalAlpha = .62; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(2, -19); ctx.lineTo(21, -20); ctx.moveTo(2, 19); ctx.lineTo(21, 20); ctx.stroke();
-    if (boostActive()) { ctx.globalAlpha = .65; ctx.fillStyle = '#84f6ff'; ctx.shadowColor = '#84f6ff'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.moveTo(-40, -9); ctx.lineTo(-59, -5); ctx.lineTo(-42, 0); ctx.lineTo(-59, 5); ctx.lineTo(-40, 9); ctx.closePath(); ctx.fill(); }
-    if (car.hitFlash > 0) { ctx.globalAlpha = car.hitFlash * .8; ctx.strokeStyle = '#ff8060'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 48 + (1 - car.hitFlash) * 10, 0, TAU); ctx.stroke(); }
-    ctx.restore();
-  }
-
-  function drawScreenAtmosphere(time) {
-    const gradient = ctx.createRadialGradient(viewport.width / 2, viewport.height / 2, Math.min(viewport.width, viewport.height) * .16, viewport.width / 2, viewport.height / 2, Math.max(viewport.width, viewport.height) * .7);
-    gradient.addColorStop(0, 'rgba(0,0,0,0)'); gradient.addColorStop(.74, 'rgba(0, 5, 6, .08)'); gradient.addColorStop(1, 'rgba(0, 2, 3, .64)');
-    ctx.fillStyle = gradient; ctx.fillRect(0, 0, viewport.width, viewport.height);
-    if (car.hitFlash > 0) { ctx.fillStyle = `rgba(255, 72, 50, ${car.hitFlash * .12})`; ctx.fillRect(0, 0, viewport.width, viewport.height); }
-  }
+  function nearestRoad(point) { let best = { distance: Infinity, x: point.x, y: point.y, angle: 0, width: 0 }; for (const road of roads) { const candidate = projectNearest(point, road); if (candidate.distance < best.distance) best = candidate; } return best; }
 
   // Minimap -----------------------------------------------------------------
   function renderMinimap() {
-    mapCtx.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0);
-    mapCtx.clearRect(0, 0, mapWidth, mapHeight);
-    mapCtx.fillStyle = 'rgba(2, 8, 9, .88)'; mapCtx.fillRect(0, 0, mapWidth, mapHeight);
-    const padMap = 10;
-    const sx = (mapWidth - padMap * 2) / (worldBounds.right - worldBounds.left);
-    const sy = (mapHeight - padMap * 2) / (worldBounds.bottom - worldBounds.top);
-    const scale = Math.min(sx, sy);
-    const ox = (mapWidth - (worldBounds.right - worldBounds.left) * scale) / 2 - worldBounds.left * scale;
-    const oy = (mapHeight - (worldBounds.bottom - worldBounds.top) * scale) / 2 - worldBounds.top * scale;
-    const toMap = (x, y) => ({ x: ox + x * scale, y: oy + y * scale });
-
-    // subtle mine boundary
-    mapCtx.save(); mapCtx.strokeStyle = 'rgba(141, 232, 227, .12)'; mapCtx.lineWidth = 1; mapCtx.beginPath();
-    caveShape.forEach(([x, y], index) => { const p = toMap(x, y); index ? mapCtx.lineTo(p.x, p.y) : mapCtx.moveTo(p.x, p.y); }); mapCtx.closePath(); mapCtx.stroke(); mapCtx.restore();
-
-    roads.forEach((road) => {
-      mapCtx.save(); mapCtx.lineCap = 'round'; mapCtx.lineJoin = 'round'; mapCtx.beginPath();
-      road.points.forEach(([x, y], index) => { const p = toMap(x, y); index ? mapCtx.lineTo(p.x, p.y) : mapCtx.moveTo(p.x, p.y); });
-      mapCtx.strokeStyle = 'rgba(105, 133, 124, .24)'; mapCtx.lineWidth = Math.max(3, road.width * scale + 2); mapCtx.stroke();
-      mapCtx.strokeStyle = 'rgba(24, 43, 42, .96)'; mapCtx.lineWidth = Math.max(2, road.width * scale); mapCtx.stroke();
-      mapCtx.restore();
-    });
+    mapCtx.setTransform(viewport.dpr, 0, 0, viewport.dpr, 0, 0); mapCtx.clearRect(0, 0, mapWidth, mapHeight); mapCtx.fillStyle = 'rgba(2, 8, 9, .88)'; mapCtx.fillRect(0, 0, mapWidth, mapHeight);
+    const padMap = 10, sx = (mapWidth - padMap * 2) / (worldBounds.right - worldBounds.left), sy = (mapHeight - padMap * 2) / (worldBounds.bottom - worldBounds.top), scale = Math.min(sx, sy), ox = (mapWidth - (worldBounds.right - worldBounds.left) * scale) / 2 - worldBounds.left * scale, oy = (mapHeight - (worldBounds.bottom - worldBounds.top) * scale) / 2 - worldBounds.top * scale, toMap = (x, y) => ({ x: ox + x * scale, y: oy + y * scale });
+    mapCtx.strokeStyle = 'rgba(141, 232, 227, .12)'; mapCtx.lineWidth = 1; mapCtx.beginPath(); caveShape.forEach(([x, y], index) => { const p = toMap(x, y); index ? mapCtx.lineTo(p.x, p.y) : mapCtx.moveTo(p.x, p.y); }); mapCtx.closePath(); mapCtx.stroke();
+    roads.forEach((road) => { mapCtx.save(); mapCtx.lineCap = 'round'; mapCtx.lineJoin = 'round'; mapCtx.beginPath(); road.points.forEach(([x, y], index) => { const p = toMap(x, y); index ? mapCtx.lineTo(p.x, p.y) : mapCtx.moveTo(p.x, p.y); }); mapCtx.strokeStyle = 'rgba(105, 133, 124, .24)'; mapCtx.lineWidth = Math.max(3, road.width * scale + 2); mapCtx.stroke(); mapCtx.strokeStyle = 'rgba(24, 43, 42, .96)'; mapCtx.lineWidth = Math.max(2, road.width * scale); mapCtx.stroke(); mapCtx.restore(); });
     mapCtx.save(); mapCtx.beginPath(); mainRoute.points.forEach(([x, y], index) => { const p = toMap(x, y); index ? mapCtx.lineTo(p.x, p.y) : mapCtx.moveTo(p.x, p.y); }); mapCtx.strokeStyle = '#6cb8ff'; mapCtx.globalAlpha = .9; mapCtx.lineWidth = 1.5; mapCtx.setLineDash([3, 3]); mapCtx.stroke(); mapCtx.restore();
     raceCheckpoints.forEach((checkpoint, index) => { const p = toMap(checkpoint.x, checkpoint.y); mapCtx.fillStyle = index <= car.checkpoint ? '#8de8e3' : 'rgba(141, 232, 227, .35)'; mapCtx.beginPath(); mapCtx.arc(p.x, p.y, index === car.checkpoint + 1 ? 2.8 : 1.4, 0, TAU); mapCtx.fill(); });
     carts.forEach((cart) => { const p = toMap(cart.x, cart.y); mapCtx.fillStyle = '#f5b24b'; mapCtx.shadowColor = '#f5b24b'; mapCtx.shadowBlur = 6; mapCtx.beginPath(); mapCtx.arc(p.x, p.y, 2.6, 0, TAU); mapCtx.fill(); mapCtx.shadowBlur = 0; });
-    const player = toMap(car.x, car.y);
-    mapCtx.save(); mapCtx.translate(player.x, player.y); mapCtx.rotate(car.angle); mapCtx.fillStyle = '#d2fff7'; mapCtx.shadowColor = '#8de8e3'; mapCtx.shadowBlur = 8; mapCtx.beginPath(); mapCtx.moveTo(6, 0); mapCtx.lineTo(-4, -4); mapCtx.lineTo(-2, 0); mapCtx.lineTo(-4, 4); mapCtx.closePath(); mapCtx.fill(); mapCtx.restore();
+    const player = toMap(car.x, car.y); mapCtx.save(); mapCtx.translate(player.x, player.y); mapCtx.rotate(car.angle); mapCtx.fillStyle = '#d2fff7'; mapCtx.shadowColor = '#8de8e3'; mapCtx.shadowBlur = 8; mapCtx.beginPath(); mapCtx.moveTo(6, 0); mapCtx.lineTo(-4, -4); mapCtx.lineTo(-2, 0); mapCtx.lineTo(-4, 4); mapCtx.closePath(); mapCtx.fill(); mapCtx.restore();
   }
 
-  function roundedRect(context, x, y, width, height, radius) {
-    const r = Math.min(radius, width / 2, height / 2);
-    context.beginPath(); context.moveTo(x + r, y); context.arcTo(x + width, y, x + width, y + height, r); context.arcTo(x + width, y + height, x, y + height, r); context.arcTo(x, y + height, x, y, r); context.arcTo(x, y, x + width, y, r); context.closePath(); context.fill();
-  }
+  function initCarts() { carts.forEach((cart) => { const p = pointAtRoute(trafficRoutes[cart.routeIndex], cart.offset); cart.x = p.x; cart.y = p.y; cart.angle = p.angle; }); }
+  function frame(now) { const dt = Math.min(.045, Math.max(.001, (now - lastTime) / 1000)); lastTime = now; update(dt); render(now); renderMinimap(); requestAnimationFrame(frame); }
 
-  resize();
-  window.addEventListener('resize', resize);
-  carts.forEach((cart) => { const start = pointAtRoute(trafficRoutes[cart.routeIndex], cart.offset); cart.x = start.x; cart.y = start.y; cart.angle = start.angle; });
-
-  function frame(now) {
-    const dt = Math.min(.045, Math.max(.001, (now - lastTime) / 1000));
-    lastTime = now;
-    update(dt);
-    render(now);
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+  gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.clearDepth(1); initCarts(); resize(); window.addEventListener('resize', resize); requestAnimationFrame(frame);
 })();

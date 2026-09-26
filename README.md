@@ -9,4 +9,4 @@ A self-contained browser prototype for the Dustline underground mine race. Open 
 - `R` — reset the run
 - `C` — toggle cinematic HUD
 
-The mine is rendered on a canvas so the intersecting grooved service roads, roof supports, light cones, rock field, traffic carts, and player vehicle stay crisp at different viewport sizes. No build step is required.
+The mine is rendered as a real perspective WebGL scene with custom 3D meshes: intersecting grooved service roads, roof supports, light cones, rock field, traffic carts, and a chase-camera player vehicle. It uses no external engine or build step.
