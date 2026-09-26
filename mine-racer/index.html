@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>GOLDRUSH GAUNTLET — 3D Mine Racer</title>
+  <style>
+    :root {
+      --amber: #f5a83b;
+      --amber-dim: #8a5f22;
+      --ink: #0b0806;
+      --panel: rgba(16, 11, 7, 0.92);
+      --cyan: #59e6ff;
+      --red: #ff4b3a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #060403; }
+    body {
+      font-family: "Courier New", ui-monospace, monospace;
+      color: #f0dfc0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #app, #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+    /* ---------- HUD ---------- */
+    #hud { position: absolute; inset: 0; pointer-events: none; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid #4a3519;
+      border-radius: 6px;
+      padding: 8px 12px;
+      box-shadow: 0 0 18px rgba(0,0,0,0.7);
+    }
+    #top-left {
+      position: absolute; top: 14px; left: 14px;
+      font-size: 15px; line-height: 1.5; min-width: 168px;
+    }
+    #time { font-size: 24px; color: var(--amber); letter-spacing: 2px; text-shadow: 0 0 12px rgba(245,168,59,.45); }
+    #best { color: #a8906a; font-size: 12px; }
+    #cp-line { color: var(--cyan); font-size: 13px; margin-top: 4px; text-shadow: 0 0 8px rgba(89,230,255,.5); }
+    #hearts { font-size: 20px; letter-spacing: 4px; color: var(--red); margin-top: 2px; text-shadow: 0 0 10px rgba(255,75,58,.6); }
+    #speed-box {
+      position: absolute; bottom: 16px; right: 16px; text-align: right;
+      font-size: 13px; color: #a8906a;
+    }
+    #speed { font-size: 34px; color: #f0dfc0; text-shadow: 0 0 10px rgba(245,168,59,.35); }
+    #minimap-box { position: absolute; top: 14px; right: 14px; padding: 6px; }
+    #minimap { display: block; width: 188px; height: 188px; image-rendering: pixelated; border-radius: 3px; }
+    #warn {
+      position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
+      font-size: 26px; font-weight: bold; color: var(--red); letter-spacing: 3px;
+      text-shadow: 0 0 16px rgba(255,60,40,.9); display: none;
+      animation: blink .28s steps(2) infinite;
+    }
+    @keyframes blink { 50% { opacity: .15; } }
+    #msg {
+      position: absolute; top: 34%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 84px; font-weight: bold; color: var(--amber);
+      text-shadow: 0 0 26px rgba(245,168,59,.8); display: none; letter-spacing: 6px;
+    }
+    #hint {
+      position: absolute; bottom: 14px; left: 14px; font-size: 11.5px;
+      color: #8a7a63; line-height: 1.65;
+    }
+    #hint b { color: #d8c49d; }
+    #vignette {
+      position: absolute; inset: 0; pointer-events: none; opacity: 0;
+      background: radial-gradient(ellipse at center, transparent 52%, rgba(255,30,10,.55) 100%);
+      transition: opacity .5s ease-out;
+    }
+    #vignette.hit { opacity: 1; transition: opacity .04s; }
+
+    /* ---------- Overlays ---------- */
+    .overlay {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(4, 2, 1, 0.78); backdrop-filter: blur(3px); z-index: 10;
+    }
+    .card {
+      background: linear-gradient(160deg, #171008 0%, #0d0805 100%);
+      border: 2px solid #5d421c; border-radius: 12px;
+      padding: 34px 44px; max-width: 620px; width: min(92vw, 620px);
+      box-shadow: 0 0 60px rgba(245,168,59,.12), 0 30px 60px rgba(0,0,0,.8);
+      text-align: center;
+    }
+    .card h1 {
+      font-size: 34px; letter-spacing: 4px; color: var(--amber);
+      text-shadow: 0 0 22px rgba(245,168,59,.55); margin-bottom: 4px;
+    }
+    .card h2 { font-size: 13px; color: #9c8465; font-weight: normal; letter-spacing: 2px; margin-bottom: 18px; }
+    .card p { font-size: 13.5px; line-height: 1.75; color: #c9b491; margin-bottom: 14px; text-align: left; }
+    .controls-grid {
+      display: grid; grid-template-columns: auto 1fr; gap: 5px 16px; text-align: left;
+      font-size: 12.5px; margin: 12px auto 18px; max-width: 400px; color: #b7a17e;
+    }
+    .controls-grid b { color: var(--amber); }
+    .btn {
+      pointer-events: auto; cursor: pointer; display: inline-block;
+      font-family: inherit; font-size: 17px; font-weight: bold; letter-spacing: 2px;
+      color: #1a1005; background: linear-gradient(180deg, #ffcf7d, #e59a2e);
+      border: none; border-radius: 7px; padding: 13px 34px; margin: 6px 6px 0;
+      box-shadow: 0 4px 0 #7c5416, 0 8px 22px rgba(0,0,0,.6);
+      transition: transform .06s, box-shadow .06s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #7c5416; }
+    .btn.alt { background: linear-gradient(180deg, #cbb289, #9a7c4e); }
+    #result-time { font-size: 44px; color: var(--cyan); text-shadow: 0 0 20px rgba(89,230,255,.6); margin: 10px 0; }
+    .hidden { display: none !important; }
+    #wreck-card { background: linear-gradient(160deg, #2a0d08 0%, #120604 100%); border-color: #7c2f1d; }
+    #wreck-card h1 { color: var(--red); text-shadow: 0 0 22px rgba(255,75,58,.6); }
+    .seed-line { font-size: 11px; color: #6e5c41; margin-top: 14px; }
+
+    /* ---------- Touch controls (coarse pointers only) ---------- */
+    #touch { display: none; }
+    @media (pointer: coarse) {
+      #touch { display: block; position: absolute; inset: 0; pointer-events: none; }
+      .tbtn {
+        position: absolute; pointer-events: auto; width: 74px; height: 74px;
+        border-radius: 50%; background: rgba(245,168,59,.16); border: 2px solid rgba(245,168,59,.5);
+        color: var(--amber); font-size: 26px; line-height: 70px; text-align: center;
+      }
+      #t-left  { left: 22px;  bottom: 96px; }
+      #t-right { left: 116px; bottom: 96px; }
+      #t-gas   { right: 22px; bottom: 158px; }
+      #t-brake { right: 22px; bottom: 66px; }
+      #hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+      <div id="top-left" class="panel">
+        <div id="time">0:00.00</div>
+        <div id="best">BEST —</div>
+        <div id="cp-line">◈ CHECKPOINT 0/0</div>
+        <div id="hearts">♥♥♥</div>
+      </div>
+      <div id="minimap-box" class="panel"><canvas id="minimap" width="188" height="188"></canvas></div>
+      <div id="speed-box" class="panel"><span id="speed">0</span> km/h</div>
+      <div id="warn">⚠ CART INCOMING ⚠</div>
+      <div id="msg"></div>
+      <div id="hint">
+        <b>WASD / ←↑→↓</b> drive &nbsp; <b>SPACE</b> handbrake &nbsp; <b>R</b> restart run<br>
+        <b>C</b> camera &nbsp; <b>M</b> mute &nbsp; — &nbsp; pass every <span style="color:#59e6ff">◈ checkpoint</span>, then reach the <span style="color:#f5a83b">gold chamber</span>. Mine carts are coming through — <b>do not touch them.</b>
+      </div>
+      <div id="vignette"></div>
+      <div id="touch">
+        <div class="tbtn" id="t-left">◀</div>
+        <div class="tbtn" id="t-right">▶</div>
+        <div class="tbtn" id="t-gas">▲</div>
+        <div class="tbtn" id="t-brake">▼</div>
+      </div>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="card">
+        <h1>GOLDRUSH GAUNTLET</h1>
+        <h2>SHAFT 07 · TIME TRIAL</h2>
+        <p>
+          The old Number 7 shaft is a criss-crossing maze of haulage tunnels — and the ore carts
+          still run on their buried rails, on no schedule but their own.
+        </p>
+        <p>
+          Race your box car from the <b style="color:#f5a83b">headframe</b> through every
+          <b style="color:#59e6ff">&nbsp;checkpoint ◈&nbsp;</b> and reach the
+          <b style="color:#ffd166">gold chamber</b> as fast as you can.
+          Red flashing beacons mean a cart is rolling somewhere on that rail line.
+          A speeding cart will wreck you in <b>3 hits</b> — grab the timber supports, not the bumpers.
+        </p>
+        <div class="controls-grid">
+          <b>W / ↑</b><span>accelerate</span>
+          <b>S / ↓</b><span>brake / reverse</span>
+          <b>A D / ← →</b><span>steer</span>
+          <b>SPACE</b><span>handbrake (drift)</span>
+          <b>C</b><span>chase / hood camera</span>
+          <b>R</b><span>restart the run</span>
+        </div>
+        <button class="btn" id="btn-start">START ENGINE</button>
+        <div class="seed-line" id="seed-line"></div>
+      </div>
+    </div>
+
+    <div id="result" class="overlay hidden">
+      <div class="card">
+        <h1>RUN COMPLETE</h1>
+        <h2 id="result-sub">SHAFT 07 CLEARED</h2>
+        <div id="result-time">0:00.00</div>
+        <p id="result-detail" style="text-align:center"></p>
+        <button class="btn" id="btn-again">RACE AGAIN</button>
+        <button class="btn alt" id="btn-newmap">NEW MINE</button>
+      </div>
+    </div>
+
+    <div id="wreck" class="overlay hidden">
+      <div class="card" id="wreck-card">
+        <h1>WRECKED</h1>
+        <p style="text-align:center">A haulage cart turned your car into scrap.<br>Hauling you back to the last checkpoint…</p>
+      </div>
+    </div>
+
+    <div id="err" class="overlay hidden">
+      <div class="card" id="wreck-card">
+        <h1>ENGINE FAULT</h1>
+        <p id="err-text" style="text-align:left; white-space: pre-wrap; font-size: 11px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
