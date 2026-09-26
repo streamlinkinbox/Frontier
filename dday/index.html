@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FRONTIER · D-Day: Atlantic Wall</title>
+<style>
+:root{--blue:#1f5eff;--blue-soft:#4d80ff;--bg:#0a0a0a;--panel:rgba(12,12,12,.72);--stroke:rgba(255,255,255,.08);--text:#fff;--dim:#9a9a9a;--red:#ff4a3d;--green:#5ee07a;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden;font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;user-select:none}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+.hud.on{opacity:1}
+.panel{background:var(--panel);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--stroke);border-radius:14px}
+/* top-left: vehicle */
+.veh{position:absolute;top:18px;left:18px;width:250px;padding:14px 16px}
+.lbl{font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--dim)}
+.hull{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.hull b{font:600 13px var(--mono)}
+.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#fff,#dfe6ff);border-radius:4px;transition:width .2s,background .3s}
+.bar i.low{background:linear-gradient(90deg,#ff6a3d,#ff3b30)}
+.spd{display:flex;align-items:baseline;gap:6px;margin-top:12px}
+.spd b{font:600 38px/1 var(--font);letter-spacing:-.04em}
+.spd span{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.1em}
+.surf{margin-top:8px;font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.06em;min-height:14px}
+.surf.warn{color:#ffb13d}
+/* top-center: objective */
+.obj{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(560px,50vw);padding:12px 16px}
+.obj-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.obj-h b{font-size:13px;font-weight:600}
+.obj-h span{font:600 12px var(--mono);color:var(--dim)}
+.track{position:relative;height:10px;border-radius:5px;background:rgba(255,255,255,.07)}
+.track .tide{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,#15406a,#2f7fb8);transition:width .3s}
+.track .me{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px var(--blue)}
+.track .cp{position:absolute;top:-3px;width:2px;height:16px;background:rgba(255,255,255,.3)}
+.track .cp.ok{background:var(--blue-soft)}
+.track .wall{position:absolute;right:-2px;top:-5px;width:6px;height:20px;border-radius:2px;background:#bbb}
+.tidetxt{margin-top:8px;display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--dim)}
+.tidetxt .danger{color:var(--red)}
+/* top-right: minimap */
+.mapwrap{position:absolute;top:18px;right:18px;padding:8px}
+#minimap{display:block;width:210px;height:210px;border-radius:9px}
+.maplbl{display:flex;justify-content:space-between;padding:6px 4px 0}
+/* bottom */
+.timer{position:absolute;bottom:18px;right:18px;padding:10px 14px;font:600 20px var(--mono)}
+.keys{position:absolute;bottom:18px;left:18px;padding:10px 14px;font-size:11px;color:var(--dim);line-height:1.7}
+.keys kbd{display:inline-block;min-width:20px;padding:0 5px;margin-right:4px;border-radius:5px;background:rgba(255,255,255,.1);color:#fff;font:600 10px/18px var(--mono);text-align:center}
+.alerts{position:absolute;top:130px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+.alert{padding:8px 16px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.12em;background:rgba(10,10,10,.75);border:1px solid var(--stroke);animation:pop .25s ease both}
+.alert.red{background:rgba(160,20,14,.8);border-color:rgba(255,80,60,.5)}
+.alert.blue{background:rgba(31,94,255,.85);border-color:rgba(255,255,255,.2)}
+.alert.green{background:rgba(30,120,60,.85)}
+@keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.96)}}
+.vignette{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 180px 40px rgba(255,20,0,.55);opacity:0;transition:opacity .15s}
+.planewarn{position:absolute;left:50%;top:50%;width:0;height:0}
+.planewarn i{position:absolute;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid #ff4a3d;transform-origin:50% 50%;filter:drop-shadow(0 0 6px rgba(255,60,40,.8));display:none}
+/* screens */
+.screen{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(0,0,0,.25),rgba(0,0,0,.72));transition:opacity .4s}
+.screen.hide{opacity:0;pointer-events:none}
+.card{width:min(620px,92vw);padding:30px 32px;border-radius:24px;background:rgba(10,10,10,.82);backdrop-filter:blur(14px);border:1px solid var(--stroke);box-shadow:0 40px 90px rgba(0,0,0,.6)}
+.brand{display:inline-flex;height:26px;padding:0 12px;border-radius:13px;background:#fff;color:var(--blue);font-weight:800;font-size:11px;letter-spacing:.14em;align-items:center;margin-bottom:18px}
+.card h1{font-size:56px;font-weight:500;letter-spacing:-.045em;line-height:.9}
+.card h1 em{font-style:normal;color:var(--blue-soft)}
+.card p{margin-top:14px;color:#c8c8c8;font-size:14px;line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:18px;font-size:12px;color:var(--dim)}
+.grid kbd{display:inline-block;min-width:22px;padding:0 6px;margin-right:6px;border-radius:6px;background:rgba(255,255,255,.1);color:#fff;font:600 11px/20px var(--mono);text-align:center}
+.opts{display:flex;gap:18px;margin-top:22px;flex-wrap:wrap}
+.opt-g .lbl{margin-bottom:8px}
+.seg{display:flex;gap:4px;padding:3px;border-radius:12px;background:rgba(255,255,255,.07)}
+.seg button{font:600 12px var(--font);color:#fff;background:none;border:0;height:28px;padding:0 12px;border-radius:9px;cursor:pointer;pointer-events:auto}
+.seg button.on{background:#fff;color:#111}
+.swatches{display:flex;gap:8px}
+.swatches button{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;pointer-events:auto}
+.swatches button.on{border-color:#fff;box-shadow:0 0 0 2px var(--blue)}
+.go{margin-top:26px;display:flex;gap:10px;align-items:center}
+.btn{height:44px;padding:0 22px;border-radius:22px;border:0;background:var(--blue);color:#fff;font:600 14px var(--font);cursor:pointer;pointer-events:auto;display:inline-flex;align-items:center;gap:10px;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px);background:#3a72ff}
+.btn.ghost{background:rgba(255,255,255,.1)}
+.btn.ghost:hover{background:rgba(255,255,255,.18)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.stat{padding:12px;border-radius:12px;background:rgba(255,255,255,.05)}
+.stat b{display:block;font:600 22px var(--mono);margin-top:4px}
+.countdown{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;font-size:120px;font-weight:600;letter-spacing:-.05em;text-shadow:0 10px 40px rgba(0,0,0,.5)}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:#0a0a0a;font-size:13px;color:var(--dim);letter-spacing:.14em;font-weight:600;transition:opacity .5s}
+.loading.hide{opacity:0;pointer-events:none}
+.hint{margin-top:10px;font-size:11px;color:var(--dim)}
+@media (max-width:900px){.keys,.mapwrap{display:none}.obj{width:60vw}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div class="hud" id="hud">
+  <div class="panel veh">
+    <div class="hull"><span class="lbl">HULL</span><b id="hpTxt">100%</b></div>
+    <div class="bar"><i id="hpBar"></i></div>
+    <div class="spd"><b id="spd">0</b><span>KM/H</span></div>
+    <div class="surf" id="surf">SAND</div>
+  </div>
+  <div class="panel obj">
+    <div class="obj-h"><b id="objTxt">Reach the gate in the Atlantic Wall</b><span id="distTxt">1,600 m</span></div>
+    <div class="track" id="track"><div class="tide" id="tideBar"></div><div class="wall"></div><div class="me" id="meDot"></div></div>
+    <div class="tidetxt"><span id="tideTxt">Tide rising</span><span id="zoneTxt">Omaha Beach</span></div>
+  </div>
+  <div class="panel mapwrap"><canvas id="minimap" width="420" height="420"></canvas>
+    <div class="maplbl"><span class="lbl">RECON</span><span class="lbl" id="spotTxt"></span></div></div>
+  <div class="panel keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &nbsp; <kbd>␣</kbd> handbrake &nbsp; <kbd>C</kbd> camera &nbsp; <kbd>R</kbd> checkpoint &nbsp; <kbd>M</kbd> mute &nbsp; <kbd>P</kbd> pause</div>
+  <div class="panel timer" id="timer">0:00.0</div>
+  <div class="alerts" id="alerts"></div>
+  <div class="planewarn" id="planewarn"></div>
+</div>
+<div class="vignette" id="vig"></div>
+<div class="countdown" id="count"></div>
+
+<div class="screen" id="menu">
+  <div class="card">
+    <div class="brand">FRONTIER</div>
+    <h1>D-Day:<br><em>Atlantic Wall</em></h1>
+    <p>6 June 1944. The tide is coming in behind you and the wall is 1.6 km inland. Get off the beach, pick your way through the obstacles, mines and wire, and break through the gate in the Atlantic Wall before the sea catches you. MG nests track anything that moves, and Stukas will try to bomb you.</p>
+    <div class="grid">
+      <div><kbd>W</kbd><kbd>S</kbd> throttle / brake · reverse</div>
+      <div><kbd>A</kbd><kbd>D</kbd> steer</div>
+      <div><kbd>Space</kbd> handbrake slide</div>
+      <div><kbd>R</kbd> back to last checkpoint</div>
+      <div><kbd>C</kbd> switch camera</div>
+      <div><kbd>M</kbd> mute &nbsp;<kbd>P</kbd> pause</div>
+    </div>
+    <div class="opts">
+      <div class="opt-g"><div class="lbl">DIFFICULTY</div>
+        <div class="seg" id="diff"><button data-v="0">Recruit</button><button data-v="1" class="on">Veteran</button><button data-v="2">Legend</button></div></div>
+      <div class="opt-g"><div class="lbl">PAINT</div>
+        <div class="swatches" id="paint">
+          <button data-v="#56603a" class="on" style="background:#56603a"></button>
+          <button data-v="#1f5eff" style="background:#1f5eff"></button>
+          <button data-v="#b9ab86" style="background:#b9ab86"></button>
+          <button data-v="#7d2a22" style="background:#7d2a22"></button>
+          <button data-v="#d8d8d4" style="background:#d8d8d4"></button>
+        </div></div>
+    </div>
+    <div class="go"><button class="btn" id="startBtn">Land on the beach →</button><span class="hint" id="bestTxt"></span></div>
+  </div>
+</div>
+
+<div class="screen hide" id="end">
+  <div class="card">
+    <div class="brand" id="endBrand">FRONTIER</div>
+    <h1 id="endTitle">Knocked out</h1>
+    <p id="endMsg"></p>
+    <div class="stats">
+      <div class="stat"><span class="lbl">TIME</span><b id="stTime">0:00</b></div>
+      <div class="stat"><span class="lbl">DISTANCE</span><b id="stDist">0 m</b></div>
+      <div class="stat"><span class="lbl">HITS TAKEN</span><b id="stHits">0</b></div>
+    </div>
+    <div class="go"><button class="btn" id="retryCp">Retry from checkpoint</button><button class="btn ghost" id="restart">Restart landing</button><button class="btn ghost" id="toMenu">Menu</button></div>
+  </div>
+</div>
+
+<div class="screen hide" id="pause">
+  <div class="card"><div class="brand">PAUSED</div><h1>Holding position</h1>
+    <div class="go"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="pRestart">Restart landing</button></div></div>
+</div>
+
+<div class="loading" id="loading">BUILDING THE BATTLEFIELD…</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
