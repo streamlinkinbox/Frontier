@@ -1241,6 +1241,31 @@ cap drafts, holes, tilted/oblique/freeform/mixed supports, invalid angles, malfo
 healing, or general draft networks. The bounded plan is
 `docs/PLAN_Phase49_ConcavePrismDraft.md`.
 
+## Phase 50 — circular-sector-prism face offset (2026-09-25)
+
+This proof crosses the face-offset family into a curved single-loop analytic profile, distinct from the
+polygonal/concave prism work and from full-cylinder or ellipse routes:
+
+- `CircularSectorPrismFaceOffsetVerification` constructs the exact radius-5 quarter circular sector
+  centered at `(0,0)`, height 6, and upper-cap offset 1.5. Source and result retain closed genus-zero
+  `V6/E9/C18/L5/F5` topology.
+- `FaceEditSolver::OffsetExtrudedCircularSectorPrism` recognizes two revolution sector caps, two
+  radial line edges, one rational degree-2 quarter arc, and three extrusion walls. It rebuilds the
+  caps with exact `NurbsSurface::Revolution` and extends only the Z height; no polyline approximation
+  or healing fallback is used.
+- The focused verifier checks both analytic revolution caps, radial and arc wall identities, the
+  quarter-circle sector-area volume identity within the kernel's rational-surface tolerance, source
+  immutability, public dispatcher routing, and explicit refusal of boxes, polygons, ellipses,
+  cylinders, non-quarter sectors, lower/side faces, invalid offsets, and malformed topology.
+- The durable proof is `Proofs/Phase50_CircularSectorPrismFaceOffset.png`; 23 checks pass in the
+  focused direct gate, and the verifier/target/proof are registered in `CheckSolidArc.sh` and CMake.
+
+The route remains bounded to one exact quarter circular sector. It does not prove arbitrary sector
+angles, full circles/cylinders, ellipse or polygon profiles, multi-loop profiles, lower/side faces,
+tilted/oblique/freeform/mixed supports, invalid offsets, malformed topology, healing, or general
+curved-profile face editing. The bounded plan is
+`docs/PLAN_Phase50_CircularSectorPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

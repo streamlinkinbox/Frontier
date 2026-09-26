@@ -245,6 +245,11 @@ add_executable(ConcavePrismDraftVerification Verification/ConcavePrismDraftVerif
 target_link_libraries(ConcavePrismDraftVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME ConcavePrismDraftVerification COMMAND ConcavePrismDraftVerification)
 
+# Phase 50: bounded circular-sector-prism upper-cap face offset.
+add_executable(CircularSectorPrismFaceOffsetVerification Verification/CircularSectorPrismFaceOffsetVerification.cpp)
+target_link_libraries(CircularSectorPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME CircularSectorPrismFaceOffsetVerification COMMAND CircularSectorPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

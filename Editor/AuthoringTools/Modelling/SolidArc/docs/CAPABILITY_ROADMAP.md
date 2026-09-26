@@ -1916,6 +1916,28 @@ wall drafts. It does not prove arbitrary concave polygons, convex profiles throu
 through the new API, cap drafts, holes, tilted/oblique/freeform/mixed supports, cylinders, healing,
 or general draft networks. Its bounded plan is `docs/PLAN_Phase49_ConcavePrismDraft.md`.
 
+#### Phase 50: bounded circular-sector-prism upper-cap face offset ✅
+
+The face-offset family now covers a curved single-loop analytic profile beyond circles and ellipses.
+`FaceEditSolver::OffsetExtrudedCircularSectorPrism` recognizes only a straight prism whose planar cap
+is an exact rational quarter circular sector bounded by two radial lines and one arc. It reconstructs
+two exact revolved sector caps, two radial extrusion walls, and one circular-arc extrusion wall while
+extending only the upper Z level. The public dispatcher reaches it only after the existing planar and
+polygonal routes decline.
+
+`CircularSectorPrismFaceOffsetVerification` constructs the radius-5 quarter sector centered at the
+origin, height 6, and offset 1.5. It validates exact source/result `V6/E9/C18/L5/F5` genus-zero
+topology, the two revolution caps and three analytic extrusion walls, exact radial/arc rim identity,
+the quarter-circle sector-area volume identity, source immutability, public dispatch, and box,
+polygonal, ellipse, cylinder, non-quarter, lower/side, invalid, and malformed refusal boundaries.
+The durable proof is `Proofs/Phase50_CircularSectorPrismFaceOffset.png`; 23 checks pass in the focused
+direct gate. The verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one exact quarter circular sector and positive upper-cap extension. It
+does not prove arbitrary circular sectors, full circles/cylinders, ellipses, polygonal or multi-loop
+profiles, lower/side faces, tilted/oblique/freeform/mixed supports, healing, or general curved-profile
+face editing. Its bounded plan is `docs/PLAN_Phase50_CircularSectorPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
