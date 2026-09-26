@@ -1,0 +1,54 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -208,9 +208,13 @@
+     uint64_t Revision=0;
+     bool Stale=false, Resident=false, Pending=false, RequestBake=false;
+ };
++struct EditorMoonBody {
++ const uint8_t* Pixels=nullptr;uint32_t Width=0,Height=0;float Tint[3]={1,1,1};float Tilt=0,Haze=0,Gamma=1;
++};
+ struct EditorSheet
+ {
+     EditorSkyImage SkyImage{};
++    EditorMoonBody MoonBodies[6]{};uint64_t MoonAtlasRevision=0;
+     float MoonAzimuth=0, MoonElevation=0, MoonPhase=0; // solved read-only lunar inputs
+     EditorSheetAppearance Appearance = EditorSheetAppearance::Generic;
+     EditorPropertyGroup Groups[kMaxEditorSheetGroups] = {};
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -280,6 +280,7 @@
+     //    descriptors, never their texel heaps). Nothing is read until AtlasAssigned_ says both halves arrived.
+     uint32_t            MoonTextureSlots_[kMoonAtlasCount] = {};
+     MoonAlbedoView      MoonViews_[kMoonAtlasCount] = {};
++    uint64_t MoonAtlasRevision_=0;
+     bool                AtlasAssigned_ = false;
+     // ApplyTo's scratch, filled fresh on every call and lent to the raster. Mutable because ApplyTo is const —
+     //    the alternative is a caller-provided list, which is exactly the half-wired call the method's comment
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -641,6 +641,7 @@
+             }
+         }
+     }
++    static std::atomic<uint64_t> Revision{0};MoonAtlasRevision_=Revision.fetch_add(1,std::memory_order_relaxed)+1;
+     AtlasAssigned_ = true;
+ }
+ 
+@@ -983,6 +984,7 @@
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
+     Sheet.Appearance = EditorSheetAppearance::Generic;
+     Sheet.SkyImage = {};
++    for(auto& Body:Sheet.MoonBodies)Body=EditorMoonBody{};Sheet.MoonAtlasRevision=0;
+     Sheet.MoonAzimuth=Sheet.MoonElevation=Sheet.MoonPhase=0;
+     Sheet.GroupCount = 0;
+     for (auto& Group : Sheet.Groups)
+@@ -1612,7 +1614,8 @@
+ }
+ 
+ void Frontier::ProjectZero::CelestialSequence::BuildMoonSheet(EditorSheet& Sheet) const noexcept {
+- Sheet.Appearance=EditorSheetAppearance::Moon;
++ Sheet.Appearance=EditorSheetAppearance::Moon;Sheet.MoonAtlasRevision=MoonAtlasRevision_;
++ for(uint32_t I=0;I<kMoonAtlasCount;++I){auto& B=Sheet.MoonBodies[I];const auto& V=MoonViews_[I];const auto& P=kMoonAtlas[I];if(V.TexelBytes==4&&V.Width>1&&V.Height>1){B.Pixels=V.Texels;B.Width=V.Width;B.Height=V.Height;}for(int C=0;C<3;++C)B.Tint[C]=P.Tint[C];B.Tilt=P.TiltDegrees;B.Haze=P.Haze;B.Gamma=P.Gamma;}
+  Sheet.MoonAzimuth=Solved.Moon.Azimuth;Sheet.MoonElevation=Solved.Moon.Elevation;Sheet.MoonPhase=Solved.MoonPhase;
+  char Text[72];
+         EditorPropertyGroup& Live = OpenGroup(Sheet, "Solved");

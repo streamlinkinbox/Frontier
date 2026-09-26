@@ -1,0 +1,3 @@
+PASS: 6 native capture tabs, 7 render comparisons, divider, loaded images, mobile width and no browser exceptions
+Playwright 1.63.0 / Chromium 153; viewport 1440x1000 and 390x844.
+Evidence viewer only; native tests are recorded separately in Proof.json and Sanitized.json.

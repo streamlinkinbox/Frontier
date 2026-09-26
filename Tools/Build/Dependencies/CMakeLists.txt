@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.21)
+project(FrontierDependencies LANGUAGES C CXX)
+get_filename_component(FRONTIER_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+# Match Project-Zero's /MD in both configurations.
+set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+add_subdirectory("${FRONTIER_ROOT}/ExternalPackages/glfw" glfw)
+include("${FRONTIER_ROOT}/Tools/Build/ThorVGSoftware.cmake")
+set_target_properties(thorvg_static PROPERTIES OUTPUT_NAME thorvg)

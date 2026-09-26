@@ -1,0 +1,153 @@
+{
+  "format": 1,
+  "packages": [
+    {
+      "name": "cgltf",
+      "repository": "jkuhlmann/cgltf",
+      "revision": "360db1a95480fe102ae9c69b27c5d101167ff5ba",
+      "url": "https://codeload.github.com/jkuhlmann/cgltf/tar.gz/360db1a95480fe102ae9c69b27c5d101167ff5ba",
+      "sha256": "445d135cf793232ae6a585ca1404e4ff28d4f4dbca070689034fe780370ac84a",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "cgltf.h"
+    },
+    {
+      "name": "clipper2",
+      "repository": "AngusJohnson/Clipper2",
+      "revision": "f9c5eb6e14a59f6f5d65fbfb3564519a561cf4fd",
+      "url": "https://codeload.github.com/AngusJohnson/Clipper2/tar.gz/f9c5eb6e14a59f6f5d65fbfb3564519a561cf4fd",
+      "sha256": "f9d8abb870bb92137d8bba35a13160993ebe2861979bb1195d337a33666b0bf7",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "CPP/Clipper2Lib/include/clipper2/clipper.h"
+    },
+    {
+      "name": "earcut",
+      "repository": "mapbox/earcut.hpp",
+      "revision": "4811a2b69b91f6127a75e780de6e2113609ddabb",
+      "url": "https://codeload.github.com/mapbox/earcut.hpp/tar.gz/4811a2b69b91f6127a75e780de6e2113609ddabb",
+      "sha256": "312dc29d1bfb0bf2246f82aa8154be7ce0ff771455ea703dd2d6c1b236c9a7bd",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "include/mapbox/earcut.hpp"
+    },
+    {
+      "name": "fast_obj",
+      "repository": "thisistherk/fast_obj",
+      "revision": "d620667f10a548dee94dbc8c144bb22f79162176",
+      "url": "https://codeload.github.com/thisistherk/fast_obj/tar.gz/d620667f10a548dee94dbc8c144bb22f79162176",
+      "sha256": "64eb309e125f23c1db67edebe421f180e6dab94aec6ca698cb58810062590d47",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "fast_obj.h"
+    },
+    {
+      "name": "glfw",
+      "repository": "glfw/glfw",
+      "revision": "7b6aead9fb88b3623e3b3725ebb42670cbe4c579",
+      "url": "https://codeload.github.com/glfw/glfw/tar.gz/7b6aead9fb88b3623e3b3725ebb42670cbe4c579",
+      "sha256": "169d49096e339caabbc12e1762273c5cb9130a535a282ba46cf5c14ab6e55694",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "include/GLFW/glfw3.h"
+    },
+    {
+      "name": "imgui",
+      "repository": "ocornut/imgui",
+      "revision": "3bae66c735670619baf51391eba7f3d90a25d125",
+      "url": "https://codeload.github.com/ocornut/imgui/tar.gz/3bae66c735670619baf51391eba7f3d90a25d125",
+      "sha256": "0b99c7baed551f76058bc6fe83d806dc55c912280e9d2d268879a1c9751cef20",
+      "proof": true,
+      "origin": "existing verified pin",
+      "witness": "imgui.cpp"
+    },
+    {
+      "name": "jolt",
+      "repository": "jrouwe/JoltPhysics",
+      "revision": "0373ec0dd762e4bc2f6acdb08371ee84fa23c6db",
+      "url": "https://codeload.github.com/jrouwe/JoltPhysics/tar.gz/0373ec0dd762e4bc2f6acdb08371ee84fa23c6db",
+      "sha256": "834644d7e9dffee9be0220748015667649d3361611b01c7e6839a5eb58e89711",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "Jolt/Jolt.h"
+    },
+    {
+      "name": "miniaudio",
+      "repository": "mackron/miniaudio",
+      "revision": "f40cf03f80cdb7e741d43e53b7e706e8c1394bcf",
+      "url": "https://codeload.github.com/mackron/miniaudio/tar.gz/f40cf03f80cdb7e741d43e53b7e706e8c1394bcf",
+      "sha256": "412326cf55133404cbfb81ec8974b10149dc68732ce5bdeee8ba9cfc2695d646",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "miniaudio.h"
+    },
+    {
+      "name": "stb",
+      "repository": "nothings/stb",
+      "revision": "2c980bb59875b0d32144a71867fbdebb2f77cd20",
+      "url": "https://codeload.github.com/nothings/stb/tar.gz/2c980bb59875b0d32144a71867fbdebb2f77cd20",
+      "sha256": "9a955b1b49a4410088a2e0ee2a9c057c3c907d0c1d75454144cb980aca0ba515",
+      "proof": true,
+      "origin": "existing verified pin",
+      "witness": "stb_image.h"
+    },
+    {
+      "name": "thorvg",
+      "repository": "thorvg/thorvg",
+      "revision": "6715f99ac106b6d4587f384a78c59fe957cfd2a3",
+      "url": "https://codeload.github.com/thorvg/thorvg/tar.gz/6715f99ac106b6d4587f384a78c59fe957cfd2a3",
+      "sha256": "60f878d34b0c27ab743fb786831baab08efe36b32858d3aa4f314c3511b9fe3a",
+      "proof": true,
+      "origin": "existing verified pin",
+      "witness": "inc/thorvg.h"
+    },
+    {
+      "name": "tinybvh",
+      "repository": "jbikker/tinybvh",
+      "revision": "0e4584287823252cf83f0e9cd072848bec5f79c5",
+      "url": "https://codeload.github.com/jbikker/tinybvh/tar.gz/0e4584287823252cf83f0e9cd072848bec5f79c5",
+      "sha256": "1d4511503570ecc0f6b3c2e6cb5a1aabd0ab31004bdd582ac74b91ac0865dd34",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "tiny_bvh.h",
+      "files": [
+        "tiny_bvh.h",
+        "tiny_ocl.h",
+        "tiny_scene.h",
+        "LICENSE",
+        "README.md",
+        "CITATION.cff"
+      ]
+    },
+    {
+      "name": "tomlpp",
+      "repository": "marzer/tomlplusplus",
+      "revision": "1e8829b793b66ad17011732a146b8077d379b011",
+      "url": "https://codeload.github.com/marzer/tomlplusplus/tar.gz/1e8829b793b66ad17011732a146b8077d379b011",
+      "sha256": "8f6131576dbfd77c72d3073ad3969f2bda086961e15937ddb6dc9b4b4238ae01",
+      "proof": true,
+      "origin": "existing verified pin",
+      "witness": "include/toml++/toml.hpp"
+    },
+    {
+      "name": "ufbx",
+      "repository": "ufbx/ufbx",
+      "revision": "fcc5d6ba444cfd3eb80677dba5e37e493941abe5",
+      "url": "https://codeload.github.com/ufbx/ufbx/tar.gz/fcc5d6ba444cfd3eb80677dba5e37e493941abe5",
+      "sha256": "158ab0d66c789afb0a85a06d2ac40366c399d18c82cbda3acd43afb1838471a5",
+      "proof": false,
+      "origin": "resolved for consolidation; full GPU compatibility not yet verified",
+      "witness": "ufbx.h"
+    },
+    {
+      "name": "vulkan-headers",
+      "repository": "KhronosGroup/Vulkan-Headers",
+      "revision": "b379292b2ab6df5771ba9870d53cf8b2c9295daf",
+      "url": "https://codeload.github.com/KhronosGroup/Vulkan-Headers/tar.gz/b379292b2ab6df5771ba9870d53cf8b2c9295daf",
+      "sha256": "2ad177c0e468ac2eb3db9b5be6b8a18a6730d339378ac670e5fbda3503ac7d64",
+      "proof": true,
+      "origin": "existing verified pin",
+      "witness": "include/vulkan/vulkan.h"
+    }
+  ]
+}

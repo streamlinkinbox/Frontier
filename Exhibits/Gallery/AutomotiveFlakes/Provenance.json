@@ -1,0 +1,32 @@
+{
+  "target": "f6c99702c769ef9fd44c39ac8819e0ebeae35b9b",
+  "mode": "Native C++ reference; separate GLSL WebGL exhibit; not Project-Zero GPU deployment",
+  "sha256": {
+    "Engine/Shaders/AutomotiveFlakePaint.slang": "28e07406e0823d01b2b04b0a8aeb2d19b343a45c550ae7b73dd66d44d1016786",
+    ".cache/cpp-sun-full/Engine/Shaders/MaterialEvaluation.slang": "f43fcf9e528487c7dffa733a83c2d21243099f68be69c689da432394f87733e1",
+    ".cache/cpp-sun-full/Engine/Shaders/AutomotiveMaterialProfiles.slang": "41d34711688a13dcb012e2974284bc0c8e9cb79b834d43bbe76ab0bcaaa15d45",
+    ".cache/cpp-sun-full/Engine/Shaders/SlangCpuShim.h": "73706b6a11b07bd93bef75a6dcd0c11c0f6a5a35a84de4226230c09acc51f3da",
+    ".cache/cpp-sun-full/Engine/ContentInterchange/PngWriteCounterpart.h": "f68712add2db220e664ac2838ee2b226a1638e6de4e73027e045812a16b427db",
+    "Exhibits/Workbench/AutomotiveFlakes/CpuShader.h": "77e40d0e7efc97c8a148f60d75ccd1d8a14c047c848c749567356c93f180d946",
+    "Exhibits/Workbench/AutomotiveFlakes/NativeFlakeProof.cpp": "2b31c5e8e46f155b9e8d731e39cb6f7429a4e4423695d72109d7dd47549f3305",
+    "Exhibits/Workbench/AutomotiveFlakes/PaintScene.slang": "1b89666595754c9e9bcd5098bb51aaafcc8c9224ff0767d1382feff5f899357a",
+    "Exhibits/Workbench/AutomotiveFlakes/RunProof.py": "b70d4803352adf688b9d0ec6f6670366029bdc213a2bef70a43f3344366ed153",
+    "Exhibits/Workbench/AutomotiveFlakes/TestBrowser.mjs": "684e297b4f4a333c44278abe83375e17c72b88e8e305c874f64548aaa853d2fc",
+    "Exhibits/Gallery/AutomotiveFlakes/light-0.png": "8184bf090cf6e29df756ed66c72b2372983d70dd4fb577461a45682ec97be618",
+    "Exhibits/Gallery/AutomotiveFlakes/light-1.png": "e672210f68a38957b548f07064499cba10195a1e0dd079dcb43d75a9984d2658",
+    "Exhibits/Gallery/AutomotiveFlakes/light-2.png": "11aebb1eccf6d2d6d210a368db79d09c7fd3a5c47102a6a80f0796792aba0781",
+    "Exhibits/Gallery/AutomotiveFlakes/light-3.png": "5ec8b207b2e2d1bb952903f018bdde3f0c60a313c7b3eee5be5e65515644c46f",
+    "Exhibits/Gallery/AutomotiveFlakes/light-4.png": "b843e55910cacc20ccc906c5415198ce7ec8a21b55ea57892954f1b36b3b16f7",
+    "Exhibits/Gallery/AutomotiveFlakes/light-5.png": "9166321aa0c8d6be3b573f0d03b217027a3787c8ba2d4028743fd76633fd3309",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-close.png": "38884abcc3dee39be63f51b25404c85a97c2aa0a78d556e900475c05c5da3074",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-far.png": "b1bc48387c4811cf9387774a9440f161a339395f732121f7a65e3db8de0bb314",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-metallic.png": "ea315c38e0e17050bb02ff36ab998f66d6fd905934224e165db3b02de2a653ce",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-pearl.png": "ccb785001e6df8fb940a3a22d9b5ea2b6aef38163112ec9383a694bce6b85c25",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-smooth.png": "fd4ff740a608ca0fd87e97b345d737787739af1bc02003fcd28d2399fb75fa79",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-rgb-coat.png": "d74eff83e74785d6d6d504a983619c19961e29149464f4ea640755b053359a08",
+    "Exhibits/Gallery/AutomotiveFlakes/paint-rgb-dense.png": "a14dfff4fc3fa91d3acccdc0eef4997900717be648908ee84fb42acd18bd3501",
+    "Exhibits/Gallery/AutomotiveFlakes/shared.glsl": "b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024",
+    "Exhibits/Workbench/AutomotiveFlakes/Serve.py": "b53022b265a2e1b4549c09dca47e4de44763780b835d321f79ccf778a161a91a",
+    "Exhibits/Workbench/AutomotiveFlakes/VersionAssets.py": "ace01b302537bdc7febe240976c70553677dbc06da1fd2023923b0c72b3ac966"
+  }
+}

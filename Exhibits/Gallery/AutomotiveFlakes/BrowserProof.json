@@ -1,0 +1,42 @@
+{
+  "browser": "153.0.8010.0",
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "glslCompilation": "PASS",
+  "probes": 64,
+  "channels": 192,
+  "maxRelativeError": 0.0006860225615783163,
+  "controlChecks": {
+    "metal": 1145122378,
+    "smooth": 3015112950,
+    "pearl": 2870549777,
+    "moved": 4108437202,
+    "restored": 1145122378,
+    "density": 2035690870,
+    "diameter": 395403897,
+    "spread": 2413172254,
+    "roughness": 3854086526,
+    "coat": 4179871224,
+    "distance": 327792057,
+    "film": 2285931445,
+    "orbit": 470732023,
+    "density1": 1606768505,
+    "density4": 3473494086,
+    "density12": 3487270308,
+    "density16": 3204973091,
+    "addColour": 716368594,
+    "colourRange": 79311988,
+    "colourShare": 4147020253,
+    "eightColours": 4190487576,
+    "coatTint": 2902811591,
+    "rgbBlueCoat": 825376458
+  },
+  "pageErrors": [],
+  "sha256": {
+    "shared.glsl": "b89ed6385e5eb76c287eb46599a629f13b0ac178e2f52a563cad2b945278c024",
+    "paint.js": "10dcd1f8181f733c04057b0ac2a5702854c72bf0d8c39eddf3f5b7fee3fa7aae",
+    "index.html": "678f53b2f1b4d99400a290783901a801278615b44874db45a4c340d58e52338a",
+    "CpuProbes.json": "b5d458b369c287fd7073be1b92eafc233071a018f59f5975a630a13ef9ff6f0e",
+    "PaintLab.png": "770656e19d4ec89e59e6ff8b69602d652b7996ec7382452948d245b638f20dc8",
+    "PaintLab-Colours.png": "65d983e47d15dd81d7694ed3025034fe497ec7a9a99c538565293d904033e3fa"
+  }
+}

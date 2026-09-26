@@ -1,0 +1,164 @@
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS inspector Mie reaches renderer settings
+DELTA Atmosphere Mie 2.813072 /255
+PASS Atmosphere Mie
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Cloud coverage 13.849276 /255
+PASS Cloud coverage
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Height fog over real distance geometry 13.070196 /255
+PASS Height fog over real distance geometry
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Local volumetric fog 0.052258 /255
+PASS Local volumetric fog
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Local cloud density 0.863317 /255
+PASS Local cloud density
+PASS sheet commit/fetch roundtrip
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS Static Sun remains static while weather advances
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Wind advection with Static Sun 8.917162 /255
+PASS Wind advection with Static Sun
+PASS wind speed and simulation time reach march
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS real VisibilityRaster scene rendered
+DELTA Zero wind is stationary 0.000000 /255
+PASS Zero wind is stationary
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS hidden Wind does not advect media
+PASS real VisibilityRaster scene rendered
+PASS world projection centre
+PASS behind-camera clipping
+PASS near clipping
+PASS offscreen clipping
+PASS nonfinite clipping
+PASS zero viewport is safe
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS every billboard resolves a semantic icon
+PASS native viewport exists
+PASS billboard or native control in view
+PASS Markers toggle hides proxies
+PASS billboard or native control in view
+PASS Markers toggle restores proxies
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS billboard selects matching outliner row
+PASS billboard mounts real matching inspector
+PASS billboard click consumed before mesh picker
+PASS billboard cancels older asynchronous mesh selection
+PASS selection notification consumed once
+PASS billboard or native control in view
+PASS real native editor capture
+PASS actual native Wind slider mounted
+PASS billboard or native control in view
+PASS native mouse edit commits Wind speed
+PASS real VisibilityRaster scene rendered
+PASS native mouse edit propagated to rendered scene
+PASS real native editor capture
+PASS billboard or native control in view
+PASS real native editor capture
+PASS real VisibilityRaster scene rendered
+PASS render saved
+PASS actual native Height Fog density slider mounted
+PASS billboard or native control in view
+PASS native mouse edit commits fog density after scrolling
+PASS real VisibilityRaster scene rendered
+PASS render saved
+DELTA Native mouse Fog edit changes rendered pixels 33.699998 /255
+PASS Native mouse Fog edit changes rendered pixels
+PASS real native editor capture
+PASS sheet commit/fetch roundtrip
+PASS real VisibilityRaster scene rendered
+PASS billboard or native control in view
+PASS real native editor capture
+PASS billboard or native control in view
+PASS real native editor capture
+PASS billboard or native control in view
+PASS modal blocks billboard selection
+PASS modal blocks mesh selection too
+PASS billboard or native control in view
+PASS nearest overlapping local billboard wins
+PASS billboard or native control in view
+PASS reordered billboard resolves stable identity
+PASS billboard or native control in view
+PASS rename preserves identity
+PASS hidden ancestor suppresses global and local proxies
+PASS local volume inspector owns marker position
+PASS 155 checks. Real native CPU renderer and ImGui controls; Windows/Vulkan execution not tested.

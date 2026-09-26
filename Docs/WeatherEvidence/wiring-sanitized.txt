@@ -1,0 +1,28 @@
+Defaults: global_cloud=1 height_fog=0 aerial_fog=0 local_cloud=0 local_fog=0
+global cloud edits: GPU sky/moon/post record changes = 0/0/1
+height fog edits: GPU sky/moon/post record changes = 0/0/1
+aerial fog edits: GPU sky/moon/post record changes = 0/0/1
+local cloud edits: GPU sky/moon/post record changes = 0/0/1
+local fog edits: GPU sky/moon/post record changes = 0/0/1
+atmosphere Mie positive control: GPU sky/moon/post record changes = 1/0/1
+PASS post/weather ABI size and offset
+PASS device weather-active byte offset
+PASS enabled entity reaches shader
+PASS outliner hide disables shader medium
+PASS enabled entity reaches shader
+PASS outliner hide disables shader medium
+PASS enabled entity reaches shader
+PASS outliner hide disables shader medium
+PASS enabled entity reaches shader
+PASS outliner hide disables shader medium
+PASS enabled entity reaches shader
+PASS outliner hide disables shader medium
+PASS system disabled is weather identity
+PASS hidden wind does not animate weather
+PASS weather advances with static sun
+PASS local volumes independent of global cloud visibility
+CPU global cloud transmittance=0.943993 scatter=0.029960
+CPU local cloud transmittance=0.785184 scatter=0.113362
+CPU local fog transmittance=0.785184 scatter=0.108434
+CPU height fog transmittance=0.019059
+CPU aerial fog transmittance=0.752060

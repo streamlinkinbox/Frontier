@@ -1,0 +1,44 @@
+name: Consolidated checkout
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  native-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: actions/cache@v4
+        with:
+          path: .cache/dependency-archives
+          key: native-archives-${{ hashFiles('ExternalPackages/Dependencies.lock.json') }}
+      - name: Build and test from this checkout
+        run: python Tools/Setup.py --verify
+      - name: Application source-list parity
+        run: bash Tools/Build/CheckBuildSourceList.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-proof-evidence
+          path: |
+            build/native-proof/evidence/NativeProof.txt
+            build/native-proof/evidence/Exhibits/Gallery/NativeBillboards/
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Experimental/FrontierEditor/package-lock.json
+      - run: npm --prefix Experimental/FrontierEditor ci
+      - run: npm --prefix Experimental/FrontierEditor run build
+      - run: node Experimental/FrontierEditor/scripts/check-layout.mjs

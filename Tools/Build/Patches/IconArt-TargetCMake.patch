@@ -1,0 +1,83 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -60,69 +60,8 @@
+ set(BUILD_SHARED_LIBS   OFF CACHE BOOL "" FORCE)
+ add_subdirectory("${EXT}/glfw" "${CMAKE_BINARY_DIR}/glfw" EXCLUDE_FROM_ALL)
+ 
+-# ─── ThorVG — compile sources directly (no Meson/Ninja required) ────────────────────────────────────────────────────────────────────────────
+-set(THORVG_SRC "${EXT}/thorvg")
+-
+-# Generate config.h for ThorVG
+-file(WRITE "${CMAKE_BINARY_DIR}/thorvg_config/config.h"
+-    "#pragma once\n"
+-    "#define THORVG_VERSION_STRING \"1.0.0\"\n"
+-    "#define THORVG_CPU_ENGINE_SUPPORT 1\n"
+-    "#define THORVG_SVG_LOADER_SUPPORT 1\n"
+-    "#define THORVG_THREAD_SUPPORT 1\n"
+-    "#define THORVG_FILE_IO_SUPPORT 1\n"
+-)
+-
+-set(THORVG_SOURCES
+-    "${THORVG_SRC}/src/common/tvgCompressor.cpp"
+-    "${THORVG_SRC}/src/common/tvgMath.cpp"
+-    "${THORVG_SRC}/src/common/tvgStr.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgAccessor.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgAnimation.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgCanvas.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgFill.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgInitializer.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgLoaderMgr.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgPaint.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgPicture.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgRender.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgSaver.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgScene.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgShape.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgTaskScheduler.cpp"
+-    "${THORVG_SRC}/src/renderer/tvgText.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwBlendOp.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwFill.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwImage.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwMemPool.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwPostEffect.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwRaster.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwRenderer.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwRle.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwShape.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwStroke.cpp"
+-    "${THORVG_SRC}/src/renderer/cpu_engine/tvgSwUtil.cpp"
+-    "${THORVG_SRC}/src/loaders/raw/tvgRawLoader.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgSvgBuilder.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgSvgCssStyle.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgSvgLoader.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgSvgPath.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgSvgUtil.cpp"
+-    "${THORVG_SRC}/src/loaders/svg/tvgXmlParser.cpp"
+-)
+-
+-add_library(thorvg_static STATIC ${THORVG_SOURCES})
+-target_include_directories(thorvg_static PUBLIC
+-    "${THORVG_SRC}/inc"
+-    "${CMAKE_BINARY_DIR}/thorvg_config"
+-    "${THORVG_SRC}/src/common"
+-    "${THORVG_SRC}/src/renderer"
+-    "${THORVG_SRC}/src/renderer/cpu_engine"
+-    "${THORVG_SRC}/src/loaders/svg"
+-    "${THORVG_SRC}/src/loaders/raw"
+-)
+-target_compile_definitions(thorvg_static PRIVATE DTVG_STATIC DTVG_BUILD NOMINMAX)
+-target_compile_options(thorvg_static PRIVATE -fPIC -w)
++# ThorVG software artwork: pinned, shared RGBA for CPU and device presentation.
++include(Tools/Build/ThorVGSoftware.cmake)
+ 
+ # ─── ImGui — compiled as object lib (docking branch) ────────────────────────────────────────────────────────────────────────────────────────
+ set(IMGUI_SRC "${EXT}/imgui")
+@@ -232,6 +171,8 @@
+     Engine/ContentInterchange/SpaceCodec.cpp      # P1/P3: the Space container family's reader, writer and the two tools
+     Engine/ContentInterchange/SpaceExport.cpp     # P2/P4/P6: resident records → containers
+     Engine/DisplayPresentation/ThemeStructure.cpp
++    Engine/DisplayPresentation/IconArt.cpp
++    Engine/DisplayPresentation/IconPresentation.cpp
+     Engine/DisplayPresentation/VectorCodec.cpp
+     Engine/DisplayPresentation/FontCodec.cpp
+     Engine/DisplayPresentation/ConfigurationRegistry.cpp

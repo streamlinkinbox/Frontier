@@ -1,0 +1,257 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -253,6 +253,7 @@
+     Engine/Editor/MoonInspectorPanel.cpp
+     Engine/Editor/StarsInspectorPanel.cpp
+     Engine/Editor/CloudsInspectorPanel.cpp
++    Engine/Editor/FogInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+     Engine/DisplayPresentation/DialogueHost.cpp
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,7 +199,7 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud };
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud, HeightFog, AerialFog, LocalFog };
+ 
+ // Borrowed immutable image data; project retains ownership through the editor frame.
+ struct EditorSkyImage {
+@@ -214,10 +214,12 @@
+ };
+ struct StarRecord;
+ struct EditorStarPreview { const StarRecord* Records=nullptr; uint32_t Count=0; float Seconds=0; };
++struct EditorFogPreview {float Rayleigh[3]={5.8e-6f,13.5e-6f,33.1e-6f};float Mie=21e-6f,RayleighHeight=8000,MieHeight=1200;};
+ struct EditorSheet
+ {
+     EditorSkyImage SkyImage{};
+     EditorStarPreview StarPreview{};
++    EditorFogPreview FogPreview{};
+     EditorMoonBody MoonBodies[6]{};uint64_t MoonAtlasRevision=0;
+     float MoonAzimuth=0, MoonElevation=0, MoonPhase=0; // solved read-only lunar inputs
+     EditorSheetAppearance Appearance = EditorSheetAppearance::Generic;
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -12,6 +12,7 @@
+ #include "MoonInspectorPanel.h"
+ #include "StarsInspectorPanel.h"
+ #include "CloudsInspectorPanel.h"
++#include "FogInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -132,6 +133,11 @@
+         return;
+     }
+ 
++    if (Sheet->Appearance == EditorSheetAppearance::HeightFog || Sheet->Appearance == EditorSheetAppearance::AerialFog || Sheet->Appearance == EditorSheetAppearance::LocalFog) {
++        ImGui::BeginChild("##fog-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
++        ImGui::PushID(static_cast<int>(PickedIndex));RecordFogInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
++        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++    }
+     if (Sheet->Appearance == EditorSheetAppearance::GlobalCloud || Sheet->Appearance == EditorSheetAppearance::LocalCloud) {
+         ImGui::BeginChild("##cloud-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordCloudsInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+--- a/Engine/GeometricRaster/VisibilityRaster.cpp
++++ b/Engine/GeometricRaster/VisibilityRaster.cpp
+@@ -10,6 +10,7 @@
+ //    distance so contact stays sharp and the penumbra widens with distance. See VisibilityRaster.h for the ladder.
+ 
+ #include "VisibilityRaster.h"
++#include "DisplayPresentation/FogModel.h"
+ #include "DisplayPresentation/StarFieldControls.h"
+ 
+ #include "SceneStructure.h"
+@@ -821,6 +822,11 @@
+                 Out[C] += SunDisc * SunLimb * Celestial_.Light.Colour[C] * Celestial_.Light.Intensity
+                         * S.Transmittance[C] * kSunBoost * SunGate * CloudT;
+         }
++        // The sky already integrates physical aerial extinction. Only the additional height fog
++        // overlays sky/planet misses; aerial fog is reserved for finite geometry below.
++        if(Celestial_.Fog.HeightEnabled){FogSettings F=Celestial_.Fog;F.AerialEnabled=false;
++            float D=std::min(CloudMaxDist,100000.f);float Ambient[]={S.Radiance[0],S.Radiance[1],S.Radiance[2]};
++            FogModel::Apply(F,Celestial_.Medium,Celestial_.Light,Eye[2],Eye[2]+Dir[2]*D,D,Dir,Ambient,Out);}
+     };
+ 
+     // The sky's contribution as an ambient term, evaluated ONCE for the frame (see the note at the fill below).
+@@ -1013,6 +1019,14 @@
+                     for (int C = 0; C < 3; ++C) Linear[C] = Linear[C] * Hv.Transmittance + Hv.Scatter[C];
+                 }
+             }
++            if(Celestial_.Enabled&&TriId_[Idx]!=kMiss&&(Celestial_.Fog.HeightEnabled||Celestial_.Fog.AerialEnabled)){
++                const uint32_t Tri=TriId_[Idx];float W0=Bary_[Idx*2u],W1=Bary_[Idx*2u+1u],W2=1-W0-W1;
++                float P[]={W0*Flat[Tri].VertexAlphaX+W1*Flat[Tri].VertexBetaX+W2*Flat[Tri].VertexGammaX,
++                           W0*Flat[Tri].VertexAlphaY+W1*Flat[Tri].VertexBetaY+W2*Flat[Tri].VertexGammaY,
++                           W0*Flat[Tri].VertexAlphaZ+W1*Flat[Tri].VertexBetaZ+W2*Flat[Tri].VertexGammaZ};
++                float D[]={P[0]-Eye[0],P[1]-Eye[1],P[2]-Eye[2]};float Length=std::sqrt(D[0]*D[0]+D[1]*D[1]+D[2]*D[2]);
++                if(Length>0){for(float& V:D)V/=Length;FogModel::Apply(Celestial_.Fog,Celestial_.Medium,Celestial_.Light,Eye[2],P[2],Length,D,SkyAmbient,Linear);}
++            }
+             unsigned char Encoded[3];
+             ColourPipeline::ApplyToByte(Colour_, Linear, Encoded);
+             Px[0] = Encoded[0]; Px[1] = Encoded[1]; Px[2] = Encoded[2];
+--- a/Engine/GeometricRaster/VisibilityRaster.h
++++ b/Engine/GeometricRaster/VisibilityRaster.h
+@@ -104,6 +104,7 @@
+         CloudLayerSettings  CloudLayer{};
+         LocalVolumeSettings LocalCloud{};
+         LocalVolumeSettings LocalFog{};
++        FogSettings Fog{};
+         WindSettings        Wind{};
+         VolumetricBudget    CloudBudget{};
+         float               CloudTime = 0.0f;
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -442,6 +442,9 @@
+     Settings.CloudLayer = (WantClouds && Cloud.Enabled) ? Cloud : CloudLayerSettings{};
+     Settings.LocalCloud = (WantLocalCloud && LocalCloud.Enabled) ? LocalCloud : LocalVolumeSettings{};
+     Settings.LocalFog = (WantLocalFog && LocalFog.Enabled) ? LocalFog : LocalVolumeSettings{};
++    Settings.Fog=Fog;
++    Settings.Fog.HeightEnabled=Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::HeightFog)]&&Fog.HeightEnabled;
++    Settings.Fog.AerialEnabled=Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::AtmosphericFog)]&&Fog.AerialEnabled;
+     Settings.Wind = Wind;
+     Settings.CloudBudget = Limits.Volumetrics;
+     Settings.CloudTime = Observation.LocalHours * 3600.0f;
+@@ -913,14 +916,17 @@
+     case CelestialEntity::HeightFog:
+         CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::Fog;
+         if (!Fog.HeightEnabled) std::snprintf(Row.Meta, sizeof(Row.Meta), "off");
++        else if(Fog.HeightDensity<=0)std::snprintf(Row.Meta,sizeof(Row.Meta),"clear");
+         else std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f m",
+                            static_cast<double>(std::sqrt(-std::log(0.02f)) / (Fog.HeightDensity > 1e-4f ? Fog.HeightDensity : 1e-4f)));
+         break;
+     case CelestialEntity::AtmosphericFog:
+     {
+         CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::AerialFog;
+-        const float Beta = Medium.MieScattering * (Fog.AerialDensity > 0.0f ? Fog.AerialDensity : 1.0f);
+-        std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f km", static_cast<double>(3.912f / (Beta > 1e-7f ? Beta : 1e-7f) / 1000.0f));
++        const float Beta=Fog.AerialDensity*((1-Fog.AerialMie)*Medium.RayleighScattering[1]*Medium.RayleighStrength+Fog.AerialMie*Medium.MieScattering*Medium.MieStrength);
++        if(!Fog.AerialEnabled)std::snprintf(Row.Meta,sizeof(Row.Meta),"off");
++        else if(Beta<=0)std::snprintf(Row.Meta,sizeof(Row.Meta),"clear");
++        else std::snprintf(Row.Meta,sizeof(Row.Meta),"%.0f km",static_cast<double>((Fog.AerialStart+3.912f/Beta)/1000));
+         break;
+     }
+     case CelestialEntity::LocalFog:
+@@ -991,7 +997,7 @@
+ {
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
+     Sheet.Appearance = EditorSheetAppearance::Generic;
+-    Sheet.SkyImage = {};Sheet.StarPreview={};
++    Sheet.SkyImage = {};Sheet.StarPreview={};Sheet.FogPreview={};
+     for(auto& Body:Sheet.MoonBodies)Body=EditorMoonBody{};Sheet.MoonAtlasRevision=0;
+     Sheet.MoonAzimuth=Sheet.MoonElevation=Sheet.MoonPhase=0;
+     Sheet.GroupCount = 0;
+@@ -1008,6 +1014,7 @@
+     else if (Entity == CelestialEntity::Atmosphere || Entity == CelestialEntity::Sky) BuildAtmosphereSkySheet(Sheet);
+     else if (Entity == CelestialEntity::Moons) BuildMoonSheet(Sheet);
+     else if (Entity == CelestialEntity::Stars) BuildStarsSheet(Sheet);
++    else if(Entity==CelestialEntity::HeightFog||Entity==CelestialEntity::AtmosphericFog||Entity==CelestialEntity::LocalFog)BuildFogSheet(Entity,Sheet);
+     else if (Entity == CelestialEntity::CloudLayer || Entity == CelestialEntity::LocalCloud) BuildCloudSheet(Entity==CelestialEntity::LocalCloud,Sheet);
+     else BuildOtherSheet(Entity, Sheet);
+ }
+@@ -1161,16 +1168,17 @@
+     BuildCloudShadowSheet(Sheet);
+ }
+ 
+-void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
+-{
+-    char Text[48];
+-    switch (Entity)
+-    {
++void CelestialSequence::BuildFogSheet(CelestialEntity Entity,EditorSheet& Sheet) const noexcept
++{
++    Sheet.Appearance=Entity==CelestialEntity::HeightFog?EditorSheetAppearance::HeightFog:Entity==CelestialEntity::AtmosphericFog?EditorSheetAppearance::AerialFog:EditorSheetAppearance::LocalFog;
++    for(int C=0;C<3;++C)Sheet.FogPreview.Rayleigh[C]=Medium.RayleighScattering[C]*Medium.RayleighStrength;
++    Sheet.FogPreview.Mie=Medium.MieScattering*Medium.MieStrength;Sheet.FogPreview.RayleighHeight=Medium.RayleighScaleHeight;Sheet.FogPreview.MieHeight=Medium.MieScaleHeight;
++    switch(Entity){
+     case CelestialEntity::HeightFog:
+     {
+         EditorPropertyGroup& Medium2 = OpenGroup(Sheet, "Medium");
+         Push(Medium2, MakeSwitch("Enabled", Fog.HeightEnabled));
+-        Push(Medium2, MakeSlider("Density", 0.0f, 0.2f, Fog.HeightDensity, 4, ""));
++        Push(Medium2, MakeSlider("Density", 0.0f, 0.2f, Fog.HeightDensity, 4, "1/m"));
+         Push(Medium2, MakeSlider("Falloff Height", 10.0f, 3000.0f, Fog.FalloffHeight, 0, "m"));
+         Push(Medium2, MakeSlider("Sun Scatter", 0.0f, 2.0f, Fog.SunScatter, 2, "x"));
+         Push(Medium2, MakeColour("Colour", Fog.HeightColour));
+@@ -1201,6 +1209,15 @@
+         Push(Body, MakeSwitch("Follow Wind", V.FollowWind));
+         break;
+     }
++    default:break;
++    }
++}
++
++void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
++{
++    char Text[48];
++    switch (Entity)
++    {
+     case CelestialEntity::Wind:
+     {
+         EditorPropertyGroup& Flow = OpenGroup(Sheet, "Flow");
+@@ -1395,21 +1412,17 @@
+         break;
+     }
+     case CelestialEntity::HeightFog:
+-    {
+-        Fog.HeightEnabled = ReadSwitch(Sheet, "Enabled", Fog.HeightEnabled);
+-        Fog.HeightDensity = ReadSlider(Sheet, "Density", Fog.HeightDensity);
+-        Fog.FalloffHeight = ReadSlider(Sheet, "Falloff Height", Fog.FalloffHeight);
+-        Fog.SunScatter    = ReadSlider(Sheet, "Sun Scatter", Fog.SunScatter);
+-        const EditorProperty* Colour = Find(Sheet, "Colour");
+-        if (Colour != nullptr) for (int C = 0; C < 3; ++C) Fog.HeightColour[C] = Colour->ColourTint[C];
+-        break;
+-    }
+     case CelestialEntity::AtmosphericFog:
+-        Fog.AerialEnabled = ReadSwitch(Sheet, "Enabled", Fog.AerialEnabled);
+-        Fog.AerialDensity = ReadSlider(Sheet, "Density", Fog.AerialDensity);
+-        Fog.AerialStart   = ReadSlider(Sheet, "Start", Fog.AerialStart);
+-        Fog.AerialMie     = ReadSlider(Sheet, "Mie Blend", Fog.AerialMie);
+-        break;
++    {
++        auto Safe=[&](const char* N,float Old,float Low,float High){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Low,High):Old;};
++        if(Entity==CelestialEntity::HeightFog){
++            Fog.HeightEnabled=ReadSwitch(Sheet,"Enabled",Fog.HeightEnabled);Fog.HeightDensity=Safe("Density",Fog.HeightDensity,0,.2f);
++            Fog.FalloffHeight=Safe("Falloff Height",Fog.FalloffHeight,10,3000);Fog.SunScatter=Safe("Sun Scatter",Fog.SunScatter,0,2);
++            if(const auto* P=Find(Sheet,"Colour"))for(int C=0;C<3;++C)if(std::isfinite(P->ColourTint[C]))Fog.HeightColour[C]=std::clamp(P->ColourTint[C],0.f,1.f);
++        }else{Fog.AerialEnabled=ReadSwitch(Sheet,"Enabled",Fog.AerialEnabled);Fog.AerialDensity=Safe("Density",Fog.AerialDensity,0,4);
++            Fog.AerialStart=Safe("Start",Fog.AerialStart,0,2000);Fog.AerialMie=Safe("Mie Blend",Fog.AerialMie,0,1);}
++        break;
++    }
+     case CelestialEntity::CloudLayer:
+     {
+         auto Safe=[&](const char* N,float Old,float Low,float High){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Low,High):Old;};
+@@ -1452,15 +1465,13 @@
+     }
+     case CelestialEntity::LocalFog:
+     {
+-        LocalVolumeSettings& V = (Entity == CelestialEntity::LocalCloud) ? LocalCloud : LocalFog;
+-        V.Enabled    = ReadSwitch(Sheet, "Enabled", V.Enabled);
+-        ReadAxes(Sheet, "Centre", V.Centre);
+-        ReadAxes(Sheet, "Half Size", V.HalfSize);
+-        V.Density    = ReadSlider(Sheet, "Density", V.Density);
+-        V.Coverage   = ReadSlider(Sheet, "Coverage", V.Coverage);
+-        V.Scale      = ReadSlider(Sheet, "Feature Scale", V.Scale);
+-        V.Anisotropy = ReadSlider(Sheet, "Anisotropy", V.Anisotropy);
+-        V.FollowWind = ReadSwitch(Sheet, "Follow Wind", V.FollowWind);
++        auto Safe=[&](const char* N,float Old,float Low,float High){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Low,High):Old;};
++        LocalFog.Enabled=ReadSwitch(Sheet,"Enabled",LocalFog.Enabled);LocalFog.FollowWind=ReadSwitch(Sheet,"Follow Wind",LocalFog.FollowWind);
++        LocalFog.Density=Safe("Density",LocalFog.Density,0,4);LocalFog.Coverage=Safe("Coverage",LocalFog.Coverage,0,1);
++        LocalFog.Scale=Safe("Feature Scale",LocalFog.Scale,10,600);LocalFog.Anisotropy=Safe("Anisotropy",LocalFog.Anisotropy,-.9f,.9f);
++        float Centre[3],Half[3];for(int I=0;I<3;++I){Centre[I]=LocalFog.Centre[I];Half[I]=LocalFog.HalfSize[I];}
++        ReadAxes(Sheet,"Centre",Centre);ReadAxes(Sheet,"Half Size",Half);
++        for(int I=0;I<3;++I){if(std::isfinite(Centre[I]))LocalFog.Centre[I]=std::clamp(Centre[I],-1000000.f,1000000.f);if(std::isfinite(Half[I]))LocalFog.HalfSize[I]=std::clamp(Half[I],.1f,10000.f);}
+         break;
+     }
+     case CelestialEntity::Wind:
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -272,6 +272,7 @@
+     void BuildMoonSheet(EditorSheet& Sheet) const noexcept;
+     void BuildStarsSheet(EditorSheet& Sheet) const noexcept;
+     void BuildCloudSheet(bool Local,EditorSheet& Sheet) const noexcept;
++    void BuildFogSheet(CelestialEntity Entity,EditorSheet& Sheet) const noexcept;
+     void BuildCloudShadowSheet(EditorSheet& Sheet) const noexcept;
+     void BuildMoonSlot(EditorSheet& Sheet, uint32_t Slot) const noexcept;
+     void BuildSunSheet(EditorSheet& Sheet) const noexcept;

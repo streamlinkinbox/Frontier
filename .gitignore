@@ -1,0 +1,35 @@
+node_modules/
+dist/
+*.log
+__pycache__/
+
+.cache/
+
+# Local native authoring scenes (export/back up separately)
+.frontier/
+
+# Consolidated build products and third-party installs (lockfile is authoritative).
+/build/
+/Build/
+ExternalPackages/*
+!ExternalPackages/Dependencies.lock.json
+!ExternalPackages/README.md
+*.o
+*.obj
+*.su
+*.a
+*.lib
+*.dll
+*.exe
+*.pdb
+*.spv
+imgui.ini
+.DS_Store
+Projects/*/bin/
+Projects/*/build/
+Projects/*/Build/Output/
+Projects/Project-Zero/Host/.staged-denoise/
+# Historical screenshot bundles are regenerable, not runtime content.
+# Keep the current small native billboard evidence with the consolidated source.
+Exhibits/Gallery/*
+!Exhibits/Gallery/NativeBillboards/

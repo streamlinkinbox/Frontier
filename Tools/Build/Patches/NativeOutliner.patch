@@ -1,0 +1,321 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -8,6 +8,7 @@
+ #pragma once
+ 
+ #include <cstdint>
++#include "../DisplayPresentation/IconArt.h"
+ 
+ namespace Frontier {
+ 
+@@ -86,6 +87,7 @@
+     bool             Physics   = false;                     // the PHYS badge
+ 
+     // The outliner's extra columns — all optional; a feed that leaves them alone gets the category defaults.
++    IconSymbol       Artwork = IconSymbol::Count;           // Count keeps semantic glyph/category mapping
+     EditorGlyph      Glyph     = EditorGlyph::Auto;         // the 14 px row icon
+     EditorNarrowing  Narrowing = EditorNarrowing::Auto;     // default/game filter slot; Auto picks from Category
+     uint32_t         FilterMask = 0u;                        // optional per-tool filter bits; 0 derives from Narrowing/Category
+--- a/Engine/Editor/OutlinerPanel.cpp
++++ b/Engine/Editor/OutlinerPanel.cpp
+@@ -17,6 +17,7 @@
+ #include "OutlinerPanel.h"
+ 
+ #include "ControlPanel.h"
++#include "../DisplayPresentation/IconPresentation.h"
+ #include "../DisplayPresentation/GlyphSpace.h"
+ #include "../DisplayPresentation/VectorCodec.h"
+ 
+@@ -468,6 +469,41 @@
+     }
+ }
+ 
++IconSymbol ArtworkFor(const EditorInstance& Row) noexcept
++{
++    if (Row.Artwork != IconSymbol::Count) return Row.Artwork;
++    switch (Row.Glyph)
++    {
++    case EditorGlyph::Globe: return IconSymbol::FolderWorld;
++    case EditorGlyph::Folder: return IconSymbol::FolderGeneric;
++    case EditorGlyph::Camera: return IconSymbol::Camera;
++    case EditorGlyph::Sun: return IconSymbol::Sun;
++    case EditorGlyph::Stars: return IconSymbol::OutlinerStars;
++    case EditorGlyph::Moon: return IconSymbol::Moon;
++    case EditorGlyph::Sky: return IconSymbol::SkyScattering;
++    case EditorGlyph::Cloud: return IconSymbol::Clouds;
++    case EditorGlyph::VolumeClouds: return IconSymbol::Clouds;
++    case EditorGlyph::LocalCloud: return IconSymbol::LocalCloud;
++    case EditorGlyph::VolumeFog: return IconSymbol::LocalFog;
++    case EditorGlyph::Wind: return IconSymbol::Wind;
++    case EditorGlyph::Rain: return IconSymbol::OutlinerPrecipitation;
++    case EditorGlyph::Rainbow: return IconSymbol::Rainbow;
++    case EditorGlyph::Flare: return IconSymbol::LensFlare;
++    case EditorGlyph::Plane: return IconSymbol::EditorMesh;
++    case EditorGlyph::Bulb: return IconSymbol::EditorPointLight;
++    default: break;
++    }
++    if (Row.Glyph != EditorGlyph::Auto) return IconSymbol::Count;
++    switch (Row.Category)
++    {
++    case EditorInstanceCategory::Camera: return IconSymbol::Camera;
++    case EditorInstanceCategory::Folder: return IconSymbol::FolderGeneric;
++    case EditorInstanceCategory::Light: return IconSymbol::EditorPointLight;
++    case EditorInstanceCategory::Geometry: return IconSymbol::EditorMesh;
++    default: return IconSymbol::Count;
++    }
++}
++
+ OutlinerIconCategory IconFor(const EditorInstance& Row) noexcept
+ {
+     if (Row.Glyph != EditorGlyph::Auto)
+@@ -643,6 +679,7 @@
+ void OutlinerPanel::AssignControls(ControlPanel* Controls) noexcept
+ {
+     Controls_ = Controls;
++    IconPresentation::Attach();
+ }
+ 
+ void OutlinerPanel::AssignTabOpen(bool* Open) noexcept
+@@ -1618,7 +1655,14 @@
+     // Glyph.
+     {
+         const ImU32 GlyphInk = ScaleAlpha(Accent, Fade * DimF);
+-        DrawIcon(Draw, IconFor(Row), ImVec2(X + (kIcoBox - 14.0f) * 0.5f, Cy - 7.0f), 14.0f, GlyphInk);
++        const IconSymbol Artwork = ArtworkFor(Row);
++        const ImVec2 ArtMin(X, Cy - 12.0f);
++        if (!IconPresentation::Draw(Draw, Artwork, ArtMin, 24.0f, Fade * DimF))
++            DrawIcon(Draw, IconFor(Row), ImVec2(X + (kIcoBox - 14.0f) * 0.5f, Cy - 7.0f), 14.0f, GlyphInk);
++        else if (IconPresentation::Result(Artwork) != IconResult::Ready &&
++                 ImGui::IsMouseHoveringRect(ArtMin, ImVec2(X + 24.0f, Cy + 12.0f)))
++            ImGui::SetTooltip("%s: %s\n%s", IconArt::Name(Artwork),
++                IconArt::ResultName(IconPresentation::Result(Artwork)), IconPresentation::Diagnostic(Artwork));
+         X += kIcoBox + kRowGap;
+     }
+ 
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -778,6 +778,7 @@
+     Folder.KidCount = 0u;
+     Folder.Visible  = Enabled;
+     Folder.Glyph    = EditorGlyph::Globe;
++    Folder.Artwork  = IconSymbol::FolderWorld;
+     Folder.Pinned   = true;
+     Folder.Shut     = false;
+     CopyTint(Folder.Tint, kTintFolder);
+@@ -821,7 +822,7 @@
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "AM %.2f", static_cast<double>(AirMassOf(Solved.Sun.Elevation)));
+         break;
+     case CelestialEntity::Sun:
+-        CopyTint(Row.Tint, kTintSun); Row.Glyph = EditorGlyph::Sun;
++        CopyTint(Row.Tint, kTintSun); Row.Glyph = EditorGlyph::Sun; Row.Artwork = IconSymbol::Sun;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.1f\xc2\xb0", static_cast<double>(Solved.Sun.Elevation));
+         if (Solved.Sun.Elevation < -0.8f)
+         {
+@@ -831,7 +832,7 @@
+         break;
+     case CelestialEntity::Sky:
+     {
+-        CopyTint(Row.Tint, kTintSky); Row.Glyph = EditorGlyph::Sky;
++        CopyTint(Row.Tint, kTintSky); Row.Glyph = EditorGlyph::Sky; Row.Artwork = IconSymbol::SkyScattering;
+         const float E = std::sin(Solved.Sun.Elevation * 0.01745329f);
+         const float Lum = (0.02f + 8.0f * std::pow(E > 0.0f ? E : 0.0f, 0.8f)) * SkyBrightness * Light.Intensity / 22.0f;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.2f kcd", static_cast<double>(Lum));
+@@ -839,7 +840,7 @@
+     }
+     case CelestialEntity::Stars:
+     {
+-        CopyTint(Row.Tint, kTintStars); Row.Glyph = EditorGlyph::Stars;
++        CopyTint(Row.Tint, kTintStars); Row.Glyph = EditorGlyph::Stars; Row.Artwork = IconSymbol::OutlinerStars;
+         // Naked-eye limit against the sky: 6.6 at night, falling with the sun's height.
+         const float E = Solved.Sun.Elevation;
+         const float Mag = E < -18.0f ? 6.6f : (E < 0.0f ? 6.6f + E * 0.35f : 0.3f - E * 0.12f);
+@@ -854,7 +855,7 @@
+     }
+     case CelestialEntity::Moons:
+     {
+-        CopyTint(Row.Tint, kTintStars); Row.Glyph = EditorGlyph::Moon;
++        CopyTint(Row.Tint, kTintStars); Row.Glyph = EditorGlyph::Moon; Row.Artwork = IconSymbol::Moon;
+         uint32_t Seated = 0u;
+         for (uint32_t S = 0u; S < kMoonDrawCount; ++S) if (MoonSlots[S].Visible) ++Seated;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%u/%u", Seated, static_cast<uint32_t>(kMoonDrawCount));
+@@ -879,25 +880,25 @@
+         break;
+     }
+     case CelestialEntity::LocalFog:
+-        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::VolumeFog;
++        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::VolumeFog; Row.Artwork = IconSymbol::LocalFog;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f\xc3\x97%.0f m",
+                       static_cast<double>(LocalFog.HalfSize[0] * 2.0f), static_cast<double>(LocalFog.HalfSize[1] * 2.0f));
+         break;
+     case CelestialEntity::CloudLayer:
+-        CopyTint(Row.Tint, kTintCloud); Row.Glyph = EditorGlyph::VolumeClouds;
++        CopyTint(Row.Tint, kTintCloud); Row.Glyph = EditorGlyph::VolumeClouds; Row.Artwork = IconSymbol::Clouds;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%s \xc2\xb7 %.0f%%", CloudTypeWord(Cloud.Type), static_cast<double>(Cloud.Coverage * 100.0f));
+         break;
+     case CelestialEntity::LocalCloud:
+-        CopyTint(Row.Tint, kTintCloud); Row.Glyph = EditorGlyph::LocalCloud;
++        CopyTint(Row.Tint, kTintCloud); Row.Glyph = EditorGlyph::LocalCloud; Row.Artwork = IconSymbol::LocalCloud;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f\xc3\x97%.0f m",
+                       static_cast<double>(LocalCloud.HalfSize[0] * 2.0f), static_cast<double>(LocalCloud.HalfSize[1] * 2.0f));
+         break;
+     case CelestialEntity::Wind:
+-        CopyTint(Row.Tint, kTintWind); Row.Glyph = EditorGlyph::Wind;
++        CopyTint(Row.Tint, kTintWind); Row.Glyph = EditorGlyph::Wind; Row.Artwork = IconSymbol::Wind;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.1f m/s %s", static_cast<double>(Wind.Speed), CompassOf(Wind.Bearing));
+         break;
+     case CelestialEntity::Precipitation:
+-        CopyTint(Row.Tint, kTintPrecip); Row.Glyph = EditorGlyph::Rain;
++        CopyTint(Row.Tint, kTintPrecip); Row.Glyph = EditorGlyph::Rain; Row.Artwork = IconSymbol::OutlinerPrecipitation;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%s %.0f mm/h",
+                       Precip.Category == PrecipitationCategory::Rain ? "Rain"
+                     : Precip.Category == PrecipitationCategory::Drizzle ? "Drizzle"
+@@ -906,12 +907,12 @@
+                       static_cast<double>(Precip.RateMillimetresPerHour));
+         break;
+     case CelestialEntity::Rainbow:
+-        CopyTint(Row.Tint, kTintOptics); Row.Glyph = EditorGlyph::Rainbow;
++        CopyTint(Row.Tint, kTintOptics); Row.Glyph = EditorGlyph::Rainbow; Row.Artwork = IconSymbol::Rainbow;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f%%", static_cast<double>(Rainbow.Intensity * 100.0f));
+         break;
+     case CelestialEntity::LensFlare:
+     default:
+-        CopyTint(Row.Tint, kTintOptics); Row.Glyph = EditorGlyph::Flare;
++        CopyTint(Row.Tint, kTintOptics); Row.Glyph = EditorGlyph::Flare; Row.Artwork = IconSymbol::LensFlare;
+         std::snprintf(Row.Meta, sizeof(Row.Meta), "%u ghosts", Flare.GhostCount);
+         break;
+     }
+--- a/Exhibits/Workbench/Editor/EditorProof.cpp
++++ b/Exhibits/Workbench/Editor/EditorProof.cpp
+@@ -9,6 +9,7 @@
+ #error "the proof must define FRONTIER_DEVELOPMENT, or the editor records nothing and every gate fails"
+ #endif
+ #include <imgui.h>
++#include "../IconArt/CpuDraw.h"
+ 
+ #include "EditorHost.h"
+ #include "TypefaceRegistry.h"
+@@ -85,6 +86,11 @@
+     for (int Command = 0; Command < List->CmdBuffer.Size; ++Command)
+     {
+         const ImDrawCmd* Cmd = &List->CmdBuffer[Command];
++        if (Cmd->TexRef._TexData && Cmd->TexRef._TexData != ImGui::GetIO().Fonts->TexData)
++        {
++            FrontierProof::Draw(List, Pixels, kWidth, kHeight, Origin, PixelScale, ImTextureID_Invalid, {}, Cmd);
++            continue;
++        }
+         // The viewport panel binds the traced scene as its own texture (an RGBA8 pointer in this CPU harness,
+         //    a descriptor set in the Vulkan build); everything else samples the glyph sheet.
+         const ImTextureID CmdTex = Cmd->TexRef._TexData != nullptr ? static_cast<ImTextureID>(0) : Cmd->TexRef._TexID;
+@@ -517,6 +523,7 @@
+         ImGui::NewFrame();
+         Editor.Record(MirrorInstances, RosterCount, &PickedSheet);
+         ImGui::Render();
++        FrontierProof::AcknowledgeTextures();
+     };
+     auto Rasterise = [&]()
+     {
+@@ -778,13 +785,15 @@
+         {
+             for (int Y = 666; Y <= 678; ++Y)
+             {
+-                int Sum = 0;
++                int Histogram[256] = {};
+                 for (int X = X0; X <= X1; ++X)
+                 {
+                     const unsigned char* P = At(X, Y);
+-                    Sum += static_cast<int>(P[0]) + static_cast<int>(P[1]) + static_cast<int>(P[2]);
++                    ++Histogram[(static_cast<int>(P[0]) + P[1] + P[2]) / 3];
+                 }
+-                const int Mean = Sum / (3 * (X1 - X0 + 1));
++                // Median rejects bright icon/text outliers above the actual sill.
++                int Mean = 0, Seen = 0;
++                for (; Mean < 255; ++Mean) { Seen += Histogram[Mean]; if (Seen > (X1-X0)/2) break; }
+                 if (Mean >= 19 && Mean <= 32)
+                 {
+                     return Y;
+@@ -864,10 +873,10 @@
+             for (int X = 22; X < 112; ++X)
+             {
+                 const unsigned char* P = At(X, Y);
+-                if (P[1] > 150u && P[0] < 120u && P[2] < 140u)
+-                    ++Green;   // the camera glyph in its #34c759
+-            }
+-        std::fprintf(stderr, "[EditorProof] narrowed: %d chip cells, %d ink cells, %d camera-green cells\n", Chip, Rows, Green);
++                if (P[0] > 80u || P[1] > 80u || P[2] > 80u)
++                    ++Green;   // visible camera-row ink; artwork now retains its own colours
++            }
++        std::fprintf(stderr, "[EditorProof] narrowed: %d chip cells, %d ink cells, %d camera-row ink cells\n", Chip, Rows, Green);
+         if (Chip < 120 || Rows < 700 || Rows > 6000)
+         {
+             std::fprintf(stderr, "[EditorProof] [FAIL] the narrowed outline is the wrong size\n");
+@@ -1049,6 +1058,7 @@
+         IO.MouseWheel = 1.0f;
+         Editor.Record(MirrorInstances, RosterCount, &PickedSheet);
+         ImGui::Render();
++        FrontierProof::AcknowledgeTextures();
+         IO.MouseWheel = 0.0f;
+         Rest(2);
+         const float DistAfter = Editor.QueryViewportOrbit().Distance;
+@@ -1076,13 +1086,15 @@
+         {
+             for (int Y = 666; Y <= 678; ++Y)
+             {
+-                int Sum = 0;
++                int Histogram[256] = {};
+                 for (int X = X0; X <= X1; ++X)
+                 {
+                     const unsigned char* P = At(X, Y);
+-                    Sum += static_cast<int>(P[0]) + static_cast<int>(P[1]) + static_cast<int>(P[2]);
++                    ++Histogram[(static_cast<int>(P[0]) + P[1] + P[2]) / 3];
+                 }
+-                const int Mean = Sum / (3 * (X1 - X0 + 1));
++                // Median rejects bright icon/text outliers above the actual sill.
++                int Mean = 0, Seen = 0;
++                for (; Mean < 255; ++Mean) { Seen += Histogram[Mean]; if (Seen > (X1-X0)/2) break; }
+                 if (Mean >= 19 && Mean <= 32)
+                 {
+                     return Y;
+@@ -1331,6 +1343,7 @@
+     Rest(3);
+     CycleTab(420.0f, 1u, 1u, false);
+ 
++    ImGui::DestroyContext();
+     if (Failed)
+     {
+         std::fprintf(stderr, "[EditorProof] [FAIL] wrote %s, but the sheet disagrees with its caption\n", Sheet);
+--- a/Engine/Editor/EditorHost.cpp
++++ b/Engine/Editor/EditorHost.cpp
+@@ -5,6 +5,7 @@
+ //    project's record feed.
+ 
+ #include "EditorHost.h"
++#include "../DisplayPresentation/IconPresentation.h"
+ 
+ #include <imgui.h>
+ #include <imgui_internal.h>   // DockBuilder*: the first-seat columns are built, not dragged
+@@ -345,6 +346,7 @@
+ 
+ void EditorHost::ApplyTheme() noexcept
+ {
++    IconPresentation::Attach();
+ #ifdef FRONTIER_DEVELOPMENT
+     ImGuiStyle& Applied = ImGui::GetStyle();
+ 
+--- a/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
++++ b/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+@@ -3,6 +3,7 @@
+ //=============================================================================================================================================
+ 
+ #include "SolidArcEditorHost.h"
++#include "../../../../../Engine/DisplayPresentation/IconPresentation.h"
+ 
+ #include <imgui.h>
+ #include <imgui_internal.h>
+@@ -43,6 +44,7 @@
+ 
+ void SolidArcEditorHost::ApplyTheme() noexcept
+ {
++    IconPresentation::Attach();
+     ImGuiStyle& Style = ImGui::GetStyle();
+ #ifdef FRONTIER_DEVELOPMENT
+     Style.TabSlant                  = 14.0f;

@@ -1,0 +1,59 @@
+[perf-telemetry] Vulkan headers: ExternalPackages/vulkan-headers
+================================================================================
+   PERFORMANCE TELEMETRY GATE — running the sequence Project-Zero runs
+================================================================================
+  PASS  the sequence stays silent until its wall-clock window closes
+  PASS  40 frames at 16 ms (0.64 s) is short of the window — nothing reported
+  PASS  two full windows produce two reports (the cadence is wall-clock, not per frame)
+  PASS  the sequence counts its own reports
+  PASS  the reported mean frame time is the 16 ms it was fed
+  PASS  19.5 ms of GPU against a 16 ms frame is correctly called GPU-BOUND
+
+53 measurement row(s) parsed from ./PerformanceTelemetryGate_Report.md
+  PASS  CpuCelestialTickMeanMs = 0.4 [ms]
+  PASS  CpuSunMoonSolveMeanMs = 0.1 [ms]
+  PASS  CpuSkyPackUploadMeanMs = 0.2 [ms]
+  PASS  CpuWeatherPostPackUploadMeanMs = 0.3 [ms]
+  PASS  CelestialBufferPayloadBytes = 1024 [bytes]
+  PASS  CelestialBufferAllocationBytes = 4096 [bytes]
+  PASS  GpuSeparateSkySunCloudTimersAvailable = 0 [bool]
+  PASS  SkySunUniformPayloadBytes = 144 [bytes]
+  PASS  CloudFogUniformPayloadBytes = 336 [bytes]
+  PASS  PostUniformPayloadBytes = 544 [bytes]
+  PASS  FrameTimeMeanMs = 16 [ms]
+  PASS  FrameTimePeakMs = 16 [ms]
+  PASS  FramesPerSecond = 62.5 [fps]
+  PASS  FrameSampleCount = 63 [count]
+  PASS  ResidentMemory = 512 [MiB]
+  PASS  GpuFrameTotalMs = 19.5 [ms]
+  PASS  GpuCullMs = 0.42 [ms]
+  PASS  GpuRasterMs = 1.8 [ms]
+  PASS  GpuHiZMs = 0.31 [ms]
+  PASS  GpuResolveMs = 0.95 [ms]
+  PASS  GpuReSTIRMs = 11.2 [ms]
+  PASS  GpuShadowMs = 2.6 [ms]
+  PASS  GpuPostMs = 0.7 [ms]
+  PASS  GpuSkyMs = 0.5 [ms]
+  PASS  GpuVolumeMs = 0.4 [ms]
+  PASS  ClustersTested = 9000 [count]
+  PASS  ClustersFrustum = 5200 [count]
+  PASS  ClustersCone = 3100 [count]
+  PASS  ClustersVisible = 1400 [count]
+  PASS  TrianglesDrawn = 480000 [count]
+  PASS  DrawCalls = 155 [count]
+  PASS  RenderPixels = 921600 [px]
+  PASS  ReSTIRCandidates = 8 [count]
+  PASS  ReSTIRExtra = 3 [count]
+  PASS  ReSTIRSpatialTaps = 3 [count]
+  PASS  DenoiseLevels = 5 [count]
+  PASS  GpuBound = 1 [bool]
+  PASS  ReSTIRShareOfFrame = 57.4359 [percent]
+  PASS  ReSTIRShareOfFrame uses measured 19.5 ms, not the overlapping component sum
+  PASS  FrameSampleCount reports the frames actually in the window
+  PASS  unavailable inline GPU timing is explicitly flagged, not sold as zero cost
+  PASS  celestial timing limitations are actually written to the report
+  PASS  the human-readable prose line is still written (it was never the problem)
+  PASS  the bound verdict is stated in prose as well as in the GpuBound row
+  PASS  the report carries the full measurement set — this is the row count that used to be zero
+
+GREEN — Project-Zero's telemetry sequence writes real performance and GPU rows

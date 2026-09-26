@@ -1,0 +1,245 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -192,6 +192,9 @@
+ struct EditorPropertyGroup
+ {
+     char            Title[24] = {};
++    char            Caption[128] = {};
++    bool            StackedLabels = false;
++    bool            Clock24 = false; // first property supplies local hours; display only
+     EditorProperty  Properties[kMaxEditorGroupProps] = {};
+     uint32_t        PropertyCount = 0u;
+ };
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -9,6 +9,7 @@
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
++#include <cmath>
+ #include <cstdio>
+ #include <cstring>
+ 
+@@ -331,15 +332,20 @@
+     ImGui::PushID(static_cast<int>(Card));
+ 
+     const float RowWidth = ImGui::GetContentRegionAvail().x;
++    ImFont* CaptionFace = Controls_->QuerySmall();
++    const float Wrap = ImMax(1.0f, RowWidth - 28.0f);
++    const float CaptionH = Group.Caption[0] ? CaptionFace->CalcTextSizeA(CaptionFace->LegacySize, FLT_MAX, Wrap, Group.Caption).y + 12.0f : 0.0f;
++    const float ClockH = Group.Clock24 ? 126.0f : 0.0f;
++    const float LabelH = Group.StackedLabels ? 18.0f : 0.0f;
+     float H = 12.0f + 24.0f + 10.0f;
+     if (!CardShut_[Card])
+     {
+         H = 12.0f + 24.0f + 8.0f;
+         for (uint32_t i = 0u; i < Group.PropertyCount; ++i)
+         {
+-            H += ProwHeight(Group.Properties[i].Category) + 8.0f;
++            H += ProwHeight(Group.Properties[i].Category) + 8.0f + LabelH;
+         }
+-        H += 14.0f - 8.0f;
++        H += 14.0f - 8.0f + CaptionH + ClockH;
+     }
+ 
+     ImGui::Dummy(ImVec2(RowWidth, H));
+@@ -376,9 +382,34 @@
+         ImFont* Small = Controls_->QuerySmall();
+         const float BodyX = Min.x + 14.0f;
+         const float BodyW = RowWidth - 28.0f;
+-        const float ZoneX = BodyX + 78.0f;
+-        const float ZoneW = BodyW - 78.0f;
++        const float ZoneX = Group.StackedLabels ? BodyX : BodyX + 78.0f;
++        const float ZoneW = Group.StackedLabels ? BodyW : BodyW - 78.0f;
+         float Y = Min.y + 12.0f + 24.0f + 8.0f;
++        if (Group.Caption[0])
++        {
++            Draw->AddText(Small, Small->LegacySize, ImVec2(BodyX, Y), kDim, Group.Caption, nullptr, Wrap);
++            Y += CaptionH;
++        }
++        if (Group.Clock24 && Group.PropertyCount)
++        {
++            const ImVec2 Centre(BodyX + BodyW * 0.5f, Y + 60.0f);
++            Draw->AddCircle(Centre, 43.0f, kStroke, 48, 2.0f);
++            for (int Hour = 0; Hour < 24; ++Hour)
++            {
++                const float A = Hour * 6.283185307f / 24.0f - 1.570796327f;
++                const float Outer = 43.0f, Inner = Hour % 6 == 0 ? 35.0f : 39.0f;
++                Draw->AddLine(ImVec2(Centre.x + std::cos(A)*Inner, Centre.y + std::sin(A)*Inner),
++                    ImVec2(Centre.x + std::cos(A)*Outer, Centre.y + std::sin(A)*Outer), kDim);
++            }
++            const float A = Group.Properties[0].Figure * 6.283185307f / 24.0f - 1.570796327f;
++            Draw->AddCircleFilled(ImVec2(Centre.x + std::cos(A)*43.0f, Centre.y + std::sin(A)*43.0f), 5.0f, IM_COL32(245, 183, 92, 255));
++            Draw->AddText(Small, Small->LegacySize, ImVec2(Centre.x-5, Centre.y-60), kDim, "00");
++            Draw->AddText(Small, Small->LegacySize, ImVec2(Centre.x+49, Centre.y-5), kDim, "06");
++            Draw->AddText(Small, Small->LegacySize, ImVec2(Centre.x-5, Centre.y+47), kDim, "12");
++            Draw->AddText(Small, Small->LegacySize, ImVec2(Centre.x-62, Centre.y-5), kDim, "18");
++            Y += ClockH;
++        }
++
+ 
+         for (uint32_t i = 0u; i < Group.PropertyCount; ++i)
+         {
+@@ -387,9 +418,10 @@
+ 
+             ImGui::PushFont(Small);
+             const ImVec2 LabelGlyph = Small->CalcTextSizeA(Small->LegacySize, FLT_MAX, 0.0f, Prop.Label);
+-            Draw->AddText(ImVec2(BodyX, Y + (ProwH - LabelGlyph.y) * 0.5f), kDim, Prop.Label);
++            Draw->AddText(ImVec2(BodyX, Y + (Group.StackedLabels ? 0.0f : (ProwH - LabelGlyph.y) * 0.5f)), kDim, Prop.Label);
+             ImGui::PopFont();
+ 
++            Y += LabelH;
+             ImGui::SetCursorScreenPos(ImVec2(ZoneX, Y));
+             char ProwId[12] = {};
+             std::snprintf(ProwId, sizeof(ProwId), "##p%u", i);
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -97,7 +97,7 @@
+ {
+     if (Sheet.GroupCount >= kMaxEditorSheetGroups) Sheet.GroupCount = kMaxEditorSheetGroups - 1u;
+     EditorPropertyGroup& G = Sheet.Groups[Sheet.GroupCount++];
+-    G = EditorPropertyGroup{};
++    // BuildSheet already reset each slot in place; avoid another group-sized temporary.
+     std::snprintf(G.Title, sizeof(G.Title), "%s", Title);
+     return G;
+ }
+@@ -945,45 +945,36 @@
+ 
+ void CelestialSequence::BuildSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
+ {
+-    Sheet = EditorSheet{};
++    // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
++    Sheet.GroupCount = 0;
++    for (auto& Group : Sheet.Groups)
++    {
++        Group.Title[0] = Group.Caption[0] = '\0';
++        Group.PropertyCount = 0;
++        Group.StackedLabels = Group.Clock24 = false;
++        for (auto& Prop : Group.Properties) Prop = EditorProperty{};
++    }
++
++    if (Entity == CelestialEntity::Sun) BuildSunSheet(Sheet);
++    else BuildOtherSheet(Entity, Sheet);
++}
++
++void CelestialSequence::BuildSunSheet(EditorSheet& Sheet) const noexcept
++{
+     char Text[48];
+-
+-    switch (Entity)
+-    {
+-    case CelestialEntity::Atmosphere:
+-    {
+-        EditorPropertyGroup& Scatter = OpenGroup(Sheet, "Scattering");
+-        Push(Scatter, MakeSlider("Rayleigh", 0.0f, 4.0f, Medium.RayleighStrength, 2, "x"));
+-        Push(Scatter, MakeSlider("Mie", 0.0f, 6.0f, Medium.MieStrength, 2, "x"));
+-        Push(Scatter, MakeSlider("Mie Anisotropy", 0.0f, 0.99f, Medium.MieAnisotropy, 3, ""));
+-        Push(Scatter, MakeSlider("Ozone", 0.0f, 4.0f, Medium.OzoneStrength, 2, "x"));
+-
+-        EditorPropertyGroup& Planet = OpenGroup(Sheet, "Planet");
+-        Push(Planet, MakeSlider("Rayleigh Scale H", 2000.0f, 15000.0f, Medium.RayleighScaleHeight, 0, "m"));
+-        Push(Planet, MakeSlider("Mie Scale H", 300.0f, 4000.0f, Medium.MieScaleHeight, 0, "m"));
+-        Push(Planet, MakeSlider("Atmosphere", 10000.0f, 120000.0f, Medium.AtmosphereHeight, 0, "m"));
+-
+-        EditorPropertyGroup& Dusk = OpenGroup(Sheet, "Twilight");
+-        Push(Dusk, MakeSlider("Horizon Glow", 0.0f, 3.0f, Twilight.GlowIntensity, 2, "x"));
+-        Push(Dusk, MakeSlider("White Line", 0.0f, 3.0f, Twilight.LineIntensity, 2, "x"));
+-        Push(Dusk, MakeSwitch("Line at civil only", Twilight.LineAtCivilOnly));
+-
+-        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
+-        std::snprintf(Text, sizeof(Text), "%.2f AM", static_cast<double>(CelestialSolver::AirMass(Solved.Sun.Elevation)));
+-        Push(Live, MakeReadout("Air Mass", Text));
+-        std::snprintf(Text, sizeof(Text), "%u x %u", Budget.AtmosphereSamples, Budget.AtmosphereLightSamples);
+-        Push(Live, MakeReadout("Tier Samples", Text));
+-        break;
+-    }
+-    case CelestialEntity::Sun:
+-    {
++        EditorPropertyGroup& Bake = OpenGroup(Sheet, "Bake / image");
++        std::snprintf(Bake.Caption, sizeof(Bake.Caption), "Sun-specific Bake and Use baked image are not supported. The existing bake belongs to Sky, not Sun.");
+         EditorPropertyGroup& Disk = OpenGroup(Sheet, "Sun Disk");
+         Push(Disk, MakeSlider("Angular Diameter", 0.1f, 5.0f, SunDiskSize, 2, "deg"));
+         Push(Disk, MakeColour("Sun Tint", Light.Colour));
+-        Push(Disk, MakeSlider("Intensity", 0.0f, 60.0f, Light.Intensity, 1, "x"));
+-        Push(Disk, MakeSlider("Direct", 0.0f, 5.0f, SunDirect, 2, "x"));
+-
+-        EditorPropertyGroup& When = OpenGroup(Sheet, "Time");
++        EditorPropertyGroup& Radiance = OpenGroup(Sheet, "Sunlight gain");
++        std::snprintf(Radiance.Caption, sizeof(Radiance.Caption), "Native multipliers, not lux. Tint remains RGB; no temperature conversion is available.");
++        Push(Radiance, MakeSlider("Intensity", 0.0f, 60.0f, Light.Intensity, 1, "x"));
++        Push(Radiance, MakeSlider("Direct", 0.0f, 5.0f, SunDirect, 2, "x"));
++
++        EditorPropertyGroup& When = OpenGroup(Sheet, "Day cycle");
++        When.Clock24 = true;
++        std::snprintf(When.Caption, sizeof(When.Caption), "24-hour local clock, not a manual direction control. Use the native slider to change time.");
+         Push(When, MakeSlider("Local Hours", 0.0f, 24.0f, Observation.LocalHours, 2, "h"));
+         Push(When, MakeSwitch("Animate", Clock.Animate));
+         {
+@@ -994,7 +985,7 @@
+             Push(When, MakeSelect("Speed", Speeds, 4u, Picked));
+         }
+ 
+-        EditorPropertyGroup& Where = OpenGroup(Sheet, "Place");
++        EditorPropertyGroup& Where = OpenGroup(Sheet, "Observer / date");
+         Push(Where, MakeSlider("Latitude", -90.0f, 90.0f, Observation.Latitude, 2, "deg"));
+         Push(Where, MakeSlider("Longitude", -180.0f, 180.0f, Observation.Longitude, 2, "deg"));
+         Push(Where, MakeSlider("Day of Month", 1.0f, 31.0f, static_cast<float>(Observation.Day), 0, ""));
+@@ -1002,7 +993,8 @@
+ 
+         // Read-outs rather than sliders: these are SOLVED, and offering to edit them would imply the solver
+         //    could be overridden, which it cannot.
+-        EditorPropertyGroup& Live = OpenGroup(Sheet, "Solved");
++        EditorPropertyGroup& Live = OpenGroup(Sheet, "Solved direction");
++        std::snprintf(Live.Caption, sizeof(Live.Caption), "Read-only astronomy. Manual azimuth/elevation and independent disk/light switches are not exposed.");
+         std::snprintf(Text, sizeof(Text), "%+.2f deg", static_cast<double>(Solved.Sun.Elevation));
+         Push(Live, MakeReadout("Elevation", Text));
+         std::snprintf(Text, sizeof(Text), "%.1f deg", static_cast<double>(Solved.Sun.Azimuth));
+@@ -1011,6 +1003,37 @@
+         Push(Live, MakeReadout("Declination", Text));
+         std::snprintf(Text, sizeof(Text), "%+.1f min", static_cast<double>(Solved.EquationOfTime));
+         Push(Live, MakeReadout("Equation of Time", Text));
++        for (uint32_t I = 0; I < Sheet.GroupCount; ++I) Sheet.Groups[I].StackedLabels = true;
++}
++
++void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
++{
++    char Text[48];
++    switch (Entity)
++    {
++    case CelestialEntity::Atmosphere:
++    {
++        EditorPropertyGroup& Scatter = OpenGroup(Sheet, "Scattering");
++        Push(Scatter, MakeSlider("Rayleigh", 0.0f, 4.0f, Medium.RayleighStrength, 2, "x"));
++        Push(Scatter, MakeSlider("Mie", 0.0f, 6.0f, Medium.MieStrength, 2, "x"));
++        Push(Scatter, MakeSlider("Mie Anisotropy", 0.0f, 0.99f, Medium.MieAnisotropy, 3, ""));
++        Push(Scatter, MakeSlider("Ozone", 0.0f, 4.0f, Medium.OzoneStrength, 2, "x"));
++
++        EditorPropertyGroup& Planet = OpenGroup(Sheet, "Planet");
++        Push(Planet, MakeSlider("Rayleigh Scale H", 2000.0f, 15000.0f, Medium.RayleighScaleHeight, 0, "m"));
++        Push(Planet, MakeSlider("Mie Scale H", 300.0f, 4000.0f, Medium.MieScaleHeight, 0, "m"));
++        Push(Planet, MakeSlider("Atmosphere", 10000.0f, 120000.0f, Medium.AtmosphereHeight, 0, "m"));
++
++        EditorPropertyGroup& Dusk = OpenGroup(Sheet, "Twilight");
++        Push(Dusk, MakeSlider("Horizon Glow", 0.0f, 3.0f, Twilight.GlowIntensity, 2, "x"));
++        Push(Dusk, MakeSlider("White Line", 0.0f, 3.0f, Twilight.LineIntensity, 2, "x"));
++        Push(Dusk, MakeSwitch("Line at civil only", Twilight.LineAtCivilOnly));
++
++        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
++        std::snprintf(Text, sizeof(Text), "%.2f AM", static_cast<double>(CelestialSolver::AirMass(Solved.Sun.Elevation)));
++        Push(Live, MakeReadout("Air Mass", Text));
++        std::snprintf(Text, sizeof(Text), "%u x %u", Budget.AtmosphereSamples, Budget.AtmosphereLightSamples);
++        Push(Live, MakeReadout("Tier Samples", Text));
+         break;
+     }
+     case CelestialEntity::Sky:
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -254,6 +254,8 @@
+     [[nodiscard]] const StarCatalogueIndex& Stars() const noexcept { return Catalogue; }
+ 
+ private:
++    void BuildSunSheet(EditorSheet& Sheet) const noexcept;
++    void BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept;
+     CelestialFrame      Solved{};
+     PrecipitationSystem Rain{};
+     StarCatalogueIndex  Catalogue{};

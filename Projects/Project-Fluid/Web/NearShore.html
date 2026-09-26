@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Fluid — Near-Shore GPU Laboratory</title>
+<style>
+:root{color-scheme:dark;--ink:#e8f4f2;--muted:#91aaa8;--glass:rgba(8,19,24,.86);--line:rgba(151,225,213,.19);--cyan:#57e4d0;--sand:#d7ad68}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071116;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:var(--ink)}canvas{width:100%;height:100%;display:block}
+.panel{position:fixed;left:22px;top:20px;width:min(350px,calc(100vw - 44px));padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--glass);backdrop-filter:blur(18px);box-shadow:0 25px 80px #0008}.eyebrow{font:700 10px/1.2 monospace;letter-spacing:.2em;color:var(--cyan);text-transform:uppercase}.title{margin:7px 0 5px;font-size:24px;letter-spacing:-.04em}.desc{font-size:12px;line-height:1.55;color:var(--muted);margin-bottom:16px}.readout{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:15px}.metric{background:#ffffff08;border:1px solid #ffffff0c;border-radius:10px;padding:8px}.metric b{display:block;font:700 13px monospace}.metric span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}.control{display:grid;grid-template-columns:86px 1fr 42px;gap:9px;align-items:center;margin:10px 0;font-size:11px;color:#c9d8d6}.control output{text-align:right;font:11px monospace;color:var(--cyan)}input[type=range]{width:100%;accent-color:var(--cyan)}.actions{display:flex;gap:8px;margin-top:16px}button{appearance:none;border:1px solid var(--line);background:#ffffff0a;color:var(--ink);border-radius:9px;padding:9px 12px;font:650 11px system-ui;cursor:pointer}button:hover{background:#57e4d01c;border-color:#57e4d066}.primary{background:#57e4d018;color:#8af3e4}.legend{position:fixed;right:20px;bottom:18px;padding:10px 13px;border-radius:10px;background:#081318bb;border:1px solid var(--line);font:10px/1.5 monospace;color:var(--muted)}.error{position:fixed;inset:0;display:none;place-items:center;padding:30px;background:#071116;color:#ffaaa1;text-align:center}.badge{display:inline-block;margin-top:11px;padding:5px 7px;border:1px solid #d7ad6844;border-radius:7px;color:#e8c991;font:9px monospace;letter-spacing:.08em}@media(max-width:650px){.panel{left:10px;top:10px;padding:14px}.desc{display:none}.legend{display:none}}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<section class="panel">
+ <div class="eyebrow">Project Fluid / Vulkan prototype mirror</div>
+ <h1 class="title">Near-Shore Laboratory</h1>
+ <div class="desc">A GPU nonlinear shallow-water demonstration. Waves enter offshore, shoal over the sandbar, refract around submerged terrain, break into bores, run up the beach, and drain back.</div>
+ <div class="readout"><div class="metric"><b id="fps">—</b><span>frames/s</span></div><div class="metric"><b id="simtime">0.0 s</b><span>sim time</span></div><div class="metric"><b>256×144</b><span>GPU cells</span></div></div>
+ <label class="control"><span>Wave height</span><input id="amp" type="range" min="0" max="0.35" step="0.01" value="0.14"><output>0.14 m</output></label>
+ <label class="control"><span>Period</span><input id="period" type="range" min="2.5" max="8" step="0.1" value="4.5"><output>4.5 s</output></label>
+ <label class="control"><span>Sea disorder</span><input id="spread" type="range" min="0" max="1" step="0.01" value="0.72"><output>0.72</output></label>
+ <label class="control"><span>Micro ripples</span><input id="ripple" type="range" min="0" max="1" step="0.01" value="0.25"><output>0.25</output></label>
+ <label class="control"><span>Tide</span><input id="tide" type="range" min="-0.22" max="0.35" step="0.01" value="0"><output>0.00 m</output></label>
+ <label class="control"><span>Bed friction</span><input id="friction" type="range" min="0.005" max="0.065" step="0.001" value="0.024"><output>0.024</output></label>
+ <div class="actions"><button class="primary" id="pulse">Storm pulse</button><button id="pause">Pause</button><button id="reset">Reset</button></div>
+ <div class="badge">FINITE VOLUME · RUSANOV FLUX · WET/DRY FRONT</div>
+</section>
+<div class="legend">drag: orbit camera · wheel: zoom<br>cyan: water · white: breaking foam · dark sand: wet swash</div>
+<div class="error" id="error"></div>
+<script>
+'use strict';
+const canvas=document.querySelector('#view'),gl=canvas.getContext('webgl2',{antialias:true,alpha:false});
+const error=document.querySelector('#error');
+function fail(s){error.style.display='grid';error.textContent=s;throw Error(s)}
+if(!gl)fail('WebGL 2 is required for the near-shore GPU solver.');
+if(!gl.getExtension('EXT_color_buffer_float'))fail('This browser does not expose floating-point render targets.');
+const NX=256,NY=144,LX=60,LZ=32,G=9.81;
+function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))fail(gl.getShaderInfoLog(s));return s}
+function program(vs,fs){const p=gl.createProgram();gl.attachShader(p,shader(gl.VERTEX_SHADER,vs));gl.attachShader(p,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))fail(gl.getProgramInfoLog(p));return p}
+const fullVS=`#version 300 es
+precision highp float;out vec2 uv;void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);uv=p;gl_Position=vec4(p*2.-1.,0,1);}`;
+const common=`
+const float g=9.81;const float LX=60.;const float LZ=32.;
+float bed(vec2 p){float x=p.x,z=p.y;float b=-2.25+3.10*pow(x,1.42);b+=.25*exp(-pow((x-.58)/.07,2.));b-=.22*exp(-pow((z-.50)/.14,2.))*exp(-pow((x-.67)/.20,2.));b+=.34*exp(-dot((p-vec2(.61,.28))/vec2(.075,.11),(p-vec2(.61,.28))/vec2(.075,.11)));return b;}
+vec3 fluxX(vec3 q){float h=max(q.x,1e-5),u=q.y/h,v=q.z/h;return vec3(q.y,q.y*u+.5*g*h*h,q.y*v);}vec3 fluxZ(vec3 q){float h=max(q.x,1e-5),u=q.y/h,v=q.z/h;return vec3(q.z,q.z*u,q.z*v+.5*g*h*h);}
+vec3 rx(vec3 a,vec3 b){float ha=max(a.x,1e-5),hb=max(b.x,1e-5),s=max(abs(a.y/ha)+sqrt(g*ha),abs(b.y/hb)+sqrt(g*hb));return .5*(fluxX(a)+fluxX(b))-.5*s*(b-a);}vec3 rz(vec3 a,vec3 b){float ha=max(a.x,1e-5),hb=max(b.x,1e-5),s=max(abs(a.z/ha)+sqrt(g*ha),abs(b.z/hb)+sqrt(g*hb));return .5*(fluxZ(a)+fluxZ(b))-.5*s*(b-a);}
+vec3 hydro(vec3 q,float b,float top){float h=max(0.,q.x+b-top);return q.x>1e-5?vec3(h,q.yz*(h/q.x)):vec3(0);}
+vec3 fxR(vec3 a,vec3 b,float ba,float bb){float top=max(ba,bb);vec3 ar=hydro(a,ba,top),br=hydro(b,bb,top),f=rx(ar,br);f.y+=.5*g*(a.x*a.x-ar.x*ar.x);return f;}
+vec3 fxL(vec3 a,vec3 b,float ba,float bb){float top=max(ba,bb);vec3 ar=hydro(a,ba,top),br=hydro(b,bb,top),f=rx(ar,br);f.y+=.5*g*(b.x*b.x-br.x*br.x);return f;}
+vec3 fzR(vec3 a,vec3 b,float ba,float bb){float top=max(ba,bb);vec3 ar=hydro(a,ba,top),br=hydro(b,bb,top),f=rz(ar,br);f.z+=.5*g*(a.x*a.x-ar.x*ar.x);return f;}
+vec3 fzL(vec3 a,vec3 b,float ba,float bb){float top=max(ba,bb);vec3 ar=hydro(a,ba,top),br=hydro(b,bb,top),f=rz(ar,br);f.z+=.5*g*(b.x*b.x-br.x*br.x);return f;}`;
+const initFS=`#version 300 es
+precision highp float;in vec2 uv;out vec4 outState;uniform float tide;${common}
+void main(){float h=max(tide-bed(uv),0.);outState=vec4(h,0,0,0);}`;
+const stepFS=`#version 300 es
+precision highp float;in vec2 uv;out vec4 outState;uniform sampler2D stateTex;uniform vec2 texel;uniform float dt,time,amplitude,period,spread,tide,friction,pulse;
+${common}
+vec4 S(vec2 p){return texture(stateTex,clamp(p,texel*.5,1.-texel*.5));}
+void main(){vec4 c=S(uv),l=S(uv-vec2(texel.x,0)),r=S(uv+vec2(texel.x,0)),d=S(uv-vec2(0,texel.y)),u=S(uv+vec2(0,texel.y));vec3 q=c.xyz;
+ float bc=bed(uv),bl=bed(uv-vec2(texel.x,0)),br=bed(uv+vec2(texel.x,0)),bd=bed(uv-vec2(0,texel.y)),bu=bed(uv+vec2(0,texel.y));
+ vec3 change=-(fxR(q,r.xyz,bc,br)-fxL(l.xyz,q,bl,bc))/(LX*texel.x)-(fzR(q,u.xyz,bc,bu)-fzL(d.xyz,q,bd,bc))/(LZ*texel.y);
+ q+=dt*change;
+ if(q.x>1e-4){float speed=length(q.yz)/q.x;float drag=1./(1.+dt*friction*g*speed/max(pow(q.x,1.333),.025));q.yz*=drag;}else q=vec3(0);
+ float etaL=l.x+bl,etaR=r.x+br,etaD=d.x+bd,etaU=u.x+bu;float slope=length(vec2((etaR-etaL)/(2.*LX*texel.x),(etaU-etaD)/(2.*LZ*texel.y)));float div=(r.y/max(r.x,.01)-l.y/max(l.x,.01))/(2.*LX*texel.x)+(u.z/max(u.x,.01)-d.z/max(d.x,.01))/(2.*LZ*texel.y);float speed=q.x>.002?length(q.yz)/q.x:0.,froude=speed/sqrt(g*max(q.x,.01));
+ vec2 back=uv-dt*vec2(q.y/max(q.x,.02)/LX,q.z/max(q.x,.02)/LZ);float advected=S(back).w;float compression=max(0.,-div);float breaking=smoothstep(.12,.29,slope)*smoothstep(.10,.48,compression)*(1.-smoothstep(.38,1.05,q.x));breaking=max(breaking,smoothstep(1.02,1.38,froude)*smoothstep(.03,.16,compression)*(1.-smoothstep(.18,.72,q.x)));float swash=smoothstep(.012,.035,q.x)*(1.-smoothstep(.038,.075,q.x))*smoothstep(.14,.42,speed);float foam=clamp(advected*exp(-dt*.52)+dt*1.35*max(breaking,swash),0.,1.);
+ if(uv.x<texel.x*2.5){float base=max(tide-bed(uv),.02),w=6.283185/period,z=uv.y;float bend=spread*(.62*sin(z*5.7+w*time*.11)+.27*sin(z*13.1-w*time*.07));float p1=w*time-z*1.3+bend,p2=w*1.31*time+z*8.7+1.7-.55*bend,p3=w*.77*time-z*5.1+4.2+.38*bend,p4=w*1.73*time+z*14.3+.4+.71*bend,p5=w*.54*time-z*10.9+2.6-.34*bend;float group=1.-spread*.24+spread*(.15*sin(w*.17*time+z*2.7)+.09*sin(w*.071*time-z*4.3+1.9));float a2=.20*spread,a3=.14*spread,a4=.08*spread,a5=.07*spread,a1=1.-a2-a3-a4-a5;float e1=a1*sin(p1),e2=a2*sin(p2),e3=a3*sin(p3),e4=a4*sin(p4),e5=a5*sin(p5);float eta=amplitude*group*(e1+e2+e3+e4+e5);q.x=max(base+eta,0.);float impulse=amplitude*sqrt(g*base)*group;q.y=impulse*(e1*.998+e2*.94+e3*.97+e4*.88+e5*.92);q.z=impulse*(e1*.06-e2*.34+e3*.24+e4*.48-e5*.39);}
+ if(pulse>0.&&distance(uv,vec2(.43,.58))<.065){float w=1.-smoothstep(0.,.065,distance(uv,vec2(.43,.58)));q.x+=pulse*w*dt*1.8;}
+ if(q.x<.002){q=vec3(0);foam=0.;}q.x=clamp(q.x,0.,4.);outState=vec4(q,foam);}`;
+const simInit=program(fullVS,initFS),simStep=program(fullVS,stepFS);
+function texture(){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,NX,NY,0,gl.RGBA,gl.FLOAT,null);return t}
+const states=[texture(),texture()],fb=gl.createFramebuffer();let front=0;
+function target(t){gl.bindFramebuffer(gl.FRAMEBUFFER,fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);gl.viewport(0,0,NX,NY)}
+function val(id){return +document.querySelector(id).value}
+function reset(){front=0;target(states[0]);gl.useProgram(simInit);gl.uniform1f(gl.getUniformLocation(simInit,'tide'),val('#tide'));gl.drawArrays(gl.TRIANGLES,0,3);target(states[1]);gl.drawArrays(gl.TRIANGLES,0,3);simTime=0}
+const meshVS=`#version 300 es
+precision highp float;precision highp int;layout(location=0)in vec2 grid;uniform highp sampler2D stateTex;uniform highp mat4 vp;uniform highp int water;uniform highp float time;uniform highp float rippleDetail;uniform highp float waveAmplitude;uniform highp float wavePeriod;uniform highp float seaDisorder;out vec3 world;out vec3 geomNormal;out float depth;out float foam;out vec2 flow;${common}
+vec4 smoothState(vec2 p){ivec2 size=textureSize(stateTex,0);vec2 g=clamp(p,0.,1.)*vec2(size)-.5;ivec2 i=ivec2(floor(g));vec2 f=fract(g);ivec2 hi=size-1;i=clamp(i,ivec2(0),hi);ivec2 j=min(i+ivec2(1),hi);vec4 a=mix(texelFetch(stateTex,ivec2(i.x,i.y),0),texelFetch(stateTex,ivec2(j.x,i.y),0),f.x);vec4 b=mix(texelFetch(stateTex,ivec2(i.x,j.y),0),texelFetch(stateTex,j,0),f.x);return mix(a,b,f.y);}
+float surfaceAt(vec2 p){return bed(p)+(water==1?smoothState(p).x:0.);}
+vec3 stokes(float a,vec2 k,float omega,float phase,vec2 p){float km=length(k),theta=dot(k,p)-omega*time+phase;float eta=a*cos(theta)+.5*km*a*a*cos(2.*theta);vec2 grad=-a*sin(theta)*k-km*a*a*sin(2.*theta)*k;return vec3(eta,grad);}
+vec3 waveShape(vec2 p,float h){float omega=6.283185/max(wavePeriod,2.5),k=omega/sqrt(g*1.65),d=seaDisorder,a=waveAmplitude*.58;vec2 q=vec2(p.x+LX*.5,p.y);vec3 w=stokes(a*(1.-.34*d),vec2(k,.025*k),omega,1.5708,q);w+=stokes(a*.16*d,vec2(k*1.28,-k*.34),omega*1.31,.3,q);w+=stokes(a*.12*d,vec2(k*.78,k*.25),omega*.77,2.4,q);w+=stokes(a*.08*d,vec2(k*1.66,k*.58),omega*1.73,4.1,q);w+=stokes(a*.07*d,vec2(k*.58,-k*.31),omega*.54,5.3,q);float wet=smoothstep(.025,.22,h),shoal=mix(.72,1.32,1.-smoothstep(.18,1.8,h));return w*wet*shoal;}
+void main(){vec4 s=smoothState(grid);float b=bed(grid);vec2 xz=vec2((grid.x-.5)*LX,(grid.y-.5)*LZ);depth=s.x;foam=s.w;flow=s.x>.008?s.yz/s.x:vec2(0);float y=water==1?b+s.x:b-.025;vec2 e=1./vec2(textureSize(stateTex,0));float sx=(surfaceAt(grid+vec2(e.x,0))-surfaceAt(grid-vec2(e.x,0)))/(2.*e.x*LX),sz=(surfaceAt(grid+vec2(0,e.y))-surfaceAt(grid-vec2(0,e.y)))/(2.*e.y*LZ);vec3 shape=water==1?waveShape(xz,s.x):vec3(0);y+=shape.x;geomNormal=normalize(vec3(-sx-shape.y,1.,-sz-shape.z));world=vec3(xz.x,y,xz.y);gl_Position=vp*vec4(world,1.);}`;
+const meshFS=`#version 300 es
+precision highp float;precision highp int;in vec3 world;in vec3 geomNormal;in float depth;in float foam;in vec2 flow;uniform highp int water;uniform highp vec3 camera;uniform highp float time;uniform highp float rippleDetail;out vec4 color;
+void main(){vec3 n=normalize(geomNormal);vec3 light=normalize(vec3(-.45,.82,.3));float lit=.38+.62*max(dot(n,light),0.);if(water==0){float wet=smoothstep(.0,.10,depth),grain=.018*sin(world.x*3.1+sin(world.z*2.7));vec3 sand=mix(vec3(.48,.33,.16),vec3(.19,.20,.16),wet);color=vec4(sand*(lit+grain),1.);return;}if(depth<.003)discard;float rippleFade=smoothstep(.015,.20,depth)*(1.-smoothstep(1.7,2.8,depth))*rippleDetail;vec2 rg=.010*vec2(6.2,1.4)*cos(dot(world.xz,vec2(6.2,1.4))-time*7.9)+.007*vec2(3.4,-4.1)*cos(dot(world.xz,vec2(3.4,-4.1))-time*6.8+.8)+.005*vec2(7.4,3.0)*cos(dot(world.xz,vec2(7.4,3.0))-time*8.8+2.1);n=normalize(n+vec3(-rg.x,0.,-rg.y)*rippleFade);lit=.38+.62*max(dot(n,light),0.);vec3 V=normalize(camera-world);float fres=.02+.98*pow(1.-max(dot(n,V),0.),5.);float shallow=exp(-depth*1.3);vec3 waterCol=mix(vec3(.025,.19,.23),vec3(.10,.48,.45),shallow);vec3 sky=vec3(.32,.57,.67);float spec=pow(max(dot(reflect(-light,n),V),0.),90.);vec3 c=mix(waterCol*lit,sky,fres*.58)+spec*.7;float coverage=smoothstep(.22,.52,foam);vec3 foamColour=mix(vec3(.72,.80,.76),vec3(.94,.97,.91),smoothstep(.35,.8,foam));c=mix(c,foamColour,coverage*.82);color=vec4(c,.89);}`;
+const render=program(meshVS,meshFS);
+const GX=220,GY=124,verts=new Float32Array(GX*GY*2),inds=[];for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){let k=(j*GX+i)*2;verts[k]=i/(GX-1);verts[k+1]=j/(GY-1)}for(let j=0;j<GY-1;j++)for(let i=0;i<GX-1;i++){let k=j*GX+i;inds.push(k,k+1,k+GX+1,k,k+GX+1,k+GX)}
+const vao=gl.createVertexArray();gl.bindVertexArray(vao);const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,verts,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(inds),gl.STATIC_DRAW);
+function mul(a,b){let o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o}
+function perspective(fov,asp,n,f){let t=1/Math.tan(fov/2),o=new Float32Array(16);o[0]=t/asp;o[5]=t;o[10]=(f+n)/(n-f);o[11]=-1;o[14]=2*f*n/(n-f);return o}
+function look(eye,at){let z=norm(sub(eye,at)),x=norm(cross([0,1,0],z)),y=cross(z,x),o=new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1]);return o}function sub(a,b){return a.map((v,i)=>v-b[i])}function dot(a,b){return a.reduce((s,v,i)=>s+v*b[i],0)}function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}function norm(a){let l=Math.hypot(...a);return a.map(v=>v/l)}
+let yaw=-.62,pitch=.56,zoom=61,drag=false,last=[0,0];canvas.onpointerdown=e=>{drag=true;last=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)};canvas.onpointerup=()=>drag=false;canvas.onpointermove=e=>{if(!drag)return;yaw+=(e.clientX-last[0])*.006;pitch=Math.max(.22,Math.min(1.22,pitch+(e.clientY-last[1])*.005));last=[e.clientX,e.clientY]};canvas.onwheel=e=>{zoom=Math.max(35,Math.min(95,zoom+e.deltaY*.035));e.preventDefault()};
+let paused=false,pulse=0,simTime=0,frames=0,fpsTime=performance.now();document.querySelector('#pause').onclick=()=>{paused=!paused;document.querySelector('#pause').textContent=paused?'Resume':'Pause'};document.querySelector('#reset').onclick=reset;document.querySelector('#pulse').onclick=()=>pulse=1;
+for(const e of document.querySelectorAll('input'))e.oninput=()=>{const unit=e.id==='amp'||e.id==='tide'?' m':e.id==='period'?' s':'';e.nextElementSibling.value=(e.id==='tide'&&e.value>=0?'+':'')+(+e.value).toFixed(e.id==='friction'?3:e.id==='period'?1:2)+unit};
+function resize(){let d=Math.min(devicePixelRatio,1.6),w=Math.floor(innerWidth*d),h=Math.floor(innerHeight*d);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}}
+function simulate(){gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);gl.useProgram(simStep);gl.uniform2f(gl.getUniformLocation(simStep,'texel'),1/NX,1/NY);gl.uniform1f(gl.getUniformLocation(simStep,'dt'),.015);gl.uniform1f(gl.getUniformLocation(simStep,'amplitude'),val('#amp'));gl.uniform1f(gl.getUniformLocation(simStep,'period'),val('#period'));gl.uniform1f(gl.getUniformLocation(simStep,'spread'),val('#spread'));gl.uniform1f(gl.getUniformLocation(simStep,'tide'),val('#tide'));gl.uniform1f(gl.getUniformLocation(simStep,'friction'),val('#friction'));for(let i=0;i<4;i++){target(states[1-front]);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,states[front]);gl.uniform1i(gl.getUniformLocation(simStep,'stateTex'),0);gl.uniform1f(gl.getUniformLocation(simStep,'time'),simTime);gl.uniform1f(gl.getUniformLocation(simStep,'pulse'),pulse);gl.drawArrays(gl.TRIANGLES,0,3);front=1-front;simTime+=.015;pulse=0}}
+function draw(){resize();gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.025,.065,.08,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);let eye=[Math.cos(yaw)*Math.cos(pitch)*zoom,Math.sin(pitch)*zoom,Math.sin(yaw)*Math.cos(pitch)*zoom],vp=mul(perspective(.70,canvas.width/canvas.height,.1,220),look(eye,[5,0,0]));gl.useProgram(render);gl.uniformMatrix4fv(gl.getUniformLocation(render,'vp'),false,vp);gl.uniform3fv(gl.getUniformLocation(render,'camera'),eye);gl.uniform1f(gl.getUniformLocation(render,'time'),simTime);gl.uniform1f(gl.getUniformLocation(render,'rippleDetail'),val('#ripple'));gl.uniform1f(gl.getUniformLocation(render,'waveAmplitude'),val('#amp'));gl.uniform1f(gl.getUniformLocation(render,'wavePeriod'),val('#period'));gl.uniform1f(gl.getUniformLocation(render,'seaDisorder'),val('#spread'));gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,states[front]);gl.uniform1i(gl.getUniformLocation(render,'stateTex'),0);gl.bindVertexArray(vao);gl.uniform1i(gl.getUniformLocation(render,'water'),0);gl.drawElements(gl.TRIANGLES,inds.length,gl.UNSIGNED_INT,0);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.uniform1i(gl.getUniformLocation(render,'water'),1);gl.drawElements(gl.TRIANGLES,inds.length,gl.UNSIGNED_INT,0);gl.depthMask(true);gl.disable(gl.BLEND)}
+function loop(now){if(!paused)simulate();draw();frames++;if(now-fpsTime>500){document.querySelector('#fps').textContent=Math.round(frames*1000/(now-fpsTime));frames=0;fpsTime=now}document.querySelector('#simtime').textContent=simTime.toFixed(1)+' s';requestAnimationFrame(loop)}
+reset();requestAnimationFrame(loop);
+</script>
+</body></html>

@@ -1,0 +1,5 @@
+PASS Engine/DeviceExchange/SwapchainExchange.cpp
+PASS Engine/DeviceExchange/VisibilityExchange.cpp
+PASS Projects/Project-Zero/Source/CelestialSequence.cpp
+PASS Projects/Project-Zero/Source/PerformanceTelemetrySequence.cpp
+PASS Projects/Project-Zero/Source/GameExecution.cpp

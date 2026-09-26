@@ -1,0 +1,316 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,10 +199,18 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare };
+-
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky };
++
++// Borrowed immutable image data; project retains ownership through the editor frame.
++struct EditorSkyImage {
++    const uint16_t* Pixels=nullptr;
++    uint32_t Width=0, Height=0;
++    uint64_t Revision=0;
++    bool Stale=false, Resident=false, Pending=false, RequestBake=false;
++};
+ struct EditorSheet
+ {
++    EditorSkyImage SkyImage{};
+     EditorSheetAppearance Appearance = EditorSheetAppearance::Generic;
+     EditorPropertyGroup Groups[kMaxEditorSheetGroups] = {};
+     uint32_t            GroupCount = 0u;
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -137,6 +137,7 @@
+     // Bakes the dome for the CURRENT staging into RGBA16F halves (256 x 512 x 4) and remembers that staging as
+     //    the bake's own. The caller owns residency: seat the halves into a texture, then AssignSkyDomeSlot.
+     void BakeSkyDome(std::vector<uint16_t>& OutHalves) noexcept;
++    bool TakeSkyDomeBakeRequest() noexcept { const bool Requested=SkyPreviewBakeRequested; SkyPreviewBakeRequested=false; return Requested; }
+     // #26c the persisted bake: the dome ships as an `.environment` container (ENVR row + PROB blob carrying
+     //    the staging record and the halves), so a project loads the sheet instead of paying the ~2 s bake.
+     //    Save writes the CURRENT resident bake; Load seats the file's bake ONLY when its recorded staging
+@@ -217,6 +218,10 @@
+     CloudShadowStaging ShadowStaging = kCloudShadowPanelKm;  // GPU shadow weather (level owner overrides)
+     float ShadowTimeSeconds = kCloudShadowPanelKm.TimeSeconds; // [s] frozen weather instant (see above)
+     RainbowSettings      Rainbow{};
++    // Retain precisely the baked/uploaded half image for authoring, not a second procedural bake.
++    std::vector<uint16_t> SkyPreviewHalves;
++    uint64_t SkyPreviewRevision=0;
++    bool SkyPreviewBakeRequested=false;
+     AtmosphericOptics::LensFlareSettings Flare{};
+     float FlarePreviewX=0.28f, FlarePreviewY=0.43f; // authoring preview pose, never camera direction
+     MoonSlotState        MoonSlots[kMoonDrawCount]{};   // the roster: up to four bodies, panel's MAXM
+@@ -260,6 +265,7 @@
+ 
+ private:
+     void BuildSunSheet(EditorSheet& Sheet) const noexcept;
++    void BuildAtmosphereSkySheet(EditorSheet& Sheet) const noexcept;
+     void BuildFlareSheet(EditorSheet& Sheet) const noexcept;
+     void BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept;
+     CelestialFrame      Solved{};
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -9,6 +9,7 @@
+ #include "../../../Engine/ContentInterchange/SpaceExport.h"     // #26c: the persisted bake rides an .environment (ENVR + PROB)
+ #include "../../../Engine/ContentInterchange/SpaceCodec.h"
+ 
++#include <atomic>
+ #include <cmath>
+ #include <cstdio>
+ #include <cstring>
+@@ -16,6 +17,8 @@
+ namespace Frontier::ProjectZero {
+ 
+ namespace {
++
++uint64_t NextSkyPreviewRevision() noexcept { static std::atomic<uint64_t> Revision{0};return Revision.fetch_add(1,std::memory_order_relaxed)+1; }
+ 
+ // Row tints, taken from the reference panel's entity colours so the outliner reads the same way.
+ constexpr float kTintAtmosphere[3] = { 0.353f, 0.663f, 1.000f };   // #5aa9ff
+@@ -586,6 +589,7 @@
+     std::memcpy(OutHalves.data(), Probe.data() + sizeof(SkyConstantRecord), kSheetHalves * sizeof(uint16_t));
+     SkyDomeRecord = FileRecord;
+     SkyDomeSeated = true;
++    SkyPreviewHalves=OutHalves;SkyPreviewRevision=NextSkyPreviewRevision();SkyDomeSlot=kNoSkyDomeSlot;
+     return true;
+ }
+ 
+@@ -607,6 +611,7 @@
+     SkyDomeRecord = PackSkyRecord();
+     SkyDomeRecord.Control[3] = 0u;
+     SkyDomeSeated = true;
++    SkyPreviewHalves=OutHalves;SkyPreviewRevision=NextSkyPreviewRevision();SkyDomeSlot=kNoSkyDomeSlot;
+ }
+ 
+ void CelestialSequence::AssignMoonAtlas(const uint32_t Slots[kMoonAtlasCount], const TextureIndex& Textures) noexcept
+@@ -974,6 +979,7 @@
+ {
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
+     Sheet.Appearance = EditorSheetAppearance::Generic;
++    Sheet.SkyImage = {};
+     Sheet.GroupCount = 0;
+     for (auto& Group : Sheet.Groups)
+     {
+@@ -985,6 +991,7 @@
+ 
+     if (Entity == CelestialEntity::Sun) BuildSunSheet(Sheet);
+     else if (Entity == CelestialEntity::LensFlare) BuildFlareSheet(Sheet);
++    else if (Entity == CelestialEntity::Atmosphere || Entity == CelestialEntity::Sky) BuildAtmosphereSkySheet(Sheet);
+     else BuildOtherSheet(Entity, Sheet);
+ }
+ 
+@@ -1048,49 +1055,6 @@
+     char Text[48];
+     switch (Entity)
+     {
+-    case CelestialEntity::Atmosphere:
+-    {
+-        EditorPropertyGroup& Scatter = OpenGroup(Sheet, "Scattering");
+-        Push(Scatter, MakeSlider("Rayleigh", 0.0f, 4.0f, Medium.RayleighStrength, 2, "x"));
+-        Push(Scatter, MakeSlider("Mie", 0.0f, 6.0f, Medium.MieStrength, 2, "x"));
+-        Push(Scatter, MakeSlider("Mie Anisotropy", 0.0f, 0.99f, Medium.MieAnisotropy, 3, ""));
+-        Push(Scatter, MakeSlider("Ozone", 0.0f, 4.0f, Medium.OzoneStrength, 2, "x"));
+-
+-        EditorPropertyGroup& Planet = OpenGroup(Sheet, "Planet");
+-        Push(Planet, MakeSlider("Rayleigh Scale H", 2000.0f, 15000.0f, Medium.RayleighScaleHeight, 0, "m"));
+-        Push(Planet, MakeSlider("Mie Scale H", 300.0f, 4000.0f, Medium.MieScaleHeight, 0, "m"));
+-        Push(Planet, MakeSlider("Atmosphere", 10000.0f, 120000.0f, Medium.AtmosphereHeight, 0, "m"));
+-
+-        EditorPropertyGroup& Dusk = OpenGroup(Sheet, "Twilight");
+-        Push(Dusk, MakeSlider("Horizon Glow", 0.0f, 3.0f, Twilight.GlowIntensity, 2, "x"));
+-        Push(Dusk, MakeSlider("White Line", 0.0f, 3.0f, Twilight.LineIntensity, 2, "x"));
+-        Push(Dusk, MakeSwitch("Line at civil only", Twilight.LineAtCivilOnly));
+-
+-        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
+-        std::snprintf(Text, sizeof(Text), "%.2f AM", static_cast<double>(CelestialSolver::AirMass(Solved.Sun.Elevation)));
+-        Push(Live, MakeReadout("Air Mass", Text));
+-        std::snprintf(Text, sizeof(Text), "%u x %u", Budget.AtmosphereSamples, Budget.AtmosphereLightSamples);
+-        Push(Live, MakeReadout("Tier Samples", Text));
+-        break;
+-    }
+-    case CelestialEntity::Sky:
+-    {
+-        EditorPropertyGroup& Look = OpenGroup(Sheet, "Appearance");
+-        Push(Look, MakeColour("Sky Tint", SkyTint));
+-        Push(Look, MakeSlider("Sky Brightness", 0.0f, 3.0f, SkyBrightness, 2, "x"));
+-        EditorPropertyGroup& Below = OpenGroup(Sheet, "Ground");
+-        Push(Below, MakeColour("Ground Albedo", GroundAlbedo));
+-        // The baked dome (roadmap #26 stage A). The switch is the boolean; the readouts say what the frame is
+-        //    actually doing — "fetch" only while a resident bake still matches the live staging, "march"
+-        //    otherwise (scrubbed sun, changed medium, no sheet). The split is measured in
+-        //    Exhibits/Gallery/Sky/: mean error 0.014-0.123 %, fetch 67-135x the march.
+-        EditorPropertyGroup& Dome = OpenGroup(Sheet, "Baked Dome");
+-        Push(Dome, MakeSwitch("Fetch Baked Dome", SkyDomeBaked));
+-        Push(Dome, MakeReadout("Dome Path", QuerySkyDomeLive() ? "fetch (256^2 RGBA16F)" : "march (analytic)"));
+-        Push(Dome, MakeReadout("Sheet", SkyDomeSlot == kNoSkyDomeSlot ? "none resident"
+-                                        : (SkyDomeSeated ? "resident, staged" : "slot only")));
+-        break;
+-    }
+     case CelestialEntity::Stars:
+     {
+         EditorPropertyGroup& Field = OpenGroup(Sheet, "Field");
+@@ -1300,17 +1264,28 @@
+     switch (Entity)
+     {
+     case CelestialEntity::Atmosphere:
+-        Medium.RayleighStrength    = ReadSlider(Sheet, "Rayleigh", Medium.RayleighStrength);
+-        Medium.MieStrength         = ReadSlider(Sheet, "Mie", Medium.MieStrength);
+-        Medium.MieAnisotropy       = ReadSlider(Sheet, "Mie Anisotropy", Medium.MieAnisotropy);
+-        Medium.OzoneStrength       = ReadSlider(Sheet, "Ozone", Medium.OzoneStrength);
+-        Medium.RayleighScaleHeight = ReadSlider(Sheet, "Rayleigh Scale H", Medium.RayleighScaleHeight);
+-        Medium.MieScaleHeight      = ReadSlider(Sheet, "Mie Scale H", Medium.MieScaleHeight);
+-        Medium.AtmosphereHeight    = ReadSlider(Sheet, "Atmosphere", Medium.AtmosphereHeight);
+-        Twilight.GlowIntensity     = ReadSlider(Sheet, "Horizon Glow", Twilight.GlowIntensity);
+-        Twilight.LineIntensity     = ReadSlider(Sheet, "White Line", Twilight.LineIntensity);
++    case CelestialEntity::Sky:
++    {
++        auto Scalar=[&](const char* Name,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,Name,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};
++        Medium.RayleighStrength    = Scalar("Rayleigh", Medium.RayleighStrength, 0.0f, 4.0f);
++        Medium.MieStrength         = Scalar("Mie", Medium.MieStrength, 0.0f, 6.0f);
++        Medium.MieAnisotropy       = Scalar("Mie Anisotropy", Medium.MieAnisotropy, 0.0f, 0.99f);
++        Medium.OzoneStrength       = Scalar("Ozone", Medium.OzoneStrength, 0.0f, 4.0f);
++        Medium.RayleighScaleHeight = Scalar("Rayleigh Scale H", Medium.RayleighScaleHeight, 2000.0f, 15000.0f);
++        Medium.MieScaleHeight      = Scalar("Mie Scale H", Medium.MieScaleHeight, 300.0f, 4000.0f);
++        Medium.AtmosphereHeight    = Scalar("Atmosphere", Medium.AtmosphereHeight, 10000.0f, 120000.0f);
++        Twilight.GlowIntensity     = Scalar("Horizon Glow", Twilight.GlowIntensity, 0.0f, 3.0f);
++        Twilight.LineIntensity     = Scalar("White Line", Twilight.LineIntensity, 0.0f, 3.0f);
+         Twilight.LineAtCivilOnly   = ReadSwitch(Sheet, "Line at civil only", Twilight.LineAtCivilOnly);
+-        break;
++        const EditorProperty* Tint = Find(Sheet, "Sky Tint");
++        if (Tint != nullptr) for (int C = 0; C < 3; ++C) if(std::isfinite(Tint->ColourTint[C])) SkyTint[C] = Tint->ColourTint[C];
++        SkyBrightness = Scalar("Sky Brightness", SkyBrightness, 0.0f, 3.0f);
++        const EditorProperty* Ground = Find(Sheet, "Ground Albedo");
++        if (Ground != nullptr) for (int C = 0; C < 3; ++C) if(std::isfinite(Ground->ColourTint[C])) GroundAlbedo[C] = Ground->ColourTint[C];
++        SkyDomeBaked = ReadSwitch(Sheet, "Fetch Baked Dome", SkyDomeBaked);
++        if(Sheet.SkyImage.RequestBake) SkyPreviewBakeRequested=true;
++        break;
++    }
+     case CelestialEntity::Sun:
+     {
+         SunDiskSize            = ReadSlider(Sheet, "Angular Diameter", SunDiskSize);
+@@ -1362,16 +1337,6 @@
+         SunDirect              = ReadSlider(Sheet, "Direct", SunDirect);
+         break;
+     }
+-    case CelestialEntity::Sky:
+-    {
+-        const EditorProperty* Tint = Find(Sheet, "Sky Tint");
+-        if (Tint != nullptr) for (int C = 0; C < 3; ++C) SkyTint[C] = Tint->ColourTint[C];
+-        SkyBrightness = ReadSlider(Sheet, "Sky Brightness", SkyBrightness);
+-        const EditorProperty* Ground = Find(Sheet, "Ground Albedo");
+-        if (Ground != nullptr) for (int C = 0; C < 3; ++C) GroundAlbedo[C] = Ground->ColourTint[C];
+-        SkyDomeBaked = ReadSwitch(Sheet, "Fetch Baked Dome", SkyDomeBaked);
+-        break;
+-    }
+     case CelestialEntity::Stars:
+         StarBrightness = ReadSlider(Sheet, "Brightness", StarBrightness);
+         StarSize       = ReadSlider(Sheet, "Point Size", StarSize);
+@@ -1605,3 +1570,51 @@
+         Push(Preview,MakeSlider("Preview X",0.06f,0.94f,FlarePreviewX,2,""));
+         Push(Preview,MakeSlider("Preview Y",0.08f,0.92f,FlarePreviewY,2,""));
+ }
++
++void Frontier::ProjectZero::CelestialSequence::BuildAtmosphereSkySheet(EditorSheet& Sheet) const noexcept
++{
++    Sheet.Appearance=EditorSheetAppearance::AtmosphereSky;
++    char Text[48];
++        EditorPropertyGroup& Scatter = OpenGroup(Sheet, "Scattering");
++        Push(Scatter, MakeSlider("Rayleigh", 0.0f, 4.0f, Medium.RayleighStrength, 2, "x"));
++        Push(Scatter, MakeSlider("Mie", 0.0f, 6.0f, Medium.MieStrength, 2, "x"));
++        Push(Scatter, MakeSlider("Mie Anisotropy", 0.0f, 0.99f, Medium.MieAnisotropy, 3, ""));
++        Push(Scatter, MakeSlider("Ozone", 0.0f, 4.0f, Medium.OzoneStrength, 2, "x"));
++
++        EditorPropertyGroup& Planet = OpenGroup(Sheet, "Planet");
++        Push(Planet, MakeSlider("Rayleigh Scale H", 2000.0f, 15000.0f, Medium.RayleighScaleHeight, 0, "m"));
++        Push(Planet, MakeSlider("Mie Scale H", 300.0f, 4000.0f, Medium.MieScaleHeight, 0, "m"));
++        Push(Planet, MakeSlider("Atmosphere", 10000.0f, 120000.0f, Medium.AtmosphereHeight, 0, "m"));
++
++        EditorPropertyGroup& Dusk = OpenGroup(Sheet, "Twilight");
++        Push(Dusk, MakeSlider("Horizon Glow", 0.0f, 3.0f, Twilight.GlowIntensity, 2, "x"));
++        Push(Dusk, MakeSlider("White Line", 0.0f, 3.0f, Twilight.LineIntensity, 2, "x"));
++        Push(Dusk, MakeSwitch("Line at civil only", Twilight.LineAtCivilOnly));
++
++        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
++        std::snprintf(Text, sizeof(Text), "%.2f AM", static_cast<double>(CelestialSolver::AirMass(Solved.Sun.Elevation)));
++        Push(Live, MakeReadout("Air Mass", Text));
++        std::snprintf(Text, sizeof(Text), "%u x %u", Budget.AtmosphereSamples, Budget.AtmosphereLightSamples);
++        Push(Live, MakeReadout("Tier Samples", Text));
++        EditorPropertyGroup& Look = OpenGroup(Sheet, "Appearance");
++        Push(Look, MakeColour("Sky Tint", SkyTint));
++        Push(Look, MakeSlider("Sky Brightness", 0.0f, 3.0f, SkyBrightness, 2, "x"));
++        Push(Look, MakeColour("Ground Albedo", GroundAlbedo));
++        // The baked dome (roadmap #26 stage A). The switch is the boolean; the readouts say what the frame is
++        //    actually doing — "fetch" only while a resident bake still matches the live staging, "march"
++        //    otherwise (scrubbed sun, changed medium, no sheet). The split is measured in
++        //    Exhibits/Gallery/Sky/: mean error 0.014-0.123 %, fetch 67-135x the march.
++        EditorPropertyGroup& Dome = OpenGroup(Sheet, "Baked Dome");
++        Push(Dome, MakeSwitch("Fetch Baked Dome", SkyDomeBaked));
++        Push(Dome, MakeReadout("Dome Path", QuerySkyDomeLive() ? "fetch (256^2 RGBA16F)" : "march (analytic)"));
++        Push(Dome, MakeReadout("Sheet", SkyDomeSlot == kNoSkyDomeSlot ? "none resident"
++                                        : (SkyDomeSeated ? "resident, staged" : "slot only")));
++
++    auto& Image=Sheet.SkyImage;
++    if(SkyPreviewHalves.size()==size_t(kSkyDomeSide)*kSkyDomeSide*8u){
++        Image.Pixels=SkyPreviewHalves.data();Image.Width=kSkyDomeSide;Image.Height=kSkyDomeSide*2;
++        Image.Revision=SkyPreviewRevision;Image.Stale=!SkyDomeStagingMatches(SkyDomeRecord,PackSkyRecord());
++    }
++    Image.Resident=SkyDomeSlot!=kNoSkyDomeSlot;
++    Image.Pending=SkyPreviewBakeRequested;
++}
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -2393,7 +2393,8 @@
+             //    SkyControl.w — which changes the packed bytes, so the compare above restarts the accumulation
+             //    on its own. A toggled-off boolean packs 0 and the kernel marches — bytes identical to the
+             //    pre-bake build.
+-            if (Celestial.QuerySkyDomeBaked() && !Celestial.QuerySkyDomeLive() && SkyDomeQuietTicks == 30u)
++            const bool ExplicitDomeBake=Celestial.TakeSkyDomeBakeRequest();
++            if (ExplicitDomeBake || (Celestial.QuerySkyDomeBaked() && !Celestial.QuerySkyDomeLive() && SkyDomeQuietTicks == 30u))
+             {
+                 // #26c the persisted bake is tried FIRST: LoadSkyDome hands back the file's halves only when
+                 //    its recorded staging still matches this staging (the staleness rule at the file
+@@ -2403,7 +2404,7 @@
+                 //    machine can re-derive never enters the repository; PackProject.sh ships them.
+                 const char* DomePath = "Projects/Project-Zero/Build/Space/SkyDome.environment";
+                 std::vector<uint16_t> DomeHalves;
+-                const bool FromFile = Celestial.LoadSkyDome(DomePath, DomeHalves);
++                const bool FromFile = !ExplicitDomeBake && Celestial.LoadSkyDome(DomePath, DomeHalves);
+                 if (!FromFile)
+                 {
+                     Celestial.BakeSkyDome(DomeHalves);
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -8,6 +8,7 @@
+ #include "ControlPanel.h"
+ #include "SunInspectorPanel.h"
+ #include "LensFlareInspectorPanel.h"
++#include "AtmosphereSkyInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -128,6 +129,13 @@
+         return;
+     }
+ 
++    if (Sheet->Appearance == EditorSheetAppearance::AtmosphereSky)
++    {
++        ImGui::BeginChild("##sky-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
++        ImGui::PushID(static_cast<int>(PickedIndex));
++        RecordAtmosphereSkyInspector(*Controls_, *Picked, *Sheet);
++        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++    }
+     if (Sheet->Appearance == EditorSheetAppearance::LensFlare)
+     {
+         ImGui::BeginChild("##flare-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -249,6 +249,7 @@
+     Engine/Editor/InspectorPanel.cpp
+     Engine/Editor/SunInspectorPanel.cpp
+     Engine/Editor/LensFlareInspectorPanel.cpp
++    Engine/Editor/AtmosphereSkyInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+     Engine/DisplayPresentation/DialogueHost.cpp

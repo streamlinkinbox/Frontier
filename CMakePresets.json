@@ -1,0 +1,98 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "native-proof",
+      "displayName": "Native editor and CPU renderer verification",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native-proof",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "FRONTIER_PROOF_ONLY": "ON"
+      }
+    },
+    {
+      "name": "linux-app",
+      "displayName": "Linux Vulkan application (requires Vulkan SDK and window-system development packages)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-app",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "FRONTIER_PROOF_ONLY": "OFF"
+      }
+    },
+    {
+      "name": "fluid-cpu",
+      "displayName": "Flux / Ripple plus Project-Zero scene bridge",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/fluid-cpu",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "FRONTIER_FLUID_ONLY": "ON",
+        "FRONTIER_BUILD_PROJECT_FLUID_VULKAN": "OFF"
+      }
+    },
+    {
+      "name": "fluid-parallel",
+      "inherits": "fluid-cpu",
+      "displayName": "Flux / Ripple OpenMP CPU verification",
+      "binaryDir": "${sourceDir}/build/fluid-parallel-proof",
+      "cacheVariables": {
+        "FRONTIER_FLUID_OPENMP": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "native-proof",
+      "configurePreset": "native-proof",
+      "jobs": 3
+    },
+    {
+      "name": "linux-app",
+      "configurePreset": "linux-app",
+      "jobs": 3
+    },
+    {
+      "name": "fluid-cpu",
+      "configurePreset": "fluid-cpu",
+      "jobs": 3
+    },
+    {
+      "name": "fluid-parallel",
+      "configurePreset": "fluid-parallel",
+      "jobs": 3
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "native-proof",
+      "configurePreset": "native-proof",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "fluid-cpu",
+      "configurePreset": "fluid-cpu",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "fluid-parallel",
+      "configurePreset": "fluid-parallel",
+      "environment": {
+        "OMP_NUM_THREADS": "2"
+      },
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

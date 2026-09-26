@@ -1,0 +1,463 @@
+Consolidated checkout — local verification
+
+=== configure.log ===
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python3: <checkout>/.cache/consolidation/venv/bin/python3.11 (found suitable version "3.11.2", minimum required is "3.11") found components: Interpreter
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+Ready: imgui
+Ready: stb
+Ready: thorvg
+Ready: tomlpp
+Ready: vulkan-headers
+Frontier ready. No other Frontier repository or engine patch assembly is required.
+-- Found Python3: <checkout>/.cache/consolidation/venv/bin/python3.11 (found version "3.11.2") found components: Interpreter
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (1.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: <checkout>/build/native-proof
+
+=== build.log ===
+[0/2] Re-checking globbed directories...
+[1/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.o
+[2/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.o
+[3/89] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.o
+[4/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.o
+[5/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.o
+[6/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.o
+[7/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.o
+[8/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.o
+[9/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.o
+[10/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.o
+[11/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.o
+[12/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.o
+[13/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.o
+[14/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.o
+[15/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.o
+[16/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.o
+[17/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.o
+[18/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.o
+[19/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.o
+[20/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.o
+[21/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.o
+[22/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.o
+[23/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.o
+[24/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.o
+[25/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.o
+[26/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.o
+[27/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.o
+[28/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.o
+[29/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.o
+[30/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.o
+[31/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.o
+[32/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.o
+[33/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.o
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from <checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.h:26,
+                 from <checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:28:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 4 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1310:102: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1310 |         if (boxTags[i].type == SvgParserLengthType::Horizontal) *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.w;
+      |                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 8 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 12 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+[34/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.o
+[35/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.o
+[36/89] Linking CXX static library libthorvg_static.a
+[37/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ControlPanel.cpp.o
+[38/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/OutlinerPanel.cpp.o
+[39/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/EditorHost.cpp.o
+[40/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ShadeTick.cpp.o
+[41/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ViewportPanel.cpp.o
+[42/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/InspectorPanel.cpp.o
+[43/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/PixelSpace.cpp.o
+[44/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ThemeStructure.cpp.o
+[45/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/MotionIntegrator.cpp.o
+[46/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ControlKit.cpp.o
+[47/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ControlCentreHost.cpp.o
+[48/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ConfigurationInspector.cpp.o
+[49/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/DialogueHost.cpp.o
+[50/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/FidelityClassifier.cpp.o
+[51/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/VectorCodec.cpp.o
+[52/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/TelemetryMetrics.cpp.o
+[53/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/AppearanceInspector.cpp.o
+[54/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/NotificationQueue.cpp.o
+[55/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/GlyphSpace.cpp.o
+[56/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/MaterialInspector.cpp.o
+[57/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/TypefaceRegistry.cpp.o
+[58/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/ContentInterchange/AssetResolution.cpp.o
+[59/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DeviceExchange/InputExchange.cpp.o
+[60/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/CameraProjection.cpp.o
+[61/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/ContentInterchange/MaterialIndex.cpp.o
+[62/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DeviceExchange/OrientationClassifier.cpp.o
+[63/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/FontCodec.cpp.o
+[64/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_tables.cpp.o
+[65/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_draw.cpp.o
+[66/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/CelestialSequence.cpp.o
+[67/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_widgets.cpp.o
+[68/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui.cpp.o
+[69/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/SunInspectorPanel.cpp.o
+[70/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/AtmosphereSkyInspectorPanel.cpp.o
+[71/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/LensFlareInspectorPanel.cpp.o
+[72/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/MoonInspectorPanel.cpp.o
+[73/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/StarsInspectorPanel.cpp.o
+[74/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/CloudsInspectorPanel.cpp.o
+[75/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/FogInspectorPanel.cpp.o
+[76/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/CelestialSolver.cpp.o
+[77/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/CameraInspectorPanel.cpp.o
+[78/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/WeatherInspectorPanel.cpp.o
+[79/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/StarCatalogueIndex.cpp.o
+[80/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/IconArt.cpp.o
+[81/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/GeometryStructure.cpp.o
+[82/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/IconPresentation.cpp.o
+[83/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/VisibilityRaster.cpp.o
+[84/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/EditorFeedSequence.cpp.o
+[85/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/FlyThroughSolver.cpp.o
+[86/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/SceneStructure.cpp.o
+[87/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Exhibits/Workbench/Billboards/NativeSceneProof.cpp.o
+[88/89] Linking CXX executable FrontierNativeProof
+
+=== test.log ===
+Test project <checkout>/build/native-proof
+    Start 1: BootstrapSafety
+1/2 Test #1: BootstrapSafety ..................   Passed    0.09 sec
+    Start 2: NativeBillboards
+2/2 Test #2: NativeBillboards .................   Passed  310.91 sec
+
+100% tests passed out of 2
+
+Total Test time (real) = 311.01 sec
+
+=== source-list.log ===
+[BuildSourceList] CMake names 97 TUs for Project-Zero.exe, the PowerShell script 102
+  PASS  ① all 97 CMake-listed TUs exist on disk
+  PASS  ② all 102 PowerShell-listed TUs exist on disk
+  PASS  ③ every CMake-listed TU is in the PowerShell batch — the two build systems agree
+  PASS  ④ every engine/app TU without its own main() is in a build list or explicitly accounted for
+  PASS  ⑤ ShaderballPreview.cpp is built by both, with SHADERBALL_PREVIEW_LIB on both (so neither links a second main)
+  PASS  ⑥ the CPU reference names the same TUs in CMake, the Makefile and Construct.ps1
+  PASS  ⑥ …and Construct.ps1 agrees with CMake too
+  PASS  ⑦ Project-Dyno names the same TUs in CMake and its ToolchainSequence.ps1
+
+[BuildSourceList] GREEN — every hand-maintained source list names the same translation units
+
+=== check.log ===
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+Ready: cgltf
+Ready: clipper2
+Ready: earcut
+Ready: fast_obj
+Ready: glfw
+Ready: imgui
+Ready: jolt
+Ready: miniaudio
+Ready: stb
+Ready: thorvg
+Ready: tinybvh
+Ready: tomlpp
+Ready: ufbx
+Ready: vulkan-headers
+Frontier ready. No other Frontier repository or engine patch assembly is required.
+
+=== npm.log ===
+
+added 60 packages, and audited 61 packages in 5s
+
+16 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.1.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.1.0
+npm notice To update run: npm install -g npm@12.1.0
+npm notice
+
+> frontier-editor@1.0.0 build
+> vite build
+
+vite v6.4.3 building for production...
+transforming...
+✓ 1619 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.54 kB │ gzip:   0.36 kB
+dist/assets/sun-Dx6eTS0U.svg      4.37 kB │ gzip:   1.07 kB
+dist/assets/earth-CYSemozy.svg    9.91 kB │ gzip:   3.90 kB
+dist/assets/moon-DmZg69Vo.svg    15.97 kB │ gzip:   3.22 kB
+dist/assets/index-Cn3Vwmvm.css   97.74 kB │ gzip:  21.05 kB
+dist/assets/index-Dhx0uqVp.js   375.86 kB │ gzip: 107.96 kB
+✓ built in 3.27s
+PASS: three relocated pages, production gallery links/assets, and 151 native SVG authorities.
+
+=== solidarc-rest.log ===
+Test project <checkout>/build/solidarc
+      Start 29: MultiBlindBorePrismFilletVerification
+ 1/27 Test #29: MultiBlindBorePrismFilletVerification ..............   Passed    8.44 sec
+      Start 30: MultiBorePrismFilletVerification
+ 2/27 Test #30: MultiBorePrismFilletVerification ...................   Passed    4.04 sec
+      Start 31: MultiEdgeFilletVerification
+ 3/27 Test #31: MultiEdgeFilletVerification ........................   Passed   11.80 sec
+      Start 32: MultiSideBlindBorePrismFilletVerification
+ 4/27 Test #32: MultiSideBlindBorePrismFilletVerification ..........   Passed   14.34 sec
+      Start 33: MultiSideSteppedBlindBorePrismFilletVerification
+ 5/27 Test #33: MultiSideSteppedBlindBorePrismFilletVerification ...   Passed   32.29 sec
+      Start 34: MultiStageBlindBorePrismFilletVerification
+ 6/27 Test #34: MultiStageBlindBorePrismFilletVerification .........   Passed   13.20 sec
+      Start 35: MultiStageSideBlindBorePrismFilletVerification
+ 7/27 Test #35: MultiStageSideBlindBorePrismFilletVerification .....   Passed   13.22 sec
+      Start 36: OffsetBorePrismFilletVerification
+ 8/27 Test #36: OffsetBorePrismFilletVerification ..................   Passed    2.87 sec
+      Start 37: OpenChainFilletVerification
+ 9/27 Test #37: OpenChainFilletVerification ........................   Passed    2.56 sec
+      Start 38: PerforatedPrismFilletVerification
+10/27 Test #38: PerforatedPrismFilletVerification ..................   Passed    2.85 sec
+      Start 39: PlaneConeFilletVerification
+11/27 Test #39: PlaneConeFilletVerification ........................   Passed    3.22 sec
+      Start 40: PlaneCylinderFilletVerification
+12/27 Test #40: PlaneCylinderFilletVerification ....................   Passed    2.79 sec
+      Start 41: ProfileAdversarialVerification
+13/27 Test #41: ProfileAdversarialVerification .....................   Passed    0.03 sec
+      Start 42: ProfileVerification
+14/27 Test #42: ProfileVerification ................................   Passed    4.56 sec
+      Start 43: RasterVerification
+15/27 Test #43: RasterVerification .................................   Passed    2.27 sec
+      Start 44: RoundedBoxFilletVerification
+16/27 Test #44: RoundedBoxFilletVerification .......................   Passed    2.81 sec
+      Start 45: RoundedPrismFilletVerification
+17/27 Test #45: RoundedPrismFilletVerification .....................   Passed    2.20 sec
+      Start 46: SectorEndpointFilletVerification
+18/27 Test #46: SectorEndpointFilletVerification ...................   Passed    2.80 sec
+      Start 47: SelectionVerification
+19/27 Test #47: SelectionVerification ..............................   Passed    7.31 sec
+      Start 48: SideBlindBorePrismFilletVerification
+20/27 Test #48: SideBlindBorePrismFilletVerification ...............   Passed    3.28 sec
+      Start 49: SideSteppedBlindBorePrismFilletVerification
+21/27 Test #49: SideSteppedBlindBorePrismFilletVerification ........   Passed    4.91 sec
+      Start 50: SkinVerification
+22/27 Test #50: SkinVerification ...................................   Passed    0.89 sec
+      Start 51: SteppedBlindBorePrismFilletVerification
+23/27 Test #51: SteppedBlindBorePrismFilletVerification ............   Passed    4.03 sec
+      Start 52: SubEntityDimensionVerification
+24/27 Test #52: SubEntityDimensionVerification .....................   Passed    0.05 sec
+      Start 53: TangentChainFilletVerification
+25/27 Test #53: TangentChainFilletVerification .....................   Passed    2.67 sec
+      Start 54: TopologyVerification
+26/27 Test #54: TopologyVerification ...............................   Passed    2.48 sec
+      Start 55: TwinBorePrismFilletVerification
+27/27 Test #55: TwinBorePrismFilletVerification ....................   Passed    3.15 sec
+
+100% tests passed out of 27
+
+Total Test time (real) = 155.07 sec
+
+GameExecution.cpp: syntax check exit 0.
+SolidArc first invocation: cases 1–28 passed; sandbox timeout interrupted case 29.
+
+=== CLEAN STAGED CHECKOUT ===
+Exported with git checkout-index; no ignored dependency/cache/build tree copied.
+Command: python3 Tools/Setup.py --verify
+Exit: 0
+Download: imgui
+Installed: imgui
+Download: stb
+Installed: stb
+Download: thorvg
+Installed: thorvg
+Download: tomlpp
+Installed: tomlpp
+Download: vulkan-headers
+[ImGui]    applied PatchA-TrapezoidalTabs.patch
+[ImGui]    applied PatchB-TabOverlapZOrder.patch
+[ImGui]    applied PatchC-RoundTabButtons.patch
+[ImGui]    applied PatchD-TabAddButton.patch
+[ImGui]    applied PatchE-NoTabScrollButtons.patch
+Installed: vulkan-headers
+Frontier ready. No other Frontier repository or engine patch assembly is required.
+-- The CXX compiler identification is GNU 12.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python3: <checkout>/.cache/consolidation/venv/bin/python3.11 (found suitable version "3.11.2", minimum required is "3.11") found components: Interpreter
+[ImGui]    PatchA-TrapezoidalTabs.patch is applied
+[ImGui]    PatchB-TabOverlapZOrder.patch is applied
+[ImGui]    PatchC-RoundTabButtons.patch is applied
+[ImGui]    PatchD-TabAddButton.patch is applied
+[ImGui]    PatchE-NoTabScrollButtons.patch is applied
+Ready: imgui
+Ready: stb
+Ready: thorvg
+Ready: tomlpp
+Ready: vulkan-headers
+Frontier ready. No other Frontier repository or engine patch assembly is required.
+-- Found Python3: <checkout>/.cache/consolidation/venv/bin/python3.11 (found version "3.11.2") found components: Interpreter
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: <checkout>/.cache/consolidation/clean/build/native-proof
+[0/2] Re-checking globbed directories...
+[1/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgCompressor.cpp.o
+[2/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgColor.cpp.o
+[3/89] Building CXX object CMakeFiles/thorvg_static.dir/thorvg_icon_art/tvgInitializer.cpp.o
+[4/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgStr.cpp.o
+[5/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/common/tvgMath.cpp.o
+[6/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAccessor.cpp.o
+[7/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgCanvas.cpp.o
+[8/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgFill.cpp.o
+[9/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgAnimation.cpp.o
+[10/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPicture.cpp.o
+[11/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgLoader.cpp.o
+[12/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgPaint.cpp.o
+[13/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgSaver.cpp.o
+[14/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgRender.cpp.o
+[15/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgScene.cpp.o
+[16/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgTaskScheduler.cpp.o
+[17/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgShape.cpp.o
+[18/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/tvgText.cpp.o
+[19/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwImage.cpp.o
+[20/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwFill.cpp.o
+[21/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMath.cpp.o
+[22/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwMemPool.cpp.o
+[23/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwPostEffect.cpp.o
+[24/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRenderer.cpp.o
+[25/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRle.cpp.o
+[26/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwRaster.cpp.o
+[27/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwShape.cpp.o
+[28/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgCssStyle.cpp.o
+[29/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/renderer/sw_engine/tvgSwStroke.cpp.o
+[30/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgPath.cpp.o
+[31/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgUtil.cpp.o
+[32/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgSceneBuilder.cpp.o
+[33/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.cpp.o
+[34/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp.o
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from <checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgXmlParser.h:26,
+                 from <checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:28:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 4 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1310:102: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1310 |         if (boxTags[i].type == SvgParserLengthType::Horizontal) *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.w;
+      |                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 8 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+In function ‘void _recalcBox(const SvgLoaderData*, Box*, bool (&)[4])’,
+    inlined from ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’ at <checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1527:43:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoader.cpp:1311:51: warning: writing 4 bytes into a region of size 0 [-Wstringop-overflow=]
+ 1311 |         else *(float*)(array + boxTags[i].offset) *= loader->svgParse->global.h;
+      |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h: In function ‘SvgNode* _createFilterNode(SvgLoaderData*, SvgNode*, const char*, unsigned int, parseAttributes)’:
+<checkout>/.cache/consolidation/clean/ExternalPackages/thorvg/src/loaders/svg/tvgSvgLoaderCommon.h:37:11: note: at offset 12 into destination object ‘Box::x’ of size 4
+   37 |     float x, y, w, h;
+      |           ^
+[35/89] Building CXX object CMakeFiles/thorvg_static.dir/ExternalPackages/thorvg/src/loaders/raw/tvgRawLoader.cpp.o
+[36/89] Linking CXX static library libthorvg_static.a
+[37/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ControlPanel.cpp.o
+[38/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/EditorHost.cpp.o
+[39/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/OutlinerPanel.cpp.o
+[40/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ShadeTick.cpp.o
+[41/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/ViewportPanel.cpp.o
+[42/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/InspectorPanel.cpp.o
+[43/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/PixelSpace.cpp.o
+[44/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/MotionIntegrator.cpp.o
+[45/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ThemeStructure.cpp.o
+[46/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ControlKit.cpp.o
+[47/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ControlCentreHost.cpp.o
+[48/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/ConfigurationInspector.cpp.o
+[49/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/FidelityClassifier.cpp.o
+[50/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/VectorCodec.cpp.o
+[51/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/DialogueHost.cpp.o
+[52/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/NotificationQueue.cpp.o
+[53/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/TelemetryMetrics.cpp.o
+[54/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/AppearanceInspector.cpp.o
+[55/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/GlyphSpace.cpp.o
+[56/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/TypefaceRegistry.cpp.o
+[57/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/MaterialInspector.cpp.o
+[58/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/ContentInterchange/AssetResolution.cpp.o
+[59/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DeviceExchange/InputExchange.cpp.o
+[60/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/CameraProjection.cpp.o
+[61/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DeviceExchange/OrientationClassifier.cpp.o
+[62/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/ContentInterchange/MaterialIndex.cpp.o
+[63/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/FontCodec.cpp.o
+[64/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_tables.cpp.o
+[65/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_draw.cpp.o
+[66/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/CelestialSequence.cpp.o
+[67/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui_widgets.cpp.o
+[68/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/ExternalPackages/imgui/imgui.cpp.o
+[69/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/SunInspectorPanel.cpp.o
+[70/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/LensFlareInspectorPanel.cpp.o
+[71/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/AtmosphereSkyInspectorPanel.cpp.o
+[72/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/MoonInspectorPanel.cpp.o
+[73/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/CloudsInspectorPanel.cpp.o
+[74/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/StarsInspectorPanel.cpp.o
+[75/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/FogInspectorPanel.cpp.o
+[76/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/CelestialSolver.cpp.o
+[77/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/CameraInspectorPanel.cpp.o
+[78/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/Editor/WeatherInspectorPanel.cpp.o
+[79/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/IconArt.cpp.o
+[80/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/StarCatalogueIndex.cpp.o
+[81/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/DisplayPresentation/IconPresentation.cpp.o
+[82/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/GeometryStructure.cpp.o
+[83/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/VisibilityRaster.cpp.o
+[84/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/FlyThroughSolver.cpp.o
+[85/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Projects/Project-Zero/Source/EditorFeedSequence.cpp.o
+[86/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Engine/GeometricRaster/SceneStructure.cpp.o
+[87/89] Building CXX object CMakeFiles/FrontierNativeProof.dir/Exhibits/Workbench/Billboards/NativeSceneProof.cpp.o
+[88/89] Linking CXX executable FrontierNativeProof
+Test project <checkout>/.cache/consolidation/clean/build/native-proof
+    Start 1: BootstrapSafety
+1/2 Test #1: BootstrapSafety ..................   Passed    0.08 sec
+    Start 2: NativeBillboards
+2/2 Test #2: NativeBillboards .................   Passed  309.60 sec
+
+100% tests passed out of 2
+
+Total Test time (real) = 309.69 sec
+Setup complete. Read README.md for the native application and browser run commands.

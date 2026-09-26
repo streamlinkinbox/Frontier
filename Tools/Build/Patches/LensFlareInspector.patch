@@ -1,0 +1,387 @@
+--- a/Engine/DisplayPresentation/AtmosphericOptics.h
++++ b/Engine/DisplayPresentation/AtmosphericOptics.h
+@@ -16,6 +16,7 @@
+ #pragma once
+ 
+ #include "AtmosphereModel.h"
++#include "LensFlareKernel.h"
+ 
+ #include <cmath>
+ #include <cstdint>
+@@ -219,6 +220,8 @@
+ 
+     struct LensFlareSettings
+     {
++        bool CustomMix = false;
++        LFParams Layers = LFDefaults();
+         bool              Enabled  = true;
+         LensFlareCategory Category = LensFlareCategory::Cinematic;
+         uint32_t GhostCount  = 6u;      // [cnt] internal reflections drawn; tier-keyed
+@@ -254,6 +257,9 @@
+     {
+         OutRgb[0] = OutRgb[1] = OutRgb[2] = 0.0f;
+         if (!Settings.Enabled || SunVisibility <= 0.0f) return;
++
++        if (Settings.CustomMix) { auto P=Settings.Layers; P.Gain=Settings.Intensity; P.Ghosts=float(Settings.GhostCount); P.HaloRadius=Settings.HaloRadius; P.Chromatic=Settings.Chromatic; P.StreakGain=Settings.StreakGain;
++            LFRender(P,ScreenUv[0],ScreenUv[1],SunUv[0],SunUv[1],Aspect,SunVisibility,OutRgb[0],OutRgb[1],OutRgb[2]); return; }
+ 
+         // Off-screen suns produce nothing, and the approach to the edge is a fade rather than a pop.
+         const float EdgeFade = SmoothStep(-0.15f, 0.05f, SunUv[0]) * (1.0f - SmoothStep(0.95f, 1.15f, SunUv[0]))
+--- a/Engine/DisplayPresentation/PostConstantRecord.h
++++ b/Engine/DisplayPresentation/PostConstantRecord.h
+@@ -26,7 +26,7 @@
+ 
+ namespace Frontier {
+ 
+-// Binding 24, std140. Eight rows; the last row-plus is spare. Floats throughout — the shader compares categories
++// Binding 24, std140. Twelve rows; the final four carry custom flare layers. Floats throughout — the shader compares categories
+ //    and counts as uint(Post.x), which is exact for the small values packed.
+ //
+ //        offset    0   PostStar        LST [deg], latitude [deg], point size [x], brightness [x] (0 = stars off)
+@@ -42,14 +42,16 @@
+     float PostStar[4];     // LST, latitude, point size, brightness
+     float PostFlare[4];    // category, ghosts, intensity, halo radius
+     float PostFlare2[4];   // chromatic, streak gain, blades, sun visibility
+-    float PostFlareUv[4];  // sun U, sun V, enabled, 0
++    float PostFlareUv[4];  // sun U, sun V, enabled, custom layers
+     float PostBow[4];      // intensity, width, secondary gain, rain visibility
+     float PostBow2[4];     // alexander, min path, enabled, 0
+     float PostSpare0[4];   // pixel spread, shadow coverage, density, type
+     float PostSpare1[4];   // shadow drift X/Y, anvil, ceiling
++    float PostLayers[16]; // four appended rows; active only when PostFlareUv.w = 1
++
+ };
+ 
+-static_assert(sizeof(PostConstantRecord) == 128u, "the post record is eight std140 rows");
++static_assert(sizeof(PostConstantRecord) == 192u, "the post record is twelve std140 rows");
+ static_assert(offsetof(PostConstantRecord, PostStar)    == 0u,   "PostStar at row 0");
+ static_assert(offsetof(PostConstantRecord, PostFlare)   == 16u,  "PostFlare at row 1");
+ static_assert(offsetof(PostConstantRecord, PostFlare2)  == 32u,  "PostFlare2 at row 2");
+@@ -112,3 +114,5 @@
+ }
+ 
+ } // namespace Frontier
++
++static_assert(offsetof(Frontier::PostConstantRecord, PostLayers) == 128u);
+--- a/Engine/DeviceExchange/SwapchainExchange.cpp
++++ b/Engine/DeviceExchange/SwapchainExchange.cpp
+@@ -76,11 +76,11 @@
+ //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
+ //    gate fails the build if the two disagree.
+ static constexpr uint32_t kMoonRecordBytes = 288u;
+-// The Celestial post uniform block (binding 24) is eight std140 rows — 128 B, pinned by static_assert in
++// The Celestial post uniform block (binding 24) is twelve std140 rows — 192 B, pinned by static_assert in
+ //    DisplayPresentation/PostConstantRecord.h. Same restatement rule as the sky and moon records above.
+ // The star tables (binding 23) are 1 024 cells of 8 B followed by N stars of 32 B — StarCellRecord and
+ //    StarRecord, pinned in GeometricRaster/StarCatalogueIndex.h; the post gate fails the build on drift.
+-static constexpr uint32_t kPostRecordBytes = 128u;
++static constexpr uint32_t kPostRecordBytes = 192u;
+ static constexpr uint32_t kStarCellCount = 1024u;
+ static constexpr uint32_t kStarCellBytes = 8u;
+ static constexpr uint32_t kStarRecordBytes = 32u;
+@@ -195,7 +195,7 @@
+     VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
+     VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
+     void*                    MoonMapped            = nullptr;
+-    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 128 B uniform
++    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 192 B uniform
+     //    buffer, host-visible and persistently mapped, re-packed by the project every frame.
+     VkBuffer                 PostBuffer            = VK_NULL_HANDLE;
+     VkDeviceMemory           PostMemory            = VK_NULL_HANDLE;
+@@ -2846,7 +2846,7 @@
+ bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept
+ {
+     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
+-    //    PostConstantRecord/PackPostConstants and hands over the 128 bytes, the way RefreshSky receives its own.
++    //    PostConstantRecord/PackPostConstants and hands over the 192 bytes, the way RefreshSky receives its own.
+     //    The size is refused rather than trusted, for the same half-old-reading reason.
+     if (!Vulkan->Device || !Vulkan->PostMapped || !Bytes || ByteCount != kPostRecordBytes) return false;
+     // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
+--- a/Engine/Shaders/PostRecords.slang
++++ b/Engine/Shaders/PostRecords.slang
+@@ -1,3 +1,4 @@
++#include "../DisplayPresentation/LensFlareKernel.h"
+ //============================================================================================================================================
+ // 📦 Engine/Shaders/PostRecords.slang — stars, rainbow and lens flare as the ray-tracing kernel sees them
+ //============================================================================================================================================
+@@ -22,18 +23,22 @@
+ //                                              THE UNIFORM BLOCK (24)
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-// 128 bytes, std140 — the mirror is PostConstantRecord, and its static_asserts pin every offset. Per-frame scalars
++// 192 bytes, std140 — the mirror is PostConstantRecord, and its static_asserts pin every offset. Per-frame scalars
+ //    only; the star tables are static and ride binding 23 instead.
+ layout(std140, binding = 24) uniform PostConstants
+ {
+     vec4 PostStar;      // x = LST [deg], y = latitude [deg], z = point size [x], w = brightness (0 = off)
+     vec4 PostFlare;     // x = category [0..3], y = ghost count, z = intensity, w = halo radius
+     vec4 PostFlare2;    // x = chromatic [0..1], y = streak gain, z = aperture blades, w = sun visibility
+-    vec4 PostFlareUv;   // xy = sun UV [0..1] top-left origin, z = enabled, w unused
++    vec4 PostFlareUv;   // xy = sun UV [0..1] top-left origin, z = enabled, w = custom layer kernel
+     vec4 PostBow;       // x = intensity, y = width, z = secondary gain, w = rain visibility
+-    vec4 PostBow2;      // x = alexander band 0/1, y = minimum path [m], z = enabled, w unused
++    vec4 PostBow2;      // x = alexander band 0/1, y = minimum path [m], z = enabled, w = custom layer kernel
+     vec4 PostSpare0;    // x = pixel spread [rad], y/z/w = shadow coverage [-], density [x], type [0..5]
+     vec4 PostSpare1;    // xy = shadow drift [m], z = anvil [0..1], w = ceiling [m]
++    vec4 PostLayers0;
++    vec4 PostLayers1;
++    vec4 PostLayers2;
++    vec4 PostLayers3;
+ };
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -225,6 +230,27 @@
+     vec3 col = vec3(0.0);
+     if (PostFlareUv.z <= 0.0 || PostFlare2.w <= 0.0) return col;
+ 
++    if (PostFlareUv.w > 0.5) {
++        LFParams P;
++        P.Gain=PostLayers0.x;
++        P.Spread=PostLayers0.y;
++        P.Anamorphic=PostLayers0.z;
++        P.Streaks=PostLayers0.w;
++        P.Burst=PostLayers1.x;
++        P.Rotation=PostLayers1.y;
++        P.RayPairs=PostLayers1.z;
++        P.Ghosts=PostLayers1.w;
++        P.GhostGain=PostLayers2.x;
++        P.GhostSpacing=PostLayers2.y;
++        P.GhostSides=PostLayers2.z;
++        P.HaloGain=PostLayers2.w;
++        P.HaloRadius=PostLayers3.x;
++        P.HaloWidth=PostLayers3.y;
++        P.Chromatic=PostLayers3.z;
++        P.StreakGain=PostLayers3.w;
++        float R,G,B; LFRender(P,ScreenUv.x,ScreenUv.y,PostFlareUv.x,PostFlareUv.y,Aspect,PostFlare2.w,R,G,B);
++        return vec3(R,G,B);
++    }
+     // Off-screen suns produce nothing; the approach to the edge is a fade, not a pop.
+     float EdgeFade = FrontierSmooth(-0.15, 0.05, PostFlareUv.x) * (1.0 - FrontierSmooth(0.95, 1.15, PostFlareUv.x))
+                    * FrontierSmooth(-0.15, 0.05, PostFlareUv.y) * (1.0 - FrontierSmooth(0.95, 1.15, PostFlareUv.y));
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,7 +199,7 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun };
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare };
+ 
+ struct EditorSheet
+ {
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -218,6 +218,7 @@
+     float ShadowTimeSeconds = kCloudShadowPanelKm.TimeSeconds; // [s] frozen weather instant (see above)
+     RainbowSettings      Rainbow{};
+     AtmosphericOptics::LensFlareSettings Flare{};
++    float FlarePreviewX=0.28f, FlarePreviewY=0.43f; // authoring preview pose, never camera direction
+     MoonSlotState        MoonSlots[kMoonDrawCount]{};   // the roster: up to four bodies, panel's MAXM
+ 
+     // Sky appearance, which the reference panel exposes separately from the medium.
+@@ -259,6 +260,7 @@
+ 
+ private:
+     void BuildSunSheet(EditorSheet& Sheet) const noexcept;
++    void BuildFlareSheet(EditorSheet& Sheet) const noexcept;
+     void BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept;
+     CelestialFrame      Solved{};
+     PrecipitationSystem Rain{};
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -706,7 +706,7 @@
+ 
+     float ShadowDriftX = 0.0f, ShadowDriftY = 0.0f;
+     FoldShadowDrift(ShadowStaging, ShadowTimeSeconds, ShadowDriftX, ShadowDriftY);
+-    return PackPostConstants(Solved.LocalSiderealTime, Observation.Latitude, StarSize, StarsScale, PixelSpread,
++    auto Record = PackPostConstants(Solved.LocalSiderealTime, Observation.Latitude, StarSize, StarsScale, PixelSpread,
+                              static_cast<uint32_t>(Flare.Category), Flare.GhostCount, Flare.Intensity,
+                              Flare.HaloRadius, Flare.Chromatic, Flare.StreakGain, Flare.ApertureBlades,
+                              // Below-horizon suns flare nothing (no direct light enters the lens); faded over
+@@ -716,6 +716,25 @@
+                              Rainbow.Intensity, Rainbow.Width, Rainbow.SecondaryGain, Rainbow.AlexanderBand,
+                              Rainbow.MinimumPathMetres, RainVisibility, WantBow,
+                              ShadowStaging, ShadowDriftX, ShadowDriftY);
++    const auto& P=Flare.Layers;
++    Record.PostFlareUv[3]=Flare.CustomMix?1.0f:0.0f;
++    Record.PostLayers[0]=Flare.Intensity;
++    Record.PostLayers[1]=P.Spread;
++    Record.PostLayers[2]=P.Anamorphic;
++    Record.PostLayers[3]=P.Streaks;
++    Record.PostLayers[4]=P.Burst;
++    Record.PostLayers[5]=P.Rotation;
++    Record.PostLayers[6]=P.RayPairs;
++    Record.PostLayers[7]=static_cast<float>(Flare.GhostCount);
++    Record.PostLayers[8]=P.GhostGain;
++    Record.PostLayers[9]=P.GhostSpacing;
++    Record.PostLayers[10]=P.GhostSides;
++    Record.PostLayers[11]=P.HaloGain;
++    Record.PostLayers[12]=Flare.HaloRadius;
++    Record.PostLayers[13]=P.HaloWidth;
++    Record.PostLayers[14]=Flare.Chromatic;
++    Record.PostLayers[15]=Flare.StreakGain;
++    return Record;
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -965,6 +984,7 @@
+     }
+ 
+     if (Entity == CelestialEntity::Sun) BuildSunSheet(Sheet);
++    else if (Entity == CelestialEntity::LensFlare) BuildFlareSheet(Sheet);
+     else BuildOtherSheet(Entity, Sheet);
+ }
+ 
+@@ -1266,21 +1286,6 @@
+         Push(Bow, MakeSlider("Width", 0.1f, 4.0f, Rainbow.Width, 2, "x"));
+         Push(Bow, MakeSlider("Secondary", 0.0f, 1.0f, Rainbow.SecondaryGain, 2, ""));
+         Push(Bow, MakeSwitch("Alexander's Band", Rainbow.AlexanderBand));
+-        break;
+-    }
+-    case CelestialEntity::LensFlare:
+-    {
+-        EditorPropertyGroup& Lens = OpenGroup(Sheet, "Lens");
+-        Push(Lens, MakeSwitch("Enabled", Flare.Enabled));
+-        {
+-            static const char* const Types[] = { "Cinematic", "Anamorphic", "Starburst", "Halo" };
+-            Push(Lens, MakeSelect("Type", Types, 4u, static_cast<uint32_t>(Flare.Category)));
+-        }
+-        Push(Lens, MakeSlider("Intensity", 0.0f, 3.0f, Flare.Intensity, 2, "x"));
+-        Push(Lens, MakeSlider("Ghosts", 0.0f, 8.0f, static_cast<float>(Flare.GhostCount), 0, ""));
+-        Push(Lens, MakeSlider("Halo Radius", 0.1f, 1.2f, Flare.HaloRadius, 2, ""));
+-        Push(Lens, MakeSlider("Chromatic", 0.0f, 1.0f, Flare.Chromatic, 2, ""));
+-        Push(Lens, MakeSlider("Aperture Blades", 3.0f, 12.0f, static_cast<float>(Flare.ApertureBlades), 0, ""));
+         break;
+     }
+     default:
+@@ -1493,16 +1498,38 @@
+         Rainbow.AlexanderBand = ReadSwitch(Sheet, "Alexander's Band", Rainbow.AlexanderBand);
+         break;
+     case CelestialEntity::LensFlare:
+-        Flare.Enabled        = ReadSwitch(Sheet, "Enabled", Flare.Enabled);
+-        Flare.Category       = static_cast<AtmosphericOptics::LensFlareCategory>(
+-                                   ReadSelect(Sheet, "Type", static_cast<uint32_t>(Flare.Category)));
+-        Flare.Intensity      = ReadSlider(Sheet, "Intensity", Flare.Intensity);
+-        Flare.GhostCount     = static_cast<uint32_t>(ReadSlider(Sheet, "Ghosts", static_cast<float>(Flare.GhostCount)));
+-        Flare.HaloRadius     = ReadSlider(Sheet, "Halo Radius", Flare.HaloRadius);
+-        Flare.Chromatic      = ReadSlider(Sheet, "Chromatic", Flare.Chromatic);
+-        Flare.ApertureBlades = static_cast<uint32_t>(ReadSlider(Sheet, "Aperture Blades",
+-                                                                static_cast<float>(Flare.ApertureBlades)));
+-        break;
++    {
++        auto Bounded=[&](const char* Label,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,Label,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};
++        const uint32_t OldMode=Flare.CustomMix?4u:static_cast<uint32_t>(Flare.Category);
++        const uint32_t Mode=ReadSelect(Sheet,"Type",OldMode);
++        bool Changed=false;
++        auto Set=[&](float& Field,float Value){Changed=Changed||Field!=Value;Field=Value;};
++        Set(Flare.Layers.Spread,Bounded("Spread",Flare.Layers.Spread,0.25f,2.0f));
++        Set(Flare.Layers.Rotation,Bounded("Rotation",Flare.Layers.Rotation,0.0f,180.0f));
++        Set(Flare.Layers.RayPairs,Bounded("Ray pairs",Flare.Layers.RayPairs,2.0f,12.0f));
++        Set(Flare.Layers.GhostGain,Bounded("Ghost brightness",Flare.Layers.GhostGain,0.0f,2.0f));
++        Set(Flare.Layers.GhostSpacing,Bounded("Ghost spacing",Flare.Layers.GhostSpacing,0.0f,2.0f));
++        Set(Flare.Layers.HaloGain,Bounded("Halo brightness",Flare.Layers.HaloGain,0.0f,3.0f));
++        Set(Flare.Layers.HaloWidth,Bounded("Halo width",Flare.Layers.HaloWidth,0.005f,0.2f));
++        Set(Flare.Layers.Anamorphic,ReadSwitch(Sheet,"Anamorphic",Flare.Layers.Anamorphic>0)?1.0f:0.0f);
++        Set(Flare.Layers.Streaks,ReadSwitch(Sheet,"Streaks",Flare.Layers.Streaks>0)?1.0f:0.0f);
++        Set(Flare.Layers.Burst,ReadSwitch(Sheet,"Starburst",Flare.Layers.Burst>0)?1.0f:0.0f);
++        uint32_t Shape=ReadSelect(Sheet,"Ghost shape",Flare.Layers.GhostSides==6?1u:Flare.Layers.GhostSides==8?2u:0u);
++        if(Shape<3u)Set(Flare.Layers.GhostSides,Shape==1?6.0f:Shape==2?8.0f:0.0f);
++        if(Changed)Flare.CustomMix=true;
++        if(Mode<=4u && Mode!=OldMode){Flare.CustomMix=Mode==4u;if(Mode<4u)Flare.Category=static_cast<AtmosphericOptics::LensFlareCategory>(Mode);}
++        Flare.Enabled=ReadSwitch(Sheet,"Enabled",Flare.Enabled);
++        Flare.Intensity=Bounded("Intensity",Flare.Intensity,0,3);
++        Flare.GhostCount=static_cast<uint32_t>(std::round(Bounded("Ghosts",float(Flare.GhostCount),0,24)));
++        Flare.HaloRadius=Bounded("Halo Radius",Flare.HaloRadius,0.1f,1.2f);
++        Flare.Chromatic=Bounded("Chromatic",Flare.Chromatic,0,1);
++        Flare.StreakGain=Bounded("Streak gain",Flare.StreakGain,0,3);
++        Flare.ApertureBlades=static_cast<uint32_t>(std::round(Bounded("Aperture Blades",float(Flare.ApertureBlades),3,12)));
++        Flare.Layers.RayPairs=std::round(Flare.Layers.RayPairs);
++        FlarePreviewX=Bounded("Preview X",FlarePreviewX,0.06f,0.94f);
++        FlarePreviewY=Bounded("Preview Y",FlarePreviewY,0.08f,0.92f);
++        break;
++    }
+     default:
+         break;
+     }
+@@ -1544,3 +1571,37 @@
+ }
+ 
+ } // namespace Frontier::ProjectZero
++
++void Frontier::ProjectZero::CelestialSequence::BuildFlareSheet(EditorSheet& Sheet) const noexcept
++{
++        Sheet.Appearance=EditorSheetAppearance::LensFlare;
++        EditorPropertyGroup& Lens = OpenGroup(Sheet, "Lens");
++        Push(Lens, MakeSwitch("Enabled", Flare.Enabled));
++        {
++            static const char* const Types[] = { "Cinematic", "Anamorphic", "Starburst", "Halo", "Custom layers" };
++            Push(Lens, MakeSelect("Type", Types, 5u, Flare.CustomMix?4u:static_cast<uint32_t>(Flare.Category)));
++        }
++        Push(Lens, MakeSlider("Intensity", 0.0f, 3.0f, Flare.Intensity, 2, "x"));
++        Push(Lens, MakeSlider("Ghosts", 0.0f, 24.0f, static_cast<float>(Flare.GhostCount), 0, ""));
++        Push(Lens, MakeSlider("Halo Radius", 0.1f, 1.2f, Flare.HaloRadius, 2, ""));
++        Push(Lens, MakeSlider("Chromatic", 0.0f, 1.0f, Flare.Chromatic, 2, ""));
++        Push(Lens, MakeSlider("Aperture Blades", 3.0f, 12.0f, static_cast<float>(Flare.ApertureBlades), 0, ""));
++        Push(Lens, MakeSlider("Streak gain",0.0f,3.0f,Flare.StreakGain,2,"x"));
++        auto& Layers=OpenGroup(Sheet,"Layers");
++        Push(Layers,MakeSwitch("Anamorphic",Flare.Layers.Anamorphic>0));
++        Push(Layers,MakeSwitch("Streaks",Flare.Layers.Streaks>0));
++        Push(Layers,MakeSwitch("Starburst",Flare.Layers.Burst>0));
++        Push(Layers,MakeSlider("Spread",0.25f,2.0f,Flare.Layers.Spread,2,"x"));
++        Push(Layers,MakeSlider("Rotation",0.0f,180.0f,Flare.Layers.Rotation,1,"deg"));
++        Push(Layers,MakeSlider("Ray pairs",2.0f,12.0f,Flare.Layers.RayPairs,0,""));
++        auto& Ghost=OpenGroup(Sheet,"Ghosts / halo");
++        Push(Ghost,MakeSlider("Ghost brightness",0.0f,2.0f,Flare.Layers.GhostGain,2,"x"));
++        Push(Ghost,MakeSlider("Ghost spacing",0.0f,2.0f,Flare.Layers.GhostSpacing,2,"x"));
++        Push(Ghost,MakeSlider("Halo brightness",0.0f,3.0f,Flare.Layers.HaloGain,2,"x"));
++        Push(Ghost,MakeSlider("Halo width",0.005f,0.2f,Flare.Layers.HaloWidth,3,""));
++        static const char* const Shapes[]={"Round","Hexagon","Octagon"};
++        Push(Ghost,MakeSelect("Ghost shape",Shapes,3u,Flare.Layers.GhostSides==6?1u:Flare.Layers.GhostSides==8?2u:0u));
++        auto& Preview=OpenGroup(Sheet,"Preview pose");
++        Push(Preview,MakeSlider("Preview X",0.06f,0.94f,FlarePreviewX,2,""));
++        Push(Preview,MakeSlider("Preview Y",0.08f,0.92f,FlarePreviewY,2,""));
++}
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -7,6 +7,7 @@
+ 
+ #include "ControlPanel.h"
+ #include "SunInspectorPanel.h"
++#include "LensFlareInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -125,6 +126,14 @@
+         RecordFooter(nullptr);
+         ImGui::End();
+         return;
++    }
++
++    if (Sheet->Appearance == EditorSheetAppearance::LensFlare)
++    {
++        ImGui::BeginChild("##flare-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
++        ImGui::PushID(static_cast<int>(PickedIndex));
++        RecordLensFlareInspector(*Controls_, *Picked, *Sheet);
++        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
+     }
+ 
+     if (Sheet->Appearance == EditorSheetAppearance::Sun)
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -143,7 +143,7 @@
+ find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/bin" "/usr/bin" "/usr/local/bin")
+ 
+ set(SHADER_ROOT "${CMAKE_SOURCE_DIR}/Engine/Shaders")
+-set(SHADER_INCLUDES "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
++set(SHADER_INCLUDES "${CMAKE_SOURCE_DIR}/Engine/DisplayPresentation/LensFlareKernel.h" "${SHADER_ROOT}/SceneRecords.slang" "${SHADER_ROOT}/RayGeneration.slang" "${SHADER_ROOT}/TraversalCWBVH.slang"
+                     "${SHADER_ROOT}/InterfaceRecords.slang" "${SHADER_ROOT}/InterfaceSignedDistance.slang"
+                     "${SHADER_ROOT}/ShadowRecords.slang" "${SHADER_ROOT}/ShadowSample.slang"
+                     "${SHADER_ROOT}/OutlineRecords.slang" "${SHADER_ROOT}/GizmoRecords.slang")
+@@ -248,6 +248,7 @@
+     Engine/Editor/ViewportPanel.cpp
+     Engine/Editor/InspectorPanel.cpp
+     Engine/Editor/SunInspectorPanel.cpp
++    Engine/Editor/LensFlareInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+     Engine/DisplayPresentation/DialogueHost.cpp

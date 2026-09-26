@@ -1,0 +1,203 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -253,6 +253,7 @@
+     Engine/Editor/MoonInspectorPanel.cpp
+     Engine/Editor/StarsInspectorPanel.cpp
+     Engine/Editor/CloudsInspectorPanel.cpp
++    Engine/Editor/CameraInspectorPanel.cpp
+     Engine/Editor/WeatherInspectorPanel.cpp
+     Engine/Editor/FogInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,7 +199,7 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud, HeightFog, AerialFog, LocalFog, Wind, Precipitation, Rainbow };
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud, HeightFog, AerialFog, LocalFog, Wind, Precipitation, Rainbow, Camera };
+ 
+ // Borrowed immutable image data; project retains ownership through the editor frame.
+ struct EditorSkyImage {
+@@ -219,6 +219,7 @@
+ struct EditorSheet
+ {
+     EditorWeatherPreview WeatherPreview{};
++    bool CameraLive=false;float CameraAspect=1.5f;
+     EditorSkyImage SkyImage{};
+     EditorStarPreview StarPreview{};
+     EditorFogPreview FogPreview{};
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -14,6 +14,7 @@
+ #include "CloudsInspectorPanel.h"
+ #include "FogInspectorPanel.h"
+ #include "WeatherInspectorPanel.h"
++#include "CameraInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -134,6 +135,11 @@
+         return;
+     }
+ 
++    if(Sheet->Appearance==EditorSheetAppearance::Camera){
++        ImGui::BeginChild("##camera-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
++        ImGui::PushID(static_cast<int>(PickedIndex));RecordCameraInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
++        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++    }
+     if (Sheet->Appearance == EditorSheetAppearance::Wind || Sheet->Appearance == EditorSheetAppearance::Precipitation || Sheet->Appearance == EditorSheetAppearance::Rainbow) {
+         ImGui::BeginChild("##weather-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordWeatherInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+--- a/Projects/Project-Zero/Source/EditorFeedSequence.h
++++ b/Projects/Project-Zero/Source/EditorFeedSequence.h
+@@ -21,6 +21,7 @@
+ #include "../../../Engine/Editor/EditorInstance.h"
+ #include "../../../Engine/GeometricRaster/SceneStructure.h"
+ #include "FlyThroughSolver.h"
++#include "CameraInspectorBinding.h"
+ 
+ #include <cstdint>
+ #include <vector>
+@@ -30,6 +31,7 @@
+ class EditorFeedSequence
+ {
+ public:
++    void ApplyCameraSheet(uint32_t Index,uint32_t RowCount,const SceneStructure& Level,const EditorSheet& Sheet,FlyThroughSolver& Camera) noexcept;
+     // Fills Instances (capacity Capacity) in preorder from the level's placements; returns the rows
+     //    written. Folders are virtual and always present; placement rows stop at capacity.
+     [[nodiscard]] uint32_t FillRoster(EditorInstance* Instances, const SceneStructure& Level,
+@@ -43,6 +45,8 @@
+                                             EditorSheet* Sheet, const FlyThroughSolver& Camera,
+                                             const SceneStructure& Level,
+                                             const std::vector<InstanceRecord>& LiveInstances) const noexcept;
++
++    CameraOpticsSettings MainLens{},CineLens{}; // Project-owned session optics; cine remains an inactive lens study.
+ 
+     // The first contiguous run of dynamic placements that own instances, as instance ordinals — the scripted
+     //    driver and the physics bridge animate exactly this run. False when the level flags nothing.
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -1663,6 +1663,12 @@
+             Celestial.ApplySheet(PickedCelestial, PickedSheet);
+             Celestial.BuildSheet(PickedCelestial, PickedSheet);
+         }
++        else if(PickedSheet.Appearance==Frontier::EditorSheetAppearance::Camera){
++            const float PreviousCameraFov=Camera.QueryFieldOfViewRadians();
++            Feed.ApplyCameraSheet(PickedNow,SceneRowCount,Level,PickedSheet,Camera);
++            if(Camera.QueryFieldOfViewRadians()!=PreviousCameraFov)Integrator.ResetAccumulation();
++            TintMirror=Feed.BuildSheet(PickedNow,SceneInstances.data(),SceneRowCount,&PickedSheet,Camera,Level,AnimatedInstances);
++        }
+         // The outliner's eye toggles live on the rows; carry them back so hiding a row hides the thing.
+         if (CelestialFirstRow != Frontier::kNoEditorInstance)
+         {
+--- a/Projects/Project-Zero/Source/EditorFeedSequence.cpp
++++ b/Projects/Project-Zero/Source/EditorFeedSequence.cpp
+@@ -337,7 +337,7 @@
+             Row.Category = EditorInstanceCategory::Camera;
+             Row.Glyph    = EditorGlyph::Camera;
+             Row.Narrowing = EditorNarrowing::Camera;
+-            std::snprintf(Row.Meta, sizeof(Row.Meta), "72\xc2\xb0");
++            std::snprintf(Row.Meta, sizeof(Row.Meta), "Live");
+             CopyTint(Row.Tint, kCameraTint);
+             break;
+         case FeedRowKind::CineCamera:
+@@ -346,7 +346,7 @@
+             Row.Category = EditorInstanceCategory::Camera;
+             Row.Glyph    = EditorGlyph::Aperture;
+             Row.Narrowing = EditorNarrowing::Camera;
+-            std::snprintf(Row.Meta, sizeof(Row.Meta), "35 mm");
++            std::snprintf(Row.Meta, sizeof(Row.Meta), "Study");
+             CopyTint(Row.Tint, kCameraTint);
+             break;
+         case FeedRowKind::PostProcess:
+@@ -426,6 +426,7 @@
+ {
+     if (Sheet == nullptr)
+         return nullptr;
++    Sheet->Appearance=EditorSheetAppearance::Generic;Sheet->CameraLive=false;Sheet->CameraAspect=1.5f;
+     Sheet->GroupCount = 0u;
+     if (Instances == nullptr || Index >= RowCount || RowCount > kMaxEditorInstances)
+         return nullptr;
+@@ -566,65 +567,8 @@
+         return nullptr;
+     }
+ 
+-    if (Picked.Kind == FeedRowKind::FlyCamera)
+-    {
+-        const Frontier::Vector3 At     = Camera.Convert<Frontier::Vector3>();
+-        const auto&             Flight = Camera.QueryConfiguration();
+-        EditorPropertyGroup& Placed = OpenGroup(Sheet, "Transform");
+-        EditorProperty& Where = OpenProp(Placed, "Position", EditorPropertyCategory::AxisVec3);
+-        Where.Axes[0] = At.x;
+-        Where.Axes[1] = At.y;
+-        Where.Axes[2] = At.z;
+-        Where.AxisStep = 0.05f;
+-        Where.Editable = false;
+-        EditorProperty& Pitch = OpenProp(Placed, "Pitch", EditorPropertyCategory::Readout);
+-        std::snprintf(Pitch.Text, sizeof(Pitch.Text), "%+.1f\xc2\xb0",
+-            static_cast<double>(Camera.QueryPitchRadians() * kRadToDeg));
+-        EditorProperty& Yaw = OpenProp(Placed, "Yaw", EditorPropertyCategory::Readout);
+-        std::snprintf(Yaw.Text, sizeof(Yaw.Text), "%+.1f\xc2\xb0",
+-            static_cast<double>(Camera.QueryYawRadians() * kRadToDeg));
+-        EditorPropertyGroup& Lens = OpenGroup(Sheet, "Lens");
+-        EditorProperty& Wide = OpenProp(Lens, "Field of view", EditorPropertyCategory::Slider);
+-        Wide.Minimum = 20.0f; Wide.Maximum = 120.0f;
+-        Wide.Figure = Camera.QueryFieldOfViewRadians() * kRadToDeg;
+-        Wide.Decimals = 1u; Wide.Hi = true;
+-        std::snprintf(Wide.Unit, sizeof(Wide.Unit), "\xc2\xb0");
+-        EditorProperty& Shape = OpenProp(Lens, "Aspect", EditorPropertyCategory::Readout);
+-        std::snprintf(Shape.Text, sizeof(Shape.Text), "%.3f", static_cast<double>(Camera.QueryAspectRatio()));
+-        EditorPropertyGroup& Moved = OpenGroup(Sheet, "Flight");
+-        EditorProperty& Fast = OpenProp(Moved, "Speed", EditorPropertyCategory::Readout);
+-        std::snprintf(Fast.Text, sizeof(Fast.Text), "%.2f m/s", static_cast<double>(Camera.QueryFlightSpeed()));
+-        EditorProperty& BaseProp = OpenProp(Moved, "Cruise", EditorPropertyCategory::Readout);
+-        std::snprintf(BaseProp.Text, sizeof(BaseProp.Text), "%.2f m/s", static_cast<double>(Flight.BaseFlightSpeed));
+-        EditorProperty& Boost = OpenProp(Moved, "Boost", EditorPropertyCategory::Readout);
+-        std::snprintf(Boost.Text, sizeof(Boost.Text), "%.2f\xc3\x97", static_cast<double>(Flight.BoostMultiplier));
+-        EditorProperty& Feel = OpenProp(Moved, "Sensitivity", EditorPropertyCategory::Readout);
+-        std::snprintf(Feel.Text, sizeof(Feel.Text), "%.5f rad/px", static_cast<double>(Flight.MouseSensitivity));
+-        return nullptr;
+-    }
+-
+-    if (Picked.Kind == FeedRowKind::CineCamera)
+-    {
+-        EditorPropertyGroup& Optics = OpenGroup(Sheet, "Optics");
+-        EditorProperty& Focal = OpenProp(Optics, "Focal Length", EditorPropertyCategory::Slider);
+-        Focal.Minimum = 18.0f; Focal.Maximum = 200.0f; Focal.Figure = 35.0f; Focal.Decimals = 0u;
+-        std::snprintf(Focal.Unit, sizeof(Focal.Unit), "mm");
+-        EditorProperty& Aper = OpenProp(Optics, "Aperture", EditorPropertyCategory::Slider);
+-        Aper.Minimum = 1.2f; Aper.Maximum = 22.0f; Aper.Figure = 2.8f; Aper.Decimals = 1u;
+-        std::snprintf(Aper.Unit, sizeof(Aper.Unit), "f/");
+-        EditorProperty& Dist = OpenProp(Optics, "Focus Distance", EditorPropertyCategory::Slider);
+-        Dist.Minimum = 0.5f; Dist.Maximum = 50.0f; Dist.Figure = 4.0f; Dist.Decimals = 1u;
+-        std::snprintf(Dist.Unit, sizeof(Dist.Unit), "m");
+-
+-        EditorPropertyGroup& Sensor = OpenGroup(Sheet, "Sensor");
+-        EditorProperty& SensorW = OpenProp(Sensor, "Sensor Width", EditorPropertyCategory::Slider);
+-        SensorW.Minimum = 16.0f; SensorW.Maximum = 70.0f; SensorW.Figure = 36.0f; SensorW.Decimals = 1u;
+-        std::snprintf(SensorW.Unit, sizeof(SensorW.Unit), "mm");
+-        EditorProperty& Iso = OpenProp(Sensor, "ISO", EditorPropertyCategory::Slider);
+-        Iso.Minimum = 50.0f; Iso.Maximum = 6400.0f; Iso.Figure = 400.0f; Iso.Decimals = 0u;
+-        EditorProperty& Shutter = OpenProp(Sensor, "Shutter Speed", EditorPropertyCategory::Readout);
+-        std::snprintf(Shutter.Text, sizeof(Shutter.Text), "1/125 s");
+-        return nullptr;
++    if(Picked.Kind==FeedRowKind::FlyCamera||Picked.Kind==FeedRowKind::CineCamera){
++        BuildCameraInspectorSheet(Camera,Picked.Kind==FeedRowKind::FlyCamera?MainLens:CineLens,*Sheet,Picked.Kind==FeedRowKind::FlyCamera);return nullptr;
+     }
+ 
+     if (Picked.Kind == FeedRowKind::PostProcess)
+@@ -649,6 +593,13 @@
+     }
+ 
+     return nullptr;
++}
++
++void EditorFeedSequence::ApplyCameraSheet(uint32_t Index,uint32_t RowCount,const SceneStructure& Level,const EditorSheet& Sheet,FlyThroughSolver& Camera) noexcept {
++    if(RowCount>kMaxEditorInstances||Index>=RowCount||Sheet.Appearance!=EditorSheetAppearance::Camera)return;
++    std::vector<FeedRow> Layout(RowCount);const uint32_t Count=BuildLayout(Level,Layout.data(),RowCount);if(Index>=Count)return;
++    if(Layout[Index].Kind==FeedRowKind::FlyCamera)ApplyCameraInspectorSheet(Camera,MainLens,Sheet,true);
++    else if(Layout[Index].Kind==FeedRowKind::CineCamera)ApplyCameraInspectorSheet(Camera,CineLens,Sheet,false);
+ }
+ 
+ bool EditorFeedSequence::QueryAnimatedSpan(uint32_t* First, uint32_t* Count,
