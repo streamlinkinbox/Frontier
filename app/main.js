@@ -267,6 +267,9 @@
   const hex = { floor: color('#101b1d'), floorEdge: color('#1e2b2a'), asphalt: color('#1b2323'), asphaltEdge: color('#364440'), steel: color('#667971'), steelDark: color('#263532'), timber: color('#4e5b50'), rock: color('#172528'), rockLight: color('#33413e'), black: color('#061012'), cyan: color('#a8ffe8'), blue: color('#5aade7'), amber: color('#c27a30'), orange: color('#a4512f'), pale: color('#879d86'), glass: color('#4e9ea5'), white: color('#eefef2') };
   const emissive = { none: [0, 0, 0], cyan: color('#57dec8'), white: color('#c9fff1'), amber: color('#e9983b'), red: color('#e74d3d'), blue: color('#4d9ae2') };
 
+  // Materials are initialized before building the static 3D mine; this keeps startup deterministic.
+  buildMine();
+
   function draw(mesh, matrix, material, glow = emissive.none, alpha = 1) {
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.position); gl.enableVertexAttribArray(attrib.position); gl.vertexAttribPointer(attrib.position, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.normal); gl.enableVertexAttribArray(attrib.normal); gl.vertexAttribPointer(attrib.normal, 3, gl.FLOAT, false, 0, 0);
@@ -304,7 +307,6 @@
       renderables.wallRock.push({ x: point.x, y: point.y, r, rotation: i * .51, tone: .3 + (i % 3) * .2 });
     }
   }
-  buildMine();
 
   // Input / interaction -----------------------------------------------------
   const keys = Object.create(null); const keyMap = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright', ' ']);
