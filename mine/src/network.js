@@ -5,17 +5,19 @@
 // control point regenerates the whole mine consistently.
 import * as THREE from 'three';
 import { mulberry32 } from './noise.js';
+import { generateLanes } from './lanes.js';
 
 export const DEFAULT_PARAMS = {
   seed: 7,
-  roadHalfWidth: 4.0,     // m, half width of the paved road
+  laneMode: 'random',     // road lanes per tunnel: 'random' (per-tunnel plan) | '2' | '3' | '4'
+  potholes: 6,            // potholes per 100 m of tunnel
   wallBulge: 0.35,        // m, how far walls bow outward at the spring line
   springHeight: 3.0,      // m, where the wall turns into the roof arch
   roofHeight: 5.8,        // m, crown of the arch
   laneOffset: 1.75,       // m, cart lane center from tunnel axis
   gauge: 1.0,             // m, rail gauge
   grooveDepth: 0.22,      // m, track bed depth (sleepers + rails sit in it, rail tops flush with the road)
-  ringSpacing: 0.75,      // m, distance between tunnel edge-loops
+  ringSpacing: 0.7,       // m, distance between tunnel edge-loops (denser around potholes)
   wallSegs: 5,            // edge loops up each wall
   roofSegs: 12,           // edge loops across the arch (even)
   filletSegs: 3,          // k: each junction corner gets 2k segments
@@ -48,11 +50,11 @@ export function createMaze(seed = 7, spacing = 58) {
   nodes[id(1, 0)].p[1] = 0; nodes[id(3, 1)].p[1] = 0;
   const edges = [];
   const has = new Set();
-  const addEdge = (a, b, cps) => {
+  const addEdge = (a, b, cps, opts = {}) => {
     const key = Math.min(a, b) + '-' + Math.max(a, b);
     if (has.has(key)) return;
     has.add(key);
-    edges.push({ id: edges.length, a, b, cps });
+    edges.push({ id: edges.length, a, b, cps, overpass: !!opts.overpass });
   };
   const wiggle = (a, b, n) => {
     const A = new THREE.Vector3(...nodes[a].p), B = new THREE.Vector3(...nodes[b].p);
@@ -116,7 +118,7 @@ export function createMaze(seed = 7, spacing = 58) {
   // --- OVERPASS: tunnel (2,0)-(2,1) crests high while a diagonal (1,0)->(3,1) dives under it
   const nA = nodes[id(2, 0)], nB = nodes[id(2, 1)];
   const mid = [(nA.p[0] + nB.p[0]) / 2, 5.5, (nA.p[2] + nB.p[2]) / 2];
-  addEdge(id(2, 0), id(2, 1), [mid]);
+  addEdge(id(2, 0), id(2, 1), [mid], { overpass: true });
   const d0 = nodes[id(1, 0)], d1 = nodes[id(3, 1)];
   const L = (t) => [d0.p[0] + (d1.p[0] - d0.p[0]) * t, d0.p[2] + (d1.p[2] - d0.p[2]) * t];
   const cross = [mid[0], -7.0, mid[2]];
@@ -125,9 +127,10 @@ export function createMaze(seed = 7, spacing = 58) {
     [q1[0] - 4, -1.8, q1[1] + 6],
     cross,
     [q3[0] + 4, -1.8, q3[1] - 6],
-  ]);
+  ], { overpass: true });
 
-  return { nodes, edges };
+  // procedural road lane plan per tunnel (2 / 3 / 4 lanes with tapers), stored on the edges
+  return generateLanes({ nodes, edges }, seed);
 }
 
 // ---------- spline evaluation ----------

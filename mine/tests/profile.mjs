@@ -12,8 +12,13 @@ for (const seed of [7, 1, 2, 3, 42]) {
   let minR = 1e9, maxG = 0;
   for (const e in byEdge) {
     const cl = byEdge[e];
-    for (let i = 4; i < cl.length - 4; i++) {
-      const a = cl[i - 4], b = cl[i], c = cl[i + 4];
+    // neighbours ~3 m away along the tunnel (edge loops are denser around potholes)
+    let ia = 0, ic = 0;
+    for (let i = 0; i < cl.length; i++) {
+      while (ia < i && cl[i].s - cl[ia + 1].s >= 3) ia++;
+      while (ic < cl.length - 1 && cl[ic].s - cl[i].s < 3) ic++;
+      if (cl[i].s - cl[ia].s < 2.9 || cl[ic].s - cl[i].s < 2.9) continue;
+      const a = cl[ia], b = cl[i], c = cl[ic];
       const s1 = (b.p.y - a.p.y) / Math.hypot(b.p.x - a.p.x, b.p.z - a.p.z);
       const s2 = (c.p.y - b.p.y) / Math.hypot(c.p.x - b.p.x, c.p.z - b.p.z);
       const k = (s2 - s1) / ((c.s - a.s) / 2);

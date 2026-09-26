@@ -57,6 +57,24 @@ Trains knock the car away as immovable objects. A hit costs +3 s, or +2 s if the
 Waiting at a red light, or queued behind a train that is, never triggers the deadlock breaker.
 `tests/traffic.mjs` checks that trains never enter on red, never overlap, and don't gridlock, both with lights everywhere and with the random mix.
 
+## Road lanes (2 / 3 / 4) and potholes
+
+* Every tunnel carries a **procedural lane plan** (`src/lanes.js`, seeded, stored on the edge and saved with the splines JSON): 1 or 2 lanes per direction → 2, 3 (2+1 / 1+2) or 4 lanes. Plans include constant widths and transitions such as 4→2, 4→3, 3→2, 2→4→2 and 4→2→4.
+* Each side is `0.5 + 3.5·n` m wide. The cross-section ring has a **constant vertex count**, so wall, curb and arch just slide outward and the mesh stays one closed all-quad surface. Wide spans get a higher arch crown and a deeper support beam. Cart tracks always stay in the inner lanes.
+* **Tapers** are smoothstep width transitions whose length adapts to the tunnel (10–32 m). A lane **drop** is placed late in its traffic's direction, leaving room for merge arrows and a LANE ENDS sign.
+* **Junctions** are sized per arm (the wider of each neighbouring pair). If a junction would get too big for a tunnel, the wide arm automatically **merges down to 2 lanes before the junction**. Wide tunnels passing too close to another tunnel also fall back to 2 lanes, and the overpass stays narrow.
+* **Markings** (`src/markings.js`) are derived from the same layout:
+  * edge lines that follow the tapers;
+  * a dashed centre line for 1+1, double solid otherwise;
+  * dashed lane dividers that end where a lane starts closing;
+  * merge arrows and LANE ENDS signs;
+  * gaps where paint would lie inside a pothole.
+* **Potholes** (`src/potholes.js`) are real dents: an irregular bowl with a rough bottom and a crumbled lip, 7–18 cm deep and up to 2.5 m wide in the outer lanes.
+  * The tunnel builder inserts extra edge loops around each hole (adaptive ring spacing), so the dent keeps a clean quad topology.
+  * The dent is also in the **collision mesh**, so the car's suspension feels it.
+* GUI → *Tunnel profile*: **road lanes** (procedural mix / all 2 / all 3 / all 4) and **potholes / 100 m**.
+* GUI → *Selected tunnel lanes*: pick a control point in the editor to set that tunnel's pattern, swap the wide side, or re-roll all plans.
+
 ## Drivable vertical profile
 
 The floor is never flat, but it is bounded so the car stays planted:

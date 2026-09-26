@@ -16,6 +16,8 @@
 import * as THREE from 'three';
 import { EdgeSpline } from './network.js';
 import { buildProfile, MAT } from './profile.js';
+import { effectiveLanes, endLanes, laneLayout, sideHalfWidth } from './lanes.js';
+import { generatePotholes, dentAt, denseIntervals, ringPositions } from './potholes.js';
 import { fbm3 } from './noise.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -76,6 +78,27 @@ class MeshData {
       else this.quads.push(q[0], q[1], q[2], q[3]);
     }
     this.patchInfo.push({ name, start, count: local.length });
+  }
+  // direction in which quads [start, start+count) traverse edge v0-v1: +1 (v0->v1), -1, or 0 (absent)
+  edgeDir(v0, v1, start, count) {
+    const q = this.quads;
+    for (let f = start; f < start + count; f++) for (let j = 0; j < 4; j++) {
+      const a = q[f * 4 + j], b = q[f * 4 + ((j + 1) & 3)];
+      if (a === v0 && b === v1) return 1;
+      if (a === v1 && b === v0) return -1;
+    }
+    return 0;
+  }
+  // make the last patch consistent with a reference patch across a shared edge
+  orientLastAgainst(refName, v0, v1) {
+    const last = this.patchInfo[this.patchInfo.length - 1];
+    const ref = this.patchInfo.find((p) => p.name === refName);
+    if (!ref) return;
+    const dr = this.edgeDir(v0, v1, ref.start, ref.count), dl = this.edgeDir(v0, v1, last.start, last.count);
+    if (dr && dl && dr === dl) {
+      const q = this.quads;
+      for (let f = last.start; f < last.start + last.count; f++) { const t = q[f * 4 + 1]; q[f * 4 + 1] = q[f * 4 + 3]; q[f * 4 + 3] = t; }
+    }
   }
 }
 
@@ -138,8 +161,22 @@ export function buildMine(net, P, opts = {}) {
     hubs[e.a].arms.push({ edge: ei, end: 'a' });
     hubs[e.b].arms.push({ edge: ei, end: 'b' });
   });
-  const halfW = P.roadHalfWidth + P.wallBulge + rockForLayout * 0.6;
+  const extra = P.wallBulge + rockForLayout * 0.6;
+  const halfW = sideHalfWidth(1) + extra; // narrowest tunnel (used for conflict checks)
+  const plans = net.edges.map((e) => effectiveLanes(e, P.laneMode || 'random'));
   const cut = net.edges.map(() => ({ a: 10, b: 10 }));
+  const sizeHubs = () => {
+    for (const hub of hubs) {
+      const K = hub.arms.length;
+      for (let i = 0; i < K; i++) {
+        const prev = hub.arms[(i + K - 1) % K], next = hub.arms[(i + 1) % K], cur = hub.arms[i];
+        const ang = (x, y) => { let d = y.angle - x.angle; while (d <= 0) d += Math.PI * 2; return d; };
+        // each neighbour pair must clear the WIDER of the two tunnels
+        const need = (o, th) => Math.max(cur.hw, o.hw) / Math.tan(Math.min(th, Math.PI * 0.95) / 2) + 3.5;
+        cur.R = Math.max(need(prev, ang(prev, cur)), need(next, ang(cur, next)), cur.hw + 4.5);
+      }
+    }
+  };
   for (const hub of hubs) {
     const c = new THREE.Vector3(...hub.node.p);
     for (const arm of hub.arms) {
@@ -147,17 +184,80 @@ export function buildMine(net, P, opts = {}) {
       const s = arm.end === 'a' ? Math.min(9, sp.length * 0.3) : Math.max(sp.length - 9, sp.length * 0.7);
       const p = sp.pointAt(s);
       arm.dir0 = new THREE.Vector3(p.x - c.x, 0, p.z - c.z).normalize();
+      const [l, r] = endLanes(plans[arm.edge], arm.end);
+      arm.hw = sideHalfWidth(Math.max(l, r)) + extra; // widest side of this arm at the junction
       arm.angle = Math.atan2(-arm.dir0.z, arm.dir0.x);
     }
     hub.arms.sort((x, y) => x.angle - y.angle);
     const K = hub.arms.length;
     if (K < 3) warnings.push(`node ${hub.node.id} has only ${K} tunnels (needs >= 3)`);
-    for (let i = 0; i < K; i++) {
-      const prev = hub.arms[(i + K - 1) % K], next = hub.arms[(i + 1) % K], cur = hub.arms[i];
-      const ang = (x, y) => { let d = y.angle - x.angle; while (d <= 0) d += Math.PI * 2; return d; };
-      const th = Math.min(ang(prev, cur), ang(cur, next));
-      let R = Math.max(halfW / Math.tan(Math.min(th, Math.PI * 0.95) / 2) + 3.5, halfW + 4.5);
-      cur.R = R;
+  }
+  sizeHubs();
+  // tight junction + wide tunnel: merge down to 2 lanes BEFORE the junction instead of
+  // blowing the junction up (procedural fallback, repeated until everything fits)
+  const uniformKeys = (pl) => pl.keys.every((k) => k[0] === pl.keys[0][0] && k[1] === pl.keys[0][1]);
+  const narrowEnd = (arm) => {
+    const ei = arm.edge, pl = plans[ei];
+    const keys = pl.keys.length === 1 ? [pl.keys[0], pl.keys[0]] : pl.keys.slice();
+    const at = pl.keys.length === 1 ? [0.5] : pl.at.slice();
+    const idx = arm.end === 'a' ? 0 : keys.length - 1;
+    if (keys[idx][0] === 1 && keys[idx][1] === 1) return false;
+    keys[idx] = [1, 1];
+    plans[ei] = uniformKeys({ keys }) ? { keys: [keys[0]], at: [] } : { keys, at };
+    arm.hw = sideHalfWidth(1) + extra;
+    return true;
+  };
+  for (let iter = 0; iter < 80; iter++) {
+    let changed = false;
+    net.edges.forEach((e, ei) => {
+      if (changed) return;
+      const ha = hubs[e.a].arms.find((x) => x.edge === ei && x.end === 'a');
+      const hb = hubs[e.b].arms.find((x) => x.edge === ei && x.end === 'b');
+      if (!ha || !hb) return;
+      const room = splines[ei].length - 6; // (a taper that doesn't fit falls back to the narrow config)
+      if (ha.R + hb.R <= room) return;
+      // candidates: this tunnel's ends and their neighbouring arms (they size the junction too)
+      const cands = [];
+      for (const [arm, hub] of [[ha, hubs[e.a]], [hb, hubs[e.b]]]) {
+        const K = hub.arms.length, i = hub.arms.indexOf(arm);
+        cands.push(arm, hub.arms[(i + 1) % K], hub.arms[(i + K - 1) % K]);
+      }
+      cands.sort((x, y) => y.hw - x.hw);
+      for (const c of cands) if (narrowEnd(c)) { changed = true; break; }
+    });
+    if (!changed) break;
+    sizeHubs();
+  }
+  // wide tunnels passing close to another tunnel: merge them to 2 lanes (clearance)
+  {
+    const samples = net.edges.map((e, ei) => {
+      const sp = splines[ei], L = sp.length, out = [];
+      const hw = Math.max(...plans[ei].keys.map((k) => sideHalfWidth(Math.max(k[0], k[1])))) + extra;
+      for (let s = 12; s < L - 12; s += 3) out.push({ p: sp.pointAt(s), hw, ei });
+      return out;
+    });
+    const wide = (ei) => plans[ei].keys.some((k) => k[0] > 1 || k[1] > 1);
+    for (let i = 0; i < samples.length; i++) for (let j = i + 1; j < samples.length; j++) {
+      if (!wide(i) && !wide(j)) continue;
+      const ea = net.edges[i], eb = net.edges[j];
+      const shared = [ea.a, ea.b].filter((n) => n === eb.a || n === eb.b).map((n) => net.nodes[n].p);
+      let clash = false;
+      for (const A of samples[i]) {
+        for (const B of samples[j]) {
+          const hd = Math.hypot(A.p.x - B.p.x, A.p.z - B.p.z);
+          if (hd > A.hw + B.hw + 1 || Math.abs(A.p.y - B.p.y) > P.roofHeight + 3.5) continue;
+          if (shared.some((np) => Math.hypot(A.p.x - np[0], A.p.z - np[2]) < 32)) continue;
+          clash = true; break;
+        }
+        if (clash) break;
+      }
+      if (clash) {
+        for (const ei of [i, j]) if (wide(ei)) {
+          plans[ei] = { keys: [[1, 1]], at: [] };
+          for (const hub of [hubs[net.edges[ei].a], hubs[net.edges[ei].b]]) for (const arm of hub.arms) if (arm.edge === ei) arm.hw = sideHalfWidth(1) + extra;
+        }
+        sizeHubs();
+      }
     }
   }
   // second pass: rebuild splines so each tunnel stays level all the way to its
@@ -213,38 +313,53 @@ export function buildMine(net, P, opts = {}) {
     const sp = splines[ei];
     const s0 = cut[ei].a, s1 = cut[ei].b;
     const len = s1 - s0;
-    const count = Math.max(2, Math.ceil(len / P.ringSpacing));
+    // lane plan -> width along the tunnel; potholes -> adaptive edge loops
+    const layout = laneLayout(plans[ei], s0, s1);
+    const holes = opts.preview ? [] : generatePotholes(ei, P.seed, s0, s1, layout, prof, P.potholes ?? 4);
+    const sList = ringPositions(s0, s1, P.ringSpacing, denseIntervals(holes));
+    const count = sList.length - 1;
     const rings = [];
     const fwd = [], bwd = [];
     const cl = [];
     for (let i = 0; i <= count; i++) {
-      const s = s0 + (len * i) / count;
+      const s = sList[i];
       const f = frameAt(sp, s, s0, s1);
       const gw = smoothstep(1.0, 6.0, Math.min(s - s0, s1 - s)); // groove weight
+      const L = layout(s);
+      const pr = prof.ringAt(L.hwL, L.hwR), uni = prof.uniformAt(L.hwL, L.hwR), arc = prof.arcOf(pr);
       const ring = [];
       for (let j = 0; j < N; j++) {
-        const q = prof.ring[j];
+        const q = pr[j];
         let n = q.n, b = q.b, m = q.m;
         let col = null;
         if (j <= a) {
-          const u = prof.uniform[j];
+          const u = uni[j];
           n = u.n + (q.n - u.n) * gw;
           b = u.b + (q.b - u.b) * gw;
           const c0 = COLORS[MAT.PLATE], c1 = COLORS[q.m];
           const ww = smoothstep(0.0, 1.0, gw);
           col = [c0[0] + (c1[0] - c0[0]) * ww, c0[1] + (c1[1] - c0[1]) * ww, c0[2] + (c1[2] - c0[2]) * ww,
             METAL[MAT.PLATE] + (METAL[q.m] - METAL[MAT.PLATE]) * ww];
+          // potholes: dent the road vertices, darken the broken surface
+          if (holes.length && q.m === MAT.ROAD && gw > 0.999) {
+            const d = dentAt(holes, s, n);
+            if (d.dz !== 0 || d.wear > 0) {
+              b += d.dz;
+              const k = 1 - 0.55 * d.wear;
+              col = [col[0] * k * 0.95, col[1] * k * 0.9, col[2] * k * 0.85, 0];
+            }
+          }
         }
         _v.copy(f.p).addScaledVector(f.N, n).addScaledVector(f.B, b);
-        const vi = md.add(_v, m, q.rock, prof.arc[j] * 0.5, s * 0.5, col);
+        const vi = md.add(_v, m, q.rock, arc[j] * 0.5, s * 0.5, col);
         // track bed: collision surface stays at road level (rails are flush with it)
-        if (j <= a && b < 0) md.lift.set(vi, [-f.B.x * b, -f.B.y * b, -f.B.z * b]);
+        if (j <= a && b < 0 && q.m !== MAT.ROAD) md.lift.set(vi, [-f.B.x * b, -f.B.y * b, -f.B.z * b]);
         ring.push(vi);
       }
       rings.push(ring);
       fwd.push(f.p.clone().addScaledVector(f.N, -P.laneOffset));
       bwd.push(f.p.clone().addScaledVector(f.N, P.laneOffset));
-      cl.push({ p: f.p.clone(), T: f.T.clone(), N: f.N.clone(), B: f.B.clone(), s, edge: ei });
+      cl.push({ p: f.p.clone(), T: f.T.clone(), N: f.N.clone(), B: f.B.clone(), s, edge: ei, hwL: L.hwL, hwR: L.hwR });
     }
     // quads between consecutive rings
     const start = md.quads.length / 4;
@@ -273,7 +388,7 @@ export function buildMine(net, P, opts = {}) {
       if (score < 0) md.quads.push(Q[0], Q[3], Q[2], Q[1]); else md.quads.push(...Q);
     }
     md.patchInfo.push({ name: `tunnel${ei}`, start, count: quadsLocal.length });
-    tunnels.push({ edge: ei, rings, s0, s1 });
+    tunnels.push({ edge: ei, rings, s0, s1, layout, holes });
     lanes.push({ edge: ei, dir: 1, from: e.a, to: e.b, pts: fwd });
     lanes.push({ edge: ei, dir: -1, from: e.b, to: e.a, pts: bwd.slice().reverse() });
     centerline.push(...cl);
@@ -283,9 +398,12 @@ export function buildMine(net, P, opts = {}) {
     for (let i = 0; i <= sc; i++) {
       const s = s0 + 3 + i * P.supportSpacing + ((len - 6) - sc * P.supportSpacing) / 2;
       const f = frameAt(sp, s, s0, s1);
+      const Ls = layout(s);
+      f.hwL = Ls.hwL; f.hwR = Ls.hwR;
       supports.push(f);
       if (i % P.lampEvery === 0) {
-        lamps.push({ p: f.p.clone().addScaledVector(f.B, P.springHeight - 0.3), T: f.T.clone(), B: f.B.clone(), hub: false });
+        // hang the lamp under the middle of the (possibly asymmetric) arch
+        lamps.push({ p: f.p.clone().addScaledVector(f.N, (Ls.hwL - Ls.hwR) / 2).addScaledVector(f.B, P.springHeight - 0.3), T: f.T.clone(), B: f.B.clone(), hub: false });
       }
     }
   });
@@ -297,7 +415,8 @@ export function buildMine(net, P, opts = {}) {
     if (K < 3) continue;
     // corner resolution adapts to the hub size (min = filletSegs)
     const meanR = hub.arms.reduce((s, x) => s + x.R, 0) / K;
-    const k = THREE.MathUtils.clamp(Math.round((meanR - halfW) / 1.7), P.filletSegs, 10);
+    const meanHW = hub.arms.reduce((s, x) => s + x.hw, 0) / K;
+    const k = THREE.MathUtils.clamp(Math.round((meanR - meanHW) / 1.7), P.filletSegs, 10);
     const node = new THREE.Vector3(...hub.node.p);
     // gather arm rings in "outward" orientation
     const arms = hub.arms.map((arm) => {
@@ -385,6 +504,9 @@ export function buildMine(net, P, opts = {}) {
       const G = coonsFill(md, floorFillet[i], springFillet[i], A.leftWall, B.rightWall, MAT.ROCK,
         (u, v) => v * v * (3 - 2 * v), (p, u, v) => [u * 4, p.y * 0.5]);
       md.gridPatch(`hub${hub.node.id}_corner${i}`, G, (ctr) => hubCenterForWalls.clone().sub(ctr).setY(0));
+      // very sharp / wide corners can wrap past the hub centre -> the hint above may be
+      // wrong; the shared edge with arm A's tunnel is authoritative
+      md.orientLastAgainst(`tunnel${A.edge}`, A.leftWall[0], A.leftWall[1]);
     }
 
     // caps (floor and roof):
@@ -467,7 +589,13 @@ export function buildMine(net, P, opts = {}) {
     };
     const Cf = buildCap(false);
     const Cr = buildCap(true);
-    hubInfo.push({ id: hub.node.id, center: Cf.clone(), roof: Cr.clone(), arms: arms.map((A) => ({ edge: A.edge, end: A.end, T: A.T.clone(), mouth: A.center.clone() })) });
+    hubInfo.push({ id: hub.node.id, center: Cf.clone(), roof: Cr.clone(), arms: arms.map((A) => {
+      // road half widths at the mouth: hwIn = right-hand side for traffic ENTERING the junction
+      const t = tunnels[A.edge];
+      const Lm = A.end === 'a' ? t.layout(t.s0) : t.layout(t.s1);
+      const hwIn = A.end === 'a' ? Lm.hwL : Lm.hwR, hwOut = A.end === 'a' ? Lm.hwR : Lm.hwL;
+      return { edge: A.edge, end: A.end, T: A.T.clone(), mouth: A.center.clone(), hwIn, hwOut };
+    }) });
     lamps.push({ p: Cr.clone().add(new THREE.Vector3(0, -1.6, 0)), T: new THREE.Vector3(1, 0, 0), B: UP.clone(), hub: true });
   }
 
@@ -535,6 +663,10 @@ export function buildMine(net, P, opts = {}) {
     quads: Uint32Array.from(md.quads),
     patchInfo: md.patchInfo,
     lanes, supports, lamps, centerline, hubs: hubInfo, splines, cut, warnings,
+    roads: tunnels.map((t) => ({ edge: t.edge, s0: t.s0, s1: t.s1, layout: t.layout, holes: t.holes })),
+    frame: (ei, s) => frameAt(splines[ei], s, cut[ei].a, cut[ei].b),
+    plans,
+    potholeCount: tunnels.reduce((n, t) => n + t.holes.length, 0),
     profile: prof,
     stats: { verts: nv, quads: nq, tris: nq * 2, ms: performance.now() - t0 },
   };
@@ -582,25 +714,28 @@ export function findConflicts(net, centerline, cut, P, halfW) {
     if (!grid.has(k)) grid.set(k, []);
     grid.get(k).push(c);
   }
-  const minH = 2 * halfW + 0.6, minV = P.roofHeight + 1.8;
+  // vertical clearance: the LOWER tunnel's crown (wider spans have a higher crown)
+  const crown = (c) => P.roofHeight + 0.22 * Math.max(0, ((c.hwL ?? 4) + (c.hwR ?? 4)) / 2 - 4);
+  const extraW = halfW - sideHalfWidth(1);
+  const wOf = (c) => Math.max(c.hwL ?? 4, c.hwR ?? 4) + extraW;
   const found = new Map();
   for (const c of pts) {
     const cx = Math.floor(c.p.x / cell), cz = Math.floor(c.p.z / cell);
-    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
       const list = grid.get((cx + dx) + ',' + (cz + dz));
       if (!list) continue;
       for (const o of list) {
         if (o.edge <= c.edge) continue;
         const ea = net.edges[c.edge], eb = net.edges[o.edge];
         const hd = Math.hypot(c.p.x - o.p.x, c.p.z - o.p.z);
-        if (hd > minH || Math.abs(c.p.y - o.p.y) > minV) continue;
+        if (hd > wOf(c) + wOf(o) + 0.6 || Math.abs(c.p.y - o.p.y) > crown(c.p.y < o.p.y ? c : o) + 1.8) continue;
         // allow proximity close to a shared junction
         const shared = [ea.a, ea.b].filter((n) => n === eb.a || n === eb.b);
         let nearShared = false;
         for (const n of shared) {
           const np = net.nodes[n].p;
           const r = Math.hypot(c.p.x - np[0], c.p.z - np[2]);
-          if (r < 26) nearShared = true;
+          if (r < 32) nearShared = true;
         }
         if (nearShared) continue;
         const k2 = c.edge + '-' + o.edge;

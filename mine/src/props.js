@@ -10,18 +10,19 @@ export function buildProps(mine, P) {
   const bulbMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffc27a, emissiveIntensity: 12 });
   const cageMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5, metalness: 0.8, wireframe: false });
   const n = mine.supports.length;
-  const hw = P.roadHalfWidth;
   const postH = P.springHeight + 0.05;
   const post = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, postH, 0.3), wood, n * 2);
-  const capLen = 2 * (hw + P.wallBulge * 0.5);
-  const cap = new THREE.InstancedMesh(new THREE.BoxGeometry(capLen, 0.34, 0.34), wood, n);
+  // unit-length cap, scaled per support to the local span (2 / 3 / 4 lane tunnels)
+  const cap = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.34, 0.34), wood, n);
   const brace = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 1.2, 0.16), wood, n * 2);
   const plate = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.06, 0.4), steel, n * 2);
   const m = new THREE.Matrix4(), basis = new THREE.Matrix4(), off = new THREE.Matrix4(), rot = new THREE.Matrix4();
   mine.supports.forEach((f, i) => {
     // basis: x = left (N), y = up (B), z = forward (T)
     basis.makeBasis(f.N, f.B, f.T).setPosition(f.p);
+    const hwL = f.hwL ?? 4, hwR = f.hwR ?? 4;
     for (let s = 0; s < 2; s++) {
+      const hw = s ? hwR : hwL;
       const x = (s ? -1 : 1) * (hw - 0.05);
       off.makeTranslation(x, 0.12 + postH / 2, 0);
       post.setMatrixAt(i * 2 + s, m.multiplyMatrices(basis, off));
@@ -32,7 +33,10 @@ export function buildProps(mine, P) {
       off.makeTranslation((s ? -1 : 1) * (hw - 0.55), postH - 0.35, 0).multiply(rot);
       brace.setMatrixAt(i * 2 + s, m.multiplyMatrices(basis, off));
     }
-    off.makeTranslation(0, postH + 0.12 + 0.12, 0);
+    // wider spans get a deeper beam
+    const span = hwL + hwR + P.wallBulge;
+    const deep = 1 + Math.max(0, span - 8.5) * 0.12;
+    off.makeTranslation((hwL - hwR) / 2, postH + 0.12 + 0.17 - 0.17 * deep + 0.12, 0).multiply(rot.makeScale(span, deep, 1));
     cap.setMatrixAt(i, m.multiplyMatrices(basis, off));
   });
   [post, cap, brace, plate].forEach((im) => { im.castShadow = true; im.receiveShadow = true; im.instanceMatrix.needsUpdate = true; group.add(im); });

@@ -138,6 +138,13 @@ export class Traffic {
     return nextDist < stop + 4.5 ? (green ? 1 : 2) : 0;
   }
 
+  // hub id if the loco is on a junction route, else null
+  currentHub(tr) {
+    let d = tr.head;
+    for (const sg of tr.segments) { if (d <= sg.length) return sg.hub !== undefined ? sg.hub : null; d -= sg.length; }
+    return null;
+  }
+
   overlapsAny(tr) {
     for (const other of this.trains) {
       if (other === tr || other.cars[0].pos.distanceToSquared(tr.cars[0].pos) > 60 * 60) continue;
@@ -281,6 +288,21 @@ export class Traffic {
             }
           }
           if (blocked) break;
+        }
+        // two trains inside the same junction (only possible after a ghost): converging routes
+        // are invisible to the look-ahead above -> the train without the lock (or the higher
+        // index) yields to any car on its path
+        const myHub = blocked ? null : this.currentHub(tr);
+        if (myHub !== null && this.locks && this.locks.get(myHub) !== tr) {
+          const path = [];
+          for (let d = 2.5; d <= Math.max(look, 7); d += 1.5) path.push(this.pointAt(tr, tr.head + d, new THREE.Vector3()));
+          const myIdx = this.trains.indexOf(tr);
+          for (const other of this.trains) {
+            if (other === tr || this.currentHub(other) !== myHub) continue;
+            if (this.locks.get(myHub) !== other && this.trains.indexOf(other) > myIdx) continue;
+            for (const c of other.cars) { if (path.some((a) => a.distanceToSquared(c.pos) < 2.4 * 2.4)) { blocked = true; blocker = other; break; } }
+            if (blocked) break;
+          }
         }
       } else {
         tr.ghost -= dt;

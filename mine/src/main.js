@@ -12,6 +12,8 @@ import { World } from './world.js';
 import { CarPhysics, createCarMesh, syncCarMesh } from './car.js';
 import { Traffic } from './traffic.js';
 import { buildProps, disposeGroup } from './props.js';
+import { buildMarkings } from './markings.js';
+import { PATTERNS, describeLanes, setLanePattern, mirrorLanes, generateLanes } from './lanes.js';
 import { buildTracks } from './tracks.js';
 import { JunctionControl } from './signals.js';
 import { createMineMaterial } from './materials.js';
@@ -56,6 +58,8 @@ mineMesh.receiveShadow = true;
 scene.add(mineMesh);
 let props = new THREE.Group();
 scene.add(props);
+let markings = new THREE.Group();
+scene.add(markings);
 let tracks = new THREE.Group();
 scene.add(tracks);
 const topoMat = new THREE.LineBasicMaterial({ color: 0x46d8ff, transparent: true, opacity: 0.55 });
@@ -104,11 +108,15 @@ function rebuild(full = true) {
   if (showTopo) makeTopo();
   tracks.visible = full; // rails are rebuilt when the drag ends
   control.group.visible = full;
+  markings.visible = full;
   if (!full) return;
   world.setGeometry(mine.collisionGeometry);
   scene.remove(props); disposeGroup(props);
   props = buildProps(mine, P);
   scene.add(props);
+  scene.remove(markings); disposeGroup(markings);
+  markings = buildMarkings(mine, P); // lane lines, merge arrows, LANE ENDS signs
+  scene.add(markings);
   traffic.setMine(mine);   // lane graph + clearance-checked junction routes
   control.rebuild(mine, P, P.junctionControl, P.seed);
   spawnTrains();
@@ -164,6 +172,7 @@ function updateStats() {
   document.getElementById('stats').textContent =
     `mine mesh: 1 continuous closed quad surface\n${s.verts.toLocaleString()} verts · ${s.quads.toLocaleString()} quads · build ${s.ms.toFixed(0)} ms` +
     (control.hubs.size ? (() => { const n = control.counts(); return `\njunctions: ${n.lights} traffic lights · ${n.sign} warning signs · ${n.none} unmarked`; })() : '') +
+    (() => { const c = { 2: 0, 3: 0, 4: 0 }, t = [0]; mine.plans.forEach((p) => { const k = p.keys.map((x) => x[0] + x[1]); k.forEach((n) => { c[n]++; }); if (k.length > 1) t[0]++; }); return `\nroads: ${c[4]}× 4-lane · ${c[3]}× 3-lane · ${c[2]}× 2-lane sections · ${t[0]} lane-change tunnels · ${mine.potholeCount} potholes`; })() +
     (tracks.userData.stats ? `\ntrack: ${tracks.userData.stats.railKm.toFixed(1)} km of rail · ${tracks.userData.stats.routes} junction routes · ${tracks.userData.stats.sleepers.toLocaleString()} sleepers` : '') +
     (mine.warnings.length ? `\n⚠ ${mine.warnings.join('\n⚠ ')}` : '');
 }
@@ -242,6 +251,15 @@ function drawMinimapBase() {
   const toXY = (p) => [(p.x - mmBase.ox) * MM_SCALE, (p.z - mmBase.oz) * MM_SCALE];
   const edges = new Map();
   mine.centerline.forEach((c) => { if (!edges.has(c.edge)) edges.set(c.edge, []); edges.get(c.edge).push(c.p); });
+  // wide roads: draw each centreline segment with its real width
+  ctx.strokeStyle = 'rgba(255,215,160,0.5)';
+  for (let i = 1; i < mine.centerline.length; i++) {
+    const a = mine.centerline[i - 1], b = mine.centerline[i];
+    if (a.edge !== b.edge || (a.hwL + a.hwR) < 9) continue;
+    ctx.lineWidth = (a.hwL + a.hwR) * MM_SCALE * 0.8;
+    const [x0, y0] = toXY(a.p), [x1, y1] = toXY(b.p);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
   for (const [pass, width, col] of [[0, 7, 'rgba(255,170,80,0.22)'], [1, 3.2, 'rgba(255,215,160,0.85)']]) {
     ctx.strokeStyle = col; ctx.lineWidth = width;
     for (const [ei, pts] of edges) {
@@ -355,13 +373,13 @@ const actions = {
   delCP: () => editor.deleteControlPoint() || message('<small>select a cyan control point (edge keeps ≥1)</small>', 1.5),
   topology: () => toggleTopo(),
   exportOBJ: () => download(mineToOBJ(mine), `frontier_mine_seed${P.seed}.obj`),
-  exportGLB: async () => download(await exportGLB([mineMesh, props, tracks, control.group]), `frontier_mine_seed${P.seed}.glb`),
+  exportGLB: async () => download(await exportGLB([mineMesh, props, markings, tracks, control.group]), `frontier_mine_seed${P.seed}.glb`),
   saveJSON: () => download(JSON.stringify({ params: P, net }, null, 1), `frontier_mine_seed${P.seed}.json`, 'application/json'),
   loadJSON: () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
     inp.onchange = async () => {
       const data = JSON.parse(await inp.files[0].text());
-      Object.assign(P, data.params || {}); net = data.net; gui.controllersRecursive().forEach((c) => c.updateDisplay());
+      Object.assign(P, data.params || {}); net = data.net; if (net.edges.some((e) => !e.lanes)) generateLanes(net, P.seed); gui.controllersRecursive().forEach((c) => c.updateDisplay());
       rebuild(true); editor.rebuildHandles();
     };
     inp.click();
@@ -375,7 +393,8 @@ fGen.add(actions, 'addCP').name('+ insert control point');
 fGen.add(actions, 'delCP').name('− delete control point');
 const fShape = gui.addFolder('Tunnel profile');
 const rb = () => scheduleRebuild(true);
-fShape.add(P, 'roadHalfWidth', 3.2, 6, 0.1).name('road half width').onFinishChange(rb);
+fShape.add(P, 'laneMode', { 'procedural mix (per tunnel)': 'random', 'all 2 lanes': '2', 'all 3 lanes': '3', 'all 4 lanes': '4' }).name('road lanes').onChange(rb);
+fShape.add(P, 'potholes', 0, 20, 0.5).name('potholes / 100 m').onFinishChange(rb);
 fShape.add(P, 'springHeight', 2.4, 4.5, 0.1).name('wall height').onFinishChange(rb);
 fShape.add(P, 'roofHeight', 4.6, 8, 0.1).name('roof crown').onFinishChange(rb);
 fShape.add(P, 'wallBulge', 0, 1, 0.05).name('wall bulge').onFinishChange(rb);
@@ -383,6 +402,25 @@ fShape.add(P, 'grooveDepth', 0.12, 0.3, 0.01).name('track bed depth').onFinishCh
 fShape.add(P, 'rockNoise', 0, 0.9, 0.02).name('rock noise').onFinishChange(rb);
 fShape.add(P, 'bankMax', 0, 0.2, 0.01).name('max banking').onFinishChange(rb);
 fShape.add(P, 'minCrestRadius', 15, 150, 1).name('min crest radius (jumps)').onFinishChange(rb);
+// per-tunnel lane plan (select a control point / tunnel in the editor)
+const laneSel = { edge: -1, pattern: '2', mirror: () => { const e = net.edges[laneSel.edge]; if (!e) return; mirrorLanes(e); rb(); }, reroll: () => { generateLanes(net, P.seed); rb(); } };
+const fLanes = gui.addFolder('Selected tunnel lanes');
+const laneInfo = fLanes.add(laneSel, 'edge').name('tunnel (pick a control pt)').disable();
+const lanePick = fLanes.add(laneSel, 'pattern', PATTERNS).name('lanes (a → b)').onChange((v) => {
+  const e = net.edges[laneSel.edge]; if (!e) return;
+  setLanePattern(e, v);
+  if (P.laneMode !== 'random') { P.laneMode = 'random'; gui.controllersRecursive().forEach((c) => c.updateDisplay()); }
+  rb();
+});
+fLanes.add(laneSel, 'mirror').name('⇄ swap wide side');
+fLanes.add(laneSel, 'reroll').name('↻ re-roll all lane plans');
+lanePick.disable();
+editor.onSelect = (ud) => {
+  const ei = ud.type === 'node' ? -1 : ud.edge;
+  laneSel.edge = ei ?? -1;
+  if (laneSel.edge >= 0) { laneSel.pattern = describeLanes(net.edges[laneSel.edge]); lanePick.enable(); } else lanePick.disable();
+  laneInfo.updateDisplay(); lanePick.updateDisplay();
+};
 fShape.add(P, 'maxGrade', 0.05, 0.35, 0.01).name('max grade').onFinishChange(rb);
 const fTopo = gui.addFolder('Topology');
 fTopo.add(P, 'ringSpacing', 0.4, 2, 0.05).name('edge-loop spacing').onFinishChange(rb);
@@ -581,7 +619,7 @@ function frame() {
   }
   control.update(dt, traffic);
   if (!editor.active) {
-    const ev = control.checkCar(car.pos, P.roadHalfWidth);
+    const ev = control.checkCar(car.pos);
     if (ev === 'red' && raceRunning) { penalties += 3; message('RAN A RED LIGHT<small>+3.0 s penalty</small>', 1.4); flash(0.35); }
     else if (ev === 'red') message('RED LIGHT<small>trains have right of way</small>', 1.2);
   }
@@ -608,4 +646,4 @@ window.addEventListener('resize', () => {
 });
 
 // debug handle
-window.frontier = { scene, editor, get mine() { return mine; }, get net() { return net; }, car, traffic, control, P, rebuild };
+window.frontier = { scene, editor, get mine() { return mine; }, get net() { return net; }, car, traffic, control, P, rebuild, renderer, camera, get markings() { return markings; } };

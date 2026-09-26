@@ -120,7 +120,7 @@ export class JunctionControl {
   }
 
   // Player: returns 'red' once when the car enters a lights junction against a red
-  checkCar(pos, roadHalfWidth) {
+  checkCar(pos) {
     let event = null;
     for (const [id, c] of this.hubs) {
       if (c.type !== 'lights') continue;
@@ -133,7 +133,7 @@ export class JunctionControl {
         const key = id * 16 + i;
         const prev = this.carPrev.get(key);
         this.carPrev.set(key, d);
-        if (prev === undefined || Math.abs(lat) > roadHalfWidth + 0.5 || Math.abs(rel.y) > 4) return;
+        if (prev === undefined || Math.abs(lat) > Math.max(a.hwIn ?? 4, a.hwOut ?? 4) + 0.5 || Math.abs(rel.y) > 4) return;
         if (prev > 0.2 && d <= 0.2 && this.armState(c, i).state === 'red') event = 'red';
       });
     }
@@ -161,8 +161,8 @@ export class JunctionControl {
 
   buildVisuals(c, P) {
     const M = this.materials();
-    const hw = P.roadHalfWidth;
     c.arms.forEach((a) => {
+      const hw = a.hwIn ?? 4; // inbound (right-hand) half of this arm's road
       // frame at the mouth, facing traffic that enters the junction (-T)
       const right = new THREE.Vector3().crossVectors(UP, a.T).normalize(); // right-hand side for inbound traffic
       const g = new THREE.Group();
