@@ -13,6 +13,7 @@ import { CarPhysics, createCarMesh, syncCarMesh } from './car.js';
 import { Traffic } from './traffic.js';
 import { buildProps, disposeGroup } from './props.js';
 import { buildTracks } from './tracks.js';
+import { JunctionControl } from './signals.js';
 import { createMineMaterial } from './materials.js';
 import { Editor } from './editor.js';
 import { mineToOBJ, exportGLB, download } from './exporters.js';
@@ -61,6 +62,8 @@ const topoMat = new THREE.LineBasicMaterial({ color: 0x46d8ff, transparent: true
 let topoLines = null;
 let showTopo = false;
 const traffic = new Traffic(scene, world);
+const control = new JunctionControl(scene); // traffic lights / warning signs at T and + junctions
+traffic.control = control;
 
 // dynamic light pool (nearest lamps to the car get a real light)
 const POOL = 12;
@@ -100,12 +103,14 @@ function rebuild(full = true) {
   if (topoLines) { scene.remove(topoLines); topoLines.children.forEach((c) => c.geometry.dispose()); topoLines = null; }
   if (showTopo) makeTopo();
   tracks.visible = full; // rails are rebuilt when the drag ends
+  control.group.visible = full;
   if (!full) return;
   world.setGeometry(mine.collisionGeometry);
   scene.remove(props); disposeGroup(props);
   props = buildProps(mine, P);
   scene.add(props);
   traffic.setMine(mine);   // lane graph + clearance-checked junction routes
+  control.rebuild(mine, P, P.junctionControl, P.seed);
   spawnTrains();
   scene.remove(tracks); disposeGroup(tracks);
   tracks = buildTracks(mine, P, world, traffic); // rails follow every lane + junction route
@@ -158,6 +163,7 @@ function updateStats() {
   const s = mine.stats;
   document.getElementById('stats').textContent =
     `mine mesh: 1 continuous closed quad surface\n${s.verts.toLocaleString()} verts · ${s.quads.toLocaleString()} quads · build ${s.ms.toFixed(0)} ms` +
+    (control.hubs.size ? (() => { const n = control.counts(); return `\njunctions: ${n.lights} traffic lights · ${n.sign} warning signs · ${n.none} unmarked`; })() : '') +
     (tracks.userData.stats ? `\ntrack: ${tracks.userData.stats.railKm.toFixed(1)} km of rail · ${tracks.userData.stats.routes} junction routes · ${tracks.userData.stats.sleepers.toLocaleString()} sleepers` : '') +
     (mine.warnings.length ? `\n⚠ ${mine.warnings.join('\n⚠ ')}` : '');
 }
@@ -349,7 +355,7 @@ const actions = {
   delCP: () => editor.deleteControlPoint() || message('<small>select a cyan control point (edge keeps ≥1)</small>', 1.5),
   topology: () => toggleTopo(),
   exportOBJ: () => download(mineToOBJ(mine), `frontier_mine_seed${P.seed}.obj`),
-  exportGLB: async () => download(await exportGLB([mineMesh, props, tracks]), `frontier_mine_seed${P.seed}.glb`),
+  exportGLB: async () => download(await exportGLB([mineMesh, props, tracks, control.group]), `frontier_mine_seed${P.seed}.glb`),
   saveJSON: () => download(JSON.stringify({ params: P, net }, null, 1), `frontier_mine_seed${P.seed}.json`, 'application/json'),
   loadJSON: () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
@@ -391,6 +397,8 @@ const fTrains = gui.addFolder('Trains (traffic)');
 fTrains.add(P, 'trainCount', 0, 40, 1).name('number of trains').onFinishChange(spawnTrains);
 fTrains.add(P, 'trainSpeed', 0.2, 2.5, 0.05).name('train speed ×').onChange((v) => traffic.setSpeed(v));
 fTrains.add(P, 'maxWagons', 1, 6, 1).name('max wagons / train').onFinishChange(spawnTrains);
+fTrains.add(P, 'junctionControl', { 'random mix': 'random', 'all traffic lights': 'lights', 'all warning signs': 'signs', 'nothing (chaos)': 'none' })
+  .name('junction control').onChange(() => { control.rebuild(mine, P, P.junctionControl, P.seed); spawnTrains(); updateStats(); });
 fTrains.add({ respawn: () => { P.seed2 = (P.seed2 || 0) + 1; traffic.spawn({ count: P.trainCount, speed: P.trainSpeed, wagons: P.maxWagons, seed: P.seed + 5 + P.seed2 * 97 }); } }, 'respawn').name('↻ reshuffle trains');
 const fIO = gui.addFolder('Export');
 fIO.add(actions, 'exportOBJ').name('⤓ OBJ (quads)');
@@ -493,7 +501,10 @@ function collideCarts() {
       car.pos.addScaledVector(n, car.spec.sphereR - dist);
       const imp = car.resolveImpulse(sw, n, 0.35, 0.3, c.vel);
       if (imp > 4 && raceRunning && performance.now() - lastHit > 800) {
-        lastHit = performance.now(); penalties += 2; message('CART HIT<small>+2.0 s penalty</small>', 1.2); flash(0.5); shake = 1;
+        lastHit = performance.now();
+        const fast = c.vel.length() > 3;
+        penalties += fast ? 3 : 2;
+        message(fast ? 'HIT BY A TRAIN<small>+3.0 s penalty</small>' : 'CART HIT<small>+2.0 s penalty</small>', 1.3); flash(fast ? 0.8 : 0.5); shake = fast ? 1.6 : 1;
       }
     }
   });
@@ -568,6 +579,12 @@ function frame() {
     if (car.pos.y < -80) resetCarToTrack();
     updateRace(dt, inp);
   }
+  control.update(dt, traffic);
+  if (!editor.active) {
+    const ev = control.checkCar(car.pos, P.roadHalfWidth);
+    if (ev === 'red' && raceRunning) { penalties += 3; message('RAN A RED LIGHT<small>+3.0 s penalty</small>', 1.4); flash(0.35); }
+    else if (ev === 'red') message('RED LIGHT<small>trains have right of way</small>', 1.2);
+  }
   traffic.update(dt);
   syncCarMesh(carMesh, car);
   carMesh.userData.tailMat.emissiveIntensity = inp.brake ? 6 : 2.2;
@@ -591,4 +608,4 @@ window.addEventListener('resize', () => {
 });
 
 // debug handle
-window.frontier = { scene, editor, get mine() { return mine; }, get net() { return net; }, car, traffic, P, rebuild };
+window.frontier = { scene, editor, get mine() { return mine; }, get net() { return net; }, car, traffic, control, P, rebuild };

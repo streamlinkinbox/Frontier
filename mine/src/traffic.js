@@ -100,12 +100,12 @@ export class Traffic {
     const last = tr.cars[tr.cars.length - 1];
     const tailD = tr.head - last.offset - last.half.z - 0.5;
     const still = new Set();
-    let acc = 0, next = null, nextDist = 0;
+    let acc = 0, next = null, nextDist = 0, nextSeg = null;
     for (const seg of tr.segments) {
       if (seg.hub !== undefined) {
         const s0 = acc, s1 = acc + seg.length;
         if (s1 > tailD) still.add(seg.hub); // not yet cleared by the last wagon (incl. reserved ahead)
-        if (next === null && s0 > tr.head - 0.01) { next = seg.hub; nextDist = s0 - tr.head; }
+        if (next === null && s0 > tr.head - 0.01) { next = seg.hub; nextDist = s0 - tr.head; nextSeg = seg; }
       }
       acc += seg.length;
     }
@@ -119,14 +119,23 @@ export class Traffic {
     const q = this.queues.get(next);
     const holder = this.locks.get(next);
     const free = !holder || !this.trains.includes(holder);
-    tr.ready = this.exitClear(tr, nextDist); // don't block the box
+    // traffic lights: enter only on green, with enough green left to clear the junction
+    let green = true;
+    if (this.control && this.control.isSignalled(next)) {
+      const mul = this.speedMul ?? 1;
+      const v = Math.max(3, Math.min(tr.cruise * mul, 6.5 * Math.sqrt(Math.max(mul, 0.3))));
+      const need = (nextSeg.length + last.offset + last.half.z + 2 + nextDist) / v + (tr.speed < 1 ? 1.5 : 0);
+      green = this.control.canEnter(next, nextSeg.fromEdge, need);
+    }
+    tr.ready = green && this.exitClear(tr, nextDist); // don't block the box
     // an earlier queued train that could go right now has priority
     const earlierReady = q.slice(0, q.indexOf(tr)).some((o) => o.ready && this.trains.includes(o));
     if (free && tr.ready && !earlierReady) {
       this.locks.set(next, tr); held.add(next); this.dequeue(tr);
       return false;
     }
-    return nextDist < stop + 4.5; // wait at the "signal", clear of the junction
+    // wait at the stop line, clear of the junction (2 = red light: a legit wait, not a deadlock)
+    return nextDist < stop + 4.5 ? (green ? 1 : 2) : 0;
   }
 
   overlapsAny(tr) {
@@ -235,6 +244,7 @@ export class Traffic {
     const pts = (cached && cached.get(next)) || this.transitionPts(last.lane, next);
     const tseg = makePath(pts, null);
     tseg.hub = node; // junction route: needs the hub interlock
+    tseg.fromEdge = last.lane.edge; // arm the train enters from (traffic lights)
     train.segments.push(tseg);
     train.segments.push(makePath(next.pts, next));
   }
@@ -245,7 +255,7 @@ export class Traffic {
     for (const tr of this.trains) {
       const head = tr.cars[0];
       // look ahead for other trains
-      let blocked = false;
+      let blocked = false, blocker = null;
       if (tr.ghost <= 0) {
         const look = 7 + (tr.speed * tr.speed) / (2 * 14); // braking distance at 14 m/s^2
         this.pointAt(tr, tr.head + look, tmp);
@@ -263,10 +273,10 @@ export class Traffic {
             const fwd = tmp2.dot(head.dir);
             const lat2 = tmp2.lengthSq() - fwd * fwd;
             if (c.pos.distanceToSquared(tmp) < 2.2 * 2.2 || (fwd > 1.0 && fwd < 6.5 && lat2 < 1.9 * 1.9)) {
-              blocked = true; break;
+              blocked = true; blocker = other; break;
             }
             if (ahead.length && c.pos.distanceToSquared(head.pos) < reach2) {
-              for (const a of ahead) if (a.distanceToSquared(c.pos) < 2.2 * 2.2) { blocked = true; break; }
+              for (const a of ahead) if (a.distanceToSquared(c.pos) < 2.2 * 2.2) { blocked = true; blocker = other; break; }
               if (blocked) break;
             }
           }
@@ -282,8 +292,10 @@ export class Traffic {
       const lockStop = this.interlock(tr);
       if (lockStop) blocked = true;
       // deadlock breaker: after a long wait, pass through ("ghost") for a moment
-      if (blocked) { tr.wait += dt; if (tr.wait > 10) { tr.ghost = 2.5; tr.wait = 0; } }
-      else tr.wait = 0;
+      // waiting at a red light - or queued behind a train that is - is legit, not a deadlock
+      tr.legitWait = lockStop === 2 || (!!blocker && !!blocker.legitWait && blocker.speed < 0.5);
+      if (blocked && !tr.legitWait) { tr.wait += dt; if (tr.wait > 10) { tr.ghost = 2.5; tr.wait = 0; } }
+      else if (!blocked) tr.wait = 0;
       // slow down through junction transitions (tighter curves, crossing traffic)
       let d = tr.head + 4, onTransition = false;
       for (const seg of tr.segments) { if (d <= seg.length) { onTransition = !seg.lane; break; } d -= seg.length; }

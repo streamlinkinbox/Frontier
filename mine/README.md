@@ -43,6 +43,20 @@ With this layout the only irregular vertices are the centre pole of each junctio
   Trains running the other way on the parallel track are ignored.
   If traffic ever gridlocks at extreme settings, a train passes through the others for a moment instead.
 
+## Junction control (traffic lights / warning signs)
+
+Every T (3-arm) and + (4-arm) junction gets a seeded random control (`src/signals.js`), changeable under *Trains → junction control*:
+
+| type | share | what it does |
+|---|---|---|
+| **Traffic lights** | ~40 % | Signal at each arm mouth (right-hand side) with a stop line. Opposite arms share a green: + junctions have 2 phases; T junctions run the through pair, then the stem. Each phase is green 8 s, amber 2 s, then all-red 2 s. **Trains obey**: they enter only on green, and only if green + amber + all-red is long enough for the whole train to clear. **You** get +3 s for running a red. |
+| **Warning sign** | ~30 % | Crossbuck plus a yellow "TRAINS" diamond, with twin amber flashers that blink while a train is approaching or crossing. Nobody stops, so look both ways. |
+| **Nothing** | ~30 % | No warning at all. |
+
+Trains knock the car away as immovable objects. A hit costs +3 s, or +2 s if the cart is slow or stopped.
+Waiting at a red light, or queued behind a train that is, never triggers the deadlock breaker.
+`tests/traffic.mjs` checks that trains never enter on red, never overlap, and don't gridlock, both with lights everywhere and with the random mix.
+
 ## Drivable vertical profile
 
 The floor is never flat, but it is bounded so the car stays planted:

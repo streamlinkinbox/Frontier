@@ -28,6 +28,7 @@ export const DEFAULT_PARAMS = {
   trainCount: 10,
   trainSpeed: 1.0,        // multiplier on cruise speed (8-13 m/s)
   maxWagons: 3,
+  junctionControl: 'random', // 'random' | 'lights' | 'signs' | 'none'
 };
 
 export function createMaze(seed = 7, spacing = 58) {
