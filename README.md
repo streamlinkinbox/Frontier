@@ -5,7 +5,7 @@
 A low-poly driving level in Three.js (vendored, no build step).
 
 ```bash
-cd dday && python3 -m http.server 8080   # open http://localhost:8080
+node dday/serve.mjs 4321   # open http://localhost:4321
 ```
 
 **Goal:** drive from the landing craft on Omaha Beach to the gate in the Atlantic Wall, about 2.2 km of route, before the rising tide catches you.
