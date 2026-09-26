@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollowvein Mine — 3D Design Viewer</title>
+<style>
+  :root{ --amber:#ffb24d; --cyan:#57d7ff; --bg:#0d0a07; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:#e8ddc8}
+  canvas#c{position:fixed;inset:0;display:block}
+  #topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;
+    padding:10px 14px;background:linear-gradient(#171310ee,#17131000);z-index:20;flex-wrap:wrap}
+  #topbar h1{font-size:15px;font-weight:600;letter-spacing:.12em;color:#e8ddc8;margin-right:8px}
+  #topbar h1 b{color:var(--amber)}
+  .btn{background:#241c14;border:1px solid #4a3b28;color:#e8ddc8;padding:7px 14px;border-radius:6px;
+    font-size:13px;cursor:pointer;transition:.15s}
+  .btn:hover{background:#33271b;border-color:#6b5433}
+  .btn.active{background:var(--amber);color:#221505;border-color:var(--amber);font-weight:600}
+  #hud{position:fixed;left:16px;bottom:16px;z-index:20;display:none;user-select:none}
+  #speed{font-size:44px;font-weight:700;color:#fff;text-shadow:0 2px 8px #000;line-height:1}
+  #speed small{font-size:15px;color:#bfae90;font-weight:400}
+  #lapinfo{margin-top:8px;font-size:14px;background:#171310cc;padding:8px 12px;border-radius:8px;
+    border:1px solid #3a2f20;line-height:1.55}
+  #lapinfo b{color:var(--cyan)}
+  #gate{color:var(--amber);font-weight:600}
+  #minimap{position:fixed;top:56px;right:14px;z-index:20;border:1px solid #4a3b28;border-radius:8px;
+    background:#17130fd9;display:none}
+  #help{position:fixed;right:14px;bottom:14px;z-index:20;font-size:12px;color:#bfae90;
+    background:#171310cc;border:1px solid #3a2f20;border-radius:8px;padding:10px 12px;line-height:1.7;display:none}
+  #help b{color:#e8ddc8;background:#2c2318;padding:1px 6px;border-radius:4px;font-family:monospace}
+  #flash{position:fixed;top:38%;left:50%;transform:translate(-50%,-50%);z-index:30;font-size:34px;
+    font-weight:800;color:#ff5f4b;text-shadow:0 0 24px #000;opacity:0;pointer-events:none;
+    transition:opacity .25s;letter-spacing:.05em;text-align:center}
+  #note{position:fixed;top:56px;left:14px;z-index:20;font-size:12px;color:#9c8f78;max-width:330px;
+    background:#171310bb;padding:8px 11px;border-radius:8px;border:1px solid #33291c;line-height:1.5}
+  #mappanel{position:fixed;inset:0;z-index:40;background:#0d0a07f2;display:none;align-items:center;
+    justify-content:center;flex-direction:column;gap:12px}
+  #mappanel img{max-width:94%;max-height:88%;border:1px solid #4a3b28;border-radius:8px}
+  #mappanel .hint{color:#bfae90;font-size:13px}
+  #loading{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;
+    justify-content:center;flex-direction:column;gap:14px}
+  #loading .bar{width:280px;height:6px;background:#241c14;border-radius:3px;overflow:hidden}
+  #loading .bar i{display:block;height:100%;width:0%;background:var(--amber);transition:width .2s}
+  #loading p{color:#bfae90;font-size:13px;letter-spacing:.1em}
+  #cartwarn{position:fixed;top:50%;right:14px;transform:translateY(-50%);z-index:20;display:none;
+    color:#ff5f4b;font-weight:700;font-size:13px;background:#2a0f0acc;border:1px solid #6b1f16;
+    padding:8px 12px;border-radius:8px;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.35}}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./js/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="topbar">
+  <h1>HOLLOWVEIN <b>MINE</b> — 3D design viewer</h1>
+  <button class="btn active" data-mode="drive">⛏ Drive the mine</button>
+  <button class="btn" data-mode="car">🏎 Box car</button>
+  <button class="btn" data-mode="cart">🛒 Mine cart</button>
+  <button class="btn" id="mapbtn">🗺 Circuit map</button>
+</div>
+
+<div id="note">Greybox maquette — real PBR materials, 111k tris. In <b>Drive</b>: dodge the ore carts,
+hit the cyan gates in order (figure-8 over/under the bridge), cross the start line for a lap.</div>
+
+<div id="hud">
+  <div id="speed">0 <small>km/h</small></div>
+  <div id="lapinfo">
+    <div id="gate">GATE 1/7 — SE Corner</div>
+    <div>LAP <b id="laptime">—</b> &nbsp; BEST <b id="besttime">—</b></div>
+  </div>
+</div>
+<canvas id="minimap" width="238" height="238"></canvas>
+<div id="cartwarn">⚠ CART INCOMING</div>
+<div id="help">
+  <b>W A S D</b> drive &nbsp; <b>SPACE</b> handbrake<br>
+  <b>C</b> camera &nbsp; <b>L</b> headlights &nbsp; <b>R</b> respawn<br>
+  <b>M</b> map &nbsp; <b>drag</b> orbit (orbit cam)
+</div>
+<div id="flash"></div>
+<div id="mappanel"><img src="assets/maps/layout_map.png" alt="circuit map"><div class="hint">press M or click to close</div></div>
+<div id="loading"><p>LOADING HOLLOWVEIN MINE…</p><div class="bar"><i id="loadbar"></i></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './js/OrbitControls.js';
+import { GLTFLoader } from './js/GLTFLoader.js';
+import { RoomEnvironment } from './js/RoomEnvironment.js';
+import { EffectComposer } from './js/postprocessing/EffectComposer.js';
+import { RenderPass } from './js/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from './js/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from './js/postprocessing/OutputPass.js';
+
+/* ================================================================ core */
+const $ = id => document.getElementById(id);
+const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0a07);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 600);
+camera.position.set(8, 5, 12);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.55, 0.72);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 0.8, 0);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+
+/* lights */
+const hemi = new THREE.HemisphereLight(0x5a4a38, 0x1c140c, 0.55); scene.add(hemi);
+const dir = new THREE.DirectionalLight(0x8a7a62, 0.35); dir.position.set(30, 60, 20); scene.add(dir);
+const headlight = new THREE.SpotLight(0xffe9c4, 0, 95, 0.46, 0.55, 1.4);
+const headTarget = new THREE.Object3D();
+scene.add(headlight, headTarget); headlight.target = headTarget;
+const warmPool = [];
+for (let i = 0; i < 6; i++) {
+  const p = new THREE.PointLight(0xffab5e, 0, 30, 1.8);
+  p.position.set(0, -100, 0); scene.add(p); warmPool.push(p);
+}
+
+/* ================================================================ load */
+const manager = new THREE.LoadingManager();
+manager.onProgress = (u, n, t) => { $('loadbar').style.width = (n / t * 100) + '%'; };
+const loader = new GLTFLoader(manager);
+const load = url => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+
+const [mineGltf, carGltf, cartGltf, layout, lamps] = await Promise.all([
+  load('assets/models/mine_scene.glb'),
+  load('assets/models/boxcar.glb'),
+  load('assets/models/minecart.glb'),
+  fetch('assets/maps/layout.json').then(r => r.json()),
+  fetch('assets/maps/lamps.json').then(r => r.json()),
+]);
+
+const mineScene = mineGltf.scene;
+scene.add(mineScene);
+mineScene.visible = false;
+
+/* per-material tweaks */
+const setEnv = (root, intensity, fog) => {
+  root.traverse(o => {
+    if (o.isMesh) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => { if (m) m.envMapIntensity = intensity; });
+    }
+  });
+};
+setEnv(mineScene, 0.18);
+
+/* hide the baked start car + parked carts (drive mode spawns live ones) */
+const hiddenPrefixes = ['canary_', 'cartpark_'];
+mineScene.traverse(o => { if (o.name) o.userData.baseName = o.name; });
+const parkedNodes = [];
+mineScene.traverse(o => { if (hiddenPrefixes.some(p => o.name.startsWith(p))) parkedNodes.push(o); });
+
+/* ================================================================ layout helpers */
+const N = layout.n, CELL = layout.cell;
+const cellMap = new Map();
+layout.cells.forEach(c => cellMap.set(c.r + ',' + c.c, c));
+const cellAt = (x, z) => cellMap.get(Math.floor(z / CELL + N / 2) + ',' + Math.floor(x / CELL + N / 2));
+
+function deckFor(cell, y, curDeck) {
+  const eff = d => d[0] + (cell.road ? 0.14 : 0.05);   // effective road surface
+  const ok = d => d[1] >= y + 1.8 && (eff(d) - y <= 0.7) && (y - eff(d) <= 0.55);
+  const byDeck = cell.decks.find(d => d[2] === curDeck && ok(d));
+  if (byDeck) return byDeck;
+  let best = null;
+  for (const d of cell.decks) {
+    if (ok(d) && (!best || Math.abs(eff(d) - y) < Math.abs(eff(best) - y))) best = d;
+  }
+  return best;
+}
+function floorAt(x, z, y, deck) {
+  const cell = cellAt(x, z); if (!cell) return null;
+  const d = deckFor(cell, y, deck); if (!d) return null;
+  return { y: d[0] + (cell.road ? 0.14 : 0.05), deck: d[2] };
+}
+
+/* ================================================================ player car */
+const car = carGltf.scene;
+setEnv(car, 0.85);
+scene.add(car);
+const wheels = { fl: [], fr: [], rl: [], rr: [] };
+car.traverse(o => {
+  const m = o.name.match(/^wheel_(fl|fr|rl|rr)_/);
+  if (m) { o.rotation.order = 'YXZ'; wheels[m[1]].push(o); }
+});
+
+const spawn = layout.spawn;
+const P = {
+  x: spawn.x, z: spawn.z, y: 0.14, yaw: Math.PI / 2, speed: 0, steer: 0,
+  deck: 0, spin: 0, lock: 0, prevX: spawn.x,
+};
+const respawn = () => {
+  P.x = spawn.x; P.z = spawn.z; P.y = 0.14; P.yaw = Math.PI / 2;
+  P.speed = 0; P.deck = 0; P.lock = 0.6; P.prevX = spawn.x;
+};
+respawn();
+
+/* input */
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  if (e.code === 'KeyR') { respawn(); flash('RESPAWN', '#e8ddc8'); }
+  if (e.code === 'KeyL') { headlights = !headlights; }
+  if (e.code === 'KeyC') { orbitCam = !orbitCam; }
+  if (e.code === 'KeyM') { toggleMap(); }
+});
+addEventListener('keyup', e => keys[e.code] = false);
+let headlights = true, orbitCam = false;
+
+/* ================================================================ cart traffic */
+function makePath(pts) {
+  const segs = []; let L = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const dx = pts[i+1][0]-pts[i][0], dz = pts[i+1][1]-pts[i][1];
+    const l = Math.hypot(dx, dz);
+    segs.push({ a: pts[i], dx, dz, l, start: L }); L += l;
+  }
+  return { segs, L };
+}
+const pointAt = (path, s) => {
+  s = ((s % path.L) + path.L) % path.L;
+  for (const g of path.segs) {
+    if (s <= g.start + g.l) {
+      const t = (s - g.start) / g.l;
+      return { x: g.a[0] + g.dx * t, z: g.a[1] + g.dz * t, yaw: Math.atan2(g.dx, g.dz) };
+    }
+  }
+  const g = path.segs[path.segs.length - 1];
+  return { x: g.a[0] + g.dx, z: g.a[1] + g.dz, yaw: Math.atan2(g.dx, g.dz) };
+};
+
+const cartProto = cartGltf.scene;
+setEnv(cartProto, 0.3);
+const carts = [];
+layout.routes.forEach((rt, ri) => {
+  const path = makePath(rt.pts);
+  const n = rt.loop ? 4 : 1;
+  for (let k = 0; k < n; k++) {
+    const mesh = cartProto.clone(true);
+    mesh.visible = false; scene.add(mesh);
+    carts.push({ mesh, path, s0: k * path.L / n + ri * 13, speed: rt.speed,
+                 loop: rt.loop, dir: 1, s: k * path.L / n + ri * 13, live: false });
+  }
+});
+
+/* ================================================================ gates */
+const gateGroup = new THREE.Group(); scene.add(gateGroup);
+const gates = layout.checkpoints;
+let gateIdx = 0, lapStart = null, best = null;
+const gateMeshes = gates.map(g => {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(g.r - 1.2, 0.28, 8, 40),
+    new THREE.MeshBasicMaterial({ color: 0x57d7ff, transparent: true, opacity: 0.85 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(g.x, (g.y || 0.14) + 0.35, g.z);
+  const pillar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.4, 7, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0x57d7ff, transparent: true, opacity: 0.16,
+                                  side: THREE.DoubleSide, depthWrite: false }));
+  pillar.position.set(g.x, (g.y || 0.14) + 3.5, g.z);
+  gateGroup.add(ring, pillar);
+  return { ring, pillar };
+});
+
+/* ================================================================ minimap */
+const mm = $('minimap').getContext('2d');
+const mmBase = document.createElement('canvas');
+mmBase.width = mmBase.height = 238;
+{
+  const g = mmBase.getContext('2d');
+  const s = 238 / N;
+  const cols = { ring: '#8f8a80', ew: '#8f8a80', ns: '#c98a4b', bridge: '#e2762c',
+                 maze: '#4c4034', chamber: '#6e5a35' };
+  g.fillStyle = '#221d18'; g.fillRect(0, 0, 238, 238);
+  layout.cells.forEach(c => {
+    g.fillStyle = cols[c.tag] || '#666';
+    g.fillRect((c.c) * s, (c.r) * s, s + 0.5, s + 0.5);
+  });
+}
+const mmXY = (x, z) => [ (x / CELL + N / 2) * 238 / N, (z / CELL + N / 2) * 238 / N ];
+function drawMinimap() {
+  mm.drawImage(mmBase, 0, 0);
+  // carts
+  mm.fillStyle = '#ff5f4b';
+  carts.forEach(c => { if (!c.live) return; const [a, b] = mmXY(c.x, c.z); mm.fillRect(a - 2, b - 2, 4, 4); });
+  // next gate
+  if (gateIdx < gates.length) {
+    mm.strokeStyle = '#57d7ff'; mm.lineWidth = 1.5;
+    const [a, b] = mmXY(gates[gateIdx].x, gates[gateIdx].z);
+    mm.strokeRect(a - 5, b - 5, 10, 10);
+  }
+  // player
+  const [a, b] = mmXY(P.x, P.z);
+  mm.save(); mm.translate(a, b); mm.rotate(-P.yaw + Math.PI);
+  mm.fillStyle = '#ffe135';
+  mm.beginPath(); mm.moveTo(0, -6); mm.lineTo(4, 5); mm.lineTo(-4, 5); mm.closePath(); mm.fill();
+  mm.restore();
+}
+
+/* ================================================================ modes */
+let mode = 'drive';
+const showcase = { root: null, turntable: true };
+function clearShowcase() { if (showcase.root) { scene.remove(showcase.root); showcase.root = null; } }
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.btn[data-mode]').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === m));
+  const drive = m === 'drive';
+  $('hud').style.display = drive ? 'block' : 'none';
+  $('minimap').style.display = drive ? 'block' : 'none';
+  $('help').style.display = drive ? 'block' : 'none';
+  $('note').style.display = drive ? 'block' : 'none';
+  mineScene.visible = drive;
+  car.visible = drive;
+  carts.forEach(c => { c.mesh.visible = drive; c.live = drive; });
+  gateGroup.visible = drive;
+  scene.fog = drive ? new THREE.FogExp2(0x0c0906, 0.016) : null;
+  bloom.strength = drive ? 0.55 : 0.38;
+  clearShowcase();
+  if (m === 'car') {
+    showcase.root = carGltf.scene.clone(true);
+    scene.add(showcase.root);
+    camera.position.set(5.5, 2.6, 6.5);
+    controls.target.set(0, 0.8, 0);
+  } else if (m === 'cart') {
+    showcase.root = cartGltf.scene.clone(true);
+    scene.add(showcase.root);
+    camera.position.set(4, 2.4, 4.6);
+    controls.target.set(0, 0.8, 0);
+  }
+  controls.enabled = true;
+}
+document.querySelectorAll('.btn[data-mode]').forEach(b =>
+  b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+const toggleMap = () => {
+  const p = $('mappanel');
+  p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+};
+$('mapbtn').addEventListener('click', toggleMap);
+$('mappanel').addEventListener('click', toggleMap);
+
+let flashT = 0;
+function flash(msg, color = '#ff5f4b') {
+  $('flash').textContent = msg; $('flash').style.color = color; $('flash').style.opacity = 1;
+  flashT = 1.4;
+}
+
+/* ================================================================ drive physics */
+function passable(x, z, y, deck) { return floorAt(x, z, y, deck) !== null; }
+
+function tryMove(nx, nz) {
+  const cos = Math.cos(P.yaw), sin = Math.sin(P.yaw);
+  const corners = [[0.95, 1.65], [-0.95, 1.65], [0.95, -1.65], [-0.95, -1.65], [0, 1.8], [0, -1.8]];
+  const ok = (px, pz) => corners.every(c =>
+    passable(px + c[0] * cos + c[1] * sin, pz - c[0] * sin + c[1] * cos, P.y, P.deck));
+  if (ok(nx, nz)) return [nx, nz];
+  if (ok(nx, P.z)) return [nx, P.z];
+  if (ok(P.x, nz)) return [P.x, nz];
+  return null;
+}
+
+let warnT = 0;
+function updateDrive(dt) {
+  if (P.lock > 0) { P.lock -= dt; }
+  const locked = P.lock > 0;
+  const accel = locked ? 0 : (keys['KeyW'] || keys['ArrowUp'] ? 13.5 : 0)
+              + (keys['KeyS'] || keys['ArrowDown'] ? -9 : 0);
+  const braking = keys['Space'];
+  P.speed += accel * dt;
+  if (braking) P.speed *= Math.pow(0.14, dt);
+  if (!accel && !braking) P.speed *= Math.pow(0.42, dt);
+  P.speed = THREE.MathUtils.clamp(P.speed, -9, 31);
+
+  const steerIn = locked ? 0 : (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0)
+                        - (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0);
+  P.steer += (steerIn - P.steer) * Math.min(1, 9 * dt);
+  const grip = braking ? 1.9 : 2.35;
+  P.yaw += P.steer * grip * Math.min(Math.abs(P.speed), 17) / 17 * dt * Math.sign(P.speed || 1);
+
+  const nx = P.x + Math.sin(P.yaw) * P.speed * dt;
+  const nz = P.z + Math.cos(P.yaw) * P.speed * dt;
+  const mv = P.speed !== 0 ? tryMove(nx, nz) : [P.x, P.z];
+  if (mv) { P.x = mv[0]; P.z = mv[1]; }
+  else {
+    if (Math.abs(P.speed) > 6) flash('CRUNCH', '#ffb24d');
+    P.speed *= -0.22;
+  }
+
+  const fl = floorAt(P.x, P.z, P.y, P.deck);
+  if (fl) {
+    P.deck = fl.deck;
+    P.y += (fl.y - P.y) * Math.min(1, 11 * dt);
+    if (Math.abs(fl.y - P.y) > 2.2) P.y = fl.y;
+  }
+
+  /* gates */
+  if (gateIdx < gates.length) {
+    const g = gates[gateIdx];
+    const d = Math.hypot(P.x - g.x, P.z - g.z);
+    if (d < g.r && Math.abs((g.y || 0) - P.y) < 2.5) {
+      gateIdx++;
+      if (gateIdx === gates.length) flash('FINAL GATE — CROSS THE START LINE!', '#57d7ff');
+      else flash(`GATE ${gateIdx}/${gates.length} — ${gates[gateIdx].name}`, '#57d7ff');
+      if (gateIdx === 1) lapStart = performance.now();
+    }
+  } else {
+    const east = P.prevX < 0 && P.x >= 0 && P.z > 100 && P.z < 117 && P.y < 2 && P.speed > 0;
+    if (east) {
+      const t = (performance.now() - lapStart) / 1000;
+      if (best === null || t < best) { best = t; flash(`NEW BEST LAP — ${t.toFixed(1)}s`, '#ffe135'); }
+      else flash(`LAP ${t.toFixed(1)}s`, '#57d7ff');
+      gateIdx = 0; lapStart = null;
+    }
+  }
+  P.prevX = P.x;
+
+  /* cart collision + proximity warning */
+  let nearest = 99;
+  carts.forEach(c => {
+    if (!c.live) return;
+    const d = Math.hypot(c.x - P.x, c.z - P.z);
+    if (Math.abs(c.y - P.y) < 2.4) {
+      nearest = Math.min(nearest, d);
+      if (d < 2.6 && Math.abs(P.speed) > 0.5) {
+        flash('HIT BY ORE CART!');
+        respawn(); gateIdx = 0; lapStart = null;
+      }
+    }
+  });
+  $('cartwarn').style.display = (nearest < 16 && nearest < 99) ? 'block' : 'none';
+  warnT = 0;
+}
+
+/* ================================================================ loop */
+const clock = new THREE.Clock();
+let lampTimer = 0;
+const warmLamps = lamps.warm.map(a => new THREE.Vector3(a[0], a[1], a[2]));
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  if (mode === 'drive') {
+    controls.enabled = orbitCam;
+    updateDrive(dt);
+
+    /* car transform + wheels */
+    car.position.set(P.x, P.y, P.z);
+    car.rotation.y = P.yaw;
+    P.spin += (P.speed / 0.30) * dt;
+    wheels.fl.concat(wheels.fr).forEach(w => { w.rotation.y = P.steer * -0.42; w.rotation.x = P.spin; });
+    wheels.rl.concat(wheels.rr).forEach(w => { w.rotation.x = P.spin; });
+
+    /* carts */
+    carts.forEach(c => {
+      if (c.loop) c.s += c.speed * dt;
+      else {
+        c.s += c.speed * c.dir * dt;
+        if (c.s >= c.path.L) { c.s = c.path.L; c.dir = -1; }
+        if (c.s <= 0) { c.s = 0; c.dir = 1; }
+      }
+      const p = pointAt(c.path, c.s0 + c.s);
+      c.x = p.x; c.z = p.z; c.y = 0.16;
+      c.mesh.position.set(p.x, 0.16, p.z);
+      c.mesh.rotation.y = p.yaw + (c.dir < 0 ? Math.PI : 0);
+    });
+
+    /* gates pulse */
+    gateMeshes.forEach((g, i) => {
+      const on = i === gateIdx;
+      g.ring.visible = g.pillar.visible = on;
+      if (on) {
+        const s = 1 + 0.07 * Math.sin(t * 5);
+        g.ring.scale.set(s, s, s);
+        g.ring.material.opacity = 0.55 + 0.3 * Math.sin(t * 5);
+      }
+    });
+
+    /* headlights */
+    const fwd = new THREE.Vector3(Math.sin(P.yaw), 0, Math.cos(P.yaw));
+    headlight.intensity = headlights ? 950 : 0;
+    headlight.position.set(P.x + fwd.x * 1.6, P.y + 1.15, P.z + fwd.z * 1.6);
+    headTarget.position.set(P.x + fwd.x * 30, P.y + 0.4, P.z + fwd.z * 30);
+
+    /* nearby warm lamps -> point light pool */
+    lampTimer -= dt;
+    if (lampTimer <= 0) {
+      lampTimer = 0.4;
+      const sorted = warmLamps.map(v => ({ v, d: v.distanceToSquared(car.position) }))
+                              .sort((a, b) => a.d - b.d).slice(0, 6);
+      warmPool.forEach((p, i) => {
+        if (i < sorted.length) { p.position.copy(sorted[i].v); p.intensity = 26; }
+        else p.intensity = 0;
+      });
+    }
+
+    /* HUD */
+    $('speed').innerHTML = `${Math.abs(P.speed * 3.6).toFixed(0)} <small>km/h</small>`;
+    $('gate').textContent = gateIdx < gates.length
+      ? `GATE ${gateIdx + 1}/${gates.length} — ${gates[gateIdx].name}` : 'CROSS THE START LINE!';
+    if (lapStart) $('laptime').textContent = ((performance.now() - lapStart) / 1000).toFixed(1) + 's';
+    $('besttime').textContent = best === null ? '—' : best.toFixed(1) + 's';
+    drawMinimap();
+
+    /* camera */
+    if (!orbitCam) {
+      const back = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw));
+      const desired = new THREE.Vector3(P.x, P.y, P.z).addScaledVector(back, 7.6).add(new THREE.Vector3(0, 3.4, 0));
+      camera.position.lerp(desired, 1 - Math.exp(-4.5 * dt));
+      controls.target.lerp(new THREE.Vector3(P.x + fwd.x * 4, P.y + 1.1, P.z + fwd.z * 4), 1 - Math.exp(-6 * dt));
+      controls.update();
+    } else {
+      controls.update();
+    }
+  } else {
+    controls.enabled = true;
+    if (showcase.root && showcase.turntable) showcase.root.rotation.y = t * 0.45;
+    controls.update();
+  }
+
+  if (flashT > 0) { flashT -= dt; if (flashT <= 0) $('flash').style.opacity = 0; }
+  composer.render();
+}
+
+setMode('drive');
+$('loading').style.display = 'none';
+animate();
+</script>
+</body>
+</html>
