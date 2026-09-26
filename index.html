@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DDAY — Breakwater</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="crosshair">+</div>
+      <div id="objective">
+        <span class="tag">OBJECTIVE</span>
+        <span id="objective-text">Reach the Wall</span>
+      </div>
+      <div id="tide">
+        <span class="tag">TIDE</span>
+        <div class="bar"><div id="tide-fill"></div></div>
+        <span id="tide-text">rising</span>
+      </div>
+      <div id="health">
+        <span class="tag">HP</span>
+        <div class="bar"><div id="health-fill"></div></div>
+      </div>
+      <div id="prompt"></div>
+      <div id="speedo"></div>
+      <div id="damage-flash"></div>
+    </div>
+
+    <!-- Title screen -->
+    <div id="menu">
+      <div class="menu-card">
+        <h1>DDAY</h1>
+        <h2>BREAKWATER</h2>
+        <p class="brief">
+          The tide is rising behind you. Ahead: the Wall — concrete, bunkers,
+          sentry guns, minefields and wire. Reach the gate alive.
+        </p>
+        <ul class="controls">
+          <li><b>WASD</b> move &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump</li>
+          <li><b>MOUSE</b> look &nbsp;·&nbsp; <b>E</b> enter / exit the car</li>
+          <li><b>ESC</b> release mouse</li>
+        </ul>
+        <p class="warn">Sentries target vehicles on sight. Mines detonate on contact.</p>
+        <button id="start-btn">DEPLOY</button>
+      </div>
+    </div>
+
+    <!-- End screens -->
+    <div id="end" class="hidden">
+      <div class="menu-card">
+        <h1 id="end-title">VICTORY</h1>
+        <p id="end-text">You reached the Wall.</p>
+        <button id="retry-btn">REDEPLOY</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
