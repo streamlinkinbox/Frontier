@@ -19,7 +19,7 @@ export const WORLD = {
 };
 
 export const PLAYER = {
-  spawn: { x: 4, z: -6, yaw: Math.PI }, // yaw π = facing the wall (+z)
+  spawn: { x: 6, z: -10, yaw: Math.PI }, // yaw π = facing the wall (+z)
   eye: 1.68,
   radius: 0.42,
   walk: 4.6,
@@ -29,7 +29,7 @@ export const PLAYER = {
 };
 
 export const CAR = {
-  spawn: { x: 14, z: -12, yaw: 0.25 },
+  spawn: { x: 13, z: -1, yaw: 0.22 }, // parked in view of spawn, nose toward the wall
   maxSpeed: 16.5,
   accel: 9.5,
   brake: 18,
@@ -181,11 +181,11 @@ export const AP_MINE_FIELDS = [
 
 // Static tanks (never move): {x, z, yaw, variant: 'intact' | 'wreck'}
 export const TANKS = [
-  { x: -17, z: 74, yaw: 0.42, variant: 'intact' },
-  { x: 27, z: 57, yaw: -0.55, variant: 'wreck' },
+  { x: 22, z: 26, yaw: -0.55, variant: 'wreck' },   // just off the road — first thing you see
+  { x: -18, z: 44, yaw: 0.42, variant: 'intact' },  // left of the main road
+  { x: -34, z: 74, yaw: 0.9, variant: 'wreck' },
   { x: -56, z: 106, yaw: 1.25, variant: 'intact' },
   { x: 66, z: 128, yaw: -2.2, variant: 'wreck' },
-  { x: -34, z: 24, yaw: 0.9, variant: 'wreck' },
 ];
 
 // Defensive bunkers (pillboxes) facing the beach.

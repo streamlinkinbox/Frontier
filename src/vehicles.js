@@ -8,10 +8,12 @@ import { TANKS } from './layout.js';
 // ---------------------------------------------------------------------------
 
 const PAINT = new THREE.MeshStandardMaterial({
-  color: '#2b4a78', flatShading: true, roughness: 0.5, metalness: 0.25,
+  color: '#3a67a8', flatShading: true, roughness: 0.5, metalness: 0.25,
+  emissive: '#0e1c30', emissiveIntensity: 0.25,
 });
 const GLASS = new THREE.MeshStandardMaterial({
-  color: '#18262f', flatShading: true, roughness: 0.18, metalness: 0.15,
+  color: '#2c4b60', flatShading: true, roughness: 0.25, metalness: 0.2,
+  emissive: '#101d29', emissiveIntensity: 0.6,
 });
 const TIRE = new THREE.MeshStandardMaterial({ color: '#1c1f21', flatShading: true, roughness: 0.85 });
 const HUB = new THREE.MeshStandardMaterial({ color: '#8b9296', flatShading: true, roughness: 0.45, metalness: 0.55 });
@@ -42,7 +44,8 @@ function buildSedanBody() {
   const quad = (a, b, c, d, bucket) => {
     const base = verts.length / 3;
     for (const v of [a, b, c, d]) verts.push(v[0], v[1], v[2]);
-    bucket.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    // sections run front(+z) -> rear(-z), so wind clockwise for outward normals
+    bucket.push(base, base + 2, base + 1, base, base + 3, base + 2);
   };
 
   for (let i = 0; i < S.length - 1; i++) {
@@ -70,10 +73,10 @@ function buildSedanBody() {
     quad(p100, p101, p001, p000, paintIdx);
   }
 
-  // caps (front +z needs +z normals, rear -z needs -z normals)
+  // caps (winding matches the loft flip: these read as +z / -z outward)
   const sF = S[0], sB = S[S.length - 1];
-  quad([sF.w, sF.y0, sF.z], [sF.w, sF.y1, sF.z], [-sF.w, sF.y1, sF.z], [-sF.w, sF.y0, sF.z], paintIdx);
-  quad([-sB.w, sB.y0, sB.z], [-sB.w, sB.y1, sB.z], [sB.w, sB.y1, sB.z], [sB.w, sB.y0, sB.z], paintIdx);
+  quad([-sF.w, sF.y0, sF.z], [-sF.w, sF.y1, sF.z], [sF.w, sF.y1, sF.z], [sF.w, sF.y0, sF.z], paintIdx);
+  quad([sB.w, sB.y0, sB.z], [sB.w, sB.y1, sB.z], [-sB.w, sB.y1, sB.z], [-sB.w, sB.y0, sB.z], paintIdx);
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));

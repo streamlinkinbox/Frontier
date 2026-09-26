@@ -48,7 +48,7 @@ camera.position.set(WORLD.gateHalfWidth, 8, 60);
 }
 
 // --- lights ----------------------------------------------------------------
-const hemi = new THREE.HemisphereLight('#cfe3ec', '#8a7a62', 0.85);
+const hemi = new THREE.HemisphereLight('#cfe3ec', '#998a72', 1.15);
 scene.add(hemi);
 
 const sun = new THREE.DirectionalLight('#fff2dc', 1.6);
@@ -66,7 +66,7 @@ scene.add(sun);
 scene.add(sun.target);
 sun.target.position.set(0, 0, 80);
 
-const fill = new THREE.DirectionalLight('#bcd4e2', 0.32);
+const fill = new THREE.DirectionalLight('#bcd4e2', 0.45);
 fill.position.set(80, 40, -80);
 scene.add(fill);
 
@@ -82,6 +82,11 @@ const { sentries } = buildFortress(scene);
 // --- game ------------------------------------------------------------------
 const game = createGame({ scene, camera, ocean, sentries, tankMines, apMines, tanks, car });
 
+// debug handle (used by scripts/screenshot.mjs)
+window.__game = game;
+window.__camera = camera;
+window.__car = car;
+
 // --- input -----------------------------------------------------------------
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
@@ -89,8 +94,24 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => game.keyup(e.code));
 
+let mouseFilterUntil = 0;
+let skipFirstBigMove = false;
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === canvas) {
+    // ignore the pointer-lock engagement jolt (synthetic mouse warp)
+    mouseFilterUntil = performance.now() + 350;
+    skipFirstBigMove = true;
+  }
+});
+
 document.addEventListener('mousemove', (e) => {
-  if (document.pointerLockElement === canvas) game.mouse(e.movementX, e.movementY);
+  if (document.pointerLockElement !== canvas) return;
+  if (performance.now() < mouseFilterUntil) return;
+  if (skipFirstBigMove) {
+    skipFirstBigMove = false;
+    if (Math.abs(e.movementX) + Math.abs(e.movementY) > 60) return; // warp artifact
+  }
+  game.mouse(e.movementX, e.movementY);
 });
 
 canvas.addEventListener('click', () => {
@@ -119,9 +140,11 @@ window.addEventListener('resize', () => {
 
 // --- loop ------------------------------------------------------------------
 const clock = new THREE.Clock();
+window.__frames = 0;
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
+  window.__frames++;
   ocean.update(t, dt);
   game.update(dt);
   renderer.render(scene, camera);

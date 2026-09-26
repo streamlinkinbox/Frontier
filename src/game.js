@@ -500,6 +500,9 @@ export function createGame({ scene, camera, ocean, sentries, tankMines, apMines,
     keyup(code) { state.keys[code] = false; },
     mouse(dx, dy) {
       if (state.carState.occupied) return;
+      // clamp synthetic/teleport deltas so the view can never snap wildly
+      dx = THREE.MathUtils.clamp(dx, -140, 140);
+      dy = THREE.MathUtils.clamp(dy, -140, 140);
       state.player.yaw -= dx * 0.0022;
       state.player.pitch = THREE.MathUtils.clamp(state.player.pitch - dy * 0.0022, -1.35, 1.35);
     },
