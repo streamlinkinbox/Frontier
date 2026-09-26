@@ -17,6 +17,9 @@ import {
   createTimberBridge,
   createSandbagStack,
   createSmokeColumn,
+  createLandingCraft,
+  createRevetment,
+  createCrate,
   lambert,
 } from "./models.js";
 
@@ -65,25 +68,24 @@ const ROAD_POINTS = [
 
 const MOUNDS = [
   // dune belt
-  { x: -38, z: 170, r: 22, h: 7.5 },
-  { x: 42, z: 185, r: 24, h: 8.2 },
-  { x: -48, z: 250, r: 20, h: 6.4 },
-  { x: 50, z: 280, r: 26, h: 9.0 },
-  { x: 8, z: 290, r: 14, h: 4.2 },
-  // inland earthworks
-  { x: -52, z: 430, r: 28, h: 9.5 },
-  { x: 48, z: 470, r: 24, h: 8.0 },
-  { x: -40, z: 560, r: 18, h: 6.8 },
-  { x: 44, z: 640, r: 22, h: 7.6 },
-  { x: -58, z: 820, r: 30, h: 10.5 },
-  { x: 56, z: 860, r: 26, h: 9.2 },
-  { x: -46, z: 980, r: 20, h: 7.0 },
-  { x: 50, z: 1100, r: 24, h: 8.4 },
-  { x: -54, z: 1220, r: 28, h: 9.8 },
-  { x: 46, z: 1280, r: 22, h: 7.5 },
-  { x: -36, z: 1450, r: 20, h: 6.5 },
-  { x: 40, z: 1480, r: 24, h: 8.0 },
-  { x: 0, z: 1525, r: 16, h: 4.0 },
+  { x: -38, z: 170, r: 24, h: 9.5 },
+  { x: 42, z: 185, r: 26, h: 10.2 },
+  { x: -48, z: 250, r: 22, h: 8.4 },
+  { x: 50, z: 280, r: 28, h: 11.0 },
+  { x: 8, z: 290, r: 14, h: 5.2 },
+  { x: -52, z: 430, r: 30, h: 11.5 },
+  { x: 48, z: 470, r: 26, h: 10.0 },
+  { x: -40, z: 560, r: 20, h: 8.4 },
+  { x: 44, z: 640, r: 24, h: 9.6 },
+  { x: -58, z: 820, r: 32, h: 12.5 },
+  { x: 56, z: 860, r: 28, h: 11.2 },
+  { x: -46, z: 980, r: 22, h: 8.8 },
+  { x: 50, z: 1100, r: 26, h: 10.4 },
+  { x: -54, z: 1220, r: 30, h: 12.0 },
+  { x: 46, z: 1280, r: 24, h: 9.5 },
+  { x: -36, z: 1450, r: 22, h: 8.2 },
+  { x: 40, z: 1480, r: 26, h: 10.0 },
+  { x: 0, z: 1525, r: 16, h: 4.6 },
 ];
 
 // Zig-zag fire trenches (line segments). Road flatten punches crossings.
@@ -131,6 +133,8 @@ const NESTS = [
   { x: 18, z: 990, rot: Math.PI - 0.1 },
   { x: -36, z: 1340, rot: Math.PI + 0.25 },
   { x: 38, z: 1375, rot: Math.PI - 0.2 },
+  { x: 6, z: 580, rot: Math.PI + 0.08 },
+  { x: -6, z: 1555, rot: Math.PI },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -402,6 +406,55 @@ function buildTerrain() {
 }
 
 scene.add(buildTerrain());
+scene.add(buildRoadRibbon());
+
+function buildRoadRibbon() {
+  const curve = new THREE.CatmullRomCurve3(
+    ROAD_POINTS.map(([x, z]) => new THREE.Vector3(x, 0, z)),
+    false,
+    "catmullrom",
+    0.12
+  );
+  const N = 320;
+  const hw = 4.8;
+  const pts = curve.getSpacedPoints(N);
+  const positions = [];
+  const colors = [];
+  const indices = [];
+  for (let i = 0; i <= N; i++) {
+    const p = pts[i];
+    const prev = pts[Math.max(0, i - 1)];
+    const next = pts[Math.min(N, i + 1)];
+    const tx = next.x - prev.x;
+    const tz = next.z - prev.z;
+    const len = Math.hypot(tx, tz) || 1;
+    const px = tz / len;
+    const pz = -tx / len;
+    const lx = p.x + px * hw;
+    const lz = p.z + pz * hw;
+    const rx = p.x - px * hw;
+    const rz = p.z - pz * hw;
+    positions.push(lx, heightAt(lx, lz) + 0.05, lz);
+    positions.push(rx, heightAt(rx, rz) + 0.05, rz);
+    const c = i % 18 < 2 ? 0.22 : 0.34;
+    colors.push(c * 1.05, c * 0.82, c * 0.58, c * 1.05, c * 0.82, c * 0.58);
+  }
+  for (let i = 0; i < N; i++) {
+    const a = i * 2;
+    indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(
+    geo,
+    new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+  );
+  mesh.receiveShadow = true;
+  return mesh;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Ocean / rising tide                                                */
@@ -450,8 +503,19 @@ const waterMat = new THREE.ShaderMaterial({
 const waterGeo = new THREE.PlaneGeometry(280, 520, 44, 52);
 waterGeo.rotateX(-Math.PI / 2);
 const water = new THREE.Mesh(waterGeo, waterMat);
-water.position.set(0, 0.15, -40);
+water.position.set(0, 0.15, -254);
 scene.add(water);
+
+const foamMat = new THREE.MeshBasicMaterial({
+  color: 0xd8e0dc,
+  transparent: true,
+  opacity: 0.55,
+  depthWrite: false,
+});
+const foam = new THREE.Mesh(new THREE.PlaneGeometry(260, 10), foamMat);
+foam.rotation.x = -Math.PI / 2;
+foam.position.set(0, 0.28, 6);
+scene.add(foam);
 
 const tide = { y: 0.2, front: 6, maxFront: 420 };
 
@@ -553,6 +617,17 @@ for (let x = -80; x <= 80; x += 9) {
   const g = createBelgianGate();
   placeOnGround(g, x, z, (hash2(x, 2) - 0.5) * 0.2);
   solids.push({ x, z, r: 1.7, mesh: g });
+}
+
+// Beached landing craft on the sand
+for (const lc of [
+  { x: -28, z: 22, rot: 0.35 },
+  { x: 34, z: 18, rot: -0.55 },
+  { x: -8, z: 12, rot: 0.12 },
+]) {
+  const m = createLandingCraft();
+  placeOnGround(m, lc.x, lc.z, lc.rot, -0.2);
+  solids.push({ x: lc.x, z: lc.z, r: 4.0, mesh: m });
 }
 
 // Barbed wire belts with a gap on the road — beach and inland belts
@@ -674,6 +749,9 @@ for (const b of BUNKERS) {
   scene.add(m);
   solids.push({ x: b.x, z: b.z, r: 4.4, mesh: m });
   mountTurret(m, "bunker", 92, 0.95);
+  const crate = createCrate();
+  placeOnGround(crate, b.x + Math.cos(b.rot) * 4.2, b.z + Math.sin(b.rot) * 4.2, b.rot);
+  solids.push({ x: crate.position.x, z: crate.position.z, r: 0.8, mesh: crate });
 }
 
 // Sandbag fighting positions covering the track
@@ -726,6 +804,18 @@ for (let i = 0; i < 24; i++) {
   const m = createDragonTooth();
   placeOnGround(m, x, z, Math.PI / 4);
   solids.push({ x, z, r: 0.85, mesh: m });
+}
+
+// Wooden revetments along trench walls
+for (const t of TRENCHES) {
+  const mx = (t.ax + t.bx) / 2;
+  const mz = (t.az + t.bz) / 2;
+  const ang = Math.atan2(t.bx - t.ax, t.bz - t.az);
+  const len = Math.hypot(t.bx - t.ax, t.bz - t.az);
+  const nx = Math.cos(ang);
+  const nz = -Math.sin(ang);
+  const rv = createRevetment(Math.min(len, 10));
+  placeOnGround(rv, mx + nx * (t.w * 0.55), mz + nz * (t.w * 0.55), ang, -0.2);
 }
 
 // Sandbag walls along trench lips
@@ -786,8 +876,10 @@ function spawnPlane(z) {
   });
 }
 spawnPlane(200);
+spawnPlane(480);
 spawnPlane(700);
-spawnPlane(1200);
+spawnPlane(1050);
+spawnPlane(1380);
 
 /* ------------------------------------------------------------------ */
 /*  Player car                                                         */
@@ -795,6 +887,20 @@ spawnPlane(1200);
 
 const carMesh = createCar();
 scene.add(carMesh);
+
+const carShadow = new THREE.Mesh(
+  new THREE.CircleGeometry(1.4, 12),
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false })
+);
+carShadow.rotation.x = -Math.PI / 2;
+scene.add(carShadow);
+
+const dmgSmoke = createSmokeColumn();
+dmgSmoke.scale.setScalar(0.28);
+dmgSmoke.position.set(0.15, 0.95, 1.15);
+dmgSmoke.visible = false;
+carMesh.add(dmgSmoke);
+smokes.push(dmgSmoke);
 
 const player = {
   x: START.x,
@@ -822,6 +928,7 @@ function resetPlayer() {
   player.won = false;
   player.invuln = 0;
   carMesh.visible = true;
+  carShadow.visible = true;
   carMesh.rotation.set(0, START.heading, 0);
 }
 
@@ -919,7 +1026,7 @@ function updateTurrets(dt) {
 
     if (t.burstLeft > 0 && t.fireTimer <= 0 && state === "play") {
       t.gun.updateWorldMatrix(true, false);
-      muzzleWorld.set(0, 0.12, 1.82);
+      muzzleWorld.set(0, 0.18, 2.22);
       t.gun.localToWorld(muzzleWorld);
       aimAt.set(player.x, player.y + 0.7, player.z);
       // lead
@@ -1017,17 +1124,17 @@ function dropBomb(plane) {
   b.position.y -= 1.2;
   scene.add(b);
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.6, 10),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false })
+    new THREE.CircleGeometry(1.1, 12),
+    new THREE.MeshBasicMaterial({ color: 0x4a1208, transparent: true, opacity: 0.45, depthWrite: false })
   );
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
   bombs.push({
     mesh: b,
     shadow,
-    vx: Math.sin(plane.heading) * plane.speed * 0.45,
-    vz: Math.cos(plane.heading) * plane.speed * 0.45,
-    vy: -2,
+    vx: Math.sin(plane.heading) * plane.speed * 0.22 + (player.x - plane.mesh.position.x) * 0.12,
+    vz: Math.cos(plane.heading) * plane.speed * 0.22 + (player.z - plane.mesh.position.z) * 0.08,
+    vy: -1.5,
   });
   sfx.whistle();
 }
@@ -1041,9 +1148,10 @@ function updateBombs(dt) {
     b.mesh.position.z += b.vz * dt;
     b.mesh.rotation.x += dt * 1.2;
     const gy = heightAt(b.mesh.position.x, b.mesh.position.z);
-    b.shadow.position.set(b.mesh.position.x, gy + 0.05, b.mesh.position.z);
+    b.shadow.position.set(b.mesh.position.x, gy + 0.06, b.mesh.position.z);
     const fall = Math.max(0.2, b.mesh.position.y - gy);
-    b.shadow.scale.setScalar(clamp(6 / fall, 0.6, 4));
+    b.shadow.scale.setScalar(clamp(8 / fall, 0.8, 5.5));
+    if (b.shadow.material) b.shadow.material.opacity = 0.28 + clamp(4 / fall, 0, 0.5);
     if (b.mesh.position.y <= gy + 0.2) {
       explode(b.mesh.position.x, gy, b.mesh.position.z, 9.5, 42, "BOMB");
       scene.remove(b.mesh);
@@ -1055,7 +1163,7 @@ function updateBombs(dt) {
 
 function explode(x, y, z, radius, dmg, cause) {
   sfx.boom();
-  shake.mag = Math.max(shake.mag, 0.55);
+  shake.mag = Math.max(shake.mag, dmg > 0 ? 0.55 : 0.14);
   const light = new THREE.PointLight(0xffaa55, 4.5, 28);
   light.position.set(x, y + 1.4, z);
   scene.add(light);
@@ -1131,6 +1239,7 @@ function updateParticles(dt) {
 
 function damage(amount, cause) {
   if (!player.alive || state !== "play") return;
+  if (amount <= 0) return;
   if (player.invuln > 0) return;
   player.hp -= amount;
   player.invuln = amount >= 20 ? 0.45 : 0.11;
@@ -1143,6 +1252,7 @@ function damage(amount, cause) {
     player.alive = false;
     explode(player.x, player.y, player.z, 5, 0, cause);
     carMesh.visible = false;
+    carShadow.visible = false;
     endGame(false, cause);
   }
 }
@@ -1231,6 +1341,14 @@ function updateCar(dt) {
     });
   }
 
+  carShadow.position.set(player.x, heightAt(player.x, player.z) + 0.04, player.z);
+  dmgSmoke.visible = player.alive && player.hp < 58;
+  dmgSmoke.scale.setScalar(player.hp < 28 ? 0.45 : 0.28);
+
+  if (!onRoad && Math.abs(player.speed) > 6 && Math.random() < dt * 14) {
+    kickDirt(new THREE.Vector3(player.x, player.y + 0.2, player.z), 2, 0x6a5a40, 3);
+  }
+
   // mines
   for (const m of mines) {
     if (!m.live) continue;
@@ -1275,8 +1393,11 @@ function updateTide(dt) {
   tide.front += (tide.front < 140 ? 3.05 : 1.15) * dt;
   tide.y += 0.018 * dt;
   water.position.y = tide.y;
-  water.position.z = tide.front * 0.5 - 80;
-  waterUniforms.uFoam.value = 220; // local plane space-ish; visual foam from waves
+  // Plane is 520 deep; inland edge sits on the tide line.
+  water.position.z = tide.front - 260;
+  foam.position.set(0, tide.y + 0.12, tide.front);
+  foam.position.y = tide.y + 0.12;
+  waterUniforms.uFoam.value = 220;
   // drown
   if (player.alive && player.z < tide.front - 2 && player.y < tide.y + 0.6) {
     damage(55 * dt, "THE TIDE");
@@ -1312,6 +1433,9 @@ function updateCamera(dt) {
   camera.position.lerp(camPos, 1 - Math.pow(0.0004, dt));
   const look = tmp.copy(camTarget);
   camera.lookAt(look);
+  const wantFov = 58 + Math.min(Math.abs(player.speed), 26) * 0.42;
+  camera.fov += (wantFov - camera.fov) * 0.08;
+  camera.updateProjectionMatrix();
   if (shake.mag > 0.002) {
     camera.position.x += (Math.random() - 0.5) * shake.mag;
     camera.position.y += (Math.random() - 0.5) * shake.mag;
@@ -1547,6 +1671,7 @@ addEventListener("resize", () => {
 /* ------------------------------------------------------------------ */
 
 let last = performance.now();
+let artilleryCd = 2.5;
 function frame(now) {
   const dt = clamp((now - last) / 1000, 0, 0.05);
   last = now;
@@ -1562,6 +1687,15 @@ function frame(now) {
     updatePlanes(dt);
     updateBombs(dt);
     sfx.engine(player.speed);
+    artilleryCd -= dt;
+    if (artilleryCd <= 0) {
+      artilleryCd = 2.2 + Math.random() * 2.8;
+      const ax = player.x + (Math.random() - 0.5) * 90;
+      const az = player.z + 40 + Math.random() * 120;
+      if (Math.hypot(ax - player.x, az - player.z) > 22) {
+        explode(ax, heightAt(ax, az), az, 6, 0, "ARTILLERY");
+      }
+    }
   } else {
     updatePlanes(dt * 0.6);
   }

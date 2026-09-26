@@ -52,7 +52,7 @@ export function createCar() {
   const lightR = lambert(0x8a2018, { emissive: 0x4a0808, emissiveIntensity: 0.4 });
   const interior = lambert(0x2a241c);
 
-  // Custom sedan body in car space: X width, Y height, Z forward. Outward winding.
+  // Extruded side-profile sedan — outward normals, no negative scale.
   const body = buildSedanBody(paint);
   g.add(body);
 
@@ -133,99 +133,44 @@ export function createCar() {
 }
 
 function buildSedanBody(mat) {
-  // Rings of the sedan from rear to front. Each ring: 8 points around the cross-section.
-  // y values follow a Sentra: low nose, hood, greenhouse, trunk.
-  const rings = [
-    // rear bumper
-    { z: -2.22, w: 0.86, y0: 0.18, y1: 0.52, y2: 0.52 },
-    // trunk rear
-    { z: -2.05, w: 0.90, y0: 0.18, y1: 0.72, y2: 0.72 },
-    // trunk
-    { z: -1.55, w: 0.90, y0: 0.22, y1: 0.78, y2: 0.78 },
-    // C-pillar / rear window
-    { z: -1.15, w: 0.88, y0: 0.22, y1: 0.82, y2: 1.10 },
-    // roof rear
-    { z: -0.85, w: 0.84, y0: 0.22, y1: 0.82, y2: 1.28 },
-    // roof mid
-    { z: 0.10, w: 0.84, y0: 0.22, y1: 0.80, y2: 1.30 },
-    // roof front / windshield top
-    { z: 0.55, w: 0.84, y0: 0.22, y1: 0.80, y2: 1.22 },
-    // windshield base / cowl
-    { z: 0.95, w: 0.90, y0: 0.20, y1: 0.78, y2: 0.80 },
-    // hood mid
-    { z: 1.55, w: 0.90, y0: 0.20, y1: 0.74, y2: 0.74 },
-    // nose
-    { z: 2.08, w: 0.88, y0: 0.18, y1: 0.68, y2: 0.68 },
-    // front bumper
-    { z: 2.22, w: 0.86, y0: 0.18, y1: 0.50, y2: 0.50 },
+  // Side profile in XY (X = length, rear negative / front positive, Y = height),
+  // extruded along Z for width, then yawed so the nose faces +Z.
+  const shape = new THREE.Shape();
+  const pts = [
+    [-2.26, 0.17],
+    [-2.30, 0.40],
+    [-2.18, 0.58],
+    [-2.08, 0.76],
+    [-1.52, 0.80],
+    [-1.20, 0.84],
+    [-1.00, 1.18],
+    [-0.74, 1.29],
+    [0.52, 1.31],
+    [0.80, 1.24],
+    [1.06, 0.82],
+    [1.68, 0.76],
+    [2.08, 0.70],
+    [2.22, 0.54],
+    [2.28, 0.38],
+    [2.22, 0.17],
   ];
+  shape.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) shape.lineTo(pts[i][0], pts[i][1]);
+  shape.closePath();
 
-  const positions = [];
-  const indices = [];
-  const nR = rings.length;
-
-  // Per ring: 6 verts — bottom-left, bottom-right, belt-right, roof-right, roof-left, belt-left
-  function ringVerts(r) {
-    const { z, w, y0, y1, y2 } = r;
-    return [
-      [-w, y0, z],
-      [w, y0, z],
-      [w, y1, z],
-      [w * 0.92, y2, z],
-      [-w * 0.92, y2, z],
-      [-w, y1, z],
-    ];
-  }
-
-  for (const r of rings) {
-    for (const v of ringVerts(r)) positions.push(v[0], v[1], v[2]);
-  }
-
-  const rv = 6;
-  for (let i = 0; i < nR - 1; i++) {
-    const a = i * rv;
-    const b = (i + 1) * rv;
-    // sides: 0-1 bottom, 1-2 right lower, 2-3 right upper, 3-4 roof, 4-5 left upper, 5-0 left lower
-    const edges = [
-      [0, 1],
-      [1, 2],
-      [2, 3],
-      [3, 4],
-      [4, 5],
-      [5, 0],
-    ];
-    for (const [i0, i1] of edges) {
-      indices.push(a + i0, a + i1, b + i1);
-      indices.push(a + i0, b + i1, b + i0);
-    }
-  }
-  // Front cap (last ring, facing +Z)
-  {
-    const s = (nR - 1) * rv;
-    indices.push(s + 0, s + 1, s + 2);
-    indices.push(s + 0, s + 2, s + 5);
-    indices.push(s + 5, s + 2, s + 3);
-    indices.push(s + 5, s + 3, s + 4);
-  }
-  // Rear cap (first ring, facing -Z) — reverse winding
-  {
-    const s = 0;
-    indices.push(s + 0, s + 2, s + 1);
-    indices.push(s + 0, s + 5, s + 2);
-    indices.push(s + 5, s + 3, s + 2);
-    indices.push(s + 5, s + 4, s + 3);
-  }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geo.setIndex(indices);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: 1.78,
+    bevelEnabled: true,
+    bevelThickness: 0.035,
+    bevelSize: 0.03,
+    bevelSegments: 1,
+    steps: 1,
+  });
+  geo.translate(0, 0, -0.89);
+  geo.rotateY(-Math.PI / 2);
   geo.computeVertexNormals();
-  const solid = geo.toNonIndexed();
-  solid.computeVertexNormals();
-  solid.computeBoundingBox();
-  solid.computeBoundingSphere();
-  geo.dispose();
-  const mesh = new THREE.Mesh(solid, mat);
+  geo.computeBoundingBox();
+  const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -369,7 +314,7 @@ export function createBunker() {
   g.add(bags);
 
   const gun = createMachineGun();
-  gun.position.set(0, 1.45, 1.7);
+  gun.position.set(0, 1.42, 2.15);
   g.add(gun);
   g.userData.gun = gun;
   g.userData.muzzleLocal = new THREE.Vector3(0, 0.12, 1.35);
@@ -405,33 +350,82 @@ export function createMachineGun() {
   const wood = lambert(0x4a3420);
   const ammo = lambert(0x3a3a28);
 
-  // shield
-  g.add(box(0.72, 0.42, 0.04, iron, 0, 0.18, 0.28));
-  // receiver
-  g.add(box(0.16, 0.16, 0.55, iron, 0, 0.10, 0.15));
-  // perforated jacket / barrel
-  const jacket = cyl(0.055, 0.055, 1.15, 6, iron, 0, 0.12, 0.85);
+  g.add(box(0.95, 0.55, 0.05, iron, 0, 0.28, 0.42));
+  g.add(box(0.22, 0.20, 0.70, iron, 0, 0.16, 0.18));
+  const jacket = cyl(0.07, 0.07, 1.35, 8, iron, 0, 0.18, 1.05);
   jacket.rotation.x = Math.PI / 2;
   g.add(jacket);
-  const barrel = cyl(0.03, 0.03, 0.45, 6, iron, 0, 0.12, 1.55);
+  const barrel = cyl(0.035, 0.035, 0.55, 6, iron, 0, 0.18, 1.85);
   barrel.rotation.x = Math.PI / 2;
   g.add(barrel);
-  // bipod / pintle
-  g.add(box(0.06, 0.28, 0.06, iron, 0.12, -0.05, 0.1));
-  g.add(box(0.06, 0.28, 0.06, iron, -0.12, -0.05, 0.1));
-  g.add(box(0.08, 0.08, 0.22, wood, 0, 0.08, -0.28));
-  // ammo box
-  g.add(box(0.28, 0.16, 0.18, ammo, 0.28, 0.02, 0.05));
+  g.add(box(0.08, 0.36, 0.08, iron, 0.16, -0.02, 0.12));
+  g.add(box(0.08, 0.36, 0.08, iron, -0.16, -0.02, 0.12));
+  g.add(box(0.10, 0.10, 0.28, wood, 0, 0.12, -0.38));
+  g.add(box(0.36, 0.20, 0.24, ammo, 0.38, 0.04, 0.08));
+  for (let i = 0; i < 6; i++) {
+    g.add(box(0.08, 0.04, 0.06, ammo, 0.28 + i * 0.02, 0.16, 0.18 + i * 0.07));
+  }
 
   const flash = new THREE.Mesh(
-    new THREE.ConeGeometry(0.12, 0.38, 5),
+    new THREE.ConeGeometry(0.16, 0.5, 5),
     new THREE.MeshBasicMaterial({ color: 0xffee88, transparent: true, opacity: 0 })
   );
   flash.rotation.x = Math.PI / 2;
-  flash.position.set(0, 0.12, 1.85);
+  flash.position.set(0, 0.18, 2.22);
   g.add(flash);
   g.userData.flash = flash;
   g.userData.muzzle = flash.position;
+
+  const gunner = createGunner();
+  gunner.position.set(0, 0.05, -0.55);
+  g.add(gunner);
+  return g;
+}
+
+/** Low-poly sentry behind the gun. */
+export function createGunner() {
+  const g = new THREE.Group();
+  const cloth = lambert(0x3d4a32);
+  const skin = lambert(0x8a6a50);
+  const helm = lambert(0x3a4032);
+  g.add(cyl(0.17, 0.19, 0.16, 6, helm, 0, 1.52, 0));
+  g.add(cyl(0.13, 0.13, 0.16, 6, skin, 0, 1.36, 0));
+  g.add(box(0.44, 0.52, 0.30, cloth, 0, 0.98, -0.04));
+  g.add(box(0.12, 0.12, 0.48, cloth, 0.24, 1.02, 0.22));
+  g.add(box(0.12, 0.12, 0.48, cloth, -0.24, 1.02, 0.22));
+  g.add(box(0.16, 0.55, 0.16, cloth, 0.12, 0.48, 0));
+  g.add(box(0.16, 0.55, 0.16, cloth, -0.12, 0.48, 0));
+  return g;
+}
+
+/** Beached LCVP-style landing craft. */
+export function createLandingCraft() {
+  const g = new THREE.Group();
+  const hull = lambert(0x4a5344);
+  const dark = lambert(0x2e342c);
+  const ramp = lambert(0x5a5e52);
+  g.add(box(3.6, 1.4, 9.2, hull, 0, 0.7, 0));
+  g.add(box(3.4, 0.8, 2.2, dark, 0, 1.5, -3.2));
+  const r = box(3.2, 0.12, 3.4, ramp, 0, 0.55, 5.4);
+  r.rotation.x = 0.35;
+  g.add(r);
+  g.add(box(0.12, 1.1, 8.4, hull, 1.7, 1.3, 0.2));
+  g.add(box(0.12, 1.1, 8.4, hull, -1.7, 1.3, 0.2));
+  g.userData.radius = 4.2;
+  g.userData.solid = true;
+  markShadow(g);
+  return g;
+}
+
+export function createRevetment(length = 6) {
+  const g = new THREE.Group();
+  const wood = lambert(0x5a4630);
+  const n = Math.max(4, Math.round(length / 0.48));
+  for (let i = 0; i < n; i++) {
+    const z = -length / 2 + (i + 0.5) * (length / n);
+    g.add(box(0.1, 1.35, length / n - 0.04, wood, 0, 0.55, z));
+  }
+  g.add(box(0.16, 0.12, length, lambert(0x3e2e1c), 0, 1.2, 0));
   return g;
 }
 
