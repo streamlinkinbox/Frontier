@@ -188,6 +188,29 @@ export const TANKS = [
   { x: 66, z: 128, yaw: -2.2, variant: 'wreck' },
 ];
 
+// Military trucks (canvas-covered, static): {x, z, yaw, variant}
+export const TRUCKS = [
+  { x: 16, z: 52, yaw: -0.25, variant: 'intact' },   // parked by the road
+  { x: -14, z: 34, yaw: 1.15, variant: 'intact' },   // left flank
+  { x: -24, z: 133, yaw: 2.35, variant: 'wreck' },   // burnt out by the trench line
+  { x: 48, z: 92, yaw: -1.35, variant: 'wreck' },
+];
+
+// Abandoned civilian car wreck (the sedan, wrecked variant)
+export const CAR_WRECKS = [
+  { x: -6.5, z: 64, yaw: 0.85 },  // nose-down off the main road
+];
+
+// Static shell craters (battle damage around the approach)
+export const CRATERS = [
+  { x: -12, z: 20, r: 2.4 }, { x: 30, z: 34, r: 1.9 }, { x: -48, z: 30, r: 2.2 },
+  { x: 8, z: 48, r: 1.7 }, { x: -26, z: 56, r: 2.6 }, { x: 52, z: 44, r: 2.0 },
+  { x: -64, z: 62, r: 1.8 }, { x: 24, z: 84, r: 2.3 }, { x: -40, z: 92, r: 2.0 },
+  { x: 72, z: 68, r: 2.5 }, { x: -88, z: 108, r: 2.1 }, { x: 38, z: 112, r: 1.8 },
+  { x: -30, z: 126, r: 2.4 }, { x: 60, z: 140, r: 2.0 }, { x: -70, z: 142, r: 1.7 },
+  { x: 12, z: 30, r: 1.6 },
+];
+
 // Defensive bunkers (pillboxes) facing the beach.
 // NOTE: bunker geometry faces local -z, so yaw 0 already looks at the sea.
 export const BUNKERS = [

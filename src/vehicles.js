@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { terrainHeight } from './terrain.js';
-import { TANKS } from './layout.js';
+import { TANKS, TRUCKS, CAR_WRECKS } from './layout.js';
 
 // ---------------------------------------------------------------------------
 // Vehicles — a low-poly sedan (Sentra-style silhouette, lofted from profile
@@ -14,6 +14,9 @@ const PAINT = new THREE.MeshStandardMaterial({
 const GLASS = new THREE.MeshStandardMaterial({
   color: '#2c4b60', flatShading: true, roughness: 0.25, metalness: 0.2,
   emissive: '#101d29', emissiveIntensity: 0.6,
+});
+const WRECK_GLASS = new THREE.MeshStandardMaterial({
+  color: '#22282c', flatShading: true, roughness: 0.6, metalness: 0.15,
 });
 const TIRE = new THREE.MeshStandardMaterial({ color: '#1c1f21', flatShading: true, roughness: 0.85 });
 const HUB = new THREE.MeshStandardMaterial({ color: '#8b9296', flatShading: true, roughness: 0.45, metalness: 0.55 });
@@ -100,11 +103,15 @@ function wheel(x, z) {
   return g;
 }
 
-export function buildCar() {
+export function buildCar(variant = 'intact') {
   const car = new THREE.Group();
-  car.name = 'car';
+  car.name = variant === 'wreck' ? 'car-wreck' : 'car';
 
-  const body = new THREE.Mesh(buildSedanBody(), [PAINT, GLASS]);
+  const paint = variant === 'wreck'
+    ? new THREE.MeshStandardMaterial({ color: '#4a4a4c', flatShading: true, roughness: 0.85, metalness: 0.2 })
+    : PAINT;
+
+  const body = new THREE.Mesh(buildSedanBody(), variant === 'wreck' ? [paint, WRECK_GLASS] : [PAINT, GLASS]);
   body.castShadow = true;
   body.receiveShadow = true;
   car.add(body);
@@ -128,7 +135,7 @@ export function buildCar() {
   const tl2 = tl1.clone(); tl2.position.x = -0.56;
 
   // mirrors
-  const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.1), PAINT);
+  const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.1), variant === 'wreck' ? paint : PAINT);
   m1.position.set(1.02, 1.12, 0.82);
   const m2 = m1.clone(); m2.position.x = -1.02;
 
@@ -139,6 +146,14 @@ export function buildCar() {
   for (const m of [fBump, rBump, grille, hl1, hl2, tl1, tl2, m1, m2, plate]) {
     m.castShadow = true;
     car.add(m);
+  }
+
+  if (variant === 'wreck') {
+    const burn = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.02, 8), SCORCH);
+    burn.position.set(-0.15, 1.35, 0.1);
+    car.add(burn);
+    car.rotation.z = 0.06;
+    car.rotation.x = -0.035;
   }
 
   return car;
@@ -219,6 +234,116 @@ export function buildTanks(scene) {
     m.rotation.y = t.yaw;
     group.add(m);
     list.push({ mesh: m, x: t.x, z: t.z, r: 3.4 });
+  }
+  scene.add(group);
+  return list;
+}
+
+// --- military truck (canvas-covered cargo bed, static) --------------------
+
+const TRUCK_GREEN = new THREE.MeshStandardMaterial({ color: '#5d6b4c', flatShading: true, roughness: 0.8, metalness: 0.15 });
+const TRUCK_DARK = new THREE.MeshStandardMaterial({ color: '#454c38', flatShading: true, roughness: 0.85, metalness: 0.15 });
+const CANVAS = new THREE.MeshStandardMaterial({ color: '#878d72', flatShading: true, roughness: 0.95 });
+const TRUCK_WRECK = new THREE.MeshStandardMaterial({ color: '#43463c', flatShading: true, roughness: 0.9, metalness: 0.18 });
+
+function buildTruckMesh(variant = 'intact') {
+  const t = new THREE.Group();
+  const body = variant === 'wreck' ? TRUCK_WRECK : TRUCK_GREEN;
+  const dark = variant === 'wreck' ? TRUCK_WRECK : TRUCK_DARK;
+
+  const put = (m) => { m.castShadow = true; m.receiveShadow = true; t.add(m); return m; };
+  const box = (w, h, d, x, y, z, mat = body) => {
+    const m = put(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat));
+    m.position.set(x, y, z);
+    return m;
+  };
+
+  // chassis & hood
+  box(1.7, 0.26, 6.5, 0, 0.78, 0, dark);
+  box(1.72, 0.82, 1.75, 0, 1.3, 2.2);
+  box(1.5, 0.6, 0.14, 0, 1.18, 3.12, DARK);
+  box(2.12, 0.22, 0.2, 0, 0.95, 3.28, dark);
+
+  // fenders over the front wheels
+  box(0.4, 0.16, 1.55, 1.12, 1.12, 2.12, dark);
+  box(0.4, 0.16, 1.55, -1.12, 1.12, 2.12, dark);
+
+  // cab
+  box(1.98, 1.28, 1.62, 0, 1.78, 0.72);
+  box(2.1, 0.12, 1.72, 0, 2.44, 0.72, dark);
+  const ws = box(1.72, 0.62, 0.07, 0, 2.02, 1.55, variant === 'wreck' ? WRECK_GLASS : GLASS);
+  ws.rotation.x = -0.14;
+  box(0.06, 0.56, 0.92, 1.01, 2.0, 0.78, variant === 'wreck' ? WRECK_GLASS : GLASS);
+  box(0.06, 0.56, 0.92, -1.01, 2.0, 0.78, variant === 'wreck' ? WRECK_GLASS : GLASS);
+
+  // cargo bed floor
+  box(2.32, 0.16, 4.0, 0, 1.36, -1.85, dark);
+
+  // stepped canvas cover (or just ribs when burnt out)
+  if (variant !== 'wreck') {
+    box(2.34, 0.72, 3.9, 0, 2.02, -1.85, CANVAS);
+    box(1.92, 0.52, 3.9, 0, 2.58, -1.85, CANVAS);
+    for (let i = 0; i < 5; i++) {
+      box(2.42, 0.78, 0.09, 0, 2.05, -0.35 - i * 0.95, CANVAS);
+      box(2.0, 0.56, 0.09, 0, 2.6, -0.35 - i * 0.95, CANVAS);
+    }
+  } else {
+    // torn cover: ribs only
+    for (let i = 0; i < 5; i++) {
+      box(2.38, 0.9, 0.1, 0, 1.95, -0.35 - i * 0.95, TRUCK_WRECK);
+      box(1.7, 0.5, 0.1, 0, 2.55, -0.35 - i * 0.95, TRUCK_WRECK);
+    }
+  }
+
+  // tailgate & details
+  box(2.3, 0.85, 0.12, 0, 1.86, -3.82, dark);
+  const exhaust = put(new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 1.5, 6), dark));
+  exhaust.position.set(-1.12, 2.25, 1.32);
+
+  // lights
+  for (const sx of [-0.58, 0.58]) {
+    box(0.3, 0.17, 0.07, sx, 1.38, 3.13, variant === 'wreck' ? TRUCK_WRECK : LIGHT);
+  }
+
+  // wheels: 3 axles
+  for (const [zPos, r] of [[2.15, 0.52], [-1.05, 0.5], [-2.35, 0.5]]) {
+    for (const sx of [-1.12, 1.12]) {
+      const w = put(new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.34, 10), TIRE));
+      w.rotation.z = Math.PI / 2;
+      w.position.set(sx, r, zPos);
+      const hub = put(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.48, r * 0.48, 0.36, 8), HUB));
+      hub.rotation.z = Math.PI / 2;
+      hub.position.set(sx, r, zPos);
+    }
+  }
+
+  if (variant === 'wreck') {
+    const burn = put(new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.02, 8), SCORCH));
+    burn.position.set(0.2, 1.47, -1.2);
+    t.rotation.z = 0.05;
+    t.rotation.x = -0.03;
+  }
+
+  return t;
+}
+
+export function buildTrucks(scene) {
+  const group = new THREE.Group();
+  group.name = 'trucks';
+  const list = [];
+  for (const def of TRUCKS) {
+    const m = buildTruckMesh(def.variant);
+    m.position.set(def.x, terrainHeight(def.x, def.z) + 0.1, def.z);
+    m.rotation.y = def.yaw;
+    group.add(m);
+    list.push({ mesh: m, x: def.x, z: def.z, r: 3.2 });
+  }
+  for (const def of CAR_WRECKS) {
+    const m = buildCar('wreck');
+    m.position.set(def.x, terrainHeight(def.x, def.z) + 0.12, def.z);
+    m.rotation.y = def.yaw;
+    group.add(m);
+    list.push({ mesh: m, x: def.x, z: def.z, r: 2.3 });
   }
   scene.add(group);
   return list;

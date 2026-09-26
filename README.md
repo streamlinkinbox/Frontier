@@ -12,8 +12,10 @@ the gate alive.
   slits) and on wall lookout towers. They open up on **vehicles** at long
   range and on infantry that gets close.
 - **Low-poly car** — a lofted sedan (Sentra-style silhouette, not a box).
-  Drive it at your own risk: it draws every gun on the wall.
-- **Static tanks** — intact and wrecked low-poly tanks, never moving.
+  Drive it at your own risk: it draws every gun on the wall. A wrecked
+  civilian sedan sits abandoned off the main road.
+- **Static vehicles** — intact & wrecked low-poly tanks and canvas-covered
+  military trucks, never moving. Wrecks smolder with smoke and embers.
 - **Mines** — flat tank-mine belts and anti-personnel mines that **explode**
   on contact.
 - **Barricades** — Czech hedgehogs, dragon's teeth, tilted shore stakes,
@@ -24,6 +26,8 @@ the gate alive.
   lateral track.
 - **Rising tide** — the ocean slowly climbs the beach over 6 minutes,
   flooding the low ground (and your car) behind you.
+- **Battlefield atmosphere** — drifting low-poly clouds, shell craters,
+  smoke columns over the wrecks.
 
 ## Controls
 
@@ -46,11 +50,19 @@ npm run dev      # http://localhost:5173
 ## Smoke tests
 
 ```bash
-node scripts/smoke.mjs
+npm run smoke
 ```
 
 Builds the whole scene headlessly and simulates walking, driving, mine
 detonations, sentry fire, the tide, and the win condition.
+
+Screenshot QA (needs the dev server running):
+
+```bash
+LD_LIBRARY_PATH=… node scripts/screenshot.mjs   # watermarked frames + state log
+node scripts/pnginfo.mjs v9-2-spawn.png         # coarse pixel map
+node scripts/scanline.mjs car-studio-side.png   # RGB scanlines
+```
 
 ## Structure
 
@@ -60,8 +72,9 @@ src/
   terrain.js    height field + clean vertex-colored ground mesh
   ocean.js      low-poly water with the rising tide
   props.js      sandbags, hedgehogs, wire, stakes, dragon's teeth, mines
-  vehicles.js   the lofted sedan + static tanks
+  vehicles.js   the lofted sedan, static tanks, canvas-covered trucks
   fortress.js   the great wall, bunkers, towers, sentry figures
+  atmos.js      wreck smoke, drifting clouds, shell craters
   game.js       player/car controllers, sentry AI, explosions, tide, rules
   hud.js        DOM HUD
   main.js       renderer, sky, lights, loop

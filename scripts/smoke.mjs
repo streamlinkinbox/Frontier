@@ -4,8 +4,9 @@ import * as THREE from 'three';
 import { buildTerrain, terrainHeight } from '../src/terrain.js';
 import { buildOcean } from '../src/ocean.js';
 import { buildProps } from '../src/props.js';
-import { buildCar, buildTanks } from '../src/vehicles.js';
+import { buildCar, buildTanks, buildTrucks } from '../src/vehicles.js';
 import { buildFortress } from '../src/fortress.js';
+import { buildAtmosphere } from '../src/atmos.js';
 import { createGame } from '../src/game.js';
 import { WORLD } from '../src/layout.js';
 
@@ -22,10 +23,11 @@ const camera = new THREE.PerspectiveCamera(72, 16 / 9, 0.1, 1200);
 buildTerrain(scene);
 const ocean = buildOcean(scene);
 const { tankMines, apMines } = buildProps(scene);
-const tanks = buildTanks(scene);
+const tanks = [...buildTanks(scene), ...buildTrucks(scene)];
 const car = buildCar();
 scene.add(car);
 const { sentries } = buildFortress(scene);
+const atmos = buildAtmosphere(scene);
 
 let meshes = 0, triangles = 0;
 scene.traverse((o) => {
@@ -40,7 +42,9 @@ ok(`scene built (${meshes} meshes, ~${Math.round(triangles)} tris)`, meshes > 20
 ok('tank mines placed', tankMines.length > 50, `got ${tankMines.length}`);
 ok('AP mines placed', apMines.length > 30, `got ${apMines.length}`);
 ok('sentries placed', sentries.length >= 11, `got ${sentries.length}`);
-ok('tanks placed', tanks.length === 5);
+ok('tanks + trucks placed', tanks.length === 10, `got ${tanks.length}`);
+ok('atmosphere built', atmos.group.children.length > 40, `got ${atmos.group.children.length}`);
+atmos.update(1.5); // smoke/cloud update path
 
 // terrain sanity
 const h0 = terrainHeight(0, 100);

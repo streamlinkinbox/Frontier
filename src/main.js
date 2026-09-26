@@ -3,8 +3,9 @@ import { WORLD } from './layout.js';
 import { buildTerrain } from './terrain.js';
 import { buildOcean } from './ocean.js';
 import { buildProps } from './props.js';
-import { buildCar, buildTanks } from './vehicles.js';
+import { buildCar, buildTanks, buildTrucks } from './vehicles.js';
 import { buildFortress } from './fortress.js';
+import { buildAtmosphere } from './atmos.js';
 import { createGame } from './game.js';
 import { hud } from './hud.js';
 
@@ -74,13 +75,14 @@ scene.add(fill);
 buildTerrain(scene);
 const ocean = buildOcean(scene);
 const { group: propsGroup, tankMines, apMines } = buildProps(scene);
-const tanks = buildTanks(scene);
+const obstacles = [...buildTanks(scene), ...buildTrucks(scene)];
 const car = buildCar();
 scene.add(car);
 const { sentries } = buildFortress(scene);
+const atmos = buildAtmosphere(scene);
 
 // --- game ------------------------------------------------------------------
-const game = createGame({ scene, camera, ocean, sentries, tankMines, apMines, tanks, car });
+const game = createGame({ scene, camera, ocean, sentries, tankMines, apMines, tanks: obstacles, car });
 
 // debug handle (used by scripts/screenshot.mjs)
 window.__game = game;
@@ -146,6 +148,7 @@ renderer.setAnimationLoop(() => {
   const t = clock.elapsedTime;
   window.__frames++;
   ocean.update(t, dt);
+  atmos.update(t);
   game.update(dt);
   renderer.render(scene, camera);
 });
