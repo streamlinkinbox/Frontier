@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OPERATION FRONTIER · D-Day</title>
+<style>
+  :root{
+    --amber:#ffcf6b; --red:#ff5a4e; --green:#9be27a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:#0b0e10;
+    font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:#e8e4d8;
+    user-select:none;-webkit-user-select:none}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+  #hud.on{opacity:1}
+
+  .panel{background:rgba(12,16,14,.62);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;backdrop-filter:blur(4px);padding:10px 14px}
+
+  #hpWrap{position:absolute;left:18px;top:16px;width:250px}
+  #hpWrap .label{font-size:11px;letter-spacing:.22em;color:#b9c4ae;margin-bottom:6px}
+  #hpBar{height:12px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+  #hpFill{height:100%;width:100%;background:linear-gradient(90deg,#7fd06a,#a7e07d);
+    border-radius:6px;transition:width .15s,background .3s}
+
+  #objWrap{position:absolute;right:18px;top:16px;text-align:right;min-width:210px}
+  #objWrap .label{font-size:11px;letter-spacing:.22em;color:#b9c4ae}
+  #dist{font-size:30px;font-weight:700;color:var(--amber);line-height:1.1}
+  #dist small{font-size:13px;color:#cbc4ab;font-weight:400}
+  #timer{font-size:12px;color:#98a390;margin-top:2px;letter-spacing:.08em}
+
+  #tideWrap{position:absolute;left:18px;top:86px;width:250px}
+  #tideWrap .label{font-size:11px;letter-spacing:.22em;color:#a9c7d6;margin-bottom:6px;display:flex;justify-content:space-between}
+  #tideBar{height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+  #tideFill{height:100%;width:0%;background:linear-gradient(90deg,#3d84a8,#6fc3e0);border-radius:4px}
+
+  #speedo{position:absolute;right:18px;bottom:18px;text-align:right}
+  #speedo b{font-size:26px;color:#fff}
+  #speedo span{font-size:11px;color:#9aa694;letter-spacing:.18em}
+
+  #warn{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);
+    font-size:18px;font-weight:700;letter-spacing:.3em;color:var(--red);
+    text-shadow:0 0 18px rgba(255,60,40,.6);opacity:0;transition:opacity .3s}
+  #warn.on{opacity:1;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.25}}
+
+  #hint{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);
+    font-size:12px;letter-spacing:.14em;color:rgba(232,228,216,.65)}
+
+  #vignette{position:fixed;inset:0;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse at center,transparent 45%,rgba(200,20,10,.55) 100%)}
+
+  /* ---------- overlays ---------- */
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;background:radial-gradient(ellipse at 50% 40%,rgba(10,16,20,.55),rgba(6,9,11,.9));
+    z-index:10;transition:opacity .5s}
+  .overlay.hidden{opacity:0;pointer-events:none}
+  .card{max-width:640px;text-align:center;padding:42px 52px;border-radius:16px;
+    background:rgba(14,19,17,.82);border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 30px 80px rgba(0,0,0,.55)}
+  .kicker{font-size:12px;letter-spacing:.5em;color:#9db08c;margin-bottom:10px}
+  h1{font-size:44px;letter-spacing:.06em;color:#f2ecd9;line-height:1.05}
+  h1 .amber{color:var(--amber)}
+  .sub{margin-top:14px;font-size:15px;color:#b8b3a1;line-height:1.65}
+  .controls{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .key{font-size:12px;color:#d8d2bf;border:1px solid rgba(255,255,255,.22);
+    border-radius:8px;padding:7px 12px;background:rgba(255,255,255,.05);letter-spacing:.06em}
+  .btn{margin-top:28px;pointer-events:auto;cursor:pointer;border:none;border-radius:10px;
+    font-size:15px;font-weight:700;letter-spacing:.22em;padding:15px 44px;color:#1c1608;
+    background:linear-gradient(180deg,#ffd97e,#e8a83e);box-shadow:0 10px 30px rgba(232,168,62,.35);
+    transition:transform .12s}
+  .btn:hover{transform:translateY(-2px)}
+  #endTitle.win{color:var(--green)}
+  #endTitle.lose{color:var(--red)}
+  #endStats{margin-top:10px;font-size:13px;color:#9aa694;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud">
+  <div id="hpWrap" class="panel">
+    <div class="label">VEHICLE INTEGRITY</div>
+    <div id="hpBar"><div id="hpFill"></div></div>
+  </div>
+  <div id="tideWrap" class="panel">
+    <div class="label"><span>TIDE LEVEL</span><span id="tideVal">LOW</span></div>
+    <div id="tideBar"><div id="tideFill"></div></div>
+  </div>
+  <div id="objWrap" class="panel">
+    <div class="label">DISTANCE TO THE WALL</div>
+    <div id="dist">0 <small>m</small></div>
+    <div id="timer">00:00</div>
+  </div>
+  <div id="speedo" class="panel"><b id="speedVal">0</b> <span>KM/H</span></div>
+  <div id="warn">⚠ TIDE RISING — MOVE INLAND ⚠</div>
+  <div id="hint">W A S D — drive &nbsp;·&nbsp; SPACE — handbrake &nbsp;·&nbsp; R — restart</div>
+</div>
+<div id="vignette"></div>
+
+<div id="menu" class="overlay">
+  <div class="card">
+    <div class="kicker">OPERATION FRONTIER</div>
+    <h1>D-DAY · <span class="amber">RACE THE TIDE</span></h1>
+    <div class="sub">
+      The tide is rising at your back and the only way out is <b>the Wall</b>.<br/>
+      Drive inland across the beach, trenches and minefields.
+      Sentry bunkers on the wall open fire on any vehicle they see.<br/>
+      Roads are faster — but they are mined. Reach the wall before the sea takes you.
+    </div>
+    <div class="controls">
+      <span class="key">W / ↑ &nbsp;accelerate</span>
+      <span class="key">S / ↓ &nbsp;brake · reverse</span>
+      <span class="key">A D / ← → &nbsp;steer</span>
+      <span class="key">SPACE &nbsp;handbrake</span>
+    </div>
+    <button id="startBtn" class="btn">DEPLOY</button>
+  </div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="card">
+    <div class="kicker" id="endKicker">MISSION REPORT</div>
+    <h1 id="endTitle">—</h1>
+    <div class="sub" id="endSub">—</div>
+    <div id="endStats"></div>
+    <button id="againBtn" class="btn">RUN IT AGAIN</button>
+  </div>
+</div>
+
+<script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
