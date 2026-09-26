@@ -3,7 +3,7 @@
 Procedural mine race level built on splines. It runs in the browser (Three.js) and exports to OBJ (real quads) or GLB.
 
 ```bash
-cd mine && npm install && npm run dev      # http://localhost:5173
+cd mine && npm install && npm run dev      # http://localhost:6953
 npm test                                   # mesh topology + vertical profile + cart-lane clearance + train traffic checks
 npm run test:drive                         # headless autopilot drive through the maze
 ```
