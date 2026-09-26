@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FRONTIER · Mine Run</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="hud">
+    <div id="topbar">
+      <div class="brand">FRONTIER <span>· MINE RUN</span></div>
+      <div id="race">
+        <div class="lbl">TIME</div><div id="time">0:00.00</div>
+        <div class="lbl">CHECKPOINT</div><div id="cp">1 / 8</div>
+        <div class="lbl">BEST</div><div id="best">--</div>
+      </div>
+    </div>
+    <canvas id="minimap" width="240" height="240"></canvas>
+    <div id="arrowWrap"><div id="arrow">▲</div><div id="cpDist">0 m</div></div>
+    <div id="warn">⚠ ORE TRAIN</div>
+    <div id="msg"></div>
+    <div id="speedo">
+      <div id="speed">0</div><div class="unit">KM/H</div>
+      <div id="boostBar"><div id="boostFill"></div></div>
+      <div class="unit small">BOOST [SHIFT]</div>
+    </div>
+    <div id="help">
+      <b>DRIVE</b> W/S or ↑/↓ · steer A/D ←/→ · <b>SPACE</b> handbrake · <b>SHIFT</b> boost · <b>R</b> reset · <b>C</b> camera · <b>ENTER</b> restart race<br/>
+      <b>TAB</b> spline editor · <b>T</b> quad topology · <b>M</b> sound · <b>H</b> hide help
+    </div>
+    <div id="editBanner">SPLINE EDITOR — click a handle: <span class="o">●</span> junction node · <span class="c">●</span> tunnel control point · drag the gizmo → the mine rebuilds · TAB to drive</div>
+    <div id="stats"></div>
+  </div>
+  <div id="flash"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
