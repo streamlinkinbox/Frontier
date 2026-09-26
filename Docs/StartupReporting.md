@@ -74,7 +74,7 @@ The observer never calls Vulkan and never moves driver work off the calling thre
 
 Coverage includes ReSTIR, denoising, luminance reduction, visibility/cluster/HiZ/resolve compute pipelines, and visibility/shadow raster graphics pipelines. This is console progress, not an in-window loading screen. The application window may still appear unresponsive while the original main-thread driver call blocks. Runtime-memory CSV samples begin only after presentation; these new console heartbeats work during the instrumented startup calls.
 
-Pipeline-cache diagnostics print the resolved `ShaderCache.bin` path, bytes read, compatible versus absent/invalid input, and cache-creation result. Compatible input is **not** proof that a particular shader hit the cache. Application-requested validation is printed separately; externally injected layers are not audited by this message. This change does not alter compilation flags, shader semantics, cache persistence or the existing save-on-shutdown policy, and is not a compile-time optimization.
+Pipeline-cache diagnostics print the resolved `ShaderCache.bin` path, bytes read, compatible versus absent/invalid input, and cache-creation result. Compatible input is **not** proof that a particular shader hit the cache. Application-requested validation is printed separately; externally injected layers are not audited by this message. The progress observer itself does not change compilation. The subsequent [ReSTIR investigation](ReSTIRPipelineInvestigation.md) adds early successful-pipeline cache checkpoints and opt-in diagnostic flags; default optimization remains unchanged.
 
 Capture console output to retain the heartbeat history:
 

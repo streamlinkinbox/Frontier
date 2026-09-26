@@ -29,10 +29,13 @@ int main(){
     auto start=std::chrono::steady_clock::now();
     assert(DriverProgress::Call("instant",[&]{assert(std::this_thread::get_id()==caller);return 0;})==0);
     assert(std::chrono::steady_clock::now()-start<2s); // destructor wakes immediately, not after the 5s timer
+    int Calls=0;
     assert(DriverProgress::Call("simulated pipeline",[&]{
+        ++Calls;
         assert(std::this_thread::get_id()==caller);
         assert(capture.WaitFor("WAIT"));return 0;
     },10ms)==0);
+    assert(Calls==1); // WAIT is an observer, not a pipeline retry loop
     assert(DriverProgress::Call("failure",[]{return -7;},10ms)==-7);
     bool caught=false;
     try{DriverProgress::Call("exception",[]()->int{throw std::runtime_error("test");},10ms);}

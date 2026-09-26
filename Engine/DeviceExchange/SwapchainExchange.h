@@ -387,6 +387,7 @@ private:
     [[nodiscard]] bool  BringLogicalDevice()    noexcept;
     [[nodiscard]] bool  BringSwapchain()        noexcept;
     [[nodiscard]] bool  BringStorageImage()     noexcept;
+    void SavePipelineCache(const char* Reason) noexcept;
     [[nodiscard]] bool  BringComputePipeline()  noexcept;
     [[nodiscard]] bool  BringDescriptorSet()    noexcept;
     [[nodiscard]] bool  BringDenoisePipeline()  noexcept;   // R7: à-trous filter, its own small descriptor set

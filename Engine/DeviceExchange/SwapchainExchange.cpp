@@ -51,6 +51,8 @@
 #endif
 
 #include "DriverProgress.h"
+#include "PipelineCacheFile.h"
+#include <cstdlib>
 
 namespace Frontier {
 
@@ -258,6 +260,7 @@ struct SwapchainExchange::VulkanRecord
     VkDescriptorPool         ComputeDescriptorPool   = VK_NULL_HANDLE;
     VkDescriptorSet          ComputeDescriptorSet    = VK_NULL_HANDLE;
     VkPipelineLayout         ComputePipelineLayout   = VK_NULL_HANDLE;
+    PipelineDiagnostics::Options PipelineOptions{};
     VkPipelineCache          PipelineCache           = VK_NULL_HANDLE;
     VkPipeline               ComputePipeline         = VK_NULL_HANDLE;
 
@@ -651,28 +654,7 @@ void SwapchainExchange::Retire() noexcept
 
     if (Vulkan->PipelineCache)
     {
-        size_t CacheSize = 0u;
-        if (vkGetPipelineCacheData(Vulkan->Device, Vulkan->PipelineCache, &CacheSize, nullptr) == VK_SUCCESS && CacheSize > 0u)
-        {
-            std::vector<uint8_t> CacheData(CacheSize);
-            if (vkGetPipelineCacheData(Vulkan->Device, Vulkan->PipelineCache, &CacheSize, CacheData.data()) == VK_SUCCESS)
-            {
-                if (std::FILE* F = std::fopen("ShaderCache.bin.tmp", "wb"))
-                {
-                    const size_t Written = std::fwrite(CacheData.data(), 1, CacheSize, F);
-                    std::fclose(F);
-                    if (Written == CacheSize)
-                    {
-                        std::remove("ShaderCache.bin");
-                        std::rename("ShaderCache.bin.tmp", "ShaderCache.bin");
-                    }
-                    else
-                    {
-                        std::remove("ShaderCache.bin.tmp");
-                    }
-                }
-            }
-        }
+        SavePipelineCache("shutdown");
         vkDestroyPipelineCache(Vulkan->Device, Vulkan->PipelineCache, nullptr);
         Vulkan->PipelineCache = VK_NULL_HANDLE;
     }
@@ -1018,14 +1000,19 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
     vkGetDeviceQueue(Vulkan->Device, Vulkan->GraphicsFamily, 0u, &Vulkan->GraphicsQueue);
     vkGetDeviceQueue(Vulkan->Device, Vulkan->ComputeFamily,  0u, &Vulkan->ComputeQueue);
 
+    Vulkan->PipelineOptions=PipelineDiagnostics::Parse(std::getenv("FRONTIER_PIPELINE_TEST"));
+    if(!Vulkan->PipelineOptions.Recognized) std::cerr<<"[GPU startup] Unknown FRONTIER_PIPELINE_TEST; using default"<<std::endl;
+    std::cerr<<"[GPU startup] Pipeline test: disable_restir_optimization="<<Vulkan->PipelineOptions.DisableOptimization
+             <<" ignore_application_cache_input="<<Vulkan->PipelineOptions.IgnoreInput
+             <<" (does not disable NVIDIA's own shader cache)"<<std::endl;
     // Initialize pipeline cache from disk to avoid multi-minute startup driver compilations
     std::vector<uint8_t> CacheBlob;
-    if (std::FILE* F = std::fopen("ShaderCache.bin", "rb"))
+    if (std::FILE* F = Vulkan->PipelineOptions.IgnoreInput ? nullptr : std::fopen(Vulkan->PipelineOptions.File, "rb"))
     {
         std::fseek(F, 0, SEEK_END);
         long S = std::ftell(F);
         std::fseek(F, 0, SEEK_SET);
-        if (S >= 32)
+        if (S >= 32 && static_cast<unsigned long>(S) <= 256u*1024u*1024u)
         {
             CacheBlob.resize(static_cast<size_t>(S));
             size_t Read = std::fread(CacheBlob.data(), 1, CacheBlob.size(), F);
@@ -1039,12 +1026,11 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
     bool ValidCache = false;
     if (CacheBlob.size() >= 32)
     {
-        const uint32_t HeaderLength  = *reinterpret_cast<const uint32_t*>(CacheBlob.data() + 0);
-        const uint32_t HeaderVersion = *reinterpret_cast<const uint32_t*>(CacheBlob.data() + 4);
-        const uint32_t VendorId      = *reinterpret_cast<const uint32_t*>(CacheBlob.data() + 8);
-        const uint32_t DeviceId      = *reinterpret_cast<const uint32_t*>(CacheBlob.data() + 12);
+        uint32_t HeaderLength,HeaderVersion,VendorId,DeviceId;
+        std::memcpy(&HeaderLength,CacheBlob.data(),4);std::memcpy(&HeaderVersion,CacheBlob.data()+4,4);
+        std::memcpy(&VendorId,CacheBlob.data()+8,4);std::memcpy(&DeviceId,CacheBlob.data()+12,4);
         const uint8_t* CacheUuid     = CacheBlob.data() + 16;
-        if (HeaderLength >= 32 && HeaderVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE
+        if (HeaderLength >= 32 && HeaderLength <= CacheBlob.size() && HeaderVersion == VK_PIPELINE_CACHE_HEADER_VERSION_ONE
             && VendorId == DeviceProperties.vendorID
             && DeviceId == DeviceProperties.deviceID
             && std::memcmp(CacheUuid, DeviceProperties.pipelineCacheUUID, VK_UUID_SIZE) == 0)
@@ -1053,9 +1039,9 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
         }
     }
     std::error_code CachePathError;
-    const auto CachePath = std::filesystem::absolute("ShaderCache.bin", CachePathError);
-    std::cerr << "[GPU startup] Pipeline cache path=" << (CachePathError ? std::string("ShaderCache.bin (absolute path unavailable)") : CachePath.string())
-              << " read_bytes=" << CacheBlob.size() << " input=" << (ValidCache ? "compatible" : "absent/invalid")
+    const auto CachePath = std::filesystem::absolute(Vulkan->PipelineOptions.File, CachePathError);
+    std::cerr << "[GPU startup] Pipeline cache path=" << (CachePathError ? std::string(Vulkan->PipelineOptions.File) : CachePath.string())
+              << " read_bytes=" << CacheBlob.size() << " fingerprint_fnv1a64=" << PipelineDiagnostics::Fingerprint(CacheBlob.data(),CacheBlob.size()) << " input=" << (ValidCache ? "compatible" : "absent/invalid")
               << " (compatible input does not guarantee a shader cache hit)" << std::endl;
     if (!ValidCache)
     {
@@ -1074,7 +1060,8 @@ bool SwapchainExchange::BringLogicalDevice() noexcept
         std::cerr << "[GPU startup] Retrying pipeline cache creation without saved data" << std::endl;
         CacheInfo.initialDataSize = 0u;
         CacheInfo.pInitialData    = nullptr;
-        (void)vkCreatePipelineCache(Vulkan->Device, &CacheInfo, nullptr, &Vulkan->PipelineCache);
+        const auto Retry=vkCreatePipelineCache(Vulkan->Device, &CacheInfo, nullptr, &Vulkan->PipelineCache);
+        std::cerr<<"[GPU startup] Empty cache retry VkResult="<<int(Retry)<<std::endl;
     }
     return true;
 }
@@ -1422,6 +1409,32 @@ static_assert(ComputeBindingTypeCount(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) == 3u,
 static_assert(ComputeBindingTypeCount(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) == 3u,
               "compute set 0 fixed samplers: 13 energy LUT · 14 sheen LUT · 15 motion (31 is the variable-count table)");
 
+void SwapchainExchange::SavePipelineCache(const char* Reason) noexcept
+{
+    if (!Vulkan->Device || !Vulkan->PipelineCache) return;
+    // Only call after pipeline creation has returned; never concurrently from the heartbeat.
+    try {
+        size_t Size=0;
+        auto Result=DriverProgress::Call("pipeline cache: query size", [&]{return vkGetPipelineCacheData(Vulkan->Device,Vulkan->PipelineCache,&Size,nullptr);});
+        if(Result!=VK_SUCCESS || Size==0 || Size>256u*1024u*1024u) {
+            std::cerr<<"[GPU startup] Cache checkpoint skipped reason="<<Reason<<" VkResult="<<int(Result)<<" bytes="<<Size<<std::endl;return;
+        }
+        std::vector<uint8_t> Bytes(Size);
+        Result=DriverProgress::Call("pipeline cache: export", [&]{return vkGetPipelineCacheData(Vulkan->Device,Vulkan->PipelineCache,&Size,Bytes.data());});
+        if(Result!=VK_SUCCESS || Size>Bytes.size()) {
+            std::cerr<<"[GPU startup] Cache checkpoint incomplete/failed reason="<<Reason<<" VkResult="<<int(Result)<<std::endl;return;
+        }
+        std::string Error;
+        if(!PipelineDiagnostics::Replace(Vulkan->PipelineOptions.File,Bytes.data(),Size,Error)) {
+            std::cerr<<"[GPU startup] Cache checkpoint failed: "<<Error<<"; previous cache retained"<<std::endl;return;
+        }
+        std::cerr<<"[GPU startup] Cache checkpoint saved reason="<<Reason<<" file="<<Vulkan->PipelineOptions.File
+                 <<" bytes="<<Size<<" fingerprint_fnv1a64="<<PipelineDiagnostics::Fingerprint(Bytes.data(),Size)<<std::endl;
+    } catch(const std::exception& Error) {
+        std::cerr<<"[GPU startup] Cache checkpoint unavailable: "<<Error.what()<<std::endl;
+    }
+}
+
 bool SwapchainExchange::BringComputePipeline() noexcept
 {
     VkPhysicalDeviceProperties Properties{};
@@ -1513,6 +1526,10 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     // ③ Load SPIR-V — expected at Shaders/ReSTIRViewport.spv relative to working directory
     const std::vector<uint32_t> Spirv = LoadSpirv("Engine/Shaders/ReSTIRViewport.spv");
     if (Spirv.empty()) return false;
+    std::cerr<<"[GPU startup] ReSTIR input bytes="<<Spirv.size()*sizeof(uint32_t)
+             <<" fingerprint_fnv1a64="<<PipelineDiagnostics::Fingerprint(Spirv.data(),Spirv.size()*sizeof(uint32_t))
+             <<" disable_optimization="<<Vulkan->PipelineOptions.DisableOptimization
+             <<" (diagnostic mode may reduce rendering performance)"<<std::endl;
 
     VkShaderModuleCreateInfo ShaderModuleInfo{};
     ShaderModuleInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1532,6 +1549,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
     ComputeInfo.stage.module = ShaderModule;
     ComputeInfo.stage.pName  = "main";
     ComputeInfo.layout       = Vulkan->ComputePipelineLayout;
+    if(Vulkan->PipelineOptions.DisableOptimization) ComputeInfo.flags |= VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT;
 
     const VkResult PipelineResult = DriverProgress::Call("compute pipeline (driver compile/cache lookup): ReSTIRViewport", [&] { return vkCreateComputePipelines(
         Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr, &Vulkan->ComputePipeline); });
@@ -1542,6 +1560,7 @@ bool SwapchainExchange::BringComputePipeline() noexcept
         std::cerr << "[SwapchainExchange] vkCreateComputePipelines failed (VkResult " << static_cast<int>(PipelineResult) << ").\n";
         return false;
     }
+    SavePipelineCache("ReSTIR ready");
     return true;
 }
 
@@ -1777,6 +1796,7 @@ bool SwapchainExchange::BringLuminanceReduction() noexcept
     const VkResult Created = DriverProgress::Call("compute pipeline (driver compile/cache lookup): LuminanceReduce", [&] { return vkCreateComputePipelines(Vulkan->Device, Vulkan->PipelineCache, 1u, &ComputeInfo, nullptr,
                                                       &Vulkan->LuminancePipeline); });
     vkDestroyShaderModule(Vulkan->Device, Module, nullptr);
+    if(Created==VK_SUCCESS) SavePipelineCache("Luminance ready");
     return Created == VK_SUCCESS;
 }
 
@@ -1857,6 +1877,7 @@ bool SwapchainExchange::BringDenoisePipeline() noexcept
         return false;
     }
 
+    SavePipelineCache("Denoiser ready");
     std::cerr << "[SwapchainExchange] Denoiser: " << kDenoiseLevelCount << " a-trous levels.\n";
     return true;
 }
