@@ -12,6 +12,23 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const env = (t, a, b, c, d) => ss(a, b, t) * (1 - ss(c, d, t)); // attack-sustain-release envelope
 
+// Abdomen outline INCLUDING its setae pile, in the abdPivot (pedicel) frame, measured from the real
+// geometry with tools/probes/abdsil.js: per z-slice, the half-width and the vertical extent.
+const ABD_Z = [0.5, 0, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4];
+const ABD_X = [0.02, 0.67, 1.3, 1.61, 1.84, 1.74, 1.62, 1.02, 0.91, 0.07];
+const ABD_YMAX = [0.02, 0.45, 1.19, 1.63, 1.81, 1.73, 1.47, 1.22, 0.67, -0.34];
+const ABD_YMIN = [-0.02, -0.45, -0.82, -1.04, -1.13, -1.01, -0.97, -0.85, -0.91, -0.34];
+function abdSlice(z, out) {
+  const n = ABD_Z.length;
+  let i = 0;
+  if (z >= ABD_Z[0]) i = 0; else if (z <= ABD_Z[n - 1]) i = n - 2; else while (ABD_Z[i + 1] > z) i++;
+  const k = clamp((ABD_Z[i] - z) / (ABD_Z[i] - ABD_Z[i + 1]), 0, 1), L = (a) => a[i] + (a[i + 1] - a[i]) * k;
+  const top = L(ABD_YMAX), bot = L(ABD_YMIN);
+  out.X = L(ABD_X); out.yc = 0.5 * (top + bot); out.Y = 0.5 * (top - bot);
+  return out;
+}
+const _sl = { X: 0, yc: 0, Y: 0 };
+
 function P(yaw, a) { return { yaw, a: Float32Array.from(a) }; }
 // Authored display poses (absolute in-plane joint angles, radians)
 const THREAT = {
@@ -235,30 +252,43 @@ export class ActionController {
       }
     }
 
-    // --- urticating hair flick with leg IV: each hind leg sweeps its metatarsus/tarsus along the dorsal
-    // abdomen and off the posterior end (the legs alternate), following the abdomen's real surface
+    // --- urticating hair flick with leg IV. A tarantula leg flexes in one vertical plane, so seen from
+    // above the whole leg is the straight line from its coxa to its tarsus. To keep every podomere beside
+    // (never over or inside) the hairy abdomen, the tarsus runs along the line from the coxa that is
+    // tangent to the abdomen's outline: it grazes the setae at the widest flank, then kicks backward and
+    // outward off the abdomen, releasing hairs. The legs alternate half a cycle apart.
     const fw = this.flickW;
     if (fw && li === 3) {
       const { w: ew, t } = fw;
       const S = this.s;
       const ph = (t - 0.35) * 4.2 + (side > 0 ? 0 : 0.5);
       const active = ss(0.3, 0.5, t) * (1 - ss(1.85, 2.05, t));
-      const u = (0.5 - 0.5 * Math.cos(Math.PI * 2 * ph)) * active;   // 0 = mid-back, 1 = past the tip
+      const u = (0.5 - 0.5 * Math.cos(Math.PI * 2 * ph)) * active;   // 0 = front of stroke, 1 = kicked off
       const backStroke = Math.sin(Math.PI * 2 * ph) > 0;
-      // abdomen as an ellipsoid in the pedicel (abdPivot) frame: measured from the mesh incl. pile
-      const cy = 0.34, cz = -1.98, ra = 1.45, rb = 1.2, rc = 1.75;
-      const x = 0.5 * side, z = lerp(-1.9, -4.35, u);
-      const q = 1 - (x / ra) ** 2 - ((z - cz) / rc) ** 2;
-      const sy = cy + rb * Math.sqrt(Math.max(q, 0));
-      const y = sy + 0.22 + (backStroke ? 0 : 0.25) * active + 0.45 * ss(0.85, 1, u);
+      // coxal socket in the abdomen frame (moves with the abdomen's pitch)
+      const sock = this._tmp2.copy(limb.S);
+      S.body.localToWorld(sock); S.abdPivot.worldToLocal(sock);
+      const xs = Math.abs(sock.x), zs = sock.z;
+      const margin = (limb.R[4] || 0.12) + 0.2;                      // podomere radius + air gap (covers abdomen tilt)
+      let k = 0;                                                      // slope of the tangent line dx/d(-z)
+      for (let i = 0; i < ABD_Z.length; i++) {
+        if (ABD_Z[i] > zs - 0.3) continue;
+        k = Math.max(k, (ABD_X[i] + margin - xs) / (zs - ABD_Z[i]));
+      }
+      const z = lerp(-1.5, -3.2, u);
+      const kick = ss(0.7, 1, u);
+      const out = (backStroke ? 0 : 0.4) * active + 0.45 * kick;     // return stroke & kick-off swing wide
+      const x = side * (xs + k * (zs - z) + out);
+      abdSlice(-1.5, _sl);                                            // graze at the widest flank's height
+      const y = _sl.yc + 0.2 * _sl.Y + (backStroke ? 0 : 0.35) * active + 0.5 * kick;
       const pl = this._tmp2.set(x, y, z);
-      const nl = this._tmpN2.set(x / (ra * ra), (sy - cy) / (rb * rb), (z - cz) / (rc * rc)).normalize();
+      const nl = this._tmpN2.set(side * 0.9, 0.35, 0).normalize();  // tarsus brushes the flank from outside
       S.abdPivot.localToWorld(pl);
       nl.applyQuaternion(S.abdPivot.getWorldQuaternion(this._tmpQ2));
       pose = this._solveWorld(f, pl, nl, 0.1);
       w = ew;
-      // emit urticating setae on the backward stroke as the tarsus leaves the abdomen
-      if (active > 0.5 && backStroke && u > 0.55 && this.emitHairs) this.emitHairs(limb.tip, side, dt);
+      // urticating setae come off as the tarsus leaves the flank on the backward kick
+      if (active > 0.5 && backStroke && u > 0.35 && u < 0.9 && this.emitHairs) this.emitHairs(limb.tip, side, dt);
     }
 
     // --- idle palp tapping / foreleg probing

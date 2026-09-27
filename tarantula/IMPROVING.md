@@ -86,20 +86,34 @@ The strike is now a sequence of three phases:
 3. **Hand-over.** At 33 % of the strike the foot's contact point *becomes* that
    foothold, so the regular walking IK takes over with no pop.
 
-**Hair flick (R), leg IV.**
+**Hair flick (R), leg IV.** This went through two revisions.
 
-| Metric | Before | After |
-|---|---|---|
-| Frames with leg IV passing *through* the abdomen | 43 / 150 | 0 |
-| Deepest abdomen penetration | −0.41 cm | 0 |
-| Frames in rock | 0 | 0 |
-| Active-stroke frames with the tip on/near the abdomen | 162 / 162 (inside it) | 104 / 162 (the rest are the flick-off and return) |
+1. The first rewrite stopped the leg passing through the abdomen's body. It still rubbed
+   across the *top* of the abdomen, inside the long setae pile, so on screen the legs lay
+   over the abdomen.
+2. The current version keeps every leg segment beside the abdomen.
 
-The flick is now a rubbing stroke across an ellipsoid fitted to the abdomen (in the
-`abdPivot` frame, so it follows the abdomen's sway). The tarsus stays 2.2 mm above the
-setae on the scrape. It lifts an extra 2.5 mm on the return and 4.5 mm on the flick-off,
-where the hairs are released. The left and right legs alternate half a cycle apart, like
-real *Brachypelma*.
+The key fact is that a tarantula leg flexes in one vertical plane, so seen from above
+the whole leg is the straight line from its coxa to its tarsus. The tarsus therefore
+travels along the line from the coxa that is **tangent to the abdomen's hairy outline**.
+It passes the widest flank, then kicks backward and outward off the abdomen, releasing
+hairs. The legs alternate half a cycle apart. The outline, including the setae, was
+measured from the real geometry with `tools/probes/abdsil.js` and is stored as
+`ABD_*` in `Actions.js`. The tangent is recomputed every frame from the actual coxa
+position, so it follows the abdomen's tilt during the flick.
+
+| Metric (81 frames of active flicking) | Original | 1st rewrite | Now |
+|---|---|---|---|
+| Frames with a leg-IV segment inside the abdomen's hair envelope | 81 | 81 | **0** |
+| Frames with a leg-IV segment over the abdomen, seen from above | 81 | 81 | **0** |
+| Worst overlap from above | — | 1.49 cm | **0** |
+| Frames in rock | 0 | 0 | 0 |
+| Tightest leg fold (tip distance / maxReach) | — | 0.43 | 0.43 |
+
+The only remaining contact is during the 0.3 s blend from the standing pose into the
+flick and back: 28 of 150 frames, at most 2 mm. In the normal standing pose, the base
+of femur IV already sits against the front corner of the abdomen, as in the real
+animal.
 
 ---
 
@@ -141,6 +155,7 @@ Probes:
 | `idle.js` | Parks the spider at 5 spots (floor, slopes, walls) for 30 s each and counts foot steps. It should be **0**; idle must not "tap dance". | ~20 s |
 | `strike.js` | Section 2, strike table | ~10 s |
 | `flick.js` | Section 2, flick table | ~10 s |
+| `abdsil.js` | Measures the abdomen outline including setae (per z-slice), feeding the `ABD_*` table in `Actions.js`. Re-run it if the abdomen or its hair changes. | ~10 s |
 | `camlib.js` | Helper `__cam(dist, elev, az, targetUp)` for placing the camera in screenshot scripts. `az` 0 = front, +π/2 = right side. | — |
 
 `window.__game` exposes `{ THREE, spider, world, camera, step(sec, fps), render(), freezeCam, brain, cave }`
