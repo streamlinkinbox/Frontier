@@ -2058,6 +2058,27 @@ rectangular holes, non-quarter or non-concentric sectors, translated/tilted/free
 offsets, healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch55_RectangularHoledAndAnnularSectorFaceOffset.md`.
 
+#### Batch 56: exact native-cylinder and native-cone upper-cap face offsets ✅
+
+This consolidated batch adds two analytic native-support domains to the public face-offset API. `NativeCylinderAndConeCapFaceOffsetVerification`
+constructs an origin-centred native right cylinder and an origin-centred positive-radius conical frustum, both with `V2/E3/C6/L3/F3`
+closed genus-zero topology. The cylinder and cone each retain one analytic side surface and two planar caps after their upper cap is
+extended by distances 0.5, 1.5, and 3.0.
+
+`FaceEditSolver::OffsetCylinderCap` recognizes only the exact canonical native cylinder, its +Z upper planar cap, and the analytic
+cylinder/planar/circular/seam support set. `FaceEditSolver::OffsetConeCap` recognizes only the exact canonical non-apex native frustum
+and continues its linear radius law to the extended upper cap. Both routes reconstruct native analytic bodies without Boolean healing,
+tessellation, or source mutation, and `OffsetFace` dispatches to both routes.
+
+The single consolidated verifier checks topology, analytic/planar supports, cylinder and frustum volume identities, source immutability,
+public dispatch, multiple positive distances, and explicit lower/side/invalid/translated/cross-domain/apex/collapse/malformed refusal
+boundaries. The durable contact sheet is `Proofs/Batch56_NativeCylinderAndConeCapFaceOffset.png`; the verifier and proof are registered
+in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to origin-centred +Z native cylinder/frustum upper-cap extension. They do not prove lower or side faces,
+inward/oblique/translated/trimmed/freeform/mixed supports, apex cones, or general conic face editing. The bounded plan is
+`docs/PLAN_Batch56_NativeCylinderAndConeCapFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

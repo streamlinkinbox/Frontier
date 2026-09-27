@@ -1382,6 +1382,24 @@ prove arbitrary rectangular holes, non-quarter/non-concentric sectors, translate
 mixed supports, inward/lower/side offsets, healing, or general multi-loop face editing. The bounded
 plan is `docs/PLAN_Batch55_RectangularHoledAndAnnularSectorFaceOffset.md`.
 
+## Batch 56 — exact native-cylinder and native-cone upper-cap face offsets (2026-09-27)
+
+This consolidated batch covers two public `FaceEditSolver` analytic-support face-offset domains:
+
+- `NativeCylinderAndConeCapFaceOffsetVerification` constructs an origin-centred native right cylinder
+  and a positive-radius native conical frustum, each with closed genus-zero `V2/E3/C6/L3/F3`
+  topology, one analytic side surface, and two planar caps.
+- `OffsetCylinderCap` recognizes the canonical +Z cylinder and extends only its upper planar cap while
+  preserving the native radius. `OffsetConeCap` recognizes the canonical non-apex frustum and
+  continues its exact linear radius law to the upper cap. Both routes refuse apex/collapse,
+  translated, mixed, malformed, lower/side, and invalid requests transactionally.
+- The consolidated verifier checks distances 0.5, 1.5, and 3.0, result topology, volume identities,
+  source immutability, dispatcher routing, refusal boundaries, and a four-body durable contact sheet.
+- Durable proof: `Proofs/Batch56_NativeCylinderAndConeCapFaceOffset.png`. The verifier, proof, and
+  full-gate registration are present in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch56_NativeCylinderAndConeCapFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

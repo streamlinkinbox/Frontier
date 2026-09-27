@@ -1007,6 +1007,101 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadNativeConicUpperCap(const BrepBody& Source, int Face, bool Cone, double& RadiusFoot, double& RadiusTop, double& Height) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 2 || Source.Edges.size() != 3 ||
+        Source.Coedges.size() != 6 || Source.Loops.size() != 3 || Source.Faces.size() != 3) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    const Box3 Bounds = Source.Bounds();
+    Height = Bounds.High.Z - Bounds.Low.Z;
+    if (Height <= ScalarCriteria::MergeTolerance || std::fabs(Bounds.Low.Z) > ScalarCriteria::GeometricTolerance ||
+        std::fabs((Bounds.High.X + Bounds.Low.X) * 0.5) > ScalarCriteria::GeometricTolerance ||
+        std::fabs((Bounds.High.Y + Bounds.Low.Y) * 0.5) > ScalarCriteria::GeometricTolerance) return false;
+    int AnalyticSides = 0, Planes = 0, Circles = 0, Lines = 0;
+    const NurbsSurface* Side = nullptr;
+    const SurfaceClassification Expected = Cone ? SurfaceClassification::Cone : SurfaceClassification::Cylinder;
+    for (const BrepFace& F : Source.Faces)
+    {
+        if (F.Loops.size() != 1) return false;
+        if (F.Surface.Classification == Expected) { ++AnalyticSides; Side = &F.Surface; }
+        else if (F.Surface.Classification == SurfaceClassification::Plane) ++Planes;
+        else return false;
+    }
+    if (AnalyticSides != 1 || Planes != 2 || Side == nullptr || Side->Origin.Distance({ 0, 0, 0 }) > ScalarCriteria::GeometricTolerance ||
+        Side->Axis.Normalised().Dot(Vec3::UnitZ()) < 1.0 - ScalarCriteria::AngularTolerance ||
+        Side->RadiusMajor <= ScalarCriteria::MergeTolerance || Side->RadiusMinor <= ScalarCriteria::MergeTolerance) return false;
+    RadiusFoot = Side->RadiusMajor; RadiusTop = Side->RadiusMinor;
+    if ((!Cone && std::fabs(RadiusFoot - RadiusTop) > ScalarCriteria::GeometricTolerance) ||
+        (Cone && std::fabs(RadiusFoot - RadiusTop) <= ScalarCriteria::MergeTolerance)) return false;
+    for (const BrepEdge& E : Source.Edges)
+    {
+        if (E.Coedges.size() != 2) return false;
+        if (E.Curve.Classification == CurveClassification::Circle && E.Curve.Degree == 2 && E.Curve.Rational() && E.Curve.Closed()) ++Circles;
+        else if (E.Curve.Classification == CurveClassification::Line && E.Curve.Degree == 1 && !E.Curve.Closed()) ++Lines;
+        else return false;
+    }
+    if (Circles != 2 || Lines != 1) return false;
+    const double U0 = Side->DomainStartU(), U1 = Side->DomainEndU(), V0 = Side->DomainStartV(), V1 = Side->DomainEndV();
+    for (int I = 0; I < 7; ++I)
+        for (int J = 0; J < 5; ++J)
+        {
+            const double U = U0 + (U1 - U0) * static_cast<double>(I) / 6.0;
+            const double Fraction = static_cast<double>(J) / 4.0;
+            const Vec3 P = Side->Sample(U, V0 + (V1 - V0) * Fraction);
+            const double ExpectedRadius = ScalarCriteria::Lerp(RadiusFoot, RadiusTop, Fraction);
+            if (std::fabs(P.Z - Bounds.Low.Z - Height * Fraction) > ScalarCriteria::GeometricTolerance ||
+                std::fabs(std::hypot(P.X, P.Y) - ExpectedRadius) > ScalarCriteria::GeometricTolerance) return false;
+        }
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildNativeCylinderUpperCapOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    double Radius = 0.0, UnusedTop = 0.0, Height = 0.0;
+    if (!ReadNativeConicUpperCap(Source, Face, false, Radius, UnusedTop, Height))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cylinder-cap offset requires an exact origin-centred native cylinder and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cylinder-cap offset distance must be finite and positive");
+    Deliver<BrepBody> Result = BrepBody::Cylinder({ 0, 0, 0 }, Vec3::UnitZ(), Radius, Height + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 2 || Result.Payload.Edges.size() != 3 ||
+        Result.Payload.Coedges.size() != 6 || Result.Payload.Loops.size() != 3 || Result.Payload.Faces.size() != 3)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "cylinder-cap offset did not retain V2/E3/C6/L3/F3 topology");
+    return Result;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildNativeConeUpperCapOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    double RadiusFoot = 0.0, RadiusTop = 0.0, Height = 0.0;
+    if (!ReadNativeConicUpperCap(Source, Face, true, RadiusFoot, RadiusTop, Height))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "cone-cap offset requires an exact origin-centred native frustum and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone-cap offset distance must be finite and positive");
+    const double NewTop = RadiusTop + (RadiusTop - RadiusFoot) * Distance / Height;
+    if (NewTop <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "cone-cap offset would cross the apex");
+    Deliver<BrepBody> Result = BrepBody::Cone({ 0, 0, 0 }, Vec3::UnitZ(), RadiusFoot, NewTop, Height + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 2 || Result.Payload.Edges.size() != 3 ||
+        Result.Payload.Coedges.size() != 6 || Result.Payload.Loops.size() != 3 || Result.Payload.Faces.size() != 3)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "cone-cap offset did not retain V2/E3/C6/L3/F3 topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face,
                                                        Vec3& Low, Vec3& High,
                                                        double& OuterMajor, double& OuterMinor,
@@ -2114,6 +2209,10 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (Torus) return Torus;
         Deliver<BrepBody> Sphere = OffsetSphereFace(Source, Face, Distance);
         if (Sphere) return Sphere;
+        Deliver<BrepBody> CylinderCap = OffsetCylinderCap(Source, Face, Distance);
+        if (CylinderCap) return CylinderCap;
+        Deliver<BrepBody> ConeCap = OffsetConeCap(Source, Face, Distance);
+        if (ConeCap) return ConeCap;
         Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
         if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> EllipticalAnnulus = OffsetExtrudedEllipticalAnnularPrism(Source, Face, Distance);
@@ -2264,6 +2363,16 @@ Deliver<BrepBody> FaceEditSolver::OffsetTorusFace(const BrepBody& Source, int Fa
 Deliver<BrepBody> FaceEditSolver::OffsetSphereFace(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildSphereFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetCylinderCap(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildNativeCylinderUpperCapOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetConeCap(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildNativeConeUpperCapOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept
