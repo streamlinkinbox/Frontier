@@ -355,8 +355,8 @@ function bankAt(s) {
   const f = (wrapS(s) / TRACK_LEN) * NS, i0 = Math.floor(f) % NS, i1 = (i0 + 1) % NS, fr = f - Math.floor(f);
   return lerp(bankH[i0], bankH[i1], fr);
 }
-const bowlY = (u, s) => bankAt(s) * Math.pow(Math.abs(u), WALL_P);
-const bowlSlope = (u, s) => (bankAt(s) * 3.4 / HALF_W) * Math.pow(Math.abs(u), 1.2) * Math.sign(u || 1); // 1.55x over the visual gradient: cars ride the high wall
+const bowlY = (u, s, route = 0) => (route === 0 ? bankAt(s) : armBank(route, forkT(s))) * Math.pow(Math.abs(u), WALL_P);
+const bowlSlope = (u, s, route = 0) => ((route === 0 ? bankAt(s) : armBank(route, forkT(s))) * 3.4 / armHalfW(route)) * Math.pow(Math.abs(u), 1.2) * Math.sign(u || 1); // 1.55x over the visual gradient: cars ride the high wall
 const wrapS = (s) => ((s % TRACK_LEN) + TRACK_LEN) % TRACK_LEN;
 const wrapDist = (a, b) => ((a - b + TRACK_LEN * 1.5) % TRACK_LEN) - TRACK_LEN * 0.5;
 const _sp = { pos: new THREE.Vector3(), tan: new THREE.Vector3(), left: new THREE.Vector3(), head: 0, curv: 0 };
@@ -371,46 +371,80 @@ function sampleAt(s) {
   _sp.curv = wrapAngle(sHeadS[in_] - sHeadS[ip]) / (12 * DS); // wrap strips the loop winding at the seam
   return _sp;
 }
+/* --------------------------------------------- Y-junction fork: two real arms */
+const FORK = { s0: 625, s1: 850 }; // fork zone on the north straight (stem road cut, arms laid instead)
+const ARM_W = 8;                   // arm carriageway half-width (16 m wide each)
+const ARM_OFF = 0.55;              // arm centre offset at fork/rejoin, in stem-u units (7.15 m)
+const armHalfW = (route) => (route === 0 ? HALF_W : ARM_W);
+const forkT = (s) => clamp((s - FORK.s0) / (FORK.s1 - FORK.s0), 0, 1);
+function armBulge(route, t) { // lateral metres off the arm base line: tangent-continuous ends, real bends between
+  if (route === 1) return 18 * Math.pow(Math.sin(Math.PI * t), 2);   // SPEEDWAY: fast outer sweeper (flat out)
+  return -8 * Math.sin(2 * Math.PI * t) * Math.sin(Math.PI * t);     // SKYLINE: infield S-curves (rhythm section)
+}
+function armBank(route, t) {
+  return 0.7 + (route === 1 ? 2.0 : 1.5) * Math.pow(Math.sin(Math.PI * t), 2);
+}
+const _sp2 = { pos: new THREE.Vector3(), tan: new THREE.Vector3(), left: new THREE.Vector3(), head: 0, curv: 0 };
+function sampleRoute(route, s) {
+  if (route === 0) return sampleAt(s);
+  const t = forkT(s), sm = sampleAt(s);
+  const side = route === 1 ? 1 : -1;
+  _sp2.pos.copy(sm.pos).addScaledVector(sm.left, side * ARM_OFF * HALF_W + armBulge(route, t));
+  const e = 0.004, tp = Math.min(1, t + e), tm = Math.max(0, t - e), span = (tp - tm) * (FORK.s1 - FORK.s0);
+  const dz = (armBulge(route, tp) - armBulge(route, tm)) / span; // lateral rate -> exact heading
+  _sp2.tan.copy(sm.tan).addScaledVector(sm.left, dz).normalize();
+  _sp2.left.set(_sp2.tan.z, 0, -_sp2.tan.x);
+  _sp2.head = sm.head + Math.atan(dz);
+  const d2 = (armBulge(route, tp) - 2 * armBulge(route, t) + armBulge(route, tm)) / Math.pow(span / 2, 2);
+  _sp2.curv = d2 / Math.pow(1 + dz * dz, 1.5); // left-positive, same convention as the bowls
+  return _sp2;
+}
+const inFork = (s0, s1, strict) => strict ? (s1 > FORK.s0 && s0 < FORK.s1) : (s0 >= FORK.s0 && s1 <= FORK.s1);
 /* ------------------------------------------------------ jump cuts: data */
 const JUMPS = [
-  { lip: 140, run: 12, h: 2.0, gap: 26 },  // main straight: full-width angled cut
-  { lip: 720, run: 12, h: 2.0, gap: 26, u0: -1, u1: -0.2 }, // split right lane only: 40 m to settle after the fork, 90+ m to set up for the bowl after landing
+  { lip: 140, run: 12, h: 2.0, gap: 26, route: 0 }, // main straight: full-width angled cut
+  { lip: 730, run: 12, h: 2.0, gap: 26, route: 1 }, // SPEEDWAY arm: flat-out kicker, full arm width
+  { lip: 700, run: 12, h: 2.0, gap: 26, route: 2 }, // SKYLINE arm: rhythm jump, full arm width
 ];
 function inLane(j, u, pad) { return u >= (j.u0 ?? -1) - pad && u <= (j.u1 ?? 1) + pad; }
-function roadLift(s, u = 0) { // take-off ramp profile (quadratic: smooth entry, angled lip)
+function roadLift(s, u = 0, route = 0) { // take-off ramp profile (quadratic: smooth entry, angled lip)
   for (const j of JUMPS) {
+    if ((j.route ?? 0) !== route) continue;
     if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return j.h * t * t;
   }
   return 0;
 }
-function lipSlope(s, u = 0) { // dLift/ds: gradient resistance + chassis pitch
+function lipSlope(s, u = 0, route = 0) { // dLift/ds: gradient resistance + chassis pitch
   for (const j of JUMPS) {
+    if ((j.route ?? 0) !== route) continue;
     if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return (2 * j.h / j.run) * t;
   }
   return 0;
 }
-function inGapVoid(s, u = 0, pad = 0) {
+function inGapVoid(s, u = 0, pad = 0, route = 0) {
   for (const j of JUMPS) {
+    if ((j.route ?? 0) !== route) continue;
     if (s > j.lip && s < j.lip + j.gap && inLane(j, u, pad)) return j;
   }
   return null;
 }
-function faceInVoid(s0, s1, strict, u = 0) { // road faces may overhang the cut; rails may not
+function faceInVoid(s0, s1, strict, u = 0, route = 0) { // road faces may overhang the cut; rails may not
   for (const j of JUMPS) {
+    if ((j.route ?? 0) !== route) continue;
     if (!inLane(j, u, 0)) continue;
     if (strict) { if (s1 > j.lip && s0 < j.lip + j.gap) return true; }
     else if (s0 >= j.lip && s1 <= j.lip + j.gap) return true;
   }
   return false;
 }
-function roadPoint(s, u, out = new THREE.Vector3()) {
-  const sm = sampleAt(s);
-  out.copy(sm.pos).addScaledVector(sm.left, u * HALF_W);
-  out.y = bowlY(u, s) + roadLift(s, u);
+function roadPoint(s, u, out = new THREE.Vector3(), route = 0) {
+  const sm = sampleRoute(route, s);
+  out.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route));
+  out.y = bowlY(u, s, route) + roadLift(s, u, route);
   return out;
 }
 const loopCenter = new THREE.Vector3();
@@ -436,6 +470,7 @@ const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.94, 
     for (let j = 0; j < AC; j++) {
       const uc = ((j + 0.5) / AC) * 2 - 1;
       if (faceInVoid(fs0, fs1, false, uc)) continue; // open cut: no road over the gap
+      if (inFork(fs0, fs1, false)) continue; // Y-junction: stem cut, the arms are laid instead
       const a = i * (AC + 1) + j, b = a + AC + 1;
       idx.push(a, b, a + 1, b, b + 1, a + 1);
     }
@@ -459,6 +494,7 @@ function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat, skipWall = false) {
   for (let i = 0; i < SEG; i++) {
     const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
     if (faceInVoid(fs0, fs1, true, uSide)) continue; // rails end at the cut
+    if (inFork(fs0, fs1, true)) continue; // Y-junction: arms carry their own rails
     if (skipWall && bankAt((fs0 + fs1) / 2) > 4) continue; // spiral wall stands here
     const a = i * 2;
     idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
@@ -492,7 +528,7 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   for (let i = 0; i < count; i++) {
     const s = i * step;
     for (const sd of [1, -1]) {
-      if (inGapVoid(s, sd * 1.06, 0.1) || (bankAt(s) > 4 && sd > 0)) {
+      if (inGapVoid(s, sd * 1.06, 0.1) || (bankAt(s) > 4 && sd > 0) || (s > FORK.s0 - 2 && s < FORK.s1 + 2)) {
         m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue;
       }
       const sm = sampleAt(s);
@@ -515,7 +551,7 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   for (let i = 0; i < count; i++) {
     const s = i * step;
     for (const sd of [1, -1]) {
-      if (inGapVoid(s, sd * 0.9, 0)) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue; }
+      if (inGapVoid(s, sd * 0.9, 0) || (s > FORK.s0 - 2 && s < FORK.s1 + 2)) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue; }
       roadPoint(s, sd * 0.9, lp);
       m4.makeTranslation(lp.x, lp.y + 0.12, lp.z);
       inst.setMatrixAt(k++, m4);
@@ -540,6 +576,7 @@ let edgeGlowMat = null;
     for (let i = 0; i < SEG; i++) {
       const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
       if (faceInVoid(fs0, fs1, true, sd)) continue; // glow ends at the cut
+      if (inFork(fs0, fs1, true)) continue; // Y-junction: arms carry their own glow
       const a = i * 2;
       idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
     }
@@ -548,6 +585,72 @@ let edgeGlowMat = null;
     g.setIndex(idx); g.computeVertexNormals();
     const m = new THREE.Mesh(g, edgeGlowMat);
     m.renderOrder = 3; scene.add(m);
+  }
+}
+{ // Y-junction arms: two real carriageways with their own bends, rails + edge glow
+  for (const [route, glowCol, yLift] of [[1, 0x51e0ff, 0.035], [2, 0xffa030, 0.045]]) {
+    const SEG = 220, AC = 14, sA = FORK.s0 - 3, sB = FORK.s1 + 3;
+    const pos = [], uv = [], idx = [];
+    for (let i = 0; i <= SEG; i++) {
+      const s = sA + (sB - sA) * (i / SEG);
+      for (let j = 0; j <= AC; j++) {
+        const u = (j / AC) * 2 - 1;
+        const p = roadPoint(s, u, new THREE.Vector3(), route);
+        pos.push(p.x, p.y + yLift, p.z);
+        uv.push(j / AC, s / 40);
+      }
+    }
+    for (let i = 0; i < SEG; i++) {
+      const fs0 = sA + (sB - sA) * (i / SEG), fs1 = sA + (sB - sA) * ((i + 1) / SEG);
+      for (let j = 0; j < AC; j++) {
+        const uc = ((j + 0.5) / AC) * 2 - 1;
+        if (faceInVoid(fs0, fs1, false, uc, route)) continue; // open cut on this arm
+        const a = i * (AC + 1) + j, b = a + AC + 1;
+        idx.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx); g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g, roadMat));
+    const aGlowMat = new THREE.MeshBasicMaterial({ color: glowCol, transparent: true, opacity: 0.35,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const arib = (sd, y0, y1, out, mat, vScale, isGlow) => {
+      const N2 = 200, pp = [], uu = [], ii = [];
+      for (let i = 0; i <= N2; i++) {
+        const s = sA + (sB - sA) * (i / N2);
+        const sm = sampleRoute(route, s);
+        if (isGlow) {
+          for (const gu of [sd * 0.93, sd * 0.998]) {
+            pp.push(sm.pos.x + sm.left.x * gu * ARM_W, bowlY(gu, s, route) + 0.07, sm.pos.z + sm.left.z * gu * ARM_W);
+          }
+          uu.push(0, 0, 1, 0);
+        } else {
+          const bx = sm.pos.x + sm.left.x * sd * ARM_W, bz = sm.pos.z + sm.left.z * sd * ARM_W;
+          const by = bowlY(sd, s, route) + yLift;
+          pp.push(bx, by + y0, bz, bx + sm.left.x * sd * out, by + y1, bz + sm.left.z * sd * out);
+          uu.push(0, s / vScale, 1, s / vScale);
+        }
+      }
+      for (let i = 0; i < N2; i++) {
+        const fs0 = sA + (sB - sA) * (i / N2), fs1 = sA + (sB - sA) * ((i + 1) / N2);
+        if (faceInVoid(fs0, fs1, true, sd, route)) continue;
+        if (!isGlow && (fs0 < FORK.s0 + 7 || fs1 > FORK.s1 - 7)) continue; // rails start once the split opens (gore guards the gap)
+        const a = i * 2;
+        ii.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+      }
+      const gg = new THREE.BufferGeometry();
+      gg.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3));
+      gg.setAttribute('uv', new THREE.Float32BufferAttribute(uu, 2));
+      gg.setIndex(ii); gg.computeVertexNormals();
+      const m = new THREE.Mesh(gg, mat);
+      if (isGlow) m.renderOrder = 3;
+      scene.add(m);
+    };
+    arib(1, 0, 1.25, 0.55, rimMat, 6); arib(-1, 0, 1.25, 0.55, rimMat, 6);
+    arib(1, 1.25, 1.45, 0.6, railMat, 6); arib(-1, 1.25, 1.45, 0.6, railMat, 6);
+    arib(1, 0, 0, 0, aGlowMat, 1, true); arib(-1, 0, 0, 0, aGlowMat, 1, true);
   }
 }
 function spiralWall(side, pts) {
@@ -624,13 +727,13 @@ spiralWall(1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);   // outer: towering 
     cone.renderOrder = 4; scene.add(cone);
   }
 }
-function ribbonPatch(s0, s1, u0, u1, mat, yOff = 0.06) {
+function ribbonPatch(s0, s1, u0, u1, mat, yOff = 0.06, route = 0) {
   const NSG = 6, NUG = 12, pos = [], uvA = [], idx = [];
   for (let i = 0; i <= NSG; i++) {
     const s = lerp(s0, s1, i / NSG);
     for (let j = 0; j <= NUG; j++) {
       const u = lerp(u0, u1, j / NUG);
-      const p = roadPoint(s, u);
+      const p = roadPoint(s, u, new THREE.Vector3(), route);
       pos.push(p.x, p.y + yOff, p.z);
       uvA.push(j / NUG, i / NSG);
     }
@@ -991,7 +1094,7 @@ const gates = GATES.map(buildTrapGate);
       const NA = 10, pos = [], uvA = [], idx = [];
       for (let q = 0; q <= NA; q++) {
         const u = ju0 + (ju1 - ju0) * (q / NA);
-        const p = roadPoint(se, u);
+        const p = roadPoint(se, u, new THREE.Vector3(), j.route ?? 0);
         pos.push(p.x, p.y + 0.02, p.z, p.x, p.y - 1.5, p.z);
         uvA.push(q / NA, 1, q / NA, 0);
       }
@@ -1004,62 +1107,82 @@ const gates = GATES.map(buildTrapGate);
       g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
       g.setIndex(idx); g.computeVertexNormals();
       scene.add(new THREE.Mesh(g, steelMat));
-      const bar = new THREE.Mesh(new THREE.BoxGeometry((ju1 - ju0) * HALF_W, 0.16, 0.45), edgeMat);
-      const bp = roadPoint(se, (ju0 + ju1) / 2);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry((ju1 - ju0) * armHalfW(j.route ?? 0), 0.16, 0.45), edgeMat);
+      const bp = roadPoint(se, (ju0 + ju1) / 2, new THREE.Vector3(), j.route ?? 0);
       bar.position.set(bp.x, bp.y + 0.08, bp.z);
-      bar.rotation.y = sampleAt(se).head;
+      bar.rotation.y = sampleRoute(j.route ?? 0, se).head;
       scene.add(bar);
     }
-    ribbonPatch(j.lip - j.run, j.lip - 0.5, ju0 + 0.05, ju1 - 0.05, runMat, 0.07); // hazard runup
-    ribbonPatch(j.lip + j.gap + 2, j.lip + j.gap + 18, ju0 + 0.3, ju1 - 0.3, landMat, 0.06); // landing chevrons
+    ribbonPatch(j.lip - j.run, j.lip - 0.5, ju0 + 0.05, ju1 - 0.05, runMat, 0.07, j.route ?? 0); // hazard runup
+    ribbonPatch(j.lip + j.gap + 2, j.lip + j.gap + 18, ju0 + 0.3, ju1 - 0.3, landMat, 0.06, j.route ?? 0); // landing chevrons
     const glow = new THREE.PointLight(0xff2a00, 9, 34, 1.6); // danger glow in the cut
-    const gp = roadPoint(j.lip + j.gap / 2, (ju0 + ju1) / 2);
+    const gp = roadPoint(j.lip + j.gap / 2, (ju0 + ju1) / 2, new THREE.Vector3(), j.route ?? 0);
     glow.position.set(gp.x, gp.y - 0.4, gp.z);
     scene.add(glow);
   }
 }
 
-const DIV = { s0: 656, s1: 830, hw: 0.15, h: 1.1 }; // split-track barrier island (rejoin right after the lane-jump landing: 80 m of bowl setup)
-function divHW(s) {
-  const { s0, s1, hw } = DIV;
-  if (s < s0 - 6 || s > s1 + 6) return 0;
-  if (s < s0 + 6) { const t = (s - (s0 - 6)) / 12; return hw * t * t * (3 - 2 * t); }
-  if (s > s1 - 6) { const t = ((s1 + 6) - s) / 12; return hw * t * t * (3 - 2 * t); }
-  return hw;
-}
-{ // island walls + cap + amber lamp strip + tip beacons (plain steel: chevrons live on the turn walls only)
-  const islMat = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.5, metalness: 0.7, side: THREE.DoubleSide });
-  const stripMat = new THREE.MeshBasicMaterial({ color: 0xffb020 });
-  const N = 130, S0 = DIV.s0 - 6, S1 = DIV.s1 + 6;
-  const rib = (rows, mat) => {
-    const pos = [], idx = [];
-    for (let i = 0; i <= N; i++) {
-      const s = S0 + (S1 - S0) * (i / N);
-      const sm = sampleAt(s), w = Math.max(divHW(s), 0.004);
-      const base = bowlY(0, s) + 0.02;
-      for (const [u, yo] of rows(w)) {
-        pos.push(sm.pos.x + sm.left.x * u * HALF_W, base + yo, sm.pos.z + sm.left.z * u * HALF_W);
-      }
-    }
-    const W = rows(1).length;
-    for (let i = 0; i < N; i++) for (let r = 0; r < W - 1; r++) {
-      const a = i * W + r, b = a + W;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
+{ // Y-junction furniture: crash gores + overhead direction gantry (SPEEDWAY left, SKYLINE right)
+  const goreMat = new THREE.MeshStandardMaterial({ color: 0xc77f12, roughness: 0.7, metalness: 0.25 });
+  const barMat = new THREE.MeshStandardMaterial({ color: 0xb3281e, roughness: 0.7, metalness: 0.2 });
+  const ambMat = new THREE.MeshBasicMaterial({ color: 0xffb020 });
+  const gore = (sTip, sBase, hw) => { // low triangular crash nose
+    const smT = sampleAt(sTip), smB = sampleAt(sBase);
+    const T = smT.pos.clone(); T.y = bowlY(0, sTip) + 0.02;
+    const BL = smB.pos.clone().addScaledVector(smB.left, hw); BL.y = bowlY(hw / HALF_W, sBase) + 0.02;
+    const BR = smB.pos.clone().addScaledVector(smB.left, -hw); BR.y = bowlY(hw / HALF_W, sBase) + 0.02;
+    const H = 0.95, P = (v, y) => [v.x, v.y + y, v.z];
+    const pos = [
+      ...P(T, H), ...P(BL, H), ...P(BR, H),
+      ...P(T, 0), ...P(T, H), ...P(BL, H), ...P(T, 0), ...P(BL, H), ...P(BL, 0),
+      ...P(T, 0), ...P(BR, 0), ...P(BR, H), ...P(T, 0), ...P(BR, H), ...P(T, H),
+      ...P(BL, 0), ...P(BR, 0), ...P(BR, H), ...P(BL, 0), ...P(BR, H), ...P(BL, H),
+    ];
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setIndex(idx); g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, mat));
+    g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g, goreMat));
+    for (const bu of [0.35, -0.35]) { // crash barrels flanking the nose
+      const bp = roadPoint(sBase, bu);
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.0, 12), barMat);
+      bar.position.set(bp.x, bp.y + 0.5, bp.z);
+      scene.add(bar);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), ambMat);
+      lamp.position.set(bp.x, bp.y + 1.15, bp.z);
+      scene.add(lamp);
+    }
   };
-  rib((w) => [[-w, 0], [-w, DIV.h]], islMat);
-  rib((w) => [[w, 0], [w, DIV.h]], islMat);
-  rib((w) => [[-w, DIV.h], [w, DIV.h]], islMat);
-  rib((w) => { const sw = Math.min(w, 0.025); return [[-sw, DIV.h + 0.03], [sw, DIV.h + 0.03]]; }, stripMat);
-  for (const ts of [S0 + 0.5, S1 - 0.5]) { // amber beacons on both tips
-    const b = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), stripMat);
-    const p = roadPoint(ts, 0);
-    b.position.set(p.x, p.y + DIV.h + 0.35, p.z);
-    scene.add(b);
+  gore(FORK.s0 + 7, FORK.s0 - 1, 3.2); // fork nose: tip downstream, splitting traffic
+  gore(FORK.s1 - 7, FORK.s1 + 1, 2.6); // rejoin nose: tip upstream, merging traffic
+  { // overhead direction sign
+    const gs = FORK.s0 - 12, sm = sampleAt(gs);
+    const post = new THREE.BoxGeometry(0.45, 6.4, 0.45);
+    for (const sd of [1, -1]) {
+      const p = roadPoint(gs, sd * 1.18);
+      const m = new THREE.Mesh(post, railMat);
+      m.position.set(p.x, p.y + 3.2, p.z);
+      scene.add(m);
+    }
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(HALF_W * 2.36 + 1, 0.7, 0.7), railMat);
+    const bp = roadPoint(gs, 0);
+    beam.position.set(bp.x, bp.y + 6.4, bp.z);
+    beam.rotation.y = sm.head;
+    scene.add(beam);
+    const signTex = canvasTex(1024, 160, (ctx, W, H) => {
+      ctx.fillStyle = '#0a0e14'; ctx.fillRect(0, 0, W, H);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = 'bold 84px sans-serif';
+      ctx.fillStyle = '#51e0ff'; ctx.fillText('\u25C0 SPEEDWAY', W * 0.25, H / 2 + 4);
+      ctx.fillStyle = '#ffa030'; ctx.fillText('SKYLINE \u25B6', W * 0.75, H / 2 + 4);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(W / 2 - 3, 14, 6, H - 28);
+    });
+    const signMat = new THREE.MeshBasicMaterial({ map: signTex });
+    for (const flip of [0, Math.PI]) {
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(17, 2.65), signMat);
+      board.position.set(bp.x, bp.y + 5.0, bp.z);
+      board.rotation.y = sm.head + Math.PI + flip;
+      scene.add(board);
+    }
   }
 }
 function gateAngles(g, t) {
@@ -1128,7 +1251,7 @@ const player = {
   rig: makeCar(0x1f5eff, 0x0c0f14, 0x9fd0ff),
   s: -15, u: 0, v: 0, vy: 0, yawRate: 0, steer: 0, steerNorm: 0, hErr: 0,
   spin: 0, scraping: false, latG: 0, aX: 0, aY: 0, slipSm: 0,
-  airY: 0, airV: 0, airborne: false,
+  airY: 0, airV: 0, airborne: false, route: 0,
 };
 {
   const hl = new THREE.SpotLight(0xcfe4ff, 55, 120, 0.48, 0.5, 1);
@@ -1138,14 +1261,25 @@ const player = {
 }
 const ais = AI_DEFS.map((d) => ({
   def: d, rig: makeCar(d.suit, 0x0c0f14, d.visor),
-  s: d.s0, prevS: d.s0, u: 0, v: d.base, lap: 0, steerVis: 0, airY: 0, airV: 0, airborne: false,
+  s: d.s0, prevS: d.s0, u: 0, v: d.base, lap: 0, steerVis: 0, airY: 0, airV: 0, airborne: false, route: 0,
 }));
-function setTransform(s, u, rig, yawExtra, leanExtra, t, rollDist, steer, lift, pitch) {
-  const sm = sampleAt(s);
-  tmpV3.copy(sm.pos).addScaledVector(sm.left, u * HALF_W);
-  rig.group.position.set(tmpV3.x, bowlY(u, s) + 0.03 + (lift || 0), tmpV3.z);
+function setTransform(s, u, rig, yawExtra, leanExtra, t, rollDist, steer, lift, pitch, route = 0) {
+  const sm = sampleRoute(route, s);
+  tmpV3.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route));
+  let y = bowlY(u, s, route) + 0.03 + (lift || 0);
+  if (route !== 0) { // blend the dish pop across fork/rejoin (stem dish is wider/flatter)
+    let k = 0;
+    if (s < FORK.s0 + 6) k = 1 - clamp((s - FORK.s0) / 6, 0, 1);
+    else if (s > FORK.s1 - 6) k = clamp((s - (FORK.s1 - 6)) / 6, 0, 1);
+    if (k > 0) {
+      const side = route === 1 ? 1 : -1;
+      const uStem = clamp((u * ARM_W + side * ARM_OFF * HALF_W) / HALF_W, -1, 1);
+      y = lerp(y, bowlY(uStem, s, 0) + 0.03 + (lift || 0), k * k * (3 - 2 * k));
+    }
+  }
+  rig.group.position.set(tmpV3.x, y, tmpV3.z);
   rig.group.rotation.y = sm.head + yawExtra;
-  rig.group.rotation.z = Math.atan(bowlSlope(u, s)) * 0.92 + leanExtra;
+  rig.group.rotation.z = Math.atan(bowlSlope(u, s, route)) * 0.92 + leanExtra;
   rig.group.rotation.x = pitch || 0;
   for (const w of rig.wheels) w.rotation.x += rollDist / 0.38;
   if (rig.wheelFL) rig.wheelFL.rotation.y = rig.wheelFR.rotation.y = (steer || 0) * 0.5;
@@ -1268,7 +1402,7 @@ for (let k = 0; k < 6; k++) {
 const camFwd = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0), camTmp = new THREE.Vector3();
 function updateCamera(dt) {
   const pp = player.rig.group.position;
-  const sm = sampleAt(player.s);
+  const sm = sampleRoute(player.route, player.s);
   const v = Math.abs(player.v);
   let fov = 64;
   if (camMode === 'chase') {
@@ -1348,8 +1482,8 @@ function showCount(txt, go = false) {
 function resetRace() {
   player.s = -15; player.u = 0; player.v = 0; player.vy = 0; player.yawRate = 0;
   player.steer = 0; player.steerNorm = 0; player.spin = 0; player.latG = 0; player.hErr = 0;
-  player.airY = 0; player.airV = 0; player.airborne = false;
-  ais.forEach((ai) => { ai.s = ai.def.s0; ai.prevS = ai.s; ai.v = 0; ai.lap = 0; ai.u = 0; });
+  player.airY = 0; player.airV = 0; player.airborne = false; player.route = 0;
+  ais.forEach((ai) => { ai.s = ai.def.s0; ai.prevS = ai.s; ai.v = 0; ai.lap = 0; ai.u = 0; ai.route = 0; });
   laps = []; lapStart = 0; raceT = 0; finished = false; lastGate = -21;
   wrongWayT = 0; wrongShown = false;
   setGantry(0); hideBanner();
@@ -1400,7 +1534,7 @@ function finishRace() {
 function resetRide() {
   if (phase === 'menu') return;
   if (finished || $('finish').classList.contains('show')) { startCountdown(); return; }
-  player.s = lastGate + 6; player.u = 0; player.v = 12; player.spin = 0;
+  player.s = lastGate + 6; player.u = 0; player.v = 12; player.spin = 0; player.route = 0; // gates live on stems
   banner('RESET · BACK ON TRACK', true);
 }
 function pauseGame(on) {
@@ -1422,7 +1556,9 @@ function updatePlayer(dt) {
   const P = player, locked = phase !== 'race';
   const steerInput = locked ? 0 : ((input.left ? 1 : 0) - (input.right ? 1 : 0));
   P.steerNorm += (steerInput - P.steerNorm) * (1 - Math.exp(-dt * 5.5)); // slower hands: smooth keyboard input
-  const pacejka = (a) => Math.sin(1.35 * Math.atan(11 * a)); // simplified magic formula
+  // Pacejka Magic Formula (lateral): F = D·sin(C·atan(B·α − E·(B·α − atan(B·α))))
+  const pacejkaF = (a) => { const b = 11 * a; return Math.sin(1.35 * Math.atan(b - 0.25 * (b - Math.atan(b)))); }; // front: crisp, communicative breakaway
+  const pacejkaR = (a) => { const b = 10 * a; return Math.sin(1.40 * Math.atan(b + 0.20 * (b - Math.atan(b)))); }; // rear: E<0, forgiving tail that pulls through slides
   if (!locked) {
     const steps = dt > 0.026 ? 3 : 2, h = dt / steps;
     let wrapped = false;
@@ -1431,7 +1567,7 @@ function updatePlayer(dt) {
       const dMax = Math.min(0.6, 8.0 / Math.max(av, 10)); // steer authority ~ 1/v: full lock holds the bowls with margin (front saturates first, so excess lock plows, not spins)
       P.steer += (P.steerNorm * dMax - P.steer) * (1 - Math.exp(-h * 6));
       if (!P.airborne) {
-        const sm = sampleAt(P.s);
+        const sm = sampleRoute(P.route, P.s);
         const normal = 9.81 + 0.005 * v * v; // gravity + aero downforce
         const grip = Math.min(1, av / 6); // no lateral force when parked
         const mu = 1.7, m = 1200, A = 1.45, B = 1.45, IZ = 2400;
@@ -1448,19 +1584,19 @@ function updatePlayer(dt) {
         const latK = P.aX / (mu * normal); // combined slip: longitudinal eats lateral
         const latScaleF = Math.sqrt(Math.max(0.3, 1 - Math.pow(Math.min(0, latK), 2)));
         const latScaleR = Math.sqrt(Math.max(0.25, 1 - Math.pow(latK, 2))); // RWD: power loosens the rear
-        const Fyf = -muF * FzF * grip * pacejka(aF) * latSens * latScaleF;
-        const Fyr = -muR * FzR * grip * pacejka(aR) * latSens * latScaleR;
+        const Fyf = -muF * FzF * grip * pacejkaF(aF) * latSens * latScaleF;
+        const Fyr = -muR * FzR * grip * pacejkaR(aR) * latSens * latScaleR;
         const flat = (Fyf + Fyr) / (mu * m * normal);
         P.latG += (Math.min(1.4, Math.abs(flat)) - P.latG) * (1 - Math.exp(-h * 8));
         P.aY += (flat * mu * normal - P.aY) * (1 - Math.exp(-h * 6));
         P.slipSm += (Math.max(Math.abs(aF), Math.abs(aR)) - P.slipSm) * (1 - Math.exp(-h * 8));
-        const aRoad = -v * v * sm.curv - 9.81 * bowlSlope(P.u, P.s);
+        const aRoad = -v * v * sm.curv - 9.81 * bowlSlope(P.u, P.s, P.route);
         const ch = Math.cos(P.hErr), sh = Math.sin(P.hErr);
         P.vy += ((Fyf + Fyr) / m + aRoad * ch) * h;
         P.vy *= Math.exp(-h * 0.35);
         P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.4 + av * 0.03)) * h;
         P.hErr = clamp(P.hErr + (P.yawRate - v * sm.curv) * h, -1.05, 1.05);
-        P.u += ((v * sh + P.vy * ch) / HALF_W) * h; // velocity follows the nose
+        P.u += ((v * sh + P.vy * ch) / armHalfW(P.route)) * h; // velocity follows the nose
         P.s += (v * ch - P.vy * sh) * h;
         const fmin = Math.min(1, Math.abs(flat));
         const longScale = Math.sqrt(Math.max(0.12, 1 - fmin * fmin)); // friction circle
@@ -1470,7 +1606,7 @@ function updatePlayer(dt) {
         if (input.back && v > 1) Fx -= Math.min(24000, mu * m * normal * 0.98) * longScale; // ABS-capped brakes
         if (input.back && v <= 1) Fx -= 9000 * longScale; // reverse launch
         if (!input.fwd && !input.back) Fx -= Math.sign(v || 1) * 900; // engine braking
-        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s, P.u) * h; // + lip gradient
+        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s, P.u, P.route) * h; // + lip gradient
         if (!input.fwd && !input.back && Math.abs(P.v) < 0.6) P.v = 0;
         P.v = clamp(P.v, -12, TOP_SPEED);
         P.aX += ((P.v - v) / h - P.aX) * (1 - Math.exp(-h * 6));
@@ -1495,31 +1631,29 @@ function updatePlayer(dt) {
     P.hErr *= Math.exp(-dt * 4); // slide along the wall
     if (P.v > 8) {
       P.v -= P.v * 0.8 * dt;
-      roadPoint(P.s, sd * 0.97, tmpV); tmpV.y += 0.4;
+      roadPoint(P.s, sd * 0.97, tmpV, P.route); tmpV.y += 0.4;
       spawnSparks(tmpV, 2, 0xffc400, 5, 3);
       P.scraping = true;
       shakeT = Math.max(shakeT, 0.18);
     }
   }
-  if (!P.airborne && P.s > DIV.s0 - 2 && P.s < DIV.s1 + 2 && Math.abs(P.u) < 0.18) {
-    const sd = P.u >= 0 ? 1 : -1; // split-track island: pick a side
-    const headOn = Math.abs(P.u) < 0.1;
-    P.u = sd * 0.18;
-    if (P.vy * sd < 0) P.vy *= -0.3;
-    if (P.v > 8) {
-      roadPoint(P.s, sd * 0.2, tmpV); tmpV.y += 0.6;
-      spawnSparks(tmpV, 2, 0xffc400, 5, 3);
-      P.scraping = true; shakeT = Math.max(shakeT, 0.15);
-      if (headOn) { P.v *= 0.9; Audio8.thud(); shakeT = Math.max(shakeT, 0.4); }
-    }
-  }
   let lift = 0; // jumps + airtime
   if (!locked) {
     const prevS = P.s - P.v * dt;
+    if (prevS < FORK.s0 && P.s >= FORK.s0 && P.route === 0) { // Y-fork: your side picks your arm
+      const side = P.u >= 0 ? 1 : -1;
+      P.route = side === 1 ? 1 : 2;
+      P.u = clamp((P.u * HALF_W - side * ARM_OFF * HALF_W) / ARM_W, -0.96, 0.96); // position-continuous reframe
+      banner(side === 1 ? 'SPEEDWAY \u25C0 LEFT ARM' : 'SKYLINE RIGHT ARM \u25B6', true);
+    } else if (prevS < FORK.s1 && P.s >= FORK.s1 && P.route !== 0) { // rejoin
+      const side = P.route === 1 ? 1 : -1;
+      P.u = clamp((P.u * ARM_W + side * ARM_OFF * HALF_W) / HALF_W, -0.96, 0.96);
+      P.route = 0;
+    }
     if (!P.airborne) {
-      lift = roadLift(P.s, P.u);
+      lift = roadLift(P.s, P.u, P.route);
       for (const j of JUMPS) { // full-width angled lip: launch over the cut
-        if (prevS < j.lip && P.s >= j.lip && P.v > 10 && inLane(j, P.u, 0.02)) {
+        if (prevS < j.lip && P.s >= j.lip && P.v > 10 && (j.route ?? 0) === P.route && inLane(j, P.u, 0.02)) {
           P.airborne = true; P.airY = j.h;
           P.airV = Math.min(P.v * (2 * j.h / j.run) * 0.9, 8.5);
           Audio8.whoosh();
@@ -1529,7 +1663,7 @@ function updatePlayer(dt) {
       P.airV -= 16 * dt;
       P.airY += P.airV * dt;
       lift = Math.max(0, P.airY);
-      const jv = inGapVoid(P.s, P.u, 0.02);
+      const jv = inGapVoid(P.s, P.u, 0.02, P.route);
       if (jv && P.airY < -3) { // fell into the cut: back before the lip
         P.s = jv.lip - 35; P.u = 0; P.v = 12; P.vy = 0; P.yawRate = 0; P.hErr = 0;
         P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
@@ -1537,7 +1671,7 @@ function updatePlayer(dt) {
       }
       if (P.airborne) { // face-plant into the landing wall
         for (const j of JUMPS) {
-          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5 && inLane(j, P.u, 0.02)) {
+          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5 && (j.route ?? 0) === P.route && inLane(j, P.u, 0.02)) {
             P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
             P.v *= 0.55; P.vy = 0;
             spawnSparks(player.rig.group.position, 30, 0xff5030, 10, 6);
@@ -1545,7 +1679,7 @@ function updatePlayer(dt) {
           }
         }
       }
-      if (P.airborne && P.airY <= roadLift(P.s, P.u) && !inGapVoid(P.s, P.u, 0.02)) {
+      if (P.airborne && P.airY <= roadLift(P.s, P.u, P.route) && !inGapVoid(P.s, P.u, 0.02, P.route)) {
         P.airborne = false; P.airY = 0;
         if (P.airV < -3.5) {
           const hard = Math.min(1, (-P.airV - 3.5) / 6);
@@ -1564,7 +1698,7 @@ function updatePlayer(dt) {
     const d = wrapDist(P.s, g.sg);
     if (Math.abs(d) < 4 && P.v > 0) lastGate = g.sg;
     const st = gateState(g, tNow);
-    if (Math.abs(d) < 7 && st.blocked && g.cooldown <= 0 && Math.abs(P.u) < 0.92 && P.v > 5 && !locked && P.airY < 1.2) {
+    if (Math.abs(d) < 7 && st.blocked && g.cooldown <= 0 && Math.abs(P.u) < 0.92 && P.v > 5 && !locked && P.airY < 1.2 && P.route === 0) {
       trapHit(g);
     } else if (Math.abs(d) < 7 && !st.blocked && !g.whooshed && P.v > 5) {
       const angs = gateAngles(g, tNow);
@@ -1574,8 +1708,8 @@ function updatePlayer(dt) {
     }
     if (Math.abs(d) > 30) g.whooshed = false;
   }
-  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s, P.u)) * 0.9 - P.aX * 0.0016;
-  setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.03 - P.vy * 0.004 + P.aY * 0.0016, tNow, P.v * dt, P.steerNorm, lift, pitchP);
+  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s, P.u, P.route)) * 0.9 - P.aX * 0.0016;
+  setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.03 - P.vy * 0.004 + P.aY * 0.0016, tNow, P.v * dt, P.steerNorm, lift, pitchP, P.route);
   const vAlong = P.v * Math.cos(P.hErr) - P.vy * Math.sin(P.hErr);
   if (vAlong < -2) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
   if (wrongWayT > 0.8 && !wrongShown) { wrongShown = true; banner('WRONG WAY', false); }
@@ -1618,21 +1752,26 @@ function updateAI(dt, racing) {
     if (ai.s >= TRACK_LEN) { ai.s -= TRACK_LEN; ai.lap++; }
     ai.prevU = ai.u;
     ai.u = 0.5 * Math.sin(tNow * 0.35 + ai.def.ph * 1.3);
-    if (ai.s > DIV.s0 - 31 && ai.s < DIV.s1 + 31) { // split: hold a side through the island
-      const side = ((ai.lap + aiIdx) % 2 === 0) ? 1 : -1;
-      let k = 1;
-      if (ai.s < DIV.s0) k = (ai.s - (DIV.s0 - 31)) / 31;
-      else if (ai.s > DIV.s1) k = 1 - (ai.s - DIV.s1) / 31;
-      ai.u = lerp(ai.u, side * 0.55, clamp(k, 0, 1));
+    const armSide = ((ai.lap + aiIdx) % 2 === 0) ? 1 : -1; // chosen Y arm this lap
+    if (ai.s > FORK.s0 - 40 && ai.s < FORK.s0) { // drift to the arm mouth before the gore
+      const k = (ai.s - (FORK.s0 - 40)) / 40;
+      ai.u = lerp(ai.u, armSide * 0.55, k * k * (3 - 2 * k));
+    }
+    if (ai.prevS < FORK.s0 && ai.s >= FORK.s0 && ai.route === 0) {
+      ai.route = armSide === 1 ? 1 : 2;
+      ai.u = (ai.u * HALF_W - armSide * ARM_OFF * HALF_W) / ARM_W; // lands on arm centre: continuous
+    } else if (ai.prevS < FORK.s1 && ai.s >= FORK.s1 && ai.route !== 0) {
+      ai.u = (ai.u * ARM_W + armSide * ARM_OFF * HALF_W) / HALF_W;
+      ai.route = 0;
     }
     ai.steerVis = Math.cos(tNow * 0.35 + ai.def.ph * 1.3) * 0.5;
-    const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * HALF_W) / Math.max(12, ai.v), -0.4, 0.4);
+    const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * armHalfW(ai.route)) / Math.max(12, ai.v), -0.4, 0.4);
     let aiLift = 0, aiPitch = 0;
     if (!ai.airborne) {
-      aiLift = roadLift(ai.s, ai.u);
-      aiPitch = -Math.atan(lipSlope(ai.s, ai.u)) * 0.9;
+      aiLift = roadLift(ai.s, ai.u, ai.route);
+      aiPitch = -Math.atan(lipSlope(ai.s, ai.u, ai.route)) * 0.9;
       for (const j of JUMPS) {
-        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10 && inLane(j, ai.u, 0.02)) {
+        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10 && (j.route ?? 0) === ai.route && inLane(j, ai.u, 0.02)) {
           ai.airborne = true; ai.airY = j.h;
           ai.airV = Math.min(ai.v * (2 * j.h / j.run) * 0.9, 8.5);
         }
@@ -1640,11 +1779,11 @@ function updateAI(dt, racing) {
     } else {
       ai.airV -= 16 * dt; ai.airY += ai.airV * dt; aiLift = Math.max(0, ai.airY);
       aiPitch = clamp(-ai.airV * 0.025, -0.22, 0.3);
-      const jv = inGapVoid(ai.s, ai.u, 0.02);
+      const jv = inGapVoid(ai.s, ai.u, 0.02, ai.route);
       if (jv && ai.airY < -3) { ai.s = jv.lip + jv.gap + 2; ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
-      else if (!jv && ai.airY <= roadLift(ai.s, ai.u)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+      else if (!jv && ai.airY <= roadLift(ai.s, ai.u, ai.route)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
     }
-    setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.05, tNow, ai.v * dt, ai.steerVis, aiLift, aiPitch);
+    setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.05, tNow, ai.v * dt, ai.steerVis, aiLift, aiPitch, ai.route);
   }
 }
 function updateGatesVisual(t) {
@@ -1666,7 +1805,7 @@ const mapB = (() => {
     x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x);
     z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z);
   }
-  return { x0, x1, z0, z1 };
+  return { x0, x1, z0, z1: Math.max(z1, 121) }; // room for the SPEEDWAY arm bulge
 })();
 function mapXY(x, z, W, H, pad) {
   const sx = (W - 2 * pad) / (mapB.x1 - mapB.x0), sz = (H - 2 * pad) / (mapB.z1 - mapB.z0);
@@ -1698,26 +1837,28 @@ function drawMap() {
     mapCtx.beginPath(); mapCtx.arc(x, y, 4, 0, TAU); mapCtx.fill();
   }
   for (const j of JUMPS) { // jump cuts: amber ticks at each lip
-    const p = roadPoint(j.lip, ((j.u0 ?? -1) + (j.u1 ?? 1)) / 2, tmpV2);
+    const p = roadPoint(j.lip, ((j.u0 ?? -1) + (j.u1 ?? 1)) / 2, tmpV2, j.route ?? 0);
     const [jx, jy] = mapXY(p.x, p.z, W, H, 12);
     mapCtx.fillStyle = '#ffc400'; mapCtx.fillRect(jx - 3, jy - 3, 6, 6);
   }
-  mapCtx.strokeStyle = '#ffb020'; mapCtx.lineWidth = 3; mapCtx.beginPath();
-  for (let ds = DIV.s0; ds <= DIV.s1; ds += 10) {
-    const p = roadPoint(ds, 0, tmpV2);
-    const [dx, dy] = mapXY(p.x, p.z, W, H, 12);
-    if (ds === DIV.s0) mapCtx.moveTo(dx, dy); else mapCtx.lineTo(dx, dy);
+  for (const [route, col] of [[1, '#51e0ff'], [2, '#ffa030']]) { // Y arms on the map
+    mapCtx.strokeStyle = col; mapCtx.lineWidth = 4; mapCtx.beginPath();
+    for (let ds = FORK.s0; ds <= FORK.s1; ds += 8) {
+      const p = sampleRoute(route, ds).pos;
+      const [dx, dy] = mapXY(p.x, p.z, W, H, 12);
+      if (ds === FORK.s0) mapCtx.moveTo(dx, dy); else mapCtx.lineTo(dx, dy);
+    }
+    mapCtx.stroke();
   }
-  mapCtx.stroke();
   for (const ai of ais) {
-    const p = roadPoint(ai.s, ai.u, tmpV2);
+    const p = roadPoint(ai.s, ai.u, tmpV2, ai.route);
     const [x, y] = mapXY(p.x, p.z, W, H, 12);
     mapCtx.fillStyle = '#' + ai.def.visor.toString(16).padStart(6, '0');
     mapCtx.beginPath(); mapCtx.arc(x, y, 3, 0, TAU); mapCtx.fill();
   }
-  const pp = roadPoint(player.s, player.u, tmpV2);
+  const pp = roadPoint(player.s, player.u, tmpV2, player.route);
   const [px, py] = mapXY(pp.x, pp.z, W, H, 12);
-  const sm = sampleAt(player.s);
+  const sm = sampleRoute(player.route, player.s);
   mapCtx.strokeStyle = '#fff'; mapCtx.lineWidth = 2;
   const ha = sm.head + player.hErr + Math.atan2(player.vy, Math.abs(player.v) + 1.5);
   mapCtx.beginPath(); mapCtx.moveTo(px, py);
