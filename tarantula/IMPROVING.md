@@ -102,13 +102,13 @@ measured from the real geometry with `tools/probes/abdsil.js` and is stored as
 `ABD_*` in `Actions.js`. The tangent is recomputed every frame from the actual coxa
 position, so it follows the abdomen's tilt during the flick.
 
-| Metric (81 frames of active flicking) | Original | 1st rewrite | Now |
-|---|---|---|---|
-| Frames with a leg-IV segment inside the abdomen's hair envelope | 81 | 81 | **0** |
-| Frames with a leg-IV segment over the abdomen, seen from above | 81 | 81 | **0** |
-| Worst overlap from above | — | 1.49 cm | **0** |
-| Frames in rock | 0 | 0 | 0 |
-| Tightest leg fold (tip distance / maxReach) | — | 0.43 | 0.43 |
+| Metric (81 frames of active flicking) | 1st rewrite | Now |
+|---|---|---|
+| Frames with a leg-IV segment inside the abdomen's hair envelope | 81 | **0** |
+| Frames with a leg-IV segment over the abdomen, seen from above | 81 | **0** |
+| Worst overlap from above | 1.49 cm | **0** |
+| Frames in rock | 0 | 0 |
+| Tightest leg fold (tip distance / maxReach) | 0.43 | 0.43 |
 
 The only remaining contact is during the 0.3 s blend from the standing pose into the
 flick and back: 28 of 150 frames, at most 2 mm. In the normal standing pose, the base
