@@ -1987,6 +1987,29 @@ translated/tilted toruses, arbitrary analytic/freeform faces, mixed supports, in
 malformed topology, healing, or general toroidal face editing. Its bounded plan is
 `docs/PLAN_Phase52_TorusFaceOffset.md`.
 
+#### Phase 53: bounded analytic sphere face offset ✅
+
+This proof advances exact face editing into a genus-zero closed spherical support, distinct from the
+Phase 52 torus and the earlier revolved annular prism. `SphereFaceOffsetVerification` constructs a
+radius-5 origin-centred sphere with the canonical Z-axis metadata. The source and result retain closed
+genus-zero `V2/E1/C2/L1/F1` topology and one natural analytic sphere face.
+
+`FaceEditSolver::OffsetSphereFace` recognizes only one complete natural `SurfaceClassification::Sphere`
+face with the kernel's pole/seam topology, an origin-centred canonical sphere, and a positive offset.
+It reconstructs the exact sphere with only the radius increased to 6.25; no tessellation, freeform
+approximation, or healing fallback is used. The focused verifier checks radius/centre identity, the
+spherical volume identity, source immutability, public dispatcher routing, and explicit refusal of
+toruses, cylinders, annular prisms, translated spheres, invalid offsets, and malformed topology.
+
+The durable proof is `Proofs/Phase53_SphereFaceOffset.png`; 18 focused checks pass, and the verifier
+and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one complete origin-centred canonical sphere and positive radius
+expansion. It does not prove partial/trimmed spheres, translated or non-canonical spheres,
+toruses, cylinders, cones, annular prisms, arbitrary analytic/freeform faces, mixed supports,
+invalid offsets, malformed topology, healing, or general spherical face editing. Its bounded plan is
+`docs/PLAN_Phase53_SphereFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

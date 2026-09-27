@@ -1151,6 +1151,44 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadSphereFace(const BrepBody& Source, int Face, double& Radius, Vec3& Centre, Vec3& Axis) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 2 || Source.Edges.size() != 1 ||
+        Source.Coedges.size() != 2 || Source.Loops.size() != 1 || Source.Faces.size() != 1 || Face != 0) return false;
+    const BrepFace& F = Source.Faces.front();
+    if (F.Surface.Classification != SurfaceClassification::Sphere || F.Loops.size() != 1 || !F.Natural ||
+        Source.Loops.front().Coedges.size() != 2 || Source.Edges.front().Coedges.size() != 2) return false;
+    Radius = F.Surface.RadiusMajor;
+    Centre = F.Surface.Origin;
+    Axis = F.Surface.Axis.Normalised();
+    if (!std::isfinite(Radius) || Radius <= ScalarCriteria::MergeTolerance ||
+        std::fabs(F.Surface.RadiusMinor - Radius) > ScalarCriteria::GeometricTolerance ||
+        Centre.Length() > ScalarCriteria::GeometricTolerance ||
+        std::fabs(Axis.Dot(Vec3::UnitZ())) < 1.0 - UnitTolerance) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildSphereFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    double Radius = 0.0; Vec3 Centre{}, Axis{};
+    if (!ReadSphereFace(Source, Face, Radius, Centre, Axis))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "sphere offset requires one complete canonical analytic sphere face");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "sphere offset distance must be finite and positive");
+    Deliver<BrepBody> Result = BrepBody::Sphere(Centre, Radius + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport R = Result.Payload.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 2 || Result.Payload.Edges.size() != 1 ||
+        Result.Payload.Coedges.size() != 2 || Result.Payload.Loops.size() != 1 || Result.Payload.Faces.size() != 1 ||
+        Result.Payload.Faces.front().Surface.Classification != SurfaceClassification::Sphere)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "sphere offset did not retain V2/E1/C2/L1/F1 topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadExtrudedCircularSectorPrism(const BrepBody& Source, int Face, Vec3& Centre,
                                                    double& Radius, double& StartAngle, double& Sweep,
                                                    double& Low, double& High) noexcept
@@ -1758,6 +1796,8 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (Sector) return Sector;
         Deliver<BrepBody> Torus = OffsetTorusFace(Source, Face, Distance);
         if (Torus) return Torus;
+        Deliver<BrepBody> Sphere = OffsetSphereFace(Source, Face, Distance);
+        if (Sphere) return Sphere;
         Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
         if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
@@ -1897,6 +1937,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetRevolvedAnnularPrism(const BrepBody& Sou
 Deliver<BrepBody> FaceEditSolver::OffsetTorusFace(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildTorusFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetSphereFace(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildSphereFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept

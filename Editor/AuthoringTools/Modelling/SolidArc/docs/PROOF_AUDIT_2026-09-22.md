@@ -1312,6 +1312,28 @@ translated/tilted toruses, arbitrary analytic/freeform faces, mixed supports, in
 malformed topology, healing, or general toroidal face editing. The bounded plan is
 `docs/PLAN_Phase52_TorusFaceOffset.md`.
 
+## Phase 53 — bounded analytic sphere face offset (2026-09-27)
+
+This proof advances exact face editing into a genus-zero closed spherical support:
+
+- `SphereFaceOffsetVerification` constructs the origin-centred canonical sphere with radius 5.
+  Source and result retain closed genus-zero `V2/E1/C2/L1/F1` topology and one natural analytic
+  sphere face.
+- `FaceEditSolver::OffsetSphereFace` accepts only one complete natural `SurfaceClassification::Sphere`
+  face with the kernel's pole/seam topology. It reconstructs the exact sphere with only its radius
+  increased to 6.25, without tessellation or healing.
+- The focused verifier checks radius/centre identity, the spherical volume identity, source
+  immutability, public dispatcher routing, refusal of toruses, cylinders, annular prisms,
+  translated spheres, invalid offsets, and malformed topology.
+- Durable proof: `Proofs/Phase53_SphereFaceOffset.png`; 18 focused checks pass. The verifier, proof,
+  and full-gate registration are present in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one complete origin-centred canonical sphere and positive radius
+expansion. It does not prove partial/trimmed spheres, translated or non-canonical spheres, toruses,
+cylinders, cones, annular prisms, arbitrary analytic/freeform faces, mixed supports, invalid offsets,
+malformed topology, healing, or general spherical face editing. The bounded plan is
+`docs/PLAN_Phase53_SphereFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

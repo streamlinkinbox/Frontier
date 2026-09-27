@@ -57,6 +57,10 @@ public:
     // Positive distance expands its minor radius; arbitrary trimmed/toroidal edits remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetTorusFace(const BrepBody& Source, int Face, double Distance) noexcept;
 
+    // Bounded closed-sphere offset route for one exact analytic sphere face.
+    // Positive distance expands its radius; arbitrary trimmed/spherical edits remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetSphereFace(const BrepBody& Source, int Face, double Distance) noexcept;
+
     // Bounded genus-one offset route for a straight rectangular prism with one exact circular through-hole.
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;

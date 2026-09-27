@@ -260,6 +260,11 @@ add_executable(TorusFaceOffsetVerification Verification/TorusFaceOffsetVerificat
 target_link_libraries(TorusFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME TorusFaceOffsetVerification COMMAND TorusFaceOffsetVerification)
 
+# Phase 53: bounded analytic sphere face offset.
+add_executable(SphereFaceOffsetVerification Verification/SphereFaceOffsetVerification.cpp)
+target_link_libraries(SphereFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME SphereFaceOffsetVerification COMMAND SphereFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)
