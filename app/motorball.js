@@ -47,7 +47,7 @@ const AI_DEFS = [
 const Audio8 = {
   ctx: null, master: null, muted: false,
   eng: null, engSub: null, engGain: null, engFilter: null,
-  windGain: null, windFilter: null, scrapeGain: null, alarmOsc: null, alarmGain: null,
+  windGain: null, windFilter: null, scrapeGain: null, alarmOsc: null, alarmGain: null, skidGain: null,
   init() {
     if (this.ctx) { this.ctx.resume(); return; }
     const C = window.AudioContext || window.webkitAudioContext;
@@ -75,7 +75,11 @@ const Audio8 = {
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2500;
     this.scrapeGain = ctx.createGain(); this.scrapeGain.gain.value = 0;
     noise2.connect(hp); hp.connect(this.scrapeGain); this.scrapeGain.connect(this.master);
-    noise.start(); noise2.start();
+    const noise3 = ctx.createBufferSource(); noise3.buffer = buf; noise3.loop = true; noise3.playbackRate.value = 1.7;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 850; bp.Q.value = 2.2;
+    this.skidGain = ctx.createGain(); this.skidGain.gain.value = 0;
+    noise3.connect(bp); bp.connect(this.skidGain); this.skidGain.connect(this.master);
+    noise.start(); noise2.start(); noise3.start();
     // trap alarm
     this.alarmOsc = ctx.createOscillator(); this.alarmOsc.type = 'square'; this.alarmOsc.frequency.value = 740;
     this.alarmGain = ctx.createGain(); this.alarmGain.gain.value = 0;
@@ -104,7 +108,7 @@ const Audio8 = {
     n.connect(f); f.connect(ng); ng.connect(this.master); n.start(t); n.stop(t + 0.3);
   },
   whoosh() { this.beep(180, 0.35, 'sawtooth', 0.06); },
-  update(v, throttle, scraping, alarmOn, t) {
+  update(v, throttle, scraping, alarmOn, t, skid = 0) {
     if (!this.ctx) return;
     const m = this.muted ? 0 : 1;
     const av = Math.abs(v);
@@ -115,6 +119,7 @@ const Audio8 = {
     this.windFilter.frequency.value = 350 + av * 9;
     this.windGain.gain.value = m * Math.pow(av / TOP_SPEED, 2) * 0.14;
     this.scrapeGain.gain.value = m * (scraping ? 0.10 : 0);
+    this.skidGain.gain.value = m * skid * 0.09;
     this.alarmGain.gain.value = (m && alarmOn && (t % 0.5 < 0.25)) ? 0.05 : 0;
   },
   toggleMute() {
@@ -366,10 +371,40 @@ function sampleAt(s) {
   _sp.curv = wrapAngle(sHeadS[in_] - sHeadS[ip]) / (12 * DS); // wrap strips the loop winding at the seam
   return _sp;
 }
+/* ------------------------------------------------------ jump cuts: data */
+const JUMPS = [
+  { lip: 140, run: 12, h: 2.0, gap: 26 },  // main straight: full-width angled cut
+  { lip: 620, run: 12, h: 2.0, gap: 26 },  // back straight
+];
+function roadLift(s) { // take-off ramp profile (quadratic: smooth entry, angled lip)
+  for (const j of JUMPS) {
+    const t = (s - (j.lip - j.run)) / j.run;
+    if (t >= 0 && t <= 1) return j.h * t * t;
+  }
+  return 0;
+}
+function lipSlope(s) { // dLift/ds: gradient resistance + chassis pitch
+  for (const j of JUMPS) {
+    const t = (s - (j.lip - j.run)) / j.run;
+    if (t >= 0 && t <= 1) return (2 * j.h / j.run) * t;
+  }
+  return 0;
+}
+function inGapVoid(s) {
+  for (const j of JUMPS) if (s > j.lip && s < j.lip + j.gap) return j;
+  return null;
+}
+function faceInVoid(s0, s1, strict) { // road faces may overhang the cut; rails may not
+  for (const j of JUMPS) {
+    if (strict) { if (s1 > j.lip && s0 < j.lip + j.gap) return true; }
+    else if (s0 >= j.lip && s1 <= j.lip + j.gap) return true;
+  }
+  return false;
+}
 function roadPoint(s, u, out = new THREE.Vector3()) {
   const sm = sampleAt(s);
   out.copy(sm.pos).addScaledVector(sm.left, u * HALF_W);
-  out.y = bowlY(u, s);
+  out.y = bowlY(u, s) + roadLift(s);
   return out;
 }
 const loopCenter = new THREE.Vector3();
@@ -390,9 +425,13 @@ const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.94, 
       uv.push(j / AC, s / 40);
     }
   }
-  for (let i = 0; i < SEG; i++) for (let j = 0; j < AC; j++) {
-    const a = i * (AC + 1) + j, b = a + AC + 1;
-    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  for (let i = 0; i < SEG; i++) {
+    const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
+    if (faceInVoid(fs0, fs1, false)) continue; // open cut: no road over the gap
+    for (let j = 0; j < AC; j++) {
+      const a = i * (AC + 1) + j, b = a + AC + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -411,6 +450,8 @@ function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat) {
     uvA.push(0, s / vScale, 1, s / vScale);
   }
   for (let i = 0; i < SEG; i++) {
+    const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
+    if (faceInVoid(fs0, fs1, true)) continue; // rails end at the cut
     const a = i * 2;
     idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
   }
@@ -442,6 +483,10 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   let k = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
+    if (inGapVoid(s)) {
+      for (let q = 0; q < 2; q++) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); }
+      continue;
+    }
     for (const sd of [1, -1]) {
       const sm = sampleAt(s);
       const x = sm.pos.x + sm.left.x * sd * (HALF_W + 0.85);
@@ -462,6 +507,10 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   let k = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
+    if (inGapVoid(s)) {
+      for (let q = 0; q < 2; q++) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); }
+      continue;
+    }
     for (const sd of [1, -1]) {
       roadPoint(s, sd * 0.9, lp);
       m4.makeTranslation(lp.x, lp.y + 0.12, lp.z);
@@ -485,6 +534,8 @@ let edgeGlowMat = null;
       }
     }
     for (let i = 0; i < SEG; i++) {
+      const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
+      if (faceInVoid(fs0, fs1, true)) continue; // glow ends at the cut
       const a = i * 2;
       idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
     }
@@ -886,57 +937,42 @@ function buildTrapGate(def) {
 }
 const gates = GATES.map(buildTrapGate);
 
-/* --------------------------------------------------------------- ramps */
-const RAMPS = [
-  { s0: 620, len: 13, h: 1.7, u0: 0.05, u1: 0.65 },   // back straight, right lane
-  { s0: 140, len: 13, h: 1.7, u0: -0.65, u1: -0.05 },  // main straight, left lane
-];
-{
-  const rampMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.8, metalness: 0.15, side: THREE.DoubleSide });
-  const rampTopMat = new THREE.MeshStandardMaterial({ map: gateStripTex, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
-  for (const r of RAMPS) {
-    const NSG = 10, NUG = 6, pos = [], uvA = [], idx = [];
-    for (let i = 0; i <= NSG; i++) {
-      const t = i / NSG, s = r.s0 + t * r.len;
-      for (let j = 0; j <= NUG; j++) {
-        const u = lerp(r.u0, r.u1, j / NUG);
-        const p = roadPoint(s, u);
-        pos.push(p.x, p.y + 0.05 + r.h * t, p.z);
-        uvA.push(j / NUG, t * 2);
+/* ---------------------------------------------------- jump cuts (full width) */
+{ // the road is cut: angled take-off lip, open gap, landing wall. Rally-style.
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.45, metalness: 0.75, side: THREE.DoubleSide });
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0xffc400 }); // yellow lip bars (ref still)
+  const runMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.85, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  const landMat = new THREE.MeshStandardMaterial({ map: gateStripTex, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  for (const j of JUMPS) {
+    for (const se of [j.lip, j.lip + j.gap]) { // steel cut faces across the full width
+      const NA = 10, pos = [], uvA = [], idx = [];
+      for (let q = 0; q <= NA; q++) {
+        const u = (q / NA) * 2 - 1;
+        const p = roadPoint(se, u);
+        pos.push(p.x, p.y + 0.02, p.z, p.x, p.y - 1.5, p.z);
+        uvA.push(q / NA, 1, q / NA, 0);
       }
-    }
-    for (let i = 0; i < NSG; i++) for (let j = 0; j < NUG; j++) {
-      const a = i * (NUG + 1) + j, b = a + NUG + 1;
-      idx.push(a, b, a + 1, b, b + 1, a + 1);
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
-    g.setIndex(idx); g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, rampTopMat));
-    for (const uu of [r.u0, r.u1]) { // side skirts down to the road
-      const sp2 = [], si2 = [];
-      for (let i = 0; i <= NSG; i++) {
-        const t = i / NSG, s = r.s0 + t * r.len;
-        const p = roadPoint(s, uu);
-        sp2.push(p.x, p.y + 0.02, p.z, p.x, p.y + 0.05 + r.h * t, p.z);
+      for (let q = 0; q < NA; q++) {
+        const a = q * 2;
+        idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
       }
-      for (let i = 0; i < NSG; i++) {
-        const a = i * 2;
-        si2.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
-      }
-      const g2 = new THREE.BufferGeometry();
-      g2.setAttribute('position', new THREE.Float32BufferAttribute(sp2, 3));
-      g2.setIndex(si2); g2.computeVertexNormals();
-      scene.add(new THREE.Mesh(g2, rampMat));
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      scene.add(new THREE.Mesh(g, steelMat));
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(HALF_W * 2, 0.16, 0.45), edgeMat);
+      const bp = roadPoint(se, 0);
+      bar.position.set(bp.x, bp.y + 0.08, bp.z);
+      bar.rotation.y = sampleAt(se).head;
+      scene.add(bar);
     }
-    const smL = sampleAt(r.s0 + r.len); // glowing lip bar across the ramp exit
-    const lipP = roadPoint(r.s0 + r.len, (r.u0 + r.u1) / 2);
-    const lip = new THREE.Mesh(new THREE.BoxGeometry((r.u1 - r.u0) * HALF_W, 0.18, 0.5),
-      new THREE.MeshBasicMaterial({ color: 0xffc400 }));
-    lip.position.set(lipP.x, lipP.y + 0.1 + r.h, lipP.z);
-    lip.rotation.y = smL.head;
-    scene.add(lip);
+    ribbonPatch(j.lip - j.run, j.lip - 0.5, -0.95, 0.95, runMat, 0.07); // hazard runup
+    ribbonPatch(j.lip + j.gap + 2, j.lip + j.gap + 18, -0.7, 0.7, landMat, 0.06); // landing chevrons
+    const glow = new THREE.PointLight(0xff2a00, 9, 34, 1.6); // danger glow in the cut
+    const gp = roadPoint(j.lip + j.gap / 2, 0);
+    glow.position.set(gp.x, gp.y - 0.4, gp.z);
+    scene.add(glow);
   }
 }
 
@@ -1005,7 +1041,7 @@ function makeCar(paint, glass, accent) {
 const player = {
   rig: makeCar(0x1f5eff, 0x0c0f14, 0x9fd0ff),
   s: -15, u: 0, v: 0, vy: 0, yawRate: 0, steer: 0, steerNorm: 0, hErr: 0,
-  spin: 0, scraping: false, latG: 0,
+  spin: 0, scraping: false, latG: 0, aX: 0, aY: 0, slipSm: 0,
   airY: 0, airV: 0, airborne: false,
 };
 {
@@ -1016,18 +1052,18 @@ const player = {
 }
 const ais = AI_DEFS.map((d) => ({
   def: d, rig: makeCar(d.suit, 0x0c0f14, d.visor),
-  s: d.s0, prevS: d.s0, u: 0, v: d.base, lap: 0, steerVis: 0,
+  s: d.s0, prevS: d.s0, u: 0, v: d.base, lap: 0, steerVis: 0, airY: 0, airV: 0, airborne: false,
 }));
-function setTransform(s, u, rig, yawExtra, leanExtra, t, rollDist, steer, lift) {
+function setTransform(s, u, rig, yawExtra, leanExtra, t, rollDist, steer, lift, pitch) {
   const sm = sampleAt(s);
   tmpV3.copy(sm.pos).addScaledVector(sm.left, u * HALF_W);
   rig.group.position.set(tmpV3.x, bowlY(u, s) + 0.03 + (lift || 0), tmpV3.z);
   rig.group.rotation.y = sm.head + yawExtra;
   rig.group.rotation.z = Math.atan(bowlSlope(u, s)) * 0.92 + leanExtra;
-  rig.group.rotation.x = 0;
+  rig.group.rotation.x = pitch || 0;
   for (const w of rig.wheels) w.rotation.x += rollDist / 0.38;
   if (rig.wheelFL) rig.wheelFL.rotation.y = rig.wheelFR.rotation.y = (steer || 0) * 0.5;
-  rig.body.position.y = rig.bodyY + Math.sin(t * 27) * 0.008;
+  rig.body.position.y = rig.bodyY + Math.sin(t * 27 + rig.group.position.x) * (0.005 + 0.011 * Math.min(1, Math.abs(rollDist) * 60 / 76));
   return sm;
 }
 
@@ -1297,7 +1333,7 @@ function trapHit(g) {
 function updatePlayer(dt) {
   const P = player, locked = phase !== 'race';
   const steerInput = locked ? 0 : ((input.left ? 1 : 0) - (input.right ? 1 : 0));
-  P.steerNorm += (steerInput - P.steerNorm) * (1 - Math.exp(-dt * 9));
+  P.steerNorm += (steerInput - P.steerNorm) * (1 - Math.exp(-dt * 7.5));
   const pacejka = (a) => Math.sin(1.35 * Math.atan(11 * a)); // simplified magic formula
   if (!locked) {
     const steps = dt > 0.026 ? 3 : 2, h = dt / steps;
@@ -1314,10 +1350,22 @@ function updatePlayer(dt) {
         const dir = v >= 0 ? 1 : -1;
         const aF = Math.atan2(P.vy + A * P.yawRate, av + 0.5) - P.steer * dir;
         const aR = Math.atan2(P.vy - B * P.yawRate, av + 0.5);
-        const Fyf = -mu * m * normal * 0.5 * grip * pacejka(aF);
-        const Fyr = -mu * m * normal * 0.5 * grip * pacejka(aR);
+        // weight transfer: braking loads the front (bite), power loads the rear
+        const FzStat = m * normal * 0.5, WB = A + B;
+        const FzF = Math.max(FzStat * 0.15, FzStat - m * P.aX * 0.5 / WB);
+        const FzR = Math.max(FzStat * 0.15, FzStat + m * P.aX * 0.5 / WB);
+        const muF = mu * Math.pow(FzF / FzStat, -0.08); // load sensitivity
+        const muR = mu * Math.pow(FzR / FzStat, -0.08);
+        const latSens = 1 / (1 + 0.0045 * Math.abs(P.aY));
+        const latK = P.aX / (mu * normal); // combined slip: longitudinal eats lateral
+        const latScaleF = Math.sqrt(Math.max(0.3, 1 - Math.pow(Math.min(0, latK), 2)));
+        const latScaleR = Math.sqrt(Math.max(0.25, 1 - Math.pow(latK, 2))); // RWD: power loosens the rear
+        const Fyf = -muF * FzF * grip * pacejka(aF) * latSens * latScaleF;
+        const Fyr = -muR * FzR * grip * pacejka(aR) * latSens * latScaleR;
         const flat = (Fyf + Fyr) / (mu * m * normal);
         P.latG += (Math.min(1.4, Math.abs(flat)) - P.latG) * (1 - Math.exp(-h * 8));
+        P.aY += (flat * mu * normal - P.aY) * (1 - Math.exp(-h * 6));
+        P.slipSm += (Math.max(Math.abs(aF), Math.abs(aR)) - P.slipSm) * (1 - Math.exp(-h * 8));
         const aRoad = -v * v * sm.curv - 9.81 * bowlSlope(P.u, P.s);
         const ch = Math.cos(P.hErr), sh = Math.sin(P.hErr);
         P.vy += ((Fyf + Fyr) / m + aRoad * ch) * h;
@@ -1328,15 +1376,16 @@ function updatePlayer(dt) {
         P.s += (v * ch - P.vy * sh) * h;
         const fmin = Math.min(1, Math.abs(flat));
         const longScale = Math.sqrt(Math.max(0.12, 1 - fmin * fmin)); // friction circle
-        if (input.fwd) P.v += (30 - P.v * 0.28) * 1.6 * longScale * h;
-        if (input.back) P.v -= (P.v > 1 ? 55 : 18) * longScale * h;
-        P.v -= P.v * 0.06 * h;
-        if (!input.fwd && !input.back) {
-          const sgn = Math.sign(P.v);
-          P.v -= sgn * 3 * h;
-          if (Math.sign(P.v) !== sgn) P.v = 0;
-        }
+        const dragF = 1.05 * v * Math.abs(v), rrF = m * (0.35 + 0.004 * Math.abs(v));
+        let Fx = -Math.sign(v || 1) * (dragF + rrF); // aero + rolling oppose motion
+        if (input.fwd && v > -1) Fx += Math.min(15000, 600000 / Math.max(v, 6)) * longScale; // 600 kW power curve
+        if (input.back && v > 1) Fx -= Math.min(24000, mu * m * normal * 0.98) * longScale; // ABS-capped brakes
+        if (input.back && v <= 1) Fx -= 9000 * longScale; // reverse launch
+        if (!input.fwd && !input.back) Fx -= Math.sign(v || 1) * 900; // engine braking
+        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s) * h; // + lip gradient
+        if (!input.fwd && !input.back && Math.abs(P.v) < 0.6) P.v = 0;
         P.v = clamp(P.v, -12, TOP_SPEED);
+        P.aX += ((P.v - v) / h - P.aX) * (1 - Math.exp(-h * 6));
       } else {
         P.vy *= Math.exp(-h * 0.8);
         P.yawRate *= Math.exp(-h * 1.5);
@@ -1366,33 +1415,46 @@ function updatePlayer(dt) {
   }
   let lift = 0; // ramps + airtime
   if (!locked) {
-    let rampY = 0;
     const prevS = P.s - P.v * dt;
-    for (const r of RAMPS) {
-      const rel = wrapDist(P.s, r.s0);
-      const inLane = P.u > r.u0 - 0.06 && P.u < r.u1 + 0.06;
-      if (rel > 0 && rel < r.len && inLane) rampY = Math.max(rampY, r.h * (rel / r.len));
-      const relPrev = wrapDist(prevS, r.s0);
-      if (!P.airborne && relPrev < r.len && rel >= r.len && inLane && P.v > 10) {
-        P.airborne = true; P.airY = r.h;
-        P.airV = Math.min(P.v * (r.h / r.len) * 1.2, 6.5);
-        Audio8.whoosh();
+    if (!P.airborne) {
+      lift = roadLift(P.s);
+      for (const j of JUMPS) { // full-width angled lip: launch over the cut
+        if (prevS < j.lip && P.s >= j.lip && P.v > 10) {
+          P.airborne = true; P.airY = j.h;
+          P.airV = Math.min(P.v * (2 * j.h / j.run) * 0.9, 8.5);
+          Audio8.whoosh();
+        }
       }
-    }
-    if (!P.airborne) lift = rampY;
-    else {
+    } else {
       P.airV -= 16 * dt;
       P.airY += P.airV * dt;
       lift = Math.max(0, P.airY);
-      if (P.airY <= 0) {
+      const jv = inGapVoid(P.s);
+      if (jv && P.airY < -3) { // fell into the cut: back before the lip
+        P.s = jv.lip - 35; P.u = 0; P.v = 12; P.vy = 0; P.yawRate = 0; P.hErr = 0;
+        P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
+        banner('INTO THE GAP · RESET', false); Audio8.thud(); shakeT = 1;
+      }
+      if (P.airborne) { // face-plant into the landing wall
+        for (const j of JUMPS) {
+          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5) {
+            P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
+            P.v *= 0.55; P.vy = 0;
+            spawnSparks(player.rig.group.position, 30, 0xff5030, 10, 6);
+            Audio8.thud(); shakeT = 1; banner('LANDING WALL · FACE-PLANT', false);
+          }
+        }
+      }
+      if (P.airborne && P.airY <= roadLift(P.s) && !inGapVoid(P.s)) {
         P.airborne = false; P.airY = 0;
         if (P.airV < -3.5) {
           const hard = Math.min(1, (-P.airV - 3.5) / 6);
           spawnSparks(player.rig.group.position, 10 + Math.round(hard * 20), 0xffc400, 6, 4);
-          Audio8.thud(); shakeT = Math.max(shakeT, 0.25 + hard * 0.5);
-          P.v *= 1 - hard * 0.08;
+          Audio8.thud(); shakeT = Math.max(shakeT, 0.2 + hard * 0.35);
+          P.v *= 1 - hard * 0.05;
+          if (hard > 0.75) banner('HARD LANDING', false);
         }
-        P.airV = 0;
+        P.airV = 0; lift = 0;
       }
     }
   }
@@ -1412,7 +1474,8 @@ function updatePlayer(dt) {
     }
     if (Math.abs(d) > 30) g.whooshed = false;
   }
-  setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.1 - P.vy * 0.004, tNow, P.v * dt, P.steerNorm, lift);
+  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s)) * 0.9 - P.aX * 0.0016;
+  setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.03 - P.vy * 0.004 + P.aY * 0.0016, tNow, P.v * dt, P.steerNorm, lift, pitchP);
   const vAlong = P.v * Math.cos(P.hErr) - P.vy * Math.sin(P.hErr);
   if (vAlong < -2) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
   if (wrongWayT > 0.8 && !wrongShown) { wrongShown = true; banner('WRONG WAY', false); }
@@ -1456,7 +1519,24 @@ function updateAI(dt, racing) {
     ai.u = 0.5 * Math.sin(tNow * 0.35 + ai.def.ph * 1.3);
     ai.steerVis = Math.cos(tNow * 0.35 + ai.def.ph * 1.3) * 0.5;
     const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * HALF_W) / Math.max(12, ai.v), -0.4, 0.4);
-    setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.15, tNow, ai.v * dt, ai.steerVis, 0);
+    let aiLift = 0, aiPitch = 0;
+    if (!ai.airborne) {
+      aiLift = roadLift(ai.s);
+      aiPitch = -Math.atan(lipSlope(ai.s)) * 0.9;
+      for (const j of JUMPS) {
+        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10) {
+          ai.airborne = true; ai.airY = j.h;
+          ai.airV = Math.min(ai.v * (2 * j.h / j.run) * 0.9, 8.5);
+        }
+      }
+    } else {
+      ai.airV -= 16 * dt; ai.airY += ai.airV * dt; aiLift = Math.max(0, ai.airY);
+      aiPitch = clamp(-ai.airV * 0.025, -0.22, 0.3);
+      const jv = inGapVoid(ai.s);
+      if (jv && ai.airY < -3) { ai.s = jv.lip + jv.gap + 2; ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+      else if (!jv && ai.airY <= roadLift(ai.s)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+    }
+    setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.05, tNow, ai.v * dt, ai.steerVis, aiLift, aiPitch);
   }
 }
 function updateGatesVisual(t) {
@@ -1508,6 +1588,11 @@ function drawMap() {
     const st = gateState(g, tNow);
     mapCtx.fillStyle = st.blocked ? '#ff3b30' : st.closing ? '#ffc400' : '#34d17b';
     mapCtx.beginPath(); mapCtx.arc(x, y, 4, 0, TAU); mapCtx.fill();
+  }
+  for (const j of JUMPS) { // jump cuts: amber ticks at each lip
+    const p = roadPoint(j.lip, 0, tmpV2);
+    const [jx, jy] = mapXY(p.x, p.z, W, H, 12);
+    mapCtx.fillStyle = '#ffc400'; mapCtx.fillRect(jx - 3, jy - 3, 6, 6);
   }
   for (const ai of ais) {
     const p = roadPoint(ai.s, ai.u, tmpV2);
@@ -1567,7 +1652,8 @@ function frame() {
     drawMap();
     standTimer -= dt;
     if (standTimer <= 0) { updateStandings(); standTimer = 0.3; }
-    Audio8.update(player.v, input.fwd ? 1 : 0, player.scraping, alarmOn, tNow);
+    const skid01 = (!player.airborne && phase === 'race') ? clamp((player.slipSm - 0.04) * 5, 0, 1) * clamp(Math.abs(player.v) / 25, 0, 1) : 0;
+    Audio8.update(player.v, input.fwd ? 1 : 0, player.scraping, alarmOn, tNow, skid01);
   }
   renderer.render(scene, camera);
 }
