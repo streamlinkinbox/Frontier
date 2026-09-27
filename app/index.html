@@ -7,16 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>FRONTIER v2.2 — T. rex Osteology & Locomotion Lab [BUILD 2026-09-28c]</title>
-<script async src="./vendor/es-module-shims.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "three": "./vendor/three.module.js",
-    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js"
-  }
-}
-</script>
+<title>FRONTIER v2.3 — T. rex Osteology & Locomotion Lab [BUILD 2026-09-28d direct]</title>
+<!-- direct relative imports — no importmap/shim needed (OrbitControls patched to ./three.module.js) -->
 <style>
 @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:local('Inter'), local('Inter Regular')}
 :root{
@@ -124,7 +116,7 @@ button{font:inherit}
 <header class="topbar">
   <div class="brand">
     <div class="mark">FR</div>
-    <h1>FRONTIER <span style="display:inline-block;background:#1f5eff;color:#fff;padding:2px 6px;border-radius:6px;font-size:9px;vertical-align:middle;letter-spacing:.1em">v2.2</span><span>T. rex — Osteology & Locomotion Lab · Sue (FMNH PR 2081) reference</span></h1>
+    <h1>FRONTIER <span style="display:inline-block;background:#1f5eff;color:#fff;padding:2px 6px;border-radius:6px;font-size:9px;vertical-align:middle;letter-spacing:.1em">v2.3</span><span>T. rex — Osteology & Locomotion Lab · Sue (FMNH PR 2081) reference</span></h1>
   </div>
   <nav class="nav">
     <a class="on" href="#">Skeleton Lab</a>
@@ -306,9 +298,9 @@ setTimeout(()=>{
 </script>
 <script type="module">
 window.__trexModuleLoaded = true;
-console.log('[TREX] module start — importmap should resolve three to ./vendor/three.module.js');
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+console.log('[TREX] module start — direct vendor import');
+import * as THREE from './vendor/three.module.js';
+import { OrbitControls } from './vendor/OrbitControls.patched.js';
 console.log('[TREX] THREE loaded r'+THREE.REVISION, 'OrbitControls', typeof OrbitControls);
 
 const $ = (s, r=document)=>r.querySelector(s);
