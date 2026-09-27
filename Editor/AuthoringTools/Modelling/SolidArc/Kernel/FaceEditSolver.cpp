@@ -496,6 +496,70 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadRegularConvexPrism(const BrepBody& Source, int Face, size_t Sides,
+                                          std::vector<Vec3>& Polygon, double& Low, double& High, double& Radius) noexcept
+{
+    if (!ReadExtrudedConvexPrism(Source, Face, Polygon, Low, High, Sides) || Polygon.size() != Sides ||
+        std::fabs(Low) > ScalarCriteria::GeometricTolerance) return false;
+    Vec3 Centre{};
+    for (const Vec3& P : Polygon) Centre += Vec3{ P.X, P.Y, 0.0 };
+    Centre = Centre / static_cast<double>(Polygon.size());
+    if (Centre.Length() > ScalarCriteria::GeometricTolerance) return false;
+    Radius = std::hypot(Polygon.front().X, Polygon.front().Y);
+    if (Radius <= ScalarCriteria::MergeTolerance) return false;
+    double EdgeLength = 0.0; bool HasPositiveXVertex = false;
+    for (size_t I = 0; I < Polygon.size(); ++I)
+    {
+        const Vec3& A = Polygon[I];
+        const Vec3& B = Polygon[(I + 1) % Polygon.size()];
+        const double ThisRadius = std::hypot(A.X, A.Y);
+        const double ThisEdge = std::hypot(B.X - A.X, B.Y - A.Y);
+        if (std::fabs(ThisRadius - Radius) > ScalarCriteria::GeometricTolerance || ThisEdge <= ScalarCriteria::MergeTolerance ||
+            (I != 0 && std::fabs(ThisEdge - EdgeLength) > ScalarCriteria::GeometricTolerance)) return false;
+        if (I == 0) EdgeLength = ThisEdge;
+        if (std::fabs(A.X - Radius) <= ScalarCriteria::GeometricTolerance && std::fabs(A.Y) <= ScalarCriteria::GeometricTolerance) HasPositiveXVertex = true;
+    }
+    if (!HasPositiveXVertex || std::fabs(Polygon.front().Z - High) > ScalarCriteria::GeometricTolerance) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildRegularConvexPrismFaceOffset(const BrepBody& Source, int Face, double Distance,
+                                                                    size_t Sides, const char* Domain) noexcept
+{
+    std::vector<Vec3> Top; double Low = 0.0, High = 0.0, Radius = 0.0;
+    if (!ReadRegularConvexPrism(Source, Face, Sides, Top, Low, High, Radius))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, Domain);
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "regular-prism offset distance must be finite and positive");
+    std::vector<Vec3> Base;
+    Base.reserve(Top.size());
+    for (const Vec3& P : Top) Base.push_back({ P.X, P.Y, Low });
+    const Deliver<NurbsCurve> Profile = NurbsCurve::Polyline(Base, true);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    Deliver<BrepBody> Result = BrepBody::Extrude(Profile.Payload, Vec3::UnitZ(), High - Low + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 ||
+        Report.NonManifoldEdges != 0 || Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 2 * Sides ||
+        Result.Payload.Edges.size() != 3 * Sides || Result.Payload.Coedges.size() != 6 * Sides ||
+        Result.Payload.Loops.size() != Sides + 2 || Result.Payload.Faces.size() != Sides + 2)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "regular-prism offset did not retain closed source topology");
+    return Result;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildTriangularPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildRegularConvexPrismFaceOffset(Source, Face, Distance, 3,
+        "triangular-prism offset requires an exact origin-centred regular triangular prism and its upper cap");
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildHexagonalPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildRegularConvexPrismFaceOffset(Source, Face, Distance, 6,
+        "hexagonal-prism offset requires an exact origin-centred regular hexagonal prism and its upper cap");
+}
+
 [[nodiscard]] bool ReadExtrudedConcavePrism(const BrepBody& Source, int Face, std::vector<Vec3>& Polygon,
                                              double& Low, double& High) noexcept
 {
@@ -2213,6 +2277,10 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (CylinderCap) return CylinderCap;
         Deliver<BrepBody> ConeCap = OffsetConeCap(Source, Face, Distance);
         if (ConeCap) return ConeCap;
+        Deliver<BrepBody> TrianglePrism = OffsetExtrudedTriangularPrism(Source, Face, Distance);
+        if (TrianglePrism) return TrianglePrism;
+        Deliver<BrepBody> HexagonPrism = OffsetExtrudedHexagonalPrism(Source, Face, Distance);
+        if (HexagonPrism) return HexagonPrism;
         Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
         if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> EllipticalAnnulus = OffsetExtrudedEllipticalAnnularPrism(Source, Face, Distance);
@@ -2343,6 +2411,16 @@ Deliver<BrepBody> FaceEditSolver::ShellExtrudedConcavePrism(const BrepBody& Sour
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildPentagonalPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedTriangularPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildTriangularPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedHexagonalPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildHexagonalPrismFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedCircularSectorPrism(const BrepBody& Source, int Face, double Distance) noexcept

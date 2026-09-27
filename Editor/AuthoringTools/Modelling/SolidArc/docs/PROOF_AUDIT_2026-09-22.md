@@ -1400,6 +1400,22 @@ This consolidated batch covers two public `FaceEditSolver` analytic-support face
 
 The bounded plan is `docs/PLAN_Batch56_NativeCylinderAndConeCapFaceOffset.md`.
 
+## Batch 57 — exact regular triangular and hexagonal prism upper-cap face offsets (2026-09-27)
+
+This consolidated batch adds two regular polygonal upper-cap face-offset domains:
+
+- `TriangularAndHexagonalPrismFaceOffsetVerification` constructs origin-centred regular triangular
+  and regular hexagonal prisms with closed `V6/E9/C18/L5/F5` and `V12/E18/C36/L8/F8` topology.
+- `OffsetExtrudedTriangularPrism` and `OffsetExtrudedHexagonalPrism` recognize exact canonical
+  profiles, planar caps, and extrusion walls, then reconstruct a fresh extended-height prism.
+  Irregular, translated, wrong-sided, lower/side, malformed, and unsupported profiles refuse.
+- The verifier checks distances 0.5, 1.5, and 3.0, regular-polygon volume identities, source
+  immutability, dispatcher routing, refusal boundaries, and a durable four-body contact sheet.
+- Durable proof: `Proofs/Batch57_TriangularAndHexagonalPrismFaceOffset.png`. The verifier, proof,
+  and full-gate registration are present in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch57_TriangularAndHexagonalPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

@@ -2079,6 +2079,21 @@ The routes remain bounded to origin-centred +Z native cylinder/frustum upper-cap
 inward/oblique/translated/trimmed/freeform/mixed supports, apex cones, or general conic face editing. The bounded plan is
 `docs/PLAN_Batch56_NativeCylinderAndConeCapFaceOffset.md`.
 
+#### Batch 57: exact regular triangular and hexagonal prism upper-cap face offsets ✅
+
+This consolidated batch expands the polygonal prism face-offset family into two additional exact regular profiles. `TriangularAndHexagonalPrismFaceOffsetVerification`
+constructs an origin-centred regular triangular prism with closed `V6/E9/C18/L5/F5` topology and an origin-centred regular hexagonal prism with closed
+`V12/E18/C36/L8/F8` topology. Both retain planar caps and extrusion walls after upper-cap extension by distances 0.5, 1.5, and 3.0.
+
+`FaceEditSolver::OffsetExtrudedTriangularPrism` and `OffsetExtrudedHexagonalPrism` share a strict regular-profile reader but remain separate public domains.
+They require the canonical +X vertex, origin-centred equal-radius/equal-edge profiles, exact sidedness, planar caps, and analytic extrusion walls. Reconstruction creates a fresh
+Z extrusion at the extended height without Boolean healing, tessellation, or source mutation. The public dispatcher reaches both routes while the existing pentagonal route remains bounded separately.
+
+The single consolidated verifier checks exact topology, regular-polygon volume identities, source immutability, dispatcher routing, multiple positive distances, and explicit
+lower/side/cross-domain/invalid/translated/non-regular/malformed refusal. The durable contact sheet is `Proofs/Batch57_TriangularAndHexagonalPrismFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to origin-centred, +Z regular triangular and regular hexagonal upper-cap extension. They do not prove arbitrary polygon counts, irregular/concave/freeform profiles, translated/tilted prisms, inward/lower/side offsets, healing, or general polygonal editing. The bounded plan is `docs/PLAN_Batch57_TriangularAndHexagonalPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

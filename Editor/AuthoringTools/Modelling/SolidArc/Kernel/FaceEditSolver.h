@@ -2,7 +2,7 @@
 // SolidArc · bounded general face editing
 //
 // The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
-// rectangular prisms, bounded pentagonal-prism, concave-prism, circular-sector-prism, revolved-annular-prism,
+// rectangular prisms, bounded triangular-, pentagonal-, hexagonal-prism, concave-prism, circular-sector-prism, revolved-annular-prism,
 // genus-one holed-prism, elliptical-prism, and oblique triangular-prism routes, bounded concave-prism
 // offset/shell/draft and triangular-prism draft routes, a bounded twin-holed-prism route,
 // and natural NURBS replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
@@ -40,6 +40,14 @@ public:
     // Bounded non-box offset route for a five-sided straight convex prism selected through its upper cap.
     // Positive distance extends the upper cap along +Z; arbitrary polygonal/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedConvexPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded regular-triangle upper-cap offset route for an exact three-sided straight prism.
+    // Positive distance extends only the upper planar cap; arbitrary polygonal/freeform profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedTriangularPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded regular-hexagon upper-cap offset route for an exact six-sided straight prism.
+    // Positive distance extends only the upper planar cap; arbitrary polygonal/freeform profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHexagonalPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
     // Bounded non-convex offset route for an axis-aligned orthogonal L-shaped prism.
     // Only its upper planar cap is supported; arbitrary concave profiles remain refused.
