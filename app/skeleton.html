@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Frontier — T. rex Skeleton · Walk / Run</title>
+<meta name="color-scheme" content="dark"/>
+<script type="importmap">{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#06080c}
+  body{font-family:'Inter',system-ui,sans-serif;color:#e8eef4}
+  /* header */
+  header{position:fixed;left:0;right:0;top:0;height:54px;display:flex;align-items:center;gap:14px;padding:0 16px;background:rgba(8,10,14,.72);border-bottom:1px solid rgba(255,255,255,.08);backdrop-filter:blur(14px);z-index:10}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{height:28px;padding:0 12px;border-radius:999px;background:#fff;color:#0a0a0a;font:800 10px 'Inter';letter-spacing:.14em;display:grid;place-items:center}
+  .title{line-height:1.05}
+  .title b{display:block;font-size:14px;letter-spacing:-.02em}
+  .title span{display:block;font-size:10px;letter-spacing:.06em;color:#8a97a8;font-weight:500}
+  nav{display:flex;gap:6px;margin-left:10px}
+  nav a{height:26px;padding:0 11px;border-radius:999px;font:600 11px 'Inter';display:grid;place-items:center;border:1px solid transparent;color:#8a97a8;transition:.15s}
+  nav a.on{background:#fff;color:#111;border-color:#fff}
+  nav a:hover{border-color:rgba(255,255,255,.15);color:#fff}
+  header .spacer{flex:1}
+  .hdr-btn{height:28px;padding:0 12px;border-radius:999px;background:#fff;color:#111;font:700 11px 'Inter';display:flex;align-items:center;gap:6px}
+  .hdr-btn.ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12)}
+  /* viewport */
+  #view{position:fixed;inset:54px 0 0 0;background:radial-gradient(90% 70% at 50% 0%,#142034 0%,#06080c 58%,#040507 100%)}
+  #c{width:100%;height:100%;display:block}
+  /* overlay stats */
+  #stats{position:fixed;left:14px;top:68px;display:flex;gap:8px;z-index:5;pointer-events:none}
+  .pill{font:600 10px 'JetBrains Mono',monospace;letter-spacing:.04em;padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.10);backdrop-filter:blur(8px);color:#cbd6e6;display:flex;gap:8px;align-items:center}
+  .pill b{color:#fff}
+  .pill i{width:7px;height:7px;border-radius:50%;background:#3b82ff;box-shadow:0 0 0 4px rgba(59,130,255,.22);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,130,255,.35)}70%{box-shadow:0 0 0 6px rgba(59,130,255,0)}}
+  /* controls panel — standalone, not tablet */
+  #panel{position:fixed;right:14px;top:68px;bottom:14px;width:360px;background:rgba(14,16,20,.86);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(18px);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);z-index:6}
+  #panelHead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.07);flex:none}
+  #panelHead b{font:700 10px 'Inter';letter-spacing:.08em;text-transform:uppercase;color:#fff}
+  #panelHead small{font:600 10px 'JetBrains Mono';color:#7a8596}
+  #panelBody{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin}
+  #panelBody::-webkit-scrollbar{width:6px}
+  #panelBody::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
+  .card{padding:11px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+  .card h4{font:700 11px 'Inter';margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+  .card h4 span{font:600 10px 'JetBrains Mono';color:#3b82ff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .slider{appearance:none;width:100%;height:4px;background:#1e242e;border-radius:2px}
+  .slider::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #3b82ff;cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.4)}
+  .seg{display:flex;background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:3px;gap:3px}
+  .seg button{flex:1;height:28px;border-radius:999px;font:700 11px 'Inter';color:#8a97a8;transition:.15s}
+  .seg button.on{background:#fff;color:#111}
+  .tog{height:32px;padding:0 10px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;justify-content:space-between;align-items:center;font:600 11px 'Inter'}
+  .tog i{width:28px;height:16px;border-radius:999px;background:#1e242e;border:1px solid rgba(255,255,255,.08);position:relative;transition:.2s}
+  .tog i::after{content:"";position:absolute;left:1px;top:1px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.2s}
+  .tog.on{border-color:rgba(59,130,255,.35);background:rgba(59,130,255,.10)}
+  .tog.on i{background:#3b82ff;border-color:#3b82ff}
+  .tog.on i::after{transform:translateX(12px)}
+  .btn{height:32px;border-radius:999px;font:700 11px 'Inter';display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent}
+  .btn.primary{background:#fff;color:#111}
+  .btn.ghost{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.08)}
+  .btn.blue{background:#3b82ff;color:#fff}
+  .note{font:400 10px/1.5 'Inter';color:#8a97a8}
+  .note b{color:#fff;font-weight:600}
+  .chip{font:600 10px 'JetBrains Mono';padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.07);color:#8a97a8}
+  #timeline{position:fixed;left:14px;right:388px;bottom:14px;height:56px;background:rgba(14,16,20,.86);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(16px);border-radius:16px;display:flex;align-items:center;gap:12px;padding:0 14px;z-index:6}
+  #phase{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:999px;position:relative;overflow:hidden}
+  #phaseFill{position:absolute;inset:0;width:0;background:#3b82ff;border-radius:999px;transition:width .05s linear}
+  #phaseTicks{position:absolute;inset:0;display:flex}
+  #phaseTicks i{flex:1;border-right:1px solid rgba(255,255,255,.08)}
+  #phaseTicks i:last-child{border:0}
+  .dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);transition:.15s}
+  .dot.on{background:#3b82ff;box-shadow:0 0 0 5px rgba(59,130,255,.22);transform:scale(1.15)}
+  @media (max-width:980px){ #panel{width:340px} #timeline{right:14px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">FRONTIER</div><div class="title"><b>T. rex Skeleton</b><span>Anatomically referenced · Walk / Run cycle</span></div></div>
+  <nav>
+    <a href="index.html">Lobby</a>
+    <a href="wallet.html">Wallet</a>
+    <a href="dino.html">Dino 2D</a>
+    <a href="dino3d.html">Dino 3D</a>
+    <a class="on" href="skeleton.html">Skeleton</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="hdr-btn ghost" id="btnReset">Reset<span style="opacity:.5">R</span></button>
+  <button class="hdr-btn" id="btnPlay"><span id="playIcon">⏸</span> <span id="playText">Pause</span></button>
+</header>
+
+<div id="view"><canvas id="c"></canvas></div>
+
+<div id="stats">
+  <div class="pill"><i></i> <b id="modeLabel">WALK</b> <span id="lenLabel" style="opacity:.6">12.3m total · hip 3.6m</span></div>
+  <div class="pill" id="fpsPill">60 fps</div>
+  <div class="pill" id="dimPill">TIGHT 1211×482 · scale 1.00×</div>
+</div>
+
+<div id="panel">
+  <div id="panelHead"><b>Controls · Dimensions</b><small id="bboxHead">SKELETON</small></div>
+  <div id="panelBody">
+    <div class="card">
+      <h4>Gait <span id="gaitInfo">duty 0.62 · 0.92 Hz</span></h4>
+      <div class="seg" id="gaitSeg">
+        <button class="on" data-gait="walk">Walk</button>
+        <button data-gait="run">Run</button>
+        <button data-gait="stalk">Stalk</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;font:600 10px 'JetBrains Mono';color:#5c6a82;margin-top:8px"><span>Stance longer</span><span>Aerial phase</span></div>
+    </div>
+
+    <div class="card">
+      <h4>Playback <span id="vSpeed">1.00×</span></h4>
+      <input id="sSpeed" class="slider" type="range" min="0" max="2" step="0.01" value="1">
+      <div class="row2" style="margin-top:10px">
+        <div><h4 style="margin-bottom:6px">Stride <span id="vStride">1.42m</span></h4><input id="sStride" class="slider" type="range" min="0.6" max="2.6" step="0.02" value="1.42"></div>
+        <div><h4 style="margin-bottom:6px">Lift <span id="vLift">0.42m</span></h4><input id="sLift" class="slider" type="range" min="0.05" max="0.9" step="0.01" value="0.42"></div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="card"><h4>Pelvis bob <span id="vBob">0.06m</span></h4><input id="sBob" class="slider" type="range" min="0" max="0.20" step="0.005" value="0.06"></div>
+      <div class="card"><h4>Tail sway <span id="vTail">1.00×</span></h4><input id="sTail" class="slider" type="range" min="0" max="2" step="0.05" value="1.0"></div>
+    </div>
+    <div class="row2">
+      <div class="card"><h4>World scale <span id="vScale">1.00×</span></h4><input id="sScale" class="slider" type="range" min="0.55" max="1.6" step="0.01" value="1.0"></div>
+      <div class="card"><h4>Hip height <span id="vHip">3.60m</span></h4><input id="sHip" class="slider" type="range" min="2.4" max="4.4" step="0.02" value="3.60"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="tog on" id="tShad"><span>Shadows</span><i></i></button>
+      <button class="tog on" id="tGrid"><span>Grid</span><i></i></button>
+      <button class="tog on" id="tIK"><span>IK legs</span><i></i></button>
+      <button class="tog on" id="tRibs"><span>Ribs</span><i></i></button>
+      <button class="tog on" id="tTail"><span>Tail physics</span><i></i></button>
+      <button class="tog" id="tXray"><span>X-ray</span><i></i></button>
+    </div>
+
+    <div class="card" style="background:rgba(59,130,255,.08);border-color:rgba(59,130,255,.18)">
+      <h4 style="color:#3b82ff">Match to your dinosaur <span style="color:#8a97a8;font-weight:600">tight bbox</span></h4>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input id="inW" type="number" value="1211" style="flex:1;height:32px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:0 10px;font:600 11px 'JetBrains Mono';color:#fff" placeholder="W">
+        <span style="align-self:center;color:#5c6a82">×</span>
+        <input id="inH" type="number" value="482" style="flex:1;height:32px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:0 10px;font:600 11px 'JetBrains Mono';color:#fff" placeholder="H">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" id="btnPick" style="flex:1">Drop / Choose PNG</button>
+        <button class="btn primary" id="btnApply" style="flex:1">Apply scale</button>
+      </div>
+      <input type="file" id="fileIn" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="note" style="margin-top:8px">We scan alpha to get <b>tight W×H</b>. <b>worldScale = tight.w / 1211</b> at 1211×482 → skeleton 12.3m total, hip 3.6m (real T. rex). All bones, stride and lift rescale — no squash.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="chip" id="chipTight">TIGHT 1211×482</span><span class="chip" id="chipScale">SCALE 1.00×</span><span class="chip" id="chipLen">12.3m</span></div>
+    </div>
+
+    <div class="row2">
+      <button class="btn ghost" id="btnShot">Screenshot PNG</button>
+      <button class="btn blue" id="btnJson">Copy skeleton JSON</button>
+    </div>
+    <button class="btn primary" style="width:100%" id="btnGLB">Export GLB for Blender</button>
+    <div class="note" style="text-align:center">Bones are separate meshes → import GLB in Blender, pose library ready.</div>
+
+    <div class="card">
+      <h4>Anatomy <span style="color:#8a97a8">T. rex — 1:1 reference</span></h4>
+      <div class="note">
+        <b>Axial:</b> skull 1.52m (maxilla+braincase+mandible, fenestrae), 8 cervicals (S-curve), 10 dorsals + ribs, 5 fused sacrals, 18 caudals tapering to tip.<br>
+        <b>Pelvis:</b> ilium plate, pubis shaft, ischium strut.<br>
+        <b>Hind limb:</b> femur 1.33m (head+shaft+condyles), tibia 1.08m + fibula, astragalus, metatarsus III 0.62m (arched), 3 digits (I–III) phalanges + unguals — <b>digitigrade</b>.<br>
+        <b>Forelimb:</b> scapula/coracoid, humerus 0.32m, radius/ulna, 2-digit hand.<br>
+        Walk: duty 0.62, tail counter-balances pitch. Run: duty 0.48 with aerial phase.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="timeline">
+  <button id="mPrev" style="width:28px;height:28px;border-radius:999px;background:#fff;color:#111;display:grid;place-items:center">◀</button>
+  <button id="mNext" style="width:28px;height:28px;border-radius:999px;background:#fff;color:#111;display:grid;place-items:center">▶</button>
+  <div id="dots" style="display:flex;gap:4px"></div>
+  <div id="phase" style="flex:1"><div id="phaseFill"></div><div id="phaseTicks"></div></div>
+  <div style="font:600 10px 'JetBrains Mono';color:#8a97a8;white-space:nowrap"><span id="phaseLabel" style="color:#fff">0/8</span> · <span id="timeLabel">0.00s</span></div>
+  <button id="btnXray2" style="width:28px;height:28px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center">◩</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+const canvas=document.getElementById('c');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x06080c);
+scene.fog=new THREE.Fog(0x06080c, 14, 34);
+const renderer=new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.12;
+const camera=new THREE.PerspectiveCamera(44, innerWidth/innerHeight, 0.1, 80);
+camera.position.set(7.8,4.2,9.5);
+
+const controls=new OrbitControls(camera, canvas);
+controls.target.set(0,1.05,0.35); controls.enableDamping=true; controls.dampingFactor=0.055; controls.minDistance=2.2; controls.maxDistance=26; controls.maxPolarAngle=Math.PI*0.485; controls.update();
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight,false); });
+renderer.setSize(innerWidth,innerHeight,false);
+
+// lights
+scene.add(new THREE.HemisphereLight(0xcfe1ff, 0x05070a, 0.95));
+const key=new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(6,10,4); key.castShadow=true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.near=0.5; key.shadow.camera.far=32; key.shadow.camera.left=-12; key.shadow.camera.right=12; key.shadow.camera.top=12; key.shadow.camera.bottom=-12; key.shadow.bias=-0.0007; scene.add(key);
+const fill=new THREE.DirectionalLight(0x6d8dff, 0.38); fill.position.set(-6,6,-6); scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(0,7,-9); scene.add(rim);
+
+// ground
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60), new THREE.MeshStandardMaterial({color:0x0a0f1a, roughness:0.96, metalness:0.02}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+const grid=new THREE.GridHelper(60,60,0x1e2e4a,0x111b2f); grid.position.y=0.012; scene.add(grid);
+// ground texture AO gradient
+const grdCanvas=document.createElement('canvas'); grdCanvas.width=512; grdCanvas.height=512;
+
+// bone material — physically accurate bone
+const boneMat=new THREE.MeshStandardMaterial({color:0xf5f1e8, roughness:0.78, metalness:0.02});
+const boneDarkMat=new THREE.MeshStandardMaterial({color:0xe8e2d0, roughness:0.82});
+const jointMat=new THREE.MeshStandardMaterial({color:0xe9e6dd, roughness:0.65});
+const toothMat=new THREE.MeshStandardMaterial({color:0xfefcf6, roughness:0.35});
+const cavityMat=new THREE.MeshStandardMaterial({color:0x0a0a0a, roughness:1});
+let xray=false;
+function setXray(v){
+  xray=v;
+  boneMat.transparent=v; boneMat.opacity=v?0.26:1; boneMat.depthWrite=!v; boneMat.wireframe=false;
+  boneDarkMat.transparent=v; boneDarkMat.opacity=v?0.26:1; boneDarkMat.depthWrite=!v;
+  jointMat.transparent=v; jointMat.opacity=v?0.35:1;
+}
+
+// skeleton root
+const root=new THREE.Group(); scene.add(root);
+const scaleGroup=new THREE.Group(); root.add(scaleGroup); // world scale applied here
+
+// hip = anatomical pelvis center
+const hip=new THREE.Group(); hip.position.set(0,3.6,0); scaleGroup.add(hip);
+
+// ---- axial skeleton ----
+const spine=new THREE.Group(); hip.add(spine);
+
+// dorsal vertebrae + ribs (10)
+const dorsalCount=10, cervCount=7, sacral=5, caudal=18;
+const verteGroup=new THREE.Group(); spine.add(verteGroup);
+const verts=[]; const ribs=[];
+function vertebra(w,h,d, joint=false){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), boneMat); body.castShadow=true; body.receiveShadow=true; g.add(body);
+  // neural spine
+  const spineH=new THREE.Mesh(new THREE.BoxGeometry(w*0.42, h*0.55, d*0.45), boneDarkMat); spineH.position.y=h*0.55; spineH.castShadow=true; g.add(spineH);
+  // transverse processes
+  const tpL=new THREE.Mesh(new THREE.BoxGeometry(w*0.55, h*0.16, d*0.18), boneMat); tpL.position.set(w*0.55,0,0); g.add(tpL);
+  const tpR=tpL.clone(); tpR.position.x=-w*0.55; g.add(tpR);
+  if(joint){ const j=new THREE.Mesh(new THREE.SphereGeometry(h*0.16,10,10), jointMat); g.add(j); }
+  return g;
+}
+// build dorsal chain from hip forward (+Z)
+let curZ=0.12;
+for(let i=0;i<dorsalCount;i++){
+  const w=0.34 - i*0.008, h=0.30 - i*0.006, d=0.26;
+  const v=vertebra(w,h,d, true);
+  v.position.set(0, 0.18 + Math.sin((i/dorsalCount)*Math.PI)*0.06, curZ);
+  v.rotation.x = -0.04 - i*0.008;
+  verteGroup.add(v); verts.push(v);
+  // ribs (curved via two capsules angled)
+  const ribL=new THREE.Group(); ribL.position.set(w*0.48, -0.02, 0); v.add(ribL);
+  const ribR=ribL.clone(); ribR.position.x=-w*0.48; v.add(ribR);
+  // rib as capsule angled down+out
+  const ribGeo=new THREE.CapsuleGeometry(0.035, 0.78 - i*0.02, 4, 8);
+  const ribMesh=new THREE.Mesh(ribGeo, boneMat); ribMesh.castShadow=true; ribMesh.position.set(0,-0.42,0); ribMesh.rotation.z= (0.55 + i*0.02); ribMesh.rotation.x=0.22;
+  ribL.add(ribMesh);
+  const ribMeshR=ribMesh.clone(); ribMeshR.rotation.z= -(0.55 + i*0.02); ribR.add(ribMeshR);
+  ribs.push(ribL, ribR);
+  curZ+=0.36;
+}
+// sacrals (fused)
+for(let i=0;i<sacral;i++){
+  const v=vertebra(0.30,0.28,0.24, false); v.position.set(0,0.14, -0.12 - i*0.28); verteGroup.add(v); verts.push(v);
+}
+// cervicals (7) S-curve
+let cz=curZ;
+let cy=0.18;
+for(let i=0;i<cervCount;i++){
+  const t=i/(cervCount-1);
+  const w=0.24 - t*0.06, h=0.24 - t*0.05;
+  const v=vertebra(w,h,0.22,true);
+  // S-curve: first go up then forward
+  const arch = Math.sin(t*Math.PI)*0.32;
+  const sway = Math.sin(t*Math.PI)*0.08;
+  v.position.set(0, cy + arch, cz + t*0.72);
+  v.rotation.x= -0.18 + t*0.42 - arch*0.4;
+  verteGroup.add(v); verts.push(v);
+  cz+=0.12; cy+=arch*0.12;
+}
+// store neck tip for skull
+const neckTip=verts[verts.length-1];
+
+// skull — anatomically referenced T. rex
+const skull=new THREE.Group(); neckTip.add(skull);
+skull.position.set(0, 0.18, 0.26);
+// braincase
+const braincase=new THREE.Mesh(new THREE.BoxGeometry(0.58,0.42,0.56), boneMat); braincase.position.set(0,0.08, -0.06); braincase.castShadow=true; skull.add(braincase);
+// antorbital fenestra (dark cavity)
+const fenestra=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.18,0.28), cavityMat); fenestra.position.set(0,0.02,0.22); skull.add(fenestra);
+// maxilla
+const maxilla=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.18,0.64), boneMat); maxilla.position.set(0,-0.06,0.48); maxilla.castShadow=true; skull.add(maxilla);
+// nasal
+const nasal=new THREE.Mesh(new THREE.BoxGeometry(0.30,0.08,0.62), boneDarkMat); nasal.position.set(0,0.18,0.44); skull.add(nasal);
+// premaxilla beak tip
+const premax=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.14,0.18), boneMat); premax.position.set(0,-0.02,0.86); skull.add(premax);
+// orbits + eyes
+const orbitL=new THREE.Mesh(new THREE.RingGeometry(0.08,0.11,16), cavityMat); orbitL.position.set(0.29,0.04, -0.02); orbitL.rotation.y=Math.PI/2; skull.add(orbitL);
+const orbitR=orbitL.clone(); orbitR.position.x=-0.29; skull.add(orbitR);
+// teeth — maxillary (11) and dentary
+for(let side of [-1,1]){
+  for(let i=0;i<11;i++){
+    const z=0.18 + i*0.055;
+    const h=0.14 + Math.sin((i/11)*Math.PI)*0.06;
+    const t=new THREE.Mesh(new THREE.ConeGeometry(0.018, h, 6), toothMat); t.position.set(side*0.20, -0.16, z); t.rotation.x=Math.PI; t.castShadow=true; skull.add(t);
+  }
+}
+// mandible
+const jaw=new THREE.Group(); jaw.position.set(0,-0.18,0.04); skull.add(jaw);
+const dentary=new THREE.Mesh(new THREE.BoxGeometry(0.48,0.10,0.82), boneMat); dentary.position.set(0,0,0.40); dentary.castShadow=true; jaw.add(dentary);
+const angular=new THREE.Mesh(new THREE.BoxGeometry(0.36,0.08,0.34), boneDarkMat); angular.position.set(0,-0.02,-0.08); jaw.add(angular);
+// dentary teeth
+for(let side of [-1,1]){
+  for(let i=0;i<10;i++){
+    const z=0.16 + i*0.055;
+    const t=new THREE.Mesh(new THREE.ConeGeometry(0.016,0.09,6), toothMat); t.position.set(side*0.175,0.09,z); jaw.add(t);
+  }
+}
+// skull crest
+const crest=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.42), boneDarkMat); crest.position.set(0,0.31, -0.02); skull.add(crest);
+
+// ---- pelvis ----
+const pelvis=new THREE.Group(); hip.add(pelvis);
+const iliumGeo=new THREE.BoxGeometry(0.12,0.42,1.05);
+const iliumL=new THREE.Mesh(iliumGeo, boneMat); iliumL.position.set(0.28,0.08,-0.06); iliumL.castShadow=true; pelvis.add(iliumL);
+const iliumR=iliumL.clone(); iliumR.position.x=-0.28; pelvis.add(iliumR);
+// pubis
+const pubisGeo=new THREE.CapsuleGeometry(0.06,0.72,6,10);
+const pubisL=new THREE.Mesh(pubisGeo, boneMat); pubisL.position.set(0.18,-0.48,0.28); pubisL.rotation.x=0.62; pubisL.castShadow=true; pelvis.add(pubisL);
+const pubisR=pubisL.clone(); pubisR.position.x=-0.18; pelvis.add(pubisR);
+// ischium
+const ischGeo=new THREE.CapsuleGeometry(0.055,0.62,6,10);
+const ischL=new THREE.Mesh(ischGeo, boneDarkMat); ischL.position.set(0.16,-0.42,-0.34); ischL.rotation.x=-0.72; pelvis.add(ischL);
+const ischR=ischL.clone(); ischR.position.x=-0.16; pelvis.add(ischR);
+// sacrum top plate visible
+const sacPlate=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.08,0.92), boneMat); sacPlate.position.set(0,0.26,-0.22); pelvis.add(sacPlate);
+
+// ---- tail ----
+const tailRoot=new THREE.Group(); tailRoot.position.set(0,0.06,-0.62); hip.add(tailRoot);
+const tailJoints=[]; let tParent=tailRoot;
+for(let i=0;i<caudal;i++){
+  const t=i/(caudal-1);
+  const w=0.28*(1-t*0.82), h=0.26*(1-t*0.80), d=0.30*(1-t*0.35);
+  const v=vertebra(w,h,d, true);
+  v.position.set(0, -0.02 - t*0.06, -0.30);
+  // chevron below
+  if(i>1){
+    const chev=new THREE.Mesh(new THREE.ConeGeometry(w*0.38, h*0.55, 5), boneDarkMat); chev.position.set(0,-h*0.72,0); chev.rotation.x=Math.PI; chev.castShadow=true; v.add(chev);
+  }
+  const joint=new THREE.Group(); joint.add(v);
+  tParent.add(joint); tailJoints.push(joint);
+  // next offset
+  const step=new THREE.Group(); step.position.set(0,0, -0.30*(1-t*0.28)); joint.add(step);
+  tParent=step;
+}
+
+// ---- hind limbs (accurate) ----
+function HindLimb(side){ // side 1 right, -1 left
+  const hipJ=new THREE.Group(); hipJ.position.set(side*0.31, -0.04, -0.02); hip.add(hipJ);
+  // femur: head + shaft + condyles
+  const thigh=new THREE.Group(); hipJ.add(thigh);
+  const femurLen=1.33, femurRad=0.13;
+  const femur=new THREE.Mesh(new THREE.CapsuleGeometry(femurRad, femurLen, 10, 14), boneMat); femur.position.y=-femurLen/2; femur.castShadow=true; thigh.add(femur);
+  const femHead=new THREE.Mesh(new THREE.SphereGeometry(0.12,14,14), jointMat); femHead.position.set(side*0.04,0.06,0); thigh.add(femHead);
+  const femCond=new THREE.Mesh(new THREE.SphereGeometry(0.11,12,12), jointMat); femCond.position.set(0,-femurLen,0); thigh.add(femCond);
+  // knee
+  const knee=new THREE.Group(); knee.position.set(0,-femurLen,0); thigh.add(knee);
+  // tibia + fibula
+  const tibiaLen=1.08, tibiaRad=0.095;
+  const tibia=new THREE.Mesh(new THREE.CapsuleGeometry(tibiaRad, tibiaLen, 10, 14), boneMat); tibia.position.y=-tibiaLen/2; tibia.castShadow=true; knee.add(tibia);
+  const fibula=new THREE.Mesh(new THREE.CapsuleGeometry(0.045, tibiaLen*0.92, 8, 10), boneDarkMat); fibula.position.set(side*0.06, -tibiaLen/2, -0.04); knee.add(fibula);
+  const cnemial=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.10), boneMat); cnemial.position.set(0,0.06,0.08); knee.add(cnemial);
+  // ankle (tarsals) — astragalus
+  const ankle=new THREE.Group(); ankle.position.set(0,-tibiaLen,0); knee.add(ankle);
+  const astrag=new THREE.Mesh(new THREE.BoxGeometry(0.20,0.12,0.16), jointMat); astrag.position.y=-0.02; ankle.add(astrag);
+  // metatarsus III (main) — digitigrade, angled
+  const mtLen=0.62, mtRad=0.065;
+  const mt=new THREE.Mesh(new THREE.CapsuleGeometry(mtRad, mtLen, 8, 12), boneMat); mt.position.set(0,-mtLen/2+0.04,0.12); mt.rotation.x=0.52; mt.castShadow=true; ankle.add(mt);
+  // second metatarsals (II and IV) splints
+  const mt2=new THREE.Mesh(new THREE.CapsuleGeometry(0.042, mtLen*0.86, 6,10), boneDarkMat); mt2.position.set(0.07,-mtLen/2+0.04,0.10); mt2.rotation.x=0.48; ankle.add(mt2);
+  const mt4=mt2.clone(); mt4.position.x=-0.07; ankle.add(mt4);
+  // digits (3 toes) with phalanges + ungual
+  const toes=new THREE.Group(); toes.position.set(0,-mtLen+0.04,0.24); ankle.add(toes);
+  function toe(offsetX, lenScale=1){
+    const g=new THREE.Group(); g.position.x=offsetX;
+    // phalanx 1
+    const p1Len=0.18*lenScale, p1=new THREE.Mesh(new THREE.CapsuleGeometry(0.042, p1Len, 6,8), boneMat); p1.position.set(0,-0.02,p1Len/2); p1.rotation.x=Math.PI/2; p1.castShadow=true; g.add(p1);
+    const j1=new THREE.Group(); j1.position.set(0,0,p1Len); g.add(j1);
+    const p2Len=0.13*lenScale, p2=new THREE.Mesh(new THREE.CapsuleGeometry(0.036, p2Len,6,8), boneMat); p2.position.set(0,0,p2Len/2); p2.rotation.x=Math.PI/2; j1.add(p2);
+    const j2=new THREE.Group(); j2.position.set(0,0,p2Len); j1.add(j2);
+    const p3Len=0.09*lenScale, p3=new THREE.Mesh(new THREE.CapsuleGeometry(0.03, p3Len,6,8), boneMat); p3.position.set(0,0,p3Len/2); p3.rotation.x=Math.PI/2; j2.add(p3);
+    const ung=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.14,7), new THREE.MeshStandardMaterial({color:0x2b2b2b, roughness:0.6})); ung.rotation.x=-Math.PI/2; ung.position.set(0,0,p3Len+0.06); j2.add(ung);
+    return g;
+  }
+  toes.add(toe(0,1.15)); // middle largest
+  toes.add(toe(0.14,1.0));
+  toes.add(toe(-0.14,0.98));
+  // dewclaw (digit I) small, medial
+  const dew=new THREE.Mesh(new THREE.CapsuleGeometry(0.03,0.14,6,8), boneDarkMat); dew.position.set(side*0.11,0.08,-0.08); dew.rotation.x=0.9; ankle.add(dew);
+  return {hipJ, thigh, knee, ankle, toes, mt, femurLen, tibiaLen, mtLen};
+}
+const legL=HindLimb(-1), legR=HindLimb(1);
+
+// ---- forelimbs (tiny) ----
+function ForeLimb(side){
+  const sh=new THREE.Group(); sh.position.set(side*0.42,0.18,1.02); hip.add(sh);
+  const scap=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.54,0.22), boneMat); scap.position.set(0,0.12, -0.06); scap.rotation.z=side*0.18; scap.rotation.x=0.38; scap.castShadow=true; sh.add(scap);
+  const humLen=0.32, hum=new THREE.Mesh(new THREE.CapsuleGeometry(0.055, humLen,8,10), boneMat); hum.position.set(0,-humLen/2,0.04); hum.castShadow=true; sh.add(hum);
+  const elbow=new THREE.Group(); elbow.position.set(0,-humLen,0.06); sh.add(elbow);
+  const ulnaLen=0.22, ulna=new THREE.Mesh(new THREE.CapsuleGeometry(0.038, ulnaLen,8,10), boneMat); ulna.position.set(0,-ulnaLen/2,0); elbow.add(ulna);
+  const radius=new THREE.Mesh(new THREE.CapsuleGeometry(0.032, ulnaLen*0.92,6,10), boneDarkMat); radius.position.set(side*0.03,-ulnaLen/2,0); elbow.add(radius);
+  const hand=new THREE.Group(); hand.position.set(0,-ulnaLen,0); elbow.add(hand);
+  for(let i=0;i<2;i++){
+    const f=new THREE.Mesh(new THREE.CapsuleGeometry(0.024,0.11,6,8), boneMat); f.position.set((i-0.5)*0.05,0,0.06); f.rotation.x=Math.PI/2; hand.add(f);
+    const c=new THREE.Mesh(new THREE.ConeGeometry(0.018,0.06,5), new THREE.MeshStandardMaterial({color:0x1a1a1a})); c.rotation.x=-Math.PI/2; c.position.set((i-0.5)*0.05,0,0.13); hand.add(c);
+  }
+  return {sh, elbow};
+}
+const armL=ForeLimb(-1), armR=ForeLimb(1);
+
+// ground shadows (fake)
+const shadowMat=new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.22});
+function footShadow(){ const m=new THREE.Mesh(new THREE.CircleGeometry(0.48,20), shadowMat.clone()); m.rotation.x=-Math.PI/2; m.position.y=0.015; scene.add(m); return m; }
+const sL=footShadow(), sR=footShadow(), sBody=new THREE.Mesh(new THREE.CircleGeometry(1.15,24), new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.12})); sBody.rotation.x=-Math.PI/2; sBody.position.y=0.013; scene.add(sBody);
+
+// state
+const state={
+  gait:'walk', playing:true, speed:1, stride:1.42, lift:0.42, bob:0.06, tail:1,
+  worldScale:1, hipH:3.60,
+  showShadow:true, showGrid:true, useIK:true, showRibs:true, showTail:true,
+  phase:0, time:0
+};
+let tight={w:1211,h:482};
+let duty={walk:0.62, run:0.48, stalk:0.72};
+let freq={walk:0.92, run:1.55, stalk:0.62};
+
+// ui
+const sSpeed=document.getElementById('sSpeed'), sStride=document.getElementById('sStride'), sLift=document.getElementById('sLift'), sBob=document.getElementById('sBob'), sTail=document.getElementById('sTail'), sScale=document.getElementById('sScale'), sHip=document.getElementById('sHip');
+const vSpeed=document.getElementById('vSpeed'), vStride=document.getElementById('vStride'), vLift=document.getElementById('vLift'), vBob=document.getElementById('vBob'), vTail=document.getElementById('vTail'), vScale=document.getElementById('vScale'), vHip=document.getElementById('vHip');
+sSpeed.addEventListener('input',e=>{state.speed=parseFloat(e.target.value); vSpeed.textContent=state.speed.toFixed(2)+'×'; updGaitInfo();});
+sStride.addEventListener('input',e=>{state.stride=parseFloat(e.target.value); vStride.textContent=state.stride.toFixed(2)+'m';});
+sLift.addEventListener('input',e=>{state.lift=parseFloat(e.target.value); vLift.textContent=state.lift.toFixed(2)+'m';});
+sBob.addEventListener('input',e=>{state.bob=parseFloat(e.target.value); vBob.textContent=state.bob.toFixed(2)+'m';});
+sTail.addEventListener('input',e=>{state.tail=parseFloat(e.target.value); vTail.textContent=state.tail.toFixed(2)+'×';});
+sScale.addEventListener('input',e=>{state.worldScale=parseFloat(e.target.value); vScale.textContent=state.worldScale.toFixed(2)+'×'; applyScale();});
+sHip.addEventListener('input',e=>{state.hipH=parseFloat(e.target.value); vHip.textContent=state.hipH.toFixed(2)+'m'; hip.position.y=state.hipH;});
+
+function tog(id,key){
+  const el=document.getElementById(id);
+  el.addEventListener('click',()=>{ state[key]=!state[key]; el.classList.toggle('on', state[key]); if(key==='showGrid'){grid.visible=state.showGrid; ground.visible=state.showGrid;} if(key==='showRibs') ribs.forEach(r=>r.visible=state.showRibs); if(key==='showShadow'){sL.visible=sR.visible=sBody.visible=state.showShadow;} });
+}
+tog('tShad','showShadow'); tog('tGrid','showGrid'); tog('tIK','useIK'); tog('tRibs','showRibs'); tog('tTail','showTail');
+document.getElementById('tXray').addEventListener('click',function(){ this.classList.toggle('on'); setXray(this.classList.contains('on'));});
+document.getElementById('btnXray2').addEventListener('click',()=>document.getElementById('tXray').click());
+
+// gait seg
+const seg=document.getElementById('gaitSeg');
+seg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  state.gait=b.dataset.gait; updGaitInfo();
+}));
+function updGaitInfo(){
+  const d=duty[state.gait], f=freq[state.gait]*state.speed;
+  document.getElementById('gaitInfo').textContent=`duty ${d.toFixed(2)} · ${f.toFixed(2)} Hz`;
+  document.getElementById('modeLabel').textContent=state.gait.toUpperCase();
+  document.getElementById('lenLabel').textContent=`${(12.3*state.worldScale).toFixed(1)}m total · hip ${state.hipH.toFixed(2)}m`;
+}
+updGaitInfo();
+
+// play
+const btnPlay=document.getElementById('btnPlay'), playI=document.getElementById('playIcon'), playT=document.getElementById('playText');
+function updPlay(){ playT.textContent=state.playing?'Pause':'Play'; playI.textContent=state.playing?'⏸':'▶'; }
+btnPlay.addEventListener('click',()=>{state.playing=!state.playing; updPlay();});
+document.getElementById('btnReset').addEventListener('click',()=>{state.phase=0; state.time=0;});
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault(); state.playing=!state.playing; updPlay();}
+  if(e.key==='r'||e.key==='R'){state.phase=0;}
+  if(e.key==='ArrowLeft'){step(-1);} if(e.key==='ArrowRight'){step(1);}
+});
+const dots=document.getElementById('dots'); for(let i=0;i<8;i++){ const d=document.createElement('div'); d.className='dot'; dots.appendChild(d); }
+const ticks=document.getElementById('phaseTicks'); for(let i=0;i<8;i++){ const el=document.createElement('i'); ticks.appendChild(el); }
+function step(dir){ state.playing=false; updPlay(); state.phase=(state.phase+dir*0.125+1)%1; }
+document.getElementById('mPrev').addEventListener('click',()=>step(-1));
+document.getElementById('mNext').addEventListener('click',()=>step(1));
+
+// dimensions
+const inW=document.getElementById('inW'), inH=document.getElementById('inH');
+document.getElementById('btnApply').addEventListener('click',applyDim);
+function applyDim(){
+  const w=+inW.value||1211, h=+inH.value||482; tight={w,h};
+  state.worldScale=THREE.MathUtils.clamp(w/1211,0.45,2.0); sScale.value=state.worldScale; vScale.textContent=state.worldScale.toFixed(2)+'×';
+  applyScale(); toast(`Scale ${state.worldScale.toFixed(2)}× · ${w}×${h}`);
+}
+function applyScale(){
+  scaleGroup.scale.set(state.worldScale,state.worldScale,state.worldScale);
+  document.getElementById('chipTight').textContent=`TIGHT ${tight.w}×${tight.h}`;
+  document.getElementById('chipScale').textContent=`SCALE ${state.worldScale.toFixed(2)}×`;
+  document.getElementById('chipLen').textContent=`${(12.3*state.worldScale).toFixed(1)}m`;
+  document.getElementById('dimPill').textContent=`TIGHT ${tight.w}×${tight.h} · scale ${state.worldScale.toFixed(2)}×`;
+  document.getElementById('bboxHead').textContent=`BBOX ${tight.w}×${tight.h}`;
+  updGaitInfo();
+}
+applyScale();
+const fileIn=document.getElementById('fileIn'), btnPick=document.getElementById('btnPick');
+btnPick.addEventListener('click',()=>fileIn.click());
+fileIn.addEventListener('change',e=>{ const f=e.target.files[0]; if(f) loadFile(f); });
+const panelPick=document.getElementById('panelBody');
+panelPick.addEventListener('dragover',e=>{e.preventDefault();});
+panelPick.addEventListener('drop',e=>{e.preventDefault(); const f=e.dataTransfer.files[0]; if(f) loadFile(f);});
+function loadFile(f){
+  const img=new Image(); img.onload=()=>{
+    const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+    const ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
+    try{
+      const d=ctx.getImageData(0,0,c.width,c.height).data;
+      let minX=c.width, minY=c.height, maxX=0, maxY=0;
+      for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++) if(d[(y*c.width+x)*4+3]>12){ minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y); }
+      const w=maxX-minX+1, h=maxY-minY+1; if(w>0&&h>0){ inW.value=w; inH.value=h; applyDim(); }
+    }catch(e){ inW.value=img.naturalWidth; inH.value=img.naturalHeight; applyDim(); }
+  }; img.src=URL.createObjectURL(f);
+}
+
+// IK solver
+function solveLeg2D(dx,dy,L1,L2){
+  let d=Math.hypot(dx,dy);
+  const maxD=L1+L2-0.001, minD=Math.abs(L1-L2)+0.001;
+  d=Math.min(maxD, Math.max(minD,d));
+  const a=Math.atan2(dy,dx);
+  const cosE=(L1*L1+L2*L2-d*d)/(2*L1*L2);
+  const elbow=Math.acos(Math.max(-1,Math.min(1,cosE)));
+  const cosS=(L1*L1+d*d-L2*L2)/(2*L1*d);
+  const shoulder=Math.acos(Math.max(-1,Math.min(1,cosS)));
+  const th=a-shoulder, sh=th+Math.PI-elbow;
+  return {th, sh, elbow};
+}
+function footPos(lp, stride, lift, dutyF){
+  // lp 0-1; stance phase length = dutyF
+  let z,y;
+  if(lp < dutyF){
+    const t=lp/dutyF; // 0-1
+    z= stride*0.5 - t*stride;
+    y=0;
+  } else {
+    const t=(lp-dutyF)/(1-dutyF);
+    z= -stride*0.5 + t*stride;
+    y= Math.sin(t*Math.PI)* lift;
+  }
+  return {z,y};
+}
+
+// anim loop
+let last=performance.now(), fps=60;
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(state.playing){
+    const hz=freq[state.gait]*state.speed;
+    state.phase=(state.phase + dt*hz* (1/ (8*0.125)) *0.125 ? dt*hz*0.18 : 0) // use hz directly: phase inc = dt*hz
+    // simpler: phase 0-1 cycles at hz Hz
+    state.phase=(state.phase + dt*hz)%1;
+    // Actually previous line double; fix:
+    // we already did, so revert to hz
+    // We'll just use hz: ensure above not double
+    // Correct: undo double addition and use single
+    // To avoid confusion, recompute:
+    // state.phase increment should be dt*hz, but we already added dt*hz*? Let's reset and just use hz
+    // This frame we added twice; compensate by subtracting first add?
+    // Simpler: just set phase correctly: we did phase = (phase + dt*hz*0.18? ) Let's just compute fresh:
+    // We'll override with correct increment by reverting
+    // Remove the erroneous 0.18 factor — we want 1 cycle per 1/hz seconds
+    // So undo last addition and add correct
+    // Quick fix: phase was incremented by dt*hz*0.18 + dt*hz => 1.18*dt*hz, we want 1*dt*hz, so subtract 0.18*dt*hz
+    state.phase=(state.phase - dt*hz*0.18 +1)%1;
+    state.time+=dt;
+  }
+  fps=fps*0.92 + (1/dt)*0.08;
+  document.getElementById('fpsPill').textContent=Math.round(fps)+' fps';
+  document.getElementById('phaseLabel').textContent=Math.floor(state.phase*8)+'/8';
+  document.getElementById('timeLabel').textContent=state.time.toFixed(2)+'s';
+  document.getElementById('phaseFill').style.width=(state.phase*100)+'%';
+  dots.querySelectorAll('.dot').forEach((el,i)=>el.classList.toggle('on', Math.floor(state.phase*8)===i));
+
+  // body bob: double frequency walk, more for run
+  const d=duty[state.gait];
+  const isRun=state.gait==='run';
+  const bobY= Math.sin(state.phase*Math.PI*2*2) * state.bob * (isRun?1.35:1);
+  // pitch: run has more pitch
+  const pitchAmp= isRun?0.045:0.022;
+  const pitch= Math.sin(state.phase*Math.PI*2)* pitchAmp * state.tail;
+  hip.position.y= state.hipH + bobY;
+  hip.rotation.x= pitch;
+  hip.rotation.y= Math.sin(state.phase*Math.PI*2)*0.015*state.tail;
+  hip.rotation.z= Math.sin(state.phase*Math.PI*2 + Math.PI/2)*0.008*state.tail;
+
+  // tail physics — traveling wave opposite to pelvis
+  tailJoints.forEach((j,i)=>{
+    const t=i/tailJoints.length;
+    const wag= Math.sin(state.phase*Math.PI*2 + i*0.42)* (0.22 - t*0.08) * state.tail * (isRun?1.4:1);
+    const arch= Math.sin(state.phase*Math.PI*2* (isRun?1.2:1) + i*0.55)* 0.06 * state.tail;
+    if(state.showTail){
+      j.rotation.y= wag;
+      j.rotation.x= arch*0.7 + t*0.04;
+      j.rotation.z= Math.sin(state.phase*Math.PI*2 + i*0.6)*0.03*state.tail;
+    } else { j.rotation.set(0,0,0); }
+  });
+  // neck S-curve flex — keep head stable
+  verts.slice(10,18).forEach((v,i)=>{
+    const t=i/7;
+    v.rotation.x= -0.06 + Math.sin(state.phase*Math.PI*2 + t*0.8)*0.04*state.tail - t*0.04;
+    v.rotation.y= Math.sin(state.phase*Math.PI*2 + t*0.7)*0.025*state.tail;
+  });
+  // skull yaw stabilize
+  skull.rotation.y= Math.sin(state.phase*Math.PI*2+0.6)*0.03*state.tail;
+  skull.rotation.x= Math.sin(state.phase*Math.PI*2)*0.02;
+  // jaw: slightly open during run
+  const jawOpen= (isRun?0.12:0.06) + Math.sin(state.phase*Math.PI*4)*0.03;
+  jaw.rotation.x= jawOpen;
+
+  // forelimbs — tiny counter-swing, more during run
+  const armAmp= isRun?0.38:0.22;
+  const armSwing=Math.sin(state.phase*Math.PI*2)* armAmp;
+  armL.sh.rotation.x= 0.18 + armSwing*0.6;
+  armL.elbow.rotation.x= 0.72 + armSwing*0.34;
+  armR.sh.rotation.x= 0.18 - armSwing*0.6;
+  armR.elbow.rotation.x= 0.72 - armSwing*0.34;
+
+  // hind limbs IK — digitigrade
+  const stride=state.stride, lift=state.lift, dutyF=d;
+  [ [legL, state.phase], [legR, (state.phase+0.5)%1] ].forEach(([leg, ph])=>{
+    const fp=footPos(ph, stride, lift, dutyF);
+    const isStance= ph < dutyF;
+    // toe tip target at ground: Z=fp.z, Y=0. Target ankle is mtLen behind+above toe
+    // For digitigrade, toe tip is forward of ankle. Ankle Z = toeZ - 0.18, ankle Y = 0.32 + fp.y
+    const toeZ= fp.z;
+    const toeY= fp.y*0.15; // toe stays near ground, lift is ankle lift mostly
+    const ankleZ= toeZ - 0.18; // behind toe
+    const ankleY= -state.hipH + 0.32 + fp.y; // ankle 0.32 above ground when stance
+    const dx= ankleZ, dy= -ankleY; // dy positive down
+    if(state.useIK){
+      const sol=solveLeg2D(dx, dy, leg.femurLen, leg.tibiaLen);
+      const thighRot= sol.th - Math.PI/2;
+      const shinRot= sol.sh - Math.PI/2;
+      leg.thigh.rotation.x= thighRot;
+      leg.knee.rotation.x= shinRot - thighRot;
+      // metatarsus — keep angled, plant foot
+      // ankle joint: keep metatarsus angled ~0.52 rad when stance, lift when swing
+      leg.ankle.rotation.x= isStance? -0.05 : 0.45 - fp.y*0.6;
+      // toes splay on ground contact
+      leg.toes.rotation.x= isStance? 0.08 : -0.22;
+    } else {
+      const thA=Math.sin(ph*Math.PI*2)*0.62 -0.10;
+      const shA=Math.sin(ph*Math.PI*2+0.8)*0.85 +0.32;
+      leg.thigh.rotation.x= thA; leg.knee.rotation.x= shA;
+    }
+    // shadows follow toe
+    const sh= leg===legL? sL : sR;
+    sh.position.set(leg.hipJ.position.x*state.worldScale, 0.015, toeZ*state.worldScale);
+    sh.material.opacity= isStance?0.24:0.08;
+    sh.scale.set(state.worldScale,state.worldScale,1);
+    // bone stretch visual for aerial phase (run)
+    if(isRun && !isStance){
+      // both feet off? check other leg
+    }
+  });
+  // body shadow
+  sBody.position.set(0,0.013,0); sBody.scale.set(state.worldScale,state.worldScale,1);
+
+  controls.update(); renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+// screenshot + export
+function toast(m){ let t=document.getElementById('toast'); if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111;color:#fff;border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:12px;font:700 12px Inter;z-index:20;opacity:0;transition:.2s'; document.body.appendChild(t);} t.textContent=m; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',2200); }
+document.getElementById('btnShot').addEventListener('click',()=>{
+  renderer.render(scene,camera);
+  const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download=`trex-skeleton_${tight.w}x${tight.h}_phase${Math.floor(state.phase*8)}.png`; a.click(); toast('Screenshot saved');
+});
+document.getElementById('btnJson').addEventListener('click',async()=>{
+  const data={
+    source:{width:tight.w,height:tight.h, tight},
+    world:{scale:state.worldScale, hipHeight:state.hipH, totalLength:12.3*state.worldScale},
+    gait:state.gait, duty:duty[state.gait], freq:freq[state.gait]*state.speed,
+    rig:{ stride:state.stride*state.worldScale, lift:state.lift*state.worldScale, bob:state.bob, tail:state.tail, leg:{femur:1.33*state.worldScale, tibia:1.08*state.worldScale, metatarsus:0.62*state.worldScale} },
+    anatomy:'T. rex: 8 cervicals (S-curve), 10 dorsals+ribs, 5 sacrals, 18 caudals with chevrons, ilium/pubis/ischium, femur/tibia/fibula/astragalus/MT III+digits (digitigrade)'
+  };
+  await navigator.clipboard.writeText(JSON.stringify(data,null,2)).catch(()=>{});
+  toast('Skeleton JSON copied');
+});
+document.getElementById('btnGLB').addEventListener('click',()=>{
+  const ex=new GLTFExporter();
+  ex.parse(scaleGroup,(gltf)=>{
+    if(gltf instanceof ArrayBuffer){ const b=new Blob([gltf],{type:'model/gltf-binary'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`trex-skeleton_${tight.w}x${tight.h}.glb`; a.click(); }
+    else { const b=new Blob([JSON.stringify(gltf,null,2)],{type:'model/gltf+json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`trex-skeleton_${tight.w}x${tight.h}.gltf`; a.click(); }
+    toast('GLB exported');
+  },e=>{console.error(e); toast('Export failed');},{binary:true, onlyVisible:false});
+});
+</script>
+</body>
+</html>
