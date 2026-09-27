@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Scrapyard Bowl — Motorball Circuit</title>
+<style>
+  :root{
+    --blue:#1f5eff; --blue-soft:#4d80ff;
+    --bg:#05070c; --panel:#101318; --inset:#0a0d12; --stroke:rgba(255,255,255,.09);
+    --text:#fff; --dim:#9aa3b2; --faint:#5c6572;
+    --hazard:#ffc400; --danger:#ff3b30; --ok:#34d17b;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;
+    -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+  #scene{position:fixed;inset:0}
+  #scene canvas{display:block}
+
+  /* ---------- HUD frame ---------- */
+  .hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  .topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:stretch;gap:10px;
+    padding:12px 14px 0}
+  .pill{background:rgba(8,10,14,.72);border:1px solid var(--stroke);border-radius:12px;
+    padding:8px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--danger);box-shadow:0 0 10px var(--danger);
+    animation:blink 1.6s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .brand b{font-size:12px;letter-spacing:.18em}
+  .brand span{display:block;font-size:10px;letter-spacing:.22em;color:var(--dim);margin-top:2px}
+  .lapbox{display:flex;align-items:center;gap:16px;margin-left:auto}
+  .lapbox .cell{text-align:right}
+  .lapbox small{display:block;font-size:9px;letter-spacing:.2em;color:var(--dim)}
+  .lapbox b{font-family:var(--mono);font-size:16px;font-weight:600}
+  #lapNum{color:var(--hazard)}
+  .speedo{display:flex;align-items:center;gap:10px}
+  .speedo b{font-family:var(--mono);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .speedo small{font-size:9px;letter-spacing:.2em;color:var(--dim)}
+  .motorbar{width:120px;height:5px;border-radius:3px;background:#1c222c;overflow:hidden}
+  .motorbar i{display:block;height:100%;width:0%;border-radius:3px;
+    background:linear-gradient(90deg,var(--blue),var(--blue-soft),var(--hazard))}
+  .camtag{position:absolute;top:76px;left:14px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    color:var(--dim);background:rgba(8,10,14,.6);border:1px solid var(--stroke);border-radius:8px;
+    padding:5px 10px;display:none}
+  body[data-cam="track"] .camtag{display:block}
+
+  /* trap warning */
+  #trap{position:absolute;left:50%;bottom:118px;transform:translateX(-50%) translateY(8px);
+    display:flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;
+    font-size:11px;font-weight:700;letter-spacing:.2em;opacity:0;transition:opacity .18s,transform .18s;
+    border:1px solid var(--stroke);background:rgba(8,10,14,.78);white-space:nowrap}
+  #trap.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #trap .lamp{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px currentColor}
+  #trap.warn .lamp{background:var(--hazard);color:var(--hazard);animation:blink .5s infinite}
+  #trap.danger{border-color:var(--danger);color:#ffb3ae}
+  #trap.danger .lamp{background:var(--danger);color:var(--danger);animation:blink .3s infinite}
+
+  /* countdown + banners */
+  #count{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  #count b{font-size:min(22vw,180px);font-weight:800;letter-spacing:-.04em;color:#fff;
+    text-shadow:0 0 60px rgba(31,94,255,.8);opacity:0;transform:scale(.8)}
+  #count b.pop{animation:pop .9s cubic-bezier(.2,.7,.3,1) forwards}
+  #count b.go{color:var(--ok);text-shadow:0 0 60px rgba(52,209,123,.8)}
+  @keyframes pop{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.06)}}
+  #banner{position:absolute;top:22%;left:0;right:0;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
+  #banner.show{opacity:1}
+  #banner b{display:inline-block;font-size:15px;font-weight:800;letter-spacing:.3em;padding:12px 26px;
+    border-radius:12px;background:rgba(8,10,14,.8);border:1px solid var(--danger);color:#ffd7d4}
+  #banner.cold b{border-color:var(--blue-soft);color:#d6e2ff}
+  #flash{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,45,35,.55) 100%);
+    opacity:0;transition:opacity .12s;pointer-events:none;z-index:6}
+  #vign{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);
+    pointer-events:none;z-index:4}
+  #visor{position:fixed;inset:0;display:none;z-index:4;pointer-events:none;
+    background:radial-gradient(ellipse at center,transparent 52%,rgba(2,4,8,.88) 82%)}
+  body[data-cam="visor"] #visor{display:block}
+
+  /* minimap + help */
+  #mapwrap{position:absolute;left:14px;bottom:14px;padding:8px}
+  #map{display:block;width:216px;height:140px}
+  #mapwrap small{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.18em;
+    color:var(--dim);margin-top:6px;font-family:var(--mono)}
+  #help{position:absolute;right:14px;bottom:14px;text-align:right;font-family:var(--mono);
+    font-size:10px;line-height:1.9;letter-spacing:.08em;color:var(--dim)}
+  #help b{color:#fff;background:#1c222c;border:1px solid var(--stroke);border-radius:5px;
+    padding:1px 6px;margin:0 1px;font-weight:600}
+  #standings{position:absolute;right:14px;top:76px;padding:10px 12px;min-width:170px}
+  #standings small{display:block;font-size:9px;letter-spacing:.2em;color:var(--dim);margin-bottom:8px}
+  #standings .row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;
+    padding:3px 0;color:var(--dim)}
+  #standings .row.me{color:#fff}
+  #standings .sw{width:8px;height:8px;border-radius:2px;flex:none}
+  #standings .gap{margin-left:auto;color:var(--faint)}
+  #standings .row.me .gap{color:var(--hazard)}
+
+  /* ---------- loading / menu overlay ---------- */
+  #menu{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;
+    background:#04060a url(assets/motorball-keyart.jpg) center/cover no-repeat}
+  #menu::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(4,6,10,.55) 0%,rgba(4,6,10,.25) 40%,rgba(4,6,10,.88) 100%)}
+  .card{position:relative;z-index:1;width:min(620px,100%);background:rgba(8,10,14,.82);
+    border:1px solid var(--stroke);border-radius:20px;padding:30px 32px 26px;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .card .kicker{display:flex;align-items:center;gap:10px;font-size:10px;font-weight:700;
+    letter-spacing:.3em;color:var(--hazard)}
+  .card .kicker::before{content:"";width:22px;height:2px;background:var(--hazard)}
+  .card h1{font-size:clamp(34px,6vw,54px);font-weight:800;letter-spacing:-.03em;line-height:1;margin:10px 0 4px}
+  .card h1 em{font-style:normal;color:var(--blue-soft)}
+  .card p.sub{font-size:13px;color:var(--dim);letter-spacing:.04em;margin-bottom:18px}
+  .specs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+  .specs div{background:var(--inset);border:1px solid var(--stroke);border-radius:10px;padding:9px 10px}
+  .specs small{display:block;font-size:8px;letter-spacing:.2em;color:var(--faint);margin-bottom:3px}
+  .specs b{font-family:var(--mono);font-size:13px}
+  .ctrls{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-family:var(--mono);
+    font-size:11px;color:var(--dim);margin-bottom:22px}
+  .ctrls b{color:#fff;background:#1c222c;border:1px solid var(--stroke);border-radius:5px;
+    padding:1px 7px;margin-right:8px;font-weight:600;display:inline-block;min-width:30px;text-align:center}
+  #ride{display:flex;width:100%;align-items:center;justify-content:center;gap:12px;
+    background:var(--blue);border-radius:14px;padding:15px;font-size:14px;font-weight:800;
+    letter-spacing:.24em;color:#fff;cursor:pointer;border:0;transition:transform .15s,background .15s;
+    animation:pulse 2s infinite;pointer-events:auto}
+  #ride:hover{background:var(--blue-soft);transform:translateY(-1px)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,94,255,.5)}70%{box-shadow:0 0 0 12px rgba(31,94,255,0)}}
+  .card .foot{display:flex;justify-content:space-between;margin-top:14px;font-size:10px;
+    letter-spacing:.14em;color:var(--faint);font-family:var(--mono)}
+  .card .foot a{color:var(--dim);text-decoration:none;pointer-events:auto}
+  .card .foot a:hover{color:#fff}
+  #loadbar{height:3px;border-radius:2px;background:#1c222c;margin-top:16px;overflow:hidden;display:none}
+  #loadbar i{display:block;height:100%;width:10%;background:var(--hazard);border-radius:2px;
+    transition:width .3s}
+  #menu.err #ride{display:none}
+
+  /* finish panel */
+  #finish{position:fixed;inset:0;z-index:15;display:none;place-items:center;background:rgba(3,5,8,.6);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:auto}
+  #finish.show{display:grid}
+  #finish .card{width:min(440px,calc(100% - 40px));text-align:center}
+  #finish table{width:100%;font-family:var(--mono);font-size:13px;margin:16px 0 20px;border-collapse:collapse}
+  #finish td{padding:7px 4px;border-top:1px solid var(--stroke);color:var(--dim)}
+  #finish td:last-child{text-align:right;color:#fff}
+  #finish tr.best td{color:var(--hazard)}
+  #finish tr.best td:last-child{color:var(--hazard)}
+  .btnrow{display:flex;gap:10px}
+  .btnrow button{flex:1;padding:13px;border-radius:12px;font-size:12px;font-weight:800;
+    letter-spacing:.2em;cursor:pointer;border:1px solid var(--stroke);background:#1c222c;color:#fff}
+  .btnrow button.primary{background:var(--blue);border-color:var(--blue)}
+
+  /* touch controls */
+  #touch{position:fixed;inset:auto 0 0 0;z-index:8;display:none;justify-content:space-between;
+    padding:0 16px calc(18px + env(safe-area-inset-bottom));pointer-events:none}
+  body.touchmode #touch{display:flex}
+  body.touchmode #help{display:none}
+  .tcluster{display:flex;gap:12px;pointer-events:auto}
+  .tbtn{width:66px;height:66px;border-radius:50%;background:rgba(10,13,18,.7);
+    border:1px solid var(--stroke);color:#fff;font-size:22px;display:grid;place-items:center;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .tbtn:active{background:var(--blue)}
+  #tcam{position:fixed;right:16px;bottom:104px;z-index:8;display:none;width:52px;height:52px;
+    border-radius:50%;background:rgba(10,13,18,.7);border:1px solid var(--stroke);color:#fff;
+    font-size:11px;font-weight:800;letter-spacing:.1em}
+  body.touchmode #tcam{display:block}
+
+  @media (max-width:760px){
+    .specs{grid-template-columns:repeat(2,1fr)}
+    .ctrls{grid-template-columns:1fr}
+    #map{display:block;width:150px;height:98px}
+    .speedo b{font-size:22px}
+    .motorbar{width:80px}
+    #standings{display:none}
+    .lapbox{gap:10px}
+  }
+</style>
+</head>
+<body data-cam="chase">
+<div id="scene"></div>
+<div id="vign"></div>
+<div id="visor"></div>
+<div id="flash"></div>
+
+<div class="hud">
+  <div class="topbar">
+    <div class="pill brand"><span class="dot"></span><div><b>SCRAPYARD BOWL</b><span>MOTORBALL CIRCUIT · NIGHT</span></div></div>
+    <div class="pill lapbox">
+      <div class="cell"><small>LAP</small><b><span id="lapNum">1</span>/3</b></div>
+      <div class="cell"><small>TIME</small><b id="lapTime">0:00.0</b></div>
+      <div class="cell"><small>BEST</small><b id="bestTime">--:--.-</b></div>
+    </div>
+    <div class="pill speedo">
+      <div><b id="speed">0</b><br/><small>KM/H</small></div>
+      <div class="motorbar"><i id="motorfill"></i></div>
+    </div>
+  </div>
+  <div class="camtag" id="camtag">TRACKSIDE · CAM 1</div>
+  <div id="trap"><span class="lamp"></span><span id="traptext">TRAP GATE ALPHA · OPEN</span></div>
+  <div id="count"></div>
+  <div id="banner"><b id="bannertext"></b></div>
+  <div class="pill" id="mapwrap"><canvas id="map" width="432" height="280"></canvas>
+    <small><span>▲ YOU</span><span id="mapstat">SECTOR 1</span></small></div>
+  <div class="pill" id="standings"><small>TRACK POSITIONS</small><div id="standrows"></div></div>
+  <div class="pill" id="help">
+    <b>W</b><b>S</b> throttle / brake &nbsp; <b>A</b><b>D</b> steer<br/>
+    <b>C</b> camera &nbsp; <b>1–4</b> chase · visor · track · orbit<br/>
+    <b>R</b> reset &nbsp; <b>P</b> pause &nbsp; <b>M</b> sound
+  </div>
+</div>
+
+<div id="touch">
+  <div class="tcluster"><div class="tbtn" id="tL">◀</div><div class="tbtn" id="tR">▶</div></div>
+  <div class="tcluster"><div class="tbtn" id="tB">▼</div><div class="tbtn" id="tG">▲</div></div>
+</div>
+<button id="tcam" type="button">CAM</button>
+
+<div id="menu">
+  <div class="card">
+    <div class="kicker">FRONTIER · PLAYABLE TRACK 001</div>
+    <h1>SCRAPYARD <em>BOWL</em></h1>
+    <p class="sub">Motorball circuit under the scrap sky — ride the banking, thread the trap gates, survive 3 laps.</p>
+    <div class="specs">
+      <div><small>LENGTH</small><b id="specLen">– km</b></div>
+      <div><small>BANKING</small><b>56°</b></div>
+      <div><small>TRAPS</small><b>2 GATES</b></div>
+      <div><small>RIDERS</small><b>4</b></div>
+    </div>
+    <div class="ctrls">
+      <div><b>W A S D</b>ride · steer · brake</div>
+      <div><b>C / 1–4</b>chase · visor · track · orbit</div>
+      <div><b>DRAG</b>look around (chase / orbit)</div>
+      <div><b>R · P · M</b>reset · pause · sound</div>
+    </div>
+    <button id="ride" type="button">▶&nbsp;&nbsp;RIDE THE BOWL</button>
+    <div id="loadbar"><i></i></div>
+    <div class="foot"><a href="index.html">← BACK TO LOBBY</a><span>WEBGL · THREE.JS r160 · NO BUILD STEP</span></div>
+  </div>
+</div>
+
+<div id="finish">
+  <div class="card">
+    <div class="kicker" style="justify-content:center">RACE COMPLETE · 3 LAPS</div>
+    <h1 style="font-size:38px">BOWL <em>SURVIVED</em></h1>
+    <table id="finishtable"></table>
+    <div class="btnrow">
+      <button id="btnAgain" class="primary" type="button">RACE AGAIN</button>
+      <button id="btnCruise" type="button">KEEP RIDING</button>
+    </div>
+    <div class="foot"><a href="index.html">← BACK TO LOBBY</a><span id="finishbest"></span></div>
+  </div>
+</div>
+
+<script type="module" src="motorball.js"></script>
+</body>
+</html>
