@@ -5,12 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="color-scheme" content="dark"/>
 <title>FRONTIER — T. rex Osteology & Locomotion Lab</title>
-<script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
 <script type="importmap">
 {
   "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js"
   }
 }
 </script>
@@ -293,6 +292,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const $ = (s, r=document)=>r.querySelector(s);
 const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
 
+// error overlay
+const errOverlay = document.createElement('div');
+errOverlay.style.cssText='position:absolute;left:14px;right:14px;top:60px;background:rgba(180,20,20,.92);color:#fff;padding:12px 14px;border-radius:12px;font-size:12px;line-height:1.5;display:none;z-index:99;white-space:pre-wrap';
+$('#viewport').appendChild(errOverlay);
+window.addEventListener('error', e=>{ errOverlay.style.display='block'; errOverlay.textContent='⚠ '+e.message+'\n'+(e.error&&e.error.stack?e.error.stack.slice(0,1200):''); console.error(e); });
+window.addEventListener('unhandledrejection', e=>{ errOverlay.style.display='block'; errOverlay.textContent='⚠ '+e.reason; });
+
 // ---------- Scene ----------
 const canvas = $('#c');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
@@ -320,6 +326,15 @@ controls.maxPolarAngle = Math.PI/2 - 0.04;
 controls.minPolarAngle = 0.15;
 controls.autoRotate = false;
 controls.autoRotateSpeed = 0.45;
+
+// Debug cube to prove renderer works (remove after verification)
+{
+  const dbg = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,0.6), new THREE.MeshStandardMaterial({color:0xff3b30, emissive:0x220000}));
+  dbg.position.set(0,1.5,0.5); dbg.castShadow=true; dbg.name='DEBUG_CUBE';
+  scene.add(dbg);
+  // also axes
+  scene.add(new THREE.AxesHelper(2));
+}
 
 // Lights — museum
 scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x0a0a0a, 0.55));
