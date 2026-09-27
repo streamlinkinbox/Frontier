@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Tarantula (Brachypelma hamorii)</title>
+<style>
+:root{
+  --blue:#1f5eff; --blue-soft:#4d80ff; --bg:#0a0a0a; --panel:rgba(12,12,12,.72); --stroke:rgba(255,255,255,.08);
+  --text:#f2f2f2; --dim:#9a9a9a; --faint:#5c5c5c;
+  --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--text);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+canvas{display:block;outline:none;touch-action:none}
+.hud{position:fixed;pointer-events:none;inset:0;transition:opacity .4s}
+.hud.hidden{opacity:0}
+.panel{pointer-events:auto;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--stroke);border-radius:10px}
+.title{position:absolute;left:20px;top:18px;padding:12px 16px}
+.title .k{font-size:10px;letter-spacing:.22em;color:var(--blue-soft);font-weight:700}
+.title h1{margin:4px 0 2px;font-size:17px;font-weight:650;letter-spacing:.01em}
+.title .s{font-size:12px;color:var(--dim);font-style:italic}
+.settings{position:absolute;right:20px;top:18px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:230px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--dim)}
+.seg{display:flex;background:#000;border:1px solid var(--stroke);border-radius:7px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;padding:5px 9px;font-size:11px;color:var(--dim);font-weight:600}
+.seg button.on{background:var(--blue);color:#fff}
+.toggle{all:unset;cursor:pointer;padding:5px 10px;border-radius:7px;border:1px solid var(--stroke);font-size:11px;font-weight:600;color:var(--dim);background:#000}
+.toggle.on{border-color:var(--blue);color:#fff;background:rgba(31,94,255,.25)}
+.actions{position:absolute;right:20px;bottom:20px;display:flex;gap:10px}
+.act{pointer-events:auto;all:unset;cursor:pointer;width:112px;padding:12px 12px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--stroke);backdrop-filter:blur(10px);transition:border-color .15s, transform .1s}
+.act:hover{border-color:var(--blue-soft)}
+.act:active,.act.pressed{transform:translateY(1px);border-color:var(--blue);background:rgba(31,94,255,.25)}
+.act .kb{font-family:var(--mono);font-size:10px;color:var(--blue-soft);border:1px solid rgba(77,128,255,.4);border-radius:4px;padding:1px 5px}
+.act .nm{display:block;margin-top:8px;font-size:13px;font-weight:650}
+.act .ds{display:block;margin-top:2px;font-size:10.5px;color:var(--dim);line-height:1.3}
+.help{position:absolute;left:20px;bottom:20px;padding:12px 14px;font-size:11.5px;color:var(--dim);line-height:1.75}
+.help b{color:var(--text);font-weight:600}
+.help kbd{font-family:var(--mono);font-size:10px;color:#fff;background:#1a1a1a;border:1px solid #333;border-bottom-width:2px;border-radius:4px;padding:0 5px;margin-right:2px}
+.stats{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.04em}
+.toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#fff;opacity:0;transition:opacity .3s;font-weight:650}
+.toast.show{opacity:.85}
+#loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050505;z-index:10;transition:opacity .8s}
+#loading.done{opacity:0;pointer-events:none}
+#loading .k{font-size:10px;letter-spacing:.3em;color:var(--blue-soft);font-weight:700}
+#loading h2{margin:10px 0 22px;font-weight:600;font-size:20px}
+#loading .bar{width:300px;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden}
+#loading .bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+#loading .msg{margin-top:12px;font-size:11.5px;color:var(--dim);font-family:var(--mono)}
+#err{position:fixed;left:20px;right:20px;bottom:20px;color:#ff7b7b;font-family:var(--mono);font-size:12px;white-space:pre-wrap;z-index:20}
+@media (max-width: 900px){ .help{display:none} .act{width:92px} }
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="k">FRONTIER · CREATURE LAB</div>
+  <h2>Brachypelma hamorii</h2>
+  <div class="bar"><i id="loadbar"></i></div>
+  <div class="msg" id="loadmsg">Initialising…</div>
+</div>
+
+<div class="hud" id="hud">
+  <div class="title panel">
+    <div class="k">FRONTIER · CREATURE LAB</div>
+    <h1>Mexican Red-knee Tarantula</h1>
+    <div class="s">Brachypelma hamorii · adult ♀ · 1:1 scale (≈14 cm leg span)</div>
+  </div>
+
+  <div class="settings panel">
+    <div class="row">Control
+      <div class="seg" id="mode"><button data-v="player" class="on">Player</button><button data-v="ai">AI</button></div>
+    </div>
+    <div class="row">Quality
+      <div class="seg" id="quality"><button data-v="low">Low</button><button data-v="medium">Med</button><button data-v="high" class="on">High</button><button data-v="ultra">Ultra</button></div>
+    </div>
+    <div class="row">Time
+      <div class="seg" id="timescale"><button data-v="1" class="on">1×</button><button data-v="0.5">½×</button><button data-v="0.2">⅕×</button><button data-v="0">❚❚</button></div>
+    </div>
+    <div class="row">View
+      <span style="display:flex;gap:6px">
+        <button class="toggle on" id="torch">Torch</button>
+        <button class="toggle" id="cine">Cinematic</button>
+        <button class="toggle" id="close">Macro</button>
+      </span>
+    </div>
+  </div>
+
+  <div class="help panel">
+    <b>Move</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <b>Run</b> <kbd>Shift</kbd> · <b>Camera</b> drag / wheel<br>
+    <b>Threat pose</b> hold <kbd>Q</kbd> · <b>Strike</b> <kbd>E</kbd> / <kbd>Space</kbd> · <b>Hair flick</b> <kbd>R</kbd><br>
+    <b>AI</b> <kbd>Tab</kbd> · <b>Slow-mo</b> <kbd>G</kbd> · <b>Torch</b> <kbd>T</kbd> · <b>Cinematic</b> <kbd>C</kbd> · <b>Hide UI</b> <kbd>H</kbd><br>
+    Walk into any wall, boulder, the pillar or up onto the ceiling — it climbs.
+  </div>
+
+  <div class="actions">
+    <button class="act" id="a-threat"><span class="kb">Q · hold</span><span class="nm">Threat pose</span><span class="ds">Rear up, forelegs &amp; palps raised, fangs bared</span></button>
+    <button class="act" id="a-strike"><span class="kb">E</span><span class="nm">Strike</span><span class="ds">Lunge, pin with forelegs, downward fang stab</span></button>
+    <button class="act" id="a-flick"><span class="kb">R</span><span class="nm">Hair flick</span><span class="ds">Hind legs kick urticating setae</span></button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="toast" id="toast"></div>
+</div>
+<div id="err"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
