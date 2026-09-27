@@ -1,98 +1,89 @@
-# Motorball Bowl — Scrapyard 99 (iteration 8)
+# Motorball Circuit — "Scrapyard Loop" (iteration 9)
 
-Night banked Motorball oval for Frontier, built to the user's GIF reference
-(floodlit bowl, yellow/black chevrons, cars pinned to high banked walls) plus
-the Weta trap-gate reference and the Alita stills (steel half-pipe, yellow
-edge stripes, towering spiral turns). Playable Three.js, integrated with the
-lobby.
+Wipeout-style twisty circuit. The oval is gone: a 14-vertex rounded-polygon
+centreline (trimmed straights + tangent arc fillets, exact closure by
+construction) with an S-bite, a 138° hairpin, a hill climb, and final esses.
+Three fork zones — including a 3-way TRIDENT split with bridge / gauntlet /
+dip arms — plus 5 rally jump cuts, 2 trap gates, and full elevation (0–12.8 m).
 
-## Layout — analytic paperclip oval (L = 1281.76 m, lobby shows 1.28 km)
+- Lap: **2182.3 m** · s = 0 mid home straight (start/finish + gantry + grid)
+- File: `app/motorball.js?v=9` · physics: per-axle Pacejka MF (unchanged) +
+  terrain grade forces + elevation-aware airtime
+- Validation: 30/30 headless checks pass (see bottom)
 
-Exact analytic segments: dead-straight straights (κ = 0), exact R94.5 bowls.
+## Corner / straight table (game s, metres)
 
-| s (m) | segment |
-|---|---|
-| 0 – 272 | south straight A (x −100 → +172 at z = −94.5), start/finish at s = 0 |
-| 272 – 569 | east bowl, centre (172, 0), R 94.5, apex x = 266.5 |
-| 569 – 913 | north straight (x +172 → −172 at z = +94.5), Y-junction 625–850 |
-| 913 – 1210 | west bowl, centre (−172, 0), R 94.5, apex x = −266.5 |
-| 1210 – 1282 | south straight B (x −172 → −100), closes the loop |
+| s range | what | detail |
+|---|---|---|
+| 1990→193 | E0 home straight | flat, FORK-A Y-split [35, 175], grid + gantry |
+| 193–278 | V1 sweeper | −54°, R90, climb begins |
+| 278–533 | S-bite E1–E4 | −36° / +72° / −36° (R60/38/60), climbing esses |
+| 486–533 | E4 stem | GATE BETA @509 |
+| 533–581 | V5 | −55°, R50 |
+| 581–770 | E5 back straight | TRIDENT 3-way [600, 750], crest 12 m @675 |
+| 770–822 | V6 | −55°, R55, descent |
+| 822–911 | E6 stem | JUMP @865 (gap 24) |
+| 911–967 | V7 | −27°, R120 kink |
+| 967–1056 | E7 stem | JUMP @1010 downhill (gap 26) |
+| 1056–1125 | V8 | −99°, R40, hairpin entry |
+| 1125–1156 | E8 connector | valley floor (y≈1) |
+| 1156–1210 | V9 HAIRPIN | +139°, R22, slowest corner (~27 m/s AI) |
+| 1210–1343 | E9 hill climb | FORK-C Y-split [1220, 1325], grade ≈6.5% |
+| 1343–1378 | V10 | −40°, R50 |
+| 1378–1429 | E10 crest | JUMP @1394 (gap 24), summit 12.8 m, downhill landing |
+| 1429–1581 | V11 | −87°, R100, descent |
+| 1581–1646 | E11 stem | GATE ALPHA @1613 |
+| 1646–1844 | final esses | +45° / −44° (R90/R90) with rollers |
+| 1844–1990 | V0 | −83°, R100 onto home straight |
 
-## Spiral turn walls (iteration 5, de-duplicated in 6 — one treatment, once)
+## Fork zones (stem cut, arms laid instead)
 
-The bowls are half-pipe spirals like the stills. A Bezier-profile steel
-wall rings each turn where the banking is high, growing with `bankAt`:
+| zone | s | arms (left → right) |
+|---|---|---|
+| FORK-A (Y) | 35–175 | SPEEDWAY (sweeper +12 m) / SKYLINE (S-curves) |
+| TRIDENT (3-way) | 600–750 | SUMMIT (bridge +3.5 m, jump @675) / GAUNTLET (flat, jump @682) / ABYSS (dip −3 m) |
+| FORK-C (Y) | 1220–1325 | SURGE (outer sweeper) / DIVE (inner S) |
 
-- Outer wall: 24 m above the road edge (~34 m absolute), leaning out to
-  16.75 m off-centre at mid-height, then curling back to 14 m at the top
-  so it looms over the track. Chevron ring crowns the top quarter —
-  the ONLY chevron treatment on the circuit now.
-- Chain-link fence + posts yield only where the outer wall stands.
-- 4 floodlight pylons at the bowl ends (43 m heads, volumetric-look cones).
-- Trackside bowl cameras above the wall (44 m out, 40 m up) —
-  stadium view down into the spiral.
+Arm choice: player's line at the split (halves / thirds); AI cycles arms per
+lap and drifts to the mouth. Funnel mouths (±3.5 m flare) keep reframes
+position-continuous; gores + named direction gantry per split.
 
-## Y-junction fork (iteration 8 — proper split tracks, not a divided straight)
+## Jumps (full-width angled lips, rally cuts)
 
-The north straight genuinely forks at s = 625 and rejoins at s = 850.
-The stem road is cut through the zone and two separate 16 m carriageways
-with real bends are laid instead (own rails, own edge glow, tangent-
-continuous ends, position-continuous reframe at fork/rejoin):
+| lip | where | gap | notes |
+|---|---|---|---|
+| 865 | E6 stem | 24 m | back-section kicker |
+| 1010 | E7 stem | 26 m | downhill launch at the hairpin |
+| 675 | SUMMIT arm | 24 m | kicker off the bridge crest |
+| 682 | GAUNTLET arm | 22 m | flat-out centre jump |
+| 1394 | E10 stem | 24 m | crest jump, downhill landing into V11 braking |
 
-- LEFT arm — SPEEDWAY (cyan): fast outer sweeper bulging 18 m off the
-  stem line, banked, flat out at 76. Carries a flat-out kicker jump
-  (lip s = 730, full arm width).
-- RIGHT arm — SKYLINE (orange): infield S-curve rhythm section, mild
-  bank, flows ~60. Carries its own rhythm jump (lip s = 700).
-- Fork furniture: amber crash-gore nose + barrels at both ends,
-  overhead gantry sign (◀ SPEEDWAY ║ SKYLINE ▶), both arms drawn on
-  the minimap in their colours. Route banner calls your arm at the fork.
-- Your side at the gore picks your arm; AI drift to their arm mouth
-  and alternate arms per lap.
-- Both arms fly their jumps and rejoin with 60+ m of west-bowl setup.
-  Headless laps: SPEEDWAY 22.9 s, SKYLINE 23.0 s — both genuinely viable.
+Airtime is elevation-aware: flight height is measured against the live road
+plane (takeoff ref stored at the lip), so downhill landings and bridge jumps
+behave. Min clear speed ≈ 25 m/s; AI pace clears everything.
 
-## Jump cuts (iteration 4, route-gated in 8)
+## Elevation
 
-The road is cut rally-style: full width angles up over a 12 m runup
-(18° lip, 2 m tall), 26 m open gap, steel landing wall. Steel cut faces,
-yellow lip bars, hazard runup, landing chevrons, red gap glow, map ticks.
-Jumps are route-gated: each cut exists only on its own carriageway.
+Linear keys, max stem grade 6.5% (E9 climb), max combined (bridge ramp on
+climb) 10.5%. Valley (y≈1) at the hairpin, summit 12.8 m at E10 crest, home
+straight dead flat. Grade forces slow climbs / reward descents; chassis pitch
+follows the terrain.
 
-- Clear speed ≈ 23 m/s (race pace sails 60–95 m); slow → gap reset;
-  short → landing-wall face-plant; impact-scaled landings. AI fly them.
-- Jumps at s = 140 (main straight), s = 730 (SPEEDWAY arm) and
-  s = 700 (SKYLINE arm).
+## Behaviour notes
 
-## Car physics — loaded bicycle model + Pacejka Magic Formula (iteration 8)
+- AI: corner slowdown from braking-horizon curvature (hairpin ≈ 27 m/s,
+  sweepers ≈ 55–62, straights at base 56–60), per-zone arm plans.
+- Banking rescaled for corner radii (R120 ≈ 3 m dish → R50+ = 10 m towering
+  walls); spiral walls now on BOTH sides (canyon); stem dish flattened inside
+  fork zones so arm blends stay smooth.
+- Gates ALPHA (1613) / BETA (509) live on stems; legs extend to the ground
+  from elevated road. Trap logic unchanged (route 0 only).
+- Minimap draws all 7 arms in arm colours; bounds auto-fit.
 
-Nose-heading model: weight transfer (brake bite, power squat), per-axle
-load-sensitive μ, combined slip with RWD power oversteer, lateral load
-sensitivity, 600 kW power curve, aero drag, ABS brakes, engine braking,
-lip gradient, chassis roll/dive/squat, flight pitch, skid audio.
-Steering: 8/v authority curve (full lock holds the bowls with ~20%
-margin — excess lock plows, never spins), smooth 5.5/6 Hz hands for
-keyboard input, realistic yaw inertia (IZ 2400).
+## Headless validation (`.arena/scratch/harness9.mjs`, real game math)
 
-Tires are the full Pacejka Magic Formula now, per axle —
-F = D·sin(C·atan(B·α − E·(B·α − atan(B·α)))), D from μ·load:
-
-| axle | B (stiffness) | C (shape) | E (curvature) | character |
-|---|---|---|---|---|
-| front | 11 | 1.35 | +0.25 | crisp, communicative breakaway, peak @ 14° |
-| rear | 10 | 1.40 | −0.20 | forgiving tail, pulls through slides, peak @ 11° |
-
-Past-peak fall-off is gentle (front holds 0.97 @ 30° slip), so slides
-are progressive and catchable — the limit feels like a tire, not a cliff.
-
-## Validated pace (headless sim, exact game constants)
-
-- 0–60 in 6.3 s, 0–76 in 13.5 s; brakes 76→60 in 45 m.
-- Bowls: comfortable 60–65, limit ≈ 66 (progressive wide slide past it).
-- Full lap per Y arm from standstill: SPEEDWAY zero incidents, flights
-  64 m + 86 m; SKYLINE zero incidents, flights 64 m + 85 m;
-  nose ≤ 17°, slip ≈ 8°. Full lock pinned at 76 slides but never spins.
-  No NaN in any run.
-
-Brake for the bowls, pick your arm at the gore, pin the jumps,
-dodge ALPHA (s = 60) and BETA (s = 1235).
+30/30 PASS: lap 2182.29 m, closure 0.0000 m, no-NaN full-lap sweep (stems +
+arms), mouth continuity d=0.000 m / Δhead ≤ 0.22°, all 5 jumps CLEAR at
+25/45/65 m/s, zone-placement rules, plus 3 rollout laps (left arms 47.2 s,
+right arms 47.8 s, trident-centre 47.2 s) with every taken jump flown, no gap
+falls.

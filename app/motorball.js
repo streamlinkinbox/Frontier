@@ -23,8 +23,9 @@ try {
 }
 
 /* ------------------------------------------------------------------ config */
-/* Centreline: exact analytic segments (dead-straight straights + circular R94.5
-   bowls). No spline wobble, no transition pinches. See track-sampling block. */
+/* Centreline: rounded-polygon circuit (14 vertices, trimmed straights + arc
+   fillets, exact closure). Twisty Wipeout-style layout: S-bite, back straight,
+   downhill jumps, 138-degree hairpin, hill climb, final esses. See sampling. */
 
 const HALF_W = 13;          // road half width (m) — 26 m wide bowl
 const WALL_H = 7.5;         // reference wall height (banking is per-sample now: BANK_MIN..BANK_MAX)
@@ -32,8 +33,8 @@ const WALL_P = 2.2;         // bowl dish exponent (visual dish + physics curve)
 const RACE_LAPS = 3;
 const TOP_SPEED = 76;       // m/s (~274 km/h)
 const GATES = [
-  { name: 'ALPHA', f: 0.0468, speed: 0.85, phase: 0.0 },
-  { name: 'BETA', f: 0.9634, speed: -1.05, phase: 1.7 },
+  { name: 'ALPHA', f: 0.7392, speed: 0.85, phase: 0.0 },  // s=1613, E11 stem past the crest
+  { name: 'BETA', f: 0.2332, speed: -1.05, phase: 1.7 },  // s=509, E4 stem out of the S-bite
 ];
 const AI_DEFS = [
   { name: 'VOLT-9', suit: 0xb33c12, visor: 0xff7a1a, base: 58, s0: -38, ph: 0.0 },
@@ -147,7 +148,7 @@ $('scene').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05070c);
-scene.fog = new THREE.Fog(0x05070c, 80, 540);
+scene.fog = new THREE.Fog(0x05070c, 70, 950); // long circuit: keep the far hills + skyline in frame
 const camera = new THREE.PerspectiveCamera(64, window.innerWidth / window.innerHeight, 0.1, 2600);
 
 scene.add(new THREE.AmbientLight(0x2a3850, 0.65));
@@ -278,40 +279,76 @@ const bannerTex = canvasTex(1024, 128, (ctx, W, H) => {
 });
 
 /* ---------------------------------------------------------- track sampling */
-const NS = 800;
+const NS = 1100;
 const sPts = [], sTan = [], sLeft = [], sHead = [];
+const ELEV = [ // track elevation keys [s, y]: linear interp, max grade 6.5%
+  [0, 0], [193, 0], [300, 3], [450, 7], [533, 8], [581, 9], [675, 12], [770, 10],
+  [822, 8], [911, 5.5], [967, 4], [1010, 2.5], [1056, 1.5], [1125, 1], [1210, 3],
+  [1300, 8.8], [1343, 11.6], [1378, 12.6], [1400, 12.8], [1429, 12.6], [1500, 9],
+  [1581, 6], [1646, 4.5], [1700, 5.5], [1750, 4], [1817, 5], [1900, 2.5], [1990, 0],
+];
+function trackY(s, total) {
+  const T = total || TRACK_LEN;
+  s = ((s % T) + T) % T;
+  let ps = 0, py = 0;
+  for (let i = 0; i < ELEV.length; i++) {
+    const ks = ELEV[i][0], ky = ELEV[i][1];
+    if (s <= ks) return py + (ky - py) * ((s - ps) / Math.max(1e-6, ks - ps));
+    ps = ks; py = ky;
+  }
+  return py + (0 - py) * ((s - ps) / Math.max(1e-6, T - ps)); // last key -> start/finish
+}
 const TRACK_LEN = (() => {
-  const R = 94.5, HX = 172, HZ = 94.5, S0X = -100; // bowl R, straight half-len, straight offset, s=0 x
-  const segs = [
-    { t: 'l', x0: S0X, z0: -HZ, x1: HX, z1: -HZ },                 // south straight A
-    { t: 'a', cx: HX, cz: 0, r: R, a0: -Math.PI / 2, a1: Math.PI / 2 }, // east bowl
-    { t: 'l', x0: HX, z0: HZ, x1: -HX, z1: HZ },                   // north straight
-    { t: 'a', cx: -HX, cz: 0, r: R, a0: Math.PI / 2, a1: Math.PI * 1.5 }, // west bowl
-    { t: 'l', x0: -HX, z0: -HZ, x1: S0X, z1: -HZ },                // south straight B
-  ];
-  const lens = segs.map((g) => g.t === 'l'
-    ? Math.hypot(g.x1 - g.x0, g.z1 - g.z0)
-    : Math.abs(g.a1 - g.a0) * g.r);
-  const total = lens.reduce((a, b) => a + b, 0);
+  const V = [[-100, 0], [420, 0], [474, 75], [473.2, 150.9], [546, 175], [600, 250],
+    [520, 480], [380, 520], [219, 488], [265, 360], [81, 461], [-80, 430], [-54, 235], [-118, 151.6]];
+  const RR = [100, 90, 60, 38, 60, 50, 55, 120, 40, 22, 50, 100, 90, 90];
+  const N = V.length;
+  const elen = V.map((a, i) => { const b = V[(i + 1) % N]; return Math.hypot(b[0] - a[0], b[1] - a[1]); });
+  const turn = [], trim = [];
+  for (let i = 0; i < N; i++) {
+    const P0 = V[(i + N - 1) % N], Vc = V[i], P1 = V[(i + 1) % N];
+    const t = wrapAngle(Math.atan2(P1[0] - Vc[0], P1[1] - Vc[1]) - Math.atan2(Vc[0] - P0[0], Vc[1] - P0[1]));
+    turn.push(t);
+    trim.push(RR[i] * Math.tan(Math.abs(t) / 2));
+  }
+  const segs = [];
+  let total = 0;
+  for (let i = 0; i < N; i++) {
+    const A = V[i], B = V[(i + 1) % N], L = elen[i];
+    const ux = (B[0] - A[0]) / L, uz = (B[1] - A[1]) / L;
+    const sLen = L - trim[i] - trim[(i + 1) % N];
+    segs.push({ t: 0, len: sLen, ax: A[0], az: A[1], ux, uz, off: trim[i] });
+    total += sLen;
+    const j = (i + 1) % N, R = RR[j], tj = turn[j];
+    const ex = L - trim[j];
+    const px = A[0] + ux * ex, pz = A[1] + uz * ex;
+    const side = Math.sign(tj), hh = Math.atan2(ux, uz);
+    const ox = px + Math.cos(hh) * side * R, oz = pz - Math.sin(hh) * side * R;
+    segs.push({ t: 1, len: Math.abs(tj) * R, ox, oz, r: R, a0: Math.atan2(px - ox, pz - oz), tj, dir: side });
+    total += Math.abs(tj) * R;
+  }
   const at = (sv) => {
     let d = ((sv % total) + total) % total;
     for (let i = 0; i < segs.length; i++) {
-      if (d <= lens[i] || i === segs.length - 1) {
-        const g = segs[i], f = Math.min(1, Math.max(0, d / lens[i]));
-        if (g.t === 'l') {
-          const dx = g.x1 - g.x0, dz = g.z1 - g.z0, ll = Math.hypot(dx, dz);
-          return [g.x0 + dx * f, g.z0 + dz * f, dx / ll, dz / ll];
+      const g = segs[i];
+      if (d <= g.len || i === segs.length - 1) {
+        const f = clamp(d / g.len, 0, 1);
+        if (g.t === 0) {
+          const s = g.off + g.len * f;
+          return [g.ax + g.ux * s, g.az + g.uz * s, g.ux, g.uz];
         }
-        const a = g.a0 + (g.a1 - g.a0) * f;
-        return [g.cx + g.r * Math.cos(a), g.cz + g.r * Math.sin(a), -Math.sin(a), Math.cos(a)];
+        const a = g.a0 + g.tj * f;
+        return [g.ox + g.r * Math.sin(a), g.oz + g.r * Math.cos(a), Math.cos(a) * g.dir, -Math.sin(a) * g.dir];
       }
-      d -= lens[i];
+      d -= g.len;
     }
   };
+  const ROT = segs[0].len / 2; // s = 0 lands mid start/finish straight
   let prevH = null;
   for (let i = 0; i < NS; i++) {
-    const [x, z, tx, tz] = at((i / NS) * total);
-    sPts.push(new THREE.Vector3(x, 0, z));
+    const sv = (i / NS) * total;
+    const [x, z, tx, tz] = at(sv + ROT);
+    sPts.push(new THREE.Vector3(x, trackY(sv, total), z));
     const t = new THREE.Vector3(tx, 0, tz);
     sTan.push(t);
     sLeft.push(new THREE.Vector3(t.z, 0, -t.x));
@@ -347,16 +384,27 @@ const bankH = new Float32Array(NS);
     let a = 0;
     for (let k = -W; k <= W; k++) a += kap[(i + k + NS * 2) % NS];
     a /= (2 * W + 1);
-    const t = clamp((a - 0.003) / (0.007 - 0.003), 0, 1);
+    const t = clamp((a - 0.004) / (0.02 - 0.004), 0, 1); // R120 sweepers lean, R50+ corners tower
     bankH[i] = BANK_MIN + (BANK_MAX - BANK_MIN) * (t * t * (3 - 2 * t));
   }
 }
 function bankAt(s) {
   const f = (wrapS(s) / TRACK_LEN) * NS, i0 = Math.floor(f) % NS, i1 = (i0 + 1) % NS, fr = f - Math.floor(f);
-  return lerp(bankH[i0], bankH[i1], fr);
+  return lerp(bankH[i0], bankH[i1], fr) * forkBankCut(s);
 }
-const bowlY = (u, s, route = 0) => (route === 0 ? bankAt(s) : armBank(route, forkT(s))) * Math.pow(Math.abs(u), WALL_P);
-const bowlSlope = (u, s, route = 0) => ((route === 0 ? bankAt(s) : armBank(route, forkT(s))) * 3.4 / armHalfW(route)) * Math.pow(Math.abs(u), 1.2) * Math.sign(u || 1); // 1.55x over the visual gradient: cars ride the high wall
+function forkBankCut(s) { // stem is cut open inside fork zones: flatten its dish so arm blends stay smooth
+  let k = 1;
+  for (const z of FORKS) {
+    const m = 12;
+    if (s > z.s0 - m && s < z.s1 + m) {
+      const e = Math.min(s - (z.s0 - m), (z.s1 + m) - s, m) / m;
+      k = Math.min(k, lerp(1, 0.12, e * e * (3 - 2 * e)));
+    }
+  }
+  return k;
+}
+const bowlY = (u, s, route = 0) => (route === 0 ? bankAt(s) : armBankAt(route, s)) * Math.pow(Math.abs(u), WALL_P);
+const bowlSlope = (u, s, route = 0) => ((route === 0 ? bankAt(s) : armBankAt(route, s)) * 3.4 / armHalfW(route, s)) * Math.pow(Math.abs(u), 1.2) * Math.sign(u || 1); // 1.55x over the visual gradient: cars ride the high wall
 const wrapS = (s) => ((s % TRACK_LEN) + TRACK_LEN) % TRACK_LEN;
 const wrapDist = (a, b) => ((a - b + TRACK_LEN * 1.5) % TRACK_LEN) - TRACK_LEN * 0.5;
 const _sp = { pos: new THREE.Vector3(), tan: new THREE.Vector3(), left: new THREE.Vector3(), head: 0, curv: 0 };
@@ -371,45 +419,105 @@ function sampleAt(s) {
   _sp.curv = wrapAngle(sHeadS[in_] - sHeadS[ip]) / (12 * DS); // wrap strips the loop winding at the seam
   return _sp;
 }
-/* --------------------------------------------- Y-junction fork: two real arms */
-const FORK = { s0: 625, s1: 850 }; // fork zone on the north straight (stem road cut, arms laid instead)
-const ARM_W = 8;                   // arm carriageway half-width (16 m wide each)
-const ARM_OFF = 0.55;              // arm centre offset at fork/rejoin, in stem-u units (7.15 m)
-const armHalfW = (route) => (route === 0 ? HALF_W : ARM_W);
-const forkT = (s) => clamp((s - FORK.s0) / (FORK.s1 - FORK.s0), 0, 1);
-function armBulge(route, t) { // lateral metres off the arm base line: tangent-continuous ends, real bends between
-  if (route === 1) return 18 * Math.pow(Math.sin(Math.PI * t), 2);   // SPEEDWAY: fast outer sweeper (flat out)
-  return -8 * Math.sin(2 * Math.PI * t) * Math.sin(Math.PI * t);     // SKYLINE: infield S-curves (rhythm section)
+/* --------------------------------------- fork zones: Y-junctions + 3-way split */
+const FORKS = [
+  { name: 'FORK-A', s0: 35, s1: 175, arms: [ // home-straight Y: the v8 SPEEDWAY/SKYLINE pair
+    { name: 'SPEEDWAY', sub: 'LEFT', color: 0x51e0ff, off: 8.5, w: 6.5,
+      bulge: (t) => 12 * Math.pow(Math.sin(Math.PI * t), 2), lift: () => 0, bank: (t) => 0.7 + 2.0 * Math.pow(Math.sin(Math.PI * t), 2) },
+    { name: 'SKYLINE', sub: 'RIGHT', color: 0xffa030, off: -8.5, w: 6.5,
+      bulge: (t) => -6 * Math.sin(2 * Math.PI * t) * Math.sin(Math.PI * t), lift: () => 0, bank: (t) => 0.7 + 1.5 * Math.pow(Math.sin(Math.PI * t), 2) },
+  ] },
+  { name: 'TRIDENT', s0: 600, s1: 750, arms: [ // back-straight 3-way: bridge / gauntlet / dip
+    { name: 'SUMMIT', sub: 'LEFT', color: 0xff5a4e, off: 8.5, w: 6.2,
+      bulge: (t) => 8 * Math.pow(Math.sin(Math.PI * t), 2), lift: (t) => 3.5 * Math.pow(Math.sin(Math.PI * t), 2), bank: (t) => 0.7 + 2.0 * Math.pow(Math.sin(Math.PI * t), 2) },
+    { name: 'GAUNTLET', sub: 'CENTRE', color: 0xf2f2f2, off: 0, w: 6.2,
+      bulge: () => 0, lift: () => 0, bank: () => 0.7 },
+    { name: 'ABYSS', sub: 'RIGHT', color: 0x7a3dff, off: -8.5, w: 6.2,
+      bulge: (t) => -8 * Math.pow(Math.sin(Math.PI * t), 2), lift: (t) => -3 * Math.pow(Math.sin(Math.PI * t), 2), bank: (t) => 0.7 + 1.5 * Math.pow(Math.sin(Math.PI * t), 2) },
+  ] },
+  { name: 'FORK-C', s0: 1220, s1: 1325, arms: [ // hill-climb Y: outer sweeper vs inner S
+    { name: 'SURGE', sub: 'LEFT', color: 0x51e6a0, off: 8.5, w: 6.5,
+      bulge: (t) => 7 * Math.pow(Math.sin(Math.PI * t), 2), lift: () => 0, bank: (t) => 0.7 + 2.0 * Math.pow(Math.sin(Math.PI * t), 2) },
+    { name: 'DIVE', sub: 'RIGHT', color: 0xff3df0, off: -8.5, w: 6.5,
+      bulge: (t) => -5 * Math.sin(2 * Math.PI * t) * Math.sin(Math.PI * t), lift: () => 0, bank: (t) => 0.7 + 1.5 * Math.pow(Math.sin(Math.PI * t), 2) },
+  ] },
+];
+function zoneAt(s, m = 0) {
+  for (let i = 0; i < FORKS.length; i++) {
+    const z = FORKS[i];
+    if (s > z.s0 - m && s < z.s1 + m) return z;
+  }
+  return null;
 }
-function armBank(route, t) {
-  return 0.7 + (route === 1 ? 2.0 : 1.5) * Math.pow(Math.sin(Math.PI * t), 2);
+const forkT = (s, z) => clamp((s - z.s0) / (z.s1 - z.s0), 0, 1);
+function armWidth(arm, t) { // funnel mouths: flare at split/rejoin so centre-line cars reframe without a pop
+  const f = t < 0.12 ? 1 - t / 0.12 : t > 0.88 ? 1 - (1 - t) / 0.12 : 0;
+  return arm.w + 3.5 * f * f;
+}
+function armHalfW(route, s = 0) {
+  if (route === 0) return HALF_W;
+  const z = zoneAt(s, 3.5);
+  if (!z || route > z.arms.length) return HALF_W;
+  return armWidth(z.arms[route - 1], forkT(s, z));
+}
+function armBankAt(route, s) {
+  const z = zoneAt(s, 3.5);
+  if (!z || route > z.arms.length) return 0.7;
+  return z.arms[route - 1].bank(forkT(s, z));
+}
+function armLiftAt(route, s) {
+  if (route === 0) return 0;
+  const z = zoneAt(s, 3.5);
+  if (!z || route > z.arms.length) return 0;
+  return z.arms[route - 1].lift(forkT(s, z));
+}
+const roadBaseY = (s, route = 0) => trackY(s) + armLiftAt(route, s); // road plane before dish + ramps
+function roadGrade(s, route = 0) { // longitudinal grade incl. arm humps: physics + pitch
+  return (roadBaseY(s + 1.5, route) - roadBaseY(s - 1.5, route)) / 3;
 }
 const _sp2 = { pos: new THREE.Vector3(), tan: new THREE.Vector3(), left: new THREE.Vector3(), head: 0, curv: 0 };
 function sampleRoute(route, s) {
   if (route === 0) return sampleAt(s);
-  const t = forkT(s), sm = sampleAt(s);
-  const side = route === 1 ? 1 : -1;
-  _sp2.pos.copy(sm.pos).addScaledVector(sm.left, side * ARM_OFF * HALF_W + armBulge(route, t));
-  const e = 0.004, tp = Math.min(1, t + e), tm = Math.max(0, t - e), span = (tp - tm) * (FORK.s1 - FORK.s0);
-  const dz = (armBulge(route, tp) - armBulge(route, tm)) / span; // lateral rate -> exact heading
+  const z = zoneAt(s, 3.5);
+  if (!z || route > z.arms.length) return sampleAt(s);
+  const arm = z.arms[route - 1];
+  const t = forkT(s, z), sm = sampleAt(s);
+  _sp2.pos.copy(sm.pos).addScaledVector(sm.left, arm.off + arm.bulge(t));
+  _sp2.pos.y = sm.pos.y + arm.lift(t);
+  const e = 0.004, tp = Math.min(1, t + e), tm = Math.max(0, t - e), span = (tp - tm) * (z.s1 - z.s0);
+  const dz = (arm.bulge(tp) - arm.bulge(tm)) / span; // lateral rate -> exact heading
   _sp2.tan.copy(sm.tan).addScaledVector(sm.left, dz).normalize();
   _sp2.left.set(_sp2.tan.z, 0, -_sp2.tan.x);
   _sp2.head = sm.head + Math.atan(dz);
-  const d2 = (armBulge(route, tp) - 2 * armBulge(route, t) + armBulge(route, tm)) / Math.pow(span / 2, 2);
-  _sp2.curv = d2 / Math.pow(1 + dz * dz, 1.5); // left-positive, same convention as the bowls
+  const d2 = (arm.bulge(tp) - 2 * arm.bulge(t) + arm.bulge(tm)) / Math.pow(span / 2, 2);
+  _sp2.curv = d2 / Math.pow(1 + dz * dz, 1.5); // left-positive, same convention as the corners
   return _sp2;
 }
-const inFork = (s0, s1, strict) => strict ? (s1 > FORK.s0 && s0 < FORK.s1) : (s0 >= FORK.s0 && s1 <= FORK.s1);
+const inFork = (s0, s1, strict) => {
+  for (const z of FORKS) {
+    if (strict) { if (s1 > z.s0 && s0 < z.s1) return true; }
+    else if (s0 >= z.s0 && s1 <= z.s1) return true;
+  }
+  return false;
+};
 /* ------------------------------------------------------ jump cuts: data */
 const JUMPS = [
-  { lip: 140, run: 12, h: 2.0, gap: 26, route: 0 }, // main straight: full-width angled cut
-  { lip: 730, run: 12, h: 2.0, gap: 26, route: 1 }, // SPEEDWAY arm: flat-out kicker, full arm width
-  { lip: 700, run: 12, h: 2.0, gap: 26, route: 2 }, // SKYLINE arm: rhythm jump, full arm width
+  { lip: 865, run: 12, h: 2.0, gap: 24, route: 0, fz: -1 },  // E6 stem: back-section kicker
+  { lip: 1010, run: 12, h: 2.2, gap: 26, route: 0, fz: -1 }, // E7 stem: downhill launch toward the hairpin
+  { lip: 675, run: 10, h: 2.4, gap: 24, route: 1, fz: 1 },   // SUMMIT arm: kicker off the bridge crest
+  { lip: 682, run: 10, h: 1.8, gap: 22, route: 2, fz: 1 },   // GAUNTLET arm: flat-out centre jump
+  { lip: 1394, run: 12, h: 2.0, gap: 24, route: 0, fz: -1 }, // E10 stem: crest jump, downhill landing
 ];
 function inLane(j, u, pad) { return u >= (j.u0 ?? -1) - pad && u <= (j.u1 ?? 1) + pad; }
+function jumpApplies(j, s, route) { // stem jumps live outside fork zones; arm jumps need their zone+arm
+  if ((j.route ?? 0) !== route) return false;
+  if (j.fz === -1) return !zoneAt(s, 0.5);
+  const z = zoneAt(s, 0.5);
+  return z === FORKS[j.fz];
+}
 function roadLift(s, u = 0, route = 0) { // take-off ramp profile (quadratic: smooth entry, angled lip)
   for (const j of JUMPS) {
-    if ((j.route ?? 0) !== route) continue;
+    if (!jumpApplies(j, s, route)) continue;
     if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return j.h * t * t;
@@ -418,7 +526,7 @@ function roadLift(s, u = 0, route = 0) { // take-off ramp profile (quadratic: sm
 }
 function lipSlope(s, u = 0, route = 0) { // dLift/ds: gradient resistance + chassis pitch
   for (const j of JUMPS) {
-    if ((j.route ?? 0) !== route) continue;
+    if (!jumpApplies(j, s, route)) continue;
     if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return (2 * j.h / j.run) * t;
@@ -427,14 +535,14 @@ function lipSlope(s, u = 0, route = 0) { // dLift/ds: gradient resistance + chas
 }
 function inGapVoid(s, u = 0, pad = 0, route = 0) {
   for (const j of JUMPS) {
-    if ((j.route ?? 0) !== route) continue;
+    if (!jumpApplies(j, s, route)) continue;
     if (s > j.lip && s < j.lip + j.gap && inLane(j, u, pad)) return j;
   }
   return null;
 }
 function faceInVoid(s0, s1, strict, u = 0, route = 0) { // road faces may overhang the cut; rails may not
   for (const j of JUMPS) {
-    if ((j.route ?? 0) !== route) continue;
+    if (!jumpApplies(j, (s0 + s1) / 2, route)) continue;
     if (!inLane(j, u, 0)) continue;
     if (strict) { if (s1 > j.lip && s0 < j.lip + j.gap) return true; }
     else if (s0 >= j.lip && s1 <= j.lip + j.gap) return true;
@@ -443,8 +551,8 @@ function faceInVoid(s0, s1, strict, u = 0, route = 0) { // road faces may overha
 }
 function roadPoint(s, u, out = new THREE.Vector3(), route = 0) {
   const sm = sampleRoute(route, s);
-  out.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route));
-  out.y = bowlY(u, s, route) + roadLift(s, u, route);
+  out.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route, s));
+  out.y = sm.pos.y + bowlY(u, s, route) + roadLift(s, u, route);
   return out;
 }
 const loopCenter = new THREE.Vector3();
@@ -488,7 +596,8 @@ function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat, skipWall = false) {
     const sm = sampleAt(s);
     const bx = sm.pos.x + sm.left.x * uSide * HALF_W, bz = sm.pos.z + sm.left.z * uSide * HALF_W;
     const tx = bx + sm.left.x * uSide * outTop, tz = bz + sm.left.z * uSide * outTop;
-    pos.push(bx, bowlY(uSide, s) + yBot, bz, tx, bowlY(uSide, s) + yTop, tz);
+    const by = sm.pos.y + bowlY(uSide, s);
+    pos.push(bx, by + yBot, bz, tx, by + yTop, tz);
     uvA.push(0, s / vScale, 1, s / vScale);
   }
   for (let i = 0; i < SEG; i++) {
@@ -528,13 +637,13 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   for (let i = 0; i < count; i++) {
     const s = i * step;
     for (const sd of [1, -1]) {
-      if (inGapVoid(s, sd * 1.06, 0.1) || (bankAt(s) > 4 && sd > 0) || (s > FORK.s0 - 2 && s < FORK.s1 + 2)) {
+      if (inGapVoid(s, sd * 1.06, 0.1) || bankAt(s) > 4 || zoneAt(s, 2)) {
         m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue;
       }
       const sm = sampleAt(s);
       const x = sm.pos.x + sm.left.x * sd * (HALF_W + 0.85);
       const z = sm.pos.z + sm.left.z * sd * (HALF_W + 0.85);
-      m4.makeTranslation(x, bankAt(s) + 2.8, z);
+      m4.makeTranslation(x, sm.pos.y + bankAt(s) + 2.8, z);
       inst.setMatrixAt(k++, m4);
     }
   }
@@ -551,7 +660,7 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   for (let i = 0; i < count; i++) {
     const s = i * step;
     for (const sd of [1, -1]) {
-      if (inGapVoid(s, sd * 0.9, 0) || (s > FORK.s0 - 2 && s < FORK.s1 + 2)) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue; }
+      if (inGapVoid(s, sd * 0.9, 0) || zoneAt(s, 2)) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue; }
       roadPoint(s, sd * 0.9, lp);
       m4.makeTranslation(lp.x, lp.y + 0.12, lp.z);
       inst.setMatrixAt(k++, m4);
@@ -587,9 +696,12 @@ let edgeGlowMat = null;
     m.renderOrder = 3; scene.add(m);
   }
 }
-{ // Y-junction arms: two real carriageways with their own bends, rails + edge glow
-  for (const [route, glowCol, yLift] of [[1, 0x51e0ff, 0.035], [2, 0xffa030, 0.045]]) {
-    const SEG = 220, AC = 14, sA = FORK.s0 - 3, sB = FORK.s1 + 3;
+{ // fork arms: real carriageways with their own bends, rails + edge glow
+  for (let fi = 0; fi < FORKS.length; fi++) {
+    const FZ = FORKS[fi];
+    for (let ai = 0; ai < FZ.arms.length; ai++) {
+      const route = ai + 1, arm = FZ.arms[ai], glowCol = arm.color, yLift = 0.035 + ai * 0.012;
+      const SEG = 220, AC = 14, sA = FZ.s0 - 3, sB = FZ.s1 + 3;
     const pos = [], uv = [], idx = [];
     for (let i = 0; i <= SEG; i++) {
       const s = sA + (sB - sA) * (i / SEG);
@@ -623,12 +735,14 @@ let edgeGlowMat = null;
         const sm = sampleRoute(route, s);
         if (isGlow) {
           for (const gu of [sd * 0.93, sd * 0.998]) {
-            pp.push(sm.pos.x + sm.left.x * gu * ARM_W, bowlY(gu, s, route) + 0.07, sm.pos.z + sm.left.z * gu * ARM_W);
+            const gw = armHalfW(route, s);
+            pp.push(sm.pos.x + sm.left.x * gu * gw, sm.pos.y + bowlY(gu, s, route) + 0.07, sm.pos.z + sm.left.z * gu * gw);
           }
           uu.push(0, 0, 1, 0);
         } else {
-          const bx = sm.pos.x + sm.left.x * sd * ARM_W, bz = sm.pos.z + sm.left.z * sd * ARM_W;
-          const by = bowlY(sd, s, route) + yLift;
+          const aw = armHalfW(route, s);
+          const bx = sm.pos.x + sm.left.x * sd * aw, bz = sm.pos.z + sm.left.z * sd * aw;
+          const by = sm.pos.y + bowlY(sd, s, route) + yLift;
           pp.push(bx, by + y0, bz, bx + sm.left.x * sd * out, by + y1, bz + sm.left.z * sd * out);
           uu.push(0, s / vScale, 1, s / vScale);
         }
@@ -636,7 +750,7 @@ let edgeGlowMat = null;
       for (let i = 0; i < N2; i++) {
         const fs0 = sA + (sB - sA) * (i / N2), fs1 = sA + (sB - sA) * ((i + 1) / N2);
         if (faceInVoid(fs0, fs1, true, sd, route)) continue;
-        if (!isGlow && (fs0 < FORK.s0 + 7 || fs1 > FORK.s1 - 7)) continue; // rails start once the split opens (gore guards the gap)
+        if (!isGlow && (fs0 < FZ.s0 + 7 || fs1 > FZ.s1 - 7)) continue; // rails start once the split opens (gore guards the gap)
         const a = i * 2;
         ii.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
       }
@@ -651,6 +765,7 @@ let edgeGlowMat = null;
     arib(1, 0, 1.25, 0.55, rimMat, 6); arib(-1, 0, 1.25, 0.55, rimMat, 6);
     arib(1, 1.25, 1.45, 0.6, railMat, 6); arib(-1, 1.25, 1.45, 0.6, railMat, 6);
     arib(1, 0, 0, 0, aGlowMat, 1, true); arib(-1, 0, 0, 0, aGlowMat, 1, true);
+    }
   }
 }
 function spiralWall(side, pts) {
@@ -671,7 +786,7 @@ function spiralWall(side, pts) {
       const pos = [], uvA = [], idx = [];
       run.forEach((s) => {
         const sm = sampleAt(s);
-        const edgeY = bowlY(1, s);
+        const edgeY = sm.pos.y + bowlY(1, s);
         const hs = clamp((bankAt(s) - 4) / 6, 0.12, 1); // walls grow with the banking
         for (let r = r0; r <= r1; r++) {
           const [lat, hh] = bez(r / ROWS);
@@ -701,23 +816,24 @@ function spiralWall(side, pts) {
     else flush();
   }
 }
-spiralWall(1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);   // outer: towering curl over the track
+spiralWall(1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);   // left: towering curl over the track
+spiralWall(-1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);  // right: canyon walls on both sides
 { // turn floodlight pylons (ref stills): emissive heads + volumetric-look cones
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x1c2026, roughness: 0.6, metalness: 0.7 });
   const headMat = new THREE.MeshBasicMaterial({ color: 0xe8f2ff });
   const coneMat = new THREE.MeshBasicMaterial({ color: 0x9fc4ff, transparent: true, opacity: 0.07,
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
-  for (const ps of [250, 590, 890, 1230]) {
-    const sm = sampleAt(ps);
+  for (const pd of [{ s: 557 }, { s: 1183, x: 200, z: 420 }, { s: 1505 }, { s: 1917 }]) {
+    const sm = sampleAt(pd.s);
     const out = new THREE.Vector3().subVectors(sm.pos, loopCenter); out.y = 0; out.normalize();
-    const bx = sm.pos.x + out.x * 44, bz = sm.pos.z + out.z * 44;
+    const bx = pd.x ?? sm.pos.x + out.x * 44, bz = pd.z ?? sm.pos.z + out.z * 44;
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 44, 8), poleMat);
     pole.position.set(bx, 21, bz); scene.add(pole);
     const head = new THREE.Mesh(new THREE.BoxGeometry(7, 1.2, 1.2), headMat);
     head.position.set(bx, 43, bz);
-    head.lookAt(sm.pos.x, 2, sm.pos.z); scene.add(head);
-    const tgt = new THREE.Vector3(sm.pos.x, 0, sm.pos.z);
+    head.lookAt(sm.pos.x, sm.pos.y + 2, sm.pos.z); scene.add(head);
+    const tgt = new THREE.Vector3(sm.pos.x, sm.pos.y, sm.pos.z);
     const hp = new THREE.Vector3(bx, 43, bz);
     const dist = hp.distanceTo(tgt);
     const cone = new THREE.Mesh(new THREE.ConeGeometry(13, dist, 20, 1, true), coneMat);
@@ -811,7 +927,7 @@ const zalem = new THREE.Group(); // sky-city ring over the scrapyard
   scene.add(cable);
 }
 const searchlights = [];
-for (const [x, z, ph] of [[-190, 150, 0], [200, 150, 2.4]]) {
+for (const [x, z, ph] of [[120, 260, 0], [420, 260, 2.4]]) {
   const grp = new THREE.Group(); grp.position.set(x, 0, z);
   const base = new THREE.Mesh(new THREE.BoxGeometry(4, 2, 4),
     new THREE.MeshStandardMaterial({ color: 0x1c2129, roughness: 0.7, metalness: 0.5 }));
@@ -834,9 +950,9 @@ const beacons = [];
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i < COUNT; i++) {
-    const a = (i / COUNT) * TAU + rnd() * 0.05, r = 400 + rnd() * 170;
+    const a = (i / COUNT) * TAU + rnd() * 0.05, r = 560 + rnd() * 170;
     const w = 14 + rnd() * 30, h = 18 + rnd() * 95, dd = 14 + rnd() * 30;
-    pv.set(Math.cos(a) * r, h / 2 - 1, Math.sin(a) * r);
+    pv.set(270 + Math.cos(a) * r, h / 2 - 1, 260 + Math.sin(a) * r);
     q.setFromAxisAngle(up, rnd() * TAU);
     sc.set(w, h, dd);
     m4.compose(pv, q, sc);
@@ -859,8 +975,7 @@ const beacons = [];
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x23272e, roughness: 0.6, metalness: 0.7 });
   const headMat = new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 0.6, metalness: 0.6 });
   const panelMat = new THREE.MeshBasicMaterial({ color: 0xeaf2ff });
-  for (let i = 0; i < 8; i++) {
-    const s = (i / 8 + 1 / 16) * TRACK_LEN;
+  for (const s of [100, 650, 870, 1010, 1280, 1400, 1610, 2050]) {
     const sm = sampleAt(s);
     const out = new THREE.Vector3().subVectors(sm.pos, loopCenter); out.y = 0; out.normalize();
     const base = sm.pos.clone().addScaledVector(out, 27); base.y = 0;
@@ -892,7 +1007,7 @@ const beacons = [];
 /* ------------------------------------------------------------ grandstand */
 let crowd = null;
 {
-  const gpos = new THREE.Vector3(40, 0, -138);
+  const gpos = new THREE.Vector3(181, 0, -52); // home-straight grandstand over the grid
   const stand = new THREE.Group(); stand.position.copy(gpos); scene.add(stand);
   const structMat = new THREE.MeshStandardMaterial({ color: 0x1a1e25, roughness: 0.65, metalness: 0.55 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x11141a, roughness: 0.85, metalness: 0.3, side: THREE.DoubleSide });
@@ -974,7 +1089,7 @@ function setGantry(k, green = false) {
   ];
   const postMat = new THREE.MeshStandardMaterial({ color: 0x1c2129, roughness: 0.7, metalness: 0.5 });
   boards.forEach(([title, sub, accent], i) => {
-    const x = i < 2 ? 60 - i * 120 : -40 + i * 60, z = i % 2 ? 34 : -34;
+    const [x, z] = [[150, 150], [420, 180], [350, 380], [180, 360]][i];
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 9, 8), postMat);
     post.position.set(x, 4.5, z); scene.add(post);
     const b = new THREE.Mesh(new THREE.PlaneGeometry(26, 8),
@@ -989,8 +1104,8 @@ function setGantry(k, green = false) {
   const pal = [0x7a4a22, 0x5a5f66, 0x3f6b4f, 0x74522a, 0x4a3f66].map((h) => new THREE.Color(h));
   for (let i = 0; i < COUNT; i++) {
     const inField = i < 22;
-    const x = inField ? (rnd() - 0.5) * 430 : 300 + rnd() * 60;
-    const z = inField ? (rnd() - 0.5) * 128 : (rnd() - 0.5) * 200;
+    const x = inField ? 270 + (rnd() - 0.5) * 340 : 700 + rnd() * 60;
+    const z = inField ? 260 + (rnd() - 0.5) * 190 : 260 + (rnd() - 0.5) * 200;
     q.setFromAxisAngle(up, rnd() * TAU);
     m4.compose(new THREE.Vector3(x, 0.7, z), q, new THREE.Vector3(1, 1, 1));
     inst.setMatrixAt(i, m4);
@@ -1013,8 +1128,8 @@ function buildTrapGate(def) {
   const sg = def.f * TRACK_LEN;
   const sm = sampleAt(sg);
   const grp = new THREE.Group();
-  grp.position.set(sm.pos.x, 0, sm.pos.z);
-  grp.lookAt(sm.pos.x + sm.tan.x * 10, 0, sm.pos.z + sm.tan.z * 10);
+  grp.position.set(sm.pos.x, sm.pos.y, sm.pos.z);
+  grp.lookAt(sm.pos.x + sm.tan.x * 10, sm.pos.y, sm.pos.z + sm.tan.z * 10);
   const R = 16, CY = 10.5;
   const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 1.6, 12, 40), gunmetal);
   ring.position.y = CY; grp.add(ring);
@@ -1025,8 +1140,9 @@ function buildTrapGate(def) {
     seg.rotation.z = a + Math.PI / 2; grp.add(seg);
   }
   for (const sd of [1, -1]) { // side machinery + legs + hydraulics
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(3.4, 13, 4.6), darkSteel);
-    leg.position.set(sd * (R + 1.2), 4.5, 0); grp.add(leg);
+    const legH = 13 + sm.pos.y + 1; // legs reach the ground from elevated road
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(3.4, legH, 4.6), darkSteel);
+    leg.position.set(sd * (R + 1.2), 4.5 - (sm.pos.y + 1) / 2, 0); grp.add(leg);
     const housing = new THREE.Mesh(new THREE.BoxGeometry(4.6, 6.5, 5.4), rustMat);
     housing.position.set(sd * (R + 1.2), 12.5, 0); grp.add(housing);
     const ram = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 9, 8), bladeMat);
@@ -1107,7 +1223,7 @@ const gates = GATES.map(buildTrapGate);
       g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
       g.setIndex(idx); g.computeVertexNormals();
       scene.add(new THREE.Mesh(g, steelMat));
-      const bar = new THREE.Mesh(new THREE.BoxGeometry((ju1 - ju0) * armHalfW(j.route ?? 0), 0.16, 0.45), edgeMat);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry((ju1 - ju0) * armHalfW(j.route ?? 0, se), 0.16, 0.45), edgeMat);
       const bp = roadPoint(se, (ju0 + ju1) / 2, new THREE.Vector3(), j.route ?? 0);
       bar.position.set(bp.x, bp.y + 0.08, bp.z);
       bar.rotation.y = sampleRoute(j.route ?? 0, se).head;
@@ -1122,15 +1238,15 @@ const gates = GATES.map(buildTrapGate);
   }
 }
 
-{ // Y-junction furniture: crash gores + overhead direction gantry (SPEEDWAY left, SKYLINE right)
+{ // fork furniture: crash gores + overhead direction gantries per split
   const goreMat = new THREE.MeshStandardMaterial({ color: 0xc77f12, roughness: 0.7, metalness: 0.25 });
   const barMat = new THREE.MeshStandardMaterial({ color: 0xb3281e, roughness: 0.7, metalness: 0.2 });
   const ambMat = new THREE.MeshBasicMaterial({ color: 0xffb020 });
-  const gore = (sTip, sBase, hw) => { // low triangular crash nose
+  const gore = (sTip, sBase, hw, latC = 0) => { // low triangular crash nose
     const smT = sampleAt(sTip), smB = sampleAt(sBase);
-    const T = smT.pos.clone(); T.y = bowlY(0, sTip) + 0.02;
-    const BL = smB.pos.clone().addScaledVector(smB.left, hw); BL.y = bowlY(hw / HALF_W, sBase) + 0.02;
-    const BR = smB.pos.clone().addScaledVector(smB.left, -hw); BR.y = bowlY(hw / HALF_W, sBase) + 0.02;
+    const T = smT.pos.clone().addScaledVector(smT.left, latC); T.y = smT.pos.y + bowlY(latC / HALF_W, sTip) + 0.02;
+    const BL = smB.pos.clone().addScaledVector(smB.left, latC + hw); BL.y = smB.pos.y + bowlY((latC + hw) / HALF_W, sBase) + 0.02;
+    const BR = smB.pos.clone().addScaledVector(smB.left, latC - hw); BR.y = smB.pos.y + bowlY((latC - hw) / HALF_W, sBase) + 0.02;
     const H = 0.95, P = (v, y) => [v.x, v.y + y, v.z];
     const pos = [
       ...P(T, H), ...P(BL, H), ...P(BR, H),
@@ -1142,8 +1258,8 @@ const gates = GATES.map(buildTrapGate);
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
     scene.add(new THREE.Mesh(g, goreMat));
-    for (const bu of [0.35, -0.35]) { // crash barrels flanking the nose
-      const bp = roadPoint(sBase, bu);
+    for (const bu of [latC / HALF_W + 0.34, latC / HALF_W - 0.34]) { // crash barrels flanking the nose
+      const bp = roadPoint(sBase, clamp(bu, -1, 1));
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.0, 12), barMat);
       bar.position.set(bp.x, bp.y + 0.5, bp.z);
       scene.add(bar);
@@ -1152,10 +1268,15 @@ const gates = GATES.map(buildTrapGate);
       scene.add(lamp);
     }
   };
-  gore(FORK.s0 + 7, FORK.s0 - 1, 3.2); // fork nose: tip downstream, splitting traffic
-  gore(FORK.s1 - 7, FORK.s1 + 1, 2.6); // rejoin nose: tip upstream, merging traffic
-  { // overhead direction sign
-    const gs = FORK.s0 - 12, sm = sampleAt(gs);
+  for (const FZ of FORKS) { // split + rejoin noses; the 3-way gets a nose between each pair of mouths
+    const gaps = FZ.arms.length === 2 ? [0] : [4.25, -4.25];
+    for (const latC of gaps) {
+      gore(FZ.s0 + 7, FZ.s0 - 1, 2.2, latC); // split nose: tip downstream
+      gore(FZ.s1 - 7, FZ.s1 + 1, 2.0, latC); // rejoin nose: tip upstream
+    }
+  }
+  for (const FZ of FORKS) { // overhead direction sign
+    const gs = FZ.s0 - 12, sm = sampleAt(gs);
     const post = new THREE.BoxGeometry(0.45, 6.4, 0.45);
     for (const sd of [1, -1]) {
       const p = roadPoint(gs, sd * 1.18);
@@ -1171,10 +1292,16 @@ const gates = GATES.map(buildTrapGate);
     const signTex = canvasTex(1024, 160, (ctx, W, H) => {
       ctx.fillStyle = '#0a0e14'; ctx.fillRect(0, 0, W, H);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = 'bold 84px sans-serif';
-      ctx.fillStyle = '#51e0ff'; ctx.fillText('\u25C0 SPEEDWAY', W * 0.25, H / 2 + 4);
-      ctx.fillStyle = '#ffa030'; ctx.fillText('SKYLINE \u25B6', W * 0.75, H / 2 + 4);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(W / 2 - 3, 14, 6, H - 28);
+      ctx.font = 'bold ' + (FZ.arms.length === 2 ? 84 : 62) + 'px sans-serif';
+      FZ.arms.forEach((arm, k) => {
+        ctx.fillStyle = '#' + arm.color.toString(16).padStart(6, '0');
+        const tag = FZ.arms.length === 2
+          ? (k === 0 ? '\u25C0 ' + arm.name : arm.name + ' \u25B6')
+          : (k === 0 ? '\u25C0 ' + arm.name : k === 2 ? arm.name + ' \u25B6' : '\u25C6 ' + arm.name);
+        ctx.fillText(tag, W * (k + 0.5) / FZ.arms.length, H / 2 + 4);
+      });
+      ctx.fillStyle = '#ffffff';
+      for (let k = 1; k < FZ.arms.length; k++) ctx.fillRect(W * k / FZ.arms.length - 3, 14, 6, H - 28);
     });
     const signMat = new THREE.MeshBasicMaterial({ map: signTex });
     for (const flip of [0, Math.PI]) {
@@ -1265,16 +1392,17 @@ const ais = AI_DEFS.map((d) => ({
 }));
 function setTransform(s, u, rig, yawExtra, leanExtra, t, rollDist, steer, lift, pitch, route = 0) {
   const sm = sampleRoute(route, s);
-  tmpV3.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route));
-  let y = bowlY(u, s, route) + 0.03 + (lift || 0);
-  if (route !== 0) { // blend the dish pop across fork/rejoin (stem dish is wider/flatter)
+  tmpV3.copy(sm.pos).addScaledVector(sm.left, u * armHalfW(route, s));
+  let y = sm.pos.y + bowlY(u, s, route) + 0.03 + (lift || 0);
+  const zBlend = route !== 0 ? zoneAt(s, 0.5) : null;
+  if (zBlend && route <= zBlend.arms.length) { // blend the dish pop across fork/rejoin
+    const arm = zBlend.arms[route - 1], BW = 10;
     let k = 0;
-    if (s < FORK.s0 + 6) k = 1 - clamp((s - FORK.s0) / 6, 0, 1);
-    else if (s > FORK.s1 - 6) k = clamp((s - (FORK.s1 - 6)) / 6, 0, 1);
+    if (s < zBlend.s0 + BW) k = 1 - clamp((s - zBlend.s0) / BW, 0, 1);
+    else if (s > zBlend.s1 - BW) k = clamp((s - (zBlend.s1 - BW)) / BW, 0, 1);
     if (k > 0) {
-      const side = route === 1 ? 1 : -1;
-      const uStem = clamp((u * ARM_W + side * ARM_OFF * HALF_W) / HALF_W, -1, 1);
-      y = lerp(y, bowlY(uStem, s, 0) + 0.03 + (lift || 0), k * k * (3 - 2 * k));
+      const uStem = clamp((u * armHalfW(route, s) + arm.off) / HALF_W, -1, 1);
+      y = lerp(y, sm.pos.y + bowlY(uStem, s, 0) + 0.03 + (lift || 0), k * k * (3 - 2 * k));
     }
   }
   rig.group.position.set(tmpV3.x, y, tmpV3.z);
@@ -1397,7 +1525,7 @@ for (let k = 0; k < 6; k++) {
   const out = new THREE.Vector3().subVectors(sm.pos, loopCenter); out.y = 0; out.normalize();
   const inBowl = bankAt(s) > 4; // spiral wall would block a low cam: go over it
   bcams.push(new THREE.Vector3().copy(sm.pos).addScaledVector(out, inBowl ? 44 : 30)
-    .add(new THREE.Vector3(0, inBowl ? 40 : 17, 0)));
+    .add(new THREE.Vector3(0, (inBowl ? 40 : 17) + sm.pos.y, 0)));
 }
 const camFwd = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0), camTmp = new THREE.Vector3();
 function updateCamera(dt) {
@@ -1596,7 +1724,7 @@ function updatePlayer(dt) {
         P.vy *= Math.exp(-h * 0.35);
         P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.4 + av * 0.03)) * h;
         P.hErr = clamp(P.hErr + (P.yawRate - v * sm.curv) * h, -1.05, 1.05);
-        P.u += ((v * sh + P.vy * ch) / armHalfW(P.route)) * h; // velocity follows the nose
+        P.u += ((v * sh + P.vy * ch) / armHalfW(P.route, P.s)) * h; // velocity follows the nose
         P.s += (v * ch - P.vy * sh) * h;
         const fmin = Math.min(1, Math.abs(flat));
         const longScale = Math.sqrt(Math.max(0.12, 1 - fmin * fmin)); // friction circle
@@ -1606,7 +1734,7 @@ function updatePlayer(dt) {
         if (input.back && v > 1) Fx -= Math.min(24000, mu * m * normal * 0.98) * longScale; // ABS-capped brakes
         if (input.back && v <= 1) Fx -= 9000 * longScale; // reverse launch
         if (!input.fwd && !input.back) Fx -= Math.sign(v || 1) * 900; // engine braking
-        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s, P.u, P.route) * h; // + lip gradient
+        P.v += (Fx / m) * h - 9.81 * (lipSlope(P.s, P.u, P.route) + roadGrade(P.s, P.route)) * h; // + lip/terrain gradient
         if (!input.fwd && !input.back && Math.abs(P.v) < 0.6) P.v = 0;
         P.v = clamp(P.v, -12, TOP_SPEED);
         P.aX += ((P.v - v) / h - P.aX) * (1 - Math.exp(-h * 6));
@@ -1640,21 +1768,26 @@ function updatePlayer(dt) {
   let lift = 0; // jumps + airtime
   if (!locked) {
     const prevS = P.s - P.v * dt;
-    if (prevS < FORK.s0 && P.s >= FORK.s0 && P.route === 0) { // Y-fork: your side picks your arm
-      const side = P.u >= 0 ? 1 : -1;
-      P.route = side === 1 ? 1 : 2;
-      P.u = clamp((P.u * HALF_W - side * ARM_OFF * HALF_W) / ARM_W, -0.96, 0.96); // position-continuous reframe
-      banner(side === 1 ? 'SPEEDWAY \u25C0 LEFT ARM' : 'SKYLINE RIGHT ARM \u25B6', true);
-    } else if (prevS < FORK.s1 && P.s >= FORK.s1 && P.route !== 0) { // rejoin
-      const side = P.route === 1 ? 1 : -1;
-      P.u = clamp((P.u * ARM_W + side * ARM_OFF * HALF_W) / HALF_W, -0.96, 0.96);
-      P.route = 0;
+    for (let fi = 0; fi < FORKS.length; fi++) { // split: your line picks your arm; rejoin: back to stem
+      const FZ = FORKS[fi];
+      if (prevS < FZ.s0 && P.s >= FZ.s0 && P.route === 0) {
+        const ai = FZ.arms.length === 2 ? (P.u >= 0 ? 0 : 1) : (P.u > 0.33 ? 0 : P.u < -0.33 ? 2 : 1);
+        const arm = FZ.arms[ai];
+        P.route = ai + 1;
+        P.u = clamp((P.u * HALF_W - arm.off) / armHalfW(P.route, P.s), -0.96, 0.96); // position-continuous reframe
+        banner(arm.name + ' ' + (ai === 0 ? '\u25C0' : ai === FZ.arms.length - 1 ? '\u25B6' : '\u25C6') + ' ' + arm.sub + ' ARM', true);
+      } else if (prevS < FZ.s1 && P.s >= FZ.s1 && P.route !== 0) {
+        const arm = FZ.arms[P.route - 1];
+        if (arm) P.u = clamp((P.u * armHalfW(P.route, prevS) + arm.off) / HALF_W, -0.96, 0.96);
+        P.route = 0;
+      }
     }
     if (!P.airborne) {
       lift = roadLift(P.s, P.u, P.route);
       for (const j of JUMPS) { // full-width angled lip: launch over the cut
-        if (prevS < j.lip && P.s >= j.lip && P.v > 10 && (j.route ?? 0) === P.route && inLane(j, P.u, 0.02)) {
+        if (prevS < j.lip && P.s >= j.lip && P.v > 10 && jumpApplies(j, j.lip, P.route) && inLane(j, P.u, 0.02)) {
           P.airborne = true; P.airY = j.h;
+          P.airRef = roadBaseY(j.lip, P.route);
           P.airV = Math.min(P.v * (2 * j.h / j.run) * 0.9, 8.5);
           Audio8.whoosh();
         }
@@ -1662,16 +1795,17 @@ function updatePlayer(dt) {
     } else {
       P.airV -= 16 * dt;
       P.airY += P.airV * dt;
-      lift = Math.max(0, P.airY);
+      const relY = P.airY - (roadBaseY(P.s, P.route) - (P.airRef ?? roadBaseY(P.s, P.route)));
+      lift = Math.max(0, relY);
       const jv = inGapVoid(P.s, P.u, 0.02, P.route);
-      if (jv && P.airY < -3) { // fell into the cut: back before the lip
+      if (jv && relY < -3) { // fell into the cut: back before the lip
         P.s = jv.lip - 35; P.u = 0; P.v = 12; P.vy = 0; P.yawRate = 0; P.hErr = 0;
         P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
         banner('INTO THE GAP · RESET', false); Audio8.thud(); shakeT = 1;
       }
       if (P.airborne) { // face-plant into the landing wall
         for (const j of JUMPS) {
-          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5 && (j.route ?? 0) === P.route && inLane(j, P.u, 0.02)) {
+          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && relY > 0.05 && relY < 1.5 && jumpApplies(j, j.lip + j.gap, P.route) && inLane(j, P.u, 0.02)) {
             P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
             P.v *= 0.55; P.vy = 0;
             spawnSparks(player.rig.group.position, 30, 0xff5030, 10, 6);
@@ -1679,7 +1813,7 @@ function updatePlayer(dt) {
           }
         }
       }
-      if (P.airborne && P.airY <= roadLift(P.s, P.u, P.route) && !inGapVoid(P.s, P.u, 0.02, P.route)) {
+      if (P.airborne && relY <= roadLift(P.s, P.u, P.route) && !inGapVoid(P.s, P.u, 0.02, P.route)) {
         P.airborne = false; P.airY = 0;
         if (P.airV < -3.5) {
           const hard = Math.min(1, (-P.airV - 3.5) / 6);
@@ -1708,7 +1842,7 @@ function updatePlayer(dt) {
     }
     if (Math.abs(d) > 30) g.whooshed = false;
   }
-  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s, P.u, P.route)) * 0.9 - P.aX * 0.0016;
+  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s, P.u, P.route) + roadGrade(P.s, P.route)) * 0.9 - P.aX * 0.0016;
   setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.03 - P.vy * 0.004 + P.aY * 0.0016, tNow, P.v * dt, P.steerNorm, lift, pitchP, P.route);
   const vAlong = P.v * Math.cos(P.hErr) - P.vy * Math.sin(P.hErr);
   if (vAlong < -2) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
@@ -1746,42 +1880,56 @@ function updateAI(dt, racing) {
     const d = wrapDist(player.s, ai.s);
     let target = ai.def.base * (1 + 0.05 * Math.sin(tNow * 0.5 + ai.def.ph));
     target += clamp(d * 0.06, -9, 9);
-    ai.v += clamp(target - ai.v, -20 * dt, 12 * dt);
+    { // corner slowdown: cap speed by the sharpest curvature on the braking horizon
+      let kMax = 0;
+      const hor = Math.max(20, ai.v * 1.6);
+      for (let ds = 0; ds <= hor; ds += 8) kMax = Math.max(kMax, Math.abs(sampleRoute(ai.route, ai.s + ds).curv));
+      target = Math.min(target, Math.sqrt(32 / Math.max(kMax, 1e-4)));
+    }
+    ai.v += clamp(target - ai.v, -26 * dt, 12 * dt);
     if (!racing) ai.v = Math.max(0, ai.v - 30 * dt);
     ai.prevS = ai.s; ai.s += ai.v * dt;
     if (ai.s >= TRACK_LEN) { ai.s -= TRACK_LEN; ai.lap++; }
     ai.prevU = ai.u;
     ai.u = 0.5 * Math.sin(tNow * 0.35 + ai.def.ph * 1.3);
-    const armSide = ((ai.lap + aiIdx) % 2 === 0) ? 1 : -1; // chosen Y arm this lap
-    if (ai.s > FORK.s0 - 40 && ai.s < FORK.s0) { // drift to the arm mouth before the gore
-      const k = (ai.s - (FORK.s0 - 40)) / 40;
-      ai.u = lerp(ai.u, armSide * 0.55, k * k * (3 - 2 * k));
-    }
-    if (ai.prevS < FORK.s0 && ai.s >= FORK.s0 && ai.route === 0) {
-      ai.route = armSide === 1 ? 1 : 2;
-      ai.u = (ai.u * HALF_W - armSide * ARM_OFF * HALF_W) / ARM_W; // lands on arm centre: continuous
-    } else if (ai.prevS < FORK.s1 && ai.s >= FORK.s1 && ai.route !== 0) {
-      ai.u = (ai.u * ARM_W + armSide * ARM_OFF * HALF_W) / HALF_W;
-      ai.route = 0;
+    for (let fi = 0; fi < FORKS.length; fi++) { // per-zone arm choice + mouth drift + reframes
+      const FZ = FORKS[fi];
+      const pick = (ai.lap + fi + aiIdx) % FZ.arms.length;
+      const arm = FZ.arms[pick];
+      if (ai.s > FZ.s0 - 40 && ai.s < FZ.s0) { // drift to the arm mouth before the gore
+        const k = (ai.s - (FZ.s0 - 40)) / 40;
+        ai.u = lerp(ai.u, arm.off / HALF_W, k * k * (3 - 2 * k));
+      }
+      if (ai.prevS < FZ.s0 && ai.s >= FZ.s0 && ai.route === 0) {
+        ai.route = pick + 1;
+        ai.u = clamp((ai.u * HALF_W - arm.off) / armHalfW(ai.route, ai.s), -0.96, 0.96);
+      } else if (ai.prevS < FZ.s1 && ai.s >= FZ.s1 && ai.route !== 0) {
+        const ra = FZ.arms[ai.route - 1];
+        if (ra) ai.u = clamp((ai.u * armHalfW(ai.route, ai.prevS) + ra.off) / HALF_W, -0.96, 0.96);
+        ai.route = 0;
+      }
     }
     ai.steerVis = Math.cos(tNow * 0.35 + ai.def.ph * 1.3) * 0.5;
-    const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * armHalfW(ai.route)) / Math.max(12, ai.v), -0.4, 0.4);
+    const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * armHalfW(ai.route, ai.s)) / Math.max(12, ai.v), -0.4, 0.4);
     let aiLift = 0, aiPitch = 0;
     if (!ai.airborne) {
       aiLift = roadLift(ai.s, ai.u, ai.route);
-      aiPitch = -Math.atan(lipSlope(ai.s, ai.u, ai.route)) * 0.9;
+      aiPitch = -Math.atan(lipSlope(ai.s, ai.u, ai.route) + roadGrade(ai.s, ai.route)) * 0.9;
       for (const j of JUMPS) {
-        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10 && (j.route ?? 0) === ai.route && inLane(j, ai.u, 0.02)) {
+        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10 && jumpApplies(j, j.lip, ai.route) && inLane(j, ai.u, 0.02)) {
           ai.airborne = true; ai.airY = j.h;
+          ai.airRef = roadBaseY(j.lip, ai.route);
           ai.airV = Math.min(ai.v * (2 * j.h / j.run) * 0.9, 8.5);
         }
       }
     } else {
-      ai.airV -= 16 * dt; ai.airY += ai.airV * dt; aiLift = Math.max(0, ai.airY);
+      ai.airV -= 16 * dt; ai.airY += ai.airV * dt;
+      const aiRel = ai.airY - (roadBaseY(ai.s, ai.route) - (ai.airRef ?? roadBaseY(ai.s, ai.route)));
+      aiLift = Math.max(0, aiRel);
       aiPitch = clamp(-ai.airV * 0.025, -0.22, 0.3);
       const jv = inGapVoid(ai.s, ai.u, 0.02, ai.route);
-      if (jv && ai.airY < -3) { ai.s = jv.lip + jv.gap + 2; ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
-      else if (!jv && ai.airY <= roadLift(ai.s, ai.u, ai.route)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+      if (jv && aiRel < -3) { ai.s = jv.lip + jv.gap + 2; ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+      else if (!jv && aiRel <= roadLift(ai.s, ai.u, ai.route)) { ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
     }
     setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.05, tNow, ai.v * dt, ai.steerVis, aiLift, aiPitch, ai.route);
   }
@@ -1805,7 +1953,14 @@ const mapB = (() => {
     x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x);
     z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z);
   }
-  return { x0, x1, z0, z1: Math.max(z1, 121) }; // room for the SPEEDWAY arm bulge
+  for (const FZ of FORKS) for (let ai = 0; ai < FZ.arms.length; ai++) {
+    for (let s = FZ.s0; s <= FZ.s1; s += 5) {
+      const p = sampleRoute(ai + 1, s).pos, w = armHalfW(ai + 1, s) + 4;
+      x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w);
+      z0 = Math.min(z0, p.z - w); z1 = Math.max(z1, p.z + w);
+    }
+  }
+  return { x0, x1, z0, z1 };
 })();
 function mapXY(x, z, W, H, pad) {
   const sx = (W - 2 * pad) / (mapB.x1 - mapB.x0), sz = (H - 2 * pad) / (mapB.z1 - mapB.z0);
@@ -1841,12 +1996,13 @@ function drawMap() {
     const [jx, jy] = mapXY(p.x, p.z, W, H, 12);
     mapCtx.fillStyle = '#ffc400'; mapCtx.fillRect(jx - 3, jy - 3, 6, 6);
   }
-  for (const [route, col] of [[1, '#51e0ff'], [2, '#ffa030']]) { // Y arms on the map
-    mapCtx.strokeStyle = col; mapCtx.lineWidth = 4; mapCtx.beginPath();
-    for (let ds = FORK.s0; ds <= FORK.s1; ds += 8) {
-      const p = sampleRoute(route, ds).pos;
+  for (const FZ of FORKS) for (let ai = 0; ai < FZ.arms.length; ai++) { // fork arms on the map
+    mapCtx.strokeStyle = '#' + FZ.arms[ai].color.toString(16).padStart(6, '0');
+    mapCtx.lineWidth = 3; mapCtx.beginPath();
+    for (let ds = FZ.s0; ds <= FZ.s1; ds += 6) {
+      const p = sampleRoute(ai + 1, ds).pos;
       const [dx, dy] = mapXY(p.x, p.z, W, H, 12);
-      if (ds === FORK.s0) mapCtx.moveTo(dx, dy); else mapCtx.lineTo(dx, dy);
+      if (ds === FZ.s0) mapCtx.moveTo(dx, dy); else mapCtx.lineTo(dx, dy);
     }
     mapCtx.stroke();
   }
