@@ -439,7 +439,7 @@ const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.94, 
   g.setIndex(idx); g.computeVertexNormals();
   scene.add(new THREE.Mesh(g, roadMat));
 }
-function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat) {
+function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat, skipWall = false) {
   const SEG = 360, pos = [], uvA = [], idx = [];
   for (let i = 0; i <= SEG; i++) {
     const s = (i / SEG) * TRACK_LEN;
@@ -452,6 +452,7 @@ function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat) {
   for (let i = 0; i < SEG; i++) {
     const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
     if (faceInVoid(fs0, fs1, true)) continue; // rails end at the cut
+    if (skipWall && bankAt((fs0 + fs1) / 2) > 4) continue; // spiral wall stands here
     const a = i * 2;
     idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
   }
@@ -472,8 +473,8 @@ const fenceMat = new THREE.MeshStandardMaterial({
   map: fenceTex, transparent: true, roughness: 0.5, metalness: 0.7,
   side: THREE.DoubleSide, depthWrite: false, color: 0x9aa4b0,
 });
-sideRibbon(1, 1.45, 4.6, 1.1, 2.6, fenceMat);
-sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
+sideRibbon(1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
+sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
 { // fence posts
   const step = 9, count = Math.floor(TRACK_LEN / step);
   const geo = new THREE.CylinderGeometry(0.07, 0.07, 3.4, 6);
@@ -483,7 +484,7 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
   let k = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
-    if (inGapVoid(s)) {
+    if (inGapVoid(s) || bankAt(s) > 4) {
       for (let q = 0; q < 2; q++) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); }
       continue;
     }
@@ -580,6 +581,81 @@ let edgeGlowMat = null;
       if (bankAt(s) > 4 && i < SEG) run.push(s);
       else flush();
     }
+  }
+}
+function spiralWall(side, pts) {
+  // Towering curled turn wall (ref stills): Bezier profile in [lateral, heightAboveEdge].
+  const ROWS = 8;
+  const bez = (t) => {
+    const a = (1 - t) * (1 - t) * (1 - t), b = 3 * (1 - t) * (1 - t) * t,
+      c = 3 * (1 - t) * t * t, d = t * t * t;
+    return [a * pts[0][0] + b * pts[1][0] + c * pts[2][0] + d * pts[3][0],
+      a * pts[0][1] + b * pts[1][1] + c * pts[2][1] + d * pts[3][1]];
+  };
+  const steel = new THREE.MeshStandardMaterial({ color: 0x39404c, roughness: 0.5, metalness: 0.7, side: THREE.DoubleSide });
+  const chev = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.8, metalness: 0.15, side: THREE.DoubleSide });
+  let run = [];
+  const flush = () => {
+    if (run.length < 4) { run = []; return; }
+    const build = (r0, r1, mat, withUV) => {
+      const pos = [], uvA = [], idx = [];
+      run.forEach((s) => {
+        const sm = sampleAt(s);
+        const edgeY = bowlY(1, s);
+        const hs = clamp((bankAt(s) - 4) / 6, 0.12, 1); // walls grow with the banking
+        for (let r = r0; r <= r1; r++) {
+          const [lat, hh] = bez(r / ROWS);
+          pos.push(sm.pos.x + sm.left.x * side * lat, edgeY + hh * hs, sm.pos.z + sm.left.z * side * lat);
+          if (withUV) uvA.push((r - r0) / (r1 - r0), s / 6);
+        }
+      });
+      const W = r1 - r0 + 1;
+      for (let i = 0; i < run.length - 1; i++) for (let r = 0; r < W - 1; r++) {
+        const a = i * W + r, b = a + W;
+        idx.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      if (withUV) g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      scene.add(new THREE.Mesh(g, mat));
+    };
+    build(0, ROWS - 2, steel, false);
+    build(ROWS - 2, ROWS, chev, true); // chevron ring crowns the wall, like the stills
+    run = [];
+  };
+  const SEG = 800;
+  for (let i = 0; i <= SEG; i++) {
+    const s = (i / SEG) * TRACK_LEN;
+    if (bankAt(s) > 4 && i < SEG) run.push(s);
+    else flush();
+  }
+}
+spiralWall(1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);   // outer: towering curl over the track
+spiralWall(-1, [[13.5, 0], [15, 2.5], [16, 4.5], [16.5, 6]]); // inner: low steel rim
+{ // turn floodlight pylons (ref stills): emissive heads + volumetric-look cones
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1c2026, roughness: 0.6, metalness: 0.7 });
+  const headMat = new THREE.MeshBasicMaterial({ color: 0xe8f2ff });
+  const coneMat = new THREE.MeshBasicMaterial({ color: 0x9fc4ff, transparent: true, opacity: 0.07,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+  const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
+  for (const ps of [250, 590, 890, 1230]) {
+    const sm = sampleAt(ps);
+    const out = new THREE.Vector3().subVectors(sm.pos, loopCenter); out.y = 0; out.normalize();
+    const bx = sm.pos.x + out.x * 44, bz = sm.pos.z + out.z * 44;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 44, 8), poleMat);
+    pole.position.set(bx, 21, bz); scene.add(pole);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(7, 1.2, 1.2), headMat);
+    head.position.set(bx, 43, bz);
+    head.lookAt(sm.pos.x, 2, sm.pos.z); scene.add(head);
+    const tgt = new THREE.Vector3(sm.pos.x, 0, sm.pos.z);
+    const hp = new THREE.Vector3(bx, 43, bz);
+    const dist = hp.distanceTo(tgt);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(13, dist, 20, 1, true), coneMat);
+    cone.position.copy(hp).add(tgt).multiplyScalar(0.5);
+    dir.copy(hp).sub(tgt).normalize();
+    cone.quaternion.setFromUnitVectors(up, dir);
+    cone.renderOrder = 4; scene.add(cone);
   }
 }
 function ribbonPatch(s0, s1, u0, u1, mat, yOff = 0.06) {
@@ -1175,7 +1251,9 @@ for (let k = 0; k < 6; k++) {
   const s = (k / 6) * TRACK_LEN;
   const sm = sampleAt(s);
   const out = new THREE.Vector3().subVectors(sm.pos, loopCenter); out.y = 0; out.normalize();
-  bcams.push(new THREE.Vector3().copy(sm.pos).addScaledVector(out, 30).add(new THREE.Vector3(0, 17, 0)));
+  const inBowl = bankAt(s) > 4; // spiral wall would block a low cam: go over it
+  bcams.push(new THREE.Vector3().copy(sm.pos).addScaledVector(out, inBowl ? 44 : 30)
+    .add(new THREE.Vector3(0, inBowl ? 40 : 17, 0)));
 }
 const camFwd = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0), camTmp = new THREE.Vector3();
 function updateCamera(dt) {
