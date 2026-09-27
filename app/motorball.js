@@ -23,20 +23,17 @@ try {
 }
 
 /* ------------------------------------------------------------------ config */
-const CONTROL = [
-  [-81.0, -94.5], [81.0, -94.5], [202.5, -94.5], [263.3, -40.5], [263.3, 40.5],
-  [202.5, 94.5], [81.0, 94.5], [-13.5, 94.5], [-81.0, 74.3], [-121.5, 94.5],
-  [-202.5, 94.5], [-263.3, 40.5], [-263.3, -40.5], [-202.5, -94.5],
-].map(([x, z]) => new THREE.Vector3(x, 0, z));
+/* Centreline: exact analytic segments (dead-straight straights + circular R94.5
+   bowls). No spline wobble, no transition pinches. See track-sampling block. */
 
 const HALF_W = 13;          // road half width (m) — 26 m wide bowl
 const WALL_H = 7.5;         // reference wall height (banking is per-sample now: BANK_MIN..BANK_MAX)
-const WALL_P = 2.6;         // bowl profile exponent (parabolic)
+const WALL_P = 2.2;         // bowl dish exponent (visual dish + physics curve)
 const RACE_LAPS = 3;
 const TOP_SPEED = 76;       // m/s (~274 km/h)
 const GATES = [
-  { name: 'ALPHA', f: 0.44, speed: 0.85, phase: 0.0 },
-  { name: 'BETA', f: 0.96, speed: -1.05, phase: 1.7 },
+  { name: 'ALPHA', f: 0.5773, speed: 0.85, phase: 0.0 },
+  { name: 'BETA', f: 0.9634, speed: -1.05, phase: 1.7 },
 ];
 const AI_DEFS = [
   { name: 'VOLT-9', suit: 0xb33c12, visor: 0xff7a1a, base: 58, s0: -38, ph: 0.0 },
@@ -276,26 +273,60 @@ const bannerTex = canvasTex(1024, 128, (ctx, W, H) => {
 });
 
 /* ---------------------------------------------------------- track sampling */
-const curve = new THREE.CatmullRomCurve3(CONTROL, true, 'centripetal');
-const TRACK_LEN = curve.getLength();
 const NS = 800;
-const sPts = curve.getSpacedPoints(NS); // NS+1 pts, last == first
-const sTan = [], sLeft = [], sHead = [];
-{
+const sPts = [], sTan = [], sLeft = [], sHead = [];
+const TRACK_LEN = (() => {
+  const R = 94.5, HX = 172, HZ = 94.5, S0X = -100; // bowl R, straight half-len, straight offset, s=0 x
+  const segs = [
+    { t: 'l', x0: S0X, z0: -HZ, x1: HX, z1: -HZ },                 // south straight A
+    { t: 'a', cx: HX, cz: 0, r: R, a0: -Math.PI / 2, a1: Math.PI / 2 }, // east bowl
+    { t: 'l', x0: HX, z0: HZ, x1: -HX, z1: HZ },                   // north straight
+    { t: 'a', cx: -HX, cz: 0, r: R, a0: Math.PI / 2, a1: Math.PI * 1.5 }, // west bowl
+    { t: 'l', x0: -HX, z0: -HZ, x1: S0X, z1: -HZ },                // south straight B
+  ];
+  const lens = segs.map((g) => g.t === 'l'
+    ? Math.hypot(g.x1 - g.x0, g.z1 - g.z0)
+    : Math.abs(g.a1 - g.a0) * g.r);
+  const total = lens.reduce((a, b) => a + b, 0);
+  const at = (sv) => {
+    let d = ((sv % total) + total) % total;
+    for (let i = 0; i < segs.length; i++) {
+      if (d <= lens[i] || i === segs.length - 1) {
+        const g = segs[i], f = Math.min(1, Math.max(0, d / lens[i]));
+        if (g.t === 'l') {
+          const dx = g.x1 - g.x0, dz = g.z1 - g.z0, ll = Math.hypot(dx, dz);
+          return [g.x0 + dx * f, g.z0 + dz * f, dx / ll, dz / ll];
+        }
+        const a = g.a0 + (g.a1 - g.a0) * f;
+        return [g.cx + g.r * Math.cos(a), g.cz + g.r * Math.sin(a), -Math.sin(a), Math.cos(a)];
+      }
+      d -= lens[i];
+    }
+  };
+  let prevH = null;
   for (let i = 0; i < NS; i++) {
-    const a = sPts[i], b = sPts[(i + 1) % NS];
-    const t = new THREE.Vector3().subVectors(b, a); t.y = 0; t.normalize();
+    const [x, z, tx, tz] = at((i / NS) * total);
+    sPts.push(new THREE.Vector3(x, 0, z));
+    const t = new THREE.Vector3(tx, 0, tz);
     sTan.push(t);
     sLeft.push(new THREE.Vector3(t.z, 0, -t.x));
+    const h = Math.atan2(tx, tz);
+    if (prevH === null) prevH = h;
+    else prevH += wrapAngle(h - prevH);
+    sHead.push(prevH);
   }
-  let prev = Math.atan2(sTan[0].x, sTan[0].z);
-  sHead.push(prev);
-  for (let i = 1; i < NS; i++) {
-    const h = Math.atan2(sTan[i].x, sTan[i].z);
-    prev += wrapAngle(h - prev);
-    sHead.push(prev);
+  sPts.push(sPts[0].clone()); // NS+1 convention (last == first)
+  return total;
+})();
+const sHeadS = (() => { // boxcar-smoothed headings: eases the kappa step at joints
+  const W = 15, out = new Float64Array(NS);
+  for (let i = 0; i < NS; i++) {
+    let a = 0; // deltas relative to centre: seamless across the start/finish wrap
+    for (let k = -W; k <= W; k++) a += wrapAngle(sHead[(i + k + NS * 2) % NS] - sHead[i]);
+    out[i] = sHead[i] + a / (2 * W + 1);
   }
-}
+  return out;
+})();
 const DS = TRACK_LEN / NS;
 /* per-sample banking: straights stay almost flat, turns get huge walls */
 const BANK_MIN = 0.7, BANK_MAX = 10.0;
@@ -311,7 +342,7 @@ const bankH = new Float32Array(NS);
     let a = 0;
     for (let k = -W; k <= W; k++) a += kap[(i + k + NS * 2) % NS];
     a /= (2 * W + 1);
-    const t = clamp((a - 0.0035) / (0.011 - 0.0035), 0, 1);
+    const t = clamp((a - 0.003) / (0.007 - 0.003), 0, 1);
     bankH[i] = BANK_MIN + (BANK_MAX - BANK_MIN) * (t * t * (3 - 2 * t));
   }
 }
@@ -320,7 +351,7 @@ function bankAt(s) {
   return lerp(bankH[i0], bankH[i1], fr);
 }
 const bowlY = (u, s) => bankAt(s) * Math.pow(Math.abs(u), WALL_P);
-const bowlSlope = (u, s) => (bankAt(s) * WALL_P / HALF_W) * Math.pow(Math.abs(u), WALL_P - 1) * Math.sign(u || 1);
+const bowlSlope = (u, s) => (bankAt(s) * 3.4 / HALF_W) * Math.pow(Math.abs(u), 1.2) * Math.sign(u || 1); // 1.55x over the visual gradient: cars ride the high wall
 const wrapS = (s) => ((s % TRACK_LEN) + TRACK_LEN) % TRACK_LEN;
 const wrapDist = (a, b) => ((a - b + TRACK_LEN * 1.5) % TRACK_LEN) - TRACK_LEN * 0.5;
 const _sp = { pos: new THREE.Vector3(), tan: new THREE.Vector3(), left: new THREE.Vector3(), head: 0, curv: 0 };
@@ -331,8 +362,8 @@ function sampleAt(s) {
   _sp.tan.lerpVectors(sTan[i0], sTan[i1], fr).normalize();
   _sp.left.lerpVectors(sLeft[i0], sLeft[i1], fr).normalize();
   _sp.head = lerp(sHead[i0], sHead[i0] + wrapAngle(sHead[i1] - sHead[i0]), fr);
-  const ip = (i0 + NS - 1) % NS, in_ = (i0 + 2) % NS;
-  _sp.curv = wrapAngle(sHead[in_] - sHead[ip]) / (3 * DS);
+  const ip = (i0 + NS - 6) % NS, in_ = (i0 + 6) % NS;
+  _sp.curv = wrapAngle(sHeadS[in_] - sHeadS[ip]) / (12 * DS); // wrap strips the loop winding at the seam
   return _sp;
 }
 function roadPoint(s, u, out = new THREE.Vector3()) {
@@ -462,6 +493,42 @@ let edgeGlowMat = null;
     g.setIndex(idx); g.computeVertexNormals();
     const m = new THREE.Mesh(g, edgeGlowMat);
     m.renderOrder = 3; scene.add(m);
+  }
+}
+{ // hazard-striped shoulders painted on the banking in the turns (GIF walls)
+  const stripeMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.85, metalness: 0.05,
+    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  for (const sd of [1, -1]) {
+    const SEG = 800;
+    let run = [];
+    const flush = () => {
+      if (run.length < 4) { run = []; return; }
+      const pos = [], uvA = [], idx = [];
+      run.forEach((s) => {
+        for (let j = 0; j <= 3; j++) {
+          const u = sd * lerp(0.86, 1.0, j / 3);
+          const p = roadPoint(s, u);
+          pos.push(p.x, p.y + 0.045, p.z);
+          uvA.push(j / 3, s / 6);
+        }
+      });
+      for (let i = 0; i < run.length - 1; i++) for (let j = 0; j < 3; j++) {
+        const a = i * 4 + j, b = a + 4;
+        idx.push(a, b, a + 1, b, b + 1, a + 1);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, stripeMat);
+      m.renderOrder = 2; scene.add(m);
+      run = [];
+    };
+    for (let i = 0; i <= SEG; i++) {
+      const s = (i / SEG) * TRACK_LEN;
+      if (bankAt(s) > 4 && i < SEG) run.push(s);
+      else flush();
+    }
   }
 }
 function ribbonPatch(s0, s1, u0, u1, mat, yOff = 0.06) {
@@ -821,11 +888,12 @@ const gates = GATES.map(buildTrapGate);
 
 /* --------------------------------------------------------------- ramps */
 const RAMPS = [
-  { s0: 700, len: 13, h: 1.7, u0: 0.05, u1: 0.65 },   // back straight, right lane
-  { s0: 120, len: 13, h: 1.7, u0: -0.65, u1: -0.05 },  // main straight, left lane
+  { s0: 620, len: 13, h: 1.7, u0: 0.05, u1: 0.65 },   // back straight, right lane
+  { s0: 140, len: 13, h: 1.7, u0: -0.65, u1: -0.05 },  // main straight, left lane
 ];
 {
   const rampMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.8, metalness: 0.15, side: THREE.DoubleSide });
+  const rampTopMat = new THREE.MeshStandardMaterial({ map: gateStripTex, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
   for (const r of RAMPS) {
     const NSG = 10, NUG = 6, pos = [], uvA = [], idx = [];
     for (let i = 0; i <= NSG; i++) {
@@ -834,7 +902,7 @@ const RAMPS = [
         const u = lerp(r.u0, r.u1, j / NUG);
         const p = roadPoint(s, u);
         pos.push(p.x, p.y + 0.05 + r.h * t, p.z);
-        uvA.push(j / NUG, t * 4);
+        uvA.push(j / NUG, t * 2);
       }
     }
     for (let i = 0; i < NSG; i++) for (let j = 0; j < NUG; j++) {
@@ -845,7 +913,7 @@ const RAMPS = [
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
     g.setIndex(idx); g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, rampMat));
+    scene.add(new THREE.Mesh(g, rampTopMat));
     for (const uu of [r.u0, r.u1]) { // side skirts down to the road
       const sp2 = [], si2 = [];
       for (let i = 0; i <= NSG; i++) {
@@ -936,7 +1004,7 @@ function makeCar(paint, glass, accent) {
 }
 const player = {
   rig: makeCar(0x1f5eff, 0x0c0f14, 0x9fd0ff),
-  s: -15, u: 0, v: 0, vy: 0, yawRate: 0, steer: 0, steerNorm: 0,
+  s: -15, u: 0, v: 0, vy: 0, yawRate: 0, steer: 0, steerNorm: 0, hErr: 0,
   spin: 0, scraping: false, latG: 0,
   airY: 0, airV: 0, airborne: false,
 };
@@ -1081,17 +1149,20 @@ function updateCamera(dt) {
   let fov = 64;
   if (camMode === 'chase') {
     if (tNow - lastDragT > 2.5) { chaseYaw *= Math.exp(-dt * 1.5); chasePitch += (0.12 - chasePitch) * dt; }
-    const yaw = sm.head + Math.PI + chaseYaw;
+    const hC = clamp(player.hErr, -0.6, 0.6) * 0.85;
+    const yaw = sm.head + hC + Math.PI + chaseYaw;
     const dist = chaseDist + v * 0.045, h = 3.4 + v * 0.01 + chasePitch * 8;
     camTmp.set(pp.x + Math.sin(yaw) * dist, pp.y + h, pp.z + Math.cos(yaw) * dist);
     const k = camSnap ? 1 : 1 - Math.exp(-dt * 5.5);
     camPos.lerp(camTmp, k);
-    camFwd.set(pp.x - Math.sin(yaw) * 9, pp.y + 1.4, pp.z - Math.cos(yaw) * 9);
+    const lk = sm.head + hC;
+    camFwd.set(pp.x + Math.sin(lk) * 9, pp.y + 1.4, pp.z + Math.cos(lk) * 9);
     camLook.lerp(camFwd, camSnap ? 1 : 1 - Math.exp(-dt * 8));
     fov = Math.min(80, 62 + v * 0.14);
   } else if (camMode === 'visor') {
-    camPos.set(pp.x + sm.tan.x * 0.4, pp.y + 1.62, pp.z + sm.tan.z * 0.4);
-    camLook.set(pp.x + sm.tan.x * 30, pp.y + 1.1, pp.z + sm.tan.z * 30);
+    const nx = Math.sin(sm.head + player.hErr), nz = Math.cos(sm.head + player.hErr);
+    camPos.set(pp.x + nx * 0.2, pp.y + 1.15, pp.z + nz * 0.2);
+    camLook.set(pp.x + nx * 30, pp.y + 0.95, pp.z + nz * 30);
     fov = Math.min(82, 70 + v * 0.1);
   } else if (camMode === 'track') {
     const region = Math.floor(wrapS(player.s) / TRACK_LEN * 6) % 6;
@@ -1152,7 +1223,7 @@ function showCount(txt, go = false) {
 }
 function resetRace() {
   player.s = -15; player.u = 0; player.v = 0; player.vy = 0; player.yawRate = 0;
-  player.steer = 0; player.steerNorm = 0; player.spin = 0; player.latG = 0;
+  player.steer = 0; player.steerNorm = 0; player.spin = 0; player.latG = 0; player.hErr = 0;
   player.airY = 0; player.airV = 0; player.airborne = false;
   ais.forEach((ai) => { ai.s = ai.def.s0; ai.prevS = ai.s; ai.v = 0; ai.lap = 0; ai.u = 0; });
   laps = []; lapStart = 0; raceT = 0; finished = false; lastGate = -21;
@@ -1233,13 +1304,13 @@ function updatePlayer(dt) {
     let wrapped = false;
     for (let n = 0; n < steps; n++) {
       const v = P.v, av = Math.abs(v);
-      const dMax = lerp(0.62, 0.13, Math.min(1, av / 70));
+      const dMax = Math.min(0.6, 3.4 / Math.max(av, 10)); // steer authority ~ 1/v: full lock at speed will spin you, like a real car
       P.steer += (P.steerNorm * dMax - P.steer) * (1 - Math.exp(-h * 10));
       if (!P.airborne) {
         const sm = sampleAt(P.s);
-        const normal = 9.81 + 0.004 * v * v; // gravity + aero downforce
+        const normal = 9.81 + 0.005 * v * v; // gravity + aero downforce
         const grip = Math.min(1, av / 6); // no lateral force when parked
-        const mu = 1.4, m = 1200, A = 1.45, B = 1.45, IZ = 1800;
+        const mu = 1.7, m = 1200, A = 1.45, B = 1.45, IZ = 1800;
         const dir = v >= 0 ? 1 : -1;
         const aF = Math.atan2(P.vy + A * P.yawRate, av + 0.5) - P.steer * dir;
         const aR = Math.atan2(P.vy - B * P.yawRate, av + 0.5);
@@ -1247,10 +1318,14 @@ function updatePlayer(dt) {
         const Fyr = -mu * m * normal * 0.5 * grip * pacejka(aR);
         const flat = (Fyf + Fyr) / (mu * m * normal);
         P.latG += (Math.min(1.4, Math.abs(flat)) - P.latG) * (1 - Math.exp(-h * 8));
-        P.vy += ((Fyf + Fyr) / m - v * v * sm.curv - 9.81 * bowlSlope(P.u, P.s)) * h;
+        const aRoad = -v * v * sm.curv - 9.81 * bowlSlope(P.u, P.s);
+        const ch = Math.cos(P.hErr), sh = Math.sin(P.hErr);
+        P.vy += ((Fyf + Fyr) / m + aRoad * ch) * h;
         P.vy *= Math.exp(-h * 0.35);
-        P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.5 + av * 0.04)) * h;
-        P.u += (P.vy / HALF_W) * h;
+        P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.0 + av * 0.03)) * h;
+        P.hErr = clamp(P.hErr + (P.yawRate - v * sm.curv) * h, -1.05, 1.05);
+        P.u += ((v * sh + P.vy * ch) / HALF_W) * h; // velocity follows the nose
+        P.s += (v * ch - P.vy * sh) * h;
         const fmin = Math.min(1, Math.abs(flat));
         const longScale = Math.sqrt(Math.max(0.12, 1 - fmin * fmin)); // friction circle
         if (input.fwd) P.v += (30 - P.v * 0.28) * 1.6 * longScale * h;
@@ -1265,10 +1340,11 @@ function updatePlayer(dt) {
       } else {
         P.vy *= Math.exp(-h * 0.8);
         P.yawRate *= Math.exp(-h * 1.5);
+        P.hErr *= Math.exp(-h * 0.6);
         P.u += steerInput * 0.22 * h;
         P.v -= P.v * 0.02 * h;
+        P.s += P.v * Math.cos(P.hErr) * h;
       }
-      P.s += P.v * h;
       if (P.s >= TRACK_LEN) { P.s -= TRACK_LEN; wrapped = true; }
       else if (P.s < -TRACK_LEN * 0.5) P.s += TRACK_LEN;
     }
@@ -1279,6 +1355,7 @@ function updatePlayer(dt) {
     const sd = P.u > 0 ? 1 : -1;
     P.u = sd * 0.965;
     if (P.vy * sd > 0) P.vy *= -0.25;
+    P.hErr *= Math.exp(-dt * 4); // slide along the wall
     if (P.v > 8) {
       P.v -= P.v * 0.8 * dt;
       roadPoint(P.s, sd * 0.97, tmpV); tmpV.y += 0.4;
@@ -1335,10 +1412,9 @@ function updatePlayer(dt) {
     }
     if (Math.abs(d) > 30) g.whooshed = false;
   }
-  const slipVis = Math.atan2(P.vy, Math.abs(P.v) + 1.5);
-  const yawVis = clamp(P.steerNorm * 0.12 + P.yawRate * 0.3 - slipVis * 0.65, -0.8, 0.8) + P.spin;
-  setTransform(P.s, P.u, P.rig, yawVis, -P.steerNorm * 0.1 - P.vy * 0.004, tNow, P.v * dt, P.steerNorm, lift);
-  if (P.v < -1.5) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
+  setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.1 - P.vy * 0.004, tNow, P.v * dt, P.steerNorm, lift);
+  const vAlong = P.v * Math.cos(P.hErr) - P.vy * Math.sin(P.hErr);
+  if (vAlong < -2) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
   if (wrongWayT > 0.8 && !wrongShown) { wrongShown = true; banner('WRONG WAY', false); }
   $('speed').textContent = Math.round(Math.abs(P.v) * 3.6);
   $('motorfill').style.width = (Math.abs(P.v) / TOP_SPEED * 100).toFixed(1) + '%';
@@ -1376,9 +1452,11 @@ function updateAI(dt, racing) {
     if (!racing) ai.v = Math.max(0, ai.v - 30 * dt);
     ai.prevS = ai.s; ai.s += ai.v * dt;
     if (ai.s >= TRACK_LEN) { ai.s -= TRACK_LEN; ai.lap++; }
+    ai.prevU = ai.u;
     ai.u = 0.5 * Math.sin(tNow * 0.35 + ai.def.ph * 1.3);
     ai.steerVis = Math.cos(tNow * 0.35 + ai.def.ph * 1.3) * 0.5;
-    setTransform(ai.s, ai.u, ai.rig, ai.steerVis * 0.25, -ai.steerVis * 0.15, tNow, ai.v * dt, ai.steerVis, 0);
+    const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * HALF_W) / Math.max(12, ai.v), -0.4, 0.4);
+    setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.15, tNow, ai.v * dt, ai.steerVis, 0);
   }
 }
 function updateGatesVisual(t) {
@@ -1441,8 +1519,9 @@ function drawMap() {
   const [px, py] = mapXY(pp.x, pp.z, W, H, 12);
   const sm = sampleAt(player.s);
   mapCtx.strokeStyle = '#fff'; mapCtx.lineWidth = 2;
+  const ha = sm.head + player.hErr + Math.atan2(player.vy, Math.abs(player.v) + 1.5);
   mapCtx.beginPath(); mapCtx.moveTo(px, py);
-  mapCtx.lineTo(px + sm.tan.x * 10, py + sm.tan.z * 10); mapCtx.stroke();
+  mapCtx.lineTo(px + Math.sin(ha) * 10, py + Math.cos(ha) * 10); mapCtx.stroke();
   mapCtx.fillStyle = '#fff';
   mapCtx.beginPath(); mapCtx.arc(px, py, 3.4, 0, TAU); mapCtx.fill();
 }
