@@ -32,7 +32,7 @@ const WALL_P = 2.2;         // bowl dish exponent (visual dish + physics curve)
 const RACE_LAPS = 3;
 const TOP_SPEED = 76;       // m/s (~274 km/h)
 const GATES = [
-  { name: 'ALPHA', f: 0.5773, speed: 0.85, phase: 0.0 },
+  { name: 'ALPHA', f: 0.0468, speed: 0.85, phase: 0.0 },
   { name: 'BETA', f: 0.9634, speed: -1.05, phase: 1.7 },
 ];
 const AI_DEFS = [
@@ -374,28 +374,34 @@ function sampleAt(s) {
 /* ------------------------------------------------------ jump cuts: data */
 const JUMPS = [
   { lip: 140, run: 12, h: 2.0, gap: 26 },  // main straight: full-width angled cut
-  { lip: 620, run: 12, h: 2.0, gap: 26 },  // back straight
+  { lip: 720, run: 12, h: 2.0, gap: 26, u0: -1, u1: -0.2 }, // split right lane only: 40 m to settle after the fork, 90+ m to set up for the bowl after landing
 ];
-function roadLift(s) { // take-off ramp profile (quadratic: smooth entry, angled lip)
+function inLane(j, u, pad) { return u >= (j.u0 ?? -1) - pad && u <= (j.u1 ?? 1) + pad; }
+function roadLift(s, u = 0) { // take-off ramp profile (quadratic: smooth entry, angled lip)
   for (const j of JUMPS) {
+    if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return j.h * t * t;
   }
   return 0;
 }
-function lipSlope(s) { // dLift/ds: gradient resistance + chassis pitch
+function lipSlope(s, u = 0) { // dLift/ds: gradient resistance + chassis pitch
   for (const j of JUMPS) {
+    if (!inLane(j, u, 0.02)) continue;
     const t = (s - (j.lip - j.run)) / j.run;
     if (t >= 0 && t <= 1) return (2 * j.h / j.run) * t;
   }
   return 0;
 }
-function inGapVoid(s) {
-  for (const j of JUMPS) if (s > j.lip && s < j.lip + j.gap) return j;
+function inGapVoid(s, u = 0, pad = 0) {
+  for (const j of JUMPS) {
+    if (s > j.lip && s < j.lip + j.gap && inLane(j, u, pad)) return j;
+  }
   return null;
 }
-function faceInVoid(s0, s1, strict) { // road faces may overhang the cut; rails may not
+function faceInVoid(s0, s1, strict, u = 0) { // road faces may overhang the cut; rails may not
   for (const j of JUMPS) {
+    if (!inLane(j, u, 0)) continue;
     if (strict) { if (s1 > j.lip && s0 < j.lip + j.gap) return true; }
     else if (s0 >= j.lip && s1 <= j.lip + j.gap) return true;
   }
@@ -404,7 +410,7 @@ function faceInVoid(s0, s1, strict) { // road faces may overhang the cut; rails 
 function roadPoint(s, u, out = new THREE.Vector3()) {
   const sm = sampleAt(s);
   out.copy(sm.pos).addScaledVector(sm.left, u * HALF_W);
-  out.y = bowlY(u, s) + roadLift(s);
+  out.y = bowlY(u, s) + roadLift(s, u);
   return out;
 }
 const loopCenter = new THREE.Vector3();
@@ -427,8 +433,9 @@ const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.94, 
   }
   for (let i = 0; i < SEG; i++) {
     const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
-    if (faceInVoid(fs0, fs1, false)) continue; // open cut: no road over the gap
     for (let j = 0; j < AC; j++) {
+      const uc = ((j + 0.5) / AC) * 2 - 1;
+      if (faceInVoid(fs0, fs1, false, uc)) continue; // open cut: no road over the gap
       const a = i * (AC + 1) + j, b = a + AC + 1;
       idx.push(a, b, a + 1, b, b + 1, a + 1);
     }
@@ -451,7 +458,7 @@ function sideRibbon(uSide, yBot, yTop, outTop, vScale, mat, skipWall = false) {
   }
   for (let i = 0; i < SEG; i++) {
     const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
-    if (faceInVoid(fs0, fs1, true)) continue; // rails end at the cut
+    if (faceInVoid(fs0, fs1, true, uSide)) continue; // rails end at the cut
     if (skipWall && bankAt((fs0 + fs1) / 2) > 4) continue; // spiral wall stands here
     const a = i * 2;
     idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
@@ -474,7 +481,7 @@ const fenceMat = new THREE.MeshStandardMaterial({
   side: THREE.DoubleSide, depthWrite: false, color: 0x9aa4b0,
 });
 sideRibbon(1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
-sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
+sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat);
 { // fence posts
   const step = 9, count = Math.floor(TRACK_LEN / step);
   const geo = new THREE.CylinderGeometry(0.07, 0.07, 3.4, 6);
@@ -484,11 +491,10 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
   let k = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
-    if (inGapVoid(s) || bankAt(s) > 4) {
-      for (let q = 0; q < 2; q++) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); }
-      continue;
-    }
     for (const sd of [1, -1]) {
+      if (inGapVoid(s, sd * 1.06, 0.1) || (bankAt(s) > 4 && sd > 0)) {
+        m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue;
+      }
       const sm = sampleAt(s);
       const x = sm.pos.x + sm.left.x * sd * (HALF_W + 0.85);
       const z = sm.pos.z + sm.left.z * sd * (HALF_W + 0.85);
@@ -508,11 +514,8 @@ sideRibbon(-1, 1.45, 4.6, 1.1, 2.6, fenceMat, true);
   let k = 0;
   for (let i = 0; i < count; i++) {
     const s = i * step;
-    if (inGapVoid(s)) {
-      for (let q = 0; q < 2; q++) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); }
-      continue;
-    }
     for (const sd of [1, -1]) {
+      if (inGapVoid(s, sd * 0.9, 0)) { m4.makeScale(0, 0, 0); inst.setMatrixAt(k++, m4); continue; }
       roadPoint(s, sd * 0.9, lp);
       m4.makeTranslation(lp.x, lp.y + 0.12, lp.z);
       inst.setMatrixAt(k++, m4);
@@ -536,7 +539,7 @@ let edgeGlowMat = null;
     }
     for (let i = 0; i < SEG; i++) {
       const fs0 = (i / SEG) * TRACK_LEN, fs1 = ((i + 1) / SEG) * TRACK_LEN;
-      if (faceInVoid(fs0, fs1, true)) continue; // glow ends at the cut
+      if (faceInVoid(fs0, fs1, true, sd)) continue; // glow ends at the cut
       const a = i * 2;
       idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
     }
@@ -545,42 +548,6 @@ let edgeGlowMat = null;
     g.setIndex(idx); g.computeVertexNormals();
     const m = new THREE.Mesh(g, edgeGlowMat);
     m.renderOrder = 3; scene.add(m);
-  }
-}
-{ // hazard-striped shoulders painted on the banking in the turns (GIF walls)
-  const stripeMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.85, metalness: 0.05,
-    side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
-  for (const sd of [1, -1]) {
-    const SEG = 800;
-    let run = [];
-    const flush = () => {
-      if (run.length < 4) { run = []; return; }
-      const pos = [], uvA = [], idx = [];
-      run.forEach((s) => {
-        for (let j = 0; j <= 3; j++) {
-          const u = sd * lerp(0.86, 1.0, j / 3);
-          const p = roadPoint(s, u);
-          pos.push(p.x, p.y + 0.045, p.z);
-          uvA.push(j / 3, s / 6);
-        }
-      });
-      for (let i = 0; i < run.length - 1; i++) for (let j = 0; j < 3; j++) {
-        const a = i * 4 + j, b = a + 4;
-        idx.push(a, b, a + 1, b, b + 1, a + 1);
-      }
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
-      g.setIndex(idx); g.computeVertexNormals();
-      const m = new THREE.Mesh(g, stripeMat);
-      m.renderOrder = 2; scene.add(m);
-      run = [];
-    };
-    for (let i = 0; i <= SEG; i++) {
-      const s = (i / SEG) * TRACK_LEN;
-      if (bankAt(s) > 4 && i < SEG) run.push(s);
-      else flush();
-    }
   }
 }
 function spiralWall(side, pts) {
@@ -632,7 +599,6 @@ function spiralWall(side, pts) {
   }
 }
 spiralWall(1, [[13.5, 0], [15.5, 6], [20, 16], [14, 24]]);   // outer: towering curl over the track
-spiralWall(-1, [[13.5, 0], [15, 2.5], [16, 4.5], [16.5, 6]]); // inner: low steel rim
 { // turn floodlight pylons (ref stills): emissive heads + volumetric-look cones
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x1c2026, roughness: 0.6, metalness: 0.7 });
   const headMat = new THREE.MeshBasicMaterial({ color: 0xe8f2ff });
@@ -1020,10 +986,11 @@ const gates = GATES.map(buildTrapGate);
   const runMat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.85, metalness: 0.1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
   const landMat = new THREE.MeshStandardMaterial({ map: gateStripTex, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
   for (const j of JUMPS) {
-    for (const se of [j.lip, j.lip + j.gap]) { // steel cut faces across the full width
+    const ju0 = j.u0 ?? -1, ju1 = j.u1 ?? 1;
+    for (const se of [j.lip, j.lip + j.gap]) { // steel cut faces across the jump lane
       const NA = 10, pos = [], uvA = [], idx = [];
       for (let q = 0; q <= NA; q++) {
-        const u = (q / NA) * 2 - 1;
+        const u = ju0 + (ju1 - ju0) * (q / NA);
         const p = roadPoint(se, u);
         pos.push(p.x, p.y + 0.02, p.z, p.x, p.y - 1.5, p.z);
         uvA.push(q / NA, 1, q / NA, 0);
@@ -1037,21 +1004,64 @@ const gates = GATES.map(buildTrapGate);
       g.setAttribute('uv', new THREE.Float32BufferAttribute(uvA, 2));
       g.setIndex(idx); g.computeVertexNormals();
       scene.add(new THREE.Mesh(g, steelMat));
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(HALF_W * 2, 0.16, 0.45), edgeMat);
-      const bp = roadPoint(se, 0);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry((ju1 - ju0) * HALF_W, 0.16, 0.45), edgeMat);
+      const bp = roadPoint(se, (ju0 + ju1) / 2);
       bar.position.set(bp.x, bp.y + 0.08, bp.z);
       bar.rotation.y = sampleAt(se).head;
       scene.add(bar);
     }
-    ribbonPatch(j.lip - j.run, j.lip - 0.5, -0.95, 0.95, runMat, 0.07); // hazard runup
-    ribbonPatch(j.lip + j.gap + 2, j.lip + j.gap + 18, -0.7, 0.7, landMat, 0.06); // landing chevrons
+    ribbonPatch(j.lip - j.run, j.lip - 0.5, ju0 + 0.05, ju1 - 0.05, runMat, 0.07); // hazard runup
+    ribbonPatch(j.lip + j.gap + 2, j.lip + j.gap + 18, ju0 + 0.3, ju1 - 0.3, landMat, 0.06); // landing chevrons
     const glow = new THREE.PointLight(0xff2a00, 9, 34, 1.6); // danger glow in the cut
-    const gp = roadPoint(j.lip + j.gap / 2, 0);
+    const gp = roadPoint(j.lip + j.gap / 2, (ju0 + ju1) / 2);
     glow.position.set(gp.x, gp.y - 0.4, gp.z);
     scene.add(glow);
   }
 }
 
+const DIV = { s0: 656, s1: 830, hw: 0.15, h: 1.1 }; // split-track barrier island (rejoin right after the lane-jump landing: 80 m of bowl setup)
+function divHW(s) {
+  const { s0, s1, hw } = DIV;
+  if (s < s0 - 6 || s > s1 + 6) return 0;
+  if (s < s0 + 6) { const t = (s - (s0 - 6)) / 12; return hw * t * t * (3 - 2 * t); }
+  if (s > s1 - 6) { const t = ((s1 + 6) - s) / 12; return hw * t * t * (3 - 2 * t); }
+  return hw;
+}
+{ // island walls + cap + amber lamp strip + tip beacons (plain steel: chevrons live on the turn walls only)
+  const islMat = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.5, metalness: 0.7, side: THREE.DoubleSide });
+  const stripMat = new THREE.MeshBasicMaterial({ color: 0xffb020 });
+  const N = 130, S0 = DIV.s0 - 6, S1 = DIV.s1 + 6;
+  const rib = (rows, mat) => {
+    const pos = [], idx = [];
+    for (let i = 0; i <= N; i++) {
+      const s = S0 + (S1 - S0) * (i / N);
+      const sm = sampleAt(s), w = Math.max(divHW(s), 0.004);
+      const base = bowlY(0, s) + 0.02;
+      for (const [u, yo] of rows(w)) {
+        pos.push(sm.pos.x + sm.left.x * u * HALF_W, base + yo, sm.pos.z + sm.left.z * u * HALF_W);
+      }
+    }
+    const W = rows(1).length;
+    for (let i = 0; i < N; i++) for (let r = 0; r < W - 1; r++) {
+      const a = i * W + r, b = a + W;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g, mat));
+  };
+  rib((w) => [[-w, 0], [-w, DIV.h]], islMat);
+  rib((w) => [[w, 0], [w, DIV.h]], islMat);
+  rib((w) => [[-w, DIV.h], [w, DIV.h]], islMat);
+  rib((w) => { const sw = Math.min(w, 0.025); return [[-sw, DIV.h + 0.03], [sw, DIV.h + 0.03]]; }, stripMat);
+  for (const ts of [S0 + 0.5, S1 - 0.5]) { // amber beacons on both tips
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), stripMat);
+    const p = roadPoint(ts, 0);
+    b.position.set(p.x, p.y + DIV.h + 0.35, p.z);
+    scene.add(b);
+  }
+}
 function gateAngles(g, t) {
   const out = [];
   for (let k = 0; k < 3; k++) out.push(g.def.phase + g.def.speed * t + k * (TAU / 3));
@@ -1460,7 +1470,7 @@ function updatePlayer(dt) {
         if (input.back && v > 1) Fx -= Math.min(24000, mu * m * normal * 0.98) * longScale; // ABS-capped brakes
         if (input.back && v <= 1) Fx -= 9000 * longScale; // reverse launch
         if (!input.fwd && !input.back) Fx -= Math.sign(v || 1) * 900; // engine braking
-        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s) * h; // + lip gradient
+        P.v += (Fx / m) * h - 9.81 * lipSlope(P.s, P.u) * h; // + lip gradient
         if (!input.fwd && !input.back && Math.abs(P.v) < 0.6) P.v = 0;
         P.v = clamp(P.v, -12, TOP_SPEED);
         P.aX += ((P.v - v) / h - P.aX) * (1 - Math.exp(-h * 6));
@@ -1491,13 +1501,25 @@ function updatePlayer(dt) {
       shakeT = Math.max(shakeT, 0.18);
     }
   }
-  let lift = 0; // ramps + airtime
+  if (!P.airborne && P.s > DIV.s0 - 2 && P.s < DIV.s1 + 2 && Math.abs(P.u) < 0.18) {
+    const sd = P.u >= 0 ? 1 : -1; // split-track island: pick a side
+    const headOn = Math.abs(P.u) < 0.1;
+    P.u = sd * 0.18;
+    if (P.vy * sd < 0) P.vy *= -0.3;
+    if (P.v > 8) {
+      roadPoint(P.s, sd * 0.2, tmpV); tmpV.y += 0.6;
+      spawnSparks(tmpV, 2, 0xffc400, 5, 3);
+      P.scraping = true; shakeT = Math.max(shakeT, 0.15);
+      if (headOn) { P.v *= 0.9; Audio8.thud(); shakeT = Math.max(shakeT, 0.4); }
+    }
+  }
+  let lift = 0; // jumps + airtime
   if (!locked) {
     const prevS = P.s - P.v * dt;
     if (!P.airborne) {
-      lift = roadLift(P.s);
+      lift = roadLift(P.s, P.u);
       for (const j of JUMPS) { // full-width angled lip: launch over the cut
-        if (prevS < j.lip && P.s >= j.lip && P.v > 10) {
+        if (prevS < j.lip && P.s >= j.lip && P.v > 10 && inLane(j, P.u, 0.02)) {
           P.airborne = true; P.airY = j.h;
           P.airV = Math.min(P.v * (2 * j.h / j.run) * 0.9, 8.5);
           Audio8.whoosh();
@@ -1507,7 +1529,7 @@ function updatePlayer(dt) {
       P.airV -= 16 * dt;
       P.airY += P.airV * dt;
       lift = Math.max(0, P.airY);
-      const jv = inGapVoid(P.s);
+      const jv = inGapVoid(P.s, P.u, 0.02);
       if (jv && P.airY < -3) { // fell into the cut: back before the lip
         P.s = jv.lip - 35; P.u = 0; P.v = 12; P.vy = 0; P.yawRate = 0; P.hErr = 0;
         P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
@@ -1515,7 +1537,7 @@ function updatePlayer(dt) {
       }
       if (P.airborne) { // face-plant into the landing wall
         for (const j of JUMPS) {
-          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5) {
+          if (prevS < j.lip + j.gap && P.s >= j.lip + j.gap && P.airY > 0.05 && P.airY < 1.5 && inLane(j, P.u, 0.02)) {
             P.airborne = false; P.airY = 0; P.airV = 0; lift = 0;
             P.v *= 0.55; P.vy = 0;
             spawnSparks(player.rig.group.position, 30, 0xff5030, 10, 6);
@@ -1523,7 +1545,7 @@ function updatePlayer(dt) {
           }
         }
       }
-      if (P.airborne && P.airY <= roadLift(P.s) && !inGapVoid(P.s)) {
+      if (P.airborne && P.airY <= roadLift(P.s, P.u) && !inGapVoid(P.s, P.u, 0.02)) {
         P.airborne = false; P.airY = 0;
         if (P.airV < -3.5) {
           const hard = Math.min(1, (-P.airV - 3.5) / 6);
@@ -1552,7 +1574,7 @@ function updatePlayer(dt) {
     }
     if (Math.abs(d) > 30) g.whooshed = false;
   }
-  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s)) * 0.9 - P.aX * 0.0016;
+  const pitchP = P.airborne ? clamp(-P.airV * 0.025, -0.22, 0.3) : -Math.atan(lipSlope(P.s, P.u)) * 0.9 - P.aX * 0.0016;
   setTransform(P.s, P.u, P.rig, P.hErr + P.steerNorm * 0.04 + P.spin, -P.steerNorm * 0.03 - P.vy * 0.004 + P.aY * 0.0016, tNow, P.v * dt, P.steerNorm, lift, pitchP);
   const vAlong = P.v * Math.cos(P.hErr) - P.vy * Math.sin(P.hErr);
   if (vAlong < -2) wrongWayT += dt; else { wrongWayT = 0; wrongShown = false; }
@@ -1585,7 +1607,8 @@ function updatePlayer(dt) {
 
 
 function updateAI(dt, racing) {
-  for (const ai of ais) {
+  for (let aiIdx = 0; aiIdx < ais.length; aiIdx++) {
+    const ai = ais[aiIdx];
     const d = wrapDist(player.s, ai.s);
     let target = ai.def.base * (1 + 0.05 * Math.sin(tNow * 0.5 + ai.def.ph));
     target += clamp(d * 0.06, -9, 9);
@@ -1595,14 +1618,21 @@ function updateAI(dt, racing) {
     if (ai.s >= TRACK_LEN) { ai.s -= TRACK_LEN; ai.lap++; }
     ai.prevU = ai.u;
     ai.u = 0.5 * Math.sin(tNow * 0.35 + ai.def.ph * 1.3);
+    if (ai.s > DIV.s0 - 31 && ai.s < DIV.s1 + 31) { // split: hold a side through the island
+      const side = ((ai.lap + aiIdx) % 2 === 0) ? 1 : -1;
+      let k = 1;
+      if (ai.s < DIV.s0) k = (ai.s - (DIV.s0 - 31)) / 31;
+      else if (ai.s > DIV.s1) k = 1 - (ai.s - DIV.s1) / 31;
+      ai.u = lerp(ai.u, side * 0.55, clamp(k, 0, 1));
+    }
     ai.steerVis = Math.cos(tNow * 0.35 + ai.def.ph * 1.3) * 0.5;
     const hVis = clamp(((ai.u - (ai.prevU ?? ai.u)) / Math.max(dt, 1e-3) * HALF_W) / Math.max(12, ai.v), -0.4, 0.4);
     let aiLift = 0, aiPitch = 0;
     if (!ai.airborne) {
-      aiLift = roadLift(ai.s);
-      aiPitch = -Math.atan(lipSlope(ai.s)) * 0.9;
+      aiLift = roadLift(ai.s, ai.u);
+      aiPitch = -Math.atan(lipSlope(ai.s, ai.u)) * 0.9;
       for (const j of JUMPS) {
-        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10) {
+        if (ai.prevS < j.lip && ai.s >= j.lip && ai.v > 10 && inLane(j, ai.u, 0.02)) {
           ai.airborne = true; ai.airY = j.h;
           ai.airV = Math.min(ai.v * (2 * j.h / j.run) * 0.9, 8.5);
         }
@@ -1610,9 +1640,9 @@ function updateAI(dt, racing) {
     } else {
       ai.airV -= 16 * dt; ai.airY += ai.airV * dt; aiLift = Math.max(0, ai.airY);
       aiPitch = clamp(-ai.airV * 0.025, -0.22, 0.3);
-      const jv = inGapVoid(ai.s);
+      const jv = inGapVoid(ai.s, ai.u, 0.02);
       if (jv && ai.airY < -3) { ai.s = jv.lip + jv.gap + 2; ai.airborne = false; ai.airY = 0; ai.airV = 0; aiLift = 0; }
-      else if (!jv && ai.airY <= roadLift(ai.s)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
+      else if (!jv && ai.airY <= roadLift(ai.s, ai.u)) { ai.airborne = false; ai.airY = 0; ai.airY = 0; ai.airV = 0; aiLift = 0; }
     }
     setTransform(ai.s, ai.u, ai.rig, hVis + ai.steerVis * 0.1, -ai.steerVis * 0.05, tNow, ai.v * dt, ai.steerVis, aiLift, aiPitch);
   }
@@ -1668,10 +1698,17 @@ function drawMap() {
     mapCtx.beginPath(); mapCtx.arc(x, y, 4, 0, TAU); mapCtx.fill();
   }
   for (const j of JUMPS) { // jump cuts: amber ticks at each lip
-    const p = roadPoint(j.lip, 0, tmpV2);
+    const p = roadPoint(j.lip, ((j.u0 ?? -1) + (j.u1 ?? 1)) / 2, tmpV2);
     const [jx, jy] = mapXY(p.x, p.z, W, H, 12);
     mapCtx.fillStyle = '#ffc400'; mapCtx.fillRect(jx - 3, jy - 3, 6, 6);
   }
+  mapCtx.strokeStyle = '#ffb020'; mapCtx.lineWidth = 3; mapCtx.beginPath();
+  for (let ds = DIV.s0; ds <= DIV.s1; ds += 10) {
+    const p = roadPoint(ds, 0, tmpV2);
+    const [dx, dy] = mapXY(p.x, p.z, W, H, 12);
+    if (ds === DIV.s0) mapCtx.moveTo(dx, dy); else mapCtx.lineTo(dx, dy);
+  }
+  mapCtx.stroke();
   for (const ai of ais) {
     const p = roadPoint(ai.s, ai.u, tmpV2);
     const [x, y] = mapXY(p.x, p.z, W, H, 12);
