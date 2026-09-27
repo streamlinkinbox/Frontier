@@ -34,7 +34,7 @@ export class ActionController {
       override: (f, dt) => this._override(f, dt),
     };
     this.scratch = new Map();
-    this.idle = { palpT: [2.0, 3.3], legT: 5.5, palpPhase: [-1, -1], legPhase: -1, legSide: 1 };
+    this.idle = { palpT: [3.5, 6.5], legT: 9, palpPhase: [-1, -1], legPhase: -1, legSide: 1 };
     this.emitHairs = null; // callback(worldPos, worldVel)
     this._tmp = new THREE.Vector3();
     this._tmpN = new THREE.Vector3();
@@ -98,11 +98,17 @@ export class ActionController {
     const still = Math.abs(this.s.speed) < 0.3 && !c && tw < 0.05;
     const id = this.idle;
     for (let i = 0; i < 2; i++) {
-      if (id.palpPhase[i] >= 0) { id.palpPhase[i] += dt / 0.9; if (id.palpPhase[i] > 1) id.palpPhase[i] = -1; }
-      else if (still) { id.palpT[i] -= dt; if (id.palpT[i] < 0) { id.palpPhase[i] = 0; id.palpT[i] = 1.5 + Math.random() * 4; } }
+      if (id.palpPhase[i] >= 0) { id.palpPhase[i] += dt / 2.6; if (id.palpPhase[i] > 1) id.palpPhase[i] = -1; }
+      else if (still) { id.palpT[i] -= dt; if (id.palpT[i] < 0) { id.palpPhase[i] = 0; id.palpT[i] = 4 + Math.random() * 7; } }
     }
-    if (id.legPhase >= 0) { id.legPhase += dt / 1.6; if (id.legPhase > 1) id.legPhase = -1; }
-    else if (still) { id.legT -= dt; if (id.legT < 0) { id.legPhase = 0; id.legT = 4 + Math.random() * 7; id.legSide = Math.random() < 0.5 ? 1 : -1; } }
+    // any locomotion / action winds idle gestures down quickly (never drag a raised leg along)
+    const busyNow = Math.abs(this.s.speed) > 0.3 || Math.abs(this.s.turnRate) > 0.15 || !!c || tw > 0.05;
+    if (busyNow) {
+      for (let i = 0; i < 2; i++) if (id.palpPhase[i] >= 0) { id.palpPhase[i] = Math.max(id.palpPhase[i], 0.85) + dt / 0.3; if (id.palpPhase[i] > 1) id.palpPhase[i] = -1; }
+      if (id.legPhase >= 0) { id.legPhase = Math.max(id.legPhase, 0.75) + dt / 0.35; if (id.legPhase > 1) id.legPhase = -1; }
+    }
+    if (id.legPhase >= 0) { id.legPhase += dt / 3.2; if (id.legPhase > 1) id.legPhase = -1; }
+    else if (still) { id.legT -= dt; if (id.legT < 0) { id.legPhase = 0; id.legT = 8 + Math.random() * 10; id.legSide = Math.random() < 0.5 ? 1 : -1; } }
     return o;
   }
 
@@ -123,12 +129,40 @@ export class ActionController {
     return p;
   }
 
+  _solveWorld(f, pWorld, nWorld, lift = 0) {
+    const body = this.s.body;
+    const p = this._scratch(f);
+    const lp = this._tmpW || (this._tmpW = new THREE.Vector3());
+    const ln = this._tmpWN || (this._tmpWN = new THREE.Vector3());
+    const q = this._tmpQ || (this._tmpQ = new THREE.Quaternion());
+    lp.copy(pWorld); body.worldToLocal(lp); this._groundGuard(f, lp);
+    body.getWorldQuaternion(q).invert();
+    ln.copy(nWorld).applyQuaternion(q);
+    f.limb.solve(lp, ln, p, lift);
+    return p;
+  }
+
   _solveBody(f, x, y, z, lift = 0, nx = 0, ny = 1, nz = 0) {
     const p = this._scratch(f);
     this._tmp.set(x * f.limb.side, y, z);
+    this._groundGuard(f, this._tmp);
     this._tmpN.set(nx * f.limb.side, ny, nz).normalize();
     f.limb.solve(this._tmp, this._tmpN, p, lift);
     return p;
+  }
+
+  // Authored (body-space) targets must never push a tarsus/palp tip into rock on uneven ground.
+  _groundGuard(f, local) {
+    const s = this.s, body = s.body;
+    const pad = f.isPalp ? 0.12 : f.limb.R[f.limb.n - 1] * 0.8;
+    const w = this._gw || (this._gw = new THREE.Vector3());
+    const o = this._go || (this._go = new THREE.Vector3());
+    const d = this._gd || (this._gd = new THREE.Vector3());
+    w.copy(local); body.localToWorld(w);
+    const h = s.world.raycast(o.copy(w).addScaledVector(s.up, 2.5), d.copy(s.up).negate(), 2.5 + pad);
+    if (!h) return;
+    const above = 2.5 - h.distance;
+    if (above < pad) { w.addScaledVector(s.up, pad - above); local.copy(w); body.worldToLocal(local); }
   }
 
   _override(f, dt) {
@@ -155,7 +189,7 @@ export class ActionController {
       const { a, l, t } = sw;
       if (f.isPalp || li <= 1) {
         let target;
-        if (f.isPalp) target = [0.55, lerp(0.2, -0.55, l), lerp(1.6, 2.5, l) - 0.4 * ss(0.4, 0.9, t)];
+        if (f.isPalp) target = [0.6, lerp(0.25, -0.55, l), lerp(2.3, 3.2, l) - 0.4 * ss(0.4, 0.9, t)];
         else if (li === 0) target = [lerp(1.2, 1.25, l), lerp(1.4, -0.72, l), lerp(2.6, 4.1, l) - 0.9 * ss(0.4, 0.9, t)];
         else target = [lerp(2.2, 2.5, l), lerp(0.9, -0.72, l), lerp(1.6, 2.9, l) - 0.6 * ss(0.4, 0.9, t)];
         const sp = this._solveBody(f, target[0], target[1], target[2], 0.25 * (1 - l));
@@ -188,15 +222,19 @@ export class ActionController {
         const i = side > 0 ? 0 : 1;
         const ph = this.idle.palpPhase[i];
         if (ph >= 0) {
-          const up = Math.sin(Math.PI * ph);
-          const tap = Math.max(0, Math.sin(ph * Math.PI * 4)) * (ph > 0.35 ? 1 : 0);
-          const sp = this._solveBody(f, 0.55, -0.72 + 0.55 * up - 0.12 * tap, 1.75 + 0.3 * up, 0.35 * up);
-          pose = sp; w = ss(0, 0.2, ph) * (1 - ss(0.8, 1, ph));
+          // raise, reach slightly forward, one gentle touch of the substrate, settle back
+          const up = ss(0.0, 0.35, ph) * (1 - ss(0.6, 1.0, ph));
+          const touch = ss(0.4, 0.52, ph) * (1 - ss(0.58, 0.7, ph));
+          const s = this.s;
+          const p = this._tmp.copy(f.pos).addScaledVector(f.normal, 0.55 * up * (1 - touch) - 0.06 * touch)
+            .addScaledVector(s.fwd, 0.35 * up);
+          pose = this._solveWorld(f, p, f.normal, 0.3 * up);
+          w = ss(0, 0.15, ph) * (1 - ss(0.85, 1, ph));
         }
       } else if (li === 0 && side === this.idle.legSide && this.idle.legPhase >= 0) {
         const ph = this.idle.legPhase;
         const up = Math.sin(Math.PI * ph);
-        const wave = Math.sin(ph * Math.PI * 3) * 0.35;
+        const wave = Math.sin(ph * Math.PI * 2) * 0.22;
         const sp = this._solveBody(f, 1.45 + wave, -0.75 + 1.6 * up, 3.4 + 0.5 * up, 0.5 * up);
         pose = sp; w = ss(0, 0.25, ph) * (1 - ss(0.75, 1, ph));
       }

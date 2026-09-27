@@ -29,9 +29,11 @@ const PROFILES = {
 
 export function limbSegmentSurface(kind, len, r, { palp = false, seed = 0 } = {}) {
   const prof = PROFILES[kind] || PROFILES.tibia;
-  const cap0 = r * 0.8, cap1 = r * 0.5;
+  // proximal: arthrodial-membrane neck that tucks into the parent's rim; distal: flared rim + lip
+  const cap0 = r * 0.85, cap1 = r * 0.42;
+  const hasJoint = kind !== 'coxa' && kind !== 'spin';
   const lat = kind === 'femur' ? 0.84 : kind === 'patella' ? 0.92 : 0.95;
-  const density = kind === 'tarsus' ? 40 : 33;
+  const density = kind === 'tarsus' ? 48 : 42;
   const circ = TAU * r * 1.1 * (1 + lat) / 2;
   const around = Math.max(8, Math.round(circ * density)) / density;
   const bow = kind === 'femur' ? 0.07 : kind === 'tibia' ? 0.03 : kind === 'meta' ? -0.02 : 0;
@@ -40,9 +42,21 @@ export function limbSegmentSurface(kind, len, r, { palp = false, seed = 0 } = {}
   const fn = (u, v, s) => {
     const z = z0 + (z1 - z0) * v;
     const t = clamp(z / len, 0, 1);
-    let k = 1;
-    if (z < 0) k = Math.sqrt(Math.max(1 - (z / cap0) ** 2, 0.0064)) * 0.9 + 0.1 * (1 + z / cap0);
-    else if (z > len) k = Math.sqrt(Math.max(1 - ((z - len) / cap1) ** 2, 0.0064));
+    let k = 1, neck = 0, lip = 0;
+    if (z < 0) {
+      const q = -z / cap0;                       // 0 at the joint -> 1 at the buried end
+      neck = smooth(0.0, 0.3, q);
+      k = hasJoint ? 1 - 0.3 * neck : 1;
+      if (q > 0.5) k *= Math.sqrt(Math.max(1 - ((q - 0.5) / 0.5) ** 2, 0.0064));
+    } else if (z > len) {
+      const q = (z - len) / cap1;
+      lip = 1;
+      k = hasJoint
+        ? (q < 0.22 ? 1.05 - 0.27 * smooth(0, 0.22, q) : 0.78 * Math.sqrt(Math.max(1 - ((q - 0.22) / 0.78) ** 2, 0.0064)))
+        : Math.sqrt(Math.max(1 - q * q, 0.0064));
+    } else if (hasJoint) {
+      k = 1 + 0.05 * smooth(0.86, 1.0, t);       // distal rim flare
+    }
     const th = u * TAU;
     const ct = Math.cos(th), st = Math.sin(th);
     const pr = prof(t) * r * k;
@@ -87,8 +101,9 @@ export function limbSegmentSurface(kind, len, r, { palp = false, seed = 0 } = {}
       }
       case 'spin': col = tmpC.copy(CL.blackWarm); len0 = 0.035; break;
     }
-    // articular membranes near joints: less pile
-    const jointFade = smooth(-0.3, 0.06, t) * (1 - 0.35 * smooth(0.97, 1.08, z / len));
+    // arthrodial membrane: dark, near-hairless skin between sclerites; rim lip: shorter pile
+    if (hasJoint && neck > 0) col = new THREE.Color().copy(col).lerp(CL.membrane, neck);
+    const jointFade = (1 - 0.92 * neck) * (1 - 0.45 * lip) * (0.55 + 0.45 * smooth(0.0, 0.12, t));
     s.hair.copy(col).multiplyScalar(0.85 + 0.3 * n1);
     s.fur.set(len0 * 1.25 * (0.35 + 0.65 * jointFade) * (0.8 + 0.4 * n1), density, stiff);
     s.comb.set(0, -0.15, 1);
@@ -111,7 +126,7 @@ export function limbGuardSpec(kind, { palp = false } = {}) {
       const isOrange = s.hair.r > 0.25 && s.hair.g < s.hair.r * 0.7;
       const c1 = new THREE.Color().copy(isOrange ? orange : pale).multiplyScalar(0.42 + 0.45 * rnd());
       const c0 = new THREE.Color().copy(root).lerp(c1, 0.25);
-      return { len: L, width: 0.006 + 0.004 * rnd(), tilt: 0.95 + 0.5 * rnd(), curl: 0.2 + 0.3 * rnd(), spread: 0.9, c0, c1 };
+      return { len: L, width: 0.0055 + 0.0035 * rnd(), tilt: 0.9 + 0.45 * rnd(), curl: 0.3 + 0.3 * rnd(), spread: 0.6, c0, c1 };
     },
   };
 }

@@ -39,6 +39,8 @@ export class Limb {
     this.hip = new THREE.Vector3();
     this.tip = new THREE.Vector3();
     this.totalLen = lengths.slice(2).reduce((a, b) => a + b, 0);
+    // comfortable reach from the coxal socket (3D), used to reject footholds the leg cannot take
+    this.maxReach = (lengths[0] + lengths[1]) * 0.85 + lengths.slice(2).reduce((a, b) => a + b, 0) * 0.9;
     // combined patella+tibia chord
     const Lp = this.L[3], Lt = this.L[4], f = patTibFlex;
     const vx = Lp + Lt * Math.cos(f), vy = -Lt * Math.sin(f);
@@ -60,7 +62,40 @@ export class Limb {
    * Solve for the tip (tarsus end) reaching `target` (body space) with the tarsus making absolute
    * in-plane angle derived from `contactNormal` (body space). Writes into `outPose`.
    */
-  solve(target, contactNormal, outPose, tarsusLift = 0) {
+  solve(target, contactNormal, outPose, tarsusLift = 0, femurLift = 0, tarsusBias = 0) {
+    // Two passes: the tarsus wants to lie on the substrate, but the tarso-metatarsal joint has a
+    // limited range (it flexes ventrally, barely hyper-extends). If the wish violates that range
+    // (walls, ledges, steep slopes) clamp it relative to the metatarsus and re-solve the chain.
+    let aTar = this._tarsusWish(target, contactNormal, tarsusLift) + tarsusBias;
+    this._solveChain(target, aTar, outPose, femurLift);
+    if (!this.isPalp) {
+      const meta = outPose.a[5];
+      const rel = aTar - meta;
+      const lo = -1.05, hi = 0.3;
+      if (rel < lo || rel > hi) {
+        aTar = meta + clamp(rel, lo, hi);
+        this._solveChain(target, aTar, outPose, femurLift);
+      }
+    }
+    return outPose;
+  }
+
+  _tarsusWish(target, contactNormal, tarsusLift) {
+    const S = this.S;
+    let tx = target.x - S.x, tz = target.z - S.z;
+    let yaw = Math.atan2(tx * this.side, tz);
+    if (yaw < -Math.PI * 0.5) yaw += Math.PI * 2;
+    yaw = clamp(yaw, -0.35, Math.PI + 0.25);
+    const d = this.planeDir(yaw, new THREE.Vector3());
+    let aTar;
+    if (contactNormal) {
+      const nr = contactNormal.dot(d), ny = contactNormal.y;
+      aTar = Math.atan2(-nr, ny) - 0.42; // tangent (ny, -nr); tarsus inclined ~24 deg, scopula pad on the substrate
+    } else aTar = -0.25;
+    return clamp(aTar + tarsusLift, -1.6, 1.2);
+  }
+
+  _solveChain(target, aTar, outPose, femurLift) {
     const S = this.S;
     let tx = target.x - S.x, tz = target.z - S.z;
     let yaw = Math.atan2(tx * this.side, tz);
@@ -81,13 +116,6 @@ export class Limb {
     const rel = new THREE.Vector3().subVectors(target, S);
     const tr = rel.dot(d) - hx, ty = rel.y - hy;
 
-    // desired tarsus angle: parallel to the contact surface, pointing outward
-    let aTar;
-    if (contactNormal) {
-      const nr = contactNormal.dot(d), ny = contactNormal.y;
-      aTar = Math.atan2(-nr, ny) - 0.42; // tangent (ny, -nr); tarsus inclined ~24 deg, scopula pad on the substrate
-    } else aTar = -0.25;
-    aTar = clamp(aTar + tarsusLift, -1.6, 1.2);
 
     const last = this.n - 1;
     const Ltar = this.L[last];
@@ -123,7 +151,11 @@ export class Limb {
         if (f(hi) < want) th = hi;
         else { for (let i = 0; i < 20; i++) { const mid = (lo + hi) / 2; if (f(mid) < want) lo = mid; else hi = mid; } th = (lo + hi) / 2; }
       }
-      th = Math.min(th, thMax);
+      // femurLift: collision avoidance (raises the patella apex over bumps / ledges). Only meaningful
+      // while the target is comfortably reachable; on a stretched leg it would just fold it wrongly.
+      const slack = clamp((L1 + Lmax - Math.hypot(Px, Py)) / (0.25 * L1), 0, 1);
+      const fl = femurLift > 0 ? femurLift * slack : femurLift;
+      th = Math.min(th + fl, thMax + Math.min(fl, 0.35));
       const Kx = Math.cos(th) * L1, Ky = Math.sin(th) * L1;
       const vx = Px - Kx, vy = Py - Ky;
       const dd = clamp(Math.hypot(vx, vy), Lmin + 1e-3, Lmax - 1e-3);

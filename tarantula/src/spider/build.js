@@ -10,7 +10,7 @@ import {
 } from './materials.js';
 import { Limb } from './Limb.js';
 
-export const MAX_SHELLS = 24;
+export const MAX_SHELLS = 40;
 const DEG = Math.PI / 180;
 const LEG_KINDS = ['coxa', 'troch', 'femur', 'patella', 'tibia', 'meta', 'tarsus'];
 const PALP_KINDS = ['coxa', 'troch', 'femur', 'patella', 'tibia', 'tarsus'];

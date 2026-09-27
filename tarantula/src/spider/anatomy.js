@@ -51,6 +51,7 @@ export const COL = {
   coxa: 0x17110d,
   orangeDeep: 0xb4380e,
   orangePale: 0xc98652,
+  membrane: 0x2e2622,
   ringTibia: 0xb8916a,
   ringMeta: 0xc9b597,
   scopula: 0x2b2621,

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 export const furUniforms = {
   uShells: { value: 16 },
   uPixelWorld: { value: 0.001 }, // world-space size of one pixel at distance 1 (updated on resize)
-  uCombStrength: { value: 1.0 },
+  uCombStrength: { value: 1.5 },
   uGravity: { value: new THREE.Vector3(0, -1, 0) },
 };
 
@@ -99,17 +99,17 @@ export function createFurShellMaterial() {
           }
           best = sqrt(best);
           float h = vShellH;
-          float len = mix(0.45, 1.0, rl);
+          float len = mix(0.35, 1.0, rl);
           float tn = h / len;
-          float radius = 0.4 * pow(max(1.0 - tn, 0.0), 0.8);
+          float radius = 0.27 * pow(max(1.0 - tn, 0.0), 0.6);
           float aa = max(fwidth(best), 1e-4) * 0.8;
           float mask = (1.0 - smoothstep(radius - aa, radius + aa, best)) * step(tn, 1.0);
           float cellPx = 1.0 / max(length(fwidth(g)), 1e-5);
-          float avgCov = clamp(0.62 * pow(max(1.0 - h, 0.0), 1.7), 0.0, 1.0);
+          float avgCov = clamp(0.42 * pow(max(1.0 - h, 0.0), 1.5), 0.0, 1.0);
           mask = mix(avgCov, mask, smoothstep(1.4, 4.0, cellPx));
           if (mask < 0.01) discard;
           diffuseColor.a = mask;
-          diffuseColor.rgb *= mix(0.32, 1.12, pow(h, 0.8)) * mix(0.8, 1.2, rl);
+          diffuseColor.rgb *= mix(0.4, 1.02, pow(h, 0.7)) * mix(0.82, 1.12, rl);
         }`);
     sheenTint(shader);
   };

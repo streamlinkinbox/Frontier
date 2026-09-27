@@ -3,7 +3,7 @@ import { SurfaceWorld } from './world/SurfaceWorld.js';
 import { Cave, SUN_DIR } from './world/Cave.js';
 import { Atmosphere } from './world/Atmosphere.js';
 import { Tarantula } from './spider/Tarantula.js';
-import { createMaterials } from './spider/build.js';
+import { createMaterials, MAX_SHELLS } from './spider/build.js';
 import { furUniforms } from './spider/materials.js';
 import { CameraRig } from './game/CameraRig.js';
 import { Brain } from './game/Brain.js';
@@ -110,10 +110,11 @@ async function main() {
   const post = new Post(renderer, scene, camera, { samples: 4, bloom: Q.bloom });
   const brain = new Brain(spider);
 
+  let baseShells = 16, curShells = 0;
   function applyQuality(name) {
     qualityName = name;
     const q = QUALITY[name];
-    spider.setShellCount(q.shells);
+    baseShells = q.shells; curShells = 0;
     const pr = Math.min(window.devicePixelRatio || 1, q.pr);
     renderer.setPixelRatio(pr);
     post.bloom.enabled = q.bloom;
@@ -223,6 +224,12 @@ async function main() {
     }
     headTarget.copy(spider.root.position).addScaledVector(spider.up, 0.6);
     if (!window.__game.freezeCam) rig.update(raw, headTarget, spider.up, spider.fwd, Math.abs(spider.speed) > 0.5);
+    // macro adaptation: more fur shells up close; the torch behaves like a camera fill light
+    // whose output is metered to the subject (constant illuminance instead of blowing out at 3 cm)
+    const camD = camera.position.distanceTo(headTarget);
+    const wantShells = Math.min(MAX_SHELLS, 2 * Math.round(baseShells * THREE.MathUtils.clamp(14 / camD, 1, 2.5) / 2));
+    if (wantShells !== curShells) { curShells = wantShells; spider.setShellCount(curShells); }
+    torch.intensity = 300 * THREE.MathUtils.clamp((camD / 18) ** 2, 0.04, 3);
     torch.position.copy(camera.position).add(new THREE.Vector3(0, 1.5, 0).applyQuaternion(camera.quaternion));
     torch.target.position.copy(headTarget);
     post.render(raw, simT);
