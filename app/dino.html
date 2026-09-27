@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Dinosaur Walk Cycle</title>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2) format('woff2')}
+:root{
+  --blue:#1f5eff; --blue-soft:#4d80ff; --blue-deep:#1a4fe0;
+  --bg:#0a0a0a; --panel:#121212; --inset:#111; --field:#000; --raised:#222; --selected:#1c1c1c; --row:#161616;
+  --stroke:rgba(255,255,255,.08); --stroke-strong:#2e2e2e;
+  --text:#fff; --dim:#8a8a8a; --faint:#5c5c5c;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--blue);font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+:focus-visible{outline:2px solid #fff;outline-offset:2px;border-radius:6px}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,94,255,.55)}70%{box-shadow:0 0 0 6px rgba(31,94,255,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.stage{position:fixed;inset:0;display:grid;place-items:center;padding:3vh 3vw}
+.device{position:relative;width:min(1240px,100%,calc((100vh - 6vh) * 1.48));aspect-ratio:1.48/1;border-radius:38px;background:#111;padding:14px;box-shadow:0 60px 120px -30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 2px #2b2b2b}
+.device::before,.device::after{content:"";position:absolute;left:-3px;width:3px;height:9%;border-radius:2px 0 0 2px;background:#1b1b1b}
+.device::before{top:18%}.device::after{top:31%}
+.screen{position:relative;width:100%;height:100%;border-radius:26px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+.ui{position:absolute;inset:0;width:1100px;height:742px;transform-origin:0 0;transform:scale(var(--s,1));overflow:hidden;display:flex;flex-direction:column}
+
+/* hero */
+.hero{position:relative;flex:none;height:148px;background:var(--blue);padding:18px 22px 16px;display:flex;flex-direction:column;gap:0}
+.nav{display:flex;align-items:center;gap:14px;height:32px}
+.logo{height:32px;padding:0 14px;border-radius:16px;background:#fff;color:var(--blue);font-weight:800;font-size:12px;letter-spacing:.14em;display:flex;align-items:center}
+.tabs{height:32px;padding:3px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;align-items:center;gap:2px;position:relative}
+.tab{position:relative;height:26px;padding:0 14px;border-radius:13px;font-size:12px;font-weight:500;color:#fff;white-space:nowrap;z-index:1;display:inline-flex;align-items:center}
+.tab.is-on{color:var(--blue)}
+.tab-ink{position:absolute;top:3px;height:26px;border-radius:13px;background:#fff;transition:left .35s var(--ease),width .35s var(--ease)}
+.hero-mid{flex:1;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:8px}
+.hero-titles h1{font-size:52px;font-weight:800;letter-spacing:-.045em;line-height:.9}
+.hero-titles h1 span{font-weight:300;opacity:.92}
+.hero-titles p{font-size:11.5px;line-height:1.4;color:rgba(255,255,255,.82);margin-top:6px;max-width:520px}
+.hero-actions{display:flex;gap:8px;align-items:center;flex:none}
+.hbtn{height:32px;padding:0 6px 0 14px;border-radius:16px;background:#fff;color:#111;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.hbtn i{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none}
+.hbtn.ghost{background:rgba(255,255,255,.14);color:#fff;padding:0 14px}
+
+/* content */
+.content{flex:1;min-height:0;display:grid;grid-template-columns:1.55fr 0.95fr;gap:14px;padding:14px 18px 16px;background:#0a0a0a}
+.card{background:var(--panel);border:1px solid var(--stroke);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.card-head{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--stroke);flex:none}
+.card-head b{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#fff}
+.card-head small{font-size:10.5px;color:var(--dim)}
+.badge{font:600 10px var(--mono);letter-spacing:.06em;padding:4px 8px;border-radius:999px;background:var(--field);border:1px solid var(--stroke);color:var(--dim)}
+.badge.live{color:#fff;background:var(--blue);border-color:transparent}
+
+/* canvas area */
+.view{flex:1;min-height:0;position:relative;background:
+  radial-gradient(120% 100% at 50% 0%,rgba(31,94,255,.10),transparent 55%),
+  linear-gradient(180deg,#0f0f0f 0%,#0a0a0a 60%,#0d0f14 100%);
+  display:flex;flex-direction:column}
+.canvas-wrap{flex:1;position:relative;display:grid;place-items:center;padding:14px;overflow:hidden}
+#mainCanvas{width:100%;height:auto;max-height:380px;aspect-ratio:16/9;background:#0e1016;border:1px solid rgba(255,255,255,.06);border-radius:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03),0 16px 40px rgba(0,0,0,.4)}
+.canvas-overlay{position:absolute;left:20px;right:20px;top:20px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}
+.ov{font:600 9.5px var(--mono);letter-spacing:.05em;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);padding:6px 8px;border-radius:10px;display:flex;gap:8px;align-items:center}
+.ov em{font-style:normal;color:rgba(255,255,255,.55)}
+.ov i{width:8px;height:8px;border-radius:50%;background:#1f5eff;display:block;animation:pulse 1.6s infinite}
+.ov.right{margin-left:auto}
+.bottom-bar{height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-top:1px solid var(--stroke);background:rgba(0,0,0,.3);flex:none}
+.icon-btn{width:32px;height:32px;border-radius:10px;background:var(--raised);border:1px solid var(--stroke);display:grid;place-items:center;flex:none;transition:.15s}
+.icon-btn:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px)}
+.icon-btn.primary{background:#fff;color:#111;border-color:#fff}
+.icon-btn.primary:hover{background:#f0f0f0}
+.spacer{flex:1}
+.mini{font:500 10px var(--mono);color:var(--dim);letter-spacing:.04em}
+.mini b{color:#fff;font-weight:700}
+
+/* controls */
+.controls{padding:12px 14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.ctrl{padding:10px 11px;background:var(--field);border:1px solid var(--stroke);border-radius:14px}
+.ctrl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctrl-top b{font-size:11px;font-weight:600}
+.ctrl-top span{font:600 11px var(--mono);color:var(--blue)}
+.ctrl-top small{font:500 10px var(--mono);color:var(--faint)}
+.slider{ -webkit-appearance:none; appearance:none; width:100%; height:4px; background:#1e1e1e; border-radius:2px; outline:none }
+.slider::-webkit-slider-thumb{ -webkit-appearance:none; width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--blue);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggle{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;background:var(--field);border:1px solid var(--stroke);border-radius:999px;font-size:11.5px;font-weight:500;justify-content:space-between}
+.toggle i{width:30px;height:18px;border-radius:999px;background:#1e1e1e;border:1px solid var(--stroke);position:relative;transition:.2s;flex:none}
+.toggle i::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on{border-color:rgba(31,94,255,.4);background:rgba(31,94,255,.08)}
+.toggle.on i{background:var(--blue);border-color:var(--blue)}
+.toggle.on i::after{transform:translateX(12px)}
+.drop{border:1.5px dashed rgba(255,255,255,.12);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:rgba(255,255,255,.01);transition:.15s}
+.drop.drag{border-color:var(--blue);background:rgba(31,94,255,.08)}
+.drop b{font-size:11.5px}
+.drop small{font-size:10.5px;color:var(--dim);line-height:1.4}
+.btn{height:32px;padding:0 14px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:.15s;white-space:nowrap;border:1px solid transparent}
+.btn.primary{background:#fff;color:#111}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px -10px rgba(0,0,0,.6)}
+.btn.ghost{background:var(--raised);color:#fff;border-color:var(--stroke)}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.block{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kbd{font:600 10px var(--mono);color:var(--faint);border:1px solid var(--stroke);padding:3px 6px;border-radius:6px;background:var(--field)}
+.sheet-preview{height:64px;border-radius:12px;background:#000;border:1px solid var(--stroke);overflow:hidden;display:flex;align-items:center;padding:6px;gap:6px}
+.sheet-preview canvas{height:100%;width:auto;border-radius:6px}
+.note{font-size:10.5px;line-height:1.5;color:var(--dim);padding:0 2px}
+.note b{color:#fff}
+.divider{height:1px;background:var(--stroke);margin:2px 0}
+.chip{font:600 10px var(--mono);padding:4px 8px;border-radius:999px;background:var(--field);border:1px solid var(--stroke);color:var(--dim)}
+.phase-dots{display:flex;gap:5px;align-items:center}
+.phase-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);transition:.15s}
+.phase-dots i.on{background:var(--blue);box-shadow:0 0 0 4px rgba(31,94,255,.18);transform:scale(1.15)}
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="screen">
+  <div class="ui" id="ui">
+    <header class="hero">
+      <div class="nav">
+        <div class="logo">FRONTIER</div>
+        <nav class="tabs" id="tabs">
+          <div class="tab-ink" id="ink"></div>
+          <a class="tab" href="index.html">Lobby</a>
+          <a class="tab" href="wallet.html">Wallet</a>
+          <a class="tab is-on" href="dino.html">Dino Walk</a>
+        </nav>
+        <div style="flex:1"></div>
+        <span class="kbd">SPACE play · R reset · E export</span>
+      </div>
+      <div class="hero-mid">
+        <div class="hero-titles">
+          <h1>Dinosaur <span>walk cycle</span></h1>
+          <p>Dimension-matched rig for your dinosaur. Upload any side-view PNG and the walk stays locked to its bounding box — no stretch, no squash. 8-frame treadmill cycle with IK legs, tail counter-balance and sprite-sheet export for Frontier Engine.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="hbtn ghost" id="btnReset">Reset <span style="opacity:.6">R</span></button>
+          <button class="hbtn" id="btnPlay"><i id="playI">▶</i> <span id="playT">Pause</span></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- left: viewer -->
+      <section class="card" style="min-width:0">
+        <div class="card-head">
+          <b>Viewport · treadmill</b>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge live" id="fpsBadge">60 fps</span>
+            <span class="badge" id="dimBadge">1280×720 · 16:9</span>
+          </div>
+        </div>
+        <div class="view">
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="mainCanvas" width="1280" height="720"></canvas>
+            <div class="canvas-overlay">
+              <div class="ov"><i></i> SOURCE <em id="srcDim">—</em> <span id="srcInfo">tight bbox</span></div>
+              <div class="ov right">SCALE <em id="scaleDim">1.00×</em> · FIT <em id="fitDim">contain</em></div>
+            </div>
+          </div>
+          <div class="bottom-bar">
+            <button class="icon-btn primary" id="mPrev" title="Prev frame (←)">◀</button>
+            <button class="icon-btn primary" id="mNext" title="Next frame (→)">▶</button>
+            <div class="phase-dots" id="phaseDots"></div>
+            <div class="spacer"></div>
+            <span class="mini">PHASE <b id="phaseLabel">0 / 8</b> · <b id="timeLabel">0.00s</b></span>
+            <button class="icon-btn" id="btnGround" title="Toggle ground">≋</button>
+            <button class="icon-btn" id="btnOutline" title="Toggle outline">◐</button>
+          </div>
+        </div>
+        <div style="height:72px;display:flex;gap:8px;padding:8px;border-top:1px solid var(--stroke);background:var(--inset)">
+          <div class="sheet-preview" style="flex:1" id="sheetPreview">
+            <span style="font:600 10px var(--mono);color:var(--faint);padding:0 8px">8-FRAME STRIP PREVIEW — updates live · click to regenerate</span>
+          </div>
+          <button class="btn blue" id="btnSheet" style="white-space:nowrap">Download sheet PNG</button>
+        </div>
+      </section>
+
+      <!-- right: controls -->
+      <section class="card">
+        <div class="card-head">
+          <b>Controls · dimensions</b>
+          <small id="canvasBadge">CANVAS 1280×720</small>
+        </div>
+        <div class="controls" id="controls">
+          <div class="drop" id="drop">
+            <div style="width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center">⬆</div>
+            <b>Drop your dinosaur PNG here</b>
+            <small>Transparent background recommended.<br>We auto-trim to the tight bbox and<br><b style="color:#fff">match the walk to its dimensions</b> — no stretch.</small>
+            <input type="file" id="fileIn" accept="image/png,image/webp,image/jpeg" hidden>
+            <div style="display:flex;gap:6px">
+              <button class="btn primary" id="btnPick">Choose image</button>
+              <button class="btn ghost" id="btnUseDefault">Use default T-Rex</button>
+            </div>
+            <small id="fileName" style="color:var(--blue)"></small>
+            <img id="previewThumb" style="display:none;max-height:64px;border-radius:8px;border:1px solid var(--stroke)" />
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrl-top"><b>Playback</b><span id="vSpeed">1.00×</span></div>
+            <input class="slider" id="sSpeed" type="range" min="0" max="2" step="0.01" value="1" />
+            <div style="display:flex;justify-content:space-between;font:500 10px var(--mono);color:var(--faint);margin-top:4px"><span>0× paused</span><span>2× sprint</span></div>
+          </div>
+
+          <div class="row2">
+            <div class="ctrl">
+              <div class="ctrl-top"><b>Stride</b><span id="vStride">88</span></div>
+              <input class="slider" id="sStride" type="range" min="40" max="160" step="1" value="88" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrl-top"><b>Lift</b><span id="vLift">38</span></div>
+              <input class="slider" id="sLift" type="range" min="10" max="70" step="1" value="38" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="ctrl">
+              <div class="ctrl-top"><b>Body bob</b><span id="vBob">6</span></div>
+              <input class="slider" id="sBob" type="range" min="0" max="14" step="1" value="6" />
+            </div>
+            <div class="ctrl">
+              <div class="ctrl-top"><b>Tail wag</b><span id="vTail">1.00×</span></div>
+              <input class="slider" id="sTail" type="range" min="0" max="2" step="0.05" value="1" />
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="toggle on" id="tShadow"><span>Shadow</span><i></i></button>
+            <button class="toggle on" id="tGround"><span>Ground scroll</span><i></i></button>
+            <button class="toggle on" id="tRig"><span>Rig (vector)</span><i></i></button>
+            <button class="toggle" id="tImage"><span>Image billboard</span><i></i></button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div style="display:grid;gap:6px">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span class="chip" id="chipSrc">SRC: default 1280×720</span>
+              <span class="chip" id="chipTight">TIGHT 1211×482</span>
+              <span class="chip" id="chipCanvas">CANVAS 1280×720</span>
+              <span class="chip" id="chipScale">SCALE 0.92× · fit contain</span>
+            </div>
+            <div class="note">
+              <b>How dimension matching works:</b> On load we scan the alpha channel to find the tight bounding box (no white padding). The rig is scaled so that <b>W<sub>tight</sub> × H<sub>tight</sub></b> maps 1:1 into the viewport's fit box. If you replace the image with a taller or wider dino, stride, leg length and tail auto-rescale — your walk never stretches.
+            </div>
+          </div>
+
+          <div class="grid2">
+            <button class="btn ghost" id="btnCopyJson">Copy rig JSON</button>
+            <button class="btn blue" id="btnExport">Export PNG frames ZIP*</button>
+          </div>
+          <div class="note">* For Frontier Engine: <b>EngineContent/GeometryArchives/CreaturesVault</b> compatible sheet is 8×1 at source height. ZIP not needed — the “Download sheet PNG” gives you <code style="font:600 10px var(--mono);background:var(--field);padding:2px 5px;border-radius:6px;border:1px solid var(--stroke)">dino-walk-8x1.png</code> at native tight height.</div>
+
+          <div class="ctrl" style="background:rgba(31,94,255,.06);border-color:rgba(31,94,255,.18)">
+            <div class="ctrl-top"><b style="color:var(--blue)">Frontier sync</b><small>GeometryArchives</small></div>
+            <div class="note" style="color:rgba(255,255,255,.75)">This viewer is built for <b>Refined/z1/Dino.blend (3.8 MB)</b>, <b>Trex.blend</b> and <b>Velociraptor.blend</b> but works with any side-view dino. Treat the 8 frames as your walk cycle; import as an image strip in <code style="font:600 10px var(--mono)">SpaceCodec</code> or as a flipbook in the material.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div></div></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+// device scale
+function fit(){
+  const ui=$('#ui'), dev=document.querySelector('.device');
+  const s=Math.min(dev.clientWidth/1100, dev.clientHeight/742);
+  ui.style.setProperty('--s', s);
+}
+addEventListener('resize',fit); fit();
+
+// tabs ink
+function placeInk(){
+  const tabs=$('#tabs'), ink=$('#ink'), on=tabs.querySelector('.tab.is-on');
+  if(!on) return;
+  ink.style.left = on.offsetLeft+'px';
+  ink.style.width = on.offsetWidth+'px';
+}
+placeInk(); addEventListener('resize',placeInk);
+
+// canvas + state
+const canvas=$('#mainCanvas'), ctx=canvas.getContext('2d');
+const thumb=$('#previewThumb');
+const img = new Image();
+img.crossOrigin='anonymous';
+let hasImage=false;
+let tight={w:1211,h:482,x:38,y:118}; // will be computed for default
+let srcSize={w:1280,h:720};
+let scale=0.92;
+let frame=0;
+
+const state={
+  playing:true, speed:1, stride:88, lift:38, bob:6, tail:1,
+  showShadow:true, showGround:true, showRig:true, showImage:false,
+  showOutline:false,
+  phase:0, // 0-1
+  time:0,
+  groundOffset:0
+};
+
+// UI refs
+const vSpeed=$('#vSpeed'), vStride=$('#vStride'), vLift=$('#vLift'), vBob=$('#vBob'), vTail=$('#vTail');
+const sSpeed=$('#sSpeed'), sStride=$('#sStride'), sLift=$('#sLift'), sBob=$('#sBob'), sTail=$('#sTail');
+sSpeed.addEventListener('input', e=>{state.speed=parseFloat(e.target.value); vSpeed.textContent=state.speed.toFixed(2)+'×';});
+sStride.addEventListener('input', e=>{state.stride=+e.target.value; vStride.textContent=e.target.value;});
+sLift.addEventListener('input', e=>{state.lift=+e.target.value; vLift.textContent=e.target.value;});
+sBob.addEventListener('input', e=>{state.bob=+e.target.value; vBob.textContent=e.target.value;});
+sTail.addEventListener('input', e=>{state.tail=parseFloat(e.target.value); vTail.textContent=state.tail.toFixed(2)+'×';});
+
+function tog(btn, key){
+  btn.addEventListener('click', ()=>{
+    state[key]=!state[key];
+    btn.classList.toggle('on', state[key]);
+  });
+}
+tog($('#tShadow'),'showShadow');
+tog($('#tGround'),'showGround');
+tog($('#tRig'),'showRig');
+tog($('#tImage'),'showImage');
+
+$('#btnGround').addEventListener('click', ()=>{state.showGround=!state.showGround; $('#tGround').classList.toggle('on',state.showGround);});
+$('#btnOutline').addEventListener('click', ()=>{state.showOutline=!state.showOutline; $('#btnOutline').style.background=state.showOutline?'var(--blue)':''; $('#btnOutline').style.color=state.showOutline?'#fff':'';});
+$('#btnPlay').addEventListener('click', ()=>{state.playing=!state.playing; updatePlay();});
+$('#btnReset').addEventListener('click', ()=>{state.phase=0; state.time=0; state.groundOffset=0;});
+function updatePlay(){
+  $('#playT').textContent=state.playing?'Pause':'Play';
+  $('#playI').textContent=state.playing?'⏸':'▶';
+}
+updatePlay();
+addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); state.playing=!state.playing; updatePlay(); }
+  if(e.key==='r' || e.key==='R'){state.phase=0; state.time=0;}
+  if(e.key==='e' || e.key==='E') downloadSheet();
+  if(e.key==='ArrowLeft'){stepFrame(-1);}
+  if(e.key==='ArrowRight'){stepFrame(1);}
+});
+$('#mPrev').addEventListener('click', ()=>stepFrame(-1));
+$('#mNext').addEventListener('click', ()=>stepFrame(1));
+function stepFrame(dir){
+  state.playing=false; updatePlay();
+  state.phase=(state.phase+ dir*(1/8) +1)%1;
+}
+
+let dragOver=false;
+const drop=$('#drop');
+drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('drag');});
+drop.addEventListener('dragleave', ()=>drop.classList.remove('drag'));
+drop.addEventListener('drop', e=>{
+  e.preventDefault(); drop.classList.remove('drag');
+  const f=e.dataTransfer.files[0]; if(f) loadFile(f);
+});
+$('#btnPick').addEventListener('click', ()=>$('#fileIn').click());
+$('#fileIn').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(f) loadFile(f);
+});
+$('#btnUseDefault').addEventListener('click', ()=>{loadDefault();});
+function loadFile(f){
+  const url=URL.createObjectURL(f);
+  const im=new Image();
+  im.onload=()=>{
+    img.src=url;
+    hasImage=true;
+    srcSize={w:im.naturalWidth,h:im.naturalHeight};
+    $('#fileName').textContent=f.name+` · ${srcSize.w}×${srcSize.h}`;
+    thumb.src=url; thumb.style.display='block';
+    computeTight(im);
+  };
+  im.src=url;
+}
+function loadDefault(){
+  hasImage=false;
+  $('#fileName').textContent='';
+  thumb.style.display='none';
+  img.src='assets/dino-side.png';
+  srcSize={w:1280,h:720};
+}
+img.onload=()=>{
+  if(!hasImage){
+    // for default, compute tight as well
+    computeTight(img);
+  }
+  rebuildScale();
+};
+img.onerror=()=>{ hasImage=false; rebuildScale(); };
+img.src='assets/dino-side.png';
+
+// compute tight bbox by scanning alpha
+function computeTight(image){
+  const off=document.createElement('canvas');
+  const w=image.naturalWidth, h=image.naturalHeight;
+  off.width=w; off.height=h;
+  const c=off.getContext('2d');
+  c.drawImage(image,0,0);
+  try{
+    const data=c.getImageData(0,0,w,h).data;
+    let minX=w, minY=h, maxX=0, maxY=0;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const a=data[(y*w+x)*4+3];
+        if(a>12){
+          if(x<minX)minX=x;
+          if(x>maxX)maxX=x;
+          if(y<minY)minY=y;
+          if(y>maxY)maxY=y;
+        }
+      }
+    }
+    if(maxX>minX && maxY>minY){
+      tight={x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};
+    } else {
+      tight={x:0,y:0,w:w,h:h};
+    }
+  }catch(e){
+    tight={x:0,y:0,w:w,h:h};
+  }
+  rebuildScale();
+  updateBadges();
+}
+function rebuildScale(){
+  // viewport fit: canvas internal 1280x720, tight bbox should fit with padding 0.92
+  const pad=0.88;
+  const availW=canvas.width*pad;
+  const availH=canvas.height*0.62; // ground leaves bottom 38%
+  const sx=availW / Math.max(1,tight.w);
+  const sy=availH / Math.max(1,tight.h);
+  scale=Math.min(sx,sy);
+  // clamp reasonable
+  scale=Math.min(scale, 1.35);
+  scale=Math.max(scale, 0.28);
+  updateBadges();
+}
+function updateBadges(){
+  $('#srcDim').textContent=`${srcSize.w}×${srcSize.h}`;
+  $('#chipSrc').textContent=`SRC: ${hasImage?'upload':'default'} ${srcSize.w}×${srcSize.h}`;
+  $('#chipTight').textContent=`TIGHT ${tight.w}×${tight.h}`;
+  $('#dimBadge').textContent=`${tight.w}×${tight.h} · ${(tight.w/tight.h).toFixed(2)}:1`;
+  $('#srcInfo').textContent=`trim ${tight.w}×${tight.h}`;
+  $('#chipCanvas').textContent=`CANVAS ${canvas.width}×${canvas.height}`;
+  const fit='contain';
+  $('#scaleDim').textContent=scale.toFixed(2)+'×';
+  $('#fitDim').textContent=fit;
+  $('#chipScale').textContent=`SCALE ${scale.toFixed(2)}× · fit ${fit}`;
+  $('#canvasBadge').textContent=`CANVAS ${canvas.width}×${canvas.height}`;
+}
+
+// IK helper
+function solveLeg(hipX,hipY, footX, footY, L1, L2){
+  const dx=footX-hipX, dy=footY-hipY;
+  let d=Math.hypot(dx,dy);
+  const minD=Math.abs(L1-L2)+0.001, maxD=L1+L2-0.001;
+  d=Math.min(maxD, Math.max(minD,d));
+  const a=Math.atan2(dy,dx);
+  const cosElbow=(L1*L1+L2*L2 - d*d)/(2*L1*L2);
+  const elbow=Math.acos(Math.max(-1,Math.min(1,cosElbow)));
+  const cosShoulder=(L1*L1 + d*d - L2*L2)/(2*L1*d);
+  const shoulder=Math.acos(Math.max(-1,Math.min(1,cosShoulder)));
+  const th=a - shoulder;
+  const sh=th + Math.PI - elbow;
+  const kx=hipX + Math.cos(th)*L1;
+  const ky=hipY + Math.sin(th)*L1;
+  return {th, sh, kx,ky, elbow};
+}
+
+// draw helpers
+function capsule(ctx, x1,y1,x2,y2, r, color, outline){
+  const ang=Math.atan2(y2-y1,x2-x1), len=Math.hypot(x2-x1,y2-y1);
+  ctx.save();
+  ctx.translate(x1,y1); ctx.rotate(ang);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.roundRect(-r, -r, len+2*r, 2*r, r);
+  ctx.fill();
+  if(outline){
+    ctx.strokeStyle='rgba(14,74,74,.9)'; ctx.lineWidth=2; ctx.stroke();
+  }
+  // joint
+  ctx.fillStyle='rgba(0,0,0,.12)';
+  ctx.beginPath(); ctx.arc(0,0,r*0.42,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(len,0,r*0.32,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function footShape(ctx, ax,ay, toeX, toeY, color){
+  ctx.save();
+  ctx.fillStyle=color;
+  ctx.strokeStyle='rgba(14,74,74,.95)'; ctx.lineWidth=2;
+  ctx.beginPath();
+  // simple foot: heel at ankle, toe forward
+  const len=Math.hypot(toeX-ax, toeY-ay);
+  const ang=Math.atan2(toeY-ay, toeX-ax);
+  ctx.translate(ax,ay); ctx.rotate(ang);
+  ctx.beginPath();
+  // paw
+  ctx.moveTo(0,-6); ctx.lineTo( len*0.78, -9); ctx.lineTo(len, -2); ctx.lineTo(len, 5); ctx.lineTo(len*0.65, 10); ctx.lineTo(0,7); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // claws
+  ctx.fillStyle='#e8eef4';
+  ctx.strokeStyle='#0e4a4a';
+  for(let i=0;i<3;i++){
+    const cx=len*0.86 + i*5, cy=(i-1)*3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(cx+14, cy-2); ctx.lineTo(cx+10, cy+4); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+  // ankle cap
+  ctx.fillStyle='rgba(0,0,0,.12)';
+  ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// build phase dots
+const dots=$('#phaseDots');
+for(let i=0;i<8;i++){ const el=document.createElement('i'); dots.appendChild(el); }
+
+let last=performance.now(), fps=60;
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05, (now-last)/1000); last=now;
+  if(state.playing){
+    const inc= dt * 0.9 * state.speed; // 0.9 cycles/sec at 1× ~ 1.1s per cycle, good for 8 frames
+    state.phase=(state.phase + inc)%1;
+    state.time+=dt;
+    if(state.showGround) state.groundOffset=(state.groundOffset + dt* 260 * state.speed)%80;
+  }
+  // fps EMA
+  fps = fps*0.92 + (1/dt)*0.08;
+  $('#fpsBadge').textContent=Math.round(fps)+' fps';
+  $('#phaseLabel').textContent=`${Math.floor(state.phase*8)} / 8`;
+  $('#timeLabel').textContent=state.time.toFixed(2)+'s';
+  dots.querySelectorAll('i').forEach((el,i)=>{
+    const on = Math.floor(state.phase*8)===i;
+    el.classList.toggle('on', on);
+  });
+  draw(state.phase);
+}
+requestAnimationFrame(animate);
+
+function draw(phase){
+  const w=canvas.width, h=canvas.height;
+  // clear
+  ctx.clearRect(0,0,w,h);
+  // bg gradient + subtle grid
+  ctx.fillStyle='#0e1016'; ctx.fillRect(0,0,w,h);
+  // vignette
+  const g=ctx.createRadialGradient(w/2, h*0.38, 0, w/2, h*0.38, w*0.9);
+  g.addColorStop(0,'rgba(31,94,255,.06)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  // ground line
+  const groundY = h*0.74;
+  // ground fill
+  ctx.fillStyle='#0a0c10'; ctx.fillRect(0,groundY,w,h-groundY);
+  // ground stripes (moving)
+  if(state.showGround){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0,groundY,w,h-groundY); ctx.clip();
+    ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
+    for(let x=-80 + (state.groundOffset%80); x<w+80; x+=80){
+      ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x-18, h); ctx.stroke();
+    }
+    // ticks
+    ctx.fillStyle='rgba(255,255,255,.08)';
+    for(let x=-80 + (state.groundOffset%80); x<w; x+=80){
+      ctx.fillRect(x, groundY, 3, 6);
+    }
+    ctx.restore();
+  }
+  // horizon line
+  ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(w,groundY); ctx.stroke();
+  // shadow scale factor based on scale
+  const s=scale;
+  // body parameters scaled to tight bbox
+  // We define reference rig at 720p: base unit = scale; ground offset as above.
+  // Dino placed centered
+  const cx = w*0.5;
+  const bodyBob = Math.sin(phase*Math.PI*2*2) * state.bob * s * 0.9; // double bounce per cycle
+  const bodySway = Math.sin(phase*Math.PI*2) * 1.0 * (Math.PI/180) * state.tail;
+  // hip position
+  const hipX = cx;
+  const hipY = groundY - 112*s + bodyBob; // hip 112 above ground at rest
+
+  // tail wag
+  const tailWag = Math.sin(phase*Math.PI*2) * 8 * state.tail * (Math.PI/180);
+
+  // head bob
+  const headBob = Math.sin(phase*Math.PI*2 + Math.PI) * 3 * s;
+
+  // --- shadows ---
+  if(state.showShadow){
+    // phase based shadow squash
+    const legPhases=[phase, (phase+0.5)%1];
+    for(let i=0;i<2;i++){
+      const lp=legPhases[i];
+      const isStance = lp<0.5;
+      const footAlpha = isStance? 0.22 : 0.10;
+      const off = (phase* w*0.0); // not moving
+      const footX = hipX + footPos(lp, state.stride*s).x;
+      ctx.fillStyle=`rgba(0,0,0,${footAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(footX, groundY+6, 58*s*Math.max(0.45, (isStance?1:0.65)), 12*s, 0,0,Math.PI*2);
+      ctx.fill();
+    }
+    // body shadow
+    ctx.fillStyle='rgba(0,0,0,.14)';
+    ctx.beginPath(); ctx.ellipse(cx, groundY+10, 130*s, 18*s, 0,0,Math.PI*2); ctx.fill();
+  }
+
+  // leg geometry lengths proportional to tight height
+  const thighLen = 56*s, shinLen = 58*s, footLen=34*s;
+
+  function footPos(lp, stride){
+    const sw= stride;
+    let x, y;
+    if(lp<0.5){
+      const t=lp/0.5; // 0-1 stance
+      x= sw*0.5 - t*sw;
+      y=0;
+    }else{
+      const t=(lp-0.5)/0.5;
+      x= -sw*0.5 + t*sw;
+      y= -Math.sin(t*Math.PI)* state.lift*s;
+    }
+    return {x,y};
+  }
+
+  // draw far leg first (behind), then body, then near leg
+  const farPhase=(phase+0.5)%1;
+  const nearPhase=phase;
+
+  function drawLeg(phaseVal, isFar){
+    const fp=footPos(phaseVal, state.stride*s);
+    const targetX= hipX + fp.x;
+    const targetY= groundY + fp.y; // foot touches ground
+    // foot toe slightly forward
+    const toeX= targetX + 18*s;
+    const toeY= targetY + 2*s;
+    // solve IK: hip to ankle (target is ankle approx)
+    const ankleX=targetX, ankleY=targetY - 7*s;
+    const sol=solveLeg(hipX, hipY, ankleX, ankleY, thighLen, shinLen);
+    const kneeX=sol.kx, kneeY=sol.ky;
+    const colThigh = isFar?'#0e5a5a':'#e8d9b8';
+    const colShin = isFar?'#0a4444':'#e8d9b8';
+    const colOutline = true;
+    // thigh
+    capsule(ctx, hipX, hipY, kneeX, kneeY, 15*s, colThigh, colOutline);
+    // shin
+    capsule(ctx, kneeX, kneeY, ankleX, ankleY, 11*s, colShin, colOutline);
+    // foot
+    const footCol = isFar?'#0a4444':'#ede0c2';
+    footShape(ctx, ankleX, ankleY, toeX, toeY, footCol);
+    // knee highlight
+    if(!isFar){
+      ctx.fillStyle='rgba(14,74,74,.9)';
+      ctx.beginPath(); ctx.arc(kneeX, kneeY, 3*s,0,Math.PI*2); ctx.fill();
+    }
+    return {ankleX, ankleY, kneeX, kneeY};
+  }
+
+  // far leg behind body
+  if(state.showRig) drawLeg(farPhase, true);
+
+  // --- body / tail / head ---
+  if(state.showRig){
+    ctx.save();
+    ctx.translate(hipX, hipY);
+    ctx.rotate(bodySway*0.22); // subtle sway
+
+    // tail segments (3) trailing behind (to left if dino faces right)
+    const tailBaseX=-38*s, tailBaseY=-22*s;
+    let tx=tailBaseX, ty=tailBaseY;
+    let ang= Math.PI + tailWag*0.9; // point left
+    const tailSegs=[
+      {len:92*s, thick:22*s},
+      {len:84*s, thick:15*s},
+      {len:74*s, thick:9*s},
+    ];
+    for(let i=0;i<tailSegs.length;i++){
+      const seg=tailSegs[i];
+      const wag = Math.sin(phase*Math.PI*2 + i*0.9) * (3+i)*state.tail * (Math.PI/180);
+      const a = ang + wag;
+      const nx = tx + Math.cos(a)*seg.len;
+      const ny = ty + Math.sin(a)*seg.len;
+      // segment color
+      const col = i===0?'#e8d9b8': (i===1?'#dccfb0':'#cfc2a2');
+      const under = '#1a6b6b';
+      // draw underbelly stripe for first seg
+      capsule(ctx, tx, ty, nx, ny, seg.thick, col, true);
+      if(i===0){
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(tx,ty);
+        // under tape
+        ctx.fillStyle='rgba(26,107,107,.92)';
+        ctx.beginPath();
+        ctx.ellipse((tx+nx)/2, (ty+ny)/2 + 6*s, seg.len*0.44, seg.thick*0.52, a, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+      // tip
+      if(i===tailSegs.length-1){
+        ctx.fillStyle='#0e4a4a';
+        ctx.beginPath();
+        ctx.moveTo(nx, ny);
+        ctx.lineTo(nx+Math.cos(a)*18*s, ny+Math.sin(a)*18*s);
+        ctx.lineTo(nx+Math.cos(a+0.55)*6*s, ny+Math.sin(a+0.55)*6*s);
+        ctx.closePath(); ctx.fill(); ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=1.4; ctx.stroke();
+      }
+      tx=nx; ty=ny; ang=a;
+    }
+
+    // body ellipse
+    const bodyW=196*s, bodyH=78*s;
+    const bodyX=54*s, bodyY=-32*s;
+    ctx.fillStyle='#e8d9b8';
+    ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=2.2;
+    ctx.beginPath();
+    ctx.ellipse(bodyX, bodyY, bodyW/2, bodyH/2, -0.08, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    // underbelly
+    ctx.fillStyle='#1a6b6b';
+    ctx.beginPath();
+    ctx.ellipse(bodyX+6*s, bodyY+18*s, bodyW*0.38, bodyH*0.36, -0.06, 0, Math.PI);
+    ctx.fill();
+    // back line highlight
+    ctx.strokeStyle='rgba(255,255,255,.42)'; ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.ellipse(bodyX, bodyY, bodyW*0.46, bodyH*0.46, -0.08, Math.PI*1.02, Math.PI*1.78);
+    ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.62)';
+    ctx.beginPath();
+    ctx.ellipse(bodyX+12*s, bodyY-18*s, 22*s, 5*s, -0.18, 0, Math.PI*2); ctx.fill();
+
+    // neck
+    const neckBaseX= bodyX + bodyW*0.42, neckBaseY= bodyY - 14*s;
+    const neckLen=62*s, neckThick=26*s;
+    const neckAng = -0.62 + Math.sin(phase*Math.PI*2)*0.06*state.tail;
+    const neckX2= neckBaseX + Math.cos(neckAng)*neckLen;
+    const neckY2= neckBaseY + Math.sin(neckAng)*neckLen + headBob*0.12;
+    capsule(ctx, neckBaseX, neckBaseY, neckX2, neckY2, neckThick, '#e8d9b8', true);
+    // neck under stripe
+    ctx.strokeStyle='#1a6b6b'; ctx.lineWidth=3*s; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(neckBaseX+8*s, neckBaseY+9*s);
+    ctx.lineTo(neckX2-6*s, neckY2+7*s);
+    ctx.stroke();
+    // chest mark
+
+    // head group
+    ctx.save();
+    ctx.translate(neckX2, neckY2);
+    ctx.rotate(-0.08 + Math.sin(phase*Math.PI*2+0.6)*0.04);
+    // head shape: upper skull
+    const hx= 18*s, hy= -6*s;
+    // jaw open amount oscillates slightly
+    const jawOpen = 6*s + Math.sin(phase*Math.PI*2*2)*2*s;
+    // upper head
+    ctx.fillStyle='#e8d9b8';
+    ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=2.2;
+    ctx.beginPath();
+    ctx.moveTo(-6*s, -16*s);
+    ctx.bezierCurveTo(18*s,-22*s, 46*s,-18*s, 72*s,-8*s);
+    ctx.lineTo(74*s, 2*s);
+    ctx.lineTo(54*s, 8*s);
+    ctx.lineTo(18*s, 4*s);
+    ctx.lineTo(-4*s, -4*s);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // eye
+    ctx.fillStyle='#0e4a4a';
+    ctx.beginPath(); ctx.ellipse(36*s, -8*s, 10*s, 12*s, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath(); ctx.ellipse(39*s, -7*s, 4.5*s, 6*s, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0a0a0a';
+    ctx.beginPath(); ctx.ellipse(40.5*s, -6*s, 2.2*s, 3.2*s, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.9;
+    ctx.beginPath(); ctx.arc(41.6*s, -8.5*s, 1.1*s,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    // nostril
+    ctx.fillStyle='#0e4a4a'; ctx.beginPath(); ctx.ellipse(60*s, -6*s, 2.2*s, 1.4*s,0,0,Math.PI*2); ctx.fill();
+    // upper teeth
+    ctx.fillStyle='#ffffff'; ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=1;
+    for(let i=0;i<7;i++){
+      const tx=54*s + i*3.2*s, ty=4*s;
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx+1.6*s, ty+9*s); ctx.lineTo(tx+3*s, ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // lower jaw
+    ctx.save();
+    ctx.translate(12*s, 6*s);
+    ctx.rotate(jawOpen*0.06);
+    ctx.fillStyle='#e8d9b8';
+    ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(-4*s, -1*s);
+    ctx.lineTo(44*s, 2*s);
+    ctx.lineTo(62*s, 6*s);
+    ctx.bezierCurveTo(58*s, 12*s, 28*s, 14*s, -4*s, 7*s);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // lower teeth
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=1;
+    for(let i=0;i<7;i++){
+      const tx=38*s + i*3.2*s, ty=4*s;
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx+1.6*s, ty-7*s); ctx.lineTo(tx+3*s, ty); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // inside mouth dark
+    ctx.fillStyle='#0a3a3a';
+    ctx.beginPath();
+    ctx.moveTo(14*s, 2*s); ctx.lineTo(54*s, 4*s); ctx.lineTo(46*s, 9*s); ctx.lineTo(8*s, 7*s); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // head ridge
+    ctx.fillStyle='rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.ellipse(12*s, -14*s, 14*s, 3*s, -0.22,0,Math.PI*2); ctx.fill();
+
+    ctx.restore(); // head
+
+    // arms (small) with slight swing
+    const armSwing = Math.sin(phase*Math.PI*2 + Math.PI)* 8 * (Math.PI/180);
+    // left arm (far)
+    ctx.save();
+    ctx.translate(bodyX+ 38*s, bodyY+8*s);
+    ctx.rotate(0.42+ armSwing*0.5);
+    capsule(ctx, 0,0, 18*s, 12*s, 7*s, '#0a4444', true);
+    capsule(ctx, 18*s,12*s, 30*s,18*s, 5*s, '#0a4444', true);
+    // claw
+    ctx.fillStyle='#0a4444'; ctx.beginPath(); ctx.arc(32*s,20*s,2.2*s,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    // right arm front
+    ctx.save();
+    ctx.translate(bodyX+ 46*s, bodyY+12*s);
+    ctx.rotate(0.52+ armSwing);
+    capsule(ctx, 0,0, 20*s, 10*s, 8*s, '#e8d9b8', true);
+    capsule(ctx, 20*s,10*s, 36*s,20*s, 5.5*s, '#e8d9b8', true);
+    ctx.fillStyle='#e8d9b8'; ctx.strokeStyle='#0e4a4a'; ctx.lineWidth=1.4;
+    ctx.beginPath();
+    for(let i=0;i<3;i++){
+      const cx=34*s + i*3*s, cy=20*s + i*2.4*s;
+      ctx.moveTo(cx,cy); ctx.lineTo(cx+6*s, cy+7*s); ctx.lineTo(cx+2*s, cy+3*s);
+    }
+    ctx.stroke();
+    // claws tips
+    ctx.fillStyle='#e8eef4'; ctx.strokeStyle='#0e4a4a';
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.ellipse(40*s+i*2.5*s, 26*s+i*1.2*s, 2.8*s, 1.2*s, 0.6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.restore(); // body
+  }
+
+  // near leg over body
+  if(state.showRig) drawLeg(nearPhase, false);
+
+  // image billboard mode: draw original PNG as overlay bobbing (semi transparent) for reference
+  if(state.showImage && img.complete && img.naturalWidth>0){
+    ctx.save();
+    ctx.globalAlpha=0.96;
+    // compute where tight bbox maps to current viewport
+    // tight bbox size in pixels scaled = tight.w*scale by tight.h*scale
+    const dispW=tight.w*scale, dispH=tight.h*scale;
+    const dispX= cx - dispW*0.47; // center approx where hip was
+    const dispY= groundY - dispH - 2*s + bodyBob*0.45;
+    // draw image cropped to tight bbox then scaled
+    ctx.drawImage(img, tight.x, tight.y, tight.w, tight.h, dispX, dispY, dispW, dispH);
+    // outline bbox if enabled
+    if(state.showOutline){
+      ctx.strokeStyle='rgba(31,94,255,.85)'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.strokeRect(dispX, dispY, dispW, dispH);
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(31,94,255,.9)';
+      ctx.font='600 10px ui-monospace,monospace';
+      ctx.fillText(`${tight.w}×${tight.h}`, dispX+6, dispY+14);
+    }
+    ctx.restore();
+  }
+
+  // dimension overlay crosshair at hip
+  if(state.showOutline){
+    ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(hipX-12, hipY); ctx.lineTo(hipX+12, hipY); ctx.moveTo(hipX, hipY-12); ctx.lineTo(hipX, hipY+12); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='600 9px ui-monospace,monospace'; ctx.fillText('HIP', hipX+14, hipY-8);
+  }
+
+  // top info pill: phase arc
+  ctx.save();
+  ctx.translate(w-72, 28);
+  ctx.fillStyle='rgba(0,0,0,.48)'; ctx.strokeStyle='rgba(255,255,255,.08)';
+  ctx.beginPath(); ctx.roundRect(-56,-16,112,32,12); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.55)'; ctx.font='600 9px ui-monospace,monospace'; ctx.textAlign='center';
+  ctx.fillText('CYCLE',0,-2);
+  ctx.strokeStyle='rgba(31,94,255,.22)'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(0,6,18, -Math.PI/2, -Math.PI/2 + phase*Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(Math.cos(-Math.PI/2+phase*Math.PI*2)*18, 6+Math.sin(-Math.PI/2+phase*Math.PI*2)*18, 3.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// sheet preview: generate 8 thumbs
+function renderSheetPreview(){
+  const strip=document.createElement('canvas');
+  const fw=160, fh=90;
+  strip.width=fw*8; strip.height=fh;
+  const sctx=strip.getContext('2d');
+  const oldPhase=state.phase, oldGround=state.groundOffset;
+  for(let i=0;i<8;i++){
+    const ph=i/8;
+    state.groundOffset = i*10;
+    // render single frame into temp canvas at same size but scaled down
+    const tmp=document.createElement('canvas'); tmp.width=canvas.width; tmp.height=canvas.height;
+    const tctx=tmp.getContext('2d');
+    // swap contexts temporarily by drawing via draw but capturing? Easier: set main canvas temporarily to thumb size? We'll just call draw and then copy scaled.
+    // Instead we call draw with ph and then scale copy from main canvas after draw
+    draw(ph);
+    sctx.drawImage(canvas, 0,0,canvas.width,canvas.height, i*fw, 0, fw,fh);
+  }
+  state.phase=oldPhase; state.groundOffset=oldGround;
+  // display
+  const preview=$('#sheetPreview');
+  preview.innerHTML='';
+  const imgEl=document.createElement('img');
+  imgEl.src=strip.toDataURL('image/png');
+  imgEl.style.height='100%'; imgEl.style.width='auto'; imgEl.style.borderRadius='8px'; imgEl.style.border='1px solid rgba(255,255,255,.08)';
+  preview.appendChild(imgEl);
+  const meta=document.createElement('div');
+  meta.style.cssText='font:600 10px var(--mono);color:var(--dim);display:flex;flex-direction:column;gap:2px;padding:0 6px';
+  meta.innerHTML=`<span style="color:#fff">8 × ${tight.w}×${tight.h}</span><span>${(tight.w*8)}×${tight.h} strip</span><span style="color:var(--blue)">scale ${scale.toFixed(2)}×</span>`;
+  preview.appendChild(meta);
+  preview._strip=strip;
+}
+let previewTimer=null;
+function schedulePreview(){ clearTimeout(previewTimer); previewTimer=setTimeout(renderSheetPreview, 240); }
+// initial preview after short delay
+setTimeout(renderSheetPreview, 600);
+['input','click'].forEach(ev=>{
+  $$('.slider').forEach(el=>el.addEventListener(ev, schedulePreview));
+  $$('.toggle').forEach(el=>el.addEventListener(ev, schedulePreview));
+});
+$('#sheetPreview').addEventListener('click', renderSheetPreview);
+
+function downloadSheet(){
+  // full res sheet at tight height resolution
+  const h=tight.h, w=tight.w;
+  const sheet=document.createElement('canvas');
+  sheet.width=w*8; sheet.height=h;
+  const sctx=sheet.getContext('2d');
+  sctx.imageSmoothingEnabled=true;
+  sctx.imageSmoothingQuality='high';
+  // we need to render each frame at tight size equivalent to scale=1 for export (native)
+  // Instead of using viewport scale, we render with a temporary scale that maps tight.h to h (which is 1:1)
+  // So we simulate by drawing with our draw function but we need to hijack scale.
+  // Simpler: draw zoomed version: create offscreen canvas same as main but then crop tight region
+  const oldScale=scale;
+  const exportScale = 1; // native pixels
+  // We'll render each frame by drawing to main canvas with exportScale then copy
+  // To keep code simple, temporarily set scale=exportScale and call draw
+  for(let i=0;i<8;i++){
+    scale=exportScale;
+    draw(i/8);
+    // compute disp region that corresponds to tight bbox at current scale (which is 1)
+    // In draw, disp is centered at hip; but for export we want tight bbox only, not full canvas.
+    // So we compute bounding region of dino: we know dispX/Y and dispW/H when scale=1
+    // That's cx - dispW*0.47 etc. For export we should extract that region from main canvas at high res.
+    // At scale=1, dispW = w, dispH = h
+    // We'll extract region
+    const cx=canvas.width*0.5, groundY=canvas.height*0.74;
+    const dispW=w, dispH=h;
+    const dispX= cx - dispW*0.47;
+    const dispY= groundY - dispH - 2 + (Math.sin((i/8)*Math.PI*2*2)* state.bob * 0.45);
+    // copy cropped region
+    sctx.drawImage(canvas, dispX, dispY, dispW, dispH, i*w, 0, w, h);
+  }
+  scale=oldScale;
+  // also restore a final draw
+  draw(state.phase);
+  // trim transparent padding? Keep as is.
+  const a=document.createElement('a');
+  a.href=sheet.toDataURL('image/png');
+  a.download=`dino-walk-8x1_${tight.w}x${tight.h}.png`;
+  a.click();
+  // toast
+  toast(`Sheet exported · ${w*8}×${h} · 8 frames`);
+}
+$('#btnSheet').addEventListener('click', downloadSheet);
+$('#btnExport').addEventListener('click', downloadSheet);
+$('#btnCopyJson').addEventListener('click', async ()=>{
+  const data={
+    source:{width:srcSize.w, height:srcSize.h, tight},
+    canvas:{width:canvas.width, height:canvas.height},
+    scale: +scale.toFixed(4),
+    rig:{
+      mode:'treadmill',
+      frames:8,
+      speed:state.speed,
+      stride:state.stride,
+      lift:state.lift,
+      bob:state.bob,
+      tail:state.tail,
+      leg:{thigh:56, shin:58, foot:34},
+      hip:{groundOffset:112},
+      ground:'infinite scroll'
+    },
+    engineHint:'EngineContent/GeometryArchives/CreaturesVault — import sheet as flipbook; each frame = tight width. For Blender, use 8-frame cycle with 0.9 cycles/sec.',
+    exportedAt:new Date().toISOString()
+  };
+  await navigator.clipboard.writeText(JSON.stringify(data,null,2)).catch(()=>{});
+  toast('Rig JSON copied · tight '+tight.w+'×'+tight.h+' · scale '+scale.toFixed(2)+'×');
+});
+
+// toast
+function toast(msg){
+  let t=$('#toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toast';
+    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111;color:#fff;border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:12px;font:600 12px var(--font);box-shadow:0 16px 40px rgba(0,0,0,.5);z-index:99;opacity:0;transition:.22s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._t); t._t=setTimeout(()=>{t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(6px)';}, 2200);
+}
+
+// ensure badges after load
+updateBadges();
+</script>
+</body>
+</html>
