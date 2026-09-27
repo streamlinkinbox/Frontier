@@ -255,6 +255,11 @@ add_executable(RevolvedAnnularPrismFaceOffsetVerification Verification/RevolvedA
 target_link_libraries(RevolvedAnnularPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME RevolvedAnnularPrismFaceOffsetVerification COMMAND RevolvedAnnularPrismFaceOffsetVerification)
 
+# Phase 52: bounded analytic torus face offset.
+add_executable(TorusFaceOffsetVerification Verification/TorusFaceOffsetVerification.cpp)
+target_link_libraries(TorusFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME TorusFaceOffsetVerification COMMAND TorusFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

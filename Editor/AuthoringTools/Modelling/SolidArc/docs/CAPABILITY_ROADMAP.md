@@ -1963,6 +1963,30 @@ sectors, polygons, ellipses, lower/side faces, tilted/oblique/freeform/mixed sup
 malformed topology, healing, or general revolved face editing. Its bounded plan is
 `docs/PLAN_Phase51_RevolvedAnnularPrismFaceOffset.md`.
 
+#### Phase 52: bounded analytic torus face offset ✅
+
+This proof advances face editing into a closed toroidal support, distinct from the trimmed annular
+prism cap and all cone/bicone work. `TorusFaceOffsetVerification` constructs a ring torus with major
+radius 8, minor radius 2, centre at the origin, and Z axis. The source and result are closed genus-one
+`V1/E2/C4/L1/F1` bodies with one natural analytic torus face.
+
+`FaceEditSolver::OffsetTorusFace` recognizes only one complete natural `SurfaceClassification::Torus`
+face with the kernel's periodic `V1/E2/C4/L1/F1` seam topology, a coaxial origin-centred ring torus,
+and a positive offset that remains a ring torus. It reconstructs the exact torus with the same major radius and an increased minor radius;
+there is no tessellation, freeform approximation, or healing fallback. The focused verifier checks
+analytic radius identity, the torus volume identity, source immutability, public dispatch, and explicit
+refusal of spheres, cylinders, annular prisms, tilted/translated/spindle toruses, invalid offsets, and
+malformed topology.
+
+The durable proof is `Proofs/Phase52_TorusFaceOffset.png`; 20 focused checks pass, and the verifier
+and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one complete origin-centred Z-axis ring torus and positive minor-radius
+expansion. It does not prove trimmed or partial toroidal faces, spindle toruses, inward offsets,
+translated/tilted toruses, arbitrary analytic/freeform faces, mixed supports, invalid offsets,
+malformed topology, healing, or general toroidal face editing. Its bounded plan is
+`docs/PLAN_Phase52_TorusFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

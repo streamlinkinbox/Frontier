@@ -1290,6 +1290,28 @@ sectors, polygons, ellipses, lower/side faces, tilted/oblique/freeform/mixed sup
 malformed topology, healing, or general revolved face editing. The bounded plan is
 `docs/PLAN_Phase51_RevolvedAnnularPrismFaceOffset.md`.
 
+## Phase 52 — bounded analytic torus face offset (2026-09-27)
+
+This proof advances face editing into a closed toroidal support:
+
+- `TorusFaceOffsetVerification` constructs the origin-centred Z-axis ring torus with major radius 8
+  and minor radius 2. Source and result retain closed genus-one `V1/E2/C4/L1/F1` topology and one
+  natural torus face.
+- `FaceEditSolver::OffsetTorusFace` accepts only one complete natural `SurfaceClassification::Torus`
+  face with the kernel's periodic `V1/E2/C4/L1/F1` seam topology. It reconstructs the exact torus with the same major radius and an
+  increased minor radius, without tessellation or healing.
+- The focused verifier checks analytic major/minor-radius identity, the torus volume identity,
+  source immutability, public dispatcher routing, refusal of spheres, cylinders, annular prisms,
+  tilted/translated/spindle toruses, invalid offsets, and malformed topology.
+- Durable proof: `Proofs/Phase52_TorusFaceOffset.png`; 20 focused checks pass. The verifier, proof,
+  and full-gate registration are present in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one complete origin-centred Z-axis ring torus and positive minor-radius
+expansion. It does not prove trimmed or partial toroidal faces, spindle toruses, inward offsets,
+translated/tilted toruses, arbitrary analytic/freeform faces, mixed supports, invalid offsets,
+malformed topology, healing, or general toroidal face editing. The bounded plan is
+`docs/PLAN_Phase52_TorusFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

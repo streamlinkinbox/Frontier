@@ -1108,6 +1108,49 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadTorusFace(const BrepBody& Source, int Face, double& MajorRadius, double& MinorRadius,
+                                 Vec3& Centre, Vec3& Axis) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 1 || Source.Edges.size() != 2 ||
+        Source.Coedges.size() != 4 || Source.Loops.size() != 1 || Source.Faces.size() != 1 || Face != 0) return false;
+    const BrepFace& F = Source.Faces.front();
+    if (F.Surface.Classification != SurfaceClassification::Torus || F.Loops.size() != 1 || !F.Natural ||
+        Source.Loops.front().Coedges.size() != 4) return false;
+    for (const BrepEdge& E : Source.Edges)
+        if (E.Coedges.size() != 2) return false;
+    MajorRadius = F.Surface.RadiusMajor;
+    MinorRadius = F.Surface.RadiusMinor;
+    Centre = F.Surface.Origin;
+    Axis = F.Surface.Axis.Normalised();
+    if (!std::isfinite(MajorRadius) || !std::isfinite(MinorRadius) || MajorRadius <= MinorRadius + ScalarCriteria::MergeTolerance ||
+        MinorRadius <= ScalarCriteria::MergeTolerance || Centre.Length() > ScalarCriteria::GeometricTolerance ||
+        std::fabs(Axis.Dot(Vec3::UnitZ())) < 1.0 - UnitTolerance) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildTorusFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    double MajorRadius = 0.0, MinorRadius = 0.0; Vec3 Centre{}, Axis{};
+    if (!ReadTorusFace(Source, Face, MajorRadius, MinorRadius, Centre, Axis))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "torus offset requires one closed analytic ring torus face");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "torus offset distance must be finite and positive");
+    if (MinorRadius + Distance >= MajorRadius - ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "torus offset would create a spindle or self-intersecting torus");
+    Deliver<BrepBody> Result = BrepBody::Torus(Centre, Axis, MajorRadius, MinorRadius + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport R = Result.Payload.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 1 || Result.Payload.Edges.size() != 2 ||
+        Result.Payload.Coedges.size() != 4 || Result.Payload.Loops.size() != 1 || Result.Payload.Faces.size() != 1 ||
+        Result.Payload.Faces.front().Surface.Classification != SurfaceClassification::Torus)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "torus offset did not retain one closed analytic torus face");
+    return Result;
+}
+
 [[nodiscard]] bool ReadExtrudedCircularSectorPrism(const BrepBody& Source, int Face, Vec3& Centre,
                                                    double& Radius, double& StartAngle, double& Sweep,
                                                    double& Low, double& High) noexcept
@@ -1713,6 +1756,8 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (Concave) return Concave;
         Deliver<BrepBody> Sector = OffsetExtrudedCircularSectorPrism(Source, Face, Distance);
         if (Sector) return Sector;
+        Deliver<BrepBody> Torus = OffsetTorusFace(Source, Face, Distance);
+        if (Torus) return Torus;
         Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
         if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
@@ -1847,6 +1892,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetExtrudedCircularSectorPrism(const BrepBo
 Deliver<BrepBody> FaceEditSolver::OffsetRevolvedAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildRevolvedAnnularPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetTorusFace(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildTorusFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept
