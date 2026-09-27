@@ -1,0 +1,10 @@
+{
+  "name": "tarantula-tools",
+  "private": true,
+  "type": "module",
+  "description": "Headless measurement / screenshot harness for the tarantula (see ../IMPROVING.md)",
+  "dependencies": {
+    "@sparticuz/chromium": "^140.0.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}

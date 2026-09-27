@@ -32,3 +32,5 @@ The UI panel also switches quality (Low/Med/High/Ultra). This changes fur shell 
 - **Rendering**: PCF soft shadows from the sun shaft and the torch, image-based lighting captured from the cave itself, MSAA HDR composer, bloom, Khronos Neutral tone mapping, vignette and film grain.
 
 `window.__game` exposes the scene for debugging. `?manual` switches to on-demand rendering for automated captures, `?nohud` hides the UI, `?q=ultra` sets the starting quality and `?mode=ai` starts in AI mode.
+
+Quality metrics, the automated audit tools (`tools/`) and a roadmap for further animation polish are documented in [IMPROVING.md](IMPROVING.md).

@@ -38,6 +38,7 @@ export class ActionController {
     this.emitHairs = null; // callback(worldPos, worldVel)
     this._tmp = new THREE.Vector3();
     this._tmpN = new THREE.Vector3();
+    this._tmp2 = new THREE.Vector3(); this._tmpN2 = new THREE.Vector3(); this._tmpQ2 = new THREE.Quaternion();
     this.onEvent = null;
   }
 
@@ -82,7 +83,7 @@ export class ActionController {
       const strikeFang = lerp(open, 0.55 + pump, stab);
       o.fangOpen = lerp(strikeFang, o.fangOpen, ss(1.15, 1.5, t));
       o.locomotionLock = 1;
-      this.strikeW = { a, l, t };
+      this.strikeW = { a, l, t, act: c };
     } else this.strikeW = null;
 
     if (c && c.type === 'flick') {
@@ -121,6 +122,19 @@ export class ActionController {
     if (this.threatW > 0.05) return true;
     if (this.idle.legPhase >= 0 && li === 0 && f.limb.side === this.idle.legSide) return true;
     return false;
+  }
+
+  _scratchB(f) {
+    const m = this.scratchB || (this.scratchB = new Map());
+    let p = m.get(f); if (!p) { p = f.limb.makePose(); m.set(f, p); }
+    return p;
+  }
+  _blendB(f, p0, p1, t) {
+    const m = this.scratchC || (this.scratchC = new Map());
+    let o = m.get(f); if (!o) { o = f.limb.makePose(); m.set(f, o); }
+    o.yaw = lerp(p0.yaw, p1.yaw, t);
+    for (let i = 0; i < o.a.length; i++) o.a[i] = lerp(p0.a[i], p1.a[i], t);
+    return o;
   }
 
   _scratch(f) {
@@ -187,34 +201,64 @@ export class ActionController {
     // --- strike
     const sw = this.strikeW;
     if (sw) {
-      const { a, l, t } = sw;
-      if (f.isPalp || li <= 1) {
-        let target;
-        if (f.isPalp) target = [0.6, lerp(0.25, -0.55, l), lerp(2.3, 3.2, l) - 0.4 * ss(0.4, 0.9, t)];
-        else if (li === 0) target = [lerp(1.2, 1.25, l), lerp(1.4, -0.72, l), lerp(2.6, 4.1, l) - 0.9 * ss(0.4, 0.9, t)];
-        else target = [lerp(2.2, 2.5, l), lerp(0.9, -0.72, l), lerp(1.6, 2.9, l) - 0.6 * ss(0.4, 0.9, t)];
+      const { a, l, t, act: sc } = sw;
+      if (f.isPalp) {
+        // pedipalps reach forward/down to take hold of the prey
+        const target = [0.6, lerp(0.25, -0.55, l), lerp(2.3, 3.2, l) - 0.4 * ss(0.4, 0.9, t)];
         const sp = this._solveBody(f, target[0], target[1], target[2], 0.25 * (1 - l));
         const sw2 = env(t, 0.0, 0.16, 1.1, 1.5);
         if (pose && w > 0) { const tmp = f.limb.makePose(); tmp.yaw = pose.yaw; tmp.a.set(pose.a); pose = tmp; }
         pose = pose && w > 0 ? { yaw: lerp(pose.yaw, sp.yaw, sw2), a: pose.a.map((v, i) => lerp(v, sp.a[i], sw2)) } : sp;
         w = Math.max(w, sw2);
+      } else if (li <= 1) {
+        // legs I-II: rise and spread during the anticipation, then come down wide on the substrate
+        // around the prey as the body lunges (a real foothold, so they stay planted and the recovery
+        // is seamless: the base IK takes over from exactly the same place)
+        const S = this.s;
+        if (!sc.slam) sc.slam = new Map();
+        let sl = sc.slam.get(f);
+        if (!sl) {
+          const cand = S._restWorld(f, new THREE.Vector3()).addScaledVector(S.fwd, 1.55 + (li === 0 ? 0.35 : 0.1));
+          const h = S._planFoothold(f, cand); // collision-checked, reachable foothold
+          sl = { p: h.p.clone(), n: h.n.clone(), planted: false };
+          sc.slam.set(f, sl);
+        }
+        const raised = this._scratchB(f);
+        const src = li === 0 ? THREAT[1] : THREAT[2];
+        raised.yaw = src.yaw; raised.a.set(src.a);
+        const d = ss(0.2, 0.33, t);                       // descent onto the prey
+        const tgt = this._tmp2.copy(sl.p).addScaledVector(S.up, 1.8 * (1 - d));
+        const down = this._solveWorld(f, tgt, sl.n, 0.35 * (1 - d));
+        pose = this._blendB(f, raised, down, d);
+        w = ss(0.0, 0.12, t) * (1 - ss(0.45, 0.75, t));
+        if (!sl.planted && t >= 0.33) { f.pos.copy(sl.p); f.normal.copy(sl.n); f.swinging = false; sl.planted = true; }
       }
     }
 
-    // --- urticating hair flick with leg IV
+    // --- urticating hair flick with leg IV: each hind leg sweeps its metatarsus/tarsus along the dorsal
+    // abdomen and off the posterior end (the legs alternate), following the abdomen's real surface
     const fw = this.flickW;
     if (fw && li === 3) {
       const { w: ew, t } = fw;
-      const osc = 0.5 + 0.5 * Math.sin((t - 0.35) * Math.PI * 2 * 6.0 + (side > 0 ? 0 : Math.PI));
-      const active = ss(0.3, 0.45, t) * (1 - ss(1.85, 2.05, t));
-      const z = lerp(-2.0, -3.7, osc), y = 1.35 + 0.2 * Math.sin(osc * Math.PI) - 0.25 * active;
-      const sp = this._solveBody(f, 0.62, lerp(0.4, y, ss(0, 0.35, t)), lerp(-2.8, z, active), 0.1, 0, 1, 0.2);
-      pose = sp; w = ew;
-      // emit urticating setae on the backward stroke
-      if (active > 0.5 && this.emitHairs) {
-        const phaseV = Math.cos((t - 0.35) * Math.PI * 2 * 6.0 + (side > 0 ? 0 : Math.PI));
-        if (phaseV > 0.2) this.emitHairs(limb.tip, side, dt);
-      }
+      const S = this.s;
+      const ph = (t - 0.35) * 4.2 + (side > 0 ? 0 : 0.5);
+      const active = ss(0.3, 0.5, t) * (1 - ss(1.85, 2.05, t));
+      const u = (0.5 - 0.5 * Math.cos(Math.PI * 2 * ph)) * active;   // 0 = mid-back, 1 = past the tip
+      const backStroke = Math.sin(Math.PI * 2 * ph) > 0;
+      // abdomen as an ellipsoid in the pedicel (abdPivot) frame: measured from the mesh incl. pile
+      const cy = 0.34, cz = -1.98, ra = 1.45, rb = 1.2, rc = 1.75;
+      const x = 0.5 * side, z = lerp(-1.9, -4.35, u);
+      const q = 1 - (x / ra) ** 2 - ((z - cz) / rc) ** 2;
+      const sy = cy + rb * Math.sqrt(Math.max(q, 0));
+      const y = sy + 0.22 + (backStroke ? 0 : 0.25) * active + 0.45 * ss(0.85, 1, u);
+      const pl = this._tmp2.set(x, y, z);
+      const nl = this._tmpN2.set(x / (ra * ra), (sy - cy) / (rb * rb), (z - cz) / (rc * rc)).normalize();
+      S.abdPivot.localToWorld(pl);
+      nl.applyQuaternion(S.abdPivot.getWorldQuaternion(this._tmpQ2));
+      pose = this._solveWorld(f, pl, nl, 0.1);
+      w = ew;
+      // emit urticating setae on the backward stroke as the tarsus leaves the abdomen
+      if (active > 0.5 && backStroke && u > 0.55 && this.emitHairs) this.emitHairs(limb.tip, side, dt);
     }
 
     // --- idle palp tapping / foreleg probing
