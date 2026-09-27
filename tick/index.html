@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>FRONTIER · Tick Lab — Giant Battery Tick ♀</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+  <div id="vignette"></div>
+  <div id="labels"></div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-text">
+        <div class="brand-title">FRONTIER <span class="dim">·</span> <span class="accent">TICK LAB</span></div>
+        <div class="brand-sub"><i>Ixodes</i>-class giant · female · pack-raiders A &amp; B</div>
+      </div>
+    </div>
+    <div class="top-chips">
+      <div class="chip" title="8-leg gait: alternating tetrapod ⇄ wave">GAIT <b id="chip-gait">—</b></div>
+      <div class="chip" title="Salivary cement cone around the hypostome">CEMENT <b id="chip-cement">0%</b></div>
+      <div class="chip" title="Race-car 12 V rail status">HOST <b id="chip-host">—</b></div>
+      <div class="chip" title="Frames per second">FPS <b id="chip-fps">—</b></div>
+    </div>
+    <div class="top-actions">
+      <div class="seg" id="camseg" title="Camera mode">
+        <button data-cam="free">Free</button>
+        <button data-cam="track" class="on">Track</button>
+        <button data-cam="macro">Macro</button>
+        <button data-cam="cine">Cine</button>
+      </div>
+      <button id="btn-guide" class="btn ghost">Field Guide</button>
+    </div>
+  </header>
+
+  <aside id="panel-left" class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Behavior</span>
+      <span id="state-badge" class="state-badge">BOOT</span>
+    </div>
+
+    <div class="group-label">Host cues</div>
+    <div class="btn-grid">
+      <button id="btn-co2" class="btn primary">☁ CO₂ — host idling</button>
+      <button id="btn-drop" class="btn">Drop off</button>
+    </div>
+
+    <div class="group-label">Breach runs</div>
+    <div class="btn-grid">
+      <button id="btn-breach-a" class="btn amber">Breach — Tick A</button>
+      <button id="btn-breach-b" class="btn amber">Breach — Tick B</button>
+    </div>
+
+    <div class="group-label">Gait &amp; time</div>
+    <div class="slider-row">
+      <label>Crawl speed</label>
+      <input id="sl-speed" type="range" min="0" max="100" value="30" />
+      <span id="v-speed" class="val">43 mm/s</span>
+    </div>
+    <div class="slider-row">
+      <label>Slow motion</label>
+      <input id="sl-time" type="range" min="0" max="100" value="100" />
+      <span id="v-time" class="val">1.00×</span>
+    </div>
+
+    <div class="group-label">Overlays</div>
+    <div class="toggle-grid">
+      <button id="tg-labels" class="toggle on">Anatomy labels</button>
+      <button id="tg-demo" class="toggle">Auto demo</button>
+    </div>
+
+    <div class="hint">Drag&nbsp;·&nbsp;orbit&nbsp;&nbsp;&nbsp;Wheel&nbsp;·&nbsp;zoom&nbsp;&nbsp;&nbsp;Right-drag&nbsp;·&nbsp;pan<br/>Macro cam + slow-mo reveals the barbed hypostome &amp; cement cone.</div>
+  </aside>
+
+  <aside id="panel-right" class="panel">
+    <div class="panel-head"><span class="panel-title">Specimens</span><span class="live-dot"></span></div>
+
+    <div class="gauge-block">
+      <div class="gauge-head"><span>Tick A engorgement</span><b id="v-fill-a">0%</b></div>
+      <div class="gauge"><div id="g-fill-a" class="gauge-fill blood" style="width:0%"></div></div>
+      <div class="gauge-sub" id="v-sub-a">unfed</div>
+    </div>
+    <div class="gauge-block">
+      <div class="gauge-head"><span>Tick B engorgement</span><b id="v-fill-b">0%</b></div>
+      <div class="gauge"><div id="g-fill-b" class="gauge-fill blood" style="width:0%"></div></div>
+      <div class="gauge-sub" id="v-sub-b">unfed</div>
+    </div>
+    <div class="gauge-block">
+      <div class="gauge-head"><span>Car battery</span><b id="v-batt">100%</b></div>
+      <div class="gauge"><div id="g-batt" class="gauge-fill charge" style="width:100%"></div></div>
+    </div>
+
+    <div class="group-label">Telemetry</div>
+    <div class="tele-grid">
+      <div class="tele"><span>Speed</span><b id="t-speed">0 mm/s</b></div>
+      <div class="tele"><span>Height</span><b id="t-alt">0 mm</b></div>
+      <div class="tele"><span>Surface</span><b id="t-surf">—</b></div>
+      <div class="tele"><span>Grip</span><b id="t-grip">—</b></div>
+      <div class="tele"><span>Duty factor</span><b id="t-duty">—</b></div>
+      <div class="tele"><span>Phase</span><b id="t-phase">—</b></div>
+    </div>
+
+    <div class="group-label">Breach sequence</div>
+    <ol id="feed-steps" class="feed-steps">
+      <li data-s="quest">Quest · Haller's organ</li>
+      <li data-s="breach">Breach via air duct</li>
+      <li data-s="attach">Chelicerae cut</li>
+      <li data-s="cement">Cement cone sets</li>
+      <li data-s="feed">Pack siphon</li>
+      <li data-s="replete">Replete · drop-off</li>
+    </ol>
+
+    <button id="btn-reset" class="btn ghost wide">Reset ticks &amp; battery</button>
+  </aside>
+
+  <footer id="logbar">
+    <div id="log"></div>
+    <div class="log-hint">ticks can't jump or fly — they walk, sense, and cement in</div>
+  </footer>
+
+  <div id="guide" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Field Guide · giant hard tick ♀</div>
+          <div class="modal-sub">Real tick biology, scaled ×30 into a pack-raiding race parasite.</div>
+        </div>
+        <button id="btn-guide-close" class="btn ghost">Close ✕</button>
+      </div>
+      <div class="modal-body">
+        <section>
+          <h3>1 · Questing — the front legs are a nose</h3>
+          <p>Ticks can't jump, fly, or drop from trees. They climb vegetation, grip with the rear pairs, and extend the front pair — waving the Haller's organ, a sensory pit on the first tarsi that detects CO₂, heat, humidity and vibration from metres away. When the host's plume hits, the tick orients and marches. Watch pair I lift the moment you press CO₂.</p>
+          <p class="src">Sonenshine &amp; Anderson (tick biology) · Doctronic/MegaBee reviews of Haller's organ · pest-control literature consensus</p>
+        </section>
+        <section>
+          <h3>2 · Attachment — cut, harpoon, cement</h3>
+          <p>The chelicerae lacerate the surface, then the hypostome — a shaft lined with backward (retrorse) barbs — drives in. Salivary glands then secrete a glycine-rich protein cement that gels into a cone around the mouthparts. Barbs + cement = dual fixation that resists scraping for days. That's why your wall-scrape must be violent — and why withdrawal rocks side to side.</p>
+          <p class="src">Moorhouse 1969 · Kemp et al. 1982 · Mulenga et al. 2022 (cement proteins) · PMC 2026 mini-review of fixation</p>
+        </section>
+        <section>
+          <h3>3 · Engorgement — the scutum never grows</h3>
+          <p>An adult female feeds once for days and balloons to many times her unfed mass (up to ~100× by weight). Only the soft alloscutum expands — the hard scutum shield keeps its exact size, ending up as a small plate on a giant sac. The rig reproduces this exactly: scutum fixed, sac ×2.5, wrinkles smoothing as it stretches.</p>
+          <p class="src">Ixodidae overview (ScienceDirect) · Sonenshine &amp; Anderson 2013</p>
+        </section>
+        <section>
+          <h3>4 · Eight legs — alternating tetrapod</h3>
+          <p>Like spiders, ticks walk four legs at a time: (L1·R2·L3·R4) ⇄ (R1·L2·R3·L4), shifting toward a metachronal wave at low speed. Stance feet stay planted while the body travels — including up the bumper face, where “down” is the panel normal and the claws do the work.</p>
+          <p class="src">Arachnid locomotion literature · analogous hexapod continuum (Cruse/Walknet)</p>
+        </section>
+        <section>
+          <h3>5 · The duct breach (game adaptation)</h3>
+          <p>Real ticks crawl to sheltered feeding sites (ears, groin, armpits — warm, thin, hidden). The air duct is the car's armpit: dark, warm from the pack, and a straight highway past the bodywork. The tick crouches to tunnel height, folds its workspace, and siphons the cells until replete — then lets go and drops.</p>
+          <p class="src">Design extrapolation from feeding-site selection literature</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="loader"><div class="spin"></div><div>hatching ticks…</div></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
