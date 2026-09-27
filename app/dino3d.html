@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="dark"/>
+<title>FRONTIER · Dinosaur 3D Walk Cycle</title>
+<script type="importmap">{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}</script>
+<style>
+:root{--blue:#1f5eff;--bg:#0a0a0a;--panel:#121212;--field:#000;--stroke:rgba(255,255,255,.08);--text:#fff;--dim:#8a8a8a;--faint:#5c5c5c;--font:'Inter',system-ui,sans-serif;--mono:ui-monospace,monospace;--ease:cubic-bezier(.22,.61,.36,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--blue);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit}
+.stage{position:fixed;inset:0;display:grid;place-items:center;padding:2.5vh 2vw}
+.device{position:relative;width:min(1280px,100%,calc((100vh - 5vh)*1.52));aspect-ratio:1.52/1;border-radius:38px;background:#111;padding:14px;box-shadow:0 60px 120px -30px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08),inset 0 0 0 2px #2b2b2b}
+.device::before,.device::after{content:"";position:absolute;left:-3px;width:3px;height:9%;border-radius:2px 0 0 2px;background:#1b1b1b}
+.device::before{top:18%}.device::after{top:31%}
+.screen{position:relative;width:100%;height:100%;border-radius:26px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+.ui{position:absolute;inset:0;width:1160px;height:762px;transform-origin:0 0;transform:scale(var(--s,1));display:flex;flex-direction:column}
+.hero{height:132px;background:var(--blue);padding:16px 20px;display:flex;flex-direction:column;gap:8px;flex:none}
+.nav{display:flex;align-items:center;gap:12px}
+.logo{height:30px;padding:0 12px;border-radius:999px;background:#fff;color:var(--blue);font-weight:800;font-size:11px;letter-spacing:.14em;display:flex;align-items:center}
+.tabs{height:30px;padding:3px;border-radius:999px;background:rgba(255,255,255,.14);display:flex;gap:2px;position:relative}
+.tab{height:24px;padding:0 12px;border-radius:999px;font-size:11.5px;font-weight:500;color:#fff;position:relative;z-index:1;display:flex;align-items:center}
+.tab.is-on{color:var(--blue)}
+.tab-ink{position:absolute;top:3px;height:24px;border-radius:999px;background:#fff;transition:left .3s var(--ease),width .3s var(--ease)}
+.hero-mid{flex:1;display:flex;align-items:end;justify-content:space-between;gap:12px}
+.hero-mid h1{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:.9}
+.hero-mid h1 span{font-weight:300}
+.hero-mid p{font-size:11px;color:rgba(255,255,255,.8);max-width:560px;line-height:1.45;margin-top:4px}
+.hbtn{height:30px;padding:0 6px 0 12px;border-radius:999px;background:#fff;color:#111;font-size:11.5px;font-weight:650;display:flex;align-items:center;gap:6px}
+.hbtn i{width:20px;height:20px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:10px}
+.hbtn.ghost{background:rgba(255,255,255,.14);color:#fff;padding:0 12px}
+.content{flex:1;display:grid;grid-template-columns:1.62fr .9fr;gap:12px;padding:12px;background:#0a0a0a;min-height:0}
+.card{background:var(--panel);border:1px solid var(--stroke);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.card-head{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--stroke);flex:none}
+.card-head b{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase}
+.badge{font:600 10px var(--mono);padding:4px 8px;border-radius:999px;background:var(--field);border:1px solid var(--stroke);color:var(--dim)}
+.badge.live{background:var(--blue);color:#fff;border-color:transparent}
+.view{flex:1;position:relative;background:radial-gradient(100% 90% at 50% 0%,rgba(31,94,255,.08),transparent 60%),linear-gradient(180deg,#0f1117,#0a0a0a)}
+#threeWrap{position:absolute;inset:0}
+#threeWrap canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}
+.ov{font:600 9px var(--mono);background:rgba(0,0,0,.52);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:6px 8px;border-radius:10px;color:#fff;display:flex;gap:6px;align-items:center}
+.ov em{color:rgba(255,255,255,.55);font-style:normal}
+.ov i{width:7px;height:7px;border-radius:50%;background:var(--blue);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,94,255,.5)}70%{box-shadow:0 0 0 5px rgba(31,94,255,0)}}
+.bottom-bar{height:40px;display:flex;align-items:center;gap:6px;padding:0 10px;border-top:1px solid var(--stroke);background:rgba(0,0,0,.28);flex:none}
+.icon-btn{width:28px;height:28px;border-radius:10px;background:#222;border:1px solid var(--stroke);display:grid;place-items:center;font-size:11px}
+.icon-btn.primary{background:#fff;color:#111;border-color:#fff}
+.spacer{flex:1}
+.mini{font:600 10px var(--mono);color:var(--dim)}
+.mini b{color:#fff}
+.controls{padding:10px 12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.ctrl{padding:10px;background:var(--field);border:1px solid var(--stroke);border-radius:14px}
+.ctrl-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ctrl-top b{font-size:11px}
+.ctrl-top span{font:600 11px var(--mono);color:var(--blue)}
+.slider{appearance:none;width:100%;height:4px;background:#1e1e1e;border-radius:2px}
+.slider::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--blue);cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toggle{height:32px;padding:0 10px;border-radius:999px;background:var(--field);border:1px solid var(--stroke);display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:500}
+.toggle i{width:28px;height:16px;border-radius:999px;background:#1e1e1e;border:1px solid var(--stroke);position:relative;transition:.2s}
+.toggle i::after{content:"";position:absolute;left:1px;top:1px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on{border-color:rgba(31,94,255,.35);background:rgba(31,94,255,.08)}
+.toggle.on i{background:var(--blue);border-color:var(--blue)}
+.toggle.on i::after{transform:translateX(12px)}
+.btn{height:32px;padding:0 14px;border-radius:999px;font-size:11.5px;font-weight:650;display:flex;align-items:center;gap:6px;justify-content:center;border:1px solid transparent}
+.btn.primary{background:#fff;color:#111}
+.btn.ghost{background:#222;color:#fff;border-color:var(--stroke)}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.block{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip{font:600 9.5px var(--mono);padding:4px 8px;border-radius:999px;background:var(--field);border:1px solid var(--stroke);color:var(--dim)}
+.note{font-size:10px;line-height:1.5;color:var(--dim)}
+.note b{color:#fff}
+.drop{border:1.5px dashed rgba(255,255,255,.12);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:rgba(255,255,255,.015)}
+.drop b{font-size:11px}
+.drop small{font-size:10px;color:var(--dim);line-height:1.4}
+.phase-dots{display:flex;gap:4px}
+.phase-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.18)}
+.phase-dots i.on{background:var(--blue);box-shadow:0 0 0 4px rgba(31,94,255,.2)}
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="screen">
+<div class="ui" id="ui">
+<header class="hero">
+  <div class="nav">
+    <div class="logo">FRONTIER</div>
+    <nav class="tabs" id="tabs"><div class="tab-ink" id="ink"></div>
+      <a class="tab" href="index.html">Lobby</a>
+      <a class="tab" href="wallet.html">Wallet</a>
+      <a class="tab" href="dino.html">Dino 2D</a>
+      <a class="tab is-on" href="dino3d.html">Dino 3D</a>
+    </nav>
+    <div style="flex:1"></div>
+    <span style="font:600 10px var(--mono);opacity:.7;border:1px solid rgba(255,255,255,.25);padding:4px 8px;border-radius:999px">SPACE play · drag orbit · wheel zoom · E export</span>
+  </div>
+  <div class="hero-mid">
+    <div>
+      <h1>Dinosaur <span>3D walk cycle</span></h1>
+      <p>Real 3D rig — not a sprite. Hierarchical skeleton with IK legs, pelvis bob, tail physics and ground-contact planting. Matches your source dimensions: scale the rig so the **tight bbox W×H** maps 1:1 to world units — no squash.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="hbtn ghost" id="btnReset">Reset</button>
+      <button class="hbtn" id="btnPlay"><i id="playI">⏸</i><span id="playT">Pause</span></button>
+    </div>
+  </div>
+</header>
+<div class="content">
+  <section class="card" style="min-width:0">
+    <div class="card-head"><b>3D Viewport · orbit</b>
+      <div style="display:flex;gap:6px"><span class="badge live" id="fpsBadge">60 fps</span><span class="badge" id="dimBadge">—</span></div>
+    </div>
+    <div class="view">
+      <div id="threeWrap"></div>
+      <div class="overlay">
+        <div class="ov"><i></i> RIG <em id="rigDim">HIP 1.45m · TAIL 2.8m</em></div>
+        <div class="ov" style="margin-left:auto">WORLD <em id="worldDim">scale 1.00× · Z=fwd</em></div>
+      </div>
+      <div class="bottom-bar">
+        <button class="icon-btn primary" id="mPrev">◀</button>
+        <button class="icon-btn primary" id="mNext">▶</button>
+        <div class="phase-dots" id="phaseDots"></div>
+        <div class="spacer"></div>
+        <span class="mini">PHASE <b id="phaseLabel">0/8</b> · <b id="timeLabel">0.00s</b></span>
+        <button class="icon-btn" id="btnWire" title="Wireframe">◩</button>
+        <button class="icon-btn" id="btnSkeleton" title="Skeleton">🦴</button>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><b>Controls · dimensions</b><small id="bboxLabel">BBOX —</small></div>
+    <div class="controls">
+      <div class="drop" id="drop">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center">⬆</div>
+        <b>Match to your dinosaur dimensions</b>
+        <small>Enter tight W×H (px) or drop PNG to auto-read.<br>The 3D rig scales so <b style="color:#fff">world units = image units</b>.</small>
+        <div style="display:flex;gap:6px;width:100%;margin-top:4px">
+          <input id="inW" type="number" placeholder="W px" style="flex:1;height:32px;background:var(--field);border:1px solid var(--stroke);border-radius:10px;padding:0 10px;font:600 11px var(--mono);color:#fff" value="1211">
+          <span style="align-self:center;color:var(--dim)">×</span>
+          <input id="inH" type="number" placeholder="H px" style="flex:1;height:32px;background:var(--field);border:1px solid var(--stroke);border-radius:10px;padding:0 10px;font:600 11px var(--mono);color:#fff" value="482">
+        </div>
+        <div style="display:flex;gap:6px;width:100%">
+          <button class="btn ghost" id="btnPick" style="flex:1">Drop / Choose PNG</button>
+          <button class="btn primary" id="btnApplyDim" style="flex:1">Apply scale</button>
+        </div>
+        <input type="file" id="fileIn" accept="image/png,image/webp,image/jpeg" hidden>
+        <small id="fileName" style="color:var(--blue)"></small>
+      </div>
+
+      <div class="ctrl"><div class="ctrl-top"><b>Playback</b><span id="vSpeed">1.00×</span></div><input id="sSpeed" class="slider" type="range" min="0" max="2" step="0.01" value="1"></div>
+      <div class="row2">
+        <div class="ctrl"><div class="ctrl-top"><b>Stride (Z)</b><span id="vStride">1.4</span></div><input id="sStride" class="slider" type="range" min="0.4" max="2.8" step="0.02" value="1.4"></div>
+        <div class="ctrl"><div class="ctrl-top"><b>Lift (Y)</b><span id="vLift">0.42</span></div><input id="sLift" class="slider" type="range" min="0.05" max="0.9" step="0.01" value="0.42"></div>
+      </div>
+      <div class="row2">
+        <div class="ctrl"><div class="ctrl-top"><b>Bob</b><span id="vBob">0.08</span></div><input id="sBob" class="slider" type="range" min="0" max="0.22" step="0.005" value="0.08"></div>
+        <div class="ctrl"><div class="ctrl-top"><b>Tail</b><span id="vTail">1.00×</span></div><input id="sTail" class="slider" type="range" min="0" max="2" step="0.05" value="1"></div>
+      </div>
+      <div class="row2">
+        <div class="ctrl"><div class="ctrl-top"><b>World scale</b><span id="vScale">1.00×</span></div><input id="sScale" class="slider" type="range" min="0.6" max="1.6" step="0.01" value="1"></div>
+        <div class="ctrl"><div class="ctrl-top"><b>Hip height</b><span id="vHip">1.45</span></div><input id="sHip" class="slider" type="range" min="0.9" max="1.9" step="0.01" value="1.45"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="toggle on" id="tShadow"><span>Shadows</span><i></i></button>
+        <button class="toggle on" id="tGround"><span>Ground</span><i></i></button>
+        <button class="toggle on" id="tIK"><span>IK legs</span><i></i></button>
+        <button class="toggle on" id="tTail"><span>Tail physics</span><i></i></button>
+        <button class="toggle on" id="tOrbit"><span>Orbit damping</span><i></i></button>
+        <button class="toggle" id="tSkel"><span>Skeleton helper</span><i></i></button>
+      </div>
+
+      <div style="height:1px;background:var(--stroke)"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="chip" id="chipTight">TIGHT 1211×482</span>
+        <span class="chip" id="chipScale">SCALE 1.00× → 3.2m len</span>
+        <span class="chip" id="chipRig">RIG 3.45m × 1.45m</span>
+      </div>
+      <div class="note"><b>Dimension matching:</b> We set `worldScale = tight.w / 1211`. At 1211×482 the dino is 3.45m long × 1.45m at hip. Upload a 2400×900 dino → worldScale ≈1.98×, stride & leg lengths auto-scale so the walk never stretches. For Frontier `GeometryArchives` use the exported GLB side-car JSON for correct import units.</div>
+
+      <div class="grid2">
+        <button class="btn ghost" id="btnShot">Screenshot PNG</button>
+        <button class="btn blue" id="btnJson">Copy rig JSON</button>
+      </div>
+      <button class="btn primary block" id="btnGLB" style="margin-top:2px">Export GLB (Three.js) — for Blender</button>
+      <div class="note" style="text-align:center">GLB contains hierarchy; re-import into Blender and bake the 8-frame walk. Or use the JSON to drive <code style="font:600 10px var(--mono);background:var(--field);border:1px solid var(--stroke);padding:1px 4px;border-radius:4px">EngineContent/GeometryArchives</code> creatures.</div>
+    </div>
+  </section>
+</div>
+</div></div></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+// device scale
+const ui=document.getElementById('ui'), dev=document.querySelector('.device');
+function fit(){ const s=Math.min(dev.clientWidth/1160, dev.clientHeight/762); ui.style.setProperty('--s',s); }
+addEventListener('resize',fit); fit();
+const tabs=document.getElementById('tabs'), ink=document.getElementById('ink'), on=tabs.querySelector('.tab.is-on');
+function placeInk(){ ink.style.left=on.offsetLeft+'px'; ink.style.width=on.offsetWidth+'px'; }
+placeInk(); addEventListener('resize',placeInk);
+
+const wrap=document.getElementById('threeWrap');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0e1117);
+const camera=new THREE.PerspectiveCamera(46, wrap.clientWidth/wrap.clientHeight, 0.12, 80);
+camera.position.set(4.8, 2.9, 6.2);
+const renderer=new THREE.WebGLRenderer({antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+wrap.appendChild(renderer.domElement);
+function onResize(){
+  const r=wrap.getBoundingClientRect();
+  camera.aspect=r.width/r.height; camera.updateProjectionMatrix();
+  renderer.setSize(r.width, r.height, false);
+}
+new ResizeObserver(onResize).observe(wrap); onResize();
+
+// lights
+scene.add(new THREE.HemisphereLight(0xffffff, 0x0a0a0a, 0.9));
+const dir=new THREE.DirectionalLight(0xffffff, 1.35); dir.position.set(5,9,4); dir.castShadow=true;
+dir.shadow.mapSize.set(2048,2048); dir.shadow.camera.near=0.5; dir.shadow.camera.far=20;
+dir.shadow.camera.left=-8; dir.shadow.camera.right=8; dir.shadow.camera.top=8; dir.shadow.camera.bottom=-8;
+dir.shadow.bias=-0.0006;
+scene.add(dir);
+const fill=new THREE.DirectionalLight(0x6b7bff, 0.35); fill.position.set(-4,5,-5); scene.add(fill);
+
+// ground
+const groundGeo=new THREE.PlaneGeometry(40,40);
+const groundMat=new THREE.MeshStandardMaterial({color:0x0a0c10, roughness:0.92, metalness:0.02});
+const ground=new THREE.Mesh(groundGeo, groundMat); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true;
+scene.add(ground);
+// grid + stripes illusion
+const grid=new THREE.GridHelper(40,40,0x1f2a44,0x141b2e); grid.position.y=0.01; scene.add(grid);
+let groundStripOffset=0;
+const stripCanvas=document.createElement('canvas'); stripCanvas.width=512; stripCanvas.height=512;
+const stripCtx=stripCanvas.getContext('2d');
+// fog + vignette via background? add subtle fog
+scene.fog=new THREE.Fog(0x0e1117, 12, 28);
+
+// controls
+const controls=new OrbitControls(camera, renderer.domElement);
+controls.target.set(0,0.9,0); controls.enableDamping=true; controls.dampingFactor=0.06;
+controls.minDistance=1.8; controls.maxDistance=18; controls.maxPolarAngle=Math.PI*0.48;
+controls.minPolarAngle=0.08; controls.update();
+
+// materials
+const creamMat=new THREE.MeshStandardMaterial({color:0xe8d9b8, roughness:0.72, metalness:0.02});
+const creamDarkMat=new THREE.MeshStandardMaterial({color:0xdccfb0, roughness:0.78});
+const tealMat=new THREE.MeshStandardMaterial({color:0x125a5a, roughness:0.68}); // far leg
+const tealUnderMat=new THREE.MeshStandardMaterial({color:0x1a6b6b, roughness:0.7});
+const whiteMat=new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.4});
+const blackMat=new THREE.MeshStandardMaterial({color:0x0a0a0a});
+const eyeMat=new THREE.MeshStandardMaterial({color:0x0e3a3a, roughness:0.2});
+let wireframe=false;
+
+// skeleton: create hierarchy
+const dinoRoot=new THREE.Group(); scene.add(dinoRoot);
+const hipGroup=new THREE.Group(); dinoRoot.add(hipGroup); // hip pivot
+// we'll set hipGroup.position.y = hipHeight each frame (with bob)
+
+// body capsule along Z
+const bodyLen=1.75, bodyRad=0.46;
+const bodyGeo=new THREE.CapsuleGeometry(bodyRad, bodyLen, 8, 16);
+const bodyMesh=new THREE.Mesh(bodyGeo, creamMat); bodyMesh.castShadow=true; bodyMesh.receiveShadow=true;
+bodyMesh.rotation.x=Math.PI/2; // along Z
+bodyMesh.position.set(0,0.08,0.42);
+hipGroup.add(bodyMesh);
+// underbelly
+const bellyGeo=new THREE.CapsuleGeometry(0.32, 1.0, 8, 12);
+const bellyMesh=new THREE.Mesh(bellyGeo, tealUnderMat); bellyMesh.rotation.x=Math.PI/2; bellyMesh.position.set(0,-0.24,0.48); bellyMesh.scale.set(1,1,0.66); hipGroup.add(bellyMesh);
+
+// tail chain: 4 joints
+const tailJoints=[]; const tailMeshes=[];
+let parent=hipGroup;
+const tailSpecs=[
+  {len:0.92, rad:0.26, offsetZ:-0.68},
+  {len:0.82, rad:0.19, offsetZ:-0.82},
+  {len:0.72, rad:0.13, offsetZ:-0.70},
+  {len:0.55, rad:0.07, offsetZ:-0.55},
+];
+tailSpecs.forEach((spec,i)=>{
+  const j=new THREE.Group(); j.position.set(0,0.02, i===0? -0.62 : -tailSpecs[i-1].len*0.92);
+  // shift first joint to body rear
+  if(i===0) j.position.z=-0.78;
+  parent.add(j); tailJoints.push(j);
+  const geo=new THREE.CapsuleGeometry(spec.rad, spec.len, 8, 12);
+  const mat=i%2===0? creamMat: creamDarkMat;
+  const m=new THREE.Mesh(geo, mat); m.castShadow=true; m.rotation.x=Math.PI/2; m.position.z=-spec.len/2;
+  j.add(m); tailMeshes.push(m);
+  parent=j;
+});
+// tail tip cone
+const tipGeo=new THREE.ConeGeometry(0.05,0.28,8); const tipMesh=new THREE.Mesh(tipGeo, new THREE.MeshStandardMaterial({color:0x0e4a4a}));
+tipMesh.rotation.x=-Math.PI/2; tipMesh.position.z=-tailSpecs[tailSpecs.length-1].len-0.12;
+tailJoints[tailJoints.length-1].add(tipMesh);
+
+// neck + head
+const neckGroup=new THREE.Group(); neckGroup.position.set(0,0.32,1.28); hipGroup.add(neckGroup);
+const neckGeo=new THREE.CapsuleGeometry(0.21,0.62,8,12);
+const neckMesh=new THREE.Mesh(neckGeo, creamMat); neckMesh.castShadow=true;
+neckMesh.position.set(0,0.18,0.28); neckMesh.rotation.x= -0.52; // forward/up
+neckGroup.add(neckMesh);
+const headGroup=new THREE.Group(); headGroup.position.set(0,0.56,0.62); neckGroup.add(headGroup);
+// head base - we use a group with meshes
+const headBaseGeo=new THREE.BoxGeometry(0.58,0.42,0.72);
+const headBase=new THREE.Mesh(headBaseGeo, creamMat); headBase.castShadow=true; headBase.position.set(0,0.02,0.36); headGroup.add(headBase);
+// snout
+const snoutGeo=new THREE.BoxGeometry(0.42,0.22,0.52);
+const snoutMesh=new THREE.Mesh(snoutGeo, creamMat); snoutMesh.position.set(0,0.02,0.86); snoutMesh.castShadow=true; headGroup.add(snoutMesh);
+// lower jaw
+const jawGroup=new THREE.Group(); jawGroup.position.set(0,-0.14,0.18); headGroup.add(jawGroup);
+const jawGeo=new THREE.BoxGeometry(0.44,0.10,0.84);
+const jawMesh=new THREE.Mesh(jawGeo, creamMat); jawMesh.position.set(0,0,0.42); jawMesh.castShadow=true; jawGroup.add(jawMesh);
+// teeth
+for(let side of [-1,1]){
+  for(let i=0;i<7;i++){
+    const t=new THREE.Mesh(new THREE.ConeGeometry(0.018,0.09,5), whiteMat); t.position.set(side*0.14,0.08,0.36+i*0.07); t.rotation.x=Math.PI; headGroup.add(t);
+    const tb=new THREE.Mesh(new THREE.ConeGeometry(0.016,0.07,5), whiteMat); tb.position.set(side*0.135,-0.08,0.38+i*0.07); jawGroup.add(tb);
+  }
+}
+// eye
+const eyeGeo=new THREE.SphereGeometry(0.07,12,12);
+const eyeL=new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(0.31,0.06,0.32); headGroup.add(eyeL);
+const eyeR=eyeL.clone(); eyeR.position.x=-0.31; headGroup.add(eyeR);
+const pupilGeo=new THREE.SphereGeometry(0.025,8,8);
+const pupilL=new THREE.Mesh(pupilGeo, blackMat); pupilL.position.set(0.36,0.06,0.36); headGroup.add(pupilL);
+const pupilR=pupilL.clone(); pupilR.position.x=-0.36; headGroup.add(pupilR);
+const highlightGeo=new THREE.SphereGeometry(0.012,6,6);
+const hlL=new THREE.Mesh(highlightGeo, whiteMat); hlL.position.set(0.37,0.08,0.38); headGroup.add(hlL);
+const hlR=hlL.clone(); hlR.position.x=-0.37; headGroup.add(hlR);
+// nostril
+const nostGeo=new THREE.SphereGeometry(0.02,6,6);
+const nostL=new THREE.Mesh(nostGeo, new THREE.MeshStandardMaterial({color:0x0e4a4a})); nostL.position.set(0.18,0.04,0.92); headGroup.add(nostL);
+const nostR=nostL.clone(); nostR.position.x=-0.18; headGroup.add(nostR);
+
+// arms (small)
+function makeArm(side){ // side -1 left, 1 right
+  const shoulder=new THREE.Group(); shoulder.position.set(side*0.38,0.05,0.78); hipGroup.add(shoulder);
+  const upGeo=new THREE.CapsuleGeometry(0.07,0.22,6,8);
+  const up=new THREE.Mesh(upGeo, side<0? tealMat: creamMat); up.castShadow=true; up.position.set(0,-0.06,0.06);
+  // orientation: slight forward/down
+  shoulder.add(up);
+  const elbow=new THREE.Group(); elbow.position.set(0,-0.14,0.12); shoulder.add(elbow);
+  const lowGeo=new THREE.CapsuleGeometry(0.05,0.20,6,8);
+  const low=new THREE.Mesh(lowGeo, side<0? tealMat: creamMat); low.position.set(0,-0.04,0.04); low.castShadow=true; elbow.add(low);
+  // claw
+  const claw=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.08,5), new THREE.MeshStandardMaterial({color:0xe8eef4})); claw.rotation.x=Math.PI/2; claw.position.set(0,-0.10,0.06); elbow.add(claw);
+  return {shoulder, elbow};
+}
+const armL=makeArm(-1), armR=makeArm(1);
+
+// legs - hierarchical capsule chain with IK pivots
+function makeLeg(side, isFar){
+  const mat = isFar? tealMat: creamMat;
+  const hipJ=new THREE.Group(); hipJ.position.set(side*0.26, -0.02, -0.06); hipGroup.add(hipJ);
+  // thigh pivot: rotate around X for sagittal, Z for slight splay
+  const thighGroup=new THREE.Group(); hipJ.add(thighGroup);
+  const thighLen=0.72, shinLen=0.68;
+  const thighGeo=new THREE.CapsuleGeometry(isFar?0.19:0.21, thighLen, 10, 12);
+  const thighMesh=new THREE.Mesh(thighGeo, mat); thighMesh.castShadow=true; thighMesh.position.y=-thighLen/2; thighGroup.add(thighMesh);
+  // visual knee
+  const kneeGeo=new THREE.SphereGeometry(0.09,10,10);
+  const kneeMesh=new THREE.Mesh(kneeGeo, mat); kneeMesh.position.y=-thighLen; thighGroup.add(kneeMesh);
+  const kneeGroup=new THREE.Group(); kneeGroup.position.y=-thighLen; thighGroup.add(kneeGroup);
+  const shinGeo=new THREE.CapsuleGeometry(isFar?0.13:0.15, shinLen, 10, 12);
+  const shinMesh=new THREE.Mesh(shinGeo, mat); shinMesh.position.y=-shinLen/2; shinMesh.castShadow=true; kneeGroup.add(shinMesh);
+  const ankleGroup=new THREE.Group(); ankleGroup.position.y=-shinLen; kneeGroup.add(ankleGroup);
+  // foot: box + toes
+  const footGeo=new THREE.BoxGeometry(0.18,0.07,0.32);
+  const footMesh=new THREE.Mesh(footGeo, mat); footMesh.position.set(0,-0.02,0.10); footMesh.castShadow=true; ankleGroup.add(footMesh);
+  // toe
+  const toeGeo=new THREE.BoxGeometry(0.14,0.05,0.12);
+  const toeMesh=new THREE.Mesh(toeGeo, new THREE.MeshStandardMaterial({color:0xe8eef4})); toeMesh.position.set(0,-0.03,0.28); ankleGroup.add(toeMesh);
+  // claw on toe
+  const tclaw=new THREE.Mesh(new THREE.ConeGeometry(0.025,0.08,5), new THREE.MeshStandardMaterial({color:0xe8eef4})); tclaw.rotation.x=Math.PI/2; tclaw.position.set(0,0,0.08); toeMesh.add(tclaw);
+  return {hipJ, thighGroup, kneeGroup, ankleGroup, thighLen, shinLen, mat, side, isFar};
+}
+const legL=makeLeg(-0.9, false); // near (cream) on left? For visibility we put near on left (-X) is cream? In 2D far was teal behind, near cream front. In 3D both visible. Keep L=cream near, R=teal far but both rendered.
+const legR=makeLeg(0.9, true);
+legL.hipJ.position.x=-0.22; legR.hipJ.position.x=0.22;
+
+// helpers for skeleton debug
+const skelHelpers=new THREE.Group(); scene.add(skelHelpers);
+let showSkel=false;
+
+// shadows for feet already via directional shadow; add contact circles
+const shadowMat=new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.22});
+const shadowGeo=new THREE.CircleGeometry(0.42,24);
+const shL=new THREE.Mesh(shadowGeo, shadowMat.clone()); shL.rotation.x=-Math.PI/2; shL.position.y=0.02; scene.add(shL);
+const shR=new THREE.Mesh(shadowGeo, shadowMat.clone()); shR.rotation.x=-Math.PI/2; shR.position.y=0.02; scene.add(shR);
+const shBody=new THREE.Mesh(new THREE.CircleGeometry(0.9,24), new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.14})); shBody.rotation.x=-Math.PI/2; shBody.position.y=0.015; scene.add(shBody);
+
+// state
+const state={
+  playing:true, speed:1, stride:1.40, lift:0.42, bob:0.08, tail:1,
+  scale:1, hipHeight:1.45,
+  showShadow:true, showGround:true, useIK:true, showTail:true,
+  phase:0, time:0
+};
+const fpsEl=document.getElementById('fpsBadge'), dimEl=document.getElementById('dimBadge'), rigDim=document.getElementById('rigDim'), worldDim=document.getElementById('worldDim'), bboxLabel=document.getElementById('bboxLabel');
+let tight={w:1211,h:482}; // default from 2D
+let worldScale=1;
+
+// UI bindings
+const sSpeed=document.getElementById('sSpeed'), sStride=document.getElementById('sStride'), sLift=document.getElementById('sLift'), sBob=document.getElementById('sBob'), sTail=document.getElementById('sTail'), sScale=document.getElementById('sScale'), sHip=document.getElementById('sHip');
+const vSpeed=document.getElementById('vSpeed'), vStride=document.getElementById('vStride'), vLift=document.getElementById('vLift'), vBob=document.getElementById('vBob'), vTail=document.getElementById('vTail'), vScale=document.getElementById('vScale'), vHip=document.getElementById('vHip');
+sSpeed.addEventListener('input', e=>{state.speed=parseFloat(e.target.value); vSpeed.textContent=state.speed.toFixed(2)+'×';});
+sStride.addEventListener('input', e=>{state.stride=parseFloat(e.target.value); vStride.textContent=state.stride.toFixed(2);});
+sLift.addEventListener('input', e=>{state.lift=parseFloat(e.target.value); vLift.textContent=state.lift.toFixed(2);});
+sBob.addEventListener('input', e=>{state.bob=parseFloat(e.target.value); vBob.textContent=state.bob.toFixed(3);});
+sTail.addEventListener('input', e=>{state.tail=parseFloat(e.target.value); vTail.textContent=state.tail.toFixed(2)+'×';});
+sScale.addEventListener('input', e=>{state.scale=parseFloat(e.target.value); vScale.textContent=state.scale.toFixed(2)+'×'; applyScale();});
+sHip.addEventListener('input', e=>{state.hipHeight=parseFloat(e.target.value); vHip.textContent=state.hipHeight.toFixed(2);});
+
+function tog(id,key){
+  const el=document.getElementById(id);
+  el.addEventListener('click', ()=>{ state[key]=!state[key]; el.classList.toggle('on', state[key]); onStateChange(); });
+}
+tog('tShadow','showShadow'); tog('tGround','showGround'); tog('tIK','useIK'); tog('tTail','showTail');
+document.getElementById('tOrbit').addEventListener('click', function(){ const on=this.classList.contains('on'); this.classList.toggle('on', !on); controls.enableDamping=!on? true:false; });
+document.getElementById('tSkel').addEventListener('click', function(){ showSkel=!showSkel; this.classList.toggle('on', showSkel); skelHelpers.visible=showSkel; });
+document.getElementById('btnWire').addEventListener('click', ()=>{ wireframe=!wireframe; [creamMat,creamDarkMat,tealMat,tealUnderMat].forEach(m=>m.wireframe=wireframe); document.getElementById('btnWire').style.background=wireframe?'var(--blue)':''; });
+document.getElementById('btnSkeleton').addEventListener('click', ()=>{ showSkel=!showSkel; skelHelpers.visible=showSkel; document.getElementById('btnSkeleton').style.background=showSkel?'var(--blue)':''; document.getElementById('tSkel').classList.toggle('on', showSkel); });
+function onStateChange(){
+  ground.visible=state.showGround; grid.visible=state.showGround;
+  shL.visible=state.showShadow; shR.visible=state.showShadow; shBody.visible=state.showShadow;
+}
+onStateChange();
+
+// play
+const btnPlay=document.getElementById('btnPlay'), playI=document.getElementById('playI'), playT=document.getElementById('playT');
+function updPlay(){ playT.textContent=state.playing?'Pause':'Play'; playI.textContent=state.playing?'⏸':'▶'; }
+btnPlay.addEventListener('click', ()=>{state.playing=!state.playing; updPlay();});
+document.getElementById('btnReset').addEventListener('click', ()=>{state.phase=0; state.time=0;});
+addEventListener('keydown', e=>{
+  if(e.code==='Space'){e.preventDefault(); state.playing=!state.playing; updPlay();}
+  if(e.key==='r'||e.key==='R'){state.phase=0;}
+  if(e.key==='e'||e.key==='E'){takeScreenshot();}
+  if(e.key==='ArrowLeft'){step(-1);} if(e.key==='ArrowRight'){step(1);}
+});
+document.getElementById('mPrev').addEventListener('click', ()=>step(-1));
+document.getElementById('mNext').addEventListener('click', ()=>step(1));
+function step(dir){ state.playing=false; updPlay(); state.phase=(state.phase+dir*0.125+1)%1; }
+
+const phaseDots=document.getElementById('phaseDots');
+for(let i=0;i<8;i++){ const el=document.createElement('i'); phaseDots.appendChild(el); }
+
+// dimension handling
+const inW=document.getElementById('inW'), inH=document.getElementById('inH');
+document.getElementById('btnApplyDim').addEventListener('click', applyDim);
+function applyDim(){
+  const w=+inW.value||1211, h=+inH.value||482;
+  tight={w,h}; updateChips();
+  worldScale=w/1211;
+  state.scale=THREE.MathUtils.clamp(worldScale,0.45,2.2); sScale.value=state.scale; vScale.textContent=state.scale.toFixed(2)+'×';
+  applyScale();
+  toast(`Scale ${state.scale.toFixed(2)}× · tight ${w}×${h}`);
+}
+function updateChips(){
+  document.getElementById('chipTight').textContent=`TIGHT ${tight.w}×${tight.h}`;
+  document.getElementById('chipRig').textContent=`RIG ${(3.45*state.scale).toFixed(2)}m × ${(1.45*state.scale).toFixed(2)}m`;
+  document.getElementById('chipScale').textContent=`SCALE ${state.scale.toFixed(2)}× → ${(3.45*state.scale).toFixed(1)}m len`;
+  bboxLabel.textContent=`BBOX ${tight.w}×${tight.h} · ${(tight.w/tight.h).toFixed(2)}:1`;
+  dimEl.textContent=`${tight.w}×${tight.h} · scale ${state.scale.toFixed(2)}×`;
+  rigDim.textContent=`HIP ${(state.hipHeight*state.scale).toFixed(2)}m · TAIL ${(2.85*state.scale).toFixed(2)}m`;
+  worldDim.textContent=`scale ${state.scale.toFixed(2)}× · Z=fwd`;
+}
+function applyScale(){
+  const s=state.scale;
+  dinoRoot.scale.set(s,s,s);
+  updateChips();
+}
+applyScale(); updateChips();
+
+// image drop to auto-read tight
+const drop=document.getElementById('drop'), fileIn=document.getElementById('fileIn'), fileName=document.getElementById('fileName');
+document.getElementById('btnPick').addEventListener('click', ()=>fileIn.click());
+fileIn.addEventListener('change', e=>{ const f=e.target.files[0]; if(f) loadFile(f); });
+drop.addEventListener('dragover', e=>{e.preventDefault(); drop.style.borderColor='var(--blue)';});
+drop.addEventListener('dragleave', ()=>drop.style.borderColor='');
+drop.addEventListener('drop', e=>{ e.preventDefault(); drop.style.borderColor=''; const f=e.dataTransfer.files[0]; if(f) loadFile(f); });
+function loadFile(f){
+  fileName.textContent=f.name;
+  const img=new Image(); img.onload=()=>{
+    // compute tight via canvas
+    const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+    const ctx=c.getContext('2d'); ctx.drawImage(img,0,0);
+    try{
+      const d=ctx.getImageData(0,0,c.width,c.height).data;
+      let minX=c.width, minY=c.height, maxX=0, maxY=0;
+      for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++) if(d[(y*c.width+x)*4+3]>12){ minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y); }
+      const w=maxX-minX+1, h=maxY-minY+1;
+      if(w>0&&h>0){ inW.value=w; inH.value=h; applyDim(); }
+    }catch(e){ inW.value=img.naturalWidth; inH.value=img.naturalHeight; applyDim(); }
+  }; img.src=URL.createObjectURL(f);
+}
+
+// IK solver (reuse 2D)
+function solveLeg(hipX, hipY, footX, footY, L1, L2){
+  const dx=footX-hipX, dy=footY-hipY;
+  let d=Math.hypot(dx,dy);
+  const maxD=L1+L2-0.001, minD=Math.abs(L1-L2)+0.001;
+  d=Math.min(maxD, Math.max(minD,d));
+  const a=Math.atan2(dy,dx);
+  const cosElbow=(L1*L1+L2*L2 - d*d)/(2*L1*L2);
+  const elbow=Math.acos(Math.max(-1,Math.min(1,cosElbow)));
+  const cosShoulder=(L1*L1 + d*d - L2*L2)/(2*L1*d);
+  const shoulder=Math.acos(Math.max(-1,Math.min(1,cosShoulder)));
+  const th=a - shoulder;
+  const sh=th + Math.PI - elbow;
+  const kx=hipX + Math.cos(th)*L1, ky=hipY + Math.sin(th)*L1;
+  return {th, sh, kx,ky, elbow};
+}
+
+// foot trajectory
+function footPos(lp, stride, lift){
+  let z,y;
+  if(lp<0.5){
+    const t=lp/0.5;
+    z= stride*0.5 - t*stride;
+    y=0;
+  } else {
+    const t=(lp-0.5)/0.5;
+    z= -stride*0.5 + t*stride;
+    y= Math.sin(t*Math.PI)* lift; // positive up (lift)
+  }
+  return {z,y};
+}
+
+// animation
+let last=performance.now(), fps=60;
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(state.playing){
+    state.phase=(state.phase + dt*0.9*state.speed)%1;
+    state.time+=dt;
+    groundStripOffset=(groundStripOffset + dt*2.2*state.speed)%1;
+  }
+  // fps
+  fps=fps*0.92 + (1/dt)*0.08;
+  fpsEl.textContent=Math.round(fps)+' fps';
+  document.getElementById('phaseLabel').textContent=`${Math.floor(state.phase*8)}/8`;
+  document.getElementById('timeLabel').textContent=state.time.toFixed(2)+'s';
+  phaseDots.querySelectorAll('i').forEach((el,i)=>el.classList.toggle('on', Math.floor(state.phase*8)===i));
+
+  // body bob + pitch
+  const bobY=Math.sin(state.phase*Math.PI*2*2)* state.bob;
+  const pitch=Math.sin(state.phase*Math.PI*2)* 0.018 * state.tail;
+  const yaw=Math.sin(state.phase*Math.PI*2)* 0.02 * state.tail; // slight
+  hipGroup.position.y= state.hipHeight + bobY;
+  hipGroup.rotation.x= pitch;
+  hipGroup.rotation.y= yaw*0.3;
+  // ground shadows
+  const sx = dinoRoot.position.x, sz=dinoRoot.position.z;
+  // hip is at 0,0 in world scaled; shadows follow feet
+  // tail physics
+  if(state.showTail){
+    tailJoints.forEach((j,i)=>{
+      const wag=Math.sin(state.phase*Math.PI*2*1.0 + i*0.75)* (0.18 - i*0.02) * state.tail;
+      const bobTail=Math.sin(state.phase*Math.PI*4 + i*0.9)* 0.08 * state.tail;
+      j.rotation.y= wag;
+      j.rotation.x= bobTail*0.6;
+      j.rotation.z= Math.sin(state.phase*Math.PI*2 + i*0.6)*0.04*state.tail;
+    });
+  }
+  // neck/head bob
+  const headBob=Math.sin(state.phase*Math.PI*2+Math.PI)*0.04;
+  neckGroup.rotation.x= -0.52 + headBob*0.5;
+  neckGroup.rotation.y= Math.sin(state.phase*Math.PI*2)*0.05*state.tail;
+  headGroup.rotation.y= Math.sin(state.phase*Math.PI*2+0.6)*0.07*state.tail;
+  // jaw open cycle double
+  const jawOpen= 0.05 + Math.sin(state.phase*Math.PI*4)*0.04;
+  jawGroup.rotation.x= jawOpen;
+  // arm swing
+  const armSwing=Math.sin(state.phase*Math.PI*2)*0.34;
+  armL.shoulder.rotation.x= 0.42 + armSwing*0.5;
+  armL.elbow.rotation.x= 0.62 + armSwing*0.3;
+  armR.shoulder.rotation.x= 0.42 - armSwing*0.5;
+  armR.elbow.rotation.x= 0.62 - armSwing*0.3;
+
+  // legs IK
+  const stride=state.stride, lift=state.lift;
+  [ [legL, state.phase], [legR, (state.phase+0.5)%1] ].forEach(([leg, ph])=>{
+    const fp=footPos(ph, stride, lift);
+    // target in hip space: Z=fp.z, Y = -state.hipHeight + fp.y (relative)
+    const targetZ= fp.z;
+    const targetY= -state.hipHeight + fp.y;
+    // for solver: dx=Z, dy= -Y (down positive)
+    // hip local (0,0) to foot (Z, -Y?) Actually -Y = hipHeight - fp.y
+    const dy = -targetY; // = hipHeight - fp.y
+    const dx = targetZ;
+    if(state.useIK){
+      const sol=solveLeg(0,0, dx, dy, leg.thighLen, leg.shinLen);
+      // map to 3D rotation around X: rot = th - PI/2
+      const thighRot = sol.th - Math.PI/2;
+      const shinRot = sol.sh - Math.PI/2;
+      leg.thighGroup.rotation.x= thighRot;
+      leg.kneeGroup.rotation.x= shinRot - thighRot; // relative
+      // ankle: keep foot mostly horizontal (plant)
+      // foot pitch should be -shinRot to keep flat when on ground, plus slight lift when swinging
+      const isStance= ph<0.5;
+      leg.ankleGroup.rotation.x= isStance? -shinRot*0.12 : -shinRot*0.3 + fp.y*0.6;
+      // also splay slightly
+      leg.hipJ.rotation.z= leg.side*0.02;
+    } else {
+      // FK sinus fallback
+      const thighAng=Math.sin(ph*Math.PI*2)*0.55 -0.08;
+      const shinAng=Math.sin(ph*Math.PI*2+0.7)*0.9 +0.35;
+      leg.thighGroup.rotation.x= thighAng;
+      leg.kneeGroup.rotation.x= shinAng;
+      leg.ankleGroup.rotation.x= -thighAng*0.5 - shinAng*0.35;
+    }
+    // update shadows: world foot position approximate
+    const worldFootZ = (leg.side=== -0.9? -0.22:0.22) *0 + targetZ; // actually dinoRoot scaled
+    const isStance= ph<0.5;
+    const sh = leg.isFar? shR: shL; if(leg.isFar) shR.visible=state.showShadow; else shL.visible=state.showShadow;
+    // position shadows on ground following foot Z
+    const scaleS=state.scale;
+    const footWorldZ= targetZ*scaleS;
+    const footWorldX= leg.hipJ.position.x*scaleS;
+    if(leg===legL) { shL.position.set(footWorldX,0.02,footWorldZ); shL.material.opacity=isStance?0.22:0.10; shL.scale.set(scaleS,scaleS,1); }
+    else { shR.position.set(footWorldX,0.02,footWorldZ); shR.material.opacity=isStance?0.22:0.10; shR.scale.set(scaleS,scaleS,1); }
+  });
+  // body shadow
+  shBody.position.x=0; shBody.position.z=0; shBody.material.opacity=0.14;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+// skeleton helper lines
+function buildSkel(){
+  skelHelpers.clear();
+  const mat=new THREE.LineBasicMaterial({color:0x1f5eff});
+  // lines for legs etc would be dynamic; we create helpers that update per frame via dummy? Instead we toggle visibility which draws lines in animate? We'll just leave empty and use bone visualization via small spheres
+  tailJoints.forEach(j=>{
+    const sph=new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshBasicMaterial({color:0x1f5eff})); j.add(sph);
+  });
+}
+buildSkel(); skelHelpers.visible=false;
+
+// screenshot
+function takeScreenshot(){
+  renderer.render(scene, camera);
+  const a=document.createElement('a'); a.href=renderer.domElement.toDataURL('image/png'); a.download=`dino-3d_${tight.w}x${tight.h}_phase${Math.floor(state.phase*8)}.png`; a.click();
+  toast('Screenshot saved');
+}
+document.getElementById('btnShot').addEventListener('click', takeScreenshot);
+document.getElementById('btnJson').addEventListener('click', async ()=>{
+  const data={
+    source:{width:tight.w,height:tight.h, tight},
+    world:{scale:state.scale, hipHeight:state.hipHeight},
+    rig:{
+      frames:8, fps: Math.round(30*state.speed),
+      stride:state.stride*state.scale, lift:state.lift*state.scale, bob:state.bob, tail:state.tail,
+      leg:{thigh:0.72*state.scale, shin:0.68*state.scale},
+      axis:{forward:'+Z', up:'+Y'},
+      phase:state.phase
+    },
+    notes:'Import scale = tight.w / 1211. For Frontier EngineContent/GeometryArchives set units to meters; rig length 3.45m at 1×.'
+  };
+  await navigator.clipboard.writeText(JSON.stringify(data,null,2)).catch(()=>{});
+  toast('Rig JSON copied');
+});
+document.getElementById('btnGLB').addEventListener('click', ()=>{
+  const exporter=new GLTFExporter();
+  // export dinoRoot hierarchy only
+  exporter.parse(dinoRoot, (gltf)=>{
+    if(gltf instanceof ArrayBuffer){
+      const blob=new Blob([gltf],{type:'model/gltf-binary'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`dino-rig_${tight.w}x${tight.h}.glb`; a.click();
+    } else {
+      const str=JSON.stringify(gltf,null,2);
+      const blob=new Blob([str],{type:'model/gltf+json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`dino-rig_${tight.w}x${tight.h}.gltf`; a.click();
+    }
+    toast('GLB exported · import in Blender');
+  }, (e)=>{ console.error(e); toast('Export failed'); }, {binary:true, onlyVisible:false});
+});
+
+// toast
+function toast(msg){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#111;color:#fff;border:1px solid rgba(255,255,255,.12);padding:10px 14px;border-radius:12px;font:600 12px var(--font);z-index:99;opacity:0;transition:.2s'; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',2200);
+}
+
+// initial
+controls.addEventListener('start', ()=>{ if(state.playing) { state.wasPlaying=true; state.playing=false; updPlay(); }});
+controls.addEventListener('end', ()=>{ if(state.wasPlaying){ state.playing=true; updPlay(); state.wasPlaying=false; }});
+</script>
+</body>
+</html>
