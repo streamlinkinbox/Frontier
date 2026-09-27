@@ -1266,6 +1266,30 @@ tilted/oblique/freeform/mixed supports, invalid offsets, malformed topology, hea
 curved-profile face editing. The bounded plan is
 `docs/PLAN_Phase50_CircularSectorPrismFaceOffset.md`.
 
+## Phase 51 — full-turn revolved-annular-prism upper-cap face offset (2026-09-26)
+
+This proof advances face offset into a distinct full-turn genus-one revolved profile:
+
+- `RevolvedAnnularPrismFaceOffsetVerification` constructs the radial rectangle with inner radius 4,
+  outer radius 6, source height 4, and a full `2π` Z-axis revolution. Source and result retain
+  closed genus-one `V4/E8/C16/L4/F4` topology.
+- `FaceEditSolver::OffsetRevolvedAnnularPrism` recognizes only four revolution faces, two exact
+  circular radii, four seam generators, and the selected upper planar annular cap. It extends only
+  the upper Z level by 1.5 and rebuilds the full turn analytically without healing.
+- The focused verifier checks both annular caps, exact topology, the four revolution supports, the
+  annular-area volume identity, source immutability, public dispatcher routing, and explicit refusal
+  of boxes, cylinders, partial turns, extruded through-hole prisms, lower/side faces, invalid
+  offsets, and malformed topology.
+- Durable proof: `Proofs/Phase51_RevolvedAnnularPrismFaceOffset.png`; 23 focused checks pass. The
+  verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one coaxial full-turn radial rectangle and positive upper-cap extension.
+It does not prove solid cylinders, cones, partial turns, non-annular or arbitrary revolved profiles,
+sectors, polygons, ellipses, lower/side faces, tilted/oblique/freeform/mixed supports, invalid offsets,
+malformed topology, healing, or general revolved face editing. The bounded plan is
+`docs/PLAN_Phase51_RevolvedAnnularPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

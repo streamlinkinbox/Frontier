@@ -2,8 +2,8 @@
 // SolidArc · bounded general face editing
 //
 // The public face-edit surface is deliberately conservative. It accepts canonical axis-aligned
-// rectangular prisms, bounded pentagonal-prism, concave-prism, circular-sector-prism, genus-one
-// holed-prism, elliptical-prism, and oblique triangular-prism routes, bounded concave-prism
+// rectangular prisms, bounded pentagonal-prism, concave-prism, circular-sector-prism, revolved-annular-prism,
+// genus-one holed-prism, elliptical-prism, and oblique triangular-prism routes, bounded concave-prism
 // offset/shell/draft and triangular-prism draft routes, a bounded twin-holed-prism route,
 // and natural NURBS replacement faces whose rim is identical to the selected rim. Operations are copy-in/copy-out: a refusal never mutates the
 // source. This is the safe foundation for extending the routes to arbitrary trimmed and curved B-reps later.
@@ -48,6 +48,10 @@ public:
     // Bounded curved-sector offset route for a straight prism with one exact quarter circular sector.
     // Only its upper planar sector cap is supported; arbitrary curved profiles remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedCircularSectorPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded revolved-annulus offset route for a full-turn radial rectangular profile.
+    // Only its upper annular cap is supported; arbitrary revolved profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetRevolvedAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
     // Bounded genus-one offset route for a straight rectangular prism with one exact circular through-hole.
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.

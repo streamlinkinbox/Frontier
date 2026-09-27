@@ -1007,6 +1007,107 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadRevolvedAnnularPrism(const BrepBody& Source, int Face, double& InnerRadius,
+                                            double& OuterRadius, double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 4 || Source.Edges.size() != 8 ||
+        Source.Coedges.size() != 16 || Source.Loops.size() != 4 || Source.Faces.size() != 4) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Revolution || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    const int CapLoop = Cap.Loops.front();
+    if (CapLoop < 0 || CapLoop >= static_cast<int>(Source.Loops.size()) || Source.Loops[CapLoop].Coedges.size() != 4) return false;
+    Low = Source.Bounds().Low.Z; High = Source.Bounds().High.Z;
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+
+    std::vector<double> CapRadii;
+    for (int Coedge : Source.Loops[CapLoop].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const int EdgeIndex = Source.Coedges[Coedge].Edge;
+        if (EdgeIndex < 0 || EdgeIndex >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[EdgeIndex];
+        if (E.Curve.Classification == CurveClassification::Circle)
+        {
+            if (!E.Curve.Rational() || !E.Curve.Closed() || E.Coedges.size() != 2) return false;
+            const Box3 B = E.Curve.Bounds();
+            const double Radius = 0.25 * ((B.High.X - B.Low.X) + (B.High.Y - B.Low.Y));
+            if (!std::isfinite(Radius) || Radius <= ScalarCriteria::MergeTolerance ||
+                std::fabs((B.High.X + B.Low.X) * 0.5) > ScalarCriteria::GeometricTolerance ||
+                std::fabs((B.High.Y + B.Low.Y) * 0.5) > ScalarCriteria::GeometricTolerance ||
+                std::fabs((B.High.X - B.Low.X) - 2.0 * Radius) > ScalarCriteria::GeometricTolerance ||
+                std::fabs((B.High.Y - B.Low.Y) - 2.0 * Radius) > ScalarCriteria::GeometricTolerance) return false;
+            CapRadii.push_back(Radius);
+        }
+        else if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.Coedges.size() != 2) return false;
+    }
+    if (CapRadii.size() != 2 || std::fabs(CapRadii[0] - CapRadii[1]) <= ScalarCriteria::MergeTolerance) return false;
+    InnerRadius = std::min(CapRadii[0], CapRadii[1]);
+    OuterRadius = std::max(CapRadii[0], CapRadii[1]);
+
+    int Circles = 0, Lines = 0;
+    for (const BrepEdge& E : Source.Edges)
+    {
+        if (E.Curve.Classification == CurveClassification::Circle)
+        {
+            if (!E.Curve.Rational() || !E.Curve.Closed() || E.Coedges.size() != 2) return false;
+            ++Circles;
+        }
+        else if (E.Curve.Classification == CurveClassification::Line)
+        {
+            if (E.Curve.Degree != 1 || E.Coedges.size() != 2 || E.VertexStart < 0 || E.VertexEnd < 0 ||
+                E.VertexStart >= static_cast<int>(Source.Vertices.size()) || E.VertexEnd >= static_cast<int>(Source.Vertices.size())) return false;
+            const Vec3 A = Source.Vertices[E.VertexStart].Point, B = Source.Vertices[E.VertexEnd].Point;
+            const double ARadius = std::hypot(A.X, A.Y), BRadius = std::hypot(B.X, B.Y);
+            const bool ALevel = std::fabs(A.Z - Low) <= ScalarCriteria::GeometricTolerance || std::fabs(A.Z - High) <= ScalarCriteria::GeometricTolerance;
+            const bool BLevel = std::fabs(B.Z - Low) <= ScalarCriteria::GeometricTolerance || std::fabs(B.Z - High) <= ScalarCriteria::GeometricTolerance;
+            if ((std::fabs(ARadius - InnerRadius) > ScalarCriteria::GeometricTolerance && std::fabs(ARadius - OuterRadius) > ScalarCriteria::GeometricTolerance) ||
+                (std::fabs(BRadius - InnerRadius) > ScalarCriteria::GeometricTolerance && std::fabs(BRadius - OuterRadius) > ScalarCriteria::GeometricTolerance)) return false;
+            const bool VerticalGenerator = ALevel && BLevel && std::fabs(A.Z - B.Z) > ScalarCriteria::GeometricTolerance &&
+                std::fabs(A.X - B.X) <= ScalarCriteria::GeometricTolerance &&
+                std::fabs(A.Y - B.Y) <= ScalarCriteria::GeometricTolerance;
+            const bool RadialCapRim = std::fabs(A.Z - B.Z) <= ScalarCriteria::GeometricTolerance &&
+                (std::fabs(A.Z - Low) <= ScalarCriteria::GeometricTolerance || std::fabs(A.Z - High) <= ScalarCriteria::GeometricTolerance);
+            if (!VerticalGenerator && !RadialCapRim) return false;
+            if (RadialCapRim && (std::fabs(ARadius - BRadius) <= ScalarCriteria::GeometricTolerance ||
+                std::fabs(A.X * B.Y - A.Y * B.X) > ScalarCriteria::GeometricTolerance * std::max(1.0, ARadius * BRadius))) return false;
+            ++Lines;
+        }
+        else return false;
+    }
+    if (Circles != 4 || Lines != 4) return false;
+    for (const BrepFace& F : Source.Faces)
+        if (F.Surface.Classification != SurfaceClassification::Revolution || F.Loops.size() != 1) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildRevolvedAnnularPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    double InnerRadius = 0.0, OuterRadius = 0.0, Low = 0.0, High = 0.0;
+    if (!ReadRevolvedAnnularPrism(Source, Face, InnerRadius, OuterRadius, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "revolved-annulus offset requires a full-turn radial annular prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "revolved-annulus offset distance must be finite and positive");
+    const Deliver<NurbsCurve> Profile = NurbsCurve::Polyline({ { InnerRadius, 0, Low }, { OuterRadius, 0, Low },
+                                                                 { OuterRadius, 0, High + Distance }, { InnerRadius, 0, High + Distance } }, true);
+    if (!Profile) return Deliver<BrepBody>::Reject(Profile.Denial.Reason, Profile.Denial.Detail);
+    Deliver<BrepBody> Result = BrepBody::Revolve(Profile.Payload, { 0, 0, Low }, Vec3::UnitZ(), ScalarCriteria::TwoPi);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 1 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 4 || Result.Payload.Edges.size() != 8 ||
+        Result.Payload.Coedges.size() != 16 || Result.Payload.Loops.size() != 4 || Result.Payload.Faces.size() != 4)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "revolved-annulus offset did not retain V4/E8/C16/L4/F4 topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadExtrudedCircularSectorPrism(const BrepBody& Source, int Face, Vec3& Centre,
                                                    double& Radius, double& StartAngle, double& Sweep,
                                                    double& Low, double& High) noexcept
@@ -1612,6 +1713,8 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (Concave) return Concave;
         Deliver<BrepBody> Sector = OffsetExtrudedCircularSectorPrism(Source, Face, Distance);
         if (Sector) return Sector;
+        Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
+        if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
         if (Holed) return Holed;
         Deliver<BrepBody> TwinHoled = OffsetExtrudedTwinHoledPrism(Source, Face, Distance);
@@ -1739,6 +1842,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConvexPrism(const BrepBody& Sour
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedCircularSectorPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildExtrudedCircularSectorPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetRevolvedAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildRevolvedAnnularPrismFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept

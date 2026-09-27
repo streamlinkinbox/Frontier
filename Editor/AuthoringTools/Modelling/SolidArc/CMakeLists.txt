@@ -250,6 +250,11 @@ add_executable(CircularSectorPrismFaceOffsetVerification Verification/CircularSe
 target_link_libraries(CircularSectorPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME CircularSectorPrismFaceOffsetVerification COMMAND CircularSectorPrismFaceOffsetVerification)
 
+# Phase 51: bounded revolved-annular-prism upper-cap face offset.
+add_executable(RevolvedAnnularPrismFaceOffsetVerification Verification/RevolvedAnnularPrismFaceOffsetVerification.cpp)
+target_link_libraries(RevolvedAnnularPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME RevolvedAnnularPrismFaceOffsetVerification COMMAND RevolvedAnnularPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

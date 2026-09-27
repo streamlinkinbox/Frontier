@@ -1938,6 +1938,31 @@ does not prove arbitrary circular sectors, full circles/cylinders, ellipses, pol
 profiles, lower/side faces, tilted/oblique/freeform/mixed supports, healing, or general curved-profile
 face editing. Its bounded plan is `docs/PLAN_Phase50_CircularSectorPrismFaceOffset.md`.
 
+#### Phase 51: full-turn revolved-annular-prism upper-cap face offset ✅
+
+This proof advances face offset into a distinct full-turn genus-one revolved profile, rather than
+reusing the extruded annular-hole or circular-sector routes. `RevolvedAnnularPrismFaceOffsetVerification`
+constructs a radial rectangular profile with inner radius 4, outer radius 6, source height 4, and a
+full `2π` Z-axis revolution. Source and result retain closed genus-one `V4/E8/C16/L4/F4` topology.
+
+`FaceEditSolver::OffsetRevolvedAnnularPrism` recognizes only four analytic revolution faces, two exact
+circular radii, four seam generators, and the selected upper planar annular cap. It reconstructs the
+same radial profile with only the upper Z level extended by 1.5; no generic revolved-profile fallback
+or healing is used. The focused verifier checks annular cap rim identities, revolution supports, exact
+topology, the annular-area volume identity within the kernel's rational-surface tolerance, source
+immutability, public dispatcher routing, and explicit refusal of boxes, cylinders, partial turns,
+extruded through-hole prisms, lower/side faces, invalid offsets, and malformed topology.
+
+The durable proof is `Proofs/Phase51_RevolvedAnnularPrismFaceOffset.png`; 23 checks pass in the focused
+direct gate, and the verifier/target/proof are registered in `CMakeLists.txt` and
+`Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one coaxial full-turn radial rectangle and positive upper-cap extension.
+It does not prove solid cylinders, cones, partial turns, non-annular or arbitrary revolved profiles,
+sectors, polygons, ellipses, lower/side faces, tilted/oblique/freeform/mixed supports, invalid offsets,
+malformed topology, healing, or general revolved face editing. Its bounded plan is
+`docs/PLAN_Phase51_RevolvedAnnularPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
