@@ -1,0 +1,17 @@
+# dependencies and generated build output
+node_modules/
+dist/
+coverage/
+
+# local caches and logs
+.cache/
+.vite/
+*.log
+npm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

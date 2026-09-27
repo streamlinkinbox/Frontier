@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#05090c" />
+    <meta name="description" content="A playable, cinematic motorball circuit set inside Iron City's industrial arena." />
+    <title>Iron City // The Crucible</title>
+  </head>
+  <body>
+    <main id="app" class="is-briefing" aria-label="The Crucible racing experience">
+      <div id="poster" class="poster" aria-hidden="true"></div>
+      <div id="webgl" class="webgl" aria-hidden="true"></div>
+      <div class="scanlines" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+      <div id="speed-lines" class="speed-lines" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Iron City Motorball home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="brand-copy"><b>IRON CITY</b><small>MOTORBALL FEDERATION</small></span>
+        </a>
+
+        <div class="event-id" aria-label="Event details">
+          <span>MBL / 09</span>
+          <i></i>
+          <span>NIGHT HEAT</span>
+        </div>
+
+        <nav class="utility" aria-label="Game utilities">
+          <button id="audio-button" class="icon-button audio-off" type="button" aria-label="Toggle sound" title="Toggle sound">
+            <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v6h4l5 4V5L9 9H5Zm12.5-.5a5 5 0 0 1 0 7M20 6a8.5 8.5 0 0 1 0 12"/></svg>
+            <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9v6h4l5 4V5L9 9H5Zm12 1 4 4m0-4-4 4"/></svg>
+          </button>
+          <button id="fullscreen-button" class="icon-button" type="button" aria-label="Enter fullscreen" title="Fullscreen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/></svg>
+          </button>
+          <div class="live-status"><i></i><span>ARENA LIVE</span></div>
+        </nav>
+      </header>
+
+      <section id="briefing" class="briefing" aria-labelledby="track-title">
+        <div class="eyebrow"><span>09</span><i></i><span>IRON CITY / INDUSTRIAL RING</span></div>
+        <h1 id="track-title"><span>THE</span> CRUCIBLE</h1>
+        <p class="lede">A steel half-pipe carved through the loudest arena on Earth. Ride the walls. Hold the line. Survive the bend.</p>
+
+        <div class="track-stats" aria-label="Track statistics">
+          <div><small>LENGTH</small><strong>2.84 <em>KM</em></strong></div>
+          <div><small>BANKING</small><strong>61<em>°</em></strong></div>
+          <div><small>SECTORS</small><strong>09</strong></div>
+          <div><small>SURFACE</small><strong>STEEL</strong></div>
+        </div>
+
+        <div class="briefing-actions">
+          <button id="race-button" class="race-button" type="button">
+            <span>ENTER THE CIRCUIT</span>
+            <i aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m8 5 7 7-7 7"/></svg>
+            </i>
+          </button>
+          <button id="tour-button" class="tour-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm0 0v18M4 7l8 4 8-4"/></svg>
+            <span>CINEMATIC TOUR</span>
+          </button>
+        </div>
+      </section>
+
+      <aside id="circuit-card" class="circuit-card" aria-label="Circuit map and conditions">
+        <div class="card-head"><span>CIRCUIT SCAN</span><small>LIVE / 14:52</small></div>
+        <div class="circuit-map">
+          <svg viewBox="0 0 260 170" role="img" aria-label="The Crucible circuit outline">
+            <defs>
+              <filter id="glow"><feGaussianBlur stdDeviation="2.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path class="map-grid" d="M0 34h260M0 68h260M0 102h260M0 136h260M52 0v170M104 0v170M156 0v170M208 0v170"/>
+            <path class="map-shadow" d="M50 130C22 106 27 61 61 44c32-16 57 7 85-2 31-10 57-18 73 7 17 27 0 51-22 61-26 12-40 47-76 36-26-8-42 8-71-16Z"/>
+            <path id="map-path" class="map-line" pathLength="100" d="M50 130C22 106 27 61 61 44c32-16 57 7 85-2 31-10 57-18 73 7 17 27 0 51-22 61-26 12-40 47-76 36-26-8-42 8-71-16Z"/>
+            <circle id="map-dot" class="map-dot" cx="50" cy="130" r="4" filter="url(#glow)"/>
+            <circle class="map-node" cx="61" cy="44" r="2"/><circle class="map-node" cx="219" cy="49" r="2"/><circle class="map-node" cx="121" cy="146" r="2"/>
+          </svg>
+          <span class="start-label">START / FINISH</span>
+        </div>
+        <div class="conditions">
+          <div><small>TRACK TEMP</small><b>08°C</b></div>
+          <div><small>VISIBILITY</small><b>76%</b></div>
+          <div><small>GRIP</small><b class="warning">LOW</b></div>
+        </div>
+      </aside>
+
+      <section id="hud" class="hud" aria-label="Race information">
+        <div class="hud-left">
+          <div class="position"><small>POS</small><strong>04</strong><span>/ 12</span></div>
+          <div class="lap"><small>LAP</small><b id="lap-value">01 / 03</b></div>
+        </div>
+
+        <div class="race-timer"><small>CURRENT RUN</small><b id="timer-value">00:00.000</b></div>
+
+        <div class="hud-map" aria-hidden="true">
+          <svg viewBox="0 0 260 170"><path d="M50 130C22 106 27 61 61 44c32-16 57 7 85-2 31-10 57-18 73 7 17 27 0 51-22 61-26 12-40 47-76 36-26-8-42 8-71-16Z"/></svg>
+          <i id="hud-map-dot"></i>
+        </div>
+
+        <div class="speed-cluster">
+          <div class="boost"><span>BOOST</span><div><i id="boost-fill"></i></div></div>
+          <div class="speed"><strong id="speed-value">000</strong><span>KM/H</span></div>
+        </div>
+      </section>
+
+      <div id="countdown" class="countdown" aria-live="assertive"></div>
+      <div id="race-message" class="race-message" aria-live="polite"></div>
+
+      <div class="controls-hint" aria-label="Controls">
+        <span><kbd>W</kbd><kbd>S</kbd> THROTTLE</span>
+        <span><kbd>A</kbd><kbd>D</kbd> STEER</span>
+        <span><kbd>SHIFT</kbd> BOOST</span>
+        <span><kbd>C</kbd> CAMERA</span>
+        <span><kbd>R</kbd> RESET</span>
+      </div>
+
+      <div class="mobile-controls" aria-label="Touch controls">
+        <div class="mobile-steer">
+          <button data-key="ArrowLeft" type="button" aria-label="Steer left">←</button>
+          <button data-key="ArrowRight" type="button" aria-label="Steer right">→</button>
+        </div>
+        <div class="mobile-drive">
+          <button class="mobile-boost" data-key="ShiftLeft" type="button" aria-label="Boost">BOOST</button>
+          <button class="mobile-throttle" data-key="ArrowUp" type="button" aria-label="Accelerate">▲</button>
+        </div>
+      </div>
+
+      <footer class="footer-bar">
+        <span>AUTHORIZED RACERS ONLY</span>
+        <i></i>
+        <span>SECTOR 09 // IRON CITY</span>
+        <b>WEATHER: INTERNAL / DRY</b>
+      </footer>
+
+      <div id="loading" class="loading" role="status" aria-label="Loading arena">
+        <div class="loading-mark"><i></i><i></i><i></i></div>
+        <span>BUILDING CIRCUIT</span>
+        <div class="loading-line"><i></i></div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
