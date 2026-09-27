@@ -44,6 +44,10 @@
   .motorbar{width:120px;height:5px;border-radius:3px;background:#1c222c;overflow:hidden}
   .motorbar i{display:block;height:100%;width:0%;border-radius:3px;
     background:linear-gradient(90deg,var(--blue),var(--blue-soft),var(--hazard))}
+  .bars{display:flex;flex-direction:column;gap:5px}
+  .latbar{width:120px;height:5px;border-radius:3px;background:#1c222c;overflow:hidden}
+  .latbar i{display:block;height:100%;width:0%;border-radius:3px;
+    background:linear-gradient(90deg,var(--ok),var(--hazard),var(--danger))}
   .camtag{position:absolute;top:76px;left:14px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
     color:var(--dim);background:rgba(8,10,14,.6);border:1px solid var(--stroke);border-radius:8px;
     padding:5px 10px;display:none}
@@ -171,6 +175,7 @@
     #map{display:block;width:150px;height:98px}
     .speedo b{font-size:22px}
     .motorbar{width:80px}
+    .latbar{width:80px}
     #standings{display:none}
     .lapbox{gap:10px}
   }
@@ -192,7 +197,7 @@
     </div>
     <div class="pill speedo">
       <div><b id="speed">0</b><br/><small>KM/H</small></div>
-      <div class="motorbar"><i id="motorfill"></i></div>
+      <div class="bars"><div class="motorbar"><i id="motorfill"></i></div><div class="latbar" title="Tyre load"><i id="latfill"></i></div></div>
     </div>
   </div>
   <div class="camtag" id="camtag">TRACKSIDE · CAM 1</div>
@@ -222,9 +227,9 @@
     <p class="sub">Motorball circuit under the scrap sky — ride the banking, thread the trap gates, survive 3 laps.</p>
     <div class="specs">
       <div><small>LENGTH</small><b id="specLen">– km</b></div>
-      <div><small>BANKING</small><b>56°</b></div>
+      <div><small>BANKING</small><b>63°·TURNS</b></div>
       <div><small>TRAPS</small><b>2 GATES</b></div>
-      <div><small>RIDERS</small><b>4</b></div>
+      <div><small>CARS</small><b>4</b></div>
     </div>
     <div class="ctrls">
       <div><b>W A S D</b>ride · steer · brake</div>
