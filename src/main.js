@@ -547,6 +547,50 @@ function updateHUD() {
   `;
 }
 
+/* ------------------------------------------------------------ rig viz */
+/* Built BEFORE the UI wiring below: `toggle()` applies its initial state
+ * immediately, so a handler that closes over a `const` declared further down
+ * the file hits the temporal dead zone and kills the whole boot sequence. */
+/** Joints drawn for the rig overlay, in chain order. */
+const LEG_VIZ_CHAIN = (L) => [L.root, L.hip, L.knee, L.tibia, L.tarsus[4], L.pretarsus];
+const LEG_VIZ_POINTS = LEG_VIZ_CHAIN(mosq.legs.L1).length;
+
+const legViz = new THREE.Group();
+legViz.visible = false;
+{
+  const mat = new THREE.LineBasicMaterial({ color: 0x63d6c8, depthTest: false, transparent: true, opacity: 0.9 });
+  for (const key in mosq.legs) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LEG_VIZ_POINTS * 3), 3));
+    const line = new THREE.Line(g, mat);
+    line.renderOrder = 99;
+    legViz.add(line);
+  }
+  const dotGeo = new THREE.SphereGeometry(0.035, 8, 6);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffb35c, depthTest: false });
+  for (const key in mosq.legs) {
+    const d = new THREE.Mesh(dotGeo, dotMat);
+    d.renderOrder = 99;
+    legViz.add(d);
+  }
+}
+scene.add(legViz);
+
+function updateLegViz() {
+  if (!legViz.visible) return;
+  const legKeys = Object.keys(mosq.legs);
+  legKeys.forEach((key, i) => {
+    const arr = legViz.children[i].geometry.attributes.position.array;
+    LEG_VIZ_CHAIN(mosq.legs[key]).forEach((n, k) => {
+      const w = n.getWorldPosition(_tmp);
+      arr[k * 3] = w.x; arr[k * 3 + 1] = w.y; arr[k * 3 + 2] = w.z;
+    });
+    legViz.children[i].geometry.attributes.position.needsUpdate = true;
+    const d = legViz.children[legKeys.length + i];
+    d.position.copy(gait.legs[key].planted ? gait.legs[key].plant : gait.legs[key].target);
+  });
+}
+
 /* ==================================================================== */
 /*  UI wiring                                                           */
 /* ==================================================================== */
@@ -670,43 +714,6 @@ addEventListener('keydown', (e) => {
   if (k === 'h') document.querySelectorAll('.panel').forEach((p) => p.style.display = p.style.display === 'none' ? '' : 'none');
   if (k === 'g') $('#rViz').click();
 });
-
-/* ------------------------------------------------------------ rig viz */
-const legViz = new THREE.Group();
-legViz.visible = false;
-{
-  const mat = new THREE.LineBasicMaterial({ color: 0x63d6c8, depthTest: false, transparent: true, opacity: 0.9 });
-  for (const key in mosq.legs) {
-    const L = mosq.legs[key];
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(5 * 3), 3));
-    const line = new THREE.Line(g, mat);
-    line.renderOrder = 99;
-    legViz.add(line);
-  }
-  const dotGeo = new THREE.SphereGeometry(0.035, 8, 6);
-  const dotMat = new THREE.MeshBasicMaterial({ color: 0xffb35c, depthTest: false });
-  for (const key in mosq.legs) {
-    const d = new THREE.Mesh(dotGeo, dotMat);
-    d.renderOrder = 99;
-    legViz.add(d);
-  }
-}
-scene.add(legViz);
-
-function updateLegViz() {
-  if (!legViz.visible) return;
-  const legKeys = Object.keys(mosq.legs);
-  legKeys.forEach((key, i) => {
-    const L = mosq.legs[key];
-    const p = [L.root, L.femur, L.tibia, L.tarsus[4], L.pretarsus];
-    const arr = legViz.children[i].geometry.attributes.position.array;
-    p.forEach((n, k) => { const w = n.getWorldPosition(_tmp); arr[k * 3] = w.x; arr[k * 3 + 1] = w.y; arr[k * 3 + 2] = w.z; });
-    legViz.children[i].geometry.attributes.position.needsUpdate = true;
-    const d = legViz.children[legKeys.length + i];
-    d.position.copy(gait.legs[key].planted ? gait.legs[key].plant : gait.legs[key].target);
-  });
-}
 
 /* ==================================================================== */
 /*  GLB export                                                          */

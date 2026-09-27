@@ -205,6 +205,24 @@
   <div class="bar"><i id="bootBar"></i></div>
 </div>
 
+<script>
+  // Surface start-up failures instead of leaving a frozen boot screen: a
+  // module that throws mid-boot otherwise just stops, with no clue why.
+  (function () {
+    function show(msg) {
+      var b = document.getElementById('bootMsg');
+      if (!b) return;
+      b.textContent = String(msg).slice(0, 200);
+      b.style.color = '#ff6b5c';
+    }
+    window.addEventListener('error', function (e) {
+      show((e.message || 'script error') + (e.filename ? ' \u2014 ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      show('promise rejected: ' + ((e.reason && e.reason.message) || e.reason));
+    });
+  })();
+</script>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>

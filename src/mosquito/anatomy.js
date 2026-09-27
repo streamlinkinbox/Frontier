@@ -156,6 +156,36 @@ function mirrored(src, key, name, side, index) {
 for (const k of ['L1', 'L2', 'L3']) LEGS[k].coxaKey = ['pro', 'mes', 'meta'][LEGS[k].index];
 
 /**
+ * Nominal stance position of one tarsus, in thorax-local millimetres.
+ *
+ * The spread is not a free parameter: it is the radius at which this leg's own
+ * femur + tibia put the femur–tibia joint at its neutral ~90° posture, the
+ * value measured in walking insects. Anything shorter tucks the tarsus under
+ * the body and folds the knee past its anatomical limit; anything longer
+ * over-extends it. The fore–aft rake and the side-to-side splay still come from
+ * the leg's rest pitch and abduction, so the six feet keep their fan.
+ *
+ * `rootLocal` is the coxa attachment on the thorax; `clearance` is how far the
+ * thorax rides above the substrate.
+ */
+export function nominalStance(spec, rootLocal, clearance = GAIT.bodyClearance) {
+  const hip = rootLocal.clone().addScaledVector(coxaRestDir(spec), spec.coxa);
+  const rise = spec.tarsus.reduce((x, y) => x + y, 0) * 0.96;
+  const soleY = -clearance;
+  // Vertical component of the hip→ankle chord (the tarsus hangs below the
+  // ankle by roughly its own length).
+  const dy = (soleY + rise) - hip.y;
+  const target = GAIT.stanceExtension * (spec.trochanter + spec.femur + spec.tibia);
+  // Rake fore/aft by restPitch, swing outboard by restAbduct.
+  const dir = new Vector3(
+    Math.sin(spec.restPitch) * Math.cos(spec.restAbduct), 0,
+    spec.side * Math.sin(spec.restAbduct));
+  dir.divideScalar(dir.length() || 1);
+  const h = Math.max(Math.sqrt(Math.max(0, target * target - dy * dy)), (spec.minLateral ?? 0.1) + 0.22);
+  return new Vector3(hip.x + dir.x * h, soleY, hip.z + dir.z * h);
+}
+
+/**
  * Rest direction of the coxa link, in thorax-local space. Shared by the mesh
  * builder (which uses it for the static rest pose) and the gait planner (which
  * needs the same hip position to place a tarsus anatomically).

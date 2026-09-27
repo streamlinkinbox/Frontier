@@ -24,7 +24,7 @@
  */
 
 import * as THREE from 'three';
-import { GAIT, LEGS, TRIPOD_A, TRIPOD_B, TRIPOD_LEAD, clamp, lerp, smoothstep, coxaRestDir } from '../mosquito/anatomy.js';
+import { GAIT, LEGS, TRIPOD_A, TRIPOD_B, TRIPOD_LEAD, clamp, lerp, smoothstep, coxaRestDir, nominalStance } from '../mosquito/anatomy.js';
 import { LegSolver } from './legs.js';
 
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
@@ -181,35 +181,16 @@ export class GaitController {
     return Math.sign(_v2.z || 1e-9) === spec.side && Math.abs(_v2.z) >= (spec.minLateral ?? 0.10);
   }
 
-  /**
-   * Nominal stance position of one tarsus, in thorax-local millimetres.
-   *
-   * The spread is not a free parameter: it is the radius at which this leg's
-   * own femur + tibia put the femur–tibia joint at its neutral ~90° posture,
-   * the value measured in walking insects. Anything shorter tucks the tarsus
-   * under the body and folds the knee past its anatomical limit; anything
-   * longer over-extends it. The fore–aft rake and the side-to-side splay still
-   * come from the leg's rest pitch and abduction, so the six feet keep their
-   * characteristic fan.
-   */
+  /** Cached per-leg nominal stance, in thorax-local millimetres. */
   _nominalStance(spec) {
-    const hip = spec._hipLocal || (spec._hipLocal =
-      this.rig.legs[spec.key].root.position.clone()
-        .addScaledVector(coxaRestDir(spec), spec.coxa));
-    const rise = spec.tarsus.reduce((x, y) => x + y, 0) * 0.96;
-    const soleY = -GAIT.bodyClearance;
-    // Vertical component of the hip→ankle chord (the tarsus hangs below the
-    // ankle by roughly its own length).
-    const dy = (soleY + rise) - hip.y;
-    const target = GAIT.stanceExtension * (spec.trochanter + spec.femur + spec.tibia);
-    // Rake fore/aft by restPitch, swing outboard by restAbduct.
-    const dir = new THREE.Vector3(
-      Math.sin(spec.restPitch) * Math.cos(spec.restAbduct), 0,
-      spec.side * Math.sin(spec.restAbduct));
-    const hl = dir.length() || 1;
-    dir.divideScalar(hl);
-    const h = Math.max(Math.sqrt(Math.max(0, target * target - dy * dy)), (spec.minLateral ?? 0.1) + 0.22);
-    return new THREE.Vector3(hip.x + dir.x * h, soleY, hip.z + dir.z * h);
+    let n = spec._nominal;
+    if (!n) {
+      n = spec._nominal = nominalStance(spec, this.rig.legs[spec.key].root.position);
+      // The hip is cached on the spec for the solver's own bookkeeping.
+      spec._hipLocal = this.rig.legs[spec.key].root.position.clone()
+        .addScaledVector(coxaRestDir(spec), spec.coxa);
+    }
+    return n;
   }
 
   /**
