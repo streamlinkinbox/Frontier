@@ -61,12 +61,15 @@ Jumps are lane-gated (`inLane`): only the 720 cut is lane-scoped.
 - Jumps at s = 140 (main straight, full width) and s = 720 (right
   split lane only).
 
-## Car physics — loaded bicycle model + simplified Pacejka (iteration 4)
+## Car physics — loaded bicycle model + simplified Pacejka (iteration 4, steering fixed in 7)
 
 Nose-heading model: weight transfer (brake bite, power squat), per-axle
 load-sensitive μ, combined slip with RWD power oversteer, lateral load
 sensitivity, 600 kW power curve, aero drag, ABS brakes, engine braking,
 lip gradient, chassis roll/dive/squat, flight pitch, skid audio.
+Steering: 8/v authority curve (full lock holds the bowls with ~20%
+margin — excess lock plows, never spins), smooth 5.5/6 Hz hands for
+keyboard input, realistic yaw inertia (IZ 2400).
 
 ## Validated pace (headless sim, exact game constants)
 

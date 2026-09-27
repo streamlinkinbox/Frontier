@@ -1421,20 +1421,20 @@ function trapHit(g) {
 function updatePlayer(dt) {
   const P = player, locked = phase !== 'race';
   const steerInput = locked ? 0 : ((input.left ? 1 : 0) - (input.right ? 1 : 0));
-  P.steerNorm += (steerInput - P.steerNorm) * (1 - Math.exp(-dt * 7.5));
+  P.steerNorm += (steerInput - P.steerNorm) * (1 - Math.exp(-dt * 5.5)); // slower hands: smooth keyboard input
   const pacejka = (a) => Math.sin(1.35 * Math.atan(11 * a)); // simplified magic formula
   if (!locked) {
     const steps = dt > 0.026 ? 3 : 2, h = dt / steps;
     let wrapped = false;
     for (let n = 0; n < steps; n++) {
       const v = P.v, av = Math.abs(v);
-      const dMax = Math.min(0.6, 3.4 / Math.max(av, 10)); // steer authority ~ 1/v: full lock at speed will spin you, like a real car
-      P.steer += (P.steerNorm * dMax - P.steer) * (1 - Math.exp(-h * 10));
+      const dMax = Math.min(0.6, 8.0 / Math.max(av, 10)); // steer authority ~ 1/v: full lock holds the bowls with margin (front saturates first, so excess lock plows, not spins)
+      P.steer += (P.steerNorm * dMax - P.steer) * (1 - Math.exp(-h * 6));
       if (!P.airborne) {
         const sm = sampleAt(P.s);
         const normal = 9.81 + 0.005 * v * v; // gravity + aero downforce
         const grip = Math.min(1, av / 6); // no lateral force when parked
-        const mu = 1.7, m = 1200, A = 1.45, B = 1.45, IZ = 1800;
+        const mu = 1.7, m = 1200, A = 1.45, B = 1.45, IZ = 2400;
         const dir = v >= 0 ? 1 : -1;
         const aF = Math.atan2(P.vy + A * P.yawRate, av + 0.5) - P.steer * dir;
         const aR = Math.atan2(P.vy - B * P.yawRate, av + 0.5);
@@ -1458,7 +1458,7 @@ function updatePlayer(dt) {
         const ch = Math.cos(P.hErr), sh = Math.sin(P.hErr);
         P.vy += ((Fyf + Fyr) / m + aRoad * ch) * h;
         P.vy *= Math.exp(-h * 0.35);
-        P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.0 + av * 0.03)) * h;
+        P.yawRate += ((A * Fyf - B * Fyr) / IZ - P.yawRate * (2.4 + av * 0.03)) * h;
         P.hErr = clamp(P.hErr + (P.yawRate - v * sm.curv) * h, -1.05, 1.05);
         P.u += ((v * sh + P.vy * ch) / HALF_W) * h; // velocity follows the nose
         P.s += (v * ch - P.vy * sh) * h;
