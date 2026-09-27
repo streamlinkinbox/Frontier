@@ -69,6 +69,14 @@ public:
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
+    // Bounded rectangular-frame offset route for a straight prism with one exact rectangular through-hole.
+    // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedRectangularHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded annular-sector offset route for a straight prism with two exact concentric circular arcs.
+    // Only its upper planar annular-sector cap is supported; arbitrary curved profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedAnnularSectorPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
     // Bounded genus-one offset route for a straight rectangular prism with one exact circular through-hole.
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;

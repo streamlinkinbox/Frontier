@@ -1120,6 +1120,209 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadExtrudedRectangularHoledPrism(const BrepBody& Source, int Face,
+                                                      Vec3& Low, Vec3& High, Box3& InnerBounds) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 16 || Source.Edges.size() != 24 ||
+        Source.Coedges.size() != 48 || Source.Loops.size() != 12 || Source.Faces.size() != 10) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 2) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    Low = Source.Bounds().Low; High = Source.Bounds().High;
+    if (High.Z - Low.Z <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& V : Source.Vertices)
+    {
+        if (std::fabs(V.Point.Z - Low.Z) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(V.Point.Z - High.Z) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != 8 || HighVertices != 8) return false;
+    auto LoopBounds = [&](int Loop, Box3& B) noexcept {
+        if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != 4) return false;
+        for (int Coedge : Source.Loops[Loop].Coedges)
+        {
+            if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+            const int EdgeIndex = Source.Coedges[Coedge].Edge;
+            if (EdgeIndex < 0 || EdgeIndex >= static_cast<int>(Source.Edges.size())) return false;
+            const BrepEdge& E = Source.Edges[EdgeIndex];
+            if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.Coedges.size() != 2 ||
+                E.VertexStart < 0 || E.VertexEnd < 0 || E.VertexStart == E.VertexEnd) return false;
+            const Vec3 A = Source.Vertices[E.VertexStart].Point, C = Source.Vertices[E.VertexEnd].Point;
+            if (std::fabs(A.Z - High.Z) > ScalarCriteria::GeometricTolerance || std::fabs(C.Z - High.Z) > ScalarCriteria::GeometricTolerance ||
+                (std::fabs(A.X - C.X) > ScalarCriteria::GeometricTolerance && std::fabs(A.Y - C.Y) > ScalarCriteria::GeometricTolerance)) return false;
+            B.Include(A); B.Include(C);
+        }
+        return B.High.X - B.Low.X > ScalarCriteria::MergeTolerance && B.High.Y - B.Low.Y > ScalarCriteria::MergeTolerance;
+    };
+    Box3 A{}, B{};
+    if (!LoopBounds(Cap.Loops[0], A) || !LoopBounds(Cap.Loops[1], B)) return false;
+    Box3 Outer = (A.High.X - A.Low.X) * (A.High.Y - A.Low.Y) > (B.High.X - B.Low.X) * (B.High.Y - B.Low.Y) ? A : B;
+    InnerBounds = Outer.Low.X == A.Low.X && Outer.High.X == A.High.X && Outer.Low.Y == A.Low.Y && Outer.High.Y == A.High.Y ? B : A;
+    if (std::fabs(Outer.Low.X - Low.X) > ScalarCriteria::GeometricTolerance || std::fabs(Outer.High.X - High.X) > ScalarCriteria::GeometricTolerance ||
+        std::fabs(Outer.Low.Y - Low.Y) > ScalarCriteria::GeometricTolerance || std::fabs(Outer.High.Y - High.Y) > ScalarCriteria::GeometricTolerance ||
+        std::fabs((InnerBounds.Low.X + InnerBounds.High.X) * 0.5) > ScalarCriteria::GeometricTolerance ||
+        std::fabs((InnerBounds.Low.Y + InnerBounds.High.Y) * 0.5) > ScalarCriteria::GeometricTolerance ||
+        InnerBounds.Low.X <= Outer.Low.X + ScalarCriteria::MergeTolerance || InnerBounds.High.X >= Outer.High.X - ScalarCriteria::MergeTolerance ||
+        InnerBounds.Low.Y <= Outer.Low.Y + ScalarCriteria::MergeTolerance || InnerBounds.High.Y >= Outer.High.Y - ScalarCriteria::MergeTolerance) return false;
+    int Planes = 0, Extrusions = 0;
+    for (const BrepFace& F : Source.Faces)
+    {
+        if (F.Surface.Classification == SurfaceClassification::Plane && F.Loops.size() == 2) ++Planes;
+        else if (F.Surface.Classification == SurfaceClassification::Extrusion && F.Loops.size() == 1) ++Extrusions;
+        else return false;
+    }
+    return Planes == 2 && Extrusions == 8;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedRectangularHoledPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    Vec3 Low{}, High{}; Box3 Inner{};
+    if (!ReadExtrudedRectangularHoledPrism(Source, Face, Low, High, Inner))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "rectangular-holed offset requires an exact two-loop rectangular prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "rectangular-holed offset distance must be finite and positive");
+    const std::vector<Vec3> OuterPoints{{ Low.X, Low.Y, Low.Z }, { High.X, Low.Y, Low.Z }, { High.X, High.Y, Low.Z }, { Low.X, High.Y, Low.Z }};
+    const std::vector<Vec3> InnerPoints{{ Inner.Low.X, Inner.Low.Y, Low.Z }, { Inner.High.X, Inner.Low.Y, Low.Z }, { Inner.High.X, Inner.High.Y, Low.Z }, { Inner.Low.X, Inner.High.Y, Low.Z }};
+    const auto Outer = NurbsCurve::Polyline(OuterPoints, true);
+    const auto Hole = NurbsCurve::Polyline(InnerPoints, true);
+    if (!Outer || !Hole) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "rectangular-holed offset generated a degenerate profile");
+    Deliver<BrepBody> Result = BrepBody::Extrude(std::vector<NurbsCurve>{ Outer.Payload, Hole.Payload }, Vec3::UnitZ(), High.Z - Low.Z + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 1 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 16 || Result.Payload.Edges.size() != 24 ||
+        Result.Payload.Coedges.size() != 48 || Result.Payload.Loops.size() != 12 || Result.Payload.Faces.size() != 10)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "rectangular-holed offset did not retain V16/E24/C48/L12/F10 topology");
+    return Result;
+}
+
+[[nodiscard]] bool ReadExtrudedAnnularSectorPrism(const BrepBody& Source, int Face,
+                                                  Vec3& Centre, double& InnerRadius, double& OuterRadius,
+                                                  double& StartAngle, double& Sweep, double& Low, double& High) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 0 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 8 || Source.Edges.size() != 12 ||
+        Source.Coedges.size() != 24 || Source.Loops.size() != 6 || Source.Faces.size() != 6) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 1) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance || Source.Loops[Cap.Loops.front()].Coedges.size() != 4) return false;
+    Low = Source.Bounds().Low.Z; High = Source.Bounds().High.Z;
+    if (High - Low <= ScalarCriteria::MergeTolerance) return false;
+    auto IsExactLine = [](const NurbsCurve& Curve) noexcept {
+        if (Curve.Classification == CurveClassification::Line && Curve.Degree == 1) return true;
+        if (Curve.Classification != CurveClassification::Freeform || Curve.Rational() || Curve.PoleCount() < 2) return false;
+        const Vec3 A = Curve.StartPoint(), B = Curve.EndPoint();
+        const Vec3 Delta = B - A;
+        if (Delta.Length() <= ScalarCriteria::MergeTolerance) return false;
+        for (int I = 1; I < 4; ++I)
+            if ((Curve.Sample(Curve.DomainStart() + (Curve.DomainEnd() - Curve.DomainStart()) * I / 4.0) - A).Cross(Delta).Length() > ScalarCriteria::GeometricTolerance * Delta.Length()) return false;
+        return true;
+    };
+    int ArcEdges = 0, LineEdges = 0;
+    double Radii[2]{}; Vec3 ArcCentre{}; bool HaveCentre = false;
+    for (int Coedge : Source.Loops[Cap.Loops.front()].Coedges)
+    {
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const BrepEdge& E = Source.Edges[Source.Coedges[Coedge].Edge];
+        if (E.Curve.Classification == CurveClassification::Arc)
+        {
+            if (E.Curve.Degree != 2 || !E.Curve.Rational() || E.Curve.Closed() || E.Coedges.size() != 2) return false;
+            const Vec3 A = E.Curve.StartPoint(), B = E.Curve.EndPoint();
+            const double Radius = 0.5 * (std::hypot(A.X - E.Curve.Centre.X, A.Y - E.Curve.Centre.Y) + std::hypot(B.X - E.Curve.Centre.X, B.Y - E.Curve.Centre.Y));
+            if (!HaveCentre) { ArcCentre = E.Curve.Centre; HaveCentre = true; }
+            if (std::fabs(E.Curve.Centre.X - ArcCentre.X) > ScalarCriteria::GeometricTolerance ||
+                std::fabs(E.Curve.Centre.Y - ArcCentre.Y) > ScalarCriteria::GeometricTolerance ||
+                std::fabs(Radius) <= ScalarCriteria::MergeTolerance) return false;
+            Radii[ArcEdges++] = Radius;
+        }
+        else if (IsExactLine(E.Curve) && E.Coedges.size() == 2) ++LineEdges;
+        else return false;
+    }
+    if (ArcEdges != 2 || LineEdges != 2 || !HaveCentre || std::fabs(ArcCentre.X) > ScalarCriteria::GeometricTolerance ||
+        std::fabs(ArcCentre.Y) > ScalarCriteria::GeometricTolerance || std::fabs(ArcCentre.Z - Low) > ScalarCriteria::GeometricTolerance) return false;
+    InnerRadius = std::min(Radii[0], Radii[1]); OuterRadius = std::max(Radii[0], Radii[1]);
+    if (OuterRadius - InnerRadius <= ScalarCriteria::MergeTolerance) return false;
+    int AllArcs = 0, AllLines = 0;
+    for (const BrepEdge& E : Source.Edges)
+    {
+        if (E.Coedges.size() != 2) return false;
+        if (E.Curve.Classification == CurveClassification::Arc)
+        {
+            if (E.Curve.Degree != 2 || !E.Curve.Rational() || E.Curve.Closed()) return false;
+            ++AllArcs;
+        }
+        else if (IsExactLine(E.Curve)) ++AllLines;
+        else return false;
+    }
+    if (AllArcs != 4 || AllLines != 8) return false;
+    Centre = ArcCentre;
+    for (const BrepFace& F : Source.Faces)
+        if ((F.Surface.Classification != SurfaceClassification::Plane && F.Surface.Classification != SurfaceClassification::Extrusion) || F.Loops.size() != 1) return false;
+    int ArcEdge = -1;
+    for (int Coedge : Source.Loops[Cap.Loops.front()].Coedges)
+    {
+        const int Candidate = Source.Coedges[Coedge].Edge;
+        if (Source.Edges[Candidate].Curve.Classification == CurveClassification::Arc)
+        {
+            ArcEdge = Candidate;
+            break;
+        }
+    }
+    if (ArcEdge < 0) return false;
+    const BrepEdge& OuterEdge = Source.Edges[ArcEdge];
+    const Vec3 A = OuterEdge.Curve.StartPoint(), B = OuterEdge.Curve.EndPoint();
+    StartAngle = std::atan2(A.Y - ArcCentre.Y, A.X - ArcCentre.X);
+    Sweep = std::atan2((A.X - ArcCentre.X) * (B.Y - ArcCentre.Y) - (A.Y - ArcCentre.Y) * (B.X - ArcCentre.X),
+                       (A.X - ArcCentre.X) * (B.X - ArcCentre.X) + (A.Y - ArcCentre.Y) * (B.Y - ArcCentre.Y));
+    if (std::fabs(std::fabs(Sweep) - ScalarCriteria::HalfPi) > ScalarCriteria::AngularTolerance) return false;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedAnnularSectorPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    Vec3 Centre{}; double InnerRadius = 0.0, OuterRadius = 0.0, StartAngle = 0.0, Sweep = 0.0, Low = 0.0, High = 0.0;
+    if (!ReadExtrudedAnnularSectorPrism(Source, Face, Centre, InnerRadius, OuterRadius, StartAngle, Sweep, Low, High))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "annular-sector offset requires an exact quarter annular-sector prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "annular-sector offset distance must be finite and positive");
+    const Vec3 Axis = Vec3::UnitZ();
+    const Vec3 OuterStart{ Centre.X + OuterRadius * std::cos(StartAngle), Centre.Y + OuterRadius * std::sin(StartAngle), Low };
+    const Vec3 OuterEnd{ Centre.X + OuterRadius * std::cos(StartAngle + Sweep), Centre.Y + OuterRadius * std::sin(StartAngle + Sweep), Low };
+    const Vec3 InnerEnd{ Centre.X + InnerRadius * std::cos(StartAngle + Sweep), Centre.Y + InnerRadius * std::sin(StartAngle + Sweep), Low };
+    const Vec3 InnerStart{ Centre.X + InnerRadius * std::cos(StartAngle), Centre.Y + InnerRadius * std::sin(StartAngle), Low };
+    const auto OuterArc = NurbsCurve::Arc({ Centre.X, Centre.Y, Low }, Axis, OuterRadius, StartAngle, Sweep);
+    const auto EndRadial = NurbsCurve::Line(OuterEnd, InnerEnd);
+    const auto InnerArc = NurbsCurve::Arc({ Centre.X, Centre.Y, Low }, Axis, InnerRadius, StartAngle + Sweep, -Sweep);
+    const auto StartRadial = NurbsCurve::Line(InnerStart, OuterStart);
+    if (!OuterArc || !EndRadial || !InnerArc || !StartRadial) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "annular-sector offset generated a degenerate profile");
+    const auto J1 = NurbsCurve::Join(OuterArc.Payload, EndRadial.Payload);
+    const auto J2 = J1 ? NurbsCurve::Join(J1.Payload, InnerArc.Payload) : Deliver<NurbsCurve>::Reject(RefusalReason::NonManifold, "annular-sector profile join failed");
+    const auto J3 = J2 ? NurbsCurve::Join(J2.Payload, StartRadial.Payload) : Deliver<NurbsCurve>::Reject(RefusalReason::NonManifold, "annular-sector profile join failed");
+    if (!J3 || !J3.Payload.Closed()) return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "annular-sector offset profile did not close");
+    Deliver<BrepBody> Result = BrepBody::Extrude(J3.Payload, Axis, High - Low + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 0 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 8 || Result.Payload.Edges.size() != 12 ||
+        Result.Payload.Coedges.size() != 24 || Result.Payload.Loops.size() != 6 || Result.Payload.Faces.size() != 6)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "annular-sector offset did not retain V8/E12/C24/L6/F6 topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadRevolvedAnnularPrism(const BrepBody& Source, int Face, double& InnerRadius,
                                             double& OuterRadius, double& Low, double& High) noexcept
 {
@@ -1915,6 +2118,10 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (RevolvedAnnulus) return RevolvedAnnulus;
         Deliver<BrepBody> EllipticalAnnulus = OffsetExtrudedEllipticalAnnularPrism(Source, Face, Distance);
         if (EllipticalAnnulus) return EllipticalAnnulus;
+        Deliver<BrepBody> RectangularHoled = OffsetExtrudedRectangularHoledPrism(Source, Face, Distance);
+        if (RectangularHoled) return RectangularHoled;
+        Deliver<BrepBody> AnnularSector = OffsetExtrudedAnnularSectorPrism(Source, Face, Distance);
+        if (AnnularSector) return AnnularSector;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
         if (Holed) return Holed;
         Deliver<BrepBody> TwinHoled = OffsetExtrudedTwinHoledPrism(Source, Face, Distance);
@@ -2062,6 +2269,16 @@ Deliver<BrepBody> FaceEditSolver::OffsetSphereFace(const BrepBody& Source, int F
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildExtrudedEllipticalAnnularPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedRectangularHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildExtrudedRectangularHoledPrismFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedAnnularSectorPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildExtrudedAnnularSectorPrismFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept

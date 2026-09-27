@@ -1358,6 +1358,30 @@ multiple holes, lower/side faces, cylinders, toruses, spheres, tilted/oblique/fr
 invalid offsets, malformed topology, healing, or general elliptical-annular face editing. The bounded
 plan is `docs/PLAN_Phase54_EllipticalAnnularPrismFaceOffset.md`.
 
+## Batch 55 — exact rectangular-frame and quarter annular-sector upper-cap face offsets (2026-09-27)
+
+This consolidated batch covers two distinct bounded SolidArc face-offset domains:
+
+- `RectangularHoledAndAnnularSectorFaceOffsetVerification` constructs an origin-centred, axis-aligned
+  rectangular frame with one rectangular through-hole and a quarter annular sector, both with source
+  height 6. The frame is closed genus one with `V16/E24/C48/L12/F10`; the sector is closed genus zero
+  with `V8/E12/C24/L6/F6`.
+- `FaceEditSolver::OffsetExtrudedRectangularHoledPrism` recognizes the exact rectangular two-loop
+  prism and rebuilds two planar rectangular loops. `OffsetExtrudedAnnularSectorPrism` recognizes
+  the exact quarter sector with two concentric rational degree-2 arcs, two radial lines, planar caps,
+  and four analytic extrusion walls. Both extend only the upper cap and retain analytic/planar
+  supports without healing or source mutation.
+- The consolidated verifier checks distances 0.5, 1.5, and 3.0, topology, exact volume identities,
+  public dispatcher routing, source immutability, lower/side/invalid-distance refusal, malformed and
+  translated refusal, and cross-domain refusal.
+- Durable proof: `Proofs/Batch55_RectangularHoledAndAnnularSectorFaceOffset.png`. The verifier, proof,
+  and full-gate registration are present in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to origin-centred, axis-aligned, positive upper-cap extension. They do not
+prove arbitrary rectangular holes, non-quarter/non-concentric sectors, translated/tilted/freeform or
+mixed supports, inward/lower/side offsets, healing, or general multi-loop face editing. The bounded
+plan is `docs/PLAN_Batch55_RectangularHoledAndAnnularSectorFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

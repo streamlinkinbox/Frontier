@@ -2035,6 +2035,29 @@ multiple holes, lower/side faces, cylinders, toruses, spheres, tilted/oblique/fr
 invalid offsets, malformed topology, healing, or general elliptical-annular face editing. Its bounded
 plan is `docs/PLAN_Phase54_EllipticalAnnularPrismFaceOffset.md`.
 
+#### Batch 55: exact rectangular-frame and quarter annular-sector upper-cap face offsets ✅
+
+This consolidated batch adds two distinct analytic/planar face-offset domains. `RectangularHoledAndAnnularSectorFaceOffsetVerification`
+constructs an origin-centred rectangular frame with a rectangular through-hole and an origin-centred quarter annular sector,
+both with source height 6. The rectangular-frame source and result retain closed genus-one `V16/E24/C48/L12/F10`
+topology; the annular-sector source and result retain closed genus-zero `V8/E12/C24/L6/F6` topology.
+
+`FaceEditSolver::OffsetExtrudedRectangularHoledPrism` recognizes only the exact axis-aligned two-loop rectangular prism and
+rebuilds its two planar cap loops at the source lower Z level. `FaceEditSolver::OffsetExtrudedAnnularSectorPrism` recognizes
+only the exact quarter annular-sector prism with two concentric rational circular arcs, two radial lines, planar caps, and
+analytic extrusion walls. Both routes extend only the upper cap by a finite positive distance and retain analytic/planar
+supports without tessellation, Boolean healing, or source mutation. The public dispatcher reaches both routes.
+
+The single consolidated verifier checks positive distances 0.5, 1.5, and 3.0, exact topology, volume identities, source
+immutability, public dispatch, lower/side/invalid-distance refusal, malformed and translated refusal, and cross-domain refusal.
+The durable contact sheet is `Proofs/Batch55_RectangularHoledAndAnnularSectorFaceOffset.png`; the verifier and proof are
+registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to origin-centred, axis-aligned, positive upper-cap extension. They do not prove arbitrary
+rectangular holes, non-quarter or non-concentric sectors, translated/tilted/freeform/mixed supports, inward or lower/side
+offsets, healing, or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch55_RectangularHoledAndAnnularSectorFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
