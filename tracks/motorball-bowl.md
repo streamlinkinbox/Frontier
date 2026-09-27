@@ -1,13 +1,13 @@
-# Motorball Bowl — Scrapyard 99 (iteration 3)
+# Motorball Bowl — Scrapyard 99 (iteration 4)
 
 Night banked Motorball oval for Frontier, built to the user's GIF reference
 (floodlit bowl, yellow/black chevrons, cars pinned to high banked walls) plus
-the Weta trap-gate reference. Playable Three.js, integrated with the lobby.
+the Weta trap-gate reference and the Alita still (steel half-pipe, yellow
+edge stripes). Playable Three.js, integrated with the lobby.
 
 ## Layout — analytic paperclip oval (L = 1281.76 m, lobby shows 1.28 km)
 
-No spline: the centreline is exact analytic segments, so straights are
-dead straight (κ = 0) and bowls are exact circles (R = 94.5 m, κ = 0.01058):
+Exact analytic segments: dead-straight straights (κ = 0), exact R94.5 bowls.
 
 | s (m) | segment |
 |---|---|
@@ -17,42 +17,41 @@ dead straight (κ = 0) and bowls are exact circles (R = 94.5 m, κ = 0.01058):
 | 913 – 1210 | west bowl, centre (−172, 0), R 94.5, apex x = −266.5 |
 | 1210 – 1282 | south straight B (x −172 → −100), closes the loop |
 
-Both bowls are right-handers. History: iterations 1–2 used a CatmullRom
-spline whose straight-to-bowl joints pinched to R ≈ 71 m; iteration 3
-replaced it with this analytic builder (min R now exactly 94.5 m, verified).
+## Jump cuts (iteration 4 — replaces the old prop ramps)
 
-## Walls, banking, looks
+The road itself is cut, rally-style: the full 26 m width angles up over a
+12 m runup (quadratic profile, 18° at the lip, 2 m tall), then nothing —
+a 26 m open gap — then a steel landing wall. Steel cut faces span the full
+width, yellow bars edge the lips (ref still), hazard paint on the runup,
+chevrons on the landing zone, red glow in the cut, amber ticks on the map.
 
-- `bankAt`: smoothed |κ| (800 samples, ±50 m boxcar), thresholds 0.003/0.007,
-  wall height 0.7 m (straights) → 10 m (bowls), smooth ramps at joints.
-- Bowl dish exponent WALL_P = 2.2; physics bank push is 1.55× the visual
-  gradient (`bowlSlope` gain 3.4, |u|^1.2) so cars can ride the high wall.
-- Shoulder chevron bands on the banking, chevron ramp tops, edge lamps,
-  floodlight glow, trap gates ALPHA (s = 740, mid north straight) and
-  BETA (s = 1235, 47 m before the line), ramps at s = 620 (right lane)
-  and s = 140 (left lane).
+- Take off above ~23 m/s and you clear it (race pace sails 60–95 m).
+- Too slow → INTO THE GAP reset before the lip.
+- Short flight → face-plant into the landing wall (half speed, sparks).
+- Landings scale by impact: shake, sparks, up to 5% speed scrub.
+- Jumps at s = 140 (main straight) and s = 620 (back straight); AI fly them.
 
-## Car physics — nose-heading bicycle model + simplified Pacejka
+## Car physics — loaded bicycle model + simplified Pacejka (iteration 4)
 
-Iteration 3 killed the Subway Surfers feel: steering now yaws a true nose
-heading `hErr` (car yaw relative to road), and velocity follows the nose:
+Iteration 3's nose-heading model, made honest:
 
-- `hErr += (yawRate − v·κ)·h`, clamped ±1.05 rad
-- `vLat = v·sin(hErr) + vy·cos(hErr)`, road load rotated by `cos(hErr)`
-- Pacejka `sin(1.35·atan(11·α))` per axle, μ = 1.7, downforce `0.005·v²`,
-  friction-circle longitudinal scaling, 120–180 Hz substeps
-- Steer authority `dMax = min(0.6, 3.4/max(v,10))` — smooth 1/v curve, no
-  cliffs; full lock at speed will spin you, like a real car
-- Yaw damping `2.0 + 0.03·v`; physics κ reads a ±24 m smoothed heading
-  table (`sHeadS`, clothoid-like easements at joints, seam-safe)
-- Chase/visor cameras, minimap tick and AI all follow the nose heading
+- Weight transfer: braking loads the front axle (turn-in bite), power
+  loads the rear; per-axle load-sensitive μ (exponent −0.08).
+- Combined slip: longitudinal demand eats lateral grip; rear-only
+  power term, so greedy throttle on exit loosens the rear (RWD).
+- Lateral load sensitivity from smoothed lateral accel.
+- 600 kW power-curve engine (12.5 m/s² launch, tapering with speed),
+  1.05·v² aero drag, rolling resistance, engine braking, ABS-capped
+  brakes (24 m/s²), lip gradient resistance.
+- Chassis feedback: body roll from lateral G, dive/squat from
+  longitudinal G, lip/flight pitch, speed-scaled suspension bob,
+  tire-skid audio from smoothed slip angle.
 
-## Validated pace (headless sim, PD + lookahead driver, exact game constants)
+## Validated pace (headless sim, exact game constants)
 
-- Straights: 76 m/s, dead stable, 0.0° nose error
-- Bowls: comfortable 60–65, limit ≈ 66 (progressive wide slide past it)
-- Full laps 76 + braking to 61–63: zero wall hits, nose ≤ 13°, slip ≈ 4°
-- No NaN in any run; limit behaviour is a gentle understeer plow, not a cliff
+- 0–60 in 6.3 s, 0–76 in 13.5 s; brakes 76→60 in 45 m.
+- Bowls: comfortable 60–65, limit ≈ 66 (progressive wide slide past it).
+- Full lap from standstill with jumps: zero walls, zero gap fails,
+  nose ≤ 14°, slip ≈ 5°. No NaN in any run.
 
-Brake for the bowls (keys S / ↓), ride the banking, dodge the trap gates.
-Runtime feel still needs a human playtest — numbers can't feel fun.
+Brake for the bowls, pin the jumps, dodge ALPHA (s = 740) and BETA (s = 1235).
