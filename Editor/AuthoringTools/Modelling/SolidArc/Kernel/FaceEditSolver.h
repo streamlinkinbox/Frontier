@@ -61,6 +61,14 @@ public:
     // Positive distance expands its radius; arbitrary trimmed/spherical edits remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetSphereFace(const BrepBody& Source, int Face, double Distance) noexcept;
 
+    // Bounded native-cylinder upper-cap offset route for one exact analytic cylinder solid.
+    // Positive distance extends only its upper planar cap; arbitrary cylindrical edits remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetCylinderCap(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded elliptical-annulus offset route for a straight prism with one exact elliptical through-hole.
+    // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
     // Bounded genus-one offset route for a straight rectangular prism with one exact circular through-hole.
     // Only its upper annular cap is supported; arbitrary multi-loop/freeform offsets remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;

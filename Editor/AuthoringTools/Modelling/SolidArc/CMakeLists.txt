@@ -265,6 +265,11 @@ add_executable(SphereFaceOffsetVerification Verification/SphereFaceOffsetVerific
 target_link_libraries(SphereFaceOffsetVerification PRIVATE SolidArcConsoleKit)
 add_test(NAME SphereFaceOffsetVerification COMMAND SphereFaceOffsetVerification)
 
+# Phase 54: bounded elliptical-annular-prism upper-cap face offset.
+add_executable(EllipticalAnnularPrismFaceOffsetVerification Verification/EllipticalAnnularPrismFaceOffsetVerification.cpp)
+target_link_libraries(EllipticalAnnularPrismFaceOffsetVerification PRIVATE SolidArcConsoleKit)
+add_test(NAME EllipticalAnnularPrismFaceOffsetVerification COMMAND EllipticalAnnularPrismFaceOffsetVerification)
+
 # Phase 36b: connected same-body cap identities and non-identity dissimilar-hull replacement lofts.
 add_executable(GeneralConnectedFaceLoftVerification Verification/GeneralConnectedFaceLoftVerification.cpp)
 target_link_libraries(GeneralConnectedFaceLoftVerification PRIVATE SolidArcConsoleKit)

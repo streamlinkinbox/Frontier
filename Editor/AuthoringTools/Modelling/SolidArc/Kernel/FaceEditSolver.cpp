@@ -1007,6 +1007,119 @@ struct FaceFrame
     return Result;
 }
 
+[[nodiscard]] bool ReadExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face,
+                                                       Vec3& Low, Vec3& High,
+                                                       double& OuterMajor, double& OuterMinor,
+                                                       double& InnerMajor, double& InnerMinor,
+                                                       Vec3& Centre) noexcept
+{
+    const BodyReport R = Source.Validate();
+    if (!R.Solid() || R.Hulls != 1 || R.Genus != 1 || R.OpenEdges != 0 || R.NonManifoldEdges != 0 ||
+        R.MisorientedEdges != 0 || Source.Vertices.size() != 4 || Source.Edges.size() != 6 ||
+        Source.Coedges.size() != 12 || Source.Loops.size() != 6 || Source.Faces.size() != 4) return false;
+    if (Face < 0 || Face >= static_cast<int>(Source.Faces.size())) return false;
+    const BrepFace& Cap = Source.Faces[Face];
+    if (Cap.Surface.Classification != SurfaceClassification::Plane || Cap.Loops.size() != 2) return false;
+    const Vec3 Normal = Source.FaceNormal(Face,
+        0.5 * (Cap.Surface.DomainStartU() + Cap.Surface.DomainEndU()),
+        0.5 * (Cap.Surface.DomainStartV() + Cap.Surface.DomainEndV())).Normalised();
+    if (Normal.Dot(Vec3::UnitZ()) < 1.0 - UnitTolerance) return false;
+    Low = Source.Bounds().Low; High = Source.Bounds().High;
+    if (High.Z - Low.Z <= ScalarCriteria::MergeTolerance) return false;
+    int LowVertices = 0, HighVertices = 0;
+    for (const BrepVertex& V : Source.Vertices)
+    {
+        if (std::fabs(V.Point.Z - Low.Z) <= ScalarCriteria::GeometricTolerance) ++LowVertices;
+        else if (std::fabs(V.Point.Z - High.Z) <= ScalarCriteria::GeometricTolerance) ++HighVertices;
+        else return false;
+    }
+    if (LowVertices != 2 || HighVertices != 2) return false;
+    int OuterLoop = -1, InnerLoop = -1;
+    for (int Loop : Cap.Loops)
+    {
+        if (Loop < 0 || Loop >= static_cast<int>(Source.Loops.size()) || Source.Loops[Loop].Coedges.size() != 1) return false;
+        if (Source.Loops[Loop].Outer && OuterLoop < 0) OuterLoop = Loop;
+        else if (!Source.Loops[Loop].Outer && InnerLoop < 0) InnerLoop = Loop;
+        else return false;
+    }
+    if (OuterLoop < 0 || InnerLoop < 0) return false;
+    auto ReadLoopEllipse = [&](int Loop, double& Major, double& Minor, Vec3& LoopCentre) noexcept {
+        const int Coedge = Source.Loops[Loop].Coedges.front();
+        if (Coedge < 0 || Coedge >= static_cast<int>(Source.Coedges.size())) return false;
+        const int EdgeIndex = Source.Coedges[Coedge].Edge;
+        if (EdgeIndex < 0 || EdgeIndex >= static_cast<int>(Source.Edges.size())) return false;
+        const BrepEdge& E = Source.Edges[EdgeIndex];
+        return E.Coedges.size() == 2 && ExactAxisAlignedEllipse(E.Curve, Major, Minor, LoopCentre);
+    };
+    Vec3 OuterCentre{}, InnerCentre{};
+    if (!ReadLoopEllipse(OuterLoop, OuterMajor, OuterMinor, OuterCentre) ||
+        !ReadLoopEllipse(InnerLoop, InnerMajor, InnerMinor, InnerCentre)) return false;
+    if (OuterMajor <= InnerMajor + ScalarCriteria::MergeTolerance || OuterMinor <= InnerMinor + ScalarCriteria::MergeTolerance ||
+        std::fabs(OuterCentre.X - InnerCentre.X) > ScalarCriteria::GeometricTolerance ||
+        std::fabs(OuterCentre.Y - InnerCentre.Y) > ScalarCriteria::GeometricTolerance ||
+        std::fabs(OuterCentre.X) > ScalarCriteria::GeometricTolerance || std::fabs(OuterCentre.Y) > ScalarCriteria::GeometricTolerance) return false;
+    int EllipseEdges = 0, LineEdges = 0;
+    for (const BrepEdge& E : Source.Edges)
+    {
+        if (E.Coedges.size() != 2) return false;
+        if (E.Closed())
+        {
+            double Major = 0.0, Minor = 0.0; Vec3 C{};
+            if (!ExactAxisAlignedEllipse(E.Curve, Major, Minor, C)) return false;
+            const bool Outer = std::fabs(Major - OuterMajor) <= ScalarCriteria::GeometricTolerance && std::fabs(Minor - OuterMinor) <= ScalarCriteria::GeometricTolerance;
+            const bool Inner = std::fabs(Major - InnerMajor) <= ScalarCriteria::GeometricTolerance && std::fabs(Minor - InnerMinor) <= ScalarCriteria::GeometricTolerance;
+            if (!Outer && !Inner) return false;
+            ++EllipseEdges;
+        }
+        else
+        {
+            if (E.Curve.Classification != CurveClassification::Line || E.Curve.Degree != 1 || E.VertexStart < 0 || E.VertexEnd < 0 || E.VertexStart == E.VertexEnd) return false;
+            ++LineEdges;
+        }
+    }
+    if (EllipseEdges != 4 || LineEdges != 2) return false;
+    int Planes = 0, Extrusions = 0;
+    for (const BrepFace& F : Source.Faces)
+    {
+        if (F.Surface.Classification == SurfaceClassification::Plane)
+        {
+            if (F.Loops.size() != 2) return false;
+            ++Planes;
+        }
+        else if (F.Surface.Classification == SurfaceClassification::Extrusion)
+        {
+            if (F.Loops.size() != 1) return false;
+            ++Extrusions;
+        }
+        else return false;
+    }
+    if (Planes != 2 || Extrusions != 2) return false;
+    Centre = OuterCentre;
+    return true;
+}
+
+[[nodiscard]] Deliver<BrepBody> BuildExtrudedEllipticalAnnularPrismFaceOffset(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    Vec3 Low{}, High{}, Centre{};
+    double OuterMajor = 0.0, OuterMinor = 0.0, InnerMajor = 0.0, InnerMinor = 0.0;
+    if (!ReadExtrudedEllipticalAnnularPrism(Source, Face, Low, High, OuterMajor, OuterMinor, InnerMajor, InnerMinor, Centre))
+        return Deliver<BrepBody>::Reject(RefusalReason::Unsupported, "elliptical-annulus offset requires an exact two-loop elliptical prism and its upper cap");
+    if (!std::isfinite(Distance) || Distance <= ScalarCriteria::MergeTolerance)
+        return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "elliptical-annulus offset distance must be finite and positive");
+    const Deliver<NurbsCurve> Outer = NurbsCurve::Ellipse({ Centre.X, Centre.Y, Low.Z }, Vec3::UnitZ(), Vec3::UnitX(), OuterMajor, OuterMinor);
+    const Deliver<NurbsCurve> Inner = NurbsCurve::Ellipse({ Centre.X, Centre.Y, Low.Z }, Vec3::UnitZ(), Vec3::UnitX(), InnerMajor, InnerMinor);
+    if (!Outer || !Inner) return Deliver<BrepBody>::Reject(RefusalReason::DegenerateInput, "elliptical-annulus offset generated a degenerate profile");
+    Deliver<BrepBody> Result = BrepBody::Extrude(std::vector<NurbsCurve>{ Outer.Payload, Inner.Payload }, Vec3::UnitZ(), High.Z - Low.Z + Distance);
+    if (!Result) return Result;
+    Result.Payload.Orient();
+    const BodyReport Report = Result.Payload.Validate();
+    if (!Report.Solid() || Report.Hulls != 1 || Report.Genus != 1 || Report.OpenEdges != 0 || Report.NonManifoldEdges != 0 ||
+        Report.MisorientedEdges != 0 || Result.Payload.Vertices.size() != 4 || Result.Payload.Edges.size() != 6 ||
+        Result.Payload.Coedges.size() != 12 || Result.Payload.Loops.size() != 6 || Result.Payload.Faces.size() != 4)
+        return Deliver<BrepBody>::Reject(RefusalReason::NonManifold, "elliptical-annulus offset did not retain its genus-one two-loop topology");
+    return Result;
+}
+
 [[nodiscard]] bool ReadRevolvedAnnularPrism(const BrepBody& Source, int Face, double& InnerRadius,
                                             double& OuterRadius, double& Low, double& High) noexcept
 {
@@ -1800,6 +1913,8 @@ Deliver<BrepBody> FaceEditSolver::OffsetFace(const BrepBody& Source, int Face, d
         if (Sphere) return Sphere;
         Deliver<BrepBody> RevolvedAnnulus = OffsetRevolvedAnnularPrism(Source, Face, Distance);
         if (RevolvedAnnulus) return RevolvedAnnulus;
+        Deliver<BrepBody> EllipticalAnnulus = OffsetExtrudedEllipticalAnnularPrism(Source, Face, Distance);
+        if (EllipticalAnnulus) return EllipticalAnnulus;
         Deliver<BrepBody> Holed = OffsetExtrudedHoledPrism(Source, Face, Distance);
         if (Holed) return Holed;
         Deliver<BrepBody> TwinHoled = OffsetExtrudedTwinHoledPrism(Source, Face, Distance);
@@ -1942,6 +2057,11 @@ Deliver<BrepBody> FaceEditSolver::OffsetTorusFace(const BrepBody& Source, int Fa
 Deliver<BrepBody> FaceEditSolver::OffsetSphereFace(const BrepBody& Source, int Face, double Distance) noexcept
 {
     return BuildSphereFaceOffset(Source, Face, Distance);
+}
+
+Deliver<BrepBody> FaceEditSolver::OffsetExtrudedEllipticalAnnularPrism(const BrepBody& Source, int Face, double Distance) noexcept
+{
+    return BuildExtrudedEllipticalAnnularPrismFaceOffset(Source, Face, Distance);
 }
 
 Deliver<BrepBody> FaceEditSolver::OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept

@@ -2010,6 +2010,31 @@ toruses, cylinders, cones, annular prisms, arbitrary analytic/freeform faces, mi
 invalid offsets, malformed topology, healing, or general spherical face editing. Its bounded plan is
 `docs/PLAN_Phase53_SphereFaceOffset.md`.
 
+#### Phase 54: bounded elliptical-annular-prism upper-cap face offset ✅
+
+This proof advances exact face editing into a new genus-one multi-loop curved-profile domain, distinct
+from the single-loop elliptical prism and circular-holed prism routes. `EllipticalAnnularPrismFaceOffsetVerification`
+constructs an outer ellipse with semi-axes 6 and 3, an inner ellipse with semi-axes 2 and 1, source
+height 5, and upper-cap offset 1.5. Source and result retain closed genus-one `V4/E6/C12/L6/F4`
+topology.
+
+`FaceEditSolver::OffsetExtrudedEllipticalAnnularPrism` recognizes exactly two aligned rational
+elliptical loops, two planar annular caps, and two analytic extrusion walls. It rebuilds the same two
+loops from the source lower Z level and extends only the upper cap; no polygon approximation, Boolean,
+or healing fallback is used. The focused verifier checks both exact elliptical rims, planar/extrusion
+supports, the ellipse-area volume identity, source immutability, public dispatcher routing, and
+explicit refusal of single-loop ellipses, circular/rectangular holes, translated profiles, spheres,
+invalid offsets, and malformed topology.
+
+The durable proof is `Proofs/Phase54_EllipticalAnnularPrismFaceOffset.png`; 23 focused checks pass,
+and the verifier and proof are registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one origin-centred, axis-aligned, two-loop elliptical prism and positive
+upper-cap extension. It does not prove single-loop or non-elliptical profiles through this API,
+multiple holes, lower/side faces, cylinders, toruses, spheres, tilted/oblique/freeform/mixed supports,
+invalid offsets, malformed topology, healing, or general elliptical-annular face editing. Its bounded
+plan is `docs/PLAN_Phase54_EllipticalAnnularPrismFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

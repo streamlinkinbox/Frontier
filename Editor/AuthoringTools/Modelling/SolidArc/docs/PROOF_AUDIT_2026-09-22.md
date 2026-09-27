@@ -1334,6 +1334,30 @@ cylinders, cones, annular prisms, arbitrary analytic/freeform faces, mixed suppo
 malformed topology, healing, or general spherical face editing. The bounded plan is
 `docs/PLAN_Phase53_SphereFaceOffset.md`.
 
+## Phase 54 — bounded elliptical-annular-prism upper-cap face offset (2026-09-27)
+
+This proof advances exact face editing into a new genus-one multi-loop curved-profile domain:
+
+- `EllipticalAnnularPrismFaceOffsetVerification` constructs the outer ellipse with semi-axes 6 and 3,
+  inner ellipse with semi-axes 2 and 1, source height 5, and upper-cap offset 1.5. Source and result
+  retain closed genus-one `V4/E6/C12/L6/F4` topology.
+- `FaceEditSolver::OffsetExtrudedEllipticalAnnularPrism` recognizes exactly two aligned rational
+  elliptical loops, two planar annular caps, and two extrusion walls. It rebuilds the loops from the
+  source lower Z level and extends only the upper cap without polygonization or healing.
+- The focused verifier checks both exact elliptical rims, analytic planar/extrusion supports, the
+  ellipse-area volume identity, source immutability, public dispatcher routing, and explicit refusal
+  of single-loop ellipses, circular/rectangular holes, translated profiles, spheres, invalid offsets,
+  and malformed topology.
+- Durable proof: `Proofs/Phase54_EllipticalAnnularPrismFaceOffset.png`; 23 focused checks pass. The
+  verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The route remains bounded to one origin-centred, axis-aligned, two-loop elliptical prism and positive
+upper-cap extension. It does not prove single-loop or non-elliptical profiles through this API,
+multiple holes, lower/side faces, cylinders, toruses, spheres, tilted/oblique/freeform/mixed supports,
+invalid offsets, malformed topology, healing, or general elliptical-annular face editing. The bounded
+plan is `docs/PLAN_Phase54_EllipticalAnnularPrismFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
