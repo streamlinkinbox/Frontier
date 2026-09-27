@@ -58,6 +58,31 @@ surface transitions.
 
 ---
 
-> A previous, much smaller single-file version of this rig lived in
-> `mosquito/` ("Vector Lab"). It is superseded by the tree above; the original
-> is preserved in history at commit `fd36f2a`.
+## Vector Lab — original interactive mosquito lab (`mosquito/`)
+
+The first-generation specimen rig from this project: a fully procedural
+female *Aedes aegypti* (lyre scutum, pilose antennae, banded tarsi, scaled
+wings + fringe, halteres, 8-segment abdomen, claws + pulvilli) with
+wave→tetrapod→tripod gait, 40°/~560 Hz flight, wall + ceiling walking, and
+a fuel-tank / blood-dish feeding sequence. Zero-build static page —
+Three.js r160 is vendored, so serve the folder over HTTP and open it:
+
+```bash
+python3 -m http.server --directory mosquito 8123   # → http://localhost:8123
+```
+
+Kept live alongside the hardened `src/` rig above because it remains the
+quickest way to review the mosquito's behavior set in a browser.
+
+## Tick Lab — giant battery tick (`tick/`)
+
+Standalone second specimen: two giant female hard ticks that quest at the
+trackside, detect the idling race car (CO₂ + heat), climb the rear bumper,
+breach through the side air duct, and cement onto the battery cells —
+draining the pack until the lights die, then dropping off replete.
+Alternating-tetrapod gait, barbed hypostome + cement cone, scutum that never
+expands while the alloscutum balloons. Serve `tick/` over HTTP:
+
+```bash
+python3 -m http.server --directory tick 8124       # → http://localhost:8124
+```
