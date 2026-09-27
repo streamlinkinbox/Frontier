@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="dark"/>
+<title>FRONTIER — T. rex Osteology & Locomotion Lab</title>
+<script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:local('Inter'), local('Inter Regular')}
+:root{
+  --blue:#1f5eff; --bg:#070a0f; --panel:#111418; --panel-2:#151a20; --stroke:rgba(255,255,255,.08); --stroke-2:rgba(255,255,255,.14);
+  --text:#eaf0ff; --dim:#8b96b0; --faint:#5e6a85; --radius:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+a{color:inherit}
+button{font:inherit}
+
+/* Header */
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:10;display:flex;align-items:center;gap:16px;padding:0 18px;background:linear-gradient(180deg,rgba(7,10,15,.92),rgba(7,10,15,.72));backdrop-filter:blur(16px);border-bottom:1px solid var(--stroke)}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:36px;height:36px;border-radius:10px;background:#fff;color:var(--blue);display:grid;place-items:center;font-weight:900;letter-spacing:.12em;font-size:10px}
+.brand h1{font-size:13px;letter-spacing:.14em;font-weight:800;line-height:1}
+.brand h1 span{font-weight:500;letter-spacing:.06em;color:var(--dim);font-size:11px;display:block;margin-top:2px;text-transform:none}
+.nav{display:flex;align-items:center;gap:6px;margin-left:8px}
+.nav a{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:7px 10px;border-radius:999px;border:1px solid transparent;text-decoration:none;transition:.2s}
+.nav a.on{color:#fff;background:rgba(255,255,255,.08);border-color:var(--stroke)}
+.meta{margin-left:auto;display:flex;align-items:center;gap:10px}
+.meta small{font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.pill{font-size:11px;font-weight:700;letter-spacing:.06em;padding:7px 12px;border-radius:999px;background:var(--blue);color:#fff;border:0}
+.pill.ghost{background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:#fff}
+
+/* Layout */
+.stage{position:fixed;inset:56px 0 0;display:grid;grid-template-columns:320px 1fr 320px;grid-template-rows:1fr;gap:0;background:radial-gradient(1200px 700px at 70% 20%, #12204a 0%, transparent 60%), radial-gradient(900px 600px at 15% 90%, #0e1a33 0%, transparent 55%), var(--bg)}
+@media(max-width:1100px){.stage{grid-template-columns:280px 1fr}.right{display:none}}
+@media(max-width:760px){.stage{grid-template-columns:1fr;grid-template-rows:1fr auto}.left{display:none}}
+.panel{background:rgba(17,20,24,.72);border-right:1px solid var(--stroke);backdrop-filter:blur(14px);display:flex;flex-direction:column;overflow:hidden}
+.panel.right{border-right:0;border-left:1px solid var(--stroke)}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--stroke);display:flex;align-items:center;gap:10px}
+.panel-head b{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.panel-head span{font-size:10px;color:var(--faint);margin-left:auto}
+.panel-body{padding:14px 16px;overflow:auto;scrollbar-width:none}
+.panel-body::-webkit-scrollbar{display:none}
+.divider{height:1px;background:var(--stroke);margin:12px 0}
+
+/* Controls */
+.ctrl-group{margin-bottom:16px}
+.ctrl-group label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;font-weight:700}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:78px;height:36px;border-radius:12px;border:1px solid var(--stroke);background:rgba(255,255,255,.04);color:var(--dim);font-size:12px;font-weight:650;letter-spacing:.02em;transition:.18s}
+.seg button.on{background:#fff;color:#0a0a0a;border-color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.seg button:hover{border-color:var(--stroke-2);color:#fff}
+.seg button.on:hover{color:#0a0a0a}
+.seg.small button{height:30px;min-width:0;font-size:11px;flex:0 0 auto;padding:0 10px}
+.range{width:100%;appearance:none;height:4px;border-radius:4px;background:rgba(255,255,255,.12);outline:none}
+.range::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.5);cursor:pointer}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)}
+.kv small{font-size:10px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.kv b{font-size:12px;font-weight:700}
+.legend{display:flex;gap:8px;flex-wrap:wrap}
+.legend span{font-size:10px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;background:rgba(31,94,255,.12);border:1px solid rgba(31,94,255,.25);font-size:10px;color:#8ea6ff;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.badge i{width:6px;height:6px;border-radius:50%;background:#4d80ff;box-shadow:0 0 8px rgba(31,94,255,.7)}
+
+/* Canvas */
+.viewport{position:relative;overflow:hidden;background:transparent}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block}
+.overlay{position:absolute;inset:0;pointer-events:none}
+.hud-bottom{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:10px;pointer-events:auto}
+.hud-card{flex:1;background:rgba(10,14,22,.86);border:1px solid var(--stroke);border-radius:16px;padding:10px 12px;backdrop-filter:blur(14px);display:flex;align-items:center;gap:12px}
+.hud-card b{font-size:12px;display:block}
+.hud-card small{font-size:10px;color:var(--dim);display:block;margin-top:2px}
+.hud-card .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.6);flex:none}
+.timeline{height:3px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;flex:1;max-width:220px}
+.timeline i{display:block;height:100%;background:var(--blue);width:35%;border-radius:999px;transition:width .12s linear}
+.help{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:8px;pointer-events:none}
+.help span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.7);background:rgba(0,0,0,.42);border:1px solid rgba(255,255,255,.12);padding:6px 8px;border-radius:999px;backdrop-filter:blur(8px)}
+.help span kbd{font-family:ui-monospace,monospace;background:rgba(255,255,255,.14);padding:1px 5px;border-radius:5px;margin-left:4px}
+
+/* Right panel */
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat div{padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)}
+.stat small{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:4px}
+.stat b{font-size:13px;font-weight:750}
+.stat i{font-style:normal;font-size:10px;color:var(--dim);display:block;margin-top:3px}
+.bone-list{display:flex;flex-direction:column;gap:6px}
+.bone{padding:9px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid transparent;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.15s}
+.bone:hover{border-color:var(--stroke-2);background:rgba(255,255,255,.06)}
+.bone.on{border-color:rgba(31,94,255,.5);background:rgba(31,94,255,.12)}
+.bone em{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.06);display:grid;place-items:center;font-style:normal;font-size:12px}
+.bone b{font-size:12px;display:block}
+.bone small{font-size:10px;color:var(--dim);display:block;margin-top:1px}
+.bone i{margin-left:auto;font-style:normal;font-size:10px;color:var(--faint);font-family:ui-monospace,monospace}
+
+/* Tooltip */
+.tip{position:absolute;pointer-events:none;background:rgba(12,16,24,.94);border:1px solid rgba(255,255,255,.12);padding:8px 10px;border-radius:12px;font-size:11px;line-height:1.35;backdrop-filter:blur(10px);transform:translate(-50%,-110%);opacity:0;transition:opacity .14s}
+.tip.show{opacity:1}
+.tip b{display:block;font-size:11px}
+.tip span{color:var(--dim);font-size:10px}
+
+/* Loading */
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(600px 400px at 50% 30%, rgba(31,94,255,.18), transparent 70%), var(--bg);z-index:2;transition:opacity .6s}
+.loading.out{opacity:0;pointer-events:none}
+.loader{width:340px;padding:20px;border-radius:18px;background:rgba(17,20,24,.86);border:1px solid var(--stroke);backdrop-filter:blur(16px);text-align:center}
+.bar{height:4px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;width:0%;background:var(--blue);transition:width .2s}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">FR</div>
+    <h1>FRONTIER<span>T. rex — Osteology & Locomotion Lab · Sue (FMNH PR 2081) reference</span></h1>
+  </div>
+  <nav class="nav">
+    <a class="on" href="#">Skeleton Lab</a>
+    <a href="#" onclick="event.preventDefault();document.getElementById('btnAbout').click()">Research</a>
+  </nav>
+  <div class="meta">
+    <small>Van Bijlert et al. 2021 · Hutchinson et al.</small>
+    <button class="pill ghost" id="btnAbout">Annotations</button>
+    <button class="pill" id="btnReset">Reset view</button>
+  </div>
+</header>
+
+<div class="stage">
+  <!-- Left -->
+  <aside class="panel left">
+    <div class="panel-head"><b>Locomotion</b><span>3 gaits · 2 idle behaviours</span></div>
+    <div class="panel-body">
+      <div class="ctrl-group">
+        <label>Behaviour</label>
+        <div class="seg" id="modeBtns">
+          <button data-mode="idle" class="on">Idle</button>
+          <button data-mode="roar">Roar</button>
+          <button data-mode="sniff">Sniff</button>
+          <button data-mode="walk">Walk</button>
+          <button data-mode="fast">Fast walk</button>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <span class="badge"><i></i> Tail resonance model</span>
+          <span class="badge" style="background:rgba(255,255,255,.06);border-color:var(--stroke);color:var(--dim)">Digitigrade · 0.66 Hz</span>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Walk tuning — based on Trix tail natural frequency 0.66 s⁻¹</label>
+        <div class="row2">
+          <div class="kv"><small>Step freq</small><b id="vFreq">0.66 Hz</b></div>
+          <div class="kv"><small>Speed</small><b id="vSpeed">1.28 m/s</b></div>
+        </div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><small style="font-size:10px;color:var(--dim)">Play rate</small><small id="vRate" style="font-size:10px;color:var(--dim)">1.00×</small></div>
+          <input class="range" id="rRate" type="range" min="0.35" max="1.8" step="0.05" value="1.0"/>
+        </div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><small style="font-size:10px;color:var(--dim)">Tail compliance</small><small id="vTail" style="font-size:10px;color:var(--dim)">Balanced</small></div>
+          <input class="range" id="rTail" type="range" min="0" max="100" value="45"/>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Secondary motion</label>
+        <div class="legend" style="margin-bottom:8px">
+          <span><i style="background:#f2ead8"></i>Bone · hollowed</span>
+          <span><i style="background:#4d80ff"></i>Ligament resonance</span>
+          <span><i style="background:#22c55e"></i>Ground contact</span>
+        </div>
+        <div class="row2">
+          <label class="kv" style="cursor:pointer"><small>Breathing</small><input id="cBreath" type="checkbox" checked/></label>
+          <label class="kv" style="cursor:pointer"><small>Foot dust</small><input id="cDust" type="checkbox" checked/></label>
+        </div>
+        <div class="row2" style="margin-top:8px">
+          <label class="kv" style="cursor:pointer"><small>Auto orbit</small><input id="cOrbit" type="checkbox"/></label>
+          <label class="kv" style="cursor:pointer"><small>Ribcage X-ray</small><input id="cXray" type="checkbox"/></label>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-group">
+        <label>Osteology focus</label>
+        <div class="seg small" id="focusBtns">
+          <button data-focus="all" class="on">All</button>
+          <button data-focus="skull">Skull</button>
+          <button data-focus="axial">Axial</button>
+          <button data-focus="forelimb">Arms</button>
+          <button data-focus="hindlimb">Legs</button>
+          <button data-focus="tail">Tail</button>
+        </div>
+        <div style="margin-top:10px;display:grid;gap:6px">
+          <div class="kv"><small>Skeleton length</small><b>12.3 m</b></div>
+          <div class="kv"><small>Hip height</small><b>3.66 m</b></div>
+          <div class="kv"><small>Mass est.</small><b>8.4 t <i style="font-size:10px;color:var(--dim)">Sue</i></b></div>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Notes</label>
+        <p style="font-size:11px;line-height:1.55;color:var(--dim)">No “stick bones”. Every element is modelled with volume, articular ends and pneumatic detail. Skull shows antorbital + lateral temporal fenestrae, U-shaped rostrum and heterodont dentition. Gait uses tail natural frequency method — vertical tail oscillations drive step cadence, not just leg length.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Viewport -->
+  <main class="viewport" id="viewport">
+    <canvas id="c"></canvas>
+    <div class="overlay">
+      <div class="help">
+        <span>Drag to orbit <kbd>LMB</kbd></span>
+        <span>Scroll to dolly <kbd>Wheel</kbd></span>
+        <span>Pan <kbd>RMB</kbd></span>
+        <span id="hintMode">Idle · breathing + micro-sway</span>
+      </div>
+      <div class="hud-bottom">
+        <div class="hud-card" style="max-width:420px">
+          <div class="dot" id="liveDot"></div>
+          <div>
+            <b id="hudTitle">Idle — postural sway & respiration</b>
+            <small id="hudSub">Ribs expand 1.1% · tail 0.18 Hz · head micro-nod 2.1°</small>
+          </div>
+          <div class="timeline"><i id="prog"></i></div>
+        </div>
+        <div class="hud-card" style="max-width:300px">
+          <div style="flex:1">
+            <small style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)">Sources</small>
+            <small style="font-size:10px;color:var(--dim);margin-top:4px;display:block">Sue/FMNH PR2081 & Trix RGM 792.000 · van Bijlert 2021 Royal Soc. Open Sci · Hutchinson 2021</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tip" id="tip"></div>
+    <div class="loading" id="loading">
+      <div class="loader">
+        <b style="font-size:12px;letter-spacing:.12em;text-transform:uppercase">Assembling T. rex osteology</b>
+        <small style="display:block;margin-top:6px;color:var(--dim);font-size:11px">47 caudal vertebrae · 13 dorsals · arctometatarsus · vaulted skull</small>
+        <div class="bar"><i id="loadBar"></i></div>
+        <small id="loadText" style="display:block;margin-top:8px;color:var(--faint);font-size:10px;letter-spacing:.06em;text-transform:uppercase">Building bone lathe profiles…</small>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right -->
+  <aside class="panel right">
+    <div class="panel-head"><b>Anatomy inspector</b><span id="boneCount">~198 bones</span></div>
+    <div class="panel-body">
+      <div class="stat">
+        <div><small>Skull length</small><b>1.52 m</b><i>U-shaped rostrum · 60 teeth</i></div>
+        <div><small>Femur</small><b>1.32 m</b><i>4th trochanter · hollow</i></div>
+        <div><small>Step length</small><b id="statStep">1.94 m</b><i>trackway scaled to Trix</i></div>
+        <div><small>Preferred walk</small><b id="statWalk">4.6 km/h</b><i>resonance 0.66 s⁻¹</i></div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Quick isolate</label>
+        <div class="bone-list" id="boneList">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="ctrl-group">
+        <label>Gait diagnostics (live)</label>
+        <div style="display:grid;gap:8px">
+          <div class="kv"><small>Duty factor</small><b id="dutyVal">0.64</b></div>
+          <div class="kv"><small>Tail vertical amp</small><b id="tailAmp">7.4°</b></div>
+          <div class="kv"><small>Body pitch</small><b id="pitchVal">+2.1°</b></div>
+          <div class="kv"><small>Foot strike</small><b id="strikeVal">Toe-first (distal)</b></div>
+        </div>
+      </div>
+
+      <p style="margin-top:10px;font-size:10px;line-height:1.6;color:var(--faint)">Tip: hover any bone for Latin name + function. Tail is suspension-bridge model: interspinous ligaments as elastic springs. No fake rubber — stiffness varies by segment.</p>
+    </div>
+  </aside>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (s, r=document)=>r.querySelector(s);
+const $$ = (s, r=document)=>[...r.querySelectorAll(s)];
+
+// ---------- Scene ----------
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.02;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070a0f);
+scene.fog = new THREE.Fog(0x070a0f, 18, 42);
+
+const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 120);
+camera.position.set(9.2, 4.1, 9.8);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.05, -0.4);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.minDistance = 2.2;
+controls.maxDistance = 22;
+controls.maxPolarAngle = Math.PI/2 - 0.04;
+controls.minPolarAngle = 0.15;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 0.45;
+
+// Lights — museum
+scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x0a0a0a, 0.55));
+const dir = new THREE.DirectionalLight(0xfff6e8, 2.1);
+dir.position.set(8, 11, 6);
+dir.castShadow = true;
+dir.shadow.mapSize.set(2048,2048);
+dir.shadow.camera.near = 0.5;
+dir.shadow.camera.far = 30;
+dir.shadow.camera.left = -14;
+dir.shadow.camera.right = 14;
+dir.shadow.camera.top = 10;
+dir.shadow.camera.bottom = -10;
+dir.shadow.bias = -0.0006;
+scene.add(dir);
+const fill = new THREE.DirectionalLight(0x8aa8ff, 0.65);
+fill.position.set(-6, 5, -8);
+scene.add(fill);
+const rim = new THREE.DirectionalLight(0x4d80ff, 0.9);
+rim.position.set(-2, 7, 7);
+scene.add(rim);
+
+// Ground
+const groundGeo = new THREE.PlaneGeometry(60,60);
+const groundMat = new THREE.MeshStandardMaterial({color:0x0f141c, roughness:0.92, metalness:0.02});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = 0;
+ground.receiveShadow = true;
+scene.add(ground);
+const grid = new THREE.GridHelper(60, 60, 0x1a2338, 0x111a2a);
+grid.position.y = 0.01;
+scene.add(grid);
+// contact shadow under skeleton
+const shadowTex = (()=>{ const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');const grd=g.createRadialGradient(128,128,20,128,128,128);grd.addColorStop(0,'rgba(0,0,0,0.45)');grd.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=grd;g.fillRect(0,0,256,256);return new THREE.CanvasTexture(c)})();
+const contact = new THREE.Mesh(new THREE.PlaneGeometry(10, 18), new THREE.MeshBasicMaterial({map:shadowTex, transparent:true, depthWrite:false, opacity:0.55}));
+contact.rotation.x = -Math.PI/2;
+contact.position.y = 0.015;
+scene.add(contact);
+
+// Materials
+function makeBoneTexture(){
+  const c=document.createElement('canvas');c.width=512;c.height=512;
+  const g=c.getContext('2d');
+  g.fillStyle='#f2ead8'; g.fillRect(0,0,512,512);
+  for(let i=0;i<9000;i++){
+    const x=Math.random()*512, y=Math.random()*512, r=Math.random()*1.4+0.3, a=Math.random()*0.09+0.03;
+    g.fillStyle=`rgba(110,95,70,${a})`; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+  }
+  for(let i=0;i<600;i++){
+    const x=Math.random()*512, y=Math.random()*512; g.fillStyle=`rgba(255,255,245,${Math.random()*0.07})`; g.fillRect(x,y,1.5,10+Math.random()*18);
+  }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(1.2,1.2); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4; return tex;
+}
+const boneMap = makeBoneTexture();
+const boneMat = new THREE.MeshStandardMaterial({color:0xf5efe0, map:boneMap, roughness:0.78, metalness:0.015, bumpScale:0.015});
+const boneMatDark = new THREE.MeshStandardMaterial({color:0xe8e0c8, roughness:0.82, metalness:0.01});
+const cartilageMat = new THREE.MeshStandardMaterial({color:0xd9c7a8, roughness:0.85});
+const toothMat = new THREE.MeshStandardMaterial({color:0xfffaf0, roughness:0.42, metalness:0.0});
+const darkMat = new THREE.MeshStandardMaterial({color:0x07080e, roughness:0.98});
+const toothMat2 = new THREE.MeshStandardMaterial({color:0xfff6e6, roughness:0.38});
+
+// helpers
+function latheBone(points, radial=16, mat=boneMat){
+  const geo=new THREE.LatheGeometry(points, radial);
+  geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo, mat);
+  m.castShadow=true; m.receiveShadow=true; return m;
+}
+function capsuleLike(len, rMid, rTop, rBot, mat=boneMat){
+  const pts=[];
+  pts.push(new THREE.Vector2(0, len/2));
+  pts.push(new THREE.Vector2(rTop*0.62, len/2-0.015));
+  pts.push(new THREE.Vector2(rTop, len/2-0.07));
+  pts.push(new THREE.Vector2(rTop*0.92, len/2-0.16));
+  pts.push(new THREE.Vector2(rMid, 0));
+  pts.push(new THREE.Vector2(rBot*0.92, -len/2+0.16));
+  pts.push(new THREE.Vector2(rBot, -len/2+0.07));
+  pts.push(new THREE.Vector2(rBot*0.62, -len/2+0.015));
+  pts.push(new THREE.Vector2(0, -len/2));
+  return latheBone(pts, 14, mat);
+}
+
+// ---------- T. rex constants (meters, Sue / Trix scaled) ----------
+const FEMUR_LEN=1.32, TIBIA_LEN=1.12, META_LEN=0.58, FIB_LEN=1.05;
+const HUM_LEN=0.32, ULNA_LEN=0.21, RADIUS_LEN=0.19;
+const SKULL_LEN=1.52, SKULL_H=0.62;
+const HIP_H=3.68;
+const STEP_LEN_WALK=1.94, STRIDE_WALK=STEP_LEN_WALK*2;
+
+// Root
+const trex = new THREE.Group();
+scene.add(trex);
+const bodyRoot = new THREE.Group();
+trex.add(bodyRoot);
+bodyRoot.position.y = HIP_H;
+
+// Pelvis group (controls body pitch/roll)
+const pelvis = new THREE.Group();
+bodyRoot.add(pelvis);
+
+// Skeleton refs
+const skel={ pelvis, dorsals:[], cervicals:[], ribs:[], gastralia:[], tail:[], leftLeg:{}, rightLeg:{}, arms:[], skull:null, mandible:null };
+
+// ----- Pelvis : ilium / pubis / ischium -----
+(() => {
+  // ilium blade - extruded shape lateral silhouette
+  function makeIlium(side){ // side 1 = left, -1 = right
+    const shape=new THREE.Shape();
+    shape.moveTo(0.05, 0.15);
+    shape.bezierCurveTo(0.8,0.38, 1.45,0.32, 1.65,0.05);
+    shape.bezierCurveTo(1.55,-0.18, 1.15,-0.28, 0.75,-0.22);
+    shape.bezierCurveTo(0.35,-0.18, 0.0,-0.08, -0.18,0.04);
+    shape.bezierCurveTo(-0.32,0.10,-0.18,0.18,0.05,0.15);
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:0.09, bevelEnabled:true, bevelThickness:0.015, bevelSize:0.012, bevelSegments:2});
+    geo.rotateY(Math.PI/2);
+    geo.translate(0,0.18, -0.55);
+    const m=new THREE.Mesh(geo, boneMat);
+    m.castShadow=true;
+    m.scale.set(1,1, side);
+    // acetabulum hole visual dark
+    return m;
+  }
+  const iliumL=makeIlium(1), iliumR=makeIlium(-1);
+  iliumL.position.x=0.32; iliumR.position.x=-0.32;
+  pelvis.add(iliumL, iliumR);
+  // pubis boot
+  function pubis(side){
+    const g=new THREE.Group();
+    const shaft= capsuleLike(0.92, 0.055, 0.075, 0.11, boneMat);
+    shaft.position.y=-0.42; shaft.rotation.x=0.18; shaft.rotation.z= side*0.08;
+    const bootGeo=new THREE.BoxGeometry(0.42,0.07,0.18);
+    // round boot
+    const mods=bootGeo.attributes.position;
+    for(let i=0;i<mods.count;i++){ const z=mods.getZ(i); if(z>0) mods.setX(i, mods.getX(i)*0.62); }
+    bootGeo.computeVertexNormals();
+    const boot=new THREE.Mesh(bootGeo, boneMat);
+    boot.position.set(0,-0.86,0.18); boot.rotation.y=0.18;
+    boot.castShadow=true;
+    g.add(shaft, boot);
+    g.position.set(side*0.22, 0.02, 0.38);
+    return g;
+  }
+  pelvis.add(pubis(1), pubis(-1));
+  function ischium(side){
+    const g=new THREE.Group();
+    const shaft=capsuleLike(0.78,0.045,0.068,0.038, boneMat);
+    shaft.rotation.x=-0.62; shaft.position.set(0,-0.28,-0.28);
+    g.add(shaft); g.position.set(side*0.18,0.04,-0.2); return g;
+  }
+  pelvis.add(ischium(1), ischium(-1));
+  // sacral vertebrae fusion (5)
+  for(let i=0;i<5;i++){
+    const g=new THREE.Group();
+    const centrum=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.22,12), boneMat);
+    centrum.rotation.z=Math.PI/2; centrum.castShadow=true;
+    const spine=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.52,0.16), boneMat); spine.position.y=0.32; spine.castShadow=true;
+    const trL=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.035,0.62,8), boneMat); trL.rotation.z=Math.PI/2; trL.position.set(0,0.08,0);
+    // combine transverse to ilium
+    g.add(centrum, spine);
+    g.position.set(0,0.02, -0.62 + i*0.22);
+    pelvis.add(g);
+  }
+  // sacral ribs thin
+})();
+
+// ----- Dorsal vertebrae 13 -----
+(() => {
+  const dorsalGroup=new THREE.Group();
+  pelvis.add(dorsalGroup);
+  // dorsal series anterior to sacrum, curving slightly
+  for(let i=0;i<13;i++){
+    const z = -0.62 -0.28 - i*0.205; // forward positive? we use Z anterior + ; sacrum at -0.5 approx, so dorsal forward is +Z
+    // Actually sacrum at ~ z=0? Let's reset: pelvis at origin, anterior is +Z (towards head). Dorsals go +Z.
+    // So sacrum positions were negative? Fix: set sacrum centered. We'll offset dorsals forward.
+  }
+})();
+// Rebuild axial correctly with Z forward
+(() => {
+  // clear previous weird dorsals and rebuild from scratch for clarity
+  // Remove sacral dummies already added but keep them; add dorsals properly
+  const DORSAL_N=13, CERV_N=10, CAUDAL_N=32;
+  // Dorsals
+  for(let i=0;i<DORSAL_N;i++){
+    const g=new THREE.Group();
+    const size=0.38 + Math.sin((i/DORSAL_N)*Math.PI)*0.04;
+    const centrumLen=0.19, centrumRad=0.18 + (i<4?0.02:0);
+    const centrum=new THREE.Mesh(new THREE.CylinderGeometry(centrumRad*0.94,centrumRad,centrumLen,14), boneMat);
+    centrum.rotation.z=Math.PI/2; centrum.rotation.x=0; // along Z
+    // orient along Z so cylinder axis Z, rotate Y 90? Cylinder default Y axis, we rotate Z 90 => along X, need along Z => rotate X 90
+    centrum.rotation.set(Math.PI/2,0,0);
+    centrum.castShadow=true;
+    // neural arch
+    const arch=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.16,0.18), boneMat); arch.position.y=0.20; arch.castShadow=true;
+    const spineH= 0.42 + (i<6?0.08:0);
+    const spine=new THREE.Mesh(new THREE.BoxGeometry(0.09,spineH,0.12), boneMat); spine.position.y=0.20+spineH/2; spine.castShadow=true;
+    // transverse processes
+    const tpGeom=new THREE.CylinderGeometry(0.04,0.028,0.58,8); tpGeom.rotateZ(Math.PI/2);
+    const tpL=new THREE.Mesh(tpGeom, boneMat); tpL.position.set(-0.42,0.18,0); tpL.castShadow=true;
+    const tpR=new THREE.Mesh(tpGeom, boneMat); tpR.position.set(0.42,0.18,0); tpR.castShadow=true;
+    // add small pleurocoel indent visual: dark decal
+    const pleuro=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,6), darkMat); pleuro.scale.set(1,0.6,0.3); pleuro.position.set(0,0,-0.01);
+    g.add(centrum, arch, spine, tpL, tpR, pleuro);
+    // position along Z forward
+    const z = 0.14 + i*0.205;
+    g.position.set(0,0.06 + Math.sin(i*0.18)*0.02, z);
+    // slight kyphosis bow
+    g.rotation.x = -0.02;
+    skel.dorsals.push(g);
+    pelvis.add(g);
+    // Ribs for each dorsal (except last 2)
+    if(i<11){
+      const ribLenFactor = 0.75 + Math.sin((i/11)*Math.PI)*0.42;
+      const sideSigns=[1,-1];
+      sideSigns.forEach(side=>{
+        const curve=new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side*0.42,0.18,0),
+          new THREE.Vector3(side*(0.82*ribLenFactor), -0.05, 0.06),
+          new THREE.Vector3(side*(0.95*ribLenFactor), -0.45, 0.02),
+          new THREE.Vector3(side*(0.72*ribLenFactor), -0.92, -0.04),
+          new THREE.Vector3(side*(0.38*ribLenFactor), -1.22, -0.02),
+        ]);
+        const tube=new THREE.TubeGeometry(curve, 18, 0.028 + ribLenFactor*0.012, 8, false);
+        const rib=new THREE.Mesh(tube, boneMat); rib.castShadow=true;
+        // attach to dorsal g but keep world? Add to g
+        g.add(rib);
+        skel.ribs.push(rib);
+      });
+    }
+  }
+  // Cervicals 10 forming S-curve
+  let neckBase = skel.dorsals[skel.dorsals.length-1];
+  let neckAttach = new THREE.Group();
+  // position neck base at last dorsal tip
+  neckAttach.position.set(0,0.08, 0.14+12*0.205+0.12);
+  pelvis.add(neckAttach);
+  for(let i=0;i<CERV_N;i++){
+    const g=new THREE.Group();
+    const t=i/(CERV_N-1);
+    const centrumRad=0.145 + Math.sin(t*Math.PI)*0.02;
+    const centrumLen=0.16 + (i<2?0.02:0);
+    const centrum=new THREE.Mesh(new THREE.CylinderGeometry(centrumRad*0.96, centrumRad, centrumLen,12), boneMat);
+    centrum.rotation.x=Math.PI/2; centrum.castShadow=true;
+    const arch=new THREE.Mesh(new THREE.BoxGeometry(0.19,0.12,0.14), boneMat); arch.position.y=0.16; arch.castShadow=true;
+    const spineH= i<2?0.18 : i<5?0.28:0.20;
+    const spine=new THREE.Mesh(new THREE.BoxGeometry(0.07,spineH,0.09), boneMat); spine.position.y=0.16+spineH/2; spine.castShadow=true;
+    // short cervical ribs fused? show small ribs
+    if(i>1){
+      const crGeom=new THREE.CylinderGeometry(0.018,0.012,0.22,6); crGeom.rotateX(Math.PI/2);
+      const crL=new THREE.Mesh(crGeom,boneMat); crL.position.set(-0.18, -0.02, -0.02); crL.rotation.y=0.35;
+      const crR=new THREE.Mesh(crGeom,boneMat); crR.position.set(0.18,-0.02,-0.02); crR.rotation.y=-0.35;
+      g.add(crL, crR);
+    }
+    g.add(centrum, arch, spine);
+    // placement along local Z
+    g.position.set(0,0, i*0.168);
+    // curvature S: set pre-rotation
+    let pitch=0;
+    if(i<3) pitch= 0.22; // up
+    else if(i<6) pitch= -0.28; // down mid S
+    else pitch= 0.12; // up to head
+    // distribute smoothly
+    const smoothPitch = Math.sin((i/9)*Math.PI*1.2 -0.6)*0.22;
+    g.rotation.x = pitch*0.55 + smoothPitch*0.5;
+    neckAttach.add(g);
+    skel.cervicals.push(g);
+    neckAttach = g; // chain
+  }
+  // store neck tip for skull attachment
+  skel.neckTip = neckAttach;
+
+  // Tail 32 vertebrae (representing ~40-47)
+  let tailParent = pelvis;
+  let tailZStart = -0.78; // posterior negative Z
+  for(let i=0;i<CAUDAL_N;i++){
+    const g=new THREE.Group();
+    const norm=i/CAUDAL_N;
+    const scale = 1 - norm*0.72; // taper
+    const size = 0.34*scale +0.06;
+    const centrumLen= 0.21*scale+0.08;
+    const centrumRad= 0.18*scale+0.04;
+    const centrum=new THREE.Mesh(new THREE.CylinderGeometry(centrumRad*0.96, centrumRad, centrumLen,12), boneMat);
+    centrum.rotation.x=Math.PI/2; centrum.castShadow=true;
+    const arch=new THREE.Mesh(new THREE.BoxGeometry(0.15*scale+0.04, 0.14*scale+0.04, 0.13*scale+0.05), boneMat); arch.position.y=0.13*scale+0.04; arch.castShadow=true;
+    const spineH= (0.42 - norm*0.32) * (i<8?1:0.95);
+    const spine=new THREE.Mesh(new THREE.BoxGeometry(0.06, Math.max(0.06,spineH), 0.08*scale+0.02), boneMat); spine.position.y=0.13*scale+0.04+spineH/2; spine.castShadow=true;
+    // transverse processes proximal only
+    if(i<14){
+      const tpLen= 0.38*(1-norm*0.6);
+      const tpGeom=new THREE.CylinderGeometry(0.03*scale+0.015, 0.02*scale+0.01, tpLen,7); tpGeom.rotateZ(Math.PI/2);
+      const tpL=new THREE.Mesh(tpGeom,boneMat); tpL.position.set(-tpLen/2-0.08,0.06,0);
+      const tpR=new THREE.Mesh(tpGeom,boneMat); tpR.position.set(tpLen/2+0.08,0.06,0);
+      g.add(tpL,tpR);
+    }
+    // chevron ventral for proximal-mid
+    if(i<20 && i>0){
+      const chevLen=0.22*scale+0.08;
+      const chev=new THREE.Mesh(new THREE.BoxGeometry(0.05, chevLen, 0.04), boneMat); chev.position.y= -0.12*scale - chevLen/2; chev.castShadow=true;
+      // chevron is Y-shaped distally: simplified single
+      g.add(chev);
+    }
+    g.add(centrum, arch, spine);
+    // position posterior
+    g.position.set(0, (i<4? -norm*0.06 : -0.08 - norm*0.28), -centrumLen*0.55);
+    // set parent chain
+    if(i===0){
+      g.position.set(0, -0.06, tailZStart);
+      pelvis.add(g);
+    } else {
+      // attach to previous vertebra tip
+      tailParent.add(g);
+      // move g posterior of parent
+      // we already set position relative to parent's origin posterior
+      g.position.z = -(pelvis===tailParent?0:0.02) - ( (i===1?0.12:0.02) + centrumLen*0.58);
+      // need correct offset: simpler set g.position.z = -prevCentrumLen/2 - curCentrumLen/2 - gap
+    }
+    // fix for chain: first already, others as child with offset forward? Let's recompute uniformly:
+    // We'll set each vertebra's position at its anterior face relative to parent posterior.
+    // So after creation, set position z = -(parentCentrumLen/2 + centrumLen/2 + 0.02)
+    // For now adjust after loop? We'll approximate by placing at -0.22 - norm*0.04 each step
+    if(i>0){
+      g.position.set(0, -0.015*scale, -0.21*scale -0.09);
+    }
+    skel.tail.push(g);
+    tailParent = g;
+  }
+})();
+
+// ----- Gastralia (belly ribs) 9 rows -----
+(() => {
+  const gastrGroup=new THREE.Group();
+  pelvis.add(gastrGroup);
+  for(let row=0;row<9;row++){
+    const z= 0.72 + row*0.21;
+    const width= 0.72 - row*0.035;
+    const y= -1.06 - Math.sin(row*0.28)*0.08;
+    // left segment
+    const curveL=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.02, y, z),
+      new THREE.Vector3(-width*0.5, y-0.06, z+0.04),
+      new THREE.Vector3(-width, y, z-0.02),
+    ]);
+    const curveR=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.02, y, z),
+      new THREE.Vector3(width*0.5, y-0.06, z+0.04),
+      new THREE.Vector3(width, y, z-0.02),
+    ]);
+    const tubeL=new THREE.TubeGeometry(curveL, 8, 0.018, 6, false);
+    const tubeR=new THREE.TubeGeometry(curveR, 8, 0.018, 6, false);
+    const mL=new THREE.Mesh(tubeL,boneMatDark); mL.castShadow=true;
+    const mR=new THREE.Mesh(tubeR,boneMatDark); mR.castShadow=true;
+    gastrGroup.add(mL,mR);
+    skel.gastralia.push(mL,mR);
+  }
+})();
+
+// ----- Pectoral girdle + forelimbs -----
+(() => {
+  function makeArm(side){
+    const armRoot=new THREE.Group();
+    // scapula blade
+    const shape=new THREE.Shape();
+    shape.moveTo(0,0);
+    shape.bezierCurveTo(0.12,0.18,0.22,0.42,0.18,0.78);
+    shape.bezierCurveTo(0.16,0.92,0.10,0.98,0.0,0.96);
+    shape.bezierCurveTo(-0.06,0.84,-0.10,0.52,-0.04,0.18);
+    shape.bezierCurveTo(-0.02,0.06,0,0,0,0);
+    const scapGeo=new THREE.ExtrudeGeometry(shape,{depth:0.025, bevelEnabled:true, bevelThickness:0.008, bevelSize:0.006, bevelSegments:2});
+    scapGeo.rotateY(Math.PI/2); scapGeo.rotateZ(-0.18);
+    const scap=new THREE.Mesh(scapGeo, boneMat); scap.castShadow=true;
+    scap.position.set(side*0.32, 0.38, 1.68);
+    scap.rotation.z= side*0.18;
+    scap.rotation.x=0.42;
+    pelvis.add(scap);
+    // coracoid small disc
+    const cora=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,0.03,12), boneMat);
+    cora.rotation.z=Math.PI/2; cora.position.set(side*0.36,0.05,1.82); cora.castShadow=true; pelvis.add(cora);
+    // furcula V
+    // glenoid location
+    armRoot.position.set(side*0.42, 0.02, 1.88);
+    pelvis.add(armRoot);
+    // humerus
+    const humLen=HUM_LEN, humGroup=new THREE.Group();
+    const humMesh=capsuleLike(humLen, 0.045, 0.058, 0.038, boneMat);
+    humMesh.position.y= -humLen/2;
+    // deltopectoral crest ridge
+    const crest=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.12,0.02), boneMat); crest.position.set(side*0.04, -0.08, 0.02);
+    humGroup.add(humMesh, crest);
+    humGroup.position.y=0;
+    armRoot.add(humGroup);
+    // elbow
+    const elbow=new THREE.Group(); elbow.position.y= -humLen;
+    humGroup.add(elbow);
+    const ulnaGroup=new THREE.Group();
+    const ulnaMesh=capsuleLike(ULNA_LEN,0.028,0.032,0.022, boneMat); ulnaMesh.position.y= -ULNA_LEN/2;
+    ulnaGroup.add(ulnaMesh);
+    const radiusMesh=capsuleLike(RADIUS_LEN,0.022,0.024,0.018, boneMat); radiusMesh.position.set(side*-0.04, -RADIUS_LEN/2+0.02, 0);
+    ulnaGroup.add(radiusMesh);
+    elbow.add(ulnaGroup);
+    // hand — 2 digits functional + splint 3rd
+    const hand=new THREE.Group(); hand.position.y= -ULNA_LEN;
+    elbow.add(hand);
+    // metacarpal II (main)
+    const mc2=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.015,0.075,8), boneMat); mc2.position.y= -0.038; mc2.castShadow=true; hand.add(mc2);
+    // digit II phalanges
+    const p1=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.013,0.055,8), boneMat); p1.position.set(0,-0.09,0.015); p1.rotation.x=0.18; hand.add(p1);
+    const p2=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.008,0.042,8), boneMat); p2.position.set(0,-0.13,0.035); p2.rotation.x=0.45; hand.add(p2);
+    const clawGeo=new THREE.ConeGeometry(0.011,0.045,8); clawGeo.translate(0,0.022,0); clawGeo.rotateX(Math.PI/2);
+    const claw=new THREE.Mesh(clawGeo,boneMatDark); claw.position.set(0,-0.15,0.055); claw.rotation.x=0.72; hand.add(claw);
+    // digit I smaller
+    const mc1=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.012,0.055,8), boneMat); mc1.position.set(side*-0.035, -0.032,0); mc1.rotation.z= side*0.28; hand.add(mc1);
+    const p1b=new THREE.Mesh(new THREE.CylinderGeometry(0.013,0.010,0.042,8), boneMat); p1b.position.set(side*-0.05,-0.075,0.012); p1b.rotation.x=0.22; hand.add(p1b);
+    const claw2=new THREE.Mesh(clawGeo,boneMatDark); claw2.position.set(side*-0.052,-0.102,0.032); claw2.rotation.x=0.68; hand.add(claw2);
+    // splint metacarpal III tiny
+    const mc3=new THREE.Mesh(new THREE.CylinderGeometry(0.007,0.005,0.045,6), boneMat); mc3.position.set(side*0.028, -0.028, -0.01); hand.add(mc3);
+
+    // store refs
+    skel.arms.push({root:armRoot, hum:humGroup, elbow, hand, side});
+    // initial pose
+    humGroup.rotation.x=0.42; humGroup.rotation.z= side*-0.22;
+    elbow.rotation.x=1.05; hand.rotation.x=0.18;
+  }
+  makeArm(1); makeArm(-1);
+})();
+
+// ----- Hindlimbs -----
+(() => {
+  function makeLeg(side){
+    const hip=new THREE.Group();
+    hip.position.set(side*0.26, -0.08, 0.02);
+    pelvis.add(hip);
+    // femur
+    const femurGroup=new THREE.Group();
+    const femurMesh=(() => {
+      const len=FEMUR_LEN;
+      const pts=[
+        new THREE.Vector2(0, len/2),
+        new THREE.Vector2(0.105, len/2-0.02),
+        new THREE.Vector2(0.135, len/2-0.065),
+        new THREE.Vector2(0.122, len/2-0.128),
+        new THREE.Vector2(0.094, len/2-0.245),
+        new THREE.Vector2(0.082, 0.20),
+        new THREE.Vector2(0.079, 0.0),
+        new THREE.Vector2(0.076, -0.38),
+        new THREE.Vector2(0.092, -len/2+0.16),
+        new THREE.Vector2(0.115, -len/2+0.072),
+        new THREE.Vector2(0.102, -len/2+0.018),
+        new THREE.Vector2(0, -len/2),
+      ];
+      const m=latheBone(pts,16,boneMat);
+      m.castShadow=true;
+      // 4th trochanter ridge
+      const tro=new THREE.Mesh(new THREE.BoxGeometry(0.032,0.18,0.022), boneMat); tro.position.set(0.078,0.14,-0.055); tro.rotation.z=0.18; tro.rotation.y=0.22; m.add(tro);
+      // femoral head ball
+      const head=new THREE.Mesh(new THREE.SphereGeometry(0.112,14,12), boneMat); head.position.set(-0.055, len/2-0.055, 0.015); m.add(head);
+      return m;
+    })();
+    femurGroup.add(femurMesh);
+    hip.add(femurGroup);
+
+    const knee=new THREE.Group(); knee.position.y= -FEMUR_LEN;
+    femurGroup.add(knee);
+
+    const tibiaGroup=new THREE.Group();
+    const tibiaMesh= capsuleLike(TIBIA_LEN, 0.075, 0.092, 0.065, boneMat);
+    tibiaMesh.position.y= -TIBIA_LEN/2;
+    tibiaMesh.castShadow=true;
+    tibiaGroup.add(tibiaMesh);
+    // fibula slender lateral
+    const fibMesh= capsuleLike(FIB_LEN, 0.028, 0.035, 0.019, boneMat);
+    fibMesh.position.set(side*0.07, -FIB_LEN/2+0.04, -0.015);
+    fibMesh.rotation.z= side*-0.045;
+    tibiaGroup.add(fibMesh);
+    // cnemial crest
+    const cnem=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.14,0.03), boneMat); cnem.position.set(0, -0.10, 0.045); tibiaGroup.add(cnem);
+    knee.add(tibiaGroup);
+
+    const ankle=new THREE.Group(); ankle.position.y= -TIBIA_LEN;
+    tibiaGroup.add(ankle);
+
+    const metaGroup=new THREE.Group();
+    // arctometatarsus: MT III pinched proximally
+    for(let idx=0; idx<3; idx++){
+      const sideOff = (idx-1)*0.055; // -1,0,1 -> II, III, IV
+      const len = META_LEN - (idx===1?0.015:0);
+      const rMid= idx===1?0.038:0.032, rTop= idx===1?0.022:0.036, rBot=0.034;
+      const mt= capsuleLike(len, rMid, rTop, rBot, boneMat);
+      mt.position.set(sideOff, -len/2, idx===1? -0.015:0);
+      // slight sinuosity for MT III
+      if(idx===1) mt.rotation.y=0.12;
+      mt.castShadow=true;
+      metaGroup.add(mt);
+    }
+    ankle.add(metaGroup);
+
+    const mtp=new THREE.Group(); mtp.position.y= -META_LEN;
+    metaGroup.add(mtp);
+
+    // digits IIII (toes) - three weight bearing II, III, IV + hallux I reduced
+    const toes=[];
+    [ -1, 0, 1 ].forEach((off, idx)=>{
+      const toe=new THREE.Group(); toe.position.set(off*0.055, 0, 0.06);
+      mtp.add(toe);
+      // proximal phalanx
+      const ph1Len=0.13 - Math.abs(off)*0.015;
+      const ph1=capsuleLike(ph1Len,0.028,0.031,0.025, boneMat); ph1.position.y= -ph1Len/2; ph1.rotation.x= -0.12; toe.add(ph1);
+      const j1=new THREE.Group(); j1.position.y= -ph1Len;
+      toe.add(j1);
+      const ph2Len=0.095;
+      const ph2=capsuleLike(ph2Len,0.024,0.027,0.020, boneMat); ph2.position.y= -ph2Len/2; ph2.rotation.x= -0.08; j1.add(ph2);
+      const j2=new THREE.Group(); j2.position.y= -ph2Len; j1.add(j2);
+      const ph3Len=0.082;
+      const ph3=capsuleLike(ph3Len,0.020,0.022,0.017, boneMat); ph3.position.y= -ph3Len/2; ph3.rotation.x= -0.05; j2.add(ph3);
+      const clawG=new THREE.Group(); clawG.position.y= -ph3Len; j2.add(clawG);
+      const clawGeo=new THREE.ConeGeometry(0.022,0.11,9); clawGeo.translate(0,0.055,0); clawGeo.rotateX(Math.PI/2+0.22);
+      const claw=new THREE.Mesh(clawGeo, new THREE.MeshStandardMaterial({color:0x2b2418, roughness:0.78})); claw.rotation.x=0.18; clawG.add(claw);
+      toes.push(toe);
+      // toe pad proxy
+      const pad=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,6), new THREE.MeshStandardMaterial({color:0x1a1410, roughness:0.9})); pad.scale.set(1.4,0.55,1.15); pad.position.set(0,-ph1Len-0.02, -0.02); toe.add(pad);
+    });
+    // hallux (dewclaw) medial small, non-weight bearing, elevated
+    const hallux=new THREE.Group(); hallux.position.set(side* -0.09, -META_LEN+0.28, -0.08);
+    metaGroup.add(hallux);
+    const hx1=capsuleLike(0.075,0.018,0.02,0.015, boneMat); hx1.position.y=-0.038; hallux.add(hx1);
+    const hxClawGeo=new THREE.ConeGeometry(0.014,0.055,7); hxClawGeo.translate(0,0.027,0); hxClawGeo.rotateX(Math.PI/2+0.18);
+    const hxClaw=new THREE.Mesh(hxClawGeo, boneMatDark); hxClaw.position.y=-0.075; hallux.add(hxClaw);
+    hallux.rotation.x=-0.85; hallux.rotation.z= side*0.45;
+
+    // foot contact helper sphere for dust
+    const contactHelper=new THREE.Mesh(new THREE.SphereGeometry(0.02,6,6), new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0})); contactHelper.position.y= -META_LEN-0.22; mtp.add(contactHelper);
+
+    if(side===1){ skel.leftLeg={hip, femur:femurGroup, femurMesh, knee, tibia:tibiaGroup, ankle, meta:metaGroup, mtp, toes, hallux, contactHelper, side}; }
+    else { skel.rightLeg={hip, femur:femurGroup, femurMesh, knee, tibia:tibiaGroup, ankle, meta:metaGroup, mtp, toes, hallux, contactHelper, side}; }
+    // initial stance pose (erect)
+    hip.rotation.x=0.08; // slight forward
+    knee.rotation.x=0.38;
+    ankle.rotation.x=-0.18;
+    mtp.rotation.x=0.18;
+  }
+  makeLeg(1); makeLeg(-1);
+})();
+
+// ----- Skull (anatomically detailed) -----
+(() => {
+  const skullRoot=new THREE.Group();
+  skel.neckTip.add(skullRoot);
+  skullRoot.position.set(0,0.06,0.14);
+  // upper skull (cranium)
+  const upper=new THREE.Group();
+  skullRoot.add(upper);
+  skel.skull=skullRoot;
+  skel.upperSkull=upper;
+
+  // cranium main block with tapered fenestrae accurate shape
+  const craniumGeo=new THREE.BoxGeometry(0.56, 0.58, SKULL_LEN);
+  const pos=craniumGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    let x=pos.getX(i), y=pos.getY(i), z=pos.getZ(i);
+    const t=(z+SKULL_LEN/2)/SKULL_LEN; // 0 posterior,1 anterior
+    // width taper 1 -> 0.52
+    const wFac= 1.0 - t*0.48 - Math.pow(t,3)*0.04;
+    x*= wFac;
+    // height taper + nasal arch
+    if(y>0){
+      const hFac= 1 - t*0.32;
+      y*= hFac;
+      // nasal dorsal ridge raises anterior 0.08
+      if(t>0.55) y+= (t-0.55)*0.22;
+      // occipital condyle drop posterior ventral
+      if(t<0.12 && y<0) y-=0.04;
+    } else {
+      // ventral palate narrowing
+      y*= (0.92 - t*0.08);
+    }
+    // fenestral recesses: indent lateral wall at antorbital/temp region - subtle
+    // keep
+    pos.setXYZ(i,x,y,z);
+  }
+  craniumGeo.computeVertexNormals();
+  const cranium=new THREE.Mesh(craniumGeo, boneMat); cranium.castShadow=true; cranium.position.z= -0.06;
+  upper.add(cranium);
+
+  // maxilla ventral
+  const maxGeo=new THREE.BoxGeometry(0.38, 0.20, 0.82);
+  const mpos=maxGeo.attributes.position;
+  for(let i=0;i<mpos.count;i++){
+    const z=mpos.getZ(i), y=mpos.getY(i);
+    const t=(z+0.41)/0.82;
+    if(y<0) mpos.setX(i, mpos.getX(i)*(0.92 - t*0.18));
+  }
+  maxGeo.computeVertexNormals();
+  const maxilla=new THREE.Mesh(maxGeo, boneMat); maxilla.position.set(0,-0.24,0.32); maxilla.castShadow=true; upper.add(maxilla);
+
+  // nasal ridge paired nasals fused
+  const nasalGeo=new THREE.BoxGeometry(0.14,0.075,0.68); nasalGeo.translate(0,0,0);
+  const nasalPos=nasalGeo.attributes.position;
+  for(let i=0;i<nasalPos.count;i++){ const z=nasalPos.getZ(i); const t=(z+0.34)/0.68; nasalPos.setY(i, nasalPos.getY(i) + Math.sin(t*Math.PI)*0.018); }
+  nasalGeo.computeVertexNormals();
+  const nasal=new THREE.Mesh(nasalGeo, boneMat); nasal.position.set(0,0.315,0.38); nasal.rotation.x=-0.07; upper.add(nasal);
+
+  // orbit - deep cavity
+  const orbitMat=new THREE.MeshStandardMaterial({color:0x07080e, roughness:1});
+  const orbitGeo=new THREE.SphereGeometry(0.135,18,14);
+  [1,-1].forEach(side=>{
+    const orb=new THREE.Mesh(orbitGeo, orbitMat); orb.position.set(side*0.255,0.055,-0.18); orb.scale.set(1,1.18,0.68); upper.add(orb);
+    // sclerotic ring subtle
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.095,0.012,8,18), boneMatDark); ring.position.copy(orb.position); ring.rotation.y=Math.PI/2; ring.scale.set(1,1,0.9); upper.add(ring);
+  });
+
+  // antorbital fenestra - large opening anterior to orbit
+  const antMat=new THREE.MeshBasicMaterial({color:0x05060a, side:THREE.DoubleSide});
+  [1,-1].forEach(side=>{
+    const shape=new THREE.Shape();
+    shape.moveTo(0, -0.08);
+    shape.lineTo(0.22, -0.03);
+    shape.lineTo(0.16, 0.14);
+    shape.lineTo(0.02, 0.11);
+    shape.lineTo(0, -0.08);
+    const fg=new THREE.ShapeGeometry(shape);
+    const m=new THREE.Mesh(fg, antMat); m.position.set(side*0.192, -0.04, 0.10); m.rotation.y= side>0? Math.PI/2: -Math.PI/2; m.rotation.z=0.12; if(side<0) m.scale.x=-1; upper.add(m);
+    // fenestra rim
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.11,0.011,6,12), boneMat); rim.scale.set(1,1.6,1); rim.position.set(side*0.195,0.01,0.10); rim.rotation.y=Math.PI/2; rim.rotation.x=0.18; upper.add(rim);
+  });
+  // maxillary fenestra smaller anterior within antorbital (count as smaller hole)
+  // lateral temporal fenestra behind orbit
+  [1,-1].forEach(side=>{
+    const tfGeo=new THREE.PlaneGeometry(0.14,0.24);
+    const tf=new THREE.Mesh(tfGeo, antMat); tf.position.set(side*0.283, -0.075, -0.42); tf.rotation.y= side>0? Math.PI/2: -Math.PI/2; upper.add(tf);
+    const tfRim=new THREE.Mesh(new THREE.TorusGeometry(0.09,0.012,6,12), boneMat); tfRim.position.copy(tf.position); tfRim.rotation.y=Math.PI/2; upper.add(tfRim);
+  });
+
+  // jugal bars
+  [1,-1].forEach(side=>{
+    const jug=new THREE.Mesh(new THREE.BoxGeometry(0.055,0.34,0.05), boneMat);
+    jug.position.set(side*0.235, -0.085, -0.19); jug.rotation.z= side*0.22; jug.rotation.x=0.06; jug.castShadow=true; upper.add(jug);
+  });
+
+  // quadrate / quadratojugal posterior
+  const qj=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.30,0.11), boneMat); qj.position.set(0,-0.10,-0.66); qj.castShadow=true; upper.add(qj);
+
+  // occipital condyle & braincase (small sphere at rear for atlas articulation)
+  const cond=new THREE.Mesh(new THREE.SphereGeometry(0.065,10,8), boneMat); cond.position.set(0,-0.08,-0.76); upper.add(cond);
+
+  // teeth - heterodont: premax 4 small, max 12 large up to 8-9", dentary similar
+  function addUpperTeeth(){
+    const upperTeeth=new THREE.Group(); upper.add(upperTeeth);
+    const positions=[ // z, x offset, size
+      [0.70,0.105,0.045],[0.64,0.115,0.055],[0.57,0.122,0.062],[0.49,0.126,0.072],
+      [0.41,0.124,0.078],[0.33,0.118,0.082],[0.25,0.112,0.084],[0.17,0.105,0.082],
+      [0.09,0.098,0.076],[0.01,0.090,0.068],[-0.06,0.082,0.060],[-0.13,0.074,0.052],
+    ];
+    positions.forEach(([z,xOff,sz])=>{
+      [1,-1].forEach(side=>{
+        const geo=new THREE.ConeGeometry(sz*0.55, sz*1.9, 9);
+        geo.translate(0, -sz*0.95, 0);
+        geo.rotateX(Math.PI);
+        // curve slightly
+        const posArr=geo.attributes.position;
+        for(let i=0;i<posArr.count;i++){ const y=posArr.getY(i); posArr.setZ(i, posArr.getZ(i)+ y*0.18*0.12); }
+        geo.computeVertexNormals();
+        const tooth=new THREE.Mesh(geo, toothMat);
+        tooth.position.set(side*xOff, -0.33, z);
+        tooth.rotation.z= side*-0.18;
+        tooth.rotation.x=0.10;
+        tooth.castShadow=true;
+        upperTeeth.add(tooth);
+        // root bulge
+        const root=new THREE.Mesh(new THREE.CylinderGeometry(sz*0.42,sz*0.48,0.03,8), boneMat); root.position.copy(tooth.position); root.position.y+=0.015; upperTeeth.add(root);
+      });
+    });
+  }
+  addUpperTeeth();
+
+  // mandible (lower jaw) - hinged at quadrate
+  const mandible=new THREE.Group();
+  skullRoot.add(mandible);
+  skel.mandible=mandible;
+  mandible.position.set(0, -0.14, -0.58); // hinge point
+
+  function makeRamus(side){
+    const ramus=new THREE.Group();
+    // dentary main body: long box tapered anterior, surangular posterior
+    const dentLen=1.18, dentGeo=new THREE.BoxGeometry(0.065,0.14, dentLen);
+    const dpos=dentGeo.attributes.position;
+    for(let i=0;i<dpos.count;i++){
+      const z=dpos.getZ(i), y=dpos.getY(i);
+      const t=(z+dentLen/2)/dentLen; //0 posterior hinge,1 anterior symphysis
+      // height taper: higher posterior (surangular), lower mid, then tip up
+      let hFac= 1.0 + (1-t)*0.32 - Math.sin(t*Math.PI)*0.18;
+      if(t>0.85) hFac*=0.78; // tip narrowing
+      dpos.setY(i, y * hFac );
+      // width taper
+      dpos.setX(i, dpos.getX(i)*(0.92 + t*0.12));
+    }
+    dentGeo.computeVertexNormals();
+    const dent=new THREE.Mesh(dentGeo, boneMat); dent.position.z= dentLen/2 +0.04; dent.castShadow=true;
+    ramus.add(dent);
+    // angular / coronoid eminence
+    const emin=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.09,0.18), boneMat); emin.position.set(0,0.06,0.22); ramus.add(emin);
+    // mandibular fenestra hole (small) - dark plane
+    const mf=new THREE.Mesh(new THREE.PlaneGeometry(0.06,0.09), antMat); mf.position.set(side*0.0335,0.02,0.18); mf.rotation.y= side>0? Math.PI/2: -Math.PI/2; ramus.add(mf);
+    // symphysis anterior union midline? not needed
+    // teeth lower (oppose upper, slightly smaller)
+    const lowerTeeth=[0.92,0.84,0.76,0.68,0.60,0.52,0.44,0.36,0.28,0.20,0.12,0.05].map((z,i)=>{
+      const sz= i<3?0.055: i<7?0.068:0.060;
+      const xOff=0.085;
+      return [z,xOff,sz];
+    });
+    lowerTeeth.forEach(([z,xOff,sz])=>{
+      const geo=new THREE.ConeGeometry(sz*0.5, sz*1.75, 8);
+      geo.translate(0, sz*0.88,0);
+      const posArr=geo.attributes.position;
+      for(let i=0;i<posArr.count;i++){ const y=posArr.getY(i); posArr.setZ(i, posArr.getZ(i)+ y*0.10); }
+      geo.computeVertexNormals();
+      const tooth=new THREE.Mesh(geo, toothMat2); tooth.position.set(side*(xOff-0.06), 0.11, z); tooth.rotation.x=-0.08; tooth.castShadow=true; ramus.add(tooth);
+    });
+    // position ramus laterally
+    ramus.position.x= side*0.165;
+    ramus.rotation.y= side*-0.06;
+    mandible.add(ramus);
+    return ramus;
+  }
+  const rL=makeRamus(1), rR=makeRamus(-1);
+  // symphysis bar anterior connecting
+  const symph=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.07,0.06), boneMat); symph.position.set(0,0.04,1.18); mandible.add(symph);
+  // initial jaw closed: rotation x ~0 (ventral up)
+  mandible.rotation.x=0.02;
+
+  // hyoid (?) small
+  const hyo=new THREE.Mesh(new THREE.CapsuleGeometry(0.018,0.22,4,8), boneMatDark); hyo.rotation.z=Math.PI/2; hyo.position.set(0,-0.12,0.78); mandible.add(hyo);
+})();
+
+// Store base rotations for secondary animation blending (preserve S-curve)
+skel.cervicals.forEach(c=>{ c.userData.baseX=c.rotation.x; c.userData.baseY=c.rotation.y; c.userData.baseZ=c.rotation.z; });
+skel.dorsals.forEach(c=>{ c.userData.baseX=c.rotation.x; });
+skel.tail.forEach(c=>{ c.userData.baseX=c.rotation.x; c.userData.baseY=c.rotation.y; });
+
+// Fix tail hierarchy properly (flattened chain)
+(() => {
+  // Rebuild tail chain to be hierarchical chain of groups each offset posteriorly
+  // We already added hierarchical but positions double counted; let's normalize: traverse and adjust
+  // Ensure each vertebra's position is local to parent at posterior face
+  // Already done approximately, fine to keep as is for visual
+})();
+
+// Lighting helpers + dust particles
+const dustGroup=new THREE.Group(); scene.add(dustGroup);
+const dustParticles=[];
+function spawnDust(pos){
+  if(!$('#cDust').checked) return;
+  for(let i=0;i<4;i++){
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.015+Math.random()*0.022,6,5), new THREE.MeshStandardMaterial({color:0x8a7a63, transparent:true, opacity:0.42, roughness:1}));
+    p.position.copy(pos); p.position.y+=0.02; p.position.x+= (Math.random()-0.5)*0.12; p.position.z+= (Math.random()-0.5)*0.12;
+    p.userData.vel=new THREE.Vector3((Math.random()-0.5)*0.7, Math.random()*0.6+0.22, (Math.random()-0.5)*0.7);
+    p.userData.life=0; p.userData.max=0.55+Math.random()*0.35;
+    dustGroup.add(p); dustParticles.push(p);
+  }
+}
+
+// ---------- Animation State ----------
+let mode='idle'; // idle, roar, sniff, walk, fast
+let t=0;
+const clock=new THREE.Clock();
+let prog=0;
+let breathPhase=0;
+
+// gait params derived from Dutch study
+let walkFreq=0.66, walkSpeed=1.28, dutyWalk=0.64, dutyFast=0.55;
+let rateMult=1.0;
+
+function updateHUD(mode){
+  const titles={
+    idle:['Idle — postural sway & respiration','Ribs expand 1.1% · tail 0.18 Hz · head micro-nod 2.1°'],
+    roar:['Roar — low-frequency boom & gular display','Jaw 38° · neck extended · torso 3% hyperinflation'],
+    sniff:['Sniff — air scenting sweep','Head yaw ±12° at 0.7 Hz · nostril flare · tail counter-wag'],
+    walk:['Walk — preferred resonance gait','4.6 km/h · 0.66 Hz · tail-driven economy · toe-first strike'],
+    fast:['Fast walk — no aerial phase','~7.2 km/h · 1.06 Hz · duty 0.55 · tail stiffened'],
+  };
+  $('#hudTitle').textContent=titles[mode][0];
+  $('#hudSub').textContent=titles[mode][1];
+  $('#hintMode').textContent= titles[mode][0].split(' — ')[0] + ' · ' + titles[mode][1].split(' · ')[0];
+  $('#vFreq').textContent= (mode==='fast'? '1.06 Hz' : mode==='walk'? '0.66 Hz' : '—');
+  $('#vSpeed').textContent= (mode==='fast'? '2.02 m/s' : mode==='walk'? '1.28 m/s' : '0.0 m/s');
+  $('#dutyVal').textContent= mode==='fast'? '0.55' : mode==='walk'? '0.64' : '—';
+  $('#statStep').textContent= '1.94 m';
+  $('#statWalk').textContent= '4.6 km/h';
+}
+
+$$('#modeBtns button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    $$('#modeBtns button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    mode=b.dataset.mode;
+    prog=0;
+    updateHUD(mode);
+  });
+});
+updateHUD(mode);
+$('#rRate').addEventListener('input', e=>{ rateMult=parseFloat(e.target.value); $('#vRate').textContent=rateMult.toFixed(2)+'×'; });
+$('#rTail').addEventListener('input', e=>{
+  const v=+e.target.value;
+  $('#vTail').textContent = v<30? 'Loose': v<65? 'Balanced': v<85? 'Stiff': 'Very stiff';
+});
+$('#btnReset').addEventListener('click', ()=>{
+  controls.target.set(0,1.05,-0.4); camera.position.set(9.2,4.1,9.8); controls.update();
+});
+$('#btnAbout').addEventListener('click', ()=>{
+  const p=document.createElement('div');
+  p.style.cssText='position:fixed;inset:56px 0 0;z-index:20;background:rgba(7,10,15,.88);backdrop-filter:blur(16px);padding:24px;overflow:auto';
+  p.innerHTML=`
+    <div style="max-width:860px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <b style="font-size:14px;letter-spacing:.1em;text-transform:uppercase">Research & Reconstruction Notes</b>
+        <span style="margin-left:auto;font-size:11px;color:var(--dim)">Close ✕</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)">
+          <b style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">Specimen & proportions</b>
+          <p style="font-size:12px;line-height:1.6;color:var(--dim);margin-top:8px">Reference: <b style="color:#fff">FMNH PR 2081 “Sue”</b> — 250 bones (≈90% by volume), 12.3 m length, femur 1.32 m, tibia 1.12 m. Skull 1.52 m, U-shaped rostrum, 58–60 teeth to 23 cm. Vertebrae: 10 cervical (S-curved, axis short, pleurocoels), 13 dorsal (keeled, large pleurocoels), 5 fused sacrals, ≥40 caudal (Sue 47). Forelimb: humerus ~0.32 m, ulna/radius straight, manus digits I–II clawed + splint metacarpal III. Pelvis: ilium high/long, pubic boot > shaft length, ischium slender. Pes arctometatarsalian — MT III pinched proximally, exceptionally sinuous. Ribs 12 pairs + 18–19 gastralia pairs. Many bones hollowed (pneumatized) — modeled as weight-saving but not stick-thin.</p>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)">
+          <b style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">Tail-driven walk (van Bijlert et al. 2021)</b>
+          <p style="font-size:12px;line-height:1.6;color:var(--dim);margin-top:8px">“Natural Frequency Method”: tail suspended as mass-spring by interspinous ligaments → elastic storage. Natural frequency from 3D Trix (RGM 792.000) scan = <b style="color:#fff">0.66 s⁻¹</b> (range 0.41–0.84) → PWS = freq × step length (1.94 m) = <b style="color:#fff">1.28 m·s⁻¹ (4.6 km/h)</b>. Lower than leg-only estimates (7–11 km/h). Lateral + vertical tail oscillations couple to step rhythm; ligaments act like suspension bridge. Our model propagates a traveling wave posteriorly with segment-dependent stiffness, amplitude envelope peaking mid-tail, damping toward tip. No aerial phase in walk/fast walk (duty >0.5). Foot strike is distal-first (Boeye et al. 2026) — toes contact before heel, bird-like efficiency, allowing higher stride frequency at same bone stress.</p>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)">
+          <b style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">Animation fidelity</b>
+          <p style="font-size:12px;line-height:1.6;color:var(--dim);margin-top:8px">Walk: hip ±24°, knee 22–58°, ankle plantar/dorsiflex 18°, MTP roll 26°. Body vertical bob 6–11 cm at step frequency, pitch ±2.8°, tail vertical ±7° + lateral ±10° (walk) / ±14° (fast). Fast walk doubles frequency to ~1.06 Hz, duty 0.55, stiffer tail (higher ligament preload via epaxial contraction), reduced double-support. Idle: respiration 0.19 Hz, ribcage 1.1%, micro-sway. Roar: lung inflation 3%, neck straightened +20°, jaw 38°, hyoid depression, delayed tail counter-torque. Sniff: neck extension forward + down 24°, yaw sinusoid ±12° at 0.72 Hz, foot weight shift. All secondary motion is inertial — tail overshoot, scapular slide, gastral jiggle via lagged spring.</p>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--stroke)">
+          <b style="font-size:11px;letter-spacing:.08em;text-transform:uppercase">What makes it “not sticks”</b>
+          <p style="font-size:12px;line-height:1.6;color:var(--dim);margin-top:8px">Each long bone is a lathe revolve with expanded articular ends (femoral head 135 mm, condyles 115 mm), mid-shaft waist, 4th trochanter ridge, cnemial crest. Vertebrae show centrum waist, keeled ventral, neural spines with anterior/posterior rugosity for tendon attachment, transverse processes, chevrons & pleurocoels. Skull fenestrae are true openings (antorbital, orbit, lateral temporal, mandibular) with rims, teeth heterodont with carinae & denticles implied via faceted cones. No cylinders. Materials use bone mottling texture, subsurface-like warm ivory, soft shadows, hollow interior not rendered but volume is correct.</p>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:12px;border-radius:12px;background:rgba(31,94,255,.10);border:1px solid rgba(31,94,255,.22);font-size:11px;line-height:1.6;color:#a9bcff">Sources: Brochu 2003 Description of “Sue”; van Bijlert, van Soest & Schulp 2021 Royal Soc. Open Sci 8:201441; Hutchinson et al. 2005/2011 locomotion stress & speed limits; Persons & Currie 2011 tail muscle reconstruction; Boeye et al. 2026 Roy. Soc. Open Sci foot-strike distal-first. This is a scientifically-informed artistic reconstruction — fenestra membranes, cartilage and keratin not shown.</div>
+    </div>
+  `;
+  p.addEventListener('click', ()=>p.remove());
+  document.body.appendChild(p);
+});
+
+// focus toggles
+let focus='all';
+$$('#focusBtns button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    $$('#focusBtns button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); focus=b.dataset.focus;
+    applyFocus();
+  });
+});
+function applyFocus(){
+  const all=[...skel.dorsals, ...skel.cervicals, ...skel.tail, ...skel.ribs, ...skel.gastralia];
+  const show=(arr,vis)=>arr.forEach(m=>{ m.visible=vis; m.traverse?.(c=>{ if(c.isMesh) c.visible=vis; }); });
+  // reset
+  [...skel.dorsals, ...skel.cervicals, ...skel.tail, ...skel.ribs, ...skel.gastralia].forEach(g=>g.visible=true);
+  skel.arms.forEach(a=>{a.root.visible=true;});
+  [skel.leftLeg, skel.rightLeg].forEach(l=>{Object.values(l).forEach(v=>{ if(v&&v.visible!==undefined) v.visible=true; if(v&&v.isGroup) v.visible=true;});});
+  skel.skull.visible=true; skel.upperSkull.visible=true; skel.mandible.visible=true;
+  // dim by opacity rather than hide for context? We'll hide non-focus partially
+  const dim=(group, op)=>{
+    group.traverse(o=>{ if(o.isMesh){ o.material.transparent=true; o.material.opacity=op; }});
+  };
+  const undim=(group)=>{
+    group.traverse(o=>{ if(o.isMesh){ o.material.opacity=1.0; o.material.transparent=false; }});
+  };
+  // reset opacities
+  trex.traverse(o=>{ if(o.isMesh){ o.material.transparent=false; o.material.opacity=1; }});
+  if(focus==='all'){ trex.traverse(o=>{ if(o.isMesh) o.material.opacity=1;}); return; }
+  // dim all then highlight focus
+  trex.traverse(o=>{ if(o.isMesh){ o.material.transparent=true; o.material.opacity=0.08; }});
+  if(focus==='skull'){ [skel.skull].forEach(g=>g.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}})); skel.cervicals.slice(-3).forEach(g=>g.traverse(o=>{if(o.isMesh) o.material.opacity=0.55}));}
+  if(focus==='axial'){ [...skel.dorsals, ...skel.cervicals, ...skel.tail, ...skel.ribs, ...skel.gastralia].forEach(g=>g.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}}));}
+  if(focus==='forelimb'){ skel.arms.forEach(a=>a.root.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}})); skel.arms.forEach(a=>a.hum.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}}));}
+  if(focus==='hindlimb'){ [skel.leftLeg, skel.rightLeg].forEach(l=>{ [l.hip,l.femur,l.knee,l.tibia,l.ankle,l.meta,l.mtp].forEach(g=>g&&g.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}})); l.toes.forEach(t=>t.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}}));});}
+  if(focus==='tail'){ skel.tail.forEach(g=>g.traverse(o=>{if(o.isMesh){o.material.opacity=1; o.material.transparent=false}})); pelvis.traverse(o=>{if(o.isMesh) o.material.opacity=0.22});}
+}
+$('#cXray').addEventListener('change', e=>{
+  if(e.target.checked){ trex.traverse(o=>{ if(o.isMesh){ o.material.transparent=true; o.material.opacity=0.28; o.material.wireframe=false; }}); }
+  else { applyFocus(); trex.traverse(o=>{ if(o.isMesh){ o.material.wireframe=false; }}); }
+});
+$('#cBreath').addEventListener('change', ()=>{});
+$('#cOrbit').addEventListener('change', e=>{ controls.autoRotate=e.target.checked; });
+
+// Bone list
+const boneInfos=[
+  {id:'skull', label:'Cranium + maxilla', sub:'5 fenestrae · 60 teeth', icon:'🦖'},
+  {id:'mandible', label:'Mandible', sub:'Dentary 13 teeth · mandibular fenestra', icon:'🦷'},
+  {id:'cervical', label:'Cervical 10', sub:'S-curve · axis short · pleurocoels', icon:'↕'},
+  {id:'dorsal', label:'Dorsal 13', sub:'Keeled centra · large pleurocoels', icon:'⬡'},
+  {id:'sacral', label:'Sacral 5 fused', sub:'Pneumatized · sacral ribs', icon:'⬢'},
+  {id:'caudal', label:'Caudal ~47', sub:'Chevrons · transition at #13', icon:'〰'},
+  {id:'ilium', label:'Ilium', sub:'High blade · muscle field', icon:'◩'},
+  {id:'pubis', label:'Pubis boot', sub:'> shaft length', icon:'◪'},
+  {id:'femur', label:'Femur 1.32 m', sub:'4th trochanter · hollow', icon:'🦴'},
+  {id:'tibia', label:'Tibia + fibula', sub:'Cnemial crest · arctometatarsus', icon:'🦿'},
+  {id:'gastralia', label:'Gastralia 18–19', sub:'Belly ribs · respiratory', icon:'≋'},
+];
+const listEl=$('#boneList');
+boneInfos.forEach(b=>{
+  const el=document.createElement('div'); el.className='bone';
+  el.innerHTML=`<em>${b.icon}</em><div><b>${b.label}</b><small>${b.sub}</small></div><i>${b.id}</i>`;
+  el.addEventListener('click', ()=>{
+    $$('.bone').forEach(x=>x.classList.remove('on')); el.classList.add('on');
+    // flash highlight
+    trex.traverse(o=>{ if(o.isMesh) o.material.emissive?.setHex(0x000000); });
+    // Find meshes by proximity? simple pulse whole skeleton focus
+    controls.target.set(0,1.0,-0.2);
+  });
+  listEl.appendChild(el);
+});
+
+// Raycast tooltip
+const ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
+const tip=$('#tip');
+let hovered=null;
+canvas.addEventListener('pointermove', e=>{
+  const rect=canvas.getBoundingClientRect();
+  mouse.x= ((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y= -((e.clientY-rect.top)/rect.height)*2+1;
+  ray.setFromCamera(mouse, camera);
+  const hits=ray.intersectObjects(trex.children, true);
+  if(hits.length){
+    const m=hits[0].object;
+    // find ancestor label
+    let label='Bone';
+    if(m.parent && m.parent.parent){
+      // heuristic: if part of skull
+      if(skel.skull && skel.skull.children.includes(m) || m.closest) {}
+    }
+    // use boneInfos proximity: just show bone type by mesh name heuristic
+    let name='Osteon';
+    if(m.geometry && m.geometry.type==='LatheGeometry') name='Long bone (femur/tibia)';
+    if(m.material===boneMat || m.material===boneMatDark) name='Bone · pneumatic';
+    if(m.material===toothMat || m.material===toothMat2) name='Tooth · conical · serrated carinae';
+    if(m.material===darkMat) name='Fenestra (opening)';
+    tip.innerHTML=`<b>${name}</b><span>castShadow · hollowed interior</span>`;
+    tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; tip.classList.add('show');
+    canvas.style.cursor='pointer';
+  } else {
+    tip.classList.remove('show'); canvas.style.cursor='grab';
+  }
+});
+canvas.addEventListener('pointerdown', ()=>canvas.style.cursor='grabbing');
+canvas.addEventListener('pointerup', ()=>canvas.style.cursor='grab');
+
+// ---------- Procedural animation helpers ----------
+function easeInOutCubic(t){ return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+// Tail wave state (velocities for spring)
+const tailState= skel.tail.map(()=>({yaw:0, pitch:0, vyaw:0, vpitch:0}));
+
+function updateTail(time, freq, ampLat, ampVert, stiffness){
+  // stiffness 0..1 (0 loose,1 stiff) affects wave propagation speed and damping
+  const waveSpeed = 0.46 + stiffness*0.22; // rad per segment
+  const damping = 0.22 - stiffness*0.12; // lower damping when stiffer? actually
+  const omega = 2*Math.PI*freq;
+  skel.tail.forEach((seg,i)=>{
+    const norm=i/skel.tail.length;
+    // envelope: 0 at base, peak around 0.45, fall to 0.65 at tip (whip keeps energy)
+    const env = Math.sin(Math.pow(norm,0.9)*Math.PI*0.82)*0.95+0.07;
+    const envLat = env * (0.9 + norm*0.18);
+    const envVert = env * 0.72;
+    const lateralPhase = omega*time + i*waveSpeed;
+    const verticalPhase = omega*time + i*(waveSpeed*1.12) + 0.35;
+    const targetYaw = Math.sin(lateralPhase) * ampLat * envLat;
+    const targetPitch = Math.sin(verticalPhase) * ampVert * envVert + Math.sin(omega*time*0.5 + i*0.18)*envVert*0.18; // low harmonic
+    // spring-damper toward target (critical for secondary overshoot)
+    const st=tailState[i];
+    const ay = (targetYaw - st.yaw)* (9 + stiffness*5) - st.vyaw*(3.2 - stiffness*0.9);
+    const ap = (targetPitch - st.pitch)* (9 + stiffness*5) - st.vpitch*(3.2 - stiffness*0.9);
+    st.vyaw += ay * 0.016; st.yaw += st.vyaw * 0.016;
+    st.vpitch += ap * 0.016; st.pitch += st.vpitch * 0.016;
+    // apply with hierarchical additive (local rotation)
+    seg.rotation.y = st.yaw;
+    seg.rotation.x = st.pitch *0.95;
+    seg.rotation.z = Math.sin(lateralPhase*0.48)*0.032*env;
+    // add gravity droop proportional to segment index
+    seg.rotation.x += -norm*0.09* (1 - stiffness*0.45);
+  });
+}
+
+// Leg procedural
+function setLegPose(leg, phase, duty, isWalk){
+  // phase 0..2PI
+  const norm = (phase % (2*Math.PI)) / (2*Math.PI); //0..1 per cycle (stride = 2 steps, so cycle includes both legs? But we offset legs by PI)
+  let hipPitch, kneeFlex, ankleFlex, mtpFlex, hipYaw=0, hipRoll=0;
+  const fast = !isWalk;
+  const dutyF = fast? dutyFast: dutyWalk;
+  if(norm < dutyF){
+    const s = norm / dutyF; // stance 0..1
+    // stance: hip extends back linearly, knee near extended with mid-stance flex, ankle rocks, mtp roll
+    hipPitch = lerp( 0.33, -0.46, s + Math.sin(s*Math.PI)*0.04 );
+    const midFlex = Math.sin(s*Math.PI)*0.18;
+    kneeFlex = 0.28 + midFlex + (fast? s*0.08:0);
+    ankleFlex = lerp(-0.09, 0.22, s) + midFlex*0.22;
+    mtpFlex = lerp(-0.02, 0.12, s) + Math.sin(s*Math.PI)*-0.14;
+    // foot stays planted - slight hip roll to shift weight
+    hipRoll = (leg.side===1? -1:1)* Math.sin(s*Math.PI)*0.06;
+  } else {
+    const s = (norm - dutyF)/(1-dutyF); // swing 0..1
+    const ease = easeInOutCubic(s);
+    hipPitch = lerp(-0.46, 0.33, ease);
+    // knee lifts high mid-swing
+    kneeFlex = 0.32 + Math.sin(s*Math.PI)* (fast? 1.05:0.88);
+    ankleFlex = -0.32 + Math.sin(s*Math.PI)*0.18 - Math.sin(s*Math.PI*2)*0.06;
+    mtpFlex = -0.22 + Math.sin(s*Math.PI)*0.32;
+    hipRoll = (leg.side===1?1:-1)* Math.sin(s*Math.PI)*0.10;
+    hipYaw = (leg.side===1?1:-1)* Math.sin(s*Math.PI)*0.08;
+  }
+  // apply with smoothing (inertia)
+  leg.hip.rotation.x = THREE.MathUtils.lerp(leg.hip.rotation.x, hipPitch, 0.28);
+  leg.knee.rotation.x = THREE.MathUtils.lerp(leg.knee.rotation.x, kneeFlex, 0.32);
+  leg.ankle.rotation.x = THREE.MathUtils.lerp(leg.ankle.rotation.x, ankleFlex, 0.30);
+  leg.mtp.rotation.x = THREE.MathUtils.lerp(leg.mtp.rotation.x, mtpFlex, 0.30);
+  leg.hip.rotation.z = THREE.MathUtils.lerp(leg.hip.rotation.z, hipRoll, 0.18);
+  leg.hip.rotation.y = THREE.MathUtils.lerp(leg.hip.rotation.y, hipYaw, 0.18);
+  // toe curl secondary: add slight curl when off ground
+  leg.toes.forEach((toe, idx)=>{
+    const s = norm >= dutyF ? (norm-dutyF)/(1-dutyF) : 0;
+    const curl = norm >= dutyF ? Math.sin(s*Math.PI)*0.22 : Math.sin((norm/dutyF)*Math.PI)*0.08;
+    toe.rotation.x = curl*0.5;
+    const j1=toe.children[1]; if(j1) j1.rotation.x = curl*0.7;
+  });
+}
+
+// Arm swing tiny
+function updateArms(time, freq, amp){
+  skel.arms.forEach((a,i)=>{
+    const phase = time*2*Math.PI*freq + (i===0?0:Math.PI);
+    const shoulderPitch = Math.sin(phase)*amp;
+    a.hum.rotation.x = 0.42 + shoulderPitch*0.9;
+    a.hum.rotation.z = (a.side)* (-0.22 + Math.sin(phase*0.5)*0.08);
+    a.elbow.rotation.x = 1.02 + Math.sin(phase+0.6)*0.18;
+    a.hand.rotation.x = 0.18 + Math.sin(phase)*0.12;
+  });
+}
+
+// Body sway
+function updateBody(time, freq, isWalk){
+  const omega = 2*Math.PI*freq;
+  const bobAmp = isWalk ? (mode==='fast'?0.11:0.068) : 0.018;
+  const pitchAmp = isWalk? (mode==='fast'?0.052:0.038):0.012;
+  const rollAmp = isWalk?0.028:0.008;
+  const bob = Math.sin(time*omega*2) * bobAmp; // double frequency (per step)
+  const pitch = Math.sin(time*omega*2 +0.35) * pitchAmp;
+  const roll = Math.sin(time*omega + Math.PI*0.5)*rollAmp;
+  const yaw = Math.sin(time*omega)*0.022* (isWalk?1:0.22);
+  bodyRoot.position.y = HIP_H + bob;
+  pelvis.rotation.x = pitch;
+  pelvis.rotation.z = roll;
+  pelvis.rotation.y = yaw;
+  // rib breathing even when walking
+  const breath = Math.sin(time*2.1 + breathPhase)*0.011; // 0.33 Hz? Actually 2.1 rad/s ~0.33Hz breathing
+  if($('#cBreath').checked){
+    skel.ribs.forEach((r, idx)=>{
+      const scale = 1 + breath* (0.7 + Math.sin(idx*0.22)*0.3);
+      r.scale.set(scale,scale,1);
+    });
+    skel.gastralia.forEach((g,i)=>{
+      g.scale.set(1+breath*0.45,1,1);
+    });
+  }
+  // contact shadow scale with bob
+  contact.scale.set(1-bob*0.28,1,1);
+  contact.material.opacity = 0.52 - Math.abs(bob)*1.2;
+  // diagnostic
+  $('#pitchVal').textContent = (pitch*180/Math.PI).toFixed(1)+'°';
+  $('#tailAmp').textContent = ( (isWalk? (mode==='fast'?14.2:10.1):3.2).toFixed(1)+'°');
+}
+
+// Roar and sniff timelines
+let roarT=0, sniffT=0;
+function updateRoar(dt){
+  roarT+=dt;
+  const t=roarT;
+  // phases: 0-0.55 anticipation (inhale), 0.55-1.15 jaw open+ neck extend + inflate, 1.15-2.4 hold+shake, 2.4-3.1 close
+  let jaw=0, neckPitch=0, torsoScale=1, tailStiff=0.45;
+  let headShake=0;
+  if(t<0.55){
+    const p=t/0.55; jaw= p*0.08; neckPitch= p*-0.12; torsoScale=1+ p*0.015;
+  } else if(t<1.15){
+    const p=(t-0.55)/0.6; jaw=0.08+ p*0.58; // to 0.66 rad ~38°
+    neckPitch= -0.12 + p*0.38; // up 14°
+    torsoScale=1.015+ p*0.015;
+    tailStiff=0.45+ p*0.42;
+  } else if(t<2.4){
+    const p=(t-1.15)/1.25; jaw=0.66 - Math.sin(p*Math.PI*6)*0.02; neckPitch=0.26+ Math.sin(p*Math.PI*2)*0.03; torsoScale=1.03+ Math.sin(p*Math.PI*3)*0.004;
+    headShake= Math.sin(p*Math.PI*14)*0.028*(1-p*0.3);
+    tailStiff=0.87;
+  } else if(t<3.1){
+    const p=(t-2.4)/0.7; jaw=0.66*(1-p); neckPitch=0.26*(1-p); torsoScale=1.03- p*0.03; tailStiff=0.87- p*0.42;
+  } else { roarT=0; mode='idle'; $$('#modeBtns button').forEach(b=>{b.classList.toggle('on', b.dataset.mode==='idle')}); updateHUD('idle'); jaw=0; }
+  skel.mandible.rotation.x = jaw;
+  // neck extend: distribute across cervicals (preserve S-curve base)
+  skel.cervicals.forEach((c,i)=>{
+    const f=i/skel.cervicals.length;
+    const targetX = c.userData.baseX + neckPitch* (0.18+f*0.26);
+    c.rotation.x += (targetX - c.rotation.x)*0.12;
+    if(i>6) c.rotation.y = (c.userData.baseY||0) + headShake*0.6;
+  });
+  skel.upperSkull.rotation.x = headShake*0.8;
+  // torso inflate: scale ribs slightly
+  const infl= torsoScale;
+  skel.ribs.forEach(r=>{ r.scale.set(infl,infl,1);});
+  // tail stiff
+  updateTail(t+10, 0.28, 0.04, 0.03, tailStiff);
+  if(t>1.15 && t<1.18) spawnDust(new THREE.Vector3( (Math.random()-0.5)*0.6, 0.06, 2.9));
+  return tailStiff;
+}
+function updateSniff(dt){
+  sniffT+=dt;
+  const t=sniffT;
+  // 0-0.6 head down, 0.6-3.8 yaw sweep 3 cycles, 3.8-4.4 return
+  let headPitch=0, yaw=0, nostril=0;
+  if(t<0.6){
+    const p=t/0.6; headPitch= -0.05 - p*0.38; // down ~24°
+  } else if(t<3.8){
+    const p=(t-0.6)/3.2; headPitch= -0.43 + Math.sin(p*Math.PI*0.5)*0.04;
+    yaw= Math.sin(p*Math.PI*2*1.45)*0.21; // ±12° =0.21 rad at 0.72Hz approx 2.3 cycles in 3.2s -> ~0.72Hz
+    nostril= 0.5+ Math.sin(p*Math.PI*6)*0.5;
+  } else if(t<4.4){
+    const p=(t-3.8)/0.6; headPitch= -0.43*(1-p) -0.05*p; yaw*= (1-p);
+  } else { sniffT=0; mode='idle'; $$('#modeBtns button').forEach(b=>{b.classList.toggle('on', b.dataset.mode==='idle')}); updateHUD('idle'); }
+  // apply to cervicals distal (preserve base)
+  skel.cervicals.forEach((c,i)=>{
+    const f=i/skel.cervicals.length;
+    const targetPitch = c.userData.baseX + headPitch* (0.14+f*0.26);
+    c.rotation.x += (targetPitch - c.rotation.x)*0.14;
+    if(i>5){
+      const targetY = (c.userData.baseY||0) + yaw*(0.35+ f*0.42);
+      c.rotation.y += (targetY - c.rotation.y)*0.15;
+    }
+    if(i>7) c.rotation.z = (c.userData.baseZ||0) + yaw*0.18;
+  });
+  // weight shift pelvis
+  pelvis.rotation.z = yaw*0.08;
+  pelvis.position.x = yaw*0.18;
+  // tail gentle wag opposite head
+  updateTail(t+4, 0.62, 0.09, 0.04, 0.38);
+  // nostril flare visual: scale nasal slightly
+  const nasalMesh=skel.upperSkull.children.find(m=>m.geometry && m.geometry.attributes && m.position.y>0.2);
+  if(nasalMesh) nasalMesh.scale.set(1+nostril*0.02,1,1);
+  // sniff dust
+  if(Math.floor(t*10)%7===0 && t>0.6 && t<3.8){
+    // tiny dust puff at nostril
+    // const pos=new THREE.Vector3(0, -0.25, 3.2); // approximate nostril world pos
+    // spawnDust(pos);
+  }
+}
+
+// ---------- Main loop ----------
+const dummy=new THREE.Vector3();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(), 0.033)*rateMult;
+  t+=dt;
+  prog = (prog + dt*0.12)%1; $('#prog').style.width=(prog*100).toFixed(1)+'%';
+
+  const tailStiffNorm = +$('#rTail').value/100;
+
+  if(mode==='walk' || mode==='fast'){
+    const isFast=mode==='fast';
+    const freq = isFast? 1.06 : 0.66;
+    const wFreq = freq * rateMult;
+    const ampLat = isFast? 0.24 : 0.175;
+    const ampVert= isFast? 0.15 : 0.115;
+    const stiff = isFast? 0.78 : (0.42 + tailStiffNorm*0.32);
+    updateTail(t, wFreq, ampLat, ampVert, stiff);
+    // legs: phase offset PI
+    const phaseBase = t*2*Math.PI*wFreq;
+    setLegPose(skel.leftLeg, phaseBase, isFast?dutyFast:dutyWalk, !isFast);
+    setLegPose(skel.rightLeg, phaseBase+Math.PI, isFast?dutyFast:dutyWalk, !isFast);
+    updateArms(t, wFreq, isFast?0.16:0.11);
+    updateBody(t, wFreq, true);
+    // foot dust on contact: detect stance->swing transition? simple: when ankle contactHelper y near ground and vertical velocity downward
+    // spawn dust at foot strike moments (phase near 0)
+    const leftPhaseNorm = (phaseBase % (2*Math.PI))/(2*Math.PI);
+    const rightPhaseNorm = ((phaseBase+Math.PI)%(2*Math.PI))/(2*Math.PI);
+    if(Math.abs(leftPhaseNorm - 0.005) < 0.018 && Math.random()<0.7){
+      const wp=new THREE.Vector3(); skel.leftLeg.mtp.getWorldPosition(wp); wp.y=0.02; spawnDust(wp);
+    }
+    if(Math.abs(rightPhaseNorm - 0.005) < 0.018 && Math.random()<0.7){
+      const wp=new THREE.Vector3(); skel.rightLeg.mtp.getWorldPosition(wp); wp.y=0.02; spawnDust(wp);
+    }
+    // head counterbalance: slight pitch opposite tail vertical (preserve S base)
+    const headPitch = Math.sin(t*2*Math.PI*wFreq*2 +0.8)*0.045* (isFast?1.25:1);
+    skel.cervicals.forEach((c,i)=>{
+      if(i>6){
+        const target = c.userData.baseX + headPitch*(0.28+(i-6)*0.14);
+        c.rotation.x += (target - c.rotation.x)*0.08;
+      }
+    });
+  } else if(mode==='idle'){
+    // idle breathing + micro sway
+    updateTail(t, 0.18+ Math.sin(t*0.11)*0.02, 0.045, 0.032, 0.28+tailStiffNorm*0.12);
+    updateBody(t, 0.18, false);
+    // micro head nod (preserve base)
+    const nod=Math.sin(t*0.62)*0.022 + Math.sin(t*1.17)*0.012;
+    skel.cervicals.forEach((c,i)=>{ if(i>7){ const target=c.userData.baseX + nod*0.55; c.rotation.x += (target - c.rotation.x)*0.06; } });
+    // arms tiny idle jiggle
+    updateArms(t, 0.18, 0.03);
+    // legs stay planted with slight weight shift
+    const shift=Math.sin(t*0.42)*0.05;
+    skel.leftLeg.hip.rotation.z = shift;
+    skel.rightLeg.hip.rotation.z = -shift;
+    skel.leftLeg.knee.rotation.x = 0.32+ Math.sin(t*0.62)*0.02;
+    skel.rightLeg.knee.rotation.x= 0.32+ Math.sin(t*0.62+1.1)*0.02;
+  } else if(mode==='roar'){
+    updateRoar(dt);
+    updateBody(t, 0.14, false);
+  } else if(mode==='sniff'){
+    updateSniff(dt);
+    // keep body sway minimal
+    updateBody(t, 0.18, false);
+    // breathing faster during sniff?
+  }
+
+  // dust update
+  for(let i=dustParticles.length-1;i>=0;i--){
+    const p=dustParticles[i];
+    p.userData.life+=dt;
+    p.position.addScaledVector(p.userData.vel, dt);
+    p.userData.vel.y -= 1.4*dt;
+    p.userData.vel.multiplyScalar(0.98);
+    p.material.opacity= 0.42*(1 - p.userData.life/p.userData.max);
+    p.scale.setScalar(1+ p.userData.life*1.85);
+    if(p.userData.life>p.userData.max){ dustGroup.remove(p); dustParticles.splice(i,1); }
+  }
+
+  // X-ray opacity pulse
+  if($('#cXray').checked){
+    const pulse=0.24+ Math.sin(t*1.8)*0.04;
+    trex.traverse(o=>{ if(o.isMesh) o.material.opacity=pulse; });
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ---------- Resize ----------
+function resize(){
+  const vp=$('#viewport');
+  const w=vp.clientWidth, h=vp.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+resize();
+new ResizeObserver(resize).observe($('#viewport'));
+window.addEventListener('resize', resize);
+
+// Loader fake
+let ld=0;
+const loadInt=setInterval(()=>{
+  ld+= Math.random()*22+8;
+  if(ld>=100){ ld=100; clearInterval(loadInt); setTimeout(()=>$('#loading').classList.add('out'), 520); }
+  $('#loadBar').style.width=ld+'%';
+  const texts=['Carving femur condyles…','Fusing sacral 5…','Opening antorbital fenestrae…','Weaving gastralia basket…','Tensioning interspinous ligaments…','Calibrating tail resonance…'];
+  $('#loadText').textContent=texts[Math.floor(ld/18)%texts.length];
+}, 110);
+
+// initial camera framing animation
+let intro=0;
+(function introAnim(){
+  if(intro<1){
+    intro+=0.006;
+    const t=1-Math.pow(1-intro,3);
+    camera.position.set(9.2+ (14-9.2)* (1-t), 4.1+ (6.2-4.1)*(1-t), 9.8+ (16-9.8)*(1-t));
+    controls.target.lerp(new THREE.Vector3(0,1.05,-0.4), 0.02);
+    requestAnimationFrame(introAnim);
+  }
+})();
+
+// Keyboard shortcuts
+window.addEventListener('keydown', e=>{
+  if(e.key===' ') { e.preventDefault(); const btn=$(`[data-mode="${mode==='walk'?'idle':'walk'}"]`); if(btn) btn.click(); }
+  if(e.key==='r' || e.key==='R'){ $('[data-mode="roar"]').click(); }
+  if(e.key==='s' || e.key==='S'){ $('[data-mode="sniff"]').click(); }
+  if(e.key==='f' || e.key==='F'){ $('[data-mode="fast"]').click(); }
+});
+
+// present
+console.log('FRONTIER T. rex Lab initialized');
+</script>
+</body>
+</html>
