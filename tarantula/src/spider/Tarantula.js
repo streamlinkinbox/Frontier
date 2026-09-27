@@ -87,6 +87,8 @@ export class Tarantula {
     this._clearPts = [
       ...this.chelicerae.map((c) => ({ obj: c, local: lowest(c).add(new THREE.Vector3(0, 0.06, 0)), r: 0.07, part: 'front' })),
       { obj: this.body, local: new THREE.Vector3(0, -0.42, 0.05), r: 0.12, part: 'front' },
+      // pedipalp bases (trochanter-femur joints) sit under the front of the prosoma
+      ...[1, -1].map((sd) => ({ obj: this.body, local: new THREE.Vector3(0.45 * sd, -0.42, 1.72), r: 0.2, part: 'front' })),
       ...[-0.5, 0, 0.5].map((k) => ({ obj: this.abdAnchor, local: ac.clone().add(new THREE.Vector3(0, 0, k * (ah.z - ar))), r: ar * (k === 0 ? 1 : 0.95), part: 'abd' })),
     ];
     this.clearPush = new THREE.Vector3();   // world-space push-out of the prosoma
@@ -140,11 +142,35 @@ export class Tarantula {
     return hit;
   }
 
+  // Pedipalps: keep the touch point in a comfortable reach band (never tucked under the chelicerae,
+  // never at full stretch). Too close -> search further out along the palp's direction; too far ->
+  // pull in. Pick the candidate closest to ~70% reach.
+  _palpFoothold(f, candidate) {
+    const sock = _vS.copy(f.limb.S).applyMatrix4(this.root.matrixWorld);
+    const max = f.limb.maxReach, up = this.up;
+    const out = new THREE.Vector3().subVectors(candidate, sock); out.addScaledVector(up, -out.dot(up));
+    if (out.lengthSq() < 1e-6) out.copy(this.fwd); out.normalize();
+    // walking: touch down near the front of the band so the brief stance drifts through its middle
+    const moving = Math.abs(this.speed) > 0.3 || Math.abs(this.turnRate) > 0.15;
+    const ideal = moving ? 0.88 : 0.7;
+    let best = null, bestE = 1e9;
+    for (const [push, k] of [[0, 1], [0.6, 1], [1.2, 1], [0, 0.9], [0, 0.8], [0, 0.7], [0, 0.62]]) {
+      const c = new THREE.Vector3().copy(sock).addScaledVector(up, -BODY.bodyHeight).lerp(candidate, k).addScaledVector(out, push);
+      const h = this._footholdRaw(f, c);
+      if (!h.ok) continue;
+      const r = h.p.distanceTo(sock) / max;
+      const e = Math.abs(r - ideal) + (r < 0.5 ? (0.5 - r) * 3 : 0) + (r > 0.97 ? (r - 0.97) * 6 : 0) + push * 0.05;
+      if (e < bestE) { bestE = e; best = h; }
+      if (Math.abs(r - ideal) < 0.08) break; // good enough
+    }
+    return best || this._foothold(f, candidate);
+  }
+
   // Foothold planner: try the full stride first, then progressively shorter steps; for each candidate
   // solve the leg and test the podomeres against the rock. Take the longest step whose pose is clear
   // and reachable (legs never cramp next to the hip, never reach through a ledge or boulder edge).
   _planFoothold(f, candidate) {
-    if (f.isPalp) return this._foothold(f, candidate); // palps only tap the ground: simple foothold + collision steering
+    if (f.isPalp) return this._palpFoothold(f, candidate); // palps only tap the ground: reach-banded foothold + collision steering
     const limb = f.limb, sock = _vP.copy(limb.S).applyMatrix4(this.root.matrixWorld);
     const inv = _mP.copy(this.body.matrixWorld).invert();
     this.body.getWorldQuaternion(_qP).invert();
@@ -374,7 +400,10 @@ export class Tarantula {
     for (const f of this.feet) {
       const locked = act.legLock(f);
       const lp = ((this.phase - f.offset) % 1 + 1) % 1;
-      const inSwing = lp < swingFrac;
+      // pedipalps walk in rhythm with the legs but touch down only briefly (low duty factor):
+      // they are sensory and carry almost no load, so they never trail behind the head
+      const sf = f.isPalp && moving ? Math.max(swingFrac, 0.6) : swingFrac;
+      const inSwing = lp < sf;
       if (locked) { if (f.swinging) this._land(f); continue; }
       // emergency step: a planted foot that has become overstretched (fast turns, trailing leg IV,
       // terrain) steps now instead of waiting for its phase
@@ -399,23 +428,37 @@ export class Tarantula {
           f.eT = 0;
         }
       }
-      if (inSwing && !f.swinging && dPhase > 0 && lp < swingFrac * 0.4) {
+      if (!f.swinging && f.isPalp) {
+        const sock = _vS.copy(f.limb.S).applyMatrix4(this.root.matrixWorld);
+        const r = f.pos.distanceTo(sock) / f.limb.maxReach;
+        f.jamCd = Math.max(0, (f.jamCd || 0) - dt);
+        const other = this.feet.find(o => o.isPalp && o !== f);
+        if ((r < 0.45 || r > 1.0) && f.jamCd <= 0 && !(other && other.emergency)) {
+          f.swinging = true; f.from.copy(f.pos); f.fromN.copy(f.normal); f.retarget = 0; f.lp0 = 0; f.emergency = true;
+          this._computeTarget(f, sf, 0);
+          const r2 = f.to.distanceTo(sock) / f.limb.maxReach;
+          if (r2 < 0.45 || r2 > 1.0 || f.to.distanceTo(f.pos) < 0.3) { f.swinging = false; f.emergency = false; f.to.copy(f.pos); f.jamCd = 2; }
+          else { f.lift = clamp(0.18 + 0.08 * f.from.distanceTo(f.to), 0.18, 0.4); f.eT = 0; f.jamCd = 0.6; }
+        }
+      }
+      if (inSwing && !f.swinging && dPhase > 0 && lp < sf * 0.4) {
         if (moving || f.err > 0.6) {
           f.swinging = true; f.from.copy(f.pos); f.fromN.copy(f.normal); f.retarget = 0; f.lp0 = lp;
-          this._computeTarget(f, swingFrac, lp);
-          f.lift = clamp(0.35 + 0.22 * f.from.distanceTo(f.to), 0.35, 1.1) * (f.isPalp ? 0.7 : 1);
+          this._computeTarget(f, sf, lp);
+          // palps swing low and forward (tip stays in front of the face), legs lift with step length
+          f.lift = f.isPalp ? clamp(0.18 + 0.08 * f.from.distanceTo(f.to), 0.18, 0.4) : clamp(0.35 + 0.22 * f.from.distanceTo(f.to), 0.35, 1.1);
         }
       }
       if (f.swinging) {
         if (f.emergency) {
-          f.eT += dt; f.s = clamp(f.eT / 0.2, 0, 1);
+          f.eT += dt; f.s = clamp(f.eT / (f.isPalp ? 0.28 : 0.2), 0, 1);
           if (f.s >= 1) { f.emergency = false; this._land(f); continue; }
         } else {
           if (!inSwing) { this._land(f); continue; }
-          f.s = clamp((lp - f.lp0) / Math.max(swingFrac - f.lp0, 1e-3), 0, 1);
+          f.s = clamp((lp - f.lp0) / Math.max(sf - f.lp0, 1e-3), 0, 1);
         }
         // retarget during early swing (turning / uneven terrain)
-        if (!f.emergency && f.s < 0.7 && (f.retarget++ % 3) === 0) this._computeTarget(f, swingFrac, lp);
+        if (!f.emergency && f.s < 0.7 && (f.retarget++ % 3) === 0) this._computeTarget(f, sf, lp);
         const e = 0.5 - 0.5 * Math.cos(Math.PI * f.s);
         const n = _v1.copy(f.fromN).lerp(f.toN, e).normalize();
         f.pos.copy(f.from).lerp(f.to, e).addScaledVector(n, f.lift * Math.pow(Math.sin(Math.PI * f.s), 0.9));
@@ -433,7 +476,8 @@ export class Tarantula {
   }
 
   _computeTarget(f, swingFrac, lp) {
-    const { stride, duty } = this.gaitInfo;
+    const { stride } = this.gaitInfo;
+    const duty = 1 - swingFrac; // per-foot (pedipalps use a shorter stance)
     const dir = this.speed >= 0 ? 1 : -1;
     const cand = _v2.copy(f.rest);
     // time until this foot reaches mid-stance, using the same clock that drives the gait phase
@@ -441,7 +485,7 @@ export class Tarantula {
     const speedAbs = Math.abs(this.speed);
     const cycleT = stride / Math.max(speedAbs + Math.abs(this.turnRate) * 2.6, 0.5);
     const tAhead = cycleT * (duty * 0.5 + (1 - clamp(lp / swingFrac, 0, 1)) * swingFrac);
-    cand.addScaledVector(this.fwd, dir * speedAbs * tAhead * (f.isPalp ? 0.25 : 1));
+    cand.addScaledVector(this.fwd, dir * speedAbs * tAhead);
     // turning: rotate candidate about the body centre by the heading change until mid-stance
     const turnAhead = clamp(this.turnRate * tAhead, -0.6, 0.6);
     if (Math.abs(turnAhead) > 1e-4) {

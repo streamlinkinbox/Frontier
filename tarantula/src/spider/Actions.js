@@ -159,10 +159,11 @@ export class ActionController {
     const o = this._go || (this._go = new THREE.Vector3());
     const d = this._gd || (this._gd = new THREE.Vector3());
     w.copy(local); body.localToWorld(w);
-    const h = s.world.raycast(o.copy(w).addScaledVector(s.up, 2.5), d.copy(s.up).negate(), 2.5 + pad);
-    if (!h) return;
-    const above = 2.5 - h.distance;
-    if (above < pad) { w.addScaledVector(s.up, pad - above); local.copy(w); body.worldToLocal(local); }
+    // nearest rock surface (signed): robust under overhangs and when the target is inside rock
+    const h = s.world.closest(w, pad + 1.5);
+    if (!h || h.distance >= pad) return;
+    w.copy(h.point).addScaledVector(h.normal, pad);
+    local.copy(w); body.worldToLocal(local);
   }
 
   _override(f, dt) {
@@ -170,7 +171,7 @@ export class ActionController {
     const tw = ss(0, 1, this.threatW);
     const c = this.current;
     let w = 0, pose = null;
-    const tremble = Math.sin(this.time * 23 + li * 1.7 + side) * 0.02;
+    const tremble = Math.sin(this.time * 23 + (f.isPalp ? -1.3 : li) * 1.7 + side) * 0.02; // palps have no legIndex
 
     // --- threat display
     if (tw > 0.001) {

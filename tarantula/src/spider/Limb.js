@@ -127,7 +127,14 @@ export class Limb {
       const L2 = this.L23;
       let D = Math.hypot(Px, Py);
       D = clamp(D, Math.abs(L1 - L2) + 1e-3, L1 + L2 - 1e-3);
-      const th = Math.atan2(Py, Px) + Math.acos(clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1));
+      // knee-up solution, limited to the femur's real range: when the wrist target comes close to or
+      // behind the hip (tucked palp) the unclamped solution flips the femur backwards/down under the
+      // prosoma; keep it raised instead and let the distal chain point at the target
+      let th = Math.atan2(Py, Px) + Math.acos(clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1));
+      // (atan2 + acos lies in (-pi, 2pi): anything past the upper limit is over-rotation up/back)
+      // femurLift (collision steering) lowers/raises the palp knee; the distal pair keeps aiming at
+      // the wrist target, trading a little reach for clearance
+      th = clamp(clamp(th, -0.5, 1.95) + femurLift, -0.5, 1.95);
       const Kx = Math.cos(th) * L1, Ky = Math.sin(th) * L1;
       const a23 = Math.atan2(Py - Ky, Px - Kx);
       a[2] = th;
