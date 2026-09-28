@@ -1,84 +1,96 @@
-// Bald eagle (Haliaeetus leucocephalus), adult - reference measurements (metres, radians, seconds).
+// Bald Eagle (Haliaeetus leucocephalus) — adult female, mid-range of published measurements.
+// All values are metres / radians. Sources are listed in ANATOMY.md; the key ones are noted inline.
 //
-// Sources (see README.md for full list):
-//  - Wikipedia / Birds of the World species account: length 70-102 cm, wingspan 1.8-2.3 m, wing chord
-//    51.5-69 cm, tail 23-37 cm (moderately long, slightly wedge-shaped), tarsus 8-11 cm, culmen 3-7.5 cm,
-//    gape-to-tip 7-9 cm; plumage evenly dark brown with white head and tail, yellow bill, feet and eyes.
-//  - PA Game Commission: tarsi NOT feathered (unlike the "booted" golden eagle); soars on flat wings held
-//    at right angles to the body ("flying plank"); head protrudes more than half the tail length.
-//  - Carolina Bird Club raptor primer: leading & trailing edges nearly parallel, board-flat soaring wing;
-//    ends a flapping sequence with a downstroke into the glide (no upward adjustment).
-//  - Flight feather anatomy: 10 functional primaries on the manus (6 on the carpometacarpus, 4 on the
-//    phalanges); secondaries on the ulna; outer primaries emarginated -> slotted "fingers".
-//  - Wingbeat: ~2.8 Hz measured on a free-flying eagle (Laurent et al. 2021, PNAS).
-//  - Upstroke: wing partially flexed at elbow & wrist, hand-wing swept back, primaries separate and
-//    rotate (slots); arm-wing stays partially extended. Downstroke: extended, moves down & forward with
-//    the leading edge lowered (pronation). Elbow & wrist flex/extend together (coupled skeleton).
-//  - Walking (Birds of the World): "awkward, rocking gait of alternating steps, rarely hops"; golden eagle
-//    account: great strides needing a rolling motion of the body and shuffling of the wings for balance.
-//  - Head: raptors change gaze with fast head saccades separated by fixations (Kane et al. 2017, Auk);
-//    birds stabilise head orientation during flight; peak saccade speeds ~1000 deg/s and more.
-//  - Peal call: 3-5 gull-like notes followed by 6-7 rapid notes ("kwit-kwit-kwit-kee-kee-kee-ker"),
-//    delivered with the head thrown far back, bill pointing skyward.
-//  - Perching reflex / tendon-locking mechanism: flexing ankle & knee pulls the toes closed.
+// Coordinate convention (rig space):  +Z = forward (beak), +Y = up (dorsal), +X = the bird's LEFT.
+// The right side is built as a mirror image (scale −1 on X) of the left.
 
-export const DIM = {
-  length: 0.92,          // bill tip to tail tip
-  wingspan: 2.1,
-  wingChord: 0.61,       // wrist to tip of longest primary
-  tailLength: 0.32,
-  tarsus: 0.10,
-  culmen: 0.058,
-  gape: 0.082,
+const D = Math.PI / 180;
+export const deg = D;
+
+export const SIZE = {
+  totalLength: 0.90,   // bill tip → tail tip, 70–102 cm (Britannica, BOW)
+  wingspan: 2.05,      // 1.8–2.3 m (BOW); female ≈ 25 % heavier than male
+  mass: 5.2,           // kg, female 4.5–6.3
+  wingChord: 0.60,     // flattened wing (wrist → tip of longest primary) 51.5–69 cm
+  tail: 0.31,          // 23–37 cm, slightly wedge-shaped (central rectrices longest)
+  tarsus: 0.095,       // 8–11 cm, unfeathered on the lower half, yellow
+  culmen: 0.058,       // exposed culmen 5–7.5 cm (female)
+  gape: 0.085,         // gape to bill tip 7–9 cm
+  billDepth: 0.035,    // at the cere
 };
 
-// Skeleton (metres). Body axis along +z (forward), +y dorsal, +x = bird's LEFT.
-export const SKEL = {
-  // trunk
-  pelvisToThorax: 0.13,
-  thoraxToNeck: 0.1,
-  // neck: 14 cervical vertebrae modelled as 8 segments
-  neckSegs: [0.03, 0.03, 0.028, 0.026, 0.025, 0.024, 0.022, 0.02],
-  // wing: humerus, ulna/radius, carpometacarpus, major digit
-  shoulder: [0.075, 0.045, 0.105],   // left shoulder joint relative to thorax bone origin
+// ------------------------------------------------------------------ skeleton (lengths joint-to-joint)
+// Humerus / ulna / carpometacarpus proportions follow accipitrid wing skeletons (≈ 1 : 1.12 : 0.53);
+// sized so the fully spread wingspan (incl. primaries) reaches SIZE.wingspan.
+export const BONES = {
   humerus: 0.205,
-  ulna: 0.235,
-  hand: 0.115,
-  digit: 0.075,
-  // leg
-  hip: [0.055, -0.02, 0.0],          // left acetabulum relative to pelvis
-  femur: 0.105,
-  tibiotarsus: 0.165,
-  tarsometatarsus: 0.1,
-  // toes (phalanx lengths, talon length). dir = yaw for the LEFT foot (+ = outward, toward +x); the right
-  // foot mirrors it. Digit I (hallux) points back.
-  toes: [
-    { name: 'I', phal: [0.028, 0.022], talon: 0.048, dir: Math.PI + 0.18, spread: 0.0 },   // hallux (back, slightly inward)
-    { name: 'II', phal: [0.026, 0.02, 0.018], talon: 0.042, dir: -0.45, spread: 0 },       // inner (toward the body)
-    { name: 'III', phal: [0.024, 0.02, 0.018, 0.015], talon: 0.033, dir: 0.0, spread: 0 }, // middle
-    { name: 'IV', phal: [0.016, 0.013, 0.012, 0.012, 0.012], talon: 0.03, dir: 0.55, spread: 0 },  // outer
-  ],
-  tailToPelvis: -0.12,
+  ulna: 0.232,
+  hand: 0.108,          // carpometacarpus
+  digit: 0.072,         // phalanges of the major digit (p9–p10 attach here)
+  alula: 0.038,         // digit I (alula / bastard wing)
+  femur: 0.112,
+  tibiotarsus: 0.160,
+  tarsometatarsus: 0.095,
+  neckVertebrae: 14,    // accipitrids have 13–14 free cervical vertebrae (very flexible neck)
+  neckLength: 0.215,    // along the curve, base of neck (C14) → atlas
 };
 
-// Plumage (linear sRGB-ish base colours, tinted per feather for variation)
-export const COLOR = {
-  brown: 0x3a2618,       // body & wing contour feathers
-  brownDark: 0x22160f,   // flight feathers
-  brownCovert: 0x46301f,
-  white: 0xf2efe6,
-  whiteShade: 0xe0dbcf,
-  bill: 0xf0b21c,
-  cere: 0xf2c23a,
-  feet: 0xf0c13a,
-  talon: 0x0c0b0a,
-  iris: 0xf3e28a,
+// Trunk landmarks in trunk-bone space (origin ≈ centre of mass, z along the spine).
+export const TRUNK = {
+  shoulder: [0.052, 0.040, 0.112],  // glenoid (left)
+  neckBase: [0, 0.052, 0.140],
+  hip: [0.046, 0.004, -0.030],      // acetabulum (left)
+  pygostyle: [0, 0.030, -0.150],    // tail base
+  length: 0.33,                     // chest front → vent (feathered body ≈ 0.36)
+  width: 0.19,                      // across the shoulders, feathered body ≈ 0.23
+  depth: 0.17,                      // back → keel
 };
 
-// Flight
-export const FLIGHT = {
-  flapHz: 2.8,
-  downstrokeFrac: 0.56,
-  glideSpeed: 13,      // m/s
-  flapSpeed: 11,
+// ------------------------------------------------------------------ flight feathers
+// Primaries p1 (innermost) … p10 (outermost). Eagle primaries are long, pointed and the outer ones
+// are emarginated (outer vane) and notched (inner vane) forming the "fingers" (Trail 2014 feather ID
+// guide). Bald eagle: 7 visible fingers in soaring silhouette (p4–p10 emarginated), p7 ≈ p8 longest.
+export const PRIMARIES = [
+  //  length, emarg.(outer vane step, fraction from tip), notch (inner vane, fraction from tip), base width
+  { len: 0.305, emarg: 0.00, notch: 0.00, w: 0.050 }, // p1
+  { len: 0.318, emarg: 0.00, notch: 0.00, w: 0.051 }, // p2
+  { len: 0.333, emarg: 0.00, notch: 0.00, w: 0.052 }, // p3
+  { len: 0.352, emarg: 0.20, notch: 0.00, w: 0.053 }, // p4
+  { len: 0.378, emarg: 0.30, notch: 0.24, w: 0.054 }, // p5
+  { len: 0.415, emarg: 0.38, notch: 0.33, w: 0.055 }, // p6
+  { len: 0.452, emarg: 0.44, notch: 0.40, w: 0.056 }, // p7
+  { len: 0.458, emarg: 0.47, notch: 0.44, w: 0.056 }, // p8
+  { len: 0.430, emarg: 0.50, notch: 0.47, w: 0.054 }, // p9
+  { len: 0.365, emarg: 0.54, notch: 0.50, w: 0.050 }, // p10
+];
+// Secondaries s1 (at the wrist) … s15 (at the elbow): rounded, broad, nearly symmetric.
+export const N_SECONDARIES = 15;
+export const secondaryLength = (i) => 0.300 - 0.020 * (i / 14) ** 1.4; // s1 0.300 → s15 0.280
+export const N_TERTIALS = 3;
+export const tertialLength = (i) => [0.255, 0.235, 0.205][i];
+
+// Rectrices r1 (central) … r6 (outer) per side; the tail is slightly wedge-shaped.
+export const RECTRICES = [0.310, 0.306, 0.300, 0.293, 0.285, 0.276];
+
+// ------------------------------------------------------------------ head
+export const HEAD = {
+  crownToCere: 0.100,     // back of skull → cere
+  width: 0.072,           // across the supraorbital ridges
+  eyeRadius: 0.0135,      // exposed eye (cornea + iris) ~2.7 cm; iris pale yellow in adults
+  eyeForward: 0.018,      // eyes face ~ 30–35° forward of lateral (binocular field ≈ 35–50°)
 };
+
+// ------------------------------------------------------------------ colours (linear-ish sRGB hex)
+export const COLORS = {
+  bodyBrown: 0x2e2118,     // dark chocolate brown
+  bodyBrownLight: 0x4a3524,// pale feather edges / wear
+  white: 0xf1eee6,         // head, neck, tail, tail coverts
+  whiteShadow: 0xd8d2c6,
+  beak: 0xeab43e,          // chrome-yellow bill and cere (keratin slightly translucent, paler at the tip)
+  beakTip: 0xdcb070,
+  feet: 0xe9b62a,          // yellow feet and bare tarsus
+  talon: 0x0c0b0a,         // glossy black talons
+  iris: 0xf2e9a6,          // pale lemon iris (adult)
+};
+
+export const FLAP_HZ = 2.8; // golden-eagle wingbeat frequency (Harel et al. / PNAS 2021)

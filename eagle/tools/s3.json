@@ -1,3 +1,0 @@
-[{"eval":"(()=>{const g=__game;g.setMode('glide');g.step(90);g.cam(3.2,1.45,0.001,38);g.step(1);return 1})()"},{"shot":"top"},
-{"eval":"(()=>{const g=__game;g.cam(3.2,-1.2,0.001,38);g.step(1);return 1})()"},{"shot":"bottom"},
-{"eval":"(()=>{const g=__game;g.cam(2.6,0.25,2.4,38);g.step(1);return 1})()"},{"shot":"rear34"}]

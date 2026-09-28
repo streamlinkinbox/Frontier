@@ -1,4 +1,0 @@
-[{"eval":"(()=>{__game.step(40);__game.cam(1.6,0.12,Math.PI/2);__game.step(1);return 1})()"},{"shot":"side"},
-{"eval":"(()=>{__game.cam(1.6,0.15,0);__game.step(1);return 1})()"},{"shot":"front"},
-{"eval":"(()=>{__game.cam(1.7,0.3,Math.PI*0.8);__game.step(1);return 1})()"},{"shot":"back"},
-{"eval":"(()=>{const g=__game;const h=new g.THREE.Vector3();g.eagle.rig.head.getWorldPosition(h);g.cam(0.35,0.1,Math.PI*0.35,38,h);g.step(1);return [h.x,h.y,h.z]})()"},{"shot":"head"}]

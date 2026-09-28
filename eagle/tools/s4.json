@@ -1,2 +1,0 @@
-[{"eval":"(()=>{const g=__game;g.step(40);const W=g.eagle.wings,F=g.eagle.feathers;const col={prim:[1,0,0],sec:[0,1,0],ter:[0,0,1],cov:[1,1,0],hcov:[0,1,1],hum:[0,1,1],pcov:[1,0.5,0],alula:[1,0,1],ucov:[0.5,0.5,0.5]};for(const it of W.items){F.mesh.instanceColor.setXYZ(it.id,...col[it.group]);}F.mesh.instanceColor.needsUpdate=true;g.cam(1.1,0.1,Math.PI/2);g.step(1);return 1})()"},{"shot":"side"},
-{"eval":"(()=>{const g=__game;g.cam(1.1,0.3,Math.PI*0.9);g.step(1);return 1})()"},{"shot":"back"}]
