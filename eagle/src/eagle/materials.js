@@ -9,6 +9,7 @@ export const featherUniforms = {
   uFluffBody: { value: 0 },  // body plumage fluffing (rousing, cold)
   uFlutter: { value: 0 },    // airflow flutter (0 perched … 1 fast flight)
   uBreath: { value: 0 },     // breathing expansion (−1 … 1)
+  uNormBlend: { value: 0.72 }, // contour plumage shades as one soft surface (feather vanes lie on the skin)
 };
 
 function patchFeather(mat, { fluff = false, backTint = [1.1, 1.08, 1.05], sheen = 0.18 } = {}) {
@@ -16,10 +17,15 @@ function patchFeather(mat, { fluff = false, backTint = [1.1, 1.08, 1.05], sheen 
     Object.assign(sh.uniforms, featherUniforms);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
-        uniform float uTime, uFluff, uFluffBody, uFlutter, uBreath;
+        uniform float uTime, uFluff, uFluffBody, uFlutter, uBreath, uNormBlend;
         attribute float aT; attribute float aRand;
         ${fluff ? 'attribute vec3 aBaseNormal; attribute float aLen; attribute float aMask;' : ''}
         varying float vT;`)
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+        ${fluff ? `
+        // Overlapping contour feathers form a continuous, softly scalloped coat: the lighting normal is
+        // mostly the body-surface normal under the feather, with the card's own normal adding the scallop.
+        objectNormal = normalize(mix(objectNormal, aBaseNormal, uNormBlend * (1.0 - 0.35 * aT)));` : ''}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         vT = aT;
         ${fluff ? `
@@ -41,7 +47,7 @@ function patchFeather(mat, { fluff = false, backTint = [1.1, 1.08, 1.05], sheen 
           reflectedLight.indirectSpecular += fres * ${sheen.toFixed(3)} * diffuseColor.rgb * 0.8 + fres * ${(sheen * 0.08).toFixed(4)};
         }`);
   };
-  mat.customProgramCacheKey = () => `feather-${fluff}-${sheen}`;
+  mat.customProgramCacheKey = () => `feather-${fluff}-${sheen}-${backTint.join('_')}`;
   return mat;
 }
 
@@ -58,6 +64,9 @@ export function createMaterials() {
   });
   const M = {};
   M.flight = patchFeather(mk(T.flight, { roughness: 0.6 }), { backTint: [1.7, 1.68, 1.66], sheen: 0.22 });
+  // rectrices / tail coverts: white vanes; the underside is the same white, not brightened (was glassy)
+  M.tail = patchFeather(mk(T.flight, { roughness: 0.74 }), { backTint: [0.96, 0.95, 0.93], sheen: 0.08 });
+  M.tailCovert = patchFeather(mk(T.covert, { roughness: 0.8 }), { backTint: [0.95, 0.94, 0.92], sheen: 0.06 });
   M.covert = patchFeather(mk(T.covert, { roughness: 0.7 }), { backTint: [1.3, 1.27, 1.24], sheen: 0.16 });
   M.contour = patchFeather(mk(T.contour, { roughness: 0.78 }), { fluff: true, backTint: [0.8, 0.78, 0.76], sheen: 0.14 });
   M.body = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });

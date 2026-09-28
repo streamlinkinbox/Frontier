@@ -1,0 +1,14 @@
+[
+ {"eval":"(()=>{__game.setPreset('orbit'); __game.step(60); return 1})()"},{"shot":"idle_orbit"},
+ {"eval":"(()=>{__game.setPreset('side'); __game.step(2); return 1})()"},{"shot":"idle_side"},
+ {"eval":"(()=>{__game.setPreset('front'); __game.step(2); return 1})()"},{"shot":"idle_front"},
+ {"eval":"(()=>{__game.setPreset('close'); __game.step(2); return 1})()"},{"shot":"idle_head"},
+ {"eval":"(()=>{__game.setPreset('orbit'); __game.anim.trigger('walk'); __game.step(90); return __game.anim.label})()"},{"shot":"walk"},
+ {"eval":"(()=>{__game.anim.trigger('walk'); __game.step(60); __game.anim.trigger('screech'); __game.step(40); return __game.anim.label})()"},{"shot":"screech"},
+ {"eval":"(()=>{__game.step(200); __game.anim.trigger('headturn'); __game.step(45); return __game.anim.label})()"},{"shot":"headturn"},
+ {"eval":"(()=>{__game.anim.trigger('flap'); __game.step(120); return __game.anim.label})()"},{"shot":"flap_a"},
+ {"eval":"(()=>{__game.step(9); return 1})()"},{"shot":"flap_b"},
+ {"eval":"(()=>{__game.setPreset('side'); __game.step(3); return 1})()"},{"shot":"flap_side"},
+ {"eval":"(()=>{__game.setPreset('orbit'); __game.anim.trigger('glide'); __game.step(180); return __game.anim.label})()"},{"shot":"glide"},
+ {"eval":"(()=>{__game.setPreset('front'); __game.step(3); return 1})()"},{"shot":"glide_front"}
+]

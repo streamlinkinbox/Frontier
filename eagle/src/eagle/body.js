@@ -255,7 +255,7 @@ export function buildContourFeathers(rig, loft, { density = 1 } = {}) {
       const wv = ss(0.03 - 0.05 * throat, 0.10 - 0.05 * throat + 0.03 * (R() - 0.5), Rg.neck + (R() - 0.5) * 0.03);
       const vent = Rg.neck > 0 ? 0 : ss(0.25, -0.55, Math.cos(ang)) * ss(-0.175, -0.205, Rg.p.z);
       const wt = Math.max(wv, vent);
-      const base = brown.clone().lerp(brownDark, R() * 0.6).multiplyScalar(0.88 + 0.24 * R());
+      const base = brown.clone().lerp(brownDark, 0.25 + R() * 0.3).multiplyScalar(0.94 + 0.12 * R());
       const col = base.lerp(white.clone().multiplyScalar(0.84 + 0.16 * R()), wt > 0.5 ? 1 : 0);
       const rnd = R();
       B.addGrid(geo, m, (t) => wAt(t), (t, sx, out) => out.copy(col).multiplyScalar((0.42 + 0.58 * ss(0.25, 0.92, t)) * (1 - 0.12 * Math.abs(sx) * (1 - t))), { rand: rnd, kind: wt > 0.5 ? 7 : 6 });

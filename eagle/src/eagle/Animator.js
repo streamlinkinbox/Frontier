@@ -341,7 +341,7 @@ export class Animator {
     P.wingL = wl; P.wingR = wr;
 
     // ---- tail: breathing bob, counter-roll while walking, occasional flick/fan
-    P.tail.pitch = -0.12 + 0.03 * breath - 0.05 * Math.cos(2 * (gp - midL)) * W + 0.12 * flick;
+    P.tail.pitch = 0.1 + 0.03 * breath - 0.05 * Math.cos(2 * (gp - midL)) * W + 0.12 * flick;
     P.tail.roll = -walkRoll * 0.8;
     P.tail.yaw = -walkYaw * 0.9 + shake * 0.12 * Math.sin(t * TAU * 5.5 + 2.1);
     P.tail.spread = 0.05 + 0.25 * flick + 0.1 * rouseFluff;

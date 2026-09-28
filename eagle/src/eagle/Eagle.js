@@ -145,8 +145,8 @@ export class Eagle {
     add(wskin.skin, M.wingSkin, 'wing-skin');
     add(wskin.feathers, M.contour, 'lesser-coverts');
     const tail = buildTailPlumage(rig);
-    add(tail.flight, M.flight, 'rectrices');
-    add(tail.covert, M.covert, 'tail-coverts');
+    add(tail.flight, M.tail, 'rectrices');
+    add(tail.covert, M.tailCovert, 'tail-coverts');
     const head = this.head = buildHead(rig);
     add(head.skull, M.skull, 'skull');
     add(head.headFeathers, M.contour, 'head-feathers');

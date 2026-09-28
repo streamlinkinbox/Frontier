@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // Lakeshore habitat (bald eagles live near large bodies of open water with tall trees / cliffs).
 // Everything is procedural: physically based sky (Preetham), fBm terrain, water, boulder, gravel.
@@ -82,7 +83,16 @@ export class World {
         float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
         float n2(vec2 p){ vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.0-2.0*f);
           return mix(mix(h2(i),h2(i+vec2(1,0)),u.x), mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),u.x), u.y); }
-        float fb(vec2 p){ float s=0.0,a=0.5; for(int i=0;i<5;i++){ s+=a*n2(p); p*=2.03; a*=0.5;} return s; }`)
+        float fb(vec2 p){ float s=0.0,a=0.5; for(int i=0;i<5;i++){ s+=a*n2(p); p*=2.03; a*=0.5;} return s; }
+        vec2 h22(vec2 p){ p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3))); return fract(sin(p)*43758.5453); }
+        // Voronoi pebbles: returns (F1, F2-F1, cell id) and the offset from the pebble centre
+        vec3 peb(vec2 x, out vec2 off){ vec2 n=floor(x), f=fract(x); float d1=8.0, d2=8.0; vec2 id=vec2(0); off=vec2(0);
+          for(int j=-1;j<=1;j++) for(int i=-1;i<=1;i++){ vec2 g=vec2(i,j); vec2 o=h22(n+g); o = 0.5+0.42*sin(6.2831*o);
+            vec2 r=g+o-f; float d=dot(r,r); if(d<d1){ d2=d1; d1=d; id=n+g; off=-r; } else if(d<d2){ d2=d; } }
+          return vec3(sqrt(d1), sqrt(d2)-sqrt(d1), h22(id).x); }
+        vec3 vPebN = vec3(0.0);`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        normal = normalize(normal + (viewMatrix * vec4(vPebN, 0.0)).xyz);`)
         .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float slope = 1.0 - clamp(vNw.y, 0.0, 1.0);
@@ -101,6 +111,30 @@ export class World {
           col = mix(col, forest, smoothstep(90.0, 220.0, d + nb*80.0));
           col = mix(col, rock, smoothstep(0.35, 0.6, slope + n*0.1));
           col = mix(col, snow, smoothstep(230.0, 300.0, vW.y + n*40.0) * (1.0 - smoothstep(0.55,0.8,slope)));
+          // close range shore: individual rounded pebbles / cobbles with dark crevices and grit between them
+          vPebN = vec3(0.0);
+          float near = (1.0 - smoothstep(10.0, 26.0, d + n*6.0)) * (1.0 - smoothstep(0.3, 0.5, slope));
+          if (near > 0.0) {
+            vec2 o1, o2;
+            vec3 a = peb(vW.xz * 26.0, o1);          // ~4 cm gravel
+            vec3 b = peb(vW.xz * 8.0 + 17.0, o2);    // ~12 cm cobbles (sparse)
+            // only some cells hold a stone; the rest is sand/grit between them (a real shingle beach)
+            float hasA = step(0.45, fract(a.z * 7.31));
+            float cob = step(0.85, b.z) * smoothstep(0.04, 0.2, b.y);
+            float pa = smoothstep(0.03, 0.22, a.y) * hasA * (1.0 - smoothstep(0.30, 0.46, a.x));
+            vec3 tintA = mix(vec3(0.12,0.115,0.105), vec3(0.24,0.225,0.20), fract(a.z * 91.7));
+            tintA *= mix(vec3(1.0), vec3(1.1,0.97,0.84), step(0.82, fract(a.z * 13.0)));
+            vec3 tintB = mix(vec3(0.15,0.145,0.135), vec3(0.27,0.26,0.24), fract(b.z * 37.0)) * (0.92 + 0.16*n2v);
+            float gn = n2(vW.xz * 140.0) * 0.6 + n2(vW.xz * 45.0) * 0.4;
+            vec3 grit = mix(vec3(0.105,0.095,0.078), vec3(0.19,0.17,0.135), gn) * (0.85 + 0.3 * n);
+            vec3 stones = mix(grit, tintA * (0.92 + 0.16 * n2(vW.xz * 70.0)), pa);
+            stones = mix(stones, tintB, cob);
+            float k = near * (1.0 - smoothstep(8.0, 22.0, d + n*10.0));
+            col = mix(col, stones, k);
+            // gently domed stones (world-space normal perturbation), subtle so they do not read as tiles
+            vec2 gA = o1 * 0.55 * pa, gB = o2 * 0.45 * cob;
+            vPebN = vec3(gA.x + gB.x, 0.0, gA.y + gB.y) * k;
+          }
           diffuseColor.rgb = col;
         }`);
     };
@@ -145,13 +179,19 @@ export class World {
 
   buildBoulder() {
     // granite boulder next to the eagle (perch / backdrop)
-    const g = new THREE.IcosahedronGeometry(1, 6);
+    // indexed, finely tessellated sphere (shared vertices → smooth normals), then weathered fBm displacement
+    let g = new THREE.IcosahedronGeometry(1, 56);
+    g.deleteAttribute('normal'); g.deleteAttribute('uv');
+    g = mergeVertices(g, 1e-5);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const v = new THREE.Vector3().fromBufferAttribute(p, i);
       const n = fbm(v.x * 1.6 + 3, v.y * 1.6 + v.z * 1.3, 5);
-      const n2 = fbm(v.z * 5 + 1, v.x * 5 + v.y * 4, 3);
-      v.multiplyScalar(1 + (n - 0.5) * 0.55 + (n2 - 0.5) * 0.08);
+      const n2 = fbm(v.z * 5 + 1, v.x * 5 + v.y * 4, 4);
+      const n3 = fbm(v.x * 14 + v.z * 3 + 5, v.y * 14 - v.z * 6, 3);
+      // exfoliation: gently flattened facets + fine grain relief
+      const ridge = 1 - Math.abs(fbm(v.x * 3.1 + 11, v.z * 3.1 + v.y * 2.2, 3) * 2 - 1);
+      v.multiplyScalar(1 + (n - 0.5) * 0.55 + (n2 - 0.5) * 0.10 + (n3 - 0.5) * 0.018 - ridge * ridge * 0.035);
       v.y *= 0.62;
       p.setXYZ(i, v.x * 1.35, v.y * 1.1, v.z * 1.0);
     }
@@ -211,61 +251,131 @@ export class World {
     this.scene.add(inst);
   }
 
-  buildForest() {
-    // conifers (spruce/fir) around the lake — layered skirts of drooping branches
-    const tree = new THREE.BufferGeometry();
-    const parts = [];
-    const tiers = 9;
-    for (let t = 0; t < tiers; t++) {
-      const f = t / tiers;
-      const cone = new THREE.ConeGeometry(0.42 * (1 - f) + 0.06, 0.28, 9, 1, true);
-      cone.translate(0, 0.12 + f * 0.86, 0);
-      const cp = cone.attributes.position;
-      for (let i = 0; i < cp.count; i++) { const y = cp.getY(i); const r = Math.hypot(cp.getX(i), cp.getZ(i)); cp.setY(i, y - r * 0.25 + (hash(i, t) - 0.5) * 0.04); }
-      parts.push(cone);
-    }
-    const trunk = new THREE.CylinderGeometry(0.025, 0.04, 0.3, 6); trunk.translate(0, 0.1, 0); parts.push(trunk);
-    let total = 0; for (const g of parts) total += g.attributes.position.count;
-    const pos = new Float32Array(total * 3), col = new Float32Array(total * 3); const idx = [];
-    let o = 0;
-    parts.forEach((g, gi) => {
-      const pa = g.attributes.position; const ni = g.index.array;
-      for (let i = 0; i < ni.length; i++) idx.push(ni[i] + o);
-      for (let i = 0; i < pa.count; i++) {
-        pos.set([pa.getX(i), pa.getY(i), pa.getZ(i)], (o + i) * 3);
-        const trunkPart = gi === parts.length - 1;
-        const k = trunkPart ? [0.08, 0.05, 0.03] : [0.015 + 0.012 * hash(i, gi), 0.03 + 0.018 * hash(gi, i), 0.018];
-        col.set(k, (o + i) * 3);
+  // Spruce branch texture: a twig with side twiglets densely clothed in short needles (alpha-cut).
+  needleTexture() {
+    const W = 256, H = 128, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    let seed = 5; const R = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    g.clearRect(0, 0, W, H);
+    g.lineCap = 'round';
+    const twig = (x0, y0, ang, len, w, depth) => {
+      const x1 = x0 + Math.cos(ang) * len, y1 = y0 + Math.sin(ang) * len;
+      // needles along the twig, pointing forward and outward on both sides
+      const n = Math.floor(len / 1.1);
+      for (let i = 0; i < n; i++) {
+        const t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+        for (const sd of [-1, 1]) {
+          const a = ang + sd * (0.7 + R() * 0.5), l = (5 + R() * 4) * (1 - 0.35 * t) * (depth ? 0.85 : 1);
+          const k = 40 + R() * 45;
+          g.strokeStyle = `rgb(${k * 0.55 | 0},${k | 0},${k * 0.5 | 0})`; g.lineWidth = 2.1;
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+        }
       }
-      o += pa.count;
-    });
-    tree.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    tree.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    tree.setIndex(idx); tree.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: THREE.DoubleSide });
-    const N = 5000;
-    const inst = new THREE.InstancedMesh(tree, mat, N);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+      g.strokeStyle = 'rgb(60,42,28)'; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      if (depth > 0) {
+        const m = 13;
+        for (let i = 1; i < m; i++) {
+          const t = i / m, sd = i % 2 ? 1 : -1;
+          const env = Math.sin(Math.PI * Math.min(1, t * 1.15)) ;
+          twig(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, ang + sd * (0.75 + R() * 0.25), len * 0.5 * env + 8, w * 0.55, depth - 1);
+        }
+      }
+    };
+    twig(2, H / 2, 0, W - 10, 3, 1);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+    return t;
+  }
+
+  // Unit-height spruce: tapering trunk + whorls of drooping branch cards; canopy normals (radial + up)
+  // give the soft, volumetric light response of a real conifer crown.
+  spruceGeometry({ whorls, perWhorl, segs, cards, seed }) {
+    const pos = [], nrm = [], uv = [], col = [], idx = [];
+    let s0 = seed; const R = () => ((s0 = (s0 * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const vtx = (x, y, z, nx, ny, nz, u, v, c) => { pos.push(x, y, z); nrm.push(nx, ny, nz); uv.push(u, v); col.push(c[0], c[1], c[2]); return pos.length / 3 - 1; };
+    // trunk
+    const TS = 7;
+    for (let j = 0; j <= 1; j++) for (let i = 0; i <= TS; i++) {
+      const a = i / TS * Math.PI * 2, y = j ? 0.9 : -0.02, r = j ? 0.002 : 0.016;
+      vtx(Math.cos(a) * r, y, Math.sin(a) * r, Math.cos(a), 0, Math.sin(a), 0.99, 0.5, [0.09, 0.06, 0.04]);
+    }
+    for (let i = 0; i < TS; i++) idx.push(i, i + TS + 1, i + 1, i + 1, i + TS + 1, i + TS + 2);
+    for (let w = 0; w < whorls; w++) {
+      const f = (w + R() * 0.6) / whorls;
+      const y0 = 0.1 + f * 0.86;
+      const L = (0.34 * Math.pow(1 - f, 0.9) + 0.035) * (0.85 + 0.3 * R());
+      const n = Math.max(3, Math.round(perWhorl * (1 - 0.4 * f)));
+      const az0 = R() * 6.28;
+      for (let b = 0; b < n; b++) {
+        const az = az0 + b / n * Math.PI * 2 + (R() - 0.5) * 0.5;
+        const dir = [Math.cos(az), 0, Math.sin(az)], side = [-Math.sin(az), 0, Math.cos(az)];
+        const droop = 0.25 + 0.35 * (1 - f) + R() * 0.15; // lower branches droop more
+        for (let cI = 0; cI < cards; cI++) {
+          const roll = cards > 1 ? (cI ? 0.5 : -0.5) : 0;
+          const width = L * (0.5 + 0.12 * R());
+          const base = idx.length;
+          const first = pos.length / 3;
+          for (let k = 0; k <= segs; k++) {
+            const t = k / segs;
+            // branch sags then turns up slightly at the tip (spruce)
+            const drop = L * (droop * t * t * 0.9 - 0.12 * t * t * t * t) + L * 0.12 * t;
+            const cx = dir[0] * L * t, cz = dir[2] * L * t, cy = y0 - drop;
+            const hw = width * 0.5 * (0.45 + 0.55 * Math.sin(Math.PI * Math.min(1, 0.15 + t * 0.9)));
+            const up = Math.sin(roll) * hw, lat = Math.cos(roll) * hw;
+            const ao = 0.35 + 0.65 * Math.min(1, t * 1.3 + 0.1); // dark inner crown
+            const c = [0.36 * ao, 0.46 * ao, 0.40 * ao];
+            // canopy normal: outward from the trunk axis and up
+            const rx = dir[0] * (0.25 + t) , rz = dir[2] * (0.25 + t), ry = 0.55;
+            const l = Math.hypot(rx, ry, rz);
+            for (const sd of [-1, 1]) vtx(cx + side[0] * lat * sd, cy + up * sd, cz + side[2] * lat * sd, rx / l, ry / l, rz / l, t * 0.97, 0.5 + 0.5 * sd, c);
+          }
+          for (let k = 0; k < segs; k++) { const i0 = first + k * 2; idx.push(i0, i0 + 2, i0 + 1, i0 + 1, i0 + 2, i0 + 3); }
+          void base;
+        }
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    return g;
+  }
+
+  buildForest() {
+    // spruce / fir around the lake (bald eagles nest and perch in tall conifers near water)
+    const map = this.needleTexture();
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map, roughness: 0.9, side: THREE.DoubleSide, alphaTest: 0.3, alphaToCoverage: true });
+    // keep foliage coverage at distance: sharpen the mip-averaged alpha before the alpha test
+    mat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <alphatest_fragment>', 'diffuseColor.a = clamp((diffuseColor.a - 0.3) / max(fwidth(diffuseColor.a), 1e-4) + 0.5, 0.0, 1.0);\n#include <alphatest_fragment>'); };
+    const near = this.spruceGeometry({ whorls: 26, perWhorl: 7, segs: 3, cards: 2, seed: 11 });
+    const far = this.spruceGeometry({ whorls: 13, perWhorl: 5, segs: 1, cards: 1, seed: 12 });
+    const NN = 1800, NF = 4200;
+    const instN = new THREE.InstancedMesh(near, mat, NN), instF = new THREE.InstancedMesh(far, mat, NF);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), c = new THREE.Color();
     let seed = 9; const R = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
-    let n = 0;
-    for (let tries = 0; tries < 40000 && n < N; tries++) {
-      const r = 70 + Math.pow(R(), 0.8) * 900, a = R() * Math.PI * 2;
+    let nn = 0, nf = 0;
+    for (let tries = 0; tries < 60000 && (nn < NN || nf < NF); tries++) {
+      const r = 60 + Math.pow(R(), 0.8) * 900, a = R() * Math.PI * 2;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       const dl = Math.hypot(x - LAKE.center.x, (z - LAKE.center.y) * 1.3);
       if (dl < LAKE.radius * 1.3) continue;
       const h = terrainHeight(x, z);
       if (h > 230) continue;
       if (fbm(x * 0.01, z * 0.01, 3) < 0.42 && r > 80) continue; // clearings
-      const height = 14 + R() * 20;
-      p.set(x, h - 0.5, z);
-      q.setFromEuler(new THREE.Euler((R() - 0.5) * 0.06, R() * 6.28, (R() - 0.5) * 0.06));
-      s.set(height * (0.75 + 0.3 * R()), height, height * (0.75 + 0.3 * R()));
+      const isNear = r < 320;
+      if (isNear ? nn >= NN : nf >= NF) continue;
+      const height = 14 + R() * 22;
+      p.set(x, h - 0.4, z);
+      q.setFromEuler(new THREE.Euler((R() - 0.5) * 0.05, R() * 6.28, (R() - 0.5) * 0.05));
+      s.set(height * (0.8 + 0.3 * R()), height, height * (0.8 + 0.3 * R()));
       m.compose(p, q, s);
-      inst.setMatrixAt(n++, m);
+      c.setRGB(0.8 + 0.3 * R(), 0.85 + 0.25 * R(), 0.75 + 0.3 * R());
+      if (isNear) { instN.setMatrixAt(nn, m); instN.setColorAt(nn++, c); } else { instF.setMatrixAt(nf, m); instF.setColorAt(nf++, c); }
     }
-    inst.count = n;
-    inst.castShadow = false; inst.receiveShadow = true;
-    this.scene.add(inst);
+    instN.count = nn; instF.count = nf;
+    for (const inst of [instN, instF]) { inst.castShadow = false; inst.receiveShadow = true; this.scene.add(inst); }
   }
 
   buildLights() {
