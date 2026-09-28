@@ -55,11 +55,11 @@ const STATIONS = [
   [0.06, 0.1, 0.062, 0.112, 0.002],
   [0.12, 0.097, 0.06, 0.118, 0.004],
   [0.17, 0.083, 0.054, 0.104, 0.008],
-  [0.205, 0.06, 0.044, 0.08, 0.004],
-  [0.235, 0.045, 0.038, 0.052, 0.0],
-  [0.28, 0.038, 0.035, 0.041, 0.0],
-  [0.34, 0.035, 0.034, 0.037, 0.0],
-  [0.4, 0.034, 0.035, 0.035, 0.002],
+  [0.205, 0.064, 0.048, 0.084, 0.004],
+  [0.235, 0.054, 0.045, 0.062, 0.002],
+  [0.28, 0.047, 0.042, 0.05, 0.0],
+  [0.34, 0.042, 0.039, 0.044, 0.0],
+  [0.4, 0.037, 0.037, 0.038, 0.002],
   [0.425, 0.034, 0.038, 0.034, 0.005],
   [0.445, 0.031, 0.04, 0.031, 0.007],
   [0.462, 0.027, 0.036, 0.029, 0.005],
@@ -136,14 +136,14 @@ export class Body {
   isWhite(p) {
     // white hood: head and neck down to the base of the neck, a little lower on the throat
     const down = Math.max(0, -(p.y - this.spineAt(p.z).y)) / 0.06;
-    const edge = 0.232 - 0.02 * Math.min(1, down) + 0.006 * Math.sin(p.x * 180 + p.y * 90);
+    const edge = 0.228 - 0.022 * Math.min(1, down) + 0.012 * Math.sin(p.x * 140 + p.y * 70) + 0.008 * Math.sin(p.x * 330 - p.y * 210 + 1.3);
     if (p.z > edge) return true;
     // white tail coverts / undertail region
     if (p.z < -0.15) return true;
     return false;
   }
 
-  eyeCentre(s) { return new THREE.Vector3(0.0205 * s, 0.013, 0.046); }   // head space
+  eyeCentre(s) { return new THREE.Vector3(0.0188 * s, 0.012, 0.046); }   // head space
   eyeAxis(s) { return new THREE.Vector3(0.6 * s, 0.05, 0.8).normalize(); }
 
   surfacePoint(z, phi) {
@@ -159,8 +159,8 @@ export class Body {
       for (const s of [1, -1]) {
         const e = this.eyeCentre(s);
         // brow: bulge above & slightly in front of the eye
-        const dB = Math.hypot((p.x - (e.x + 0.001 * s)) / 0.014, (hy - (e.y + 0.012)) / 0.008, (hz - (e.z + 0.002)) / 0.017);
-        if (dB < 1) { const k = (1 - dB * dB) ** 2; p.x += 0.0045 * s * k; p.y += 0.004 * k; }
+        const dB = Math.hypot((p.x - (e.x + 0.002 * s)) / 0.015, (hy - (e.y + 0.012)) / 0.009, (hz - (e.z + 0.003)) / 0.02);
+        if (dB < 1) { const k = (1 - dB * dB) ** 2; p.x += 0.0065 * s * k; p.y += 0.0035 * k; }
         // socket: pull the skin around the eye inward so the eye bulges out
         const dE = Math.hypot(p.x - e.x * 1.25, hy - e.y, hz - e.z) / 0.0145;
         if (dE < 1) { const k = (1 - dE * dE) ** 2; p.x -= 0.004 * s * k * (Math.sign(p.x) === s ? 1 : 0); }
@@ -176,7 +176,7 @@ export class Body {
     const z0 = STATIONS[0][0], z1 = STATIONS[STATIONS.length - 1][0];
     const nR = 150, nS = 72;
     const rings = [], cols = [];
-    const brown = new THREE.Color(COLOR.brown), white = new THREE.Color(COLOR.whiteShade);
+    const brown = new THREE.Color(COLOR.brown).multiplyScalar(1.5), white = new THREE.Color(COLOR.whiteShade).multiplyScalar(1.45);
     this.zAt = (i) => { const t = i / (nR - 1); return z0 + (z1 - z0) * t; };
     for (let i = 0; i < nR; i++) {
       const z = this.zAt(i);
@@ -201,7 +201,8 @@ export class Body {
     }
     geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+    const tex = scallopTextures();
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0, map: tex.map, normalMap: tex.normalMap, normalScale: new THREE.Vector2(0.45, 0.45) });
     this.core = new THREE.SkinnedMesh(geo, mat);
     this.core.castShadow = true; this.core.receiveShadow = true;
     this.core.frustumCulled = false;
@@ -215,7 +216,7 @@ export class Body {
   // ---------------------------------------------------------------------------------------------
   _head() {
     const r = this.rig;
-    const billMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.25, metalness: 0 });
+    const billMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.42, clearcoat: 0.3, clearcoatRoughness: 0.35, metalness: 0 });
     const skinMat = new THREE.MeshStandardMaterial({ color: COLOR.cere, roughness: 0.62 });
     const bill = this._upperBill();
     const upper = new THREE.Mesh(bill, billMat); upper.castShadow = true;
@@ -252,8 +253,10 @@ export class Body {
   _upperBill() {
     // Bezier helpers in (z, y) of the upperBill bone frame
     const bez = (P, t) => { const u = 1 - t; return [u * u * u * P[0][0] + 3 * u * u * t * P[1][0] + 3 * u * t * t * P[2][0] + t * t * t * P[3][0], u * u * u * P[0][1] + 3 * u * u * t * P[1][1] + 3 * u * t * t * P[2][1] + t * t * t * P[3][1]]; };
-    const culmen = [[-0.006, 0.0045], [0.035, 0.009], [0.068, 0.002], [0.064, -0.034]];
-    const tomium = [[-0.012, -0.024], [0.03, -0.0265], [0.056, -0.026], [0.064, -0.034]];
+    // culmen arches down continuously from the cere into the hook; tomium runs forward with a slight
+    // festoon then turns down along the inner edge of the hook; both meet at the tip, well below the tomia
+    const culmen = [[-0.006, 0.006], [0.045, 0.012], [0.07, -0.02], [0.054, -0.043]];
+    const tomium = [[-0.014, -0.022], [0.03, -0.0265], [0.05, -0.024], [0.054, -0.043]];
     const nR = 60, nS = 40;
     const rings = [], cols = [];
     const base = new THREE.Color(0xe9a514), tip = new THREE.Color(0xf2d27a), inside = new THREE.Color(0x5a3a33);
@@ -261,7 +264,7 @@ export class Body {
       const t = i / (nR - 1);
       const [zt, yt] = bez(culmen, t); const [zb, yb] = bez(tomium, Math.min(1, t * 1.0));
       const wBase = 0.0122;
-      const w = wBase * Math.pow(1 - t, 0.75) * (1 + 0.1 * Math.sin(t * Math.PI)) + 0.0006;
+      const w = wBase * Math.pow(1 - t, 0.9) * (1 + 0.08 * Math.sin(t * Math.PI)) + 0.0005;
       const ring = [], cr = [];
       for (let j = 0; j < nS; j++) {
         const a = (j / nS) * Math.PI * 2;
@@ -295,10 +298,10 @@ export class Body {
     const outer = new THREE.Color(0xe7ad2a), tipC = new THREE.Color(0xf0d488), inside = new THREE.Color(0x7a4a45);
     for (let i = 0; i < nR; i++) {
       const t = i / (nR - 1);
-      const z = lerp(0.006, 0.086, t);
+      const z = lerp(0.006, 0.072, t);
       const top = -0.0015 - 0.002 * t;
       const bot = lerp(-0.018, -0.0075, Math.pow(t, 0.9)) - 0.002 * Math.sin(t * Math.PI);
-      const w = lerp(0.0128, 0.0035, Math.pow(t, 1.3));
+      const w = lerp(0.0116, 0.003, Math.pow(t, 1.2));
       const ring = [], cr = [];
       for (let j = 0; j < nS; j++) {
         const a = (j / nS) * Math.PI * 2;
@@ -374,11 +377,11 @@ export class Body {
     const eye = new THREE.Mesh(g, eyeMat);
     grp.add(eye);
     // eyelid rim (bare dark-grey skin ring)
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(R * 0.93, R * 0.2, 10, 40), new THREE.MeshStandardMaterial({ color: 0x3a3226, roughness: 0.7 }));
-    rim.position.z = R * 0.5; rim.scale.set(1, 0.92, 1);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(R * 0.9, R * 0.11, 8, 40), new THREE.MeshStandardMaterial({ color: 0x8a7a55, roughness: 0.6 }));
+    rim.position.z = R * 0.6; rim.scale.set(1, 0.9, 1);
     grp.add(rim);
     // eyelids (upper & lower) as sphere segments that can close
-    const lidMat = new THREE.MeshStandardMaterial({ color: 0x4a3d2c, roughness: 0.75, side: THREE.DoubleSide });
+    const lidMat = new THREE.MeshStandardMaterial({ color: 0x9a8a62, roughness: 0.7, side: THREE.DoubleSide });
     const upperLid = new THREE.Mesh(new THREE.SphereGeometry(R * 1.22, 32, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), lidMat);
     const lowerLid = new THREE.Mesh(new THREE.SphereGeometry(R * 1.2, 32, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), lidMat);
     grp.add(upperLid, lowerLid);
@@ -424,9 +427,9 @@ export class Body {
     const sizeAt = (z, phi) => {
       const hz = z - this.headZ;
       const under = Math.sin(phi) < -0.3;
-      if (hz > 0.03) return { len: 0.017 - 0.006 * sstep(0.03, 0.068, hz), wid: 0.008, type: 'lance' };
-      if (hz > -0.015) return { len: 0.028, wid: 0.012, type: 'lance' };
-      if (z > 0.235) return { len: 0.05 + 0.012 * (1 - sstep(0.24, 0.4, z)), wid: 0.02, type: 'lance' };
+      if (hz > 0.03) return { len: 0.022 - 0.009 * sstep(0.03, 0.066, hz), wid: 0.013 - 0.004 * sstep(0.03, 0.066, hz), type: 'contour' };
+      if (hz > -0.015) return { len: 0.034, wid: 0.018, type: hz < 0 ? 'lance' : 'contour' };
+      if (z > 0.235) return { len: 0.06 + 0.015 * (1 - sstep(0.24, 0.4, z)), wid: 0.034, type: 'contour' };
       if (z > 0.17) return { len: 0.075, wid: 0.042, type: 'contour' };
       if (z < -0.12) return { len: 0.06, wid: 0.04, type: under ? 'fluff' : 'contour' };
       if (under && z < 0.05) return { len: 0.085, wid: 0.055, type: 'fluff' };
@@ -436,12 +439,12 @@ export class Body {
     const eyes = [1, -1].map((si) => this.eyeCentre(si).add(new THREE.Vector3(0, this.headY, this.headZ)));
     while (z < z1) {
       const { len } = sizeAt(z, 0);
-      const dz = len * 0.2;
+      const dz = len * 0.16;
       // perimeter approx
       const [a, bt, bb] = station(z);
       const per = Math.PI * (1.5 * (a * 2) - Math.sqrt(a * 2 * (bt + bb) / 2 * 2)) + Math.PI * (bt + bb) * 0.75;
       const { wid } = sizeAt(z, 0);
-      const n = Math.max(6, Math.round(per / (wid * 0.5)));
+      const n = Math.max(6, Math.round(per / (wid * 0.42)));
       for (let j = 0; j < n; j++) {
         const phi = ((j + (row % 2) * 0.5 + (R() - 0.5) * 0.5) / n) * Math.PI * 2;
         const zz = z + (R() - 0.5) * dz * 0.8;
@@ -454,7 +457,7 @@ export class Body {
         // keep eyes, bill and cere clear
         const hz = zz - this.headZ;
         let skip = false;
-        for (const e of eyes) if (p.distanceTo(e) < 0.0122) skip = true;
+        for (const e of eyes) if (p.distanceTo(e) < 0.0118) skip = true;
         if (hz > 0.061) skip = true;
         if (hz > 0.05 && p.y - this.headY < -0.006 && hz > 0.054) skip = true;
         if (skip) continue;
@@ -467,7 +470,7 @@ export class Body {
         const white = this.isWhite(p);
         const jitter = 0.85 + R() * 0.3;
         out.push({ p, n: nrm, flow, z: zz, phi, len: sz.len * jitter, wid: sz.wid * (0.9 + R() * 0.2), type: sz.type, white, seed: R(),
-          lift: sz.type === 'fluff' ? 0.3 : sz.type === 'lance' ? 0.16 : 0.2, ruffle: sz.type === 'lance' ? 1 : 0.5 });
+          lift: sz.type === 'fluff' ? 0.26 : hz > -0.015 ? 0.06 : zz > 0.235 ? 0.13 : 0.16, ruffle: sz.type === 'lance' ? 1 : 0.5 });
       }
       z += dz; row++;
     }
@@ -501,4 +504,42 @@ function irisTexture() {
   g.fillStyle = pg; g.beginPath(); g.arc(cx, cy, rP * 1.08, 0, Math.PI * 2); g.fill();
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
   return t;
+}
+
+// Overlapping feather tips (scallops) with shaft lines, pointing backwards (-v). Tiled on the core so that
+// any gap between feather cards still reads as plumage rather than smooth skin.
+function scallopTextures() {
+  const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
+  const h = document.createElement('canvas'); h.width = h.height = S;
+  const g = c.getContext('2d'), hg = h.getContext('2d');
+  g.fillStyle = '#9a9a9a'; g.fillRect(0, 0, S, S); hg.fillStyle = '#000'; hg.fillRect(0, 0, S, S);
+  const n = 4, cw = S / n;
+  let sd = 5; const R = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  // rows from the front (top of canvas = high v = forward) to the back so later rows overlap
+  for (let row = -1; row <= n * 2; row++) for (let k = -1; k <= n; k++) {
+    const cx = (k + (row % 2) * 0.5) * cw, cy = row * cw * 0.5;
+    for (const ox of [0, S, -S]) for (const oy of [0, S, -S]) {
+      const x = cx + ox, y = cy + oy;
+      const grd = g.createRadialGradient(x, y - cw * 0.35, 2, x, y - cw * 0.2, cw * 0.62);
+      const t = 175 + R() * 40;
+      grd.addColorStop(0, `rgb(${t|0},${t|0},${t|0})`); grd.addColorStop(0.85, `rgb(${t*0.88|0},${t*0.88|0},${t*0.88|0})`); grd.addColorStop(1, 'rgb(125,125,125)');
+      g.fillStyle = grd; g.beginPath(); g.ellipse(x, y, cw * 0.55, cw * 0.6, 0, 0, Math.PI); g.lineTo(x - cw * 0.55, y - cw); g.lineTo(x + cw * 0.55, y - cw); g.fill();
+      g.strokeStyle = 'rgba(235,235,235,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y - cw); g.lineTo(x, y + cw * 0.5); g.stroke();
+      const hr = hg.createRadialGradient(x, y - cw * 0.5, 2, x, y, cw * 0.62);
+      hr.addColorStop(0, '#fff'); hr.addColorStop(0.8, '#999'); hr.addColorStop(1, '#000');
+      hg.fillStyle = hr; hg.beginPath(); hg.ellipse(x, y, cw * 0.55, cw * 0.6, 0, 0, Math.PI); hg.lineTo(x - cw * 0.55, y - cw); hg.lineTo(x + cw * 0.55, y - cw); hg.fill();
+    }
+  }
+  const hd = hg.getImageData(0, 0, S, S).data;
+  const nc = document.createElement('canvas'); nc.width = nc.height = S; const nx = nc.getContext('2d'); const out = nx.createImageData(S, S);
+  const at = (i, j) => hd[(((j + S) % S) * S + ((i + S) % S)) * 4] / 255;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const dx = at(i + 1, j) - at(i - 1, j), dy = at(i, j + 1) - at(i, j - 1);
+    let vx = -dx * 2.5, vy = dy * 2.5, vz = 1; const l = Math.hypot(vx, vy, vz); const o = (j * S + i) * 4;
+    out.data[o] = (vx / l * 0.5 + 0.5) * 255; out.data[o + 1] = (vy / l * 0.5 + 0.5) * 255; out.data[o + 2] = (vz / l * 0.5 + 0.5) * 255; out.data[o + 3] = 255;
+  }
+  nx.putImageData(out, 0, 0);
+  const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.repeat.set(9, 26); map.anisotropy = 8;
+  const normalMap = new THREE.CanvasTexture(nc); normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping; normalMap.repeat.set(9, 26); normalMap.anisotropy = 8;
+  return { map, normalMap };
 }

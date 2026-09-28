@@ -54,9 +54,11 @@ function blendPose(dst, b, t) {   // dst = lerp(dst, b, t)
 
 // Folded wing (perched): humerus back & down along the flank, ulna forward to the carpal joint at the
 // front-top of the folded wing, hand back along the back; wing plane rolled so the dorsal surface faces out.
-export const FOLDED = { elev: -0.62, sweep: -1.38, twist: 1.42, elbow: 2.72, wrist: 2.78, handTwist: 0.0, digit: 0.08, elbowTwist: 0.0 };
+// (solved numerically against landmark targets in the body frame: elbow by the hip, carpal joint in front
+// by the shoulder, hand along the upper flank, dorsal surfaces facing out)
+export const FOLDED = { elev: -0.09, sweep: -1.546, twist: 0.78, elbow: 2.95, wrist: 2.95, handTwist: 0.48, digit: 0.08, elbowTwist: 0.0 };
 // Soaring wing: flat "plank", leading edge nearly straight
-export const GLIDE = { elev: 0.07, sweep: 0.12, twist: 0.04, elbow: 0.42, wrist: 0.36, handTwist: -0.02, digit: -0.04, elbowTwist: 0 };
+export const GLIDE = { elev: 0.07, sweep: 0.2, twist: 0.04, elbow: 0.34, wrist: 0.12, handTwist: -0.02, digit: -0.06, elbowTwist: 0 };
 
 export class Animator {
   constructor(eagle, world) {
@@ -214,7 +216,7 @@ export class Animator {
     this._gaze(dt);
     const G = this.gaze;
     p.look.set(G.yaw, G.pitch, G.roll);
-    p.head.set(0.0, 0.655 + breathe * 0.002, 0.13);
+    p.head.set(0.0, 0.625 + breathe * 0.002, 0.125);
     // tail: hanging, occasional flick
     p.tail.set(0.05, 0, 0); p.tailSpread = 0.1;
     const TF = this.tailFlick;

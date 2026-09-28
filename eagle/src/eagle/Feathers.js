@@ -149,8 +149,8 @@ function drawFeather(A, Hc, rect, T, R, scale) {
       const sx = rachX, sy = Y(v);
       const ex = sx + side * half * 1.12, ey = sy - Math.cos(ang) * L * 0.85;
       const cx = sx + side * half * 0.45, cy = sy - Math.cos(ang) * L * 0.25;
-      const tone = 150 + R() * 80;
-      A.strokeStyle = `rgba(${tone | 0},${tone | 0},${tone | 0},0.55)`; A.lineWidth = lw;
+      const tone = 172 + R() * 44;
+      A.strokeStyle = `rgba(${tone | 0},${tone | 0},${tone | 0},0.4)`; A.lineWidth = lw;
       A.beginPath(); A.moveTo(sx, sy); A.quadraticCurveTo(cx, cy, ex, ey); A.stroke();
       const ht = 140 + R() * 90;
       Hc.strokeStyle = `rgb(${ht | 0},${ht | 0},${ht | 0})`; Hc.lineWidth = lw;
@@ -314,10 +314,10 @@ export class FeatherSystem {
 
     this.uniforms = { uTime: { value: 0 }, uFlutter: { value: 0 }, uRuffle: { value: 0 } };
     const mat = new THREE.MeshPhysicalMaterial({
-      map: atlas.map, normalMap: atlas.normalMap, normalScale: new THREE.Vector2(0.55, 0.55),
-      roughness: 0.72, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.42, alphaToCoverage: true,
-      sheen: 0.35, sheenRoughness: 0.55, sheenColor: new THREE.Color(0x8a8070),
-      specularIntensity: 0.45,
+      map: atlas.map, normalMap: atlas.normalMap, normalScale: new THREE.Vector2(0.35, 0.35),
+      roughness: 0.82, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.42, alphaToCoverage: true,
+      sheen: 0.2, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x6a6258),
+      specularIntensity: 0.22, envMapIntensity: 0.75,
     });
     mat.onBeforeCompile = (sh) => patchShader(sh, this.uniforms, false);
     mat.customProgramCacheKey = () => 'feather-v1';

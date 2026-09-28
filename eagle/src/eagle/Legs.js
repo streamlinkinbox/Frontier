@@ -168,7 +168,7 @@ export class Legs {
         const X = new THREE.Vector3().crossVectors(Y, Z);
         const len = lerp(0.075, 0.095, t) * (0.85 + R() * 0.3), wid = 0.05 * (0.85 + R() * 0.3);
         const m = new THREE.Matrix4().makeBasis(X, Y, Z).setPosition(p).scale(new THREE.Vector3(wid, len, len));
-        const c = brown.clone().offsetHSL(0, (R() - 0.5) * 0.08, (R() - 0.5) * 0.04).multiplyScalar(1.12);
+        const c = brown.clone().offsetHSL(0, (R() - 0.5) * 0.08, (R() - 0.5) * 0.04).multiplyScalar(1.5);
         const id = this.sys.add({ type: R() < 0.6 ? 'fluff' : 'contour', variant: Math.floor(R() * 9), color: c, bend: -0.1, camber: 0.08, flutter: 0.03, seed: R(), lift: 0.12, ruffle: 0.7, ao: 0.55 });
         this.rigid.add(id, L.tibia, m);
       }
@@ -182,7 +182,7 @@ export class Legs {
       const Y = out.clone().sub(Z.clone().multiplyScalar(out.dot(Z))).normalize();
       const X = new THREE.Vector3().crossVectors(Y, Z);
       const m = new THREE.Matrix4().makeBasis(X, Y, Z).setPosition(p).scale(new THREE.Vector3(0.026, 0.036, 0.036));
-      const id = this.sys.add({ type: 'contour', variant: k, color: brown.clone().multiplyScalar(1.1), bend: -0.08, camber: 0.08, flutter: 0.02, seed: R(), lift: 0.08, ruffle: 0.5, ao: 0.6 });
+      const id = this.sys.add({ type: 'contour', variant: k, color: brown.clone().multiplyScalar(1.45), bend: -0.08, camber: 0.08, flutter: 0.02, seed: R(), lift: 0.08, ruffle: 0.5, ao: 0.6 });
       this.rigid.add(id, L.tarsus, m);
     }
   }

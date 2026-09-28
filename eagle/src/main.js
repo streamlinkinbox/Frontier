@@ -96,7 +96,7 @@ document.getElementById('loading').remove();
 renderer.setAnimationLoop(() => { if (!manual) frame(clock.getDelta()); });
 
 // hooks for tooling / headless renders
-window.__game = { THREE, scene, camera, controls, renderer, eagle, anim, world, setMode, frame, post,
+window.__game = { ready: true, THREE, scene, camera, controls, renderer, eagle, anim, world, setMode, frame, post,
   step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(dt); },
   cam(dist, elev, azim, fov = 38, target) {
     window.__freezeCam = true;

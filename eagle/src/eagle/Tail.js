@@ -20,7 +20,7 @@ export class Tail {
       const side = i < 6 ? 1 : -1;
       const k = i % 6;              // 0 central .. 5 outermost
       const len = 0.325 - 0.0065 * k * k * 0.9;
-      const c = white.clone().multiplyScalar(1.1 + (Math.random() - 0.5) * 0.05);
+      const c = white.clone().multiplyScalar(1.55 + (Math.random() - 0.5) * 0.06);
       const id = sys.add({ type: 'rectrix', variant: i, color: c, bend: -0.02, camber: 0.04, flutter: 0.012, seed: Math.random(), lift: 0, ruffle: 0, ao: 0.75, mirror: side < 0 });
       this.rects.push({ id, side, k, len });
     }
@@ -28,7 +28,7 @@ export class Tail {
     this.coverts = [];
     for (let row = 0; row < 3; row++) for (let i = 0; i < 10; i++) {
       const side = i < 5 ? 1 : -1, k = i % 5;
-      const c = white.clone().multiplyScalar(1.08 + (Math.random() - 0.5) * 0.05);
+      const c = white.clone().multiplyScalar(1.5 + (Math.random() - 0.5) * 0.06);
       const dorsal = row < 2;
       const id = sys.add({ type: dorsal ? 'covert' : 'fluff', variant: i + row * 3, color: c, bend: dorsal ? -0.04 : 0.05, camber: 0.05, flutter: 0.02, seed: Math.random(), lift: 0.05, ruffle: 0.6, ao: 0.7, mirror: side < 0 });
       this.coverts.push({ id, side, k, row, dorsal });

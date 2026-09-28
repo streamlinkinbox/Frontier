@@ -49,6 +49,7 @@ export class Eagle {
     this.group.add(this.feathers.mesh);
     this.skinned = new SkinnedFeathers(this.feathers);
     this._bodyPlumage();
+    this._scapulars();
 
     this.wings = new Wings(this.rig, this.feathers);
     this.legs = new Legs(this.rig, this.feathers, this.skinned, this.body);
@@ -68,11 +69,30 @@ export class Eagle {
       const pos = a.p.clone().addScaledVector(a.n, -0.0015);
       const bind = new THREE.Matrix4().makeBasis(x, y, z).setPosition(pos);
       bind.scale(new THREE.Vector3(a.wid, a.len, a.len));
-      if (a.white) c.copy(white).lerp(wS, Math.random() * 0.6).multiplyScalar(1.12 + (Math.random() - 0.5) * 0.08);
-      else c.copy(brown).offsetHSL((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.04).multiplyScalar(1.15);
+      if (a.white) c.copy(white).lerp(wS, Math.random() * 0.5).multiplyScalar(1.6 + (Math.random() - 0.5) * 0.1);
+      else c.copy(brown).offsetHSL((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.04).multiplyScalar(1.5);
       const id = this.feathers.add({ type: a.type, variant: Math.floor(a.seed * 97), color: c, bend: -0.06 - 0.04 * a.seed, camber: 0.05, flutter: a.type === 'lance' ? 0.03 : 0.015, seed: a.seed, lift: a.lift, ruffle: a.ruffle, ao: a.white ? 0.72 : 0.55 });
       const w = B.weightsAt(a.p.z);
       this.skinned.add(id, bind, [w[0][0], w[1][0]], [w[0][1], w[1][1]]);
+    }
+  }
+
+  // Scapulars: long feathers of the humeral tract on each side of the back; they overlie the base of the
+  // folded wing and bridge the back to the wing coverts.
+  _scapulars() {
+    const brown = new THREE.Color(COLOR.brown), r = this.rig;
+    for (const s of [1, -1]) for (let row = 0; row < 3; row++) for (let k = 0; k < 7; k++) {
+      const u = k / 6;
+      const x = s * (0.035 + row * 0.022), z = 0.18 - u * 0.2, y = 0.055 - row * 0.008 - 0.02 * u * u;
+      const p = new THREE.Vector3(x, y + 0.004, z);
+      const n = new THREE.Vector3(s * (0.25 + row * 0.25), 1, 0).normalize();
+      const f = new THREE.Vector3(s * 0.12, -0.06, -1).normalize();
+      const X = new THREE.Vector3().crossVectors(n, f).normalize(); const Z = new THREE.Vector3().crossVectors(X, n);
+      const len = 0.13 + 0.03 * u - row * 0.015;
+      const bind = new THREE.Matrix4().makeBasis(X, n, Z).setPosition(p).scale(new THREE.Vector3(0.068, len, len));
+      const c = brown.clone().offsetHSL(0, (Math.random() - 0.5) * 0.06, (Math.random() - 0.5) * 0.03).multiplyScalar(1.5);
+      const id = this.feathers.add({ type: 'covert', variant: k + row, color: c, bend: -0.05, camber: 0.05, flutter: 0.02, seed: Math.random(), lift: 0.08, ruffle: 0.6, ao: 0.6, mirror: s < 0 });
+      this.skinned.add(id, bind, [r.thorax, r.pelvis], [1 - u * 0.5, u * 0.5]);
     }
   }
 
