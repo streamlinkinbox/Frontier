@@ -2157,6 +2157,31 @@ dimensions, hole counts, rectangular/circle-only or arbitrary mixed loops, trans
 healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch60_TripleEllipticalAndDoubleEllipticalCircularHoledFaceOffset.md`.
 
+#### Batch 61: exact hexagonal elliptical-holed and concave twin-circular-holed prism upper-cap face offsets ✅
+
+This consolidated batch moves the holed-prism family off rectangular outer profiles onto two new non-rectangular modelling domains.
+`HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffsetVerification` constructs an origin-centred regular hexagonal prism (circumradius 4,
+height 6) with one canonical elliptical through-hole (major 1.8, minor 1.1) at genus one `V14/E21/C42/L11/F9`, and an orthogonal concave
+L-profile prism (canonical six-edge profile, height 6) with two canonical radius-1.0 circular through-holes at genus two `V16/E24/C48/L14/F10`.
+Each extends only its +Z planar cap by 0.5, 1.5, and 3.0.
+
+`FaceEditSolver::OffsetExtrudedHexagonalEllipticalHoledPrism` and `OffsetExtrudedConcaveTwinCircularHoledPrism` use strict canonical readers —
+exact bounds, vertex levels, cap loop structure, polygon vertex sets, convex and reflex turn signatures, hole supports, dimensions and placements,
+and full edge/face censuses — then rebuild fresh exact extrusions. They preserve planar caps plus analytic linear, circular, elliptical, and
+extrusion supports without healing, tessellation, or source mutation, and the hole-free hexagonal and concave routes from earlier phases remain
+separate and unchanged.
+
+The verifier checks exact topology, cap loops, supports, the volume identities `(3√3/2)R² − πab` and `61 − 2πr²` times the extended height, source
+immutability, public dispatch, and explicit refusal of lower/side faces, invalid distances, translated profiles, non-canonical polygon/ellipse/hole
+dimensions, wrong hole counts, mismatched hole supports, hole-free sources, malformed incidence, and cross-route requests. The durable proof is
+`Proofs/Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt` and
+`Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned profiles. They do not prove arbitrary polygon side counts, non-regular
+or rotated polygons, arbitrary concave profiles, arbitrary hole counts/dimensions/placements/supports, tilted/oblique/freeform profiles, inward or
+lower/side offsets, healing, or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

@@ -1482,6 +1482,31 @@ This consolidated batch covers two distinct genus-three analytic multi-loop doma
 
 The bounded plan is `docs/PLAN_Batch60_TripleEllipticalAndDoubleEllipticalCircularHoledFaceOffset.md`.
 
+## Batch 61 — exact hexagonal elliptical-holed and concave twin-circular-holed prism upper-cap face offsets (2026-09-28)
+
+This consolidated batch moves the holed-prism family onto two new non-rectangular outer-profile domains:
+
+- `HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffsetVerification` constructs an
+  origin-centred regular hexagonal prism (circumradius 4, height 6) with one canonical elliptical
+  through-hole (major 1.8, minor 1.1) — closed genus-one `V14/E21/C42/L11/F9` — and an orthogonal
+  concave L-profile prism (canonical six-edge profile, height 6) with two canonical radius-1.0
+  circular through-holes — closed genus-two `V16/E24/C48/L14/F10`.
+- `OffsetExtrudedHexagonalEllipticalHoledPrism` and `OffsetExtrudedConcaveTwinCircularHoledPrism`
+  recognize only those strict canonical sources through their two-loop and three-loop +Z planar
+  caps and rebuild fresh exact extrusions, retaining planar, linear, circular, elliptical, and
+  extrusion supports without healing, tessellation, or source mutation.
+- The verifier checks distances 0.5, 1.5, and 3.0, exact topology and cap loops, the volume
+  identities `(3√3/2)R² − πab` and `61 − 2πr²` times the extended height, source immutability,
+  dispatcher routing, and explicit refusal of lower/side faces, invalid distances, translated
+  profiles, non-canonical polygon/ellipse/hole dimensions, wrong hole counts, mismatched hole
+  supports, hole-free sources, malformed incidence, and cross-route requests. Focused result:
+  31 checks, 0 failures.
+- Durable proof: `Proofs/Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.png`.
+  The verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

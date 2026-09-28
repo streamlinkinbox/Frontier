@@ -73,6 +73,14 @@ public:
     // Only its upper four-loop planar cap is supported; arbitrary mixed/freeform profiles remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedDoubleEllipticalCircularHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
 
+    // Bounded genus-one offset route for a regular hexagonal prism with exactly one canonical elliptical through-hole.
+    // Only its upper two-loop planar cap is supported; arbitrary polygonal/holed profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedHexagonalEllipticalHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
+    // Bounded genus-two offset route for an orthogonal concave L-profile prism with exactly two canonical circular through-holes.
+    // Only its upper three-loop planar cap is supported; arbitrary concave/multi-loop profiles remain refused.
+    [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedConcaveTwinCircularHoledPrism(const BrepBody& Source, int Face, double Distance) noexcept;
+
     // Bounded non-convex offset route for an axis-aligned orthogonal L-shaped prism.
     // Only its upper planar cap is supported; arbitrary concave profiles remain refused.
     [[nodiscard]] static Deliver<BrepBody> OffsetExtrudedConcavePrism(const BrepBody& Source, int Face, double Distance) noexcept;
