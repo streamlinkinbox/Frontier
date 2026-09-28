@@ -86,34 +86,44 @@ The strike is now a sequence of three phases:
 3. **Hand-over.** At 33 % of the strike the foot's contact point *becomes* that
    foothold, so the regular walking IK takes over with no pop.
 
-**Hair flick (R), leg IV.** This went through two revisions.
+**Hair flick (R), leg IV, plus spinnerets.** This went through three revisions.
 
-1. The first rewrite stopped the leg passing through the abdomen's body. It still rubbed
-   across the *top* of the abdomen, inside the long setae pile, so on screen the legs lay
-   over the abdomen.
-2. The current version keeps every leg segment beside the abdomen.
+1. The first rewrite stopped the leg passing through the abdomen body. It still rubbed
+   across the *top* of the abdomen, inside the long setae, so the legs lay over it.
+2. The second kept every leg segment beside the abdomen, but then the tarsus never
+   touched the hair.
+3. **Now:** on the backward stroke, the tarsus brushes along the dorsolateral flank,
+   halfway into the long setae. It then kicks backward and outward off the abdomen,
+   releasing hairs. On the forward return it swings wide and high, clear of the abdomen.
+   The femur is lifted so the knee arches over the flank.
 
-The key fact is that a tarantula leg flexes in one vertical plane, so seen from above
-the whole leg is the straight line from its coxa to its tarsus. The tarsus therefore
-travels along the line from the coxa that is **tangent to the abdomen's hairy outline**.
-It passes the widest flank, then kicks backward and outward off the abdomen, releasing
-hairs. The legs alternate half a cycle apart. The outline, including the setae, was
-measured from the real geometry with `tools/probes/abdsil.js` and is stored as
-`ABD_*` in `Actions.js`. The tangent is recomputed every frame from the actual coxa
-position, so it follows the abdomen's tilt during the flick.
+The abdomen is described by two measured outlines, from `tools/probes/abdsil.js`, stored
+as `ABD_*` in `Actions.js`:
+- the **body** surface (+0.1 cm short pile), which no leg segment may enter;
+- the **tips of the long setae**, which the tarsus may brush through.
 
-| Metric (81 frames of active flicking) | 1st rewrite | Now |
+| Metric (81 frames of active flicking) | 2nd version (no touch) | Now |
 |---|---|---|
-| Frames with a leg-IV segment inside the abdomen's hair envelope | 81 | **0** |
-| Frames with a leg-IV segment over the abdomen, seen from above | 81 | **0** |
-| Worst overlap from above | 1.49 cm | **0** |
+| Leg-frames where the tarsus is touching the setae | 0 | **54 / 162** (brushing strokes; the rest is kick-off and return) |
+| Deepest tarsus into the abdomen body | 0 | **0** |
+| Frames with femur..metatarsus inside the body | 0 | 53, worst 3 mm, at the **hip** only (see below) |
 | Frames in rock | 0 | 0 |
-| Tightest leg fold (tip distance / maxReach) | 0.43 | 0.43 |
+| Tightest leg fold (tip distance / maxReach) | 0.43 | 0.34 (hind leg drawn up, knee high) |
 
-The only remaining contact is during the 0.3 s blend from the standing pose into the
-flick and back: 28 of 150 frames, at most 2 mm. In the normal standing pose, the base
-of femur IV already sits against the front corner of the abdomen, as in the real
-animal.
+**Known limit (the hip).** A leg flexes in one vertical plane. The coxa and trochanter
+point along that plane too, so when the tarsus reaches back to the abdomen flank, the
+plane points almost straight back. The femur base then sits up to 3 mm into the front
+corner of the abdomen body, low down at the pedicel under the long setae. It isn't
+visible in renders from above, behind or the side. Removing it requires an extra degree
+of freedom in `Limb.js`: letting the coxa yaw independently of the distal leg plane. That
+is also what the real animal does, and it would be the next step for leg IV.
+
+**Spinnerets** (`Tarantula._secondary`):
+- **Idle:** slow exploratory motion.
+- **Walking:** gentle alternating sweeps with the stride, as when a dragline is laid.
+- **Flick:** the posterior lateral spinnerets lift and splay. Each one curls with a wave
+  that travels along its 3 segments, on the same clock as the hind leg on its side. The
+  small posterior median spinnerets twitch with them.
 
 ---
 
@@ -155,7 +165,7 @@ Probes:
 | `idle.js` | Parks the spider at 5 spots (floor, slopes, walls) for 30 s each and counts foot steps. It should be **0**; idle must not "tap dance". | ~20 s |
 | `strike.js` | Section 2, strike table | ~10 s |
 | `flick.js` | Section 2, flick table | ~10 s |
-| `abdsil.js` | Measures the abdomen outline including setae (per z-slice), feeding the `ABD_*` table in `Actions.js`. Re-run it if the abdomen or its hair changes. | ~10 s |
+| `abdsil.js` | Measures the abdomen body outline and the setae envelope (per 0.25 cm z-slice), feeding the `ABD_*` table in `Actions.js`. Re-run it if the abdomen or its hair changes. | ~10 s |
 | `camlib.js` | Helper `__cam(dist, elev, az, targetUp)` for placing the camera in screenshot scripts. `az` 0 = front, +π/2 = right side. | — |
 
 `window.__game` exposes `{ THREE, spider, world, camera, step(sec, fps), render(), freezeCam, brain, cave }`

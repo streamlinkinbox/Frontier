@@ -654,11 +654,28 @@ export class Tarantula {
       ch.rotation.x = ch.userData.restPitch - act.chelRaise;
       this.fangs[i].rotation.x = Math.PI / 2 - act.fangOpen;
     }
-    // spinnerets: slow exploratory motion
+    // spinnerets (posterior lateral: 3 podomeres + posterior median). Idle: slow exploratory motion.
+    // Walking: gentle alternating sweeps with the stride, as when a dragline is laid. Hair flick: they
+    // lift and splay, and each one curls with a travelling wave in time with the hind leg on its side.
     const t = this.time;
+    const fwk = this.actions.flickW;
+    const fk = fwk ? fwk.w : 0, ftime = fwk ? fwk.t : 0;
+    const walk = clamp(Math.abs(this.speed) / 8, 0, 1) * (1 - fk);
     this.spinnerets.forEach((chain, i) => {
-      chain[1].rotation.x = -0.22 + 0.05 * Math.sin(t * 0.9 + i * 2.1);
-      chain[1].rotation.y = 0.04 * Math.sin(t * 0.6 + i);
+      if (!chain.rest) { chain.rest = chain.map((o) => o.rotation.clone()); chain.pmsRest = chain.pms.rotation.clone(); }
+      const sd = chain.side, r = chain.rest;
+      const idle = Math.sin(t * 0.9 + i * 2.1) * (1 - fk), idle2 = Math.sin(t * 0.6 + i) * (1 - fk);
+      const stride = Math.sin(Math.PI * 2 * this.phase + i * Math.PI) * walk;
+      const ph = Math.PI * 2 * ((ftime - 0.35) * 4.2 + (sd > 0 ? 0 : 0.5));   // same clock as leg IV
+      const fl = fk * smoothstep(0.3, 0.5, ftime);
+      chain[0].rotation.x = r[0].x + 0.05 * idle + 0.1 * stride + fk * 0.7 + fl * 0.18 * Math.sin(ph);
+      chain[0].rotation.y = r[0].y + sd * (0.05 * idle2 + 0.06 * stride + fk * 0.42 + fl * 0.14 * Math.sin(ph + 0.8));
+      for (let j = 1; j < chain.length; j++) {
+        chain[j].rotation.x = r[j].x + 0.05 * idle * (j === 1 ? 1 : 0.5) + 0.06 * walk * Math.sin(Math.PI * 2 * this.phase - j * 0.8 + i * Math.PI)
+          - fk * 0.05 + fl * 0.4 * Math.sin(ph - j * 0.9);
+        chain[j].rotation.y = r[j].y + 0.03 * idle2 + fl * 0.08 * sd * Math.sin(ph - j * 0.9 + 1.2);
+      }
+      chain.pms.rotation.x = chain.pmsRest.x + 0.04 * idle + fk * 0.25 + fl * 0.15 * Math.sin(ph * 2 + i);
     });
   }
 

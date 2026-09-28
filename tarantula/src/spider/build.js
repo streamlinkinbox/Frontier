@@ -136,6 +136,7 @@ export function buildTarantula(mats, { hairDensity = 1 } = {}) {
     pms.position.set(0.07 * side, -0.52, -A.length * 0.9);
     pms.rotation.set(-0.6, Math.PI + 0.1 * side, 0);
     abdAnchor.add(pms);
+    chain.side = side; chain.pms = pms;
   }
   body.add(abdPivot);
 
