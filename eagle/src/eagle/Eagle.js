@@ -243,7 +243,7 @@ export class Eagle {
         _m.copy(rig.trunk.matrixWorld).invert();
         tgt.copy(P.head.worldPos).applyMatrix4(_m).lerp(P.head.pos, 1 - P.head.worldW);
       }
-      let hq = _q.setFromEuler(_e.set(-P.head.pitch, P.head.yaw, P.head.roll, 'YXZ'));
+      let hq = P.head.q && !bind ? _q.copy(P.head.q) : _q.setFromEuler(_e.set(-P.head.pitch, P.head.yaw, P.head.roll, 'YXZ'));
       if (P.head.worldQ && !bind && P.head.worldW > 0) {
         // world-stabilised gaze: convert to trunk space
         const tq = rig.trunk.getWorldQuaternion(new THREE.Quaternion());
