@@ -38,16 +38,22 @@ incident usually lasts several consecutive frames.
 
 ### Current baseline (this commit)
 
-| Metric | cd0672e | d7cc439 | now |
-|---|---|---|---|
-| palp03 | 1816 | 308 | 283 |
-| palp01 | 3898 | 924 | 1070 |
-| palpWorst | −1.39 | −0.99 | −1.06 |
-| palpCramped | 4946 | 765 | 778 |
-| nan | >0 | 0 | 0 |
-| leg03 | 734 | 712 | 765 |
-| leg1 | 143 | 98 | 140 |
-| legWorst | −1.45 | −2.43 | −2.14 |
+| Metric | cd0672e | d7cc439 | 7eb8d45 | now |
+|---|---|---|---|---|
+| palp03 | 1816 | 308 | 283 | 213 |
+| palp01 | 3898 | 924 | 1070 | 1039 |
+| palpWorst | −1.39 | −0.99 | −1.06 | −0.91 |
+| palpCramped | 4946 | 765 | 778 | 626 |
+| nan | >0 | 0 | 0 | 0 |
+| leg03 | 734 | 712 | 765 | 356 |
+| leg1 | 143 | 98 | 140 | 103 |
+| legWorst | −1.45 | −2.43 | −2.14 | −2.14 |
+
+The autopilot uses the hair flick in about 8 % of its decisions (`src/game/Brain.js`),
+so the flick rewrite also changes the route it takes. Part of the drop in the last column
+comes from that different route, not only from better walking. The leg solver itself is
+unchanged for walking: the new coxa yaw defaults to 0, and a direct comparison over
+60 000 random solves gives a difference of exactly 0.
 
 **Why the numbers move a little between versions even when walking code is unchanged.**
 The AI occasionally strikes or turns in response to what it sees. Any change to an
@@ -106,17 +112,22 @@ as `ABD_*` in `Actions.js`:
 |---|---|---|
 | Leg-frames where the tarsus is touching the setae | 0 | **54 / 162** (brushing strokes; the rest is kick-off and return) |
 | Deepest tarsus into the abdomen body | 0 | **0** |
-| Frames with femur..metatarsus inside the body | 0 | 53, worst 3 mm, at the **hip** only (see below) |
+| Frames with femur..metatarsus inside the body | 0 | **0** (was 53 before the coxa got its own yaw, see below) |
 | Frames in rock | 0 | 0 |
 | Tightest leg fold (tip distance / maxReach) | 0.43 | 0.34 (hind leg drawn up, knee high) |
 
-**Known limit (the hip).** A leg flexes in one vertical plane. The coxa and trochanter
-point along that plane too, so when the tarsus reaches back to the abdomen flank, the
-plane points almost straight back. The femur base then sits up to 3 mm into the front
-corner of the abdomen body, low down at the pedicel under the long setae. It isn't
-visible in renders from above, behind or the side. Removing it requires an extra degree
-of freedom in `Limb.js`: letting the coxa yaw independently of the distal leg plane. That
-is also what the real animal does, and it would be the next step for leg IV.
+**The hip: the coxa now has its own yaw.** Originally, every podomere of a leg lay in
+one vertical plane. When the tarsus reached back to the abdomen flank, that plane pointed
+almost straight back, and the coxa and trochanter pressed up to 3 mm into the front
+corner of the abdomen.
+
+`Limb.solve(..., coxaYaw)` now swings the coxa and trochanter on their own joint (the
+real promotor/remotor movement). The femur-to-tarsus plane then runs from the hip to the
+target. During the flick, leg IV uses a coxa yaw of 0.6 rad outward, which is within a
+theraphosid coxa's range, plus a raised knee. Frames inside the abdomen body went from
+53 to 0. The default of 0 reproduces the previous solver exactly, so walking, the
+threat pose and the strike are untouched. Poses carry the extra angle as `pose.cyaw`,
+and `Limb.lerpPose` blends it.
 
 **Spinnerets** (`Tarantula._secondary`):
 - **Idle:** slow exploratory motion.
@@ -194,7 +205,7 @@ Ideas:
   cramped frames too.
 - **Tilted bend plane for the palps** (`Limb.js`, `planeDir` / `_solveChain`). Every
   distal joint flexes inside a plane that is vertical in body space; only its yaw
-  changes. Adding a roll so the plane tilts outward by up to ~35° when reach < 0.55
+  changes. (The coxa's own yaw, `coxaYaw`, already exists and is a good template.) Adding a roll so the plane tilts outward by up to ~35° when reach < 0.55
   lets the patella clear the rock sideways instead of pushing down into it.
 - **Swing arc from the SDF** (palp swing lift in `Tarantula._gait`). The swing lift is
   capped at 0.4 cm, because larger values looked like waving. Instead of a fixed

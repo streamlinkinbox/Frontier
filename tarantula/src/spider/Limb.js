@@ -34,7 +34,7 @@ export class Limb {
     this.extension = 0.93;
     this.segments = []; // Object3D per podomere (assigned by builder)
     // pose: yaw + absolute in-plane angles [coxa, troch, femur, patella, tibia, (meta), tarsus]
-    this.pose = { yaw: yaw0, a: new Float32Array(this.n) };
+    this.pose = { yaw: yaw0, cyaw: 0, a: new Float32Array(this.n) };
     this.joints = Array.from({ length: this.n + 1 }, () => new THREE.Vector3());
     this.hip = new THREE.Vector3();
     this.tip = new THREE.Vector3();
@@ -62,19 +62,19 @@ export class Limb {
    * Solve for the tip (tarsus end) reaching `target` (body space) with the tarsus making absolute
    * in-plane angle derived from `contactNormal` (body space). Writes into `outPose`.
    */
-  solve(target, contactNormal, outPose, tarsusLift = 0, femurLift = 0, tarsusBias = 0) {
+  solve(target, contactNormal, outPose, tarsusLift = 0, femurLift = 0, tarsusBias = 0, coxaYaw = 0) {
     // Two passes: the tarsus wants to lie on the substrate, but the tarso-metatarsal joint has a
     // limited range (it flexes ventrally, barely hyper-extends). If the wish violates that range
     // (walls, ledges, steep slopes) clamp it relative to the metatarsus and re-solve the chain.
     let aTar = this._tarsusWish(target, contactNormal, tarsusLift) + tarsusBias;
-    this._solveChain(target, aTar, outPose, femurLift);
+    this._solveChain(target, aTar, outPose, femurLift, coxaYaw);
     if (!this.isPalp) {
       const meta = outPose.a[5];
       const rel = aTar - meta;
       const lo = -1.05, hi = 0.3;
       if (rel < lo || rel > hi) {
         aTar = meta + clamp(rel, lo, hi);
-        this._solveChain(target, aTar, outPose, femurLift);
+        this._solveChain(target, aTar, outPose, femurLift, coxaYaw);
       }
     }
     return outPose;
@@ -95,15 +95,14 @@ export class Limb {
     return clamp(aTar + tarsusLift, -1.6, 1.2);
   }
 
-  _solveChain(target, aTar, outPose, femurLift) {
+  // coxaYaw: extra promotor/remotor rotation of the coxa+trochanter relative to the straight
+  // socket->target direction. The coxa is a real joint with its own yaw; the distal leg plane then
+  // passes through the hip (end of trochanter) and the target. 0 = classic single-plane leg.
+  _solveChain(target, aTar, outPose, femurLift, coxaYaw = 0) {
     const S = this.S;
-    let tx = target.x - S.x, tz = target.z - S.z;
-    let yaw = Math.atan2(tx * this.side, tz);
-    if (yaw < -Math.PI * 0.5) yaw += Math.PI * 2; // targets behind the animal on its own side
-    // keep the leg plane on its own side of the body
-    yaw = clamp(yaw, -0.35, Math.PI + 0.25);
-    const d = this.planeDir(yaw, new THREE.Vector3());
-    outPose.yaw = yaw;
+    const wrapYaw = (y) => clamp(y < -Math.PI * 0.5 ? y + Math.PI * 2 : y, -0.35, Math.PI + 0.25);
+    // targets behind the animal on its own side wrap to yaw > pi/2; keep the plane on its own side
+    const yaw = wrapYaw(Math.atan2((target.x - S.x) * this.side, target.z - S.z));
     const a = outPose.a;
 
     // hip = end of trochanter; use femur guess for trochanter angle from last frame
@@ -112,10 +111,20 @@ export class Limb {
     const hx = Math.cos(a[0]) * this.L[0] + Math.cos(a[1]) * this.L[1];
     const hy = Math.sin(a[0]) * this.L[0] + Math.sin(a[1]) * this.L[1];
 
-    // target in leg-plane coordinates relative to hip
-    const rel = new THREE.Vector3().subVectors(target, S);
-    const tr = rel.dot(d) - hx, ty = rel.y - hy;
+    let yawD = yaw, yawC = yaw;
+    const dC = this.planeDir(yaw, new THREE.Vector3());
+    if (coxaYaw) {
+      yawC = yaw + coxaYaw;
+      this.planeDir(yawC, dC);
+      yawD = wrapYaw(Math.atan2((target.x - S.x - dC.x * hx) * this.side, target.z - S.z - dC.z * hx));
+    }
+    const d = this.planeDir(yawD, new THREE.Vector3());
+    outPose.yaw = yawD;
+    outPose.cyaw = yawC - yawD;
 
+    // target in (distal) leg-plane coordinates relative to the hip
+    const tr = (target.x - S.x - dC.x * hx) * d.x + (target.z - S.z - dC.z * hx) * d.z;
+    const ty = target.y - S.y - hy;
 
     const last = this.n - 1;
     const Ltar = this.L[last];
@@ -181,11 +190,13 @@ export class Limb {
 
   // Forward kinematics -> place podomere objects (children of the body group)
   apply(pose = this.pose) {
-    if (pose !== this.pose) { this.pose.yaw = pose.yaw; this.pose.a.set(pose.a); }
-    const d = this.planeDir(this.pose.yaw, _d);
+    if (pose !== this.pose) { this.pose.yaw = pose.yaw; this.pose.cyaw = pose.cyaw || 0; this.pose.a.set(pose.a); }
+    const cy = this.pose.cyaw || 0;
+    let d = this.planeDir(this.pose.yaw + cy, _d);
     _pn.crossVectors(_up, d).normalize();
     const p = this.joints[0].copy(this.S);
     for (let i = 0; i < this.n; i++) {
+      if (i === 2 && cy) { d = this.planeDir(this.pose.yaw, _d); _pn.crossVectors(_up, d).normalize(); }
       const ang = this.pose.a[i];
       _dir.copy(d).multiplyScalar(Math.cos(ang)).addScaledVector(_up, Math.sin(ang));
       const seg = this.segments[i];
@@ -204,9 +215,10 @@ export class Limb {
 
   static lerpPose(a, b, t, out) {
     out.yaw = lerp(a.yaw, b.yaw, t);
+    out.cyaw = lerp(a.cyaw || 0, b.cyaw || 0, t);
     for (let i = 0; i < out.a.length; i++) out.a[i] = lerp(a.a[i], b.a[i], t);
     return out;
   }
 
-  makePose() { return { yaw: this.yaw0, a: new Float32Array(this.n) }; }
+  makePose() { return { yaw: this.yaw0, cyaw: 0, a: new Float32Array(this.n) }; }
 }

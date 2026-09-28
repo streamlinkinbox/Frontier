@@ -157,6 +157,7 @@ export class ActionController {
     const m = this.scratchC || (this.scratchC = new Map());
     let o = m.get(f); if (!o) { o = f.limb.makePose(); m.set(f, o); }
     o.yaw = lerp(p0.yaw, p1.yaw, t);
+    o.cyaw = lerp(p0.cyaw || 0, p1.cyaw || 0, t);
     for (let i = 0; i < o.a.length; i++) o.a[i] = lerp(p0.a[i], p1.a[i], t);
     return o;
   }
@@ -167,7 +168,7 @@ export class ActionController {
     return p;
   }
 
-  _solveWorld(f, pWorld, nWorld, lift = 0, femurLift = 0) {
+  _solveWorld(f, pWorld, nWorld, lift = 0, femurLift = 0, coxaYaw = 0) {
     const body = this.s.body;
     const p = this._scratch(f);
     const lp = this._tmpW || (this._tmpW = new THREE.Vector3());
@@ -176,7 +177,7 @@ export class ActionController {
     lp.copy(pWorld); body.worldToLocal(lp); this._groundGuard(f, lp);
     body.getWorldQuaternion(q).invert();
     ln.copy(nWorld).applyQuaternion(q);
-    f.limb.solve(lp, ln, p, lift, femurLift);
+    f.limb.solve(lp, ln, p, lift, femurLift, 0, coxaYaw);
     return p;
   }
 
@@ -216,7 +217,7 @@ export class ActionController {
       const src = f.isPalp ? THREAT.palp : li === 0 ? THREAT[1] : li === 1 ? THREAT[2] : null;
       if (src) {
         pose = this._scratch(f);
-        pose.yaw = src.yaw + tremble * 0.5; pose.a.set(src.a);
+        pose.yaw = src.yaw + tremble * 0.5; pose.cyaw = 0; pose.a.set(src.a);
         for (let i = 2; i < pose.a.length; i++) pose.a[i] += tremble * (i - 1) * 0.4;
         w = tw;
       }
@@ -231,8 +232,8 @@ export class ActionController {
         const target = [0.6, lerp(0.25, -0.55, l), lerp(2.3, 3.2, l) - 0.4 * ss(0.4, 0.9, t)];
         const sp = this._solveBody(f, target[0], target[1], target[2], 0.25 * (1 - l));
         const sw2 = env(t, 0.0, 0.16, 1.1, 1.5);
-        if (pose && w > 0) { const tmp = f.limb.makePose(); tmp.yaw = pose.yaw; tmp.a.set(pose.a); pose = tmp; }
-        pose = pose && w > 0 ? { yaw: lerp(pose.yaw, sp.yaw, sw2), a: pose.a.map((v, i) => lerp(v, sp.a[i], sw2)) } : sp;
+        if (pose && w > 0) { const tmp = f.limb.makePose(); tmp.yaw = pose.yaw; tmp.cyaw = pose.cyaw || 0; tmp.a.set(pose.a); pose = tmp; }
+        pose = pose && w > 0 ? { yaw: lerp(pose.yaw, sp.yaw, sw2), cyaw: lerp(pose.cyaw || 0, sp.cyaw || 0, sw2), a: pose.a.map((v, i) => lerp(v, sp.a[i], sw2)) } : sp;
         w = Math.max(w, sw2);
       } else if (li <= 1) {
         // legs I-II: rise and spread during the anticipation, then come down wide on the substrate
@@ -249,7 +250,7 @@ export class ActionController {
         }
         const raised = this._scratchB(f);
         const src = li === 0 ? THREAT[1] : THREAT[2];
-        raised.yaw = src.yaw; raised.a.set(src.a);
+        raised.yaw = src.yaw; raised.cyaw = 0; raised.a.set(src.a);
         const d = ss(0.2, 0.33, t);                       // descent onto the prey
         const tgt = this._tmp2.copy(sl.p).addScaledVector(S.up, 1.8 * (1 - d));
         const down = this._solveWorld(f, tgt, sl.n, 0.35 * (1 - d));
@@ -301,8 +302,9 @@ export class ActionController {
         .lerp(this._tmpW2 || (this._tmpW2 = new THREE.Vector3()).set(side * 0.9, 0.35, 0).normalize(), leave).normalize();
       S.abdPivot.localToWorld(pl);
       nl.applyQuaternion(S.abdPivot.getWorldQuaternion(this._tmpQ2));
-      // knee raised during contact so femur/patella arc over the flank instead of into the pile
-      pose = this._solveWorld(f, pl, nl, 0.05, 0.75 * active);
+      // knee raised so femur/patella arch over the flank; the coxa swings outward on its own joint so the
+      // hip (coxa+trochanter) clears the front corner of the abdomen while the distal leg reaches back
+      pose = this._solveWorld(f, pl, nl, 0.05, 0.75, -0.6); // knee raised, coxa swung outward (own yaw)
       w = ew;
       // urticating setae come off where the tarsus scrapes and as it kicks off the abdomen
       if (active > 0.5 && back > 0.5 && u > 0.3 && u < 0.95 && this.emitHairs) this.emitHairs(limb.tip, side, dt);
