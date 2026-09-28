@@ -2094,6 +2094,27 @@ lower/side/cross-domain/invalid/translated/non-regular/malformed refusal. The du
 
 The routes remain bounded to origin-centred, +Z regular triangular and regular hexagonal upper-cap extension. They do not prove arbitrary polygon counts, irregular/concave/freeform profiles, translated/tilted prisms, inward/lower/side offsets, healing, or general polygonal editing. The bounded plan is `docs/PLAN_Batch57_TriangularAndHexagonalPrismFaceOffset.md`.
 
+#### Batch 58: exact twin-rectangular-hole and triple-circular-hole prism upper-cap face offsets ✅
+
+This consolidated batch adds two distinct multi-loop topology domains. `TwinRectangularAndTripleCircularHoledFaceOffsetVerification`
+constructs an origin-centred, axis-aligned rectangular prism with exactly two rectangular through-holes (`V24/E36/C72/L18/F14`, genus 2)
+and an origin-centred, axis-aligned rectangular prism with exactly three circular through-holes (`V14/E21/C42/L15/F9`, genus 3).
+Both routes extend only the +Z planar cap by distances 0.5, 1.5, and 3.0 and retain planar caps plus analytic linear, circular, and extrusion supports.
+
+`FaceEditSolver::OffsetExtrudedTwinRectangularHoledPrism` and `OffsetExtrudedTripleHoledPrism` use separate strict readers and fresh exact
+extrusions. They require origin-centred bounds, lower Z at zero, the exact cap loop count, disjoint canonical loops, reciprocal analytic edge incidence,
+and closed source topology. No Boolean healing, tessellation, or source mutation is used; the public dispatcher reaches both routes.
+
+The single consolidated verifier checks exact topology, analytic supports, closed-form volume identities, source immutability, public dispatch,
+multiple positive distances, and explicit lower/side/invalid/translated/malformed/wrong-hole-count/arbitrary-profile/cross-domain refusal. The durable proof is
+`Proofs/Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt` and
+`Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned upper-cap profiles. They do not prove arbitrary hole counts,
+rectangular/circular mixed loops, unequal or non-collinear circular holes, translated/tilted/oblique/freeform/mixed supports, inward/lower/side
+offsets, healing, or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

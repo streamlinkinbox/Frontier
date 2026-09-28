@@ -1416,6 +1416,28 @@ This consolidated batch adds two regular polygonal upper-cap face-offset domains
 
 The bounded plan is `docs/PLAN_Batch57_TriangularAndHexagonalPrismFaceOffset.md`.
 
+## Batch 58 — exact twin-rectangular-hole and triple-circular-hole prism upper-cap face offsets (2026-09-28)
+
+This consolidated batch covers two distinct multi-loop SolidArc face-offset domains:
+
+- `TwinRectangularAndTripleCircularHoledFaceOffsetVerification` constructs an origin-centred,
+  axis-aligned rectangular prism with two rectangular through-holes (`V24/E36/C72/L18/F14`,
+  genus 2) and a separate rectangular prism with three circular through-holes
+  (`V14/E21/C42/L15/F9`, genus 3).
+- `OffsetExtrudedTwinRectangularHoledPrism` and `OffsetExtrudedTripleHoledPrism` recognize
+  strict +Z planar caps with exactly three and four loops respectively, preserve planar/linear/
+  circular/extrusion supports, and rebuild exact extended-height bodies without healing,
+  tessellation, or source mutation.
+- The verifier checks distances 0.5, 1.5, and 3.0, topology, analytic supports, exact volume
+  identities, source immutability, dispatcher routing, and explicit refusal of lower/side,
+  invalid, translated, malformed, wrong-hole-count, arbitrary-profile, and cross-domain requests. Focused result:
+  30 checks, 0 failures.
+- Durable proof: `Proofs/Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.png`. The
+  verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
