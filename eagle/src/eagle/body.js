@@ -178,7 +178,7 @@ export function buildContourFeathers(rig, loft, { density = 1 } = {}) {
 
   const featherLen = (Rg, ang) => {
     const c = Math.cos(ang), sAbs = Math.abs(Math.sin(ang));
-    if (Rg.neck > 0) return lerp(0.040, 0.022, Math.min(1, Rg.neck)) * (1 + 0.1 * Math.max(0, c));
+    if (Rg.neck > 0) return lerp(0.034, 0.020, Math.min(1, Rg.neck)) * (1 + 0.1 * Math.max(0, c));
     const z = Rg.p.z;
     const back = Math.max(0, c), belly = Math.max(0, -c);
     let L = 0.068 + 0.012 * back + 0.004 * belly;
@@ -223,7 +223,7 @@ export function buildContourFeathers(rig, loft, { density = 1 } = {}) {
       const roll = (R() - 0.5) * 0.22;
       const Nr = N.clone().applyAxisAngle(d, roll); X.applyAxisAngle(d, roll);
       const m = new THREE.Matrix4().makeBasis(X, Nr, d).setPosition(P.clone().addScaledVector(N, -0.0025));
-      const lance = Rg.neck > 0 ? 0.42 : 0.58;
+      const lance = Rg.neck > 0 ? 0.62 : 0.58;
       // concave regions (front of the S-curved neck, chest/neck junction): measure how far the loft
       // rises above the feather's base plane at its tip and lift the feather just enough to clear it
       // drape: the card follows the loft surface along its length (the neck and breast widen toward
@@ -243,7 +243,7 @@ export function buildContourFeathers(rig, loft, { density = 1 } = {}) {
       // per-vertex skin weights: each part of the feather follows the skin directly beneath it
       const wAt = (t) => { const x = t * 4, i = Math.min(3, Math.floor(x)), f2 = x - i; return mergeWeights([...ws[i].map(([b, ww]) => [b, ww * (1 - f2)]), ...ws[i + 1].map(([b, ww]) => [b, ww * f2])]); };
       const drape = (t) => { const x = t * 4, i = Math.min(3, Math.floor(x)), f2 = x - i; return (hs[i] * (1 - f2) + hs[i + 1] * f2) + 0.0035 * t; };
-      const lift = (Rg.neck > 0 ? 0.1 : 0.09) * (0.9 + 0.3 * R());
+      const lift = (Rg.neck > 0 ? 0.06 : 0.09) * (0.9 + 0.3 * R());
       const geo = buildContourCard({ len: L, width: L * lance * (0.9 + 0.2 * R()), lift, droop: 0.62, drape });
       // weights: interpolate the four surrounding surface points
       const w = mergeWeights([

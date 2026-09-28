@@ -304,10 +304,11 @@ export class Rig {
   setWing(sideIndex, w) {
     const S = this.sides[sideIndex];
     S.humerus.rotation.set(w.twist, -w.sweep, w.elev, 'ZYX');
-    S.ulna.rotation.set(w.foreTwist || 0, -w.elbow, 0, 'YXZ');
+    S.ulna.rotation.set(w.foreTwist || 0, -w.elbow, -(w.armDroop || 0), 'YXZ');
     // radius–ulna "drawing parallels": the wrist flexes automatically with the elbow
     const wristTotal = w.wrist;
-    S.hand.rotation.set(w.handTwist || 0, wristTotal, 0, 'YXZ');
+    // droop: + = hand tip below the arm plane (anhedral at the wrist); − = tip up (aerodynamic lag)
+    S.hand.rotation.set(w.handTwist || 0, wristTotal, -(w.droop || 0), 'YXZ');
     S.digit.rotation.set(0, (w.digitFlex || 0), 0, 'YXZ');
     // alula: rotates forward/up off the leading edge when deployed
     S.alula.rotation.set(-0.25 * w.alula, 0.5 * w.alula, 0.15 * w.alula, 'YXZ');

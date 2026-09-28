@@ -52,16 +52,16 @@ export const TRUNK = {
 // guide). Bald eagle: 7 visible fingers in soaring silhouette (p4–p10 emarginated), p7 ≈ p8 longest.
 export const PRIMARIES = [
   //  length, emarg.(outer vane step, fraction from tip), notch (inner vane, fraction from tip), base width
-  { len: 0.305, emarg: 0.00, notch: 0.00, w: 0.050 }, // p1
-  { len: 0.318, emarg: 0.00, notch: 0.00, w: 0.051 }, // p2
-  { len: 0.333, emarg: 0.00, notch: 0.00, w: 0.052 }, // p3
-  { len: 0.352, emarg: 0.20, notch: 0.00, w: 0.053 }, // p4
-  { len: 0.378, emarg: 0.30, notch: 0.24, w: 0.054 }, // p5
-  { len: 0.415, emarg: 0.38, notch: 0.33, w: 0.055 }, // p6
-  { len: 0.452, emarg: 0.44, notch: 0.40, w: 0.056 }, // p7
-  { len: 0.458, emarg: 0.47, notch: 0.44, w: 0.056 }, // p8
-  { len: 0.430, emarg: 0.50, notch: 0.47, w: 0.054 }, // p9
-  { len: 0.365, emarg: 0.54, notch: 0.50, w: 0.050 }, // p10
+  { len: 0.305, emarg: 0.00, notch: 0.00, w: 0.062 }, // p1
+  { len: 0.318, emarg: 0.00, notch: 0.00, w: 0.064 }, // p2
+  { len: 0.333, emarg: 0.00, notch: 0.00, w: 0.065 }, // p3
+  { len: 0.352, emarg: 0.20, notch: 0.00, w: 0.066 }, // p4
+  { len: 0.378, emarg: 0.30, notch: 0.24, w: 0.068 }, // p5
+  { len: 0.415, emarg: 0.38, notch: 0.33, w: 0.069 }, // p6
+  { len: 0.452, emarg: 0.44, notch: 0.40, w: 0.070 }, // p7
+  { len: 0.458, emarg: 0.47, notch: 0.44, w: 0.070 }, // p8
+  { len: 0.430, emarg: 0.50, notch: 0.47, w: 0.068 }, // p9
+  { len: 0.365, emarg: 0.54, notch: 0.50, w: 0.062 }, // p10
 ];
 // Secondaries s1 (at the wrist) … s15 (at the elbow): rounded, broad, nearly symmetric.
 export const N_SECONDARIES = 15;

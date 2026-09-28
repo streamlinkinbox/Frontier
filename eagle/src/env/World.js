@@ -299,8 +299,9 @@ export class World {
     const sky2 = new Sky(); sky2.scale.setScalar(10000);
     for (const k of Object.keys(this.sky.material.uniforms)) sky2.material.uniforms[k].value = this.sky.material.uniforms[k].value;
     skyScene.add(sky2);
-    // ground bounce: a large dark-olive disc below the horizon
-    const gd = new THREE.Mesh(new THREE.CircleGeometry(5000, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x2c2a20 }));
+    // ground bounce: sunlit shore/forest (albedo ≈ 0.15–0.2 under a 3.4 sun) seen below the horizon —
+    // this is what lights the underside of the wings and body in flight
+    const gd = new THREE.Mesh(new THREE.CircleGeometry(5000, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(0.13, 0.12, 0.09) }));
     gd.position.y = -10; skyScene.add(gd);
     const rt = pmrem.fromScene(skyScene, 0, 0.1, 20000, { size: 256, position: new THREE.Vector3(0, 0, 0) });
     this.scene.environment = rt.texture;

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 export const wing = (o = {}) => ({
   elev: 0, sweep: 0, twist: 0, elbow: 0.6, wrist: 0.5, handTwist: 0, foreTwist: 0, digitFlex: 0,
-  spread: 0.6, fpitch: 0, bend: 0.3, alula: 0, flutter: 0, pronate: 0, fluff: 0, t: 0, ...o,
+  spread: 0.6, fpitch: 0, bend: 0.3, alula: 0, flutter: 0, pronate: 0, fluff: 0, droop: 0, armDroop: 0, t: 0, ...o,
 });
 
 // Folded wing at rest (perched): humerus back along the flank, forearm forward, hand back — the

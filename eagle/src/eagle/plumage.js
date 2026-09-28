@@ -43,18 +43,18 @@ export function buildWingPlumage(rig) {
             len: f.len, width: f.width, profile: PROFILE.primary({ ...f.P, outerFrac: 0.37 - 0.13 * o }),
             nt: 40, nx: 3, curveX: 0.025 + 0.02 * o, curveY: -0.015, camber: 0.07, quill: 0.07,
           });
-          color = featherColor(C(0x1d1612), rnd, { baseAO: 0.6, aoEnd: 0.4, varAmt: 0.08 });
+          color = featherColor(C(0x2a2019), rnd, { baseAO: 0.6, aoEnd: 0.4, varAmt: 0.08 });
           target = flight; kind = 1;
           break;
         }
         case 'secondary':
           geo = buildVane({ len: f.len, width: f.width, profile: PROFILE.secondary(), nt: 22, nx: 3, curveX: -0.012, curveY: -0.03, camber: 0.08, quill: 0.08 });
-          color = featherColor(C(0x241a14), rnd, { baseAO: 0.5, aoEnd: 0.45, varAmt: 0.09 });
+          color = featherColor(C(0x30251c), rnd, { baseAO: 0.5, aoEnd: 0.45, varAmt: 0.09 });
           target = flight; kind = 2;
           break;
         case 'tertial':
           geo = buildVane({ len: f.len, width: f.width, profile: PROFILE.tertial(), nt: 18, nx: 3, curveX: -0.03, curveY: -0.02, camber: 0.09, quill: 0.08 });
-          color = featherColor(C(0x2c2018), rnd, { baseAO: 0.5, aoEnd: 0.5, varAmt: 0.1 });
+          color = featherColor(C(0x372a20), rnd, { baseAO: 0.5, aoEnd: 0.5, varAmt: 0.1 });
           target = flight; kind = 2;
           break;
         default: {
