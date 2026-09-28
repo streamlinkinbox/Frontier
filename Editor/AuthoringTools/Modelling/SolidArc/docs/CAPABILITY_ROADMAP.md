@@ -2115,6 +2115,27 @@ rectangular/circular mixed loops, unequal or non-collinear circular holes, trans
 offsets, healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.md`.
 
+#### Batch 59: exact twin-elliptical-hole and mixed elliptical/circular-hole prism upper-cap face offsets ✅
+
+This consolidated batch adds two distinct genus-two analytic multi-loop domains. `TwinEllipticalAndEllipticalCircularHoledFaceOffsetVerification`
+constructs an origin-centred axis-aligned rectangular prism with two canonical elliptical through-holes and a separate prism with one canonical
+elliptical and one canonical circular through-hole. Both have closed `V12/E18/C36/L12/F8` topology and extend only the +Z planar cap by
+0.5, 1.5, and 3.0.
+
+`FaceEditSolver::OffsetExtrudedTwinEllipticalHoledPrism` and `OffsetExtrudedEllipticalCircularHoledPrism` use strict support-aware readers and
+fresh exact extrusions. They preserve planar caps and analytic linear, elliptical, circular, and extrusion supports without healing, tessellation,
+or source mutation. The mixed route is the first explicitly promoted mixed analytic loop domain; arbitrary mixed/freeform profiles remain refused.
+
+The verifier checks exact topology, ellipse/circle area volume identities, source immutability, public dispatch, multiple positive distances, and
+explicit lower/side/invalid/translated/malformed/single-hole/noncanonical/cross-domain refusal. The durable proof is
+`Proofs/Batch59_TwinEllipticalAndEllipticalCircularHoledFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt` and
+`Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned upper-cap profiles. They do not prove arbitrary ellipse dimensions,
+hole counts, rectangular/circle-only or arbitrary mixed loops, translated/tilted/oblique/freeform supports, inward/lower/side offsets, healing,
+or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch59_TwinEllipticalAndEllipticalCircularHoledFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

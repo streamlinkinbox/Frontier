@@ -1438,6 +1438,28 @@ This consolidated batch covers two distinct multi-loop SolidArc face-offset doma
 
 The bounded plan is `docs/PLAN_Batch58_TwinRectangularAndTripleCircularHoledFaceOffset.md`.
 
+## Batch 59 — exact twin-elliptical-hole and mixed elliptical/circular-hole prism upper-cap face offsets (2026-09-28)
+
+This consolidated batch covers two distinct genus-two analytic multi-loop domains:
+
+- `TwinEllipticalAndEllipticalCircularHoledFaceOffsetVerification` constructs an origin-centred,
+  axis-aligned rectangular prism with two canonical elliptical through-holes and a separate
+  prism with one canonical elliptical and one canonical circular through-hole. Both retain
+  closed `V12/E18/C36/L12/F8` genus-two topology.
+- `OffsetExtrudedTwinEllipticalHoledPrism` and `OffsetExtrudedEllipticalCircularHoledPrism`
+  recognize strict three-loop +Z planar caps and rebuild exact extended-height bodies while
+  retaining planar, linear, elliptical, circular, and extrusion supports without healing,
+  tessellation, or source mutation.
+- The verifier checks distances 0.5, 1.5, and 3.0, topology, ellipse/circle area volume
+  identities, source immutability, dispatcher routing, and explicit refusal of lower/side,
+  invalid, translated, malformed, single-hole, noncanonical, and cross-domain requests.
+  Focused result: 29 checks, 0 failures.
+- Durable proof: `Proofs/Batch59_TwinEllipticalAndEllipticalCircularHoledFaceOffset.png`. The
+  verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch59_TwinEllipticalAndEllipticalCircularHoledFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
