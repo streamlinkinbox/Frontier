@@ -1507,6 +1507,34 @@ This consolidated batch moves the holed-prism family onto two new non-rectangula
 
 The bounded plan is `docs/PLAN_Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.md`.
 
+## Batch 62 — exact circular-bored elliptical and pentagonal twin-circular-holed prism upper-cap face offsets (2026-09-28)
+
+This consolidated batch covers the first curved-outer-wall holed domain and a five-sided polygonal multi-loop domain:
+
+- `CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffsetVerification` constructs an
+  origin-centred elliptical prism (major 6, minor 4, height 6) with one deliberately eccentric
+  circular bore (radius 1.2 at `(2,0)`) — closed genus-one `V4/E6/C12/L6/F4`, two two-loop planar
+  caps, two extrusion walls — and a regular pentagonal prism (circumradius 4, height 6) with two
+  circular holes (radius 0.9 at `(±1.5,0)`) — closed genus-two `V14/E21/C42/L13/F9`, two
+  three-loop caps, seven extrusion walls.
+- `OffsetCircularBoredEllipticalPrism` and `OffsetExtrudedPentagonalTwinCircularHoledPrism`
+  recognize only those strict canonical sources through their two-loop and three-loop +Z planar
+  caps, verify bore containment and full edge/face censuses, and rebuild fresh exact extrusions
+  while retaining planar, linear, circular, elliptical, and extrusion supports without healing,
+  tessellation, or source mutation.
+- The verifier checks distances 0.5, 1.5, and 3.0, exact topology, caps and face censuses, the
+  volume identities `πab − πr²` and `(5/2)R²·sin(72°) − 2πr²` times the extended height, source
+  immutability, dispatcher routing, regression of the earlier concentric elliptical-annulus and
+  hole-free pentagonal domains, and explicit refusal of lower/side faces, invalid distances,
+  translated profiles, non-canonical ellipse/polygon/bore/hole dimensions, mismatched hole
+  supports, wrong hole counts, hole-free sources, malformed incidence, and cross-route requests.
+  Focused result: 30 checks, 0 failures.
+- Durable proof: `Proofs/Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.png`.
+  The verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the

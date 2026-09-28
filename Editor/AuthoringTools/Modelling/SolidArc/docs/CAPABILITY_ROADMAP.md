@@ -2182,6 +2182,33 @@ or rotated polygons, arbitrary concave profiles, arbitrary hole counts/dimension
 lower/side offsets, healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch61_HexagonalEllipticalHoledAndConcaveTwinCircularHoledFaceOffset.md`.
 
+#### Batch 62: exact circular-bored elliptical and pentagonal twin-circular-holed prism upper-cap face offsets ✅
+
+This consolidated batch adds the first holed route whose outer wall is a single closed curved analytic profile, plus a five-sided polygonal
+multi-loop domain. `CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffsetVerification` constructs an origin-centred elliptical prism
+(major 6, minor 4, height 6) with one deliberately eccentric circular bore (radius 1.2 at `(2,0)`) — closed genus-one `V4/E6/C12/L6/F4` with two
+two-loop planar caps and two extrusion walls — and a regular pentagonal prism (circumradius 4, height 6) with two circular holes (radius 0.9 at
+`(±1.5,0)`) — closed genus-two `V14/E21/C42/L13/F9` with two three-loop caps and seven extrusion walls. Each extends only its +Z cap by
+0.5, 1.5, and 3.0.
+
+`FaceEditSolver::OffsetCircularBoredEllipticalPrism` and `OffsetExtrudedPentagonalTwinCircularHoledPrism` use strict canonical readers — exact
+bounds, vertex levels, cap loop structure, exact outer ellipse or canonical pentagon vertex set, convex turn signature, bore/hole support type,
+radius, centre and plane, bore containment, and full edge/face censuses — then rebuild fresh exact extrusions. They retain planar caps plus
+analytic linear, circular, elliptical, and extrusion supports without healing, tessellation, or source mutation, and the earlier concentric
+elliptical-annulus and hole-free pentagonal routes remain separate and still dispatch exactly.
+
+The verifier checks exact topology, caps, face censuses, the volume identities `πab − πr²` and `(5/2)R²·sin(72°) − 2πr²` times the extended height,
+source immutability, public dispatch, earlier-domain regression, and explicit refusal of lower/side faces, invalid distances, translated profiles,
+non-canonical ellipse/polygon/bore/hole dimensions, mismatched hole supports, wrong hole counts, hole-free sources, malformed incidence, and
+cross-route requests. The durable proof is
+`Proofs/Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt`
+and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned profiles. They do not prove arbitrary ellipse axes or centres, arbitrary
+polygon side counts or radii, arbitrary bore/hole counts, radii, placements or supports, tilted/oblique/freeform profiles, inward or lower/side
+offsets, healing, or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
