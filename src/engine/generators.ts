@@ -375,6 +375,7 @@ export function applySDFMonolithTowersNode(
         (Math.abs(noise.simplex2D(wx * 0.048, wz * 0.048)) - 0.5) * 4.5;
 
       let minHorizDist = 999.0;
+      let minWallAbsDist = 999.0;
       let maxColumnSummitH = floorH;
       let activeCount = 0;
 
@@ -406,6 +407,13 @@ export function applySDFMonolithTowersNode(
         minHorizDist = smoothMin(minHorizDist, dBase, 4.2);
 
         if (dBase < 22.0) {
+          // Track closest vertical wall across all overlapping blocks (including inner stepped spires!)
+          const wallAbs = Math.min(
+            Math.abs(dBase),
+            Math.abs(dBase + st.stepSetback + 1.8)
+          );
+          if (wallAbs < minWallAbsDist) minWallAbsDist = wallAbs;
+
           // Compute this block's tilted, weathered summit caprock elevation at (wx, wz)
           const tiltOffset = (uRaw / st.rx) * st.tiltU * 24.0 + (vBent / localRz) * st.tiltV * 24.0;
           const crownProfile =
@@ -436,10 +444,10 @@ export function applySDFMonolithTowersNode(
         bandMinY[idx2D] = Math.min(bandMinY[idx2D], yMin);
         bandMaxY[idx2D] = Math.max(bandMaxY[idx2D], yMax);
 
-        if (minHorizDist < 7.0) {
+        if (minWallAbsDist < 16.0) {
           vol.cliffMask[idx2D] = Math.max(
             vol.cliffMask[idx2D],
-            Math.max(0.0, Math.min(1.0, 1.0 - Math.abs(minHorizDist) / 15.0))
+            Math.max(0.0, Math.min(1.0, 1.0 - minWallAbsDist / 16.0))
           );
         }
 
@@ -533,7 +541,7 @@ export function applyVerticalJointFissuresNode(
     for (let x = 2; x < nx - 2; x++) {
       const idx2D = zOff2D + x;
       const mDist = vol.monolithDist[idx2D];
-      if (mDist < -14.0 || mDist > 12.0) continue;
+      if (vol.cliffMask[idx2D] < 0.06 && (mDist < -14.0 || mDist > 12.0)) continue;
 
       const wx = x * voxelSizeXZ - halfWorld;
       const floorH = vol.bedrockHeight[idx2D];

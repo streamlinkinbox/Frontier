@@ -329,9 +329,15 @@ export function applyVolumetric3DStrataToSDF(vol: SDFTerrainVolume): void {
 
       const wx = x * voxelSizeXZ - halfWorld;
       const surfH = Math.max(getTotalSurfaceHeight(vol, idx2D), vol.monolithSummitH[idx2D]);
-      const looseCover = Math.min(1.0, (vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D] * 0.6) / 3.0);
-      const exposedRockMask = cliff * (1.0 - looseCover * 0.85);
-      if (exposedRockMask < 0.07) continue;
+      const talusTopY = vol.bedrockHeight[idx2D] + vol.talusHeight[idx2D];
+
+      // For non-monolith heightfield cliffs, attenuate by 2D loose cover;
+      // for 3D CSG monoliths, evaluate talus cover in 3D using wy vs talusTopY!
+      const looseCover2D = vol.has3DMonoliths
+        ? 0.0
+        : Math.min(1.0, (vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D] * 0.6) / 3.0);
+      const baseExposedMask = cliff * (1.0 - looseCover2D * 0.85);
+      if (baseExposedMask < 0.07) continue;
 
       const yStart = Math.max(2, bandMinY[idx2D] - 2);
       const yEnd = Math.min(ny - 3, bandMaxY[idx2D] + 2);
@@ -344,8 +350,16 @@ export function applyVolumetric3DStrataToSDF(vol: SDFTerrainVolume): void {
         if (Math.abs(phi) > voxelSizeXZ * 3.8) continue;
 
         const wy = y * voxelSizeY;
-        const minStrataY = vol.has3DMonoliths ? Math.max(18.0, 16.0 + vol.talusHeight[idx2D] * 0.85) : 8.0;
+        const minStrataY = vol.has3DMonoliths ? Math.max(18.0, talusTopY + 1.5) : 8.0;
         if (wy < minStrataY || wy > surfH + voxelSizeY * 1.5) continue;
+
+        // 3D elevation fade above the talus apron & below the flat summit caprock rim
+        let mask3D = baseExposedMask;
+        if (vol.has3DMonoliths) {
+          const aboveTalusFade = Math.max(0.0, Math.min(1.0, (wy - talusTopY - 1.5) / 6.0));
+          const belowRimFade = Math.max(0.15, Math.min(1.0, (surfH - wy) / 5.5));
+          mask3D *= aboveTalusFade * belowRimFade;
+        }
 
         const strata = sample3DStrataProfile(
           wx,
@@ -359,9 +373,9 @@ export function applyVolumetric3DStrataToSDF(vol: SDFTerrainVolume): void {
 
         // Strong, smooth 3D XY push-out (Δφ < 0) and XY pull-in recess (Δφ > 0)
         const outwardPushMeters =
-          strata.caprockOutward * strength * exposedRockMask * voxelSizeXZ * 2.15;
+          strata.caprockOutward * strength * mask3D * voxelSizeXZ * 2.05;
         const inwardPullMeters =
-          strata.shaleRecess * undercut * exposedRockMask * voxelSizeXZ * 2.25;
+          strata.shaleRecess * undercut * mask3D * voxelSizeXZ * 2.15;
 
         const deltaPhi = inwardPullMeters - outwardPushMeters;
         sdfGrid[idx3D] = phi + deltaPhi;

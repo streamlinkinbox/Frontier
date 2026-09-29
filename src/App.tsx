@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 11; // Eliminates checkerboard peg artifacts & preserves crisp caprock rims
+  const engineVersion = 12; // Enables full 3D volumetric strata above talus cones & across all stepped monolith tiers
   useEffect(() => {
     const fresh = getInitialGraph('monument_valley');
     setNodes(fresh.nodes);
