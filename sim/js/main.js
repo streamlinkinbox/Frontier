@@ -1,8 +1,8 @@
-import { mat4 } from './math.js';
-import { Car } from './car.js';
-import { Smoke, SMOKE_DIMS, SMOKE_H, MAX_CRATES } from './smoke.js';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js';
-import { Scene } from './scene.js';
+import { mat4 } from './math.js?v=6';
+import { Car } from './car.js?v=6';
+import { Smoke, SMOKE_DIMS, SMOKE_H, MAX_CRATES } from './smoke.js?v=6';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=6';
+import { Scene } from './scene.js?v=6';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
