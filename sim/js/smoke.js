@@ -16,7 +16,10 @@ export const MAX_CRATES = 8;
 //  32..35 em2[4] (wheel axle axis xyz, spin rad/s)  36..39 wheel[4] (centre xyz, radius)
 //  40 rp0 (absorb, shadowK, ambientK, brightness) 41 rp1 (tint rgb, phase g) 42 rp2 (lightDir xyz, dustMix)
 //  44..47 ex[4] (blast centre xyz, age s)  48..51 exP[4] (radius, fuel, impulse, active)
-const PARAM_VEC4 = 52;
+//  44..51 ex[8] (centre xyz, age)  52..59 exP[8] (radius, fuel, impulse, mode 1=blast 2=plume)
+//  60..67 exQ[8] (seed, upward bias, shape noise, stretch)
+export const MAX_SOURCES = 8;
+const PARAM_VEC4 = 68;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -26,7 +29,7 @@ struct P {
   box: array<vec4f, ${MAX_CRATES}>, boxS: array<vec4f, ${MAX_CRATES}>,
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
   rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
-  ex: array<vec4f, 4>, exP: array<vec4f, 4>,
+  ex: array<vec4f, 8>, exP: array<vec4f, 8>, exQ: array<vec4f, 8>,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -34,6 +37,12 @@ struct P {
 fn burnRate(d: vec4f) -> f32 {
   if (d.z > 0.002 && d.y > 0.25) { return d.z * 7.0 + 0.4; }
   return 0.0;
+}
+fn hash3(p: vec3f) -> f32 { return fract(sin(dot(p, vec3f(127.1, 311.7, 74.7))) * 43758.5453); }
+fn vnoise3(p: vec3f) -> f32 {
+  let i = floor(p); let f = fract(p); let u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3f(1,0,0)), u.x), mix(hash3(i + vec3f(0,1,0)), hash3(i + vec3f(1,1,0)), u.x), u.y),
+             mix(mix(hash3(i + vec3f(0,0,1)), hash3(i + vec3f(1,0,1)), u.x), mix(hash3(i + vec3f(0,1,1)), hash3(i + vec3f(1,1,1)), u.x), u.y), u.z);
 }
 fn cellIdx(c: vec3<i32>) -> u32 {
   let d = prm.dims.xyz;
@@ -249,18 +258,37 @@ ${HEAD}
     let tang = cross(ax, radial / max(rl, 1e-3)) * spin * wc.w * 0.55;
     v = mix(v, prm.carV.xyz * 0.3 + tang, clamp(band * dt * 10.0, 0.0, 1.0));
   }
-  // gas explosions: inject fuel + igniter + radial shock for the first few frames
-  for (var i = 0; i < 4; i++) {
-    let b = prm.ex[i]; let bp = prm.exP[i];
+  // gas explosions (mode 1) and lingering burning plumes (mode 2); every source has its own seed/shape
+  for (var i = 0; i < 8; i++) {
+    let b = prm.ex[i]; let bp = prm.exP[i]; let bq = prm.exQ[i];
     if (bp.w < 0.5) { continue; }
     let q = wp - b.xyz;
-    let r = length(q);
-    let f = 1.0 - smoothstep(bp.x * 0.5, bp.x, r);
-    if (f <= 0.0) { continue; }
-    if (b.w < 0.08) {
-      d.z += bp.y * f * dt * 12.0;
+    if (bp.w < 1.5) {
+      if (b.w >= 0.08) { continue; }
+      // irregular, stretched gas cloud: fbm-perturbed radius -> no two fireballs look alike
+      let qs = vec3f(q.x, q.y / bq.w, q.z);
+      let r = length(qs);
+      let np = qs * 0.9 + vec3f(bq.x * 17.0, bq.x * 5.3, bq.x * 11.0);
+      let n = vnoise3(np) * 0.65 + vnoise3(np * 2.3) * 0.35;
+      let rEff = bp.x * (1.0 + bq.z * (n - 0.5) * 2.0);
+      let f = 1.0 - smoothstep(rEff * 0.35, rEff, r);
+      if (f <= 0.0) { continue; }
+      d.z += bp.y * f * dt * 12.0 * (0.6 + 0.8 * n);
       d.y = max(d.y, 0.6 * f);
-      v += (q / max(r, 0.05)) * bp.z * f * dt * 12.0;
+      let dir = q / max(length(q), 0.05);
+      v += (dir * bp.z + vec3f(0.0, bq.y, 0.0)) * f * dt * 12.0;
+    } else {
+      // burning wreck: flickering gas leak near the ground feeding a rising sooty plume
+      let r2 = dot(q, q);
+      let rad = bp.x;
+      let f = exp(-r2 / (rad * rad));
+      if (f < 0.02) { continue; }
+      let flick = 0.6 + 0.4 * vnoise3(vec3f(prm.misc.y * 3.0 + bq.x * 13.0, q.x * 1.5, q.z * 1.5));
+      d.z += bp.y * f * flick * dt * 6.0;
+      d.y = max(d.y, (0.9 + 0.6 * flick) * f);
+      d.x += bp.y * 1.2 * f * dt;
+      d.w += bp.y * 1.2 * f * dt;
+      v.y += bq.y * f * dt;
     }
   }
   // combustion: fuel -> heat + soot
@@ -441,7 +469,7 @@ fn densAt(wp: vec3f) -> f32 {
     let d4 = sDen(g3);
     var d = d4.x;
     let e = halfW - abs(p.xz - center);
-    let edge = smoothstep(0.0, 4.0, min(e.x, e.y));
+    let edge = smoothstep(0.0, 2.5, min(e.x, e.y));
     d *= edge;
     // fire: emissive, blackbody-ish ramp from deep red to yellow-white with temperature
     let T = d4.y * edge;
@@ -557,8 +585,15 @@ export class Smoke {
   update(dt, car, emitters, crates, S, lightDir) {
     const [nx, ny, nz] = SMOKE_DIMS, h = SMOKE_H;
     // bias the domain behind the car so the trail stays in view
+    // centre: slightly behind the car, pulled toward the nearest active explosion/plume so it stays in the grid
     const [fx, fz] = car.fwd();
-    const cx = Math.round((car.x - fx * 5) / h - nx / 2), cz = Math.round((car.z - fz * 5) / h - nz / 2);
+    let tx = car.x - fx * 3, tz = car.z - fz * 3;
+    let best = null, bd = 18 * 18;
+    for (const src of this.sources || []) { const d2 = (src.x - car.x) ** 2 + (src.z - car.z) ** 2; if (d2 < bd) { bd = d2; best = src; } }
+    if (best) { tx = (car.x + best.x) * 0.5; tz = (car.z + best.z) * 0.5; }
+    // hysteresis: only move the centre when it drifts > 2 m (avoids constant resampling)
+    if (!this.center || Math.hypot(tx - this.center[0], tz - this.center[1]) > 2) this.center = [tx, tz];
+    const cx = Math.round(this.center[0] / h - nx / 2), cz = Math.round(this.center[1] / h - nz / 2);
     let sx = 0, sz = 0;
     if (this.originCell) { sx = cx - this.originCell[0]; sz = cz - this.originCell[1]; }
     this.originCell = [cx, cz];
@@ -577,9 +612,10 @@ export class Smoke {
     P.set([S.opacity, S.shadow, S.ambient, S.brightness], 160);
     P.set([S.tint, S.tint, S.tint * 1.02, S.phase], 164);
     P.set([lightDir[0], lightDir[1], lightDir[2], S.dust], 168);
-    (this.blasts || []).slice(0, 4).forEach((b, i) => {
+    (this.sources || []).slice(0, 8).forEach((b, i) => {
       P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
-      P.set([b.radius, b.fuel, b.impulse, 1], 192 + i * 4);
+      P.set([b.radius, b.fuel, b.impulse, b.mode], 208 + i * 4);
+      P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
     for (let i = 0; i < 4; i++) {
       const e = emitters[i];

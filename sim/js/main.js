@@ -1,8 +1,8 @@
-import { mat4 } from './math.js?v=6';
-import { Car } from './car.js?v=6';
-import { Smoke, SMOKE_DIMS, SMOKE_H, MAX_CRATES } from './smoke.js?v=6';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=6';
-import { Scene } from './scene.js?v=6';
+import { mat4 } from './math.js?v=8';
+import { Car } from './car.js?v=8';
+import { Smoke, SMOKE_DIMS, SMOKE_H, MAX_CRATES } from './smoke.js?v=8';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=8';
+import { Scene } from './scene.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -49,7 +49,7 @@ async function init() {
   // a row of barriers to slide into
   for (let i = 0; i < 6; i++) crates.push({ x: -12 + i * 4.5, z: 22, yaw: 0, hx: 1.6, hy: 0.6, hz: 0.5, color: [0.9, 0.9, 0.9, 0] });
 
-  if (new URLSearchParams(location.search).has('boomtest')) { Object.assign(crates[0], { x: 1.0, z: 4.2, yaw: 0.3 }); }
+  if (new URLSearchParams(location.search).has('boomtest')) { Object.assign(crates[0], { x: 1.0, z: 4.2, yaw: 0.3 }); if (new URLSearchParams(location.search).has('plumetest')) crates[0].z = 9; }
   device.pushErrorScope('validation');
   const car = new Car();
   const scene = new Scene(device, format, checkModule, crates);
@@ -128,28 +128,51 @@ async function init() {
   const vram = ((smoke.bytes + sand.bytes) / 1048576).toFixed(0);
 
   // ---- gas-crate explosions: proximity fuse -> fireball + shock + debris ----
-  const blasts = [], debris = [];
-  let shake = 0; const flash = [0, 0, 0, 0];
-  smoke.blasts = blasts;
+  const blasts = [], plumes = [], pending = [], debris = [];
+  let shake = 0, lastType = ''; const flash = [0, 0, 0, 0];
+  // explosion archetypes — each detonation picks one, then randomises everything around it
+  const TYPES = [
+    { name: 'fireball', fuel: [1.8, 2.6], radius: [1.3, 1.7], impulse: [5, 8], up: [1, 3], noise: [0.35, 0.6], stretch: [0.9, 1.2], secondaries: [0, 1], debris: [8, 12] },
+    { name: 'sharp',    fuel: [0.9, 1.3], radius: [1.0, 1.3], impulse: [12, 16], up: [0, 2], noise: [0.2, 0.4], stretch: [0.8, 1.0], secondaries: [0, 1], debris: [16, 24] },
+    { name: 'mushroom', fuel: [1.6, 2.2], radius: [1.1, 1.4], impulse: [6, 9], up: [7, 11], noise: [0.3, 0.5], stretch: [1.3, 1.7], secondaries: [0, 0], debris: [8, 12] },
+    { name: 'chain',    fuel: [1.2, 1.6], radius: [0.9, 1.2], impulse: [7, 10], up: [2, 4], noise: [0.4, 0.7], stretch: [0.9, 1.3], secondaries: [2, 4], debris: [10, 16] },
+  ];
+  const R = ([a, b]) => a + Math.random() * (b - a);
+  function pushBlast(x, y, z, T, k, scale = 1) {
+    blasts.push({ x, y, z, age: 0, mode: 1, seed: Math.random() * 100,
+      radius: R(T.radius) * scale * Math.sqrt(k), fuel: R(T.fuel) * k, impulse: R(T.impulse) * k * scale,
+      up: R(T.up) * k, noise: R(T.noise), stretch: R(T.stretch) });
+    flash[0] = x; flash[1] = y + 1; flash[2] = z; flash[3] = Math.max(flash[3], 10 * k * scale);
+  }
   function detonate(c) {
     const k = settings.blast;
-    c.exploded = true; c.respawn = 15; c.fuse = undefined; c.drawColor = null;
+    c.exploded = true; c.respawn = 18; c.fuse = undefined; c.drawColor = null;
+    const T = TYPES[Math.floor(Math.random() * TYPES.length)];
     const size = Math.max(c.hx, c.hz);
-    blasts.push({ x: c.x, y: c.hy, z: c.z, age: 0, radius: (1.8 + size * 1.3) * Math.sqrt(k), fuel: 1.8 * k, impulse: 9 * k });
-    sand.burst(c.x, c.z, Math.floor(2500 * k), 7 + 4 * k);
-    sand.blast = [c.x, 0.5, c.z, 8 * k];
-    for (let i = 0; i < 14; i++) {
-      const a = Math.random() * Math.PI * 2, sp = (4 + Math.random() * 9) * k;
-      debris.push({ x: c.x, y: c.hy, z: c.z, vx: Math.cos(a) * sp, vy: (4 + Math.random() * 9) * k, vz: Math.sin(a) * sp,
-        s: size * (0.12 + Math.random() * 0.22), yaw: 0, rx: 0, rz: 0, wr: [(Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15], life: 7,
-        color: Math.random() < 0.3 ? [0.12, 0.1, 0.08, 0] : c.color });
+    pushBlast(c.x, c.hy, c.z, T, k, 0.8 + size * 0.35);
+    // delayed secondary pops (gas pockets igniting) at random offsets
+    const nSec = Math.round(R(T.secondaries));
+    for (let i = 0; i < nSec; i++) {
+      const a = Math.random() * Math.PI * 2, d = 1 + Math.random() * 2.2;
+      pending.push({ t: 0.12 + Math.random() * 0.5 + i * 0.15, x: c.x + Math.cos(a) * d, y: 0.4 + Math.random() * 1.8, z: c.z + Math.sin(a) * d, T, k, scale: 0.5 + Math.random() * 0.4 });
     }
-    // shock on the car
+    // lingering burning wreck -> continuous plume
+    plumes.push({ x: c.x, y: 0.35, z: c.z, age: 0, mode: 2, seed: Math.random() * 100, life: 10 + Math.random() * 8,
+      radius: 0.5 + size * 0.35, fuel0: 1.4 + Math.random() * 1.4, fuel: 0, impulse: 0, up: 2 + Math.random() * 2.5, noise: 0, stretch: 1, w: size });
+    sand.burst(c.x, c.z, Math.floor(R([1800, 3200]) * k), 6 + 5 * k);
+    sand.blast = [c.x, 0.5, c.z, R([6, 10]) * k];
+    const nDeb = Math.round(R(T.debris));
+    for (let i = 0; i < nDeb; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (3 + Math.random() * 10) * k * (T.name === 'sharp' ? 1.4 : 1);
+      debris.push({ x: c.x, y: c.hy, z: c.z, vx: Math.cos(a) * sp, vy: (3 + Math.random() * 10) * k, vz: Math.sin(a) * sp,
+        s: size * (0.08 + Math.random() * 0.25), yaw: Math.random() * 6, rx: 0, rz: 0, wr: [(Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18], life: 8,
+        color: Math.random() < 0.35 ? [0.1, 0.08, 0.07, 0] : c.color });
+    }
     const dx = car.x - c.x, dz = car.z - c.z, dist = Math.hypot(dx, dz) || 1;
-    const f = Math.max(0, 1 - dist / 12) * k;
+    const f = Math.max(0, 1 - dist / 12) * k * (T.name === 'sharp' ? 1.4 : 1);
     car.vx += (dx / dist) * 16 * f; car.vz += (dz / dist) * 16 * f; car.w += (Math.random() - 0.5) * 5 * f;
     shake = Math.min(1.5, shake + 0.4 + 1.2 * f);
-    flash[0] = c.x; flash[1] = 1.8; flash[2] = c.z; flash[3] = 10 * k;
+    lastType = T.name;
   }
   function updateExplosions(dt) {
     for (const c of crates) {
@@ -163,9 +186,28 @@ async function init() {
         if (c.fuse <= 0) detonate(c);
       }
     }
+    for (let i = pending.length - 1; i >= 0; i--) {
+      const p = pending[i]; p.t -= dt;
+      if (p.t <= 0) { pushBlast(p.x, p.y, p.z, p.T, p.k, p.scale); shake = Math.min(1.5, shake + 0.25); pending.splice(i, 1); }
+    }
     for (const b of blasts) b.age += 1 / 60;
     while (blasts.length && blasts[0].age > 0.1) blasts.shift();
+    for (let i = plumes.length - 1; i >= 0; i--) {
+      const p = plumes[i]; p.age += dt;
+      const a = p.age / p.life; // ramp up, burn, then die down
+      p.fuel = p.fuel0 * Math.min(1, p.age * 2) * Math.max(0, 1 - a * a) * settings.blast;
+      if (a >= 1) plumes.splice(i, 1);
+    }
+    // sources sent to the GPU: fresh blasts first, then nearest plumes
+    const pl = plumes.slice().sort((p, q) => ((p.x - car.x) ** 2 + (p.z - car.z) ** 2) - ((q.x - car.x) ** 2 + (q.z - car.z) ** 2));
+    smoke.sources = [...blasts, ...pl].slice(0, 8);
     flash[3] *= Math.exp(-dt * 7);
+    if (pl.length && flash[3] < 1.2) { // burning-wreck flicker light
+      const p = pl[0];
+      flash[0] = p.x; flash[1] = 0.9; flash[2] = p.z;
+      flash[3] = Math.max(flash[3], (p.fuel / 2) * (0.8 + 0.4 * Math.random()));
+    }
+
     for (let i = debris.length - 1; i >= 0; i--) {
       const b = debris[i];
       b.vy -= 9.81 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
@@ -176,6 +218,15 @@ async function init() {
     }
   }
 
+  // debug: read back smoke field stats  (await __smokeStats())
+  window.__smokeStats = async () => {
+    const n = smoke.n * 16, rb = device.createBuffer({ size: n, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    const e = device.createCommandEncoder(); e.copyBufferToBuffer(smoke.buf.denA, 0, rb, 0, n); device.queue.submit([e.finish()]);
+    await rb.mapAsync(GPUMapMode.READ); const a = new Float32Array(rb.getMappedRange());
+    const st = { maxD: 0, maxT: 0, maxFuel: 0, sumD: 0, nan: 0 };
+    for (let i = 0; i < a.length; i += 4) { if (!Number.isFinite(a[i]) || !Number.isFinite(a[i + 1])) { st.nan++; continue; } st.maxD = Math.max(st.maxD, a[i]); st.maxT = Math.max(st.maxT, a[i + 1]); st.maxFuel = Math.max(st.maxFuel, a[i + 2]); st.sumD += a[i]; }
+    rb.destroy(); return { ...st, sources: JSON.stringify((smoke.sources || []).map((s) => [s.mode, +s.fuel.toFixed(2), +s.x.toFixed(1), +s.z.toFixed(1)])), origin: smoke.origin };
+  };
   function frameFn(now) {
     const dtReal = Math.min(0.05, (now - last) / 1000); last = now;
     resize();
@@ -206,7 +257,7 @@ async function init() {
     const proj = mat4.perspective(1.0, canvas.width / canvas.height, 0.1, 600);
     const vp = mat4.mul(proj, view);
     scene.writeCamera(vp, shaken, lightDir, canvas.width, canvas.height, frame, car, flash);
-    scene.buildInstances(car, debris);
+    scene.buildInstances(car, debris.concat(plumes.map((p) => ({ x: p.x, y: 0.12, z: p.z, s: p.w * 0.55, yaw: p.seed, rx: 0, rz: 0.05, color: [0.06, 0.05, 0.045, 0] }))));
 
     // simulation inputs
     const simDt = 1 / 60;
@@ -254,7 +305,7 @@ async function init() {
         `sim VRAM ≈ <b>${vram} MB</b> / 1024<br>` +
         `<span class="dim">${adapterName}</span>`;
       $('drift').style.width = (car.drift * 100).toFixed(0) + '%';
-      $('driftLbl').textContent = car.drift > 0.05 ? 'DRIFT 💨' : 'grip';
+      $('driftLbl').textContent = (car.drift > 0.05 ? 'DRIFT 💨' : 'grip') + (lastType ? ` · last blast: ${lastType}` : '') + (plumes.length ? ` · ${plumes.length} burning` : '');
     } else if (frame % 10 === 1) {
       // aliveEstimate decrements in 10-frame batches
     }
