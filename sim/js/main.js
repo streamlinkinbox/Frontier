@@ -132,8 +132,10 @@ async function init() {
     const emitters = car.wheels.map((wh) => {
       const tread = -wh.spinVel * car.wheelR;
       return {
-        pos: [wh.pos[0], 0.3, wh.pos[2]], strength: wh.smoke * 1.4, radius: 0.5,
-        vel: [wh.vel[0] * 0.25 + tread * wh.fwd[0] * 0.3, 1.2, wh.vel[2] * 0.25 + tread * wh.fwd[2] * 0.3],
+        pos: [wh.pos[0], 0.25, wh.pos[2]], strength: wh.smoke * 0.55, radius: 0.45,
+        center: [wh.pos[0], car.wheelR, wh.pos[2]], wheelR: car.wheelR, spin: wh.spinVel,
+        axis: [Math.cos(car.heading + (wh.front ? car.steer : 0)), 0, -Math.sin(car.heading + (wh.front ? car.steer : 0))],
+        vel: [wh.vel[0] * 0.25 + tread * wh.fwd[0] * 0.3, 0.8, wh.vel[2] * 0.25 + tread * wh.fwd[2] * 0.3],
       };
     });
     const near = crates.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);

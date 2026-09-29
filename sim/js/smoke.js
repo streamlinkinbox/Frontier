@@ -13,7 +13,8 @@ export const MAX_CRATES = 8;
 //  4 carC.xyz,heading  5 carH.xyz  6 carV.xyz,w  7 densDecay,tempDecay,velDecay,weight
 //  8..11 em[4] (xyz, strength)  12..15 emV[4] (xyz vel, radius)
 //  16..23 crate[8] (x,z,yaw,active)  24..31 crateS[8] (hx,hy,hz,_)
-const PARAM_VEC4 = 32;
+//  32..35 em2[4] (wheel axle axis xyz, spin rad/s)  36..39 wheel[4] (centre xyz, radius)
+const PARAM_VEC4 = 40;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -21,6 +22,7 @@ struct P {
   carC: vec4f, carH: vec4f, carV: vec4f, diss: vec4f,
   em: array<vec4f, 4>, emV: array<vec4f, 4>,
   box: array<vec4f, ${MAX_CRATES}>, boxS: array<vec4f, ${MAX_CRATES}>,
+  em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -46,6 +48,17 @@ fn solidAt(wp: vec3f) -> vec4f {
   if (abs(lx) < prm.carH.x && abs(d.y) < prm.carH.y && abs(lz) < prm.carH.z) {
     let w = prm.carV.w; // yaw rate: v + w x r
     return vec4f(prm.carV.x + w * d.z, 0.0, prm.carV.z - w * d.x, 1.0);
+  }
+  for (var i = 0; i < 4; i++) {
+    let wc = prm.wheel[i];
+    if (wc.w <= 0.0) { continue; }
+    let ax = prm.em2[i].xyz;
+    let q = wp - wc.xyz;
+    let along = dot(q, ax);
+    let radial = q - ax * along;
+    if (abs(along) < 0.16 && length(radial) < wc.w) {
+      return vec4f(prm.carV.xyz + cross(ax, radial) * prm.em2[i].w, 1.0);
+    }
   }
   for (var i = 0; i < ${MAX_CRATES}; i++) {
     let cr = prm.box[i];
@@ -207,11 +220,27 @@ ${HEAD}
     let q = wp - e.xyz;
     let f = exp(-dot(q, q) / (r * r));
     if (f < 0.01) { continue; }
-    d.x += e.w * f * dt * 6.0;
-    d.y += e.w * f * dt * 4.0;
-    v = mix(v, prm.emV[i].xyz, clamp(f * e.w * dt * 8.0, 0.0, 1.0));
+    d.x += e.w * f * dt * 2.2;
+    d.y += e.w * f * dt * 2.0;
+    v = mix(v, prm.emV[i].xyz, clamp(f * e.w * dt * 4.0, 0.0, 1.0));
   }
-  d.x = min(d.x, 4.0); d.y = min(d.y, 4.0);
+  // tyre-driven swirl: air dragged around the spinning wheel (drift smoke curls around the tyre)
+  for (var i = 0; i < 4; i++) {
+    let wc = prm.wheel[i];
+    if (wc.w <= 0.0 || prm.em[i].w <= 0.0) { continue; }
+    let ax = prm.em2[i].xyz;
+    let q = wp - wc.xyz;
+    let along = dot(q, ax);
+    let radial = q - ax * along;
+    let rl = length(radial);
+    let rr = (rl - wc.w * 1.35) / 0.35;
+    let band = exp(-rr * rr) * exp(-along * along / 0.25);
+    if (band < 0.02) { continue; }
+    let spin = clamp(prm.em2[i].w, -40.0, 40.0);
+    let tang = cross(ax, radial / max(rl, 1e-3)) * spin * wc.w * 0.55;
+    v = mix(v, prm.carV.xyz * 0.3 + tang, clamp(band * dt * 10.0, 0.0, 1.0));
+  }
+  d.x = min(d.x, 1.6); d.y = min(d.y, 2.0);
   vel[id] = vec4f(v, 0.0);
   den[id] = d;
 }`,
@@ -340,7 +369,7 @@ fn densAt(wp: vec3f) -> f32 {
     let e = halfW - abs(p.xz - center);
     d *= smoothstep(0.0, 3.0, min(e.x, e.y));
     if (d > 0.003) {
-      let sigma = d * 2.2;
+      let sigma = d * 1.6;
       let sh = densAt(p + L * 0.5) + densAt(p + L * 1.4) + 0.5 * densAt(p + L * 2.8);
       let lt = exp(-sh * 1.3);
       let height = clamp(p.y / 6.0, 0.0, 1.0);
@@ -450,12 +479,14 @@ export class Smoke {
     P.set([car.x, car.bodyY, car.z, car.heading], 16);
     P.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 20);
     P.set([car.vx, 0, car.vz, car.w], 24);
-    P.set([Math.exp(-0.28 * dt), Math.exp(-1.2 * dt), Math.exp(-0.15 * dt), 0.35], 28);
+    P.set([Math.exp(-0.45 * dt), Math.exp(-1.2 * dt), Math.exp(-0.15 * dt), 0.35], 28);
     for (let i = 0; i < 4; i++) {
       const e = emitters[i];
       if (!e) continue;
       P.set([e.pos[0], e.pos[1], e.pos[2], e.strength], 32 + i * 4);
       P.set([e.vel[0], e.vel[1], e.vel[2], e.radius], 48 + i * 4);
+      P.set([e.axis[0], e.axis[1], e.axis[2], e.spin], 128 + i * 4);
+      P.set([e.center[0], e.center[1], e.center[2], e.wheelR], 144 + i * 4);
     }
     for (let i = 0; i < MAX_CRATES; i++) {
       const c = crates[i];

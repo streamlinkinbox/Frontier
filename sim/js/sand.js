@@ -213,7 +213,9 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   var corners = array<vec2f, 6>(vec2f(-1,-1), vec2f(1,-1), vec2f(1,1), vec2f(-1,-1), vec2f(1,1), vec2f(-1,1));
   let q = corners[vi];
   let seed = p.vel.w;
-  let size = (0.022 + 0.02 * fract(seed * 7.13)) * clamp(p.pos.w * 1.5, 0.0, 1.0);
+  let r0 = fract(seed * 7.13);
+  // skewed grain-size distribution: mostly fine grains, a few coarse ones
+  let size = (0.006 + 0.016 * r0 * r0 * r0 + 0.004 * fract(seed * 3.7)) * clamp(p.pos.w * 1.5, 0.0, 1.0);
   let toCam = normalize(cam.camPos.xyz - p.pos.xyz);
   let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
   let up = cross(toCam, right);
@@ -221,7 +223,11 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   o.pos = cam.viewProj * vec4f(wp, 1.0);
   o.uv = q;
   let tint = fract(seed * 13.7);
-  o.col = mix(vec3f(0.78, 0.62, 0.40), vec3f(0.93, 0.80, 0.58), tint);
+  let dark = step(0.9, fract(seed * 5.31));
+  var col = mix(vec3f(0.70, 0.53, 0.33), vec3f(0.95, 0.84, 0.64), tint);
+  col = mix(col, vec3f(0.42, 0.33, 0.24), dark * 0.7);   // occasional dark mineral grains
+  col *= 0.85 + 0.3 * fract(seed * 23.1);
+  o.col = col;
   return o;
 }
 @fragment fn fs(i: VO) -> @location(0) vec4f {
@@ -282,7 +288,7 @@ export class Sand {
     const [rgx, rgz] = car.right();
     for (const wh of car.wheels) {
       if (wh.sand <= 0) continue;
-      let count = Math.floor(wh.sand * 70 * (dt * 60) + Math.random());
+      let count = Math.floor(wh.sand * 110 * (dt * 60) + Math.random());
       const tread = -wh.spinVel * car.wheelR; // bottom-of-tyre surface speed along wheel forward
       const kx = wh.vel[0] + tread * wh.fwd[0], kz = wh.vel[2] + tread * wh.fwd[2];
       const kl = Math.hypot(kx, kz) || 1;
