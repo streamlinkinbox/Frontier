@@ -5,6 +5,9 @@
 const LOW = new URLSearchParams(globalThis.location?.search || '').has('lowres');
 export const SMOKE_DIMS = LOW ? [64, 32, 64] : [128, 64, 128];
 export const SMOKE_H = LOW ? 0.5 : 0.25; // metres per cell  => 32 x 16 x 32 m domain either way
+// far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
+export const FAR_DIMS = LOW ? [64, 16, 64] : [128, 32, 128];
+export const FAR_H = LOW ? 2.0 : 1.0;
 const WG = [4, 4, 4];
 export const MAX_CRATES = 8;
 
@@ -20,7 +23,8 @@ export const MAX_CRATES = 8;
 //  60..67 exQ[8] (seed, upward bias, shape noise, stretch)
 export const MAX_SOURCES = 8;
 //  68 tor0 (x, z, vMax, coreR)  69 tor1 (updraft, height, dust, active)
-const PARAM_VEC4 = 70;
+//  70 lod (holeHeight, holeFade, edgeFade, holeActive)   rp3 = hole box (ox, oz, sizeX, sizeZ)
+const PARAM_VEC4 = 72;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -31,7 +35,7 @@ struct P {
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
   rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
   ex: array<vec4f, 8>, exP: array<vec4f, 8>, exQ: array<vec4f, 8>,
-  tor0: vec4f, tor1: vec4f,
+  tor0: vec4f, tor1: vec4f, lod: vec4f, pad0: vec4f,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -490,7 +494,14 @@ fn densAt(wp: vec3f) -> f32 {
     let d4 = sDen(g3);
     var d = d4.x;
     let e = halfW - abs(p.xz - center);
-    let edge = smoothstep(0.0, 2.5, min(e.x, e.y));
+    var edge = smoothstep(0.0, prm.lod.z, min(e.x, e.y));
+    // LOD: the coarse grid hands over to the fine grid inside the fine box (exact complement of its edge fade)
+    if (prm.lod.w > 0.5) {
+      let hp = p.xz - prm.rp3.xy;
+      let eh = min(hp, prm.rp3.zw - hp);
+      let fineW = smoothstep(0.0, prm.lod.y, min(eh.x, eh.y)) * (1.0 - smoothstep(prm.lod.x - 3.0, prm.lod.x, p.y));
+      edge *= 1.0 - fineW;
+    }
     d *= edge;
     // fire: emissive, blackbody-ish ramp from deep red to yellow-white with temperature
     let T = d4.y * edge;
@@ -528,15 +539,16 @@ fn densAt(wp: vec3f) -> f32 {
 `;
 
 export class Smoke {
-  constructor(device, format, checkModule) {
+  constructor(device, format, checkModule, opts = {}) {
     this.device = device;
-    const [nx, ny, nz] = SMOKE_DIMS;
+    this.dims = opts.dims || SMOKE_DIMS; this.h = opts.h || SMOKE_H; this.far = !!opts.far;
+    const [nx, ny, nz] = this.dims;
     this.n = nx * ny * nz;
     this.origin = [0, 0, 0];
     this.originCell = null;
     this.params = new Float32Array(PARAM_VEC4 * 4);
     this.paramsI = new Int32Array(this.params.buffer);
-    this.jacobiIters = 24;
+    this.jacobiIters = opts.jacobi || 24;
     this.time = 0;
 
     const mk = (bytes, label) => device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST, label });
@@ -604,17 +616,18 @@ export class Smoke {
 
   // Build uniforms. Domain follows the car, snapped to whole cells (shift is applied during advection).
   update(dt, car, emitters, crates, S, lightDir) {
-    const [nx, ny, nz] = SMOKE_DIMS, h = SMOKE_H;
+    const [nx, ny, nz] = this.dims, h = this.h;
     // bias the domain behind the car so the trail stays in view
     // centre: slightly behind the car, pulled toward the nearest active explosion/plume so it stays in the grid
     const [fx, fz] = car.fwd();
     let tx = car.x - fx * 3, tz = car.z - fz * 3;
+    if (this.far) { tx = car.x; tz = car.z; }
     let best = null, bd = 18 * 18;
     for (const src of this.sources || []) { const d2 = (src.x - car.x) ** 2 + (src.z - car.z) ** 2; if (d2 < bd) { bd = d2; best = src; } }
-    if (best) { tx = (car.x + best.x) * 0.5; tz = (car.z + best.z) * 0.5; }
-    if (this.tornado && this.tornado.strength > 0) { const T = this.tornado, dt2 = (T.x - car.x) ** 2 + (T.z - car.z) ** 2; if (dt2 < 22 * 22 && !best) { tx = (car.x + T.x) * 0.5; tz = (car.z + T.z) * 0.5; } }
+    if (best && !this.far) { tx = (car.x + best.x) * 0.5; tz = (car.z + best.z) * 0.5; }
+    if (this.tornado && this.tornado.strength > 0) { const T = this.tornado, dt2 = (T.x - car.x) ** 2 + (T.z - car.z) ** 2; if (dt2 < 22 * 22 && !best && !this.far) { tx = (car.x + T.x) * 0.5; tz = (car.z + T.z) * 0.5; } }
     // hysteresis: only move the centre when it drifts > 2 m (avoids constant resampling)
-    if (!this.center || Math.hypot(tx - this.center[0], tz - this.center[1]) > 2) this.center = [tx, tz];
+    if (!this.center || Math.hypot(tx - this.center[0], tz - this.center[1]) > (this.far ? 6 : 2)) this.center = [tx, tz];
     const cx = Math.round(this.center[0] / h - nx / 2), cz = Math.round(this.center[1] / h - nz / 2);
     let sx = 0, sz = 0;
     if (this.originCell) { sx = cx - this.originCell[0]; sz = cz - this.originCell[1]; }
@@ -637,9 +650,11 @@ export class Smoke {
     if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 272); P.set([T.updraft * T.strength, T.height, 1.2 * T.strength, T.strength > 0 ? 1 : 0], 276); }
     (this.sources || []).slice(0, 8).forEach((b, i) => {
       P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
-      P.set([b.radius, b.fuel, b.impulse, b.mode], 208 + i * 4);
+      P.set([Math.max(b.radius, h * (b.mode > 1.5 ? 1.0 : 1.5)), b.fuel, b.impulse, b.mode], 208 + i * 4);
       P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
+    P.set([this.hole ? this.hole.height : 0, this.hole ? this.hole.fade : 0, this.far ? 10 : 2.5, this.hole ? 1 : 0], 280);
+    if (this.hole) P.set([this.hole.ox, this.hole.oz, this.hole.sx, this.hole.sz], 172);
     for (let i = 0; i < 4; i++) {
       const e = emitters[i];
       if (!e) continue;

@@ -1,9 +1,9 @@
-import { mat4 } from './math.js?v=9';
-import { Car } from './car.js?v=9';
-import { Smoke, SMOKE_DIMS, SMOKE_H, MAX_CRATES } from './smoke.js?v=9';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=9';
-import { Scene } from './scene.js?v=9';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=9';
+import { mat4 } from './math.js?v=10';
+import { Car } from './car.js?v=10';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=10';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=10';
+import { Scene } from './scene.js?v=10';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -55,9 +55,10 @@ async function init() {
   const car = new Car();
   const scene = new Scene(device, format, checkModule, crates);
   const smoke = new Smoke(device, format, checkModule);
+  const smokeFar = new Smoke(device, format, checkModule, { dims: FAR_DIMS, h: FAR_H, jacobi: 16, far: true });
   const sand = new Sand(device, format, checkModule);
   const tornado = new Tornado(device, checkModule, sand.renderPipe, scene.camUbo);
-  smoke.tornado = tornado; sand.tornado = tornado;
+  smoke.tornado = tornado; smokeFar.tornado = tornado; sand.tornado = tornado;
   if (new URLSearchParams(location.search).has('tornadotest')) { tornado.x = 3; tornado.z = 14; crates[1] && Object.assign(crates[1], { x: 6, z: 12 }); }
   const err = await device.popErrorScope();
   if (err) { fatal('Pipeline creation failed: ' + err.message); return; }
@@ -71,6 +72,7 @@ async function init() {
     depthTex?.destroy();
     depthTex = device.createTexture({ size: [w, h], format: 'depth32float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     smoke.makeRenderBindGroup(scene.camUbo, depthTex.createView());
+    smokeFar.makeRenderBindGroup(scene.camUbo, depthTex.createView());
   }
   sand.makeRenderBindGroup(scene.camUbo);
 
@@ -129,8 +131,8 @@ async function init() {
   const lightDir = (() => { const v = [0.45, 0.8, 0.35]; const l = Math.hypot(...v); return v.map((x) => x / l); })();
   let last = performance.now(), acc = 0, frame = 0, fpsT = 0, fpsN = 0, fps = 0, camHeading = 0;
   const camPos = [0, 4, -10];
-  $('tier').textContent = `GTX tier · smoke ${SMOKE_DIMS.join('×')} @ ${SMOKE_H} m · Jacobi ${smoke.jacobiIters} · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
-  const vram = ((smoke.bytes + sand.bytes + tornado.bytes) / 1048576).toFixed(0);
+  $('tier').textContent = `GTX tier · smoke ${SMOKE_DIMS.join('×')} @ ${SMOKE_H} m · Jacobi ${smoke.jacobiIters} · far LOD ${FAR_DIMS.join('×')} @ ${FAR_H} m (30 Hz) · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
+  const vram = ((smoke.bytes + smokeFar.bytes + sand.bytes + tornado.bytes) / 1048576).toFixed(0);
 
   // ---- gas-crate explosions: proximity fuse -> fireball + shock + debris ----
   const blasts = [], plumes = [], pending = [], debris = [];
@@ -319,6 +321,10 @@ async function init() {
     });
     const near = solids.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);
     smoke.update(simDt, car, emitters, near, settings, lightDir);
+    // far LOD: same sources/tornado, no tyre emitters, every other frame with 2x dt; hands over to the fine grid inside its box
+    smokeFar.sources = smoke.sources;
+    smokeFar.hole = { ox: smoke.origin[0], oz: smoke.origin[2], sx: SMOKE_DIMS[0] * SMOKE_H, sz: SMOKE_DIMS[2] * SMOKE_H, height: SMOKE_DIMS[1] * SMOKE_H, fade: 2.5 };
+    if (frame % 2 === 0) smokeFar.update(simDt * 2, car, [], near, settings, lightDir);
     sand.update(simDt, car);
     sand.spawn(car, dtReal);
 
@@ -326,6 +332,7 @@ async function init() {
     sand.encode(enc);
     if (settings.tornado > 0) tornado.encode(enc);
     smoke.encode(enc);
+    if (frame % 2 === 0) smokeFar.encode(enc);
     const view0 = ctx.getCurrentTexture().createView();
     const p1 = enc.beginRenderPass({
       colorAttachments: [{ view: view0, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.62, g: 0.72, b: 0.84, a: 1 } }],
@@ -336,6 +343,7 @@ async function init() {
     if (settings.tornado > 0) tornado.draw(p1);
     p1.end();
     const p2 = enc.beginRenderPass({ colorAttachments: [{ view: view0, loadOp: 'load', storeOp: 'store' }] });
+    smokeFar.draw(p2);
     smoke.draw(p2);
     p2.end();
     device.queue.submit([enc.finish()]);
