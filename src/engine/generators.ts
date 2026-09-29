@@ -443,17 +443,13 @@ export function applySDFMonolithTowersNode(
           );
         }
 
-        // Local 3D rock wall cragginess profile
-        const wallCragSeed = wallNoise.simplex2D(wx * 0.038, wz * 0.038);
+        // Purely 2D horizontal rock-face facet offset (strictly constant in Y so vertical walls never wobble!)
+        const wallFacet2D =
+          wallNoise.simplex2D(wx * 0.034, wz * 0.034) * 1.4;
 
         for (let y = 0; y < ny; y++) {
           const wy = y * voxelSizeY;
           const phiFloor = wy - floorH;
-
-          // 3D angular rock face offset that varies vertically along the cliff face
-          const crag3D =
-            wallNoise.simplex3D(wx * 0.026, wy * 0.032, wz * 0.026) * 2.1 +
-            wallCragSeed * 0.8;
 
           let phiCluster = 999.0;
 
@@ -478,7 +474,7 @@ export function applySDFMonolithTowersNode(
               capLipExpand = lipBell * crownStrength * 1.85;
             }
 
-            const phiWall = d0 + stepOffset + crag3D - capLipExpand;
+            const phiWall = d0 + stepOffset + wallFacet2D - capLipExpand;
             const phiCap = wy - capH;
             const phiBlock = smoothMax(phiWall, phiCap, st.capBevel);
 
@@ -496,12 +492,13 @@ export function applySDFMonolithTowersNode(
 }
 
 /**
- * NEW NODE 3: Vertical Joint Fissures, Tectonic Chasms & Spall Scars (`VerticalJointFissures`)
- * Replaces uniform periodic grooves and global belt rings with:
- * - Non-periodic tectonic chasms & conjugate diagonal joints (with ~45% unbroken massive cliff faces)
- * - Vertical fracture arrest at bedding contacts (cracks start/stop at different rock units)
- * - Localized, fault-shifted bedding partings that pinch out laterally (no global rings!)
- * - 3D conchoidal rockfall spall scars & blind arch recesses
+ * NEW NODE 3: Architectural Vertical Buttress Columns & Turret Splits (`VerticalJointFissures`)
+ * Instead of gouging 3D noise blobs or aliased diagonal cracks into the cliff surface,
+ * this node uses 100% pure 2D-extruded-in-Y CSG prisms:
+ *   φ_pilaster(x, y, z) = smoothMax(d_pilaster2D(x, z), y - H_ledge(x, z), 2.2)
+ * Because d_pilaster2D(x, z) is strictly independent of Y (∂/∂y = 0 along the shaft),
+ * every vertical column, buttress rib, and chimney recess is razor-straight vertically
+ * and terminates in a crisp horizontal structural ledge — zero pockmarks or blobs!
  */
 export function applyVerticalJointFissuresNode(
   vol: SDFTerrainVolume,
@@ -515,16 +512,21 @@ export function applyVerticalJointFissuresNode(
 
   const fissureStrength =
     params.fissureIntensity ?? params.fissureDepth ?? params.verticalFissures ?? 0.85;
-  const chimneyMeters = (params.chimneyDepth ?? 11.5) * 0.68;
-  const spacingScale = 22.0 / Math.max(12.0, params.fissureSpacing ?? params.jointSpacing ?? 22.0);
-  const notchStrength = params.beddingNotchStrength ?? params.masterNotch ?? 0.82;
+  const buttressProjection = (params.chimneyDepth ?? 11.5) * 0.52 * fissureStrength;
+  const columnWidth = Math.max(16.0, (params.fissureSpacing ?? params.jointSpacing ?? 22.0) * 0.95);
+  const ledgeStepStrength = params.beddingNotchStrength ?? params.masterNotch ?? 0.82;
   const flutingStrength = params.columnFluting ?? fissureStrength;
-  const fissureNoise = new SeededNoise((params.seed || 4217) + 5119);
-  const scarNoise = new SeededNoise((params.seed || 4217) + 8837);
+
+  const pilasterNoise = new SeededNoise((params.seed || 4217) + 5119);
+  const tierNoise = new SeededNoise((params.seed || 4217) + 8837);
 
   const halfWorld = domain.worldSize * 0.5;
   const strideY = nx;
   const strideZ = nx * ny;
+
+  // Regional tectonic joint orientation (aligned cleanly to avoid thin sub-voxel staircase aliasing)
+  const cosA = Math.cos(0.32);
+  const sinA = Math.sin(0.32);
 
   for (let z = 2; z < nz - 2; z++) {
     const wz = z * voxelSizeXZ - halfWorld;
@@ -534,113 +536,99 @@ export function applyVerticalJointFissuresNode(
     for (let x = 2; x < nx - 2; x++) {
       const idx2D = zOff2D + x;
       const mDist = vol.monolithDist[idx2D];
-      if (mDist < -20.0 || mDist > 12.0) continue;
+      // Operate in the perimeter band around monolith walls
+      if (mDist < -16.0 || mDist > 16.0) continue;
 
       const wx = x * voxelSizeXZ - halfWorld;
       const floorH = vol.bedrockHeight[idx2D];
       const summitH = vol.monolithSummitH[idx2D];
       const towerSpan = Math.max(30.0, summitH - floorH);
 
-      // 1. Low-frequency Fracture Zone Mask:
-      // Leaves ~45% of cliff walls as massive, sheer, unbroken sandstone slabs!
-      const zoneRaw = fissureNoise.simplex2D(wx * 0.011 + 19.4, wz * 0.011 - 43.2);
-      const fractureZoneMask = Math.max(0.0, Math.min(1.0, (zoneRaw + 0.22) / 0.68));
+      // 1. Low-frequency Architectural Zone Mask:
+      // Leaves ~40% of cliff walls as broad, sheer, unbroken planar sandstone faces!
+      const zoneRaw = pilasterNoise.simplex2D(wx * 0.011 + 19.4, wz * 0.011 - 43.2);
+      const activeZone = Math.max(0.0, Math.min(1.0, (zoneRaw + 0.18) / 0.62));
+      if (activeZone < 0.02) continue;
 
-      // 2. Non-periodic Warped Tectonic Joint Fields (two non-orthogonal conjugate sets)
-      const warpX = fissureNoise.simplex2D(wx * 0.016, wz * 0.016) * 18.0;
-      const warpZ = fissureNoise.simplex2D(wx * 0.016 + 73.1, wz * 0.016 - 29.8) * 18.0;
-      const qx = (wx + warpX) * spacingScale;
-      const qz = (wz + warpZ) * spacingScale;
+      // 2. Purely 2D Rectangular Buttress Pilaster Grid (∂/∂y = 0 along the vertical column shaft!)
+      const u = wx * cosA - wz * sinA;
+      const v = wx * sinA + wz * cosA;
 
-      // Primary major chasm field (sparse, deep tectonic clefts)
-      const fMajor = Math.abs(fissureNoise.simplex2D(qx * 0.028 + 11.3, qz * 0.028 - 37.9));
-      const majorChasm = Math.pow(Math.max(0.0, 1.0 - fMajor / 0.16), 2.2) * fractureZoneMask;
+      const cellU = Math.floor(u / columnWidth);
+      const cellV = Math.floor(v / columnWidth);
+      const localU = u - (cellU + 0.5) * columnWidth;
+      const localV = v - (cellV + 0.5) * columnWidth;
 
-      // Secondary conjugate joint field
-      const fSec = Math.abs(fissureNoise.simplex2D(qx * 0.049 - 53.2, qz * 0.049 + 81.4));
-      const secJoint = Math.pow(Math.max(0.0, 1.0 - fSec / 0.14), 2.0) * (0.4 + 0.6 * fractureZoneMask);
+      // Deterministic per-cell hash so adjacent vertical pilasters have distinct heights & projections
+      const cellHash1 = Math.sin(cellU * 127.1 + cellV * 311.7) * 43758.5453;
+      const cellRand1 = cellHash1 - Math.floor(cellHash1);
+      const cellHash2 = Math.sin(cellU * 269.5 + cellV * 183.3) * 43758.5453;
+      const cellRand2 = cellHash2 - Math.floor(cellHash2);
 
-      // 3. Per-Location Stratigraphic Fault-Block Shift (breaks up horizontal alignment across towers!)
-      const faultBlockShift =
-        scarNoise.simplex2D(wx * 0.0065 - 31.4, wz * 0.0065 + 67.2) * 34.0 +
-        (wx * 0.048 - wz * 0.032);
+      // 2D L6 bevelled rectangular pilaster distance in the (u, v) plane
+      const halfW = columnWidth * (0.34 + 0.12 * cellRand1);
+      const du = Math.abs(localU) / halfW;
+      const dv = Math.abs(localV) / halfW;
+      const norm6 = Math.pow(Math.pow(du, 6.0) + Math.pow(dv, 6.0), 1.0 / 6.0);
+      const dCellBox2D = (norm6 - 1.0) * halfW;
 
-      // Vertical arrest bounds so vertical joints start & stop at different rock layers
-      const arrestLow = 0.12 + 0.38 * Math.max(0.0, scarNoise.simplex2D(wx * 0.021, wz * 0.021));
-      const arrestHigh = 0.62 + 0.38 * Math.max(0.0, scarNoise.simplex2D(wx * 0.021 + 91.2, wz * 0.021));
+      // A pilaster hugs the monolith wall (mDist ≈ 0) and projects outward by buttressProjection meters
+      const pilasterOutward = buttressProjection * (0.55 + 0.45 * cellRand1) * activeZone;
+      const dPilasterHoriz = Math.max(mDist - pilasterOutward, dCellBox2D);
 
-      const yStart = Math.max(2, bandMinY[idx2D]);
-      const yEnd = Math.min(ny - 3, bandMaxY[idx2D]);
+      // Quantized stepped ledge height for this vertical pilaster (38% to 88% of tower height)
+      const quantizedTier = Math.floor(cellRand2 * 4.0) / 3.0; // {0.0, 0.33, 0.67, 1.0}
+      const pilasterCapH =
+        floorH + towerSpan * (0.36 + 0.50 * quantizedTier) +
+        tierNoise.simplex2D(wx * 0.025, wz * 0.025) * 2.5;
 
-      for (let y = yStart; y <= yEnd; y++) {
+      // Secondary lower pedestal buttress tier (creates multi-tiered wedding-cake buttresses)
+      const lowerButtressOutward = pilasterOutward * 1.45 * ledgeStepStrength;
+      const dLowerButtressHoriz = Math.max(mDist - lowerButtressOutward, dCellBox2D - 2.5);
+      const lowerButtressCapH = floorH + towerSpan * (0.22 + 0.24 * cellRand1);
+
+      // 3. Broad, Smooth Vertical Columnar Fluting (Purely 2D in XZ so it is 100% straight vertically!)
+      const flute2D =
+        (pilasterNoise.simplex2D(u * 0.045 + 13.1, v * 0.045 - 29.7) * 1.6 +
+          pilasterNoise.simplex2D(u * 0.022 - 41.2, v * 0.022 + 18.9) * 2.1) *
+        flutingStrength *
+        activeZone;
+
+      const yMin = Math.max(2, Math.min(bandMinY[idx2D], Math.floor(floorH / voxelSizeY) - 2));
+      const yMax = Math.min(ny - 3, Math.max(bandMaxY[idx2D], Math.ceil(summitH / voxelSizeY) + 3));
+      bandMinY[idx2D] = yMin;
+      bandMaxY[idx2D] = yMax;
+
+      // Keep monolithDist updated so downstream ConicalTalusSkirt wraps smoothly around the new buttresses
+      const newHorizDist = Math.min(mDist, dPilasterHoriz, dLowerButtressHoriz);
+      vol.monolithDist[idx2D] = newHorizDist;
+
+      for (let y = yMin; y <= yMax; y++) {
         const idx3D = zOff3D + y * strideY + x;
-        const phi = sdfGrid[idx3D];
-        if (Math.abs(phi) > 15.0) continue;
+        let phi = sdfGrid[idx3D];
+        if (Math.abs(phi) > 18.0) continue;
 
         const wy = y * voxelSizeY;
         const hRel = (wy - floorH) / towerSpan;
-        if (hRel < 0.05) continue;
+        if (hRel < 0.04) continue;
 
-        // A. Major Tectonic Chasm (runs through the upper/middle cliff)
-        const majorVertMask = Math.min(1.0, Math.max(0.0, (hRel - 0.10) / 0.25));
-        const majorCarve = majorChasm * majorVertMask * fissureStrength * chimneyMeters * 1.18;
+        // Apply strictly vertical 2D columnar fluting to the main wall
+        const verticalFade = Math.min(1.0, (hRel - 0.04) / 0.15) * Math.min(1.0, (1.02 - hRel) / 0.10);
+        phi += flute2D * Math.max(0.0, verticalFade);
 
-        // B. Secondary Conjugate Diagonal Joint (tilts diagonally with elevation wy & arrests at bedding contacts!)
-        const diagF = Math.abs(
-          fissureNoise.simplex3D(
-            (wx + wy * 0.26) * 0.036 * spacingScale,
-            wy * 0.012,
-            (wz - wy * 0.22) * 0.036 * spacingScale
-          )
-        );
-        const diagCrack = Math.pow(Math.max(0.0, 1.0 - diagF / 0.13), 2.0);
-        const arrestMask =
-          hRel >= arrestLow && hRel <= arrestHigh
-            ? Math.sin(((hRel - arrestLow) / Math.max(0.12, arrestHigh - arrestLow)) * Math.PI)
-            : 0.0;
-        const conjugateCarve =
-          (secJoint * arrestMask + diagCrack * fractureZoneMask * 0.65) *
-          fissureStrength *
-          chimneyMeters *
-          0.75;
+        // Union Tier 1: Tall Vertical Sandstone Pilaster Column (flat horizontal top at pilasterCapH)
+        if (pilasterOutward > 0.5) {
+          const phiPilaster = smoothMax(dPilasterHoriz, wy - pilasterCapH, 2.4);
+          phi = smoothMin(phi, phiPilaster, 2.6);
+        }
 
-        // C. Irregular 3D Angular Fluting / Craggy Ledge Relief (non-uniform in Y!)
-        const cragFlute =
-          fissureNoise.simplex3D(wx * 0.042, wy * 0.028, wz * 0.042) *
-          scarNoise.simplex3D(wx * 0.019 + 41.0, wy * 0.045, wz * 0.019 - 19.0) *
-          2.2 *
-          flutingStrength;
+        // Union Tier 2: Lower Stepped Pedestal Buttress (flat horizontal bench at lowerButtressCapH)
+        if (lowerButtressOutward > 0.5) {
+          const phiLowerButtress = smoothMax(dLowerButtressHoriz, wy - lowerButtressCapH, 2.4);
+          phi = smoothMin(phi, phiLowerButtress, 2.8);
+        }
 
-        // D. Localized, Fault-Shifted Bedding Partings That Pinch Out Laterally (NO global belt rings!)
-        const shiftedY = wy + faultBlockShift;
-        const pinchMask1 = Math.max(
-          0.0,
-          scarNoise.simplex3D(wx * 0.017 + 13.5, wy * 0.015, wz * 0.017 - 27.1) - 0.18
-        );
-        const pinchMask2 = Math.max(
-          0.0,
-          scarNoise.simplex3D(wx * 0.014 - 58.2, wy * 0.018, wz * 0.014 + 44.9) - 0.24
-        );
-        const bedSeam1 =
-          Math.pow(Math.max(0.0, Math.sin(shiftedY * 0.115 + warpX * 0.08)), 16.0) *
-          pinchMask1 *
-          notchStrength *
-          4.2;
-        const bedSeam2 =
-          Math.pow(Math.max(0.0, Math.sin(shiftedY * 0.068 - warpZ * 0.09 + 2.1)), 20.0) *
-          pinchMask2 *
-          notchStrength *
-          5.0;
-
-        // E. 3D Conchoidal Rockfall Spall Scars (curved blind-arch recesses on lower/mid walls)
-        const scarCell = scarNoise.simplex3D(wx * 0.024 - 19.3, wy * 0.026 + 7.4, wz * 0.024 + 51.8);
-        const spallArch =
-          hRel > 0.14 && hRel < 0.72 && scarCell > 0.52
-            ? Math.pow((scarCell - 0.52) / 0.48, 1.8) * 3.8 * fissureStrength
-            : 0.0;
-
-        sdfGrid[idx3D] =
-          phi + (majorCarve + conjugateCarve + cragFlute + bedSeam1 + bedSeam2 + spallArch);
+        sdfGrid[idx3D] = phi;
       }
     }
   }

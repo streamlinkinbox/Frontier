@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 9; // Upgrades active graph to non-uniform multi-archetype 3D CSG SDF Monoliths & Quick Starts
+  const engineVersion = 10; // Upgrades VerticalJointFissures to pure 2D-extruded-in-Y CSG pilasters & turret splits
   useEffect(() => {
     const fresh = getInitialGraph('monument_valley');
     setNodes(fresh.nodes);

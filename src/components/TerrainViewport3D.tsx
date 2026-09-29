@@ -326,13 +326,16 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           bandNormalY = (cos(crossPhase) * 0.12 - contactSeam * 0.28) * strikeCut;
         }
 
-        // 5. Non-Periodic Tectonic Cracks & Conjugate Diagonal Fractures (NO periodic sine stripes!)
-        float crackCluster = smoothstep(0.44, 0.72, noise3D(vec3(wp.x * 0.012 + 19.3, wp.y * 0.008, wp.z * 0.012 - 37.1)));
-        float nCrack1 = abs(noise3D(vec3((wp.x + wp.y * 0.18) * 0.042, wp.y * 0.011, (wp.z - wp.y * 0.15) * 0.042)) - 0.5);
-        float nCrack2 = abs(noise3D(vec3((wp.x - wp.y * 0.22) * 0.055 + 31.7, wp.y * 0.014, (wp.z + wp.y * 0.19) * 0.055 - 14.2)) - 0.5);
+        // 5. Strictly Plumb Vertical Tectonic Hairline Joints (Zero Y-wiggle so joints are razor-straight vertically!)
+        // Joints run strictly vertically inside each sandstone tier and arrest/step at horizontal bedding seams!
+        float tierGroup = floor(activeBedId * 0.5);
+        float tierShift = fract(sin(tierGroup * 91.7 + 17.3) * 43758.5453) * 19.0;
+        float crackCluster = smoothstep(0.42, 0.70, noise3D(vec3(wp.x * 0.014 + 19.3, 0.5, wp.z * 0.014 - 37.1)));
+        float vPlane1 = abs(noise3D(vec3(wp.x * 0.046 + tierShift, 1.3, wp.z * 0.046 - tierShift)) - 0.5);
+        float vPlane2 = abs(noise3D(vec3(wp.x * 0.032 - tierShift * 0.7, 2.7, wp.z * 0.032 + tierShift * 0.7)) - 0.5);
         float vertFissure = (
-          smoothstep(0.032, 0.0, nCrack1) +
-          smoothstep(0.025, 0.0, nCrack2) * 0.75
+          smoothstep(0.022, 0.0, vPlane1) * 0.85 +
+          smoothstep(0.018, 0.0, vPlane2) * 0.65
         ) * crackCluster;
 
         // 6. Vertical Desert Varnish Runoff Curtains & Fresh Ochre Spall Contrast
