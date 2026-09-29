@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 17; // Add localized Voronoi fracture shell and 5–20 cm gaps/chip removal
+  const engineVersion = 18; // Refine fractures into sparse local joints and shallow chips; reduce polygon-web artifacts
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);

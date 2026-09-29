@@ -1295,8 +1295,8 @@ export function applySDFNaturalArchesNode(
   vol.archFracture = {
     cellSizeMeters: clampParam(params.fractureCellSize, 2.4, 0.8, 5.0),
     gapMeters: clampParam(params.fractureGapMeters, 0.12, 0.05, 0.20),
-    removalRate: clampParam(params.fractureRemovalRate, 0.04, 0.0, 0.25),
-    patchCoverage: clampParam(params.fracturePatchCoverage, 0.32, 0.0, 0.7),
+    removalRate: clampParam(params.fractureRemovalRate, 0.01, 0.0, 0.15),
+    patchCoverage: clampParam(params.fracturePatchCoverage, 0.18, 0.0, 0.7),
     seed,
   };
   const archStyle: string = params.archStyle || 'double_arch';

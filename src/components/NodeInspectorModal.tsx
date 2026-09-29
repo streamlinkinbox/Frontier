@@ -340,17 +340,17 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
             onChange={(v) => onUpdateAllParams({ ...params, fractureGapMeters: v })}
           />
           <SliderControl
-            label="Removed Surface Chips"
-            value={(params.fractureRemovalRate ?? 0.04) * 100}
+            label="Spall Pocket Frequency"
+            value={(params.fractureRemovalRate ?? 0.01) * 100}
             min={0}
-            max={25}
+            max={15}
             step={1}
             unit="%"
             onChange={(v) => onUpdateAllParams({ ...params, fractureRemovalRate: v / 100 })}
           />
           <SliderControl
             label="Fractured Patch Coverage"
-            value={(params.fracturePatchCoverage ?? 0.32) * 100}
+            value={(params.fracturePatchCoverage ?? 0.18) * 100}
             min={0}
             max={70}
             step={1}

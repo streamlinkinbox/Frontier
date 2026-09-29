@@ -203,8 +203,8 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         const fracture = volume.archFracture;
         shader.uniforms.uFractureCellSize = { value: fracture?.cellSizeMeters ?? 2.4 };
         shader.uniforms.uFractureGap = { value: fracture?.gapMeters ?? 0.12 };
-        shader.uniforms.uFractureRemoval = { value: fracture?.removalRate ?? 0.04 };
-        shader.uniforms.uFractureCoverage = { value: fracture?.patchCoverage ?? 0.32 };
+        shader.uniforms.uFractureRemoval = { value: fracture?.removalRate ?? 0.01 };
+        shader.uniforms.uFractureCoverage = { value: fracture?.patchCoverage ?? 0.18 };
         shader.uniforms.uFractureSeed = { value: fracture?.seed ?? 4217 };
 
         shader.vertexShader = shader.vertexShader.replace(
@@ -233,12 +233,13 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           float fractureHash(vec2 p) {
             return fract(sin(dot(p + uFractureSeed * 0.001, vec2(127.1, 311.7))) * 43758.5453);
           }
-          void fractureVoronoi(vec2 x, out float f1, out float f2, out vec2 nearestCell) {
+          void fractureVoronoi(vec2 x, out float f1, out float f2, out vec2 nearestCell, out vec2 secondCell) {
             vec2 baseCell = floor(x);
             vec2 local = fract(x);
             f1 = 1e6;
             f2 = 1e6;
             nearestCell = baseCell;
+            secondCell = baseCell + vec2(1.0, 0.0);
             for (int j = -1; j <= 1; j++) {
               for (int i = -1; i <= 1; i++) {
                 vec2 offset = vec2(float(i), float(j));
@@ -250,10 +251,12 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
                 float d = dot(local - site, local - site);
                 if (d < f1) {
                   f2 = f1;
+                  secondCell = nearestCell;
                   f1 = d;
                   nearestCell = cell;
                 } else if (d < f2) {
                   f2 = d;
+                  secondCell = cell;
                 }
               }
             }
@@ -274,7 +277,8 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           float f1;
           float f2;
           vec2 fractureCell;
-          fractureVoronoi(fractureCoord, f1, f2, fractureCell);
+          vec2 adjacentCell;
+          fractureVoronoi(fractureCoord, f1, f2, fractureCell, adjacentCell);
           float edgeMeters = max(0.0, (sqrt(max(0.0, f2)) - sqrt(max(0.0, f1))) * uFractureCellSize * 0.5);
           vec2 patchCoord = fractureCoord / 5.0;
           vec2 patchTile = floor(patchCoord);
@@ -289,17 +293,33 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           float patchDistance = length((patchLocal - patchCenter) / vec2(1.25, 0.72));
           float inFracturePatch = patchPick * (1.0 - smoothstep(patchRadius - 0.10, patchRadius + 0.10, patchDistance));
           float cliffMask = smoothstep(0.22, 0.78, 1.0 - abs(fractureNormal.y));
+          vec2 edgeA = min(fractureCell, adjacentCell);
+          vec2 edgeB = max(fractureCell, adjacentCell);
+          float edgeChoice = fractureHash(edgeA * 17.17 + edgeB * 31.73);
+          // Break up the full Voronoi web: only some shared boundaries open into visible joints.
+          float selectedEdge = step(0.54, edgeChoice);
           float aa = max(fwidth(edgeMeters), 0.012);
-          float crack = (1.0 - smoothstep(uFractureGap * 0.5 - aa, uFractureGap * 0.5 + aa, edgeMeters))
-            * inFracturePatch * cliffMask;
-          vec3 fractureCrevice = diffuseColor.rgb * vec3(0.26, 0.19, 0.15);
-          diffuseColor.rgb = mix(diffuseColor.rgb, fractureCrevice, crack * 0.92);
+          float localGap = clamp(uFractureGap * (0.72 + 0.56 * edgeChoice), 0.05, 0.20);
+          float crack = (1.0 - smoothstep(localGap * 0.5 - aa, localGap * 0.5 + aa, edgeMeters))
+            * selectedEdge * inFracturePatch * cliffMask;
+          vec3 fractureCrevice = diffuseColor.rgb * vec3(0.48, 0.34, 0.26);
+          diffuseColor.rgb = mix(diffuseColor.rgb, fractureCrevice, crack * 0.58);
 
-          // A sparse subset of cells is removed only inside active fracture patches.
+          // Chip cells are shallow, warm-shadowed spall pockets; never punch through the whole mesh.
           float chipChoice = fractureHash(fractureCell + vec2(103.7, 29.1));
           float chip = step(1.0 - uFractureRemoval, chipChoice) * inFracturePatch * cliffMask;
-          float cellCore = 1.0 - smoothstep(0.27, 0.36, sqrt(max(0.0, f1)));
-          if (chip * cellCore > 0.5) discard;`
+          float cellRadius = sqrt(max(0.0, f1));
+          float chipInterior = 1.0 - smoothstep(0.18, 0.34, cellRadius);
+          float chipRim = smoothstep(0.22, 0.31, cellRadius) * (1.0 - smoothstep(0.36, 0.48, cellRadius));
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.38, 0.25, 0.19), chip * chipInterior * 0.78);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.10, 0.91, 0.72), chip * chipRim * 0.34);
+          float chipHeight = chip * chipInterior * 0.28 - crack * 0.035;`
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+          vec2 chipGradient = vec2(dFdx(chipHeight), dFdy(chipHeight));
+          normal = normalize(normal + vec3(chipGradient * 2.2, 0.0));`
         );
         return;
       }
