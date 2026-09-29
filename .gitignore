@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.cache/
+__pycache__/
+*.log
+*.blend1
+image-search/
+Unselected files/
+.screenshots/
+.DS_Store

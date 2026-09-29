@@ -1,0 +1,23 @@
+{
+  "name": "Neutral common frog",
+  "species": "Rana temporaria",
+  "triangles": 244944,
+  "bones": 39,
+  "animations": [
+    {
+      "name": "Idle",
+      "duration": 6
+    },
+    {
+      "name": "Blink",
+      "duration": 1.6
+    }
+  ],
+  "colour": "Muted olive-brown / warm ivory",
+  "authorship": "Original procedural surface study, not a scan or certified AAA asset.",
+  "bytes": 12755852,
+  "validation": {
+    "errors": 0,
+    "warnings": 0
+  }
+}

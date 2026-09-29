@@ -1,0 +1,32 @@
+{
+  "name": "frontier-mantis-study",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.mjs",
+    "asset:build": "node scripts/build-asset.mjs",
+    "asset:validate": "node scripts/validate-asset.mjs",
+    "test:viewer": "node scripts/test-viewer.mjs",
+    "test:hunt": "node scripts/test-hunt.mjs",
+    "dev:frog": "FRONTIER_SPECIMEN=frog vite --host 0.0.0.0 --port 5174",
+    "frog:build": "node scripts/build-frog.mjs",
+    "test:frog": "node scripts/test-frog.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/dm-mono": "^5.3.0",
+    "lucide": "^0.468.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@sparticuz/chromium": "^153.0.0",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "vite": "^7.1.7"
+  }
+}

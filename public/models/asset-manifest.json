@@ -1,0 +1,55 @@
+{
+  "name": "Mantis religiosa · adult female",
+  "file": "mantis.glb",
+  "format": "glTF 2.0 binary",
+  "bytes": 19255236,
+  "triangles": 241740,
+  "bones": 43,
+  "materialCount": 15,
+  "embeddedImages": 7,
+  "units": "metres",
+  "nominalBodyLengthMetres": 0.07,
+  "walkTranslationMetresPerSecond": 0.0025,
+  "animations": [
+    {
+      "name": "Idle",
+      "durationSeconds": 6,
+      "channels": 46,
+      "sampleRateHz": 60,
+      "loop": true
+    },
+    {
+      "name": "Walk",
+      "durationSeconds": 2.4000000953674316,
+      "channels": 46,
+      "sampleRateHz": 120,
+      "loop": true,
+      "revision": "slow-wave-v2"
+    },
+    {
+      "name": "Attack",
+      "durationSeconds": 2.4000000953674316,
+      "channels": 46,
+      "sampleRateHz": 240,
+      "loop": false,
+      "revision": "hinged-capture-v2"
+    },
+    {
+      "name": "Stance",
+      "durationSeconds": 6,
+      "channels": 46,
+      "sampleRateHz": 60,
+      "loop": true,
+      "revision": "deimatic-hold-v1"
+    }
+  ],
+  "hindwingMorphTargets": [
+    "DisplayFan"
+  ],
+  "walkPreview": "Tracking ground; the exported Walk clip remains in-place.",
+  "validation": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "notes": "Original procedural anatomical study. Not a photogrammetric scan or production LOD mesh. No floral modifications or gameplay logic."
+}
