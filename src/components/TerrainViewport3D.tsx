@@ -232,19 +232,33 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         vec3 wn = normalize(vTerrainWorldNormal);
         float cliffFactor = clamp((0.82 - abs(wn.y)) * 2.1, 0.0, 1.0);
 
-        // 1. 3D Dipping Tectonic Fault Plane + Regional Dip + 3D Fold
+        // 1. Multi-Block 3D Dipping Tectonic Faults + Spatially Varying Dip & Fold
+        // Ensures different monoliths sit at different stratigraphic elevations and tilt angles!
         float faultWarp = (noise3D(vec3(wp.x * 0.0082, 0.3, wp.z * 0.0082)) - 0.5) * 42.0;
         float faultCoord = wp.x * uFaultCos + wp.z * uFaultSin + (wp.y - 95.0) * uFaultDip + faultWarp;
         float faultTanh = tanh(faultCoord * 0.095);
         float faultStep = faultTanh * uFaultOffset;
         float faultScar = max(0.0, 1.0 - faultTanh * faultTanh);
 
-        float dip = wp.x * 0.028 - wp.z * 0.022;
-        float fold3 = (noise3D(wp * 0.0085) - 0.5) * 10.5;
-        float effY = wp.y + dip + faultStep + fold3;
+        // Secondary cross-fault & per-formation block shift
+        float blockShift = (noise3D(vec3(wp.x * 0.0048 - 17.3, 0.7, wp.z * 0.0048 + 41.9)) - 0.5) * 52.0;
+        float crossFault = tanh((wp.x * -0.55 + wp.z * 0.83 + faultWarp * 0.65) * 0.058) * (uFaultOffset * 0.65);
 
-        // 2. 1D Irregular Voronoi / Variable-Width Bed Partition with Lateral Pinch-Out!
-        float baseCell = 15.0;
+        // Spatially varying dip direction (tilts differently on different formations)
+        float localDipX = 0.036 + (noise3D(vec3(wp.x * 0.0035, 1.1, wp.z * 0.0035)) - 0.5) * 0.065;
+        float localDipZ = -0.028 + (noise3D(vec3(wp.x * 0.0035 + 19.0, 2.3, wp.z * 0.0035)) - 0.5) * 0.065;
+        float dip = wp.x * localDipX + wp.z * localDipZ;
+        float fold3 = (noise3D(wp * 0.0085) - 0.5) * 14.5;
+        float effY = wp.y + dip + faultStep + crossFault + blockShift + fold3;
+
+        // 2. Massive Un-Striped Eolian Sandstone Mask:
+        // In real Monument Valley / Wadi Rum cliffs, ~55% of rock faces are massive cliff-forming
+        // sandstone where horizontal seams pinch out completely, leaving clean sweeping rock faces!
+        float massiveZone = smoothstep(0.36, 0.66, noise3D(vec3(wp.x * 0.0095 - 31.4, wp.y * 0.0075, wp.z * 0.0095 + 23.8)));
+        float beddingPresence = 1.0 - massiveZone * 0.82;
+
+        // 3. Irregular Multi-Scale Bed Partition with Strong Lateral Pinch-Outs
+        float baseCell = 21.0;
         float cellIdx = floor(effY / baseCell);
         float bestTop = 9999.0;
         float bestBot = -9999.0;
@@ -255,8 +269,8 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           float bid = cellIdx + float(k);
           float hSeed = fract(sin(bid * 127.1 + 311.7) * 43758.5453);
 
-          float staticOffset = (hSeed - 0.5) * baseCell * 1.42;
-          float latWave = (noise3D(vec3(wp.x * 0.011 + bid * 11.3, 0.2, wp.z * 0.011 - bid * 8.7)) - 0.5) * 17.5;
+          float staticOffset = (hSeed - 0.5) * baseCell * 1.58;
+          float latWave = (noise3D(vec3(wp.x * 0.012 + bid * 11.3, 0.2, wp.z * 0.012 - bid * 8.7)) - 0.5) * 26.0;
 
           float bY = max(bPrev, bid * baseCell + staticOffset + latWave);
           if (effY >= bPrev && effY < bY && (bY - bPrev) > 0.25) {
@@ -270,62 +284,77 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         float bedWidth = max(0.5, bestTop - bestBot);
         float u = clamp((effY - bestBot) / bedWidth, 0.0, 1.0);
 
-        // Smooth Pinch-Out Seam Taper: when a band pinches out to zero width laterally,
-        // its contact seam fades smoothly to zero instead of stair-stepping!
-        float pinchTaper = smoothstep(0.8, 4.5, bedWidth);
+        // Smooth Pinch-Out Seam Taper: when a band pinches out or enters a massive zone, seams vanish!
+        float pinchTaper = smoothstep(1.2, 5.8, bedWidth) * beddingPresence;
 
         float bedType = fract(sin(activeBedId * 419.2 + 93.1) * 31415.926);
         float bedTone = fract(sin(activeBedId * 173.9 + 19.7) * 65432.1);
 
+        // Strong lateral cut-off so individual seams only run partway across a cliff face!
         float strikeCut = smoothstep(
-          0.22 + bedTone * 0.32,
-          0.44 + bedTone * 0.32,
-          noise3D(vec3(wp.x * 0.013 - activeBedId * 5.7, wp.y * 0.006, wp.z * 0.013 + activeBedId * 9.1))
+          0.36 + bedTone * 0.26,
+          0.62 + bedTone * 0.24,
+          noise3D(vec3(wp.x * 0.014 - activeBedId * 5.7, wp.y * 0.007, wp.z * 0.014 + activeBedId * 9.1))
         ) * pinchTaper;
 
-        // Soft natural bedding contact crevice (no harsh black marker lines!)
-        float contactSeam = exp(-min(u, 1.0 - u) * bedWidth * 1.35) * strikeCut;
+        // Soft natural bedding contact crevice (only where strikeCut is active!)
+        float contactSeam = exp(-min(u, 1.0 - u) * bedWidth * 1.45) * strikeCut;
+
+        // 4. Sweeping Diagonal Aeolian Dune Cross-Bedding (characteristic of desert sandstone!)
+        float crossSetDir = (bedTone > 0.48 ? 1.0 : -1.0);
+        float crossWarp = (noise3D(wp * 0.025) - 0.5) * 4.5;
+        float crossPhase = wp.y * 0.85 + (wp.x * 0.38 - wp.z * 0.34) * crossSetDir + crossWarp;
+        float crossForeset = sin(crossPhase) * 0.055 * (0.45 + 0.55 * massiveZone);
 
         float bandShade = 0.0;
         float bandNormalY = 0.0;
 
-        if (bedWidth > 18.5) {
-          // WIDE MASSIVE MONOLITH BAND: Vertical rock fracture columns + caprock ledge
-          float vertJoint = (noise3D(vec3(wp.x * 0.075, wp.y * 0.014, wp.z * 0.075)) - 0.5) * 0.13;
-          float capLedge = smoothstep(0.76, 0.96, u) * 0.11;
-          bandShade = (capLedge + vertJoint) * strikeCut;
-          bandNormalY = (capLedge * 0.65 - contactSeam * 0.38) * strikeCut;
-        } else if (bedType < 0.42) {
-          // THIN / MEDIUM RECESSED SHALE SLOT
+        if (bedWidth > 20.0 || massiveZone > 0.55) {
+          // WIDE MASSIVE SANDSTONE FACE: Sweeping diagonal cross-bedding + subtle vertical rock facets
+          float rockFacet = (noise3D(vec3(wp.x * 0.048, wp.y * 0.016, wp.z * 0.048)) - 0.5) * 0.11;
+          float capLedge = smoothstep(0.78, 0.96, u) * 0.09 * strikeCut;
+          bandShade = capLedge + rockFacet + crossForeset;
+          bandNormalY = (capLedge * 0.55 - contactSeam * 0.32) + cos(crossPhase) * 0.08 * massiveZone;
+        } else if (bedType < 0.36) {
+          // LOCALIZED RECESSED SHALE PARTING / ALCOVE SLOT
           float slot = sin(u * 3.14159);
-          bandShade = (-slot * 0.15) * strikeCut;
-          bandNormalY = cos(u * 3.14159) * 0.24 * strikeCut;
+          bandShade = (-slot * 0.14) * strikeCut + crossForeset * 0.5;
+          bandNormalY = cos(u * 3.14159) * 0.22 * strikeCut;
         } else {
-          // MIXED / CROSS-BEDDED BAND: Tilted aeolian cross-strata
-          float tiltDir = (bedTone > 0.5 ? 1.0 : -1.0);
-          float crossPhase = (effY * 1.45 + (wp.x * 0.48 + wp.z * 0.42) * tiltDir);
-          float crossLamina = sin(crossPhase) * 0.07;
-          bandShade = (crossLamina + (bedTone - 0.5) * 0.11) * strikeCut;
-          bandNormalY = (cos(crossPhase) * 0.14 - contactSeam * 0.34) * strikeCut;
+          // INTERBEDDED SANDSTONE & CROSS-STRATA LEDGE
+          bandShade = (crossForeset * 1.3 + (bedTone - 0.5) * 0.09) * (0.35 + 0.65 * strikeCut);
+          bandNormalY = (cos(crossPhase) * 0.12 - contactSeam * 0.28) * strikeCut;
         }
 
-        // 3. Vertical Tectonic Joint Fissures, Columnar Fluting & Desert Varnish Streaks
-        float varnishNoise = noise3D(vec3(wp.x * 0.065, wp.y * 0.0045, wp.z * 0.065));
-        float varnishStreak = smoothstep(0.46, 0.82, varnishNoise) * 0.14 * cliffFactor;
+        // 5. Non-Periodic Tectonic Cracks & Conjugate Diagonal Fractures (NO periodic sine stripes!)
+        float crackCluster = smoothstep(0.44, 0.72, noise3D(vec3(wp.x * 0.012 + 19.3, wp.y * 0.008, wp.z * 0.012 - 37.1)));
+        float nCrack1 = abs(noise3D(vec3((wp.x + wp.y * 0.18) * 0.042, wp.y * 0.011, (wp.z - wp.y * 0.15) * 0.042)) - 0.5);
+        float nCrack2 = abs(noise3D(vec3((wp.x - wp.y * 0.22) * 0.055 + 31.7, wp.y * 0.014, (wp.z + wp.y * 0.19) * 0.055 - 14.2)) - 0.5);
+        float vertFissure = (
+          smoothstep(0.032, 0.0, nCrack1) +
+          smoothstep(0.025, 0.0, nCrack2) * 0.75
+        ) * crackCluster;
 
-        // Sharp vertical fracture cracks running top-to-bottom along sandstone monoliths
-        float jWarp = (noise3D(vec3(wp.x * 0.022, wp.y * 0.012, wp.z * 0.022)) - 0.5) * 8.5;
-        float vCrack1 = abs(sin((wp.x * 0.93 - wp.z * 0.35 + jWarp) * 0.14));
-        float vCrack2 = abs(sin((wp.x * 0.35 + wp.z * 0.93 - jWarp) * 0.16));
-        float vertFissure = max(
-          smoothstep(0.11, 0.0, vCrack1),
-          smoothstep(0.09, 0.0, vCrack2) * 0.85
-        );
+        // 6. Vertical Desert Varnish Runoff Curtains & Fresh Ochre Spall Contrast
+        // Dark manganese-iron oxide streaks dripping vertically from upper ledges
+        float varnishNoise = noise3D(vec3(wp.x * 0.058, wp.y * 0.0032, wp.z * 0.058));
+        float upperWallMask = smoothstep(45.0, 95.0, wp.y);
+        float varnishStreak = smoothstep(0.48, 0.80, varnishNoise) * 0.24 * upperWallMask * cliffFactor;
 
-        // Warm dark-umber crevice AO + vertical joint fissures + desert varnish + tectonic fault scar
-        vec3 creviceUmber = diffuseColor.rgb * vec3(0.46, 0.36, 0.31);
+        // Regional 3D mineral color variation (shifts between warm golden ochre & deep burnt sienna)
+        float mineralPatch = noise3D(vec3(wp.x * 0.0075 + 11.3, wp.y * 0.006, wp.z * 0.0075 - 29.7));
+        vec3 warmGoldShift = mix(vec3(0.92, 0.86, 0.82), vec3(1.12, 1.04, 0.90), mineralPatch);
+        diffuseColor.rgb *= mix(vec3(1.0), warmGoldShift, cliffFactor * 0.65);
+
+        // Freshly spalled lower/mid rock alcoves expose brighter golden-salmon sandstone
+        float spallPatch = smoothstep(0.54, 0.78, noise3D(vec3(wp.x * 0.021 - 9.2, wp.y * 0.024, wp.z * 0.021 + 37.4)));
+        float freshSpall = spallPatch * (1.0 - upperWallMask * 0.7) * cliffFactor;
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.18, 1.12, 0.96), freshSpall * 0.45);
+
+        // Warm dark-umber crevice AO + non-periodic tectonic fissures + desert varnish + fault scar
+        vec3 creviceUmber = diffuseColor.rgb * vec3(0.40, 0.30, 0.26);
         float creviceWeight = clamp(
-          (contactSeam * 0.42 + vertFissure * 0.38 + varnishStreak + faultScar * 0.22) * cliffFactor,
+          (contactSeam * 0.38 + vertFissure * 0.42 + varnishStreak + faultScar * 0.22) * cliffFactor,
           0.0,
           0.68
         );

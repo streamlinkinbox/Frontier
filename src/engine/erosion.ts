@@ -150,8 +150,12 @@ export function sample3DStrataProfile(
   const faultStepY = faultTanh * faultThrow;
   const faultScarMask = Math.max(0, 1.0 - faultTanh * faultTanh); // sech^2(faultCoord) peak at fault line
 
-  const dip = wx * 0.028 - wz * 0.022;
-  const fold3D = (nA * 0.65 + nB * 0.35) * 8.5;
+  const dip = wx * 0.036 - wz * 0.028;
+  // Multi-block tectonic warp & secondary cross-fault so different monoliths sit at different stratigraphic offsets!
+  const blockOffset =
+    noise.simplex2D(wx * 0.0048 - 29.4, wz * 0.0048 + 53.7) * 26.0 +
+    Math.tanh((wx * -0.55 + wz * 0.83 + nB * 28.0) * 0.065) * (faultThrow * 0.65);
+  const fold3D = (nA * 0.65 + nB * 0.35) * 14.5 + blockOffset;
 
   const effectiveY = wy + dip + faultStepY + fold3D;
   const colScale = Math.max(0.65, Math.min(1.6, (strataFrequency || 11) / 11.0));
@@ -170,8 +174,8 @@ export function sample3DStrataProfile(
 
     if (k < numUnits - 1) {
       const lensWave = BOUNDARY_COS[k] * nA + BOUNDARY_SIN[k] * nB;
-      // Thin and medium beds have strong lateral pinch-out waves so they cut off sooner!
-      const pinchAmp = STRATA_REL_THICKNESS[k] < 0.6 ? 12.0 : 8.5;
+      // Strong lateral pinch-out waves so beds cut off and merge into massive sandstone!
+      const pinchAmp = STRATA_REL_THICKNESS[k] < 0.6 ? 16.5 : 11.5;
       topY += lensWave * pinchAmp;
     }
 
@@ -192,16 +196,21 @@ export function sample3DStrataProfile(
   const relWidth = STRATA_REL_THICKNESS[activeBed];
 
   // Smooth fade when a band pinches out laterally so pinched seams taper cleanly
-  const pinchOutFade = smoothstep(0.55, 3.8, bedThickness);
+  const pinchOutFade = smoothstep(0.65, 4.2, bedThickness);
+
+  // 3D Massive Sandstone Facies Mask:
+  // Where massiveMask is high, horizontal seams fade out into a sheer, un-banded eolian cliff face!
+  const massiveRaw = noise.simplex3D(wx * 0.0095 - 41.2, wy * 0.0075, wz * 0.0095 + 18.6);
+  const massiveFaceAtten = 1.0 - 0.78 * smoothstep(0.12, 0.52, massiveRaw);
 
   // Lateral modulation along the cliff strike so even a single band varies in XY push/pull
   const strikeNoise = noise.simplex3D(
-    wx * 0.012 + activeBed * 29.1,
-    wy * 0.008,
-    wz * 0.012 - activeBed * 17.7
+    wx * 0.014 + activeBed * 29.1,
+    wy * 0.009,
+    wz * 0.014 - activeBed * 17.7
   );
   const earlyCutNoise = BOUNDARY_SIN[activeBed] * nA - BOUNDARY_COS[activeBed] * nB;
-  const lateralCutMask = smoothstep(-0.34, 0.14, earlyCutNoise) * pinchOutFade;
+  const lateralCutMask = smoothstep(-0.18, 0.28, earlyCutNoise) * pinchOutFade * massiveFaceAtten;
 
   let xyDisp = 0.0;
   let mixedColorMod = 0.0;
@@ -210,11 +219,11 @@ export function sample3DStrataProfile(
     // MIXED BAND ("some bands mixed"):
     // Combines tilted aeolian cross-bedding + laterally alternating pushed-out & recessed lenses!
     const crossBedPhase =
-      u * 3.2 * Math.PI * 2.0 + (wx * 0.045 + wz * 0.035) * (activeBed % 2 === 0 ? 1 : -1);
+      u * 2.6 * Math.PI * 2.0 + (wx * 0.052 - wz * 0.041) * (activeBed % 2 === 0 ? 1 : -1);
     const crossWave = Math.sin(crossBedPhase);
     const lensPushPull = strikeNoise * 1.25;
-    xyDisp = (lensPushPull * Math.sin(u * Math.PI) + crossWave * 0.42) * lateralCutMask;
-    mixedColorMod = crossWave * 0.12 + strikeNoise * 0.10;
+    xyDisp = (lensPushPull * Math.sin(u * Math.PI) + crossWave * 0.38) * lateralCutMask;
+    mixedColorMod = crossWave * 0.09 + strikeNoise * 0.12;
   } else if (baseXYType > 0) {
     // PUSHED-OUT BAND (+XY):
     if (relWidth > 2.0) {
@@ -224,7 +233,7 @@ export function sample3DStrataProfile(
       const baseUndercut = u < 0.12 ? -Math.sin((u / 0.12) * Math.PI) * 0.48 : 0.0;
       const bodyPush = Math.pow(Math.sin(u * Math.PI), 0.48) * 0.88;
       xyDisp = (bodyPush + capOverhang + baseUndercut) * baseXYType * verticalButtress * lateralCutMask;
-      mixedColorMod = strikeNoise * 0.06;
+      mixedColorMod = strikeNoise * 0.08;
     } else {
       // Sharp protruding cornice / caprock ledge pushed strongly OUT in XY!
       const ledgeProfile = Math.pow(u, 0.48) * Math.pow(1.0 - u, 0.38) * 1.75;
@@ -235,7 +244,7 @@ export function sample3DStrataProfile(
     // Soft shale/mudstone slot carved deeply INWARD into the cliff face in XY!
     const slotProfile = Math.pow(Math.sin(u * Math.PI), 0.68);
     const alcoveDepthMod = 0.55 + 0.6 * Math.max(0, strikeNoise + 0.35);
-    xyDisp = baseXYType * slotProfile * alcoveDepthMod * (0.35 + 0.65 * lateralCutMask);
+    xyDisp = baseXYType * slotProfile * alcoveDepthMod * lateralCutMask;
   }
 
   // Carve a subtle 3D tectonic fault-line crevice right along the fault plane
@@ -252,12 +261,30 @@ export function sample3DStrataProfile(
     u < 0.5 ? 0.5 * Math.pow(2.0 * u, 2.4) : 1.0 - 0.5 * Math.pow(2.0 * (1.0 - u), 2.4);
   const stairStepDeltaH = (sharpU - smoothU) * Math.min(20.0, bedThickness * 0.5) * lateralCutMask;
 
-  const baseTone = STRATA_COLOR_TONE[activeBed];
+  // Blend per-bed tone with 3D regional mineral facies & vertical desert varnish streaks
+  // so no two monoliths share the same horizontal color barcode!
+  const regionalMineralShift =
+    noise.simplex3D(wx * 0.0072 + 19.4, wy * 0.0055, wz * 0.0072 - 61.8) * 0.28;
+  const verticalVarnishCurtain =
+    wy > 52.0
+      ? Math.max(0.0, noise.simplex2D(wx * 0.048, wz * 0.048) - 0.15) *
+        Math.min(1.0, (wy - 52.0) / 75.0) *
+        0.26
+      : 0.0;
+  const baseTone =
+    STRATA_COLOR_TONE[activeBed] * (0.35 + 0.65 * lateralCutMask) +
+    0.54 * (1.0 - (0.35 + 0.65 * lateralCutMask));
+
   const strataColorValue = Math.max(
     0.02,
     Math.min(
       0.98,
-      baseTone + xyDisp * 0.14 + mixedColorMod - faultScarMask * 0.18
+      baseTone +
+        regionalMineralShift +
+        xyDisp * 0.14 +
+        mixedColorMod -
+        verticalVarnishCurtain -
+        faultScarMask * 0.18
     )
   );
 

@@ -25,6 +25,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   AlertTriangle,
+  Bookmark,
+  Save,
+  Trash2,
 } from 'lucide-react';
 import {
   GraphNodeData,
@@ -32,9 +35,11 @@ import {
   NODE_CATALOG,
   CatalogItem,
   GraphPresetId,
+  QUICK_START_PRESETS,
 } from '../engine/graphEvaluator';
 import { NodeResolutionReport, SDFDomainConfig } from '../engine/resolutionGuard';
 import { NodeInspectorPanel } from './NodeInspectorModal';
+import { SavedCustomGraph } from '../App';
 
 interface NodeEditorPanelProps {
   nodes: GraphNodeData[];
@@ -62,6 +67,11 @@ interface NodeEditorPanelProps {
   onToggleWireframe: () => void;
   onToggleRiverWater: () => void;
   onLoadGraphPreset?: (preset: GraphPresetId) => void;
+  activePresetId?: string;
+  savedGraphs?: SavedCustomGraph[];
+  onSaveCurrentGraph?: (name?: string) => void;
+  onLoadSavedGraph?: (id: string) => void;
+  onDeleteSavedGraph?: (id: string) => void;
 }
 
 export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
@@ -90,6 +100,11 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
   onToggleWireframe,
   onToggleRiverWater,
   onLoadGraphPreset,
+  activePresetId = 'monument_valley',
+  savedGraphs = [],
+  onSaveCurrentGraph,
+  onLoadSavedGraph,
+  onDeleteSavedGraph,
 }) => {
   // Pan & Zoom state for the Node Canvas
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -119,6 +134,8 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
   const [showNodeLibrary, setShowNodeLibrary] = useState<boolean>(false);
   const [showInspector, setShowInspector] = useState<boolean>(false);
   const [showViewMenu, setShowViewMenu] = useState<boolean>(false);
+  const [showQuickStart, setShowQuickStart] = useState<boolean>(false);
+  const [customGraphName, setCustomGraphName] = useState<string>('');
   const [canvasControls, setCanvasControls] = useState<boolean>(true);
   const [backgroundMode, setBackgroundMode] = useState<'dotted' | 'blank'>('dotted');
 
@@ -271,7 +288,10 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
       >
         {/* Grid / Node Library Button */}
         <button
-          onClick={() => setShowNodeLibrary((v) => !v)}
+          onClick={() => {
+            setShowNodeLibrary((v) => !v);
+            setShowQuickStart(false);
+          }}
           title="Toggle Node Library"
           className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
             showNodeLibrary
@@ -289,6 +309,7 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
               onSelectNode(nodes[0].id);
             }
             setShowInspector((v) => !v);
+            setShowQuickStart(false);
           }}
           title="Toggle Node Parameters & SDF Resolution Guard"
           className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
@@ -298,6 +319,23 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
           }`}
         >
           <SlidersHorizontal className="w-4 h-4" />
+        </button>
+
+        {/* Quick Start & Saved Node Graphs Button */}
+        <button
+          onClick={() => {
+            setShowQuickStart((v) => !v);
+            setShowNodeLibrary(false);
+          }}
+          title="Quick Start Presets & Saved Node Graphs"
+          className={`h-8 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-medium transition ${
+            showQuickStart
+              ? 'bg-white text-black shadow'
+              : 'text-neutral-300 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Bookmark className="w-3.5 h-3.5" />
+          <span>Quick Start</span>
         </button>
 
         {/* Vertical Divider */}
@@ -316,6 +354,133 @@ export const NodeEditorPanel: React.FC<NodeEditorPanelProps> = ({
           />
         </button>
       </div>
+
+      {/* QUICK START & SAVED NODE GRAPHS POPOVER */}
+      {showQuickStart && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          className="absolute top-20 left-1/2 -translate-x-1/2 z-30 w-[320px] rounded-[22px] bg-[#111111]/95 backdrop-blur-md border border-white/14 p-4 shadow-2xl"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-3.5 h-3.5 text-neutral-400" />
+              <span className="text-xs font-semibold text-white">
+                Quick Start & Saved Nodes
+              </span>
+            </div>
+            <button
+              onClick={() => setShowQuickStart(false)}
+              className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="text-[10px] tracking-wider uppercase text-neutral-500 font-semibold mb-2">
+            BUILT-IN QUICK STARTS
+          </div>
+          <div className="space-y-1.5 mb-3">
+            {QUICK_START_PRESETS.map((preset) => {
+              const isActive = activePresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    onLoadGraphPreset?.(preset.id);
+                    setShowQuickStart(false);
+                  }}
+                  className={`w-full text-left p-2.5 rounded-xl border transition ${
+                    isActive
+                      ? 'bg-white/12 border-white/55'
+                      : 'bg-[#181818] border-white/8 hover:border-white/25'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-xs font-semibold text-white">
+                      {preset.name}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-300 font-medium">
+                      {preset.badge}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400 leading-snug">
+                    {preset.subtitle}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Save Current Node Graph as a Custom Quick Start */}
+          {onSaveCurrentGraph && (
+            <div className="pt-3 border-t border-white/10">
+              <div className="text-[10px] tracking-wider uppercase text-neutral-500 font-semibold mb-2">
+                SAVE CURRENT NODES AS QUICK START
+              </div>
+              <div className="flex gap-1.5 mb-2.5">
+                <input
+                  type="text"
+                  value={customGraphName}
+                  onChange={(e) => setCustomGraphName(e.target.value)}
+                  placeholder="Custom preset name..."
+                  className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/35"
+                />
+                <button
+                  onClick={() => {
+                    onSaveCurrentGraph(customGraphName);
+                    setCustomGraphName('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white text-black hover:bg-neutral-200 text-xs font-semibold flex items-center gap-1 shrink-0 transition"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save</span>
+                </button>
+              </div>
+
+              {savedGraphs.length > 0 && (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {savedGraphs.map((sg) => {
+                    const isActive = activePresetId === sg.id;
+                    return (
+                      <div
+                        key={sg.id}
+                        className={`flex items-center justify-between p-2 rounded-xl border transition ${
+                          isActive
+                            ? 'bg-white/12 border-white/50'
+                            : 'bg-[#181818] border-white/8 hover:border-white/25'
+                        }`}
+                      >
+                        <button
+                          onClick={() => {
+                            onLoadSavedGraph?.(sg.id);
+                            setShowQuickStart(false);
+                          }}
+                          className="flex-1 text-left truncate pr-2"
+                        >
+                          <div className="text-xs font-medium text-white truncate">
+                            {sg.name}
+                          </div>
+                          <div className="text-[9px] text-neutral-500">
+                            {sg.nodes.length} nodes · saved {sg.savedAt}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => onDeleteSavedGraph?.(sg.id)}
+                          title="Delete saved Quick Start"
+                          className="w-6 h-6 rounded-lg hover:bg-red-500/20 text-neutral-500 hover:text-red-400 flex items-center justify-center transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TOP-RIGHT VIEW SETTINGS BUTTON (Screenshot 3279) */}
       <button

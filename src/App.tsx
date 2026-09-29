@@ -13,12 +13,32 @@ import { SDFTerrainVolume } from './engine/terrainState';
 import { TerrainViewport3D } from './components/TerrainViewport3D';
 import { NodeEditorPanel } from './components/NodeEditorPanel';
 
+export interface SavedCustomGraph {
+  id: string;
+  name: string;
+  savedAt: string;
+  nodes: GraphNodeData[];
+  edges: GraphEdge[];
+}
+
+const SAVED_GRAPHS_STORAGE_KEY = 'frontier_sdf_saved_quickstarts_v1';
+
 export const App: React.FC = () => {
   const initial = useRef(getInitialGraph());
   const [nodes, setNodes] = useState<GraphNodeData[]>(initial.current.nodes);
   const [edges, setEdges] = useState<GraphEdge[]>(initial.current.edges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('node-start');
   const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
+  const [activePresetId, setActivePresetId] = useState<string>('monument_valley');
+
+  const [savedGraphs, setSavedGraphs] = useState<SavedCustomGraph[]>(() => {
+    try {
+      const raw = localStorage.getItem(SAVED_GRAPHS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [domain, setDomain] = useState<SDFDomainConfig>({
     worldSize: 512,
@@ -61,13 +81,14 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 8; // Upgrades active graph to dedicated 8-node 3D CSG SDF Monolith pipeline
+  const engineVersion = 9; // Upgrades active graph to non-uniform multi-archetype 3D CSG SDF Monoliths & Quick Starts
   useEffect(() => {
     const fresh = getInitialGraph('monument_valley');
     setNodes(fresh.nodes);
     setEdges(fresh.edges);
     setSelectedNodeId('node-monoliths');
     setPreviewNodeId(null);
+    setActivePresetId('monument_valley');
     setDomain({
       worldSize: 512,
       maxHeight: 210,
@@ -81,8 +102,54 @@ export const App: React.FC = () => {
     const fresh = getInitialGraph(preset);
     setNodes(fresh.nodes);
     setEdges(fresh.edges);
-    setSelectedNodeId(preset === 'monument_valley' ? 'node-monoliths' : 'node-multifractal');
+    setSelectedNodeId(
+      preset === 'colorado_rivers' ? 'node-multifractal' : 'node-monoliths'
+    );
     setPreviewNodeId(null);
+    setActivePresetId(preset);
+  };
+
+  const handleSaveCurrentGraph = (customName?: string) => {
+    const label =
+      customName?.trim() ||
+      `Custom Graph #${savedGraphs.length + 1} (${nodes.length} nodes)`;
+    const entry: SavedCustomGraph = {
+      id: `saved-${Date.now()}`,
+      name: label,
+      savedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges)),
+    };
+    const next = [entry, ...savedGraphs];
+    setSavedGraphs(next);
+    setActivePresetId(entry.id);
+    try {
+      localStorage.setItem(SAVED_GRAPHS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage quota errors
+    }
+  };
+
+  const handleLoadSavedGraph = (id: string) => {
+    const found = savedGraphs.find((g) => g.id === id);
+    if (!found) return;
+    const clonedNodes: GraphNodeData[] = JSON.parse(JSON.stringify(found.nodes));
+    const clonedEdges: GraphEdge[] = JSON.parse(JSON.stringify(found.edges));
+    setNodes(clonedNodes);
+    setEdges(clonedEdges);
+    setSelectedNodeId(clonedNodes[1]?.id || clonedNodes[0]?.id || null);
+    setPreviewNodeId(null);
+    setActivePresetId(found.id);
+  };
+
+  const handleDeleteSavedGraph = (id: string) => {
+    const next = savedGraphs.filter((g) => g.id !== id);
+    setSavedGraphs(next);
+    try {
+      localStorage.setItem(SAVED_GRAPHS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
   };
 
   useEffect(() => {
@@ -253,6 +320,11 @@ export const App: React.FC = () => {
           onToggleWireframe={() => setWireframe((v) => !v)}
           onToggleRiverWater={() => setShowRiverWater((v) => !v)}
           onLoadGraphPreset={handleLoadGraphPreset}
+          activePresetId={activePresetId}
+          savedGraphs={savedGraphs}
+          onSaveCurrentGraph={handleSaveCurrentGraph}
+          onLoadSavedGraph={handleLoadSavedGraph}
+          onDeleteSavedGraph={handleDeleteSavedGraph}
         />
       </div>
     </div>

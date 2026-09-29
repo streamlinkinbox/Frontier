@@ -547,11 +547,97 @@ export function evaluateTerrainGraph(
   };
 }
 
-export type GraphPresetId = 'monument_valley' | 'colorado_rivers';
+export type GraphPresetId = 'monument_valley' | 'colorado_rivers' | 'wadi_rum_spires';
+
+export interface QuickStartPresetMeta {
+  id: GraphPresetId;
+  name: string;
+  subtitle: string;
+  badge: string;
+}
+
+export const QUICK_START_PRESETS: QuickStartPresetMeta[] = [
+  {
+    id: 'monument_valley',
+    name: 'Monument Valley 3D Monoliths',
+    subtitle: 'Desert pediment, 3D CSG fins, buttes, overhangs & talus skirts',
+    badge: '3D Monoliths',
+  },
+  {
+    id: 'colorado_rivers',
+    name: 'Colorado Canyon & Rivers (Earlier)',
+    subtitle: 'MultiFractal massif, 16-bed 3D strata, sinuous rivers & karst caves',
+    badge: 'Earlier Graph',
+  },
+  {
+    id: 'wadi_rum_spires',
+    name: 'Wadi Rum Spires & Deep Overhangs',
+    subtitle: 'Towering sandstone needles, tectonic chasms & crimson desert floor',
+    badge: 'Spires',
+  },
+];
 
 export function getInitialGraph(
   preset: GraphPresetId = 'monument_valley'
 ): { nodes: GraphNodeData[]; edges: GraphEdge[] } {
+  if (preset === 'wadi_rum_spires') {
+    const base = getInitialGraph('monument_valley');
+    return {
+      nodes: base.nodes.map((n) => {
+        if (n.type === 'SDFMonolithTowers') {
+          return {
+            ...n,
+            params: {
+              ...n.params,
+              seed: 7319,
+              monolithPreset: 'needle_spires',
+              towerHeight: 188,
+              footprintScale: 0.92,
+              caprockCrown: 0.78,
+              steppedBenchRatio: 0.85,
+            },
+          };
+        }
+        if (n.type === 'VerticalJointFissures') {
+          return {
+            ...n,
+            params: {
+              ...n.params,
+              seed: 7319,
+              fissureIntensity: 0.96,
+              chimneyDepth: 14.5,
+              beddingNotchStrength: 0.9,
+            },
+          };
+        }
+        if (n.type === 'BasalWindOverhangs') {
+          return {
+            ...n,
+            params: {
+              ...n.params,
+              seed: 7319,
+              undercutDepth: 17.5,
+              browOverhang: 10.5,
+              alcoveHeight: 42,
+            },
+          };
+        }
+        if (n.type === 'SatMapTexture') {
+          return {
+            ...n,
+            params: {
+              ...n.params,
+              presetId: 'wadi_rum',
+              strataContrast: 0.88,
+            },
+          };
+        }
+        return n;
+      }),
+      edges: base.edges,
+    };
+  }
+
   if (preset === 'colorado_rivers') {
     const nodes: GraphNodeData[] = [
       {
