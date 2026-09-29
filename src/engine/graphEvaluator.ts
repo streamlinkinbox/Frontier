@@ -10,6 +10,8 @@ import {
   applyVerticalJointFissuresNode,
   applyBasalWindOverhangsNode,
   applyConicalTalusSkirtNode,
+  applySDFNaturalArchesNode,
+  getDefaultArchSplines,
 } from './generators';
 import {
   applyCliffAndStrataErosion,
@@ -80,6 +82,23 @@ export const NODE_CATALOG: CatalogItem[] = [
       wallVerticality: 0.92,
       caprockCrown: 0.85,
       steppedBenchRatio: 0.72,
+    },
+  },
+  {
+    type: 'SDFNaturalArches',
+    title: 'SDF Natural Arches',
+    subtitle: 'Procedural & spline-driven 3D arches',
+    category: 'sdf_caves',
+    defaultParams: {
+      seed: 4217,
+      archStyle: 'double_arch',
+      archHeightScale: 1.0,
+      windowOpenness: 1.0,
+      slickrockRamps: 0.88,
+      boulderField: 0.85,
+      proceduralArchCount: 0,
+      showSplineGuides: true,
+      archSplines: getDefaultArchSplines('double_arch', 4217),
     },
   },
   {
@@ -457,6 +476,9 @@ export function evaluateTerrainGraph(
       case 'SDFMonolithTowers':
         applySDFMonolithTowersNode(vol, node.id, node.params as any);
         break;
+      case 'SDFNaturalArches':
+        applySDFNaturalArchesNode(vol, node.id, node.params as any);
+        break;
       case 'VerticalJointFissures':
         applyVerticalJointFissuresNode(vol, node.id, node.params as any);
         break;
@@ -521,7 +543,11 @@ export function evaluateTerrainGraph(
   // still apply subtle geological shading so rivers, cliffs, talus & sediment are clearly readable!
   if (!hasAppliedSatMap && chain.length > 1) {
     applySatMapTexturing(vol, '__auto_preview__', {
-      presetId: vol.has3DMonoliths ? 'monument_valley' : 'utah_badlands',
+      presetId: vol.has3DArches
+        ? 'entrada_arches'
+        : vol.has3DMonoliths
+        ? 'monument_valley'
+        : 'utah_badlands',
       driverMode: 'composite_gaea',
       strataContrast: 0.85,
       riverHighlight: 1.0,
@@ -547,7 +573,11 @@ export function evaluateTerrainGraph(
   };
 }
 
-export type GraphPresetId = 'monument_valley' | 'colorado_rivers' | 'wadi_rum_spires';
+export type GraphPresetId =
+  | 'double_arch_entrada'
+  | 'monument_valley'
+  | 'colorado_rivers'
+  | 'wadi_rum_spires';
 
 export interface QuickStartPresetMeta {
   id: GraphPresetId;
@@ -557,6 +587,12 @@ export interface QuickStartPresetMeta {
 }
 
 export const QUICK_START_PRESETS: QuickStartPresetMeta[] = [
+  {
+    id: 'double_arch_entrada',
+    name: 'Double Arch & Entrada Fins (3D SDF)',
+    subtitle: 'Procedural & spline-driven 3D sandstone arches, slickrock ramps & boulders',
+    badge: '3D Arches',
+  },
   {
     id: 'monument_valley',
     name: 'Monument Valley 3D Monoliths',
@@ -578,8 +614,165 @@ export const QUICK_START_PRESETS: QuickStartPresetMeta[] = [
 ];
 
 export function getInitialGraph(
-  preset: GraphPresetId = 'monument_valley'
+  preset: GraphPresetId = 'double_arch_entrada'
 ): { nodes: GraphNodeData[]; edges: GraphEdge[] } {
+  if (preset === 'double_arch_entrada') {
+    const nodes: GraphNodeData[] = [
+      {
+        id: 'node-start',
+        type: 'Start',
+        title: 'Start',
+        subtitle: 'Entry Point',
+        category: 'entry',
+        x: 40,
+        y: 135,
+        params: {
+          worldSize: 512,
+          maxHeight: 245,
+          sdfResolution: 256,
+          strictLowResBlock: true,
+          blockSkirt: true,
+        },
+      },
+      {
+        id: 'node-pediment',
+        type: 'DesertPediment',
+        title: 'Desert Pediment',
+        subtitle: 'Flat desert basin & dry washes',
+        category: 'generators',
+        x: 295,
+        y: 135,
+        params: {
+          seed: 4217,
+          scale: 18,
+          baseElevation: 16,
+          undulationHeight: 8,
+          duneRippleStrength: 0.45,
+          arroyoWashDepth: 2.8,
+        },
+      },
+      {
+        id: 'node-arches',
+        type: 'SDFNaturalArches',
+        title: 'SDF Natural Arches',
+        subtitle: 'Procedural & spline-driven 3D arches',
+        category: 'sdf_caves',
+        x: 40,
+        y: 290,
+        params: {
+          seed: 4217,
+          archStyle: 'double_arch',
+          archHeightScale: 1.0,
+          windowOpenness: 1.0,
+          slickrockRamps: 0.88,
+          boulderField: 0.85,
+          proceduralArchCount: 0,
+          showSplineGuides: true,
+          archSplines: getDefaultArchSplines('double_arch', 4217),
+        },
+      },
+      {
+        id: 'node-fissures',
+        type: 'VerticalJointFissures',
+        title: 'Vertical Joint Fissures',
+        subtitle: '3D tectonic chimneys & ribs',
+        category: 'sdf_caves',
+        x: 295,
+        y: 290,
+        params: {
+          seed: 4217,
+          fissureIntensity: 0.72,
+          fissureSpacing: 24,
+          chimneyDepth: 8.5,
+          beddingNotchStrength: 0.72,
+          columnFluting: 0.68,
+        },
+      },
+      {
+        id: 'node-overhangs',
+        type: 'BasalWindOverhangs',
+        title: 'Basal Wind Overhangs',
+        subtitle: '3D aeolian undercut alcoves',
+        category: 'sdf_caves',
+        x: 40,
+        y: 445,
+        params: {
+          seed: 4217,
+          undercutDepth: 11.5,
+          alcoveHeight: 36,
+          browOverhang: 7.5,
+          directionalBias: 0.65,
+          windAngleDeg: 35,
+        },
+      },
+      {
+        id: 'node-talus',
+        type: 'ConicalTalusSkirt',
+        title: 'Conical Talus Skirt',
+        subtitle: '34° boulder & scree aprons',
+        category: 'erosion',
+        x: 295,
+        y: 445,
+        params: {
+          seed: 4217,
+          skirtHeight: 38,
+          reposeAngleDeg: 34,
+          gullyChuteStrength: 0.74,
+          boulderRoughness: 0.60,
+        },
+      },
+      {
+        id: 'node-cliffs',
+        type: 'CliffStrata',
+        title: 'Cliff & Strata',
+        subtitle: '16-bed non-uniform 3D strata',
+        category: 'erosion',
+        x: 40,
+        y: 600,
+        params: {
+          cliffSteepness: 0.86,
+          strataFrequency: 10,
+          strataStrength: 0.58,
+          talusReposeAngle: 34,
+          talusRate: 0.58,
+          undercut3D: 0.52,
+          faultOffset: 8,
+          faultAngle: 28,
+          faultDip: 0.24,
+        },
+      },
+      {
+        id: 'node-satmap',
+        type: 'SatMapTexture',
+        title: 'SatMap (Gaea)',
+        subtitle: 'Satellite gradient texturing',
+        category: 'texturing',
+        x: 295,
+        y: 600,
+        params: {
+          presetId: 'entrada_arches',
+          driverMode: 'composite_gaea',
+          strataContrast: 0.88,
+          riverHighlight: 1.0,
+          alluvialTintStrength: 0.82,
+          jitter: 0.28,
+          reverse: false,
+        },
+      },
+    ];
+
+    const edges: GraphEdge[] = [
+      { id: 'e-1', source: 'node-start', target: 'node-pediment' },
+      { id: 'e-2', source: 'node-pediment', target: 'node-arches' },
+      { id: 'e-3', source: 'node-arches', target: 'node-fissures' },
+      { id: 'e-4', source: 'node-fissures', target: 'node-overhangs' },
+      { id: 'e-5', source: 'node-overhangs', target: 'node-talus' },
+      { id: 'e-6', source: 'node-talus', target: 'node-cliffs' },
+      { id: 'e-7', source: 'node-cliffs', target: 'node-satmap' },
+    ];
+
+    return { nodes, edges };
+  }
   if (preset === 'wadi_rum_spires') {
     const base = getInitialGraph('monument_valley');
     return {

@@ -24,12 +24,12 @@ export interface SavedCustomGraph {
 const SAVED_GRAPHS_STORAGE_KEY = 'frontier_sdf_saved_quickstarts_v1';
 
 export const App: React.FC = () => {
-  const initial = useRef(getInitialGraph());
+  const initial = useRef(getInitialGraph('double_arch_entrada'));
   const [nodes, setNodes] = useState<GraphNodeData[]>(initial.current.nodes);
   const [edges, setEdges] = useState<GraphEdge[]>(initial.current.edges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('node-start');
   const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
-  const [activePresetId, setActivePresetId] = useState<string>('monument_valley');
+  const [activePresetId, setActivePresetId] = useState<string>('double_arch_entrada');
 
   const [savedGraphs, setSavedGraphs] = useState<SavedCustomGraph[]>(() => {
     try {
@@ -42,7 +42,7 @@ export const App: React.FC = () => {
 
   const [domain, setDomain] = useState<SDFDomainConfig>({
     worldSize: 512,
-    maxHeight: 210,
+    maxHeight: 245,
     sdfResolution: 256,
     strictLowResBlock: true,
     blockSkirt: true,
@@ -81,17 +81,17 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 12; // Enables full 3D volumetric strata above talus cones & across all stepped monolith tiers
+  const engineVersion = 13; // Adds 3D SDF Natural Arches & Interactive Bezier Arch Splines (Double Arch preset)
   useEffect(() => {
-    const fresh = getInitialGraph('monument_valley');
+    const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);
     setEdges(fresh.edges);
-    setSelectedNodeId('node-monoliths');
+    setSelectedNodeId('node-start');
     setPreviewNodeId(null);
-    setActivePresetId('monument_valley');
+    setActivePresetId('double_arch_entrada');
     setDomain({
       worldSize: 512,
-      maxHeight: 210,
+      maxHeight: 245,
       sdfResolution: 256,
       strictLowResBlock: true,
       blockSkirt: true,
@@ -102,11 +102,19 @@ export const App: React.FC = () => {
     const fresh = getInitialGraph(preset);
     setNodes(fresh.nodes);
     setEdges(fresh.edges);
-    setSelectedNodeId(
-      preset === 'colorado_rivers' ? 'node-multifractal' : 'node-monoliths'
-    );
+    setSelectedNodeId('node-start');
     setPreviewNodeId(null);
     setActivePresetId(preset);
+    const startParams = fresh.nodes.find((n) => n.type === 'Start')?.params;
+    if (startParams) {
+      setDomain({
+        worldSize: Number(startParams.worldSize ?? 512),
+        maxHeight: Number(startParams.maxHeight ?? 210),
+        sdfResolution: Number(startParams.sdfResolution ?? 256),
+        strictLowResBlock: Boolean(startParams.strictLowResBlock ?? true),
+        blockSkirt: Boolean(startParams.blockSkirt ?? true),
+      });
+    }
   };
 
   const handleSaveCurrentGraph = (customName?: string) => {
@@ -289,6 +297,16 @@ export const App: React.FC = () => {
           volume={volume}
           wireframe={wireframe}
           showRiverWater={showRiverWater}
+          selectedNode={nodes.find((n) => n.id === selectedNodeId) || null}
+          onUpdateArchSplines={(nodeId, nextSplines) => {
+            const target = nodes.find((n) => n.id === nodeId);
+            if (target) {
+              handleUpdateNodeParams(nodeId, {
+                ...target.params,
+                archSplines: nextSplines,
+              });
+            }
+          }}
         />
       </div>
 

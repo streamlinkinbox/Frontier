@@ -525,9 +525,14 @@ export function extractSDFMesh(vol: SDFTerrainVolume): ExtractedSDFMesh {
         vol.bedrockHeight[idx2D] + vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D];
       const isOnLooseApron = py <= floorPlusLooseY + 3.5 && (vol.talusHeight[idx2D] > 0.4 || cliff < 0.2);
 
-      // Full Y relaxation on talus/scree cones; strong vertical-ledge & caprock-rim preservation on high monoliths!
-      const yFactor = isOnLooseApron ? 0.92 : Math.max(0.18, 0.68 - cliff * 0.50);
-      const xzFactor = isOnLooseApron ? 1.0 : 0.72;
+      // Full Y relaxation on talus/scree cones; smooth organic 3D relaxation on curved natural arches;
+      // strong vertical-ledge & caprock-rim preservation on flat-topped monoliths!
+      const yFactor = isOnLooseApron
+        ? 0.92
+        : vol.has3DArches
+        ? Math.max(0.48, 0.76 - cliff * 0.24)
+        : Math.max(0.18, 0.68 - cliff * 0.50);
+      const xzFactor = isOnLooseApron ? 1.0 : vol.has3DArches ? 0.78 : 0.72;
 
       if (Math.abs(Math.abs(px) - halfWorld) > borderTol) {
         positions[v3] = px + (avgX - px) * (lambda * xzFactor);
@@ -751,7 +756,7 @@ export function extractSDFMesh(vol: SDFTerrainVolume): ExtractedSDFMesh {
     const isSkirtWall = v >= skirtStartVert;
     const steepness3D = isSkirtWall
       ? 0.92
-      : Math.max(0, Math.min(1, (0.82 - Math.abs(nyNorm)) / 0.55));
+      : Math.max(0, Math.min(1, (0.82 - nyNorm) / 0.55));
     const floorPlusTalusY = vol.bedrockHeight[idx2D] + vol.talusHeight[idx2D];
     const isOnTalusApron =
       !isSkirtWall && vol.talusHeight[idx2D] > 0.8 && wy <= floorPlusTalusY + 3.5;
@@ -791,12 +796,21 @@ export function extractSDFMesh(vol: SDFTerrainVolume): ExtractedSDFMesh {
     }
 
     if (!isSkirtWall) {
-      // 3D Overhang underside & Basal Wind-Sapped Alcove Ambient Occlusion
+      // 3D Overhang underside & Arch Vault Bounce Light / Alcove Shading:
+      // High arch ceilings receive warm golden-terracotta reflected light from the sunlit slickrock floor
       if (nyNorm < 0.08) {
-        const overhangShade = Math.max(0.42, Math.min(1.0, 0.76 + nyNorm * 0.55));
-        r *= overhangShade;
-        g *= overhangShade;
-        b *= overhangShade;
+        const isHighArchVault = vol.has3DArches && wy > floorPlusTalusY + 14.0;
+        if (isHighArchVault) {
+          const bounceFactor = Math.max(0.0, Math.min(1.0, -nyNorm));
+          r = r * (0.86 + 0.12 * bounceFactor);
+          g = g * (0.78 + 0.06 * bounceFactor);
+          b = b * (0.68 - 0.04 * bounceFactor);
+        } else {
+          const overhangShade = Math.max(0.54, Math.min(1.0, 0.80 + nyNorm * 0.42));
+          r *= overhangShade;
+          g *= overhangShade;
+          b *= overhangShade;
+        }
       }
 
       // 3D Underground Karst Cave interior ambient occlusion

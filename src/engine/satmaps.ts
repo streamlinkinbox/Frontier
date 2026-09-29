@@ -21,6 +21,30 @@ export interface SatMapPreset {
 
 export const SATMAP_PRESETS: SatMapPreset[] = [
   {
+    id: 'entrada_arches',
+    name: 'Arches National Park — Entrada Vermilion',
+    region: 'Moab / Grand County, Utah, USA',
+    bedrockRamp: [
+      { pos: 0.0, rgb: [0.54, 0.27, 0.16] },  // Sloping red-orange Dewey Bridge & Slickrock base
+      { pos: 0.18, rgb: [0.66, 0.33, 0.19] }, // Cross-bedded Entrada slickrock amphitheater slabs
+      { pos: 0.42, rgb: [0.76, 0.38, 0.21] }, // Sunlit vermilion-orange arch buttress wall
+      { pos: 0.70, rgb: [0.84, 0.46, 0.25] }, // Glowing golden-orange upper Entrada arch span
+      { pos: 0.90, rgb: [0.89, 0.56, 0.31] }, // Sun-drenched sandstone dome & arch crest
+      { pos: 1.0, rgb: [0.68, 0.36, 0.22] },  // Weathered slickrock crown
+    ],
+    cliffStrataRamp: [
+      { pos: 0.0, rgb: [0.32, 0.14, 0.09] },  // Dark manganese-iron desert varnish streak
+      { pos: 0.25, rgb: [0.72, 0.33, 0.18] }, // Deep Entrada vermilion sandstone bed
+      { pos: 0.52, rgb: [0.58, 0.25, 0.14] }, // Recessed cross-bedded parting seam
+      { pos: 0.80, rgb: [0.86, 0.47, 0.25] }, // Radiant golden-terracotta arch rib face
+      { pos: 1.0, rgb: [0.92, 0.58, 0.33] },  // Sunlit ochre-orange arch intrados highlight
+    ],
+    talusColor: [0.64, 0.31, 0.18],
+    alluvialColor: [0.59, 0.31, 0.19],
+    riverWaterColor: [0.10, 0.33, 0.42],
+    riverBankColor: [0.38, 0.20, 0.13],
+  },
+  {
     id: 'monument_valley',
     name: 'Monument Valley — De Chelly Monoliths',
     region: 'Arizona / Utah Border, USA',

@@ -2,24 +2,33 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ExtractedSDFMesh } from '../engine/marchingCubes';
-import { SDFTerrainVolume } from '../engine/terrainState';
+import { SDFTerrainVolume, ArchSplineControl } from '../engine/terrainState';
+import { GraphNodeData } from '../engine/graphEvaluator';
 
 interface TerrainViewport3DProps {
   meshData: ExtractedSDFMesh | null;
   volume: SDFTerrainVolume | null;
   wireframe?: boolean;
   showRiverWater?: boolean;
+  selectedNode?: GraphNodeData | null;
+  onUpdateArchSplines?: (nodeId: string, nextSplines: ArchSplineControl[]) => void;
 }
 
 export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
   meshData,
   volume,
   wireframe = false,
+  selectedNode = null,
+  onUpdateArchSplines,
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
   const terrainMeshRef = useRef<THREE.Mesh | null>(null);
+  const splineGroupRef = useRef<THREE.Group | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const prevArchModeRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -36,7 +45,8 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
       1.0,
       100000
     );
-    camera.position.set(410, 265, 430);
+    camera.position.set(26, 84, 248);
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -54,10 +64,15 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.target.set(0, 48, 0);
+    controls.target.set(-12, 98, -12);
     controls.maxDistance = 25000;
     controls.minDistance = 8;
     controls.update();
+    controlsRef.current = controls;
+
+    const splineGroup = new THREE.Group();
+    scene.add(splineGroup);
+    splineGroupRef.current = splineGroup;
 
     const groundGeo = new THREE.PlaneGeometry(4000, 4000);
     const groundMat = new THREE.MeshBasicMaterial({
@@ -87,7 +102,7 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     const zAxisMat = new THREE.LineBasicMaterial({ color: 0x3d84d9 });
     scene.add(new THREE.Line(zAxisGeo, zAxisMat));
 
-    const hemiLight = new THREE.HemisphereLight(0xf3f6fc, 0x38322c, 0.86);
+    const hemiLight = new THREE.HemisphereLight(0xf3f6fc, 0x543828, 0.90);
     scene.add(hemiLight);
 
     const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.15);
@@ -108,6 +123,11 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     const rimLight = new THREE.DirectionalLight(0x9dc1ff, 0.58);
     rimLight.position.set(-360, 180, -310);
     scene.add(rimLight);
+
+    // Warm upward slickrock bounce light to illuminate 3D arch undersides (soffits) & alcoves
+    const bounceLight = new THREE.DirectionalLight(0xff8e42, 0.64);
+    bounceLight.position.set(-30, -240, 160);
+    scene.add(bounceLight);
 
     let animId = 0;
     const animate = () => {
@@ -230,7 +250,7 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         `#include <color_fragment>
         vec3 wp = vTerrainWorldPos;
         vec3 wn = normalize(vTerrainWorldNormal);
-        float cliffFactor = clamp((0.82 - abs(wn.y)) * 2.1, 0.0, 1.0);
+        float cliffFactor = clamp((0.82 - wn.y) * 2.1, 0.0, 1.0);
 
         // 1. Multi-Block 3D Dipping Tectonic Faults + Spatially Varying Dip & Fold
         // Ensures different monoliths sit at different stratigraphic elevations and tilt angles!
@@ -368,6 +388,10 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         );
         diffuseColor.rgb = mix(diffuseColor.rgb, creviceUmber, creviceWeight);
 
+        // Warm golden-terracotta slickrock bounce glow on downward-facing 3D arch vaults (soffits)
+        float archSoffitBounce = clamp(-wn.y, 0.0, 1.0) * smoothstep(38.0, 74.0, wp.y);
+        diffuseColor.rgb *= mix(vec3(1.0), vec3(1.24, 1.06, 0.88), archSoffitBounce * 0.55);
+
         float microGrain = (noise3D(wp * 0.65) - 0.5) * 0.045;
         diffuseColor.rgb = clamp(diffuseColor.rgb * (1.0 + bandShade * cliffFactor + microGrain), 0.02, 1.0);`
       );
@@ -385,7 +409,259 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     mesh.receiveShadow = true;
     scene.add(mesh);
     terrainMeshRef.current = mesh;
+
+    // Frame camera through the Double Arch windows when switching to a 3D Natural Arches preset,
+    // or restore overview angle when switching to standard terrain/monoliths
+    const hasArches = Boolean(volume?.has3DArches);
+    if (prevArchModeRef.current !== hasArches && cameraRef.current && controlsRef.current) {
+      prevArchModeRef.current = hasArches;
+      if (hasArches) {
+        cameraRef.current.position.set(26, 84, 248);
+        controlsRef.current.target.set(-12, 98, -12);
+      } else {
+        cameraRef.current.position.set(410, 265, 430);
+        controlsRef.current.target.set(0, 48, 0);
+      }
+      controlsRef.current.update();
+    }
   }, [meshData, volume, wireframe]);
+
+  // 3D Arch Spline Curves & Interactive Draggable Control Points (visible when SDFNaturalArches node is selected)
+  useEffect(() => {
+    const group = splineGroupRef.current;
+    const container = mountRef.current;
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!group || !container || !camera || !controls) return;
+
+    while (group.children.length > 0) {
+      const child = group.children[0];
+      group.remove(child);
+    }
+
+    const isArchNodeSelected =
+      selectedNode?.type === 'SDFNaturalArches' &&
+      selectedNode?.params?.showSplineGuides !== false;
+
+    const splines: ArchSplineControl[] =
+      (isArchNodeSelected ? selectedNode?.params?.archSplines : null) ||
+      volume?.archSplines ||
+      [];
+
+    if (!isArchNodeSelected || splines.length === 0) {
+      return;
+    }
+
+    const handleMeshes: THREE.Mesh[] = [];
+
+    splines.forEach((ctrl, sIdx) => {
+      if (ctrl.enabled === false) return;
+
+      const steps = 40;
+      const extradosPts: THREE.Vector3[] = [];
+      const intradosPts: THREE.Vector3[] = [];
+      const uc = Math.max(0.22, Math.min(0.78, ctrl.crownPosU));
+      const winHalf = Math.max(0.14, Math.min(0.44, ctrl.windowWidthFrac * 0.5));
+      const minBridge = Math.max(15, ctrl.bridgeThickness);
+
+      const evalXZ = (u: number) => {
+        const om = 1.0 - u;
+        return {
+          wx: om * om * ctrl.x0 + 2.0 * om * u * ctrl.xc + u * u * ctrl.x1,
+          wz: om * om * ctrl.z0 + 2.0 * om * u * ctrl.zc + u * u * ctrl.z1,
+        };
+      };
+
+      const evalTopY = (u: number) => {
+        let bell = 0;
+        if (u <= uc) {
+          bell = 1.0 - Math.pow(1.0 - u / uc, 1.85);
+        } else {
+          bell = 1.0 - Math.pow((u - uc) / (1.0 - uc), 1.85);
+        }
+        const pierLerp = ctrl.pierHeight0 * (1.0 - u) + ctrl.pierHeight1 * u;
+        return pierLerp + (ctrl.crownHeight - pierLerp) * bell;
+      };
+
+      for (let i = 0; i <= steps; i++) {
+        const u = i / steps;
+        const { wx, wz } = evalXZ(u);
+        const yTop = evalTopY(u);
+        extradosPts.push(new THREE.Vector3(wx, yTop + 2.5, wz));
+
+        const deltaU = (u - ctrl.windowCenterU) / winHalf;
+        if (Math.abs(deltaU) <= 1.0) {
+          const ySill = ctrl.sillHeight + 14.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.55);
+          const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), 1.82)), 0.76);
+          const rawApex = Math.min(yTop - minBridge, ctrl.windowApexHeight);
+          const yVault = Math.min(yTop - minBridge, ySill + Math.max(12, rawApex - ySill) * vProf);
+          intradosPts.push(new THREE.Vector3(wx, yVault, wz));
+        }
+      }
+
+      const extGeo = new THREE.BufferGeometry().setFromPoints(extradosPts);
+      const extMat = new THREE.LineBasicMaterial({
+        color: sIdx === 0 ? 0xfbbf24 : 0x34d399,
+        depthTest: false,
+      });
+      const extLine = new THREE.Line(extGeo, extMat);
+      extLine.renderOrder = 10;
+      group.add(extLine);
+
+      if (intradosPts.length > 2) {
+        const intGeo = new THREE.BufferGeometry().setFromPoints(intradosPts);
+        const intMat = new THREE.LineBasicMaterial({
+          color: 0x38bdf8,
+          depthTest: false,
+        });
+        const intLine = new THREE.Line(intGeo, intMat);
+        intLine.renderOrder = 10;
+        group.add(intLine);
+      }
+
+      // Add Draggable 3D Control Spheres for Crown Apex, Vault Ceiling, Left Pier & Right Pier
+      const addHandle = (
+        pos: THREE.Vector3,
+        color: number,
+        handleRole: 'crown' | 'vault' | 'pier0' | 'pier1'
+      ) => {
+        const sphereGeo = new THREE.SphereGeometry(5.2, 16, 16);
+        const sphereMat = new THREE.MeshBasicMaterial({
+          color,
+          depthTest: false,
+        });
+        const m = new THREE.Mesh(sphereGeo, sphereMat);
+        m.position.copy(pos);
+        m.renderOrder = 12;
+        m.userData = { splineIdx: sIdx, handleRole };
+        group.add(m);
+        handleMeshes.push(m);
+      };
+
+      const crownXZ = evalXZ(ctrl.crownPosU);
+      addHandle(
+        new THREE.Vector3(crownXZ.wx, ctrl.crownHeight + 2.5, crownXZ.wz),
+        0xfbbf24,
+        'crown'
+      );
+
+      const vaultXZ = evalXZ(ctrl.windowCenterU);
+      addHandle(
+        new THREE.Vector3(vaultXZ.wx, ctrl.windowApexHeight, vaultXZ.wz),
+        0x38bdf8,
+        'vault'
+      );
+
+      addHandle(
+        new THREE.Vector3(ctrl.x0, ctrl.pierHeight0, ctrl.z0),
+        0xf59e0b,
+        'pier0'
+      );
+      addHandle(
+        new THREE.Vector3(ctrl.x1, ctrl.pierHeight1, ctrl.z1),
+        0xf59e0b,
+        'pier1'
+      );
+    });
+
+    // Raycast dragging for 3D Arch Spline Control Spheres
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane();
+    const intersectPt = new THREE.Vector3();
+    let activeHandle: THREE.Mesh | null = null;
+
+    const getPointerNDC = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1;
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!onUpdateArchSplines || !selectedNode) return;
+      getPointerNDC(e);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(handleMeshes, false);
+      if (hits.length > 0) {
+        activeHandle = hits[0].object as THREE.Mesh;
+        controls.enabled = false;
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        dragPlane.setFromNormalAndCoplanarPoint(camDir, activeHandle.position);
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!activeHandle) return;
+      getPointerNDC(e);
+      raycaster.setFromCamera(pointer, camera);
+      if (raycaster.ray.intersectPlane(dragPlane, intersectPt)) {
+        activeHandle.position.y = Math.max(35, Math.min(225, intersectPt.y));
+        const role = activeHandle.userData.handleRole;
+        if (role === 'pier0' || role === 'pier1') {
+          activeHandle.position.x = Math.max(-210, Math.min(210, intersectPt.x));
+          activeHandle.position.z = Math.max(-210, Math.min(210, intersectPt.z));
+        }
+      }
+    };
+
+    const onPointerUp = () => {
+      if (!activeHandle || !onUpdateArchSplines || !selectedNode) return;
+      const { splineIdx, handleRole } = activeHandle.userData;
+      const newY = Math.round(activeHandle.position.y);
+      const newX = Math.round(activeHandle.position.x);
+      const newZ = Math.round(activeHandle.position.z);
+
+      const nextSplines = splines.map((s, idx) => {
+        if (idx !== splineIdx) return s;
+        if (handleRole === 'crown') {
+          const nextCrown = Math.max(s.sillHeight + 42, Math.min(225, newY));
+          return {
+            ...s,
+            crownHeight: nextCrown,
+            windowApexHeight: Math.min(
+              s.windowApexHeight,
+              nextCrown - Math.max(15, s.bridgeThickness)
+            ),
+          };
+        }
+        if (handleRole === 'vault') {
+          const maxV = s.crownHeight - Math.max(15, s.bridgeThickness);
+          return {
+            ...s,
+            windowApexHeight: Math.max(s.sillHeight + 22, Math.min(maxV, newY)),
+          };
+        }
+        if (handleRole === 'pier0') {
+          return { ...s, x0: newX, z0: newZ, pierHeight0: Math.max(55, Math.min(210, newY)) };
+        }
+        if (handleRole === 'pier1') {
+          return { ...s, x1: newX, z1: newZ, pierHeight1: Math.max(55, Math.min(210, newY)) };
+        }
+        return s;
+      });
+
+      activeHandle = null;
+      controls.enabled = true;
+      onUpdateArchSplines(selectedNode.id, nextSplines);
+    };
+
+    const domElem = rendererRef.current?.domElement;
+    if (domElem) {
+      domElem.addEventListener('pointerdown', onPointerDown);
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    }
+
+    return () => {
+      if (domElem) {
+        domElem.removeEventListener('pointerdown', onPointerDown);
+      }
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      controls.enabled = true;
+    };
+  }, [selectedNode, volume, onUpdateArchSplines]);
 
   return (
     <div

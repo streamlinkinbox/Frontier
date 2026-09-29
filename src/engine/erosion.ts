@@ -372,10 +372,12 @@ export function applyVolumetric3DStrataToSDF(vol: SDFTerrainVolume): void {
         );
 
         // Strong, smooth 3D XY push-out (Δφ < 0) and XY pull-in recess (Δφ > 0)
+        // On 3D natural arches, moderate inward pull so free-spanning arch bridges remain structurally thick
+        const archRecessSafety = vol.has3DArches ? 0.58 : 1.0;
         const outwardPushMeters =
           strata.caprockOutward * strength * mask3D * voxelSizeXZ * 2.05;
         const inwardPullMeters =
-          strata.shaleRecess * undercut * mask3D * voxelSizeXZ * 2.15;
+          strata.shaleRecess * undercut * mask3D * voxelSizeXZ * 2.15 * archRecessSafety;
 
         const deltaPhi = inwardPullMeters - outwardPushMeters;
         sdfGrid[idx3D] = phi + deltaPhi;

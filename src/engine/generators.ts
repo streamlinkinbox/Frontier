@@ -1,6 +1,11 @@
 import { SeededNoise } from './noise';
 import { evaluateResolutionForOperation, normalizeSDFNearSurface } from './resolutionGuard';
-import { SDFTerrainVolume, syncHeightfieldToSDF, getTotalSurfaceHeight } from './terrainState';
+import {
+  SDFTerrainVolume,
+  ArchSplineControl,
+  syncHeightfieldToSDF,
+  getTotalSurfaceHeight,
+} from './terrainState';
 
 export interface GeneratorParams {
   seed: number;
@@ -758,24 +763,21 @@ export function applyConicalTalusSkirtNode(
       const wx = x * voxelSizeXZ - halfWorld;
       const floorH = vol.bedrockHeight[idx2D];
 
-      // Radial rockfall chutes along the talus cone
-      const chuteMod =
-        0.82 +
-        0.32 *
-          ribRoughness *
-          chuteNoise.simplex2D(wx * 0.042 + 19.3, wz * 0.042 - 37.1);
+      // Crisp V-shaped radial scree gullies & alluvial fan lobes along the talus cone
+      const vGully =
+        1.0 -
+        Math.abs(chuteNoise.simplex2D(wx * 0.026 + 19.3, wz * 0.026 - 37.1));
+      const chuteMod = 0.86 + 0.24 * ribRoughness * (vGully - 0.35);
       const localSpan = apronSpanBase * chuteMod;
 
       if (mDist < localSpan) {
         const distFromWall = Math.max(0.0, mDist + 2.0);
         const t = Math.max(0.0, 1.0 - distFromWall / (localSpan + 2.0));
-        // Smooth concave-upward 34° scree apron profile + fallen caprock boulder bumps
-        const boulderBump =
-          Math.max(0.0, chuteNoise.simplex2D(wx * 0.085 - 41.2, wz * 0.085 + 63.7)) *
-          1.8 *
-          boulderRough *
-          t;
-        const talusH = Math.pow(t, 1.55) * apronMaxHeight * chuteMod + boulderBump;
+        // Smooth concave-upward scree apron profile that feathers seamlessly into the desert floor
+        const talusProfile = t * t * (1.85 - 0.85 * t) * Math.pow(t, 0.35);
+        const gullyCarve =
+          (1.0 - vGully) * 1.6 * boulderRough * Math.sin(t * Math.PI);
+        const talusH = Math.max(0.0, talusProfile * apronMaxHeight * chuteMod - gullyCarve);
         vol.talusHeight[idx2D] = Math.max(vol.talusHeight[idx2D], talusH);
 
         const topTalusY = floorH + vol.talusHeight[idx2D];
@@ -787,11 +789,853 @@ export function applyConicalTalusSkirtNode(
           const wy = y * voxelSizeY;
           const phiTalus = wy - topTalusY;
           const idx3D = zOff3D + y * strideY + x;
-          sdfGrid[idx3D] = smoothMin(sdfGrid[idx3D], phiTalus, 3.2);
+          sdfGrid[idx3D] = smoothMin(sdfGrid[idx3D], phiTalus, 3.8);
         }
       }
     }
   }
+}
+
+/**
+ * Returns default editable 3D Arch Splines for each natural arch formation style.
+ */
+export function getDefaultArchSplines(
+  archStyle: string = 'double_arch',
+  seed: number = 4217
+): ArchSplineControl[] {
+  const rng = new SeededNoise(seed + 5119);
+  const jx = (i: number) => (rng.white2D(i * 13 + 3, 7) - 0.5) * 10.0;
+  const jz = (i: number) => (rng.white2D(i * 17 + 11, 19) - 0.5) * 10.0;
+
+  if (archStyle === 'delicate_arch') {
+    return [
+      {
+        id: 'arch-delicate-1',
+        name: 'Freestanding Bowl Arch (Primary)',
+        enabled: true,
+        x0: -78 + jx(1),
+        z0: 14 + jz(1),
+        xc: 0,
+        zc: -8,
+        x1: 78 + jx(2),
+        z1: 12 + jz(2),
+        pierHeight0: 148,
+        crownHeight: 196,
+        pierHeight1: 164,
+        crownPosU: 0.53,
+        windowWidthFrac: 0.54,
+        windowCenterU: 0.50,
+        windowApexHeight: 158,
+        sillHeight: 46,
+        bridgeThickness: 24,
+        finHalfWidth: 14.5,
+        buttressRadius: 36,
+        alcoveFlare: 0.85,
+      },
+    ];
+  }
+
+  if (archStyle === 'landscape_fins') {
+    return [
+      {
+        id: 'arch-landscape-1',
+        name: 'Landscape Ribbon Span',
+        enabled: true,
+        x0: -124 + jx(1),
+        z0: 26 + jz(1),
+        xc: -4,
+        zc: 8,
+        x1: 122 + jx(2),
+        z1: 18 + jz(2),
+        pierHeight0: 158,
+        crownHeight: 188,
+        pierHeight1: 166,
+        crownPosU: 0.50,
+        windowWidthFrac: 0.64,
+        windowCenterU: 0.50,
+        windowApexHeight: 162,
+        sillHeight: 44,
+        bridgeThickness: 19,
+        finHalfWidth: 13.0,
+        buttressRadius: 40,
+        alcoveFlare: 0.82,
+      },
+      {
+        id: 'arch-partition-2',
+        name: 'Partition Side Window',
+        enabled: true,
+        x0: -92 + jx(3),
+        z0: -62 + jz(3),
+        xc: -18,
+        zc: -72,
+        x1: 58 + jx(4),
+        z1: -54 + jz(4),
+        pierHeight0: 132,
+        crownHeight: 154,
+        pierHeight1: 142,
+        crownPosU: 0.48,
+        windowWidthFrac: 0.52,
+        windowCenterU: 0.48,
+        windowApexHeight: 122,
+        sillHeight: 42,
+        bridgeThickness: 20,
+        finHalfWidth: 13.0,
+        buttressRadius: 34,
+        alcoveFlare: 0.78,
+      },
+    ];
+  }
+
+  if (archStyle === 'multi_arch_canyon') {
+    return [
+      {
+        id: 'arch-canyon-1',
+        name: 'North Cathedral Span',
+        enabled: true,
+        x0: -102,
+        z0: 44,
+        xc: -8,
+        zc: 24,
+        x1: 96,
+        z1: 32,
+        pierHeight0: 146,
+        crownHeight: 204,
+        pierHeight1: 194,
+        crownPosU: 0.58,
+        windowWidthFrac: 0.56,
+        windowCenterU: 0.48,
+        windowApexHeight: 164,
+        sillHeight: 48,
+        bridgeThickness: 24,
+        finHalfWidth: 14.5,
+        buttressRadius: 38,
+        alcoveFlare: 0.88,
+      },
+      {
+        id: 'arch-canyon-2',
+        name: 'Inner V-Window Span',
+        enabled: true,
+        x0: -88,
+        z0: 18,
+        xc: -26,
+        zc: -32,
+        x1: 32,
+        z1: -56,
+        pierHeight0: 128,
+        crownHeight: 146,
+        pierHeight1: 148,
+        crownPosU: 0.46,
+        windowWidthFrac: 0.54,
+        windowCenterU: 0.46,
+        windowApexHeight: 112,
+        sillHeight: 42,
+        bridgeThickness: 20,
+        finHalfWidth: 12.5,
+        buttressRadius: 33,
+        alcoveFlare: 0.80,
+      },
+      {
+        id: 'arch-canyon-3',
+        name: 'East Alcove Bridge',
+        enabled: true,
+        x0: 42,
+        z0: -52,
+        xc: 94,
+        zc: -14,
+        x1: 134,
+        z1: 42,
+        pierHeight0: 148,
+        crownHeight: 168,
+        pierHeight1: 152,
+        crownPosU: 0.52,
+        windowWidthFrac: 0.50,
+        windowCenterU: 0.50,
+        windowApexHeight: 128,
+        sillHeight: 46,
+        bridgeThickness: 21,
+        finHalfWidth: 13.0,
+        buttressRadius: 34,
+        alcoveFlare: 0.76,
+      },
+    ];
+  }
+
+  // Default: 'double_arch' — Double Arch Amphitheater (Arches National Park Entrada Sandstone)
+  return [
+    {
+      id: 'arch-double-primary',
+      name: 'Primary Foreground High Span',
+      enabled: true,
+      x0: -98,
+      z0: 36,
+      xc: -6,
+      zc: 22,
+      x1: 96,
+      z1: 20,
+      pierHeight0: 142,
+      crownHeight: 208,
+      pierHeight1: 198,
+      crownPosU: 0.60,
+      windowWidthFrac: 0.56,
+      windowCenterU: 0.46,
+      windowApexHeight: 168,
+      sillHeight: 50,
+      bridgeThickness: 24,
+      finHalfWidth: 14.5,
+      buttressRadius: 40,
+      alcoveFlare: 0.90,
+    },
+    {
+      id: 'arch-double-secondary',
+      name: 'Secondary Lower Window Arch',
+      enabled: true,
+      x0: -86,
+      z0: 16,
+      xc: -28,
+      zc: -30,
+      x1: 26,
+      z1: -56,
+      pierHeight0: 128,
+      crownHeight: 144,
+      pierHeight1: 148,
+      crownPosU: 0.45,
+      windowWidthFrac: 0.54,
+      windowCenterU: 0.45,
+      windowApexHeight: 108,
+      sillHeight: 40,
+      bridgeThickness: 20,
+      finHalfWidth: 12.5,
+      buttressRadius: 34,
+      alcoveFlare: 0.82,
+    },
+  ];
+}
+
+interface PrecomputedArchSpline {
+  ctrl: ArchSplineControl;
+  samplesX: Float32Array;
+  samplesZ: Float32Array;
+  samplesU: Float32Array;
+  spanLength: number;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+function precomputeArchSpline(ctrl: ArchSplineControl): PrecomputedArchSpline {
+  const N = 32;
+  const samplesX = new Float32Array(N + 1);
+  const samplesZ = new Float32Array(N + 1);
+  const samplesU = new Float32Array(N + 1);
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let spanLength = 0;
+
+  for (let i = 0; i <= N; i++) {
+    const u = i / N;
+    const om = 1.0 - u;
+    const bx = om * om * ctrl.x0 + 2.0 * om * u * ctrl.xc + u * u * ctrl.x1;
+    const bz = om * om * ctrl.z0 + 2.0 * om * u * ctrl.zc + u * u * ctrl.z1;
+    samplesX[i] = bx;
+    samplesZ[i] = bz;
+    samplesU[i] = u;
+    if (i > 0) {
+      const dx = bx - samplesX[i - 1];
+      const dz = bz - samplesZ[i - 1];
+      spanLength += Math.sqrt(dx * dx + dz * dz);
+    }
+    if (bx < minX) minX = bx;
+    if (bx > maxX) maxX = bx;
+    if (bz < minZ) minZ = bz;
+    if (bz > maxZ) maxZ = bz;
+  }
+
+  const margin = Math.max(ctrl.buttressRadius, ctrl.finHalfWidth) * 2.2 + 24.0;
+  return {
+    ctrl,
+    samplesX,
+    samplesZ,
+    samplesU,
+    spanLength: Math.max(30.0, spanLength),
+    minX: minX - margin,
+    maxX: maxX + margin,
+    minZ: minZ - margin,
+    maxZ: maxZ + margin,
+  };
+}
+
+function projectToArchSpline(
+  pre: PrecomputedArchSpline,
+  wx: number,
+  wz: number
+): { u: number; dPerp: number; dEnd: number } {
+  const { samplesX, samplesZ } = pre;
+  const N = samplesX.length - 1;
+
+  let bestDistSq = Infinity;
+  let bestSeg = 0;
+  let bestT = 0;
+
+  for (let i = 0; i < N; i++) {
+    const ax = samplesX[i];
+    const az = samplesZ[i];
+    const bx = samplesX[i + 1];
+    const bz = samplesZ[i + 1];
+    const abx = bx - ax;
+    const abz = bz - az;
+    const lenSq = abx * abx + abz * abz;
+    let t = lenSq > 1e-6 ? ((wx - ax) * abx + (wz - az) * abz) / lenSq : 0.0;
+    t = Math.max(0.0, Math.min(1.0, t));
+    const px = ax + t * abx;
+    const pz = az + t * abz;
+    const dSq = (wx - px) * (wx - px) + (wz - pz) * (wz - pz);
+    if (dSq < bestDistSq) {
+      bestDistSq = dSq;
+      bestSeg = i;
+      bestT = t;
+    }
+  }
+
+  // Allow smooth continuation past endpoints u=0 and u=1 for anchoring buttresses
+  let u = (bestSeg + bestT) / N;
+  let dEnd = -Math.min(u, 1.0 - u) * pre.spanLength;
+
+  if (bestSeg === 0 && bestT <= 0.001) {
+    const tx = samplesX[1] - samplesX[0];
+    const tz = samplesZ[1] - samplesZ[0];
+    const segLen = Math.sqrt(tx * tx + tz * tz) || 1.0;
+    const proj = ((wx - samplesX[0]) * tx + (wz - samplesZ[0]) * tz) / segLen;
+    if (proj < 0) {
+      u = proj / pre.spanLength;
+      dEnd = -proj - pre.ctrl.buttressRadius * 0.75;
+    }
+  } else if (bestSeg === N - 1 && bestT >= 0.999) {
+    const tx = samplesX[N] - samplesX[N - 1];
+    const tz = samplesZ[N] - samplesZ[N - 1];
+    const segLen = Math.sqrt(tx * tx + tz * tz) || 1.0;
+    const proj = ((wx - samplesX[N]) * tx + (wz - samplesZ[N]) * tz) / segLen;
+    if (proj > 0) {
+      u = 1.0 + proj / pre.spanLength;
+      dEnd = proj - pre.ctrl.buttressRadius * 0.75;
+    }
+  }
+
+  const dPerp = Math.sqrt(bestDistSq);
+  return { u, dPerp, dEnd };
+}
+
+/**
+ * NEW NODE 6: 3D SDF Natural Arches & Splines (`SDFNaturalArches`)
+ * Generates Entrada Sandstone Natural Arches (like Double Arch, Delicate Arch, Landscape Arch)
+ * using both procedural generation AND interactive user-editable 2D/3D Bezier arch splines,
+ * complete with dual-flared conchoidal alcove breakthroughs, central-right Entrada dome turrets,
+ * sloping cross-bedded slickrock amphitheater ledges, and fallen sandstone boulders.
+ */
+export function applySDFNaturalArchesNode(
+  vol: SDFTerrainVolume,
+  nodeId: string,
+  params: Record<string, any>
+): void {
+  const { nx, ny, nz, voxelSizeXZ, voxelSizeY, domain, sdfGrid, bandMinY, bandMaxY } = vol;
+  const report = evaluateResolutionForOperation(domain, nodeId, 'generator', voxelSizeXZ * 2.2);
+  vol.reports[nodeId] = report;
+
+  vol.has3DMonoliths = true;
+  vol.has3DArches = true;
+
+  const seed = params.seed ?? 4217;
+  const archStyle: string = params.archStyle || 'double_arch';
+  const slickrockAmp = params.slickrockRamps ?? 0.85;
+  const boulderDensity = params.boulderField ?? 0.82;
+  const proceduralCount = Math.max(0, Math.min(4, Math.round(params.proceduralArchCount ?? 0)));
+  const globalSpanScale = params.archHeightScale ?? 1.0;
+  const globalWindowScale = params.windowOpenness ?? 1.0;
+
+  // Resolve active splines (either user-customized splines or style preset splines)
+  let baseSplines: ArchSplineControl[] = [];
+  if (Array.isArray(params.archSplines) && params.archSplines.length > 0) {
+    baseSplines = params.archSplines.map((s: ArchSplineControl) => ({ ...s }));
+  } else {
+    baseSplines = getDefaultArchSplines(archStyle, seed);
+  }
+
+  // Append optional extra procedural arches around the canyon perimeter if requested
+  const rng = new SeededNoise(seed + 8831);
+  for (let p = 0; p < proceduralCount; p++) {
+    const angle = (p / Math.max(1, proceduralCount)) * Math.PI * 1.4 - 0.55 + rng.white2D(p, 3) * 0.25;
+    const rad = 115 + rng.white2D(p, 9) * 35;
+    const cx = Math.sin(angle) * rad;
+    const cz = -Math.cos(angle) * rad * 0.82;
+    const dir = angle + Math.PI * 0.45;
+    const halfSpan = 48 + rng.white2D(p, 17) * 24;
+    baseSplines.push({
+      id: `proc-arch-${p + 1}`,
+      name: `Procedural Arch #${p + 1}`,
+      enabled: true,
+      x0: cx - Math.cos(dir) * halfSpan,
+      z0: cz - Math.sin(dir) * halfSpan,
+      xc: cx + Math.sin(dir) * 12,
+      zc: cz - Math.cos(dir) * 12,
+      x1: cx + Math.cos(dir) * halfSpan,
+      z1: cz + Math.sin(dir) * halfSpan,
+      pierHeight0: 118 + rng.white2D(p, 21) * 28,
+      crownHeight: 152 + rng.white2D(p, 29) * 34,
+      pierHeight1: 122 + rng.white2D(p, 37) * 28,
+      crownPosU: 0.45 + rng.white2D(p, 41) * 0.12,
+      windowWidthFrac: 0.52,
+      windowCenterU: 0.50,
+      windowApexHeight: 118 + rng.white2D(p, 47) * 24,
+      sillHeight: 42,
+      bridgeThickness: 20,
+      finHalfWidth: 12.5,
+      buttressRadius: 30,
+      alcoveFlare: 0.78,
+    });
+  }
+
+  const activeSplines = baseSplines.filter((s) => s.enabled !== false);
+  vol.archSplines = baseSplines;
+
+  const preSplines = activeSplines.map((s) => precomputeArchSpline(s));
+  const noise = new SeededNoise(seed + 3191);
+  const halfWorld = domain.worldSize * 0.5;
+  const maxAllowedH = domain.maxHeight * 0.91;
+
+  // Flanking Entrada sandstone turrets & buttress domes (including the iconic central-right
+  // desert-varnished dome turret seen between the two arches in the Double Arch reference photo!)
+  interface EntradaTurret {
+    cx: number;
+    cz: number;
+    rx: number;
+    rz: number;
+    cosA: number;
+    sinA: number;
+    summitH: number;
+    domeBevel: number;
+  }
+
+  const turrets: EntradaTurret[] = [
+    // Central-right sunlit Entrada turret visible right between Primary & Secondary Arch windows
+    {
+      cx: 48,
+      cz: -28,
+      rx: 29,
+      rz: 25,
+      cosA: Math.cos(0.35),
+      sinA: Math.sin(0.35),
+      summitH: Math.min(maxAllowedH, 166 * globalSpanScale),
+      domeBevel: 8.5,
+    },
+    // Right-foreground massive cliff shoulder anchoring the upper right of the Primary Arch
+    {
+      cx: 116,
+      cz: 28,
+      rx: 44,
+      rz: 38,
+      cosA: Math.cos(-0.22),
+      sinA: Math.sin(-0.22),
+      summitH: Math.min(maxAllowedH, 212 * globalSpanScale),
+      domeBevel: 7.0,
+    },
+    // Left-foreground terraced sandstone buttress shoulder
+    {
+      cx: -114,
+      cz: 42,
+      rx: 38,
+      rz: 34,
+      cosA: Math.cos(0.42),
+      sinA: Math.sin(0.42),
+      summitH: Math.min(maxAllowedH, 144 * globalSpanScale),
+      domeBevel: 7.5,
+    },
+    // Far-left canyon fin wall
+    {
+      cx: -158,
+      cz: -48,
+      rx: 46,
+      rz: 26,
+      cosA: Math.cos(0.68),
+      sinA: Math.sin(0.68),
+      summitH: Math.min(maxAllowedH, 154 * globalSpanScale),
+      domeBevel: 6.5,
+    },
+    // Far-right background mesa fin
+    {
+      cx: 156,
+      cz: -78,
+      rx: 48,
+      rz: 30,
+      cosA: Math.cos(-0.52),
+      sinA: Math.sin(-0.52),
+      summitH: Math.min(maxAllowedH, 162 * globalSpanScale),
+      domeBevel: 6.5,
+    },
+  ];
+
+  // Foreground fallen Entrada sandstone boulders resting on the sloping slickrock amphitheater
+  interface SlickrockBoulder {
+    cx: number;
+    cz: number;
+    rx: number;
+    rz: number;
+    height: number;
+    cosA: number;
+    sinA: number;
+  }
+
+  const boulders: SlickrockBoulder[] =
+    boulderDensity > 0.05
+      ? [
+          // Iconic oval tabular sandstone boulder on lower-left slickrock ledge (matches photo!)
+          { cx: -38, cz: 78, rx: 11.5, rz: 6.8, height: 7.8 * boulderDensity, cosA: 0.94, sinA: 0.34 },
+          { cx: -54, cz: 62, rx: 9.0, rz: 6.5, height: 8.5 * boulderDensity, cosA: 0.88, sinA: -0.47 },
+          { cx: -22, cz: 66, rx: 6.5, rz: 4.8, height: 5.4 * boulderDensity, cosA: 0.76, sinA: 0.65 },
+          // Right-foreground stepped boulder cluster on the dipping slickrock ramp
+          { cx: 36, cz: 68, rx: 12.0, rz: 8.2, height: 8.6 * boulderDensity, cosA: 0.91, sinA: -0.41 },
+          { cx: 18, cz: 58, rx: 7.8, rz: 5.5, height: 6.2 * boulderDensity, cosA: 0.82, sinA: 0.57 },
+          { cx: 56, cz: 82, rx: 13.5, rz: 8.5, height: 9.2 * boulderDensity, cosA: 0.96, sinA: -0.28 },
+          { cx: -6, cz: 48, rx: 5.8, rz: 4.4, height: 4.8 * boulderDensity, cosA: 0.64, sinA: 0.77 },
+        ]
+      : [];
+
+  const strideY = nx;
+  const strideZ = nx * ny;
+
+  // Per-spline scratch arrays for the current (x, z) column to keep the inner Y loop ultra-fast
+  const colU = new Float32Array(preSplines.length);
+  const colDPerp = new Float32Array(preSplines.length);
+  const colDEnd = new Float32Array(preSplines.length);
+  const colYTop = new Float32Array(preSplines.length);
+  const colYVault0 = new Float32Array(preSplines.length);
+  const colYSill = new Float32Array(preSplines.length);
+  const colWinDeltaU = new Float32Array(preSplines.length);
+  const colHalfWidthBase = new Float32Array(preSplines.length);
+  const colActive = new Uint8Array(preSplines.length);
+
+  for (let z = 0; z < nz; z++) {
+    const wz = z * voxelSizeXZ - halfWorld;
+    const zOff3D = z * strideZ;
+    const zOff2D = z * nx;
+
+    for (let x = 0; x < nx; x++) {
+      const wx = x * voxelSizeXZ - halfWorld;
+      const idx2D = zOff2D + x;
+
+      // 1. Sloping Cross-Bedded Entrada Slickrock Amphitheater & Stepped Benches
+      const baseFloor = vol.bedrockHeight[idx2D];
+      const amphDist = Math.sqrt(wx * wx * 0.72 + (wz - 18.0) * (wz - 18.0));
+      const amphMask = Math.max(0.0, Math.min(1.0, 1.0 - amphDist / 210.0));
+      // Dipping eolian cross-bedding planes (dipping toward +Z / viewer at ~14 degrees)
+      const dipCoord = wz * 0.11 + wx * 0.045 + noise.simplex2D(wx * 0.018, wz * 0.018) * 1.8;
+      const slickrockStep = (Math.floor(dipCoord) + Math.pow(dipCoord - Math.floor(dipCoord), 0.38)) * 2.4;
+      const amphitheaterBowl =
+        slickrockAmp *
+        amphMask *
+        (16.0 +
+          14.0 * Math.max(0.0, Math.min(1.0, (110.0 - Math.abs(wx)) / 110.0)) +
+          ( slickrockStep % 9.5 ));
+
+      // Low rocky saddle / amphitheater floor height
+      let slickrockFloorY = baseFloor + amphitheaterBowl;
+
+      // Add foreground fallen Entrada sandstone boulders on top of the slickrock ramp
+      let boulderPhi2D = 999.0;
+      let boulderTopY = slickrockFloorY;
+      for (let b = 0; b < boulders.length; b++) {
+        const bld = boulders[b];
+        const dx = wx - bld.cx;
+        const dz = wz - bld.cz;
+        const bu = (dx * bld.cosA + dz * bld.sinA) / bld.rx;
+        const bv = (-dx * bld.sinA + dz * bld.cosA) / bld.rz;
+        const bNorm = Math.pow(bu * bu, 1.6) + Math.pow(bv * bv, 1.6);
+        if (bNorm < 2.2) {
+          const bDist = (Math.pow(bNorm, 0.31) - 1.0) * Math.min(bld.rx, bld.rz);
+          if (bDist < boulderPhi2D) {
+            boulderPhi2D = bDist;
+            boulderTopY = slickrockFloorY + bld.height;
+          }
+        }
+      }
+
+      vol.bedrockHeight[idx2D] = slickrockFloorY;
+
+      // 2. Evaluate horizontal rock ribs & wall roughness
+      const wallRib =
+        noise.simplex2D(wx * 0.032 + 17.1, wz * 0.032 - 23.4) * 2.8 +
+        noise.simplex2D(wx * 0.075 - 41.2, wz * 0.075 + 19.8) * 1.2;
+      const crestWave = noise.simplex2D(wx * 0.024 + 91.0, wz * 0.024 - 53.0) * 3.8;
+
+      let maxColumnTopY = slickrockFloorY + 12.0;
+      let minButtressDist2D = 999.0;
+      let minArchWallDist = 999.0;
+      let anySplineActive = false;
+
+      // Pre-evaluate all Arch Splines at this (wx, wz) column
+      for (let s = 0; s < preSplines.length; s++) {
+        const pre = preSplines[s];
+        if (wx < pre.minX || wx > pre.maxX || wz < pre.minZ || wz > pre.maxZ) {
+          colActive[s] = 0;
+          continue;
+        }
+
+        const { u, dPerp, dEnd } = projectToArchSpline(pre, wx, wz);
+        const ctrl = pre.ctrl;
+        if (dEnd > 18.0 || dPerp > Math.max(ctrl.buttressRadius, ctrl.finHalfWidth) * 1.95 + 18.0) {
+          colActive[s] = 0;
+          continue;
+        }
+
+        colActive[s] = 1;
+        anySplineActive = true;
+        colU[s] = u;
+        colDPerp[s] = dPerp;
+        colDEnd[s] = dEnd;
+
+        // Compute Extrados Top Elevation Y_top(u)
+        const uClamped = Math.max(0.0, Math.min(1.0, u));
+        const uc = Math.max(0.22, Math.min(0.78, ctrl.crownPosU));
+        let archBell = 0.0;
+        if (uClamped <= uc) {
+          const t = uClamped / uc;
+          archBell = 1.0 - Math.pow(1.0 - t, 1.85);
+        } else {
+          const t = (uClamped - uc) / (1.0 - uc);
+          archBell = 1.0 - Math.pow(t, 1.85);
+        }
+        const pierLerp = ctrl.pierHeight0 * (1.0 - uClamped) + ctrl.pierHeight1 * uClamped;
+        const yTop = Math.min(
+          maxAllowedH,
+          (pierLerp + (ctrl.crownHeight - pierLerp) * archBell) * globalSpanScale + crestWave
+        );
+        colYTop[s] = yTop;
+        if (yTop > maxColumnTopY) maxColumnTopY = yTop;
+
+        // Compute Buttress-to-Fin Horizontal Half-Width W_half(u)
+        const pierDist0 = Math.max(0.0, 1.0 - Math.abs(u - 0.02) / 0.28);
+        const pierDist1 = Math.max(0.0, 1.0 - Math.abs(u - 0.98) / 0.28);
+        const pierBlend = Math.max(pierDist0 * pierDist0, pierDist1 * pierDist1);
+        const halfW =
+          ctrl.finHalfWidth +
+          (ctrl.buttressRadius - ctrl.finHalfWidth) * pierBlend +
+          wallRib * 0.65;
+        colHalfWidthBase[s] = Math.max(9.0, halfW);
+
+        // Compute Window Opening Normalized Coordinate deltaU
+        const winHalfU = Math.max(0.14, Math.min(0.44, ctrl.windowWidthFrac * 0.5 * globalWindowScale));
+        const deltaU = (u - ctrl.windowCenterU) / winHalfU;
+        colWinDeltaU[s] = deltaU;
+
+        // Compute Intrados Window Ceiling Y_vault0(u) and V-Saddle Sill Floor Y_sill(u)
+        const minBridge = Math.max(15.0, ctrl.bridgeThickness);
+        const rawApex = Math.min(yTop - minBridge, ctrl.windowApexHeight * globalSpanScale);
+        // Rocky V-shaped saddle at the bottom of the arch window (matches hiker notch in Double Arch!)
+        const ySill =
+          ctrl.sillHeight +
+          14.0 * Math.pow(Math.min(1.2, Math.abs(deltaU)), 1.55) +
+          crestWave * 0.35;
+        colYSill[s] = ySill;
+
+        const vaultProfile = Math.pow(Math.max(0.0, 1.0 - Math.pow(Math.abs(deltaU), 1.82)), 0.76);
+        const yVault0 = ySill + Math.max(12.0, rawApex - ySill) * vaultProfile;
+        colYVault0[s] = Math.min(yTop - minBridge, yVault0);
+
+        // Track 2D distance to solid buttress piers (outside the open window span) for talus skirts
+        const horizFinDist = Math.max(dPerp - colHalfWidthBase[s], dEnd);
+        const absWall = Math.abs(horizFinDist);
+        if (absWall < minArchWallDist) minArchWallDist = absWall;
+
+        if (Math.abs(deltaU) > 0.88) {
+          if (horizFinDist < minButtressDist2D) {
+            minButtressDist2D = horizFinDist;
+          }
+        } else {
+          // Inside window span: keep monolithDist positive so ConicalTalusSkirt doesn't plug the window!
+          const distToNearestPier = (1.0 - Math.abs(deltaU)) * winHalfU * pre.spanLength;
+          const safeDist = Math.max(horizFinDist, distToNearestPier * 0.65);
+          if (safeDist < minButtressDist2D) {
+            minButtressDist2D = safeDist;
+          }
+        }
+      }
+
+      // 3. Evaluate Flanking Entrada Sandstone Turrets & Buttress Domes at this (wx, wz)
+      let activeTurretCount = 0;
+      for (let t = 0; t < turrets.length; t++) {
+        const tur = turrets[t];
+        const dx = wx - tur.cx;
+        const dz = wz - tur.cz;
+        if (Math.abs(dx) > tur.rx * 2.1 || Math.abs(dz) > tur.rz * 2.1) continue;
+        activeTurretCount++;
+        if (tur.summitH > maxColumnTopY) maxColumnTopY = tur.summitH;
+
+        const u = (dx * tur.cosA + dz * tur.sinA) / tur.rx;
+        const v = (-dx * tur.sinA + dz * tur.cosA) / tur.rz;
+        const pNorm = Math.pow(Math.pow(u * u, 1.8) + Math.pow(v * v, 1.8), 1.0 / 3.6);
+        const hDist = (pNorm - 1.0) * Math.min(tur.rx, tur.rz) + wallRib * 0.7;
+        if (hDist < minButtressDist2D) minButtressDist2D = hDist;
+        if (Math.abs(hDist) < minArchWallDist) minArchWallDist = Math.abs(hDist);
+      }
+
+      if (!anySplineActive && activeTurretCount === 0 && boulderPhi2D > 12.0) {
+        // Pure slickrock / desert floor column
+        const yMin = Math.max(0, Math.floor(slickrockFloorY / voxelSizeY) - 4);
+        const yMax = Math.min(ny - 2, Math.ceil(slickrockFloorY / voxelSizeY) + 4);
+        bandMinY[idx2D] = Math.min(bandMinY[idx2D], yMin);
+        bandMaxY[idx2D] = Math.max(bandMaxY[idx2D], yMax);
+        for (let y = 1; y <= yMax + 2 && y < ny; y++) {
+          const wy = y * voxelSizeY;
+          const idx3D = zOff3D + y * strideY + x;
+          sdfGrid[idx3D] = Math.min(sdfGrid[idx3D], wy - slickrockFloorY);
+        }
+        continue;
+      }
+
+      vol.monolithDist[idx2D] = Math.min(vol.monolithDist[idx2D], minButtressDist2D);
+      vol.monolithSummitH[idx2D] = Math.max(vol.monolithSummitH[idx2D], maxColumnTopY);
+      const wallProximity = Math.max(0.0, Math.min(1.0, 1.0 - minArchWallDist / 22.0));
+      vol.cliffMask[idx2D] = Math.max(vol.cliffMask[idx2D], wallProximity * 0.94);
+
+      const yMaxCol = Math.min(ny - 2, Math.ceil((maxColumnTopY + 12.0) / voxelSizeY));
+      bandMinY[idx2D] = Math.min(bandMinY[idx2D], 1);
+      bandMaxY[idx2D] = Math.max(bandMaxY[idx2D], yMaxCol);
+
+      // 4. Inner 3D Voxel Loop: Construct Solid Fins & Turrets -> Carve Conchoidal Arch Windows -> Protect Overhead Arch Ribbons
+      for (let y = 1; y <= yMaxCol; y++) {
+        const wy = y * voxelSizeY;
+        const idx3D = zOff3D + y * strideY + x;
+
+        // Base sloping slickrock amphitheater floor
+        let phi = Math.min(sdfGrid[idx3D], wy - slickrockFloorY);
+
+        // Foreground fallen sandstone boulders
+        if (boulderPhi2D < 8.0) {
+          const phiBoulder = smoothMax(boulderPhi2D, wy - boulderTopY, 1.8);
+          phi = smoothMin(phi, phiBoulder, 2.2);
+        }
+
+        // Flanking Entrada sandstone turrets & buttress domes
+        if (activeTurretCount > 0) {
+          for (let t = 0; t < turrets.length; t++) {
+            const tur = turrets[t];
+            const dx = wx - tur.cx;
+            const dz = wz - tur.cz;
+            if (Math.abs(dx) > tur.rx * 2.0 || Math.abs(dz) > tur.rz * 2.0) continue;
+
+            const u = (dx * tur.cosA + dz * tur.sinA) / tur.rx;
+            const v = (-dx * tur.sinA + dz * tur.cosA) / tur.rz;
+            const pNorm = Math.pow(Math.pow(u * u, 1.85) + Math.pow(v * v, 1.85), 1.0 / 3.7);
+            const hRel = Math.max(0.0, Math.min(1.2, (wy - slickrockFloorY) / Math.max(20.0, tur.summitH - slickrockFloorY)));
+            // Slight dome rounding near the summit of Entrada turrets
+            const domeTaper = Math.max(0.0, hRel - 0.68) * 14.0;
+            const hDist = (pNorm - 1.0) * Math.min(tur.rx, tur.rz) + domeTaper + wallRib * 0.65;
+            const phiTurret = smoothMax(hDist, wy - (tur.summitH + crestWave * 0.5), tur.domeBevel);
+            phi = smoothMin(phi, phiTurret, 4.5);
+          }
+        }
+
+        // Step 4A: Union Solid Arch Fins & Buttress Piers
+        if (anySplineActive) {
+          for (let s = 0; s < preSplines.length; s++) {
+            if (!colActive[s]) continue;
+            const yTop = colYTop[s];
+            if (wy > yTop + 10.0) continue;
+
+            const dPerp = colDPerp[s];
+            const dEnd = colDEnd[s];
+            const halfWBase = colHalfWidthBase[s];
+
+            // Natural Entrada sandstone fin taper toward the upper spine crest
+            const distBelowCrest = Math.max(0.0, yTop - wy);
+            const crestRoundTaper = Math.max(0.0, 14.0 - distBelowCrest) * 0.28;
+            const halfW = Math.max(7.5, halfWBase - crestRoundTaper);
+
+            const dHoriz = smoothMax(dPerp - halfW, dEnd, 4.0);
+            const phiFin = smoothMax(dHoriz, wy - yTop, 5.2);
+            phi = smoothMin(phi, phiFin, 5.0);
+          }
+
+          // Step 4B: Carve 3D Dual-Flared Conchoidal Arch Windows
+          for (let s = 0; s < preSplines.length; s++) {
+            if (!colActive[s]) continue;
+            const deltaU = colWinDeltaU[s];
+            if (Math.abs(deltaU) > 1.32) continue;
+
+            const ctrl = preSplines[s].ctrl;
+            const dPerp = colDPerp[s];
+            const tunnelLimit = ctrl.finHalfWidth * 1.95 + 10.0;
+            if (dPerp > tunnelLimit + 6.0) continue;
+
+            const yVault0 = colYVault0[s];
+            const ySill = colYSill[s];
+            const yTop = colYTop[s];
+
+            // Dual-sided Conchoidal Alcove Flaring:
+            // Window opening flares wider and higher as |dPerp| moves from the center breakthrough plane (0)
+            // toward the outer faces of the sandstone fin, creating realistic overhanging alcove brows!
+            const flareNorm = Math.max(
+              0.0,
+              Math.min(1.0, (dPerp - 2.5) / Math.max(6.0, ctrl.finHalfWidth * 1.15))
+            );
+            const flareSmooth = flareNorm * flareNorm * (3.0 - 2.0 * flareNorm) * ctrl.alcoveFlare;
+
+            // Concentric conchoidal exfoliation spall steps around the outer alcove arch brow
+            const spallStep =
+              flareSmooth > 0.15 ? Math.sin(flareSmooth * Math.PI * 3.0) * 1.65 : 0.0;
+
+            const minBridge = Math.max(14.5, ctrl.bridgeThickness - flareSmooth * 4.5);
+            const yVaultFlared = Math.min(
+              yTop - minBridge,
+              yVault0 + flareSmooth * 9.5 + spallStep
+            );
+            if (wy > yVaultFlared + 6.0 || wy < ySill - 6.0) continue;
+
+            const winHalfH = Math.max(8.0, 0.5 * (yVaultFlared - ySill));
+            const winMidY = 0.5 * (yVaultFlared + ySill);
+            const relY = (wy - winMidY) / winHalfH;
+
+            // Catenary-pothole arch shape: slightly fuller in the lower-mid belly, vaulted at the crown
+            const bellySpread = 1.0 + 0.18 * flareSmooth + 0.12 * Math.max(0.0, 1.0 - relY * relY);
+            const relU = deltaU / bellySpread;
+
+            const rVault = Math.sqrt(relU * relU + relY * relY);
+            const phiVault2D = (rVault - 1.0) * winHalfH;
+            const phiTunnel = smoothMax(phiVault2D, dPerp - tunnelLimit, 3.5);
+
+            // Subtract the 3D vaulted window tunnel from the solid fin
+            phi = smoothMax(phi, -phiTunnel, 3.4);
+          }
+
+          // Step 4C: Protect Every Arch's Overhead Bridge Ribbon so Intersecting Arches Never Sever Each Other!
+          for (let s = 0; s < preSplines.length; s++) {
+            if (!colActive[s]) continue;
+            const deltaU = colWinDeltaU[s];
+            if (Math.abs(deltaU) > 1.08) continue;
+
+            const yTop = colYTop[s];
+            const yVault0 = colYVault0[s];
+            if (wy < yVault0 - 2.0 || wy > yTop + 5.0) continue;
+
+            const dPerp = colDPerp[s];
+            const halfW = Math.max(7.5, colHalfWidthBase[s] - 2.0);
+            const phiBridge = smoothMax(
+              Math.max(dPerp - halfW, colDEnd[s]),
+              Math.max(wy - yTop, yVault0 - wy),
+              3.2
+            );
+            phi = smoothMin(phi, phiBridge, 2.8);
+          }
+        }
+
+        sdfGrid[idx3D] = phi;
+      }
+    }
+  }
+
+  normalizeSDFNearSurface(sdfGrid, nx, ny, nz, voxelSizeXZ, bandMinY, bandMaxY);
 }
 
 /**

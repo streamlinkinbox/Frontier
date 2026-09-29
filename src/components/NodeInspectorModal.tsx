@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   SlidersHorizontal,
   ShieldCheck,
@@ -6,10 +6,14 @@ import {
   AlertTriangle,
   X,
   RotateCcw,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { GraphNodeData } from '../engine/graphEvaluator';
 import { NodeResolutionReport, SDFDomainConfig } from '../engine/resolutionGuard';
 import { SATMAP_PRESETS, getSatMapCssGradient } from '../engine/satmaps';
+import { ArchSplineControl } from '../engine/terrainState';
+import { getDefaultArchSplines } from '../engine/generators';
 
 interface NodeInspectorProps {
   node: GraphNodeData | null;
@@ -63,6 +67,595 @@ const SliderControl: React.FC<SliderControlProps> = ({
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
+      </div>
+    </div>
+  );
+};
+
+interface ArchSplineEditorProps {
+  params: Record<string, any>;
+  onUpdateAllParams: (nextParams: Record<string, any>) => void;
+}
+
+const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
+  params,
+  onUpdateAllParams,
+}) => {
+  const archStyle = params.archStyle || 'double_arch';
+  const seed = params.seed ?? 4217;
+  const splines: ArchSplineControl[] =
+    Array.isArray(params.archSplines) && params.archSplines.length > 0
+      ? params.archSplines
+      : getDefaultArchSplines(archStyle, seed);
+
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [viewMode, setViewMode] = useState<'profile' | 'plan'>('profile');
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [dragHandle, setDragHandle] = useState<
+    null | 'pier0' | 'crown' | 'vault' | 'pier1' | 'p0' | 'pc' | 'p1'
+  >(null);
+
+  const safeIdx = Math.max(0, Math.min(splines.length - 1, selectedIdx));
+  const active = splines[safeIdx] || splines[0];
+
+  const updateSpline = (idx: number, patch: Partial<ArchSplineControl>) => {
+    const next = splines.map((s, i) => (i === idx ? { ...s, ...patch } : s));
+    onUpdateAllParams({ ...params, archSplines: next });
+  };
+
+  const handleStyleChange = (newStyle: string) => {
+    const presetSplines = getDefaultArchSplines(newStyle, seed);
+    setSelectedIdx(0);
+    onUpdateAllParams({
+      ...params,
+      archStyle: newStyle,
+      archSplines: presetSplines,
+    });
+  };
+
+  const handleAddSpline = () => {
+    const idx = splines.length + 1;
+    const offset = ((idx % 3) - 1) * 34;
+    const newSpline: ArchSplineControl = {
+      id: `custom-arch-${Date.now()}`,
+      name: `Custom Arch #${idx}`,
+      enabled: true,
+      x0: -78 + offset * 0.4,
+      z0: -18 + offset,
+      xc: offset * 0.3,
+      zc: -34 + offset,
+      x1: 78 + offset * 0.4,
+      z1: -14 + offset,
+      pierHeight0: 132,
+      crownHeight: 176,
+      pierHeight1: 142,
+      crownPosU: 0.5,
+      windowWidthFrac: 0.54,
+      windowCenterU: 0.5,
+      windowApexHeight: 138,
+      sillHeight: 44,
+      bridgeThickness: 21,
+      finHalfWidth: 13,
+      buttressRadius: 34,
+      alcoveFlare: 0.82,
+    };
+    const next = [...splines, newSpline];
+    setSelectedIdx(next.length - 1);
+    onUpdateAllParams({ ...params, archSplines: next });
+  };
+
+  const handleDeleteSpline = (idx: number) => {
+    if (splines.length <= 1) return;
+    const next = splines.filter((_, i) => i !== idx);
+    setSelectedIdx(Math.max(0, idx - 1));
+    onUpdateAllParams({ ...params, archSplines: next });
+  };
+
+  // SVG coordinate helpers
+  const W = 264;
+  const H = 148;
+  const maxElev = 230;
+
+  const uToSvgX = (u: number) => 16 + u * (W - 32);
+  const elevToSvgY = (y: number) => H - 14 - (Math.max(0, Math.min(maxElev, y)) / maxElev) * (H - 28);
+
+  const worldToSvgX = (wx: number) => W * 0.5 + (wx / 220) * (W * 0.44);
+  const worldToSvgZ = (wz: number) => H * 0.5 + (wz / 220) * (H * 0.44);
+
+  const handleSvgPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!dragHandle || !svgRef.current || !active) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const py = ((e.clientY - rect.top) / Math.max(1, rect.height)) * H;
+
+    if (viewMode === 'profile') {
+      const u = Math.max(0.05, Math.min(0.95, (px - 16) / (W - 32)));
+      const elev = Math.round(
+        Math.max(24, Math.min(220, ((H - 14 - py) / (H - 28)) * maxElev))
+      );
+
+      if (dragHandle === 'pier0') {
+        updateSpline(safeIdx, { pierHeight0: Math.max(55, Math.min(205, elev)) });
+      } else if (dragHandle === 'pier1') {
+        updateSpline(safeIdx, { pierHeight1: Math.max(55, Math.min(210, elev)) });
+      } else if (dragHandle === 'crown') {
+        const nextCrown = Math.max(active.sillHeight + 42, Math.min(220, elev));
+        const maxVault = nextCrown - Math.max(15, active.bridgeThickness);
+        updateSpline(safeIdx, {
+          crownPosU: Number(Math.max(0.25, Math.min(0.75, u)).toFixed(2)),
+          crownHeight: nextCrown,
+          windowApexHeight: Math.min(active.windowApexHeight, maxVault),
+        });
+      } else if (dragHandle === 'vault') {
+        const maxVault = active.crownHeight - Math.max(15, active.bridgeThickness);
+        updateSpline(safeIdx, {
+          windowCenterU: Number(Math.max(0.28, Math.min(0.72, u)).toFixed(2)),
+          windowApexHeight: Math.max(active.sillHeight + 22, Math.min(maxVault, elev)),
+        });
+      }
+    } else {
+      const wx = Math.round(
+        Math.max(-195, Math.min(195, ((px - W * 0.5) / (W * 0.44)) * 220))
+      );
+      const wz = Math.round(
+        Math.max(-195, Math.min(195, ((py - H * 0.5) / (H * 0.44)) * 220))
+      );
+      if (dragHandle === 'p0') {
+        updateSpline(safeIdx, { x0: wx, z0: wz });
+      } else if (dragHandle === 'pc') {
+        updateSpline(safeIdx, { xc: wx, zc: wz });
+      } else if (dragHandle === 'p1') {
+        updateSpline(safeIdx, { x1: wx, z1: wz });
+      }
+    }
+  };
+
+  // Build SVG path for the Elevation Profile (Extrados + Intrados Window)
+  const buildElevationPaths = () => {
+    if (!active) return { extradosPath: '', intradosPath: '', rockFillPath: '' };
+    const steps = 36;
+    const topPts: string[] = [];
+    const botPts: string[] = [];
+
+    const uc = Math.max(0.22, Math.min(0.78, active.crownPosU));
+    const winHalf = Math.max(0.14, Math.min(0.44, active.windowWidthFrac * 0.5));
+    const minBridge = Math.max(15, active.bridgeThickness);
+
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      let bell = 0;
+      if (u <= uc) {
+        bell = 1.0 - Math.pow(1.0 - u / uc, 1.85);
+      } else {
+        bell = 1.0 - Math.pow((u - uc) / (1.0 - uc), 1.85);
+      }
+      const pierLerp = active.pierHeight0 * (1.0 - u) + active.pierHeight1 * u;
+      const yTop = pierLerp + (active.crownHeight - pierLerp) * bell;
+      topPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(yTop).toFixed(1)}`);
+
+      const deltaU = (u - active.windowCenterU) / winHalf;
+      const ySill = active.sillHeight + 12.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.55);
+      if (Math.abs(deltaU) <= 1.0) {
+        const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), 1.82)), 0.76);
+        const rawApex = Math.min(yTop - minBridge, active.windowApexHeight);
+        const yVault = Math.min(yTop - minBridge, ySill + Math.max(12, rawApex - ySill) * vProf);
+        botPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(yVault).toFixed(1)}`);
+      } else {
+        botPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(20).toFixed(1)}`);
+      }
+    }
+
+    const extradosPath = `M ${topPts.join(' L ')}`;
+    const intradosPath = `M ${botPts.join(' L ')}`;
+    const rockFillPath = `M ${uToSvgX(0)},${elevToSvgY(20)} L ${topPts.join(
+      ' L '
+    )} L ${uToSvgX(1)},${elevToSvgY(20)} L ${[...botPts].reverse().join(' L ')} Z`;
+    return { extradosPath, intradosPath, rockFillPath };
+  };
+
+  const { extradosPath, intradosPath, rockFillPath } = buildElevationPaths();
+
+  return (
+    <div className="space-y-3">
+      {/* Formation Style Selector */}
+      <div>
+        <div className="text-[11px] text-neutral-400 font-medium mb-1.5">
+          Natural Arch Formation Preset
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {[
+            { id: 'double_arch', label: 'Double Arch (V-Span)' },
+            { id: 'delicate_arch', label: 'Delicate Bowl Arch' },
+            { id: 'landscape_fins', label: 'Landscape Ribbon' },
+            { id: 'multi_arch_canyon', label: '3-Arch Canyon' },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              onClick={() => handleStyleChange(opt.id)}
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-medium border transition ${
+                archStyle === opt.id
+                  ? 'bg-white text-black border-white'
+                  : 'bg-[#1a1a1a] text-neutral-300 border-white/10 hover:border-white/25'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Spline List & + Add Arch Spline */}
+      <div className="rounded-xl bg-[#161618] border border-white/10 p-2.5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
+            Arch Spline Curves ({splines.length})
+          </span>
+          <button
+            onClick={handleAddSpline}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 text-[10px] font-medium transition"
+          >
+            <Plus className="w-3 h-3" />
+            Add Spline
+          </button>
+        </div>
+
+        <div className="space-y-1 mb-2.5 max-h-28 overflow-y-auto custom-scrollbar">
+          {splines.map((s, idx) => (
+            <div
+              key={s.id}
+              onClick={() => setSelectedIdx(idx)}
+              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] cursor-pointer border transition ${
+                idx === safeIdx
+                  ? 'bg-white/12 border-amber-400/50 text-white'
+                  : 'bg-[#1d1d20] border-white/5 text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    idx === 0 ? 'bg-amber-400' : idx === 1 ? 'bg-sky-400' : 'bg-emerald-400'
+                  }`}
+                />
+                <span className="truncate font-medium">{s.name}</span>
+              </div>
+              {splines.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSpline(idx);
+                  }}
+                  className="text-neutral-500 hover:text-red-400 p-0.5 transition"
+                  title="Delete arch spline"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Interactive Curve View Switcher: Side Profile vs Top-Down Plan */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex rounded-lg bg-[#111] p-0.5 border border-white/10">
+            <button
+              onClick={() => setViewMode('profile')}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition ${
+                viewMode === 'profile' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Side Arch Curve
+            </button>
+            <button
+              onClick={() => setViewMode('plan')}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition ${
+                viewMode === 'plan' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Top-Down Plan (X,Z)
+            </button>
+          </div>
+          <span className="text-[9px] text-neutral-500">Drag points to sculpt</span>
+        </div>
+
+        {/* Interactive SVG Spline Canvas */}
+        {active && (
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${W} ${H}`}
+            className="w-full h-[142px] rounded-lg bg-[#0d0d0f] border border-white/10 select-none touch-none"
+            onPointerMove={handleSvgPointerMove}
+            onPointerUp={() => setDragHandle(null)}
+            onPointerLeave={() => setDragHandle(null)}
+          >
+            {viewMode === 'profile' ? (
+              <>
+                {/* Background elevation grid lines */}
+                {[50, 100, 150, 200].map((elev) => (
+                  <g key={elev}>
+                    <line
+                      x1={12}
+                      y1={elevToSvgY(elev)}
+                      x2={W - 12}
+                      y2={elevToSvgY(elev)}
+                      stroke="#222228"
+                      strokeDasharray="2 2"
+                    />
+                    <text
+                      x={14}
+                      y={elevToSvgY(elev) - 2}
+                      fill="#555"
+                      fontSize="8"
+                      fontFamily="monospace"
+                    >
+                      {elev}m
+                    </text>
+                  </g>
+                ))}
+
+                {/* Solid Sandstone Bridge Cross-Section Fill */}
+                <path
+                  d={rockFillPath}
+                  fill="rgba(218, 102, 56, 0.34)"
+                  stroke="rgba(235, 130, 75, 0.5)"
+                  strokeWidth="1"
+                />
+
+                {/* Extrados Spine Curve */}
+                <path
+                  d={extradosPath}
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="2.2"
+                />
+
+                {/* Intrados Window Vault Curve */}
+                <path
+                  d={intradosPath}
+                  fill="none"
+                  stroke="#38bdf8"
+                  strokeWidth="2"
+                  strokeDasharray="3 2"
+                />
+
+                {/* Draggable Handle 1: Left Pier */}
+                <circle
+                  cx={uToSvgX(0.02)}
+                  cy={elevToSvgY(active.pierHeight0)}
+                  r={5.5}
+                  fill="#f59e0b"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-ns-resize"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('pier0');
+                  }}
+                />
+
+                {/* Draggable Handle 2: Arch Crown Apex */}
+                <circle
+                  cx={uToSvgX(active.crownPosU)}
+                  cy={elevToSvgY(active.crownHeight)}
+                  r={6}
+                  fill="#fbbf24"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('crown');
+                  }}
+                />
+
+                {/* Draggable Handle 3: Window Vault Ceiling */}
+                <circle
+                  cx={uToSvgX(active.windowCenterU)}
+                  cy={elevToSvgY(active.windowApexHeight)}
+                  r={6}
+                  fill="#38bdf8"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('vault');
+                  }}
+                />
+
+                {/* Draggable Handle 4: Right Pier */}
+                <circle
+                  cx={uToSvgX(0.98)}
+                  cy={elevToSvgY(active.pierHeight1)}
+                  r={5.5}
+                  fill="#f59e0b"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-ns-resize"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('pier1');
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                {/* Top-Down XZ Grid */}
+                <line x1={W * 0.5} y1={8} x2={W * 0.5} y2={H - 8} stroke="#25252b" />
+                <line x1={8} y1={H * 0.5} x2={W - 8} y2={H * 0.5} stroke="#25252b" />
+
+                {/* All splines in background */}
+                {splines.map((s, idx) => {
+                  const p0x = worldToSvgX(s.x0);
+                  const p0z = worldToSvgZ(s.z0);
+                  const pcx = worldToSvgX(s.xc);
+                  const pcz = worldToSvgZ(s.zc);
+                  const p1x = worldToSvgX(s.x1);
+                  const p1z = worldToSvgZ(s.z1);
+                  const isSel = idx === safeIdx;
+                  return (
+                    <path
+                      key={s.id}
+                      d={`M ${p0x} ${p0z} Q ${pcx * 2 - 0.5 * (p0x + p1x)} ${
+                        pcz * 2 - 0.5 * (p0z + p1z)
+                      } ${p1x} ${p1z}`}
+                      fill="none"
+                      stroke={isSel ? '#f59e0b' : '#52525b'}
+                      strokeWidth={isSel ? 3 : 1.5}
+                    />
+                  );
+                })}
+
+                {/* Active spline plan handles */}
+                <circle
+                  cx={worldToSvgX(active.x0)}
+                  cy={worldToSvgZ(active.z0)}
+                  r={5.5}
+                  fill="#f59e0b"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('p0');
+                  }}
+                />
+                <circle
+                  cx={worldToSvgX(active.xc)}
+                  cy={worldToSvgZ(active.zc)}
+                  r={5.5}
+                  fill="#38bdf8"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('pc');
+                  }}
+                />
+                <circle
+                  cx={worldToSvgX(active.x1)}
+                  cy={worldToSvgZ(active.z1)}
+                  r={5.5}
+                  fill="#f59e0b"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('p1');
+                  }}
+                />
+              </>
+            )}
+          </svg>
+        )}
+
+        <div className="flex items-center justify-between text-[9px] text-neutral-400 mt-1.5 px-0.5">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+            Extrados Crest ({Math.round(active?.crownHeight ?? 200)}m)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />
+            Window Vault ({Math.round(active?.windowApexHeight ?? 160)}m)
+          </span>
+        </div>
+      </div>
+
+      {/* Selected Arch Spline Sliders */}
+      {active && (
+        <div className="pt-1">
+          <SliderControl
+            label="Selected Arch Bridge Thickness"
+            value={active.bridgeThickness}
+            min={15}
+            max={40}
+            step={1}
+            unit="m"
+            onChange={(v) => updateSpline(safeIdx, { bridgeThickness: v })}
+          />
+          <SliderControl
+            label="Selected Window Span Width"
+            value={active.windowWidthFrac * 100}
+            min={32}
+            max={76}
+            step={1}
+            unit="%"
+            onChange={(v) => updateSpline(safeIdx, { windowWidthFrac: v / 100 })}
+          />
+          <SliderControl
+            label="Conchoidal Alcove Brow Flare"
+            value={active.alcoveFlare}
+            min={0.2}
+            max={1.2}
+            step={0.05}
+            onChange={(v) => updateSpline(safeIdx, { alcoveFlare: v })}
+          />
+        </div>
+      )}
+
+      {/* Global Procedural Arch & Slickrock Amphitheater Sliders */}
+      <div className="pt-2 border-t border-white/10">
+        <SliderControl
+          label="Extra Procedural Arches"
+          value={params.proceduralArchCount ?? 0}
+          min={0}
+          max={4}
+          step={1}
+          onChange={(v) => onUpdateAllParams({ ...params, proceduralArchCount: v })}
+        />
+        <SliderControl
+          label="Entrada Slickrock Amphitheater"
+          value={params.slickrockRamps ?? 0.88}
+          min={0}
+          max={1.3}
+          step={0.05}
+          onChange={(v) => onUpdateAllParams({ ...params, slickrockRamps: v })}
+        />
+        <SliderControl
+          label="Foreground Fallen Boulders"
+          value={params.boulderField ?? 0.85}
+          min={0}
+          max={1.3}
+          step={0.05}
+          onChange={(v) => onUpdateAllParams({ ...params, boulderField: v })}
+        />
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+          <div>
+            <div className="text-[11px] text-neutral-200 font-medium">
+              3D Viewport Spline Guides
+            </div>
+            <div className="text-[10px] text-neutral-500">
+              Show 3D arch spline curves when node is selected
+            </div>
+          </div>
+          <button
+            onClick={() =>
+              onUpdateAllParams({
+                ...params,
+                showSplineGuides: params.showSplineGuides === false,
+              })
+            }
+            className={`w-9 h-5 rounded-full transition relative shrink-0 ${
+              params.showSplineGuides !== false ? 'bg-amber-400' : 'bg-neutral-700'
+            }`}
+          >
+            <span
+              className={`block w-3.5 h-3.5 rounded-full transition transform ${
+                params.showSplineGuides !== false
+                  ? 'translate-x-4 bg-black'
+                  : 'translate-x-1 bg-neutral-300'
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -391,6 +984,13 @@ export const NodeInspectorPanel: React.FC<NodeInspectorProps> = ({
               onChange={(v) => setParam('seed', v)}
             />
           </div>
+        )}
+
+        {node.type === 'SDFNaturalArches' && (
+          <ArchSplineStudio
+            params={p}
+            onUpdateAllParams={(nextParams) => onUpdateParams(node.id, nextParams)}
+          />
         )}
 
         {node.type === 'VerticalJointFissures' && (

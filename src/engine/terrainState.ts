@@ -11,6 +11,33 @@ export interface Active3DStrataConfig {
   faultDip: number;        // 3D inclination/dip of fault plane
 }
 
+export interface ArchSplineControl {
+  id: string;
+  name: string;
+  enabled: boolean;
+  // 2D Plan-view Quadratic Bezier endpoints & control point in meters [-256..+256]
+  x0: number;
+  z0: number;
+  xc: number;
+  zc: number;
+  x1: number;
+  z1: number;
+  // Elevation profile along normalized span u in [0..1]
+  pierHeight0: number;      // Left buttress height above base (m)
+  crownHeight: number;      // Peak extrados arch crest height above base (m)
+  pierHeight1: number;      // Right buttress height above base (m)
+  crownPosU: number;        // Horizontal position of arch apex along u [0.25..0.75]
+  // Window opening (intrados vault) parameters
+  windowWidthFrac: number;  // Fraction of span open to the sky [0.28..0.82]
+  windowCenterU: number;    // Center of window opening along u [0.25..0.75]
+  windowApexHeight: number; // Vault ceiling height above base (m)
+  sillHeight: number;       // Bottom sill / saddle floor height of window above base (m)
+  bridgeThickness: number;  // Minimum rock thickness of the arch ribbon at crown (m)
+  finHalfWidth: number;     // Half-thickness of the sandstone fin at the span (m)
+  buttressRadius: number;   // Radius of the anchoring buttress piers at ends (m)
+  alcoveFlare: number;      // Conchoidal outward alcove flaring on both faces [0..1]
+}
+
 export interface SDFTerrainVolume {
   domain: SDFDomainConfig;
   nx: number;
@@ -45,6 +72,8 @@ export interface SDFTerrainVolume {
 
   // 3D CSG Monolith & Butte distance fields (nx * nz)
   has3DMonoliths: boolean;
+  has3DArches: boolean;
+  archSplines: ArchSplineControl[];
   monolithDist: Float32Array;    // Horizontal signed distance to monolith cliff wall (meters)
   monolithSummitH: Float32Array; // Local monolith turret summit height (meters)
 
@@ -120,6 +149,8 @@ export function createEmptySDFVolume(domain: SDFDomainConfig): SDFTerrainVolume 
       faultDip: 0.28,
     },
     has3DMonoliths: false,
+    has3DArches: false,
+    archSplines: [],
     monolithDist,
     monolithSummitH,
     reports: {},
@@ -153,6 +184,8 @@ export function cloneSDFVolume(src: SDFTerrainVolume): SDFTerrainVolume {
     activeSatMapId: src.activeSatMapId,
     strataConfig: { ...src.strataConfig },
     has3DMonoliths: src.has3DMonoliths,
+    has3DArches: src.has3DArches,
+    archSplines: src.archSplines.map((s) => ({ ...s })),
     monolithDist: new Float32Array(src.monolithDist),
     monolithSummitH: new Float32Array(src.monolithSummitH),
     reports: { ...src.reports },
