@@ -104,4 +104,17 @@ The frog is a neutral **Rana temporaria-inspired** 3D design with olive-brown/ta
 - **Generation:** with the frog server on port 5174, `npm run frog:build`.
 - **Checks:** `npm test` and `npm run test:frog`.
 
-This is a detailed procedural design study, not a scan or a certified AAA production asset. The crab request was interrupted at the research stage; the crab page/model remains pending.
+This is a detailed procedural design study, not a scan or a certified AAA production asset. The crab has a separate page at `/crab.html`; see below.
+
+## Shore crab page and pincer controller
+
+Open **`/crab.html`**, or run `npm run dev:crab` for the crab-focused preview on port 5175. The mantis and frog remain separate pages. Production builds include all three HTML entries.
+
+- **Subject:** adult male *Carcinus maenas*, ~72 mm carapace width, four walking-leg pairs and two articulated chelipeds. Reference notes and limitations: `references/CRAB.md`.
+- **Motion library:** `Idle`, `Walk_Left`, `Walk_Right`, `Pinch_L`, `Pinch_R`. Sideways walking uses an alternating tetrapod pattern with contact-matched foot trajectories. **A / D** or the arrow keys select left/right walking; Space pauses.
+- **Pincer test:** drag the amber bead, or set Across / Forward / Height. Choose Auto, Left or Right. **Reach & grasp** opens the selected claw, reaches, closes its movable dactylus against the fixed propodal finger, checks contact, and lifts/holds the bead. **Release** and **Reset** repeat the test. Targets outside the arm workspace are rejected, and moving a target during closure can cause a miss.
+- **Portable asset:** `public/models/crab.glb`, including five clips and embedded maps. The walks are **in-place** and expect **0.01 m/s lateral controller translation** at natural size. The scrolling reference grid is a tracking-view aid.
+- **Runtime behavior:** `src/crab/rig.js` and `controller.js`. The interactive target controller is source code, not a behavior system embedded in GLB.
+- **Regenerate / check:** `npm run crab:build` (crab server running), `npm test`, `npm run test:crab`, `npm run build`. Add `-- --screenshot` to the asset build for a generator screenshot.
+
+This is a detailed, reference-informed **procedural prototype**, not a photogrammetric scan, measured motion capture or verified AAA hero asset. It needs specialist sculpt/texture review and engine-specific production work before that claim would be justified.

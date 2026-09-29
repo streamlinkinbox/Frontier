@@ -17,4 +17,4 @@ An adult **European common frog, Rana temporaria**, used as the basis for a neut
 - Dorsolateral folds, nostrils, mouth seam, tympana, horizontal pupils, four fingers per forefoot and five webbed toes per hindfoot.
 - A deformation skeleton, subtle throat motion and an eyelid morph animation.
 
-This is a **procedurally modelled design study**, not photogrammetry, biological motion capture or a verified AAA production asset. The geometry and motion remain authored approximations. The user redirected the active work from crab research to this frog; no crab HTML/model has been completed.
+This is a **procedurally modelled design study**, not photogrammetry, biological motion capture or a verified AAA production asset. The geometry and motion remain authored approximations. The user redirected the active work from crab research to this frog. The crab study was subsequently added separately at `/crab.html`; it does not replace the frog.

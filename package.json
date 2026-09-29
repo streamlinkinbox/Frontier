@@ -14,7 +14,10 @@
     "test:hunt": "node scripts/test-hunt.mjs",
     "dev:frog": "FRONTIER_SPECIMEN=frog vite --host 0.0.0.0 --port 5174",
     "frog:build": "node scripts/build-frog.mjs",
-    "test:frog": "node scripts/test-frog.mjs"
+    "test:frog": "node scripts/test-frog.mjs",
+    "dev:crab": "FRONTIER_SPECIMEN=crab vite --host 0.0.0.0 --port 5175",
+    "crab:build": "node scripts/build-crab.mjs",
+    "test:crab": "node scripts/test-crab.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
