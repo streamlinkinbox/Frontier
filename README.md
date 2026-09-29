@@ -118,3 +118,7 @@ Open **`/crab.html`**, or run `npm run dev:crab` for the crab-focused preview on
 - **Regenerate / check:** `npm run crab:build` (crab server running), `npm test`, `npm run test:crab`, `npm run build`. Add `-- --screenshot` to the asset build for a generator screenshot.
 
 This is a detailed, reference-informed **procedural prototype**, not a photogrammetric scan, measured motion capture or verified AAA hero asset. It needs specialist sculpt/texture review and engine-specific production work before that claim would be justified.
+
+### Moving between studies
+
+All three pages have a shared specimen switcher: direct links on desktop and a native picker on mobile. The crab target drag can be cancelled with **Esc**, pointer cancellation or window blur; camera controls are restored. No-op target updates do not re-arm automatic grabbing, and invalid pincer selections are ignored.

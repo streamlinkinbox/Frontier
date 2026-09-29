@@ -50,3 +50,15 @@ test('controller keeps all supporting feet planted and all limb scales unchanged
  for(let i=0;i<360;i++){c.update(1/240);rig.legs.forEach((l,j)=>assert(rig.bones[`${l.name}_Tip`].getWorldPosition(new THREE.Vector3()).distanceTo(anchors[j])<1e-8));for(const b of Object.values(rig.bones))assert.deepEqual(b.scale.toArray(),[1,1,1]);}
 });
 test('all crab clips return seamlessly to their first pose',()=>{const {data}=make();for(const clip of data.clips)for(const track of clip.tracks){const n=track.getValueSize();for(let i=0;i<n;i++)assert(Math.abs(track.values[i]-track.values[track.values.length-n+i])<1e-6,clip.name+': '+track.name);}});
+
+test('unchanged or non-finite placements do not re-arm automatic capture',()=>{
+ const {controller:c}=make();const version=c.version,position=c.target.clone();
+ c.setPlacement({...c.placement});c.setPlacement({x:NaN,y:Infinity,z:'not a distance'});
+ assert.equal(c.version,version);assert(c.target.equals(position));
+ c.setPlacement({x:c.placement.x+1});assert.equal(c.version,version+1);
+});
+test('invalid pincer selections leave the current plan and selection intact',()=>{
+ const {controller:c}=make();c.selectSide('R');const plan=c.plan;
+ for(const side of ['',null,'both','right']){c.selectSide(side);assert.equal(c.side,'R');assert.equal(c.plan,plan);}
+ assert(c.grab());advance(c,1.5);assert.equal(c.state,'hold');
+});

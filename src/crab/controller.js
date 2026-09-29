@@ -5,9 +5,18 @@ export class CrabController {
   constructor(rig){this.rig=rig;this.placement={x:25,y:20,z:54};this.side='auto';this.target=V(.025,.020,.054);this.state='ready';this.time=0;this.elapsed=0;this.catches=0;this.misses=0;this.plan=rig.plan(this.target,this.side,TARGET_RADIUS);this.auto=false;this.version=0;this.usedVersion=-1;this.changedAt=0;this.dragging=false;this.offset=V();this.velocity=V();}
   get held(){return this.state==='lift'||this.state==='hold';}
   get busy(){return ['reach','close','lift','release','recover'].includes(this.state);}
-  setPlacement(p){if(this.held||this.state==='release')return false;for(const key of ['x','y','z'])if(p[key]!==undefined){const n=Number(p[key]);if(Number.isFinite(n))this.placement[key]=clamp(n,...({x:[-65,65],y:[10,38],z:[40,80]}[key]));}this.target.set(this.placement.x/1000,this.placement.y/1000,this.placement.z/1000);this.version++;this.changedAt=this.time;this.plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);if(this.state==='released')this.state='ready';return true;}
+  setPlacement(p){
+    if(this.held||this.state==='release')return false;
+    const next={...this.placement},limits={x:[-65,65],y:[10,38],z:[40,80]};
+    for(const key of ['x','y','z'])if(p[key]!==undefined){const n=Number(p[key]);if(Number.isFinite(n))next[key]=clamp(n,...limits[key]);}
+    const moved=['x','y','z'].some(key=>Math.abs(next[key]-this.placement[key])>1e-7);
+    if(!moved&&this.state!=='released')return true;
+    this.placement=next;this.target.set(next.x/1000,next.y/1000,next.z/1000);
+    this.version++;this.changedAt=this.time;this.plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);
+    if(this.state==='released')this.state='ready';return true;
+  }
   setTarget(p){return this.setPlacement({x:p.x*1000,y:p.y*1000,z:p.z*1000});}
-  selectSide(side){if(this.busy||this.held)return;this.side=side;this.plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);}
+  selectSide(side){if(!['auto','L','R'].includes(side)||this.busy||this.held)return;this.side=side;this.plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);}
   reset(){this.target.set(this.placement.x/1000,this.placement.y/1000,this.placement.z/1000);this.state='ready';this.elapsed=0;this.plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);this.version++;this.usedVersion=-1;this.changedAt=this.time;this.dragging=false;this.rig.poseClip('Idle',this.time);}
   grab(){if(this.held){this.release();return true;}if(this.state==='released'){this.reset();return true;}if(this.busy)return false;const plan=this.rig.plan(this.target,this.side,TARGET_RADIUS);if(!plan.valid){this.plan=plan;return false;}this.activePlan=plan;this.committed=this.target.clone();this.state='reach';this.elapsed=0;this.usedVersion=this.version;return true;}
   release(){if(!this.held)return;this.state='release';this.elapsed=0;this.velocity.set(0,0,.003);this.releasePlan=this.activePlan;}
