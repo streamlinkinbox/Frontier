@@ -317,47 +317,6 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
           onChange={(v) => onUpdateAllParams({ ...params, rockDetailStrength: v })}
         />
 
-        <div className="border-t border-white/10 mt-2 pt-2">
-          <div className="text-[10px] text-neutral-300 font-semibold mb-1">
-            Local Surface Fracture (not whole-model)
-          </div>
-          <SliderControl
-            label="Fracture Chunk Scale"
-            value={params.fractureCellSize ?? 2.4}
-            min={0.8}
-            max={5.0}
-            step={0.1}
-            unit="m"
-            onChange={(v) => onUpdateAllParams({ ...params, fractureCellSize: v })}
-          />
-          <SliderControl
-            label="Fracture Gap / Offset"
-            value={params.fractureGapMeters ?? 0.12}
-            min={0.05}
-            max={0.20}
-            step={0.01}
-            unit="m"
-            onChange={(v) => onUpdateAllParams({ ...params, fractureGapMeters: v })}
-          />
-          <SliderControl
-            label="Spall Pocket Frequency"
-            value={(params.fractureRemovalRate ?? 0.01) * 100}
-            min={0}
-            max={15}
-            step={1}
-            unit="%"
-            onChange={(v) => onUpdateAllParams({ ...params, fractureRemovalRate: v / 100 })}
-          />
-          <SliderControl
-            label="Fractured Patch Coverage"
-            value={(params.fracturePatchCoverage ?? 0.18) * 100}
-            min={0}
-            max={70}
-            step={1}
-            unit="%"
-            onChange={(v) => onUpdateAllParams({ ...params, fracturePatchCoverage: v / 100 })}
-          />
-        </div>
       </div>
 
       {/* Formation Style Selector */}

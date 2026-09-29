@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 18; // Refine fractures into sparse local joints and shallow chips; reduce polygon-web artifacts
+  const engineVersion = 19; // Remove failed shader-level fracture overlay; retain authored SDF bedding relief
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);
