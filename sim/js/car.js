@@ -111,7 +111,7 @@ export class Car {
       const slip = Math.abs(wh.slipLat) + Math.abs(wh.slipLong);
       const roll = Math.abs(wh.spinVel * this.wheelR);
       wh.sand = roll < 0.3 && slip < 0.3 ? 0 : Math.min(1, slip / 6 + roll / 30);
-      const spinSmoke = !wh.front && wh.slipLong > 3 ? Math.min(1, (wh.slipLong - 3) / 8) * 0.6 : 0;
+      const spinSmoke = !wh.front && wh.slipLong > 9 ? Math.min(1, (wh.slipLong - 9) / 10) * 0.35 : 0;
       wh.smoke = wh.front ? this.drift * 0.25 : Math.max(this.drift, spinSmoke);
     }
 

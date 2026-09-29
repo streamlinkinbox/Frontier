@@ -91,6 +91,32 @@ async function init() {
     lastX = e.clientX; lastY = e.clientY; userOrbit = 2.5;
   });
   canvas.addEventListener('wheel', (e) => { camDist = Math.min(40, Math.max(5, camDist * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
+  // smoke settings panel
+  const DEFAULTS = { emission: 0.6, fade: 0.9, opacity: 1.3, shadow: 1.6, ambient: 1.0, brightness: 1.0, dust: 0.35, tint: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.6 };
+  const RANGES = {
+    emission: [0, 2, 0.05, 'Amount'], fade: [0.1, 3, 0.05, 'Fade speed'], opacity: [0.2, 4, 0.05, 'Opacity'],
+    shadow: [0, 4, 0.05, 'Self-shadow'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
+    dust: [0, 1, 0.01, 'Sand-dust mix'], tint: [0.5, 1.2, 0.01, 'Grey level'], phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'],
+    vorticity: [0, 14, 0.1, 'Curl / vorticity'], buoyancy: [0, 5, 0.05, 'Rise (buoyancy)'],
+  };
+  let settings = { ...DEFAULTS };
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings') || '{}')); } catch { /* ignore */ }
+  const sl = $('sliders');
+  const build = () => {
+    sl.innerHTML = '';
+    for (const [k, [mn, mx, st, label]] of Object.entries(RANGES)) {
+      const row = document.createElement('label');
+      row.innerHTML = `<span>${label}</span><input type="range" min="${mn}" max="${mx}" step="${st}" value="${settings[k]}"><output>${(+settings[k]).toFixed(2)}</output>`;
+      const inp = row.querySelector('input'), out = row.querySelector('output');
+      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings', JSON.stringify(settings)); });
+      inp.addEventListener('keydown', (e) => e.stopPropagation());
+      sl.appendChild(row);
+    }
+  };
+  build();
+  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings'); build(); };
+  $('toggleSmoke').onclick = () => $('smokePanel').classList.toggle('collapsed');
+  const forceSmoke = new URLSearchParams(location.search).has('smoketest');
   const autoInput = new URLSearchParams(location.search).has('demo');
 
   const lightDir = (() => { const v = [0.45, 0.8, 0.35]; const l = Math.hypot(...v); return v.map((x) => x / l); })();
@@ -129,17 +155,21 @@ async function init() {
 
     // simulation inputs
     const simDt = 1 / 60;
+    if (forceSmoke) for (const wh of car.wheels) if (!wh.front) wh.smoke = 1;
     const emitters = car.wheels.map((wh) => {
       const tread = -wh.spinVel * car.wheelR;
       return {
-        pos: [wh.pos[0], 0.25, wh.pos[2]], strength: wh.smoke * 0.55, radius: 0.45,
+        // emit just behind the contact patch (outside the solid tyre), opposite to the patch's sliding direction
+        pos: (() => { const sx = wh.vel[0] + tread * wh.fwd[0], sz = wh.vel[2] + tread * wh.fwd[2], l = Math.hypot(sx, sz) || 1;
+          return [wh.pos[0] + (sx / l) * 0.55, 0.2, wh.pos[2] + (sz / l) * 0.55]; })(),
+        strength: wh.smoke * 1.6, radius: Math.max(0.45, SMOKE_H * 1.2),
         center: [wh.pos[0], car.wheelR, wh.pos[2]], wheelR: car.wheelR, spin: wh.spinVel,
         axis: [Math.cos(car.heading + (wh.front ? car.steer : 0)), 0, -Math.sin(car.heading + (wh.front ? car.steer : 0))],
         vel: [wh.vel[0] * 0.25 + tread * wh.fwd[0] * 0.3, 0.8, wh.vel[2] * 0.25 + tread * wh.fwd[2] * 0.3],
       };
     });
     const near = crates.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);
-    smoke.update(simDt, car, emitters, near);
+    smoke.update(simDt, car, emitters, near, settings, lightDir);
     sand.update(simDt, car);
     sand.spawn(car, dtReal);
 

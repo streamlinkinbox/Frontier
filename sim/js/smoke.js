@@ -14,7 +14,8 @@ export const MAX_CRATES = 8;
 //  8..11 em[4] (xyz, strength)  12..15 emV[4] (xyz vel, radius)
 //  16..23 crate[8] (x,z,yaw,active)  24..31 crateS[8] (hx,hy,hz,_)
 //  32..35 em2[4] (wheel axle axis xyz, spin rad/s)  36..39 wheel[4] (centre xyz, radius)
-const PARAM_VEC4 = 40;
+//  40 rp0 (absorb, shadowK, ambientK, brightness) 41 rp1 (tint rgb, phase g) 42 rp2 (lightDir xyz, dustMix)
+const PARAM_VEC4 = 44;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -23,6 +24,7 @@ struct P {
   em: array<vec4f, 4>, emV: array<vec4f, 4>,
   box: array<vec4f, ${MAX_CRATES}>, boxS: array<vec4f, ${MAX_CRATES}>,
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
+  rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -285,6 +287,35 @@ ${HEAD}
   pOut[id] = (s - h * h * div[id]) / 6.0;
 }`,
 
+  lighting: `
+@group(0) @binding(1) var<storage, read> den: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> lightVol: array<vec4f>;
+${HEAD}
+  let L = normalize(prm.rp2.xyz);
+  let h = prm.origin.w;
+  // sun: march 20 cells toward the light (self-shadowing)
+  var p = vec3f(c) + 0.5;
+  var sunOD = 0.0;
+  for (var i = 0; i < 20; i++) {
+    p += L;
+    let q = vec3<i32>(floor(p));
+    if (!inDomain(q)) { break; }
+    sunOD += den[cellIdx(q)].x;
+  }
+  // sky: march straight up (ambient occlusion from smoke above)
+  var skyOD = 0.0;
+  for (var j = 1; j <= 10; j++) {
+    let q = c + vec3<i32>(0, j * 2, 0);
+    if (q.y >= prm.dims.y) { break; }
+    skyOD += den[cellIdx(q)].x * 2.0;
+  }
+  // local density-based occlusion (dense cores are darker)
+  var occ = 0.0;
+  occ += den[cellIdx(c + vec3<i32>(2,0,0))].x + den[cellIdx(c - vec3<i32>(2,0,0))].x;
+  occ += den[cellIdx(c + vec3<i32>(0,0,2))].x + den[cellIdx(c - vec3<i32>(0,0,2))].x;
+  lightVol[id] = vec4f(sunOD * h, skyOD * h, occ * h * 0.5, 0.0);
+}`,
+
   project: `
 @group(0) @binding(1) var<storage, read> p: array<f32>;
 @group(0) @binding(2) var<storage, read_write> vel: array<vec4f>;
@@ -315,7 +346,9 @@ struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: v
 @group(0) @binding(1) var<uniform> cam: Cam;
 @group(0) @binding(2) var<storage, read> den: array<vec4f>;
 @group(0) @binding(3) var depthTex: texture_depth_2d;
+@group(0) @binding(4) var<storage, read> lightVol: array<vec4f>;
 ${sampler('sDen', 'den')}
+${sampler('sLight', 'lightVol')}
 
 @vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
   var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
@@ -356,24 +389,38 @@ fn densAt(wp: vec3f) -> f32 {
   var t = tn + stepLen * hash(fc.xy + vec2f(cam.screen.z * 7.0, 0.0));
   var trans = 1.0;
   var col = vec3f(0.0);
-  let L = normalize(cam.lightDir.xyz);
-  let sun = vec3f(1.0, 0.93, 0.82) * 1.25;
-  let amb = vec3f(0.55, 0.62, 0.72);
+  let L = normalize(prm.rp2.xyz);
+  let absorb = prm.rp0.x;
+  // Henyey-Greenstein phase (forward scattering: smoke glows when looking toward the sun)
+  let g = prm.rp1.w;
+  let ct = dot(rd, L);
+  let phase = (1.0 - g * g) / pow(max(1.0 + g * g - 2.0 * g * ct, 1e-4), 1.5);
+  let sunCol = vec3f(1.0, 0.92, 0.80) * 1.45;
+  let skyCol = vec3f(0.52, 0.62, 0.78);
+  let bounce = vec3f(0.78, 0.62, 0.42) * 0.45;          // warm light bounced off the sand
+  let tyreSmoke = vec3f(0.80, 0.81, 0.84);               // burnt-rubber smoke: cool grey-white
+  let dust = vec3f(0.74, 0.61, 0.45);                    // kicked-up sand dust
+  let albedo = mix(tyreSmoke, dust, prm.rp2.w) * prm.rp1.xyz;
   let center = (bmin.xz + bmax.xz) * 0.5;
   let halfW = (bmax.xz - bmin.xz) * 0.5;
   for (var i = 0; i < n; i++) {
-    if (t > tf || trans < 0.02) { break; }
+    if (t > tf || trans < 0.01) { break; }
     let p = ro + rd * t;
-    var d = densAt(p);
-    // fade at the travelling domain border to hide the cut
+    let g3 = (p - prm.origin.xyz) / prm.origin.w - vec3f(0.5);
+    var d = sDen(g3).x;
     let e = halfW - abs(p.xz - center);
-    d *= smoothstep(0.0, 3.0, min(e.x, e.y));
-    if (d > 0.003) {
-      let sigma = d * 1.6;
-      let sh = densAt(p + L * 0.5) + densAt(p + L * 1.4) + 0.5 * densAt(p + L * 2.8);
-      let lt = exp(-sh * 1.3);
-      let height = clamp(p.y / 6.0, 0.0, 1.0);
-      let c = (sun * lt + amb * (0.55 + 0.45 * height)) * vec3f(0.93, 0.92, 0.9);
+    d *= smoothstep(0.0, 4.0, min(e.x, e.y));
+    if (d > 0.002) {
+      let lv = sLight(g3);
+      let sigma = d * absorb;
+      let sunT = exp(-lv.x * absorb * prm.rp0.y);
+      let powder = 1.0 - exp(-2.0 * sigma);              // Beer-Powder: darker edges facing the light
+      let skyT = exp(-lv.y * absorb * 0.6);
+      let ao = exp(-lv.z * absorb * 0.5);
+      let hgt = clamp(p.y / 4.0, 0.0, 1.0);
+      let direct = sunCol * sunT * mix(1.0, powder * 2.0, 0.5) * phase;
+      let ambient = (skyCol * skyT * (0.6 + 0.4 * hgt) + bounce * (1.0 - hgt)) * ao * prm.rp0.z;
+      let c = albedo * (direct + ambient) * prm.rp0.w;
       let a = 1.0 - exp(-sigma * stepLen);
       col += trans * a * c;
       trans *= 1.0 - a;
@@ -403,10 +450,10 @@ export class Smoke {
     this.buf = {
       velA: mk(v4, 'velA'), velB: mk(v4, 'velB'), velT: mk(v4, 'velT'),
       denA: mk(v4, 'denA'), denB: mk(v4, 'denB'), denT: mk(v4, 'denT'),
-      curl: mk(v4, 'curl'), solid: mk(v4, 'solid'),
+      curl: mk(v4, 'curl'), solid: mk(v4, 'solid'), light: mk(v4, 'lightVol'),
       pA: mk(f1, 'pA'), pB: mk(f1, 'pB'), div: mk(f1, 'div'),
     };
-    this.bytes = 8 * v4 + 3 * f1;
+    this.bytes = 9 * v4 + 3 * f1;
     this.ubo = device.createBuffer({ size: this.params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'smokeParams' });
 
     this.pipe = {};
@@ -429,6 +476,7 @@ export class Smoke {
       jacobiAB: bg('jacobi', [B.pA, B.pB, B.div, B.solid]),
       jacobiBA: bg('jacobi', [B.pB, B.pA, B.div, B.solid]),
       project: bg('project', [B.pA, B.velB, B.solid]),
+      lighting: bg('lighting', [B.denA, B.light]),
     };
     this.wg = [Math.ceil(nx / WG[0]), Math.ceil(ny / WG[1]), Math.ceil(nz / WG[2])];
 
@@ -455,12 +503,13 @@ export class Smoke {
         { binding: 1, resource: { buffer: camUbo } },
         { binding: 2, resource: { buffer: this.buf.denA } },
         { binding: 3, resource: depthView },
+        { binding: 4, resource: { buffer: this.buf.light } },
       ],
     });
   }
 
   // Build uniforms. Domain follows the car, snapped to whole cells (shift is applied during advection).
-  update(dt, car, emitters, crates) {
+  update(dt, car, emitters, crates, S, lightDir) {
     const [nx, ny, nz] = SMOKE_DIMS, h = SMOKE_H;
     // bias the domain behind the car so the trail stays in view
     const [fx, fz] = car.fwd();
@@ -475,15 +524,18 @@ export class Smoke {
     I[0] = nx; I[1] = ny; I[2] = nz;
     I[4] = sx; I[5] = 0; I[6] = sz;
     P.set([this.origin[0], 0, this.origin[2], h], 8);
-    P.set([dt, this.time, 5.0, 2.2], 12);
+    P.set([dt, this.time, S.vorticity, S.buoyancy], 12);
     P.set([car.x, car.bodyY, car.z, car.heading], 16);
     P.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 20);
     P.set([car.vx, 0, car.vz, car.w], 24);
-    P.set([Math.exp(-0.45 * dt), Math.exp(-1.2 * dt), Math.exp(-0.15 * dt), 0.35], 28);
+    P.set([Math.exp(-S.fade * dt), Math.exp(-1.2 * dt), Math.exp(-0.15 * dt), 0.35], 28);
+    P.set([S.opacity, S.shadow, S.ambient, S.brightness], 160);
+    P.set([S.tint, S.tint, S.tint * 1.02, S.phase], 164);
+    P.set([lightDir[0], lightDir[1], lightDir[2], S.dust], 168);
     for (let i = 0; i < 4; i++) {
       const e = emitters[i];
       if (!e) continue;
-      P.set([e.pos[0], e.pos[1], e.pos[2], e.strength], 32 + i * 4);
+      P.set([e.pos[0], e.pos[1], e.pos[2], e.strength * S.emission], 32 + i * 4);
       P.set([e.vel[0], e.vel[1], e.vel[2], e.radius], 48 + i * 4);
       P.set([e.axis[0], e.axis[1], e.axis[2], e.spin], 128 + i * 4);
       P.set([e.center[0], e.center[1], e.center[2], e.wheelR], 144 + i * 4);
@@ -507,6 +559,9 @@ export class Smoke {
     // B -> A (current state lives in A for next step & rendering)
     enc.copyBufferToBuffer(this.buf.velB, 0, this.buf.velA, 0, this.n * 16);
     enc.copyBufferToBuffer(this.buf.denB, 0, this.buf.denA, 0, this.n * 16);
+    const lp = enc.beginComputePass({ label: 'smoke-light' });
+    lp.setPipeline(this.pipe.lighting); lp.setBindGroup(0, this.bg.lighting); lp.dispatchWorkgroups(...this.wg);
+    lp.end();
   }
 
   draw(pass) {

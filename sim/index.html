@@ -16,7 +16,14 @@
   #help { bottom: 12px; left: 12px; }
   #help.hide { display: none; }
   kbd { background: #333; border-radius: 4px; padding: 0 5px; border: 1px solid #555; }
-  #err { display: none; top: 12px; right: 12px; max-width: 46vw; white-space: pre-wrap; background: rgba(120, 0, 0, 0.85); font-family: monospace; font-size: 12px; }
+  #smokePanel { top: 12px; right: 12px; width: 280px; font-size: 12px; }
+  #smokePanel .ph { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  #smokePanel button { background: #333; color: #ddd; border: 1px solid #555; border-radius: 5px; margin-left: 4px; cursor: pointer; font-size: 11px; }
+  #smokePanel.collapsed #sliders { display: none; }
+  #sliders label { display: grid; grid-template-columns: 118px 1fr 36px; align-items: center; gap: 6px; }
+  #sliders input { width: 100%; accent-color: #9fd3ff; }
+  #sliders output { text-align: right; color: #9fd3ff; font-variant-numeric: tabular-nums; }
+  #err { display: none; bottom: 12px; right: 12px; max-width: 46vw; white-space: pre-wrap; background: rgba(120, 0, 0, 0.85); font-family: monospace; font-size: 12px; }
   #touch { position: fixed; right: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
   #touch button { height: 48px; border-radius: 10px; border: 0; background: rgba(255,255,255,0.15); color: #fff; font-size: 18px; user-select: none; }
   @media (hover: hover) { #touch { display: none; } }
@@ -39,6 +46,10 @@
   <span></span><button data-k="throttle">▲</button><span></span>
   <button data-k="left">◀</button><button data-k="handbrake">⎍</button><button data-k="right">▶</button>
   <span></span><button data-k="brake">▼</button><span></span>
+</div>
+<div id="smokePanel" class="panel">
+  <div class="ph"><b>💨 Smoke</b><span><button id="resetSmoke">reset</button><button id="toggleSmoke">–</button></span></div>
+  <div id="sliders"></div>
 </div>
 <div id="err" class="panel"></div>
 <script type="module" src="./js/main.js"></script>
