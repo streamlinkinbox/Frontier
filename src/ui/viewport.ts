@@ -1,11 +1,15 @@
 // ---------------------------------------------------------------------------
-// Frontier UI / viewport — three.js scene: grey studio sky, infinite grid with
-// red/blue axis lines (per reference), orbit camera, SDF mesh with splatmap
-// blending shader or plain standard material.
+// Frontier UI / viewport — three.js scene with Unreal-Editor-style navigation:
+//   RMB drag      : look around (free yaw/pitch)
+//   LMB drag      : orbit around the point under view
+//   W A S D       : fly along view / strafe      Q / E : down / up
+//   Shift         : 3x speed                     wheel : dolly forward/back
+//   F             : frame terrain (handled by app)
+// Grey studio sky + grid + red/blue axis lines like the reference. The canvas
+// is the ONLY child of its container — nothing may innerHTML over it.
 // ---------------------------------------------------------------------------
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MeshData } from '../core/mesh';
 import { SplatSet } from '../core/splat';
 
@@ -44,7 +48,6 @@ void main() {
     vec4 b = texture2D(uSplatB, uv);
     albedo += uColors[4] * b.x + uColors[5] * b.y + uColors[6] * b.z + uColors[7] * b.w;
   }
-  // fine detail break-up so flat colours read as material
   float grain = fract(sin(dot(vWorld.xz, vec2(12.9898, 78.233))) * 43758.5453);
   albedo *= 0.92 + 0.16 * grain;
 
@@ -59,13 +62,13 @@ void main() {
 export interface ViewportOptions {
   container: HTMLElement;
   domainSize: [number, number, number];
+  onViewError?: (message: string) => void;
 }
 
 export class Viewport {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
-  controls: OrbitControls;
   private mesh: THREE.Mesh | null = null;
   private stdMat: THREE.MeshStandardMaterial;
   private splatMat: THREE.ShaderMaterial | null = null;
@@ -73,71 +76,177 @@ export class Viewport {
   wireframe = false;
   textured = true;
   private domainSize: [number, number, number];
+  private hasFramed = false;
+  private onViewError?: (m: string) => void;
+
+  // fly/orbit state
+  private yaw = -Math.PI * 0.25;
+  private pitch = -0.42;
+  private pos = new THREE.Vector3();
+  private keys = new Set<string>();
+  private moveSpeed = 220;
+  private drag: 'look' | 'orbit' | null = null;
+  private lastMouse = { x: 0, y: 0 };
+  private clock = new THREE.Clock();
 
   constructor(opts: ViewportOptions) {
     this.domainSize = opts.domainSize;
+    this.onViewError = opts.onViewError;
+
     this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-    this.renderer.setSize(opts.container.clientWidth, opts.container.clientHeight);
-    opts.container.appendChild(this.renderer.domElement);
+    this.renderer.setSize(opts.container.clientWidth || 800, opts.container.clientHeight || 600);
     this.renderer.domElement.id = 'gl';
+    opts.container.appendChild(this.renderer.domElement);
+
+    this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      this.onViewError?.('WebGL context lost — reload the page if the viewport stays grey.');
+    });
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x8c8c8c);
-    this.scene.fog = new THREE.Fog(0x8c8c8c, 1600, 4200);
 
-    this.camera = new THREE.PerspectiveCamera(50, opts.container.clientWidth / opts.container.clientHeight, 0.5, 12000);
-    this.camera.position.set(900, 700, 1100);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.target.set(512, 60, 512);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
-    this.controls.maxPolarAngle = Math.PI * 0.495;
-    this.controls.minDistance = 40;
-    this.controls.maxDistance = 5000;
+    this.camera = new THREE.PerspectiveCamera(55, (opts.container.clientWidth || 800) / (opts.container.clientHeight || 600), 0.5, 20000);
+    this.pos.set(opts.domainSize[0] * 0.95, opts.domainSize[1] * 2.2, opts.domainSize[2] * 1.15);
 
     // grid + axis lines like the reference viewport
-    const grid = new THREE.GridHelper(4000, 80, 0x5a5a5a, 0x6e6e6e);
+    const grid = new THREE.GridHelper(6000, 120, 0x5a5a5a, 0x6e6e6e);
     (grid.material as THREE.Material).transparent = true;
-    (grid.material as THREE.Material).opacity = 0.55;
-    grid.position.set(512, 0, 512);
+    (grid.material as THREE.Material).opacity = 0.5;
+    grid.position.set(opts.domainSize[0] / 2, 0, opts.domainSize[2] / 2);
     this.scene.add(grid);
 
     const axisGeo = new THREE.BufferGeometry();
     axisGeo.setAttribute('position', new THREE.Float32BufferAttribute([
-      -2000, 0.4, 0, 2000, 0.4, 0,
-      0, 0.4, -2000, 0, 0.4, 2000,
+      -3000, 0.4, 0, 3000, 0.4, 0,
+      0, 0.4, -3000, 0, 0.4, 3000,
     ], 3));
     axisGeo.setAttribute('color', new THREE.Float32BufferAttribute([
       0.82, 0.3, 0.3, 0.82, 0.3, 0.3,
       0.3, 0.55, 0.85, 0.3, 0.55, 0.85,
     ], 3));
-    const axisMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-    this.scene.add(new THREE.LineSegments(axisGeo, axisMat));
+    this.scene.add(new THREE.LineSegments(axisGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 })));
 
-    const hemi = new THREE.HemisphereLight(0xdedede, 0x50504a, 0.85);
-    this.scene.add(hemi);
+    this.scene.add(new THREE.HemisphereLight(0xdedede, 0x50504a, 0.85));
     const dir = new THREE.DirectionalLight(0xfff4e0, 1.15);
     dir.position.set(0.6, 1, 0.35);
     this.scene.add(dir);
 
     this.stdMat = new THREE.MeshStandardMaterial({ color: 0x9a958c, roughness: 0.94, metalness: 0 });
 
+    this.bindNavigation();
+
     const loop = () => {
       requestAnimationFrame(loop);
-      this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      this.step();
+      try {
+        this.renderer.render(this.scene, this.camera);
+      } catch (err) {
+        // shader/driver problem: fall back to the plain material once
+        if (this.mesh && this.splatMat && this.mesh.material === this.splatMat) {
+          this.mesh.material = this.stdMat;
+          this.onViewError?.('Splat shader failed on this GPU — fell back to plain shading.');
+        } else {
+          this.onViewError?.(`Render error: ${(err as Error).message}`);
+          throw err;
+        }
+      }
     };
     loop();
 
     new ResizeObserver(() => this.resize()).observe(opts.container);
+    window.addEventListener('resize', () => this.resize());
+    setTimeout(() => this.resize(), 0);
   }
 
+  // ------------------------------------------------------------- navigation
+  private bindNavigation(): void {
+    const el = this.renderer.domElement;
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('mousedown', (e) => {
+      this.drag = e.button === 2 ? 'look' : e.button === 0 ? 'orbit' : null;
+      this.lastMouse = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', () => { this.drag = null; });
+    window.addEventListener('mousemove', (e) => {
+      if (!this.drag) return;
+      const dx = e.clientX - this.lastMouse.x;
+      const dy = e.clientY - this.lastMouse.y;
+      this.lastMouse = { x: e.clientX, y: e.clientY };
+      if (this.drag === 'look') {
+        this.yaw -= dx * 0.0032;
+        this.pitch = Math.max(-1.52, Math.min(1.52, this.pitch - dy * 0.0032));
+      } else {
+        // orbit: rotate around the point 60% of current view distance ahead
+        const fwd = this.forward();
+        const d = 420;
+        const target = this.pos.clone().add(fwd.multiplyScalar(d));
+        this.yaw -= dx * 0.0032;
+        this.pitch = Math.max(-1.52, Math.min(1.52, this.pitch - dy * 0.0032));
+        this.pos.copy(target).add(this.forward().multiplyScalar(-d));
+      }
+    });
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const fwd = this.forward();
+      const step = -Math.sign(e.deltaY) * this.moveSpeed * 0.35;
+      this.pos.add(fwd.multiplyScalar(step));
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
+      this.keys.add(e.code);
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys.add('Shift');
+    });
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys.delete('Shift');
+    });
+    window.addEventListener('blur', () => this.keys.clear());
+  }
+
+  private forward(): THREE.Vector3 {
+    const cp = Math.cos(this.pitch);
+    return new THREE.Vector3(
+      -Math.sin(this.yaw) * cp,
+      Math.sin(this.pitch),
+      -Math.cos(this.yaw) * cp,
+    ).normalize();
+  }
+
+  private right(): THREE.Vector3 {
+    return new THREE.Vector3().crossVectors(this.forward(), new THREE.Vector3(0, 1, 0)).normalize();
+  }
+
+  private step(): void {
+    const dt = Math.min(0.1, this.clock.getDelta());
+    const boost = this.keys.has('Shift') ? 3 : 1;
+    const v = new THREE.Vector3();
+    const f = this.forward(), r = this.right();
+    if (this.keys.has('KeyW')) v.add(f);
+    if (this.keys.has('KeyS')) v.sub(f);
+    if (this.keys.has('KeyD')) v.add(r);
+    if (this.keys.has('KeyA')) v.sub(r);
+    if (this.keys.has('KeyE')) v.y += 1;
+    if (this.keys.has('KeyQ')) v.y -= 1;
+    if (v.lengthSq() > 0) {
+      v.normalize().multiplyScalar(this.moveSpeed * boost * dt);
+      this.pos.add(v);
+    }
+    if (this.pos.y < 2) this.pos.y = 2;
+    this.camera.position.copy(this.pos);
+    this.camera.quaternion.setFromEuler(new THREE.Euler(this.pitch, this.yaw, 0, 'YXZ'));
+  }
+
+  // ------------------------------------------------------------------ scene
   resize(): void {
     const el = this.renderer.domElement.parentElement;
     if (!el) return;
     const w = el.clientWidth, h = el.clientHeight;
+    if (w === 0 || h === 0) return;
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
@@ -145,7 +254,6 @@ export class Viewport {
 
   setDomain(size: [number, number, number]): void {
     this.domainSize = size;
-    this.controls.target.set(size[0] / 2, size[1] * 0.2, size[2] / 2);
   }
 
   updateMesh(mesh: MeshData | null, splat: SplatSet | null): void {
@@ -166,13 +274,16 @@ export class Viewport {
     geo.computeBoundingSphere();
 
     let mat: THREE.Material = this.stdMat;
-    if (splat && splat.textures.length > 0 && this.textured) {
-      mat = this.makeSplatMaterial(splat);
-    }
+    if (splat && splat.textures.length > 0 && this.textured) mat = this.makeSplatMaterial(splat);
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.frustumCulled = false;
     this.scene.add(this.mesh);
     this.applyWireframe();
+
+    if (!this.hasFramed) {
+      this.frameTerrain();
+      this.hasFramed = true;
+    }
   }
 
   private makeSplatMaterial(splat: SplatSet): THREE.Material {
@@ -232,9 +343,22 @@ export class Viewport {
     return this.renderer.domElement.toDataURL('image/png');
   }
 
+  /** place the camera so the whole terrain (or domain) is in view */
   frameTerrain(): void {
     const s = this.domainSize;
-    this.camera.position.set(s[0] * 0.95, s[1] * 2.2, s[2] * 1.15);
-    this.controls.target.set(s[0] / 2, s[1] * 0.18, s[2] / 2);
+    let center = new THREE.Vector3(s[0] / 2, s[1] * 0.18, s[2] / 2);
+    let radius = Math.hypot(s[0], s[2]) * 0.5;
+    if (this.mesh?.geometry.boundingSphere) {
+      const bs = this.mesh.geometry.boundingSphere;
+      center = bs.center.clone();
+      radius = bs.radius;
+    }
+    const dir = new THREE.Vector3(0.62, 0.52, 0.85).normalize();
+    this.pos.copy(center).add(dir.multiplyScalar(radius * 2.05));
+    // aim at center
+    const look = center.clone().sub(this.pos).normalize();
+    this.pitch = Math.asin(Math.max(-1, Math.min(1, look.y)));
+    this.yaw = Math.atan2(-look.x, -look.z);
+    this.moveSpeed = Math.max(40, radius * 0.55);
   }
 }

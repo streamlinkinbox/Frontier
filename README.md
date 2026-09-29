@@ -87,12 +87,16 @@ Matches the reference screenshots: dotted-grid canvas, rounded node cards with
 IN/OUT port columns, bezier wires coloured by port type, floating context
 toolbar on selection (collapse / mute / frame / lock / rename / fit / delete),
 searchable library panel bottom-right, canvas settings (dotted/blank) top-right,
-"Built %" progress pill bottom-left, viewport tool rail + brush bar (sculpting
-is intentionally inert this milestone), top toolbar with save/load/undo/redo,
-wireframe, splat shading, PNG snapshot and auto-cook.
+"Built %" progress pill bottom-left. The viewport itself is deliberately bare
+(no toolbars/rails — sculpting ships later); document actions (new/open/save/
+undo/redo/wireframe/splat shading/snapshot/auto-cook) live in the editor pill.
+
+Viewport navigation (Unreal-editor style):
+`W A S D` fly · `Q / E` down / up · `Shift` 3x speed · `RMB drag` look ·
+`LMB drag` orbit · `wheel` dolly · `F` frame terrain.
 
 Shortcuts: `Ctrl+Enter` cook · `Ctrl+Z` / `Ctrl+Shift+Z` undo/redo ·
-`Del` delete node · double-click canvas = library · wheel = zoom.
+`Del` delete node · double-click canvas = library · wheel on canvas = zoom.
 
 ## Roadmap
 

@@ -25,7 +25,7 @@ export interface HydraulicParams {
 }
 
 export const HYDRAULIC_DEFAULTS: HydraulicParams = {
-  iterations: 24,
+  iterations: 16,
   rainfall: 1.0,
   erodibility: 0.55,
   capacityKc: 0.9,

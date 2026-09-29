@@ -16,6 +16,8 @@ export interface EditorApp {
   selectedId: string | null;
   markDirty(structural: boolean): void;
   onNodeMoved(): void;
+  onToolbar(act: string): void;
+  flags: { wireframe: boolean; textured: boolean; autoCook: boolean };
   onSelect(id: string | null): void;
   badges: Map<string, GuardBadge>;
   onRaiseRes(res: number): void;
@@ -68,6 +70,17 @@ export class NodeEditor {
           <button data-act="inspector" title="Inspector">≡</button>
           <span class="div"></span>
           <button data-act="cook" title="Cook graph (Ctrl+Enter)">▷</button>
+          <span class="div"></span>
+          <button data-act="new" title="New graph">🗎</button>
+          <button data-act="open" title="Open graph (.json)">📂</button>
+          <button data-act="save" title="Save graph (.json)">💾</button>
+          <button data-act="undo" title="Undo (Ctrl+Z)">↩</button>
+          <button data-act="redo" title="Redo (Ctrl+Shift+Z)">↪</button>
+          <span class="div"></span>
+          <button data-act="wire" title="Wireframe">⬢</button>
+          <button data-act="tex" title="Splatmap shading">🖵</button>
+          <button data-act="snap" title="Snapshot PNG">📷</button>
+          <button data-act="auto" title="Auto-cook on edit">⚙</button>
         </div>
       </div>
       <button id="settings-btn" title="Canvas settings">⚙</button>
@@ -405,6 +418,7 @@ export class NodeEditor {
       if (act === 'library') this.setLibraryOpen(!this.libraryOpen);
       else if (act === 'inspector') this.app.toggleInspector();
       else if (act === 'cook') this.app.cook();
+      else if (act) { this.app.onToolbar(act); this.syncToolbar(); }
     });
 
     this.ctxBar.addEventListener('click', (e) => {
@@ -457,6 +471,14 @@ export class NodeEditor {
     this.library.querySelector('#library-search')!.addEventListener('input', (e) => {
       this.buildLibrary((e.target as HTMLInputElement).value);
     });
+  }
+
+  syncToolbar(): void {
+    const bar = this.wrap.querySelector('#editor-toolbar');
+    if (!bar) return;
+    bar.querySelector('[data-act="wire"]')?.classList.toggle('on', this.app.flags.wireframe);
+    bar.querySelector('[data-act="tex"]')?.classList.toggle('on', this.app.flags.textured);
+    bar.querySelector('[data-act="auto"]')?.classList.toggle('on', this.app.flags.autoCook);
   }
 
   setLibraryOpen(open: boolean): void {

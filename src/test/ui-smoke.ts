@@ -11,7 +11,6 @@ for (const k of ['window', 'document', 'navigator', 'HTMLElement', 'SVGElement',
 import { defaultGraph, serialize, deserialize } from '../graph/graph';
 import { NodeEditor, EditorApp, GuardBadge } from '../ui/editor';
 import { Inspector, InspectorApp } from '../ui/inspector';
-import { buildChrome } from '../ui/chrome';
 import { cookGraph } from '../worker/eval';
 import { defFor } from '../graph/registry';
 import { evaluateResolution, ResolutionContext } from '../core/resolution';
@@ -25,6 +24,7 @@ const graph = defaultGraph();
 const badges = new Map<string, GuardBadge>();
 let selected: string | null = null;
 let dirtyCount = 0;
+let actions = 0;
 
 const app = document.querySelector('#app') as unknown as HTMLElement;
 (app as never as { innerHTML: string }).innerHTML = `
@@ -44,6 +44,8 @@ const editorApp: EditorApp = {
   badges,
   onRaiseRes: (r) => { graph.domain.res = r; },
   cook: () => { cook(); },
+  onToolbar: (a: string) => { void a; actions++; },
+  flags: { wireframe: false, textured: true, autoCook: true },
   toggleInspector: () => {},
   get inspectorOpen() { return true; },
 };
@@ -109,17 +111,10 @@ editor.updateBadges();
 editor.setLibraryOpen(true);
 assert(wrap.querySelectorAll('.lib-item').length > 10, `library lists nodes (${wrap.querySelectorAll('.lib-item').length})`);
 
-// --- chrome
-let actions = 0;
-buildChrome(vSide, {
-  onNew: () => actions++, onSave: () => actions++, onOpen: () => actions++, onUndo: () => actions++, onRedo: () => actions++,
-  onWireframe: () => actions++, onTextured: () => actions++, onSnapshot: () => actions++, onAutoCook: () => actions++,
-  wireframe: false, textured: true, autoCook: true, setTitle: () => {},
-});
-assert(vSide.querySelectorAll('#tool-rail button').length === 10, 'tool rail rendered');
-assert(!!vSide.querySelector('#brush-bar.disabled'), 'brush bar present and inert');
-(vSide.querySelector('[data-act="undo"]') as unknown as HTMLElement).click();
-assert(actions === 1, 'toolbar dispatches actions');
+// --- editor toolbar carries the document actions; viewport stays bare
+assert(vSide.children.length === 0, 'viewport side has no chrome injected before app mount');
+(wrap.querySelector('[data-act="undo"]') as unknown as HTMLElement).click();
+assert(actions === 1, 'editor toolbar dispatches document actions');
 
 // --- serialize round trip
 const g2 = deserialize(serialize(graph));

@@ -177,7 +177,7 @@ export const NODE_DEFS: NodeDef[] = [
     inputs: [{ name: 'SDF', type: 'sdf' }],
     outputs: [{ name: 'SDF', type: 'sdf' }, { name: 'Flow', type: 'mask' }],
     params: [
-      i('iterations', 'Iterations', 24, 1, 200),
+      i('iterations', 'Iterations', 16, 1, 200),
       f('rainfall', 'Rainfall', 1.0, 0.05, 5, 0.05),
       f('erodibility', 'Erodibility K', 0.55, 0, 2, 0.01),
       f('capacityKc', 'Capacity Kc', 0.9, 0, 3, 0.01),
@@ -193,7 +193,7 @@ export const NODE_DEFS: NodeDef[] = [
     inputs: [{ name: 'SDF', type: 'sdf' }, { name: 'Hardness', type: 'mask', optional: true }],
     outputs: [{ name: 'SDF', type: 'sdf' }],
     params: [
-      i('iterations', 'Iterations', 30, 1, 300),
+      i('iterations', 'Iterations', 20, 1, 300),
       f('talusAngle', 'Talus Angle', 37, 10, 80, 0.5, '°'),
       f('strength', 'Strength', 0.6, 0, 1, 0.01),
       f('creep', 'Soil Creep', 0.05, 0, 0.5, 0.005),
@@ -208,7 +208,7 @@ export const NODE_DEFS: NodeDef[] = [
     inputs: [{ name: 'SDF', type: 'sdf' }],
     outputs: [{ name: 'SDF', type: 'sdf' }],
     params: [
-      i('iterations', 'Iterations', 14, 1, 120),
+      i('iterations', 'Iterations', 10, 1, 120),
       f('supply', 'Sediment Supply', 0.5, 0, 3, 0.01),
       f('slopeThreshold', 'Slope Threshold', 0.18, 0.01, 1, 0.01),
       f('fanStrength', 'Fan Strength', 0.7, 0, 1, 0.01),
@@ -221,7 +221,7 @@ export const NODE_DEFS: NodeDef[] = [
     inputs: [{ name: 'SDF', type: 'sdf' }],
     outputs: [{ name: 'SDF', type: 'sdf' }],
     params: [
-      i('iterations', 'Iterations', 18, 1, 120),
+      i('iterations', 'Iterations', 10, 1, 120),
       f('directionDeg', 'Wind Direction', 235, 0, 360, 1, '°'),
       f('strength', 'Strength', 0.6, 0, 1, 0.01),
       f('abrasion', 'Abrasion', 0.5, 0, 1, 0.01),

@@ -13,7 +13,7 @@ import { Cooker } from './worker/bridge';
 import { Viewport } from './ui/viewport';
 import { NodeEditor, GuardBadge, EditorApp } from './ui/editor';
 import { Inspector, InspectorApp } from './ui/inspector';
-import { buildChrome, toast } from './ui/chrome';
+import { toast } from './ui/chrome';
 
 class App {
   graph: Graph = defaultGraph();
@@ -43,35 +43,26 @@ class App {
     const vSide = app.querySelector('#viewport-side') as HTMLElement;
     const wrap = app.querySelector('#canvas-wrap') as HTMLElement;
 
-    this.viewport = new Viewport({ container: vSide, domainSize: this.graph.domain.size });
-    this.viewport.frameTerrain();
-
-    const self = this;
-    buildChrome(vSide, {
-      onNew: () => this.newGraph(),
-      onSave: () => this.save(),
-      onOpen: () => this.open(),
-      onUndo: () => this.undo(),
-      onRedo: () => this.redo(),
-      onWireframe: () => { this.wireframe = !this.wireframe; this.viewport.setWireframe(this.wireframe); },
-      onTextured: () => { this.textured = !this.textured; this.viewport.setTextured(this.textured); this.cook(true); },
-      onSnapshot: () => this.snapshot(),
-      onAutoCook: () => {
-        this.autoCook = !this.autoCook;
-        toast(`Auto-cook ${this.autoCook ? 'on' : 'off'} — ${this.autoCook ? 'edits re-cook automatically' : 'press ▷ or Ctrl+Enter to cook'}`);
-      },
-      get wireframe() { return self.wireframe; },
-      get textured() { return self.textured; },
-      get autoCook() { return self.autoCook; },
-      setTitle: () => { /* handled internally */ },
+    this.viewport = new Viewport({
+      container: vSide,
+      domainSize: this.graph.domain.size,
+      onViewError: (m) => toast(m, true, 8000),
     });
-    this.stats = vSide.querySelector('#hud-stats')!;
+
+    // bare viewport: canvas + a small stats readout, nothing else
+    const hud = document.createElement('div');
+    hud.id = 'hud-stats';
+    vSide.appendChild(hud);
+    this.stats = hud;
+    const self = this;
 
     const editorApp: EditorApp = {
       graph: this.graph,
       get selectedId() { return self.selectedId; },
       markDirty: (s) => this.markDirty(s),
       onNodeMoved: () => { this.dirty = true; this.setTitle('Untitled', true); },
+      onToolbar: (act) => this.toolbarAct(act),
+      get flags() { return { wireframe: self.wireframe, textured: self.textured, autoCook: self.autoCook }; },
       onSelect: (id) => this.select(id),
       badges: this.badges,
       onRaiseRes: (r) => this.raiseRes(r),
@@ -113,6 +104,7 @@ class App {
       },
     });
 
+    this.editor.syncToolbar();
     this.bindSplitter(app.querySelector('#splitter') as HTMLElement);
     this.bindKeys();
 
@@ -284,6 +276,23 @@ class App {
     this.cook(true);
   }
 
+  toolbarAct(act: string): void {
+    switch (act) {
+      case 'new': this.newGraph(); break;
+      case 'open': this.open(); break;
+      case 'save': this.save(); break;
+      case 'undo': this.undo(); break;
+      case 'redo': this.redo(); break;
+      case 'wire': this.wireframe = !this.wireframe; this.viewport.setWireframe(this.wireframe); break;
+      case 'tex': this.textured = !this.textured; this.viewport.setTextured(this.textured); this.cook(true); break;
+      case 'snap': this.snapshot(); break;
+      case 'auto':
+        this.autoCook = !this.autoCook;
+        toast(`Auto-cook ${this.autoCook ? 'on' : 'off'} — ${this.autoCook ? 'edits re-cook automatically' : 'press ▷ or Ctrl+Enter to cook'}`);
+        break;
+    }
+  }
+
   snapshot(): void {
     const url = this.viewport.snapshot();
     const a = document.createElement('a');
@@ -299,6 +308,7 @@ class App {
       const target = e.target as HTMLElement;
       const typing = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); this.cook(true); }
+      else if (e.code === 'KeyF' && !typing && !e.ctrlKey && !e.metaKey) { this.viewport.frameTerrain(); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey && !typing) { e.preventDefault(); this.undo(); }
       else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) && !typing) { e.preventDefault(); this.redo(); }
       else if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedId && !typing) {
