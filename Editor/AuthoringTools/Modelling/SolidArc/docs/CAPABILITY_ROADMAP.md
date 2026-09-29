@@ -2209,6 +2209,38 @@ polygon side counts or radii, arbitrary bore/hole counts, radii, placements or s
 offsets, healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.md`.
 
+#### Batch 63: exact rectangular slot-holed and slot-profile circular-bored prism upper-cap face offsets ✅
+
+This consolidated batch adds the first slot-support domains, where a profile or through-hole is an exact analytic slot chain
+(a closed line/arc/line/arc curve stored as a degree-two rational closed curve with thirteen poles).
+`RectangularSlotHoledAndSlotProfileBoredFaceOffsetVerification` constructs a canonical rectangular prism (`(-8,-5)..(8,5)`,
+height 6) with one slot through-hole (arc centres `(±3,0)`, radius 1.5) — closed genus-one `V10/E15/C30/L9/F7` with two two-loop
+planar caps, five extrusion walls, thirteen seam lines and two slot curves — and a canonical slot-profile prism (same arc centres
+and radius, height 6) with one concentric circular bore (radius 0.8) — closed genus-one `V4/E6/C12/L6/F4` with two two-loop caps,
+two extrusion walls, two seam lines, two slot curves and two circles. Each extends only its +Z cap by 0.5, 1.5, and 3.0.
+
+Because the extrusion pipeline flattens slot classifications, `ExactAxisAlignedSlot` recognises slots structurally and by sampling:
+closed, rational, degree two, thirteen poles, Z axis, `SpanY = 2·Radius`, `SpanX = 2·(HalfSpan + Radius)`, planar, and 49 samples
+within `1e-6` of a freshly built `NurbsCurve::Slot`. `FaceEditSolver::OffsetExtrudedRectangularSlotHoledPrism` and
+`OffsetExtrudedSlotProfileCircularBoredPrism` then require exact canonical bounds, vertex levels, cap loop structure, canonical
+rectangle corners or slot outer profile, slot half-span/radius/centre, bore radius/centre/plane, bore containment, full edge and face
+censuses, and rebuild fresh exact extrusions — retaining planar, linear, circular, and slot-chain extrusion supports without healing,
+tessellation, or source mutation. The earlier circular-holed rectangular and circular-bored elliptical routes remain separate and
+still dispatch exactly.
+
+The verifier checks exact topology, caps, face censuses, support censuses, the volume identities `160 − (2·L·2·r + πr²)` and
+`(2·L·2·r + πr²) − πb²` (L=3, r=1.5, b=0.8) times the extended height, source immutability, dispatcher routing with strict-route
+agreement, regression of the earlier circular-holed and bored-elliptical domains, and explicit refusal of lower/side faces, invalid
+distances, translated profiles, non-canonical rectangle/slot/bore dimensions, mismatched hole supports, wrong hole counts, hole-free
+slot sources, malformed incidence, and cross-route requests. The durable proof is
+`Proofs/Batch63_RectangularSlotHoledAndSlotProfileBoredFaceOffset.png`; the verifier and proof are registered in `CMakeLists.txt`
+and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned slot configurations. They do not prove arbitrary
+rectangle, slot or bore dimensions or orientations, arbitrary hole/bore counts or placements, Y-aligned or tilted slots, hole-free
+slot prisms, inward or lower/side offsets, healing, or general multi-loop face editing. The bounded plan is
+`docs/PLAN_Batch63_RectangularSlotHoledAndSlotProfileBoredFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond

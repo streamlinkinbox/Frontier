@@ -1535,6 +1535,37 @@ This consolidated batch covers the first curved-outer-wall holed domain and a fi
 
 The bounded plan is `docs/PLAN_Batch62_CircularBoredEllipticalAndPentagonalTwinCircularHoledFaceOffset.md`.
 
+## Batch 63 — exact rectangular slot-holed and slot-profile circular-bored prism upper-cap face offsets (2026-09-29)
+
+This consolidated batch covers the first slot-support domains, where a profile or through-hole is
+an exact analytic slot chain (closed line/arc/line/arc curve, degree-two rational, thirteen poles):
+
+- `RectangularSlotHoledAndSlotProfileBoredFaceOffsetVerification` constructs a canonical
+  rectangular prism (`(-8,-5)..(8,5)`, height 6) with one slot through-hole (arc centres
+  `(±3,0)`, radius 1.5) — closed genus-one `V10/E15/C30/L9/F7`, two two-loop planar caps,
+  five extrusion walls — and a canonical slot-profile prism (same centres/radius, height 6) with
+  one concentric circular bore (radius 0.8) — closed genus-one `V4/E6/C12/L6/F4`, two two-loop
+  caps, two extrusion walls.
+- `ExactAxisAlignedSlot` recognises flattened slot curves structurally and by sampling;
+  `OffsetExtrudedRectangularSlotHoledPrism` and `OffsetExtrudedSlotProfileCircularBoredPrism`
+  recognize only the strict canonical sources through their two-loop +Z planar caps, verify slot
+  half-span/radius/centre, bore containment and full edge/face censuses, and rebuild fresh exact
+  extrusions while retaining planar, linear, circular, and slot-chain extrusion supports without
+  healing, tessellation, or source mutation.
+- The verifier checks distances 0.5, 1.5, and 3.0, exact topology, caps, face and support
+  censuses, the volume identities `160 − (2·L·2·r + πr²)` and `(2·L·2·r + πr²) − πb²` (L=3,
+  r=1.5, b=0.8) times the extended height, source immutability, dispatcher routing with
+  strict-route agreement, regression of the earlier circular-holed rectangle and bored-ellipse
+  domains, and explicit refusal of lower/side faces, invalid distances, translated profiles,
+  non-canonical rectangle/slot/bore dimensions, mismatched hole supports, wrong hole counts,
+  hole-free slot sources, malformed incidence, and cross-route requests. Focused result: 32
+  checks, 0 failures.
+- Durable proof: `Proofs/Batch63_RectangularSlotHoledAndSlotProfileBoredFaceOffset.png`.
+  The verifier, proof, and full-gate registration are present in `CMakeLists.txt` and
+  `Tools/Build/CheckSolidArc.sh`.
+
+The bounded plan is `docs/PLAN_Batch63_RectangularSlotHoledAndSlotProfileBoredFaceOffset.md`.
+
 ## Next work rule
 
 Do not add another verifier merely by renaming an existing fixture. Pick one item from the
