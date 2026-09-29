@@ -1637,15 +1637,42 @@ export function applySDFNaturalArchesNode(
           phi = smoothMin(phi, phiBoulder, 2.0);
         }
 
-        // True 3D Volumetric Rock Fracture & Stepped Bedding Ledge Noise at (wx, wy, wz)
-        // Breaks up vertical walls and arch bridges into natural craggy sandstone strata & facets!
-        const strataStep3D =
-          Math.sin(wy * 0.22 + nLow * 2.8) * 1.85 +
-          Math.tanh(Math.sin(wy * 0.095 - nMid * 2.1) * 2.6) * 2.45;
-        const cragFacet3D =
-          (Math.abs(cragNoise.simplex3D(wx * 0.036 + 7.1, wy * 0.032, wz * 0.036 - 13.4)) - 0.36) *
-          6.4;
-        const rockCrag3D = (strataStep3D + cragFacet3D) * rockNoiseGlobal;
+        // Hierarchical sandstone weathering displacement in the actual 3D SDF.
+        // The former stacked Y sine waves made evenly spaced, corrugated bands, while a single
+        // absolute-value noise field made broad, puffy/space-rock blobs. Use warped, non-periodic
+        // fields at three geological scales instead: rounded wall-scale weathering, chipped
+        // medium ledges, and voxel-resolvable sandstone grain. The ridge fold is soft (C1)
+        // and bounded so it roughens the rock without creating needle spikes or Swiss-cheese pits.
+        const macroWeather = noise.simplex3D(
+          wx * 0.022 + 4.7,
+          wy * 0.018 - 11.3,
+          wz * 0.022 + 29.1
+        );
+        // Low-frequency lateral warp bends the texture through the rock, avoiding a repeated
+        // vertical or horizontal grain direction while following the local bedding field.
+        const weatherX = wx + macroWeather * 5.0 + nLow * 2.2;
+        const weatherZ = wz - macroWeather * 3.8 + nMid * 2.2;
+        const weatherY = wy + macroWeather * 2.8 + nFold * 1.6;
+        const ledgeNoise = cragNoise.simplex3D(
+          weatherX * 0.068 + 13.1,
+          weatherY * 0.056 + 3.7,
+          weatherZ * 0.068 - 17.9
+        );
+        const grainNoise = noise.simplex3D(
+          weatherX * 0.14 - 21.7,
+          weatherY * 0.115 + 8.3,
+          weatherZ * 0.14 + 6.9
+        );
+        // Sparse, rounded ridges give eroded sandstone its chipped/shelly relief without a
+        // hard Voronoi cell pattern. Mid-scale wavelength is ~15m; fine grain remains >6m,
+        // safely above the default 2m voxel spacing.
+        const softRidge = Math.pow(
+          Math.max(0.0, 1.0 - Math.sqrt(ledgeNoise * ledgeNoise + 0.012)),
+          2.1
+        );
+        const rockCrag3D =
+          (macroWeather * 2.7 + ledgeNoise * 2.0 + grainNoise * 0.82 + (softRidge - 0.30) * 3.2) *
+          rockNoiseGlobal;
 
         // Flanking Stepped Entrada Sandstone Buttresses
         if (activeButtressCount > 0) {

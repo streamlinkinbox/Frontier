@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 14; // 1-to-1 Blue Arch carving, 3-handle Blue Arch controls, 1-8 Arch count & 3D rock crag noise
+  const engineVersion = 15; // Warped multi-scale 3D sandstone fracture relief; non-repeating cross-bedding and grain
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);

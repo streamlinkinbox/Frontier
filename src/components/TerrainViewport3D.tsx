@@ -322,14 +322,20 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
 
         // 4. Sweeping Diagonal Aeolian Dune Cross-Bedding + Fine Sedimentary Micro-Laminae
         float crossSetDir = (bedTone > 0.48 ? 1.0 : -1.0);
-        float crossWarp = (noise3D(wp * 0.025) - 0.5) * 4.5;
-        float crossPhase = wp.y * 0.85 + (wp.x * 0.38 - wp.z * 0.34) * crossSetDir + crossWarp;
-        float crossForeset = sin(crossPhase) * 0.055 * (0.45 + 0.55 * massiveZone);
+        // Irregular, dipping cross-beds: retain sedimentary direction, but warp each set so it
+        // reads as broken foresets rather than evenly spaced sine stripes.
+        float crossWarp = (noise3D(wp * 0.021) - 0.5) * 10.0;
+        float crossPhase = wp.y * 0.47 + (wp.x * 0.24 - wp.z * 0.21) * crossSetDir + crossWarp;
+        float crossRough = noise3D(vec3(wp.x * 0.052, wp.y * 0.031, wp.z * 0.052)) - 0.5;
+        float crossForeset = (sin(crossPhase) * 0.032 + crossRough * 0.035) * (0.45 + 0.55 * massiveZone);
 
-        // Crisp fine sedimentary micro-bedding (1.5m - 3.5m sandstone laminations that pinch out laterally)
+        // Non-repeating fine lamina/grain relief. The old 2.4m sine period aliased into
+        // uniform zebra bands; these warped volumetric fields vary between ~6m and ~15m.
         float microPinch = smoothstep(0.32, 0.68, noise3D(vec3(wp.x * 0.024, wp.y * 0.015, wp.z * 0.024)));
-        float microLamina = sin(effY * 2.65 + noise3D(vec3(wp.x * 0.04, 0.4, wp.z * 0.04)) * 3.2) * 0.065 * microPinch;
-        float microNormalY = cos(effY * 2.65) * 0.14 * microPinch;
+        float grainMid = noise3D(vec3(wp.x * 0.12 + wp.y * 0.025, wp.y * 0.095, wp.z * 0.12 - wp.y * 0.018));
+        float grainFine = noise3D(vec3(wp.x * 0.16 - wp.z * 0.025, wp.y * 0.13, wp.z * 0.16 + wp.x * 0.018));
+        float microLamina = ((grainMid - 0.5) * 0.105 + (grainFine - 0.5) * 0.045) * microPinch;
+        float microNormalY = ((grainMid - 0.5) * 0.22 + (grainFine - 0.5) * 0.10) * microPinch;
 
         float bandShade = 0.0;
         float bandNormalY = 0.0;
@@ -392,7 +398,10 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         float archSoffitBounce = clamp(-wn.y, 0.0, 1.0) * smoothstep(38.0, 74.0, wp.y);
         diffuseColor.rgb *= mix(vec3(1.0), vec3(1.24, 1.06, 0.88), archSoffitBounce * 0.55);
 
-        float microGrain = (noise3D(wp * 0.65) - 0.5) * 0.045;
+        // Broad mineral mottling plus voxel-safe grain; avoid a single tiny speckle frequency.
+        float mineralGrain = (noise3D(wp * 0.055) - 0.5) * 0.095;
+        float chippedGrain = (noise3D(wp * 0.14) - 0.5) * 0.075;
+        float microGrain = mineralGrain + chippedGrain;
         diffuseColor.rgb = clamp(diffuseColor.rgb * (1.0 + bandShade * cliffFactor + microGrain), 0.02, 1.0);`
       );
 
