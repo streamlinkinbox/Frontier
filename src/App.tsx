@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 13; // Adds 3D SDF Natural Arches & Interactive Bezier Arch Splines (Double Arch preset)
+  const engineVersion = 14; // 1-to-1 Blue Arch carving, 3-handle Blue Arch controls, 1-8 Arch count & 3D rock crag noise
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);

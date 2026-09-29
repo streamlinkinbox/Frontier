@@ -36,6 +36,8 @@ export interface ArchSplineControl {
   finHalfWidth: number;     // Half-thickness of the sandstone fin at the span (m)
   buttressRadius: number;   // Radius of the anchoring buttress piers at ends (m)
   alcoveFlare: number;      // Conchoidal outward alcove flaring on both faces [0..1]
+  vaultPower?: number;      // Shape of the Blue Arch curve (1.3 = pointed catenary, 2.0 = parabolic, 2.8 = wide dome)
+  rockNoise?: number;       // 3D craggy rock fracture & spall roughness on this arch [0..2]
 }
 
 export interface SDFTerrainVolume {

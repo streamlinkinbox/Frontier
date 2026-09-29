@@ -13,7 +13,7 @@ import { GraphNodeData } from '../engine/graphEvaluator';
 import { NodeResolutionReport, SDFDomainConfig } from '../engine/resolutionGuard';
 import { SATMAP_PRESETS, getSatMapCssGradient } from '../engine/satmaps';
 import { ArchSplineControl } from '../engine/terrainState';
-import { getDefaultArchSplines } from '../engine/generators';
+import { getDefaultArchSplines, syncArchSplinesToCount } from '../engine/generators';
 
 interface NodeInspectorProps {
   node: GraphNodeData | null;
@@ -92,7 +92,7 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
   const [viewMode, setViewMode] = useState<'profile' | 'plan'>('profile');
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragHandle, setDragHandle] = useState<
-    null | 'pier0' | 'crown' | 'vault' | 'pier1' | 'p0' | 'pc' | 'p1'
+    null | 'pier0' | 'crown' | 'vault' | 'vaultL' | 'vaultR' | 'pier1' | 'p0' | 'pc' | 'p1'
   >(null);
 
   const safeIdx = Math.max(0, Math.min(splines.length - 1, selectedIdx));
@@ -100,7 +100,19 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
 
   const updateSpline = (idx: number, patch: Partial<ArchSplineControl>) => {
     const next = splines.map((s, i) => (i === idx ? { ...s, ...patch } : s));
-    onUpdateAllParams({ ...params, archSplines: next });
+    onUpdateAllParams({ ...params, archCount: next.length, archSplines: next });
+  };
+
+  const handleSetArchCount = (targetCount: number) => {
+    const clamped = Math.max(1, Math.min(8, Math.round(targetCount)));
+    const next = syncArchSplinesToCount(splines, clamped, archStyle, seed);
+    setSelectedIdx(Math.min(safeIdx, next.length - 1));
+    onUpdateAllParams({
+      ...params,
+      archCount: clamped,
+      proceduralArchCount: 0,
+      archSplines: next,
+    });
   };
 
   const handleStyleChange = (newStyle: string) => {
@@ -109,46 +121,34 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
     onUpdateAllParams({
       ...params,
       archStyle: newStyle,
+      archCount: presetSplines.length,
+      proceduralArchCount: 0,
       archSplines: presetSplines,
     });
   };
 
   const handleAddSpline = () => {
-    const idx = splines.length + 1;
-    const offset = ((idx % 3) - 1) * 34;
-    const newSpline: ArchSplineControl = {
-      id: `custom-arch-${Date.now()}`,
-      name: `Custom Arch #${idx}`,
-      enabled: true,
-      x0: -78 + offset * 0.4,
-      z0: -18 + offset,
-      xc: offset * 0.3,
-      zc: -34 + offset,
-      x1: 78 + offset * 0.4,
-      z1: -14 + offset,
-      pierHeight0: 132,
-      crownHeight: 176,
-      pierHeight1: 142,
-      crownPosU: 0.5,
-      windowWidthFrac: 0.54,
-      windowCenterU: 0.5,
-      windowApexHeight: 138,
-      sillHeight: 44,
-      bridgeThickness: 21,
-      finHalfWidth: 13,
-      buttressRadius: 34,
-      alcoveFlare: 0.82,
-    };
-    const next = [...splines, newSpline];
+    const nextCount = Math.min(8, splines.length + 1);
+    const next = syncArchSplinesToCount(splines, nextCount, archStyle, seed);
     setSelectedIdx(next.length - 1);
-    onUpdateAllParams({ ...params, archSplines: next });
+    onUpdateAllParams({
+      ...params,
+      archCount: next.length,
+      proceduralArchCount: 0,
+      archSplines: next,
+    });
   };
 
   const handleDeleteSpline = (idx: number) => {
     if (splines.length <= 1) return;
     const next = splines.filter((_, i) => i !== idx);
     setSelectedIdx(Math.max(0, idx - 1));
-    onUpdateAllParams({ ...params, archSplines: next });
+    onUpdateAllParams({
+      ...params,
+      archCount: next.length,
+      proceduralArchCount: 0,
+      archSplines: next,
+    });
   };
 
   // SVG coordinate helpers
@@ -182,15 +182,35 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
         const nextCrown = Math.max(active.sillHeight + 42, Math.min(220, elev));
         const maxVault = nextCrown - Math.max(15, active.bridgeThickness);
         updateSpline(safeIdx, {
-          crownPosU: Number(Math.max(0.25, Math.min(0.75, u)).toFixed(2)),
+          crownPosU: Number(Math.max(0.22, Math.min(0.78, u)).toFixed(2)),
           crownHeight: nextCrown,
           windowApexHeight: Math.min(active.windowApexHeight, maxVault),
         });
       } else if (dragHandle === 'vault') {
         const maxVault = active.crownHeight - Math.max(15, active.bridgeThickness);
         updateSpline(safeIdx, {
-          windowCenterU: Number(Math.max(0.28, Math.min(0.72, u)).toFixed(2)),
-          windowApexHeight: Math.max(active.sillHeight + 22, Math.min(maxVault, elev)),
+          windowCenterU: Number(Math.max(0.24, Math.min(0.76, u)).toFixed(2)),
+          windowApexHeight: Math.max(active.sillHeight + 20, Math.min(maxVault, elev)),
+        });
+      } else if (dragHandle === 'vaultL') {
+        const uRight = Math.min(0.92, active.windowCenterU + active.windowWidthFrac * 0.5);
+        const uLeft = Math.max(0.06, Math.min(uRight - 0.24, u));
+        const nextWidth = Math.max(0.26, Math.min(0.84, uRight - uLeft));
+        const nextCenter = 0.5 * (uLeft + uRight);
+        updateSpline(safeIdx, {
+          windowWidthFrac: Number(nextWidth.toFixed(2)),
+          windowCenterU: Number(nextCenter.toFixed(2)),
+          sillHeight: Math.max(22, Math.min(active.windowApexHeight - 20, elev - 11)),
+        });
+      } else if (dragHandle === 'vaultR') {
+        const uLeft = Math.max(0.08, active.windowCenterU - active.windowWidthFrac * 0.5);
+        const uRight = Math.min(0.94, Math.max(uLeft + 0.24, u));
+        const nextWidth = Math.max(0.26, Math.min(0.84, uRight - uLeft));
+        const nextCenter = 0.5 * (uLeft + uRight);
+        updateSpline(safeIdx, {
+          windowWidthFrac: Number(nextWidth.toFixed(2)),
+          windowCenterU: Number(nextCenter.toFixed(2)),
+          sillHeight: Math.max(22, Math.min(active.windowApexHeight - 20, elev - 11)),
         });
       }
     } else {
@@ -210,16 +230,17 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
     }
   };
 
-  // Build SVG path for the Elevation Profile (Extrados + Intrados Window)
+  // Build SVG path for the Elevation Profile (Yellow Extrados + Blue Intrados Window)
   const buildElevationPaths = () => {
-    if (!active) return { extradosPath: '', intradosPath: '', rockFillPath: '' };
+    if (!active) return { extradosPath: '', intradosPath: '', rockFillPath: '', uLeftFoot: 0.2, uRightFoot: 0.8 };
     const steps = 36;
     const topPts: string[] = [];
     const botPts: string[] = [];
 
     const uc = Math.max(0.22, Math.min(0.78, active.crownPosU));
-    const winHalf = Math.max(0.14, Math.min(0.44, active.windowWidthFrac * 0.5));
+    const winHalf = Math.max(0.14, Math.min(0.45, active.windowWidthFrac * 0.5));
     const minBridge = Math.max(15, active.bridgeThickness);
+    const vaultPow = Math.max(1.25, Math.min(3.0, active.vaultPower ?? 1.95));
 
     for (let i = 0; i <= steps; i++) {
       const u = i / steps;
@@ -234,29 +255,69 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
       topPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(yTop).toFixed(1)}`);
 
       const deltaU = (u - active.windowCenterU) / winHalf;
-      const ySill = active.sillHeight + 12.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.55);
+      const ySill = active.sillHeight + 11.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.6);
       if (Math.abs(deltaU) <= 1.0) {
-        const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), 1.82)), 0.76);
+        const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), vaultPow)), 0.78);
         const rawApex = Math.min(yTop - minBridge, active.windowApexHeight);
-        const yVault = Math.min(yTop - minBridge, ySill + Math.max(12, rawApex - ySill) * vProf);
+        const yVault = Math.min(yTop - minBridge, ySill + Math.max(10, rawApex - ySill) * vProf);
         botPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(yVault).toFixed(1)}`);
       } else {
         botPts.push(`${uToSvgX(u).toFixed(1)},${elevToSvgY(20).toFixed(1)}`);
       }
     }
 
+    const uLeftFoot = Math.max(0.06, active.windowCenterU - winHalf);
+    const uRightFoot = Math.min(0.94, active.windowCenterU + winHalf);
     const extradosPath = `M ${topPts.join(' L ')}`;
     const intradosPath = `M ${botPts.join(' L ')}`;
     const rockFillPath = `M ${uToSvgX(0)},${elevToSvgY(20)} L ${topPts.join(
       ' L '
     )} L ${uToSvgX(1)},${elevToSvgY(20)} L ${[...botPts].reverse().join(' L ')} Z`;
-    return { extradosPath, intradosPath, rockFillPath };
+    return { extradosPath, intradosPath, rockFillPath, uLeftFoot, uRightFoot };
   };
 
-  const { extradosPath, intradosPath, rockFillPath } = buildElevationPaths();
+  const { extradosPath, intradosPath, rockFillPath, uLeftFoot, uRightFoot } = buildElevationPaths();
 
   return (
     <div className="space-y-3">
+      {/* Total Number of Arches Selector (1 .. 8) */}
+      <div className="rounded-xl bg-[#161618] border border-white/10 p-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[11px] text-neutral-300 font-semibold">
+            Number of Arches
+          </span>
+          <span className="text-[11px] font-mono text-amber-300 font-semibold">
+            {splines.length} {splines.length === 1 ? 'Arch' : 'Arches'}
+          </span>
+        </div>
+        <div className="grid grid-cols-8 gap-1 mb-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <button
+              key={n}
+              onClick={() => handleSetArchCount(n)}
+              className={`py-1 rounded-md text-[10px] font-mono font-semibold border transition ${
+                splines.length === n
+                  ? 'bg-amber-400 text-black border-amber-300'
+                  : 'bg-[#1f1f23] text-neutral-300 border-white/10 hover:border-white/30'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        {/* 3D Rock Crag & Fracture Noise Slider */}
+        <SliderControl
+          label="3D Rock Crag & Fracture Noise"
+          value={params.rockNoiseStrength ?? 1.0}
+          min={0.0}
+          max={2.0}
+          step={0.05}
+          unit="×"
+          onChange={(v) => onUpdateAllParams({ ...params, rockNoiseStrength: v })}
+        />
+      </div>
+
       {/* Formation Style Selector */}
       <div>
         <div className="text-[11px] text-neutral-400 font-medium mb-1.5">
@@ -288,14 +349,15 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
       <div className="rounded-xl bg-[#161618] border border-white/10 p-2.5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
-            Arch Spline Curves ({splines.length})
+            Select Arch to Edit ({safeIdx + 1}/{splines.length})
           </span>
           <button
             onClick={handleAddSpline}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 text-[10px] font-medium transition"
+            disabled={splines.length >= 8}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-40 text-amber-200 border border-amber-400/30 text-[10px] font-medium transition"
           >
             <Plus className="w-3 h-3" />
-            Add Spline
+            Add Arch
           </button>
         </div>
 
@@ -343,7 +405,7 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                 viewMode === 'profile' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Side Arch Curve
+              Yellow & Blue Arch
             </button>
             <button
               onClick={() => setViewMode('plan')}
@@ -354,7 +416,7 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
               Top-Down Plan (X,Z)
             </button>
           </div>
-          <span className="text-[9px] text-neutral-500">Drag points to sculpt</span>
+          <span className="text-[9px] text-neutral-500">Drag yellow or blue dots</span>
         </div>
 
         {/* Interactive SVG Spline Canvas */}
@@ -400,7 +462,7 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                   strokeWidth="1"
                 />
 
-                {/* Extrados Spine Curve */}
+                {/* Yellow Arch (Extrados Spine Curve) */}
                 <path
                   d={extradosPath}
                   fill="none"
@@ -408,20 +470,19 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                   strokeWidth="2.2"
                 />
 
-                {/* Intrados Window Vault Curve */}
+                {/* Blue Arch (Intrados Window Vault Curve) */}
                 <path
                   d={intradosPath}
                   fill="none"
                   stroke="#38bdf8"
-                  strokeWidth="2"
-                  strokeDasharray="3 2"
+                  strokeWidth="2.2"
                 />
 
-                {/* Draggable Handle 1: Left Pier */}
+                {/* Yellow Arch Handle 1: Left Pier */}
                 <circle
                   cx={uToSvgX(0.02)}
                   cy={elevToSvgY(active.pierHeight0)}
-                  r={5.5}
+                  r={5.2}
                   fill="#f59e0b"
                   stroke="#fff"
                   strokeWidth="1.5"
@@ -433,11 +494,11 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                   }}
                 />
 
-                {/* Draggable Handle 2: Arch Crown Apex */}
+                {/* Yellow Arch Handle 2: Crown Apex */}
                 <circle
                   cx={uToSvgX(active.crownPosU)}
                   cy={elevToSvgY(active.crownHeight)}
-                  r={6}
+                  r={5.8}
                   fill="#fbbf24"
                   stroke="#fff"
                   strokeWidth="1.5"
@@ -449,11 +510,43 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                   }}
                 />
 
-                {/* Draggable Handle 3: Window Vault Ceiling */}
+                {/* Yellow Arch Handle 3: Right Pier */}
+                <circle
+                  cx={uToSvgX(0.98)}
+                  cy={elevToSvgY(active.pierHeight1)}
+                  r={5.2}
+                  fill="#f59e0b"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-ns-resize"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('pier1');
+                  }}
+                />
+
+                {/* Blue Arch Handle 1: Left Foot */}
+                <circle
+                  cx={uToSvgX(uLeftFoot)}
+                  cy={elevToSvgY(active.sillHeight + 11)}
+                  r={5.0}
+                  fill="#0ea5e9"
+                  stroke="#fff"
+                  strokeWidth="1.5"
+                  className="cursor-move"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setDragHandle('vaultL');
+                  }}
+                />
+
+                {/* Blue Arch Handle 2: Window Vault Peak */}
                 <circle
                   cx={uToSvgX(active.windowCenterU)}
                   cy={elevToSvgY(active.windowApexHeight)}
-                  r={6}
+                  r={5.8}
                   fill="#38bdf8"
                   stroke="#fff"
                   strokeWidth="1.5"
@@ -465,19 +558,19 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
                   }}
                 />
 
-                {/* Draggable Handle 4: Right Pier */}
+                {/* Blue Arch Handle 3: Right Foot */}
                 <circle
-                  cx={uToSvgX(0.98)}
-                  cy={elevToSvgY(active.pierHeight1)}
-                  r={5.5}
-                  fill="#f59e0b"
+                  cx={uToSvgX(uRightFoot)}
+                  cy={elevToSvgY(active.sillHeight + 11)}
+                  r={5.0}
+                  fill="#0ea5e9"
                   stroke="#fff"
                   strokeWidth="1.5"
-                  className="cursor-ns-resize"
+                  className="cursor-move"
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     e.currentTarget.setPointerCapture(e.pointerId);
-                    setDragHandle('pier1');
+                    setDragHandle('vaultR');
                   }}
                 />
               </>
@@ -560,35 +653,85 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
         <div className="flex items-center justify-between text-[9px] text-neutral-400 mt-1.5 px-0.5">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-            Extrados Crest ({Math.round(active?.crownHeight ?? 200)}m)
+            Yellow Arch ({Math.round(active?.crownHeight ?? 200)}m)
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />
-            Window Vault ({Math.round(active?.windowApexHeight ?? 160)}m)
+            Blue Arch ({Math.round(active?.windowApexHeight ?? 160)}m)
           </span>
         </div>
       </div>
 
-      {/* Selected Arch Spline Sliders */}
+      {/* Selected Blue Arch & Yellow Arch Sliders */}
       {active && (
         <div className="pt-1">
+          <div className="text-[10px] uppercase tracking-wider text-sky-400 font-semibold mb-2">
+            Blue Arch (Window Opening) Controls
+          </div>
           <SliderControl
-            label="Selected Arch Bridge Thickness"
-            value={active.bridgeThickness}
-            min={15}
-            max={40}
+            label="Blue Arch Vault Height"
+            value={active.windowApexHeight}
+            min={65}
+            max={Math.max(85, active.crownHeight - 15)}
             step={1}
             unit="m"
-            onChange={(v) => updateSpline(safeIdx, { bridgeThickness: v })}
+            onChange={(v) => updateSpline(safeIdx, { windowApexHeight: v })}
           />
           <SliderControl
-            label="Selected Window Span Width"
+            label="Blue Arch Span Width"
             value={active.windowWidthFrac * 100}
-            min={32}
-            max={76}
+            min={30}
+            max={82}
             step={1}
             unit="%"
             onChange={(v) => updateSpline(safeIdx, { windowWidthFrac: v / 100 })}
+          />
+          <SliderControl
+            label="Blue Arch Floor Sill Height"
+            value={active.sillHeight}
+            min={22}
+            max={90}
+            step={1}
+            unit="m"
+            onChange={(v) => updateSpline(safeIdx, { sillHeight: v })}
+          />
+          <SliderControl
+            label="Blue Arch Curve Shape (Pointed ↔ Wide)"
+            value={active.vaultPower ?? 1.95}
+            min={1.3}
+            max={2.8}
+            step={0.05}
+            onChange={(v) => updateSpline(safeIdx, { vaultPower: v })}
+          />
+
+          <div className="text-[10px] uppercase tracking-wider text-amber-400 font-semibold mt-3 mb-2">
+            Yellow Arch (Outer Spine) Controls
+          </div>
+          <SliderControl
+            label="Yellow Arch Crown Height"
+            value={active.crownHeight}
+            min={95}
+            max={225}
+            step={1}
+            unit="m"
+            onChange={(v) =>
+              updateSpline(safeIdx, {
+                crownHeight: v,
+                windowApexHeight: Math.min(
+                  active.windowApexHeight,
+                  v - Math.max(15, active.bridgeThickness)
+                ),
+              })
+            }
+          />
+          <SliderControl
+            label="Arch Bridge Thickness"
+            value={active.bridgeThickness}
+            min={15}
+            max={38}
+            step={1}
+            unit="m"
+            onChange={(v) => updateSpline(safeIdx, { bridgeThickness: v })}
           />
           <SliderControl
             label="Conchoidal Alcove Brow Flare"
@@ -601,16 +744,8 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
         </div>
       )}
 
-      {/* Global Procedural Arch & Slickrock Amphitheater Sliders */}
+      {/* Global Slickrock Amphitheater & Boulders Sliders */}
       <div className="pt-2 border-t border-white/10">
-        <SliderControl
-          label="Extra Procedural Arches"
-          value={params.proceduralArchCount ?? 0}
-          min={0}
-          max={4}
-          step={1}
-          onChange={(v) => onUpdateAllParams({ ...params, proceduralArchCount: v })}
-        />
         <SliderControl
           label="Entrada Slickrock Amphitheater"
           value={params.slickrockRamps ?? 0.88}
@@ -633,7 +768,7 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
               3D Viewport Spline Guides
             </div>
             <div className="text-[10px] text-neutral-500">
-              Show 3D arch spline curves when node is selected
+              Show 3D yellow & blue arch curves when node is selected
             </div>
           </div>
           <button

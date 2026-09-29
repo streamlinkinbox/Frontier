@@ -491,10 +491,11 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
 
         const deltaU = (u - ctrl.windowCenterU) / winHalf;
         if (Math.abs(deltaU) <= 1.0) {
-          const ySill = ctrl.sillHeight + 14.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.55);
-          const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), 1.82)), 0.76);
+          const vaultPow = Math.max(1.25, Math.min(3.0, ctrl.vaultPower ?? 1.95));
+          const ySill = ctrl.sillHeight + 11.0 * Math.pow(Math.min(1.1, Math.abs(deltaU)), 1.6);
+          const vProf = Math.pow(Math.max(0, 1.0 - Math.pow(Math.abs(deltaU), vaultPow)), 0.78);
           const rawApex = Math.min(yTop - minBridge, ctrl.windowApexHeight);
-          const yVault = Math.min(yTop - minBridge, ySill + Math.max(12, rawApex - ySill) * vProf);
+          const yVault = Math.min(yTop - minBridge, ySill + Math.max(10, rawApex - ySill) * vProf);
           intradosPts.push(new THREE.Vector3(wx, yVault, wz));
         }
       }
@@ -519,13 +520,14 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         group.add(intLine);
       }
 
-      // Add Draggable 3D Control Spheres for Crown Apex, Vault Ceiling, Left Pier & Right Pier
+      // Add Draggable 3D Control Spheres for Yellow Arch (pier0, crown, pier1) AND Blue Arch (vaultL, vault, vaultR)
       const addHandle = (
         pos: THREE.Vector3,
         color: number,
-        handleRole: 'crown' | 'vault' | 'pier0' | 'pier1'
+        handleRole: 'crown' | 'vault' | 'vaultL' | 'vaultR' | 'pier0' | 'pier1',
+        radius: number = 5.0
       ) => {
-        const sphereGeo = new THREE.SphereGeometry(5.2, 16, 16);
+        const sphereGeo = new THREE.SphereGeometry(radius, 16, 16);
         const sphereMat = new THREE.MeshBasicMaterial({
           color,
           depthTest: false,
@@ -538,29 +540,51 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         handleMeshes.push(m);
       };
 
+      // Yellow Arch Handles (Left Pier, Crown Apex, Right Pier)
       const crownXZ = evalXZ(ctrl.crownPosU);
       addHandle(
         new THREE.Vector3(crownXZ.wx, ctrl.crownHeight + 2.5, crownXZ.wz),
         0xfbbf24,
-        'crown'
+        'crown',
+        5.4
       );
-
-      const vaultXZ = evalXZ(ctrl.windowCenterU);
-      addHandle(
-        new THREE.Vector3(vaultXZ.wx, ctrl.windowApexHeight, vaultXZ.wz),
-        0x38bdf8,
-        'vault'
-      );
-
       addHandle(
         new THREE.Vector3(ctrl.x0, ctrl.pierHeight0, ctrl.z0),
         0xf59e0b,
-        'pier0'
+        'pier0',
+        5.0
       );
       addHandle(
         new THREE.Vector3(ctrl.x1, ctrl.pierHeight1, ctrl.z1),
         0xf59e0b,
-        'pier1'
+        'pier1',
+        5.0
+      );
+
+      // Blue Arch Handles (Left Foot, Vault Peak, Right Foot)
+      const uLeftFoot = Math.max(0.08, ctrl.windowCenterU - winHalf);
+      const uRightFoot = Math.min(0.92, ctrl.windowCenterU + winHalf);
+      const vaultLeftXZ = evalXZ(uLeftFoot);
+      const vaultRightXZ = evalXZ(uRightFoot);
+      const vaultPeakXZ = evalXZ(ctrl.windowCenterU);
+
+      addHandle(
+        new THREE.Vector3(vaultPeakXZ.wx, ctrl.windowApexHeight, vaultPeakXZ.wz),
+        0x38bdf8,
+        'vault',
+        5.4
+      );
+      addHandle(
+        new THREE.Vector3(vaultLeftXZ.wx, ctrl.sillHeight + 11.0, vaultLeftXZ.wz),
+        0x0ea5e9,
+        'vaultL',
+        4.6
+      );
+      addHandle(
+        new THREE.Vector3(vaultRightXZ.wx, ctrl.sillHeight + 11.0, vaultRightXZ.wz),
+        0x0ea5e9,
+        'vaultR',
+        4.6
       );
     });
 
@@ -596,12 +620,9 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
       getPointerNDC(e);
       raycaster.setFromCamera(pointer, camera);
       if (raycaster.ray.intersectPlane(dragPlane, intersectPt)) {
-        activeHandle.position.y = Math.max(35, Math.min(225, intersectPt.y));
-        const role = activeHandle.userData.handleRole;
-        if (role === 'pier0' || role === 'pier1') {
-          activeHandle.position.x = Math.max(-210, Math.min(210, intersectPt.x));
-          activeHandle.position.z = Math.max(-210, Math.min(210, intersectPt.z));
-        }
+        activeHandle.position.y = Math.max(28, Math.min(228, intersectPt.y));
+        activeHandle.position.x = Math.max(-210, Math.min(210, intersectPt.x));
+        activeHandle.position.z = Math.max(-210, Math.min(210, intersectPt.z));
       }
     };
 
@@ -614,10 +635,18 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
 
       const nextSplines = splines.map((s, idx) => {
         if (idx !== splineIdx) return s;
+
+        // Project dragged (newX, newZ) onto chord (x0,z0)->(x1,z1) to get updated normalized u
+        const abx = s.x1 - s.x0;
+        const abz = s.z1 - s.z0;
+        const lenSq = Math.max(1.0, abx * abx + abz * abz);
+        const projU = ((newX - s.x0) * abx + (newZ - s.z0) * abz) / lenSq;
+
         if (handleRole === 'crown') {
           const nextCrown = Math.max(s.sillHeight + 42, Math.min(225, newY));
           return {
             ...s,
+            crownPosU: Number(Math.max(0.22, Math.min(0.78, projU)).toFixed(2)),
             crownHeight: nextCrown,
             windowApexHeight: Math.min(
               s.windowApexHeight,
@@ -629,7 +658,32 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
           const maxV = s.crownHeight - Math.max(15, s.bridgeThickness);
           return {
             ...s,
-            windowApexHeight: Math.max(s.sillHeight + 22, Math.min(maxV, newY)),
+            windowCenterU: Number(Math.max(0.24, Math.min(0.76, projU)).toFixed(2)),
+            windowApexHeight: Math.max(s.sillHeight + 20, Math.min(maxV, newY)),
+          };
+        }
+        if (handleRole === 'vaultL') {
+          const uRight = Math.min(0.90, s.windowCenterU + s.windowWidthFrac * 0.5);
+          const uLeft = Math.max(0.06, Math.min(uRight - 0.24, projU));
+          const nextWidth = Math.max(0.26, Math.min(0.84, uRight - uLeft));
+          const nextCenter = 0.5 * (uLeft + uRight);
+          return {
+            ...s,
+            windowWidthFrac: Number(nextWidth.toFixed(2)),
+            windowCenterU: Number(nextCenter.toFixed(2)),
+            sillHeight: Math.max(24, Math.min(s.windowApexHeight - 22, newY - 11)),
+          };
+        }
+        if (handleRole === 'vaultR') {
+          const uLeft = Math.max(0.10, s.windowCenterU - s.windowWidthFrac * 0.5);
+          const uRight = Math.min(0.94, Math.max(uLeft + 0.24, projU));
+          const nextWidth = Math.max(0.26, Math.min(0.84, uRight - uLeft));
+          const nextCenter = 0.5 * (uLeft + uRight);
+          return {
+            ...s,
+            windowWidthFrac: Number(nextWidth.toFixed(2)),
+            windowCenterU: Number(nextCenter.toFixed(2)),
+            sillHeight: Math.max(24, Math.min(s.windowApexHeight - 22, newY - 11)),
           };
         }
         if (handleRole === 'pier0') {

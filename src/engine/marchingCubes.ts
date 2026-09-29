@@ -525,14 +525,13 @@ export function extractSDFMesh(vol: SDFTerrainVolume): ExtractedSDFMesh {
         vol.bedrockHeight[idx2D] + vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D];
       const isOnLooseApron = py <= floorPlusLooseY + 3.5 && (vol.talusHeight[idx2D] > 0.4 || cliff < 0.2);
 
-      // Full Y relaxation on talus/scree cones; smooth organic 3D relaxation on curved natural arches;
-      // strong vertical-ledge & caprock-rim preservation on flat-topped monoliths!
+      // Full Y relaxation on talus/scree cones; preserve craggy 3D sandstone ledges on arches & monoliths!
       const yFactor = isOnLooseApron
         ? 0.92
         : vol.has3DArches
-        ? Math.max(0.48, 0.76 - cliff * 0.24)
+        ? Math.max(0.22, 0.52 - cliff * 0.30)
         : Math.max(0.18, 0.68 - cliff * 0.50);
-      const xzFactor = isOnLooseApron ? 1.0 : vol.has3DArches ? 0.78 : 0.72;
+      const xzFactor = isOnLooseApron ? 1.0 : vol.has3DArches ? 0.58 : 0.72;
 
       if (Math.abs(Math.abs(px) - halfWorld) > borderTol) {
         positions[v3] = px + (avgX - px) * (lambda * xzFactor);
