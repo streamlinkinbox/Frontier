@@ -15,7 +15,8 @@ export const MAX_CRATES = 8;
 //  16..23 crate[8] (x,z,yaw,active)  24..31 crateS[8] (hx,hy,hz,_)
 //  32..35 em2[4] (wheel axle axis xyz, spin rad/s)  36..39 wheel[4] (centre xyz, radius)
 //  40 rp0 (absorb, shadowK, ambientK, brightness) 41 rp1 (tint rgb, phase g) 42 rp2 (lightDir xyz, dustMix)
-const PARAM_VEC4 = 44;
+//  44..47 ex[4] (blast centre xyz, age s)  48..51 exP[4] (radius, fuel, impulse, active)
+const PARAM_VEC4 = 52;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -25,9 +26,15 @@ struct P {
   box: array<vec4f, ${MAX_CRATES}>, boxS: array<vec4f, ${MAX_CRATES}>,
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
   rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
+  ex: array<vec4f, 4>, exP: array<vec4f, 4>,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
+// gas combustion rate (1/s): premixed gas burns fast once hot enough
+fn burnRate(d: vec4f) -> f32 {
+  if (d.z > 0.002 && d.y > 0.25) { return d.z * 7.0 + 0.4; }
+  return 0.0;
+}
 fn cellIdx(c: vec3<i32>) -> u32 {
   let d = prm.dims.xyz;
   let q = clamp(c, vec3<i32>(0), d - vec3<i32>(1));
@@ -172,7 +179,7 @@ ${HEAD}
   nv = clamp(nv, vmin, vmax);
   nd = clamp(nd, dmin, dmax);
   // dissipation
-  nd = vec4f(nd.x * prm.diss.x, nd.y * prm.diss.y, 0.0, 0.0);
+  nd = vec4f(nd.x * prm.diss.x, nd.y * prm.diss.y, nd.z * 0.995, nd.w * prm.diss.x);
   nv = vec4f(nv.xyz * prm.diss.z, 0.0);
   velD[id] = nv;
   denD[id] = max(nd, vec4f(0.0));
@@ -242,7 +249,27 @@ ${HEAD}
     let tang = cross(ax, radial / max(rl, 1e-3)) * spin * wc.w * 0.55;
     v = mix(v, prm.carV.xyz * 0.3 + tang, clamp(band * dt * 10.0, 0.0, 1.0));
   }
-  d.x = min(d.x, 1.6); d.y = min(d.y, 2.0);
+  // gas explosions: inject fuel + igniter + radial shock for the first few frames
+  for (var i = 0; i < 4; i++) {
+    let b = prm.ex[i]; let bp = prm.exP[i];
+    if (bp.w < 0.5) { continue; }
+    let q = wp - b.xyz;
+    let r = length(q);
+    let f = 1.0 - smoothstep(bp.x * 0.5, bp.x, r);
+    if (f <= 0.0) { continue; }
+    if (b.w < 0.08) {
+      d.z += bp.y * f * dt * 12.0;
+      d.y = max(d.y, 0.6 * f);
+      v += (q / max(r, 0.05)) * bp.z * f * dt * 12.0;
+    }
+  }
+  // combustion: fuel -> heat + soot
+  let br = min(burnRate(d) * dt, d.z);
+  d.z -= br;
+  d.y += br * 3.5;
+  d.x += br * 1.1;
+  d.w += br * 1.0;
+  d.x = min(d.x, 3.0); d.y = min(d.y, 8.0); d.z = min(d.z, 3.0); d.w = min(d.w, d.x);
   vel[id] = vec4f(v, 0.0);
   den[id] = d;
 }`,
@@ -251,6 +278,7 @@ ${HEAD}
 @group(0) @binding(1) var<storage, read> vel: array<vec4f>;
 @group(0) @binding(2) var<storage, read_write> div: array<f32>;
 @group(0) @binding(3) var<storage, read> solid: array<vec4f>;
+@group(0) @binding(4) var<storage, read> den: array<vec4f>;
 fn vn(c: vec3<i32>) -> vec3f {
   if (c.y < 0) { return vec3f(0.0); }
   let j = cellIdx(c);
@@ -262,7 +290,9 @@ ${HEAD}
   let L = vn(c - vec3<i32>(1,0,0)).x; let R = vn(c + vec3<i32>(1,0,0)).x;
   let B = vn(c - vec3<i32>(0,1,0)).y; let T = vn(c + vec3<i32>(0,1,0)).y;
   let K = vn(c - vec3<i32>(0,0,1)).z; let F = vn(c + vec3<i32>(0,0,1)).z;
-  div[id] = 0.5 / prm.origin.w * ((R - L) + (T - B) + (F - K));
+  // burning gas expands: negative divergence target pushes flow outward (fireball growth)
+  let expansion = burnRate(den[id]) * min(den[id].z, 1.0) * 2.5;
+  div[id] = 0.5 / prm.origin.w * ((R - L) + (T - B) + (F - K)) - expansion;
 }`,
 
   jacobi: `
@@ -403,16 +433,27 @@ fn densAt(wp: vec3f) -> f32 {
   let albedo = mix(tyreSmoke, dust, prm.rp2.w) * prm.rp1.xyz;
   let center = (bmin.xz + bmax.xz) * 0.5;
   let halfW = (bmax.xz - bmin.xz) * 0.5;
+  var fire = vec3f(0.0);
   for (var i = 0; i < n; i++) {
     if (t > tf || trans < 0.01) { break; }
     let p = ro + rd * t;
     let g3 = (p - prm.origin.xyz) / prm.origin.w - vec3f(0.5);
-    var d = sDen(g3).x;
+    let d4 = sDen(g3);
+    var d = d4.x;
     let e = halfW - abs(p.xz - center);
-    d *= smoothstep(0.0, 4.0, min(e.x, e.y));
+    let edge = smoothstep(0.0, 4.0, min(e.x, e.y));
+    d *= edge;
+    // fire: emissive, blackbody-ish ramp from deep red to yellow-white with temperature
+    let T = d4.y * edge;
+    if (T > 0.6) {
+      let fl = clamp((T - 0.6) / 3.0, 0.0, 1.0);
+      let fireCol = mix(vec3f(1.0, 0.16, 0.02), vec3f(1.0, 0.72, 0.32), fl) + vec3f(0.4) * fl * fl;
+      let emis = fireCol * pow(T - 0.6, 1.4) * 1.3;
+      fire += trans * emis * stepLen;
+    }
     if (d > 0.002) {
       let lv = sLight(g3);
-      let sigma = d * absorb;
+      let sigma = d * absorb * (1.0 + 0.8 * clamp(d4.w / max(d4.x, 1e-3), 0.0, 1.0));
       let sunT = exp(-lv.x * absorb * prm.rp0.y);
       let powder = 1.0 - exp(-2.0 * sigma);              // Beer-Powder: darker edges facing the light
       let skyT = exp(-lv.y * absorb * 0.6);
@@ -420,15 +461,19 @@ fn densAt(wp: vec3f) -> f32 {
       let hgt = clamp(p.y / 4.0, 0.0, 1.0);
       let direct = sunCol * sunT * mix(1.0, powder * 2.0, 0.5) * phase;
       let ambient = (skyCol * skyT * (0.6 + 0.4 * hgt) + bounce * (1.0 - hgt)) * ao * prm.rp0.z;
-      let c = albedo * (direct + ambient) * prm.rp0.w;
+      let soot = clamp(d4.w / max(d4.x, 1e-3), 0.0, 1.0);
+      let alb = mix(albedo, vec3f(0.07, 0.065, 0.06), soot);   // explosion soot is near-black
+      let c = alb * (direct + ambient) * prm.rp0.w;
       let a = 1.0 - exp(-sigma * stepLen);
       col += trans * a * c;
       trans *= 1.0 - a;
     }
     t += stepLen;
   }
+  // filmic-ish roll-off so hot cores stay orange/yellow instead of clipping to white
+  col += (vec3f(1.0) - exp(-fire * 1.4)) * vec3f(1.0, 0.93, 0.85);
   let alpha = 1.0 - trans;
-  if (alpha < 0.002) { discard; }
+  if (alpha < 0.002 && dot(fire, fire) < 1e-4) { discard; }
   return vec4f(col, alpha);
 }
 `;
@@ -472,7 +517,7 @@ export class Smoke {
       maccormack: bg('maccormack', [B.velA, B.denA, B.velT, B.denT, B.velB, B.denB, B.solid]),
       curl: bg('curl', [B.velB, B.curl]),
       forces: bg('forces', [B.velB, B.denB, B.curl, B.solid]),
-      divergence: bg('divergence', [B.velB, B.div, B.solid]),
+      divergence: bg('divergence', [B.velB, B.div, B.solid, B.denB]),
       jacobiAB: bg('jacobi', [B.pA, B.pB, B.div, B.solid]),
       jacobiBA: bg('jacobi', [B.pB, B.pA, B.div, B.solid]),
       project: bg('project', [B.pA, B.velB, B.solid]),
@@ -532,6 +577,10 @@ export class Smoke {
     P.set([S.opacity, S.shadow, S.ambient, S.brightness], 160);
     P.set([S.tint, S.tint, S.tint * 1.02, S.phase], 164);
     P.set([lightDir[0], lightDir[1], lightDir[2], S.dust], 168);
+    (this.blasts || []).slice(0, 4).forEach((b, i) => {
+      P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
+      P.set([b.radius, b.fuel, b.impulse, 1], 192 + i * 4);
+    });
     for (let i = 0; i < 4; i++) {
       const e = emitters[i];
       if (!e) continue;

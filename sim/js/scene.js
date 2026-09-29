@@ -58,6 +58,12 @@ fn boxShadow(wp: vec3f, c: vec2f, yaw: f32, he: vec2f, soft: f32) -> f32 {
   let v = normalize(cam.camPos.xyz - i.wp);
   let hv = normalize(L + v);
   if (mat < 0.5) { c += vec3f(0.25) * pow(max(dot(n, hv), 0.0), 40.0); }
+  // explosion flash: warm point light
+  if (cam.extra2.w > 0.01) {
+    let lv = cam.extra2.xyz - i.wp;
+    let li = cam.extra2.w / (1.0 + dot(lv, lv) * 0.06);
+    c += base * vec3f(1.0, 0.55, 0.22) * li * (0.35 + 0.65 * max(dot(n, normalize(lv)), 0.0));
+  }
   let fog = 1.0 - exp(-distance(cam.camPos.xyz, i.wp) * 0.006);
   c = mix(c, vec3f(0.78, 0.8, 0.82), fog);
   return vec4f(c, 1.0);
@@ -125,19 +131,21 @@ export class Scene {
     this.bg = device.createBindGroup({ layout: this.pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: this.camUbo } }, { binding: 1, resource: { buffer: this.ibuf } }] });
   }
 
-  writeCamera(viewProj, camPos, lightDir, w, h, frame, car) {
+  writeCamera(viewProj, camPos, lightDir, w, h, frame, car, flash = [0, 0, 0, 0]) {
     const d = new Float32Array(56);
     d.set(viewProj, 0); d.set(mat4.invert(viewProj), 16);
     d.set([...camPos, 1], 32); d.set([...lightDir, 0], 36); d.set([w, h, frame % 1000, 0], 40);
     d.set([car.x, car.z, car.heading, 0], 44);
+    d.set(flash, 48);
     this.device.queue.writeBuffer(this.camUbo, 0, d);
   }
 
-  buildInstances(car) {
+  buildInstances(car, debris = []) {
     const list = { plane: [], cube: [], cyl: [] };
     const push = (mesh, m, col) => list[mesh].push([m, col]);
     push('plane', mat4.identity(), [1, 1, 1, 1]);
-    for (const c of this.crates) push('cube', mat4.trs(c.x, c.hy, c.z, c.yaw, c.hx, c.hy, c.hz), c.color);
+    for (const c of this.crates) if (!c.exploded) push('cube', mat4.trs(c.x, c.hy, c.z, c.yaw, c.hx, c.hy, c.hz), c.drawColor || c.color);
+    for (const b of debris) push('cube', mat4.trs(b.x, b.y, b.z, b.yaw, b.s, b.s, b.s, b.rx, b.rz), b.color);
     // car body (roll about forward axis, pitch about right axis)
     const [fx, fz] = car.fwd();
     const body = (lx, ly, lz, hx, hy, hz, col) => {

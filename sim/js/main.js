@@ -44,11 +44,12 @@ async function init() {
   for (let i = 0; i < 40; i++) {
     const a = rnd() * Math.PI * 2, r = 14 + rnd() * 110;
     const s = 0.6 + rnd() * 1.1;
-    crates.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: rnd() * Math.PI, hx: s, hy: s, hz: s, color: [0.55 + rnd() * 0.15, 0.38, 0.2, 0] });
+    crates.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, yaw: rnd() * Math.PI, hx: s, hy: s, hz: s, color: [0.55 + rnd() * 0.15, 0.38, 0.2, 0], gas: true });
   }
   // a row of barriers to slide into
   for (let i = 0; i < 6; i++) crates.push({ x: -12 + i * 4.5, z: 22, yaw: 0, hx: 1.6, hy: 0.6, hz: 0.5, color: [0.9, 0.9, 0.9, 0] });
 
+  if (new URLSearchParams(location.search).has('boomtest')) { Object.assign(crates[0], { x: 1.0, z: 4.2, yaw: 0.3 }); }
   device.pushErrorScope('validation');
   const car = new Car();
   const scene = new Scene(device, format, checkModule, crates);
@@ -92,8 +93,9 @@ async function init() {
   });
   canvas.addEventListener('wheel', (e) => { camDist = Math.min(40, Math.max(5, camDist * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
   // smoke settings panel
-  const DEFAULTS = { emission: 0.6, fade: 0.9, opacity: 1.3, shadow: 1.6, ambient: 1.0, brightness: 1.0, dust: 0.35, tint: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.6 };
+  const DEFAULTS = { blast: 1.0, emission: 0.6, fade: 0.9, opacity: 1.3, shadow: 1.6, ambient: 1.0, brightness: 1.0, dust: 0.35, tint: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.6 };
   const RANGES = {
+    blast: [0, 2, 0.05, 'Explosion size (0=off)'],
     emission: [0, 2, 0.05, 'Amount'], fade: [0.1, 3, 0.05, 'Fade speed'], opacity: [0.2, 4, 0.05, 'Opacity'],
     shadow: [0, 4, 0.05, 'Self-shadow'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
     dust: [0, 1, 0.01, 'Sand-dust mix'], tint: [0.5, 1.2, 0.01, 'Grey level'], phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'],
@@ -125,6 +127,55 @@ async function init() {
   $('tier').textContent = `GTX tier · smoke ${SMOKE_DIMS.join('×')} @ ${SMOKE_H} m · Jacobi ${smoke.jacobiIters} · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
   const vram = ((smoke.bytes + sand.bytes) / 1048576).toFixed(0);
 
+  // ---- gas-crate explosions: proximity fuse -> fireball + shock + debris ----
+  const blasts = [], debris = [];
+  let shake = 0; const flash = [0, 0, 0, 0];
+  smoke.blasts = blasts;
+  function detonate(c) {
+    const k = settings.blast;
+    c.exploded = true; c.respawn = 15; c.fuse = undefined; c.drawColor = null;
+    const size = Math.max(c.hx, c.hz);
+    blasts.push({ x: c.x, y: c.hy, z: c.z, age: 0, radius: (1.8 + size * 1.3) * Math.sqrt(k), fuel: 1.8 * k, impulse: 9 * k });
+    sand.burst(c.x, c.z, Math.floor(2500 * k), 7 + 4 * k);
+    sand.blast = [c.x, 0.5, c.z, 8 * k];
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (4 + Math.random() * 9) * k;
+      debris.push({ x: c.x, y: c.hy, z: c.z, vx: Math.cos(a) * sp, vy: (4 + Math.random() * 9) * k, vz: Math.sin(a) * sp,
+        s: size * (0.12 + Math.random() * 0.22), yaw: 0, rx: 0, rz: 0, wr: [(Math.random() - 0.5) * 15, (Math.random() - 0.5) * 15], life: 7,
+        color: Math.random() < 0.3 ? [0.12, 0.1, 0.08, 0] : c.color });
+    }
+    // shock on the car
+    const dx = car.x - c.x, dz = car.z - c.z, dist = Math.hypot(dx, dz) || 1;
+    const f = Math.max(0, 1 - dist / 12) * k;
+    car.vx += (dx / dist) * 16 * f; car.vz += (dz / dist) * 16 * f; car.w += (Math.random() - 0.5) * 5 * f;
+    shake = Math.min(1.5, shake + 0.4 + 1.2 * f);
+    flash[0] = c.x; flash[1] = 1.8; flash[2] = c.z; flash[3] = 10 * k;
+  }
+  function updateExplosions(dt) {
+    for (const c of crates) {
+      if (!c.gas) continue;
+      if (c.exploded) { c.respawn -= dt; if (c.respawn <= 0 && Math.hypot(car.x - c.x, car.z - c.z) > 15) c.exploded = false; continue; }
+      const gap = Math.hypot(car.x - c.x, car.z - c.z) - Math.max(c.hx, c.hz) - 1.2;
+      if (c.fuse === undefined && gap < 3.0 && settings.blast > 0) c.fuse = 0.45;
+      if (c.fuse !== undefined) {
+        c.fuse -= dt;
+        c.drawColor = (Math.floor(c.fuse * 16) % 2) ? [1, 0.25, 0.1, 0] : c.color; // hissing gas warning blink
+        if (c.fuse <= 0) detonate(c);
+      }
+    }
+    for (const b of blasts) b.age += 1 / 60;
+    while (blasts.length && blasts[0].age > 0.1) blasts.shift();
+    flash[3] *= Math.exp(-dt * 7);
+    for (let i = debris.length - 1; i >= 0; i--) {
+      const b = debris[i];
+      b.vy -= 9.81 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+      b.rx += b.wr[0] * dt; b.rz += b.wr[1] * dt;
+      if (b.y < b.s) { b.y = b.s; b.vy *= -0.3; b.vx *= 0.6; b.vz *= 0.6; b.wr[0] *= 0.6; b.wr[1] *= 0.6; }
+      b.life -= dt;
+      if (b.life <= 0) debris.splice(i, 1);
+    }
+  }
+
   function frameFn(now) {
     const dtReal = Math.min(0.05, (now - last) / 1000); last = now;
     resize();
@@ -134,7 +185,9 @@ async function init() {
     const input = autoInput ? { throttle: true, left: Math.sin(now / 1400) > -0.2, right: false, handbrake: (now % 3000) < 900, brake: false } : keys;
     acc += dtReal;
     const PH = 1 / 120;
-    while (acc >= PH) { car.step(PH, input, crates); acc -= PH; }
+    const solids = crates.filter((c) => !c.exploded);
+    while (acc >= PH) { car.step(PH, input, solids); acc -= PH; }
+    updateExplosions(dtReal);
 
     // camera: chase + orbit
     const [fx, fz] = car.fwd();
@@ -147,11 +200,13 @@ async function init() {
     const yaw = camHeading + camYaw + Math.PI;
     const want = [car.x + Math.sin(yaw) * Math.cos(camPitch) * camDist, 1 + Math.sin(camPitch) * camDist, car.z + Math.cos(yaw) * Math.cos(camPitch) * camDist];
     for (let i = 0; i < 3; i++) camPos[i] += (want[i] - camPos[i]) * Math.min(1, dtReal * 6);
-    const view = mat4.lookAt(camPos, [car.x + fx * 1.5, 1.0, car.z + fz * 1.5], [0, 1, 0]);
+    shake *= Math.exp(-dtReal * 5);
+    const shaken = camPos.map((v) => v + (Math.random() - 0.5) * shake);
+    const view = mat4.lookAt(shaken, [car.x + fx * 1.5, 1.0, car.z + fz * 1.5], [0, 1, 0]);
     const proj = mat4.perspective(1.0, canvas.width / canvas.height, 0.1, 600);
     const vp = mat4.mul(proj, view);
-    scene.writeCamera(vp, camPos, lightDir, canvas.width, canvas.height, frame, car);
-    scene.buildInstances(car);
+    scene.writeCamera(vp, shaken, lightDir, canvas.width, canvas.height, frame, car, flash);
+    scene.buildInstances(car, debris);
 
     // simulation inputs
     const simDt = 1 / 60;
@@ -168,7 +223,7 @@ async function init() {
         vel: [wh.vel[0] * 0.25 + tread * wh.fwd[0] * 0.3, 0.8, wh.vel[2] * 0.25 + tread * wh.fwd[2] * 0.3],
       };
     });
-    const near = crates.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);
+    const near = solids.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);
     smoke.update(simDt, car, emitters, near, settings, lightDir);
     sand.update(simDt, car);
     sand.spawn(car, dtReal);

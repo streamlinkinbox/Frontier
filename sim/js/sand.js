@@ -13,7 +13,7 @@ const COMMON = /* wgsl */`
 struct Particle { pos: vec4f, vel: vec4f, c0: vec4f, c1: vec4f, c2: vec4f };
 struct SP {
   dims: vec4<i32>, origin: vec4f, misc: vec4f, misc2: vec4f,
-  carC: vec4f, carH: vec4f, carV: vec4f,
+  carC: vec4f, carH: vec4f, carV: vec4f, blast: vec4f,
 };
 @group(0) @binding(0) var<uniform> sp: SP;
 const FIX: f32 = ${FIX.toFixed(1)};
@@ -130,6 +130,12 @@ const SRC = {
     if (vt > 1e-6) { v = vec3f(v.x * max(0.0, 1.0 - sp.misc2.y * vn / vt), 0.0, v.z * max(0.0, 1.0 - sp.misc2.y * vn / vt)); }
   }
   // car body box (slightly inflated) pushes sand with its velocity
+  // explosion shock pushes sand radially
+  if (sp.blast.w > 0.0) {
+    let q = wp - sp.blast.xyz;
+    let r = length(q);
+    v += (q / max(r, 0.1)) * sp.blast.w * exp(-r * r / 18.0) / h + vec3f(0.0, sp.blast.w * 0.4 * exp(-r * r / 18.0) / h, 0.0);
+  }
   let lp = carLocal(wp);
   if (all(abs(lp) < sp.carH.xyz + vec3f(h))) {
     v = carVelAt(wp) / h;
@@ -250,7 +256,7 @@ export class Sand {
     this.pbuf = device.createBuffer({ size: SAND_MAX * STRIDE * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX, label: 'sandParticles' });
     this.gbuf = device.createBuffer({ size: this.cells * 16, usage: GPUBufferUsage.STORAGE, label: 'sandGrid' });
     this.bytes = SAND_MAX * STRIDE * 4 + this.cells * 16;
-    this.params = new Float32Array(7 * 4);
+    this.params = new Float32Array(8 * 4);
     this.paramsI = new Int32Array(this.params.buffer);
     this.ubo = device.createBuffer({ size: this.params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'sandParams' });
 
@@ -320,6 +326,23 @@ export class Sand {
     this.spawned = n;
   }
 
+  burst(x, z, n, speed) {
+    const S = new Float32Array(n * STRIDE);
+    for (let i = 0; i < n; i++) {
+      const o = i * STRIDE, a = Math.random() * Math.PI * 2, up = 0.3 + Math.random() * 0.9, sp = speed * (0.3 + Math.random() * 0.7);
+      S[o] = x + Math.cos(a) * 0.8 * Math.random(); S[o + 1] = 0.1 + Math.random() * 0.8; S[o + 2] = z + Math.sin(a) * 0.8 * Math.random();
+      S[o + 3] = 3 + Math.random() * 2;
+      S[o + 4] = Math.cos(a) * sp; S[o + 5] = up * speed; S[o + 6] = Math.sin(a) * sp; S[o + 7] = Math.random() * 100;
+    }
+    let off = 0;
+    while (off < n) {
+      const chunk = Math.min(n - off, SAND_MAX - this.head);
+      this.device.queue.writeBuffer(this.pbuf, this.head * STRIDE * 4, S, off * STRIDE, chunk * STRIDE);
+      for (let i = 0; i < chunk; i++) this.lifeCPU[this.head + i] = 5;
+      this.head = (this.head + chunk) % SAND_MAX; off += chunk;
+    }
+  }
+
   aliveEstimate(dt) {
     let a = 0;
     for (let i = 0; i < SAND_MAX; i++) { if (this.lifeCPU[i] > 0) { this.lifeCPU[i] -= dt; a++; } }
@@ -339,6 +362,7 @@ export class Sand {
     P.set([car.x, car.bodyY, car.z, car.heading], 16);
     P.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 20);
     P.set([car.vx, 0, car.vz, car.w], 24);
+    if (this.blast) { P.set([this.blast[0], this.blast[1], this.blast[2], this.blast[3] / this.substeps], 28); this.blast = null; }
     this.device.queue.writeBuffer(this.ubo, 0, P);
   }
 
