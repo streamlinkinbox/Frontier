@@ -1,5 +1,5 @@
 // Lit scene: sand ground, crates, car body + wheels. Instanced meshes with per-instance model/colour.
-import { mat4 } from './math.js?v=8';
+import { mat4 } from './math.js?v=9';
 
 const SHADER = /* wgsl */`
 struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f };
@@ -144,7 +144,7 @@ export class Scene {
     const list = { plane: [], cube: [], cyl: [] };
     const push = (mesh, m, col) => list[mesh].push([m, col]);
     push('plane', mat4.identity(), [1, 1, 1, 1]);
-    for (const c of this.crates) if (!c.exploded) push('cube', mat4.trs(c.x, c.hy, c.z, c.yaw, c.hx, c.hy, c.hz), c.drawColor || c.color);
+    for (const c of this.crates) if (!c.exploded) push('cube', mat4.trs(c.x, c.hy + (c.y || 0), c.z, c.yaw, c.hx, c.hy, c.hz, c.rx || 0, c.rz || 0), c.drawColor || c.color);
     for (const b of debris) push('cube', mat4.trs(b.x, b.y, b.z, b.yaw, b.s, b.s, b.s, b.rx, b.rz), b.color);
     // car body (roll about forward axis, pitch about right axis)
     const [fx, fz] = car.fwd();

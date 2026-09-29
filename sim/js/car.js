@@ -87,6 +87,8 @@ export class Car {
       wh.fwd = [dfx, 0, dfz];
       if (!wh.front) driftAcc += Math.abs(vLat);
     }
+    // external forces (tornado)
+    if (this.ext) { Fx += this.ext[0] * this.mass; Fz += this.ext[1] * this.mass; torque += this.ext[2] * this.inertia; }
     // aero drag
     Fx -= this.vx * speed * 0.9; Fz -= this.vz * speed * 0.9;
 

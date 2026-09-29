@@ -19,7 +19,8 @@ export const MAX_CRATES = 8;
 //  44..51 ex[8] (centre xyz, age)  52..59 exP[8] (radius, fuel, impulse, mode 1=blast 2=plume)
 //  60..67 exQ[8] (seed, upward bias, shape noise, stretch)
 export const MAX_SOURCES = 8;
-const PARAM_VEC4 = 68;
+//  68 tor0 (x, z, vMax, coreR)  69 tor1 (updraft, height, dust, active)
+const PARAM_VEC4 = 70;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -30,6 +31,7 @@ struct P {
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
   rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
   ex: array<vec4f, 8>, exP: array<vec4f, 8>, exQ: array<vec4f, 8>,
+  tor0: vec4f, tor1: vec4f,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -82,7 +84,7 @@ fn solidAt(wp: vec3f) -> vec4f {
     let cr = prm.box[i];
     if (cr.w < 0.5) { continue; }
     let s = prm.boxS[i];
-    let e = wp - vec3f(cr.x, s.y, cr.y);
+    let e = wp - vec3f(cr.x, s.y + cr.w - 1.0, cr.y);
     let c2 = cos(cr.z); let s2 = sin(cr.z);
     let ex = e.x * c2 - e.z * s2;
     let ez = e.x * s2 + e.z * c2;
@@ -289,6 +291,25 @@ ${HEAD}
       d.x += bp.y * 1.2 * f * dt;
       d.w += bp.y * 1.2 * f * dt;
       v.y += bq.y * f * dt;
+    }
+  }
+  // tornado: Rankine vortex + ground inflow + funnel updraft, and sand dust sucked up at its base
+  if (prm.tor1.w > 0.5) {
+    let rel = wp.xz - prm.tor0.xy;
+    let r = max(length(rel), 0.05);
+    let rc = prm.tor0.w * (0.55 + wp.y * 0.09);
+    let vt = prm.tor0.z * select(rc / r, r / rc, r < rc);
+    let ground = exp(-wp.y / 3.0);
+    let inflow = -rel / r * prm.tor0.z * 0.45 * ground * clamp(r / rc, 0.0, 1.5);
+    let rr = r / (rc * 1.4);
+    let up = prm.tor1.x * (exp(-rr * rr) + 0.15 * exp(-r / (rc * 3.0)));
+    let tang = vec2f(-rel.y, rel.x) / r;
+    let wind = vec3f(tang.x * vt + inflow.x, up, tang.y * vt + inflow.y);
+    let infl = exp(-r / (rc * 3.5));
+    v = mix(v, wind, clamp(infl * dt * 4.0, 0.0, 1.0));
+    if (wp.y < 1.5 && r < rc * 2.2) {
+      d.x += prm.tor1.z * dt * exp(-r / rc) * (1.0 - wp.y / 1.5);
+      d.w = d.w * (1.0 - dt);   // dust is not soot
     }
   }
   // combustion: fuel -> heat + soot
@@ -591,6 +612,7 @@ export class Smoke {
     let best = null, bd = 18 * 18;
     for (const src of this.sources || []) { const d2 = (src.x - car.x) ** 2 + (src.z - car.z) ** 2; if (d2 < bd) { bd = d2; best = src; } }
     if (best) { tx = (car.x + best.x) * 0.5; tz = (car.z + best.z) * 0.5; }
+    if (this.tornado && this.tornado.strength > 0) { const T = this.tornado, dt2 = (T.x - car.x) ** 2 + (T.z - car.z) ** 2; if (dt2 < 22 * 22 && !best) { tx = (car.x + T.x) * 0.5; tz = (car.z + T.z) * 0.5; } }
     // hysteresis: only move the centre when it drifts > 2 m (avoids constant resampling)
     if (!this.center || Math.hypot(tx - this.center[0], tz - this.center[1]) > 2) this.center = [tx, tz];
     const cx = Math.round(this.center[0] / h - nx / 2), cz = Math.round(this.center[1] / h - nz / 2);
@@ -612,6 +634,7 @@ export class Smoke {
     P.set([S.opacity, S.shadow, S.ambient, S.brightness], 160);
     P.set([S.tint, S.tint, S.tint * 1.02, S.phase], 164);
     P.set([lightDir[0], lightDir[1], lightDir[2], S.dust], 168);
+    if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 272); P.set([T.updraft * T.strength, T.height, 1.2 * T.strength, T.strength > 0 ? 1 : 0], 276); }
     (this.sources || []).slice(0, 8).forEach((b, i) => {
       P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
       P.set([b.radius, b.fuel, b.impulse, b.mode], 208 + i * 4);
@@ -628,7 +651,7 @@ export class Smoke {
     for (let i = 0; i < MAX_CRATES; i++) {
       const c = crates[i];
       if (!c) continue;
-      P.set([c.x, c.z, c.yaw, 1], 64 + i * 4);
+      P.set([c.x, c.z, c.yaw, 1 + (c.y || 0)], 64 + i * 4);
       P.set([c.hx, c.hy, c.hz, 0], 96 + i * 4);
     }
     this.device.queue.writeBuffer(this.ubo, 0, P);

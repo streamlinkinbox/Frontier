@@ -13,7 +13,7 @@ const COMMON = /* wgsl */`
 struct Particle { pos: vec4f, vel: vec4f, c0: vec4f, c1: vec4f, c2: vec4f };
 struct SP {
   dims: vec4<i32>, origin: vec4f, misc: vec4f, misc2: vec4f,
-  carC: vec4f, carH: vec4f, carV: vec4f, blast: vec4f,
+  carC: vec4f, carH: vec4f, carV: vec4f, blast: vec4f, tor: vec4f, tor1: vec4f,
 };
 @group(0) @binding(0) var<uniform> sp: SP;
 const FIX: f32 = ${FIX.toFixed(1)};
@@ -130,6 +130,18 @@ const SRC = {
     if (vt > 1e-6) { v = vec3f(v.x * max(0.0, 1.0 - sp.misc2.y * vn / vt), 0.0, v.z * max(0.0, 1.0 - sp.misc2.y * vn / vt)); }
   }
   // car body box (slightly inflated) pushes sand with its velocity
+  // tornado wind drags the sand (grid units)
+  if (sp.tor.z > 0.0) {
+    let rel = wp.xz - sp.tor.xy;
+    let r = max(length(rel), 0.05);
+    let rc = sp.tor.w * (0.55 + wp.y * 0.09);
+    let vt = sp.tor.z * select(rc / r, r / rc, r < rc);
+    let tang = vec2f(-rel.y, rel.x) / r;
+    let inflow = -rel / r * sp.tor.z * 0.45 * exp(-wp.y / 3.0) * clamp(r / rc, 0.0, 1.5);
+    let rr = r / (rc * 1.4);
+    let wind = vec3f(tang.x * vt + inflow.x, sp.tor1.x * exp(-rr * rr), tang.y * vt + inflow.y) / h;
+    v = mix(v, wind, clamp(exp(-r / (rc * 2.5)) * sp.misc.x * 5.0, 0.0, 1.0));
+  }
   // explosion shock pushes sand radially
   if (sp.blast.w > 0.0) {
     let q = wp - sp.blast.xyz;
@@ -221,7 +233,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   let seed = p.vel.w;
   let r0 = fract(seed * 7.13);
   // skewed grain-size distribution: mostly fine grains, a few coarse ones
-  let size = (0.006 + 0.016 * r0 * r0 * r0 + 0.004 * fract(seed * 3.7)) * clamp(p.pos.w * 1.5, 0.0, 1.0);
+  let size = (0.006 + 0.016 * r0 * r0 * r0 + 0.004 * fract(seed * 3.7)) * clamp(p.pos.w * 1.5, 0.0, 1.0) * max(1.0, p.c0.w);
   let toCam = normalize(cam.camPos.xyz - p.pos.xyz);
   let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
   let up = cross(toCam, right);
@@ -256,7 +268,7 @@ export class Sand {
     this.pbuf = device.createBuffer({ size: SAND_MAX * STRIDE * 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.VERTEX, label: 'sandParticles' });
     this.gbuf = device.createBuffer({ size: this.cells * 16, usage: GPUBufferUsage.STORAGE, label: 'sandGrid' });
     this.bytes = SAND_MAX * STRIDE * 4 + this.cells * 16;
-    this.params = new Float32Array(8 * 4);
+    this.params = new Float32Array(10 * 4);
     this.paramsI = new Int32Array(this.params.buffer);
     this.ubo = device.createBuffer({ size: this.params.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'sandParams' });
 
@@ -362,6 +374,7 @@ export class Sand {
     P.set([car.x, car.bodyY, car.z, car.heading], 16);
     P.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 20);
     P.set([car.vx, 0, car.vz, car.w], 24);
+    if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 32); P.set([T.updraft * T.strength, 0, 0, 0], 36); }
     if (this.blast) { P.set([this.blast[0], this.blast[1], this.blast[2], this.blast[3] / this.substeps], 28); this.blast = null; }
     this.device.queue.writeBuffer(this.ubo, 0, P);
   }

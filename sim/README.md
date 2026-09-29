@@ -9,4 +9,6 @@ URL flags: `?lowres` (64×32×64 smoke, 16k sand – low-end GPUs), `?demo` (aut
 - **Sand**: MLS-MPM, 48k particle ring buffer, spawned only at tyre contact patches, fixed-point
   atomic P2G, no-tension granular pressure + Coulomb ground friction, pushed by the car box.
 - **Car**: CPU rigid body, 4 tyres with slip/friction circle, handbrake drift, OBB-vs-OBB crate collision.
-- Sim VRAM ≈ 150 MB (budget 1 GB).
+- **Gas explosions**: proximity-fused crates, 4 randomised archetypes, burning-wreck plumes.
+- **Tornado**: wandering Rankine vortex (GPU dust particles + smoke-grid dust + MPM sand drag), pulls the car, lifts/flings crates.
+- Sim VRAM ≈ 170 MB (budget 1 GB). Test flags: `?boomtest`, `?tornadotest`, `?smoketest`.
