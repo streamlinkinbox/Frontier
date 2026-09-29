@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 10; // Upgrades VerticalJointFissures to pure 2D-extruded-in-Y CSG pilasters & turret splits
+  const engineVersion = 11; // Eliminates checkerboard peg artifacts & preserves crisp caprock rims
   useEffect(() => {
     const fresh = getInitialGraph('monument_valley');
     setNodes(fresh.nodes);

@@ -521,16 +521,20 @@ export function extractSDFMesh(vol: SDFTerrainVolume): ExtractedSDFMesh {
       const idx2D = gz * nx + gx;
 
       const cliff = vol.cliffMask[idx2D];
-      const loose = vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D];
-      // Full Y relaxation on talus/scree cones; vertical-ledge preservation on exposed rock cliffs
-      const yFactor = loose > 0.25 ? 0.94 : Math.max(0.48, 0.92 - cliff * 0.44);
+      const floorPlusLooseY =
+        vol.bedrockHeight[idx2D] + vol.talusHeight[idx2D] + vol.sedimentHeight[idx2D];
+      const isOnLooseApron = py <= floorPlusLooseY + 3.5 && (vol.talusHeight[idx2D] > 0.4 || cliff < 0.2);
+
+      // Full Y relaxation on talus/scree cones; strong vertical-ledge & caprock-rim preservation on high monoliths!
+      const yFactor = isOnLooseApron ? 0.92 : Math.max(0.18, 0.68 - cliff * 0.50);
+      const xzFactor = isOnLooseApron ? 1.0 : 0.72;
 
       if (Math.abs(Math.abs(px) - halfWorld) > borderTol) {
-        positions[v3] = px + (avgX - px) * lambda;
+        positions[v3] = px + (avgX - px) * (lambda * xzFactor);
       }
       positions[v3 + 1] = py + (avgY - py) * (lambda * yFactor);
       if (Math.abs(Math.abs(pz) - halfWorld) > borderTol) {
-        positions[v3 + 2] = pz + (avgZ - pz) * lambda;
+        positions[v3 + 2] = pz + (avgZ - pz) * (lambda * xzFactor);
       }
     }
   }

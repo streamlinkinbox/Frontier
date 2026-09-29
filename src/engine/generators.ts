@@ -198,69 +198,69 @@ export function applySDFMonolithTowersNode(
   // Tall narrow sandstone fin + angular stepped cathedral tower + lower broad bench + detached thumb needle
   addBlock({
     cx: -28, cz: -14, rx: 46, rz: 17, angle: 0.28,
-    summitH: 15 + maxAmp * 1.02, flatness: 0.35, shapePower: 6.5,
-    wedgeSkew: 0.28, bendCurve: 0.004, tiltU: 0.11, tiltV: -0.05,
-    stepRatio: 0.58, stepSetback: 6.5, capBevel: 3.2,
+    summitH: 15 + maxAmp * 1.02, flatness: 0.82, shapePower: 7.2,
+    wedgeSkew: 0.28, bendCurve: 0.004, tiltU: 0.08, tiltV: -0.04,
+    stepRatio: 0.58, stepSetback: 6.5, capBevel: 1.5,
   });
   addBlock({
     cx: -54, cz: 8, rx: 24, rz: 28, angle: -0.42,
-    summitH: 15 + maxAmp * 0.81, flatness: 0.88, shapePower: 7.5,
-    wedgeSkew: -0.22, bendCurve: 0.0, tiltU: -0.06, tiltV: 0.04,
-    stepRatio: 0.44, stepSetback: 5.0, capBevel: 2.0,
+    summitH: 15 + maxAmp * 0.81, flatness: 0.92, shapePower: 7.8,
+    wedgeSkew: -0.22, bendCurve: 0.0, tiltU: -0.05, tiltV: 0.03,
+    stepRatio: 0.44, stepSetback: 5.0, capBevel: 1.4,
   });
   addBlock({
-    cx: 18, cz: -28, rx: 15, rz: 14, angle: 0.65,
-    summitH: 15 + maxAmp * 0.94, flatness: 0.22, shapePower: 3.2,
-    wedgeSkew: 0.15, bendCurve: 0.0, tiltU: 0.14, tiltV: 0.08,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 4.5,
+    cx: 18, cz: -28, rx: 16, rz: 15, angle: 0.65,
+    summitH: 15 + maxAmp * 0.94, flatness: 0.76, shapePower: 5.8,
+    wedgeSkew: 0.15, bendCurve: 0.0, tiltU: 0.09, tiltV: 0.05,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.6,
   });
   addBlock({
     cx: -12, cz: 22, rx: 38, rz: 22, angle: 0.15,
-    summitH: 15 + maxAmp * 0.48, flatness: 0.95, shapePower: 7.0,
+    summitH: 15 + maxAmp * 0.48, flatness: 0.96, shapePower: 7.5,
     wedgeSkew: 0.32, bendCurve: -0.003, tiltU: 0.03, tiltV: -0.02,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.8,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.3,
   });
 
   // ARCHETYPE 2 (Right Foreground): "Great Overhanging Crescent Cliff Massif"
   // Massive elongated curved cliff wall (like the right foreground cliff in reference photo)
   addBlock({
     cx: 148, cz: 86, rx: 68, rz: 26, angle: 1.18,
-    summitH: 15 + maxAmp * 0.96, flatness: 0.78, shapePower: 7.2,
-    wedgeSkew: -0.30, bendCurve: 0.0065, tiltU: -0.09, tiltV: 0.06,
-    stepRatio: 0.66, stepSetback: 7.5, capBevel: 2.4,
+    summitH: 15 + maxAmp * 0.96, flatness: 0.88, shapePower: 7.6,
+    wedgeSkew: -0.30, bendCurve: 0.0065, tiltU: -0.07, tiltV: 0.05,
+    stepRatio: 0.66, stepSetback: 7.5, capBevel: 1.5,
   });
   addBlock({
     cx: 116, cz: 128, rx: 36, rz: 22, angle: 0.72,
-    summitH: 15 + maxAmp * 0.64, flatness: 0.92, shapePower: 6.8,
-    wedgeSkew: 0.25, bendCurve: 0.0, tiltU: 0.05, tiltV: -0.04,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.9,
+    summitH: 15 + maxAmp * 0.64, flatness: 0.94, shapePower: 7.2,
+    wedgeSkew: 0.25, bendCurve: 0.0, tiltU: 0.04, tiltV: -0.03,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.4,
   });
   addBlock({
     cx: 172, cz: 32, rx: 22, rz: 19, angle: 1.45,
-    summitH: 15 + maxAmp * 0.84, flatness: 0.42, shapePower: 4.5,
-    wedgeSkew: 0.18, bendCurve: 0.0, tiltU: -0.12, tiltV: 0.0,
-    stepRatio: 0.52, stepSetback: 4.5, capBevel: 3.6,
+    summitH: 15 + maxAmp * 0.84, flatness: 0.80, shapePower: 6.2,
+    wedgeSkew: 0.18, bendCurve: 0.0, tiltU: -0.08, tiltV: 0.0,
+    stepRatio: 0.52, stepSetback: 4.5, capBevel: 1.6,
   });
 
   // ARCHETYPE 3 (Mid-Left): "Knife-Edge Hogback Fin & Cleft Twin Buttress"
   // Dramatic narrow elongated sandstone fin oriented diagonally with a low broken terrace
   addBlock({
     cx: -156, cz: -78, rx: 58, rz: 15, angle: -0.38,
-    summitH: 15 + maxAmp * 0.89, flatness: 0.45, shapePower: 5.8,
-    wedgeSkew: 0.34, bendCurve: -0.005, tiltU: 0.13, tiltV: 0.04,
-    stepRatio: 0.62, stepSetback: 4.2, capBevel: 2.8,
+    summitH: 15 + maxAmp * 0.89, flatness: 0.84, shapePower: 6.8,
+    wedgeSkew: 0.34, bendCurve: -0.005, tiltU: 0.09, tiltV: 0.03,
+    stepRatio: 0.62, stepSetback: 4.2, capBevel: 1.5,
   });
   addBlock({
     cx: -124, cz: -112, rx: 26, rz: 18, angle: 0.48,
-    summitH: 15 + maxAmp * 0.72, flatness: 0.86, shapePower: 7.4,
-    wedgeSkew: -0.24, bendCurve: 0.0, tiltU: -0.05, tiltV: 0.07,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 2.1,
+    summitH: 15 + maxAmp * 0.72, flatness: 0.90, shapePower: 7.6,
+    wedgeSkew: -0.24, bendCurve: 0.0, tiltU: -0.04, tiltV: 0.05,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.4,
   });
   addBlock({
     cx: -182, cz: -46, rx: 28, rz: 20, angle: -0.22,
-    summitH: 15 + maxAmp * 0.39, flatness: 0.94, shapePower: 6.5,
-    wedgeSkew: 0.20, bendCurve: 0.0, tiltU: 0.04, tiltV: -0.03,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.8,
+    summitH: 15 + maxAmp * 0.39, flatness: 0.95, shapePower: 7.0,
+    wedgeSkew: 0.20, bendCurve: 0.0, tiltU: 0.03, tiltV: -0.02,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.3,
   });
 
   // ARCHETYPE 4 (Distant Background Center-Right): "Tilted Table Mesa & Step Bench"
@@ -268,57 +268,57 @@ export function applySDFMonolithTowersNode(
   addBlock({
     cx: 48, cz: -166, rx: 54, rz: 32, angle: 0.12,
     summitH: 15 + maxAmp * 0.78, flatness: 0.96, shapePower: 8.0,
-    wedgeSkew: -0.28, bendCurve: 0.002, tiltU: -0.08, tiltV: 0.03,
-    stepRatio: 0.54, stepSetback: 8.0, capBevel: 1.7,
+    wedgeSkew: -0.28, bendCurve: 0.002, tiltU: -0.07, tiltV: 0.03,
+    stepRatio: 0.54, stepSetback: 8.0, capBevel: 1.3,
   });
   addBlock({
     cx: -6, cz: -158, rx: 32, rz: 22, angle: 0.24,
-    summitH: 15 + maxAmp * 0.44, flatness: 0.92, shapePower: 7.0,
-    wedgeSkew: 0.26, bendCurve: 0.0, tiltU: 0.05, tiltV: 0.0,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.9,
+    summitH: 15 + maxAmp * 0.44, flatness: 0.94, shapePower: 7.4,
+    wedgeSkew: 0.26, bendCurve: 0.0, tiltU: 0.04, tiltV: 0.0,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.4,
   });
 
   // ARCHETYPE 5 (Foreground-Left): "Solitary Totem Obelisk & Low Weathered Stump"
   // High contrast between a slender vertical needle and a low eroded bedrock pedestal
   addBlock({
     cx: -136, cz: 108, rx: 16, rz: 14, angle: 0.82,
-    summitH: 15 + maxAmp * 0.86, flatness: 0.28, shapePower: 3.6,
-    wedgeSkew: 0.16, bendCurve: 0.0, tiltU: 0.12, tiltV: -0.08,
-    stepRatio: 0.42, stepSetback: 3.5, capBevel: 3.9,
+    summitH: 15 + maxAmp * 0.86, flatness: 0.78, shapePower: 5.8,
+    wedgeSkew: 0.16, bendCurve: 0.0, tiltU: 0.08, tiltV: -0.05,
+    stepRatio: 0.42, stepSetback: 3.5, capBevel: 1.6,
   });
   addBlock({
     cx: -104, cz: 92, rx: 28, rz: 19, angle: 0.25,
-    summitH: 15 + maxAmp * 0.31, flatness: 0.90, shapePower: 6.8,
-    wedgeSkew: -0.30, bendCurve: 0.0, tiltU: -0.04, tiltV: 0.03,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 2.0,
+    summitH: 15 + maxAmp * 0.31, flatness: 0.94, shapePower: 7.2,
+    wedgeSkew: -0.30, bendCurve: 0.0, tiltU: -0.03, tiltV: 0.02,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.3,
   });
   addBlock({
     cx: -158, cz: 132, rx: 21, rz: 16, angle: 1.15,
-    summitH: 15 + maxAmp * 0.54, flatness: 0.75, shapePower: 5.5,
-    wedgeSkew: 0.22, bendCurve: 0.0, tiltU: 0.09, tiltV: 0.0,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 2.5,
+    summitH: 15 + maxAmp * 0.54, flatness: 0.88, shapePower: 6.5,
+    wedgeSkew: 0.22, bendCurve: 0.0, tiltU: 0.06, tiltV: 0.0,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.5,
   });
 
   // ARCHETYPE 6 (Mid-Right): "Asymmetric Prow Buttress & Split Turret"
   addBlock({
     cx: 124, cz: -78, rx: 42, rz: 19, angle: -0.64,
-    summitH: 15 + maxAmp * 0.88, flatness: 0.62, shapePower: 6.4,
-    wedgeSkew: 0.36, bendCurve: -0.004, tiltU: 0.10, tiltV: -0.06,
-    stepRatio: 0.60, stepSetback: 5.8, capBevel: 2.6,
+    summitH: 15 + maxAmp * 0.88, flatness: 0.85, shapePower: 7.0,
+    wedgeSkew: 0.36, bendCurve: -0.004, tiltU: 0.08, tiltV: -0.04,
+    stepRatio: 0.60, stepSetback: 5.8, capBevel: 1.5,
   });
   addBlock({
     cx: 92, cz: -56, rx: 18, rz: 16, angle: 0.35,
-    summitH: 15 + maxAmp * 0.58, flatness: 0.82, shapePower: 5.2,
-    wedgeSkew: -0.20, bendCurve: 0.0, tiltU: -0.07, tiltV: 0.05,
-    stepRatio: 0.0, stepSetback: 0.0, capBevel: 2.2,
+    summitH: 15 + maxAmp * 0.58, flatness: 0.90, shapePower: 6.4,
+    wedgeSkew: -0.20, bendCurve: 0.0, tiltU: -0.05, tiltV: 0.04,
+    stepRatio: 0.0, stepSetback: 0.0, capBevel: 1.4,
   });
 
   // ARCHETYPE 7 (Distant Left Silhouette): "Broken Castle Ridge"
   addBlock({
     cx: -98, cz: -178, rx: 44, rz: 18, angle: 0.52,
-    summitH: 15 + maxAmp * 0.74, flatness: 0.55, shapePower: 6.2,
-    wedgeSkew: -0.26, bendCurve: 0.003, tiltU: 0.09, tiltV: 0.04,
-    stepRatio: 0.48, stepSetback: 5.2, capBevel: 2.7,
+    summitH: 15 + maxAmp * 0.74, flatness: 0.84, shapePower: 6.8,
+    wedgeSkew: -0.26, bendCurve: 0.003, tiltU: 0.07, tiltV: 0.03,
+    stepRatio: 0.48, stepSetback: 5.2, capBevel: 1.5,
   });
 
   // Optional extra formations when user increases density slider
@@ -331,15 +331,15 @@ export function applySDFMonolithTowersNode(
       rz: 14 + rand() * 20,
       angle: (rand() - 0.5) * Math.PI,
       summitH: 15 + maxAmp * (0.35 + rand() * 0.60),
-      flatness: 0.3 + rand() * 0.65,
-      shapePower: 3.2 + rand() * 4.5,
+      flatness: 0.78 + rand() * 0.18,
+      shapePower: 5.8 + rand() * 2.2,
       wedgeSkew: (rand() - 0.5) * 0.55,
       bendCurve: (rand() - 0.5) * 0.006,
-      tiltU: (rand() - 0.5) * 0.18,
-      tiltV: (rand() - 0.5) * 0.12,
+      tiltU: (rand() - 0.5) * 0.12,
+      tiltV: (rand() - 0.5) * 0.08,
       stepRatio: rand() > 0.4 ? 0.45 + rand() * 0.25 : 0.0,
       stepSetback: 4.0 + rand() * 4.5,
-      capBevel: 1.8 + rand() * 2.4,
+      capBevel: 1.3 + rand() * 0.4,
     });
   }
 
@@ -420,7 +420,7 @@ export function applySDFMonolithTowersNode(
           activeCapH[activeCount] = blockCapH;
           activeCount++;
 
-          if (dBase < 6.0 && blockCapH > maxColumnSummitH) {
+          if (dBase < 1.8 && blockCapH > maxColumnSummitH) {
             maxColumnSummitH = blockCapH;
           }
         }
@@ -461,28 +461,29 @@ export function applySDFMonolithTowersNode(
             const hRel = Math.max(0.0, Math.min(1.2, (wy - floorH) / span));
 
             // Natural upward wall taper + per-block wedding-cake structural bench setback
-            let stepOffset = hRel * (2.2 + (1.0 - st.flatness) * 2.4);
+            let stepOffset = hRel * (1.8 + (1.0 - st.flatness) * 1.8);
             if (st.stepRatio > 0.05 && hRel > st.stepRatio) {
-              const stepT = Math.min(1.0, (hRel - st.stepRatio) / 0.06);
+              const stepT = Math.min(1.0, (hRel - st.stepRatio) / 0.05);
               stepOffset += stepT * stepT * (3.0 - 2.0 * stepT) * st.stepSetback;
             }
 
-            // Optional overhanging pancake caprock lip at the very top of flat-topped mesas
+            // Stacked pancake caprock ledges at the summit crown (like the reference photo!)
             let capLipExpand = 0.0;
-            if (st.flatness > 0.65 && crownStrength > 0.1 && hRel > 0.88 && hRel <= 1.0) {
-              const lipBell = Math.sin(((hRel - 0.88) / 0.12) * Math.PI);
-              capLipExpand = lipBell * crownStrength * 1.85;
+            if (crownStrength > 0.1 && hRel > 0.80 && hRel <= 1.0) {
+              const crownT = (hRel - 0.80) / 0.20;
+              const pancakeStacks = Math.sin(crownT * Math.PI * 3.0) * 0.85 + Math.sin(crownT * Math.PI) * 1.35;
+              capLipExpand = pancakeStacks * crownStrength * st.flatness;
             }
 
             const phiWall = d0 + stepOffset + wallFacet2D - capLipExpand;
             const phiCap = wy - capH;
             const phiBlock = smoothMax(phiWall, phiCap, st.capBevel);
 
-            phiCluster = smoothMin(phiCluster, phiBlock, 3.4);
+            phiCluster = smoothMin(phiCluster, phiBlock, 2.4);
           }
 
           // Smooth 3D CSG union of the multi-block monolith formation with the desert pediment floor
-          let phi = smoothMin(phiFloor, phiCluster, 4.2);
+          let phi = smoothMin(phiFloor, phiCluster, 3.6);
           if (y === 0) phi = Math.min(phi, -voxelSizeY);
           sdfGrid[zOff3D + y * strideY + x] = phi;
         }
@@ -492,13 +493,10 @@ export function applySDFMonolithTowersNode(
 }
 
 /**
- * NEW NODE 3: Architectural Vertical Buttress Columns & Turret Splits (`VerticalJointFissures`)
- * Instead of gouging 3D noise blobs or aliased diagonal cracks into the cliff surface,
- * this node uses 100% pure 2D-extruded-in-Y CSG prisms:
- *   φ_pilaster(x, y, z) = smoothMax(d_pilaster2D(x, z), y - H_ledge(x, z), 2.2)
- * Because d_pilaster2D(x, z) is strictly independent of Y (∂/∂y = 0 along the shaft),
- * every vertical column, buttress rib, and chimney recess is razor-straight vertically
- * and terminates in a crisp horizontal structural ledge — zero pockmarks or blobs!
+ * NEW NODE 3: Architectural Vertical Columnar Ribs, Dihedral Facets & Stepped Ledges (`VerticalJointFissures`)
+ * Sculpts crisp, plumb vertical sandstone columns, dihedral fracture corners, and stepped
+ * horizontal ledges directly onto existing monolith walls WITHOUT any square checkerboard
+ * grid clipping (eliminating thin vertical pegs and boxy Lego steps!).
  */
 export function applyVerticalJointFissuresNode(
   vol: SDFTerrainVolume,
@@ -512,21 +510,20 @@ export function applyVerticalJointFissuresNode(
 
   const fissureStrength =
     params.fissureIntensity ?? params.fissureDepth ?? params.verticalFissures ?? 0.85;
-  const buttressProjection = (params.chimneyDepth ?? 11.5) * 0.52 * fissureStrength;
-  const columnWidth = Math.max(16.0, (params.fissureSpacing ?? params.jointSpacing ?? 22.0) * 0.95);
+  const ribDepth = (params.chimneyDepth ?? 11.5) * 0.34 * fissureStrength;
+  const spacingScale = 22.0 / Math.max(12.0, params.fissureSpacing ?? params.jointSpacing ?? 22.0);
   const ledgeStepStrength = params.beddingNotchStrength ?? params.masterNotch ?? 0.82;
   const flutingStrength = params.columnFluting ?? fissureStrength;
 
-  const pilasterNoise = new SeededNoise((params.seed || 4217) + 5119);
+  const ribNoise = new SeededNoise((params.seed || 4217) + 5119);
   const tierNoise = new SeededNoise((params.seed || 4217) + 8837);
 
   const halfWorld = domain.worldSize * 0.5;
   const strideY = nx;
   const strideZ = nx * ny;
 
-  // Regional tectonic joint orientation (aligned cleanly to avoid thin sub-voxel staircase aliasing)
-  const cosA = Math.cos(0.32);
-  const sinA = Math.sin(0.32);
+  const cosA = Math.cos(0.34);
+  const sinA = Math.sin(0.34);
 
   for (let z = 2; z < nz - 2; z++) {
     const wz = z * voxelSizeXZ - halfWorld;
@@ -536,8 +533,7 @@ export function applyVerticalJointFissuresNode(
     for (let x = 2; x < nx - 2; x++) {
       const idx2D = zOff2D + x;
       const mDist = vol.monolithDist[idx2D];
-      // Operate in the perimeter band around monolith walls
-      if (mDist < -16.0 || mDist > 16.0) continue;
+      if (mDist < -14.0 || mDist > 12.0) continue;
 
       const wx = x * voxelSizeXZ - halfWorld;
       const floorH = vol.bedrockHeight[idx2D];
@@ -545,90 +541,67 @@ export function applyVerticalJointFissuresNode(
       const towerSpan = Math.max(30.0, summitH - floorH);
 
       // 1. Low-frequency Architectural Zone Mask:
-      // Leaves ~40% of cliff walls as broad, sheer, unbroken planar sandstone faces!
-      const zoneRaw = pilasterNoise.simplex2D(wx * 0.011 + 19.4, wz * 0.011 - 43.2);
+      // Leaves ~42% of cliff walls as broad, sheer, unbroken planar sandstone faces!
+      const zoneRaw = ribNoise.simplex2D(wx * 0.011 + 19.4, wz * 0.011 - 43.2);
       const activeZone = Math.max(0.0, Math.min(1.0, (zoneRaw + 0.18) / 0.62));
       if (activeZone < 0.02) continue;
 
-      // 2. Purely 2D Rectangular Buttress Pilaster Grid (∂/∂y = 0 along the vertical column shaft!)
-      const u = wx * cosA - wz * sinA;
-      const v = wx * sinA + wz * cosA;
+      // 2. Continuous 2D Angular Dihedral Ribs & Vertical Chimneys (∂/∂y = 0 along each tier!)
+      const u = (wx * cosA - wz * sinA) * spacingScale;
+      const v = (wx * sinA + wz * cosA) * spacingScale;
 
-      const cellU = Math.floor(u / columnWidth);
-      const cellV = Math.floor(v / columnWidth);
-      const localU = u - (cellU + 0.5) * columnWidth;
-      const localV = v - (cellV + 0.5) * columnWidth;
+      // Folded 2D ridge functions form sharp angular dihedral buttress ribs and vertical flutes
+      // without any discontinuous square grid edges that could clip into pegs!
+      const ridgeU = 1.0 - 2.0 * Math.abs(ribNoise.simplex2D(u * 0.036 + 11.3, v * 0.036 - 27.9));
+      const ridgeV = 1.0 - 2.0 * Math.abs(ribNoise.simplex2D(u * 0.058 - 43.1, v * 0.058 + 19.4));
 
-      // Deterministic per-cell hash so adjacent vertical pilasters have distinct heights & projections
-      const cellHash1 = Math.sin(cellU * 127.1 + cellV * 311.7) * 43758.5453;
-      const cellRand1 = cellHash1 - Math.floor(cellHash1);
-      const cellHash2 = Math.sin(cellU * 269.5 + cellV * 183.3) * 43758.5453;
-      const cellRand2 = cellHash2 - Math.floor(cellHash2);
+      // Projecting flat-faced buttress rib (< 0 pushes rock outward) vs recessed vertical chimney (> 0 carves inward)
+      const buttressRib2D = (ridgeU * 0.68 + ridgeV * 0.32) * ribDepth * activeZone;
 
-      // 2D L6 bevelled rectangular pilaster distance in the (u, v) plane
-      const halfW = columnWidth * (0.34 + 0.12 * cellRand1);
-      const du = Math.abs(localU) / halfW;
-      const dv = Math.abs(localV) / halfW;
-      const norm6 = Math.pow(Math.pow(du, 6.0) + Math.pow(dv, 6.0), 1.0 / 6.0);
-      const dCellBox2D = (norm6 - 1.0) * halfW;
+      // Secondary fine vertical columnar fluting
+      const fineFlute2D =
+        ribNoise.simplex2D(u * 0.095 + 7.1, v * 0.095 - 13.8) * 1.15 * flutingStrength * activeZone;
 
-      // A pilaster hugs the monolith wall (mDist ≈ 0) and projects outward by buttressProjection meters
-      const pilasterOutward = buttressProjection * (0.55 + 0.45 * cellRand1) * activeZone;
-      const dPilasterHoriz = Math.max(mDist - pilasterOutward, dCellBox2D);
+      // Per-column stepped tier heights (shifted by local fault block so ledges don't ring the whole scene)
+      const tierShift = tierNoise.simplex2D(wx * 0.014 - 23.1, wz * 0.014 + 51.7) * 0.14;
+      const stepH1 = 0.34 + tierShift;
+      const stepH2 = 0.66 - tierShift * 0.7;
 
-      // Quantized stepped ledge height for this vertical pilaster (38% to 88% of tower height)
-      const quantizedTier = Math.floor(cellRand2 * 4.0) / 3.0; // {0.0, 0.33, 0.67, 1.0}
-      const pilasterCapH =
-        floorH + towerSpan * (0.36 + 0.50 * quantizedTier) +
-        tierNoise.simplex2D(wx * 0.025, wz * 0.025) * 2.5;
-
-      // Secondary lower pedestal buttress tier (creates multi-tiered wedding-cake buttresses)
-      const lowerButtressOutward = pilasterOutward * 1.45 * ledgeStepStrength;
-      const dLowerButtressHoriz = Math.max(mDist - lowerButtressOutward, dCellBox2D - 2.5);
-      const lowerButtressCapH = floorH + towerSpan * (0.22 + 0.24 * cellRand1);
-
-      // 3. Broad, Smooth Vertical Columnar Fluting (Purely 2D in XZ so it is 100% straight vertically!)
-      const flute2D =
-        (pilasterNoise.simplex2D(u * 0.045 + 13.1, v * 0.045 - 29.7) * 1.6 +
-          pilasterNoise.simplex2D(u * 0.022 - 41.2, v * 0.022 + 18.9) * 2.1) *
-        flutingStrength *
-        activeZone;
-
-      const yMin = Math.max(2, Math.min(bandMinY[idx2D], Math.floor(floorH / voxelSizeY) - 2));
-      const yMax = Math.min(ny - 3, Math.max(bandMaxY[idx2D], Math.ceil(summitH / voxelSizeY) + 3));
-      bandMinY[idx2D] = yMin;
-      bandMaxY[idx2D] = yMax;
-
-      // Keep monolithDist updated so downstream ConicalTalusSkirt wraps smoothly around the new buttresses
-      const newHorizDist = Math.min(mDist, dPilasterHoriz, dLowerButtressHoriz);
-      vol.monolithDist[idx2D] = newHorizDist;
+      const yMin = Math.max(2, bandMinY[idx2D]);
+      const yMax = Math.min(ny - 3, bandMaxY[idx2D]);
 
       for (let y = yMin; y <= yMax; y++) {
         const idx3D = zOff3D + y * strideY + x;
-        let phi = sdfGrid[idx3D];
-        if (Math.abs(phi) > 18.0) continue;
+        const phi = sdfGrid[idx3D];
+        // Only sculpt existing monolith walls (never spawn detached floating geometry in open air!)
+        if (phi < -12.0 || phi > 8.0) continue;
 
         const wy = y * voxelSizeY;
         const hRel = (wy - floorH) / towerSpan;
-        if (hRel < 0.04) continue;
+        // Fade out cleanly below the summit caprock rim (hRel < 0.94) so nothing EVER sticks up above a ledge!
+        if (hRel < 0.06 || hRel > 0.95) continue;
 
-        // Apply strictly vertical 2D columnar fluting to the main wall
-        const verticalFade = Math.min(1.0, (hRel - 0.04) / 0.15) * Math.min(1.0, (1.02 - hRel) / 0.10);
-        phi += flute2D * Math.max(0.0, verticalFade);
+        const rimGuard =
+          Math.min(1.0, (hRel - 0.06) / 0.10) * Math.min(1.0, (0.95 - hRel) / 0.08);
 
-        // Union Tier 1: Tall Vertical Sandstone Pilaster Column (flat horizontal top at pilasterCapH)
-        if (pilasterOutward > 0.5) {
-          const phiPilaster = smoothMax(dPilasterHoriz, wy - pilasterCapH, 2.4);
-          phi = smoothMin(phi, phiPilaster, 2.6);
-        }
+        // Stepped tier envelope: lower pedestal projects further out, stepping back at stepH1 and stepH2!
+        const t1 = Math.max(0.0, Math.min(1.0, (hRel - stepH1) / 0.045));
+        const smoothStep1 = t1 * t1 * (3.0 - 2.0 * t1);
+        const t2 = Math.max(0.0, Math.min(1.0, (hRel - stepH2) / 0.045));
+        const smoothStep2 = t2 * t2 * (3.0 - 2.0 * t2);
 
-        // Union Tier 2: Lower Stepped Pedestal Buttress (flat horizontal bench at lowerButtressCapH)
-        if (lowerButtressOutward > 0.5) {
-          const phiLowerButtress = smoothMax(dLowerButtressHoriz, wy - lowerButtressCapH, 2.4);
-          phi = smoothMin(phi, phiLowerButtress, 2.8);
-        }
+        // Stepped horizontal bench setback at stepH1 and stepH2 where buttresses step inward
+        const tierSetback =
+          (smoothStep1 * 1.85 + smoothStep2 * 1.65) *
+          ledgeStepStrength *
+          Math.max(0.0, -ridgeU) *
+          activeZone;
 
-        sdfGrid[idx3D] = phi;
+        // Vertical rib amplitude per tier (strictly constant in Y inside each tier!)
+        const tierAmp = 1.0 - smoothStep1 * 0.32 - smoothStep2 * 0.28;
+
+        const deltaPhi = (buttressRib2D * tierAmp + fineFlute2D + tierSetback) * rimGuard;
+        sdfGrid[idx3D] = phi + deltaPhi;
       }
     }
   }
@@ -692,30 +665,40 @@ export function applyBasalWindOverhangsNode(
       const windExposure =
         (1.0 - dirBias * 0.65) + dirBias * 0.65 * Math.max(0.0, -(gx * windX + gz * windZ));
 
+      // Smooth 2D lateral modulation so basal overhangs form clean, sweeping horizontal rock arches/brows!
+      const lateralArchMask = Math.max(
+        0.0,
+        0.55 + 0.55 * overhangNoise.simplex2D(wx * 0.015 + 17.3, wz * 0.015 - 29.1)
+      );
+
       const yStart = Math.max(2, bandMinY[idx2D]);
       const yEnd = Math.min(ny - 3, bandMaxY[idx2D]);
+      const startRatio = 0.13;
+      const topAlcoveRatio = Math.max(startRatio + 0.12, alcoveHeightRatio + 0.06);
 
       for (let y = yStart; y <= yEnd; y++) {
         const wy = y * voxelSizeY;
         const hRel = (wy - floorH) / towerSpan;
-        if (hRel < 0.06 || hRel > alcoveHeightRatio + 0.14) continue;
+        if (hRel < startRatio || hRel > topAlcoveRatio + 0.14) continue;
 
         const idx3D = zOff3D + y * strideY + x;
         const phi = sdfGrid[idx3D];
         if (Math.abs(phi) > 12.0) continue;
 
-        if (hRel <= alcoveHeightRatio) {
-          // Deep inward basal alcove carve (positive Δφ turns solid rock into overhanging air cavity!)
-          const bell = Math.sin(((hRel - 0.06) / Math.max(0.08, alcoveHeightRatio - 0.06)) * Math.PI);
-          const caveMod =
-            0.65 + 0.45 * overhangNoise.simplex3D(wx * 0.018, wy * 0.024, wz * 0.018);
-          const carveInwardMeters = bell * caveMod * windExposure * undercutStrength * 5.8;
+        if (hRel <= topAlcoveRatio) {
+          // Smooth inward basal alcove recess above the talus foot
+          const bell = Math.sin(
+            ((hRel - startRatio) / Math.max(0.08, topAlcoveRatio - startRatio)) * Math.PI
+          );
+          const carveInwardMeters =
+            bell * lateralArchMask * windExposure * undercutStrength * 4.4;
           sdfGrid[idx3D] = phi + carveInwardMeters;
         } else {
-          // Protruding overhanging rock belly right above the basal alcove
-          const browT = (hRel - alcoveHeightRatio) / 0.14;
+          // Protruding overhanging rock brow right above the basal alcove
+          const browT = (hRel - topAlcoveRatio) / 0.14;
           const browBell = Math.sin(browT * Math.PI);
-          const pushOutMeters = browBell * windExposure * browStrength * 2.8;
+          const pushOutMeters =
+            browBell * lateralArchMask * windExposure * browStrength * 2.6;
           sdfGrid[idx3D] = phi - pushOutMeters;
         }
       }

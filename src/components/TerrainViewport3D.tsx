@@ -300,30 +300,35 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
         // Soft natural bedding contact crevice (only where strikeCut is active!)
         float contactSeam = exp(-min(u, 1.0 - u) * bedWidth * 1.45) * strikeCut;
 
-        // 4. Sweeping Diagonal Aeolian Dune Cross-Bedding (characteristic of desert sandstone!)
+        // 4. Sweeping Diagonal Aeolian Dune Cross-Bedding + Fine Sedimentary Micro-Laminae
         float crossSetDir = (bedTone > 0.48 ? 1.0 : -1.0);
         float crossWarp = (noise3D(wp * 0.025) - 0.5) * 4.5;
         float crossPhase = wp.y * 0.85 + (wp.x * 0.38 - wp.z * 0.34) * crossSetDir + crossWarp;
         float crossForeset = sin(crossPhase) * 0.055 * (0.45 + 0.55 * massiveZone);
 
+        // Crisp fine sedimentary micro-bedding (1.5m - 3.5m sandstone laminations that pinch out laterally)
+        float microPinch = smoothstep(0.32, 0.68, noise3D(vec3(wp.x * 0.024, wp.y * 0.015, wp.z * 0.024)));
+        float microLamina = sin(effY * 2.65 + noise3D(vec3(wp.x * 0.04, 0.4, wp.z * 0.04)) * 3.2) * 0.065 * microPinch;
+        float microNormalY = cos(effY * 2.65) * 0.14 * microPinch;
+
         float bandShade = 0.0;
         float bandNormalY = 0.0;
 
         if (bedWidth > 20.0 || massiveZone > 0.55) {
-          // WIDE MASSIVE SANDSTONE FACE: Sweeping diagonal cross-bedding + subtle vertical rock facets
-          float rockFacet = (noise3D(vec3(wp.x * 0.048, wp.y * 0.016, wp.z * 0.048)) - 0.5) * 0.11;
-          float capLedge = smoothstep(0.78, 0.96, u) * 0.09 * strikeCut;
-          bandShade = capLedge + rockFacet + crossForeset;
-          bandNormalY = (capLedge * 0.55 - contactSeam * 0.32) + cos(crossPhase) * 0.08 * massiveZone;
+          // WIDE MASSIVE SANDSTONE FACE: Sweeping diagonal cross-bedding + crisp vertical rock facets
+          float rockFacet = (noise3D(vec3(wp.x * 0.048, 0.2, wp.z * 0.048)) - 0.5) * 0.12;
+          float capLedge = smoothstep(0.78, 0.96, u) * 0.10 * strikeCut;
+          bandShade = capLedge + rockFacet + crossForeset + microLamina * 0.65;
+          bandNormalY = (capLedge * 0.58 - contactSeam * 0.34) + cos(crossPhase) * 0.08 * massiveZone + microNormalY * 0.7;
         } else if (bedType < 0.36) {
           // LOCALIZED RECESSED SHALE PARTING / ALCOVE SLOT
           float slot = sin(u * 3.14159);
-          bandShade = (-slot * 0.14) * strikeCut + crossForeset * 0.5;
-          bandNormalY = cos(u * 3.14159) * 0.22 * strikeCut;
+          bandShade = (-slot * 0.14) * strikeCut + crossForeset * 0.5 + microLamina;
+          bandNormalY = cos(u * 3.14159) * 0.24 * strikeCut + microNormalY;
         } else {
           // INTERBEDDED SANDSTONE & CROSS-STRATA LEDGE
-          bandShade = (crossForeset * 1.3 + (bedTone - 0.5) * 0.09) * (0.35 + 0.65 * strikeCut);
-          bandNormalY = (cos(crossPhase) * 0.12 - contactSeam * 0.28) * strikeCut;
+          bandShade = (crossForeset * 1.2 + (bedTone - 0.5) * 0.09) * (0.35 + 0.65 * strikeCut) + microLamina;
+          bandNormalY = (cos(crossPhase) * 0.12 - contactSeam * 0.28) * strikeCut + microNormalY;
         }
 
         // 5. Strictly Plumb Vertical Tectonic Hairline Joints (Zero Y-wiggle so joints are razor-straight vertically!)
