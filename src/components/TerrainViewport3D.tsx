@@ -197,9 +197,112 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     // Includes 3D dipping tectonic fault line, pinch-out seam taper, warm-umber crevice AO,
     // and vertical desert varnish weathering streaks!
     material.onBeforeCompile = (shader) => {
-      // Natural arches use explicit spline geometry and authored bed relief in the SDF.
-      // Keep them on the vertex-color material path: do not layer procedural shader noise on top.
-      if (volume?.has3DArches) return;
+      // Natural arches use an explicit localized fracture pass instead of noise displacement.
+      // The Voronoi cell edges are a thin surface shell fracture; the underlying SDF core stays intact.
+      if (volume?.has3DArches) {
+        const fracture = volume.archFracture;
+        shader.uniforms.uFractureCellSize = { value: fracture?.cellSizeMeters ?? 2.4 };
+        shader.uniforms.uFractureGap = { value: fracture?.gapMeters ?? 0.12 };
+        shader.uniforms.uFractureRemoval = { value: fracture?.removalRate ?? 0.04 };
+        shader.uniforms.uFractureCoverage = { value: fracture?.patchCoverage ?? 0.32 };
+        shader.uniforms.uFractureSeed = { value: fracture?.seed ?? 4217 };
+
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          `#include <common>
+          varying vec3 vFracturePosition;
+          varying vec3 vFractureNormal;`
+        );
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          vFracturePosition = position;
+          vFractureNormal = normalize(normal);`
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          `#include <common>
+          uniform float uFractureCellSize;
+          uniform float uFractureGap;
+          uniform float uFractureRemoval;
+          uniform float uFractureCoverage;
+          uniform float uFractureSeed;
+          varying vec3 vFracturePosition;
+          varying vec3 vFractureNormal;
+
+          float fractureHash(vec2 p) {
+            return fract(sin(dot(p + uFractureSeed * 0.001, vec2(127.1, 311.7))) * 43758.5453);
+          }
+          void fractureVoronoi(vec2 x, out float f1, out float f2, out vec2 nearestCell) {
+            vec2 baseCell = floor(x);
+            vec2 local = fract(x);
+            f1 = 1e6;
+            f2 = 1e6;
+            nearestCell = baseCell;
+            for (int j = -1; j <= 1; j++) {
+              for (int i = -1; i <= 1; i++) {
+                vec2 offset = vec2(float(i), float(j));
+                vec2 cell = baseCell + offset;
+                vec2 site = offset + vec2(
+                  0.15 + 0.70 * fractureHash(cell + vec2(0.0, 0.0)),
+                  0.15 + 0.70 * fractureHash(cell + vec2(17.3, 41.7))
+                );
+                float d = dot(local - site, local - site);
+                if (d < f1) {
+                  f2 = f1;
+                  f1 = d;
+                  nearestCell = cell;
+                } else if (d < f2) {
+                  f2 = d;
+                }
+              }
+            }
+          }`
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          vec3 fracturePos = vFracturePosition;
+          vec3 fractureNormal = normalize(vFractureNormal);
+          // Project only the exposed face into 2D; this fractures a shallow shell, not the whole solid.
+          vec2 fractureUV = abs(fractureNormal.y) > 0.72
+            ? fracturePos.xz
+            : (abs(fractureNormal.x) > abs(fractureNormal.z)
+                ? fracturePos.zy
+                : fracturePos.xy);
+          vec2 fractureCoord = fractureUV / max(0.25, uFractureCellSize);
+          float f1;
+          float f2;
+          vec2 fractureCell;
+          fractureVoronoi(fractureCoord, f1, f2, fractureCell);
+          float edgeMeters = max(0.0, (sqrt(max(0.0, f2)) - sqrt(max(0.0, f1))) * uFractureCellSize * 0.5);
+          vec2 patchCoord = fractureCoord / 5.0;
+          vec2 patchTile = floor(patchCoord);
+          vec2 patchLocal = fract(patchCoord);
+          float patchHash = fractureHash(patchTile + vec2(73.2, 18.6));
+          float patchPick = step(1.0 - uFractureCoverage, patchHash);
+          vec2 patchCenter = vec2(
+            fractureHash(patchTile + vec2(9.1, 31.7)),
+            fractureHash(patchTile + vec2(47.3, 2.9))
+          );
+          float patchRadius = mix(0.38, 0.72, fractureHash(patchTile + vec2(16.4, 83.2)));
+          float patchDistance = length((patchLocal - patchCenter) / vec2(1.25, 0.72));
+          float inFracturePatch = patchPick * (1.0 - smoothstep(patchRadius - 0.10, patchRadius + 0.10, patchDistance));
+          float cliffMask = smoothstep(0.22, 0.78, 1.0 - abs(fractureNormal.y));
+          float aa = max(fwidth(edgeMeters), 0.012);
+          float crack = (1.0 - smoothstep(uFractureGap * 0.5 - aa, uFractureGap * 0.5 + aa, edgeMeters))
+            * inFracturePatch * cliffMask;
+          vec3 fractureCrevice = diffuseColor.rgb * vec3(0.26, 0.19, 0.15);
+          diffuseColor.rgb = mix(diffuseColor.rgb, fractureCrevice, crack * 0.92);
+
+          // A sparse subset of cells is removed only inside active fracture patches.
+          float chipChoice = fractureHash(fractureCell + vec2(103.7, 29.1));
+          float chip = step(1.0 - uFractureRemoval, chipChoice) * inFracturePatch * cliffMask;
+          float cellCore = 1.0 - smoothstep(0.27, 0.36, sqrt(max(0.0, f1)));
+          if (chip * cellCore > 0.5) discard;`
+        );
+        return;
+      }
 
       shader.uniforms.uFaultOffset = { value: faultOffset };
       shader.uniforms.uFaultCos = { value: Math.cos(faultAngleRad) };

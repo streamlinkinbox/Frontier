@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 16; // Noise-free authored SDF beds, ledges, recesses, and pinch-outs for natural arches
+  const engineVersion = 17; // Add localized Voronoi fracture shell and 5–20 cm gaps/chip removal
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);

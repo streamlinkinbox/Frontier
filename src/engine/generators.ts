@@ -1288,6 +1288,17 @@ export function applySDFNaturalArchesNode(
   vol.has3DArches = true;
 
   const seed = params.seed ?? 4217;
+  const clampParam = (value: unknown, fallback: number, min: number, max: number) => {
+    const number = Number(value);
+    return Math.max(min, Math.min(max, Number.isFinite(number) ? number : fallback));
+  };
+  vol.archFracture = {
+    cellSizeMeters: clampParam(params.fractureCellSize, 2.4, 0.8, 5.0),
+    gapMeters: clampParam(params.fractureGapMeters, 0.12, 0.05, 0.20),
+    removalRate: clampParam(params.fractureRemovalRate, 0.04, 0.0, 0.25),
+    patchCoverage: clampParam(params.fracturePatchCoverage, 0.32, 0.0, 0.7),
+    seed,
+  };
   const archStyle: string = params.archStyle || 'double_arch';
   const slickrockAmp = params.slickrockRamps ?? 0.85;
   const boulderDensity = params.boulderField ?? 0.82;

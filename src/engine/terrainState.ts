@@ -41,6 +41,14 @@ export interface ArchSplineControl {
   rockNoise?: number;       // @deprecated Legacy saved-graph field; accepted as rockDetail fallback
 }
 
+export interface SDFArchFractureConfig {
+  cellSizeMeters: number;
+  gapMeters: number;
+  removalRate: number;
+  patchCoverage: number;
+  seed: number;
+}
+
 export interface SDFTerrainVolume {
   domain: SDFDomainConfig;
   nx: number;
@@ -77,6 +85,7 @@ export interface SDFTerrainVolume {
   has3DMonoliths: boolean;
   has3DArches: boolean;
   archSplines: ArchSplineControl[];
+  archFracture?: SDFArchFractureConfig;
   monolithDist: Float32Array;    // Horizontal signed distance to monolith cliff wall (meters)
   monolithSummitH: Float32Array; // Local monolith turret summit height (meters)
 
@@ -189,6 +198,7 @@ export function cloneSDFVolume(src: SDFTerrainVolume): SDFTerrainVolume {
     has3DMonoliths: src.has3DMonoliths,
     has3DArches: src.has3DArches,
     archSplines: src.archSplines.map((s) => ({ ...s })),
+    archFracture: src.archFracture ? { ...src.archFracture } : undefined,
     monolithDist: new Float32Array(src.monolithDist),
     monolithSummitH: new Float32Array(src.monolithSummitH),
     reports: { ...src.reports },
