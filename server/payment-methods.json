@@ -1,0 +1,66 @@
+{
+  "_help": "Turn methods on/off with \"enabled\". In \"instructions\" you can use {ref} (order reference), {amount} and {currency}. \"link\" is optional; it becomes a Pay button.",
+  "product": {
+    "name": "Frontier",
+    "price": 5,
+    "currency": "USD"
+  },
+  "methods": [
+    {
+      "id": "paypal",
+      "enabled": true,
+      "name": "PayPal (account or card)",
+      "regions": "Worldwide",
+      "link": "https://paypal.me/YOURPAYPAL/{amount}{currency}",
+      "instructions": "Click the Pay button and send {amount} {currency}. In the note, write your order reference: {ref}."
+    },
+    {
+      "id": "payoneer",
+      "enabled": true,
+      "name": "Payoneer / card (payment request)",
+      "regions": "Worldwide",
+      "link": "",
+      "instructions": "Submit your order. Within 24 hours you'll get a Payoneer payment request by email for {amount} {currency}, which you can pay by card or bank. Reference: {ref}."
+    },
+    {
+      "id": "wise",
+      "enabled": true,
+      "name": "Wise transfer",
+      "regions": "US, UK, EU, Canada, Japan, Australia and more",
+      "link": "",
+      "instructions": "Send {amount} {currency} with Wise to: YOUR NAME, email YOUR-WISE-EMAIL (or the bank details shown in your Wise app). Put {ref} in the reference field."
+    },
+    {
+      "id": "swift",
+      "enabled": true,
+      "name": "International bank transfer (SWIFT)",
+      "regions": "Worldwide (your bank may charge a wire fee)",
+      "link": "",
+      "instructions": "Bank: Capitec Bank, South Africa. SWIFT/BIC: CABLZAJJ. Account name: YOUR FULL NAME. Account number: YOUR-ACCOUNT-NUMBER. Amount: {amount} {currency}. Reference: {ref}."
+    },
+    {
+      "id": "eft",
+      "enabled": true,
+      "name": "South African EFT / Capitec Pay",
+      "regions": "South Africa",
+      "link": "",
+      "instructions": "EFT to Capitec Bank, branch code 470010, account YOUR-ACCOUNT-NUMBER, name YOUR FULL NAME. Pay the rand equivalent of {amount} {currency}. Reference: {ref}."
+    },
+    {
+      "id": "card-link",
+      "enabled": false,
+      "name": "Card payment link (PayFast / Yoco / Paystack)",
+      "regions": "Worldwide cards",
+      "link": "https://YOUR-PAYMENT-LINK",
+      "instructions": "Click Pay and pay {amount} {currency} by card. Enter {ref} as the reference if asked."
+    },
+    {
+      "id": "crypto",
+      "enabled": false,
+      "name": "Crypto (USDT / USDC)",
+      "regions": "Worldwide",
+      "link": "",
+      "instructions": "Send {amount} USDT (TRC20) to YOUR-WALLET-ADDRESS. After paying, paste the transaction ID below."
+    }
+  ]
+}
