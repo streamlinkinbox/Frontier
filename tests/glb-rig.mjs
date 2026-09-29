@@ -3,8 +3,8 @@ import * as THREE from 'three';
 
 /** Decode real exported bone/keyframe data without a browser or texture mock.
  * Mesh morph channels are inspected directly via accessors, not simulated here. */
-export function readRig() {
-  const bytes = fs.readFileSync(new URL('../public/models/mantis.glb', import.meta.url));
+export function readRig(file = new URL('../public/models/mantis.glb', import.meta.url)) {
+  const bytes = fs.readFileSync(file);
   const length = bytes.readUInt32LE(12);
   const gltf = JSON.parse(bytes.subarray(20, 20 + length));
   const start = 20 + length + 8;

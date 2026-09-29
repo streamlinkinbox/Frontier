@@ -1,0 +1,37 @@
+{
+  "species": "Carcinus maenas",
+  "triangles": 249268,
+  "bones": 59,
+  "bytes": 13589920,
+  "clips": [
+    {
+      "name": "Idle",
+      "duration": 6
+    },
+    {
+      "name": "Walk_Left",
+      "duration": 1.6
+    },
+    {
+      "name": "Walk_Right",
+      "duration": 1.6
+    },
+    {
+      "name": "Pinch_L",
+      "duration": 1.8
+    },
+    {
+      "name": "Pinch_R",
+      "duration": 1.8
+    }
+  ],
+  "lateralSpeedMetresPerSecond": 0.01,
+  "walkingLegPairs": 4,
+  "claws": 2,
+  "carapaceWidthMm": 72,
+  "provenance": "Original procedural anatomical study, not a scan or verified AAA production asset.",
+  "validation": {
+    "errors": 0,
+    "warnings": 0
+  }
+}
