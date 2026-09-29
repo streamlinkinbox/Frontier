@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Frontier · WebGPU Sand + Smoke (GTX tier)</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 13px/1.45 system-ui, sans-serif; color: #eee; }
+  canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .panel { position: fixed; background: rgba(12, 14, 18, 0.72); backdrop-filter: blur(6px); border-radius: 10px; padding: 10px 12px; }
+  #hud { top: 12px; left: 12px; min-width: 210px; }
+  #tier { font-size: 11px; color: #9fd3ff; margin-bottom: 6px; max-width: 320px; }
+  .dim { color: #888; font-size: 11px; }
+  .bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  #drift { height: 100%; width: 0; background: linear-gradient(90deg, #ffb347, #ff4d4d); transition: width .1s; }
+  #help { bottom: 12px; left: 12px; }
+  #help.hide { display: none; }
+  kbd { background: #333; border-radius: 4px; padding: 0 5px; border: 1px solid #555; }
+  #err { display: none; top: 12px; right: 12px; max-width: 46vw; white-space: pre-wrap; background: rgba(120, 0, 0, 0.85); font-family: monospace; font-size: 12px; }
+  #touch { position: fixed; right: 12px; bottom: 12px; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
+  #touch button { height: 48px; border-radius: 10px; border: 0; background: rgba(255,255,255,0.15); color: #fff; font-size: 18px; user-select: none; }
+  @media (hover: hover) { #touch { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" class="panel">
+  <div id="tier">GTX tier</div>
+  <div id="stats">starting WebGPU…</div>
+  <div class="bar"><div id="drift"></div></div>
+  <div id="driftLbl" class="dim">grip</div>
+</div>
+<div id="help" class="panel">
+  <kbd>W</kbd>/<kbd>↑</kbd> throttle · <kbd>S</kbd> brake/reverse · <kbd>A</kbd><kbd>D</kbd> steer · <kbd>Space</kbd> handbrake (drift)<br>
+  <kbd>R</kbd> reset · drag = orbit · wheel = zoom · <kbd>H</kbd> hide help<br>
+  <span class="dim">Sand spawns only under the tyres · smoke only while drifting / wheelspinning</span>
+</div>
+<div id="touch">
+  <span></span><button data-k="throttle">▲</button><span></span>
+  <button data-k="left">◀</button><button data-k="handbrake">⎍</button><button data-k="right">▶</button>
+  <span></span><button data-k="brake">▼</button><span></span>
+</div>
+<div id="err" class="panel"></div>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
