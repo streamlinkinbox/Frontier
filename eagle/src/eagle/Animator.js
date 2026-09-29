@@ -522,8 +522,9 @@ export class Animator {
     P.tail.fluff = 0;
 
     // --- legs tucked: feet clenched under the tail coverts
-    P.legL = leg({ pos: new THREE.Vector3(0.045, -0.07, -0.16), femurPitch: 1.9, toeCurl: 1 });
-    P.legR = leg({ pos: new THREE.Vector3(0.045, -0.07, -0.16), femurPitch: 1.9, toeCurl: 1 });
+    // (tarsi pressed against the belly, feet clenched against the under-tail coverts)
+    P.legL = leg({ pos: new THREE.Vector3(0.036, -0.052, -0.175), femurPitch: 2.0, femurSplay: 0.08, toeCurl: 1, footPitch: 0.9 });
+    P.legR = leg({ pos: new THREE.Vector3(0.036, -0.052, -0.175), femurPitch: 2.0, femurSplay: 0.08, toeCurl: 1, footPitch: 0.9 });
 
     // --- head: stabilised in space; scanning the water below with saccades
     P.jaw = 0; P.lidUp = 0; P.lidLo = 0; P.fluff = 0; P.fluffBody = 0; P.breath = Math.sin(t * TAU * 0.7) * 0.4;

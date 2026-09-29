@@ -1,0 +1,9 @@
+[
+ {"eval":"(()=>{__game.step(60); return __game.anim.label})()"},{"shot":"default"},
+ {"eval":"(()=>{__game.setPreset('side'); __game.step(2); return 1})()"},{"shot":"side"},
+ {"eval":"(()=>{__game.setPreset('close'); __game.step(2); return 1})()"},{"shot":"head"},
+ {"eval":"(()=>{__game.setPreset('orbit'); __game.anim.trigger('flap'); __game.step(240); return __game.anim.label})()"},{"shot":"flap"},
+ {"eval":"(()=>{__game.step(11); return 1})()"},{"shot":"flap2"},
+ {"eval":"(()=>{__game.anim.trigger('glide'); __game.step(200); return __game.anim.label})()"},{"shot":"glide"},
+ {"eval":"(()=>{__game.setPreset('front'); __game.step(2); return 1})()"},{"shot":"glidefront"}
+]

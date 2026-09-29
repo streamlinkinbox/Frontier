@@ -15,7 +15,7 @@ fs.mkdirSync(prefix.replace(/[^/]*$/, '') || '.', { recursive: true });
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME || await chromium.executablePath(),
   args: [...chromium.args, '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
-  defaultViewport: { width: 800, height: 450 }, headless: true, protocolTimeout: 1800000,
+  defaultViewport: { width: +(process.env.VW || 800), height: +(process.env.VH || 450) }, headless: true, protocolTimeout: 1800000,
 });
 const page = await browser.newPage();
 page.on('pageerror', (e) => console.log('pageerror', e.message));

@@ -164,7 +164,12 @@ export function buildWingSkin(rig) {
       else Lp = wp(bone, xb, 0.0, lerp(0.02, 0.008, (d / segs[bi]) * (bi === 3 ? 1 : 0.5)));
       const up = wd(bone, 0, 1, 0);
       const chord = Tp.distanceTo(Lp);
-      const thick = lerp(0.03, 0.009, ss(0, 1, u) ** 0.7) * (1 + 0.6 * ss(0.06, 0, u));
+      // Aerofoil depth (skin + covert layers): ≈ 6–7 cm at the wing root, ≈ 3.5 cm at the elbow,
+      // ≈ 2 cm at the wrist, thin over the hand. uE = elbow station, uW = wrist station.
+      const uE = segs[0] / total, uW = (segs[0] + segs[1]) / total;
+      const thick = u < uE ? lerp(0.064, 0.036, ss(0, 1, u / uE) ** 0.8)
+        : u < uW ? lerp(0.036, 0.021, (u - uE) / (uW - uE))
+        : lerp(0.021, 0.008, ss(uW, 1, u));
       // weights: bone at this station (blended over the joints), propatagium blends humerus→ulna
       const wl = [];
       const jb = 0.022;
@@ -183,8 +188,11 @@ export function buildWingSkin(rig) {
         const top = q <= 0.5;
         const v = top ? 1 - q * 2 : (q - 0.5) * 2; // 1 at trailing, 0 at leading
         const P = Lp.clone().lerp(Tp, v);
-        const prof = Math.sqrt(Math.max(0, 1 - v)) * Math.sqrt(Math.max(0, v)) * 2 * (1 - 0.3 * v); // rounded LE, thin TE
-        const yv = (top ? 1 : -0.55) * thick * (prof * 0.9 + 0.1 * (1 - v));
+        // bird-wing section: blunt rounded leading edge, maximum depth ~25 % chord behind it,
+        // tapering to the covert-covered feather bases at the trailing line
+        const e = v; // 0 at the leading edge → 1 at the trailing line
+        const prof = Math.sqrt(Math.max(0, e)) * Math.max(0, 1 - e) ** 1.5 / 0.3248;
+        const yv = (top ? 1 : -0.62) * thick * (prof * 0.92 + 0.08 * (1 - e));
         P.addScaledVector(up, yv + 0.004 * (1 - v));
         pos.push(P.x, P.y, P.z);
         const c = new THREE.Color(top ? 0x4a3828 : 0x33261c);

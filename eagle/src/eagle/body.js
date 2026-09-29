@@ -58,7 +58,7 @@ export function buildBodyLoft(rig) {
     // the vertebral column runs in the dorsal part of the feathered neck near its base
     const ventral = lerp(0.036, 0.006, u ** 0.7);
     const p = b.getWorldPosition(new THREE.Vector3()).addScaledVector(up, -ventral);
-    const r = lerp(0.060, 0.034, u ** 0.8);
+    const r = lerp(0.066, 0.044, u ** 0.9); // feathered bald-eagle neck is nearly as wide as the head
     const w = i === 1 ? [[trunkI, 0.55], [I(b), 0.45]] : i === 2 ? [[trunkI, 0.2], [I(rig.neck[1]), 0.2], [I(b), 0.6]] : [[I(rig.neck[i - 1]), 0.25], [I(b), 0.75]];
     st.push({ p, up, hw: r * 1.02, hT: r * lerp(0.85, 0.98, u), hB: r * lerp(1.45, 1.05, u), w, neck: u });
   }
@@ -66,7 +66,7 @@ export function buildBodyLoft(rig) {
   {
     const up = new THREE.Vector3(0, 1, 0).transformDirection(rig.head.matrixWorld);
     const p = new THREE.Vector3(0, 0.014, 0.016).applyMatrix4(rig.head.matrixWorld);
-    st.push({ p, up, hw: 0.032, hT: 0.030, hB: 0.030, w: [[I(rig.head), 1]], neck: 1.05 });
+    st.push({ p, up, hw: 0.038, hT: 0.034, hB: 0.036, w: [[I(rig.head), 1]], neck: 1.05 });
   }
 
   // Resample the centreline (Catmull-Rom through station centres)

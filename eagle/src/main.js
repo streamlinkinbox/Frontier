@@ -139,6 +139,7 @@ async function main() {
     // advance the simulation deterministically (probes): n steps of dt without rendering, then one render
     step: (n = 1, dt = 1 / 60, draw = true) => { for (let i = 0; i < n; i++) { const p = anim.update(dt); if (i === n - 1 || !draw) eagle.applyPose(p); } if (draw) { featherUniforms.uTime.value = anim.time; placeCam(0); world.follow(target); fadeEl.style.opacity = anim.fade.v.toFixed(3); post.render(dt, t += dt); } return anim.label; },
     render: () => { frame(1 / 60); return true; },
+    renderOnly: () => { post.render(0, t); return true; },
     setPreset,
     ready: true,
   };
