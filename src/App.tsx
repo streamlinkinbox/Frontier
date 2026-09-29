@@ -81,7 +81,7 @@ export const App: React.FC = () => {
   );
 
   // Initial evaluation on mount & whenever graph structure or parameters change
-  const engineVersion = 15; // Warped multi-scale 3D sandstone fracture relief; non-repeating cross-bedding and grain
+  const engineVersion = 16; // Noise-free authored SDF beds, ledges, recesses, and pinch-outs for natural arches
   useEffect(() => {
     const fresh = getInitialGraph('double_arch_entrada');
     setNodes(fresh.nodes);

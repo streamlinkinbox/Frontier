@@ -985,7 +985,7 @@ export function getDefaultArchSplines(
       buttressRadius: 38,
       alcoveFlare: 0.90,
       vaultPower: 1.95,
-      rockNoise: 1.0,
+      rockDetail: 1.0,
     },
     {
       id: 'arch-double-secondary',
@@ -1010,7 +1010,7 @@ export function getDefaultArchSplines(
       buttressRadius: 32,
       alcoveFlare: 0.84,
       vaultPower: 1.85,
-      rockNoise: 1.0,
+      rockDetail: 1.0,
     },
   ];
 }
@@ -1078,7 +1078,7 @@ export function generateProceduralArchSpline(
     buttressRadius: Math.round(32 + r(16) * 8),
     alcoveFlare: Number((0.78 + r(17) * 0.18).toFixed(2)),
     vaultPower: Number((1.65 + r(18) * 0.65).toFixed(2)),
-    rockNoise: 1.0,
+    rockDetail: 1.0,
   };
 }
 
@@ -1226,6 +1226,48 @@ function projectToArchSpline(
   return { u, dPerp, dEnd };
 }
 
+const ARCH_BED_THICKNESS = [0.075, 0.13, 0.085, 0.16, 0.07, 0.12, 0.09, 0.17, 0.10];
+const ARCH_BED_OUTSET = [2.6, -1.6, 3.2, -2.3, 1.5, -1.2, 3.6, -2.8, 2.0];
+const ARCH_BED_DIP = [-0.018, 0.012, 0.0, 0.026, -0.02, 0.01, -0.025, 0.018, 0.0];
+const ARCH_BED_START = [0.0, 0.12, 0.0, 0.28, 0.06, 0.19, 0.0, 0.36, 0.08];
+const ARCH_BED_END = [0.86, 0.64, 0.97, 0.82, 0.57, 0.91, 0.72, 0.98, 0.69];
+
+/**
+ * Deterministic sedimentary relief: alternating caprock ledges and recessed weak beds,
+ * with hand-authored thicknesses, dips, and lateral pinch-outs. No sampled noise is used.
+ */
+function evaluateArchBedRelief(uInput: number, hInput: number, strength: number, formation = 0): number {
+  const u = Math.max(0, Math.min(1, uInput));
+  const h = Math.max(0, Math.min(1, hInput));
+  const shiftedU = ((u + (formation % 5) * 0.071) % 1 + 1) % 1;
+  let lower = 0;
+  let previousOffset = 0;
+
+  for (let bed = 0; bed < ARCH_BED_THICKNESS.length; bed++) {
+    const thickness = ARCH_BED_THICKNESS[bed];
+    const upper = lower + thickness + ARCH_BED_DIP[bed] * (shiftedU - 0.5);
+    const start = ARCH_BED_START[bed];
+    const end = ARCH_BED_END[bed];
+    const startFade = Math.max(0, Math.min(1, (shiftedU - start) / 0.085));
+    const endFade = Math.max(0, Math.min(1, (end - shiftedU) / 0.085));
+    const startMask = startFade * startFade * (3 - 2 * startFade);
+    const endMask = endFade * endFade * (3 - 2 * endFade);
+    const targetOffset = ARCH_BED_OUTSET[bed] * startMask * endMask * strength;
+
+    if (h <= upper || bed === ARCH_BED_THICKNESS.length - 1) {
+      const local = Math.max(0, Math.min(1, (h - lower) / Math.max(0.02, upper - lower)));
+      const blend = Math.max(0, Math.min(1, local / 0.14));
+      const smoothBlend = blend * blend * (3 - 2 * blend);
+      return previousOffset + (targetOffset - previousOffset) * smoothBlend;
+    }
+
+    lower = upper;
+    previousOffset = targetOffset;
+  }
+
+  return previousOffset;
+}
+
 /**
  * NEW NODE 6: 3D SDF Natural Arches & Splines (`SDFNaturalArches`)
  * Generates Entrada Sandstone Natural Arches (like Double Arch, Delicate Arch, Landscape Arch)
@@ -1249,7 +1291,7 @@ export function applySDFNaturalArchesNode(
   const archStyle: string = params.archStyle || 'double_arch';
   const slickrockAmp = params.slickrockRamps ?? 0.85;
   const boulderDensity = params.boulderField ?? 0.82;
-  const rockNoiseGlobal = params.rockNoiseStrength ?? 1.0;
+  const rockDetailStrength = params.rockDetailStrength ?? params.rockNoiseStrength ?? 1.0;
   const globalSpanScale = params.archHeightScale ?? 1.0;
   const globalWindowScale = params.windowOpenness ?? 1.0;
 
@@ -1275,8 +1317,6 @@ export function applySDFNaturalArchesNode(
   vol.archSplines = baseSplines;
 
   const preSplines = activeSplines.map((s) => precomputeArchSpline(s));
-  const noise = new SeededNoise(seed + 3191);
-  const cragNoise = new SeededNoise(seed + 6421);
   const halfWorld = domain.worldSize * 0.5;
   const maxAllowedH = domain.maxHeight * 0.91;
 
@@ -1405,7 +1445,7 @@ export function applySDFNaturalArchesNode(
   const colWinDeltaU = new Float32Array(preSplines.length);
   const colWinHalfMeters = new Float32Array(preSplines.length);
   const colHalfWidthBase = new Float32Array(preSplines.length);
-  const colNoiseAmp = new Float32Array(preSplines.length);
+  const colDetailAmp = new Float32Array(preSplines.length);
   const colActive = new Uint8Array(preSplines.length);
 
   for (let z = 0; z < nz; z++) {
@@ -1417,30 +1457,20 @@ export function applySDFNaturalArchesNode(
       const wx = x * voxelSizeXZ - halfWorld;
       const idx2D = zOff2D + x;
 
-      // 1. Natural Domain-Warped Entrada Slickrock Outcrops & Amphitheater Slope (Zero periodic modulo rings!)
+      // 1. Analytic slickrock amphitheater: bowl-shaped SDF ground and a broad, smooth ramp.
+      // No random displacement is applied to the ground or the sandstone formations.
       const baseFloor = vol.bedrockHeight[idx2D];
-      const warpX = wx + noise.simplex2D(wx * 0.012 + 13.4, wz * 0.012 - 27.1) * 28.0;
-      const warpZ = wz + noise.simplex2D(wx * 0.012 - 41.8, wz * 0.012 + 19.3) * 28.0;
-      const amphDist = Math.sqrt(warpX * warpX * 0.68 + (warpZ - 12.0) * (warpZ - 12.0));
+      const amphDist = Math.sqrt(wx * wx * 0.68 + (wz - 12.0) * (wz - 12.0));
       const amphMask = Math.max(0.0, Math.min(1.0, 1.0 - amphDist / 225.0));
       const smoothAmph = amphMask * amphMask * (3.0 - 2.0 * amphMask);
-
-      // Multi-scale fractured slickrock slabs & dipping sandstone benches
-      const slabFbm =
-        noise.simplex2D(warpX * 0.016, warpZ * 0.016) * 8.5 +
-        (1.0 - Math.abs(cragNoise.simplex2D(warpX * 0.028 + 7.2, warpZ * 0.028 - 11.9))) * 6.5 +
-        noise.simplex2D(wx * 0.055, wz * 0.055) * 1.8;
-      // Stepped sandstone outcrop terraces without any modulo ring artifacts
-      const dipRamp = Math.max(0.0, (110.0 - wz) * 0.085) + slabFbm;
-      const stepQuant = Math.floor(dipRamp / 5.5) * 5.5 + Math.pow((dipRamp % 5.5 + 5.5) % 5.5 / 5.5, 1.8) * 5.5;
-      const amphitheaterBowl = slickrockAmp * smoothAmph * (8.0 + stepQuant * 0.62);
+      const broadRamp = Math.max(0.0, (110.0 - wz) * 0.085);
+      const amphitheaterBowl = slickrockAmp * smoothAmph * (8.0 + broadRamp * 0.62);
 
       const slickrockFloorY = Math.max(8.0, baseFloor + amphitheaterBowl);
 
-      // Add foreground fallen Entrada sandstone boulders with craggy fractured edges
+      // Rounded, hand-placed fallen Entrada sandstone blocks on the slickrock apron.
       let boulderPhi2D = 999.0;
       let boulderTopY = slickrockFloorY;
-      const boulderEdgeNoise = cragNoise.simplex2D(wx * 0.14, wz * 0.14) * 1.35;
       for (let b = 0; b < boulders.length; b++) {
         const bld = boulders[b];
         const dx = wx - bld.cx;
@@ -1449,27 +1479,17 @@ export function applySDFNaturalArchesNode(
         const bv = (-dx * bld.sinA + dz * bld.cosA) / bld.rz;
         const bNorm = Math.pow(bu * bu, 1.8) + Math.pow(bv * bv, 1.8);
         if (bNorm < 2.4) {
-          const bDist = (Math.pow(bNorm, 0.28) - 1.0) * Math.min(bld.rx, bld.rz) + boulderEdgeNoise;
+          const bDist = (Math.pow(bNorm, 0.28) - 1.0) * Math.min(bld.rx, bld.rz);
           if (bDist < boulderPhi2D) {
             boulderPhi2D = bDist;
-            boulderTopY = slickrockFloorY + bld.height + boulderEdgeNoise * 0.6;
+            boulderTopY = slickrockFloorY + bld.height;
           }
         }
       }
 
       vol.bedrockHeight[idx2D] = slickrockFloorY;
 
-      // 2. Multi-Scale Geological Fracture & Crag Noise (breaks up uniform smooth surfaces!)
-      const nLow = noise.simplex2D(wx * 0.019 + 17.1, wz * 0.019 - 23.4);
-      const nMid = cragNoise.simplex2D(wx * 0.041 - 41.2, wz * 0.041 + 19.8);
-      const nFold = 1.0 - 2.0 * Math.abs(noise.simplex2D(wx * 0.031 + 61.0, wz * 0.031 - 37.0));
-      const nFine = cragNoise.simplex2D(wx * 0.088 + 11.3, wz * 0.088 - 53.7);
-
-      // Stepped caprock shelves + jagged rocky crags along the Yellow Arch top spine
-      const rawStepShelf = Math.round(nLow * 3.2) * 3.4;
-      const crestCragWave = (rawStepShelf + nMid * 5.2 + nFold * 3.8 + nFine * 1.4) * rockNoiseGlobal;
-      // Lateral buttress ribs & dihedral rock facets along fin walls
-      const wallRib = (nLow * 4.5 + nFold * 3.8 + nMid * 2.6 + nFine * 1.1) * rockNoiseGlobal;
+      // 2. Sandstone relief is authored from bed thickness and pinch-out profiles below.
 
       let maxColumnTopY = slickrockFloorY + 12.0;
       let minButtressDist2D = 999.0;
@@ -1486,8 +1506,8 @@ export function applySDFNaturalArchesNode(
 
         const { u, dPerp, dEnd } = projectToArchSpline(pre, wx, wz);
         const ctrl = pre.ctrl;
-        const archNoise = (ctrl.rockNoise ?? 1.0) * rockNoiseGlobal;
-        colNoiseAmp[s] = archNoise;
+        const archDetail = (ctrl.rockDetail ?? ctrl.rockNoise ?? 1.0) * rockDetailStrength;
+        colDetailAmp[s] = archDetail;
 
         if (dEnd > 22.0 || dPerp > Math.max(ctrl.buttressRadius, ctrl.finHalfWidth) * 2.25 + 24.0) {
           colActive[s] = 0;
@@ -1497,11 +1517,9 @@ export function applySDFNaturalArchesNode(
         colActive[s] = 1;
         anySplineActive = true;
         colU[s] = u;
-        // Warp perpendicular distance slightly with crag noise so the fin is crooked and rocky, not a ruler-straight CAD wall!
-        const finWiggle =
-          noise.simplex2D(wx * 0.025 + s * 31.7, wz * 0.025 - s * 19.3) * 3.8 * archNoise;
-        colDPerp[s] = Math.max(0.0, dPerp + finWiggle * 0.55);
-        colDEnd[s] = dEnd + wallRib * 0.45;
+        // Keep the editable spline as the structural guide; explicit strata shape the rock surface.
+        colDPerp[s] = dPerp;
+        colDEnd[s] = dEnd;
 
         // Compute Yellow Arch (Extrados Top Spine) Elevation Y_top(u)
         const uClamped = Math.max(0.0, Math.min(1.0, u));
@@ -1517,8 +1535,7 @@ export function applySDFNaturalArchesNode(
         const pierLerp = ctrl.pierHeight0 * (1.0 - uClamped) + ctrl.pierHeight1 * uClamped;
         const yTop = Math.min(
           maxAllowedH,
-          (pierLerp + (ctrl.crownHeight - pierLerp) * archBell) * globalSpanScale +
-            crestCragWave * (ctrl.rockNoise ?? 1.0)
+          (pierLerp + (ctrl.crownHeight - pierLerp) * archBell) * globalSpanScale
         );
         colYTop[s] = yTop;
         if (yTop > maxColumnTopY) maxColumnTopY = yTop;
@@ -1527,15 +1544,9 @@ export function applySDFNaturalArchesNode(
         const pierDist0 = Math.max(0.0, 1.0 - Math.abs(u - 0.02) / 0.30);
         const pierDist1 = Math.max(0.0, 1.0 - Math.abs(u - 0.98) / 0.30);
         const pierBlend = Math.max(pierDist0 * pierDist0, pierDist1 * pierDist1);
-        const spanWidthMod =
-          1.0 +
-          0.28 *
-            archNoise *
-            cragNoise.simplex2D(wx * 0.034 - s * 23.1, wz * 0.034 + s * 41.9);
         const halfW =
-          (ctrl.finHalfWidth * spanWidthMod) +
-          (ctrl.buttressRadius - ctrl.finHalfWidth) * pierBlend +
-          wallRib * 0.85;
+          ctrl.finHalfWidth +
+          (ctrl.buttressRadius - ctrl.finHalfWidth) * pierBlend;
         colHalfWidthBase[s] = Math.max(8.5, halfW);
 
         // Compute Blue Arch (Intrados Window Opening) Coordinate deltaU
@@ -1546,13 +1557,12 @@ export function applySDFNaturalArchesNode(
         colWinHalfMeters[s] = winHalfU * pre.spanLength;
 
         // Compute Blue Arch Ceiling Y_vault0(u) and Rocky V-Saddle Sill Floor Y_sill(u)
-        const minBridge = Math.max(14.5, ctrl.bridgeThickness - Math.abs(nMid) * 3.0 * archNoise);
+        const minBridge = Math.max(14.5, ctrl.bridgeThickness);
         const rawApex = Math.min(yTop - minBridge, ctrl.windowApexHeight * globalSpanScale);
         // Rocky V-shaped saddle at the bottom of the Blue Arch window
         const ySill =
           ctrl.sillHeight +
-          11.0 * Math.pow(Math.min(1.15, Math.abs(deltaU)), 1.6) +
-          (nLow * 2.8 + nMid * 1.8) * archNoise;
+          11.0 * Math.pow(Math.min(1.15, Math.abs(deltaU)), 1.6);
         colYSill[s] = ySill;
 
         const vaultPow = Math.max(1.25, Math.min(3.0, ctrl.vaultPower ?? 1.95));
@@ -1596,7 +1606,7 @@ export function applySDFNaturalArchesNode(
         const v = (-dx * but.sinA + dz * but.cosA) / but.rz;
         const vSkewed = v / Math.max(0.48, 1.0 + but.wedgeSkew * Math.max(-1.2, Math.min(1.2, u)));
         const pNorm = Math.pow(Math.pow(u * u, 2.4) + Math.pow(vSkewed * vSkewed, 2.4), 1.0 / 4.8);
-        const hDist = (pNorm - 1.0) * Math.min(but.rx, but.rz) + wallRib * 0.95;
+        const hDist = (pNorm - 1.0) * Math.min(but.rx, but.rz);
         if (hDist < minButtressDist2D) minButtressDist2D = hDist;
         if (Math.abs(hDist) < minArchWallDist) minArchWallDist = Math.abs(hDist);
       }
@@ -1637,42 +1647,8 @@ export function applySDFNaturalArchesNode(
           phi = smoothMin(phi, phiBoulder, 2.0);
         }
 
-        // Hierarchical sandstone weathering displacement in the actual 3D SDF.
-        // The former stacked Y sine waves made evenly spaced, corrugated bands, while a single
-        // absolute-value noise field made broad, puffy/space-rock blobs. Use warped, non-periodic
-        // fields at three geological scales instead: rounded wall-scale weathering, chipped
-        // medium ledges, and voxel-resolvable sandstone grain. The ridge fold is soft (C1)
-        // and bounded so it roughens the rock without creating needle spikes or Swiss-cheese pits.
-        const macroWeather = noise.simplex3D(
-          wx * 0.022 + 4.7,
-          wy * 0.018 - 11.3,
-          wz * 0.022 + 29.1
-        );
-        // Low-frequency lateral warp bends the texture through the rock, avoiding a repeated
-        // vertical or horizontal grain direction while following the local bedding field.
-        const weatherX = wx + macroWeather * 5.0 + nLow * 2.2;
-        const weatherZ = wz - macroWeather * 3.8 + nMid * 2.2;
-        const weatherY = wy + macroWeather * 2.8 + nFold * 1.6;
-        const ledgeNoise = cragNoise.simplex3D(
-          weatherX * 0.068 + 13.1,
-          weatherY * 0.056 + 3.7,
-          weatherZ * 0.068 - 17.9
-        );
-        const grainNoise = noise.simplex3D(
-          weatherX * 0.14 - 21.7,
-          weatherY * 0.115 + 8.3,
-          weatherZ * 0.14 + 6.9
-        );
-        // Sparse, rounded ridges give eroded sandstone its chipped/shelly relief without a
-        // hard Voronoi cell pattern. Mid-scale wavelength is ~15m; fine grain remains >6m,
-        // safely above the default 2m voxel spacing.
-        const softRidge = Math.pow(
-          Math.max(0.0, 1.0 - Math.sqrt(ledgeNoise * ledgeNoise + 0.012)),
-          2.1
-        );
-        const rockCrag3D =
-          (macroWeather * 2.7 + ledgeNoise * 2.0 + grainNoise * 0.82 + (softRidge - 0.30) * 3.2) *
-          rockNoiseGlobal;
+        // No noise displacement: surface relief comes from discrete, non-uniform sediment beds.
+        // Each bed is a smooth SDF ledge/recess with an authored dip and lateral pinch-out.
 
         // Flanking Stepped Entrada Sandstone Buttresses
         if (activeButtressCount > 0) {
@@ -1690,20 +1666,21 @@ export function applySDFNaturalArchesNode(
               0.0,
               Math.min(1.2, (wy - slickrockFloorY) / Math.max(20.0, but.summitH - slickrockFloorY))
             );
-            // Stepped horizontal bench setback + upper crag taper
+            const buttressBedRelief = evaluateArchBedRelief(
+              (u + 1.0) * 0.5,
+              hRel,
+              rockDetailStrength,
+              t
+            );
+            // Stepped horizontal bench setback + non-uniform hard/soft bed contacts
             const benchTransition = Math.max(0.0, Math.min(1.0, (hRel - but.stepRatio) / 0.07));
             const benchSetback =
               benchTransition * benchTransition * (3.0 - 2.0 * benchTransition) * but.stepSetback;
             const hDist =
               (pNorm - 1.0) * Math.min(but.rx, but.rz) +
-              benchSetback +
-              wallRib * 0.75 +
-              rockCrag3D * 0.65;
-            const phiButtress = smoothMax(
-              hDist,
-              wy - (but.summitH + crestCragWave * 0.55),
-              but.bevel
-            );
+              benchSetback -
+              buttressBedRelief;
+            const phiButtress = smoothMax(hDist, wy - but.summitH, but.bevel);
             phi = smoothMin(phi, phiButtress, 4.0);
           }
         }
@@ -1718,22 +1695,21 @@ export function applySDFNaturalArchesNode(
             const dPerp = colDPerp[s];
             const dEnd = colDEnd[s];
             const halfWBase = colHalfWidthBase[s];
-            const archNoise = colNoiseAmp[s];
+            const archDetail = colDetailAmp[s];
+            const localHeight = (wy - slickrockFloorY) / Math.max(18.0, yTop - slickrockFloorY);
+            const bedRelief = evaluateArchBedRelief(colU[s], localHeight, archDetail, s);
 
-            // Stepped sandstone ledges & crags along the arch fin walls
+            // Authored caprock ledges and recessed weak beds shape the SDF wall directly.
             const distBelowCrest = Math.max(0.0, yTop - wy);
             const crestRoundTaper = Math.max(0.0, 12.0 - distBelowCrest) * 0.24;
-            const halfW = Math.max(
-              7.5,
-              halfWBase - crestRoundTaper - rockCrag3D * 0.55 * (ctrlOrOne(archNoise))
-            );
+            const halfW = Math.max(7.5, halfWBase - crestRoundTaper + bedRelief);
 
             const dHoriz = smoothMax(dPerp - halfW, dEnd, 3.6);
             const phiFin = smoothMax(dHoriz, wy - yTop, 3.8);
             phi = smoothMin(phi, phiFin, 4.2);
           }
 
-          // Step 4B: Carve 3D Blue Arch Window Opening (Exact 1-to-1 match with Blue Arch Curve + 3D Conchoidal Spall Noise!)
+          // Step 4B: Carve the exact 3D Blue Arch window, with a clean spline-defined ceiling.
           for (let s = 0; s < preSplines.length; s++) {
             if (!colActive[s]) continue;
             const deltaU = colWinDeltaU[s];
@@ -1748,7 +1724,6 @@ export function applySDFNaturalArchesNode(
             const yVault0 = colYVault0[s];
             const ySill = colYSill[s];
             const yTop = colYTop[s];
-            const archNoise = colNoiseAmp[s];
 
             // Dual-sided Conchoidal Alcove Flaring:
             const flareNorm = Math.max(
@@ -1760,12 +1735,10 @@ export function applySDFNaturalArchesNode(
             // Concentric conchoidal exfoliation spall steps & 3D scalloped vault roughness
             const spallStep =
               flareSmooth > 0.12 ? Math.sin(flareSmooth * Math.PI * 3.0) * 2.2 : 0.0;
-            const vaultCrag3D = rockCrag3D * 0.72 * archNoise;
-
             const minBridge = Math.max(13.5, ctrl.bridgeThickness - flareSmooth * 4.5);
             const yVaultFlared = Math.min(
               yTop - minBridge,
-              yVault0 + flareSmooth * 8.5 + spallStep + vaultCrag3D * 0.65
+              yVault0 + flareSmooth * 8.5 + spallStep
             );
             if (wy > yVaultFlared + 8.0 || wy < ySill - 8.0) continue;
 
@@ -1775,9 +1748,8 @@ export function applySDFNaturalArchesNode(
             // - dSpan < 0 when u is between the Blue Arch Left Foot and Right Foot (|deltaU| < 1)
             const spanFlare = 1.0 + 0.14 * flareSmooth;
             const dCeil = wy - yVaultFlared;
-            const dFloor = (ySill - vaultCrag3D * 0.45) - wy;
-            const dSpan =
-              (Math.abs(deltaU) - spanFlare) * colWinHalfMeters[s] - vaultCrag3D * 1.15;
+            const dFloor = ySill - wy;
+            const dSpan = (Math.abs(deltaU) - spanFlare) * colWinHalfMeters[s];
 
             const phiVault2D = smoothMax(smoothMax(dCeil, dSpan, 5.2), dFloor, 4.0);
             const phiTunnel = smoothMax(phiVault2D, dPerp - tunnelLimit, 4.0);
@@ -1793,11 +1765,11 @@ export function applySDFNaturalArchesNode(
             if (Math.abs(deltaU) > 1.06) continue;
 
             const yTop = colYTop[s];
-            const yVault0 = colYVault0[s] + rockCrag3D * 0.45;
+            const yVault0 = colYVault0[s];
             if (wy < yVault0 - 1.5 || wy > yTop + 5.0) continue;
 
             const dPerp = colDPerp[s];
-            const halfW = Math.max(7.5, colHalfWidthBase[s] - 1.5 - rockCrag3D * 0.45);
+            const halfW = Math.max(7.5, colHalfWidthBase[s] - 1.5);
             const phiBridge = smoothMax(
               Math.max(dPerp - halfW, colDEnd[s]),
               Math.max(wy - yTop, yVault0 - wy),
@@ -1813,10 +1785,6 @@ export function applySDFNaturalArchesNode(
   }
 
   normalizeSDFNearSurface(sdfGrid, nx, ny, nz, voxelSizeXZ, bandMinY, bandMaxY);
-}
-
-function ctrlOrOne(val: number): number {
-  return Number.isFinite(val) ? val : 1.0;
 }
 
 /**

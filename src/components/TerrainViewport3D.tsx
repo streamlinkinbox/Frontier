@@ -197,6 +197,10 @@ export const TerrainViewport3D: React.FC<TerrainViewport3DProps> = ({
     // Includes 3D dipping tectonic fault line, pinch-out seam taper, warm-umber crevice AO,
     // and vertical desert varnish weathering streaks!
     material.onBeforeCompile = (shader) => {
+      // Natural arches use explicit spline geometry and authored bed relief in the SDF.
+      // Keep them on the vertex-color material path: do not layer procedural shader noise on top.
+      if (volume?.has3DArches) return;
+
       shader.uniforms.uFaultOffset = { value: faultOffset };
       shader.uniforms.uFaultCos = { value: Math.cos(faultAngleRad) };
       shader.uniforms.uFaultSin = { value: Math.sin(faultAngleRad) };

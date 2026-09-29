@@ -306,15 +306,15 @@ const ArchSplineStudio: React.FC<ArchSplineEditorProps> = ({
           ))}
         </div>
 
-        {/* 3D Rock Crag & Fracture Noise Slider */}
+        {/* Deterministic bed ledge/recess relief strength (no sampled noise displacement) */}
         <SliderControl
-          label="3D Rock Crag & Fracture Noise"
-          value={params.rockNoiseStrength ?? 1.0}
+          label="Structured Rock-Layer Relief"
+          value={params.rockDetailStrength ?? params.rockNoiseStrength ?? 1.0}
           min={0.0}
           max={2.0}
           step={0.05}
           unit="×"
-          onChange={(v) => onUpdateAllParams({ ...params, rockNoiseStrength: v })}
+          onChange={(v) => onUpdateAllParams({ ...params, rockDetailStrength: v })}
         />
       </div>
 
