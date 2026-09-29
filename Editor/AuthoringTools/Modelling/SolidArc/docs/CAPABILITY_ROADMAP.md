@@ -2241,6 +2241,42 @@ rectangle, slot or bore dimensions or orientations, arbitrary hole/bore counts o
 slot prisms, inward or lower/side offsets, healing, or general multi-loop face editing. The bounded plan is
 `docs/PLAN_Batch63_RectangularSlotHoledAndSlotProfileBoredFaceOffset.md`.
 
+#### Batch 64: exact circular-bored rounded-rectangular and rounded-rectangular-holed prism upper-cap face offsets ✅
+
+This consolidated batch adds the first filleted-rectangle domains, where a profile or through-hole is an exact analytic tangent
+line/arc composite built by `NurbsCurve::Rectangle` with a corner radius (stored as a degree-two rational closed curve with
+seventeen poles). `CircularBoredRoundedRectangularAndRoundedRectangularHoledFaceOffsetVerification` constructs a canonical
+rounded-rectangular prism (half-extents 6 and 4, corner radius 1.5, height 6) with one deliberately eccentric circular bore
+(radius 1.2 at `(2,0)`) — closed genus-one `V4/E6/C12/L6/F4` with two two-loop planar caps, two extrusion walls, two seam lines,
+two circles and two filleted-rectangle curves — and a canonical rectangular prism (`(-7,-5)..(7,5)`, height 6) with one
+rounded-rectangular through-hole (half-extents 4 and 2.5, corner radius 1.0) — closed genus-one `V10/E15/C30/L9/F7` with two
+two-loop caps, five extrusion walls, thirteen seam lines and two filleted-rectangle curves. Each extends only its +Z cap by
+0.5, 1.5, and 3.0.
+
+Because the extrusion pipeline flattens filleted-rectangle classifications, `ExactAxisAlignedRoundedRectangle` recognises them
+structurally and by sampling: closed, rational, degree two, seventeen poles, Z axis, planar, `SpanX = 2·HalfX`, `SpanY = 2·HalfY`,
+`SpanX > SpanY`, corner radius below both half-extents, and 65 samples within `1e-6` of a freshly built canonical curve. The
+seventeen-pole signature separates the family from nine-pole conics and thirteen-pole slots, while the sampled comparison
+separates corner radii that share identical spans. `FaceEditSolver::OffsetCircularBoredRoundedRectangularPrism` and
+`OffsetExtrudedRoundedRectangularHoledPrism` then require exact canonical bounds, vertex levels, cap loop structure, filleted
+outer profile or canonical rectangle corners, bore radius/centre/plane with containment inside the fillet-inscribed central
+rectangle, full edge and face censuses, and rebuild fresh exact extrusions — retaining planar, linear, circular, and
+filleted-composite extrusion supports without healing, tessellation, or source mutation. The earlier circular-holed rectangular,
+slot-holed rectangular, circular-bored elliptical, and slot-profile bored routes remain separate and still dispatch exactly.
+
+The verifier checks exact topology, caps, face censuses, support censuses, the volume identities `4ab − (4−π)r² − πρ²` and
+`4AB − (4ab − (4−π)r²)` times the extended height, source immutability, dispatcher routing with strict-route agreement, regression
+of the earlier circular-holed, slot-holed, bored-elliptical, and bored-slot domains, and explicit refusal of lower/side faces,
+invalid distances, translated profiles, non-canonical half-extents/corner radii/bore placements, mismatched hole supports, wrong
+hole counts, mixed circular+filleted holes, hole-free filleted sources, malformed incidence, and cross-route requests. The durable
+proof is `Proofs/Batch64_CircularBoredRoundedRectangularAndRoundedRectangularHoledFaceOffset.png`; the verifier and proof are
+registered in `CMakeLists.txt` and `Tools/Build/CheckSolidArc.sh`.
+
+The routes remain bounded to the two canonical origin-centred, axis-aligned filleted configurations. They do not prove arbitrary
+half-extents, corner radii, bore radii/centres or orientations, arbitrary hole/bore counts or supports, square or Y-dominant
+filleted profiles, hole-free filleted prisms, inward or lower/side offsets, healing, or general multi-loop face editing. The
+bounded plan is `docs/PLAN_Batch64_CircularBoredRoundedRectangularAndRoundedRectangularHoledFaceOffset.md`.
+
 #### Still required in Phase 34–36
 
 General curved-face and curved-edge tweaks beyond the native analytic cylinder/cone/root routes, curved edge loops beyond
