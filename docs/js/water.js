@@ -125,7 +125,7 @@ const SIM = {
 @group(0) @binding(2) var<storage, read_write> cnt: array<u32>;
 @compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
   let n1 = u32(nd().x * nd().y * nd().z);
-  if (g.x < n1 * 8u) { acc[g.x] = 0; }
+  if (g.x < n1) { for (var k = 0u; k < 8u; k++) { acc[g.x * 8u + k] = 0; } }
   if (g.x < arrayLength(&cnt)) { cnt[g.x] = 0u; }
 }`,
   // particle -> MAC faces (weighted velocity) + particle count per cell
@@ -705,7 +705,7 @@ export class Water {
     if (!this.simCount) return;
     const p = enc.beginComputePass({ label: 'water-flip' });
     const cw = Math.ceil(this.cells / 64), nw = Math.ceil(this.nodes / 64), pw = Math.ceil(this.simCount / 64);
-    const aw = Math.ceil(Math.max(this.nodes * 8, this.cells) / 64);
+    const aw = Math.ceil(Math.max(this.nodes, this.cells) / 64);
     const run = (k, n, pk = k) => { p.setPipeline(this.pipe[pk]); p.setBindGroup(0, this.bg[k]); p.dispatchWorkgroups(n); };
     for (let s = 0; s < SUB; s++) {
       run('clear', aw); run('p2g', pw); run('mark', cw); run('norm', nw); run('div', cw);
