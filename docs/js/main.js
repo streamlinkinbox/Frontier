@@ -1,11 +1,11 @@
-import { mat4 } from './math.js?v=16';
-import { Car } from './car.js?v=16';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=16';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=16';
-import { TIER } from './tier.js?v=16';
-import { Scene } from './scene.js?v=16';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=16';
-import { Water, puddleAt, groundY, SPLASH_MAX } from './water.js?v=16';
+import { mat4 } from './math.js?v=17';
+import { Car } from './car.js?v=17';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=17';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=17';
+import { TIER } from './tier.js?v=17';
+import { Scene } from './scene.js?v=17';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=17';
+import { Water, puddleAt, groundY } from './water.js?v=17';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -46,9 +46,9 @@ async function init() {
   // world
   // 3 puddles: clear, muddy, clear
   const puddles = [
-    { x: 15, z: 9, r: 5.5, mud: 0, seed: 1.3 },     // front-right of the start
-    { x: -17, z: 12, r: 6.5, mud: 1, seed: 4.0 },   // front-left (mud)
-    { x: 0, z: 40, r: 6.0, mud: 0, seed: 6.7 },     // past the barriers
+    { x: 15, z: 9, r: 4.0, mud: 0, seed: 1.3 },     // front-right of the start
+    { x: -17, z: 12, r: 4.8, mud: 1, seed: 4.0 },   // front-left (mud)
+    { x: 0, z: 40, r: 4.4, mud: 0, seed: 6.7 },     // past the barriers
   ];
   const crates = [];
   let seed = 7;
@@ -90,6 +90,7 @@ async function init() {
     depthTex = device.createTexture({ size: [w, h], format: 'depth32float', usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
     smoke.makeRenderBindGroup(scene.camUbo, depthTex.createView());
     smokeFar.makeRenderBindGroup(scene.camUbo, depthTex.createView());
+    water.resize(w, h, depthTex);
   }
   sand.makeRenderBindGroup(scene.camUbo);
 
@@ -124,7 +125,7 @@ async function init() {
     emission: 0.8, opacity: 1.6, fade: 0.8, tint: 1.0, dust: 0.3, tyreSwirl: 1.0,
     blast: 1.0, fireGain: 1.0, sootOpacity: 2.2, sootLevel: 0.08, sootFade: 0.35, blastSwirl: 0.2,
     tornado: 1.0, tornadoDust: 1.2,
-    splash: 1.0, waves: 1.0, waterDrag: 1.0,
+    tyrePush: 1.0, waterVisc: 1.0, waterDrag: 1.0,
     shadow: 1.4, groundShadow: 0.85, ambient: 1.0, brightness: 1.0, phase: 0.45, vorticity: 3.5, buoyancy: 1.8,
   };
   // grouped: each effect has its own look + lifetime; lighting/motion is shared physics
@@ -138,13 +139,13 @@ async function init() {
     '#🌪️ Tornado': 0,
     tornado: [0, 2, 0.05, 'Strength (0=off)'], tornadoDust: [0, 4, 0.05, 'Dust amount'],
     '#💧 Puddles': 0,
-    splash: [0, 3, 0.05, 'Splash amount'], waves: [0, 3, 0.05, 'Wave strength'], waterDrag: [0, 3, 0.05, 'Water drag on car'],
+    tyrePush: [0, 2, 0.05, 'Tyre spin → water'], waterVisc: [0.1, 5, 0.05, 'Viscosity (thickness)'], waterDrag: [0, 3, 0.05, 'Water drag on car'],
     '#☀️ Lighting & motion (all)': 0,
     shadow: [0, 4, 0.05, 'Self-shadow'], groundShadow: [0, 1, 0.01, 'Shadows cast on ground/car'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
     phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'], vorticity: [0, 14, 0.1, 'Curl / vorticity'], buoyancy: [0, 5, 0.05, 'Rise (buoyancy)'],
   };
   let settings = { ...DEFAULTS };
-  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings4') || '{}')); } catch { /* ignore */ }
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings5') || '{}')); } catch { /* ignore */ }
   const sl = $('sliders');
   const build = () => {
     sl.innerHTML = '';
@@ -154,13 +155,13 @@ async function init() {
       const row = document.createElement('label');
       row.innerHTML = `<span>${label}</span><input type="range" min="${mn}" max="${mx}" step="${st}" value="${settings[k]}"><output>${(+settings[k]).toFixed(2)}</output>`;
       const inp = row.querySelector('input'), out = row.querySelector('output');
-      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings4', JSON.stringify(settings)); });
+      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings5', JSON.stringify(settings)); });
       inp.addEventListener('keydown', (e) => e.stopPropagation());
       sl.appendChild(row);
     }
   };
   build();
-  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings4'); build(); };
+  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings5'); build(); };
   $('toggleSmoke').onclick = () => $('smokePanel').classList.toggle('collapsed');
   const forceSmoke = new URLSearchParams(location.search).has('smoketest');
   const autoInput = new URLSearchParams(location.search).has('demo');
@@ -423,9 +424,9 @@ async function init() {
     scene.draw(p1);
     water.drawOpaque(p1);
     sand.draw(p1);
-    water.draw(p1);
     if (settings.tornado > 0) tornado.draw(p1);
     p1.end();
+    water.render(enc, view0);           // screen-space fluid over the opaque scene
     const p2 = enc.beginRenderPass({ colorAttachments: [{ view: view0, loadOp: 'load', storeOp: 'store' }] });
     smokeFar.draw(p2);
     smoke.draw(p2);
@@ -439,7 +440,7 @@ async function init() {
         `<b>${fps.toFixed(0)}</b> fps · ${(1000 / Math.max(fps, 1)).toFixed(1)} ms<br>` +
         `speed <b>${(car.speed * 3.6).toFixed(0)}</b> km/h<br>` +
         `sand particles ~<b>${alive}</b> / ${SAND_MAX}<br>` +
-        `splash drops ${SPLASH_MAX / 1024}k · 3 puddles<br>` +
+        `water MLS-MPM ${(water.count / 1000).toFixed(0)}k particles (live ${(water.simCount / 1000 || 0).toFixed(0)}k)<br>` +
         `sim VRAM ≈ <b>${vram} MB</b> / 1024<br>` +
         `<span class="dim">${adapterName}</span>`;
       $('drift').style.width = (car.drift * 100).toFixed(0) + '%';

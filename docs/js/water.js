@@ -1,22 +1,30 @@
-// Puddles (GTX): the terrain is dented into a real bowl and filled with water simulated by a
-// mass-conserving shallow-water solver ("virtual pipes", Mei et al. 2007) on a 128x128 grid per
-// puddle. Water has volume, flows downhill, settles flat, and is shoved aside by the tyres (bow wave,
-// trough, wake that sloshes back). Plus 3D splash droplets that collide with the tyres and body.
+// Puddles (GTX): real 3D liquid.
+//  * Terrain is dented into bowls; each bowl is filled with water PARTICLES.
+//  * Simulation: MLS-MPM (Hu et al. 2018), weakly-compressible fluid (Tait EOS, gamma 7) + viscosity,
+//    same fixed-point atomic P2G scheme as the sand solver. The puddle the car is in/near is simulated
+//    live (128x24x128 grid @ 10 cm, 6 substeps/frame); the others rest (settled, frozen).
+//  * Collisions: dented terrain (free-slip), spinning tyres (moving no-slip cylinders), car body box.
+//  * Rendering: Screen-Space Fluid Rendering (GDC 2010): particle spheres -> eye-depth + thickness
+//    buffers -> separable narrow-range depth filter (Truong & Yuksel 2018) -> normals from the smoothed
+//    depth -> Fresnel reflection, sun glints, Beer-Lambert absorption by thickness (clear vs mud).
 
-export const WATER_N = 128;           // cells per side, per puddle
-export const SPLASH_MAX = 32768;      // splash droplets (8k per wheel)
 export const BED_D = 0.26;            // dent depth at the centre (m)
-export const WATER_LEVEL = -0.035;    // initial still-water level (just below the rim)
-const NP = 3;
-const UBO_VEC4 = 20;
-const G = 9.81;
+export const WATER_LEVEL = -0.04;     // still-water level (just below the rim)
+const H = 0.1;                        // MPM cell size (m)
+const GRID = [128, 24, 128];          // 12.8 x 2.4 x 12.8 m around the active puddle
+const ORIGIN_Y = -0.4;
+const SPACING = H / 2;                // 8 particles per cell at rest
+const RHO0 = 8.0;
+const SOUND = 150.0;                  // speed of sound (cells/s) -> 15 m/s, weakly compressible
+const SUB = 6;                        // substeps per frame
+const FIX = 16384.0;
+const P_RADIUS = 0.042;               // render sphere radius (m)
+const STRIDE = 20;                    // floats per particle
 
-// shoreline: irregular radius (mirrored exactly on the GPU; seed = i*2.7+1.3)
 export function shoreR(p, ang) {
   return p.r * (1 + 0.12 * Math.sin(3 * ang + p.seed) + 0.07 * Math.sin(5 * ang + p.seed * 2.1) + 0.04 * Math.sin(9 * ang + p.seed * 0.7));
 }
 function bedN(dn) { return dn >= 1 ? 0 : -BED_D * Math.pow(1 - dn * dn, 1.5); }
-// terrain height (dent) at x,z
 export function groundY(puddles, x, z) {
   for (const p of puddles) {
     const dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz);
@@ -26,7 +34,6 @@ export function groundY(puddles, x, z) {
   }
   return 0;
 }
-// puddle index if the point is under water (below the still-water level)
 export function puddleAt(puddles, x, z) {
   for (let i = 0; i < puddles.length; i++) {
     const p = puddles[i], dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz);
@@ -35,28 +42,12 @@ export function puddleAt(puddles, x, z) {
   return -1;
 }
 
-const COMMON = /* wgsl */`
-struct W {
-  misc: vec4f,                 // dt, time, N, particleCount
-  pud: array<vec4f, 3>,        // x, z, radius, mud(0..1)
-  wP: array<vec4f, 4>,         // wheel x, spin(rad/s), z, emit rate (particles/s)
-  wV: array<vec4f, 4>,         // contact-patch vel x, ground y, z, tread speed (m/s)
-  wF: array<vec4f, 4>,         // wheel fwd x, 0, z, puddle index (-1 = dry)
-  carC: vec4f, carH: vec4f, carV: vec4f,
-  misc2: vec4f,                // splashGain, waveGain, wheelW, wheelR
-};
-@group(0) @binding(0) var<uniform> U: W;
-const N: i32 = ${WATER_N};
+// ---------------------------------------------------------------- simulation
+const TERRAIN = /* wgsl */`
 const BED_D: f32 = ${BED_D};
-fn pudSeed(i: i32) -> f32 { return f32(i) * 2.7 + 1.3; }
 fn shore(i: i32, q: vec2f) -> f32 {
-  let p = U.pud[i]; let a = atan2(q.y, q.x); let s = pudSeed(i);
+  let p = U.pud[i]; let a = atan2(q.y, q.x); let s = f32(i) * 2.7 + 1.3;
   return p.z * (1.0 + 0.12 * sin(3.0 * a + s) + 0.07 * sin(5.0 * a + s * 2.1) + 0.04 * sin(9.0 * a + s * 0.7));
-}
-fn ext(i: i32) -> f32 { return U.pud[i].z * 1.3; }
-fn cellSize(i: i32) -> f32 { return 2.0 * ext(i) / f32(N); }
-fn cellPos(i: i32, x: i32, z: i32) -> vec2f {
-  return U.pud[i].xy + (vec2f(f32(x), f32(z)) + 0.5) * cellSize(i) - ext(i);
 }
 fn dnAt(i: i32, p: vec2f) -> f32 { let q = p - U.pud[i].xy; return length(q) / shore(i, q); }
 fn bedAt(i: i32, p: vec2f) -> f32 {
@@ -66,183 +57,385 @@ fn bedAt(i: i32, p: vec2f) -> f32 {
   return -BED_D * k * sqrt(k);
 }
 fn groundAt(p: vec2f) -> f32 { return min(bedAt(0, p), min(bedAt(1, p), bedAt(2, p))); }
-fn hIdx(i: i32, x: i32, z: i32) -> u32 {
-  return u32(i * N * N + clamp(z, 0, N - 1) * N + clamp(x, 0, N - 1));
-}
-fn hash(n: u32) -> f32 {
-  var x = n * 747796405u + 2891336453u;
-  x = ((x >> ((x >> 28u) + 4u)) ^ x) * 277803737u;
-  return f32((x >> 22u) ^ x) / 4294967295.0;
+fn groundN(p: vec2f) -> vec3f {
+  let e = 0.05;
+  let gx = groundAt(p + vec2f(e, 0.0)) - groundAt(p - vec2f(e, 0.0));
+  let gz = groundAt(p + vec2f(0.0, e)) - groundAt(p - vec2f(0.0, e));
+  return normalize(vec3f(-gx / (2.0 * e), 1.0, -gz / (2.0 * e)));
 }
 `;
 
-// pass 1: pipe fluxes (m^3/s) to the 4 neighbours, driven by the water-surface height difference
-const FLUX = COMMON + /* wgsl */`
-@group(0) @binding(1) var<storage, read> depth: array<f32>;
-@group(0) @binding(2) var<storage, read_write> flux: array<vec4f>;   // +x, -x, +z, -z
-fn tyreHead(i: i32, p: vec2f, d: f32) -> f32 {
-  // tyres are moving obstacles: they raise the local pressure head -> water is pushed out of the way
-  var hd = 0.0;
-  for (var w = 0; w < 4; w++) {
-    if (i32(U.wF[w].w) != i) { continue; }
-    let f = U.wF[w].xz; let r = vec2f(f.y, -f.x);
-    let q = p - U.wP[w].xz;
-    let a = dot(q, f); let sd = dot(q, r);
-    let foot = exp(-(a * a / 0.05 + sd * sd / 0.012));
-    let sp = length(U.wV[w].xz);
-    hd += foot * min(d, 0.15) * (0.6 + sp * 0.08) * U.misc2.y;
-  }
-  return hd;
+const SIM_COMMON = /* wgsl */`
+struct Particle { pos: vec4f, vel: vec4f, c0: vec4f, c1: vec4f, c2: vec4f };
+struct FP {
+  dims: vec4<i32>,
+  rng: vec4<u32>,              // first particle, count
+  origin: vec4f,               // xyz, h
+  misc: vec4f,                 // dt, gravity (cells/s^2), K, rho0
+  misc2: vec4f,                // viscosity, tyre push, wheel half-width, wheel radius
+  carC: vec4f, carH: vec4f, carV: vec4f,
+  pud: array<vec4f, 3>,        // x, z, r, mud
+  wC: array<vec4f, 4>,         // wheel centre xyz, spin (rad/s)
+  wA: array<vec4f, 4>,         // wheel axle axis xyz, -
+};
+@group(0) @binding(0) var<uniform> U: FP;
+const FIX: f32 = ${FIX.toFixed(1)};
+${TERRAIN}
+fn gIdx(c: vec3<i32>) -> u32 { let d = U.dims.xyz; return u32(c.x + d.x * (c.y + d.y * c.z)); }
+fn stencilOk(cell: vec3<i32>) -> bool { return all(cell >= vec3<i32>(1)) && all(cell < U.dims.xyz - vec3<i32>(1)); }
+fn qweights(d: vec3f) -> array<vec3f, 3> {
+  return array<vec3f, 3>(0.5 * (0.5 - d) * (0.5 - d), 0.75 - d * d, 0.5 * (0.5 + d) * (0.5 + d));
 }
-@compute @workgroup_size(8, 8, 1)
-fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-  let x = i32(g.x); let z = i32(g.y); let i = i32(g.z);
-  if (x >= N || z >= N || i >= 3) { return; }
-  let id = hIdx(i, x, z);
-  let dt = U.misc.x;
-  let dx = cellSize(i);
-  let p = cellPos(i, x, z);
-  let d = depth[id];
-  let H = bedAt(i, p) + d + tyreHead(i, p, d);
-  var f = flux[id] * (1.0 - dt * mix(0.8, 4.0, U.pud[i].w));          // friction (mud is viscous)
-  var nb = array<vec2<i32>, 4>(vec2<i32>(1, 0), vec2<i32>(-1, 0), vec2<i32>(0, 1), vec2<i32>(0, -1));
-  var o = array<f32, 4>(f.x, f.y, f.z, f.w);
-  for (var k = 0; k < 4; k++) {
-    let n = vec2<i32>(x, z) + nb[k];
-    if (n.x < 0 || n.y < 0 || n.x >= N || n.y >= N) { o[k] = 0.0; continue; }
-    let pn = cellPos(i, n.x, n.y);
-    let dn = depth[hIdx(i, n.x, n.y)];
-    let Hn = bedAt(i, pn) + dn + tyreHead(i, pn, dn);
-    o[k] = max(0.0, o[k] + dt * ${G} * dx * (H - Hn));
-  }
-  // never drain more water than the cell holds
-  let out = o[0] + o[1] + o[2] + o[3];
-  let s = select(1.0, min(1.0, d * dx * dx / (out * dt)), out > 0.0);
-  flux[id] = vec4f(o[0], o[1], o[2], o[3]) * s;
-}`;
-
-// pass 2: depth += net inflow (exact volume conservation)
-const DEPTH = COMMON + /* wgsl */`
-@group(0) @binding(1) var<storage, read_write> depth: array<f32>;
-@group(0) @binding(2) var<storage, read> flux: array<vec4f>;
-@compute @workgroup_size(8, 8, 1)
-fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-  let x = i32(g.x); let z = i32(g.y); let i = i32(g.z);
-  if (x >= N || z >= N || i >= 3) { return; }
-  let id = hIdx(i, x, z);
-  let f = flux[id];
-  var inflow = 0.0;
-  if (x > 0)     { inflow += flux[hIdx(i, x - 1, z)].x; }
-  if (x < N - 1) { inflow += flux[hIdx(i, x + 1, z)].y; }
-  if (z > 0)     { inflow += flux[hIdx(i, x, z - 1)].z; }
-  if (z < N - 1) { inflow += flux[hIdx(i, x, z + 1)].w; }
-  let dx = cellSize(i);
-  depth[id] = max(0.0, depth[id] + U.misc.x * (inflow - (f.x + f.y + f.z + f.w)) / (dx * dx));
-}`;
-
-const SPLASH = COMMON + /* wgsl */`
-struct Pt { p: vec4f, v: vec4f };    // pos + life, vel + (puddle*4 + mud*2 + seed)
-@group(0) @binding(1) var<storage, read_write> P: array<Pt>;
-@compute @workgroup_size(64)
-fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-  let idx = g.x;
-  if (idx >= u32(U.misc.w)) { return; }
-  let dt = U.misc.x;
-  var pt = P[idx];
-  let R = U.misc2.w; let HW = U.misc2.z * 0.5;
-  if (pt.p.w <= 0.0) {
-    // stateless emission: particle idx belongs to wheel idx&3 and respawns with p = rate*dt/quota
-    let w = i32(idx & 3u);
-    let pi = i32(U.wF[w].w);
-    let rate = U.wP[w].w;
-    let seed = idx * 9781u + u32(U.misc.y * 1000.0) * 6271u;
-    if (pi < 0 || rate <= 0.0 || hash(seed) > rate * dt / (U.misc.w * 0.25)) { P[idx] = pt; return; }
-    let f = U.wF[w].xyz; let r = vec3f(f.z, 0.0, -f.x);
-    let vel = vec3f(U.wV[w].x, 0.0, U.wV[w].z); let sp = length(vel.xz);
-    let tread = U.wV[w].w;
-    let k = vel + f * tread;                           // what the tyre surface throws backwards
-    let side = select(-1.0, 1.0, hash(seed + 1u) > 0.5);
-    let h2 = hash(seed + 2u); let h3 = hash(seed + 3u); let h4 = hash(seed + 4u);
-    var v: vec3f;
-    var pos = vec3f(U.wP[w].x, ${WATER_LEVEL} + 0.03, U.wP[w].z) + r * side * HW * (0.6 + 0.6 * h4);
-    if (hash(seed + 5u) < 0.55) {
-      v = vel * (0.35 + 0.35 * h2) + r * side * (0.6 + sp * (0.18 + 0.25 * h3)) + vec3f(0.0, 0.8 + sp * (0.12 + 0.22 * h2), 0.0);
-      pos += f * (0.2 + 0.2 * h3);
-    } else {
-      v = k * (0.35 + 0.45 * h2) + vec3f(0.0, 1.0 + length(k) * (0.18 + 0.3 * h3), 0.0) + r * (h4 - 0.5) * 1.5;
-      pos -= normalize(k + vec3f(1e-4)) * (0.3 + 0.1 * h3);
-    }
-    pt.p = vec4f(pos, 0.6 + 1.2 * hash(seed + 6u));
-    pt.v = vec4f(v, f32(pi) * 4.0 + U.pud[pi].w * 2.0 + hash(seed + 7u) * 0.99);
-    P[idx] = pt; return;
-  }
-  var p = pt.p.xyz; var v = pt.v.xyz;
-  v.y -= 9.81 * dt;
-  v *= 1.0 - 0.35 * dt;
-  p += v * dt;
+fn toFix(x: f32) -> i32 { return i32(clamp(x, -120000.0, 120000.0) * FIX); }
+fn carLocal(wp: vec3f) -> vec3f {
+  let d = wp - U.carC.xyz; let h = U.carC.w;
+  return vec3f(d.x * cos(h) - d.z * sin(h), d.y, d.x * sin(h) + d.z * cos(h));
+}
+fn carVelAt(wp: vec3f) -> vec3f {
+  let d = wp - U.carC.xyz; let w = U.carV.w;
+  return vec3f(U.carV.x + w * d.z, 0.0, U.carV.z - w * d.x);
+}
+// returns (surface velocity, inside flag) of the tyre solids at wp (inflated by 'pad')
+fn tyreAt(wp: vec3f, pad: f32) -> vec4f {
   for (var w = 0; w < 4; w++) {
-    let f = U.wF[w].xyz; let ax = vec3f(f.z, 0.0, -f.x);
-    let c = vec3f(U.wP[w].x, R + U.wV[w].y, U.wP[w].z);
-    let q = p - c; let al = dot(q, ax); let rad = q - ax * al; let rl = length(rad);
-    if (abs(al) < HW && rl < R && rl > 1e-4) {
-      let n = rad / rl;
-      p = c + ax * al + n * R * 1.02;
-      let surf = vec3f(U.wV[w].x, 0.0, U.wV[w].z) + cross(ax * U.wP[w].y, n * R) * 0.9;
-      var rel = v - surf; let vn = dot(rel, n);
-      if (vn < 0.0) { rel -= 1.25 * vn * n; }
-      v = surf + rel * 0.85;
+    let c = U.wC[w].xyz; let ax = U.wA[w].xyz;
+    let q = wp - c; let al = dot(q, ax); let rad = q - ax * al;
+    if (abs(al) < U.misc2.z + pad && length(rad) < U.misc2.w + pad) {
+      return vec4f(carVelAt(wp) + cross(ax * U.wC[w].w, rad) * U.misc2.y, 1.0);
     }
   }
-  let hd = U.carC.w; let cs = cos(hd); let sn = sin(hd);
-  let d = p - U.carC.xyz;
-  let l = vec3f(d.x * cs - d.z * sn, d.y, d.x * sn + d.z * cs);
-  let pen = U.carH.xyz - abs(l);
-  if (all(pen > vec3f(0.0))) {
-    var nl = vec3f(0.0);
-    if (pen.x < pen.y && pen.x < pen.z) { nl.x = sign(l.x); } else if (pen.y < pen.z) { nl.y = sign(l.y); } else { nl.z = sign(l.z); }
-    let lp = l + nl * (dot(pen, abs(nl)) + 0.01);
-    p = U.carC.xyz + vec3f(lp.x * cs + lp.z * sn, lp.y, -lp.x * sn + lp.z * cs);
-    let n = vec3f(nl.x * cs + nl.z * sn, nl.y, -nl.x * sn + nl.z * cs);
-    let bv = vec3f(U.carV.x + U.carV.w * d.z, 0.0, U.carV.z - U.carV.w * d.x);
-    var rel = v - bv; let vn = dot(rel, n);
-    if (vn < 0.0) { rel -= 1.3 * vn * n; }
-    v = bv + rel * 0.7;
-  }
-  var life = pt.p.w - dt;
-  if (p.y < max(groundAt(p.xz), ${WATER_LEVEL}) + 0.01) { life = 0.0; }   // fell back into the water / onto sand
-  pt.p = vec4f(p, life); pt.v = vec4f(v, pt.v.w);
-  P[idx] = pt;
-}`;
+  return vec4f(0.0);
+}
+`;
 
-const RENDER_COMMON = COMMON + /* wgsl */`
-struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f };
-@group(0) @binding(1) var<uniform> cam: Cam;
+const SIM = {
+  clear: `
+@group(0) @binding(1) var<storage, read_write> grid: array<vec4<i32>>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  if (g.x >= arrayLength(&grid) || U.dims.x <= 0) { return; }
+  grid[g.x] = vec4<i32>(0);
+}`,
+  p2g1: `
+@group(0) @binding(1) var<storage, read> ps: array<Particle>;
+@group(0) @binding(2) var<storage, read_write> grid: array<atomic<i32>>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  if (g.x >= U.rng.y) { return; }
+  let p = ps[U.rng.x + g.x];
+  if (p.pos.w <= 0.0) { return; }
+  let x = (p.pos.xyz - U.origin.xyz) / U.origin.w;
+  let cell = vec3<i32>(floor(x));
+  if (!stencilOk(cell)) { return; }
+  var w = qweights(x - vec3f(cell) - 0.5);
+  let v = p.vel.xyz / U.origin.w;
+  let C = mat3x3f(p.c0.xyz, p.c1.xyz, p.c2.xyz);
+  for (var gx = 0; gx < 3; gx++) { for (var gy = 0; gy < 3; gy++) { for (var gz = 0; gz < 3; gz++) {
+    let wt = w[gx].x * w[gy].y * w[gz].z;
+    let cx = cell + vec3<i32>(gx - 1, gy - 1, gz - 1);
+    let mom = wt * (v + C * (vec3f(cx) - x + 0.5));
+    let i = gIdx(cx) * 4u;
+    atomicAdd(&grid[i], toFix(mom.x)); atomicAdd(&grid[i + 1u], toFix(mom.y));
+    atomicAdd(&grid[i + 2u], toFix(mom.z)); atomicAdd(&grid[i + 3u], toFix(wt));
+  }}}
+}`,
+  // density -> Tait pressure + viscous stress -> momentum
+  p2g2: `
+@group(0) @binding(1) var<storage, read> ps: array<Particle>;
+@group(0) @binding(2) var<storage, read_write> grid: array<atomic<i32>>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  if (g.x >= U.rng.y) { return; }
+  let p = ps[U.rng.x + g.x];
+  if (p.pos.w <= 0.0) { return; }
+  let x = (p.pos.xyz - U.origin.xyz) / U.origin.w;
+  let cell = vec3<i32>(floor(x));
+  if (!stencilOk(cell)) { return; }
+  var w = qweights(x - vec3f(cell) - 0.5);
+  var density = 0.0;
+  for (var gx = 0; gx < 3; gx++) { for (var gy = 0; gy < 3; gy++) { for (var gz = 0; gz < 3; gz++) {
+    let wt = w[gx].x * w[gy].y * w[gz].z;
+    density += f32(atomicLoad(&grid[gIdx(cell + vec3<i32>(gx - 1, gy - 1, gz - 1)) * 4u + 3u])) / FIX * wt;
+  }}}
+  let volume = 1.0 / max(density, 1e-3);
+  let rr = clamp(density / U.misc.w, 0.0, 1.35);
+  let r2 = rr * rr; let r7 = r2 * r2 * r2 * rr;
+  let pressure = max(0.0, U.misc.z * (r7 - 1.0));
+  let C = mat3x3f(p.c0.xyz, p.c1.xyz, p.c2.xyz);
+  let stress = mat3x3f(-pressure, 0.0, 0.0, 0.0, -pressure, 0.0, 0.0, 0.0, -pressure) + U.misc2.x * (C + transpose(C));
+  let term = -volume * 4.0 * U.misc.x * stress;
+  for (var gx = 0; gx < 3; gx++) { for (var gy = 0; gy < 3; gy++) { for (var gz = 0; gz < 3; gz++) {
+    let wt = w[gx].x * w[gy].y * w[gz].z;
+    let cx = cell + vec3<i32>(gx - 1, gy - 1, gz - 1);
+    let mom = wt * (term * (vec3f(cx) - x + 0.5));
+    let i = gIdx(cx) * 4u;
+    atomicAdd(&grid[i], toFix(mom.x)); atomicAdd(&grid[i + 1u], toFix(mom.y)); atomicAdd(&grid[i + 2u], toFix(mom.z));
+  }}}
+}`,
+  grid: `
+@group(0) @binding(1) var<storage, read_write> grid: array<vec4<i32>>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  if (g.x >= arrayLength(&grid)) { return; }
+  let raw = grid[g.x];
+  let m = f32(raw.w) / FIX;
+  if (m <= 1e-6) { grid[g.x] = vec4<i32>(0); return; }
+  let d = U.dims.xyz; let h = U.origin.w;
+  let c = vec3<i32>(i32(g.x) % d.x, (i32(g.x) / d.x) % d.y, i32(g.x) / (d.x * d.y));
+  var v = vec3f(raw.xyz) / FIX / m;
+  v.y += U.misc.y * U.misc.x;
+  let wp = U.origin.xyz + (vec3f(c) + 0.5) * h;
+  // dented terrain: free-slip (no flow into the ground)
+  if (wp.y < groundAt(wp.xz) + h * 0.5) {
+    let n = groundN(wp.xz);
+    let vn = dot(v, n);
+    if (vn < 0.0) { v -= vn * n; v *= 0.995; }
+  }
+  // domain walls
+  if (c.x < 2 || c.x > d.x - 3) { v.x = 0.0; }
+  if (c.z < 2 || c.z > d.z - 3) { v.z = 0.0; }
+  if (c.y > d.y - 3 && v.y > 0.0) { v.y = 0.0; }
+  // spinning tyres and the car body are moving solids: the water takes their velocity
+  let ty = tyreAt(wp, h * 0.5);
+  if (ty.w > 0.5) { v = ty.xyz / h; }
+  let lp = carLocal(wp);
+  if (all(abs(lp) < U.carH.xyz + vec3f(h * 0.5))) { v = carVelAt(wp) / h; }
+  grid[g.x] = bitcast<vec4<i32>>(vec4f(v, m));
+}`,
+  g2p: `
+@group(0) @binding(1) var<storage, read_write> ps: array<Particle>;
+@group(0) @binding(2) var<storage, read> grid: array<vec4f>;
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) {
+  if (g.x >= U.rng.y) { return; }
+  let id = U.rng.x + g.x;
+  var p = ps[id];
+  if (p.pos.w <= 0.0) { return; }
+  let h = U.origin.w; let dt = U.misc.x;
+  let x = (p.pos.xyz - U.origin.xyz) / h;
+  let cell = vec3<i32>(floor(x));
+  var vel = p.vel.xyz;
+  if (stencilOk(cell)) {
+    var w = qweights(x - vec3f(cell) - 0.5);
+    var v = vec3f(0.0);
+    var B = mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0));
+    for (var gx = 0; gx < 3; gx++) { for (var gy = 0; gy < 3; gy++) { for (var gz = 0; gz < 3; gz++) {
+      let wt = w[gx].x * w[gy].y * w[gz].z;
+      let cx = cell + vec3<i32>(gx - 1, gy - 1, gz - 1);
+      let dist = vec3f(cx) - x + 0.5;
+      let wv = wt * grid[gIdx(cx)].xyz;
+      v += wv;
+      B += mat3x3f(wv * dist.x, wv * dist.y, wv * dist.z);
+    }}}
+    let C = B * 4.0;
+    p.c0 = vec4f(C[0], 0.0); p.c1 = vec4f(C[1], 0.0); p.c2 = vec4f(C[2], 0.0);
+    vel = v * h;
+  } else {
+    vel.y -= 9.81 * dt;                                  // outside the live grid: ballistic
+    p.c0 = vec4f(0.0); p.c1 = vec4f(0.0); p.c2 = vec4f(0.0);
+  }
+  let sp = length(vel);
+  if (sp > 25.0) { vel *= 25.0 / sp; }
+  var pos = p.pos.xyz + vel * dt;
+  // terrain
+  let gy = groundAt(pos.xz) + 0.012;
+  if (pos.y < gy) {
+    pos.y = gy;
+    let n = groundN(pos.xz); let vn = dot(vel, n);
+    if (vn < 0.0) { vel -= vn * n; }
+  }
+  // tyres: push out radially, carry the tread velocity
+  for (var w = 0; w < 4; w++) {
+    let c = U.wC[w].xyz; let ax = U.wA[w].xyz;
+    let q = pos - c; let al = dot(q, ax); let rad = q - ax * al; let rl = length(rad);
+    if (abs(al) < U.misc2.z && rl < U.misc2.w && rl > 1e-4) {
+      pos = c + ax * al + rad / rl * U.misc2.w;
+      vel = carVelAt(pos) + cross(ax * U.wC[w].w, rad / rl * U.misc2.w) * U.misc2.y;
+    }
+  }
+  // car body box
+  let lp = carLocal(pos); let he = U.carH.xyz;
+  if (all(abs(lp) < he)) {
+    let pen = he - abs(lp);
+    var lo = lp;
+    if (pen.x < pen.y && pen.x < pen.z) { lo.x = sign(lp.x) * he.x; } else if (pen.y < pen.z) { lo.y = sign(lp.y) * he.y; } else { lo.z = sign(lp.z) * he.z; }
+    let hh = U.carC.w;
+    pos = U.carC.xyz + vec3f(lo.x * cos(hh) + lo.z * sin(hh), lo.y, -lo.x * sin(hh) + lo.z * cos(hh));
+    vel = carVelAt(pos);
+  }
+  // water thrown onto dry sand soaks in (life drains); in the puddle it stays alive
+  var life = p.pos.w;
+  if (groundAt(pos.xz) > -0.01 && pos.y < 0.05) { life -= dt * 0.7; } else { life = min(1.0, life + dt); }
+  p.pos = vec4f(pos, life);
+  p.vel = vec4f(vel, p.vel.w);
+  ps[id] = p;
+}`,
+};
+
+// ---------------------------------------------------------------- rendering (screen-space fluid)
+const R_COMMON = /* wgsl */`
+struct Particle { pos: vec4f, vel: vec4f, c0: vec4f, c1: vec4f, c2: vec4f };
+struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f };
+struct RP { pud: array<vec4f, 3>, misc: vec4f };   // misc: radius, blur dir x, blur dir y, -
+@group(0) @binding(0) var<uniform> cam: Cam;
+@group(0) @binding(1) var<uniform> R: RP;
+fn camFwd() -> vec3f {
+  let a = cam.invViewProj * vec4f(0.0, 0.0, 0.0, 1.0); let b = cam.invViewProj * vec4f(0.0, 0.0, 1.0, 1.0);
+  return normalize(b.xyz / b.w - a.xyz / a.w);
+}
 fn sky(d: vec3f) -> vec3f { return mix(vec3f(0.78, 0.8, 0.82), vec3f(0.42, 0.6, 0.86), clamp(d.y * 1.6, 0.0, 1.0)); }
-fn gridVert(vi: u32) -> vec2<i32> {
-  let quad = i32(vi / 6u); let corner = vi % 6u;
-  var offs = array<vec2<i32>, 6>(vec2<i32>(0,0), vec2<i32>(1,0), vec2<i32>(1,1), vec2<i32>(0,0), vec2<i32>(1,1), vec2<i32>(0,1));
-  return vec2<i32>(quad % (N - 1), quad / (N - 1)) + offs[corner];
+`;
+
+const SPHERES = R_COMMON + /* wgsl */`
+@group(0) @binding(2) var<storage, read> ps: array<Particle>;
+struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) c: vec3f, @location(2) mud: f32 };
+@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
+  var o: VO;
+  let p = ps[ii];
+  if (p.pos.w <= 0.0) { o.pos = vec4f(2.0, 2.0, 2.0, 1.0); return o; }
+  var corners = array<vec2f, 6>(vec2f(-1,-1), vec2f(1,-1), vec2f(1,1), vec2f(-1,-1), vec2f(1,1), vec2f(-1,1));
+  let q = corners[vi];
+  let r = R.misc.x * clamp(p.pos.w * 2.0, 0.3, 1.0);   // soaking drops shrink
+  let toCam = normalize(cam.camPos.xyz - p.pos.xyz);
+  let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
+  let up = cross(toCam, right);
+  o.pos = cam.viewProj * vec4f(p.pos.xyz + (right * q.x + up * q.y) * r, 1.0);
+  o.uv = q; o.c = p.pos.xyz;
+  o.mud = R.pud[min(u32(p.vel.w), 2u)].w;
+  return o;
 }
+fn sphere(i: VO) -> vec4f {                       // world pos on the sphere + nz
+  let r2 = dot(i.uv, i.uv);
+  if (r2 > 1.0) { discard; }
+  let nz = sqrt(1.0 - r2);
+  let toCam = normalize(cam.camPos.xyz - i.c);
+  let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
+  let up = cross(toCam, right);
+  return vec4f(i.c + (right * i.uv.x + up * i.uv.y + toCam * nz) * R.misc.x, nz);
+}
+struct DO { @location(0) d: vec4f, @builtin(frag_depth) z: f32 };
+@fragment fn fsDepth(i: VO) -> DO {
+  let s = sphere(i);
+  let clip = cam.viewProj * vec4f(s.xyz, 1.0);
+  var o: DO;
+  o.d = vec4f(dot(s.xyz - cam.camPos.xyz, camFwd()), 0.0, 0.0, 1.0);   // linear eye depth
+  o.z = clip.z / clip.w;
+  return o;
+}
+@fragment fn fsThick(i: VO) -> @location(0) vec4f {
+  let s = sphere(i);
+  let t = s.w * 2.0 * R.misc.x;
+  return vec4f(t, t * i.mud, 0.0, 1.0);
+}`;
+
+const FULLSCREEN = /* wgsl */`
+@vertex fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  var p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  return vec4f(p[i], 0.0, 1.0);
+}`;
+
+// separable narrow-range filter: ignores samples behind the surface, clamps samples in front of it
+const BLUR = R_COMMON + FULLSCREEN + /* wgsl */`
+@group(0) @binding(2) var src: texture_2d<f32>;
+@fragment fn fs(@builtin(position) fp: vec4f) -> @location(0) vec4f {
+  let p = vec2<i32>(fp.xy);
+  let dc = textureLoad(src, p, 0).r;
+  if (dc <= 0.0) { return vec4f(0.0); }
+  let dims = vec2<i32>(textureDimensions(src));
+  let rpx = R.misc.x * 2.2 * cam.screen.y / (2.0 * tan(0.5) * dc);    // filter radius in pixels
+  let kr = clamp(i32(rpx), 1, 24);
+  let sigma = f32(kr) * 0.5;
+  let thr = R.misc.x * 2.5;
+  let dir = vec2<i32>(R.misc.yz);
+  var sum = 0.0; var wsum = 0.0;
+  for (var k = -kr; k <= kr; k++) {
+    let q = clamp(p + dir * k, vec2<i32>(0), dims - vec2<i32>(1));
+    var ds = textureLoad(src, q, 0).r;
+    if (ds <= 0.0 || ds > dc + thr) { continue; }
+    ds = max(ds, dc - thr);
+    let w = exp(-f32(k * k) / (2.0 * sigma * sigma));
+    sum += ds * w; wsum += w;
+  }
+  return vec4f(sum / max(wsum, 1e-5), 0.0, 0.0, 1.0);
+}`;
+
+const COMPOSITE = R_COMMON + FULLSCREEN + /* wgsl */`
+@group(0) @binding(2) var depthSm: texture_2d<f32>;
+@group(0) @binding(3) var thick: texture_2d<f32>;
+@group(0) @binding(4) var sceneDepth: texture_depth_2d;
+fn worldAt(p: vec2<i32>, d: f32) -> vec3f {
+  let ndc = vec2f((f32(p.x) + 0.5) / cam.screen.x * 2.0 - 1.0, 1.0 - (f32(p.y) + 0.5) / cam.screen.y * 2.0);
+  let far = cam.invViewProj * vec4f(ndc, 1.0, 1.0);
+  let dir = normalize(far.xyz / far.w - cam.camPos.xyz);
+  return cam.camPos.xyz + dir * d / dot(dir, camFwd());
+}
+@fragment fn fs(@builtin(position) fp: vec4f) -> @location(0) vec4f {
+  let p = vec2<i32>(fp.xy);
+  let d = textureLoad(depthSm, p, 0).r;
+  if (d <= 0.0) { discard; }
+  let wp = worldAt(p, d);
+  let clip = cam.viewProj * vec4f(wp, 1.0);
+  if (clip.z / clip.w > textureLoad(sceneDepth, p, 0) + 1e-6) { discard; }   // hidden behind the car etc.
+  // normal from the smoothed depth (pick the smaller one-sided difference to keep edges sharp)
+  let dims = vec2<i32>(textureDimensions(depthSm));
+  var nb: array<vec3f, 4>;
+  var offs = array<vec2<i32>, 4>(vec2<i32>(1, 0), vec2<i32>(-1, 0), vec2<i32>(0, 1), vec2<i32>(0, -1));
+  for (var k = 0; k < 4; k++) {
+    let q = clamp(p + offs[k], vec2<i32>(0), dims - vec2<i32>(1));
+    let dq = textureLoad(depthSm, q, 0).r;
+    nb[k] = select(wp, worldAt(q, dq), dq > 0.0 && abs(dq - d) < 0.3);
+  }
+  var ddx = nb[0] - wp; if (length(wp - nb[1]) < length(ddx) && length(wp - nb[1]) > 0.0) { ddx = wp - nb[1]; }
+  var ddy = nb[2] - wp; if (length(wp - nb[3]) < length(ddy) && length(wp - nb[3]) > 0.0) { ddy = wp - nb[3]; }
+  let V = normalize(cam.camPos.xyz - wp);
+  var n = normalize(cross(ddx, ddy));
+  if (length(cross(ddx, ddy)) < 1e-9) { n = vec3f(0.0, 1.0, 0.0); }
+  if (dot(n, V) < 0.0) { n = -n; }
+  let th = textureLoad(thick, p, 0);
+  let t = th.r; let mud = clamp(th.g / max(t, 1e-4), 0.0, 1.0);
+  let L = normalize(cam.lightDir.xyz);
+  let cosV = max(dot(n, V), 0.0);
+  let fres = 0.02 + 0.98 * pow(1.0 - cosV, 5.0);
+  let Rv = reflect(-V, n);
+  let spec = pow(max(dot(Rv, L), 0.0), mix(500.0, 90.0, mud)) * mix(8.0, 1.2, mud);
+  let diff = max(dot(n, L), 0.0);
+  // Beer-Lambert absorption through the fluid thickness
+  let sigma = mix(vec3f(3.2, 1.3, 0.9), vec3f(45.0, 55.0, 70.0), mud);
+  let T = exp(-sigma * t);
+  let absorbA = clamp(1.0 - (T.x + T.y + T.z) / 3.0, 0.0, 1.0);
+  let inscatter = mix(vec3f(0.04, 0.09, 0.1) * (0.6 + 0.6 * diff), vec3f(0.33, 0.24, 0.15) * (0.45 + 0.75 * diff), mud);
+  var col = inscatter * absorbA;
+  var a = absorbA;
+  let refl = (sky(Rv) + vec3f(1.0, 0.95, 0.85) * spec) * fres * mix(1.0, 0.55, mud);
+  col = col * (1.0 - fres) + refl; a = a + fres * (1.0 - a);
+  let edge = smoothstep(0.0, R.misc.x * 0.35, t);
+  col *= edge; a *= edge;
+  let fog = 1.0 - exp(-distance(cam.camPos.xyz, wp) * 0.006);
+  col = mix(col, vec3f(0.78, 0.8, 0.82) * a, fog);
+  return vec4f(col, a);
+}`;
+
+// dented puddle bed (the flat ground is cut away inside each shoreline by scene.js)
+const BED = /* wgsl */`
+struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f };
+struct RP { pud: array<vec4f, 3>, misc: vec4f };
+@group(0) @binding(0) var<uniform> cam: Cam;
+@group(0) @binding(1) var<uniform> U: RP;
+${TERRAIN}
+const NB: i32 = 128;
 fn h2(p: vec2f) -> f32 { return fract(sin(dot(p, vec2f(127.1, 311.7))) * 43758.5453); }
 fn vn2(p: vec2f) -> f32 {
   let i = floor(p); let f = fract(p); let u = f * f * (3.0 - 2.0 * f);
   return mix(mix(h2(i), h2(i + vec2f(1, 0)), u.x), mix(h2(i + vec2f(0, 1)), h2(i + vec2f(1, 1)), u.x), u.y);
 }
-`;
-
-// the dented puddle bed (replaces the flat ground inside the shoreline): wet sand / mud
-const BED = RENDER_COMMON + /* wgsl */`
 struct VO { @builtin(position) pos: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) info: vec2f };
 @vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
-  let i = i32(ii); let c = gridVert(vi);
-  let p = cellPos(i, c.x, c.y); let e = cellSize(i);
+  let i = i32(ii);
+  let quad = i32(vi / 6u); let corner = vi % 6u;
+  var offs = array<vec2<i32>, 6>(vec2<i32>(0,0), vec2<i32>(1,0), vec2<i32>(1,1), vec2<i32>(0,0), vec2<i32>(1,1), vec2<i32>(0,1));
+  let c = vec2<i32>(quad % (NB - 1), quad / (NB - 1)) + offs[corner];
+  let e = U.pud[i].z * 1.3;
+  let p = U.pud[i].xy + (vec2f(c) / f32(NB - 1) * 2.0 - 1.0) * e;
   let b = bedAt(i, p);
-  let gx = bedAt(i, p + vec2f(e, 0.0)) - bedAt(i, p - vec2f(e, 0.0));
-  let gz = bedAt(i, p + vec2f(0.0, e)) - bedAt(i, p - vec2f(0.0, e));
   var o: VO;
   o.wp = vec3f(p.x, b, p.y);
   o.pos = cam.viewProj * vec4f(o.wp, 1.0);
-  o.n = normalize(vec3f(-gx / (2.0 * e), 1.0, -gz / (2.0 * e)));
+  o.n = groundN(p);
   o.info = vec2f(dnAt(i, p), U.pud[i].w);
   return o;
 }
@@ -252,221 +445,190 @@ struct VO { @builtin(position) pos: vec4f, @location(0) wp: vec3f, @location(1) 
   let p = v.wp.xz;
   let nz = vn2(p * 1.7) * 0.6 + vn2(p * 9.0) * 0.4;
   var base = mix(vec3f(0.74, 0.58, 0.38), vec3f(0.86, 0.72, 0.50), nz * 0.8);
-  let wet = smoothstep(${WATER_LEVEL} + 0.03, ${WATER_LEVEL} - 0.01, v.wp.y);   // soaked below the waterline
-  base *= mix(0.62, 0.42, wet);                                                   // damp sand darkens
-  base = mix(base, vec3f(0.22, 0.16, 0.1) * (0.8 + 0.4 * nz), v.info.y * smoothstep(0.95, 0.6, v.info.x)); // mud bottom
+  let wet = smoothstep(${WATER_LEVEL} + 0.04, ${WATER_LEVEL}, v.wp.y);
+  base *= mix(0.62, 0.42, wet);
+  base = mix(base, vec3f(0.22, 0.16, 0.1) * (0.8 + 0.4 * nz), v.info.y * smoothstep(0.95, 0.6, v.info.x));
   let n = normalize(v.n + vec3f(vn2(p * 6.0) - 0.5, 0.0, vn2(p * 6.0 + 7.0) - 0.5) * 0.15);
   let diff = max(dot(n, L), 0.0);
   let hemi = mix(vec3f(0.35, 0.3, 0.25), vec3f(0.55, 0.65, 0.8), n.y * 0.5 + 0.5);
   var c = base * (hemi * 0.75 + vec3f(1.0, 0.94, 0.85) * diff * 0.95);
   let fog = 1.0 - exp(-distance(cam.camPos.xyz, v.wp) * 0.006);
-  c = mix(c, vec3f(0.78, 0.8, 0.82), fog);
-  return vec4f(c, 1.0);
-}`;
-
-// the water itself: surface = bed + simulated depth; colour by Beer-Lambert absorption over the depth
-const SURFACE = RENDER_COMMON + /* wgsl */`
-@group(0) @binding(2) var<storage, read> depth: array<f32>;
-struct VO { @builtin(position) pos: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) info: vec3f };
-fn surfH(i: i32, x: i32, z: i32) -> f32 {
-  let d = depth[hIdx(i, x, z)];
-  return bedAt(i, cellPos(i, clamp(x, 0, N - 1), clamp(z, 0, N - 1))) + d;
-}
-@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
-  let i = i32(ii); let c = gridVert(vi);
-  let p = cellPos(i, c.x, c.y); let e = cellSize(i);
-  let d = depth[hIdx(i, c.x, c.y)];
-  let b = bedAt(i, p);
-  // only use wet neighbours for the slope, so the shoreline doesn't tilt the surface into the bank
-  let hc = b + d;
-  var hx1 = surfH(i, c.x + 1, c.y); var hx0 = surfH(i, c.x - 1, c.y);
-  var hz1 = surfH(i, c.x, c.y + 1); var hz0 = surfH(i, c.x, c.y - 1);
-  if (depth[hIdx(i, c.x + 1, c.y)] < 0.003) { hx1 = hc; }
-  if (depth[hIdx(i, c.x - 1, c.y)] < 0.003) { hx0 = hc; }
-  if (depth[hIdx(i, c.x, c.y + 1)] < 0.003) { hz1 = hc; }
-  if (depth[hIdx(i, c.x, c.y - 1)] < 0.003) { hz0 = hc; }
-  var o: VO;
-  o.wp = vec3f(p.x, hc + select(-0.01, 0.0, d > 0.003), p.y);
-  o.pos = cam.viewProj * vec4f(o.wp, 1.0);
-  o.n = normalize(vec3f(-(hx1 - hx0) / (2.0 * e), 1.0, -(hz1 - hz0) / (2.0 * e)));
-  o.info = vec3f(d, U.pud[i].w, length(vec2f(hx1 - hx0, hz1 - hz0)) / e);
-  return o;
-}
-@fragment fn fs(v: VO) -> @location(0) vec4f {
-  let d = v.info.x; let mud = v.info.y;
-  if (d < 0.003) { discard; }
-  let L = normalize(cam.lightDir.xyz);
-  let V = normalize(cam.camPos.xyz - v.wp);
-  let n = v.n;
-  let cosV = max(dot(n, V), 0.0);
-  let fres = 0.02 + 0.98 * pow(1.0 - cosV, 5.0);
-  let R = reflect(-V, n);
-  let spec = pow(max(dot(R, L), 0.0), mix(400.0, 80.0, mud)) * mix(6.0, 1.0, mud);
-  let diff = max(dot(n, L), 0.0);
-  // Beer-Lambert: light travels d/cos down and back up through the water
-  let path = d * (1.0 / max(cosV, 0.2) + 1.0);
-  let sigma = mix(vec3f(4.5, 2.2, 1.6), vec3f(40.0, 48.0, 60.0), mud);    // clear: slight blue-green; mud: opaque
-  let T = exp(-sigma * path);
-  let inscatter = mix(vec3f(0.05, 0.1, 0.1), vec3f(0.34, 0.25, 0.16) * (0.5 + 0.7 * diff), mud);
-  // premultiplied: rgb = water colour added, a = how much of the bed below is hidden
-  let absorbA = 1.0 - (T.x + T.y + T.z) / 3.0;
-  var col = inscatter * absorbA;
-  var a = absorbA;
-  let refl = (sky(R) + vec3f(1.0, 0.95, 0.85) * spec) * fres * mix(1.0, 0.6, mud);
-  col = col * (1.0 - fres) + refl; a = a + fres * (1.0 - a);
-  // disturbed water: foam/froth on steep slopes (bow wave, wake)
-  let foam = smoothstep(0.35, 1.2, v.info.z) * smoothstep(0.004, 0.03, d);
-  let foamCol = mix(vec3f(0.95), vec3f(0.6, 0.47, 0.33), mud) * (0.55 + 0.5 * diff);
-  col = mix(col, foamCol, foam * 0.7); a = mix(a, 1.0, foam * 0.7);
-  let edge = smoothstep(0.003, 0.02, d);                 // soft waterline
-  col *= edge; a *= edge;
-  let fog = 1.0 - exp(-distance(cam.camPos.xyz, v.wp) * 0.006);
-  col = mix(col, vec3f(0.78, 0.8, 0.82) * a, fog);
-  return vec4f(col, a);
-}`;
-
-const DROPS = RENDER_COMMON + /* wgsl */`
-struct Pt { p: vec4f, v: vec4f };
-@group(0) @binding(2) var<storage, read> P: array<Pt>;
-struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) info: vec3f };
-@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
-  var o: VO;
-  let pt = P[ii];
-  if (pt.p.w <= 0.0) { o.pos = vec4f(2.0, 2.0, 2.0, 1.0); return o; }
-  var corners = array<vec2f, 6>(vec2f(-1,-1), vec2f(1,-1), vec2f(1,1), vec2f(-1,-1), vec2f(1,1), vec2f(-1,1));
-  let c = corners[vi];
-  let seed = fract(pt.v.w);
-  let mud = fract(floor(pt.v.w) * 0.25) * 2.0;
-  let size = (0.02 + 0.035 * seed) * (0.85 + 0.15 * clamp(U.misc2.x, 0.0, 3.0));
-  let vel = pt.v.xyz; let sp = length(vel);
-  let toCam = normalize(cam.camPos.xyz - pt.p.xyz);
-  var a1 = select(vec3f(0.0, 1.0, 0.0), vel / sp, sp > 1e-3);
-  var a2 = cross(a1, toCam);
-  if (length(a2) < 1e-3) { a2 = vec3f(1.0, 0.0, 0.0); }
-  a2 = normalize(a2);
-  let wp = pt.p.xyz + a1 * c.y * (size + sp * 0.012) + a2 * c.x * size;
-  o.pos = cam.viewProj * vec4f(wp, 1.0);
-  o.uv = c;
-  o.info = vec3f(clamp(mud, 0.0, 1.0), min(pt.p.w * 3.0, 1.0), seed);
-  return o;
-}
-@fragment fn fs(v: VO) -> @location(0) vec4f {
-  let r2 = dot(v.uv, v.uv);
-  if (r2 > 1.0) { discard; }
-  let L = normalize(cam.lightDir.xyz);
-  let nz = sqrt(1.0 - r2);
-  let n = vec3f(v.uv.x, v.uv.y, nz);
-  let rim = pow(1.0 - nz, 2.0);
-  let mud = v.info.x;
-  let clearC = vec3f(0.72, 0.8, 0.86) * (0.5 + 0.5 * rim) + vec3f(1.0) * pow(max(dot(n, normalize(vec3f(0.3, 0.5, 1.0))), 0.0), 30.0) * 0.8;
-  let mudC = vec3f(0.33, 0.24, 0.15) * (0.6 + 0.5 * max(L.y, 0.0)) * (1.0 - 0.3 * rim);
-  let col = mix(clearC, mudC, mud);
-  let a = mix(0.35 + 0.4 * rim, 0.92, mud) * v.info.y * smoothstep(1.0, 0.6, r2);
-  return vec4f(col * a, a);
+  return vec4f(mix(c, vec3f(0.78, 0.8, 0.82), fog), 1.0);
 }`;
 
 export class Water {
   constructor(device, format, checkModule, puddles, camUbo) {
-    this.device = device;
-    this.puddles = puddles;
-    const nH = NP * WATER_N * WATER_N;
+    this.device = device; this.format = format; this.puddles = puddles; this.camUbo = camUbo;
+    // ---- fill each dent with a particle lattice up to the still-water level
+    const parts = [], ranges = [];
+    const jit = (() => { let s = 12345; return () => ((s = (s * 16807) % 2147483647) / 2147483647 - 0.5) * SPACING * 0.3; })();
+    puddles.slice(0, 3).forEach((p, i) => {
+      const start = parts.length / STRIDE, e = p.r * 1.3;
+      for (let x = -e; x < e; x += SPACING) for (let z = -e; z < e; z += SPACING) {
+        const dn = Math.hypot(x, z) / shoreR(p, Math.atan2(z, x));
+        if (dn >= 1) continue;
+        for (let y = bedN(dn) + SPACING * 0.5; y < WATER_LEVEL; y += SPACING) {
+          parts.push(p.x + x + jit(), y, p.z + z + jit(), 1, 0, 0, 0, i, ...new Array(12).fill(0));
+        }
+      }
+      ranges.push([start, parts.length / STRIDE - start]);
+    });
+    this.count = parts.length / STRIDE;
+    this.ranges = ranges;
+    this.initData = new Float32Array(parts);
     const st = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST;
-    this.depth = device.createBuffer({ size: nH * 4, usage: st, label: 'waterDepth' });
-    this.flux = device.createBuffer({ size: nH * 16, usage: st, label: 'waterFlux' });
-    this.pts = device.createBuffer({ size: SPLASH_MAX * 32, usage: st, label: 'splash' });
-    this.bytes = nH * 20 + SPLASH_MAX * 32;
-    this.u = new Float32Array(UBO_VEC4 * 4);
-    this.ubo = device.createBuffer({ size: this.u.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'waterU' });
-    this.time = 0;
-    this.fill();
+    this.pbuf = device.createBuffer({ size: Math.max(16, this.initData.byteLength), usage: st, label: 'waterParticles' });
+    device.queue.writeBuffer(this.pbuf, 0, this.initData);
+    this.cells = GRID[0] * GRID[1] * GRID[2];
+    this.gbuf = device.createBuffer({ size: this.cells * 16, usage: GPUBufferUsage.STORAGE, label: 'waterGrid' });
+    this.bytes = this.initData.byteLength + this.cells * 16;
+    this.u = new Float32Array(36 * 4); this.uI = new Int32Array(this.u.buffer); this.uU = new Uint32Array(this.u.buffer);
+    this.ubo = device.createBuffer({ size: this.u.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, label: 'waterSim' });
+    this.active = -1; this.origin = [0, ORIGIN_Y, 0];
 
-    const cp = (code, label) => device.createComputePipeline({ layout: 'auto', label, compute: { module: checkModule(device.createShaderModule({ code, label }), label), entryPoint: 'main' } });
-    this.fluxPipe = cp(FLUX, 'water-flux');
-    this.depthPipe = cp(DEPTH, 'water-depth');
-    this.splashPipe = cp(SPLASH, 'water-splash');
-    const bg = (pipe, bufs) => device.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: bufs.map((b, i) => ({ binding: i, resource: { buffer: b } })) });
-    this.fluxBG = bg(this.fluxPipe, [this.ubo, this.depth, this.flux]);
-    this.depthBG = bg(this.depthPipe, [this.ubo, this.depth, this.flux]);
-    this.splashBG = bg(this.splashPipe, [this.ubo, this.pts]);
+    this.pipe = {}; this.bg = {};
+    const binds = { clear: [this.gbuf], p2g1: [this.pbuf, this.gbuf], p2g2: [this.pbuf, this.gbuf], grid: [this.gbuf], g2p: [this.pbuf, this.gbuf] };
+    for (const [k, src] of Object.entries(SIM)) {
+      const label = 'water-' + k;
+      const module = checkModule(device.createShaderModule({ code: SIM_COMMON + src, label }), label);
+      this.pipe[k] = device.createComputePipeline({ layout: 'auto', compute: { module, entryPoint: 'main' }, label });
+      this.bg[k] = device.createBindGroup({ layout: this.pipe[k].getBindGroupLayout(0), entries: [this.ubo, ...binds[k]].map((b, i) => ({ binding: i, resource: { buffer: b } })) });
+    }
 
-    const blend = { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } };
-    const rp = (code, label, opaque) => {
-      const module = checkModule(device.createShaderModule({ code, label }), label);
-      return device.createRenderPipeline({
-        layout: 'auto', label,
-        vertex: { module, entryPoint: 'vs' },
-        fragment: { module, entryPoint: 'fs', targets: [opaque ? { format } : { format, blend }] },
-        primitive: { topology: 'triangle-list', cullMode: 'none' },
-        depthStencil: { format: 'depth32float', depthWriteEnabled: !!opaque, depthCompare: 'less' },
-      });
-    };
-    this.bedPipe = rp(BED, 'water-bed', true);
-    this.surfPipe = rp(SURFACE, 'water-surface');
-    this.dropPipe = rp(DROPS, 'water-drops');
-    this.bedBG = bg(this.bedPipe, [this.ubo, camUbo]);
-    this.surfBG = bg(this.surfPipe, [this.ubo, camUbo, this.depth]);
-    this.dropBG = bg(this.dropPipe, [this.ubo, camUbo, this.pts]);
+    // ---- render resources
+    const mkU = () => device.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this.rU = mkU(); this.rUH = mkU(); this.rUV = mkU();
+    const rp = new Float32Array(16);
+    puddles.slice(0, 3).forEach((p, i) => rp.set([p.x, p.z, p.r, p.mud], i * 4));
+    rp.set([P_RADIUS, 0, 0, 0], 12); device.queue.writeBuffer(this.rU, 0, rp);
+    rp.set([P_RADIUS, 1, 0, 0], 12); device.queue.writeBuffer(this.rUH, 0, rp);
+    rp.set([P_RADIUS, 0, 1, 0], 12); device.queue.writeBuffer(this.rUV, 0, rp);
+    const mod = (code, label) => checkModule(device.createShaderModule({ code, label }), label);
+    const sph = mod(SPHERES, 'water-spheres');
+    this.depthPipe = device.createRenderPipeline({
+      layout: 'auto', label: 'water-depth',
+      vertex: { module: sph, entryPoint: 'vs' },
+      fragment: { module: sph, entryPoint: 'fsDepth', targets: [{ format: 'r32float' }] },
+      primitive: { topology: 'triangle-list' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+    });
+    this.thickPipe = device.createRenderPipeline({
+      layout: 'auto', label: 'water-thick',
+      vertex: { module: sph, entryPoint: 'vs' },
+      fragment: { module: sph, entryPoint: 'fsThick', targets: [{ format: 'rg16float', blend: { color: { srcFactor: 'one', dstFactor: 'one', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one', operation: 'add' } } }] },
+      primitive: { topology: 'triangle-list' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'less' },
+    });
+    const FS = GPUShaderStage.FRAGMENT, VF = GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX;
+    const ubE = (b) => ({ binding: b, visibility: VF, buffer: { type: 'uniform' } });
+    const txE = (b, sampleType) => ({ binding: b, visibility: FS, texture: { sampleType } });
+    this.blurBGL = device.createBindGroupLayout({ entries: [ubE(0), ubE(1), txE(2, 'unfilterable-float')] });
+    this.compBGL = device.createBindGroupLayout({ entries: [ubE(0), ubE(1), txE(2, 'unfilterable-float'), txE(3, 'unfilterable-float'), txE(4, 'depth')] });
+    const blur = mod(BLUR, 'water-blur');
+    this.blurPipe = device.createRenderPipeline({ layout: device.createPipelineLayout({ bindGroupLayouts: [this.blurBGL] }), label: 'water-blur', vertex: { module: blur, entryPoint: 'vs' }, fragment: { module: blur, entryPoint: 'fs', targets: [{ format: 'r32float' }] }, primitive: { topology: 'triangle-list' } });
+    const comp = mod(COMPOSITE, 'water-composite');
+    const pre = { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } };
+    this.compPipe = device.createRenderPipeline({ layout: device.createPipelineLayout({ bindGroupLayouts: [this.compBGL] }), label: 'water-composite', vertex: { module: comp, entryPoint: 'vs' }, fragment: { module: comp, entryPoint: 'fs', targets: [{ format, blend: pre }] }, primitive: { topology: 'triangle-list' } });
+    const bedM = mod(BED, 'water-bed');
+    this.bedPipe = device.createRenderPipeline({
+      layout: 'auto', label: 'water-bed',
+      vertex: { module: bedM, entryPoint: 'vs' }, fragment: { module: bedM, entryPoint: 'fs', targets: [{ format }] },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
+    });
+    this.bedBG = device.createBindGroup({ layout: this.bedPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: camUbo } }, { binding: 1, resource: { buffer: this.rU } }] });
+    this.sphBG = (pipe) => device.createBindGroup({ layout: pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: camUbo } }, { binding: 1, resource: { buffer: this.rU } }, { binding: 2, resource: { buffer: this.pbuf } }] });
+    this.depthBG = this.sphBG(this.depthPipe);
+    this.thickBG = this.sphBG(this.thickPipe);
   }
 
-  // fill each dent with still water up to WATER_LEVEL (CPU mirror of bedAt)
-  fill() {
-    const N = WATER_N, d = new Float32Array(NP * N * N);
-    this.puddles.slice(0, NP).forEach((p, i) => {
-      const e = p.r * 1.3, dx = (2 * e) / N;
-      for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
-        const qx = (x + 0.5) * dx - e, qz = (z + 0.5) * dx - e;
-        const dn = Math.hypot(qx, qz) / shoreR(p, Math.atan2(qz, qx));
-        d[i * N * N + z * N + x] = Math.max(0, WATER_LEVEL - bedN(dn));
-      }
-    });
-    this.device.queue.writeBuffer(this.depth, 0, d);
-    this.device.queue.writeBuffer(this.flux, 0, new Float32Array(NP * N * N * 4));
+  // (re)create screen-size targets; sceneDepth = the main depth texture
+  resize(w, h, sceneDepth) {
+    for (const t of [this.zTex, this.dA, this.dB, this.thTex]) t?.destroy();
+    const D = this.device, RA = GPUTextureUsage.RENDER_ATTACHMENT, TB = GPUTextureUsage.TEXTURE_BINDING;
+    this.zTex = D.createTexture({ size: [w, h], format: 'depth32float', usage: RA });
+    this.dA = D.createTexture({ size: [w, h], format: 'r32float', usage: RA | TB });
+    this.dB = D.createTexture({ size: [w, h], format: 'r32float', usage: RA | TB });
+    this.thTex = D.createTexture({ size: [w, h], format: 'rg16float', usage: RA | TB });
+    this.sceneDepthView = sceneDepth.createView();
+    const blurBG = (u, src) => D.createBindGroup({ layout: this.blurBGL, entries: [{ binding: 0, resource: { buffer: this.camUbo } }, { binding: 1, resource: { buffer: u } }, { binding: 2, resource: src.createView() }] });
+    this.blurH = blurBG(this.rUH, this.dA);
+    this.blurV = blurBG(this.rUV, this.dB);
+    this.compBG = D.createBindGroup({ layout: this.compBGL, entries: [
+      { binding: 0, resource: { buffer: this.camUbo } }, { binding: 1, resource: { buffer: this.rU } },
+      { binding: 2, resource: this.dA.createView() }, { binding: 3, resource: this.thTex.createView() }, { binding: 4, resource: this.sceneDepthView }] });
   }
 
   update(dt, car, wet, S) {
-    this.time += dt;
-    const SUB = 4;
-    this.sub = SUB;
+    // live-simulate the puddle nearest the car; switch only once the car is well away from the current one
+    let best = -1, bd = 1e9;
+    this.puddles.slice(0, 3).forEach((p, i) => { const d = Math.hypot(p.x - car.x, p.z - car.z) - p.r; if (d < bd) { bd = d; best = i; } });
+    if (this.active < 0) this.active = best;
+    else if (best !== this.active) {
+      const cur = this.puddles[this.active];
+      if (Math.hypot(cur.x - car.x, cur.z - car.z) - cur.r > 12) this.active = best;
+    }
+    const P = this.puddles[this.active];
+    const ox = P.x - (GRID[0] * H) / 2, oz = P.z - (GRID[2] * H) / 2;
+    this.origin = [ox, ORIGIN_Y, oz];
     const u = this.u; u.fill(0);
-    u.set([dt / SUB, this.time, WATER_N, SPLASH_MAX], 0);
-    this.puddles.forEach((p, i) => u.set([p.x, p.z, p.r, p.mud], 4 + i * 4));
+    this.uI.set([GRID[0], GRID[1], GRID[2], 0], 0);
+    const [start, count] = this.ranges[this.active] || [0, 0];
+    this.uU.set([start, count, 0, 0], 4);
+    this.simCount = count;
+    const K = (SOUND * SOUND * RHO0) / 7;
+    const visc = (P.mud ? 18 : 0.6) * (S.waterVisc ?? 1);
+    u.set([ox, ORIGIN_Y, oz, H], 8);
+    u.set([dt / SUB, -9.81 / H, K, RHO0], 12);
+    u.set([visc, S.tyrePush ?? 1, car.wheelW * 0.5, car.wheelR], 16);
+    const bodyOff = car.bodyOff || 0;
+    u.set([car.x, car.bodyY + bodyOff, car.z, car.heading], 20);
+    u.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 24);
+    u.set([car.vx, 0, car.vz, car.w], 28);
+    this.puddles.slice(0, 3).forEach((p, i) => u.set([p.x, p.z, p.r, p.mud], 32 + i * 4));
     car.wheels.forEach((wh, i) => {
-      const pi = wet[i];
-      const tread = -wh.spinVel * car.wheelR;
-      const sp = Math.hypot(wh.vel[0], wh.vel[2]);
-      const slip = Math.abs(wh.slipLat) + Math.abs(wh.slipLong);
-      const rate = pi >= 0 && (sp > 0.8 || slip > 1) ? (sp * 170 + slip * 90) * (S.splash ?? 1) : 0;
-      u.set([wh.pos[0], wh.spinVel, wh.pos[2], rate], 8 + i * 4);
-      u.set([wh.vel[0], wh.gy || 0, wh.vel[2], tread], 24 + i * 4);
-      u.set([wh.fwd[0], 0, wh.fwd[2], pi], 40 + i * 4);
+      const yaw = car.heading + (wh.front ? car.steer : 0);
+      u.set([wh.pos[0], car.wheelR + (wh.gy || 0), wh.pos[2], wh.spinVel], 44 + i * 4);
+      u.set([Math.cos(yaw), 0, -Math.sin(yaw), 0], 60 + i * 4);
     });
-    u.set([car.x, car.bodyY + (car.bodyOff || 0), car.z, car.heading], 56);
-    u.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 60);
-    u.set([car.vx, 0, car.vz, car.w], 64);
-    u.set([S.splash ?? 1, S.waves ?? 1, car.wheelW, car.wheelR], 72);
     this.device.queue.writeBuffer(this.ubo, 0, u);
+    void wet;
   }
 
   encode(enc) {
-    const p = enc.beginComputePass({ label: 'water' });
-    const wg = Math.ceil(WATER_N / 8);
-    // SUB substeps of dt/SUB for the fluid (stable, smooth sloshing); droplets ride along with the same substeps
-    for (let s = 0; s < this.sub; s++) {
-      p.setPipeline(this.fluxPipe); p.setBindGroup(0, this.fluxBG); p.dispatchWorkgroups(wg, wg, NP);
-      p.setPipeline(this.depthPipe); p.setBindGroup(0, this.depthBG); p.dispatchWorkgroups(wg, wg, NP);
-      p.setPipeline(this.splashPipe); p.setBindGroup(0, this.splashBG); p.dispatchWorkgroups(Math.ceil(SPLASH_MAX / 64));
-    }
+    if (!this.simCount) return;
+    const p = enc.beginComputePass({ label: 'water-mpm' });
+    const gw = Math.ceil(this.cells / 64), pw = Math.ceil(this.simCount / 64);
+    const run = (k, n) => { p.setPipeline(this.pipe[k]); p.setBindGroup(0, this.bg[k]); p.dispatchWorkgroups(n); };
+    for (let s = 0; s < SUB; s++) { run('clear', gw); run('p2g1', pw); run('p2g2', pw); run('grid', gw); run('g2p', pw); }
     p.end();
   }
 
   drawOpaque(pass) {
     pass.setPipeline(this.bedPipe); pass.setBindGroup(0, this.bedBG);
-    pass.draw((WATER_N - 1) * (WATER_N - 1) * 6, NP);
+    pass.draw(127 * 127 * 6, Math.min(3, this.puddles.length));
   }
-  draw(pass) {
-    pass.setPipeline(this.surfPipe); pass.setBindGroup(0, this.surfBG);
-    pass.draw((WATER_N - 1) * (WATER_N - 1) * 6, NP);
-    pass.setPipeline(this.dropPipe); pass.setBindGroup(0, this.dropBG);
-    pass.draw(6, SPLASH_MAX);
+
+  // screen-space fluid: call after the opaque scene pass has ended
+  render(enc, colorView) {
+    if (!this.dA || !this.count) return;
+    let pass = enc.beginRenderPass({
+      colorAttachments: [{ view: this.dA.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }],
+      depthStencilAttachment: { view: this.zTex.createView(), depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'discard' },
+    });
+    pass.setPipeline(this.depthPipe); pass.setBindGroup(0, this.depthBG); pass.draw(6, this.count); pass.end();
+    pass = enc.beginRenderPass({
+      colorAttachments: [{ view: this.thTex.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }],
+      depthStencilAttachment: { view: this.sceneDepthView, depthReadOnly: true },
+    });
+    pass.setPipeline(this.thickPipe); pass.setBindGroup(0, this.thickBG); pass.draw(6, this.count); pass.end();
+    for (let it = 0; it < 2; it++) {
+      for (const [bg, dst] of [[this.blurH, this.dB], [this.blurV, this.dA]]) {
+        pass = enc.beginRenderPass({ colorAttachments: [{ view: dst.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }] });
+        pass.setPipeline(this.blurPipe); pass.setBindGroup(0, bg); pass.draw(3); pass.end();
+      }
+    }
+    pass = enc.beginRenderPass({ colorAttachments: [{ view: colorView, loadOp: 'load', storeOp: 'store' }] });
+    pass.setPipeline(this.compPipe); pass.setBindGroup(0, this.compBG); pass.draw(3); pass.end();
   }
 }

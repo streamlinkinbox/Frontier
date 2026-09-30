@@ -17,3 +17,10 @@
 - The ground is dented into bowls (up to 26 cm deep) with irregular shorelines. The car drops into them, pitching and rolling with the terrain.
 - The water is a mass-conserving shallow-water fluid ("virtual pipes") on a 128×128 grid per puddle, with 4 substeps per frame. It has real volume, flows downhill and settles still. Tyres push it aside, making bow waves, a trough and a wake that sloshes back.
 - Rendering: Beer–Lambert absorption over the real water depth (thin edges show the wet bed, deeper water is tinted), Fresnel sky reflection, sun glints, and foam on disturbed water. Mud is opaque and viscous.
+
+## Update: real 3D fluid puddles (MLS-MPM + screen-space fluid rendering)
+- Replaces the shallow-water surface and billboard droplets.
+- ~104k water particles fill 3 dented bowls. The puddle near the car is simulated live with MLS-MPM: weakly compressible Tait EOS, viscosity, a 128×24×128 grid at 10 cm, 6 substeps per frame. The other puddles rest.
+- Tyres (spinning no-slip cylinders), the car body box and the dented terrain are colliders. Water thrown onto dry sand soaks in.
+- Rendering: sphere depth + thickness buffers, a separable narrow-range depth filter, normals from the smoothed depth, Fresnel sky reflection, sun glints and Beer–Lambert absorption (clear vs mud).
+- Sliders (💧): tyre spin → water, viscosity, water drag on car.

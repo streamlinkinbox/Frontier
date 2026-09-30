@@ -1,5 +1,5 @@
 // Lit scene: sand ground, crates, car body + wheels. Instanced meshes with per-instance model/colour.
-import { mat4 } from './math.js?v=16';
+import { mat4 } from './math.js?v=17';
 
 const SHADER = /* wgsl */`
 struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f, smO: vec4f, smD: vec4f, pud: array<vec4f, 3> };
