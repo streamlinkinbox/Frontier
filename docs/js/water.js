@@ -15,10 +15,10 @@ const GRID = [128, 24, 128];          // 12.8 x 2.4 x 12.8 m around the active p
 const ORIGIN_Y = -0.4;
 const SPACING = H / 2;                // 8 particles per cell at rest
 const RHO0 = 8.0;
-const SOUND = 150.0;                  // speed of sound (cells/s) -> 15 m/s, weakly compressible
-const SUB = 6;                        // substeps per frame
+const SOUND = 110.0;                  // speed of sound (cells/s) -> 11 m/s, weakly compressible
+const SUB = 4;                        // substeps per frame (CFL ~0.46)
 const FIX = 16384.0;
-const P_RADIUS = 0.042;               // render sphere radius (m)
+const P_RADIUS = 0.058;               // render sphere radius (m); overlaps neighbours for a continuous surface
 const STRIDE = 20;                    // floats per particle
 
 export function shoreR(p, ang) {
@@ -154,7 +154,8 @@ const SIM = {
     let wt = w[gx].x * w[gy].y * w[gz].z;
     density += f32(atomicLoad(&grid[gIdx(cell + vec3<i32>(gx - 1, gy - 1, gz - 1)) * 4u + 3u])) / FIX * wt;
   }}}
-  let volume = 1.0 / max(density, 1e-3);
+  // isolated spray drops have ~0 density -> huge volume -> exploding stress. Clamp to 1.5x rest volume.
+  let volume = min(1.0 / max(density, 1e-3), 1.5 / U.misc.w);
   let rr = clamp(density / U.misc.w, 0.0, 1.35);
   let r2 = rr * rr; let r7 = r2 * r2 * r2 * rr;
   let pressure = max(0.0, U.misc.z * (r7 - 1.0));
@@ -230,7 +231,7 @@ const SIM = {
     p.c0 = vec4f(0.0); p.c1 = vec4f(0.0); p.c2 = vec4f(0.0);
   }
   let sp = length(vel);
-  if (sp > 25.0) { vel *= 25.0 / sp; }
+  if (sp > 14.0) { vel *= 14.0 / sp; }
   var pos = p.pos.xyz + vel * dt;
   // terrain
   let gy = groundAt(pos.xz) + 0.012;
@@ -283,19 +284,20 @@ fn sky(d: vec3f) -> vec3f { return mix(vec3f(0.78, 0.8, 0.82), vec3f(0.42, 0.6, 
 
 const SPHERES = R_COMMON + /* wgsl */`
 @group(0) @binding(2) var<storage, read> ps: array<Particle>;
-struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) c: vec3f, @location(2) mud: f32 };
+struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) c: vec3f, @location(2) mud: f32, @location(3) r: f32 };
 @vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VO {
   var o: VO;
   let p = ps[ii];
   if (p.pos.w <= 0.0) { o.pos = vec4f(2.0, 2.0, 2.0, 1.0); return o; }
   var corners = array<vec2f, 6>(vec2f(-1,-1), vec2f(1,-1), vec2f(1,1), vec2f(-1,-1), vec2f(1,1), vec2f(-1,1));
   let q = corners[vi];
-  let r = R.misc.x * clamp(p.pos.w * 2.0, 0.3, 1.0);   // soaking drops shrink
+  // fast-moving spray is drawn as smaller droplets; soaking drops shrink
+  let r = R.misc.x * clamp(p.pos.w * 2.0, 0.3, 1.0) * mix(1.0, 0.5, smoothstep(1.5, 5.0, length(p.vel.xyz)));
   let toCam = normalize(cam.camPos.xyz - p.pos.xyz);
   let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
   let up = cross(toCam, right);
   o.pos = cam.viewProj * vec4f(p.pos.xyz + (right * q.x + up * q.y) * r, 1.0);
-  o.uv = q; o.c = p.pos.xyz;
+  o.uv = q; o.c = p.pos.xyz; o.r = r;
   o.mud = R.pud[min(u32(p.vel.w), 2u)].w;
   return o;
 }
@@ -306,7 +308,7 @@ fn sphere(i: VO) -> vec4f {                       // world pos on the sphere + n
   let toCam = normalize(cam.camPos.xyz - i.c);
   let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
   let up = cross(toCam, right);
-  return vec4f(i.c + (right * i.uv.x + up * i.uv.y + toCam * nz) * R.misc.x, nz);
+  return vec4f(i.c + (right * i.uv.x + up * i.uv.y + toCam * nz) * i.r, nz);
 }
 struct DO { @location(0) d: vec4f, @builtin(frag_depth) z: f32 };
 @fragment fn fsDepth(i: VO) -> DO {
@@ -319,7 +321,7 @@ struct DO { @location(0) d: vec4f, @builtin(frag_depth) z: f32 };
 }
 @fragment fn fsThick(i: VO) -> @location(0) vec4f {
   let s = sphere(i);
-  let t = s.w * 2.0 * R.misc.x;
+  let t = s.w * 2.0 * i.r * 0.33;
   return vec4f(t, t * i.mud, 0.0, 1.0);
 }`;
 
@@ -337,10 +339,10 @@ const BLUR = R_COMMON + FULLSCREEN + /* wgsl */`
   let dc = textureLoad(src, p, 0).r;
   if (dc <= 0.0) { return vec4f(0.0); }
   let dims = vec2<i32>(textureDimensions(src));
-  let rpx = R.misc.x * 2.2 * cam.screen.y / (2.0 * tan(0.5) * dc);    // filter radius in pixels
-  let kr = clamp(i32(rpx), 1, 24);
+  let rpx = R.misc.x * 3.2 * cam.screen.y / (2.0 * tan(0.5) * dc);    // filter radius in pixels
+  let kr = clamp(i32(rpx), 2, 20);
   let sigma = f32(kr) * 0.5;
-  let thr = R.misc.x * 2.5;
+  let thr = R.misc.x * 3.0;
   let dir = vec2<i32>(R.misc.yz);
   var sum = 0.0; var wsum = 0.0;
   for (var k = -kr; k <= kr; k++) {
@@ -387,7 +389,12 @@ fn worldAt(p: vec2<i32>, d: f32) -> vec3f {
   if (length(cross(ddx, ddy)) < 1e-9) { n = vec3f(0.0, 1.0, 0.0); }
   if (dot(n, V) < 0.0) { n = -n; }
   let th = textureLoad(thick, p, 0);
-  let t = th.r; let mud = clamp(th.g / max(t, 1e-4), 0.0, 1.0);
+  let t = th.r;
+  // gravity keeps a puddle surface level: damp particle-scale bumps on mostly-upward normals,
+  // and flatten thin edges so they don't turn into sky-coloured mirrors
+  let up = vec3f(0.0, 1.0, 0.0);
+  n = normalize(mix(n, up, smoothstep(0.35, 0.95, n.y) * 0.75));
+  n = normalize(mix(up, n, smoothstep(0.004, 0.05, t))); let mud = clamp(th.g / max(t, 1e-4), 0.0, 1.0);
   let L = normalize(cam.lightDir.xyz);
   let cosV = max(dot(n, V), 0.0);
   let fres = 0.02 + 0.98 * pow(1.0 - cosV, 5.0);
@@ -395,15 +402,15 @@ fn worldAt(p: vec2<i32>, d: f32) -> vec3f {
   let spec = pow(max(dot(Rv, L), 0.0), mix(500.0, 90.0, mud)) * mix(8.0, 1.2, mud);
   let diff = max(dot(n, L), 0.0);
   // Beer-Lambert absorption through the fluid thickness
-  let sigma = mix(vec3f(3.2, 1.3, 0.9), vec3f(45.0, 55.0, 70.0), mud);
+  let sigma = mix(vec3f(4.0, 1.6, 1.1), vec3f(30.0, 36.0, 45.0), mud);
   let T = exp(-sigma * t);
   let absorbA = clamp(1.0 - (T.x + T.y + T.z) / 3.0, 0.0, 1.0);
-  let inscatter = mix(vec3f(0.04, 0.09, 0.1) * (0.6 + 0.6 * diff), vec3f(0.33, 0.24, 0.15) * (0.45 + 0.75 * diff), mud);
+  let inscatter = mix(vec3f(0.10, 0.19, 0.2) * (0.6 + 0.6 * diff), vec3f(0.33, 0.24, 0.15) * (0.45 + 0.75 * diff), mud);
   var col = inscatter * absorbA;
   var a = absorbA;
   let refl = (sky(Rv) + vec3f(1.0, 0.95, 0.85) * spec) * fres * mix(1.0, 0.55, mud);
   col = col * (1.0 - fres) + refl; a = a + fres * (1.0 - a);
-  let edge = smoothstep(0.0, R.misc.x * 0.35, t);
+  let edge = smoothstep(0.0, R.misc.x * 0.2, t);
   col *= edge; a *= edge;
   let fog = 1.0 - exp(-distance(cam.camPos.xyz, wp) * 0.006);
   col = mix(col, vec3f(0.78, 0.8, 0.82) * a, fog);
@@ -577,7 +584,7 @@ export class Water {
     this.uU.set([start, count, 0, 0], 4);
     this.simCount = count;
     const K = (SOUND * SOUND * RHO0) / 7;
-    const visc = (P.mud ? 18 : 0.6) * (S.waterVisc ?? 1);
+    const visc = (P.mud ? 8 : 1.2) * (S.waterVisc ?? 1);
     u.set([ox, ORIGIN_Y, oz, H], 8);
     u.set([dt / SUB, -9.81 / H, K, RHO0], 12);
     u.set([visc, S.tyrePush ?? 1, car.wheelW * 0.5, car.wheelR], 16);
@@ -622,7 +629,7 @@ export class Water {
       depthStencilAttachment: { view: this.sceneDepthView, depthReadOnly: true },
     });
     pass.setPipeline(this.thickPipe); pass.setBindGroup(0, this.thickBG); pass.draw(6, this.count); pass.end();
-    for (let it = 0; it < 2; it++) {
+    for (let it = 0; it < 3; it++) {
       for (const [bg, dst] of [[this.blurH, this.dB], [this.blurV, this.dA]]) {
         pass = enc.beginRenderPass({ colorAttachments: [{ view: dst.createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }] });
         pass.setPipeline(this.blurPipe); pass.setBindGroup(0, bg); pass.draw(3); pass.end();
