@@ -311,13 +311,13 @@ fn sampleVel(g: vec3f, useOld: bool) -> vec3f { return vec3f(sampleComp(g, 0, us
     let vo = sampleVel(g, true);
     vel = mix(vn, vel + (vn - vo), U.misc.z);          // FLIP (lively) / PIC (stable) blend
     // ---- diffuse material generation (Ihmsen 2012): kinetic energy x (trapped air + wave crest)
-    let ik = phi(0.5 * dot(vel, vel), 0.6, 6.0);
+    let ik = phi(0.5 * dot(vel, vel), 2.0, 12.0);
     if (ik > 0.0) {
-      let ita = phi(length(vel - vn), 0.15, 1.5);
+      let ita = phi(length(vel - vn), 0.4, 2.5);
       let above = cell + vec3<i32>(0, 1, 0);
       let surf = select(0.0, 1.0, inCells(above) && cnt[cIdx(above)] < 2u);
       let iwc = surf * phi(vel.y, 0.2, 2.0);
-      let rate = ik * (60.0 * ita + 40.0 * iwc) * dt;     // expected spawns this substep
+      let rate = ik * (14.0 * ita + 10.0 * iwc) * dt;     // expected spawns this substep
       let seed = id * 9781u + u32(U.dims.w);
       if (hash(seed) < rate) {
         let slot = atomicAdd(&dhead[0], 1u) % arrayLength(&dps);
@@ -418,7 +418,7 @@ fn gridVel(g: vec3f) -> vec3f {
     let mud = U.pud[min(u32(U.carH.w), 2u)].w;
     let fv = gridVel(g);
     v = vec3f(fv.x, max(fv.y, -0.3), fv.z);
-    life -= dt * (0.2 + 0.4 * mud);
+    life -= dt * (0.45 + 0.6 * mud);
   } else {                                        // bubble: buoyant + dragged
     kind = 2.0;
     let fv = gridVel(g);
@@ -427,7 +427,7 @@ fn gridVel(g: vec3f) -> vec3f {
   }
   pos += v * dt;
   let gy = groundAt(pos.xz) + 0.005;
-  if (pos.y < gy) { pos.y = gy; v.y = max(v.y, 0.0); v *= 0.5; if (kind == 0.0) { life -= 0.15; } }
+  if (pos.y < gy) { pos.y = gy; v.y = max(v.y, 0.0); v *= 0.5; if (kind == 0.0) { life = 0.0; } }
   let lp = carLocal(pos);
   if (all(abs(lp) < U.carH.xyz)) { life = 0.0; }
   let mud = U.pud[min(u32(U.carH.w), 2u)].w;
@@ -608,7 +608,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   let rnd = fract(sin(f32(ii) * 12.9898) * 43758.55);
   var wp = p.pos.xyz; var r: f32; var a: f32;
   if (kind < 0.5) {                          // spray droplet: camera-facing, stretched along velocity
-    r = 0.012 + 0.012 * rnd; a = 0.85;
+    r = 0.005 + 0.006 * rnd; a = 0.5;
     let toCam = normalize(cam.camPos.xyz - wp);
     let vv = p.vel.xyz - toCam * dot(p.vel.xyz, toCam);
     var ax = select(normalize(cross(vec3f(0.0, 1.0, 0.0), toCam)), normalize(vv), length(vv) > 0.3);
@@ -616,11 +616,11 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
     let up = normalize(cross(toCam, ax));
     wp += ax * q.x * r * st + up * q.y * r;
   } else if (kind < 1.5) {                   // foam patch: flat on the surface
-    r = 0.035 + 0.04 * rnd; a = 0.75;
+    r = 0.02 + 0.025 * rnd; a = 0.28;
     let c = cos(rnd * 6.28); let sn = sin(rnd * 6.28);
     wp += vec3f(q.x * c - q.y * sn, 0.004, q.x * sn + q.y * c) * r;
   } else {                                   // bubble
-    r = 0.008 + 0.008 * rnd; a = 0.35;
+    r = 0.004 + 0.004 * rnd; a = 0.2;
     let toCam = normalize(cam.camPos.xyz - wp);
     let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam)); let up = cross(toCam, right);
     wp += (right * q.x + up * q.y) * r;
@@ -644,9 +644,12 @@ fn h2(p: vec2f) -> f32 { return fract(sin(dot(p, vec2f(127.1, 311.7))) * 43758.5
     let cell = h2(floor(i.uv * 4.0 + i.info.w * 17.0));
     a *= (1.0 - r2) * (0.55 + 0.45 * cell);
   } else if (i.info.x < 0.5) {
+    // droplet: clear water = mostly sky reflection at the rim + a sun glint, not white paint
     let nz = sqrt(1.0 - r2);
-    base *= 0.8 + 0.4 * nz;
-    a *= smoothstep(1.0, 0.6, r2);
+    let rim = pow(1.0 - nz, 2.0);
+    let glint = pow(max(nz, 0.0), 40.0) * 0.8;
+    base = mix(mix(vec3f(0.55, 0.62, 0.66), vec3f(0.4, 0.3, 0.2), i.info.y) * (0.6 + 0.6 * rim), vec3f(1.0), glint);
+    a *= 0.35 + 0.65 * rim;
   } else {
     a *= smoothstep(0.5, 1.0, r2) + 0.2;       // bubble: bright rim
   }
