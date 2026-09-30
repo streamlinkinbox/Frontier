@@ -52,6 +52,7 @@ export class Car {
 
       let grip = mu * N;
       if (!wh.front && input.handbrake) grip *= 0.42;
+      grip *= wh.gripMul ?? 1;               // puddles: water/mud reduce grip
       // lateral: saturating slip curve
       let fLat = -grip * Math.tanh(vLat / 1.2);
       // longitudinal
@@ -91,6 +92,8 @@ export class Car {
     if (this.ext) { Fx += this.ext[0] * this.mass; Fz += this.ext[1] * this.mass; torque += this.ext[2] * this.inertia; }
     // aero drag
     Fx -= this.vx * speed * 0.9; Fz -= this.vz * speed * 0.9;
+    // water resistance while tyres plough through puddles (set by main per wheel)
+    Fx -= this.vx * (this.waterDrag || 0); Fz -= this.vz * (this.waterDrag || 0);
 
     const ax = Fx / this.mass, az = Fz / this.mass;
     this.vx += ax * dt; this.vz += az * dt;
