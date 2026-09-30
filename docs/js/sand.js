@@ -3,7 +3,7 @@
 // buffer. The MPM grid is transient (cleared every substep), so it simply re-centres on the car.
 // P2G uses fixed-point atomic<i32> (WGSL has no float atomics).
 
-import { TIER } from './tier.js?v=23';
+import { TIER } from './tier.js?v=24';
 export const SAND_MAX = TIER.sand;
 export const SAND_GRID = [64, 32, 64];
 export const SAND_H = 0.125; // 8 x 4 x 8 m around the car

@@ -2,7 +2,7 @@
 // Stable Fluids + MacCormack advection + vorticity confinement + Jacobi pressure.
 // All fields are storage buffers (no read-write storage textures => works on core WebGPU everywhere).
 
-import { TIER } from './tier.js?v=23';
+import { TIER } from './tier.js?v=24';
 export const SMOKE_DIMS = TIER.smokeDims;
 export const SMOKE_H = TIER.smokeH; // metres per cell  => 32 x 16 x 32 m domain either way
 // far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
@@ -137,6 +137,26 @@ ${HEAD}
 @group(0) @binding(3) var<storage, read_write> velT: array<vec4f>;
 @group(0) @binding(4) var<storage, read_write> denT: array<vec4f>;
 @group(0) @binding(5) var<storage, read> solid: array<vec4f>;
+@group(0) @binding(6) var<storage, read> farVel: array<vec4f>;
+@group(0) @binding(7) var<storage, read> farDen: array<vec4f>;
+// LOD cascade: cells entering the fine grid are seeded from the coarse grid (not zero) -> explosions keep their history
+fn farIdx(c: vec3<i32>) -> u32 {
+  let d = vec3<i32>(${FAR_DIMS[0]}, ${FAR_DIMS[1]}, ${FAR_DIMS[2]});
+  let q = clamp(c, vec3<i32>(0), d - vec3<i32>(1));
+  return u32(q.x + d.x * (q.y + d.y * q.z));
+}
+fn farSample(wp: vec3f, den: bool) -> vec4f {
+  let g = (wp - prm.pad2.xyz) / prm.pad2.w - vec3f(0.5);
+  let b = floor(g); let f = g - b; let i = vec3<i32>(b);
+  var r = vec4f(0.0);
+  for (var k = 0; k < 8; k++) {
+    let o = vec3<i32>(k & 1, (k >> 1) & 1, (k >> 2) & 1);
+    let w = select(1.0 - f.x, f.x, o.x == 1) * select(1.0 - f.y, f.y, o.y == 1) * select(1.0 - f.z, f.z, o.z == 1);
+    let j = farIdx(i + o);
+    r += w * select(farVel[j], farDen[j], den);
+  }
+  return r;
+}
 ${sampler('sVel', 'velS')}
 ${sampler('sDen', 'denS')}
 ${HEAD}
@@ -147,7 +167,13 @@ ${HEAD}
   let dmax = vec3f(prm.dims.xyz) - vec3f(0.5);
   var nv = sVel(back);
   var nd = sDen(back);
-  if (any(back < vec3f(-0.5)) || any(back > dmax)) { nd = vec4f(0.0); nv = vec4f(0.0); }
+  if (any(back < vec3f(-0.5)) || any(back > dmax)) {
+    nd = vec4f(0.0); nv = vec4f(0.0);
+    if (prm.pad2.w > 0.0) {
+      let wp = prm.origin.xyz + (back - vec3f(prm.shift.xyz) + vec3f(0.5)) * h;
+      nd = farSample(wp, true); nv = vec4f(farSample(wp, false).xyz, 0.0);
+    }
+  }
   let s = solid[id];
   if (s.w > 0.5) { nv = vec4f(s.xyz, 0.0); nd = vec4f(0.0); }
   velT[id] = nv;
@@ -586,7 +612,7 @@ export class Smoke {
     });
     this.bg = {
       obstacle: bg('obstacle', [B.solid]),
-      advect: bg('advect', [B.velA, B.denA, B.velT, B.denT, B.solid]),
+      advect: bg('advect', [B.velA, B.denA, B.velT, B.denT, B.solid, B.velA, B.denA]),
       maccormack: bg('maccormack', [B.velA, B.denA, B.velT, B.denT, B.velB, B.denB, B.solid]),
       curl: bg('curl', [B.velB, B.curl]),
       forces: bg('forces', [B.velB, B.denB, B.curl, B.solid]),
@@ -626,6 +652,13 @@ export class Smoke {
     });
   }
 
+  // fine grid: seed inflowing cells from the coarse LOD grid
+  linkFar(far) {
+    this.farLink = far;
+    const B = this.buf;
+    this.bg.advect = this.device.createBindGroup({ layout: this.pipe.advect.getBindGroupLayout(0), entries: [this.ubo, B.velA, B.denA, B.velT, B.denT, B.solid, far.buf.velA, far.buf.denA].map((b, i) => ({ binding: i, resource: { buffer: b } })) });
+  }
+
   // Build uniforms. Domain follows the car, snapped to whole cells (shift is applied during advection).
   update(dt, car, emitters, crates, S, lightDir) {
     const [nx, ny, nz] = this.dims, h = this.h;
@@ -634,9 +667,13 @@ export class Smoke {
     const [fx, fz] = car.fwd();
     let tx = car.x - fx * 3, tz = car.z - fz * 3;
     if (this.far) { tx = car.x; tz = car.z; }
-    let best = null, bd = 18 * 18;
+    // fits both when car-source distance < domain - margin; beyond that an explicit focus (explosion on screen) wins
+    const span = Math.min(nx, nz) * h - 6;
+    let best = null, bd = span * span;
     for (const src of this.sources || []) { const d2 = (src.x - car.x) ** 2 + (src.z - car.z) ** 2; if (d2 < bd) { bd = d2; best = src; } }
+    this.carInside = true;
     if (best && !this.far) { tx = (car.x + best.x) * 0.5; tz = (car.z + best.z) * 0.5; }
+    else if (this.focus && !this.far) { tx = this.focus.x; tz = this.focus.z; best = this.focus; this.carInside = false; }
     if (this.tornado && this.tornado.strength > 0) { const T = this.tornado, dt2 = (T.x - car.x) ** 2 + (T.z - car.z) ** 2; if (dt2 < 22 * 22 && !best && !this.far) { tx = (car.x + T.x) * 0.5; tz = (car.z + T.z) * 0.5; } }
     // hysteresis: only move the centre when it drifts > 2 m (avoids constant resampling)
     if (!this.center || Math.hypot(tx - this.center[0], tz - this.center[1]) > (this.far ? 6 : 2)) this.center = [tx, tz];
@@ -662,7 +699,7 @@ export class Smoke {
     if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 272); P.set([T.updraft * T.strength, T.height, (S.tornadoDust ?? 1.2) * T.strength, T.strength > 0 ? 1 : 0], 276); }
     (this.sources || []).slice(0, 8).forEach((b, i) => {
       P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
-      P.set([Math.max(b.radius, h * (b.mode > 1.5 ? 1.0 : 1.5)), b.fuel, b.impulse, b.mode], 208 + i * 4);
+      P.set([Math.max(b.radius, h * (b.mode > 1.5 ? 0.6 : 0.8)), b.fuel, b.impulse, b.mode], 208 + i * 4);
       P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
     P.set([this.far ? 128 : TIER.steps, this.far ? 1.1 : TIER.stepMul, S.fireGain ?? 1, S.sootOpacity ?? 2], 284);
@@ -683,6 +720,7 @@ export class Smoke {
       P.set([c.x, c.z, c.yaw, 1 + (c.y || 0)], 64 + i * 4);
       P.set([c.hx, c.hy, c.hz, 0], 96 + i * 4);
     }
+    if (this.farLink) P.set([this.farLink.origin[0], this.farLink.origin[1], this.farLink.origin[2], this.farLink.h], 292);
     this.device.queue.writeBuffer(this.ubo, 0, P);
   }
 

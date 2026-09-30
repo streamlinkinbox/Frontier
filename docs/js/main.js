@@ -1,11 +1,11 @@
-import { mat4 } from './math.js?v=23';
-import { Car } from './car.js?v=23';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=23';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=23';
-import { TIER } from './tier.js?v=23';
-import { Scene } from './scene.js?v=23';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=23';
-import { Water, puddleAt, groundY } from './water.js?v=23';
+import { mat4 } from './math.js?v=24';
+import { Car } from './car.js?v=24';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=24';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=24';
+import { TIER } from './tier.js?v=24';
+import { Scene } from './scene.js?v=24';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=24';
+import { Water, puddleAt, groundY } from './water.js?v=24';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -75,6 +75,7 @@ async function init() {
   scene.puddles = puddles;
   const water = new Water(device, format, checkModule, puddles, scene.camUbo);
   const tornado = new Tornado(device, checkModule, sand.renderPipe, scene.camUbo);
+  smoke.linkFar(smokeFar);
   smoke.tornado = tornado; smokeFar.tornado = tornado; sand.tornado = tornado;
   if (new URLSearchParams(location.search).has('tornadotest')) { tornado.x = 3; tornado.z = 14; crates[1] && Object.assign(crates[1], { x: 6, z: 12 }); }
   const err = await device.popErrorScope();
@@ -401,11 +402,22 @@ async function init() {
       };
     });
     const near = solids.map((c) => [c, (c.x - car.x) ** 2 + (c.z - car.z) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, MAX_CRATES).map((a) => a[0]);
+    // LOD focus: an explosion/plume on screen (within 90 m) keeps the fine grid when the car is too far to fit both
+    {
+      let f = null, fd = 90;
+      const cf = [camLook[0] - camPos[0], camLook[2] - camPos[2]], cl = Math.hypot(cf[0], cf[1]) || 1;
+      for (const src of smoke.sources || []) {
+        const dx = src.x - camPos[0], dz = src.z - camPos[2], d = Math.hypot(dx, dz);
+        const onScreen = (dx * cf[0] + dz * cf[1]) / (cl * (d || 1)) > 0.55 || camMode === 'action';
+        if (onScreen && d < fd) { fd = d; f = src; }
+      }
+      smoke.focus = f ? { x: f.x, z: f.z } : null;
+    }
     smoke.update(simDt, car, emitters, near, settings, lightDir);
     // far LOD: same sources/tornado, no tyre emitters, every other frame with 2x dt; hands over to the fine grid inside its box
     smokeFar.sources = smoke.sources;
     smokeFar.hole = { ox: smoke.origin[0], oz: smoke.origin[2], sx: SMOKE_DIMS[0] * SMOKE_H, sz: SMOKE_DIMS[2] * SMOKE_H, height: SMOKE_DIMS[1] * SMOKE_H, fade: 2.5 };
-    if (frame % 2 === 0) smokeFar.update(simDt * 2, car, [], near, settings, lightDir);
+    if (frame % 2 === 0) smokeFar.update(simDt * 2, car, smoke.carInside ? [] : emitters.map((e) => ({ ...e, radius: Math.max(e.radius, FAR_H * 0.8) })), near, settings, lightDir);   // tyre smoke goes coarse only while the fine grid is on an explosion
     sand.update(simDt, car);
     sand.spawn(car, dtReal);
     water.update(simDt, car, wet, settings);
