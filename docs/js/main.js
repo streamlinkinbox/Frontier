@@ -1,11 +1,11 @@
-import { mat4 } from './math.js?v=19';
-import { Car } from './car.js?v=19';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=19';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=19';
-import { TIER } from './tier.js?v=19';
-import { Scene } from './scene.js?v=19';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=19';
-import { Water, puddleAt, groundY } from './water.js?v=19';
+import { mat4 } from './math.js?v=20';
+import { Car } from './car.js?v=20';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=20';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=20';
+import { TIER } from './tier.js?v=20';
+import { Scene } from './scene.js?v=20';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=20';
+import { Water, puddleAt, groundY } from './water.js?v=20';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -440,7 +440,7 @@ async function init() {
         `<b>${fps.toFixed(0)}</b> fps · ${(1000 / Math.max(fps, 1)).toFixed(1)} ms<br>` +
         `speed <b>${(car.speed * 3.6).toFixed(0)}</b> km/h<br>` +
         `sand particles ~<b>${alive}</b> / ${SAND_MAX}<br>` +
-        `water MLS-MPM ${(water.count / 1000).toFixed(0)}k particles (live ${(water.simCount / 1000 || 0).toFixed(0)}k)<br>` +
+        `water FLIP ${(water.count / 1000).toFixed(0)}k particles (live ${(water.simCount / 1000 || 0).toFixed(0)}k)<br>` +
         `sim VRAM ≈ <b>${vram} MB</b> / 1024<br>` +
         `<span class="dim">${adapterName}</span>`;
       $('drift').style.width = (car.drift * 100).toFixed(0) + '%';

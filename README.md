@@ -24,3 +24,10 @@
 - Tyres (spinning no-slip cylinders), the car body box and the dented terrain are colliders. Water thrown onto dry sand soaks in.
 - Rendering: sphere depth + thickness buffers, a separable narrow-range depth filter, normals from the smoothed depth, Fresnel sky reflection, sun glints and Beer–Lambert absorption (clear vs mud).
 - Sliders (💧): tyre spin → water, viscosity, water drag on car.
+
+## Update: FLIP water (replaces MLS-MPM)
+- PIC/FLIP on a MAC grid (160×24×160 at 8 cm), incompressible: Jacobi pressure solve (30 iterations, warm-started) plus a density drift correction, 2 substeps per frame.
+- 203k particles at 4 cm spacing; at most about 80k live (the puddle near the car).
+- FLIP ratio 0.96 for clear water (lively splashes) and 0.75 for mud (damped, thick).
+- Solids: the dented terrain, spinning tyres (tread velocity capped at 4 m/s) and the car body.
+- Screen-space rendering now uses the correct water thickness (particle volume ÷ sphere volume).

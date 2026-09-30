@@ -2,7 +2,7 @@
 // Stable Fluids + MacCormack advection + vorticity confinement + Jacobi pressure.
 // All fields are storage buffers (no read-write storage textures => works on core WebGPU everywhere).
 
-import { TIER } from './tier.js?v=19';
+import { TIER } from './tier.js?v=20';
 export const SMOKE_DIMS = TIER.smokeDims;
 export const SMOKE_H = TIER.smokeH; // metres per cell  => 32 x 16 x 32 m domain either way
 // far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
