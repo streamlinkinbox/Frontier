@@ -1,10 +1,10 @@
-import { mat4 } from './math.js?v=12';
-import { Car } from './car.js?v=12';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=12';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=12';
-import { TIER } from './tier.js?v=12';
-import { Scene } from './scene.js?v=12';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=12';
+import { mat4 } from './math.js?v=13';
+import { Car } from './car.js?v=13';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=13';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=13';
+import { TIER } from './tier.js?v=13';
+import { Scene } from './scene.js?v=13';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -59,6 +59,7 @@ async function init() {
   const car = new Car();
   const scene = new Scene(device, format, checkModule, crates);
   const smoke = new Smoke(device, format, checkModule, { jacobi: TIER.jacobi });
+  scene.setSmokeLight(smoke.buf.light);
   const smokeFar = new Smoke(device, format, checkModule, { dims: FAR_DIMS, h: FAR_H, jacobi: TIER.farJacobi, far: true });
   const sand = new Sand(device, format, checkModule);
   const tornado = new Tornado(device, checkModule, sand.renderPipe, scene.camUbo);
@@ -108,27 +109,27 @@ async function init() {
   canvas.addEventListener('wheel', (e) => { camDist = Math.min(40, Math.max(5, camDist * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
   // smoke settings panel
   const DEFAULTS = {
-    emission: 0.8, opacity: 1.6, fade: 0.8, tint: 1.0, dust: 0.3,
-    blast: 1.0, fireGain: 1.0, sootOpacity: 2.2, sootLevel: 0.08, sootFade: 0.35,
+    emission: 0.8, opacity: 1.6, fade: 0.8, tint: 1.0, dust: 0.3, tyreSwirl: 1.0,
+    blast: 1.0, fireGain: 1.0, sootOpacity: 2.2, sootLevel: 0.08, sootFade: 0.35, blastSwirl: 0.2,
     tornado: 1.0, tornadoDust: 1.2,
-    shadow: 1.4, ambient: 1.0, brightness: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.8,
+    shadow: 1.4, groundShadow: 0.85, ambient: 1.0, brightness: 1.0, phase: 0.45, vorticity: 3.5, buoyancy: 1.8,
   };
   // grouped: each effect has its own look + lifetime; lighting/motion is shared physics
   const RANGES = {
     '#🛞 Tyre smoke': 0,
     emission: [0, 3, 0.05, 'Amount'], opacity: [0.2, 5, 0.05, 'Opacity'], fade: [0.1, 3, 0.05, 'Fade speed'],
-    tint: [0.5, 1.2, 0.01, 'Grey level'], dust: [0, 1, 0.01, 'Sand-dust tint'],
+    tint: [0.5, 1.2, 0.01, 'Grey level'], dust: [0, 1, 0.01, 'Sand-dust tint'], tyreSwirl: [0, 2, 0.05, 'Wrap around tyre'],
     '#💥 Explosion / fire': 0,
     blast: [0, 2, 0.05, 'Size (0=off)'], fireGain: [0, 3, 0.05, 'Fire brightness'], sootOpacity: [0.2, 6, 0.05, 'Soot opacity'],
-    sootLevel: [0.01, 0.6, 0.01, 'Soot colour (dark→grey)'], sootFade: [0.05, 2, 0.05, 'Soot fade speed'],
+    sootLevel: [0.01, 0.6, 0.01, 'Soot colour (dark→grey)'], sootFade: [0.05, 2, 0.05, 'Soot fade speed'], blastSwirl: [0, 1, 0.01, 'Small-scale swirl'],
     '#🌪️ Tornado': 0,
     tornado: [0, 2, 0.05, 'Strength (0=off)'], tornadoDust: [0, 4, 0.05, 'Dust amount'],
     '#☀️ Lighting & motion (all)': 0,
-    shadow: [0, 4, 0.05, 'Self-shadow'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
+    shadow: [0, 4, 0.05, 'Self-shadow'], groundShadow: [0, 1, 0.01, 'Shadows cast on ground/car'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
     phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'], vorticity: [0, 14, 0.1, 'Curl / vorticity'], buoyancy: [0, 5, 0.05, 'Rise (buoyancy)'],
   };
   let settings = { ...DEFAULTS };
-  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings2') || '{}')); } catch { /* ignore */ }
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings3') || '{}')); } catch { /* ignore */ }
   const sl = $('sliders');
   const build = () => {
     sl.innerHTML = '';
@@ -138,13 +139,13 @@ async function init() {
       const row = document.createElement('label');
       row.innerHTML = `<span>${label}</span><input type="range" min="${mn}" max="${mx}" step="${st}" value="${settings[k]}"><output>${(+settings[k]).toFixed(2)}</output>`;
       const inp = row.querySelector('input'), out = row.querySelector('output');
-      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings2', JSON.stringify(settings)); });
+      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings3', JSON.stringify(settings)); });
       inp.addEventListener('keydown', (e) => e.stopPropagation());
       sl.appendChild(row);
     }
   };
   build();
-  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings2'); build(); };
+  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings3'); build(); };
   $('toggleSmoke').onclick = () => $('smokePanel').classList.toggle('collapsed');
   const forceSmoke = new URLSearchParams(location.search).has('smoketest');
   const autoInput = new URLSearchParams(location.search).has('demo');
@@ -349,6 +350,7 @@ async function init() {
     const view = mat4.lookAt(shaken, camLook, [0, 1, 0]);
     const proj = mat4.perspective(1.0, canvas.width / canvas.height, 0.1, 600);
     const vp = mat4.mul(proj, view);
+    scene.smokeInfo = [smoke.origin[0], smoke.origin[1], smoke.origin[2], SMOKE_H, ...SMOKE_DIMS, settings.groundShadow];
     scene.writeCamera(vp, shaken, lightDir, canvas.width, canvas.height, frame, car, flash);
     scene.buildInstances(car, debris.concat(plumes.map((p) => ({ x: p.x, y: 0.12, z: p.z, s: p.w * 0.55, yaw: p.seed, rx: 0, rz: 0.05, color: [0.06, 0.05, 0.045, 0] }))));
 

@@ -1,11 +1,28 @@
 // Lit scene: sand ground, crates, car body + wheels. Instanced meshes with per-instance model/colour.
-import { mat4 } from './math.js?v=12';
+import { mat4 } from './math.js?v=13';
 
 const SHADER = /* wgsl */`
-struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f };
+struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f, smO: vec4f, smD: vec4f };
 struct Inst { model: mat4x4f, color: vec4f };
 @group(0) @binding(0) var<uniform> cam: Cam;
 @group(0) @binding(1) var<storage, read> insts: array<Inst>;
+@group(0) @binding(2) var<storage, read> smokeLight: array<vec4f>;
+// smoke shadow: opacity-weighted optical depth toward the sun, trilinear from the smoke light volume
+fn smokeShadow(wp: vec3f) -> f32 {
+  if (cam.smD.w <= 0.0) { return 1.0; }
+  let dims = vec3<i32>(cam.smD.xyz);
+  let g = (wp - cam.smO.xyz) / cam.smO.w - 0.5 + vec3f(0.0, 0.6, 0.0);
+  if (any(g < vec3f(0.0)) || any(g > vec3f(dims - vec3<i32>(1)))) { return 1.0; }
+  let b = floor(g); let f = g - b; let i0 = vec3<i32>(b);
+  var od = 0.0;
+  for (var k = 0; k < 8; k++) {
+    let o = vec3<i32>(k & 1, (k >> 1) & 1, (k >> 2) & 1);
+    let q = min(i0 + o, dims - vec3<i32>(1));
+    let wgt = select(1.0 - f.x, f.x, o.x == 1) * select(1.0 - f.y, f.y, o.y == 1) * select(1.0 - f.z, f.z, o.z == 1);
+    od += smokeLight[(q.z * dims.y + q.y) * dims.x + q.x].w * wgt;
+  }
+  return mix(1.0, exp(-od), cam.smD.w);
+}
 struct VO { @builtin(position) pos: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) col: vec4f, @location(3) on: vec3f };
 @vertex fn vs(@location(0) p: vec3f, @location(1) n: vec3f, @builtin(instance_index) ii: u32) -> VO {
   let I = insts[ii];
@@ -52,9 +69,10 @@ fn boxShadow(wp: vec3f, c: vec2f, yaw: f32, he: vec2f, soft: f32) -> f32 {
     // tyre: hub on the side faces
     if (abs(i.on.x) > 0.9) { base = vec3f(0.55, 0.56, 0.6); }
   }
-  let diff = max(dot(n, L), 0.0);
+  let ssh = smokeShadow(i.wp);
+  let diff = max(dot(n, L), 0.0) * ssh;
   let hemi = mix(vec3f(0.35, 0.3, 0.25), vec3f(0.55, 0.65, 0.8), n.y * 0.5 + 0.5);
-  var c = base * (hemi * 0.75 + vec3f(1.0, 0.94, 0.85) * diff * 0.95);
+  var c = base * (hemi * (0.55 + 0.2 * ssh) + vec3f(1.0, 0.94, 0.85) * diff * 0.95);
   let v = normalize(cam.camPos.xyz - i.wp);
   let hv = normalize(L + v);
   if (mat < 0.5) { c += vec3f(0.25) * pow(max(dot(n, hv), 0.0), 40.0); }
@@ -127,16 +145,21 @@ export class Scene {
     this.maxInst = 128;
     this.inst = new Float32Array(this.maxInst * 20);
     this.ibuf = device.createBuffer({ size: this.inst.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-    this.camUbo = device.createBuffer({ size: 224, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    this.bg = device.createBindGroup({ layout: this.pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: this.camUbo } }, { binding: 1, resource: { buffer: this.ibuf } }] });
+    this.camUbo = device.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this.smokeInfo = [0, 0, 0, 1, 1, 1, 1, 0];
+  }
+
+  setSmokeLight(buf) {
+    this.bg = this.device.createBindGroup({ layout: this.pipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: this.camUbo } }, { binding: 1, resource: { buffer: this.ibuf } }, { binding: 2, resource: { buffer: buf } }] });
   }
 
   writeCamera(viewProj, camPos, lightDir, w, h, frame, car, flash = [0, 0, 0, 0]) {
-    const d = new Float32Array(56);
+    const d = new Float32Array(64);
     d.set(viewProj, 0); d.set(mat4.invert(viewProj), 16);
     d.set([...camPos, 1], 32); d.set([...lightDir, 0], 36); d.set([w, h, frame % 1000, 0], 40);
     d.set([car.x, car.z, car.heading, 0], 44);
     d.set(flash, 48);
+    d.set(this.smokeInfo, 52);
     this.device.queue.writeBuffer(this.camUbo, 0, d);
   }
 

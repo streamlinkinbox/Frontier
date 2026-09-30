@@ -2,7 +2,7 @@
 // Stable Fluids + MacCormack advection + vorticity confinement + Jacobi pressure.
 // All fields are storage buffers (no read-write storage textures => works on core WebGPU everywhere).
 
-import { TIER } from './tier.js?v=12';
+import { TIER } from './tier.js?v=13';
 export const SMOKE_DIMS = TIER.smokeDims;
 export const SMOKE_H = TIER.smokeH; // metres per cell  => 32 x 16 x 32 m domain either way
 // far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
@@ -24,7 +24,7 @@ export const MAX_CRATES = 8;
 export const MAX_SOURCES = 8;
 //  68 tor0 (x, z, vMax, coreR)  69 tor1 (updraft, height, dust, active)
 //  70 lod (holeHeight, holeFade, edgeFade, holeActive)   rp3 = hole box (ox, oz, sizeX, sizeZ)
-//  71 pad0 (steps, stepMul, fireGain, sootOpacity)  72 pad1 (sootLevel, sootDecay, -, -)
+//  71 pad0 (steps, stepMul, fireGain, sootOpacity)  72 pad1 (sootLevel, sootDecay, blastSwirl, tyreSwirl)
 const PARAM_VEC4 = 74;
 
 export const SMOKE_COMMON = /* wgsl */`
@@ -225,15 +225,19 @@ ${HEAD}
   let dt = prm.misc.x; let h = prm.origin.w;
   var v = vel[id].xyz;
   var d = den[id];
-  // vorticity confinement
-  let wL = curl[cellIdx(c - vec3<i32>(1,0,0))].w; let wR = curl[cellIdx(c + vec3<i32>(1,0,0))].w;
-  let wB = curl[cellIdx(c - vec3<i32>(0,1,0))].w; let wT = curl[cellIdx(c + vec3<i32>(0,1,0))].w;
-  let wK = curl[cellIdx(c - vec3<i32>(0,0,1))].w; let wF = curl[cellIdx(c + vec3<i32>(0,0,1))].w;
+  // vorticity confinement. Gradient over a 2-cell stride -> favours larger coherent eddies over
+  // grid-scale "curl noise". Hot/sooty explosion gas gets its own (much weaker) strength so fireballs
+  // roll as big buoyant billows instead of fizzing.
+  let wL = curl[cellIdx(c - vec3<i32>(2,0,0))].w; let wR = curl[cellIdx(c + vec3<i32>(2,0,0))].w;
+  let wB = curl[cellIdx(c - vec3<i32>(0,2,0))].w; let wT = curl[cellIdx(c + vec3<i32>(0,2,0))].w;
+  let wK = curl[cellIdx(c - vec3<i32>(0,0,2))].w; let wF = curl[cellIdx(c + vec3<i32>(0,0,2))].w;
   let eta = vec3f(wR - wL, wT - wB, wF - wK);
   let el = length(eta);
   if (el > 1e-5) {
     let N = eta / el;
-    v += prm.misc.z * h * cross(N, curl[id].xyz) * dt;
+    let blastW = clamp(max(d.w / max(d.x, 1e-3), (d.y - 0.15) * 2.0), 0.0, 1.0);
+    let eps = prm.misc.z * mix(1.0, prm.pad1.z, blastW);
+    v += eps * h * cross(N, curl[id].xyz) * dt;
   }
   // buoyancy (hot smoke rises, dense smoke sinks slightly)
   v.y += (prm.misc.w * d.y - prm.diss.w * d.x) * dt;
@@ -248,7 +252,7 @@ ${HEAD}
     if (f < 0.01) { continue; }
     d.x += e.w * f * dt * 2.2;
     d.y += e.w * f * dt * 2.0;
-    v = mix(v, prm.emV[i].xyz, clamp(f * e.w * dt * 4.0, 0.0, 1.0));
+    v = mix(v, prm.emV[i].xyz, clamp(f * e.w * dt * 1.5, 0.0, 1.0));
   }
   // tyre-driven swirl: air dragged around the spinning wheel (drift smoke curls around the tyre)
   for (var i = 0; i < 4; i++) {
@@ -259,12 +263,12 @@ ${HEAD}
     let along = dot(q, ax);
     let radial = q - ax * along;
     let rl = length(radial);
-    let rr = (rl - wc.w * 1.35) / 0.35;
-    let band = exp(-rr * rr) * exp(-along * along / 0.25);
+    let rr = (rl - wc.w * 1.12) / max(0.3, prm.origin.w * 1.2);
+    let band = exp(-rr * rr) * exp(-along * along / 0.12);
     if (band < 0.02) { continue; }
-    let spin = clamp(prm.em2[i].w, -40.0, 40.0);
-    let tang = cross(ax, radial / max(rl, 1e-3)) * spin * wc.w * 0.55;
-    v = mix(v, prm.carV.xyz * 0.3 + tang, clamp(band * dt * 10.0, 0.0, 1.0));
+    let spin = clamp(prm.em2[i].w, -80.0, 80.0);
+    let tang = cross(ax, radial / max(rl, 1e-3)) * spin * wc.w * prm.pad1.w;
+    v = mix(v, prm.carV.xyz * 0.6 + tang, clamp(band * dt * 18.0, 0.0, 1.0));
   }
   // gas explosions (mode 1) and lingering burning plumes (mode 2); every source has its own seed/shape
   for (var i = 0; i < 8; i++) {
@@ -378,14 +382,20 @@ ${HEAD}
 ${HEAD}
   let L = normalize(prm.rp2.xyz);
   let h = prm.origin.w;
-  // sun: march 20 cells toward the light (self-shadowing)
+  // sun: march toward the light (self-shadowing, x: first 20 cells). w: opacity-weighted optical
+  // depth over a longer march (20 + 16x2 cells) used to cast smoke shadows onto the ground/car.
   var p = vec3f(c) + 0.5;
   var sunOD = 0.0;
-  for (var i = 0; i < 20; i++) {
-    p += L;
+  var shOD = 0.0;
+  for (var i = 0; i < 36; i++) {
+    let stp = select(1.0, 2.0, i >= 20);
+    p += L * stp;
     let q = vec3<i32>(floor(p));
     if (!inDomain(q)) { break; }
-    sunOD += den[cellIdx(q)].x;
+    let dd = den[cellIdx(q)];
+    if (i < 20) { sunOD += dd.x; }
+    let sf = clamp(dd.w / max(dd.x, 1e-3), 0.0, 1.0);
+    shOD += dd.x * mix(prm.rp0.x, prm.pad0.w, sf) * stp;
   }
   // sky: march straight up (ambient occlusion from smoke above)
   var skyOD = 0.0;
@@ -398,7 +408,7 @@ ${HEAD}
   var occ = 0.0;
   occ += den[cellIdx(c + vec3<i32>(2,0,0))].x + den[cellIdx(c - vec3<i32>(2,0,0))].x;
   occ += den[cellIdx(c + vec3<i32>(0,0,2))].x + den[cellIdx(c - vec3<i32>(0,0,2))].x;
-  lightVol[id] = vec4f(sunOD * h, skyOD * h, occ * h * 0.5, 0.0);
+  lightVol[id] = vec4f(sunOD * h, skyOD * h, occ * h * 0.5, shOD * h);
 }`,
 
   project: `
@@ -656,7 +666,7 @@ export class Smoke {
       P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
     P.set([this.far ? 128 : TIER.steps, this.far ? 1.1 : TIER.stepMul, S.fireGain ?? 1, S.sootOpacity ?? 2], 284);
-    P.set([S.sootLevel ?? 0.08, Math.exp(-(S.sootFade ?? 0.35) * dt), 0, 0], 288);
+    P.set([S.sootLevel ?? 0.08, Math.exp(-(S.sootFade ?? 0.35) * dt), S.blastSwirl ?? 0.2, S.tyreSwirl ?? 1.0], 288);
     P.set([this.hole ? this.hole.height : 0, this.hole ? this.hole.fade : 0, this.far ? 10 : 2.5, this.hole ? 1 : 0], 280);
     if (this.hole) P.set([this.hole.ox, this.hole.oz, this.hole.sx, this.hole.sz], 172);
     for (let i = 0; i < 4; i++) {
