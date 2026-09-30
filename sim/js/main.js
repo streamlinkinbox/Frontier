@@ -1,10 +1,10 @@
-import { mat4 } from './math.js?v=11';
-import { Car } from './car.js?v=11';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=11';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=11';
-import { TIER } from './tier.js?v=11';
-import { Scene } from './scene.js?v=11';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=11';
+import { mat4 } from './math.js?v=12';
+import { Car } from './car.js?v=12';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=12';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=12';
+import { TIER } from './tier.js?v=12';
+import { Scene } from './scene.js?v=12';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=12';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -93,6 +93,10 @@ async function init() {
     b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointerleave', off);
   });
   // orbit camera
+  const CAM_MODES = ['chase', 'free', 'action', 'tornado'];
+  let camMode = 'chase';
+  const setCam = (m) => { camMode = m; camYaw = 0; document.querySelectorAll('[data-cam]').forEach((b) => b.classList.toggle('on', b.dataset.cam === m)); };
+  addEventListener('keydown', (e) => { if (e.code === 'KeyC') setCam(CAM_MODES[(CAM_MODES.indexOf(camMode) + 1) % CAM_MODES.length]); });
   let camYaw = 0, camPitch = 0.32, camDist = 11, dragging = false, lastX = 0, lastY = 0, userOrbit = 0;
   canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
   addEventListener('pointerup', () => { dragging = false; });
@@ -103,38 +107,51 @@ async function init() {
   });
   canvas.addEventListener('wheel', (e) => { camDist = Math.min(40, Math.max(5, camDist * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
   // smoke settings panel
-  const DEFAULTS = { tornado: 1.0, blast: 1.0, emission: 0.6, fade: 0.9, opacity: 1.3, shadow: 1.6, ambient: 1.0, brightness: 1.0, dust: 0.35, tint: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.6 };
+  const DEFAULTS = {
+    emission: 0.8, opacity: 1.6, fade: 0.8, tint: 1.0, dust: 0.3,
+    blast: 1.0, fireGain: 1.0, sootOpacity: 2.2, sootLevel: 0.08, sootFade: 0.35,
+    tornado: 1.0, tornadoDust: 1.2,
+    shadow: 1.4, ambient: 1.0, brightness: 1.0, phase: 0.45, vorticity: 5, buoyancy: 1.8,
+  };
+  // grouped: each effect has its own look + lifetime; lighting/motion is shared physics
   const RANGES = {
-    tornado: [0, 2, 0.05, 'Tornado strength (0=off)'],
-    blast: [0, 2, 0.05, 'Explosion size (0=off)'],
-    emission: [0, 2, 0.05, 'Amount'], fade: [0.1, 3, 0.05, 'Fade speed'], opacity: [0.2, 4, 0.05, 'Opacity'],
+    '#🛞 Tyre smoke': 0,
+    emission: [0, 3, 0.05, 'Amount'], opacity: [0.2, 5, 0.05, 'Opacity'], fade: [0.1, 3, 0.05, 'Fade speed'],
+    tint: [0.5, 1.2, 0.01, 'Grey level'], dust: [0, 1, 0.01, 'Sand-dust tint'],
+    '#💥 Explosion / fire': 0,
+    blast: [0, 2, 0.05, 'Size (0=off)'], fireGain: [0, 3, 0.05, 'Fire brightness'], sootOpacity: [0.2, 6, 0.05, 'Soot opacity'],
+    sootLevel: [0.01, 0.6, 0.01, 'Soot colour (dark→grey)'], sootFade: [0.05, 2, 0.05, 'Soot fade speed'],
+    '#🌪️ Tornado': 0,
+    tornado: [0, 2, 0.05, 'Strength (0=off)'], tornadoDust: [0, 4, 0.05, 'Dust amount'],
+    '#☀️ Lighting & motion (all)': 0,
     shadow: [0, 4, 0.05, 'Self-shadow'], ambient: [0, 2, 0.05, 'Ambient / sky'], brightness: [0.3, 2, 0.05, 'Brightness'],
-    dust: [0, 1, 0.01, 'Sand-dust mix'], tint: [0.5, 1.2, 0.01, 'Grey level'], phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'],
-    vorticity: [0, 14, 0.1, 'Curl / vorticity'], buoyancy: [0, 5, 0.05, 'Rise (buoyancy)'],
+    phase: [0, 0.85, 0.01, 'Sun glow (fwd scatter)'], vorticity: [0, 14, 0.1, 'Curl / vorticity'], buoyancy: [0, 5, 0.05, 'Rise (buoyancy)'],
   };
   let settings = { ...DEFAULTS };
-  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings') || '{}')); } catch { /* ignore */ }
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('smokeSettings2') || '{}')); } catch { /* ignore */ }
   const sl = $('sliders');
   const build = () => {
     sl.innerHTML = '';
-    for (const [k, [mn, mx, st, label]] of Object.entries(RANGES)) {
+    for (const [k, spec] of Object.entries(RANGES)) {
+      if (k.startsWith('#')) { const hd = document.createElement('div'); hd.className = 'grp'; hd.textContent = k.slice(1); sl.appendChild(hd); continue; }
+      const [mn, mx, st, label] = spec;
       const row = document.createElement('label');
       row.innerHTML = `<span>${label}</span><input type="range" min="${mn}" max="${mx}" step="${st}" value="${settings[k]}"><output>${(+settings[k]).toFixed(2)}</output>`;
       const inp = row.querySelector('input'), out = row.querySelector('output');
-      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings', JSON.stringify(settings)); });
+      inp.addEventListener('input', () => { settings[k] = +inp.value; out.textContent = (+inp.value).toFixed(2); localStorage.setItem('smokeSettings2', JSON.stringify(settings)); });
       inp.addEventListener('keydown', (e) => e.stopPropagation());
       sl.appendChild(row);
     }
   };
   build();
-  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings'); build(); };
+  $('resetSmoke').onclick = () => { settings = { ...DEFAULTS }; localStorage.removeItem('smokeSettings2'); build(); };
   $('toggleSmoke').onclick = () => $('smokePanel').classList.toggle('collapsed');
   const forceSmoke = new URLSearchParams(location.search).has('smoketest');
   const autoInput = new URLSearchParams(location.search).has('demo');
 
   const lightDir = (() => { const v = [0.45, 0.8, 0.35]; const l = Math.hypot(...v); return v.map((x) => x / l); })();
   let last = performance.now(), acc = 0, frame = 0, fpsT = 0, fpsN = 0, fps = 0, camHeading = 0;
-  const camPos = [0, 4, -10];
+  const camPos = [0, 4, -10], camLook = [0, 1, 0];
   $('tier').textContent = `${TIER.name.toUpperCase()} tier · smoke ${SMOKE_DIMS.join("×")} @ ${(SMOKE_H * 100).toFixed(1)} cm · Jacobi ${smoke.jacobiIters} · far LOD ${FAR_DIMS.join('×')} @ ${FAR_H} m (30 Hz) · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
   document.querySelectorAll('[data-tier]').forEach((b) => {
     b.classList.toggle('on', b.dataset.tier === TIER.name);
@@ -145,6 +162,8 @@ async function init() {
       location.href = u.toString();
     };
   });
+  document.querySelectorAll('[data-cam]').forEach((b) => { b.onclick = () => setCam(b.dataset.cam); });
+  setCam('chase');
   const vram = ((smoke.bytes + smokeFar.bytes + sand.bytes + tornado.bytes) / 1048576).toFixed(0);
 
   // ---- gas-crate explosions: proximity fuse -> fireball + shock + debris ----
@@ -305,13 +324,29 @@ async function init() {
     let dh = target - camHeading; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
     camHeading += dh * Math.min(1, dtReal * 3);
     userOrbit = Math.max(0, userOrbit - dtReal);
-    if (userOrbit <= 0) camYaw *= 1 - Math.min(1, dtReal * 1.5);
-    const yaw = camHeading + camYaw + Math.PI;
+    // camera modes: chase (auto-recentre), free (orbit stays where you leave it), action (frames the latest
+    // explosion/burning wreck, else the tornado, with the car in the foreground), tornado (always faces the funnel)
+    let look = [car.x + fx * 1.5, 1.0, car.z + fz * 1.5];
+    let baseYaw = camHeading;
+    let focus = null;
+    if (camMode === 'action') {
+      const src = blasts.length ? blasts[blasts.length - 1] : plumes.length ? plumes[plumes.length - 1] : settings.tornado > 0 ? tornado : null;
+      if (src) focus = [src.x, src.z, src === tornado ? 6 : 3];
+    } else if (camMode === 'tornado' && settings.tornado > 0) focus = [tornado.x, tornado.z, 7];
+    if (focus) {
+      baseYaw = Math.atan2(focus[0] - car.x, focus[1] - car.z);           // camera behind the car, facing the target
+      const k = Math.min(0.65, 12 / Math.max(1, Math.hypot(focus[0] - car.x, focus[1] - car.z)) + 0.35);
+      look = [car.x + (focus[0] - car.x) * k, focus[2] * k + 1, car.z + (focus[1] - car.z) * k];
+    }
+    if (camMode === 'chase' && userOrbit <= 0) camYaw *= 1 - Math.min(1, dtReal * 1.5);
+    if (camMode === 'free') baseYaw = 0;                                   // world-fixed orbit
+    const yaw = baseYaw + camYaw + Math.PI;
     const want = [car.x + Math.sin(yaw) * Math.cos(camPitch) * camDist, 1 + Math.sin(camPitch) * camDist, car.z + Math.cos(yaw) * Math.cos(camPitch) * camDist];
     for (let i = 0; i < 3; i++) camPos[i] += (want[i] - camPos[i]) * Math.min(1, dtReal * 6);
     shake *= Math.exp(-dtReal * 5);
     const shaken = camPos.map((v) => v + (Math.random() - 0.5) * shake);
-    const view = mat4.lookAt(shaken, [car.x + fx * 1.5, 1.0, car.z + fz * 1.5], [0, 1, 0]);
+    for (let i = 0; i < 3; i++) camLook[i] += (look[i] - camLook[i]) * Math.min(1, dtReal * 5);
+    const view = mat4.lookAt(shaken, camLook, [0, 1, 0]);
     const proj = mat4.perspective(1.0, canvas.width / canvas.height, 0.1, 600);
     const vp = mat4.mul(proj, view);
     scene.writeCamera(vp, shaken, lightDir, canvas.width, canvas.height, frame, car, flash);

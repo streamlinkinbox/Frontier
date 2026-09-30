@@ -2,7 +2,7 @@
 // Stable Fluids + MacCormack advection + vorticity confinement + Jacobi pressure.
 // All fields are storage buffers (no read-write storage textures => works on core WebGPU everywhere).
 
-import { TIER } from './tier.js?v=11';
+import { TIER } from './tier.js?v=12';
 export const SMOKE_DIMS = TIER.smokeDims;
 export const SMOKE_H = TIER.smokeH; // metres per cell  => 32 x 16 x 32 m domain either way
 // far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
@@ -24,7 +24,8 @@ export const MAX_CRATES = 8;
 export const MAX_SOURCES = 8;
 //  68 tor0 (x, z, vMax, coreR)  69 tor1 (updraft, height, dust, active)
 //  70 lod (holeHeight, holeFade, edgeFade, holeActive)   rp3 = hole box (ox, oz, sizeX, sizeZ)
-const PARAM_VEC4 = 72;
+//  71 pad0 (steps, stepMul, fireGain, sootOpacity)  72 pad1 (sootLevel, sootDecay, -, -)
+const PARAM_VEC4 = 74;
 
 export const SMOKE_COMMON = /* wgsl */`
 struct P {
@@ -35,7 +36,7 @@ struct P {
   em2: array<vec4f, 4>, wheel: array<vec4f, 4>,
   rp0: vec4f, rp1: vec4f, rp2: vec4f, rp3: vec4f,
   ex: array<vec4f, 8>, exP: array<vec4f, 8>, exQ: array<vec4f, 8>,
-  tor0: vec4f, tor1: vec4f, lod: vec4f, pad0: vec4f,
+  tor0: vec4f, tor1: vec4f, lod: vec4f, pad0: vec4f, pad1: vec4f, pad2: vec4f,
 };
 @group(0) @binding(0) var<uniform> prm: P;
 
@@ -194,7 +195,8 @@ ${HEAD}
   nv = clamp(nv, vmin, vmax);
   nd = clamp(nd, dmin, dmax);
   // dissipation
-  nd = vec4f(nd.x * prm.diss.x, nd.y * prm.diss.y, nd.z * 0.995, nd.w * prm.diss.x);
+  let sootK = max(nd.w, 0.0) * prm.pad1.y;
+  nd = vec4f(max(nd.x - nd.w, 0.0) * prm.diss.x + sootK, nd.y * prm.diss.y, nd.z * 0.995, sootK);
   nv = vec4f(nv.xyz * prm.diss.z, 0.0);
   velD[id] = nv;
   denD[id] = max(nd, vec4f(0.0));
@@ -508,12 +510,12 @@ fn densAt(wp: vec3f) -> f32 {
     if (T > 0.6) {
       let fl = clamp((T - 0.6) / 3.0, 0.0, 1.0);
       let fireCol = mix(vec3f(1.0, 0.16, 0.02), vec3f(1.0, 0.72, 0.32), fl) + vec3f(0.4) * fl * fl;
-      let emis = fireCol * pow(T - 0.6, 1.4) * 1.3;
+      let emis = fireCol * pow(T - 0.6, 1.4) * 1.3 * prm.pad0.z;
       fire += trans * emis * stepLen;
     }
     if (d > 0.002) {
       let lv = sLight(g3);
-      let sigma = d * absorb * (1.0 + 0.8 * clamp(d4.w / max(d4.x, 1e-3), 0.0, 1.0));
+      let sigma = d * mix(absorb, prm.pad0.w, clamp(d4.w / max(d4.x, 1e-3), 0.0, 1.0));
       let sunT = exp(-lv.x * absorb * prm.rp0.y);
       let powder = 1.0 - exp(-2.0 * sigma);              // Beer-Powder: darker edges facing the light
       let skyT = exp(-lv.y * absorb * 0.6);
@@ -522,7 +524,7 @@ fn densAt(wp: vec3f) -> f32 {
       let direct = sunCol * sunT * mix(1.0, powder * 2.0, 0.5) * phase;
       let ambient = (skyCol * skyT * (0.6 + 0.4 * hgt) + bounce * (1.0 - hgt)) * ao * prm.rp0.z;
       let soot = clamp(d4.w / max(d4.x, 1e-3), 0.0, 1.0);
-      let alb = mix(albedo, vec3f(0.07, 0.065, 0.06), soot);   // explosion soot is near-black
+      let alb = mix(albedo, vec3f(1.0, 0.93, 0.86) * prm.pad1.x, soot);   // explosion soot colour (own slider)
       let c = alb * (direct + ambient) * prm.rp0.w;
       let a = 1.0 - exp(-sigma * stepLen);
       col += trans * a * c;
@@ -647,13 +649,14 @@ export class Smoke {
     P.set([S.opacity, S.shadow, S.ambient, S.brightness], 160);
     P.set([S.tint, S.tint, S.tint * 1.02, S.phase], 164);
     P.set([lightDir[0], lightDir[1], lightDir[2], S.dust], 168);
-    if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 272); P.set([T.updraft * T.strength, T.height, 1.2 * T.strength, T.strength > 0 ? 1 : 0], 276); }
+    if (this.tornado) { const T = this.tornado; P.set([T.x, T.z, T.vMax * T.strength, T.coreR], 272); P.set([T.updraft * T.strength, T.height, (S.tornadoDust ?? 1.2) * T.strength, T.strength > 0 ? 1 : 0], 276); }
     (this.sources || []).slice(0, 8).forEach((b, i) => {
       P.set([b.x, b.y, b.z, b.age], 176 + i * 4);
       P.set([Math.max(b.radius, h * (b.mode > 1.5 ? 1.0 : 1.5)), b.fuel, b.impulse, b.mode], 208 + i * 4);
       P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
-    P.set([this.far ? 128 : TIER.steps, this.far ? 1.1 : TIER.stepMul, 0, 0], 284);
+    P.set([this.far ? 128 : TIER.steps, this.far ? 1.1 : TIER.stepMul, S.fireGain ?? 1, S.sootOpacity ?? 2], 284);
+    P.set([S.sootLevel ?? 0.08, Math.exp(-(S.sootFade ?? 0.35) * dt), 0, 0], 288);
     P.set([this.hole ? this.hole.height : 0, this.hole ? this.hole.fade : 0, this.far ? 10 : 2.5, this.hole ? 1 : 0], 280);
     if (this.hole) P.set([this.hole.ox, this.hole.oz, this.hole.sx, this.hole.sz], 172);
     for (let i = 0; i < 4; i++) {

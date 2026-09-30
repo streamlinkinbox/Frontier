@@ -19,10 +19,11 @@
   #help { bottom: 12px; left: 12px; }
   #help.hide { display: none; }
   kbd { background: #333; border-radius: 4px; padding: 0 5px; border: 1px solid #555; }
-  #smokePanel { top: 12px; right: 12px; width: 280px; font-size: 12px; }
+  #smokePanel { top: 12px; right: 12px; width: 280px; max-height: calc(100vh - 24px); overflow-y: auto; font-size: 12px; }
   #smokePanel .ph { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   #smokePanel button { background: #333; color: #ddd; border: 1px solid #555; border-radius: 5px; margin-left: 4px; cursor: pointer; font-size: 11px; }
   #smokePanel.collapsed #sliders { display: none; }
+  #sliders .grp { margin: 8px 0 2px; color: #ffd28a; font-weight: 600; border-top: 1px solid #333; padding-top: 5px; }
   #sliders label { display: grid; grid-template-columns: 118px 1fr 36px; align-items: center; gap: 6px; }
   #sliders input { width: 100%; accent-color: #9fd3ff; }
   #sliders output { text-align: right; color: #9fd3ff; font-variant-numeric: tabular-nums; }
@@ -38,12 +39,13 @@
   <div id="tier">tier</div>
   <div class="tiers"><button data-tier="rtx">🟪 RTX</button><button data-tier="gtx">🟩 GTX</button><button data-tier="low">⬜ Low</button></div>
   <div id="stats">starting WebGPU…</div>
+  <div class="tiers">📷 <button data-cam="chase">Chase</button><button data-cam="free">Free</button><button data-cam="action">Action</button><button data-cam="tornado">Tornado</button> <span class="dim">(C)</span></div>
   <div class="bar"><div id="drift"></div></div>
   <div id="driftLbl" class="dim">grip</div>
 </div>
 <div id="help" class="panel">
   <kbd>W</kbd>/<kbd>↑</kbd> throttle · <kbd>S</kbd> brake/reverse · <kbd>A</kbd><kbd>D</kbd> steer · <kbd>Space</kbd> handbrake (drift)<br>
-  <kbd>R</kbd> reset · drag = orbit · wheel = zoom · <kbd>H</kbd> hide help<br>
+  <kbd>R</kbd> reset · <kbd>C</kbd> camera mode · drag = orbit · wheel = zoom · <kbd>H</kbd> hide help<br>
   <span class="dim">Sand spawns only under the tyres · smoke only while drifting / wheelspinning</span>
 </div>
 <div id="touch">
@@ -56,6 +58,6 @@
   <div id="sliders"></div>
 </div>
 <div id="err" class="panel"></div>
-<script type="module" src="./js/main.js?v=11"></script>
+<script type="module" src="./js/main.js?v=12"></script>
 </body>
 </html>
