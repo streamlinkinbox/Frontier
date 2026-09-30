@@ -1,11 +1,11 @@
-import { mat4 } from './math.js?v=15';
-import { Car } from './car.js?v=15';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=15';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=15';
-import { TIER } from './tier.js?v=15';
-import { Scene } from './scene.js?v=15';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=15';
-import { Water, puddleAt, SPLASH_MAX } from './water.js?v=15';
+import { mat4 } from './math.js?v=16';
+import { Car } from './car.js?v=16';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=16';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=16';
+import { TIER } from './tier.js?v=16';
+import { Scene } from './scene.js?v=16';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=16';
+import { Water, puddleAt, groundY, SPLASH_MAX } from './water.js?v=16';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -72,6 +72,7 @@ async function init() {
   scene.setSmokeLight(smoke.buf.light);
   const smokeFar = new Smoke(device, format, checkModule, { dims: FAR_DIMS, h: FAR_H, jacobi: TIER.farJacobi, far: true });
   const sand = new Sand(device, format, checkModule);
+  scene.puddles = puddles;
   const water = new Water(device, format, checkModule, puddles, scene.camUbo);
   const tornado = new Tornado(device, checkModule, sand.renderPipe, scene.camUbo);
   smoke.tornado = tornado; smokeFar.tornado = tornado; sand.tornado = tornado;
@@ -332,6 +333,12 @@ async function init() {
     while (acc >= PH) { car.step(PH, input, solids); acc -= PH; }
     // puddles: which wheels are in water -> grip, drag, no sand/smoke from wet tyres
     const wet = car.wheels.map((wh) => puddleAt(puddles, wh.pos[0], wh.pos[2]));
+    // car sits on the dented terrain: wheel heights -> body height, pitch (nose down = +) and roll (+X side up = +)
+    for (const wh of car.wheels) wh.gy = (wh.gy || 0) + (groundY(puddles, wh.pos[0], wh.pos[2]) - (wh.gy || 0)) * Math.min(1, dtReal * 20);
+    { const W = car.wheels, g = (k) => W[k].gy || 0;
+      car.bodyOff = (g(0) + g(1) + g(2) + g(3)) / 4;
+      car.tPitch = ((g(2) + g(3)) - (g(0) + g(1))) / 2 / 2.6;
+      car.tRoll = ((g(1) + g(3)) - (g(0) + g(2))) / 2 / 2.0; }
     let nWet = 0, mudWet = 0;
     car.wheels.forEach((wh, i) => {
       const pi = wet[i];
@@ -414,6 +421,7 @@ async function init() {
       depthStencilAttachment: { view: depthTex.createView(), depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' },
     });
     scene.draw(p1);
+    water.drawOpaque(p1);
     sand.draw(p1);
     water.draw(p1);
     if (settings.tornado > 0) tornado.draw(p1);

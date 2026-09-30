@@ -12,3 +12,8 @@
 - The car loses grip and gets water drag in puddles (more in mud). Wet tyres throw no sand or smoke.
 - Sliders under 💧 Puddles: splash amount, wave strength, water drag. Test flag: `?puddletest`.
 - RTX tier removed; GTX (default) and Low remain.
+
+## Update: real puddles in dented terrain
+- The ground is dented into bowls (up to 26 cm deep) with irregular shorelines. The car drops into them, pitching and rolling with the terrain.
+- The water is a mass-conserving shallow-water fluid ("virtual pipes") on a 128×128 grid per puddle, with 4 substeps per frame. It has real volume, flows downhill and settles still. Tyres push it aside, making bow waves, a trough and a wake that sloshes back.
+- Rendering: Beer–Lambert absorption over the real water depth (thin edges show the wet bed, deeper water is tinted), Fresnel sky reflection, sun glints, and foam on disturbed water. Mud is opaque and viscous.

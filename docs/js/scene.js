@@ -1,8 +1,8 @@
 // Lit scene: sand ground, crates, car body + wheels. Instanced meshes with per-instance model/colour.
-import { mat4 } from './math.js?v=15';
+import { mat4 } from './math.js?v=16';
 
 const SHADER = /* wgsl */`
-struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f, smO: vec4f, smD: vec4f };
+struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f, smO: vec4f, smD: vec4f, pud: array<vec4f, 3> };
 struct Inst { model: mat4x4f, color: vec4f };
 @group(0) @binding(0) var<uniform> cam: Cam;
 @group(0) @binding(1) var<storage, read> insts: array<Inst>;
@@ -40,6 +40,13 @@ fn vnoise(p: vec2f) -> f32 {
   let i = floor(p); let f = fract(p); let u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2f(1, 0)), u.x), mix(hash2(i + vec2f(0, 1)), hash2(i + vec2f(1, 1)), u.x), u.y);
 }
+// puddle dents: normalised distance to the irregular shoreline (same formula as water.js)
+fn pudDn(i: i32, p: vec2f) -> f32 {
+  let P = cam.pud[i];
+  if (P.z <= 0.0) { return 9.0; }
+  let q = p - P.xy; let a = atan2(q.y, q.x); let s = f32(i) * 2.7 + 1.3;
+  return length(q) / (P.z * (1.0 + 0.12 * sin(3.0 * a + s) + 0.07 * sin(5.0 * a + s * 2.1) + 0.04 * sin(9.0 * a + s * 0.7)));
+}
 fn boxShadow(wp: vec3f, c: vec2f, yaw: f32, he: vec2f, soft: f32) -> f32 {
   let d = wp.xz - c;
   let l = vec2f(d.x * cos(yaw) - d.y * sin(yaw), d.x * sin(yaw) + d.y * cos(yaw));
@@ -55,6 +62,9 @@ fn boxShadow(wp: vec3f, c: vec2f, yaw: f32, he: vec2f, soft: f32) -> f32 {
   if (mat > 0.5 && mat < 1.5) {
     // procedural sand ground with wind ripples
     let p = i.wp.xz;
+    // the dented puddle beds are drawn by water.js: cut the flat ground away inside each shoreline
+    let dnMin = min(pudDn(0, p), min(pudDn(1, p), pudDn(2, p)));
+    if (dnMin < 1.0) { discard; }
     let warp = vnoise(p * 0.15) * 6.0;
     let rip = sin(dot(p, vec2f(0.8, 0.45)) * 3.2 + warp);
     let nz = vnoise(p * 1.7) * 0.6 + vnoise(p * 9.0) * 0.4;
@@ -62,6 +72,7 @@ fn boxShadow(wp: vec3f, c: vec2f, yaw: f32, he: vec2f, soft: f32) -> f32 {
     n = normalize(vec3f(0.08 * rip * 0.8, 1.0, 0.05 * rip));
     let g = abs(fract(p / 10.0 + 0.5) - 0.5) * 10.0;
     base *= mix(0.93, 1.0, smoothstep(0.0, 0.06, min(g.x, g.y)));
+    base *= mix(0.62, 1.0, smoothstep(1.0, 1.18, dnMin));   // damp sand ring around each puddle
     // soft contact shadow under the car
     let sh = boxShadow(i.wp, cam.extra.xy, cam.extra.z, vec2f(1.0, 2.2), 0.6);
     base *= 1.0 - 0.45 * sh;
@@ -145,7 +156,7 @@ export class Scene {
     this.maxInst = 128;
     this.inst = new Float32Array(this.maxInst * 20);
     this.ibuf = device.createBuffer({ size: this.inst.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-    this.camUbo = device.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this.camUbo = device.createBuffer({ size: 304, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     this.smokeInfo = [0, 0, 0, 1, 1, 1, 1, 0];
   }
 
@@ -154,12 +165,13 @@ export class Scene {
   }
 
   writeCamera(viewProj, camPos, lightDir, w, h, frame, car, flash = [0, 0, 0, 0]) {
-    const d = new Float32Array(64);
+    const d = new Float32Array(76);
     d.set(viewProj, 0); d.set(mat4.invert(viewProj), 16);
     d.set([...camPos, 1], 32); d.set([...lightDir, 0], 36); d.set([w, h, frame % 1000, 0], 40);
     d.set([car.x, car.z, car.heading, 0], 44);
     d.set(flash, 48);
     d.set(this.smokeInfo, 52);
+    (this.puddles || []).slice(0, 3).forEach((p, k) => d.set([p.x, p.z, p.r, p.mud], 64 + k * 4));
     this.device.queue.writeBuffer(this.camUbo, 0, d);
   }
 
@@ -173,14 +185,14 @@ export class Scene {
     const [fx, fz] = car.fwd();
     const body = (lx, ly, lz, hx, hy, hz, col) => {
       const [wx, wz] = car.toWorld(lx, lz);
-      push('cube', mat4.trs(car.x + wx, ly, car.z + wz, car.heading, hx, hy, hz, -car.pitch, car.roll), col);
+      push('cube', mat4.trs(car.x + wx, ly + (car.bodyOff || 0), car.z + wz, car.heading, hx, hy, hz, -car.pitch + (car.tPitch || 0), car.roll + (car.tRoll || 0)), col);
     };
     body(0, car.bodyY, 0, car.halfExt[0], car.halfExt[1] * 0.75, car.halfExt[2], [0.85, 0.12, 0.1, 0]);
     body(0, car.bodyY + 0.5, -0.25, 0.78, 0.26, 1.05, [0.12, 0.14, 0.18, 0]);
     body(0, car.bodyY + 0.12, car.halfExt[2] - 0.05, 0.7, 0.08, 0.06, [1, 0.95, 0.75, 0]);
     for (const wh of car.wheels) {
       const yaw = car.heading + (wh.front ? car.steer : 0);
-      push('cyl', mat4.trs(wh.pos[0], car.wheelR, wh.pos[2], yaw, car.wheelW / 2, car.wheelR, car.wheelR, wh.spin), [0.08, 0.08, 0.09, 2]);
+      push('cyl', mat4.trs(wh.pos[0], car.wheelR + (wh.gy || 0), wh.pos[2], yaw, car.wheelW / 2, car.wheelR, car.wheelR, wh.spin), [0.08, 0.08, 0.09, 2]);
     }
     void fx; void fz;
     let k = 0;
