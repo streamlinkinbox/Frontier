@@ -243,7 +243,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   let c = corners[vi];
   let seed = fract(pt.v.w);
   let mud = fract(floor(pt.v.w) * 0.25) * 2.0;         // (pi*4 + mud*2) -> mud flag
-  let size = 0.02 + 0.035 * seed;
+  let size = (0.02 + 0.035 * seed) * (0.85 + 0.15 * clamp(U.misc2.x, 0.0, 3.0));   // bigger drops with more splash
   let vel = pt.v.xyz; let sp = length(vel);
   let toCam = normalize(cam.camPos.xyz - pt.p.xyz);
   var a1 = select(vec3f(0.0, 1.0, 0.0), vel / sp, sp > 1e-3);
