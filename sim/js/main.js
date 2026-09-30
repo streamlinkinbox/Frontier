@@ -1,9 +1,10 @@
-import { mat4 } from './math.js?v=10';
-import { Car } from './car.js?v=10';
-import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=10';
-import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=10';
-import { Scene } from './scene.js?v=10';
-import { Tornado, TORNADO_MAX } from './tornado.js?v=10';
+import { mat4 } from './math.js?v=11';
+import { Car } from './car.js?v=11';
+import { Smoke, SMOKE_DIMS, SMOKE_H, FAR_DIMS, FAR_H, MAX_CRATES } from './smoke.js?v=11';
+import { Sand, SAND_MAX, SAND_GRID } from './sand.js?v=11';
+import { TIER } from './tier.js?v=11';
+import { Scene } from './scene.js?v=11';
+import { Tornado, TORNADO_MAX } from './tornado.js?v=11';
 
 const $ = (id) => document.getElementById(id);
 const errors = [];
@@ -20,7 +21,10 @@ async function init() {
   if (!navigator.gpu) { fatal('WebGPU is not available in this browser.\nUse Chrome/Edge 113+ (or enable WebGPU), on a secure context (https or localhost).'); return; }
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
   if (!adapter) { fatal('No WebGPU adapter found (GPU blocklisted or drivers too old).'); return; }
-  const device = await adapter.requestDevice({ label: 'frontier-sim' });
+  // RTX tier uses ~60 MB storage buffers: request the adapter's real limits instead of the conservative defaults
+  const want = {};
+  for (const k of ['maxStorageBufferBindingSize', 'maxBufferSize', 'maxComputeWorkgroupsPerDimension']) if (adapter.limits[k]) want[k] = adapter.limits[k];
+  const device = await adapter.requestDevice({ label: 'frontier-sim', requiredLimits: want });
   device.lost.then((info) => fatal(`GPU device lost: ${info.reason} ${info.message}`));
   device.addEventListener('uncapturederror', (e) => fatal('WebGPU error: ' + e.error.message));
   let adapterName = '';
@@ -54,8 +58,8 @@ async function init() {
   device.pushErrorScope('validation');
   const car = new Car();
   const scene = new Scene(device, format, checkModule, crates);
-  const smoke = new Smoke(device, format, checkModule);
-  const smokeFar = new Smoke(device, format, checkModule, { dims: FAR_DIMS, h: FAR_H, jacobi: 16, far: true });
+  const smoke = new Smoke(device, format, checkModule, { jacobi: TIER.jacobi });
+  const smokeFar = new Smoke(device, format, checkModule, { dims: FAR_DIMS, h: FAR_H, jacobi: TIER.farJacobi, far: true });
   const sand = new Sand(device, format, checkModule);
   const tornado = new Tornado(device, checkModule, sand.renderPipe, scene.camUbo);
   smoke.tornado = tornado; smokeFar.tornado = tornado; sand.tornado = tornado;
@@ -131,7 +135,16 @@ async function init() {
   const lightDir = (() => { const v = [0.45, 0.8, 0.35]; const l = Math.hypot(...v); return v.map((x) => x / l); })();
   let last = performance.now(), acc = 0, frame = 0, fpsT = 0, fpsN = 0, fps = 0, camHeading = 0;
   const camPos = [0, 4, -10];
-  $('tier').textContent = `GTX tier · smoke ${SMOKE_DIMS.join('×')} @ ${SMOKE_H} m · Jacobi ${smoke.jacobiIters} · far LOD ${FAR_DIMS.join('×')} @ ${FAR_H} m (30 Hz) · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
+  $('tier').textContent = `${TIER.name.toUpperCase()} tier · smoke ${SMOKE_DIMS.join("×")} @ ${(SMOKE_H * 100).toFixed(1)} cm · Jacobi ${smoke.jacobiIters} · far LOD ${FAR_DIMS.join('×')} @ ${FAR_H} m (30 Hz) · sand MLS-MPM ${SAND_MAX / 1024}k (${SAND_GRID.join('×')} grid)`;
+  document.querySelectorAll('[data-tier]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.tier === TIER.name);
+    b.onclick = () => {
+      const u = new URL(location.href);
+      u.searchParams.delete('lowres'); u.searchParams.delete('tier');
+      if (b.dataset.tier === 'low') u.searchParams.set('lowres', ''); else u.searchParams.set('tier', b.dataset.tier);
+      location.href = u.toString();
+    };
+  });
   const vram = ((smoke.bytes + smokeFar.bytes + sand.bytes + tornado.bytes) / 1048576).toFixed(0);
 
   // ---- gas-crate explosions: proximity fuse -> fireball + shock + debris ----

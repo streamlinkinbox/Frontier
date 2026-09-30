@@ -1,7 +1,8 @@
 // Tornado: wandering Rankine vortex (solid-body core + 1/r outer flow) with inflow near the ground and
 // an updraft inside the funnel. Drives: GPU dust/debris particles (this file), the smoke grid, the MPM sand,
 // the car (CPU force) and the crates (CPU rigid lift + fling).
-export const TORNADO_MAX = new URLSearchParams(globalThis.location?.search || '').has('lowres') ? 8192 : 24576;
+import { TIER } from './tier.js?v=11';
+export const TORNADO_MAX = TIER.tornado;
 const STRIDE = 20; // same Particle layout as sand => can reuse the sand billboard renderer
 
 const SRC = /* wgsl */`

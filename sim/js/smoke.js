@@ -2,12 +2,12 @@
 // Stable Fluids + MacCormack advection + vorticity confinement + Jacobi pressure.
 // All fields are storage buffers (no read-write storage textures => works on core WebGPU everywhere).
 
-const LOW = new URLSearchParams(globalThis.location?.search || '').has('lowres');
-export const SMOKE_DIMS = LOW ? [64, 32, 64] : [128, 64, 128];
-export const SMOKE_H = LOW ? 0.5 : 0.25; // metres per cell  => 32 x 16 x 32 m domain either way
+import { TIER } from './tier.js?v=11';
+export const SMOKE_DIMS = TIER.smokeDims;
+export const SMOKE_H = TIER.smokeH; // metres per cell  => 32 x 16 x 32 m domain either way
 // far LOD cascade: coarse grid around the car covering ~128 m, simulated at 30 Hz
-export const FAR_DIMS = LOW ? [64, 16, 64] : [128, 32, 128];
-export const FAR_H = LOW ? 2.0 : 1.0;
+export const FAR_DIMS = TIER.farDims;
+export const FAR_H = TIER.farH;
 const WG = [4, 4, 4];
 export const MAX_CRATES = 8;
 
@@ -467,8 +467,8 @@ fn densAt(wp: vec3f) -> f32 {
   let tf = min(min(min(tmax.x, tmax.y), tmax.z), tScene);
   if (tf <= tn) { discard; }
 
-  let stepLen = h * 1.1;
-  let n = min(i32((tf - tn) / stepLen) + 1, 96);
+  let stepLen = h * prm.pad0.y;
+  let n = min(i32((tf - tn) / stepLen) + 1, i32(prm.pad0.x));
   var t = tn + stepLen * hash(fc.xy + vec2f(cam.screen.z * 7.0, 0.0));
   var trans = 1.0;
   var col = vec3f(0.0);
@@ -653,6 +653,7 @@ export class Smoke {
       P.set([Math.max(b.radius, h * (b.mode > 1.5 ? 1.0 : 1.5)), b.fuel, b.impulse, b.mode], 208 + i * 4);
       P.set([b.seed, b.up, b.noise, b.stretch], 240 + i * 4);
     });
+    P.set([this.far ? 128 : TIER.steps, this.far ? 1.1 : TIER.stepMul, 0, 0], 284);
     P.set([this.hole ? this.hole.height : 0, this.hole ? this.hole.fade : 0, this.far ? 10 : 2.5, this.hole ? 1 : 0], 280);
     if (this.hole) P.set([this.hole.ox, this.hole.oz, this.hole.sx, this.hole.sz], 172);
     for (let i = 0; i < 4; i++) {

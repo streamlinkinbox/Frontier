@@ -3,7 +3,8 @@
 // buffer. The MPM grid is transient (cleared every substep), so it simply re-centres on the car.
 // P2G uses fixed-point atomic<i32> (WGSL has no float atomics).
 
-export const SAND_MAX = new URLSearchParams(globalThis.location?.search || '').has('lowres') ? 16384 : 49152;
+import { TIER } from './tier.js?v=11';
+export const SAND_MAX = TIER.sand;
 export const SAND_GRID = [64, 32, 64];
 export const SAND_H = 0.125; // 8 x 4 x 8 m around the car
 const FIX = 65536.0; // fixed-point scale
@@ -290,7 +291,7 @@ export class Sand {
       primitive: { topology: 'triangle-list' },
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' },
     });
-    this.staging = new Float32Array(256 * STRIDE);
+    this.staging = new Float32Array(Math.ceil(256 * TIER.sandSpawn) * STRIDE);
   }
 
   makeRenderBindGroup(camUbo) {
@@ -306,7 +307,7 @@ export class Sand {
     const [rgx, rgz] = car.right();
     for (const wh of car.wheels) {
       if (wh.sand <= 0) continue;
-      let count = Math.floor(wh.sand * 110 * (dt * 60) + Math.random());
+      let count = Math.floor(wh.sand * 110 * TIER.sandSpawn * (dt * 60) + Math.random());
       const tread = -wh.spinVel * car.wheelR; // bottom-of-tyre surface speed along wheel forward
       const kx = wh.vel[0] + tread * wh.fwd[0], kz = wh.vel[2] + tread * wh.fwd[2];
       const kl = Math.hypot(kx, kz) || 1;
