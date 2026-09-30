@@ -18,7 +18,7 @@ const RHO0 = 8.0;
 const SOUND = 110.0;                  // speed of sound (cells/s) -> 11 m/s, weakly compressible
 const SUB = 4;                        // substeps per frame (CFL ~0.46)
 const FIX = 16384.0;
-const P_RADIUS = 0.058;               // render sphere radius (m); overlaps neighbours for a continuous surface
+const P_RADIUS = 0.066;               // render sphere radius (m); overlaps neighbours for a continuous surface
 const STRIDE = 20;                    // floats per particle
 
 export function shoreR(p, ang) {
@@ -95,13 +95,18 @@ fn carVelAt(wp: vec3f) -> vec3f {
   let d = wp - U.carC.xyz; let w = U.carV.w;
   return vec3f(U.carV.x + w * d.z, 0.0, U.carV.z - w * d.x);
 }
+fn treadVel(ax: vec3f, spin: f32, rad: vec3f) -> vec3f {
+  let t = cross(ax * spin, rad) * U.misc2.y;
+  let l = length(t);
+  return select(t, t * (4.0 / l), l > 4.0);            // tyre drags at most ~4 m/s of water with it
+}
 // returns (surface velocity, inside flag) of the tyre solids at wp (inflated by 'pad')
 fn tyreAt(wp: vec3f, pad: f32) -> vec4f {
   for (var w = 0; w < 4; w++) {
     let c = U.wC[w].xyz; let ax = U.wA[w].xyz;
     let q = wp - c; let al = dot(q, ax); let rad = q - ax * al;
     if (abs(al) < U.misc2.z + pad && length(rad) < U.misc2.w + pad) {
-      return vec4f(carVelAt(wp) + cross(ax * U.wC[w].w, rad) * U.misc2.y, 1.0);
+      return vec4f(carVelAt(wp) + treadVel(ax, U.wC[w].w, rad), 1.0);
     }
   }
   return vec4f(0.0);
@@ -246,7 +251,10 @@ const SIM = {
     let q = pos - c; let al = dot(q, ax); let rad = q - ax * al; let rl = length(rad);
     if (abs(al) < U.misc2.z && rl < U.misc2.w && rl > 1e-4) {
       pos = c + ax * al + rad / rl * U.misc2.w;
-      vel = carVelAt(pos) + cross(ax * U.wC[w].w, rad / rl * U.misc2.w) * U.misc2.y;
+      let tv = carVelAt(pos) + treadVel(ax, U.wC[w].w, rad / rl * U.misc2.w);
+      var rel = vel - tv; let n = rad / rl; let vn = dot(rel, n);
+      if (vn < 0.0) { rel -= vn * n; }
+      vel = tv + rel * 0.6;
     }
   }
   // car body box
@@ -257,11 +265,16 @@ const SIM = {
     if (pen.x < pen.y && pen.x < pen.z) { lo.x = sign(lp.x) * he.x; } else if (pen.y < pen.z) { lo.y = sign(lp.y) * he.y; } else { lo.z = sign(lp.z) * he.z; }
     let hh = U.carC.w;
     pos = U.carC.xyz + vec3f(lo.x * cos(hh) + lo.z * sin(hh), lo.y, -lo.x * sin(hh) + lo.z * cos(hh));
-    vel = carVelAt(pos);
+    let nl = sign(lo - lp) * vec3f(select(0.0, 1.0, lo.x != lp.x), select(0.0, 1.0, lo.y != lp.y), select(0.0, 1.0, lo.z != lp.z));
+    let n = vec3f(nl.x * cos(hh) + nl.z * sin(hh), nl.y, -nl.x * sin(hh) + nl.z * cos(hh));
+    let cv = carVelAt(pos);
+    var rel = vel - cv; let vn = dot(rel, n);
+    if (vn < 0.0) { rel -= 1.2 * vn * n; }
+    vel = cv + rel * 0.8;                                   // splashes bounce/slide off the panels
   }
   // water thrown onto dry sand soaks in (life drains); in the puddle it stays alive
   var life = p.pos.w;
-  if (groundAt(pos.xz) > -0.01 && pos.y < 0.05) { life -= dt * 0.7; } else { life = min(1.0, life + dt); }
+  if (groundAt(pos.xz) > -0.01 && pos.y < 0.05) { life -= dt * 2.5; } else if (pos.y > 0.3) { life -= dt * 0.25; } else { life = min(1.0, life + dt); }
   p.pos = vec4f(pos, life);
   p.vel = vec4f(vel, p.vel.w);
   ps[id] = p;
@@ -292,7 +305,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) uv: vec2f, @location(1) 
   var corners = array<vec2f, 6>(vec2f(-1,-1), vec2f(1,-1), vec2f(1,1), vec2f(-1,-1), vec2f(1,1), vec2f(-1,1));
   let q = corners[vi];
   // fast-moving spray is drawn as smaller droplets; soaking drops shrink
-  let r = R.misc.x * clamp(p.pos.w * 2.0, 0.3, 1.0) * mix(1.0, 0.5, smoothstep(1.5, 5.0, length(p.vel.xyz)));
+  let r = R.misc.x * clamp(p.pos.w * 2.0, 0.3, 1.0) * mix(1.0, 0.35, smoothstep(1.2, 4.0, length(p.vel.xyz)));
   let toCam = normalize(cam.camPos.xyz - p.pos.xyz);
   let right = normalize(cross(vec3f(0.0, 1.0, 0.0), toCam));
   let up = cross(toCam, right);
@@ -339,8 +352,8 @@ const BLUR = R_COMMON + FULLSCREEN + /* wgsl */`
   let dc = textureLoad(src, p, 0).r;
   if (dc <= 0.0) { return vec4f(0.0); }
   let dims = vec2<i32>(textureDimensions(src));
-  let rpx = R.misc.x * 3.2 * cam.screen.y / (2.0 * tan(0.5) * dc);    // filter radius in pixels
-  let kr = clamp(i32(rpx), 2, 20);
+  let rpx = R.misc.x * 4.5 * cam.screen.y / (2.0 * tan(0.5) * dc);    // filter radius in pixels
+  let kr = clamp(i32(rpx), 2, 28);
   let sigma = f32(kr) * 0.5;
   let thr = R.misc.x * 3.0;
   let dir = vec2<i32>(R.misc.yz);
@@ -393,7 +406,7 @@ fn worldAt(p: vec2<i32>, d: f32) -> vec3f {
   // gravity keeps a puddle surface level: damp particle-scale bumps on mostly-upward normals,
   // and flatten thin edges so they don't turn into sky-coloured mirrors
   let up = vec3f(0.0, 1.0, 0.0);
-  n = normalize(mix(n, up, smoothstep(0.35, 0.95, n.y) * 0.75));
+  n = normalize(mix(n, up, smoothstep(0.2, 0.9, n.y) * 0.9));
   n = normalize(mix(up, n, smoothstep(0.004, 0.05, t))); let mud = clamp(th.g / max(t, 1e-4), 0.0, 1.0);
   let L = normalize(cam.lightDir.xyz);
   let cosV = max(dot(n, V), 0.0);
@@ -587,7 +600,7 @@ export class Water {
     const visc = (P.mud ? 8 : 1.2) * (S.waterVisc ?? 1);
     u.set([ox, ORIGIN_Y, oz, H], 8);
     u.set([dt / SUB, -9.81 / H, K, RHO0], 12);
-    u.set([visc, S.tyrePush ?? 1, car.wheelW * 0.5, car.wheelR], 16);
+    u.set([visc, (S.tyrePush ?? 1) * (P.mud ? 0.35 : 0.6), car.wheelW * 0.5, car.wheelR], 16);
     const bodyOff = car.bodyOff || 0;
     u.set([car.x, car.bodyY + bodyOff, car.z, car.heading], 20);
     u.set([car.halfExt[0], car.halfExt[1], car.halfExt[2], 0], 24);

@@ -1,5 +1,5 @@
 // Lit scene: sand ground, crates, car body + wheels. Instanced meshes with per-instance model/colour.
-import { mat4 } from './math.js?v=18';
+import { mat4 } from './math.js?v=19';
 
 const SHADER = /* wgsl */`
 struct Cam { viewProj: mat4x4f, invViewProj: mat4x4f, camPos: vec4f, lightDir: vec4f, screen: vec4f, extra: vec4f, extra2: vec4f, smO: vec4f, smD: vec4f, pud: array<vec4f, 3> };
@@ -171,7 +171,7 @@ export class Scene {
     d.set([car.x, car.z, car.heading, 0], 44);
     d.set(flash, 48);
     d.set(this.smokeInfo, 52);
-    (this.puddles || []).slice(0, 3).forEach((p, k) => d.set([p.x, p.z, p.r, p.mud], 64 + k * 4));
+    (this.puddles || []).slice(0, 3).forEach((p, k) => d.set([p.x, p.z, p.r, p.mud], 60 + k * 4));   // Cam.pud starts at float 60 (after smO/smD)
     this.device.queue.writeBuffer(this.camUbo, 0, d);
   }
 
