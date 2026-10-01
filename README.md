@@ -2,7 +2,7 @@
 
 A small, self-contained WebGPU study of buoyant fire, smoke, and blast events. The interactive app is served from the repository root and has no build step or runtime dependencies.
 
-The lab now includes a **high-resolution baked plume**. Choose **Read baked plume** in the source panel to load `assets/baked-plume.json` and its three-frame `96 × 144 × 96` RGBA32F volume. Baked mode only fetches and samples the cached frames; it does not dispatch the fluid solver or advance a live simulation. **Use live** returns to the editable 60 Hz solver.
+The lab now includes a **high-resolution baked plume**. Choose **Read baked plume** in the source panel to load `assets/baked-plume.json` and its three-frame `96 × 144 × 96` RGBA32F volume. Baked mode only fetches and samples the cached frames; it does not dispatch the fluid solver or advance a live simulation. **Use live** returns to the editable 60 Hz solver. The active volume is drawn with a thick world-space cage: amber for the live source window and mint for the baked field.
 
 ## Run locally
 

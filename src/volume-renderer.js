@@ -91,6 +91,14 @@ fn groundColor(point: vec3<f32>) -> vec3<f32> {
   return color;
 }
 
+fn boxEdgeAt(point: vec3<f32>, boxMin: vec3<f32>, boxMax: vec3<f32>, thickness: f32) -> f32 {
+  let x = min(abs(point.x - boxMin.x), abs(boxMax.x - point.x));
+  let y = min(abs(point.y - boxMin.y), abs(boxMax.y - point.y));
+  let z = min(abs(point.z - boxMin.z), abs(boxMax.z - point.z));
+  let distanceToEdge = min(min(x + y, x + z), y + z);
+  return 1.0 - smoothstep(thickness, thickness * 2.8, distanceToEdge);
+}
+
 struct VertexOut { @builtin(position) position: vec4<f32> };
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32) -> VertexOut {
   var triangle = array<vec2<f32>, 3>(
@@ -223,6 +231,22 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
   var color = (scene * transmittance + scattered + fireLight) * vignette;
   color = vec3<f32>(1.0) - exp(-max(color, vec3<f32>(0.0)) * 1.28);
   color = pow(color, vec3<f32>(1.0 / 2.2));
+
+  // A visible world-space cage makes the active simulation window legible.
+  // Live grids use amber; the high-resolution baked plume uses mint. The
+  // outline is evaluated at the entry and exit faces so it stays thick and
+  // crisp without adding another render pass or any simulation work.
+  var boxEdge = 0.0;
+  if (volumeFar > volumeNear) {
+    let boxThickness = max(0.22, params.originH.w * 0.42);
+    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * volumeNear, volumeMin, volumeMax, boxThickness));
+    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * volumeFar, volumeMin, volumeMax, boxThickness));
+    let inset = min(0.65, (volumeFar - volumeNear) * 0.035);
+    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * (volumeNear + inset), volumeMin, volumeMax, boxThickness));
+    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * (volumeFar - inset), volumeMin, volumeMax, boxThickness));
+  }
+  let boxColor = select(vec3<f32>(1.0, 0.42, 0.10), vec3<f32>(0.18, 0.95, 0.70), params.dims.y > 100);
+  color = mix(color, boxColor, boxEdge * 0.84) + boxColor * boxEdge * 0.22;
   return vec4<f32>(color, 1.0);
 }
 `;

@@ -100,11 +100,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); out
 .eyebrow { color: #c9a97e; font-size: 9px; line-height: 1.4; }
 .scene-subtitle { color: rgba(223, 231, 226, .66); font: 10px var(--mono); letter-spacing: .025em; }
 .scene-subtitle i { color: var(--amber); font-style: normal; padding: 0 2px; }
-.bounds-readout { position: absolute; z-index: 3; top: 128px; left: 50%; display: flex; min-width: 318px; max-width: min(430px, calc(100% - 620px)); flex-direction: column; gap: 4px; padding: 8px 11px; transform: translateX(-50%); border: 1px solid rgba(219,230,226,.12); border-radius: 6px; background: rgba(13,19,22,.68); box-shadow: 0 8px 26px rgba(0,0,0,.12); backdrop-filter: blur(12px); pointer-events: none; }
+.bounds-readout { position: absolute; z-index: 3; top: 128px; left: 50%; display: flex; min-width: 318px; max-width: min(430px, calc(100% - 620px)); flex-direction: column; gap: 4px; padding: 8px 11px; transform: translateX(-50%); border: 1px solid rgba(219,230,226,.12); border-left: 3px solid var(--amber); border-radius: 6px; background: rgba(13,19,22,.68); box-shadow: 0 8px 26px rgba(0,0,0,.12); backdrop-filter: blur(12px); pointer-events: none; }
 .bounds-kicker { color: #778681; font: 7px var(--mono); letter-spacing: .12em; }
 .bounds-readout strong { color: #d6e1dc; font: 9px var(--mono); letter-spacing: .04em; }
 .bounds-readout small { overflow: hidden; color: #a7b4ae; font: 8px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
-.bounds-readout.baked { border-color: rgba(139,215,189,.28); background: rgba(18,31,29,.72); }
+.bounds-readout.baked { border-color: rgba(139,215,189,.28); border-left-color: var(--mint); background: rgba(18,31,29,.72); }
 .bounds-readout.baked strong { color: #a7e3c8; }
 
 .panel {
