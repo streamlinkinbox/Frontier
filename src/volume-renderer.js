@@ -195,7 +195,10 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
       let edgeFade = min(min(sideFade, topFade), groundFade);
       let gridPoint = local / params.originH.w - vec3<f32>(0.5);
       let gas = sampleGas(gridPoint);
-      let detail = plumeDetail(position, camera.viewport.z);
+      var detail = 0.5;
+      if (gas.x > 0.001 || gas.y > 0.12 || gas.z > 0.01) {
+        detail = plumeDetail(position, camera.viewport.z);
+      }
       let billow = 0.84 + 0.10 * sin(position.x * 1.65 + position.y * 2.2 + camera.viewport.z * 0.72)
         * cos(position.z * 1.8 - position.y * 1.35 + camera.viewport.z * 0.54);
       let softDensity = pow(max(gas.x, 0.0), 0.86);
