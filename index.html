@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070b12" />
+    <title>Frontier · LPV GI Lab</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Frontier GI Lab home">
+          <span class="brand-mark"><i></i><i></i><i></i></span>
+          <span>FRONTIER</span>
+          <b>GI LAB</b>
+        </a>
+        <div class="pipeline" aria-label="Active rendering pipeline">
+          <span class="live-dot"></span>
+          <span>RASTER-ONLY GI</span>
+          <em>GTX PATH</em>
+        </div>
+        <div class="top-actions">
+          <button id="resetCamera" class="icon-button" title="Reset camera" aria-label="Reset camera">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7"/></svg>
+          </button>
+          <button id="pauseButton" class="top-button"><span class="pause-icon"></span><span>Pause</span></button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <section class="viewport-panel" aria-label="Global illumination demo scene">
+          <canvas id="viewport"></canvas>
+          <div class="viewport-vignette"></div>
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">LIVE PROTOTYPE</p>
+              <h1>Surfel-fed cascaded LPV</h1>
+            </div>
+            <div class="view-badges">
+              <span class="badge"><i class="green-dot"></i><span id="frameTime">16.6 ms</span></span>
+              <span class="badge">WEBGL 2</span>
+            </div>
+          </div>
+
+          <div class="viewport-help">
+            <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly</span>
+            <span><kbd>DRAG</kbd> orbit</span>
+            <span><kbd>SCROLL</kbd> dolly</span>
+          </div>
+
+          <div class="pass-ribbon" aria-label="GI pass sequence">
+            <div class="pass active"><span>01</span><b>RSM</b><small>transient</small></div>
+            <i></i>
+            <div class="pass active"><span>02</span><b>SURFELS</b><small id="surfelReadout">768 injected</small></div>
+            <i></i>
+            <div class="pass active"><span>03</span><b>LPV × 3</b><small id="cascadeReadout">18 / 36 / 72 m</small></div>
+            <i></i>
+            <div class="pass active"><span>04</span><b>REFINE</b><small>½ res</small></div>
+          </div>
+
+          <aside id="debugCard" class="debug-card">
+            <div class="debug-title"><span id="debugSwatch"></span><span id="debugTitle">COMPOSITE INDIRECT</span></div>
+            <canvas id="debugCanvas" width="216" height="132" aria-label="GI debug visualization"></canvas>
+            <p id="debugDescription">Diffuse energy gathered from three camera-relative volumes, plus screen-space contact bounce.</p>
+          </aside>
+        </section>
+
+        <aside class="control-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">RENDER GRAPH</p>
+              <h2>GI controls</h2>
+            </div>
+            <span class="gpu-chip">GPU <b id="gpuTier">GTX</b></span>
+          </div>
+
+          <section class="control-group mode-group">
+            <label class="group-label">Output inspector</label>
+            <div class="segmented" role="group" aria-label="Debug view">
+              <button class="debug-mode selected" data-mode="final">Final</button>
+              <button class="debug-mode" data-mode="lpv">LPV</button>
+              <button class="debug-mode" data-mode="rsm">RSM</button>
+              <button class="debug-mode" data-mode="blocker">Blockers</button>
+              <button class="debug-mode" data-mode="ssgi">SSGI</button>
+            </div>
+          </section>
+
+          <section class="control-group">
+            <div class="group-topline"><label for="energy">Indirect energy</label><output id="energyOut">1.15×</output></div>
+            <input id="energy" type="range" min="0" max="2" value="1.15" step="0.05" />
+            <div class="range-labels"><span>subtle</span><span>cinematic</span></div>
+          </section>
+
+          <section class="control-group">
+            <div class="group-topline"><label for="propagation">Propagation steps</label><output id="propagationOut">7</output></div>
+            <input id="propagation" type="range" min="2" max="12" value="7" step="1" />
+            <div class="range-labels"><span>fast</span><span>multi-bounce</span></div>
+          </section>
+
+          <section class="control-group">
+            <div class="group-topline"><label for="surfelBudget">Surfel budget</label><output id="surfelBudgetOut">768</output></div>
+            <input id="surfelBudget" type="range" min="192" max="1536" value="768" step="96" />
+            <div class="range-labels"><span>0.2k</span><span>1.5k / update</span></div>
+          </section>
+
+          <section class="control-group switch-group">
+            <div class="toggle-row">
+              <div><b>Camera-relative cascades</b><small>Scroll and snap three LPV volumes around the player</small></div>
+              <button class="toggle on" data-toggle="cascades" aria-pressed="true"><span></span></button>
+            </div>
+            <div class="toggle-row">
+              <div><b>Directional blocker volume</b><small>Stops propagation through walls before resolve</small></div>
+              <button class="toggle on" data-toggle="blockers" aria-pressed="true"><span></span></button>
+            </div>
+            <div class="toggle-row">
+              <div><b>Half-res SSGI + GTAO</b><small>Contact bounce and occlusion on visible surfaces</small></div>
+              <button class="toggle on" data-toggle="ssgi" aria-pressed="true"><span></span></button>
+            </div>
+          </section>
+
+          <section class="control-group scene-buttons">
+            <label class="group-label">Scene light</label>
+            <div class="scene-choice">
+              <button class="scene-button selected" data-light="sunset"><i class="sunset-icon"></i><span>Sunset key</span></button>
+              <button class="scene-button" data-light="neutral"><i class="neutral-icon"></i><span>Neutral key</span></button>
+            </div>
+            <button id="animateLight" class="wide-button"><span class="orbit-icon">↻</span><span>Animate direct light</span><em>ON</em></button>
+          </section>
+
+          <footer class="panel-footer">
+            <span><i class="status-pip"></i><b id="simStatus">SIMULATING</b></span>
+            <span id="updateReadout">12 Hz GI update</span>
+          </footer>
+        </aside>
+      </section>
+
+      <section class="method-strip">
+        <article>
+          <span class="method-index">01</span>
+          <div><h3>Transient RSM surfels</h3><p>Directly lit wall samples inject colour and direction without a distance field.</p></div>
+        </article>
+        <article>
+          <span class="method-index">02</span>
+          <div><h3>Three LPV clipmaps</h3><p>18 m, 36 m and 72 m volumes follow the camera for stable, bounded cost.</p></div>
+        </article>
+        <article>
+          <span class="method-index">03</span>
+          <div><h3>Blocker-aware transport</h3><p>A small occupancy volume attenuates propagation at thin geometry boundaries.</p></div>
+        </article>
+        <article>
+          <span class="method-index">04</span>
+          <div><h3>Half-res screen refinement</h3><p>Short screen rays add contact colour bleeding and GTAO where the LPV is coarse.</p></div>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
