@@ -1,6 +1,6 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-gradient-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-gradient-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-gradient-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-quality-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-quality-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-quality-20261001';
 import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
@@ -27,6 +27,8 @@ const DEFAULTS = Object.freeze({
   densityCurve: 0.82,
   sootDensityGain: 0.24,
   temperatureGain: 1.0,
+  rayStepQuality: 1.0,
+  renderStepScale: 0.65,
   fireColorLow: [1.0, 0.239, 0.075],
   fireColorHigh: [1.0, 0.941, 0.627],
   smokeColorLight: [0.43, 0.47, 0.50],
@@ -113,28 +115,33 @@ function chooseLod() {
   else if (currentLodLevel === 1 && distance > 62) currentLodLevel = 2;
   else if (currentLodLevel === 2 && distance < 50) currentLodLevel = 1;
 
+  const rayStepQuality = clamp(settings.rayStepQuality ?? 1.0, 0.5, 1.25);
+  const renderStepScale = clamp(settings.renderStepScale ?? 0.65, 0.5, 0.85);
   const tiers = [
     {
-      name: 'NEAR', level: 0, cellSize: 0.4, step: 0.32, subCellSamples: 2,
-      maxSamples: 128, shadowSamples: 4, shadowStep: 1.25, scale: 0.96, renderHz: 60,
+      name: 'NEAR', level: 0, cellSize: 0.4, subCellSamples: 2,
+      maxSamples: Math.round(192 * rayStepQuality), shadowSamples: 4, shadowStep: 1.25,
+      scale: 0.96, renderHz: 60,
     },
     {
-      name: 'MID', level: 1, cellSize: 0.75, step: 0.58, subCellSamples: 2,
-      maxSamples: 88, shadowSamples: 3, shadowStep: 1.20, scale: 0.82, renderHz: 60,
+      name: 'MID', level: 1, cellSize: 0.75, subCellSamples: 2,
+      maxSamples: Math.round(128 * rayStepQuality), shadowSamples: 3, shadowStep: 1.20,
+      scale: 0.82, renderHz: 60,
     },
     // Far keeps the cheaper grid and ray budget, but it still presents every
     // frame. The previous 30 Hz cap made moving outside the window feel like
     // a CPU stall even though the solver remained at 60 Hz. Shadow taps are
     // reduced independently from the primary sub-cell ray budget.
     {
-      name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, subCellSamples: 2,
-      maxSamples: 64, shadowSamples: 2, shadowStep: 1.35, scale: 0.68, renderHz: 60,
+      name: 'FAR', level: 2, cellSize: 1.2, subCellSamples: 2,
+      maxSamples: Math.round(80 * rayStepQuality), shadowSamples: 2, shadowStep: 1.35,
+      scale: 0.68, renderHz: 60,
     },
   ];
   const tier = tiers[currentLodLevel];
   // Keep far LOD smooth. A lower render target is enough for the budget; the
   // old square censor blocks were the source of the visible pixel mosaic.
-  return { ...tier, distance, censorPixels: 0 };
+  return { ...tier, step: grid.cellSize * renderStepScale, distance, censorPixels: 0 };
 }
 
 function refreshGridInfo() {
@@ -206,9 +213,11 @@ function updateOutputs() {
     smokeFade: (value) => `${value.toFixed(2)} s⁻¹`,
     turbulence: (value) => value.toFixed(1),
     wind: (value) => `${value.toFixed(1)} m/s`,
+    rayStepQuality: (value) => `${Math.round(192 * value)} / ${Math.round(128 * value)} / ${Math.round(80 * value)}`,
+    renderStepScale: (value) => `${value.toFixed(2)}× cell`,
   };
-  for (const input of $$('[data-param]')) {
-    const name = input.dataset.param;
+  for (const input of $$('[data-param], [data-render-param]')) {
+    const name = input.dataset.param || input.dataset.renderParam;
     const value = Number(input.value);
     settings[name] = value;
     const output = $(`[data-value="${name}"]`);
@@ -505,7 +514,7 @@ function registerCanvasControls() {
 }
 
 function registerUI() {
-  for (const input of $$('[data-param]')) {
+  for (const input of $$('[data-param], [data-render-param]')) {
     input.addEventListener('input', updateOutputs);
   }
   for (const input of $$('[data-color-param]')) {
@@ -543,6 +552,7 @@ function registerUI() {
   });
   $('#restore-defaults').addEventListener('click', () => {
     for (const input of $$('[data-param]')) input.value = DEFAULTS[input.dataset.param];
+    for (const input of $$('[data-render-param]')) input.value = DEFAULTS[input.dataset.renderParam];
     for (const input of $$('[data-color-param]')) input.value = rgbToHex(DEFAULTS[input.dataset.colorParam]);
     updateOutputs();
     updateColorOutputs();

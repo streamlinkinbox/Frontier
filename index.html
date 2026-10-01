@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0d1217" />
   <meta name="description" content="Frontier real-time volumetric fire and smoke simulation lab." />
   <title>Frontier — Atmospherics Lab</title>
-  <link rel="stylesheet" href="./styles.css?v=dashboard-ui-20261001-gradient" />
+  <link rel="stylesheet" href="./styles.css?v=dashboard-ui-20261001-quality" />
 </head>
 <body class="show-controls">
   <canvas id="world" aria-label="Interactive volumetric fire and smoke simulation"></canvas>
@@ -141,6 +141,18 @@
         </label>
       </div>
 
+      <label class="slider-control" for="ray-steps">
+        <span class="slider-label"><span>Primary ray steps</span><output data-value="rayStepQuality">192 / 128 / 80</output></span>
+        <input id="ray-steps" data-render-param="rayStepQuality" type="range" min="0.5" max="1.25" step="0.05" value="1" />
+        <span class="range-ends"><span>PERFORMANCE</span><span>NEAR / MID / FAR</span><span>QUALITY</span></span>
+      </label>
+
+      <label class="slider-control" for="render-step">
+        <span class="slider-label"><span>Sub-cell step</span><output data-value="renderStepScale">0.65× cell</output></span>
+        <input id="render-step" data-render-param="renderStepScale" type="range" min="0.5" max="0.85" step="0.01" value="0.65" />
+        <span class="range-ends"><span>0.50×</span><span>CELL SIZE</span><span>0.85×</span></span>
+      </label>
+
       <label class="slider-control" for="buoyancy">
         <span class="slider-label"><span>Thermal lift</span><output data-value="buoyancy">6.0 m/s²</output></span>
         <input id="buoyancy" data-param="buoyancy" type="range" min="1" max="10" step="0.1" value="6" />
@@ -224,6 +236,6 @@
     </div>
   </div>
 
-  <script type="module" src="./src/main.js?v=unreal-volume-gradient-20261001"></script>
+  <script type="module" src="./src/main.js?v=unreal-volume-quality-20261001"></script>
 </body>
 </html>
