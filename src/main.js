@@ -1,6 +1,5 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import './style.css';
+import * as THREE from '/vendor/three.module.min.js';
+import { OrbitControls } from '/vendor/OrbitControls.js';
 
 /*
  * Frontier GI Lab
