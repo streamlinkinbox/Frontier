@@ -1,0 +1,28 @@
+{
+  "id": "frontier-baked-plume-hq",
+  "label": "High-resolution baked plume",
+  "mode": "read-only",
+  "format": "rgba32float",
+  "dimensions": [96, 144, 96],
+  "cellSize": 0.4,
+  "origin": [-19.2, 0, -19.2],
+  "bounds": {
+    "min": [-19.2, 0, -19.2],
+    "max": [19.2, 57.6, 19.2]
+  },
+  "contentBounds": {
+    "min": [-7.2, 0, -7.2],
+    "max": [7.2, 50.4, 7.2]
+  },
+  "frames": 3,
+  "duration": 2.4,
+  "frameDuration": 0.8,
+  "data": "baked-plume-96x144x96-f3.bin",
+  "channels": {
+    "r": "smoke density",
+    "g": "temperature",
+    "b": "fuel residue",
+    "a": "soot fraction"
+  },
+  "notes": "Offline-baked volume. The browser uploads and samples the frames; no fluid solver or simulation compute is run for this field."
+}
