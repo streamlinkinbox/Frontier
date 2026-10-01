@@ -1,6 +1,6 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-color-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-color-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-color-20261001';
 import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
@@ -27,6 +27,8 @@ const DEFAULTS = Object.freeze({
   densityCurve: 0.82,
   sootDensityGain: 0.24,
   temperatureGain: 1.0,
+  fireColor: [1.0, 0.427, 0.208],
+  smokeColor: [0.43, 0.47, 0.50],
 });
 const settings = { ...DEFAULTS };
 const camera = {
@@ -209,6 +211,31 @@ function updateOutputs() {
     settings[name] = value;
     const output = $(`[data-value="${name}"]`);
     if (output) output.textContent = formatters[name](value);
+  }
+}
+
+function hexToRgb(hex) {
+  const normalized = String(hex || '').replace('#', '').trim();
+  const value = Number.parseInt(normalized.length === 3
+    ? normalized.split('').map((channel) => `${channel}${channel}`).join('')
+    : normalized, 16);
+  if (!Number.isFinite(value)) return [1, 1, 1];
+  return [
+    ((value >> 16) & 255) / 255,
+    ((value >> 8) & 255) / 255,
+    (value & 255) / 255,
+  ];
+}
+
+function rgbToHex(rgb) {
+  return `#${rgb.slice(0, 3).map((channel) => Math.round(clamp(Number(channel) || 0, 0, 1) * 255).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function updateColorOutputs() {
+  for (const input of $$('[data-color-param]')) {
+    settings[input.dataset.colorParam] = hexToRgb(input.value);
+    const output = $(`#${input.id}-value`);
+    if (output) output.textContent = input.value.toUpperCase();
   }
 }
 
@@ -479,7 +506,11 @@ function registerUI() {
   for (const input of $$('[data-param]')) {
     input.addEventListener('input', updateOutputs);
   }
+  for (const input of $$('[data-color-param]')) {
+    input.addEventListener('input', updateColorOutputs);
+  }
   updateOutputs();
+  updateColorOutputs();
 
   $('#airburst').addEventListener('click', () => addEvent('burst'));
   $('#ignite-plume').addEventListener('click', () => addEvent('plume'));
@@ -510,7 +541,9 @@ function registerUI() {
   });
   $('#restore-defaults').addEventListener('click', () => {
     for (const input of $$('[data-param]')) input.value = DEFAULTS[input.dataset.param];
+    for (const input of $$('[data-color-param]')) input.value = rgbToHex(DEFAULTS[input.dataset.colorParam]);
     updateOutputs();
+    updateColorOutputs();
   });
   for (const button of $$('.distance-button')) {
     button.addEventListener('click', () => {

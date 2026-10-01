@@ -380,6 +380,48 @@ kbd { display: inline-block; padding: 2px 5px; border: 1px solid rgba(224,233,22
   .help-card p { font-size: 7px; }
   .event-toast { bottom: 76px; max-width: calc(100% - 24px); text-align: center; white-space: nowrap; font-size: 8px; }
 }
+.color-controls {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 15px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba(255,255,255,.075);
+}
+.color-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #d7d8d4;
+  cursor: pointer;
+}
+.color-control-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 9px;
+}
+.color-control-copy output {
+  color: #8e9591;
+  font: 8px var(--mono);
+  letter-spacing: .04em;
+}
+.color-control input[type="color"] {
+  width: 38px;
+  height: 24px;
+  flex: 0 0 38px;
+  padding: 2px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 7px;
+  background: rgba(255,255,255,.045);
+  cursor: pointer;
+}
+.color-control input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.color-control input[type="color"]::-webkit-color-swatch,
+.color-control input[type="color"]::-moz-color-swatch { border: 0; border-radius: 4px; }
+.color-control:hover input[type="color"] { border-color: rgba(241,162,76,.52); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }

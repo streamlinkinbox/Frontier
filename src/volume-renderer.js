@@ -1,5 +1,5 @@
-import { cameraUniformData } from './math.js?v=unreal-volume-20261001';
-import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-20261001';
+import { cameraUniformData } from './math.js?v=unreal-volume-color-20261001';
+import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-color-20261001';
 
 export const PRESENTATION_BUFFER_COUNT = 3;
 export const RENDER_TARGET_BUFFER_COUNT = 2;
@@ -28,6 +28,8 @@ struct Camera {
   lod: vec4<f32>,
   transfer: vec4<f32>,
   lighting: vec4<f32>,
+  fireColor: vec4<f32>,
+  smokeColor: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> params: SimParams;
 @group(0) @binding(1) var<uniform> camera: Camera;
@@ -243,7 +245,8 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         let sunVisibility = shadowVisibility(position, sunDirection, shadowStep, shadowSamples);
         let ambient = mix(vec3<f32>(0.10, 0.12, 0.15), vec3<f32>(0.26, 0.31, 0.37), altitude);
         let direct = vec3<f32>(0.78, 0.57, 0.35) * sunVisibility * 0.42;
-        let smokeTint = mix(vec3<f32>(0.43, 0.47, 0.50), vec3<f32>(0.19, 0.145, 0.12), soot * 0.82);
+        let sootShade = mix(vec3<f32>(1.0), vec3<f32>(0.58, 0.46, 0.38), soot * 0.82);
+        let smokeTint = camera.smokeColor.rgb * sootShade;
         let powder = 1.0 - exp(-opticalDepth * 1.6);
         let lighting = ambient + direct * mix(1.0, powder * 1.55, 0.28);
         scattered += transmittance * opacity * smokeTint * lighting * 2.15;
@@ -254,8 +257,11 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         let heat = clamp(temperatureResponse / 4.4, 0.0, 1.0);
         let flameMask = smoothstep(0.02, 0.24, heat);
         let blackbody = blackbodyColor(heat);
+        // The chosen tint steers the Kelvin response without removing the
+        // temperature-dependent black-body brightness and hue progression.
+        let emissionColor = mix(blackbody, camera.fireColor.rgb, 0.62);
         let emission = pow(temperatureResponse, 1.18) * flameMask * 0.43;
-        fireLight += transmittance * blackbody * emission * stepLength;
+        fireLight += transmittance * emissionColor * emission * stepLength;
       }
       distance += stepLength;
       sampleIndex += 1u;
@@ -402,9 +408,9 @@ export class VolumeRenderer {
     this.renderTexture = null;
     this.renderView = null;
     this.cameraBuffer = device.createBuffer({
-      size: 128,
+      size: 160,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      label: 'volume-camera-transfer-controls',
+      label: 'volume-camera-transfer-and-color-controls',
     });
     this.cageColorBuffer = device.createBuffer({
       size: 16,
