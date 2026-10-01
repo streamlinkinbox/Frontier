@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0d1217" />
+  <meta name="description" content="Frontier real-time volumetric fire and smoke simulation lab." />
+  <title>Frontier — Atmospherics Lab</title>
+  <link rel="stylesheet" href="./styles.css?v=source-window-20261001" />
+</head>
+<body>
+  <canvas id="world" aria-label="Interactive volumetric fire and smoke simulation"></canvas>
+  <div class="ambient-grain" aria-hidden="true"></div>
+
+  <div class="app-frame">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Frontier Atmospherics home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none">
+            <path d="M20 3.8c2.1 6.1 9.6 8.2 9.6 17.1 0 6.4-4.2 11.3-10 11.3S9 27.6 9 21.7c0-4.1 2.4-7.3 5.7-9.8-.2 4.4 1.5 6.1 3.3 7.1-.3-5 1.7-10.2 2-15.2Z" fill="currentColor" opacity=".92"/>
+            <path d="M20 22.1c2.3 2.5 3.6 4 3.6 6.1 0 2.4-1.6 4-3.7 4s-3.7-1.5-3.7-3.7c0-2.5 1.6-4.5 3.8-6.4Z" fill="#fff1d4"/>
+            <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-opacity=".28"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <span class="brand-kicker">FRONTIER / R&D</span>
+          <strong>Atmospherics lab</strong>
+        </span>
+      </a>
+
+      <div class="topbar-center">
+        <span class="live-dot"></span>
+        <span>LIVE VOLUME</span>
+        <span class="topbar-divider"></span>
+        <span class="quiet-label">WORLD-ANCHORED FIELD</span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="engine-badge"><span class="engine-led"></span><span id="engine-status">STARTING GPU</span></div>
+        <button id="help-toggle" class="help-trigger" type="button" aria-label="Toggle interaction help">?</button>
+      </div>
+    </header>
+
+    <div class="scene-heading">
+      <span class="eyebrow">01 — COMBUSTION STUDY</span>
+      <span class="scene-subtitle">Semi-Lagrangian transport <i>·</i> buoyant plume <i>·</i> volumetric scattering</span>
+    </div>
+
+    <aside class="panel source-panel" aria-label="Smoke and fire sources">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">SOURCE CONTROL</span>
+          <h1>Shape the event</h1>
+        </div>
+        <span id="source-count" class="count-chip">0 / 20</span>
+      </div>
+
+      <button id="airburst" class="event-card burst-card" type="button">
+        <span class="event-symbol burst-symbol" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none"><path d="M14 2.8 16.5 10l6.7-3.2-3.1 6.9 7.1 2.1-7.4 1.5 2.8 7-6.1-4.4-4.1 6.5-.2-7.6-7.5.9 5.7-5-5.8-5 7.5 1-.3-7.9L14 9.1V2.8Z" fill="currentColor" opacity=".88"/><circle cx="14" cy="14" r="3.2" fill="#fff3d9"/></svg>
+        </span>
+        <span class="event-copy"><strong>Airburst</strong><small>Short shock front · hot fuel charge</small></span>
+        <span class="event-arrow" aria-hidden="true">↗</span>
+      </button>
+
+      <button id="ignite-plume" class="event-card plume-card" type="button">
+        <span class="event-symbol plume-symbol" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none"><path d="M14 25c-4.1 0-6.7-2.5-6.7-5.8 0-2.8 1.8-4.1 2.5-7.2 2.2 1.2 2.7 3.1 2.8 4.3 1.7-2.5 1.5-6.4 4.4-10.3.8 4.7 4.5 7.3 4.5 12.7 0 3.8-3 6.3-7.5 6.3Z" fill="currentColor" opacity=".88"/><path d="M14.2 18.4c1.5 1.5 2.2 2.4 2.2 3.6 0 1.4-1 2.3-2.2 2.3s-2.2-.9-2.2-2.2c0-1.4.9-2.6 2.2-3.7Z" fill="#fff1d4"/></svg>
+        </span>
+        <span class="event-copy"><strong>Burning plume</strong><small>Anchored ignition · sustained fuel</small></span>
+        <span class="event-arrow" aria-hidden="true">↗</span>
+      </button>
+
+      <button id="stress-test" class="stress-test-button" type="button" aria-label="Clear the field and start a twenty-emitter stress test">
+        <span class="stress-test-mark" aria-hidden="true">20×</span>
+        <span class="stress-test-copy"><strong>Run 20-emitter stress test</strong><small>Auto-spawns plumes · resets and frames scene</small></span>
+      </button>
+
+      <div class="placement-row">
+        <button id="place-toggle" class="place-button" type="button" aria-pressed="false"><span class="button-icon">⌖</span><span>Place emitter on field</span></button>
+        <span class="placement-coord"><span id="spawn-dot"></span><span id="spawn-coordinate">0.0 / 0.0 m</span></span>
+      </div>
+
+      <div class="list-heading"><span>RUNNING SOURCES</span><span id="source-state" class="source-state">ACTIVE FIELD</span></div>
+      <div id="source-list" class="source-list" aria-live="polite"></div>
+
+      <div class="panel-actions">
+        <button id="extinguish" class="quiet-button" type="button">Extinguish sources</button>
+        <button id="clear-field" class="quiet-button clear-button" type="button">Clear field</button>
+      </div>
+      <p class="micro-note">Extinguish stops fuel input; residual smoke continues to advect and dissipate.</p>
+    </aside>
+
+    <aside class="panel controls-panel" aria-label="Simulation parameters">
+      <div class="panel-heading controls-heading">
+        <div>
+          <span class="eyebrow">FIELD PARAMETERS</span>
+          <h2>Combustion model</h2>
+        </div>
+        <span class="model-tag">v2.1</span>
+      </div>
+
+      <label class="slider-control" for="buoyancy">
+        <span class="slider-label"><span>Thermal lift</span><output data-value="buoyancy">6.0 m/s²</output></span>
+        <input id="buoyancy" data-param="buoyancy" type="range" min="1" max="10" step="0.1" value="6" />
+        <span class="range-ends"><span>LOW</span><span>RISING FORCE</span><span>HIGH</span></span>
+      </label>
+
+      <label class="slider-control" for="vorticity">
+        <span class="slider-label"><span>Vortex confinement</span><output data-value="vorticity">2.2</output></span>
+        <input id="vorticity" data-param="vorticity" type="range" min="0" max="5" step="0.1" value="2.2" />
+        <span class="range-ends"><span>SMOOTH</span><span>ROLL-UP</span><span>EDDYING</span></span>
+      </label>
+
+      <label class="slider-control" for="burn-rate">
+        <span class="slider-label"><span>Reaction rate</span><output data-value="burnRate">3.3 s⁻¹</output></span>
+        <input id="burn-rate" data-param="burnRate" type="range" min="0.6" max="6" step="0.1" value="3.3" />
+        <span class="range-ends"><span>SLOW</span><span>FUEL → HEAT</span><span>FAST</span></span>
+      </label>
+
+      <label class="slider-control" for="fuel-feed">
+        <span class="slider-label"><span>Fuel feed</span><output data-value="fuelFeed">1.00×</output></span>
+        <input id="fuel-feed" data-param="fuelFeed" type="range" min="0" max="2.5" step="0.05" value="1" />
+        <span class="range-ends"><span>NO FEED</span><span>INJECTION RATE</span><span>RICH</span></span>
+      </label>
+
+      <label class="slider-control" for="soot-yield">
+        <span class="slider-label"><span>Soot yield</span><output data-value="sootYield">0.55</output></span>
+        <input id="soot-yield" data-param="sootYield" type="range" min="0.2" max="1.5" step="0.01" value="0.55" />
+        <span class="range-ends"><span>CLEAN</span><span>SMOKE / FUEL</span><span>SOOTY</span></span>
+      </label>
+
+      <label class="slider-control" for="smoke-fade">
+        <span class="slider-label"><span>Smoke dissipation</span><output data-value="smokeFade">0.45 s⁻¹</output></span>
+        <input id="smoke-fade" data-param="smokeFade" type="range" min="0.08" max="0.8" step="0.02" value="0.45" />
+        <span class="range-ends"><span>LINGER</span><span>DENSITY LOSS</span><span>THIN</span></span>
+      </label>
+
+      <label class="slider-control" for="turbulence">
+        <span class="slider-label"><span>Sub-grid turbulence</span><output data-value="turbulence">1.3</output></span>
+        <input id="turbulence" data-param="turbulence" type="range" min="0" max="4" step="0.1" value="1.3" />
+        <span class="range-ends"><span>CALM</span><span>PERTURBATION</span><span>ACTIVE</span></span>
+      </label>
+
+      <label class="slider-control last-slider" for="wind">
+        <span class="slider-label"><span>Crosswind</span><output data-value="wind">0.4 m/s</output></span>
+        <input id="wind" data-param="wind" type="range" min="-5" max="5" step="0.1" value="0.4" />
+        <span class="range-ends"><span>← WEST</span><span>HORIZONTAL FLOW</span><span>EAST →</span></span>
+      </label>
+
+      <div class="controls-footer">
+        <span>Stable projection · MacCormack limiter</span>
+        <button id="restore-defaults" class="restore-button" type="button">Restore tuned values</button>
+      </div>
+    </aside>
+
+    <div class="view-controls" aria-label="Camera distance presets">
+      <span class="view-caption">CAMERA LOD</span>
+      <button class="distance-button" data-view="near" data-distance="23" type="button">Near</button>
+      <button class="distance-button selected" data-view="mid" data-distance="38" type="button">Medium</button>
+      <button class="distance-button" data-view="far" data-distance="110" type="button">Far</button>
+    </div>
+
+    <div class="event-toast" id="event-toast" role="status" aria-live="polite"></div>
+
+    <div class="help-card" id="help-card">
+      <div class="help-title"><span>INTERACTION</span><button id="help-toggle-inner" type="button" aria-label="Close interaction help">×</button></div>
+      <p><kbd>Drag</kbd> orbit camera <span>·</span> <kbd>Wheel</kbd> zoom <span>·</span> <kbd>Place</kbd> then click ground</p>
+    </div>
+
+    <footer class="telemetry-bar">
+      <div class="telemetry-brand"><span class="telemetry-pulse"></span><div><strong>VOLUME SOLVER</strong><small>3D Eulerian gas field</small></div></div>
+      <div class="telemetry-stat"><span>RENDER</span><strong><b id="fps-value">—</b><small>FPS</small></strong></div>
+      <div class="telemetry-stat"><span>SIMULATION</span><strong id="sim-hz-value">60 Hz</strong></div>
+      <div class="telemetry-stat grid-stat"><span>GRID / FIELD</span><strong id="grid-value">48 × 40 × 48</strong><small id="cell-value">92k · 36×30×36m @ 0.75m</small></div>
+      <div class="telemetry-stat lod-stat"><span>DISTANCE LOD</span><strong id="lod-value" data-lod="mid">MID</strong><small id="lod-distance">38 m camera range</small></div>
+      <div class="telemetry-stat gpu-stat"><span>DEVICE / VRAM ESTIMATE</span><strong id="adapter-value">WebGPU adapter</strong><small id="vram-value">— / 250 MiB app budget</small></div>
+    </footer>
+
+    <div id="gpu-error" class="gpu-error" hidden>
+      <div class="error-icon">!</div>
+      <div><strong>GPU field could not start</strong><p id="gpu-error-text">The volumetric solver needs WebGPU.</p></div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js?v=source-window-20261001"></script>
+</body>
+</html>

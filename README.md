@@ -1,1 +1,27 @@
-# Frontier
+# Frontier — Atmospherics Lab
+
+A small, self-contained WebGPU study of buoyant fire, smoke, and blast events. The interactive app is served from the repository root and has no build step or runtime dependencies.
+
+## Run locally
+
+Serve the repository over HTTP or HTTPS (WebGPU is unavailable from most `file://` URLs):
+
+```sh
+python3 -m http.server 8080 --bind 0.0.0.0
+```
+
+Open `http://localhost:8080` in a current browser with WebGPU enabled. In the Arena preview, serve this directory on `0.0.0.0`.
+
+## Simulation notes
+
+- The solver uses adaptive grid layouts: near is 80 × 64 × 80 cells at a base 0.4 m spacing, mid is 48 × 40 × 48 at 0.75 m, and far is 40 × 32 × 40 at 1.2 m. Their base fields are 32 × 25.6 × 32 m, 36 × 30 × 36 m, and 48 × 38.4 × 48 m, respectively. Near adds detail at 409,600 active cells; mid is 92,160 cells and far reduces the active grid to 51,200.
+- The active emitters—not the camera—define the horizontal simulation window. Nearby sources share one grid; as their combined bounds or wind margin outgrow it, the solver recenters and increases cell spacing to cover them without adding cells or per-step work at that LOD. The tradeoff is lower spatial detail across a wider source spread. If bounds shrink but still fit, the old window lingers for six simulation seconds so residual smoke can fade before recentering; with no active emitters, the last window is held. **Clear field** resets to the tier's base spacing.
+- On a tier, source-window, or cell-spacing change, a one-off GPU resample remaps velocity and gas in world space, preserving the overlapping volume. Gas beyond the new bounds is naturally clipped. The solver retains its fixed 1/60-second step at every tier; near costs more compute in exchange for finer smoke structure.
+- Gas transport uses semi-Lagrangian advection with a MacCormack correction and neighborhood limiter, followed by vorticity confinement, buoyancy, divergence calculation, Jacobi pressure projection, and velocity projection.
+- Fuel, temperature, smoke density, and soot fraction are evolved independently. The **Fuel feed** control scales source injection; **Reaction rate** governs fuel-to-heat conversion. Up to 20 emitters can run concurrently, and the **Start stress test** button clears the field and places 20 sustained plumes at different points.
+- The solver allocates its largest grid buffers up front. A 250 MiB app-resource budget includes those buffers, a reserve, an estimate for three presentation surfaces, and two render targets; output resolution is reduced if needed to stay within the estimate. Driver/browser allocations are not exposed by WebGPU, so the telemetry reports a conservative estimate rather than total physical VRAM usage.
+- While a source is active, a smooth source-relative wake envelope dissipates escaped gas outside its local footprint. This keeps long-running plumes from coating the full world volume; smoke can still drift and spread naturally inside the envelope.
+- Distance LOD changes active grid dimensions, field coverage, ray-march samples, and render scale—not the fixed 60 Hz simulation step. In the far tier, the fire/smoke raymarch refreshes at 30 Hz while the solver continues at 60 Hz.
+- A smoothstep edge sponge absorbs gas gradually at the open sides and top. It spans about 5 m, or at least two cells when the widened grid is very coarse; its width maps to 2–12 cells and its damping is softer than the former three-cell layer. Rendering uses Beer–Lambert extinction, directional/self-shadowed scattering, an emissive temperature ramp for flame, and a matching soft fade at the open sides and top. Far-tier volume rays are quantized into square censor/mosaic blocks that grow as the camera moves farther away; the sky and ground remain unpixelated.
+
+Drag to orbit, use the wheel to zoom (up to 160 m), and choose **Place emitter on field** to set the next event location. **Extinguish sources** stops injection but leaves suspended smoke to drift; **Clear field** resets the volume.
