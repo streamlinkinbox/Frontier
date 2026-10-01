@@ -318,15 +318,15 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.25;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#09101a');
-scene.fog = new THREE.FogExp2('#09101a', 0.024);
+scene.fog = new THREE.FogExp2('#09101a', 0.016);
 const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 110);
-const initialCamera = new THREE.Vector3(13.8, 12.2, 16.8);
-const initialTarget = new THREE.Vector3(-0.7, 1.0, -0.5);
+const initialCamera = new THREE.Vector3(13.2, 9.2, 15.8);
+const initialTarget = new THREE.Vector3(-0.9, 0.7, -0.8);
 camera.position.copy(initialCamera);
 
 const controls = new OrbitControls(camera, canvas);
@@ -354,8 +354,8 @@ aoTexture.needsUpdate = true;
 const floorGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 1, 1);
 floorGeo.setAttribute('uv2', floorGeo.attributes.uv.clone());
 const floorMaterial = new THREE.MeshStandardMaterial({
-  color: '#172332', roughness: 0.86, metalness: 0.02,
-  emissive: '#ffffff', emissiveMap: indirectTexture, emissiveIntensity: 1.1,
+  color: '#26394d', roughness: 0.86, metalness: 0.02,
+  emissive: '#ffffff', emissiveMap: indirectTexture, emissiveIntensity: 1.9,
   aoMap: aoTexture, aoMapIntensity: 0.92,
 });
 const floor = new THREE.Mesh(floorGeo, floorMaterial);
@@ -393,9 +393,9 @@ makeProp(-3.8, 8.0, 0.9, '#b3d9ef');
 makeProp(8.2, -1.8, 0.7, '#c1d6ee');
 makeProp(-13.8, -10.5, 0.78, '#d7e1e8');
 
-const hemi = new THREE.HemisphereLight('#7194c4', '#10151e', 0.36);
+const hemi = new THREE.HemisphereLight('#7194c4', '#10151e', 0.52);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight('#ffd5a8', 3.3);
+const sun = new THREE.DirectionalLight('#ffd5a8', 4.1);
 sun.position.set(-8, 10.5, -8);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1536, 1536);
@@ -440,7 +440,7 @@ function updateSun(time) {
     sun.position.set(Math.cos(a) * 11.5, 9.2 + Math.sin(a * 0.7) * 2.2, Math.sin(a) * 10.5);
   }
   sun.color.set(state.lightMode === 'sunset' ? '#ffd1a2' : '#d8eaff');
-  sun.intensity = state.lightMode === 'sunset' ? 3.35 : 2.85;
+  sun.intensity = state.lightMode === 'sunset' ? 4.15 : 3.55;
   sunDirection.copy(sun.position).sub(sun.target.position).normalize();
   orb.position.copy(sun.position).multiplyScalar(0.82);
   orb.material.color.copy(sun.color);
@@ -472,7 +472,8 @@ function selectAndLightSurfels() {
     if (ndotl < 0.025) continue;
     const blocked = rayBlocked(s.x + s.nx * 0.32, s.y + 0.05, s.z + s.nz * 0.32, sunDirection.x, sunDirection.y, sunDirection.z);
     if (blocked) continue;
-    const direct = ndotl * sun.intensity * 0.43;
+    // This deliberately biases the cache above physical energy: the lab needs the LPV colour bleed to be legible without HDR debug tooling.
+    const direct = ndotl * sun.intensity * 0.67;
     const flux = [s.albedo[0] * direct, s.albedo[1] * direct, s.albedo[2] * direct];
     currentSurfels.push({ ...s, flux });
     const co = id * 3;
@@ -487,7 +488,7 @@ function selectAndLightSurfels() {
 function updateCascades() {
   for (const cascade of cascades) {
     cascade.recenter(camera.position.x, camera.position.z, state.cascades);
-    for (const surfel of currentSurfels) cascade.inject(surfel, 0.49);
+    for (const surfel of currentSurfels) cascade.inject(surfel, 0.72);
     cascade.propagate(state.propagation, state.blockers);
   }
 }
@@ -558,9 +559,10 @@ function rebuildIndirectTexture() {
       const sg = state.ssgi ? ssgi.color[so + 1] : 0;
       const sb = state.ssgi ? ssgi.color[so + 2] : 0;
       // ACES will tone-map the emissive texture afterwards; keep this physically modest.
-      const r = Math.max(0, tmpColorA[0] * state.energy * 0.34 + sr * state.energy);
-      const g = Math.max(0, tmpColorA[1] * state.energy * 0.34 + sg * state.energy);
-      const b = Math.max(0, tmpColorA[2] * state.energy * 0.34 + sb * state.energy);
+      // Bias the indirect buffer for presentation: colour bleed must remain obvious next to the direct shadow pass.
+      const r = Math.max(0, tmpColorA[0] * state.energy * 0.92 + sr * state.energy * 1.55);
+      const g = Math.max(0, tmpColorA[1] * state.energy * 0.92 + sg * state.energy * 1.55);
+      const b = Math.max(0, tmpColorA[2] * state.energy * 0.92 + sb * state.energy * 1.55);
       textureBytes[o] = Math.round(clamp(Math.pow(r, 1 / 2.2)) * 255);
       textureBytes[o + 1] = Math.round(clamp(Math.pow(g, 1 / 2.2)) * 255);
       textureBytes[o + 2] = Math.round(clamp(Math.pow(b, 1 / 2.2)) * 255);
