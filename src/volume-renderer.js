@@ -114,19 +114,11 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
     + camera.right.xyz * ndc.x * aspect * tangent
     + camera.up.xyz * ndc.y * tangent
   );
-  var volumePixel = fragment.xy;
-  var volumeRay = ray;
-  if (camera.lod.w > 1.0) {
-    let blockSize = camera.lod.w;
-    volumePixel = floor(fragment.xy / blockSize) * blockSize + vec2<f32>(blockSize * 0.5);
-    let volumeUv = volumePixel / dimensions;
-    let volumeNdc = vec2<f32>(volumeUv.x * 2.0 - 1.0, 1.0 - volumeUv.y * 2.0);
-    volumeRay = normalize(
-      camera.forward.xyz
-      + camera.right.xyz * volumeNdc.x * aspect * tangent
-      + camera.up.xyz * volumeNdc.y * tangent
-    );
-  }
+  // All distance tiers use the actual fragment ray. Far LOD lowers the
+  // volume render target and ray budget, but does not quantize pixels into
+  // censor blocks.
+  let volumePixel = fragment.xy;
+  let volumeRay = ray;
   let eye = camera.position.xyz;
   var scene = skyColor(ray);
   var groundT = 1e6;

@@ -105,11 +105,15 @@ function chooseLod() {
   const tiers = [
     { name: 'NEAR', level: 0, cellSize: 0.4, step: 0.32, maxSamples: 128, scale: 0.96, renderHz: 60 },
     { name: 'MID', level: 1, cellSize: 0.75, step: 0.58, maxSamples: 88, scale: 0.82, renderHz: 60 },
-    { name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, maxSamples: 64, scale: 0.68, renderHz: 30 },
+    // Far keeps the cheaper grid and ray budget, but it still presents every
+    // frame. The previous 30 Hz cap made moving outside the window feel like
+    // a CPU stall even though the solver remained at 60 Hz.
+    { name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, maxSamples: 64, scale: 0.68, renderHz: 60 },
   ];
   const tier = tiers[currentLodLevel];
-  const censorPixels = tier.level === 2 ? clamp(4 + (distance - 62) * 0.06, 4, 10) : 0;
-  return { ...tier, distance, censorPixels };
+  // Keep far LOD smooth. A lower render target is enough for the budget; the
+  // old square censor blocks were the source of the visible pixel mosaic.
+  return { ...tier, distance, censorPixels: 0 };
 }
 
 function refreshGridInfo() {
