@@ -1,7 +1,7 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=source-window-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=source-window-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=source-window-20261001';
-import { loadBakedPlume } from './baked-plume.js?v=baked-plume-hq-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=bounds-cage-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=bounds-cage-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=bounds-cage-20261001';
+import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
 const VRAM_SAFETY_MARGIN_BYTES = 1024 * 1024;
@@ -143,6 +143,11 @@ function updateBoundsUI() {
   $('#bounds-label').textContent = mode;
   $('#bounds-value').textContent = `X ${rangeLabel(bounds.min[0], bounds.max[0])} · Y ${rangeLabel(bounds.min[1], bounds.max[1])} · Z ${rangeLabel(bounds.min[2], bounds.max[2])} m`;
   $('#bounds-readout').classList.toggle('baked', activeMode === 'baked');
+  renderer?.setBounds(
+    bounds,
+    activeMode === 'baked' ? [0.18, 0.95, 0.70] : [1.0, 0.42, 0.10],
+    grid.cellSize,
+  );
 }
 
 function lodDescription(lod) {

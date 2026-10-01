@@ -1,5 +1,5 @@
-import { cameraUniformData } from './math.js?v=source-window-20261001';
-import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=source-window-20261001';
+import { cameraUniformData } from './math.js?v=bounds-cage-20261001';
+import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=bounds-cage-20261001';
 
 export const PRESENTATION_BUFFER_COUNT = 3;
 export const RENDER_TARGET_BUFFER_COUNT = 2;
@@ -89,14 +89,6 @@ fn groundColor(point: vec3<f32>) -> vec3<f32> {
   color += vec3<f32>(0.07, 0.035, 0.015) * stageRing;
   color *= 0.86 + 0.14 * exp(-length(point.xz) * 0.018);
   return color;
-}
-
-fn boxEdgeAt(point: vec3<f32>, boxMin: vec3<f32>, boxMax: vec3<f32>, thickness: f32) -> f32 {
-  let x = min(abs(point.x - boxMin.x), abs(boxMax.x - point.x));
-  let y = min(abs(point.y - boxMin.y), abs(boxMax.y - point.y));
-  let z = min(abs(point.z - boxMin.z), abs(boxMax.z - point.z));
-  let distanceToEdge = min(min(x + y, x + z), y + z);
-  return 1.0 - smoothstep(thickness, thickness * 2.8, distanceToEdge);
 }
 
 struct VertexOut { @builtin(position) position: vec4<f32> };
@@ -232,21 +224,6 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
   color = vec3<f32>(1.0) - exp(-max(color, vec3<f32>(0.0)) * 1.28);
   color = pow(color, vec3<f32>(1.0 / 2.2));
 
-  // A visible world-space cage makes the active simulation window legible.
-  // Live grids use amber; the high-resolution baked plume uses mint. The
-  // outline is evaluated at the entry and exit faces so it stays thick and
-  // crisp without adding another render pass or any simulation work.
-  var boxEdge = 0.0;
-  if (volumeFar > volumeNear) {
-    let boxThickness = max(0.22, params.originH.w * 0.42);
-    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * volumeNear, volumeMin, volumeMax, boxThickness));
-    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * volumeFar, volumeMin, volumeMax, boxThickness));
-    let inset = min(0.65, (volumeFar - volumeNear) * 0.035);
-    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * (volumeNear + inset), volumeMin, volumeMax, boxThickness));
-    boxEdge = max(boxEdge, boxEdgeAt(eye + volumeRay * (volumeFar - inset), volumeMin, volumeMax, boxThickness));
-  }
-  let boxColor = select(vec3<f32>(1.0, 0.42, 0.10), vec3<f32>(0.18, 0.95, 0.70), params.dims.y > 100);
-  color = mix(color, boxColor, boxEdge * 0.84) + boxColor * boxEdge * 0.22;
   return vec4<f32>(color, 1.0);
 }
 `;
@@ -276,6 +253,98 @@ struct VertexOut {
 }
 `;
 
+const CAGE_SHADER = /* wgsl */ `
+struct Camera {
+  position: vec4<f32>,
+  forward: vec4<f32>,
+  right: vec4<f32>,
+  up: vec4<f32>,
+  viewport: vec4<f32>,
+  lod: vec4<f32>,
+};
+struct Cage {
+  color: vec4<f32>,
+};
+@group(0) @binding(0) var<uniform> camera: Camera;
+@group(0) @binding(1) var<uniform> cage: Cage;
+
+struct VertexOut {
+  @builtin(position) position: vec4<f32>,
+};
+
+@vertex fn vs(@location(0) worldPosition: vec3<f32>) -> VertexOut {
+  let view = worldPosition - camera.position.xyz;
+  let depth = max(dot(view, camera.forward.xyz), 0.001);
+  let aspect = camera.viewport.x / max(camera.viewport.y, 1.0);
+  let tangent = camera.viewport.w;
+  let ndc = vec2<f32>(
+    dot(view, camera.right.xyz) / (depth * tangent * aspect),
+    dot(view, camera.up.xyz) / (depth * tangent)
+  );
+  var output: VertexOut;
+  output.position = vec4<f32>(ndc, 0.0, 1.0);
+  return output;
+}
+
+@fragment fn fs() -> @location(0) vec4<f32> {
+  return cage.color;
+}
+`;
+
+function add3(a, b) {
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+function scale3(a, scalar) {
+  return [a[0] * scalar, a[1] * scalar, a[2] * scalar];
+}
+function addFace(vertices, a, b, c, d) {
+  vertices.push(...a, ...b, ...c, ...a, ...c, ...d);
+}
+
+function appendCageEdge(vertices, start, end, axis, halfThickness) {
+  const u = axis === 0 ? [0, halfThickness, 0] : [halfThickness, 0, 0];
+  const v = axis === 2 ? [0, halfThickness, 0] : [0, 0, halfThickness];
+  const nu = scale3(u, -1);
+  const nv = scale3(v, -1);
+  const a0 = add3(add3(start, nu), nv);
+  const a1 = add3(add3(start, u), nv);
+  const a2 = add3(add3(start, u), v);
+  const a3 = add3(add3(start, nu), v);
+  const b0 = add3(add3(end, nu), nv);
+  const b1 = add3(add3(end, u), nv);
+  const b2 = add3(add3(end, u), v);
+  const b3 = add3(add3(end, nu), v);
+  addFace(vertices, a0, a1, a2, a3);
+  addFace(vertices, b1, b0, b3, b2);
+  addFace(vertices, a0, b0, b1, a1);
+  addFace(vertices, a1, b1, b2, a2);
+  addFace(vertices, a2, b2, b3, a3);
+  addFace(vertices, a3, b3, b0, a0);
+}
+
+function buildCageGeometry(bounds, thickness) {
+  const min = bounds.min;
+  const max = bounds.max;
+  const vertices = [];
+  const halfThickness = thickness * 0.5;
+  for (const y of [min[1], max[1]]) {
+    for (const z of [min[2], max[2]]) {
+      appendCageEdge(vertices, [min[0], y, z], [max[0], y, z], 0, halfThickness);
+    }
+  }
+  for (const x of [min[0], max[0]]) {
+    for (const z of [min[2], max[2]]) {
+      appendCageEdge(vertices, [x, min[1], z], [x, max[1], z], 1, halfThickness);
+    }
+  }
+  for (const x of [min[0], max[0]]) {
+    for (const y of [min[1], max[1]]) {
+      appendCageEdge(vertices, [x, y, min[2]], [x, y, max[2]], 2, halfThickness);
+    }
+  }
+  return new Float32Array(vertices);
+}
+
 export class VolumeRenderer {
   constructor(device, format, solver, validateShader) {
     this.device = device;
@@ -294,6 +363,17 @@ export class VolumeRenderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       label: 'volume-camera',
     });
+    this.cageColorBuffer = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      label: 'simulation-bounds-cage-color',
+    });
+    this.cageVertexBuffer = null;
+    this.cageVertexCount = 0;
+    this.cageSignature = '';
+    this.cagePending = null;
+    this.cagePipeline = null;
+    this.cageBindGroup = null;
     this.linearSampler = device.createSampler({
       addressModeU: 'clamp-to-edge',
       addressModeV: 'clamp-to-edge',
@@ -324,6 +404,38 @@ export class VolumeRenderer {
       fragment: { module: upscaleModule, entryPoint: 'fs', targets: [{ format: this.format }] },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
     });
+
+    const cageModule = this.device.createShaderModule({ code: CAGE_SHADER, label: 'simulation-bounds-cage' });
+    await validateShader(cageModule, 'simulation-bounds-cage');
+    this.cagePipeline = this.device.createRenderPipeline({
+      layout: 'auto',
+      label: 'simulation-bounds-cage',
+      vertex: {
+        module: cageModule,
+        entryPoint: 'vs',
+        buffers: [{ arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] }],
+      },
+      fragment: {
+        module: cageModule,
+        entryPoint: 'fs',
+        targets: [{
+          format: this.format,
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+          },
+        }],
+      },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+    });
+    this.cageBindGroup = this.device.createBindGroup({
+      layout: this.cagePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: this.cameraBuffer } },
+        { binding: 1, resource: { buffer: this.cageColorBuffer } },
+      ],
+    });
+    if (this.cagePending) this.setBounds(...this.cagePending);
   }
 
   bindField(field) {
@@ -342,6 +454,35 @@ export class VolumeRenderer {
     this.simulationResourceBytes = field === this.solver
       ? this.solver.allocatedBytes
       : this.solver.allocatedBytes + (field.resourceBytes || 0);
+  }
+
+  setBounds(bounds, color = [1.0, 0.42, 0.10], cellSize = 0.75) {
+    const safeColor = color.slice(0, 3).map((value) => Number(value) || 0);
+    const thickness = Math.max(0.38, Number(cellSize) * 0.70);
+    const signature = [
+      ...bounds.min,
+      ...bounds.max,
+      ...safeColor,
+      thickness,
+    ].map((value) => Number(value).toFixed(4)).join(':');
+    this.cagePending = [bounds, safeColor, cellSize];
+    if (!this.cagePipeline || signature === this.cageSignature) return;
+    const positions = buildCageGeometry(bounds, thickness);
+    const previousBuffer = this.cageVertexBuffer;
+    if (previousBuffer) {
+      this.device.queue.onSubmittedWorkDone()
+        .then(() => previousBuffer.destroy())
+        .catch(() => previousBuffer.destroy());
+    }
+    this.cageVertexBuffer = this.device.createBuffer({
+      size: Math.max(4, positions.byteLength),
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      label: 'simulation-bounds-cage-geometry',
+    });
+    this.device.queue.writeBuffer(this.cageVertexBuffer, 0, positions);
+    this.device.queue.writeBuffer(this.cageColorBuffer, 0, new Float32Array([...safeColor, 0.94]));
+    this.cageVertexCount = positions.length / 3;
+    this.cageSignature = signature;
   }
 
   resize(width, height, scale = 1) {
@@ -422,5 +563,17 @@ export class VolumeRenderer {
     upscalePass.setBindGroup(0, this.upscaleBindGroup);
     upscalePass.draw(3);
     upscalePass.end();
+
+    if (this.cageVertexBuffer && this.cageVertexCount && this.cageBindGroup) {
+      const cagePass = encoder.beginRenderPass({
+        label: 'simulation-bounds-cage',
+        colorAttachments: [{ view, loadOp: 'load', storeOp: 'store' }],
+      });
+      cagePass.setPipeline(this.cagePipeline);
+      cagePass.setBindGroup(0, this.cageBindGroup);
+      cagePass.setVertexBuffer(0, this.cageVertexBuffer);
+      cagePass.draw(this.cageVertexCount);
+      cagePass.end();
+    }
   }
 }

@@ -1,8 +1,8 @@
-import { MAX_EMITTERS } from './fluid-solver.js?v=source-window-20261001';
+import { MAX_EMITTERS } from './fluid-solver.js?v=bounds-cage-20261001';
 
 const PARAM_FLOATS = 24 + MAX_EMITTERS * 12;
 const PARAM_BYTES = PARAM_FLOATS * Float32Array.BYTES_PER_ELEMENT;
-const MANIFEST_URL = './assets/baked-plume.json?v=baked-plume-hq-20261001';
+const MANIFEST_URL = './assets/baked-plume.json?v=baked-plume-cage-20261001';
 
 function assertManifest(manifest) {
   const [nx, ny, nz] = manifest.dimensions || [];
