@@ -1,5 +1,5 @@
-import { cameraUniformData } from './math.js?v=unreal-volume-color-20261001';
-import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-color-20261001';
+import { cameraUniformData } from './math.js?v=unreal-volume-gradient-20261001';
+import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-gradient-20261001';
 
 export const PRESENTATION_BUFFER_COUNT = 3;
 export const RENDER_TARGET_BUFFER_COUNT = 2;
@@ -28,8 +28,10 @@ struct Camera {
   lod: vec4<f32>,
   transfer: vec4<f32>,
   lighting: vec4<f32>,
-  fireColor: vec4<f32>,
-  smokeColor: vec4<f32>,
+  fireColorLow: vec4<f32>,
+  fireColorHigh: vec4<f32>,
+  smokeColorLight: vec4<f32>,
+  smokeColorDense: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> params: SimParams;
 @group(0) @binding(1) var<uniform> camera: Camera;
@@ -112,7 +114,8 @@ fn shadowVisibility(position: vec3<f32>, lightDirection: vec3<f32>, shadowStep: 
     let offset = (f32(tap) + 0.5) * stride;
     let shadowGas = gasAtWorld(position + lightDirection * offset);
     let shadowDensity = transferDensity(shadowGas.x, shadowGas.w);
-    opticalDepth += shadowDensity * stride * 0.68;
+    let shadowHeat = clamp(max(shadowGas.y - camera.lighting.y, 0.0) * max(camera.lighting.x, 0.0) / 4.4, 0.0, 1.0) * 0.16;
+    opticalDepth += (shadowDensity + shadowHeat) * stride * 0.68;
   }
   return exp(-opticalDepth);
 }
@@ -243,10 +246,16 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         let opacity = 1.0 - exp(-opticalDepth * stepLength);
         let altitude = clamp(position.y / max(volumeMax.y, 1.0), 0.0, 1.0);
         let sunVisibility = shadowVisibility(position, sunDirection, shadowStep, shadowSamples);
-        let ambient = mix(vec3<f32>(0.10, 0.12, 0.15), vec3<f32>(0.26, 0.31, 0.37), altitude);
+        let ambientUnoccluded = mix(vec3<f32>(0.10, 0.12, 0.15), vec3<f32>(0.26, 0.31, 0.37), altitude);
+        // Primary-ray transmittance handles view occlusion; this additional
+        // term darkens the volume core so self-shadowing is visible in smoke.
+        let viewOcclusion = 1.0 - exp(-opticalDepth * stepLength * 1.8);
+        let ambient = mix(ambientUnoccluded, ambientUnoccluded * 0.34, viewOcclusion);
         let direct = vec3<f32>(0.78, 0.57, 0.35) * sunVisibility * 0.42;
-        let sootShade = mix(vec3<f32>(1.0), vec3<f32>(0.58, 0.46, 0.38), soot * 0.82);
-        let smokeTint = camera.smokeColor.rgb * sootShade;
+        // Smoke uses a density/soot gradient: open volume stays light and
+        // dense, sooty regions move toward the second user-selected stop.
+        let smokeGrade = clamp(max(smokeDensity * 0.62, soot * 0.82), 0.0, 1.0);
+        let smokeTint = mix(camera.smokeColorLight.rgb, camera.smokeColorDense.rgb, smokeGrade);
         let powder = 1.0 - exp(-opticalDepth * 1.6);
         let lighting = ambient + direct * mix(1.0, powder * 1.55, 0.28);
         scattered += transmittance * opacity * smokeTint * lighting * 2.15;
@@ -257,9 +266,14 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         let heat = clamp(temperatureResponse / 4.4, 0.0, 1.0);
         let flameMask = smoothstep(0.02, 0.24, heat);
         let blackbody = blackbodyColor(heat);
-        // The chosen tint steers the Kelvin response without removing the
-        // temperature-dependent black-body brightness and hue progression.
-        let emissionColor = mix(blackbody, camera.fireColor.rgb, 0.62);
+        // The two fire stops shape the Kelvin response rather than replacing
+        // it. Preserve black-body luminance so temperature still controls the
+        // energy and the gradient controls only the visible hue.
+        let fireGradient = mix(camera.fireColorLow.rgb, camera.fireColorHigh.rgb, heat);
+        let blackbodyLuma = max(dot(blackbody, vec3<f32>(0.2126, 0.7152, 0.0722)), 0.02);
+        let gradientLuma = max(dot(fireGradient, vec3<f32>(0.2126, 0.7152, 0.0722)), 0.04);
+        let gradientColor = fireGradient * (blackbodyLuma / gradientLuma);
+        let emissionColor = mix(blackbody, gradientColor, 0.72);
         let emission = pow(temperatureResponse, 1.18) * flameMask * 0.43;
         fireLight += transmittance * emissionColor * emission * stepLength;
       }
@@ -408,9 +422,9 @@ export class VolumeRenderer {
     this.renderTexture = null;
     this.renderView = null;
     this.cameraBuffer = device.createBuffer({
-      size: 160,
+      size: 192,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      label: 'volume-camera-transfer-and-color-controls',
+      label: 'volume-camera-transfer-and-gradient-controls',
     });
     this.cageColorBuffer = device.createBuffer({
       size: 16,

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0d1217" />
   <meta name="description" content="Frontier real-time volumetric fire and smoke simulation lab." />
   <title>Frontier — Atmospherics Lab</title>
-  <link rel="stylesheet" href="./styles.css?v=dashboard-ui-20261001-color" />
+  <link rel="stylesheet" href="./styles.css?v=dashboard-ui-20261001-gradient" />
 </head>
 <body class="show-controls">
   <canvas id="world" aria-label="Interactive volumetric fire and smoke simulation"></canvas>
@@ -120,14 +120,24 @@
         <span class="model-tag">v2.1</span>
       </div>
 
-      <div class="color-controls" aria-label="Fire and smoke color controls">
-        <label class="color-control" for="fire-color">
-          <span class="color-control-copy"><span>Fire tint</span><output id="fire-color-value">#FF6D35</output></span>
-          <input id="fire-color" data-color-param="fireColor" type="color" value="#ff6d35" />
+      <div class="color-controls" aria-label="Fire and smoke color gradients">
+        <span class="color-section-label">FIRE / BLACKBODY GRADIENT</span>
+        <label class="color-control" for="fire-color-low">
+          <span class="color-control-copy"><span>Cool flame</span><output id="fire-color-low-value">#FF3D13</output></span>
+          <input id="fire-color-low" data-color-param="fireColorLow" type="color" value="#ff3d13" />
         </label>
-        <label class="color-control" for="smoke-color">
-          <span class="color-control-copy"><span>Smoke tint</span><output id="smoke-color-value">#6E7880</output></span>
-          <input id="smoke-color" data-color-param="smokeColor" type="color" value="#6e7880" />
+        <label class="color-control" for="fire-color-high">
+          <span class="color-control-copy"><span>Hot flame</span><output id="fire-color-high-value">#FFF0A0</output></span>
+          <input id="fire-color-high" data-color-param="fireColorHigh" type="color" value="#fff0a0" />
+        </label>
+        <span class="color-section-label">SMOKE / DENSITY GRADIENT</span>
+        <label class="color-control" for="smoke-color-light">
+          <span class="color-control-copy"><span>Light smoke</span><output id="smoke-color-light-value">#6E7880</output></span>
+          <input id="smoke-color-light" data-color-param="smokeColorLight" type="color" value="#6e7880" />
+        </label>
+        <label class="color-control" for="smoke-color-dense">
+          <span class="color-control-copy"><span>Dense smoke</span><output id="smoke-color-dense-value">#30251E</output></span>
+          <input id="smoke-color-dense" data-color-param="smokeColorDense" type="color" value="#30251e" />
         </label>
       </div>
 
@@ -214,6 +224,6 @@
     </div>
   </div>
 
-  <script type="module" src="./src/main.js?v=unreal-volume-color-20261001"></script>
+  <script type="module" src="./src/main.js?v=unreal-volume-gradient-20261001"></script>
 </body>
 </html>

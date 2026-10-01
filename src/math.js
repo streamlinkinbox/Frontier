@@ -37,10 +37,10 @@ export function cameraFrame(camera) {
 
 export function cameraUniformData(camera, width, height, time, lod, render = {}) {
   const { eye, forward, right, up } = cameraFrame(camera);
-  // Camera, transfer, lighting, and tint controls share one 160-byte uniform
-  // block. Keeping them together lets color changes apply to live and baked
-  // fields on the next render without touching the simulation buffers.
-  const data = new Float32Array(40);
+  // Camera, transfer, lighting, and gradient controls share one 192-byte
+  // uniform block. Keeping them together lets color changes apply to live and
+  // baked fields on the next render without touching the simulation buffers.
+  const data = new Float32Array(48);
   data.set([eye[0], eye[1], eye[2], 1], 0);
   data.set([forward[0], forward[1], forward[2], 0], 4);
   data.set([right[0], right[1], right[2], 0], 8);
@@ -59,8 +59,10 @@ export function cameraUniformData(camera, width, height, time, lod, render = {})
     lod.shadowStep ?? 1.0,
     lod.shadowSamples ?? 4,
   ], 28);
-  data.set([...(render.fireColor ?? [1.0, 0.427, 0.208]), 0.0], 32);
-  data.set([...(render.smokeColor ?? [0.43, 0.47, 0.50]), 0.0], 36);
+  data.set([...(render.fireColorLow ?? [1.0, 0.239, 0.075]), 0.0], 32);
+  data.set([...(render.fireColorHigh ?? [1.0, 0.941, 0.627]), 0.0], 36);
+  data.set([...(render.smokeColorLight ?? [0.43, 0.47, 0.50]), 0.0], 40);
+  data.set([...(render.smokeColorDense ?? [0.188, 0.145, 0.118]), 0.0], 44);
   return data;
 }
 

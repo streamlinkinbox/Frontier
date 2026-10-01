@@ -1,6 +1,6 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-color-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-color-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-color-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-gradient-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-gradient-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-gradient-20261001';
 import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
@@ -27,8 +27,10 @@ const DEFAULTS = Object.freeze({
   densityCurve: 0.82,
   sootDensityGain: 0.24,
   temperatureGain: 1.0,
-  fireColor: [1.0, 0.427, 0.208],
-  smokeColor: [0.43, 0.47, 0.50],
+  fireColorLow: [1.0, 0.239, 0.075],
+  fireColorHigh: [1.0, 0.941, 0.627],
+  smokeColorLight: [0.43, 0.47, 0.50],
+  smokeColorDense: [0.188, 0.145, 0.118],
 });
 const settings = { ...DEFAULTS };
 const camera = {
@@ -114,11 +116,11 @@ function chooseLod() {
   const tiers = [
     {
       name: 'NEAR', level: 0, cellSize: 0.4, step: 0.32, subCellSamples: 2,
-      maxSamples: 128, shadowSamples: 4, shadowStep: 0.85, scale: 0.96, renderHz: 60,
+      maxSamples: 128, shadowSamples: 4, shadowStep: 1.25, scale: 0.96, renderHz: 60,
     },
     {
       name: 'MID', level: 1, cellSize: 0.75, step: 0.58, subCellSamples: 2,
-      maxSamples: 88, shadowSamples: 3, shadowStep: 0.98, scale: 0.82, renderHz: 60,
+      maxSamples: 88, shadowSamples: 3, shadowStep: 1.20, scale: 0.82, renderHz: 60,
     },
     // Far keeps the cheaper grid and ray budget, but it still presents every
     // frame. The previous 30 Hz cap made moving outside the window feel like
@@ -126,7 +128,7 @@ function chooseLod() {
     // reduced independently from the primary sub-cell ray budget.
     {
       name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, subCellSamples: 2,
-      maxSamples: 64, shadowSamples: 2, shadowStep: 1.25, scale: 0.68, renderHz: 60,
+      maxSamples: 64, shadowSamples: 2, shadowStep: 1.35, scale: 0.68, renderHz: 60,
     },
   ];
   const tier = tiers[currentLodLevel];

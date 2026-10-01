@@ -387,6 +387,12 @@ kbd { display: inline-block; padding: 2px 5px; border: 1px solid rgba(224,233,22
   padding: 0 0 12px;
   border-bottom: 1px solid rgba(255,255,255,.075);
 }
+.color-section-label {
+  margin-top: 2px;
+  color: #6e7673;
+  font: 6px var(--mono);
+  letter-spacing: .12em;
+}
 .color-control {
   display: flex;
   align-items: center;
