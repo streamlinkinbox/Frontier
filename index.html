@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0d1217" />
   <meta name="description" content="Frontier real-time volumetric fire and smoke simulation lab." />
   <title>Frontier — Atmospherics Lab</title>
-  <link rel="stylesheet" href="./styles.css?v=smooth-lod-20261001" />
+  <link rel="stylesheet" href="./styles.css?v=dashboard-ui-20261001" />
 </head>
 <body>
   <canvas id="world" aria-label="Interactive volumetric fire and smoke simulation"></canvas>
@@ -36,6 +36,7 @@
       </div>
 
       <div class="topbar-actions">
+        <button id="controls-toggle" class="controls-toggle" type="button" aria-expanded="false">Field settings</button>
         <div class="engine-badge"><span class="engine-led"></span><span id="engine-status">STARTING GPU</span></div>
         <button id="help-toggle" class="help-trigger" type="button" aria-label="Toggle interaction help">?</button>
       </div>
@@ -182,7 +183,7 @@
 
     <div class="event-toast" id="event-toast" role="status" aria-live="polite"></div>
 
-    <div class="help-card" id="help-card">
+    <div class="help-card help-collapsed" id="help-card">
       <div class="help-title"><span>INTERACTION</span><button id="help-toggle-inner" type="button" aria-label="Close interaction help">×</button></div>
       <p><kbd>Drag</kbd> orbit camera <span>·</span> <kbd>Wheel</kbd> zoom <span>·</span> <kbd>Place</kbd> then click ground</p>
     </div>
@@ -202,6 +203,6 @@
     </div>
   </div>
 
-  <script type="module" src="./src/main.js?v=smooth-lod-20261001"></script>
+  <script type="module" src="./src/main.js?v=dashboard-ui-20261001"></script>
 </body>
 </html>

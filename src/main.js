@@ -504,6 +504,10 @@ function registerUI() {
   const toggleHelp = () => $('#help-card').classList.toggle('help-collapsed');
   $('#help-toggle').addEventListener('click', toggleHelp);
   $('#help-toggle-inner').addEventListener('click', toggleHelp);
+  $('#controls-toggle').addEventListener('click', (event) => {
+    const open = document.body.classList.toggle('show-controls');
+    event.currentTarget.setAttribute('aria-expanded', String(open));
+  });
   registerCanvasControls();
   setModeUI('live');
 }
