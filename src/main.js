@@ -1,6 +1,6 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=smooth-lod-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=smooth-lod-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=smooth-lod-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-20261001';
 import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
@@ -20,6 +20,13 @@ const DEFAULTS = Object.freeze({
   smokeFade: 0.45,
   turbulence: 1.3,
   wind: 0.4,
+  // Unreal-style volume transfer controls. These affect rendering only; the
+  // solver continues to evolve the original density and temperature fields.
+  densityGain: 1.35,
+  densityCutoff: 0.018,
+  densityCurve: 0.82,
+  sootDensityGain: 0.24,
+  temperatureGain: 1.0,
 });
 const settings = { ...DEFAULTS };
 const camera = {
@@ -103,12 +110,22 @@ function chooseLod() {
   else if (currentLodLevel === 2 && distance < 50) currentLodLevel = 1;
 
   const tiers = [
-    { name: 'NEAR', level: 0, cellSize: 0.4, step: 0.32, maxSamples: 128, scale: 0.96, renderHz: 60 },
-    { name: 'MID', level: 1, cellSize: 0.75, step: 0.58, maxSamples: 88, scale: 0.82, renderHz: 60 },
+    {
+      name: 'NEAR', level: 0, cellSize: 0.4, step: 0.32, subCellSamples: 2,
+      maxSamples: 128, shadowSamples: 4, shadowStep: 0.85, scale: 0.96, renderHz: 60,
+    },
+    {
+      name: 'MID', level: 1, cellSize: 0.75, step: 0.58, subCellSamples: 2,
+      maxSamples: 88, shadowSamples: 3, shadowStep: 0.98, scale: 0.82, renderHz: 60,
+    },
     // Far keeps the cheaper grid and ray budget, but it still presents every
     // frame. The previous 30 Hz cap made moving outside the window feel like
-    // a CPU stall even though the solver remained at 60 Hz.
-    { name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, maxSamples: 64, scale: 0.68, renderHz: 60 },
+    // a CPU stall even though the solver remained at 60 Hz. Shadow taps are
+    // reduced independently from the primary sub-cell ray budget.
+    {
+      name: 'FAR', level: 2, cellSize: 1.2, step: 0.9, subCellSamples: 2,
+      maxSamples: 64, shadowSamples: 2, shadowStep: 1.25, scale: 0.68, renderHz: 60,
+    },
   ];
   const tier = tiers[currentLodLevel];
   // Keep far LOD smooth. A lower render target is enough for the budget; the
@@ -628,7 +645,7 @@ async function start() {
         setLodUI(lod);
       }
       if (shouldRender) {
-        renderer.updateCamera(camera, canvas.width, canvas.height, simulationTime, lod);
+        renderer.updateCamera(camera, canvas.width, canvas.height, simulationTime, lod, settings);
         renderer.draw(encoder, context.getCurrentTexture().createView());
       }
       device.queue.submit([encoder.finish()]);

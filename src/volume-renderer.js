@@ -1,5 +1,5 @@
-import { cameraUniformData } from './math.js?v=smooth-lod-20261001';
-import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=smooth-lod-20261001';
+import { cameraUniformData } from './math.js?v=unreal-volume-20261001';
+import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-20261001';
 
 export const PRESENTATION_BUFFER_COUNT = 3;
 export const RENDER_TARGET_BUFFER_COUNT = 2;
@@ -26,6 +26,8 @@ struct Camera {
   up: vec4<f32>,
   viewport: vec4<f32>,
   lod: vec4<f32>,
+  transfer: vec4<f32>,
+  lighting: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> params: SimParams;
 @group(0) @binding(1) var<uniform> camera: Camera;
@@ -63,12 +65,59 @@ fn gasAtWorld(wp: vec3<f32>) -> vec4<f32> {
   let gridPoint = (wp - params.originH.xyz) / params.originH.w - vec3<f32>(0.5);
   return sampleGas(gridPoint);
 }
+fn transferDensity(rawDensity: f32, soot: f32) -> f32 {
+  // Density is treated as a transfer function, not remixed with world-space
+  // noise. This mirrors Niagara's density gain, minimum, and curve controls.
+  let gain = max(camera.transfer.x, 0.001);
+  let cutoff = max(camera.transfer.y, 0.0);
+  let curve = max(camera.transfer.z, 0.25);
+  let sootBoost = 1.0 + clamp(soot, 0.0, 1.0) * max(camera.transfer.w, 0.0);
+  let response = max(rawDensity - cutoff, 0.0) * gain * sootBoost;
+  return pow(clamp(response, 0.0, 2.0), curve);
+}
+
+fn blackbodyColor(normalizedTemperature: f32) -> vec3<f32> {
+  // Approximation of a Kelvin black-body locus. The simulation temperature is
+  // normalized before this function; emission intensity remains separate.
+  let kelvin = mix(900.0, 3200.0, pow(clamp(normalizedTemperature, 0.0, 1.0), 0.72));
+  let t = max(kelvin / 100.0, 1.0);
+  var red = 0.0;
+  var green = 0.0;
+  var blue = 0.0;
+  if (t <= 66.0) {
+    red = 1.0;
+    green = clamp(0.3900815787 * log(t) - 0.6318414438, 0.0, 1.0);
+  } else {
+    red = clamp(1.2929361861 * pow(t - 60.0, -0.1332047592), 0.0, 1.0);
+    green = clamp(1.1298908610 * pow(t - 60.0, -0.0755148492), 0.0, 1.0);
+  }
+  if (t >= 66.0) {
+    blue = 1.0;
+  } else if (t > 19.0) {
+    blue = clamp(0.5432067891 * log(t - 10.0) - 1.1962540891, 0.0, 1.0);
+  }
+  return vec3<f32>(red, green, blue);
+}
+
+fn shadowVisibility(position: vec3<f32>, lightDirection: vec3<f32>, shadowStep: f32, shadowSamples: u32) -> f32 {
+  // Shadow taps are a distinct ray. They use the transferred density field,
+  // rather than reusing the primary sample or adding procedural breakup.
+  let tapCount = min(max(shadowSamples, 1u), 8u);
+  let stride = max(shadowStep, params.originH.w * 0.25);
+  var opticalDepth = 0.0;
+  for (var tap = 0u; tap < 8u; tap++) {
+    if (tap >= tapCount) { break; }
+    let offset = (f32(tap) + 0.5) * stride;
+    let shadowGas = gasAtWorld(position + lightDirection * offset);
+    let shadowDensity = transferDensity(shadowGas.x, shadowGas.w);
+    opticalDepth += shadowDensity * stride * 0.68;
+  }
+  return exp(-opticalDepth);
+}
+
 fn safeInverse(value: f32) -> f32 {
   if (abs(value) < 1e-5) { return 1e5; }
   return 1.0 / value;
-}
-fn hash2(p: vec2<f32>) -> f32 {
-  return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453);
 }
 fn skyColor(direction: vec3<f32>) -> vec3<f32> {
   let horizon = smoothstep(-0.22, 0.42, direction.y);
@@ -117,7 +166,6 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
   // All distance tiers use the actual fragment ray. Far LOD lowers the
   // volume render target and ray budget, but does not quantize pixels into
   // censor blocks.
-  let volumePixel = fragment.xy;
   let volumeRay = ray;
   let eye = camera.position.xyz;
   var scene = skyColor(ray);
@@ -161,11 +209,16 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
   if (volumeFar > volumeNear) {
     let segmentLength = volumeFar - volumeNear;
     let sampleBudget = max(u32(camera.lod.y), 1u);
-    let stepLength = max(camera.lod.x, segmentLength / f32(sampleBudget));
-    let jitter = hash2(volumePixel + vec2<f32>(camera.viewport.z * 11.7, camera.viewport.z * 3.1)) * stepLength;
-    var distance = volumeNear + jitter;
+    // Render Step Size Mult: keep the primary ray below one cell where the
+    // tier budget allows it, rather than inventing detail between cells.
+    let subCellSamples = max(u32(camera.lod.z), 1u);
+    let subCellStep = params.originH.w / f32(subCellSamples);
+    let stepLength = max(max(camera.lod.x, subCellStep), segmentLength / f32(sampleBudget));
+    var distance = volumeNear + stepLength * 0.5;
     var sampleIndex = 0u;
     let sunDirection = normalize(vec3<f32>(-0.48, 0.79, 0.38));
+    let shadowStep = max(camera.lighting.z, 0.25) * params.originH.w;
+    let shadowSamples = max(u32(camera.lighting.w), 1u);
     loop {
       if (sampleIndex >= sampleBudget || distance >= volumeFar || transmittance < 0.012) { break; }
       let position = eye + volumeRay * distance;
@@ -178,33 +231,31 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
       let edgeFade = min(min(sideFade, topFade), groundFade);
       let gridPoint = local / params.originH.w - vec3<f32>(0.5);
       let gas = sampleGas(gridPoint);
-      let billow = 0.89 + 0.11 * sin(position.x * 1.65 + position.y * 2.2 + camera.viewport.z * 0.72)
-        * cos(position.z * 1.8 - position.y * 1.35 + camera.viewport.z * 0.54);
-      let smokeDensity = clamp(gas.x * edgeFade * billow, 0.0, 1.8);
+      let soot = clamp(gas.w, 0.0, 1.0);
+      let smokeDensity = clamp(transferDensity(gas.x, soot) * edgeFade, 0.0, 2.0);
       let temperature = max(gas.y * edgeFade, 0.0);
+      let temperatureResponse = max(temperature - camera.lighting.y, 0.0) * max(camera.lighting.x, 0.0);
 
-      if (smokeDensity > 0.001 || temperature > 0.12) {
+      if (smokeDensity > 0.001 || temperatureResponse > 0.02) {
         let opticalDepth = smokeDensity * 0.72;
         let opacity = 1.0 - exp(-opticalDepth * stepLength);
-        let soot = clamp(gas.w, 0.0, 1.0);
         let altitude = clamp(position.y / max(volumeMax.y, 1.0), 0.0, 1.0);
-        let lightSample = gasAtWorld(position + sunDirection * 1.35);
-        let sunVisibility = exp(-max(lightSample.x, 0.0) * 0.82);
+        let sunVisibility = shadowVisibility(position, sunDirection, shadowStep, shadowSamples);
         let ambient = mix(vec3<f32>(0.10, 0.12, 0.15), vec3<f32>(0.26, 0.31, 0.37), altitude);
         let direct = vec3<f32>(0.78, 0.57, 0.35) * sunVisibility * 0.42;
         let smokeTint = mix(vec3<f32>(0.43, 0.47, 0.50), vec3<f32>(0.19, 0.145, 0.12), soot * 0.82);
-        let powder = 1.0 - exp(-opticalDepth * stepLength * 2.0);
+        let powder = 1.0 - exp(-opticalDepth * 1.6);
         let lighting = ambient + direct * mix(1.0, powder * 1.55, 0.28);
         scattered += transmittance * opacity * smokeTint * lighting * 2.15;
         transmittance *= 1.0 - opacity;
 
-        let flutter = 0.84 + 0.16 * sin(camera.viewport.z * 10.5 + position.y * 2.3 + position.x * 1.4 + position.z * 0.9);
-        let flameMask = smoothstep(0.42, 1.05, temperature) * flutter;
-        let heat = clamp((temperature - 0.32) / 3.6, 0.0, 1.0);
-        let orange = mix(vec3<f32>(2.25, 0.12, 0.008), vec3<f32>(2.55, 0.78, 0.11), smoothstep(0.18, 0.72, heat));
-        let hotCore = mix(orange, vec3<f32>(1.8, 1.38, 0.74), smoothstep(0.72, 1.0, heat));
-        let emission = pow(max(temperature - 0.28, 0.0), 1.28) * flameMask * 0.43;
-        fireLight += transmittance * hotCore * emission * stepLength;
+        // Temperature is mapped through a Kelvin black-body approximation;
+        // there is no world-space breakup or hand-authored flame palette here.
+        let heat = clamp(temperatureResponse / 4.4, 0.0, 1.0);
+        let flameMask = smoothstep(0.02, 0.24, heat);
+        let blackbody = blackbodyColor(heat);
+        let emission = pow(temperatureResponse, 1.18) * flameMask * 0.43;
+        fireLight += transmittance * blackbody * emission * stepLength;
       }
       distance += stepLength;
       sampleIndex += 1u;
@@ -351,9 +402,9 @@ export class VolumeRenderer {
     this.renderTexture = null;
     this.renderView = null;
     this.cameraBuffer = device.createBuffer({
-      size: 96,
+      size: 128,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      label: 'volume-camera',
+      label: 'volume-camera-transfer-controls',
     });
     this.cageColorBuffer = device.createBuffer({
       size: 16,
@@ -526,10 +577,14 @@ export class VolumeRenderer {
 
   }
 
-  updateCamera(camera, width, height, time, lod) {
+  updateCamera(camera, width, height, time, lod, render = {}) {
     const renderWidth = this.renderWidth || width;
     const renderHeight = this.renderHeight || height;
-    this.device.queue.writeBuffer(this.cameraBuffer, 0, cameraUniformData(camera, renderWidth, renderHeight, time, lod));
+    this.device.queue.writeBuffer(
+      this.cameraBuffer,
+      0,
+      cameraUniformData(camera, renderWidth, renderHeight, time, lod, render),
+    );
   }
 
   draw(encoder, view) {

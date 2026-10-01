@@ -35,15 +35,30 @@ export function cameraFrame(camera) {
   return { eye, forward, right, up };
 }
 
-export function cameraUniformData(camera, width, height, time, lod) {
+export function cameraUniformData(camera, width, height, time, lod, render = {}) {
   const { eye, forward, right, up } = cameraFrame(camera);
-  const data = new Float32Array(24);
+  // Camera, transfer, and lighting controls share one 128-byte uniform block.
+  // Keeping the transfer controls next to the ray settings makes every LOD use
+  // the same volume response while still allowing its shadow budget to scale.
+  const data = new Float32Array(32);
   data.set([eye[0], eye[1], eye[2], 1], 0);
   data.set([forward[0], forward[1], forward[2], 0], 4);
   data.set([right[0], right[1], right[2], 0], 8);
   data.set([up[0], up[1], up[2], 0], 12);
   data.set([width, height, time, Math.tan(camera.fov * 0.5)], 16);
-  data.set([lod.step, lod.maxSamples, lod.level, lod.censorPixels ?? 0], 20);
+  data.set([lod.step, lod.maxSamples, lod.subCellSamples ?? 2, lod.censorPixels ?? 0], 20);
+  data.set([
+    render.densityGain ?? 1.35,
+    render.densityCutoff ?? 0.018,
+    render.densityCurve ?? 0.82,
+    render.sootDensityGain ?? 0.24,
+  ], 24);
+  data.set([
+    render.temperatureGain ?? 1.0,
+    render.temperatureCutoff ?? 0.18,
+    lod.shadowStep ?? 1.0,
+    lod.shadowSamples ?? 4,
+  ], 28);
   return data;
 }
 
