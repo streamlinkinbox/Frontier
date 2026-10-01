@@ -355,51 +355,25 @@ aoTexture.minFilter = THREE.LinearFilter;
 aoTexture.needsUpdate = true;
 
 const floorGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 1, 1);
-floorGeo.setAttribute('uv2', floorGeo.attributes.uv.clone());
+// The simulation stores row 0 at world Z = -WORLD_HALF. PlaneGeometry is rotated below,
+// so build its UVs explicitly from its final world-space X/Z convention rather than relying
+// on the primitive's default local-Y winding.
+const floorUv = floorGeo.attributes.uv;
+const floorPositions = floorGeo.attributes.position;
+for (let i = 0; i < floorUv.count; i++) {
+  floorUv.setXY(
+    i,
+    floorPositions.getX(i) / WORLD_SIZE + 0.5,
+    0.5 - floorPositions.getY(i) / WORLD_SIZE,
+  );
+}
+floorUv.needsUpdate = true;
+floorGeo.setAttribute('uv2', floorUv.clone());
 const floorMaterial = new THREE.MeshStandardMaterial({
   color: '#26394d', roughness: 0.86, metalness: 0.02,
   emissive: '#ffffff', emissiveMap: indirectTexture, emissiveIntensity: 1.9,
   aoMap: aoTexture, aoMapIntensity: 0.92,
 });
-// The GI simulation is indexed in absolute X/Z world space. Do not rely on PlaneGeometry's
-// rotated UV convention here: sample both indirect textures with the actual world position.
-// This keeps a coloured spill glued to its surfel wall while camera-relative clipmaps scroll.
-floorMaterial.onBeforeCompile = (shader) => {
-  shader.vertexShader = `varying vec2 vWorldGiUv;\n${shader.vertexShader}`;
-  shader.vertexShader = shader.vertexShader.replace(
-    '#include <project_vertex>',
-    `#include <project_vertex>
-     vec4 giWorldPosition = modelMatrix * vec4( transformed, 1.0 );
-     vWorldGiUv = giWorldPosition.xz / ${WORLD_SIZE.toFixed(1)} + vec2( 0.5 );`,
-  );
-  shader.fragmentShader = `varying vec2 vWorldGiUv;\n${shader.fragmentShader}`;
-  shader.fragmentShader = shader.fragmentShader.replace(
-    '#include <emissivemap_fragment>',
-    `#ifdef USE_EMISSIVEMAP
-       vec4 emissiveColor = texture2D( emissiveMap, vWorldGiUv );
-       totalEmissiveRadiance *= emissiveColor.rgb;
-     #endif`,
-  );
-  shader.fragmentShader = shader.fragmentShader.replace(
-    '#include <aomap_fragment>',
-    `#ifdef USE_AOMAP
-       float ambientOcclusion = ( texture2D( aoMap, vWorldGiUv ).r - 1.0 ) * aoMapIntensity + 1.0;
-       reflectedLight.indirectDiffuse *= ambientOcclusion;
-       #if defined( USE_CLEARCOAT )
-         clearcoatSpecularIndirect *= ambientOcclusion;
-       #endif
-       #if defined( USE_SHEEN )
-         sheenSpecularIndirect *= ambientOcclusion;
-       #endif
-       #if defined( USE_ENVMAP ) && defined( STANDARD )
-         float dotNV = saturate( dot( geometryNormal, geometryViewDir ) );
-         reflectedLight.indirectSpecular *= computeSpecularOcclusion( dotNV, ambientOcclusion, material.roughness );
-       #endif
-     #endif`,
-  );
-};
-floorMaterial.customProgramCacheKey = () => 'frontier-world-space-gi-v1';
-
 const floor = new THREE.Mesh(floorGeo, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
