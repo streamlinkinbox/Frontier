@@ -1,6 +1,6 @@
-import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-quality-20261001';
-import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-quality-20261001';
-import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-quality-20261001';
+import { cameraFrame, clamp, intersectGround, rayFromScreen } from './math.js?v=unreal-volume-quality2-20261001';
+import { describeGrid, FIXED_STEP, FluidSolver, MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=unreal-volume-quality2-20261001';
+import { VolumeRenderer, PRESENTATION_BUFFER_COUNT, RENDER_TARGET_BUFFER_COUNT } from './volume-renderer.js?v=unreal-volume-quality2-20261001';
 import { loadBakedPlume } from './baked-plume.js?v=baked-plume-cage-20261001';
 
 const $ = (selector) => document.querySelector(selector);
@@ -139,9 +139,13 @@ function chooseLod() {
     },
   ];
   const tier = tiers[currentLodLevel];
+  // Quality changes both the ray cap and the effective step. This keeps the
+  // slider perceptible even when a long ray would otherwise be capped by the
+  // requested sub-cell step before it reaches maxSamples.
+  const effectiveStepScale = clamp(renderStepScale / rayStepQuality, 0.5, 0.85);
   // Keep far LOD smooth. A lower render target is enough for the budget; the
   // old square censor blocks were the source of the visible pixel mosaic.
-  return { ...tier, step: grid.cellSize * renderStepScale, distance, censorPixels: 0 };
+  return { ...tier, step: grid.cellSize * effectiveStepScale, distance, censorPixels: 0 };
 }
 
 function refreshGridInfo() {
@@ -187,9 +191,10 @@ function lodDescription(lod) {
     ? 'fixed baked bounds'
     : (solver?.sources.length ? 'source window' : 'simulation window');
   const field = `${Math.round(lod.distance)}m camera · ${Math.round(grid.width)}m ${windowLabel}`;
+  const renderQuality = `${lod.maxSamples} steps · ${(lod.step / Math.max(grid.cellSize, 0.001)).toFixed(2)}× cell`;
   return lod.renderHz < 60
-    ? `${field} · ${lod.renderHz}Hz render · ${Math.round(lod.censorPixels)}px mosaic`
-    : field;
+    ? `${field} · ${renderQuality} · ${lod.renderHz}Hz render · ${Math.round(lod.censorPixels)}px mosaic`
+    : `${field} · ${renderQuality}`;
 }
 
 function setLodUI(lod) {
