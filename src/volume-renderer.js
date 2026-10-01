@@ -1,5 +1,5 @@
-import { cameraUniformData } from './math.js?v=fire-realism-20261001';
-import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=fire-realism-20261001';
+import { cameraUniformData } from './math.js?v=smooth-lod-20261001';
+import { MAX_EMITTERS, VRAM_BUDGET_BYTES, VRAM_BUDGET_RESERVE_BYTES } from './fluid-solver.js?v=smooth-lod-20261001';
 
 export const PRESENTATION_BUFFER_COUNT = 3;
 export const RENDER_TARGET_BUFFER_COUNT = 2;
@@ -44,9 +44,6 @@ fn loadGas(c: vec3<i32>) -> vec4<f32> {
 fn sampleGas(g: vec3<f32>) -> vec4<f32> {
   let b = floor(g);
   let f = g - b;
-  // Smooth the interpolation weights at cell boundaries. This keeps the
-  // finite grid from reading as a stack of box-shaped voxels in the flame.
-  let s = f * f * (vec3<f32>(3.0) - 2.0 * f);
   let i = vec3<i32>(b);
   let c000 = loadGas(i);
   let c100 = loadGas(i + vec3<i32>(1, 0, 0));
@@ -57,9 +54,9 @@ fn sampleGas(g: vec3<f32>) -> vec4<f32> {
   let c011 = loadGas(i + vec3<i32>(0, 1, 1));
   let c111 = loadGas(i + vec3<i32>(1, 1, 1));
   return mix(
-    mix(mix(c000, c100, s.x), mix(c010, c110, s.x), s.y),
-    mix(mix(c001, c101, s.x), mix(c011, c111, s.x), s.y),
-    s.z
+    mix(mix(c000, c100, f.x), mix(c010, c110, f.x), f.y),
+    mix(mix(c001, c101, f.x), mix(c011, c111, f.x), f.y),
+    f.z
   );
 }
 fn gasAtWorld(wp: vec3<f32>) -> vec4<f32> {
@@ -73,15 +70,6 @@ fn safeInverse(value: f32) -> f32 {
 fn hash2(p: vec2<f32>) -> f32 {
   return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453);
 }
-fn plumeDetail(point: vec3<f32>, time: f32) -> f32 {
-  // Continuous, world-space breakup keeps the fire from inheriting the
-  // solver's axis-aligned cell pattern while preserving temporal coherence.
-  let warp = sin(point.z * 0.57 + point.y * 0.31 + time * 0.24) * 0.78;
-  let coarse = 0.5 + 0.5 * sin((point.x + warp) * 0.92 + point.y * 1.31 + point.z * 0.64 + time * 0.42);
-  let lobes = 0.5 + 0.5 * cos((point.z - warp) * 1.82 - point.y * 0.93 + point.x * 1.46 - time * 0.63);
-  let fine = 0.5 + 0.5 * sin(point.x * 3.7 + point.y * 2.45 - point.z * 4.1 + time * 1.2);
-  return clamp(coarse * 0.52 + lobes * 0.30 + fine * 0.18, 0.0, 1.0);
-}
 fn skyColor(direction: vec3<f32>) -> vec3<f32> {
   let horizon = smoothstep(-0.22, 0.42, direction.y);
   let zenith = vec3<f32>(0.13, 0.19, 0.25);
@@ -89,19 +77,15 @@ fn skyColor(direction: vec3<f32>) -> vec3<f32> {
   return mix(lowSky, zenith, horizon);
 }
 fn groundColor(point: vec3<f32>) -> vec3<f32> {
-  // The floor grid is deliberately offset and not an integer multiple of any
-  // simulation cell size, so it cannot visually lock to voxel boundaries.
-  let phase = vec2<f32>(0.137, -0.223);
-  let fineGrid = abs(fract(point.xz * 0.43 + phase) - vec2<f32>(0.5)) * 2.0;
-  let fineLine = 1.0 - smoothstep(0.026, 0.10, min(fineGrid.x, fineGrid.y));
-  let majorGrid = abs(fract(point.xz * 0.086 + phase) - vec2<f32>(0.5)) * 2.0;
-  let majorLine = 1.0 - smoothstep(0.034, 0.12, min(majorGrid.x, majorGrid.y));
+  let fineGrid = abs(fract(point.xz * 0.5 + vec2<f32>(0.5)) - vec2<f32>(0.5)) * 2.0;
+  let fineLine = 1.0 - smoothstep(0.018, 0.065, min(fineGrid.x, fineGrid.y));
+  let majorGrid = abs(fract(point.xz * 0.1 + vec2<f32>(0.5)) - vec2<f32>(0.5)) * 10.0;
+  let majorLine = 1.0 - smoothstep(0.025, 0.09, min(majorGrid.x, majorGrid.y));
   let radial = abs(length(point.xz) - 8.0);
   let stageRing = 1.0 - smoothstep(0.035, 0.10, radial);
-  let centralGridFade = 1.0 - 0.42 * exp(-dot(point.xz, point.xz) * 0.018);
   var color = vec3<f32>(0.035, 0.044, 0.051);
-  color += vec3<f32>(0.009, 0.014, 0.019) * fineLine * centralGridFade;
-  color += vec3<f32>(0.018, 0.027, 0.033) * majorLine * centralGridFade;
+  color += vec3<f32>(0.012, 0.019, 0.024) * fineLine;
+  color += vec3<f32>(0.022, 0.031, 0.037) * majorLine;
   color += vec3<f32>(0.07, 0.035, 0.015) * stageRing;
   color *= 0.86 + 0.14 * exp(-length(point.xz) * 0.018);
   return color;
@@ -154,8 +138,7 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         let glow = exp(-dot(delta, delta) / max(source.shape.x * source.shape.x * 7.0, 0.1));
         var tint = vec3<f32>(1.0, 0.20, 0.025);
         if (source.shape.w > 0.5) { tint = vec3<f32>(1.0, 0.46, 0.07); }
-        let spill = exp(-dot(delta, delta) / max(source.shape.x * source.shape.x * 16.0, 0.4));
-        scene += tint * (ring * 0.08 + glow * 0.035 + spill * 0.10);
+        scene += tint * (ring * 0.095 + glow * 0.035);
       }
     }
   }
@@ -195,23 +178,19 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
       let edgeFade = min(min(sideFade, topFade), groundFade);
       let gridPoint = local / params.originH.w - vec3<f32>(0.5);
       let gas = sampleGas(gridPoint);
-      let detail = plumeDetail(position, camera.viewport.z);
-      let billow = 0.84 + 0.10 * sin(position.x * 1.65 + position.y * 2.2 + camera.viewport.z * 0.72)
+      let billow = 0.89 + 0.11 * sin(position.x * 1.65 + position.y * 2.2 + camera.viewport.z * 0.72)
         * cos(position.z * 1.8 - position.y * 1.35 + camera.viewport.z * 0.54);
-      let softDensity = pow(max(gas.x, 0.0), 0.86);
-      let smokeDensity = clamp(softDensity * edgeFade * billow * (0.82 + detail * 0.34), 0.0, 1.8);
-      let fuel = clamp(gas.z, 0.0, 1.0);
+      let smokeDensity = clamp(gas.x * edgeFade * billow, 0.0, 1.8);
       let temperature = max(gas.y * edgeFade, 0.0);
-      let flameSignal = temperature * (0.82 + detail * 0.36) + fuel * 0.18;
 
-      if (smokeDensity > 0.001 || flameSignal > 0.12) {
+      if (smokeDensity > 0.001 || temperature > 0.12) {
         let opticalDepth = smokeDensity * 0.72;
         let opacity = 1.0 - exp(-opticalDepth * stepLength);
         let soot = clamp(gas.w, 0.0, 1.0);
         let altitude = clamp(position.y / max(volumeMax.y, 1.0), 0.0, 1.0);
         let lightSample = gasAtWorld(position + sunDirection * 1.35);
         let sunVisibility = exp(-max(lightSample.x, 0.0) * 0.82);
-        let ambient = mix(vec3<f32>(0.08, 0.10, 0.13), vec3<f32>(0.24, 0.29, 0.35), altitude);
+        let ambient = mix(vec3<f32>(0.10, 0.12, 0.15), vec3<f32>(0.26, 0.31, 0.37), altitude);
         let direct = vec3<f32>(0.78, 0.57, 0.35) * sunVisibility * 0.42;
         let smokeTint = mix(vec3<f32>(0.43, 0.47, 0.50), vec3<f32>(0.19, 0.145, 0.12), soot * 0.82);
         let powder = 1.0 - exp(-opticalDepth * stepLength * 2.0);
@@ -219,15 +198,13 @@ struct VertexOut { @builtin(position) position: vec4<f32> };
         scattered += transmittance * opacity * smokeTint * lighting * 2.15;
         transmittance *= 1.0 - opacity;
 
-        let flutter = 0.82 + 0.18 * sin(camera.viewport.z * 10.5 + position.y * 2.3 + position.x * 1.4 + position.z * 0.9);
-        let flameMask = smoothstep(0.30, 0.94, flameSignal) * (0.72 + detail * 0.42) * flutter;
-        let heat = clamp((flameSignal - 0.18) / 3.8, 0.0, 1.0);
-        let ember = vec3<f32>(3.15, 0.055, 0.002);
-        let orange = vec3<f32>(3.35, 0.50, 0.025);
-        let yellow = vec3<f32>(2.95, 1.55, 0.42);
-        let flameColor = mix(mix(ember, orange, smoothstep(0.12, 0.48, heat)), yellow, smoothstep(0.64, 1.0, heat));
-        let emission = pow(max(flameSignal - 0.18, 0.0), 1.16) * flameMask * 0.56;
-        fireLight += transmittance * flameColor * emission * stepLength;
+        let flutter = 0.84 + 0.16 * sin(camera.viewport.z * 10.5 + position.y * 2.3 + position.x * 1.4 + position.z * 0.9);
+        let flameMask = smoothstep(0.42, 1.05, temperature) * flutter;
+        let heat = clamp((temperature - 0.32) / 3.6, 0.0, 1.0);
+        let orange = mix(vec3<f32>(2.25, 0.12, 0.008), vec3<f32>(2.55, 0.78, 0.11), smoothstep(0.18, 0.72, heat));
+        let hotCore = mix(orange, vec3<f32>(1.8, 1.38, 0.74), smoothstep(0.72, 1.0, heat));
+        let emission = pow(max(temperature - 0.28, 0.0), 1.28) * flameMask * 0.43;
+        fireLight += transmittance * hotCore * emission * stepLength;
       }
       distance += stepLength;
       sampleIndex += 1u;
