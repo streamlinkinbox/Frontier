@@ -21,7 +21,7 @@ from scipy.interpolate import CubicSpline
 CAR = sys.argv[1]
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUTDIR = f'{ROOT}/Vehicles/{CAR}'
-MESH = os.environ.get('MESH', '/home/user/mesh')
+MESH = os.environ.get('MESH', f'{OUTDIR}/mesh')
 d = np.load(f'{MESH}/Body_Main_Shell.npz'); V, T = d['V'].astype('f8'), d['T']
 yc = (V[:, 1].min() + V[:, 1].max()) / 2; V[:, 1] -= yc
 SCALE = 0.01; N = 2 * (8 + 12) + 1                          # points per section (odd -> a point on the centreline)
@@ -49,6 +49,12 @@ def resample_landmarks(L):
     m = len(L); c = int(np.argmin(np.abs(L[:, 1])))                      # centreline crossing
     left, right = L[:c + 1], L[c:]
     il = int(np.argmin(left[:, 1])); ir = int(np.argmax(right[:, 1]))     # most -Y / most +Y
+    # the shoulder landmark must sit at least FL of the half-length in from the end (else the flank degenerates)
+    FL = 0.18
+    sl = np.r_[0, np.cumsum(np.linalg.norm(np.diff(left, axis=0), axis=1))]
+    il = max(il, int(np.searchsorted(sl, FL * sl[-1])))
+    sr = np.r_[0, np.cumsum(np.linalg.norm(np.diff(right, axis=0), axis=1))]
+    ir = min(ir, int(np.searchsorted(sr, (1 - FL) * sr[-1])))
     parts = [resample(left[:il + 1], NF + 1)[:-1], resample(left[il:], NT + 1),
              resample(right[:ir + 1], NT + 1)[1:], resample(right[ir:], NF + 1)[1:]]
     return np.vstack(parts)
@@ -65,7 +71,7 @@ for name, x0, x1, dx in SEGMENTS:
     for x in xs:
         L = main_profile(x)
         if L is None or length(L) < 30: continue
-        secs.append(symmetrise(resample_landmarks(L)))
+        secs.append(symmetrise(resample_landmarks(L))[::-1])              # +Y -> -Y so the loft normals face outward
     grid[name] = np.array(secs); stations[name] = xs[:len(secs)].tolist()
     print(f'{name:10s} {len(secs)} sections  x {x0}..{x1}')
 
@@ -113,7 +119,8 @@ for c in curves:
     if c['part'] != 'Body_Main_Shell': continue
     pts = ' '.join(f'({x*SCALE:.4f},{y*SCALE:.4f},{z*SCALE:.4f})' for x, y, z in c['pts'])
     cmd = 'spline' if len(c['pts']) > 2 else 'line'
-    out.append(f'{cmd} {pts}{" --closed" if c["closed"] else ""} --name={c["name"]}')
+    deg = ' --degree=2' if len(c['pts']) == 3 else ''
+    out.append(f'{cmd} {pts}{deg}{" --closed" if c["closed"] else ""} --name={c["name"]}')
     out.append(f'tint {c["name"]} {"0.15 0.35 1.00" if c["kind"] == "BOUNDARY" else "0.85 0.10 0.10"}')
 open(f'{OUTDIR}/{CAR}_Body_Surface.arc', 'w').write('\n'.join(out) + '\n')
 json.dump(dict(car=CAR, units='cm', points_per_section=N, segments={n: dict(x=stations[n], sections=grid[n].round(3).tolist()) for n in grid},

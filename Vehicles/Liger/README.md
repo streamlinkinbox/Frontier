@@ -24,3 +24,18 @@ Source data: `features.json` (feature polylines), `curves.json` (fitted splines 
 
 Next: trim the sheets with the arch/aperture splines, add the cowl + roof-frame parts, and move the
 same pipeline onto Quicksilver and Egoist.
+
+## Replayed in SolidArc (real kernel)
+
+`Liger_Body_Surface.arc` opens in the SolidArc console with **0 refusals**: 200 figures, 454 commands; the five
+lofts come out as degree 3×3 NURBS sheets (Tail 69×4, RearArch 149×9, Cabin 309×19, FrontArch 181×11, Nose 85×5 poles).
+Renders produced by SolidArc itself (`SolidArc/render_views.arc`, 1920×1200, plastic shading):
+`SolidArc/Liger_SA_01_Iso_Curves.png` (with the crease/boundary network) … `_06_Front.png`.
+
+Environment: `bash Vehicles/tools/setup_env.sh` builds the console from `SultanAladin/Frontier-` (sparse clone),
+the Python venv and headless bpy; then
+`~/.solidarc/build/SolidArc --proofs out Vehicles/Liger/SolidArc/render_views.arc`.
+
+Kernel feedback folded back into the generators: splines need > degree points (3-point curves → `--degree=2`),
+no coincident consecutive points (shoulder landmark kept ≥ 18 % of the half-profile in from the ends), and
+section direction +Y→−Y so the loft normals face outward (SolidArc tints back faces pink).

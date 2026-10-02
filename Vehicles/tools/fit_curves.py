@@ -136,6 +136,7 @@ def fit_group(polylines, kind, part, prefix, tol, pretransform=None):
         for piece in pieces:
             if len(piece) < 2 or chord(piece)[-1] < MIN_LEN * 0.5: continue
             idx, d = adaptive_fit(piece, closed, tol)
+            if np.linalg.norm(np.diff(piece[idx], axis=0), axis=1).min() < 0.1: continue   # < 1 mm step would collapse in the journal
             k += 1
             curves.append(dict(name=f'{prefix}_{k:03d}', part=part, kind=kind, closed=bool(closed),
                                pts=piece[idx].round(3).tolist(), max_dev=float(d.max()), mean_dev=float(d.mean()), nsamples=int(len(piece))))
@@ -177,7 +178,8 @@ for i, (title, names, tint) in enumerate(steps, 1):
         c = byname[n]
         pts = ' '.join(f'({x*SCALE:.4f},{y*SCALE:.4f},{z*SCALE:.4f})' for x, y, z in c['pts'])
         cmd = 'spline' if len(c['pts']) > 2 else 'line'
-        out.append(f'{cmd} {pts}{" --closed" if c["closed"] else ""} --name={n}')
+        deg = ' --degree=2' if len(c['pts']) == 3 else ''
+        out.append(f'{cmd} {pts}{deg}{" --closed" if c["closed"] else ""} --name={n}')
         out.append(f'tint {n} {tint}')
 out.append(f'# STEP {len(steps) + 1} — ground frame')
 g = lambda *c: '(%.4f,%.4f,%.4f)' % tuple(v * SCALE for v in c)
