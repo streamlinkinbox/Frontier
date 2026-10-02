@@ -1,0 +1,1231 @@
+From 837af296c758d7ef4827a4af2ee3cd345b50f937 Mon Sep 17 00:00:00 2001
+From: agent <a@b>
+Date: Fri, 2 Oct 2026 06:09:10 +0000
+Subject: [PATCH] 0007 SolidArc: folder symbols as the web outliner, rail icons
+ as the web viewport, drop the banned word
+
+---
+ .../SolidArc/Editor/SolidArcEditorHost.cpp    |   2 +-
+ .../SolidArc/Editor/SolidArcEditorHost.h      |   3 +
+ .../Editor/SolidArcOutlinerAdapter.cpp        | 100 ++++-----
+ Frontier/Engine/Editor/EditorInstance.h       |  12 +-
+ Frontier/Engine/Editor/InspectorPanel.cpp     |   2 +-
+ Frontier/Engine/Editor/OutlinerPanel.cpp      | 172 +++++++-------
+ Frontier/Engine/Editor/OutlinerPanel.h        |   2 +-
+ .../Engine/Editor/SolidArcInspectorPanel.cpp  |  48 ++--
+ Frontier/Engine/Editor/ViewportPanel.cpp      | 211 +++++++++++++++---
+ Frontier/Engine/Editor/ViewportPanel.h        |  10 +-
+ .../Workbench/Editor/SolidArcEditorProof.cpp  |  65 ++++--
+ .../Tools/Build/CheckEditorDockingSolidArc.sh |   4 +-
+ 12 files changed, 420 insertions(+), 211 deletions(-)
+
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+index 7491876..9f00eb8 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+@@ -32,7 +32,7 @@ SolidArcEditorHost::SolidArcEditorHost() noexcept
+     Inspector_.AssignGlassCards(true);
+     Outliner_.AssignDocumentStyle(true);
+     // SolidArc uses its CAD filter catalogue, not Project-Zero's game narrowing labels.
+-    // Colours match the web editor KINDS palette: curve/sketch #4fd8e0, body #ffb454,
++    // Colours match the web editor palette: curve/sketch #4fd8e0, body #ffb454,
+     // surface #4da3ff, construction plane #b48cff, dimensions #e5d33a and constraints #ff6b8a.
+     const OutlinerFilterEntry SolidArcFilters[] =
+     {
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+index ed4ed5e..14d2355 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+@@ -62,6 +62,9 @@ public:
+     void ReseatLayout() noexcept { LayoutSeated_ = false; }     // the next Record re-splits the dock for the current window
+     [[nodiscard]] float    QueryViewWidth() const noexcept { return Viewport_.QueryViewWidth(); }
+     [[nodiscard]] float    QueryViewHeight() const noexcept { return Viewport_.QueryViewHeight(); }
++    [[nodiscard]] uint32_t QueryRailSelectMask() const noexcept { return Viewport_.QuerySolidArcSelectMask(); }
++    [[nodiscard]] uint32_t QueryRailShade() const noexcept { return Viewport_.QuerySolidArcShade(); }
++    [[nodiscard]] uint32_t QueryRailGizmo() const noexcept { return Viewport_.QuerySolidArcGizmo(); }
+ 
+ private:
+     void ConstructLayout() noexcept;
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
+index 7af9008..257c833 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
+@@ -12,7 +12,7 @@
+ namespace Frontier {
+ namespace {
+ 
+-// Exact SolidArc web palette from docs/solidarc/index.html KINDS:
++// Exact SolidArc web palette from docs/solidarc/index.html palette:
+ // sketch/curve #4fd8e0, body #ffb454, surface #4da3ff, plane #b48cff, dim #e5d33a.
+ constexpr float Channel(uint32_t V) noexcept { return static_cast<float>(V) / 255.0f; }
+ constexpr float kSketchTint[3]       = { Channel( 79u), Channel(216u), Channel(224u) }; // #4fd8e0
+@@ -31,9 +31,9 @@ void AssignTint(EditorInstance& Row, const float Tint[3]) noexcept
+ 
+ struct SolidArcBucket
+ {
+-    enum class Kind : uint32_t { Lines, Profiles, Bodies, Surfaces, Construction, Dimensions, Constraints } BucketKind;
++    enum class Content : uint32_t { Lines, Profiles, Bodies, Surfaces, Construction, Dimensions, Constraints } BucketContent;
+     const char*          Label;
+-    EditorKindMark       Mark;
++    EditorSymbol       Mark;
+     EditorNarrowing      Narrowing;
+     uint32_t             FilterMask;
+     float                Tint[3];
+@@ -56,7 +56,7 @@ void SeatFolder(EditorInstance& Row,
+                 const char* Label,
+                 uint32_t Depth,
+                 uint32_t KidCount,
+-                EditorKindMark Mark,
++                EditorSymbol Mark,
+                 EditorNarrowing Narrowing,
+                 uint32_t FilterMask,
+                 const float Tint[3]) noexcept
+@@ -65,7 +65,7 @@ void SeatFolder(EditorInstance& Row,
+     Row.Depth      = Depth;
+     Row.KidCount   = KidCount;
+     Row.Category   = EditorInstanceCategory::Folder;
+-    Row.KindMark   = Mark;
++    Row.Symbol   = Mark;
+     Row.Narrowing  = Narrowing;
+     Row.FilterMask = FilterMask;
+     Row.Pinned     = true;
+@@ -101,16 +101,16 @@ const char* ClassNoun(FigureClassification Class) noexcept
+ 
+ bool IsLineFigure(const SceneFigure& Figure) noexcept;
+ 
+-EditorKindMark FigureMark(const SceneFigure& Figure) noexcept
++EditorSymbol FigureMark(const SceneFigure& Figure) noexcept
+ {
+     if (Figure.Construction || Figure.Classification == FigureClassification::Empty)
+-        return EditorKindMark::Construction;
++        return EditorSymbol::Construction;
+     switch (Figure.Classification)
+     {
+-    case FigureClassification::Body:    return EditorKindMark::Body;
+-    case FigureClassification::Surface: return EditorKindMark::Surface;
+-    case FigureClassification::Curve:   return IsLineFigure(Figure) ? EditorKindMark::Line : EditorKindMark::Profile;
+-    default:                            return EditorKindMark::Profile;
++    case FigureClassification::Body:    return EditorSymbol::Body;
++    case FigureClassification::Surface: return EditorSymbol::Surface;
++    case FigureClassification::Curve:   return IsLineFigure(Figure) ? EditorSymbol::Line : EditorSymbol::Profile;
++    default:                            return EditorSymbol::Profile;
+     }
+ }
+ 
+@@ -190,18 +190,18 @@ const char* BlueprintLabel(SceneFigure::ParametricForm Form) noexcept
+ 
+ bool BucketAccepts(const SolidArcBucket& Bucket, const SceneFigure& Figure) noexcept
+ {
+-    using Kind = SolidArcBucket::Kind;
+-    switch (Bucket.BucketKind)
++    using Content = SolidArcBucket::Content;
++    switch (Bucket.BucketContent)
+     {
+-    case Kind::Lines:
++    case Content::Lines:
+         return Figure.Classification == FigureClassification::Curve && !Figure.Construction && IsLineFigure(Figure);
+-    case Kind::Profiles:
++    case Content::Profiles:
+         return Figure.Classification == FigureClassification::Curve && !Figure.Construction && !IsLineFigure(Figure);
+-    case Kind::Bodies:
++    case Content::Bodies:
+         return Figure.Classification == FigureClassification::Body && !Figure.Construction;
+-    case Kind::Surfaces:
++    case Content::Surfaces:
+         return Figure.Classification == FigureClassification::Surface && !Figure.Construction;
+-    case Kind::Construction:
++    case Content::Construction:
+         return Figure.Construction || Figure.Classification == FigureClassification::Empty;
+     default:
+         return false;
+@@ -279,7 +279,7 @@ void SeatFigureRow(EditorInstance& Row, SolidArcOutlinerBinding& Binding, const
+     Row.Depth     = Depth;
+     Row.KidCount  = 0u;
+     Row.Category  = EditorInstanceCategory::Geometry;
+-    Row.KindMark  = FigureMark(Figure);
++    Row.Symbol  = FigureMark(Figure);
+     Row.Narrowing = FigureNarrowing(Figure);
+     Row.FilterMask = FigureFilterMask(Figure);
+     Row.Visible   = !Figure.Hidden;
+@@ -496,8 +496,8 @@ void AddBlueprintParameters(EditorPropertyGroup& Group, const SceneFigure& Figur
+     AddReadout(Group, "Closed", B.Closed ? "yes" : "no");
+ }
+ 
+-// The hero card's building blocks. The hero is the SolidArc inspector's top card: kind pill, big measure, up to three stats.
+-void SeatHero(EditorSheet& Sheet, const char* Kind, uint32_t Identity, const char* Subtitle, const char* Measure, const char* Unit,
++// The hero card's building blocks. The hero is the SolidArc inspector's top card: subject pill, big measure, up to three stats.
++void SeatHero(EditorSheet& Sheet, const char* Subject, uint32_t Identity, const char* Subtitle, const char* Measure, const char* Unit,
+               const char* Caption, bool Renameable) noexcept
+ {
+     EditorSheetHero& Hero = Sheet.Hero;
+@@ -505,7 +505,7 @@ void SeatHero(EditorSheet& Sheet, const char* Kind, uint32_t Identity, const cha
+     Hero.Active     = true;
+     Hero.Renameable = Renameable;
+     Hero.Identity   = Identity;
+-    CopyText(Hero.Kind, sizeof(Hero.Kind), Kind);
++    CopyText(Hero.Subject, sizeof(Hero.Subject), Subject);
+     CopyText(Hero.Subtitle, sizeof(Hero.Subtitle), Subtitle);
+     CopyText(Hero.Measure, sizeof(Hero.Measure), Measure);
+     CopyText(Hero.Unit, sizeof(Hero.Unit), Unit);
+@@ -650,17 +650,17 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+     for (uint32_t I = 0u; I < Capacity; ++I)
+         ClearRow(Rows[I], Bindings[I]);
+ 
+-    // 📝 One folder per filter-catalogue entry, in the catalogue's order and spelling, each in its kind's colour.
+-    using Mark = EditorKindMark;
++    // 📝 One folder per filter-catalogue entry, in the catalogue's order and spelling, each in its own colour.
++    using Mark = EditorSymbol;
+     const SolidArcBucket Buckets[] =
+     {
+-        { SolidArcBucket::Kind::Lines,        "Lines",        Mark::Line,         EditorNarrowing::Lights,   SolidArcOutlinerFilter::Lines,        { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
+-        { SolidArcBucket::Kind::Profiles,     "Profiles",     Mark::Profile,      EditorNarrowing::Sky,      SolidArcOutlinerFilter::Profiles,     { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
+-        { SolidArcBucket::Kind::Bodies,       "Bodies",       Mark::Body,         EditorNarrowing::Bodies,   SolidArcOutlinerFilter::Bodies,       { kBodyTint[0],         kBodyTint[1],         kBodyTint[2] } },
+-        { SolidArcBucket::Kind::Surfaces,     "Surfaces",     Mark::Surface,      EditorNarrowing::Geometry, SolidArcOutlinerFilter::Surfaces,     { kSurfaceTint[0],      kSurfaceTint[1],      kSurfaceTint[2] } },
+-        { SolidArcBucket::Kind::Construction, "Construction", Mark::Construction, EditorNarrowing::Camera,   SolidArcOutlinerFilter::Construction, { kConstructionTint[0], kConstructionTint[1], kConstructionTint[2] } },
+-        { SolidArcBucket::Kind::Dimensions,   "Dimensions",   Mark::Dimension,    EditorNarrowing::Sky,      SolidArcOutlinerFilter::Dimensions,   { kDimensionTint[0],    kDimensionTint[1],    kDimensionTint[2] } },
+-        { SolidArcBucket::Kind::Constraints,  "Constraints",  Mark::Constraint,   EditorNarrowing::Auto,     SolidArcOutlinerFilter::Constraints,   { kConstraintTint[0],   kConstraintTint[1],   kConstraintTint[2] } },
++        { SolidArcBucket::Content::Lines,        "Lines",        Mark::Line,         EditorNarrowing::Lights,   SolidArcOutlinerFilter::Lines,        { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
++        { SolidArcBucket::Content::Profiles,     "Profiles",     Mark::Profile,      EditorNarrowing::Sky,      SolidArcOutlinerFilter::Profiles,     { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
++        { SolidArcBucket::Content::Bodies,       "Bodies",       Mark::Body,         EditorNarrowing::Bodies,   SolidArcOutlinerFilter::Bodies,       { kBodyTint[0],         kBodyTint[1],         kBodyTint[2] } },
++        { SolidArcBucket::Content::Surfaces,     "Surfaces",     Mark::Surface,      EditorNarrowing::Geometry, SolidArcOutlinerFilter::Surfaces,     { kSurfaceTint[0],      kSurfaceTint[1],      kSurfaceTint[2] } },
++        { SolidArcBucket::Content::Construction, "Construction", Mark::Construction, EditorNarrowing::Camera,   SolidArcOutlinerFilter::Construction, { kConstructionTint[0], kConstructionTint[1], kConstructionTint[2] } },
++        { SolidArcBucket::Content::Dimensions,   "Dimensions",   Mark::Dimension,    EditorNarrowing::Sky,      SolidArcOutlinerFilter::Dimensions,   { kDimensionTint[0],    kDimensionTint[1],    kDimensionTint[2] } },
++        { SolidArcBucket::Content::Constraints,  "Constraints",  Mark::Constraint,   EditorNarrowing::Auto,     SolidArcOutlinerFilter::Constraints,   { kConstraintTint[0],   kConstraintTint[1],   kConstraintTint[2] } },
+     };
+ 
+     uint32_t At = 0u;
+@@ -670,9 +670,9 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+             break;
+ 
+         uint32_t KidCount = 0u;
+-        if (Bucket.BucketKind == SolidArcBucket::Kind::Dimensions)
++        if (Bucket.BucketContent == SolidArcBucket::Content::Dimensions)
+             KidCount = static_cast<uint32_t>(Host.AllDimensions().size());
+-        else if (Bucket.BucketKind == SolidArcBucket::Kind::Constraints)
++        else if (Bucket.BucketContent == SolidArcBucket::Content::Constraints)
+             KidCount = static_cast<uint32_t>(Host.AllConstraints().size());
+         else
+             KidCount = CountFigures(Host, Bucket);
+@@ -685,7 +685,7 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+         if (KidCount == 0u)
+             Rows[FolderRow].Standing = EditorStanding::Quiet;
+ 
+-        if (Bucket.BucketKind == SolidArcBucket::Kind::Dimensions)
++        if (Bucket.BucketContent == SolidArcBucket::Content::Dimensions)
+         {
+             for (const ConsoleHost::DimensionEntry& Dimension : Host.AllDimensions())
+             {
+@@ -696,7 +696,7 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+                 CopyText(Row.Label, sizeof(Row.Label), Dimension.AnchorName.empty() ? "Dimension" : Dimension.AnchorName.c_str());
+                 Row.Depth     = 1u;
+                 Row.Category  = EditorInstanceCategory::Geometry;
+-                Row.KindMark  = EditorKindMark::Dimension;
++                Row.Symbol  = EditorSymbol::Dimension;
+                 Row.Narrowing = Bucket.Narrowing;
+                 Row.FilterMask = Bucket.FilterMask;
+                 Row.Visible   = !Dimension.Hidden;
+@@ -712,7 +712,7 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+                 ++At;
+             }
+         }
+-        else if (Bucket.BucketKind == SolidArcBucket::Kind::Constraints)
++        else if (Bucket.BucketContent == SolidArcBucket::Content::Constraints)
+         {
+             for (const ConstraintEntry& Constraint : Host.AllConstraints())
+             {
+@@ -723,7 +723,7 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+                 CopyText(Row.Label, sizeof(Row.Label), Constraint.Note.empty() ? "Constraint" : Constraint.Note.c_str());
+                 Row.Depth     = 1u;
+                 Row.Category  = EditorInstanceCategory::Geometry;
+-                Row.KindMark  = EditorKindMark::Constraint;
++                Row.Symbol  = EditorSymbol::Constraint;
+                 Row.Narrowing = Bucket.Narrowing;
+                 Row.FilterMask = Bucket.FilterMask;
+                 Row.Visible   = true;
+@@ -838,7 +838,7 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+                                              "equal length", "equal radius" };
+         const char* Type = Types[std::min<size_t>(static_cast<size_t>(Constraint->C.Type), 8u)];
+         SeatHero(*Sheet, "CONSTRAINT", Constraint->Id, "Sketch constraint", "", "", "", false);
+-        AddStat(*Sheet, "Kind", Type);
++        AddStat(*Sheet, "Relation", Type);
+         AddStat(*Sheet, "Solver", "2D graph");
+         AddStat(*Sheet, "State", Constraint->C.Active ? "active" : "off");
+         EditorPropertyGroup* Group = AddGroup(*Sheet, "Constraint", "Sketch solver");
+@@ -846,7 +846,7 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+         {
+             char Buffer[48] = {};
+             std::snprintf(Buffer, sizeof(Buffer), "#%u", Constraint->Id); AddReadout(*Group, "Identity", Buffer);
+-            AddReadout(*Group, "Kind", Type);
++            AddReadout(*Group, "Relation", Type);
+             AddReadout(*Group, "Note", Constraint->Note.c_str());
+             AddReadout(*Group, "Solver", "2D sketch graph");
+         }
+@@ -871,15 +871,15 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+     const bool IsBody    = Figure->Classification == FigureClassification::Body;
+     const bool IsSurface = Figure->Classification == FigureClassification::Surface;
+ 
+-    const EditorKindMark Mark = FigureMark(*Figure);
+-    const char* KindWord = "OBJECT";
++    const EditorSymbol Mark = FigureMark(*Figure);
++    const char* SubjectWord = "OBJECT";
+     switch (Mark)
+     {
+-    case EditorKindMark::Line:         KindWord = "LINE";         break;
+-    case EditorKindMark::Profile:      KindWord = "PROFILE";      break;
+-    case EditorKindMark::Body:         KindWord = "BODY";         break;
+-    case EditorKindMark::Surface:      KindWord = "SURFACE";      break;
+-    case EditorKindMark::Construction: KindWord = "CONSTRUCTION"; break;
++    case EditorSymbol::Line:         SubjectWord = "LINE";         break;
++    case EditorSymbol::Profile:      SubjectWord = "PROFILE";      break;
++    case EditorSymbol::Body:         SubjectWord = "BODY";         break;
++    case EditorSymbol::Surface:      SubjectWord = "SURFACE";      break;
++    case EditorSymbol::Construction: SubjectWord = "CONSTRUCTION"; break;
+     default: break;
+     }
+ 
+@@ -887,7 +887,7 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+     {
+         const BodyReport Report = Figure->Body.Validate();
+         std::snprintf(Buffer, sizeof(Buffer), "%.3f", Report.Volume);
+-        SeatHero(*Sheet, KindWord, Figure->Identity, Subtitle, Buffer, "m\xc2\xb3", "volume", true);
++        SeatHero(*Sheet, SubjectWord, Figure->Identity, Subtitle, Buffer, "m\xc2\xb3", "volume", true);
+         AddStatNumber(*Sheet, "Faces", static_cast<size_t>(Report.Faces));
+         AddStatNumber(*Sheet, "Edges", static_cast<size_t>(Report.Edges));
+         AddStatNumber(*Sheet, "Vertices", static_cast<size_t>(Report.Vertices));
+@@ -895,7 +895,7 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+     else if (IsSurface)
+     {
+         std::snprintf(Buffer, sizeof(Buffer), "%zu", Figure->Surface.Poles.size());
+-        SeatHero(*Sheet, KindWord, Figure->Identity, Subtitle, Buffer, "poles", "control net", true);
++        SeatHero(*Sheet, SubjectWord, Figure->Identity, Subtitle, Buffer, "poles", "control net", true);
+         std::snprintf(Buffer, sizeof(Buffer), "%d \xc3\x97 %d", Figure->Surface.DegreeU, Figure->Surface.DegreeV);
+         AddStat(*Sheet, "Degree", Buffer);
+         std::snprintf(Buffer, sizeof(Buffer), "%d \xc3\x97 %d", Figure->Surface.CountU, Figure->Surface.CountV);
+@@ -905,14 +905,14 @@ bool BuildSolidArcInspectorSheet(const ConsoleHost& Host,
+     else if (IsCurve)
+     {
+         std::snprintf(Buffer, sizeof(Buffer), "%.3f", Figure->Curve.Length());
+-        SeatHero(*Sheet, KindWord, Figure->Identity, Subtitle, Buffer, "m", "length", true);
++        SeatHero(*Sheet, SubjectWord, Figure->Identity, Subtitle, Buffer, "m", "length", true);
+         AddStatNumber(*Sheet, "Degree", static_cast<size_t>(Figure->Curve.Degree));
+         AddStatNumber(*Sheet, "Poles", Figure->Curve.Poles.size());
+         AddStat(*Sheet, "Closed", Figure->Curve.Closed() ? "yes" : "no");
+     }
+     else
+     {
+-        SeatHero(*Sheet, KindWord, Figure->Identity, Subtitle, "", "", "", true);
++        SeatHero(*Sheet, SubjectWord, Figure->Identity, Subtitle, "", "", "", true);
+         AddStat(*Sheet, "Role", "reference");
+         AddStat(*Sheet, "Shown", Figure->Hidden ? "no" : "yes");
+     }
+diff --git a/Frontier/Engine/Editor/EditorInstance.h b/Frontier/Engine/Editor/EditorInstance.h
+index 609fafb..aeb4ea8 100644
+--- a/Frontier/Engine/Editor/EditorInstance.h
++++ b/Frontier/Engine/Editor/EditorInstance.h
+@@ -70,10 +70,10 @@ enum class EditorNarrowing : uint32_t
+     Count
+ };
+ 
+-// A tool's own kind mark for a row. None keeps the stock glyph; anything else replaces it with a mark drawn in the
++// A tool's own symbol for a row. None keeps the stock glyph; anything else replaces it with a mark drawn in the
+ //    row's tint, a folder shell around it for folder rows. SolidArc seats these so its folders are CAD folders
+-//    in the kind's colour rather than the game outliner's generic folder.
+-enum class EditorKindMark : uint32_t
++//    in its own colour rather than the game outliner's generic folder.
++enum class EditorSymbol : uint32_t
+ {
+     None = 0u,
+     Line,
+@@ -114,7 +114,7 @@ struct EditorInstance
+     bool             Pinned    = false;                     // true: no drag, no eye — the page's World / Lights
+     bool             Component = false;                    // owned leaf: cannot be reparented independently
+     bool             Shut      = false;                     // row-owned collapse pose (false reads open)
+-    EditorKindMark   KindMark  = EditorKindMark::None;      // tool-drawn kind mark in Tint; None keeps Glyph/Artwork
++    EditorSymbol   Symbol  = EditorSymbol::None;      // tool-drawn symbol in Tint; None keeps Glyph/Artwork
+ };
+ 
+ // The foot strips: one height across the outliner, the inspector and the viewport, so the three hems
+@@ -235,13 +235,13 @@ struct StarRecord;
+ struct EditorStarPreview { const StarRecord* Records=nullptr; uint32_t Count=0; float Seconds=0; };
+ struct EditorFogPreview {float Rayleigh[3]={5.8e-6f,13.5e-6f,33.1e-6f};float Mie=21e-6f,RayleighHeight=8000,MieHeight=1200;};
+ struct EditorWeatherPreview { float Wind[8]={}; uint32_t Alive=0; float SnowDepth=0, RainVisibility=0; bool AboveWeather=false; };
+-// SolidArc's hero card: the kind pill, the subtitle, one big measure with its unit and caption, and up to three stat tiles.
++// SolidArc's hero card: the subject pill, the subtitle, one big measure with its unit and caption, and up to three stat tiles.
+ //    The adapter writes it; the SolidArc inspector paints it. A sheet whose Hero.Active is false draws no hero.
+ struct EditorSheetHero
+ {
+     bool     Active       = false;
+     bool     Renameable   = true;               // the name field is live only for a figure
+-    char     Kind[16]     = {};                 // "BODY" — the head pill's word
++    char     Subject[16]  = {};                 // "BODY" — the head pill's word
+     uint32_t Identity     = 0u;                 // the head pill's "#8"; 0 prints no number
+     char     Subtitle[40] = {};
+     char     Measure[24]  = {};                 // "7.680"; empty hides the numeral
+diff --git a/Frontier/Engine/Editor/InspectorPanel.cpp b/Frontier/Engine/Editor/InspectorPanel.cpp
+index d33289e..c105f68 100644
+--- a/Frontier/Engine/Editor/InspectorPanel.cpp
++++ b/Frontier/Engine/Editor/InspectorPanel.cpp
+@@ -130,7 +130,7 @@ void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, Editor
+     {
+         DocumentRow = EditorInstance{};
+         std::snprintf(DocumentRow.Label, sizeof(DocumentRow.Label), "SolidArc document");
+-        DocumentRow.KindMark = EditorKindMark::None;
++        DocumentRow.Symbol = EditorSymbol::None;
+         DocumentRow.Tint[0] = 1.0f; DocumentRow.Tint[1] = 0.706f; DocumentRow.Tint[2] = 0.329f;
+         Picked = &DocumentRow;
+     }
+diff --git a/Frontier/Engine/Editor/OutlinerPanel.cpp b/Frontier/Engine/Editor/OutlinerPanel.cpp
+index 679c202..9a43298 100644
+--- a/Frontier/Engine/Editor/OutlinerPanel.cpp
++++ b/Frontier/Engine/Editor/OutlinerPanel.cpp
+@@ -83,7 +83,7 @@ constexpr float kCadRowH      = 44.0f;   // document style: a two-line row
+ constexpr float kCadFolderH   = 34.0f;   // document style: a group head
+ constexpr float kCadStep      = 16.0f;   // document style: indent per depth
+ constexpr float kCadRadius    = 16.0f;   // document style: row ground
+-constexpr float kCadTile      = 15.0f;   // document style: half of the 30 px kind tile
++constexpr float kCadTile      = 15.0f;   // document style: half of the 30 px symbol tile
+ constexpr float kRowRadius    = 7.0f;    // rows are rectangles: selection, hover and drop ground all square
+ constexpr float kRowGap       = 7.0f;
+ constexpr float kChevBox      = 14.0f;
+@@ -480,85 +480,105 @@ void DrawChevron(ImDrawList* Draw, const ImVec2& Centre, float Size, ImU32 Tint,
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+-//                                                       KIND MARKS
++//                                                       SYMBOLS
+ //------------------------------------------------------------------------------------------------------------------------
+-// A tool's own row art, drawn live in the row's tint: a folder shell (tab and body, tinted fill and outline) around the
+-//    mark for a folder row, a tinted chip around it for an item row. Each mark is a handful of strokes inside a 10 px
+-//    square so the three row sizes read alike.
+-
+-void DrawKindMark(ImDrawList* Draw, EditorKindMark Mark, const ImVec2& C, float Half, ImU32 Ink, float Thick) noexcept
+-{
+-    const float H = Half;
++// A tool's own row art, drawn live in the row's tint: the symbol inside a tinted tile, for a folder row and for a figure
++//    row alike, so a folder shows the very symbol its figures wear. A row with no symbol keeps the stock folder shell.
++//    Each symbol is the web outliner's own strokes, scaled to the row size.
++
++void DrawSymbol(ImDrawList* Draw, EditorSymbol Mark, const ImVec2& C, float Half, ImU32 Ink, float Thick) noexcept
++{
++    // The web outliner's own strokes, in its 24-unit viewBox, scaled so the whole box is Half * 2.4 px across.
++    const float U = Half * 0.1f;
++    auto P = [&](float X, float Y) noexcept { return ImVec2(C.x + (X - 12.0f) * U, C.y + (Y - 12.0f) * U); };
++    auto Run = [&](const float (*Points)[2], uint32_t Count, bool Shut) noexcept
++    {
++        for (uint32_t i = 0u; i < Count; ++i)
++            Draw->PathLineTo(P(Points[i][0], Points[i][1]));
++        Draw->PathStroke(Ink, Shut ? ImDrawFlags_Closed : ImDrawFlags_None, Thick);
++    };
++    auto Stroke = [&](float X0, float Y0, float X1, float Y1) noexcept { Draw->AddLine(P(X0, Y0), P(X1, Y1), Ink, Thick); };
+     switch (Mark)
+     {
+-    case EditorKindMark::Line:
+-        Draw->AddLine(ImVec2(C.x - H, C.y + H), ImVec2(C.x + H, C.y - H), Ink, Thick);
+-        Draw->AddCircleFilled(ImVec2(C.x - H, C.y + H), Thick * 1.1f, Ink);
+-        Draw->AddCircleFilled(ImVec2(C.x + H, C.y - H), Thick * 1.1f, Ink);
++    case EditorSymbol::Line:
++        // The curve: M3 17 c4-10 10 4 18-8.
++        Draw->PathClear();
++        Draw->PathLineTo(P(3.0f, 17.0f));
++        Draw->PathBezierCubicCurveTo(P(7.0f, 7.0f), P(13.0f, 21.0f), P(21.0f, 9.0f), 14);
++        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
+         break;
+-    case EditorKindMark::Profile:
+-        Draw->AddCircle(C, H, Ink, 20, Thick);
+-        Draw->AddCircleFilled(ImVec2(C.x + H, C.y), Thick * 1.1f, Ink);
++    case EditorSymbol::Profile:
++    {
++        // The sketch zig-zag: M4 20 8 6l4 10 3-6 5 10.
++        static const float Zig[5][2] = { { 4.0f, 20.0f }, { 8.0f, 6.0f }, { 12.0f, 16.0f }, { 15.0f, 10.0f }, { 20.0f, 20.0f } };
++        Draw->PathClear();
++        Run(Zig, 5u, false);
+         break;
+-    case EditorKindMark::Body:
+-    {
+-        const float Dx = H * 0.87f;
+-        const ImVec2 Hex[6] = { ImVec2(C.x, C.y - H), ImVec2(C.x + Dx, C.y - H * 0.5f), ImVec2(C.x + Dx, C.y + H * 0.5f),
+-                                ImVec2(C.x, C.y + H), ImVec2(C.x - Dx, C.y + H * 0.5f), ImVec2(C.x - Dx, C.y - H * 0.5f) };
+-        Draw->AddPolyline(Hex, 6, Ink, ImDrawFlags_Closed, Thick);
+-        Draw->AddLine(ImVec2(C.x - Dx, C.y - H * 0.5f), C, Ink, Thick);
+-        Draw->AddLine(ImVec2(C.x + Dx, C.y - H * 0.5f), C, Ink, Thick);
+-        Draw->AddLine(C, ImVec2(C.x, C.y + H), Ink, Thick);
++    }
++    case EditorSymbol::Body:
++    {
++        static const float Hex[6][2] = { { 12.0f, 3.0f }, { 20.0f, 7.5f }, { 20.0f, 16.5f }, { 12.0f, 21.0f }, { 4.0f, 16.5f }, { 4.0f, 7.5f } };
++        Draw->PathClear();
++        Run(Hex, 6u, true);
++        Stroke(12.0f, 12.0f, 20.0f, 7.5f);
++        Stroke(12.0f, 12.0f, 12.0f, 21.0f);
++        Stroke(12.0f, 12.0f, 4.0f, 7.5f);
+         break;
+     }
+-    case EditorKindMark::Surface:
++    case EditorSymbol::Surface:
+     {
+-        // A patch seen at an angle with a curved iso-line through it.
+-        const ImVec2 Quad[4] = { ImVec2(C.x - H, C.y + H * 0.45f), ImVec2(C.x - H * 0.35f, C.y - H * 0.7f),
+-                                 ImVec2(C.x + H, C.y - H * 0.45f), ImVec2(C.x + H * 0.35f, C.y + H * 0.7f) };
+-        Draw->AddPolyline(Quad, 4, Ink, ImDrawFlags_Closed, Thick);
++        // M3 8l7-4 11 4-7 4z  M3 8v8l11 4v-8  M21 8v8l-7 4
++        static const float Top[4][2]  = { { 3.0f, 8.0f }, { 10.0f, 4.0f }, { 21.0f, 8.0f }, { 14.0f, 12.0f } };
++        static const float Left[4][2] = { { 3.0f, 8.0f }, { 3.0f, 16.0f }, { 14.0f, 20.0f }, { 14.0f, 12.0f } };
++        static const float Right[3][2] = { { 21.0f, 8.0f }, { 21.0f, 16.0f }, { 14.0f, 20.0f } };
+         Draw->PathClear();
+-        Draw->PathLineTo(ImVec2(C.x - H * 0.7f, C.y));
+-        Draw->PathBezierCubicCurveTo(ImVec2(C.x - H * 0.2f, C.y - H * 0.6f), ImVec2(C.x + H * 0.2f, C.y + H * 0.6f),
+-                                     ImVec2(C.x + H * 0.7f, C.y), 10);
+-        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
++        Run(Top, 4u, true);
++        Draw->PathClear();
++        Run(Left, 4u, false);
++        Draw->PathClear();
++        Run(Right, 3u, false);
+         break;
+     }
+-    case EditorKindMark::Construction:
++    case EditorSymbol::Construction:
+     {
+-        // A reference plane: dashed outline.
+-        const ImVec2 Quad[4] = { ImVec2(C.x - H, C.y + H * 0.55f), ImVec2(C.x - H * 0.4f, C.y - H * 0.65f),
+-                                 ImVec2(C.x + H, C.y - H * 0.55f), ImVec2(C.x + H * 0.4f, C.y + H * 0.65f) };
+-        for (int Edge = 0; Edge < 4; ++Edge)
+-        {
+-            const ImVec2 A = Quad[Edge], B = Quad[(Edge + 1) & 3];
+-            Draw->AddLine(A, ImVec2(A.x + (B.x - A.x) * 0.45f, A.y + (B.y - A.y) * 0.45f), Ink, Thick);
+-            Draw->AddLine(ImVec2(A.x + (B.x - A.x) * 0.62f, A.y + (B.y - A.y) * 0.62f), B, Ink, Thick);
+-        }
++        // The work plane: M3 15l6-8h12l-6 8z  M9 7v10M15 7v10
++        static const float Plane[4][2] = { { 3.0f, 15.0f }, { 9.0f, 7.0f }, { 21.0f, 7.0f }, { 15.0f, 15.0f } };
++        Draw->PathClear();
++        Run(Plane, 4u, true);
++        Stroke(9.0f, 7.0f, 9.0f, 17.0f);
++        Stroke(15.0f, 7.0f, 15.0f, 17.0f);
+         break;
+     }
+-    case EditorKindMark::Dimension:
+-        Draw->AddLine(ImVec2(C.x - H, C.y), ImVec2(C.x + H, C.y), Ink, Thick);
+-        Draw->AddLine(ImVec2(C.x - H, C.y - H * 0.6f), ImVec2(C.x - H, C.y + H * 0.6f), Ink, Thick);
+-        Draw->AddLine(ImVec2(C.x + H, C.y - H * 0.6f), ImVec2(C.x + H, C.y + H * 0.6f), Ink, Thick);
+-        Draw->AddTriangleFilled(ImVec2(C.x - H, C.y), ImVec2(C.x - H * 0.35f, C.y - H * 0.3f), ImVec2(C.x - H * 0.35f, C.y + H * 0.3f), Ink);
+-        Draw->AddTriangleFilled(ImVec2(C.x + H, C.y), ImVec2(C.x + H * 0.35f, C.y - H * 0.3f), ImVec2(C.x + H * 0.35f, C.y + H * 0.3f), Ink);
++    case EditorSymbol::Dimension:
++    {
++        // M4 18V6M20 18V6M4 12h16M8 9l-4 3 4 3M16 9l4 3-4 3
++        static const float Left[3][2]  = { { 8.0f, 9.0f }, { 4.0f, 12.0f }, { 8.0f, 15.0f } };
++        static const float Right[3][2] = { { 16.0f, 9.0f }, { 20.0f, 12.0f }, { 16.0f, 15.0f } };
++        Stroke(4.0f, 18.0f, 4.0f, 6.0f);
++        Stroke(20.0f, 18.0f, 20.0f, 6.0f);
++        Stroke(4.0f, 12.0f, 20.0f, 12.0f);
++        Draw->PathClear();
++        Run(Left, 3u, false);
++        Draw->PathClear();
++        Run(Right, 3u, false);
+         break;
+-    case EditorKindMark::Constraint:
+-        Draw->AddCircle(ImVec2(C.x - H * 0.42f, C.y), H * 0.62f, Ink, 16, Thick);
+-        Draw->AddCircle(ImVec2(C.x + H * 0.42f, C.y), H * 0.62f, Ink, 16, Thick);
++    }
++    case EditorSymbol::Constraint:
++        // The link glyph's two joined loops.
++        Draw->AddCircle(P(8.5f, 12.0f), 5.2f * U, Ink, 16, Thick);
++        Draw->AddCircle(P(15.5f, 12.0f), 5.2f * U, Ink, 16, Thick);
+         break;
+     default:
+         break;
+     }
+ }
+ 
+-// Seats the folder shell or the item chip and the mark inside it, in the 30 px icon box whose top-left is Box.
+-//    The SolidArc folder is the flat two-tone folder: a darker tab and back panel behind a lighter front body, no outline.
+-//    An open folder shows a white paper strip between the two; a shut one is plain.
+-void DrawKindArt(ImDrawList* Draw, const EditorInstance& Row, const ImVec2& Box, float Cy, ImU32 Tint, float Fade, bool Open, bool Document) noexcept
++// Seats the tile and the symbol inside it, in the 30 px icon box whose top-left is Box. Only a folder row with no symbol
++//    of its own falls back to the flat two-tone folder: a darker tab and back panel behind a lighter front body, with a
++//    white paper strip between the two while it is open.
++void DrawSymbolArt(ImDrawList* Draw, const EditorInstance& Row, const ImVec2& Box, float Cy, ImU32 Tint, float Fade, bool Open, bool Document) noexcept
+ {
+-    const bool  Folder = Row.Category == EditorInstanceCategory::Folder;
++    const bool  Folder = Row.Category == EditorInstanceCategory::Folder && Row.Symbol == EditorSymbol::None;
+     const float Cx     = Box.x + kIcoBox * 0.5f;
+     const ImU32 Ink    = ScaleAlpha(Tint, Fade);
+     auto Wash = [&](uint8_t Alpha) { return ScaleAlpha(WithAlpha(Tint, Alpha), Fade); };
+@@ -584,12 +604,14 @@ void DrawKindArt(ImDrawList* Draw, const EditorInstance& Row, const ImVec2& Box,
+     }
+     else
+     {
+-        // Document style: the HTML's 30 px tile, kind colour at 14 % inside a 35 % hairline, the mark a little larger.
++        // Document style: the HTML's 30 px tile, its own colour at 14 % inside a 35 % hairline, the mark a little larger.
+         const float Half = Document ? kCadTile : 11.0f;
+         const ImVec2 A(Cx - Half, Cy - Half), B(Cx + Half, Cy + Half);
+-        Draw->AddRectFilled(A, B, Wash(Document ? 36 : 38), Document ? 10.0f : 7.0f);
+-        Draw->AddRect(A, B, Wash(Document ? 90 : 150), Document ? 10.0f : 7.0f, 0, 1.0f);
+-        DrawKindMark(Draw, Row.KindMark, ImVec2(Cx, Cy), Document ? 6.5f : 5.0f, Ink, Document ? 1.5f : 1.3f);
++        // A folder row wears the same tile as its figures, a little stronger, so the group reads before its rows do.
++        const bool Group = Row.Category == EditorInstanceCategory::Folder;
++        Draw->AddRectFilled(A, B, Wash(Group ? 64 : (Document ? 36 : 38)), Document ? 10.0f : 7.0f);
++        Draw->AddRect(A, B, Wash(Group ? 150 : (Document ? 90 : 150)), Document ? 10.0f : 7.0f, 0, 1.0f);
++        DrawSymbol(Draw, Row.Symbol, ImVec2(Cx, Cy), Document ? 6.5f : 5.0f, Ink, Document ? 1.5f : 1.3f);
+     }
+ }
+ 
+@@ -1988,8 +2010,8 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
+         const IconSymbol Artwork = ArtworkFor(Row);
+         const float ArtSize=std::min(kIcoBox,RowH-4.f);
+         const ImVec2 ArtMin(X+(kIcoBox-ArtSize)*.5f, Cy-ArtSize*.5f);
+-        if (Row.KindMark != EditorKindMark::None)
+-            DrawKindArt(Draw, Row, ImVec2(X, Cy - kIcoBox * 0.5f), Cy, Accent, Fade * DimF, HasKids && !Shut_[Index], Cad);
++        if (Row.Symbol != EditorSymbol::None)
++            DrawSymbolArt(Draw, Row, ImVec2(X, Cy - kIcoBox * 0.5f), Cy, Accent, Fade * DimF, HasKids && !Shut_[Index], Cad);
+         else if (!IconPresentation::Draw(Draw, Artwork, ArtMin, ArtSize, Fade * DimF))
+             DrawIcon(Draw, IconFor(Row), ImVec2(X + (kIcoBox - 14.0f) * 0.5f, Cy - 7.0f), 14.0f, GlyphInk);
+         else if (IconPresentation::Result(Artwork) != IconResult::Ready &&
+@@ -2167,7 +2189,7 @@ void OutlinerPanel::RecordRow(EditorInstance* Instances, uint32_t InstanceCount,
+ 
+ void OutlinerPanel::TakeCensus(const EditorInstance* Instances, uint32_t InstanceCount) noexcept
+ {
+-    for (uint32_t& Count : CensusKind_)
++    for (uint32_t& Count : CensusSymbol_)
+     {
+         Count = 0u;
+     }
+@@ -2181,7 +2203,7 @@ void OutlinerPanel::TakeCensus(const EditorInstance* Instances, uint32_t Instanc
+         {
+             continue;
+         }
+-        ++CensusKind_[static_cast<uint32_t>(Row.KindMark) & 7u];
++        ++CensusSymbol_[static_cast<uint32_t>(Row.Symbol) & 7u];
+         if (Row.Visible)
+         {
+             ++CensusShown_;
+@@ -2264,33 +2286,33 @@ void OutlinerPanel::RecordDocumentFooter() noexcept
+     Draw->AddRectFilled(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y + kEditorFooterH), kWash);
+     Draw->AddLine(Cursor, ImVec2(Cursor.x + RowWidth, Cursor.y), kStroke, 1.0f);
+ 
+-    // .foot-census: one segment per kind, as wide as the kind is populous, in the kind's own colour.
+-    static const ImU32 KindTint[8] = { 0u, IM_COL32(79, 216, 224, 255), IM_COL32(79, 216, 224, 255), IM_COL32(255, 180, 84, 255),
++    // .foot-census: one segment per symbol, as wide as the symbol is populous, in its own colour.
++    static const ImU32 SymbolTint[8] = { 0u, IM_COL32(79, 216, 224, 255), IM_COL32(79, 216, 224, 255), IM_COL32(255, 180, 84, 255),
+                                        IM_COL32(77, 163, 255, 255), IM_COL32(180, 140, 255, 255), IM_COL32(229, 211, 58, 255),
+                                        IM_COL32(255, 107, 138, 255) };
+     uint32_t Total = 0u;
+     for (uint32_t k = 1u; k < 8u; ++k)
+     {
+-        Total += CensusKind_[k];
++        Total += CensusSymbol_[k];
+     }
+     const float BarY = Cursor.y + 7.0f;
+     const float BarW = RowWidth - 2.0f * PadX;
+     Draw->AddRectFilled(ImVec2(Cursor.x + PadX, BarY), ImVec2(Cursor.x + PadX + BarW, BarY + 5.0f), kWash, 3.0f);
+-    uint32_t Kinds = 0u;
++    uint32_t Populated = 0u;
+     for (uint32_t k = 1u; k < 8u; ++k)
+     {
+-        Kinds += CensusKind_[k] > 0u ? 1u : 0u;
++        Populated += CensusSymbol_[k] > 0u ? 1u : 0u;
+     }
+     float BarX = Cursor.x + PadX;
+-    const float Room = BarW - 3.0f * static_cast<float>(Kinds > 0u ? Kinds - 1u : 0u);
++    const float Room = BarW - 3.0f * static_cast<float>(Populated > 0u ? Populated - 1u : 0u);
+     for (uint32_t k = 1u; k < 8u && Total > 0u; ++k)
+     {
+-        if (CensusKind_[k] == 0u)
++        if (CensusSymbol_[k] == 0u)
+         {
+             continue;
+         }
+-        const float W = Room * static_cast<float>(CensusKind_[k]) / static_cast<float>(Total);
+-        Draw->AddRectFilled(ImVec2(BarX, BarY), ImVec2(BarX + W, BarY + 5.0f), KindTint[k], 2.5f);
++        const float W = Room * static_cast<float>(CensusSymbol_[k]) / static_cast<float>(Total);
++        Draw->AddRectFilled(ImVec2(BarX, BarY), ImVec2(BarX + W, BarY + 5.0f), SymbolTint[k], 2.5f);
+         BarX += W + 3.0f;
+     }
+ 
+diff --git a/Frontier/Engine/Editor/OutlinerPanel.h b/Frontier/Engine/Editor/OutlinerPanel.h
+index b375740..cd08ffe 100644
+--- a/Frontier/Engine/Editor/OutlinerPanel.h
++++ b/Frontier/Engine/Editor/OutlinerPanel.h
+@@ -137,7 +137,7 @@ private:
+ 
+     // The document style: this tick's census, taken once from the roster before anything draws.
+     bool     DocumentStyle_ = false;
+-    uint32_t CensusKind_[8] = {};      // figures per EditorKindMark (index = the mark), folders excluded
++    uint32_t CensusSymbol_[8] = {};      // figures per EditorSymbol (index = the mark), folders excluded
+     uint32_t CensusShown_   = 0u;
+     uint32_t CensusHidden_  = 0u;
+     uint32_t CensusIssues_  = 0u;
+diff --git a/Frontier/Engine/Editor/SolidArcInspectorPanel.cpp b/Frontier/Engine/Editor/SolidArcInspectorPanel.cpp
+index ff4e2a3..f69fb09 100644
+--- a/Frontier/Engine/Editor/SolidArcInspectorPanel.cpp
++++ b/Frontier/Engine/Editor/SolidArcInspectorPanel.cpp
+@@ -122,9 +122,9 @@ Glyph GlyphForLabel(const char* Label) noexcept
+     return Glyph::Dots;
+ }
+ 
+-ImU32 GlyphTint(Glyph Kind) noexcept
++ImU32 GlyphTint(Glyph Shape) noexcept
+ {
+-    switch (Kind)
++    switch (Shape)
+     {
+     case Glyph::Face:   return IM_COL32(77, 163, 255, 255);
+     case Glyph::Edge:   return IM_COL32(79, 216, 224, 255);
+@@ -141,10 +141,10 @@ ImU32 GlyphTint(Glyph Kind) noexcept
+     }
+ }
+ 
+-void DrawGlyph(ImDrawList* Draw, Glyph Kind, const ImVec2& C, float H, ImU32 Ink) noexcept
++void DrawGlyph(ImDrawList* Draw, Glyph Shape, const ImVec2& C, float H, ImU32 Ink) noexcept
+ {
+     const float T = 1.5f;
+-    switch (Kind)
++    switch (Shape)
+     {
+     case Glyph::Face:
+         Draw->AddRect(ImVec2(C.x - H, C.y - H), ImVec2(C.x + H, C.y + H), Ink, 2.0f, 0, T);
+@@ -209,17 +209,17 @@ void DrawGlyph(ImDrawList* Draw, Glyph Kind, const ImVec2& C, float H, ImU32 Ink
+     }
+ }
+ 
+-Glyph GlyphForMark(EditorKindMark Mark) noexcept
++Glyph GlyphForMark(EditorSymbol Mark) noexcept
+ {
+     switch (Mark)
+     {
+-    case EditorKindMark::Line:         return Glyph::Line;
+-    case EditorKindMark::Profile:      return Glyph::Profile;
+-    case EditorKindMark::Body:         return Glyph::Body;
+-    case EditorKindMark::Surface:      return Glyph::Surface;
+-    case EditorKindMark::Construction: return Glyph::Construction;
+-    case EditorKindMark::Dimension:    return Glyph::Dimension;
+-    case EditorKindMark::Constraint:   return Glyph::Constraint;
++    case EditorSymbol::Line:         return Glyph::Line;
++    case EditorSymbol::Profile:      return Glyph::Profile;
++    case EditorSymbol::Body:         return Glyph::Body;
++    case EditorSymbol::Surface:      return Glyph::Surface;
++    case EditorSymbol::Construction: return Glyph::Construction;
++    case EditorSymbol::Dimension:    return Glyph::Dimension;
++    case EditorSymbol::Constraint:   return Glyph::Constraint;
+     default:                           return Glyph::Dots;
+     }
+ }
+@@ -530,14 +530,14 @@ void TilesAndReadouts(Layout& L, EditorPropertyGroup& Group) noexcept
+         const ImVec2 Min(X, L.Y), Max(X + TileW, L.Y + TileHt);
+         L.Draw->AddRectFilled(Min, Max, kTile, 16.0f);
+         L.Draw->AddRect(Min, Max, kHair, 16.0f);
+-        const Glyph Kind  = GlyphForLabel(Property.Label);
++        const Glyph Shape  = GlyphForLabel(Property.Label);
+         const bool  Whole = std::strchr(Property.Text, '.') == nullptr;
+         if (Paired)
+         {
+             // Icon badge top-left, label under it, numeral right.
+             const ImVec2 Badge(Min.x + 14.0f + 11.0f, Min.y + 14.0f + 11.0f);
+-            L.Draw->AddCircleFilled(Badge, 12.0f, WithAlpha(GlyphTint(Kind), 38));
+-            DrawGlyph(L.Draw, Kind, Badge, 5.0f, GlyphTint(Kind));
++            L.Draw->AddCircleFilled(Badge, 12.0f, WithAlpha(GlyphTint(Shape), 38));
++            DrawGlyph(L.Draw, Shape, Badge, 5.0f, GlyphTint(Shape));
+             Text(L, 11.0f, ImVec2(Min.x + 14.0f, Max.y - 20.0f), kDim, Property.Label);
+             DrawNumeral(L.Draw, L.Ui, Whole ? 28.0f : 23.0f, Max.x - 14.0f, Min.y + (Whole ? 12.0f : 17.0f), Property.Text, kInk, kDim);
+         }
+@@ -545,8 +545,8 @@ void TilesAndReadouts(Layout& L, EditorPropertyGroup& Group) noexcept
+         {
+             // Row: icon badge, label, numeral right-aligned.
+             const ImVec2 Badge(Min.x + 14.0f + 10.0f, Min.y + TileHt * 0.5f);
+-            L.Draw->AddCircleFilled(Badge, 11.0f, WithAlpha(GlyphTint(Kind), 38));
+-            DrawGlyph(L.Draw, Kind, Badge, 4.6f, GlyphTint(Kind));
++            L.Draw->AddCircleFilled(Badge, 11.0f, WithAlpha(GlyphTint(Shape), 38));
++            DrawGlyph(L.Draw, Shape, Badge, 4.6f, GlyphTint(Shape));
+             Text(L, 11.5f, ImVec2(Min.x + 14.0f + 28.0f, Min.y + TileHt * 0.5f - 7.0f), kDim, Property.Label);
+             DrawNumeral(L.Draw, L.Ui, 22.0f, Max.x - 14.0f, Min.y + 10.0f, Property.Text, kInk, kDim);
+         }
+@@ -835,7 +835,7 @@ float CapsWidth(Layout& L, const char* Value) noexcept
+     return W;
+ }
+ 
+-// The head: the accent dot, "Inspector", and the kind pill on the right ("BODY · #8").
++// The head: the accent dot, "Inspector", and the subject pill on the right ("BODY · #8").
+ void HeadBar(Layout& L, const EditorSheetHero& Hero, ImU32 Accent) noexcept
+ {
+     const float Cy = L.Y + 22.0f;
+@@ -845,9 +845,9 @@ void HeadBar(Layout& L, const EditorSheetHero& Hero, ImU32 Accent) noexcept
+ 
+     char Pill[40] = {};
+     if (Hero.Identity != 0u)
+-        std::snprintf(Pill, sizeof(Pill), "%s \xc2\xb7 #%u", Hero.Kind, Hero.Identity);
++        std::snprintf(Pill, sizeof(Pill), "%s \xc2\xb7 #%u", Hero.Subject, Hero.Identity);
+     else
+-        std::snprintf(Pill, sizeof(Pill), "%s", Hero.Kind);
++        std::snprintf(Pill, sizeof(Pill), "%s", Hero.Subject);
+     float W = CapsWidth(L, Pill) + 22.0f;
+     if (L.X + L.W - W < L.X + 26.0f + TextWidth(L, 17.0f, "Inspector") + 10.0f && Hero.Identity != 0u)
+     {
+@@ -889,7 +889,7 @@ void HeroCard(Layout& L, EditorInstance& Picked, uint32_t PickedIndex, EditorShe
+     const ImVec2 Tile(L.InnerX(), L.Y + kPad);
+     L.Draw->AddRectFilled(Tile, ImVec2(Tile.x + TileS, Tile.y + TileS), TintOf(Picked.Tint, 36), 15.0f);
+     L.Draw->AddRect(Tile, ImVec2(Tile.x + TileS, Tile.y + TileS), TintOf(Picked.Tint, 115), 15.0f);
+-    DrawGlyph(L.Draw, GlyphForMark(Picked.KindMark), ImVec2(Tile.x + TileS * 0.5f, Tile.y + TileS * 0.5f), 8.5f, TintOf(Picked.Tint, 255));
++    DrawGlyph(L.Draw, GlyphForMark(Picked.Symbol), ImVec2(Tile.x + TileS * 0.5f, Tile.y + TileS * 0.5f), 8.5f, TintOf(Picked.Tint, 255));
+ 
+     const float NameX = Tile.x + TileS + 12.0f;
+     const float NameW = L.InnerX() + L.InnerW() - NameX;
+@@ -1139,15 +1139,15 @@ void TabChips(Layout& L, const EditorSheet& Sheet) noexcept
+     ImGui::Dummy(ImVec2(L.W, 2.0f));
+ }
+ 
+-void ActionIcon(ImDrawList* Draw, uint32_t Kind, const ImVec2& C, ImU32 Ink) noexcept
++void ActionIcon(ImDrawList* Draw, uint32_t Action, const ImVec2& C, ImU32 Ink) noexcept
+ {
+     const float T = 1.8f;
+-    if (Kind == 0u)
++    if (Action == 0u)
+     {
+         Draw->AddRect(ImVec2(C.x - 2.0f, C.y - 8.0f), ImVec2(C.x + 8.0f, C.y + 2.0f), Ink, 2.0f, 0, T);
+         Draw->AddRect(ImVec2(C.x - 8.0f, C.y - 2.0f), ImVec2(C.x + 2.0f, C.y + 8.0f), Ink, 2.0f, 0, T);
+     }
+-    else if (Kind == 1u)
++    else if (Action == 1u)
+     {
+         const float S = 8.0f, A = 4.0f;
+         for (int Sx = -1; Sx <= 1; Sx += 2)
+diff --git a/Frontier/Engine/Editor/ViewportPanel.cpp b/Frontier/Engine/Editor/ViewportPanel.cpp
+index e078259..7848f7d 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.cpp
++++ b/Frontier/Engine/Editor/ViewportPanel.cpp
+@@ -567,6 +567,117 @@ void ViewportPanel::StepOnce() noexcept
+ //                                                         HEADER BAR
+ //------------------------------------------------------------------------------------------------------------------------
+ 
++namespace
++{
++// The web viewport's nine rail icons, drawn live from its own strokes in a 24-unit box: the four selection modes on a
++//    shared cube, the two shadings and the three gizmos.
++enum class RailIcon : uint32_t { SelectBody, SelectFace, SelectEdge, SelectVertex, ShadeWire, ShadeMatcap, GizmoMove, GizmoRotate, GizmoScale };
++
++void DrawRailIcon(ImDrawList* Draw, RailIcon Icon, const ImVec2& C, float Size, ImU32 Ink) noexcept
++{
++    const float U     = Size / 24.0f;
++    const float Thick = 1.7f * U < 1.15f ? 1.15f : 1.7f * U;
++    auto P = [&](float X, float Y) noexcept { return ImVec2(C.x + (X - 12.0f) * U, C.y + (Y - 12.0f) * U); };
++    auto Fainter = [&](float Fraction) noexcept
++    {
++        const uint32_t Alpha = static_cast<uint32_t>(static_cast<float>((Ink >> 24u) & 0xFFu) * Fraction);
++        return (Ink & 0x00FFFFFFu) | (Alpha << 24u);
++    };
++    auto Stroke = [&](float X0, float Y0, float X1, float Y1, ImU32 Tint, float Width) noexcept { Draw->AddLine(P(X0, Y0), P(X1, Y1), Tint, Width); };
++    auto Dashed = [&](float X0, float Y0, float X1, float Y1, ImU32 Tint) noexcept
++    {
++        // stroke-dasharray 2 2.4 in box units.
++        const float Dx = X1 - X0, Dy = Y1 - Y0;
++        const float Length = std::sqrt(Dx * Dx + Dy * Dy);
++        for (float At = 0.0f; At < Length; At += 4.4f)
++        {
++            const float To = std::min(At + 2.0f, Length);
++            Stroke(X0 + Dx * At / Length, Y0 + Dy * At / Length, X0 + Dx * To / Length, Y0 + Dy * To / Length, Tint, Thick);
++        }
++    };
++    auto Poly = [&](const float (*Points)[2], uint32_t Count, bool Shut, ImU32 Tint) noexcept
++    {
++        Draw->PathClear();
++        for (uint32_t i = 0u; i < Count; ++i)
++            Draw->PathLineTo(P(Points[i][0], Points[i][1]));
++        Draw->PathStroke(Tint, Shut ? ImDrawFlags_Closed : ImDrawFlags_None, Thick);
++    };
++    static const float Hex[6][2] = { { 12.0f, 3.0f }, { 20.0f, 7.5f }, { 20.0f, 16.5f }, { 12.0f, 21.0f }, { 4.0f, 16.5f }, { 4.0f, 7.5f } };
++    static const float Spine[3][2] = { { 4.0f, 7.5f }, { 12.0f, 12.0f }, { 20.0f, 7.5f } };
++    switch (Icon)
++    {
++    case RailIcon::SelectBody:
++        Poly(Hex, 6u, true, Ink);
++        Poly(Spine, 3u, false, Ink);
++        Stroke(12.0f, 12.0f, 12.0f, 21.0f, Ink, Thick);
++        break;
++    case RailIcon::SelectFace:
++    {
++        Poly(Hex, 6u, true, Fainter(0.45f));
++        const ImVec2 Top[4] = { P(4.0f, 7.5f), P(12.0f, 12.0f), P(20.0f, 7.5f), P(12.0f, 3.0f) };
++        Draw->AddConvexPolyFilled(Top, 4, Ink);
++        Draw->AddPolyline(Top, 4, Ink, ImDrawFlags_Closed, 1.4f * U < 1.0f ? 1.0f : 1.4f * U);
++        break;
++    }
++    case RailIcon::SelectEdge:
++        Poly(Hex, 6u, true, Fainter(0.45f));
++        Stroke(12.0f, 12.0f, 12.0f, 21.0f, Ink, 3.0f * U);
++        break;
++    case RailIcon::SelectVertex:
++        Poly(Hex, 6u, true, Fainter(0.45f));
++        Draw->AddCircleFilled(P(12.0f, 12.0f), 2.6f * U, Ink, 14);
++        Draw->AddCircleFilled(P(12.0f, 3.0f), 1.8f * U, Ink, 12);
++        Draw->AddCircleFilled(P(4.0f, 16.5f), 1.8f * U, Ink, 12);
++        Draw->AddCircleFilled(P(20.0f, 16.5f), 1.8f * U, Ink, 12);
++        break;
++    case RailIcon::ShadeWire:
++        Poly(Hex, 6u, true, Ink);
++        Poly(Spine, 3u, false, Ink);
++        Stroke(12.0f, 12.0f, 12.0f, 21.0f, Ink, Thick);
++        Dashed(12.0f, 12.0f, 4.0f, 16.5f, Fainter(0.7f));
++        Dashed(12.0f, 12.0f, 20.0f, 16.5f, Fainter(0.7f));
++        Dashed(12.0f, 3.0f, 12.0f, 12.0f, Fainter(0.7f));
++        break;
++    case RailIcon::ShadeMatcap:
++        Draw->AddCircle(P(12.0f, 12.0f), 8.5f * U, Ink, 28, Thick);
++        Draw->PathClear();
++        Draw->PathLineTo(P(7.6f, 10.2f));
++        Draw->PathBezierQuadraticCurveTo(P(8.34f, 7.49f), P(11.0f, 6.6f), 8);
++        Draw->PathStroke(Ink, ImDrawFlags_None, 2.0f * U);
++        Draw->AddCircleFilled(P(9.3f, 9.2f), 0.9f * U, Ink, 8);
++        break;
++    case RailIcon::GizmoMove:
++    {
++        static const float Head[8][4] = { { 12, 3, 9, 6 }, { 12, 3, 15, 6 }, { 12, 21, 9, 18 }, { 12, 21, 15, 18 },
++                                          { 3, 12, 6, 9 }, { 3, 12, 6, 15 }, { 21, 12, 18, 9 }, { 21, 12, 18, 15 } };
++        Stroke(12.0f, 3.0f, 12.0f, 21.0f, Ink, Thick);
++        Stroke(3.0f, 12.0f, 21.0f, 12.0f, Ink, Thick);
++        for (const auto& Arrow : Head)
++            Stroke(Arrow[0], Arrow[1], Arrow[2], Arrow[3], Ink, Thick);
++        break;
++    }
++    case RailIcon::GizmoRotate:
++    {
++        // M20 12 a8 8 0 1 1 -2.6 -5.9: seven-eighths of a circle, clockwise from three o'clock.
++        Draw->PathClear();
++        Draw->PathArcTo(P(12.0f, 12.0f), 8.0f * U, 0.0f, 5.454f, 24);
++        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
++        static const float Head[3][2] = { { 20.0f, 4.0f }, { 20.0f, 9.0f }, { 15.0f, 9.0f } };
++        Poly(Head, 3u, false, Ink);
++        break;
++    }
++    case RailIcon::GizmoScale:
++    {
++        Draw->AddRect(P(3.5f, 9.5f), P(14.5f, 20.5f), Ink, 1.5f * U, 0, Thick);
++        Stroke(13.0f, 11.0f, 20.5f, 3.5f, Ink, Thick);
++        static const float Head[3][2] = { { 15.0f, 3.5f }, { 20.5f, 3.5f }, { 20.5f, 9.0f } };
++        Poly(Head, 3u, false, Ink);
++        break;
++    }
++    }
++}
++}
++
+ void ViewportPanel::RecordSolidArcBar() noexcept
+ {
+     const float RowWidth = ImGui::GetContentRegionAvail().x;
+@@ -575,7 +686,10 @@ void ViewportPanel::RecordSolidArcBar() noexcept
+ 
+     constexpr float kToolPx = 9.0f;
+     constexpr float kToolH = 22.0f;
+-    constexpr float kGap = 4.0f;
++    constexpr float kGap = 8.0f;
++    constexpr float kSegH = 30.0f;     // the web .seg capsule: 24 px buttons inside 3 px of padding
++    constexpr float kSegBtnW = 32.0f;
++    constexpr float kIconPx = 17.0f;
+     auto TextWidth = [Small, kToolPx](const char* Text) noexcept -> float
+     {
+         return Small->CalcTextSizeA(kToolPx, FLT_MAX, 0.0f, Text).x;
+@@ -585,7 +699,6 @@ void ViewportPanel::RecordSolidArcBar() noexcept
+         const ImVec2 T = Small->CalcTextSizeA(kToolPx, FLT_MAX, 0.0f, Text);
+         Draw->AddText(Small, kToolPx, ImVec2(X, Y + (kToolH - T.y) * 0.5f), Tint, Text);
+     };
+-    // The CAD rail carries the Construct chip alone; selection, shading, gizmo and view controls are not on it.
+     const float ConstructW = TextWidth("Construct") + 22.0f;
+     const float BarH = 38.0f;
+ 
+@@ -593,47 +706,79 @@ void ViewportPanel::RecordSolidArcBar() noexcept
+     const ImVec2 Cursor = ImGui::GetItemRectMin();
+     const float StartX = Cursor.x + 10.0f;
+     const float EndX = Cursor.x + RowWidth - 10.0f;
+-    const float Row1 = Cursor.y + 8.0f;
++    const float MidY = Cursor.y + BarH * 0.5f;
+     float X = StartX;
+-    const float Y = Row1;
+ 
+-    auto Seat = [&](float W) noexcept -> bool
++    // The Construct chip: the plus and the word.
++    if (X + ConstructW <= EndX)
+     {
+-        return X + W <= EndX;
+-    };
+-    auto Advance = [&]() noexcept { X += kGap; };
+-
+-    auto Pill = [&](const char* Id, const char* Label, bool On, float W, ImU32 Accent, bool Enabled = true) noexcept -> bool
+-    {
+-        if (!Seat(W))
+-            return false;
++        const float Y = MidY - kToolH * 0.5f;
+         ImGui::SetCursorScreenPos(ImVec2(X, Y));
+-        ImGui::InvisibleButton(Id, ImVec2(W, kToolH));
+-        const bool Hot = Enabled && ImGui::IsItemHovered();
+-        const bool Clicked = Enabled && Hot && ImGui::IsMouseClicked(0);
+-        const ImU32 Fill = On ? IM_COL32(255, 255, 255, 34) : (Hot ? IM_COL32(255, 255, 255, 20) : IM_COL32(0, 0, 0, 95));
+-        Draw->AddRectFilled(ImVec2(X, Y), ImVec2(X + W, Y + kToolH), Fill, kToolH * 0.5f);
+-        Draw->AddRect(ImVec2(X, Y), ImVec2(X + W, Y + kToolH), Hot ? IM_COL32(255, 255, 255, 44) : kStroke, kToolH * 0.5f);
+-        if (Accent != 0u)
+-        {
+-            Draw->AddLine(ImVec2(X + 10.0f, Y + kToolH * 0.5f), ImVec2(X + 18.0f, Y + kToolH * 0.5f), Accent, 1.5f);
+-            Draw->AddLine(ImVec2(X + 14.0f, Y + kToolH * 0.5f - 4.0f), ImVec2(X + 14.0f, Y + kToolH * 0.5f + 4.0f), Accent, 1.5f);
+-            TextAt(Label, X + 24.0f, Y, Enabled ? kText : kFaint);
+-        }
+-        else
++        ImGui::InvisibleButton("##solidarc_construct", ImVec2(ConstructW, kToolH));
++        const bool Hot = ImGui::IsItemHovered();
++        Draw->AddRectFilled(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), Hot ? IM_COL32(255, 255, 255, 20) : IM_COL32(0, 0, 0, 95), kToolH * 0.5f);
++        Draw->AddRect(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), Hot ? IM_COL32(255, 255, 255, 44) : kStroke, kToolH * 0.5f);
++        const ImU32 Cyan = IM_COL32(79, 216, 224, 255);
++        Draw->AddLine(ImVec2(X + 10.0f, MidY), ImVec2(X + 18.0f, MidY), Cyan, 1.5f);
++        Draw->AddLine(ImVec2(X + 14.0f, MidY - 4.0f), ImVec2(X + 14.0f, MidY + 4.0f), Cyan, 1.5f);
++        TextAt("Construct", X + 24.0f, Y, kText);
++        X += ConstructW + kGap;
++    }
++
++    // One capsule of icon buttons. Mask segments toggle with Shift held, as the web rail's modes combine; the rest pick one.
++    auto Segment = [&](const char* Group, const RailIcon* Icons, const char* const* Titles, uint32_t Count, uint32_t* Picked, bool Combine) noexcept
++    {
++        const float Width = Count * kSegBtnW + (Count - 1u) * 3.0f + 6.0f;
++        if (X + Width > EndX)
++            return;
++        const float Y = MidY - kSegH * 0.5f;
++        Draw->AddRectFilled(ImVec2(X, Y), ImVec2(X + Width, Y + kSegH), IM_COL32(0, 0, 0, 90), kSegH * 0.5f);
++        Draw->AddRect(ImVec2(X, Y), ImVec2(X + Width, Y + kSegH), kStroke, kSegH * 0.5f);
++        for (uint32_t i = 0u; i < Count; ++i)
+         {
+-            const ImVec2 T = Small->CalcTextSizeA(kToolPx, FLT_MAX, 0.0f, Label);
+-            TextAt(Label, X + (W - T.x) * 0.5f, Y, Enabled ? (On ? kText : kDim) : kFaint);
++            const float Bx = X + 3.0f + i * (kSegBtnW + 3.0f);
++            const float By = Y + 3.0f;
++            char Id[48];
++            std::snprintf(Id, sizeof(Id), "##%s%u", Group, i);
++            ImGui::SetCursorScreenPos(ImVec2(Bx, By));
++            ImGui::InvisibleButton(Id, ImVec2(kSegBtnW, 24.0f));
++            const bool Hot = ImGui::IsItemHovered();
++            if (Hot && ImGui::IsMouseClicked(0))
++            {
++                if (Combine && ImGui::GetIO().KeyShift)
++                {
++                    const uint32_t Next = *Picked ^ (1u << i);
++                    *Picked = Next != 0u ? Next : *Picked;
++                }
++                else
++                    *Picked = Combine ? (1u << i) : i;
++            }
++            const bool On = Combine ? ((*Picked >> i) & 1u) != 0u : *Picked == i;
++            if (On)
++                Draw->AddRectFilled(ImVec2(Bx, By), ImVec2(Bx + kSegBtnW, By + 24.0f), IM_COL32(255, 255, 255, 36), 12.0f);
++            DrawRailIcon(Draw, Icons[i], ImVec2(Bx + kSegBtnW * 0.5f, By + 12.0f), kIconPx, On || Hot ? kText : kDim);
++            if (Hot)
++                ImGui::SetTooltip("%s", Titles[i]);
+         }
+-        X += W;
+-        Advance();
+-        return Clicked;
++        X += Width + kGap;
+     };
+ 
+-    if (Pill("##solidarc_construct", "Construct", false, ConstructW, IM_COL32(79, 216, 224, 255)))
++    static const RailIcon      kSelectIcons[4] = { RailIcon::SelectBody, RailIcon::SelectFace, RailIcon::SelectEdge, RailIcon::SelectVertex };
++    static const char* const   kSelectTitles[4] = { "Body  1", "Face  2", "Edge  3", "Vertex  4" };
++    static const RailIcon      kShadeIcons[2] = { RailIcon::ShadeWire, RailIcon::ShadeMatcap };
++    static const char* const   kShadeTitles[2] = { "Wireframe", "Matcap" };
++    static const RailIcon      kGizmoIcons[3] = { RailIcon::GizmoMove, RailIcon::GizmoRotate, RailIcon::GizmoScale };
++    static const char* const   kGizmoTitles[3] = { "Move  G", "Rotate  Shift+R", "Scale  S" };
++
++    Segment("solidarc_select", kSelectIcons, kSelectTitles, 4u, &SolidArcSelectMask_, true);
++    const char* Combine = "shift combines";
++    if (X + TextWidth(Combine) + kGap <= EndX)
+     {
+-        // The catalogue opens in the SolidArc document host; this chip keeps the viewport-side affordance live.
++        TextAt(Combine, X, MidY - kToolH * 0.5f, kFaint);
++        X += TextWidth(Combine) + kGap;
+     }
++    Segment("solidarc_shade", kShadeIcons, kShadeTitles, 2u, &SolidArcShade_, false);
++    Segment("solidarc_gizmo", kGizmoIcons, kGizmoTitles, 3u, &SolidArcGizmo_, false);
+ 
+     Draw->AddLine(ImVec2(Cursor.x, Cursor.y + BarH), ImVec2(Cursor.x + RowWidth, Cursor.y + BarH), kStroke);
+ }
+diff --git a/Frontier/Engine/Editor/ViewportPanel.h b/Frontier/Engine/Editor/ViewportPanel.h
+index b31c389..320c6df 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.h
++++ b/Frontier/Engine/Editor/ViewportPanel.h
+@@ -85,6 +85,9 @@ public:
+     [[nodiscard]] const ViewportOrbit& QueryViewportOrbit() const noexcept { return Orbit_; }
+ 
+     // Last view rect, so the project can size the view rows to the rect it draws into.
++    [[nodiscard]] uint32_t QuerySolidArcSelectMask() const noexcept { return SolidArcSelectMask_; }
++    [[nodiscard]] uint32_t QuerySolidArcShade() const noexcept { return SolidArcShade_; }
++    [[nodiscard]] uint32_t QuerySolidArcGizmo() const noexcept { return SolidArcGizmo_; }
+     [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
+     [[nodiscard]] float QueryViewHeight() const noexcept { return LastH_; }
+ 
+@@ -152,10 +155,9 @@ private:
+     bool     MarkersOn_ = true;
+     ViewportOrbit Orbit_;   // the views menu, the gizmo and the wheel pose through this
+     ViewportOrbit Home_    = {};   // the seated home; the projection rows restore it
+-    uint32_t SolidArcSelectMask_ = 1u;   // Body, Face, Edge, Vertex bits: HTML top-panel parity
+-    uint32_t SolidArcShade_      = 3u;   // Wire, Flat, Plastic, Matcap
+-    uint32_t SolidArcGizmo_      = 0u;   // Move, Rotate, Scale
+-    uint32_t SolidArcView_       = 3u;   // Top, Front, Right, Iso, Ortho
++    uint32_t SolidArcSelectMask_ = 1u;   // Body, Face, Edge, Vertex bits: the web rail's selection modes
++    uint32_t SolidArcShade_      = 1u;   // 0 Wireframe, 1 Matcap
++    uint32_t SolidArcGizmo_      = 0u;   // 0 Move, 1 Rotate, 2 Scale
+     bool     DockLeft_  = true;
+     bool     DockRight_ = true;
+ 
+diff --git a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+index fa18fbc..c68c797 100644
+--- a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
++++ b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+@@ -198,7 +198,7 @@ int main()
+     if (!Run(Host, "sphere (0.0,0.0,1.15) 0.35 --sheet --name=CanopySheet")) return 3;
+     if (!Run(Host, "line (-1.4,-0.7,0) (1.4,-0.7,0) --name=SketchAxis")) return 4;
+     if (!Run(Host, "plane (0,0,-0.02) 3 2 --name=WingPlane")) return 5;
+-    // One figure of every folder kind: a profile, a second line to constrain, a dimension and a constraint.
++    // One figure of every folder: a profile, a second line to constrain, a dimension and a constraint.
+     if (!Run(Host, "circle (0,0,0) 0.4 --name=ProfileDisc")) return 12;
+     if (!Run(Host, "line (-1.4,0.7,0) (1.4,0.9,0) --name=SketchAxisB")) return 13;
+     if (!Run(Host, "line (-1.4,1.1,0) (1.4,1.1,0) --name=GuideLine --construction")) return 16;
+@@ -317,12 +317,12 @@ int main()
+     }
+     std::fprintf(stderr, "[SolidArcEditorProof] wrote %s and %s with %d bright pixels in the filtered sheet\n", MenuSheet, Sheet, Bright);
+ 
+-    // 🔴 Chrome gates: the SolidArc tab sheet and notch must be the game editor's, pixel for pixel in kind.
++    // 🔴 Chrome gates: the SolidArc tab sheet and notch must be the game editor's, pixel for pixel.
+     bool Failed = false;
+     auto At = [&](int X, int Y) -> const unsigned char* { return &Pixels[(static_cast<size_t>(Y) * gWidth + static_cast<size_t>(X)) * 3u]; };
+     auto Fail = [&](const char* Why) { std::fprintf(stderr, "[SolidArcEditorProof] [FAIL] %s\n", Why); Failed = true; };
+ 
+-    // Gate 6 - the outliner carries seven CAD folders, in catalogue order, each drawn in its own kind colour with its
++    // Gate 6 - the outliner carries seven CAD folders, in catalogue order, each drawn in its own colour with its
+     // name readable. The folded sheet shows every folder row; the first five sit on a 34 px pitch from y 234 and the open Construction folder pushes the last two down by its child row.
+     {
+         struct FolderExpectation { const char* Name; int Tint[3]; };
+@@ -364,11 +364,11 @@ int main()
+             const int Name = NameCells(RowY);
+             std::fprintf(stderr, "[SolidArcEditorProof] folder %d %-12s tint cells %d, name cells %d\n", Row, Folders[Row].Name, Hits, Name);
+             if (Hits < 15)
+-                Fail("a folder is not drawn in its kind colour");
++                Fail("a folder is not drawn in its own colour");
+             if (Name < 40)
+                 Fail("a folder name is not readable");
+         }
+-        // Neighbouring kinds differ: the amber Bodies folder carries no surface blue, the surface folder no amber.
++        // Neighbouring folders differ: the amber Bodies folder carries no surface blue, the surface folder no amber.
+         if (TintHits(kFoldedRowY[2], Folders[3].Tint) >= 15 || TintHits(kFoldedRowY[3], Folders[2].Tint) >= 15)
+             Fail("neighbouring folders share a colour");
+         // Negative control: a wrong expectation must be refused, or the gate above proves nothing.
+@@ -378,7 +378,7 @@ int main()
+             std::fprintf(stderr, "[SolidArcEditorProof] negative control: Bodies folder correctly refuses the Constraints rose\n");
+     }
+ 
+-    // Gate 7 - the CAD viewport: the rail holds the Construct chip alone, no orbit compass sits in the corner, and the
++    // Gate 7 - the CAD viewport: the rail holds the Construct chip and the nine web icons, no orbit compass sits in the corner, and the
+     //    ground grid is a finite pad of crisp one-pixel lines.
+     {
+         auto Lit = [&](const std::vector<unsigned char>& Sheet, int X, int Y, int Floor) -> bool
+@@ -396,12 +396,49 @@ int main()
+             return Count;
+         };
+         const int RailChip = CountLit(325, 52, 395, 72, 200);
+-        const int RailRest = CountLit(400, 50, 1030, 72, 200);
+-        std::fprintf(stderr, "[SolidArcEditorProof] rail: Construct chip %d lit cells, everything right of it %d\n", RailChip, RailRest);
++        // Nine icon buttons sit right of Construct: Body Face Edge Vertex, Wireframe Matcap, Move Rotate Scale.
++        static const int kIconX[9] = { 419, 454, 488, 524, 648, 682, 729, 764, 799 };
++        static const char* const kIconName[9] = { "Body", "Face", "Edge", "Vertex", "Wireframe", "Matcap", "Move", "Rotate", "Scale" };
++        int Seen = 0;
++        for (int Icon = 0; Icon < 9; ++Icon)
++        {
++            const int Lit9 = CountLit(kIconX[Icon] - 8, 54, kIconX[Icon] + 8, 70, 200);
++            std::fprintf(stderr, "[SolidArcEditorProof] rail icon %-9s %d lit cells\n", kIconName[Icon], Lit9);
++            if (Lit9 < 10)
++                Fail("a viewport rail icon is missing");
++            else
++                ++Seen;
++        }
++        const int RailRest = CountLit(850, 50, 1030, 72, 200);   // empty rail beyond the last capsule
++        std::fprintf(stderr, "[SolidArcEditorProof] rail: Construct chip %d lit cells, %d of 9 icons seen, empty rail %d\n", RailChip, Seen, RailRest);
+         if (RailChip < 20)
+             Fail("negative control: the rail detector cannot see the Construct chip");
+         if (RailRest != 0)
+-            Fail("the viewport rail still carries controls right of Construct");
++            Fail("the viewport rail draws beyond its icon capsules");
++
++        // The icons are live: a click on each moves its capsule's pick, Shift combines selection modes, and Body restores.
++        //    Each click is followed by a rest tick, so what is read is the recorded frame, not the click's own.
++        {
++            auto Settle = [&]() { Rest(); Rest(); };
++            Click(764.0f, 62.0f); Settle();
++            Click(648.0f, 62.0f); Settle();
++            const bool Turned = Editor.QueryRailGizmo() == 1u && Editor.QueryRailShade() == 0u;
++            Click(454.0f, 62.0f); Settle();
++            const bool OnlyFace = Editor.QueryRailSelectMask() == 2u;
++            ImGui::GetIO().AddKeyEvent(ImGuiMod_Shift, true);
++            Click(524.0f, 62.0f); Settle();
++            ImGui::GetIO().AddKeyEvent(ImGuiMod_Shift, false);
++            const bool Combined = Editor.QueryRailSelectMask() == 10u;
++            std::fprintf(stderr, "[SolidArcEditorProof] rail clicks: gizmo %u shade %u mask %u\n", Editor.QueryRailGizmo(), Editor.QueryRailShade(), Editor.QueryRailSelectMask());
++            if (!Turned) Fail("the rail's Rotate and Wireframe icons did not take the click");
++            if (!OnlyFace) Fail("the rail's Face icon did not become the only selection mode");
++            if (!Combined) Fail("Shift-click on Vertex did not combine with Face");
++            Click(419.0f, 62.0f); Settle();
++            Click(682.0f, 62.0f); Settle();
++            Click(729.0f, 62.0f); Settle();
++            if (Editor.QueryRailSelectMask() != 1u || Editor.QueryRailShade() != 1u || Editor.QueryRailGizmo() != 0u)
++                Fail("the rail did not return to Body, Matcap and Move");
++        }
+ 
+         // The compass is built of saturated filled pads (7 px radius) and a bright ring; the lattice's axis lines are thin.
+         //    A saturated 6x6 window in the corner is a pad. The control looks at the Move gizmo, which carries such pads.
+@@ -588,7 +625,7 @@ int main()
+     std::fprintf(stderr, "[SolidArcEditorProof] chrome gates GREEN: game-editor tab sheet and Control Centre notch\n");
+ 
+     // Gate 9 - the inspector is the document-style sheet: head pill, hero, presence cells, tab chips, cards, action tiles. The first
+-    // shot is the picked body at the proof size; then the window grows tall and every object kind is picked in turn and shot whole.
++    // shot is the picked body at the proof size; then the window grows tall and every object is picked in turn and shot whole.
+     {
+         using Role = Frontier::SolidArcOutlinerBinding::Role;
+         auto Settle = [&]()
+@@ -609,9 +646,9 @@ int main()
+         Editor.ReseatLayout();
+         std::filesystem::create_directories("Exhibits/Gallery/Editor/SolidArcObjects");
+         Settle();
+-        Click(82.0f, 228.0f);        // the Bodies chip's close mark: the outliner lists every kind again for the per-object shots
++        Click(82.0f, 228.0f);        // the Bodies chip's close mark: the outliner lists every folder again for the per-object shots
+         Settle();
+-        struct Shot { const char* Label; Role Kind; const char* File; };
++        struct Shot { const char* Label; Role Row; const char* File; };
+         const Shot Shots[] =
+         {
+             { "SketchAxis",  Role::Figure,     "Exhibits/Gallery/Editor/SolidArcObjects/Object_Line.png" },
+@@ -625,7 +662,7 @@ int main()
+         };
+         for (const Shot& One : Shots)
+         {
+-            if (!Editor.PickRow(One.Label, One.Kind))
++            if (!Editor.PickRow(One.Label, One.Row))
+             {
+                 std::fprintf(stderr, "[SolidArcEditorProof] [FAIL] no outliner row for %s\n", One.File);
+                 Failed = true;
+@@ -721,7 +758,7 @@ int main()
+             Fail("the Delete tile did not remove the body");
+         if (Failed)
+             return 16;
+-        std::fprintf(stderr, "[SolidArcEditorProof] inspector shots written for every object kind\n");
++        std::fprintf(stderr, "[SolidArcEditorProof] inspector shots written for every object\n");
+     }
+     ImGui::DestroyContext();
+     return 0;
+diff --git a/Frontier/Tools/Build/CheckEditorDockingSolidArc.sh b/Frontier/Tools/Build/CheckEditorDockingSolidArc.sh
+index c50bb24..c833bc6 100755
+--- a/Frontier/Tools/Build/CheckEditorDockingSolidArc.sh
++++ b/Frontier/Tools/Build/CheckEditorDockingSolidArc.sh
+@@ -113,8 +113,8 @@ if grep -q '"Lines"' "$Adapter" \
+    && grep -q '"Construction"' "$Adapter" \
+    && grep -q '"Dimensions"' "$Adapter" \
+    && grep -q '"Constraints"' "$Adapter" \
+-   && grep -q 'EditorKindMark' Engine/Editor/EditorInstance.h \
+-   && grep -q 'KindMark' "$Adapter" \
++   && grep -q 'EditorSymbol' Engine/Editor/EditorInstance.h \
++   && grep -q 'Symbol' "$Adapter" \
+    && ! grep -q 'FolderGeneric\|IconSymbol' "$Adapter"; then
+     Pass "SolidArc outliner exposes its own colour-coded CAD folders (Lines, Profiles, Bodies, Surfaces, Construction, Dimensions, Constraints) instead of game-engine categories"
+ else
+-- 
+2.39.5
+

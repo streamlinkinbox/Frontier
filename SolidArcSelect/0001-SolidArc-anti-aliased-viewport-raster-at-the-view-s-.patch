@@ -1,0 +1,1055 @@
+From e31d3b95feba0434f195564ad986bfab9b54ea4b Mon Sep 17 00:00:00 2001
+From: Agent <a@a>
+Date: Fri, 2 Oct 2026 11:14:27 +0000
+Subject: [PATCH] SolidArc: anti-aliased viewport raster at the view's own
+ size, one selection across view, outliner and document, folder colours apart
+
+---
+ .../SolidArc/Console/ConsoleHost.cpp          |  54 ++++-
+ .../Modelling/SolidArc/Console/ConsoleHost.h  |  14 ++
+ .../SolidArc/Editor/SolidArcEditorHost.cpp    | 193 ++++++++++++++++-
+ .../SolidArc/Editor/SolidArcEditorHost.h      |  19 ++
+ .../Editor/SolidArcOutlinerAdapter.cpp        |  17 +-
+ .../SolidArc/Presentation/SoftwareRaster.cpp  |  87 ++++++--
+ .../SolidArc/Presentation/SoftwareRaster.h    |   4 +
+ Frontier/Engine/Editor/OutlinerPanel.cpp      |   9 +
+ Frontier/Engine/Editor/OutlinerPanel.h        |   3 +
+ Frontier/Engine/Editor/ViewportPanel.cpp      |  65 ++++++
+ Frontier/Engine/Editor/ViewportPanel.h        |  21 +-
+ .../Workbench/Editor/SolidArcEditorProof.cpp  | 202 +++++++++++++++++-
+ 12 files changed, 656 insertions(+), 32 deletions(-)
+
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp
+index f22157ff..17f5285a 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp
+@@ -77,6 +77,13 @@ ConsoleHost::ConsoleHost(std::string ProofFolder, uint32_t Width, uint32_t Heigh
+     RegisterInteraction();
+ }
+ 
++void ConsoleHost::SeatSurface(uint32_t Width, uint32_t Height, uint32_t Samples) noexcept
++{
++    if (Width < 16u || Height < 16u) return;
++    Surface->AssignSamples(Samples);
++    if (Width != Surface->Width() || Height != Surface->Height()) Surface->Resize(Width, Height);
++}
++
+ //------------------------------------------------------------------------------------------------------------------------
+ //                                                  OUTPUT
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -1160,6 +1167,45 @@ std::vector<SceneFigure*> ConsoleHost::ResolveMany(const CommandLine& C, size_t
+ //                                                  RENDER
+ //------------------------------------------------------------------------------------------------------------------------
+ 
++uint64_t ConsoleHost::PictureSignature() const noexcept
++{
++    uint64_t Sum = 1469598103934665603ull;
++    auto Mix = [&](const void* Bytes, size_t Count)
++    {
++        const unsigned char* P = static_cast<const unsigned char*>(Bytes);
++        for (size_t I = 0; I < Count; ++I) { Sum ^= P[I]; Sum *= 1099511628211ull; }
++    };
++    auto Put = [&](auto Value) { Mix(&Value, sizeof Value); };
++    Put(Revision); Put(Surface->Width()); Put(Surface->Height()); Put(Surface->QuerySamples());
++    Put(HoverPick); Put(static_cast<int>(Mode)); Put(static_cast<int>(Shading)); Put(ShowControlCages); Put(ShowIsoCurves); Put(ShowDimensions); Put(GizmoShown);
++    // A tool preview and the gizmo's hovered grip follow the pointer, so the pointer belongs in the signature too.
++    Put(PointerX); Put(PointerY); Put(Tool.Active());
++    const ViewRecord Seen = View.ToViewRecord(Surface->Width(), Surface->Height(), 1.0);
++    Mix(Seen.ViewClip, sizeof Seen.ViewClip); Mix(Seen.EyePosition, sizeof Seen.EyePosition);
++    Mix(Backdrop, sizeof Backdrop);
++    for (const SceneFigure& Figure : Scene.Figures())
++    {
++        Put(Figure.Identity); Put(Figure.Hidden); Put(Figure.Selected); Put(Figure.Construction); Put(Figure.Matcap);
++        Mix(Figure.Tint, sizeof Figure.Tint);
++        Put(Figure.SelectedPoles.size()); Put(Figure.SelectedFaces.size()); Put(Figure.SelectedEdges.size());
++        const Box3 Reach = Figure.Bounds();
++        Put(Reach.Low.X); Put(Reach.Low.Y); Put(Reach.Low.Z); Put(Reach.High.X); Put(Reach.High.Y); Put(Reach.High.Z);
++    }
++    for (const SketchArea& Area : Scene.Areas()) { Put(Area.Identity); Put(Area.Selected); Put(Area.Filled); }
++    for (const DimensionEntry& Dimension : Dimensions) { Put(Dimension.Id); Put(Dimension.Hidden); Put(Dimension.Value); }
++    return Sum;
++}
++
++bool ConsoleHost::RenderIfChanged() noexcept
++{
++    const uint64_t Now = PictureSignature();
++    if (Now == DrawnSignature)
++        return false;
++    Render();
++    DrawnSignature = Now;
++    return true;
++}
++
+ void ConsoleHost::Render() noexcept
+ {
+     Surface->BeginTarget(Backdrop);
+@@ -1191,7 +1237,12 @@ void ConsoleHost::Render() noexcept
+     for (const SceneFigure& Figure : Scene.Figures())
+     {
+         if (Figure.Hidden || Figure.Classification != FigureClassification::Curve) continue;
+-        DrawRecord D = Figure.Selected ? ScenePresentation::Tinted(1.0f, 0.62f, 0.20f) : ScenePresentation::Tinted(0.92f, 0.94f, 0.97f);
++        // A sketch curve wears its outliner folder's colour: lines cyan, profiles green, construction violet.
++        const bool LineForm = Figure.Blueprint.Form == SceneFigure::ParametricForm::Line;
++        DrawRecord D = Figure.Selected     ? ScenePresentation::Tinted(1.0f, 0.62f, 0.20f)
++                     : Figure.Construction ? ScenePresentation::Tinted(0.71f, 0.55f, 1.0f)
++                     : LineForm            ? ScenePresentation::Tinted(0.31f, 0.85f, 0.88f)
++                                           : ScenePresentation::Tinted(0.20f, 0.78f, 0.35f);
+         D.LineWidth = Figure.Selected ? 2.5f : 2.0f;
+         D.Dashed = Figure.Construction;
+         D.PickIdentity = SceneDocument::PickOf(Figure.Identity);
+@@ -4384,6 +4435,7 @@ void ConsoleHost::Register() noexcept
+ 
+ bool ConsoleHost::Execute(std::string_view Line) noexcept
+ {
++    ++Revision;
+     // Hotkeys and `repeat` recurse into Execute. Persist the user-level instruction only: saving both that instruction
+     // and its nested expansion would apply geometry twice when the document is reopened.
+     const bool TopLevel = ExecuteDepth++ == 0;
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h
+index 4e25308e..9976cde2 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h
+@@ -101,6 +101,17 @@ public:
+     [[nodiscard]] const RasterExchange& Raster() const noexcept { return *Surface; }
+     [[nodiscard]] const Workplane&     WorkPlane() const noexcept { return Plane; }
+ 
++    // The editor's view. The host seats the raster at the size the view draws (so no pixel is stretched) with a working
++    //    pixel count per visible pixel (the anti-aliasing), then selects through the pick plane at view pixels.
++    void SeatSurface(uint32_t Width, uint32_t Height, uint32_t Samples) noexcept;
++    bool SelectAtView(double X, double Y, bool Extend) noexcept { return SelectAtPixel(X, Y, Extend); }
++    int  SelectBoxAtView(double X0, double Y0, double X1, double Y1, bool Extend, bool Subtract) noexcept { return SelectInRectangle(X0, Y0, X1, Y1, Extend, Subtract); }
++    void HoverAtView(double X, double Y) noexcept { HoverAtPixel(X, Y); }
++    void HoverNothing() noexcept { HoverPick = 0; }
++    // Draws only when something the picture shows has changed since the last draw (the document, the camera, the hover, the
++    //    size); true when it drew. A full-size anti-aliased draw is far dearer than the hash that decides whether it is needed.
++    bool RenderIfChanged() noexcept;
++
+ private:
+     using Command = std::function<bool(const CommandLine&)>;
+     void Register() noexcept;
+@@ -216,6 +227,9 @@ private:
+     int32_t                              EditDimensionId   = 0;                         // [-] dim awaiting a new value (numeric input in REPL)
+ 
+     std::unique_ptr<SoftwareRaster>      Surface;
++    [[nodiscard]] uint64_t               PictureSignature() const noexcept;
++    uint64_t                             DrawnSignature = 0;                           // [-] the picture's signature at the last RenderIfChanged
++    uint32_t                             Revision = 0;                                 // [-] bumps on every command, which may change anything
+     std::map<std::string, Command>       Commands;
+     std::map<std::string, std::string>   Usage;
+     int                                  Refusals = 0;
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+index d14c46d3..b1ac460d 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+@@ -294,10 +294,185 @@ bool SolidArcEditorHost::PlaceConstruct(ConsoleHost& Host, uint32_t Tile) noexce
+     return false;
+ }
+ 
++void SolidArcEditorHost::SeatView(ConsoleHost& Host) noexcept
++{
++    // The raster takes the size of the view it fills, in device pixels, so nothing is stretched; each of its pixels is
++    //    four working samples, which is what takes the stair-steps off the edges.
++    const float Scale = std::max(1.0f, ImGui::GetIO().DisplayFramebufferScale.x);
++    const float Width = Viewport_.QueryViewWidth() * Scale;
++    const float Height = Viewport_.QueryViewHeight() * Scale;
++    if (Width >= 32.0f && Height >= 32.0f)
++        Host.SeatSurface(static_cast<uint32_t>(Width + 0.5f), static_cast<uint32_t>(Height + 0.5f), 2u);
++}
++
++void SolidArcEditorHost::ReconcileSelection(ConsoleHost& Host) noexcept
++{
++    ImGuiIO& IO = ImGui::GetIO();
++    SceneDocument& Scene = Host.Document();
++
++    // The rail's select mode drives what a tap or a box picks: body, face, edge or vertex.
++    const uint32_t Mask = Viewport_.QuerySolidArcSelectMask();
++    if (Mask != MirrorMask_)
++    {
++        MirrorMask_ = Mask;
++        const char* Mode = (Mask & 8u) != 0u ? "control" : ((Mask & 4u) != 0u ? "edge" : ((Mask & 2u) != 0u ? "face" : "whole"));
++        Host.Execute(std::string("selectmode ") + Mode);
++    }
++
++    auto Identities = [&](bool FromPick)
++    {
++        std::vector<uint32_t> Found;
++        if (FromPick)
++        {
++            for (uint32_t Slot = 0u; Slot < Outliner_.QueryPickedCount(); ++Slot)
++            {
++                const uint32_t Row = Outliner_.QueryPickedAt(Slot);
++                if (Row < RowCount_ && Bindings_[Row].RowRole == SolidArcOutlinerBinding::Role::Figure)
++                    Found.push_back(Bindings_[Row].FigureIdentity);
++            }
++        }
++        else
++        {
++            for (const SceneFigure& Figure : Scene.Figures())
++                if (Figure.Selected || !Figure.SelectedFaces.empty() || !Figure.SelectedEdges.empty() || !Figure.SelectedPoles.empty())
++                    Found.push_back(Figure.Identity);
++        }
++        return Found;
++    };
++    auto Sorted = [](std::vector<uint32_t> List)
++    {
++        std::sort(List.begin(), List.end());
++        List.erase(std::unique(List.begin(), List.end()), List.end());
++        return List;
++    };
++
++    // What the view did this tick: a tap, a swept box, the hover, the keys.
++    bool Acted = false;
++    const double ViewW = static_cast<double>(Host.Raster().Width());
++    const double ViewH = static_cast<double>(Host.Raster().Height());
++    float U = 0.0f, V = 0.0f, U1 = 0.0f, V1 = 0.0f;
++    bool Extend = false, Subtract = false;
++    if (Viewport_.QueryViewTap(&U, &V, &Extend))
++    {
++        Host.SelectAtView(U * ViewW, V * ViewH, Extend);
++        Acted = true;
++    }
++    if (Viewport_.QueryViewBox(&U, &V, &U1, &V1, &Extend, &Subtract))
++    {
++        Host.SelectBoxAtView(U * ViewW, V * ViewH, U1 * ViewW, V1 * ViewH, Extend, Subtract);
++        Acted = true;
++    }
++    if (float AimU = 0.0f, AimV = 0.0f; Viewport_.QueryViewAim(&AimU, &AimV))
++    {
++        const int32_t CellX = static_cast<int32_t>(AimU * ViewW);
++        const int32_t CellY = static_cast<int32_t>(AimV * ViewH);
++        if (CellX != AimCellX_ || CellY != AimCellY_)
++        {
++            AimCellX_ = CellX;
++            AimCellY_ = CellY;
++            Host.HoverAtView(CellX, CellY);
++        }
++    }
++    else if (AimCellX_ >= 0)
++    {
++        AimCellX_ = -1;
++        AimCellY_ = -1;
++        Host.HoverNothing();
++    }
++    if (!IO.WantTextInput && !Viewport_.QueryConstructOpen())
++    {
++        if (IO.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_A, false))
++        {
++            Host.Execute("select all");
++            Acted = true;
++        }
++        else if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) && Scene.SelectedCount() > 0)
++        {
++            Host.Execute("select none");
++            Acted = true;
++        }
++        else if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) && Scene.SelectedCount() > 0)
++        {
++            std::string Line = "delete";
++            for (const SceneFigure& Figure : Scene.Figures())
++                if (Figure.Selected && !Figure.Locked)
++                    Line += " #" + std::to_string(Figure.Identity);
++            if (Line.size() > 6u)
++                Host.Execute(Line);
++            Acted = true;
++        }
++    }
++
++    const std::vector<uint32_t> PickNow = Sorted(Identities(true));
++    const std::vector<uint32_t> SelectedNow = Sorted(Identities(false));
++
++    auto LeadAmong = [&](const std::vector<uint32_t>& Now, const std::vector<uint32_t>& Before)
++    {
++        for (uint32_t Identity : Now)
++            if (!std::binary_search(Before.begin(), Before.end(), Identity))
++                return Identity;
++        if (std::binary_search(Now.begin(), Now.end(), Lead_))
++            return Lead_;
++        return Now.empty() ? 0u : Now.front();
++    };
++    auto PushToOutliner = [&](const std::vector<uint32_t>& Selected)
++    {
++        uint32_t Rows[kMaxEditorPicked] = {};
++        uint32_t Count = 0u;
++        auto Seat = [&](uint32_t Identity)
++        {
++            for (uint32_t Row = 0u; Row < RowCount_ && Count < kMaxEditorPicked; ++Row)
++                if (Bindings_[Row].RowRole == SolidArcOutlinerBinding::Role::Figure && Bindings_[Row].FigureIdentity == Identity)
++                {
++                    Rows[Count++] = Row;
++                    return;
++                }
++        };
++        Seat(Lead_);                                                   // the lead goes first: the inspector reads the first pick
++        for (uint32_t Identity : Selected)
++            if (Identity != Lead_)
++                Seat(Identity);
++        Outliner_.AssignPicks(Rows, Count);
++        MirrorPicked_ = Sorted(Identities(true));
++    };
++
++    if (!Acted && PickNow != MirrorPicked_)
++    {
++        // The outliner's pick moved (a click, Ctrl, Shift): the document follows it.
++        Lead_ = LeadAmong(PickNow, MirrorPicked_);
++        if (const uint32_t Row = Outliner_.QueryPicked(); Row < RowCount_ && Bindings_[Row].RowRole == SolidArcOutlinerBinding::Role::Figure)
++            Lead_ = Bindings_[Row].FigureIdentity;
++        for (SceneFigure& Figure : Scene.Figures())
++        {
++            const bool In = std::binary_search(PickNow.begin(), PickNow.end(), Figure.Identity);
++            if (In)
++                Figure.Selected = true;
++            else if (Figure.Selected || !Figure.SelectedFaces.empty() || !Figure.SelectedEdges.empty() || !Figure.SelectedPoles.empty())
++            {
++                Figure.Selected = false;
++                Figure.SelectedFaces.clear();
++                Figure.SelectedEdges.clear();
++                Figure.SelectedPoles.clear();
++            }
++        }
++        MirrorPicked_   = PickNow;
++        MirrorSelected_ = Sorted(Identities(false));
++    }
++    else if (Acted || SelectedNow != MirrorSelected_)
++    {
++        // The view, a key or the console moved the document's selection: the outliner follows it.
++        Lead_ = LeadAmong(SelectedNow, MirrorSelected_);
++        MirrorSelected_ = SelectedNow;
++        PushToOutliner(SelectedNow);
++    }
++}
++
+ void SolidArcEditorHost::Record(ConsoleHost& Host) noexcept
+ {
+-    Host.Render();
+-    ViewImage_ = Host.Raster().Readback();
++    SeatView(Host);
++    // The raster is dear and the picture rarely changes: draw and read it back only when it has.
++    if (Host.RenderIfChanged() || ViewImage_.Pixels.empty())
++        ViewImage_ = Host.Raster().Readback();
+     // The roster is rebuilt from the document each frame, so a folder's fold would reset. Carry it by folder label.
+     ShutFolders_.clear();
+     for (uint32_t Index = 0u; Index < RowCount_; ++Index)
+@@ -343,6 +518,8 @@ void SolidArcEditorHost::Record(ConsoleHost& Host) noexcept
+     if (uint32_t Tile = 0u; Viewport_.QueryConstructPick(&Tile))
+         PlaceConstruct(Host, Tile);
+ 
++    ReconcileSelection(Host);
++
+     const uint32_t Picked = Outliner_.QueryPicked();
+     EditorInstance* PickedRow = (Picked < RowCount_) ? &Rows_[Picked] : nullptr;
+     if (PickedRow != nullptr)
+@@ -380,6 +557,18 @@ bool SolidArcEditorHost::PickRow(const char* Label, SolidArcOutlinerBinding::Rol
+     return false;
+ }
+ 
++bool SolidArcEditorHost::ExtendRow(const char* Label, SolidArcOutlinerBinding::Role Role) noexcept
++{
++    for (uint32_t Index = 0u; Index < RowCount_; ++Index)
++    {
++        if (Bindings_[Index].RowRole != Role || (Label != nullptr && std::strcmp(Rows_[Index].Label, Label) != 0))
++            continue;
++        Outliner_.TogglePick(Index);
++        return true;
++    }
++    return false;
++}
++
+ void SolidArcEditorHost::ClearPick() noexcept
+ {
+     Outliner_.PickInstance(kNoEditorInstance);
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+index facc9da6..b0d3161e 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+@@ -59,7 +59,12 @@ public:
+     /// 📦 The proof's pick seam: seats the pick on the first row of the role (named Label when it is not null); false when none.
+     bool PickRow(const char* Label, SolidArcOutlinerBinding::Role Role) noexcept;
+     void ClearPick() noexcept;
++    /// 📦 The proof's Ctrl+click on an outliner row: adds the first row of the role (named Label when it is not null) to the pick, or takes it out.
++    bool ExtendRow(const char* Label, SolidArcOutlinerBinding::Role Role) noexcept;
++    [[nodiscard]] uint32_t QueryPickedCount() const noexcept { return Outliner_.QueryPickedCount(); }
+     void ReseatLayout() noexcept { LayoutSeated_ = false; }     // the next Record re-splits the dock for the current window
++    [[nodiscard]] float    QueryViewOriginX() const noexcept { return Viewport_.QueryViewOriginX(); }
++    [[nodiscard]] float    QueryViewOriginY() const noexcept { return Viewport_.QueryViewOriginY(); }
+     [[nodiscard]] float    QueryViewWidth() const noexcept { return Viewport_.QueryViewWidth(); }
+     [[nodiscard]] float    QueryViewHeight() const noexcept { return Viewport_.QueryViewHeight(); }
+     [[nodiscard]] uint32_t QueryRailSelectMask() const noexcept { return Viewport_.QuerySolidArcSelectMask(); }
+@@ -75,8 +80,13 @@ public:
+     [[nodiscard]] bool QueryConstructTileCentre(uint32_t Tile, float* X, float* Y) const noexcept { return Viewport_.QueryConstructTileCentre(Tile, X, Y); }
+     [[nodiscard]] bool QueryConstructSectionCentre(uint32_t Section, float* X, float* Y) const noexcept { return Viewport_.QueryConstructSectionCentre(Section, X, Y); }
+ 
++    /// 📦 The proof's seam for the selection the host keeps between the outliner, the view and the document.
++    [[nodiscard]] uint32_t QuerySelectedCount() const noexcept { return static_cast<uint32_t>(MirrorSelected_.size()); }
++
+ private:
+     void ConstructLayout() noexcept;
++    void SeatView(ConsoleHost& Host) noexcept;
++    void ReconcileSelection(ConsoleHost& Host) noexcept;
+ 
+     ControlPanel Controls_;
+     OutlinerPanel Outliner_;
+@@ -109,6 +119,15 @@ private:
+     RasterImage ViewImage_ = {};
+     uint32_t    ConstructPlaced_ = 0u;      // tiles placed so far: the next one takes the next spot on the ring
+     std::string ConstructPlacedName_;       // the figure the last placement made
++
++    // One selection, three views of it: the outliner's pick, the document's selected figures, and the view's taps and boxes.
++    //    The mirrors hold what each side last agreed on, so a change on any one side is the one to carry to the others.
++    std::vector<uint32_t> MirrorPicked_;    // figure identities the outliner's pick held after the last reconcile
++    std::vector<uint32_t> MirrorSelected_;  // figure identities the document held selected after the last reconcile
++    uint32_t              Lead_ = 0u;       // the figure the inspector reads: the newest of the pick
++    uint32_t              MirrorMask_ = 0u; // the rail's select-mode bits the document last followed
++    int32_t               AimCellX_ = -1;   // the view pixel the hover last asked about
++    int32_t               AimCellY_ = -1;
+ };
+ 
+ } // namespace Frontier
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
+index 257c8334..df99d433 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp
+@@ -17,6 +17,7 @@ namespace {
+ constexpr float Channel(uint32_t V) noexcept { return static_cast<float>(V) / 255.0f; }
+ constexpr float kSketchTint[3]       = { Channel( 79u), Channel(216u), Channel(224u) }; // #4fd8e0
+ constexpr float kBodyTint[3]         = { Channel(255u), Channel(180u), Channel( 84u) }; // #ffb454
++constexpr float kProfileTint[3]      = { Channel( 52u), Channel(199u), Channel( 89u) }; // #34c759: profiles take the theme green, apart from the cyan lines
+ constexpr float kSurfaceTint[3]      = { Channel( 77u), Channel(163u), Channel(255u) }; // #4da3ff
+ constexpr float kConstructionTint[3] = { Channel(180u), Channel(140u), Channel(255u) }; // #b48cff
+ constexpr float kDimensionTint[3]    = { Channel(229u), Channel(211u), Channel( 58u) }; // #e5d33a
+@@ -155,7 +156,7 @@ const float* FigureOutlinerTint(const SceneFigure& Figure) noexcept
+     if (Figure.Classification == FigureClassification::Surface)
+         return kSurfaceTint;
+     if (Figure.Classification == FigureClassification::Curve)
+-        return kSketchTint;
++        return IsLineFigure(Figure) ? kSketchTint : kProfileTint;
+     return kSketchTint;
+ }
+ 
+@@ -655,7 +656,7 @@ uint32_t BuildSolidArcOutliner(const ConsoleHost& Host,
+     const SolidArcBucket Buckets[] =
+     {
+         { SolidArcBucket::Content::Lines,        "Lines",        Mark::Line,         EditorNarrowing::Lights,   SolidArcOutlinerFilter::Lines,        { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
+-        { SolidArcBucket::Content::Profiles,     "Profiles",     Mark::Profile,      EditorNarrowing::Sky,      SolidArcOutlinerFilter::Profiles,     { kSketchTint[0],       kSketchTint[1],       kSketchTint[2] } },
++        { SolidArcBucket::Content::Profiles,     "Profiles",     Mark::Profile,      EditorNarrowing::Sky,      SolidArcOutlinerFilter::Profiles,     { kProfileTint[0],      kProfileTint[1],      kProfileTint[2] } },
+         { SolidArcBucket::Content::Bodies,       "Bodies",       Mark::Body,         EditorNarrowing::Bodies,   SolidArcOutlinerFilter::Bodies,       { kBodyTint[0],         kBodyTint[1],         kBodyTint[2] } },
+         { SolidArcBucket::Content::Surfaces,     "Surfaces",     Mark::Surface,      EditorNarrowing::Geometry, SolidArcOutlinerFilter::Surfaces,     { kSurfaceTint[0],      kSurfaceTint[1],      kSurfaceTint[2] } },
+         { SolidArcBucket::Content::Construction, "Construction", Mark::Construction, EditorNarrowing::Camera,   SolidArcOutlinerFilter::Construction, { kConstructionTint[0], kConstructionTint[1], kConstructionTint[2] } },
+@@ -1094,9 +1095,17 @@ void ApplySolidArcInspectorSheet(ConsoleHost& Host,
+     // The action tiles run last: a delete or an isolate changes the roster, so nothing is read after them.
+     if (Sheet.Action != EditorSheetAction::None && !(Sheet.Action == EditorSheetAction::Delete && Figure->Locked))
+     {
+-        char Line[48] = {};
+         const char* Verb = Sheet.Action == EditorSheetAction::Duplicate ? "duplicate" : (Sheet.Action == EditorSheetAction::Isolate ? "isolate" : "delete");
+-        std::snprintf(Line, sizeof(Line), "%s #%u", Verb, Figure->Identity);
++        // With several figures selected and this one among them, the action takes the whole selection, locked ones excepted for a delete.
++        std::string Line = Verb;
++        if (Figure->Selected && Host.Document().SelectedCount() > 1)
++        {
++            for (const SceneFigure& Member : Host.Document().Figures())
++                if (Member.Selected && !(Sheet.Action == EditorSheetAction::Delete && Member.Locked))
++                    Line += " #" + std::to_string(Member.Identity);
++        }
++        else
++            Line += " #" + std::to_string(Figure->Identity);
+         Host.Execute(Line);
+     }
+ }
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.cpp
+index 15266185..2ae54ae1 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.cpp
+@@ -92,7 +92,9 @@ namespace SM = SlangMirror;
+ 
+ struct SoftwareRaster::Detail
+ {
+-    uint32_t              W = 0, H = 0;
++    uint32_t              W = 0, H = 0;                                                 // [px] working planes, Samples times the visible size
++    uint32_t              OutW = 0, OutH = 0;                                           // [px] visible size
++    uint32_t              Samples = 2;                                                  // [-] working pixels per visible pixel, each way
+     std::vector<float>    Colour;                                                       // [-] RGBA float, straight alpha over opaque clear
+     std::vector<float>    DepthPlane;                                                   // [-] 0..1
+     std::vector<uint32_t> PickPlane;                                                    // [-]
+@@ -242,14 +244,25 @@ SoftwareRaster::~SoftwareRaster() = default;
+ 
+ void SoftwareRaster::Resize(uint32_t Width, uint32_t Height) noexcept
+ {
+-    Self->W = Width; Self->H = Height;
+-    Self->Colour.assign(static_cast<size_t>(Width) * Height * 4, 0.0f);
+-    Self->DepthPlane.assign(static_cast<size_t>(Width) * Height, 1.0f);
+-    Self->PickPlane.assign(static_cast<size_t>(Width) * Height, 0u);
++    Self->OutW = Width; Self->OutH = Height;
++    Self->W = Width * Self->Samples; Self->H = Height * Self->Samples;
++    Self->Colour.assign(static_cast<size_t>(Self->W) * Self->H * 4, 0.0f);
++    Self->DepthPlane.assign(static_cast<size_t>(Self->W) * Self->H, 1.0f);
++    Self->PickPlane.assign(static_cast<size_t>(Self->W) * Self->H, 0u);
+ }
+ 
+-uint32_t SoftwareRaster::Width() const noexcept { return Self->W; }
+-uint32_t SoftwareRaster::Height() const noexcept { return Self->H; }
++uint32_t SoftwareRaster::Width() const noexcept { return Self->OutW; }
++uint32_t SoftwareRaster::Height() const noexcept { return Self->OutH; }
++
++void SoftwareRaster::AssignSamples(uint32_t Samples) noexcept
++{
++    const uint32_t Clamped = std::clamp<uint32_t>(Samples, 1u, 4u);
++    if (Clamped == Self->Samples) return;
++    Self->Samples = Clamped;
++    Resize(Self->OutW, Self->OutH);
++}
++
++uint32_t SoftwareRaster::QuerySamples() const noexcept { return Self->Samples; }
+ 
+ void SoftwareRaster::BeginTarget(const float ClearColour[4]) noexcept
+ {
+@@ -265,8 +278,15 @@ void SoftwareRaster::BeginTarget(const float ClearColour[4]) noexcept
+ 
+ void SoftwareRaster::BindView(const ViewRecord& View) noexcept
+ {
+-    Self->ViewCurrent = View;
+-    Self->View = MirrorView(View);
++    // Every length the shaders read in pixels is counted in working pixels, so a line stays as wide on screen.
++    const float Scale = static_cast<float>(Self->Samples);
++    ViewRecord Scaled = View;
++    for (int I = 0; I < 2; ++I) { Scaled.Viewport[I] = View.Viewport[I] * Scale; Scaled.Viewport[I + 2] = View.Viewport[I + 2] / Scale; }
++    Scaled.LatticeStyle[3] = View.LatticeStyle[3] * Scale;
++    Scaled.PixelAngle = View.PixelAngle / Scale;
++    Scaled.PixelWorld = View.PixelWorld / Scale;
++    Self->ViewCurrent = Scaled;
++    Self->View = MirrorView(Scaled);
+ }
+ 
+ void SoftwareRaster::BeginOverlay() noexcept { Self->Overlay = true; }
+@@ -310,6 +330,8 @@ void SoftwareRaster::DrawLattice() noexcept
+ void SoftwareRaster::DrawSurface(const SurfaceStream& Stream, const DrawRecord& Draw) noexcept
+ {
+     SM::DrawRecord D = MirrorDraw(Draw);
++    D.Selection.z *= static_cast<float>(Self->Samples);
++    D.Selection.w *= static_cast<float>(Self->Samples);
+     const SM::ViewRecord& V = Self->View;
+     uint32_t N = Stream.VertexCount();
+     std::vector<Detail::ClipVertex> Clip(N);
+@@ -344,6 +366,8 @@ void SoftwareRaster::DrawSurface(const SurfaceStream& Stream, const DrawRecord&
+ void SoftwareRaster::DrawSegments(const SegmentStream& Stream, const DrawRecord& Draw) noexcept
+ {
+     SM::DrawRecord D = MirrorDraw(Draw);
++    D.Selection.z *= static_cast<float>(Self->Samples);
++    D.Selection.w *= static_cast<float>(Self->Samples);
+     const SM::ViewRecord& V = Self->View;
+     auto Shade = [&](const float* Vy, bool)
+     {
+@@ -375,6 +399,8 @@ void SoftwareRaster::DrawSegments(const SegmentStream& Stream, const DrawRecord&
+ void SoftwareRaster::DrawPoints(const PointStream& Stream, const DrawRecord& Draw) noexcept
+ {
+     SM::DrawRecord D = MirrorDraw(Draw);
++    D.Selection.z *= static_cast<float>(Self->Samples);
++    D.Selection.w *= static_cast<float>(Self->Samples);
+     const SM::ViewRecord& V = Self->View;
+     auto Shade = [&](const float* Vy, bool)
+     {
+@@ -406,28 +432,45 @@ void SoftwareRaster::DrawPoints(const PointStream& Stream, const DrawRecord& Dra
+ RasterImage SoftwareRaster::Readback() const noexcept
+ {
+     RasterImage Image;
+-    Image.Width = Self->W; Image.Height = Self->H;
+-    Image.Pixels.resize(static_cast<size_t>(Self->W) * Self->H * 4);
+-    for (size_t I = 0; I < Image.Pixels.size(); ++I)
+-    {
+-        float C = Self->Colour[I];
+-        // sRGB-ish gamma for the proof PNGs so shading reads like a real viewport.
+-        if (I % 4 != 3) C = std::pow(SM::saturate(C), 1.0f / 2.2f);
+-        Image.Pixels[I] = static_cast<uint8_t>(std::lround(SM::saturate(C) * 255.0f));
+-    }
++    Image.Width = Self->OutW; Image.Height = Self->OutH;
++    Image.Pixels.resize(static_cast<size_t>(Self->OutW) * Self->OutH * 4);
++    const uint32_t N = Self->Samples;
++    const float    Share = 1.0f / static_cast<float>(N * N);
++    for (uint32_t Y = 0; Y < Self->OutH; ++Y)
++        for (uint32_t X = 0; X < Self->OutW; ++X)
++        {
++            // Box filter over the N x N working pixels, in linear light, then the display curve once.
++            float Sum[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
++            for (uint32_t Row = 0; Row < N; ++Row)
++                for (uint32_t Column = 0; Column < N; ++Column)
++                {
++                    const float* Src = &Self->Colour[(static_cast<size_t>(Y * N + Row) * Self->W + (X * N + Column)) * 4];
++                    for (int C = 0; C < 4; ++C) Sum[C] += SM::saturate(Src[C]);
++                }
++            uint8_t* Dst = &Image.Pixels[(static_cast<size_t>(Y) * Self->OutW + X) * 4];
++            for (int C = 0; C < 4; ++C)
++            {
++                float V = Sum[C] * Share;
++                // sRGB-ish gamma for the proof PNGs so shading reads like a real viewport.
++                if (C != 3) V = std::pow(SM::saturate(V), 1.0f / 2.2f);
++                Dst[C] = static_cast<uint8_t>(std::lround(SM::saturate(V) * 255.0f));
++            }
++        }
+     return Image;
+ }
+ 
+ uint32_t SoftwareRaster::Pick(uint32_t X, uint32_t Y) const noexcept
+ {
+-    if (X >= Self->W || Y >= Self->H) return 0;
+-    return Self->PickPlane[static_cast<size_t>(Y) * Self->W + X];
++    if (X >= Self->OutW || Y >= Self->OutH) return 0;
++    const uint32_t Centre = Self->Samples / 2u;
++    return Self->PickPlane[static_cast<size_t>(Y * Self->Samples + Centre) * Self->W + (X * Self->Samples + Centre)];
+ }
+ 
+ float SoftwareRaster::Depth(uint32_t X, uint32_t Y) const noexcept
+ {
+-    if (X >= Self->W || Y >= Self->H) return 1.0f;
+-    return Self->DepthPlane[static_cast<size_t>(Y) * Self->W + X];
++    if (X >= Self->OutW || Y >= Self->OutH) return 1.0f;
++    const uint32_t Centre = Self->Samples / 2u;
++    return Self->DepthPlane[static_cast<size_t>(Y * Self->Samples + Centre) * Self->W + (X * Self->Samples + Centre)];
+ }
+ 
+ RasterExchange::Tally SoftwareRaster::QueryTally() const noexcept { return Self->Count; }
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.h b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.h
+index 65c6f90e..d6535137 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.h
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.h
+@@ -32,6 +32,10 @@ public:
+     void BeginOverlay() noexcept override;
+     void EndTarget() noexcept override;
+ 
++    // Working pixels per visible pixel, each way (1..4, default 2). Edges are anti-aliased by box-filtering them down.
++    void     AssignSamples(uint32_t Samples) noexcept;
++    uint32_t QuerySamples() const noexcept;
++
+     RasterImage Readback() const noexcept override;
+     uint32_t    Pick(uint32_t X, uint32_t Y) const noexcept override;
+     float       Depth(uint32_t X, uint32_t Y) const noexcept override;
+diff --git a/Frontier/Engine/Editor/OutlinerPanel.cpp b/Frontier/Engine/Editor/OutlinerPanel.cpp
+index 9a432986..2858d3a3 100644
+--- a/Frontier/Engine/Editor/OutlinerPanel.cpp
++++ b/Frontier/Engine/Editor/OutlinerPanel.cpp
+@@ -1019,6 +1019,15 @@ void OutlinerPanel::PickInstance(uint32_t Index) noexcept
+     Anchor_      = Index;
+ }
+ 
++void OutlinerPanel::AssignPicks(const uint32_t* Rows, uint32_t Count) noexcept
++{
++    ExplicitPick_ = true;
++    PickedCount_  = 0u;
++    for (uint32_t Slot = 0u; Rows != nullptr && Slot < Count && PickedCount_ < kMaxEditorPicked; ++Slot)
++        AddPick(Rows[Slot]);
++    Anchor_ = PickedCount_ > 0u ? Picked_[0] : kNoEditorInstance;
++}
++
+ bool OutlinerPanel::IsPicked(uint32_t Index) const noexcept
+ {
+     for (uint32_t i = 0u; i < PickedCount_; ++i)
+diff --git a/Frontier/Engine/Editor/OutlinerPanel.h b/Frontier/Engine/Editor/OutlinerPanel.h
+index cd08ffeb..bee1446c 100644
+--- a/Frontier/Engine/Editor/OutlinerPanel.h
++++ b/Frontier/Engine/Editor/OutlinerPanel.h
+@@ -57,6 +57,9 @@ public:
+     // runtime and to the headless proof harness. Row-click policy (plain/Ctrl/Shift) remains private in HandleRowClick.
+     [[nodiscard]] bool IsPicked(uint32_t Index) const noexcept;
+     void TogglePick(uint32_t Index) noexcept;
++    // Seats a whole pick at once (the host mirrors the document's selection here): the first row leads. Rows past
++    //    kMaxEditorPicked do not fit the pick and are left out; none clears the pick.
++    void AssignPicks(const uint32_t* Rows, uint32_t Count) noexcept;
+     void AddPick(uint32_t Index) noexcept;
+ 
+     // SolidArc's document look: the head pill, the Figures / Selected tiles, two-line rows with a status glyph and the
+diff --git a/Frontier/Engine/Editor/ViewportPanel.cpp b/Frontier/Engine/Editor/ViewportPanel.cpp
+index bed0668c..2199dc3c 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.cpp
++++ b/Frontier/Engine/Editor/ViewportPanel.cpp
+@@ -1852,18 +1852,67 @@ void ViewportPanel::RecordView() noexcept
+     if (Chrome_ == ViewportPanelChrome::SolidArcCad)
+     {
+         const bool CanvasHover = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(Min, Max) && !OrbHover && !OrbHeld_ && !BillboardHover;
++        const ImVec2 Pointer = ImGui::GetIO().MousePos;
++        const float  SpanX   = std::max(1.0f, Max.x - Min.x);
++        const float  SpanY   = std::max(1.0f, Max.y - Min.y);
+         if (CanvasHover && (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1) || ImGui::IsMouseClicked(2)))
+         {
+             CanvasDragging_ = true;
++            // A plain left press is a pick if it lifts without moving; Ctrl+left-drag sweeps a box instead of orbiting.
++            PressLeft_  = ImGui::IsMouseClicked(0) && !ImGui::IsMouseClicked(1) && !ImGui::IsMouseClicked(2);
++            PressMoved_ = false;
++            PressBox_   = PressLeft_ && ImGui::GetIO().KeyCtrl;
++            PressX_     = Pointer.x;
++            PressY_     = Pointer.y;
+         }
+         if (CanvasDragging_)
+         {
+             if (!ImGui::IsMouseDown(0) && !ImGui::IsMouseDown(1) && !ImGui::IsMouseDown(2))
+             {
+                 CanvasDragging_ = false;
++                if (PressLeft_ && PressBox_ && PressMoved_)
++                {
++                    BoxLive_       = true;
++                    BoxExtend_     = ImGui::GetIO().KeyShift;
++                    BoxSubtract_   = ImGui::GetIO().KeyAlt;
++                    BoxU0_         = std::clamp((std::min(PressX_, Pointer.x) - Min.x) / SpanX, 0.0f, 1.0f);
++                    BoxU1_         = std::clamp((std::max(PressX_, Pointer.x) - Min.x) / SpanX, 0.0f, 1.0f);
++                    BoxV0_         = std::clamp((std::min(PressY_, Pointer.y) - Min.y) / SpanY, 0.0f, 1.0f);
++                    BoxV1_         = std::clamp((std::max(PressY_, Pointer.y) - Min.y) / SpanY, 0.0f, 1.0f);
++                }
++                else if (PressLeft_ && !PressMoved_)
++                {
++                    TapLive_     = true;
++                    TapAdditive_ = ImGui::GetIO().KeyShift || ImGui::GetIO().KeyCtrl;
++                    TapU_        = std::clamp((PressX_ - Min.x) / SpanX, 0.0f, 1.0f);
++                    TapV_        = std::clamp((PressY_ - Min.y) / SpanY, 0.0f, 1.0f);
++                }
++                PressLeft_ = false;
++                PressBox_  = false;
++            }
++            else if (PressBox_)
++            {
++                const float DragX = Pointer.x - PressX_;
++                const float DragY = Pointer.y - PressY_;
++                if (DragX * DragX + DragY * DragY > 16.0f)
++                    PressMoved_ = true;
++                if (PressMoved_)
++                {
++                    const ImVec2 CornerA(std::max(Min.x, std::min(PressX_, Pointer.x)), std::max(Min.y, std::min(PressY_, Pointer.y)));
++                    const ImVec2 CornerB(std::min(Max.x, std::max(PressX_, Pointer.x)), std::min(Max.y, std::max(PressY_, Pointer.y)));
++                    Draw->AddRectFilled(CornerA, CornerB, IM_COL32(255, 180, 84, 34));
++                    Draw->AddRect(CornerA, CornerB, IM_COL32(255, 180, 84, 220), 0.0f, 0, 1.0f);
++                }
+             }
+             else
+             {
++                if (PressLeft_)
++                {
++                    const float DragX = Pointer.x - PressX_;
++                    const float DragY = Pointer.y - PressY_;
++                    if (DragX * DragX + DragY * DragY > 16.0f)
++                        PressMoved_ = true;
++                }
+                 const ImVec2 Delta = ImGui::GetIO().MouseDelta;
+                 if (Delta.x != 0.0f || Delta.y != 0.0f)
+                 {
+@@ -1924,6 +1973,8 @@ void ViewportPanel::RecordView() noexcept
+         }
+     }
+ 
++    LastX_ = Min.x;
++    LastY_ = Min.y;
+     LastW_ = Max.x - Min.x;
+     LastH_ = Max.y - Min.y;
+     ImGui::SetCursorScreenPos(ImVec2(Min.x, Max.y));
+@@ -1944,6 +1995,20 @@ bool ViewportPanel::QueryViewTap(float* AcrossU, float* DownV, bool* Additive) n
+     return true;
+ }
+ 
++bool ViewportPanel::QueryViewBox(float* U0, float* V0, float* U1, float* V1, bool* Extend, bool* Subtract) noexcept
++{
++    if (!BoxLive_)
++        return false;
++    BoxLive_ = false;
++    if (U0) *U0 = BoxU0_;
++    if (V0) *V0 = BoxV0_;
++    if (U1) *U1 = BoxU1_;
++    if (V1) *V1 = BoxV1_;
++    if (Extend)   *Extend   = BoxExtend_;
++    if (Subtract) *Subtract = BoxSubtract_;
++    return true;
++}
++
+ bool ViewportPanel::QueryViewAim(float* AcrossU, float* DownV) const noexcept
+ {
+     if (!AimLive_)
+diff --git a/Frontier/Engine/Editor/ViewportPanel.h b/Frontier/Engine/Editor/ViewportPanel.h
+index aa1dbdec..50acb5b2 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.h
++++ b/Frontier/Engine/Editor/ViewportPanel.h
+@@ -112,6 +112,8 @@ public:
+     [[nodiscard]] bool QueryConstructOpen() const noexcept { return ConstructShown_; }
+     [[nodiscard]] bool QueryConstructTileCentre(uint32_t Index, float* X, float* Y) const noexcept;
+     [[nodiscard]] bool QueryConstructSectionCentre(uint32_t Section, float* X, float* Y) const noexcept;
++    [[nodiscard]] float QueryViewOriginX() const noexcept { return LastX_; }
++    [[nodiscard]] float QueryViewOriginY() const noexcept { return LastY_; }
+     [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
+     [[nodiscard]] float QueryViewHeight() const noexcept { return LastH_; }
+ 
+@@ -121,6 +123,9 @@ public:
+     //    gizmo's grip test. Both stay false while the compass, the bar or a popup owns the pointer.
+     [[nodiscard]] bool QueryViewTap(float* AcrossU, float* DownV, bool* Additive) noexcept;
+     [[nodiscard]] bool QueryViewAim(float* AcrossU, float* DownV) const noexcept;
++    // SolidArc's view: a left press that lifts without moving is a tap (Shift or Ctrl extends the pick); Ctrl plus a left
++    //    drag sweeps a box instead of orbiting (Shift adds to the pick, Alt takes from it). The box is read once, in view fractions.
++    [[nodiscard]] bool QueryViewBox(float* U0, float* V0, float* U1, float* V1, bool* Extend, bool* Subtract) noexcept;
+ 
+     void Record(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
+ 
+@@ -154,7 +159,9 @@ private:
+     uint32_t             StorageW_    = 0u;
+     uint32_t             StorageH_    = 0u;
+     bool                 CanvasDragging_ = false;
+-    float                LastW_       = 0.0f;      // last view rect, for the QueryView* rect
++    float                LastX_       = 0.0f;      // last view rect, for the QueryView* rect
++    float                LastY_       = 0.0f;
++    float                LastW_       = 0.0f;
+     float                LastH_       = 0.0f;
+ 
+     // The view tap and the live aim, seated by RecordView, consumed through QueryViewTap / QueryViewAim.
+@@ -162,6 +169,18 @@ private:
+     bool  TapAdditive_ = false;   // Shift rode the click
+     float TapU_        = 0.0f;    // view fractions, 0..1 top-left origin
+     float TapV_        = 0.0f;
++    bool  PressLeft_   = false;   // the held press began as a plain left press on the view
++    bool  PressMoved_  = false;   // it has travelled past the tap slop
++    bool  PressBox_    = false;   // Ctrl rode the press: the drag sweeps a box
++    float PressX_      = 0.0f;
++    float PressY_      = 0.0f;
++    bool  BoxLive_     = false;   // a box was swept this tick; cleared by QueryViewBox
++    bool  BoxExtend_   = false;
++    bool  BoxSubtract_ = false;
++    float BoxU0_       = 0.0f;
++    float BoxV0_       = 0.0f;
++    float BoxU1_       = 0.0f;
++    float BoxV1_       = 0.0f;
+     bool  AimLive_     = false;   // the pointer hovers the view this tick
+     float AimU_        = 0.0f;
+     float AimV_        = 0.0f;
+diff --git a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+index 1ed88b11..3c0c1742 100644
+--- a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
++++ b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+@@ -74,6 +74,8 @@ float EdgeWeight(float Ax, float Ay, float Bx, float By, float Px, float Py) noe
+ const unsigned char* gSolidArcRgba = nullptr;
+ uint32_t             gSolidArcW    = 0u;
+ uint32_t             gSolidArcH    = 0u;
++bool                 gCtrl         = false;   // the Ctrl the proof holds while it drives the pointer, and the figure last sent
++bool                 gCtrlSent     = false;
+ 
+ void RasterizeList(const ImDrawList* List,
+                    const unsigned char* GlyphSheet,
+@@ -204,7 +206,7 @@ int main()
+     if (!Run(Host, "line (-1.4,1.1,0) (1.4,1.1,0) --name=GuideLine --construction")) return 16;
+     if (!Run(Host, "dim Body01 --along=X --name=BodyWidth")) return 14;
+     if (!Run(Host, "constraint parallel SketchAxis SketchAxisB")) return 15;
+-    if (!Run(Host, "select Body01")) return 6;
++    if (!Run(Host, "select none")) return 6;
+     Host.Render();
+     Frontier::RasterImage Preview = Host.Raster().Readback();
+     gSolidArcRgba = Preview.Pixels.empty() ? nullptr : Preview.Pixels.data();
+@@ -227,6 +229,7 @@ int main()
+             IO.AddMousePosEvent(MouseX, MouseY);
+             IO.AddMouseButtonEvent(0, Down);
+         }
++        if (gCtrl != gCtrlSent) { IO.AddKeyEvent(ImGuiMod_Ctrl, gCtrl); gCtrlSent = gCtrl; }
+         ImGui::NewFrame();
+         Editor.Record(Host);
+         ImGui::Render();
+@@ -335,7 +338,7 @@ int main()
+         struct FolderExpectation { const char* Name; int Tint[3]; };
+         const FolderExpectation Folders[7] =
+         {
+-            { "Lines",        {  79, 216, 224 } }, { "Profiles",     {  79, 216, 224 } }, { "Bodies",       { 255, 180,  84 } },
++            { "Lines",        {  79, 216, 224 } }, { "Profiles",     {  52, 199,  89 } }, { "Bodies",       { 255, 180,  84 } },
+             { "Surfaces",     {  77, 163, 255 } }, { "Construction", { 180, 140, 255 } }, { "Dimensions",   { 229, 211,  58 } },
+             { "Constraints",  { 255, 107, 138 } },
+         };
+@@ -886,6 +889,201 @@ int main()
+         if (Failed)
+             return 17;
+     }
++
++    // Gate 11 - the viewport picture is anti-aliased and sized to its view, and the selection is one thing in three places:
++    //    taps, Ctrl taps, a Ctrl-dragged box, Ctrl+A, Escape and Delete in the view carry to the document and the outliner,
++    //    and the outliner's own multi-pick carries to the document and the view.
++    {
++        gWidth  = 1280;
++        gHeight = 720;
++        IO.DisplaySize = ImVec2(static_cast<float>(gWidth), static_cast<float>(gHeight));
++        Pixels.assign(static_cast<size_t>(gWidth) * static_cast<size_t>(gHeight) * 3u, 0u);
++        Editor.ReseatLayout();
++        auto Settle = [&](int Ticks = 6)
++        {
++            for (int I = 0; I < Ticks; ++I)
++                Rest();
++        };
++        std::filesystem::create_directories("Exhibits/Gallery/Editor/SolidArcSelect");
++        // A lone sphere sheet against the black ground: its rim is the cleanest silhouette there is.
++        if (!Run(Host, "reset")) return 20;
++        if (!Run(Host, "sphere (0,0,0.9) 1.0 --sheet --name=RimSheet")) return 21;
++        if (!Run(Host, "view fit")) return 25;
++        Settle(12);
++
++        // The picture: the same view drawn with one sample per pixel and with the host's two.
++        {
++            const uint32_t W = Host.Raster().Width(), H = Host.Raster().Height();
++            auto Edges = [&](uint32_t Samples, const char* Name, double* Smooth) -> int
++            {
++                Host.SeatSurface(W, H, Samples);
++                Host.Render();
++                const Frontier::RasterImage Image = Host.Raster().Readback();
++                int Boundary = 0, Blended = 0;
++                for (uint32_t Y = 1u; Y + 1u < H; ++Y)
++                    for (uint32_t X = 1u; X + 1u < W; ++X)
++                    {
++                        const uint32_t Here = Host.Raster().Pick(X, Y);
++                        if (Here != 0u) continue;                                      // the ground pixel just outside the figure
++                        const uint32_t Around[4] = { Host.Raster().Pick(X - 1u, Y), Host.Raster().Pick(X + 1u, Y), Host.Raster().Pick(X, Y - 1u), Host.Raster().Pick(X, Y + 1u) };
++                        if (Around[0] == 0u && Around[1] == 0u && Around[2] == 0u && Around[3] == 0u) continue;
++                        const uint8_t* Q = &Image.Pixels[(static_cast<size_t>(Y) * W + X) * 4u];
++                        ++Boundary;
++                        if (static_cast<int>(Q[0]) + Q[1] + Q[2] > 40) ++Blended;      // ground that took some of the figure's colour: a partly covered pixel
++                    }
++                *Smooth = Boundary > 0 ? static_cast<double>(Blended) / Boundary : 0.0;
++                std::vector<unsigned char> Crop(static_cast<size_t>(W) * H * 3u);
++                for (size_t I = 0u; I < static_cast<size_t>(W) * H; ++I)
++                    for (int C = 0; C < 3; ++C) Crop[I * 3u + C] = Image.Pixels[I * 4u + C];
++                std::string Path = std::string("Exhibits/Gallery/Editor/SolidArcSelect/") + Name;
++                if (stbi_write_png(Path.c_str(), static_cast<int>(W), static_cast<int>(H), 3, Crop.data(), static_cast<int>(W) * 3) == 0)
++                    return 26;
++                return 0;
++            };
++            double Plain = 0.0, Smooth = 0.0;
++            if (const int Write = Edges(1u, "Raster_OneSample.png", &Plain); Write != 0) return Write;
++            if (const int Write = Edges(2u, "Raster_TwoSamples.png", &Smooth); Write != 0) return Write;
++            std::fprintf(stderr, "[SolidArcEditorProof] silhouette pixels partly covered: one sample %.1f %%, two samples %.1f %%  (view %ux%u)\n", Plain * 100.0, Smooth * 100.0, W, H);
++            if (Smooth < 0.25 || Smooth < Plain * 2.0)
++                Fail("the silhouette is not anti-aliased");
++            Settle(4);
++        }
++
++        if (!Run(Host, "reset")) return 20;
++        if (!Run(Host, "box (-3.2,-0.8,0) (-1.8,0.8,1.2) --name=BoxA")) return 21;
++        if (!Run(Host, "box (-0.7,-0.8,0) (0.7,0.8,1.2) --name=BoxB")) return 22;
++        if (!Run(Host, "sphere (2.5,0,0.7) 0.7 --name=BallC")) return 23;
++        if (!Run(Host, "circle (3.6,2.6,0) 0.8 --name=RingD")) return 24;
++        if (!Run(Host, "view fit")) return 25;
++        Settle(12);
++
++        // Screen positions of the figures, found where the raster's own pick plane says they are.
++        auto Locate = [&](const char* Name, float* ScreenX, float* ScreenY, float* LowX, float* LowY, float* HighX, float* HighY) -> bool
++        {
++            const Frontier::SceneFigure* Figure = Host.Document().Find(std::string(Name));
++            if (Figure == nullptr) return false;
++            const uint32_t W = Host.Raster().Width(), H = Host.Raster().Height();
++            double SumX = 0.0, SumY = 0.0; int Count = 0;
++            int MinX = static_cast<int>(W), MinY = static_cast<int>(H), MaxX = 0, MaxY = 0;
++            for (uint32_t Y = 0u; Y < H; ++Y)
++                for (uint32_t X = 0u; X < W; ++X)
++                    if (Frontier::SceneDocument::IdentityOf(Host.Raster().Pick(X, Y)) == Figure->Identity)
++                    {
++                        SumX += X; SumY += Y; ++Count;
++                        MinX = std::min(MinX, static_cast<int>(X)); MaxX = std::max(MaxX, static_cast<int>(X));
++                        MinY = std::min(MinY, static_cast<int>(Y)); MaxY = std::max(MaxY, static_cast<int>(Y));
++                    }
++            if (Count < 40) return false;
++            // The pixel of the figure nearest its mean, so a curve (which has no interior) is still hit.
++            const double MeanX = SumX / Count, MeanY = SumY / Count;
++            double Best = 1e18; int PickX = 0, PickY = 0;
++            for (int Y = MinY; Y <= MaxY; ++Y)
++                for (int X = MinX; X <= MaxX; ++X)
++                    if (Frontier::SceneDocument::IdentityOf(Host.Raster().Pick(static_cast<uint32_t>(X), static_cast<uint32_t>(Y))) == Figure->Identity)
++                    {
++                        const double D = (X - MeanX) * (X - MeanX) + (Y - MeanY) * (Y - MeanY);
++                        if (D < Best) { Best = D; PickX = X; PickY = Y; }
++                    }
++            const float Scale = Editor.QueryViewWidth() / static_cast<float>(W);
++            auto ToX = [&](float Px) { return Editor.QueryViewOriginX() + (Px + 0.5f) * Scale; };
++            auto ToY = [&](float Py) { return Editor.QueryViewOriginY() + (Py + 0.5f) * Scale; };
++            *ScreenX = ToX(static_cast<float>(PickX)); *ScreenY = ToY(static_cast<float>(PickY));
++            *LowX = ToX(static_cast<float>(MinX)); *LowY = ToY(static_cast<float>(MinY));
++            *HighX = ToX(static_cast<float>(MaxX)); *HighY = ToY(static_cast<float>(MaxY));
++            return true;
++        };
++        struct Spot { float X = 0, Y = 0, Lx = 0, Ly = 0, Hx = 0, Hy = 0; };
++        Spot A, B, Ball, Ring;
++        if (!Locate("BoxA", &A.X, &A.Y, &A.Lx, &A.Ly, &A.Hx, &A.Hy) || !Locate("BoxB", &B.X, &B.Y, &B.Lx, &B.Ly, &B.Hx, &B.Hy)
++            || !Locate("BallC", &Ball.X, &Ball.Y, &Ball.Lx, &Ball.Ly, &Ball.Hx, &Ball.Hy) || !Locate("RingD", &Ring.X, &Ring.Y, &Ring.Lx, &Ring.Ly, &Ring.Hx, &Ring.Hy))
++        {
++            Fail("a figure of the selection scene is not on screen");
++            return 27;
++        }
++        const uint32_t IdA = Host.Document().Find(std::string("BoxA"))->Identity;
++        const uint32_t IdB = Host.Document().Find(std::string("BoxB"))->Identity;
++        const uint32_t IdBall = Host.Document().Find(std::string("BallC"))->Identity;
++        auto Chosen = [&](uint32_t Identity) { const Frontier::SceneFigure* F = Host.Document().Find(Identity); return F != nullptr && F->Selected; };
++        auto Report = [&](const char* What, int Want)
++        {
++            const int Have = Host.Document().SelectedCount();
++            std::fprintf(stderr, "[SolidArcEditorProof] select: %-34s document %d, outliner pick %u (want %d)\n", What, Have, Editor.QueryPickedCount(), Want);
++            if (Have != Want) Fail("the document's selection is not what the view did");
++            if (static_cast<int>(Editor.QueryPickedCount()) != Want) Fail("the outliner's pick did not follow the view");
++        };
++        auto Key = [&](ImGuiKey Code)
++        {
++            IO.AddKeyEvent(Code, true);
++            Settle(2);
++            IO.AddKeyEvent(Code, false);
++            Settle(3);
++        };
++        auto Shot = [&](const char* Name)
++        {
++            Rasterise();
++            std::string Path = std::string("Exhibits/Gallery/Editor/SolidArcSelect/") + Name;
++            return WriteSheet(Path.c_str(), 8);
++        };
++
++        // Taps. Empty space clears; a figure picks; Ctrl adds and takes away.
++        Click(Ball.X, Ball.Y); Settle();
++        Report("tap BallC", 1);
++        if (!Chosen(IdBall)) Fail("the tapped figure is not the selected one");
++        gCtrl = true;
++        Click(B.X, B.Y); Settle();
++        Report("Ctrl+tap BoxB adds", 2);
++        Click(A.X, A.Y); Settle();
++        Report("Ctrl+tap BoxA adds", 3);
++        if (const int Write = Shot("Select_Three.png"); Write != 0) return Write;
++        Click(Ball.X, Ball.Y); Settle();
++        Report("Ctrl+tap BallC takes away", 2);
++        if (Chosen(IdBall) || !Chosen(IdA) || !Chosen(IdB)) Fail("Ctrl+tap took the wrong figure away");
++        gCtrl = false;
++        Click(Ball.X, Ball.Y); Settle();
++        Report("tap BallC alone", 1);
++
++        // Keys.
++        gCtrl = true; Key(ImGuiKey_A); gCtrl = false;
++        Report("Ctrl+A", Host.Document().Figures().size() > 0u ? static_cast<int>(Host.Document().Figures().size()) : 0);
++        Key(ImGuiKey_Escape);
++        Report("Escape", 0);
++
++        // The box: Ctrl+drag over BoxA and BoxB, short of the ball.
++        {
++            const float X0 = A.X - 5.0f, Y0 = std::min(A.Y, B.Y) - 5.0f, X1 = B.X + 5.0f, Y1 = std::max(A.Y, B.Y) + 5.0f;
++            gCtrl = true;
++            Tick(X0, Y0, false); Tick(X0, Y0, true);
++            for (int Step = 1; Step <= 6; ++Step)
++                Tick(X0 + (X1 - X0) * Step / 6.0f, Y0 + (Y1 - Y0) * Step / 6.0f, true);
++            if (const int Write = Shot("Select_BoxDrag.png"); Write != 0) return Write;
++            Tick(X1, Y1, false);
++            gCtrl = false;
++            Settle();
++            Report("Ctrl+drag box over BoxA and BoxB", 2);
++            if (!Chosen(IdA) || !Chosen(IdB) || Chosen(IdBall)) Fail("the box took the wrong figures");
++            if (const int Write = Shot("Select_BoxDone.png"); Write != 0) return Write;
++        }
++
++        // The outliner leads the other way: its own Ctrl pick becomes the document's selection.
++        Run(Host, "select none"); Settle();
++        Report("select none", 0);
++        Editor.PickRow("BoxA", Frontier::SolidArcOutlinerBinding::Role::Figure); Settle();
++        Editor.ExtendRow("BallC", Frontier::SolidArcOutlinerBinding::Role::Figure); Settle();
++        Editor.ExtendRow("RingD", Frontier::SolidArcOutlinerBinding::Role::Figure); Settle();
++        Report("outliner pick BoxA + BallC + RingD", 3);
++        if (!Chosen(IdA) || !Chosen(IdBall) || Chosen(IdB)) Fail("the outliner's pick did not become the document's selection");
++        if (const int Write = Shot("Select_Outliner.png"); Write != 0) return Write;
++
++        // Delete takes the selected figures, locked ones excepted.
++        const size_t Before = Host.AllFigures().size();
++        Key(ImGuiKey_Delete);
++        std::fprintf(stderr, "[SolidArcEditorProof] select: Delete removed %zu of %zu figures\n", Before - Host.AllFigures().size(), Before);
++        if (Host.AllFigures().size() != Before - 3u) Fail("Delete did not remove the three selected figures");
++        Settle(6);
++        if (const int Write = Shot("Select_AfterDelete.png"); Write != 0) return Write;
++        if (Failed)
++            return 28;
++    }
+     ImGui::DestroyContext();
+     return 0;
+ }
+-- 
+2.39.5
+

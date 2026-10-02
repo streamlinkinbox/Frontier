@@ -1,0 +1,753 @@
+From 0622f51a8fc3f78832edf9cccadccbd237e6da6c Mon Sep 17 00:00:00 2001
+From: Agent <a@a>
+Date: Fri, 2 Oct 2026 06:44:23 +0000
+Subject: [PATCH] SolidArc Construct menu: opens, places and draws every
+ primitive
+
+---
+ .../SolidArc/Editor/SolidArcEditorHost.cpp    | 110 ++++++
+ .../SolidArc/Editor/SolidArcEditorHost.h      |  11 +
+ Frontier/Engine/Editor/ViewportPanel.cpp      | 317 +++++++++++++++++-
+ Frontier/Engine/Editor/ViewportPanel.h        |  37 ++
+ .../Workbench/Editor/SolidArcEditorProof.cpp  | 126 +++++++
+ 5 files changed, 598 insertions(+), 3 deletions(-)
+
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+index 9f00eb8..d14c46d 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+@@ -13,11 +13,90 @@
+ #include <imgui_internal.h>
+ 
+ #include <algorithm>
++#include <cmath>
+ #include <cstdio>
+ #include <cstring>
+ 
+ namespace Frontier {
+ 
++namespace
++{
++// The Construct menu: every figure the console builds from numbers alone, each in the section the web catalogue files
++//    it under. The order here is the order of ConstructCommand's cases.
++constexpr ViewportConstructTile kConstructTiles[] =
++{
++    { "Reference",   "Plane",         ConstructGlyph::Plane,           ""  },
++    { "Sketch Draw", "Line",          ConstructGlyph::Line,            "L" },
++    { "Sketch Draw", "Polyline",      ConstructGlyph::Polyline,        ""  },
++    { "Sketch Draw", "Rectangle",     ConstructGlyph::Rectangle,       "R" },
++    { "Sketch Draw", "Centre Rect.",  ConstructGlyph::CentreRectangle, ""  },
++    { "Sketch Draw", "Slot",          ConstructGlyph::Slot,            ""  },
++    { "Sketch Draw", "Circle",        ConstructGlyph::Circle,          "C" },
++    { "Sketch Draw", "Arc",           ConstructGlyph::Arc,             "A" },
++    { "Sketch Draw", "Ellipse",       ConstructGlyph::Ellipse,         ""  },
++    { "Sketch Draw", "Polygon",       ConstructGlyph::Polygon,         "P" },
++    { "Sketch Draw", "Spline",        ConstructGlyph::Spline,          ""  },
++    { "Sketch Draw", "Control Curve", ConstructGlyph::ControlCurve,    ""  },
++    { "Solid",       "Box",           ConstructGlyph::Box,             ""  },
++    { "Solid",       "Sphere",        ConstructGlyph::Sphere,          ""  },
++    { "Solid",       "Cylinder",      ConstructGlyph::Cylinder,        ""  },
++    { "Solid",       "Cone",          ConstructGlyph::Cone,            ""  },
++    { "Solid",       "Torus",         ConstructGlyph::Torus,           ""  },
++    { "Surface",     "Sphere Sheet",  ConstructGlyph::Sphere,          ""  },
++    { "Surface",     "Cylinder Sheet", ConstructGlyph::Cylinder,       ""  },
++    { "Surface",     "Cone Sheet",    ConstructGlyph::Cone,            ""  },
++    { "Surface",     "Torus Sheet",   ConstructGlyph::Torus,           ""  },
++    { "Surface",     "Patch",         ConstructGlyph::Patch,           ""  },
++};
++constexpr uint32_t kConstructTileCount = static_cast<uint32_t>(sizeof(kConstructTiles) / sizeof(kConstructTiles[0]));
++
++// The console line that places tile Index with its centre at (X, Y) on the workplane: every size is a default a
++//    person can see at once and move afterwards. An empty string means the tile does not exist.
++std::string ConstructCommand(uint32_t Index, double X, double Y) noexcept
++{
++    char Line[640];
++    switch (Index)
++    {
++    case 0:  std::snprintf(Line, sizeof(Line), "plane (%.3f,%.3f,0) 1.4 1.4", X - 0.7, Y - 0.7); break;
++    case 1:  std::snprintf(Line, sizeof(Line), "line (%.3f,%.3f) (%.3f,%.3f)", X - 0.7, Y - 0.5, X + 0.7, Y + 0.5); break;
++    case 2:  std::snprintf(Line, sizeof(Line), "polyline (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f)",
++                           X - 0.8, Y - 0.5, X - 0.3, Y + 0.5, X + 0.3, Y - 0.2, X + 0.8, Y + 0.5); break;
++    case 3:  std::snprintf(Line, sizeof(Line), "rect (%.3f,%.3f) (%.3f,%.3f)", X - 0.7, Y - 0.5, X + 0.7, Y + 0.5); break;
++    case 4:  std::snprintf(Line, sizeof(Line), "rect (%.3f,%.3f) (%.3f,%.3f) --center", X, Y, X + 0.7, Y + 0.5); break;
++    case 5:  std::snprintf(Line, sizeof(Line), "slot (%.3f,%.3f) (%.3f,%.3f) 0.25", X - 0.5, Y, X + 0.5, Y); break;
++    case 6:  std::snprintf(Line, sizeof(Line), "circle (%.3f,%.3f) 0.6", X, Y); break;
++    case 7:  std::snprintf(Line, sizeof(Line), "arc (%.3f,%.3f) 0.7 -60 240", X, Y); break;
++    case 8:  std::snprintf(Line, sizeof(Line), "ellipse (%.3f,%.3f) 0.8 0.45", X, Y); break;
++    case 9: std::snprintf(Line, sizeof(Line), "polygon (%.3f,%.3f) 0.6 6", X, Y); break;
++    case 10: std::snprintf(Line, sizeof(Line), "spline (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f)",
++                           X - 0.8, Y - 0.3, X - 0.3, Y + 0.5, X + 0.3, Y - 0.5, X + 0.8, Y + 0.3); break;
++    case 11: std::snprintf(Line, sizeof(Line), "cpcurve (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f) (%.3f,%.3f)",
++                           X - 0.8, Y - 0.3, X - 0.3, Y + 0.6, X + 0.3, Y - 0.6, X + 0.8, Y + 0.3); break;
++    case 12: std::snprintf(Line, sizeof(Line), "box (%.3f,%.3f,0) 1 1 1", X - 0.5, Y - 0.5); break;
++    case 13: std::snprintf(Line, sizeof(Line), "sphere (%.3f,%.3f,0.6) 0.6", X, Y); break;
++    case 14: std::snprintf(Line, sizeof(Line), "cylinder (%.3f,%.3f,0) 0.45 1.2", X, Y); break;
++    case 15: std::snprintf(Line, sizeof(Line), "cone (%.3f,%.3f,0) 0.6 0.15 1.2", X, Y); break;
++    case 16: std::snprintf(Line, sizeof(Line), "torus (%.3f,%.3f,0.3) 0.6 0.25", X, Y); break;
++    case 17: std::snprintf(Line, sizeof(Line), "sphere (%.3f,%.3f,0.6) 0.6 --sheet", X, Y); break;
++    case 18: std::snprintf(Line, sizeof(Line), "cylinder (%.3f,%.3f,0) 0.45 1.2 --sheet", X, Y); break;
++    case 19: std::snprintf(Line, sizeof(Line), "cone (%.3f,%.3f,0) 0.6 0.15 1.2 --sheet", X, Y); break;
++    case 20: std::snprintf(Line, sizeof(Line), "torus (%.3f,%.3f,0.3) 0.6 0.25 --sheet", X, Y); break;
++    case 21:
++    {
++        // A three-by-three net with a hump in the middle: row-major, degree 2.
++        int Used = std::snprintf(Line, sizeof(Line), "patch 3 3 --degree=2");
++        for (int Row = 0; Row < 3; ++Row)
++            for (int Column = 0; Column < 3; ++Column)
++                Used += std::snprintf(Line + Used, sizeof(Line) - static_cast<size_t>(Used), " (%.3f,%.3f,%.3f)",
++                                      X + (Column - 1) * 0.7, Y + (Row - 1) * 0.7, (Row == 1 && Column == 1) ? 0.5 : 0.0);
++        break;
++    }
++    default: return std::string();
++    }
++    return std::string(Line);
++}
++}
++
+ SolidArcEditorHost::SolidArcEditorHost() noexcept
+ {
+     Outliner_.AssignControls(&Controls_);
+@@ -46,6 +125,7 @@ SolidArcEditorHost::SolidArcEditorHost() noexcept
+     };
+     Outliner_.AssignFilterCatalog(SolidArcFilters, static_cast<uint32_t>(sizeof(SolidArcFilters) / sizeof(SolidArcFilters[0])));
+     Viewport_.AssignChrome(ViewportPanelChrome::SolidArcCad);
++    Viewport_.AssignConstructTiles(kConstructTiles, kConstructTileCount);
+     Outliner_.AssignReadout(&Readout_);
+     Viewport_.AssignReadout(&Readout_);
+     Inspector_.AssignReadout(&Readout_);
+@@ -189,6 +269,31 @@ void SolidArcEditorHost::ConstructLayout() noexcept
+     ImGui::DockBuilderFinish(DockId);
+ }
+ 
++uint32_t SolidArcEditorHost::QueryConstructTileCount() noexcept
++{
++    return kConstructTileCount;
++}
++
++bool SolidArcEditorHost::PlaceConstruct(ConsoleHost& Host, uint32_t Tile) noexcept
++{
++    const uint32_t Slot   = ConstructPlaced_;
++    const double   Radius = 2.6 + 0.9 * static_cast<double>(Slot / 8u);
++    const double   Angle  = (static_cast<double>(Slot % 8u) + 0.5 * static_cast<double>((Slot / 8u) & 1u)) * 0.78539816339;
++    const std::string Command = ConstructCommand(Tile, Radius * std::cos(Angle), Radius * std::sin(Angle));
++    if (Command.empty())
++        return false;
++    const size_t Before = Host.AllFigures().size();
++    const bool   Done   = Host.Execute(Command);
++    ++ConstructPlaced_;
++    if (Done && Host.AllFigures().size() > Before)
++    {
++        ConstructPlacedName_ = Host.AllFigures().back().Name;
++        Host.Execute("select " + ConstructPlacedName_);
++        return true;
++    }
++    return false;
++}
++
+ void SolidArcEditorHost::Record(ConsoleHost& Host) noexcept
+ {
+     Host.Render();
+@@ -233,6 +338,11 @@ void SolidArcEditorHost::Record(ConsoleHost& Host) noexcept
+     Outliner_.Record(Rows_.data(), RowCount_);
+     Viewport_.Record(Rows_.data(), RowCount_);
+ 
++    // A Construct tile was chosen: place its figure at the next free spot on the workplane, a ring around the origin that
++    //    widens as it fills, and seat the pick on it so the inspector shows what was just made.
++    if (uint32_t Tile = 0u; Viewport_.QueryConstructPick(&Tile))
++        PlaceConstruct(Host, Tile);
++
+     const uint32_t Picked = Outliner_.QueryPicked();
+     EditorInstance* PickedRow = (Picked < RowCount_) ? &Rows_[Picked] : nullptr;
+     if (PickedRow != nullptr)
+diff --git a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+index 14d2355..facc9da 100644
+--- a/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
++++ b/Frontier/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h
+@@ -66,6 +66,15 @@ public:
+     [[nodiscard]] uint32_t QueryRailShade() const noexcept { return Viewport_.QuerySolidArcShade(); }
+     [[nodiscard]] uint32_t QueryRailGizmo() const noexcept { return Viewport_.QuerySolidArcGizmo(); }
+ 
++    /// 📦 Places one Construct tile's figure exactly as a click on it does; true when a figure was added. The proof's
++    ///    seam: the menu click calls the same path.
++    bool PlaceConstruct(ConsoleHost& Host, uint32_t Tile) noexcept;
++    [[nodiscard]] static uint32_t QueryConstructTileCount() noexcept;
++    [[nodiscard]] const std::string& QueryConstructPlacedName() const noexcept { return ConstructPlacedName_; }
++    [[nodiscard]] bool QueryConstructOpen() const noexcept { return Viewport_.QueryConstructOpen(); }
++    [[nodiscard]] bool QueryConstructTileCentre(uint32_t Tile, float* X, float* Y) const noexcept { return Viewport_.QueryConstructTileCentre(Tile, X, Y); }
++    [[nodiscard]] bool QueryConstructSectionCentre(uint32_t Section, float* X, float* Y) const noexcept { return Viewport_.QueryConstructSectionCentre(Section, X, Y); }
++
+ private:
+     void ConstructLayout() noexcept;
+ 
+@@ -98,6 +107,8 @@ private:
+     EditorReadout Readout_ = {};
+     EditorSheet PickedSheet_ = {};
+     RasterImage ViewImage_ = {};
++    uint32_t    ConstructPlaced_ = 0u;      // tiles placed so far: the next one takes the next spot on the ring
++    std::string ConstructPlacedName_;       // the figure the last placement made
+ };
+ 
+ } // namespace Frontier
+diff --git a/Frontier/Engine/Editor/ViewportPanel.cpp b/Frontier/Engine/Editor/ViewportPanel.cpp
+index 7848f7d..bed0668 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.cpp
++++ b/Frontier/Engine/Editor/ViewportPanel.cpp
+@@ -678,6 +678,312 @@ void DrawRailIcon(ImDrawList* Draw, RailIcon Icon, const ImVec2& C, float Size,
+ }
+ }
+ 
++namespace
++{
++// The Construct menu's tile symbols, drawn from the web catalogue's own strokes in its 24-unit box.
++void DrawConstructGlyph(ImDrawList* Draw, ConstructGlyph Glyph, const ImVec2& C, float Size, ImU32 Ink) noexcept
++{
++    const float U     = Size / 24.0f;
++    const float Thick = 1.5f * U < 1.2f ? 1.2f : 1.5f * U;
++    auto P = [&](float X, float Y) noexcept { return ImVec2(C.x + (X - 12.0f) * U, C.y + (Y - 12.0f) * U); };
++    auto Stroke = [&](float X0, float Y0, float X1, float Y1) noexcept { Draw->AddLine(P(X0, Y0), P(X1, Y1), Ink, Thick); };
++    auto Dot = [&](float X, float Y, float R) noexcept { Draw->AddCircleFilled(P(X, Y), R * U, Ink, 10); };
++    auto Poly = [&](const float (*Points)[2], uint32_t Count, bool Shut) noexcept
++    {
++        Draw->PathClear();
++        for (uint32_t i = 0u; i < Count; ++i)
++            Draw->PathLineTo(P(Points[i][0], Points[i][1]));
++        Draw->PathStroke(Ink, Shut ? ImDrawFlags_Closed : ImDrawFlags_None, Thick);
++    };
++    // An ellipse (or a half of it) about (Cx, Cy), as a polyline: From and To are angles in turns.
++    auto Oval = [&](float Cx, float Cy, float Rx, float Ry, float From, float To) noexcept
++    {
++        Draw->PathClear();
++        const int Steps = 28;
++        for (int i = 0; i <= Steps; ++i)
++        {
++            const float A = (From + (To - From) * static_cast<float>(i) / static_cast<float>(Steps)) * 6.2831853f;
++            Draw->PathLineTo(P(Cx + Rx * std::cos(A), Cy + Ry * std::sin(A)));
++        }
++        Draw->PathStroke(Ink, (To - From) >= 0.999f ? ImDrawFlags_Closed : ImDrawFlags_None, Thick);
++    };
++    static const float Hex[6][2] = { { 12.0f, 3.0f }, { 20.0f, 7.5f }, { 20.0f, 16.5f }, { 12.0f, 21.0f }, { 4.0f, 16.5f }, { 4.0f, 7.5f } };
++    switch (Glyph)
++    {
++    case ConstructGlyph::Plane:
++    {
++        static const float Quad[4][2] = { { 3.0f, 16.0f }, { 9.0f, 7.0f }, { 21.0f, 7.0f }, { 15.0f, 16.0f } };
++        Poly(Quad, 4u, true);
++        break;
++    }
++    case ConstructGlyph::Empty:
++        Stroke(12.0f, 4.0f, 12.0f, 9.0f);
++        Stroke(12.0f, 15.0f, 12.0f, 20.0f);
++        Stroke(4.0f, 12.0f, 9.0f, 12.0f);
++        Stroke(15.0f, 12.0f, 20.0f, 12.0f);
++        Dot(12.0f, 12.0f, 1.2f);
++        break;
++    case ConstructGlyph::Line:
++        Stroke(5.0f, 19.0f, 19.0f, 5.0f);
++        Dot(5.0f, 19.0f, 1.6f);
++        Dot(19.0f, 5.0f, 1.6f);
++        break;
++    case ConstructGlyph::Polyline:
++    {
++        static const float Zig[5][2] = { { 3.0f, 17.0f }, { 8.0f, 8.0f }, { 12.0f, 14.0f }, { 16.0f, 6.0f }, { 21.0f, 17.0f } };
++        Poly(Zig, 5u, false);
++        break;
++    }
++    case ConstructGlyph::Rectangle:
++        Draw->AddRect(P(4.0f, 6.0f), P(20.0f, 18.0f), Ink, 0.0f, 0, Thick);
++        break;
++    case ConstructGlyph::CentreRectangle:
++        Draw->AddRect(P(4.0f, 6.0f), P(20.0f, 18.0f), Ink, 0.0f, 0, Thick);
++        Stroke(12.0f, 10.0f, 12.0f, 14.0f);
++        Stroke(10.0f, 12.0f, 14.0f, 12.0f);
++        break;
++    case ConstructGlyph::Slot:
++        Draw->AddRect(P(4.0f, 8.0f), P(20.0f, 16.0f), Ink, 4.0f * U, 0, Thick);
++        Dot(8.0f, 12.0f, 1.2f);
++        Dot(16.0f, 12.0f, 1.2f);
++        break;
++    case ConstructGlyph::Circle:
++        Draw->AddCircle(P(12.0f, 12.0f), 8.0f * U, Ink, 28, Thick);
++        Dot(12.0f, 12.0f, 1.2f);
++        break;
++    case ConstructGlyph::Arc:
++        Draw->PathClear();
++        Draw->PathArcTo(P(11.5f, 11.5f), 9.19f * U, 2.3561945f, 5.4977871f, 20);
++        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
++        Dot(5.0f, 18.0f, 1.5f);
++        Dot(18.0f, 5.0f, 1.5f);
++        Dot(12.0f, 14.0f, 1.2f);
++        break;
++    case ConstructGlyph::Ellipse:
++        Oval(12.0f, 12.0f, 9.0f, 5.5f, 0.0f, 1.0f);
++        break;
++    case ConstructGlyph::Polygon:
++        Poly(Hex, 6u, true);
++        break;
++    case ConstructGlyph::Spline:
++        Draw->PathClear();
++        Draw->PathLineTo(P(3.0f, 17.0f));
++        Draw->PathBezierCubicCurveTo(P(7.0f, 7.0f), P(13.0f, 21.0f), P(21.0f, 9.0f), 14);
++        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
++        break;
++    case ConstructGlyph::ControlCurve:
++        Draw->PathClear();
++        Draw->PathLineTo(P(3.0f, 17.0f));
++        Draw->PathBezierCubicCurveTo(P(7.0f, 7.0f), P(13.0f, 21.0f), P(21.0f, 9.0f), 14);
++        Draw->PathStroke(Ink, ImDrawFlags_None, Thick);
++        Dot(7.0f, 7.0f, 1.5f);
++        Dot(13.0f, 21.0f, 1.5f);
++        break;
++    case ConstructGlyph::Box:
++    {
++        Poly(Hex, 6u, true);
++        static const float Spine[3][2] = { { 4.0f, 7.5f }, { 12.0f, 12.0f }, { 20.0f, 7.5f } };
++        Poly(Spine, 3u, false);
++        Stroke(12.0f, 12.0f, 12.0f, 21.0f);
++        break;
++    }
++    case ConstructGlyph::Sphere:
++        Draw->AddCircle(P(12.0f, 12.0f), 8.5f * U, Ink, 28, Thick);
++        Oval(12.0f, 12.0f, 8.5f, 3.0f, 0.0f, 0.5f);
++        break;
++    case ConstructGlyph::Cylinder:
++        Oval(12.0f, 6.0f, 7.0f, 2.5f, 0.0f, 1.0f);
++        Stroke(5.0f, 6.0f, 5.0f, 18.0f);
++        Stroke(19.0f, 6.0f, 19.0f, 18.0f);
++        Oval(12.0f, 18.0f, 7.0f, 2.5f, 0.0f, 0.5f);
++        break;
++    case ConstructGlyph::Cone:
++        Stroke(12.0f, 3.5f, 4.5f, 18.0f);
++        Stroke(12.0f, 3.5f, 19.5f, 18.0f);
++        Oval(12.0f, 18.0f, 7.5f, 2.6f, 0.0f, 0.5f);
++        break;
++    case ConstructGlyph::Torus:
++        Oval(12.0f, 12.0f, 9.5f, 6.0f, 0.0f, 1.0f);
++        Oval(12.0f, 12.0f, 4.0f, 2.0f, 0.0f, 1.0f);
++        break;
++    case ConstructGlyph::Patch:
++    {
++        static const float Top[4][2]   = { { 3.0f, 8.0f }, { 10.0f, 4.0f }, { 21.0f, 8.0f }, { 14.0f, 12.0f } };
++        static const float Left[4][2]  = { { 3.0f, 8.0f }, { 3.0f, 16.0f }, { 14.0f, 20.0f }, { 14.0f, 12.0f } };
++        static const float Right[3][2] = { { 21.0f, 8.0f }, { 21.0f, 16.0f }, { 14.0f, 20.0f } };
++        Poly(Top, 4u, true);
++        Poly(Left, 4u, false);
++        Poly(Right, 3u, false);
++        break;
++    }
++    }
++}
++}
++
++void ViewportPanel::AssignConstructTiles(const ViewportConstructTile* Tiles, uint32_t Count) noexcept
++{
++    ConstructTiles_     = Tiles;
++    ConstructTileCount_ = Count < kConstructTileCap ? Count : kConstructTileCap;
++}
++
++bool ViewportPanel::QueryConstructPick(uint32_t* Index) noexcept
++{
++    if (ConstructPick_ == 0xFFFFFFFFu)
++        return false;
++    *Index         = ConstructPick_;
++    ConstructPick_ = 0xFFFFFFFFu;
++    return true;
++}
++
++bool ViewportPanel::QueryConstructTileCentre(uint32_t Index, float* X, float* Y) const noexcept
++{
++    if (Index >= ConstructTileCount_ || !ConstructTileSeen_[Index])
++        return false;
++    *X = ConstructTileX_[Index];
++    *Y = ConstructTileY_[Index];
++    return true;
++}
++
++bool ViewportPanel::QueryConstructSectionCentre(uint32_t Section, float* X, float* Y) const noexcept
++{
++    if (!ConstructShown_ || Section >= ConstructRailCount_)
++        return false;
++    *X = ConstructRailX_[Section];
++    *Y = ConstructRailY_[Section];
++    return true;
++}
++
++// The Construct menu, a popup that hangs from the chip: a rail of sections on the left (each with its tile count), the
++//    section's tiles in four columns on the right, a hint line under them. A click on a tile is the pick; the popup
++//    closes with it, as the web catalogue does when it is not pinned.
++void ViewportPanel::DrawConstructMenu(float MenuX, float MenuY) noexcept
++{
++    ConstructShown_ = false;
++    for (uint32_t i = 0u; i < kConstructTileCap; ++i)
++        ConstructTileSeen_[i] = false;
++    constexpr float kMenuW = 520.0f, kMenuH = 330.0f, kHeadH = 40.0f, kRailW = 132.0f, kFootH = 28.0f;
++    ImGui::SetNextWindowPos(ImVec2(MenuX, MenuY), ImGuiCond_Appearing);
++    ImGui::SetNextWindowSize(ImVec2(kMenuW, kMenuH), ImGuiCond_Always);
++    ImGui::PushStyleColor(ImGuiCol_PopupBg, IM_COL32(14, 16, 20, 250));
++    ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 34));
++    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 14.0f);
++    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
++    const bool Open = ImGui::BeginPopup("##solidarc_construct_menu", ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
++    if (Open)
++    {
++        ConstructShown_ = true;
++        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false))
++            ImGui::CloseCurrentPopup();
++        ImDrawList* Draw  = ImGui::GetWindowDrawList();
++        ImFont*     Small = Controls_->QuerySmall() != nullptr ? Controls_->QuerySmall() : ImGui::GetFont();
++        ImFont*     Mono  = Controls_->QueryMono() != nullptr ? Controls_->QueryMono() : Small;
++        const ImVec2 Origin = ImGui::GetWindowPos();
++        auto TextCentred = [&](const char* Text, float Cx, float Y, ImU32 Tint, ImFont* Face, float Px) noexcept
++        {
++            const ImVec2 T = Face->CalcTextSizeA(Px, FLT_MAX, 0.0f, Text);
++            Draw->AddText(Face, Px, ImVec2(Cx - T.x * 0.5f, Y), Tint, Text);
++        };
++
++        // The sections, in the order their first tile appears.
++        const char* Sections[8] = {};
++        uint32_t    Counts[8]   = {};
++        uint32_t    SectionCount = 0u;
++        for (uint32_t i = 0u; i < ConstructTileCount_; ++i)
++        {
++            uint32_t At = 0u;
++            while (At < SectionCount && std::strcmp(Sections[At], ConstructTiles_[i].Section) != 0)
++                ++At;
++            if (At == SectionCount && SectionCount < 8u)
++                Sections[SectionCount++] = ConstructTiles_[i].Section;
++            if (At < 8u)
++                ++Counts[At];
++        }
++        ConstructRailCount_ = SectionCount;
++        if (ConstructSection_ >= SectionCount)
++            ConstructSection_ = 0u;
++
++        // Head.
++        Draw->AddRectFilled(Origin, ImVec2(Origin.x + kMenuW, Origin.y + kHeadH), IM_COL32(255, 255, 255, 8), 14.0f, ImDrawFlags_RoundCornersTop);
++        Draw->AddLine(ImVec2(Origin.x, Origin.y + kHeadH), ImVec2(Origin.x + kMenuW, Origin.y + kHeadH), kStroke);
++        Draw->AddCircleFilled(ImVec2(Origin.x + 20.0f, Origin.y + kHeadH * 0.5f), 4.0f, IM_COL32(79, 216, 224, 255));
++        Draw->AddText(Small, 11.0f, ImVec2(Origin.x + 34.0f, Origin.y + kHeadH * 0.5f - 6.5f), kText, "Construct");
++        const char* Hint = "Tab";
++        const ImVec2 HintSize = Mono->CalcTextSizeA(9.0f, FLT_MAX, 0.0f, Hint);
++        Draw->AddRectFilled(ImVec2(Origin.x + kMenuW - 20.0f - HintSize.x, Origin.y + 12.0f), ImVec2(Origin.x + kMenuW - 12.0f, Origin.y + 28.0f), IM_COL32(255, 255, 255, 16), 5.0f);
++        Draw->AddText(Mono, 9.0f, ImVec2(Origin.x + kMenuW - 16.0f - HintSize.x, Origin.y + 20.0f - HintSize.y * 0.5f), kDim, Hint);
++
++        // The rail.
++        Draw->AddRectFilled(ImVec2(Origin.x, Origin.y + kHeadH), ImVec2(Origin.x + kRailW, Origin.y + kMenuH), IM_COL32(0, 0, 0, 46), 14.0f, ImDrawFlags_RoundCornersBottomLeft);
++        Draw->AddLine(ImVec2(Origin.x + kRailW, Origin.y + kHeadH), ImVec2(Origin.x + kRailW, Origin.y + kMenuH), kStroke);
++        for (uint32_t r = 0u; r < SectionCount; ++r)
++        {
++            const float Rx = Origin.x + 6.0f, Ry = Origin.y + kHeadH + 8.0f + static_cast<float>(r) * 38.0f;
++            char Id[40];
++            std::snprintf(Id, sizeof(Id), "##construct_section%u", r);
++            ImGui::SetCursorScreenPos(ImVec2(Rx, Ry));
++            ImGui::InvisibleButton(Id, ImVec2(kRailW - 12.0f, 36.0f));
++            const bool Hot = ImGui::IsItemHovered();
++            if (Hot && ImGui::IsMouseClicked(0))
++                ConstructSection_ = r;
++            const bool On = ConstructSection_ == r;
++            if (On || Hot)
++                Draw->AddRectFilled(ImVec2(Rx, Ry), ImVec2(Rx + kRailW - 12.0f, Ry + 36.0f), On ? IM_COL32(255, 255, 255, 26) : IM_COL32(255, 255, 255, 12), 7.0f);
++            Draw->AddText(Small, 11.0f, ImVec2(Rx + 10.0f, Ry + 18.0f - 6.5f), On || Hot ? kText : kDim, Sections[r]);
++            char Count[12];
++            std::snprintf(Count, sizeof(Count), "%u", Counts[r]);
++            const ImVec2 CountSize = Mono->CalcTextSizeA(9.0f, FLT_MAX, 0.0f, Count);
++            Draw->AddText(Mono, 9.0f, ImVec2(Rx + kRailW - 12.0f - 8.0f - CountSize.x, Ry + 18.0f - CountSize.y * 0.5f), kFaint, Count);
++            ConstructRailX_[r] = Rx + 20.0f;
++            ConstructRailY_[r] = Ry + 18.0f;
++        }
++
++        // The tiles of the shown section.
++        constexpr float kPad = 10.0f, kGapT = 6.0f, kTileH = 72.0f;
++        const float GridX = Origin.x + kRailW + kPad;
++        const float GridY = Origin.y + kHeadH + kPad;
++        const float TileW = (kMenuW - kRailW - 2.0f * kPad - 3.0f * kGapT) / 4.0f;
++        uint32_t Slot = 0u;
++        for (uint32_t i = 0u; i < ConstructTileCount_; ++i)
++        {
++            if (SectionCount == 0u || std::strcmp(ConstructTiles_[i].Section, Sections[ConstructSection_]) != 0)
++                continue;
++            const float Tx = GridX + static_cast<float>(Slot % 4u) * (TileW + kGapT);
++            const float Ty = GridY + static_cast<float>(Slot / 4u) * (kTileH + kGapT);
++            ++Slot;
++            char Id[40];
++            std::snprintf(Id, sizeof(Id), "##construct_tile%u", i);
++            ImGui::SetCursorScreenPos(ImVec2(Tx, Ty));
++            ImGui::InvisibleButton(Id, ImVec2(TileW, kTileH));
++            const bool Hot = ImGui::IsItemHovered();
++            Draw->AddRectFilled(ImVec2(Tx, Ty), ImVec2(Tx + TileW, Ty + kTileH), Hot ? IM_COL32(255, 255, 255, 30) : IM_COL32(255, 255, 255, 12), 8.0f);
++            Draw->AddRect(ImVec2(Tx, Ty), ImVec2(Tx + TileW, Ty + kTileH), Hot ? IM_COL32(255, 255, 255, 60) : kStroke, 8.0f);
++            DrawConstructGlyph(Draw, ConstructTiles_[i].Glyph, ImVec2(Tx + TileW * 0.5f, Ty + 28.0f), 24.0f, kText);
++            TextCentred(ConstructTiles_[i].Label, Tx + TileW * 0.5f, Ty + 50.0f, Hot ? kText : kDim, Small, 10.0f);
++            if (ConstructTiles_[i].Key != nullptr && ConstructTiles_[i].Key[0] != '\0')
++            {
++                const ImVec2 KeySize = Mono->CalcTextSizeA(9.0f, FLT_MAX, 0.0f, ConstructTiles_[i].Key);
++                Draw->AddRectFilled(ImVec2(Tx + TileW - 8.0f - KeySize.x, Ty + 5.0f), ImVec2(Tx + TileW - 3.0f, Ty + 18.0f), IM_COL32(255, 255, 255, 16), 5.0f);
++                Draw->AddText(Mono, 9.0f, ImVec2(Tx + TileW - 5.5f - KeySize.x, Ty + 11.5f - KeySize.y * 0.5f), kFaint, ConstructTiles_[i].Key);
++            }
++            ConstructTileX_[i]    = Tx + TileW * 0.5f;
++            ConstructTileY_[i]    = Ty + kTileH * 0.5f;
++            ConstructTileSeen_[i] = true;
++            if (Hot && ImGui::IsMouseClicked(0))
++            {
++                ConstructPick_ = i;
++                ImGui::CloseCurrentPopup();
++            }
++        }
++
++        // The foot.
++        Draw->AddLine(ImVec2(Origin.x + kRailW, Origin.y + kMenuH - kFootH), ImVec2(Origin.x + kMenuW, Origin.y + kMenuH - kFootH), kStroke);
++        Draw->AddText(Small, 10.0f, ImVec2(Origin.x + kRailW + 12.0f, Origin.y + kMenuH - kFootH * 0.5f - 6.0f), kFaint, "Click a tile: it is placed at the next free spot on the workplane");
++        ImGui::EndPopup();
++    }
++    ImGui::PopStyleVar(2);
++    ImGui::PopStyleColor(2);
++}
++
+ void ViewportPanel::RecordSolidArcBar() noexcept
+ {
+     const float RowWidth = ImGui::GetContentRegionAvail().x;
+@@ -709,21 +1015,26 @@ void ViewportPanel::RecordSolidArcBar() noexcept
+     const float MidY = Cursor.y + BarH * 0.5f;
+     float X = StartX;
+ 
+-    // The Construct chip: the plus and the word.
++    // The Construct chip: the plus and the word. A click or Tab hangs the menu from it; a click away or Esc closes it.
++    float MenuX = X, MenuY = Cursor.y + BarH + 2.0f;
+     if (X + ConstructW <= EndX)
+     {
+         const float Y = MidY - kToolH * 0.5f;
+         ImGui::SetCursorScreenPos(ImVec2(X, Y));
+         ImGui::InvisibleButton("##solidarc_construct", ImVec2(ConstructW, kToolH));
+         const bool Hot = ImGui::IsItemHovered();
+-        Draw->AddRectFilled(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), Hot ? IM_COL32(255, 255, 255, 20) : IM_COL32(0, 0, 0, 95), kToolH * 0.5f);
+-        Draw->AddRect(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), Hot ? IM_COL32(255, 255, 255, 44) : kStroke, kToolH * 0.5f);
++        const bool Shown = ImGui::IsPopupOpen("##solidarc_construct_menu");
++        if ((Hot && ImGui::IsMouseClicked(0) && !Shown) || (ImGui::IsWindowHovered() && ImGui::IsKeyPressed(ImGuiKey_Tab, false) && !Shown))
++            ImGui::OpenPopup("##solidarc_construct_menu");
++        Draw->AddRectFilled(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), (Hot || Shown) ? IM_COL32(255, 255, 255, 34) : IM_COL32(0, 0, 0, 95), kToolH * 0.5f);
++        Draw->AddRect(ImVec2(X, Y), ImVec2(X + ConstructW, Y + kToolH), (Hot || Shown) ? IM_COL32(255, 255, 255, 44) : kStroke, kToolH * 0.5f);
+         const ImU32 Cyan = IM_COL32(79, 216, 224, 255);
+         Draw->AddLine(ImVec2(X + 10.0f, MidY), ImVec2(X + 18.0f, MidY), Cyan, 1.5f);
+         Draw->AddLine(ImVec2(X + 14.0f, MidY - 4.0f), ImVec2(X + 14.0f, MidY + 4.0f), Cyan, 1.5f);
+         TextAt("Construct", X + 24.0f, Y, kText);
+         X += ConstructW + kGap;
+     }
++    DrawConstructMenu(MenuX, MenuY);
+ 
+     // One capsule of icon buttons. Mask segments toggle with Shift held, as the web rail's modes combine; the rest pick one.
+     auto Segment = [&](const char* Group, const RailIcon* Icons, const char* const* Titles, uint32_t Count, uint32_t* Picked, bool Combine) noexcept
+diff --git a/Frontier/Engine/Editor/ViewportPanel.h b/Frontier/Engine/Editor/ViewportPanel.h
+index 320c6df..aa1dbde 100644
+--- a/Frontier/Engine/Editor/ViewportPanel.h
++++ b/Frontier/Engine/Editor/ViewportPanel.h
+@@ -28,6 +28,23 @@ enum class ViewportPanelChrome : uint32_t
+     SolidArcCad,
+ };
+ 
++// One tile of SolidArc's Construct menu. The host owns the list; the panel draws the menu and reports which tile was
++//    chosen, and never learns what a tile builds. Section names the rail entry the tile sits under, Glyph picks the
++//    drawn symbol (a ConstructGlyph), Key is the accelerator written in the tile's corner (null or empty for none).
++enum class ConstructGlyph : uint32_t
++{
++    Plane, Empty, Line, Polyline, Rectangle, CentreRectangle, Slot, Circle, Arc, Ellipse, Polygon, Spline, ControlCurve,
++    Box, Sphere, Cylinder, Cone, Torus, Patch,
++};
++
++struct ViewportConstructTile
++{
++    const char*    Section;
++    const char*    Label;
++    ConstructGlyph Glyph;
++    const char*    Key;
++};
++
+ // The viewport's orbit: yaw and pitch around a target at a distance, the projection in use, and which
+ //    compass snap posed it (home reads free). The harness seats home from its own camera; the views menu,
+ //    the gizmo and the wheel rewrite the figures and bump Revision, and the harness re-poses its trace
+@@ -88,6 +105,13 @@ public:
+     [[nodiscard]] uint32_t QuerySolidArcSelectMask() const noexcept { return SolidArcSelectMask_; }
+     [[nodiscard]] uint32_t QuerySolidArcShade() const noexcept { return SolidArcShade_; }
+     [[nodiscard]] uint32_t QuerySolidArcGizmo() const noexcept { return SolidArcGizmo_; }
++    // SolidArc's Construct menu: the host seats its tiles, then reads one pick per click (consumed by the read). The
++    //    seam reads give the proof the centres the menu last drew, so it clicks what the user would click.
++    void AssignConstructTiles(const ViewportConstructTile* Tiles, uint32_t Count) noexcept;
++    [[nodiscard]] bool QueryConstructPick(uint32_t* Index) noexcept;
++    [[nodiscard]] bool QueryConstructOpen() const noexcept { return ConstructShown_; }
++    [[nodiscard]] bool QueryConstructTileCentre(uint32_t Index, float* X, float* Y) const noexcept;
++    [[nodiscard]] bool QueryConstructSectionCentre(uint32_t Section, float* X, float* Y) const noexcept;
+     [[nodiscard]] float QueryViewWidth() const noexcept { return LastW_; }
+     [[nodiscard]] float QueryViewHeight() const noexcept { return LastH_; }
+ 
+@@ -103,6 +127,7 @@ public:
+ private:
+     void RecordBar() noexcept;
+     void RecordSolidArcBar() noexcept;
++    void DrawConstructMenu(float MenuX, float MenuY) noexcept;
+     void RecordView() noexcept;
+     void RecordCommand(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
+     void RecordFooter(EditorInstance* Instances, uint32_t InstanceCount) noexcept;
+@@ -158,6 +183,18 @@ private:
+     uint32_t SolidArcSelectMask_ = 1u;   // Body, Face, Edge, Vertex bits: the web rail's selection modes
+     uint32_t SolidArcShade_      = 1u;   // 0 Wireframe, 1 Matcap
+     uint32_t SolidArcGizmo_      = 0u;   // 0 Move, 1 Rotate, 2 Scale
++    static constexpr uint32_t kConstructTileCap = 64u;
++    const ViewportConstructTile* ConstructTiles_ = nullptr;
++    uint32_t ConstructTileCount_ = 0u;
++    uint32_t ConstructSection_   = 0u;                   // the rail entry whose tiles show
++    uint32_t ConstructPick_      = 0xFFFFFFFFu;          // the tile chosen, until read
++    bool     ConstructShown_     = false;                // the menu was drawn this frame
++    float    ConstructTileX_[kConstructTileCap] = {};
++    float    ConstructTileY_[kConstructTileCap] = {};
++    bool     ConstructTileSeen_[kConstructTileCap] = {};
++    float    ConstructRailX_[8] = {};
++    float    ConstructRailY_[8] = {};
++    uint32_t ConstructRailCount_ = 0u;
+     bool     DockLeft_  = true;
+     bool     DockRight_ = true;
+ 
+diff --git a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+index c68c797..1ed88b1 100644
+--- a/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
++++ b/Frontier/Exhibits/Workbench/Editor/SolidArcEditorProof.cpp
+@@ -241,6 +241,13 @@ int main()
+     };
+     auto Rasterise = [&]()
+     {
++        // The viewport shows what the document draws now, not the frame the proof opened with.
++        Preview = Host.Raster().Readback();
++        gSolidArcRgba = Preview.Pixels.empty() ? nullptr : Preview.Pixels.data();
++        gSolidArcW = Preview.Width;
++        gSolidArcH = Preview.Height;
++        // The font atlas grows when new glyph sizes appear, so the sheet is read again for every frame.
++        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&GlyphSheet, &GlyphSheetWidth, &GlyphSheetHeight);
+         for (size_t I = 0u; I < Pixels.size(); I += 3u)
+         {
+             Pixels[I] = kGround[0]; Pixels[I + 1u] = kGround[1]; Pixels[I + 2u] = kGround[2];
+@@ -760,6 +767,125 @@ int main()
+             return 16;
+         std::fprintf(stderr, "[SolidArcEditorProof] inspector shots written for every object\n");
+     }
++
++    // Gate 10 - the Construct menu opens from its chip, shows its four sections, and every tile it offers places a figure that
++    //    draws: the figure count grows by one, the new figure is the picked one, and the raster (with the selection cleared,
++    //    so only the figure itself can have changed it) differs from the raster before.
++    {
++        gWidth  = 1280;
++        gHeight = 720;
++        IO.DisplaySize = ImVec2(static_cast<float>(gWidth), static_cast<float>(gHeight));
++        Pixels.assign(static_cast<size_t>(gWidth) * static_cast<size_t>(gHeight) * 3u, 0u);
++        Editor.ReseatLayout();
++        auto Settle = [&](int Ticks = 6)
++        {
++            for (int I = 0; I < Ticks; ++I)
++                Rest();
++        };
++        constexpr float kChipX = 350.0f, kChipY = 62.0f;
++        Settle(10);
++        Click(kChipX, kChipY);
++        Settle();
++        if (!Editor.QueryConstructOpen())
++            Fail("the Construct chip did not open the menu");
++        Rasterise();
++        std::filesystem::create_directories("Exhibits/Gallery/Editor/SolidArcConstruct");
++        if (const int Write = WriteSheet("Exhibits/Gallery/Editor/SolidArcConstruct/Menu_Reference.png", 8); Write != 0)
++            return Write;
++        const char* const SectionFile[4] = { "Menu_Reference", "Menu_Sketch", "Menu_Solid", "Menu_Surface" };
++        for (uint32_t Section = 0u; Section < 4u; ++Section)
++        {
++            float Sx = 0.0f, Sy = 0.0f;
++            if (!Editor.QueryConstructSectionCentre(Section, &Sx, &Sy))
++            {
++                Fail("the Construct menu is missing a section");
++                continue;
++            }
++            Click(Sx, Sy);
++            Settle();
++            Rasterise();
++            char File[160];
++            std::snprintf(File, sizeof(File), "Exhibits/Gallery/Editor/SolidArcConstruct/%s.png", SectionFile[Section]);
++            if (const int Write = WriteSheet(File, 8); Write != 0)
++                return Write;
++        }
++        // Esc shuts it, and the chip opens it again.
++        IO.AddKeyEvent(ImGuiKey_Escape, true);
++        Settle(2);
++        IO.AddKeyEvent(ImGuiKey_Escape, false);
++        Settle(2);
++        const bool ShutByEscape = !Editor.QueryConstructOpen();
++        if (!ShutByEscape)
++            Fail("Escape did not close the Construct menu");
++
++        const uint32_t Tiles = Frontier::SolidArcEditorHost::QueryConstructTileCount();
++        uint32_t Drawn = 0u;
++        for (uint32_t Tile = 0u; Tile < Tiles; ++Tile)
++        {
++            Run(Host, "select none");
++            Host.Render();
++            const std::vector<unsigned char> Before = Host.Raster().Readback().Pixels;
++            const size_t FiguresBefore = Host.AllFigures().size();
++
++            if (!Editor.QueryConstructOpen())
++            {
++                Click(kChipX, kChipY);
++                Settle();
++            }
++            bool Seen = false;
++            float Tx = 0.0f, Ty = 0.0f;
++            for (uint32_t Section = 0u; Section < 4u && !Seen; ++Section)
++            {
++                float Sx = 0.0f, Sy = 0.0f;
++                if (!Editor.QueryConstructSectionCentre(Section, &Sx, &Sy))
++                    break;
++                Click(Sx, Sy);
++                Settle(3);
++                Seen = Editor.QueryConstructTileCentre(Tile, &Tx, &Ty);
++            }
++            if (!Seen)
++            {
++                std::fprintf(stderr, "[SolidArcEditorProof] construct tile %u: not reachable in the menu\n", Tile);
++                Fail("a Construct tile cannot be reached through the menu");
++                continue;
++            }
++            Click(Tx, Ty);
++            Settle(4);
++            if (Editor.QueryConstructOpen())
++                Fail("the menu stayed open after a tile was chosen");
++            const size_t FiguresAfter = Host.AllFigures().size();
++            if (FiguresAfter != FiguresBefore + 1u)
++            {
++                std::fprintf(stderr, "[SolidArcEditorProof] construct tile %u: figures %zu -> %zu\n", Tile, FiguresBefore, FiguresAfter);
++                Fail("a Construct tile did not place exactly one figure");
++                continue;
++            }
++            const Frontier::SceneFigure& Made = Host.AllFigures().back();
++            Run(Host, "select none");
++            Host.Render();
++            const std::vector<unsigned char> After = Host.Raster().Readback().Pixels;
++            size_t Changed = 0u;
++            for (size_t I = 0u; I + 3u < Before.size() && I + 3u < After.size(); I += 4u)
++                if (std::abs(static_cast<int>(Before[I]) - static_cast<int>(After[I])) + std::abs(static_cast<int>(Before[I + 1u]) - static_cast<int>(After[I + 1u]))
++                    + std::abs(static_cast<int>(Before[I + 2u]) - static_cast<int>(After[I + 2u])) > 24)
++                    ++Changed;
++            std::fprintf(stderr, "[SolidArcEditorProof] construct tile %2u -> %-14s drew %5zu changed pixels\n", Tile, Made.Name.c_str(), Changed);
++            if (Changed < 20u)
++                Fail("a Construct figure placed but nothing of it is drawn");
++            else
++                ++Drawn;
++        }
++        std::fprintf(stderr, "[SolidArcEditorProof] Construct menu: %u of %u tiles placed a figure that draws\n", Drawn, Tiles);
++        if (Drawn != Tiles)
++            Fail("not every Construct tile draws");
++        Run(Host, "view fit");
++        Settle(10);
++        Rasterise();
++        if (const int Write = WriteSheet("Exhibits/Gallery/Editor/SolidArcConstruct/Placed_All.png", 8); Write != 0)
++            return Write;
++        if (Failed)
++            return 17;
++    }
+     ImGui::DestroyContext();
+     return 0;
+ }
+-- 
+2.39.5
+
