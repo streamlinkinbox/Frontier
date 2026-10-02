@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SolidArc Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------------------------------------------
+   TOKENS
+--------------------------------------------------------------------------------------------------------------- */
+:root
+{
+    --ground:   #0c0d0f;
+    --panel:    #101113;
+    --ink:      #eceef2;
+    --soft:     #b9bcc4;
+    --dim:      #7b7f89;
+    --faint:    #51545c;
+    --hair:     rgba(255,255,255,.075);
+    --hair-hi:  rgba(255,255,255,.14);
+    --well:     rgba(255,255,255,.045);
+    --well-hi:  rgba(255,255,255,.085);
+    --x:        #ef5350;
+    --y:        #66d678;
+    --z:        #569cff;
+    --green:    #34c759;
+    --red:      #ff453a;
+    --amber:    #ffb454;
+    --violet:   #b48cff;
+    --cyan:     #4fd8e0;
+    --rose:     #ff6b8a;
+    --sans:     "Outfit", "Segoe UI Light", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body
+{
+    background: radial-gradient(1200px 700px at 70% -10%, #1b1d22 0%, var(--ground) 60%) fixed;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   VIEWPORT (context only: it shows the fields working)
+--------------------------------------------------------------------------------------------------------------- */
+.viewport { position: relative; min-width: 0; }
+.viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.viewport canvas:active { cursor: grabbing; }
+.vp-chip
+{
+    position: absolute; left: 22px; top: 20px; display: flex; gap: 8px; align-items: center;
+    padding: 8px 14px; border-radius: 999px; background: rgba(30,31,35,.7); border: 1px solid var(--hair);
+    backdrop-filter: blur(14px); font-size: 13px; color: var(--soft);
+}
+.vp-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.vp-hint { position: absolute; left: 22px; bottom: 18px; font-size: 12px; color: var(--faint); letter-spacing: .02em; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   PANEL SHELL
+--------------------------------------------------------------------------------------------------------------- */
+.panel
+{
+    position: relative; display: flex; flex-direction: column; min-height: 0; height: 100vh;
+    background: var(--panel); border-left: 1px solid var(--hair);
+}
+.tabbar { height: 44px; flex: none; display: flex; align-items: flex-end; padding: 0 14px; background: #0a0b0c; }
+.tab
+{
+    position: relative; height: 34px; padding: 0 16px 0 18px; display: flex; align-items: center; gap: 12px;
+    font-size: 13px; font-weight: 400; color: var(--ink); background: var(--panel);
+    clip-path: polygon(0 100%, 8px 0, calc(100% - 14px) 0, 100% 100%);
+}
+.tab span { color: var(--dim); font-size: 15px; line-height: 1; }
+.scroll
+{
+    flex: 1; min-height: 0; overflow-y: auto; padding: 14px 14px 22px; scroll-behavior: smooth;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.12) transparent;
+}
+.footer
+{
+    flex: none; height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+    border-top: 1px solid var(--hair); background: rgba(255,255,255,.02); font-size: 12px; color: var(--dim);
+}
+.footer b { font-weight: 400; color: var(--ink); }
+.footer .ok { color: var(--green); font-weight: 400; }
+.footer .faint { color: var(--faint); letter-spacing: .1em; font-size: 10.5px; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   GLASS CARD
+--------------------------------------------------------------------------------------------------------------- */
+.card
+{
+    position: relative; margin-bottom: 12px; border-radius: 22px; padding: 18px 18px 18px;
+    background: linear-gradient(180deg, rgba(255,255,255,.058) 0%, rgba(255,255,255,.022) 55%, rgba(255,255,255,.03) 100%), #17181b;
+    border: 1px solid var(--hair);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 18px 40px -22px rgba(0,0,0,.8);
+}
+.card.lit::before
+{
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(260px 160px at 85% 0%, rgba(180,190,170,.16), transparent 70%);
+}
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.title { font-size: 17px; font-weight: 300; letter-spacing: .005em; color: var(--ink); line-height: 1.2; }
+.sub { margin-top: 4px; font-size: 12px; font-weight: 300; color: var(--dim); letter-spacing: .01em; }
+.go
+{
+    flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--dim);
+    transition: color .15s, background .15s, transform .25s;
+}
+.go:hover { color: var(--ink); background: var(--well-hi); }
+.go svg { width: 13px; height: 13px; }
+.card.shut .go { transform: rotate(90deg); }
+.fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .28s ease; }
+.fold > div { overflow: hidden; min-height: 0; }
+.card.shut .fold { grid-template-rows: 0fr; }
+.body { padding-top: 16px; }
+.card.shut { padding-bottom: 14px; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   HEADER CARD
+--------------------------------------------------------------------------------------------------------------- */
+.ident { display: flex; gap: 14px; align-items: center; }
+.tile
+{
+    flex: none; width: 54px; height: 54px; border-radius: 17px; display: grid; place-items: center;
+    background: rgba(255,180,84,.14); border: 1px solid rgba(255,180,84,.45);
+}
+.tile svg { width: 26px; height: 26px; }
+.name
+{
+    width: 100%; background: transparent; border: 0; outline: 0; font-size: 26px; font-weight: 300; letter-spacing: -.005em;
+    padding: 0 0 2px; border-bottom: 1px solid transparent; transition: border-color .15s;
+}
+.name:hover { border-bottom-color: var(--hair-hi); }
+.name:focus { border-bottom-color: var(--cyan); }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill
+{
+    display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-radius: 999px;
+    background: var(--well); border: 1px solid var(--hair); font-size: 12.5px; color: var(--soft); white-space: nowrap;
+    transition: background .15s, border-color .15s, color .15s;
+}
+button.pill:hover { background: var(--well-hi); }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+.pill.on { color: var(--green); border-color: rgba(52,199,89,.38); background: rgba(52,199,89,.07); }
+.pill.on i { background: var(--green); box-shadow: 0 0 8px rgba(52,199,89,.7); }
+.pill.warn.on { color: var(--amber); border-color: rgba(255,180,84,.38); background: rgba(255,180,84,.07); }
+.pill.warn.on i { background: var(--amber); box-shadow: 0 0 8px rgba(255,180,84,.6); }
+.pill.mono svg { width: 14px; height: 14px; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   PILL NAV
+--------------------------------------------------------------------------------------------------------------- */
+.nav { display: flex; gap: 8px; margin: 0 0 12px; overflow-x: auto; scrollbar-width: none; }
+.nav button
+{
+    flex: none; height: 38px; padding: 0 17px; border-radius: 999px; font-size: 13.5px; color: var(--soft);
+    background: rgba(255,255,255,.03); border: 1px solid var(--hair); transition: all .18s;
+}
+.nav button:hover { color: var(--ink); background: var(--well); }
+.nav button.on { color: var(--ink); background: rgba(255,255,255,.1); border-color: var(--hair-hi); font-weight: 400; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   STAT TILES
+--------------------------------------------------------------------------------------------------------------- */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat
+{
+    position: relative; height: 92px; padding: 14px 16px; border-radius: 20px; background: rgba(255,255,255,.04);
+    border: 1px solid var(--hair); display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+.stat .ic { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; }
+.stat .ic svg { width: 13px; height: 13px; }
+.stat .lb { font-size: 13.5px; color: var(--soft); }
+.stat .nm { position: absolute; right: 16px; bottom: 12px; font-size: 38px; font-weight: 200; letter-spacing: -.02em; line-height: 1; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   HERO NUMBER + SPARK
+--------------------------------------------------------------------------------------------------------------- */
+.hero { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; }
+.hero .big { font-size: 56px; font-weight: 200; letter-spacing: -.03em; line-height: 1; }
+.big .dec, .num .dec { color: var(--faint); }
+.hero .unit { font-size: 15px; color: var(--dim); }
+.hero .note { margin-left: auto; font-size: 12px; color: var(--dim); text-align: right; }
+.tgt { margin-top: 18px; font-size: 12px; color: var(--dim); }
+.spark { margin-top: 6px; width: 100%; height: 108px; display: block; overflow: visible; }
+.spark text { fill: var(--dim); font-size: 10.5px; font-family: var(--sans); font-weight: 300; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   XYZ ROWS + SLIDERS
+--------------------------------------------------------------------------------------------------------------- */
+.group + .group { margin-top: 20px; }
+.ghead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.caps { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim); font-weight: 400; }
+.unit-tag { font-size: 11.5px; color: var(--faint); margin-left: 6px; letter-spacing: .02em; text-transform: none; }
+.mini
+{
+    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11.5px;
+    color: var(--dim); border: 1px solid var(--hair); transition: all .15s;
+}
+.mini:hover { color: var(--ink); background: var(--well); }
+.mini.on { color: var(--cyan); border-color: rgba(79,216,224,.4); background: rgba(79,216,224,.07); }
+.mini svg { width: 12px; height: 12px; }
+
+.axis { display: grid; grid-template-columns: 30px minmax(0, 1fr) 92px; gap: 12px; align-items: center; height: 40px; }
+.badge
+{
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 500;
+    cursor: ew-resize; user-select: none; touch-action: none; border: 1px solid transparent; transition: border-color .15s, background .15s;
+}
+.badge:hover { border-color: currentColor; }
+.axis[data-a="0"] .badge { color: var(--x); background: rgba(239,83,80,.14); }
+.axis[data-a="1"] .badge { color: var(--y); background: rgba(102,214,120,.13); }
+.axis[data-a="2"] .badge { color: var(--z); background: rgba(86,156,255,.14); }
+.axis[data-a="0"] { --c: var(--x); }
+.axis[data-a="1"] { --c: var(--y); }
+.axis[data-a="2"] { --c: var(--z); }
+
+.slider { position: relative; height: 28px; cursor: pointer; touch-action: none; outline: 0; }
+.slider .rail { position: absolute; left: 0; right: 0; top: 13px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.1); }
+.slider .zero { position: absolute; top: 9px; width: 1px; height: 11px; background: rgba(255,255,255,.22); }
+.slider .fill { position: absolute; top: 13px; height: 3px; border-radius: 3px; background: var(--c, var(--cyan)); opacity: .9; }
+.slider .knob
+{
+    position: absolute; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #f2f3f6;
+    border: 2px solid var(--c, var(--cyan)); box-shadow: 0 2px 8px rgba(0,0,0,.5); transition: transform .12s;
+}
+.slider:hover .knob, .slider:focus-visible .knob { transform: scale(1.18); }
+.slider:focus-visible .knob { box-shadow: 0 0 0 4px rgba(255,255,255,.14); }
+
+.field
+{
+    width: 100%; height: 34px; border-radius: 13px; background: var(--well); border: 1px solid var(--hair); outline: 0;
+    padding: 0 12px; text-align: right; font-size: 14.5px; font-weight: 300; font-variant-numeric: tabular-nums; transition: border-color .15s, background .15s;
+}
+.field:hover { background: var(--well-hi); }
+.field:focus { border-color: var(--c, var(--cyan)); background: rgba(255,255,255,.07); }
+.readonly .field { color: var(--soft); background: transparent; cursor: default; }
+.readonly .badge { cursor: default; }
+.readonly .badge:hover { border-color: transparent; }
+
+/* single parameter slider rows */
+.prow { display: grid; grid-template-columns: 68px minmax(0, 1fr) 92px; gap: 12px; align-items: center; height: 42px; --c: var(--cyan); }
+.prow .pl { font-size: 13.5px; color: var(--soft); }
+.prow .pl small { display: block; font-size: 11px; color: var(--faint); margin-top: 1px; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   BOUNDS TABLE
+--------------------------------------------------------------------------------------------------------------- */
+.btable { margin-top: 18px; display: grid; grid-template-columns: 64px repeat(3, 1fr); row-gap: 10px; align-items: center; }
+.btable .h { font-size: 10.5px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; font-weight: 400; }
+.btable .h:nth-child(2) { color: var(--x); } .btable .h:nth-child(3) { color: var(--y); } .btable .h:nth-child(4) { color: var(--z); }
+.btable .r { font-size: 12.5px; color: var(--dim); }
+.btable .v
+{
+    justify-self: start; min-width: 62px; padding: 5px 10px; border-radius: 999px; background: var(--well); border: 1px solid var(--hair);
+    font-size: 12.5px; color: var(--soft); font-variant-numeric: tabular-nums; text-align: center;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   ROWS, SWITCH, SELECT, SWATCHES
+--------------------------------------------------------------------------------------------------------------- */
+.row { display: flex; align-items: center; justify-content: space-between; min-height: 42px; }
+.row + .row { border-top: 1px solid var(--hair); }
+.row .k { font-size: 13.5px; color: var(--soft); }
+.row .v { font-size: 13.5px; color: var(--ink); }
+.switch { width: 46px; height: 26px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; transition: background .2s; flex: none; }
+.switch::after
+{
+    content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #d9dbe0;
+    transition: transform .2s, background .2s; box-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+.switch.on { background: rgba(52,199,89,.85); }
+.switch.on::after { transform: translateX(20px); background: #fff; }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button
+{
+    height: 32px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: var(--soft); background: var(--well); border: 1px solid var(--hair);
+    transition: all .15s;
+}
+.seg button:hover { color: var(--ink); background: var(--well-hi); }
+.seg button.on { color: var(--ink); border-color: var(--hair-hi); background: rgba(255,255,255,.12); font-weight: 400; }
+.swatches { display: flex; gap: 12px; padding: 6px 4px 4px; }
+.sw { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; outline: 1px solid rgba(255,255,255,.12); outline-offset: 2px; transition: transform .15s; }
+.sw:hover { transform: scale(1.12); }
+.sw.on { border-color: #0e0f11; outline: 2px solid var(--ink); }
+.cap { margin: 16px 0 8px; }
+textarea.notes
+{
+    width: 100%; height: 92px; resize: vertical; border-radius: 16px; background: var(--well); border: 1px solid var(--hair); outline: 0;
+    padding: 12px 14px; font-size: 13.5px; font-weight: 300; line-height: 1.45; transition: border-color .15s;
+}
+textarea.notes:focus { border-color: var(--hair-hi); }
+textarea.notes::placeholder { color: var(--faint); }
+
+@media (max-width: 860px)
+{
+    body { grid-template-columns: 1fr; overflow: auto; }
+    .viewport { display: none; }
+    .panel { height: 100vh; }
+}
+</style>
+</head>
+<body>
+
+<section class="viewport">
+    <canvas id="view"></canvas>
+    <div class="vp-chip"><i></i><span id="vpName">Body01</span><span style="color:var(--faint)">&nbsp;&middot; Construct</span></div>
+    <div class="vp-hint">Drag to orbit &nbsp;&middot;&nbsp; edit the inspector and the body follows</div>
+</section>
+
+<aside class="panel">
+    <div class="tabbar"><div class="tab">SolidArc Inspector <span>&times;</span></div></div>
+
+    <div class="scroll" id="scroll">
+
+        <!-- header -->
+        <section class="card lit" id="c-object">
+            <div class="head">
+                <div class="ident" style="flex:1;min-width:0">
+                    <div class="tile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ffb454" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+                            <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>
+                        </svg>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <input class="name" id="name" value="Body01" spellcheck="false" aria-label="Object name">
+                        <div class="sub" id="subline">Body &middot; box &middot; #006</div>
+                    </div>
+                </div>
+                <button class="go" aria-label="Frame in viewport" id="frame">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg>
+                </button>
+            </div>
+            <div class="pills">
+                <button class="pill on" id="pVisible"><i></i>Visible</button>
+                <button class="pill warn" id="pLocked"><i></i>Locked</button>
+                <span class="pill on"><i></i>B-rep solid</span>
+                <span class="pill mono">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 6.5 12 13 4.5"/></svg>Manifold
+                </span>
+            </div>
+        </section>
+
+        <!-- pill nav -->
+        <nav class="nav" id="nav">
+            <button class="on" data-t="c-object">Object</button>
+            <button data-t="c-transform">Transform</button>
+            <button data-t="c-geometry">Geometry</button>
+            <button data-t="c-bounds">Bounds</button>
+            <button data-t="c-param">Parameters</button>
+            <button data-t="c-look">Look</button>
+        </nav>
+
+        <!-- stat tiles -->
+        <div class="stats" id="c-geometry">
+            <div class="stat"><span class="ic" style="background:rgba(77,163,255,.16);color:#4da3ff"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="10" height="10" rx="2"/></svg></span><span class="lb">Faces</span><span class="nm">6</span></div>
+            <div class="stat"><span class="ic" style="background:rgba(79,216,224,.16);color:#4fd8e0"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 11.5 11.5 2.5"/></svg></span><span class="lb">Edges</span><span class="nm">12</span></div>
+            <div class="stat"><span class="ic" style="background:rgba(255,180,84,.16);color:#ffb454"><svg viewBox="0 0 14 14" fill="currentColor"><circle cx="7" cy="7" r="3.2"/></svg></span><span class="lb">Vertices</span><span class="nm">8</span></div>
+            <div class="stat"><span class="ic" style="background:rgba(180,140,255,.16);color:#b48cff"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M2.5 7h9"/></svg></span><span class="lb">Euler &chi;</span><span class="nm">2</span></div>
+        </div>
+
+        <!-- volume hero -->
+        <section class="card" id="c-volume">
+            <div class="head"><div><div class="title">Volume</div><div class="sub">Closed shell &middot; live from the transform</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body" style="padding-top:0">
+                <div class="hero"><span class="big" id="vol">1.92</span><span class="unit">m&sup3;</span><span class="note">Surface area<br><b style="font-weight:300;color:var(--soft)" id="area">10.24 m&sup2;</b></span></div>
+                <div class="tgt">Edit history</div>
+                <svg class="spark" id="spark" viewBox="0 0 340 108" preserveAspectRatio="none"></svg>
+            </div></div></div>
+        </section>
+
+        <!-- transform -->
+        <section class="card" id="c-transform">
+            <div class="head"><div><div class="title">Transform</div><div class="sub">World space &middot; about the pivot</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body" id="tf"></div></div></div>
+        </section>
+
+        <!-- bounds -->
+        <section class="card" id="c-bounds">
+            <div class="head"><div><div class="title">Bounds</div><div class="sub">Axis-aligned box after transform</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body" style="padding-top:0">
+                <div class="hero"><span class="big" style="font-size:44px" id="ext0">2.4</span><span class="unit" style="font-size:22px;color:var(--faint)">&times;</span><span class="big" style="font-size:44px" id="ext1">1.0</span><span class="unit" style="font-size:22px;color:var(--faint)">&times;</span><span class="big" style="font-size:44px" id="ext2">0.8</span><span class="unit">m</span></div>
+                <div class="btable" id="btable"></div>
+            </div></div></div>
+        </section>
+
+        <!-- parameters -->
+        <section class="card" id="c-param">
+            <div class="head"><div><div class="title">Parameters</div><div class="sub">Parametric blueprint &middot; box</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body" id="pm"></div></div></div>
+        </section>
+
+        <!-- look -->
+        <section class="card" id="c-look">
+            <div class="head"><div><div class="title">Look</div><div class="sub">Identity, shading and tint</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body" style="padding-top:8px">
+                <div class="row"><span class="k">Class</span><span class="v">Body</span></div>
+                <div class="row"><span class="k">Form</span><span class="v">box</span></div>
+                <div class="row"><span class="k">Construction</span><button class="switch" id="swCon" role="switch" aria-checked="false" aria-label="Construction"></button></div>
+                <div class="caps cap">Matcap</div>
+                <div class="seg" id="matcap"></div>
+                <div class="caps cap">Tint</div>
+                <div class="swatches" id="tint"></div>
+            </div></div></div>
+        </section>
+
+        <!-- notes -->
+        <section class="card" id="c-notes">
+            <div class="head"><div><div class="title">Notes</div><div class="sub">Scratch text kept with the object</div></div>
+                <button class="go" aria-label="Fold"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12 12 2M5 2h7v7"/></svg></button></div>
+            <div class="fold"><div><div class="body"><textarea class="notes" placeholder="Anything worth remembering about this body&hellip;"></textarea></div></div></div>
+        </section>
+    </div>
+
+    <div class="footer"><span>Geometry</span><span><span class="faint">FPS</span> <span class="ok">60</span> &nbsp;&middot;&nbsp; <span class="faint">TRIS</span> <b id="tris">11 320</b></span></div>
+</aside>
+
+<script>
+(() =>
+{
+    "use strict";
+
+    /* ------------------------------------------------------------------------------------------------------------
+       STATE
+    ------------------------------------------------------------------------------------------------------------ */
+    const state =
+    {
+        pos:    [0, 0, 0.4],
+        rot:    [0, 0, 0],
+        scl:    [1, 1, 1],
+        param:  [2.4, 1.0, 0.8],
+        tint:   0,
+        matcap: 0,
+        history: [0.62, 0.9, 0.8, 1.35, 1.2, 1.5, 1.44, 1.92]
+    };
+    const rest = { pos: [0, 0, 0.4], rot: [0, 0, 0], scl: [1, 1, 1] };
+    const TINTS   = ["#ffb454", "#4fd8e0", "#4da3ff", "#b48cff", "#ff6b8a", "#e5d33a"];
+    const MATCAPS = ["Clay", "Steel", "Plastic", "Glass", "Carbon"];
+    const $ = (s, r = document) => r.querySelector(s);
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const listeners = [];
+    const onChange = f => listeners.push(f);
+    const changed = () => listeners.forEach(f => f());
+
+    /* big numerals: whole part bright, decimals dimmed */
+    const big = (el, v, d = 2) =>
+    {
+        const t = v.toFixed(d), i = t.indexOf(".");
+        el.innerHTML = i < 0 ? t : t.slice(0, i) + '<span class="dec">' + t.slice(i) + "</span>";
+    };
+
+    /* ------------------------------------------------------------------------------------------------------------
+       SLIDER (drag, click, keyboard)
+    ------------------------------------------------------------------------------------------------------------ */
+    function makeSlider(host, { min, max, step, get, set })
+    {
+        host.className = "slider";
+        host.tabIndex = 0;
+        host.setAttribute("role", "slider");
+        host.setAttribute("aria-valuemin", min);
+        host.setAttribute("aria-valuemax", max);
+        host.innerHTML = '<div class="rail"></div><div class="zero"></div><div class="fill"></div><div class="knob"></div>';
+        const fill = $(".fill", host), knob = $(".knob", host), zero = $(".zero", host);
+        const zeroAt = min < 0 && max > 0 ? -min / (max - min) : (min === 0.1 ? 0 : 0);
+        const frac = v => clamp((v - min) / (max - min), 0, 1);
+        const draw = () =>
+        {
+            const v = get(), f = frac(v), z = (min < 0 && max > 0) ? zeroAt : 0;
+            knob.style.left = "calc(8px + (100% - 16px) * " + f + ")";
+            const a = Math.min(f, z), b = Math.max(f, z);
+            fill.style.left = "calc(8px + (100% - 16px) * " + a + ")";
+            fill.style.width = "calc((100% - 16px) * " + (b - a) + ")";
+            zero.style.display = (min < 0 && max > 0) ? "block" : "none";
+            zero.style.left = "calc(8px + (100% - 16px) * " + z + ")";
+            host.setAttribute("aria-valuenow", v.toFixed(3));
+        };
+        const fromPointer = e =>
+        {
+            const r = host.getBoundingClientRect();
+            const f = clamp((e.clientX - r.left - 8) / (r.width - 16), 0, 1);
+            const raw = min + (max - min) * f;
+            set(clamp(Math.round(raw / step) * step, min, max));
+        };
+        host.addEventListener("pointerdown", e => { host.setPointerCapture(e.pointerId); fromPointer(e); host.dataset.drag = "1"; });
+        host.addEventListener("pointermove", e => { if (host.dataset.drag) fromPointer(e); });
+        host.addEventListener("pointerup", () => { delete host.dataset.drag; });
+        host.addEventListener("keydown", e =>
+        {
+            const k = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
+            if (!k) return;
+            e.preventDefault();
+            set(clamp(get() + k * step * (e.shiftKey ? 10 : 1), min, max));
+        });
+        onChange(draw);
+        draw();
+        return draw;
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       NUMERIC FIELD (typed, with drag-scrub on the badge)
+    ------------------------------------------------------------------------------------------------------------ */
+    function makeField(input, { get, set, decimals, lo = -1e6, hi = 1e6, readonly = false })
+    {
+        input.className = "field";
+        input.inputMode = "decimal";
+        input.spellcheck = false;
+        const show = () => { if (document.activeElement !== input) input.value = get().toFixed(decimals); };
+        input.readOnly = readonly;
+        input.addEventListener("focus", () => input.select());
+        const commit = () => { const n = parseFloat(input.value.replace(",", ".")); if (Number.isFinite(n)) set(clamp(n, lo, hi)); input.value = get().toFixed(decimals); };
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", e =>
+        {
+            if (e.key === "Enter") input.blur();
+            if (e.key === "ArrowUp" || e.key === "ArrowDown")
+            {
+                e.preventDefault();
+                const s = Math.pow(10, -decimals) * (e.shiftKey ? 100 : 10) * (e.key === "ArrowUp" ? 1 : -1);
+                set(clamp(get() + s, lo, hi));
+            }
+        });
+        onChange(show);
+        show();
+    }
+
+    function scrub(badge, { get, set, step, lo, hi })
+    {
+        let x0 = 0, v0 = 0;
+        badge.addEventListener("pointerdown", e => { badge.setPointerCapture(e.pointerId); x0 = e.clientX; v0 = get(); badge.dataset.drag = "1"; });
+        badge.addEventListener("pointermove", e => { if (badge.dataset.drag) set(clamp(v0 + (e.clientX - x0) * step * (e.shiftKey ? 0.1 : 1), lo, hi)); });
+        badge.addEventListener("pointerup", () => delete badge.dataset.drag);
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       TRANSFORM CARD
+    ------------------------------------------------------------------------------------------------------------ */
+    const ICON_RESET = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7a4.5 4.5 0 1 0 1.4-3.3M2.5 2.2v2.6h2.6"/></svg>';
+    const ICON_LINK  = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 8a2.4 2.4 0 0 0 3.4 0l1.8-1.8a2.4 2.4 0 0 0-3.4-3.4L7.2 3.4M8 6a2.4 2.4 0 0 0-3.4 0L2.8 7.8a2.4 2.4 0 0 0 3.4 3.4l.6-.6"/></svg>';
+    let linkScale = false;
+
+    const SECTIONS =
+    [
+        { key: "pos", title: "Position", unit: "m",   step: 0.01, dec: 3, lo: -10,  hi: 10  },
+        { key: "rot", title: "Rotation", unit: "deg", step: 0.5,  dec: 1, lo: -180, hi: 180 },
+        { key: "scl", title: "Scale",    unit: "x",   step: 0.01, dec: 3, lo: 0.1,  hi: 4   }
+    ];
+
+    function buildTransform()
+    {
+        const host = $("#tf");
+        SECTIONS.forEach(S =>
+        {
+            const g = document.createElement("div");
+            g.className = "group";
+            const extra = S.key === "scl" ? '<button class="mini" id="lnk">' + ICON_LINK + 'Uniform</button>' : "";
+            g.innerHTML = '<div class="ghead"><span class="caps">' + S.title + '<span class="unit-tag">' + S.unit + '</span></span><span style="display:flex;gap:6px">' + extra +
+                          '<button class="mini" data-reset="' + S.key + '" aria-label="Reset ' + S.title + '">' + ICON_RESET + 'Reset</button></span></div>';
+            for (let a = 0; a < 3; a++)
+            {
+                const row = document.createElement("div");
+                row.className = "axis";
+                row.dataset.a = a;
+                row.innerHTML = '<div class="badge">' + "XYZ"[a] + '</div><div class="sl"></div><input aria-label="' + S.title + " " + "XYZ"[a] + '">';
+                g.appendChild(row);
+                const get = () => state[S.key][a];
+                const set = v =>
+                {
+                    if (S.key === "scl" && linkScale)
+                    {
+                        const r = v / state.scl[a];
+                        for (let k = 0; k < 3; k++) state.scl[k] = clamp(state.scl[k] * r, S.lo, S.hi);
+                    }
+                    else state[S.key][a] = v;
+                    changed();
+                };
+                makeSlider($(".sl", row), { min: S.lo, max: S.hi, step: S.step, get, set });
+                makeField($("input", row), { get, set, decimals: S.dec, lo: S.lo, hi: S.hi });
+                scrub($(".badge", row), { get, set, step: S.step, lo: S.lo, hi: S.hi });
+            }
+            host.appendChild(g);
+        });
+        host.addEventListener("click", e =>
+        {
+            const r = e.target.closest("[data-reset]");
+            if (r) { state[r.dataset.reset] = rest[r.dataset.reset].slice(); changed(); }
+            if (e.target.closest("#lnk")) { linkScale = !linkScale; $("#lnk").classList.toggle("on", linkScale); }
+        });
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       PARAMETERS CARD (sliders)
+    ------------------------------------------------------------------------------------------------------------ */
+    function buildParams()
+    {
+        const host = $("#pm");
+        [["Width", "R0 &middot; X"], ["Depth", "R1 &middot; Y"], ["Height", "R2 &middot; Z"]].forEach(([n, s], a) =>
+        {
+            const row = document.createElement("div");
+            row.className = "prow";
+            row.innerHTML = '<div class="pl">' + n + '<small>' + s + '</small></div><div class="sl"></div><input aria-label="' + n + '">';
+            host.appendChild(row);
+            const get = () => state.param[a], set = v => { state.param[a] = v; changed(); };
+            makeSlider($(".sl", row), { min: 0.1, max: 6, step: 0.01, get, set });
+            makeField($("input", row), { get, set, decimals: 3, lo: 0.1, hi: 6 });
+        });
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       MATH: the body's world box
+    ------------------------------------------------------------------------------------------------------------ */
+    const rad = d => d * Math.PI / 180;
+    function rotate(p, r)
+    {
+        let [x, y, z] = p;
+        let c = Math.cos(rad(r[0])), s = Math.sin(rad(r[0]));
+        [y, z] = [y * c - z * s, y * s + z * c];
+        c = Math.cos(rad(r[1])); s = Math.sin(rad(r[1]));
+        [x, z] = [x * c + z * s, -x * s + z * c];
+        c = Math.cos(rad(r[2])); s = Math.sin(rad(r[2]));
+        [x, y] = [x * c - y * s, x * s + y * c];
+        return [x, y, z];
+    }
+    const dims = () => state.param.map((v, i) => v * state.scl[i]);
+    function corners()
+    {
+        const d = dims(), out = [];
+        for (let i = 0; i < 8; i++)
+        {
+            const l = [(i & 1 ? .5 : -.5) * d[0], (i & 2 ? .5 : -.5) * d[1], (i & 4 ? .5 : -.5) * d[2]];
+            const w = rotate(l, state.rot);
+            out.push([w[0] + state.pos[0], w[1] + state.pos[1], w[2] + state.pos[2]]);
+        }
+        return out;
+    }
+    function aabb()
+    {
+        const c = corners(), lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+        c.forEach(p => p.forEach((v, k) => { lo[k] = Math.min(lo[k], v); hi[k] = Math.max(hi[k], v); }));
+        return { lo, hi, ext: hi.map((v, k) => v - lo[k]), mid: hi.map((v, k) => (v + lo[k]) / 2) };
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       BOUNDS + VOLUME + SPARKLINE
+    ------------------------------------------------------------------------------------------------------------ */
+    function buildBounds()
+    {
+        const t = $("#btable");
+        t.innerHTML = '<span></span><span class="h">X</span><span class="h">Y</span><span class="h">Z</span>';
+        ["Min", "Max", "Centre"].forEach(n =>
+        {
+            t.insertAdjacentHTML("beforeend", '<span class="r">' + n + '</span><span class="v"></span><span class="v"></span><span class="v"></span>');
+        });
+        const cells = t.querySelectorAll(".v");
+        onChange(() =>
+        {
+            const b = aabb();
+            [b.lo, b.hi, b.mid].forEach((row, r) => row.forEach((v, k) => { cells[r * 3 + k].textContent = (Math.abs(v) < 5e-4 ? 0 : v).toFixed(2); }));
+            big($("#ext0"), b.ext[0], 1); big($("#ext1"), b.ext[1], 1); big($("#ext2"), b.ext[2], 1);
+        });
+    }
+
+    let histTimer = 0;
+    function drawSpark()
+    {
+        const svg = $("#spark"), h = state.history, W = 340, H = 108, top = 8, bot = 90;
+        const max = Math.max(...h, 2.5) * 1.1, min = 0;
+        const X = i => 6 + (W - 12) * i / (h.length - 1), Y = v => bot - (bot - top) * (v - min) / (max - min);
+        const pts = h.map((v, i) => [X(i), Y(v)]);
+        const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+        const area = line + " L" + X(h.length - 1) + " " + bot + " L" + X(0) + " " + bot + " Z";
+        const last = pts[pts.length - 1];
+        svg.innerHTML =
+            '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b4c2a0" stop-opacity=".28"/><stop offset="1" stop-color="#b4c2a0" stop-opacity="0"/></linearGradient></defs>' +
+            [25, 50, 75].map(p => '<line x1="0" x2="' + W + '" y1="' + (bot - (bot - top) * p / 100) + '" y2="' + (bot - (bot - top) * p / 100) + '" stroke="rgba(255,255,255,.07)"/>').join("") +
+            '<line x1="0" x2="' + W + '" y1="' + Y(1.92) + '" y2="' + Y(1.92) + '" stroke="rgba(255,255,255,.28)" stroke-dasharray="4 4"/>' +
+            '<path d="' + area + '" fill="url(#g)"/><path d="' + line + '" fill="none" stroke="#dfe6d6" stroke-width="1.4" stroke-linejoin="round"/>' +
+            pts.slice(0, -1).map(p => '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.8" fill="#8f9488"/>').join("") +
+            '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="4.2" fill="#fff" stroke="#34c759" stroke-width="2"/>' +
+            '<text x="6" y="106">start</text><text x="' + (W / 2) + '" y="106" text-anchor="middle">edits</text><text x="' + (W - 6) + '" y="106" text-anchor="end">now</text>' +
+            '<text x="' + (W - 6) + '" y="' + (Y(1.92) - 5) + '" text-anchor="end">baseline 1.92</text>';
+    }
+    function volumeUpdate()
+    {
+        const d = dims(), v = d[0] * d[1] * d[2];
+        big($("#vol"), v, 2);
+        $("#area").innerHTML = (2 * (d[0] * d[1] + d[1] * d[2] + d[0] * d[2])).toFixed(2) + " m&sup2;";
+        state.history[state.history.length - 1] = v;
+        drawSpark();
+        clearTimeout(histTimer);
+        histTimer = setTimeout(() => { state.history.push(v); if (state.history.length > 12) state.history.shift(); drawSpark(); }, 900);
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       LOOK CARD
+    ------------------------------------------------------------------------------------------------------------ */
+    function buildLook()
+    {
+        const mc = $("#matcap");
+        MATCAPS.forEach((n, i) => { const b = document.createElement("button"); b.textContent = n; b.className = i === state.matcap ? "on" : ""; b.onclick = () => { state.matcap = i; [...mc.children].forEach((c, k) => c.classList.toggle("on", k === i)); changed(); }; mc.appendChild(b); });
+        const tn = $("#tint");
+        TINTS.forEach((c, i) => { const b = document.createElement("button"); b.className = "sw" + (i === state.tint ? " on" : ""); b.style.background = c; b.setAttribute("aria-label", "Tint " + (i + 1)); b.onclick = () => { state.tint = i; [...tn.children].forEach((x, k) => x.classList.toggle("on", k === i)); changed(); }; tn.appendChild(b); });
+        const sw = $("#swCon");
+        sw.onclick = () => { const on = !sw.classList.contains("on"); sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on); changed(); };
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       CARD FOLDING, NAV, PILLS
+    ------------------------------------------------------------------------------------------------------------ */
+    function wireChrome()
+    {
+        document.querySelectorAll(".card .go").forEach(b => b.addEventListener("click", () => { const c = b.closest(".card"); if (c.id !== "c-object") c.classList.toggle("shut"); }));
+        $("#nav").addEventListener("click", e =>
+        {
+            const b = e.target.closest("button"); if (!b) return;
+            const t = document.getElementById(b.dataset.t), s = $("#scroll");
+            s.scrollTo({ top: t.offsetTop - 14, behavior: "smooth" });
+        });
+        const s = $("#scroll");
+        s.addEventListener("scroll", () =>
+        {
+            let cur = "c-object";
+            document.querySelectorAll("#nav button").forEach(b => { const t = document.getElementById(b.dataset.t); if (t.offsetTop - 60 <= s.scrollTop) cur = b.dataset.t; });
+            document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.t === cur));
+        });
+        $("#pVisible").onclick = () => { $("#pVisible").classList.toggle("on"); changed(); };
+        $("#pLocked").onclick  = () => { $("#pLocked").classList.toggle("on"); };
+        $("#name").addEventListener("input", e => { $("#vpName").textContent = e.target.value || "Untitled"; });
+        $("#frame").onclick = () => { cam.yaw = 0.62; cam.pitch = 0.42; cam.dist = 11; changed(); };
+    }
+
+    /* ------------------------------------------------------------------------------------------------------------
+       VIEWPORT (canvas, Z-up, orbit)
+    ------------------------------------------------------------------------------------------------------------ */
+    const cam = { yaw: 0.62, pitch: 0.42, dist: 11 };
+    const cv = $("#view"), cx = cv.getContext("2d");
+    function size()
+    {
+        const r = cv.getBoundingClientRect(), k = window.devicePixelRatio || 1;
+        cv.width = Math.max(1, r.width * k); cv.height = Math.max(1, r.height * k);
+        cx.setTransform(k, 0, 0, k, 0, 0);
+    }
+    function project(p, w, h)
+    {
+        const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+        const x1 = p[0] * cy - p[1] * sy, y1 = p[0] * sy + p[1] * cy, z1 = p[2];
+        const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+        const f = [0, cp, -sp], u = [0, sp, cp], C = [0, -cam.dist * cp, cam.dist * sp];
+        const d = [x1 - C[0], y1 - C[1], z1 - C[2]];
+        const depth = d[0] * f[0] + d[1] * f[1] + d[2] * f[2];
+        const F = Math.min(w, h * 1.25) * 1.25;
+        return { x: w / 2 + d[0] / depth * F, y: h * 0.56 - (d[0] * u[0] + d[1] * u[1] + d[2] * u[2]) / depth * F, depth };
+    }
+    function drawView()
+    {
+        const r = cv.getBoundingClientRect(), w = r.width, h = r.height;
+        cx.clearRect(0, 0, w, h);
+        const bg = cx.createRadialGradient(w * .55, h * .35, 0, w * .55, h * .35, Math.max(w, h) * .8);
+        bg.addColorStop(0, "#15171b"); bg.addColorStop(1, "#08090a");
+        cx.fillStyle = bg; cx.fillRect(0, 0, w, h);
+
+        /* finite floor grid: 1 m cells, a major line every 5 */
+        const half = 5;
+        for (let i = -half; i <= half; i++)
+        {
+            const major = i % 5 === 0;
+            cx.strokeStyle = major ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.075)";
+            cx.lineWidth = 1;
+            [[[i, -half, 0], [i, half, 0]], [[-half, i, 0], [half, i, 0]]].forEach(([a, b]) =>
+            {
+                const A = project(a, w, h), B = project(b, w, h);
+                cx.beginPath(); cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.stroke();
+            });
+        }
+
+        /* the body */
+        const c = corners(), P = c.map(p => project(p, w, h));
+        const faces = [[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]];
+        const cen = c.reduce((a, p) => a.map((v, k) => v + p[k] / 8), [0, 0, 0]);
+        const tint = TINTS[state.tint];
+        const rgb = [1, 3, 5].map(i => parseInt(tint.slice(i, i + 2), 16));
+        const eye = (() => { const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch); const l = [0, -cam.dist * cp, cam.dist * sp]; return [l[0] * cy + l[1] * sy, -l[0] * sy + l[1] * cy, l[2]]; })();
+        const items = faces.map(f =>
+        {
+            const a = c[f[0]], b = c[f[1]], d = c[f[3]];
+            const e1 = b.map((v, k) => v - a[k]), e2 = d.map((v, k) => v - a[k]);
+            let n = [e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]];
+            const L = Math.hypot(...n) || 1; n = n.map(v => v / L);
+            const mid = f.reduce((s, i) => s.map((v, k) => v + c[i][k] / 4), [0, 0, 0]);
+            if (n.reduce((s, v, k) => s + v * (mid[k] - cen[k]), 0) < 0) n = n.map(v => -v);
+            const front = n.reduce((s, v, k) => s + v * (eye[k] - mid[k]), 0) > 0;
+            const light = clamp(0.38 + 0.5 * (n[0] * -.35 + n[1] * -.4 + n[2] * .85), 0.18, 1);
+            return { f, front, light, depth: f.reduce((s, i) => s + P[i].depth, 0) / 4 };
+        }).filter(i => i.front).sort((a, b) => b.depth - a.depth);
+        const hidden = !$("#pVisible").classList.contains("on");
+        if (!hidden)
+        {
+            items.forEach(it =>
+            {
+                cx.beginPath(); it.f.forEach((i, k) => k ? cx.lineTo(P[i].x, P[i].y) : cx.moveTo(P[i].x, P[i].y)); cx.closePath();
+                const m = it.light;
+                cx.fillStyle = "rgb(" + rgb.map(v => Math.round(v * m * (state.matcap === 4 ? .45 : state.matcap === 1 ? .8 : 1) + (state.matcap === 3 ? 30 : 0))).join(",") + ")";
+                cx.globalAlpha = state.matcap === 3 ? .55 : 1;
+                cx.fill(); cx.globalAlpha = 1;
+                cx.strokeStyle = "rgba(255,255,255,.35)"; cx.lineWidth = 1.2; cx.lineJoin = "round"; cx.stroke();
+            });
+        }
+
+        /* world bounds + pivot */
+        const b = aabb();
+        const B = []; for (let i = 0; i < 8; i++) B.push(project([i & 1 ? b.hi[0] : b.lo[0], i & 2 ? b.hi[1] : b.lo[1], i & 4 ? b.hi[2] : b.lo[2]], w, h));
+        cx.setLineDash([4, 4]); cx.strokeStyle = "rgba(255,255,255,.28)"; cx.lineWidth = 1;
+        [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]].forEach(([i, j]) => { cx.beginPath(); cx.moveTo(B[i].x, B[i].y); cx.lineTo(B[j].x, B[j].y); cx.stroke(); });
+        cx.setLineDash([]);
+        const pv = project(state.pos, w, h);
+        cx.fillStyle = "#fff"; cx.beginPath(); cx.arc(pv.x, pv.y, 3.4, 0, 7); cx.fill();
+        cx.strokeStyle = "rgba(255,255,255,.4)"; cx.beginPath(); cx.arc(pv.x, pv.y, 8, 0, 7); cx.stroke();
+
+        /* axis ticks at the pivot, in the inspector's red / green / blue */
+        [[[1,0,0],"#ef5350"],[[0,1,0],"#66d678"],[[0,0,1],"#569cff"]].forEach(([d, col]) =>
+        {
+            const e = project([state.pos[0] + d[0] * 1.1, state.pos[1] + d[1] * 1.1, state.pos[2] + d[2] * 1.1], w, h);
+            cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(pv.x, pv.y); cx.lineTo(e.x, e.y); cx.stroke();
+            cx.fillStyle = col; cx.beginPath(); cx.arc(e.x, e.y, 3.4, 0, 7); cx.fill();
+        });
+    }
+    let dragging = null;
+    cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); dragging = [e.clientX, e.clientY, cam.yaw, cam.pitch]; });
+    cv.addEventListener("pointermove", e => { if (!dragging) return; cam.yaw = dragging[2] - (e.clientX - dragging[0]) * .007; cam.pitch = clamp(dragging[3] + (e.clientY - dragging[1]) * .005, .05, 1.45); drawView(); });
+    cv.addEventListener("pointerup", () => dragging = null);
+    cv.addEventListener("wheel", e => { e.preventDefault(); cam.dist = clamp(cam.dist * (1 + e.deltaY * .001), 4, 24); drawView(); }, { passive: false });
+    window.addEventListener("resize", () => { size(); drawView(); });
+
+    /* ------------------------------------------------------------------------------------------------------------
+       BOOT
+    ------------------------------------------------------------------------------------------------------------ */
+    buildTransform();
+    buildBounds();
+    buildParams();
+    buildLook();
+    wireChrome();
+    onChange(volumeUpdate);
+    onChange(() =>
+    {
+        const t = TINTS[state.tint], tile = $(".tile"), svg = $(".tile svg");
+        tile.style.background = t + "24"; tile.style.borderColor = t + "73"; svg.setAttribute("stroke", t);
+        $("#subline").innerHTML = "Body &middot; box &middot; #006";
+        $("#tris").textContent = "11 320";
+    });
+    onChange(drawView);
+    size();
+    changed();
+    state.history[state.history.length - 1] = 1.92;
+    drawSpark();
+})();
+</script>
+</body>
+</html>
