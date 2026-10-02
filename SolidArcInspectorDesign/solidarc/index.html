@@ -1444,7 +1444,7 @@ function drawHeroViz(f){const c=$('#heroViz');if(!c)return;const g=c.getContext(
 
 /* ── viewport: software raster ─────────────────────────────── */
 const cv=$('#gl'),ctx=cv.getContext('2d');const tri=$('#triad'),tctx=tri.getContext('2d');
-const view={az:45,el:30,dist:260,target:[0,0,10],ortho:false,shade:'matcap',lattice:true,cons:true,mode:'body',modes:['body']};
+const view={az:45,el:30,dist:353,target:[0,0,10],ortho:false,shade:'matcap',lattice:true,cons:true,mode:'body',modes:['body']};
 function setModes(list){view.modes=list.length?list:['body'];view.mode=view.modes[0];$$('#selMode button').forEach(b=>b.classList.toggle('on',view.modes.includes(b.dataset.m)));sub_.sel.clear();sub_.hover=null;renderInspector();draw();}
 function toggleMode(m,addTo){if(!addTo)return setModes([m]);const l=view.modes.slice();const i=l.indexOf(m);if(i>=0)l.splice(i,1);else l.push(m);setModes(l);}
 let W=0,H=0,DPR=1;
@@ -1453,7 +1453,7 @@ addEventListener('resize',resize);
 function camBasis(){const a=view.az*Math.PI/180,e=view.el*Math.PI/180;const fwd=[-Math.cos(e)*Math.cos(a),-Math.cos(e)*Math.sin(a),-Math.sin(e)];const up0=[0,0,1];
   const right=norm(cross(fwd,up0));const up=cross(right,fwd);const eye=[view.target[0]-fwd[0]*view.dist,view.target[1]-fwd[1]*view.dist,view.target[2]-fwd[2]*view.dist];return {fwd,right,up,eye};}
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],norm=a=>{const l=Math.hypot(...a)||1;return [a[0]/l,a[1]/l,a[2]/l]},sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
-let cam;const FOV=40;
+let cam;const FOV=30;/* 30deg lens: milder wide-angle stretch, so the 200 mm grid and the objects/view cube agree */
 function project(p){const d=sub(p,cam.eye);const x=dot(d,cam.right),y=dot(d,cam.up),z=dot(d,cam.fwd);if(view.ortho){const s=H/(view.dist*Math.tan(FOV/2*Math.PI/180)*2);return [W/2+x*s,H/2-y*s,z];}
   if(z<1)return null;const s=(H/2)/Math.tan(FOV/2*Math.PI/180)/z;return [W/2+x*s,H/2-y*s,z];}
 function basisFor(axis,offset=0,tilt=0){let u,v,n;
@@ -1573,7 +1573,7 @@ function boundsOf(f){const pts=[];if(f.kind==='curve'){const C=curvePlane(f);if(
 function focusSelection(){let figs=[...doc.sel].map(byId).filter(f=>f&&f.kind!=='dim');sub_.sel.forEach(h=>{const f=byId(h.fig);if(f&&!figs.includes(f))figs.push(f);});
   if(!figs.length)figs=doc.figures.filter(f=>f.visible&&f.kind!=='dim'&&f.kind!=='plane'&&f.kind!=='sketch');if(!figs.length)figs=doc.figures.filter(f=>f.visible&&f.kind==='plane');
   let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9],any=false;figs.forEach(f=>{const b=boundsOf(f);if(!b)return;any=true;for(let i=0;i<3;i++){lo[i]=Math.min(lo[i],b.lo[i]);hi[i]=Math.max(hi[i],b.hi[i]);}});
-  if(!any){view.target=[0,0,0];view.dist=260;draw();return false;}
+  if(!any){view.target=[0,0,0];view.dist=353;draw();return false;}
   const c=[(lo[0]+hi[0])/2,(lo[1]+hi[1])/2,(lo[2]+hi[2])/2];const rad=Math.max(2,Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2);
   const dist=Math.max(20,Math.min(2000,rad/Math.sin(FOV/2*Math.PI/180)*1.15));animateView({target:c,dist});log('focus '+(doc.sel.size||sub_.sel.size?figs.map(f=>f.name).join(', '):'all'));return true;}
 let viewAnim=null;function animateView(to){const from={target:[...view.target],dist:view.dist};if(typeof requestAnimationFrame!=='function'||!W){Object.assign(view,to);draw();return;}const t0=performance.now();const step=()=>{const k=Math.min(1,(performance.now()-t0)/220);const e=1-Math.pow(1-k,3);view.target=from.target.map((v,i)=>v+(to.target[i]-v)*e);view.dist=from.dist+(to.dist-from.dist)*e;draw();if(k<1){viewAnim=requestAnimationFrame(step);if(viewAnim===undefined){Object.assign(view,{target:[...to.target],dist:to.dist});viewAnim=null;draw();}}else viewAnim=null;};if(viewAnim&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(viewAnim);step();}
@@ -1932,7 +1932,7 @@ cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect();lastMou
   if(!drag){const h=tool?null:gzHit(lastMouse[0],lastMouse[1]);if(h!==gz.hover){gz.hover=h;cv.style.cursor=h?'pointer':'';requestDraw();}
     if(!tool&&!h){const subK=new Set(view.modes.filter(m=>m!=='body'));const hv=subK.size?pickSub(lastMouse[0],lastMouse[1],subK):null;const same=(hv&&sub_.hover&&hv.fig===sub_.hover.fig&&hv.kind===sub_.hover.kind&&hv.idx===sub_.hover.idx)||(!hv&&!sub_.hover);if(!same){sub_.hover=hv;requestDraw();}}if(tool){hover=planeHit(e.clientX-r.left,e.clientY-r.top);requestDraw();}return;}
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>3)drag.moved=true;
-  if(drag.btn===1||drag.shift||drag.btn===2){const s=view.dist/H*1.2;view.target=view.target.map((t,i)=>t-cam.right[i]*dx*s+cam.up[i]*dy*s);}
+  if(drag.btn===1||drag.shift||drag.btn===2){const s=view.dist*Math.tan(FOV/2*Math.PI/180)/H*3.3;view.target=view.target.map((t,i)=>t-cam.right[i]*dx*s+cam.up[i]*dy*s);}
   else{view.az-=dx*.4;view.el=Math.max(-89,Math.min(89,view.el+dy*.4));}drag.x=e.clientX;drag.y=e.clientY;draw();});
 cv.addEventListener('pointerup',e=>{if(dimDrag){dimDragEnd();return;}if(solidTool){solidUp();return;}if(modTool){modUp();return;}if(offTool){offUp();return;}
   if(dimTool){dimTool.pressed=false;if(dimTool.stage==='place'&&dimTool.place)dimCommit();return;}
@@ -2679,7 +2679,7 @@ renderOutliner();renderInspector();resize();
    Perspective cube that follows the viewport camera (orthographic when the viewport is ortho). Face labels are projected onto the faces.
    Click a face = standard view, edge = 2-axis view, corner = isometric view. Drag = orbit.  Z up, Front = -Y, Right = +X. */
 var vcubeName='iso';
-var VC={n:164,s:36,D:8,hover:null,anim:null,K:22,
+var VC={n:164,s:36,D:6.5,hover:null,anim:null,K:22,
  /* t1 x t2 = n on every face, so the label reads left-to-right and is never mirrored */
  faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[-1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[-1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,-1,0],[0,0,1],'LEFT']]};
 var vcCv=document.getElementById('vcube'),vcG=vcCv.getContext('2d');
