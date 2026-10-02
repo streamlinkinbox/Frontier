@@ -1515,7 +1515,8 @@ function drawInner(){if(!draw._sync){draw._sync=true;try{syncLinks();}finally{dr
     else if(m.quads){m.quads.forEach(q=>{for(let k=0;k<4;k++){const a=project(xform(f,q.p[k])),b=project(xform(f,q.p[(k+1)%4]));if(a&&b)items.push({z:Math.min(a[2],b[2]),type:'l',s:[a,b],f,sel,acc,faint:true});}});}
     m.lines.forEach(l=>{const s=l.map(p=>project(xform(f,p)));if(s.some(x=>!x))return;items.push({z:Math.min(s[0][2],s[1][2])-0.05,type:'l',s,f,sel,acc,cons:f.cons||m.cons,tan:l.tangent});});
     });
-  items.sort((a,b)=>b.z-a.z);drawRegions(g);
+  /* workplane fills are a translucent backdrop: always paint them first so a body is never tinted/cut by the plane sheet it stands on */
+  items.sort((a,b)=>{const pa=a.type==='p',pb=b.type==='p';return pa!==pb?(pa?-1:1):b.z-a.z;});drawRegions(g);
   items.forEach(it=>{if(it.type==='f'){g.fillStyle=it.sel?'rgba(127,240,245,.22)':'rgba(79,216,224,.12)';g.beginPath();it.s.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.closePath();g.fill();}
     else if(it.type==='p'){const A=doc.planeAlpha==null?0.10:doc.planeAlpha;g.fillStyle=it.act?`rgba(180,140,255,${A})`:`rgba(180,140,255,${A*.35})`;g.beginPath();g.moveTo(it.s[0][0],it.s[0][1]);g.lineTo(it.s[1][0],it.s[1][1]);g.lineTo(it.s[2][0],it.s[2][1]);g.closePath();g.fill();}
     else if(it.type==='t'){const {n,vd}=it;let col;const lam=Math.max(0,dot(n,light)),amb=.18;
