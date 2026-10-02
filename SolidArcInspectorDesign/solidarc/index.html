@@ -606,6 +606,10 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
 .ctl:has(>.trk-bar),.ctl:has(>input[type=range]),.ctl:has(>.rskin){grid-template-columns:minmax(0,68px) 88px minmax(0,1fr)}
 .vpill,.ctl-top .val{width:88px;min-width:88px}
 @media (max-width:1500px){#axisHud{top:96px}#gzHud{top:140px}}
+
+/* ══ v12: view cube replaces the XYZ readout, persp pill and the view buttons ══ */
+#vcube{position:absolute;right:12px;top:52px;width:136px;height:136px;z-index:4;cursor:pointer;touch-action:none}
+#axisHud,#views{display:none!important}
 </style>
 </head>
 <body>
@@ -659,21 +663,10 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
       <button data-g="scale" title="Scale · S" aria-label="scale"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9.5" width="11" height="11" rx="1.5"/><path d="M13 11l7.5-7.5M15 3.5h5.5V9"/></svg></button>
     </div>
     <div class="spacer"></div>
-    <div class="seg" id="views">
-      <button data-v="top">Top <kbd>7</kbd></button>
-      <button data-v="front">Front <kbd>1</kbd></button>
-      <button data-v="right">Right <kbd>3</kbd></button>
-      <button data-v="iso" class="on">Iso</button>
-      <button data-v="ortho" id="orthoBtn">Ortho <kbd>5</kbd></button>
-    </div>
   </div>
   <div id="gzHud" class="glass"></div>
   <div id="dimEd" class="glass"></div>
   <div id="prompt" class="glass"><span class="s" id="promptTool">line</span><span id="promptTxt">Click first point</span><span class="k">Q / Esc select</span></div>
-  <div id="axisHud">
-    <div class="pill"><span class="ax" style="background:#ff6b6b"></span>X <span id="cx">0.0</span><span class="ax" style="background:#6fe38a"></span>Y <span id="cy">0.0</span><span class="ax" style="background:#5db3ff"></span>Z <span id="cz">0.0</span></div>
-    <div class="pill" id="camPill">orbit · az 45° · el 30°</div>
-  </div>
   <div id="vtitle"><span class="n" id="vname">Perspective</span><span class="m" id="vmeta">software raster · Z-up · lattice 10 mm</span></div>
   <div id="hud">
     <div class="nav glass">
@@ -689,7 +682,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
       <div class="keys"><span class="k">⇧W plane</span><span class="k">H hide</span><span class="k">⌫ del</span></div>
     </div>
   </div>
-  <canvas id="triad"></canvas>
+  <canvas id="triad" style="display:none"></canvas><canvas id="vcube" title="View cube · click a face, edge or corner · drag to orbit"></canvas>
   <button class="hbtn" id="layoutBtn" title="Reset layout"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="8" height="16" rx="1.5"/><rect x="20" y="4" width="1" height="16" rx=".5"/></svg></button>
 </section>
 
@@ -1541,7 +1534,7 @@ function drawInner(){if(!draw._sync){draw._sync=true;try{syncLinks();}finally{dr
       g.beginPath();g.moveTo(it.s[0][0],it.s[0][1]);g.lineTo(it.s[1][0],it.s[1][1]);g.stroke();g.setLineDash([]);}});
   if(doc.dims)drawDims(g);drawSketchDims(g);drawModPreview(g);drawOffPreview(g);drawPatPreview(g);drawSnap(g);
   drawSubOverlay(g);drawToolPreview(g);drawSolidPreview(g);drawGizmo(g);drawTriad();
-  $('#camPill').textContent=`${view.ortho?'ortho':'persp'} · az ${fmt(((view.az%360)+360)%360,0)}° · el ${fmt(view.el,0)}° · d ${fmt(view.dist,0)}`;
+  if(typeof VC!=='undefined'&&VC&&VC.d)drawVCube();
 }
 function drawLattice(g){const n=10,st=10,ext=n*st;/* 200 mm square */g.lineWidth=1;
   for(let i=-n;i<=n;i++){const a=project([i*st,-ext,0]),b=project([i*st,ext,0]),c=project([-ext,i*st,0]),d=project([ext,i*st,0]);
@@ -1582,10 +1575,10 @@ function focusSelection(){let figs=[...doc.sel].map(byId).filter(f=>f&&f.kind!==
   const c=[(lo[0]+hi[0])/2,(lo[1]+hi[1])/2,(lo[2]+hi[2])/2];const rad=Math.max(2,Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2);
   const dist=Math.max(20,Math.min(2000,rad/Math.sin(FOV/2*Math.PI/180)*1.15));animateView({target:c,dist});log('focus '+(doc.sel.size||sub_.sel.size?figs.map(f=>f.name).join(', '):'all'));return true;}
 let viewAnim=null;function animateView(to){const from={target:[...view.target],dist:view.dist};if(typeof requestAnimationFrame!=='function'||!W){Object.assign(view,to);draw();return;}const t0=performance.now();const step=()=>{const k=Math.min(1,(performance.now()-t0)/220);const e=1-Math.pow(1-k,3);view.target=from.target.map((v,i)=>v+(to.target[i]-v)*e);view.dist=from.dist+(to.dist-from.dist)*e;draw();if(k<1){viewAnim=requestAnimationFrame(step);if(viewAnim===undefined){Object.assign(view,{target:[...to.target],dist:to.dist});viewAnim=null;draw();}}else viewAnim=null;};if(viewAnim&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(viewAnim);step();}
-function setView(v){if(v==='ortho'){view.ortho=!view.ortho;$('#orthoBtn').classList.toggle('on',view.ortho);}
-  else{const m={top:[90,89.9],front:[-90,0],right:[0,0],iso:[45,30]}[v];view.az=m[0];view.el=m[1];$$('#views button:not(#orthoBtn)').forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
-  $('#vname').textContent=(view.ortho?'Orthographic':'Perspective')+' · '+($('#views button.on:not(#orthoBtn)')?.textContent.replace(/\d/g,'').trim()||'free');draw();}
-$$('#views button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+function setView(v){if(v==='ortho'){view.ortho=!view.ortho;}
+  else{const m={top:[90,89.9],front:[-90,0],right:[0,0],iso:[45,30]}[v];view.az=m[0];view.el=m[1];vcubeName=v;}
+  $('#vname').textContent=(view.ortho?'Orthographic':'Perspective')+' · '+(vcubeName?vcubeName[0].toUpperCase()+vcubeName.slice(1):'free');draw();}
+
 addEventListener('keydown',e=>{if(e.target.matches('input,[contenteditable]'))return;const k=e.key.toLowerCase();if(k==='q'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();selectTool();return;}if(solidTool&&solidKey(e))return;if(modTool&&!gz.modal&&modKey(e))return;if(offTool&&offKey(e))return;if(patTool&&patKey(e))return;if(fillTool&&e.key==='Escape'){fillEnd();return;}
   if(gz.drag){if(e.key==='Tab'||e.key==='Enter'||e.key==='='){e.preventDefault();gz.edit=true;hudFocus();}else if(e.key==='Escape')gzEnd(false);return;}
   if(gz.modal){const m=gz.modal;if(e.key==='Escape'){modalCancel();return;}if(e.key==='Enter'){modalConfirm();return;}if(e.key==='Tab'||e.key==='='){e.preventDefault();hudFocus();return;}
@@ -1650,7 +1643,7 @@ function drawSubGizmo(g){const o=subPivot();if(!o)return;const L=gzScale(o);if(!
     const corner=mul(add(u,v),TIP-half);const q=[add(corner,add(mul(u,-half),mul(v,-half))),add(corner,add(mul(u,half),mul(v,-half))),add(corner,add(mul(u,half),mul(v,half))),add(corner,add(mul(u,-half),mul(v,half)))].map(P);
     if(q.every(Boolean)){const h={type:'plane',axis:ax.name,normal:d,u,v,color:ax.plane,poly:q,sx:(q[0][0]+q[2][0])/2,sy:(q[0][1]+q[2][1])/2,r:0,sub:true};gz.handles.push(h);push((q[0][2]+q[2][2])/2,()=>{g.fillStyle=ax.plane;g.globalAlpha=hi(h)?.6:.28;g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();g.globalAlpha=1;});}}
   items.sort((a,b)=>b.z-a.z).forEach(it=>it.fn());const c=project(o);if(c){g.strokeStyle=GZC.ring;g.lineWidth=1.3;g.beginPath();g.arc(c[0],c[1],92*0.16,0,7);g.stroke();}
-  $('#cx').textContent=fmt(o[0],1);$('#cy').textContent=fmt(o[1],1);$('#cz').textContent=fmt(o[2],1);}
+  }
 function drawGizmo(g){gz.handles=[];if(sub_.sel.size&&!tool){drawSubGizmo(g);return;}const f=gzTarget();if(!f||tool)return;const o=gzPivot(f),L=gzScale(o);if(!L)return;const M=frameOf(f);const wd=v=>mv(M,v);
   if(f.kind==='curve'){ // curves live in their plane: rotate only about the normal, no z handles
     const keep=gz.mode==='rotate'?['z']:gz.mode==='scale'?['x','y']:['x','y','z'];GZ_AXES.forEach(a=>a.skip=!keep.includes(a.name));}else GZ_AXES.forEach(a=>a.skip=false);
@@ -1696,7 +1689,7 @@ function drawGizmo(g){gz.handles=[];if(sub_.sel.size&&!tool){drawSubGizmo(g);ret
   items.sort((a,b)=>b.z-a.z).forEach(it=>it.fn());
   const c=project(o);if(c){g.strokeStyle=GZC.ring;g.lineWidth=1.3;g.beginPath();g.arc(c[0],c[1],mode==='rotate'?TIP*0.78*pxPerUnit(o)+12:92*0.16,0,7);g.stroke();
     if(mode==='rotate'){const h={type:'rotate',axis:'view',dir:viewAxis,ref:cam.right,color:GZC.ring,ringR:TIP*0.78*pxPerUnit(o)+12,cx:c[0],cy:c[1],sx:0,sy:0,r:0};gz.handles.push(h);}}
-  $('#cx').textContent=fmt(o[0],1);$('#cy').textContent=fmt(o[1],1);$('#cz').textContent=fmt(o[2],1);}
+  }
 function ptInPoly(x,y,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a[1]>y)!==(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]))c=!c;}return c;}
 function distToPolyline(x,y,pts){let m=1e9;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];const dx=b[0]-a[0],dy=b[1]-a[1];const l2=dx*dx+dy*dy||1;let t=((x-a[0])*dx+(y-a[1])*dy)/l2;t=Math.max(0,Math.min(1,t));m=Math.min(m,Math.hypot(x-a[0]-dx*t,y-a[1]-dy*t));}return m;}
 function gzHit(px,py){let best=null,bd=1e9;for(const h of gz.handles){let ok=false,dd=0;
@@ -2679,6 +2672,66 @@ renderOutliner();renderInspector();resize();
   const w=document.createElement('div');w.className='rskin';i.parentNode.insertBefore(w,i);w.appendChild(i);const k=document.createElement('i');k.className='rk';w.appendChild(k);setP(i,w);
   i.addEventListener('input',()=>setP(i,w));i.style.width='';});};
  new MutationObserver(skin).observe(insp,{childList:true,subtree:true});skin();})();
+
+/* ── CAD view cube ───────────────────────────────────────────
+   Orthographic cube that follows the camera. Click a face = standard view, edge = 2-axis view, corner = isometric view.
+   Drag = orbit. Faces: Z up, Front = -Y (looking +Y), Right = +X. */
+var vcubeName='iso';
+var VC={n:136,s:38,hover:null,anim:null,
+ faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,1,0],[0,0,1],'LEFT']]};
+var vcCv=document.getElementById('vcube'),vcG=vcCv.getContext('2d');
+function vcSize(){const d=Math.min(2,devicePixelRatio||1);vcCv.width=VC.n*d;vcCv.height=VC.n*d;VC.d=d;}
+vcSize();
+function vcP(v,b){return [VC.n/2+dot(v,b.right)*VC.s,VC.n/2-dot(v,b.up)*VC.s];}
+function vcFaces(b){const eye=[-b.fwd[0],-b.fwd[1],-b.fwd[2]];
+ return VC.faces.map(([id,n,t1,t2,lab])=>({id,n,t1,t2,lab,vis:dot(n,eye)}))
+  .filter(f=>f.vis>0.02).sort((a,c)=>a.vis-c.vis);}
+function vcCell(f,b,x,y){/* solve screen point -> face coordinates (a,b) in [-1,1] */
+ const c=vcP(f.n,b),p1=vcP(f.t1,b),p2=vcP(f.t2,b);
+ const o=vcP([0,0,0],b);const A=[p1[0]-o[0],p1[1]-o[1]],B=[p2[0]-o[0],p2[1]-o[1]];
+ const dx=x-c[0],dy=y-c[1],det=A[0]*B[1]-A[1]*B[0];if(Math.abs(det)<1e-6)return null;
+ const a=(dx*B[1]-dy*B[0])/det,bb=(A[0]*dy-A[1]*dx)/det;
+ if(Math.abs(a)>1||Math.abs(bb)>1)return null;
+ const q=v=>v<-.34?-1:v>.34?1:0;return {f,sa:q(a),sb:q(bb)};}
+function vcHit(x,y){const b=camBasis();const fs=vcFaces(b).reverse();for(const f of fs){const h=vcCell(f,b,x,y);if(h)return h;}return null;}
+function vcDir(h){return [0,1,2].map(i=>h.f.n[i]+h.sa*h.f.t1[i]+h.sb*h.f.t2[i]);}
+function vcName(h){const w=vcDir(h).map(Math.abs).reduce((a,c)=>a+c,0);return w===1?h.f.id:null;}
+function vcGoto(az,el,name){const from={az:view.az,el:view.el};let d=((az-from.az+540)%360)-180;const t0=performance.now();
+ cancelAnimationFrame(VC.anim);vcubeName=name;
+ const step=t=>{const u=Math.min(1,(t-t0)/260),e=1-Math.pow(1-u,3);view.az=from.az+d*e;view.el=from.el+(el-from.el)*e;draw();
+  if(u<1)VC.anim=requestAnimationFrame(step);else{$('#vname').textContent=(view.ortho?'Orthographic':'Perspective')+' · '+(name?name[0].toUpperCase()+name.slice(1):'free');}};
+ VC.anim=requestAnimationFrame(step);}
+function drawVCube(){const g=vcG,N=VC.n;g.setTransform(VC.d,0,0,VC.d,0,0);g.clearRect(0,0,N,N);
+ const b=camBasis(),fs=vcFaces(b);
+ const hv=VC.hover;
+ fs.forEach(f=>{const q=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,c])=>vcP(f.n.map((v,i)=>v+a*f.t1[i]+c*f.t2[i]),b));
+  g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();
+  const sh=.55+.45*f.vis;g.fillStyle=`rgb(${Math.round(52*sh+16)},${Math.round(55*sh+16)},${Math.round(62*sh+18)})`;g.fill();
+  g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=1;g.lineJoin='round';g.stroke();
+  if(hv&&hv.f.id===f.id&&(hv.sa||hv.sb)===(hv.sa||hv.sb)){}
+  if(f.vis>.4){const c=vcP(f.n,b);g.font='600 10.5px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='rgba(240,242,248,'+(0.55+0.4*f.vis)+')';g.fillText(f.lab,c[0],c[1]);}});
+ if(hv){/* highlight the hovered cell on its face */
+  const f=hv.f,rg=v=>v<0?[-1,-.34]:v>0?[.34,1]:[-.34,.34];const whole=!hv.sa&&!hv.sb;const ra=whole?[-1,1]:rg(hv.sa),rb=whole?[-1,1]:rg(hv.sb);
+  const q=[[ra[0],rb[0]],[ra[1],rb[0]],[ra[1],rb[1]],[ra[0],rb[1]]].map(([a,c])=>vcP(f.n.map((v,i)=>v+a*f.t1[i]+c*f.t2[i]),b));
+  g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle='rgba(77,163,255,.9)';g.fill();
+  const c=vcP(f.n,b);if(!hv.sa&&!hv.sb){g.font='600 9.5px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='#04121f';g.font='700 10.5px Outfit, sans-serif';g.fillText(f.lab,c[0],c[1]);}}
+ /* axis stubs from the lower corner */
+ const o=[-1.28,-1.28,-1.0];[[[1,0,0],'#ff6b6b','X'],[[0,1,0],'#6fe38a','Y'],[[0,0,1],'#5db3ff','Z']].forEach(([a,col,nm])=>{
+  const p0=vcP(o,b),p1=vcP(o.map((v,i)=>v+a[i]*1.1),b);g.strokeStyle=col;g.lineWidth=1.8;g.beginPath();g.moveTo(p0[0],p0[1]);g.lineTo(p1[0],p1[1]);g.stroke();
+  g.fillStyle=col;g.font='700 9px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(nm,p1[0]+(p1[0]-p0[0])*.22,p1[1]+(p1[1]-p0[1])*.22);});
+}
+(function(){let down=null;const pos=e=>{const r=vcCv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+ vcCv.addEventListener('pointermove',e=>{const [x,y]=pos(e);
+  if(down){const dx=e.clientX-down.x,dy=e.clientY-down.y;if(!down.moved&&Math.hypot(dx,dy)<4)return;down.moved=true;cancelAnimationFrame(VC.anim);
+   view.az-=(e.clientX-down.lx)*.5;view.el=Math.max(-89,Math.min(89,view.el+(e.clientY-down.ly)*.5));down.lx=e.clientX;down.ly=e.clientY;vcubeName=null;draw();return;}
+  const h=vcHit(x,y);const k=h?h.f.id+h.sa+','+h.sb:'';const o=VC.hover?VC.hover.f.id+VC.hover.sa+','+VC.hover.sb:'';VC.hover=h;if(k!==o)drawVCube();});
+ vcCv.addEventListener('pointerleave',()=>{if(down)return;if(VC.hover){VC.hover=null;drawVCube();}});
+ vcCv.addEventListener('pointerdown',e=>{vcCv.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,moved:false};e.stopPropagation();});
+ vcCv.addEventListener('pointerup',e=>{const d=down;down=null;if(!d||d.moved){return;}
+  const [x,y]=pos(e);const h=vcHit(x,y);if(!h)return;const v=vcDir(h);const L=Math.hypot(...v)||1;const ex=v[0]/L,ey=v[1]/L,ez=v[2]/L;
+  const horiz=Math.hypot(ex,ey);const az=horiz<1e-4?view.az:Math.atan2(ey,ex)*180/Math.PI;const el=Math.max(-89.9,Math.min(89.9,Math.asin(ez)*180/Math.PI));
+  vcGoto(az,el,vcName(h)||(Math.abs(v[0])&&Math.abs(v[1])&&Math.abs(v[2])?'iso':'free'));});
+})();
 </script>
 </body>
 </html>
