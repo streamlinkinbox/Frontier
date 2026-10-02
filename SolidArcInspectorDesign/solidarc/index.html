@@ -657,9 +657,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
     <span class="k" style="pointer-events:none" title="Shift-click a mode to combine (e.g. Vertex + Edge)">⇧ combine</span>
     <div class="seg" id="shade">
       <button data-s="wire" title="Wireframe" aria-label="Wireframe"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/><path d="M4 7.5L12 3" opacity="0"/><path d="M12 12L4 16.5M12 12l8 4.5M12 3v9" stroke-dasharray="2 2.4" opacity=".7"/></svg></button>
-      <button data-s="flat" title="Flat" aria-label="Flat"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill="currentColor" fill-opacity=".28"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
-      <button data-s="plastic" title="Plastic" aria-label="Plastic"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 10.2a5 5 0 0 1 3.4-3.6" stroke-width="2"/><circle cx="9.3" cy="9.2" r=".9" fill="currentColor" stroke="none"/></svg></button>
-      <button data-s="matcap" class="on" title="Matcap · studio matcap for machined parts" aria-label="Matcap"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17a5.2 8.5 0 0 0 0-17z" fill="currentColor" fill-opacity=".35"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5" opacity=".55"/></svg></button>
+      <button data-s="matcap" class="on" title="Matcap · studio matcap for machined parts" aria-label="Matcap"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 10.2a5 5 0 0 1 3.4-3.6" stroke-width="2"/><circle cx="9.3" cy="9.2" r=".9" fill="currentColor" stroke="none"/></svg></button>
     </div>
     <div class="seg" id="gzMode" title="gizmo mode · G / ⇧R / S  (R draws a rectangle)">
       <button data-g="translate" class="on" title="Move · G" aria-label="translate"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
@@ -2681,12 +2679,12 @@ renderOutliner();renderInspector();resize();
    Perspective cube that follows the viewport camera (orthographic when the viewport is ortho). Face labels are projected onto the faces.
    Click a face = standard view, edge = 2-axis view, corner = isometric view. Drag = orbit.  Z up, Front = -Y, Right = +X. */
 var vcubeName='iso';
-var VC={n:136,s:34,D:4.6,hover:null,anim:null,K:22,
+var VC={n:136,s:0,D:5.2,hover:null,anim:null,K:22,
  /* t1 x t2 = n on every face, so the label reads left-to-right and is never mirrored */
  faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[-1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[-1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,-1,0],[0,0,1],'LEFT']]};
 var vcCv=document.getElementById('vcube'),vcG=vcCv.getContext('2d');
 function vcSize(){const d=Math.min(2,devicePixelRatio||1);vcCv.width=VC.n*d;vcCv.height=VC.n*d;VC.d=d;}
-vcSize();
+vcSize();VC.s=(VC.n/2)/Math.tan(FOV/2*Math.PI/180)/VC.D;/* same field of view as the viewport camera */
 function vcP(v,b){/* world -> cube canvas, true perspective */
  const x=dot(v,b.right),y=dot(v,b.up),z=dot(v,b.fwd);const dep=view.ortho?VC.D:VC.D+z;const k=VC.s*VC.D/Math.max(.3,dep);return [VC.n/2+x*k,VC.n/2-y*k];}
 function vcFaces(b){const eye=[-b.fwd[0],-b.fwd[1],-b.fwd[2]];const th=view.ortho?.02:1/VC.D+.02;
