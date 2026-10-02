@@ -65,3 +65,19 @@ TangentChainFilletVerification (28) · OpenChainFilletVerification (30) · Obliq
 
 `SolidArcExercise/SourceCAD_3D_Practice_4.arc` needs no change — rerunning it with the fixed kernel produces the
 closed part. The journal's recorded volumes (115.04 / 112.54) were symptoms of this bug.
+
+## Follow-up: grid blur, and the up axis
+
+**Grid.** The `Fillet_Before/After.png` renders above are *fresh*, not stale — but they came from the stock
+kernel-branch raster, whose `LatticeProjection.slang` is the old *infinite* lattice: it cross-fades two LOD levels,
+widens every line by `1/grazing`, and multiplies by radial + horizon fades, which reads as a blur toward the distance.
+The previous session had already replaced that with the one-pixel finite grid (`SolidArcViewportClean/0003`); it just
+wasn't in the standalone build I used for the first proofs. The `ZUp_*.png` renders are made with that patch applied.
+
+**Up axis is global Z-up, right-handed.** `CameraProjection` is a Z-up orbit camera (`Vec3::UnitZ()` up hint), the
+ground lattice is the z = 0 plane with X red / Y green, the gizmo's blue arrow is +Z, and `workplane xy` is the default
+sketch plane. Nothing per-object overrides it. What was wrong was the **exercise journal**, which modelled the part
+with Y as height (`box 5 4 6`) and faked the corner cut with a tapered loft. `SolidArcExercise/SourceCAD_3D_Practice_4_ZUp.arc`
+redoes it properly: X width 5, Y depth 6, Z height 4, R2 on the vertical back-right edge, and the corner cut as a
+single plane through (2.5,0,4) (0,0,2) (0,3,4) built from a triangle lying in that plane extruded along −normal.
+Result: `V12 E18 F8`, cut face is a true `Plane`, volume 114.0625 (closed form 120 − (4−π)·4 − 2.5 = 114.066).
