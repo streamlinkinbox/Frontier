@@ -608,7 +608,7 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
 @media (max-width:1500px){#axisHud{top:96px}#gzHud{top:140px}}
 
 /* ══ v12: view cube replaces the XYZ readout, persp pill and the view buttons ══ */
-#vcube{position:absolute;right:12px;top:52px;width:136px;height:136px;z-index:4;cursor:pointer;touch-action:none}
+#vcube{position:absolute;right:10px;top:50px;width:164px;height:164px;z-index:4;cursor:pointer;touch-action:none}
 #axisHud,#views{display:none!important}
 
 /* v13: shading segment as icons; view cube canvas slightly larger for the perspective silhouette */
@@ -2679,12 +2679,12 @@ renderOutliner();renderInspector();resize();
    Perspective cube that follows the viewport camera (orthographic when the viewport is ortho). Face labels are projected onto the faces.
    Click a face = standard view, edge = 2-axis view, corner = isometric view. Drag = orbit.  Z up, Front = -Y, Right = +X. */
 var vcubeName='iso';
-var VC={n:136,s:0,D:5.2,hover:null,anim:null,K:22,
+var VC={n:164,s:36,D:8,hover:null,anim:null,K:22,
  /* t1 x t2 = n on every face, so the label reads left-to-right and is never mirrored */
  faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[-1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[-1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,-1,0],[0,0,1],'LEFT']]};
 var vcCv=document.getElementById('vcube'),vcG=vcCv.getContext('2d');
 function vcSize(){const d=Math.min(2,devicePixelRatio||1);vcCv.width=VC.n*d;vcCv.height=VC.n*d;VC.d=d;}
-vcSize();VC.s=(VC.n/2)/Math.tan(FOV/2*Math.PI/180)/VC.D;/* same field of view as the viewport camera */
+vcSize();/* strong perspective like the viewport grid: camera far enough that the cube reads like the box in the viewport (an object-sized thing, not the 200 mm grid) */
 function vcP(v,b){/* world -> cube canvas, true perspective */
  const x=dot(v,b.right),y=dot(v,b.up),z=dot(v,b.fwd);const dep=view.ortho?VC.D:VC.D+z;const k=VC.s*VC.D/Math.max(.3,dep);return [VC.n/2+x*k,VC.n/2-y*k];}
 function vcFaces(b){const eye=[-b.fwd[0],-b.fwd[1],-b.fwd[2]];const th=view.ortho?.02:1/VC.D+.02;
