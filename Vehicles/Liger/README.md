@@ -68,3 +68,22 @@ Finding on the way: the shell between the bonnet edges (x 8..185) is the cabin o
 * Open items: strips are ruled between their two curves (faceted look — add the middle crease as a third section
   or a guide where one exists); not yet covered: rear quarter above the arch for x < −122, nose below the bonnet
   shoulder, door skin x > 131; `Cabin_Rim` faces inward; strips not sewn.
+
+## Phase 3 — +Y side lofted curve-to-curve (`Liger_Body_SideR.arc`) ← current
+
+Per review: curves first (kernel renders `SolidArc/Liger_Curves_0*.png`), then loft them. `tools/loft_side.py`
+builds the **right (+Y) side only**, 16 strips, each a loft between two neighbouring feature curves on their common
+x-range (`PLAN` table).  Silhouettes are never lofted (flat guides only).  Every strip is measured against the
+Blender shell; where a plain two-curve loft is more than 4 cm off (the curved door/fender shoulder), one
+*construction section* — the strip midline dropped onto the reference surface — is added as a third loft section
+and marked as such in the journal.  Section order is chosen so the loft normal agrees with the reference normal.
+
+| strip | curves | mesh dev mean/max cm |
+|---|---|---|
+| Deck_Step / Ledge / Outer, Rear_Shoulder, Quarter_Top | 076→074→035→061→028→071 | 0.8–1.3 / ≤2.7 |
+| Quarter_Flare, Quarter_Arch, Quarter_Sill | 071→092→Edge_005, 071→030 | 0.9–2.0 / ≤6.1 |
+| Cant_Rail, Door_Upper, Door_Lower, Sill | 063(+Y)→023→064→030→Edge_003 | 1.1–2.5 / ≤6.8 |
+| Fender_Upper, Fender_Arch, Nose_Shoulder, Nose_Arch | 023→065→Edge_024, 025→026→Edge_024 | 0.9–1.8 / ≤7.2 |
+
+Renders `SolidArc/Liger_SideR_01_RearQuarter / 02_Side / 03_FrontQuarter / 04_Top.png`.  Not yet: tail-lamp recess
+(curves 076–096, 171/172), nose face (004/010/019/031, Edge_017), bonnet centre, mirroring, sewing.
