@@ -610,6 +610,10 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
 /* ══ v12: view cube replaces the XYZ readout, persp pill and the view buttons ══ */
 #vcube{position:absolute;right:12px;top:52px;width:136px;height:136px;z-index:4;cursor:pointer;touch-action:none}
 #axisHud,#views{display:none!important}
+
+/* v13: shading segment as icons; view cube canvas slightly larger for the perspective silhouette */
+#shade button{width:34px;padding:0;justify-content:center;height:26px}
+#shade .gi{width:17px;height:17px;display:block}
 </style>
 </head>
 <body>
@@ -652,10 +656,10 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stro
     </div>
     <span class="k" style="pointer-events:none" title="Shift-click a mode to combine (e.g. Vertex + Edge)">⇧ combine</span>
     <div class="seg" id="shade">
-      <button data-s="wire">Wire</button>
-      <button data-s="flat">Flat</button>
-      <button data-s="plastic">Plastic</button>
-      <button data-s="matcap" class="on" title="studio matcap for machined parts">Matcap</button>
+      <button data-s="wire" title="Wireframe" aria-label="Wireframe"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/><path d="M4 7.5L12 3" opacity="0"/><path d="M12 12L4 16.5M12 12l8 4.5M12 3v9" stroke-dasharray="2 2.4" opacity=".7"/></svg></button>
+      <button data-s="flat" title="Flat" aria-label="Flat"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill="currentColor" fill-opacity=".28"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></button>
+      <button data-s="plastic" title="Plastic" aria-label="Plastic"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 10.2a5 5 0 0 1 3.4-3.6" stroke-width="2"/><circle cx="9.3" cy="9.2" r=".9" fill="currentColor" stroke="none"/></svg></button>
+      <button data-s="matcap" class="on" title="Matcap · studio matcap for machined parts" aria-label="Matcap"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17a5.2 8.5 0 0 0 0-17z" fill="currentColor" fill-opacity=".35"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5" opacity=".55"/></svg></button>
     </div>
     <div class="seg" id="gzMode" title="gizmo mode · G / ⇧R / S  (R draws a rectangle)">
       <button data-g="translate" class="on" title="Move · G" aria-label="translate"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
@@ -2674,26 +2678,27 @@ renderOutliner();renderInspector();resize();
  new MutationObserver(skin).observe(insp,{childList:true,subtree:true});skin();})();
 
 /* ── CAD view cube ───────────────────────────────────────────
-   Orthographic cube that follows the camera. Click a face = standard view, edge = 2-axis view, corner = isometric view.
-   Drag = orbit. Faces: Z up, Front = -Y (looking +Y), Right = +X. */
+   Perspective cube that follows the viewport camera (orthographic when the viewport is ortho). Face labels are projected onto the faces.
+   Click a face = standard view, edge = 2-axis view, corner = isometric view. Drag = orbit.  Z up, Front = -Y, Right = +X. */
 var vcubeName='iso';
-var VC={n:136,s:38,hover:null,anim:null,
- faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,1,0],[0,0,1],'LEFT']]};
+var VC={n:136,s:34,D:4.6,hover:null,anim:null,K:22,
+ /* t1 x t2 = n on every face, so the label reads left-to-right and is never mirrored */
+ faces:[['top',[0,0,1],[1,0,0],[0,1,0],'TOP'],['bottom',[0,0,-1],[-1,0,0],[0,1,0],'BOTTOM'],['front',[0,-1,0],[1,0,0],[0,0,1],'FRONT'],['back',[0,1,0],[-1,0,0],[0,0,1],'BACK'],['right',[1,0,0],[0,1,0],[0,0,1],'RIGHT'],['left',[-1,0,0],[0,-1,0],[0,0,1],'LEFT']]};
 var vcCv=document.getElementById('vcube'),vcG=vcCv.getContext('2d');
 function vcSize(){const d=Math.min(2,devicePixelRatio||1);vcCv.width=VC.n*d;vcCv.height=VC.n*d;VC.d=d;}
 vcSize();
-function vcP(v,b){return [VC.n/2+dot(v,b.right)*VC.s,VC.n/2-dot(v,b.up)*VC.s];}
-function vcFaces(b){const eye=[-b.fwd[0],-b.fwd[1],-b.fwd[2]];
- return VC.faces.map(([id,n,t1,t2,lab])=>({id,n,t1,t2,lab,vis:dot(n,eye)}))
-  .filter(f=>f.vis>0.02).sort((a,c)=>a.vis-c.vis);}
-function vcCell(f,b,x,y){/* solve screen point -> face coordinates (a,b) in [-1,1] */
- const c=vcP(f.n,b),p1=vcP(f.t1,b),p2=vcP(f.t2,b);
- const o=vcP([0,0,0],b);const A=[p1[0]-o[0],p1[1]-o[1]],B=[p2[0]-o[0],p2[1]-o[1]];
- const dx=x-c[0],dy=y-c[1],det=A[0]*B[1]-A[1]*B[0];if(Math.abs(det)<1e-6)return null;
- const a=(dx*B[1]-dy*B[0])/det,bb=(A[0]*dy-A[1]*dx)/det;
- if(Math.abs(a)>1||Math.abs(bb)>1)return null;
- const q=v=>v<-.34?-1:v>.34?1:0;return {f,sa:q(a),sb:q(bb)};}
-function vcHit(x,y){const b=camBasis();const fs=vcFaces(b).reverse();for(const f of fs){const h=vcCell(f,b,x,y);if(h)return h;}return null;}
+function vcP(v,b){/* world -> cube canvas, true perspective */
+ const x=dot(v,b.right),y=dot(v,b.up),z=dot(v,b.fwd);const dep=view.ortho?VC.D:VC.D+z;const k=VC.s*VC.D/Math.max(.3,dep);return [VC.n/2+x*k,VC.n/2-y*k];}
+function vcFaces(b){const eye=[-b.fwd[0],-b.fwd[1],-b.fwd[2]];const th=view.ortho?.02:1/VC.D+.02;
+ return VC.faces.map(([id,n,t1,t2,lab])=>({id,n,t1,t2,lab,vis:dot(n,eye)})).filter(f=>f.vis>th).sort((a,c)=>a.vis-c.vis);}
+function vcCell(f,b,x,y){/* ray from the cube camera through the pixel, intersected with the face plane -> face coordinates */
+ const k=VC.s*VC.D,u=(x-VC.n/2)/k,v=-(y-VC.n/2)/k;let O,d;
+ if(view.ortho){const q=VC.s;O=[0,1,2].map(i=>b.right[i]*(x-VC.n/2)/q+b.up[i]*(-(y-VC.n/2))/q-b.fwd[i]*10);d=b.fwd;}
+ else{O=[0,1,2].map(i=>-b.fwd[i]*VC.D);d=norm([0,1,2].map(i=>b.fwd[i]+b.right[i]*u+b.up[i]*v));}
+ const den=dot(f.n,d);if(Math.abs(den)<1e-6)return null;const t=(1-dot(f.n,O))/den;if(t<=0)return null;
+ const P=[0,1,2].map(i=>O[i]+d[i]*t-f.n[i]);const a=dot(P,f.t1),bb=dot(P,f.t2);if(Math.abs(a)>1||Math.abs(bb)>1)return null;
+ const q=w=>w<-.34?-1:w>.34?1:0;return {f,sa:q(a),sb:q(bb),t};}
+function vcHit(x,y){const b=camBasis();let best=null;vcFaces(b).forEach(f=>{const h=vcCell(f,b,x,y);if(h&&(!best||h.t<best.t))best=h;});return best;}
 function vcDir(h){return [0,1,2].map(i=>h.f.n[i]+h.sa*h.f.t1[i]+h.sb*h.f.t2[i]);}
 function vcName(h){const w=vcDir(h).map(Math.abs).reduce((a,c)=>a+c,0);return w===1?h.f.id:null;}
 function vcGoto(az,el,name){const from={az:view.az,el:view.el};let d=((az-from.az+540)%360)-180;const t0=performance.now();
@@ -2701,30 +2706,29 @@ function vcGoto(az,el,name){const from={az:view.az,el:view.el};let d=((az-from.a
  const step=t=>{const u=Math.min(1,(t-t0)/260),e=1-Math.pow(1-u,3);view.az=from.az+d*e;view.el=from.el+(el-from.el)*e;draw();
   if(u<1)VC.anim=requestAnimationFrame(step);else{$('#vname').textContent=(view.ortho?'Orthographic':'Perspective')+' · '+(name?name[0].toUpperCase()+name.slice(1):'free');}};
  VC.anim=requestAnimationFrame(step);}
+function vcLabel(g,f,b,col){/* text lies in the face plane: affine map of the face's own axes through the projected centre */
+ const h=.25,c=vcP(f.n,b);const pA=vcP(f.n.map((v,i)=>v+f.t1[i]*h),b),mA=vcP(f.n.map((v,i)=>v-f.t1[i]*h),b),pB=vcP(f.n.map((v,i)=>v+f.t2[i]*h),b),mB=vcP(f.n.map((v,i)=>v-f.t2[i]*h),b);
+ const A=[(pA[0]-mA[0])/(2*h),(pA[1]-mA[1])/(2*h)],B=[(pB[0]-mB[0])/(2*h),(pB[1]-mB[1])/(2*h)],K=VC.K;
+ g.save();g.transform(A[0]/K,A[1]/K,-B[0]/K,-B[1]/K,c[0],c[1]);/* local x = t1, local y(down) = -t2 */
+ g.font='700 9.5px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle=col;g.fillText(f.lab,0,.5);g.restore();}
 function drawVCube(){const g=vcG,N=VC.n;g.setTransform(VC.d,0,0,VC.d,0,0);g.clearRect(0,0,N,N);
- const b=camBasis(),fs=vcFaces(b);
- const hv=VC.hover;
- fs.forEach(f=>{const q=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,c])=>vcP(f.n.map((v,i)=>v+a*f.t1[i]+c*f.t2[i]),b));
-  g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();
+ const b=camBasis(),fs=vcFaces(b),hv=VC.hover;
+ const poly=(f,ra,rb)=>[[ra[0],rb[0]],[ra[1],rb[0]],[ra[1],rb[1]],[ra[0],rb[1]]].map(([a,c])=>vcP(f.n.map((v,i)=>v+a*f.t1[i]+c*f.t2[i]),b));
+ const path=q=>{g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();};
+ fs.forEach(f=>{const q=poly(f,[-1,1],[-1,1]);path(q);
   const sh=.55+.45*f.vis;g.fillStyle=`rgb(${Math.round(52*sh+16)},${Math.round(55*sh+16)},${Math.round(62*sh+18)})`;g.fill();
-  g.strokeStyle='rgba(255,255,255,.28)';g.lineWidth=1;g.lineJoin='round';g.stroke();
-  if(hv&&hv.f.id===f.id&&(hv.sa||hv.sb)===(hv.sa||hv.sb)){}
-  if(f.vis>.4){const c=vcP(f.n,b);g.font='600 10.5px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='rgba(240,242,248,'+(0.55+0.4*f.vis)+')';g.fillText(f.lab,c[0],c[1]);}});
- if(hv){/* highlight the hovered cell on its face */
-  const f=hv.f,rg=v=>v<0?[-1,-.34]:v>0?[.34,1]:[-.34,.34];const whole=!hv.sa&&!hv.sb;const ra=whole?[-1,1]:rg(hv.sa),rb=whole?[-1,1]:rg(hv.sb);
-  const q=[[ra[0],rb[0]],[ra[1],rb[0]],[ra[1],rb[1]],[ra[0],rb[1]]].map(([a,c])=>vcP(f.n.map((v,i)=>v+a*f.t1[i]+c*f.t2[i]),b));
-  g.beginPath();q.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fillStyle='rgba(77,163,255,.9)';g.fill();
-  const c=vcP(f.n,b);if(!hv.sa&&!hv.sb){g.font='600 9.5px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillStyle='#04121f';g.font='700 10.5px Outfit, sans-serif';g.fillText(f.lab,c[0],c[1]);}}
- /* axis stubs from the lower corner */
- const o=[-1.28,-1.28,-1.0];[[[1,0,0],'#ff6b6b','X'],[[0,1,0],'#6fe38a','Y'],[[0,0,1],'#5db3ff','Z']].forEach(([a,col,nm])=>{
-  const p0=vcP(o,b),p1=vcP(o.map((v,i)=>v+a[i]*1.1),b);g.strokeStyle=col;g.lineWidth=1.8;g.beginPath();g.moveTo(p0[0],p0[1]);g.lineTo(p1[0],p1[1]);g.stroke();
-  g.fillStyle=col;g.font='700 9px Outfit, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(nm,p1[0]+(p1[0]-p0[0])*.22,p1[1]+(p1[1]-p0[1])*.22);});
+  g.strokeStyle='rgba(255,255,255,.3)';g.lineWidth=1;g.lineJoin='round';g.stroke();
+  if(!(hv&&hv.f.id===f.id&&!hv.sa&&!hv.sb))vcLabel(g,f,b,'rgba(240,242,248,'+Math.min(1,.45+.6*f.vis)+')');});
+ if(hv){const f=hv.f,rg=v=>v<0?[-1,-.34]:v>0?[.34,1]:[-.34,.34];const whole=!hv.sa&&!hv.sb;
+  path(poly(f,whole?[-1,1]:rg(hv.sa),whole?[-1,1]:rg(hv.sb)));g.fillStyle='rgba(77,163,255,.9)';g.fill();
+  if(whole)vcLabel(g,f,b,'#04121f');}
 }
 (function(){let down=null;const pos=e=>{const r=vcCv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+ const key=h=>h?h.f.id+h.sa+','+h.sb:'';
  vcCv.addEventListener('pointermove',e=>{const [x,y]=pos(e);
   if(down){const dx=e.clientX-down.x,dy=e.clientY-down.y;if(!down.moved&&Math.hypot(dx,dy)<4)return;down.moved=true;cancelAnimationFrame(VC.anim);
    view.az-=(e.clientX-down.lx)*.5;view.el=Math.max(-89,Math.min(89,view.el+(e.clientY-down.ly)*.5));down.lx=e.clientX;down.ly=e.clientY;vcubeName=null;draw();return;}
-  const h=vcHit(x,y);const k=h?h.f.id+h.sa+','+h.sb:'';const o=VC.hover?VC.hover.f.id+VC.hover.sa+','+VC.hover.sb:'';VC.hover=h;if(k!==o)drawVCube();});
+  const h=vcHit(x,y);const o=key(VC.hover);VC.hover=h;if(key(h)!==o)drawVCube();});
  vcCv.addEventListener('pointerleave',()=>{if(down)return;if(VC.hover){VC.hover=null;drawVCube();}});
  vcCv.addEventListener('pointerdown',e=>{vcCv.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,moved:false};e.stopPropagation();});
  vcCv.addEventListener('pointerup',e=>{const d=down;down=null;if(!d||d.moved){return;}
