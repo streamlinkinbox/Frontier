@@ -53,3 +53,18 @@ then the −Y side is emitted with reversed point order (the kernel's `mirror` f
   — via `SolidArc/render_panels.arc`.
 * Known defects still to fix: nose strips beyond x≈215 cm twist into ribbons; a few short "Leg" patches on the
   arch tops face inward; patches are not yet sewn into one shell.
+
+## Phase 2c — curve-to-curve lofts (`Liger_Body_CurveLoft.arc`) ← current direction
+
+Per the design brief: loft the **fitted feature curves** against their nearest neighbour, no polygon topology.
+`tools/curve_loft.py` holds an explicit pairing table (`PLAN`): 16 strips per side, e.g. rear-ledge-inner ↔ its
+mirror (tail centre), ledge → deck → rear shoulder → quarter line → rear-arch rim / sill crease → sill boundary;
+cabin-opening rim (crease 062) → bonnet edge → door crease → sill; bonnet edge → fender crease → arch boundary;
+bonnet shoulder ↔ mirror → fender rim; tail lip/face from the cross-body tail curves.  Each strip = two sections
+resampled on the common x-range, `loft --sheet`; section order chosen so the normal points away from the body axis.
+Finding on the way: the shell between the bonnet edges (x 8..185) is the cabin opening — the glass frame is its own part.
+
+* 32 lofts, 0 refusals.  Renders `SolidArc/Liger_CL_01_Iso / 02_RearQuarter / 04_Top / 05_Elev_A / 07_FrontQuarter.png`.
+* Open items: strips are ruled between their two curves (faceted look — add the middle crease as a third section
+  or a guide where one exists); not yet covered: rear quarter above the arch for x < −122, nose below the bonnet
+  shoulder, door skin x > 131; `Cabin_Rim` faces inward; strips not sewn.
