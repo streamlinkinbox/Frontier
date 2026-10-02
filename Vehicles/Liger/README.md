@@ -81,9 +81,13 @@ and marked as such in the journal.  Section order is chosen so the loft normal a
 | strip | curves | mesh dev mean/max cm |
 |---|---|---|
 | Deck_Step / Ledge / Outer, Rear_Shoulder, Quarter_Top | 076→074→035→061→028→071 | 0.8–1.3 / ≤2.7 |
-| Quarter_Flare, Quarter_Arch, Quarter_Sill | 071→092→Edge_005, 071→030 | 0.9–2.0 / ≤6.1 |
+| Quarter_Panel (rear-window line straight down to the rear-arch opening), Quarter_Sill | 077(+Y)→Edge_005, 071→030 | 2.5 / 9.6, 2.0 / 4.1 |
 | Cant_Rail, Door_Upper, Door_Lower, Sill | 063(+Y)→023→064→030→Edge_003 | 1.1–2.5 / ≤6.8 |
-| Fender_Upper, Fender_Arch, Nose_Shoulder, Nose_Arch | 023→065→Edge_024, 025→026→Edge_024 | 0.9–1.8 / ≤7.2 |
+| Fender_Panel (bonnet edge + shoulder as one rail, straight down to the front-arch opening) | 023+025→Edge_024 | 3.9 / 15.8 |
+
+Review fix: 092 (rear) and 064/065/026 (front) are the panel **cut lines** running around the arches — they are
+drawn but no longer used as loft rails, so each arch is one panel with vertical rulings (rail point above each
+arch point) instead of two overlapping sheets with straight cuts.
 
 Renders `SolidArc/Liger_SideR_01_RearQuarter / 02_Side / 03_FrontQuarter / 04_Top.png`.  Not yet: tail-lamp recess
 (curves 076–096, 171/172), nose face (004/010/019/031, Edge_017), bonnet centre, mirroring, sewing.

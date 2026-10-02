@@ -31,6 +31,13 @@ def half(P): return P[P[:, 1] > -2]                              # +Y part of a 
 def by_x(P, x0, x1):
     o = np.argsort(P[:, 0]); P = P[o]; xs = np.linspace(x0, x1, N)
     return np.c_[xs, np.interp(xs, P[:, 0], P[:, 1]), np.interp(xs, P[:, 0], P[:, 2])]
+def cat(*Ps):                                                    # join curves end-to-end, sorted by x
+    P = np.vstack(Ps); return P[np.argsort(P[:, 0])]
+def arch(P):
+    """wheel-arch opening: order rear foot -> over the top -> front foot (arc-length param)."""
+    d = np.r_[0, np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))]
+    if P[0, 0] > P[-1, 0]: P = P[::-1]
+    return P
 def by_s(P):
     d = np.r_[0, np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))]; t = np.linspace(0, d[-1], N)
     return np.c_[[np.interp(t, d, P[:, k]) for k in range(3)]].T
@@ -43,24 +50,26 @@ PLAN = [
     ('Deck_Outer',     34, 60, 'x'),
     ('Rear_Shoulder',  60, 27, 'x'),
     ('Quarter_Top',    27, 70, 'x'),
-    # rear quarter panel down to the arch and the sill
-    ('Quarter_Flare',  70, 91, 'x'),
-    ('Quarter_Arch',   91, 175, 'x'),
+    # rear quarter panel: quarter line straight down to the rear-arch opening (092 is the panel cut, drawn only)
+    ('Quarter_Panel',  ('h', 76), 175, 'a'),
     ('Quarter_Sill',   70, 29, 'x'),
     # cabin side
     ('Cant_Rail',      ('h', 62), 22, 'x'),
     ('Door_Upper',     22, 63, 'x'),
     ('Door_Lower',     63, 29, 'x'),
-    ('Sill',           29, 173, 'x'),
-    # front fender & nose side
-    ('Fender_Upper',   22, 64, 'x'),
-    ('Fender_Arch',    64, 194, 'x'),
-    ('Nose_Shoulder',  24, 25, 'x'),
-    ('Nose_Arch',      25, 194, 'x'),
+    ('Sill',           29, ('cat', 174, 173), 'x'),
+    # front fender: bonnet edge + bonnet shoulder as one top rail, straight down to the front-arch opening
+    # (064/065 = door/fender cut lines, 026 = flare crease: drawn only, not loft rails)
+    ('Fender_Panel',   ('cat', 22, 24), 194, 'a'),
 ]
 
-def get(i): return half(C(i[1])) if isinstance(i, tuple) else C(i)
-def nm(i): return curves[i[1]]['name'] + '(+Y half)' if isinstance(i, tuple) else curves[i]['name']
+def get(i):
+    if isinstance(i, tuple):
+        return half(C(i[1])) if i[0] == 'h' else cat(*[C(j) for j in i[1:]])
+    return C(i)
+def nm(i):
+    if isinstance(i, tuple): return '+'.join(curves[j]['name'] for j in i[1:]) + ('(+Y half)' if i[0] == 'h' else '')
+    return curves[i]['name']
 
 out = ['# SolidArc native document v1',
        f'# {CAR} — phase 3: +Y side of the main shell, lofted curve-to-curve from the fitted feature curves.',
@@ -73,6 +82,10 @@ for k, (name, a, b, mode) in enumerate(PLAN, 1):
         x0 = max(A[:, 0].min(), B[:, 0].min()); x1 = min(A[:, 0].max(), B[:, 0].max())
         if x1 - x0 < 8: rows.append((name, 'NO OVERLAP')); continue
         SA, SB = by_x(A, x0, x1), by_x(B, x0, x1)
+    elif mode == 'a':                            # A = top rail (by x over the arch's span), B = arch opening (by arc length)
+        B = arch(B); SB = by_s(B)
+        o = np.argsort(A[:, 0]); A = A[o]; xs = np.clip(SB[:, 0], A[0, 0], A[-1, 0])   # rail point above each arch point
+        SA = np.c_[xs, np.interp(xs, A[:, 0], A[:, 1]), np.interp(xs, A[:, 0], A[:, 2])]
     else:
         SA, SB = by_s(A), by_s(B)
         if np.linalg.norm(SA[0]-SB[0]) > np.linalg.norm(SA[0]-SB[-1]): SB = SB[::-1]
