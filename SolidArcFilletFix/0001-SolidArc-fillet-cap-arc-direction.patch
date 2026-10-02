@@ -1,0 +1,14 @@
+--- a/Editor/AuthoringTools/Modelling/SolidArc/Kernel/BlendSolver.cpp
++++ b/Editor/AuthoringTools/Modelling/SolidArc/Kernel/BlendSolver.cpp
+@@ -5506,6 +5506,11 @@
+                     Vec3 Radial = AxisU * std::cos(Middle) + AxisV * std::sin(Middle);
+                     double Slide = (PlaneNormal.Dot(S - Centre) - Radius * PlaneNormal.Dot(Radial)) / Facing2;
+                     Deliver<NurbsCurve> Section = NurbsCurve::ArcThreePoints(S, Centre + F.Tangent * Slide + Radial * Radius, E);
++                    // S→E is the roll face's traversal of this edge. The edge's own curve runs VertexStart→VertexEnd,
++                    //    so a reversed coedge must store the arc the other way round or every other coedge on this
++                    //    edge (the planar cap) traces it backwards, its ring self-intersects and the cap tessellates
++                    //    as a chord — which is the leaky "pink segment" fault.
++                    if (Section && Result.Coedges[Coedge].Reversed) Section.Payload = Section.Payload.Reversed();
+                     if (Section) Result.Edges[EdgeIndex].Curve = std::move(Section.Payload);
+                 }
+ 
