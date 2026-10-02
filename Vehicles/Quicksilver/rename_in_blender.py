@@ -1,0 +1,36 @@
+import bpy
+M = {
+ "TrailingBody.Guide": "Body_Main_Shell",
+ "TrailingBody": "Body_Main_Shell_LowPoly",
+ "Lead-Body": "Body_Front_Clip",
+ "TrailingBody.001": "Body_Door_Skin",
+ "Final Body Guide.004": "Body_Door_Pillar_Frame",
+ "Final Body Guide.005": "Body_Side_Intake_Scoop",
+ "TrailingBody.002": "Body_Rear_Deck",
+ "TrailingBody.006": "Body_Rear_Deck_Louvres",
+ "TrailingBody.007": "Body_Rear_Deck_Lip",
+ "TrailingBody.008": "Body_Rear_Header_Lip",
+ "TrailingBody.003": "Body_Window_Surround",
+ "TrailingBody.004": "Glass_Roof_Scoop",
+ "TrailingBody.005": "Glass_Windscreen",
+ "LeadEdge.002": "Body_Front_Bumper_Lower",
+ "LeadEdge": "Body_Sill_Rail",
+ "LeadEdge.001": "Body_Front_Lip",
+ "Front Header": "Body_Front_Grille_Frame",
+ "FuelPanel": "Body_Fuel_Door",
+ "Exterior02.003": "Body_Rear_Deck_Vent",
+ "Exterior02.002": "Aero_Rear_Diffuser_Fence",
+ "Exterior02.004": "Aero_Front_Splitter_End",
+ "RearSpoilers": "Aero_Rear_Wing",
+ "RearSpoilers.005": "Aero_Wing_Endplates",
+ "Aero-Mount": "Aero_Wing_Mount",
+ "Cylinder": "Aero_Wing_Pivot",
+ "StandardTyre.001": "Wheel_Rear",
+ "StandardTyre.004": "Wheel_Front",
+ "G3": "Helper_Points",
+ "G3.002": "Helper_Points_2",
+ "G3.003": "Helper_Points_3",
+ "Cube.001": "Helper_Cube"
+}
+for o, n in M.items():
+    if o in bpy.data.objects: bpy.data.objects[o].name = n
