@@ -39,3 +39,17 @@ the Python venv and headless bpy; then
 Kernel feedback folded back into the generators: splines need > degree points (3-point curves → `--degree=2`),
 no coincident consecutive points (shoulder landmark kept ≥ 18 % of the half-profile in from the ends), and
 section direction +Y→−Y so the loft normals face outward (SolidArc tints back faces pink).
+
+## Phase 2b — crease-bounded panel lofts (`Liger_Body_Panels.arc`)
+
+The whole-body station lofts were rejected (every panel smeared into one blanket). `tools/panel_loft.py`
+instead rebuilds the shell as **38 strip patches per side**: the body is split in X at the ends of the ten
+longitudinal creases (sill, door, bonnet edge, fender, bonnet shoulder, rear shoulder/deck/ledges), each
+half-section is split where the active creases cross it, and each strip is lofted on its own (`loft --sheet`),
+then the −Y side is emitted with reversed point order (the kernel's `mirror` flips orientation → back faces).
+
+* 699 kernel operations, 0 refusals; loft→mesh deviation mean 0.34 cm, worst 6.2 cm (tail end strip).
+* Renders: `SolidArc/Liger_Panels_01_Iso.png`, `02_RearQuarter`, `04_Top`, `05_Elev_A` (side), `07_FrontQuarter`
+  — via `SolidArc/render_panels.arc`.
+* Known defects still to fix: nose strips beyond x≈215 cm twist into ribbons; a few short "Leg" patches on the
+  arch tops face inward; patches are not yet sewn into one shell.
