@@ -1,0 +1,14 @@
+SolidArc editor chrome proof - taken 2026-10-01 (CPU mirror: Exhibits/Workbench/Editor/SolidArcEditorProof.cpp, real SolidArcEditorHost through ImGui docking).
+SolidArcEditor.png = tabs + notch, SolidArcEditorControlCentre.png = notch pulled, ProjectZeroEditor.png = reference, TabBandComparison.png = 2x crop of both tab bands.
+
+[SolidArcEditorProof] wrote Exhibits/Gallery/Editor/EditorProof_SolidArc_Menu.png and Exhibits/Gallery/Editor/EditorProof_SolidArc.png with 178998 bright pixels in the filtered sheet
+[SolidArcEditorProof] tab 0 body at (60,26): 18 18 18
+[SolidArcEditorProof] tab 1 body at (300,26): 18 18 18
+[SolidArcEditorProof] tab 2 body at (1100,26): 18 18 18
+[SolidArcEditorProof] blue cells in the tab band: 0
+[SolidArcEditorProof] outliner tab right edge: top 163, foot 174
+[SolidArcEditorProof] notch at (640,18), brand 109 bright cells
+[SolidArcEditorProof] shade after notch tap: open
+[SolidArcEditorProof] Control Centre tile cells: 21080
+[SolidArcEditorProof] shade after grip tap: shut
+[SolidArcEditorProof] chrome gates GREEN: game-editor tab sheet and Control Centre notch
