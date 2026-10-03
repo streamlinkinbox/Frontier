@@ -1,0 +1,509 @@
+── script BMW-M4-F82.arc
+> echo ════ SolidArc · BMW M4 Coupe F82 · blueprint trace → NURBS solids (1unit=1m)
+  ════ SolidArc · BMW M4 Coupe F82 · blueprint trace → NURBS solids (1unit=1m) 
+> echo Source: the-blueprints.com BMW M4 Coupe F82 (2014) 2D CAD drawing, dims in mm
+  Source: the-blueprints.com BMW M4 Coupe F82 (2014) 2D CAD drawing, dims in mm 
+> echo L=4.671 WB=2.812 H=1.383 W=1.870 · axles at x=1.048 / x=3.860 from rear bumper
+  L=4.671 WB=2.812 H=1.383 W=1.870 · axles at x=1.048 / x=3.860 from rear bumper 
+> gizmo off
+  · gizmo off  layout combined  pivot (-nan -nan -nan)  view free  hover none
+> show iso off
+> echo ── 1. side-elevation trace on XZ: closed interpolating spline through blueprint points
+  ── 1. side-elevation trace on XZ: closed interpolating spline through blueprint points 
+> workplane xz --origin=(0,-1.0,0)
+  · workplane xz origin (0.000 -1.000 0.000) normal (0 -1 0)
+> spline (4.639,0.149) (4.672,0.240) (4.678,0.330) (4.672,0.430) (4.655,0.470) (4.560,0.520) (4.300,0.610) (3.900,0.720) (3.550,0.800) (3.161,0.960) (2.742,1.320) (2.450,1.372) (2.231,1.380) (1.766,1.371) (1.301,1.255) (0.930,1.078) (0.511,1.023) (0.139,1.041) (0.009,0.930) (0.000,0.790) (0.000,0.660) (0.012,0.540) (0.037,0.428) (0.163,0.186) (0.511,0.158) (1.394,0.177) (2.200,0.180) (2.975,0.177) (4.137,0.158) --closed --degree=3 --name=Side
+  · #1   Side               curve    deg 3  poles 30   integral closed  length 10.6131  bounds [-0.01 -1.00 0.04]–[4.68 -1.00 1.38]
+> circle (3.860,0.335) 0.370 --name=ArchF
+  · #2   ArchF              curve    deg 2  poles 9    rational closed  length 2.3248  bounds [3.49 -1.00 -0.04]–[4.23 -1.00 0.71]
+> circle (1.048,0.335) 0.370 --name=ArchR
+  · #3   ArchR              curve    deg 2  poles 9    rational closed  length 2.3248  bounds [0.68 -1.00 -0.04]–[1.42 -1.00 0.71]
+> view front
+  · view front  eye (0.00 -12.00 0.00)  pivot (0.00 0.00 0.00)  distance 12.00  yaw 0.0° pitch 0.0°  ortho
+> view fit
+  · view fit  eye (2.33 -5.82 0.67)  pivot (2.33 -1.00 0.67)  distance 4.82  yaw 0.0° pitch 0.0°  ortho
+> render BMW_01_SideTrace
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_01_SideTrace.png  1280x800  279.2 ms  1258 tri  375 seg  0 pts  833575 frag
+> render sheet 0
+  · render sheet 0  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> echo ── 1b. 2D boolean: cut the wheel arches out of the silhouette
+  ── 1b. 2D boolean: cut the wheel arches out of the silhouette 
+> boolean subtract Side -- ArchF ArchR --name=Silhouette
+  · subtract → 1 loop(s), area 3.421388
+  ·   · #4   Silhouette         ccw  depth 0  area +3.421388  outer
+> profile Silhouette
+  · profile of 1 loop(s): area 3.421388  normal (0.00 -1.00 0.00)
+  ·   ccw  depth 0  area +3.421388  winding agrees with depth  length 12.2604
+> view front
+  · view front  eye (2.33 -5.82 0.67)  pivot (2.33 -1.00 0.67)  distance 4.82  yaw 0.0° pitch 0.0°  ortho
+> view fit
+  · view fit  eye (2.33 -5.82 0.72)  pivot (2.33 -1.00 0.72)  distance 4.82  yaw 0.0° pitch 0.0°  ortho
+> render BMW_02_Silhouette
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_02_Silhouette.png  1280x800  229.1 ms  1130 tri  361 seg  58 pts  704508 frag
+> echo ── 1c. 2D boolean: clip the silhouette at the beltline into lower body + greenhouse bands
+  ── 1c. 2D boolean: clip the silhouette at the beltline into lower body + greenhouse bands 
+> rect (-1.0,-1.0) (6.0,0.820) --name=LowRect
+  · #5   LowRect            curve    deg 1  poles 5    integral closed  length 17.6400  bounds [-1.00 -1.00 -1.00]–[6.00 -1.00 0.82]
+> boolean intersect Silhouette -- LowRect --keep --name=LowSil
+  · intersect → 1 loop(s), area 2.161801
+  ·   · #6   LowSil             ccw  depth 0  area +2.161801  outer
+> rect (-1.0,0.780) (6.0,2.0) --name=GreenRect
+  · #7   GreenRect          curve    deg 1  poles 5    integral closed  length 16.4400  bounds [-1.00 -1.00 0.78]–[6.00 -1.00 2.00]
+> boolean intersect Silhouette -- GreenRect --keep --name=GreenSil
+  · intersect → 1 loop(s), area 1.401648
+  ·   · #8   GreenSil           ccw  depth 0  area +1.401648  outer
+> hide LowRect
+  · hidden 1 figure(s)
+> hide GreenRect
+  · hidden 1 figure(s)
+> hide Silhouette
+  · hidden 1 figure(s)
+> profile LowSil
+  · profile of 1 loop(s): area 2.161801  normal (0.00 -1.00 0.00)
+  ·   ccw  depth 0  area +2.161801  winding agrees with depth  length 11.8660
+> profile GreenSil
+  · profile of 1 loop(s): area 1.401648  normal (0.00 -1.00 0.00)
+  ·   ccw  depth 0  area +1.401648  winding agrees with depth  length 7.6964
+> view front
+  · view front  eye (2.33 -5.82 0.72)  pivot (2.33 -1.00 0.72)  distance 4.82  yaw 0.0° pitch 0.0°  ortho
+> view fit
+  · view fit  eye (2.33 -5.82 0.72)  pivot (2.33 -1.00 0.72)  distance 4.82  yaw 0.0° pitch 0.0°  ortho
+> render BMW_02b_Bands
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_02b_Bands.png  1280x800  125.1 ms  730 tri  346 seg  19 pts  62397 frag
+> echo ── 2. extrude both bands across the full 1.870 m body width
+  ── 2. extrude both bands across the full 1.870 m body width 
+> extrude LowSil 2.0 --direction=(0,1,0) --name=LowSlab
+  · extrude LowSil (closed → solid)
+  · #9   LowSlab            solid    V14 E21 F9  χ=2 genus 0  vol 4.3239  area 28.0553  bounds [-0.00 -1.00 0.05]–[4.68 1.00 0.82]
+  ·   ↳ extrude of LowSil  length 2  direction (0.00 1.00 0.00)
+> extrude GreenSil 2.0 --direction=(0,1,0) --name=GreenSlab
+  · extrude GreenSil (closed → solid)
+  · #10  GreenSlab          solid    V4 E6 F4  χ=2 genus 0  vol 2.8032  area 18.1958  bounds [-0.01 -1.00 0.78]–[3.63 1.00 1.38]
+  ·   ↳ extrude of GreenSil  length 2  direction (0.00 1.00 0.00)
+> hide LowSil
+  · hidden 1 figure(s)
+> hide GreenSil
+  · hidden 1 figure(s)
+> matcap LowSlab clay
+  · #9 LowSlab → clay
+> matcap GreenSlab clay
+  · #10 GreenSlab → clay
+> view iso
+  · view iso  eye (-0.45 -3.78 3.50)  pivot (2.33 -1.00 0.72)  distance 4.82  yaw -45.0° pitch 35.3°  persp
+> view orbit 125 -12
+  · view orbit  eye (6.70 -1.77 2.62)  pivot (2.33 -1.00 0.72)  distance 4.82  yaw 80.0° pitch 23.3°  persp
+> view fit
+  · view fit  eye (9.46 -1.26 3.83)  pivot (2.33 0.00 0.72)  distance 7.88  yaw 80.0° pitch 23.3°  persp
+> render BMW_03_Slab
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_03_Slab.png  1280x800  639.8 ms  3384 tri  263 seg  0 pts  1671494 frag
+> render sheet 1
+  · render sheet 1  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> echo ── 3. plan-view trace on XY (full-widthbodyplan), extruded through the height
+  ── 3. plan-view trace on XY (full-widthbodyplan), extruded through the height 
+> workplane xy --origin=(0,0,-0.5)
+  · workplane xy origin (0.000 0.000 -0.500) normal (0 0 1)
+> spline (0.000,-0.600) (0.300,-0.780) (1.050,-0.935) (1.600,-0.935) (2.200,-0.935) (2.800,-0.935) (3.300,-0.935) (3.900,-0.930) (4.400,-0.800) (4.620,-0.620) (4.671,-0.400) (4.671,0.000) (4.671,0.400) (4.620,0.620) (4.400,0.800) (3.900,0.930) (3.300,0.935) (2.800,0.935) (2.200,0.935) (1.600,0.935) (1.050,0.935) (0.300,0.780) (0.000,0.600) (0.000,0.300) (0.000,-0.300) --closed --degree=3 --name=Plan
+  · #11  Plan               curve    deg 3  poles 26   integral closed  length 12.0290  bounds [-0.11 -0.96 -0.50]–[4.68 0.96 -0.50]
+> extrude Plan 2.5 --direction=(0,0,1) --name=PlanBlock
+  · extrude Plan → area 0 (filled, 0 hole(s))
+  · #12  PlanBlock          solid    V2 E3 F3  χ=2 genus 0  vol 20.8137  area 46.7223  bounds [-0.11 -0.96 -0.50]–[4.68 0.96 2.00]
+  ·   ↳ extrude of area{Plan}  length 2.5  direction (0.00 0.00 1.00)
+> hide Plan
+  · hidden 1 figure(s)
+> view top
+  · view top  eye (2.33 -0.00 8.60)  pivot (2.33 0.00 0.72)  distance 7.88  yaw 0.0° pitch 90.0°  ortho
+> view fit
+  · view fit  eye (2.28 -0.00 7.13)  pivot (2.28 0.00 0.75)  distance 6.38  yaw 0.0° pitch 90.0°  ortho
+> render BMW_03b_PlanSketch
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_03b_PlanSketch.png  1280x800  1098.8 ms  5345 tri  400 seg  0 pts  5544745 frag
+> render sheet 2
+  · render sheet 2  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> echo ── 4. three-view intersection: side bands ∩ plan ∩ front elevation
+  ── 4. three-view intersection: side bands ∩ plan ∩ front elevation 
+> boolean intersect LowSlab -- PlanBlock --name=LowerRaw
+  · boolean intersect LowSlab PlanBlock  ·  20 intersection curve(s), pieces 25 + 8, kept 8 + 4 (inside 8 / 4)  ·  0.118 s
+  · #13  LowerRaw           solid    V20 E30 F12  χ=2 genus 0  vol 3.8475  area 25.2120  bounds [-0.00 -0.94 0.13]–[4.67 0.94 0.82]
+> topology LowerRaw
+  · LowerRaw solid  V20 E30 F12 L12  hulls 1  χ=2 genus 0  closed yes manifold yes oriented yes  volume 3.847503  area 25.212050
+  ·   v0   (   0.7036   -0.8981    0.1998)
+  ·   v1   (   0.7036    0.8782    0.1998)
+  ·   v2   (  -0.0009    0.5980    0.8200)
+  ·   v3   (  -0.0009    0.3052    0.8200)
+  ·   v4   (  -0.0009   -0.3103    0.8200)
+  ·   v5   (  -0.0009   -0.5923    0.8200)
+  ·   v6   (   0.0000   -0.6000    0.7900)
+  ·   v7   (   0.0000   -0.6000    0.7411)
+  ·   v8   (   0.0000   -0.6000    0.6600)
+  ·   v9   (   1.3830   -0.9386    0.1779)
+  ·   v10  (   1.3830    0.9401    0.1779)
+  ·   v11  (   3.5301   -0.9396    0.1674)
+  ·   v12  (   3.5301    0.9396    0.1674)
+  ·   v13  (   4.1845   -0.8784    0.1572)
+  ·   v14  (   4.1845    0.8784    0.1572)
+  ·   v15  (   4.6390   -0.5781    0.1490)
+  ·   v16  (   4.6390    0.5781    0.1490)
+  ·   v17  (   3.4777   -0.9385    0.8200)
+  ·   v18  (   3.4777    0.9386    0.8200)
+  ·   v19  (   0.0000   -0.6000    0.8200)
+  ·   e0   v0→v1  Line deg 1  len 1.7762  coedges[ f0- f1+ ]
+  ·   e1   v1→v2  Freeform deg 3  len 1.2673  coedges[ f0- f10+ ]
+  ·   e2   v3→v2  Line deg 1  len 0.2929  coedges[ f0+ f7- ]
+  ·   e3   v3→v4  Freeform deg 3  len 1.0785  coedges[ f0- f11+ ]
+  ·   e4   v5→v4  Line deg 1  len 0.2820  coedges[ f0+ f7- ]
+  ·   e5   v5→v6  Freeform deg 3  len 0.0310  coedges[ f0- f9+ ]
+  ·   e6   v6→v7  Freeform deg 3  len 0.0489  coedges[ f0- f10+ ]
+  ·   e7   v7→v8  Freeform deg 3  len 0.0816  coedges[ f0- f8+ ]
+  ·   e8   v8→v0  Freeform deg 3  len 1.1182  coedges[ f0- f10+ ]
+  ·   e9   v9→v10  Line deg 1  len 1.8787  coedges[ f1- f2+ ]
+  ·   e10  v10→v1  Freeform deg 3  len 1.4672  coedges[ f1- f10+ ]
+  ·   e11  v0→v9  Freeform deg 3  len 1.4648  coedges[ f1- f10+ ]
+  ·   e12  v11→v12  Line deg 1  len 1.8791  coedges[ f2- f3+ ]
+  ·   e13  v12→v10  Freeform deg 3  len 2.1479  coedges[ f2- f10+ ]
+  ·   e14  v9→v11  Freeform deg 3  len 2.1478  coedges[ f2- f10+ ]
+  ·   e15  v13→v14  Line deg 1  len 1.7567  coedges[ f3- f4+ ]
+  ·   e16  v14→v12  Freeform deg 3  len 1.5271  coedges[ f3- f10+ ]
+  ·   e17  v11→v13  Freeform deg 3  len 1.5271  coedges[ f3- f10+ ]
+  ·   e18  v15→v16  Line deg 1  len 1.1562  coedges[ f4- f6+ ]
+  ·   e19  v16→v14  Freeform deg 3  len 0.5648  coedges[ f4- f10+ ]
+  ·   e20  v13→v15  Freeform deg 3  len 0.5648  coedges[ f4- f10+ ]
+  ·   e21  v17→v18  Line deg 1  len 1.8771  coedges[ f5- f7+ ]
+  ·   e22  v18→v17  Freeform deg 3  len 3.8282  coedges[ f5- f10+ ]
+  ·   e23  v15→v16  Freeform deg 3  len 1.2081  coedges[ f6- f10+ ]
+  ·   e24  v4→v3  Freeform deg 3  len 0.6184  coedges[ f7- f11+ ]
+  ·   e25  v2→v18  Freeform deg 3  len 3.5575  coedges[ f7- f10+ ]
+  ·   e26  v17→v19  Freeform deg 3  len 3.5489  coedges[ f7- f10+ ]
+  ·   e27  v19→v5  Freeform deg 2  len 0.0078  coedges[ f7- f9+ ]
+  ·   e28  v8→v7  Line deg 1  len 0.0811  coedges[ f8+ f10- ]
+  ·   e29  v6→v19  Line deg 1  len 0.0300  coedges[ f9+ f10- ]
+  ·   f0   Extrusion  reversed trimmed  n(-0.84 0.00 -0.55)  outer[ e8- e7- e6- e5- e4+ e3- e2+ e1- e0- ]
+  ·   f1   Extrusion  reversed trimmed  n(-0.03 0.00 -1.00)  outer[ e11- e0+ e10- e9- ]
+  ·   f2   Extrusion  reversed trimmed  n(0.00 -0.00 -1.00)  outer[ e14- e9+ e13- e12- ]
+  ·   f3   Extrusion  reversed trimmed  n(-0.01 -0.00 -1.00)  outer[ e17- e12+ e16- e15- ]
+  ·   f4   Extrusion  reversed trimmed  n(-0.02 0.00 -1.00)  outer[ e20- e15+ e19- e18- ]
+  ·   f5   Extrusion  reversed trimmed  n(0.36 -0.00 0.93)  outer[ e22- e21- ]
+  ·   f6   Extrusion  reversed trimmed  n(0.36 -0.00 0.93)  outer[ e23- e18+ ]
+  ·   f7   Extrusion  reversed trimmed  n(-0.00 -0.00 1.00)  outer[ e27- e26- e21+ e25- e2- e24- e4- ]
+  ·   f8   Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e28+ e7+ ]
+  ·   f9   Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e29+ e27+ e5+ ]
+  ·   f10  Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e29- e6+ e28- e8+ e11+ e14+ e17+ e20+ e23+ e19+ e16+ e13+ e10+ e1+ e25+ e22+ e26+ ]
+  ·   f11  Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e3+ e24+ ]
+> spline (1.100,-0.400) (1.500,-0.600) (2.200,-0.700) (2.800,-0.700) (3.100,-0.660) (3.520,-0.520) (3.520,0.000) (3.520,0.520) (3.100,0.660) (2.800,0.700) (2.200,0.700) (1.500,0.600) (1.100,0.400) (1.100,0.000) --closed --degree=3 --name=CabinPlan
+  · #14  CabinPlan          curve    deg 3  poles 15   integral closed  length 6.9116  bounds [0.84 -0.72 -0.50]–[3.67 0.72 -0.50]
+> extrude CabinPlan 2.5 --direction=(0,0,1) --name=CabinBlock
+  · extrude CabinPlan → area 0 (filled, 0 hole(s))
+  · #15  CabinBlock         solid    V2 E3 F3  χ=2 genus 0  vol 7.8503  area 23.5580  bounds [0.84 -0.72 -0.50]–[3.67 0.72 2.00]
+  ·   ↳ extrude of area{CabinPlan}  length 2.5  direction (0.00 0.00 1.00)
+> hide CabinPlan
+  · hidden 1 figure(s)
+> boolean intersect GreenSlab -- CabinBlock --name=Cabin
+  · boolean intersect GreenSlab CabinBlock  ·  2 intersection curve(s), pieces 6 + 5, kept 2 + 1 (inside 2 / 1)  ·  0.055 s
+  · #16  Cabin              solid    V2 E3 F3  χ=2 genus 0  vol 1.4502  area 9.1641  bounds [1.07 -0.71 0.78]–[3.56 0.71 1.38]
+> topology Cabin
+  · Cabin solid  V2 E3 F3 L3  hulls 1  χ=2 genus 0  closed yes manifold yes oriented yes  volume 1.450164  area 9.164120
+  ·   v0   (   1.1000   -0.4000    1.1557)
+  ·   v1   (   1.1000   -0.4000    0.7800)
+  ·   e0   v0→v0  Freeform deg 3  len 7.3366  coedges[ f0- f2+ ]
+  ·   e1   v1→v1  Freeform deg 3  len 6.9116  coedges[ f1- f2+ ]
+  ·   e2   v1→v0  Line deg 1  len 0.3757  coedges[ f2+ f2- ]
+  ·   f0   Extrusion  reversed trimmed  n(-0.09 -0.00 1.00)  outer[ e0- ]
+  ·   f1   Extrusion  reversed trimmed  n(-0.00 0.00 -1.00)  outer[ e1- ]
+  ·   f2   Extrusion  trimmed  n(0.99 0.15 -0.00)  outer[ e2+ e0+ e2- e1+ ]
+> matcap LowerRaw clay
+  · #13 LowerRaw → clay
+> matcap Cabin glass
+  · #16 Cabin → glass
+> tint Cabin 0.10 0.12 0.14
+> view iso
+  · view iso  eye (-1.40 -3.68 4.43)  pivot (2.28 0.00 0.75)  distance 6.38  yaw -45.0° pitch 35.3°  persp
+> view orbit 125 -12
+  · view orbit  eye (8.06 -1.02 3.27)  pivot (2.28 0.00 0.75)  distance 6.38  yaw 80.0° pitch 23.3°  persp
+> view fit
+  · view fit  eye (9.33 -1.23 3.81)  pivot (2.34 0.00 0.76)  distance 7.73  yaw 80.0° pitch 23.3°  persp
+> render BMW_04_TwoBlocks
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_04_TwoBlocks.png  1280x800  707.9 ms  9670 tri  2153 seg  0 pts  1421838 frag
+> render sheet 3
+  · render sheet 3  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> render sheet finalize BMW_A_Construction
+  · render sheet  /home/user/Frontier/BMW-SolidArc/proofs/BMW_A_Construction.png  2560x1600  (2x2 of 1280x800 tiles)
+> echo ── 5. wheels, rims at the blueprint axle stations
+  ── 5. wheels, rims at the blueprint axle stations 
+> cylinder (3.860,0.680,0.335) 0.335 0.255 --axis=(0,1,0) --name=TyreFL
+  · #17  TyreFL             solid    V2 E3 F3  χ=2 genus 0  vol 0.0899  area 1.2413  bounds [3.52 0.68 0.00]–[4.20 0.94 0.67]
+> cylinder (3.860,-0.935,0.335) 0.335 0.255 --axis=(0,1,0) --name=TyreFR
+  · #18  TyreFR             solid    V2 E3 F3  χ=2 genus 0  vol 0.0899  area 1.2413  bounds [3.52 -0.94 0.00]–[4.20 -0.68 0.67]
+> cylinder (1.048,0.660,0.335) 0.335 0.275 --axis=(0,1,0) --name=TyreRL
+  · #19  TyreRL             solid    V2 E3 F3  χ=2 genus 0  vol 0.0969  area 1.2834  bounds [0.71 0.66 0.00]–[1.38 0.94 0.67]
+> cylinder (1.048,-0.935,0.335) 0.335 0.275 --axis=(0,1,0) --name=TyreRR
+  · #20  TyreRR             solid    V2 E3 F3  χ=2 genus 0  vol 0.0969  area 1.2834  bounds [0.71 -0.94 0.00]–[1.38 -0.66 0.67]
+> cylinder (3.860,0.855,0.335) 0.235 0.080 --axis=(0,1,0) --name=RimFL
+  · #21  RimFL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [3.62 0.85 0.10]–[4.09 0.93 0.57]
+> cylinder (3.860,-0.935,0.335) 0.235 0.080 --axis=(0,1,0) --name=RimFR
+  · #22  RimFR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [3.62 -0.94 0.10]–[4.09 -0.86 0.57]
+> cylinder (1.048,0.855,0.335) 0.235 0.080 --axis=(0,1,0) --name=RimRL
+  · #23  RimRL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [0.81 0.85 0.10]–[1.28 0.93 0.57]
+> cylinder (1.048,-0.935,0.335) 0.235 0.080 --axis=(0,1,0) --name=RimRR
+  · #24  RimRR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [0.81 -0.94 0.10]–[1.28 -0.86 0.57]
+> matcap TyreFL rubber
+  · #17 TyreFL → rubber
+> matcap TyreFR rubber
+  · #18 TyreFR → rubber
+> matcap TyreRL rubber
+  · #19 TyreRL → rubber
+> matcap TyreRR rubber
+  · #20 TyreRR → rubber
+> matcap RimFL chrome
+  · #21 RimFL → chrome
+> matcap RimFR chrome
+  · #22 RimFR → chrome
+> matcap RimRL chrome
+  · #23 RimRL → chrome
+> matcap RimRR chrome
+  · #24 RimRR → chrome
+> view iso
+  · view iso  eye (-2.12 -4.46 5.22)  pivot (2.34 0.00 0.76)  distance 7.73  yaw -45.0° pitch 35.3°  persp
+> view orbit 125 -12
+  · view orbit  eye (9.33 -1.23 3.81)  pivot (2.34 0.00 0.76)  distance 7.73  yaw 80.0° pitch 23.3°  persp
+> view fit
+  · view fit  eye (9.46 -1.26 3.80)  pivot (2.34 0.00 0.69)  distance 7.88  yaw 80.0° pitch 23.3°  persp
+> render BMW_05_Wheels
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_05_Wheels.png  1280x800  709.9 ms  14262 tri  2641 seg  0 pts  1573219 frag
+> render sheet 0
+  · render sheet 0  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> echo ── 6. details: kidney grille recesses, door mirrors, exhaust tips
+  ── 6. details: kidney grille recesses, door mirrors, exhaust tips 
+> box (4.520,-0.280,0.300) (4.740,-0.080,0.400) --name=KidneyR
+  · #25  KidneyR            solid    V8 E12 F6  χ=2 genus 0  vol 0.0044  area 0.1720  bounds [4.52 -0.28 0.30]–[4.74 -0.08 0.40]
+> box (4.520,0.080,0.300) (4.740,0.280,0.400) --name=KidneyL
+  · #26  KidneyL            solid    V8 E12 F6  χ=2 genus 0  vol 0.0044  area 0.1720  bounds [4.52 0.08 0.30]–[4.74 0.28 0.40]
+> boolean subtract LowerRaw -- KidneyR --name=LowK1
+  · boolean subtract LowerRaw KidneyR  ·  4 intersection curve(s), pieces 13 + 10, kept 12 + 5 (inside 1 / 5)  ·  0.261 s
+  · #27  LowK1              solid    V28 E42 F17  χ=2 genus 0  vol 3.8444  area 25.3039  bounds [-0.00 -0.94 0.13]–[4.67 0.94 0.82]
+> boolean subtract LowK1 -- KidneyL --name=Lower
+  · boolean subtract LowK1 KidneyL  ·  4 intersection curve(s), pieces 18 + 10, kept 17 + 5 (inside 1 / 5)  ·  0.318 s
+  · #28  Lower              solid    V36 E54 F22  χ=2 genus 0  vol 3.8414  area 25.3957  bounds [-0.00 -0.94 0.13]–[4.67 0.94 0.82]
+> topology Lower
+  · Lower solid  V36 E54 F22 L24  hulls 1  χ=2 genus 0  closed yes manifold yes oriented yes  volume 3.841378  area 25.395670
+  ·   v0   (   0.7036   -0.8981    0.1998)
+  ·   v1   (   0.7036    0.8782    0.1998)
+  ·   v2   (  -0.0009    0.5980    0.8200)
+  ·   v3   (  -0.0009    0.3052    0.8200)
+  ·   v4   (  -0.0009   -0.3103    0.8200)
+  ·   v5   (  -0.0009   -0.5923    0.8200)
+  ·   v6   (   0.0000   -0.6000    0.7900)
+  ·   v7   (   0.0000   -0.6000    0.7411)
+  ·   v8   (   0.0000   -0.6000    0.6600)
+  ·   v9   (   1.3830   -0.9386    0.1779)
+  ·   v10  (   1.3830    0.9401    0.1779)
+  ·   v11  (   3.5301   -0.9396    0.1674)
+  ·   v12  (   3.5301    0.9396    0.1674)
+  ·   v13  (   4.1845   -0.8784    0.1572)
+  ·   v14  (   4.1845    0.8784    0.1572)
+  ·   v15  (   4.6390   -0.5781    0.1490)
+  ·   v16  (   4.6390    0.5781    0.1490)
+  ·   v17  (   3.4777   -0.9385    0.8200)
+  ·   v18  (   3.4777    0.9386    0.8200)
+  ·   v19  (   0.0000   -0.6000    0.8200)
+  ·   v20  (   4.6717   -0.0800    0.3000)
+  ·   v21  (   4.6740   -0.2800    0.3000)
+  ·   v22  (   4.6740   -0.2800    0.4000)
+  ·   v23  (   4.6717   -0.0800    0.4000)
+  ·   v24  (   4.6740    0.2800    0.3000)
+  ·   v25  (   4.6717    0.0800    0.3000)
+  ·   v26  (   4.6717    0.0800    0.4000)
+  ·   v27  (   4.6740    0.2800    0.4000)
+  ·   v28  (   4.5200   -0.2800    0.3000)
+  ·   v29  (   4.5200   -0.0800    0.3000)
+  ·   v30  (   4.5200   -0.2800    0.4000)
+  ·   v31  (   4.5200   -0.0800    0.4000)
+  ·   v32  (   4.5200    0.0800    0.3000)
+  ·   v33  (   4.5200    0.2800    0.3000)
+  ·   v34  (   4.5200    0.0800    0.4000)
+  ·   v35  (   4.5200    0.2800    0.4000)
+  ·   e0   v0→v1  Line deg 1  len 1.7762  coedges[ f0- f1+ ]
+  ·   e1   v1→v2  Freeform deg 3  len 1.2673  coedges[ f0- f10+ ]
+  ·   e2   v3→v2  Line deg 1  len 0.2929  coedges[ f0+ f7- ]
+  ·   e3   v3→v4  Freeform deg 3  len 1.0785  coedges[ f0- f11+ ]
+  ·   e4   v5→v4  Line deg 1  len 0.2820  coedges[ f0+ f7- ]
+  ·   e5   v5→v6  Freeform deg 3  len 0.0310  coedges[ f0- f9+ ]
+  ·   e6   v6→v7  Freeform deg 3  len 0.0489  coedges[ f0- f10+ ]
+  ·   e7   v7→v8  Freeform deg 3  len 0.0816  coedges[ f0- f8+ ]
+  ·   e8   v8→v0  Freeform deg 3  len 1.1182  coedges[ f0- f10+ ]
+  ·   e9   v9→v10  Line deg 1  len 1.8787  coedges[ f1- f2+ ]
+  ·   e10  v10→v1  Freeform deg 3  len 1.4672  coedges[ f1- f10+ ]
+  ·   e11  v0→v9  Freeform deg 3  len 1.4648  coedges[ f1- f10+ ]
+  ·   e12  v11→v12  Line deg 1  len 1.8791  coedges[ f2- f3+ ]
+  ·   e13  v12→v10  Freeform deg 3  len 2.1479  coedges[ f2- f10+ ]
+  ·   e14  v9→v11  Freeform deg 3  len 2.1478  coedges[ f2- f10+ ]
+  ·   e15  v13→v14  Line deg 1  len 1.7567  coedges[ f3- f4+ ]
+  ·   e16  v14→v12  Freeform deg 3  len 1.5271  coedges[ f3- f10+ ]
+  ·   e17  v11→v13  Freeform deg 3  len 1.5271  coedges[ f3- f10+ ]
+  ·   e18  v15→v16  Line deg 1  len 1.1562  coedges[ f4- f6+ ]
+  ·   e19  v16→v14  Freeform deg 3  len 0.5648  coedges[ f4- f10+ ]
+  ·   e20  v13→v15  Freeform deg 3  len 0.5648  coedges[ f4- f10+ ]
+  ·   e21  v17→v18  Line deg 1  len 1.8771  coedges[ f5- f7+ ]
+  ·   e22  v18→v17  Freeform deg 3  len 3.8282  coedges[ f5- f10+ ]
+  ·   e23  v15→v16  Freeform deg 3  len 1.2081  coedges[ f6- f10+ ]
+  ·   e24  v4→v3  Freeform deg 3  len 0.6184  coedges[ f7- f11+ ]
+  ·   e25  v2→v18  Freeform deg 3  len 3.5575  coedges[ f7- f10+ ]
+  ·   e26  v17→v19  Freeform deg 3  len 3.5489  coedges[ f7- f10+ ]
+  ·   e27  v19→v5  Freeform deg 2  len 0.0078  coedges[ f7- f9+ ]
+  ·   e28  v8→v7  Line deg 1  len 0.0811  coedges[ f8+ f10- ]
+  ·   e29  v6→v19  Line deg 1  len 0.0300  coedges[ f9+ f10- ]
+  ·   e30  v20→v21  Freeform deg 3  len 0.2000  coedges[ f10+ f12- ]
+  ·   e31  v21→v22  Freeform deg 3  len 0.1000  coedges[ f10+ f14- ]
+  ·   e32  v22→v23  Freeform deg 3  len 0.2000  coedges[ f10+ f13- ]
+  ·   e33  v23→v20  Freeform deg 3  len 0.1000  coedges[ f10+ f15- ]
+  ·   e34  v24→v25  Freeform deg 3  len 0.2000  coedges[ f10+ f17- ]
+  ·   e35  v25→v26  Freeform deg 3  len 0.1000  coedges[ f10+ f19- ]
+  ·   e36  v26→v27  Freeform deg 3  len 0.2000  coedges[ f10+ f18- ]
+  ·   e37  v27→v24  Freeform deg 3  len 0.1000  coedges[ f10+ f20- ]
+  ·   e38  v28→v21  Line deg 1  len 0.1540  coedges[ f12+ f14- ]
+  ·   e39  v29→v20  Line deg 1  len 0.1517  coedges[ f12- f15+ ]
+  ·   e40  v28→v29  Line deg 1  len 0.2000  coedges[ f12- f16+ ]
+  ·   e41  v30→v22  Line deg 1  len 0.1540  coedges[ f13- f14+ ]
+  ·   e42  v31→v23  Line deg 1  len 0.1517  coedges[ f13+ f15- ]
+  ·   e43  v30→v31  Line deg 1  len 0.2000  coedges[ f13+ f16- ]
+  ·   e44  v28→v30  Line deg 1  len 0.1000  coedges[ f14+ f16- ]
+  ·   e45  v29→v31  Line deg 1  len 0.1000  coedges[ f15- f16+ ]
+  ·   e46  v32→v25  Line deg 1  len 0.1517  coedges[ f17+ f19- ]
+  ·   e47  v33→v24  Line deg 1  len 0.1540  coedges[ f17- f20+ ]
+  ·   e48  v32→v33  Line deg 1  len 0.2000  coedges[ f17- f21+ ]
+  ·   e49  v34→v26  Line deg 1  len 0.1517  coedges[ f18- f19+ ]
+  ·   e50  v35→v27  Line deg 1  len 0.1540  coedges[ f18+ f20- ]
+  ·   e51  v34→v35  Line deg 1  len 0.2000  coedges[ f18+ f21- ]
+  ·   e52  v32→v34  Line deg 1  len 0.1000  coedges[ f19+ f21- ]
+  ·   e53  v33→v35  Line deg 1  len 0.1000  coedges[ f20- f21+ ]
+  ·   f0   Extrusion  reversed trimmed  n(-0.84 0.00 -0.55)  outer[ e8- e7- e6- e5- e4+ e3- e2+ e1- e0- ]
+  ·   f1   Extrusion  reversed trimmed  n(-0.03 0.00 -1.00)  outer[ e11- e0+ e10- e9- ]
+  ·   f2   Extrusion  reversed trimmed  n(0.00 -0.00 -1.00)  outer[ e14- e9+ e13- e12- ]
+  ·   f3   Extrusion  reversed trimmed  n(-0.01 -0.00 -1.00)  outer[ e17- e12+ e16- e15- ]
+  ·   f4   Extrusion  reversed trimmed  n(-0.02 0.00 -1.00)  outer[ e20- e15+ e19- e18- ]
+  ·   f5   Extrusion  reversed trimmed  n(0.36 -0.00 0.93)  outer[ e22- e21- ]
+  ·   f6   Extrusion  reversed trimmed  n(0.36 -0.00 0.93)  outer[ e23- e18+ ]
+  ·   f7   Extrusion  reversed trimmed  n(-0.00 -0.00 1.00)  outer[ e27- e26- e21+ e25- e2- e24- e4- ]
+  ·   f8   Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e28+ e7+ ]
+  ·   f9   Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e29+ e27+ e5+ ]
+  ·   f10  Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e29- e6+ e28- e8+ e11+ e14+ e17+ e20+ e23+ e19+ e16+ e13+ e10+ e1+ e25+ e22+ e26+ ]  hole[ e30+ e31+ e32+ e33+ ]  hole[ e34+ e35+ e36+ e37+ ]
+  ·   f11  Extrusion  trimmed  n(0.91 0.41 -0.00)  outer[ e3+ e24+ ]
+  ·   f12  Plane      trimmed  n(0.00 0.00 1.00)  outer[ e38+ e30- e39- e40- ]
+  ·   f13  Plane      reversed trimmed  n(-0.00 -0.00 -1.00)  outer[ e43+ e42+ e32- e41- ]
+  ·   f14  Plane      reversed trimmed  n(-0.00 1.00 -0.00)  outer[ e44+ e41+ e31- e38- ]
+  ·   f15  Plane      trimmed  n(0.00 -1.00 0.00)  outer[ e39+ e33- e42- e45- ]
+  ·   f16  Plane      natural  n(1.00 0.00 0.00)  outer[ e40+ e45+ e43- e44- ]
+  ·   f17  Plane      trimmed  n(0.00 0.00 1.00)  outer[ e46+ e34- e47- e48- ]
+  ·   f18  Plane      reversed trimmed  n(-0.00 -0.00 -1.00)  outer[ e51+ e50+ e36- e49- ]
+  ·   f19  Plane      reversed trimmed  n(-0.00 1.00 -0.00)  outer[ e52+ e49+ e35- e46- ]
+  ·   f20  Plane      trimmed  n(0.00 -1.00 0.00)  outer[ e47+ e37- e50- e53- ]
+  ·   f21  Plane      natural  n(1.00 0.00 0.00)  outer[ e48+ e53+ e51- e52- ]
+> box (2.980,0.800,0.760) (3.220,0.960,0.900) --name=MirrorL
+  · #29  MirrorL            solid    V8 E12 F6  χ=2 genus 0  vol 0.0054  area 0.1888  bounds [2.98 0.80 0.76]–[3.22 0.96 0.90]
+> box (2.980,-0.960,0.760) (3.220,-0.800,0.900) --name=MirrorR
+  · #30  MirrorR            solid    V8 E12 F6  χ=2 genus 0  vol 0.0054  area 0.1888  bounds [2.98 -0.96 0.76]–[3.22 -0.80 0.90]
+> cylinder (-0.020,-0.380,0.200) 0.045 0.250 --axis=(1,0,0) --name=PipeR
+  · #31  PipeR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0016  area 0.0834  bounds [-0.02 -0.42 0.16]–[0.23 -0.34 0.24]
+> cylinder (-0.020,0.290,0.200) 0.045 0.250 --axis=(1,0,0) --name=PipeL
+  · #32  PipeL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0016  area 0.0834  bounds [-0.02 0.24 0.16]–[0.23 0.33 0.24]
+> matcap Lower plastic-white
+  · #28 Lower → plastic-white
+> tint Lower 0.13 0.27 0.50
+> matcap MirrorL pearl
+  · #29 MirrorL → pearl
+> tint MirrorL 0.13 0.27 0.50
+> matcap MirrorR pearl
+  · #30 MirrorR → pearl
+> tint MirrorR 0.13 0.27 0.50
+> matcap PipeR steel
+  · #31 PipeR → steel
+> matcap PipeL steel
+  · #32 PipeL → steel
+> list
+  · #4   Silhouette         curve    deg 3  poles 58   rational closed  length 12.2604  bounds [-0.01 -1.00 0.05]–[4.68 -1.00 1.38]
+  · #5   LowRect            curve    deg 1  poles 5    integral closed  length 17.6400  bounds [-1.00 -1.00 -1.00]–[6.00 -1.00 0.82]
+  · #6   LowSil             curve    deg 3  poles 54   rational closed  length 11.8660  bounds [-0.00 -1.00 0.05]–[4.68 -1.00 0.82]
+  · #7   GreenRect          curve    deg 1  poles 5    integral closed  length 16.4400  bounds [-1.00 -1.00 0.78]–[6.00 -1.00 2.00]
+  · #8   GreenSil           curve    deg 3  poles 19   integral closed  length 7.6964  bounds [-0.01 -1.00 0.78]–[3.63 -1.00 1.38]
+  · #11  Plan               curve    deg 3  poles 26   integral closed  length 12.0290  bounds [-0.11 -0.96 -0.50]–[4.68 0.96 -0.50]
+  · #14  CabinPlan          curve    deg 3  poles 15   integral closed  length 6.9116  bounds [0.84 -0.72 -0.50]–[3.67 0.72 -0.50]
+  · #16  Cabin              solid    V2 E3 F3  χ=2 genus 0  vol 1.4502  area 9.1641  bounds [1.07 -0.71 0.78]–[3.56 0.71 1.38]
+  · #17  TyreFL             solid    V2 E3 F3  χ=2 genus 0  vol 0.0899  area 1.2413  bounds [3.52 0.68 0.00]–[4.20 0.94 0.67]
+  · #18  TyreFR             solid    V2 E3 F3  χ=2 genus 0  vol 0.0899  area 1.2413  bounds [3.52 -0.94 0.00]–[4.20 -0.68 0.67]
+  · #19  TyreRL             solid    V2 E3 F3  χ=2 genus 0  vol 0.0969  area 1.2834  bounds [0.71 0.66 0.00]–[1.38 0.94 0.67]
+  · #20  TyreRR             solid    V2 E3 F3  χ=2 genus 0  vol 0.0969  area 1.2834  bounds [0.71 -0.94 0.00]–[1.38 -0.66 0.67]
+  · #21  RimFL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [3.62 0.85 0.10]–[4.09 0.93 0.57]
+  · #22  RimFR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [3.62 -0.94 0.10]–[4.09 -0.86 0.57]
+  · #23  RimRL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [0.81 0.85 0.10]–[1.28 0.93 0.57]
+  · #24  RimRR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0139  area 0.4648  bounds [0.81 -0.94 0.10]–[1.28 -0.86 0.57]
+  · #28  Lower              solid    V36 E54 F22  χ=2 genus 0  vol 3.8414  area 25.3957  bounds [-0.00 -0.94 0.13]–[4.67 0.94 0.82]
+  · #29  MirrorL            solid    V8 E12 F6  χ=2 genus 0  vol 0.0054  area 0.1888  bounds [2.98 0.80 0.76]–[3.22 0.96 0.90]
+  · #30  MirrorR            solid    V8 E12 F6  χ=2 genus 0  vol 0.0054  area 0.1888  bounds [2.98 -0.96 0.76]–[3.22 -0.80 0.90]
+  · #31  PipeR              solid    V2 E3 F3  χ=2 genus 0  vol 0.0016  area 0.0834  bounds [-0.02 -0.42 0.16]–[0.23 -0.34 0.24]
+  · #32  PipeL              solid    V2 E3 F3  χ=2 genus 0  vol 0.0016  area 0.0834  bounds [-0.02 0.24 0.16]–[0.23 0.33 0.24]
+> view iso
+  · view iso  eye (-2.21 -4.55 5.24)  pivot (2.34 0.00 0.69)  distance 7.88  yaw -45.0° pitch 35.3°  persp
+> view orbit 125 -12
+  · view orbit  eye (9.46 -1.26 3.80)  pivot (2.34 0.00 0.69)  distance 7.88  yaw 80.0° pitch 23.3°  persp
+> view fit
+  · view fit  eye (9.48 -1.26 3.82)  pivot (2.33 0.00 0.69)  distance 7.91  yaw 80.0° pitch 23.3°  persp
+> render BMW_06_Details
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_06_Details.png  1280x800  614.1 ms  15783 tri  2911 seg  0 pts  1603977 frag
+> render sheet 1
+  · render sheet 1  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> echo ── 7. proof views: elevations + contact sheet + hero
+  ── 7. proof views: elevations + contact sheet + hero 
+> view front
+  · view front  eye (2.33 -7.91 0.69)  pivot (2.33 0.00 0.69)  distance 7.91  yaw 0.0° pitch 0.0°  ortho
+> view fit
+  · view fit  eye (2.33 -5.91 0.69)  pivot (2.33 0.00 0.69)  distance 5.91  yaw 0.0° pitch 0.0°  ortho
+> render BMW_07_SideElevation
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_07_SideElevation.png  1280x800  324.6 ms  11261 tri  2911 seg  0 pts  1492963 frag
+> render sheet 2
+  · render sheet 2  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> view top
+  · view top  eye (2.33 -0.00 6.60)  pivot (2.33 0.00 0.69)  distance 5.91  yaw 0.0° pitch 90.0°  ortho
+> view fit
+  · view fit  eye (2.33 -0.00 6.31)  pivot (2.33 0.00 0.69)  distance 5.62  yaw 0.0° pitch 90.0°  ortho
+> render sheet 3
+  · render sheet 3  1280x800  (tile captured; run `render sheet finalize <name>` to composite)
+> render sheet finalize BMW_B_Features
+  · render sheet  /home/user/Frontier/BMW-SolidArc/proofs/BMW_B_Features.png  2560x1600  (2x2 of 1280x800 tiles)
+> view top
+  · view top  eye (2.33 -0.00 6.31)  pivot (2.33 0.00 0.69)  distance 5.62  yaw 0.0° pitch 90.0°  ortho
+> view fit
+  · view fit  eye (2.33 -0.00 6.31)  pivot (2.33 0.00 0.69)  distance 5.62  yaw 0.0° pitch 90.0°  ortho
+> render BMW_08_Top
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_08_Top.png  1280x800  788.9 ms  15359 tri  2911 seg  0 pts  3684871 frag
+> view right
+  · view right  eye (7.95 -0.00 0.69)  pivot (2.33 0.00 0.69)  distance 5.62  yaw 90.0° pitch 0.0°  ortho
+> view fit
+  · view fit  eye (7.83 -0.00 0.69)  pivot (2.33 0.00 0.69)  distance 5.50  yaw 90.0° pitch 0.0°  ortho
+> render BMW_09_FrontElevation
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_09_FrontElevation.png  1280x800  293.0 ms  13408 tri  2911 seg  0 pts  1539141 frag
+> view iso
+  · view iso  eye (-0.85 -3.18 3.87)  pivot (2.33 0.00 0.69)  distance 5.50  yaw -45.0° pitch 35.3°  persp
+> view orbit 115 -14
+  · view orbit  eye (7.15 -1.75 2.69)  pivot (2.33 0.00 0.69)  distance 5.50  yaw 70.0° pitch 21.3°  persp
+> view fit
+  · view fit  eye (9.29 -2.53 3.57)  pivot (2.33 0.00 0.69)  distance 7.95  yaw 70.0° pitch 21.3°  persp
+> view dolly 0.8
+  · view dolly  eye (8.44 -2.22 3.22)  pivot (2.33 0.00 0.69)  distance 6.98  yaw 70.0° pitch 21.3°  persp
+> render BMW_10_Hero --size=1600x1000
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_10_Hero.png  1600x1000  1116.3 ms  15783 tri  2911 seg  0 pts  3201107 frag
+> view iso
+  · view iso  eye (-1.70 -4.03 4.72)  pivot (2.33 0.00 0.69)  distance 6.98  yaw -45.0° pitch 35.3°  persp
+> view orbit 245 -14
+  · view orbit  eye (0.10 6.11 3.22)  pivot (2.33 0.00 0.69)  distance 6.98  yaw 200.0° pitch 21.3°  persp
+> view fit
+  · view fit  eye (0.33 5.49 2.96)  pivot (2.33 0.00 0.69)  distance 6.27  yaw 200.0° pitch 21.3°  persp
+> view dolly 0.8
+  · view dolly  eye (0.57 4.82 2.69)  pivot (2.33 0.00 0.69)  distance 5.50  yaw 200.0° pitch 21.3°  persp
+> render BMW_11_HeroRear --size=1600x1000
+  · render /home/user/Frontier/BMW-SolidArc/proofs/BMW_11_HeroRear.png  1600x1000  1350.7 ms  15783 tri  2911 seg  0 pts  4875334 frag
+> echo ── 8. deliverables: native .arc document + tessellated OBJ
+  ── 8. deliverables: native .arc document + tessellated OBJ 
+> save /home/user/Frontier/BMW-SolidArc/out/BMW-M4-F82.arc
+  · saved /home/user/Frontier/BMW-SolidArc/out/BMW-M4-F82.arc  ·  SolidArc .arc v1  ·  100 command(s)  ·  backup refreshed
+> export /home/user/Frontier/BMW-SolidArc/out/BMW-M4-F82.obj --chord=0.002 --weld
+  · export /home/user/Frontier/BMW-SolidArc/out/BMW-M4-F82.obj  14 solids  9961 tris  6475 verts (welded from 8987, eps=1e-05)  6 materials  (+ BMW-M4-F82.mtl, BMW-M4-F82.materials.toml)
+> echo ════ done
+  ════ done 
+── BMW-M4-F82.arc: 156 line(s), 0 refusal(s)
