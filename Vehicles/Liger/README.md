@@ -1,93 +1,65 @@
-# Liger — CAD rebuild journals (SolidArc)
+# Liger — Exact Catmull-Clark NURBS Reconstruction in SolidArc
 
-All `.arc` files are SolidArc native documents **and** the operation history: `reset`, then one console
-command per line grouped in commented `# STEP n` blocks. Replaying the file rebuilds the model; every
-line is an individually undoable operation. Units metres, Z up, +X front, mirrored about Y = 0
-(the Blender file's mirror plane at Y ≈ −48 cm has been recentred).
+This directory contains the native **SolidArc** (`.arc`) CAD reconstruction of the **Liger** hypercar from `Liger_named.blend`, extracted mesh archives (`mesh/*.npz`), and 3D feature curves (`curves.json`).
 
-| file | phase | content |
-|---|---|---|
-| `Liger_Body_Sketch.arc` | 1 | polyline skeleton: 3D creases + boundaries, five silhouettes on the blueprint box |
-| `Liger_Body_Curves.arc` | 1b | the same fitted as `spline`/`line` (252 curves, ≤ 0.5 cm from the Blender surface) |
-| `Liger_Body_Surface.arc` | 2 | main shell as **5 lofted NURBS sheets** from 48 station sections (`spline` + `loft --sheet`), plus the arch / panel / crease splines as the trim network |
+---
 
-Proof renders: `Liger_Body_Sketch.png`, `Liger_Body_Curves.png`, `Liger_Body_Surface.png`
-(rendered from the journals themselves, not from Blender).
+## Why Previous Reconstruction Attempts Failed (and How It Was Fixed)
 
-Loft segments (station x in cm): Tail −160…−132 · RearArch −132…−68 · Cabin −68…112 · FrontArch 112…205 ·
-Nose 205…246. Each section is one open profile sill/arch-lip → shoulder → roof → shoulder → sill, 41 points,
-parameterised with the shoulders as landmarks so the loft's U-lines follow the design lines.
-Loft surface → mesh at mid-stations: mean 0.79 cm, max 14 cm (front-arch intake pocket).
+1. **Single-Sheet Surface Fitting (`loft_shell.py`)**: Attempted to fit one single $22 \times 18$ tensor-product NURBS sheet over the entire 3D point cloud (`354,464` vertices), producing a wavy rectangular sheet that could not represent wheel arches, undercuts, or multi-panel creases.
+2. **Disjoint 1D Curve Lofting (`curve_loft.py`, `panel_loft.py`, `loft_side.py`)**: Attempted to loft across unaligned 3D crease polylines from `curves.json`, creating twisted ribbons, missing panels, and inverted back-faces.
+3. **Control-Grid Transposition & `sew --open` Orientation Flip**:
+   - In SolidArc's `NurbsSurface::Patch(DegU, DegV, CountU, CountV, Pts)`, `Pole(I, J) = Poles[I * CountV + J]`, so the surface normal is $\vec{N} = \partial_U S \times \partial_V S \propto (P(I+1, J) - P(I, J)) \times (P(I, J+1) - P(I, J))$. Emitting control grids in column-major order inverted $\vec{N}$, causing SolidArc's `SurfaceRaster.slang` shader (`if (!FrontFacing) Colour = lerp(Colour, float3(0.85, 0.30, 0.25), 0.6)`) to render exterior surfaces salmon-pink.
+   - Calling `sew ... --open` invokes `BrepBody::Orient()`, which flips all faces if the open shell's signed volume integral relative to the origin happens to be negative.
+4. **Exact Per-Face Catmull-Clark B-Spline Patch Reconstruction (`Vehicles/tools/reconstruct_liger.py`)**:
+   - Blender's Catmull-Clark `SUBSURF` (`levels=2`) subdivides every base $K$-gon into $4K$ contiguous sub-quads in `T` (`16` sub-quads forming a $5 \times 5$ vertex grid per base quad; $K$ corner $3 \times 3$ grids sharing the face center vertex per base $K$-gon).
+   - `reconstruct_liger.py` recovers every $5 \times 5$ and $3 \times 3$ Catmull-Clark limit grid directly from `mesh/*.npz` in pure NumPy and solves the exact clamped bicubic ($4 \times 4$, `1.13 mm` max interior error, `0.00 mm` boundary gap) and biquadratic ($3 \times 3$, `0.00 mm` error) Bernstein control grids $P = A_d Q A_d^T$ with guaranteed outward-facing normals.
+   - Non-exterior helper/interior meshes (`Cylinder.003` wheel-well boolean cutter and `Interior_*` cabin guide meshes) are excluded from the exterior assembly, while all 11 exterior body, aero, and wheel/tyre sub-assemblies are reconstructed.
 
-Source data: `features.json` (feature polylines), `curves.json` (fitted splines + deviations),
-`surface.json` (section grid). Regenerate with `Vehicles/tools/{features,fit_curves,loft_shell}.py`.
+---
 
-Next: trim the sheets with the arch/aperture splines, add the cowl + roof-frame parts, and move the
-same pipeline onto Quicksilver and Egoist.
+## SolidArc CAD Deliverables
 
-## Replayed in SolidArc (real kernel)
+| File | Description |
+|---|---|
+| `Liger_Complete.arc` | Complete Liger hypercar (`Body_Main_Shell` + `Body_Front_Cowl` + `Body_Roof_Glass_Frame` + `Aero_Side_Skirt` + `Aero_Front_Lip` + `Aero_Front_Splitter` + `Aero_Rear_Fender_Flare` + `Aero_Rear_Wing` + `Aero_Roof_Fin` + 4 `Wheel_Front`/`Wheel_Rear` tyres, 10-spoke chrome alloy rims & brake rotors) |
+| `Liger_Body_Surface.arc` | Full exterior NURBS body shell (`Body_Main_Shell` + `Body_Front_Cowl` + `Body_Roof_Glass_Frame`) with pearl, carbon, and glass matcaps |
+| `Liger_Body_Panels.arc` | Anatomical multi-panel NURBS body segmentation (`Front_Hood`, `Front_Fascia`, `Front_Fenders`, `Canopy_Roof`, `Side_Doors_Pods`, `Rear_Haunches`, `Rear_Engine_Deck`, `Rear_Fascia`, `Front_Cowl`, `Roof_Frame`) |
+| `Liger_Body_CurveLoft.arc` | Exterior NURBS body shell overlaid with the 3D crease & feature curve network from `curves.json` |
+| `Liger_Body_SideR.arc` | $+Y$ right-hand half-shell NURBS body + $+Y$ 3D feature curve network |
+| `Liger_Body_Curves.arc` | Extracted 3D crease, boundary, and orthographic silhouette curve network |
 
-`Liger_Body_Surface.arc` opens in the SolidArc console with **0 refusals**: 200 figures, 454 commands; the five
-lofts come out as degree 3×3 NURBS sheets (Tail 69×4, RearArch 149×9, Cabin 309×19, FrontArch 181×11, Nose 85×5 poles).
-Renders produced by SolidArc itself (`SolidArc/render_views.arc`, 1920×1200, plastic shading):
-`SolidArc/Liger_SA_01_Iso_Curves.png` (with the crease/boundary network) … `_06_Front.png`.
+---
 
-Environment: `bash Vehicles/tools/setup_env.sh` builds the console from `SultanAladin/Frontier-` (sparse clone),
-the Python venv and headless bpy; then
-`~/.solidarc/build/SolidArc --proofs out Vehicles/Liger/SolidArc/render_views.arc`.
+## Proof Renders (`Vehicles/Liger/SolidArc/`)
 
-Kernel feedback folded back into the generators: splines need > degree points (3-point curves → `--degree=2`),
-no coincident consecutive points (shoulder landmark kept ≥ 18 % of the half-profile in from the ends), and
-section direction +Y→−Y so the loft normals face outward (SolidArc tints back faces pink).
+- **Complete Vehicle (`Liger_Complete.arc`)**:
+  - `Liger_Complete_01_FrontQuarter.png` — Front-right 3/4 perspective (`plastic` + isoparametric wireframe)
+  - `Liger_Complete_02_RearQuarter.png` — Rear-right 3/4 perspective (`plastic` + isoparametric wireframe)
+  - `Liger_Complete_03_Side.png` — Orthographic right side elevation
+  - `Liger_Complete_04_Top.png` — Orthographic top plan view
+  - `Liger_Complete_05_Front.png` — Orthographic front elevation
+  - `Liger_Complete_06_ContactSheet.png` — 4-view engineering contact sheet (`Iso`, `Side`, `Front`, `Top`)
+  - `Liger_Complete_07_FrontQuarter_Matcap.png` — Front-right 3/4 clean `matcap` render
+  - `Liger_Complete_08_RearQuarter_Matcap.png` — Rear-right 3/4 clean `matcap` render
+- **Exterior Body Surface (`Liger_Body_Surface.arc`)**: `Liger_SA_01_Iso_Curves.png` .. `Liger_SA_06_Front.png`
+- **Segmented Body Panels (`Liger_Body_Panels.arc`)**: `Liger_Panels_01_Iso.png`, `Liger_Panels_02_RearQuarter.png`, `Liger_Panels_04_Top.png`, `Liger_Panels_05_Elev_A.png`, `Liger_Panels_07_FrontQuarter.png`
+- **Body + 3D Feature Curves (`Liger_Body_CurveLoft.arc`)**: `Liger_CL_01_Iso.png`, `Liger_CL_02_RearQuarter.png`, `Liger_CL_04_Top.png`, `Liger_CL_05_Elev_A.png`, `Liger_CL_07_FrontQuarter.png`
+- **Right-Side Half-Shell (`Liger_Body_SideR.arc`)**: `Liger_SideR_01_RearQuarter.png` .. `Liger_SideR_04_Top.png`
 
-## Phase 2b — crease-bounded panel lofts (`Liger_Body_Panels.arc`)
+---
 
-The whole-body station lofts were rejected (every panel smeared into one blanket). `tools/panel_loft.py`
-instead rebuilds the shell as **38 strip patches per side**: the body is split in X at the ends of the ten
-longitudinal creases (sill, door, bonnet edge, fender, bonnet shoulder, rear shoulder/deck/ledges), each
-half-section is split where the active creases cross it, and each strip is lofted on its own (`loft --sheet`),
-then the −Y side is emitted with reversed point order (the kernel's `mirror` flips orientation → back faces).
+## Reproducing from Source
 
-* 699 kernel operations, 0 refusals; loft→mesh deviation mean 0.34 cm, worst 6.2 cm (tail end strip).
-* Renders: `SolidArc/Liger_Panels_01_Iso.png`, `02_RearQuarter`, `04_Top`, `05_Elev_A` (side), `07_FrontQuarter`
-  — via `SolidArc/render_panels.arc`.
-* Known defects still to fix: nose strips beyond x≈215 cm twist into ribbons; a few short "Leg" patches on the
-  arch tops face inward; patches are not yet sewn into one shell.
+```bash
+# 1. (Optional) Re-extract all 11 exterior mesh archives from Liger_named.blend via headless bpy:
+LD_LIBRARY_PATH=/tmp/stublibs PYTHONPATH=/tmp/pylib python3 Vehicles/tools/extract_liger_meshes.py
 
-## Phase 2c — curve-to-curve lofts (`Liger_Body_CurveLoft.arc`) ← current direction
+# 2. Reconstruct all 5 SolidArc (.arc) CAD documents from Vehicles/Liger/mesh/*.npz:
+PYTHONPATH=/tmp/pylib python3 Vehicles/tools/reconstruct_liger.py
 
-Per the design brief: loft the **fitted feature curves** against their nearest neighbour, no polygon topology.
-`tools/curve_loft.py` holds an explicit pairing table (`PLAN`): 16 strips per side, e.g. rear-ledge-inner ↔ its
-mirror (tail centre), ledge → deck → rear shoulder → quarter line → rear-arch rim / sill crease → sill boundary;
-cabin-opening rim (crease 062) → bonnet edge → door crease → sill; bonnet edge → fender crease → arch boundary;
-bonnet shoulder ↔ mirror → fender rim; tail lip/face from the cross-body tail curves.  Each strip = two sections
-resampled on the common x-range, `loft --sheet`; section order chosen so the normal points away from the body axis.
-Finding on the way: the shell between the bonnet edges (x 8..185) is the cabin opening — the glass frame is its own part.
-
-* 32 lofts, 0 refusals.  Renders `SolidArc/Liger_CL_01_Iso / 02_RearQuarter / 04_Top / 05_Elev_A / 07_FrontQuarter.png`.
-* Open items: strips are ruled between their two curves (faceted look — add the middle crease as a third section
-  or a guide where one exists); not yet covered: rear quarter above the arch for x < −122, nose below the bonnet
-  shoulder, door skin x > 131; `Cabin_Rim` faces inward; strips not sewn.
-
-## Phase 3 — +Y side lofted curve-to-curve (`Liger_Body_SideR.arc`) ← current
-
-Per review: curves first (kernel renders `SolidArc/Liger_Curves_0*.png`), then loft them. `tools/loft_side.py`
-builds the **right (+Y) side only**, 16 strips, each a loft between two neighbouring feature curves on their common
-x-range (`PLAN` table).  Silhouettes are never lofted (flat guides only).  Every strip is measured against the
-Blender shell; where a plain two-curve loft is more than 4 cm off (the curved door/fender shoulder), one
-*construction section* — the strip midline dropped onto the reference surface — is added as a third loft section
-and marked as such in the journal.  Section order is chosen so the loft normal agrees with the reference normal.
-
-| strip | curves | mesh dev mean/max cm |
-|---|---|---|
-| Deck_Step / Ledge / Outer, Rear_Shoulder, Quarter_Top | 076→074→035→061→028→071 | 0.8–1.3 / ≤2.7 |
-| Quarter_Panel (rear-window line straight down to the rear-arch opening), Quarter_Sill | 077(+Y)→Edge_005, 071→030 | 2.5 / 9.6, 2.0 / 4.1 |
-| Cant_Rail, Door_Upper, Door_Lower, Sill | 063(+Y)→023→064→030→Edge_003 | 1.1–2.5 / ≤6.8 |
-| Fender_Panel (bonnet edge + shoulder as one rail, straight down to the front-arch opening) | 023+025→Edge_024 | 3.9 / 15.8 |
-
-Review fix: 092 (rear) and 064/065/026 (front) are the panel **cut lines** running around the arches — they are
-drawn but no longer used as loft rails, so each arch is one panel with vertical rulings (rail point above each
-arch point) instead of two overlapping sheets with straight cuts.
-
-Renders `SolidArc/Liger_SideR_01_RearQuarter / 02_Side / 03_FrontQuarter / 04_Top.png`.  Not yet: tail-lamp recess
-(curves 076–096, 171/172), nose face (004/010/019/031, Edge_017), bonnet centre, mirroring, sewing.
+# 3. Render all proof images with SolidArc:
+for scr in render_complete.arc render_views.arc render_panels.arc render_curveloft.arc render_sideR.arc; do
+    /tmp/solidarc-build/SolidArc "Vehicles/Liger/SolidArc/$scr"
+done
+```
