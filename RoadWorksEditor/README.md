@@ -64,8 +64,10 @@ src/
   Gizmo.js              translate gizmo
   App.js                document state and UI
 tools/
-  smoke-test.mjs        headless generator checks  (node tools/smoke-test.mjs)
-  preview-render.mjs    headless PNG rasteriser     (node tools/preview-render.mjs out.png iso|top|side)
+  smoke-test.mjs        headless generator checks   (node tools/smoke-test.mjs)
+  boot-test.mjs         boots the UI against stubbed DOM/three and drives it (node tools/boot-test.mjs)
+  dom-stub.mjs          the DOM + three.js stubs used by boot-test
+  preview-render.mjs    headless PNG rasteriser      (node tools/preview-render.mjs out.png iso|top|side)
 ```
 
 Everything under `src/` except `Viewport.js`, `Gizmo.js` and `App.js` is renderer-agnostic and runs in plain Node,
@@ -95,5 +97,10 @@ unreliable were *not* carried over; they were replaced:
 
 ```bash
 node tools/smoke-test.mjs                      # topology, geometry hygiene, every bridge/pier/railing combination
+node tools/boot-test.mjs                       # boots the editor shell, clicks the toolbar, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```
+
+`boot-test.mjs` exists because a geometry test cannot catch shell bugs: the first build of this editor shipped a
+module-evaluation-order fault that left the viewport stuck behind the loading spinner. The harness now evaluates
+`App.js` end to end and fails if boot throws, if the spinner is still up, or if any handler errors.

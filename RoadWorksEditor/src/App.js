@@ -83,12 +83,17 @@ const state = {
 
 const canvas = $('SceneCanvas');
 const viewport = new Viewport(canvas);
-bindUi();
-rebuild(true);
-viewport.frame(networkBounds());
-loop();
 
 window.addEventListener('resize', () => viewport.resize());
+
+// The boot sequence lives at the very bottom of this module: it touches `let` bindings declared further down, which
+// are in their temporal dead zone until module evaluation reaches them.
+function boot() {
+  bindUi();
+  rebuild(true);
+  viewport.frame(networkBounds());
+  loop();
+}
 
 function loop() {
   requestAnimationFrame(loop);
@@ -850,3 +855,28 @@ function download(filename, text, mime) {
 }
 
 const slug = (s) => (s || 'network').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+// ── boot ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Any failure here used to leave the viewport sitting behind the loading spinner forever; surface it instead.
+window.addEventListener('error', (event) => reportFatal(event.error || event.message));
+window.addEventListener('unhandledrejection', (event) => reportFatal(event.reason));
+
+function reportFatal(error) {
+  console.error(error);
+  const loading = $('Loading');
+  if (loading) loading.hidden = true;
+  const failure = $('Failure');
+  if (failure) {
+    failure.textContent = `Startup error — ${error?.message || error}`;
+    failure.hidden = false;
+  }
+  const status = $('Status');
+  if (status) status.textContent = 'Startup failed — see the browser console';
+}
+
+try {
+  boot();
+} catch (error) {
+  reportFatal(error);
+}
