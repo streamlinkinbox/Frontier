@@ -1,0 +1,1122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#202326" />
+<title>RoadWorks Editor · Frontier</title>
+<style>
+:root{
+  --bg:#202326;--panel:#25292c;--panel-2:#292e31;--panel-3:#1d2022;--canvas:#2b3132;
+  --line:rgba(237,241,233,.085);--line-strong:rgba(237,241,233,.15);
+  --text:#e6e8e1;--muted:#9da39e;--quiet:#6f7875;--accent:#c9e58b;--accent-dim:#82976a;
+  --teal:#80bcb0;--water:#35504e;--orange:#d09a6a;--red:#e18173;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --radius:9px;--shadow:0 20px 50px rgba(0,0,0,.24);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+body{overflow:hidden;background:var(--bg);color:var(--text);font:12px/1.45 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+button,input,select{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+button:disabled{opacity:.38;cursor:not-allowed}
+input,select{accent-color:var(--accent)}
+svg{display:block}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+::selection{background:rgba(201,229,139,.25)}
+#app{height:100%;display:grid;grid-template-rows:58px minmax(0,1fr) 26px;min-height:0}
+.topbar{height:58px;display:flex;align-items:center;gap:22px;padding:0 17px;background:#222528;border-bottom:1px solid var(--line);position:relative;z-index:10}
+.brand{width:206px;min-width:190px;display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brand-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#c9e58b;color:#22271f;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.brand-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.brand-type{display:grid;line-height:1.1;gap:3px}
+.brand-type strong{font-size:12px;letter-spacing:.12em;font-weight:750}
+.brand-type small{font:9px var(--mono);color:var(--quiet);letter-spacing:.09em;text-transform:uppercase}
+.top-divider{height:25px;width:1px;background:var(--line-strong);margin-left:-12px}
+.project-switcher{display:flex;align-items:center;gap:10px;min-width:0}
+.project-glyph{width:31px;height:31px;border:1px solid var(--line-strong);border-radius:8px;display:grid;place-items:center;color:var(--teal);background:#282d2f}
+.project-glyph svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.project-name{display:grid;gap:2px;min-width:0}
+.eyebrow{font-size:9px;line-height:1;color:var(--quiet);letter-spacing:.13em;text-transform:uppercase;font-weight:700}
+.project-name strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:590;max-width:250px}
+.project-chevron{width:15px;height:15px;color:var(--quiet);margin-left:1px}
+.top-spacer{flex:1}
+.save-state{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:10px;white-space:nowrap;margin-right:2px}
+.save-state .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent-dim);box-shadow:0 0 0 3px rgba(201,229,139,.08)}
+.save-state.saving .status-dot{background:var(--orange);box-shadow:0 0 0 3px rgba(208,154,106,.1)}
+.top-actions{display:flex;align-items:center;gap:6px}
+.icon-btn,.tool-btn{display:grid;place-items:center;color:#b7bdb7;border:1px solid transparent;border-radius:7px;transition:background .14s,border-color .14s,color .14s}
+.icon-btn{width:31px;height:31px}
+.icon-btn:hover,.tool-btn:hover{color:var(--text);background:#313639;border-color:var(--line)}
+.icon-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.action-divider{height:22px;width:1px;background:var(--line);margin:0 5px}
+.btn{height:31px;padding:0 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line-strong);border-radius:7px;background:#2b3033;color:#d9ddd6;font-size:10.5px;font-weight:600;white-space:nowrap;transition:background .14s,border-color .14s,transform .14s}
+.btn:hover{background:#343a3d;border-color:rgba(237,241,233,.22)}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#242a21;font-weight:750;padding:0 13px}
+.btn-primary:hover{background:#d5eda2;border-color:#d5eda2}
+.btn-quiet{background:transparent}
+.menu-wrap{position:relative}
+.menu-pop{position:absolute;right:0;top:38px;width:190px;padding:5px;background:#292e31;border:1px solid var(--line-strong);border-radius:9px;box-shadow:var(--shadow);display:none;z-index:30}
+.menu-pop.open{display:block;animation:popin .12s ease-out}
+.menu-pop button{width:100%;display:flex;align-items:center;gap:9px;padding:8px;border-radius:6px;text-align:left;font-size:11px;color:#d2d8d1}
+.menu-pop button:hover{background:#353b3e}
+.menu-pop button svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.menu-pop .menu-sep{height:1px;background:var(--line);margin:4px 3px}
+.workspace-grid{display:grid;grid-template-columns:54px 230px minmax(360px,1fr) 304px;min-height:0;position:relative}
+.tool-rail{background:#222528;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:13px 0 10px;gap:8px;z-index:3}
+.tool-btn{width:34px;height:34px;position:relative}
+.tool-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tool-btn.active{background:#363e39;border-color:rgba(201,229,139,.25);color:var(--accent)}
+.tool-btn.active:before{content:"";position:absolute;left:-11px;top:8px;bottom:8px;width:2px;background:var(--accent);border-radius:0 2px 2px 0}
+.rail-sep{height:1px;width:27px;background:var(--line);margin:4px 0}
+.rail-spacer{flex:1}
+.rail-tip{font:9px var(--mono);color:#68716d;writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:.11em;margin-bottom:3px}
+.left-panel,.inspector{background:var(--panel);min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.left-panel{border-right:1px solid var(--line)}
+.panel-top{height:49px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 13px}
+.panel-top h2{margin:0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:750;color:#c5cbc3}
+.panel-top .panel-count{font:9px var(--mono);color:var(--quiet)}
+.panel-tabs{height:37px;flex:none;display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);padding:0 12px;gap:14px}
+.panel-tab{position:relative;color:var(--quiet);font-size:10px;font-weight:600;text-align:left;display:flex;align-items:center}
+.panel-tab.active{color:var(--text)}
+.panel-tab.active:after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--accent);border-radius:3px 3px 0 0}
+.panel-scroll{padding:12px 10px 18px;overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#4b5250 transparent}
+.panel-scroll[hidden]{display:none}
+.group-head{display:flex;align-items:center;justify-content:space-between;margin:2px 3px 8px;color:#919a94;font-size:9px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}
+.group-head .subcount{font:9px var(--mono);color:#626c67;letter-spacing:0}
+.tree-list{display:grid;gap:2px}
+.tree-row{height:31px;padding:0 7px;border-radius:6px;display:flex;align-items:center;gap:8px;cursor:pointer;color:#c6ccc5;transition:background .12s}
+.tree-row:hover{background:#303639}
+.tree-row.selected{background:#343b38;box-shadow:inset 2px 0 var(--accent);color:#e7eadf}
+.tree-row .tree-icon{width:15px;height:15px;display:grid;place-items:center;color:#8c9990;flex:none}
+.tree-row .tree-icon svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tree-row .tree-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px}
+.tree-row .tree-id{font:9px var(--mono);color:#77817b;flex:none}
+.tree-row .tree-badge{font:8px var(--mono);color:#d3b08d;background:rgba(208,154,106,.1);padding:2px 4px;border-radius:4px;letter-spacing:.03em}
+.panel-divider{height:1px;background:var(--line);margin:13px 3px 12px}
+.layer-row{height:30px;display:flex;align-items:center;gap:8px;padding:0 4px;color:#b9c0b9;font-size:10px;cursor:pointer}
+.layer-row:hover{color:var(--text)}
+.layer-row input{width:13px;height:13px;margin:0;cursor:pointer}
+.layer-swatch{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(255,255,255,.12)}
+.sw-road{background:#444b4c}.sw-pavement{background:#66716b}.sw-curb{background:#c3b48d}.sw-mark{background:#dad8be}.sw-nodes{background:#c9e58b}.sw-water{background:#527c76}
+.panel-footnote{margin:12px 4px 0;padding-top:10px;border-top:1px solid var(--line);font-size:9px;line-height:1.6;color:#76817c}
+.panel-footnote kbd{font:9px var(--mono);color:#bcc6bb;background:#33393a;padding:2px 4px;border-radius:3px}
+.topology-card{padding:10px;border-radius:8px;background:#202426;border:1px solid var(--line);margin-bottom:14px}
+.topology-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.topology-led{width:7px;height:7px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(201,229,139,.09)}
+.topology-led.warn{background:var(--orange);box-shadow:0 0 0 3px rgba(208,154,106,.1)}
+.topology-row strong{font-size:10px;font-weight:650;color:#dfe5d9}
+.topology-row span:last-child{margin-left:auto;font:9px var(--mono);color:#86918a}
+.topology-card p{font-size:9px;color:#87918b;line-height:1.55;margin:0}
+.network-empty{padding:12px 8px;text-align:center;font-size:10px;color:var(--quiet)}
+.viewport-pane{min-width:0;min-height:0;position:relative;overflow:hidden;background:var(--canvas)}
+.canvas-wrap{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 52% 44%,#333b3b 0,#2c3233 50%,#292f30 100%)}
+.canvas-wrap:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(12,16,16,.14),transparent 22%,transparent 78%,rgba(12,16,16,.16))}
+#scene{width:100%;height:100%;touch-action:none;display:block;position:relative;z-index:1;cursor:grab}
+#scene.dragging{cursor:grabbing!important}
+#scene.road-cursor{cursor:crosshair}
+#scene.bridge-cursor{cursor:copy}
+#scene.measure-cursor{cursor:crosshair}
+.canvas-hud{position:absolute;z-index:4;display:flex;align-items:center;gap:7px;pointer-events:none}
+.hud-top{top:13px;left:14px;right:14px;justify-content:space-between}
+.hud-bottom{bottom:13px;left:14px;right:14px;align-items:flex-end}
+.hud-chip{height:27px;padding:0 9px;display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(238,241,232,.1);border-radius:6px;background:rgba(31,35,36,.86);color:#c2c9c1;box-shadow:0 4px 10px rgba(0,0,0,.1);font-size:9px;letter-spacing:.04em;backdrop-filter:blur(8px)}
+.hud-chip b{font:9px var(--mono);font-weight:500;color:#dce4d7}
+.hud-chip .hud-live{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.hud-group{display:flex;gap:5px;pointer-events:auto}
+.hud-control{width:27px;height:27px;display:grid;place-items:center;border:1px solid rgba(238,241,232,.1);border-radius:6px;background:rgba(31,35,36,.86);color:#b9c1b9;backdrop-filter:blur(8px)}
+.hud-control:hover,.hud-control.active{color:var(--accent);border-color:rgba(201,229,139,.3);background:#303735}
+.hud-control svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.scale-chip{height:24px;display:flex;align-items:center;gap:7px;padding:0 8px;border-radius:5px;background:rgba(31,35,36,.84);font:9px var(--mono);color:#98a29b;pointer-events:none}
+.scale-bar{height:5px;width:42px;border:1px solid #bdc6bc;border-top:0;opacity:.75}
+.coordinates{margin-left:auto;font:9px var(--mono);color:#87918b;padding:4px 6px;border-radius:4px;background:rgba(31,35,36,.7);pointer-events:none}
+.hint-toast{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:7;display:none;align-items:center;gap:8px;max-width:calc(100% - 30px);padding:8px 11px;border:1px solid rgba(201,229,139,.22);border-radius:7px;background:rgba(32,37,37,.95);color:#dce6d3;box-shadow:var(--shadow);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.hint-toast.show{display:flex}
+.hint-toast kbd{font:9px var(--mono);padding:2px 4px;border-radius:3px;background:#414948;color:#dfe8d9}
+.map-label{font:700 8px var(--mono);letter-spacing:.09em;fill:#aeb9af;paint-order:stroke;stroke:#2b3132;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+#scene .road-hit{fill:none;stroke:transparent;stroke-width:40;pointer-events:stroke;cursor:pointer}
+#scene .road-body{fill:url(#asphalt);stroke:#24292a;stroke-width:1.5;stroke-linejoin:round;cursor:pointer}
+#scene .road-body.selected{stroke:#c9e58b;stroke-width:2.2;filter:url(#roadGlow)}
+#scene .road-body.bridge-body{stroke:#82bcb0;stroke-width:2;stroke-dasharray:7 4}
+#scene .sidewalk-surface{fill:url(#pavement);stroke:#88918a;stroke-opacity:.18;stroke-width:1;stroke-linejoin:round}
+#scene .curb-band{fill:#aa9a75;stroke:#d0c19c;stroke-opacity:.42;stroke-width:.8;stroke-linejoin:round}
+#scene .junction-sidewalk{fill:#57615c;stroke:#838c84;stroke-opacity:.35;stroke-width:1.1;stroke-linejoin:round}
+#scene .junction-asphalt{fill:url(#asphalt);stroke:none}
+#scene .lane-mark{fill:none;stroke:#d4d1b6;stroke-width:1.25;stroke-dasharray:8 9;stroke-linecap:round;opacity:.72;pointer-events:none}
+#scene .edge-mark{fill:none;stroke:#c7be9d;stroke-width:1;stroke-linecap:round;opacity:.42;pointer-events:none}
+#scene .bridge-deck{fill:rgba(128,188,176,.12);stroke:#80bcb0;stroke-width:1.5;stroke-dasharray:8 4;pointer-events:none}
+#scene .bridge-rail{fill:none;stroke:#9cc7be;stroke-width:1.2;stroke-linecap:round;opacity:.9;pointer-events:none}
+#scene .bridge-support{fill:#7caaa2;stroke:#c4e1d8;stroke-width:1;pointer-events:none}
+#scene .node-shell{cursor:pointer}
+#scene .node-shell .node-hit{fill:transparent;stroke:transparent;stroke-width:18}
+#scene .node-shell .node-outer{fill:#27302e;stroke:#9aaa91;stroke-width:1.25}
+#scene .node-shell .node-core{fill:#c9e58b;stroke:#29312a;stroke-width:1.2}
+#scene .node-shell.endpoint .node-outer{fill:#2d3837;stroke:#7f9690;stroke-width:1.1}
+#scene .node-shell.endpoint .node-core{fill:#96b6a9}
+#scene .node-shell.selected .node-outer{stroke:#e2f4bb;stroke-width:2;filter:url(#roadGlow)}
+#scene .node-shell.pending .node-outer{stroke:#e5c278;stroke-width:2;fill:#564a33}
+#scene .junction-tag{font:8px var(--mono);letter-spacing:.08em;fill:#aeb8af;paint-order:stroke;stroke:#2a3031;stroke-width:3px;pointer-events:none}
+#scene .curve-stem{stroke:#adc78a;stroke-width:1;stroke-dasharray:2 3;opacity:.7;pointer-events:none}
+#scene .curve-handle{fill:#272d2c;stroke:#c9e58b;stroke-width:1.7;cursor:move}
+#scene .measure-line{stroke:#f1c782;stroke-width:2;stroke-dasharray:5 4;fill:none;pointer-events:none}
+#scene .measure-label{font:10px var(--mono);fill:#f1c782;paint-order:stroke;stroke:#242929;stroke-width:4px;pointer-events:none}
+.inspector{border-left:1px solid var(--line)}
+.inspector-head{height:49px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.inspector-head h2{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:750;color:#c5cbc3;margin:0}
+.inspector-head button{width:24px;height:24px;border-radius:5px;display:grid;place-items:center;color:#839087}
+.inspector-head button:hover{background:#343a3c;color:#fff}
+.inspector-head svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.inspector-scroll{overflow:auto;min-height:0;padding:13px 13px 18px;scrollbar-width:thin;scrollbar-color:#4b5250 transparent}
+.inspect-kicker{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#7e8983;margin-bottom:5px}
+.inspect-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:13px}
+.inspect-title{min-width:0}
+.inspect-title h3{font-size:14px;line-height:1.2;font-weight:650;color:#e0e5dc;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inspect-title p{margin:4px 0 0;color:#808b85;font-size:9px}
+.pill{padding:3px 6px;border-radius:4px;border:1px solid var(--line);background:#2c3234;color:#aeb9b0;font:8px var(--mono);white-space:nowrap;letter-spacing:.05em}
+.pill.good{color:var(--accent);background:rgba(201,229,139,.07);border-color:rgba(201,229,139,.16)}
+.pill.bridge{color:#a4d0c5;background:rgba(128,188,176,.08);border-color:rgba(128,188,176,.2)}
+.inspect-card{border:1px solid var(--line);border-radius:8px;background:#282d30;padding:11px;margin-bottom:10px}
+.card-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.card-heading strong{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#b7c0b7;font-weight:750}
+.card-heading span{font:9px var(--mono);color:#76817a}
+.form-row{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin:8px 0}
+.form-row label,.field-label{font-size:9px;color:#919b93}
+.field,.select-field{width:100%;height:29px;border:1px solid rgba(235,241,232,.1);border-radius:5px;background:#202527;padding:0 8px;color:#d8ded6;font-size:10px;outline:none}
+.field:focus,.select-field:focus{border-color:rgba(201,229,139,.5)}
+.select-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2399a49b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:25px}
+.name-field{font-size:11px;font-weight:600;height:31px}
+.range-block{margin:12px 0}
+.range-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:#929d95;font-size:9px}
+.range-head output{font:9px var(--mono);color:#d2d9cf}
+input[type=range]{display:block;width:100%;height:13px;margin:0;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:#525a56}
+input[type=range]::-moz-range-track{height:3px;border-radius:3px;background:#525a56}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;margin-top:-4px;border-radius:50%;background:var(--accent);border:2px solid #2a302c;box-shadow:0 0 0 1px rgba(201,229,139,.5)}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid #2a302c;box-shadow:0 0 0 1px rgba(201,229,139,.5)}
+.range-limits{display:flex;justify-content:space-between;color:#68726d;font:8px var(--mono);margin-top:2px}
+.cross-section{height:54px;border:1px solid rgba(238,241,232,.07);border-radius:6px;background:#222729;display:flex;align-items:center;justify-content:center;gap:2px;overflow:hidden;padding:0 8px;margin-top:9px}
+.xwalk{height:13px;min-width:12px;flex:1;background:#515b57;border-radius:2px 0 0 2px;border-bottom:2px solid #88928b}
+.xcurb{height:20px;width:5px;flex:none;background:#c0b28d;border-radius:1px}
+.xroad{height:31px;flex:1;min-width:10px;background:#3e4547;border-bottom:1px solid #e1dcb8;position:relative}
+.xroad:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #c9c6ac;opacity:.7}
+.cross-labels{display:flex;justify-content:space-between;color:#75807a;font:8px var(--mono);margin-top:5px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;color:#aab3aa;font-size:10px}
+.switch{position:relative;width:31px;height:17px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;border-radius:10px;background:#424948;border:1px solid #525b57;transition:.15s;cursor:pointer}
+.switch span:before{content:"";position:absolute;width:11px;height:11px;left:2px;top:2px;border-radius:50%;background:#9aa39b;transition:.15s}
+.switch input:checked+span{background:#72855f;border-color:#849b6b}
+.switch input:checked+span:before{transform:translateX(13px);background:#edf8d8}
+.bridge-card{border-color:rgba(128,188,176,.19);background:linear-gradient(150deg,rgba(128,188,176,.045),transparent 55%),#282d30}
+.bridge-banner{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bridge-icon{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;background:rgba(128,188,176,.11);color:#9fcec2}
+.bridge-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bridge-banner div{display:grid;gap:2px;flex:1}
+.bridge-banner strong{font-size:10px;font-weight:650;color:#d1ded6}
+.bridge-banner small{font-size:8px;color:#7f9690}
+.preview-caption{display:flex;justify-content:space-between;margin:3px 1px 6px;color:#7f8b85;font:8px var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.bridge-preview{width:100%;height:117px;display:block;border:1px solid rgba(238,241,232,.075);border-radius:6px;background:linear-gradient(180deg,#283233,#222829);overflow:hidden}
+.bridge-preview text{font-family:var(--mono);font-size:7px;fill:#83918b}
+.bridge-preview .preview-deck{fill:#a8b1a7;stroke:#d3d6c9;stroke-width:1}
+.bridge-preview .preview-beam{fill:#66736d;stroke:#9faea4;stroke-width:1}
+.bridge-preview .preview-steel{fill:none;stroke:#9faaa0;stroke-width:1.4}
+.bridge-preview .preview-support{fill:#67736e;stroke:#9faaa0;stroke-width:1}
+.bridge-preview .preview-water{fill:none;stroke:#547a73;stroke-width:1.3;stroke-dasharray:3 4;opacity:.8}
+.bridge-preview .preview-ground{stroke:#4b5650;stroke-width:1}
+.bridge-preview .preview-cable{stroke:#8db5a9;stroke-width:.9;fill:none}
+.bridge-preview .preview-accent{fill:#9dbcb0}
+.bridge-controls{margin-top:8px;padding-top:4px;border-top:1px solid var(--line)}
+.add-bridge-card{border:1px dashed rgba(128,188,176,.27);border-radius:8px;padding:11px;margin:10px 0;background:rgba(128,188,176,.025)}
+.add-bridge-card p{font-size:9px;color:#87938d;line-height:1.55;margin:0 0 9px}
+.add-bridge-card .btn{width:100%;height:29px;color:#bfe0d5;background:rgba(128,188,176,.08);border-color:rgba(128,188,176,.2)}
+.add-bridge-card .btn:hover{background:rgba(128,188,176,.15)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat-box{padding:8px;background:#222729;border:1px solid rgba(238,241,232,.06);border-radius:6px;display:grid;gap:4px}
+.stat-box span{font:8px var(--mono);letter-spacing:.08em;color:#77827c;text-transform:uppercase}
+.stat-box strong{font-size:13px;font-weight:620;color:#dbe1d8}
+.stat-box small{font-size:8px;color:#727e77}
+.neighbor-row{height:26px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(238,241,232,.055);color:#b6beb6;font-size:9px}
+.neighbor-row:first-of-type{border-top:0}
+.neighbor-row code{font:9px var(--mono);color:#7f8a83}
+.empty-inspector{padding:27px 11px;text-align:center;color:#8a958d}
+.empty-inspector .empty-art{width:46px;height:46px;border-radius:14px;margin:0 auto 13px;border:1px solid var(--line-strong);background:#2c3234;display:grid;place-items:center;color:var(--accent-dim)}
+.empty-inspector .empty-art svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.empty-inspector h3{font-size:12px;font-weight:600;color:#c9d0c7;margin:0 0 5px}
+.empty-inspector p{font-size:9px;line-height:1.6;margin:0 auto;max-width:210px;color:#7d8982}
+.empty-inspector .shortcut{margin-top:15px;color:#78827c;font:9px var(--mono)}
+.delete-row{display:flex;justify-content:flex-end;margin-top:13px;padding-top:10px;border-top:1px solid var(--line)}
+.delete-btn{height:26px;padding:0 8px;border-radius:5px;border:1px solid rgba(225,129,115,.16);color:#d58c80;font-size:9px}
+.delete-btn:hover{background:rgba(225,129,115,.1);border-color:rgba(225,129,115,.32)}
+.statusbar{display:flex;align-items:center;gap:14px;padding:0 11px;background:#212527;border-top:1px solid var(--line);color:#808a84;font:9px var(--mono);white-space:nowrap;overflow:hidden}
+.status-group{display:flex;align-items:center;gap:6px;min-width:0}
+.status-group strong{color:#aab4aa;font-weight:500}
+.status-led{width:6px;height:6px;border-radius:50%;background:var(--accent-dim);flex:none}
+.status-led.warn{background:var(--orange)}
+.status-spacer{flex:1}
+.status-sep{height:12px;width:1px;background:var(--line-strong)}
+.toast{position:fixed;z-index:100;bottom:39px;left:50%;transform:translate(-50%,10px);opacity:0;pointer-events:none;min-width:200px;max-width:min(480px,90vw);padding:9px 13px;border:1px solid var(--line-strong);border-radius:7px;background:#303638;color:#e2e8de;box-shadow:var(--shadow);font-size:10px;text-align:center;transition:opacity .16s,transform .16s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal-scrim{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(9,12,12,.67);backdrop-filter:blur(5px)}
+.modal-scrim.open{display:flex;animation:fadein .12s ease-out}
+.modal{width:min(570px,100%);border:1px solid rgba(238,241,232,.14);border-radius:12px;background:#282d30;box-shadow:0 30px 90px rgba(0,0,0,.45);overflow:hidden}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:17px 18px 13px;border-bottom:1px solid var(--line)}
+.modal-head h2{font-size:15px;margin:0 0 4px;font-weight:650}
+.modal-head p{font-size:10px;color:#89958d;margin:0}
+.modal-close{width:25px;height:25px;border-radius:5px;display:grid;place-items:center;color:#89958d}
+.modal-close:hover{background:#383e40;color:#fff}
+.modal-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.modal-body{padding:16px 18px}
+.modal-footer{border-top:1px solid var(--line);padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.modal-footer small{font-size:9px;color:#748079}
+.generator-options{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.generator-choice{border:1px solid rgba(238,241,232,.1);border-radius:8px;background:#222729;padding:11px;cursor:pointer;transition:border-color .14s,background .14s}
+.generator-choice:hover{border-color:rgba(201,229,139,.3)}
+.generator-choice.selected{border-color:rgba(201,229,139,.52);background:rgba(201,229,139,.055)}
+.generator-choice input{display:none}
+.generator-choice .choice-art{height:63px;border-radius:5px;background:#2c3334;margin-bottom:9px;display:grid;place-items:center;overflow:hidden}
+.generator-choice .choice-art svg{width:100%;height:100%}
+.generator-choice strong{display:block;font-size:10px;margin-bottom:3px}
+.generator-choice span{display:block;font-size:9px;color:#849088;line-height:1.45}
+.generator-controls{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:11px;border:1px solid var(--line);border-radius:7px;background:#23282a}
+.generator-controls .field-label{display:block;margin-bottom:6px}
+.modal-note{display:flex;gap:8px;align-items:flex-start;margin-top:11px;color:#849088;font-size:9px;line-height:1.5}
+.modal-note svg{width:14px;height:14px;flex:none;stroke:var(--accent-dim);fill:none;stroke-width:1.7}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes popin{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+@media (max-width:1150px){.workspace-grid{grid-template-columns:50px 195px minmax(320px,1fr) 275px}.brand{width:185px;min-width:185px}.topbar{gap:15px;padding:0 12px}.project-name strong{max-width:190px}}
+@media (max-width:900px){
+  .workspace-grid{grid-template-columns:48px minmax(0,1fr)}
+  .left-panel{position:absolute;left:48px;top:0;bottom:0;width:220px;z-index:8;box-shadow:12px 0 30px rgba(0,0,0,.22);transform:translateX(-110%);transition:transform .18s}
+  .left-panel.mobile-open{transform:translateX(0)}
+  .inspector{position:absolute;right:0;top:0;bottom:0;width:288px;z-index:8;box-shadow:-12px 0 30px rgba(0,0,0,.22);transform:translateX(110%);transition:transform .18s}
+  .inspector.mobile-open{transform:translateX(0)}
+  .brand{width:auto;min-width:0}.top-divider{display:none}.project-switcher{margin-left:0}.top-actions .btn span{display:none}.top-actions .btn{width:34px;padding:0}.save-state{display:none}
+  .mobile-panels{display:flex!important}
+}
+@media (max-width:570px){
+  #app{grid-template-rows:54px minmax(0,1fr) 24px}.topbar{height:54px;gap:9px;padding:0 9px}.brand-type small{display:none}.brand-type strong{font-size:10px}.brand-mark{width:25px;height:25px}.project-glyph{display:none}.project-name strong{max-width:120px;font-size:10px}.project-name .eyebrow{font-size:8px}.top-actions{gap:3px}.top-actions .icon-btn{width:27px;height:27px}.top-actions .btn{height:28px;width:31px}.action-divider{margin:0 1px}.tool-rail{padding-top:9px}.hud-chip{height:25px;padding:0 7px;font-size:8px}.hud-bottom{bottom:8px;left:8px;right:8px}.hud-top{top:8px;left:8px;right:8px}.coordinates{font-size:8px}.statusbar{gap:7px;padding:0 7px;font-size:8px}.statusbar .status-hide-small{display:none}.generator-options{grid-template-columns:1fr}.generator-choice{display:grid;grid-template-columns:74px 1fr;column-gap:9px;align-items:center}.generator-choice .choice-art{grid-row:span 2;width:74px;height:48px;margin:0}.generator-choice strong{align-self:end}.generator-choice span{align-self:start}.generator-controls{grid-template-columns:1fr}.modal-footer small{max-width:160px;white-space:normal}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Frontier home">
+      <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M4 18 8 6l4 8 4-10 4 14"/><path d="M3 18h18"/></svg></span>
+      <span class="brand-type"><strong>ROADWORKS</strong><small>network editor</small></span>
+    </a>
+    <span class="top-divider"></span>
+    <div class="project-switcher">
+      <span class="project-glyph"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 7h16M11 5v14m9-14v14"/><circle cx="4" cy="5" r="1.5"/><circle cx="11" cy="12" r="1.5"/><circle cx="20" cy="19" r="1.5"/></svg></span>
+      <span class="project-name"><span class="eyebrow">PROJECT / MASTERPLAN 04</span><strong id="projectName">Riverside connector</strong></span>
+      <svg class="project-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="save-state" id="saveState"><span class="status-dot"></span><span id="saveLabel">Local project</span></div>
+    <div class="top-actions">
+      <button class="icon-btn" id="undoBtn" title="Undo · Ctrl Z" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 0 14h-2"/></svg></button>
+      <button class="icon-btn" id="redoBtn" title="Redo · Ctrl Shift Z" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9h-9a7 7 0 0 0 0 14h2"/></svg></button>
+      <span class="action-divider"></span>
+      <button class="icon-btn" id="saveBtn" title="Save project locally" aria-label="Save project"><svg viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3z"/><path d="M7 3v6h10V3M7 21v-7h10v7"/></svg></button>
+      <div class="menu-wrap">
+        <button class="btn btn-quiet" id="exportMenuBtn" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 15v5h14v-5"/></svg><span>Export</span></button>
+        <div class="menu-pop" id="exportMenu" role="menu">
+          <button type="button" data-export="json"><svg viewBox="0 0 24 24"><path d="M8 4H5v16h14V4h-3"/><path d="M9 3h6v4H9zM8 12h8M8 16h8"/></svg>Network data · JSON</button>
+          <button type="button" data-export="svg"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 15l3-3 2 2 3-4 2 5"/></svg>Plan drawing · SVG</button>
+          <div class="menu-sep"></div>
+          <button type="button" id="importBtn"><svg viewBox="0 0 24 24"><path d="M12 15V3m0 0L8 7m4-4 4 4"/><path d="M5 14v6h14v-6"/></svg>Import network…</button>
+          <button type="button" id="resetBtn"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/></svg>Restore demo layout</button>
+        </div>
+      </div>
+      <span class="action-divider status-hide-small"></span>
+      <button class="btn btn-primary" id="generateBtn"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8m0-12.8L5.6 18.4"/></svg><span>Generate</span></button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+    </div>
+  </header>
+
+  <main class="workspace-grid">
+    <nav class="tool-rail" aria-label="Editor tools">
+      <button class="tool-btn active" data-tool="select" title="Select and move · V" aria-label="Select tool"><svg viewBox="0 0 24 24"><path d="m5 3 14 10-7 1-3 7z"/><path d="m12 14 4 7"/></svg></button>
+      <button class="tool-btn" data-tool="road" title="Draw road · R" aria-label="Road drawing tool"><svg viewBox="0 0 24 24"><path d="M8 3 5 21m11-18 3 18M12 4v3m0 3v3m0 3v3"/></svg></button>
+      <button class="tool-btn" data-tool="bridge" title="Bridge placement · B" aria-label="Bridge tool"><svg viewBox="0 0 24 24"><path d="M3 18h18M5 18V8m14 10V8M5 8c3-5 11-5 14 0M9 18v-5m6 5v-5M3 11h18"/></svg></button>
+      <span class="rail-sep"></span>
+      <button class="tool-btn" data-tool="measure" title="Measure · M" aria-label="Measure tool"><svg viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20z"/><path d="m13 7 4 4m-7-1 2 2m-5 1 2 2"/></svg></button>
+      <div class="rail-spacer"></div>
+      <button class="tool-btn mobile-panels" id="layersToggle" title="Show layers" aria-label="Show layers" style="display:none"><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg></button>
+      <button class="tool-btn mobile-panels" id="inspectorToggle" title="Show inspector" aria-label="Show inspector" style="display:none"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M14 4v16M7 8h4m-4 4h4m-4 4h4"/></svg></button>
+      <span class="rail-tip">RW / 01</span>
+    </nav>
+
+    <aside class="left-panel" id="leftPanel">
+      <div class="panel-top"><h2>Workspace</h2><span class="panel-count" id="workspaceCount">—</span></div>
+      <div class="panel-tabs"><button class="panel-tab active" data-panel="structure">Structure</button><button class="panel-tab" data-panel="layers">Layers</button></div>
+      <div class="panel-scroll" id="structurePanel">
+        <div class="topology-card">
+          <div class="topology-row"><span class="topology-led" id="topologyLed"></span><strong id="topologyTitle">Topology clean</strong><span id="topologyJunctions">—</span></div>
+          <p id="topologyMessage">Road links resolve to a single connected network.</p>
+        </div>
+        <div class="group-head"><span>Road segments</span><span class="subcount" id="roadCount">00</span></div>
+        <div class="tree-list" id="roadTree"></div>
+        <div class="panel-divider"></div>
+        <div class="group-head"><span>Junctions</span><span class="subcount" id="junctionCount">00</span></div>
+        <div class="tree-list" id="junctionTree"></div>
+        <p class="panel-footnote">Click a segment to inspect. Drag a node to reshape the network. Nearby endpoints snap and merge automatically.</p>
+      </div>
+      <div class="panel-scroll" id="layersPanel" hidden>
+        <div class="group-head"><span>Plan visibility</span><span class="subcount">LAYERS</span></div>
+        <label class="layer-row"><input type="checkbox" data-layer="surface" checked /><span class="layer-swatch sw-road"></span><span>Road surface</span></label>
+        <label class="layer-row"><input type="checkbox" data-layer="pavement" checked /><span class="layer-swatch sw-pavement"></span><span>Pavements</span></label>
+        <label class="layer-row"><input type="checkbox" data-layer="curbs" checked /><span class="layer-swatch sw-curb"></span><span>Curbs</span></label>
+        <label class="layer-row"><input type="checkbox" data-layer="markings" checked /><span class="layer-swatch sw-mark"></span><span>Lane markings</span></label>
+        <label class="layer-row"><input type="checkbox" data-layer="nodes" checked /><span class="layer-swatch sw-nodes"></span><span>Junction handles</span></label>
+        <label class="layer-row"><input type="checkbox" data-layer="supports" checked /><span class="layer-swatch sw-water"></span><span>Bridge supports</span></label>
+        <div class="panel-divider"></div>
+        <div class="group-head"><span>Project checks</span><span class="subcount">LIVE</span></div>
+        <div class="stat-grid" id="layerStats"></div>
+        <p class="panel-footnote">Pavement and curb offsets are sampled along the road curve. Junction surfaces are joined from the shared graph node rather than duplicated spline ends.</p>
+      </div>
+    </aside>
+
+    <section class="viewport-pane" aria-label="Road network plan">
+      <div class="canvas-wrap">
+        <div class="canvas-hud hud-top">
+          <div class="hud-chip"><span class="hud-live"></span><b>PLAN VIEW</b><span>· ORTHOGRAPHIC</span></div>
+          <div class="hud-group">
+            <button class="hud-control" id="fitBtn" title="Fit network · F" aria-label="Fit network to view"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3"/></svg></button>
+            <button class="hud-control" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21M7.5 10.5h6"/></svg></button>
+            <button class="hud-control" id="zoomInBtn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21m-10.5-13v6m-3-3h6"/></svg></button>
+            <button class="hud-control active" id="gridBtn" title="Toggle grid" aria-label="Toggle grid"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 10h16M10 4v16m8-16v16M4 16h16"/></svg></button>
+          </div>
+        </div>
+        <svg id="scene" viewBox="0 0 1000 660" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Procedural road network plan">
+          <defs>
+            <pattern id="gridFine" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#d3ded3" stroke-opacity=".035" stroke-width=".8"/></pattern>
+            <pattern id="gridBold" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#d3ded3" stroke-opacity=".075" stroke-width="1"/></pattern>
+            <pattern id="pavement" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#555f5b"/><path d="M0 3H12M0 9H12" stroke="#77817a" stroke-opacity=".17" stroke-width=".6"/><circle cx="3" cy="6" r=".6" fill="#b2b9ac" fill-opacity=".16"/><circle cx="9" cy="0" r=".5" fill="#b2b9ac" fill-opacity=".13"/></pattern>
+            <linearGradient id="asphalt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#42494b"/><stop offset=".5" stop-color="#3a4143"/><stop offset="1" stop-color="#343b3d"/></linearGradient>
+            <filter id="roadGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect x="0" y="0" width="1000" height="660" fill="url(#gridFine)" id="fineGrid"/>
+          <rect x="0" y="0" width="1000" height="660" fill="url(#gridBold)" id="boldGrid"/>
+          <g id="camera">
+            <g id="terrainLayer"></g><g id="waterLayer"></g>
+            <g id="sidewalkLayer"></g><g id="junctionWalkLayer"></g>
+            <g id="curbBandLayer"></g><g id="roadLayer"></g><g id="junctionRoadLayer"></g>
+            <g id="curbLineLayer"></g><g id="markingLayer"></g><g id="bridgeLayer"></g>
+            <g id="labelLayer"></g><g id="nodeLayer"></g><g id="handleLayer"></g><g id="interactionLayer"></g>
+          </g>
+        </svg>
+        <div class="hint-toast" id="toolHint"></div>
+        <div class="canvas-hud hud-bottom">
+          <div class="scale-chip"><span class="scale-bar"></span><span id="scaleText">100 m</span></div>
+          <div class="coordinates" id="coordinates">X 000.0 · Y 000.0</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="inspector" id="inspector">
+      <div class="inspector-head"><h2>Inspector</h2><button id="clearSelection" title="Clear selection" aria-label="Clear selection"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="inspector-scroll" id="inspectorContent"></div>
+    </aside>
+  </main>
+
+  <footer class="statusbar">
+    <div class="status-group"><span class="status-led" id="statusLed"></span><strong id="statusText">Topology ready</strong></div>
+    <span class="status-sep"></span><div class="status-group"><span id="statusNodes">—</span></div>
+    <span class="status-sep status-hide-small"></span><div class="status-group status-hide-small"><span id="statusEdges">—</span></div>
+    <span class="status-sep status-hide-small"></span><div class="status-group status-hide-small"><span id="statusConnections">1 connected component</span></div>
+    <div class="status-spacer"></div>
+    <div class="status-group status-hide-small"><span id="toolStatus">SELECT / MOVE</span></div>
+    <span class="status-sep status-hide-small"></span><div class="status-group"><strong id="zoomStatus">100%</strong></div>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal-scrim" id="generatorModal" aria-hidden="true">
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="generatorTitle">
+    <header class="modal-head"><div><h2 id="generatorTitle">Generate a road network</h2><p>Build clean connectivity first, then edit geometry and roadside detail.</p></div><button class="modal-close" data-close-modal aria-label="Close"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <div class="modal-body">
+      <div class="generator-options">
+        <label class="generator-choice selected" data-style-choice="grid"><input type="radio" name="generatorStyle" value="grid" checked /><span class="choice-art"><svg viewBox="0 0 180 64"><path d="M30 5v54M75 5v54M120 5v54M155 5v54M8 18h165M8 42h165" fill="none" stroke="#77857c" stroke-width="6"/><path d="M30 5v54M75 5v54M120 5v54M155 5v54M8 18h165M8 42h165" fill="none" stroke="#c9e58b" stroke-width="1" stroke-dasharray="2 5"/><circle cx="75" cy="18" r="4" fill="#e0e8d9"/><circle cx="120" cy="42" r="4" fill="#e0e8d9"/></svg></span><strong>Connected grid</strong><span>Clear intersections, aligned blocks, configurable scale.</span></label>
+        <label class="generator-choice" data-style-choice="river"><input type="radio" name="generatorStyle" value="river" /><span class="choice-art"><svg viewBox="0 0 180 64"><path d="M91 0c-13 13 13 17-2 30s8 20-6 34" fill="none" stroke="#4d716b" stroke-width="18"/><path d="M9 18C49 22 105 8 173 17M8 47c47-10 99 9 165-5M45 0c-4 19 13 37 9 64M138 0c-9 19 5 34-5 64" fill="none" stroke="#77857c" stroke-width="5"/><path d="M9 18C49 22 105 8 173 17" fill="none" stroke="#c9e58b" stroke-width="1" stroke-dasharray="2 5"/></svg></span><strong>Riverside corridor</strong><span>Shifting blocks, curved links and one procedural bridge.</span></label>
+      </div>
+      <div class="generator-controls">
+        <div><label class="field-label" for="genBlocks">Grid columns</label><select class="select-field" id="genBlocks"><option value="3">3 blocks</option><option value="4" selected>4 blocks</option><option value="5">5 blocks</option></select></div>
+        <div><label class="field-label" for="genName">Project name</label><input class="field" id="genName" value="Generated network" maxlength="36" /></div>
+      </div>
+      <div class="modal-note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><span>Generation replaces the current canvas after saving an undo checkpoint. Junctions are shared graph nodes; pavement, curbs and bridge elements are rebuilt from that topology.</span></div>
+    </div>
+    <footer class="modal-footer"><small>Topology-first generation · metre-based plan</small><div style="display:flex;gap:7px"><button class="btn" data-close-modal>Cancel</button><button class="btn btn-primary" id="applyGenerator">Build network</button></div></footer>
+  </section>
+</div>
+<script>
+(() => {
+'use strict';
+const $ = (s, root=document) => root.querySelector(s);
+const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+const clone = obj => JSON.parse(JSON.stringify(obj));
+const STORE_KEY = 'frontier.roadworks.editor.v1';
+const deckTypes = ['Box girder','I-girder','Through truss','Open arch','Cable-stayed'];
+const supportTypes = ['Portal bent','Twin columns','Hammerhead','Pile cap','No supports'];
+const defaultBridge = () => ({deck:'Box girder',support:'Portal bent',height:14,span:180,supports:2,guardrails:true});
+const initialProject = () => ({
+  version:1, projectName:'Riverside connector', units:'m', nextNode:12, nextEdge:12,
+  nodes:[
+    {id:'N01',x:72,y:330,name:'West approach'},
+    {id:'J01',x:270,y:330,name:'West junction'},
+    {id:'N02',x:260,y:115,name:'Hill street'},
+    {id:'J02',x:520,y:330,name:'Central junction'},
+    {id:'N03',x:520,y:85,name:'North approach'},
+    {id:'N04',x:520,y:590,name:'South approach'},
+    {id:'J03',x:770,y:330,name:'East junction'},
+    {id:'N05',x:953,y:330,name:'East approach'},
+    {id:'N06',x:807,y:115,name:'Quarry lane'},
+    {id:'N07',x:835,y:550,name:'South bank'},
+    {id:'N08',x:93,y:530,name:'Old road'}
+  ],
+  edges:[
+    {id:'R01',from:'N01',to:'J01',name:'West approach',roadClass:'Collector',lanes:2,curve:0,bridge:null},
+    {id:'R02',from:'J01',to:'J02',name:'Central avenue',roadClass:'Primary',lanes:4,curve:-9,bridge:null},
+    {id:'R03',from:'J02',to:'J03',name:'East viaduct',roadClass:'Primary',lanes:4,curve:7,bridge:{deck:'Box girder',support:'Portal bent',height:14,span:180,supports:2,guardrails:true}},
+    {id:'R04',from:'J03',to:'N05',name:'East approach',roadClass:'Collector',lanes:2,curve:0,bridge:null},
+    {id:'R05',from:'J01',to:'N02',name:'Hill street',roadClass:'Local',lanes:2,curve:7,bridge:null},
+    {id:'R06',from:'N02',to:'J02',name:'North connector',roadClass:'Collector',lanes:2,curve:-6,bridge:null},
+    {id:'R07',from:'J02',to:'N03',name:'North avenue',roadClass:'Collector',lanes:2,curve:0,bridge:null},
+    {id:'R08',from:'J02',to:'N04',name:'South avenue',roadClass:'Collector',lanes:2,curve:0,bridge:null},
+    {id:'R09',from:'J03',to:'N06',name:'Quarry lane',roadClass:'Local',lanes:2,curve:10,bridge:null},
+    {id:'R10',from:'J03',to:'N07',name:'South bank road',roadClass:'Collector',lanes:2,curve:-9,bridge:null},
+    {id:'R11',from:'J01',to:'N08',name:'Old road',roadClass:'Local',lanes:2,curve:21,bridge:null}
+  ]
+});
+function readProject(){
+  try{
+    const saved = localStorage.getItem(STORE_KEY);
+    if(!saved) return initialProject();
+    const parsed = JSON.parse(saved);
+    if(!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return initialProject();
+    return normalizeProject(parsed);
+  }catch(_){ return initialProject(); }
+}
+function normalizeProject(project){
+  const ids = new Set((project.nodes||[]).map(n=>n.id));
+  project.nodes = (project.nodes||[]).filter(n=>n && typeof n.id==='string' && Number.isFinite(+n.x) && Number.isFinite(+n.y)).map(n=>({id:n.id,x:+n.x,y:+n.y,name:String(n.name||n.id).slice(0,36)}));
+  project.edges = (project.edges||[]).filter(e=>e && ids.has(e.from) && ids.has(e.to) && e.from!==e.to).map(e=>({
+    id:String(e.id||'R00'),from:e.from,to:e.to,name:String(e.name||e.id||'Road').slice(0,40),
+    roadClass:['Local','Collector','Primary','Arterial'].includes(e.roadClass)?e.roadClass:'Collector',
+    lanes:[2,4,6].includes(+e.lanes)?+e.lanes:2,curve:Number.isFinite(+e.curve)?+e.curve:0,
+    controls:Array.isArray(e.controls)&&e.controls.length===2&&e.controls.every(p=>Number.isFinite(+p.x)&&Number.isFinite(+p.y))?e.controls.map(p=>({x:+p.x,y:+p.y})):null,
+    bridge:e.bridge?{
+      deck:deckTypes.includes(e.bridge.deck)?e.bridge.deck:deckTypes[0],
+      support:supportTypes.includes(e.bridge.support)?e.bridge.support:supportTypes[0],
+      height:clamp(+e.bridge.height||14,4,32),span:clamp(+e.bridge.span||180,45,260),
+      supports:clamp(Math.round(+e.bridge.supports||2),0,6),guardrails:e.bridge.guardrails!==false
+    }:null
+  }));
+  project.projectName=String(project.projectName||'Untitled network').slice(0,36);
+  project.version=1;project.units='m';
+  const maxSuffix=(items,prefix)=>items.reduce((max,item)=>{const match=String(item.id).match(new RegExp('^'+prefix+'(\\d+)$'));return match?Math.max(max,+match[1]):max;},0);
+  project.nextNode=Math.max(+project.nextNode||1,maxSuffix(project.nodes,'N')+1,12);
+  project.nextEdge=Math.max(+project.nextEdge||1,maxSuffix(project.edges,'R')+1,12);
+  return project;
+}
+let project = readProject();
+const view = {
+  tool:'select',selectedEdge:null,selectedNode:null,pendingStart:null,cursor:{x:0,y:0},
+  layers:{surface:true,pavement:true,curbs:true,markings:true,nodes:true,supports:true},
+  camera:{x:0,y:0,z:1},grid:true,measureStart:null,measureEnd:null,
+  panel:'structure',drag:null,style:'grid',spacePan:false
+};
+const undoStack=[],redoStack=[];
+let saveTimer=0,toastTimer=0,hintTimer=0;
+const $scene=$('#scene'),$camera=$('#camera');
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function esc(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function nodeById(id){return project.nodes.find(n=>n.id===id);}
+function edgeById(id){return project.edges.find(e=>e.id===id);}
+function degree(nodeId){return project.edges.reduce((n,e)=>n+(e.from===nodeId||e.to===nodeId?1:0),0);}
+function incident(nodeId){return project.edges.filter(e=>e.from===nodeId||e.to===nodeId);}
+function halfWidth(edge){return (Number(edge.lanes)||2)*3.35+2.2;}
+function totalWidth(edge){return 2*(halfWidth(edge)+2.1+8);}
+function cubicFor(edge){
+  const a=nodeById(edge.from),b=nodeById(edge.to);if(!a||!b)return null;
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,c=Number(edge.curve)||0;
+  const controls=Array.isArray(edge.controls)&&edge.controls.length===2?edge.controls:null;
+  return{p0:{x:a.x,y:a.y},p1:controls?{...controls[0]}:{x:a.x+dx/3+nx*c,y:a.y+dy/3+ny*c},p2:controls?{...controls[1]}:{x:a.x+2*dx/3+nx*c,y:a.y+2*dy/3+ny*c},p3:{x:b.x,y:b.y}};
+}
+function centerline(edge,count=56){
+  const curve=cubicFor(edge);if(!curve)return[];
+  const {p0,p1,p2,p3}=curve,pts=[];
+  for(let i=0;i<=count;i++){const t=i/count,u=1-t;pts.push({x:u*u*u*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t*t*t*p3.x,y:u*u*u*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t*t*t*p3.y});}
+  return pts;
+}
+function curveOffset(edge){
+  if(!edge.controls)return Number(edge.curve)||0;
+  const a=nodeById(edge.from),b=nodeById(edge.to),mid=centerline(edge,40)[20];if(!a||!b||!mid)return Number(edge.curve)||0;
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+  return Math.round(((mid.x-(a.x+b.x)/2)*nx+(mid.y-(a.y+b.y)/2)*ny)/.75);
+}
+function tangentAtEnd(edge,nodeId){
+  const pts=centerline(edge,40);if(pts.length<2)return{x:1,y:0};
+  let v;
+  if(edge.from===nodeId)v={x:pts[1].x-pts[0].x,y:pts[1].y-pts[0].y};
+  else v={x:pts[pts.length-2].x-pts[pts.length-1].x,y:pts[pts.length-2].y-pts[pts.length-1].y};
+  const len=Math.hypot(v.x,v.y)||1;return{x:v.x/len,y:v.y/len};
+}
+function offsetPolyline(points,offset){
+  if(points.length<2)return points.map(p=>({...p}));
+  return points.map((p,i)=>{
+    const prev=points[Math.max(0,i-1)],next=points[Math.min(points.length-1,i+1)];
+    let dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;
+    const n1={x:-dy/len,y:dx/len};
+    const before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)];
+    const t1={x:p.x-before.x,y:p.y-before.y},t2={x:after.x-p.x,y:after.y-p.y};
+    const l1=Math.hypot(t1.x,t1.y)||1,l2=Math.hypot(t2.x,t2.y)||1;
+    const a={x:-t1.y/l1,y:t1.x/l1},b={x:-t2.y/l2,y:t2.x/l2};
+    let mx=a.x+b.x,my=a.y+b.y,ml=Math.hypot(mx,my);
+    if(ml<1e-5)return{x:p.x+n1.x*offset,y:p.y+n1.y*offset};
+    mx/=ml;my/=ml;const denom=mx*b.x+my*b.y;
+    let amount=Math.abs(denom)<.28?offset*3:offset/denom;
+    amount=clamp(amount,-Math.abs(offset)*3.2,Math.abs(offset)*3.2);
+    return{x:p.x+mx*amount,y:p.y+my*amount};
+  });
+}
+function fmt(n,d=1){return Number(n).toFixed(d);}
+function pathD(points,close=false){if(!points.length)return'';return'M'+points.map(p=>`${fmt(p.x,2)},${fmt(p.y,2)}`).join(' L')+(close?' Z':'');}
+function ribbon(points,a,b){return pathD(offsetPolyline(points,a).concat(offsetPolyline(points,b).reverse()),true);}
+function trimPoints(points,startTrim,endTrim){
+  if(points.length<2)return points;
+  const lens=[0];for(let i=1;i<points.length;i++)lens.push(lens[i-1]+Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y));
+  const total=lens[lens.length-1],s=clamp(startTrim,0,total*.42),e=clamp(total-endTrim,s+1,total);
+  const at=d=>{let i=1;while(i<lens.length-1&&lens[i]<d)i++;const span=lens[i]-lens[i-1]||1,t=(d-lens[i-1])/span;return{x:points[i-1].x+(points[i].x-points[i-1].x)*t,y:points[i-1].y+(points[i].y-points[i-1].y)*t};};
+  const out=[at(s)];for(let i=1;i<points.length-1;i++)if(lens[i]>s&&lens[i]<e)out.push(points[i]);out.push(at(e));return out;
+}
+function convexHull(points){
+  if(points.length<4)return points;
+  const pts=[...points].sort((a,b)=>a.x-b.x||a.y-b.y),cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x),lo=[],up=[];
+  for(const p of pts){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  lo.pop();up.pop();return lo.concat(up);
+}
+function junctionHull(node,outer=false){
+  const edges=incident(node.id);if(edges.length<2)return[];
+  const pts=[];
+  for(const edge of edges){
+    const t=tangentAtEnd(edge,node.id),n={x:-t.y,y:t.x};
+    const h=outer?halfWidth(edge)+10.1:halfWidth(edge);
+    const d=Math.max(8,h*.64);
+    pts.push({x:node.x+t.x*d+n.x*h,y:node.y+t.y*d+n.y*h},{x:node.x+t.x*d-n.x*h,y:node.y+t.y*d-n.y*h});
+  }
+  return convexHull(pts);
+}
+function fmtId(id){return String(id||'').toUpperCase();}
+function componentCount(){
+  const ids=new Set(project.nodes.map(n=>n.id)),seen=new Set();let count=0;
+  for(const id of ids){if(seen.has(id))continue;count++;const stack=[id];seen.add(id);while(stack.length){const n=stack.pop();for(const e of incident(n)){const other=e.from===n?e.to:e.from;if(ids.has(other)&&!seen.has(other)){seen.add(other);stack.push(other);}}}}
+  return count;
+}
+function audit(){
+  const isolated=project.nodes.filter(n=>degree(n.id)===0).length;
+  const invalid=project.edges.filter(e=>!nodeById(e.from)||!nodeById(e.to)||e.from===e.to).length;
+  const duplicate=[];const seen=new Set();
+  for(const e of project.edges){const k=[e.from,e.to].sort().join('|');if(seen.has(k))duplicate.push(e.id);seen.add(k);}
+  const comps=componentCount(),ok=!isolated&&!invalid&&!duplicate.length&&comps<=1&&project.edges.length>0;
+  return{ok,isolated,invalid,duplicates:duplicate.length,components:comps,junctions:project.nodes.filter(n=>degree(n.id)>=3).length,bridges:project.edges.filter(e=>e.bridge).length};
+}
+function saveProject(show=true){
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(project));$('#saveLabel').textContent=show?'Saved locally':'Local project';$('#saveState').classList.remove('saving');}
+  catch(_){$('#saveLabel').textContent='Browser storage unavailable';}
+}
+function queueSave(){
+  $('#saveState').classList.add('saving');$('#saveLabel').textContent='Saving…';clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveProject(true),300);
+}
+function pushUndo(snapshot=clone(project)){
+  undoStack.push(snapshot);if(undoStack.length>50)undoStack.shift();redoStack.length=0;updateHistoryButtons();
+}
+function commitEdit(mutator,options={}){
+  pushUndo();mutator();
+  if(options.clearSelection){view.selectedEdge=null;view.selectedNode=null;}
+  if(options.fit)fitCamera();
+  renderAll();queueSave();
+}
+function undo(){if(!undoStack.length)return;redoStack.push(clone(project));project=undoStack.pop();view.pendingStart=null;view.selectedEdge=null;view.selectedNode=null;renderAll();queueSave();updateHistoryButtons();toast('Undo complete');}
+function redo(){if(!redoStack.length)return;undoStack.push(clone(project));project=redoStack.pop();view.pendingStart=null;view.selectedEdge=null;view.selectedNode=null;renderAll();queueSave();updateHistoryButtons();}
+function updateHistoryButtons(){$('#undoBtn').disabled=!undoStack.length;$('#redoBtn').disabled=!redoStack.length;}
+function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100);}
+function showHint(html){const el=$('#toolHint');el.innerHTML=html;el.classList.add('show');clearTimeout(hintTimer);hintTimer=setTimeout(()=>el.classList.remove('show'),4000);}
+function setTool(tool){
+  if(tool!=='road'&&view.pendingStart)view.pendingStart=null;
+  view.tool=tool;$$('.tool-btn[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));
+  $scene.classList.toggle('road-cursor',tool==='road');$scene.classList.toggle('bridge-cursor',tool==='bridge');$scene.classList.toggle('measure-cursor',tool==='measure');
+  const label={select:'SELECT / MOVE',road:'ROAD DRAW / CONNECT',bridge:'BRIDGE / STRUCTURE',measure:'MEASURE / DISTANCE'}[tool]||'SELECT / MOVE';$('#toolStatus').textContent=label;
+  if(tool==='road')showHint('ROAD DRAW · click a start point, then connect another node · <kbd>Esc</kbd> to finish');
+  else if(tool==='bridge')showHint('BRIDGE TOOL · select a road segment to add a procedural deck and supports');
+  else if(tool==='measure')showHint('MEASURE · choose two points on the plan · <kbd>Esc</kbd> to clear');
+  else $('#toolHint').classList.remove('show');
+  renderNodes();renderHandles();renderInteraction();
+}
+function choosePanel(panel){view.panel=panel;$$('.panel-tab').forEach(b=>b.classList.toggle('active',b.dataset.panel===panel));$('#structurePanel').hidden=panel!=='structure';$('#layersPanel').hidden=panel!=='layers';}
+function alignmentLength(edge,count=48){
+  const pts=centerline(edge,count);let length=0;
+  for(let i=1;i<pts.length;i++)length+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+  return length;
+}
+function geometryStats(){
+  let length=0,area=0;
+  for(const e of project.edges){const metres=alignmentLength(e);length+=metres;area+=totalWidth(e)*metres;}
+  return{length,area};
+}
+function fmtMeters(v){return `${Math.round(v).toLocaleString()} m`;}
+function renderStatus(){
+  const a=audit(),nodeCount=project.nodes.length,edgeCount=project.edges.length;
+  $('#projectName').textContent=project.projectName;
+  $('#workspaceCount').textContent=`${String(edgeCount).padStart(2,'0')} LINKS`;
+  $('#roadCount').textContent=String(edgeCount).padStart(2,'0');
+  $('#junctionCount').textContent=String(a.junctions).padStart(2,'0');
+  $('#topologyJunctions').textContent=`${String(a.junctions).padStart(2,'0')} JCT`;
+  $('#topologyLed').classList.toggle('warn',!a.ok);$('#statusLed').classList.toggle('warn',!a.ok);
+  $('#topologyTitle').textContent=a.ok?'Topology clean':'Review connections';
+  $('#statusText').textContent=a.ok?'Topology ready':'Topology needs review';
+  const words=[];if(a.isolated)words.push(`${a.isolated} isolated node${a.isolated===1?'':'s'}`);if(a.components>1)words.push(`${a.components} disconnected groups`);if(a.duplicates)words.push(`${a.duplicates} duplicate link${a.duplicates===1?'':'s'}`);if(a.invalid)words.push(`${a.invalid} invalid links`);
+  $('#topologyMessage').textContent=a.ok?'All road links resolve to a single connected graph.':'Found '+words.join(' · ')+'.';
+  $('#statusNodes').textContent=`${nodeCount} nodes · ${a.junctions} junctions`;
+  $('#statusEdges').textContent=`${edgeCount} segments · ${a.bridges} bridge${a.bridges===1?'':'s'}`;
+  $('#statusConnections').textContent=`${a.components} connected component${a.components===1?'':'s'}`;
+  const stats=$('#layerStats');if(stats)stats.innerHTML=`<div class="stat-box"><span>Nodes</span><strong>${nodeCount}</strong><small>shared endpoints</small></div><div class="stat-box"><span>Links</span><strong>${edgeCount}</strong><small>road segments</small></div><div class="stat-box"><span>Network</span><strong>${a.components===1?'1 / 1':'Review'}</strong><small>connected groups</small></div><div class="stat-box"><span>Bridges</span><strong>${a.bridges}</strong><small>procedural structures</small></div>`;
+}
+function renderTree(){
+  const roads=$('#roadTree');roads.innerHTML=project.edges.map(e=>`<div class="tree-row ${view.selectedEdge===e.id?'selected':''}" data-tree-edge="${esc(e.id)}" tabindex="0"><span class="tree-icon"><svg viewBox="0 0 24 24"><path d="M8 3 5 21m11-18 3 18M12 4v3m0 3v3m0 3v3"/></svg></span><span class="tree-label">${esc(e.name)}</span>${e.bridge?'<span class="tree-badge">BR</span>':''}<code class="tree-id">${esc(e.id)}</code></div>`).join('')||'<div class="network-empty">No road segments yet. Choose Road and click two points to connect.</div>';
+  const junctions=project.nodes.filter(n=>degree(n.id)>=3);$('#junctionTree').innerHTML=junctions.map(n=>`<div class="tree-row ${view.selectedNode===n.id?'selected':''}" data-tree-node="${esc(n.id)}" tabindex="0"><span class="tree-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5m0 10v5M2 12h5m10 0h5"/></svg></span><span class="tree-label">${esc(n.name||'Junction')}</span><code class="tree-id">${esc(n.id)}</code></div>`).join('')||'<div class="network-empty">Junctions appear when three or more road links share a node.</div>';
+}
+function backgroundMarkup(){
+  const blocks=[
+    [60,55,138,70],[90,91,68,21],[65,422,142,69],[92,493,70,24],[333,66,135,52],[337,555,126,49],
+    [817,55,118,53],[860,84,64,22],[857,425,88,56],[875,483,62,23],[712,69,36,62],[711,529,44,51]
+  ];
+  const parks=[[340,188,115,69],[342,411,117,93],[830,198,99,68],[830,355,99,52],[90,191,99,70]];
+  const rects=blocks.map(([x,y,w,h],i)=>`<g opacity="${i%3===0?'.53':'.36'}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#3b4441" stroke="#65706a" stroke-opacity=".4" stroke-width="1"/><path d="M${x+7} ${y+12}h${Math.max(w-17,15)}M${x+7} ${y+20}h${Math.max(w-25,12)}" stroke="#818a80" stroke-opacity=".14" stroke-width="1"/><circle cx="${x+w-10}" cy="${y+h-10}" r="2" fill="#99a38f" fill-opacity=".28"/></g>`).join('');
+  const parkRects=parks.map(([x,y,w,h])=>`<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#35403b" fill-opacity=".55" stroke="#647267" stroke-opacity=".22"/><path d="M${x+8} ${y+h*.36}q${w*.28} -${h*.2} ${w*.56} 0t${w*.35} 0M${x+8} ${y+h*.68}q${w*.3} -${h*.16} ${w*.6} 0" fill="none" stroke="#8a9a83" stroke-opacity=".18" stroke-width="1"/><circle cx="${x+w*.25}" cy="${y+h*.52}" r="3" fill="#80917c" fill-opacity=".33"/><circle cx="${x+w*.7}" cy="${y+h*.33}" r="2.5" fill="#80917c" fill-opacity=".3"/></g>`).join('');
+  return `<g>${rects}${parkRects}<path d="M41 280h34M919 280h38M222 63v28M226 533v61M486 45v30M484 592v30" stroke="#b0b9ae" stroke-opacity=".24" stroke-width="1" stroke-dasharray="3 4"/><text x="82" y="268" class="map-label">NORTH QUAY</text><text x="835" y="268" class="map-label">RIVERSIDE DISTRICT</text><text x="70" y="407" class="map-label">WEST BANK</text><text x="822" y="403" class="map-label">EAST BANK</text></g>`;
+}
+function renderScene(){
+  $('#terrainLayer').innerHTML=backgroundMarkup();
+  $('#waterLayer').innerHTML=`<path d="M636 -30 C590 67 661 129 621 216 C581 305 654 367 611 459 C580 526 632 603 590 700" fill="none" stroke="#223331" stroke-width="110" opacity=".48"/><path d="M636 -30 C590 67 661 129 621 216 C581 305 654 367 611 459 C580 526 632 603 590 700" fill="none" stroke="#385451" stroke-width="90" opacity=".92"/><path d="M636 -30 C590 67 661 129 621 216 C581 305 654 367 611 459 C580 526 632 603 590 700" fill="none" stroke="#5e8278" stroke-width="1.5" stroke-dasharray="5 9" opacity=".4"/><text x="650" y="508" class="map-label" transform="rotate(-70 650 508)">MILL CREEK</text>`;
+  const sidewalk=[],junctionWalk=[],curbBands=[],roads=[],junctionRoads=[],curbLines=[],markings=[],bridges=[],labels=[];
+  for(const e of project.edges){
+    const pts=centerline(e);if(pts.length<2)continue;const h=halfWidth(e),c=2.1,w=8;
+    if(view.layers.pavement){
+      sidewalk.push(`<g data-edge="${esc(e.id)}"><path class="sidewalk-surface" d="${ribbon(pts,h+c,h+c+w)}"/><path class="sidewalk-surface" d="${ribbon(pts,-h-c,-h-c-w)}"/></g>`);
+    }
+    if(view.layers.curbs){
+      curbBands.push(`<g data-edge="${esc(e.id)}"><path class="curb-band" d="${ribbon(pts,h,h+c)}"/><path class="curb-band" d="${ribbon(pts,-h,-h-c)}"/></g>`);
+    }
+    if(view.layers.surface){
+      roads.push(`<g data-edge="${esc(e.id)}"><path class="road-hit" d="${pathD(pts)}" data-edge="${esc(e.id)}"/><path class="road-body ${view.selectedEdge===e.id?'selected':''} ${e.bridge?'bridge-body':''}" d="${ribbon(pts,h,-h)}" data-edge="${esc(e.id)}"/></g>`);
+    } else {
+      roads.push(`<g data-edge="${esc(e.id)}"><path class="road-hit" d="${pathD(pts)}" data-edge="${esc(e.id)}"/></g>`);
+    }
+    if(view.layers.curbs){
+      const fromNode=nodeById(e.from),toNode=nodeById(e.to);
+      const start=degree(e.from)>=3?Math.max(18,h*1.65):0,end=degree(e.to)>=3?Math.max(18,h*1.65):0;
+      const trimmed=trimPoints(pts,start,end);
+      curbLines.push(`<path d="${pathD(offsetPolyline(trimmed,h+c*.5))}" fill="none" stroke="#c4b58d" stroke-width="1.55" opacity=".82"/><path d="${pathD(offsetPolyline(trimmed,-h-c*.5))}" fill="none" stroke="#c4b58d" stroke-width="1.55" opacity=".82"/>`);
+      void fromNode;void toNode;
+    }
+    if(view.layers.markings&&view.layers.surface){
+      const s=degree(e.from)>=3?Math.max(28,h*2.6):8,t=degree(e.to)>=3?Math.max(28,h*2.6):8,cut=trimPoints(pts,s,t);
+      if(cut.length>1){
+        const offsets=e.lanes>=4?[-3.35,3.35]:[0];
+        if(e.lanes===2)markings.push(`<path class="lane-mark" d="${pathD(cut)}"/>`);
+        else{
+          markings.push(`<path d="${pathD(offsetPolyline(cut,-1.2))}" fill="none" stroke="#e0bd73" stroke-width="1.15" stroke-linecap="round" opacity=".85"/><path d="${pathD(offsetPolyline(cut,1.2))}" fill="none" stroke="#e0bd73" stroke-width="1.15" stroke-linecap="round" opacity=".85"/>`);
+          for(const o of offsets)markings.push(`<path class="lane-mark" d="${pathD(offsetPolyline(cut,o))}"/>`);
+        }
+        markings.push(`<path class="edge-mark" d="${pathD(offsetPolyline(cut,h-1.35))}"/><path class="edge-mark" d="${pathD(offsetPolyline(cut,-h+1.35))}"/>`);
+      }
+    }
+    if(e.bridge){
+      bridges.push(`<g class="bridge-plan" data-edge="${esc(e.id)}"><path class="bridge-deck" d="${ribbon(pts,h*.86,-h*.86)}"/>${e.bridge.guardrails?`<path class="bridge-rail" d="${pathD(offsetPolyline(pts,h*.78))}"/><path class="bridge-rail" d="${pathD(offsetPolyline(pts,-h*.78))}"/>`:''}`);
+      if(view.layers.supports&&e.bridge.support!=='No supports'&&e.bridge.supports>0){
+        for(let i=1;i<=e.bridge.supports;i++){
+          const pos=(pts.length-1)*i/(e.bridge.supports+1),idx=Math.floor(pos),t=pos-idx,p={x:pts[idx].x+(pts[Math.min(idx+1,pts.length-1)].x-pts[idx].x)*t,y:pts[idx].y+(pts[Math.min(idx+1,pts.length-1)].y-pts[idx].y)*t};
+          const tangent=pts[Math.min(idx+1,pts.length-1)],prev=pts[Math.max(0,idx-1)],angle=Math.atan2(tangent.y-prev.y,tangent.x-prev.x)*180/Math.PI;
+          const type=e.bridge.support;
+          if(type==='Twin columns'){
+            const nx=-(tangent.y-prev.y),ny=tangent.x-prev.x,nl=Math.hypot(nx,ny)||1;
+            bridges.push(`<rect class="bridge-support" x="${fmt(p.x+nx/nl*h*.34-3,2)}" y="${fmt(p.y+ny/nl*h*.34-3,2)}" width="6" height="6" rx="1"/><rect class="bridge-support" x="${fmt(p.x-nx/nl*h*.34-3,2)}" y="${fmt(p.y-ny/nl*h*.34-3,2)}" width="6" height="6" rx="1"/>`);
+          }else if(type==='Pile cap'){
+            bridges.push(`<g transform="translate(${fmt(p.x,2)} ${fmt(p.y,2)}) rotate(${fmt(angle,2)})"><rect class="bridge-support" x="-3" y="-9" width="6" height="18" rx="1"/><circle class="bridge-support" cx="0" cy="-6" r="2"/><circle class="bridge-support" cx="0" cy="0" r="2"/><circle class="bridge-support" cx="0" cy="6" r="2"/></g>`);
+          }else if(type==='Hammerhead'){
+            bridges.push(`<g transform="translate(${fmt(p.x,2)} ${fmt(p.y,2)}) rotate(${fmt(angle,2)})"><rect class="bridge-support" x="-5" y="-3" width="10" height="6" rx="1"/><rect class="bridge-support" x="-3" y="-13" width="6" height="26" rx="1"/></g>`);
+          }else{
+            const supportHalf=h*.72;
+            bridges.push(`<g transform="translate(${fmt(p.x,2)} ${fmt(p.y,2)}) rotate(${fmt(angle,2)})"><rect class="bridge-support" x="-4" y="${fmt(-supportHalf,2)}" width="8" height="${fmt(supportHalf*2,2)}" rx="1"/><path d="M-6 ${fmt(-supportHalf,2)}H6M-6 ${fmt(supportHalf,2)}H6" stroke="#d5e5dc" stroke-width="1"/></g>`);
+          }
+        }
+      }
+      bridges.push(`</g>`);
+    }
+    if(e.id==='R03'||view.selectedEdge===e.id){const mid=pts[Math.floor(pts.length/2)];labels.push(`<text class="map-label" x="${fmt(mid.x,1)}" y="${fmt(mid.y- h-12,1)}" text-anchor="middle">${esc(e.bridge?'BRIDGE / '+e.id:e.id+' / '+e.name.toUpperCase())}</text>`);}
+  }
+  if(view.layers.pavement){
+    for(const n of project.nodes){if(degree(n.id)<2)continue;const hull=junctionHull(n,true);if(hull.length>2)junctionWalk.push(`<path class="junction-sidewalk" d="${pathD(hull,true)}"/>`);}
+  }
+  if(view.layers.surface){
+    for(const n of project.nodes){if(degree(n.id)<2)continue;const hull=junctionHull(n,false);if(hull.length>2)junctionRoads.push(`<path class="junction-asphalt" d="${pathD(hull,true)}"/>`);}
+  }
+  if(view.layers.curbs){
+    for(const n of project.nodes){if(degree(n.id)<3)continue;const hull=junctionHull(n,false);if(hull.length>2)curbLines.push(`<path d="${pathD(hull,true)}" fill="none" stroke="#c4b58d" stroke-width="1.6" stroke-linejoin="round" opacity=".82"/>`);}
+  }
+  $('#sidewalkLayer').innerHTML=sidewalk.join('');$('#junctionWalkLayer').innerHTML=junctionWalk.join('');
+  $('#curbBandLayer').innerHTML=curbBands.join('');$('#roadLayer').innerHTML=roads.join('');$('#junctionRoadLayer').innerHTML=junctionRoads.join('');
+  $('#curbLineLayer').innerHTML=curbLines.join('');$('#markingLayer').innerHTML=markings.join('');$('#bridgeLayer').innerHTML=bridges.join('');
+  $('#labelLayer').innerHTML=labels.join('');
+  renderNodes();renderHandles();renderInteraction();
+  $camera.setAttribute('transform',`matrix(${view.camera.z} 0 0 ${view.camera.z} ${view.camera.x} ${view.camera.y})`);
+  $('#fineGrid').style.display=view.grid?'':'none';$('#boldGrid').style.display=view.grid?'':'none';
+}
+function renderNodes(){
+  if(!view.layers.nodes){$('#nodeLayer').innerHTML='';return;}
+  $('#nodeLayer').innerHTML=project.nodes.map(n=>{
+    const d=degree(n.id),junction=d>=3,selected=view.selectedNode===n.id,pending=view.pendingStart===n.id;
+    const label=junction?`<text class="junction-tag" x="${fmt(n.x+10,1)}" y="${fmt(n.y-10,1)}">${esc(n.id)}</text>`:'';
+    return `<g class="node-shell ${junction?'junction':'endpoint'} ${selected?'selected':''} ${pending?'pending':''}" data-node="${esc(n.id)}"><circle class="node-hit" cx="${fmt(n.x,2)}" cy="${fmt(n.y,2)}" r="12"/><circle class="node-outer" cx="${fmt(n.x,2)}" cy="${fmt(n.y,2)}" r="${junction?7:5.4}"/><circle class="node-core" cx="${fmt(n.x,2)}" cy="${fmt(n.y,2)}" r="${junction?2.6:1.9}"/>${label}</g>`;
+  }).join('');
+}
+function renderHandles(){
+  const e=view.selectedEdge&&edgeById(view.selectedEdge);if(!e||view.tool!=='select'){ $('#handleLayer').innerHTML='';return; }
+  const pts=centerline(e,40),p=pts[Math.floor(pts.length/2)],a=nodeById(e.from),b=nodeById(e.to),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  $('#handleLayer').innerHTML=`<line class="curve-stem" x1="${fmt(mid.x,2)}" y1="${fmt(mid.y,2)}" x2="${fmt(p.x,2)}" y2="${fmt(p.y,2)}"/><g data-curve="${esc(e.id)}"><circle cx="${fmt(p.x,2)}" cy="${fmt(p.y,2)}" r="9" fill="transparent"/><circle class="curve-handle" cx="${fmt(p.x,2)}" cy="${fmt(p.y,2)}" r="4.3"/><path d="M${fmt(p.x-2,2)} ${fmt(p.y,2)}h4M${fmt(p.x,2)} ${fmt(p.y-2,2)}v4" stroke="#d9efb3" stroke-width=".8" pointer-events="none"/></g>`;
+  void nx;void ny;
+}
+function renderInteraction(){
+  const parts=[];
+  if(view.pendingStart){const n=nodeById(view.pendingStart);if(n)parts.push(`<path d="M${fmt(n.x,1)},${fmt(n.y,1)} L${fmt(view.cursor.x,1)},${fmt(view.cursor.y,1)}" fill="none" stroke="#d8e9b7" stroke-width="2" stroke-dasharray="6 5" opacity=".8" pointer-events="none"/>`);}
+  if(view.measureStart){const end=view.measureEnd||view.cursor,dist=Math.hypot(end.x-view.measureStart.x,end.y-view.measureStart.y);parts.push(`<path class="measure-line" d="M${fmt(view.measureStart.x,1)},${fmt(view.measureStart.y,1)} L${fmt(end.x,1)},${fmt(end.y,1)}"/><text class="measure-label" x="${fmt((view.measureStart.x+end.x)/2,1)}" y="${fmt((view.measureStart.y+end.y)/2-7,1)}" text-anchor="middle">${Math.round(dist)} m</text>`);}
+  $('#interactionLayer').innerHTML=parts.join('');
+}
+function renderBridgePreview(bridge){
+  const x1=27,x2=273,ground=145,deckY=clamp(94-(bridge.height-4)*1.65,48,94),deckBottom=deckY+8,span=x2-x1,beamDepth=clamp(7+bridge.span*.045,9,19);
+  let parts=[];
+  parts.push(`<path class="preview-water" d="M10 130q18-6 35 0t35 0t35 0t35 0t35 0t35 0t35 0t35 0"/>`);
+  parts.push(`<path class="preview-ground" d="M10 ${ground}H290"/>`);
+  parts.push(`<path class="preview-deck" d="M${x1} ${deckY}H${x2}v7H${x1}z"/>`);
+  if(bridge.deck==='Box girder'){
+    parts.push(`<path class="preview-beam" d="M${x1+12} ${deckBottom}H${x2-12}l-17 ${beamDepth}H${x1+29}z"/>`);
+    parts.push(`<path d="M${x1+32} ${deckBottom+4}H${x2-32}" stroke="#a2afa4" stroke-opacity=".55"/>`);
+  }else if(bridge.deck==='I-girder'){
+    for(const x of [x1+42,x1+104,x1+166])parts.push(`<path class="preview-steel" d="M${x} ${deckBottom}v${beamDepth+4}m-7 0h14m-11-3h8"/>`);
+  }else if(bridge.deck==='Through truss'){
+    const top=deckY-clamp(18+bridge.span*.035,20,32);parts.push(`<path class="preview-steel" d="M${x1+4} ${deckBottom}V${top}H${x2-4}V${deckBottom}M${x1+4} ${top}l28 ${deckBottom-top} 28 ${top-deckBottom} 28 ${deckBottom-top} 28 ${top-deckBottom} 28 ${deckBottom-top} 28 ${top-deckBottom} 28 ${deckBottom-top} 28 ${top-deckBottom} 25"/>`);
+    for(let i=1;i<8;i++){const x=x1+i*span/8;parts.push(`<path class="preview-steel" d="M${x} ${top}V${deckBottom}"/>`);}
+  }else if(bridge.deck==='Open arch'){
+    const springY=ground-10,crownY=springY-clamp(bridge.span*.11,18,34),midX=(x1+x2)/2;
+    parts.push(`<path class="preview-steel" stroke-width="4" d="M${x1+6} ${springY}Q${midX} ${crownY} ${x2-6} ${springY}"/>`);
+    for(let i=1;i<8;i++){const x=x1+i*span/8,t=(x-x1)/span,u=1-t,y=u*u*springY+2*u*t*crownY+t*t*springY;parts.push(`<path class="preview-cable" d="M${x} ${deckBottom}L${x} ${fmt(y,1)}"/>`);}
+  }else if(bridge.deck==='Cable-stayed'){
+    const p1=x1+span*.28,p2=x1+span*.72,top=deckY-clamp(20+bridge.span*.1,28,45);
+    parts.push(`<path class="preview-steel" stroke-width="3" d="M${p1} ${deckY+8}V${top}m-5 0h10M${p2} ${deckY+8}V${top}m-5 0h10"/>`);
+    for(let i=1;i<=5;i++){const t=i/6;parts.push(`<path class="preview-cable" d="M${p1} ${top}L${x1+span*.14+t*span*.15} ${deckY+7}M${p2} ${top}L${x1+span*.58+t*span*.15} ${deckY+7}"/>`);}
+  }
+  const supports=bridge.supports;
+  if(bridge.support!=='No supports'&&supports>0){
+    for(let i=1;i<=supports;i++){
+      const x=x1+span*i/(supports+1),height=ground-deckBottom;
+      if(bridge.support==='Portal bent')parts.push(`<path class="preview-support" d="M${x-15} ${deckBottom}v${height}h5v-${height-7}h20v${height-7}h5v-${height}z"/>`);
+      else if(bridge.support==='Twin columns')parts.push(`<rect class="preview-support" x="${x-10}" y="${deckBottom}" width="6" height="${height}" rx="1"/><rect class="preview-support" x="${x+4}" y="${deckBottom}" width="6" height="${height}" rx="1"/>`);
+      else if(bridge.support==='Hammerhead')parts.push(`<path class="preview-support" d="M${x-13} ${deckBottom}h26v5h-10v${height-5}h-6V${deckBottom+5}h-10z"/>`);
+      else parts.push(`<rect class="preview-support" x="${x-15}" y="${deckBottom}" width="30" height="5" rx="1"/><path class="preview-steel" d="M${x-10} ${deckBottom+5}v${height-5}m10 -${height-5}v${height-5}m10 -${height-5}v${height-5}"/>`);
+    }
+  }
+  if(bridge.guardrails)parts.push(`<path d="M${x1} ${deckY-2}H${x2}M${x1} ${deckY-2}v-7m${span} 0v7" stroke="#91a99d" stroke-width="1" fill="none"/>`);
+  const spacing=bridge.supports>0?`${Math.round(bridge.span/(bridge.supports+1))} m support pitch`:'Abutments only';
+  parts.push(`<text x="14" y="13">${esc(bridge.deck.toUpperCase())}</text><text x="286" y="13" text-anchor="end">${Math.round(bridge.span)} m span</text><text x="14" y="26">${esc(bridge.support.toUpperCase())} · ${esc(spacing.toUpperCase())}</text>`);
+  return `<svg class="bridge-preview" id="bridgePreview" viewBox="0 0 300 160" aria-label="Procedural bridge side elevation">${parts.join('')}</svg>`;
+}
+function renderInspector(){
+  const root=$('#inspectorContent');const edge=view.selectedEdge&&edgeById(view.selectedEdge),node=view.selectedNode&&nodeById(view.selectedNode);
+  if(edge){
+    const h=halfWidth(edge),roadWidth=Math.round(h*2),bridge=edge.bridge,curveValue=curveOffset(edge);
+    root.innerHTML=`<div class="inspect-kicker">ROAD SEGMENT / ${esc(edge.id)}</div>
+      <div class="inspect-title-row"><div class="inspect-title"><h3>${esc(edge.name)}</h3><p>${esc(edge.roadClass)} road · ${Math.round(alignmentLength(edge))} m alignment</p></div><span class="pill ${bridge?'bridge':''}">${bridge?'BRIDGE':'ROAD'}</span></div>
+      <section class="inspect-card"><div class="card-heading"><strong>Segment properties</strong><span>${esc(edge.id)}</span></div>
+        <label class="field-label" for="edgeName">Alignment name</label><input class="field name-field" id="edgeName" value="${esc(edge.name)}" maxlength="40" />
+        <div class="form-row"><label for="roadClass">Road class</label><select class="select-field" id="roadClass">${['Local','Collector','Primary','Arterial'].map(v=>`<option ${edge.roadClass===v?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="form-row"><label for="laneCount">Carriageway</label><select class="select-field" id="laneCount">${[2,4,6].map(v=>`<option value="${v}" ${edge.lanes===v?'selected':''}>${v} lanes</option>`).join('')}</select></div>
+        <div class="stat-grid"><div class="stat-box"><span>Road width</span><strong>${roadWidth} m</strong><small>kerb to kerb</small></div><div class="stat-box"><span>Sidewalk</span><strong>8 m</strong><small>each side · offset</small></div></div>
+        <div class="range-block"><div class="range-head"><label for="curveRange">Curve offset</label><output id="curveOut">${curveValue} m</output></div><input id="curveRange" type="range" min="-70" max="70" step="1" value="${curveValue}"/><div class="range-limits"><span>−70 m</span><span>0 / straight</span><span>+70 m</span></div></div>
+        <div class="cross-section" aria-label="Road cross section"><span class="xwalk"></span><span class="xcurb"></span><span class="xroad"></span><span class="xroad"></span><span class="xcurb"></span><span class="xwalk"></span></div><div class="cross-labels"><span>walk</span><span>curb</span><span>${edge.lanes} lane${edge.lanes===1?'':'s'}</span><span>curb</span><span>walk</span></div>
+      </section>
+      ${bridge?`<section class="inspect-card bridge-card"><div class="bridge-banner"><span class="bridge-icon"><svg viewBox="0 0 24 24"><path d="M3 19h18M5 19V9m14 10V9M5 9c3-5 11-5 14 0M9 19v-5m6 5v-5"/></svg></span><div><strong>Procedural bridge</strong><small>DECK · SOFFIT · SUPPORT SYSTEM</small></div><label class="switch" title="Enable bridge"><input id="bridgeEnabled" type="checkbox" checked/><span></span></label></div>
+        <div class="preview-caption"><span>Elevation / parametric preview</span><span>${Math.round(bridge.height)} m rise</span></div>${renderBridgePreview(bridge)}
+        <div class="bridge-controls">
+          <div class="form-row"><label for="deckType">Deck form</label><select class="select-field" id="deckType">${deckTypes.map(v=>`<option ${bridge.deck===v?'selected':''}>${v}</option>`).join('')}</select></div>
+          <div class="form-row"><label for="supportType">Substructure</label><select class="select-field" id="supportType">${supportTypes.map(v=>`<option ${bridge.support===v?'selected':''}>${v}</option>`).join('')}</select></div>
+          <div class="range-block"><div class="range-head"><label for="bridgeHeight">Deck clearance</label><output id="heightOut">${Math.round(bridge.height)} m</output></div><input id="bridgeHeight" type="range" min="4" max="32" step="1" value="${Math.round(bridge.height)}"/><div class="range-limits"><span>4 m</span><span>32 m</span></div></div>
+          <div class="range-block"><div class="range-head"><label for="bridgeSpan">Design span</label><output id="spanOut">${Math.round(bridge.span)} m</output></div><input id="bridgeSpan" type="range" min="45" max="260" step="5" value="${Math.round(bridge.span)}"/><div class="range-limits"><span>45 m</span><span>260 m</span></div></div>
+          <div class="range-block"><div class="range-head"><label for="supportCount">Support bents</label><output id="supportOut">${Math.round(bridge.supports)}</output></div><input id="supportCount" type="range" min="0" max="6" step="1" value="${Math.round(bridge.supports)}"/><div class="range-limits"><span>0</span><span>6</span></div></div>
+          <div class="switch-row"><span>Guardrails</span><label class="switch"><input id="guardrails" type="checkbox" ${bridge.guardrails?'checked':''}/><span></span></label></div>
+        </div>
+      </section>`:`<section class="add-bridge-card"><div class="card-heading"><strong>Bridge system</strong><span>OPTIONAL</span></div><p>Convert this alignment into an elevated structure. Deck section, underside and support bents stay independently adjustable.</p><button class="btn" id="addBridge"><svg viewBox="0 0 24 24"><path d="M3 18h18M5 18V8m14 10V8M5 8c3-5 11-5 14 0M12 18v-5"/></svg>Add procedural bridge</button></section>`}
+      <div class="delete-row"><button class="delete-btn" id="deleteSelection">Delete segment</button></div>`;
+    bindInspectorEdge(edge);
+    return;
+  }
+  if(node){
+    const links=incident(node.id),d=links.length,isJunction=d>=3;
+    root.innerHTML=`<div class="inspect-kicker">${isJunction?'JUNCTION NODE':'NETWORK NODE'} / ${esc(node.id)}</div><div class="inspect-title-row"><div class="inspect-title"><h3>${esc(node.name||node.id)}</h3><p>${isJunction?'Shared intersection topology':'Road endpoint'} · ${d} connected links</p></div><span class="pill ${isJunction?'good':''}">${isJunction?'JUNCTION':'NODE'}</span></div>
+      <section class="inspect-card"><div class="card-heading"><strong>Node properties</strong><span>${d} LINKS</span></div><label class="field-label" for="nodeName">Node label</label><input class="field name-field" id="nodeName" value="${esc(node.name||'')}" maxlength="36"/><div class="form-row"><label for="nodeX">Plan coordinate X</label><input class="field" id="nodeX" type="number" step="1" value="${fmt(node.x,0)}"/></div><div class="form-row"><label for="nodeY">Plan coordinate Y</label><input class="field" id="nodeY" type="number" step="1" value="${fmt(node.y,0)}"/></div></section>
+      <section class="inspect-card"><div class="card-heading"><strong>Connected segments</strong><span>${d} LINKS</span></div>${links.map(e=>`<div class="neighbor-row"><span>${esc(e.name)}</span><code>${esc(e.id)} · ${e.lanes}L</code></div>`).join('')||'<p class="panel-footnote">No connected roads.</p>'}</section>
+      <div class="delete-row"><button class="delete-btn" id="deleteSelection">Delete node + connected links</button></div>`;
+    bindInspectorNode(node);
+    return;
+  }
+  const stats=geometryStats(),a=audit();
+  root.innerHTML=`<div class="empty-inspector"><span class="empty-art"><svg viewBox="0 0 24 24"><path d="M3 17 8 7l4 8 4-11 5 13"/><path d="M2 19h20"/><circle cx="8" cy="7" r="1.2"/><circle cx="16" cy="4" r="1.2"/></svg></span><h3>Network overview</h3><p>Select a road segment to tune its cross-section and curve, or pick a junction to inspect its shared connections.</p><div class="shortcut">${project.nodes.length} NODES &nbsp;·&nbsp; ${project.edges.length} LINKS</div></div>
+    <section class="inspect-card"><div class="card-heading"><strong>Project metrics</strong><span>LIVE</span></div><div class="stat-grid"><div class="stat-box"><span>Network length</span><strong>${fmtMeters(stats.length)}</strong><small>sampled alignments</small></div><div class="stat-box"><span>Junctions</span><strong>${a.junctions}</strong><small>3+ links per node</small></div><div class="stat-box"><span>Bridges</span><strong>${a.bridges}</strong><small>procedural structures</small></div><div class="stat-box"><span>Connected</span><strong>${a.components===1?'Yes':'Review'}</strong><small>${a.components} component${a.components===1?'':'s'}</small></div></div></section>
+    <section class="inspect-card"><div class="card-heading"><strong>Topology workflow</strong><span>GRAPH → SURFACE</span></div><p style="font-size:9px;color:#8a958d;line-height:1.6;margin:0">Road ends attach to explicit node IDs. Junction patches are generated once from each shared node; curved pavement and curb ribbons use sampled parallel offsets along the alignment.</p></section>`;
+}
+function bindInspectorEdge(edge){
+  const name=$('#edgeName');name.addEventListener('change',()=>{const value=name.value.trim()||edge.id;if(value!==edge.name){commitEdit(()=>edge.name=value);}});
+  $('#roadClass').addEventListener('change',e=>commitEdit(()=>edge.roadClass=e.target.value));
+  $('#laneCount').addEventListener('change',e=>commitEdit(()=>edge.lanes=+e.target.value));
+  const range=$('#curveRange');let before=null;range.addEventListener('pointerdown',()=>before=clone(project));range.addEventListener('keydown',()=>{if(!before)before=clone(project);});
+  range.addEventListener('input',()=>{edge.controls=null;edge.curve=+range.value;$('#curveOut').textContent=`${Math.round(edge.curve)} m`;renderScene();});
+  range.addEventListener('change',()=>{if(before){pushUndo(before);before=null;queueSave();renderTree();renderStatus();}});
+  $('#addBridge')?.addEventListener('click',()=>commitEdit(()=>edge.bridge=defaultBridge()));
+  $('#bridgeEnabled')?.addEventListener('change',e=>{if(!e.target.checked)commitEdit(()=>edge.bridge=null);});
+  $('#deckType')?.addEventListener('change',e=>commitEdit(()=>edge.bridge.deck=e.target.value));
+  $('#supportType')?.addEventListener('change',e=>commitEdit(()=>edge.bridge.support=e.target.value));
+  $('#guardrails')?.addEventListener('change',e=>commitEdit(()=>edge.bridge.guardrails=e.target.checked));
+  bindBridgeRange($('#bridgeHeight'),edge,'height','#heightOut',' m');
+  bindBridgeRange($('#bridgeSpan'),edge,'span','#spanOut',' m');
+  bindBridgeRange($('#supportCount'),edge,'supports','#supportOut','');
+  $('#deleteSelection')?.addEventListener('click',deleteSelected);
+}
+function bindBridgeRange(input,edge,key,outId,suffix){
+  if(!input)return;let before=null;
+  input.addEventListener('pointerdown',()=>before=clone(project));input.addEventListener('keydown',()=>{if(!before)before=clone(project);});
+  input.addEventListener('input',()=>{edge.bridge[key]=+input.value;$(outId).textContent=`${Math.round(edge.bridge[key])}${suffix}`;const old=$('#bridgePreview');if(old)old.outerHTML=renderBridgePreview(edge.bridge);renderScene();});
+  input.addEventListener('change',()=>{if(before){pushUndo(before);before=null;queueSave();renderStatus();}});
+}
+function bindInspectorNode(node){
+  $('#nodeName').addEventListener('change',e=>{const value=e.target.value.trim()||node.id;if(value!==node.name)commitEdit(()=>node.name=value);});
+  for(const [id,key] of [['nodeX','x'],['nodeY','y']])$('#'+id).addEventListener('change',e=>{const value=Number(e.target.value);if(Number.isFinite(value)&&value!==node[key])commitEdit(()=>node[key]=value);});
+  $('#deleteSelection')?.addEventListener('click',deleteSelected);
+}
+function renderAll(){renderScene();renderTree();renderStatus();renderInspector();updateHistoryButtons();updateCameraUI();}
+function updateCameraUI(){$('#zoomStatus').textContent=`${Math.round(view.camera.z*100)}%`;$('#scaleText').textContent=`${Math.round(100/view.camera.z)} m`;}
+function renderSelection(){renderScene();renderTree();renderInspector();}
+function svgPoint(evt){const p=$scene.createSVGPoint();p.x=evt.clientX;p.y=evt.clientY;return p.matrixTransform($scene.getScreenCTM().inverse());}
+function worldPoint(evt){const p=svgPoint(evt);return{x:(p.x-view.camera.x)/view.camera.z,y:(p.y-view.camera.y)/view.camera.z};}
+function fitCamera(){
+  if(!project.nodes.length){view.camera={x:35,y:35,z:.92};updateCameraUI();return;}
+  const xs=project.nodes.map(n=>n.x),ys=project.nodes.map(n=>n.y),minX=Math.min(...xs)-70,maxX=Math.max(...xs)+70,minY=Math.min(...ys)-65,maxY=Math.max(...ys)+65;
+  const z=Math.min(1.08,930/(maxX-minX),590/(maxY-minY));view.camera.z=clamp(z,.48,1.2);view.camera.x=(1000-(minX+maxX)*view.camera.z)/2;view.camera.y=(660-(minY+maxY)*view.camera.z)/2;updateCameraUI();renderScene();
+}
+function zoomAt(factor,p={x:500,y:330}){
+  const old=view.camera.z,z=clamp(old*factor,.42,2.2),wx=(p.x-view.camera.x)/old,wy=(p.y-view.camera.y)/old;
+  view.camera.z=z;view.camera.x=p.x-wx*z;view.camera.y=p.y-wy*z;$camera.setAttribute('transform',`matrix(${z} 0 0 ${z} ${view.camera.x} ${view.camera.y})`);updateCameraUI();
+}
+function screenPoint(evt){const p=$scene.createSVGPoint();p.x=evt.clientX;p.y=evt.clientY;return p.matrixTransform($scene.getScreenCTM().inverse());}
+function nearestNode(p,threshold=17,except=null){let best=null,dist=threshold;for(const n of project.nodes){if(n.id===except)continue;const d=Math.hypot(n.x-p.x,n.y-p.y);if(d<dist){best=n;dist=d;}}return best;}
+function nextNodeId(){const id=`N${String(project.nextNode++).padStart(2,'0')}`;return id;}
+function nextEdgeId(){const id=`R${String(project.nextEdge++).padStart(2,'0')}`;return id;}
+function createNode(x,y){const node={id:nextNodeId(),x:clamp(x,16,984),y:clamp(y,16,644),name:'Road node',controls:null};project.nodes.push(node);return node;}
+function edgeExists(a,b){return project.edges.find(e=>(e.from===a&&e.to===b)||(e.from===b&&e.to===a));}
+function closestParameter(edge,point){
+  const pts=centerline(edge,120);let best={distance:Infinity,t:.5};
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1],b=pts[i],dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy||1;
+    const u=clamp(((point.x-a.x)*dx+(point.y-a.y)*dy)/den,0,1),x=a.x+dx*u,y=a.y+dy*u,d=Math.hypot(point.x-x,point.y-y);
+    if(d<best.distance)best={distance:d,t:(i-1+u)/(pts.length-1),point:{x,y}};
+  }
+  return best;
+}
+function splitEdgeAt(edgeId,point){
+  const edge=edgeById(edgeId);if(!edge)return null;
+  const nearest=closestParameter(edge,point);
+  if(nearest.t<.035)return{node:nodeById(edge.from),created:false};
+  if(nearest.t>.965)return{node:nodeById(edge.to),created:false};
+  const original=clone(edge),curve=cubicFor(edge),t=nearest.t;
+  const lerp=(a,b)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+  const q0=lerp(curve.p0,curve.p1),q1=lerp(curve.p1,curve.p2),q2=lerp(curve.p2,curve.p3);
+  const r0=lerp(q0,q1),r1=lerp(q1,q2),mid=lerp(r0,r1);
+  const node={id:nextNodeId(),x:mid.x,y:mid.y,name:'New junction'};project.nodes.push(node);
+  const index=project.edges.findIndex(e=>e.id===edge.id),rightId=nextEdgeId();
+  const left={...edge,to:node.id,curve:0,controls:[q0,r0]};
+  const right={...original,id:rightId,from:node.id,to:original.to,name:`${original.name} · 2`,curve:0,controls:[r1,q2]};
+  project.edges[index]=left;project.edges.splice(index+1,0,right);
+  return{node,created:true};
+}
+function connect(a,b){
+  if(a===b){toast('A road needs two different endpoints');return null;}
+  const exists=edgeExists(a,b);if(exists){view.selectedEdge=exists.id;view.selectedNode=null;toast('Those nodes are already connected');renderSelection();return exists;}
+  const id=nextEdgeId();const edge={id,from:a,to:b,name:`New road ${id}`,roadClass:'Collector',lanes:2,curve:0,bridge:null};project.edges.push(edge);view.selectedEdge=id;view.selectedNode=null;return edge;
+}
+function handleRoadClick(evt,targetNode,roadEdgeId){
+  const point=worldPoint(evt);let node=targetNode?nodeById(targetNode.dataset.node):null,before=null,changed=false;
+  if(!node&&roadEdgeId){
+    const edge=edgeById(roadEdgeId),projection=edge&&closestParameter(edge,point);
+    if(edge&&projection&&projection.distance<=Math.max(18,halfWidth(edge)+12)){
+      before=clone(project);const split=splitEdgeAt(edge.id,point);if(split){node=split.node;changed=split.created;}
+    }
+  }
+  if(!node)node=nearestNode(point,17);
+  if(!node){if(!before)before=clone(project);node=createNode(point.x,point.y);changed=true;}
+  if(!view.pendingStart){
+    if(changed){pushUndo(before);queueSave();renderAll();}
+    view.pendingStart=node.id;view.selectedNode=node.id;view.selectedEdge=null;renderSelection();renderInteraction();
+    showHint(`START ${esc(node.id)} · click a destination node or road to branch · <kbd>Esc</kbd> to finish`);return;
+  }
+  if(view.pendingStart===node.id){
+    view.pendingStart=null;renderNodes();renderInteraction();toast('Road path ended');return;
+  }
+  const from=view.pendingStart,existing=!changed&&edgeExists(from,node.id);
+  if(existing){connect(from,node.id);view.pendingStart=node.id;return;}
+  pushUndo(before||clone(project));connect(from,node.id);view.pendingStart=node.id;queueSave();renderAll();
+  showHint(`LINK ADDED · continue from ${esc(node.id)} or press <kbd>Esc</kbd>`);
+}
+function addBridgeToEdge(edge){if(!edge.bridge)commitEdit(()=>edge.bridge=defaultBridge());view.selectedEdge=edge.id;view.selectedNode=null;renderSelection();}
+function mergeNodes(fromId,toId){
+  if(fromId===toId)return;const removedNode=nodeById(fromId),targetNode=nodeById(toId),dx=(targetNode?.x||0)-(removedNode?.x||0),dy=(targetNode?.y||0)-(removedNode?.y||0),remove=[];
+  for(const e of project.edges){
+    if(e.controls){if(e.from===fromId){e.controls[0].x+=dx;e.controls[0].y+=dy;}if(e.to===fromId){e.controls[1].x+=dx;e.controls[1].y+=dy;}}
+    if(e.from===fromId)e.from=toId;if(e.to===fromId)e.to=toId;if(e.from===e.to)remove.push(e.id);
+  }
+  project.edges=project.edges.filter(e=>!remove.includes(e.id));const seen=new Set();project.edges=project.edges.filter(e=>{const key=[e.from,e.to].sort().join('|');if(seen.has(key))return false;seen.add(key);return true;});
+  project.nodes=project.nodes.filter(n=>n.id!==fromId);view.selectedNode=toId;view.selectedEdge=null;
+}
+function deleteSelected(){
+  if(view.selectedEdge){const id=view.selectedEdge;commitEdit(()=>project.edges=project.edges.filter(e=>e.id!==id),{clearSelection:true});toast(`${id} removed`);return;}
+  if(view.selectedNode){const id=view.selectedNode;commitEdit(()=>{project.edges=project.edges.filter(e=>e.from!==id&&e.to!==id);project.nodes=project.nodes.filter(n=>n.id!==id);},{clearSelection:true});toast(`${id} and connected roads removed`);}
+}
+function rootTarget(target,selector){return target.closest?target.closest(selector):null;}
+$scene.addEventListener('pointerdown',evt=>{
+  if(evt.button!==0)return;
+  const nodeHit=rootTarget(evt.target,'[data-node]'),edgeHit=rootTarget(evt.target,'[data-edge]'),surfaceHit=rootTarget(evt.target,'.road-hit,.road-body,.bridge-plan'),curveHit=rootTarget(evt.target,'[data-curve]');
+  if(view.spacePan){view.drag={type:'pan',start:screenPoint(evt),camera:{...view.camera},moved:false};$scene.setPointerCapture(evt.pointerId);$scene.classList.add('dragging');evt.preventDefault();return;}
+  if(view.tool==='road'){evt.preventDefault();handleRoadClick(evt,nodeHit,surfaceHit?.dataset.edge);return;}
+  if(view.tool==='bridge'){
+    if(surfaceHit){const e=edgeById(surfaceHit.dataset.edge);if(e)addBridgeToEdge(e);}
+    else if(nodeHit){view.selectedNode=nodeHit.dataset.node;view.selectedEdge=null;renderSelection();toast('Select a road surface to place the bridge');}
+    return;
+  }
+  if(view.tool==='measure'){
+    const p=worldPoint(evt);if(!view.measureStart){view.measureStart=p;view.measureEnd=null;}else{view.measureEnd=p;const d=Math.round(Math.hypot(p.x-view.measureStart.x,p.y-view.measureStart.y));toast(`Measured alignment · ${d} m`);}
+    renderInteraction();return;
+  }
+  if(curveHit){
+    const edge=edgeById(curveHit.dataset.curve);if(!edge)return;view.selectedEdge=edge.id;view.selectedNode=null;view.drag={type:'curve',id:edge.id,before:clone(project),moved:false};$scene.setPointerCapture(evt.pointerId);$scene.classList.add('dragging');renderSelection();return;
+  }
+  if(nodeHit){
+    const node=nodeById(nodeHit.dataset.node);if(!node)return;view.selectedNode=node.id;view.selectedEdge=null;view.drag={type:'node',id:node.id,before:clone(project),offset:{x:node.x-worldPoint(evt).x,y:node.y-worldPoint(evt).y},moved:false};$scene.setPointerCapture(evt.pointerId);renderSelection();return;
+  }
+  if(edgeHit){const edge=edgeById(edgeHit.dataset.edge);if(edge){view.selectedEdge=edge.id;view.selectedNode=null;renderSelection();}return;}
+  view.selectedEdge=null;view.selectedNode=null;view.drag={type:'pan',start:screenPoint(evt),camera:{...view.camera},moved:false};$scene.setPointerCapture(evt.pointerId);$scene.classList.add('dragging');renderSelection();
+});
+$scene.addEventListener('pointermove',evt=>{
+  const p=worldPoint(evt);view.cursor=p;$('#coordinates').textContent=`X ${fmt(p.x,1).padStart(5,'0')} · Y ${fmt(p.y,1).padStart(5,'0')}`;
+  if(view.drag){
+    if(view.drag.type==='pan'){
+      const screen=screenPoint(evt),dx=screen.x-view.drag.start.x,dy=screen.y-view.drag.start.y;view.camera.x=view.drag.camera.x+dx;view.camera.y=view.drag.camera.y+dy;$camera.setAttribute('transform',`matrix(${view.camera.z} 0 0 ${view.camera.z} ${view.camera.x} ${view.camera.y})`);view.drag.moved=view.drag.moved||Math.abs(dx)+Math.abs(dy)>2;updateCameraUI();
+    }else if(view.drag.type==='node'){
+      const n=nodeById(view.drag.id);if(n){const nx=clamp(p.x+view.drag.offset.x,8,992),ny=clamp(p.y+view.drag.offset.y,8,652),dx=nx-n.x,dy=ny-n.y;for(const e of project.edges){if(!e.controls)continue;if(e.from===n.id){e.controls[0].x+=dx;e.controls[0].y+=dy;}if(e.to===n.id){e.controls[1].x+=dx;e.controls[1].y+=dy;}}n.x=nx;n.y=ny;view.drag.moved=true;renderScene();renderStatus();}
+    }else if(view.drag.type==='curve'){
+      const e=edgeById(view.drag.id),a=e&&nodeById(e.from),b=e&&nodeById(e.to);if(e&&a&&b){const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};e.controls=null;e.curve=clamp(Math.round(((p.x-mid.x)*nx+(p.y-mid.y)*ny)/.75),-70,70);view.drag.moved=true;renderScene();$('#curveRange').value=e.curve;$('#curveOut').textContent=`${e.curve} m`;}
+    }
+  }else if(view.pendingStart||view.measureStart)renderInteraction();
+});
+function finishPointer(evt){
+  if(!view.drag)return;const d=view.drag;view.drag=null;$scene.classList.remove('dragging');
+  if(d.type==='node'&&d.moved){const n=nodeById(d.id),snap=n&&nearestNode(n,15,d.id);if(snap){mergeNodes(d.id,snap.id);toast(`Snapped into ${snap.id} · intersection merged`);}}
+  if((d.type==='node'||d.type==='curve')&&d.moved){pushUndo(d.before);queueSave();renderAll();}
+}
+$scene.addEventListener('pointerup',finishPointer);$scene.addEventListener('pointercancel',finishPointer);
+$scene.addEventListener('wheel',evt=>{evt.preventDefault();const p=screenPoint(evt);zoomAt(evt.deltaY<0?1.12:.89,p);},{passive:false});
+$scene.addEventListener('dblclick',evt=>{if(view.tool==='select'){const hit=rootTarget(evt.target,'[data-node]');if(hit){const node=nodeById(hit.dataset.node);if(node){const value=prompt('Rename node',node.name)||node.name;if(value!==node.name)commitEdit(()=>node.name=value);}}}});
+$$('.tool-btn[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+$$('.panel-tab').forEach(b=>b.addEventListener('click',()=>choosePanel(b.dataset.panel)));
+$$('[data-layer]').forEach(input=>input.addEventListener('change',()=>{view.layers[input.dataset.layer]=input.checked;renderScene();}));
+$('#roadTree').addEventListener('click',evt=>{const row=rootTarget(evt.target,'[data-tree-edge]');if(row){view.selectedEdge=row.dataset.treeEdge;view.selectedNode=null;renderSelection();}});
+$('#junctionTree').addEventListener('click',evt=>{const row=rootTarget(evt.target,'[data-tree-node]');if(row){view.selectedNode=row.dataset.treeNode;view.selectedEdge=null;renderSelection();}});
+$$('.tree-list').forEach(list=>list.addEventListener('keydown',evt=>{if((evt.key==='Enter'||evt.key===' ')&&rootTarget(evt.target,'[data-tree-edge],[data-tree-node]'))rootTarget(evt.target,'[data-tree-edge],[data-tree-node]').click();}));
+$('#undoBtn').addEventListener('click',undo);$('#redoBtn').addEventListener('click',redo);$('#saveBtn').addEventListener('click',()=>{saveProject(true);toast('Project saved in this browser');});
+$('#clearSelection').addEventListener('click',()=>{view.selectedEdge=null;view.selectedNode=null;renderSelection();});
+$('#fitBtn').addEventListener('click',fitCamera);$('#zoomInBtn').addEventListener('click',()=>zoomAt(1.2));$('#zoomOutBtn').addEventListener('click',()=>zoomAt(.83));
+$('#gridBtn').addEventListener('click',()=>{$('#gridBtn').classList.toggle('active');view.grid=!view.grid;$('#fineGrid').style.display=view.grid?'':'none';$('#boldGrid').style.display=view.grid?'':'none';});
+$('#generateBtn').addEventListener('click',()=>{$('#generatorModal').classList.add('open');$('#generatorModal').setAttribute('aria-hidden','false');$('#genName').value=`${project.projectName} · generated`;setTimeout(()=>$('#genBlocks').focus(),50);});
+$$('[data-style-choice]').forEach(card=>card.addEventListener('click',()=>{$$('.generator-choice').forEach(x=>x.classList.toggle('selected',x===card));view.style=card.dataset.styleChoice;card.querySelector('input').checked=true;}));
+$$('[data-close-modal]').forEach(b=>b.addEventListener('click',closeGenerator));$('#generatorModal').addEventListener('pointerdown',evt=>{if(evt.target===$('#generatorModal'))closeGenerator();});
+function closeGenerator(){$('#generatorModal').classList.remove('open');$('#generatorModal').setAttribute('aria-hidden','true');}
+$('#applyGenerator').addEventListener('click',()=>{
+  const cols=+$('#genBlocks').value,name=$('#genName').value.trim()||'Generated network',style=view.style;
+  pushUndo();project=generateNetwork(cols,style,name);view.selectedEdge=null;view.selectedNode=null;view.pendingStart=null;view.measureStart=null;view.measureEnd=null;fitCamera();renderAll();queueSave();closeGenerator();toast(`Generated ${project.nodes.length} nodes · ${project.edges.length} linked roads`);
+});
+function generateNetwork(cols,style,name){
+  const rows=3,nodes=[],edges=[],marginX=125,stepX=750/(cols-1),ys=[125,330,535],gridNodes=[];let nodeN=1,edgeN=1;
+  for(let r=0;r<rows;r++){gridNodes[r]=[];for(let c=0;c<cols;c++){
+    let x=marginX+c*stepX,y=ys[r];if(style==='river'){x+=((r===0?-1:r===2?1:0)*c*8);y+=r===1?Math.sin(c*.7)*10:0;}
+    const id=`J${String(nodeN++).padStart(2,'0')}`;const n={id,x,y,name:`Junction ${String(nodeN-1).padStart(2,'0')}`};nodes.push(n);gridNodes[r][c]=n;
+  }}
+  const add=(a,b,r,c,vertical=false)=>{
+    const central=r===1&&!vertical,curve=style==='river'?(vertical?Math.sin((r+c)*1.7)*9:Math.cos(c*1.4+r)*14):0;
+    const id=`R${String(edgeN++).padStart(2,'0')}`;
+    const edge={id,from:a.id,to:b.id,name:vertical?`Cross street ${c+1}`:`${central?'Main avenue':'Block road'} ${r+1}`,roadClass:central?'Primary':vertical?'Collector':'Local',lanes:central?4:2,curve,bridge:null};
+    if(style==='river'&&!vertical&&r===1&&c===Math.floor((cols-1)/2)){edge.bridge=defaultBridge();edge.name='Creek crossing';}
+    edges.push(edge);
+  };
+  for(let r=0;r<rows;r++)for(let c=0;c<cols-1;c++)add(gridNodes[r][c],gridNodes[r][c+1],r,c,false);
+  for(let c=0;c<cols;c++)for(let r=0;r<rows-1;r++)add(gridNodes[r][c],gridNodes[r+1][c],r,c,true);
+  if(style==='grid'&&edges.length){const bridgeEdge=edges.find(e=>e.roadClass==='Primary');if(bridgeEdge)bridgeEdge.bridge=defaultBridge();}
+  return{version:1,projectName:name,units:'m',nextNode:nodeN+1,nextEdge:edgeN+1,nodes,edges};
+}
+const exportMenu=$('#exportMenu');$('#exportMenuBtn').addEventListener('click',evt=>{evt.stopPropagation();const open=exportMenu.classList.toggle('open');$('#exportMenuBtn').setAttribute('aria-expanded',String(open));});
+document.addEventListener('click',evt=>{if(!evt.target.closest('.menu-wrap')){exportMenu.classList.remove('open');$('#exportMenuBtn').setAttribute('aria-expanded','false');}});
+$$('[data-export]').forEach(b=>b.addEventListener('click',()=>{exportMenu.classList.remove('open');if(b.dataset.export==='json')downloadJSON();else downloadSVG();}));
+$('#importBtn').addEventListener('click',()=>{$('#importFile').click();exportMenu.classList.remove('open');});
+$('#importFile').addEventListener('change',evt=>{
+  const file=evt.target.files&&evt.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const imported=normalizeProject(JSON.parse(reader.result));if(!imported.nodes.length)throw new Error('This file has no valid nodes');pushUndo();project=imported;view.selectedEdge=null;view.selectedNode=null;fitCamera();renderAll();queueSave();toast(`Imported ${project.edges.length} road segments`);}catch(e){toast(`Import failed · ${e.message}`);}evt.target.value='';};reader.readAsText(file);
+});
+$('#resetBtn').addEventListener('click',()=>{pushUndo();project=initialProject();view.selectedEdge='R03';view.selectedNode=null;view.pendingStart=null;fitCamera();renderAll();queueSave();exportMenu.classList.remove('open');toast('Demo network restored');});
+function download(name,type,content){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);}
+function downloadJSON(){download(`${slug(project.projectName)}.roadworks.json`,'application/json',JSON.stringify(project,null,2));toast('Network JSON exported');}
+function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'roadworks-network';}
+function downloadSVG(){
+  const copySvg=$scene.cloneNode(true);copySvg.setAttribute('xmlns','http://www.w3.org/2000/svg');copySvg.setAttribute('width','1600');copySvg.setAttribute('height','1056');copySvg.querySelectorAll('#handleLayer,#interactionLayer').forEach(x=>x.innerHTML='');copySvg.querySelectorAll('.road-hit,.node-hit').forEach(x=>x.remove());
+  const serializer=new XMLSerializer();download(`${slug(project.projectName)}.svg`,'image/svg+xml;charset=utf-8',serializer.serializeToString(copySvg));toast('Plan SVG exported');
+}
+$('#layersToggle').addEventListener('click',()=>$('#leftPanel').classList.toggle('mobile-open'));$('#inspectorToggle').addEventListener('click',()=>$('#inspector').classList.toggle('mobile-open'));
+document.addEventListener('keydown',evt=>{
+  const typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||'');
+  if(evt.key==='Escape'){
+    if($('#generatorModal').classList.contains('open')){closeGenerator();return;}
+    if(view.pendingStart){view.pendingStart=null;renderNodes();renderInteraction();toast('Road drawing finished');return;}
+    if(view.measureStart){view.measureStart=null;view.measureEnd=null;renderInteraction();return;}
+    if(view.tool!=='select'){setTool('select');return;}
+    if(view.selectedEdge||view.selectedNode){view.selectedEdge=null;view.selectedNode=null;renderSelection();return;}
+  }
+  if((evt.ctrlKey||evt.metaKey)&&evt.key.toLowerCase()==='z'){evt.preventDefault();evt.shiftKey?redo():undo();return;}
+  if((evt.ctrlKey||evt.metaKey)&&evt.key.toLowerCase()==='y'){evt.preventDefault();redo();return;}
+  if(typing||$('#generatorModal').classList.contains('open'))return;
+  if(evt.key==='Delete'||evt.key==='Backspace'){deleteSelected();return;}
+  if(evt.key==='v'||evt.key==='V')setTool('select');if(evt.key==='r'||evt.key==='R')setTool('road');if(evt.key==='b'||evt.key==='B')setTool('bridge');if(evt.key==='m'||evt.key==='M')setTool('measure');
+  if(evt.key==='f'||evt.key==='F')fitCamera();if(evt.key==='+'||evt.key==='=')zoomAt(1.16);if(evt.key==='-')zoomAt(.86);
+  if(evt.code==='Space'){evt.preventDefault();view.spacePan=true;$scene.classList.add('dragging');}
+});
+document.addEventListener('keyup',evt=>{if(evt.code==='Space'){view.spacePan=false;if(!view.drag)$scene.classList.remove('dragging');}});
+function init(){
+  const dataA=audit();view.selectedEdge=dataA.bridges?project.edges.find(e=>e.bridge)?.id:null;
+  if(!view.selectedEdge&&project.edges.length)view.selectedEdge=project.edges[0].id;
+  renderAll();fitCamera();renderAll();saveProject(false);updateHistoryButtons();
+  if(window.matchMedia('(max-width: 900px)').matches){$('#layersToggle').style.display='grid';$('#inspectorToggle').style.display='grid';}
+}
+init();
+})();
+</script>
+</body>
+</html>
