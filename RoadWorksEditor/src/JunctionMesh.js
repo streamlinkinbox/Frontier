@@ -11,10 +11,10 @@
 //      fillet, each pinned to the exact arm targets at both ends, so the curb never detaches from the arc on acute
 //      or uneven-width junctions.
 
-import { clamp, dist, lerp, vec } from './Vec.js?v=2';
-import { resamplePolyline } from './Polyline.js?v=2';
-import { MeshSpec } from './MeshSpec.js?v=2';
-import { nodeGeneratesJunction } from './Graph.js?v=2';
+import { clamp, dist, lerp, vec } from './Vec.js?v=3';
+import { resamplePolyline } from './Polyline.js?v=3';
+import { MeshSpec } from './MeshSpec.js?v=3';
+import { nodeGeneratesJunction } from './Graph.js?v=3';
 
 // ── fillet arc between two offset edges ───────────────────────────────────────────────────────────────────────────
 
@@ -208,7 +208,8 @@ export function addCurveStrip(spec, startCurve, endCurve, segments = -1, rows = 
   }
 }
 
-const uv = (p) => ({ x: p.x * 0.25, y: p.y * 0.25 });
+// World-aligned UVs in metres: paving on an apron tiles at exactly the size it does along the arms.
+const uv = (p) => ({ x: p.x, y: p.y });
 
 // ── approach frames straight off the corridor cross-sections ──────────────────────────────────────────────────────
 
@@ -245,7 +246,7 @@ export function approachForEdge(graph, edge, nodeId, sections, forceEnd = false)
 
 // ── junction mesh ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-export function buildJunctionMesh(graph, node, sectionsByEdge, out) {
+export function buildJunctionMesh(graph, node, sectionsByEdge, out, options = {}) {
   if (!nodeGeneratesJunction(graph, node)) return null;
 
   const approaches = [];
@@ -264,7 +265,8 @@ export function buildJunctionMesh(graph, node, sectionsByEdge, out) {
 
   const road = out.road || (out.road = new MeshSpec('road'));
   const curb = out.curb || (out.curb = new MeshSpec('curb'));
-  const pavement = out.pavement || (out.pavement = new MeshSpec('pavement'));
+  const paveGroup = options.paveGroup || 'pavement';
+  const pavement = out[paveGroup] || (out[paveGroup] = new MeshSpec(paveGroup));
 
   const n = approaches.length;
   const avgZ = approaches.reduce((acc, a) => acc + a.point.z, 0) / n;
@@ -333,5 +335,5 @@ export function buildJunctionMesh(graph, node, sectionsByEdge, out) {
     if (!bridgeCorner) addCurveStrip(pavement, paveArcs[i], paveBaseArcs[i], segs, 1);
   }
 
-  return { approaches, centre, roadArcs, paveArcs };
+  return { approaches, centre, roadArcs, paveArcs, paveBaseArcs };
 }

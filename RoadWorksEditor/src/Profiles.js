@@ -35,6 +35,10 @@ export const RAILING_TYPES = {
   none: 'None',
 };
 
+// Paving is a per-corridor choice rather than a preset field: the same street profile can be laid in brick in the
+// old town and cast concrete on the bypass.
+export const PAVING_DEFAULTS = { paving: 'concrete', pavingScale: 1.0 };
+
 export function resolveProfile(corridor) {
   const preset = ROAD_PRESETS[corridor.preset] || ROAD_PRESETS.street;
   const o = corridor.overrides || {};
@@ -47,6 +51,8 @@ export function resolveProfile(corridor) {
     curbWidth: num(o.curbWidth, preset.curbWidth),
     lanes: num(o.lanes, preset.lanes),
     crown: num(o.crown, 0.02), // camber: centre is this fraction of the half width above the gutter
+    paving: corridor.paving || PAVING_DEFAULTS.paving,
+    pavingScale: num(corridor.pavingScale, PAVING_DEFAULTS.pavingScale),
   };
   p.roadHalf = p.roadWidth * 0.5;
   p.leftTotalHalf = p.roadHalf + p.curbWidth + p.pavementLeft;

@@ -64,10 +64,15 @@ export class Plane {
   constructor(n = new V3(0, 0, 1), c = 0) { this.normal = n; this.constant = c; }
   setFromNormalAndCoplanarPoint(n, p) { this.normal = n.clone(); this.constant = -n.dot(p); return this; }
 }
+// Tests drive picking by setting pickControl.filter — there is no real intersection maths in this stub.
+export const pickControl = { filter: null };
 export class Raycaster {
   constructor() { this.params = { Line: { threshold: 1 } }; this.ray = { origin: new V3(0, 0, 50), direction: new V3(0, 0, -1), intersectPlane: (plane, target) => target.set(0, 0, 0) }; }
   setFromCamera() {}
-  intersectObjects() { return []; }
+  intersectObjects(objects) {
+    if (!pickControl.filter) return [];
+    return objects.filter(pickControl.filter).map((object) => ({ object, point: new V3(object.position.x, object.position.y, object.position.z) }));
+  }
 }
 export class BufferGeometry extends Geometry {}
 export class PlaneGeometry extends Geometry {}
@@ -76,9 +81,20 @@ export class RingGeometry extends Geometry {}
 export class CylinderGeometry extends Geometry {}
 export class ConeGeometry extends Geometry {}
 export class Float32BufferAttribute { constructor(a, i) { this.array = a; this.itemSize = i; } }
-export class MeshStandardMaterial extends Material {}
+export class MeshStandardMaterial extends Material { constructor(p = {}) { super(p); this.color = { value: p.color, multiplyScalar() { return this; } }; } }
 export class MeshBasicMaterial extends Material {}
 export class LineBasicMaterial extends Material {}
+export class CanvasTexture {
+  constructor(image) {
+    this.image = image;
+    this.wrapS = 0; this.wrapT = 0; this.anisotropy = 1; this.colorSpace = '';
+    this.repeat = { x: 1, y: 1, set(x, y) { this.x = x; this.y = y; } };
+    this.disposed = false;
+  }
+  clone() { return new CanvasTexture(this.image); }
+  dispose() { this.disposed = true; }
+}
+export const RepeatWrapping = 1000;
 export const PCFSoftShadowMap = 1;
 export const SRGBColorSpace = 'srgb';
 export const ACESFilmicToneMapping = 4;
@@ -146,7 +162,7 @@ class El {
   setPointerCapture() {}
   releasePointerCapture() {}
   focus() {}
-  getContext() { return {}; }
+  getContext(kind) { return kind === '2d' ? make2d(this) : {}; }
   // deep search helpers for assertions
   find(predicate) {
     if (predicate(this)) return this;
@@ -161,6 +177,42 @@ class El {
     for (const c of this.children) c.all?.(predicate, out);
     return out;
   }
+}
+
+// A recording 2D context. It performs no rasterisation, but it accepts every call the texture generators make and
+// rejects non-finite coordinates — which is the part worth testing headlessly: that no paving pattern, at any scale,
+// ever emits a NaN vertex or blows up before the material is built.
+export const canvasStats = { calls: 0, bad: [] };
+
+function make2d(canvas) {
+  if (canvas._ctx) return canvas._ctx;
+  const guard = (name, args) => {
+    canvasStats.calls++;
+    for (const a of args) {
+      if (typeof a === 'number' && !Number.isFinite(a)) canvasStats.bad.push(`${name}(${args.join(', ')})`);
+    }
+  };
+  const size = () => Math.max(1, canvas.width | 0) * Math.max(1, canvas.height | 0);
+  const noop = (name) => (...args) => guard(name, args);
+  const ctx = {
+    canvas,
+    fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, font: '', textAlign: '', textBaseline: '', globalAlpha: 1,
+    fillRect: noop('fillRect'), strokeRect: noop('strokeRect'), clearRect: noop('clearRect'),
+    beginPath: noop('beginPath'), closePath: noop('closePath'), moveTo: noop('moveTo'), lineTo: noop('lineTo'),
+    arc: noop('arc'), fill: noop('fill'), stroke: noop('stroke'), save: noop('save'), restore: noop('restore'),
+    translate: noop('translate'), rotate: noop('rotate'), scale: noop('scale'), clip: noop('clip'),
+    fillText: (text, x, y) => guard('fillText', [x, y]),
+    createRadialGradient: (...a) => { guard('createRadialGradient', a); return { addColorStop() {} }; },
+    createLinearGradient: (...a) => { guard('createLinearGradient', a); return { addColorStop() {} }; },
+    getImageData: (x, y, w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+    createImageData: (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+    putImageData: noop('putImageData'),
+    drawImage: noop('drawImage'),
+    measureText: () => ({ width: 10 }),
+  };
+  void size;
+  canvas._ctx = ctx;
+  return ctx;
 }
 
 class TextNode {

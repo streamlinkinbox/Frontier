@@ -4,7 +4,7 @@
 // Arc-length utilities shared by the corridor, junction and bridge generators: measuring, trimming, resampling and
 // building stable Frenet-ish frames (tangent / left / up) that never flip on curved corridors.
 
-import { add, addScaled, clamp, cross, dist, lerp, norm, sub, vec } from './Vec.js?v=2';
+import { add, addScaled, clamp, cross, dist, lerp, norm, sub, vec } from './Vec.js?v=3';
 
 export function cumulativeLengths(points) {
   const out = [0];

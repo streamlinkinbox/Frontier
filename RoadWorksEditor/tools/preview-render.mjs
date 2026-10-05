@@ -19,7 +19,14 @@ const COLOURS = {
   piers: [124, 127, 133],
   railing: [167, 173, 181],
   cables: [198, 202, 208],
+  earth: [107, 100, 80],
+  roadbed: [138, 141, 146],
+  signFace: [190, 70, 66],
+  signPost: [154, 160, 168],
 };
+
+// `pavement#brick@1.00` → `pavement`
+const baseName = (n) => n.split('#')[0];
 
 const mk = (name, pts, extra = {}) => ({
   id: name,
@@ -37,10 +44,11 @@ const mk = (name, pts, extra = {}) => ({
 });
 
 export const DEMO = [
-  mk('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], { preset: 'avenue' }),
-  mk('Mill Street', [[0, -120], [0, -40], [0, 0], [0, 55], [10, 120]]),
-  mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow' }),
-  mk('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley' }),
+  mk('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], { preset: 'avenue', paving: 'flagstone' }),
+  mk('Mill Street', [[0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { paving: 'concrete' }),
+  mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
+  mk('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
+  mk('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], { paving: 'granite' }),
   mk('Estuary Viaduct', [[-130, 95, 11], [-60, 86, 11], [10, 92, 11], [80, 104, 11], [150, 96, 11]], {
     preset: 'highway',
     family: 'bridge',
@@ -98,7 +106,7 @@ export function render(groups, { view = 'iso', width = WIDTH, height = HEIGHT, b
   const ll = Math.hypot(...light);
 
   for (const [name, spec] of Object.entries(groups)) {
-    const base = COLOURS[name] || [140, 140, 140];
+    const base = COLOURS[baseName(name)] || [140, 140, 140];
     const pos = spec.positions;
     const nor = spec.normals;
     for (let t = 0; t < spec.indices.length; t += 3) {

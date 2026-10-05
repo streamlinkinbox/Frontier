@@ -2,6 +2,11 @@
 import { buildNetwork } from '../src/Network.js';
 import { toObj } from '../src/MeshSpec.js';
 import { buildGraph, nodeGeneratesJunction } from '../src/Graph.js';
+import { groupBase } from '../src/Network.js';
+
+// Pavement is split into one group per paving pattern (`pavement#brick@1.00`), so totals are taken by base name.
+const tris = (net, base) =>
+  Object.entries(net.groups).reduce((sum, [name, spec]) => (groupBase(name) === base ? sum + spec.triangleCount : sum), 0);
 
 let failures = 0;
 const check = (name, condition, detail = '') => {
@@ -33,9 +38,70 @@ console.log('\n— crossroads —');
   check('single merged junction node at the crossing', net.stats.junctions === 1, `got ${net.stats.junctions}`);
   check('road surface generated', net.groups.road.triangleCount > 100);
   check('curbs generated', net.groups.curb.triangleCount > 100);
-  check('pavement generated', net.groups.pavement.triangleCount > 100);
+  check('pavement generated', tris(net, 'pavement') > 100, `${tris(net, 'pavement')} tris`);
   check('markings generated', net.groups.markings.triangleCount > 10);
   check('normals present', net.groups.road.normals.length === net.groups.road.positions.length);
+}
+
+console.log('\n— junction furniture —');
+{
+  const net = buildNetwork([
+    corridor('ns', [[0, -60], [0, 0], [0, 60]]),
+    corridor('ew', [[-60, 0], [0, 0], [60, 0]]),
+  ], { signage: 'stop', stopBars: true, crosswalks: true });
+  check('stop signs placed on every arm', net.stats.signs === 4, `got ${net.stats.signs}`);
+  check('sign faces generated', net.groups.signFace.triangleCount > 20, `${net.groups.signFace.triangleCount} tris`);
+  check('sign posts generated', net.groups.signPost.triangleCount >= 4 * 12, `${net.groups.signPost.triangleCount} tris`);
+  const bare = buildNetwork([
+    corridor('ns', [[0, -60], [0, 0], [0, 60]]),
+    corridor('ew', [[-60, 0], [0, 0], [60, 0]]),
+  ], { signage: 'none', stopBars: false, crosswalks: false });
+  check('signage can be switched off', bare.stats.signs === 0 && bare.groups.signFace.triangleCount === 0);
+  check('stop bars and crossings add markings', net.groups.markings.triangleCount > bare.groups.markings.triangleCount);
+}
+
+console.log('\n— elevated roadbed —');
+{
+  const low = buildNetwork([corridor('ramp', [[-60, 0, 0], [0, 0, 3], [60, 0, 4]])]);
+  check('shallow fill builds an earth embankment', low.groups.earth.triangleCount > 50, `${low.groups.earth.triangleCount} tris`);
+  check('shallow fill builds no wall', low.groups.roadbed.triangleCount === 0);
+
+  const high = buildNetwork([corridor('viaduct', [[-60, 0, 14], [0, 0, 16], [60, 0, 15]])]);
+  check('deep fill switches to a retaining wall', high.groups.roadbed.triangleCount > 50, `${high.groups.roadbed.triangleCount} tris`);
+  check('deep fill builds no embankment', high.groups.earth.triangleCount === 0);
+
+  const flat = buildNetwork([corridor('ground', [[-60, 0], [60, 0]])]);
+  check('at grade builds no roadbed at all', flat.groups.earth.triangleCount === 0 && flat.groups.roadbed.triangleCount === 0);
+
+  const floating = buildNetwork([corridor('float', [[-60, 0, 6], [60, 0, 6]], { roadbed: { mode: 'none' } })]);
+  check('roadbed can be disabled', floating.groups.earth.triangleCount === 0 && floating.groups.roadbed.triangleCount === 0);
+
+  const slab = buildNetwork([corridor('slab', [[-60, 0, 6], [60, 0, 6]], { roadbed: { mode: 'slab' } })]);
+  check('slab soffit builds', slab.groups.roadbed.triangleCount > 50);
+
+  // A corridor that crosses grade must start and stop its skirt rather than diving underground.
+  const crossing = buildNetwork([corridor('dip', [[-60, 0, 8], [0, 0, 0], [60, 0, 8]])]);
+  const zs = [];
+  const pos = crossing.groups.earth.positions;
+  for (let i = 2; i < pos.length; i += 3) zs.push(pos[i]);
+  check('skirt never dips below ground', Math.min(...zs) >= -0.001, `min z ${Math.min(...zs)}`);
+}
+
+console.log('\n— paving variants —');
+{
+  const net = buildNetwork([
+    corridor('a', [[-60, 0], [0, 0], [60, 0]], { paving: 'brick' }),
+    corridor('b', [[0, -60], [0, 0], [0, 60]], { paving: 'hex', pavingScale: 1.5 }),
+  ]);
+  const keys = Object.keys(net.groups).filter((n) => groupBase(n) === 'pavement');
+  check('one pavement group per pattern', keys.includes('pavement#brick@1.00') && keys.includes('pavement#hex@1.50'), keys.join(', '));
+  check('both paving groups carry geometry', keys.every((k) => net.groups[k].triangleCount >= 0));
+  check('pavement UVs are in metres', (() => {
+    const spec = net.groups['pavement#brick@1.00'];
+    let max = 0;
+    for (const v of spec.uvs) max = Math.max(max, Math.abs(v));
+    return max > 20;
+  })());
 }
 
 console.log('\n— T junction with mismatched widths —');

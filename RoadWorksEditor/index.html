@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="styles/Workspace.css">
 <link rel="icon" href="data:,">
 <!-- three.js is vendored (lib/) so the editor runs straight from a raw file host with no build step or CDN. -->
-<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=2"}}</script>
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=3"}}</script>
 </head>
 <body>
 
@@ -43,7 +43,7 @@
 
 <div class="DocumentBar">
   <div class="DocumentTab"><svg><use href="#RoadIcon"/></svg><input id="DocumentName" value="Estuary crossing" aria-label="Document name" maxlength="48"><span>.roadworks</span></div>
-  <span class="DocumentHint">Merged junction topology · curvature-corrected curbs &amp; pavements · parametric bridges</span>
+  <span class="DocumentHint">Merged junction topology · curvature-corrected curbs &amp; paving · procedural roadbeds · parametric bridges</span>
   <span class="ToolbarSpace"></span>
   <span class="DocumentHint">Units: metres · Z-up</span>
 </div>
@@ -103,7 +103,7 @@
       <p>Draw corridors, raise them into bridges, and the solver merges every intersection it finds.</p>
     </div>
     <div class="ScaleBadge"><span></span><b>20 m</b></div>
-    <div class="ViewportHint">Drag orbit <i>·</i> Right-drag pan <i>·</i> Scroll zoom <i>·</i> Drag handles to move <i>·</i> Shift-click a ribbon to insert <i>·</i> Del removes <i>·</i> F frames</div>
+    <div class="ViewportHint">Right-drag look + <b>WASD</b>/QE fly <i>·</i> Shift sprint <i>·</i> Drag orbit <i>·</i> Middle-drag pan <i>·</i> Scroll zoom <i>·</i> Drag a junction hub to move the whole intersection <i>·</i> Shift-click a ribbon to insert <i>·</i> Del removes <i>·</i> F frames</div>
     <div class="Loading" id="Loading"><div class="Spinner"></div><strong>Building network</strong><p>Splitting corridors and welding junctions…</p></div>
     <div id="Failure" class="Failure" hidden></div>
   </section>
@@ -135,6 +135,6 @@
 </footer>
 
 <!-- ?v= is a cache buster: CDNs such as raw.githack serve branch URLs from cache. Bump it on release. -->
-<script type="module" src="src/App.js?v=2"></script>
+<script type="module" src="src/App.js?v=3"></script>
 </body>
 </html>

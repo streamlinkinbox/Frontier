@@ -6,7 +6,8 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js?v=2';
+import { TranslateGizmo } from './Gizmo.js?v=3';
+import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=3';
 
 export const MATERIAL_STYLES = {
   road: { color: 0x32363d, roughness: 0.95, metalness: 0.0 },
@@ -18,6 +19,19 @@ export const MATERIAL_STYLES = {
   piers: { color: 0x7c7f85, roughness: 0.9, metalness: 0.0 },
   railing: { color: 0xa7adb5, roughness: 0.6, metalness: 0.35 },
   cables: { color: 0xc6cad0, roughness: 0.4, metalness: 0.7 },
+  earth: { color: 0x6b6450, roughness: 1.0, metalness: 0.0 },
+  roadbed: { color: 0x8a8d92, roughness: 0.92, metalness: 0.0 },
+  signFace: { color: 0xffffff, roughness: 0.55, metalness: 0.05 },
+  signPost: { color: 0x9aa0a8, roughness: 0.45, metalness: 0.6 },
+};
+
+// `pavement#brick@1.00` → `pavement`. Group names carry their paving variant so each pattern gets its own texture.
+const groupBase = (name) => name.split('#')[0];
+const groupVariant = (name) => {
+  const tail = name.split('#')[1];
+  if (!tail) return null;
+  const [pattern, scale] = tail.split('@');
+  return { pattern, scale: parseFloat(scale) || 1 };
 };
 
 export class Viewport {
@@ -57,9 +71,13 @@ export class Viewport {
     this.meshes = new Map();
     this.handleMeshes = [];
     this.corridorLines = [];
+    this.junctionMeshes = [];
     this.displayMode = 'shaded';
     this.showGround = true;
     this.showMarkings = true;
+    this.textured = true;
+    this.flySpeed = 34; // m/s, adjusted with the wheel while the right button is held
+    this._groups = null;
 
     this._applyCamera();
     this.resize();
@@ -129,6 +147,7 @@ export class Viewport {
   // ── network meshes ───────────────────────────────────────────────────────────────────────────────────────────────
 
   setNetwork(groups) {
+    this._groups = groups;
     for (const [name, mesh] of this.meshes) {
       this.networkGroup.remove(mesh);
       mesh.geometry.dispose();
@@ -149,26 +168,54 @@ export class Viewport {
       if (spec.normals.length !== spec.positions.length) geometry.computeVertexNormals();
       geometry.computeBoundingSphere();
 
-      const style = MATERIAL_STYLES[name] || MATERIAL_STYLES.road;
+      const base = groupBase(name);
+      const style = MATERIAL_STYLES[base] || MATERIAL_STYLES.road;
       const material = new THREE.MeshStandardMaterial({
         ...style,
         side: THREE.DoubleSide,
         wireframe: this.displayMode === 'wireframe',
         flatShading: this.displayMode === 'surfaces',
       });
-      if (name === 'markings') {
+      this._applyTexture(material, name, base);
+      if (base === 'markings') {
         material.polygonOffset = true;
         material.polygonOffsetFactor = -2;
         material.polygonOffsetUnits = -2;
       }
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = name !== 'markings';
+      mesh.castShadow = base !== 'markings';
       mesh.receiveShadow = true;
-      mesh.visible = name === 'markings' ? this.showMarkings : true;
+      mesh.visible = base === 'markings' ? this.showMarkings : true;
       mesh.name = name;
       this.networkGroup.add(mesh);
       this.meshes.set(name, mesh);
     }
+  }
+
+  // Surfaces are drawn with runtime-generated canvas textures (see Textures.js) — no files, no fetches.
+  _applyTexture(material, name, base) {
+    if (!this.textured) return;
+    let tex = null;
+    if (base === 'pavement') {
+      const variant = groupVariant(name) || { pattern: 'concrete', scale: 1 };
+      tex = pavingTexture(THREE, variant.pattern, variant.scale);
+    } else if (base === 'signFace') {
+      tex = signTexture(THREE);
+    } else {
+      tex = surfaceTexture(THREE, base);
+    }
+    if (!tex) return;
+    material.map = tex.map;
+    if (tex.normalMap) {
+      material.normalMap = tex.normalMap;
+      material.normalScale = new THREE.Vector2(0.8, 0.8);
+    }
+    material.needsUpdate = true;
+  }
+
+  setTextured(on) {
+    this.textured = on;
+    if (this._groups) this.setNetwork(this._groups);
   }
 
   setDisplayMode(mode) {
@@ -195,6 +242,7 @@ export class Viewport {
       child.material?.dispose?.();
     }
     this.handleMeshes = [];
+    this.junctionMeshes = [];
 
     for (const corridor of corridors) {
       const selected = selection?.corridorId === corridor.id;
@@ -243,13 +291,26 @@ export class Viewport {
     if (graph) {
       for (const node of graph.nodes.values()) {
         if (node.degree < 2) continue;
+        const active = selection?.junctionId === node.id;
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(node.cornerRadius - 0.25, node.cornerRadius, 48),
-          new THREE.MeshBasicMaterial({ color: node.degree >= 3 ? 0xd6a665 : 0x5d6775, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthTest: false }),
+          new THREE.MeshBasicMaterial({ color: active ? 0xf1c994 : node.degree >= 3 ? 0xd6a665 : 0x5d6775, transparent: true, opacity: active ? 0.75 : 0.35, side: THREE.DoubleSide, depthTest: false }),
         );
         ring.position.set(node.co.x, node.co.y, node.co.z + 0.06);
         ring.renderOrder = 8;
         this.overlayGroup.add(ring);
+
+        // A junction is grabbable as a unit: this disc is what the pointer picks.
+        const hub = new THREE.Mesh(
+          new THREE.CylinderGeometry(active ? 1.5 : 1.25, active ? 1.5 : 1.25, 0.5, 20),
+          new THREE.MeshBasicMaterial({ color: active ? 0xf1c994 : 0xb98f58, transparent: true, opacity: 0.9, depthTest: false }),
+        );
+        hub.rotation.x = Math.PI / 2;
+        hub.position.set(node.co.x, node.co.y, node.co.z + 0.25);
+        hub.renderOrder = 21;
+        hub.userData = { junctionId: node.id, junction: true, co: { ...node.co }, degree: node.degree };
+        this.overlayGroup.add(hub);
+        this.junctionMeshes.push(hub);
       }
     }
   }
@@ -295,6 +356,46 @@ export class Viewport {
     this._applyCamera();
   }
 
+  // ── Unreal-style flight ──────────────────────────────────────────────────────────────────────────────────────
+  // Hold the right mouse button to mouse-look; WASD flies, Q/E drop and rise, Shift sprints, the wheel trims speed.
+  // Look pivots about the camera *position* (the orbit target is pushed ahead of it) so the two models coexist: let
+  // go of the right button and the usual orbit still turns around whatever you flew up to.
+
+  look(dx, dy) {
+    const pos = this.camera.position.clone();
+    this.spherical.theta -= dx * 0.0042;
+    this.spherical.phi = Math.max(0.02, Math.min(Math.PI - 0.02, this.spherical.phi - dy * 0.0042));
+    const { radius, theta, phi } = this.spherical;
+    const sinPhi = Math.sin(phi);
+    this.target.set(
+      pos.x - radius * sinPhi * Math.cos(theta),
+      pos.y - radius * sinPhi * Math.sin(theta),
+      pos.z - radius * Math.cos(phi),
+    );
+    this._applyCamera();
+  }
+
+  // input: { forward, strafe, rise } each in −1…1, plus a speed multiplier.
+  fly(input, dt) {
+    const { forward = 0, strafe = 0, rise = 0, boost = 1 } = input;
+    if (!forward && !strafe && !rise) return false;
+    const dir = new THREE.Vector3().subVectors(this.target, this.camera.position).normalize();
+    const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1)).normalize();
+    const step = this.flySpeed * boost * Math.min(dt, 0.1);
+    const move = new THREE.Vector3()
+      .addScaledVector(dir, forward * step)
+      .addScaledVector(right, strafe * step)
+      .addScaledVector(new THREE.Vector3(0, 0, 1), rise * step);
+    this.target.add(move);
+    this._applyCamera();
+    return true;
+  }
+
+  adjustFlySpeed(delta) {
+    this.flySpeed = Math.max(2, Math.min(400, this.flySpeed * (1 - delta * 0.0012)));
+    return this.flySpeed;
+  }
+
   frame(bounds) {
     if (!bounds) return;
     const cx = (bounds.min.x + bounds.max.x) * 0.5;
@@ -328,6 +429,11 @@ export class Viewport {
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     return this.raycaster;
+  }
+
+  pickJunction() {
+    const hits = this.raycaster.intersectObjects(this.junctionMeshes, false);
+    return hits.length ? hits[0].object.userData : null;
   }
 
   pickHandle() {

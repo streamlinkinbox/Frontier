@@ -18,6 +18,9 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Junctions | Fillet arcs between neighbouring arms, Coons-patch aprons, and curb / pavement bands that wrap every corner. |
 | Grade separation | Crossings separated vertically are *not* merged — they stay as overpasses for the bridge generator. |
 | Cross-section | Carriageway with camber, three-face curb (gutter → face → top), pavement with crossfall, outer drop, lane markings. |
+| Paving | Nine procedural paving patterns drawn to canvas at runtime (colour + derived normal map), tiled in metres and selectable per corridor, with a paving-width and paver-scale control. |
+| Roadbed | Anything above ground gets a real underside: earth embankment, board-marked retaining wall, slab soffit, or auto (fill until it exceeds `maxFill`, then wall). Elevated junction aprons get the same treatment, and bridge approaches are filled rather than spanned. |
+| Signage | Stop or yield signs on every arm of a 3+ way junction, stop bars on the approaching half, and zebra crossings — all positioned from the junction's own approach frames. |
 | Bridges | Cantilevered deck with inset soffit, six superstructure families, four pier families, three railing families, abutments. |
 | Output | Wavefront OBJ (Y-up, metres) and a `.roadworks.json` document you can reload. |
 
@@ -34,9 +37,15 @@ recipe, not a new mesh pipeline.
 
 | Input | Action |
 | --- | --- |
+| Right-drag | Mouse-look (Unreal-style flight) |
+| `W` `A` `S` `D` | Fly forward / left / back / right |
+| `Q` / `E` | Drop / rise |
+| `Shift` / `Ctrl` | Sprint ×3.2 / crawl ×0.25 |
+| Scroll while right-dragging | Trim flight speed |
 | Drag | Orbit |
-| Right-drag / Alt-drag | Pan |
+| Middle-drag / Alt-drag / Space-drag | Pan |
 | Scroll | Zoom |
+| Click a junction hub, then drag | Move the whole intersection — every arm together |
 | Click a handle, then drag | Move a control point (axis + XY-plane gizmo) |
 | Shift-click a corridor ribbon | Insert a control point there |
 | `Delete` | Remove the selected control point (or the corridor, if only two remain) |
@@ -55,6 +64,9 @@ src/
   Polyline.js           arc-length utilities, frames, miter correction
   Spline.js             centripetal Catmull-Rom corridor splines
   Graph.js              crossing detection, node welding, edge extraction, corner radii
+  Roadbed.js            embankment / retaining wall / slab soffit under anything above grade
+  Signs.js              stop + yield signs, stop bars, zebra crossings
+  Textures.js           runtime canvas paving, asphalt, concrete, earth and sign textures
   RoadMesh.js           cross-sections, swept corridor mesh, markings
   JunctionMesh.js       fillets, offset bands, Coons aprons
   BridgeMesh.js         deck, superstructure families, piers, railings
@@ -70,8 +82,9 @@ tools/
   preview-render.mjs    headless PNG rasteriser      (node tools/preview-render.mjs out.png iso|top|side)
 ```
 
-Everything under `src/` except `Viewport.js`, `Gizmo.js` and `App.js` is renderer-agnostic and runs in plain Node,
-which is what the two tools in `tools/` use.
+Everything under `src/` except `Viewport.js`, `Gizmo.js`, `App.js` and the canvas half of `Textures.js` is
+renderer-agnostic and runs in plain Node, which is what the tools in `tools/` use. `Textures.js` exports its
+catalogue and UV tables as plain data, so the geometry modules can import it without ever touching a canvas.
 
 ## Design notes
 
@@ -93,10 +106,19 @@ unreliable were *not* carried over; they were replaced:
 * **Bridges.** The deck is a cantilevered slab with a chamfered fascia and inset soffit rather than an extruded
   slab, and everything below it is a parametric family rather than one hard-coded shape.
 
+### Moving a junction
+
+A junction is not a document object — it is an emergent property of the corridors that meet there — so "move the
+intersection" has to be resolved back onto control points. Grabbing a junction hub collects every control point
+inside its radius, and for any corridor that merely *passes through* (a crossing with no control point of its own) it
+inserts one at the node first. The drag then applies a single rigid translation to all of them, which is why the
+intersection moves as one body instead of tearing into separate arms. The selection is anchored to a position rather
+than a node id, because node ids are derived from coordinates and change the instant the junction moves.
+
 ## Verification
 
 ```bash
-node tools/smoke-test.mjs                      # topology, geometry hygiene, every bridge/pier/railing combination
+node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving groups, every bridge/pier/railing combination
 node tools/boot-test.mjs                       # boots the editor shell, clicks the toolbar, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```

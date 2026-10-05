@@ -1,16 +1,37 @@
 //============================================================================================================================================
 //                                                               NETWORK.JS
 //============================================================================================================================================
-// Orchestration: corridors → graph → meshes. One call rebuilds the whole network into a handful of material groups
-// (road, curb, pavement, markings, deck, structure, piers, railing, cables) plus diagnostics for the inspector.
+// Orchestration: corridors → graph → meshes. One call rebuilds the whole network into material groups (road, curb,
+// paving variants, markings, roadbed/earth, deck, structure, piers, railing, cables, signs) plus diagnostics.
+//
+// Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
+// call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=2';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=2';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=2';
-import { buildJunctionMesh } from './JunctionMesh.js?v=2';
-import { buildBridgeMesh } from './BridgeMesh.js?v=2';
+import { MeshSpec } from './MeshSpec.js?v=3';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=3';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=3';
+import { buildJunctionMesh } from './JunctionMesh.js?v=3';
+import { buildBridgeMesh } from './BridgeMesh.js?v=3';
+import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=3';
+import { buildJunctionFurniture } from './Signs.js?v=3';
 
-export const GROUP_NAMES = ['road', 'curb', 'pavement', 'markings', 'deck', 'structure', 'piers', 'railing', 'cables'];
+export const GROUP_NAMES = [
+  'road', 'curb', 'pavement', 'markings',
+  'earth', 'roadbed',
+  'deck', 'structure', 'piers', 'railing', 'cables',
+  'signFace', 'signPost',
+];
+
+// Groups whose shading should stay smooth across shallow folds; everything else creases earlier.
+const SMOOTH = new Set(['road', 'pavement', 'deck', 'earth']);
+
+export function groupBase(name) {
+  return name.split('#')[0];
+}
+
+export function pavingGroup(profile) {
+  return `pavement#${profile.paving || 'concrete'}@${(profile.pavingScale || 1).toFixed(2)}`;
+}
 
 export function buildNetwork(corridors, settings = {}) {
   const t0 = now();
@@ -31,23 +52,32 @@ export function buildNetwork(corridors, settings = {}) {
       continue;
     }
     sectionsByEdge.set(edge.id, sections);
-    buildSegmentMesh(graph, edge, groups, { ...cfg, sections });
+    const paveGroup = pavingGroup(edge.profile);
+    buildSegmentMesh(graph, edge, groups, { ...cfg, sections, paveGroup });
     if (cfg.markings !== false) buildMarkings(sections, edge.profile, groups.markings, cfg);
     if (edge.family === 'bridge') {
       buildBridgeMesh(edge, sections, groups, { groundZ: cfg.groundZ ?? 0, ...(cfg.bridgeOverrides || {}) });
+      buildBridgeApproachFill(edge, sections, groups, cfg);
+    } else {
+      buildRoadbedMesh(edge, sections, groups, cfg);
     }
   }
 
   let junctionCount = 0;
+  let signCount = 0;
   for (const node of graph.nodes.values()) {
     if (!nodeGeneratesJunction(graph, node)) continue;
-    const built = buildJunctionMesh(graph, node, sectionsByEdge, groups);
-    if (built) junctionCount++;
+    const paveGroup = pavingGroup(widestApproachProfile(graph, node));
+    const built = buildJunctionMesh(graph, node, sectionsByEdge, groups, { paveGroup });
+    if (!built) continue;
+    junctionCount++;
+    buildApronSkirt(built, groups, cfg);
+    signCount += buildJunctionFurniture(built, node, groups, cfg);
   }
 
   let triangles = 0;
-  for (const name of GROUP_NAMES) {
-    groups[name].recalcNormals(name === 'road' || name === 'pavement' || name === 'deck' ? 55 : 40);
+  for (const name of Object.keys(groups)) {
+    groups[name].recalcNormals(SMOOTH.has(groupBase(name)) ? 55 : 40);
     triangles += groups[name].triangleCount;
   }
 
@@ -56,6 +86,7 @@ export function buildNetwork(corridors, settings = {}) {
     nodes: graph.nodes.size,
     edges: graph.edges.size,
     junctions: junctionCount,
+    signs: signCount,
     gradeSeparations: graph.crossings.filter((c) => c.separated).length,
     triangles,
     buildMs: Math.round(now() - t0),
@@ -63,6 +94,17 @@ export function buildNetwork(corridors, settings = {}) {
   };
 
   return { graph, groups, stats, sectionsByEdge };
+}
+
+// The apron takes the paving of the widest arm meeting there — the dominant street reads as continuing through.
+function widestApproachProfile(graph, node) {
+  let best = null;
+  for (const edgeId of node.edgeIds) {
+    const edge = graph.edges.get(edgeId);
+    if (!edge) continue;
+    if (!best || edge.profile.roadWidth > best.roadWidth) best = edge.profile;
+  }
+  return best || { paving: 'concrete', pavingScale: 1 };
 }
 
 function now() {
