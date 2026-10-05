@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#17191d" />
+  <meta name="description" content="RoadWorks Editor — a procedural road, junction, pavement, curb and bridge workspace." />
+  <title>RoadWorks Editor · Frontier</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./src/style.css" />
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/","polygon-clipping":"https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/+esm"}}
+  </script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-road" viewBox="0 0 24 24"><path d="M8 3 5 21M16 3l3 18M12 5v3m0 4v3m0 4v2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 3v18M16 3v18M3 8h18M3 16h18"/></symbol>
+    <symbol id="i-bridge" viewBox="0 0 24 24"><path d="M3 16h18M5 16V9m14 7V9M5 9c3.5 0 3.5 3 7 3s3.5-3 7-3M8 16v3m8-3v3M3 20h18"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="m5 3 14 10-6 1.2L10 20 5 3Z"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 2v20m-4-4 4 4 4-4M2 12h20m-4-4 4 4-4 4"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-2"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h2"/></symbol>
+    <symbol id="i-snap" viewBox="0 0 24 24"><path d="M7 3v5a5 5 0 0 0 10 0V3M12 13v8m-4 0h8"/><path d="M5 3h4m6 0h4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h10V3M7 21v-8h10v8"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
+    <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 17v4h16v-4"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8h8v8H8z"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h3v3H8zm6 0h3v3h-3zm-6 6h3v1H8zm6 0h3v1h-3z"/></symbol>
+    <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-roadmap" viewBox="0 0 24 24"><path d="M4 21 7 3m10 18L14 3M10.5 5v3m1 4v3m1 4v2"/></symbol>
+    <symbol id="i-node" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="m7 7 3 3m7-3-3 3m-7 7 3-3m7 3-3-3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m19.4 15 .1.1 1.5 1.2-1.5 2.6-1.8-.7a8 8 0 0 1-1.6.9l-.3 1.9h-3l-.3-1.9a8 8 0 0 1-1.6-.9l-1.8.7-1.5-2.6L7.1 15a8 8 0 0 1 0-1.9l-1.5-1.2 1.5-2.6 1.8.7a8 8 0 0 1 1.6-.9l.3-1.9h3l.3 1.9a8 8 0 0 1 1.6.9l1.8-.7 1.5 2.6-1.5 1.2a8 8 0 0 1-.1 1.9Z"/></symbol>
+    <symbol id="i-curve" viewBox="0 0 24 24"><path d="M4 18c3-12 13-12 16 0M4 18h16M4 18V6m16 12V6"/><circle cx="4" cy="18" r="1.5"/><circle cx="20" cy="18" r="1.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+  </svg>
+
+  <div id="app" class="app-shell">
+    <header class="menu-bar">
+      <a class="brand" href="#" aria-label="RoadWorks Editor home">
+        <span class="brand-mark"><svg><use href="#i-road"/></svg></span>
+        <span class="brand-name">ROADWORKS <small>EDITOR</small></span>
+      </a>
+      <span class="bar-divider"></span>
+      <button class="project-button" id="project-name" aria-label="Project name">
+        <span class="project-glyph"><svg><use href="#i-layers"/></svg></span>
+        <span id="project-title">Creekline flyover</span>
+        <svg class="tiny-icon"><use href="#i-chevron"/></svg>
+      </button>
+      <div class="document-status"><span class="status-dot"></span><span id="save-status">Saved locally</span></div>
+      <div class="menu-spacer"></div>
+      <button class="header-button" id="save-project"><svg><use href="#i-save"/></svg><span>Save</span></button>
+      <div class="menu-anchor">
+        <button class="header-button primary" id="export-menu-button"><svg><use href="#i-export"/></svg><span>Export</span><svg class="tiny-icon"><use href="#i-chevron"/></svg></button>
+        <div class="popup-menu hidden" id="export-menu">
+          <button id="export-json"><span class="popup-icon"><svg><use href="#i-export"/></svg></span><span><b>Network project</b><small>Save editable .json</small></span></button>
+          <button id="export-obj"><span class="popup-icon"><svg><use href="#i-layers"/></svg></span><span><b>Generated mesh</b><small>Export world-space .obj</small></span></button>
+          <div class="popup-rule"></div>
+          <button id="import-project"><span class="popup-icon"><svg><use href="#i-import"/></svg></span><span><b>Import project</b><small>Load a RoadWorks .json</small></span></button>
+        </div>
+      </div>
+      <input id="project-file" type="file" accept="application/json,.json" hidden />
+    </header>
+
+    <div class="document-bar">
+      <button class="document-tab active"><svg><use href="#i-road"/></svg><span>Road network</span><span class="tab-state"></span></button>
+      <div class="document-details"><span id="document-name">Creekline flyover</span><span class="extension">.rwn</span><span class="document-note">Procedural corridors · live junction topology</span></div>
+      <div class="document-bar-end"><span class="build-chip"><i></i>EDITOR BUILD</span><span class="document-version">v1.0</span></div>
+    </div>
+
+    <main class="workspace">
+      <aside class="panel outliner-panel" aria-label="Scene outliner">
+        <div class="panel-heading"><span>Scene</span><span class="heading-muted">Outliner</span><button class="icon-button small" id="add-road-shortcut" title="Draw road"><svg><use href="#i-plus"/></svg></button></div>
+        <div class="scene-summary">
+          <div class="summary-tile"><span class="summary-icon"><svg><use href="#i-node"/></svg></span><b id="summary-nodes">6</b><small>Nodes</small></div>
+          <div class="summary-tile"><span class="summary-icon"><svg><use href="#i-road"/></svg></span><b id="summary-roads">3</b><small>Roads</small></div>
+          <div class="summary-tile"><span class="summary-icon"><svg><use href="#i-bridge"/></svg></span><b id="summary-bridges">1</b><small>Bridge</small></div>
+        </div>
+        <label class="outliner-search"><svg><use href="#i-search"/></svg><input id="outliner-search" type="search" placeholder="Filter scene items" aria-label="Filter scene items" /></label>
+        <div class="tree-head"><span>OBJECT TREE</span><button class="text-icon-button" id="expand-tree" title="Expand scene tree"><svg><use href="#i-expand"/></svg></button></div>
+        <div class="tree-list" id="outliner-tree"></div>
+        <div class="outliner-section-head"><span>VIEW LAYERS</span><svg><use href="#i-more"/></svg></div>
+        <div class="layer-list">
+          <label class="layer-row"><span class="layer-swatch road-swatch"></span><span>Road surface</span><input type="checkbox" checked data-layer="road" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch pave-swatch"></span><span>Pavement</span><input type="checkbox" checked data-layer="pavement" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch curb-swatch"></span><span>Curbs</span><input type="checkbox" checked data-layer="curbs" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch bridge-swatch"></span><span>Bridge structure</span><input type="checkbox" checked data-layer="bridge" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch marking-swatch"></span><span>Lane markings</span><input type="checkbox" checked data-layer="markings" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch node-swatch"></span><span>Control points</span><input type="checkbox" checked data-layer="points" /><i class="checkmark"></i></label>
+          <label class="layer-row"><span class="layer-swatch grid-swatch"></span><span>Construction grid</span><input type="checkbox" checked data-layer="grid" /><i class="checkmark"></i></label>
+        </div>
+        <div class="outliner-footer"><span class="footer-label">TOPOLOGY</span><p><b id="topology-readout">1 connected junction</b><small id="crossing-readout">1 grade-separated crossing</small></p><span class="healthy-tag"><i></i>Clean graph</span></div>
+      </aside>
+
+      <section class="viewport" id="viewport" aria-label="Road network viewport">
+        <div class="scene-host" id="scene-host"></div>
+        <div class="viewport-toolbar">
+          <div class="tool-group" aria-label="Tools">
+            <button class="tool-button active" data-tool="select" title="Select · V" aria-label="Select"><svg><use href="#i-select"/></svg><span>Select</span></button>
+            <button class="tool-button" data-tool="road" title="Draw road · R" aria-label="Draw road"><svg><use href="#i-road"/></svg><span>Road</span></button>
+            <button class="tool-button" data-tool="bridge" title="Draw bridge · B" aria-label="Draw bridge"><svg><use href="#i-bridge"/></svg><span>Bridge</span></button>
+          </div>
+          <span class="tool-divider"></span>
+          <div class="tool-group compact-tools">
+            <button class="square-tool" id="undo-button" title="Undo · Ctrl+Z" aria-label="Undo"><svg><use href="#i-undo"/></svg></button>
+            <button class="square-tool" id="redo-button" title="Redo · Ctrl+Shift+Z" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
+          </div>
+          <span class="tool-divider"></span>
+          <button class="toggle-tool active" id="snap-button" title="Toggle snapping"><svg><use href="#i-snap"/></svg><span>Snap</span><i></i></button>
+          <div class="tool-spacer"></div>
+          <div class="toolbar-menu-anchor">
+            <button class="square-tool" id="viewport-menu-button" title="Viewport options"><svg><use href="#i-settings"/></svg></button>
+            <div class="popup-menu viewport-menu hidden" id="viewport-menu">
+              <button id="frame-button"><span class="popup-icon"><svg><use href="#i-fit"/></svg></span><span><b>Frame network</b><small>Fit all geometry · F</small></span></button>
+              <button id="reset-view-button"><span class="popup-icon"><svg><use href="#i-rotate"/></svg></span><span><b>Reset camera</b><small>Restore perspective view</small></span></button>
+              <div class="popup-rule"></div>
+              <button id="show-grid-button"><span class="popup-icon"><svg><use href="#i-grid"/></svg></span><span><b>Construction grid</b><small>Toggle ground grid</small></span></button>
+            </div>
+          </div>
+        </div>
+        <div class="viewport-label"><span class="eyebrow">ROAD NETWORK / 01</span><h1 id="viewport-project-name">Creekline flyover</h1><p>At-grade topology · spline corridors · procedural structures</p></div>
+        <div class="view-mode"><span class="live-indicator"></span><span id="view-mode-label">PERSPECTIVE</span><span class="view-divider"></span><span id="zoom-readout">100%</span></div>
+        <div class="draw-card hidden" id="draw-card"><div class="draw-card-icon"><svg><use href="#i-road"/></svg></div><div><b id="draw-card-title">Draw a road</b><p id="draw-card-copy">Click to place points · double-click or press Enter to finish.</p></div><button class="icon-button small" id="cancel-draw" title="Cancel drawing"><svg><use href="#i-close"/></svg></button><button class="finish-draw" id="finish-draw" disabled>Finish <kbd>↵</kbd></button></div>
+        <div class="scale-readout"><span class="scale-line"></span><b>10 m</b><span class="scale-separator"></span><span>1 unit = 1 m</span></div>
+        <div class="viewport-controls">
+          <button class="view-button" id="fit-view-button" title="Frame network"><svg><use href="#i-fit"/></svg></button>
+          <button class="view-button" id="plan-view-button" title="Toggle plan view"><svg><use href="#i-plan"/></svg><span>Plan</span></button>
+          <span class="view-button-divider"></span>
+          <button class="view-button zoom-button" id="zoom-out-button" aria-label="Zoom out">−</button>
+          <button class="view-button zoom-button" id="zoom-in-button" aria-label="Zoom in">+</button>
+        </div>
+        <div class="viewport-hint" id="viewport-hint"><span><b>Drag</b> orbit</span><i>·</i><span><b>Right-drag</b> pan</span><i>·</i><span><b>Scroll</b> zoom</span><i>·</i><span><b>Double-click</b> inspect</span></div>
+        <div class="snap-label hidden" id="snap-label"><span></span><b>SNAP</b><small>junction</small></div>
+      </section>
+
+      <aside class="panel inspector-panel" aria-label="Inspector">
+        <div class="panel-heading"><span>Inspector</span><span class="heading-muted" id="inspector-kind">Road network</span><button class="icon-button small" id="inspector-more" title="More actions"><svg><use href="#i-more"/></svg></button></div>
+        <div class="inspector-scroll" id="inspector-content"></div>
+        <div class="inspector-footer">
+          <button class="primary-action" id="rebuild-button"><svg><use href="#i-rotate"/></svg><span>Rebuild network</span><kbd>↻</kbd></button>
+          <div class="inspector-foot-actions"><button id="delete-button" class="secondary-action danger-action" disabled><svg><use href="#i-trash"/></svg>Delete</button><button id="export-object-button" class="secondary-action"><svg><use href="#i-export"/></svg>Export mesh</button></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="status-bar">
+      <div class="status-left"><span class="status-light"></span><b id="build-status">Ready</b><span class="status-dot-separator">·</span><span id="build-detail">Generated surfaces are up to date</span></div>
+      <div class="status-stats"><span><svg><use href="#i-node"/></svg><b id="status-nodes">6</b><small>nodes</small></span><span><svg><use href="#i-road"/></svg><b id="status-segments">4</b><small>segments</small></span><span><svg><use href="#i-crosshair"/></svg><b id="status-junctions">1</b><small>junction</small></span><span><svg><use href="#i-bridge"/></svg><b id="status-length">139 m</b><small>network</small></span></div>
+      <div class="status-right"><span class="status-unit">WORLD UNITS: METRES</span><span class="key-hint"><kbd>V</kbd> Select <kbd>R</kbd> Road <kbd>B</kbd> Bridge</span></div>
+    </footer>
+    <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
