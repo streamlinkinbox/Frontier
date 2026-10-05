@@ -2,9 +2,9 @@
 
 ## RoadWorks Editor
 
-A standalone, static road-network and bridge editor is available at `app/roadworks.html` (no build step or backend required). Once this branch is pushed, it can be opened directly through raw.githack:
+A standalone, static road-network and bridge editor is available at `app/roadworks.html` (no build step or backend required). It can be opened directly through raw.githack:
 
-**[Open RoadWorks Editor](https://raw.githack.com/streamlinkinbox/Frontier/arena%2Ff8055fcd-frontier/app/roadworks.html)**
+**[Open RoadWorks Editor](https://raw.githack.com/streamlinkinbox/Frontier/c83732630570d6d087ee8320ffc6aee7464b9e5c/app/roadworks.html)**
 
 The editor keeps network topology separate from surface geometry: road endpoints attach to shared node IDs, junction surfaces are built from those shared nodes, and curved pavements and curbs are generated as parallel offsets along sampled alignments. It includes a connected-grid / riverside generator, editable road profiles, procedural bridge deck and support options, local save/undo, and JSON/SVG import/export.
 
