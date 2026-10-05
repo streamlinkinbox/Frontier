@@ -1,0 +1,367 @@
+//============================================================================================================================================
+//                                                              VIEWPORT.JS
+//============================================================================================================================================
+// WebGL presentation layer: Z-up scene, studio lighting, the generated network, and the editable overlay (corridor
+// ribbons, control-point handles, junction markers). Orbiting, panning and zooming are hand-rolled so the editor has
+// no runtime dependency beyond three.js itself.
+
+import * as THREE from 'three';
+import { TranslateGizmo } from './Gizmo.js';
+
+export const MATERIAL_STYLES = {
+  road: { color: 0x32363d, roughness: 0.95, metalness: 0.0 },
+  curb: { color: 0x9ea3aa, roughness: 0.82, metalness: 0.0 },
+  pavement: { color: 0x6b7077, roughness: 0.92, metalness: 0.0 },
+  markings: { color: 0xe6e2d6, roughness: 0.7, metalness: 0.0, emissive: 0x15140f },
+  deck: { color: 0x8b8e93, roughness: 0.88, metalness: 0.0 },
+  structure: { color: 0x59616e, roughness: 0.55, metalness: 0.55 },
+  piers: { color: 0x7c7f85, roughness: 0.9, metalness: 0.0 },
+  railing: { color: 0xa7adb5, roughness: 0.6, metalness: 0.35 },
+  cables: { color: 0xc6cad0, roughness: 0.4, metalness: 0.7 },
+};
+
+export class Viewport {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x242831);
+    this.scene.fog = new THREE.Fog(0x242831, 240, 900);
+
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.5, 4000);
+    this.camera.up.set(0, 0, 1);
+
+    this.target = new THREE.Vector3(0, 0, 0);
+    this.spherical = { radius: 160, theta: -Math.PI * 0.35, phi: Math.PI * 0.32 };
+
+    this._buildLights();
+    this._buildGround();
+
+    this.networkGroup = new THREE.Group();
+    this.scene.add(this.networkGroup);
+    this.overlayGroup = new THREE.Group();
+    this.scene.add(this.overlayGroup);
+
+    this.gizmo = new TranslateGizmo(this.scene);
+    this.raycaster = new THREE.Raycaster();
+    this.raycaster.params.Line.threshold = 1.2;
+    this.pointer = new THREE.Vector2();
+
+    this.meshes = new Map();
+    this.handleMeshes = [];
+    this.corridorLines = [];
+    this.displayMode = 'shaded';
+    this.showGround = true;
+    this.showMarkings = true;
+
+    this._applyCamera();
+    this.resize();
+  }
+
+  _buildLights() {
+    this.hemi = new THREE.HemisphereLight(0x8fa2bd, 0x33363c, 0.75);
+    this.scene.add(this.hemi);
+
+    this.sun = new THREE.DirectionalLight(0xffeedd, 2.1);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    const d = 160;
+    this.sun.shadow.camera.left = -d;
+    this.sun.shadow.camera.right = d;
+    this.sun.shadow.camera.top = d;
+    this.sun.shadow.camera.bottom = -d;
+    this.sun.shadow.camera.near = 1;
+    this.sun.shadow.camera.far = 700;
+    this.sun.shadow.bias = -0.0008;
+    this.scene.add(this.sun);
+    this.scene.add(this.sun.target);
+    this.setSunAzimuth(-35);
+
+    this.fill = new THREE.DirectionalLight(0x9bb3d4, 0.45);
+    this.fill.position.set(-80, 120, 60);
+    this.scene.add(this.fill);
+  }
+
+  setSunAzimuth(deg) {
+    this.sunAzimuth = deg;
+    const a = (deg * Math.PI) / 180;
+    this.sun.position.set(Math.cos(a) * 150, Math.sin(a) * 150, 185);
+  }
+
+  setShadows(on) {
+    this.sun.castShadow = on;
+    this.renderer.shadowMap.needsUpdate = true;
+  }
+
+  _buildGround() {
+    this.groundGroup = new THREE.Group();
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(2400, 2400),
+      new THREE.MeshStandardMaterial({ color: 0x2c313a, roughness: 1.0, metalness: 0 }),
+    );
+    plane.position.z = -0.02;
+    plane.receiveShadow = true;
+    this.ground = plane;
+    this.groundGroup.add(plane);
+
+    const grid = new THREE.GridHelper(1200, 120, 0x3c4250, 0x31353e);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = 0.002;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.55;
+    this.grid = grid;
+    this.groundGroup.add(grid);
+    this.scene.add(this.groundGroup);
+  }
+
+  setGroundVisible(v) {
+    this.showGround = v;
+    this.groundGroup.visible = v;
+  }
+
+  // ── network meshes ───────────────────────────────────────────────────────────────────────────────────────────────
+
+  setNetwork(groups) {
+    for (const [name, mesh] of this.meshes) {
+      this.networkGroup.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      void name;
+    }
+    this.meshes.clear();
+
+    for (const [name, spec] of Object.entries(groups)) {
+      if (!spec || spec.triangleCount === 0) continue;
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(spec.positions, 3));
+      if (spec.normals.length === spec.positions.length) {
+        geometry.setAttribute('normal', new THREE.Float32BufferAttribute(spec.normals, 3));
+      }
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(spec.uvs, 2));
+      geometry.setIndex(spec.indices);
+      if (spec.normals.length !== spec.positions.length) geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+
+      const style = MATERIAL_STYLES[name] || MATERIAL_STYLES.road;
+      const material = new THREE.MeshStandardMaterial({
+        ...style,
+        side: THREE.DoubleSide,
+        wireframe: this.displayMode === 'wireframe',
+        flatShading: this.displayMode === 'surfaces',
+      });
+      if (name === 'markings') {
+        material.polygonOffset = true;
+        material.polygonOffsetFactor = -2;
+        material.polygonOffsetUnits = -2;
+      }
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = name !== 'markings';
+      mesh.receiveShadow = true;
+      mesh.visible = name === 'markings' ? this.showMarkings : true;
+      mesh.name = name;
+      this.networkGroup.add(mesh);
+      this.meshes.set(name, mesh);
+    }
+  }
+
+  setDisplayMode(mode) {
+    this.displayMode = mode;
+    for (const mesh of this.meshes.values()) {
+      mesh.material.wireframe = mode === 'wireframe';
+      mesh.material.flatShading = mode === 'surfaces';
+      mesh.material.needsUpdate = true;
+    }
+  }
+
+  setMarkingsVisible(v) {
+    this.showMarkings = v;
+    const m = this.meshes.get('markings');
+    if (m) m.visible = v;
+  }
+
+  // ── editable overlay ─────────────────────────────────────────────────────────────────────────────────────────────
+
+  setOverlay(corridors, graph, selection) {
+    for (const child of [...this.overlayGroup.children]) {
+      this.overlayGroup.remove(child);
+      child.geometry?.dispose?.();
+      child.material?.dispose?.();
+    }
+    this.handleMeshes = [];
+
+    for (const corridor of corridors) {
+      const selected = selection?.corridorId === corridor.id;
+      const colour = selected ? 0xd6a665 : corridor.family === 'bridge' ? 0x7fa7c9 : 0x79808c;
+
+      if (corridor.samples && corridor.samples.length > 1) {
+        const positions = [];
+        for (const p of corridor.samples) positions.push(p.x, p.y, p.z + 0.08);
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ color: colour, transparent: true, opacity: selected ? 0.95 : 0.5, depthTest: false }));
+        line.renderOrder = 10;
+        line.userData.corridorId = corridor.id;
+        this.overlayGroup.add(line);
+      }
+
+      corridor.points.forEach((p, index) => {
+        const isSelectedPoint = selected && selection.pointIndex === index;
+        const size = isSelectedPoint ? 0.95 : 0.7;
+        const handle = new THREE.Mesh(
+          new THREE.SphereGeometry(size, 14, 10),
+          new THREE.MeshBasicMaterial({
+            color: isSelectedPoint ? 0xf1c994 : selected ? 0xd6a665 : 0x5b626d,
+            depthTest: false,
+            transparent: true,
+            opacity: 0.95,
+          }),
+        );
+        handle.position.set(p.x, p.y, p.z);
+        handle.renderOrder = 20;
+        handle.userData = { corridorId: corridor.id, pointIndex: index, handle: true };
+        this.overlayGroup.add(handle);
+        if (!corridor.draft) this.handleMeshes.push(handle);
+
+        if (p.z > 0.05) {
+          const stem = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p.x, p.y, 0), new THREE.Vector3(p.x, p.y, p.z)]),
+            new THREE.LineBasicMaterial({ color: 0x4e5663, transparent: true, opacity: 0.7, depthTest: false }),
+          );
+          stem.renderOrder = 9;
+          this.overlayGroup.add(stem);
+        }
+      });
+    }
+
+    if (graph) {
+      for (const node of graph.nodes.values()) {
+        if (node.degree < 2) continue;
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(node.cornerRadius - 0.25, node.cornerRadius, 48),
+          new THREE.MeshBasicMaterial({ color: node.degree >= 3 ? 0xd6a665 : 0x5d6775, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthTest: false }),
+        );
+        ring.position.set(node.co.x, node.co.y, node.co.z + 0.06);
+        ring.renderOrder = 8;
+        this.overlayGroup.add(ring);
+      }
+    }
+  }
+
+  setOverlayVisible(v) {
+    this.overlayGroup.visible = v;
+    this.gizmo.enabled = v;
+    if (!v) this.gizmo.detach();
+  }
+
+  // ── camera ───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  _applyCamera() {
+    const { radius, theta, phi } = this.spherical;
+    const sinPhi = Math.sin(phi);
+    this.camera.position.set(
+      this.target.x + radius * sinPhi * Math.cos(theta),
+      this.target.y + radius * sinPhi * Math.sin(theta),
+      this.target.z + radius * Math.cos(phi),
+    );
+    this.camera.lookAt(this.target);
+    this.sun.target.position.copy(this.target);
+    this.sun.target.updateMatrixWorld();
+  }
+
+  orbit(dx, dy) {
+    this.spherical.theta -= dx * 0.006;
+    this.spherical.phi = Math.max(0.04, Math.min(Math.PI * 0.495, this.spherical.phi - dy * 0.006));
+    this._applyCamera();
+  }
+
+  pan(dx, dy) {
+    const scale = this.spherical.radius * 0.0016;
+    const right = new THREE.Vector3().subVectors(this.camera.position, this.target).cross(this.camera.up).normalize();
+    const up = new THREE.Vector3().crossVectors(right, new THREE.Vector3().subVectors(this.camera.position, this.target)).normalize();
+    this.target.addScaledVector(right, -dx * scale);
+    this.target.addScaledVector(up, -dy * scale);
+    this._applyCamera();
+  }
+
+  zoom(delta) {
+    this.spherical.radius = Math.max(6, Math.min(1400, this.spherical.radius * (1 + delta * 0.0014)));
+    this._applyCamera();
+  }
+
+  frame(bounds) {
+    if (!bounds) return;
+    const cx = (bounds.min.x + bounds.max.x) * 0.5;
+    const cy = (bounds.min.y + bounds.max.y) * 0.5;
+    const cz = (bounds.min.z + bounds.max.z) * 0.5;
+    const size = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, 20);
+    this.target.set(cx, cy, cz);
+    this.spherical.radius = size * 1.5 + 30;
+    this._applyCamera();
+  }
+
+  setView(name) {
+    if (name === 'top') {
+      this.spherical.theta = -Math.PI / 2;
+      this.spherical.phi = 0.05;
+    } else if (name === 'front') {
+      this.spherical.theta = -Math.PI / 2;
+      this.spherical.phi = Math.PI * 0.46;
+    } else if (name === 'iso') {
+      this.spherical.theta = -Math.PI * 0.35;
+      this.spherical.phi = Math.PI * 0.32;
+    }
+    this._applyCamera();
+  }
+
+  // ── picking ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  updatePointer(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    return this.raycaster;
+  }
+
+  pickHandle() {
+    const hits = this.raycaster.intersectObjects(this.handleMeshes, false);
+    return hits.length ? hits[0].object.userData : null;
+  }
+
+  pickGroundPoint(height = 0) {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -height);
+    const hit = new THREE.Vector3();
+    return this.raycaster.ray.intersectPlane(plane, hit) ? { x: hit.x, y: hit.y, z: height } : null;
+  }
+
+  pickSurface() {
+    const meshes = [...this.meshes.values()];
+    const hits = this.raycaster.intersectObjects(meshes, false);
+    if (hits.length) return { x: hits[0].point.x, y: hits[0].point.y, z: hits[0].point.z };
+    return this.pickGroundPoint(0);
+  }
+
+  // ── loop ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  resize() {
+    const w = this.canvas.clientWidth || 1;
+    const h = this.canvas.clientHeight || 1;
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  render() {
+    this.gizmo.updateScale(this.camera);
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+export { THREE };

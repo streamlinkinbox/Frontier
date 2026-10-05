@@ -1,0 +1,139 @@
+<!doctype html>
+<!--
+//============================================================================================================================================
+//                                                               INDEX.HTML
+//============================================================================================================================================
+// 📦 Static browser entry for RoadWorks Editor — procedural road network and bridge authoring.
+//    No build step: open the file directly, or through raw.githack.com straight from the repository.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadWorks Editor · Frontier</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="styles/Workspace.css">
+<link rel="icon" href="data:,">
+<!-- three.js is vendored (lib/) so the editor runs straight from a raw file host with no build step or CDN. -->
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
+</head>
+<body>
+
+<svg class="Symbols" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="RoadIcon" viewBox="0 0 24 24"><path d="M7 3 4 21M17 3l3 18M12 4v3m0 4v3m0 4v3"/></symbol>
+<symbol id="BridgeIcon" viewBox="0 0 24 24"><path d="M2 10h20M4 10v9M20 10v9M2 15c4-6 16-6 20 0M8 12.2V19M16 12.2V19M12 11.3V19"/></symbol>
+<symbol id="NodeIcon" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="4"/></symbol>
+<symbol id="CameraIcon" viewBox="0 0 24 24"><path d="M3 7h12v12H3zM15 11l6-4v12l-6-4M6 7V4h6v3"/></symbol>
+<symbol id="SunIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></symbol>
+<symbol id="GridIcon" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
+<symbol id="FrameIcon" viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h8v8H8z"/></symbol>
+</defs></svg>
+
+<div class="MenuBar">
+  <span class="Brand">RoadWorks</span>
+  <b>Editor</b>
+  <button class="text-button" id="NewDoc">New</button>
+  <button class="text-button" id="OpenDoc">Open</button>
+  <button class="text-button" id="SaveDoc">Save</button>
+  <span class="MenuMuted">Procedural road network &amp; bridge authoring</span>
+  <span class="BuildLabel">FRONTIER · EXPERIMENTAL</span>
+  <span class="MenuRight"><span class="Dot"></span> Graph solver ready</span>
+</div>
+
+<div class="DocumentBar">
+  <div class="DocumentTab"><svg><use href="#RoadIcon"/></svg><input id="DocumentName" value="Estuary crossing" aria-label="Document name" maxlength="48"><span>.roadworks</span></div>
+  <span class="DocumentHint">Merged junction topology · curvature-corrected curbs &amp; pavements · parametric bridges</span>
+  <span class="ToolbarSpace"></span>
+  <span class="DocumentHint">Units: metres · Z-up</span>
+</div>
+
+<main class="Workspace">
+
+  <aside class="Outliner">
+    <div class="PanelHeader">Outliner <span>Scene</span></div>
+    <div class="SceneCensus">
+      <span class="CensusTile">◆ <b id="CensusCorridors">0</b><small>Corridors</small></span>
+      <span class="CensusTile">✛ <b id="CensusJunctions">0</b><small>Junctions</small></span>
+    </div>
+    <div class="OutlinerEntry"><svg><use href="#CameraIcon"/></svg>Editor camera<span class="Tile">●</span></div>
+    <div class="OutlinerEntry"><svg><use href="#SunIcon"/></svg>Studio sun<span class="Tile">●</span></div>
+    <div class="OutlinerEntry"><svg><use href="#GridIcon"/></svg>Ground plane<span class="Tile">●</span></div>
+
+    <div class="PanelHeader StageHeader">Corridors <span>Network</span></div>
+    <div class="AddRow">
+      <button id="AddRoad"><svg><use href="#RoadIcon"/></svg>Add road</button>
+      <button id="AddBridge"><svg><use href="#BridgeIcon"/></svg>Add bridge</button>
+    </div>
+    <div id="CorridorList" class="CorridorList"></div>
+
+    <div class="ScopeNote">
+      <b>TOPOLOGY FIRST</b>
+      <p>Corridors are split at every planar crossing, welded into shared junction nodes, then trimmed by a radius derived from the widths and angles meeting there.</p>
+      <p>Vertically separated crossings stay separate and become grade separations for the bridge generator.</p>
+    </div>
+
+    <div class="OutlinerBottom">
+      <div class="PanelHeader">Selection</div>
+      <p id="SelectionName">Nothing selected</p>
+      <p class="Small" id="SelectionDetail">Click a corridor to edit it · Shift-click a ribbon to insert a point</p>
+    </div>
+  </aside>
+
+  <section class="Viewport" id="Viewport">
+    <div class="ViewportToolbar">
+      <span class="ViewTitle">Perspective</span>
+      <span class="ToolbarDivider"></span>
+      <button id="ToolSelect" class="Active" title="Select &amp; move · 1">Select</button>
+      <button id="ToolRoad" title="Draw a road corridor · 2">Draw road</button>
+      <button id="ToolBridge" title="Draw a bridge corridor · 3">Draw bridge</button>
+      <span class="ToolbarDivider"></span>
+      <button id="ViewShaded" class="Active">Shaded</button>
+      <button id="ViewWire">Wireframe</button>
+      <button id="ViewSurfaces">Surfaces</button>
+      <span class="ToolbarSpace"></span>
+      <button id="Frame" title="Frame network · F"><svg><use href="#FrameIcon"/></svg><span>Frame</span></button>
+      <button id="ViewTop">Top</button>
+      <button id="ViewIso">Iso</button>
+    </div>
+    <canvas id="SceneCanvas"></canvas>
+    <div class="ViewCaption">
+      <span class="Eyebrow">ROAD NETWORK CONSTRUCTION</span>
+      <h1>RoadWorks Editor</h1>
+      <p>Draw corridors, raise them into bridges, and the solver merges every intersection it finds.</p>
+    </div>
+    <div class="ScaleBadge"><span></span><b>20 m</b></div>
+    <div class="ViewportHint">Drag orbit <i>·</i> Right-drag pan <i>·</i> Scroll zoom <i>·</i> Drag handles to move <i>·</i> Shift-click a ribbon to insert <i>·</i> Del removes <i>·</i> F frames</div>
+    <div class="Loading" id="Loading"><div class="Spinner"></div><strong>Building network</strong><p>Splitting corridors and welding junctions…</p></div>
+    <div id="Failure" class="Failure" hidden></div>
+  </section>
+
+  <aside class="Inspector">
+    <div class="PanelHeader">Inspector <span id="InspectorTitle">Network</span></div>
+    <div class="InspectorScroll" id="InspectorBody"></div>
+    <div class="InspectorFooter">
+      <button id="Rebuild" class="Primary">Rebuild network</button>
+      <div>
+        <button id="ExportObj">Export OBJ</button>
+        <button id="SaveDocFooter" hidden></button>
+      </div>
+      <input id="DocFile" type="file" accept="application/json,.json" hidden>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="StatusBar">
+  <span id="StatusDot" class="Dot"></span>
+  <span id="Status">Starting up</span>
+  <span class="ToolbarSpace"></span>
+  <span id="TriangleCount">— triangles</span>
+  <span class="StatusDivider">|</span>
+  <span>Units: metres</span>
+  <span class="StatusDivider">|</span>
+  <span>Raster · WebGL</span>
+</footer>
+
+<script type="module" src="src/App.js"></script>
+</body>
+</html>
