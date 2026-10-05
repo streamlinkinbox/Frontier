@@ -6,7 +6,7 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js';
+import { TranslateGizmo } from './Gizmo.js?v=2';
 
 export const MATERIAL_STYLES = {
   road: { color: 0x32363d, roughness: 0.95, metalness: 0.0 },

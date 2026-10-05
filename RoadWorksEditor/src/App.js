@@ -4,13 +4,13 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js';
-import { buildNetwork, GROUP_NAMES } from './Network.js';
-import { toObj } from './MeshSpec.js';
-import { sampleSpline, closestOnPolyline } from './Spline.js';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js';
-import { GRAPH_DEFAULTS } from './Graph.js';
+import { Viewport } from './Viewport.js?v=2';
+import { buildNetwork, GROUP_NAMES } from './Network.js?v=2';
+import { toObj } from './MeshSpec.js?v=2';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=2';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=2';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=2';
+import { GRAPH_DEFAULTS } from './Graph.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;

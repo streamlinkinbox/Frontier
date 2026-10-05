@@ -9,8 +9,8 @@
 // free of cusps and self-intersections inside a span. Smoothness is therefore a property of the solver rather than
 // something the user has to hand-tune.
 
-import { clamp, dist, lerp, sub, vec } from './Vec.js';
-import { dedupe, polylineLength } from './Polyline.js';
+import { clamp, dist, lerp, sub, vec } from './Vec.js?v=2';
+import { dedupe, polylineLength } from './Polyline.js?v=2';
 
 const ALPHA = 0.5; // centripetal
 

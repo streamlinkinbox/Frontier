@@ -4,11 +4,11 @@
 // Orchestration: corridors → graph → meshes. One call rebuilds the whole network into a handful of material groups
 // (road, curb, pavement, markings, deck, structure, piers, railing, cables) plus diagnostics for the inspector.
 
-import { MeshSpec } from './MeshSpec.js';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js';
-import { buildJunctionMesh } from './JunctionMesh.js';
-import { buildBridgeMesh } from './BridgeMesh.js';
+import { MeshSpec } from './MeshSpec.js?v=2';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=2';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=2';
+import { buildJunctionMesh } from './JunctionMesh.js?v=2';
+import { buildBridgeMesh } from './BridgeMesh.js?v=2';
 
 export const GROUP_NAMES = ['road', 'curb', 'pavement', 'markings', 'deck', 'structure', 'piers', 'railing', 'cables'];
 

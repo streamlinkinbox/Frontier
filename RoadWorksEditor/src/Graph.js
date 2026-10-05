@@ -14,10 +14,10 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js';
-import { dedupe, polylineLength } from './Polyline.js';
-import { sampleSpline } from './Spline.js';
-import { resolveProfile } from './Profiles.js';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=2';
+import { dedupe, polylineLength } from './Polyline.js?v=2';
+import { sampleSpline } from './Spline.js?v=2';
+import { resolveProfile } from './Profiles.js?v=2';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
