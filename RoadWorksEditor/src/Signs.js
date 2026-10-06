@@ -10,8 +10,8 @@
 // Markings are painted 13 mm proud of the carriageway with the same camber as the road underneath, so they never
 // z-fight and never float off a cambered surface.
 
-import { MeshSpec } from './MeshSpec.js?v=3';
-import { SIGN_UV } from './Textures.js?v=3';
+import { MeshSpec } from './MeshSpec.js?v=4';
+import { SIGN_UV } from './Textures.js?v=4';
 
 export const SIGNAGE_DEFAULTS = {
   signage: 'stop', // stop | yield | none
@@ -144,7 +144,9 @@ function post(out, frame, profile, opts) {
     const py = plateCentre.y + L.y * lx;
     front.push({ x: px - T.x * thickness * 0.5, y: py - T.y * thickness * 0.5, z: plateCentre.z + lz });
     back2.push({ x: px + T.x * thickness * 0.5, y: py + T.y * thickness * 0.5, z: plateCentre.z + lz });
-    const u = 0.5 + lx / (2 * r);
+    // The plate faces −tangent, so a viewer reading it has +left on their LEFT. Texture u must therefore run the
+    // other way, otherwise STOP comes out mirrored.
+    const u = 0.5 - lx / (2 * r);
     const v = 0.5 + lz / (2 * r);
     uvsFront.push({ x: cellF.u0 + u * (cellF.u1 - cellF.u0), y: cellF.v0 + v * (cellF.v1 - cellF.v0) });
     uvsBack.push({ x: cellB.u0 + u * (cellB.u1 - cellB.u0), y: cellB.v0 + v * (cellB.v1 - cellB.v0) });

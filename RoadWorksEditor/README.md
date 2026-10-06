@@ -21,14 +21,22 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Paving | Nine procedural paving patterns drawn to canvas at runtime (colour + derived normal map), tiled in metres and selectable per corridor, with a paving-width and paver-scale control. |
 | Roadbed | Anything above ground gets a real underside: earth embankment, board-marked retaining wall, slab soffit, or auto (fill until it exceeds `maxFill`, then wall). Elevated junction aprons get the same treatment, and bridge approaches are filled rather than spanned. |
 | Signage | Stop or yield signs on every arm of a 3+ way junction, stop bars on the approaching half, and zebra crossings — all positioned from the junction's own approach frames. |
-| Bridges | Cantilevered deck with inset soffit, six superstructure families, four pier families, three railing families, abutments. |
+| Guardrails | Six roadside restraint systems swept as real cross-sections — W-beam, thrie-beam, wire rope, Jersey, parapet, tubular handrail — either along the whole corridor or only where the embankment exceeds a trigger height. |
+| Bridges | Cantilevered deck with inset soffit, eleven superstructure families, four pier families, three railing families, bearing pads, abutments. |
 | Output | Wavefront OBJ (Y-up, metres) and a `.roadworks.json` document you can reload. |
 
 ### Bridge catalogue
 
-* **Superstructure** — beam / girder, box girder, deck arch, Warren truss, suspension, cable-stayed
+* **Superstructure** — beam / girder, box girder, solid slab (haunched over supports), haunched balanced
+  cantilever (parabolic soffit, casting-segment ribs), deck arch, tied bowstring arch (hangers + crown bracing),
+  masonry viaduct (segmental barrels, spandrel walls, voussoir rings, string course), Warren truss, Pratt through
+  truss (portal + sway bracing, floor beams), suspension, cable-stayed
 * **Substructure** — wall pier, twin column, hammerhead, V-pier, or abutments only
 * **Furniture** — concrete parapet, steel rail, Jersey barrier, none
+* **Bearings** — elastomeric pads under each girder line at every support, for the families that sit on them
+
+Structures that span their whole opening — tied arch, through truss, masonry arcade — suppress the generic
+intermediate piers, because a column under a self-supporting span is nonsense.
 
 Every member is generated from a small swept-box / tube kit, so adding a new superstructure or pier family is a
 recipe, not a new mesh pipeline.
@@ -66,6 +74,8 @@ src/
   Graph.js              crossing detection, node welding, edge extraction, corner radii
   Roadbed.js            embankment / retaining wall / slab soffit under anything above grade
   Signs.js              stop + yield signs, stop bars, zebra crossings
+  Guardrail.js          roadside restraint systems: corrugated beams, wire rope, concrete, handrail
+  Ray.js                closest-point solves for the gizmo, kept pure so they can be unit-tested
   Textures.js           runtime canvas paving, asphalt, concrete, earth and sign textures
   RoadMesh.js           cross-sections, swept corridor mesh, markings
   JunctionMesh.js       fillets, offset bands, Coons aprons
@@ -103,6 +113,13 @@ unreliable were *not* carried over; they were replaced:
   recomputed, so the junction ring and the corridor end ring share identical vertices.
 * **Gizmo drift.** The grab offset is recorded once on pointer-down and each move solves a single ray/plane (or
   ray/line) intersection, so dragging is exact and frame-rate independent.
+* **Guardrails.** A barrier is placed from the same miter-scaled station frames as the curb, so it tracks a curve
+  without clipping the pavement it stands on, and the default rule only rails the stretches that are actually on
+  fill. Steel families are swept corrugated sections on posts at the real 1.905 m spacing with blockout spacers;
+  concrete families are solid swept profiles.
+* **Readable sign faces.** A viewer facing a sign plate has its `+left` axis on their *left*, so the texture `u`
+  must run the other way — getting that backwards is what mirrored the STOP legend, and `smoke-test.mjs` now
+  checks the sign of `grad u · (Z × n)` on every plate instead of trusting review.
 * **Bridges.** The deck is a cantilevered slab with a chamfered fascia and inset soffit rather than an extruded
   slab, and everything below it is a parametric family rather than one hard-coded shape.
 
@@ -118,7 +135,7 @@ than a node id, because node ids are derived from coordinates and change the ins
 ## Verification
 
 ```bash
-node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving groups, every bridge/pier/railing combination
+node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, gizmo maths, every bridge/pier/railing combination
 node tools/boot-test.mjs                       # boots the editor shell, clicks the toolbar, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```

@@ -13,9 +13,9 @@
 //
 // Members are built from a generic swept-box / tube kit so new superstructure or pier families only need a recipe.
 
-import { add, addScaled, clamp, cross, dist, len, lerp, norm, sub, vec } from './Vec.js?v=3';
-import { cumulativeLengths } from './Polyline.js?v=3';
-import { MeshSpec } from './MeshSpec.js?v=3';
+import { add, addScaled, clamp, cross, dist, len, lerp, norm, sub, vec } from './Vec.js?v=4';
+import { cumulativeLengths } from './Polyline.js?v=4';
+import { MeshSpec } from './MeshSpec.js?v=4';
 
 export const BRIDGE_DEFAULTS = {
   type: 'beam',
@@ -215,6 +215,21 @@ export function buildBridgeMesh(edge, sections, out, settings = {}) {
     case 'box':
       buildBoxGirder(ctx);
       break;
+    case 'slab':
+      buildSlab(ctx);
+      break;
+    case 'cantilever':
+      buildCantilever(ctx);
+      break;
+    case 'tiedarch':
+      buildTiedArch(ctx);
+      break;
+    case 'throughtruss':
+      buildThroughTruss(ctx);
+      break;
+    case 'masonry':
+      buildMasonryArches(ctx);
+      break;
     case 'arch':
       buildArch(ctx);
       break;
@@ -245,7 +260,34 @@ export function buildBridgeMesh(edge, sections, out, settings = {}) {
 
 function girderDepthFor(cfg) {
   if (cfg.type === 'beam' || cfg.type === 'box') return cfg.girderDepth;
+  if (cfg.type === 'slab') return 0.25;
+  if (cfg.type === 'cantilever') return cfg.girderDepth * 2.6; // haunched: deepest over the piers
   return 0.15;
+}
+
+// Spans used by the families that care where the piers land, so the structure and the substructure agree.
+function spanLayout(cfg, total) {
+  const spacing = Math.max(8, cfg.pierSpacing);
+  const count = Math.max(0, Math.floor(total / spacing));
+  const piers = [];
+  for (let i = 1; i <= count; i++) piers.push((total * i) / (count + 1));
+  return { piers, spans: [0, ...piers, total] };
+}
+
+// Elastomeric bearing pads under a girder line at a support — small, but their absence is what makes a bridge read
+// as one extruded lump instead of a structure sitting on something.
+function addBearings(spec, stations, d, laterals, z, size = 0.5) {
+  const s = stationAtDistance(stations, d);
+  for (const lat of laterals) {
+    const h = 0.12;
+    const f = (lateral, along, zz) => ({ ...addScaled(addScaled(s.base, s.left, lateral), s.tangent, along), z: zz });
+    spec.addBox([
+      f(lat - size * 0.5, -size * 0.4, z - h), f(lat + size * 0.5, -size * 0.4, z - h),
+      f(lat + size * 0.5, size * 0.4, z - h), f(lat - size * 0.5, size * 0.4, z - h),
+      f(lat - size * 0.5, -size * 0.4, z), f(lat + size * 0.5, -size * 0.4, z),
+      f(lat + size * 0.5, size * 0.4, z), f(lat - size * 0.5, size * 0.4, z),
+    ]);
+  }
 }
 
 // ── superstructure families ───────────────────────────────────────────────────────────────────────────────────────
@@ -489,6 +531,279 @@ function buildCableStayed({ cfg, stations, total, halfL, halfR, soffitZ, structu
   }
 }
 
+// Solid slab: no girders at all, just a thickened deck with a chamfered soffit edge and a modest haunch over each
+// pier. The right answer for short spans, and the cheapest thing to look at.
+function buildSlab({ cfg, stations, total, halfL, halfR, inset, soffitZ, structure, piers }) {
+  const extra = clamp(cfg.girderDepth * 0.35, 0.18, 0.6);
+  const left = halfL - inset;
+  const right = -halfR + inset;
+  const { piers: pierDs } = spanLayout(cfg, total);
+
+  // depth swells smoothly to `extra` over each support
+  const depthAt = (d) => {
+    let best = 0;
+    for (const pd of [0, ...pierDs, total]) {
+      const reach = Math.max(4, Math.min(12, total * 0.12));
+      const t = clamp(1 - Math.abs(d - pd) / reach, 0, 1);
+      best = Math.max(best, t * t * (3 - 2 * t));
+    }
+    return extra * best;
+  };
+
+  for (let i = 0; i < stations.length - 1; i++) {
+    const a = stations[i];
+    const b = stations[i + 1];
+    const da = depthAt(a.distance);
+    const db = depthAt(b.distance);
+    if (da < 1e-3 && db < 1e-3) continue;
+    structure.addFace([a.at(left, soffitZ), b.at(left, soffitZ), b.at(left, soffitZ - db), a.at(left, soffitZ - da)]);
+    structure.addFace([a.at(right, soffitZ - da), b.at(right, soffitZ - db), b.at(right, soffitZ), a.at(right, soffitZ)]);
+    structure.addFace([a.at(right, soffitZ - da), b.at(right, soffitZ - db), b.at(left, soffitZ - db), a.at(left, soffitZ - da)]);
+  }
+  for (const d of [0, ...pierDs, total]) {
+    addBearings(piers, stations, d, [left * 0.55, right * 0.55], stationAtDistance(stations, d).base.z + soffitZ - depthAt(d), 0.6);
+  }
+}
+
+// Balanced cantilever box girder: the soffit is a parabola between piers, deepest over each support and shallowest
+// at midspan, with a visible casting-segment rhythm on the web.
+function buildCantilever({ cfg, stations, total, halfL, halfR, inset, soffitZ, structure, piers }) {
+  const midDepth = Math.max(0.8, cfg.girderDepth);
+  const pierDepth = midDepth * 2.6;
+  const { piers: pierDs, spans } = spanLayout(cfg, total);
+  const topL = (halfL - inset) * 0.86;
+  const topR = (-halfR + inset) * 0.86;
+  const botL = topL * 0.56;
+  const botR = topR * 0.56;
+
+  // Depth profile: parabolic within each span, pinned deep at every support.
+  const depthAt = (d) => {
+    for (let i = 0; i < spans.length - 1; i++) {
+      const a = spans[i];
+      const b = spans[i + 1];
+      if (d < a - 1e-6 || d > b + 1e-6) continue;
+      const t = (d - a) / Math.max(b - a, 1e-6);
+      const deepA = i === 0 ? midDepth : pierDepth;
+      const deepB = i === spans.length - 2 ? midDepth : pierDepth;
+      // two half-parabolas meeting at midspan
+      const u = Math.abs(2 * t - 1);
+      const deep = t < 0.5 ? deepA : deepB;
+      return midDepth + (deep - midDepth) * u * u;
+    }
+    return midDepth;
+  };
+
+  const rings = stations.map((s) => {
+    const dep = depthAt(s.distance);
+    return [s.at(topR, soffitZ), s.at(botR, soffitZ - dep), s.at(botL, soffitZ - dep), s.at(topL, soffitZ)];
+  });
+  structure.addLoftClosed(rings, { capStart: true, capEnd: true });
+
+  // segment joints: a shallow rib every ~4 m reads as the casting segments
+  for (let d = 4; d < total - 1; d += 4) {
+    const s = stationAtDistance(stations, d);
+    const dep = depthAt(d);
+    for (const lat of [topL, topR]) {
+      addMember(structure, s.at(lat * 1.02, soffitZ - 0.15), s.at(lat * 0.6, soffitZ - dep + 0.15), 0.1, 0.1);
+    }
+  }
+  for (const d of pierDs) {
+    addBearings(piers, stations, d, [botL * 0.7, botR * 0.7], stationAtDistance(stations, d).base.z + soffitZ - depthAt(d), 0.8);
+  }
+}
+
+// Tied (bowstring) arch: the arch rises *above* the deck, hangers drop to the deck edge, and a tie girder along the
+// deck takes the thrust — so the whole thing can sit on two simple bearings instead of thrust blocks.
+function buildTiedArch({ cfg, stations, total, halfL, halfR, soffitZ, structure, cables }) {
+  const rise = Math.max(4, cfg.archRise * 1.6);
+  const sides = [halfL - 0.55, -(halfR - 0.55)];
+  const steps = clamp(Math.round(total / 1.5), 20, 120);
+  const ribW = clamp(total * 0.012, 0.35, 0.9);
+  const archZ = (t) => rise * (1 - Math.pow(2 * t - 1, 2));
+
+  const ribPaths = [];
+  for (const side of sides) {
+    const path = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      path.push(stationAtDistance(stations, t * total).at(side, archZ(t) + 0.2));
+    }
+    ribPaths.push(path);
+    structure.addLoftClosed(ribRings(path, ribW), { capStart: true, capEnd: true });
+
+    // tie girder running the length of the deck edge
+    sweptBox(structure, stations, 0, total, side, soffitZ + 0.05, soffitZ - Math.max(0.6, cfg.girderDepth * 0.7), 0.45);
+  }
+
+  // hangers
+  const hangers = clamp(Math.round(cfg.cableCount * 1.5), 4, 30);
+  for (let i = 1; i < hangers; i++) {
+    const t = i / hangers;
+    const s = stationAtDistance(stations, t * total);
+    const z = archZ(t) + 0.2;
+    if (z < 1.8) continue;
+    for (const side of sides) addTube(cables, [s.at(side, 0.3), s.at(side, z - ribW * 0.5)], 0.045, 6);
+  }
+
+  // cross bracing over the crown only, where there is headroom
+  const braces = clamp(Math.round(total / 12), 1, 8);
+  for (let i = 1; i < braces; i++) {
+    const t = 0.5 + (i - braces / 2) / (braces * 1.6);
+    if (t <= 0.2 || t >= 0.8) continue;
+    const s = stationAtDistance(stations, t * total);
+    const z = archZ(t) + 0.2;
+    addMember(structure, s.at(sides[0], z), s.at(sides[1], z), 0.3, 0.26);
+  }
+}
+
+// Pratt through truss: the deck runs *between* the trusses, diagonals slope down toward midspan, floor beams carry
+// the deck under the bottom chord, and the end panels get inclined portal frames with knee bracing.
+function buildThroughTruss({ cfg, stations, total, halfL, halfR, soffitZ, structure }) {
+  const height = Math.max(4.5, cfg.trussHeight * 1.45);
+  const panels = clamp(Math.round(total / 7), 4, 22);
+  const chord = 0.36;
+  const sides = [halfL - 0.2, -(halfR - 0.2)];
+  const bottomZ = soffitZ + 0.05;
+
+  const nodes = sides.map((side) => {
+    const bottom = [];
+    const top = [];
+    for (let i = 0; i <= panels; i++) {
+      const s = stationAtDistance(stations, (i / panels) * total);
+      bottom.push(s.at(side, bottomZ));
+      // end posts rake in, so the top chord stops one panel short at each end
+      const t = i / panels;
+      const h = t < 1 / panels || t > 1 - 1 / panels ? height * 0.55 : height;
+      top.push(s.at(side, h));
+    }
+    return { bottom, top };
+  });
+
+  for (const { bottom, top } of nodes) {
+    for (let i = 0; i < panels; i++) {
+      addMember(structure, bottom[i], bottom[i + 1], chord, chord * 0.9);
+      addMember(structure, top[i], top[i + 1], chord, chord * 0.9);
+      // Pratt: verticals in compression, diagonals leaning toward midspan
+      addMember(structure, bottom[i], top[i], chord * 0.6, chord * 0.6);
+      const toward = i < panels / 2 ? [bottom[i], top[i + 1]] : [top[i], bottom[i + 1]];
+      addMember(structure, toward[0], toward[1], chord * 0.55, chord * 0.55);
+    }
+    addMember(structure, bottom[panels], top[panels], chord * 0.6, chord * 0.6);
+  }
+
+  // floor beams under the deck at every panel point, plus lateral bracing in the bottom plane
+  for (let i = 0; i <= panels; i++) {
+    const s = stationAtDistance(stations, (i / panels) * total);
+    addMember(structure, s.at(sides[0], bottomZ - 0.1), s.at(sides[1], bottomZ - 0.1), 0.26, 0.5);
+    if (i < panels) {
+      const n = stationAtDistance(stations, ((i + 1) / panels) * total);
+      addMember(structure, s.at(sides[0], bottomZ - 0.15), n.at(sides[1], bottomZ - 0.15), 0.12, 0.12);
+    }
+  }
+
+  // overhead sway frames between the full-height panels, and a portal at each end
+  for (let i = 1; i < panels; i++) {
+    const s = stationAtDistance(stations, (i / panels) * total);
+    addMember(structure, s.at(sides[0], height), s.at(sides[1], height), 0.24, 0.24);
+    if (i === 1 || i === panels - 1) {
+      // portal knee braces
+      for (const side of sides) {
+        addMember(structure, s.at(side, height - 0.3), s.at(side * 0.45, height - 1.5), 0.2, 0.2);
+      }
+      addMember(structure, s.at(sides[0] * 0.45, height - 1.5), s.at(sides[1] * 0.45, height - 1.5), 0.22, 0.22);
+    }
+  }
+}
+
+// Masonry viaduct: a row of semicircular barrels between solid piers, with spandrel walls, a voussoir ring standing
+// slightly proud of the spandrel, and a string course under the parapet.
+function buildMasonryArches({ cfg, stations, total, halfL, halfR, soffitZ, structure, piers }) {
+  const groundZ = cfg.groundZ ?? 0;
+  const span = clamp(cfg.pierSpacing, 8, 60);
+  const bays = Math.max(1, Math.round(total / span));
+  const pierW = clamp(cfg.pierWidth * 1.6, 1.2, 5);
+  const width = halfL + halfR;
+  const ringProud = 0.22;
+  const steps = 18;
+
+  for (let b = 0; b < bays; b++) {
+    const d0 = (total * b) / bays;
+    const d1 = (total * (b + 1)) / bays;
+    const mid = (d0 + d1) * 0.5;
+    const clear = (d1 - d0) - pierW;
+    if (clear < 2) continue;
+    const radius = clear * 0.5;
+    // The crown sits just under the deck soffit and the springing lands above ground. Where there is not enough
+    // headroom for a semicircle the barrel flattens into a segmental (elliptical) arch instead of bursting through
+    // the deck.
+    const crownAbs = stationAtDistance(stations, mid).base.z + soffitZ - 0.35;
+    const rise = Math.min(radius, crownAbs - (groundZ + 0.8));
+    if (rise < 1.2) continue;
+    const springAbs = crownAbs - rise;
+
+    // barrel: the soffit swept across the full width
+    const ring = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = Math.PI * (i / steps);
+      ring.push({ d: mid - Math.cos(a) * radius, z: springAbs + Math.sin(a) * rise });
+    }
+    for (let i = 0; i < ring.length - 1; i++) {
+      const sa = stationAtDistance(stations, clamp(ring[i].d, 0, total));
+      const sb = stationAtDistance(stations, clamp(ring[i + 1].d, 0, total));
+      const za = ring[i].z - sa.base.z;
+      const zb = ring[i + 1].z - sb.base.z;
+      structure.addFace([sa.at(halfL, za), sb.at(halfL, zb), sb.at(-halfR, zb), sa.at(-halfR, za)]);
+      // voussoir ring, proud of the spandrel face on both elevations
+      for (const side of [halfL + ringProud, -(halfR + ringProud)]) {
+        const inner = side > 0 ? halfL : -halfR;
+        structure.addFace([sa.at(inner, za), sb.at(inner, zb), sb.at(side, zb), sa.at(side, za)]);
+      }
+    }
+
+    // spandrel walls: the solid between the extrados and the deck soffit
+    for (let i = 0; i < ring.length - 1; i++) {
+      const sa = stationAtDistance(stations, clamp(ring[i].d, 0, total));
+      const sb = stationAtDistance(stations, clamp(ring[i + 1].d, 0, total));
+      for (const side of [halfL, -halfR]) {
+        structure.addFace([
+          sa.at(side, ring[i].z - sa.base.z),
+          sb.at(side, ring[i + 1].z - sb.base.z),
+          sb.at(side, soffitZ),
+          sa.at(side, soffitZ),
+        ]);
+      }
+    }
+  }
+
+  // piers between the bays, down to grade
+  for (let b = 1; b < bays; b++) {
+    const d = (total * b) / bays;
+    const s = stationAtDistance(stations, d);
+    const topAbs = s.base.z + soffitZ;
+    const f = (lat, along, z) => ({ ...addScaled(addScaled(s.base, s.left, lat), s.tangent, along), z });
+    const hw = width * 0.5 + 0.1;
+    const lat0 = (halfL - halfR) * 0.5;
+    piers.addBox([
+      f(lat0 - hw, -pierW * 0.5, groundZ), f(lat0 + hw, -pierW * 0.5, groundZ),
+      f(lat0 + hw, pierW * 0.5, groundZ), f(lat0 - hw, pierW * 0.5, groundZ),
+      f(lat0 - hw, -pierW * 0.5, topAbs), f(lat0 + hw, -pierW * 0.5, topAbs),
+      f(lat0 + hw, pierW * 0.5, topAbs), f(lat0 - hw, pierW * 0.5, topAbs),
+    ]);
+  }
+
+  // string course under the parapet
+  for (const side of [halfL, -halfR]) {
+    const out = side > 0 ? 0.3 : -0.3;
+    for (let i = 0; i < stations.length - 1; i++) {
+      const a = stations[i];
+      const b = stations[i + 1];
+      structure.addFace([a.at(side + out, soffitZ + 0.05), b.at(side + out, soffitZ + 0.05), b.at(side + out, soffitZ - 0.3), a.at(side + out, soffitZ - 0.3)]);
+      structure.addFace([a.at(side, soffitZ + 0.05), b.at(side, soffitZ + 0.05), b.at(side + out, soffitZ + 0.05), a.at(side + out, soffitZ + 0.05)]);
+      structure.addFace([a.at(side, soffitZ - 0.3), b.at(side, soffitZ - 0.3), b.at(side + out, soffitZ - 0.3), a.at(side + out, soffitZ - 0.3)]);
+    }
+  }
+}
+
 // ── substructure ──────────────────────────────────────────────────────────────────────────────────────────────────
 
 function buildSupports({ cfg, stations, total, halfL, halfR, soffitZ, piers, bearingZ }) {
@@ -523,6 +838,9 @@ function buildSupports({ cfg, stations, total, halfL, halfR, soffitZ, piers, bea
   }
 
   if (cfg.pierType === 'none') return;
+  // Structures that span the whole opening carry themselves; dropping columns under them would be nonsense.
+  if (cfg.type === 'masonry') return; // the arcade builds its own piers between the barrels
+  if (cfg.type === 'tiedarch' || cfg.type === 'throughtruss') return;
 
   const spacing = Math.max(8, cfg.pierSpacing);
   const count = Math.max(0, Math.floor(total / spacing) - 0);

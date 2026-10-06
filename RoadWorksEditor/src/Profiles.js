@@ -14,8 +14,13 @@ export const ROAD_PRESETS = {
 export const BRIDGE_TYPES = {
   beam: { label: 'Beam / girder', needsTowers: false },
   box: { label: 'Box girder', needsTowers: false },
+  slab: { label: 'Solid slab', needsTowers: false },
+  cantilever: { label: 'Haunched cantilever', needsTowers: false },
   arch: { label: 'Deck arch', needsTowers: false },
-  truss: { label: 'Warren truss', needsTowers: false },
+  tiedarch: { label: 'Tied (bowstring) arch', needsTowers: false },
+  masonry: { label: 'Masonry viaduct', needsTowers: false },
+  truss: { label: 'Warren truss (under)', needsTowers: false },
+  throughtruss: { label: 'Pratt through truss', needsTowers: false },
   suspension: { label: 'Suspension', needsTowers: true },
   cablestay: { label: 'Cable-stayed', needsTowers: true },
 };

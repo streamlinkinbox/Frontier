@@ -6,8 +6,8 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js?v=3';
-import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=3';
+import { TranslateGizmo } from './Gizmo.js?v=4';
+import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=4';
 
 export const MATERIAL_STYLES = {
   road: { color: 0x32363d, roughness: 0.95, metalness: 0.0 },
@@ -18,6 +18,7 @@ export const MATERIAL_STYLES = {
   structure: { color: 0x59616e, roughness: 0.55, metalness: 0.55 },
   piers: { color: 0x7c7f85, roughness: 0.9, metalness: 0.0 },
   railing: { color: 0xa7adb5, roughness: 0.6, metalness: 0.35 },
+  barrier: { color: 0x9a9da1, roughness: 0.93, metalness: 0.0 },
   cables: { color: 0xc6cad0, roughness: 0.4, metalness: 0.7 },
   earth: { color: 0x6b6450, roughness: 1.0, metalness: 0.0 },
   roadbed: { color: 0x8a8d92, roughness: 0.92, metalness: 0.0 },

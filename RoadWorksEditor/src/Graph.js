@@ -14,11 +14,12 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=3';
-import { dedupe, polylineLength } from './Polyline.js?v=3';
-import { sampleSpline } from './Spline.js?v=3';
-import { resolveProfile } from './Profiles.js?v=3';
-import { resolveRoadbed } from './Roadbed.js?v=3';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=4';
+import { dedupe, polylineLength } from './Polyline.js?v=4';
+import { sampleSpline } from './Spline.js?v=4';
+import { resolveProfile } from './Profiles.js?v=4';
+import { resolveRoadbed } from './Roadbed.js?v=4';
+import { resolveGuardrail } from './Guardrail.js?v=4';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
@@ -55,6 +56,7 @@ export function sampleCorridors(corridors, settings = {}) {
       capMode: corridor.capMode || 'flat',
       radiusBias: corridor.radiusBias || 0,
       roadbed: resolveRoadbed(corridor),
+      guardrail: resolveGuardrail(corridor),
       cyclic: !!corridor.closed,
       bridge: corridor.bridge,
       points,
@@ -349,6 +351,7 @@ export function buildGraph(corridors, settings = {}) {
               capMode: sample.capMode,
               radiusBias: sample.radiusBias,
               roadbed: sample.roadbed,
+              guardrail: sample.guardrail,
               bridge: sample.bridge,
             });
             const sn = graph.nodes.get(startNodeId);

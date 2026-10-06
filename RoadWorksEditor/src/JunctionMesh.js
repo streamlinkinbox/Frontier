@@ -11,10 +11,10 @@
 //      fillet, each pinned to the exact arm targets at both ends, so the curb never detaches from the arc on acute
 //      or uneven-width junctions.
 
-import { clamp, dist, lerp, vec } from './Vec.js?v=3';
-import { resamplePolyline } from './Polyline.js?v=3';
-import { MeshSpec } from './MeshSpec.js?v=3';
-import { nodeGeneratesJunction } from './Graph.js?v=3';
+import { clamp, dist, lerp, vec } from './Vec.js?v=4';
+import { resamplePolyline } from './Polyline.js?v=4';
+import { MeshSpec } from './MeshSpec.js?v=4';
+import { nodeGeneratesJunction } from './Graph.js?v=4';
 
 // ── fillet arc between two offset edges ───────────────────────────────────────────────────────────────────────────
 

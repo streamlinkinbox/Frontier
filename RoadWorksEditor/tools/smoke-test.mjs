@@ -3,6 +3,8 @@ import { buildNetwork } from '../src/Network.js';
 import { toObj } from '../src/MeshSpec.js';
 import { buildGraph, nodeGeneratesJunction } from '../src/Graph.js';
 import { groupBase } from '../src/Network.js';
+import { SIGN_UV } from '../src/Textures.js';
+import { closestLineParam } from '../src/Ray.js';
 
 // Pavement is split into one group per paving pattern (`pavement#brick@1.00`), so totals are taken by base name.
 const tris = (net, base) =>
@@ -150,7 +152,7 @@ console.log('\n— grade separation is not merged —');
 }
 
 console.log('\n— every bridge type and pier family builds —');
-for (const type of ['beam', 'box', 'arch', 'truss', 'suspension', 'cablestay']) {
+for (const type of ['beam', 'box', 'slab', 'cantilever', 'arch', 'tiedarch', 'masonry', 'truss', 'throughtruss', 'suspension', 'cablestay']) {
   for (const pierType of ['wall', 'column', 'hammerhead', 'vpier', 'none']) {
     const net = buildNetwork([
       corridor('span', [[-70, 0, 9], [0, 10, 9], [70, 0, 9]], {
@@ -170,6 +172,123 @@ for (const railing of ['parapet', 'steel', 'jersey', 'none']) {
   ]);
   const tris = net.groups.railing.triangleCount;
   check(`railing ${railing}`, railing === 'none' ? tris === 0 : tris > 20, `tris=${tris}`);
+}
+
+console.log('\n— structures that stand above the deck clear it —');
+for (const type of ['tiedarch', 'throughtruss']) {
+  const net = buildNetwork([
+    corridor('span', [[-60, 0, 9], [60, 0, 9]], { family: 'bridge', bridge: { type, archRise: 7, trussHeight: 5 } }),
+  ]);
+  const pos = net.groups.structure.positions;
+  let top = -Infinity;
+  for (let i = 2; i < pos.length; i += 3) top = Math.max(top, pos[i]);
+  check(`${type} rises above the deck`, top > 9 + 3, `top=${top.toFixed(2)} m`);
+  check(`${type} has hangers or bracing`, net.groups.structure.triangleCount + net.groups.cables.triangleCount > 400);
+}
+
+console.log('\n— guardrail families —');
+for (const type of ['wbeam', 'thrie', 'cable', 'jersey', 'parapet', 'pedestrian', 'none']) {
+  const net = buildNetwork([
+    corridor('ramp', [[0, 0, 3], [60, 0, 3.4], [120, 0, 3]], { guardrail: { type, when: 'always' } }),
+  ]);
+  const t = net.groups.railing.triangleCount + net.groups.barrier.triangleCount;
+  check(`guardrail ${type}`, type === 'none' ? t === 0 : t > 60, `tris=${t}`);
+  if (type !== 'none') {
+    // the barrier must stand outside the carriageway and above the pavement, on both sides
+    const spec = ['jersey', 'parapet'].includes(type) ? net.groups.barrier : net.groups.railing;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let minZ = Infinity;
+    for (let i = 0; i < spec.positions.length; i += 3) {
+      minY = Math.min(minY, spec.positions[i + 1]);
+      maxY = Math.max(maxY, spec.positions[i + 1]);
+      minZ = Math.min(minZ, spec.positions[i + 2]);
+    }
+    check(`  ${type} sits clear of the 8 m carriageway`, Math.min(-minY, maxY) > 4.0, `|y|=${Math.min(-minY, maxY).toFixed(2)}`);
+    check(`  ${type} stands on the pavement, not in it`, minZ > 2.9, `minZ=${minZ.toFixed(2)}`);
+  }
+}
+{
+  const flat = buildNetwork([corridor('flat', [[0, 0], [80, 0]], { guardrail: { type: 'wbeam', when: 'fill', fillTrigger: 1.5 } })]);
+  check('fill-triggered railing stays off a road on grade', flat.groups.railing.triangleCount === 0);
+  const high = buildNetwork([corridor('high', [[0, 0, 4], [80, 0, 4]], { guardrail: { type: 'wbeam', when: 'fill', fillTrigger: 1.5 } })]);
+  check('fill-triggered railing appears on embankment', high.groups.railing.triangleCount > 60);
+  const one = buildNetwork([corridor('one', [[0, 0, 4], [80, 0, 4]], { guardrail: { type: 'wbeam', when: 'always', side: 'left' } })]);
+  check('single-sided railing is half the geometry', one.groups.railing.triangleCount < high.groups.railing.triangleCount * 0.75);
+}
+
+console.log('\n— the STOP legend reads the right way round —');
+{
+  const net = buildNetwork([
+    corridor('ns', [[0, -60], [0, 0], [0, 60]]),
+    corridor('ew', [[-60, 0], [0, 0], [60, 0]]),
+  ], { signage: 'stop' });
+  const spec = net.groups.signFace;
+  const cell = SIGN_UV.stop;
+  let tested = 0;
+  let wrong = 0;
+  for (let t = 0; t < spec.indices.length; t += 3) {
+    const [i0, i1, i2] = [spec.indices[t], spec.indices[t + 1], spec.indices[t + 2]];
+    const P = (i) => [spec.positions[i * 3], spec.positions[i * 3 + 1], spec.positions[i * 3 + 2]];
+    const U = (i) => [spec.uvs[i * 2], spec.uvs[i * 2 + 1]];
+    const inCell = [i0, i1, i2].every((i) => {
+      const [u, v] = U(i);
+      return u >= cell.u0 - 1e-6 && u <= cell.u1 + 1e-6 && v >= cell.v0 - 1e-6 && v <= cell.v1 + 1e-6;
+    });
+    if (!inCell) continue;
+    const [a, b, c] = [P(i0), P(i1), P(i2)];
+    const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    // outward normal (triangles are wound CCW seen from the front)
+    const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+    if (Math.abs(n[2]) > 0.3 * Math.hypot(...n)) continue; // skip the plate edges
+    // gradient of u across the triangle, projected onto the horizontal
+    const du1 = U(i1)[0] - U(i0)[0];
+    const du2 = U(i2)[0] - U(i0)[0];
+    const g = [e1[0] * du1 + e2[0] * du2, e1[1] * du1 + e2[1] * du2];
+    if (Math.hypot(...g) < 1e-6) continue;
+    // a viewer facing this plate has screen-right = Z x n; legible text needs u to increase that way
+    const right = [-n[1], n[0]];
+    tested++;
+    if (g[0] * right[0] + g[1] * right[1] <= 0) wrong++;
+  }
+  check('front plates carry a STOP face', tested >= 4, `tested=${tested}`);
+  check('legend is not mirrored on any plate', wrong === 0, `${wrong} of ${tested} mirrored`);
+}
+
+console.log('\n— gizmo axis maths —');
+{
+  const rnd = (n) => ((Math.sin(n * 12.9898) * 43758.5453) % 1) * 2 - 1;
+  let worst = 0;
+  for (let k = 1; k < 40; k++) {
+    const origin = { x: rnd(k) * 50, y: rnd(k + 7) * 50, z: rnd(k + 13) * 20 };
+    const ro = { x: rnd(k + 21) * 80, y: rnd(k + 31) * 80, z: 40 + rnd(k + 41) * 20 };
+    const dir = { x: rnd(k + 51), y: rnd(k + 61), z: -0.4 - Math.abs(rnd(k + 71)) };
+    const s = closestLineParam(origin, { x: 0, y: 0, z: 1 }, ro, dir);
+    // brute force the same minimum: the distance in s is a convex parabola, so ternary search nails it
+    const distAt = (ss) => {
+      const w = { x: origin.x - ro.x, y: origin.y - ro.y, z: origin.z + ss - ro.z };
+      const t = (w.x * dir.x + w.y * dir.y + w.z * dir.z) / (dir.x ** 2 + dir.y ** 2 + dir.z ** 2);
+      return Math.hypot(w.x - dir.x * t, w.y - dir.y * t, w.z - dir.z * t);
+    };
+    let lo = -5000;
+    let hi = 5000;
+    for (let i = 0; i < 200; i++) {
+      const m1 = lo + (hi - lo) / 3;
+      const m2 = hi - (hi - lo) / 3;
+      if (distAt(m1) < distAt(m2)) hi = m2;
+      else lo = m1;
+    }
+    worst = Math.max(worst, Math.abs((lo + hi) / 2 - s));
+  }
+  check('vertical drag solves to the closest point, with the right sign', worst < 0.05, `worst error ${worst.toFixed(3)} m`);
+  check('upward ray motion raises the point', (() => {
+    const o = { x: 0, y: 0, z: 0 };
+    const ro = { x: 0, y: -40, z: 20 };
+    const lo = closestLineParam(o, { x: 0, y: 0, z: 1 }, ro, { x: 0, y: 1, z: -0.6 });
+    const hi = closestLineParam(o, { x: 0, y: 0, z: 1 }, ro, { x: 0, y: 1, z: -0.4 });
+    return hi > lo;
+  })());
 }
 
 console.log('\n— geometry hygiene —');

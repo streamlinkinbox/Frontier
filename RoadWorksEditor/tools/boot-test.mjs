@@ -105,8 +105,12 @@ check('bridge corridor selected', /Viaduct/.test(el('SelectionName').textContent
 const summaries = el('InspectorBody').all((n) => n.tagName === 'SUMMARY').map((n) => n.textContent);
 check('bridge sections present', summaries.some((s) => s.startsWith('Bridge · deck')) && summaries.some((s) => s.startsWith('Bridge · substructure')), summaries.join(', '));
 const selects = el('InspectorBody').all((n) => n.tagName === 'SELECT');
-const typeSelect = selects.find((s) => s.children.some((o) => o.textContent === 'Warren truss'));
+const typeSelect = selects.find((s) => s.children.some((o) => /Warren truss/.test(o.textContent)));
 check('structure type select present', !!typeSelect);
+check('every bridge family is offered', typeSelect && typeSelect.children.length >= 11, `${typeSelect?.children.length} options`);
+for (const want of ['Tied (bowstring) arch', 'Pratt through truss', 'Masonry viaduct', 'Haunched cantilever', 'Solid slab']) {
+  check(`  ${want} listed`, !!typeSelect && typeSelect.children.some((o) => o.textContent === want));
+}
 if (typeSelect) {
   typeSelect.value = 'truss';
   let err = null;

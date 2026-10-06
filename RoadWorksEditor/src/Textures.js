@@ -48,6 +48,7 @@ export function surfaceTexture(THREE, name) {
     roadbed: { tile: 3, draw: (c, h, px) => drawBoardform(c, h, px, [140, 142, 146]) },
     earth: { tile: 5, draw: (c, h, px) => drawEarth(c, h, px) },
     structure: { tile: 3, draw: (c, h, px) => drawConcrete(c, h, px, [128, 134, 142]) },
+    barrier: { tile: 2, draw: (c, h, px) => drawConcrete(c, h, px, [156, 158, 162]) },
   };
   const preset = presets[name];
   if (!preset) return null;

@@ -4,16 +4,17 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=3';
-import { buildNetwork } from './Network.js?v=3';
-import { toObj } from './MeshSpec.js?v=3';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=3';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=3';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=3';
-import { GRAPH_DEFAULTS } from './Graph.js?v=3';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=3';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=3';
-import { PAVING_PATTERNS } from './Textures.js?v=3';
+import { Viewport } from './Viewport.js?v=4';
+import { buildNetwork } from './Network.js?v=4';
+import { toObj } from './MeshSpec.js?v=4';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=4';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=4';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=4';
+import { GRAPH_DEFAULTS } from './Graph.js?v=4';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=4';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=4';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=4';
+import { PAVING_PATTERNS } from './Textures.js?v=4';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -36,6 +37,7 @@ function makeCorridor(name, points, extra = {}) {
     paving: 'concrete',
     pavingScale: 1,
     roadbed: { ...ROADBED_DEFAULTS },
+    guardrail: { ...GUARDRAIL_DEFAULTS },
     bridge: { ...BRIDGE_DEFAULTS },
     points: points.map(([x, y, z = 0]) => ({ x, y, z })),
     ...extra,
@@ -45,11 +47,19 @@ function makeCorridor(name, points, extra = {}) {
 function demoDocument() {
   uid = 0;
   const corridors = [
-    makeCorridor('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], { preset: 'avenue', paving: 'flagstone' }),
+    makeCorridor('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], {
+      preset: 'avenue',
+      paving: 'flagstone',
+      guardrail: { ...GUARDRAIL_DEFAULTS, type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 },
+    }),
     makeCorridor('Mill Street', [[0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { preset: 'street', paving: 'concrete' }),
     makeCorridor('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
     makeCorridor('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
-    makeCorridor('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], { preset: 'street', paving: 'granite' }),
+    makeCorridor('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], {
+      preset: 'street',
+      paving: 'granite',
+      guardrail: { ...GUARDRAIL_DEFAULTS, type: 'wbeam', when: 'fill', fillTrigger: 1.2 },
+    }),
     makeCorridor('Estuary Viaduct', [[-130, 95, 11], [-60, 86, 11], [10, 92, 11], [80, 104, 11], [150, 96, 11]], {
       preset: 'highway',
       family: 'bridge',
@@ -815,6 +825,37 @@ function renderInspector() {
       bedNote.textContent = 'Only built where the corridor sits above ground level, and it stops and restarts cleanly wherever the alignment crosses grade.';
       bed.body.appendChild(bedNote);
       host.appendChild(bed.element);
+
+      // ── restraint system ──
+      const gr = corridor.guardrail || (corridor.guardrail = { ...GUARDRAIL_DEFAULTS });
+      const rail = section('Guardrail', gr.type !== 'none');
+      rail.body.appendChild(
+        selectField({
+          label: 'System',
+          value: gr.type,
+          options: Object.entries(GUARDRAIL_TYPES),
+          onChange: (v) => { gr.type = v; renderInspector(); mark(); },
+        }),
+      );
+      if (gr.type !== 'none') {
+        rail.body.appendChild(
+          selectField({
+            label: 'Where',
+            value: gr.when,
+            options: [['fill', 'Only on embankment'], ['always', 'Whole corridor']],
+            onChange: (v) => { gr.when = v; renderInspector(); mark(); },
+          }),
+        );
+        if (gr.when === 'fill') rail.body.appendChild(num('Fill before railing', gr.fillTrigger, 0.2, 10, 0.1, 'm', (v) => (gr.fillTrigger = v), mark));
+        rail.body.appendChild(selectField({ label: 'Side', value: gr.side, options: [['both', 'Both sides'], ['left', 'Left only'], ['right', 'Right only']], onChange: (v) => { gr.side = v; mark(); } }));
+        rail.body.appendChild(num('Inset from edge', gr.offset, 0, 3, 0.05, 'm', (v) => (gr.offset = v), mark));
+        rail.body.appendChild(num('Height', gr.height, 0.45, 1.4, 0.01, 'm', (v) => (gr.height = v), mark));
+        const note = document.createElement('p');
+        note.className = 'Small';
+        note.textContent = 'Steel and rope systems are swept as real corrugated or tubular sections on posts at their standard spacing; Jersey and parapet barriers are solid concrete.';
+        rail.body.appendChild(note);
+      }
+      host.appendChild(rail.element);
     }
 
     if (corridor.family === 'bridge') {
@@ -828,12 +869,17 @@ function renderInspector() {
       host.appendChild(deck.element);
 
       const sup = section('Bridge · superstructure');
-      if (b.type === 'beam' || b.type === 'box') {
-        sup.body.appendChild(num('Girder count', b.girderCount, 1, 10, 1, '', (v) => (b.girderCount = v), mark));
-        sup.body.appendChild(num('Girder depth', b.girderDepth, 0.4, 4, 0.1, 'm', (v) => (b.girderDepth = v), mark));
+      if (b.type === 'beam' || b.type === 'box' || b.type === 'cantilever' || b.type === 'slab') {
+        if (b.type === 'beam' || b.type === 'box') sup.body.appendChild(num('Girder count', b.girderCount, 1, 10, 1, '', (v) => (b.girderCount = v), mark));
+        const depthLabel = b.type === 'cantilever' ? 'Midspan depth' : b.type === 'slab' ? 'Haunch depth' : 'Girder depth';
+        sup.body.appendChild(num(depthLabel, b.girderDepth, 0.4, 4, 0.1, 'm', (v) => (b.girderDepth = v), mark));
       }
-      if (b.type === 'arch') sup.body.appendChild(num('Arch rise', b.archRise, 1, 30, 0.5, 'm', (v) => (b.archRise = v), mark));
-      if (b.type === 'truss') sup.body.appendChild(num('Truss height', b.trussHeight, 1.5, 12, 0.25, 'm', (v) => (b.trussHeight = v), mark));
+      if (b.type === 'arch' || b.type === 'tiedarch' || b.type === 'masonry') {
+        sup.body.appendChild(num(b.type === 'tiedarch' ? 'Arch rise above deck' : 'Arch rise', b.archRise, 1, 30, 0.5, 'm', (v) => (b.archRise = v), mark));
+      }
+      if (b.type === 'tiedarch') sup.body.appendChild(num('Hanger count', b.cableCount, 2, 16, 1, '', (v) => (b.cableCount = v), mark));
+      if (b.type === 'masonry') sup.body.appendChild(num('Bay span', b.pierSpacing, 10, 90, 1, 'm', (v) => (b.pierSpacing = v), mark));
+      if (b.type === 'truss' || b.type === 'throughtruss') sup.body.appendChild(num('Truss height', b.trussHeight, 1.5, 12, 0.25, 'm', (v) => (b.trussHeight = v), mark));
       if (b.type === 'suspension' || b.type === 'cablestay') {
         sup.body.appendChild(num('Tower height', b.towerHeight, 6, 70, 1, 'm', (v) => (b.towerHeight = v), mark));
         sup.body.appendChild(num('Cables per fan', b.cableCount, 2, 16, 1, '', (v) => (b.cableCount = v), mark));

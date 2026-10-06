@@ -7,18 +7,19 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=3';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=3';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=3';
-import { buildJunctionMesh } from './JunctionMesh.js?v=3';
-import { buildBridgeMesh } from './BridgeMesh.js?v=3';
-import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=3';
-import { buildJunctionFurniture } from './Signs.js?v=3';
+import { MeshSpec } from './MeshSpec.js?v=4';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=4';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=4';
+import { buildJunctionMesh } from './JunctionMesh.js?v=4';
+import { buildBridgeMesh } from './BridgeMesh.js?v=4';
+import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=4';
+import { buildJunctionFurniture } from './Signs.js?v=4';
+import { buildGuardrail } from './Guardrail.js?v=4';
 
 export const GROUP_NAMES = [
   'road', 'curb', 'pavement', 'markings',
   'earth', 'roadbed',
-  'deck', 'structure', 'piers', 'railing', 'cables',
+  'deck', 'structure', 'piers', 'railing', 'barrier', 'cables',
   'signFace', 'signPost',
 ];
 
@@ -43,6 +44,7 @@ export function buildNetwork(corridors, settings = {}) {
 
   const sectionsByEdge = new Map();
   const warnings = [...graph.warnings];
+  let guardrailCount = 0;
 
   // Corridors first: every edge contributes its trimmed cross-sections, which the junctions then reuse verbatim.
   for (const edge of graph.edges.values()) {
@@ -60,6 +62,7 @@ export function buildNetwork(corridors, settings = {}) {
       buildBridgeApproachFill(edge, sections, groups, cfg);
     } else {
       buildRoadbedMesh(edge, sections, groups, cfg);
+      if (buildGuardrail(edge, sections, groups, cfg)) guardrailCount++;
     }
   }
 
@@ -87,6 +90,7 @@ export function buildNetwork(corridors, settings = {}) {
     edges: graph.edges.size,
     junctions: junctionCount,
     signs: signCount,
+    guardrails: guardrailCount,
     gradeSeparations: graph.crossings.filter((c) => c.separated).length,
     triangles,
     buildMs: Math.round(now() - t0),

@@ -8,6 +8,7 @@
 // Handles: X / Y / Z axes and a free XY plane pad. Z-up world.
 
 import * as THREE from 'three';
+import { closestLineParam } from './Ray.js?v=4';
 
 const AXIS_COLORS = { x: 0xd2615c, y: 0x8fb469, z: 0x6f93c7, xy: 0xd6a665 };
 
@@ -121,18 +122,11 @@ export class TranslateGizmo {
   _solve(raycaster, axis, origin) {
     const ray = raycaster.ray;
     if (axis === 'z') {
-      // closest point on the vertical line through origin
-      const lineDir = new THREE.Vector3(0, 0, 1);
-      const w0 = origin.clone().sub(ray.origin);
-      const a = lineDir.dot(lineDir);
-      const b = lineDir.dot(ray.direction);
-      const c = ray.direction.dot(ray.direction);
-      const d = lineDir.dot(w0);
-      const e = ray.direction.dot(w0);
-      const denom = a * c - b * b;
-      if (Math.abs(denom) < 1e-6) return null;
-      const t = (b * e - c * d) / denom;
-      return origin.clone().add(lineDir.multiplyScalar(-t));
+      // Closest point on the vertical line through origin. The parameter is used as-is: negating it (as this did
+      // originally) flips the drag, so pulling the Z handle up pushed the point down.
+      const s = closestLineParam(origin, { x: 0, y: 0, z: 1 }, ray.origin, ray.direction);
+      if (s === null) return null;
+      return new THREE.Vector3(origin.x, origin.y, origin.z + s);
     }
 
     let normal;

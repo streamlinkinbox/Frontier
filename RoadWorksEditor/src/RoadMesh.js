@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=3';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=3';
-import { MeshSpec } from './MeshSpec.js?v=3';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=3';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=4';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=4';
+import { MeshSpec } from './MeshSpec.js?v=4';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=4';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
