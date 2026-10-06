@@ -131,6 +131,24 @@ catalogue and UV tables as plain data, so the geometry modules can import it wit
 
 ## Design notes
 
+### A diverge is not an intersection
+
+Treating a fork as a junction is what made every earlier attempt look broken. The fillet radius a 10° split asks for
+is enormous, so both carriageways were pulled tens of metres back from the node and the hole between them was filled
+with a blank apron: the motorway appeared to stop, lose its markings, and start again. Worse, the ramp and the
+mainline both paved the same ground for the first stretch — two coplanar asphalt surfaces fighting over the same
+pixels, which is the black wedge that sat at the fork.
+
+`Network.markDiverges` recognises the case (a fork node where one minor arm leaves a through road at a shallow
+angle) and takes it out of the junction system entirely: `nodeGeneratesJunction` returns false, so nothing is
+trimmed and the mainline runs on untouched, markings and all. The ramp is then *lapped* into it. `lapForRamp`
+intersects each of the ramp's cross-sections with the mainline's edges and hands `buildCrossSections` a per-station
+limit on how far the ramp may reach, so while it is buried the ramp paves only the sliver that has actually emerged
+past the mainline's edge, widening to its full carriageway exactly where the two part company. Over that stretch the
+ramp has no outside of its own: no kerb, no footway, no barrier, no gullies and no paint. `Merge.js` then paves,
+edges and hatches the gore from the nose outwards — and it knows to wait for the lap to open, because a lapped arm's
+"edge" is the other road's edge and measuring a separation from it would start the gore back at the node.
+
 ### What a gore does to the cross-section
 
 The hard part of a diverge is not the paving, it is the verge. For the first fifty-odd metres the ramp is still

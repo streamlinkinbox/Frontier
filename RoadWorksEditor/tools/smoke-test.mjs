@@ -429,10 +429,12 @@ console.log('\n— slip roads —');
   const mainline = corridor('motorway', [[-260, 0], [-120, 0], [0, 0], [140, 0], [260, 0]], { preset: 'highway' });
   const ramp = corridor('offramp', [[0, -8], [60, -14], [120, -34], [190, -70]], { preset: 'narrow' });
   const net = buildNetwork([mainline, ramp]);
-  check('a ramp that stops on the carriageway still connects', net.stats.junctions >= 1, `got ${net.stats.junctions}`);
+  // A diverge is not an intersection: no fillet, no apron, no mouth cut out of the mainline — just a gore.
+  check('a diverge is not filleted like a crossroads', net.stats.junctions === 0, `got ${net.stats.junctions}`);
   check('the fork is paved as a gore', net.stats.slipRoads >= 1, `got ${net.stats.slipRoads}`);
   const fork = [...net.graph.nodes.values()].find((n) => n.fork);
   check('the fork node is flagged as a fork', !!fork);
+  check('and recognised as a diverge', !!fork?.diverge && !!fork.divergeRamp && !!fork.divergeHost);
   check('a fork is not trimmed back like a corner', fork && fork.cornerRadius < 20, `got ${fork?.cornerRadius}`);
   check('no stop line is painted at a merge', net.stats.signs === 0);
   // The taper used to be a free Hermite between the ramp end and a point up the motorway: it swung across the
@@ -457,6 +459,29 @@ console.log('\n— slip roads —');
   const mainClear = mainSections[mainSections.length - 3];
   check('the motorway drops only the gore-side verge', Math.min(verge(mainAtFork, 'L'), verge(mainAtFork, 'R')) < 0.05 && Math.max(verge(mainAtFork, 'L'), verge(mainAtFork, 'R')) > 0.5);
   check('and picks it up again downstream', Math.min(verge(mainClear, 'L'), verge(mainClear, 'R')) > 0.5);
+  // The mainline runs straight through: both halves reach the node, so the carriageway is continuous there.
+  const mainA = net.sectionsByEdge.get(mainEdges[0].id);
+  const mainB = net.sectionsByEdge.get(mainEdges[1].id);
+  const ends = [mainA[0].base, mainA[mainA.length - 1].base, mainB[0].base, mainB[mainB.length - 1].base];
+  const nearFork = ends.filter((p) => Math.hypot(p.x - forks[0].co.x, p.y - forks[0].co.y) < 0.5);
+  check('the mainline is not pulled back from the fork', nearFork.length === 2, `${nearFork.length} ends at the node`);
+  // The ramp is lapped inside the mainline until it has emerged: it paves a sliver there, not a second carriageway
+  // on top of the one it is still part of.
+  const rh = rampEdges[0].profile.roadHalf;
+  const width = (sec) => sec.halfLeft + sec.halfRight;
+  check('the ramp is lapped inside the mainline at the fork', width(rampSections[1]) < 0.4, `${width(rampSections[1]).toFixed(2)} m`);
+  check('the lap opens up to the full carriageway', width(wellClear) > 2 * rh - 0.3, `${width(wellClear).toFixed(2)} m`);
+  let opened = 0;
+  for (let i = 1; i < rampSections.length; i++) if (width(rampSections[i]) > width(rampSections[i - 1]) + 1e-6) opened++;
+  check('and it opens gradually rather than popping out', opened > 4, `${opened} widening stations`);
+  // The gore's own paint is the only thing added over the lapped stretch, and it starts at the nose: the first
+  // chevron may not appear before the ramp has emerged.
+  const lapOpensAt = rampSections.find((sec) => width(sec) > 2 * rh - 0.3);
+  const paintX = [];
+  const mp = net.groups.markings.positions;
+  for (let i2 = 0; i2 < mp.length; i2 += 3) if (mp[i2 + 1] < -11) paintX.push(mp[i2]); // clear of the mainline's own lines
+  check('nothing is painted outside the mainline before the nose', Math.min(...paintX) > lapOpensAt.base.x - 12, `${Math.min(...paintX).toFixed(1)} vs nose ${lapOpensAt.base.x.toFixed(1)}`);
+
   const detached = buildNetwork([mainline, corridor('far', [[0, -60], [60, -66], [120, -86]], { preset: 'narrow' })]);
   check('a road that merely passes nearby is left alone', detached.stats.junctions === 0, `got ${detached.stats.junctions}`);
 }

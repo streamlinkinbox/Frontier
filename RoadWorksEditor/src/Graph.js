@@ -14,16 +14,16 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=9';
-import { dedupe, polylineLength } from './Polyline.js?v=9';
-import { sampleSpline } from './Spline.js?v=9';
-import { resolveProfile } from './Profiles.js?v=9';
-import { MARKING_DEFAULTS } from './Markings.js?v=9';
-import { resolveDriveways } from './Driveways.js?v=9';
-import { resolveDrainage } from './Drainage.js?v=9';
-import { resolveRoadbed } from './Roadbed.js?v=9';
-import { resolveGuardrail } from './Guardrail.js?v=9';
-import { outerRadius, resolveRoundabout } from './Roundabout.js?v=9';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=10';
+import { dedupe, polylineLength } from './Polyline.js?v=10';
+import { sampleSpline } from './Spline.js?v=10';
+import { resolveProfile } from './Profiles.js?v=10';
+import { MARKING_DEFAULTS } from './Markings.js?v=10';
+import { resolveDriveways } from './Driveways.js?v=10';
+import { resolveDrainage } from './Drainage.js?v=10';
+import { resolveRoadbed } from './Roadbed.js?v=10';
+import { resolveGuardrail } from './Guardrail.js?v=10';
+import { outerRadius, resolveRoundabout } from './Roundabout.js?v=10';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
@@ -632,6 +632,10 @@ export function defaultCornerRadius(graph, node, cfg = GRAPH_DEFAULTS) {
 
 export function nodeGeneratesJunction(graph, node) {
   if (!node.enabled) return false;
+  // A diverge is not an intersection. Filleting a 10° fork pulls both carriageways back by the corner radius and
+  // drops an unpainted apron in the gap, which is why a slip road used to look like the mainline simply stopped.
+  // The arms run straight through instead and Merge.js paves the gore between them. See Network.js markDiverges().
+  if (node.diverge) return false;
   if (node.degree < 2) return false;
   if (node.degree >= 3) return true;
   const a = graph.edges.get(node.edgeIds[0]);

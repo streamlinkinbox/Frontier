@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Cross-section presets and bridge catalogues. All dimensions in metres.
 
-import { ROAD_SURFACES, DEFAULT_SURFACE } from './Surfaces.js?v=9';
+import { ROAD_SURFACES, DEFAULT_SURFACE } from './Surfaces.js?v=10';
 
 export const ROAD_PRESETS = {
   street: { label: 'Street', roadWidth: 8.0, pavementLeft: 2.0, pavementRight: 2.0, curbHeight: 0.18, curbWidth: 0.22, lanes: 2 },

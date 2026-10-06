@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=9';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=9';
-import { MeshSpec } from './MeshSpec.js?v=9';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=9';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=10';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=10';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=10';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
@@ -59,6 +59,15 @@ export function buildCrossSections(polyline, profile, options = {}) {
     };
 
     const rh = profile.roadHalf;
+    // A ramp leaving a mainline is lapped *inside* it: for the first stretch of a diverge most of the ramp's
+    // carriageway is the mainline's carriageway, and paving both of them puts two coplanar surfaces in the same
+    // place — which is the black, z-fighting wedge a fork used to show. `lap` pins the buried edge to the edge of
+    // the road it is still part of, so the ramp only paves what has actually emerged. See Network.js lapForEdge().
+    const lapAt = options.lap ? options.lap(cum[i]) : null;
+    const edgeL = lapAt ? clamp(lapAt.left, -rh + 0.05, rh) : rh;
+    const edgeR = lapAt ? clamp(lapAt.right, -rh, rh - 0.05) : -rh;
+    const halfL = edgeL;
+    const halfR = -edgeR; // positive distance from the centreline to the right-hand edge
     const cw = profile.curbWidth;
     // Vehicle crossovers drop the kerb almost flush over the width of the crossing — see Driveways.js. The factor
     // is per side, so a drive on one frontage never flattens the kerb opposite it.
@@ -84,23 +93,30 @@ export function buildCrossSections(polyline, profile, options = {}) {
       miter,
       base: p,
       center: off(0, profile.crownRise),
-      roadLeft: off(rh, 0),
-      roadRight: off(-rh, 0),
-      curbFaceLeft: off(rh + CURB_BATTER * fL, chL),
-      curbFaceRight: off(-(rh + CURB_BATTER * fR), chR),
-      curbBackLeft: off(rh + cwL, chL),
-      curbBackRight: off(-(rh + cwR), chR),
+      lapped: !!lapAt,
+      halfLeft: halfL,
+      halfRight: halfR,
+      roadLeft: off(halfL, 0),
+      roadRight: off(-halfR, 0),
+      curbFaceLeft: off(halfL + CURB_BATTER * fL, chL),
+      curbFaceRight: off(-(halfR + CURB_BATTER * fR), chR),
+      curbBackLeft: off(halfL + cwL, chL),
+      curbBackRight: off(-(halfR + cwR), chR),
       // The footway keeps its own level and tips down into the crossing, which is what makes the dip read.
-      paveLeft: off(rh + cwL + pl, zpL + pl * crossfall),
-      paveRight: off(-(rh + cwR + pr), zpR + pr * crossfall),
-      paveLeftBase: off(rh + cwL + pl, 0),
-      paveRightBase: off(-(rh + cwR + pr), 0),
+      paveLeft: off(halfL + cwL + pl, zpL + pl * crossfall),
+      paveRight: off(-(halfR + cwR + pr), zpR + pr * crossfall),
+      paveLeftBase: off(halfL + cwL + pl, 0),
+      paveRightBase: off(-(halfR + cwR + pr), 0),
       // Cambered carriageway samples, left → right.
       lanePoints(columns) {
         const out = [];
         for (let c = 0; c <= columns; c++) {
-          const u = 1 - (2 * c) / columns; // +1 left edge → -1 right edge
-          out.push(off(u * rh, profile.crownRise * (1 - u * u)));
+          // Interpolate between whatever the two edges are: on a lapped station that is a narrow sliver of the
+          // full carriageway, but the camber is still sampled from the road's own crown so the two surfaces meet
+          // flush instead of stepping.
+          const lateral = halfL + ((-halfR - halfL) * c) / columns;
+          const u = clamp(lateral / rh, -1, 1);
+          out.push(off(lateral, profile.crownRise * (1 - u * u)));
         }
         return out;
       },

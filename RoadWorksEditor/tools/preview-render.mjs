@@ -119,7 +119,7 @@ export const DEMO = [
     drainage: { enabled: true, scupperSpacing: 16 },
   }),
   mk('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], { preset: 'gravel' }),
-  mk('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], { preset: 'narrow', guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
+  mk('Dock Interchange Ramp', [[-108, -180], [-40, -196], [30, -232], [90, -268], [150, -292]], { preset: 'narrow', guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
   mk('Chalk Cutting', [[-330, -120], [-312, -60, -3.2], [-300, 0, -6.0], [-306, 60, -3.0], [-318, 120, 0]], {
     paving: 'concrete',
     drainage: { enabled: true, gullySpacing: 20, manholeSpacing: 44 },

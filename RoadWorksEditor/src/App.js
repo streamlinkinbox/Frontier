@@ -4,23 +4,23 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=9';
-import { buildNetwork } from './Network.js?v=9';
-import { toObj } from './MeshSpec.js?v=9';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=9';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=9';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=9';
-import { GRAPH_DEFAULTS } from './Graph.js?v=9';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=9';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=9';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=9';
-import { PAVING_PATTERNS } from './Textures.js?v=9';
-import { ROAD_SURFACES } from './Surfaces.js?v=9';
-import { MARKING_DEFAULTS } from './Markings.js?v=9';
-import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=9';
-import { ProfileDock } from './ProfileDock.js?v=9';
-import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=9';
-import { DRAINAGE_DEFAULTS } from './Drainage.js?v=9';
+import { Viewport } from './Viewport.js?v=10';
+import { buildNetwork } from './Network.js?v=10';
+import { toObj } from './MeshSpec.js?v=10';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=10';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=10';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=10';
+import { GRAPH_DEFAULTS } from './Graph.js?v=10';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=10';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=10';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=10';
+import { PAVING_PATTERNS } from './Textures.js?v=10';
+import { ROAD_SURFACES } from './Surfaces.js?v=10';
+import { MARKING_DEFAULTS } from './Markings.js?v=10';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=10';
+import { ProfileDock } from './ProfileDock.js?v=10';
+import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=10';
+import { DRAINAGE_DEFAULTS } from './Drainage.js?v=10';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -179,7 +179,7 @@ function demoDocument() {
       preset: 'gravel',
       markings: { ...MARKING_DEFAULTS, laneArrows: false },
     }),
-    makeCorridor('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], {
+    makeCorridor('Dock Interchange Ramp', [[-108, -180], [-40, -196], [30, -232], [90, -268], [150, -292]], {
       preset: 'narrow',
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'wbeam', when: 'always', offset: 0.4 },
     }),

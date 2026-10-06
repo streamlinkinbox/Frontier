@@ -8,7 +8,7 @@
 // Handles: X / Y / Z axes and a free XY plane pad. Z-up world.
 
 import * as THREE from 'three';
-import { closestLineParam } from './Ray.js?v=9';
+import { closestLineParam } from './Ray.js?v=10';
 
 const AXIS_COLORS = { x: 0xd2615c, y: 0x8fb469, z: 0x6f93c7, xy: 0xd6a665 };
 

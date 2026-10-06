@@ -7,20 +7,20 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=9';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=9';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=9';
-import { buildJunctionMesh } from './JunctionMesh.js?v=9';
-import { buildBridgeMesh } from './BridgeMesh.js?v=9';
-import { buildRoadbedMesh, buildCuttingMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=9';
-import { buildJunctionFurniture } from './Signs.js?v=9';
-import { buildGuardrail } from './Guardrail.js?v=9';
-import { surfaceGroup } from './Surfaces.js?v=9';
-import { buildLaneDetail, paintYellowBox } from './Markings.js?v=9';
-import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=9';
-import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=9';
-import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=9';
-import { buildDrainage, buildBridgeDrainage } from './Drainage.js?v=9';
+import { MeshSpec } from './MeshSpec.js?v=10';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=10';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=10';
+import { buildJunctionMesh, approachForEdge } from './JunctionMesh.js?v=10';
+import { buildBridgeMesh } from './BridgeMesh.js?v=10';
+import { buildRoadbedMesh, buildCuttingMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=10';
+import { buildJunctionFurniture } from './Signs.js?v=10';
+import { buildGuardrail } from './Guardrail.js?v=10';
+import { surfaceGroup } from './Surfaces.js?v=10';
+import { buildLaneDetail, paintYellowBox } from './Markings.js?v=10';
+import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=10';
+import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=10';
+import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=10';
+import { buildDrainage, buildBridgeDrainage } from './Drainage.js?v=10';
 
 export const GROUP_NAMES = [
   'road', 'curb', 'pavement', 'markings', 'markingsYellow', 'driveway',
@@ -91,6 +91,159 @@ function outgoingDir(edge, atStart) {
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
   return { x: dx / len, y: dy / len };
+}
+
+// ── diverges ──────────────────────────────────────────────────────────────────────────────────────────────────────
+// A fork where one ramp peels off a through road is not an intersection and must not be filleted like one: a corner
+// radius big enough for a 10° split pulls both carriageways tens of metres apart and fills the hole with a blank
+// apron, so the mainline reads as if it stops dead and starts again. A diverge is built the other way round —
+//
+//   · the through road runs on untouched, markings and all;
+//   · the ramp is *lapped* inside it, so for the first stretch its carriageway IS the mainline's carriageway and it
+//     only paves what has emerged past the mainline's edge (see lapForRamp below);
+//   · the wedge that opens up once the two have parted is the gore, paved and hatched by Merge.js.
+//
+// Without the lap both roads pave the same ground, and two coplanar asphalt surfaces fighting over the same pixels
+// is the black wedge that used to sit at every fork.
+function markDiverges(graph) {
+  for (const node of graph.nodes.values()) {
+    node.diverge = false;
+    node.divergeRamp = null;
+    node.divergeHost = null;
+    if (!node.fork || node.style === 'roundabout' || node.degree !== 3) continue;
+    const ramp = minorArmAt(graph, node);
+    if (!ramp) continue;
+    const others = node.edgeIds.filter((id) => id !== ramp.id).map((id) => graph.edges.get(id)).filter(Boolean);
+    // The through road has to actually run through: two arms of the same corridor.
+    if (others.length !== 2 || others[0].sourceId !== others[1].sourceId) continue;
+    const rdir = outgoingDir(ramp, ramp.startNodeId === node.id);
+    let best = null;
+    for (const other of others) {
+      const odir = outgoingDir(other, other.startNodeId === node.id);
+      const gap = Math.acos(clampNum(rdir.x * odir.x + rdir.y * odir.y, -1, 1));
+      if (gap <= 0.02 || gap > MERGE_MAX_ANGLE) continue;
+      if (!best || gap < best.gap) best = { gap, other };
+    }
+    if (!best) continue;
+    node.diverge = true;
+    node.divergeRamp = ramp.id;
+    node.divergeHost = best.other.id;
+  }
+}
+
+// Where the line through `base` along `left` crosses a polyline, as a signed lateral distance. Returns the crossing
+// nearest the centreline, or null when the cross-section misses the polyline altogether.
+function lateralOfCrossing(base, left, poly) {
+  const nx = -left.y;
+  const ny = left.x; // the cross-section's own forward direction
+  let best = null;
+  for (let i = 0; i < poly.length - 1; i++) {
+    const a = poly[i];
+    const b = poly[i + 1];
+    const ax = a.x - base.x;
+    const ay = a.y - base.y;
+    const bx = b.x - base.x;
+    const by = b.y - base.y;
+    const fa = ax * nx + ay * ny;
+    const fb = bx * nx + by * ny;
+    if ((fa > 0 && fb > 0) || (fa < 0 && fb < 0)) continue; // segment does not straddle the cross-section
+    const span = fa - fb;
+    const t = Math.abs(span) < 1e-9 ? 0 : fa / span;
+    const lat = (ax + (bx - ax) * t) * left.x + (ay + (by - ay) * t) * left.y;
+    if (best === null || Math.abs(lat) < Math.abs(best)) best = lat;
+  }
+  return best;
+}
+
+// The lap table for one ramp: per station, how far its carriageway may reach on each side before it would start
+// paving over the road it is still inside. Returns null when this edge is not the ramp of a diverge.
+function lapForRamp(graph, edge, provisional) {
+  const table = [];
+  let any = false;
+  for (const atStart of [true, false]) {
+    const node = graph.nodes.get(atStart ? edge.startNodeId : edge.endNodeId);
+    if (!node || !node.diverge || node.divergeRamp !== edge.id) continue;
+    const rampSec = provisional.get(edge.id);
+    if (!rampSec || rampSec.length < 2) continue;
+    // Both arms of the through road matter, not just the one the ramp splits from: right at the node the ramp's
+    // cross-section still cuts the arm behind it.
+    const hostEdges = [];
+    for (const id of node.edgeIds) {
+      if (id === edge.id) continue;
+      const sec = provisional.get(id);
+      if (sec && sec.length >= 2) hostEdges.push([sec.map((x) => x.roadLeft), sec.map((x) => x.roadRight)]);
+    }
+    if (!hostEdges.length) continue;
+    const rh = edge.profile.roadHalf;
+    for (const sec of rampSec) {
+      let left = rh;
+      let right = -rh;
+      // Every station goes in the table, clipped or not, so that the run back to full width is interpolated and
+      // the far end of the ramp cannot inherit a stale clip from the last station that happened to be lapped.
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const [hl, hr] of hostEdges) {
+        const l1 = lateralOfCrossing(sec.base, sec.frame.left, hl);
+        const l2 = lateralOfCrossing(sec.base, sec.frame.left, hr);
+        for (const l of [l1, l2]) {
+          if (l === null) continue;
+          lo = Math.min(lo, l);
+          hi = Math.max(hi, l);
+        }
+      }
+      if (hi <= -rh + 0.05 || lo >= rh - 0.05) {
+        table.push({ d: sec.distance, left, right });
+        continue; // the host is clear of this cross-section
+      }
+      if (lo <= -rh && hi >= rh) {
+        // still completely inside the other road: keep a sliver so the strip stays well-formed
+        left = -rh + 0.05;
+      } else if (hi >= rh - 0.05) {
+        left = lo; // the host covers the left-hand side
+      } else if (lo <= -rh + 0.05) {
+        right = hi; // ... or the right-hand side
+      }
+      table.push({ d: sec.distance, left, right });
+      any = true;
+    }
+  }
+  if (!any) return null;
+  table.sort((a, b) => a.d - b.d);
+  const rh = edge.profile.roadHalf;
+  const clipped = table.filter((e) => e.left < rh - 0.25 || e.right > -rh + 0.25);
+  const lo = clipped.length ? clipped[0].d : 0;
+  const hi = clipped.length ? clipped[clipped.length - 1].d : 0;
+  const atStartEnd = lo < 1e-6;
+  // While it is lapped the ramp has no outside of its own: no kerb, no footway, no rail, no gullies. The verge
+  // grows back over the first few metres beyond the point where the carriageway is finally its own.
+  const fade = (distance) => clampNum(atStartEnd ? (distance - hi) / 14 : (lo - distance) / 14, 0, 1);
+  const sample = (distance) => {
+    if (!table.length) return { left: rh, right: -rh };
+    if (distance <= table[0].d) return { left: table[0].left, right: table[0].right };
+    const last = table[table.length - 1];
+    if (distance >= last.d) return { left: last.left, right: last.right };
+    let i = 0;
+    while (i < table.length - 2 && table[i + 1].d < distance) i++;
+    const a = table[i];
+    const b = table[i + 1];
+    const span = b.d - a.d;
+    const t = span > 1e-6 ? (distance - a.d) / span : 0;
+    return { left: a.left + (b.left - a.left) * t, right: a.right + (b.right - a.right) * t };
+  };
+  return { lap: sample, fade, clearFrom: atStartEnd ? hi : 0, clearTo: atStartEnd ? Infinity : lo };
+}
+
+// The chainage from which a lapped ramp is a road in its own right — before it, it is a sliver inside the mainline
+// and must not be painted, drained or railed.
+function lapClearFrom(edge, sections) {
+  const rh = edge.profile.roadHalf;
+  const full = (s) => s.halfLeft > rh - 0.25 && s.halfRight > rh - 0.25;
+  let from = 0;
+  for (const s of sections) {
+    if (full(s)) break;
+    from = s.distance;
+  }
+  return from;
 }
 
 // The windows on one edge where its verge has to stay shut, one per fork it ends at.
@@ -188,6 +341,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
   const t0 = now();
   const cfg = { ...GRAPH_DEFAULTS, ...settings };
   const graph = buildGraph(corridors, cfg);
+  markDiverges(graph);
   // A fresh map each solve: anything not hit this time around is dropped, so the cache cannot grow without bound.
   const nextCache = cache ? new Map() : null;
   let cacheHits = 0;
@@ -201,9 +355,25 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
   let drivewayCount = 0;
   let drainageCount = 0;
 
+  // Diverges need to know where the mainline's edge runs before the ramp's own cross-sections can be solved, so the
+  // arms of every fork get a provisional, un-lapped pass first.
+  const provisional = new Map();
+  if ([...graph.nodes.values()].some((n) => n.diverge)) {
+    for (const node of graph.nodes.values()) {
+      if (!node.diverge) continue;
+      for (const id of node.edgeIds) {
+        if (provisional.has(id)) continue;
+        const arm = graph.edges.get(id);
+        if (arm) provisional.set(id, sectionsForEdge(graph, arm, cfg));
+      }
+    }
+  }
+
   // Corridors first: every edge contributes its trimmed cross-sections, which the junctions then reuse verbatim.
   for (const edge of graph.edges.values()) {
-    let sections = sectionsForEdge(graph, edge, cfg);
+    const lapInfo = provisional.size ? lapForRamp(graph, edge, provisional) : null;
+    const lap = lapInfo?.lap || null;
+    let sections = sectionsForEdge(graph, edge, lap ? { ...cfg, lap } : cfg);
     // Vehicle crossovers change the cross-section itself (the kerb drops), and so does a gore (the verge closes),
     // so once both are known the sections are re-solved with them applied rather than patched afterwards.
     let crossings = [];
@@ -213,9 +383,14 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
       drop = kerbDropFn(crossings, edge.driveways.drop);
     }
     const windows = sections && edge.family !== 'bridge' ? forkWindows(graph, edge, cfg) : [];
-    const vergeFade = sections ? vergeFadeFn(windows, sections[sections.length - 1].distance) : null;
+    let vergeFade = sections ? vergeFadeFn(windows, sections[sections.length - 1].distance) : null;
+    if (lapInfo) {
+      const base = vergeFade;
+      const smooth = (t) => t * t * (3 - 2 * t);
+      vergeFade = (distance, side) => Math.min(base ? base(distance, side) : 1, smooth(lapInfo.fade(distance)));
+    }
     if (sections && (drop || vergeFade)) {
-      sections = sectionsForEdge(graph, edge, { ...cfg, kerbDrop: drop || undefined, vergeFade: vergeFade || undefined }) || sections;
+      sections = sectionsForEdge(graph, edge, { ...cfg, kerbDrop: drop || undefined, vergeFade: vergeFade || undefined, lap: lap || undefined }) || sections;
     }
     if (!sections) {
       warnings.push(`${edge.name || edge.sourceId}: segment too short between junctions`);
@@ -242,10 +417,14 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     // Build into a private set of specs so the result can be cached and appended as a unit.
     const local = cache ? {} : groups;
     buildSegmentMesh(graph, edge, local, { ...cfg, sections, paveGroup, roadGroup });
+    // A lapped ramp is not its own road until it has emerged: paint, drain and rail only the part that has.
+    const clearFrom = lap ? Math.max(lapClearFrom(edge, sections), lapInfo.clearFrom) : 0;
+    const openSections = clearFrom > 0 ? sections.filter((s) => s.distance >= clearFrom - 1e-6) : sections;
+    const paintable = openSections.length >= 2 ? openSections : sections;
     if (cfg.markings !== false && edge.profile.markings !== false) {
       const markings = local.markings || (local.markings = new MeshSpec('markings'));
-      buildMarkings(sections, edge.profile, markings, cfg);
-      buildLaneDetail(graph, edge, sections, local, { ...cfg, paveGroup });
+      buildMarkings(paintable, edge.profile, markings, cfg);
+      buildLaneDetail(graph, edge, paintable, local, { ...cfg, paveGroup });
     }
     // Splitter islands on any arm that meets a roundabout.
     for (const atEnd of [false, true]) {
@@ -258,7 +437,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     let drives = 0;
     let drains = 0;
     if (crossings.length) drives = buildDriveways(edge, sections, crossings, local);
-    drains = edge.family === 'bridge' ? buildBridgeDrainage(edge, sections, local, cfg) : buildDrainage(edge, sections, local, cfg);
+    drains = edge.family === 'bridge' ? buildBridgeDrainage(edge, paintable, local, cfg) : buildDrainage(edge, paintable, local, cfg);
     drivewayCount += drives;
     drainageCount += drains;
 
@@ -269,7 +448,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     } else {
       buildRoadbedMesh(edge, sections, local, cfg);
       buildCuttingMesh(edge, sections, local, cfg);
-      hasGuardrail = !!buildGuardrail(edge, sections, local, { ...cfg, vergeFade });
+      hasGuardrail = !!buildGuardrail(edge, paintable, local, { ...cfg, vergeFade });
     }
     if (hasGuardrail) guardrailCount++;
     if (cache) {
@@ -284,6 +463,18 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
   let roundaboutCount = 0;
   let slipCount = 0;
   for (const node of graph.nodes.values()) {
+    if (node.diverge) {
+      // No apron, no fillet, no stop line: just the gore between the two arms that have parted company.
+      const approaches = node.edgeIds
+        .map((id) => approachForEdge(graph, graph.edges.get(id), node.id, sectionsByEdge.get(id)))
+        .filter(Boolean)
+        .sort((a, b) => a.angle - b.angle);
+      if (approaches.length >= 2) {
+        const dominantFork = widestApproachProfile(graph, node);
+        slipCount += buildMerges(graph, node, { approaches }, sectionsByEdge, groups, { ...cfg, roadGroup: surfaceGroup(dominantFork) });
+      }
+      continue;
+    }
     if (!nodeGeneratesJunction(graph, node)) continue;
     const dominant = widestApproachProfile(graph, node);
     const paveGroup = pavingGroup(dominant);

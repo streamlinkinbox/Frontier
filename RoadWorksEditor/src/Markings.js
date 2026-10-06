@@ -12,7 +12,7 @@
 // Lateral is positive to the LEFT of travel, matching the cross-section frames. Right-hand traffic is assumed, so
 // the lanes a driver uses on the way INTO a junction are the ones at negative lateral.
 
-import { MeshSpec } from './MeshSpec.js?v=9';
+import { MeshSpec } from './MeshSpec.js?v=10';
 
 export const MARKING_DEFAULTS = {
   laneArrows: true, // turn arrows on junction approaches

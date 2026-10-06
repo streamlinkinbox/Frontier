@@ -13,7 +13,7 @@
 // stops when the gap reaches the nose width. Everything comes from the arms' own cross-sections, so a gore on a
 // curving ramp curves with it.
 
-import { MeshSpec } from './MeshSpec.js?v=9';
+import { MeshSpec } from './MeshSpec.js?v=10';
 
 export const MERGE_DEFAULTS = {
   enabled: true,
@@ -40,7 +40,7 @@ function gapBetween(a, b) {
 
 // Walks an arm away from the junction, returning the inner-edge point and the carriageway centre at a list of
 // distances. `side` is 'right' or 'left' in junction-relative terms, matching the fillet convention.
-function walkArm(sections, atStart, side, distances) {
+function walkArm(sections, atStart, side, distances, roadHalf = 0) {
   const last = sections.length - 1;
   const total = sections[last].distance;
   const out = [];
@@ -60,9 +60,15 @@ function walkArm(sections, atStart, side, distances) {
     const span = b.distance - a.distance;
     const t = span > 1e-6 ? (along - a.distance) / span : 0;
     const mix = (pa, pb) => ({ x: pa.x + (pb.x - pa.x) * t, y: pa.y + (pb.y - pa.y) * t, z: pa.z + (pb.z - pa.z) * t });
+    const wantRight = side === 'right';
+    const useRight = atStart ? !wantRight : wantRight;
+    const half = (useRight ? a.halfRight : a.halfLeft) ?? roadHalf;
     out.push({
       edge: mix(pick(a), pick(b)),
       centre: mix(a.center, b.center),
+      // A ramp that is still lapped inside its mainline has no gore yet: its "edge" here is the mainline's edge,
+      // pinned there by Network.js, and measuring a separation from it would start the gore back at the node.
+      full: half >= roadHalf - 0.25,
       past: d > total,
     });
   }
@@ -97,8 +103,8 @@ export function buildMerges(graph, node, built, sectionsByEdge, out, settings = 
     const step = 2.0;
     const distances = [];
     for (let d = 0; d <= cfg.maxLength; d += step) distances.push(d);
-    const armA = walkArm(secA, cur.atStart, 'right', distances);
-    const armB = walkArm(secB, nxt.atStart, 'left', distances);
+    const armA = walkArm(secA, cur.atStart, 'right', distances, cur.profile?.roadHalf || 0);
+    const armB = walkArm(secB, nxt.atStart, 'left', distances, nxt.profile?.roadHalf || 0);
 
     // Separation has to be measured as a *signed* offset away from the mainline, not a plain distance: close to the
     // junction the ramp still sits inside the mainline's footprint, and that overlap is already paved by the arms
@@ -113,6 +119,7 @@ export function buildMerges(graph, node, built, sectionsByEdge, out, settings = 
       const ny = a.edge.y - a.centre.y;
       const len = Math.hypot(nx, ny) || 1;
       const separation = ((b.edge.x - a.edge.x) * nx + (b.edge.y - a.edge.y) * ny) / len;
+      if (!started && (!a.full || !b.full)) continue;
       if (!started && separation < 0.05) continue;
       started = true;
       strip.push({ a: a.edge, b: b.edge, separation, distance: distances[k] });
