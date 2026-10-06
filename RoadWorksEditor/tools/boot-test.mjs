@@ -430,6 +430,26 @@ console.log('\n— framing follows the selection —');
   api.clearSelection();
 }
 
+console.log('\n— vertical alignment dock —');
+{
+  const api = dom.window.__roadworks;
+  const dock = api.profileDock;
+  check('the dock is wired up', !!dock);
+  const corridor = api.state.doc.corridors.find((c) => c.family === 'road' && c.points.length > 3);
+  api.selectCorridor(corridor.id);
+  check('selecting a corridor loads its long section', dock.corridor?.id === corridor.id);
+  check('a handle exists for every control point', dock.handles.length === corridor.points.length, `${dock.handles.length} vs ${corridor.points.length}`);
+  const before = corridor.points[1].z;
+  dock.callbacks.onElevation(1, before + 3.5);
+  check('dragging a handle edits the control point elevation', Math.abs(corridor.points[1].z - (before + 3.5)) < 1e-6);
+  corridor.points[1].z = before;
+  const checksText = dom.document.getElementById('ProfileChecks').innerHTML;
+  check('the design check panel reports figures', /Steepest grade/.test(checksText));
+  dock.setCollapsed(true);
+  check('the dock collapses', dock.collapsed === true);
+  dock.setCollapsed(false);
+}
+
 console.log('\n— export —');
 let exportError = null;
 try {

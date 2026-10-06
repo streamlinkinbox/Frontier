@@ -5,6 +5,11 @@ import { buildGraph, nodeGeneratesJunction } from '../src/Graph.js';
 import { groupBase } from '../src/Network.js';
 import { SIGN_UV } from '../src/Textures.js';
 import { closestLineParam } from '../src/Ray.js';
+import { profileOf, designChecks, standardsFor, profileSummary } from '../src/Alignment.js';
+import { arrowGlyph, allocateArrows, turnsFromNode, convexHull, pointInPolygon } from '../src/Markings.js';
+import { outerRadius, resolveRoundabout } from '../src/Roundabout.js';
+import { ROAD_SURFACES, surfaceGroup } from '../src/Surfaces.js';
+import { resolveProfile } from '../src/Profiles.js';
 
 // Pavement is split into one group per paving pattern (`pavement#brick@1.00`), so totals are taken by base name.
 const tris = (net, base) =>
@@ -341,6 +346,130 @@ console.log('\n— closed loop (roundabout-ish) —');
   const g = buildGraph([corridor('ring', pts, { closed: true }), corridor('spur', [[0, 22], [0, 70]])]);
   const junctions = [...g.nodes.values()].filter((n) => nodeGeneratesJunction(g, n)).length;
   check('ring + spur produce a junction', junctions >= 1, `got ${junctions}`);
+}
+
+console.log('\n— unsealed surfaces —');
+{
+  const gravel = resolveProfile({ preset: 'gravel', points: [] });
+  check('gravel preset resolves to an unsealed surface', gravel.sealed === false && gravel.surface === 'gravel');
+  check('unsealed roads default to no lane markings', gravel.markings === false);
+  check('unsealed roads get a steeper camber than asphalt', gravel.crown > resolveProfile({ preset: 'street', points: [] }).crown);
+  check('unsealed roads get a loose shoulder', gravel.paving === 'gravelShoulder');
+  check('surface group keeps asphalt on the bare name', surfaceGroup({ surface: 'asphalt' }) === 'road');
+  check('surface group splits other surfaces out', surfaceGroup({ surface: 'gravel' }) === 'road#gravel');
+  const net = buildNetwork([
+    corridor('seal', [[-60, 0], [0, 0], [60, 0]]),
+    corridor('loose', [[0, -60], [0, 0], [0, 60]], { preset: 'gravel' }),
+  ]);
+  check('each surface gets its own carriageway group', !!net.groups['road#gravel']?.triangleCount && !!net.groups.road.triangleCount);
+  check('every surface in the catalogue declares a camber', Object.values(ROAD_SURFACES).every((s) => s.crown > 0));
+}
+
+console.log('\n— lane-level markings —');
+{
+  check('through arrow is a single shaft and head', arrowGlyph('through').length === 3);
+  check('combined arrows add an arm', arrowGlyph('throughleft').length > arrowGlyph('through').length);
+  check('every glyph polygon is finite', ['through', 'left', 'right', 'throughleft', 'throughright']
+    .every((k) => arrowGlyph(k).every((poly) => poly.every(([u, v]) => Number.isFinite(u) && Number.isFinite(v)))));
+  check('a single approach lane collapses to one combined glyph', allocateArrows(1, { left: true, right: false, through: true })[0] === 'throughleft');
+  check('the outside lane takes the right turn', allocateArrows(3, { left: true, right: true, through: true })[0].includes('right'));
+  check('the inside lane takes the left turn', allocateArrows(3, { left: true, right: true, through: true })[2].includes('left'));
+
+  const g = buildGraph([corridor('main', [[-80, 0], [0, 0], [80, 0]]), corridor('side', [[0, 0], [0, 80]])]);
+  const node = [...g.nodes.values()].find((n) => n.degree === 3);
+  const turns = turnsFromNode(g, node, 0); // heading east, into the junction
+  check('a T-junction offers through and left but no right', turns.through && turns.left && !turns.right, JSON.stringify(turns));
+
+  const hull = convexHull([{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 4 }, { x: 0, y: 4 }, { x: 2, y: 2 }]);
+  check('convex hull drops interior points', hull.length === 4, `got ${hull.length}`);
+  check('point-in-polygon agrees with the hull', pointInPolygon({ x: 2, y: 2 }, hull) && !pointInPolygon({ x: 9, y: 2 }, hull));
+
+  const net = buildNetwork([
+    corridor('main', [[-90, 0], [0, 0], [90, 0]], { preset: 'avenue', markings: { yellowBox: true, cycleLane: 'right', refuges: 1 } }),
+    corridor('side', [[0, -90], [0, 0], [0, 90]], { preset: 'avenue', markings: { busLane: 'left' } }),
+  ]);
+  check('yellow box paints into its own group', net.groups.markingsYellow.triangleCount > 0);
+  check('cycle lane tint is a separate group', !!net.groups['laneTint#cycle']?.triangleCount);
+  check('bus lane tint is a separate group', !!net.groups['laneTint#bus']?.triangleCount);
+  const plain = buildNetwork([
+    corridor('main', [[-90, 0], [0, 0], [90, 0]], { preset: 'avenue' }),
+    corridor('side', [[0, -90], [0, 0], [0, 90]], { preset: 'avenue' }),
+  ]);
+  check('turn arrows add paint to a plain crossroads', plain.groups.markings.triangleCount > 0);
+  check('no yellow box unless asked for', plain.groups.markingsYellow.triangleCount === 0);
+}
+
+console.log('\n— roundabouts —');
+{
+  const base = [
+    corridor('ew', [[-120, 0], [0, 0], [120, 0]], { preset: 'avenue' }),
+    corridor('ns', [[0, -120], [0, 0], [0, 120]], { preset: 'avenue' }),
+  ];
+  const spec = resolveRoundabout({ islandRadius: 10, circulating: 8 });
+  check('outer radius is island plus circulating width', outerRadius(spec) === 18);
+  const plain = buildNetwork(base);
+  const round = buildNetwork(base, {
+    junctionOverrides: [{ at: { x: 0, y: 0 }, style: 'roundabout', roundabout: { islandRadius: 10, circulating: 8, splitter: 16 } }],
+  });
+  check('the override is claimed by the node', round.stats.roundabouts === 1, `got ${round.stats.roundabouts}`);
+  check('the island adds geometry', round.stats.triangles > plain.stats.triangles);
+  check('arms are trimmed out to the outer kerb', [...round.graph.nodes.values()].some((n) => n.cornerRadius > 17));
+  check('a roundabout replaces the stop furniture', round.stats.signs === 0 && plain.stats.signs > 0);
+  const offset = buildNetwork(base, {
+    junctionOverrides: [{ at: { x: 6, y: -4 }, style: 'roundabout', roundabout: { islandRadius: 9 } }],
+  });
+  check('overrides snap to the nearest node, not an exact position', offset.stats.roundabouts === 1);
+}
+
+console.log('\n— slip roads —');
+{
+  const mainline = corridor('motorway', [[-260, 0], [-120, 0], [0, 0], [140, 0], [260, 0]], { preset: 'highway' });
+  const ramp = corridor('offramp', [[0, -8], [60, -14], [120, -34], [190, -70]], { preset: 'narrow' });
+  const net = buildNetwork([mainline, ramp]);
+  check('a ramp that stops on the carriageway still connects', net.stats.junctions >= 1, `got ${net.stats.junctions}`);
+  check('the fork is paved as a gore', net.stats.slipRoads >= 1, `got ${net.stats.slipRoads}`);
+  const fork = [...net.graph.nodes.values()].find((n) => n.fork);
+  check('the fork node is flagged as a fork', !!fork);
+  check('a fork is not trimmed back like a corner', fork && fork.cornerRadius < 20, `got ${fork?.cornerRadius}`);
+  check('no stop line is painted at a merge', net.stats.signs === 0);
+  const detached = buildNetwork([mainline, corridor('far', [[0, -60], [60, -66], [120, -86]], { preset: 'narrow' })]);
+  check('a road that merely passes nearby is left alone', detached.stats.junctions === 0, `got ${detached.stats.junctions}`);
+}
+
+console.log('\n— vertical alignment —');
+{
+  const pts = [];
+  for (let i = 0; i <= 100; i++) pts.push({ x: i * 4, y: 0, z: i * 4 * 0.085 }); // a steady 8.5 % climb
+  const profile = profileOf(pts);
+  check('chainage runs the length of the polyline', Math.abs(profile.length - 400) < 0.5, `${profile.length}`);
+  check('an 8.5 % grade reads as 8.5 %', Math.abs(profile.stations[50].grade - 8.5) < 0.1, `${profile.stations[50].grade}`);
+  const summary = profileSummary(profile);
+  check('summary totals the climb', Math.abs(summary.rise - 34) < 0.5 && summary.fall < 0.01, `${summary.rise}/${summary.fall}`);
+  const issues = designChecks(profile, { designSpeed: 100 });
+  check('an 8.5 % grade fails at 100 km/h', issues.some((i) => i.kind === 'grade'));
+  check('the warning carries a chainage range', issues[0].to > issues[0].from);
+  check('the same grade passes at 30 km/h, where 9 % is allowed', !designChecks(profile, { designSpeed: 30 }).some((i) => i.kind === 'grade'));
+
+  const crest = [];
+  for (let i = 0; i <= 80; i++) {
+    const s = i * 2;
+    crest.push({ x: s, y: 0, z: -0.0015 * (s - 80) * (s - 80) }); // K = 1/(100·|z''|) = 1/0.3 ≈ 3.3
+  }
+  const crestProfile = profileOf(crest);
+  const k = crestProfile.stations[40].k;
+  check('crest K is recovered from the curve', Math.abs(k - 1 / 0.3) < 0.5, `${k}`);
+  check('the crest is classified as a crest', crestProfile.stations[40].curveType === 'crest');
+  check('a flat K of 3 fails at 80 km/h', designChecks(crestProfile, { designSpeed: 80 }).some((i) => i.kind === 'crest'));
+
+  const bend = [];
+  for (let i = 0; i <= 60; i++) {
+    const a = (i / 60) * Math.PI;
+    bend.push({ x: Math.cos(a) * 40, y: Math.sin(a) * 40, z: 0 });
+  }
+  const radius = profileOf(bend).stations[30].radius;
+  check('plan radius is recovered from a 40 m arc', Math.abs(radius - 40) < 1.5, `${radius}`);
+  check('standards snap to the nearest tabulated speed', standardsFor(77).speed === 80);
+  check('faster roads demand more', standardsFor(120).radius > standardsFor(50).radius);
 }
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);

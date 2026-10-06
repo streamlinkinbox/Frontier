@@ -14,6 +14,8 @@ const COLOURS = {
   curb: [158, 163, 170],
   pavement: [107, 112, 119],
   markings: [230, 226, 214],
+  markingsYellow: [216, 181, 69],
+  laneTint: [63, 107, 74],
   deck: [139, 142, 147],
   structure: [89, 97, 110],
   piers: [124, 127, 133],
@@ -28,6 +30,17 @@ const COLOURS = {
 
 // `pavement#brick@1.00` → `pavement`
 const baseName = (n) => n.split('#')[0];
+const variantName = (n) => (n.split('#')[1] || '').split('@')[0];
+// Unsealed carriageways and coloured lanes read very differently in plan, so the preview tints them too.
+const VARIANTS = {
+  gravel: [139, 132, 117],
+  dirt: [111, 97, 73],
+  track: [107, 95, 74],
+  cycle: [58, 107, 70],
+  bus: [122, 58, 52],
+  gravelShoulder: [138, 130, 115],
+  dirtShoulder: [112, 98, 76],
+};
 
 const mk = (name, pts, extra = {}) => ({
   id: name,
@@ -60,6 +73,8 @@ export const DEMO = [
     family: 'bridge',
     bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
   }),
+  mk('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], { preset: 'gravel' }),
+  mk('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], { preset: 'narrow', guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
   // The bridge gallery: one span of every superstructure family, laid out in a grid north of the network.
   ...[
     ['Beam Viaduct', 'beam', 'street', { pierSpacing: 30 }],
@@ -130,7 +145,7 @@ export function render(groups, { view = 'iso', width = WIDTH, height = HEIGHT, b
   const ll = Math.hypot(...light);
 
   for (const [name, spec] of Object.entries(groups)) {
-    const base = COLOURS[baseName(name)] || [140, 140, 140];
+    const base = VARIANTS[variantName(name)] || COLOURS[baseName(name)] || [140, 140, 140];
     const pos = spec.positions;
     const nor = spec.normals;
     for (let t = 0; t < spec.indices.length; t += 3) {
@@ -235,7 +250,10 @@ function crc32(buf) {
 if (process.argv[1] && process.argv[1].endsWith('preview-render.mjs')) {
   const out = process.argv[2] || 'preview.png';
   const view = process.argv[3] || 'iso';
-  const net = buildNetwork(DEMO, { markings: true });
+  const net = buildNetwork(DEMO, {
+    markings: true,
+    junctionOverrides: [{ at: { x: 0, y: 0 }, style: 'roundabout', roundabout: { islandRadius: 8.5, circulating: 8.0, splitter: 15 } }],
+  });
   const image = render(net.groups, { view });
   writeFileSync(out, encodePng(image));
   console.log(`${out} · ${view} · ${net.stats.triangles} triangles · ${net.stats.junctions} junctions`);

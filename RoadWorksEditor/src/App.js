@@ -4,17 +4,21 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=4';
-import { buildNetwork } from './Network.js?v=4';
-import { toObj } from './MeshSpec.js?v=4';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=4';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=4';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=4';
-import { GRAPH_DEFAULTS } from './Graph.js?v=4';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=4';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=4';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=4';
-import { PAVING_PATTERNS } from './Textures.js?v=4';
+import { Viewport } from './Viewport.js?v=5';
+import { buildNetwork } from './Network.js?v=5';
+import { toObj } from './MeshSpec.js?v=5';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=5';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=5';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=5';
+import { GRAPH_DEFAULTS } from './Graph.js?v=5';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=5';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=5';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=5';
+import { PAVING_PATTERNS } from './Textures.js?v=5';
+import { ROAD_SURFACES } from './Surfaces.js?v=5';
+import { MARKING_DEFAULTS } from './Markings.js?v=5';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=5';
+import { ProfileDock } from './ProfileDock.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -34,8 +38,11 @@ function makeCorridor(name, points, extra = {}) {
     tension: 0,
     radiusBias: 0,
     visible: true,
-    paving: 'concrete',
+    // Left unset so the profile preset's own surface and shoulder apply; both can be overridden per corridor.
+    paving: null,
     pavingScale: 1,
+    surface: null,
+    markings: { ...MARKING_DEFAULTS },
     roadbed: { ...ROADBED_DEFAULTS },
     guardrail: { ...GUARDRAIL_DEFAULTS },
     bridge: { ...BRIDGE_DEFAULTS },
@@ -113,6 +120,14 @@ function demoDocument() {
       family: 'bridge',
       bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
     }),
+    makeCorridor('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], {
+      preset: 'gravel',
+      markings: { ...MARKING_DEFAULTS, laneArrows: false },
+    }),
+    makeCorridor('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], {
+      preset: 'narrow',
+      guardrail: { ...GUARDRAIL_DEFAULTS, type: 'wbeam', when: 'always', offset: 0.4 },
+    }),
     ...bridgeGallery(),
   ];
   return {
@@ -128,6 +143,12 @@ function demoDocument() {
       signage: SIGNAGE_DEFAULTS.signage,
       stopBars: true,
       crosswalks: true,
+      designSpeed: 60,
+      // Per-junction settings, anchored to a position rather than a node id (ids move when geometry does).
+      // Harbour Avenue meets Mill Street at a roundabout: four arms, a planted island and a truck apron.
+      junctionOverrides: [
+        { at: { x: 0, y: 0 }, style: 'roundabout', roundabout: { ...ROUNDABOUT_DEFAULTS, islandRadius: 8.5, circulating: 8.0, splitter: 15 } },
+      ],
     },
   };
 }
@@ -160,12 +181,45 @@ window.addEventListener('resize', () => viewport.resize());
 function boot() {
   bindUi();
   rebuild(true);
+  profileDock = new ProfileDock(
+    {
+      dock: $('ProfileDock'),
+      canvas: $('ProfileCanvas'),
+      checks: $('ProfileChecks'),
+      subject: $('ProfileSubject'),
+      speed: $('ProfileSpeed'),
+      exaggeration: $('ProfileExaggeration'),
+      toggle: $('ProfileToggle'),
+    },
+    {
+      groundZ: () => state.doc.settings.groundZ ?? 0,
+      onSpeed: (speed) => { state.doc.settings.designSpeed = speed; },
+      onSelectPoint: (index) => {
+        const corridor = selectedCorridor();
+        if (corridor) selectPoint(corridor.id, index, false);
+      },
+      // Dragging a handle edits the control point's elevation live; the network rebuild is throttled as usual.
+      onElevation: (index, z) => {
+        const corridor = selectedCorridor();
+        if (!corridor || !corridor.points[index]) return;
+        corridor.points[index].z = z;
+        refreshOverlay();
+        queueRebuild();
+        setStatus(`${corridor.name} · point ${index + 1} at ${z.toFixed(2)} m`, 'busy');
+      },
+      onCommit: () => queueRebuild(),
+    },
+  );
+  profileDock.designSpeed = state.doc.settings.designSpeed || 60;
+  refreshProfileDock();
+
   viewport.frame(networkBounds());
   loop();
   // Debug handle: used by tools/boot-test.mjs, and handy from the browser console.
   window.__roadworks = {
     state, viewport, rebuild, select, selectCorridor, selectPoint, selectJunction, clearSelection,
     collectJunctionGrabs, collectGrabs, selectionCentroid, setTool, networkBounds, frameTarget, edgeAtPoint,
+    profileDock, junctionOverrideFor,
   };
 }
 
@@ -238,6 +292,18 @@ function visibleCorridors() {
   return list;
 }
 
+// The dock always shows whichever corridor is selected, sampled exactly as the solver samples it.
+let profileDock = null;
+
+function refreshProfileDock() {
+  if (!profileDock) return;
+  const corridor = selectedCorridor();
+  const samples = corridor && corridor.points.length >= 2
+    ? sampleSpline(corridor.points, { closed: corridor.closed, tension: corridor.tension, step: state.doc.settings.sampleStep })
+    : null;
+  profileDock.setCorridor(corridor, samples);
+}
+
 function refreshOverlay() {
   const corridors = [...state.doc.corridors];
   if (state.draft) corridors.push({ ...state.draft, draft: true });
@@ -251,6 +317,7 @@ function refreshOverlay() {
   const centre = selectionCentroid();
   if (centre) viewport.gizmo.attach(new THREE.Vector3(centre.x, centre.y, centre.z));
   else viewport.gizmo.detach();
+  refreshProfileDock();
 }
 
 // The stretch of road between two junctions is a graph *edge*, so highlighting it means painting that edge's own
@@ -711,7 +778,12 @@ function beginMove(axis, ray) {
   // Junction anchors have to travel with the drag: the solver renames nodes as they move, and the selection is
   // re-bound to the nearest node by position after every rebuild.
   const junctionStarts = state.selection.junctions.map((j) => ({ ...j.at }));
-  drag = { kind: 'move', origin, grabs, junctionStarts };
+  const junctionOverrides = state.selection.junctions.map((j) => {
+    const node = state.network?.graph.nodes.get(j.id);
+    const entry = node ? junctionOverrideFor(node) : null;
+    return entry ? { entry, at: { ...entry.at } } : null;
+  });
+  drag = { kind: 'move', origin, grabs, junctionStarts, junctionOverrides };
   return true;
 }
 
@@ -791,7 +863,11 @@ canvas.addEventListener('pointermove', (event) => {
       }
       state.selection.junctions.forEach((entry, i) => {
         const start = drag.junctionStarts[i];
-        if (start) entry.at = { x: start.x + dx, y: start.y + dy, z: start.z + dz };
+        if (!start) return;
+        entry.at = { x: start.x + dx, y: start.y + dy, z: start.z + dz };
+        // Roundabout settings are anchored to a position, so they have to travel with the junction.
+        const saved = drag.junctionOverrides[i];
+        if (saved) saved.entry.at = { x: saved.at.x + dx, y: saved.at.y + dy };
       });
       drag.moved = { dx, dy, dz };
       refreshOverlay();
@@ -879,6 +955,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === '4') setTool('draw-road');
   if (event.key === '5') setTool('draw-bridge');
   if (key === 'l') setLabelsVisible(!state.display.labels);
+  if (key === 'v') profileDock?.setCollapsed(!profileDock.collapsed);
   if (key === 'a' && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
     selectAll();
@@ -1261,6 +1338,9 @@ function renderInspector() {
         onChange: (v) => {
           corridor.preset = v;
           corridor.overrides = {};
+          // A preset carries its own surface and shoulder: drop per-corridor choices so the new one reads true.
+          corridor.surface = null;
+          corridor.paving = null;
           renderInspector();
           mark();
         },
@@ -1284,13 +1364,36 @@ function renderInspector() {
 
     const profile = { ...ROAD_PRESETS[corridor.preset], ...corridor.overrides };
     const xs = section('Cross-section');
+    xs.body.appendChild(
+      selectField({
+        label: 'Running surface',
+        value: corridor.surface || ROAD_PRESETS[corridor.preset]?.surface || 'asphalt',
+        options: Object.entries(ROAD_SURFACES).map(([k, v]) => [k, v.label]),
+        onChange: (v) => {
+          corridor.surface = v;
+          // Loose surfaces bring their own camber and shoulder unless the corridor has been hand-tuned.
+          if (!ROAD_SURFACES[v].sealed) delete corridor.paving;
+          delete corridor.overrides.crown;
+          renderInspector();
+          mark();
+        },
+      }),
+    );
     xs.body.appendChild(num('Road width', profile.roadWidth, 3, 32, 0.5, 'm', (v) => (corridor.overrides.roadWidth = v), mark));
     xs.body.appendChild(num('Lanes', profile.lanes, 1, 8, 1, '', (v) => (corridor.overrides.lanes = v), mark));
     xs.body.appendChild(num('Pavement left', profile.pavementLeft, 0, 8, 0.1, 'm', (v) => (corridor.overrides.pavementLeft = v), mark));
     xs.body.appendChild(num('Pavement right', profile.pavementRight, 0, 8, 0.1, 'm', (v) => (corridor.overrides.pavementRight = v), mark));
     xs.body.appendChild(num('Curb height', profile.curbHeight, 0, 0.6, 0.01, 'm', (v) => (corridor.overrides.curbHeight = v), mark));
     xs.body.appendChild(num('Curb width', profile.curbWidth, 0.05, 1.0, 0.01, 'm', (v) => (corridor.overrides.curbWidth = v), mark));
-    xs.body.appendChild(num('Camber', corridor.overrides.crown ?? 0.02, 0, 0.08, 0.005, '', (v) => (corridor.overrides.crown = v), mark));
+    const surfaceSpec = ROAD_SURFACES[corridor.surface || ROAD_PRESETS[corridor.preset]?.surface || 'asphalt'];
+    xs.body.appendChild(num('Camber', corridor.overrides.crown ?? surfaceSpec.crown ?? 0.02, 0, 0.1, 0.005, '', (v) => (corridor.overrides.crown = v), mark));
+    xs.body.appendChild(
+      checkField({
+        label: 'Lane markings',
+        value: typeof corridor.overrides.markings === 'boolean' ? corridor.overrides.markings : surfaceSpec.sealed,
+        onChange: (v) => { corridor.overrides.markings = v; mark(); },
+      }),
+    );
     host.appendChild(xs.element);
 
     // ── paving ──
@@ -1298,7 +1401,7 @@ function renderInspector() {
     pave.body.appendChild(
       selectField({
         label: 'Pattern',
-        value: corridor.paving || 'concrete',
+        value: corridor.paving || ROAD_SURFACES[corridor.surface || ROAD_PRESETS[corridor.preset]?.surface || 'asphalt'].shoulder || 'concrete',
         options: Object.entries(PAVING_PATTERNS).map(([k, v]) => [k, v.label]),
         onChange: (v) => { corridor.paving = v; mark(); },
       }),
@@ -1316,6 +1419,22 @@ function renderInspector() {
     paveNote.textContent = 'Patterns are drawn procedurally at runtime and tiled in metres, so pavers keep their real size around curves and through junction aprons.';
     pave.body.appendChild(paveNote);
     host.appendChild(pave.element);
+
+    // ── lane-level paint ──
+    const mk = corridor.markings || (corridor.markings = { ...MARKING_DEFAULTS });
+    const paintSec = section('Lane markings', false);
+    paintSec.body.appendChild(checkField({ label: 'Turn arrows', value: mk.laneArrows !== false, onChange: (v) => { mk.laneArrows = v; mark(); } }));
+    paintSec.body.appendChild(checkField({ label: 'Hatched central reserve', value: mk.hatching !== false, onChange: (v) => { mk.hatching = v; mark(); } }));
+    paintSec.body.appendChild(checkField({ label: 'Yellow box at junctions', value: !!mk.yellowBox, onChange: (v) => { mk.yellowBox = v; mark(); } }));
+    const sideOptions = [['none', 'None'], ['left', 'Left side'], ['right', 'Right side'], ['both', 'Both sides']];
+    paintSec.body.appendChild(selectField({ label: 'Cycle lane', value: mk.cycleLane || 'none', options: sideOptions, onChange: (v) => { mk.cycleLane = v; mark(); } }));
+    paintSec.body.appendChild(selectField({ label: 'Bus lane', value: mk.busLane || 'none', options: sideOptions, onChange: (v) => { mk.busLane = v; mark(); } }));
+    paintSec.body.appendChild(num('Pedestrian refuges', mk.refuges || 0, 0, 6, 1, '', (v) => (mk.refuges = v), mark));
+    const paintNote = document.createElement('p');
+    paintNote.className = 'Small';
+    paintNote.textContent = 'Arrows are allocated from the movements actually available at each junction, so a T-junction approach never offers a turn that does not exist.';
+    paintSec.body.appendChild(paintNote);
+    host.appendChild(paintSec.element);
 
     // ── what holds the road up ──
     if (corridor.family !== 'bridge') {
@@ -1472,6 +1591,21 @@ function networkSection() {
   );
   net.body.appendChild(checkField({ label: 'Stop bars', value: s.stopBars !== false, onChange: (v) => { s.stopBars = v; queueRebuild(); } }));
   net.body.appendChild(checkField({ label: 'Zebra crossings', value: s.crosswalks !== false, onChange: (v) => { s.crosswalks = v; queueRebuild(); } }));
+
+  // Slip roads: how a ramp that dies on a carriageway is tapered into it, and how far the gore runs.
+  net.body.appendChild(checkField({
+    label: 'Merge slip roads',
+    value: s.slipAttach !== false,
+    onChange: (v) => { s.slipAttach = v; queueRebuild(); },
+  }));
+  net.body.appendChild(num('Merge taper', s.slipTaper ?? 11, 4, 30, 0.5, ': 1', (v) => (s.slipTaper = v), queueRebuild));
+  net.body.appendChild(num('Fork angle', s.forkAngle ?? 46, 15, 80, 1, '°', (v) => (s.forkAngle = v), queueRebuild));
+  const slip = s.slip || (s.slip = {});
+  net.body.appendChild(num('Gore width', slip.goreWidth ?? 7, 2, 20, 0.5, 'm', (v) => (slip.goreWidth = v), queueRebuild));
+  const slipNote = document.createElement('p');
+  slipNote.className = 'Small';
+  slipNote.textContent = 'A ramp drawn to the edge of a motorway is extended along a tapered curve onto its centreline, so the merge actually merges and the wedge between them is paved and hatched as a gore.';
+  net.body.appendChild(slipNote);
   return net;
 }
 
@@ -1595,6 +1729,40 @@ function renderJunctionInspector(host, node) {
     metrics.append(a, b);
   }
   j.body.appendChild(metrics);
+
+  // ── junction style ──
+  const override = junctionOverrideFor(node);
+  const style = override?.style || 'standard';
+  j.body.appendChild(
+    selectField({
+      label: 'Junction style',
+      value: style,
+      options: [['standard', 'Standard intersection'], ['roundabout', 'Roundabout']],
+      onChange: (v) => {
+        const entry = junctionOverrideFor(node, true);
+        entry.style = v;
+        if (v === 'roundabout') entry.roundabout = { ...ROUNDABOUT_DEFAULTS, ...(entry.roundabout || {}) };
+        if (v === 'standard') pruneJunctionOverride(node);
+        queueRebuild();
+        // The node id changes with the rebuild, so re-render from the position-anchored selection.
+        setTimeout(() => renderInspector(), 0);
+      },
+    }),
+  );
+  if (style === 'roundabout') {
+    const rb = override.roundabout || (override.roundabout = { ...ROUNDABOUT_DEFAULTS });
+    const redo = () => { queueRebuild(); };
+    j.body.appendChild(num('Island radius', rb.islandRadius, 3, 30, 0.5, 'm', (v) => (rb.islandRadius = v), redo));
+    j.body.appendChild(num('Circulating width', rb.circulating, 4, 16, 0.5, 'm', (v) => (rb.circulating = v), redo));
+    j.body.appendChild(num('Truck apron', rb.apron, 0, 3, 0.1, 'm', (v) => (rb.apron = v), redo));
+    j.body.appendChild(num('Island height', rb.dome, 0, 3, 0.1, 'm', (v) => (rb.dome = v), redo));
+    j.body.appendChild(num('Splitter length', rb.splitter, 0, 40, 1, 'm', (v) => (rb.splitter = v), redo));
+    j.body.appendChild(checkField({ label: 'Give-way markings', value: rb.giveWay !== false, onChange: (v) => { rb.giveWay = v; redo(); } }));
+    const rbNote = document.createElement('p');
+    rbNote.className = 'Small';
+    rbNote.textContent = 'Every arm is trimmed back to the outer kerb and the apron between them becomes the circulating carriageway, so entries stay watertight however skewed the arms are.';
+    j.body.appendChild(rbNote);
+  }
   const note = document.createElement('p');
   note.className = 'Small';
   note.textContent = 'Drag the gizmo to move every arm of this intersection together. Corridors that only pass through gain a control point here so the crossing follows.';
@@ -1611,6 +1779,37 @@ function renderJunctionInspector(host, node) {
 
   host.appendChild(networkSection().element);
   host.appendChild(displaySection().element);
+}
+
+// Junction settings are stored per position: the nearest saved entry within the snap radius belongs to this node.
+function junctionOverrideFor(node, create = false) {
+  const list = state.doc.settings.junctionOverrides || (state.doc.settings.junctionOverrides = []);
+  let best = null;
+  let bestDist = state.doc.settings.junctionSnap ?? 12;
+  for (const entry of list) {
+    if (!entry?.at) continue;
+    const d = Math.hypot(entry.at.x - node.co.x, entry.at.y - node.co.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = entry;
+    }
+  }
+  if (best) {
+    // Keep the anchor glued to the node so it survives the junction being dragged around.
+    best.at = { x: node.co.x, y: node.co.y };
+    return best;
+  }
+  if (!create) return null;
+  const entry = { at: { x: node.co.x, y: node.co.y }, style: 'standard' };
+  list.push(entry);
+  return entry;
+}
+
+function pruneJunctionOverride(node) {
+  const list = state.doc.settings.junctionOverrides || [];
+  state.doc.settings.junctionOverrides = list.filter(
+    (entry) => !(entry.style === 'standard' && entry.at && Math.hypot(entry.at.x - node.co.x, entry.at.y - node.co.y) < 1e-6),
+  );
 }
 
 function labelled(label, input) {
@@ -1658,6 +1857,8 @@ function renderDiagnostics() {
     ['Graph nodes', s.nodes],
     ['Corridor edges', s.edges],
     ['Merged junctions', s.junctions],
+    ['Roundabouts', s.roundabouts ?? 0],
+    ['Slip road gores', s.slipRoads ?? 0],
     ['Grade separations', s.gradeSeparations],
     ['Triangles', s.triangles.toLocaleString()],
     ['Build time', `${s.buildMs} ms`],

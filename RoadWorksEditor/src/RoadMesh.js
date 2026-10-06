@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=4';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=4';
-import { MeshSpec } from './MeshSpec.js?v=4';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=4';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=5';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=5';
+import { MeshSpec } from './MeshSpec.js?v=5';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=5';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
@@ -110,7 +110,8 @@ export function buildSegmentMesh(graph, edge, out, options = {}) {
   const isBridge = edge.family === 'bridge';
   const columns = clamp(Math.max(2, (profile.lanes || 2) * 2), 2, 16);
 
-  const road = out.road || (out.road = new MeshSpec('road'));
+  const roadGroup = options.roadGroup || 'road';
+  const road = out[roadGroup] || (out[roadGroup] = new MeshSpec(roadGroup));
   const curb = out.curb || (out.curb = new MeshSpec('curb'));
   const paveGroup = options.paveGroup || 'pavement';
   const pavement = out[paveGroup] || (out[paveGroup] = new MeshSpec(paveGroup));

@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="styles/Workspace.css">
 <link rel="icon" href="data:,">
 <!-- three.js is vendored (lib/) so the editor runs straight from a raw file host with no build step or CDN. -->
-<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=4"}}</script>
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=5"}}</script>
 </head>
 <body>
 
@@ -109,9 +109,33 @@
       <p>Draw corridors, raise them into bridges, and the solver merges every intersection it finds.</p>
     </div>
     <div class="ScaleBadge"><span></span><b>20 m</b></div>
-    <div class="ViewportHint" id="ViewportHint">Right-drag look + <b>WASD</b>/QE fly <i>·</i> Drag orbit <i>·</i> Middle-drag pan <i>·</i> Scroll zoom <i>·</i> <b>1</b> select <b>2</b> points <b>3</b> junctions <b>4/5</b> draw <i>·</i> Shift-click adds to the selection <i>·</i> Del removes <i>·</i> F frames</div>
+    <div class="ViewportHint" id="ViewportHint">Right-drag look + <b>WASD</b>/QE fly <i>·</i> Drag orbit <i>·</i> Middle-drag pan <i>·</i> Scroll zoom <i>·</i> <b>V</b> alignment <i>·</i> <b>1</b> select <b>2</b> points <b>3</b> junctions <b>4/5</b> draw <i>·</i> Shift-click adds to the selection <i>·</i> Del removes <i>·</i> F frames</div>
     <div class="Loading" id="Loading"><div class="Spinner"></div><strong>Building network</strong><p>Splitting corridors and welding junctions…</p></div>
     <div id="Failure" class="Failure" hidden></div>
+    <!-- Long section of the selected corridor: chainage against elevation, with the design checks beside it. -->
+    <section class="ProfileDock" id="ProfileDock">
+      <header class="ProfileHeader">
+        <button id="ProfileToggle" class="ProfileToggle" title="Show or hide the vertical alignment · V">Vertical alignment</button>
+        <span class="ProfileTitle" id="ProfileSubject">No corridor selected</span>
+        <span class="ToolbarSpace"></span>
+        <label class="ProfileField">Design speed
+          <select id="ProfileSpeed" aria-label="Design speed"></select>
+        </label>
+        <label class="ProfileField">Exaggeration
+          <select id="ProfileExaggeration" aria-label="Vertical exaggeration">
+            <option value="1">1×</option>
+            <option value="2">2×</option>
+            <option value="5" selected>5×</option>
+            <option value="10">10×</option>
+            <option value="20">20×</option>
+          </select>
+        </label>
+      </header>
+      <div class="ProfileBody" id="ProfileBody">
+        <canvas id="ProfileCanvas"></canvas>
+        <aside class="ProfileChecks" id="ProfileChecks"></aside>
+      </div>
+    </section>
   </section>
 
   <aside class="Inspector">
@@ -141,6 +165,6 @@
 </footer>
 
 <!-- ?v= is a cache buster: CDNs such as raw.githack serve branch URLs from cache. Bump it on release. -->
-<script type="module" src="src/App.js?v=4"></script>
+<script type="module" src="src/App.js?v=5"></script>
 </body>
 </html>

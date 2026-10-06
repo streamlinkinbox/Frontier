@@ -18,6 +18,11 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Junctions | Fillet arcs between neighbouring arms, Coons-patch aprons, and curb / pavement bands that wrap every corner. |
 | Grade separation | Crossings separated vertically are *not* merged — they stay as overpasses for the bridge generator. |
 | Cross-section | Carriageway with camber, three-face curb (gutter → face → top), pavement with crossfall, outer drop, lane markings. |
+| Surfaces | Seven running surfaces — asphalt, chip seal, concrete slab, stone setts, gravel, graded dirt and a rutted two-track — each with its own procedural texture, camber and shoulder. Unsealed presets (gravel road, farm track, forest road) drop the kerb, swap the footway for a loose shoulder and turn the lane paint off. |
+| Lane markings | Turn arrows allocated from the movements each junction actually offers, chevron hatching, yellow box junctions, tinted cycle and bus lanes with painted glyphs, and kerbed pedestrian refuges with ghost-island approaches. |
+| Roundabouts | Any junction can be switched to a roundabout: arms are trimmed to the outer kerb, the apron becomes the circulating carriageway, and a planted island, mountable truck apron, splitter islands and give-way teeth are laid over it. |
+| Slip roads | A ramp drawn to the edge of a motorway is tapered onto its centreline, the fork is left unfilleted, and the wedge between the two carriageways is paved, edged and hatched as a proper gore with a painted nose. |
+| Vertical alignment | A long-section dock under the viewport: chainage against elevation, draggable elevation handles, grade labels, and design checks for gradient, crest and sag K values and plan radius against a design speed. |
 | Paving | Nine procedural paving patterns drawn to canvas at runtime (colour + derived normal map), tiled in metres and selectable per corridor, with a paving-width and paver-scale control. |
 | Roadbed | Anything above ground gets a real underside: earth embankment, board-marked retaining wall, slab soffit, or auto (fill until it exceeds `maxFill`, then wall). Elevated junction aprons get the same treatment, and bridge approaches are filled rather than spanned. |
 | Signage | Stop or yield signs on every arm of a 3+ way junction, stop bars on the approaching half, and zebra crossings — all positioned from the junction's own approach frames. |
@@ -26,7 +31,7 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Editing modes | Select (roads and bridges), Points, Junctions, Draw road, Draw bridge — switchable from the toolbar or with `1`–`5`. |
 | Multi-select | Shift-click or Shift-drag a marquee in Points / Junctions mode; the gizmo then moves the whole selection as one rigid body, intersections included. |
 | Street names | Every corridor is named and labelled in the viewport; junctions borrow the names of the streets that meet there. Rename in place from the outliner or the inspector. |
-| Default scene | Loads a worked network *plus* a gallery holding one span of every bridge family — nothing has to be drawn to see what the generator does. |
+| Default scene | Loads a worked network — now with a roundabout, a gravel track and a motorway slip road — *plus* a gallery holding one span of every bridge family, so nothing has to be drawn to see what the generator does. |
 | Performance | Per-corridor mesh cache: dragging one street reuses the meshes of every corridor whose cross-sections did not change. |
 | Output | Wavefront OBJ (Y-up, metres) and a `.roadworks.json` document you can reload. |
 
@@ -59,6 +64,8 @@ recipe, not a new mesh pipeline.
 | `Ctrl`+`A` | Select all (points, junctions or corridors, depending on the mode) |
 | Double-click a name in the outliner | Rename the street in place |
 | `L` | Show / hide street-name labels |
+| `V` | Show / hide the vertical alignment dock |
+| Drag a handle in the alignment dock | Change that control point's elevation |
 | `F` | Frame the selection, or the whole network when nothing is selected |
 | Right-drag | Mouse-look (Unreal-style flight) |
 | `W` `A` `S` `D` | Fly forward / left / back / right |
@@ -84,7 +91,12 @@ src/
   Vec.js                vector maths
   Polyline.js           arc-length utilities, frames, miter correction
   Spline.js             centripetal Catmull-Rom corridor splines
-  Graph.js              crossing detection, node welding, edge extraction, corner radii
+  Graph.js              crossing detection, node welding, edge extraction, corner radii, slip-road attachment
+  Surfaces.js           running-surface catalogue and the per-surface mesh groups
+  Alignment.js          chainage / grade / K-value profiles and the design-standards tables
+  Markings.js           turn arrows, hatching, yellow boxes, cycle + bus lanes, refuges
+  Roundabout.js         central island, truck apron, splitter islands, give-way markings
+  Merge.js              slip-road gores: the paved wedge, its edge lines, chevrons and nose
   Roadbed.js            embankment / retaining wall / slab soffit under anything above grade
   Signs.js              stop + yield signs, stop bars, zebra crossings
   Guardrail.js          roadside restraint systems: corrugated beams, wire rope, concrete, handrail
@@ -97,6 +109,7 @@ src/
   Network.js            corridors → graph → material groups
   Viewport.js           three.js scene, lighting, overlay, picking
   Gizmo.js              translate gizmo
+  ProfileDock.js        the long-section canvas editor and its design-check panel
   App.js                document state and UI
 tools/
   smoke-test.mjs        headless generator checks   (node tools/smoke-test.mjs)
@@ -162,10 +175,35 @@ unchanged hash means the cached mesh is appended instead of rebuilt. Dragging on
 scene re-meshes two or three edges and copies the rest, which is roughly a 40 % saving on the solve; normals are
 still welded across the merged groups afterwards, so shading continuity at junction mouths is unaffected.
 
+### Why a slip road is not a junction
+
+A fillet is the wrong shape for a fork. The radius needed to round off two arms meeting at 4° runs away towards
+infinity, so the old corner-radius rule clamped out at its maximum and trimmed the motorway back into a stub —
+the mainline looked like it simply ended. Shallow pairs are therefore skipped when the corner radius is sized, and
+picked up by `Merge.js` instead: it walks both arms outwards from the node in step, measuring the *signed* offset
+of the ramp's inner edge from the mainline's. While that offset is negative the ramp is still inside the mainline
+and already paved; once it goes positive the wedge between them is lapped as carriageway, edged with solid lines,
+filled with chevrons and closed with a painted nose at the gore width.
+
+The other half of the problem is that junctions are born from centreline crossings, and nobody draws a ramp onto
+the centreline of a motorway — they draw it to the edge, where it connects to nothing. So any dangling corridor end
+that dies *on* another carriageway is extended, in the solver only, along a tapered curve that starts on the ramp's
+own tangent and finishes running parallel to the mainline. The document keeps the points that were drawn; the long
+shallow overlap that extension produces is exactly the acceleration lane a merge needs.
+
+### Reading the long section
+
+`Alignment.js` samples the corridor into stations carrying grade, vertical curvature and plan radius. Grades come
+from a centred difference over an 8 m window so they report the road rather than the sampling noise; vertical
+curves are described by K = L / A, recovered as `1 / (100·z'')`, with the sign of `z''` separating crests from sags;
+plan radius is the Menger curvature of three consecutive points. `designChecks` reads those against a rounded
+AASHTO/Austroads-style table for the chosen design speed and merges consecutive offending stations into one warning
+per stretch, so a long steep hill reads as a single line rather than fifty.
+
 ## Verification
 
 ```bash
-node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, gizmo maths, every bridge/pier/railing combination
+node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, surfaces, markings, roundabouts, slip roads, alignment maths, gizmo maths, every bridge/pier/railing combination
 node tools/boot-test.mjs                       # boots the shell: modes, multi-select, marquee, highlights, names, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```

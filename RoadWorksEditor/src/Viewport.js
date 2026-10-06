@@ -6,14 +6,19 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js?v=4';
-import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=4';
+import { TranslateGizmo } from './Gizmo.js?v=5';
+import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=5';
+
+// Paint-like groups: hidden together by the markings toggle, and polygon-offset so they never z-fight the road.
+export const MARKING_GROUPS = new Set(['markings', 'markingsYellow', 'laneTint']);
 
 export const MATERIAL_STYLES = {
   road: { color: 0x32363d, roughness: 0.95, metalness: 0.0 },
   curb: { color: 0x9ea3aa, roughness: 0.82, metalness: 0.0 },
   pavement: { color: 0x6b7077, roughness: 0.92, metalness: 0.0 },
   markings: { color: 0xe6e2d6, roughness: 0.7, metalness: 0.0, emissive: 0x15140f },
+  markingsYellow: { color: 0xd8b545, roughness: 0.72, metalness: 0.0, emissive: 0x201803 },
+  laneTint: { color: 0x3f6b4a, roughness: 0.95, metalness: 0.0 },
   deck: { color: 0x8b8e93, roughness: 0.88, metalness: 0.0 },
   structure: { color: 0x59616e, roughness: 0.55, metalness: 0.55 },
   piers: { color: 0x7c7f85, roughness: 0.9, metalness: 0.0 },
@@ -28,6 +33,10 @@ export const MATERIAL_STYLES = {
 
 // `pavement#brick@1.00` → `pavement`. Group names carry their paving variant so each pattern gets its own texture.
 const groupBase = (name) => name.split('#')[0];
+// Flat-shaded fallback colours for unsealed carriageways, used when textures are switched off.
+const LANE_TINT_COLORS = { cycle: 0x3a6b46, bus: 0x7a3a34 };
+const SURFACE_COLORS = { gravel: 0x8b8475, dirt: 0x6f6149, track: 0x6b5f4a, concrete: 0x8c8c8a, setts: 0x6a6a6e, chipseal: 0x55565a };
+
 const groupVariant = (name) => {
   const tail = name.split('#')[1];
   if (!tail) return null;
@@ -178,22 +187,26 @@ export class Viewport {
 
       const base = groupBase(name);
       const style = MATERIAL_STYLES[base] || MATERIAL_STYLES.road;
+      const surfaceTint = base === 'road'
+        ? SURFACE_COLORS[groupVariant(name)?.pattern]
+        : base === 'laneTint' ? LANE_TINT_COLORS[groupVariant(name)?.pattern] : null;
       const material = new THREE.MeshStandardMaterial({
         ...style,
+        ...(surfaceTint ? { color: surfaceTint } : {}),
         side: THREE.DoubleSide,
         wireframe: this.displayMode === 'wireframe',
         flatShading: this.displayMode === 'surfaces',
       });
       this._applyTexture(material, name, base);
-      if (base === 'markings') {
+      if (MARKING_GROUPS.has(base)) {
         material.polygonOffset = true;
         material.polygonOffsetFactor = -2;
         material.polygonOffsetUnits = -2;
       }
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = base !== 'markings';
+      mesh.castShadow = !MARKING_GROUPS.has(base);
       mesh.receiveShadow = true;
-      mesh.visible = base === 'markings' ? this.showMarkings : true;
+      mesh.visible = MARKING_GROUPS.has(base) ? this.showMarkings : true;
       mesh.name = name;
       this.networkGroup.add(mesh);
       this.meshes.set(name, mesh);
@@ -207,6 +220,10 @@ export class Viewport {
     if (base === 'pavement') {
       const variant = groupVariant(name) || { pattern: 'concrete', scale: 1 };
       tex = pavingTexture(THREE, variant.pattern, variant.scale);
+    } else if (base === 'road') {
+      // `road#gravel` → the matching running surface; bare `road` stays asphalt.
+      const variant = groupVariant(name);
+      tex = surfaceTexture(THREE, variant ? `road:${variant.pattern}` : 'road');
     } else if (base === 'signFace') {
       tex = signTexture(THREE);
     } else {
@@ -237,8 +254,9 @@ export class Viewport {
 
   setMarkingsVisible(v) {
     this.showMarkings = v;
-    const m = this.meshes.get('markings');
-    if (m) m.visible = v;
+    for (const [name, mesh] of this.meshes) {
+      if (MARKING_GROUPS.has(groupBase(name))) mesh.visible = v;
+    }
   }
 
   // ── editable overlay ─────────────────────────────────────────────────────────────────────────────────────────────

@@ -26,6 +26,8 @@ export const PAVING_PATTERNS = {
   cobble: { label: 'Cobblestone', tile: 1.4, kind: 'cobble', unit: [0.18, 0.18], joint: 0.03, base: [124, 123, 119], spread: 22 },
   granite: { label: 'Granite sett', tile: 1.2, kind: 'slab', unit: [0.2, 0.2], joint: 0.022, base: [104, 104, 108], spread: 20 },
   asphaltWalk: { label: 'Asphalt footway', tile: 3.0, kind: 'noise', base: [86, 86, 88], spread: 8 },
+  gravelShoulder: { label: 'Gravel shoulder', tile: 2.0, kind: 'gravel', base: [138, 130, 115], spread: 26 },
+  dirtShoulder: { label: 'Dirt verge', tile: 2.6, kind: 'dirt', base: [112, 98, 76], spread: 20 },
 };
 
 export const DEFAULT_PAVING = 'concrete';
@@ -42,6 +44,13 @@ export function pavingTexture(THREE, key, scale = 1) {
 export function surfaceTexture(THREE, name) {
   const presets = {
     road: { tile: 6, draw: (c, h, px) => drawAsphalt(c, h, px, [56, 58, 62], 10) },
+    'road:asphalt': { tile: 6, draw: (c, h, px) => drawAsphalt(c, h, px, [56, 58, 62], 10) },
+    'road:chipseal': { tile: 4, draw: (c, h, px) => drawAsphalt(c, h, px, [84, 82, 78], 20) },
+    'road:concrete': { tile: 5, draw: (c, h, px) => drawSlabRoad(c, h, px, [138, 138, 136]) },
+    'road:setts': { tile: 1.4, draw: (c, h, px) => drawPaving(c, h, px, PAVING_PATTERNS.granite) },
+    'road:gravel': { tile: 2.6, draw: (c, h, px) => drawGravel(c, h, px, [122, 115, 102], 28) },
+    'road:dirt': { tile: 3.2, draw: (c, h, px) => drawDirt(c, h, px, [104, 90, 70], false) },
+    'road:track': { tile: 4.0, draw: (c, h, px) => drawDirt(c, h, px, [100, 88, 70], true) },
     curb: { tile: 2.4, draw: (c, h, px) => drawConcrete(c, h, px, [164, 167, 172]) },
     deck: { tile: 4, draw: (c, h, px) => drawConcrete(c, h, px, [150, 152, 156]) },
     piers: { tile: 3, draw: (c, h, px) => drawConcrete(c, h, px, [138, 140, 144]) },
@@ -49,6 +58,8 @@ export function surfaceTexture(THREE, name) {
     earth: { tile: 5, draw: (c, h, px) => drawEarth(c, h, px) },
     structure: { tile: 3, draw: (c, h, px) => drawConcrete(c, h, px, [128, 134, 142]) },
     barrier: { tile: 2, draw: (c, h, px) => drawConcrete(c, h, px, [156, 158, 162]) },
+    gravelShoulder: { tile: 2.0, draw: (c, h, px) => drawGravel(c, h, px, [138, 130, 115], 26) },
+    dirtShoulder: { tile: 2.6, draw: (c, h, px) => drawDirt(c, h, px, [112, 98, 76], false) },
   };
   const preset = presets[name];
   if (!preset) return null;
@@ -176,6 +187,9 @@ const rect = (x, y, w, h) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
 // ── pattern painters ──────────────────────────────────────────────────────────────────────────────────────────────
 
 function drawPaving(ctx, hctx, px, spec) {
+  // Loose surfaces have no pavers to lay out — hand them to the aggregate generators instead.
+  if (spec.kind === 'gravel') return drawGravel(ctx, hctx, px, spec.base, spec.spread);
+  if (spec.kind === 'dirt') return drawDirt(ctx, hctx, px, spec.base, false);
   const size = ctx.canvas.width;
   // joint colour / zero height underneath every paver
   ctx.fillStyle = shade(spec.base, -46);
@@ -357,6 +371,94 @@ function drawBoardform(ctx, hctx, px, base) {
     ctx.fillRect(0, y + 1, size, h - 2);
   }
   speckle(ctx, size, 0.04);
+}
+
+// Loose aggregate: a dense scatter of stones over a dusty base, with the larger ones pushed into the height map so
+// the sun catches them. This is what sells an unsealed road more than its colour does.
+function drawGravel(ctx, hctx, px, base, spread) {
+  const size = ctx.canvas.width;
+  ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
+  ctx.fillRect(0, 0, size, size);
+  hctx.fillStyle = '#767676';
+  hctx.fillRect(0, 0, size, size);
+  blotches(ctx, size, base, 12);
+  const stones = 14000;
+  for (let i = 0; i < stones; i++) {
+    const x = hash(i, 13, 21) * size;
+    const y = hash(i, 29, 22) * size;
+    const r = 0.7 + Math.pow(hash(i, 37, 23), 2.2) * 3.4;
+    const d = (hash(i, 43, 24) - 0.42) * spread * 2;
+    ctx.fillStyle = shade(base, d);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    const lift = clamp8(118 + d * 2.4 + r * 6);
+    hctx.fillStyle = `rgb(${lift},${lift},${lift})`;
+    hctx.beginPath();
+    hctx.arc(x, y, r, 0, Math.PI * 2);
+    hctx.fill();
+  }
+  speckle(ctx, size, 0.06);
+  void px;
+}
+
+// Graded dirt. `ruts` adds the pair of wheel tracks that make a farm or forestry road read as a two-track: packed,
+// darker and slightly sunken, with a grassy crown between them.
+function drawDirt(ctx, hctx, px, base, ruts) {
+  const size = ctx.canvas.width;
+  ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
+  ctx.fillRect(0, 0, size, size);
+  hctx.fillStyle = '#7a7a7a';
+  hctx.fillRect(0, 0, size, size);
+  blotches(ctx, size, base, 16);
+  for (let i = 0; i < 5200; i++) {
+    const x = hash(i, 7, 31) * size;
+    const y = hash(i, 17, 32) * size;
+    const r = 0.5 + hash(i, 23, 33) * 1.6;
+    ctx.fillStyle = shade(base, (hash(i, 47, 34) - 0.5) * 26);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (ruts) {
+    // v runs across the section, so the wheel tracks are horizontal bands in texture space.
+    for (const centre of [0.26, 0.74]) {
+      const y0 = centre * size;
+      const half = size * 0.1;
+      const grad = ctx.createLinearGradient(0, y0 - half, 0, y0 + half);
+      grad.addColorStop(0, `rgba(${base[0]},${base[1]},${base[2]},0)`);
+      grad.addColorStop(0.5, `rgba(${Math.round(base[0] * 0.72)},${Math.round(base[1] * 0.7)},${Math.round(base[2] * 0.66)},0.95)`);
+      grad.addColorStop(1, `rgba(${base[0]},${base[1]},${base[2]},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y0 - half, size, half * 2);
+      hctx.fillStyle = 'rgba(70,70,70,0.75)';
+      hctx.fillRect(0, y0 - half * 0.6, size, half * 1.2);
+    }
+    // vegetation down the crown and along the edges
+    for (const centre of [0.5, 0.02, 0.98]) {
+      for (let i = 0; i < 2600; i++) {
+        const x = hash(i, 11, 35) * size;
+        const y = (centre + (hash(i, 19, 36) - 0.5) * 0.14) * size;
+        ctx.fillStyle = `rgba(${86 + hash(i, 5, 37) * 36 | 0},${96 + hash(i, 9, 38) * 34 | 0},56,0.75)`;
+        ctx.fillRect(x, y, 1.4, 1.4);
+      }
+    }
+  }
+  speckle(ctx, size, 0.05);
+  void px;
+}
+
+// Jointed concrete carriageway: transverse construction joints every ~4.5 m.
+function drawSlabRoad(ctx, hctx, px, base) {
+  drawConcrete(ctx, hctx, px, base);
+  const size = ctx.canvas.width;
+  const spacing = Math.max(24, 4.5 * px);
+  for (let x = 0; x < size; x += spacing) {
+    ctx.fillStyle = shade(base, -26);
+    ctx.fillRect(x, 0, 2, size);
+    hctx.fillStyle = '#4e4e4e';
+    hctx.fillRect(x, 0, 2, size);
+  }
 }
 
 function drawEarth(ctx, hctx, px) {

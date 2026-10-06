@@ -14,12 +14,14 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=4';
-import { dedupe, polylineLength } from './Polyline.js?v=4';
-import { sampleSpline } from './Spline.js?v=4';
-import { resolveProfile } from './Profiles.js?v=4';
-import { resolveRoadbed } from './Roadbed.js?v=4';
-import { resolveGuardrail } from './Guardrail.js?v=4';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=5';
+import { dedupe, polylineLength } from './Polyline.js?v=5';
+import { sampleSpline } from './Spline.js?v=5';
+import { resolveProfile } from './Profiles.js?v=5';
+import { MARKING_DEFAULTS } from './Markings.js?v=5';
+import { resolveRoadbed } from './Roadbed.js?v=5';
+import { resolveGuardrail } from './Guardrail.js?v=5';
+import { outerRadius, resolveRoundabout } from './Roundabout.js?v=5';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
@@ -30,6 +32,13 @@ export const GRAPH_DEFAULTS = {
   minCornerRadius: 2.0,
   maxCornerRadius: 26.0,
   cornerScale: 1.0, // inspector multiplier on every computed junction radius
+  slipAttach: true, // extend a dangling ramp end onto the carriageway it dies on, so a merge actually merges
+  slipReach: 4.0, // m beyond the kerb line that still counts as "ending on" a road
+  slipRun: 220.0, // m — longest merge taper the solver will build
+  slipTaper: 11.0, // taper length per metre of lateral offset (an 11:1 merge)
+  forkAngle: 46.0, // ° — below this two arms are a fork handled by Merge.js, not a corner to be filleted
+  junctionSnap: 12.0, // m — how close a saved junction override has to be to claim a node
+  junctionOverrides: [], // [{ at: {x,y}, style: 'roundabout', roundabout: {...} }]
 };
 
 export function sampleCorridors(corridors, settings = {}) {
@@ -57,6 +66,7 @@ export function sampleCorridors(corridors, settings = {}) {
       radiusBias: corridor.radiusBias || 0,
       roadbed: resolveRoadbed(corridor),
       guardrail: resolveGuardrail(corridor),
+      markings: { ...MARKING_DEFAULTS, ...(corridor.markings || {}) },
       cyclic: !!corridor.closed,
       bridge: corridor.bridge,
       points,
@@ -287,6 +297,97 @@ function recordsFromSplits(sample, splitMap) {
   return records;
 }
 
+// ── slip-road attachment ──────────────────────────────────────────────────────────────────────────────────────────
+// A ramp drawn the way a designer actually draws one stops at the edge of the motorway, not on its centreline — and
+// since junctions are born from centreline intersections, that ramp used to connect to nothing at all: the mainline
+// simply ended. Here every dangling corridor end that dies *on* another carriageway is extended along its own
+// tangent until it reaches that corridor's centreline. The extension is pure solver geometry: the document keeps the
+// points the user drew, and the long shallow overlap it produces is exactly the taper a merge needs.
+export function attachSlipRoads(samples, cfg) {
+  for (const sample of samples) {
+    if (sample.cyclic || sample.points.length < 2) continue;
+    for (const atEnd of [false, true]) {
+      const pts = sample.points;
+      const p = atEnd ? pts[pts.length - 1] : pts[0];
+      const prev = atEnd ? pts[pts.length - 2] : pts[1];
+      const dir = norm(sub(p, prev), vec(1, 0, 0));
+
+      let host = null;
+      let hostDist = Infinity;
+      for (const other of samples) {
+        if (other === sample) continue;
+        const near = nearestOnPolyline(other.points, p);
+        if (!near) continue;
+        const reach = (other.profile?.roadHalf || 4) + (cfg.slipReach ?? 4);
+        if (near.dist <= cfg.nodeMergeXY || near.dist > reach) continue;
+        if (Math.abs(near.z - p.z) > cfg.zMerge) continue;
+        if (near.dist < hostDist) {
+          hostDist = near.dist;
+          host = other;
+        }
+      }
+      if (!host) continue;
+
+      // Join the ramp to the host centreline with a tapered curve rather than a straight stab at it: start along
+      // the ramp's own tangent, finish running parallel to the host. That is what a merge taper is, and it means the
+      // last stretch of ramp overlaps the mainline the way a real acceleration lane does.
+      const near = nearestOnPolyline(host.points, p);
+      const hostA = host.points[near.index];
+      const hostB = host.points[near.index + 1];
+      const hostDirRaw = norm(sub(hostB, hostA), vec(1, 0, 0));
+      const along = hostDirRaw.x * dir.x + hostDirRaw.y * dir.y >= 0 ? 1 : -1;
+      const hostDir = { x: hostDirRaw.x * along, y: hostDirRaw.y * along, z: hostDirRaw.z * along };
+      const proj = {
+        x: hostA.x + (hostB.x - hostA.x) * near.t,
+        y: hostA.y + (hostB.y - hostA.y) * near.t,
+        z: near.z,
+      };
+      const taper = clamp(near.dist * (cfg.slipTaper ?? 11), 18, cfg.slipRun ?? 220);
+      const target = { x: proj.x + hostDir.x * taper, y: proj.y + hostDir.y * taper, z: proj.z + hostDir.z * taper };
+      // Hermite: P(s) with end tangents scaled by the taper length.
+      const m0 = { x: dir.x * taper, y: dir.y * taper, z: dir.z * taper };
+      const m1 = { x: hostDir.x * taper, y: hostDir.y * taper, z: hostDir.z * taper };
+      const steps = Math.max(2, Math.round(taper / (cfg.sampleStep || 2)));
+      const added = [];
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const h00 = 2 * t * t * t - 3 * t * t + 1;
+        const h10 = t * t * t - 2 * t * t + t;
+        const h01 = -2 * t * t * t + 3 * t * t;
+        const h11 = t * t * t - t * t;
+        added.push({
+          x: h00 * p.x + h10 * m0.x + h01 * target.x + h11 * m1.x,
+          y: h00 * p.y + h10 * m0.y + h01 * target.y + h11 * m1.y,
+          z: h00 * p.z + h10 * m0.z + h01 * target.z + h11 * m1.z,
+        });
+      }
+      // The last point must land on the host centreline so the solver welds a node there.
+      added.push({ ...target });
+      if (atEnd) sample.points = [...pts, ...added];
+      else sample.points = [...added.reverse(), ...pts];
+    }
+  }
+  return samples;
+}
+
+function nearestOnPolyline(points, p) {
+  let best = null;
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 < 1e-9) continue;
+    const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0, 1);
+    const qx = a.x + dx * t;
+    const qy = a.y + dy * t;
+    const d = Math.hypot(p.x - qx, p.y - qy);
+    if (!best || d < best.dist) best = { dist: d, t, index: i, z: a.z + (b.z - a.z) * t };
+  }
+  return best;
+}
+
 // ── node welding + edge extraction ────────────────────────────────────────────────────────────────────────────────
 
 function findOrCreateNode(graph, co, cfg) {
@@ -313,6 +414,7 @@ export function buildGraph(corridors, settings = {}) {
   const graph = { nodes: new Map(), edges: new Map(), crossings: [], warnings: [] };
   if (!samples.length) return graph;
 
+  if (cfg.slipAttach !== false) attachSlipRoads(samples, cfg);
   const { splitMap, crossings } = buildSplitRecords(samples, cfg);
   graph.crossings = crossings;
 
@@ -352,6 +454,7 @@ export function buildGraph(corridors, settings = {}) {
               radiusBias: sample.radiusBias,
               roadbed: sample.roadbed,
               guardrail: sample.guardrail,
+              markings: sample.markings,
               bridge: sample.bridge,
             });
             const sn = graph.nodes.get(startNodeId);
@@ -374,8 +477,55 @@ export function buildGraph(corridors, settings = {}) {
 
   for (const node of graph.nodes.values()) node.degree = node.edgeIds.length;
   for (const node of graph.nodes.values()) node.cornerRadius = defaultCornerRadius(graph, node, cfg);
+  applyJunctionOverrides(graph, cfg);
 
   return graph;
+}
+
+// Saved junction settings are anchored to a position, not to a node id — node ids change the moment geometry
+// moves, so an override that remembered an id would come unstuck the first time a street was dragged.
+export function applyJunctionOverrides(graph, cfg = GRAPH_DEFAULTS) {
+  const list = cfg.junctionOverrides || [];
+  if (!list.length) return graph;
+  const snap = cfg.junctionSnap ?? 12;
+  for (const override of list) {
+    if (!override || !override.at) continue;
+    let best = null;
+    let bestDist = snap;
+    for (const node of graph.nodes.values()) {
+      if (node.degree < 3) continue;
+      const d = Math.hypot(node.co.x - override.at.x, node.co.y - override.at.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = node;
+      }
+    }
+    if (!best) continue;
+    best.style = override.style || 'standard';
+    if (best.style === 'roundabout') {
+      const spec = resolveRoundabout(override.roundabout);
+      best.roundabout = spec;
+      // Pull every arm back to the outer kerb so the apron becomes the circulating carriageway.
+      const wanted = outerRadius(spec) + 1.0;
+      const room = shortestArm(graph, best) * 0.48;
+      if (wanted > room) {
+        graph.warnings.push(`Roundabout at ${Math.round(best.co.x)}, ${Math.round(best.co.y)}: arms too short for a ${outerRadius(spec).toFixed(1)} m outer radius`);
+      }
+      best.cornerRadius = Math.max(cfg.minCornerRadius, Math.min(wanted, Math.max(room, cfg.minCornerRadius)));
+      best.roundaboutRadius = best.cornerRadius;
+    }
+  }
+  return graph;
+}
+
+function shortestArm(graph, node) {
+  let shortest = Infinity;
+  for (const edgeId of node.edgeIds) {
+    const edge = graph.edges.get(edgeId);
+    if (!edge) continue;
+    shortest = Math.min(shortest, polylineLength(edge.points));
+  }
+  return Number.isFinite(shortest) ? shortest : 0;
 }
 
 // ── junction sizing ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -412,8 +562,24 @@ export function defaultCornerRadius(graph, node, cfg = GRAPH_DEFAULTS) {
   if (!approaches.length) return cfg.minCornerRadius;
   approaches.sort((a, b) => a.angle - b.angle);
 
+  // Shallow pairs are forks, not corners: a 4° gap would demand a fillet hundreds of metres across, which is why
+  // the old behaviour trimmed a motorway back to a stub. Those pairs are skipped here and picked up by Merge.js,
+  // which paves the wedge between them properly. If *every* pair is shallow there is nothing else to size against,
+  // so the old rule still applies.
+  const shallow = (cfg.forkAngle ?? 46) * (Math.PI / 180);
+  const gaps = [];
+  for (let i = 0; i < approaches.length; i++) {
+    let delta = approaches[(i + 1) % approaches.length].angle - approaches[i].angle;
+    while (delta < 0) delta += Math.PI * 2;
+    gaps.push(delta);
+  }
+  const allShallow = approaches.length > 1 && gaps.every((g) => g < shallow || g > Math.PI * 2 - shallow);
+  // Remember that this node is a fork: it wants a gore, not a stop line and a zebra crossing.
+  node.fork = !allShallow && gaps.some((g) => g < shallow);
+
   let radius = cfg.minCornerRadius;
   for (let i = 0; i < approaches.length; i++) {
+    if (!allShallow && gaps[i] < shallow) continue;
     const cur = approaches[i];
     const nxt = approaches[(i + 1) % approaches.length];
     let delta = nxt.angle - cur.angle;

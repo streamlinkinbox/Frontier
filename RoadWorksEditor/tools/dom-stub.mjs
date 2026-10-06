@@ -228,6 +228,9 @@ function make2d(canvas) {
     putImageData: noop('putImageData'),
     drawImage: noop('drawImage'),
     measureText: () => ({ width: 10 }),
+    setTransform: noop('setTransform'), setLineDash: noop('setLineDash'), getLineDash: () => [],
+    quadraticCurveTo: noop('quadraticCurveTo'), bezierCurveTo: noop('bezierCurveTo'), rect: noop('rect'),
+    strokeText: (text, x, y) => guard('strokeText', [x, y]),
   };
   void size;
   canvas._ctx = ctx;
@@ -243,7 +246,7 @@ class TextNode {
 
 export function installDom(ids) {
   const registry = new Map();
-  for (const id of ids) registry.set(id, new El(id === 'SceneCanvas' ? 'canvas' : 'div', id));
+  for (const id of ids) registry.set(id, new El(id.endsWith('Canvas') ? 'canvas' : 'div', id));
 
   const document = {
     getElementById: (id) => registry.get(id) || null,

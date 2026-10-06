@@ -11,10 +11,10 @@
 //      fillet, each pinned to the exact arm targets at both ends, so the curb never detaches from the arc on acute
 //      or uneven-width junctions.
 
-import { clamp, dist, lerp, vec } from './Vec.js?v=4';
-import { resamplePolyline } from './Polyline.js?v=4';
-import { MeshSpec } from './MeshSpec.js?v=4';
-import { nodeGeneratesJunction } from './Graph.js?v=4';
+import { clamp, dist, lerp, vec } from './Vec.js?v=5';
+import { resamplePolyline } from './Polyline.js?v=5';
+import { MeshSpec } from './MeshSpec.js?v=5';
+import { nodeGeneratesJunction } from './Graph.js?v=5';
 
 // ── fillet arc between two offset edges ───────────────────────────────────────────────────────────────────────────
 
@@ -224,6 +224,8 @@ export function approachForEdge(graph, edge, nodeId, sections, forceEnd = false)
   const swap = atStart;
   const frame = {
     edgeId: edge.id,
+    atStart, // which end of the arm faces this junction — slip-road gores walk the sections from here outwards
+    swap: atStart,
     profile: edge.profile,
     family: edge.family,
     tangent,
@@ -263,7 +265,8 @@ export function buildJunctionMesh(graph, node, sectionsByEdge, out, options = {}
   if (approaches.length < 2) return null;
   approaches.sort((a, b) => a.angle - b.angle);
 
-  const road = out.road || (out.road = new MeshSpec('road'));
+  const roadGroup = options.roadGroup || 'road';
+  const road = out[roadGroup] || (out[roadGroup] = new MeshSpec(roadGroup));
   const curb = out.curb || (out.curb = new MeshSpec('curb'));
   const paveGroup = options.paveGroup || 'pavement';
   const pavement = out[paveGroup] || (out[paveGroup] = new MeshSpec(paveGroup));

@@ -124,12 +124,12 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ViewCaption h1 { font-size: 22px; font-weight: 500; color: #e0e0e1; margin: 7px 0 }
 .ViewCaption p { color: #989da6; line-height: 1.6; font-size: 11px; max-width: 320px; margin: 0 }
 
-.ScaleBadge { position: absolute; left: 24px; bottom: 51px; color: #89919b; display: flex; gap: 7px; align-items: center; font-size: 10px }
+.ScaleBadge { position: absolute; left: 24px; bottom: 51px; transition: bottom .12s ease; color: #89919b; display: flex; gap: 7px; align-items: center; font-size: 10px }
 .ScaleBadge span { height: 6px; width: 64px; border: 1px solid #89919b; border-top: 0 }
 .ScaleBadge b { font-weight: 400 }
 
 .ViewportHint {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 9px 14px; font-size: 9px; color: #707a87;
+  position: absolute; left: 0; right: 0; bottom: 0; transition: bottom .12s ease; padding: 9px 14px; font-size: 9px; color: #707a87;
   background: #1b202782; text-align: center; pointer-events: none;
 }
 .ViewportHint i { padding: 0 7px; font-style: normal; color: #48515e }
@@ -245,3 +245,36 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .MenuRight { display: none }
   .StatusBar .StatusDivider { display: none }
 }
+
+
+/* ── vertical alignment dock ───────────────────────────────────────────────────────────────────────────────────── */
+/* Sits over the foot of the viewport rather than in the grid, so collapsing it never resizes the 3D canvas. */
+.ProfileDock {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  background: #1c1f24f2; border-top: 1px solid #0f1217; display: flex; flex-direction: column;
+}
+.ProfileHeader { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-bottom: 1px solid #2a2d33; min-height: 28px }
+.ProfileToggle {
+  font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: #cfd3da;
+  background: #262a31; border: 1px solid #343941; border-radius: 3px; padding: 3px 9px;
+}
+.ProfileToggle::before { content: '▾ '; color: #d6a665 }
+.ProfileDock.Collapsed .ProfileToggle::before { content: '▸ ' }
+.ProfileDock.Collapsed .ProfileBody { display: none }
+.ProfileTitle { font-size: 10px; color: #8b9099 }
+.ProfileField { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #82868f }
+.ProfileField select { background: #22262c; color: #d5d7dc; border: 1px solid #343941; border-radius: 3px; font-size: 10px; padding: 2px 4px }
+.ProfileBody { display: grid; grid-template-columns: minmax(0, 1fr) 232px; height: 172px }
+#ProfileCanvas { width: 100%; height: 100%; display: block }
+.ProfileChecks { border-left: 1px solid #2a2d33; overflow: auto; padding: 7px 9px; font-size: 10px; color: #9aa0a9; line-height: 1.45 }
+.ProfileChecks b { display: block; color: #d5d7dc; font-size: 10px; margin-bottom: 4px; letter-spacing: .07em; text-transform: uppercase }
+.ProfileChecks .Issue { color: #e0b878; border-left: 2px solid #b7823c; padding-left: 6px; margin-bottom: 5px }
+.ProfileChecks .Ok { color: #83a083 }
+.ProfileChecks dl { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; margin: 0 0 8px }
+.ProfileChecks dt { color: #82868f } .ProfileChecks dd { margin: 0; color: #d5d7dc }
+
+/* Keep the hint strip and scale bar clear of the alignment dock. */
+.Viewport:has(.ProfileDock:not(.Collapsed)) .ViewportHint { bottom: 201px }
+.Viewport:has(.ProfileDock:not(.Collapsed)) .ScaleBadge { bottom: 252px }
+.Viewport:has(.ProfileDock.Collapsed) .ViewportHint { bottom: 29px }
+.Viewport:has(.ProfileDock.Collapsed) .ScaleBadge { bottom: 80px }
