@@ -10,8 +10,8 @@
 // Markings are painted 13 mm proud of the carriageway with the same camber as the road underneath, so they never
 // z-fight and never float off a cambered surface.
 
-import { MeshSpec } from './MeshSpec.js?v=10';
-import { SIGN_UV } from './Textures.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=11';
+import { SIGN_UV } from './Textures.js?v=11';
 
 export const SIGNAGE_DEFAULTS = {
   signage: 'stop', // stop | yield | none

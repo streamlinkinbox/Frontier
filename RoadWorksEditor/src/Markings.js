@@ -12,9 +12,13 @@
 // Lateral is positive to the LEFT of travel, matching the cross-section frames. Right-hand traffic is assumed, so
 // the lanes a driver uses on the way INTO a junction are the ones at negative lateral.
 
-import { MeshSpec } from './MeshSpec.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=11';
 
 export const MARKING_DEFAULTS = {
+  // Which way traffic runs. A two-way road is split by a centre line and its junction arrows are drawn for the
+  // half a driver approaches on; a one-way road (a slip road, or one carriageway of a dual) has no centre line,
+  // dashes between every lane and ahead arrows along its whole length.
+  flow: 'two-way', // two-way | one-way | one-way-reverse
   laneArrows: true, // turn arrows on junction approaches
   stopLines: true, // handled by Signs.js; kept here so one object describes the paint
   hatching: true, // diagonal hatching in gores and wide central reserves
@@ -496,7 +500,25 @@ export function buildLaneDetail(graph, edge, sections, out, cfg = {}) {
   const point = surfaceSampler(sections, profile);
   const paint = group(out, 'markings');
 
-  if (opts.laneArrows && total > 26) {
+  const oneWay = opts.flow === 'one-way' || opts.flow === 'one-way-reverse';
+  const withEdge = opts.flow !== 'one-way-reverse';
+
+  // A one-way carriageway is signed along its length, not just at its junctions: a slip road with turn arrows at
+  // one end and nothing else looks like a two-way road that happens to be narrow.
+  if (oneWay && opts.laneArrows && total > 30) {
+    const spacing = Math.max(45, Math.min(90, total / 3));
+    const count = Math.max(1, Math.round((total - 30) / spacing));
+    for (let i = 0; i <= count; i++) {
+      const d = 16 + ((total - 32) * i) / count;
+      for (let lane = 0; lane < lanes; lane++) {
+        const fromEdge = (lane + 0.5) * laneWidth;
+        const lateral = (withEdge ? -1 : 1) * (profile.roadHalf - fromEdge);
+        paintGlyph(paint, point, arrowGlyph('through'), d, lateral, withEdge);
+      }
+    }
+  }
+
+  if (!oneWay && opts.laneArrows && total > 26) {
     for (const end of ['start', 'end']) {
       const node = graph.nodes.get(end === 'start' ? edge.startNodeId : edge.endNodeId);
       if (!node || node.degree < 3) continue;

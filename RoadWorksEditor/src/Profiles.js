@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // Cross-section presets and bridge catalogues. All dimensions in metres.
 
-import { ROAD_SURFACES, DEFAULT_SURFACE } from './Surfaces.js?v=10';
+import { ROAD_SURFACES, DEFAULT_SURFACE } from './Surfaces.js?v=11';
 
 export const ROAD_PRESETS = {
   street: { label: 'Street', roadWidth: 8.0, pavementLeft: 2.0, pavementRight: 2.0, curbHeight: 0.18, curbWidth: 0.22, lanes: 2 },
@@ -11,6 +11,8 @@ export const ROAD_PRESETS = {
   alley: { label: 'Alley', roadWidth: 5.0, pavementLeft: 1.0, pavementRight: 1.0, curbHeight: 0.12, curbWidth: 0.16, lanes: 1 },
   narrow: { label: 'Narrow lane', roadWidth: 6.0, pavementLeft: 1.4, pavementRight: 1.4, curbHeight: 0.15, curbWidth: 0.18, lanes: 2 },
   highway: { label: 'Highway', roadWidth: 20.0, pavementLeft: 1.2, pavementRight: 1.2, curbHeight: 0.26, curbWidth: 0.35, lanes: 6 },
+  // A slip road is one running lane between two hard strips, never a two-way street narrowed down.
+  slip: { label: 'Slip road', roadWidth: 5.5, pavementLeft: 1.0, pavementRight: 1.6, curbHeight: 0.14, curbWidth: 0.25, lanes: 1 },
   // Unsealed presets. No kerb to speak of, a loose shoulder instead of a footway and a camber steep enough to shed
   // water, because an unsealed road with a 2 % crown turns into a river.
   gravel: { label: 'Gravel road', roadWidth: 6.4, pavementLeft: 1.1, pavementRight: 1.1, curbHeight: 0.02, curbWidth: 0.1, lanes: 2, surface: 'gravel' },

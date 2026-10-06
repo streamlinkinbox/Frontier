@@ -482,8 +482,59 @@ console.log('\n— slip roads —');
   for (let i2 = 0; i2 < mp.length; i2 += 3) if (mp[i2 + 1] < -11) paintX.push(mp[i2]); // clear of the mainline's own lines
   check('nothing is painted outside the mainline before the nose', Math.min(...paintX) > lapOpensAt.base.x - 12, `${Math.min(...paintX).toFixed(1)} vs nose ${lapOpensAt.base.x.toFixed(1)}`);
 
+  // You cannot cross a solid white line to leave a motorway: the nearside edge line has to break over the diverge.
+  const hostEdge = mainEdges.find((e) => e.startNodeId === forks[0].id) || mainEdges[1];
+  const hostSections = net.sectionsByEdge.get(hostEdge.id);
+  const hostProfile = hostEdge.profile;
+  const lineAt = (sideSign) => {
+    const want = sideSign * (hostProfile.roadHalf - 0.35);
+    const p = net.groups.markings.positions;
+    let n = 0;
+    for (let i = 0; i < p.length; i += 3) {
+      if (p[i] < forks[0].co.x || p[i] > forks[0].co.x + 60) continue;
+      if (Math.abs(p[i + 1] - want) < 0.2) n++;
+    }
+    return n;
+  };
+  const goreSide = lineAt(-1);
+  const farSide = lineAt(1);
+  check('the nearside edge line breaks over the diverge', goreSide > 0 && goreSide < farSide * 0.85, `${goreSide} vs ${farSide}`);
+  const downstream = (() => {
+    const p = net.groups.markings.positions;
+    let n = 0;
+    for (let i = 0; i < p.length; i += 3) {
+      if (p[i] < 180 || p[i] > 240) continue;
+      if (Math.abs(p[i + 1] + (hostProfile.roadHalf - 0.35)) < 0.2) n++;
+    }
+    return n;
+  })();
+  check('and goes solid again once the ramp has gone', downstream > 0);
+  void hostSections;
+
   const detached = buildNetwork([mainline, corridor('far', [[0, -60], [60, -66], [120, -86]], { preset: 'narrow' })]);
   check('a road that merely passes nearby is left alone', detached.stats.junctions === 0, `got ${detached.stats.junctions}`);
+}
+
+console.log('\n— one-way carriageways —');
+{
+  const twoWay = buildNetwork([corridor('two', [[0, 0], [60, 0], [120, 0]], { preset: 'narrow' })]);
+  const oneWay = buildNetwork([corridor('one', [[0, 0], [60, 0], [120, 0]], { preset: 'narrow', markings: { flow: 'one-way' } })]);
+  const nearAxis = (built) => {
+    const p = built.groups.markings.positions;
+    let n = 0;
+    for (let i = 0; i < p.length; i += 3) if (Math.abs(p[i + 1]) < 0.3) n++;
+    return n;
+  };
+  check('a two-way road is divided by a solid centre line', nearAxis(twoWay) > 0);
+  check(
+    'a one-way road gets a dashed lane line there instead',
+    nearAxis(oneWay) > 0 && nearAxis(oneWay) < nearAxis(twoWay) * 0.7,
+    `${nearAxis(oneWay)} vs ${nearAxis(twoWay)} vertices`,
+  );
+  const silent = buildNetwork([corridor('quiet', [[0, 0], [60, 0], [120, 0]], { preset: 'narrow', markings: { flow: 'one-way', laneArrows: false } })]);
+  check('a one-way road is signed along its length', oneWay.groups.markings.triangleCount > silent.groups.markings.triangleCount, `${oneWay.groups.markings.triangleCount} vs ${silent.groups.markings.triangleCount}`);
+  const slip = resolveProfile({ preset: 'slip' });
+  check('the slip-road preset is a single running lane', slip.lanes === 1 && slip.roadWidth > 4 && slip.roadWidth < 7, `${slip.lanes} lanes, ${slip.roadWidth} m`);
 }
 
 console.log('\n— vertical alignment —');

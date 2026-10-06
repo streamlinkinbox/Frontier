@@ -7,20 +7,20 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=10';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=10';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=10';
-import { buildJunctionMesh, approachForEdge } from './JunctionMesh.js?v=10';
-import { buildBridgeMesh } from './BridgeMesh.js?v=10';
-import { buildRoadbedMesh, buildCuttingMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=10';
-import { buildJunctionFurniture } from './Signs.js?v=10';
-import { buildGuardrail } from './Guardrail.js?v=10';
-import { surfaceGroup } from './Surfaces.js?v=10';
-import { buildLaneDetail, paintYellowBox } from './Markings.js?v=10';
-import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=10';
-import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=10';
-import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=10';
-import { buildDrainage, buildBridgeDrainage } from './Drainage.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=11';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=11';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=11';
+import { buildJunctionMesh, approachForEdge } from './JunctionMesh.js?v=11';
+import { buildBridgeMesh } from './BridgeMesh.js?v=11';
+import { buildRoadbedMesh, buildCuttingMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=11';
+import { buildJunctionFurniture } from './Signs.js?v=11';
+import { buildGuardrail } from './Guardrail.js?v=11';
+import { surfaceGroup } from './Surfaces.js?v=11';
+import { buildLaneDetail, paintYellowBox } from './Markings.js?v=11';
+import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=11';
+import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=11';
+import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=11';
+import { buildDrainage, buildBridgeDrainage } from './Drainage.js?v=11';
 
 export const GROUP_NAMES = [
   'road', 'curb', 'pavement', 'markings', 'markingsYellow', 'driveway',
@@ -423,7 +423,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     const paintable = openSections.length >= 2 ? openSections : sections;
     if (cfg.markings !== false && edge.profile.markings !== false) {
       const markings = local.markings || (local.markings = new MeshSpec('markings'));
-      buildMarkings(paintable, edge.profile, markings, cfg);
+      buildMarkings(paintable, edge.profile, markings, { ...cfg, flow: edge.markings?.flow, vergeFade });
       buildLaneDetail(graph, edge, paintable, local, { ...cfg, paveGroup });
     }
     // Splitter islands on any arm that meets a roundabout.

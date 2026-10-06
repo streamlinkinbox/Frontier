@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=10';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=10';
-import { MeshSpec } from './MeshSpec.js?v=10';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=10';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=11';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=11';
+import { MeshSpec } from './MeshSpec.js?v=11';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=11';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
@@ -249,19 +249,25 @@ const uvStrip = (u0, u1, v0, v1) => [
 export function buildMarkings(sections, profile, spec, options = {}) {
   if (!sections || sections.length < 2) return;
   const lanes = Math.max(1, profile.lanes | 0);
+  // One-way: no centre line to cross, so every lane boundary is a plain dashed divider.
+  const oneWay = options.flow === 'one-way' || options.flow === 'one-way-reverse';
   const lift = options.lift ?? 0.012;
   const width = options.width ?? 0.14;
   const dashOn = options.dashOn ?? 3.0;
   const dashOff = options.dashOff ?? 5.0;
 
-  // Edge lines
-  drawLine(spec, sections, profile, profile.roadHalf - 0.35, width, lift, null);
-  drawLine(spec, sections, profile, -(profile.roadHalf - 0.35), width, lift, null);
+  // Edge lines. Where a slip road is lapped alongside (the verge has folded away for the gore) the nearside line
+  // is not the edge of the road any more, it is the boundary of the exit lane — so it has to break. An unbroken
+  // white line past a diverge says "you may not leave here", which is exactly the wrong instruction.
+  const fade = options.vergeFade;
+  const exitSide = (side) => (fade ? (d) => fade(d, side) < 0.995 : null);
+  drawLine(spec, sections, profile, profile.roadHalf - 0.35, width, lift, null, { when: exitSide('left'), dash: { on: 4.0, off: 2.0 } });
+  drawLine(spec, sections, profile, -(profile.roadHalf - 0.35), width, lift, null, { when: exitSide('right'), dash: { on: 4.0, off: 2.0 } });
 
   if (lanes >= 2) {
     const laneWidth = profile.roadWidth / lanes;
     // Centre: double line for 4+ lanes, single for 2.
-    if (lanes % 2 === 0) {
+    if (!oneWay && lanes % 2 === 0) {
       if (lanes >= 4) {
         drawLine(spec, sections, profile, 0.12, width, lift, null);
         drawLine(spec, sections, profile, -0.12, width, lift, null);
@@ -271,13 +277,13 @@ export function buildMarkings(sections, profile, spec, options = {}) {
     }
     for (let i = 1; i < lanes; i++) {
       const offset = profile.roadHalf - i * laneWidth;
-      if (Math.abs(offset) < 0.35) continue;
+      if (!oneWay && Math.abs(offset) < 0.35) continue;
       drawLine(spec, sections, profile, offset, width, lift, { on: dashOn, off: dashOff });
     }
   }
 }
 
-function drawLine(spec, sections, profile, lateral, width, lift, dash) {
+function drawLine(spec, sections, profile, lateral, width, lift, dash, override = null) {
   const half = width * 0.5;
   const pointAt = (s, off) => {
     const scaled = off * s.miter;
@@ -291,11 +297,14 @@ function drawLine(spec, sections, profile, lateral, width, lift, dash) {
     const a = sections[i];
     const b = sections[i + 1];
     const segLen = b.distance - a.distance;
-    if (dash) {
-      const period = dash.on + dash.off;
+    const pattern = override?.when && override.when(a.distance) ? override.dash : dash;
+    if (pattern) {
+      const period = pattern.on + pattern.off;
       const phase = run % period;
       run += segLen;
-      if (phase > dash.on) continue;
+      if (phase > pattern.on) continue;
+    } else {
+      run += segLen;
     }
     spec.addFace([
       pointAt(a, lateral + half),

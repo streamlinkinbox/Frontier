@@ -13,7 +13,7 @@
 // Everything is built from the corridor's own cross-sections, so the gutter line follows the kerb around curves and
 // the pipe follows the road's own vertical profile rather than a flat plane.
 
-import { MeshSpec } from './MeshSpec.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=11';
 
 export const DRAINAGE_DEFAULTS = {
   enabled: false,

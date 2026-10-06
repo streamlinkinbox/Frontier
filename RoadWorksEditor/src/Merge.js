@@ -13,7 +13,7 @@
 // stops when the gap reaches the nose width. Everything comes from the arms' own cross-sections, so a gore on a
 // curving ramp curves with it.
 
-import { MeshSpec } from './MeshSpec.js?v=10';
+import { MeshSpec } from './MeshSpec.js?v=11';
 
 export const MERGE_DEFAULTS = {
   enabled: true,
@@ -169,11 +169,13 @@ export function buildMerges(graph, node, built, sectionsByEdge, out, settings = 
         const s0 = strip[k];
         const s1 = strip[Math.min(k + 1, strip.length - 1)];
         if (s0.separation < 1.6) continue;
-        // One chevron bar per pair of stations, leaning back towards the nose.
-        const a0 = towards(s0.a, s0.b, 0.6);
-        const b0 = towards(s0.b, s0.a, 0.6);
-        const mid = { x: (s1.a.x + s1.b.x) / 2, y: (s1.a.y + s1.b.y) / 2, z: (s1.a.z + s1.b.z) / 2 };
-        chevron(paint, raise(a0), raise(mid), raise(b0), 0.3);
+        // One chevron bar per pair of stations. The apex points back towards the nose — chevrons are read by the
+        // traffic coming at them, and in a gore that traffic approaches from the narrow end, so a V opening the
+        // other way tells every driver on both sides exactly the wrong thing.
+        const a1 = towards(s1.a, s1.b, 0.6);
+        const b1 = towards(s1.b, s1.a, 0.6);
+        const apex = { x: (s0.a.x + s0.b.x) / 2, y: (s0.a.y + s0.b.y) / 2, z: (s0.a.z + s0.b.z) / 2 };
+        chevron(paint, raise(a1), raise(apex), raise(b1), 0.3);
       }
     }
 

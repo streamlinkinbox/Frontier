@@ -119,7 +119,7 @@ export const DEMO = [
     drainage: { enabled: true, scupperSpacing: 16 },
   }),
   mk('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], { preset: 'gravel' }),
-  mk('Dock Interchange Ramp', [[-108, -180], [-40, -196], [30, -232], [90, -268], [150, -292]], { preset: 'narrow', guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
+  mk('Dock Interchange Ramp', [[-108, -180], [-40, -196], [30, -232], [90, -268], [150, -292]], { preset: 'slip', markings: { flow: 'one-way' }, guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
   mk('Chalk Cutting', [[-330, -120], [-312, -60, -3.2], [-300, 0, -6.0], [-306, 60, -3.0], [-318, 120, 0]], {
     paving: 'concrete',
     drainage: { enabled: true, gullySpacing: 20, manholeSpacing: 44 },
@@ -155,9 +155,10 @@ export const DEMO = [
   ...BLOCK,
 ];
 
-export function render(groups, { view = 'iso', width = WIDTH, height = HEIGHT, bg = [36, 40, 49] } = {}) {
-  const yaw = view === 'top' ? 0 : view === 'side' ? 0 : -0.62;
-  const pitch = view === 'top' ? Math.PI / 2 : view === 'side' ? 0.02 : 0.62;
+export function render(groups, { view = 'iso', width = WIDTH, height = HEIGHT, bg = [36, 40, 49], yaw: yawIn, pitch: pitchIn } = {}) {
+  // `yaw`/`pitch` override the named views, which is how a low, driver-height look down a corridor is checked.
+  const yaw = yawIn ?? (view === 'top' ? 0 : view === 'side' ? 0 : -0.62);
+  const pitch = pitchIn ?? (view === 'top' ? Math.PI / 2 : view === 'side' ? 0.02 : 0.62);
   const cy = Math.cos(yaw);
   const sy = Math.sin(yaw);
   const cp = Math.cos(pitch);
