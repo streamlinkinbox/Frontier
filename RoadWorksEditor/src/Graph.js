@@ -14,16 +14,16 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=8';
-import { dedupe, polylineLength } from './Polyline.js?v=8';
-import { sampleSpline } from './Spline.js?v=8';
-import { resolveProfile } from './Profiles.js?v=8';
-import { MARKING_DEFAULTS } from './Markings.js?v=8';
-import { resolveDriveways } from './Driveways.js?v=8';
-import { resolveDrainage } from './Drainage.js?v=8';
-import { resolveRoadbed } from './Roadbed.js?v=8';
-import { resolveGuardrail } from './Guardrail.js?v=8';
-import { outerRadius, resolveRoundabout } from './Roundabout.js?v=8';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=9';
+import { dedupe, polylineLength } from './Polyline.js?v=9';
+import { sampleSpline } from './Spline.js?v=9';
+import { resolveProfile } from './Profiles.js?v=9';
+import { MARKING_DEFAULTS } from './Markings.js?v=9';
+import { resolveDriveways } from './Driveways.js?v=9';
+import { resolveDrainage } from './Drainage.js?v=9';
+import { resolveRoadbed } from './Roadbed.js?v=9';
+import { resolveGuardrail } from './Guardrail.js?v=9';
+import { outerRadius, resolveRoundabout } from './Roundabout.js?v=9';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples

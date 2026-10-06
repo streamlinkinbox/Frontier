@@ -23,11 +23,13 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Roundabouts | Any junction can be switched to a roundabout: arms are trimmed to the outer kerb, the apron becomes the circulating carriageway, and a planted island, mountable truck apron, splitter islands and give-way teeth are laid over it. |
 | Slip roads | A ramp drawn to the edge of a motorway is tapered onto its centreline, the fork is left unfilleted, and the wedge between the two carriageways is paved, edged and hatched as a proper gore with a painted nose. The taper is solved in the motorway's own frame — distance along, offset across — so it converges once and never swings back across the centreline, and both arms fold their verges away through the gore (a kerb there would run across the other carriageway) and pick them up again at the nose. |
 | Driveways | Vehicle crossovers on any street: the kerb itself drops almost flush across the crossing and ramps back up over a flare at each end, the footway tips down into it, and a flared apron slab runs across the pavement to the property line. Spacing, width, depth and drop are per corridor, and opposite frontages are staggered. |
-| Drainage | A working surface-water system under any corridor: gully gratings sunk in the gutter at the low point of the camber, manhole covers alternating side to side and cambered to sit flush, a carrier pipe following the road's own long section a metre or so down, with laterals from every gully and a shaft up to every cover. The buried run is hidden until you tick **Buried drainage** in Display. |
+| Drainage | A working surface-water system under any corridor: gully gratings sunk in the gutter at the low point of the camber with the inlet slot cut into the kerb face above them, manhole covers alternating side to side and cambered to sit flush, a carrier pipe following the road's own long section a metre or so down, with laterals from every gully and a shaft up to every cover. The buried run is hidden until you tick **Buried drainage** in Display. |
+| Deck drainage | A bridge cannot drain to a gully and a buried pipe, so a deck gets its own system: slotted scuppers in each gutter at a configurable spacing, taken through the slab and out past the fascia into downpipes that hang in daylight under the deck where you can actually see them. |
 | City blocks | **Add block** drops in a whole residential grid — streets, footways, kerbs, dropped-kerb driveways onto every frontage and a drainage run beneath each street. Streets and paving only: the generator deliberately builds no buildings. |
 | Vertical alignment | A long-section dock under the viewport (folded away by default — click its header or press `V`): chainage against elevation, draggable elevation handles, grade labels, and design checks for gradient, crest and sag K values and plan radius against a design speed. |
 | Paving | Nine procedural paving patterns drawn to canvas at runtime (colour + derived normal map), tiled in metres and selectable per corridor, with a paving-width and paver-scale control. |
 | Roadbed | Anything above ground gets a real underside: earth embankment, board-marked retaining wall, slab soffit, or auto (fill until it exceeds `maxFill`, then wall). Elevated junction aprons get the same treatment, and bridge approaches are filled rather than spanned. |
+| Cuttings | The mirror image of the fill. Where a corridor runs below ground level the ground is taken away instead: a drainage ditch at each verge, a batter climbing back to daylight at `cutSlope`, and a board-marked retaining cut once the excavation is deeper than `maxCut`. Like the fill it starts and stops cleanly wherever the alignment crosses grade. |
 | Signage | Stop or yield signs on every arm of a 3+ way junction, stop bars on the approaching half, and zebra crossings — all positioned from the junction's own approach frames. |
 | Guardrails | Six roadside restraint systems swept as real cross-sections — W-beam, thrie-beam, wire rope, Jersey, parapet, tubular handrail — either along the whole corridor or only where the embankment exceeds a trigger height. |
 | Bridges | Cantilevered deck with inset soffit, eleven superstructure families, four pier families, three railing families, bearing pads, abutments. |
@@ -100,9 +102,9 @@ src/
   Markings.js           turn arrows, hatching, yellow boxes, cycle + bus lanes, refuges
   Roundabout.js         central island, truck apron, splitter islands, give-way markings
   Driveways.js          dropped-kerb crossovers and apron slabs
-  Drainage.js           gullies, manhole covers, carrier pipe, shafts and laterals
+  Drainage.js           gullies, kerb inlets, manhole covers, carrier pipe, deck scuppers and downpipes
   Merge.js              slip-road gores: the paved wedge, its edge lines, chevrons and nose
-  Roadbed.js            embankment / retaining wall / slab soffit under anything above grade
+  Roadbed.js            embankment / retaining wall / slab soffit above grade, ditch + batter below it
   Signs.js              stop + yield signs, stop bars, zebra crossings
   Guardrail.js          roadside restraint systems: corrugated beams, wire rope, concrete, handrail
   Ray.js                closest-point solves for the gizmo, kept pure so they can be unit-tested

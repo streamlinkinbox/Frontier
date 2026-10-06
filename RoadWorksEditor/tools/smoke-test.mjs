@@ -11,6 +11,7 @@ import { outerRadius, resolveRoundabout } from '../src/Roundabout.js';
 import { ROAD_SURFACES, surfaceGroup } from '../src/Surfaces.js';
 import { resolveProfile } from '../src/Profiles.js';
 import { drivewayWindows, kerbDropFn, DRIVEWAY_DEFAULTS } from '../src/Driveways.js';
+import { ROADBED_DEFAULTS } from '../src/Roadbed.js';
 import { DRAINAGE_DEFAULTS } from '../src/Drainage.js';
 
 // Pavement is split into one group per paving pattern (`pavement#brick@1.00`), so totals are taken by base name.
@@ -550,11 +551,59 @@ console.log('\n— drainage —');
   const gz = [];
   const g = wet.groups.drainGrate.positions;
   for (let i = 2; i < g.length; i += 3) gz.push(g[i]);
-  check('gratings sit flush in the gutter', Math.max(...gz) < 0.02 && Math.min(...gz) > -0.1, `${Math.min(...gz)}/${Math.max(...gz)}`);
+  check('gratings sit flush in the gutter and the inlet stays inside the kerb', Math.max(...gz) < 0.2 && Math.min(...gz) > -0.1, `${Math.min(...gz)}/${Math.max(...gz)}`);
   const noPipes = buildNetwork([corridor('nopipes', [[0, 0], [50, 0], [100, 0]], {
     drainage: { ...DRAINAGE_DEFAULTS, enabled: true, pipes: false },
   })]);
   check('the buried run can be switched off on its own', !noPipes.groups.drainPipe.triangleCount && noPipes.stats.drainage > 0);
+}
+
+console.log('\n— cuttings —');
+{
+  const flat = buildNetwork([corridor('flat', [[0, 0], [60, 0], [120, 0]])]);
+  const dug = buildNetwork([corridor('dug', [[0, 0], [50, 0, -3], [100, 0, -5.5], [150, 0, -3], [200, 0, 0]])]);
+  const deep = buildNetwork([corridor('deep', [[0, 0], [50, 0, -3], [100, 0, -5.5], [150, 0, -3], [200, 0, 0]], {
+    roadbed: { ...ROADBED_DEFAULTS, maxCut: 2.0 },
+  })]);
+  const off = buildNetwork([corridor('off', [[0, 0], [50, 0, -3], [100, 0, -5.5], [150, 0, -3], [200, 0, 0]], {
+    roadbed: { ...ROADBED_DEFAULTS, cut: false },
+  })]);
+  const zs = (spec) => { const out = []; for (let i = 2; i < spec.positions.length; i += 3) out.push(spec.positions[i]); return out; };
+  check('a road at grade digs nothing', flat.groups.earth.triangleCount === 0 && flat.groups.roadbed.triangleCount === 0);
+  check('a road below grade gets an excavated batter', dug.groups.earth.triangleCount > 0, `${dug.groups.earth.triangleCount}`);
+  const dz = zs(dug.groups.earth);
+  check('the cutting climbs back to ground level', Math.max(...dz) > -0.05 && Math.max(...dz) < 0.1, `${Math.max(...dz)}`);
+  check('the cutting reaches down past the verge ditch', Math.min(...dz) < -5.3, `${Math.min(...dz)}`);
+  check('a deep cutting is held back by a wall instead', deep.groups.roadbed.triangleCount > 0 && deep.groups.earth.triangleCount === 0);
+  check('cuttings can be switched off', off.groups.earth.triangleCount === 0 && off.groups.roadbed.triangleCount === 0);
+  const sunk = buildNetwork([
+    corridor('a', [[0, -60], [0, 0], [0, 60]]),
+    corridor('b', [[-60, 0], [0, 0], [60, 0]]),
+  ]);
+  check('an at-grade junction never grows a skirt out of its own camber', sunk.groups.roadbed.triangleCount === 0, `${sunk.groups.roadbed.triangleCount}`);
+}
+
+console.log('\n— bridge drainage —');
+{
+  const deck = buildNetwork([corridor('deck', [[0, 0, 12], [60, 0, 12], [120, 0, 12]], {
+    preset: 'avenue',
+    family: 'bridge',
+    bridge: { type: 'beam', pierType: 'column', pierSpacing: 34, railing: 'parapet' },
+    drainage: { ...DRAINAGE_DEFAULTS, enabled: true, scupperSpacing: 16 },
+  })]);
+  const bare = buildNetwork([corridor('bare', [[0, 0, 12], [60, 0, 12], [120, 0, 12]], {
+    preset: 'avenue',
+    family: 'bridge',
+    bridge: { type: 'beam', pierType: 'column', pierSpacing: 34, railing: 'parapet' },
+  })]);
+  check('a dry deck has no scuppers', (bare.stats.drainage ?? 0) === 0 && !bare.groups.drainGrate.triangleCount);
+  check('scuppers and downpipes are built on a deck', deck.groups.drainGrate.triangleCount > 0 && deck.groups.drainPipe.triangleCount > 0);
+  check('both gutters are drained', deck.stats.drainage >= 2 * Math.floor(120 / 16) - 2, `${deck.stats.drainage}`);
+  const pz = [];
+  const pp = deck.groups.drainPipe.positions;
+  for (let i = 2; i < pp.length; i += 3) pz.push(pp[i]);
+  check('the downpipes hang below the deck', Math.min(...pz) < 12 - 2.5 && Math.max(...pz) <= 12.01, `${Math.min(...pz)}/${Math.max(...pz)}`);
+  check('a deck never gets a buried carrier pipe or manholes', deck.groups.drainCover.triangleCount === 0);
 }
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);

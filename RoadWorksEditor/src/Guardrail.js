@@ -18,8 +18,8 @@
 // never clips the pavement it stands on. By default barriers appear only where they would actually be warranted —
 // on fill above `fillTrigger` — which is also what makes an embankment read as a road rather than a ramp.
 
-import { MeshSpec } from './MeshSpec.js?v=8';
-import { addMember, addTube } from './BridgeMesh.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=9';
+import { addMember, addTube } from './BridgeMesh.js?v=9';
 
 export const GUARDRAIL_TYPES = {
   none: 'None',

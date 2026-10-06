@@ -13,7 +13,7 @@
 // Everything is built from the corridor's own cross-sections, so the gutter line follows the kerb around curves and
 // the pipe follows the road's own vertical profile rather than a flat plane.
 
-import { MeshSpec } from './MeshSpec.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=9';
 
 export const DRAINAGE_DEFAULTS = {
   enabled: false,
@@ -25,6 +25,7 @@ export const DRAINAGE_DEFAULTS = {
   pipes: true,
   invert: 1.35, // m from the road surface down to the pipe centre
   pipeRadius: 0.22,
+  scupperSpacing: 18, // m between deck scuppers on a bridge
 };
 
 export function resolveDrainage(corridor) {
@@ -90,6 +91,22 @@ function gully(out, station, profile, side) {
     [-halfAlong, halfAlong, halfAcross, halfAcross + 0.06],
   ]) {
     grate.addFace([at(a0, c0, 0.004), at(a1, c0, 0.004), at(a1, c1, 0.004), at(a0, c1, 0.004)]);
+  }
+  // Kerb inlet: the slot in the kerb face above the grating. A flat plate in the gutter is invisible from anywhere
+  // but straight above, so this is the part that tells you there is a gully there when you look along the street.
+  const kerbH = Math.max(0.06, profile.curbHeight ?? 0.18);
+  const slotTop = Math.min(kerbH - 0.035, 0.145);
+  const slotBottom = Math.min(slotTop - 0.02, 0.035);
+  if (slotTop > slotBottom) {
+    const face = (profile.roadHalf + 0.012) * station.miter - gutter; // relative to the gutter offset used by at()
+    const sl = 0.46;
+    grate.addFace([
+      at(-sl, face, slotBottom), at(sl, face, slotBottom), at(sl, face, slotTop), at(-sl, face, slotTop),
+    ]);
+    // a shallow lintel over the slot so it is not a decal on the kerb
+    grate.addFace([
+      at(-sl - 0.05, face, slotTop), at(sl + 0.05, face, slotTop), at(sl + 0.05, face, slotTop + 0.03), at(-sl - 0.05, face, slotTop + 0.03),
+    ]);
   }
   return at(0, 0, sunk);
 }
@@ -259,5 +276,56 @@ export function buildDrainage(edge, sections, out, cfg = {}) {
     }
   }
 
+  return placed;
+}
+
+// ── bridges ───────────────────────────────────────────────────────────────────────────────────────────────────────
+// A deck cannot drain to a gully and a buried pipe: it drains through itself. Scuppers in the gutter take the water
+// straight through the slab into a downpipe clipped under the edge of the deck, which is the detail you actually
+// see when you stand under a viaduct.
+
+export function buildBridgeDrainage(edge, sections, out, cfg = {}) {
+  const opts = { ...DRAINAGE_DEFAULTS, ...(edge.drainage || {}) };
+  if (!opts.enabled || !sections || sections.length < 2) return 0;
+  const profile = edge.profile;
+  const total = sections[sections.length - 1].distance;
+  if (total < 12) return 0;
+
+  const grate = group(out, 'drainGrate');
+  const pipe = group(out, 'drainPipe');
+  const bridge = edge.bridge || {};
+  const deckDepth = (bridge.deckThickness ?? 0.85) + 0.15;
+  const spacing = Math.max(8, opts.scupperSpacing);
+  const count = Math.max(1, Math.round((total - 8) / spacing));
+  const sides = opts.side === 'both' ? ['left', 'right'] : [opts.side];
+
+  let placed = 0;
+  for (const side of sides) {
+    const sign = side === 'left' ? 1 : -1;
+    for (let i = 0; i <= count; i++) {
+      const station = stationAt(sections, 4 + ((total - 8) * i) / count);
+      const lateral = (profile.roadHalf - 0.3) * sign * station.miter;
+      const at = (along, across, lift) => ({
+        x: station.base.x + station.left.x * (lateral + across * sign) + station.tangent.x * along,
+        y: station.base.y + station.left.y * (lateral + across * sign) + station.tangent.y * along,
+        z: station.base.z + lift,
+      });
+      // Scupper plate: a slotted inlet sunk into the deck gutter.
+      const halfAlong = 0.3;
+      const halfAcross = 0.14;
+      grate.addFace([at(-halfAlong, -halfAcross, -0.01), at(halfAlong, -halfAcross, -0.01), at(halfAlong, halfAcross, -0.01), at(-halfAlong, halfAcross, -0.01)]);
+      // Downpipe: through the slab, out past the fascia (otherwise it would be buried inside the box) and then a
+      // drop in daylight, which is the bit you actually see from under a viaduct.
+      const fascia = (side === 'left' ? profile.leftTotalHalf : profile.rightTotalHalf) - (profile.roadHalf - 0.3) + 0.3;
+      const head = at(0, 0, -0.02);
+      const knee = at(0, 0, -deckDepth + 0.25);
+      const elbow = at(0, fascia, -deckDepth + 0.25);
+      const foot = at(0, fascia, -deckDepth - 2.6);
+      addTube(pipe, [head, knee, elbow, foot], opts.pipeRadius, 8);
+      // Bracket collar where the pipe is clipped to the fascia.
+      addTube(pipe, [at(0, fascia - 0.22, -deckDepth + 0.25), at(0, fascia + 0.1, -deckDepth + 0.25)], opts.pipeRadius * 1.25, 6);
+      placed++;
+    }
+  }
   return placed;
 }

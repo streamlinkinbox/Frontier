@@ -12,10 +12,14 @@
 //   slab       — a shallow box soffit for a road that is deliberately a floating structure
 //   auto       — embankment while the fill is shallow, retaining wall once it exceeds `maxFill`
 //
+// The mirror image of all that is a cutting: where the corridor runs *below* ground the ground has to be taken away
+// rather than piled up, so each side gets a drainage ditch at the verge and a batter climbing back to grade — or a
+// board-marked retaining wall once the cut is deeper than `maxCut`.
+//
 // Every cross-section is built from the same station frames the carriageway uses, so the skirt follows the miter
 // scaling around curves exactly like the curbs do, and it starts/stops cleanly where the corridor crosses grade.
 
-import { MeshSpec } from './MeshSpec.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=9';
 
 export const ROADBED_DEFAULTS = {
   mode: 'auto', // auto | embankment | wall | slab | none
@@ -25,6 +29,11 @@ export const ROADBED_DEFAULTS = {
   copeWidth: 0.16,
   copeDepth: 0.34,
   slabDepth: 0.55,
+  cut: true, // excavate a batter where the road runs below ground level
+  cutSlope: 1.5, // metres of run per metre of depth on a cut batter
+  maxCut: 8.0, // deeper than this and the cutting is held back by a wall
+  ditchWidth: 1.1, // m of drainage ditch between the verge and the toe of the batter
+  ditchDepth: 0.45,
 };
 
 const MIN_FILL = 0.12; // below this the corridor is effectively at grade
@@ -155,6 +164,94 @@ function capRun(spec, ribL, ribR, atStart) {
   }
 }
 
+// ── cuttings ──────────────────────────────────────────────────────────────────────────────────────────────────────
+// Below grade the geometry is inverted: from the back of the footway the ground drops into a ditch, then climbs the
+// batter to daylight. The strip is closed at the top with a thin lip of ground so the cut reads as excavated earth
+// rather than a hole with no edges.
+
+function cutRib(section, side, rb, groundZ, profile, deep) {
+  const top = side > 0 ? section.paveLeftBase : section.paveRightBase;
+  const edge = side > 0 ? profile.leftTotalHalf : profile.rightTotalHalf;
+  const depth = Math.max(0, groundZ - section.base.z);
+  const out = [top];
+  if (deep) {
+    // Retaining wall: straight up the face, a coping lip, then a short shelf of ground.
+    out.push(offset(section, side * (edge + 0.1), top.z));
+    out.push(offset(section, side * (edge + 0.1 + depth * rb.wallBatter), groundZ - rb.copeDepth * 0.4));
+    out.push(offset(section, side * (edge + 0.1 + depth * rb.wallBatter + rb.copeWidth), groundZ));
+    out.push(offset(section, side * (edge + 0.9 + depth * rb.wallBatter + rb.copeWidth), groundZ + 0.02));
+    return out;
+  }
+  const ditch = Math.min(rb.ditchDepth, Math.max(0.1, depth * 0.5));
+  out.push(offset(section, side * (edge + rb.ditchWidth * 0.5), top.z - ditch));
+  out.push(offset(section, side * (edge + rb.ditchWidth), top.z));
+  out.push(offset(section, side * (edge + rb.ditchWidth + depth * rb.cutSlope), groundZ));
+  out.push(offset(section, side * (edge + rb.ditchWidth + depth * rb.cutSlope + 0.9), groundZ + 0.02));
+  return out;
+}
+
+function emitCutRun(spec, sections, from, to, rb, groundZ, profile, deep) {
+  const left = [];
+  const right = [];
+  for (let i = from; i <= to; i++) {
+    left.push(cutRib(sections[i], 1, rb, groundZ, profile, deep));
+    right.push(cutRib(sections[i], -1, rb, groundZ, profile, deep));
+  }
+  const rows = left[0].length;
+  const vLeft = ribLength(left[0]);
+  for (let i = 0; i < left.length - 1; i++) {
+    const u0 = sections[from + i].distance;
+    const u1 = sections[from + i + 1].distance;
+    for (let k = 0; k < rows - 1; k++) {
+      const v0 = vLeft[k];
+      const v1 = vLeft[k + 1];
+      // Wound the opposite way round from an embankment: a cutting is seen from the inside.
+      spec.addFace(
+        [left[i][k], left[i][k + 1], left[i + 1][k + 1], left[i + 1][k]],
+        [{ x: u0, y: v0 }, { x: u0, y: v1 }, { x: u1, y: v1 }, { x: u1, y: v0 }],
+      );
+      spec.addFace(
+        [right[i][k], right[i + 1][k], right[i + 1][k + 1], right[i][k + 1]],
+        [{ x: u0, y: v0 }, { x: u1, y: v0 }, { x: u1, y: v1 }, { x: u0, y: v1 }],
+      );
+    }
+  }
+  capRun(spec, left[0], right[0], false);
+  capRun(spec, left[left.length - 1], right[right.length - 1], true);
+  return left.length;
+}
+
+// Excavates the cutting for one corridor. Returns `{ mode, depth }` when anything was dug.
+export function buildCuttingMesh(edge, sections, out, cfg = {}) {
+  if (!sections || sections.length < 2) return null;
+  if (edge.family === 'bridge') return null;
+  const rb = edge.roadbed || ROADBED_DEFAULTS;
+  if (rb.mode === 'none' || rb.cut === false) return null;
+
+  const groundZ = cfg.groundZ ?? 0;
+  const profile = edge.profile;
+  const cut = sections.map((s) => groundZ - s.base.z);
+  const deepest = Math.max(...cut);
+  if (deepest <= MIN_FILL) return null;
+
+  const deep = deepest > (rb.maxCut ?? 8);
+  const spec = deep
+    ? out.roadbed || (out.roadbed = new MeshSpec('roadbed'))
+    : out.earth || (out.earth = new MeshSpec('earth'));
+
+  let runStart = -1;
+  let built = 0;
+  for (let i = 0; i <= sections.length; i++) {
+    const below = i < sections.length && cut[i] > MIN_FILL;
+    if (below && runStart < 0) runStart = i;
+    if (!below && runStart >= 0) {
+      if (i - runStart >= 2) built += emitCutRun(spec, sections, runStart, i - 1, rb, groundZ, profile, deep);
+      runStart = -1;
+    }
+  }
+  return built ? { mode: deep ? 'wall' : 'batter', depth: deepest } : null;
+}
+
 // ── bridge approaches ─────────────────────────────────────────────────────────────────────────────────────────────
 // A bridge that climbs out of the ground used to keep its full deck box, girders and abutment all the way down to
 // grade: the soffit ended up underground and a stray abutment block sat in the middle of the ramp. Real approaches
@@ -201,7 +298,12 @@ export function buildBridgeApproachFill(edge, sections, out, cfg = {}) {
 export function buildApronSkirt(junction, out, cfg = {}) {
   if (!junction || !junction.paveBaseArcs?.length) return null;
   const groundZ = cfg.groundZ ?? 0;
-  if (junction.centre.z - groundZ <= MIN_FILL) return null;
+  // Measure from the *base* of the pavement ring, not the cambered centre: a wide carriageway's crown alone can
+  // be 150 mm, which used to convince an at-grade junction that it was on an embankment and fan a skirt out from
+  // under it — visible wherever the apron ring is not a closed loop, such as a fork.
+  let low = Infinity;
+  for (const arc of junction.paveBaseArcs) for (const p of arc) low = Math.min(low, p.z);
+  if (!Number.isFinite(low) || low - groundZ <= MIN_FILL) return null;
 
   const spec = out.roadbed || (out.roadbed = new MeshSpec('roadbed'));
   const under = { x: junction.centre.x, y: junction.centre.y, z: groundZ - 0.02 };

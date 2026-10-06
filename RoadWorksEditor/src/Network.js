@@ -7,20 +7,20 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=8';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=8';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=8';
-import { buildJunctionMesh } from './JunctionMesh.js?v=8';
-import { buildBridgeMesh } from './BridgeMesh.js?v=8';
-import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=8';
-import { buildJunctionFurniture } from './Signs.js?v=8';
-import { buildGuardrail } from './Guardrail.js?v=8';
-import { surfaceGroup } from './Surfaces.js?v=8';
-import { buildLaneDetail, paintYellowBox } from './Markings.js?v=8';
-import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=8';
-import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=8';
-import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=8';
-import { buildDrainage } from './Drainage.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=9';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=9';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=9';
+import { buildJunctionMesh } from './JunctionMesh.js?v=9';
+import { buildBridgeMesh } from './BridgeMesh.js?v=9';
+import { buildRoadbedMesh, buildCuttingMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=9';
+import { buildJunctionFurniture } from './Signs.js?v=9';
+import { buildGuardrail } from './Guardrail.js?v=9';
+import { surfaceGroup } from './Surfaces.js?v=9';
+import { buildLaneDetail, paintYellowBox } from './Markings.js?v=9';
+import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=9';
+import { buildMerges, MERGE_DEFAULTS } from './Merge.js?v=9';
+import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=9';
+import { buildDrainage, buildBridgeDrainage } from './Drainage.js?v=9';
 
 export const GROUP_NAMES = [
   'road', 'curb', 'pavement', 'markings', 'markingsYellow', 'driveway',
@@ -114,7 +114,17 @@ function forkWindows(graph, edge, cfg) {
       if (gap < 0.02 || gap > MERGE_MAX_ANGLE) continue;
       if (!best || gap < best.gap) best = { gap, cross: dir.x * odir.y - dir.y * odir.x, profile: other.profile, other };
     }
-    if (!best) continue;
+    if (!best) {
+      // The arm the ramp peels off *behind* — the approach upstream of the split — has no shallow partner, but its
+      // verge on the ramp's side would otherwise stop dead at the node. Taper it out over a short run instead.
+      const minor = minorArmAt(graph, node);
+      if (!minor || minor.id === edge.id) continue;
+      const mdir = outgoingDir(minor, minor.startNodeId === node.id);
+      const cross = dir.x * mdir.y - dir.y * mdir.x;
+      if (Math.abs(cross) < 0.05) continue;
+      windows.push({ atStart, side: (cross > 0) === atStart ? 'left' : 'right', until: 22 });
+      continue;
+    }
     // Separation grows as 2·sin(gap/2) per metre, so this is the run needed for the two kerbs to clear each other
     // plus the width of the gore itself.
     const need = edge.profile.roadHalf + (best.profile?.roadHalf || 4) + goreWidth;
@@ -128,6 +138,20 @@ function forkWindows(graph, edge, cfg) {
     }
   }
   return windows;
+}
+
+// The ramp at a fork node: the arm whose corridor contributes only one approach here (the through road has two),
+// falling back to the narrowest carriageway when that does not separate them.
+function minorArmAt(graph, node) {
+  const arms = node.edgeIds.map((id) => graph.edges.get(id)).filter(Boolean);
+  if (arms.length < 3) return null;
+  const count = (sourceId) => arms.filter((e) => e.sourceId === sourceId).length;
+  let best = null;
+  for (const arm of arms) {
+    const score = [count(arm.sourceId), arm.profile?.roadWidth || 0];
+    if (!best || score[0] < best.score[0] || (score[0] === best.score[0] && score[1] < best.score[1])) best = { arm, score };
+  }
+  return best?.arm || null;
 }
 
 // Of the two arms that form a fork, the minor one is the ramp: the through road keeps two arms at the node, the
@@ -234,7 +258,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     let drives = 0;
     let drains = 0;
     if (crossings.length) drives = buildDriveways(edge, sections, crossings, local);
-    if (edge.family !== 'bridge') drains = buildDrainage(edge, sections, local, cfg);
+    drains = edge.family === 'bridge' ? buildBridgeDrainage(edge, sections, local, cfg) : buildDrainage(edge, sections, local, cfg);
     drivewayCount += drives;
     drainageCount += drains;
 
@@ -244,6 +268,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
       buildBridgeApproachFill(edge, sections, local, cfg);
     } else {
       buildRoadbedMesh(edge, sections, local, cfg);
+      buildCuttingMesh(edge, sections, local, cfg);
       hasGuardrail = !!buildGuardrail(edge, sections, local, { ...cfg, vergeFade });
     }
     if (hasGuardrail) guardrailCount++;

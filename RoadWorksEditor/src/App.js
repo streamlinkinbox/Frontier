@@ -4,23 +4,23 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=8';
-import { buildNetwork } from './Network.js?v=8';
-import { toObj } from './MeshSpec.js?v=8';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=8';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=8';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=8';
-import { GRAPH_DEFAULTS } from './Graph.js?v=8';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=8';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=8';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=8';
-import { PAVING_PATTERNS } from './Textures.js?v=8';
-import { ROAD_SURFACES } from './Surfaces.js?v=8';
-import { MARKING_DEFAULTS } from './Markings.js?v=8';
-import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=8';
-import { ProfileDock } from './ProfileDock.js?v=8';
-import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=8';
-import { DRAINAGE_DEFAULTS } from './Drainage.js?v=8';
+import { Viewport } from './Viewport.js?v=9';
+import { buildNetwork } from './Network.js?v=9';
+import { toObj } from './MeshSpec.js?v=9';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=9';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=9';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=9';
+import { GRAPH_DEFAULTS } from './Graph.js?v=9';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=9';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=9';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=9';
+import { PAVING_PATTERNS } from './Textures.js?v=9';
+import { ROAD_SURFACES } from './Surfaces.js?v=9';
+import { MARKING_DEFAULTS } from './Markings.js?v=9';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=9';
+import { ProfileDock } from './ProfileDock.js?v=9';
+import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=9';
+import { DRAINAGE_DEFAULTS } from './Drainage.js?v=9';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -145,12 +145,17 @@ function demoDocument() {
       markings: { ...MARKING_DEFAULTS, cycleLane: 'both' },
       drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 26, manholeSpacing: 50 },
     }),
-    makeCorridor('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
+    makeCorridor('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], {
+      preset: 'narrow',
+      paving: 'brick',
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 20, manholeSpacing: 44 },
+    }),
     makeCorridor('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
     makeCorridor('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], {
       preset: 'highway',
       paving: 'asphaltWalk',
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'thrie', when: 'always', offset: 0.45 },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 30, manholeSpacing: 60 },
     }),
     makeCorridor('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], {
       preset: 'street',
@@ -162,11 +167,13 @@ function demoDocument() {
       family: 'bridge',
       capMode: 'flat',
       bridge: { ...BRIDGE_DEFAULTS, type: 'cablestay', pierType: 'hammerhead', pierSpacing: 42, railing: 'jersey', towerHeight: 26, deckThickness: 1.1 },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, scupperSpacing: 18 },
     }),
     makeCorridor('Mill Street Overpass', [[10, 120], [16, 150, 4], [20, 190, 11], [20, 230, 11]], {
       preset: 'street',
       family: 'bridge',
       bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, scupperSpacing: 16 },
     }),
     makeCorridor('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], {
       preset: 'gravel',
@@ -175,6 +182,19 @@ function demoDocument() {
     makeCorridor('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], {
       preset: 'narrow',
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'wbeam', when: 'always', offset: 0.4 },
+    }),
+    // Two cuttings west of the harbour: the road drops below grade, so the ground has to be taken away rather than
+    // piled up — a battered cut with verge ditches on one, a board-marked retaining cut on the other.
+    makeCorridor('Chalk Cutting', [[-330, -120], [-312, -60, -3.2], [-300, 0, -6.0], [-306, 60, -3.0], [-318, 120, 0]], {
+      preset: 'street',
+      paving: 'concrete',
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 20, manholeSpacing: 44 },
+    }),
+    makeCorridor('Limekiln Underpass', [[-248, -120], [-238, -70, -4.0], [-232, -20, -6.5], [-236, 30, -2.0], [-240, 70, 0]], {
+      preset: 'narrow',
+      paving: 'brick',
+      roadbed: { ...ROADBED_DEFAULTS, maxCut: 3.0, cutSlope: 1.2 },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 18 },
     }),
     ...bridgeGallery(),
     // A residential block east of the harbour: streets, footways, dropped-kerb driveways and drainage — no buildings.
@@ -1557,7 +1577,12 @@ function renderInspector() {
     }
     const drainNote = document.createElement('p');
     drainNote.className = 'Small';
-    drainNote.textContent = 'Gullies sit in the gutter against the kerb, manholes over the carrier pipe. The pipe follows the road\u2019s own long section a metre or so down — switch on "Buried drainage" in Display to see it.';
+    if (corridor.family === 'bridge' && drain.enabled) {
+      drainSec.body.appendChild(num('Scupper spacing', drain.scupperSpacing ?? DRAINAGE_DEFAULTS.scupperSpacing, 6, 60, 1, 'm', (v) => (drain.scupperSpacing = v), mark));
+    }
+    drainNote.textContent = corridor.family === 'bridge'
+      ? 'A deck drains through itself: scuppers in the gutter take the water through the slab into downpipes clipped outside the fascia, where you can see them from underneath.'
+      : 'Gullies sit in the gutter against the kerb, manholes over the carrier pipe. The pipe follows the road\u2019s own long section a metre or so down — switch on "Buried drainage" in Display to see it.';
     drainSec.body.appendChild(drainNote);
     host.appendChild(drainSec.element);
 
@@ -1579,9 +1604,15 @@ function renderInspector() {
       if (rb.mode === 'auto') bed.body.appendChild(num('Max fill before wall', rb.maxFill, 1, 20, 0.5, 'm', (v) => (rb.maxFill = v), mark));
       if (rb.mode === 'auto' || rb.mode === 'wall') bed.body.appendChild(num('Wall batter', rb.wallBatter, 0, 0.15, 0.005, '', (v) => (rb.wallBatter = v), mark));
       if (rb.mode === 'slab') bed.body.appendChild(num('Slab depth', rb.slabDepth, 0.2, 2, 0.05, 'm', (v) => (rb.slabDepth = v), mark));
+      bed.body.appendChild(checkField({ label: 'Excavate cuttings', value: rb.cut !== false, onChange: (v) => { rb.cut = v; renderInspector(); mark(); } }));
+      if (rb.cut !== false) {
+        bed.body.appendChild(num('Cut batter', rb.cutSlope ?? ROADBED_DEFAULTS.cutSlope, 0.4, 4, 0.1, ': 1', (v) => (rb.cutSlope = v), mark));
+        bed.body.appendChild(num('Max cut before wall', rb.maxCut ?? ROADBED_DEFAULTS.maxCut, 1, 20, 0.5, 'm', (v) => (rb.maxCut = v), mark));
+        bed.body.appendChild(num('Verge ditch', rb.ditchWidth ?? ROADBED_DEFAULTS.ditchWidth, 0, 4, 0.1, 'm', (v) => (rb.ditchWidth = v), mark));
+      }
       const bedNote = document.createElement('p');
       bedNote.className = 'Small';
-      bedNote.textContent = 'Only built where the corridor sits above ground level, and it stops and restarts cleanly wherever the alignment crosses grade.';
+      bedNote.textContent = 'Fill is built where the corridor sits above ground level and a cutting is dug where it sits below it; both stop and restart cleanly wherever the alignment crosses grade.';
       bed.body.appendChild(bedNote);
       host.appendChild(bed.element);
 

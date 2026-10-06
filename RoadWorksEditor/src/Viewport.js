@@ -6,8 +6,8 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js?v=8';
-import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=8';
+import { TranslateGizmo } from './Gizmo.js?v=9';
+import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=9';
 
 // Paint-like groups: hidden together by the markings toggle, and polygon-offset so they never z-fight the road.
 export const MARKING_GROUPS = new Set(['markings', 'markingsYellow', 'laneTint']);
@@ -17,8 +17,8 @@ export const MATERIAL_STYLES = {
   curb: { color: 0x9ea3aa, roughness: 0.82, metalness: 0.0 },
   pavement: { color: 0x6b7077, roughness: 0.92, metalness: 0.0 },
   driveway: { color: 0x7d8189, roughness: 0.9, metalness: 0.0 },
-  drainGrate: { color: 0x3b3e44, roughness: 0.55, metalness: 0.6 },
-  drainCover: { color: 0x4a4d53, roughness: 0.5, metalness: 0.65 },
+  drainGrate: { color: 0x23262b, roughness: 0.45, metalness: 0.75 },
+  drainCover: { color: 0x5a5e66, roughness: 0.45, metalness: 0.7 },
   drainPipe: { color: 0x6c5f4e, roughness: 0.85, metalness: 0.1 },
   markings: { color: 0xe6e2d6, roughness: 0.7, metalness: 0.0, emissive: 0x15140f },
   markingsYellow: { color: 0xd8b545, roughness: 0.72, metalness: 0.0, emissive: 0x201803 },

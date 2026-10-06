@@ -12,7 +12,7 @@
 // Beyond the footway each crossing gets its own apron slab running back to the property line, flared at the kerb
 // so a car can actually turn into it.
 
-import { MeshSpec } from './MeshSpec.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=9';
 
 export const DRIVEWAY_DEFAULTS = {
   enabled: false,

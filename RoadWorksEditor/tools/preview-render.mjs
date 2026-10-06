@@ -4,6 +4,7 @@
 import { writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { buildNetwork } from '../src/Network.js';
+import { ROADBED_DEFAULTS } from '../src/Roadbed.js';
 import { BRIDGE_DEFAULTS } from '../src/BridgeMesh.js';
 
 const WIDTH = 1280;
@@ -102,21 +103,33 @@ export const DEMO = [
     markings: { cycleLane: 'both' },
     drainage: { enabled: true, gullySpacing: 26, manholeSpacing: 50 },
   }),
-  mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
+  mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick', drainage: { enabled: true, gullySpacing: 20, manholeSpacing: 44 } }),
   mk('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
-  mk('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], { preset: 'highway', paving: 'asphaltWalk', guardrail: { type: 'thrie', when: 'always', offset: 0.45 } }),
+  mk('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], { preset: 'highway', paving: 'asphaltWalk', guardrail: { type: 'thrie', when: 'always', offset: 0.45 }, drainage: { enabled: true, gullySpacing: 30, manholeSpacing: 60 } }),
   mk('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], { paving: 'granite', guardrail: { type: 'wbeam', when: 'fill', fillTrigger: 1.2 } }),
   mk('Estuary Viaduct', [[-130, 95, 11], [-60, 86, 11], [10, 92, 11], [80, 104, 11], [150, 96, 11]], {
     preset: 'highway',
     family: 'bridge',
     bridge: { ...BRIDGE_DEFAULTS, type: 'cablestay', pierType: 'hammerhead', pierSpacing: 42, railing: 'jersey', towerHeight: 26, deckThickness: 1.1 },
+    drainage: { enabled: true, scupperSpacing: 18 },
   }),
   mk('Mill Street Overpass', [[10, 120], [16, 150, 4], [20, 190, 11], [20, 230, 11]], {
     family: 'bridge',
     bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
+    drainage: { enabled: true, scupperSpacing: 16 },
   }),
   mk('Quarry Track', [[130, -46], [186, -24], [238, 8], [286, 46]], { preset: 'gravel' }),
   mk('Dock Interchange Ramp', [[-40, -186], [26, -202], [92, -236], [150, -276]], { preset: 'narrow', guardrail: { type: 'wbeam', when: 'always', offset: 0.4 } }),
+  mk('Chalk Cutting', [[-330, -120], [-312, -60, -3.2], [-300, 0, -6.0], [-306, 60, -3.0], [-318, 120, 0]], {
+    paving: 'concrete',
+    drainage: { enabled: true, gullySpacing: 20, manholeSpacing: 44 },
+  }),
+  mk('Limekiln Underpass', [[-248, -120], [-238, -70, -4.0], [-232, -20, -6.5], [-236, 30, -2.0], [-240, 70, 0]], {
+    preset: 'narrow',
+    paving: 'brick',
+    roadbed: { ...ROADBED_DEFAULTS, maxCut: 3.0, cutSlope: 1.2 },
+    drainage: { enabled: true, gullySpacing: 18 },
+  }),
   // The bridge gallery: one span of every superstructure family, laid out in a grid north of the network.
   ...[
     ['Beam Viaduct', 'beam', 'street', { pierSpacing: 30 }],
