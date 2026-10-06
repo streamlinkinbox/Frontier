@@ -6,8 +6,8 @@
 // no runtime dependency beyond three.js itself.
 
 import * as THREE from 'three';
-import { TranslateGizmo } from './Gizmo.js?v=7';
-import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=7';
+import { TranslateGizmo } from './Gizmo.js?v=8';
+import { pavingTexture, signTexture, surfaceTexture } from './Textures.js?v=8';
 
 // Paint-like groups: hidden together by the markings toggle, and polygon-offset so they never z-fight the road.
 export const MARKING_GROUPS = new Set(['markings', 'markingsYellow', 'laneTint']);

@@ -13,9 +13,9 @@
 //
 // Members are built from a generic swept-box / tube kit so new superstructure or pier families only need a recipe.
 
-import { add, addScaled, clamp, cross, dist, len, lerp, norm, sub, vec } from './Vec.js?v=7';
-import { cumulativeLengths } from './Polyline.js?v=7';
-import { MeshSpec } from './MeshSpec.js?v=7';
+import { add, addScaled, clamp, cross, dist, len, lerp, norm, sub, vec } from './Vec.js?v=8';
+import { cumulativeLengths } from './Polyline.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=8';
 
 export const BRIDGE_DEFAULTS = {
   type: 'beam',

@@ -444,6 +444,18 @@ console.log('\n— slip roads —');
   check('the ramp stays one piece', rampEdges.length === 1, `${rampEdges.length} edges`);
   const strayed = rampEdges[0].points.some((p) => p.y > 0.2);
   check('the taper never crosses the motorway centreline', !strayed);
+  // Inside the gore neither arm may carry a verge: a kerb there runs straight across the other carriageway.
+  const rampSections = net.sectionsByEdge.get(rampEdges[0].id);
+  const verge = (sec, which) => Math.hypot(sec[which === 'L' ? 'paveLeft' : 'paveRight'].x - sec[which === 'L' ? 'roadLeft' : 'roadRight'].x, sec[which === 'L' ? 'paveLeft' : 'paveRight'].y - sec[which === 'L' ? 'roadLeft' : 'roadRight'].y);
+  const atFork = rampSections[2];
+  const wellClear = rampSections[rampSections.length - 3];
+  check('the ramp carries no verge inside the gore', verge(atFork, 'L') < 0.05 && verge(atFork, 'R') < 0.05, `${verge(atFork, 'L').toFixed(2)}/${verge(atFork, 'R').toFixed(2)}`);
+  check('the ramp gets its verge back past the nose', verge(wellClear, 'L') > 0.5 && verge(wellClear, 'R') > 0.5);
+  const mainSections = net.sectionsByEdge.get(mainEdges.find((e) => e.startNodeId === forks[0].id)?.id || mainEdges[1].id);
+  const mainAtFork = mainSections[2];
+  const mainClear = mainSections[mainSections.length - 3];
+  check('the motorway drops only the gore-side verge', Math.min(verge(mainAtFork, 'L'), verge(mainAtFork, 'R')) < 0.05 && Math.max(verge(mainAtFork, 'L'), verge(mainAtFork, 'R')) > 0.5);
+  check('and picks it up again downstream', Math.min(verge(mainClear, 'L'), verge(mainClear, 'R')) > 0.5);
   const detached = buildNetwork([mainline, corridor('far', [[0, -60], [60, -66], [120, -86]], { preset: 'narrow' })]);
   check('a road that merely passes nearby is left alone', detached.stats.junctions === 0, `got ${detached.stats.junctions}`);
 }

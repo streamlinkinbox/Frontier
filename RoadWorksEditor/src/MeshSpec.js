@@ -5,7 +5,7 @@
 // to a THREE.BufferGeometry and the exporter writes it as Wavefront OBJ. Normals are angle-weighted and welded, so
 // road surfaces shade smoothly while curb folds and parapet edges stay crisp.
 
-import { cross, norm, sub } from './Vec.js?v=7';
+import { cross, norm, sub } from './Vec.js?v=8';
 
 export class MeshSpec {
   constructor(name = 'mesh') {

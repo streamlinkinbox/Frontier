@@ -11,10 +11,10 @@
 //      fillet, each pinned to the exact arm targets at both ends, so the curb never detaches from the arc on acute
 //      or uneven-width junctions.
 
-import { clamp, dist, lerp, vec } from './Vec.js?v=7';
-import { resamplePolyline } from './Polyline.js?v=7';
-import { MeshSpec } from './MeshSpec.js?v=7';
-import { nodeGeneratesJunction } from './Graph.js?v=7';
+import { clamp, dist, lerp, vec } from './Vec.js?v=8';
+import { resamplePolyline } from './Polyline.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=8';
+import { nodeGeneratesJunction } from './Graph.js?v=8';
 
 // ── fillet arc between two offset edges ───────────────────────────────────────────────────────────────────────────
 
@@ -327,14 +327,52 @@ export function buildJunctionMesh(graph, node, sectionsByEdge, out, options = {}
     }
   }
 
-  // Curb bands + pavement around every corner.
+  // At a fork, the minor arm (the ramp) is still lapped over the road it is leaving, so no kerb can wrap onto it:
+  // every corner that touches it is left bare and the gore paving covers the wedge. The corners between the two
+  // halves of the road running through keep their bands, so the verge on the far side carries straight on.
+  const bareIds = new Set();
+  if (node.fork) {
+    let bestI = -1;
+    let bestGap = Infinity;
+    for (let i = 0; i < n; i++) {
+      let gap = approaches[(i + 1) % n].angle - approaches[i].angle;
+      while (gap < 0) gap += Math.PI * 2;
+      if (gap < bestGap) {
+        bestGap = gap;
+        bestI = i;
+      }
+    }
+    if (bestI >= 0 && bestGap < Math.PI * 0.3) {
+      const pair = [approaches[bestI], approaches[(bestI + 1) % n]];
+      const armsOf = (a) => approaches.filter((x) => graph.edges.get(x.edgeId)?.sourceId === graph.edges.get(a.edgeId)?.sourceId).length;
+      const widthOf = (a) => graph.edges.get(a.edgeId)?.profile?.roadWidth || 0;
+      // The through road keeps two arms here; the ramp only one. Equal counts fall back to the narrower road.
+      let minor = armsOf(pair[0]) === armsOf(pair[1])
+        ? (widthOf(pair[0]) <= widthOf(pair[1]) ? pair[0] : pair[1])
+        : (armsOf(pair[0]) < armsOf(pair[1]) ? pair[0] : pair[1]);
+      bareIds.add(minor.edgeId);
+    }
+  }
+
+  // Curb bands + pavement around every corner. A fork is the exception: its arms are still lapped together, so a
+  // kerb wrapped from one onto the other would run straight across the carriageway it is supposed to be leaving.
+  // The verges on the approaches themselves are already folded shut there (Network.js forkWindows), and the gore
+  // paving covers the wedge, so the fork simply gets bare carriageway through the split.
   for (let i = 0; i < n; i++) {
+    const cur = approaches[i];
+    const nxt = approaches[(i + 1) % n];
+    // Where a gore has folded an approach's verge shut, the band would have nothing to wrap onto and would be
+    // dragged across the carriageway instead. Skip that corner: the gore paving covers it.
+    const wCur = Math.hypot(cur.paveRight.x - cur.roadRight.x, cur.paveRight.y - cur.roadRight.y);
+    const wNxt = Math.hypot(nxt.paveLeft.x - nxt.roadLeft.x, nxt.paveLeft.y - nxt.roadLeft.y);
+    if (Math.min(wCur, wNxt) < 0.08) continue;
+    if (bareIds.has(cur.edgeId) || bareIds.has(nxt.edgeId)) continue;
     const segs = roadArcs[i].length - 1;
     addCurveStrip(curb, roadArcs[i], curbFaceArcs[i], segs, 1);
     addCurveStrip(curb, curbFaceArcs[i], curbBackArcs[i], segs, 1);
     addCurveStrip(pavement, curbBackArcs[i], paveArcs[i], segs, 2);
 
-    const bridgeCorner = approaches[i].family === 'bridge' && approaches[(i + 1) % n].family === 'bridge';
+    const bridgeCorner = cur.family === 'bridge' && nxt.family === 'bridge';
     if (!bridgeCorner) addCurveStrip(pavement, paveArcs[i], paveBaseArcs[i], segs, 1);
   }
 

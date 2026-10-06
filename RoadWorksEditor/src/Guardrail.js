@@ -18,8 +18,8 @@
 // never clips the pavement it stands on. By default barriers appear only where they would actually be warranted —
 // on fill above `fillTrigger` — which is also what makes an embankment read as a road rather than a ramp.
 
-import { MeshSpec } from './MeshSpec.js?v=7';
-import { addMember, addTube } from './BridgeMesh.js?v=7';
+import { MeshSpec } from './MeshSpec.js?v=8';
+import { addMember, addTube } from './BridgeMesh.js?v=8';
 
 export const GUARDRAIL_TYPES = {
   none: 'None',
@@ -103,7 +103,14 @@ export function buildGuardrail(edge, sections, out, cfg = {}) {
   let built = 0;
   for (const side of sides) {
     // Runs: the stretches where this barrier is warranted. 'always' is one run; 'fill' follows the embankment.
-    const want = sections.map((s) => (g.when === 'always' ? true : s.base.z - groundZ >= g.fillTrigger));
+    // A barrier inside a gore would stand in the middle of the paved wedge, so the run stops wherever the verge
+    // it belongs to has been folded away (see Network.js forkFades).
+    const fade = cfg.vergeFade;
+    const sideName = side > 0 ? 'left' : 'right';
+    const want = sections.map((s) => {
+      if (fade && fade(s.distance, sideName) < 0.5) return false;
+      return g.when === 'always' ? true : s.base.z - groundZ >= g.fillTrigger;
+    });
     let from = -1;
     for (let i = 0; i <= sections.length; i++) {
       const on = i < sections.length && want[i];

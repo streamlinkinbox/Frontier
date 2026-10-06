@@ -15,7 +15,7 @@
 // Every cross-section is built from the same station frames the carriageway uses, so the skirt follows the miter
 // scaling around curves exactly like the curbs do, and it starts/stops cleanly where the corridor crosses grade.
 
-import { MeshSpec } from './MeshSpec.js?v=7';
+import { MeshSpec } from './MeshSpec.js?v=8';
 
 export const ROADBED_DEFAULTS = {
   mode: 'auto', // auto | embankment | wall | slab | none

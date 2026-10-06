@@ -21,7 +21,7 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Surfaces | Seven running surfaces — asphalt, chip seal, concrete slab, stone setts, gravel, graded dirt and a rutted two-track — each with its own procedural texture, camber and shoulder. Unsealed presets (gravel road, farm track, forest road) drop the kerb, swap the footway for a loose shoulder and turn the lane paint off. |
 | Lane markings | Turn arrows allocated from the movements each junction actually offers, chevron hatching, yellow box junctions, tinted cycle and bus lanes with painted glyphs, and kerbed pedestrian refuges with ghost-island approaches. |
 | Roundabouts | Any junction can be switched to a roundabout: arms are trimmed to the outer kerb, the apron becomes the circulating carriageway, and a planted island, mountable truck apron, splitter islands and give-way teeth are laid over it. |
-| Slip roads | A ramp drawn to the edge of a motorway is tapered onto its centreline, the fork is left unfilleted, and the wedge between the two carriageways is paved, edged and hatched as a proper gore with a painted nose. The taper is solved in the motorway's own frame — distance along, offset across — so it converges once and never swings back across the centreline. |
+| Slip roads | A ramp drawn to the edge of a motorway is tapered onto its centreline, the fork is left unfilleted, and the wedge between the two carriageways is paved, edged and hatched as a proper gore with a painted nose. The taper is solved in the motorway's own frame — distance along, offset across — so it converges once and never swings back across the centreline, and both arms fold their verges away through the gore (a kerb there would run across the other carriageway) and pick them up again at the nose. |
 | Driveways | Vehicle crossovers on any street: the kerb itself drops almost flush across the crossing and ramps back up over a flare at each end, the footway tips down into it, and a flared apron slab runs across the pavement to the property line. Spacing, width, depth and drop are per corridor, and opposite frontages are staggered. |
 | Drainage | A working surface-water system under any corridor: gully gratings sunk in the gutter at the low point of the camber, manhole covers alternating side to side and cambered to sit flush, a carrier pipe following the road's own long section a metre or so down, with laterals from every gully and a shaft up to every cover. The buried run is hidden until you tick **Buried drainage** in Display. |
 | City blocks | **Add block** drops in a whole residential grid — streets, footways, kerbs, dropped-kerb driveways onto every frontage and a drainage run beneath each street. Streets and paving only: the generator deliberately builds no buildings. |
@@ -128,6 +128,17 @@ renderer-agnostic and runs in plain Node, which is what the tools in `tools/` us
 catalogue and UV tables as plain data, so the geometry modules can import it without ever touching a canvas.
 
 ## Design notes
+
+### What a gore does to the cross-section
+
+The hard part of a diverge is not the paving, it is the verge. For the first fifty-odd metres the ramp is still
+lapped *inside* the motorway's footprint, so a kerb and footway on either road would be dragged straight across the
+other's running lanes — which is what every earlier attempt here looked like. `Network.forkWindows` works out how
+far the two have to run before they clear each other (separation grows as 2·sin(gap/2) per metre) and hands
+`buildCrossSections` a per-side fade: the verge closes to nothing at the fork and eases back in at the nose. The
+ramp, as the minor arm, folds both sides away; the motorway only the gore side. Junction corners that would wrap a
+kerb onto a folded verge are skipped, and the painted nose is drawn at the upstream tip where the carriageways
+actually part — not as a slab at the wide end.
 
 ### A dropped kerb is geometry, not a decal
 

@@ -4,23 +4,23 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=7';
-import { buildNetwork } from './Network.js?v=7';
-import { toObj } from './MeshSpec.js?v=7';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=7';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=7';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=7';
-import { GRAPH_DEFAULTS } from './Graph.js?v=7';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=7';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=7';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=7';
-import { PAVING_PATTERNS } from './Textures.js?v=7';
-import { ROAD_SURFACES } from './Surfaces.js?v=7';
-import { MARKING_DEFAULTS } from './Markings.js?v=7';
-import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=7';
-import { ProfileDock } from './ProfileDock.js?v=7';
-import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=7';
-import { DRAINAGE_DEFAULTS } from './Drainage.js?v=7';
+import { Viewport } from './Viewport.js?v=8';
+import { buildNetwork } from './Network.js?v=8';
+import { toObj } from './MeshSpec.js?v=8';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=8';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=8';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=8';
+import { GRAPH_DEFAULTS } from './Graph.js?v=8';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=8';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=8';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=8';
+import { PAVING_PATTERNS } from './Textures.js?v=8';
+import { ROAD_SURFACES } from './Surfaces.js?v=8';
+import { MARKING_DEFAULTS } from './Markings.js?v=8';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=8';
+import { ProfileDock } from './ProfileDock.js?v=8';
+import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=8';
+import { DRAINAGE_DEFAULTS } from './Drainage.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;

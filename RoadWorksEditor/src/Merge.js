@@ -13,7 +13,7 @@
 // stops when the gap reaches the nose width. Everything comes from the arms' own cross-sections, so a gore on a
 // curving ramp curves with it.
 
-import { MeshSpec } from './MeshSpec.js?v=7';
+import { MeshSpec } from './MeshSpec.js?v=8';
 
 export const MERGE_DEFAULTS = {
   enabled: true,
@@ -144,8 +144,21 @@ export function buildMerges(graph, node, built, sectionsByEdge, out, settings = 
       }
     }
 
+    // Painted nose: the solid wedge at the upstream tip, where the two carriageways actually part company. It is
+    // the narrow end of the gore, not the wide one — a slab at the downstream end is just a blob in the road.
+    const noseEnd = Math.min(strip.length - 1, Math.max(2, strip.findIndex((s) => s.separation >= Math.max(1.2, cfg.noseWidth * 2))));
+    const noseLeft = [];
+    const noseRight = [];
+    for (let k = 0; k <= noseEnd; k++) {
+      const st = strip[k];
+      const inset = Math.min(0.3, st.separation * 0.25);
+      noseLeft.push(raise(towards(st.a, st.b, inset)));
+      noseRight.push(raise(towards(st.b, st.a, inset)));
+    }
+    if (noseLeft.length >= 2) paint.addPolygon([...noseLeft, ...noseRight.reverse()]);
+
     if (cfg.hatch) {
-      for (let k = 1; k < strip.length - 1; k += 2) {
+      for (let k = noseEnd + 1; k < strip.length - 1; k += 2) {
         const s0 = strip[k];
         const s1 = strip[Math.min(k + 1, strip.length - 1)];
         if (s0.separation < 1.6) continue;
@@ -157,15 +170,6 @@ export function buildMerges(graph, node, built, sectionsByEdge, out, settings = 
       }
     }
 
-    // Painted nose: a short triangle closing the gore where the two roads part company.
-    const tip = strip[strip.length - 1];
-    const tail = strip[Math.max(0, strip.length - 4)];
-    paint.addPolygon([
-      raise(towards(tail.a, tail.b, 0.4)),
-      raise(towards(tip.a, tip.b, cfg.noseWidth)),
-      raise(towards(tip.b, tip.a, cfg.noseWidth)),
-      raise(towards(tail.b, tail.a, 0.4)),
-    ]);
     built_++;
   }
   return built_;

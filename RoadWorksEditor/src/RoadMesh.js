@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=7';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=7';
-import { MeshSpec } from './MeshSpec.js?v=7';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=7';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=8';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=8';
+import { MeshSpec } from './MeshSpec.js?v=8';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=8';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
@@ -63,11 +63,20 @@ export function buildCrossSections(polyline, profile, options = {}) {
     // Vehicle crossovers drop the kerb almost flush over the width of the crossing — see Driveways.js. The factor
     // is per side, so a drive on one frontage never flattens the kerb opposite it.
     const drop = options.kerbDrop;
-    const chL = profile.curbHeight * (drop ? drop(cum[i], 'left') : 1);
-    const chR = profile.curbHeight * (drop ? drop(cum[i], 'right') : 1);
-    const ch = profile.curbHeight;
-    const pl = profile.pavementLeft;
-    const pr = profile.pavementRight;
+    // Inside a gore the kerb and footway have to go: the ramp and the mainline are still lapped together there and
+    // a full verge on either of them would run straight through the other's carriageway. `vergeFade` closes the
+    // verge down to nothing at the fork and opens it again at the nose. See Network.js forkFades().
+    const fade = options.vergeFade;
+    const fL = fade ? clamp(fade(cum[i], 'left'), 0, 1) : 1;
+    const fR = fade ? clamp(fade(cum[i], 'right'), 0, 1) : 1;
+    const chL = profile.curbHeight * (drop ? drop(cum[i], 'left') : 1) * fL;
+    const chR = profile.curbHeight * (drop ? drop(cum[i], 'right') : 1) * fR;
+    const cwL = cw * fL;
+    const cwR = cw * fR;
+    const pl = profile.pavementLeft * fL;
+    const pr = profile.pavementRight * fR;
+    const zpL = profile.curbHeight * fL;
+    const zpR = profile.curbHeight * fR;
 
     sections.push({
       distance: cum[i],
@@ -77,15 +86,15 @@ export function buildCrossSections(polyline, profile, options = {}) {
       center: off(0, profile.crownRise),
       roadLeft: off(rh, 0),
       roadRight: off(-rh, 0),
-      curbFaceLeft: off(rh + CURB_BATTER, chL),
-      curbFaceRight: off(-(rh + CURB_BATTER), chR),
-      curbBackLeft: off(rh + cw, chL),
-      curbBackRight: off(-(rh + cw), chR),
+      curbFaceLeft: off(rh + CURB_BATTER * fL, chL),
+      curbFaceRight: off(-(rh + CURB_BATTER * fR), chR),
+      curbBackLeft: off(rh + cwL, chL),
+      curbBackRight: off(-(rh + cwR), chR),
       // The footway keeps its own level and tips down into the crossing, which is what makes the dip read.
-      paveLeft: off(rh + cw + pl, ch + pl * crossfall),
-      paveRight: off(-(rh + cw + pr), ch + pr * crossfall),
-      paveLeftBase: off(rh + cw + pl, 0),
-      paveRightBase: off(-(rh + cw + pr), 0),
+      paveLeft: off(rh + cwL + pl, zpL + pl * crossfall),
+      paveRight: off(-(rh + cwR + pr), zpR + pr * crossfall),
+      paveLeftBase: off(rh + cwL + pl, 0),
+      paveRightBase: off(-(rh + cwR + pr), 0),
       // Cambered carriageway samples, left → right.
       lanePoints(columns) {
         const out = [];
