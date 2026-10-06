@@ -58,6 +58,7 @@ export function surfaceTexture(THREE, name) {
     earth: { tile: 5, draw: (c, h, px) => drawEarth(c, h, px) },
     structure: { tile: 3, draw: (c, h, px) => drawConcrete(c, h, px, [128, 134, 142]) },
     barrier: { tile: 2, draw: (c, h, px) => drawConcrete(c, h, px, [156, 158, 162]) },
+    driveway: { tile: 4.0, draw: (c, h, px) => drawSlabRoad(c, h, px, [150, 149, 145]) },
     gravelShoulder: { tile: 2.0, draw: (c, h, px) => drawGravel(c, h, px, [138, 130, 115], 26) },
     dirtShoulder: { tile: 2.6, draw: (c, h, px) => drawDirt(c, h, px, [112, 98, 76], false) },
   };

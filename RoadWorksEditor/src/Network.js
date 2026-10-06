@@ -7,21 +7,24 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=5';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=5';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=5';
-import { buildJunctionMesh } from './JunctionMesh.js?v=5';
-import { buildBridgeMesh } from './BridgeMesh.js?v=5';
-import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=5';
-import { buildJunctionFurniture } from './Signs.js?v=5';
-import { buildGuardrail } from './Guardrail.js?v=5';
-import { surfaceGroup } from './Surfaces.js?v=5';
-import { buildLaneDetail, paintYellowBox } from './Markings.js?v=5';
-import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=5';
-import { buildMerges } from './Merge.js?v=5';
+import { MeshSpec } from './MeshSpec.js?v=6';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=6';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=6';
+import { buildJunctionMesh } from './JunctionMesh.js?v=6';
+import { buildBridgeMesh } from './BridgeMesh.js?v=6';
+import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=6';
+import { buildJunctionFurniture } from './Signs.js?v=6';
+import { buildGuardrail } from './Guardrail.js?v=6';
+import { surfaceGroup } from './Surfaces.js?v=6';
+import { buildLaneDetail, paintYellowBox } from './Markings.js?v=6';
+import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=6';
+import { buildMerges } from './Merge.js?v=6';
+import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=6';
+import { buildDrainage } from './Drainage.js?v=6';
 
 export const GROUP_NAMES = [
-  'road', 'curb', 'pavement', 'markings', 'markingsYellow',
+  'road', 'curb', 'pavement', 'markings', 'markingsYellow', 'driveway',
+  'drainGrate', 'drainCover', 'drainPipe',
   'earth', 'roadbed',
   'deck', 'structure', 'piers', 'railing', 'barrier', 'cables',
   'signFace', 'signPost',
@@ -84,10 +87,20 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
   const sectionsByEdge = new Map();
   const warnings = [...graph.warnings];
   let guardrailCount = 0;
+  let drivewayCount = 0;
+  let drainageCount = 0;
 
   // Corridors first: every edge contributes its trimmed cross-sections, which the junctions then reuse verbatim.
   for (const edge of graph.edges.values()) {
-    const sections = sectionsForEdge(graph, edge, cfg);
+    let sections = sectionsForEdge(graph, edge, cfg);
+    // Vehicle crossovers change the cross-section itself (the kerb drops), so once their positions are known the
+    // sections are re-solved with the drop applied rather than patched afterwards.
+    let crossings = [];
+    if (sections && edge.driveways?.enabled && edge.family !== 'bridge') {
+      crossings = drivewayWindows(edge.driveways, sections[sections.length - 1].distance, edge.profile);
+      const drop = kerbDropFn(crossings, edge.driveways.drop);
+      if (drop) sections = sectionsForEdge(graph, edge, { ...cfg, kerbDrop: drop }) || sections;
+    }
     if (!sections) {
       warnings.push(`${edge.name || edge.sourceId}: segment too short between junctions`);
       continue;
@@ -103,6 +116,8 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     if (cached) {
       mergeInto(groups, cached.parts);
       if (cached.guardrail) guardrailCount++;
+      drivewayCount += cached.drives || 0;
+      drainageCount += cached.drains || 0;
       nextCache.set(key, cached);
       cacheHits++;
       continue;
@@ -124,6 +139,13 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
       if (splitter > 2) buildSplitterIsland(local, sections, edge.profile, atEnd, { length: splitter, topGroup: paveGroup });
     }
 
+    let drives = 0;
+    let drains = 0;
+    if (crossings.length) drives = buildDriveways(edge, sections, crossings, local);
+    if (edge.family !== 'bridge') drains = buildDrainage(edge, sections, local, cfg);
+    drivewayCount += drives;
+    drainageCount += drains;
+
     let hasGuardrail = false;
     if (edge.family === 'bridge') {
       buildBridgeMesh(edge, sections, local, { groundZ: cfg.groundZ ?? 0, ...(cfg.bridgeOverrides || {}) });
@@ -135,7 +157,7 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     if (hasGuardrail) guardrailCount++;
     if (cache) {
       const parts = Object.entries(local);
-      nextCache.set(key, { parts, guardrail: hasGuardrail });
+      nextCache.set(key, { parts, guardrail: hasGuardrail, drives, drains });
       mergeInto(groups, parts);
     }
   }
@@ -187,6 +209,8 @@ export function buildNetwork(corridors, settings = {}, cache = null) {
     slipRoads: slipCount,
     signs: signCount,
     guardrails: guardrailCount,
+    driveways: drivewayCount,
+    drainage: drainageCount,
     gradeSeparations: graph.crossings.filter((c) => c.separated).length,
     triangles,
     buildMs: Math.round(now() - t0),

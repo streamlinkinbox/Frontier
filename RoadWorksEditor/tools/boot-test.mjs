@@ -73,7 +73,9 @@ el('ViewWire').click();
 check('wireframe mode activates', el('ViewWire').classList.contains('Active'));
 el('ViewShaded').click();
 check('shaded mode restores', el('ViewShaded').classList.contains('Active'));
-for (const id of ['Frame', 'ViewTop', 'ViewIso', 'AddRoad', 'AddBridge']) {
+const rw = dom.window.__roadworks;
+const beforeBlock = rw.state.doc.corridors.length;
+for (const id of ['Frame', 'ViewTop', 'ViewIso', 'AddRoad', 'AddBridge', 'AddBlock']) {
   let threw = null;
   try {
     el(id).click();
@@ -82,6 +84,8 @@ for (const id of ['Frame', 'ViewTop', 'ViewIso', 'AddRoad', 'AddBridge']) {
   }
   check(`${id} handler runs`, !threw, threw?.message);
 }
+check('add block drops in a whole grid of streets', rw.state.doc.corridors.length - beforeBlock >= 6, `${rw.state.doc.corridors.length - beforeBlock}`);
+check('the block streets carry driveways and drainage', rw.state.doc.corridors.slice(-6).every((c) => c.driveways?.enabled && c.drainage?.enabled));
 el('ToolSelect').click();
 
 console.log('\n— selection & inspector ─');
@@ -175,6 +179,7 @@ try {
 check('keyboard shortcuts run', !keyError, keyError?.message);
 
 console.log('\n— draw a corridor —');
+const beforeDraw = el('CorridorList').children.length;
 let drawError = null;
 try {
   dom.window.dispatch('keydown', { key: '4' });
@@ -190,7 +195,7 @@ try {
   drawError = error;
 }
 check('draw tool places points and finishes', !drawError, drawError?.message);
-check('new corridor appears in the outliner', el('CorridorList').children.length === demoCount + 1, `${el('CorridorList').children.length} rows`);
+check('new corridor appears in the outliner', el('CorridorList').children.length === beforeDraw + 1, `${el('CorridorList').children.length} rows`);
 
 console.log('\n— procedural textures —');
 check('texture generators ran', canvasStats.calls > 2000, `${canvasStats.calls} canvas ops`);

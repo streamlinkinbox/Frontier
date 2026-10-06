@@ -22,6 +22,9 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Lane markings | Turn arrows allocated from the movements each junction actually offers, chevron hatching, yellow box junctions, tinted cycle and bus lanes with painted glyphs, and kerbed pedestrian refuges with ghost-island approaches. |
 | Roundabouts | Any junction can be switched to a roundabout: arms are trimmed to the outer kerb, the apron becomes the circulating carriageway, and a planted island, mountable truck apron, splitter islands and give-way teeth are laid over it. |
 | Slip roads | A ramp drawn to the edge of a motorway is tapered onto its centreline, the fork is left unfilleted, and the wedge between the two carriageways is paved, edged and hatched as a proper gore with a painted nose. |
+| Driveways | Vehicle crossovers on any street: the kerb itself drops almost flush across the crossing and ramps back up over a flare at each end, the footway tips down into it, and a flared apron slab runs across the pavement to the property line. Spacing, width, depth and drop are per corridor, and opposite frontages are staggered. |
+| Drainage | A working surface-water system under any corridor: gully gratings sunk in the gutter at the low point of the camber, manhole covers alternating side to side and cambered to sit flush, a carrier pipe following the road's own long section a metre or so down, with laterals from every gully and a shaft up to every cover. The buried run is hidden until you tick **Buried drainage** in Display. |
+| City blocks | **Add block** drops in a whole residential grid — streets, footways, kerbs, dropped-kerb driveways onto every frontage and a drainage run beneath each street. Streets and paving only: the generator deliberately builds no buildings. |
 | Vertical alignment | A long-section dock under the viewport: chainage against elevation, draggable elevation handles, grade labels, and design checks for gradient, crest and sag K values and plan radius against a design speed. |
 | Paving | Nine procedural paving patterns drawn to canvas at runtime (colour + derived normal map), tiled in metres and selectable per corridor, with a paving-width and paver-scale control. |
 | Roadbed | Anything above ground gets a real underside: earth embankment, board-marked retaining wall, slab soffit, or auto (fill until it exceeds `maxFill`, then wall). Elevated junction aprons get the same treatment, and bridge approaches are filled rather than spanned. |
@@ -31,7 +34,7 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Editing modes | Select (roads and bridges), Points, Junctions, Draw road, Draw bridge — switchable from the toolbar or with `1`–`5`. |
 | Multi-select | Shift-click or Shift-drag a marquee in Points / Junctions mode; the gizmo then moves the whole selection as one rigid body, intersections included. |
 | Street names | Every corridor is named and labelled in the viewport; junctions borrow the names of the streets that meet there. Rename in place from the outliner or the inspector. |
-| Default scene | Loads a worked network — now with a roundabout, a gravel track and a motorway slip road — *plus* a gallery holding one span of every bridge family, so nothing has to be drawn to see what the generator does. |
+| Default scene | Loads a worked network — a roundabout, a gravel track, a motorway slip road, an avenue carrying a cycle lane, a bus lane, refuge islands and a yellow box, and the Saltmarsh residential block with driveways and drainage — *plus* a gallery holding one span of every bridge family, so nothing has to be drawn to see what the generator does. |
 | Performance | Per-corridor mesh cache: dragging one street reuses the meshes of every corridor whose cross-sections did not change. |
 | Output | Wavefront OBJ (Y-up, metres) and a `.roadworks.json` document you can reload. |
 
@@ -96,6 +99,8 @@ src/
   Alignment.js          chainage / grade / K-value profiles and the design-standards tables
   Markings.js           turn arrows, hatching, yellow boxes, cycle + bus lanes, refuges
   Roundabout.js         central island, truck apron, splitter islands, give-way markings
+  Driveways.js          dropped-kerb crossovers and apron slabs
+  Drainage.js           gullies, manhole covers, carrier pipe, shafts and laterals
   Merge.js              slip-road gores: the paved wedge, its edge lines, chevrons and nose
   Roadbed.js            embankment / retaining wall / slab soffit under anything above grade
   Signs.js              stop + yield signs, stop bars, zebra crossings
@@ -123,6 +128,15 @@ renderer-agnostic and runs in plain Node, which is what the tools in `tools/` us
 catalogue and UV tables as plain data, so the geometry modules can import it without ever touching a canvas.
 
 ## Design notes
+
+### A dropped kerb is geometry, not a decal
+
+A crossover is recognisable from the air because the kerb itself changes shape: it drops almost flush over the
+width of the crossing, ramps back up over a short flare, and the footway tips down to meet it. So the crossing is
+fed into the cross-section generator rather than painted on top of it — `Driveways.kerbDropFn` returns a height
+factor per chainage and side, `buildCrossSections` applies it to the kerb faces while leaving the footway levels
+alone, and the swept corridor comes out with real dropped crossings in it. The apron is then one continuous slab
+from the gutter, across the footway, out to the property line, flared at the kerb so a car can actually turn in.
 
 The junction topology follows the approach proven in the Unreal **TransitArchitect** plugin (sample → split →
 weld → trim → fillet), re-implemented here in JavaScript. The parts of the earlier browser prototype that were
@@ -203,7 +217,7 @@ per stretch, so a long steep hill reads as a single line rather than fifty.
 ## Verification
 
 ```bash
-node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, surfaces, markings, roundabouts, slip roads, alignment maths, gizmo maths, every bridge/pier/railing combination
+node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, surfaces, markings, roundabouts, slip roads, driveways, drainage, alignment maths, gizmo maths, every bridge/pier/railing combination
 node tools/boot-test.mjs                       # boots the shell: modes, multi-select, marquee, highlights, names, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```

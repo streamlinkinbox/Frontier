@@ -14,14 +14,16 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=5';
-import { dedupe, polylineLength } from './Polyline.js?v=5';
-import { sampleSpline } from './Spline.js?v=5';
-import { resolveProfile } from './Profiles.js?v=5';
-import { MARKING_DEFAULTS } from './Markings.js?v=5';
-import { resolveRoadbed } from './Roadbed.js?v=5';
-import { resolveGuardrail } from './Guardrail.js?v=5';
-import { outerRadius, resolveRoundabout } from './Roundabout.js?v=5';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=6';
+import { dedupe, polylineLength } from './Polyline.js?v=6';
+import { sampleSpline } from './Spline.js?v=6';
+import { resolveProfile } from './Profiles.js?v=6';
+import { MARKING_DEFAULTS } from './Markings.js?v=6';
+import { resolveDriveways } from './Driveways.js?v=6';
+import { resolveDrainage } from './Drainage.js?v=6';
+import { resolveRoadbed } from './Roadbed.js?v=6';
+import { resolveGuardrail } from './Guardrail.js?v=6';
+import { outerRadius, resolveRoundabout } from './Roundabout.js?v=6';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
@@ -67,6 +69,8 @@ export function sampleCorridors(corridors, settings = {}) {
       roadbed: resolveRoadbed(corridor),
       guardrail: resolveGuardrail(corridor),
       markings: { ...MARKING_DEFAULTS, ...(corridor.markings || {}) },
+      driveways: resolveDriveways(corridor),
+      drainage: resolveDrainage(corridor),
       cyclic: !!corridor.closed,
       bridge: corridor.bridge,
       points,
@@ -455,6 +459,8 @@ export function buildGraph(corridors, settings = {}) {
               roadbed: sample.roadbed,
               guardrail: sample.guardrail,
               markings: sample.markings,
+              driveways: sample.driveways,
+              drainage: sample.drainage,
               bridge: sample.bridge,
             });
             const sn = graph.nodes.get(startNodeId);

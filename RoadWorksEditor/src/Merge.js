@@ -13,7 +13,7 @@
 // stops when the gap reaches the nose width. Everything comes from the arms' own cross-sections, so a gore on a
 // curving ramp curves with it.
 
-import { MeshSpec } from './MeshSpec.js?v=5';
+import { MeshSpec } from './MeshSpec.js?v=6';
 
 export const MERGE_DEFAULTS = {
   enabled: true,

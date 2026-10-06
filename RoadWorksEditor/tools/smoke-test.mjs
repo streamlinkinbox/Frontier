@@ -10,6 +10,8 @@ import { arrowGlyph, allocateArrows, turnsFromNode, convexHull, pointInPolygon }
 import { outerRadius, resolveRoundabout } from '../src/Roundabout.js';
 import { ROAD_SURFACES, surfaceGroup } from '../src/Surfaces.js';
 import { resolveProfile } from '../src/Profiles.js';
+import { drivewayWindows, kerbDropFn, DRIVEWAY_DEFAULTS } from '../src/Driveways.js';
+import { DRAINAGE_DEFAULTS } from '../src/Drainage.js';
 
 // Pavement is split into one group per paving pattern (`pavement#brick@1.00`), so totals are taken by base name.
 const tris = (net, base) =>
@@ -470,6 +472,67 @@ console.log('\n— vertical alignment —');
   check('plan radius is recovered from a 40 m arc', Math.abs(radius - 40) < 1.5, `${radius}`);
   check('standards snap to the nearest tabulated speed', standardsFor(77).speed === 80);
   check('faster roads demand more', standardsFor(120).radius > standardsFor(50).radius);
+}
+
+console.log('\n— driveways —');
+{
+  const profile = resolveProfile({ preset: 'street' });
+  const opts = { ...DRIVEWAY_DEFAULTS, enabled: true, spacing: 15 };
+  const windows = drivewayWindows(opts, 90, profile);
+  check('crossings are placed on both footways', windows.some((w) => w.side === 'left') && windows.some((w) => w.side === 'right'));
+  check('crossings keep clear of the junction mouths', windows.every((w) => w.from > 3 && w.to < 87), JSON.stringify(windows[0]));
+  const lefts = windows.filter((w) => w.side === 'left').map((w) => w.centre);
+  const rights = windows.filter((w) => w.side === 'right').map((w) => w.centre);
+  check('opposite drives are staggered', lefts.every((l) => rights.every((r) => Math.abs(l - r) > 1)));
+  check('a short stub gets no crossings', drivewayWindows(opts, 10, profile).length === 0);
+  check('a kerbless profile gets no crossings', drivewayWindows(opts, 90, resolveProfile({ preset: 'track' })).length === 0);
+
+  const drop = kerbDropFn(windows, 0.15);
+  const w0 = lefts[0];
+  check('the kerb drops across the crossing', Math.abs(drop(w0, 'left') - 0.15) < 1e-6, `${drop(w0, 'left')}`);
+  check('the far side keeps its full kerb there', Math.abs(drop(w0, 'right') - 1) < 1e-6);
+  const edge = w0 + opts.width / 2 + opts.flare * 0.5;
+  const mid = drop(edge, 'left');
+  check('the flare ramps the kerb back up', mid > 0.15 && mid < 1, `${mid}`);
+  check('the kerb is untouched away from a crossing', Math.abs(drop(w0 + 7, 'left') - 1) < 1e-6);
+
+  const plain = buildNetwork([corridor('plain', [[0, 0], [60, 0], [120, 0]])]);
+  const drives = buildNetwork([corridor('drives', [[0, 0], [60, 0], [120, 0]], { driveways: { enabled: true, spacing: 15 } })]);
+  check('driveways are off unless asked for', (plain.stats.driveways ?? 0) === 0);
+  check('driveways are counted', drives.stats.driveways > 4, `${drives.stats.driveways}`);
+  check('aprons get their own group', drives.groups.driveway.triangleCount > 0);
+  const kerbTop = (net) => {
+    const z = [];
+    const pos = net.groups.curb.positions;
+    for (let i = 2; i < pos.length; i += 3) z.push(pos[i]);
+    return z;
+  };
+  const lowered = kerbTop(drives).filter((z) => z > 0.01 && z < 0.1).length;
+  check('the swept kerb really is dropped at the crossings', lowered > 0 && kerbTop(plain).filter((z) => z > 0.01 && z < 0.1).length === 0, `${lowered}`);
+}
+
+console.log('\n— drainage —');
+{
+  const dry = buildNetwork([corridor('dry', [[0, 0], [50, 0], [100, 0]])]);
+  const wet = buildNetwork([corridor('wet', [[0, 0], [50, 0], [100, 0]], {
+    drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 20, manholeSpacing: 40 },
+  })]);
+  check('drainage is off unless asked for', (dry.stats.drainage ?? 0) === 0 && !dry.groups.drainGrate.triangleCount);
+  check('gullies, covers and pipes are all built', wet.groups.drainGrate.triangleCount > 0 && wet.groups.drainCover.triangleCount > 0 && wet.groups.drainPipe.triangleCount > 0);
+  check('the castings are counted', wet.stats.drainage >= 8, `${wet.stats.drainage}`);
+  const pipeZ = [];
+  const p = wet.groups.drainPipe.positions;
+  for (let i = 2; i < p.length; i += 3) pipeZ.push(p[i]);
+  check('every pipe and shaft stays below the road surface', Math.max(...pipeZ) < 0, `${Math.max(...pipeZ)}`);
+  check('the carrier runs at the design invert', Math.abs(Math.min(...pipeZ) + DRAINAGE_DEFAULTS.invert) < 0.6, `${Math.min(...pipeZ)}`);
+  const gz = [];
+  const g = wet.groups.drainGrate.positions;
+  for (let i = 2; i < g.length; i += 3) gz.push(g[i]);
+  check('gratings sit flush in the gutter', Math.max(...gz) < 0.02 && Math.min(...gz) > -0.1, `${Math.min(...gz)}/${Math.max(...gz)}`);
+  const noPipes = buildNetwork([corridor('nopipes', [[0, 0], [50, 0], [100, 0]], {
+    drainage: { ...DRAINAGE_DEFAULTS, enabled: true, pipes: false },
+  })]);
+  check('the buried run can be switched off on its own', !noPipes.groups.drainPipe.triangleCount && noPipes.stats.drainage > 0);
 }
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);

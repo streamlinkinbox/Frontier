@@ -16,6 +16,10 @@ const COLOURS = {
   markings: [230, 226, 214],
   markingsYellow: [216, 181, 69],
   laneTint: [63, 107, 74],
+  driveway: [125, 129, 137],
+  drainGrate: [59, 62, 68],
+  drainCover: [74, 77, 83],
+  drainPipe: [108, 95, 78],
   deck: [139, 142, 147],
   structure: [89, 97, 110],
   piers: [124, 127, 133],
@@ -57,9 +61,47 @@ const mk = (name, pts, extra = {}) => ({
   ...extra,
 });
 
+
+// A residential block: streets, footways, dropped-kerb driveways and drainage — deliberately no buildings.
+const blockDetail = (preset) => ({
+  preset,
+  paving: 'flagstone',
+  driveways: { enabled: true, spacing: 15, width: 3.4, depth: 5.5 },
+  drainage: { enabled: true, gullySpacing: 24, manholeSpacing: 44 },
+  markings: { laneArrows: false },
+});
+const BLOCK = (() => {
+  const ox = 214;
+  const oy = 112;
+  const sx = 88;
+  const sy = 72;
+  const rows = 2;
+  const cols = 2;
+  const out = [];
+  for (let r = 0; r <= rows; r++) {
+    const y = oy + r * sy;
+    out.push(mk(`Saltmarsh Street ${r + 1}`, [[ox, y], [ox + cols * sx * 0.5, y], [ox + cols * sx, y]], blockDetail('street')));
+  }
+  for (let c = 0; c <= cols; c++) {
+    const x = ox + c * sx;
+    out.push(mk(`Saltmarsh Avenue ${c + 1}`, [[x, oy], [x, oy + rows * sy * 0.5], [x, oy + rows * sy]], blockDetail(c === 0 || c === cols ? 'street' : 'narrow')));
+  }
+  return out;
+})();
+
 export const DEMO = [
-  mk('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], { preset: 'avenue', paving: 'flagstone', guardrail: { type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 } }),
-  mk('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { paving: 'concrete' }),
+  mk('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], {
+    preset: 'avenue',
+    paving: 'flagstone',
+    guardrail: { type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 },
+    markings: { yellowBox: true, cycleLane: 'left', busLane: 'right', refuges: 2 },
+    drainage: { enabled: true, gullySpacing: 22, manholeSpacing: 46 },
+  }),
+  mk('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], {
+    paving: 'concrete',
+    markings: { cycleLane: 'both' },
+    drainage: { enabled: true, gullySpacing: 26, manholeSpacing: 50 },
+  }),
   mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
   mk('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
   mk('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], { preset: 'highway', paving: 'asphaltWalk', guardrail: { type: 'thrie', when: 'always', offset: 0.45 } }),
@@ -97,6 +139,7 @@ export const DEMO = [
       bridge: { ...BRIDGE_DEFAULTS, type, pierType: 'column', railing: 'parapet', ...overrides },
     });
   }),
+  ...BLOCK,
 ];
 
 export function render(groups, { view = 'iso', width = WIDTH, height = HEIGHT, bg = [36, 40, 49] } = {}) {

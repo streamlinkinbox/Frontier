@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="styles/Workspace.css">
 <link rel="icon" href="data:,">
 <!-- three.js is vendored (lib/) so the editor runs straight from a raw file host with no build step or CDN. -->
-<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=5"}}</script>
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=6"}}</script>
 </head>
 <body>
 
@@ -64,6 +64,7 @@
     <div class="AddRow">
       <button id="AddRoad"><svg><use href="#RoadIcon"/></svg>Add road</button>
       <button id="AddBridge"><svg><use href="#BridgeIcon"/></svg>Add bridge</button>
+      <button id="AddBlock" title="Drop in a residential block: streets, footways, driveways and drainage"><svg><use href="#GridIcon"/></svg>Add block</button>
     </div>
     <div id="CorridorList" class="CorridorList"></div>
 
@@ -165,6 +166,6 @@
 </footer>
 
 <!-- ?v= is a cache buster: CDNs such as raw.githack serve branch URLs from cache. Bump it on release. -->
-<script type="module" src="src/App.js?v=5"></script>
+<script type="module" src="src/App.js?v=6"></script>
 </body>
 </html>

@@ -4,21 +4,23 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=5';
-import { buildNetwork } from './Network.js?v=5';
-import { toObj } from './MeshSpec.js?v=5';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=5';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=5';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=5';
-import { GRAPH_DEFAULTS } from './Graph.js?v=5';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=5';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=5';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=5';
-import { PAVING_PATTERNS } from './Textures.js?v=5';
-import { ROAD_SURFACES } from './Surfaces.js?v=5';
-import { MARKING_DEFAULTS } from './Markings.js?v=5';
-import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=5';
-import { ProfileDock } from './ProfileDock.js?v=5';
+import { Viewport } from './Viewport.js?v=6';
+import { buildNetwork } from './Network.js?v=6';
+import { toObj } from './MeshSpec.js?v=6';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=6';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=6';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=6';
+import { GRAPH_DEFAULTS } from './Graph.js?v=6';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=6';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=6';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=6';
+import { PAVING_PATTERNS } from './Textures.js?v=6';
+import { ROAD_SURFACES } from './Surfaces.js?v=6';
+import { MARKING_DEFAULTS } from './Markings.js?v=6';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=6';
+import { ProfileDock } from './ProfileDock.js?v=6';
+import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=6';
+import { DRAINAGE_DEFAULTS } from './Drainage.js?v=6';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -45,10 +47,47 @@ function makeCorridor(name, points, extra = {}) {
     markings: { ...MARKING_DEFAULTS },
     roadbed: { ...ROADBED_DEFAULTS },
     guardrail: { ...GUARDRAIL_DEFAULTS },
+    driveways: { ...DRIVEWAY_DEFAULTS },
+    drainage: { ...DRAINAGE_DEFAULTS },
     bridge: { ...BRIDGE_DEFAULTS },
     points: points.map(([x, y, z = 0]) => ({ x, y, z })),
     ...extra,
   };
+}
+
+// A residential block: a rectangle of streets with footways, kerbs, drives onto every frontage and a drainage run
+// under each kerb. No buildings — this is a road editor — but a block's worth of street geometry in one command,
+// which is the fiddly part to draw by hand.
+function makeBlock(origin = { x: 0, y: 0 }, { rows = 2, cols = 2, spacingX = 88, spacingY = 72, preset = 'street', name = 'Block' } = {}) {
+  const corridors = [];
+  const z = origin.z || 0;
+  const width = cols * spacingX;
+  const height = rows * spacingY;
+  const detail = (over = {}) => ({
+    preset,
+    paving: 'flagstone',
+    driveways: { ...DRIVEWAY_DEFAULTS, enabled: true, spacing: 15, width: 3.4, depth: 5.5 },
+    drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 24, manholeSpacing: 44 },
+    markings: { ...MARKING_DEFAULTS, laneArrows: false },
+    ...over,
+  });
+  for (let r = 0; r <= rows; r++) {
+    const y = origin.y + r * spacingY;
+    corridors.push(makeCorridor(`${name} Street ${r + 1}`, [
+      [origin.x, y, z],
+      [origin.x + width * 0.5, y, z],
+      [origin.x + width, y, z],
+    ], detail()));
+  }
+  for (let c = 0; c <= cols; c++) {
+    const x = origin.x + c * spacingX;
+    corridors.push(makeCorridor(`${name} Avenue ${c + 1}`, [
+      [x, origin.y, z],
+      [x, origin.y + height * 0.5, z],
+      [x, origin.y + height, z],
+    ], detail({ preset: c === 0 || c === cols ? preset : 'narrow' })));
+  }
+  return corridors;
 }
 
 // The default document is a showcase, not an empty canvas: the estuary network demonstrates merged topology,
@@ -91,12 +130,21 @@ function bridgeGallery() {
 function demoDocument() {
   uid = 0;
   const corridors = [
+    // The avenue is the lane-detail showcase: bus lane and cycle lane either side, a yellow box where it crosses
+    // Mill Street, refuge islands between the junctions, and a full gully/manhole drainage run beneath it.
     makeCorridor('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], {
       preset: 'avenue',
       paving: 'flagstone',
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 },
+      markings: { ...MARKING_DEFAULTS, yellowBox: true, cycleLane: 'left', busLane: 'right', refuges: 2 },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 22, manholeSpacing: 46 },
     }),
-    makeCorridor('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { preset: 'street', paving: 'concrete' }),
+    makeCorridor('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], {
+      preset: 'street',
+      paving: 'concrete',
+      markings: { ...MARKING_DEFAULTS, cycleLane: 'both' },
+      drainage: { ...DRAINAGE_DEFAULTS, enabled: true, gullySpacing: 26, manholeSpacing: 50 },
+    }),
     makeCorridor('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
     makeCorridor('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
     makeCorridor('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], {
@@ -129,6 +177,8 @@ function demoDocument() {
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'wbeam', when: 'always', offset: 0.4 },
     }),
     ...bridgeGallery(),
+    // A residential block east of the harbour: streets, footways, dropped-kerb driveways and drainage — no buildings.
+    ...makeBlock({ x: 214, y: 112 }, { rows: 2, cols: 2, name: 'Saltmarsh' }),
   ];
   return {
     name: 'Estuary crossing',
@@ -166,7 +216,7 @@ const state = {
   draft: null,
   network: null,
   rebuildQueued: false,
-  display: { overlay: true, markings: true, shadows: true, ground: true, textures: true, labels: true, mode: 'shaded' },
+  display: { overlay: true, markings: true, shadows: true, ground: true, textures: true, labels: true, drainage: false, mode: 'shaded' },
 };
 
 // ── boot ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -232,6 +282,25 @@ function loop(now = 0) {
   const input = flyInput();
   if (input) viewport.fly(input, dt);
   viewport.render();
+}
+
+let blockCount = 0;
+
+// Bounds of a set of corridors, used to frame a freshly added block.
+function frameBounds(corridors) {
+  const pts = corridors.flatMap((c) => c.points);
+  if (!pts.length) return networkBounds();
+  const min = { x: Infinity, y: Infinity, z: Infinity };
+  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const p of pts) {
+    min.x = Math.min(min.x, p.x - 20);
+    min.y = Math.min(min.y, p.y - 20);
+    min.z = Math.min(min.z, p.z - 6);
+    max.x = Math.max(max.x, p.x + 20);
+    max.y = Math.max(max.y, p.y + 20);
+    max.z = Math.max(max.z, p.z + 6);
+  }
+  return { min, max };
 }
 
 // Unchanged corridors are appended from their cached meshes instead of being rebuilt; see Network.edgeKey.
@@ -1436,6 +1505,54 @@ function renderInspector() {
     paintSec.body.appendChild(paintNote);
     host.appendChild(paintSec.element);
 
+    // ── frontage: vehicle crossovers ──
+    const drives = corridor.driveways || (corridor.driveways = { ...DRIVEWAY_DEFAULTS });
+    const driveSec = section('Driveways', false);
+    driveSec.body.appendChild(checkField({ label: 'Vehicle crossovers', value: !!drives.enabled, onChange: (v) => { drives.enabled = v; renderInspector(); mark(); } }));
+    if (drives.enabled) {
+      driveSec.body.appendChild(selectField({
+        label: 'Frontage',
+        value: drives.side || 'both',
+        options: [['both', 'Both sides'], ['left', 'Left side'], ['right', 'Right side']],
+        onChange: (v) => { drives.side = v; mark(); },
+      }));
+      driveSec.body.appendChild(num('Spacing', drives.spacing, 8, 60, 1, 'm', (v) => (drives.spacing = v), mark));
+      driveSec.body.appendChild(num('Crossing width', drives.width, 2.4, 8, 0.2, 'm', (v) => (drives.width = v), mark));
+      driveSec.body.appendChild(num('Kerb flare', drives.flare, 0.2, 3, 0.1, 'm', (v) => (drives.flare = v), mark));
+      driveSec.body.appendChild(num('Drive depth', drives.depth, 2, 14, 0.5, 'm', (v) => (drives.depth = v), mark));
+      driveSec.body.appendChild(num('Kerb left standing', drives.drop, 0, 0.6, 0.05, '×', (v) => (drives.drop = v), mark));
+    }
+    const driveNote = document.createElement('p');
+    driveNote.className = 'Small';
+    driveNote.textContent = 'A crossover is cut into the cross-section itself: the kerb drops almost flush across the crossing and ramps back up over the flare, and the footway tips down to meet it.';
+    driveSec.body.appendChild(driveNote);
+    host.appendChild(driveSec.element);
+
+    // ── drainage ──
+    const drain = corridor.drainage || (corridor.drainage = { ...DRAINAGE_DEFAULTS });
+    const drainSec = section('Drainage', false);
+    drainSec.body.appendChild(checkField({ label: 'Drainage run', value: !!drain.enabled, onChange: (v) => { drain.enabled = v; renderInspector(); mark(); } }));
+    if (drain.enabled) {
+      drainSec.body.appendChild(checkField({ label: 'Gully gratings', value: drain.gullies !== false, onChange: (v) => { drain.gullies = v; mark(); } }));
+      drainSec.body.appendChild(num('Gully spacing', drain.gullySpacing, 8, 60, 1, 'm', (v) => (drain.gullySpacing = v), mark));
+      drainSec.body.appendChild(selectField({
+        label: 'Gully side',
+        value: drain.side || 'both',
+        options: [['both', 'Both kerbs'], ['left', 'Left kerb'], ['right', 'Right kerb']],
+        onChange: (v) => { drain.side = v; mark(); },
+      }));
+      drainSec.body.appendChild(checkField({ label: 'Manhole covers', value: drain.manholes !== false, onChange: (v) => { drain.manholes = v; mark(); } }));
+      drainSec.body.appendChild(num('Manhole spacing', drain.manholeSpacing, 15, 120, 1, 'm', (v) => (drain.manholeSpacing = v), mark));
+      drainSec.body.appendChild(checkField({ label: 'Carrier pipe', value: drain.pipes !== false, onChange: (v) => { drain.pipes = v; mark(); } }));
+      drainSec.body.appendChild(num('Pipe invert', drain.invert, 0.6, 4, 0.1, 'm', (v) => (drain.invert = v), mark));
+      drainSec.body.appendChild(num('Pipe radius', drain.pipeRadius, 0.08, 0.8, 0.02, 'm', (v) => (drain.pipeRadius = v), mark));
+    }
+    const drainNote = document.createElement('p');
+    drainNote.className = 'Small';
+    drainNote.textContent = 'Gullies sit in the gutter against the kerb, manholes over the carrier pipe. The pipe follows the road\u2019s own long section a metre or so down — switch on "Buried drainage" in Display to see it.';
+    drainSec.body.appendChild(drainNote);
+    host.appendChild(drainSec.element);
+
     // ── what holds the road up ──
     if (corridor.family !== 'bridge') {
       const rb = corridor.roadbed || (corridor.roadbed = { ...ROADBED_DEFAULTS });
@@ -1618,6 +1735,7 @@ function displaySection() {
   disp.body.appendChild(checkField({ label: 'Ground plane', value: state.display.ground, onChange: (v) => { state.display.ground = v; viewport.setGroundVisible(v); } }));
   disp.body.appendChild(checkField({ label: 'Editing overlay', value: state.display.overlay, onChange: (v) => { state.display.overlay = v; viewport.setOverlayVisible(v); } }));
   disp.body.appendChild(checkField({ label: 'Show markings', value: state.display.markings, onChange: (v) => { state.display.markings = v; viewport.setMarkingsVisible(v); } }));
+  disp.body.appendChild(checkField({ label: 'Buried drainage', value: state.display.drainage === true, onChange: (v) => { state.display.drainage = v; viewport.setDrainageVisible(v); } }));
   disp.body.appendChild(checkField({ label: 'Street name labels', value: state.display.labels, onChange: (v) => setLabelsVisible(v) }));
   return disp;
 }
@@ -1859,6 +1977,8 @@ function renderDiagnostics() {
     ['Merged junctions', s.junctions],
     ['Roundabouts', s.roundabouts ?? 0],
     ['Slip road gores', s.slipRoads ?? 0],
+    ['Driveway crossings', s.driveways ?? 0],
+    ['Drainage castings', s.drainage ?? 0],
     ['Grade separations', s.gradeSeparations],
     ['Triangles', s.triangles.toLocaleString()],
     ['Build time', `${s.buildMs} ms`],
@@ -1908,6 +2028,19 @@ function bindUi() {
 
   $('AddRoad').addEventListener('click', () => setTool('draw-road'));
   $('AddBridge').addEventListener('click', () => setTool('draw-bridge'));
+  $('AddBlock').addEventListener('click', () => {
+    // Drop the block clear of whatever is already drawn, so it never lands on top of the existing network.
+    const bounds = networkBounds();
+    const origin = bounds ? { x: bounds.min.x, y: bounds.max.y + 90, z: 0 } : { x: 0, y: 0, z: 0 };
+    const block = makeBlock(origin, { name: `Block ${blockCount + 1}` });
+    blockCount++;
+    state.doc.corridors.push(...block);
+    renderOutliner();
+    selectCorridor(block[0].id);
+    rebuild();
+    viewport.frame(frameBounds(block));
+    setStatus(`Added ${block.length} streets with driveways and drainage`, 'ok');
+  });
 
   $('Rebuild').addEventListener('click', () => rebuild());
   $('ExportObj').addEventListener('click', exportObj);

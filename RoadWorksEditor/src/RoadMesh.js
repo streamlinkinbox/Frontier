@@ -10,10 +10,10 @@
 // that station, and the offset is clamped against the local curvature radius so an inner curb can never fold through
 // the centreline. That is what keeps pavements and curbs clean around curves.
 
-import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=5';
-import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=5';
-import { MeshSpec } from './MeshSpec.js?v=5';
-import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=5';
+import { add, addScaled, clamp, dist, norm, sub, vec } from './Vec.js?v=6';
+import { cumulativeLengths, frameAt, miterScale, resamplePolyline, trimPolyline } from './Polyline.js?v=6';
+import { MeshSpec } from './MeshSpec.js?v=6';
+import { nodeGeneratesJunction, trimForNode } from './Graph.js?v=6';
 
 const CURB_BATTER = 0.04; // m — slight slope on the visible curb face
 
@@ -60,6 +60,11 @@ export function buildCrossSections(polyline, profile, options = {}) {
 
     const rh = profile.roadHalf;
     const cw = profile.curbWidth;
+    // Vehicle crossovers drop the kerb almost flush over the width of the crossing — see Driveways.js. The factor
+    // is per side, so a drive on one frontage never flattens the kerb opposite it.
+    const drop = options.kerbDrop;
+    const chL = profile.curbHeight * (drop ? drop(cum[i], 'left') : 1);
+    const chR = profile.curbHeight * (drop ? drop(cum[i], 'right') : 1);
     const ch = profile.curbHeight;
     const pl = profile.pavementLeft;
     const pr = profile.pavementRight;
@@ -72,10 +77,11 @@ export function buildCrossSections(polyline, profile, options = {}) {
       center: off(0, profile.crownRise),
       roadLeft: off(rh, 0),
       roadRight: off(-rh, 0),
-      curbFaceLeft: off(rh + CURB_BATTER, ch),
-      curbFaceRight: off(-(rh + CURB_BATTER), ch),
-      curbBackLeft: off(rh + cw, ch),
-      curbBackRight: off(-(rh + cw), ch),
+      curbFaceLeft: off(rh + CURB_BATTER, chL),
+      curbFaceRight: off(-(rh + CURB_BATTER), chR),
+      curbBackLeft: off(rh + cw, chL),
+      curbBackRight: off(-(rh + cw), chR),
+      // The footway keeps its own level and tips down into the crossing, which is what makes the dip read.
       paveLeft: off(rh + cw + pl, ch + pl * crossfall),
       paveRight: off(-(rh + cw + pr), ch + pr * crossfall),
       paveLeftBase: off(rh + cw + pl, 0),
