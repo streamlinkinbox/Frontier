@@ -34,10 +34,45 @@ export function pavingGroup(profile) {
   return `pavement#${profile.paving || 'concrete'}@${(profile.pavingScale || 1).toFixed(2)}`;
 }
 
-export function buildNetwork(corridors, settings = {}) {
+// Per-edge geometry cache. Dragging one street re-solves the whole network, but only the corridors whose trimmed
+// cross-sections actually changed need their meshes rebuilt — everything else is appended straight from the cache.
+// Keys are a hash of the edge's own geometry and settings, so a stale entry simply never matches.
+function edgeKey(edge, sections, cfg, paveGroup) {
+  let h = 2166136261;
+  const mix = (v) => {
+    h ^= Math.round(v * 1000) | 0;
+    h = Math.imul(h, 16777619);
+  };
+  for (const s of sections) {
+    mix(s.base.x);
+    mix(s.base.y);
+    mix(s.base.z);
+    mix(s.miter);
+    mix(s.frame.left.x);
+    mix(s.frame.left.y);
+  }
+  const tail = JSON.stringify([edge.family, edge.profile, edge.bridge, edge.guardrail, edge.roadbed, paveGroup, cfg.markings !== false, cfg.groundZ ?? 0]);
+  for (let i = 0; i < tail.length; i++) {
+    h ^= tail.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `${h >>> 0}:${sections.length}:${tail.length}`;
+}
+
+function mergeInto(groups, parts) {
+  for (const [name, spec] of parts) {
+    const target = groups[name] || (groups[name] = new MeshSpec(name));
+    target.append(spec);
+  }
+}
+
+export function buildNetwork(corridors, settings = {}, cache = null) {
   const t0 = now();
   const cfg = { ...GRAPH_DEFAULTS, ...settings };
   const graph = buildGraph(corridors, cfg);
+  // A fresh map each solve: anything not hit this time around is dropped, so the cache cannot grow without bound.
+  const nextCache = cache ? new Map() : null;
+  let cacheHits = 0;
 
   const groups = {};
   for (const name of GROUP_NAMES) groups[name] = new MeshSpec(name);
@@ -55,14 +90,37 @@ export function buildNetwork(corridors, settings = {}) {
     }
     sectionsByEdge.set(edge.id, sections);
     const paveGroup = pavingGroup(edge.profile);
-    buildSegmentMesh(graph, edge, groups, { ...cfg, sections, paveGroup });
-    if (cfg.markings !== false) buildMarkings(sections, edge.profile, groups.markings, cfg);
+
+    const key = cache ? edgeKey(edge, sections, cfg, paveGroup) : null;
+    const cached = key ? cache.get(key) : null;
+    if (cached) {
+      mergeInto(groups, cached.parts);
+      if (cached.guardrail) guardrailCount++;
+      nextCache.set(key, cached);
+      cacheHits++;
+      continue;
+    }
+
+    // Build into a private set of specs so the result can be cached and appended as a unit.
+    const local = cache ? {} : groups;
+    buildSegmentMesh(graph, edge, local, { ...cfg, sections, paveGroup });
+    if (cfg.markings !== false) {
+      const markings = local.markings || (local.markings = new MeshSpec('markings'));
+      buildMarkings(sections, edge.profile, markings, cfg);
+    }
+    let hasGuardrail = false;
     if (edge.family === 'bridge') {
-      buildBridgeMesh(edge, sections, groups, { groundZ: cfg.groundZ ?? 0, ...(cfg.bridgeOverrides || {}) });
-      buildBridgeApproachFill(edge, sections, groups, cfg);
+      buildBridgeMesh(edge, sections, local, { groundZ: cfg.groundZ ?? 0, ...(cfg.bridgeOverrides || {}) });
+      buildBridgeApproachFill(edge, sections, local, cfg);
     } else {
-      buildRoadbedMesh(edge, sections, groups, cfg);
-      if (buildGuardrail(edge, sections, groups, cfg)) guardrailCount++;
+      buildRoadbedMesh(edge, sections, local, cfg);
+      hasGuardrail = !!buildGuardrail(edge, sections, local, cfg);
+    }
+    if (hasGuardrail) guardrailCount++;
+    if (cache) {
+      const parts = Object.entries(local);
+      nextCache.set(key, { parts, guardrail: hasGuardrail });
+      mergeInto(groups, parts);
     }
   }
 
@@ -84,7 +142,13 @@ export function buildNetwork(corridors, settings = {}) {
     triangles += groups[name].triangleCount;
   }
 
+  if (cache) {
+    cache.clear();
+    for (const [k, v] of nextCache) cache.set(k, v);
+  }
+
   const stats = {
+    cacheHits,
     corridors: corridors.length,
     nodes: graph.nodes.size,
     edges: graph.edges.size,

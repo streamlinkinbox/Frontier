@@ -30,6 +30,9 @@ class V3 {
   crossVectors(a, b) { return this.set(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x); }
   distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
   setScalar(s) { return this.set(s, s, s); }
+  // Stub projection is the identity: world coordinates double as NDC, which is enough to exercise rectangle picking.
+  project() { this.z = 0; return this; }
+  unproject() { return this; }
   lookAt() { return this; }
 }
 class Obj3 {
@@ -79,10 +82,13 @@ export class PlaneGeometry extends Geometry {}
 export class SphereGeometry extends Geometry {}
 export class RingGeometry extends Geometry {}
 export class CylinderGeometry extends Geometry {}
+export class CircleGeometry extends Geometry {}
 export class ConeGeometry extends Geometry {}
 export class Float32BufferAttribute { constructor(a, i) { this.array = a; this.itemSize = i; } }
 export class MeshStandardMaterial extends Material { constructor(p = {}) { super(p); this.color = { value: p.color, multiplyScalar() { return this; } }; } }
 export class MeshBasicMaterial extends Material {}
+export class SpriteMaterial extends Material {}
+export class Sprite extends Obj3 { constructor(m) { super(); this.material = m; } }
 export class LineBasicMaterial extends Material {}
 export class CanvasTexture {
   constructor(image) {
@@ -143,9 +149,22 @@ class El {
   get textContent() { return this._text || this.children.map((c) => c.textContent).join(''); }
   set innerHTML(v) { this._html = String(v); this.children = []; }
   get innerHTML() { return this._html || ''; }
-  appendChild(c) { this.children.push(c); return c; }
-  append(...c) { c.forEach((x) => this.children.push(typeof x === 'string' ? new TextNode(x) : x)); }
-  insertBefore(c) { this.children.unshift(c); return c; }
+  appendChild(c) { this.children.push(c); if (c) c.parentNode = this; return c; }
+  append(...c) {
+    c.forEach((x) => {
+      const node = typeof x === 'string' ? new TextNode(x) : x;
+      node.parentNode = this;
+      this.children.push(node);
+    });
+  }
+  insertBefore(c) { this.children.unshift(c); if (c) c.parentNode = this; return c; }
+  replaceWith(node) {
+    const parent = this.parentNode;
+    if (!parent) return;
+    parent.children = parent.children.map((c) => (c === this ? node : c));
+    node.parentNode = parent;
+  }
+  select() {}
   removeChild(c) { this.children = this.children.filter((x) => x !== c); }
   setAttribute(k, v) { this.attributes[k] = v; }
   getAttribute(k) { return this.attributes[k]; }

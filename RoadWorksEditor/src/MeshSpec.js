@@ -105,11 +105,13 @@ export class MeshSpec {
     this.addFace([b3, b0, t0, t3]);
   }
 
+  // Spreading (`push(...arr)`) blows the argument limit on anything large — a single highway corridor is already
+  // ~90 000 numbers — so this copies element by element.
   append(other) {
     const offset = this.vertexCount;
-    this.positions.push(...other.positions);
-    this.uvs.push(...other.uvs);
-    for (const i of other.indices) this.indices.push(i + offset);
+    for (let i = 0; i < other.positions.length; i++) this.positions.push(other.positions[i]);
+    for (let i = 0; i < other.uvs.length; i++) this.uvs.push(other.uvs[i]);
+    for (let i = 0; i < other.indices.length; i++) this.indices.push(other.indices[i] + offset);
   }
 
   translate(dx, dy, dz) {

@@ -133,6 +133,19 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   background: #1b202782; text-align: center; pointer-events: none;
 }
 .ViewportHint i { padding: 0 7px; font-style: normal; color: #48515e }
+.ViewportHint b { color: #9aa2ae; font-weight: 500 }
+
+/* Marquee: Shift-drag in Points / Junctions mode selects everything inside the rectangle. */
+.Marquee {
+  position: absolute; z-index: 4; pointer-events: none; border: 1px solid #d6a665;
+  background: #d6a66522; border-radius: 1px;
+}
+.ButtonRow { display: flex; gap: 6px }
+.ButtonRow button { flex: 1 }
+.CorridorRow input.RenameField {
+  flex: 1; min-width: 0; background: #16181c; border: 1px solid #d6a665; color: #e6e8ec; font: inherit;
+  font-size: 11px; padding: 1px 4px; border-radius: 2px;
+}
 
 .Loading {
   position: absolute; inset: 37px 0 0; display: flex; align-items: center; justify-content: center; flex-direction: column;

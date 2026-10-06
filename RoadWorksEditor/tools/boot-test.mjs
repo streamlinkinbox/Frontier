@@ -44,8 +44,17 @@ check('status updated past "Starting up"', !/Starting up/.test(el('Status').text
 check('status reports merged junctions', /junction/i.test(el('Status').textContent), `"${el('Status').textContent}"`);
 check('triangle readout populated', /triangles/.test(el('TriangleCount').textContent) && !/^—/.test(el('TriangleCount').textContent), `"${el('TriangleCount').textContent}"`);
 check('no build failure banner', el('Failure').hidden !== false);
-check('outliner lists the demo corridors', el('CorridorList').children.length === 7, `${el('CorridorList').children.length} rows`);
-check('census shows corridors', el('CensusCorridors').textContent === '7', el('CensusCorridors').textContent);
+const demoCount = dom.window.__roadworks.state.doc.corridors.length;
+check('outliner lists the demo corridors', el('CorridorList').children.length === demoCount && demoCount >= 15, `${el('CorridorList').children.length} rows`);
+check('census shows corridors', el('CensusCorridors').textContent === String(demoCount), el('CensusCorridors').textContent);
+check('the default document ships every bridge family', (() => {
+  const types = new Set(dom.window.__roadworks.state.doc.corridors.filter((c) => c.family === 'bridge').map((c) => c.bridge.type));
+  return ['beam', 'box', 'slab', 'cantilever', 'arch', 'tiedarch', 'masonry', 'truss', 'throughtruss', 'suspension', 'cablestay'].every((t) => types.has(t));
+})(), 'a span of each type should be in the scene on load');
+check('the default document ships every road preset', (() => {
+  const presets = new Set(dom.window.__roadworks.state.doc.corridors.filter((c) => c.family !== 'bridge').map((c) => c.preset));
+  return ['street', 'avenue', 'alley', 'narrow', 'highway'].every((p) => presets.has(p));
+})());
 check('census shows junctions', Number(el('CensusJunctions').textContent) >= 3, el('CensusJunctions').textContent);
 check('inspector rendered sections', el('InspectorBody').children.length >= 4, `${el('InspectorBody').children.length} blocks`);
 check('document name bound', el('DocumentName').value === 'Estuary crossing', el('DocumentName').value);
@@ -99,7 +108,7 @@ check('slider edit rebuilds cleanly', !sliderError, sliderError?.message);
 check('no failure banner after edit', el('Failure').hidden !== false);
 
 console.log('\n— bridge inspector —');
-const bridgeRow = el('CorridorList').children[5];
+const bridgeRow = el('CorridorList').children.find((row) => /Estuary Viaduct/.test(row.textContent));
 bridgeRow.dispatch('click');
 check('bridge corridor selected', /Viaduct/.test(el('SelectionName').textContent), el('SelectionName').textContent);
 const summaries = el('InspectorBody').all((n) => n.tagName === 'SUMMARY').map((n) => n.textContent);
@@ -132,7 +141,7 @@ console.log('\n— clicking a junction hub grabs the intersection —');
   three.pickControl.filter = (o) => o.userData?.junction === true;
   canvas.dispatch('pointerdown', { button: 0, clientX: 300, clientY: 300, pointerId: 5 });
   check('pointer-down on a hub selects the junction', !!dom.window.__roadworks.state.selection.junctionId);
-  check('status explains the grab', /Junction/i.test(el('Status').textContent), el('Status').textContent);
+  check('status explains the grab', /arms|intersection/i.test(el('Status').textContent), el('Status').textContent);
   canvas.dispatch('pointermove', { button: 0, clientX: 330, clientY: 280, pointerId: 5 });
   canvas.dispatch('pointerup', { button: 0, clientX: 330, clientY: 280, pointerId: 5 });
   check('no failure after dragging a junction', el('Failure').hidden !== false, el('Failure').textContent);
@@ -168,7 +177,7 @@ check('keyboard shortcuts run', !keyError, keyError?.message);
 console.log('\n— draw a corridor —');
 let drawError = null;
 try {
-  dom.window.dispatch('keydown', { key: '2' });
+  dom.window.dispatch('keydown', { key: '4' });
   for (const [x, y] of [[200, 200], [400, 260], [600, 300]]) {
     canvas.dispatch('pointerdown', { button: 0, clientX: x, clientY: y, pointerId: 2 });
     canvas.dispatch('pointerup', { button: 0, clientX: x, clientY: y, pointerId: 2 });
@@ -181,7 +190,7 @@ try {
   drawError = error;
 }
 check('draw tool places points and finishes', !drawError, drawError?.message);
-check('new corridor appears in the outliner', el('CorridorList').children.length === 8, `${el('CorridorList').children.length} rows`);
+check('new corridor appears in the outliner', el('CorridorList').children.length === demoCount + 1, `${el('CorridorList').children.length} rows`);
 
 console.log('\n— procedural textures —');
 check('texture generators ran', canvasStats.calls > 2000, `${canvasStats.calls} canvas ops`);
@@ -212,7 +221,8 @@ console.log('\n— junction moves as one body —');
   check('a merged junction exists to grab', !!node, `${api.state.network.stats.junctions} junctions`);
   const armNames = new Set(node.edgeIds.map((id) => api.state.network.graph.edges.get(id)?.sourceId));
   api.selectJunction(node);
-  check('selecting a junction retitles the inspector', el('InspectorTitle').textContent === 'Junction', el('InspectorTitle').textContent);
+  check('selecting a junction names it after the streets that meet there', /\u00d7|Junction/.test(el('InspectorTitle').textContent), el('InspectorTitle').textContent);
+  check('the junction is highlighted in the viewport', api.viewport.highlightGroup.children.length > 0, `${api.viewport.highlightGroup.children.length} highlight meshes`);
 
   const before = api.state.doc.corridors.map((c) => c.points.length);
   const grabs = api.collectJunctionGrabs(node);
@@ -233,7 +243,7 @@ console.log('\n— junction moves as one body —');
   });
   check('every arm point translated by the same delta', Math.max(...spread) < 1e-9);
 
-  api.state.selection.junctionAt = { x: node.co.x + delta.x, y: node.co.y + delta.y, z: node.co.z + delta.z };
+  api.state.selection.junctions[0].at = { x: node.co.x + delta.x, y: node.co.y + delta.y, z: node.co.z + delta.z };
   api.rebuild();
   const target = { x: node.co.x + delta.x, y: node.co.y + delta.y, z: node.co.z + delta.z };
   const nodes = [...api.state.network.graph.nodes.values()];
@@ -279,6 +289,147 @@ console.log('\n— Unreal-style flight —');
   canvas.dispatch('pointerup', { button: 2, clientX: 460, clientY: 260, pointerId: 7 });
 }
 
+console.log('\n— modes —');
+{
+  const api = dom.window.__roadworks;
+  el('ToolPoint').click();
+  check('points mode activates', api.state.tool === 'point' && el('ToolPoint').classList.contains('Active'));
+  el('ToolJunction').click();
+  check('junctions mode activates', api.state.tool === 'junction' && !el('ToolPoint').classList.contains('Active'));
+  dom.window.dispatch('keydown', { key: '2' });
+  check('keyboard 2 selects points mode', api.state.tool === 'point');
+  dom.window.dispatch('keydown', { key: '3' });
+  check('keyboard 3 selects junctions mode', api.state.tool === 'junction');
+  dom.window.dispatch('keydown', { key: '1' });
+  check('keyboard 1 returns to select mode', api.state.tool === 'select');
+}
+
+console.log('\n— selecting a road highlights the stretch between junctions —');
+{
+  const three = await import('three');
+  const api = dom.window.__roadworks;
+  el('ToolSelect').click();
+  three.pickControl.filter = (o) => o.name === 'road';
+  let clickError = null;
+  try {
+    canvas.dispatch('pointerdown', { button: 0, clientX: 500, clientY: 320, pointerId: 11 });
+    canvas.dispatch('pointerup', { button: 0, clientX: 500, clientY: 320, pointerId: 11 });
+  } catch (error) {
+    clickError = error;
+  }
+  three.pickControl.filter = null;
+  check('clicking the road surface runs cleanly', !clickError, clickError?.message);
+
+  // The stub raycaster always reports the world origin, which is inside a junction, so resolve a point that is
+  // genuinely out on a corridor and drive the same path the click takes.
+  const hit = api.edgeAtPoint({ x: -120, y: 0, z: 0 });
+  check('a point on the tarmac resolves to a graph edge', !!hit, 'expected Harbour Avenue');
+  api.selectCorridor(hit.edge.sourceId, { edgeId: hit.edgeId });
+  check('a corridor is selected by clicking the road', !!api.state.selection.corridorId, api.state.selection.corridorId);
+  check('one stretch — a graph edge — is selected, not the whole corridor', !!api.state.selection.edgeId, String(api.state.selection.edgeId));
+  check('the stretch is painted in the viewport', api.viewport.highlightGroup.children.length >= 3, `${api.viewport.highlightGroup.children.length} highlight meshes`);
+  const edge = api.state.network.graph.edges.get(api.state.selection.edgeId);
+  check('the selected stretch belongs to the selected corridor', edge?.sourceId === api.state.selection.corridorId);
+}
+
+console.log('\n— multi-select and transform together —');
+{
+  const three = await import('three');
+  const api = dom.window.__roadworks;
+  el('ToolPoint').click();
+  check('control point handles exist to pick', api.viewport.handleMeshes.length > 10, `${api.viewport.handleMeshes.length} handles`);
+
+  // Shift-click two different handles: both stay selected. The overlay (and therefore every handle mesh) is
+  // rebuilt after each selection change, so the pick filter has to be re-bound each time.
+  const pickHandleAt = (i, shiftKey) => {
+    const target = api.viewport.handleMeshes[i];
+    three.pickControl.filter = (o) => o === target;
+    canvas.dispatch('pointerdown', { button: 0, shiftKey, clientX: 200 + i, clientY: 200, pointerId: 12 + i });
+    canvas.dispatch('pointerup', { button: 0, shiftKey, clientX: 200 + i, clientY: 200, pointerId: 12 + i });
+    three.pickControl.filter = null;
+  };
+  pickHandleAt(0, false);
+  pickHandleAt(1, true);
+  check('shift-click adds to the selection', api.state.selection.points.length === 2, `${api.state.selection.points.length} selected`);
+
+  const centre = api.selectionCentroid();
+  const pts = api.state.selection.points.map((e) => {
+    const c = api.state.doc.corridors.find((x) => x.id === e.corridorId);
+    return c.points[e.index];
+  });
+  const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2, z: (pts[0].z + pts[1].z) / 2 };
+  check('the gizmo sits at the centroid of the selection', Math.hypot(centre.x - mid.x, centre.y - mid.y, centre.z - mid.z) < 1e-9);
+
+  const before = pts.map((p) => ({ ...p }));
+  const grabs = api.collectGrabs();
+  check('a transform collects one grab per selected point', grabs.length === 2, `${grabs.length} grabs`);
+  for (const g of grabs) {
+    g.point.x = g.start.x + 5;
+    g.point.z = g.start.z + 1;
+  }
+  check('both points moved by the same delta', pts.every((p, i) => Math.abs(p.x - before[i].x - 5) < 1e-9 && Math.abs(p.z - before[i].z - 1) < 1e-9));
+
+  check('a rectangle select can see every handle', api.viewport.handlesInRect({ x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 }).length === api.viewport.handleMeshes.length);
+  let marqueeError = null;
+  try {
+    canvas.dispatch('pointerdown', { button: 0, shiftKey: true, clientX: 100, clientY: 100, pointerId: 14 });
+    canvas.dispatch('pointermove', { button: 0, shiftKey: true, clientX: 700, clientY: 500, pointerId: 14 });
+    canvas.dispatch('pointerup', { button: 0, shiftKey: true, clientX: 700, clientY: 500, pointerId: 14 });
+  } catch (error) {
+    marqueeError = error;
+  }
+  check('shift-drag marquee runs and hides itself', !marqueeError && el('Marquee').hidden === true, marqueeError?.message);
+
+  // Junction multi-select moves every arm of every selected intersection.
+  el('ToolJunction').click();
+  const nodes = [...api.state.network.graph.nodes.values()].filter((x) => x.degree >= 3).slice(0, 2);
+  api.selectJunction(nodes[0]);
+  if (nodes[1]) api.selectJunction(nodes[1], true);
+  check('two intersections can be selected at once', api.state.selection.junctions.length === Math.min(2, nodes.length));
+  const jg = api.collectGrabs();
+  check('their arms are all collected for one rigid move', jg.length >= 4, `${jg.length} grabs`);
+  check('the multi-selection inspector takes over', /selected|intersections/i.test(el('InspectorTitle').textContent), el('InspectorTitle').textContent);
+  el('ToolSelect').click();
+}
+
+console.log('\n— street names —');
+{
+  const api = dom.window.__roadworks;
+  const labels = api.viewport.labelGroup.children;
+  check('every visible corridor carries a name label', labels.length >= api.state.doc.corridors.length, `${labels.length} labels`);
+  el('ViewLabels').click();
+  check('names can be switched off', api.viewport.labelGroup.visible === false);
+  el('ViewLabels').click();
+  check('names come back', api.viewport.labelGroup.visible === true);
+
+  // rename in place from the outliner
+  const row = el('CorridorList').children[0];
+  const label = row.find((n) => n.className && n.className.includes('CorridorName'));
+  label.dispatch('dblclick');
+  const field = row.find((n) => n.className && n.className.includes('RenameField'));
+  check('double-clicking a name opens a rename field', !!field);
+  if (field) {
+    field.value = 'Kingsway';
+    field.dispatch('keydown', { key: 'Enter' });
+    check('the street keeps its new name', api.state.doc.corridors[0].name === 'Kingsway', api.state.doc.corridors[0].name);
+    check('the outliner shows it', /Kingsway/.test(el('CorridorList').children[0].textContent));
+  }
+}
+
+console.log('\n— framing follows the selection —');
+{
+  const api = dom.window.__roadworks;
+  api.clearSelection();
+  const whole = api.frameTarget();
+  const corridor = api.state.doc.corridors.find((c) => c.family === 'bridge');
+  api.selectCorridor(corridor.id);
+  const one = api.frameTarget();
+  const span = (b) => Math.max(b.max.x - b.min.x, b.max.y - b.min.y);
+  check('F frames the whole network with nothing selected', span(whole) > span(one), `${span(whole).toFixed(0)} m vs ${span(one).toFixed(0)} m`);
+  check("F frames the selection when there is one", span(one) < 340, `${span(one).toFixed(0)} m`);
+  api.clearSelection();
+}
+
 console.log('\n— export —');
 let exportError = null;
 try {
@@ -290,7 +441,7 @@ try {
   exportError = error;
 }
 check('export / save / new run', !exportError, exportError?.message);
-check('new document restores the demo', el('CorridorList').children.length === 7, `${el('CorridorList').children.length} rows`);
+check('new document restores the demo', el('CorridorList').children.length === demoCount, `${el('CorridorList').children.length} rows`);
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);
 process.exit(failures === 0 ? 0 : 1);

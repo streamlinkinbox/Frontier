@@ -44,6 +44,43 @@ function makeCorridor(name, points, extra = {}) {
   };
 }
 
+// The default document is a showcase, not an empty canvas: the estuary network demonstrates merged topology,
+// paving, roadbeds, guardrails and signage, and the gallery to the north carries one span of every bridge family
+// so you can look at all eleven without drawing anything.
+
+const BRIDGE_GALLERY = [
+  ['Beam Viaduct', 'beam', 'street', { pierSpacing: 30 }],
+  ['Box Girder Span', 'box', 'avenue', { pierSpacing: 38, girderDepth: 1.6 }],
+  ['Slab Crossing', 'slab', 'street', { pierSpacing: 26 }],
+  ['Cantilever Reach', 'cantilever', 'avenue', { pierSpacing: 46, girderDepth: 1.4, pierType: 'wall' }],
+  ['Deck Arch', 'arch', 'street', { archRise: 7, pierType: 'column' }],
+  ['Bowstring Arch', 'tiedarch', 'street', { archRise: 8, cableCount: 9 }],
+  ['Stone Viaduct', 'masonry', 'narrow', { pierSpacing: 22, pierWidth: 2.0 }],
+  ['Warren Truss', 'truss', 'street', { trussHeight: 4.6 }],
+  ['Pratt Through Truss', 'throughtruss', 'street', { trussHeight: 5.2 }],
+  ['Suspension Span', 'suspension', 'avenue', { towerHeight: 24, cableCount: 10 }],
+  ['Cable-stay Span', 'cablestay', 'avenue', { towerHeight: 26, railing: 'jersey' }],
+];
+
+function bridgeGallery() {
+  const length = 104;
+  const colGap = 164;
+  const rowGap = 82;
+  const x0 = -248;
+  const y0 = 300;
+  return BRIDGE_GALLERY.map(([name, type, preset, overrides], i) => {
+    const col = i % 4;
+    const row = Math.floor(i / 4);
+    const x = x0 + col * colGap;
+    const y = y0 + row * rowGap;
+    return makeCorridor(name, [[x, y, 12], [x + length, y, 12]], {
+      preset,
+      family: 'bridge',
+      bridge: { ...BRIDGE_DEFAULTS, type, pierType: 'column', railing: 'parapet', ...overrides },
+    });
+  });
+}
+
 function demoDocument() {
   uid = 0;
   const corridors = [
@@ -52,9 +89,14 @@ function demoDocument() {
       paving: 'flagstone',
       guardrail: { ...GUARDRAIL_DEFAULTS, type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 },
     }),
-    makeCorridor('Mill Street', [[0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { preset: 'street', paving: 'concrete' }),
+    makeCorridor('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { preset: 'street', paving: 'concrete' }),
     makeCorridor('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
     makeCorridor('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
+    makeCorridor('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], {
+      preset: 'highway',
+      paving: 'asphaltWalk',
+      guardrail: { ...GUARDRAIL_DEFAULTS, type: 'thrie', when: 'always', offset: 0.45 },
+    }),
     makeCorridor('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], {
       preset: 'street',
       paving: 'granite',
@@ -71,6 +113,7 @@ function demoDocument() {
       family: 'bridge',
       bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
     }),
+    ...bridgeGallery(),
   ];
   return {
     name: 'Estuary crossing',
@@ -89,14 +132,20 @@ function demoDocument() {
   };
 }
 
+// Selection is multi: `points` and `junctions` are the real selection, and the singular fields mirror the primary
+// member so everything that only cares about "what is being edited" keeps working.
+function emptySelection() {
+  return { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null, points: [], junctions: [], edgeId: null, corridorIds: [] };
+}
+
 const state = {
   doc: demoDocument(),
-  selection: { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null },
+  selection: emptySelection(),
   tool: 'select',
   draft: null,
   network: null,
   rebuildQueued: false,
-  display: { overlay: true, markings: true, shadows: true, ground: true, textures: true, mode: 'shaded' },
+  display: { overlay: true, markings: true, shadows: true, ground: true, textures: true, labels: true, mode: 'shaded' },
 };
 
 // ── boot ──────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -114,7 +163,10 @@ function boot() {
   viewport.frame(networkBounds());
   loop();
   // Debug handle: used by tools/boot-test.mjs, and handy from the browser console.
-  window.__roadworks = { state, viewport, rebuild, select, selectJunction, collectJunctionGrabs, networkBounds };
+  window.__roadworks = {
+    state, viewport, rebuild, select, selectCorridor, selectPoint, selectJunction, clearSelection,
+    collectJunctionGrabs, collectGrabs, selectionCentroid, setTool, networkBounds, frameTarget, edgeAtPoint,
+  };
 }
 
 let lastFrameAt = 0;
@@ -127,6 +179,9 @@ function loop(now = 0) {
   if (input) viewport.fly(input, dt);
   viewport.render();
 }
+
+// Unchanged corridors are appended from their cached meshes instead of being rebuilt; see Network.edgeKey.
+const meshCache = new Map();
 
 // ── rebuild pump ──────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -156,7 +211,7 @@ function rebuild(initial = false) {
   setStatus('Building network', 'busy');
   let net;
   try {
-    net = buildNetwork(visibleCorridors(), state.doc.settings);
+    net = buildNetwork(visibleCorridors(), state.doc.settings, meshCache);
   } catch (error) {
     console.error(error);
     showFailure(error.message || String(error));
@@ -190,16 +245,209 @@ function refreshOverlay() {
     c.samples = c.points.length >= 2 ? sampleSpline(c.points, { closed: c.closed, tension: c.tension, step: state.doc.settings.sampleStep }) : [];
   }
   viewport.setOverlay(corridors, state.network?.graph, state.selection);
-  const node = selectedJunction();
-  const sel = selectedCorridor();
-  if (node) {
-    viewport.gizmo.attach(new THREE.Vector3(node.co.x, node.co.y, node.co.z));
-  } else if (sel && state.selection.pointIndex >= 0 && sel.points[state.selection.pointIndex]) {
-    const p = sel.points[state.selection.pointIndex];
-    viewport.gizmo.attach(new THREE.Vector3(p.x, p.y, p.z));
-  } else {
-    viewport.gizmo.detach();
+  refreshHighlight();
+  refreshLabels(corridors);
+
+  const centre = selectionCentroid();
+  if (centre) viewport.gizmo.attach(new THREE.Vector3(centre.x, centre.y, centre.z));
+  else viewport.gizmo.detach();
+}
+
+// The stretch of road between two junctions is a graph *edge*, so highlighting it means painting that edge's own
+// trimmed cross-sections — exactly the geometry the solver built, not an approximation of it.
+function refreshHighlight() {
+  const net = state.network;
+  if (!net) {
+    viewport.setHighlight({});
+    return;
   }
+  const sel = state.selection;
+  const strips = [];
+  const discs = [];
+
+  const edgeIds = sel.edgeId
+    ? [sel.edgeId]
+    : [...net.sectionsByEdge.keys()].filter((id) => sel.corridorIds.includes(net.graph.edges.get(id)?.sourceId));
+
+  for (const edgeId of edgeIds) {
+    const sections = net.sectionsByEdge.get(edgeId);
+    const edge = net.graph.edges.get(edgeId);
+    if (!sections || !edge) continue;
+    const left = [];
+    const right = [];
+    for (const section of sections) {
+      const f = section.frame.left;
+      const l = edge.profile.leftTotalHalf * section.miter;
+      const r = edge.profile.rightTotalHalf * section.miter;
+      left.push({ x: section.base.x + f.x * l, y: section.base.y + f.y * l, z: section.base.z });
+      right.push({ x: section.base.x - f.x * r, y: section.base.y - f.y * r, z: section.base.z });
+    }
+    strips.push({ left, right });
+  }
+
+  for (const entry of sel.junctions) {
+    const node = net.graph.nodes.get(entry.id);
+    if (node) discs.push({ co: node.co, radius: Math.max(node.cornerRadius, 3) });
+  }
+
+  viewport.setHighlight({ strips, discs });
+}
+
+// Street names are rebuilt only when something they depend on changes — a sprite carries a canvas each, and the
+// overlay refreshes on every frame of a drag.
+let labelSignature = '';
+
+function refreshLabels(corridors) {
+  const graph = state.network?.graph;
+  const parts = corridors.map((c) => `${c.id}:${c.name}:${c.visible === false ? 0 : 1}`);
+  parts.push(`sel:${state.selection.corridorIds.join(',')}`);
+  if (graph) for (const node of graph.nodes.values()) if (node.degree >= 3) parts.push(`n:${node.id}`);
+  const signature = parts.join('|');
+  if (signature === labelSignature) return;
+  labelSignature = signature;
+
+  const labels = [];
+  for (const corridor of corridors) {
+    if (corridor.visible === false || !corridor.samples?.length || corridor.draft) continue;
+    const mid = corridor.samples[Math.floor(corridor.samples.length / 2)];
+    labels.push({ text: corridor.name, position: mid, accent: state.selection.corridorIds.includes(corridor.id) });
+  }
+  if (graph) {
+    for (const node of graph.nodes.values()) {
+      if (node.degree < 3) continue;
+      labels.push({ text: junctionName(node), position: node.co, kind: 'junction' });
+    }
+  }
+  viewport.setLabels(labels);
+}
+
+// Which stretch of road is under this world point? Used by the select tool so clicking the road picks the edge
+// between two junctions rather than the whole corridor.
+function edgeAtPoint(p) {
+  const net = state.network;
+  if (!net) return null;
+  let best = null;
+  for (const [edgeId, sections] of net.sectionsByEdge) {
+    const edge = net.graph.edges.get(edgeId);
+    if (!edge) continue;
+    const reach = Math.max(edge.profile.leftTotalHalf, edge.profile.rightTotalHalf) + 2.5;
+    for (const section of sections) {
+      const d = Math.hypot(section.base.x - p.x, section.base.y - p.y);
+      if (d <= reach && Math.abs(section.base.z - p.z) < 6 && (!best || d < best.distance)) {
+        best = { edgeId, edge, distance: d };
+      }
+    }
+  }
+  return best;
+}
+
+// ── selection ──// ── selection ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+const pointKey = (corridorId, index) => `${corridorId}:${index}`;
+
+// Mirrors the primary member of the multi-selection onto the singular fields the inspector and outliner read.
+function syncPrimary() {
+  const sel = state.selection;
+  const point = sel.points[sel.points.length - 1] || null;
+  const junction = sel.junctions[sel.junctions.length - 1] || null;
+  sel.corridorId = point ? point.corridorId : sel.corridorIds[0] || null;
+  sel.pointIndex = point ? point.index : -1;
+  sel.junctionId = junction ? junction.id : null;
+  sel.junctionAt = junction ? { ...junction.at } : null;
+}
+
+function afterSelectionChange() {
+  syncPrimary();
+  refreshOverlay();
+  renderOutliner();
+  renderInspector();
+}
+
+function clearSelection() {
+  state.selection = emptySelection();
+  afterSelectionChange();
+}
+
+// Selecting a control point. `additive` (Shift) toggles it in or out of the selection instead of replacing it.
+function selectPoint(corridorId, index, additive = false) {
+  const sel = state.selection;
+  if (!additive) {
+    sel.points = [];
+    sel.junctions = [];
+    sel.corridorIds = [];
+    sel.edgeId = null;
+  }
+  const key = pointKey(corridorId, index);
+  const at = sel.points.findIndex((p) => pointKey(p.corridorId, p.index) === key);
+  if (at >= 0) sel.points.splice(at, 1);
+  else sel.points.push({ corridorId, index });
+  if (!sel.corridorIds.includes(corridorId)) sel.corridorIds.push(corridorId);
+  afterSelectionChange();
+}
+
+// Selecting a corridor — and, when the click landed on the road itself, the single stretch between two junctions.
+function selectCorridor(corridorId, { edgeId = null, pointIndex = -1, additive = false } = {}) {
+  const sel = state.selection;
+  if (!additive) {
+    sel.points = [];
+    sel.junctions = [];
+    sel.corridorIds = [];
+  }
+  if (!sel.corridorIds.includes(corridorId)) sel.corridorIds.push(corridorId);
+  sel.edgeId = edgeId;
+  if (pointIndex >= 0) sel.points.push({ corridorId, index: pointIndex });
+  afterSelectionChange();
+  const corridor = state.doc.corridors.find((c) => c.id === corridorId);
+  if (corridor) {
+    setStatus(edgeId ? `${corridor.name} · stretch between junctions selected` : `${corridor.name} selected`, 'ok');
+  }
+}
+
+function selectionCentroid() {
+  const sel = state.selection;
+  const acc = { x: 0, y: 0, z: 0 };
+  let n = 0;
+  for (const j of sel.junctions) {
+    acc.x += j.at.x;
+    acc.y += j.at.y;
+    acc.z += j.at.z;
+    n++;
+  }
+  for (const entry of sel.points) {
+    const p = pointAt(entry);
+    if (!p) continue;
+    acc.x += p.x;
+    acc.y += p.y;
+    acc.z += p.z;
+    n++;
+  }
+  if (!n) return null;
+  return { x: acc.x / n, y: acc.y / n, z: acc.z / n };
+}
+
+function pointAt(entry) {
+  const corridor = state.doc.corridors.find((c) => c.id === entry.corridorId);
+  return corridor?.points[entry.index] || null;
+}
+
+// Every point that a drag of the current selection must move. Junctions expand into all of their arm points (and
+// insert one where a corridor merely passes through), so an intersection still travels as one rigid body. Grabs
+// hold point *references*, not indices, because expanding a junction can splice new points into a corridor.
+function collectGrabs() {
+  const grabs = [];
+  const seen = new Set();
+  const push = (point) => {
+    if (!point || seen.has(point)) return;
+    seen.add(point);
+    grabs.push({ point, start: { ...point } });
+  };
+  for (const entry of state.selection.junctions) {
+    const node = state.network?.graph.nodes.get(entry.id);
+    if (!node) continue;
+    for (const grab of collectJunctionGrabs(node)) push(grab.corridor.points[grab.index]);
+  }
+  for (const entry of state.selection.points) push(pointAt(entry));
+  return grabs;
 }
 
 // ── junction selection ────────────────────────────────────────────────────────────────────────────────────────────
@@ -213,33 +461,60 @@ function selectedJunction() {
 }
 
 function resolveJunctionSelection(graph) {
-  const anchor = state.selection.junctionAt;
-  if (!anchor) return;
-  let best = null;
-  let bestDist = Infinity;
-  for (const node of graph.nodes.values()) {
-    if (node.degree < 2) continue;
-    const d = Math.hypot(node.co.x - anchor.x, node.co.y - anchor.y, node.co.z - anchor.z);
-    if (d < bestDist) {
-      bestDist = d;
-      best = node;
+  const sel = state.selection;
+  if (!sel.junctions.length) return;
+  const nearest = (anchor) => {
+    let best = null;
+    let bestDist = Infinity;
+    for (const node of graph.nodes.values()) {
+      if (node.degree < 2) continue;
+      const d = Math.hypot(node.co.x - anchor.x, node.co.y - anchor.y, node.co.z - anchor.z);
+      if (d < bestDist) {
+        bestDist = d;
+        best = node;
+      }
     }
+    return bestDist <= 8 ? best : null;
+  };
+  const next = [];
+  for (const entry of sel.junctions) {
+    const node = nearest(entry.at);
+    if (node && !next.some((e) => e.id === node.id)) next.push({ id: node.id, at: { ...node.co } });
   }
-  if (best && bestDist <= 8) {
-    state.selection.junctionId = best.id;
-    state.selection.junctionAt = { ...best.co };
-  } else {
-    state.selection.junctionId = null;
-    state.selection.junctionAt = null;
-  }
+  sel.junctions = next;
+  syncPrimary();
 }
 
-function selectJunction(node) {
-  state.selection = { corridorId: null, pointIndex: -1, junctionId: node.id, junctionAt: { ...node.co } };
-  refreshOverlay();
-  renderOutliner();
-  renderInspector();
-  setStatus(`Junction selected · ${node.degree} arms · drag to move the whole intersection`, 'ok');
+function selectJunction(node, additive = false) {
+  const sel = state.selection;
+  if (!additive) {
+    sel.points = [];
+    sel.junctions = [];
+    sel.corridorIds = [];
+    sel.edgeId = null;
+  }
+  const at = sel.junctions.findIndex((j) => j.id === node.id);
+  if (at >= 0) sel.junctions.splice(at, 1);
+  else sel.junctions.push({ id: node.id, at: { ...node.co } });
+  afterSelectionChange();
+  const count = sel.junctions.length;
+  setStatus(
+    count > 1
+      ? `${count} intersections selected · drag the gizmo to move them together`
+      : `${junctionName(node)} · ${node.degree} arms · drag to move the whole intersection`,
+    'ok',
+  );
+}
+
+// An intersection has no name of its own, so it borrows the names of the streets that meet there.
+function junctionName(node) {
+  const names = [];
+  for (const id of node.sources || []) {
+    const corridor = state.doc.corridors.find((c) => c.id === id);
+    if (corridor && !names.includes(corridor.name)) names.push(corridor.name);
+  }
+  if (!names.length) return 'Junction';
+  return names.slice(0, 3).join(' × ');
 }
 
 // Collects every control point that belongs to a junction so the intersection moves as one rigid body. Corridors
@@ -291,6 +566,36 @@ function networkBounds() {
   return { min, max };
 }
 
+// F frames the selection when there is one, the whole network otherwise — the standard DCC behaviour, and the
+// quickest way to get from the bridge gallery back to the city.
+function frameTarget() {
+  const sel = state.selection;
+  const pts = [];
+  for (const entry of sel.points) {
+    const p = pointAt(entry);
+    if (p) pts.push(p);
+  }
+  for (const entry of sel.junctions) pts.push(entry.at);
+  if (!pts.length && sel.corridorIds.length) {
+    for (const id of sel.corridorIds) {
+      const corridor = state.doc.corridors.find((c) => c.id === id);
+      if (corridor) pts.push(...corridor.points);
+    }
+  }
+  if (pts.length < 1) return networkBounds();
+  const min = { x: Infinity, y: Infinity, z: Infinity };
+  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const p of pts) {
+    min.x = Math.min(min.x, p.x - 12);
+    min.y = Math.min(min.y, p.y - 12);
+    min.z = Math.min(min.z, p.z - 6);
+    max.x = Math.max(max.x, p.x + 12);
+    max.y = Math.max(max.y, p.y + 12);
+    max.z = Math.max(max.z, p.z + 6);
+  }
+  return { min, max };
+}
+
 // ── pointer tooling ───────────────────────────────────────────────────────────────────────────────────────────────
 
 let drag = null;
@@ -329,55 +634,139 @@ canvas.addEventListener('pointerdown', (event) => {
     return;
   }
 
+  // The gizmo always wins: it is drawn on top of everything and moves the whole current selection.
   const axis = viewport.gizmo.hitTest(ray);
-  if (axis) {
-    const node = selectedJunction();
+  if (axis && beginMove(axis, ray)) return;
+
+  const additive = event.shiftKey;
+
+  // Junction mode: only intersections are pickable, so an arm's control point can never be grabbed by accident.
+  if (state.tool === 'junction') {
+    const hub = viewport.pickJunction();
+    const node = hub && state.network?.graph.nodes.get(hub.junctionId);
     if (node) {
-      viewport.gizmo.begin(axis, ray, new THREE.Vector3(node.co.x, node.co.y, node.co.z));
-      drag = { kind: 'junction', origin: { ...node.co }, grabs: collectJunctionGrabs(node) };
+      selectJunction(node, additive);
+      beginMove('xy', ray);
       return;
     }
-    const corridor = selectedCorridor();
-    const p = corridor?.points[state.selection.pointIndex];
-    if (p) {
-      viewport.gizmo.begin(axis, ray, new THREE.Vector3(p.x, p.y, p.z));
-      drag = { kind: 'gizmo', corridor, index: state.selection.pointIndex };
-      return;
-    }
+    if (additive) return startMarquee(event, 'junctions');
+    if (!additive) clearSelection();
+    drag = { kind: 'orbit', x: event.clientX, y: event.clientY };
+    return;
   }
 
+  // Point mode: control points only.
+  if (state.tool === 'point') {
+    const handle = viewport.pickHandle();
+    if (handle && state.doc.corridors.some((c) => c.id === handle.corridorId)) {
+      selectPoint(handle.corridorId, handle.pointIndex, additive);
+      beginMove('xy', ray);
+      return;
+    }
+    if (additive) return startMarquee(event, 'points');
+    clearSelection();
+    drag = { kind: 'orbit', x: event.clientX, y: event.clientY };
+    return;
+  }
+
+  // ── select mode ──
   // A junction hub outranks the individual control points sitting inside it: clicking the intersection should grab
   // the intersection, not one arm of it.
   const hub = viewport.pickJunction();
   if (hub) {
     const node = state.network?.graph.nodes.get(hub.junctionId);
     if (node) {
-      selectJunction(node);
-      viewport.gizmo.begin('xy', ray, new THREE.Vector3(node.co.x, node.co.y, node.co.z));
-      drag = { kind: 'junction', origin: { ...node.co }, grabs: collectJunctionGrabs(node) };
+      selectJunction(node, additive);
+      beginMove('xy', ray);
       return;
     }
   }
 
   const handle = viewport.pickHandle();
   if (handle && state.doc.corridors.some((c) => c.id === handle.corridorId)) {
-    select(handle.corridorId, handle.pointIndex);
-    const corridor = selectedCorridor();
-    const p = corridor.points[handle.pointIndex];
-    viewport.gizmo.begin('xy', ray, new THREE.Vector3(p.x, p.y, p.z));
-    drag = { kind: 'gizmo', corridor, index: handle.pointIndex };
+    selectPoint(handle.corridorId, handle.pointIndex, additive);
+    beginMove('xy', ray);
     return;
   }
 
-  // Click on a corridor ribbon inserts a control point there; otherwise orbit.
-  const inserted = event.shiftKey ? tryInsertPoint() : null;
-  if (!inserted) drag = { kind: 'orbit', x: event.clientX, y: event.clientY };
+  // Shift-click on a ribbon inserts a control point; a plain click selects the stretch of road that was hit.
+  if (additive && tryInsertPoint()) return;
+  const surface = viewport.pickSurface();
+  const edge = surface ? edgeAtPoint(surface) : null;
+  if (edge) {
+    selectCorridor(edge.edge.sourceId, { edgeId: edge.edgeId });
+    return;
+  }
+  clearSelection();
+  drag = { kind: 'orbit', x: event.clientX, y: event.clientY };
 });
+
+// Starts a transform of the whole selection. Returns false when there is nothing to move.
+function beginMove(axis, ray) {
+  const origin = selectionCentroid();
+  if (!origin) return false;
+  const grabs = collectGrabs();
+  if (!grabs.length) return false;
+  viewport.gizmo.begin(axis, ray, new THREE.Vector3(origin.x, origin.y, origin.z));
+  // Junction anchors have to travel with the drag: the solver renames nodes as they move, and the selection is
+  // re-bound to the nearest node by position after every rebuild.
+  const junctionStarts = state.selection.junctions.map((j) => ({ ...j.at }));
+  drag = { kind: 'move', origin, grabs, junctionStarts };
+  return true;
+}
+
+// Shift-drag in point / junction mode: a screen rectangle that adds everything inside it to the selection.
+function startMarquee(event, kind) {
+  const rect = canvas.getBoundingClientRect();
+  drag = { kind: 'marquee', pick: kind, x0: event.clientX, y0: event.clientY, x: event.clientX, y: event.clientY, rect };
+  paintMarquee();
+}
+
+function paintMarquee() {
+  const el = $('Marquee');
+  if (!el || !drag || drag.kind !== 'marquee') return;
+  const left = Math.min(drag.x0, drag.x) - drag.rect.left;
+  const top = Math.min(drag.y0, drag.y) - drag.rect.top;
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
+  el.style.width = `${Math.abs(drag.x - drag.x0)}px`;
+  el.style.height = `${Math.abs(drag.y - drag.y0)}px`;
+  el.hidden = false;
+}
+
+function finishMarquee() {
+  const el = $('Marquee');
+  if (el) el.hidden = true;
+  if (!drag || drag.kind !== 'marquee') return;
+  const { rect } = drag;
+  const ndc = (cx, cy) => ({ x: ((cx - rect.left) / rect.width) * 2 - 1, y: -((cy - rect.top) / rect.height) * 2 + 1 });
+  const a = ndc(drag.x0, drag.y0);
+  const b = ndc(drag.x, drag.y);
+  const box = { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) };
+  if (box.x1 - box.x0 < 0.004 && box.y1 - box.y0 < 0.004) return;
+
+  const sel = state.selection;
+  if (drag.pick === 'junctions') {
+    for (const hit of viewport.junctionsInRect(box)) {
+      const node = state.network?.graph.nodes.get(hit.junctionId);
+      if (node && !sel.junctions.some((j) => j.id === node.id)) sel.junctions.push({ id: node.id, at: { ...node.co } });
+    }
+    setStatus(`${sel.junctions.length} intersection${sel.junctions.length === 1 ? '' : 's'} selected`, 'ok');
+  } else {
+    for (const hit of viewport.handlesInRect(box)) {
+      if (sel.points.some((p) => p.corridorId === hit.corridorId && p.index === hit.pointIndex)) continue;
+      sel.points.push({ corridorId: hit.corridorId, index: hit.pointIndex });
+      if (!sel.corridorIds.includes(hit.corridorId)) sel.corridorIds.push(hit.corridorId);
+    }
+    setStatus(`${sel.points.length} control point${sel.points.length === 1 ? '' : 's'} selected`, 'ok');
+  }
+  afterSelectionChange();
+}
 
 canvas.addEventListener('pointermove', (event) => {
   const ray = viewport.updatePointer(event);
   if (!drag) {
-    const over = viewport.gizmo.hitTest(ray) || viewport.pickJunction() || viewport.pickHandle();
+    const over = viewport.gizmo.hitTest(ray) || (state.tool !== 'point' && viewport.pickJunction()) || (state.tool !== 'junction' && viewport.pickHandle());
     canvas.style.cursor = over ? 'grab' : state.tool.startsWith('draw') ? 'crosshair' : 'default';
     return;
   }
@@ -385,23 +774,30 @@ canvas.addEventListener('pointermove', (event) => {
     viewport.look(event.clientX - drag.x, event.clientY - drag.y);
     drag.x = event.clientX;
     drag.y = event.clientY;
-  } else if (drag.kind === 'junction') {
+  } else if (drag.kind === 'marquee') {
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    paintMarquee();
+  } else if (drag.kind === 'move') {
     const next = viewport.gizmo.update(ray);
     if (next) {
       const dx = next.x - drag.origin.x;
       const dy = next.y - drag.origin.y;
       const dz = next.z - drag.origin.z;
       for (const grab of drag.grabs) {
-        const p = grab.corridor.points[grab.index];
-        if (!p) continue;
-        p.x = grab.start.x + dx;
-        p.y = grab.start.y + dy;
-        p.z = grab.start.z + dz;
+        grab.point.x = grab.start.x + dx;
+        grab.point.y = grab.start.y + dy;
+        grab.point.z = grab.start.z + dz;
       }
-      state.selection.junctionAt = { x: drag.origin.x + dx, y: drag.origin.y + dy, z: drag.origin.z + dz };
+      state.selection.junctions.forEach((entry, i) => {
+        const start = drag.junctionStarts[i];
+        if (start) entry.at = { x: start.x + dx, y: start.y + dy, z: start.z + dz };
+      });
+      drag.moved = { dx, dy, dz };
       refreshOverlay();
       queueRebuild();
-      setStatus(`Junction moved ${Math.hypot(dx, dy).toFixed(1)} m · ${drag.grabs.length} arm points`, 'busy');
+      renderInspectorValues();
+      setStatus(`Moved ${Math.hypot(dx, dy).toFixed(1)} m across · ${dz >= 0 ? '+' : ''}${dz.toFixed(2)} m up · ${drag.grabs.length} points`, 'busy');
     }
   } else if (drag.kind === 'orbit') {
     viewport.orbit(event.clientX - drag.x, event.clientY - drag.y);
@@ -411,27 +807,21 @@ canvas.addEventListener('pointermove', (event) => {
     viewport.pan(event.clientX - drag.x, event.clientY - drag.y);
     drag.x = event.clientX;
     drag.y = event.clientY;
-  } else if (drag.kind === 'gizmo') {
-    const next = viewport.gizmo.update(ray);
-    if (next) {
-      const p = drag.corridor.points[drag.index];
-      p.x = next.x;
-      p.y = next.y;
-      p.z = next.z;
-      refreshOverlay();
-      queueRebuild();
-      renderInspectorValues();
-    }
   }
 });
 
 canvas.addEventListener('pointerup', (event) => {
   canvas.releasePointerCapture(event.pointerId);
-  if (drag?.kind === 'gizmo' || drag?.kind === 'junction') viewport.gizmo.end();
-  if (drag?.kind === 'junction') {
-    renderInspector();
-    setStatus('Junction moved · network re-solved', 'ok');
+  if (drag?.kind === 'move') {
+    viewport.gizmo.end();
+    // The junction anchors travel with the drag, so the selection survives the re-solve that follows.
+    if (drag.moved) {
+      syncPrimary();
+      renderInspector();
+      setStatus('Selection moved · network re-solved', 'ok');
+    }
   }
+  if (drag?.kind === 'marquee') finishMarquee();
   drag = null;
   canvas.style.cursor = 'default';
 });
@@ -476,13 +866,23 @@ window.addEventListener('keydown', (event) => {
   if (key.length === 1 && 'wasdqe '.includes(key)) held.add(key);
   if (event.key === 'Shift') held.add('shift');
   if (event.key === 'Control') held.add('control');
-  if (event.key === 'f' || event.key === 'F') viewport.frame(networkBounds());
-  if (event.key === 'Escape') cancelDraft();
+  if (event.key === 'f' || event.key === 'F') viewport.frame(frameTarget());
+  if (event.key === 'Escape') {
+    if (state.draft) cancelDraft();
+    else clearSelection();
+  }
   if (event.key === 'Enter') finishDraft();
-  if (event.key === 'Delete' || event.key === 'Backspace') deleteSelectedPoint();
+  if (event.key === 'Delete' || event.key === 'Backspace') deleteSelection();
   if (event.key === '1') setTool('select');
-  if (event.key === '2') setTool('draw-road');
-  if (event.key === '3') setTool('draw-bridge');
+  if (event.key === '2') setTool('point');
+  if (event.key === '3') setTool('junction');
+  if (event.key === '4') setTool('draw-road');
+  if (event.key === '5') setTool('draw-bridge');
+  if (key === 'l') setLabelsVisible(!state.display.labels);
+  if (key === 'a' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    selectAll();
+  }
 });
 
 function tryInsertPoint() {
@@ -502,16 +902,58 @@ function tryInsertPoint() {
   return true;
 }
 
-function deleteSelectedPoint() {
-  const corridor = selectedCorridor();
-  if (!corridor || state.selection.pointIndex < 0) return;
-  if (corridor.points.length <= 2) {
-    removeCorridor(corridor.id);
+// Delete removes every selected control point (and any corridor left with fewer than two).
+function deleteSelection() {
+  const sel = state.selection;
+  if (!sel.points.length) {
+    if (sel.corridorIds.length && !sel.junctions.length) {
+      for (const id of [...sel.corridorIds]) removeCorridor(id);
+      clearSelection();
+    }
     return;
   }
-  corridor.points.splice(state.selection.pointIndex, 1);
-  state.selection.pointIndex = Math.max(0, state.selection.pointIndex - 1);
+  // Remove the highest indices first so the earlier ones stay valid.
+  const byCorridor = new Map();
+  for (const entry of sel.points) {
+    if (!byCorridor.has(entry.corridorId)) byCorridor.set(entry.corridorId, []);
+    byCorridor.get(entry.corridorId).push(entry.index);
+  }
+  for (const [corridorId, indices] of byCorridor) {
+    const corridor = state.doc.corridors.find((c) => c.id === corridorId);
+    if (!corridor) continue;
+    const sorted = [...new Set(indices)].sort((a, b) => b - a);
+    if (corridor.points.length - sorted.length < 2) {
+      removeCorridor(corridorId);
+      continue;
+    }
+    for (const index of sorted) corridor.points.splice(index, 1);
+  }
+  clearSelection();
   queueRebuild();
+  setStatus('Deleted', 'ok');
+}
+
+function selectAll() {
+  const sel = state.selection;
+  if (state.tool === 'junction') {
+    sel.points = [];
+    sel.junctions = [];
+    for (const node of state.network?.graph.nodes.values() || []) {
+      if (node.degree >= 2) sel.junctions.push({ id: node.id, at: { ...node.co } });
+    }
+    setStatus(`${sel.junctions.length} intersections selected`, 'ok');
+  } else {
+    sel.junctions = [];
+    sel.points = [];
+    sel.corridorIds = [];
+    for (const corridor of state.doc.corridors) {
+      if (corridor.visible === false) continue;
+      sel.corridorIds.push(corridor.id);
+      if (state.tool === 'point') corridor.points.forEach((p, index) => sel.points.push({ corridorId: corridor.id, index }));
+    }
+    setStatus(state.tool === 'point' ? `${sel.points.length} control points selected` : `${sel.corridorIds.length} corridors selected`, 'ok');
+  }
+  afterSelectionChange();
 }
 
 function drawHeight() {
@@ -538,28 +980,48 @@ function cancelDraft() {
   }
 }
 
+// Legacy entry point used by the outliner and the draw tool: select a corridor, optionally focusing one point.
 function select(corridorId, pointIndex = -1) {
-  state.selection = { corridorId, pointIndex, junctionId: null, junctionAt: null };
-  refreshOverlay();
-  renderOutliner();
-  renderInspector();
+  selectCorridor(corridorId, { pointIndex });
 }
 
 function removeCorridor(id) {
   state.doc.corridors = state.doc.corridors.filter((c) => c.id !== id);
-  if (state.selection.corridorId === id) state.selection = { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null };
+  if (state.selection.corridorId === id) state.selection = emptySelection();
   queueRebuild();
   renderInspector();
 }
 
+const TOOLS = [
+  ['ToolSelect', 'select', 'Click a road or bridge to select the stretch between its junctions'],
+  ['ToolPoint', 'point', 'Control points · click to pick, Shift-click or Shift-drag to multi-select, gizmo to move'],
+  ['ToolJunction', 'junction', 'Intersections · click to pick, Shift-click or Shift-drag to multi-select, gizmo to move'],
+  ['ToolRoad', 'draw-road', 'Click on the ground to place control points · Enter to finish'],
+  ['ToolBridge', 'draw-bridge', 'Click on the ground to place control points · Enter to finish'],
+];
+
 function setTool(tool) {
   state.tool = tool;
-  for (const [id, value] of [['ToolSelect', 'select'], ['ToolRoad', 'draw-road'], ['ToolBridge', 'draw-bridge']]) {
-    $(id).classList.toggle('Active', state.tool === value);
+  let hint = '';
+  for (const [id, value, text] of TOOLS) {
+    $(id)?.classList.toggle('Active', state.tool === value);
+    if (state.tool === value) hint = text;
   }
   canvas.style.cursor = tool.startsWith('draw') ? 'crosshair' : 'default';
   if (!tool.startsWith('draw')) state.draft = null;
-  if (tool.startsWith('draw')) setStatus('Click on the ground to place control points · Enter to finish', 'busy');
+  // Switching between point and junction mode drops the selection that the other mode owns, so the gizmo can
+  // never move something the current tool cannot see.
+  if (tool === 'point') state.selection.junctions = [];
+  if (tool === 'junction') state.selection.points = [];
+  if (tool === 'point' || tool === 'junction') afterSelectionChange();
+  setStatus(hint, tool.startsWith('draw') ? 'busy' : 'ok');
+}
+
+function setLabelsVisible(on) {
+  state.display.labels = on;
+  viewport.setLabelsVisible(on);
+  $('ViewLabels')?.classList.toggle('Active', on);
+  setStatus(on ? 'Street names shown' : 'Street names hidden', 'ok');
 }
 
 // ── outliner ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -569,7 +1031,7 @@ function renderOutliner() {
   list.innerHTML = '';
   for (const corridor of state.doc.corridors) {
     const row = document.createElement('div');
-    row.className = 'OutlinerEntry CorridorRow' + (state.selection.corridorId === corridor.id ? ' Selected' : '');
+    row.className = 'OutlinerEntry CorridorRow' + (state.selection.corridorIds.includes(corridor.id) ? ' Selected' : '');
 
     const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
@@ -579,7 +1041,13 @@ function renderOutliner() {
     const label = document.createElement('span');
     label.className = 'CorridorName';
     label.textContent = corridor.name;
-    label.addEventListener('click', () => select(corridor.id, 0));
+    label.title = 'Double-click to rename';
+    label.addEventListener('click', () => select(corridor.id));
+    // Double-click to rename in place: naming streets should not mean a round trip through the inspector.
+    label.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      beginRename(corridor, label);
+    });
 
     const meta = document.createElement('small');
     meta.textContent = `${ROAD_PRESETS[corridor.preset]?.label || corridor.preset} · ${corridor.points.length} pts`;
@@ -595,18 +1063,59 @@ function renderOutliner() {
     });
 
     row.append(icon, label, meta, vis);
-    row.addEventListener('click', () => select(corridor.id, state.selection.corridorId === corridor.id ? state.selection.pointIndex : 0));
+    row.addEventListener('click', (e) => selectCorridor(corridor.id, { additive: e.shiftKey }));
     list.appendChild(row);
   }
 
   const stats = state.network?.stats;
   $('CensusCorridors').textContent = state.doc.corridors.length;
   $('CensusJunctions').textContent = stats ? stats.junctions : 0;
-  $('SelectionName').textContent = selectedCorridor()?.name || 'Nothing selected';
+  const sel = state.selection;
+  const junction = selectedJunction();
+  $('SelectionName').textContent =
+    sel.junctions.length > 1
+      ? `${sel.junctions.length} intersections`
+      : junction
+        ? junctionName(junction)
+        : sel.corridorIds.length > 1
+          ? `${sel.corridorIds.length} corridors`
+          : selectedCorridor()?.name || 'Nothing selected';
   $('SelectionDetail').textContent =
-    state.selection.pointIndex >= 0 && selectedCorridor()
-      ? `Control point ${state.selection.pointIndex + 1} of ${selectedCorridor().points.length}`
-      : 'Click a corridor to edit it · Shift-click a ribbon to insert a point';
+    sel.points.length > 1
+      ? `${sel.points.length} control points across ${new Set(sel.points.map((p) => p.corridorId)).size} corridor(s)`
+      : junction
+        ? `${junction.degree} arms meet here`
+        : sel.edgeId
+          ? 'Stretch between junctions · drag a handle or switch to Points mode'
+          : sel.pointIndex >= 0 && selectedCorridor()
+            ? `Control point ${sel.pointIndex + 1} of ${selectedCorridor().points.length}`
+            : 'Click a road to select the stretch between its junctions · double-click a name to rename it';
+}
+
+// Inline rename in the outliner. Enter commits, Escape reverts, blur commits.
+function beginRename(corridor, label) {
+  const input = document.createElement('input');
+  input.className = 'RenameField';
+  input.value = corridor.name;
+  input.maxLength = 48;
+  const before = corridor.name;
+  label.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit = (keep) => {
+    corridor.name = keep ? input.value.trim() || before : before;
+    labelSignature = '';
+    renderOutliner();
+    renderInspector();
+    refreshOverlay();
+    if (keep) setStatus(`Renamed to “${corridor.name}”`, 'ok');
+  };
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') commit(true);
+    if (e.key === 'Escape') commit(false);
+  });
+  input.addEventListener('blur', () => commit(true));
 }
 
 // ── inspector ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -694,6 +1203,12 @@ function renderInspector() {
   host.innerHTML = '';
   const corridor = selectedCorridor();
   const junction = selectedJunction();
+  const sel = state.selection;
+
+  if (sel.junctions.length > 1 || sel.points.length > 1) {
+    renderMultiInspector(host);
+    return;
+  }
 
   if (junction) {
     renderJunctionInspector(host, junction);
@@ -969,7 +1484,82 @@ function displaySection() {
   disp.body.appendChild(checkField({ label: 'Ground plane', value: state.display.ground, onChange: (v) => { state.display.ground = v; viewport.setGroundVisible(v); } }));
   disp.body.appendChild(checkField({ label: 'Editing overlay', value: state.display.overlay, onChange: (v) => { state.display.overlay = v; viewport.setOverlayVisible(v); } }));
   disp.body.appendChild(checkField({ label: 'Show markings', value: state.display.markings, onChange: (v) => { state.display.markings = v; viewport.setMarkingsVisible(v); } }));
+  disp.body.appendChild(checkField({ label: 'Street name labels', value: state.display.labels, onChange: (v) => setLabelsVisible(v) }));
   return disp;
+}
+
+// What a transform of several things at once needs: how many, where their centroid is, and a way to nudge them
+// numerically as well as with the gizmo.
+function renderMultiInspector(host) {
+  const sel = state.selection;
+  const kind = sel.junctions.length > 1 ? 'intersections' : 'control points';
+  const count = sel.junctions.length > 1 ? sel.junctions.length : sel.points.length;
+
+  const header = document.createElement('div');
+  header.className = 'ObjectHeader';
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', '#NodeIcon');
+  icon.appendChild(use);
+  const text = document.createElement('div');
+  text.innerHTML = `<b>${count} ${kind}</b><small>Multiple selection</small>`;
+  header.append(icon, text);
+  host.appendChild(header);
+  $('InspectorTitle').textContent = `${count} selected`;
+
+  const centre = selectionCentroid();
+  const m = section('Transform');
+  const metrics = document.createElement('div');
+  metrics.className = 'Metrics';
+  for (const [k, v] of [
+    ['Items', count],
+    ['Centroid', centre ? `${centre.x.toFixed(1)}, ${centre.y.toFixed(1)}` : '—'],
+    ['Elevation', centre ? `${centre.z.toFixed(2)} m` : '—'],
+    ['Corridors', new Set(sel.points.map((p) => p.corridorId)).size || sel.corridorIds.length],
+  ]) {
+    const a = document.createElement('span');
+    a.textContent = k;
+    const b = document.createElement('b');
+    b.textContent = v;
+    metrics.append(a, b);
+  }
+  m.body.appendChild(metrics);
+
+  const nudge = (label, axis, amount) => {
+    const button = document.createElement('button');
+    button.textContent = label;
+    button.addEventListener('click', () => {
+      const grabs = collectGrabs();
+      for (const grab of grabs) grab.point[axis] += amount;
+      for (const entry of sel.junctions) entry.at[axis] += amount;
+      refreshOverlay();
+      queueRebuild();
+      renderInspector();
+      setStatus(`Nudged ${grabs.length} points ${amount > 0 ? '+' : ''}${amount} m in ${axis.toUpperCase()}`, 'ok');
+    });
+    return button;
+  };
+  const row = document.createElement('div');
+  row.className = 'ButtonRow';
+  row.append(nudge('Raise 1 m', 'z', 1), nudge('Lower 1 m', 'z', -1));
+  m.body.appendChild(row);
+
+  const note = document.createElement('p');
+  note.className = 'Small';
+  note.textContent =
+    sel.junctions.length > 1
+      ? 'Dragging the gizmo moves every selected intersection — and every arm of each one — as one rigid body.'
+      : 'Dragging the gizmo moves all selected control points together. Delete removes them.';
+  m.body.appendChild(note);
+
+  const clear = document.createElement('button');
+  clear.textContent = 'Clear selection';
+  clear.addEventListener('click', () => clearSelection());
+  m.body.appendChild(clear);
+  host.appendChild(m.element);
+
+  host.appendChild(networkSection().element);
+  host.appendChild(displaySection().element);
 }
 
 // A junction has no document record of its own — it is an emergent property of the corridors that meet there — so
@@ -982,10 +1572,11 @@ function renderJunctionInspector(host, node) {
   use.setAttribute('href', '#NodeIcon');
   icon.appendChild(use);
   const text = document.createElement('div');
-  text.innerHTML = `<b>Junction</b><small>${node.degree} arms merged</small>`;
+  const name = junctionName(node);
+  text.innerHTML = `<b>${name}</b><small>${node.degree} arms merged</small>`;
   header.append(icon, text);
   host.appendChild(header);
-  $('InspectorTitle').textContent = 'Junction';
+  $('InspectorTitle').textContent = name;
 
   const j = section('Junction');
   const metrics = document.createElement('div');
@@ -1011,7 +1602,7 @@ function renderJunctionInspector(host, node) {
   const clear = document.createElement('button');
   clear.textContent = 'Deselect junction';
   clear.addEventListener('click', () => {
-    state.selection = { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null };
+    state.selection = emptySelection();
     refreshOverlay();
     renderInspector();
   });
@@ -1070,6 +1661,7 @@ function renderDiagnostics() {
     ['Grade separations', s.gradeSeparations],
     ['Triangles', s.triangles.toLocaleString()],
     ['Build time', `${s.buildMs} ms`],
+    ['Cached corridors', `${s.cacheHits ?? 0} of ${s.edges}`],
   ];
   for (const [k, v] of rows) {
     const a = document.createElement('span');
@@ -1101,14 +1693,15 @@ function hideFailure() {
 }
 
 function bindUi() {
-  $('ToolSelect').addEventListener('click', () => setTool('select'));
-  $('ToolRoad').addEventListener('click', () => setTool('draw-road'));
-  $('ToolBridge').addEventListener('click', () => setTool('draw-bridge'));
+  for (const [id, tool] of TOOLS.map(([id, tool]) => [id, tool])) {
+    $(id)?.addEventListener('click', () => setTool(tool));
+  }
+  $('ViewLabels')?.addEventListener('click', () => setLabelsVisible(!state.display.labels));
 
   $('ViewShaded').addEventListener('click', () => setMode('shaded'));
   $('ViewWire').addEventListener('click', () => setMode('wireframe'));
   $('ViewSurfaces').addEventListener('click', () => setMode('surfaces'));
-  $('Frame').addEventListener('click', () => viewport.frame(networkBounds()));
+  $('Frame').addEventListener('click', () => viewport.frame(frameTarget()));
   $('ViewTop').addEventListener('click', () => viewport.setView('top'));
   $('ViewIso').addEventListener('click', () => viewport.setView('iso'));
 
@@ -1122,7 +1715,7 @@ function bindUi() {
   $('DocFile').addEventListener('change', loadDocument);
   $('NewDoc').addEventListener('click', () => {
     state.doc = demoDocument();
-    state.selection = { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null };
+    state.selection = emptySelection();
     $('DocumentName').value = state.doc.name;
     rebuild();
     renderInspector();
@@ -1133,6 +1726,7 @@ function bindUi() {
 
   renderInspector();
   setTool('select');
+  setLabelsVisible(state.display.labels);
 }
 
 function setMode(mode) {
@@ -1172,7 +1766,7 @@ async function loadDocument(event) {
       settings: { ...GRAPH_DEFAULTS, ...state.doc.settings, ...(data.settings || {}) },
       corridors: (data.corridors || []).map((c) => ({ ...makeCorridor(c.name || 'Corridor', []), ...c })),
     };
-    state.selection = { corridorId: null, pointIndex: -1, junctionId: null, junctionAt: null };
+    state.selection = emptySelection();
     $('DocumentName').value = state.doc.name;
     rebuild();
     renderInspector();

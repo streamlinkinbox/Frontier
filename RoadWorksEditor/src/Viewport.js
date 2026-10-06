@@ -63,6 +63,12 @@ export class Viewport {
     this.scene.add(this.networkGroup);
     this.overlayGroup = new THREE.Group();
     this.scene.add(this.overlayGroup);
+    // Selection highlights (the stretch of road between two junctions, or the junction itself) and street-name
+    // labels live in their own groups: they are rebuilt on selection, not on every network solve.
+    this.highlightGroup = new THREE.Group();
+    this.scene.add(this.highlightGroup);
+    this.labelGroup = new THREE.Group();
+    this.scene.add(this.labelGroup);
 
     this.gizmo = new TranslateGizmo(this.scene);
     this.raycaster = new THREE.Raycaster();
@@ -76,6 +82,7 @@ export class Viewport {
     this.displayMode = 'shaded';
     this.showGround = true;
     this.showMarkings = true;
+    this.showLabels = true;
     this.textured = true;
     this.flySpeed = 34; // m/s, adjusted with the wheel while the right button is held
     this._groups = null;
@@ -245,8 +252,12 @@ export class Viewport {
     this.handleMeshes = [];
     this.junctionMeshes = [];
 
+    const pointKeys = new Set((selection?.points || []).map((p) => `${p.corridorId}:${p.index}`));
+    const junctionIds = new Set((selection?.junctions || []).map((j) => j.id));
+    if (selection?.junctionId) junctionIds.add(selection.junctionId);
+
     for (const corridor of corridors) {
-      const selected = selection?.corridorId === corridor.id;
+      const selected = selection?.corridorId === corridor.id || (selection?.corridorIds || []).includes(corridor.id);
       const colour = selected ? 0xd6a665 : corridor.family === 'bridge' ? 0x7fa7c9 : 0x79808c;
 
       if (corridor.samples && corridor.samples.length > 1) {
@@ -261,7 +272,7 @@ export class Viewport {
       }
 
       corridor.points.forEach((p, index) => {
-        const isSelectedPoint = selected && selection.pointIndex === index;
+        const isSelectedPoint = pointKeys.has(`${corridor.id}:${index}`);
         const size = isSelectedPoint ? 0.95 : 0.7;
         const handle = new THREE.Mesh(
           new THREE.SphereGeometry(size, 14, 10),
@@ -292,7 +303,7 @@ export class Viewport {
     if (graph) {
       for (const node of graph.nodes.values()) {
         if (node.degree < 2) continue;
-        const active = selection?.junctionId === node.id;
+        const active = junctionIds.has(node.id);
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(node.cornerRadius - 0.25, node.cornerRadius, 48),
           new THREE.MeshBasicMaterial({ color: active ? 0xf1c994 : node.degree >= 3 ? 0xd6a665 : 0x5d6775, transparent: true, opacity: active ? 0.75 : 0.35, side: THREE.DoubleSide, depthTest: false }),
@@ -314,6 +325,137 @@ export class Viewport {
         this.junctionMeshes.push(hub);
       }
     }
+  }
+
+  // ── selection highlight ──────────────────────────────────────────────────────────────────────────────────────
+  // `strips` are ribbons of left/right edge points (one stretch of road between junctions); `discs` are junction
+  // aprons. Both are drawn as unlit translucent accent sheets just above the surface they belong to.
+
+  setHighlight({ strips = [], discs = [] } = {}) {
+    for (const child of [...this.highlightGroup.children]) {
+      this.highlightGroup.remove(child);
+      child.geometry?.dispose?.();
+      child.material?.dispose?.();
+    }
+
+    const sheet = (color, opacity) =>
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false });
+
+    for (const strip of strips) {
+      if (!strip.left || strip.left.length < 2) continue;
+      const positions = [];
+      const indices = [];
+      for (let i = 0; i < strip.left.length; i++) {
+        const l = strip.left[i];
+        const r = strip.right[i];
+        positions.push(l.x, l.y, l.z + 0.06, r.x, r.y, r.z + 0.06);
+        if (i > 0) {
+          const a = (i - 1) * 2;
+          indices.push(a, a + 1, a + 3, a, a + 3, a + 2);
+        }
+      }
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setIndex(indices);
+      const mesh = new THREE.Mesh(geom, sheet(0xd6a665, 0.3));
+      mesh.renderOrder = 6;
+      this.highlightGroup.add(mesh);
+
+      // bright edge lines so the extent of the stretch is unmistakable
+      for (const side of ['left', 'right']) {
+        const pts = strip[side].map((p) => new THREE.Vector3(p.x, p.y, p.z + 0.09));
+        const line = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts),
+          new THREE.LineBasicMaterial({ color: 0xf1c994, transparent: true, opacity: 0.9, depthTest: false }),
+        );
+        line.renderOrder = 12;
+        this.highlightGroup.add(line);
+      }
+    }
+
+    for (const disc of discs) {
+      const mesh = new THREE.Mesh(new THREE.CircleGeometry(disc.radius, 40), sheet(0xf1c994, 0.26));
+      mesh.position.set(disc.co.x, disc.co.y, disc.co.z + 0.05);
+      mesh.renderOrder = 6;
+      this.highlightGroup.add(mesh);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(disc.radius - 0.4, disc.radius, 48),
+        new THREE.MeshBasicMaterial({ color: 0xf1c994, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false }),
+      );
+      ring.position.set(disc.co.x, disc.co.y, disc.co.z + 0.1);
+      ring.renderOrder = 12;
+      this.highlightGroup.add(ring);
+    }
+  }
+
+  // ── street-name labels ───────────────────────────────────────────────────────────────────────────────────────
+  // Names are drawn to a canvas and shown as camera-facing sprites, so a street is identifiable in the viewport
+  // without hunting through the outliner. Scale is in world metres and clamped by distance in `render()`.
+
+  setLabels(labels = []) {
+    for (const child of [...this.labelGroup.children]) {
+      this.labelGroup.remove(child);
+      child.material?.map?.dispose?.();
+      child.material?.dispose?.();
+    }
+    for (const label of labels) {
+      const sprite = this._makeLabel(label);
+      if (sprite) this.labelGroup.add(sprite);
+    }
+    this.labelGroup.visible = this.showLabels;
+  }
+
+  setLabelsVisible(v) {
+    this.showLabels = v;
+    this.labelGroup.visible = v;
+  }
+
+  _makeLabel({ text, position, accent = false, kind = 'corridor' }) {
+    if (typeof document === 'undefined' || !THREE.Sprite || !THREE.SpriteMaterial) return null;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    const pad = 18;
+    const font = '600 40px "DM Sans", system-ui, sans-serif';
+    ctx.font = font;
+    const width = Math.ceil((ctx.measureText?.(text)?.width ?? text.length * 20) + pad * 2);
+    canvas.width = Math.max(64, width);
+    canvas.height = 76;
+    ctx.font = font;
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = accent ? 'rgba(54,42,26,0.92)' : 'rgba(23,25,29,0.82)';
+    ctx.fillRect(0, 10, canvas.width, 56);
+    ctx.fillStyle = accent ? '#f1c994' : '#d5d7dc';
+    ctx.fillRect(0, 10, 4, 56);
+    ctx.fillText(text, pad, 39);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, sizeAttenuation: false }));
+    const aspect = canvas.width / canvas.height;
+    const h = kind === 'junction' ? 0.028 : 0.034;
+    sprite.scale.set(h * aspect, h, 1);
+    sprite.position.set(position.x, position.y, position.z + (kind === 'junction' ? 3.2 : 2.2));
+    sprite.renderOrder = 30;
+    sprite.userData = { label: true, kind };
+    return sprite;
+  }
+
+  // ── rectangle (marquee) picking ──────────────────────────────────────────────────────────────────────────────
+  // Returns the userData of every handle / junction hub whose centre projects inside the given NDC rectangle.
+
+  _insideRect(object, rect) {
+    const v = object.position.clone().project(this.camera);
+    if (v.z > 1) return false;
+    return v.x >= rect.x0 && v.x <= rect.x1 && v.y >= rect.y0 && v.y <= rect.y1;
+  }
+
+  handlesInRect(rect) {
+    return this.handleMeshes.filter((m) => this._insideRect(m, rect)).map((m) => m.userData);
+  }
+
+  junctionsInRect(rect) {
+    return this.junctionMeshes.filter((m) => this._insideRect(m, rect)).map((m) => m.userData);
   }
 
   setOverlayVisible(v) {
@@ -405,6 +547,12 @@ export class Viewport {
     const size = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, 20);
     this.target.set(cx, cy, cz);
     this.spherical.radius = size * 1.5 + 30;
+    // Fog has to follow the scene: a city block and a 700 m showcase cannot share one depth cue, and a fixed
+    // range would dissolve half the network into the background the moment you framed all of it.
+    if (this.scene.fog) {
+      this.scene.fog.near = Math.max(120, this.spherical.radius * 0.75);
+      this.scene.fog.far = Math.max(600, this.spherical.radius * 3.2);
+    }
     this._applyCamera();
   }
 

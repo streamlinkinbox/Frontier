@@ -23,6 +23,11 @@ No build step, no package install, no CDN. Open `index.html` directly, or straig
 | Signage | Stop or yield signs on every arm of a 3+ way junction, stop bars on the approaching half, and zebra crossings — all positioned from the junction's own approach frames. |
 | Guardrails | Six roadside restraint systems swept as real cross-sections — W-beam, thrie-beam, wire rope, Jersey, parapet, tubular handrail — either along the whole corridor or only where the embankment exceeds a trigger height. |
 | Bridges | Cantilevered deck with inset soffit, eleven superstructure families, four pier families, three railing families, bearing pads, abutments. |
+| Editing modes | Select (roads and bridges), Points, Junctions, Draw road, Draw bridge — switchable from the toolbar or with `1`–`5`. |
+| Multi-select | Shift-click or Shift-drag a marquee in Points / Junctions mode; the gizmo then moves the whole selection as one rigid body, intersections included. |
+| Street names | Every corridor is named and labelled in the viewport; junctions borrow the names of the streets that meet there. Rename in place from the outliner or the inspector. |
+| Default scene | Loads a worked network *plus* a gallery holding one span of every bridge family — nothing has to be drawn to see what the generator does. |
+| Performance | Per-corridor mesh cache: dragging one street reuses the meshes of every corridor whose cross-sections did not change. |
 | Output | Wavefront OBJ (Y-up, metres) and a `.roadworks.json` document you can reload. |
 
 ### Bridge catalogue
@@ -45,6 +50,16 @@ recipe, not a new mesh pipeline.
 
 | Input | Action |
 | --- | --- |
+| `1` `2` `3` | Select · Points · Junctions mode |
+| `4` `5` | Draw road · Draw bridge |
+| Click a road | Select that stretch — the span between two junctions — and highlight it |
+| Click a junction hub | Select the intersection and highlight its apron |
+| Shift-click | Add to / remove from the selection |
+| Shift-drag (Points / Junctions) | Marquee-select everything inside the rectangle |
+| `Ctrl`+`A` | Select all (points, junctions or corridors, depending on the mode) |
+| Double-click a name in the outliner | Rename the street in place |
+| `L` | Show / hide street-name labels |
+| `F` | Frame the selection, or the whole network when nothing is selected |
 | Right-drag | Mouse-look (Unreal-style flight) |
 | `W` `A` `S` `D` | Fly forward / left / back / right |
 | `Q` / `E` | Drop / rise |
@@ -55,11 +70,9 @@ recipe, not a new mesh pipeline.
 | Scroll | Zoom |
 | Click a junction hub, then drag | Move the whole intersection — every arm together |
 | Click a handle, then drag | Move a control point (axis + XY-plane gizmo) |
-| Shift-click a corridor ribbon | Insert a control point there |
-| `Delete` | Remove the selected control point (or the corridor, if only two remain) |
-| `1` / `2` / `3` | Select · Draw road · Draw bridge |
+| Shift-click a corridor ribbon (Select mode) | Insert a control point there |
+| `Delete` | Remove the selected control points (or the corridor, if fewer than two would remain) |
 | Click (draw mode), `Enter` | Place points · finish the corridor (`Esc` cancels) |
-| `F` | Frame the network |
 
 ## Layout
 
@@ -123,6 +136,14 @@ unreliable were *not* carried over; they were replaced:
 * **Bridges.** The deck is a cantilevered slab with a chamfered fascia and inset soffit rather than an extruded
   slab, and everything below it is a parametric family rather than one hard-coded shape.
 
+### Selecting a stretch of road
+
+A corridor is a document object, but the thing you usually mean by "this road" is the stretch between two
+intersections — which is a graph *edge*, created by the solver, not by you. Clicking the tarmac therefore resolves
+the hit point back to the nearest edge and highlights exactly that edge's trimmed cross-sections: the same geometry
+the mesher used, so the highlight ends precisely where the junction apron begins. Clicking an intersection
+highlights the junction instead, at its own corner radius.
+
 ### Moving a junction
 
 A junction is not a document object — it is an emergent property of the corridors that meet there — so "move the
@@ -132,11 +153,20 @@ inserts one at the node first. The drag then applies a single rigid translation 
 intersection moves as one body instead of tearing into separate arms. The selection is anchored to a position rather
 than a node id, because node ids are derived from coordinates and change the instant the junction moves.
 
+### Keeping a big scene interactive
+
+The default document carries roughly 128 000 triangles, and every edit re-solves the whole network — topology is
+global, so there is no honest way to rebuild one street in isolation. What *can* be reused is geometry: each graph
+edge is hashed on its own trimmed cross-sections plus its profile, bridge, guardrail and roadbed settings, and an
+unchanged hash means the cached mesh is appended instead of rebuilt. Dragging one control point in a 19-corridor
+scene re-meshes two or three edges and copies the rest, which is roughly a 40 % saving on the solve; normals are
+still welded across the merged groups afterwards, so shading continuity at junction mouths is unaffected.
+
 ## Verification
 
 ```bash
 node tools/smoke-test.mjs                      # topology, roadbeds, signage, paving, guardrails, gizmo maths, every bridge/pier/railing combination
-node tools/boot-test.mjs                       # boots the editor shell, clicks the toolbar, drags, draws, exports
+node tools/boot-test.mjs                       # boots the shell: modes, multi-select, marquee, highlights, names, drags, draws, exports
 node tools/preview-render.mjs preview.png iso  # software-rendered PNG of the demo network
 ```
 

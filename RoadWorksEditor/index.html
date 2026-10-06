@@ -76,7 +76,7 @@
     <div class="OutlinerBottom">
       <div class="PanelHeader">Selection</div>
       <p id="SelectionName">Nothing selected</p>
-      <p class="Small" id="SelectionDetail">Click a corridor to edit it · Shift-click a ribbon to insert a point</p>
+      <p class="Small" id="SelectionDetail">Click a road to select the stretch between its junctions · double-click a name to rename it</p>
     </div>
   </aside>
 
@@ -84,26 +84,32 @@
     <div class="ViewportToolbar">
       <span class="ViewTitle">Perspective</span>
       <span class="ToolbarDivider"></span>
-      <button id="ToolSelect" class="Active" title="Select &amp; move · 1">Select</button>
-      <button id="ToolRoad" title="Draw a road corridor · 2">Draw road</button>
-      <button id="ToolBridge" title="Draw a bridge corridor · 3">Draw bridge</button>
+      <button id="ToolSelect" class="Active" title="Select a road or bridge · 1">Select</button>
+      <button id="ToolPoint" title="Pick and transform control points · 2 · Shift-click or Shift-drag to multi-select">Points</button>
+      <button id="ToolJunction" title="Pick and transform intersections · 3 · Shift-click or Shift-drag to multi-select">Junctions</button>
+      <span class="ToolbarDivider"></span>
+      <button id="ToolRoad" title="Draw a road corridor · 4">Draw road</button>
+      <button id="ToolBridge" title="Draw a bridge corridor · 5">Draw bridge</button>
       <span class="ToolbarDivider"></span>
       <button id="ViewShaded" class="Active">Shaded</button>
       <button id="ViewWire">Wireframe</button>
       <button id="ViewSurfaces">Surfaces</button>
+      <span class="ToolbarDivider"></span>
+      <button id="ViewLabels" class="Active" title="Street name labels · L">Names</button>
       <span class="ToolbarSpace"></span>
       <button id="Frame" title="Frame network · F"><svg><use href="#FrameIcon"/></svg><span>Frame</span></button>
       <button id="ViewTop">Top</button>
       <button id="ViewIso">Iso</button>
     </div>
     <canvas id="SceneCanvas"></canvas>
+    <div id="Marquee" class="Marquee" hidden></div>
     <div class="ViewCaption">
       <span class="Eyebrow">ROAD NETWORK CONSTRUCTION</span>
       <h1>RoadWorks Editor</h1>
       <p>Draw corridors, raise them into bridges, and the solver merges every intersection it finds.</p>
     </div>
     <div class="ScaleBadge"><span></span><b>20 m</b></div>
-    <div class="ViewportHint">Right-drag look + <b>WASD</b>/QE fly <i>·</i> Shift sprint <i>·</i> Drag orbit <i>·</i> Middle-drag pan <i>·</i> Scroll zoom <i>·</i> Drag a junction hub to move the whole intersection <i>·</i> Shift-click a ribbon to insert <i>·</i> Del removes <i>·</i> F frames</div>
+    <div class="ViewportHint" id="ViewportHint">Right-drag look + <b>WASD</b>/QE fly <i>·</i> Drag orbit <i>·</i> Middle-drag pan <i>·</i> Scroll zoom <i>·</i> <b>1</b> select <b>2</b> points <b>3</b> junctions <b>4/5</b> draw <i>·</i> Shift-click adds to the selection <i>·</i> Del removes <i>·</i> F frames</div>
     <div class="Loading" id="Loading"><div class="Spinner"></div><strong>Building network</strong><p>Splitting corridors and welding junctions…</p></div>
     <div id="Failure" class="Failure" hidden></div>
   </section>

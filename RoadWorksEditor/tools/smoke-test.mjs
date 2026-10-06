@@ -291,6 +291,28 @@ console.log('\n— gizmo axis maths —');
   })());
 }
 
+console.log('\n— the per-corridor mesh cache —');
+{
+  const doc = [
+    corridor('ns', [[0, -60], [0, 0], [0, 60]]),
+    corridor('ew', [[-60, 0], [0, 0], [60, 0]]),
+    corridor('far', [[300, 300, 9], [420, 300, 9]], { family: 'bridge', bridge: { type: 'truss' } }),
+  ];
+  const cache = new Map();
+  const cold = buildNetwork(doc, {}, cache);
+  check('a cold build caches every corridor', cold.stats.cacheHits === 0 && cache.size === cold.stats.edges, `${cache.size} entries`);
+  const warm = buildNetwork(doc, {}, cache);
+  check('an unchanged network is served entirely from the cache', warm.stats.cacheHits === warm.stats.edges, `${warm.stats.cacheHits}/${warm.stats.edges}`);
+  check('cached output is identical', warm.stats.triangles === cold.stats.triangles, `${cold.stats.triangles} vs ${warm.stats.triangles}`);
+
+  doc[0].points[1].x += 3;
+  const moved = buildNetwork(doc, {}, cache);
+  check('moving one corridor only invalidates what it touched', moved.stats.cacheHits > 0 && moved.stats.cacheHits < moved.stats.edges, `${moved.stats.cacheHits}/${moved.stats.edges}`);
+  const fresh = buildNetwork(doc, {});
+  check('cached and uncached builds agree', fresh.stats.triangles === moved.stats.triangles, `${fresh.stats.triangles} vs ${moved.stats.triangles}`);
+  check('the cache never grows past the live edge count', cache.size === moved.stats.edges, `${cache.size} entries`);
+}
+
 console.log('\n— geometry hygiene —');
 {
   const net = buildNetwork([

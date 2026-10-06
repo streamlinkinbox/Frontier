@@ -117,6 +117,21 @@ export function buildGuardrail(edge, sections, out, cfg = {}) {
   return built ? { type: g.type, runs: built } : null;
 }
 
+// The rail itself is a smooth extrusion, so it does not need a ring at every 2 m cross-section. Thinning it to
+// ~3 m is invisible and roughly halves the triangles a long barrier costs.
+function thin(run, spacing = 3.0) {
+  if (run.length < 3) return run;
+  const out = [run[0]];
+  let last = run[0].distance;
+  for (let i = 1; i < run.length - 1; i++) {
+    if (run[i].distance - last < spacing) continue;
+    out.push(run[i]);
+    last = run[i].distance;
+  }
+  out.push(run[run.length - 1]);
+  return out;
+}
+
 function emitRun(spec, sections, from, to, side, g, profile) {
   const edgeHalf = side > 0 ? profile.leftTotalHalf : profile.rightTotalHalf;
   const pavement = side > 0 ? profile.pavementLeft : profile.pavementRight;
@@ -130,7 +145,7 @@ function emitRun(spec, sections, from, to, side, g, profile) {
     return { x: section.base.x + f.x * off, y: section.base.y + f.y * off, z: section.base.z + standZ + up };
   };
 
-  const run = sections.slice(from, to + 1);
+  const run = thin(sections.slice(from, to + 1));
   const h = Math.max(0.45, g.height);
 
   if (g.type === 'jersey' || g.type === 'parapet') {

@@ -46,9 +46,10 @@ const mk = (name, pts, extra = {}) => ({
 
 export const DEMO = [
   mk('Harbour Avenue', [[-150, 0], [-60, 0], [0, 0], [70, 6], [150, 24]], { preset: 'avenue', paving: 'flagstone', guardrail: { type: 'pedestrian', when: 'fill', fillTrigger: 2.5, height: 1.1 } }),
-  mk('Mill Street', [[0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { paving: 'concrete' }),
+  mk('Mill Street', [[0, -176], [0, -120], [0, -40], [0, 0], [0, 55], [10, 120]], { paving: 'concrete' }),
   mk('Quay Lane', [[-150, -70], [-80, -58], [-20, -40], [0, -40], [60, -52], [130, -46]], { preset: 'narrow', paving: 'brick' }),
   mk('Dock Alley', [[-80, -58], [-78, 0]], { preset: 'alley', paving: 'cobble' }),
+  mk('Harbour Expressway', [[-170, -176], [-60, -176], [60, -176], [170, -170]], { preset: 'highway', paving: 'asphaltWalk', guardrail: { type: 'thrie', when: 'always', offset: 0.45 } }),
   mk('Quarry Ramp', [[0, 55], [45, 62, 1.8], [95, 70, 4.4], [150, 74, 6.0]], { paving: 'granite', guardrail: { type: 'wbeam', when: 'fill', fillTrigger: 1.2 } }),
   mk('Estuary Viaduct', [[-130, 95, 11], [-60, 86, 11], [10, 92, 11], [80, 104, 11], [150, 96, 11]], {
     preset: 'highway',
@@ -57,7 +58,29 @@ export const DEMO = [
   }),
   mk('Mill Street Overpass', [[10, 120], [16, 150, 4], [20, 190, 11], [20, 230, 11]], {
     family: 'bridge',
-    bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, archRise: 7 },
+    bridge: { ...BRIDGE_DEFAULTS, type: 'arch', pierType: 'column', pierSpacing: 30, railing: 'parapet', archRise: 7 },
+  }),
+  // The bridge gallery: one span of every superstructure family, laid out in a grid north of the network.
+  ...[
+    ['Beam Viaduct', 'beam', 'street', { pierSpacing: 30 }],
+    ['Box Girder Span', 'box', 'avenue', { pierSpacing: 38, girderDepth: 1.6 }],
+    ['Slab Crossing', 'slab', 'street', { pierSpacing: 26 }],
+    ['Cantilever Reach', 'cantilever', 'avenue', { pierSpacing: 46, girderDepth: 1.4, pierType: 'wall' }],
+    ['Deck Arch', 'arch', 'street', { archRise: 7 }],
+    ['Bowstring Arch', 'tiedarch', 'street', { archRise: 8, cableCount: 9 }],
+    ['Stone Viaduct', 'masonry', 'narrow', { pierSpacing: 22, pierWidth: 2.0 }],
+    ['Warren Truss', 'truss', 'street', { trussHeight: 4.6 }],
+    ['Pratt Through Truss', 'throughtruss', 'street', { trussHeight: 5.2 }],
+    ['Suspension Span', 'suspension', 'avenue', { towerHeight: 24, cableCount: 10 }],
+    ['Cable-stay Span', 'cablestay', 'avenue', { towerHeight: 26, railing: 'jersey' }],
+  ].map(([name, type, preset, overrides], i) => {
+    const x = -248 + (i % 4) * 164;
+    const y = 300 + Math.floor(i / 4) * 82;
+    return mk(name, [[x, y, 12], [x + 104, y, 12]], {
+      preset,
+      family: 'bridge',
+      bridge: { ...BRIDGE_DEFAULTS, type, pierType: 'column', railing: 'parapet', ...overrides },
+    });
   }),
 ];
 
