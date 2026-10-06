@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="styles/Workspace.css">
 <link rel="icon" href="data:,">
 <!-- three.js is vendored (lib/) so the editor runs straight from a raw file host with no build step or CDN. -->
-<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=6"}}</script>
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js?v=7"}}</script>
 </head>
 <body>
 
@@ -104,7 +104,7 @@
     </div>
     <canvas id="SceneCanvas"></canvas>
     <div id="Marquee" class="Marquee" hidden></div>
-    <div class="ViewCaption">
+    <div class="ViewCaption" id="ViewCaption">
       <span class="Eyebrow">ROAD NETWORK CONSTRUCTION</span>
       <h1>RoadWorks Editor</h1>
       <p>Draw corridors, raise them into bridges, and the solver merges every intersection it finds.</p>
@@ -114,7 +114,7 @@
     <div class="Loading" id="Loading"><div class="Spinner"></div><strong>Building network</strong><p>Splitting corridors and welding junctions…</p></div>
     <div id="Failure" class="Failure" hidden></div>
     <!-- Long section of the selected corridor: chainage against elevation, with the design checks beside it. -->
-    <section class="ProfileDock" id="ProfileDock">
+    <section class="ProfileDock Collapsed" id="ProfileDock">
       <header class="ProfileHeader">
         <button id="ProfileToggle" class="ProfileToggle" title="Show or hide the vertical alignment · V">Vertical alignment</button>
         <span class="ProfileTitle" id="ProfileSubject">No corridor selected</span>
@@ -166,6 +166,6 @@
 </footer>
 
 <!-- ?v= is a cache buster: CDNs such as raw.githack serve branch URLs from cache. Bump it on release. -->
-<script type="module" src="src/App.js?v=6"></script>
+<script type="module" src="src/App.js?v=7"></script>
 </body>
 </html>

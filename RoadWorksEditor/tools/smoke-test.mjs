@@ -434,6 +434,16 @@ console.log('\n— slip roads —');
   check('the fork node is flagged as a fork', !!fork);
   check('a fork is not trimmed back like a corner', fork && fork.cornerRadius < 20, `got ${fork?.cornerRadius}`);
   check('no stop line is painted at a merge', net.stats.signs === 0);
+  // The taper used to be a free Hermite between the ramp end and a point up the motorway: it swung across the
+  // centreline and back, and every crossing became a node that sawed the mainline into pieces.
+  const forks = [...net.graph.nodes.values()].filter((n) => n.fork);
+  check('the ramp attaches at exactly one fork', forks.length === 1, `${forks.length}`);
+  const mainEdges = [...net.graph.edges.values()].filter((e) => e.sourceId === 'motorway');
+  check('the mainline is split once, not shredded', mainEdges.length === 2, `${mainEdges.length} edges`);
+  const rampEdges = [...net.graph.edges.values()].filter((e) => e.sourceId === 'offramp');
+  check('the ramp stays one piece', rampEdges.length === 1, `${rampEdges.length} edges`);
+  const strayed = rampEdges[0].points.some((p) => p.y > 0.2);
+  check('the taper never crosses the motorway centreline', !strayed);
   const detached = buildNetwork([mainline, corridor('far', [[0, -60], [60, -66], [120, -86]], { preset: 'narrow' })]);
   check('a road that merely passes nearby is left alone', detached.stats.junctions === 0, `got ${detached.stats.junctions}`);
 }

@@ -119,7 +119,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ToolbarSpace { flex: 1 }
 .ViewTitle { font-size: 10px; color: #9b9fa9; padding-right: 3px }
 
-.ViewCaption { position: absolute; pointer-events: none; left: 24px; top: 64px; max-width: 350px; text-shadow: 0 1px 3px #0004 }
+.ViewCaption { position: absolute; pointer-events: none; left: 24px; top: 64px; max-width: 350px; text-shadow: 0 1px 3px #0004; transition: opacity .4s ease }
+.ViewCaption.Faded { opacity: 0 }
 .Eyebrow { font-size: 8px; letter-spacing: 2px; color: #8b8e95 }
 .ViewCaption h1 { font-size: 22px; font-weight: 500; color: #e0e0e1; margin: 7px 0 }
 .ViewCaption p { color: #989da6; line-height: 1.6; font-size: 11px; max-width: 320px; margin: 0 }

@@ -4,23 +4,23 @@
 // RoadWorks Editor shell: document state, the outliner / inspector bindings, pointer tooling and the rebuild pump.
 
 import * as THREE from 'three';
-import { Viewport } from './Viewport.js?v=6';
-import { buildNetwork } from './Network.js?v=6';
-import { toObj } from './MeshSpec.js?v=6';
-import { sampleSpline, closestOnPolyline } from './Spline.js?v=6';
-import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=6';
-import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=6';
-import { GRAPH_DEFAULTS } from './Graph.js?v=6';
-import { ROADBED_DEFAULTS } from './Roadbed.js?v=6';
-import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=6';
-import { SIGNAGE_DEFAULTS } from './Signs.js?v=6';
-import { PAVING_PATTERNS } from './Textures.js?v=6';
-import { ROAD_SURFACES } from './Surfaces.js?v=6';
-import { MARKING_DEFAULTS } from './Markings.js?v=6';
-import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=6';
-import { ProfileDock } from './ProfileDock.js?v=6';
-import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=6';
-import { DRAINAGE_DEFAULTS } from './Drainage.js?v=6';
+import { Viewport } from './Viewport.js?v=7';
+import { buildNetwork } from './Network.js?v=7';
+import { toObj } from './MeshSpec.js?v=7';
+import { sampleSpline, closestOnPolyline } from './Spline.js?v=7';
+import { ROAD_PRESETS, BRIDGE_TYPES, PIER_TYPES, RAILING_TYPES } from './Profiles.js?v=7';
+import { BRIDGE_DEFAULTS } from './BridgeMesh.js?v=7';
+import { GRAPH_DEFAULTS } from './Graph.js?v=7';
+import { ROADBED_DEFAULTS } from './Roadbed.js?v=7';
+import { GUARDRAIL_DEFAULTS, GUARDRAIL_TYPES } from './Guardrail.js?v=7';
+import { SIGNAGE_DEFAULTS } from './Signs.js?v=7';
+import { PAVING_PATTERNS } from './Textures.js?v=7';
+import { ROAD_SURFACES } from './Surfaces.js?v=7';
+import { MARKING_DEFAULTS } from './Markings.js?v=7';
+import { ROUNDABOUT_DEFAULTS } from './Roundabout.js?v=7';
+import { ProfileDock } from './ProfileDock.js?v=7';
+import { DRIVEWAY_DEFAULTS } from './Driveways.js?v=7';
+import { DRAINAGE_DEFAULTS } from './Drainage.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 let uid = 0;
@@ -735,6 +735,14 @@ function frameTarget() {
 // ── pointer tooling ───────────────────────────────────────────────────────────────────────────────────────────────
 
 let drag = null;
+
+// The masthead is a title card, not chrome: it fades the moment the user starts working in the viewport.
+function fadeCaption() {
+  const caption = $('ViewCaption');
+  if (caption && !caption.classList.contains('Faded')) caption.classList.add('Faded');
+}
+canvas.addEventListener('pointerdown', fadeCaption);
+canvas.addEventListener('wheel', fadeCaption, { passive: true });
 
 canvas.addEventListener('pointerdown', (event) => {
   canvas.setPointerCapture(event.pointerId);

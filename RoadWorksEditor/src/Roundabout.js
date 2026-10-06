@@ -9,8 +9,8 @@
 // with its give-way line. Nothing about the merging logic changes — which is exactly why entries stay watertight
 // on skewed and uneven arms.
 
-import { MeshSpec } from './MeshSpec.js?v=6';
-import { surfaceSampler } from './Markings.js?v=6';
+import { MeshSpec } from './MeshSpec.js?v=7';
+import { surfaceSampler } from './Markings.js?v=7';
 
 export const ROUNDABOUT_DEFAULTS = {
   islandRadius: 9.0, // kerb line of the central island

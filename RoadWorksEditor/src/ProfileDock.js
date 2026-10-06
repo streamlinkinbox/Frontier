@@ -8,7 +8,7 @@
 // that fails its design checks shaded behind it. Vertical exaggeration is a view setting — a 4 % grade is invisible
 // at 1:1 — and the figures quoted are always the true ones.
 
-import { profileOf, designChecks, profileSummary, DESIGN_SPEEDS } from './Alignment.js?v=6';
+import { profileOf, designChecks, profileSummary, DESIGN_SPEEDS } from './Alignment.js?v=7';
 
 const PAD = { left: 46, right: 14, top: 14, bottom: 22 };
 
@@ -30,7 +30,9 @@ export class ProfileDock {
     this.hover = -1;
     this.designSpeed = 60;
     this.exaggeration = 5;
-    this.collapsed = false;
+    // Starts closed: an empty long section is a 172 px band of nothing across the foot of the viewport. The header
+    // strip stays, so it is one click (or V) away.
+    this.collapsed = true;
 
     if (this.speedSelect) {
       this.speedSelect.innerHTML = '';
@@ -75,6 +77,8 @@ export class ProfileDock {
   setCorridor(corridor, samples) {
     this.corridor = corridor;
     this.samples = samples && samples.length >= 2 ? samples : null;
+    // Nothing selected means nothing to plot, so fold the dock away rather than leaving an empty plot open.
+    if (!this.corridor && !this.collapsed) this.setCollapsed(true);
     this.draw();
   }
 

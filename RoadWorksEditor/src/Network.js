@@ -7,20 +7,20 @@
 // Pavement is split into one group per paving pattern in use — `pavement#brick@1` and friends — so a single draw
 // call still covers every corridor laid in the same material while each pattern keeps its own texture.
 
-import { MeshSpec } from './MeshSpec.js?v=6';
-import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=6';
-import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=6';
-import { buildJunctionMesh } from './JunctionMesh.js?v=6';
-import { buildBridgeMesh } from './BridgeMesh.js?v=6';
-import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=6';
-import { buildJunctionFurniture } from './Signs.js?v=6';
-import { buildGuardrail } from './Guardrail.js?v=6';
-import { surfaceGroup } from './Surfaces.js?v=6';
-import { buildLaneDetail, paintYellowBox } from './Markings.js?v=6';
-import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=6';
-import { buildMerges } from './Merge.js?v=6';
-import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=6';
-import { buildDrainage } from './Drainage.js?v=6';
+import { MeshSpec } from './MeshSpec.js?v=7';
+import { buildGraph, nodeGeneratesJunction, GRAPH_DEFAULTS } from './Graph.js?v=7';
+import { buildMarkings, buildSegmentMesh, sectionsForEdge } from './RoadMesh.js?v=7';
+import { buildJunctionMesh } from './JunctionMesh.js?v=7';
+import { buildBridgeMesh } from './BridgeMesh.js?v=7';
+import { buildRoadbedMesh, buildApronSkirt, buildBridgeApproachFill } from './Roadbed.js?v=7';
+import { buildJunctionFurniture } from './Signs.js?v=7';
+import { buildGuardrail } from './Guardrail.js?v=7';
+import { surfaceGroup } from './Surfaces.js?v=7';
+import { buildLaneDetail, paintYellowBox } from './Markings.js?v=7';
+import { buildRoundabout, buildSplitterIsland } from './Roundabout.js?v=7';
+import { buildMerges } from './Merge.js?v=7';
+import { buildDriveways, drivewayWindows, kerbDropFn } from './Driveways.js?v=7';
+import { buildDrainage } from './Drainage.js?v=7';
 
 export const GROUP_NAMES = [
   'road', 'curb', 'pavement', 'markings', 'markingsYellow', 'driveway',

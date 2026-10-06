@@ -14,16 +14,16 @@
 // Crossings are only merged when the two corridors are at a similar elevation; anything separated vertically becomes a
 // grade separation (an overpass) and is left for the bridge generator.
 
-import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=6';
-import { dedupe, polylineLength } from './Polyline.js?v=6';
-import { sampleSpline } from './Spline.js?v=6';
-import { resolveProfile } from './Profiles.js?v=6';
-import { MARKING_DEFAULTS } from './Markings.js?v=6';
-import { resolveDriveways } from './Driveways.js?v=6';
-import { resolveDrainage } from './Drainage.js?v=6';
-import { resolveRoadbed } from './Roadbed.js?v=6';
-import { resolveGuardrail } from './Guardrail.js?v=6';
-import { outerRadius, resolveRoundabout } from './Roundabout.js?v=6';
+import { clamp, dist, distXY, lerp, norm, sub, vec } from './Vec.js?v=7';
+import { dedupe, polylineLength } from './Polyline.js?v=7';
+import { sampleSpline } from './Spline.js?v=7';
+import { resolveProfile } from './Profiles.js?v=7';
+import { MARKING_DEFAULTS } from './Markings.js?v=7';
+import { resolveDriveways } from './Driveways.js?v=7';
+import { resolveDrainage } from './Drainage.js?v=7';
+import { resolveRoadbed } from './Roadbed.js?v=7';
+import { resolveGuardrail } from './Guardrail.js?v=7';
+import { outerRadius, resolveRoundabout } from './Roundabout.js?v=7';
 
 export const GRAPH_DEFAULTS = {
   sampleStep: 2.0, // m between polyline samples
@@ -346,27 +346,53 @@ export function attachSlipRoads(samples, cfg) {
         y: hostA.y + (hostB.y - hostA.y) * near.t,
         z: near.z,
       };
-      const taper = clamp(near.dist * (cfg.slipTaper ?? 11), 18, cfg.slipRun ?? 220);
+
+      // The taper is built in the host's own frame — distance along, offset across — rather than as a free curve in
+      // plan. That matters: a plain Hermite between the two endpoints happily swings across the host centreline and
+      // back, and every one of those crossings becomes a spurious node that saws the motorway into pieces. Solving
+      // only for the offset, with a cubic that reaches zero with zero slope, keeps the ramp on its own side of the
+      // road for the whole taper and lands it tangentially on the centreline.
+      const normal = { x: -hostDir.y, y: hostDir.x };
+      const offset0 = (p.x - proj.x) * normal.x + (p.y - proj.y) * normal.y;
+      const sideSign = offset0 >= 0 ? 1 : -1;
+      // The ramp's own heading, resolved into the host frame.
+      const alongRate = dir.x * hostDir.x + dir.y * hostDir.y;
+      const acrossRate = dir.x * normal.x + dir.y * normal.y;
+      // How far along the host the ramp would reach the centreline if it simply kept going straight. Stretching the
+      // taper past that point only buys a stretch of ramp lying exactly on top of the motorway, so it is the cap.
+      const converge = alongRate > 0.05 && acrossRate * sideSign < -1e-4
+        ? Math.abs(offset0) / Math.abs(acrossRate / alongRate)
+        : Infinity;
+      const taper = clamp(Math.min(near.dist * (cfg.slipTaper ?? 11), converge), 18, cfg.slipRun ?? 220);
       const target = { x: proj.x + hostDir.x * taper, y: proj.y + hostDir.y * taper, z: proj.z + hostDir.z * taper };
-      // Hermite: P(s) with end tangents scaled by the taper length.
-      const m0 = { x: dir.x * taper, y: dir.y * taper, z: dir.z * taper };
-      const m1 = { x: hostDir.x * taper, y: hostDir.y * taper, z: hostDir.z * taper };
+      let slope = alongRate > 0.05 ? (acrossRate / alongRate) * taper : 0;
+      // Clamp the start slope so the cubic cannot overshoot through zero: the extremum of the Hermite stays on side
+      // as long as the incoming slope does not drive the curve past the axis.
+      const slopeLimit = Math.abs(offset0) * 3;
+      if (slope * sideSign < -slopeLimit) slope = -slopeLimit * sideSign;
+      if (slope * sideSign > slopeLimit) slope = slopeLimit * sideSign;
       const steps = Math.max(2, Math.round(taper / (cfg.sampleStep || 2)));
       const added = [];
       for (let i = 1; i <= steps; i++) {
         const t = i / steps;
         const h00 = 2 * t * t * t - 3 * t * t + 1;
         const h10 = t * t * t - 2 * t * t + t;
-        const h01 = -2 * t * t * t + 3 * t * t;
-        const h11 = t * t * t - t * t;
-        added.push({
-          x: h00 * p.x + h10 * m0.x + h01 * target.x + h11 * m1.x,
-          y: h00 * p.y + h10 * m0.y + h01 * target.y + h11 * m1.y,
-          z: h00 * p.z + h10 * m0.z + h01 * target.z + h11 * m1.z,
-        });
+        // offset(0) = offset0 with the ramp's own slope, offset(1) = 0 with zero slope (running parallel to the host)
+        const offset = h00 * offset0 + h10 * slope;
+        const s = taper * t;
+        const station = {
+          x: proj.x + hostDir.x * s,
+          y: proj.y + hostDir.y * s,
+          z: proj.z + hostDir.z * s + (p.z - proj.z) * h00,
+        };
+        // The moment the ramp has converged, stop: a taper that runs on along the centreline would be coincident
+        // with the motorway, which the crossing solver reads as a string of spurious nodes.
+        if (offset * sideSign <= 0.5 || t === 1) {
+          added.push(station);
+          break;
+        }
+        added.push({ x: station.x + normal.x * offset, y: station.y + normal.y * offset, z: station.z });
       }
-      // The last point must land on the host centreline so the solver welds a node there.
-      added.push({ ...target });
       if (atEnd) sample.points = [...pts, ...added];
       else sample.points = [...added.reverse(), ...pts];
     }
