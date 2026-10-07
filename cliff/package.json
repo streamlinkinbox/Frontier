@@ -1,0 +1,11 @@
+{
+  "name": "frontier-cliff-forge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Procedural quarry / terracing cliff generator - geometry only, no textures.",
+  "scripts": {
+    "test": "node test/smoke.mjs",
+    "serve": "python3 -m http.server 8080"
+  }
+}
