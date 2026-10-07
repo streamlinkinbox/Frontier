@@ -147,7 +147,15 @@ function regenerate(keepCamera = true) {
   showLoading(true);
   // let the browser paint the loading state before the (synchronous) build
   requestAnimationFrame(() => {
-    const result = generateCliff(params);
+    let result;
+    try {
+      result = generateCliff(params);
+    } catch (err) {
+      console.error(err);
+      showLoading(false);
+      toast('Generation failed: ' + err.message);
+      return;
+    }
     clearMeshes();
 
     const terrain = new THREE.Mesh(result.terrainGeo, groundMat);
@@ -200,6 +208,8 @@ function regenerate(keepCamera = true) {
 
     renderer.shadowMap.enabled = params.shadows;
     sun.castShadow = params.shadows;
+    rockMat.needsUpdate = true;
+    groundMat.needsUpdate = true;
     controls.autoRotate = params.autoRotate;
 
     if (!keepCamera || !current) frameCamera(result, 'overview', false);
