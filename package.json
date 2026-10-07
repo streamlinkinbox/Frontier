@@ -1,0 +1,1 @@
+{"name":"frontier-quarry","version":"1.0.0","type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","test":"node --test"},"dependencies":{"lucide":"^0.468.0","three":"^0.180.0","three-mesh-bvh":"^0.9.15","vite":"^7.1.0"}}
