@@ -1,0 +1,906 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>FRONTIER · Chat</title>
+<style>
+/* Optional: drop the real file at app/fonts/ and this upgrades automatically. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2) format('woff2')}
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --blue:#1f5eff; --blue-soft:#4d80ff; --blue-deep:#1a4fe0;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --r-pill:999px;
+}
+[data-theme="dark"]{
+  --stage1:#d8dade; --stage2:#c3c6cc;
+  --shell:#0e0e0e; --rail:#070707; --side:#0e0e0e; --main:#151515; --ctx:#0e0e0e;
+  --card:#1e1e1e; --card2:#242424; --field:#000; --hover:rgba(255,255,255,.055); --sel:rgba(255,255,255,.085);
+  --text:#fff; --dim:#8c8c8c; --faint:#5a5a5a;
+  --stroke:rgba(255,255,255,.07); --stroke2:rgba(255,255,255,.13);
+  --bub:#242424; --shadow:0 50px 100px -30px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06);
+}
+[data-theme="light"]{
+  --stage1:#e9ebef; --stage2:#d4d7de;
+  --shell:#ffffff; --rail:#f4f5f7; --side:#ffffff; --main:#fafbfc; --ctx:#ffffff;
+  --card:#f1f2f5; --card2:#e8eaee; --field:#f1f2f5; --hover:rgba(0,0,0,.04); --sel:rgba(31,94,255,.08);
+  --text:#14151a; --dim:#6a6e78; --faint:#9aa0ab;
+  --stroke:rgba(0,0,0,.08); --stroke2:rgba(0,0,0,.14);
+  --bub:#eef0f3; --shadow:0 50px 100px -30px rgba(40,50,80,.3),0 0 0 1px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:linear-gradient(150deg,var(--stage1),var(--stage2));font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow:hidden;font-feature-settings:"cv11","ss01";transition:background .4s}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+svg{display:block}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+@keyframes rowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.9)}}
+@keyframes blink{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,94,255,.5)}70%{box-shadow:0 0 0 7px rgba(31,94,255,0)}}
+@keyframes livedot{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ============================================================
+   WINDOW SHELL
+   ============================================================ */
+.stage{position:fixed;inset:0;display:grid;place-items:center;padding:3vh 3vw}
+.app{width:min(1240px,100%);height:min(820px,94vh);background:var(--shell);border-radius:20px;overflow:hidden;
+     box-shadow:var(--shadow);display:grid;grid-template-columns:70px 272px minmax(0,1fr) 262px;transition:background .3s}
+
+/* ============================================================
+   RAIL
+   ============================================================ */
+.rail{background:var(--rail);display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 0 16px;border-right:1px solid var(--stroke);transition:background .3s}
+.lights{display:flex;gap:6px;align-self:flex-start;margin:2px 0 14px 15px}
+.lights i{width:11px;height:11px;border-radius:50%;display:block}
+.lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+.rbtn{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:var(--dim);background:transparent;
+      transition:background .16s,color .16s,transform .14s var(--ease);position:relative;flex:none}
+.rbtn:hover{background:var(--hover);color:var(--text)}
+.rbtn:active{transform:scale(.93)}
+.rbtn.on{background:var(--blue);color:#fff}
+.rbtn.on:hover{background:var(--blue-soft)}
+.rbtn .ic{width:18px;height:18px}
+.rbtn .bdg{position:absolute;top:4px;right:4px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--blue);
+           color:#fff;font-size:8.5px;font-weight:700;display:grid;place-items:center;border:2px solid var(--rail)}
+.rbtn.on .bdg{background:#fff;color:var(--blue)}
+.rail .sp{flex:1}
+.rail .brand{width:34px;height:34px;border-radius:11px;background:var(--blue);display:grid;place-items:center;margin-bottom:10px;flex:none}
+.rail .brand svg{width:17px;height:17px}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.side{background:var(--side);border-right:1px solid var(--stroke);display:flex;flex-direction:column;min-width:0;padding:18px 16px 14px;transition:background .3s}
+.field{height:40px;border-radius:var(--r-pill);background:var(--field);border:1px solid var(--stroke);display:flex;align-items:center;gap:9px;padding:0 14px;min-width:0;transition:border-color .16s,background .3s}
+.field:focus-within{border-color:var(--blue)}
+.field input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:12.5px}
+.field input::placeholder{color:var(--faint)}
+.field .ic{color:var(--faint);width:15px;height:15px}
+.newchat{height:44px;border-radius:12px;background:var(--blue);color:#fff;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;flex:none;transition:background .16s,transform .13s var(--ease)}
+.newchat:hover{background:var(--blue-soft)}
+.newchat:active{transform:scale(.985)}
+.lhead{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 8px;flex:none}
+.lhead span{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.lhead b{font-size:10px;color:var(--blue);font-weight:700}
+.threads{flex:1;min-height:0;overflow:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:1px;margin:0 -8px;padding:0 8px 8px}
+.threads::-webkit-scrollbar{display:none}
+.th{display:flex;align-items:center;gap:11px;padding:10px;border-radius:13px;text-align:left;width:100%;transition:background .15s;animation:rowIn .3s var(--ease) both;position:relative}
+.th:hover{background:var(--hover)}
+.th.on{background:var(--sel)}
+.av{position:relative;flex:none}
+.dot{border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;letter-spacing:.02em;width:38px;height:38px;font-size:12px;overflow:hidden}
+.th .dot{width:38px;height:38px;font-size:12px}
+.pres{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;border:2.5px solid var(--side);background:var(--faint)}
+.pres.on{background:#2fd27a}.pres.away{background:#ffb020}
+.tmain{flex:1;min-width:0}
+.ttop{display:flex;align-items:baseline;gap:7px}
+.ttop b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.tprev{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;display:flex;align-items:center;gap:5px}
+.tprev .ic{width:12px;height:12px;color:var(--faint)}
+.th.un .ttop b{font-weight:700}
+.th.un .tprev{color:var(--text)}
+.tr{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.tr i{font-style:normal;font-size:10px;color:var(--faint);white-space:nowrap}
+.pill{min-width:19px;height:19px;padding:0 6px;border-radius:10px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
+.pill.live{background:rgba(255,80,80,.14);color:#ff5c5c;display:inline-flex;gap:5px;align-items:center;font-size:8.5px;letter-spacing:.07em}
+.pill.live i{width:5px;height:5px;border-radius:50%;background:#ff5c5c;animation:livedot 1.4s infinite;color:transparent}
+.empty{padding:34px 12px;text-align:center;font-size:12px;color:var(--faint);line-height:1.7}
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+.main{background:var(--main);display:flex;flex-direction:column;min-width:0;transition:background .3s}
+.top{height:66px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--stroke)}
+.top .dot{width:36px;height:36px;font-size:12px}
+.ttl{min-width:0;flex:1}
+.ttl b{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.ttl span{font-size:11px;color:var(--dim);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-style:normal;border:1px solid var(--stroke2);border-radius:7px;padding:2.5px 7px;font-size:9px;font-weight:700;letter-spacing:.05em;color:var(--dim);white-space:nowrap}
+.tag.blue{border-color:transparent;background:var(--blue);color:#fff}
+.stack{display:flex;align-items:center;flex:none}
+.stack .dot{width:30px;height:30px;font-size:10px;border:2.5px solid var(--main);margin-left:-10px}
+.stack .dot:first-child{margin-left:0}
+.stack .add{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;margin-left:-10px;border:2.5px solid var(--main);transition:transform .14s var(--ease)}
+.stack .add:hover{transform:scale(1.1)}
+.stack .add .ic{width:13px;height:13px;stroke-width:2.6}
+.ibtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--dim);transition:background .15s,color .15s,transform .14s var(--ease);flex:none}
+.ibtn:hover{background:var(--hover);color:var(--text)}
+.ibtn:active{transform:scale(.92)}
+.ibtn.on{background:var(--blue);color:#fff}
+
+.msgs{flex:1;min-height:0;overflow:auto;padding:16px 22px 10px;display:flex;flex-direction:column;scrollbar-width:none}
+.msgs::-webkit-scrollbar{display:none}
+.day{align-self:center;margin:10px 0 14px;padding:4px 13px;border-radius:10px;background:var(--card);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);flex:none}
+.sys{align-self:center;text-align:center;font-size:11px;color:var(--faint);margin:9px 0;max-width:80%;flex:none;animation:pop .22s var(--ease);line-height:1.6}
+.sys b{color:var(--dim);font-weight:600}
+.sys em{font-style:normal;color:var(--faint);opacity:.6;margin-left:7px;font-family:var(--mono);font-size:9.5px}
+
+.grp{display:flex;gap:10px;max-width:76%;flex:none;margin-top:14px}
+.grp.out{align-self:flex-end;flex-direction:row-reverse}
+.grp .av{align-self:flex-end}
+.grp .av .dot{width:30px;height:30px;font-size:10px}
+.grp .av.gh{visibility:hidden}
+.bcol{min-width:0;display:flex;flex-direction:column;gap:4px}
+.grp.out .bcol{align-items:flex-end}
+.who{font-size:11.5px;font-weight:600;color:var(--blue-soft);margin:0 3px 2px;display:flex;align-items:center;gap:7px}
+.who em{font-style:normal;color:var(--faint);font-weight:500;font-size:10px}
+.bwrap{position:relative;display:flex;align-items:center;gap:7px;max-width:100%}
+.grp.out .bwrap{flex-direction:row-reverse}
+.bubble{padding:11px 14px;border-radius:16px;font-size:12.5px;line-height:1.5;background:var(--bub);color:var(--text);overflow-wrap:anywhere;min-width:0;animation:pop .22s var(--ease);border-bottom-left-radius:6px}
+.grp.out .bubble{background:var(--blue);color:#fff;border-bottom-left-radius:16px;border-bottom-right-radius:6px}
+.dots{opacity:0;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--faint);transition:opacity .15s,background .15s,color .15s;flex:none}
+.bwrap:hover .dots{opacity:1}
+.dots:hover{background:var(--hover);color:var(--text)}
+.stamp{font-size:9.5px;color:var(--faint);margin:0 4px;display:flex;align-items:center;gap:5px}
+.stamp .ic{width:12px;height:12px;color:var(--blue-soft)}
+
+/* reactions */
+.rx{display:flex;gap:5px;flex-wrap:wrap;margin:2px 2px 0}
+.rxb{height:25px;padding:0 9px;border-radius:13px;background:var(--card);border:1px solid var(--stroke);display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--dim);transition:background .15s,border-color .15s,transform .13s var(--ease);animation:pop .2s var(--ease)}
+.rxb:hover{background:var(--card2);color:var(--text)}
+.rxb:active{transform:scale(.92)}
+.rxb.mine{border-color:var(--blue);background:rgba(31,94,255,.14);color:var(--text)}
+.rxb em{font-style:normal;font-size:12px}
+.rxadd{opacity:0;transition:opacity .15s}
+.bcol:hover .rxadd{opacity:1}
+
+/* featured voice card */
+.vcard{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;background:var(--card);min-width:430px;max-width:100%;animation:pop .24s var(--ease);border:1px solid var(--stroke)}
+.art{width:78px;height:78px;border-radius:13px;flex:none;position:relative;display:grid;place-items:center;overflow:hidden}
+.art .pbtn{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);color:#fff;display:grid;place-items:center;transition:transform .14s var(--ease),background .15s}
+.art .pbtn:hover{transform:scale(1.08);background:rgba(0,0,0,.62)}
+.art .pbtn .ic{width:14px;height:14px;fill:currentColor;stroke:none;margin-left:2px}
+.art .pbtn.ing .ic{margin-left:0}
+.vmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.vtop{display:flex;align-items:center;gap:9px}
+.vtop b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vtop .tm{margin-left:auto;font-size:10.5px;color:var(--faint);font-family:var(--mono);font-variant-numeric:tabular-nums;flex:none}
+.wave{display:flex;align-items:center;gap:2.5px;height:40px;cursor:pointer}
+.wave i{flex:1;min-width:2px;border-radius:2px;background:var(--stroke2);transition:background .12s}
+.wave i.done{background:var(--blue)}
+
+/* inline voice note */
+.vn{display:flex;align-items:center;gap:12px;padding:11px 15px 11px 11px;border-radius:16px;background:var(--bub);border-bottom-left-radius:6px;min-width:260px;animation:pop .22s var(--ease)}
+.grp.out .vn{background:var(--blue);border-bottom-left-radius:16px;border-bottom-right-radius:6px}
+.vn .pbtn{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;transition:transform .13s var(--ease)}
+.grp.out .vn .pbtn{background:#fff;color:var(--blue)}
+.vn .pbtn:hover{transform:scale(1.07)}
+.vn .pbtn .ic{width:13px;height:13px;fill:currentColor;stroke:none;margin-left:2px}
+.vn .pbtn.ing .ic{margin-left:0}
+.vn .wave{flex:1;height:26px;min-width:0}
+.vn .wave i{background:var(--stroke2)}
+.grp.out .vn .wave i{background:rgba(255,255,255,.35)}
+.grp.out .vn .wave i.done{background:#fff}
+.vn .tm{font-size:10.5px;color:var(--faint);font-family:var(--mono);flex:none}
+.grp.out .vn .tm{color:rgba(255,255,255,.75)}
+
+/* media grid */
+.media{display:grid;grid-template-columns:repeat(4,68px);gap:7px;margin-top:3px}
+.tile{position:relative;aspect-ratio:1;border-radius:13px;overflow:hidden;border:1px solid var(--stroke);transition:transform .17s var(--ease);animation:pop .24s var(--ease) both}
+.tile:hover{transform:scale(1.07);z-index:2}
+.tile b{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:700;backdrop-filter:blur(3px)}
+.tile .lbl{position:absolute;left:0;right:0;bottom:0;padding:12px 5px 5px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:8px;font-weight:700;letter-spacing:.04em;color:#fff;text-align:center}
+
+/* invite */
+.inv{width:310px;border-radius:16px;background:var(--card);border:1px solid var(--stroke);overflow:hidden;animation:pop .24s var(--ease)}
+.invt{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--stroke)}
+.invi{width:34px;height:34px;border-radius:11px;background:var(--blue);display:grid;place-items:center;flex:none;color:#fff}
+.invt div{min-width:0;flex:1}
+.invt b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.invt span{font-size:10.5px;color:var(--dim);display:block;margin-top:2px}
+.invm{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--stroke)}
+.invm div{padding:9px 12px;border-right:1px solid var(--stroke)}
+.invm div:last-child{border-right:0}
+.invm small{font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);display:block;font-weight:700}
+.invm b{font-size:12px;font-weight:600;display:block;margin-top:3px;font-variant-numeric:tabular-nums}
+.inva{display:flex;gap:7px;padding:11px 12px}
+.ib{flex:1;height:33px;border-radius:17px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,transform .13s var(--ease),color .15s}
+.ib.y{background:var(--blue);color:#fff}.ib.y:hover{background:var(--blue-soft)}
+.ib.n{border:1px solid var(--stroke2);color:var(--dim)}.ib.n:hover{color:var(--text);background:var(--hover)}
+.ib:active{transform:scale(.97)}
+.invd{padding:11px 14px;font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.invd.ok{color:#2fd27a}.invd.no{color:var(--faint)}
+.invd .ic{width:14px;height:14px}
+
+.typing .bubble{display:flex;gap:4px;padding:14px;align-items:center}
+.typing .bubble i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:blink 1.2s infinite}
+.typing .bubble i:nth-child(2){animation-delay:.2s}.typing .bubble i:nth-child(3){animation-delay:.4s}
+
+/* composer */
+.comp{flex:none;padding:12px 20px 18px}
+.crep{display:flex;align-items:center;gap:9px;margin-bottom:9px;padding:8px 10px 8px 12px;border-radius:11px;background:var(--card);border-left:2.5px solid var(--blue);font-size:11.5px;color:var(--dim)}
+.crep b{color:var(--text);font-weight:600}
+.crep span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbar{display:flex;align-items:center;gap:10px;height:52px;padding:0 8px 0 16px;border-radius:15px;background:var(--card);border:1px solid var(--stroke);transition:border-color .16s}
+.cbar:focus-within{border-color:var(--blue)}
+.cbar input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:13px}
+.cbar input::placeholder{color:var(--faint)}
+.cact{display:flex;align-items:center;gap:2px;flex:none}
+.send{width:38px;height:38px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;margin-left:4px;transition:background .15s,transform .13s var(--ease),opacity .15s}
+.send:hover{background:var(--blue-soft)}
+.send:active{transform:scale(.93)}
+.send[disabled]{opacity:.3;pointer-events:none}
+.mic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--dim);flex:none;transition:background .15s,color .15s}
+.mic:hover{background:var(--hover);color:var(--text)}
+.mic.live{background:var(--blue);color:#fff;animation:pulse 1.2s infinite}
+
+/* ============================================================
+   CONTEXT PANEL
+   ============================================================ */
+.ctx{background:var(--ctx);border-left:1px solid var(--stroke);display:flex;flex-direction:column;min-width:0;transition:background .3s}
+.me{height:66px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--stroke)}
+.me .dot{width:36px;height:36px;font-size:12px}
+.me div{min-width:0;flex:1}
+.me b{font-size:12.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me small{font-size:10px;color:var(--dim);display:block;margin-top:2px}
+.moon{width:34px;height:34px;border-radius:50%;background:var(--card);display:grid;place-items:center;color:var(--dim);flex:none;transition:background .15s,color .15s,transform .3s var(--ease)}
+.moon:hover{background:var(--card2);color:var(--text)}
+.moon:active{transform:rotate(-30deg)}
+.cbody{flex:1;min-height:0;overflow:auto;scrollbar-width:none;padding:16px}
+.cbody::-webkit-scrollbar{display:none}
+.sec{font-size:13px;font-weight:600;margin:0 2px 11px;display:flex;align-items:center;justify-content:space-between}
+.sec i{font-style:normal;font-size:10px;color:var(--faint);font-weight:600}
+.todo{display:flex;flex-direction:column;gap:7px;margin-bottom:22px}
+.ti{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:13px;background:var(--card);font-size:12px;font-weight:500;text-align:left;width:100%;transition:background .15s,transform .13s var(--ease)}
+.ti:hover{background:var(--card2)}
+.ti:active{transform:scale(.985)}
+.ti span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ti em{font-style:normal;font-size:15px;flex:none;line-height:1}
+.ti.done span{text-decoration:line-through;color:var(--faint)}
+.ti.done em{opacity:.4}
+.clips{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.clip{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;transition:transform .17s var(--ease)}
+.clip:hover{transform:scale(1.05);z-index:2}
+.clip .lbl{position:absolute;left:0;right:0;bottom:0;padding:14px 5px 6px;background:linear-gradient(transparent,rgba(0,0,0,.82));font-size:8px;font-weight:700;color:#fff;text-align:center;letter-spacing:.04em}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,12px);padding:11px 17px;border-radius:12px;background:var(--text);color:var(--shell);font-size:12.5px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .35s var(--ease);white-space:nowrap;box-shadow:0 14px 40px -12px rgba(0,0,0,.6);z-index:200}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast i{font-style:normal;opacity:.55;margin-left:9px;font-size:11px;font-weight:500}
+
+@media (max-width:1180px){ .app{grid-template-columns:70px 250px minmax(0,1fr)} .ctx{display:none} }
+@media (max-width:900px){ .app{grid-template-columns:70px minmax(0,1fr)} .side{display:none} }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="app">
+
+    <!-- ================= RAIL ================= -->
+    <nav class="rail">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M12 2l9 5.5v9L12 22l-9-5.5v-9z"/></svg></div>
+      <button class="rbtn" data-nav="Home" title="Home"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></button>
+      <button class="rbtn" data-nav="Lobby" title="Lobby"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></svg></button>
+      <button class="rbtn on" data-nav="Chat" title="Chat"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.4 7.2L4 21l1.8-5.1A8 8 0 1 1 21 12z"/></svg><span class="bdg" id="railBdg">0</span></button>
+      <button class="rbtn" data-nav="Teams" title="Teams"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 11a3 3 0 1 0 0-6M18 20c0-2.5-1-4-2.5-4.6"/></svg></button>
+      <button class="rbtn" data-nav="Leaderboard" title="Leaderboard"><svg class="ic" viewBox="0 0 24 24"><path d="M8 21V10M16 21V4M4 21h16"/></svg></button>
+      <button class="rbtn" data-nav="Replays" title="Replays"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg></button>
+      <span class="sp"></span>
+      <button class="rbtn" data-nav="Settings" title="Settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.6 14H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.5 1.5l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></button>
+    </nav>
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="side">
+      <label class="field">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.4-3.4"/></svg>
+        <input id="search" type="text" placeholder="Search chat" spellcheck="false" autocomplete="off" />
+      </label>
+      <button class="newchat" id="btnNew" type="button">
+        <svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14M5 12h14"/></svg> Start new chat
+      </button>
+      <div class="lhead"><span>Messages</span><b id="unreadTot"></b></div>
+      <div class="threads" id="threads"></div>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <main class="main">
+      <header class="top" id="top"></header>
+      <div class="msgs" id="msgs"></div>
+      <div class="comp">
+        <div id="replyBar"></div>
+        <div class="cbar">
+          <button class="mic" id="btnMic" type="button" title="Hold to record">
+            <svg class="ic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+          </button>
+          <input id="input" type="text" placeholder="Type something..." maxlength="400" spellcheck="false" autocomplete="off" />
+          <div class="cact">
+            <button class="ibtn" id="btnClip" type="button" title="Attach a clip"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8.5" cy="10.5" r="1.7"/><path d="M21 16l-5-5-5 5"/></svg></button>
+            <button class="ibtn" id="btnPing" type="button" title="Race ping"><svg class="ic" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></button>
+            <button class="send" id="btnSend" type="button" disabled><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.1"><path d="M4 12l16-8-6 16-2.6-6.4L4 12z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= CONTEXT ================= -->
+    <aside class="ctx">
+      <div class="me">
+        <span class="av" id="meAv"></span>
+        <div><b>Nomvula D.</b><small>Racer · Tier 4</small></div>
+        <button class="moon" id="btnTheme" type="button" title="Toggle theme"></button>
+      </div>
+      <div class="cbody" id="cbody"></div>
+    </aside>
+
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const seed = s => { let a = 0; for (const c of s) a = (a * 31 + c.charCodeAt(0)) >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
+const pick = (rnd, arr) => arr[Math.floor(rnd() * arr.length)];
+
+const M = 60000, H = 3600000, D = 86400000;
+const now = () => Date.now();
+const clock = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function ago(t){
+  const s = (now() - t) / 1000;
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
+}
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+function dayLabel(t){
+  const a = new Date(t), b = new Date();
+  const diff = Math.round((new Date(b.getFullYear(), b.getMonth(), b.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / D);
+  return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : a.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+const ME = { display: 'Nomvula D.', initials: 'ND' };
+const AV = [['#1f5eff','#fff'],['#4d80ff','#fff'],['#123fb8','#fff'],['#8fb0ff','#0a1a4d'],['#2f3340','#fff'],['#424758','#fff'],['#e8edff','#1a3a8f'],['#1a4fe0','#fff']];
+const avatar = n => n === 'You' ? ['#1f5eff','#fff'] : AV[[...n].reduce((a, c) => a + c.charCodeAt(0), 0) % AV.length];
+const initials = n => n === 'You' ? ME.initials : n.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase();
+const dotEl = n => { const [bg, fg] = avatar(n); return `<span class="dot" style="background:${bg};color:${fg}">${esc(initials(n))}</span>`; };
+const GRAD = ['linear-gradient(135deg,#1f5eff,#0a1a4d)','linear-gradient(135deg,#4d80ff,#123fb8)','linear-gradient(135deg,#ff7a45,#c2410c)',
+  'linear-gradient(135deg,#8fb0ff,#1f5eff)','linear-gradient(135deg,#2fd27a,#047857)','linear-gradient(135deg,#e8edff,#4d80ff)',
+  'linear-gradient(135deg,#a855f7,#4c1d95)','linear-gradient(135deg,#ffb020,#b45309)'];
+const grad = k => GRAD[[...String(k)].reduce((a, c) => a + c.charCodeAt(0), 0) % GRAD.length];
+
+const IC = {
+  dots:  '<svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>',
+  check: '<svg class="ic" viewBox="0 0 24 24"><path d="M3 13l4 4 7-8"/><path d="M12 15l2 2 7-8"/></svg>',
+  flag:  '<svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></svg>',
+  mic:   '<svg class="ic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>',
+  img:   '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8.5" cy="10.5" r="1.7"/><path d="M21 16l-5-5-5 5"/></svg>',
+  play:  '<svg class="ic" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
+  pause: '<svg class="ic" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  phone: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/></svg>',
+  vid:   '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 11l6-3.5v9L15 13z"/></svg>',
+  pin:   '<svg class="ic" viewBox="0 0 24 24"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3-1-6z"/><path d="M12 14v7"/></svg>',
+  x:     '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  plus:  '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  smile: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>',
+  moon:  '<svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>',
+  sun:   '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+};
+
+const RX_SET = ['🔥','👏','😂','🏁','💙'];
+function wave(key, n = 48){
+  const rnd = seed('w-' + key);
+  return Array.from({ length: n }, (_, i) => {
+    const env = Math.sin((i / n) * Math.PI) * .7 + .3;
+    return Math.max(4, Math.round((0.2 + rnd() * 0.8) * env * 100));
+  });
+}
+
+/* ============================================================
+   DATA
+   ============================================================ */
+const RAW = [
+  { id:'apex', name:'Apex Racing Crew', kind:'team', unread:9, pres:'on', sub:'7 members · 4 online',
+    members:['SIPHO_X','MPHO.R','YUKI_N','LERATO.GT','THABO_77','KAI.SEVEN','NOVA_K'],
+    msgs:[
+      { who:'SIPHO_X', t:-1*D-3*H, text:'Right, Kyalami practice tonight. Who is in?' },
+      { who:'LERATO.GT', t:-1*D-2.6*H, text:'In. I need the laps, my sector 2 is a disaster.' },
+      { who:'MPHO.R', t:-1*D-2.4*H, text:'Same. Braking into Crowthorne is costing me three tenths every single lap.' },
+      { who:'SIPHO_X', t:-4.5*H, kind:'vcard', title:'Kyalami hot lap', tag:'RADIO', dur:27,
+        rx:{ '❤️':{n:12}, '🔥':{n:10}, '👏':{n:17} } },
+      { who:'YUKI_N', t:-4.2*H, text:'Listened twice. Brake 10m later and roll the entry — that is the whole trick.' },
+      { who:'MPHO.R', t:-3.9*H, text:'Okay that actually explains it. Trying tonight.' },
+      { who:'THABO_77', t:-2.2*H, kind:'media', text:'Clips from the last stint. The overtake on lap 6 is filthy.',
+        media:[{k:'apex-1',lbl:'LAP 6'},{k:'apex-2',lbl:'T4'},{k:'apex-3',lbl:'PIT'},{k:'apex-4',lbl:'+5',more:5}],
+        rx:{ '🏁':{n:6}, '🔥':{n:3} } },
+      { who:'You', t:-1.8*H, text:'That dive into T4 is so late. Teach me.' },
+      { who:'THABO_77', t:-1.6*H, text:'Trail brake and be brave. Mostly brave.' },
+      { who:'SIPHO_X', t:-22*M, kind:'invite', inv:{ title:'Sunday sprint', track:'Kyalami', laps:'8 laps', grid:'6 / 12', type:'Sprint' } },
+      { who:'YUKI_N', t:-11*M, text:'Joined. Grid is filling fast, do not sleep on it.' },
+    ] },
+  { id:'kya', name:'Sprint Series · Kyalami', kind:'lobby', unread:0, live:true, pres:'on', sub:'Race in progress · lap 4 of 8',
+    members:['VOSS_R','IKER_9','ANDI_B','MIRA_T','RAV3N'],
+    msgs:[
+      { who:'VOSS_R', t:-48*M, text:'Grid is set. Clean racing please, no dive bombs into T1.' },
+      { kind:'sys', t:-46*M, text:'<b>Green flag</b> · Sprint · 8 laps', eos:'EOS_Lobby_UpdateLobby · IN_PROGRESS' },
+      { who:'IKER_9', t:-30*M, text:'Sorry MIRA, completely my fault at the esses.' },
+      { who:'MIRA_T', t:-28*M, text:'All good, no damage. Race on.', rx:{ '👏':{n:5} } },
+      { who:'You', t:-14*M, text:'Front left is going off, pitting next lap.' },
+      { who:'ANDI_B', t:-9*M, text:'Box is clear, I am staying out.' },
+      { kind:'sys', t:-6*M, text:'<b>RAV3N</b> set the fastest lap · 1:42.883', eos:'EOS_Stats_IngestStat' },
+    ] },
+  { id:'sipho', name:'SIPHO_X', kind:'dm', unread:0, pres:'on', sub:'Online · in a lobby',
+    msgs:[
+      { who:'SIPHO_X', t:-1*D, text:'Did you ever get that wet setup working?' },
+      { who:'You', t:-1*D+20*M, text:'Mostly. Softened the rear bar and it stopped snapping on me.' },
+      { who:'SIPHO_X', t:-5*H, text:'Send it through when you get a chance, I am still spinning at Spa.' },
+      { who:'You', t:-4.8*H, text:'Will do tonight.' },
+      { who:'SIPHO_X', t:-40*M, kind:'voice', dur:12 },
+    ] },
+  { id:'stewards', name:'Endurance Cup · Stewards', kind:'team', unread:3, pres:'away', sub:'Officials · 3 members',
+    members:['ANDI_B','OKONKWO','JUNO.B'],
+    msgs:[
+      { kind:'sys', t:-2*D, text:'Incident review opened for <b>race 14</b>', eos:'EOS_Sessions_QuerySession' },
+      { who:'OKONKWO', t:-2*D+1*H, text:'Reviewed the onboard from both cars. Contact at turn 11 was avoidable.' },
+      { who:'ANDI_B', t:-2*D+1.4*H, text:'Agreed. Five second penalty, no licence points.' },
+      { who:'JUNO.B', t:-26*H, text:'Logged. Both drivers notified.' },
+      { who:'OKONKWO', t:-3*H, text:'One more appeal came in overnight, I will take it this evening.' },
+    ] },
+  { id:'mpho', name:'MPHO.R', kind:'dm', unread:0, pres:'on', sub:'Online',
+    msgs:[
+      { who:'MPHO.R', t:-8*H, text:'That livery you made is unreal. Can I run it Sunday?' },
+      { who:'You', t:-7.7*H, text:'Of course. Sending the decal pack over.' },
+      { who:'You', t:-7.6*H, kind:'media', media:[{k:'liv-1',lbl:'FRONT'},{k:'liv-2',lbl:'SIDE'},{k:'liv-3',lbl:'REAR'}], rx:{ '🔥':{n:2,mine:true} } },
+      { who:'MPHO.R', t:-7.4*H, text:'Perfect. See you on the grid.' },
+    ] },
+  { id:'setup', name:'Setup Lab', kind:'team', unread:0, pres:'on', sub:'4 members · 2 online',
+    members:['YUKI_N','NOVA_K','HALO_M','TARIQ_F'],
+    msgs:[
+      { who:'YUKI_N', t:-2*D, text:'Posting the Suzuka baseline. Tyre pressures are the big change.' },
+      { who:'NOVA_K', t:-1.4*D, text:'Ran it for 20 laps. Rear wear is way better, front is still graining.' },
+      { who:'HALO_M', t:-9*H, text:'Try one click less front camber. Fixed it for me.' },
+      { who:'TARIQ_F', t:-5*H, text:'Can confirm. Night and day difference.', rx:{ '👏':{n:3} } },
+    ] },
+  { id:'yuki', name:'YUKI_N', kind:'dm', unread:0, pres:'away', sub:'Away · 20m',
+    msgs:[
+      { who:'YUKI_N', t:-1*D, text:'Good drive yesterday. You were quick in the wet.' },
+      { who:'You', t:-1*D+10*M, text:'Thanks. Mostly just survived it honestly.' },
+      { who:'YUKI_N', t:-20*M, text:'Surviving is the skill. Most of the grid did not.' },
+    ] },
+  { id:'lerato', name:'LERATO.GT', kind:'dm', unread:0, pres:'off', sub:'Offline · last seen 3h ago',
+    msgs:[
+      { who:'LERATO.GT', t:-2*D, text:'Are we running the endurance race this weekend?' },
+      { who:'You', t:-2*D+30*M, text:'Depends on the stint plan. I can do the first two.' },
+      { who:'LERATO.GT', t:-3*H, text:'Works. I will take the night stint.' },
+    ] },
+  { id:'open', name:'FRONTIER Open · Grid B', kind:'lobby', unread:0, pres:'on', sub:'Qualifying in 2h · 12 drivers',
+    members:['KAI.SEVEN','TARIQ_F','HALO_M','JUNO.B','NOVA_K','RAV3N'],
+    msgs:[
+      { who:'KAI.SEVEN', t:-1*D, text:'Grid B entry list is locked. Twelve cars confirmed.' },
+      { who:'RAV3N', t:-6*H, text:'What is the tyre rule for quali?' },
+      { who:'KAI.SEVEN', t:-5.8*H, text:'One set, free choice. No changes between runs.' },
+      { who:'JUNO.B', t:-2*H, text:'See everyone on track.', rx:{ '🏁':{n:4} } },
+    ] },
+];
+const PRES = { on:'Online', away:'Away', off:'Offline' };
+const TODOS = [
+  { id:'t1', e:'🏁', s:'Finish Sunday sprint' },
+  { id:'t2', e:'⏱️', s:'Beat 1:42 at Kyalami' },
+  { id:'t3', e:'🔧', s:'Upload wet setup' },
+  { id:'t4', e:'🏆', s:'Qualify for Grid A' },
+  { id:'t5', e:'🎬', s:'Clip the lap 6 pass' },
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const KEY = 'frontier.chat.v3';
+let S, drafts = {}, replyTo = null;
+
+const build = () => {
+  const base = now();
+  return {
+    active: 'apex',
+    theme: 'dark',
+    todos: TODOS.map(t => ({ id: t.id, done: false })),
+    threads: RAW.map(t => ({
+      id: t.id, unread: t.unread || 0, muted: false,
+      msgs: t.msgs.map((m, i) => ({
+        id: t.id + '-' + i, who: m.who || null, kind: m.kind || 'text', text: m.text || '',
+        t: base + m.t, dur: m.dur || 0, title: m.title || '', tag: m.tag || '',
+        media: m.media || null, inv: m.inv || null, invState: null, eos: m.eos || null,
+        rx: m.rx ? Object.fromEntries(Object.entries(m.rx).map(([k, v]) => [k, { n: v.n, mine: !!v.mine }])) : {},
+      })),
+    })),
+  };
+};
+function load(){
+  try { const r = JSON.parse(localStorage.getItem(KEY)); if (r && r.v === 3 && r.threads?.length === RAW.length) return r; } catch {}
+  return { v: 3, ...build() };
+}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ v: 3, ...S })); } catch {} };
+
+const meta = id => RAW.find(t => t.id === id);
+const thread = id => S.threads.find(t => t.id === id);
+const cur = () => thread(S.active);
+const curMeta = () => meta(S.active);
+const last = t => t.msgs[t.msgs.length - 1];
+function preview(m){
+  if (!m) return 'No messages yet';
+  if (m.kind === 'voice') return 'Voice note · ' + m.dur + 's';
+  if (m.kind === 'vcard') return 'Team radio · ' + m.title;
+  if (m.kind === 'media') return m.text || (m.media.length + ' clips');
+  if (m.kind === 'invite') return 'Lobby invite · ' + m.inv.title;
+  if (m.kind === 'sys') return m.text.replace(/<[^>]+>/g, '');
+  return m.text;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderThreads(){
+  const q = $('#search').value.trim().toLowerCase();
+  const list = S.threads.map(t => ({ t, m: meta(t.id) }))
+    .filter(({ t, m }) => !q || (m.name + ' ' + preview(last(t))).toLowerCase().includes(q))
+    .sort((a, b) => (last(b.t)?.t || 0) - (last(a.t)?.t || 0));
+
+  const tot = S.threads.reduce((a, t) => a + t.unread, 0);
+  $('#unreadTot').textContent = tot ? tot + ' new' : '';
+  const bdg = $('#railBdg');
+  bdg.textContent = tot; bdg.style.display = tot ? 'grid' : 'none';
+
+  $('#threads').innerHTML = list.length ? list.map(({ t, m }, i) => {
+    const l = last(t);
+    return `<button class="th ${t.id === S.active ? 'on' : ''} ${t.unread ? 'un' : ''}" data-id="${t.id}" type="button" style="animation-delay:${i * 24}ms">
+      <span class="av">${dotEl(m.name)}<i class="pres ${m.pres}"></i></span>
+      <span class="tmain">
+        <span class="ttop"><b>${esc(m.name)}</b></span>
+        <span class="tprev">${l && (l.kind === 'voice' || l.kind === 'vcard') ? IC.mic : ''}${l && l.kind === 'media' ? IC.img : ''}${esc(preview(l).slice(0, 38))}</span>
+      </span>
+      <span class="tr">
+        <i>${l ? ago(l.t) : ''}</i>
+        ${m.live ? '<span class="pill live"><i></i>LIVE</span>' : t.unread ? `<span class="pill">${t.unread}</span>` : ''}
+      </span>
+    </button>`;
+  }).join('') : `<div class="empty">No chats match<br/><b>${esc(q)}</b></div>`;
+}
+
+function renderTop(){
+  const m = curMeta(), t = cur();
+  const ppl = m.kind === 'dm' ? [m.name] : (m.members || []);
+  $('#top').innerHTML = `
+    ${dotEl(m.name)}
+    <span class="ttl">
+      <b>${esc(m.name)} ${m.live ? '<i class="tag blue">LIVE</i>' : m.kind === 'lobby' ? '<i class="tag">LOBBY</i>' : m.kind === 'team' ? '<i class="tag">TEAM</i>' : ''}</b>
+      <span>${esc(m.sub)}</span>
+    </span>
+    <span class="stack">
+      ${ppl.slice(0, 3).map(dotEl).join('')}
+      <button class="add" id="tAdd" type="button" title="Add people">${IC.plus}</button>
+    </span>
+    <button class="ibtn" id="tCall" type="button" title="Voice call">${IC.phone}</button>
+    <button class="ibtn" id="tVid" type="button" title="Spectate">${IC.vid}</button>
+    <button class="ibtn ${t.muted ? '' : ''}" id="tPin" type="button" title="Pin">${IC.pin}</button>`;
+  $('#tAdd').onclick  = () => toast('Invite sent', 'EOS_Lobby_SendInvite');
+  $('#tCall').onclick = () => toast('Joining voice…', 'EOS_RTC_JoinRoom');
+  $('#tVid').onclick  = () => toast('Spectating ' + m.name, 'EOS_Sessions_JoinSession');
+  $('#tPin').onclick  = () => toast('Chat pinned');
+}
+
+function renderMsgs(keep){
+  const box = $('#msgs'), t = cur();
+  let html = '', lastDay = '', pWho = null, pT = 0;
+
+  t.msgs.forEach((m, i) => {
+    const dk = dayKey(m.t);
+    if (dk !== lastDay){ html += `<div class="day">${dayLabel(m.t)}</div>`; lastDay = dk; pWho = null; }
+
+    if (m.kind === 'sys'){
+      html += `<div class="sys">${m.text}${m.eos ? `<em>${esc(m.eos)}</em>` : ''}</div>`;
+      pWho = null; return;
+    }
+
+    const out = m.who === 'You';
+    const grp = m.who === pWho && (m.t - pT) < 6 * M;
+    const nx = t.msgs[i + 1];
+    const lastOf = !nx || nx.who !== m.who || nx.kind === 'sys' || (nx.t - m.t) >= 6 * M;
+
+    let body = '';
+    if (m.kind === 'vcard'){
+      body = `<div class="vcard">
+        <div class="art" style="background:${grad(m.id)}"><button class="pbtn" type="button" data-play="${m.id}">${IC.play}</button></div>
+        <div class="vmain">
+          <div class="vtop"><b>${esc(m.title)}</b>${m.tag ? `<i class="tag">${esc(m.tag)}</i>` : ''}<span class="tm" data-tm="${m.id}">0:00 / 0:${String(m.dur).padStart(2,'0')}</span></div>
+          <div class="wave" data-wave="${m.id}">${wave(m.id).map(h => `<i style="height:${Math.max(4, h * .38)}px"></i>`).join('')}</div>
+        </div>
+      </div>`;
+    } else if (m.kind === 'voice'){
+      body = `<div class="vn">
+        <button class="pbtn" type="button" data-play="${m.id}">${IC.play}</button>
+        <div class="wave" data-wave="${m.id}">${wave(m.id, 30).map(h => `<i style="height:${Math.max(3, h * .24)}px"></i>`).join('')}</div>
+        <span class="tm" data-tm="${m.id}">0:${String(m.dur).padStart(2,'0')}</span>
+      </div>`;
+    } else if (m.kind === 'media'){
+      body = (m.text ? `<div class="bubble">${esc(m.text)}</div>` : '')
+        + `<div class="media">${m.media.map((x, j) => `<button class="tile" type="button" data-tile="${esc(x.lbl)}" style="background:${grad(x.k)};animation-delay:${j * 50}ms">${x.more ? `<b>+${x.more}</b>` : `<span class="lbl">${esc(x.lbl)}</span>`}</button>`).join('')}</div>`;
+    } else if (m.kind === 'invite'){
+      const st = m.invState;
+      body = `<div class="inv">
+        <div class="invt"><span class="invi">${IC.flag}</span><div><b>${esc(m.inv.title)}</b><span>${esc(m.inv.type)} · ${esc(m.inv.track)}</span></div></div>
+        <div class="invm">
+          <div><small>Track</small><b>${esc(m.inv.track.slice(0, 8))}</b></div>
+          <div><small>Length</small><b>${esc(m.inv.laps)}</b></div>
+          <div><small>Grid</small><b>${esc(m.inv.grid)}</b></div>
+        </div>
+        ${st === 'yes' ? `<div class="invd ok">${IC.check} You joined this lobby</div>`
+          : st === 'no' ? `<div class="invd no">${IC.x} Invite declined</div>`
+          : `<div class="inva"><button class="ib y" type="button" data-inv="${m.id}" data-v="yes">Join race</button><button class="ib n" type="button" data-inv="${m.id}" data-v="no">Decline</button></div>`}
+      </div>`;
+    } else {
+      body = `<div class="bubble">${esc(m.text)}</div>`;
+    }
+
+    const rx = Object.entries(m.rx || {}).filter(([, v]) => v.n > 0);
+    html += `<div class="grp ${out ? 'out' : 'in'}" style="${grp ? 'margin-top:4px' : ''}">
+      <span class="av ${lastOf ? '' : 'gh'}">${dotEl(m.who)}</span>
+      <div class="bcol">
+        ${!grp && !out ? `<div class="who">${esc(m.who)}<em>${clock(m.t)}</em></div>` : ''}
+        <div class="bwrap">${body}<button class="dots" type="button" data-more="${m.id}">${IC.dots}</button></div>
+        ${rx.length ? `<div class="rx">${rx.map(([e, v]) => `<button class="rxb ${v.mine ? 'mine' : ''}" type="button" data-rx="${m.id}" data-e="${e}"><em>${e}</em>${v.n}</button>`).join('')}<button class="rxb rxadd" type="button" data-rxadd="${m.id}">${IC.smile}</button></div>` : ''}
+        ${lastOf && out ? `<div class="stamp">${clock(m.t)} ${IC.check}</div>` : ''}
+      </div>
+    </div>`;
+    pWho = m.who; pT = m.t;
+  });
+
+  if (t._typing) html += `<div class="grp in typing"><span class="av">${dotEl(t._typing)}</span><div class="bcol"><div class="bwrap"><div class="bubble"><i></i><i></i><i></i></div></div></div></div>`;
+
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 70;
+  box.innerHTML = html;
+  if (!keep || atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function renderCtx(){
+  const m = curMeta();
+  const clips = [['POLE','c1'],['LAP 6','c2'],['T4 PASS','c3'],['PIT','c4'],['FINISH','c5'],['PODIUM','c6']];
+  $('#meAv').innerHTML = dotEl('You');
+  $('#btnTheme').innerHTML = S.theme === 'dark' ? IC.moon : IC.sun;
+  $('#cbody').innerHTML = `
+    <div class="sec">Race objectives <i>${S.todos.filter(x => x.done).length}/${S.todos.length}</i></div>
+    <div class="todo">
+      ${TODOS.map(td => { const st = S.todos.find(x => x.id === td.id) || { done: false };
+        return `<button class="ti ${st.done ? 'done' : ''}" type="button" data-td="${td.id}"><span>${esc(td.s)}</span><em>${td.e}</em></button>`; }).join('')}
+    </div>
+    <div class="sec">Shared clips <i>${esc(m.name.slice(0, 14))}</i></div>
+    <div class="clips">
+      ${clips.map(([l, k]) => `<button class="clip" type="button" data-clip="${l}" style="background:${grad(k + m.id)}"><span class="lbl">${l}</span></button>`).join('')}
+    </div>`;
+}
+
+const renderAll = () => { renderThreads(); renderTop(); renderMsgs(); renderCtx(); };
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function openThread(id){
+  if (S.active === id) return;
+  drafts[S.active] = $('#input').value;
+  S.active = id;
+  const t = cur(); t.unread = 0; t._typing = null;
+  replyTo = null; renderReply();
+  $('#input').value = drafts[id] || ''; syncSend();
+  stopVn(); save(); renderAll();
+}
+
+const REPLIES = {
+  apex:['Copy that.','See you on the grid.','Give me ten minutes and I am in.','Sector 2 again. Every time.','Good shout, trying that now.'],
+  kya:['Box this lap.','Yellow in sector 3, careful.','Nice pace, keep it up.','Traffic coming, hold your line.'],
+  sipho:['Sharp. Thanks.','Sending mine over too.','Let us run a few laps later.'],
+  stewards:['Noted, logging it.','Agreed with that call.','I will review the onboard tonight.'],
+  mpho:['Looks unreal, thank you.','Running it Sunday for sure.'],
+  setup:['Trying that next session.','Pressures or camber?','Big improvement, confirmed.'],
+  yuki:['Exactly.','Practice makes it boring, which is the point.'],
+  lerato:['Works for me.','I will take the night stint.'],
+  open:['Entry list is locked.','See you in quali.','One set, free choice.'],
+};
+
+function send(){
+  const v = $('#input').value.trim(); if (!v) return;
+  const t = cur();
+  t.msgs.push({ id: t.id + '-u' + now(), who: 'You', kind: 'text', text: v, t: now(), rx: {} });
+  $('#input').value = ''; drafts[t.id] = ''; replyTo = null; renderReply(); syncSend();
+  save(); renderMsgs(); renderThreads();
+
+  const m = meta(t.id);
+  const who = m.kind === 'dm' ? m.name : pick(seed('r' + now()), m.members);
+  clearTimeout(t._tt);
+  t._tt = setTimeout(() => {
+    t._typing = who; renderMsgs();
+    t._tt = setTimeout(() => {
+      t._typing = null;
+      t.msgs.push({ id: t.id + '-r' + now(), who, kind: 'text', text: pick(seed('x' + now()), REPLIES[t.id] || ['Copy that.']), t: now(), rx: {} });
+      save(); renderMsgs(); renderThreads();
+    }, 1500 + Math.random() * 900);
+  }, 550 + Math.random() * 500);
+}
+
+function renderReply(){
+  $('#replyBar').innerHTML = replyTo
+    ? `<div class="crep"><b>${esc(replyTo.who)}</b><span>${esc(preview(replyTo).slice(0, 56))}</span><button class="ibtn" id="rClose" type="button" style="width:22px;height:22px">${IC.x}</button></div>` : '';
+  if (replyTo) $('#rClose').onclick = () => { replyTo = null; renderReply(); };
+}
+const syncSend = () => { $('#btnSend').disabled = !$('#input').value.trim(); };
+
+/* voice playback */
+let vnRaf = null, vnId = null;
+function stopVn(){
+  if (vnRaf) cancelAnimationFrame(vnRaf);
+  vnRaf = null;
+  if (vnId){
+    const b = $(`[data-play="${vnId}"]`); if (b){ b.innerHTML = IC.play; b.classList.remove('ing'); }
+    const w = $(`[data-wave="${vnId}"]`); if (w) $$('i', w).forEach(i => i.classList.remove('done'));
+    const m = cur().msgs.find(x => x.id === vnId), tm = $(`[data-tm="${vnId}"]`);
+    if (m && tm) tm.textContent = m.kind === 'vcard' ? `0:00 / 0:${String(m.dur).padStart(2,'0')}` : `0:${String(m.dur).padStart(2,'0')}`;
+  }
+  vnId = null;
+}
+function playVn(id){
+  if (vnId === id){ stopVn(); return; }
+  stopVn();
+  const m = cur().msgs.find(x => x.id === id); if (!m) return;
+  vnId = id;
+  const btn = $(`[data-play="${id}"]`), w = $(`[data-wave="${id}"]`), tm = $(`[data-tm="${id}"]`);
+  if (!btn || !w) { vnId = null; return; }
+  const bars = $$('i', w);
+  btn.innerHTML = IC.pause; btn.classList.add('ing');
+  const start = performance.now(), total = m.dur * 1000;
+  const step = ts => {
+    const p = Math.min(1, (ts - start) / total);
+    bars.forEach((b, i) => b.classList.toggle('done', i / bars.length <= p));
+    const s = Math.round(m.dur * p);
+    if (tm) tm.textContent = m.kind === 'vcard'
+      ? `0:${String(s).padStart(2,'0')} / 0:${String(m.dur).padStart(2,'0')}`
+      : `0:${String(s).padStart(2,'0')}`;
+    if (p < 1) vnRaf = requestAnimationFrame(step); else stopVn();
+  };
+  vnRaf = requestAnimationFrame(step);
+}
+
+function toast(msg, sub){
+  const t = $('#toast');
+  t.innerHTML = esc(msg) + (sub ? `<i>${esc(sub)}</i>` : '');
+  t.classList.add('show'); clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+$('#threads').addEventListener('click', e => {
+  const b = e.target.closest('.th'); if (b) openThread(b.dataset.id);
+});
+
+$('#msgs').addEventListener('click', e => {
+  const p = e.target.closest('[data-play]');   if (p) return playVn(p.dataset.play);
+  const w = e.target.closest('[data-wave]');   if (w) return playVn(w.dataset.wave);
+
+  const rx = e.target.closest('[data-rx]');
+  if (rx){
+    const m = cur().msgs.find(x => x.id === rx.dataset.rx); if (!m) return;
+    const k = rx.dataset.e, r = m.rx[k] || (m.rx[k] = { n: 0, mine: false });
+    r.mine = !r.mine; r.n += r.mine ? 1 : -1;
+    if (r.n <= 0) delete m.rx[k];
+    save(); renderMsgs(true); return;
+  }
+  const add = e.target.closest('[data-rxadd]');
+  if (add){
+    const m = cur().msgs.find(x => x.id === add.dataset.rxadd); if (!m) return;
+    m.rx[RX_SET.find(k => !m.rx[k]) || RX_SET[0]] = { n: 1, mine: true };
+    save(); renderMsgs(true); return;
+  }
+  const inv = e.target.closest('[data-inv]');
+  if (inv){
+    const t = cur(), m = t.msgs.find(x => x.id === inv.dataset.inv); if (!m) return;
+    m.invState = inv.dataset.v;
+    if (inv.dataset.v === 'yes'){
+      t.msgs.push({ id: t.id + '-s' + now(), kind: 'sys', text: `<b>${ME.display}</b> joined <b>${esc(m.inv.title)}</b>`, eos: 'EOS_Lobby_JoinLobby · EOS_Success', t: now(), rx: {} });
+      toast('Joined ' + m.inv.title, 'EOS_Lobby_JoinLobby');
+    } else toast('Invite declined');
+    save(); renderMsgs(); renderThreads(); return;
+  }
+  const tile = e.target.closest('[data-tile]'); if (tile) return toast('Opening clip · ' + tile.dataset.tile);
+  const more = e.target.closest('[data-more]');
+  if (more){
+    const m = cur().msgs.find(x => x.id === more.dataset.more); if (!m) return;
+    replyTo = m; renderReply(); $('#input').focus();
+  }
+});
+
+$('#cbody').addEventListener('click', e => {
+  const td = e.target.closest('[data-td]');
+  if (td){
+    const st = S.todos.find(x => x.id === td.dataset.td); if (!st) return;
+    st.done = !st.done; save(); renderCtx();
+    toast(st.done ? 'Objective complete' : 'Objective reopened'); return;
+  }
+  const c = e.target.closest('[data-clip]'); if (c) toast('Opening clip · ' + c.dataset.clip);
+});
+
+$('.rail').addEventListener('click', e => {
+  const b = e.target.closest('[data-nav]'); if (!b) return;
+  if (b.dataset.nav === 'Lobby'){ location.href = 'index.html'; return; }
+  if (b.dataset.nav === 'Chat') return;
+  toast(b.dataset.nav + ' — coming next');
+});
+
+$('#btnTheme').addEventListener('click', () => {
+  S.theme = S.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = S.theme;
+  save(); renderCtx(); toast(S.theme === 'dark' ? 'Dark mode' : 'Light mode');
+});
+
+$('#search').addEventListener('input', renderThreads);
+$('#input').addEventListener('input', syncSend);
+$('#input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); } });
+$('#btnSend').addEventListener('click', send);
+$('#btnNew').addEventListener('click', () => toast('New chat — pick a driver or team'));
+$('#btnClip').addEventListener('click', () => toast('Attach a clip from your replays'));
+$('#btnPing').addEventListener('click', () => {
+  const t = cur();
+  t.msgs.push({ id: t.id + '-p' + now(), kind: 'sys', text: `<b>${ME.display}</b> sent a race ping`, eos: 'EOS_P2P_SendPacket · reliable', t: now(), rx: {} });
+  save(); renderMsgs(); renderThreads(); toast('Race ping sent', 'EOS_P2P_SendPacket');
+});
+$('#btnMic').addEventListener('mousedown', () => $('#btnMic').classList.add('live'));
+addEventListener('mouseup', () => {
+  const b = $('#btnMic');
+  if (b.classList.contains('live')){ b.classList.remove('live'); toast('Voice note recorded', 'EOS_RTCAudio'); }
+});
+
+addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== $('#input') && document.activeElement !== $('#search')){ e.preventDefault(); $('#search').focus(); }
+  if (e.key === 'Escape'){
+    if (document.activeElement === $('#search')){ $('#search').value = ''; renderThreads(); $('#search').blur(); }
+    else if (replyTo){ replyTo = null; renderReply(); }
+    else stopVn();
+  }
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+S = load();
+if (!thread(S.active)) S.active = S.threads[0].id;
+if (!S.todos) S.todos = TODOS.map(t => ({ id: t.id, done: false }));
+if (!S.theme) S.theme = 'dark';
+document.documentElement.dataset.theme = S.theme;
+cur().unread = 0;
+renderAll(); syncSend();
+</script>
+</body>
+</html>
