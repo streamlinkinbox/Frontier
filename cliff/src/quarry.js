@@ -226,6 +226,7 @@ export function buildQuarry(params, ctx) {
     out.d = d;
     out.nd = nd;
     out.roadMix = roadMix;
+    out.t = t;
     return out;
   }
 
@@ -255,14 +256,14 @@ export function buildQuarry(params, ctx) {
   const _wc = C();
   const _rc = C();
   function wallColor(p, out) {
-    wallColorRaw(p.x, p.y, p.z, p.d, out);
+    wallColorRaw(p.x, p.y, p.z, p.d, p.t, out);
     if (p.roadMix > 0.01) {
       roadColor(p.x, p.y, p.z, p.roadMix, _rc);
       out.lerp(_rc, p.roadMix);
     }
     return out;
   }
-  function wallColorRaw(x, y, z, d, out) {
+  function wallColorRaw(x, y, z, d, t, out) {
     const lc = layerCoord(x, y, z);
     const idx = Math.floor(lc);
     const f = lc - idx;
@@ -276,6 +277,8 @@ export function buildQuarry(params, ctx) {
     out.multiplyScalar(1 - 0.17 * smoothstep(0.15, -0.55, d));
     const depth = (pit.yTop - y) / Math.max(1, params.pitDepth);
     out.multiplyScalar(1 - 0.13 * smoothstep(0.1, 1.0, depth));
+    // the crest of every face sits in the shadow of the bench above it
+    out.multiplyScalar(1 - 0.30 * smoothstep(0.34, 0.0, t));
     return out;
   }
 
