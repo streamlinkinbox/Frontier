@@ -1,0 +1,782 @@
+import GradientSliceImage from "./GradientSliceImage.jsx";
+import { toolArtURL } from "./paintToolCatalogue.js";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ArrowDown,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  Brush,
+  PaintBucket,
+  Sparkles,
+  Palette,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Eye,
+  EyeOff,
+  Layers3,
+  LockKeyhole,
+  Plus,
+  Search,
+  Trash2,
+  UnlockKeyhole,
+  X,
+} from "lucide-react";
+import {
+  TEXTURE_CHANNELS,
+  TEXTURE_KINDS,
+  TEXTURE_LAYER_LIMIT,
+  textureAncestors,
+  textureSubtree,
+  isTextureLayerLocked,
+  isTextureLayerVisible,
+} from "./textureDocument.js";
+
+export function LayerKindIcon({ kind, size = 30, open = false }) {
+  const Icon =
+    kind === "folder"
+      ? open
+        ? FolderOpen
+        : Folder
+      : kind === "paint"
+        ? Brush
+        : kind === "fill"
+          ? PaintBucket
+          : kind === "generator"
+            ? Sparkles
+            : Layers3;
+  return (
+    <span
+      className={`tp-kind-icon tp-kind-${kind}`}
+      style={{
+        width: size,
+        height: size,
+        "--kind-color": TEXTURE_KINDS[kind]?.color,
+      }}
+      aria-hidden="true"
+    >
+      <Icon size={size * 0.5} strokeWidth={1.5} />
+    </span>
+  );
+}
+export function LayerThumbnail({
+  layer,
+  thumbs = {},
+  size = 30,
+  open = false,
+}) {
+  const texture = layer.channels
+    .map((id) => layer.channelSettings?.[id])
+    .find(
+      (s) =>
+        (s?.mode === "texture" && s.texture) ||
+        (s?.mode === "generator" && s.generator?.result),
+    );
+  const sourceTexture = texture?.texture || texture?.generator?.result;
+  const gradient = layer.channels
+    .map((id) => layer.channelSettings[id])
+    .find((s) => s?.mode === "gradient")?.gradient;
+  const image =
+    sourceTexture?.dataUrl ||
+    (layer.sourceAsset?.type === "material"
+      ? thumbs[layer.sourceAsset.id]
+      : layer.sourceAsset?.type === "brush" && layer.kind !== "paint"
+        ? toolArtURL(layer.sourceAsset.id, true)
+        : null);
+  if (image)
+    return (
+      <span
+        className="tp-layer-thumbnail"
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={image}
+          alt={
+            sourceTexture
+              ? `${layer.name} texture preview`
+              : `${layer.name} source preview`
+          }
+        />
+      </span>
+    );
+  if (gradient)
+    return (
+      <span
+        className="tp-layer-thumbnail"
+        style={{ width: size, height: size }}
+      >
+        <GradientSliceImage
+          gradient={gradient}
+          alt={`${layer.name} gradient field preview`}
+        />
+      </span>
+    );
+  if (layer.kind === "paint")
+    return (
+      <span
+        className="tp-layer-thumbnail tp-empty-texture"
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label={`${layer.name} empty texture`}
+        title="Empty texture source · no painted pixels"
+      />
+    );
+  return <LayerKindIcon kind={layer.kind} size={size} open={open} />;
+}
+export function MaskIcon({ mask, size = 26 }) {
+  if (mask.kind === "gradient")
+    return (
+      <span
+        className="tp-mask-icon gradient-mask"
+        style={{ width: size, height: size }}
+      >
+        <GradientSliceImage
+          gradient={mask.gradient}
+          mask={mask}
+          alt="Gradient mask field preview"
+        />
+      </span>
+    );
+  const white = (mask.fill === 1) !== mask.inverted;
+  return (
+    <span
+      className={`tp-mask-icon ${white ? "white" : "black"} ${mask.kind === "color" ? "color-mask" : ""}`}
+      style={{ width: size, height: size, "--mask-color": mask.color }}
+      aria-hidden="true"
+    >
+      <i />
+      {mask.kind === "color" && <b />}
+    </span>
+  );
+}
+export function DockTab({ icon: Icon, children, detail }) {
+  return (
+    <div className="tp-tab-strip">
+      <div className="tp-document-tab active">
+        <Icon size={12} />
+        <span>{children}</span>
+        {detail && <small>{detail}</small>}
+      </div>
+    </div>
+  );
+}
+export default function TextureLayerStack({
+  doc,
+  selection,
+  select,
+  onAction,
+  onDrop,
+  onVisibility,
+  onLock,
+  onMask,
+  onAssetDrop,
+  onFolderDrop,
+  thumbs = {},
+  disabled,
+}) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [addOpen, setAddOpen] = useState(false);
+  const [expanded, setExpanded] = useState({});
+  const [dropTarget, setDropTarget] = useState(null);
+  const dragged = useRef(null),
+    treeRef = useRef(null),
+    menuRef = useRef(null),
+    addRef = useRef(null);
+  const selected = doc.layers.find((l) => l.id === selection.id);
+  const siblings = doc.layers.filter(
+    (l) => l.parentId === (selected?.parentId || null),
+  );
+  const index = siblings.findIndex((l) => l.id === selection.id);
+  const visible = doc.layers.filter((l) =>
+    isTextureLayerVisible(doc, l.id),
+  ).length;
+  const groupBlocked =
+    selected?.kind === "folder" &&
+    textureSubtree(doc, selected.id).some((l) =>
+      isTextureLayerLocked(doc, l.id),
+    );
+  const isOpen = (layer) => expanded[layer.id] ?? layer.kind === "folder";
+  useEffect(() => {
+    if (!selection.id) return;
+    const ids = textureAncestors(doc, selection.id).map((l) => l.id);
+    setExpanded((old) => {
+      if (!ids.some((id) => old[id] === false)) return old;
+      return { ...old, ...Object.fromEntries(ids.map((id) => [id, true])) };
+    });
+  }, [selection.id, doc.layers.map((l) => `${l.id}:${l.parentId}`).join("|")]);
+  useEffect(() => {
+    const row = treeRef.current?.querySelector('[aria-selected="true"]');
+    row?.scrollIntoView({ block: "nearest" });
+  }, [selection.id, selection.mask, index]);
+  useEffect(() => {
+    if (addOpen) menuRef.current?.querySelector('[role="menuitem"]')?.focus();
+  }, [addOpen]);
+  const matches = doc.layers.filter(
+    (l) =>
+      (!query ||
+        `${l.name} ${TEXTURE_KINDS[l.kind].label}`
+          .toLowerCase()
+          .includes(query.toLowerCase())) &&
+      (filter === "all" ||
+        isTextureLayerVisible(doc, l.id) === (filter === "visible")),
+  );
+  const matched = new Set(matches.map((l) => l.id));
+  if (query || filter !== "all")
+    for (const l of matches)
+      for (const a of textureAncestors(doc, l.id)) matched.add(a.id);
+  const layers = doc.layers.filter(
+    (l) =>
+      matched.has(l.id) &&
+      (query ||
+        filter !== "all" ||
+        textureAncestors(doc, l.id).every((a) => isOpen(a))),
+  );
+  const choose = (id, mask = false) => {
+    select(id, mask);
+    setAddOpen(false);
+  };
+  function drop(e, id) {
+    e.preventDefault();
+    const asset = e.dataTransfer.getData("application/x-alloy-asset");
+    if (asset) {
+      setDropTarget(null);
+      dragged.current = null;
+      try {
+        if (asset.length <= 1024)
+          onAssetDrop(JSON.parse(asset), id || selection.id);
+      } catch {
+        /* Ignore foreign drag payloads. */
+      }
+      return;
+    }
+    const source = dragged.current;
+    dragged.current = null;
+    setDropTarget(null);
+    if (source && source !== id) {
+      const target = doc.layers.find((l) => l.id === id);
+      target?.kind === "folder" ? onFolderDrop(source, id) : onDrop(source, id);
+    }
+  }
+  function navigate(e, layer) {
+    if (e.target.tagName === "INPUT") return;
+    const index = layers.findIndex((l) => l.id === layer.id);
+    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+      e.preventDefault();
+      const target =
+        layers[
+          e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? layers.length - 1
+              : Math.min(
+                  layers.length - 1,
+                  Math.max(0, index + (e.key === "ArrowDown" ? 1 : -1)),
+                )
+        ];
+      choose(target.id);
+      e.currentTarget
+        .closest('[role="tree"]')
+        .querySelector(`[data-layer-select="${target.id}"]`)
+        ?.focus();
+    }
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      setExpanded((p) => ({ ...p, [layer.id]: e.key === "ArrowRight" }));
+    }
+  }
+  return (
+    <>
+      <DockTab icon={Layers3}>Layer stack</DockTab>
+      <div className="tp-pane-heading">
+        <h1>Layers</h1>
+        <small>
+          {doc.layers.length} / {TEXTURE_LAYER_LIMIT}
+        </small>
+        <button
+          className="tp-round-icon tp-new-folder"
+          aria-label="Add layer folder"
+          title="New folder"
+          disabled={doc.layers.length >= TEXTURE_LAYER_LIMIT}
+          onClick={() => onAction("add", "folder")}
+        >
+          <FolderPlus size={16} />
+        </button>
+        <button
+          className="tp-round-icon"
+          aria-label="Add layer"
+          ref={addRef}
+          aria-expanded={addOpen}
+          disabled={doc.layers.length >= TEXTURE_LAYER_LIMIT}
+          onClick={() => setAddOpen(!addOpen)}
+        >
+          <Plus size={18} />
+        </button>
+      </div>
+      <div className="tp-layer-stats">
+        <button
+          aria-pressed={filter === "visible"}
+          onClick={() => setFilter(filter === "visible" ? "all" : "visible")}
+        >
+          <span className="tp-status-disc">
+            <Check size={12} />
+          </span>
+          <small>Visible</small>
+          <strong>{visible.toString().padStart(2, "0")}</strong>
+        </button>
+        <button
+          aria-pressed={filter === "hidden"}
+          onClick={() => setFilter(filter === "hidden" ? "all" : "hidden")}
+        >
+          <span className="tp-status-disc muted">
+            <EyeOff size={12} />
+          </span>
+          <small>Hidden</small>
+          <strong>
+            {(doc.layers.length - visible).toString().padStart(2, "0")}
+          </strong>
+        </button>
+      </div>
+      <div className="tp-layer-search">
+        <label>
+          <Search size={14} />
+          <input
+            aria-label="Find a layer"
+            placeholder="Find a layer…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button
+              aria-label="Clear layer search"
+              onClick={() => setQuery("")}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </label>
+      </div>
+      {filter !== "all" && (
+        <div className="tp-filter-note">
+          <span>
+            {filter === "visible" ? "Visible layers" : "Hidden layers"}
+          </span>
+          <button onClick={() => setFilter("all")}>
+            Clear filter <X size={11} />
+          </button>
+        </div>
+      )}
+      {addOpen && (
+        <>
+          <div
+            className="tp-menu-dismiss"
+            onPointerDown={() => setAddOpen(false)}
+          />
+          <div
+            className="tp-add-menu"
+            role="menu"
+            ref={menuRef}
+            aria-label="Add texture layer"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setAddOpen(false);
+                addRef.current?.focus();
+              } else if (
+                ["ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)
+              ) {
+                e.preventDefault();
+                const entries = [
+                  ...menuRef.current.querySelectorAll('[role="menuitem"]'),
+                ];
+                const at = entries.indexOf(document.activeElement);
+                entries[
+                  e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? entries.length - 1
+                      : (at +
+                          entries.length +
+                          (e.key === "ArrowDown" ? 1 : -1)) %
+                        entries.length
+                ]?.focus();
+              }
+            }}
+          >
+            <small>ADD A LAYER</small>
+            {Object.entries(TEXTURE_KINDS)
+              .sort(([a], [b]) =>
+                a === "folder" ? 1 : b === "folder" ? -1 : 0,
+              )
+              .map(([kind, info]) => (
+                <button
+                  key={kind}
+                  role="menuitem"
+                  onClick={() => {
+                    onAction("add", kind);
+                    setAddOpen(false);
+                  }}
+                >
+                  <LayerKindIcon kind={kind} size={30} />
+                  <span>
+                    <strong>
+                      {info.label}
+                      {kind === "folder" ? "" : " layer"}
+                    </strong>
+                    <small>
+                      {kind === "folder"
+                        ? "Group layers · folder mask"
+                        : kind === "paint"
+                          ? "Empty · no brush content yet"
+                          : "Source setup · evaluation later"}
+                    </small>
+                  </span>
+                  <Plus size={13} />
+                </button>
+              ))}
+          </div>
+        </>
+      )}
+      <div className="tp-layer-order">
+        <span>TOP → BOTTOM</span>
+        <span>{layers.length} shown</span>
+      </div>
+      <div
+        className="tp-layer-list"
+        ref={treeRef}
+        role="tree"
+        aria-label="Texture layers"
+        onDragOver={(e) => {
+          if (
+            dragged.current ||
+            e.dataTransfer.types.includes("application/x-alloy-asset")
+          )
+            e.preventDefault();
+        }}
+        onDrop={(e) => drop(e, null)}
+      >
+        {layers.map((layer) => (
+          <div
+            key={layer.id}
+            className="tp-layer-group"
+            role="none"
+            style={{ "--layer-depth": textureAncestors(doc, layer.id).length }}
+          >
+            <div
+              role="treeitem"
+              aria-selected={selection.id === layer.id && !selection.mask}
+              aria-expanded={isOpen(layer)}
+              aria-level={textureAncestors(doc, layer.id).length + 1}
+              className={`tp-layer-row ${selection.id === layer.id && !selection.mask ? "selected" : ""} ${!isTextureLayerVisible(doc, layer.id) ? "hidden-row" : ""} ${dropTarget === layer.id ? "drop-target" : ""}`}
+              data-layer-id={layer.id}
+              style={{
+                "--layer-depth": textureAncestors(doc, layer.id).length,
+              }}
+              draggable={
+                !textureSubtree(doc, layer.id).some((l) =>
+                  isTextureLayerLocked(doc, l.id),
+                ) &&
+                !query &&
+                filter === "all"
+              }
+              onDragStart={(e) => {
+                dragged.current = layer.id;
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData(
+                  "application/alloy-texture-layer",
+                  layer.id,
+                );
+              }}
+              onDragEnd={() => {
+                dragged.current = null;
+                setDropTarget(null);
+              }}
+              onDragOver={(e) => {
+                if (
+                  !dragged.current &&
+                  !e.dataTransfer.types.includes("application/x-alloy-asset")
+                )
+                  return;
+                e.preventDefault();
+                e.stopPropagation();
+                setDropTarget(layer.id);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget))
+                  setDropTarget(null);
+              }}
+              onDrop={(e) => {
+                e.stopPropagation();
+                drop(e, layer.id);
+              }}
+              onKeyDown={(e) => navigate(e, layer)}
+            >
+              <button
+                className="tp-disclosure"
+                aria-label={`${isOpen(layer) ? "Collapse" : "Expand"} ${layer.name}`}
+                onClick={() =>
+                  setExpanded((p) => ({ ...p, [layer.id]: !isOpen(layer) }))
+                }
+              >
+                {isOpen(layer) ? (
+                  <ChevronDown size={12} />
+                ) : (
+                  <ChevronRight size={12} />
+                )}
+              </button>
+              <button
+                className="tp-layer-select"
+                data-layer-select={layer.id}
+                aria-label={`Select ${layer.name}`}
+                onClick={() => choose(layer.id)}
+              >
+                <LayerThumbnail
+                  layer={layer}
+                  thumbs={thumbs}
+                  size={34}
+                  open={isOpen(layer)}
+                />
+                <span>
+                  <strong>{layer.name}</strong>
+                  <small>
+                    {layer.kind === "folder"
+                      ? `${doc.layers.filter((l) => l.parentId === layer.id).length} ${doc.layers.filter((l) => l.parentId === layer.id).length === 1 ? "item" : "items"}`
+                      : TEXTURE_KINDS[layer.kind].label}{" "}
+                    · {layer.blend} · {layer.opacity}%
+                  </small>
+                </span>
+              </button>
+              <button
+                className="tp-layer-eye"
+                aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+                title={
+                  layer.visible
+                    ? "Hide layer (metadata only)"
+                    : "Show layer (metadata only)"
+                }
+                onClick={() => onVisibility(layer.id)}
+              >
+                {layer.visible ? <Eye size={13} /> : <EyeOff size={13} />}
+              </button>
+              <button
+                className={`tp-layer-lock ${isTextureLayerLocked(doc, layer.id) ? "locked" : ""}`}
+                title={
+                  textureAncestors(doc, layer.id).some((l) => l.locked)
+                    ? "Locked by parent folder"
+                    : undefined
+                }
+                disabled={textureAncestors(doc, layer.id).some((l) => l.locked)}
+                aria-label={`${layer.locked ? "Unlock" : "Lock"} ${layer.name}`}
+                onClick={() => onLock(layer.id)}
+              >
+                {isTextureLayerLocked(doc, layer.id) ? (
+                  <LockKeyhole size={12} />
+                ) : (
+                  <UnlockKeyhole size={12} />
+                )}
+              </button>
+            </div>
+            {layer.mask && (
+              <div
+                className={`tp-mask-row ${selection.id === layer.id && selection.mask ? "selected" : ""}`}
+                role="treeitem"
+                aria-selected={selection.id === layer.id && selection.mask}
+              >
+                <button
+                  onClick={() => choose(layer.id, true)}
+                  aria-label={`Select mask of ${layer.name}`}
+                >
+                  <MaskIcon mask={layer.mask} size={20} />
+                  <span>
+                    {layer.mask.kind === "color"
+                      ? "Colour mask"
+                      : layer.mask.kind === "gradient"
+                        ? "Gradient mask"
+                        : "Layer mask"}{" "}
+                    <small>
+                      {layer.mask.kind === "gradient"
+                        ? "Surface field"
+                        : layer.mask.kind === "color"
+                          ? layer.mask.color
+                          : layer.mask.inverted
+                            ? "Inverted"
+                            : layer.mask.fill === 1
+                              ? "White"
+                              : "Black"}{" "}
+                      · {layer.mask.strength}%
+                    </small>
+                  </span>
+                </button>
+                <button
+                  className="tp-layer-eye"
+                  disabled={isTextureLayerLocked(doc, layer.id)}
+                  aria-label={`${layer.mask.enabled ? "Disable" : "Enable"} mask of ${layer.name}`}
+                  onClick={() =>
+                    onMask(layer.id, { enabled: !layer.mask.enabled })
+                  }
+                >
+                  {layer.mask.enabled ? (
+                    <Eye size={12} />
+                  ) : (
+                    <EyeOff size={12} />
+                  )}
+                </button>
+              </div>
+            )}
+            {isOpen(layer) && layer.kind !== "folder" && (
+              <div className="tp-layer-expanded" role="group">
+                <small>CHANNEL TARGETS</small>
+                <div>
+                  {TEXTURE_CHANNELS.filter((c) =>
+                    layer.channels.includes(c.id),
+                  ).map((c) => (
+                    <span
+                      key={c.id}
+                      title={c.label}
+                      style={{ "--channel-color": c.color }}
+                    >
+                      {c.short}
+                    </span>
+                  ))}
+                  {!layer.channels.length && <em>No channels enabled</em>}
+                </div>
+                <p>
+                  {layer.kind === "paint"
+                    ? layer.channels.some(
+                        (id) => layer.channelSettings[id]?.texture,
+                      )
+                      ? "Stored texture source"
+                      : "Empty texture source"
+                    : "Unevaluated source"}{" "}
+                  · setup only
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+        {!layers.length && (
+          <div className="tp-empty">
+            <Layers3 size={26} />
+            <strong>
+              {doc.layers.length ? "No matching layers" : "Start with a layer"}
+            </strong>
+            <p>
+              {doc.layers.length
+                ? "Clear the search or visibility filter."
+                : "Add a layer to organize your surface."}
+            </p>
+            {doc.layers.length ? (
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setFilter("all");
+                }}
+              >
+                Clear filters
+              </button>
+            ) : (
+              <button onClick={() => setAddOpen(true)}>
+                <Plus size={13} /> Add layer
+              </button>
+            )}
+          </div>
+        )}
+        {!query && filter === "all" && layers.length > 0 && (
+          <div
+            className={`tp-bottom-drop ${dropTarget === "bottom" ? "active" : ""}`}
+            onDragOver={(e) => {
+              if (dragged.current) {
+                e.preventDefault();
+                setDropTarget("bottom");
+              }
+            }}
+            onDrop={(e) => {
+              e.stopPropagation();
+              drop(e, null);
+            }}
+          >
+            Drop here to move to the root
+          </div>
+        )}
+      </div>
+      <div
+        className="tp-layer-actions"
+        role="toolbar"
+        aria-label="Layer actions"
+      >
+        <button
+          aria-label="Move layer up"
+          title="Move up"
+          disabled={disabled || groupBlocked || index <= 0}
+          onClick={() => onAction("up")}
+        >
+          <ArrowUp size={15} />
+        </button>
+        <button
+          aria-label="Move layer down"
+          title="Move down"
+          disabled={disabled || groupBlocked || index >= siblings.length - 1}
+          onClick={() => onAction("down")}
+        >
+          <ArrowDown size={15} />
+        </button>
+        <span />
+        <button
+          aria-label="Duplicate layer"
+          title="Duplicate · Ctrl/⌘ D"
+          disabled={
+            disabled || groupBlocked || doc.layers.length >= TEXTURE_LAYER_LIMIT
+          }
+          onClick={() => onAction("duplicate")}
+        >
+          <Copy size={14} />
+        </button>
+        <button
+          aria-label="Add layer mask"
+          title="Add white mask"
+          disabled={disabled || !!selected?.mask}
+          onClick={() => onAction("mask")}
+        >
+          <span className="tp-mask-tool" />
+        </button>
+        <button
+          aria-label="Add colour mask"
+          title="Colour selection mask"
+          disabled={disabled || !!selected?.mask}
+          onClick={() => onAction("color-mask")}
+        >
+          <Palette size={14} />
+        </button>
+        <button
+          aria-label="Delete layer"
+          title={
+            selected?.kind === "folder"
+              ? "Delete folder and its contents"
+              : "Delete layer"
+          }
+          disabled={disabled || groupBlocked}
+          onClick={() => onAction("remove")}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <footer className="tp-pane-footer">
+        <span>
+          <small>LAYERS</small>
+          <b>{doc.layers.length}</b>
+        </span>
+        <span>
+          <small>VISIBLE</small>
+          <b>{visible}</b>
+        </span>
+        <span>
+          <small>CONTENT</small>
+          <b>Setup only</b>
+        </span>
+      </footer>
+    </>
+  );
+}
