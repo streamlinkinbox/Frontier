@@ -1,3 +1,9 @@
+import { createSurfaceDecalController } from "./decalSurfaceController.js";
+import {
+  createSurfaceMaskUniforms,
+  surfaceMaskOwners,
+  installSelectedStampMask,
+} from "./decalProjection.js";
 import {
   createPointGradientUniforms,
   installPointGradient,
@@ -184,6 +190,8 @@ export default function Viewport({
   onCompile,
   pointGradient,
   gradientEditor,
+  decalDocument,
+  decalEditor,
 }) {
   const host = useRef(null),
     engine = useRef(null),
@@ -193,9 +201,12 @@ export default function Viewport({
     handleSignature = useRef(""),
     pointRef = useRef(pointGradient),
     editorRef = useRef(gradientEditor),
-    gradientGesture = useRef(null);
+    gradientGesture = useRef(null),
+    decalEditorRef = useRef(decalEditor);
   pointRef.current = pointGradient;
   editorRef.current = gradientEditor;
+  decalEditorRef.current = decalEditor;
+  const supportsDecals = decalDocument !== undefined;
   const supportsGradient = pointGradient !== undefined;
   latest.current = params;
   const pausedRef = useRef(paused);
@@ -308,7 +319,14 @@ export default function Viewport({
     const pointUniforms = supportsGradient
       ? createPointGradientUniforms()
       : null;
+    const decalMasks = supportsDecals ? createSurfaceMaskUniforms() : null;
+    const decalOwners = surfaceMaskOwners(
+      decalDocument,
+      decalEditor?.previewLayerId,
+    );
     if (pointUniforms) installPointGradient(material, pointUniforms);
+    if (decalMasks && pointUniforms)
+      installSelectedStampMask(material, decalMasks, decalOwners);
     const specimen = new THREE.Mesh(createBallGeometry(), material);
     specimen.position.y = 1.65;
     specimen.rotation.z = -0.27;
@@ -372,6 +390,8 @@ export default function Viewport({
       });
     const state = {
       pointUniforms,
+      decalMasks,
+      decalOwners,
       grid,
       supportBall,
       renderer,
@@ -392,6 +412,14 @@ export default function Viewport({
     state.compiling = true;
     state.compileTicket = 0;
     engine.current = state;
+    if (decalMasks)
+      state.decals = createSurfaceDecalController(
+        state,
+        decalMasks,
+        decalOwners,
+        decalEditorRef,
+        (m) => releaseAfterCompilation(state, m),
+      );
     state.setZoom = (factor) => {
       state.magnification = THREE.MathUtils.clamp(factor, 0.1, 100);
       camera.zoom = state.fitZoom * state.magnification;
@@ -526,6 +554,7 @@ export default function Viewport({
     return () => {
       cancelAnimationFrame(state.frame);
       observer.disconnect();
+      state.decals?.dispose();
       controls.dispose();
       renderer.domElement.removeEventListener("wheel", wheel, true);
       renderer.domElement.removeEventListener("dblclick", inspect);
@@ -567,6 +596,12 @@ export default function Viewport({
       });
       if (e.pointUniforms) {
         installPointGradient(e.specimen.material, e.pointUniforms);
+        if (e.decalMasks)
+          installSelectedStampMask(
+            e.specimen.material,
+            e.decalMasks,
+            e.decalOwners,
+          );
         updatePointGradientUniforms(
           e.pointUniforms,
           pointRef.current,
@@ -943,16 +978,47 @@ export default function Viewport({
     if (engine.current) engine.current.controls.enabled = true;
     editorRef.current?.onEnd(cancelled);
   }
+  useEffect(() => {
+    const e = engine.current;
+    if (e?.decals && decalDocument) e.decals.update(decalDocument, decalEditor);
+  }, [decalDocument, decalEditor, shape]);
+  function surfacePointerDown(e) {
+    const editor = decalEditorRef.current;
+    if (
+      e.button === 0 &&
+      e.target.tagName === "CANVAS" &&
+      editor?.active &&
+      ["brush", "place"].includes(editor.mode)
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      engine.current?.decals?.stamp(e.clientX, e.clientY);
+      return;
+    }
+    gradientPointerDown(e);
+  }
+  function surfacePointerMove(e) {
+    const editor = decalEditorRef.current;
+    if (
+      editor?.active &&
+      ["brush", "place"].includes(editor.mode) &&
+      e.target.tagName === "CANVAS"
+    )
+      engine.current?.decals?.hover(e.clientX, e.clientY);
+    gradientPointerMove(e);
+  }
   return (
     <div
       className="canvas-host"
       ref={host}
-      onPointerDownCapture={gradientPointerDown}
-      onPointerMoveCapture={gradientPointerMove}
+      onPointerDownCapture={surfacePointerDown}
+      onPointerMoveCapture={surfacePointerMove}
+      onPointerLeave={() => engine.current?.decals?.clearGhost()}
       onPointerUpCapture={(e) => gradientPointerEnd(e)}
       onPointerCancelCapture={(e) => gradientPointerEnd(e, true)}
       onLostPointerCapture={(e) => gradientPointerEnd(e, true)}
       onKeyDown={(e) => {
+        if (e.key === "Escape") engine.current?.decals?.cancel();
         if (e.key === "Escape" && gradientGesture.current) {
           e.preventDefault();
           e.stopPropagation();

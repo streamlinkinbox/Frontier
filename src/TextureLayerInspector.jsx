@@ -1,9 +1,11 @@
+import NameField from "./AuthoringNameField.jsx";
+import DecalComponentsPanel from "./DecalComponentsPanel.jsx";
 import PointGradientEditor from "./PointGradientEditor.jsx";
 import { defaultPointGradient } from "./pointGradient.js";
 import { Slider, ColorField } from "./MaterialControls.jsx";
 import ColourMaskPreview from "./ColourMaskPreview.jsx";
 import ChannelPropertyPanel from "./ChannelPropertyPanel.jsx";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Check,
   CircleHelp,
@@ -23,39 +25,10 @@ import {
   textureAncestors,
   textureSubtree,
   isTextureLayerLocked,
+  isTextureSubtreeProtected,
 } from "./textureDocument.js";
 import { DockTab, LayerThumbnail, MaskIcon } from "./TextureLayerStack.jsx";
 
-function NameField({ value, disabled, onChange }) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  return (
-    <input
-      aria-label="Layer name"
-      value={draft}
-      maxLength={80}
-      disabled={disabled}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={(e) => {
-        const name = e.currentTarget.value.trim() || value;
-        onChange(name);
-        setDraft(name);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.currentTarget.blur();
-        }
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          e.currentTarget.value = value;
-          setDraft(value);
-          e.currentTarget.blur();
-        }
-      }}
-    />
-  );
-}
 function Amount(props) {
   return (
     <div className="tp-shared-controls">
@@ -83,13 +56,14 @@ export default function TextureLayerInspector({
   materialWorkspace,
   gradientContext,
   onGradientActivate,
+  decalContext,
 }) {
   const locked = !!layer && isTextureLayerLocked(doc, layer.id),
     inheritedLock =
       !!layer && textureAncestors(doc, layer.id).some((l) => l.locked);
   const descendants = layer ? textureSubtree(doc, layer.id) : [],
     subtreeIds = new Set(descendants.map((l) => l.id));
-  const groupBlocked = descendants.some((l) => isTextureLayerLocked(doc, l.id));
+  const groupBlocked = !!layer && isTextureSubtreeProtected(doc, layer.id);
   return (
     <>
       {showTab && <DockTab icon={SlidersHorizontal}>Inspector</DockTab>}
@@ -469,11 +443,21 @@ export default function TextureLayerInspector({
                     onChange={(opacity) => onPatch({ opacity })}
                   />
                   <p className="tp-card-note">
-                    Order, blend and opacity are document settings. The teapot
-                    preview is not composited from these layers yet.
+                    Decal opacity and inherited coverage affect the real surface
+                    preview. Source strokes and blend modes are not a full
+                    UV-stack compositor.
                   </p>
                 </section>
-                {layer.kind !== "folder" && (
+                {layer.kind !== "folder" && decalContext && (
+                  <DecalComponentsPanel
+                    key={layer.id}
+                    layer={layer}
+                    doc={doc}
+                    locked={locked}
+                    context={decalContext}
+                  />
+                )}
+                {!["folder", "decal"].includes(layer.kind) && (
                   <>
                     <div className="tp-section-label">
                       <span>CHANNEL TARGETS</span>
@@ -553,8 +537,9 @@ export default function TextureLayerInspector({
             <div className="tp-stage-note">
               <CircleHelp size={13} />
               <p>
-                Layer / tool configuration and 2D source strokes. Mesh UV
-                painting and texture-atlas compositing are not active.
+                Real surface-projected decals and selected fill / mask previews.
+                2D source strokes remain separate; whole-stack UV texture-atlas
+                compositing is not active.
               </p>
             </div>
           </>

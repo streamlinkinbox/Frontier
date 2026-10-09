@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   History,
+  Stamp,
   Undo2,
   Redo2,
   Brush,
@@ -16,6 +17,7 @@ import { PAINT_CHANNELS } from "./paintChannelModel.js";
 import { TEXTURE_HISTORY_LIMIT } from "./textureHistory.js";
 const icons = {
   stroke: Brush,
+  decal: Stamp,
   folder: Folder,
   layer: Layers3,
   source: Image,

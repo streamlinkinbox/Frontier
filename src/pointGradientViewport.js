@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { linearColour, GRADIENT_POINT_LIMIT } from "./pointGradient.js";
 export const GRADIENT_MASK_LIMIT = 9;
 const FIELDS = GRADIENT_MASK_LIMIT + 1;
-const GLSL = `
+export const POINT_GRADIENT_GLSL = `
 uniform sampler2D uPointGradientData;
 uniform int uPointGradientCounts[10],uPointGradientEnabled,uPointGradientFill,uPointGradientMaskCount;
 uniform vec3 uPointGradientBackground[10],uPointGradientCentre,uPointGradientValue;
@@ -53,7 +53,7 @@ export function installPointGradient(material, uniforms) {
   material.onBeforeCompile = (shader) => {
     original.call(material, shader);
     Object.assign(shader.uniforms, uniforms);
-    shader.fragmentShader = GLSL + shader.fragmentShader;
+    shader.fragmentShader = POINT_GRADIENT_GLSL + shader.fragmentShader;
     shader.fragmentShader = shader.fragmentShader.replace(
       "#include <roughnessmap_fragment>",
       `
@@ -135,4 +135,36 @@ export function gradientSurfaceHit(engine, x, y) {
       .sub(sphere.center)
       .divideScalar(sphere.radius);
   return position.toArray();
+}
+
+// A decal's coverage can inherit the same bounded object-space Fill/Gradient
+// masks without changing its artwork colour or allocating a mesh UV atlas.
+export function installPointGradientAlpha(material, uniforms) {
+  const original = material.onBeforeCompile,
+    cache = material.customProgramCacheKey.bind(material);
+  const named = Object.fromEntries(
+    Object.entries(uniforms).map(([key, value]) => [
+      key.replace("uPointGradient", "uDecalPointGradient"),
+      value,
+    ]),
+  );
+  material.onBeforeCompile = (shader) => {
+    original.call(material, shader);
+    Object.assign(shader.uniforms, named);
+    shader.fragmentShader =
+      POINT_GRADIENT_GLSL.replaceAll(
+        "uPointGradient",
+        "uDecalPointGradient",
+      ).replaceAll("samplePointGradient", "sampleDecalPointGradient") +
+      shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <alphatest_fragment>",
+      `
+      vec3 decalPointCoordinate=(vProcPosition-uDecalPointGradientCentre)/max(uDecalPointGradientRadius,1e-6);
+      for(int field=1;field<10;field++){if(field<=uDecalPointGradientMaskCount){vec4 info=uDecalPointGradientMaskInfo[field];if(info.x>.5){float value=clamp(dot(sampleDecalPointGradient(decalPointCoordinate,field),vec3(.2126,.7152,.0722)),0.,1.);if(info.y>.5)value=1.-value;diffuseColor.a*=mix(1.,value,info.z);}}}
+      #include <alphatest_fragment>`,
+    );
+  };
+  material.customProgramCacheKey = () =>
+    cache() + "|decal-gradient-coverage-v1";
 }

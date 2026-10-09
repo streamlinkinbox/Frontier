@@ -44,11 +44,11 @@ npm run test:standalone
 The runtime suite checks:
 
 1. Complete dependency prebundling, deduplication, and cache configuration.
-2. Repeated Material / Pattern / Texture / Baking switches and document reloads in an existing browser context, without hook failures or duplicate-Three warnings.
+2. Repeated Material / Pattern / Texture / Stamp / Baking switches and document reloads in an existing browser context, without hook failures or duplicate-Three warnings.
 3. A deferred real component's hook render/update, plus Three constructor identity after an additional import.
 4. Deliberately replayed stale React query URLs for both `usePatternHistory` and `useTextureDocument`: each actual null-dispatcher failure must appear, then **Reload studio** must recover the failed workspace and reopen an existing saved Texture project. The saved project is seeded only once, not recreated on reload.
 5. Workspace switches and reloads inside an iframe, matching the embedded-preview use case.
 
 The deferred-import and two development-only cache-replay cases skip against a compiled server, which exposes no `/src/` optimizer modules. Run the suite against the development server to exercise those cases; the remaining checks also run against the compiled preview. A temporary development server on another port can be targeted with `STUDIO_TEST_ORIGIN=http://127.0.0.1:5174` while the main preview remains on 5173.
 
-The standalone suite serves the rebuilt `site/index.html` without Vite or external runtime assets, and exercises Pattern, Texture, the inline mesh-baking worker, and exports.
+The standalone suite serves the rebuilt `site/index.html` without Vite or external runtime assets, and exercises Pattern, Texture, Stamp/Decals, the inline mesh-baking worker, and exports.

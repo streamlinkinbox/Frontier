@@ -3,6 +3,8 @@ import { toolArtURL } from "./paintToolCatalogue.js";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
+  GripVertical,
+  Stamp,
   Folder,
   FolderOpen,
   FolderPlus,
@@ -33,6 +35,8 @@ import {
   textureSubtree,
   isTextureLayerLocked,
   isTextureLayerVisible,
+  textureLayerDropPosition,
+  isTextureSubtreeProtected,
 } from "./textureDocument.js";
 
 export function LayerKindIcon({ kind, size = 30, open = false }) {
@@ -41,13 +45,15 @@ export function LayerKindIcon({ kind, size = 30, open = false }) {
       ? open
         ? FolderOpen
         : Folder
-      : kind === "paint"
-        ? Brush
-        : kind === "fill"
-          ? PaintBucket
-          : kind === "generator"
-            ? Sparkles
-            : Layers3;
+      : kind === "decal"
+        ? Stamp
+        : kind === "paint"
+          ? Brush
+          : kind === "fill"
+            ? PaintBucket
+            : kind === "generator"
+              ? Sparkles
+              : Layers3;
   return (
     <span
       className={`tp-kind-icon tp-kind-${kind}`}
@@ -174,6 +180,8 @@ export default function TextureLayerStack({
   onMask,
   onAssetDrop,
   onFolderDrop,
+  onMove,
+  decalContext,
   thumbs = {},
   disabled,
 }) {
@@ -194,12 +202,12 @@ export default function TextureLayerStack({
   const visible = doc.layers.filter((l) =>
     isTextureLayerVisible(doc, l.id),
   ).length;
-  const groupBlocked =
-    selected?.kind === "folder" &&
-    textureSubtree(doc, selected.id).some((l) =>
-      isTextureLayerLocked(doc, l.id),
-    );
-  const isOpen = (layer) => expanded[layer.id] ?? layer.kind === "folder";
+  const groupBlocked = selected && isTextureSubtreeProtected(doc, selected.id);
+  const isOpen = (layer) =>
+    expanded[layer.id] ??
+    (layer.kind === "folder" ||
+      layer.kind === "decal" ||
+      layer.decals.length > 0);
   useEffect(() => {
     if (!selection.id) return;
     const ids = textureAncestors(doc, selection.id).map((l) => l.id);
@@ -211,7 +219,7 @@ export default function TextureLayerStack({
   useEffect(() => {
     const row = treeRef.current?.querySelector('[aria-selected="true"]');
     row?.scrollIntoView({ block: "nearest" });
-  }, [selection.id, selection.mask, index]);
+  }, [selection.id, selection.mask, index, decalContext?.id]);
   useEffect(() => {
     if (addOpen) menuRef.current?.querySelector('[role="menuitem"]')?.focus();
   }, [addOpen]);
@@ -239,7 +247,21 @@ export default function TextureLayerStack({
     select(id, mask);
     setAddOpen(false);
   };
-  function drop(e, id) {
+  function zone(e, layer) {
+    if (!dragged.current) return "inside"; // Asset assignment remains unchanged.
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = (e.clientY - rect.top) / rect.height;
+    return layer.kind === "folder"
+      ? y < 0.25
+        ? "before"
+        : y > 0.75
+          ? "after"
+          : "inside"
+      : y <= 0.5
+        ? "before"
+        : "after";
+  }
+  function drop(e, id, position = "before") {
     e.preventDefault();
     const asset = e.dataTransfer.getData("application/x-alloy-asset");
     if (asset) {
@@ -257,8 +279,17 @@ export default function TextureLayerStack({
     dragged.current = null;
     setDropTarget(null);
     if (source && source !== id) {
-      const target = doc.layers.find((l) => l.id === id);
-      target?.kind === "folder" ? onFolderDrop(source, id) : onDrop(source, id);
+      const destination = textureLayerDropPosition(doc, source, id, position);
+      if (destination && onMove) {
+        onMove(source, destination.parentId, destination.beforeId);
+        if (position === "inside" && id)
+          setExpanded((old) => ({ ...old, [id]: true }));
+      } else if (!onMove) {
+        const target = doc.layers.find((l) => l.id === id);
+        target?.kind === "folder"
+          ? onFolderDrop(source, id)
+          : onDrop(source, id);
+      }
     }
   }
   function navigate(e, layer) {
@@ -408,9 +439,17 @@ export default function TextureLayerStack({
           >
             <small>ADD A LAYER</small>
             {Object.entries(TEXTURE_KINDS)
-              .sort(([a], [b]) =>
-                a === "folder" ? 1 : b === "folder" ? -1 : 0,
-              )
+              .sort(([a], [b]) => {
+                const order = [
+                  "paint",
+                  "fill",
+                  "material",
+                  "generator",
+                  "decal",
+                  "folder",
+                ];
+                return order.indexOf(a) - order.indexOf(b);
+              })
               .map(([kind, info]) => (
                 <button
                   key={kind}
@@ -429,9 +468,11 @@ export default function TextureLayerStack({
                     <small>
                       {kind === "folder"
                         ? "Group layers · folder mask"
-                        : kind === "paint"
-                          ? "Empty · no brush content yet"
-                          : "Source setup · evaluation later"}
+                        : kind === "decal"
+                          ? "Surface stamps · multiple components"
+                          : kind === "paint"
+                            ? "Empty · no brush content yet"
+                            : "Source setup · evaluation later"}
                     </small>
                   </span>
                   <Plus size={13} />
@@ -445,7 +486,7 @@ export default function TextureLayerStack({
         <span>{layers.length} shown</span>
       </div>
       <div
-        className="tp-layer-list"
+        className={`tp-layer-list ${dragged.current ? "is-layer-dragging" : ""}`}
         ref={treeRef}
         role="tree"
         aria-label="Texture layers"
@@ -467,23 +508,26 @@ export default function TextureLayerStack({
           >
             <div
               role="treeitem"
-              aria-selected={selection.id === layer.id && !selection.mask}
+              aria-selected={
+                selection.id === layer.id &&
+                !selection.mask &&
+                !layer.decals.some((d) => d.id === decalContext?.id)
+              }
               aria-expanded={isOpen(layer)}
               aria-level={textureAncestors(doc, layer.id).length + 1}
-              className={`tp-layer-row ${selection.id === layer.id && !selection.mask ? "selected" : ""} ${!isTextureLayerVisible(doc, layer.id) ? "hidden-row" : ""} ${dropTarget === layer.id ? "drop-target" : ""}`}
+              className={`tp-layer-row ${selection.id === layer.id && !selection.mask ? "selected" : ""} ${!isTextureLayerVisible(doc, layer.id) ? "hidden-row" : ""} ${dropTarget?.id === layer.id ? `drop-target drop-${dropTarget.zone}` : ""}`}
               data-layer-id={layer.id}
               style={{
                 "--layer-depth": textureAncestors(doc, layer.id).length,
               }}
               draggable={
-                !textureSubtree(doc, layer.id).some((l) =>
-                  isTextureLayerLocked(doc, l.id),
-                ) &&
+                !isTextureSubtreeProtected(doc, layer.id) &&
                 !query &&
                 filter === "all"
               }
               onDragStart={(e) => {
                 dragged.current = layer.id;
+                setDropTarget({ id: layer.id, zone: "dragging" });
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData(
                   "application/alloy-texture-layer",
@@ -502,7 +546,23 @@ export default function TextureLayerStack({
                   return;
                 e.preventDefault();
                 e.stopPropagation();
-                setDropTarget(layer.id);
+                const position = zone(e, layer);
+                const allowed = !dragged.current
+                  ? !isTextureLayerLocked(doc, layer.id)
+                  : !!textureLayerDropPosition(
+                      doc,
+                      dragged.current,
+                      layer.id,
+                      position,
+                    );
+                e.dataTransfer.dropEffect = allowed
+                  ? dragged.current
+                    ? "move"
+                    : "copy"
+                  : "none";
+                setDropTarget(
+                  allowed ? { id: layer.id, zone: position } : null,
+                );
               }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget))
@@ -510,10 +570,28 @@ export default function TextureLayerStack({
               }}
               onDrop={(e) => {
                 e.stopPropagation();
-                drop(e, layer.id);
+                drop(e, layer.id, zone(e, layer));
               }}
               onKeyDown={(e) => navigate(e, layer)}
             >
+              <button
+                className="tp-layer-drag"
+                aria-label={`Drag ${layer.name}`}
+                title="Drag to reorder. Folder: edges reorder, centre nests."
+                disabled={
+                  !!query ||
+                  filter !== "all" ||
+                  isTextureSubtreeProtected(doc, layer.id)
+                }
+                draggable={
+                  !query &&
+                  filter === "all" &&
+                  !isTextureSubtreeProtected(doc, layer.id)
+                }
+                onClick={(e) => e.stopPropagation()}
+              >
+                <GripVertical size={12} />
+              </button>
               <button
                 className="tp-disclosure"
                 aria-label={`${isOpen(layer) ? "Collapse" : "Expand"} ${layer.name}`}
@@ -579,6 +657,55 @@ export default function TextureLayerStack({
                 )}
               </button>
             </div>
+            {isOpen(layer) &&
+              (layer.decals || []).map((decal) => (
+                <div
+                  key={decal.id}
+                  className={`tp-decal-tree-row ${selection.id === layer.id && decalContext?.id === decal.id ? "selected" : ""}`}
+                  role="treeitem"
+                  aria-level={textureAncestors(doc, layer.id).length + 2}
+                  aria-selected={
+                    selection.id === layer.id && decalContext?.id === decal.id
+                  }
+                >
+                  <button
+                    aria-label={`Select decal ${decal.name}`}
+                    onClick={() => decalContext?.onSelect(decal.id, layer.id)}
+                  >
+                    <img
+                      src={
+                        doc.stamps.find((s) => s.id === decal.stampId)?.raster
+                          .dataUrl
+                      }
+                      alt=""
+                    />
+                    <span>
+                      {decal.name}
+                      <small>
+                        {decal.asMask ? "Stamp mask" : "Decal component"} ·{" "}
+                        {Math.round(decal.opacity * 100)}%
+                      </small>
+                    </span>
+                  </button>
+                  <button
+                    aria-label={`${decal.visible ? "Hide" : "Show"} surface decal ${decal.name}`}
+                    disabled={isTextureLayerLocked(doc, layer.id)}
+                    onClick={() => {
+                      decalContext?.onSelect(decal.id, layer.id);
+                      decalContext?.onPatchId(
+                        decal.id,
+                        { visible: !decal.visible },
+                        null,
+                        null,
+                        "Toggle decal visibility",
+                        layer.id,
+                      );
+                    }}
+                  >
+                    {decal.visible ? <Eye size={11} /> : <EyeOff size={11} />}
+                  </button>
+                </div>
+              ))}
             {layer.mask && (
               <div
                 className={`tp-mask-row ${selection.id === layer.id && selection.mask ? "selected" : ""}`}
@@ -774,7 +901,7 @@ export default function TextureLayerStack({
         </span>
         <span>
           <small>CONTENT</small>
-          <b>Setup only</b>
+          <b>{doc.layers.reduce((n, l) => n + l.decals.length, 0)} decals</b>
         </span>
       </footer>
     </>

@@ -1,3 +1,4 @@
+import useDecalEditing from "./useDecalEditing.js";
 import {
   GRADIENT_POINT_LIMIT,
   normalizePointGradient,
@@ -34,6 +35,9 @@ import {
   RotateCcw,
   Save,
   SlidersHorizontal,
+  Stamp,
+  Move3D,
+  MousePointer2,
   Undo2,
   X,
 } from "lucide-react";
@@ -138,6 +142,9 @@ export default function TexturePaintStudio({
   onClose,
   onWorkspace,
   materialWorkspace,
+  initialStamp,
+  onStampConsumed,
+  onEditStamp,
 }) {
   const history = useTextureDocument();
   const { doc, selection, select } = history;
@@ -204,6 +211,7 @@ export default function TexturePaintStudio({
     });
   }
   function activateGradient(target) {
+    decalEditing.deactivate();
     gradientGesture.current = null;
     setGradientDraft(null);
     setGradientTarget((old) => ({ ...old, ...target }));
@@ -367,6 +375,21 @@ export default function TexturePaintStudio({
           (l) => l.kind !== "folder" && isTextureLayerVisible(doc, l.id),
         ) || layer
       : layer;
+  const decalEditing = useDecalEditing(history, {
+    initialStamp,
+    onStampConsumed,
+    onEditStamp,
+    previewLayerId: sourceLayer?.id,
+    onDeactivateGradient: () => {
+      gradientGesture.current = null;
+      setGradientDraft(null);
+      setGradientTarget((old) => (old ? { ...old, active: false } : null));
+    },
+  });
+  const selectLayer = (id, mask = false) => {
+    decalEditing.clearSelection();
+    select(id, mask);
+  };
   const gradientChannel =
     sourceLayer?.channels?.includes("baseColor") &&
     sourceLayer.channelSettings.baseColor.mode === "gradient"
@@ -383,7 +406,10 @@ export default function TexturePaintStudio({
       .filter((m) => m && ["fill", "gradient"].includes(m.kind));
   let surfaceGradient =
     sourceLayer &&
-    (fillGradient || previewMasks.some((m) => m.kind === "gradient"))
+    (fillGradient ||
+      previewMasks.some((m) => m.kind === "gradient") ||
+      (sourceLayer.kind !== "decal" &&
+        sourceLayer.decals.some((d) => d.asMask && d.visible && d.opacity > 0)))
       ? {
           fill: fillGradient,
           value: sourceLayer.channelSettings?.baseColor?.value || "#b87333",
@@ -518,6 +544,33 @@ export default function TexturePaintStudio({
       target = current.layers.find((l) => l.id === targetId);
     if (!target || isTextureLayerLocked(current, target.id)) {
       history.setError("Select an unlocked layer before assigning an asset.");
+      return;
+    }
+    if (asset.type === "stamp") {
+      const source = decalEditing.context.presets.find(
+        (p) => p.id === asset.id,
+      );
+      if (!source) {
+        history.setError("That stamp is not in the shared library.");
+        return;
+      }
+      if (target.kind === "folder") {
+        try {
+          const added = insertTextureLayer(current, "decal", target.id);
+          history.commit(added.doc, {
+            selection: { id: added.id },
+            label: "Add decal layer to folder",
+          });
+          targetId = added.id;
+        } catch (e) {
+          history.setError(e.message);
+          return;
+        }
+      }
+      decalEditing.context.onPresetDrop(source.id, targetId);
+      setToast(
+        "Stamp preset selected. Click the teapot surface to create its decal component.",
+      );
       return;
     }
     const definition =
@@ -774,6 +827,7 @@ export default function TexturePaintStudio({
         e.preventDefault();
         setResetToken((p) => p + 1);
       } else if (e.key === "Escape") {
+        decalEditing.deactivate();
         if (help) setHelp(false);
       }
     }
@@ -848,7 +902,7 @@ export default function TexturePaintStudio({
         </div>
       </div>
       <div
-        className={`tp-scene-viewport ${pointEditor?.placing ? "tp-gradient-placing" : ""}`}
+        className={`tp-scene-viewport ${pointEditor?.placing ? "tp-gradient-placing" : ""} ${decalEditing.editor.active && ["brush", "place"].includes(decalEditing.editor.mode) ? "tp-decal-placing" : ""}`}
         ref={viewportRef}
         aria-label="Teapot viewport"
         onContextMenu={(e) => {
@@ -859,6 +913,8 @@ export default function TexturePaintStudio({
         <Viewport
           pointGradient={surfaceGradient}
           gradientEditor={pointEditor}
+          decalDocument={doc}
+          decalEditor={decalEditing.editor}
           params={PREVIEW_MATERIAL}
           paused={browserOpen || paintMenuOpen}
           shape="Teapot"
@@ -872,6 +928,63 @@ export default function TexturePaintStudio({
           gridVisible={grid}
           studioLayout
         />
+        <div
+          className="tp-decal-toolbar"
+          aria-label="Surface decal placement tools"
+        >
+          <button
+            aria-label="Navigate teapot"
+            aria-pressed={!decalEditing.editor.active}
+            onClick={decalEditing.context.onNavigate}
+          >
+            <MousePointer2 size={12} /> Navigate
+          </button>
+          <button
+            aria-label="Viewport stamp brush"
+            aria-pressed={
+              decalEditing.editor.active && decalEditing.editor.mode === "brush"
+            }
+            disabled={
+              disabled ||
+              layer?.kind === "folder" ||
+              !decalEditing.context.preset
+            }
+            onClick={() => decalEditing.context.onArm("brush")}
+          >
+            <Stamp size={12} /> Stamp
+          </button>
+          <button
+            aria-label="Viewport decal transform"
+            aria-pressed={
+              decalEditing.editor.active &&
+              ["transform", "place"].includes(decalEditing.editor.mode)
+            }
+            disabled={
+              disabled ||
+              layer?.kind === "folder" ||
+              !decalEditing.context.preset
+            }
+            onClick={() => decalEditing.context.onArm("transform")}
+          >
+            <Move3D size={12} /> Transform
+          </button>
+          <span />
+          <button
+            aria-label="Open Stamp workspace"
+            onClick={() => onWorkspace("stamp")}
+          >
+            Stamp studio ↗
+          </button>
+        </div>
+        {decalEditing.editor.active && (
+          <span className="tp-decal-mode-note">
+            {decalEditing.editor.mode === "brush"
+              ? "Aim at the surface · click to stamp · Escape / Navigate to orbit"
+              : decalEditing.editor.mode === "place"
+                ? "Click to anchor the decal to the surface"
+                : "Drag 3D handles · move / rotate / scale · Re-anchor to snap to the surface"}
+          </span>
+        )}
         {!ready && <span className="tp-scene-loading">Preparing teapot…</span>}
         {surfaceGradient && (
           <span className="tp-gradient-scene-note">
@@ -932,8 +1045,10 @@ export default function TexturePaintStudio({
         </span>
         <span className="tp-scope-indicator">
           {surfaceGradient
-            ? "Selected gradient preview · not whole-stack composition"
-            : "Layer setup only · preview is not composited"}
+            ? "Selected fill / mask + decals · not a full UV stack"
+            : doc.layers.some((l) => l.decals.length)
+              ? "Surface decals live · source strokes are 2D"
+              : "Layer setup only · preview is not composited"}
         </span>
       </footer>
     </>
@@ -1032,10 +1147,12 @@ export default function TexturePaintStudio({
           <TextureLayerStack
             doc={doc}
             selection={selection}
-            select={select}
+            select={selectLayer}
+            decalContext={decalEditing.context}
             disabled={disabled}
             onAction={action}
             onDrop={dropLayer}
+            onMove={moveLayer}
             onFolderDrop={(id, parentId) => moveLayer(id, parentId)}
             thumbs={materialWorkspace.thumbs}
             onVisibility={(id) =>
@@ -1119,6 +1236,7 @@ export default function TexturePaintStudio({
           >
             <TextureLayerInspector
               showTab={false}
+              decalContext={decalEditing.context}
               painting={doc.painting}
               materialWorkspace={materialWorkspace}
               gradientContext={gradientContext}
@@ -1139,7 +1257,7 @@ export default function TexturePaintStudio({
               onMask={(changes, options) =>
                 mask(selection.id, changes, options)
               }
-              onSelectLayer={() => select(selection.id)}
+              onSelectLayer={() => selectLayer(selection.id)}
               onRemoveMask={() =>
                 history.commit(
                   patchTextureLayer(history.docRef.current, selection.id, {
@@ -1180,6 +1298,10 @@ export default function TexturePaintStudio({
         onSaveProject={saveProject}
         onUndo={history.undo}
         onRedo={history.redo}
+        stampPresets={decalEditing.context.presets}
+        stampPresetId={decalEditing.context.preset?.id}
+        onStampPreset={decalEditing.context.onPreset}
+        onEditStamp={onEditStamp}
       />
       <PaintToolMenu
         settings={doc.painting}

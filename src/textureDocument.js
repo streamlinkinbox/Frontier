@@ -1,3 +1,10 @@
+import {
+  normalizeLayerDecals,
+  normalizeDocumentStamps,
+  createDecal,
+  DECAL_LIMIT,
+} from "./decalModel.js";
+import { normalizeStampPreset, stampId } from "./stampDocument.js";
 import { normalizeSourceStroke } from "./textureStrokes.js";
 import { normalizeTextureMask } from "./textureMasks.js";
 import {
@@ -18,6 +25,12 @@ export const TEXTURE_KINDS = {
     description:
       "A layer group with its own blend, opacity and optional coverage mask.",
     color: "#bfac88",
+  },
+  decal: {
+    label: "Decal",
+    description:
+      "A surface-projected stamp layer containing multiple decal components.",
+    color: "#c4aa7a",
   },
   paint: {
     label: "Paint",
@@ -138,6 +151,7 @@ function normalizeLayer(raw) {
       ),
     ]),
     mask: normalizeTextureMask(raw.mask),
+    decals: raw.kind === "folder" ? [] : normalizeLayerDecals(raw.decals),
   };
 }
 export function createTextureLayer(kind = "paint", options = {}) {
@@ -147,6 +161,7 @@ export function createTextureDocument() {
   return {
     schema: TEXTURE_SCHEMA,
     name: "Teapot study",
+    stamps: [],
     painting: normalizePaintSettings(),
     lastStroke: null,
     scene: "teapot",
@@ -192,8 +207,23 @@ export function validateTextureDocument(input) {
     throw new Error(
       "The recorded source stroke is invalid or exceeds its preview/point limit.",
     );
+  const allStamps = normalizeDocumentStamps(input.stamps);
+  const components = layers.flatMap((l) => l.decals);
+  if (components.length > DECAL_LIMIT)
+    throw new Error(
+      `A project can have at most ${DECAL_LIMIT} decal components.`,
+    );
+  if (new Set(components.map((d) => d.id)).size !== components.length)
+    throw new Error(
+      "Decal component identities must be unique across the project.",
+    );
+  if (components.some((d) => !allStamps.some((s) => s.id === d.stampId)))
+    throw new Error("A decal references a missing stamp snapshot.");
+  const usedStamps = new Set(components.map((d) => d.stampId));
+  const stamps = allStamps.filter((s) => usedStamps.has(s.id));
   const result = {
     schema: TEXTURE_SCHEMA,
+    stamps,
     name: text(input.name, "Untitled surface"),
     scene: "teapot",
     painting: normalizePaintSettings(input.painting),
@@ -286,8 +316,14 @@ function orderTextureLayers(layers) {
   walk(null);
   return result;
 }
+export function isTextureSubtreeProtected(doc, id) {
+  return textureSubtree(doc, id).some(
+    (l) =>
+      isTextureLayerLocked(doc, l.id) || (l.decals || []).some((d) => d.locked),
+  );
+}
 function immutableSubtree(doc, id) {
-  return textureSubtree(doc, id).some((l) => isTextureLayerLocked(doc, l.id));
+  return isTextureSubtreeProtected(doc, id);
 }
 export function patchTextureLayer(doc, id, patch) {
   const layer = doc.layers.find((l) => l.id === id);
@@ -344,6 +380,7 @@ export function duplicateTextureLayer(doc, id) {
       id: identities.get(l.id),
       parentId: l.id === id ? l.parentId : identities.get(l.parentId),
       name: l.id === id ? `${l.name} copy`.slice(0, 80) : l.name,
+      decals: (l.decals || []).map((d) => ({ ...d, id: stampId() })),
     }),
   );
   const layers = [...doc.layers];
@@ -397,6 +434,58 @@ export function moveTextureLayer(doc, id, parentId = null, beforeId = null) {
     ? doc
     : next;
 }
+// A drop describes sibling order, not flat preorder indices. Subtree removal,
+// locks, cycle checks and depth validation stay in the one canonical move API.
+export function textureLayerDropPosition(
+  doc,
+  sourceId,
+  targetId,
+  zone = "before",
+) {
+  const source = doc.layers.find((l) => l.id === sourceId);
+  if (!source || immutableSubtree(doc, sourceId)) return null;
+  if (!targetId) return { parentId: null, beforeId: null };
+  const target = doc.layers.find((l) => l.id === targetId);
+  const subtree = textureSubtree(doc, sourceId),
+    ids = new Set(subtree.map((l) => l.id));
+  if (
+    !target ||
+    ids.has(targetId) ||
+    !["before", "after", "inside"].includes(zone)
+  )
+    return null;
+  const withinDepth = (parentId) => {
+    const depth = parentId ? textureAncestors(doc, parentId).length + 1 : 0;
+    const oldDepth = textureAncestors(doc, sourceId).length;
+    const relative = Math.max(
+      0,
+      ...subtree.map((l) => textureAncestors(doc, l.id).length - oldDepth),
+    );
+    return depth + relative <= TEXTURE_FOLDER_DEPTH_LIMIT;
+  };
+  if (zone === "inside") {
+    return target.kind === "folder" &&
+      !isTextureLayerLocked(doc, targetId) &&
+      withinDepth(targetId)
+      ? { parentId: targetId, beforeId: null }
+      : null;
+  }
+  if (
+    (target.parentId && isTextureLayerLocked(doc, target.parentId)) ||
+    !withinDepth(target.parentId)
+  )
+    return null;
+  const siblings = doc.layers.filter(
+    (l) => l.parentId === target.parentId && !ids.has(l.id),
+  );
+  return {
+    parentId: target.parentId,
+    beforeId:
+      zone === "after"
+        ? siblings[siblings.findIndex((l) => l.id === targetId) + 1]?.id || null
+        : target.id,
+  };
+}
 export function reorderTextureLayer(doc, id, beforeId = null) {
   const before = doc.layers.find((l) => l.id === beforeId);
   if (beforeId && !before) return doc;
@@ -409,4 +498,141 @@ export function ungroupTextureFolder(doc, id) {
     .filter((l) => l.id !== id)
     .map((l) => (l.parentId === id ? { ...l, parentId: folder.parentId } : l));
   return validateTextureDocument({ ...doc, layers });
+}
+
+// A preset is frozen once embedded, shared by references rather than repeated
+// PNG/project payloads for each dab. Re-saving a library preset never mutates
+// already-placed components; changed artwork gets a fresh project identity.
+function embedTextureStamp(doc, rawPreset) {
+  let preset = normalizeStampPreset(rawPreset);
+  const used = new Set(
+    doc.layers.flatMap((l) => l.decals || []).map((d) => d.stampId),
+  );
+  const stamps = (doc.stamps || []).filter((s) => used.has(s.id));
+  const equivalent = stamps.find(
+    (s) =>
+      s.name === preset.name &&
+      JSON.stringify(s.raster) === JSON.stringify(preset.raster) &&
+      JSON.stringify({ ...s.project, id: null }) ===
+        JSON.stringify({ ...preset.project, id: null }),
+  );
+  if (equivalent) preset = equivalent;
+  const existing = stamps.find((s) => s.id === preset.id);
+  if (existing && JSON.stringify(existing) !== JSON.stringify(preset)) {
+    const id = stampId();
+    preset = normalizeStampPreset({
+      ...preset,
+      project: { ...preset.project, id },
+    });
+  }
+  if (!stamps.some((s) => s.id === preset.id)) stamps.push(preset);
+  return { preset, stamps };
+}
+export function addTextureDecal(doc, layerId, rawPreset, placement = {}) {
+  const layer = doc.layers.find((l) => l.id === layerId);
+  if (!layer || layer.kind === "folder" || isTextureLayerLocked(doc, layerId))
+    return { doc, id: null };
+  if (doc.layers.flatMap((l) => l.decals || []).length >= DECAL_LIMIT)
+    throw new Error(`The ${DECAL_LIMIT}-decal project limit has been reached.`);
+  const { preset, stamps } = embedTextureStamp(doc, rawPreset);
+  const component = createDecal(preset, placement);
+  const next = validateTextureDocument({
+    ...doc,
+    stamps,
+    layers: doc.layers.map((l) =>
+      l.id === layerId ? { ...l, decals: [...(l.decals || []), component] } : l,
+    ),
+  });
+  return { doc: next, id: component.id };
+}
+export function patchTextureDecal(doc, layerId, componentId, patch) {
+  const layer = doc.layers.find((l) => l.id === layerId);
+  const component = layer?.decals?.find((d) => d.id === componentId);
+  if (
+    !component ||
+    isTextureLayerLocked(doc, layerId) ||
+    (component.locked &&
+      !Object.keys(patch).every((k) => ["locked", "visible"].includes(k)))
+  )
+    return doc;
+  return validateTextureDocument({
+    ...doc,
+    layers: doc.layers.map((l) =>
+      l.id === layerId
+        ? {
+            ...l,
+            decals: l.decals.map((d) =>
+              d.id === componentId
+                ? {
+                    ...d,
+                    ...patch,
+                    id: d.id,
+                    stampId: d.stampId,
+                    space: d.space,
+                  }
+                : d,
+            ),
+          }
+        : l,
+    ),
+  });
+}
+export function removeTextureDecal(doc, layerId, componentId) {
+  const layer = doc.layers.find((l) => l.id === layerId);
+  if (
+    !layer ||
+    isTextureLayerLocked(doc, layerId) ||
+    layer.decals?.find((d) => d.id === componentId)?.locked
+  )
+    return doc;
+  const layers = doc.layers.map((l) =>
+    l.id === layerId
+      ? { ...l, decals: l.decals.filter((d) => d.id !== componentId) }
+      : l,
+  );
+  const used = new Set(
+    layers.flatMap((l) => l.decals || []).map((d) => d.stampId),
+  );
+  return validateTextureDocument({
+    ...doc,
+    layers,
+    stamps: (doc.stamps || []).filter((s) => used.has(s.id)),
+  });
+}
+
+export function replaceTextureDecalStamp(doc, layerId, componentId, rawPreset) {
+  const layer = doc.layers.find((l) => l.id === layerId),
+    component = layer?.decals.find((d) => d.id === componentId);
+  if (!component || component.locked || isTextureLayerLocked(doc, layerId))
+    return doc;
+  const without = {
+    ...doc,
+    layers: doc.layers.map((l) =>
+      l.id === layerId
+        ? { ...l, decals: l.decals.filter((d) => d.id !== componentId) }
+        : l,
+    ),
+  };
+  const { preset, stamps } = embedTextureStamp(without, rawPreset);
+  return validateTextureDocument({
+    ...doc,
+    stamps,
+    layers: doc.layers.map((l) =>
+      l.id === layerId
+        ? {
+            ...l,
+            decals: l.decals.map((d) =>
+              d.id === componentId
+                ? {
+                    ...d,
+                    stampId: preset.id,
+                    channels: preset.project.channels,
+                    channelValues: preset.project.channelValues,
+                  }
+                : d,
+            ),
+          }
+        : l,
+    ),
+  });
 }

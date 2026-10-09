@@ -99,6 +99,21 @@ export function describeTextureChange(before, after) {
         ...info,
         label: layer.visible ? "Show layer / folder" : "Hide layer / folder",
       };
+    if (!equal(old.decals, layer.decals)) {
+      const beforeDecals = old.decals || [],
+        afterDecals = layer.decals || [];
+      return {
+        ...info,
+        kind: "decal",
+        label:
+          afterDecals.length > beforeDecals.length
+            ? "Stamp surface decal / mask"
+            : afterDecals.length < beforeDecals.length
+              ? "Remove decal component"
+              : "Decal component settings",
+        detail: `${layer.name} · ${afterDecals.length} components`,
+      };
+    }
     if (!equal(old.mask, layer.mask))
       return {
         ...info,

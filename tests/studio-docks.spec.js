@@ -3,10 +3,11 @@ const docks = {
   material: [".library-panel", ".viewport-panel", ".inspector-panel"],
   pattern: [".pe-library", ".pe-workspace", ".pe-inspector"],
   texture: [".tp-layers-dock", ".tp-viewport-dock", ".tp-inspector-dock"],
+  stamp: [".stamp-left", ".stamp-centre", ".stamp-right"],
   baking: [".bk-assets", ".bk-preview", ".bk-inspector"],
 };
 for (const width of [1440, 1024, 780]) {
-  test(`all four studios keep libraries / layers / baking left and inspectors right at ${width}px`, async ({
+  test(`all five studios keep libraries / layers / baking left and inspectors right at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -21,7 +22,13 @@ for (const width of [1440, 1024, 780]) {
       "data-material-ready",
       "true",
     );
-    for (const workspace of ["texture", "pattern", "baking", "material"]) {
+    for (const workspace of [
+      "texture",
+      "pattern",
+      "stamp",
+      "baking",
+      "material",
+    ]) {
       if (workspace !== "texture")
         await page
           .getByRole("navigation", { name: "Studio workspace" })

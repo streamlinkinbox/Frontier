@@ -13,6 +13,8 @@ const studioDependencies = [
   "three",
   "three-mesh-bvh",
   "three/addons/controls/OrbitControls.js",
+  "three/addons/controls/TransformControls.js",
+  "three/addons/geometries/DecalGeometry.js",
   "three/addons/geometries/RoundedBoxGeometry.js",
   "three/addons/geometries/TeapotGeometry.js",
   "three/addons/math/MeshSurfaceSampler.js",

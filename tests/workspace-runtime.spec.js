@@ -34,6 +34,10 @@ async function ready(page, workspace) {
       "data-material-ready",
       "true",
     );
+  else if (workspace === "stamp")
+    await expect(
+      page.getByAltText("Composed stamp preview", { exact: true }),
+    ).toBeVisible();
   else if (workspace === "baking")
     await expect(page.locator(".bk-studio canvas")).toHaveAttribute(
       "data-mesh-ready",
@@ -88,6 +92,7 @@ test("cached reloads and repeated workspace switches keep the hooks and renderer
     for (const [button, workspace] of [
       ["Pattern", "pattern"],
       ["Texture", "texture"],
+      ["Stamp", "stamp"],
       ["Baking", "baking"],
       ["Material", "material"],
     ]) {
@@ -198,12 +203,16 @@ for (const [workspace, hook] of [
         });
       },
     );
-    await page.route(`**/src/${hook}`, (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "text/javascript",
-        body: source.replaceAll(`?v=${current}`, `?v=${replay}`),
-      }),
+    // Parent modules can carry Vite HMR timestamps after an editor change.
+    // Replay the hook at either spelling rather than silently missing ?t URLs.
+    await page.route(
+      new RegExp(`/src/${hook.replaceAll(".", "\\.")}(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/javascript",
+          body: source.replaceAll(`?v=${current}`, `?v=${replay}`),
+        }),
     );
     const doc = createTextureDocument();
     doc.layers.at(-1).name = "Keep my saved base";
@@ -256,6 +265,7 @@ test("the embedded preview switches and reloads all workspaces without invalid h
   );
   for (const [label, selector] of [
     ["Pattern", ".pe-overlay"],
+    ["Stamp", ".stamp-studio"],
     ["Baking", ".bk-studio"],
     ["Texture", ".tp-studio"],
   ]) {

@@ -22,7 +22,8 @@
     "test:sdf": "playwright test tests/volume-sdf.spec.js tests/surface-bake-tiles.spec.js",
     "audit:teapot": "node scripts/audit-teapot-bakes.mjs",
     "audit:sdf": "node scripts/audit-teapot-sdf.mjs",
-    "test:painting": "playwright test tests/paint-authoring-model.spec.js tests/paint-authoring-studio.spec.js tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js"
+    "test:painting": "playwright test tests/paint-authoring-model.spec.js tests/paint-authoring-studio.spec.js tests/texture-document.spec.js tests/texture-studio.spec.js tests/texture-folders-model.spec.js tests/texture-folders-studio.spec.js tests/texture-history-model.spec.js tests/texture-history-studio.spec.js tests/point-gradient-model.spec.js tests/point-gradient-studio.spec.js",
+    "test:stamps": "playwright test tests/stamp-decal-model.spec.js tests/stamp-decal-studio.spec.js"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

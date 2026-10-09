@@ -2465,3 +2465,35 @@
   background: repeating-conic-gradient(#77786b 0% 25%, #999a8a 0% 50%) 0 0/8px
     8px;
 }
+
+.tp-layer-row .tp-layer-drag {
+  width: 12px;
+  min-height: 28px;
+  padding: 0;
+  flex: none;
+  background: none;
+  border: 0;
+  color: #77776c;
+  cursor: grab;
+}
+.tp-layer-row .tp-layer-drag:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.tp-layer-row.drop-before {
+  border-top: 2px solid #d9b281;
+  background: #2c2821;
+}
+.tp-layer-row.drop-after {
+  border-top-color: transparent;
+  border-bottom: 2px solid #d9b281;
+  background: #2c2821;
+}
+.tp-layer-row.drop-inside {
+  border: 1px solid #d9b281;
+  background: #393124;
+}
+.tp-layer-list.is-layer-dragging .tp-bottom-drop {
+  display: block;
+  opacity: 1;
+}

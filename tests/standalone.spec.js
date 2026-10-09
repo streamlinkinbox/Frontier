@@ -1532,3 +1532,69 @@ test("standalone shared colour picker, Material-studio generators and surface-an
   expect(requests).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test("offline Stamp rich text and reusable surface decals/masks use only embedded fonts and artwork", async ({
+  page,
+}) => {
+  const html = await readFile(htmlPath, "utf8"),
+    url = localURL + "?studio=stamp",
+    errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest() && route.request().url() === url)
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: html,
+      });
+    if (!/^https?:/.test(route.request().url())) return route.continue();
+    requests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
+  await page.goto(url);
+  await expect(
+    page.getByAltText("Composed stamp preview", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Stamp rich text", exact: true })
+    .fill("OFFLINE");
+  await page
+    .getByLabel("Stamp text font", { exact: true })
+    .selectOption("DM Sans");
+  await page.getByLabel("Stamp text size", { exact: true }).fill("48");
+  const pending = page.waitForEvent("download");
+  await page
+    .locator(".stamp-canvas-toolbar")
+    .getByRole("button", { name: "SVG", exact: true })
+    .click();
+  const chunks = [];
+  for await (const chunk of await (await pending).createReadStream())
+    chunks.push(chunk);
+  const svg = Buffer.concat(chunks).toString();
+  expect(svg).toContain("<path");
+  expect(svg).not.toContain("<text");
+  await page
+    .getByRole("button", { name: "Use in Texture", exact: true })
+    .click();
+  const canvas = page.locator(".tp-scene-viewport canvas");
+  await expect(canvas).toHaveAttribute("data-material-ready", "true");
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5);
+  await expect(canvas).toHaveAttribute("data-decal-count", "1");
+  expect(
+    Number(await canvas.getAttribute("data-decal-triangles")),
+  ).toBeGreaterThan(0);
+  await page
+    .getByRole("button", { name: "Navigate teapot", exact: true })
+    .click();
+  await page
+    .getByRole("checkbox", { name: "Use decal as mask", exact: true })
+    .check();
+  await expect(canvas).toHaveAttribute("data-decal-mask-count", "1");
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});

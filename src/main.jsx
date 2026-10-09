@@ -8,6 +8,7 @@ import {
   patternPreviewShape,
 } from "./patternSurface.js";
 import PatternEditor from "./PatternEditor.jsx";
+import StampStudio from "./StampStudio.jsx";
 import TexturePaintStudio from "./TexturePaintStudio.jsx";
 import BakingStudio from "./BakingStudio.jsx";
 import {
@@ -145,10 +146,13 @@ function App() {
     ),
   );
   const [modal, setModal] = useState(null);
+  const [stampEdit, setStampEdit] = useState(null);
+  const [stampRequest, setStampRequest] = useState(null);
   const [bakeMode, setBakeMode] = useState("mesh");
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   function openWorkspace(value, mode = "mesh") {
     const next = normalizeStudioWorkspace(value);
+    if (next !== "stamp" && workspace === "stamp") setStampEdit(null);
     setModal(null);
     setWorkspace(next);
     if (next === "baking") setBakeMode(mode);
@@ -407,6 +411,12 @@ function App() {
           )}
           {workspace === "texture" && (
             <TexturePaintStudio
+              initialStamp={stampRequest}
+              onStampConsumed={() => setStampRequest(null)}
+              onEditStamp={(project) => {
+                setStampEdit(project);
+                openWorkspace("stamp");
+              }}
               onClose={() => openWorkspace("material")}
               onWorkspace={openWorkspace}
               materialWorkspace={{
@@ -438,6 +448,17 @@ function App() {
                 setTab,
                 savePreset: saveMaterialPreset,
                 openWorkspace,
+              }}
+            />
+          )}
+          {workspace === "stamp" && (
+            <StampStudio
+              initial={stampEdit}
+              onWorkspace={openWorkspace}
+              onClose={() => openWorkspace("texture")}
+              onUse={(preset) => {
+                setStampRequest(preset);
+                openWorkspace("texture");
               }}
             />
           )}

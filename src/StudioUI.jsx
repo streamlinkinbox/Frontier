@@ -5,6 +5,7 @@ export const studioWorkspaces = [
   { id: "material", label: "Material" },
   { id: "pattern", label: "Pattern" },
   { id: "texture", label: "Texture" },
+  { id: "stamp", label: "Stamp" },
   { id: "baking", label: "Baking" },
 ];
 export function normalizeStudioWorkspace(value) {
@@ -14,6 +15,7 @@ export function normalizeStudioWorkspace(value) {
   if (["pattern", "patterns", "patternstudio"].includes(key)) return "pattern";
   if (["texture", "paint", "texturepaint", "texturestudio"].includes(key))
     return "texture";
+  if (["stamp", "stamps", "stampstudio"].includes(key)) return "stamp";
   if (["bake", "baking", "bakestudio", "bakingstudio"].includes(key))
     return "baking";
   return "material";

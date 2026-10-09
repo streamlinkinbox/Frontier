@@ -9,6 +9,7 @@ import {
   Layers3,
   Folder,
   Brush,
+  Stamp,
   Sparkles,
   ChevronRight,
   Star,
@@ -68,6 +69,10 @@ export default function AssetContentBrowser({
   onSaveProject,
   onUndo,
   onRedo,
+  stampPresets = [],
+  stampPresetId,
+  onStampPreset,
+  onEditStamp,
 }) {
   const [height, setHeight] = useState(restoredHeight),
     [kind, setKind] = useState("material"),
@@ -142,12 +147,21 @@ export default function AssetContentBrowser({
     category: g.group,
     generator: g,
   }));
+  const stampAssets = stampPresets.map((preset) => ({
+    id: preset.id,
+    name: preset.name,
+    type: "stamp",
+    category: "Stamps",
+    preset,
+  }));
   const pool =
     kind === "material"
       ? materialAssets
       : kind === "brush"
         ? brushAssets
-        : generatorAssets;
+        : kind === "stamp"
+          ? stampAssets
+          : generatorAssets;
   const filtered = pool.filter(
     (a) =>
       (category === "All" ||
@@ -220,6 +234,7 @@ export default function AssetContentBrowser({
     if (asset.type === "material") workspace.selectMaterial(asset.material);
     else if (asset.type === "brush")
       onPaintSettings(selectPaintInstrument(painting, asset.id));
+    else if (asset.type === "stamp") onStampPreset?.(asset.id);
     else setGenerator(normalizeGenerator({ id: asset.id }));
   }
   const selectedId =
@@ -227,7 +242,9 @@ export default function AssetContentBrowser({
       ? workspace.selected.id
       : kind === "brush"
         ? painting.toolId
-        : generator.id;
+        : kind === "stamp"
+          ? stampPresetId
+          : generator.id;
   const selected = pool.find((a) => a.id === selectedId) || pool[0];
   const assign = () => {
     if (!selected) return;
@@ -237,7 +254,10 @@ export default function AssetContentBrowser({
       name: selected.name,
       parameters: kind === "generator" ? generator.parameters : null,
     });
-    setStatus("Asset link stored on the layer · not paint compositing.");
+    if (selected.type === "stamp") {
+      resize(38);
+      setStatus("Stamp selected · click the teapot surface to place it.");
+    } else setStatus("Asset link stored on the layer · not paint compositing.");
   };
   const inspectorProps = {
     ...workspace,
@@ -340,7 +360,7 @@ export default function AssetContentBrowser({
         </button>
         <span>
           {workspace.materials.length} materials · 102 instruments · 10
-          generators
+          generators · {stampPresets.length} stamps
         </span>
         <small>
           {status || "Drag the top edge upward to open the asset workspace"}
@@ -363,6 +383,7 @@ export default function AssetContentBrowser({
               <option value="material">Materials</option>
               <option value="brush">Brushes / instruments</option>
               <option value="generator">Generators</option>
+              <option value="stamp">Stamp presets</option>
             </select>
             <button
               aria-pressed={mobile === "assets"}
@@ -387,6 +408,7 @@ export default function AssetContentBrowser({
                 ["material", "Materials", workspace.materials.length, Layers3],
                 ["brush", "Brushes / instruments", 102, Brush],
                 ["generator", "Generators", 10, Sparkles],
+                ["stamp", "Stamp presets", stampPresets.length, Stamp],
               ].map(([type, label, count, Icon]) => (
                 <button
                   key={type}
@@ -405,7 +427,9 @@ export default function AssetContentBrowser({
                     ? "MATERIAL FAMILIES"
                     : kind === "brush"
                       ? "INSTRUMENT FAMILIES"
-                      : "GENERATOR FAMILIES"}
+                      : kind === "stamp"
+                        ? "STAMP LIBRARY"
+                        : "GENERATOR FAMILIES"}
                 </span>
                 {[
                   "All",
@@ -528,6 +552,8 @@ export default function AssetContentBrowser({
                           <small>Rendering thumbnail…</small>
                         </div>
                       )
+                    ) : asset.type === "stamp" ? (
+                      <img src={asset.preset.raster.dataUrl} alt="" />
                     ) : asset.type === "brush" ? (
                       <img
                         className="cb-tool-art"
@@ -660,6 +686,43 @@ export default function AssetContentBrowser({
                     </button>
                   </div>
                   <MaterialInspectorPanel {...inspectorProps} />
+                </div>
+              ) : kind === "stamp" ? (
+                <div className="cb-stamp-inspector">
+                  {selected && (
+                    <>
+                      <img
+                        src={selected.preset.raster.dataUrl}
+                        alt={`${selected.name} stamp artwork`}
+                      />
+                      <h2>{selected.name}</h2>
+                      <p>
+                        {selected.preset.project.layers.length} composited Text
+                        / SVG / Image components
+                      </p>
+                      <small>
+                        {selected.preset.project.channels.length} channel
+                        targets ·{" "}
+                        {selected.preset.project.maskMode === "alpha"
+                          ? "alpha silhouette"
+                          : "luminance × alpha"}{" "}
+                        mask
+                      </small>
+                      <button
+                        onClick={() => onEditStamp?.(selected.preset.project)}
+                      >
+                        Edit in Stamp workspace ↗
+                      </button>
+                      <button disabled={!canAssign} onClick={assign}>
+                        Stamp on selected layer <Stamp size={14} />
+                      </button>
+                      <p>
+                        Click the teapot surface to stamp. Each placement is its
+                        own editable decal component; the preset is embedded
+                        once per project.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : kind === "brush" ? (
                 <PaintToolProperties

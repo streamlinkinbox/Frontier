@@ -1,4 +1,4 @@
-# Alloy — Material, Pattern, Texture & Baking Studio
+# Alloy — Material, Pattern, Texture, Stamp & Baking Studio
 
 A real-time procedural material editor built with React, Vite and Three.js. Most library surfaces are analytic. **V7 adds a generated SVG leather atlas and editable SVG/image pattern sources**, with procedural material shading. No external HDRIs or downloaded 3D assets are required. The charcoal interface uses rounded panels and desaturated accents. Fonts are self-hosted.
 
@@ -42,9 +42,23 @@ npm run test:standalone
 
 This repository has not been published to GitHack as part of the editor work. Links or artifact checksums in older Slate reference documents describe upstream versions, not the current build.
 
+## Stamp workspace, surface decals and layer drag/drop
+
+Open **Stamp** (`/?studio=stamp`) for a simpler Text/SVG/Image composition workspace. Rich text supports mixed fonts, sizes, semibold weights and colours **within one text component**, using bundled fonts and real outlined exports. SVG can be embedded or imported as validated static markup, never user JavaScript. Save/open/copy/delete reusable stamp presets, choose any of the 14 channel targets or mask interpretation, and export editable JSON, SVG or transparent PNG.
+
+In **Texture**, attach decal components to a regular layer or add a dedicated **Decal layer** containing many placements. **Stamp brush** aims at the real mesh and commits one stamp per click; **Transform** anchors to the surface and provides actual 3D move/rotate/scale handles and re-anchoring. Presets are embedded as shared immutable snapshots; explicit replacement preserves an instance's transform. Opacity, channels, inherited protections and projected stamp masks are live, undoable and saved with the Texture project.
+
+Dedicated layer grips now expose **before / after / inside / root** drag targets with subtree, cycle, depth, lock and one-gesture history safeguards. The overlay Content Browser's **list rows fill the centre pane horizontally**, while its fixed scrolling grid and scene/dock dimensions stay unchanged. The browser now includes Stamp presets.
+
+These are real clipped surface decals and selected fill/mask previews, **not a whole-stack UV painter/compositor**. Height/normal are derived shading; Subsurface is an honest wrap-light approximation, not volumetric scattering. The existing material/pattern Apply/export, 2D source strokes, baking and audited teapot outputs are retained. **[Workflow, renderer scope, storage limits and checks](docs/stamps-and-decals.md)**.
+
+```sh
+npm run test:stamps
+```
+
 ## Shared studio UI and Baking Studio
 
-Material, Pattern, Texture and Baking share the newer ProjectZero/Texture Studio theme: workspace pills, angled dock tabs, charcoal panels, rounded inspector cards, neutral controls and light typography. All four studios place libraries/outliners/layers/bake setup on the **left**, the viewport in the middle and inspectors on the **right**. Existing material recipes, pattern tools, Apply and exports are retained.
+Material, Pattern, Texture, Stamp and Baking share the newer ProjectZero/Texture Studio theme: workspace pills, angled dock tabs, charcoal panels, rounded inspector cards, neutral controls and light typography. All five studios place libraries/outliners/layers/bake setup on the **left**, the viewport in the middle and inspectors on the **right**. Existing material recipes, pattern tools, Apply and exports are retained.
 
 Workspace routing is separate from modal dialogs. `?studio=baking` and `?studio=bake` open the real Baking Studio; unknown routes fall back to Material. Failed workspace components show recovery controls rather than an unexplained black pane.
 
