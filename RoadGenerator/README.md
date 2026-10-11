@@ -71,9 +71,12 @@ RoadGenerator/
     renderer.js       deferred WebGPU renderer, 2-cascade shadows, instancing, picking, texture arrays
     camera.js         orbit / fly camera
   src/ui/             widgets, scene (layer visibility + instancing), panels (layer stack, inspector), app
-  tests/              node:test suites for junctions and the full pipeline
+  tests/              node:test suites: junctions, full pipeline, and a renderer boot test that runs the
+                      real app against a validating WebGPU mock (tools/gpu-mock.mjs)
 tools/
-  serve.mjs           static dev server · build.mjs single-file bundle · check-wgsl.mjs · wire-png.mjs
+  serve.mjs           static dev server · build.mjs single-file bundle · check-wgsl.mjs (naga) · wire-png.mjs
+  gpu-mock.mjs        headless WebGPU API mock enforcing bind-group/layout compatibility, attachment vs
+                      binding conflicts, texture–sampler pair rules, usage flags and buffer bounds
 ```
 
 ### Intersection topology

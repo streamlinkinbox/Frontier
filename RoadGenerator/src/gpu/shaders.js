@@ -282,8 +282,13 @@ struct VSOut { @builtin(position) clip : vec4<f32>, @location(0) uv : vec2<f32> 
   var pos = array<vec2<f32>, 3>(vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));
   var o : VSOut; o.clip = vec4<f32>(pos[vi], 0.0, 1.0); o.uv = pos[vi] * vec2<f32>(0.5, -0.5) + 0.5; return o;
 }
+fn loadDepth(uv : vec2<f32>) -> f32 {
+  let dims = vec2<i32>(textureDimensions(depthTex));
+  let c = clamp(vec2<i32>(uv * vec2<f32>(dims)), vec2<i32>(0), dims - vec2<i32>(1));
+  return textureLoad(depthTex, c, 0);
+}
 @fragment fn fs(in : VSOut) -> @location(0) vec4<f32> {
-  let d = textureSampleLevel(depthTex, samp, in.uv, 0);
+  let d = loadDepth(in.uv);
   if (d >= 0.99999) { return vec4<f32>(1.0); }
   let P = worldFromDepth(in.uv, d);
   let N = normalize(textureSampleLevel(normalTex, samp, in.uv, 0.0).xyz * 2.0 - 1.0);
@@ -305,7 +310,7 @@ struct VSOut { @builtin(position) clip : vec4<f32>, @location(0) uv : vec2<f32> 
     let c = F.viewProj * vec4<f32>(S, 1.0);
     let suv = (c.xy / c.w) * vec2<f32>(0.5, -0.5) + 0.5;
     if (any(suv < vec2<f32>(0.0)) || any(suv > vec2<f32>(1.0))) { continue; }
-    let sd = textureSampleLevel(depthTex, samp, suv, 0);
+    let sd = loadDepth(suv);
     let sceneZ = linearDepth(sd);
     let sampleZ = linearDepth(c.z / c.w);
     let diff = sampleZ - sceneZ;
@@ -326,14 +331,19 @@ struct VSOut { @builtin(position) clip : vec4<f32>, @location(0) uv : vec2<f32> 
   var pos = array<vec2<f32>, 3>(vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));
   var o : VSOut; o.clip = vec4<f32>(pos[vi], 0.0, 1.0); o.uv = pos[vi] * vec2<f32>(0.5, -0.5) + 0.5; return o;
 }
+fn loadDepth(uv : vec2<f32>) -> f32 {
+  let dims = vec2<i32>(textureDimensions(depthTex));
+  let c = clamp(vec2<i32>(uv * vec2<f32>(dims)), vec2<i32>(0), dims - vec2<i32>(1));
+  return textureLoad(depthTex, c, 0);
+}
 @fragment fn fs(in : VSOut) -> @location(0) vec4<f32> {
   let dims = vec2<f32>(textureDimensions(src));
   let texel = 1.0 / dims;
-  let d0 = linearDepth(textureSampleLevel(depthTex, samp, in.uv, 0));
+  let d0 = linearDepth(loadDepth(in.uv));
   var sum = 0.0; var wsum = 0.0;
   for (var y = -2; y <= 2; y++) { for (var x = -2; x <= 2; x++) {
     let o = vec2<f32>(f32(x), f32(y)) * texel;
-    let d = linearDepth(textureSampleLevel(depthTex, samp, in.uv + o, 0));
+    let d = linearDepth(loadDepth(in.uv + o));
     let w = exp(-abs(d - d0) * 2.0);
     sum += textureSampleLevel(src, samp, in.uv + o, 0.0).r * w; wsum += w;
   } }

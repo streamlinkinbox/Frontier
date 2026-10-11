@@ -428,7 +428,9 @@ class App {
   // ---------------------------------------------------------------------------------------------
   loop() {
     let last = performance.now();
+    this.running = true;
     const tick = (now) => {
+      if (!this.running) return;
       const dt = Math.min(0.1, (now - last) / 1000); last = now;
       // fly keys
       const k = this.keys; const dir = [0, 0, 0];
