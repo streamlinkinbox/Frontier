@@ -1,0 +1,9 @@
+Cube: fine=12, preview far=12, patches=1
+Sphere: fine=960, preview far=550, patches=8
+Cylinder: fine=128, preview far=128, patches=1
+Cone: fine=64, preview far=64, patches=1
+Plane: fine=2, preview far=2, patches=1
+Torus: fine=768, preview far=458, patches=6
+Area emitter: fine=2, preview far=2, patches=1
+Indexed disk: fine=64, preview far=64, boundary protected
+PASS 73537 CPU checks. No Vulkan runtime/image/timing validation.

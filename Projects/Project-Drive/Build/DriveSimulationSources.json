@@ -1,0 +1,16 @@
+{
+  "sources": [
+    "Projects/Project-Drive/Source/ProjectDriveInterchange.cpp",
+    "Projects/Project-Drive/Source/VehicleInstanceSequence.cpp",
+    "Projects/Project-Drive/Source/ChaseCameraSolver.cpp",
+    "Engine/PhysicalDynamics/Vehicle/VehicleSolver.cpp",
+    "Engine/PhysicalDynamics/Vehicle/VehicleGeometry.cpp",
+    "Engine/PhysicalDynamics/Vehicle/XPBDSoftTyre.cpp",
+    "Engine/PhysicalDynamics/Vehicle/Drivetrain.cpp",
+    "Engine/PhysicalDynamics/Vehicle/Aerodynamics.cpp",
+    "Engine/PhysicalDynamics/Vehicle/PacejkaMagicFormula.cpp",
+    "Engine/PhysicalDynamics/Vehicle/TyreSlipDynamics.cpp",
+    "Engine/GeometricRaster/CameraProjection.cpp",
+    "Engine/DeviceExchange/OrientationClassifier.cpp"
+  ]
+}

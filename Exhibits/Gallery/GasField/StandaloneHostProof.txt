@@ -1,0 +1,212 @@
+$ Project-Gas read Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml
+
+Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml
+  name              Camp fire, steady
+  outliner          Fire domain · Log fire · Stone ring · Moonlight
+  authored box      1.600 × 2.200 × 1.600 m at full surge
+  solver cube       2.200 m, 32³ voxels, 0.069 m a voxel
+  authored lattice  64³, which is the fine field and not this one
+  emitter           r 0.115 m at (0.00, 0.00, 0.08), 19.7 smoke/s, 64.2 K/s
+  obstruction       none
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 1.150  φ 1.280  d 1.750
+
+$ Project-Gas cross Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml crosses unchanged, 2165 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       791.3568
+  hottest voxel     3.0563 K above ambient
+  fastest voxel     6.8326 m/s
+  obstructed        0 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml
+
+Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml
+  name              Cold dust fall
+  outliner          Dust domain · Ledge spill · Rubble · Overcast key
+  authored box      2.300 × 1.800 × 2.300 m at full surge
+  solver cube       2.300 m, 32³ voxels, 0.072 m a voxel
+  authored lattice  64³, which is the fine field and not this one
+  emitter           r 0.118 m at (0.00, 0.00, 0.18), 9.8 smoke/s, 0.8 K/s
+  obstruction       none
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 2.300  φ 1.520  d 2.450
+
+$ Project-Gas cross Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml crosses unchanged, 2157 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/cold_dust_fall.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       108.7839
+  hottest voxel     0.1308 K above ambient
+  fastest voxel     0.8456 m/s
+  obstructed        0 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml
+
+Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml
+  name              Deflected plume
+  outliner          Vent domain · Floor vent · Deflector slab · Key light
+  authored box      2.868 × 3.428 × 2.868 m at full surge
+  solver cube       3.428 m, 32³ voxels, 0.107 m a voxel
+  authored lattice  64³, which is the fine field and not this one
+  emitter           r 0.095 m at (0.00, 0.00, 0.13), 84.7 smoke/s, 211.7 K/s
+  obstruction       Sphere, r 0.160 m at (0.00, 0.00, 1.44)
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 0.720  φ 1.320  d 3.050
+
+$ Project-Gas cross Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml crosses unchanged, 2167 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       684.9150
+  hottest voxel     3.4617 K above ambient
+  fastest voxel     6.8708 m/s
+  obstructed        12 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml
+
+Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml
+  name              Distant plume
+  outliner          Far domain · Distant fire · None · Key light
+  authored box      3.100 × 3.592 × 3.100 m at full surge
+  solver cube       3.592 m, 32³ voxels, 0.112 m a voxel
+  authored lattice  32³, which is the fine field and not this one
+  emitter           r 0.087 m at (0.00, 0.00, 0.14), 51.6 smoke/s, 129.1 K/s
+  obstruction       none
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ -0.950  φ 0.920  d 4.300
+
+$ Project-Gas cross Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml crosses unchanged, 2155 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/far_cheap_plume.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       288.7712
+  hottest voxel     3.4570 K above ambient
+  fastest voxel     8.6334 m/s
+  obstructed        0 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml
+
+Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml
+  name              Fracture dust burst
+  outliner          Impact domain · Break point · Masonry · Key light
+  authored box      2.880 × 2.706 × 2.880 m at full surge
+  solver cube       2.880 m, 32³ voxels, 0.090 m a voxel
+  authored lattice  96³, which is the fine field and not this one
+  emitter           switched off by the scene
+  obstruction       Deflector slab, r 0.330 m at (0.00, 0.00, 0.86)
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 1.150  φ 1.280  d 1.750
+
+$ Project-Gas cross Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml crosses unchanged, 2163 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/fracture_dust_burst.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       0.0000
+  hottest voxel     0.0000 K above ambient
+  fastest voxel     0.0000 m/s
+  obstructed        128 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/hero_detonation.gasscene.toml
+
+Experimental/Fluid/Samples/hero_detonation.gasscene.toml
+  name              Hero detonation
+  outliner          Blast domain · Charge · Ground plate · Key light
+  authored box      3.120 × 3.629 × 3.120 m at full surge
+  solver cube       3.629 m, 32³ voxels, 0.113 m a voxel
+  authored lattice  128³, which is the fine field and not this one
+  emitter           r 0.087 m at (0.00, 0.00, 0.14), 51.3 smoke/s, 128.3 K/s
+  obstruction       none
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 0.720  φ 1.320  d 3.050
+
+$ Project-Gas cross Experimental/Fluid/Samples/hero_detonation.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/hero_detonation.gasscene.toml crosses unchanged, 2162 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/hero_detonation.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/hero_detonation.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       291.9387
+  hottest voxel     3.4570 K above ambient
+  fastest voxel     8.3180 m/s
+  obstructed        0 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml
+
+Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml
+  name              Open bounds megaton
+  outliner          Open domain · Device · Terrain · Key light
+  authored box      4.680 × 4.920 × 4.680 m at full surge
+  solver cube       4.920 m, 32³ voxels, 0.154 m a voxel
+  authored lattice  128³, which is the fine field and not this one
+  emitter           switched off by the scene
+  obstruction       none
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ -0.950  φ 0.920  d 4.300
+
+$ Project-Gas cross Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml crosses unchanged, 2158 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/open_bounds_megaton.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       0.0000
+  hottest voxel     0.0000 K above ambient
+  fastest voxel     0.0000 m/s
+  obstructed        0 of 32768 voxels
+
+$ Project-Gas read Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml
+
+Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml
+  name              Tyre burnout
+  outliner          Contact patch · Slip · Rear tyre · Pit light
+  authored box      2.600 × 1.700 × 2.600 m at full surge
+  solver cube       2.600 m, 32³ voxels, 0.081 m a voxel
+  authored lattice  96³, which is the fine field and not this one
+  emitter           r 0.090 m at (0.00, 0.00, 0.04), 124.2 smoke/s, 26.6 K/s
+  obstruction       Tyre ring, r 0.129 m at (0.00, 0.00, 0.68)
+                    🚩 admitted about axis 2; the authored ring stands upright
+  sun               42.0° azimuth, 52.0° elevation → (0.41, 0.46, 0.79)
+  budget            5 m → Hero (94 MB)   20 m → Near (39 MB)   50 m → Mid (11 MB)   120 m → Far (1 MB)
+  camera            θ 2.300  φ 1.520  d 2.450
+
+$ Project-Gas cross Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml
+  ✔️  Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml crosses unchanged, 2156 bytes
+
+$ Project-Gas advance Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml --advances 90
+
+Experimental/Fluid/Samples/tyre_burnout_ring.gasscene.toml — 90 advances, 1.500 simulated seconds
+  total smoke       182.6707
+  hottest voxel     0.8788 K above ambient
+  fastest voxel     0.4479 m/s
+  obstructed        8 of 32768 voxels
+
+$ Project-Gas read <a scene from a later version>
+  🔴 refused: a gas scene of a version this build does not read
+
+$ Project-Gas view Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml --picture Exhibits/Gallery/GasField/Scene-camp_fire_steady.png --extent 256 --advances 110
+  ✔️  Experimental/Fluid/Samples/camp_fire_steady.gasscene.toml → Exhibits/Gallery/GasField/Scene-camp_fire_steady.png  (256x256, 53.9% covered, 110 advances)
+
+$ Project-Gas view Experimental/Fluid/Samples/hero_detonation.gasscene.toml --picture Exhibits/Gallery/GasField/Scene-hero_detonation.png --extent 256 --advances 45 --blast
+  ✔️  Experimental/Fluid/Samples/hero_detonation.gasscene.toml → Exhibits/Gallery/GasField/Scene-hero_detonation.png  (256x256, 23.1% covered, 45 advances)
+
+$ Project-Gas view Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml --picture Exhibits/Gallery/GasField/Scene-deflector_obstacle.png --extent 256 --advances 120
+  ✔️  Experimental/Fluid/Samples/deflector_obstacle.gasscene.toml → Exhibits/Gallery/GasField/Scene-deflector_obstacle.png  (256x256, 31.2% covered, 120 advances)

@@ -1,0 +1,152 @@
+symbol	file	result	substitute	diagnostic
+ArcadeJoystick	arcade-joystick.svg	ready	0	-
+AssetFileBlend	asset-file-blend.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileExr	asset-file-exr.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileFbx	asset-file-fbx.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileGlsl	asset-file-glsl.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileGltf	asset-file-gltf.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileJpg	asset-file-jpg.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileJson	asset-file-json.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileMat	asset-file-mat.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileMp3	asset-file-mp3.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileObj	asset-file-obj.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileOgg	asset-file-ogg.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileOtf	asset-file-otf.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFilePng	asset-file-png.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFilePy	asset-file-py.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileSvg	asset-file-svg.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileTtf	asset-file-ttf.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileWav	asset-file-wav.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileWoff	asset-file-woff.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileWoff2	asset-file-woff2.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFileZip	asset-file-zip.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderAnimation	asset-folder-animation.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderArchives	asset-folder-archives.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderAudio	asset-folder-audio.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderFonts	asset-folder-fonts.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderImages	asset-folder-images.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderMaterials	asset-folder-materials.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderModels	asset-folder-models.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderScenes	asset-folder-scenes.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderScripts	asset-folder-scripts.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderShaders	asset-folder-shaders.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderTextures	asset-folder-textures.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+AssetFolderVideo	asset-folder-video.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, text
+Camera	camera.svg	ready	0	-
+Clapperboard	clapperboard.svg	ready	0	-
+Clouds	clouds.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComposite, feDisplacementMap, feTurbulence
+CollectionBracketedObjects	collection-bracketed-objects.svg	ready	0	-
+CollectionLinkedNodes	collection-linked-nodes.svg	ready	0	-
+CollectionOverlappingTiles	collection-overlapping-tiles.svg	ready	0	-
+CollectionStackedLayers	collection-stacked-layers.svg	ready	0	-
+Collection	collection.svg	ready	0	-
+CommandKey	command-key.svg	ready	0	-
+Dice	dice.svg	ready	0	-
+Earth	earth.svg	ready	0	-
+EditorAreaLight	editor-area-light.svg	ready	0	-
+EditorBake	editor-bake.svg	ready	0	-
+EditorBone	editor-bone.svg	ready	0	-
+EditorBoxCollider	editor-box-collider.svg	ready	0	-
+EditorBrakeLight	editor-brake-light.svg	ready	0	-
+EditorCollection	editor-collection.svg	ready	0	-
+EditorDebugBreakpoint	editor-debug-breakpoint.svg	ready	0	-
+EditorDebugBug	editor-debug-bug.svg	ready	0	-
+EditorDebugRun	editor-debug-run.svg	ready	0	-
+EditorDomeLight	editor-dome-light.svg	ready	0	-
+EditorGrid	editor-grid.svg	ready	0	-
+EditorHazardLights	editor-hazard-lights.svg	ready	0	-
+EditorHdriLight	editor-hdri-light.svg	ready	0	-
+EditorHidden	editor-hidden.svg	ready	0	-
+EditorInstance	editor-instance.svg	ready	0	-
+EditorLock	editor-lock.svg	ready	0	-
+EditorMaterial	editor-material.svg	ready	0	-
+EditorMesh	editor-mesh.svg	ready	0	-
+EditorMove	editor-move.svg	ready	0	-
+EditorParticleEmitter	editor-particle-emitter.svg	ready	0	-
+EditorPause	editor-pause.svg	ready	0	-
+EditorPhysics	editor-physics.svg	ready	0	-
+EditorPivot	editor-pivot.svg	ready	0	-
+EditorPlayMode	editor-play-mode.svg	ready	0	-
+EditorPointLight	editor-point-light.svg	ready	0	-
+EditorPrefab	editor-prefab.svg	ready	0	-
+EditorRotate	editor-rotate.svg	ready	0	-
+EditorScale	editor-scale.svg	ready	0	-
+EditorSelect	editor-select.svg	ready	0	-
+EditorSimulate	editor-simulate.svg	ready	0	-
+EditorSnap	editor-snap.svg	ready	0	-
+EditorSphereCollider	editor-sphere-collider.svg	ready	0	-
+EditorSpotlight	editor-spotlight.svg	ready	0	-
+EditorStop	editor-stop.svg	ready	0	-
+EditorTexture	editor-texture.svg	ready	0	-
+EditorTrigger	editor-trigger.svg	ready	0	-
+EditorUnlock	editor-unlock.svg	ready	0	-
+EditorVisibility	editor-visibility.svg	ready	0	-
+EnvironmentExposure	environment-exposure.svg	ready	0	-
+Fire	fire.svg	ready	0	-
+FluidGlass	fluid-glass.svg	ready	0	-
+Fluid	fluid.svg	ready	0	-
+Fog	fog.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComposite, feDisplacementMap, feTurbulence
+Forest	forest.svg	ready	0	-
+GameController	game-controller.svg	ready	0	-
+GraphicsCard2D	graphics-card-2d.svg	ready	0	-
+HardDrive	hard-drive.svg	ready	0	-
+Home	home.svg	ready	0	-
+LensFlare	lens-flare.svg	ready	0	-
+LightArea2D	light-area-2d.svg	ready	0	-
+LightIncandescent2D	light-incandescent-2d.svg	ready	0	-
+LightPoint2D	light-point-2d.svg	ready	0	-
+Lightning	lightning.svg	ready	0	-
+Material	material.svg	ready	0	-
+Mesh	mesh.svg	ready	0	-
+Microphone	microphone.svg	ready	0	-
+Moon	moon.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComponentTransfer, feComposite, feFuncA, feTurbulence
+Package	package.svg	ready	0	-
+Rainbow	rainbow.svg	ready	0	-
+Ram2D	ram-2d.svg	ready	0	-
+RetroTerminal	retro-terminal.svg	ready	0	-
+SkyScattering	sky-scattering.svg	ready	0	-
+SlateAnimationCurve	slate-animation-curve.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateBuild	slate-build.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateClapboard	slate-clapboard.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateColorPicker	slate-color-picker.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateDocument	slate-document.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateFabric	slate-fabric.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow, pattern, text
+SlateFilmStrip	slate-film-strip.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateImageWidgetVariant2	slate-image-widget-variant2.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateImageWidgetVariant3	slate-image-widget-variant3.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateImageWidgetVariant4	slate-image-widget-variant4.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateImage	slate-image.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateLEDPanel	slate-l-e-d-panel.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateLantern	slate-lantern.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateLiveBroadcast	slate-live-broadcast.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateMeetingGrid	slate-meeting-grid.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateOldGamepadClassic	slate-old-gamepad-classic.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateRingLight	slate-ring-light.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateSceneHierarchy	slate-scene-hierarchy.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateScriptNode	slate-script-node.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateShaderNode	slate-shader-node.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateSpotlight	slate-spotlight.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateSpriteSheet	slate-sprite-sheet.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateTerminal	slate-terminal.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateTilemap	slate-tilemap.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateTimeline	slate-timeline.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+SlateVideoPlayer	slate-video-player.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+Smoke	smoke.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDisplacementMap, feTurbulence
+Speaker	speaker.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feBlend, feComposite, feDistantLight, feSpecularLighting
+Stars	stars.svg	ready	0	-
+Sun	sun.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComposite, feDisplacementMap, feTurbulence
+Terrain	terrain.svg	ready	0	-
+WeatherHail	weather-hail.svg	ready	0	-
+WeatherRain	weather-rain.svg	ready	0	-
+WeatherSnow	weather-snow.svg	ready	0	-
+Wind	wind.svg	ready	0	-
+FolderEnvironment	folder-environment.svg	ready	0	-
+FolderGeneric	folder-generic.svg	ready	0	-
+FolderWater	folder-water.svg	ready	0	-
+LocalCloud	local-cloud.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComposite, feDisplacementMap, feTurbulence
+LocalFog	local-fog.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feColorMatrix, feComposite, feDisplacementMap, feTurbulence
+OutlinerPrecipitation	outliner-precipitation.svg	ready	0	-
+OutlinerStars	outliner-stars.svg	ready	0	-
+FolderScene	folder-scene.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+FolderWorld	folder-world.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow
+FolderMaterials	folder-materials.svg	ready	0	ThorVG vector compatibility artwork (see Icons/ThorVG/manifest.json): feDropShadow

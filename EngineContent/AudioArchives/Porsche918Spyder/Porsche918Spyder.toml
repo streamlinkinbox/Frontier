@@ -1,0 +1,95 @@
+# Frontier acoustic structure — Porsche 918 Spyder (first cut, row A2 / HTML editor)
+# Loaded by AcousticStructure::Load (Engine/PlatformInterchange) and embedded verbatim in Tools/AudioEditor/index.html.
+# Tune in the editor, Export, drop the file here; identity between the worklet and the C++ is the A5–A7 proof.
+# units: [Hz] [rpm] [m] [mm] [s] [K] [bar] [°] [-]   (crank angles are degrees over the 720° four-stroke cycle)
+
+[vehicle]
+name                   = "Porsche 918 Spyder"           # display name
+engine                 = "4.6 L 90° flat-plane V8, NA, top-exit pipes" # one-line engine description
+cylinder_count         = 8                              # number of cylinders
+firing_order           = [1, 8, 3, 6, 4, 5, 2, 7]       # cylinder numbers in firing sequence, even 720/N intervals
+bank_of_cylinder       = [0, 1, 0, 1, 0, 1, 0, 1]       # bank per cylinder number (0 = left pipe, 1 = right pipe)
+idle_rpm               = 1000.0                         # [rpm]
+redline_rpm            = 9150.0                         # [rpm] fuel cut
+peak_power_rpm         = 8700.0                         # [rpm]
+peak_torque_rpm        = 6700.0                         # [rpm]
+peak_torque_nm         = 540.0                          # [N·m]
+inertia_kgm2           = 0.35                           # [kg·m²] effective rotating inertia seen by the free-rev powertrain
+friction_nm            = 30.0                           # [N·m] friction torque at zero rpm
+friction_per_krpm_nm   = 7.0                            # [N·m] friction torque increase per 1000 rpm
+
+[combustion]
+evo_deg                = 128.0                          # [°] voice starts this many degrees after the firing TDC (exhaust valve opening)
+jitter_pct             = 5.0                            # [%] firing time walks by a uniform ±half of this share of the interval per firing, cumulative (RevSim 5 %); the walk eases back to the crank
+idle_jitter_boost      = 0.5                            # jitter grows by this factor toward zero load
+jitter_amp             = 0.04                           # cycle-to-cycle amplitude deviation (1 σ)
+misfire_probability    = 0.0                            # per firing at full load; ×4 toward zero load
+backfire_level         = 2.0                            # lift-off backfire thud (throttle > 0.6 → < 0.1 above 60 % redline)
+backfire_probability   = 0.2                            # chance of the thud per lift
+pop_level              = 0.6                            # overrun crackle amplitude
+pop_rate_hz            = 30.0                           # [Hz] overrun crackle rate at redline right after lift
+pop_decay_s            = 1.4                            # [s] overrun crackle fades with this time constant
+
+[voice]
+pitch_hz               = 65.0                           # [Hz] pulse repetition inside one firing at 0 rpm (the "thump" pitch)
+pitch_rise_hz          = 15.0                           # [Hz] added to the pitch at 8000 rpm
+decay_per_s            = 15.0                           # [1/s] voice envelope decay at 0 rpm
+decay_per_krpm         = 3.0                            # [1/s] added decay per 1000 rpm
+thump_level            = 0.8                            # asymmetric pressure pulse
+body_level             = 0.6                            # harmonic body (24 harmonics of the pitch)
+harmonics              = [1.0, 1.4, 0.6, 0.8]           # weights of harmonics 1 … n; beyond the list 0.5 / n^1.2
+resonance              = 1.5                            # formant climb with rpm; above 1.0 the rasp switches on
+crackle_level          = 0.1                            # per-firing noise burst at zero load
+crackle_load_level     = 0.4                            # added at full load
+ring_level             = 0.1                            # valve ring at zero load (5 / 6 / 7 kHz by cylinder)
+ring_load_level        = 0.2                            # added at full load
+ring_hz                = 5000.0                         # [Hz] ring of cylinder 1; +1 kHz per cylinder mod 3
+ring_fade_rpm          = 4000.0                         # [rpm] ring is gone above this speed
+rasp_level             = 1.5                            # AM rasp (3 × pitch carrier, ½ × pitch modulator); needs resonance > 1
+howl_level             = 0.0                            # intake howl above howl_rpm
+howl_rpm               = 4000.0                         # [rpm]
+howl_span_rpm          = 5000.0                         # [rpm] howl reaches full level this far above howl_rpm
+cam_order              = 4.0                            # amplitude modulation order relative to the cam (rpm / 120 Hz)
+cam_depth              = 0.0                            # modulation depth (0 for flat-plane cranks)
+lift_level             = 1.0                            # voice amplitude at zero load (fuel cut / overrun); 1 = unchanged (RevSim)
+
+[exhaust]
+drive                  = 1.0                            # multiplies the per-channel tanh drive (1 + 0.8 · load)
+bank_pan               = 0.7                            # 0 = both banks centred … 1 = hard left/right
+comb_ms                = 2.667                          # [ms] feedback comb delay (pipe colour); 2.667 ms = the 128-frame minimum a WebAudio delay in a feedback cycle is held to (what RevSim plays at 48 kHz)
+comb_feedback          = 0.3
+valve_hp_hz            = 300.0                          # [Hz] high-pass below valve_open_rpm (exhaust valve shut)
+valve_open_hp_hz       = 100.0                          # [Hz] high-pass above valve_open_rpm
+valve_open_rpm         = 5000.0                         # [rpm]
+
+[mechanical]
+clatter_level          = 0.0                            # valve seating clatter (crank-locked)
+clatter_hz             = 5200.0                         # [Hz] clatter resonance
+whine_order            = 168.0                          # gear whine order relative to crank speed (0 = none)
+whine_level            = 0.03                           # at redline; scales with rpm
+motor_level            = 0.03                           # hybrid drive motor tone, scales with load (0 = none)
+motor_hz               = 200.0                          # [Hz] motor tone at zero load
+motor_load_hz          = 600.0                          # [Hz] added at full load
+
+[turbo]
+enabled                = false                          # forced-induction layer
+spool_up_s             = 0.2                            # [s] spool follows rpm / redline · load with this lag
+spool_down_s           = 0.2                            # [s]
+whine_hz               = 4000.0                         # [Hz] compressor whine at zero spool
+whine_span_hz          = 8000.0                         # [Hz] added at full spool
+whine_level            = 0.4                            # at full spool
+rush_hz                = 2000.0                         # [Hz] air-rush band-pass centre at zero spool
+rush_span_hz           = 6000.0                         # [Hz] added at full spool
+rush_q                 = 1.5
+rush_level             = 0.4                            # at full spool
+boost_max_bar          = 1.0                            # [bar] readout only
+blowoff_level          = 0.8                            # blow-off flutter on lift above 3000 rpm
+antilag_level          = 0.0                            # anti-lag pops instead of the blow-off above antilag_rpm (0 = off)
+antilag_rpm            = 4000.0                         # [rpm]
+
+[mix]
+exhaust                = 1.0                            # bus levels after the tanh (listener presets multiply these)
+induction              = 1.0                            # turbo whine + rush
+mechanical             = 1.0                            # clatter · gear whine · motor
+transients             = 1.0                            # backfire · pops · anti-lag · blow-off
+output_gain            = 1.5                            # before the comb and the ±1 clip (RevSim master 1.5)

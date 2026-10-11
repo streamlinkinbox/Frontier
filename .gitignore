@@ -1,0 +1,58 @@
+node_modules/
+dist/
+*.log
+__pycache__/
+
+.cache/
+
+# Local native authoring scenes (export/back up separately)
+.frontier/
+
+# Consolidated build products and third-party installs (lockfile is authoritative).
+/build/
+/Build/
+ExternalPackages/*
+!ExternalPackages/Dependencies.lock.json
+!ExternalPackages/README.md
+*.o
+*.obj
+*.su
+*.a
+*.lib
+*.dll
+*.exe
+*.pdb
+*.spv
+imgui.ini
+.DS_Store
+Projects/*/bin/
+Projects/*/build/
+Projects/*/Build/Output/
+Projects/Project-Zero/Host/.staged-denoise/
+# Historical screenshot bundles are regenerable, not runtime content.
+# Keep the current small native billboard evidence with the consolidated source.
+Exhibits/Gallery/*
+!Exhibits/Gallery/NativeBillboards/
+# Scene-emitter evidence is published for review and is small once losslessly re-encoded.
+#    The runner rebuilds it from source.
+!Exhibits/Gallery/LightingNative/
+# Blender drops a .blend1 beside every .blend on each save. That is the previous version of an asset
+#    already in the tree, not distinct content, so it is regenerable noise (134 MB across GeometryArchives).
+*.blend1
+!EngineContent/GeometryArchives/ControlVehicle.blend1
+# The Refined variants (18 .blend, 252 MB) are deliberately not published: they are alternate takes of the
+#    same creatures rather than additional content, and three of them exceed GitHub's 50 MB recommendation.
+#    They stay on disk, untracked.
+EngineContent/GeometryArchives/CreaturesVault/Refined/
+
+# Reconstructed by the project-owned headless content author.
+Projects/Project-Drive/Content/Scenes/DriveCourse.gltf
+Projects/Project-Drive/Build/DriveContentHost
+_AgentScratch/
+
+# ── Project-Networking, merged from c7egoist/Frontier arena/9928a45d-frontier ──────────────────────
+# Fetched SDKs and toolchains, build output, and anything carrying a live credential.
+**/Build/Output/
+**/ThirdParty/
+*.local.*
+.env

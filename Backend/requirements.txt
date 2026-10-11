@@ -1,0 +1,2 @@
+# stdlib only — nothing to install. This file exists so hosts that
+# auto-detect Python projects (Render, Railway, Fly) accept the service.

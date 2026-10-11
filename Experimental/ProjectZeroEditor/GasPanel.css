@@ -1,0 +1,254 @@
+/*===========================================================================================================================================
+                                                              GASPANEL.CSS
+  What is left after the panel was rebuilt on the editor's own Card, Control, Tile, Metric and
+  TransformPanel. Every slider, switch, select, tile, metric and card shell is now the inspector's, styled
+  by the inspector's stylesheet, so this file holds only the four things that vocabulary has no word for:
+  the preview canvas, the one-line answer to "will this run", the child list, and the drawer.
+
+  The earlier draft styled its own rows and pills. It looked close, and close is exactly the problem — a
+  card that is nearly the fog card reads as a card from somewhere else.
+===========================================================================================================================================*/
+
+.gas-visual {
+  min-width: 0;
+}
+.gas-visual canvas {
+  display: block;
+  width: 100%;
+  height: 170px;
+  border: 1px solid #ffffff12;
+  border-radius: 14px;
+}
+
+/* The one element that must never be decorative: the answer to "will this run". */
+.gas-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  font-size: 11px;
+  color: #92a99f;
+}
+.gas-state i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gas-state.live i {
+  background: #6fd08c;
+  box-shadow: 0 0 6px #6fd08c88;
+}
+.gas-state.idle i {
+  background: #5a676d;
+}
+
+.gas-note {
+  margin: 8px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #7e8c92;
+}
+
+/* Over the amber line of the budget: 96 MB of the 256 MB ceiling in one domain. */
+.property-card.gas-amber {
+  --accent: #d8a657;
+}
+.property-card.gas-amber .metric {
+  color: #e0b473;
+}
+
+/*--- The hierarchy -------------------------------------------------------------------------------------*/
+
+.gas-child-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gas-child-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #ffffff10;
+  border-radius: 9px;
+  background: #ffffff06;
+  color: #cfd8d4;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+.gas-child-list button:hover {
+  border-color: #ffffff22;
+  background: #ffffff0d;
+}
+.gas-child-list small {
+  margin-left: auto;
+  color: #7e8c92;
+  font-size: 10px;
+}
+
+.gas-add-child,
+.gas-fire,
+.gas-revert,
+.gas-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid #ffffff14;
+  border-radius: 10px;
+  background: #ffffff08;
+  color: #d4ded9;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.gas-add-child:hover,
+.gas-fire:hover,
+.gas-revert:hover,
+.gas-open:hover {
+  border-color: #ffffff2a;
+  background: #ffffff12;
+}
+.gas-revert {
+  color: #9aa8ad;
+}
+.gas-open {
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  margin: 14px 0 4px;
+  border-color: #ffffff22;
+  background: #ffffff0e;
+  font-size: 12px;
+}
+.gas-open small {
+  color: #7e8c92;
+  font-size: 10px;
+}
+
+/*--- The full editor -----------------------------------------------------------------------------------*/
+
+.gas-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05080a cc;
+  backdrop-filter: blur(3px);
+}
+.gas-editor {
+  display: flex;
+  flex-direction: column;
+  width: min(1680px, 96vw);
+  height: min(1000px, 94vh);
+  border: 1px solid #ffffff14;
+  border-radius: 16px;
+  background: #0e1316;
+  overflow: hidden;
+}
+.gas-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ffffff10;
+}
+.gas-editor-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+}
+.gas-editor-header .eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #7e8c92;
+}
+.gas-editor-header > select {
+  margin-left: auto;
+}
+.gas-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #7e8c92;
+}
+.gas-close {
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 10px;
+}
+.gas-editor-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.gas-editor-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #0b0f11;
+}
+/* Shown until the hosted page reports back, so a missing dev server reads as a missing dev server rather
+   than as a broken editor. */
+.gas-editor-absent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 14%;
+  background: #0e1316;
+  color: #9aa8a3;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.gas-editor-absent h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  color: #d6e0dc;
+}
+.gas-editor-absent code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #ffffff0d;
+  font-size: 11px;
+}
+.gas-editor footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  border-top: 1px solid #ffffff10;
+  font-size: 10px;
+  color: #7e8c92;
+}
+.gas-editor footer i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+}
+.gas-editor footer i.green {
+  background: #6fd08c;
+}
+.gas-editor footer i.red {
+  background: #d07a6f;
+}

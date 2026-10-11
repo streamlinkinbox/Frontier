@@ -1,0 +1,11 @@
+{
+  "Engine/Editor/FractureCardSurface.h": "e0182938b05acdb6dc3e525ccb0cb2c928467f972105aaea978e123ac559ca2d",
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/Fracture/NativeFractureCard.cpp": "cbfe8d45d3de1721128d3f1df9e69462cad8fec100b4b5bc2965c5bc52b8058c",
+  "Exhibits/Workbench/Fracture/RunNativeFractureCard.py": "e7d916123f66c28c3725be2aadd1462ab08b73d3024334495ea36a61ae87d376",
+  "Exhibits/Gallery/FractureNative/CardBaked.png": "cc1aa51e73196908c35b7822c311164c05aa38e87674a0b839628e04d192b6eb",
+  "Exhibits/Gallery/FractureNative/CardBakedSdf.png": "31bc6f3bd088c2abb66e6a465923b90cf670cf0850a5b4bf2151d0e891986700",
+  "Exhibits/Gallery/FractureNative/CardClosed.png": "ee58e86f330f8ab40f7b25b84c32ded1eb036d5af7717f70bf80eb171ca69bbf",
+  "Exhibits/Gallery/FractureNative/CardDynamic.png": "9e7d21afdcd13a8a1f2fde039e9e64b9b14c3ab545e4d58cafcec1f18d6077f1",
+  "Exhibits/Gallery/FractureNative/CardTorus.png": "7a7eaf7e04900851b797195164001e4ebaefc8c6a123460b74f62f20f5b442a6"
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<!--
+//============================================================================================================================================
+//                                                                 INDEX.HTML
+//============================================================================================================================================
+// 📦 Native WebGPU radiance-cascades demo with a standalone control overlay.
+-->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Radiance / Transport — WebGPU</title><link rel="icon" href="data:,"><link rel="stylesheet" href="RadiancePanel.css"><script type="importmap">{"imports":{"three":"../Ocean/lib/three.module.min.js"}}</script></head>
+<body>
+<canvas id="View" aria-label="Interactive triangle atrium with radiance cascades"></canvas>
+<header><a class="Wordmark" href="#">RADIANCE<span>/ TRANSPORT</span></a><div class="HeaderRight"><span class="Badge">WEBGPU · LIVE COMPUTE</span><button id="ToggleControls" aria-expanded="true">Controls</button><a href="../../Docs/RadianceIntegratorReview.html" target="_blank" rel="noopener">Research ↗</a></div></header>
+<section class="Intro"><div class="Eyebrow">EXPERIMENT 04 / THE CHROMATIC ATRIUM</div><h1>Light, beyond<br>the line of sight.</h1><p>Screen-space probes. World-space triangle rays.<br>Dynamic radiance intervals, rebuilt every frame.</p><div class="SceneFacts"><span id="TriangleCount">— triangles</span><span>4 rigid instances</span><span>No lightmaps</span></div></section>
+<aside id="Controls" aria-label="Rendering quality controls">
+<div class="ControlHeading"><span>RENDER LAB</span><small id="Adapter">Requesting adapter…</small></div>
+<div class="Buttons"><button id="Pause" class="Active">Pause lights</button><button id="Reset">Reset view</button></div>
+<label class="SelectLabel">Quality preset<select id="Preset"><option value="Custom" disabled>Custom</option><option value="Low">Fast</option><option value="Balanced" selected>Balanced</option><option value="High">High</option></select></label>
+<label class="SelectLabel">Diagnostic view<select id="Debug"><option value="0">Final lighting</option><option value="1">Direct only</option><option value="2">Indirect only</option><option value="3">Surface normals</option><option value="4">Albedo</option><option value="5">Probe tiles</option><option value="6">Merged radiance atlas</option><option value="7">Remaining transmittance</option><option value="8">BVH traversal cost</option><option value="9">Temporal acceptance</option></select></label>
+<div id="Sliders"></div>
+<div class="Checks"><label><input type="checkbox" id="Analytic" checked> Point-light proxies</label><label><input type="checkbox" id="Visibility" checked> Probe visibility guards</label><label><input type="checkbox" id="Motion" checked> Moving triangle occluder</label><label><input type="checkbox" id="Specular"> Extra mirror ray <small>costly</small></label><label><input type="checkbox" id="Counters"> Ray-work counters <small>overhead</small></label></div>
+<div id="CascadeBudget" class="CascadeBudget"></div>
+<p class="Scope">A bounded-scene research renderer, not an open-world engine. GPU timings below are measured on your adapter.</p>
+</aside>
+<footer><div class="Metric"><small>GPU PASSES</small><b id="GpuTime">—<i> ms</i></b></div><div class="Metric"><small>COMPLETED FRAMES</small><b id="Fps">—<i> fps</i></b></div><div class="Metric"><small id="RayLabel">INTERVAL SLOTS / FRAME</small><b id="Rays">—</b></div><div class="Metric"><small>GPU DATA (EST.)</small><b id="Memory">—<i> MB</i></b></div><div class="Timing" id="PassTimes">Compiling native WGSL pipelines…</div></footer>
+<div class="Navigation">Drag to orbit · Right-drag to pan · Wheel to zoom · Space pause · H controls</div>
+<div id="Status" role="status">Initialising WebGPU…</div><div id="Failure" role="alert" hidden><b>WebGPU unavailable</b><p></p><small>This demo requires WebGPU in a secure context. It does not silently fall back to WebGL.</small></div>
+<script type="module" src="RadiancePanel.js"></script></body></html>

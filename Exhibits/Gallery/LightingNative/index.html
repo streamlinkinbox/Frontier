@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — Native light inspector, converted from InspectorDepot</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Executed proof · Exhibits / Gallery / LightingNative</div>
+  <h1>Native light inspector, converted from InspectorDepot</h1>
+  <p>Seven emitters drawn by <code>Engine/Editor/LightInspectorPanel.cpp</code>, converted 1:1 from
+     <code>Experimental/ProjectZeroEditor/LightPanel.js</code>, <code>LightPanel.css</code> and
+     <code>LightProjection.js</code> — the light panel that ships inside <code>index.html</code>. Every capture below is written from
+     real ImGui draw commands by
+     <code>python3 Exhibits/Workbench/Lighting/RunNativeEmitterCards.py</code>, not mocked up.</p>
+  <p>Each emitter is shown at the two widths an inspector column actually gets. At 318 px the axis fields clip
+     their leading digit, which is what the browser does as well: <code>.step .f</code> carries
+     <code>min-width:0</code>, so flexbox shrinks the field past its 38 px basis and the input clips. The
+     420 px capture shows them whole.</p>
+  <div class="rail">
+    <div class="pill"><b>45</b><span>Checks passed</span></div>
+    <div class="pill"><b>14</b><span>Captures</span></div>
+    <div class="pill"><b>7</b><span>Emitters</span></div>
+    <div class="pill"><b>318 / 420</b><span>Column widths</span></div>
+  </div>
+  <p>The cards are live, not stills. Three of the checks drive a synthetic mouse through the panel and read the
+     published <code>EditorProperty</code> slots back: clicking the switch writes <code>Cast shadows</code>,
+     pressing near the right end of a range track seeks spot intensity from 62 cd past 150 cd, and dragging an
+     axis cell moves <code>Position</code>. The captures below are drawn before any of that input.</p>
+  <div style="margin-top:16px"><span class="tag"><i></i>Rendered from native draw commands</span></div>
+</header>
+
+<div class="grid">
+  <figure>
+    <figcaption><b>Point light</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="PointLight-Wide.png" alt="Native point light inspector at 420 px"></span>
+    <div class="pair"><a href="PointLight.png">318 px</a><a href="PointLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Spot light</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="SpotLight-Wide.png" alt="Native spot light inspector at 420 px"></span>
+    <div class="pair"><a href="SpotLight.png">318 px</a><a href="SpotLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>IES photometric</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="IesLight-Wide.png" alt="Native IES light inspector at 420 px"></span>
+    <div class="pair"><a href="IesLight.png">318 px</a><a href="IesLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Area / softbox</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="AreaLight-Wide.png" alt="Native area light inspector at 420 px"></span>
+    <div class="pair"><a href="AreaLight.png">318 px</a><a href="AreaLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Tube light</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="TubeLight-Wide.png" alt="Native tube light inspector at 420 px"></span>
+    <div class="pair"><a href="TubeLight.png">318 px</a><a href="TubeLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>LED emitter</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="LedLight-Wide.png" alt="Native LED emitter inspector at 420 px"></span>
+    <div class="pair"><a href="LedLight.png">318 px</a><a href="LedLight-Wide.png">420 px</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>LED strip</b><em>LightPanel.js</em></figcaption>
+    <span class="shot"><img src="StripLight-Wide.png" alt="Native LED strip inspector at 420 px"></span>
+    <div class="pair"><a href="StripLight.png">318 px</a><a href="StripLight-Wide.png">420 px</a></div>
+  </figure>
+</div>
+
+<footer>
+  The run asserts the arithmetic the cards print, taken from the reference: a 10 W driver at 110 lm/W yields
+  1,100 lm; a 2.4 m strip yields 2,400 lm, draws 34.6 W, carries 144 emitters and pulls 1.44 A; a 14 cd point
+  reads 0.56 lx at five metres and 0.14 lx at ten; a 62 cd spot pools 2.31 m across at five metres; a 2 x 1 m
+  softbox reads 1,200 lm/m2; a 1.5 m tube reads 1,200 lm/m. Executed commands are in <code>Commands.json</code>, source and capture digests in
+  <code>Hashes.json</code>, and the run log in <code>Proof.txt</code>. Port register:
+  <code>Docs/InspectorDepotConversion.md</code>. Header glyphs are the engine's own icon library,
+  baked by <code>BakeLightGlyphs.mjs</code>.
+</footer>
+</body>
+</html>

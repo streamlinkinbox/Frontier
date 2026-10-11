@@ -1,0 +1,54 @@
+<!doctype html>
+<!--
+//============================================================================================================================================
+//                                                                 INDEX.HTML
+//============================================================================================================================================
+// 📦 Static browser entry for inspectable three-dimensional radiance cascades.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D radiance cascades · Frontier</title>
+<link rel="stylesheet" href="WorkspacePanel.css">
+<script type="importmap">{"imports":{"three":"../Ocean/lib/three.module.min.js"}}</script>
+</head>
+<body>
+<header class="MenuBar"><span class="Brand">F</span><b>Frontier</b><span class="Divider"></span><span>Project Zero</span><span class="MenuMuted">/</span><span>Radiance cascades</span><div class="MenuRight"><span class="Dot"></span> 3D transport <span class="BuildLabel">EXPERIMENTAL</span></div></header>
+<div class="DocumentBar"><button class="DocumentTab">Radiance cascades · 3D</button><span class="DocumentHint">Triangle scene / interval transport / diffuse reflection</span></div>
+<main class="Workspace">
+<aside class="Outliner"><div class="PanelHeader">Outliner <span>Scene</span></div>
+<div class="OutlinerEntry">Editor Camera <span class="Tile">●</span></div><div id="SceneList"></div>
+<div class="PanelHeader StageHeader">Radiance cascades</div><div id="CascadeList" class="StageList"></div>
+<div class="ScopeNote"><b>VOLUME × FULL SPHERE</b><p>Spatial resolution ÷ 8<br>Angular samples × 4<br>Interval length × 2</p><p>Actual triangle intersections.<br>No SDF or voxel geometry.<br>No hardware RT required.</p></div>
+</aside>
+<section id="Viewport" class="Viewport">
+<div class="ViewportToolbar"><span class="ViewTitle">Perspective</span><span class="ToolbarDivider"></span><button id="Full" class="Active">Full GI</button><button id="Direct">Direct only</button><button id="Difference">Bounce only</button><span class="ToolbarSpace"></span><button id="Frame">Frame</button></div>
+<canvas id="SceneCanvas"></canvas>
+<div class="ViewCaption"><span class="Eyebrow">3D RADIANCE CASCADES</span><h1>Light, across distance.</h1><p id="TransportNote">Four 3D lattices. Full-sphere directional intervals. Far-to-near visibility merging.</p></div>
+<div id="DirectionCaption" class="DirectionCaption"><b id="DirectionTitle">C0 · merged radiance</b><span>+X &nbsp; / &nbsp; −X &nbsp; / &nbsp; +Y<br>−Y &nbsp; / &nbsp; +Z &nbsp; / &nbsp; −Z</span><small>Full sphere at the highlighted 3D sample</small></div>
+<div id="Failure" class="Failure" hidden></div>
+<div class="ViewportHint">Drag orbit <i>·</i> Right-drag pan <i>·</i> Scroll zoom <i>·</i> F frame</div>
+</section>
+<aside class="Inspector"><div class="PanelHeader">Inspector <span>Radiance transport</span></div><div class="InspectorScroll">
+<div class="ObjectHeader"><div><b>3D radiance cascades</b><small>Separate research demo · WebGL 2</small></div><span class="Tile">●</span></div>
+<details open><summary>Scene & transport</summary><div class="ControlGroup" id="SceneControls"></div></details>
+<details open><summary>Cascade inspection</summary><div class="ControlGroup">
+<label class="Check"><input id="ShowSamples" type="checkbox"> Show selected 3D sample layer</label>
+<label class="Check"><input id="ShowDirections" type="checkbox" checked> Show directional interval image</label>
+<label class="FieldLabel" for="DirectionMode">Directional image</label><select id="DirectionMode"><option value="Merged">Merged radiance</option><option value="Intervals">Local interval radiance</option><option value="Visibility">Local visibility · white = open</option></select>
+<div id="SampleControls"></div><p class="Small" id="CascadeDescription"></p>
+</div></details>
+<details open><summary>Diagnostics</summary><div class="ControlGroup"><div id="Metrics" class="Metrics"></div><p class="Small" id="TimingNote">No hardware performance claim. Frame pacing depends on your GPU.</p></div></details>
+<details><summary>Method & limitations</summary><div class="ControlGroup Small">
+<p>Each cascade traces a finite shell around every sample in a real 3D lattice. Each sample covers all six cubemap faces. RGBA stores radiance and transmittance, not irradiance.</p>
+<p>Far-to-near merge: L = Lnear + Tnear × Lfar; T = Tnear × Tfar. Eight spatial samples and four finer angular cells are interpolated with cubemap solid-angle weights.</p>
+<p>Diffuse iterations feed the previous solution back at triangle hits. The first iteration is emission-only direct area lighting. Further iterations add reflected transport, not extra ambient light.</p>
+<p>Receiver shading compresses the merged directional field to six positive, axis-oriented cosine integrals and samples a live 16 × 16 lighting chart per face. This is an illumination cache, never a geometry proxy. Scene edits clear and recompute it.</p>
+<p>Known limits: coarse-lattice light leaks and interpolation bias, receiver angular blur, undersampling of tiny emitters, finite 18.75 m range, and delayed multi-bounce updates. Seven convex solids / 84 actual triangles; not a large-scene benchmark. No claim of parity with production GI.</p>
+<p><a href="https://eprints.gla.ac.uk/343746/1/343746.pdf" target="_blank" rel="noreferrer">Osborne & Sannikov · radiance-cascade formal solver</a><br><a href="https://radiance.wiki/" target="_blank" rel="noreferrer">Radiance-cascades resources</a></p>
+</div></details>
+</div><div class="InspectorFooter"><button id="Recalculate" class="Primary">Recalculate transport</button><button id="Reset">Reset scene</button></div></aside>
+</main>
+<footer class="StatusBar"><span id="StatusDot" class="Dot"></span><span id="Status">Initializing WebGL 2…</span><span class="ToolbarSpace"></span><span>Metres · linear radiance</span></footer>
+<script type="module" src="WorkspacePanel.js"></script>
+</body></html>

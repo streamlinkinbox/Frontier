@@ -1,0 +1,197 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "Frontier-M8"
+ },
+ "extensionsUsed": [
+  "KHR_materials_transmission",
+  "KHR_materials_volume",
+  "KHR_materials_emissive_strength",
+  "KHR_materials_ior"
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "GlassProof",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "panels",
+   "mesh": 0
+  }
+ ],
+ "meshes": [
+  {
+   "name": "panels",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 1,
+     "material": 0
+    },
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 2,
+     "material": 1
+    },
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 3,
+     "material": 2
+    },
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 4,
+     "material": 3
+    }
+   ]
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 16,
+   "type": "VEC3",
+   "min": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    5.5,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 6,
+   "type": "SCALAR",
+   "byteOffset": 0
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 6,
+   "type": "SCALAR",
+   "byteOffset": 12
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 6,
+   "type": "SCALAR",
+   "byteOffset": 24
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 6,
+   "type": "SCALAR",
+   "byteOffset": 36
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 192,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 192,
+   "byteLength": 48,
+   "target": 34963
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 240,
+   "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAgD8AAAAAAAAAAAAAgD8AAAAAAADAPwAAAAAAAAAAAAAgQAAAAAAAAAAAAAAgQAAAgD8AAAAAAADAPwAAgD8AAAAAAABAQAAAAAAAAAAAAACAQAAAAAAAAAAAAACAQAAAgD8AAAAAAABAQAAAgD8AAAAAAACQQAAAAAAAAAAAAACwQAAAAAAAAAAAAACwQAAAgD8AAAAAAACQQAAAgD8AAAAAAAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8A"
+  }
+ ],
+ "materials": [
+  {
+   "name": "clear-glass",
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.06
+   },
+   "extensions": {
+    "KHR_materials_transmission": {
+     "transmissionFactor": 1.0
+    },
+    "KHR_materials_ior": {
+     "ior": 1.5
+    }
+   }
+  },
+  {
+   "name": "frosted-glass",
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.4
+   },
+   "extensions": {
+    "KHR_materials_transmission": {
+     "transmissionFactor": 0.8
+    },
+    "KHR_materials_volume": {
+     "thicknessFactor": 0.1,
+     "attenuationDistance": 0.5,
+     "attenuationColor": [
+      0.9,
+      0.95,
+      1.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "emissive-panel",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "emissiveFactor": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "extensions": {
+    "KHR_materials_emissive_strength": {
+     "emissiveStrength": 3.0
+    }
+   }
+  },
+  {
+   "name": "diffuse-wall",
+   "pbrMetallicRoughness": {
+    "baseColorFactor": [
+     0.7,
+     0.7,
+     0.72,
+     1.0
+    ],
+    "roughnessFactor": 0.9
+   }
+  }
+ ]
+}

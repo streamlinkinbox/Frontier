@@ -1,0 +1,5 @@
+Space family: 19 claims passed, 0 failed, 2 GPU-image claims skipped.
+Native Construct: nine entities, 1936 fine triangles, original correctness checks passed.
+Telemetry gate: 51 PASS lines.
+SPIR-V ABI: 6 cluster-consuming stages checked for stride 64 and offsets 0,16,32,36,40,44,48,52,56,60.
+No Vulkan device execution.

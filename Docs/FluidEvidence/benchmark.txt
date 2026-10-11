@@ -1,0 +1,9 @@
+particles=1440
+solver_mean_ms=30.9739
+reconstruction_mean_ms=6.89874
+extraction_first_ms=3821.23
+extraction_unchanged_mean_ms=0.0128346
+extraction_changed_ms=2564.65
+dirty_bricks=192
+pond_cells=13824
+pond_step_mean_ms=0.195746

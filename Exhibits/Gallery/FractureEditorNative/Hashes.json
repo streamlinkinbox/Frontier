@@ -1,0 +1,12 @@
+{
+  "Engine/Editor/FractureEditorSurface.h": "f07b1c18238a723e0101b1bf12026fa9404020c30848faa548f2eebde0e1cc7f",
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/FractureEditor/NativeFractureEditor.cpp": "a72b15bbc35ec69a7dcf9d1609177ca6bc07c75b265614ff4d3667c96aa48c89",
+  "Exhibits/Workbench/FractureEditor/RunNativeFractureEditor.py": "127bea60260e619e0f8cf789ecae0c825c5f9c988eeccda705f57fbe1223d514",
+  "Exhibits/Gallery/FractureEditorNative/BakedWithSdf.png": "8f58aca713231c473cf4bfe7612f6efc1222a5a2099880c5c5f0d9d95695dae5",
+  "Exhibits/Gallery/FractureEditorNative/Disabled.png": "72167ad63b1ee246932c3bd38d856a37c7ded35dafb0aa894c1366742fc8c62b",
+  "Exhibits/Gallery/FractureEditorNative/Dynamic.png": "40bacda862e4aae8b70b194d8503bcb25410e77337770c62225ec8450cf1354f",
+  "Exhibits/Gallery/FractureEditorNative/InspectorColumn.png": "089177317fd31c72e5ea7094ad3c229086f4357b6f6a52d6e7bd2ca9b0ca8538",
+  "Exhibits/Gallery/FractureEditorNative/NarrowBreakpoint.png": "3a76f52f9ad755291dfe72725f964d7cb7c991c9e14429d62fb2085c83ec7362",
+  "Exhibits/Gallery/FractureEditorNative/TemperedFragments.png": "60e849e983108de420a700136754e0effd3d49722f21e87b8c30716a408158ee"
+}

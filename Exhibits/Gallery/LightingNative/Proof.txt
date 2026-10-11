@@ -1,0 +1,2 @@
+PASS 45 checks: native light inspector for Point, Spot, IES, Area, Tube, LED and Strip at two column widths.
+Exit: 0

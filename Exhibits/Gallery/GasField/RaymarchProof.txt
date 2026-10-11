@@ -1,0 +1,65 @@
+Gas raymarch checks - the lighting arithmetic, and the reproducible field rendered
+
+Claim 1 - the phase function is normalised and shaped
+  PASS  a single lobe integrates to one over the sphere
+  PASS  and so does the blend of two
+  PASS  a positive asymmetry scatters forward
+  PASS  and a negative one scatters backward
+  PASS  an isotropic lobe is finite everywhere
+  PASS  and a near-singular one is clamped rather than infinite
+  PASS  behind the plume the two-lobe blend is markedly brighter than one lobe alone
+
+Blackbody emission and the display transfer
+  PASS  cold gas emits nothing at all
+  PASS  warm gas emits red first
+  PASS  and red dominates green dominates blue, as it should
+  PASS  hotter gas gains green, moving toward orange
+  PASS  without losing red
+  PASS  an absurd temperature saturates rather than blowing past the palette
+  PASS  no radiance is black
+  PASS  and an enormous radiance is white, not wrapped
+  PASS  the transfer is monotonic
+  PASS  and exposure brightens it
+  PASS  a negative radiance clamps to black rather than wrapping
+
+The ray against the box
+  PASS  a ray aimed at the cube enters it
+  PASS  and enters and leaves exactly at its faces
+  PASS  a ray aimed past it misses
+  PASS  an axis-parallel ray outside the slab misses rather than dividing by zero into a hit
+  PASS  a ray starting inside is inside
+  PASS  and starts marching immediately rather than behind itself
+
+Claim 4 - the integration
+  PASS  clear air occludes nothing
+  PASS  and emits nothing
+  PASS  a ball of smoke occludes
+  PASS  but never more than completely
+  PASS  and scatters light toward the camera
+  PASS  denser smoke occludes more
+  PASS  a ray missing the cube returns clear air rather than refusing
+  PASS  a smaller domain is denser per metre, as the normalisation intends
+  PASS  and the four-fold change in extent is tempered rather than compounded
+  PASS  transmittance stays within [0, 1] at every step count
+  PASS  and the finest march still sees the smoke
+  PASS  self-shadowing darkens the plume rather than ignoring it
+
+The reproducible field, rendered
+  PASS  the field being rendered is carrying a real plume
+    wrote Exhibits/Gallery/GasField/PlumeFront.png  (320x320, 18.7% covered)
+  PASS  the plume covers a visible part of the frame
+  PASS  and does not fill it edge to edge, so there is shape to see
+  PASS  and something in it is lit
+    wrote Exhibits/Gallery/GasField/PlumeSide.png  (320x320, 17.8% covered)
+  PASS  and it is still there from another bearing
+  PASS  the cold capture genuinely carries no heat anywhere
+    wrote Exhibits/Gallery/GasField/DustCold.png  (320x320, 25.6% covered)
+  PASS  cold dust is visible with no emission at all
+  PASS  so everything in that capture arrived through sun and sky scattering
+    wrote Exhibits/Gallery/GasField/DustBackLit.png  (160x160, 25.6% covered)
+  PASS  back-lit cold dust is markedly brighter than front-lit, which is the two-lobe phase arriving
+  PASS  and removing both lights makes it vanish, so nothing is being added from nowhere
+  PASS  rendering the same field twice produces identical pixels
+  PASS  the capture has real tonal range rather than being a flat wash
+
+PASS 48

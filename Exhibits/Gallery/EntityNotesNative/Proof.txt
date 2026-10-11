@@ -1,0 +1,2 @@
+PASS 15 checks: EntityNotes, both disclosure states, against the bundle's own boxes.
+Exit: 0

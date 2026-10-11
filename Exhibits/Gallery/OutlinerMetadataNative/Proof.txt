@@ -1,0 +1,2 @@
+PASS 51 checks: outliner row metadata, panel recovery, compact number formatting.
+Exit: 0

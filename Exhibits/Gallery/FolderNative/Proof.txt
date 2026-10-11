@@ -1,0 +1,2 @@
+PASS native folder collection: source-aligned hierarchy, totals, visibility, composition, search/filter/sort, manifest and notes layout.
+Exit: 0

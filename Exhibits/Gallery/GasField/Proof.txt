@@ -1,0 +1,222 @@
+Gas field checks - the reproducible reading, its budget, its obstruction and its coupling
+
+The transcribed settings and presets
+  PASS  all 85 settings crossed from presets.js
+  PASS  and all 18 presets
+  PASS  every preset carries an identity and a name
+  PASS  and a description for the rail beneath it
+  PASS  and at least one opens mid-explosion
+  PASS  and no two presets share an identity
+  PASS  resolving by slot and by identity give the same settings
+  PASS  an unknown identity yields the defaults rather than refusing to open
+  PASS  and a null identity is not dereferenced
+  PASS  as does a slot past the end of the library
+  PASS  a continuous control holds a fraction rather than truncating it to zero
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  every preset asks for a lattice between 16 and 256 voxels
+  PASS  and a sweep count the budget can carry
+  PASS  and a domain with a positive extent
+  PASS  a detonation resolves at least 28 voxels per world unit
+  PASS  and fills no more than 0.15 of its domain
+  PASS  and does not surge enough to coarsen mid-blast
+  PASS  a detonation resolves at least 28 voxels per world unit
+  PASS  and fills no more than 0.15 of its domain
+  PASS  and does not surge enough to coarsen mid-blast
+  PASS  a detonation resolves at least 28 voxels per world unit
+  PASS  and fills no more than 0.15 of its domain
+  PASS  and does not surge enough to coarsen mid-blast
+  PASS  a detonation resolves at least 28 voxels per world unit
+  PASS  and fills no more than 0.15 of its domain
+  PASS  and does not surge enough to coarsen mid-blast
+  PASS  a detonation resolves at least 28 voxels per world unit
+  PASS  and fills no more than 0.15 of its domain
+  PASS  and does not surge enough to coarsen mid-blast
+  PASS  a cold effect emits no fuel
+  PASS  and bursts none either
+  PASS  and does not burn
+  PASS  and scatters like dust rather than like soot
+  PASS  a cold effect emits no fuel
+  PASS  and bursts none either
+  PASS  and does not burn
+  PASS  and scatters like dust rather than like soot
+  PASS  a cold effect emits no fuel
+  PASS  and bursts none either
+  PASS  and does not burn
+  PASS  and scatters like dust rather than like soot
+  PASS  a cold effect emits no fuel
+  PASS  and bursts none either
+  PASS  and does not burn
+  PASS  and scatters like dust rather than like soot
+  PASS  a cold effect emits no fuel
+  PASS  and bursts none either
+  PASS  and does not burn
+  PASS  and scatters like dust rather than like soot
+  PASS  sand and settling dust fall
+  PASS  sand and settling dust fall
+  PASS  while flame rises
+  PASS  and has something to burn
+  PASS  while flame rises
+  PASS  and has something to burn
+  PASS  the tyre burnout preset selects the tyre ring, matching GasColliderShape
+
+The quality ladder
+  PASS  Hero simulates at 128 cubed
+  PASS  Far simulates at 32 cubed
+  PASS  Flipbook does not simulate at all
+  PASS  Hero occupies 47 bytes a voxel, about 98.6 MB
+  PASS  a flipbook is shared and charged to no domain
+  PASS  the pressure solve scales with the cube, so Hero costs well over twice Near
+  PASS  Mid advances less often than Hero
+  PASS  Mid advances at 30 Hz, half of the 60 Hz master
+  PASS  Far advances at 15 Hz, a quarter of the master
+  PASS  a flipbook has no interval and cannot divide by zero
+
+Claim 2 - a loss declared per second removes the same amount per second at every rate
+  PASS  60 advances of a per-second half leave exactly a half
+  PASS  30 advances leave the same half
+  PASS  15 advances leave the same half
+  PASS  applying a per-second loss per step instead would leave distant smoke orders of magnitude denser
+  PASS  a zero loss removes nothing
+  PASS  a total loss removes everything
+  PASS  an unadvanced domain never decays
+
+The governor
+  PASS  four well-spread domains fit inside the ceilings
+  PASS  the domain at 3 m is Hero
+  PASS  the domain at 12 m is Near
+  PASS  the domain at 40 m is Mid
+  PASS  the domain at 400 m plays a sheet
+  PASS  an undemoted domain reports distance as its reason
+  PASS  two Hero claims resolve
+  PASS  the nearer domain keeps Hero
+  PASS  the further domain gives it up
+  PASS  and records that a ceiling, not distance, decided
+  PASS  a demoted domain does not claim distance as its reason
+  PASS  six near domains resolve against a 20 MB ceiling
+  PASS  and the assignment respects it
+  PASS  while the nearest domain still simulates
+
+Claim 1 - the same advance run twice is bit-identical
+  PASS  40 advances produce byte-identical smoke
+  PASS  and byte-identical velocity
+  PASS  and the same advance number
+  PASS  which counts every advance taken
+  PASS  the fields compared were genuinely carrying smoke
+  PASS  the noise is a pure function of its seed
+  PASS  and a different advance swirls differently
+  PASS  and stays inside its declared range
+
+Claim 2 at the solver - one second of dissipation is one second at any rate
+  PASS  the field started with smoke in it
+  PASS  and lost some of it
+  PASS  one second of a per-second half leaves half the smoke, to within two percent
+
+Claim 3 - transport conserves what dissipation does not remove
+  PASS  no smoke is created from nothing
+  PASS  and no more than a tenth is lost to resampling over 30 advances
+  PASS  heat carried smoke into the upper half of the field
+  PASS  and a real share of it, not a rounding crumb
+
+Claim 4 - the world obstructs the gas
+  PASS  a sphere marks voxels solid
+  PASS  and marks about as many as the sphere's volume implies
+  PASS  the centre reads as inside
+  PASS  a far corner reads as outside
+  PASS  and occupancy is rewritten, never accumulated
+  PASS  every shape reads as outside from far away
+  PASS  every shape reads as outside from far away
+  PASS  every shape reads as outside from far away
+  PASS  every shape reads as outside from far away
+  PASS  every shape reads as outside from far away
+  PASS  the tyre ring is hollow at its axis, as a tyre is
+  PASS  and solid on the ring itself
+  PASS  a None collider obstructs nothing
+  PASS  a distance reading marks the geometry it describes
+  PASS  and marks exactly the layers beneath the grown surface
+  PASS  a negative thickness falls back to the same half-voxel growth rather than inverting the surface
+  PASS  an absent distance reading admits nothing and is not an error
+  PASS  after 60 advances against a slab, no smoke sits inside the geometry
+  PASS  and the plume is held beneath the slab rather than deleted by it
+
+Claim 5 - the coupling switch
+  PASS  there is a real flow at the sample point to be pushed by
+  PASS  coupling is off in a default-constructed consent
+  PASS  and a resting body is not admitted
+  PASS  a body that has not opted in feels exactly zero, not merely a small force
+  PASS  and is not lifted either
+  PASS  an opted-in body is admitted
+  PASS  and feels a force
+  PASS  the force lies along the relative flow, so it can only dissipate
+  PASS  a zero strength is equivalent to not consenting
+  PASS  a body already travelling with the flow is not pushed further
+  PASS  the impulse never exceeds the one that would bring the body to the flow's own velocity
+  PASS  while still carrying a feather along with a gale
+  PASS  and holds at a one-second interval too
+  PASS  a massless body is refused rather than divided by
+  PASS  inside the field, the gas contributes to the flow a body samples
+  PASS  far outside it, in calm weather, the flow is nothing
+  PASS  while the weather's own wind still reaches a body outside every gas field
+  PASS  a null field is skipped rather than dereferenced
+  PASS  the cube encloses a point within it
+  PASS  and does not enclose a distant one
+
+The accumulating caller - a variable frame duration never reaches the solver
+  PASS  a quarter second of ragged frames advances exactly 15 fixed steps
+  PASS  and the remainder carried is less than one step
+  PASS  a stall is capped rather than spiralling
+  PASS  and the unpayable remainder is discarded, not carried
+  PASS  the ragged caller took the same 20 advances
+  PASS  and reached a byte-identical field, which is why the step is not a parameter
+
+PASS 198
+Two independent builds produced identical transcripts.

@@ -1,0 +1,6 @@
+F1 density-numpy (2000 rows x2 points): worst 0.001 tol -> PASS
+F2 march-numpy (2000 rows): worst 0.806 tol -> PASS
+F3 determinism (morning, grain 0, 2 runs): PASS identical 388815 bytes
+F3 effect morning-vs-clear: mean|d| 4.7 max|d| 50
+F3 effect backlit-vs-clear: mean|d| 12.9 max|d| 144
+OVERALL: PASS

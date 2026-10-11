@@ -1,0 +1,2 @@
+PASS 38 checks: native WindEditor dialog, placement map and property grid.
+Exit: 0

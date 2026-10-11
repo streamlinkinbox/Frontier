@@ -1,0 +1,13 @@
+#============================================================================================================================================
+#                                                PROJECTTRACTRIX.FRONTIER
+#============================================================================================================================================
+# 📦 Project-Tractrix declarative opening read by Frontier.exe before shared facilities are constructed.
+
+[Project]
+ProjectName             = "ProjectTractrix"
+ProjectFormatNumber     = 1
+ContentLocation         = "Content"
+OpeningScene            = "Content/Scenes/TractrixCourse.gltf"
+CodeImage               = "Build/ProjectTractrix.dll"
+CodeInterchangeNumber   = 3
+InterfaceFingerprint    = 0xb6725f24d0869173

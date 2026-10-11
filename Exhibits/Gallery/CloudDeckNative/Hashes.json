@@ -1,0 +1,11 @@
+{
+  "Engine/Editor/CloudDeckSurface.h": "7e857249843f229254ba8ac279766d0ab401d5a66aebefc7737044a5696477b8",
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/Clouds/NativeCloudDeck.cpp": "3399720b435da50c248ea8e2bb90130c015364d03ec7b0183738270319e2751a",
+  "Exhibits/Workbench/Clouds/RunNativeCloudDeck.py": "48ff950216d064ee13052ca5f2c8d571b937f02fc63036a663f51e81b473f808",
+  "Exhibits/Gallery/CloudDeckNative/Deck.png": "d85e043c776258504934896a221da9bc59a3cc55d3926fb3d2be85967afb1202",
+  "Exhibits/Gallery/CloudDeckNative/DeckAnvil.png": "7044972e66ee0dad4fdd11a7cd5dc7718b07b2d774c0c155ed05a2df4e1f71d0",
+  "Exhibits/Gallery/CloudDeckNative/DeckLocal.png": "9438b8a11952cbe00ea509d8d0828dc81d50c31b4d926c153e56b929388768af",
+  "Exhibits/Gallery/CloudDeckNative/DeckLow.png": "1d0ad9e2646535a72ef48ceb0d5e0c74af79c30072d417cc06c11621a3a77743",
+  "Exhibits/Gallery/CloudDeckNative/DeckThin.png": "2b0eb892a25b8e413b40132d0c0a98830fd166d8a7db922f9e2fe403cd622c83"
+}

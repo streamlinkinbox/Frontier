@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — The per-object fracture card, drawn by the engine</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Exhibits · Gallery · FractureNative</div>
+  <h1>The per-object fracture card, drawn by the engine</h1>
+  <p>Every pixel below came out of a real ImGui draw list, rasterised on the CPU and written to PNG by
+     <code>Exhibits/Workbench/Fracture/NativeFractureCard.cpp</code>. Nothing here is a mock-up.</p>
+  <p>The shipped markup is in the bundle at byte 4623565 and its CSS in the bundle's inlined
+     <code>&lt;style&gt;</code>; on disk that is <code>FracturePanel.jsx</code>, which
+     <code>Inspectors.jsx</code> hangs off the end of the geometry sheet, together with the shaded solid from
+     <code>FractureEditor/FractureProjection.js</code> and the clamps in <code>FractureSpecification.js</code>.
+     Nothing in <code>Engine/</code> carried any of it before.</p>
+  <p>Two things here a screenshot cannot show. <b>The diagram is a real Voronoi diagram</b> — nine seeds
+     clipped against a 36-gon by half-planes, each cell shaded from its own centroid and lifted onto a
+     sphere — so the proof sums the nine cell areas and compares them with the perimeter's own: they tile it
+     to within 1e&minus;6. And <b>the card is a CSS block flow</b>, so the checks pin the collapsed margins
+     rather than the sums: BAKE sits 18&nbsp;px under the diagram, not the 26 that adding the two margins
+     would give, and the SDF block's border breaks the collapse so its switch keeps a full 20.</p>
+  <p style="margin-top:14px"><b>Verified against the bundle, not the sources.</b>
+     <code>Experimental/ProjectZeroEditor/index.html</code> is the reference: a built, minified,
+     self-contained file in which the depot kit is an escaped JS string and <code>Editor.css</code> is
+     inlined. Reading the <code>.js</code> and <code>.css</code> beside it is not the same thing, so
+     <code>Exhibits/Workbench/BundleParity.py</code> now pulls the shipped code out of the bundle and
+     asserts that every literal and every numeric constant this port depends on is present there
+     &mdash; <b>199 checks across the cloud panel, the cloud deck and the fracture card</b>.</p>
+  <div class="rail">
+    <div class="pill"><b>91</b><span>checks passed</span></div>
+    <div class="pill"><b>5</b><span>captures</span></div>
+    <div class="pill"><b>9</b><span>Voronoi cells</span></div>
+    <div class="pill"><b>4</b><span>disclosure stages</span></div>
+  </div>
+  <p style="margin-top:18px"><span class="tag"><i></i>Executed, not illustrated</span></p>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>Closed</b><em>136.25 px</em></figcaption>
+    <span class="shot"><img src="CardClosed.png" alt="The fracture card, disabled"></span>
+    <p style="margin-top:10px;font-size:12px">Disabled, the card is a title, an eyebrow, a dimmed expand
+       button and one switch. The header is 36.25&nbsp;px because the stacked title and eyebrow are taller
+       than the 30&nbsp;px button beside them.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Enabled</b><em>Dynamic</em></figcaption>
+    <span class="shot"><img src="CardDynamic.png" alt="The fracture card, enabled and dynamic"></span>
+    <p style="margin-top:10px;font-size:12px">The switch opens the shaded solid, the BAKE pair and the status
+       line. Dynamic has no second clause: <em>Generate fragments on demand.</em></p>
+  </figure>
+  <figure>
+    <figcaption><b>Baked</b><em>Signature matched</em></figcaption>
+    <span class="shot"><img src="CardBaked.png" alt="The fracture card in baked mode"></span>
+    <p style="margin-top:10px;font-size:12px">Baked adds the second clause and the SDF block above its
+       hairline. A stored bake whose signature still matches reads <em>Browser bake ready</em>; a stale one
+       sends you to the editor instead.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Baked, per-piece SDF</b><em>635.91 px</em></figcaption>
+    <span class="shot"><img src="CardBakedSdf.png" alt="The fracture card with per-piece SDF"></span>
+    <p style="margin-top:10px;font-size:12px">The deepest the card goes: the resolution field appears, the
+       status wraps to two lines, and the clause changes again to <em>Browser geometry ready. SDF
+       pending.</em> Only 32, 64 and 128 are offered; anything else falls back to 64 rather than clamping.</p>
+  </figure>
+  <figure>
+    <figcaption><b>An unsupported primitive</b><em>Torus</em></figcaption>
+    <span class="shot"><img src="CardTorus.png" alt="The fracture card on a torus"></span>
+    <p style="margin-top:10px;font-size:12px">Only a cube, sphere, cylinder or cone carries a convex preview.
+       A torus is named specifically &mdash; <em>Concave preview needs decomposition</em> &mdash; and anything
+       else is simply pending. The note's two lines add 48&nbsp;px over the same card on a cube.</p>
+  </figure>
+</div>
+</body>
+</html>

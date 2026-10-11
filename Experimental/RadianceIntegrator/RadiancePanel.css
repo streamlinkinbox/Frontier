@@ -1,0 +1,675 @@
+/*
+//============================================================================================================================================
+//                                                             RADIANCEPANEL.CSS
+//============================================================================================================================================
+// 📦 Full-canvas radiance demo typography, compact controls and responsive performance HUD.
+*/
+
+@font-face
+{
+    font-family: 'DM Sans';
+    src: url('../../EngineContent/Fonts/SunReference/DMSans-Regular.ttf')
+}
+
+@font-face
+{
+    font-family: 'DM Light';
+    src: url('../../EngineContent/Fonts/SunReference/DMSans-Light.ttf');
+    font-weight: 400 700
+}
+
+:root
+{
+    color-scheme: dark;
+    font: 13px 'DM Sans', sans-serif;
+    color: #e8eee9;
+    background: #0a101a;
+    --Accent: #b8edac;
+    --Muted: #84948f
+}
+
+*
+{
+    box-sizing: border-box
+}
+
+body
+{
+    margin: 0;
+    overflow: hidden
+}
+
+button,
+select,
+input
+{
+    font: inherit
+}
+
+button,
+a,
+select
+{
+    touch-action: manipulation
+}
+
+button
+{
+    cursor: pointer;
+    color: inherit;
+    border: 1px solid #ffffff24;
+    background: #ffffff06;
+    border-radius: 7px;
+    padding: 8px 12px
+}
+
+button:hover
+{
+    background: #ffffff14
+}
+
+button.Active
+{
+    color: var(--Accent);
+    border-color: #b8edac55
+}
+
+a
+{
+    color: inherit;
+    text-decoration: none
+}
+
+a:hover
+{
+    color: var(--Accent)
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible
+{
+    outline: 2px solid var(--Accent);
+    outline-offset: 3px
+}
+
+#View
+{
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    touch-action: none
+}
+
+header
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 27px 36px;
+    background: linear-gradient(#081019c7, transparent);
+    pointer-events: none
+}
+
+header>*
+{
+    pointer-events: auto
+}
+
+.Wordmark
+{
+    font: 600 17px 'DM Light', sans-serif;
+    letter-spacing: 2px
+}
+
+.Wordmark span
+{
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #84948f;
+    margin-left: 11px
+}
+
+.HeaderRight
+{
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    font-size: 11px
+}
+
+.Badge
+{
+    font-size: 9px;
+    color: var(--Accent);
+    letter-spacing: 1.2px
+}
+
+.Badge:before
+{
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    background: var(--Accent);
+    border-radius: 50%;
+    margin-right: 8px
+}
+
+.Intro
+{
+    position: absolute;
+    left: 37px;
+    top: 116px;
+    pointer-events: none;
+    text-shadow: 0 2px 25px #030912
+}
+
+.Eyebrow
+{
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--Accent)
+}
+
+h1
+{
+    font: 500 clamp(26px, 3vw, 45px)/1.12 'DM Light', sans-serif;
+    margin: 18px 0;
+    letter-spacing: -1.5px
+}
+
+.Intro p
+{
+    font-size: 11px;
+    color: #a0afa9;
+    line-height: 1.8
+}
+
+.SceneFacts
+{
+    display: flex;
+    gap: 14px;
+    font-size: 9px;
+    margin-top: 20px;
+    color: #9eaaa4
+}
+
+.SceneFacts span+span
+{
+    border-left: 1px solid #ffffff28;
+    padding-left: 14px
+}
+
+aside
+{
+    position: absolute;
+    right: 28px;
+    top: 94px;
+    bottom: 128px;
+    width: 270px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #43514b transparent;
+    background: #0c151ce8;
+    border: 1px solid #ffffff16;
+    border-radius: 12px;
+    padding: 19px 20px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 15px 60px #0003
+}
+
+.ControlHeading
+{
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #cedad2;
+    border-bottom: 1px solid #ffffff14;
+    padding-bottom: 14px
+}
+
+.ControlHeading small
+{
+    display: block;
+    font-size: 9px;
+    color: #7e918b;
+    letter-spacing: 0;
+    line-height: 1.5;
+    margin-top: 6px;
+    overflow-wrap: anywhere
+}
+
+.Buttons
+{
+    display: flex;
+    gap: 8px;
+    margin: 15px 0
+}
+
+.Buttons button
+{
+    flex: 1;
+    font-size: 10px;
+    padding: 8px 6px
+}
+
+.SelectLabel
+{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #8c9f96;
+    gap: 10px;
+    margin: 13px 0
+}
+
+.SelectLabel select
+{
+    font-size: 10px;
+    background: #17232b;
+    border: 1px solid #ffffff16;
+    border-radius: 6px;
+    padding: 7px;
+    max-width: 147px;
+    color: #d3ded7
+}
+
+.Slider
+{
+    display: block;
+    margin: 19px 0
+}
+
+.Slider>span
+{
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #9baba3
+}
+
+.Slider output
+{
+    color: #d7e4db;
+    font-variant-numeric: tabular-nums
+}
+
+.Slider input
+{
+    display: block;
+    width: 100%;
+    margin: 10px 0 0;
+    appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: #36473f;
+    cursor: pointer
+}
+
+.Slider input::-webkit-slider-thumb
+{
+    appearance: none;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--Accent)
+}
+
+.Slider input::-moz-range-thumb
+{
+    width: 11px;
+    height: 11px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--Accent)
+}
+
+.Checks
+{
+    border-top: 1px solid #ffffff14;
+    padding-top: 10px;
+    display: grid;
+    gap: 9px
+}
+
+.Checks label
+{
+    font-size: 10px;
+    color: #acbbb3;
+    display: flex;
+    align-items: center;
+    gap: 7px
+}
+
+.Checks input
+{
+    accent-color: var(--Accent);
+    margin: 0
+}
+
+.Checks small
+{
+    color: #77887f;
+    margin-left: auto
+}
+
+.CascadeBudget
+{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    font-size: 9px;
+    color: #92a69a;
+    margin-top: 17px;
+    font-variant-numeric: tabular-nums
+}
+
+.CascadeBudget b
+{
+    font-weight: 400;
+    color: #cbd9cf;
+    text-align: right
+}
+
+.Scope
+{
+    color: #6f837a;
+    font-size: 9px;
+    line-height: 1.7;
+    margin: 16px 0 0
+}
+
+footer
+{
+    position: absolute;
+    bottom: 26px;
+    left: 36px;
+    right: 36px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    min-height: 70px;
+    padding: 14px 24px;
+    background: #0b141deb;
+    border: 1px solid #ffffff17;
+    border-radius: 11px;
+    backdrop-filter: blur(16px)
+}
+
+.Metric
+{
+    min-width: 100px
+}
+
+.Metric small
+{
+    font-size: 8px;
+    letter-spacing: 1.3px;
+    color: #859d90;
+    display: block;
+    margin-bottom: 7px
+}
+
+.Metric b
+{
+    font: 500 23px 'DM Light', sans-serif;
+    color: #d8e7dd;
+    font-variant-numeric: tabular-nums
+}
+
+.Metric i
+{
+    font: 10px 'DM Sans', sans-serif;
+    color: #799184;
+    margin-left: 3px;
+    font-style: normal
+}
+
+.Timing
+{
+    margin-left: auto;
+    max-width: 340px;
+    font-size: 9px;
+    color: #84998c;
+    line-height: 1.8;
+    font-variant-numeric: tabular-nums
+}
+
+.Navigation
+{
+    position: absolute;
+    bottom: 108px;
+    left: 38px;
+    font-size: 9px;
+    letter-spacing: .3px;
+    color: #8c9d96
+}
+
+#Status
+{
+    position: absolute;
+    bottom: 9px;
+    left: 39px;
+    font-size: 8px;
+    letter-spacing: .4px;
+    color: #92aa9b
+}
+
+#Failure
+{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(480px, 90vw);
+    padding: 30px;
+    background: #101b26;
+    border: 1px solid #cf8d5266;
+    border-radius: 16px;
+    line-height: 1.6
+}
+
+#Failure b
+{
+    font: 500 24px 'DM Light', sans-serif;
+    color: #e4af7d
+}
+
+#Failure p
+{
+    overflow-wrap: anywhere
+}
+
+#Failure small
+{
+    color: #9aa9b4
+}
+
+[hidden]
+{
+    display: none !important
+}
+
+@media(max-width:1000px)
+{
+    header
+{
+        padding: 23px
+    }
+
+    .Intro
+{
+        left: 24px;
+        top: 100px
+    }
+
+    .Intro h1
+{
+        font-size: 30px
+    }
+
+    .Intro p
+{
+        max-width: 210px
+    }
+
+    .SceneFacts
+{
+        display: none
+    }
+
+    aside
+{
+        right: 20px;
+        width: 245px
+    }
+
+    footer
+{
+        left: 20px;
+        right: 20px;
+        gap: 18px;
+        padding: 13px 17px
+    }
+
+    .Metric
+{
+        min-width: 85px
+    }
+
+    .Timing
+{
+        max-width: 200px
+    }
+
+    .Navigation
+{
+        left: 24px
+    }
+
+    .Badge
+{
+        display: none
+    }
+}
+
+@media(max-width:650px)
+{
+    header
+{
+        padding: 17px
+    }
+
+    .Wordmark
+{
+        font-size: 13px
+    }
+
+    .Wordmark span
+{
+        display: none
+    }
+
+    .HeaderRight
+{
+        gap: 12px;
+        font-size: 10px
+    }
+
+    .HeaderRight button
+{
+        font-size: 10px;
+        padding: 7px
+    }
+
+    .Intro
+{
+        left: 20px;
+        top: 86px
+    }
+
+    .Eyebrow
+{
+        font-size: 7px
+    }
+
+    h1
+{
+        font-size: 27px !important
+    }
+
+    .Intro p
+{
+        display: none
+    }
+
+    aside
+{
+        right: 13px;
+        top: 74px;
+        bottom: 126px;
+        width: 235px;
+        background: #0c151cf5
+    }
+
+    .Metric
+{
+        min-width: 0;
+        flex: 1
+    }
+
+    .Metric small
+{
+        font-size: 7px;
+        letter-spacing: .6px
+    }
+
+    .Metric b
+{
+        font-size: 19px
+    }
+
+    .Metric:nth-child(4)
+{
+        display: none
+    }
+
+    .Timing
+{
+        display: none
+    }
+
+    footer
+{
+        bottom: 27px;
+        left: 12px;
+        right: 12px;
+        gap: 12px;
+        padding: 12px 16px
+    }
+
+    .Navigation
+{
+        left: 17px;
+        font-size: 8px;
+        bottom: 109px
+    }
+
+    #Status
+{
+        left: 17px;
+        font-size: 7px;
+        right: 12px
+    }
+
+    .Intro
+{
+        opacity: .7
+    }
+}

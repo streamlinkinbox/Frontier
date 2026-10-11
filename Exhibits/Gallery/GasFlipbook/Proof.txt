@@ -1,0 +1,98 @@
+NATIVE GAS FLIPBOOK - the sheet the bottom rung plays, and one real bake of a camp fire
+
+① The layout is the browser's, including what it refuses
+  PASS  four tiles make a 2 by 2 sheet
+  PASS  of 128 pixels square, at the smallest tile size
+  PASS  thirty-two tiles make a 6 by 6 sheet with four unused - the ceiling of the square root, as the page does it
+  PASS  768 pixels square
+  PASS  and it covers a second and a third of effect
+  PASS  2.25 MB of RGBA, shared by every instance
+  PASS  seven tiles is refused rather than rounded
+  PASS  and so is a 100 pixel tile - a sheet that is not a power of two is padded behind one's back
+  PASS  and an unsupported rate
+  PASS  and a four second warm-up: past three, author a shorter effect
+  PASS  and a negative one
+  PASS  a refused layout has no duration either, rather than a plausible-looking zero-sized one
+
+Where each tile sits, left to right then top to bottom
+  PASS  sixteen tiles is a tidy 4 by 4
+  PASS  the first tile is at the top left, because the sheet's origin is
+  PASS  the fifth begins the second row
+  PASS  and the last is at the bottom right
+  PASS  whose normalised coordinates end exactly at the edge of the sheet, not past it
+  PASS  an index past the end answers the first tile - a quad sampling outside a sheet shows a neighbour
+
+④ Playback is one float in and one index out
+  PASS  nothing has elapsed, so nothing has advanced
+  PASS  and a negative time is the beginning, not the end
+  PASS  one tile period in is the second tile
+  PASS  half a second in is the thirteenth
+  PASS  a looping sheet wraps and keeps playing
+  PASS  a one-shot sheet holds its last tile and stops
+  PASS  and keeps holding it, however long the level runs
+  PASS  while a looping one never names a tile the sheet does not have
+  PASS  and a refused layout plays tile zero forever, harmlessly
+
+② and ③ The rows flip exactly once, and the alpha comes out straight
+  PASS  ② row zero of a readback is the bottom of the picture, and lands at the bottom of the tile
+  PASS  while the tile's top row is the empty one - the flip happens exactly once
+  PASS  ③ the colour is divided back out of its coverage: 64 premultiplied at half alpha is 128 straight
+  PASS  an opaque bake writes full alpha
+  PASS  and leaves the colour exactly as it was rendered
+  PASS  a tile writes inside its own region and nowhere else
+  PASS  and naming a tile the sheet does not have writes nothing at all
+  PASS  a null sheet is declined rather than written through
+
+A real bake: the camp fire preset, through the shipped solver and the shipped integration
+  PASS  a second and a half of warm-up puts a fire in the box before the first tile
+  PASS  a 12 per second sheet advances five solver steps a tile, at the solver's own fixed step
+  PASS  every tile has smoke in it, starting with the first
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  ...and so does the next
+  PASS  the fire grows across the sheet rather than sitting still - the solver really advanced between tiles
+  PASS  and two tiles a third of a second apart are not the same picture
+
+⑤ The same bake twice is the same bytes
+  PASS  a sheet is content: two bakes of the same preset are byte for byte the same file
+
+The descriptor beside it is TOML, and toml++ reads back what was written
+  PASS  a descriptor is spelled for an admitted layout
+  PASS  and none at all for a refused one - a descriptor for a sheet that does not exist is worse than none
+  PASS  🔴 it parses as TOML, which is the only format the engine reads
+  PASS  the format key names the format
+  PASS  sixteen tiles
+  PASS  of 128 pixels
+  PASS  on a 512 square sheet
+  PASS  ③ saying in the file itself that the alpha is straight, because the consumer cannot tell by looking
+  PASS  played at 12 tiles a second
+  PASS  for a second and a third, written as a float so it reads back as one
+  PASS  after a second and a half of warm-up
+  PASS  every tile's place is written out, not left to be derived
+  PASS  and the last of them agrees with TileAt() - a consumer that derives it differently finds out here
+  PASS  the descriptor is written beside the sheet
+
+Capture
+  PASS  the baked sheet is written out, all sixteen tiles of it
+    wrote Exhibits/Gallery/GasFlipbook/CampFireSheet.png  (512x512, 16 tiles)
+
+What the rung is worth
+  PASS  the Flipbook rung holds no lattice at all, which is what the ladder promised
+  PASS  one sheet is smaller than one Hero domain
+    Hero 98566144 B · Far 1540096 B per domain · this sheet 1048576 B, shared by every instance
+  PASS  and forty distant chimneys on one sheet cost less than forty of the cheapest live domain
+
+PASS 74
+Exit: 0

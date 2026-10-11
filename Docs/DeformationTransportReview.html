@@ -1,0 +1,256 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deforming triangles, current GI — WebGPU demonstration</title><link rel="icon" href="data:,"><style>
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Regular.ttf')}
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Light.ttf');font-weight:300}
+:root{color-scheme:light;--Ink:#223032;--Muted:#66726d;--Line:#d8ded5;--Accent:#33604a}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{margin:0;background:#f4f5f0;color:var(--Ink);font:16px/1.8 DM,system-ui,sans-serif}
+a{color:var(--Accent);text-underline-offset:3px}a:hover{color:#142f24}button,a{touch-action:manipulation}
+.Top{position:sticky;top:0;z-index:2;background:#f4f5f0f2;backdrop-filter:blur(12px);border-bottom:1px solid var(--Line)}
+.Top>div{max-width:1320px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:18px 32px;gap:18px}
+.Brand{font-size:14px;letter-spacing:2px;text-decoration:none;color:var(--Ink)}.Brand span{color:var(--Muted);font-size:11px}
+.Open{padding:8px 18px;border:1px solid var(--Accent);border-radius:5px;text-decoration:none;font-size:13px;white-space:nowrap}
+.Layout{max-width:1280px;margin:52px auto 100px;padding:0 32px;display:grid;grid-template-columns:225px minmax(0,1fr);gap:58px}
+.Side{align-self:start;position:sticky;top:110px;font-size:12px;line-height:1.55;max-height:calc(100vh - 130px);overflow:auto}
+.Kicker{font-size:10px;letter-spacing:2px;color:var(--Accent);font-weight:600;margin-bottom:22px}
+.toc ul{padding:0;list-style:none}.toc li{margin:13px 0}.toc li ul{padding-left:14px;font-size:11px}.toc a{color:var(--Muted);text-decoration:none}
+.toc a:hover{color:var(--Accent)}main{min-width:0}h1,h2,h3{font-weight:300;line-height:1.2;letter-spacing:-.025em}
+h1{font-size:46px;margin:0 0 26px;max-width:850px}h2{font-size:30px;margin:60px 0 22px;padding-top:22px;border-top:1px solid var(--Line)}
+h3{font-size:22px;margin:34px 0 14px}p{margin:18px 0}li{margin:8px 0}strong{font-weight:600}
+img{display:block;width:100%;height:auto;border-radius:7px;border:1px solid #cdd4cc;margin:26px 0}
+pre{background:#e6ebe3;padding:20px 24px;overflow:auto;border:1px solid var(--Line);border-radius:5px;font-size:13px;line-height:1.65}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.85em;background:#e7ebe3;border-radius:3px;padding:2px 4px;overflow-wrap:anywhere}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.5;margin:28px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--Line)}
+th{background:#e6ebe3;color:var(--Accent);font-weight:500}blockquote{border-left:3px solid var(--Accent);padding-left:24px;color:var(--Muted)}
+.Diagnostics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:34px 0}.Diagnostics figure{margin:0}.Diagnostics img{margin:0 0 10px}
+figcaption{font-size:11px;color:var(--Muted)}.End{padding-top:30px;border-top:1px solid var(--Line);margin-top:50px;color:var(--Muted);font-size:12px}
+@media(max-width:960px){.Layout{grid-template-columns:1fr;gap:20px}.Side{display:none}h1{font-size:38px}}
+@media(max-width:580px){body{font-size:15px}.Top>div{padding:14px 18px}.Brand span{display:none}.Layout{padding:0 20px;margin-top:34px}h1{font-size:33px}h2{font-size:26px}th,td{padding:8px 5px;font-size:11px}.Diagnostics{grid-template-columns:1fr}pre{padding:16px}}
+</style></head><body>
+<header class="Top"><div><a class="Brand" href="../Experimental/DeformationIntegrator/index.html">DEFORM <span>/ TRANSPORT</span></a><a class="Open" href="../Experimental/DeformationIntegrator/index.html">Launch WebGPU demo ↗</a></div></header>
+<div class="Layout"><aside class="Side"><div class="Kicker">DEFORMATION &amp; LIGHT TRANSPORT<br>05 OCT 2026 / C037</div><div class="toc">
+<ul>
+<li><a href="#the-answer-for-your-car-and-tyre-surfaces">The answer for your car and tyre surfaces</a></li>
+<li><a href="#try-this-comparison">Try this comparison</a></li>
+<li><a href="#what-runs-on-the-gpu">What runs on the GPU</a></li>
+<li><a href="#live-deformation-versus-vat">Live deformation versus VAT</a></li>
+<li><a href="#why-the-lighting-is-a-path-tracer-this-time">Why the lighting is a path tracer this time</a></li>
+<li><a href="#executed-checks">Executed checks</a></li>
+<li><a href="#performance-measured-not-inferred">Performance: measured, not inferred</a></li>
+<li><a href="#how-this-fits-an-sdf-renderer">How this fits an SDF renderer</a></li>
+<li><a href="#reproduce-and-inspect">Reproduce and inspect</a></li>
+</ul>
+</div>
+<p><a href="DeformationTransportReview.md">Markdown document</a><br><a href="../../VisualProof/DeformationIntegrator/Captures/WebGpu.json">Executed verification</a></p></aside><main><h1 id="deforming-triangles-current-gi">Deforming triangles, current GI</h1>
+<p><strong>5 October 2026 · C037 · Native WebGPU demonstration</strong></p>
+<p><a href="../Experimental/DeformationIntegrator/index.html">Open the demo</a> ·
+<a href="DeformationTransportReview.html">Read as a webpage</a></p>
+<p><img alt="Changing geometry, actual WebGPU captures" src="../../VisualProof/DeformationIntegrator/Captures/Deformation.gif" /></p>
+<p>The animation above alternates captured poses. It is <strong>not a real-time performance recording</strong>.</p>
+<h2 id="the-answer-for-your-car-and-tyre-surfaces">The answer for your car and tyre surfaces</h2>
+<p>You can get GI from a deforming quad surface without converting that surface to an SDF. The lighting needs the
+<strong>current vertex positions</strong>, a consistent triangulation, current normals and acceleration bounds containing the
+changed triangles. It does not need to know whether the positions came from VAT playback, XPBD or another solver.</p>
+<p>This demo exercises that path. The rubber tyre has <strong>1,536 shared vertices and 1,536 quads</strong>. Including the rigid
+open rim and lighting environment, the scene contains <strong>1,797 quads / 3,594 triangles</strong>, traced through <strong>2,047 BVH
+bounds</strong>. The deformation changes local edge lengths and normals, not just a rigid transform. Maximum tested tyre
+edge-length change is approximately <strong>57.2 mm</strong> in this deliberately enlarged demonstration scene.</p>
+<p>The tyre motion is a controlled non-rigid compression, <strong>not a calibrated XPBD tyre simulation</strong>. Your native tyre
+solver and vehicle code are not modified or integrated by this experiment. A separate external-position path is
+provided and verified with a localized deformation that does not come from the demo's VAT.</p>
+<h2 id="try-this-comparison">Try this comparison</h2>
+<ol>
+<li>Open the demo in a WebGPU-capable browser. Drag to orbit, right-drag to pan and scroll to zoom.</li>
+<li>Click <strong>Unloaded</strong>, then <strong>Fully compressed</strong>. These stop the animation and set a reproducible pose.</li>
+<li>Let the sample count increase while paused. The image is deliberately a progressive, noisy path-traced result.</li>
+<li>Enable <strong>Show actual quad edges</strong> to see the changing surface connectivity rather than a displaced texture.</li>
+<li>At full compression, enable <strong>Freeze lighting geometry at rest</strong>. The visible tyre stays deformed, but shadow
+   and bounce rays now intersect its old shape. The false dark shell makes the synchronization error obvious.</li>
+<li>Disable that comparison and select <strong>Indirect only</strong> to isolate bounced illumination.</li>
+<li>Select <strong>Recorded vertex texture · VAT</strong>. Interpolated vertex positions enter the same triangle/refit/lighting
+   sequence. The lighting is still calculated at runtime; it is not recorded into the animation texture.</li>
+<li>Use <strong>Animate deformation</strong> or Space to resume. H toggles the compact controls.</li>
+</ol>
+<p><img alt="Current deformed geometry and GI" src="../../VisualProof/DeformationIntegrator/Captures/02LoadedCurrentGI.png" /></p>
+<p><img alt="Frozen geometry: wrong lighting" src="../../VisualProof/DeformationIntegrator/Captures/04FrozenGeometryWrong.png" /></p>
+<h2 id="what-runs-on-the-gpu">What runs on the GPU</h2>
+<pre><code class="language-text">Live vertex deformation OR sampled VAT OR externally supplied positions
+    → expand the fixed quad diagonals into current triangle coordinates
+    → recompute geometric triangle normals
+    → refit leaf bounds from those triangles
+    → refit internal bounds, deepest level to root
+    → rasterize the same current triangles
+    → trace shadow and diffuse-bounce rays against those triangles
+    → accumulate only while geometry, camera and lighting remain unchanged
+</code></pre>
+<p>The GPU deformation and expansion dispatches precede bottom-up refit dispatches in the command sequence. The refit
+covers all eleven BVH depths. Rasterization and transport follow those writes. No CPU readback is needed between
+deformation and lighting. When the pose is unchanged, deformation and refit are skipped; image sampling continues.</p>
+<p>The initial triangle ordering and connectivity stay fixed. <strong>Refit changes the bounds, not the BVH partition.</strong>
+That is sufficient for correct traversal as long as the bounds remain conservative. For substantial crumpling,
+refitted bounds may overlap more and tracing may slow down; periodically rebuilding the partition becomes useful.
+If a panel tears, gains triangles or changes connectivity, replace/rebuild the corresponding acceleration structure.
+That topological-change path is not implemented here.</p>
+<p>Quads are split with a stable diagonal. Both rasterization and tracing use the exact same two triangles. A warped
+non-planar quad does not define a unique planar surface: consistency of that diagonal matters. This demo uses flat
+geometric triangle normals, rather than pretending the quad is an exact smooth patch.</p>
+<h2 id="live-deformation-versus-vat">Live deformation versus VAT</h2>
+<p><strong>Live:</strong> a GPU compute shader changes the tyre positions using a strictly increasing vertical compression warp
+and positive lateral scale factors. The inner bead follows the axle; the lower casing compresses and bulges.
+Unlike a hard ground clamp, the continuous deformation does not collapse the lower volume onto one plane.
+This is a geometric exercise, not a pressure-, stiffness- or volume-calibrated material simulation.</p>
+<p><strong>VAT:</strong> seventeen poses are generated at startup and stored in a real <code>rgba32float</code> GPU texture, 64 by 408 texels.
+The shader fetches the two adjacent vertex poses and linearly interpolates each position. Normals and bounds are
+then recomputed from that interpolated surface, not blended from stale bounds. At the tested intermediate
+compression of 0.373 m, the largest component difference from the live deformation is <strong>0.126 mm</strong>. That is one
+measured pose, not a guaranteed bound for arbitrary animation clips.</p>
+<p>The recorded texture is about <strong>408 KiB</strong> of vertex positions. More complex motion may need more samples or a
+better animation representation. It contains no GI, shadow, ambient-occlusion or surface-colour images.</p>
+<p><strong>External positions:</strong> <code>DeformationApp.SupplyPositions(positions)</code> accepts one XYZ or XYZW world-space position
+per tyre vertex, in the original connectivity order. It selects the external source and pauses procedural motion;
+the following render expands and refits the supplied positions. Wrong counts and non-finite coordinates are refused.
+This CPU-array upload is suitable as an integration point for a CPU solver. A GPU XPBD solver could instead write
+the position storage directly before expansion; that GPU-solver integration is not supplied by this demo.</p>
+<h2 id="why-the-lighting-is-a-path-tracer-this-time">Why the lighting is a path tracer this time</h2>
+<p>The previous atrium demonstrated radiance cascades. Here the immediate question is whether the changing surface
+can be lit correctly, so the demo deliberately uses a <strong>finite-depth diffuse path tracer</strong> rather than adding
+cascade-interpolation error to the comparison.</p>
+<ul>
+<li>Two actual emissive rectangles provide lighting. Their areas, positions and radiances match the sampling model.</li>
+<li>Every surface vertex of a camera path samples one of those rectangles with its selection probability included.
+  Shadow visibility is a triangle BVH ray, not a shadow map or an SDF approximation.</li>
+<li>Further directions are sampled with a cosine-weighted hemisphere. For a Lambertian BRDF, the throughput factor
+  after dividing by that sampling density is the surface albedo.</li>
+<li>Emitter hits after a diffuse sample are terminated without adding emission a second time: explicit light sampling
+  already estimates those paths. Directly visible emitters still contribute their emission.</li>
+<li>The default path depth of three includes direct lighting and up to <strong>two diffuse interreflections</strong>. Depth one
+  removes the indirect contribution. There is no environment illumination; the display background is not a light.</li>
+<li>No spatial denoiser or motion-history reuse hides incorrect geometry. A pose, camera, source-power, tracing-mode
+  or path-depth change resets accumulation. Paused images accumulate additional samples.</li>
+</ul>
+<p>At finite samples the result is noisy. At finite depth it omits longer light paths. Millimetre-scale ray offsets,
+floating-point arithmetic, flat shading, raster coverage and display tone mapping are additional approximations.
+This is a correctness-oriented reference demonstration, <strong>not an exact infinite-bounce solution or production GI</strong>.</p>
+<h2 id="executed-checks">Executed checks</h2>
+<p>The verification scripts run actual WebGPU commands, read back deformed vertices, expanded triangles and refitted
+bounds, and compare them with independent CPU calculations. The browser did not render these images on the CPU.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Executed result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quad topology</td>
+<td>Tyre edges have two incident quads; stable shared vertices</td>
+</tr>
+<tr>
+<td>Geometry sweep</td>
+<td>Nine poses; finite normals and positive triangle areas</td>
+</tr>
+<tr>
+<td>Minimum tested triangle area</td>
+<td>0.000270846 square metres</td>
+</tr>
+<tr>
+<td>GPU positions versus CPU deformation</td>
+<td>Maximum component error 2.59e-7 m</td>
+</tr>
+<tr>
+<td>GPU current-triangle ray queries</td>
+<td>960 queries across five live/VAT/external configurations</td>
+</tr>
+<tr>
+<td>GPU ray distance versus brute force</td>
+<td>Maximum absolute error 1.319e-5 m</td>
+</tr>
+<tr>
+<td>Refitted bounds</td>
+<td>Every leaf contains its triangles; all internal bounds valid</td>
+</tr>
+<tr>
+<td>Frozen rest geometry at full load</td>
+<td>134 of 192 reference ray distances disagree by over 1 mm</td>
+</tr>
+<tr>
+<td>Independent area-light integration</td>
+<td>20 receivers × 64 samples; maximum RGB error 5.58e-8</td>
+</tr>
+<tr>
+<td>Shadow-ray exercise in that comparison</td>
+<td>601 of 1,280 light samples occluded</td>
+</tr>
+<tr>
+<td>Full = direct + indirect</td>
+<td>Maximum component discrepancy 1.42e-7</td>
+</tr>
+<tr>
+<td>Emitters off</td>
+<td>All measured surface RGB exactly zero</td>
+</tr>
+<tr>
+<td>Indirect view with depth one</td>
+<td>All measured surface RGB exactly zero</td>
+</tr>
+<tr>
+<td>Frozen versus current indirect light</td>
+<td>Mean absolute RGB difference 0.002618</td>
+</tr>
+<tr>
+<td>Accumulation</td>
+<td>Unchanged poses accumulate; changed poses reset</td>
+</tr>
+<tr>
+<td>Browser/UI</td>
+<td>Animation, VAT, external input, scale, mobile, refusal pass</td>
+</tr>
+</tbody>
+</table>
+<p>The independent area-light comparison derives area, normal and emission from the actual CPU scene quads, computes
+the Lambertian solid-angle factor, and brute-force tests every shadow ray against triangles. It does not merely
+compare the shader with another invocation of the same shader. GPU ray-oracle queries include axis-parallel rays.</p>
+<p>These numerical results demonstrate the tested geometry/visibility/lighting calculations, not general accuracy
+bounds for every mesh or a comparison against an independent full multibounce reference renderer. No complete
+self-intersection or tyre-material calibration study is claimed. The continuous warp is injective; the tests check
+the sampled triangle areas and normals, not a universal guarantee for arbitrary supplied solver positions.</p>
+<p>At the fixed camera and 16 samples per pixel, the mean surface RGB is <strong>0.339468</strong> for full lighting, <strong>0.328731</strong>
+for direct lighting and <strong>0.010738</strong> for indirect lighting. These are linear HDR RGB means, not photometric luminance.
+Frozen tracing changes indirect lighting even though the rasterized current geometry is held identical.</p>
+<h2 id="performance-measured-not-inferred">Performance: measured, not inferred</h2>
+<p>The available adapter is <strong>SwiftShader software Vulkan/WebGPU</strong>, running Chromium 133. It establishes successful
+execution but does not establish hardware real-time performance.</p>
+<p>Three warmed, changing-pose renders at <strong>320 by 216</strong>, one sample per pixel and path depth three recorded GPU-pass
+sums of <strong>1,302.63, 1,314.90 and 1,297.79 ms</strong>. Across those samples, vertex/triangle preparation plus BVH refit took
+<strong>0.83–16.96 ms</strong> in software; diffuse-path integration dominated. These are observations from this sandbox, not
+projections for a gaming GPU. The pass sums exclude CPU overhead, buffer uploads outside the measured intervals,
+query readback and browser compositing. Higher samples per render increase execution time substantially.</p>
+<p>The renderer permits one render in flight and waits for completion before reusing its timing readback. This is
+simple and testable, not an optimized overlapping production scheduler. Default display resolution is capped at
+800 by 600; validation screenshots use a deliberately low internal resolution and retain visible aliasing/noise.
+Hardware benchmarks, adaptive sampling, temporal rejection, denoising, better scheduling, specular transport and
+large-scene acceleration are future work, not completed features.</p>
+<h2 id="how-this-fits-an-sdf-renderer">How this fits an SDF renderer</h2>
+<p>A production hybrid can retain SDF tracing for the static world and use updated triangle structures for deforming
+surfaces. A ray queries both representations and shades the nearest valid hit. A shadow ray is blocked if either
+representation blocks it. The resulting material/radiance evaluation must be shared so both participate in the
+same light-transport calculation.</p>
+<p>That is a design direction, not a claim that this browser demo is wired into your native SDF renderer. It also does
+not establish that triangles are always faster than dynamic SDF updates. The point demonstrated here is narrower:
+<strong>you do not have to approximate the animated tyre with a stale field to let it participate in GI</strong>.</p>
+<h2 id="reproduce-and-inspect">Reproduce and inspect</h2>
+<ul>
+<li>Application: <code>Frontier/Experimental/DeformationIntegrator/index.html</code>. Serve over HTTPS or localhost; no build step.</li>
+<li>CPU geometry checks: <code>node VisualProof/DeformationIntegrator/VerifyGeometry.mjs</code>.</li>
+<li>Browser checks: <code>VisualProof/DeformationIntegrator/VerifyWebGpu.cjs</code>, using Playwright 1.63 and
+  Sparticuz Chromium 133.
+  Run the CPU checks first, serve the repository root on port 8080, and expose the installed packages with <code>NODE_PATH</code>.</li>
+<li>The browser verifier's software launch removes <code>--in-process-gpu</code> and <code>--single-process</code>, enables Vulkan/SwiftShader
+  WebGPU, and uses <code>/tmp/vk_swiftshader_icd.json</code>. These are sandbox verification settings, not user requirements.</li>
+<li><code>?manual=1&amp;width=320</code> selects manual rendering and a fixed requested internal width. <code>DeformationApp.Step(load)</code>
+  executes a pose; <code>Readback()</code> returns linear HDR pixels, and <code>ReadResource()</code> supports GPU-geometry inspection.
+  Use the manual URL for deterministic verification. Changing topology requires more than supplying new positions.</li>
+<li>Actual captures and source-hashed reports: <code>VisualProof/DeformationIntegrator/Captures/</code>.</li>
+</ul>
+<p>The previous radiance-cascades atrium, native XPBD tyre and other approved experiments remain unchanged.</p><div class="End">Actual GPU geometry and lighting · Controlled deformation, not a calibrated tyre solver · No hardware speed claim</div></main></div></body></html>

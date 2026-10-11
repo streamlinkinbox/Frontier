@@ -1,0 +1,6 @@
+PASS Engine/Editor/OutlinerPanel.cpp
+PASS Engine/Editor/CloudsInspectorPanel.cpp
+PASS Engine/Editor/FogInspectorPanel.cpp
+PASS Engine/GeometricRaster/VisibilityRaster.cpp
+PASS Engine/DeviceExchange/SwapchainExchange.cpp
+PASS Projects/Project-Zero/Source/GameExecution.cpp

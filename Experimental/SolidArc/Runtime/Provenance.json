@@ -1,0 +1,6 @@
+{
+  "sourceRevision": "2eb82535b437575e70687dd4e7c2152a4582fdca",
+  "emscripten": "4.0.15",
+  "workflowRun": "37177864185",
+  "implementation": "Original SolidArc C++ sources; native software raster; no substitute CAD library"
+}

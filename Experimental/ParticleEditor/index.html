@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Particle Editor: WebGPU particle systems for sparks, lightning, wind-driven debris, molecular physics, chemical reactions and VFX, with a 3D wind grid.">
+  <title>Particle Editor — Frontier</title>
+  <link rel="stylesheet" href="ParticleEditor.css">
+</head>
+<body>
+  <div class="pe-app">
+    <header class="pe-top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <div>
+          <div class="brand-t">Particle Editor</div>
+          <div class="brand-s">Frontier · WebGPU · Experimental</div>
+        </div>
+      </div>
+      <label class="tb-speed">
+        <span>Time</span>
+        <input id="time-scale" type="range" min="0" max="2" step="0.01" value="1" aria-label="Time scale">
+        <span id="time-scale-v">1.00×</span>
+      </label>
+      <span id="st-state" class="pill ok">Live</span>
+    </header>
+
+    <aside class="pe-outliner" aria-label="Outliner">
+      <div class="tab-strip"><div class="document-tab active"><span>Outliner</span></div></div>
+      <div class="pane-h">
+        <h2>Outliner</h2>
+        <span id="outliner-count" class="pane-meta"></span>
+      </div>
+      <div class="counts">
+        <div class="count"><span>Visible</span><b id="outliner-visible">0</b></div>
+        <div class="count"><span>Hidden</span><b id="outliner-hidden">0</b></div>
+      </div>
+      <label class="ol-search"><span aria-hidden="true">⌕</span><input id="ol-search" type="search" placeholder="Search" aria-label="Search outliner"></label>
+      <div id="outliner-list" class="ol-list"></div>
+    </aside>
+
+    <main class="pe-view">
+      <div class="tab-strip"><div class="document-tab active"><span>Viewport</span></div></div>
+      <div class="vp-head">
+        <div class="vp-identity">
+          <strong>Particle scene</strong>
+          <span>Sparks · leaves · molecular · lightning · wind grid 24 × 12 × 24</span>
+        </div>
+        <div class="vp-actions" role="toolbar" aria-label="Viewport controls">
+          <div class="vp-seg" role="group" aria-label="Simulation">
+            <button id="btn-play" class="vp-seg-btn" type="button">Pause</button>
+            <button id="btn-reset" class="vp-seg-btn" type="button" title="Reset every system">Reset</button>
+          </div>
+          <button id="btn-strike" class="vp-btn accent" type="button" title="Strike lightning (L)">Strike <kbd>L</kbd></button>
+          <button id="btn-sound" class="vp-btn" type="button" title="Enable thunder audio">Sound</button>
+          <span class="vp-sep" aria-hidden="true"></span>
+          <button id="btn-top" class="vp-btn" type="button" aria-pressed="false">Top</button>
+          <button id="btn-arrows" class="vp-btn" type="button" aria-pressed="true">Wind arrows</button>
+          <button id="btn-floor" class="vp-btn" type="button" aria-pressed="true">Floor</button>
+        </div>
+      </div>
+      <div class="pe-stage">
+        <canvas id="view" aria-label="Particle viewport"></canvas>
+        <div class="view-hint" aria-hidden="true">Drag orbit · Right-drag pan · Wheel zoom · Space play/pause · L strike</div>
+        <div id="boot-error" class="boot-error" role="alert" hidden></div>
+      </div>
+    </main>
+
+    <aside class="pe-inspector" aria-label="Inspector">
+      <div class="tab-strip"><div class="document-tab active"><span>Inspector</span></div></div>
+      <div class="pane-h"><h2>Inspector</h2></div>
+      <div id="inspector" class="insp-scroll"></div>
+    </aside>
+
+    <footer class="pe-status">
+      <span id="st-adapter" class="st-item">WebGPU</span>
+      <span id="st-particles" class="st-item">0 particles</span>
+      <span id="st-fps" class="st-item">– fps</span>
+      <span id="st-readback" class="st-item">readback –</span>
+      <span class="st-right">Wind grid 24 × 12 × 24 · compute + instanced render · no engine connection</span>
+    </footer>
+  </div>
+
+  <!-- One entry module. It imports the rest in dependency order, which is why there are no longer
+       eight script tags with hand-maintained ?v= cache-busting strings after them. -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

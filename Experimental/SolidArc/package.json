@@ -1,0 +1,20 @@
+{
+  "name": "solidarc-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "test": "node --test src/GeometryMetrics.mjs",
+    "verify:browser": "node src/BrowserMetrics.mjs",
+    "verify:interaction": "node src/NavigationMetrics.mjs"
+  },
+  "devDependencies": {
+    "vite": "7.3.6",
+    "playwright": "1.63.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

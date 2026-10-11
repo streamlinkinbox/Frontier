@@ -1,0 +1,141 @@
+{
+  "baseline": [
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 32.8636,
+      "reconstruction_mean_ms": 6.92945,
+      "extraction_first_ms": 3700.39,
+      "extraction_unchanged_mean_ms": 0.0127697,
+      "extraction_changed_ms": 2620.47,
+      "dirty_bricks": 192.0,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.192403
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 31.6532,
+      "reconstruction_mean_ms": 7.10803,
+      "extraction_first_ms": 3782.91,
+      "extraction_unchanged_mean_ms": 0.0124998,
+      "extraction_changed_ms": 2591.8,
+      "dirty_bricks": 192.0,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.199543
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 32.5509,
+      "reconstruction_mean_ms": 7.15916,
+      "extraction_first_ms": 3720.27,
+      "extraction_unchanged_mean_ms": 0.0128571,
+      "extraction_changed_ms": 2533.45,
+      "dirty_bricks": 192.0,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.191556
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 30.4699,
+      "reconstruction_mean_ms": 6.88144,
+      "extraction_first_ms": 3750.3,
+      "extraction_unchanged_mean_ms": 0.0128573,
+      "extraction_changed_ms": 2528.37,
+      "dirty_bricks": 192.0,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.192186
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 30.5279,
+      "reconstruction_mean_ms": 6.88946,
+      "extraction_first_ms": 3705.6,
+      "extraction_unchanged_mean_ms": 0.0128584,
+      "extraction_changed_ms": 2685.13,
+      "dirty_bricks": 192.0,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.19467
+    }
+  ],
+  "optimized": [
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 16.8473,
+      "reconstruction_mean_ms": 4.8726,
+      "extraction_first_ms": 19.9247,
+      "extraction_unchanged_mean_ms": 0.0125589,
+      "extraction_changed_ms": 18.2552,
+      "dirty_bricks": 192.0,
+      "index_ms": 0.993709,
+      "field_ms": 7.57847,
+      "triangles_ms": 2.31302,
+      "assembly_smoothing_ms": 7.36946,
+      "smoothing_subset_ms": 2.83607,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.195864
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 17.0489,
+      "reconstruction_mean_ms": 4.83558,
+      "extraction_first_ms": 19.9503,
+      "extraction_unchanged_mean_ms": 0.0126196,
+      "extraction_changed_ms": 18.0289,
+      "dirty_bricks": 192.0,
+      "index_ms": 0.995154,
+      "field_ms": 7.57465,
+      "triangles_ms": 2.05639,
+      "assembly_smoothing_ms": 7.40004,
+      "smoothing_subset_ms": 2.86376,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.193073
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 17.6018,
+      "reconstruction_mean_ms": 4.90451,
+      "extraction_first_ms": 19.9796,
+      "extraction_unchanged_mean_ms": 0.0126966,
+      "extraction_changed_ms": 18.0465,
+      "dirty_bricks": 192.0,
+      "index_ms": 0.991902,
+      "field_ms": 7.63014,
+      "triangles_ms": 2.04011,
+      "assembly_smoothing_ms": 7.38341,
+      "smoothing_subset_ms": 2.81053,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.19401
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 17.1112,
+      "reconstruction_mean_ms": 5.37996,
+      "extraction_first_ms": 26.8952,
+      "extraction_unchanged_mean_ms": 0.0155089,
+      "extraction_changed_ms": 17.9303,
+      "dirty_bricks": 192.0,
+      "index_ms": 1.0252,
+      "field_ms": 7.62796,
+      "triangles_ms": 1.92408,
+      "assembly_smoothing_ms": 7.35167,
+      "smoothing_subset_ms": 2.85244,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.243525
+    },
+    {
+      "particles": 1440.0,
+      "solver_mean_ms": 16.7438,
+      "reconstruction_mean_ms": 4.85761,
+      "extraction_first_ms": 20.2663,
+      "extraction_unchanged_mean_ms": 0.0141949,
+      "extraction_changed_ms": 18.5,
+      "dirty_bricks": 192.0,
+      "index_ms": 1.20807,
+      "field_ms": 7.7639,
+      "triangles_ms": 2.11496,
+      "assembly_smoothing_ms": 7.41209,
+      "smoothing_subset_ms": 2.86108,
+      "pond_cells": 13824.0,
+      "pond_step_mean_ms": 0.193516
+    }
+  ]
+}

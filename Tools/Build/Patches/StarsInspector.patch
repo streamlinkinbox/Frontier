@@ -1,0 +1,376 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -251,6 +251,7 @@
+     Engine/Editor/LensFlareInspectorPanel.cpp
+     Engine/Editor/AtmosphereSkyInspectorPanel.cpp
+     Engine/Editor/MoonInspectorPanel.cpp
++    Engine/Editor/StarsInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+     Engine/DisplayPresentation/DialogueHost.cpp
+--- a/Engine/DeviceExchange/SwapchainExchange.cpp
++++ b/Engine/DeviceExchange/SwapchainExchange.cpp
+@@ -76,11 +76,11 @@
+ //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
+ //    gate fails the build if the two disagree.
+ static constexpr uint32_t kMoonRecordBytes = 288u;
+-// The Celestial post uniform block (binding 24) is twelve std140 rows — 192 B, pinned by static_assert in
++// The Celestial post uniform block (binding 24) is thirteen std140 rows — 208 B, pinned by static_assert in
+ //    DisplayPresentation/PostConstantRecord.h. Same restatement rule as the sky and moon records above.
+ // The star tables (binding 23) are 1 024 cells of 8 B followed by N stars of 32 B — StarCellRecord and
+ //    StarRecord, pinned in GeometricRaster/StarCatalogueIndex.h; the post gate fails the build on drift.
+-static constexpr uint32_t kPostRecordBytes = 192u;
++static constexpr uint32_t kPostRecordBytes = 208u;
+ static constexpr uint32_t kStarCellCount = 1024u;
+ static constexpr uint32_t kStarCellBytes = 8u;
+ static constexpr uint32_t kStarRecordBytes = 32u;
+@@ -195,7 +195,7 @@
+     VkBuffer                 MoonBuffer            = VK_NULL_HANDLE;
+     VkDeviceMemory           MoonMemory            = VK_NULL_HANDLE;
+     void*                    MoonMapped            = nullptr;
+-    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 192 B uniform
++    // Celestial post record (binding 24). Same arrangement as the sky and moon records: one 208 B uniform
+     //    buffer, host-visible and persistently mapped, re-packed by the project every frame.
+     VkBuffer                 PostBuffer            = VK_NULL_HANDLE;
+     VkDeviceMemory           PostMemory            = VK_NULL_HANDLE;
+@@ -2846,7 +2846,7 @@
+ bool SwapchainExchange::RefreshPost(const void* Bytes, uint32_t ByteCount) noexcept
+ {
+     // DeviceExchange must not include DisplayPresentation (it is the layer below it) — the caller packs with
+-    //    PostConstantRecord/PackPostConstants and hands over the 192 bytes, the way RefreshSky receives its own.
++    //    PostConstantRecord/PackPostConstants and hands over the 208 bytes, the way RefreshSky receives its own.
+     //    The size is refused rather than trusted, for the same half-old-reading reason.
+     if (!Vulkan->Device || !Vulkan->PostMapped || !Bytes || ByteCount != kPostRecordBytes) return false;
+     // One memcpy into the persistent mapping: no reallocation, no descriptor rewrite, no device stall — the
+--- a/Engine/DisplayPresentation/PostConstantRecord.h
++++ b/Engine/DisplayPresentation/PostConstantRecord.h
+@@ -48,10 +48,11 @@
+     float PostSpare0[4];   // pixel spread, shadow coverage, density, type
+     float PostSpare1[4];   // shadow drift X/Y, anvil, ceiling
+     float PostLayers[16]; // four appended rows; active only when PostFlareUv.w = 1
++    float PostStarEffects[4]; // min luminance, depth, rate Hz, time seconds
+ 
+ };
+ 
+-static_assert(sizeof(PostConstantRecord) == 192u, "the post record is twelve std140 rows");
++static_assert(sizeof(PostConstantRecord) == 208u, "the post record is thirteen std140 rows");
+ static_assert(offsetof(PostConstantRecord, PostStar)    == 0u,   "PostStar at row 0");
+ static_assert(offsetof(PostConstantRecord, PostFlare)   == 16u,  "PostFlare at row 1");
+ static_assert(offsetof(PostConstantRecord, PostFlare2)  == 32u,  "PostFlare2 at row 2");
+@@ -115,4 +116,5 @@
+ 
+ } // namespace Frontier
+ 
++static_assert(offsetof(Frontier::PostConstantRecord, PostStarEffects) == 192u);
+ static_assert(offsetof(Frontier::PostConstantRecord, PostLayers) == 128u);
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,7 +199,7 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon };
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars };
+ 
+ // Borrowed immutable image data; project retains ownership through the editor frame.
+ struct EditorSkyImage {
+@@ -212,9 +212,12 @@
+ struct EditorMoonBody {
+  const uint8_t* Pixels=nullptr;uint32_t Width=0,Height=0;float Tint[3]={1,1,1};float Tilt=0,Haze=0,Gamma=1;
+ };
++struct StarRecord;
++struct EditorStarPreview { const StarRecord* Records=nullptr; uint32_t Count=0; float Seconds=0; };
+ struct EditorSheet
+ {
+     EditorSkyImage SkyImage{};
++    EditorStarPreview StarPreview{};
+     EditorMoonBody MoonBodies[6]{};uint64_t MoonAtlasRevision=0;
+     float MoonAzimuth=0, MoonElevation=0, MoonPhase=0; // solved read-only lunar inputs
+     EditorSheetAppearance Appearance = EditorSheetAppearance::Generic;
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -10,6 +10,7 @@
+ #include "LensFlareInspectorPanel.h"
+ #include "AtmosphereSkyInspectorPanel.h"
+ #include "MoonInspectorPanel.h"
++#include "StarsInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -130,6 +131,11 @@
+         return;
+     }
+ 
++    if (Sheet->Appearance == EditorSheetAppearance::Stars) {
++        ImGui::BeginChild("##stars-properties",ImVec2(0,0),ImGuiChildFlags_None,ImGuiWindowFlags_None);
++        ImGui::PushID(static_cast<int>(PickedIndex));RecordStarsInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
++        ImGui::EndChild();ImGui::End();return;
++    }
+     if (Sheet->Appearance == EditorSheetAppearance::Moon) {
+         ImGui::BeginChild("##moon-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordMoonInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+--- a/Engine/GeometricRaster/StarCatalogueIndex.cpp
++++ b/Engine/GeometricRaster/StarCatalogueIndex.cpp
+@@ -55,6 +55,7 @@
+ bool StarCatalogueIndex::Load(const std::string& Path) noexcept
+ {
+     BinnedStars.clear();
++    SourceStars.clear();
+     Cells.clear();
+     SourceCount = 0u;
+ 
+@@ -78,6 +79,8 @@
+     if (!File) return false;
+ 
+     SourceCount = Count;
++    SourceStars.reserve(Count);
++    for (const auto& S : Source) SourceStars.push_back({S.X,S.Y,S.Z,S.Luminance,S.Red,S.Green,S.Blue,0});
+ 
+     // ── Bin ──────────────────────────────────────────────────────────────────────────────────────────────────
+     // Two passes: count per cell, then fill. One pass with per-cell vectors would allocate 1 024 times and
+--- a/Engine/GeometricRaster/StarCatalogueIndex.h
++++ b/Engine/GeometricRaster/StarCatalogueIndex.h
+@@ -69,6 +69,7 @@
+ 
+     // How many stars were read before binning. Binning duplicates boundary stars, so QueryStars().size() is
+     //    larger — reporting both makes the duplication visible rather than looking like a parse error.
++    [[nodiscard]] const std::vector<StarRecord>& QuerySourceStars() const noexcept { return SourceStars; }
+     [[nodiscard]] uint32_t QuerySourceCount() const noexcept { return SourceCount; }
+ 
+     // Octahedral mapping, shared with the shader. A direction becomes a cell; the same arithmetic must exist on
+@@ -76,6 +77,7 @@
+     [[nodiscard]] static uint32_t CellForDirection(float X, float Y, float Z) noexcept;
+ 
+ private:
++    std::vector<StarRecord>     SourceStars; // Unbinned catalogue for editor charts.
+     std::vector<StarRecord>     BinnedStars;   // stars grouped by cell, cells contiguous
+     std::vector<StarCellRecord> Cells;
+     uint32_t                    SourceCount = 0u;
+--- a/Engine/GeometricRaster/VisibilityRaster.cpp
++++ b/Engine/GeometricRaster/VisibilityRaster.cpp
+@@ -10,6 +10,7 @@
+ //    distance so contact stays sharp and the penumbra widens with distance. See VisibilityRaster.h for the ladder.
+ 
+ #include "VisibilityRaster.h"
++#include "DisplayPresentation/StarFieldControls.h"
+ 
+ #include "SceneStructure.h"
+ #include "DisplayPresentation/AtmosphereModel.h"
+@@ -740,6 +741,7 @@
+                 for (uint32_t I = 0u; I < Bucket.Count; ++I)
+                 {
+                     const StarRecord& Star = All[Bucket.First + I];
++                    if(Star.Luminance<Celestial_.StarMinimumLuminance)continue;
+                     const float Dot = Equatorial[0] * Star.DirectionX
+                                     + Equatorial[1] * Star.DirectionY
+                                     + Equatorial[2] * Star.DirectionZ;
+@@ -768,7 +770,7 @@
+                     //    must raise its peak or the star just gets dimmer — measured, the new footprint holds
+                     //    5.73x less solid angle than the soft one it replaced, and the first sharpened render
+                     //    came out visibly darker for exactly that reason.
+-                    const float Gain = Star.Luminance * Celestial_.StarBrightness * Core * 5.73f;
++                    const float Gain = Star.Luminance * Celestial_.StarBrightness * Core * 5.73f * StarTwinkleFlux(Celestial_.StarSeconds,Celestial_.StarDepth,Celestial_.StarRate,StarDirectionPhase(Star.DirectionX,Star.DirectionY,Star.DirectionZ));
+                     Out[0] += Star.ColourRed * Gain * CloudT;
+                     Out[1] += Star.ColourGreen * Gain * CloudT;
+                     Out[2] += Star.ColourBlue * Gain * CloudT;
+--- a/Engine/GeometricRaster/VisibilityRaster.h
++++ b/Engine/GeometricRaster/VisibilityRaster.h
+@@ -110,6 +110,7 @@
+         // The planet's own surface, seen when a ray passes below the horizon. Panel: Sky > Ground > Albedo.
+         float            GroundAlbedo[3]   = { 0.19f, 0.17f, 0.14f };
+         float            StarBrightness    = 1.0f;   // [x] panel: Stars > Field > Brightness
++        float StarMinimumLuminance=0,StarDepth=0,StarRate=1,StarSeconds=0;
+         float            StarSize          = 1.0f;   // [x] panel: Stars > Field > Point Size
+         float            LocalSiderealTime = 0.0f;   // [deg] from CelestialFrame
+         float            Latitude          = 0.0f;   // [deg] north positive
+--- a/Engine/Shaders/PostRecords.slang
++++ b/Engine/Shaders/PostRecords.slang
+@@ -23,7 +23,7 @@
+ //                                              THE UNIFORM BLOCK (24)
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+-// 192 bytes, std140 — the mirror is PostConstantRecord, and its static_asserts pin every offset. Per-frame scalars
++// 208 bytes, std140 — the mirror is PostConstantRecord, and its static_asserts pin every offset. Per-frame scalars
+ //    only; the star tables are static and ride binding 23 instead.
+ layout(std140, binding = 24) uniform PostConstants
+ {
+@@ -39,6 +39,7 @@
+     vec4 PostLayers1;
+     vec4 PostLayers2;
+     vec4 PostLayers3;
++    vec4 PostStarEffects; // min luminance, depth, rate Hz, time seconds
+ };
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -159,13 +160,17 @@
+     for (uint I = 0u; I < Bucket.y; ++I)
+     {
+         StarEntry Star = StarStars[Bucket.x + I];
++        if(Star.DirLum.w<PostStarEffects.x)continue;
+         float Dot = dot(Eq, Star.DirLum.xyz);
+         if (Dot <= 0.0) continue;
+         float Angle = acos(min(Dot, 1.0));
+         if (Angle > Radius * 1.6) continue;
+         float Falloff = (Angle - Radius) / (Radius * 0.35);
+         float Core = Angle <= Radius ? 1.0 : exp(-Falloff * Falloff);
+-        col += Star.ColPad.rgb * (Star.DirLum.w * PostStar.w * Core * 5.73);
++        float Phase=dot(Star.DirLum.xyz,vec3(13.0,37.0,71.0));
++        float T=(PostStarEffects.w+Phase)*6.28318530718*PostStarEffects.z;
++        float Flux=1.0-clamp(PostStarEffects.y,0.0,1.0)*(0.5+0.3*sin(T)+0.2*sin(T*0.47+0.8));
++        col += Star.ColPad.rgb * (Star.DirLum.w * PostStar.w * Core * 5.73 * Flux);
+     }
+     return col;
+ }
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -3,6 +3,7 @@
+ //============================================================================================================================================
+ 
+ #include "CelestialSequence.h"
++#include "DisplayPresentation/StarFieldControls.h"
+ #include "../../../Engine/DisplayPresentation/SunColourTemperature.h"
+ 
+ #include "../../../Engine/DisplayPresentation/SkyDomeSheet.h"   // roadmap #26 stage A: the bake + the staleness rule
+@@ -341,7 +342,8 @@
+ 
+ void CelestialSequence::Tick(float DeltaSeconds, const float Camera[3], float GroundHeight) noexcept
+ {
+-    if (DeltaSeconds < 0.0f) DeltaSeconds = 0.0f;
++    if (!std::isfinite(DeltaSeconds) || DeltaSeconds < 0.0f) DeltaSeconds = 0.0f;
++    StarSeconds += DeltaSeconds;
+ 
+     // ① The clock. Wrapped rather than clamped, so a fast day cycle rolls into the next morning.
+     if (Clock.Animate)
+@@ -415,7 +417,10 @@
+     Settings.Stars             = WantStars ? &Catalogue : nullptr;
+     Settings.StarBrightness    = StarBrightness;
+     Settings.StarSize          = StarSize;
+-    Settings.LocalSiderealTime = Solved.LocalSiderealTime;
++    Settings.LocalSiderealTime = Solved.LocalSiderealTime + StarRotation;
++    Settings.StarMinimumLuminance=StarMinimumLuminance(StarMagnitude);
++    Settings.StarDepth=StarTwinkle?StarDepth*.01f:0.f;Settings.StarRate=StarRate;
++    Settings.StarSeconds=static_cast<float>(std::fmod(StarSeconds,100.0/static_cast<double>(StarRate)));
+     Settings.Latitude          = Observation.Latitude;
+     for (int C = 0; C < 3; ++C) Settings.GroundAlbedo[C] = GroundAlbedo[C];
+ 
+@@ -715,7 +720,7 @@
+ 
+     float ShadowDriftX = 0.0f, ShadowDriftY = 0.0f;
+     FoldShadowDrift(ShadowStaging, ShadowTimeSeconds, ShadowDriftX, ShadowDriftY);
+-    auto Record = PackPostConstants(Solved.LocalSiderealTime, Observation.Latitude, StarSize, StarsScale, PixelSpread,
++    auto Record = PackPostConstants(Solved.LocalSiderealTime + StarRotation, Observation.Latitude, StarSize, StarsScale, PixelSpread,
+                              static_cast<uint32_t>(Flare.Category), Flare.GhostCount, Flare.Intensity,
+                              Flare.HaloRadius, Flare.Chromatic, Flare.StreakGain, Flare.ApertureBlades,
+                              // Below-horizon suns flare nothing (no direct light enters the lens); faded over
+@@ -725,6 +730,9 @@
+                              Rainbow.Intensity, Rainbow.Width, Rainbow.SecondaryGain, Rainbow.AlexanderBand,
+                              Rainbow.MinimumPathMetres, RainVisibility, WantBow,
+                              ShadowStaging, ShadowDriftX, ShadowDriftY);
++    Record.PostStarEffects[0]=StarMinimumLuminance(StarMagnitude);
++    Record.PostStarEffects[1]=StarTwinkle?StarDepth*.01f:0.f;Record.PostStarEffects[2]=StarRate;
++    Record.PostStarEffects[3]=StarsScale>0&&StarTwinkle&&StarDepth>0?static_cast<float>(std::fmod(StarSeconds,100.0/static_cast<double>(StarRate))):0.f;
+     const auto& P=Flare.Layers;
+     Record.PostFlareUv[3]=Flare.CustomMix?1.0f:0.0f;
+     Record.PostLayers[0]=Flare.Intensity;
+@@ -983,7 +991,7 @@
+ {
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
+     Sheet.Appearance = EditorSheetAppearance::Generic;
+-    Sheet.SkyImage = {};
++    Sheet.SkyImage = {};Sheet.StarPreview={};
+     for(auto& Body:Sheet.MoonBodies)Body=EditorMoonBody{};Sheet.MoonAtlasRevision=0;
+     Sheet.MoonAzimuth=Sheet.MoonElevation=Sheet.MoonPhase=0;
+     Sheet.GroupCount = 0;
+@@ -999,6 +1007,7 @@
+     else if (Entity == CelestialEntity::LensFlare) BuildFlareSheet(Sheet);
+     else if (Entity == CelestialEntity::Atmosphere || Entity == CelestialEntity::Sky) BuildAtmosphereSkySheet(Sheet);
+     else if (Entity == CelestialEntity::Moons) BuildMoonSheet(Sheet);
++    else if (Entity == CelestialEntity::Stars) BuildStarsSheet(Sheet);
+     else BuildOtherSheet(Entity, Sheet);
+ }
+ 
+@@ -1057,23 +1066,32 @@
+         for (uint32_t I = 0; I < Sheet.GroupCount; ++I) Sheet.Groups[I].StackedLabels = true;
+ }
+ 
+-void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
++void CelestialSequence::BuildStarsSheet(EditorSheet& Sheet) const noexcept
+ {
+     char Text[48];
+-    switch (Entity)
+-    {
+-    case CelestialEntity::Stars:
+-    {
+         EditorPropertyGroup& Field = OpenGroup(Sheet, "Field");
+         Push(Field, MakeSlider("Brightness", 0.0f, 4.0f, StarBrightness, 2, "x"));
+         Push(Field, MakeSlider("Point Size", 0.4f, 3.0f, StarSize, 2, "x"));
++        Sheet.Appearance=EditorSheetAppearance::Stars;
++        Push(Field,MakeSwitch("Star field",Shown[static_cast<uint32_t>(CelestialEntity::Stars)]));
++        Sheet.StarPreview={Catalogue.QuerySourceStars().data(),Catalogue.QuerySourceCount(),static_cast<float>(std::fmod(StarSeconds,100.0/static_cast<double>(StarRate)))};
++        Push(Field,MakeSlider("Limiting magnitude",0,8,StarMagnitude,1,"mag"));
++        Push(Field,MakeSwitch("Twinkle",StarTwinkle));
++        Push(Field,MakeSlider("Twinkle depth",0,100,StarDepth,0,"%"));
++        Push(Field,MakeSlider("Twinkle rate",.2f,3,StarRate,2,"Hz"));
++        Push(Field,MakeSlider("Celestial rotation",0,360,StarRotation,1,"deg"));
+         EditorPropertyGroup& Live = OpenGroup(Sheet, "Catalogue");
+         std::snprintf(Text, sizeof(Text), "%u stars", Catalogue.QuerySourceCount());
+         Push(Live, MakeReadout("Loaded", Text));
+         std::snprintf(Text, sizeof(Text), "%.1f deg", static_cast<double>(Solved.LocalSiderealTime));
+         Push(Live, MakeReadout("Sidereal Time", Text));
+-        break;
+-    }
++}
++
++void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
++{
++    char Text[48];
++    switch (Entity)
++    {
+     case CelestialEntity::HeightFog:
+     {
+         EditorPropertyGroup& Medium2 = OpenGroup(Sheet, "Medium");
+@@ -1304,8 +1322,14 @@
+         break;
+     }
+     case CelestialEntity::Stars:
+-        StarBrightness = ReadSlider(Sheet, "Brightness", StarBrightness);
+-        StarSize       = ReadSlider(Sheet, "Point Size", StarSize);
++        {
++        const auto Bounded=[&](const char* Name,float Old,float Low,float High){float V=ReadSlider(Sheet,Name,Old);return std::isfinite(V)?std::clamp(V,Low,High):Old;};
++        StarBrightness=Bounded("Brightness",StarBrightness,0,4);StarSize=Bounded("Point Size",StarSize,.4f,3);
++        StarMagnitude=Bounded("Limiting magnitude",StarMagnitude,0,8);StarDepth=Bounded("Twinkle depth",StarDepth,0,100);
++        StarRate=Bounded("Twinkle rate",StarRate,.2f,3);StarRotation=Bounded("Celestial rotation",StarRotation,0,360);
++        StarTwinkle=ReadSwitch(Sheet,"Twinkle",StarTwinkle);
++        Shown[static_cast<uint32_t>(CelestialEntity::Stars)]=ReadSwitch(Sheet,"Star field",Shown[static_cast<uint32_t>(CelestialEntity::Stars)]);
++        }
+         break;
+     case CelestialEntity::Moons:
+     {
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -109,6 +109,7 @@
+ {
+ public:
+     void Prepare() noexcept;
++    bool LoadStarCatalogue(const std::string& Path) noexcept { return Catalogue.Load(Path); }
+ 
+     // One frame. Order is fixed and deliberate: the clock moves, the ephemeris re-solves from it, the wind phase
+     //    advances, and only then does precipitation step — because the emitter reads the cloud layer, which the
+@@ -242,6 +243,9 @@
+     float GroundAlbedo[3] = { 0.19f, 0.17f, 0.14f };
+     float StarBrightness = 1.0f;
+     float StarSize       = 1.0f;
++    float StarMagnitude=5.5f,StarDepth=30.f,StarRate=1.2f,StarRotation=0.f;
++    bool StarTwinkle=true;
++    double StarSeconds=0;
+     bool  Enabled        = true;      // the whole celestial system, off by default in the raster
+ 
+     // Per-entity visibility, so the outliner's eye toggles do something.
+@@ -266,6 +270,7 @@
+ 
+ private:
+     void BuildMoonSheet(EditorSheet& Sheet) const noexcept;
++    void BuildStarsSheet(EditorSheet& Sheet) const noexcept;
+     void BuildMoonSlot(EditorSheet& Sheet, uint32_t Slot) const noexcept;
+     void BuildSunSheet(EditorSheet& Sheet) const noexcept;
+     void BuildAtmosphereSkySheet(EditorSheet& Sheet) const noexcept;

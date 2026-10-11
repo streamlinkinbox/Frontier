@@ -1,0 +1,9 @@
+# ReSTIRConvergence: sun 7.6h, corner albedo 0.5, 48 frames x 12 runs
+T4 determinism PASS
+probe floor DI est 0.287146707 se 0.027643623 ref 0.226938799 sigma 0.000670942
+probe floor GI est 0.188659341 se 0.004057570 ref 0.184292078 sigma 0.000350541
+probe floor-left DI est 0.277476014 se 0.028947042 ref 0.237659499 sigma 0.000633682
+probe floor-left GI est 0.186153570 se 0.005797475 ref 0.189269364 sigma 0.000577794
+probe wall DI est 0.153431855 se 0.020070584 ref 0.160218969 sigma 0.000976946
+probe wall GI est 0.187663555 se 0.004457304 ref 0.190209284 sigma 0.000401048
+OVERALL PASS

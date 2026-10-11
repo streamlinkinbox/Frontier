@@ -1,0 +1,1043 @@
+//============================================================================================================================================
+// 📦 Editor/EditorTools/ParametricSketcher/Kernel/BlendSolver.h — edge blends (chamfer / fillet) on a solid, and planar face push
+//============================================================================================================================================
+// The old BrepBody::ChamferEdge rewrote coedge pointers in place: it redirected the two adjacent coedges onto new
+//    set-back edges and deliberately left the original edge orphaned in the table ("future passes can prune it"). The
+//    loops never closed again, so every chamfered body came back as a Sheet — χ=3, genus −1, volume 0. It is not a
+//    tolerance bug, it is the wrong formulation, so this file replaces it rather than patching it.
+//
+//    Here a blend is a set operation against an exactly-built tool solid, which is how a solid modeller states it.
+//    Curved-edge routes are deliberately bounded and direct: a complete native right-cylinder cap is rebuilt from its
+//    retained cylinder and an exact conical frustum/quarter torus, while the first general smooth-support case rebuilds
+//    a planar annular shoulder and cylindrical boss around their offset-surface spine. A G1 tangent-chain walker lets
+//    that boss root be selected through one member of a representation-split full ring, bounded semicircle, or
+//    general-angle sector with two radial caps. Intentional multi-edge sets deduplicate those members and compose
+//    independent rolls transactionally:
+//
+//      chamfer(E, s) = Body − Wedge(E, s)                 the planar corner prism beyond the set-back plane is cut away
+//      circular chamfer = Cylinder(R, H−s) ∪ Cone(R, R−s, s)     exact right-cylinder cap bevel
+//      circular fillet  = Cylinder(R, H−r) ∪ QuarterTorus(R−r, r) exact right-cylinder cap rolling-ball fillet
+//      boss-root fillet = Shoulder(offset r) ∪ QuarterTorus(R+r, r) ∪ Boss(offset r) exact plane–cylinder G1 roll
+//      fillet (E, R) = Body − Wedge(E, t) , then the flat  t = R / tan(θ/2) is the tangent set-back for dihedral θ
+//                      face is re-seated on the tangent cylinder of radius R and its two cap edges rebuilt as arcs
+//      circular cap push  = Cylinder(R, H+d)                        exact native-cylinder cap offset
+//      cylindrical side push = Cylinder(R+d, H)                     exact native-cylinder radial face offset
+//      push  (F, d)  = Body ∪ Prism(F, d)  ·  Body − Prism(F, −d)
+//
+//    IntersectionSolver::Combine already returns a closed, consistently wound, manifold B-rep with (u,v) trims on
+//    every coedge, so the blends inherit those guarantees instead of re-establishing them by hand — and they compose,
+//    so chamfering an edge of an already-pushed face works. Removal volumes match the closed form (see the Removal
+//    helpers); verification asserts against those, so a regression shows up as a number, not as a picture.
+#pragma once
+
+#include "TopologySpecification.h"
+#include <string>
+#include <vector>
+
+namespace Frontier
+{
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                  PHASE 32z · ASYMMETRIC (UNEQUAL-RADIUS) SUPPORT PAIRS
+//------------------------------------------------------------------------------------------------------------------------
+// Two coaxial circular supports of unequal radius bound a conical (tapered) run instead of a cylindrical one. The
+//    specification-level validators below are the prerequisites the plane–cone boss-root fillet (see FilletEdge) and
+//    the later Phase 33 variable-radius work both rest on; they operate on explicit descriptors so their acceptance
+//    boundaries can be verified without a B-rep. The B-rep route itself classifies its supports from topology.
+
+enum class AsymmetricSupportClassification : uint8_t
+{
+    TaperedFrustum,                                                                     // one conical run between two unequal coaxial circles
+    VariableRadiusRoll,                                                                 // linear radius law along one straight spine
+    UnequalRadialCaps,                                                                  // radial caps of unequal reach on one axis
+    EqualRadiusAsymmetricPlanes,                                                        // equal circles on parallel, non-coaxial planes
+    PartialEndpointChain                                                                // chain with one open continuation (refused)
+};
+
+struct EndpointSupport
+{
+    Vec3   Centre{};                                                                    // [m]   circle centre
+    Vec3   Normal{};                                                                    // [-]   support plane normal (any length)
+    double Radius = 0.0;                                                                // [m]   circle radius
+    double EndpointAngle = 0.0;                                                         // [rad] optional radial-cap angle, 0 = full circle
+};
+
+// r(T) = Start + (End − Start)·T on T ∈ [0, 1]: the only radius law Phase 32z admits.
+struct VariableRadiusLaw
+{
+    double Start = 0.0;                                                                 // [m]
+    double End = 0.0;                                                                   // [m]
+
+    [[nodiscard]] double Radius(double T) const noexcept { return Start + (End - Start) * T; }
+    [[nodiscard]] double Slope() const noexcept { return End - Start; }
+    [[nodiscard]] bool Positive() const noexcept { return std::isfinite(Start) && std::isfinite(End) && Start > 0.0 && End > 0.0; }
+    [[nodiscard]] bool Decreasing() const noexcept { return Slope() < -ScalarCriteria::CircularTolerance; }
+    [[nodiscard]] bool Increasing() const noexcept { return Slope() > ScalarCriteria::CircularTolerance; }
+    // Frustum volume of the law swept along a straight spine of this length.
+    [[nodiscard]] double SweptVolume(double Length) const noexcept
+    {
+        return ScalarCriteria::Pi * Length * (Start * Start + Start * End + End * End) / 3.0;
+    }
+};
+
+struct AsymmetricEndpointChain
+{
+    std::vector<EndpointSupport> Supports;                                              // [-] ordered along one straight axis
+};
+
+// Ruled surface of revolution P(T, θ) = Origin + A·L·T + (R cos θ + B sin θ)·r(T) with a linear r(T): a cone frustum
+//    written as a parametric surface so that endpoint tangency and curvature can be measured before any B-rep is built.
+struct VariableRadiusSurface
+{
+    Vec3 Origin{};                                                                      // [m]
+    Vec3 Axis{ 0, 0, 1 };                                                               // [-]
+    Vec3 Radial{ 1, 0, 0 };                                                             // [-] any vector not parallel to Axis
+    double Length = 0.0;                                                                // [m]
+    VariableRadiusLaw Law{};
+
+    [[nodiscard]] Vec3 Sample(double T, double Angle) const noexcept
+    {
+        Vec3 A = Axis.Normalised();
+        Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
+        Vec3 B = A.Cross(R);
+        double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        return Origin + A * (Length * S) + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Radius(S);
+    }
+
+    // ∂P/∂T: the generator direction at this angle. It is constant along T because the law is linear.
+    [[nodiscard]] Vec3 TangentAlong(double Angle) const noexcept
+    {
+        Vec3 A = Axis.Normalised();
+        Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
+        Vec3 B = A.Cross(R);
+        return A * Length + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Slope();
+    }
+
+    // Outward unit normal (∂P/∂θ × ∂P/∂T), independent of T for a linear law.
+    [[nodiscard]] Vec3 Normal(double Angle) const noexcept
+    {
+        Vec3 A = Axis.Normalised();
+        Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
+        Vec3 B = A.Cross(R);
+        Vec3 Circumferential = R * -std::sin(Angle) + B * std::cos(Angle);
+        return Circumferential.Cross(TangentAlong(Angle)).Normalised();
+    }
+
+    // Normal curvature around the axis: cos α / r(T) with tan α = slope / length. Infinite at a degenerate radius.
+    [[nodiscard]] double CircumferentialCurvature(double T) const noexcept
+    {
+        double Radius = Law.Radius(ScalarCriteria::Clamp(T, 0.0, 1.0));
+        if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
+        return Radius > ScalarCriteria::GeometricTolerance
+            ? 1.0 / (Radius * std::sqrt(1.0 + (Law.Slope() / Length) * (Law.Slope() / Length))) : ScalarCriteria::Infinity;
+    }
+
+    [[nodiscard]] double MeridionalCurvature() const noexcept { return 0.0; }           // straight generators
+};
+
+struct AsymmetricBlendSpecification
+{
+    EndpointSupport Low{};
+    EndpointSupport High{};
+    AsymmetricSupportClassification Classification = AsymmetricSupportClassification::TaperedFrustum;
+    double MinimumClearance = 0.0;                                                      // [m]
+    double BlendRadius = 0.0;                                                           // [m]
+    VariableRadiusLaw RadiusLaw{};
+};
+
+// A bounded variable-radius rolling corner: one finite straight edge, two perpendicular planes,
+// and a linear positive radius law measured along the edge.
+struct VariableRadiusCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Width = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+};
+
+// A bounded follow-on route with an independent linear support-clearance law. At station T the
+// two perpendicular support extents are Radius(T) + Setback(T); Setback is measured from the
+// quarter-circle tangent point to the far boundary on each planar support. The radius and
+// setback laws are intentionally both linear: nonlinear laws need their own surface and
+// curvature acceptance, rather than being silently lofted through this route.
+struct VariableSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+    VariableRadiusLaw SetbackLaw{};
+};
+
+// A first asymmetric-support slice: the two perpendicular planar supports have independent
+// positive linear clearance laws. Equality is intentionally rejected so this route cannot be
+// mistaken for the common-setback construction above.
+struct UnequalSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    VariableRadiusLaw RadiusLaw{};
+    VariableRadiusLaw SetbackALaw{};
+    VariableRadiusLaw SetbackBLaw{};
+};
+
+// A deliberately bounded partial-edge route: a constant-radius blend occupies a strict interior
+// interval of one straight orthogonal planar corner. The two transition sectors are explicit caps;
+// variable-radius, arbitrary-edge selection, and apex requests remain outside this descriptor.
+struct PartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+};
+
+// A bounded complete conical-apex route: an exact spherical cap replaces the apex of one
+// coaxial right circular cone. General vertex selection and mixed apex supports remain outside.
+// A bounded constant-radius fillet on one explicit finite oblique planar corner. SupportA and
+// SupportB are the two unit directions into the retained wedge, perpendicular to EdgeAxis.
+struct ObliquePlanarCornerFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+};
+
+// A strict interior interval of the oblique planar route. The sharp corner is retained outside
+// Start/End; arbitrary edge selection and variable-radius laws remain outside this descriptor.
+struct ObliquePartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+};
+
+struct ConeApexFilletSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double FilletRadius = 0.0;
+};
+
+// A bounded native-cone apex chamfer. SetBack is the exact axial distance removed from
+// the apex; the resulting planar cap is perpendicular to Axis and the retained cone height
+// is Height - SetBack. General vertex-selected chamfers and mixed apex supports remain outside.
+struct ConeApexChamferSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double SetBack = 0.0;
+};
+
+// A bounded native partial-cone apex chamfer. SetBack is the exact axial distance removed from
+// the apex; SweepAngle is recovered from the native base-rim curve and retained verbatim.
+struct PartialConeApexChamferSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded unequal-radius coaxial bicone apex chamfer. LowerRadius and UpperRadius belong to
+// opposite conical supports sharing Apex; SetBack is the same axial distance on both supports.
+struct UnequalConeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+};
+
+// A bounded equal-radius coaxial bicone apex chamfer.
+struct EqualRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+};
+
+// A bounded unequal-radius bicone apex chamfer with independent support set-backs.
+struct UnequalConeApexUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+};
+
+// A bounded equal-radius coaxial bicone apex chamfer with independent support set-backs.
+struct EqualRadiusBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+};
+
+// A bounded half-turn equal-radius bicone apex chamfer with independent support set-backs.
+struct HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded half-turn unequal-radius bicone apex chamfer with independent support set-backs.
+struct HalfTurnUnequalRadiusBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded half-turn equal-radius bicone apex toroidal fillet.
+struct HalfTurnEqualRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded half-turn equal-radius bicone apex chamfer.
+struct HalfTurnEqualRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded half-turn unequal-radius bicone apex chamfer.
+struct HalfTurnUnequalRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded canonical reflex unequal-radius bicone apex chamfer.
+struct ReflexUnequalRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = 4.0 * ScalarCriteria::Pi / 3.0;
+};
+
+// A bounded half-turn unequal-radius bicone apex toroidal fillet.
+struct HalfTurnUnequalRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = ScalarCriteria::Pi;
+};
+
+// A bounded unequal-radius coaxial bicone apex toroidal fillet.
+struct UnequalConeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+};
+
+// A bounded equal-radius coaxial bicone apex toroidal fillet.
+struct EqualRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+};
+
+// A bounded strict non-reflex partial sector of an unequal-radius bicone apex chamfer.
+struct PartialUnequalConeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded strict non-reflex partial sector of an equal-radius coaxial bicone apex chamfer.
+struct PartialEqualRadiusBiconeApexChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double SetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded strict non-reflex partial sector of an unequal-radius bicone apex chamfer with
+// independent lower and upper axial set-backs.
+struct PartialUnequalBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded strict non-reflex partial sector of an equal-radius bicone apex chamfer with
+// independent lower and upper axial set-backs.
+struct PartialEqualRadiusBiconeUnequalSetbackChamferSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double LowerSetBack = 0.0;
+    double UpperSetBack = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded partial sector of an unequal-radius coaxial bicone apex toroidal fillet.
+struct PartialUnequalBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double LowerRadius = 0.0;
+    double UpperRadius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded strict non-reflex partial sector of an equal-radius coaxial bicone apex toroidal fillet.
+struct PartialEqualRadiusBiconeApexFilletSpecification
+{
+    Vec3 Apex{};
+    Vec3 Axis{ 0, 0, 1 };
+    double Radius = 0.0;
+    double LowerHeight = 0.0;
+    double UpperHeight = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// A bounded partial sector of the coaxial cone-apex spherical cap. Full revolution remains the
+// separate complete-apex route; arbitrary vertex/mixed-support selection is still unsupported.
+struct PartialConeApexFilletSpecification
+{
+    Vec3 Base{};
+    Vec3 Axis{ 0, 0, 1 };
+    double BaseRadius = 0.0;
+    double Height = 0.0;
+    double FilletRadius = 0.0;
+    double SweepAngle = 0.0;
+};
+
+// Quadratic interpolating law used by the first nonlinear-radius slice. The middle value is the
+// radius at T = 0.5, which lets the verifier distinguish a true nonlinear law from the linear
+// endpoint interpolation.
+struct QuadraticRadiusLaw
+{
+    double Start = 0.0;
+    double Middle = 0.0;
+    double End = 0.0;
+
+    [[nodiscard]] double Radius(double T) const noexcept
+    {
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        const double A = Start;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        return A + B * S + C * S * S;
+    }
+    [[nodiscard]] double FirstDerivative(double T) const noexcept
+    {
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        return -3.0 * Start + 4.0 * Middle - End +
+               (4.0 * Start - 8.0 * Middle + 4.0 * End) * S;
+    }
+    [[nodiscard]] double SecondDerivative() const noexcept { return 4.0 * Start - 8.0 * Middle + 4.0 * End; }
+    [[nodiscard]] bool Positive() const noexcept
+    {
+        if (!std::isfinite(Start) || !std::isfinite(Middle) || !std::isfinite(End) ||
+            Start <= 0.0 || Middle <= 0.0 || End <= 0.0) return false;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        if (C > 0.0)
+        {
+            const double Vertex = -B / (2.0 * C);
+            if (Vertex > 0.0 && Vertex < 1.0 && Radius(Vertex) <= 0.0) return false;
+        }
+        return true;
+    }
+    [[nodiscard]] bool Nonlinear() const noexcept
+    {
+        return std::fabs(Middle - (Start + End) * 0.5) > ScalarCriteria::GeometricTolerance;
+    }
+    [[nodiscard]] double IntegratedSquare(double Length) const noexcept
+    {
+        const double A = Start;
+        const double B = -3.0 * Start + 4.0 * Middle - End;
+        const double C = 2.0 * Start - 4.0 * Middle + 2.0 * End;
+        return Length * (A * A + A * B + (B * B + 2.0 * A * C) / 3.0 + B * C / 2.0 + C * C / 5.0);
+    }
+};
+
+// A bounded nonlinear extension of the unequal support-setback route. Both independent
+// clearance laws must be genuinely quadratic; equal/common laws belong to other routes.
+struct NonlinearUnequalSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    QuadraticRadiusLaw SetbackALaw{};
+    QuadraticRadiusLaw SetbackBLaw{};
+};
+
+// A bounded nonlinear partial-edge route: one genuinely quadratic radius law over a strict
+// interior interval of one straight orthogonal corner. This is not arbitrary variable-radius support handling.
+struct QuadraticPartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double Width = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
+// A genuinely nonlinear extension of the bounded oblique partial-edge route. The support frame
+// remains explicit and planar; arbitrary variable-radius edge handling remains unsupported.
+struct ObliqueQuadraticPartialEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Start = 0.0;
+    double End = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
+// A complete-edge nonlinear extension of the bounded oblique planar route. This descriptor
+// intentionally accepts one explicit edge frame only; partial intervals use the Stage 4g route.
+struct ObliqueQuadraticEdgeFilletSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
+struct NonlinearVariableRadiusCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Setback = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+};
+
+// A bounded non-rolling planar corner patch whose profile has zero curvature at both support
+// joins. The quintic transition is accepted as G2 to the two planes; it is intentionally not
+// described as a quarter-circle rolling-ball fillet.
+struct G2PlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+    double HandleFraction = 1.0 / 3.0;                                                   // [-] quintic tangent handle / Radius
+};
+
+// A bounded rolling-ball-core transition. The exact circular core is deliberately separated from
+// the quintic support transitions: a pure quarter-circle cannot be G2 to a plane because its
+// normal curvature jumps from zero to 1/R at the contact.
+struct G2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Width = 0.0;
+    double Radius = 0.0;
+    double TransitionAngle = ScalarCriteria::Pi / 8.0;                                 // [rad] each support-to-core transition
+};
+
+struct G2RollingBallProfile
+{
+    std::vector<NurbsCurve> Pieces;                                                     // start transition, exact core, end transition
+    Vec3 Origin{};
+    Vec3 AxisU{ 0, 1, 0 };
+    Vec3 AxisV{ 0, 0, 1 };
+    double Radius = 0.0;
+    double TransitionAngle = 0.0;
+};
+
+// A strict oblique extension of the bounded rolling-ball-core route. The circular core is
+// separated from both quintic support transitions so the planar joins can be accepted as G2.
+struct ObliqueG2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    double Radius = 0.0;
+    double TransitionAngle = ScalarCriteria::Pi / 12.0;                                 // [rad] each support-to-core transition
+};
+
+struct ObliqueG2RollingBallProfile
+{
+    std::vector<NurbsCurve> Pieces;                                                     // start transition, exact core, end transition
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    Vec3 Centre{};
+    double Radius = 0.0;
+    double InteriorAngle = 0.0;
+    double TransitionAngle = 0.0;
+};
+
+// A genuinely nonlinear complete-edge extension of the perpendicular rolling-ball-core G2 route.
+struct VariableG2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double Width = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    double TransitionAngle = ScalarCriteria::Pi / 8.0;                                 // [rad] fixed transition angle at every station
+};
+
+// A genuinely nonlinear complete-edge extension of the oblique rolling-ball-core G2 route.
+struct ObliqueVariableG2RollingBallPlanarCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    Vec3 SupportA{ 0, 1, 0 };
+    Vec3 SupportB{ 0, 0, 1 };
+    double Length = 0.0;
+    double WidthA = 0.0;
+    double WidthB = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    double TransitionAngle = ScalarCriteria::Pi / 18.0;                                // [rad] fixed transition angle at every station
+};
+
+// A separate quadratic clearance law for the support setback. The radius law may be constant,
+// linear, or quadratic; the setback law must be genuinely nonlinear in this bounded slice.
+struct NonlinearVariableSetbackCornerSpecification
+{
+    Vec3 Origin{};
+    Vec3 EdgeAxis{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw RadiusLaw{};
+    QuadraticRadiusLaw SetbackLaw{};
+};
+
+// A parametric surface of revolution with a quadratic radius law. Its explicit first and
+// second derivatives are accepted before any lofted solid is built; this prevents a nonlinear
+// law from being silently treated as a ruled approximation.
+struct QuadraticVariableRadiusSurface
+{
+    Vec3 Origin{};
+    Vec3 Axis{ 0, 0, 1 };
+    Vec3 Radial{ 1, 0, 0 };
+    double Length = 0.0;
+    QuadraticRadiusLaw Law{};
+
+    [[nodiscard]] Vec3 Sample(double T, double Angle) const noexcept
+    {
+        const Vec3 A = Axis.Normalised();
+        const Vec3 R = (Radial - A * Radial.Dot(A)).Normalised();
+        const Vec3 B = A.Cross(R);
+        const double S = ScalarCriteria::Clamp(T, 0.0, 1.0);
+        return Origin + A * (Length * S) + (R * std::cos(Angle) + B * std::sin(Angle)) * Law.Radius(S);
+    }
+    [[nodiscard]] double CircumferentialCurvature(double T) const noexcept
+    {
+        if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
+        const double Radius = Law.Radius(T);
+        const double Slope = Law.FirstDerivative(T) / Length;
+        return Radius > ScalarCriteria::GeometricTolerance
+            ? 1.0 / (Radius * std::sqrt(1.0 + Slope * Slope)) : ScalarCriteria::Infinity;
+    }
+    [[nodiscard]] double MeridionalCurvature(double T) const noexcept
+    {
+        if (Length <= ScalarCriteria::GeometricTolerance) return ScalarCriteria::Infinity;
+        const double Slope = Law.FirstDerivative(T) / Length;
+        const double Curvature = Law.SecondDerivative() / (Length * Length);
+        return -Curvature / std::pow(1.0 + Slope * Slope, 1.5);
+    }
+};
+
+// Local frame of a straight manifold edge shared by two planar faces.
+struct EdgeCornerFrame
+{
+    Vec3   Start, End;                                                                  // [m] edge endpoints
+    Vec3   Tangent;                                                                     // [-] unit, Start → End
+    Vec3   NormalA, NormalB;                                                            // [-] unit outward normals of the two adjacent faces
+    Vec3   InA, InB;                                                                    // [-] unit, in each face's plane, pointing away from the edge over that face
+    Vec3   Bisector;                                                                    // [-] unit outward corner bisector
+    double Length = 0.0;                                                                // [m]
+    double Dihedral = 0.0;                                                              // [rad] interior angle between the two faces
+    int    FaceA = -1, FaceB = -1;                                                      // [-]
+};
+
+class BlendSolver
+{
+public:
+    // Validate an explicitly paired endpoint-support set before reconstruction. This foundation is intentionally
+    // conservative: it accepts two finite, non-coincident, parallel support normals and unequal positive radii,
+    // while construction/topology ownership remains in the asymmetric route.
+    [[nodiscard]] static bool ValidateAsymmetricEndpointPair(const EndpointSupport& Low, const EndpointSupport& High,
+                                                              double MinimumClearance, std::string& Refusal) noexcept;
+    [[nodiscard]] static bool ValidateAsymmetricSpecification(const AsymmetricBlendSpecification& Specification,
+                                                               std::string& Refusal) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructAsymmetricFrustum(const AsymmetricBlendSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructAsymmetricSupport(const AsymmetricBlendSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateAsymmetricEndpointChain(const AsymmetricEndpointChain& Chain,
+                                                               double MinimumClearance, std::string& Refusal) noexcept;
+    [[nodiscard]] static bool ValidateG1EndpointMatch(Vec3 SurfaceNormal, Vec3 SupportNormal,
+                                                       std::string& Refusal) noexcept;
+    [[nodiscard]] static bool ValidateVariableSurfaceG1(const VariableRadiusSurface& Surface,
+                                                         Vec3 LowSupportNormal, Vec3 HighSupportNormal,
+                                                         double Angle, std::string& Refusal) noexcept;
+    [[nodiscard]] static Deliver<VariableRadiusSurface> BuildVariableRadiusSurface(const AsymmetricBlendSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusRuledSolid(const AsymmetricBlendSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableRadiusCornerBlend(const VariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableSetbackCornerBlend(const VariableSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalSetbackCornerBlend(const UnequalSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearUnequalSetbackCornerBlend(
+        const NonlinearUnequalSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEdgeFillet(const PartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePlanarCornerFillet(
+        const ObliquePlanarCornerFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliquePartialEdgeFillet(
+        const ObliquePartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexFillet(const ConeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructConeApexChamfer(
+        const ConeApexChamferSpecification& Specification) noexcept;
+    // Bounded native-cone apex chamfer dispatch: only the unique apex of the canonical closed cone topology is eligible.
+    [[nodiscard]] static Deliver<ConeApexChamferSpecification> ClassifyConeApexChamferVertex(
+        const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexChamfer(
+        const PartialConeApexChamferSpecification& Specification) noexcept;
+    // Bounded native partial-cone vertex dispatch: one unique axis apex over every strict partial sweep.
+    [[nodiscard]] static Deliver<PartialConeApexChamferSpecification> ClassifyPartialConeApexChamferVertex(
+        const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexChamfer(
+        const UnequalConeApexChamferSpecification& Specification) noexcept;
+    // Bounded unequal-radius bicone apex dispatch: one shared apex and two unequal coaxial cone supports.
+    [[nodiscard]] static Deliver<UnequalConeApexChamferSpecification> ClassifyUnequalConeApexChamferVertex(
+        const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructEqualRadiusBiconeApexChamfer(
+        const EqualRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<EqualRadiusBiconeApexChamferSpecification>
+        ClassifyEqualRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexUnequalSetbackChamfer(
+        const UnequalConeApexUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<UnequalConeApexUnequalSetbackChamferSpecification>
+        ClassifyUnequalConeApexUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructEqualRadiusBiconeUnequalSetbackChamfer(
+        const EqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<EqualRadiusBiconeUnequalSetbackChamferSpecification>
+        ClassifyEqualRadiusBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnEqualRadiusBiconeUnequalSetbackChamfer(
+        const HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnEqualRadiusBiconeUnequalSetbackChamferSpecification>
+        ClassifyHalfTurnEqualRadiusBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnUnequalRadiusBiconeUnequalSetbackChamfer(
+        const HalfTurnUnequalRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnUnequalRadiusBiconeUnequalSetbackChamferSpecification>
+        ClassifyHalfTurnUnequalRadiusBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnEqualRadiusBiconeApexFillet(
+        const HalfTurnEqualRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnEqualRadiusBiconeApexFilletSpecification>
+        ClassifyHalfTurnEqualRadiusBiconeApexFilletVertex(
+            const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnUnequalRadiusBiconeApexFillet(
+        const HalfTurnUnequalRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnUnequalRadiusBiconeApexFilletSpecification>
+        ClassifyHalfTurnUnequalRadiusBiconeApexFilletVertex(
+            const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnEqualRadiusBiconeApexChamfer(
+        const HalfTurnEqualRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnEqualRadiusBiconeApexChamferSpecification>
+        ClassifyHalfTurnEqualRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructHalfTurnUnequalRadiusBiconeApexChamfer(
+        const HalfTurnUnequalRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<HalfTurnUnequalRadiusBiconeApexChamferSpecification>
+        ClassifyHalfTurnUnequalRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructReflexUnequalRadiusBiconeApexChamfer(
+        const ReflexUnequalRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<ReflexUnequalRadiusBiconeApexChamferSpecification>
+        ClassifyReflexUnequalRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructUnequalConeApexFillet(
+        const UnequalConeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<UnequalConeApexFilletSpecification> ClassifyUnequalConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructEqualRadiusBiconeApexFillet(
+        const EqualRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<EqualRadiusBiconeApexFilletSpecification> ClassifyEqualRadiusBiconeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialUnequalConeApexChamfer(
+        const PartialUnequalConeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialUnequalConeApexChamferSpecification>
+        ClassifyPartialUnequalConeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEqualRadiusBiconeApexChamfer(
+        const PartialEqualRadiusBiconeApexChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialEqualRadiusBiconeApexChamferSpecification>
+        ClassifyPartialEqualRadiusBiconeApexChamferVertex(
+            const BrepBody& Body, int Vertex, double SetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialUnequalBiconeUnequalSetbackChamfer(
+        const PartialUnequalBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialUnequalBiconeUnequalSetbackChamferSpecification>
+        ClassifyPartialUnequalBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEqualRadiusBiconeUnequalSetbackChamfer(
+        const PartialEqualRadiusBiconeUnequalSetbackChamferSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialEqualRadiusBiconeUnequalSetbackChamferSpecification>
+        ClassifyPartialEqualRadiusBiconeUnequalSetbackChamferVertex(
+            const BrepBody& Body, int Vertex, double LowerSetBack, double UpperSetBack) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialUnequalBiconeApexFillet(
+        const PartialUnequalBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialUnequalBiconeApexFilletSpecification>
+        ClassifyPartialUnequalBiconeApexFilletVertex(
+            const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialEqualRadiusBiconeApexFillet(
+        const PartialEqualRadiusBiconeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<PartialEqualRadiusBiconeApexFilletSpecification>
+        ClassifyPartialEqualRadiusBiconeApexFilletVertex(
+            const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded native-cone vertex dispatch: only the unique apex of the canonical closed cone topology is eligible.
+    [[nodiscard]] static Deliver<ConeApexFilletSpecification> ClassifyConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded partial-apex dispatch: a canonical closed half-turn partial cone and its unique axis vertex only.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded non-reflex general-angle extension: exact native partial-revolve surface topology only; half-turns use the route above.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyGeneralPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    // Bounded reflex extension: exact native partial-revolve surface topology and a sampled sweep greater than pi.
+    [[nodiscard]] static Deliver<PartialConeApexFilletSpecification> ClassifyReflexPartialConeApexFilletVertex(
+        const BrepBody& Body, int Vertex, double FilletRadius) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructPartialConeApexFillet(
+        const PartialConeApexFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructQuadraticPartialEdgeFillet(
+        const QuadraticPartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueQuadraticPartialEdgeFillet(
+        const ObliqueQuadraticPartialEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueQuadraticEdgeFillet(
+        const ObliqueQuadraticEdgeFilletSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<QuadraticVariableRadiusSurface> BuildQuadraticVariableRadiusSurface(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateQuadraticSurfaceCurvature(const QuadraticVariableRadiusSurface& Surface,
+                                                                double MaximumCircumferentialCurvature,
+                                                                double MaximumMeridionalCurvature,
+                                                                std::string& Refusal) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableRadiusCornerBlend(const NonlinearVariableRadiusCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<NurbsCurve> BuildG2CornerProfile(const G2PlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateG2CornerProfile(const NurbsCurve& Profile, const G2PlanarCornerSpecification& Specification,
+                                                      std::string& Refusal) noexcept;
+    [[nodiscard]] static double G2CornerRemovalArea(double Radius, double HandleFraction) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructG2PlanarCorner(const G2PlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<G2RollingBallProfile> BuildG2RollingBallProfile(
+        const G2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateG2RollingBallProfile(const G2RollingBallProfile& Profile,
+                                                           const G2RollingBallPlanarCornerSpecification& Specification,
+                                                           std::string& Refusal) noexcept;
+    [[nodiscard]] static double G2RollingBallRemovalArea(const G2RollingBallProfile& Profile) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructG2RollingBallPlanarCorner(
+        const G2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<ObliqueG2RollingBallProfile> BuildObliqueG2RollingBallProfile(
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateObliqueG2RollingBallProfile(
+        const ObliqueG2RollingBallProfile& Profile,
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification,
+        std::string& Refusal) noexcept;
+    [[nodiscard]] static double ObliqueG2RollingBallRemovalArea(
+        const ObliqueG2RollingBallProfile& Profile) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueG2RollingBallPlanarCorner(
+        const ObliqueG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructVariableG2RollingBallPlanarCorner(
+        const VariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructObliqueVariableG2RollingBallPlanarCorner(
+        const ObliqueVariableG2RollingBallPlanarCornerSpecification& Specification) noexcept;
+    // Bounded application dispatch: one straight manifold edge, two planar rectangular faces, strict orthogonal corner,
+    // equal finite support widths, and valid profile inputs. Returns the explicit G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<G2RollingBallPlanarCornerSpecification> ClassifyG2RollingBallEdge(
+        const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
+    // Bounded oblique application dispatch: the same source restrictions with a strict non-orthogonal corner and
+    // independently extracted finite support widths. Returns the explicit oblique G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<ObliqueG2RollingBallPlanarCornerSpecification> ClassifyObliqueG2RollingBallEdge(
+        const BrepBody& Body, int Edge, double Radius, double TransitionAngle) noexcept;
+    // Bounded nonlinear application dispatch: the Stage 4m orthogonal eligibility route plus one positive,
+    // genuinely nonlinear quadratic radius law. Returns the explicit variable G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<VariableG2RollingBallPlanarCornerSpecification> ClassifyVariableG2RollingBallEdge(
+        const BrepBody& Body, int Edge, const QuadraticRadiusLaw& RadiusLaw, double TransitionAngle) noexcept;
+    // Bounded oblique nonlinear application dispatch: the Stage 4n oblique eligibility route plus one positive,
+    // genuinely nonlinear quadratic radius law. Returns the explicit oblique variable G2 specification without mutating Body.
+    [[nodiscard]] static Deliver<ObliqueVariableG2RollingBallPlanarCornerSpecification>
+        ClassifyObliqueVariableG2RollingBallEdge(const BrepBody& Body, int Edge,
+                                                  const QuadraticRadiusLaw& RadiusLaw,
+                                                  double TransitionAngle) noexcept;
+    [[nodiscard]] static Deliver<BrepBody> ReconstructNonlinearVariableSetbackCornerBlend(
+        const NonlinearVariableSetbackCornerSpecification& Specification) noexcept;
+    [[nodiscard]] static bool ValidateVariableSurfaceCurvature(const VariableRadiusSurface& Surface,
+                                                                double MaximumCircumferentialCurvature,
+                                                                std::string& Refusal) noexcept;
+
+    // Follow G1 edge-to-edge continuations from a manifold seed. A closed edge is a singleton; an ambiguous tangent
+    // branch refuses rather than selecting by edge-table order. The returned indices describe one complete chain.
+    [[nodiscard]] static Deliver<std::vector<int>> TangentChain(const BrepBody& Body, int SeedEdge) noexcept;
+
+    // Local frame of a straight manifold edge between two planar faces. Refuses anything else, with the reason.
+    [[nodiscard]] static bool Frame(const BrepBody& Body, int Edge, EdgeCornerFrame& Out, std::string& Refusal) noexcept;
+
+    // Planar-setback chamfer of one straight planar edge, or an exact conical bevel of a complete native right-cylinder cap edge.
+    // SetBack is measured in each adjacent face, away from the edge (and is radial/axial for the circular-cap case).
+    [[nodiscard]] static Deliver<BrepBody> ChamferEdge(const BrepBody& Body, int Edge, double SetBack) noexcept;
+
+    // Transactional planar chamfer of an intentional edge set. The selected edges must be straight, manifold and bounded
+    // by planar faces. Connected edges are cut together so their endpoint mitres are solved by one common half-space
+    // reconstruction (with a transactional Boolean fallback), rather than by applying a second operation to a partially
+    // chamfered body. Any invalid, over-large or self-intersecting request leaves
+    // the source untouched and refuses. AppliedEdges receives the committed count, or zero.
+    [[nodiscard]] static Deliver<BrepBody> ChamferEdges(const BrepBody& Body, const std::vector<int>& SeedEdges,
+                                                        double SetBack, int* AppliedEdges = nullptr) noexcept;
+
+    // Rolling-ball fillet of one straight planar edge, an exact quarter-torus on a native right-cylinder cap, or an exact
+    // concave quarter-torus at the circular root of a bounded planar-shoulder/cylindrical-boss topology. One member of a
+    // representation-split full ring, semicircle, or general radial sector propagates over the chain and heals internal
+    // angular support seams. Both contacts are G1; finite routes retain exact end meridians on one diameter cap or two
+    // radial caps. Asymmetric/unsupported/branching smooth-support arrangements refuse without approximation.
+    [[nodiscard]] static Deliver<BrepBody> FilletEdge(const BrepBody& Body, int Edge, double Radius) noexcept;
+
+    // Transactional constant-radius fillet of an intentional seed set. Members of the same curved tangent chain are
+    // deduplicated and independent chains apply in deterministic geometric order. Three orthogonal box edges at one
+    // vertex rebuild with an exact spherical corner patch; four parallel box edges rebuild one rounded-prism family,
+    // preserving up to eight selected-axis through/blind cavities, up to eight parallel orthogonal side blind cavities,
+    // selected-axis stepped cavities, one two-to-eight-stage side cavity, or up to eight side stepped cavities with two
+    // through eight stages each and at most sixteen total stages. Exactly two selected-axis two-stage cavities also remain supported.
+    // AppliedChains receives the committed count, or zero.
+    [[nodiscard]] static Deliver<BrepBody> FilletEdges(const BrepBody& Body, const std::vector<int>& SeedEdges,
+                                                       double Radius, int* AppliedChains = nullptr) noexcept;
+
+    // Push a face along its own outward normal. Native right-cylinder caps and side face rebuild directly as exact
+    // height/radius edits; all other planar faces use the established direct/Boolean paths. Positive adds material.
+    [[nodiscard]] static Deliver<BrepBody> PushFace(const BrepBody& Body, int Face, double Distance) noexcept;
+
+    // Closed-form volume a blend of this edge removes — the check verification asserts against.
+    [[nodiscard]] static double ChamferRemoval(const EdgeCornerFrame& F, double SetBack) noexcept;
+    [[nodiscard]] static double FilletRemoval(const EdgeCornerFrame& F, double Radius) noexcept;
+    [[nodiscard]] static double TangentSetBack(const EdgeCornerFrame& F, double Radius) noexcept;   // R / tan(θ/2)
+};
+
+} // namespace Frontier

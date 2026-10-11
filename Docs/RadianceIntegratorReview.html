@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radiance Transport — technical review</title><link rel="icon" href="data:,">
+<style>
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Regular.ttf')}
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Light.ttf');font-weight:300}
+:root{color-scheme:light;--Ink:#223032;--Muted:#66726d;--Line:#d8ded5;--Accent:#33604a}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{margin:0;background:#f4f5f0;color:var(--Ink);font:16px/1.8 DM,system-ui,sans-serif}
+a{color:var(--Accent);text-underline-offset:3px}a:hover{color:#142f24}button,a{touch-action:manipulation}
+.Top{position:sticky;top:0;z-index:2;background:#f4f5f0f2;backdrop-filter:blur(12px);border-bottom:1px solid var(--Line)}
+.Top>div{max-width:1320px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:18px 32px;gap:18px}
+.Brand{font-size:14px;letter-spacing:2px;text-decoration:none;color:var(--Ink)}.Brand span{color:var(--Muted);font-size:11px}
+.Open{padding:8px 18px;border:1px solid var(--Accent);border-radius:5px;text-decoration:none;font-size:13px;white-space:nowrap}
+.Layout{max-width:1280px;margin:52px auto 100px;padding:0 32px;display:grid;grid-template-columns:225px minmax(0,1fr);gap:58px}
+.Side{align-self:start;position:sticky;top:110px;font-size:12px;line-height:1.55;max-height:calc(100vh - 130px);overflow:auto}
+.Kicker{font-size:10px;letter-spacing:2px;color:var(--Accent);font-weight:600;margin-bottom:22px}
+.toc ul{padding:0;list-style:none}.toc li{margin:13px 0}.toc li ul{padding-left:14px;font-size:11px}.toc a{color:var(--Muted);text-decoration:none}
+.toc a:hover{color:var(--Accent)}main{min-width:0}h1,h2,h3{font-weight:300;line-height:1.2;letter-spacing:-.025em}
+h1{font-size:46px;margin:0 0 26px;max-width:850px}h2{font-size:30px;margin:60px 0 22px;padding-top:22px;border-top:1px solid var(--Line)}
+h3{font-size:22px;margin:34px 0 14px}p{margin:18px 0}li{margin:8px 0}strong{font-weight:600}
+img{display:block;width:100%;height:auto;border-radius:7px;border:1px solid #cdd4cc;margin:26px 0}
+pre{background:#e6ebe3;padding:20px 24px;overflow:auto;border:1px solid var(--Line);border-radius:5px;font-size:13px;line-height:1.65}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.85em;background:#e7ebe3;border-radius:3px;padding:2px 4px;overflow-wrap:anywhere}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.5;margin:28px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--Line)}
+th{background:#e6ebe3;color:var(--Accent);font-weight:500}blockquote{border-left:3px solid var(--Accent);padding-left:24px;color:var(--Muted)}
+.Diagnostics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:34px 0}.Diagnostics figure{margin:0}.Diagnostics img{margin:0 0 10px}
+figcaption{font-size:11px;color:var(--Muted)}.End{padding-top:30px;border-top:1px solid var(--Line);margin-top:50px;color:var(--Muted);font-size:12px}
+@media(max-width:960px){.Layout{grid-template-columns:1fr;gap:20px}.Side{display:none}h1{font-size:38px}}
+@media(max-width:580px){body{font-size:15px}.Top>div{padding:14px 18px}.Brand span{display:none}.Layout{padding:0 20px;margin-top:34px}h1{font-size:33px}h2{font-size:26px}th,td{padding:8px 5px;font-size:11px}.Diagnostics{grid-template-columns:1fr}pre{padding:16px}}
+</style>
+</head>
+<body>
+<header class="Top"><div><a class="Brand" href="../Experimental/RadianceIntegrator/index.html">RADIANCE <span>/ TRANSPORT</span></a><a class="Open" href="../Experimental/RadianceIntegrator/index.html">Launch WebGPU demo ↗</a></div></header>
+<div class="Layout"><aside class="Side"><div class="Kicker">RESEARCH &amp; IMPLEMENTATION<br>05 OCT 2026 / C036</div><div class="toc">
+<ul>
+<li><a href="#verdict-first">Verdict first</a></li>
+<li><a href="#1-what-the-references-establish">1. What the references establish</a><ul>
+<li><a href="#three-rc">three-rc</a></li>
+<li><a href="#shadertoy-lxbyrh">Shadertoy lXByRh</a></li>
+<li><a href="#osborne-and-sannikov-radiative-transfer-paper">Osborne and Sannikov: radiative-transfer paper</a></li>
+</ul>
+</li>
+<li><a href="#2-the-implemented-frame">2. The implemented frame</a></li>
+<li><a href="#3-why-this-is-radiance-cascades">3. Why this is radiance cascades</a></li>
+<li><a href="#4-the-illumination-model-precisely">4. The illumination model, precisely</a></li>
+<li><a href="#5-controls-and-diagnostics">5. Controls and diagnostics</a></li>
+<li><a href="#6-executed-verification">6. Executed verification</a></li>
+<li><a href="#7-performance-what-is-measured-and-what-is-not">7. Performance: what is measured, and what is not</a></li>
+<li><a href="#8-known-quality-and-architecture-limits">8. Known quality and architecture limits</a></li>
+<li><a href="#9-recommended-aaaopen-world-development-order">9. Recommended AAA/open-world development order</a></li>
+<li><a href="#10-files-and-reproducibility">10. Files and reproducibility</a></li>
+</ul>
+</div>
+<p><a href="RadianceIntegratorReview.md">Markdown document</a><br><a href="../../VisualProof/RadianceIntegrator/Captures/WebGpu.json">Execution report</a></p></aside><main><h1 id="radiance-transport-webgpu-implementation-and-research-review">Radiance Transport — WebGPU implementation and research review</h1>
+<p><strong>5 October 2026 · Experimental renderer · C036</strong></p>
+<p><a href="../Experimental/RadianceIntegrator/index.html">Open the interactive demo</a> ·
+<a href="RadianceIntegratorReview.html">Read this document as a webpage</a></p>
+<h2 id="verdict-first">Verdict first</h2>
+<p>This is an independently implemented, working <strong>WebGPU</strong> radiance-cascades experiment for an original
+<strong>2,788-triangle</strong> architectural scene. It has screen-space probe placement, full-scene triangle tracing,
+animated lighting and rigid triangle geometry, native raster visibility, quality controls and diagnostic views.
+It has no editor outliner, inspector, document tabs or baked lightmaps. The older radiance experiments are unchanged.</p>
+<p>It is <strong>not an AAA-ready or open-world renderer</strong>. Real-time operation on a gaming GPU has not been established:
+the available execution adapter was SwiftShader software Vulkan/WebGPU. The demo exposes real GPU pass timings
+on the adapter running it, rather than substituting CPU submission time or an assumed frame rate.</p>
+<p><img alt="Actual WebGPU render" src="../../VisualProof/RadianceIntegrator/Captures/13CleanView.png" /></p>
+<p>This is an original atrium and a recreation of the rendering idea, not a pixel-identical copy of Sponza or a port
+of the supplied demo's code. Its coarse geometry and low-resolution shading are deliberately inspectable.</p>
+<h2 id="1-what-the-references-establish">1. What the references establish</h2>
+<h3 id="three-rc">three-rc</h3>
+<p>The repository describes 3D radiance cascades with screen-space probes and a full-scene BVH. Its README makes an
+important distinction: screen-space <strong>placement</strong> does not require screen-space-only <strong>tracing</strong>. BVH rays can find
+off-screen emitters and occluders; the alternative screen-space ray marcher cannot. It also identifies robust
+TLAS/material lookup and short-range gather as further work. Those are useful architectural directions, not proof
+of scene-independent tracing cost. <a href="https://github.com/CodyJasonBennett/three-rc">1</a></p>
+<p>The same README explicitly withholds a license and states <strong>all rights reserved</strong>, citing an unlicensable upscaler.
+No implementation code, upscaler or Sponza asset was copied from that repository. The new implementation uses
+independently written WGSL and original procedural triangle geometry. Existing repository Three.js math and orbit
+controls are reused, but <strong>Three.js does not render this demo</strong>. <a href="https://github.com/CodyJasonBennett/three-rc">1</a></p>
+<h3 id="shadertoy-lxbyrh">Shadertoy lXByRh</h3>
+<p>The accessible description identifies six cascades, screen-space probes tracing in 3D, hit-point reprojection with
+visibility during merging, and temporal accumulation without spatial denoising. It is a useful reference for the
+surface-probe approach and for distinguishing world-space ray visibility from screen-space storage.
+The page fetch did not expose its actual shader source, so this review relies on the indexed description rather
+than claiming a line-by-line source review. <a href="https://www.shadertoy.com/view/lXByRh">2</a></p>
+<p>Our merge is <strong>not</strong> that implementation: it uses weighted screen-neighbour interpolation and a separate
+probe-connection visibility test, not reprojection of individual ray hit points. That difference matters for quality.</p>
+<h3 id="osborne-and-sannikov-radiative-transfer-paper">Osborne and Sannikov: radiative-transfer paper</h3>
+<p>The reviewed theory sections define radiance intervals, spatial/angular scaling, interval merging and the ringing
+associated with interpolating sharp opacity transitions. The paper discusses a bilinear correction at additional
+cost. It also explicitly separates the number of stored/calculated samples from the actual work required to trace
+longer intervals. This is a formal radiative-transfer method, not an AAA graphics-engine performance benchmark.
+<a href="https://academic.oup.com/rasti/article/doi/10.1093/rasti/rzae062/7929002">3</a></p>
+<p>The institutional <a href="https://eprints.gla.ac.uk/343746/1/343746.pdf">paper PDF</a> was used to read the interval,
+interpolation, scaling and artefact sections. The non-LTE plasma model, wavelength transport and iterative atomic
+population solver were not ported. This demo instead handles opaque RGB triangle surfaces in vacuum.</p>
+<h2 id="2-the-implemented-frame">2. The implemented frame</h2>
+<p>The application requests <code>navigator.gpu</code>, creates a native <code>webgpu</code> canvas context and executes WGSL compute and
+raster pipelines. Unsupported adapters produce an explicit message; there is <strong>no WebGL or CPU-rendered fallback</strong>.</p>
+<ol>
+<li><strong>Update rigid instances.</strong> Four model/inverse matrices describe the static architectural aggregate, rotating
+   sculpture and two moving luminaires. Local-space triangle buffers and BLAS nodes are persistent. Moving an
+   instance changes the matrices, not a baked image or a CPU-rendered lighting result.</li>
+<li><strong>Raster point-light shadows.</strong> Two six-face depth maps cover the whole triangle scene. Comparison sampling
+   supplies direct-light visibility at both visible pixels and ray-hit surfaces. A luminaire's own proxy geometry
+   is excluded from its shadow map. Maps are reused only when light/caster transforms and map allocation remain
+   unchanged; moving lights or the caster invalidate them.</li>
+<li><strong>Raster the G-buffer.</strong> World position/instance, normal/roughness, albedo and emission are produced from actual
+   triangles with native depth testing. The raster camera does not determine which triangles are traceable.</li>
+<li><strong>Compute spatial links.</strong> Each fine probe gets four coarse-neighbour weights. Distance weighting and optional
+   BVH-tested connection visibility are calculated <strong>once per probe pair</strong>, then shared across angular samples.
+   Repeating this same visibility ray for every direction was unnecessary work and was removed.</li>
+<li><strong>Trace and merge cascades, coarse to fine.</strong> Every interval traces into the complete triangle scene through
+   stackless, escape-index BLAS traversal. An opaque hit returns source radiance and zero transmittance; an empty
+   interval passes the far result through. Four angular children and four spatial neighbours provide the far field.</li>
+<li><strong>Project the finest cascade into SH9.</strong> Nine real spherical-harmonic coefficients represent the low-frequency
+   diffuse field. This avoids reintegrating every angular sample at every shaded pixel. The Lambertian convolution
+   uses factors 1, 2/3 and 1/4 after division by pi.</li>
+<li><strong>Shade and gather.</strong> Normal- and plane-distance-weighted probe interpolation reduces mixing across surfaces.
+   Direct lighting and visible emission are combined with the cascade diffuse result. An optional extra reflected
+   triangle ray adds a mirror-like response; this is not a full rough-GGX specular transport solution.</li>
+<li><strong>Reproject history.</strong> Previous view-projection, world position and normal reject incompatible samples. Dynamic
+   instance pixels are rejected; a current 3-by-3 neighbourhood clamps accepted history. Moving-light history weight
+   is capped at 0.65. History is optional and does not make the cascades themselves static.</li>
+<li><strong>Present and measure.</strong> A rational filmic tone curve, gamma encoding and bilinear display resampling produce the
+   final image. Timestamp queries cover the major passes where supported. A three-slot asynchronous telemetry ring
+   avoids synchronously mapping a buffer on every frame. At most two GPU frames are in flight.</li>
+</ol>
+<p>The shadow maps are a speed/quality trade-off: they replace direct-light BVH shadow rays, <strong>not</strong> the GI interval
+rays. GI visibility remains world-space triangle tracing, including off-camera geometry.</p>
+<h2 id="3-why-this-is-radiance-cascades">3. Why this is radiance cascades</h2>
+<p>An interval stores <code>R = (C, T)</code>: radiance travelling back toward the receiver, and transmittance through the interval.
+For near and far intervals, the implemented front-to-back composition is:</p>
+<pre><code class="language-text">Cmerged = Cnear + Tnear * Cfar
+Tmerged = Tnear * Tfar
+</code></pre>
+<p>An opaque near hit prevents the farther field from passing through. This is not a collection of ordinary irradiance
+probes with a cascade label: the GPU stores directional <strong>range-restricted</strong> intervals, explicitly composes their
+radiance/transmittance, increases angular resolution at each level, then integrates the finest merged result.</p>
+<p>For level <code>l</code>, probe spacing is <code>p × 2^l</code> screen pixels and angular width is <code>n × 2^l</code> in each of two angular axes.
+The angular cells divide longitude and the cosine of polar angle uniformly, giving equal solid angle <code>4π/N</code>.
+Directional samples quadruple while the number of screen probes approximately quarters. The exact slot count is:</p>
+<pre><code class="language-text">Nl = ceil(W / (p * 2^l)) * ceil(H / (p * 2^l)) * (n * 2^l)^2
+</code></pre>
+<p>This is approximately constant <strong>per level</strong> away from rounding and small-grid limits. It is not constant tracing
+time, and it is not the same scaling as a three-dimensional grid of probe origins. Ray traversal still depends on
+scene bounds, geometry, depth complexity and material evaluation. The final interval extends to the bounded 80 m
+trace distance; there is no infinite-world coverage claim.</p>
+<p>At the verified 640-by-448 shading resolution, balanced settings allocate:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Probe grid</th>
+<th>Directions / probe</th>
+<th>Range, metres</th>
+<th>Directional slots</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C0</td>
+<td>54 × 38</td>
+<td>16</td>
+<td>0–1.5</td>
+<td>32,832</td>
+</tr>
+<tr>
+<td>C1</td>
+<td>27 × 19</td>
+<td>64</td>
+<td>1.5–3</td>
+<td>32,832</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>14 × 10</td>
+<td>256</td>
+<td>3–6</td>
+<td>35,840</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>7 × 5</td>
+<td>1,024</td>
+<td>6–80</td>
+<td>35,840</td>
+</tr>
+</tbody>
+</table>
+<p>Total: <strong>137,344 interval slots</strong>, rebuilt on every transport frame. Background probes are skipped. A slot count is
+not a measured ray count: optional connection/reflection rays add work while invalid probes remove it.</p>
+<h2 id="4-the-illumination-model-precisely">4. The illumination model, precisely</h2>
+<ul>
+<li>Static emissive triangle strips and the sky are integrated by cascade rays.</li>
+<li>The two moving luminaire meshes use point-light proxies for direct illumination. Their visible emission is
+  excluded from cascade source emission to avoid adding the same direct-light contribution twice.</li>
+<li>A ray hitting a diffuse surface evaluates that surface's directly lit outgoing radiance. Consequently, the
+  cascades carry <strong>one diffuse bounce of the point lights</strong>, not converged multibounce transport.</li>
+<li>The view labelled <strong>Indirect only</strong> is the <em>cascade contribution</em>. It also includes directly received triangle
+  emission and environment light, not exclusively paths with two or more scattering events.</li>
+<li>SH9 and the four-neighbour gather are diffuse approximations. Negative SH reconstruction is clamped. There is
+  one material roughness parameter per triangle; the extra mirror ray is a diagnostic approximation, not full PBR.</li>
+</ul>
+<p>This distinction is important when comparing with the references. Their stated results and scope should not be
+silently attributed to this implementation.</p>
+<h2 id="5-controls-and-diagnostics">5. Controls and diagnostics</h2>
+<p>Drag to orbit, right-drag to pan and scroll to zoom. <strong>Space</strong> pauses the lighting clock; <strong>H</strong> toggles the compact
+control panel. Quality presets change quality settings without resetting light power, animation or debug selection.
+The display is responsive; the full scene remains interactive rather than becoming an editor workspace.</p>
+<ul>
+<li><strong>Render scale:</strong> internal shading resolution, bounded to 960 by 720 with approximate aspect preservation.</li>
+<li><strong>Probe spacing:</strong> smaller spacing costs more probes; it does not add geometry.</li>
+<li><strong>Base angular width:</strong> squared to obtain the base ray count; increasing it costs quadratically.</li>
+<li><strong>Cascade count / first interval:</strong> control the spatial-angular hierarchy and its distance partition.</li>
+<li><strong>Point shadow map size:</strong> a separate resolution/cost knob for direct-light visibility.</li>
+<li><strong>Temporal weight:</strong> zero is useful for detecting spatial artefacts without history hiding them.</li>
+<li><strong>Exposure / emitter power / sky / speed:</strong> inspection and dynamic-light controls, not quality substitutions.</li>
+<li><strong>Visibility guards / mirror ray / work counters:</strong> independent quality and instrumentation costs.</li>
+<li><strong>Point-light proxies:</strong> disable these with sky zero to isolate actual emissive-triangle transport.</li>
+</ul>
+<p>Diagnostic views include direct-only, cascade-only, normals, albedo, probe tiles, a selected merged directional
+atlas, remaining transmittance, primary-ray BVH traversal cost and temporal acceptance. Direct-only and geometric
+diagnostics skip unused cascade/SH work. The atlas shows <strong>merged</strong> intervals, not an unmerged raw-shell buffer.</p>
+<h2 id="6-executed-verification">6. Executed verification</h2>
+<p>The final-source tests run actual WebGPU commands and map GPU buffers/textures for comparisons. Screenshots are
+browser captures, not offline renderings or generated illustrations.</p>
+<ul>
+<li><strong>Scene and BVH:</strong> 2,788 finite, nondegenerate triangles; 2,134 nodes; maximum depth 20. Leaf coverage is exact,
+  every leaf contains its triangles, and parent bounds contain children. These are traversal checks, not a claim
+  that the architectural assembly is a watertight CAD solid.</li>
+<li><strong>CPU reference:</strong> 512 nearest-hit rays, including axis-parallel directions and two rigid poses, matched an
+  independent brute-force triangle loop. Four reference ray distances changed between poses.</li>
+<li><strong>GPU reference:</strong> the same 512 GPU traces matched brute-force hit distances within <strong>4.08 micrometres maximum
+  absolute error</strong> in this metre-scale scene. This is not a general numerical-accuracy guarantee.</li>
+<li><strong>Interval algebra:</strong> GPU opaque, transparent, additive and partially transmitting fixtures matched the explicit
+  front-to-back formula. Readbacks of all four cascades were finite, with transmittance in <code>[0, 1]</code> and both open
+  and blocked samples present.</li>
+<li><strong>No fake ambient floor:</strong> with emitter power and sky zero, every visible surface's measured HDR RGB was exactly
+  zero. Background presentation colour is excluded using the actual G-buffer surface mask.</li>
+<li><strong>Replay and dynamics:</strong> changing time changed lighting and geometry; restoring time with history disabled
+  reproduced the original HDR result exactly. History accepted stationary surfaces and remained optional.</li>
+<li><strong>Off-screen test:</strong> all <strong>24 static emissive triangles</strong> were clipped outside the camera frustum. Point proxies
+  and sky were disabled. The visible surfaces still received positive cascade lighting; turning emission off
+  yielded exactly zero. The isolated image is very dark: this is a measured nonzero contribution, not dramatic
+  visual light spill or proof of arbitrary multibounce visibility.</li>
+<li><strong>UI and resources:</strong> fast/high/extreme settings, actual render-scale reallocation, shadow reuse, mirror rays,
+  pause, hide/show, wheel zoom, continuous animation, the two-frame submission bound and 390-by-844 layout passed.
+  An intentionally unavailable WebGPU API produced the explicit refusal message.</li>
+<li><strong>Browser:</strong> Chromium 133, SwiftShader Vulkan through WebGPU. No page/console errors were recorded. The GPU ray
+  tests and image-readback assertions would not pass by merely compiling shader strings.</li>
+</ul>
+<p>At the fixed validation camera, mean RGB over visible surfaces was <strong>0.128798</strong> with full lighting, <strong>0.114212</strong>
+with direct-only lighting and <strong>0.014586</strong> for the cascade contribution. These are linear HDR RGB means, not
+photometric luminance or image-quality scores. The isolated off-screen-emission mean was <strong>0.001331</strong>.</p>
+<p>Evidence lives in <code>VisualProof/RadianceIntegrator/Captures/</code>: fourteen screenshots, the browser report with source
+hashes, and the structural report. Verification entry points are <code>VerifyStructure.mjs</code> and <code>VerifyWebGpu.cjs</code>.
+The tests pin an internal resolution for most comparisons, then separately verify the real render-scale slider.</p>
+<div class="Diagnostics"><figure><a href="../../VisualProof/RadianceIntegrator/Captures/03IndirectOnly.png"><img loading="lazy" src="../../VisualProof/RadianceIntegrator/Captures/03IndirectOnly.png" alt="Actual cascade-only WebGPU capture"></a><figcaption>Cascade contribution · no added ambient floor</figcaption></figure><figure><a href="../../VisualProof/RadianceIntegrator/Captures/05CascadeRadiance.png"><img loading="lazy" src="../../VisualProof/RadianceIntegrator/Captures/05CascadeRadiance.png" alt="Merged directional radiance atlas"></a><figcaption>Merged directional field · inspect each cascade</figcaption></figure></div><h2 id="7-performance-what-is-measured-and-what-is-not">7. Performance: what is measured, and what is not</h2>
+<p><strong>There is no gaming-GPU benchmark in this delivery.</strong> SwiftShader executes the WebGPU workload in software.
+Its timings establish real execution and locate work in this environment; they cannot establish a 30/60/120 FPS
+hardware budget, relative GPU-vendor performance, or open-world scalability.</p>
+<p>The live HUD separates:</p>
+<ul>
+<li><strong>GPU passes:</strong> a sum of timestamped raster/compute intervals, not JavaScript submission time. It excludes resource
+  copies outside those intervals, queue waiting and browser compositing. Unsupported timestamp queries show <code>n/a</code>.</li>
+<li><strong>Completed frames:</strong> observed completed submissions per wall-clock interval, not the requestAnimationFrame rate.
+  Manual verification and screenshot pauses make screenshot FPS unsuitable as a throughput benchmark.</li>
+<li><strong>Interval slots:</strong> a resource/work budget when counters are disabled. Enabling counters changes the label to
+  <strong>measured rays</strong>, and adds atomic instrumentation overhead.</li>
+<li><strong>GPU data estimate:</strong> explicit buffer/texture payload sizes. It excludes swapchain storage, implementation
+  padding, shader/pipeline caches and driver overhead; it is not a GPU-resident-memory query.</li>
+</ul>
+<p>The balanced 640-by-448 validation configuration allocates approximately <strong>34.5 MiB</strong> of explicit data, including
+twelve 512-by-512 depth faces. Large settings increase this substantially. Shadow-map size and angular width both
+have quadratic cost components. Static shadow reuse, shared link visibility, SH projection, early-outs and BVH
+traversal are implemented optimizations; their existence alone is not proof of an AAA frame budget.</p>
+<p>The final five post-warm-up moving-frame samples, with counters disabled, recorded a median pass sum of
+<strong>1,094.15 ms</strong>, ranging from <strong>1,054.32 to 1,169.14 ms</strong>. That is slow software execution,
+not a real-time hardware result. Exact per-pass timings and adapter metadata are in <code>Captures/WebGpu.json</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Recorded frame</th>
+<th>Software GPU pass sum, ms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27</td>
+<td>1169.14</td>
+</tr>
+<tr>
+<td>28</td>
+<td>1094.15</td>
+</tr>
+<tr>
+<td>29</td>
+<td>1096.41</td>
+</tr>
+<tr>
+<td>30</td>
+<td>1076.43</td>
+</tr>
+<tr>
+<td>31</td>
+<td>1054.32</td>
+</tr>
+</tbody>
+</table>
+<p>A separate static-camera frame with instrumentation enabled recorded <strong>84,566 rays</strong>, <strong>4,633,529 node visits</strong>,
+<strong>300,507 triangle tests</strong> and <strong>21,515 hits</strong>. This includes connection visibility, not just directional interval
+slots. The shadow maps were reused for that unchanged frame; its work is not identical to the moving-frame samples.
+No projected gaming-GPU timing is substituted for missing data.</p>
+<h2 id="8-known-quality-and-architecture-limits">8. Known quality and architecture limits</h2>
+<ol>
+<li><strong>Merge approximation.</strong> Screen-neighbour origins are not coincident in world space. Connection visibility and
+   distance weights reduce some leaks but do not implement the paper's bilinear correction or the Shadertoy's
+   per-hit reprojection. Coarse-probe parallax errors, missing-parent darkening and light leaks can remain.</li>
+<li><strong>View dependence.</strong> The probe layout follows visible surfaces. Off-screen triangles are traceable, but there
+   is no persistent world-space irradiance field, probe relocation system or distant clipmap coverage.</li>
+<li><strong>Angular/spatial under-resolution.</strong> Thin emitters may be missed; SH9 smooths high-frequency diffuse detail.
+   Larger ranges with too few directions are not repaired by temporal filtering. Contact lighting can soften.</li>
+<li><strong>Limited scattering/materials.</strong> No converged multiple bounces, participating media, translucency, transparent
+   shadows, emissive importance sampling, spectral transport or physically complete rough-specular integration.</li>
+<li><strong>Raster/image approximations.</strong> Point proxies and biased PCF shadow maps are not finite-area emitter solutions.
+   No jittered TAA, MSAA or advanced image upscaler is implemented. The final display uses bilinear resampling.
+   Low render scales therefore retain visible stair-stepping and blur.</li>
+<li><strong>History.</strong> Reprojection/clamping can still lag moving illumination. Instance/position/normal rejection is not
+   a full material/motion-vector reactive mask, and all dynamic instance pixels currently reject history.</li>
+<li><strong>Dynamics.</strong> Instances move rigidly. There is no skinning, deforming-mesh BLAS refit, topology editing or GPU
+   BVH construction. The local-space BLASes are built on the CPU at startup, not every frame.</li>
+<li><strong>World scale.</strong> This is a bounded atrium, not a streaming world. It uses four BLAS roots without a TLAS, a simple
+   split heuristic on the longest bounds axis, and half-float G-buffer positions. It lacks origin rebasing,
+   residency management, distant lighting, LOD/HLOD, meshlets and scene-scale occlusion culling.</li>
+</ol>
+<h2 id="9-recommended-aaaopen-world-development-order">9. Recommended AAA/open-world development order</h2>
+<p><strong>P0 — Establish a real hardware baseline.</strong> Profile desktop integrated and discrete adapters at target output
+resolutions. Record GPU-pass median/p95, CPU submission time, sustained completed-frame rate and allocation peaks.
+Sweep camera paths, emitter sizes, direction counts, thin walls and dense occlusion. Add a path-traced reference
+for error measurements; the current dark/replay/visibility tests are not an image-accuracy benchmark.</p>
+<p><strong>P1 — Make scene representation scale.</strong> Introduce reusable per-asset BLASes, an instance TLAS and GPU refit/update
+paths. Add geometry/material residency, frustum/occlusion culling and clustered draw submission. A 2,788-triangle
+room is much too small to justify claims about million-triangle worlds or thousands of moving instances.</p>
+<p><strong>P2 — Make coverage persistent.</strong> Evaluate camera-relative world-space cascades or a screen/world hybrid, with
+clipmap scrolling, distant radiance, validity tracking, scene epochs and error-budgeted updates. Implement world
+origin rebasing before treating half-float world positions as suitable for kilometre-scale scenes.</p>
+<p><strong>P3 — Fix transport error before hiding it.</strong> Compare corrected interval interpolation and hit-point reprojection
+against the current merge. Add short-range contact gather, thin-surface tests, better probe placement and material
+rejection. Evaluate emissive-source sampling and multibounce feedback with explicit energy/stability tests.</p>
+<p><strong>P4 — Budget remaining costs.</strong> Profile coherent ray ordering, work compaction, directional pre-averaging,
+visibility reuse, adaptive probe density, temporal reservoirs where justified, and shadow update scheduling.
+Select techniques based on measured bottlenecks; combining every named technique is not automatically faster.
+This WebGPU implementation uses compute traversal, not hardware DXR/Vulkan-RT ray-query instructions.</p>
+<p><strong>P5 — Production robustness.</strong> Add resource eviction, device-loss recovery, warm-up/pipeline caching strategy,
+streaming stress tests and browser/vendor coverage. Keep unsupported-device behaviour explicit. Promote this
+experiment only after measured image error and hardware frame budgets hold under representative workloads.</p>
+<h2 id="10-files-and-reproducibility">10. Files and reproducibility</h2>
+<ul>
+<li><code>Frontier/Experimental/RadianceIntegrator/index.html</code>: static entry point; serve over HTTPS or localhost.</li>
+<li><code>RadiancePanel.js</code> / <code>.css</code>: native WebGPU orchestration, input, compact HUD and asynchronous telemetry.</li>
+<li><code>SceneSpecification.js</code>: original geometry, local BLAS packing and cascade layouts.</li>
+<li><code>TransportIntegrator.js</code>: independently authored WGSL stages, interval composition and traversal.</li>
+<li><code>VisualProof/RadianceIntegrator/VerifyStructure.mjs</code>: dependency-free CPU structural/reference checks.</li>
+<li><code>VisualProof/RadianceIntegrator/VerifyWebGpu.cjs</code>: Playwright execution and mapped WebGPU assertions.</li>
+</ul>
+<p>No package installation is required to use the hosted demo. Browser verification uses Playwright 1.63 and
+Sparticuz Chromium 133 in ignored scratch. The software test launch removes in-process GPU/single-process flags
+and enables Vulkan/SwiftShader WebGPU; these are <strong>test-environment flags</strong>, not requirements to impose on users
+with a supported hardware WebGPU browser. The normal demo does not request an unsafe browser mode.</p>
+<p>The implementation and all evidence are separate from the older WebGL experiments. The research links are
+acknowledgements and design references, not a claim that this renderer reproduces their numerical accuracy,
+performance, exact shaders or licensing terms.</p><div class="End">Original implementation · Actual WebGPU captures · Software validation, not a gaming-GPU benchmark</div></main></div>
+</body></html>

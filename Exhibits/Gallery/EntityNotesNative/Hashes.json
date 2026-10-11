@@ -1,0 +1,10 @@
+{
+  "Engine/Editor/EntityNotesSurface.h": "16e777e00513aa0f1bf71e1b6e8a76721e23322394760489cdc53781f42450d0",
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/Notes/NativeEntityNotes.cpp": "ac349e3dbe31b87917eedf0dd7fef30f352edd2df44aa96486ebceef166e2f15",
+  "Exhibits/Workbench/Notes/RunNativeEntityNotes.py": "985ca48000dbe9bcc1e57da1d933d937f47e59ee643374622693239baec7717d",
+  "Exhibits/Gallery/EntityNotesNative/AddNotes.png": "7d314f30fcc4f3ef591f92e78ec10a15c9f6b12d1167d526e2177791070e71a7",
+  "Exhibits/Gallery/EntityNotesNative/AddNotesHover.png": "8ac9d8d73a8eac47345c2bf0b1917b7c2295691752d389ff3d54e456b077a59e",
+  "Exhibits/Gallery/EntityNotesNative/PanelEmpty.png": "6402d58af1b0d00c392d127fee97730d5d0827e85cc3733889864c8e7994591b",
+  "Exhibits/Gallery/EntityNotesNative/PanelFilled.png": "426cafba5b60f847de0cbe56e7e4ef9268a8b214e525440c62fd811b9c5840e8"
+}

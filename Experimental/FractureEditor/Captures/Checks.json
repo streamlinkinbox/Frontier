@@ -1,0 +1,29 @@
+{
+  "Revision": 2,
+  "Checks": [
+    "Selected sphere enable → expand; six materials; no metal workflow",
+    "Explanatory blocks removed; shaded fracture illustrations replace wire diagrams and respond to both quality controls",
+    "Material changes retain selected-object geometry; dynamic fracture is closed and volume preserving",
+    "Wireframe and separated inspection; reassembly restores original coordinates",
+    "Baked mode refuses missing geometry; IndexedDB bake/replay and actual JSON download agree",
+    "Stored fragment geometry survives reopening; receipt returns to the object inspector",
+    "Object scale is applied; changing source geometry invalidates baked replay",
+    "Cube and sphere retain independent materials, seeds and stored geometry",
+    "Disabling fracture in the inspector disables its already-open editor",
+    "Reopening the main editor preserves edits made while it was closed",
+    "Duplicate ownership, outliner enable/disable, and removal are isolated to the correct object",
+    "Clearing a bake only removes that object’s fragment receipt",
+    "Restoring the native baseline does not resurrect old per-object fracture settings on reload",
+    "GlassPane: closed fragments, occupied volume 100.000000%",
+    "TemperedGlass: closed fragments, occupied volume 100.000000%",
+    "Wood: closed fragments, occupied volume 100.000000%",
+    "Stone: closed fragments, occupied volume 100.000000%",
+    "Concrete: closed fragments, occupied volume 100.000000%",
+    "Plastic: closed fragments, occupied volume 100.000000%",
+    "Shift-click places an actual surface impact; centre reset works",
+    "1024 px and 390 px layouts have no horizontal overflow",
+    "Missing owners and concave torus geometry are refused without substituting a box / convex hull"
+  ],
+  "FontFailures": [],
+  "Errors": []
+}

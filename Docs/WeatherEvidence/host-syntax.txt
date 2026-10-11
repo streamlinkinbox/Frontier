@@ -1,0 +1,4 @@
+GCC 12.2 real-header syntax checks: PASS
+Engine/DeviceExchange/SwapchainExchange.cpp
+Projects/Project-Zero/Source/GameExecution.cpp
+Not a link or Windows/GPU execution test.

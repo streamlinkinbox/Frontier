@@ -1,0 +1,40 @@
+echo Phase 17 -- sub-entity dimensions (face / edge), leader lines, dim sub auto-emit
+dim on
+view iso
+gizmo off
+
+echo -- tile 1: a box with face + edge dims, plus a leader pointing to the M6 hole
+reset
+box (0,0,0) (2,3,4) --name=Box
+matcap Box chrome
+dim Box face 0
+dim Box edge 0
+dim leader Box (3,2,5) M6 hole
+view fit
+render Phase17_FaceEdgeLeader
+
+echo -- tile 2: dim sub on a box -- all 6 faces and 12 edges get a dim
+reset
+box (0,0,0) (2,3,4) --name=Box
+matcap Box chrome
+dim sub Box
+view fit
+render Phase17_DimSub
+
+echo -- tile 3: dim sub on a cylinder -- per-face + per-edge + radius dims
+reset
+cylinder (0,0,0) 1 2 --name=Cyl
+matcap Cyl chrome
+dim sub Cyl
+view fit
+render Phase17_CylinderDimSub
+
+echo -- tile 4: face dim with a leader (--leader=)
+reset
+box (0,0,0) (1,1,1) --name=B
+matcap B chrome
+dim B face 0 --leader=(2,1.5,0.5)
+view fit
+render Phase17_FaceWithLeader
+
+echo Phase 17 done.

@@ -1,0 +1,79 @@
+{
+  "browser": "153.0.8010.0",
+  "size": 256,
+  "format": "FIB1 + LE uint32 width,height,SVG-byte-count + exact SVG bytes + straight RGBA8",
+  "icons": [
+    {
+      "name": "sun",
+      "sourceSHA256": "4784b0b90011b710a1345a8048901404a4cc8a1f15c98e886589f47133f6a1c3",
+      "bakeSHA256": "c77c394a8f268e7766eb08a8411f11d82df7ae6f0373a1a0e26138642472e6ee",
+      "pngSHA256": "d79525d6387b70ee84930b31abe148d0535ff449a96d42943ebad2669df1b7ad"
+    },
+    {
+      "name": "moon",
+      "sourceSHA256": "e3272801cd5d98b7edc5ffc02407cb2694593c0fcbaef59938daa648f9980b2f",
+      "bakeSHA256": "51524d01c540085ec5436fe999c67bef3e2f2b193ea02baf2273f941c19e858c",
+      "pngSHA256": "cf719a3d06a30c504d8ab2b01b83460a50def9a533fed7beb52dbdd25427ac7b"
+    },
+    {
+      "name": "fog",
+      "sourceSHA256": "aacb7841c660e317f50522f0d95b3b663fee33eae33c743ce7a0b9354a902d78",
+      "bakeSHA256": "46ae3c74e81ec3efca384d80c4c9600dafab0486bef0f2b1651466d775db173b",
+      "pngSHA256": "28b11fdb4efb7ddc8489d3b48636f4b99db640fc0e7cf72224e890f7508dedb7"
+    },
+    {
+      "name": "environment-exposure",
+      "sourceSHA256": "34bdba1cbddf82f092a6d3a52becd6d729947b4bfd30e8b69f9b61b85f7adf1d",
+      "bakeSHA256": "a9e7af331c2a8dee77d9f7f44f1bda925d8ac3b69cd3aced5563ad279926bbf4",
+      "pngSHA256": "2095fe3277c985c56622f993bf536295fb1d447e24e22aeee96ee8e59628d878"
+    },
+    {
+      "name": "clouds",
+      "sourceSHA256": "59b9cb51633a3171d54db77160d483744436f47e3e0d73cb5b4a7a73414c6412",
+      "bakeSHA256": "2244dc2495e5cac92b507cad8f7a3012ad8c130b87511d2bf3745305e24469cd",
+      "pngSHA256": "92407a60c9ec5d79e85bb8ebc393015ca8fa417f803456b02ca744421d340706"
+    },
+    {
+      "name": "local-cloud",
+      "sourceSHA256": "23d26bf08b231711078d7c1704800aa56c20cd78172dce27b79ee1b5e0946604",
+      "bakeSHA256": "53c7641db284e4becb7e8169f3c2e23c62d68833b24236a6b9c5bce8345dac11",
+      "pngSHA256": "438fa09e2837cbbc3d0b6b84362c2f0bb72ed9c170055d467a4800499b45ebce"
+    },
+    {
+      "name": "local-fog",
+      "sourceSHA256": "249f200719a9f6d78c2181c72971d941b4e470f5940b54841a104c2bb2546ba3",
+      "bakeSHA256": "2173c1aa481b11032f7d6d6c16d0a7898f8f385c221488ee67f72fec3dba092d",
+      "pngSHA256": "2a7206a49d20e3991a8b54413c58af528b7f2977c7b68a5da73ddf495d91eab9"
+    },
+    {
+      "name": "folder-environment",
+      "sourceSHA256": "c5466bebab157d04c982b388398e09a5323fb266aafb9df083df8d37fd3c9d59",
+      "bakeSHA256": "04f8c108022165da9e094af854c025a41a677649a6a4e4b844372ace84c6d88f",
+      "pngSHA256": "efe72236dcc722548ada243bab5765388b6797dd523aaf24a2ae204d9241cf99"
+    },
+    {
+      "name": "folder-generic",
+      "sourceSHA256": "aa34317849f2b5b702f15d331eab5ec2a9ac16a1332ba19e687ee8a697a357dd",
+      "bakeSHA256": "6d18bf15aa9e0bd700ba3a71be27332dab1378eabeac8c390050153d0bc35800",
+      "pngSHA256": "ecdaeafe0b9adc9c639a0ffd9c01eee15d7272f57d9b53174d6013b06ee675ee"
+    },
+    {
+      "name": "folder-scene",
+      "sourceSHA256": "af03f1e3c2e1b672311c567630d5ac61a4eab0c8387cb14bd8483e28c0df378a",
+      "bakeSHA256": "64e2712669505c80ecb3d6414ad8808225627d530518944f3f86df648c6cdd6a",
+      "pngSHA256": "37a086c2e85dce20a58e297b35869ec1b8d6f99165dd54701cc26a06a54cc85b"
+    },
+    {
+      "name": "folder-world",
+      "sourceSHA256": "102287756f5080782ed58a7fecda029b287ddb981705f87fe54bd8e1e5ed3392",
+      "bakeSHA256": "192b990c7e10304661f4c84a82b6bbe0094a9be0807990dd4588dc2fc465eb34",
+      "pngSHA256": "c21cb17aa089d9783c94f0ab261c0a78b8bdc049098da1ce20e4f27661f7db16"
+    },
+    {
+      "name": "folder-materials",
+      "sourceSHA256": "d54e1446185d42ba46556652cfc4ab355778a1e35ba86a0a62f48a81a1dc3cb6",
+      "bakeSHA256": "4281cc8a3831b3eabe5c1ec4b42f2a46f1c8b6901bdedfb76b75af276f6101f7",
+      "pngSHA256": "4141a4eb62e25be74952fe44d42f27186a7e956663cc566df53c8946130d2d79"
+    }
+  ]
+}

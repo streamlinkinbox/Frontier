@@ -1,0 +1,47 @@
+PASS default is a reference to global wind
+PASS inspector creates and selects owned wind
+PASS actual component row is nested beneath owner
+PASS cloud owns precipitation and wind without corrupting preorder
+PASS native inspector exchange commits and reloads child settings
+PASS child inspector edits independent wind, not global
+PASS shared source resolves identical settings pointer
+PASS inserting another component preserves collapse
+PASS sync preserves component rename and identity
+PASS GPU receives three independently resolved winds
+PASS CPU receives same resolved winds as GPU
+PASS collapsed owner does not disable wind
+PASS owner visibility disables its shared wind but not independent wind
+PASS hidden global wind does not disable an owned source
+PASS hidden shared wind stops its consumers only
+PASS invalid reference rejected
+PASS removal clears shared references and falls back to global
+PASS removal leaves precipitation child intact
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS removed component row disappears
+PASS external owner removal clears component and shared references
+PASS external owner removal leaves no orphan wind row
+PASS mouse chevron collapses folder
+PASS chevron does not steal selection
+PASS mouse chevron expands folder
+PASS mouse chevron collapses entity with child components
+PASS mouse chevron expands entity
+PASS component row is selectable
+PASS eye control remains independent of collapse
+PASS collapse state remains on row after external reorder
+PASS selection follows stable identity after roster insert/reorder
+PASS removed selected component does not select the next row
+PASS 46 wind binding / native outliner checks; no Windows/GPU execution

@@ -1,0 +1,10 @@
+{
+  "Engine/Editor/WindEditorSurface.h": "87dd38c6c7c4b35b8ee763ea99c103c60d3e0bdebe38fd744bebff1ebb8768a9",
+  "Engine/Editor/WindPanelSurface.h": "e6dd705d112d2339f48c089757593b087da259b5b8ab9906f812441d34dfd7e9",
+  "Exhibits/Workbench/WindEditor/NativeWindEditor.cpp": "cc79f83cf0464e7b411e97ff0a0025b4b57abd05542e60663a0e4f6057fe714d",
+  "Exhibits/Workbench/WindEditor/RunNativeWindEditor.py": "eb6fdf492c428c2f880ee5ce922fad65b4a0acec5052159f7f2ed617767ec896",
+  "Exhibits/Gallery/WindEditorNative/Dialog.png": "a0e96c61533112ce881db72b44ed9c1e5137a0cae60ceec7a0f2b1993ea0fab6",
+  "Exhibits/Gallery/WindEditorNative/DialogEmpty.png": "18e723554d4594c31049a2e4489e5a4aa482e36d5362a4a05d085f33bb379a66",
+  "Exhibits/Gallery/WindEditorNative/DialogPaused.png": "cd2004f994b9045f3c7c218d210f413d3b0c1f33655d98b807e1c8512b2b18f1",
+  "Exhibits/Gallery/WindEditorNative/DialogTuned.png": "5e045fe8bed5812efb5e32ae08ddb282796817b9157aa5cf4a0d4d15375e3d27"
+}

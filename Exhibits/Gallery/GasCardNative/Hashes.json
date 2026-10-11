@@ -1,0 +1,12 @@
+{
+  "Engine/Editor/FractureCardSurface.h": "e0182938b05acdb6dc3e525ccb0cb2c928467f972105aaea978e123ac559ca2d",
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/GasFluid/NativeGasCard.cpp": "0e5842c725dd71f43584598d33079926ea851f717c5bbdbeffbc862036c56911",
+  "Exhibits/Workbench/GasFluid/RunNativeGasCard.py": "518fa2411fba38a83c8dd11ee8d333e9ee7b4c9cd509be962bf78803449f68fd",
+  "Exhibits/Gallery/GasCardNative/CardAlwaysWithEmitters.png": "05c42a2f472675fd0c74086c370089d0864811db07470fb831db28c99f73628f",
+  "Exhibits/Gallery/GasCardNative/CardEmitterOpensParticleEditor.png": "7582b4c4075a3b3f87f3bd112adb60f5b6323f204adab26019e50bd67399c1cd",
+  "Exhibits/Gallery/GasCardNative/CardHeroOverAmber.png": "b07b9822e52e2e46b769093690e3ceedc14cf4fcbe9387d4ef0ee557c5ce5cb9",
+  "Exhibits/Gallery/GasCardNative/CardKeptResident.png": "9573dfafe2467569e05853f5d74d46019eceeba8f569c6509fc18fbb337ba0af",
+  "Exhibits/Gallery/GasCardNative/CardOneShotDormant.png": "1bad1987f294e80975d7affb58ccafbcdfb4bad26ce60a879d6e27a21f6da76d",
+  "Exhibits/Gallery/GasCardNative/CardOneShotFiring.png": "fdaac5fc40bcfe34f648291c35f71dfa98d86d463b10a6d48f6a593c5d2595a3"
+}

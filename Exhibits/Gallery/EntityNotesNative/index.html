@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — EntityNotes, drawn by the engine</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Exhibits · Gallery · EntityNotesNative</div>
+  <h1>EntityNotes, drawn by the engine</h1>
+  <p>Every pixel below came out of a real ImGui draw list, rasterised on the CPU and written to PNG by
+     <code>Exhibits/Workbench/Notes/NativeEntityNotes.cpp</code>. Nothing here is a mock-up.</p>
+  <p>This one is a <b>correction</b>, not an addition. The shipped component is
+     <code>Inspectors.jsx:409</code>, rendered from the shared <code>Header()</code> for every subject, with
+     its boxes in the bundle's inlined <code>.entity-notes</code> rules. The native
+     <code>RecordNotes</code> drew something else entirely: a chevron disclosure inside a rounded
+     18&nbsp;px inset card, a letterspaced caps header and a 64&nbsp;px field. None of that shape is in the
+     reference.</p>
+  <p><b>And folders had no note at all.</b> Of the fourteen branches in <code>InspectorPanel::Record</code>,
+     thirteen called <code>RecordNotes</code>; the folder branch returned early without it. In the reference
+     a folder is a <code>group</code> subject and goes through the same header as everything else, so it
+     carries a note like anything else. It does now.</p>
+  <div class="rail">
+    <div class="pill"><b>15</b><span>checks passed</span></div>
+    <div class="pill"><b>4</b><span>captures</span></div>
+    <div class="pill"><b>128</b><span>px panel</span></div>
+    <div class="pill"><b>+1</b><span>branch fixed</span></div>
+  </div>
+  <p style="margin-top:18px"><span class="tag"><i></i>Executed, not illustrated</span></p>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>Closed</b><em>No note yet</em></figcaption>
+    <span class="shot"><img src="AddNotes.png" alt="The dashed Add notes button"></span>
+    <p style="margin-top:10px;font-size:12px">A dashed 1&nbsp;px <code>#424242</code> button, 30&nbsp;px tall,
+       sized by its own content &mdash; padding, a 13&nbsp;px plus, the gap, the label, padding &mdash; and
+       pinned to the heading's top-right corner.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Hover</b><em>:hover</em></figcaption>
+    <span class="shot"><img src="AddNotesHover.png" alt="The Add notes button, hovered"></span>
+    <p style="margin-top:10px;font-size:12px">The border lifts to <code>#676767</code> and the ink to
+       <code>#d2d2d2</code>. Both states are in the bundle, so both are drawn.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Open, empty</b><em>128 px</em></figcaption>
+    <span class="shot"><img src="PanelEmpty.png" alt="The notes panel, empty"></span>
+    <p style="margin-top:10px;font-size:12px">Notes / OPTIONAL / Hide over a 76&nbsp;px field showing its
+       placeholder. The panel is 1 + 10 + 22 + 8 + 76 + 10 + 1 = 128&nbsp;px; the header row is the
+       22&nbsp;px Hide button, taller than either piece of type beside it.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Open, written</b><em>Overflowing</em></figcaption>
+    <span class="shot"><img src="PanelFilled.png" alt="The notes panel with a note"></span>
+    <p style="margin-top:10px;font-size:12px">The field is a fixed 76&nbsp;px, so a long note runs past it
+       and is clipped exactly as the textarea clips it. A detail worth keeping: the panel is absolutely
+       positioned at <code>top:105px</code> in a heading the bundle grows to 224, so it overhangs that
+       heading by nine pixels. The check pins it.</p>
+  </figure>
+</div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+echo Phase 16 -- live-edit for derived figures: revolve, pipe, sweep, loft, boolean
+dim on
+view iso
+gizmo off
+
+echo -- tile 1: revolve -- edit angle
+reset
+line (0.5, 0, 0) (0.5, 0, 1.0) --name=RevCurve
+matcap RevCurve plastic-red
+revolve RevCurve 180 --origin=(0,0,0) --axis=(0,1,0) --name=Rev
+matcap Rev chrome
+view fit
+render Phase16_RevolveBefore
+echo -- edit the angle to 90
+dim edit Rev angle 90
+matcap Rev copper
+view fit
+render Phase16_RevolveAfter
+
+echo -- tile 2: pipe -- edit radius
+reset
+line (0,0,0) (3,0,0) --name=TubePath
+matcap TubePath plastic-red
+pipe TubePath 0.25 --name=Tube
+matcap Tube chrome
+view fit
+render Phase16_PipeBefore
+echo -- edit the radius to 0.6
+dim edit Tube radius 0.6
+matcap Tube copper
+view fit
+render Phase16_PipeAfter
+
+echo -- tile 3: sweep -- edit scale
+reset
+circle (0,0,0) 0.3 --name=Prof
+line (0,0,0) (0,0,2) --name=Path
+matcap Prof plastic-red
+matcap Path plastic-blue
+sweep Prof Path --scale=1.0 --name=SW
+matcap SW chrome
+view fit
+render Phase16_SweepBefore
+echo -- edit the scale to 2.0
+dim edit SW scale 2.0
+matcap SW copper
+view fit
+render Phase16_SweepAfter
+
+echo -- tile 4: boolean -- header dim only
+reset
+sphere (0,0,0) 1 --name=A
+sphere (1,0,0) 1 --name=B
+matcap A plastic-red
+matcap B plastic-blue
+boolean union A B --name=Bool
+matcap Bool chrome
+view fit
+render Phase16_Boolean
+
+echo Phase 16 done.

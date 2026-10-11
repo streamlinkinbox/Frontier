@@ -1,0 +1,5 @@
+# Frontier project code image staged next to ProjectDrive.frontier by the MSVC and CMake routes.
+*.dll
+*.lib
+*.exp
+*.pdb

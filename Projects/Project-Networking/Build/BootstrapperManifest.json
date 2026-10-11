@@ -1,0 +1,14 @@
+{
+  "files": {
+    "Tools/EOSBootstrapper.exe": {
+      "drive_id": "10OisrJuAyQUbL_JQRg4hGMcn4vA0BeIl",
+      "bytes": 3170816,
+      "sha256": "1ccec16db625a1e765eced6aa7e75f4178ce48ff9f8ddd832002e55b784ac6e7"
+    },
+    "Tools/EOSBootstrapperTool.exe": {
+      "drive_id": "1r92BnVaUMR_n_HIUWuRIgtS2uqtI8JVC",
+      "bytes": 6356408,
+      "sha256": "493adab019c23bf302fbabcf4e5351430271de986d6d22f252dba2b96dbedd92"
+    }
+  }
+}

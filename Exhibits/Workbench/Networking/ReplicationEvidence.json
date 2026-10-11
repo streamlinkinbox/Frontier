@@ -1,0 +1,56 @@
+{
+  "commands": [
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/user/Frontier-/Projects/Project-Networking/Source",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/ReplicationSequence.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/ReplicationLink.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/PhotonReplicationLink.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/PhotonLinkStub.cpp",
+      "/home/user/Frontier-/Exhibits/Workbench/Networking/ReplicationChecks.cpp",
+      "-o",
+      "/home/user/Frontier-/.cache/replicationbuild/ReplicationProof"
+    ],
+    [
+      "/home/user/Frontier-/.cache/replicationbuild/ReplicationProof"
+    ],
+    [
+      "g++",
+      "-std=c++20",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/home/user/Frontier-/Projects/Project-Networking/Source",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/ReplicationSequence.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/ReplicationLink.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/PhotonReplicationLink.cpp",
+      "/home/user/Frontier-/Projects/Project-Networking/Source/PhotonLinkStub.cpp",
+      "/home/user/Frontier-/Exhibits/Workbench/Networking/ReplicationChecks.cpp",
+      "-o",
+      "/home/user/Frontier-/.cache/replicationbuild/ReplicationProofSanitized"
+    ],
+    [
+      "/home/user/Frontier-/.cache/replicationbuild/ReplicationProofSanitized"
+    ]
+  ],
+  "spoken": "PASS 66 checks: carrier seam, wire shape, authority, refusals, quantum and easing.",
+  "sources": {
+    "Projects/Project-Networking/Source/ReplicationLink.h": "6bf689a80c8a357a6483c18c45cb0994c7463e452bdafd6488c3df1c95aa6723",
+    "Projects/Project-Networking/Source/ReplicationLink.cpp": "face7feb67d2a659bb6c2ba2ab77c81d360153f8f00fc4ef1d968fecd215fad6",
+    "Projects/Project-Networking/Source/ReplicatedPlacement.h": "16897c0fb282fe1204199af34764ef511b214e2617cd5512ffe312e6c4f4bab5",
+    "Projects/Project-Networking/Source/ReplicationSequence.h": "d1a63a80d57fd934b0ae0f59121827c44deb402d488bb399a32fc30915e5b2f2",
+    "Projects/Project-Networking/Source/ReplicationSequence.cpp": "9ae61dc996af547b569b76ce501409dbf3eaf97658fd0ca66dc299f304b9c523",
+    "Projects/Project-Networking/Source/PhotonReplicationLink.cpp": "cfdfb2eab7cb4d4e0321c8e88ed6514596f9d4c08c50e575e0c11a1e895a3334",
+    "Projects/Project-Networking/Source/PhotonTransport.h": "d2ba845f9d575f0c15784625d10b86e9dc3f07b9374b8b0286983c3c940c3d42",
+    "Exhibits/Workbench/Networking/ReplicationChecks.cpp": "0d69454f2a2510e7d0f891dc30edeb9ac15ddc0fe6e9ae5e9927bea6023b78e5",
+    "Exhibits/Workbench/Networking/RunReplicationChecks.py": "af1bc64e5afb7c973b467974e4c7da672d8bacc4502715e11edb489533ee976d"
+  }
+}

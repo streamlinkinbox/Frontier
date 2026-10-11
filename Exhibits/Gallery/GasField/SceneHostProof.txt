@@ -1,0 +1,112 @@
+NativeGasSceneHost — the authored scene, actually run
+
+Losses: an authored coefficient is not a fraction
+  PASS  the camp fire authors a cooling coefficient at or above one, which is the case that was fatal
+  PASS  and it resolves to a fraction strictly inside (0, 1)
+  PASS  so a single step keeps most of the heat rather than annihilating all of it
+  PASS  the smoke loss is one minus exp of the authored coefficient, not the coefficient
+  PASS  and cooling carries the linear 0.55 term of the authored radiative law
+  PASS  and no preset among all eighteen can erase a reading in one step
+
+The source: two falloffs, matched where they end
+  PASS  the source has a radius
+  PASS  and the gaussian's three-sigma reach is a fraction of the cube, not most of it
+  PASS  the source sits at the horizontal centre of the cube
+  PASS  and low in it, which is where a fire is lit
+  PASS  an emitter the scene switched off resolves to zero rates rather than to a special case
+  PASS  a source with no upward velocity still resolves, through the settling floor
+
+The boundary: a domain that is not enclosed vents
+  PASS  the corner of an open domain vents most of its gas
+  PASS  so does the side wall
+  PASS  and the roof
+  PASS  the floor does not, because gas pools on the ground in the authoring tool too
+  PASS  and the middle of the domain is untouched
+
+The obstruction: a table, because the two numberings only look alike
+  PASS  obstacle type 0 is an absence and stays one
+  PASS  1 is a sphere at both ends, which is why the cast looks safe
+  PASS  2 is a vertical cylinder, and the enum's 2 is a capsule — the table says cylinder
+  PASS  and it stands on the floor rather than floating with a half-height of nothing
+  PASS  3 lies along X, so it is admitted as its bounding box
+  PASS  and says so, because a diverted plume is not a visible defect in itself
+  PASS  with the long half-extent along the axis it actually lies on
+  PASS  🔴 4 is a deflector slab and the enum's 4 is a cylinder — the cast would have been silent here
+  PASS  and a slab is thin in the up axis
+  PASS  5 is a tyre ring at both ends
+  PASS  but an upright ring cannot spin about axis 2, and the reading says so
+  PASS  an obstacle type this build does not know is absent, not guessed
+
+The sun and the camera
+  PASS  the sun at ninety degrees of elevation is straight up axis 2
+  PASS  and on the horizon at zero azimuth it lies along axis 1
+  PASS  and is a unit vector at any bearing, so it cannot scale the lighting
+  PASS  the camera basis is orthogonal
+  PASS  and normalised, so a framing cannot stretch the picture
+  PASS  the eye is outside the cube
+  PASS  and looking at it rather than away
+  PASS  a degenerate framing is nudged into a usable basis rather than producing a field of NaN
+
+The source ceiling: the authored reading means the same on both sides
+  PASS  four seconds of camp fire leaves heat in the field
+  PASS  and never more heat than the scene authored — measured at five times that before the ceiling existed
+  PASS  nor more smoke
+  PASS  while still carrying a real plume rather than having been clamped flat
+
+The committed corpus, advanced
+    camp_fire_steady      cube 2.20 m   smoke 791.4   peak 0.945
+  PASS  camp_fire_steady holds no infinity and no NaN after ninety advances
+  PASS  camp_fire_steady is carrying gas
+  PASS  camp_fire_steady resolves to a cube with a size
+    cold_dust_fall        cube 2.30 m   smoke 108.8   peak 2.389
+  PASS  cold_dust_fall holds no infinity and no NaN after ninety advances
+  PASS  cold_dust_fall is carrying gas
+  PASS  cold_dust_fall resolves to a cube with a size
+    deflector_obstacle    cube 3.43 m   smoke 684.9   peak 1.396
+  PASS  deflector_obstacle holds no infinity and no NaN after ninety advances
+  PASS  deflector_obstacle is carrying gas
+  PASS  deflector_obstacle resolves to a cube with a size
+    far_cheap_plume       cube 3.59 m   smoke 288.8   peak 1.396
+  PASS  far_cheap_plume holds no infinity and no NaN after ninety advances
+  PASS  far_cheap_plume is carrying gas
+  PASS  far_cheap_plume resolves to a cube with a size
+    fracture_dust_burst   cube 2.88 m   smoke 2.1   peak 0.311   (one-shot, detonated)
+  PASS  fracture_dust_burst holds no infinity and no NaN after ninety advances
+  PASS  fracture_dust_burst is carrying gas
+  PASS  fracture_dust_burst resolves to a cube with a size
+    hero_detonation       cube 3.63 m   smoke 291.9   peak 1.396
+  PASS  hero_detonation holds no infinity and no NaN after ninety advances
+  PASS  hero_detonation is carrying gas
+  PASS  hero_detonation resolves to a cube with a size
+    open_bounds_megaton   cube 4.92 m   smoke 1.0   peak 0.036   (one-shot, detonated)
+  PASS  open_bounds_megaton holds no infinity and no NaN after ninety advances
+  PASS  open_bounds_megaton is carrying gas
+  PASS  open_bounds_megaton resolves to a cube with a size
+    tyre_burnout_ring     cube 2.60 m   smoke 182.7   peak 4.195
+  PASS  tyre_burnout_ring holds no infinity and no NaN after ninety advances
+  PASS  tyre_burnout_ring is carrying gas
+  PASS  tyre_burnout_ring resolves to a cube with a size
+
+One-shot scenes, which say nothing about being one-shot
+  PASS  a scene with no emitter and a loaded blast is recognised as a one-shot
+  PASS  and advancing it without firing leaves an empty cube — which passes every structural check there is
+  PASS  firing it puts dust in the air
+  PASS  and a continuous emitter is not mistaken for one
+
+Obstruction and reproducibility
+  PASS  the burnout scene carries an obstruction
+  PASS  and it reaches the field as solid voxels rather than as a struct
+  PASS  a scene with no obstacle obstructs nothing
+  PASS  resolving and advancing the same scene twice gives bit-identical readings
+
+And the file is still the file
+  PASS  camp_fire_steady still writes back byte for byte after being run
+  PASS  cold_dust_fall still writes back byte for byte after being run
+  PASS  deflector_obstacle still writes back byte for byte after being run
+  PASS  far_cheap_plume still writes back byte for byte after being run
+  PASS  fracture_dust_burst still writes back byte for byte after being run
+  PASS  hero_detonation still writes back byte for byte after being run
+  PASS  open_bounds_megaton still writes back byte for byte after being run
+  PASS  tyre_burnout_ring still writes back byte for byte after being run
+
+PASS 81

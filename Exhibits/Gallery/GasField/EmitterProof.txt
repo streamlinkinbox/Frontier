@@ -1,0 +1,93 @@
+Native gas emitter component and gameplay hooks
+
+The cube root is ours, because multiplayer compares what it scales
+  PASS  an exponent-seeded four Newton steps match std::cbrt to a part in ten thousand over 0.01 to 4 m³
+  PASS  and nothing negative or empty gets a radius
+  PASS  the same volume answers the same way twice
+
+A fracture piece asks for dust proportioned to itself
+  PASS  it carries the brick dust preset by identity
+  PASS  as a one-shot owing exactly one firing
+  PASS  attached to the piece, so the emitter follows whatever the piece does next
+  PASS  eight times the volume is twice the radius - the relationship between a brick and a wall
+  PASS  one enormous piece is still one piece and not a demolition
+  PASS  and a chip too small to see still gets a lattice it can be seen in
+  PASS  parting harder puts out more dust
+  PASS  🔴 and the dust retires: forty pieces that each kept 40 MB is the whole ceiling
+  PASS  emission stops in a third of a second; the cloud outlives it by itself
+  PASS  standing beside the break buys Mid, never the one Hero slot - a puff cannot outrank a fire
+  PASS  and past twelve metres it is a card, not a solver
+
+A tyre asks only while it is actually slipping
+  PASS  a tyre driving normally is not an effect
+  PASS  so four wheels on a cruising car hold no domain open, which is the entire concurrency ceiling
+  PASS  crossing the threshold starts from nothing rather than switching on at full rate
+  PASS  a proper burnout is at strength
+  PASS  laid flat as a contact patch, not stood up as a column
+  PASS  and a loaded tyre smokes harder
+  PASS  a wheel in the air is not slipping, whatever the slip ratio says
+  PASS  ④ the cloud is dragged down the road harder than it climbs - a chimney bolted to a wheel is the tell
+  PASS  in the direction the patch was travelling, not the opposite one
+  PASS  the player's own wheels buy Near, and four of them share
+
+② Which domain holds it: the nearest that encloses it
+  PASS  an emitter in the room gets the room, not the street
+  PASS  one out on the street gets the street
+  PASS  and one in open ground gets nothing
+  PASS  an emitter whose plume straddles a wall does not fit - half an injection reads as weak, not misplaced
+  PASS  so it falls out to the street, which does hold it
+  PASS  two identical domains tie to the lower index, every time
+
+③ An emitter nobody authored a domain for still runs
+  PASS  the implicit cube is six radii across, which is the room a plume needs above its own source
+  PASS  and it is named after the object that needed it
+  PASS  the emitter fits inside what was built for it
+  PASS  sitting a fifth of the way up rather than centred, because gas rises and half a lattice would be unused
+  PASS  a tiny source does not get a lattice of pure boundary
+  PASS  and a huge one is capped rather than quietly costing a level
+
+① A one-shot fires exactly as often as it was asked to
+  PASS  three requests over six ticks are three injections - not two, and not six
+  PASS  with nothing still owed afterwards
+  PASS  a switched-off emitter contributes nothing
+  PASS  and neither does one at zero strength, which is every tyre that is not slipping
+  PASS  overrunning the routing room stops writing and says how much it took, rather than writing past it
+
+⑤ Resolving the same tick twice is bit-identical
+  PASS  the slipping tyre resolves
+  PASS  twice
+  PASS  to byte-identical emissions, which is what the solver's determinism contract rests on one layer up
+
+A routing reaches the field it resolved to, and no other
+  PASS  a lamp inside the domain resolves to it
+  PASS  by authored index, with nothing implicit about it
+  PASS  and injecting it into that field is admitted
+  PASS  putting smoke in it
+  PASS  while the neighbouring domain refuses it - gas in the wrong room is the cost of being wrong here
+  PASS  and stays empty
+
+④ Run for real: a burnout lays its cloud down the road
+  PASS  forty ticks of a stationary burnout fill the lattice
+  PASS  and so do forty ticks of a rolling one
+  PASS  the travelling tyre's cloud sits further down the road than the stationary one's
+  PASS  while the stationary one stays over its own contact patch, as a burnout against the brakes does
+  PASS  and neither climbs: a disc source spends a fifth of its rise, which is why it is not a chimney
+
+A collapsing wall cannot evict the fire the player is standing in
+  PASS  forty-one claims settle inside all three ceilings
+  PASS  with the fire in front of the player still on Hero
+  PASS  and it never lost a rung to the wall at all
+  PASS  while most of the dust became cards, which is what the ladder is for
+  PASS  🔴 and the hook had already capped them there before the governor was asked, at no cost at all
+
+The seam is real: the shipped wheel telemetry fills the contact report unchanged
+  PASS  the contact patch crosses unchanged - both layers put +Z up, so there is no axis to get wrong
+  PASS  and so do the load and the slip
+  PASS  the wheel index is the carrier, so four corners are four emitters and not one
+  PASS  the cloud is dragged along the hub's own axis at the speed the car is making
+  PASS  a wheel spinning that hard smokes, through the adapter and the hook together
+  PASS  a wheel locked under braking reports negative slip and lays down exactly the same smoke
+  PASS  ④ a wheel in the air carries no load, so the call site needs no check of its own
+  PASS  and asking for a corner the car does not have answers a quiet patch rather than reading past the end
+
+PASS 68

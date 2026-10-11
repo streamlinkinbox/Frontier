@@ -1,0 +1,11 @@
+{
+  "Engine/Editor/WindInstrumentSurface.h": "2c1bc4e8c5bf9cef9be1bbb1d4d7a382849bf2fafd9bafaf525ac23e33edf96a",
+  "Exhibits/Workbench/Wind/NativeWindInstrument.cpp": "3112f2524ac03f716cf51432bb0a7861b96b2d2cf2ace3034838f7bdab45d611",
+  "Exhibits/Workbench/Wind/RunNativeWindInstrument.py": "d38af9572ae73f2749a22003a50f73ddb3fb41421fe1c2c6b2d05465053f6e57",
+  "Exhibits/Gallery/WindInstrument/Anemometer.png": "0a209de2bffdbd828485236e2e9b0229e350d449334521f3d382aa4c530614c5",
+  "Exhibits/Gallery/WindInstrument/AnemometerCalm.png": "b8b4163c6dbda80e0734cd195e5dc3f5592899949456fc3ce364fe6525246c7d",
+  "Exhibits/Gallery/WindInstrument/AnemometerGale.png": "69b137f7e8068b2ce969334e59cae24ca97335fff961fc7d35ea6d26d962e591",
+  "Exhibits/Gallery/WindInstrument/AnemometerTall.png": "b7e0df2391af2059e2104b5fd2d2df2e04fced059bb0041f96d30fb0f9585d2a",
+  "Exhibits/Gallery/WindInstrument/Panel.png": "3459af9e45036e0ef6eb707dd3efdd22726cfc4ec8039a9f880bbea7c94433ca",
+  "Exhibits/Gallery/WindInstrument/PanelGale.png": "ea02c55f25d71266c5a60fdb3456989a745366d72bbcf526627f921304de6e44"
+}

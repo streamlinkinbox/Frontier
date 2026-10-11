@@ -1,0 +1,2 @@
+PASS 56 checks: native fog beam chamber, density profile and volume shape for seven forms.
+Exit: 0

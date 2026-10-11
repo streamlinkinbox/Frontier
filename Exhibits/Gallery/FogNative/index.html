@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — Native fog cards, converted from the browser reference</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Executed proof · Exhibits / Gallery / FogNative</div>
+  <h1>Native fog cards, converted from the browser reference</h1>
+  <p>The three fog visuals the browser editor ships, drawn by
+     <code>Engine/Editor/FogPanelSurface.h</code> and wired into
+     <code>Engine/Editor/FogInspectorPanel.cpp</code>. They are converted 1:1 from
+     <code>Experimental/ProjectZeroEditor/FogPanel.jsx</code>,
+     <code>HeightFogVisual.jsx</code> and <code>FogShapePanel.jsx</code>, with the geometry read off
+     <code>FogPanel.css</code> and <code>FogShapePanel.css</code> and the mesh off <code>FogShape.js</code>.</p>
+  <p>The fog card family already existed natively; only these three were missing or approximated. The beam
+     chamber had drifted — 68 samples against the reference's 70, a 22 spread coefficient against 24, and a
+     different exposure curve — so it was brought back onto the reference's numbers. The local card drew a
+     bounds sketch the shipped bundle no longer carries; it is now <em>Fog volume shape</em>, matching
+     <code>index.html</code>.</p>
+  <p>Every pixel comes from real ImGui draw commands rasterised on the CPU by
+     <code>python3 Exhibits/Workbench/Fog/RunNativeFogCards.py</code>, not mocked up. Three of the checks drive
+     a synthetic mouse: pressing the profile authors Density and Falloff Height together, and clicking the
+     shape select advances Box to Sphere.</p>
+  <div class="rail">
+    <div class="pill"><b>56</b><span>Checks passed</span></div>
+    <div class="pill"><b>12</b><span>Captures</span></div>
+    <div class="pill"><b>3</b><span>Cards converted</span></div>
+    <div class="pill"><b>7</b><span>Volume forms</span></div>
+  </div>
+  <div style="margin-top:16px"><span class="tag"><i></i>Rendered from native draw commands</span></div>
+</header>
+
+<div class="grid">
+  <figure>
+    <figcaption><b>Height fog chamber</b><em>FogPanel.jsx</em></figcaption>
+    <span class="shot"><img src="ChamberHeight.png" alt="Native height fog chamber card"></span>
+    <div class="pair"><a href="ChamberHeight.png">Height medium, 25 m probe, live</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Atmospheric chamber</b><em>FogPanel.jsx</em></figcaption>
+    <span class="shot"><img src="ChamberAerial.png" alt="Native atmospheric chamber card"></span>
+    <div class="pair"><a href="ChamberAerial.png">Aerial perspective, 400 m span</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Local fog chamber</b><em>FogPanel.jsx</em></figcaption>
+    <span class="shot"><img src="ChamberLocal.png" alt="Native local fog chamber card"></span>
+    <div class="pair"><a href="ChamberLocal.png">Bounded medium, authored preview</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Density profile</b><em>HeightFogVisual.jsx</em></figcaption>
+    <span class="shot"><img src="DensityProfile.png" alt="Native density profile card"></span>
+    <div class="pair"><a href="DensityProfile.png">Live, 0.02 per metre at 400 m</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Density profile, authored</b><em>HeightFogVisual.jsx</em></figcaption>
+    <span class="shot"><img src="DensityProfile-Authored.png" alt="Native density profile, authored card"></span>
+    <div class="pair"><a href="DensityProfile-Authored.png">Disabled, 0.12 per metre at 1.2 km</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Box volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Box.png" alt="Native box volume card"></span>
+    <div class="pair"><a href="VolumeShape-Box.png">8 vertices, 12 edges</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Sphere volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Sphere.png" alt="Native sphere volume card"></span>
+    <div class="pair"><a href="VolumeShape-Sphere.png">312 vertices, 408 edges</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Diamond volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Diamond.png" alt="Native diamond volume card"></span>
+    <div class="pair"><a href="VolumeShape-Diamond.png">Octahedron, 6 vertices</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Cylinder volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Cylinder.png" alt="Native cylinder volume card"></span>
+    <div class="pair"><a href="VolumeShape-Cylinder.png">48-gon extrusion</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Cone volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Cone.png" alt="Native cone volume card"></span>
+    <div class="pair"><a href="VolumeShape-Cone.png">49 vertices, apex fan</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Prism volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Prism.png" alt="Native prism volume card"></span>
+    <div class="pair"><a href="VolumeShape-Prism.png">Six sides, 12 vertices</a></div>
+  </figure>
+  <figure>
+    <figcaption><b>Custom volume</b><em>FogShapePanel.jsx</em></figcaption>
+    <span class="shot"><img src="VolumeShape-Custom.png" alt="Native custom volume card"></span>
+    <div class="pair"><a href="VolumeShape-Custom.png">Concave outline, extruded</a></div>
+  </figure>
+</div>
+
+<footer>
+  The run asserts the arithmetic the cards print, taken from the reference: height fog at 0.02 per metre folds
+  to 0.018788 at the 25 m probe, clears 2 % at 208 m and passes 10 % of its light at 120 m; aerial density
+  scales by a thousandth and clears at 3.9 km; a local medium at 0.55 coverage clears at 711 m. The profile
+  reads 0.0074 per metre at the falloff height and 0.0027 at twice it, the 37 % the handle labels. Each volume
+  form is checked against the vertex, edge and face counts <code>FogShape.js</code> builds, and a self-crossing
+  outline is rejected. Executed commands are in <code>Commands.json</code>, source and capture digests in
+  <code>Hashes.json</code>, and the run log in <code>Proof.txt</code>. Port register:
+  <code>Docs/InspectorDepotConversion.md</code>.
+</footer>
+</body>
+</html>

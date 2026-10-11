@@ -1,0 +1,68 @@
+NativeForceRoute - the shipped inspector, opening the force field panel
+
+The branch exists, and the panel holds one set of fields
+  PASS  a fresh scene has no fields - the panel invents nothing to look busy
+  PASS  every kind can be added: Prevailing wind
+  PASS  every kind can be added: Gust front
+  PASS  every kind can be added: Tornado
+  PASS  every kind can be added: Blast outflow
+  PASS  every kind can be added: Attractor
+  PASS  every kind can be added: Repulsor
+  PASS  every kind can be added: Lift
+  PASS  every kind can be added: Magnetic dipole
+  PASS  every kind can be added: Gravity
+  PASS  every kind can be added: Orbit
+  PASS  every kind can be added: Drag volume
+  PASS  every kind can be added: Current
+
+Adding a field takes the kind's own facts, not a blank default
+  PASS  pressing + Gravity adds exactly one field
+  PASS  and it is a gravity field
+  PASS  🔴 it arrives reaching everywhere, not as an 8 m ball somebody has to notice
+  PASS  named from the kind, so the card is not titled nothing
+  PASS  and awake, because a control you must then switch on is a control you missed
+  PASS  a second kind adds a second field
+  PASS  prevailing wind reaches everywhere too, for its own reason
+  PASS  a gust front arrives bounded, which is what gives it a centre and a radius
+
+🔴 The hit targets are where the paint is - pressed, not inspected
+  PASS  every card offers its toggle, its strength track and its remove button
+  PASS  down the card in the browser's order: enabled, strength, remove last
+  PASS  every card offers its toggle, its strength track and its remove button
+  PASS  down the card in the browser's order: enabled, strength, remove last
+  PASS  every card offers its toggle, its strength track and its remove button
+  PASS  down the card in the browser's order: enabled, strength, remove last
+  PASS  no two cards' remove buttons overlap, so no card eats another's clicks
+  PASS  no two cards' remove buttons overlap, so no card eats another's clicks
+  PASS  no two cards' remove buttons overlap, so no card eats another's clicks
+
+Clicking the shipped panel changes the shipped fields
+  PASS  pressing a card's toggle puts that field to sleep
+  PASS  and wakes it again
+  PASS  dragging the strength track to its right end reads the ceiling, 20
+  PASS  🔴 and to its left end reads -20 - strength is signed, which is how a repulsor is an attractor
+
+🔴 Remove deletes the card that was pressed
+  PASS  three fields are on the page
+  PASS  pressing Remove deletes one field, not two
+  PASS  the field above it is untouched
+  PASS  the field below it closes the gap, in order
+  PASS  and the pressed field is the one that is gone
+
+The fields belong to the scene, not to the row that opened them
+  PASS  🔴 a second row showing the force field page shows the same fields, not a fresh set
+
+The outliner row says what the browser's row says
+  PASS  the panel comes from the sheet appearance - force fields share the wind glyph, not its page
+  PASS  🔴 and a real wind row is untouched by any of this - Wind was not renamed, it was placed under
+  PASS  a folder holding them counts them under a name of their own
+  PASS  a scene with no damping reads '3 flow - 2 accel'
+  PASS  and the damp term appears only when there is one to report
+  PASS  ✔️ per-system attractors are counted separately, because the panel does not own them
+  PASS  an empty scene still reads its two numbers rather than going blank
+
+Capture
+  PASS  the shipped inspector's own frame is written out, ident strip and all
+
+PASS 48
+Exit: 0

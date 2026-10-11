@@ -1,0 +1,12 @@
+--- build
+
+exit=0
+--- run
+PASS 66 checks: carrier seam, wire shape, authority, refusals, quantum and easing.
+exit=0
+--- build (sanitized)
+
+exit=0
+--- run (sanitized)
+PASS 66 checks: carrier seam, wire shape, authority, refusals, quantum and easing.
+exit=0

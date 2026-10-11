@@ -1,0 +1,18 @@
+# Render Blueprint for the Charge backend.
+# TESTING ONLY on the free plan: the service sleeps when idle and the disk
+# (charge.db) is wiped on every restart. Real money needs persistent hosting.
+services:
+  - type: web
+    name: charge-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r Backend/requirements.txt
+    startCommand: python3 Backend/webhook_receiver.py
+    healthCheckPath: /healthz
+    envVars:
+      - key: XSOLLA_SECRET_KEY
+        sync: false
+      - key: CHARGE_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0

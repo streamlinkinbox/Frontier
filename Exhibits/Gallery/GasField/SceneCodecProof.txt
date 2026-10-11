@@ -1,0 +1,58 @@
+Gas scene codec checks - the engine against the authoring tool's own corpus
+
+What the reader refuses, and what it merely reports
+  PASS  unparseable text is refused rather than crashing
+  PASS  and so is an empty file
+  PASS  a file that is not a gas scene is refused by its format marker
+  PASS  a version this build does not read is refused rather than guessed at
+  PASS  a scene with no name is refused
+  PASS  and so is an empty one
+  PASS  a refusal carries a sentence rather than only a false
+  PASS  an integer is accepted where a float is wanted
+  PASS  and arrives as the number it denotes
+  PASS  a fractional lattice is refused rather than truncated to something plausible
+  PASS  a setting spelled as the wrong type is refused
+  PASS  and the refusal names the setting at fault
+  PASS  a scene carrying a setting this build has never heard of still opens
+  PASS  and the settings it does understand are applied
+  PASS  while the one it does not is reported by name rather than lost silently
+  PASS  a refused read leaves the caller's scene untouched rather than half-applied
+  PASS  a camera centre of the wrong length is refused
+  PASS  a scene with no settings at all still opens
+  PASS  and every absent setting keeps its default
+  PASS  a scene that frames nothing says so rather than inventing a camera
+
+The authoring tool's corpus, read and written back
+  PASS  the committed corpus is where the check expects it
+  PASS  and it is not empty
+    8 samples
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+  PASS  the engine can read what the engine wrote
+  PASS  and writing it a second time changes nothing
+    8 of 8 samples crossed unchanged
+  PASS  every sample in the corpus crossed unchanged
+
+A crossed scene drives the solver
+  PASS  the camp fire sample reads
+  PASS  and keeps its name
+  PASS  and the names the outliner will show
+  PASS  and the framing it was authored with
+  PASS  and a domain with a positive extent
+  PASS  and the scene's own settings produce smoke in the solver
+  PASS  after the advances the check asked for
+  PASS  and the sample still matches the preset it was built from
+
+PASS 47

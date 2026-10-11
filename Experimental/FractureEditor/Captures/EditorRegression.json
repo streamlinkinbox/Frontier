@@ -1,0 +1,222 @@
+{
+  "Success": true,
+  "Panels": [
+    {
+      "Name": "Sun",
+      "Type": "sun",
+      "NumericControls": 10,
+      "Overflow": false
+    },
+    {
+      "Name": "Editor Camera",
+      "Type": "camera",
+      "NumericControls": 4,
+      "Overflow": false
+    },
+    {
+      "Name": "Stars",
+      "Type": "stars",
+      "NumericControls": 6,
+      "Overflow": false
+    },
+    {
+      "Name": "Moons",
+      "Type": "moon",
+      "NumericControls": 8,
+      "Overflow": false
+    },
+    {
+      "Name": "Atmosphere",
+      "Type": "atmosphere",
+      "NumericControls": 10,
+      "Overflow": false
+    },
+    {
+      "Name": "Lens Flare",
+      "Type": "flare",
+      "NumericControls": 15,
+      "Overflow": false
+    },
+    {
+      "Name": "Wind",
+      "Type": "wind",
+      "NumericControls": 4,
+      "Overflow": false
+    },
+    {
+      "Name": "Precipitation",
+      "Type": "precipitation",
+      "NumericControls": 5,
+      "Overflow": false
+    },
+    {
+      "Name": "Rainbow",
+      "Type": "rainbow",
+      "NumericControls": 4,
+      "Overflow": false
+    },
+    {
+      "Name": "Clouds",
+      "Type": "clouds",
+      "NumericControls": 18,
+      "Overflow": false
+    },
+    {
+      "Name": "Local Cloud",
+      "Type": "local-cloud",
+      "NumericControls": 10,
+      "Overflow": false
+    },
+    {
+      "Name": "Height Fog",
+      "Type": "height-fog",
+      "NumericControls": 7,
+      "Overflow": false
+    },
+    {
+      "Name": "Atmospheric Fog",
+      "Type": "aerial-fog",
+      "NumericControls": 5,
+      "Overflow": false
+    },
+    {
+      "Name": "Local Fog",
+      "Type": "local-fog",
+      "NumericControls": 12,
+      "Overflow": false
+    },
+    {
+      "Name": "Post Process",
+      "Type": "post",
+      "NumericControls": 5,
+      "Overflow": false
+    },
+    {
+      "Name": "Cube",
+      "Type": "geometry",
+      "NumericControls": 9,
+      "Overflow": false
+    },
+    {
+      "Name": "Area Light",
+      "Type": "light",
+      "NumericControls": 1,
+      "Overflow": false
+    },
+    {
+      "Name": "World",
+      "Type": "group",
+      "NumericControls": 0,
+      "Overflow": false
+    }
+  ],
+  "NumericControlsEdited": 133,
+  "Checks": [
+    "numeric edits",
+    "pointer drag",
+    "persistence",
+    "tab close/reopen",
+    "tab docking",
+    "outliner rename/visibility",
+    "construct",
+    "notch",
+    "five settings pages",
+    "three appearance tabs",
+    "keybinding capture",
+    "20 material channels",
+    "F3 diagnostics",
+    "1024/1280/1440/1920 widths",
+    "four moon slots"
+  ],
+  "Errors": [],
+  "FontFailures": [
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/K46YRH762FH3QJ25IQM3VAXAKCHEXXW4/ISLWQPUZHZF33LRIOTBMFOJL57GBGQ4B/3ZLMEXZEQPLTEPMHTQDAUXP5ZZXCZAEN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/K46YRH762FH3QJ25IQM3VAXAKCHEXXW4/ISLWQPUZHZF33LRIOTBMFOJL57GBGQ4B/3ZLMEXZEQPLTEPMHTQDAUXP5ZZXCZAEN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/3RZHWSNONLLWJK3RLPEKUZOMM56GO4LJ/BPDRY7AHVI3MCDXXVXTQQ76H3UXA63S3/SB2OEB6IKZPRR6JT4GFJ2TFT6HBB6AZN.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/MFQT7HFGCR2L5ULQTW6YXYZXXHMPKLJ3/YWQ244D6TACUX5JBKATPOW5I5MGJ3G73/7YY3ZAAE3TRV2LANYOLXNHTPHLXVWTKH.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    },
+    {
+      "Url": "https://cdn.fontshare.com/wf/HFTXPYOBEE22ON2ZH2TDSTBQLGERA7LU/4AOH2PGTMHZO2YX5HMTOAV52ONC3WIXE/TW4KNQIPR4LNP4I6I6C6HKQ23B2EQAU5.woff2",
+      "Error": "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+    }
+  ]
+}

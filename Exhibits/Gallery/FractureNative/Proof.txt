@@ -1,0 +1,2 @@
+PASS 91 checks: per-object fracture card, Voronoi solid, collapsed block flow.
+Exit: 0

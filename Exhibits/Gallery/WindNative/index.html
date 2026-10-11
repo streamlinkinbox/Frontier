@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — Native wind binding card, converted from the browser reference</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Executed proof · Exhibits/Gallery/WindNative</div>
+  <h1>The wind binding card, drawn by the engine</h1>
+  <p><code>WindPanel.jsx</code>'s <code>WindBinding</code> card and its <code>WindCanvas</code> composite flow
+     field, converted into <code>Engine/Editor/WindPanelSurface.h</code> and mounted in both the fog and the
+     clouds inspectors. Every capture below is real ImGui draw output, rasterised on the CPU — no screenshots
+     and no mock-ups.</p>
+  <p>The browser shipped this as a card; natively it was a bare checkbox and combo box
+     (<code>WindBindingControls.h</code>). The authoring model — <code>ResolveWind</code>'s clamps and fallback
+     pair, and <code>EvaluateWind</code>'s four component kinds — is reproduced term for term, and the 77 checks
+     assert the arithmetic rather than the pixels.</p>
+  <div class="rail">
+    <div class="pill"><b>77</b><span>checks passed</span></div>
+    <div class="pill"><b>11</b><span>captures</span></div>
+    <div class="pill"><b>2</b><span>panels wired</span></div>
+    <div class="pill"><b>190</b><span>flow strokes</span></div>
+  </div>
+  <div class="rail"><span class="tag"><i></i>python3 Exhibits/Workbench/Wind/RunNativeWindCards.py</span></div>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>As mounted</b><em>BindingGlobal</em></figcaption>
+    <a class="shot" href="BindingGlobal.png"><img src="BindingGlobal.png" alt="As mounted"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">What the fog and clouds panels actually render. Native <code>Wind Source</code> entry 0 is the shared <em>Global wind</em>, so the select always names a field — the browser's still-air blank never arises from that sheet.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Bound · following</b><em>BindingBound</em></figcaption>
+    <a class="shot" href="BindingBound.png"><img src="BindingBound.png" alt="Bound · following"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">The card as the browser ships it: the field select, the editor shortcut, the live composite preview with its speed legend, and the binding note naming the bound field.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Follow Wind off</b><em>BindingUnfollowed</em></figcaption>
+    <a class="shot" href="BindingUnfollowed.png"><img src="BindingUnfollowed.png" alt="Follow Wind off"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">Switching Follow Wind off stops the preview and swaps the note, exactly as WindBinding does. The field selection is retained rather than cleared.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Dangling id</b><em>BindingMissing</em></figcaption>
+    <a class="shot" href="BindingMissing.png"><img src="BindingMissing.png" alt="Dangling id"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">A stored field id that no longer resolves offers “Missing field · choose another” and drops the preview and the shortcut.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Unbound</b><em>BindingNone</em></figcaption>
+    <a class="shot" href="BindingNone.png"><img src="BindingNone.png" alt="Unbound"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">No field assigned: the select reads “None · still air” and the card collapses to its select and one line of note.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Composite field</b><em>FlowPrevailing</em></figcaption>
+    <a class="shot" href="FlowPrevailing.png"><img src="FlowPrevailing.png" alt="Composite field"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">ResolveWind's fallback pair — a 7 m/s prevailing wind at 250° plus a 1.75 m/s passing gust on a 450 m radius, pulsing at 0.3 Hz.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Vector overlay</b><em>FlowVectors</em></figcaption>
+    <a class="shot" href="FlowVectors.png"><img src="FlowVectors.png" alt="Vector overlay"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">The optional arrow lattice on 32 px centres. Arrows run west-south-west, which is where a 250° bearing blows.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Tornado</b><em>FlowTornado</em></figcaption>
+    <a class="shot" href="FlowTornado.png"><img src="FlowTornado.png" alt="Tornado"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">The vortex branch: tangential flow with a fixed 0.18 inward lean, a still eye, and the core ramp softening the centre.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Radial</b><em>FlowRadial</em></figcaption>
+    <a class="shot" href="FlowRadial.png"><img src="FlowRadial.png" alt="Radial"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">The radial branch blowing straight outward from its centre, falling off as (1 − r²)² to nothing at the radius.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Gust</b><em>FlowGust</em></figcaption>
+    <a class="shot" href="FlowGust.png"><img src="FlowGust.png" alt="Gust"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">A single 18 m/s gust at 135° on a 420 m radius, caught mid-pulse between its 0.65 and 1.0 envelope.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Disabled</b><em>FlowDisabled</em></figcaption>
+    <a class="shot" href="FlowDisabled.png"><img src="FlowDisabled.png" alt="Disabled"></a>
+    <p style="font-size:11.5px;line-height:1.6;margin-top:10px">A disabled field samples to zero everywhere: flat teal, no strokes, and the in-canvas stamp reads FIELD DISABLED.</p>
+  </figure>
+</div>
+</body>
+</html>

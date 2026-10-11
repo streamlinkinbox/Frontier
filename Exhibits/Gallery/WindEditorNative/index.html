@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — WindEditor, drawn by the engine</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1460px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1460px;margin:0 auto;display:grid;
+        grid-template-columns:1fr;gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1460px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Exhibits · Gallery · WindEditorNative</div>
+  <h1>WindEditor, drawn by the engine</h1>
+  <p>Every pixel below came out of a real ImGui draw list, rasterised on the CPU and written to PNG by
+     <code>Exhibits/Workbench/WindEditor/NativeWindEditor.cpp</code>. Nothing here is a mock-up, and nothing
+     has been retouched.</p>
+  <p>The source is <code>WindPanel.jsx:503</code> — <code>export default function WindEditor</code>, the modal
+     the wind inspector raises from <em>Open WindEditor · place and combine components</em> — with its geometry
+     read off <code>WindPanel.css</code> and <code>Editor.css</code>. The shell is the stylesheet's
+     <code>min(1600px, 100%) × min(950px, 100%)</code> inside the backdrop's 24&nbsp;px inset, so these captures
+     are 1648&nbsp;×&nbsp;998 at one device pixel per CSS pixel.</p>
+  <p><b>The type is now true to the browser.</b> ImGui bakes a face so that ascent&nbsp;−&nbsp;descent equals
+     the size you ask for; CSS sizes the em box instead. DM Sans reports hhea ascent&nbsp;992 and
+     descent&nbsp;−310 per 1000&nbsp;em, so the two differ by exactly <code>1.302</code> and every CSS pixel
+     size is ground up by that factor before it reaches ImGui. A 12&nbsp;px <em>Pause preview</em> measures
+     70.98&nbsp;px here, which is what the font's own <code>hmtx</code> table says it measures in Chrome. The
+     same number is DM&nbsp;Sans's <code>normal</code> line-height, which is why a baked line is also exactly
+     one CSS line box tall. Two weights are baked, because the dialog is Light&nbsp;300 everywhere except
+     <code>.wind-section-head h2/h3</code> and <code>.wind-dimensions h3</code>, which are Regular&nbsp;400.</p>
+  <div class="rail">
+    <div class="pill"><b>38</b><span>checks passed</span></div>
+    <div class="pill"><b>4</b><span>captures</span></div>
+    <div class="pill"><b>1648</b><span>pixels wide</span></div>
+    <div class="pill"><b>1.302</b><span>em scale</span></div>
+  </div>
+  <p style="margin-top:18px"><span class="tag"><i></i>Executed, not illustrated</span></p>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>The dialog</b><em>Three components · tornado selected</em></figcaption>
+    <span class="shot"><img src="Dialog.png" alt="The WindEditor dialog"></span>
+    <p style="margin-top:10px;font-size:12px">The field an unsaved subject resolves to — <em>Prevailing
+       wind</em> at 7&nbsp;m/s on 250°, a <em>Passing gust</em> at speed&nbsp;×&nbsp;gust over a 450&nbsp;m
+       radius — plus a tornado dropped by <code>+ Tornado</code>, which <code>Add()</code> places at
+       .12&nbsp;width and −.08&nbsp;depth with 22&nbsp;m/s and a 260&nbsp;m radius. Six property cells, because
+       bearing belongs to directional and gust alone and frequency to gust alone.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Dragged and tuned</b><em>Vectors on · 36 m/s</em></figcaption>
+    <span class="shot"><img src="DialogTuned.png" alt="The tornado dragged and tuned"></span>
+    <p style="margin-top:10px;font-size:12px">The state <code>CheckWind.mjs</code> drives the reference into:
+       the tornado's handle dragged to .36&nbsp;/&nbsp;.62 of the map, which on a 1000&nbsp;m slice reads back
+       −140&nbsp;m and 120&nbsp;m, then strength 36 and radius 340. The placement map is an
+       <code>&lt;svg viewBox="0 0 600 400" preserveAspectRatio="none"&gt;</code>, so its user space is stretched
+       1.079 across and 0.82 down: the handle is an ellipse, the dashes are longer on one axis than the other,
+       and the glyphs walk on a stretched pen.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Hidden and paused</b><em>Gust selected · tornado disabled</em></figcaption>
+    <span class="shot"><img src="DialogPaused.png" alt="The dialog with the field hidden"></span>
+    <p style="margin-top:10px;font-size:12px">The subject hides the field, so the footer dot turns
+       <code>#c67370</code>, the note becomes <em>Field hidden · zero output</em> and the canvas shorts to
+       <em>FIELD DISABLED</em>. The tornado is switched off and its whole <code>&lt;g&gt;</code> drops to
+       0.4&nbsp;opacity, handle and caption together. Selecting the gust grows the grid to eight cells —
+       bearing and frequency — and swaps the paragraph underneath.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Nothing selected</b><em>Empty field</em></figcaption>
+    <span class="shot"><img src="DialogEmpty.png" alt="The dialog with no components"></span>
+    <p style="margin-top:10px;font-size:12px">With no components the counter reads <code>0 / 64</code>, the
+       list collapses to nothing, the evaluator returns zero everywhere — the canvas sits at the cold end of
+       the <code>#306e7c → #58a56e → #d3b565</code> ramp — and the properties card shrinks to its heading,
+       <em>Select or add a component</em>.</p>
+  </figure>
+</div>
+<footer>
+  Rebuild: <code>python3 Exhibits/Workbench/WindEditor/RunNativeWindEditor.py</code>. The runner records the
+  exact compiler and link commands it executed in <code>Commands.json</code> and the SHA-256 of every source
+  and capture in <code>Hashes.json</code>; <code>Proof.txt</code> is the program's own stdout.<br>
+  Surface: <code>Engine/Editor/WindEditorSurface.h</code>, over the evaluator and canvas kit in
+  <code>Engine/Editor/WindPanelSurface.h</code>.
+</footer>
+</body>
+</html>

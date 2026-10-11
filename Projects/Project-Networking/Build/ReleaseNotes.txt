@@ -1,0 +1,15 @@
+Clean tabbed lobby with a true EOS match session, lobby/session browsers, and host-editable settings.
+
+- Lobby tab for readiness and voice; Browse tab for lobby/session search and join; Settings tab for lobby and session properties; History tab for cloud history and the redacted log.
+- Match session is a separate EOS Sessions object. Members join it explicitly. Leaving the lobby always closes the session first.
+- If RegisterPlayers returns EOS_ClientPolicyMissingAction, grant Sessions actions to the Dev client policy in the Epic portal. An unregistered lifecycle-only start remains available.
+- Local dummy players are explicitly labelled. They are not EOS accounts, session registrations or voice peers.
+- Copy log replaces Save log. Existing real Auth/Connect/profile integration is retained.
+- Extract into a fresh folder and open Charge.exe. EOS runtime and Microsoft XAudio2 x64 runtime are included.
+- PRIVATE Charge.local.ini carries portable credentials and a stable cross-PC data-encryption key. It is intentionally excluded from this public download. Keep it private.
+- The client policy must allow the relevant lobby, sessions, voice and player-data operations. Do not grant admin/trusted-server policies just to bypass errors.
+- Up to 64 recent client-written history records are displayed. This is not an authoritative leaderboard or competitive-stat service.
+
+CI checks build, local readiness/data/config logic, real SDK/platform startup, and extracted native UI rendering. LobbyProof.bmp is a synthetic layout preview clearly labelled as not authenticated. CI does NOT authenticate a player or prove live lobby creation, search, session joins, RTC transmission, match-service or cloud success. Gameplay transport/replication is not implemented.
+
+Multiplayer transport slice (this release): after EOS login the app selects a transport. Standard accounts stay on the EOS direct path; the manual Premium multiplayer (Photon) switch in Setup routes to Photon Realtime Core 6.0.0.347 with Epic authentication (official /MD x64 libs linked; headers pinned at SDK 5.0.14.3). Photon joins (or creates) FrontierDevRoom, sends a first handshake packet, then carries engine replication. Photon failures fall back to EOS instead of breaking login. Ecom catalog-ownership support is dormant until catalog item IDs are configured. No tokens appear in logs. Premium resolves through the Charge backend (Charge.backend.ini + Epic id) with the manual switch as fallback.

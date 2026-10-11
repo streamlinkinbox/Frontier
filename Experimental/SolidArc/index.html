@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0b0b0b" />
+    <title>SolidArc · Geometry workspace</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23b8bdc6' d='M16 2 29 9v14l-13 7L3 23V9z'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./src/WorkspacePanel.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <div class="document-dock">
+          <div id="document-tabs" role="tablist" aria-label="Documents"></div>
+          <button
+            id="new-document"
+            class="icon-button"
+            title="New document"
+            aria-label="New document"
+            data-icon="plus"
+          ></button>
+        </div>
+        <nav>
+          <button class="nav-button active" id="workspace-button">
+            Workspace</button
+          ><button class="nav-button" id="examples-button">Examples</button>
+        </nav>
+        <div class="header-end">
+          <span class="kernel-tag"><i></i> Native CAD · WebAssembly</span
+          ><button
+            class="icon-button"
+            id="help-button"
+            aria-label="Help"
+            data-icon="help"
+          ></button
+          ><button class="button" id="save-button">
+            <span data-icon="save"></span>Save .arc
+          </button>
+        </div>
+      </header>
+      <div class="document-bar">
+        <span data-icon="file"></span
+        ><span id="document-title">Mount study</span
+        ><span class="subtle">.arc</span><i id="dirty-indicator"></i
+        ><span class="bar-divider"></span
+        ><span class="subtle">SolidArc / Experimental</span
+        ><span class="spacer"></span
+        ><button class="text-button" id="open-button">
+          Open document <span data-icon="folder"></span></button
+        ><input type="file" id="open-file" accept=".arc,text/plain" hidden />
+      </div>
+      <main class="workspace" id="workspace">
+        <aside class="panel outliner">
+          <div class="panel-heading">
+            <h2>Outliner</h2>
+            <small id="scene-count">Loading geometry</small
+            ><button
+              class="icon-button"
+              id="compact-button"
+              aria-label="Compact rows"
+              title="Compact rows"
+              data-icon="rows"
+            ></button>
+          </div>
+          <div class="stat-tiles">
+            <div>
+              <span data-icon="body" class="amber"></span><label>Bodies</label
+              ><strong id="body-count">—</strong>
+            </div>
+            <div>
+              <span data-icon="curve" class="cyan"></span><label>Sketches</label
+              ><strong id="sketch-count">—</strong>
+            </div>
+          </div>
+          <label class="search"
+            ><span data-icon="search"></span
+            ><input
+              id="scene-search"
+              placeholder="Search scene…"
+              aria-label="Search scene"
+            /><kbd>Ctrl F</kbd></label
+          >
+          <div class="filter-chips" id="filters">
+            <button data-filter="all" class="active">All</button
+            ><button data-filter="2">Bodies</button
+            ><button data-filter="0">Sketches</button
+            ><button data-filter="1">Surfaces</button>
+          </div>
+          <div class="collection">
+            <button id="fold-button" class="text-button" aria-expanded="true">
+              ⌄ &nbsp; <span data-icon="folder"></span> Geometry collection</button
+            ><button
+              id="add-button"
+              class="icon-button"
+              aria-label="Construct geometry"
+              data-icon="plus"
+            ></button>
+          </div>
+          <div id="scene-rows" role="tree" aria-label="Scene geometry"></div>
+          <div class="outliner-caption">
+            <span data-icon="link"></span>Native B-rep · editable construction
+          </div>
+          <section class="construct-library">
+            <button id="construct-launcher" class="construct-launcher">
+              <span data-icon="construct"></span
+              ><span
+                >Construct geometry<small
+                  >22 native tools · Tab in viewport</small
+                ></span
+              ><span>↗</span>
+            </button>
+          </section>
+          <div class="panel-footer">
+            <span data-icon="shield"></span>Geometry stays in your browser
+          </div>
+        </aside>
+        <section class="panel scene-panel">
+          <div class="viewport-bar">
+            <button
+              id="construct-button"
+              class="construct-chip"
+              aria-haspopup="dialog"
+            >
+              <span data-icon="plus"></span>Construct</button
+            ><strong class="viewport-title">Geometry view</strong
+            ><span class="bar-divider"></span
+            ><select id="camera-view" aria-label="Camera view">
+              <option value="orbit" disabled>Orbit</option>
+              <option value="iso">Isometric</option>
+              <option value="front">Front</option>
+              <option value="right">Right</option>
+              <option value="top">Top</option>
+              <option value="back">Back</option>
+              <option value="left">Left</option>
+              <option value="bottom">Bottom</option></select
+            ><span class="spacer"></span
+            ><button
+              id="projection-button"
+              class="text-button"
+              title="Toggle orthographic projection"
+            >
+              Perspective</button
+            ><button
+              id="edges-button"
+              class="icon-button active"
+              title="Boundary edges"
+              aria-label="Boundary edges"
+              aria-pressed="true"
+              data-icon="body"
+            ></button
+            ><button
+              id="fit-button"
+              class="icon-button"
+              title="Fit geometry · F"
+              aria-label="Fit geometry"
+              data-icon="focus"
+            ></button
+            ><button
+              id="maximize-button"
+              class="icon-button"
+              title="Maximize viewport"
+              aria-label="Maximize viewport"
+              data-icon="maximize"
+            ></button>
+          </div>
+          <div class="viewport" id="viewport">
+            <canvas
+              id="cad-canvas"
+              aria-label="Interactive native SolidArc CAD viewport"
+              tabindex="0"
+            ></canvas>
+            <div class="viewport-label">
+              <span class="status-pill">NURBS / B-REP</span
+              ><span id="selection-caption">Mount study</span
+              ><small>Native geometry · browser execution</small>
+            </div>
+            <div class="selection-tools" id="selection-tools">
+              <button
+                data-mode="whole"
+                class="active"
+                title="Select bodies · 4"
+                aria-label="Select bodies"
+                data-icon="body"
+              ></button
+              ><button
+                data-mode="face"
+                title="Select faces · 3"
+                aria-label="Select faces"
+                data-icon="surface"
+              ></button
+              ><button
+                data-mode="edge"
+                title="Select edges · 2"
+                aria-label="Select edges"
+                data-icon="edge"
+              ></button
+              ><button
+                data-mode="control"
+                title="Select control points · 1"
+                aria-label="Select control points"
+                data-icon="points"
+              ></button>
+              <hr />
+              <button
+                id="cages-button"
+                title="Control polygons"
+                aria-label="Control polygons"
+                data-icon="cage"
+              ></button>
+            </div>
+            <div class="gizmo-toolbar">
+              <label for="gizmo-mode">Gizmo</label
+              ><select id="gizmo-mode" aria-label="Gizmo mode">
+                <option value="combined">Combined</option>
+                <option value="translate">Move</option>
+                <option value="rotate">Rotate</option>
+                <option value="scale">Scale</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+            <div id="gizmo-readout" role="status"></div>
+            <div class="orientation">
+              <button data-view="top" title="Top">Z</button
+              ><button data-view="right" title="Right">X</button
+              ><button data-view="front" title="Front">Y</button>
+            </div>
+            <div class="viewport-instructions">
+              Drag to orbit <span>Right / middle-drag to pan</span> Scroll to
+              zoom
+              <span>Alt-drag bypasses gizmo · Ctrl snaps</span>
+            </div>
+            <div id="loading-overlay">
+              <div class="spinner"></div>
+              <h3>Loading SolidArc</h3>
+              <p>Starting the native CAD code in a local worker.</p>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button
+              id="undo-button"
+              class="icon-button"
+              aria-label="Undo"
+              title="Undo · Ctrl Z"
+              data-icon="undo"
+            ></button
+            ><button
+              id="redo-button"
+              class="icon-button"
+              aria-label="Redo"
+              title="Redo · Ctrl Shift Z"
+              data-icon="redo"
+            ></button
+            ><span class="bar-divider"></span
+            ><button class="text-button" id="history-button">
+              Construction history</button
+            ><span id="history-count" class="subtle">0 steps</span
+            ><span class="spacer"></span
+            ><button class="text-button" id="diagnostics-button">
+              <span data-icon="terminal"></span>Commands
+            </button>
+          </div>
+          <div class="history-strip" id="history-strip"></div>
+          <section id="console-panel" hidden>
+            <div class="section-heading">
+              <h3>Native command log</h3>
+              <button id="clear-log" class="text-button">Clear log</button>
+            </div>
+            <pre id="command-log" role="log"></pre>
+            <form id="command-form">
+              <span>›</span
+              ><input
+                id="command-input"
+                placeholder="e.g. sphere (0,0,1) 0.5 --name=Sphere"
+                aria-label="Native CAD command"
+                autocomplete="off"
+                maxlength="12000"
+              /><button class="button" type="submit">Run</button>
+            </form>
+          </section>
+        </section>
+        <aside class="panel inspector">
+          <div class="panel-heading">
+            <h2>Inspector</h2>
+            <button
+              id="inspect-button"
+              class="icon-button"
+              aria-label="Inspect topology"
+              title="Inspect topology"
+              data-icon="inspect"
+            ></button>
+          </div>
+          <div id="inspector-body"></div>
+          <div class="panel-footer">
+            <span data-icon="link"></span>Operations run in the original CAD
+            implementation
+          </div>
+        </aside>
+      </main>
+      <footer class="status-bar">
+        <span id="kernel-status"><i></i>Starting kernel</span
+        ><span id="geometry-stats">—</span><span class="spacer"></span
+        ><span id="render-duration">CPU raster</span
+        ><span class="bar-divider"></span><span>Metres · Z up</span
+        ><span class="bar-divider"></span
+        ><span>SOLIDARC <small>WEB 0.1</small></span>
+      </footer>
+    </div>
+    <div id="toast" role="status" hidden></div>
+    <div
+      id="construct-menu"
+      popover
+      role="dialog"
+      aria-label="Construct geometry catalogue"
+    >
+      <header>
+        <i></i><strong>Construct</strong><kbd>Tab</kbd
+        ><button
+          id="construct-close"
+          class="icon-button"
+          aria-label="Close construct menu"
+          data-icon="close"
+        ></button>
+      </header>
+      <div class="construct-content">
+        <nav id="construct-sections" aria-label="Construction sections"></nav>
+        <div class="construct-catalogue">
+          <div id="construct-tiles"></div>
+          <footer>
+            Click a tile: place it at the next spot on the workplane
+          </footer>
+        </div>
+      </div>
+    </div>
+    <dialog id="tool-dialog">
+      <div class="dialog-heading">
+        <span data-icon="construct"></span>
+        <h2 id="tool-title">Construct</h2>
+        <button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close"
+          data-icon="close"
+        ></button>
+      </div>
+      <p id="tool-description"></p>
+      <form id="tool-form">
+        <div id="tool-fields"></div>
+        <div class="command-preview" id="command-preview"></div>
+        <p id="tool-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="button" data-close-dialog>Cancel</button
+          ><button type="submit" class="button primary" id="apply-tool">
+            Construct geometry
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="examples-dialog">
+      <div class="dialog-heading">
+        <span data-icon="layers"></span>
+        <h2>Geometry studies</h2>
+        <button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close examples"
+          data-icon="close"
+        ></button>
+      </div>
+      <p>Native construction examples. Each opens in a new document.</p>
+      <div id="example-cards"></div>
+    </dialog>
+    <dialog id="help-dialog">
+      <div class="dialog-heading">
+        <span data-icon="body"></span>
+        <h2>SolidArc, in your browser.</h2>
+        <button
+          class="icon-button"
+          data-close-dialog
+          aria-label="Close help"
+          data-icon="close"
+        ></button>
+      </div>
+      <p>
+        This is the existing C++ SolidArc geometry, command interpreter and
+        software rasterizer compiled to WebAssembly—not a replacement geometry
+        mockup. It runs locally in a worker, without a CAD server.
+      </p>
+      <div class="help-grid">
+        <span>Orbit <kbd>Drag</kbd></span
+        ><span>Pan <kbd>Right / middle-drag</kbd></span
+        ><span>Fit <kbd>F</kbd></span
+        ><span>Select points / edges / faces / bodies <kbd>1–4</kbd></span
+        ><span>Undo / redo <kbd>Ctrl Z / Ctrl Shift Z</kbd></span
+        ><span>Save native document <kbd>Ctrl S</kbd></span>
+      </div>
+      <p>
+        Use Construct (Tab while the viewport is focused) for the native
+        Reference, Sketch Draw, Solid and Surface catalogue. Drag the native
+        gizmo to move, rotate or scale; Ctrl snaps and Escape cancels. Alt-drag
+        always orbits. The Transform inspector has editable XYZ rows and reset
+        chips. Select geometry in the viewport or outliner; Shift-click extends
+        the selection. Live dimensions rebuild native geometry. Numeric pills
+        support typing and horizontal dragging. Double-click an outliner row or
+        document tab to rename it.
+      </p>
+      <div class="help-note">
+        The native kernel still has bounded operation support: unsupported
+        intersections, fillets or face edits report a refusal in the command
+        log. This web build does not certify general CAD correctness. .arc saves
+        preserve native construction, not a flattened preview. Imported files
+        are limited to 8 MB; up to four live documents. Camera/display
+        preferences are session-only. OBJ export is tessellated, not STEP. Large
+        native models can be slow with CPU rasterization.
+      </div>
+      <button id="restart-button" class="button">Restart browser kernel</button>
+    </dialog>
+    <script type="module" src="./src/WorkspacePanel.js"></script>
+  </body>
+</html>

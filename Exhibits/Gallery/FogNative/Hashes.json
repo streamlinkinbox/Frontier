@@ -1,0 +1,18 @@
+{
+  "Engine/Editor/FogPanelSurface.h": "11fd9098d8260243345840bfac004527d7e7d12f1a90b27d530eda2cba315a33",
+  "Engine/Editor/FogInspectorPanel.cpp": "a8e173ddd115ab8485eb2fa56a77b21307ef7847836fef5f1537f614e38d65f5",
+  "Exhibits/Workbench/Fog/NativeFogCards.cpp": "cccc6f63cdb6242d1b2b9b6326921f313e39d086560d6a89f4fd5fa45c65c7d2",
+  "Exhibits/Workbench/Fog/RunNativeFogCards.py": "12f60de27dadb55dc0f8f22c58ccf13752383d38cbf91b3e1d228ffee289b660",
+  "Exhibits/Gallery/FogNative/ChamberAerial.png": "ed2c8a6f5c49a01ca55e9421ff7fa2f000cef007ee4fa0d93096cc8921eb8f85",
+  "Exhibits/Gallery/FogNative/ChamberHeight.png": "74957c7100745262353f340afd00f37616e391323dffb7aba310ecb3831963c2",
+  "Exhibits/Gallery/FogNative/ChamberLocal.png": "6f8a1f3e6c4cbfcb5c0b57bd82e51074845feeb846e342b2ca633b9270f24b58",
+  "Exhibits/Gallery/FogNative/DensityProfile-Authored.png": "821a6ecb09f67d778587f927821eff67a8adafcbac17f3c18450973ae745ca83",
+  "Exhibits/Gallery/FogNative/DensityProfile.png": "48dda6d71ab6a40e5bb9b056a75ce50a3ce80c5bdd067e62744fd1d222365e7d",
+  "Exhibits/Gallery/FogNative/VolumeShape-Box.png": "3275b951eb0092984d27531265bb777547e9f29d4b1b2d444202a7f720571a5e",
+  "Exhibits/Gallery/FogNative/VolumeShape-Cone.png": "63a8e0bcd72bdd417d31f83a30692862d2b14c1c76128c30e12814ebf785aff6",
+  "Exhibits/Gallery/FogNative/VolumeShape-Custom.png": "2c33b5833442fd7ee8ba238aeb592342d873664c22715451451a8872714440af",
+  "Exhibits/Gallery/FogNative/VolumeShape-Cylinder.png": "9f6ccf801814213ebec31997c20f6f30e511a9743567119c2d3659082802ec39",
+  "Exhibits/Gallery/FogNative/VolumeShape-Diamond.png": "6a54cf46ff3618b0424a777999e0ac7845bc2217e4c14f2e909de3103ec847a9",
+  "Exhibits/Gallery/FogNative/VolumeShape-Prism.png": "6c028ffc27d98190fba733d19e1999b6eb06c575494dabae669c5b2cedc8f79f",
+  "Exhibits/Gallery/FogNative/VolumeShape-Sphere.png": "66da8cbe278bd42c024c7d68d5c6c2e72e898b98cd89620b11d5f7ff31600584"
+}

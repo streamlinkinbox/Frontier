@@ -1,0 +1,166 @@
+NativeForceCard - the ported force field panel
+
+Every kind in the taxonomy has a heading
+  PASS  kind has a heading: Prevailing wind
+  PASS  its heading explains itself: Prevailing wind
+  PASS  kind has a heading: Gust front
+  PASS  its heading explains itself: Gust front
+  PASS  kind has a heading: Tornado
+  PASS  its heading explains itself: Tornado
+  PASS  kind has a heading: Blast outflow
+  PASS  its heading explains itself: Blast outflow
+  PASS  kind has a heading: Attractor
+  PASS  its heading explains itself: Attractor
+  PASS  kind has a heading: Repulsor
+  PASS  its heading explains itself: Repulsor
+  PASS  kind has a heading: Lift
+  PASS  its heading explains itself: Lift
+  PASS  kind has a heading: Magnetic dipole
+  PASS  its heading explains itself: Magnetic dipole
+  PASS  kind has a heading: Gravity
+  PASS  its heading explains itself: Gravity
+  PASS  kind has a heading: Orbit
+  PASS  its heading explains itself: Orbit
+  PASS  kind has a heading: Drag volume
+  PASS  its heading explains itself: Drag volume
+  PASS  kind has a heading: Current
+  PASS  its heading explains itself: Current
+  PASS  five kinds contribute flow: prevailing, gust, tornado, outflow, current
+  PASS  six kinds contribute acceleration: attract, repel, lift, magnetic, gravity, orbit
+  PASS  one kind damps: the drag volume
+  PASS  and that is all twelve of them
+
+The headings carry their units, because the quantities differ
+  PASS  flow is m/s
+  PASS  acceleration is m/s2
+  PASS  damping is 1/s
+  PASS  flow says the receiver's coupling decides how much it moves
+  PASS  acceleration says coupling has no say, which is why gravity is here
+  PASS  damping says it can never start something moving
+
+Reaching everywhere means no centre and no radius
+  PASS  gravity reaches everywhere by its kind's own facts
+  PASS  so the planner marks the card everywhere
+  PASS  no centre row is planned
+  PASS  no radius row is planned
+  PASS  and no falloff row, which would have nothing to fall off over
+  PASS  strength remains, because it is the one thing gravity has
+  PASS  and the card says in words that this is not a very large sphere
+  PASS  a gust front is bounded
+  PASS  so it does get a centre
+  PASS  and a radius
+  PASS  and a falloff to spend it over
+  PASS  a gust alone carries the pulse rate row
+  PASS  a tornado does not
+  PASS  a bounded kind set to everywhere loses its radius too - the planner reads the field
+
+Only the attractor asks about swirl and swallowing
+  PASS  the attractor has a swallow radius, because it is the kind that can consume a receiver
+  PASS  a repulsor cannot swallow anything and is not asked
+  PASS  flow kinds are authored by bearing
+  PASS  acceleration kinds are not - a bearing on gravity would be a second way to say down
+
+A kind with no GPU path admits it
+  PASS  the warning follows ForcePackable: Prevailing wind
+  PASS  the warning follows ForcePackable: Gust front
+  PASS  the warning follows ForcePackable: Tornado
+  PASS  the warning follows ForcePackable: Blast outflow
+  PASS  the warning follows ForcePackable: Attractor
+  PASS  the warning follows ForcePackable: Repulsor
+  PASS  the warning follows ForcePackable: Lift
+  PASS  the warning follows ForcePackable: Magnetic dipole
+  PASS  the warning follows ForcePackable: Gravity
+  PASS  the warning follows ForcePackable: Orbit
+  PASS  the warning follows ForcePackable: Drag volume
+  PASS  the warning follows ForcePackable: Current
+  PASS  the drag volume is marked unpackable
+  PASS  so is the current
+  PASS  gravity is not
+  PASS  and the warning says plainly that it moves nothing
+
+The ranges are the browser panel's ranges
+  PASS  strength floor is -20
+  PASS  strength ceiling is 20
+  PASS  and a flow field's strength is labelled m/s
+  PASS  an acceleration field's is m/s2 - the unit comes from the kind, not the row
+  PASS  and a damping field's is 1/s
+  PASS  radius floor is 0.5 m
+  PASS  radius ceiling is 30 m
+  PASS  bearing spans a full turn
+  PASS  to the degree, with no decimals
+  PASS  a lifetime runs to two minutes
+  PASS  and the label says what zero means, rather than leaving it to be discovered
+  PASS  as does the repeat row's
+
+A force row is the editor's row, to the pixel
+  PASS  a slider row is label, margin, pill and the field gap
+  PASS  a switch row is the 24 px toggle and the field gap, with no label line above it
+  PASS  a select row carries the 34 px control
+  PASS  and the remove button is the editor's 33 px action
+  PASS  the add buttons are that same action button
+
+A card is its rows plus the card's own padding
+  PASS  a bounded card with no notes is exactly its rows and its padding
+  PASS  and an everywhere card pays for the reach note in place of the rows it dropped
+
+The cost card counts what the engine counts
+  PASS  two flow fields sum into the one lattice
+  PASS  the two acceleration fields are evaluated per receiver
+  PASS  a third wind costs no extra per-receiver work
+  PASS  a second repulsor-class field does
+  PASS  a selective flow field is not bakeable
+  PASS  so the cost card moves it to the per-receiver side
+  PASS  and the note explains why the two sides differ
+
+The header disowns what it does not own
+  PASS  per-system attractors are declared absent rather than silently missing
+
+The painted panel
+  PASS  capture written: Empty
+  PASS  an empty scene paints no headings at all - three lonely sentences would be worse than nothing
+  PASS  but the header, the add grid and the cost card stay
+  PASS  capture written: FlowOnly
+  PASS  a second heading appears the moment a kind needs it
+  PASS  capture written: FlowAndAcceleration
+  PASS  capture written: WithDamping
+
+Where the panel put its controls
+  PASS  every kind has an add button with a region
+  PASS  addable: Prevailing wind
+  PASS  addable: Gust front
+  PASS  addable: Tornado
+  PASS  addable: Blast outflow
+  PASS  addable: Attractor
+  PASS  addable: Repulsor
+  PASS  addable: Lift
+  PASS  addable: Magnetic dipole
+  PASS  addable: Gravity
+  PASS  addable: Orbit
+  PASS  addable: Drag volume
+  PASS  addable: Current
+  PASS  the toggle is reachable on: Prevailing wind
+  PASS  so is remove on: Prevailing wind
+  PASS  and remove sits below the toggle on: Prevailing wind
+  PASS  the toggle is reachable on: Southerly gust
+  PASS  so is remove on: Southerly gust
+  PASS  and remove sits below the toggle on: Southerly gust
+  PASS  the toggle is reachable on: Gravity
+  PASS  so is remove on: Gravity
+  PASS  and remove sits below the toggle on: Gravity
+  PASS  the toggle is reachable on: Whirlpool
+  PASS  so is remove on: Whirlpool
+  PASS  and remove sits below the toggle on: Whirlpool
+  PASS  the toggle is reachable on: Water volume
+  PASS  so is remove on: Water volume
+  PASS  and remove sits below the toggle on: Water volume
+  PASS  the damping group is painted after the flow group, in the fixed order
+
+Strength is draggable on every card
+  PASS  strength track: Prevailing wind
+  PASS  strength track: Southerly gust
+  PASS  strength track: Gravity
+  PASS  strength track: Whirlpool
+  PASS  strength track: Water volume
+
+NativeForceCard: 136 checks passed
+Exit: 0

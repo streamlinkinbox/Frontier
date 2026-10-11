@@ -1,0 +1,63 @@
+NativeGasInspectorRoute - the shipped inspector, opening the gas card
+
+The branch exists and the panel keeps a domain for the row
+  PASS  recording a Gas sheet makes the panel hold a domain for that instance
+  PASS  and only for that instance - a slot is per row, not global
+  PASS  the card takes the row's name rather than carrying its own
+  PASS  and the row's visibility, so the two cannot disagree
+  PASS  🔴 two-way coupling starts off, as it does everywhere else in this programme
+  PASS  🔴 and a one-shot starts retiring - holding the fields is the deliberate choice
+
+🔴 The hit targets are where the paint is - pressed, not inspected
+  PASS  every control the card offers has a region, including ↗
+  PASS  including the retirement toggle, because the domain starts as a one-shot
+  PASS  and they come down the column in the browser's order: tiles, preset, run policy, ↗ last
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+  PASS  no two hit targets overlap, so no button eats another's clicks
+
+Clicking the shipped card changes the shipped domain
+  PASS  pressing the Pushes objects tile toggles two-way coupling on the panel's own domain
+  PASS  pressing Runs advances the policy - a draw-list select cycles, which is as close as this gets to a dropdown
+  PASS  🔴 and the retirement toggle is reachable, so keeping a one-shot resident is a decision somebody made
+  PASS  ② Add emitter adds a child to the domain the panel is holding
+  PASS  nothing has asked for the Fluid editor yet
+  PASS  ↗ raises the request, naming the instance that asked
+  PASS  and consuming it clears it - a flag that is never consumed fires for the rest of the session
+  PASS  ✔️ and a domain's ↗ did not also ask for the particle editor
+  PASS  the domain's card knows it is a domain, which is what its Open band reads from
+
+A child emitter takes the same branch
+  PASS  an emitter row opens the gas branch and gets a slot of its own
+  PASS  named from its own row, because it is its own entity and not a group on the domain
+  PASS  ✔️ an emitter's card knows it is an emitter
+  PASS  ↗ on an emitter raises the ParticleEditor request, naming the row that asked
+  PASS  🔴 and it does not raise the Fluid one -- one button, one destination, chosen by the row
+  PASS  consuming clears it
+
+The outliner row says what the browser's row says
+  PASS  a gas domain reads '1.9x2.1 m - Near - on trigger', policy lowercased as the browser lowercases it
+  PASS  and an emitter reads '1.40x - 3.5 K'
+  PASS  a disabled emitter says 'off' rather than reporting a rate it is not emitting at
+  PASS  the panel comes from the sheet appearance, not the glyph - gas shares the local fog drawing
+  PASS  and the emitter is its own panel, sharing that glyph with neither of them
+  PASS  while a real local fog row is untouched by any of this
+  PASS  and a folder holding them counts them under names of their own
+
+Capture
+  PASS  the shipped inspector's own frame is written out, ident strip and all
+
+PASS 47
+Exit: 0

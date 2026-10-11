@@ -1,0 +1,126 @@
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,8 +199,11 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
++enum class EditorSheetAppearance : uint8_t { Generic, Sun };
++
+ struct EditorSheet
+ {
++    EditorSheetAppearance Appearance = EditorSheetAppearance::Generic;
+     EditorPropertyGroup Groups[kMaxEditorSheetGroups] = {};
+     uint32_t            GroupCount = 0u;
+ };
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -946,6 +946,7 @@
+ void CelestialSequence::BuildSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
+ {
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
++    Sheet.Appearance = EditorSheetAppearance::Generic;
+     Sheet.GroupCount = 0;
+     for (auto& Group : Sheet.Groups)
+     {
+@@ -961,6 +962,7 @@
+ 
+ void CelestialSequence::BuildSunSheet(EditorSheet& Sheet) const noexcept
+ {
++    Sheet.Appearance = EditorSheetAppearance::Sun;
+     char Text[48];
+         EditorPropertyGroup& Bake = OpenGroup(Sheet, "Bake / image");
+         std::snprintf(Bake.Caption, sizeof(Bake.Caption), "Sun-specific Bake and Use baked image are not supported. The existing bake belongs to Sky, not Sun.");
+@@ -997,8 +999,10 @@
+         std::snprintf(Live.Caption, sizeof(Live.Caption), "Read-only astronomy. Manual azimuth/elevation and independent disk/light switches are not exposed.");
+         std::snprintf(Text, sizeof(Text), "%+.2f deg", static_cast<double>(Solved.Sun.Elevation));
+         Push(Live, MakeReadout("Elevation", Text));
++        Live.Properties[0].Figure = Solved.Sun.Elevation;
+         std::snprintf(Text, sizeof(Text), "%.1f deg", static_cast<double>(Solved.Sun.Azimuth));
+         Push(Live, MakeReadout("Azimuth", Text));
++        Live.Properties[1].Figure = Solved.Sun.Azimuth;
+         std::snprintf(Text, sizeof(Text), "%+.2f deg", static_cast<double>(Solved.Declination));
+         Push(Live, MakeReadout("Declination", Text));
+         std::snprintf(Text, sizeof(Text), "%+.1f min", static_cast<double>(Solved.EquationOfTime));
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -6,6 +6,7 @@
+ #include "InspectorPanel.h"
+ 
+ #include "ControlPanel.h"
++#include "SunInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -77,6 +78,7 @@
+ void InspectorPanel::AssignControls(ControlPanel* Controls) noexcept
+ {
+     Controls_ = Controls;
++    PrepareSunInspectorFonts();
+ }
+ 
+ void InspectorPanel::AssignTabOpen(bool* Open) noexcept
+@@ -121,6 +123,18 @@
+             ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, Gap));
+         }
+         RecordFooter(nullptr);
++        ImGui::End();
++        return;
++    }
++
++    if (Sheet->Appearance == EditorSheetAppearance::Sun)
++    {
++        ImGui::BeginChild("##sun-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
++        ImGui::PushID(static_cast<int>(PickedIndex));
++        RecordSunInspector(*Controls_, *Picked, *Sheet);
++        ImGui::PopID();
++        ImGui::EndChild();
++        RecordFooter(Picked);
+         ImGui::End();
+         return;
+     }
+--- a/Engine/Editor/EditorHost.cpp
++++ b/Engine/Editor/EditorHost.cpp
+@@ -5,6 +5,7 @@
+ //    project's record feed.
+ 
+ #include "EditorHost.h"
++#include "SunInspectorPanel.h"
+ #include "../DisplayPresentation/IconPresentation.h"
+ 
+ #include <imgui.h>
+@@ -346,6 +347,7 @@
+ 
+ void EditorHost::ApplyTheme() noexcept
+ {
++    PrepareSunInspectorFonts();
+     IconPresentation::Attach();
+ #ifdef FRONTIER_DEVELOPMENT
+     ImGuiStyle& Applied = ImGui::GetStyle();
+--- a/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
++++ b/Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp
+@@ -3,6 +3,7 @@
+ //=============================================================================================================================================
+ 
+ #include "SolidArcEditorHost.h"
++#include "../../../../../Engine/Editor/SunInspectorPanel.h"
+ #include "../../../../../Engine/DisplayPresentation/IconPresentation.h"
+ 
+ #include <imgui.h>
+@@ -44,6 +45,7 @@
+ 
+ void SolidArcEditorHost::ApplyTheme() noexcept
+ {
++    PrepareSunInspectorFonts();
+     IconPresentation::Attach();
+     ImGuiStyle& Style = ImGui::GetStyle();
+ #ifdef FRONTIER_DEVELOPMENT
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -247,6 +247,7 @@
+     Engine/Editor/OutlinerPanel.cpp
+     Engine/Editor/ViewportPanel.cpp
+     Engine/Editor/InspectorPanel.cpp
++    Engine/Editor/SunInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+     Engine/DisplayPresentation/DialogueHost.cpp

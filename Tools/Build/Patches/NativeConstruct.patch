@@ -1,0 +1,289 @@
+--- a/Engine/Editor/EditorHost.h
++++ b/Engine/Editor/EditorHost.h
+@@ -13,6 +13,7 @@
+ #include "OutlinerPanel.h"
+ #include "ViewportPanel.h"
+ #include "InspectorPanel.h"
++#include "NativeConstructPanel.h"
+ #include "ShadeTick.h"
+ 
+ #include "../DisplayPresentation/ControlCentreHost.h"
+@@ -39,6 +40,12 @@
+     //    four faces. Idempotent: the faces seat once (a second seating would duplicate the glyph sheet), the style
+     //    re-seats freely. Runs last, over the scheduler's own seating, so the editor's tokens win everywhere.
+     void ApplyTheme() noexcept;
++    void OpenConstruct() noexcept {Construct_.Open();}
++    ImVec2 QueryConstructEnableCentre() const noexcept {return Construct_.EnableCentre();}
++    ImVec2 QueryConstructSearchCentre() const noexcept {return Construct_.SearchCentre();}
++    bool QueryConstructOpen() const noexcept {return Construct_.IsOpen();}
++    ImVec2 QueryConstructTileCentre(uint64_t Key) const noexcept {return Construct_.TileCentre(Key);}
++    uint64_t QueryConstructKey() const noexcept {return Construct_.QueryKey();}
+     using InspectorExchange = EditorSheet* (*)(uint32_t, bool, void*) noexcept;
+     void AssignInspectorExchange(InspectorExchange Fn,void* Context) noexcept {InspectorExchange_=Fn;InspectorContext_=Context;}
+     void AssignInspectorWorkspace(bool On) noexcept {if(InspectorWorkspace_!=On){InspectorWorkspace_=On;LayoutSeated_=false;}}
+@@ -164,6 +171,7 @@
+     InspectorExchange InspectorExchange_=nullptr;
+     void* InspectorContext_=nullptr;
+     bool InspectorWorkspace_=false;
++    NativeConstructPanel Construct_;
+     bool ViewportTabOpen_  = true;        // the viewport tab's close mark clears this; the add menu seats it
+     bool InspectorTabOpen_ = true;        // the inspector tab's close mark clears this; the add menu seats it
+     ImGuiID LeftColumn_    = 0u;          // the left column's address, for the add control and its poll
+--- a/Engine/Editor/EditorHost.cpp
++++ b/Engine/Editor/EditorHost.cpp
+@@ -107,18 +107,8 @@
+ void EditorHost::RecordTabAdd() noexcept
+ {
+ #ifdef FRONTIER_DEVELOPMENT
+-    // The left column's add control reports through the vendor's poll; a press raises the menu, whose
+-    //    rows seat each tab open or shut. The menu is the only way back for a tab its close mark shut.
+-    if (ImGui::DockNodeConsumeAddRequest(LeftColumn_))
+-        ImGui::OpenPopup("##tabmenu");
+-    if (ImGui::BeginPopup("##tabmenu"))
+-    {
+-        ImGui::MenuItem("Outliner", nullptr, &OutlinerTabOpen_);
+-        ImGui::MenuItem("Viewport", nullptr, &ViewportTabOpen_);
+-        ImGui::MenuItem("Inspector", nullptr, &InspectorTabOpen_);
+-        ImGui::EndPopup();
+-    }
+-#else
++    if(ImGui::DockNodeConsumeAddRequest(LeftColumn_))Construct_.Open();
++    if(!ImGui::GetIO().WantTextInput && ImGui::GetIO().KeyShift && ImGui::IsKeyPressed(ImGuiKey_A))Construct_.Open();
+ #endif
+ }
+ 
+@@ -571,9 +561,14 @@
+ 
+     const uint32_t Picked = Outliner_.QueryPicked();
+     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
+-    EditorSheet* Current=InspectorExchange_?InspectorExchange_(Picked,false,InspectorContext_):PickedSheet;
+-    Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? Current : nullptr);
+-    if(InspectorExchange_)InspectorExchange_(Picked,true,InspectorContext_);
++    if(!Construct_.ShowingProperties()) {
++        EditorSheet* Current=InspectorExchange_?InspectorExchange_(Picked,false,InspectorContext_):PickedSheet;
++        Inspector_.Record(PickedInstance, Picked, (PickedInstance != nullptr) ? Current : nullptr);
++        if(InspectorExchange_)InspectorExchange_(Picked,true,InspectorContext_);
++    } else {
++        if(ImGui::Begin("Inspector",&InspectorTabOpen_))ImGui::TextDisabled("Editing entity properties in Construct");
++        ImGui::End();
++    }
+     if (!OutlinerRaised_)
+     {
+         // The sheet opens on the outliner: raise its tab once, then leave the choice to the user.
+@@ -581,6 +576,8 @@
+         OutlinerRaised_ = true;
+     }
+     RecordTabAdd();
++    const uint32_t ConstructPick=Construct_.Record(Instances,InstanceCount,Inspector_,InspectorExchange_,InspectorContext_);
++    if(ConstructPick<InstanceCount)PickInstance(ConstructPick);
+ 
+     // The shade records last, above the dock columns: the FPS readout, the shade itself, and the
+     //    toasts, all onto the foreground list — the Rig's order, kept.
+--- a/Engine/Editor/InspectorPanel.h
++++ b/Engine/Editor/InspectorPanel.h
+@@ -28,7 +28,7 @@
+     // The foot strip's live figures (realtime, triangle total); without a readout the strip prints its dashes.
+     void AssignReadout(const EditorReadout* Readout) noexcept;
+ 
+-    void Record(EditorInstance* Picked, uint32_t PickedIndex, EditorSheet* Sheet) noexcept;
++    void Record(EditorInstance* Picked, uint32_t PickedIndex, EditorSheet* Sheet, bool Embedded=false) noexcept;
+ 
+ private:
+     void  RecordEmpty() noexcept;
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -103,12 +103,12 @@
+     Readout_ = Readout;
+ }
+ 
+-void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, EditorSheet* Sheet) noexcept
++void InspectorPanel::Record(EditorInstance* Picked, uint32_t PickedIndex, EditorSheet* Sheet, bool Embedded) noexcept
+ {
+     IM_ASSERT(Controls_ != nullptr);
+-    if (!ImGui::Begin(WindowTitle_, TabOpen_, ImGuiWindowFlags_NoScrollbar))
+-    {
+-        ImGui::End();
++    if (!Embedded && !ImGui::Begin(WindowTitle_, TabOpen_, ImGuiWindowFlags_NoScrollbar))
++    {
++        if(!Embedded)ImGui::End();
+         return;
+     }
+ 
+@@ -131,53 +131,53 @@
+             ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, Gap));
+         }
+         RecordFooter(nullptr);
+-        ImGui::End();
++        if(!Embedded)ImGui::End();
+         return;
+     }
+ 
+     if(Sheet->Appearance==EditorSheetAppearance::Camera){
+         ImGui::BeginChild("##camera-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordCameraInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::Wind || Sheet->Appearance == EditorSheetAppearance::Precipitation || Sheet->Appearance == EditorSheetAppearance::Rainbow) {
+         ImGui::BeginChild("##weather-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordWeatherInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::HeightFog || Sheet->Appearance == EditorSheetAppearance::AerialFog || Sheet->Appearance == EditorSheetAppearance::LocalFog) {
+         ImGui::BeginChild("##fog-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordFogInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::GlobalCloud || Sheet->Appearance == EditorSheetAppearance::LocalCloud) {
+         ImGui::BeginChild("##cloud-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordCloudsInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::Stars) {
+         ImGui::BeginChild("##stars-properties",ImVec2(0,0),ImGuiChildFlags_None,ImGuiWindowFlags_None);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordStarsInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();ImGui::End();return;
++        ImGui::EndChild();if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::Moon) {
+         ImGui::BeginChild("##moon-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordMoonInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+-        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::AtmosphereSky)
+     {
+         ImGui::BeginChild("##sky-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
+         ImGui::PushID(static_cast<int>(PickedIndex));
+         RecordAtmosphereSkyInspector(*Controls_, *Picked, *Sheet);
+-        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+     if (Sheet->Appearance == EditorSheetAppearance::LensFlare)
+     {
+         ImGui::BeginChild("##flare-properties", ImVec2(0.0f, ImMax(0.0f, Controls_->QueryFootTop() - ImGui::GetCursorScreenPos().y)), false);
+         ImGui::PushID(static_cast<int>(PickedIndex));
+         RecordLensFlareInspector(*Controls_, *Picked, *Sheet);
+-        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++        ImGui::PopID();ImGui::EndChild();RecordFooter(Picked);if(!Embedded)ImGui::End();return;
+     }
+ 
+     if (Sheet->Appearance == EditorSheetAppearance::Sun)
+@@ -188,7 +188,7 @@
+         ImGui::PopID();
+         ImGui::EndChild();
+         RecordFooter(Picked);
+-        ImGui::End();
++        if(!Embedded)ImGui::End();
+         return;
+     }
+ 
+@@ -205,7 +205,7 @@
+     ImGui::EndChild();
+     ImGui::PopStyleVar();
+     RecordFooter(Picked);
+-    ImGui::End();
++    if(!Embedded)ImGui::End();
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+--- a/Engine/Editor/OutlinerPanel.cpp
++++ b/Engine/Editor/OutlinerPanel.cpp
+@@ -77,12 +77,12 @@
+ constexpr float kHeadPadCompB = 8.0f;
+ constexpr float kSidePad      = 14.0f;    // .scene-stat / .search / .filters
+ constexpr float kTreePad      = 10.0f;    // .tree padding 2px 10px 10px
+-constexpr float kRowH         = 36.0f;
+-constexpr float kRowHCompact  = 30.0f;
+-constexpr float kRowRadius    = 0.0f;    // rows are rectangles: selection, hover and drop ground all square
+-constexpr float kRowGap       = 8.0f;
++constexpr float kRowH         = 39.0f;
++constexpr float kRowHCompact  = 34.0f;
++constexpr float kRowRadius    = 7.0f;    // rows are rectangles: selection, hover and drop ground all square
++constexpr float kRowGap       = 7.0f;
+ constexpr float kChevBox      = 14.0f;
+-constexpr float kIcoBox       = 24.0f;
++constexpr float kIcoBox       = 30.0f;
+ constexpr float kStatBox      = 16.0f;
+ constexpr float kEyeBox       = 24.0f;
+ 
+@@ -474,6 +474,8 @@
+     if (Row.Artwork != IconSymbol::Count) return Row.Artwork;
+     switch (Row.Glyph)
+     {
++    case EditorGlyph::Fog: case EditorGlyph::AerialFog: return IconSymbol::Fog;
++    case EditorGlyph::Effects: return IconSymbol::EnvironmentExposure;
+     case EditorGlyph::Globe: return IconSymbol::FolderWorld;
+     case EditorGlyph::Folder: return IconSymbol::FolderGeneric;
+     case EditorGlyph::Camera: return IconSymbol::Camera;
+@@ -1634,7 +1636,7 @@
+ 
+     // Columns, left to right.
+     const float Cy = Min.y + RowH * 0.5f;
+-    float X = Min.x + 8.0f + static_cast<float>(Row.Depth) * 16.0f;
++    float X = Min.x + 8.0f + static_cast<float>(Row.Depth) * 13.0f;
+ 
+     // Chevron.
+     {
+@@ -1656,11 +1658,12 @@
+     {
+         const ImU32 GlyphInk = ScaleAlpha(Accent, Fade * DimF);
+         const IconSymbol Artwork = ArtworkFor(Row);
+-        const ImVec2 ArtMin(X, Cy - 12.0f);
+-        if (!IconPresentation::Draw(Draw, Artwork, ArtMin, 24.0f, Fade * DimF))
++        const float ArtSize=std::min(kIcoBox,RowH-4.f);
++        const ImVec2 ArtMin(X+(kIcoBox-ArtSize)*.5f, Cy-ArtSize*.5f);
++        if (!IconPresentation::Draw(Draw, Artwork, ArtMin, ArtSize, Fade * DimF))
+             DrawIcon(Draw, IconFor(Row), ImVec2(X + (kIcoBox - 14.0f) * 0.5f, Cy - 7.0f), 14.0f, GlyphInk);
+         else if (IconPresentation::Result(Artwork) != IconResult::Ready &&
+-                 ImGui::IsMouseHoveringRect(ArtMin, ImVec2(X + 24.0f, Cy + 12.0f)))
++                 ImGui::IsMouseHoveringRect(ArtMin, ImVec2(ArtMin.x+ArtSize, ArtMin.y+ArtSize)))
+             ImGui::SetTooltip("%s: %s\n%s", IconArt::Name(Artwork),
+                 IconArt::ResultName(IconPresentation::Result(Artwork)), IconPresentation::Diagnostic(Artwork));
+         X += kIcoBox + kRowGap;
+@@ -1694,7 +1697,8 @@
+         RightX -= kRowGap;
+     }
+ 
+-    // Standing dot.
++    // Folder rows match HTML: artwork + label + visibility, no extra status glyph.
++    if (!Folder)
+     {
+         EditorStanding Standing = EditorStanding::Ok;
+         char Note[24] = {};
+@@ -1735,10 +1739,7 @@
+         const float NameW = RightX - X;
+         if (Folder)
+         {
+-            char Upper[48];
+-            UpperCopy(Upper, sizeof(Upper), Row.Label);
+-            DrawSpaced(Draw, Ui, 11.0f, ImVec2(X, Cy - Ui->CalcTextSizeA(11.0f, FLT_MAX, 0.0f, Upper).y * 0.5f),
+-                ScaleAlpha(kT3, Fade * DimF), Upper, 1.1f);
++            DrawClipped(Draw, Ui, 13.0f, X, Cy, NameW, ScaleAlpha(Ink, DimF), Row.Label);
+         }
+         else
+         {
+--- a/Projects/Project-Zero/Source/EditorFeedSequence.cpp
++++ b/Projects/Project-Zero/Source/EditorFeedSequence.cpp
+@@ -28,7 +28,7 @@
+ constexpr uint32_t kFolderLighting    = 1u;
+ constexpr uint32_t kFolderObjects     = 2u;
+ constexpr uint32_t kFolderRoom        = 3u;
+-constexpr const char* kFolderLabels[] = { "Cameras", "Lighting", "Objects", "Room" };
++constexpr const char* kFolderLabels[] = { "Scene", "Lighting", "World", "Room" };
+ 
+ constexpr float kFolderTint[3]      = { 0.788f, 0.635f, 0.294f };   // amber, shared by every folder
+ constexpr float kLightTint[3]       = { 0.961f, 0.827f, 0.294f };   // the lamp rows
+@@ -296,6 +296,9 @@
+             std::snprintf(Row.Label, sizeof(Row.Label), "%s", kFolderLabels[Entry.Ordinal]);
+             Row.Depth    = 0u;
+             Row.Category = EditorInstanceCategory::Folder;
++            Row.Glyph = EditorGlyph::Folder;
++            Row.Artwork = Entry.Ordinal==kFolderCameras?IconSymbol::FolderScene:
++                (Entry.Ordinal==kFolderObjects||Entry.Ordinal==kFolderRoom)?IconSymbol::FolderWorld:IconSymbol::FolderGeneric;
+             Row.Shut     = (Entry.Ordinal == kFolderRoom); // Scenery/Plinths folder is shut by default so it doesn't flood the outliner
+             CopyTint(Row.Tint, kFolderTint);
+             break;

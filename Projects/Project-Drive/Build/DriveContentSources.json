@@ -1,0 +1,24 @@
+{
+  "sources": [
+    "Projects/Project-Drive/Build/DriveContentHost.cpp",
+    "Projects/Project-Drive/Source/DriveSceneAuthor.cpp",
+    "Engine/ContentInterchange/SceneCodec.cpp",
+    "Engine/ContentInterchange/MaterialCodec.cpp",
+    "Engine/ContentInterchange/MaterialIndex.cpp",
+    "Engine/ContentInterchange/TextureIndex.cpp",
+    "Engine/ContentInterchange/AssetResolution.cpp",
+    "Engine/GeometricRaster/SceneStructure.cpp",
+    "Engine/GeometricRaster/GeometryStructure.cpp",
+    "Engine/DeviceExchange/OrientationClassifier.cpp",
+    "Engine/PhysicalDynamics/Vehicle/XPBDSoftTyre.cpp",
+    "Engine/GeometricRaster/DistanceFieldSpace.cpp"
+  ],
+  "includes": [
+    ".",
+    "Engine",
+    "ExternalPackages/cgltf",
+    "ExternalPackages/ufbx",
+    "ExternalPackages/stb",
+    "ExternalPackages/vulkan-headers/include"
+  ]
+}

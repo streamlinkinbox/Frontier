@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — The cloud deck vertical section, drawn by the engine</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Exhibits · Gallery · CloudDeckNative</div>
+  <h1>The cloud deck vertical section, drawn by the engine</h1>
+  <p>Every pixel below came out of a real ImGui draw list, rasterised on the CPU and written to PNG by
+     <code>Exhibits/Workbench/Clouds/NativeCloudDeck.cpp</code>. Nothing here is a mock-up.</p>
+  <p>The shipped code is in the bundle at byte 4598926 (<code>className:"cloud-deck-visual"</code>),
+     mirrored on disk as <code>CloudDeckPanel.jsx</code> — the canvas inside the
+     <em>Cloud base</em> card, imported by <code>Inspectors.jsx</code> and rendered for both world layers and
+     local volumes. Its own comment calls it &ldquo;the ported InspectorDepot cloud-deck band adapted to the
+     native base/thickness range&rdquo;, and that adaptation is the whole point: <b>the altitude window sizes
+     itself to the deck</b>. <code>max(400, ceil((Base &minus; Floor + Thickness) &times; 1.25 / 500) &times; 500)</code>
+     opens a 2500&nbsp;m window for a 1500&nbsp;m base and a 9000&nbsp;m one for a 3&nbsp;km anvil, so the engine's
+     real altitudes read as well as the depot band's fixed 0&ndash;400&nbsp;m ever did.</p>
+  <p>The base line is also a slider. Dragging maps pointer&nbsp;Y back through the same axis and commits a
+     rounded <code>Base</code>, clamped to 100&ndash;12000&nbsp;m for a world layer and to a hundred kilometres
+     either side of half the depth for a local volume; the arrow keys step ten metres. Those mappings are
+     proved as pure functions rather than screenshotted.</p>
+  <p style="margin-top:14px"><b>Verified against the bundle, not the sources.</b>
+     <code>Experimental/ProjectZeroEditor/index.html</code> is the reference: a built, minified,
+     self-contained file in which the depot kit is an escaped JS string and <code>Editor.css</code> is
+     inlined. Reading the <code>.js</code> and <code>.css</code> beside it is not the same thing, so
+     <code>Exhibits/Workbench/BundleParity.py</code> now pulls the shipped code out of the bundle and
+     asserts that every literal and every numeric constant this port depends on is present there
+     &mdash; <b>199 checks across the cloud panel, the cloud deck and the fracture card</b>.</p>
+  <div class="rail">
+    <div class="pill"><b>54</b><span>checks passed</span></div>
+    <div class="pill"><b>5</b><span>captures</span></div>
+    <div class="pill"><b>176</b><span>px canvas</span></div>
+    <div class="pill"><b>1:1</b><span>against the bundle</span></div>
+  </div>
+  <p style="margin-top:18px"><span class="tag"><i></i>Executed, not illustrated</span></p>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>A world layer</b><em>Base 1500 m</em></figcaption>
+    <span class="shot"><img src="Deck.png" alt="A world cloud layer at 1500 m"></span>
+    <p style="margin-top:10px;font-size:12px">A 300&nbsp;m deck on a 2500&nbsp;m window. Five rules, the lowest
+       reading DATUM because only an altitude of exactly nought does; the dashed line is the base itself.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Low base</b><em>130 m</em></figcaption>
+    <span class="shot"><img src="DeckLow.png" alt="A low cloud layer at 130 m"></span>
+    <p style="margin-top:10px;font-size:12px">The same deck near the ground: the window closes to 1000&nbsp;m and
+       the body fills more of the axis. Nothing is rescaled by hand — the window follows the numbers.</p>
+  </figure>
+  <figure>
+    <figcaption><b>A local volume</b><em>Base &minus;40 m</em></figcaption>
+    <span class="shot"><img src="DeckLocal.png" alt="A local cloud volume below the datum"></span>
+    <p style="margin-top:10px;font-size:12px">A bounded volume straddling the datum. The floor drops to the
+       100&nbsp;m step below base minus a quarter depth &mdash; &minus;200&nbsp;m &mdash; and prints as a signed
+       metre mark, not DATUM. The rules are drawn over the cloud, as the canvas orders them.</p>
+  </figure>
+  <figure>
+    <figcaption><b>An anvil</b><em>3 km deep</em></figcaption>
+    <span class="shot"><img src="DeckAnvil.png" alt="A three kilometre anvil at four kilometres"></span>
+    <p style="margin-top:10px;font-size:12px">A 3&nbsp;km deck based at 4&nbsp;km, fully opaque. The window opens
+       to 9000&nbsp;m and the crest still clears the top edge &mdash; its deepest column tops the nominal
+       thickness by four percent, which is why the surface clips its own box.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Thin vapour</b><em>.12 density</em></figcaption>
+    <span class="shot"><img src="DeckThin.png" alt="A very thin deck"></span>
+    <p style="margin-top:10px;font-size:12px">The gradient is three stops &mdash; 5% white, .75&times; density
+       white, .72&times; density shadowed blue &mdash; so a near-zero density leaves only the faintest crest.</p>
+  </figure>
+</div>
+</body>
+</html>

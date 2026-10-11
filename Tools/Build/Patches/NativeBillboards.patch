@@ -1,0 +1,202 @@
+--- a/Engine/DisplayPresentation/RenderScheduler.h
++++ b/Engine/DisplayPresentation/RenderScheduler.h
+@@ -86,6 +86,20 @@
+         (void)Fn;(void)Context;
+ #endif
+     }
++    void AssignBillboardExchange(BillboardExchange Fn,void* Context) noexcept {
++#ifdef FRONTIER_DEVELOPMENT
++        Editor_.AssignBillboardExchange(Fn,Context);
++#else
++        (void)Fn;(void)Context;
++#endif
++    }
++    bool TakeBillboardSelection() noexcept {
++#ifdef FRONTIER_DEVELOPMENT
++        return Editor_.TakeBillboardSelection();
++#else
++        return false;
++#endif
++    }
+     void AssignInspectorWorkspace(bool On) noexcept {
+ #ifdef FRONTIER_DEVELOPMENT
+         Editor_.AssignInspectorWorkspace(On);
+--- a/Engine/Editor/EditorHost.cpp
++++ b/Engine/Editor/EditorHost.cpp
+@@ -557,7 +557,16 @@
+     ImGui::PopStyleVar(2);
+ 
+     Outliner_.Record(Instances, InstanceCount);
+-    if(!InspectorWorkspace_)Viewport_.Record(Instances, InstanceCount);
++    if(!InspectorWorkspace_) {
++        const uint32_t Before=Outliner_.QueryPicked();
++        Viewport_.Billboards.Select(Before<InstanceCount?Instances[Before].InspectorKey:0);
++        Viewport_.Record(Instances, InstanceCount);
++        if(const uint64_t Key=Viewport_.Billboards.TakePick()) {
++            for(uint32_t I=0;I<InstanceCount;++I)if(Instances[I].InspectorKey==Key) {
++                PickInstance(I);BillboardSelection_=true;break;
++            }
++        }
++    }
+ 
+     const uint32_t Picked = Outliner_.QueryPicked();
+     EditorInstance* PickedInstance = (Picked < InstanceCount) ? &Instances[Picked] : nullptr;
+--- a/Engine/Editor/EditorHost.h
++++ b/Engine/Editor/EditorHost.h
+@@ -48,6 +48,9 @@
+     uint64_t QueryConstructKey() const noexcept {return Construct_.QueryKey();}
+     using InspectorExchange = EditorSheet* (*)(uint32_t, bool, void*) noexcept;
+     void AssignInspectorExchange(InspectorExchange Fn,void* Context) noexcept {InspectorExchange_=Fn;InspectorContext_=Context;}
++    void AssignBillboardExchange(BillboardExchange Fn,void* Context) noexcept {Viewport_.Billboards.Assign(Fn,Context);}
++    bool TakeBillboardSelection() noexcept {const bool V=BillboardSelection_;BillboardSelection_=false;return V;}
++    ImVec2 QueryBillboardCentre(uint64_t Key) const noexcept {return Viewport_.Billboards.Centre(Key);}
+     void AssignInspectorWorkspace(bool On) noexcept {if(InspectorWorkspace_!=On){InspectorWorkspace_=On;LayoutSeated_=false;}}
+ 
+ 
+@@ -171,6 +174,7 @@
+     InspectorExchange InspectorExchange_=nullptr;
+     void* InspectorContext_=nullptr;
+     bool InspectorWorkspace_=false;
++    bool BillboardSelection_=false;
+     NativeConstructPanel Construct_;
+     bool ViewportTabOpen_  = true;        // the viewport tab's close mark clears this; the add menu seats it
+     bool InspectorTabOpen_ = true;        // the inspector tab's close mark clears this; the add menu seats it
+--- a/Engine/Editor/ViewportPanel.cpp
++++ b/Engine/Editor/ViewportPanel.cpp
+@@ -1380,12 +1380,14 @@
+     }
+     ImGui::PopFont();
+ 
++    const bool BillboardHover=MarkersOn_?Billboards.Draw(Draw,Min,Max,!OrbHover&&!OrbHeld_&&!CanvasDragging_):(Billboards.ClearFrame(),false);
++
+     // CAD canvas interaction (SolidArc): clicking and dragging across the CAD viewport canvas
+     //    orbits the camera, middle-drag or Shift+left-drag pans the target, and scroll wheel dollies.
+     //    For standard game viewports, RMB look and WASD flight are handled by the FlyThrough camera.
+     if (Chrome_ == ViewportPanelChrome::SolidArcCad)
+     {
+-        const bool CanvasHover = ImGui::IsMouseHoveringRect(Min, Max) && !OrbHover && !OrbHeld_;
++        const bool CanvasHover = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(Min, Max) && !OrbHover && !OrbHeld_ && !BillboardHover;
+         if (CanvasHover && (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1) || ImGui::IsMouseClicked(2)))
+         {
+             CanvasDragging_ = true;
+@@ -1442,7 +1444,7 @@
+         const ImVec2 Mouse   = ImGui::GetIO().MousePos;
+         const float  Across  = Max.x - Min.x;
+         const float  Down    = Max.y - Min.y;
+-        const bool   OverView = ImGui::IsMouseHoveringRect(Min, Max) && !OrbHover && !OrbHeld_;
++        const bool   OverView = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(Min, Max) && !OrbHover && !OrbHeld_ && !BillboardHover;
+         if (OverView && Across > 1.0f && Down > 1.0f)
+         {
+             AimLive_ = true;
+--- a/Engine/Editor/ViewportPanel.h
++++ b/Engine/Editor/ViewportPanel.h
+@@ -10,6 +10,7 @@
+ #pragma once
+ 
+ #include <cstdint>
++#include "ViewportBillboards.h"
+ 
+ #include <imgui.h>
+ 
+@@ -56,6 +57,7 @@
+ 
+     // Seats the scene view: RGBA32 top-down rows the view draws under its orb. The headless harness seats a CPU
+     //    trace here; the engine build seats its ReSTIR target through AssignViewTexture instead.
++    ViewportBillboards Billboards;
+     void AssignView(const unsigned char* Rgba, uint32_t Width, uint32_t Height) noexcept;
+     void AssignViewTexture(ImTextureID View, uint32_t Width, uint32_t Height, uint32_t StorageWidth = 0u, uint32_t StorageHeight = 0u) noexcept;
+ 
+--- a/Engine/GeometricRaster/VisibilityRaster.h
++++ b/Engine/GeometricRaster/VisibilityRaster.h
+@@ -99,8 +99,8 @@
+         // The clouds, by value: the settings are small, and a disabled struct is the march's own early-out, so
+         //    lending values keeps the lifetimes trivial. All three default to disabled, so nothing existing
+         //    changes until the project lends live ones. The wind advects them, the budget paces the march, and
+-        //    the clock is time-of-day seconds — the rain's precedent (Tick passes LocalHours * 3600 to the
+-        //    precipitation pool), so scrubbing the day cycle drifts the sky and a still frame stays put.
++        //    the clock is simulation seconds, independent of the solar clock. A Static Sun does not freeze
++        //    weather, and editing the day cycle does not teleport cloud noise.
+         CloudLayerSettings  CloudLayer{};
+         LocalVolumeSettings LocalCloud{};
+         LocalVolumeSettings LocalFog{};
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -345,6 +345,7 @@
+ {
+     if (!std::isfinite(DeltaSeconds) || DeltaSeconds < 0.0f) DeltaSeconds = 0.0f;
+     StarSeconds += DeltaSeconds;
++    WeatherSeconds += DeltaSeconds;
+ 
+     // ① The clock. Wrapped rather than clamped, so a fast day cycle rolls into the next morning.
+     if (Clock.Animate)
+@@ -376,7 +377,7 @@
+     PrecipitationSettings Active = Precip;
+     Active.Enabled = Falling;
+     Rain.Step(Active, Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] ? Cloud : CloudLayerSettings{},
+-              Wind, Camera, DeltaSeconds, Observation.LocalHours * 3600.0f, GroundHeight);
++              Wind, Camera, DeltaSeconds, static_cast<float>(WeatherSeconds), GroundHeight);
+ }
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+@@ -447,8 +448,9 @@
+     Settings.Fog.HeightEnabled=Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::HeightFog)]&&Fog.HeightEnabled;
+     Settings.Fog.AerialEnabled=Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::AtmosphericFog)]&&Fog.AerialEnabled;
+     Settings.Wind = Wind;
++    if(!Shown[static_cast<uint32_t>(CelestialEntity::Wind)])Settings.Wind.Speed=0;
+     Settings.CloudBudget = Limits.Volumetrics;
+-    Settings.CloudTime = Observation.LocalHours * 3600.0f;
++    Settings.CloudTime = static_cast<float>(WeatherSeconds);
+ 
+     Raster.AssignCelestial(Settings);
+ }
+@@ -914,7 +916,7 @@
+         break;
+     }
+     case CelestialEntity::HeightFog:
+-        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::Fog;
++        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::Fog; Row.Artwork = IconSymbol::Fog;
+         if (!Fog.HeightEnabled) std::snprintf(Row.Meta, sizeof(Row.Meta), "off");
+         else if(Fog.HeightDensity<=0)std::snprintf(Row.Meta,sizeof(Row.Meta),"clear");
+         else std::snprintf(Row.Meta, sizeof(Row.Meta), "%.0f m",
+@@ -922,7 +924,7 @@
+         break;
+     case CelestialEntity::AtmosphericFog:
+     {
+-        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::AerialFog;
++        CopyTint(Row.Tint, kTintFog); Row.Glyph = EditorGlyph::AerialFog; Row.Artwork = IconSymbol::Fog;
+         const float Beta=Fog.AerialDensity*((1-Fog.AerialMie)*Medium.RayleighScattering[1]*Medium.RayleighStrength+Fog.AerialMie*Medium.MieScattering*Medium.MieStrength);
+         if(!Fog.AerialEnabled)std::snprintf(Row.Meta,sizeof(Row.Meta),"off");
+         else if(Beta<=0)std::snprintf(Row.Meta,sizeof(Row.Meta),"clear");
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -246,6 +246,7 @@
+     float StarMagnitude=5.5f,StarDepth=30.f,StarRate=1.2f,StarRotation=0.f;
+     bool StarTwinkle=true;
+     double StarSeconds=0;
++    double WeatherSeconds=0; // simulation time independent of Static/Dynamic Sun
+     bool  Enabled        = true;      // the whole celestial system, off by default in the raster
+ 
+     // Per-entity visibility, so the outliner's eye toggles do something.
+--- a/Projects/Project-Zero/Source/GameExecution.cpp
++++ b/Projects/Project-Zero/Source/GameExecution.cpp
+@@ -1323,7 +1323,8 @@
+ #ifdef FRONTIER_DEVELOPMENT
+     Frontier::ProjectZero::EditorInspectorSequence InspectorSession{Feed,Celestial,Camera,Level,AnimatedInstances,SceneInstances.data(),SceneRowCount,PickedSheet};
+     Panel.AssignInspectorExchange(&Frontier::ProjectZero::EditorInspectorSequence::Exchange,&InspectorSession);
+-    Panel.AssignInspectorWorkspace(true);
++    Panel.AssignInspectorWorkspace(false);
++    Panel.AssignBillboardExchange(&Frontier::ProjectZero::EditorInspectorSequence::Billboards,&InspectorSession);
+ #endif
+ 
+     // The performance reporter: owns the 5 s window, the prose lines and the measurement rows. See the block at the
+@@ -1897,6 +1898,10 @@
+             }
+             GizmoKeyGHeld = GHeld; GizmoKeyRHeld = RHeld; GizmoKeySHeld = SHeld;
+ 
++            // A marker owns its click. Also discard an older asynchronous mesh answer so it cannot
++            // replace the freshly selected environment entity several frames later.
++            if(Panel.TakeBillboardSelection())PickAwaited=false;
++
+             // The tap: a grip press begins the drag; a press past every grip flies as a GPU pick.
+             float TapU = 0.0f, TapV = 0.0f; bool TapAdditive = false;
+             if (Panel.QueryEditorViewTap(&TapU, &TapV, &TapAdditive))

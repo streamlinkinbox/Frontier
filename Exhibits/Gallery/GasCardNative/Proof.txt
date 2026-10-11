@@ -1,0 +1,95 @@
+NativeGasCard - the ported gas inspector
+
+The inline sheet is the browser's sheet
+  PASS  eleven readings are inline; the other seventy-four are one button away
+  PASS  the lattice is NOT one of them - the quality ladder owns the extent at runtime
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  every field names a simulator parameter and the card it lands in
+  PASS  and a slider's default sits inside its own range
+  PASS  an emitter carries its own seven, because it is an entity and not a group of settings
+
+The measurements are the stylesheet's, not new ones
+  PASS  a slider row is the 11 px label, its 8 px margin and the 30 px pill - the same row a fog slider is
+  PASS  a switch row is the 24 px toggle, with no label line above it
+  PASS  the split value is 92 px with a 58 px number, leaving 34 for the unit
+  PASS  the track is 26 px with a 24 px thumb
+  PASS  a property card is 22 px round with 24 px side padding
+  PASS  the transform is a three-row table at 29 px a row inside a generic card
+  PASS  the whole stack is taller than the column, which is why the inspector scrolls
+  PASS  ① the transform and its caption are bands of the stack, not an afterthought under the settings
+  PASS  and the bands sum to the total the painter returns
+  PASS  ② a domain with a child emitter shows no Source sliders - the child owns them, and two places to set one reading is one too many
+  PASS  and its hierarchy card grows by the row
+
+A 3D entity: a transform, children, and what is deliberately not a child
+  PASS  ① bounds are three metres on the transform, where a mesh has Scale
+  PASS  X and Z stay equal: the solver uses one width for both horizontal axes
+  PASS  ⚠️ the card itself admits that rotation never reaches the axis-aligned lattice
+  PASS  ③ and that a collider is not a child, so deleting the domain cannot delete the crate
+  PASS  🔴 two-way coupling is off on a new domain, as GasWindContribution.h has it
+
+🔴 A one-shot runs once, is destroyed, and hands its fields back
+  PASS  a placed domain is dormant and holds nothing - the row exists, the solver does not
+  PASS  and advancing it changes nothing, because nothing asked it to run
+  PASS  firing it charges the rung it was granted
+  PASS  96 cubed at 47 bytes a voxel, from the allowance header
+  PASS  a second trigger on the same frame is a no-op, not a restart - gameplay does that, and restarting would cancel the first
+  PASS  while burning it both emits and advances
+  PASS  at the end of its lifetime emission stops
+  PASS  but the solver keeps advancing - cutting here would make a smoke column vanish in mid-air
+  PASS  and a fading domain is charged in full, because it is live
+  PASS  thick smoke keeps it fading
+  PASS  and it is released on the measurement, not on a second clock
+  PASS  🔴 its bytes are back in the budget on that tick
+  PASS  nothing advances a released domain
+  PASS  a domain told to stay resident returns to dormant still holding its fields - that is the whole difference, and the card makes you choose it
+  PASS  a field that never settles is released at the fade ceiling - holding its storage while that bug is found helps nobody
+  PASS  a proximity domain starts simulating when the viewer is inside the band
+  PASS  and gives its storage back when they leave, which is a release like any other
+
+The budget sees only what is live
+  PASS  three live, and the dormant one is not charged
+  PASS  the charge is the sum of the rungs they hold
+  PASS  and the fading one is counted separately, because its storage is about to come back
+  PASS  well inside 256 MB over twelve domains
+  PASS  another hero fits
+  PASS  the thirteenth live domain is refused on the count alone
+  PASS  but a flipbook is always admitted - it costs no live storage, which is the point of the rung
+  PASS  and a hero is refused on bytes with room in the count
+
+🔴 The preview refuses to animate a domain the game would not run
+  PASS  a dormant domain is not running
+  PASS  and is once something fires it
+  PASS  an always-on domain runs with nothing firing it
+  PASS  a hidden domain simulates nothing, whatever its policy says
+  PASS  the card says a retiring one-shot is destroyed, in words rather than only in a colour
+  PASS  and says what the other choice costs
+  PASS  the runtime spells the fade the same way, so the card and the engine share one vocabulary
+
+Captures
+  PASS  capture written: CardOneShotDormant
+  PASS  capture written: CardOneShotFiring
+  PASS  capture written: CardKeptResident
+  PASS  capture written: CardAlwaysWithEmitters
+  PASS  capture written: CardEmitterOpensParticleEditor
+  PASS  capture written: CardHeroOverAmber
+
+PASS 77
+Exit: 0

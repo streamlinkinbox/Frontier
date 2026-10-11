@@ -1,0 +1,21 @@
+{
+  "Engine/Editor/LightInspectorPanel.cpp": "42d7dbc41e4c60c4db429ce2139434bde82a9ff5fa7c9667d81656e3427829b3",
+  "Engine/Host/EditorFeedSequence.cpp": "2a2986df4955cebe95a6ddfc9a5bba15f24d7f8b8690e54f1c62bec8f941beb4",
+  "Engine/GeometricRaster/SceneStructure.h": "a9a066b0ec620ae9be4b2efe3043030480756d46d625a05500eaa64e0fe1511a",
+  "Exhibits/Workbench/Lighting/NativeEmitterCards.cpp": "f92409eb199049960d288582226983de58d3ce05898aeeadbccde35617845ea2",
+  "Exhibits/Workbench/Lighting/RunNativeEmitterCards.py": "80c4494a8dc02a789bf57b09e3057aed29ff2cac83a81ea1964f65b668f06559",
+  "Exhibits/Gallery/LightingNative/AreaLight-Wide.png": "9aceb658bb5900f64e1a6895e4854bfaa2d5e22fc9fd091a55727aab88a10f30",
+  "Exhibits/Gallery/LightingNative/AreaLight.png": "fbccd780708183bec6fc3409a426542c41036a710c3fed469f641af3ef009163",
+  "Exhibits/Gallery/LightingNative/IesLight-Wide.png": "7b732a83533f26a5c5f648675821800839d7883c08d3cf2df739a065518b086d",
+  "Exhibits/Gallery/LightingNative/IesLight.png": "9c9b2ecfdcb6a0e4dd35cb63209e06580b3d5b69f65a78f8b7b85c79b8902bb7",
+  "Exhibits/Gallery/LightingNative/LedLight-Wide.png": "b74df93d2e11ee111ca302675087ea7b82e489767fe3793732e889f6eb1ea3d5",
+  "Exhibits/Gallery/LightingNative/LedLight.png": "3f8d8865170325d37199526792f371d75ba5295ed48d892f4c4addeb7ae7bf13",
+  "Exhibits/Gallery/LightingNative/PointLight-Wide.png": "5fe9e4ca831be61e7fd9ce0db7c0e0a8456884460c6ef45fa45a31b88e76bd59",
+  "Exhibits/Gallery/LightingNative/PointLight.png": "75308e1939bedc633f1014aac294b8e17f433f738fe2e7893e70bfe2eddc2fd8",
+  "Exhibits/Gallery/LightingNative/SpotLight-Wide.png": "f38546da45090f4e4ad0294e6952f7c5fcf3b6225342ad6e9ee85bab0ad4eacd",
+  "Exhibits/Gallery/LightingNative/SpotLight.png": "a7cdf7ac795a2f60ad35eea3b8d9138008a008d1adae6e37ace53bad8efc872d",
+  "Exhibits/Gallery/LightingNative/StripLight-Wide.png": "1d9d8f73416124b519c2a176b4107b77a6477e6ec10ac3d0ca4692565cb71964",
+  "Exhibits/Gallery/LightingNative/StripLight.png": "ede9aa3ee7779aeaca0931877b2ed9dd6638f92b2cac8069a5af500a83af85f1",
+  "Exhibits/Gallery/LightingNative/TubeLight-Wide.png": "33daa2018416cd286323148657b9d887df3a97d3d8a641c4152fc00f266c34f3",
+  "Exhibits/Gallery/LightingNative/TubeLight.png": "a3258a3cce09c6a9275a68b0524de26af67043c02f10872668836c57a0a72b5b"
+}

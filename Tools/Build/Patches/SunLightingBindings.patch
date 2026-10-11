@@ -1,0 +1,89 @@
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -227,6 +227,10 @@
+                                    //     Raised 1.0 → 2.5 (2026-09-19 shadow diagnosis): at gain 1 the sun's ground
+                                    //     irradiance in the Showcase was ~1/37th of the key panel's, so its shadows
+                                    //     were invisible. 2.5 + the panel-luminance cut makes the sun the key light.
++    // RGB remains the default for compatibility. Kelvin is an explicit alternate tint source.
++    float SunTemperatureKelvin = 6500.0f;
++    bool  SunUseTemperature = false;
++    float SunRgbTint[3] = { 1.0f, 1.0f, 1.0f }; // remembered manual tint while Kelvin is active
+     float SunDiskSize    = 0.533f; // [deg] solar disk angular diameter (default ~0.533°).
+     float GroundAlbedo[3] = { 0.19f, 0.17f, 0.14f };
+     float StarBrightness = 1.0f;
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -3,6 +3,7 @@
+ //============================================================================================================================================
+ 
+ #include "CelestialSequence.h"
++#include "../../../Engine/DisplayPresentation/SunColourTemperature.h"
+ 
+ #include "../../../Engine/DisplayPresentation/SkyDomeSheet.h"   // roadmap #26 stage A: the bake + the staleness rule
+ #include "../../../Engine/ContentInterchange/SpaceExport.h"     // #26c: the persisted bake rides an .environment (ENVR + PROB)
+@@ -346,6 +347,13 @@
+         while (Observation.LocalHours < 0.0f)   Observation.LocalHours += 24.0f;
+     }
+ 
++    if (SunUseTemperature)
++    {
++        SunTemperatureKelvin = SunColourTemperature::Clamp(SunTemperatureKelvin);
++        const auto Tint = SunColourTemperature::LinearRgb(SunTemperatureKelvin);
++        for (int C = 0; C < 3; ++C) Light.Colour[C] = Tint[C];
++    }
++
+     // ② The ephemeris, from whatever the clock now says.
+     Solved = CelestialSolver::Solve(Observation);
+     for (int C = 0; C < 3; ++C) Light.Direction[C] = Solved.Sun.Direction[C];
+@@ -968,9 +976,13 @@
+         std::snprintf(Bake.Caption, sizeof(Bake.Caption), "Sun-specific Bake and Use baked image are not supported. The existing bake belongs to Sky, not Sun.");
+         EditorPropertyGroup& Disk = OpenGroup(Sheet, "Sun Disk");
+         Push(Disk, MakeSlider("Angular Diameter", 0.1f, 5.0f, SunDiskSize, 2, "deg"));
+-        Push(Disk, MakeColour("Sun Tint", Light.Colour));
++        Push(Disk, MakeColour("Sun Tint", SunUseTemperature ? SunRgbTint : Light.Colour));
++        static const char* const ColourSources[] = { "RGB tint", "Temperature" };
++        Push(Disk, MakeSelect("Colour source", ColourSources, 2u, SunUseTemperature ? 1u : 0u));
++        Push(Disk, MakeSlider("Temperature", SunColourTemperature::MinimumKelvin,
++            SunColourTemperature::MaximumKelvin, SunTemperatureKelvin, 0, "K"));
+         EditorPropertyGroup& Radiance = OpenGroup(Sheet, "Sunlight gain");
+-        std::snprintf(Radiance.Caption, sizeof(Radiance.Caption), "Native multipliers, not lux. Tint remains RGB; no temperature conversion is available.");
++        std::snprintf(Radiance.Caption, sizeof(Radiance.Caption), "Native multipliers, not lux. Colour source selects manual RGB tint or Kelvin temperature.");
+         Push(Radiance, MakeSlider("Intensity", 0.0f, 60.0f, Light.Intensity, 1, "x"));
+         Push(Radiance, MakeSlider("Direct", 0.0f, 5.0f, SunDirect, 2, "x"));
+ 
+@@ -1297,7 +1309,34 @@
+     {
+         SunDiskSize            = ReadSlider(Sheet, "Angular Diameter", SunDiskSize);
+         const EditorProperty* SunTint = Find(Sheet, "Sun Tint");
+-        if (SunTint != nullptr) for (int C = 0; C < 3; ++C) Light.Colour[C] = SunTint->ColourTint[C];
++        float Kelvin = ReadSlider(Sheet, "Temperature", SunTemperatureKelvin);
++        if (!std::isfinite(Kelvin)) Kelvin = SunTemperatureKelvin;
++        Kelvin = SunColourTemperature::Clamp(Kelvin);
++        const uint32_t RequestedSource = ReadSelect(Sheet, "Colour source", SunUseTemperature ? 1u : 0u);
++        const bool RequestedTemperature = RequestedSource <= 1u ? RequestedSource == 1u : SunUseTemperature;
++        bool TintChanged = false, TintFinite = SunTint != nullptr;
++        for (int C = 0; C < 3 && SunTint != nullptr; ++C)
++        {
++            TintFinite = TintFinite && std::isfinite(SunTint->ColourTint[C]);
++            TintChanged = TintChanged || SunTint->ColourTint[C] != (SunUseTemperature ? SunRgbTint[C] : Light.Colour[C]);
++        }
++        bool NextTemperature = SunUseTemperature;
++        // Explicit manual edits win; then the selector; then a changed Kelvin value.
++        if (TintFinite && TintChanged) NextTemperature = false;
++        else if (RequestedTemperature != SunUseTemperature) NextTemperature = RequestedTemperature;
++        else if (Kelvin != SunTemperatureKelvin) NextTemperature = true;
++        if (!SunUseTemperature)
++            for (int C = 0; C < 3; ++C) SunRgbTint[C] = Light.Colour[C];
++        if (TintFinite && TintChanged)
++            for (int C = 0; C < 3; ++C) SunRgbTint[C] = SunTint->ColourTint[C];
++        SunUseTemperature = NextTemperature;
++        SunTemperatureKelvin = Kelvin;
++        if (SunUseTemperature)
++        {
++            const auto Tint = SunColourTemperature::LinearRgb(SunTemperatureKelvin);
++            for (int C = 0; C < 3; ++C) Light.Colour[C] = Tint[C];
++        }
++        else for (int C = 0; C < 3; ++C) Light.Colour[C] = SunRgbTint[C];
+         Observation.LocalHours = ReadSlider(Sheet, "Local Hours", Observation.LocalHours);
+         Clock.Animate          = ReadSwitch(Sheet, "Animate", Clock.Animate);
+         const float Rates[4] = { 1.0f, 8.0f, 30.0f, 100.0f };

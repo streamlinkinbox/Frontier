@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontier — The shipped wind panel, drawn by the engine</title>
+<style>
+  :root{
+    --bg:#050505; --panel:#121212; --inset:#1a1a1a;
+    --stroke:rgba(255,255,255,.05); --stroke-strong:#2e2e2e;
+    --text:#f0f0f0; --text-dim:#888; --text-faint:#5c5c5c; --ok:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       padding:40px 32px 80px;}
+  header{max-width:1180px;margin:0 auto 34px}
+  h1{font-size:23px;font-weight:450;letter-spacing:-.3px;margin-bottom:8px}
+  .kicker{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text-faint);margin-bottom:14px}
+  p{font-size:13px;line-height:1.65;color:var(--text-dim);max-width:76ch}
+  p+p{margin-top:10px}
+  code{background:var(--inset);border:1px solid var(--stroke);border-radius:6px;
+       padding:1px 6px;font-size:12px;color:#cfcfcf}
+  .rail{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+  .pill{display:flex;flex-direction:column;gap:1px;padding:7px 13px 8px;background:var(--panel);
+        border:1px solid var(--stroke);border-radius:999px}
+  .pill b{font-size:14px;font-weight:500;letter-spacing:-.3px}
+  .pill span{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+       border:1px solid var(--stroke-strong);background:var(--inset);
+       font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text)}
+  .tag i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px rgba(34,197,94,.65)}
+  .grid{max-width:1180px;margin:0 auto;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+  figure{background:var(--inset);border:1px solid var(--stroke);border-radius:18px;
+         padding:14px 14px 16px;min-width:0}
+  figcaption{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}
+  figcaption b{font-size:15px;font-weight:450;letter-spacing:-.1px}
+  figcaption em{font-style:normal;margin-left:auto;font-size:9px;letter-spacing:1.1px;
+                text-transform:uppercase;color:var(--text-faint)}
+  .shot{display:block;border-radius:12px;overflow:hidden;background:var(--bg);
+        border:1px solid var(--stroke)}
+  .shot img{display:block;width:100%;height:auto}
+  .pair{display:flex;gap:7px;margin-top:9px}
+  .pair a{flex:1;text-align:center;padding:6px 0;border-radius:999px;border:1px solid var(--stroke);
+          font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+          text-decoration:none}
+  .pair a:hover{color:var(--text);border-color:var(--stroke-strong);background:#1f1f1f}
+  footer{max-width:1180px;margin:46px auto 0;padding-top:22px;border-top:1px solid var(--stroke);
+         font-size:11px;line-height:1.7;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Exhibits · Gallery · WindInstrument</div>
+  <h1>The wind panel, drawn by the engine</h1>
+  <p>Every pixel below came out of a real ImGui draw list, rasterised on the CPU and written to PNG by
+     <code>Exhibits/Workbench/Wind/NativeWindInstrument.cpp</code>. Nothing here is a mock-up.</p>
+  <p>The source is <code>InspectorDepot/panels/wind.js</code> — the panel the shipped bundle actually mounts.
+     <code>InspectorHost.js</code> renders the depot panels and overrides <em>only</em> the light family with
+     <code>LightPanel.js</code>, which is why lights were the wrong half and wind is not. The anemometer trace is
+     then rewritten at build time by <code>InstrumentSpecification.js</code>: the green gust band becomes a
+     neutral wash, the stroke drops to <code>rgba(210,210,210,.36)</code>, and the samples above the mean are
+     brightened in place with peak and trough dots in <code>#eeeeee</code> and <code>#d69a54</code>.</p>
+  <p style="margin-top:14px"><b>Swept to browser-sized type.</b> ImGui bakes a face so that ascent minus
+     descent equals the requested size; CSS sizes the em box. For DM Sans the two differ by exactly 1.302, so
+     every run here used to be 23% narrower than Chrome draws it. <code>WindInstrument::Grind</code> now
+     applies the factor inside the text primitives, and the three collisions the correct type exposed are
+     fixed: <code>.mp-stat</code> is the two-column grid it always was, so a long label wraps in its own
+     column and both duo cards stretch to the taller one; <code>.mp-chead .l</code> is a flex column, so the
+     title and subtitle each take a full line box; and the notes wrap on the tracked advance instead of being
+     split by hand.</p>
+  <div class="rail">
+    <div class="pill"><b>240</b><span>checks passed</span></div>
+    <div class="pill"><b>6</b><span>captures</span></div>
+    <div class="pill"><b>7</b><span>blocks converted</span></div>
+    <div class="pill"><b>190</b><span>motes</span></div>
+  </div>
+  <p style="margin-top:18px"><span class="tag"><i></i>Executed, not illustrated</span></p>
+</header>
+<div class="grid">
+  <figure>
+    <figcaption><b>The whole panel</b><em>Seven blocks</em></figcaption>
+    <span class="shot"><img src="Panel.png" alt="The whole panel"></span>
+    <p style="margin-top:10px;font-size:12px">Hero flow field, the four-pill rail, the gusting/lulling duo, Anemometer, Beaufort, Steadiness and Driving — in the reference's own order, with .mpanel's 10 px flex gap and .pcard's own 10 px margin both applied.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Force 8, west-north-west</b><em>19.4 m/s</em></figcaption>
+    <span class="shot"><img src="PanelGale.png" alt="Force 8, west-north-west"></span>
+    <p style="margin-top:10px;font-size:12px">A gale past 17 m/s trips the gusting-to card from --ok green to --danger red and swaps its wind glyph for the alert triangle.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Anemometer</b><em>Default draft</em></figcaption>
+    <span class="shot"><img src="Anemometer.png" alt="Anemometer"></span>
+    <p style="margin-top:10px;font-size:12px">4.2 m/s, gust .3, turbulence .24. Force 3, a gentle breeze.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Pulled tall</b><em>mp-x toggled</em></figcaption>
+    <span class="shot"><img src="AnemometerTall.png" alt="Pulled tall"></span>
+    <p style="margin-top:10px;font-size:12px">The taller-trace button swaps the 112 px chart for 170 px; nothing else moves.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Anemometer, gale</b><em>19.4 m/s</em></figcaption>
+    <span class="shot"><img src="AnemometerGale.png" alt="Anemometer, gale"></span>
+    <p style="margin-top:10px;font-size:12px">Past 12 m/s the axis labels drop their decimal, exactly as the canvas does.</p>
+  </figure>
+  <figure>
+    <figcaption><b>Near calm</b><em>0.3 m/s</em></figcaption>
+    <span class="shot"><img src="AnemometerCalm.png" alt="Near calm"></span>
+    <p style="margin-top:10px;font-size:12px">The trace keeps a 2 m/s floor so a still field still has an axis to read.</p>
+  </figure>
+</div>
+</body>
+</html>

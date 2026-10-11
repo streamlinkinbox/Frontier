@@ -1,0 +1,27 @@
+#============================================================================================================================================
+#                                                  PROJECTDRIVE.FRONTIER
+#============================================================================================================================================
+# 📦 Project-Drive declarative opening read by Frontier.exe before shared facilities are constructed.
+
+[Project]
+ProjectName             = "ProjectDrive"
+ProjectFormatNumber     = 1
+ContentLocation         = "Content"
+OpeningScene            = "Content/Scenes/DriveCourse.r4.gltf"
+CodeImage               = "Build/ProjectDrive.dll"
+CodeInterchangeNumber   = 3
+InterfaceFingerprint    = 0xb6725f24d0869173
+
+# Runtime actor: false retains it for R/respawn; true deletes it only after a successful deployment.
+# Stop -> Play restores the authored actor for a new editor session. Runtime respawn does not.
+[DeploymentPoint]
+Name                    = "Player vehicle deployment"
+Archetype               = "ControlVehicle"
+PlayerIdentifier        = 1
+PlayerName              = "Player 1"
+Team                    = 0
+Player.Loadout          = "Default"
+Position                = [0.0, 0.0, 0.55]
+Rotation                = [0.0, 0.0, 0.0, 1.0]
+Enabled                 = true
+DeleteAfterSpawn        = false

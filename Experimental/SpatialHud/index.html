@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier — spatial HUD tablet</title>
+<link rel="stylesheet" href="SpatialHud.css">
+</head>
+<body>
+
+<main>
+  <canvas id="viewport"></canvas>
+  <p id="notice" hidden></p>
+  <p id="readout">starting — if this does not change, the page failed before its first frame</p>
+  <p id="hint">drag to orbit · wheel to zoom</p>
+</main>
+
+<aside>
+  <h1>Spatial HUD</h1>
+  <p class="blurb">
+    The Project&nbsp;Zero trial panel as a car fascia. Every shape is a signed distance generated from
+    <code>Engine/Shaders/InterfaceSignedDistance.slang</code>; the whole tablet is one draw of four
+    vertices.
+  </p>
+
+  <section>
+    <h2>Screen</h2>
+    <div class="rungs">
+      <button data-screen="home" class="on">Home</button>
+      <button data-screen="dash">Dashboard</button>
+    </div>
+    <p class="blurb" id="screen-note"></p>
+  </section>
+
+  <section>
+    <h2>Backdrop</h2>
+    <div class="rungs">
+      <button data-rung="live" class="on">Live</button>
+      <button data-rung="field">Field</button>
+      <button data-rung="off">Off</button>
+    </div>
+    <p class="blurb" id="rung-note"></p>
+  </section>
+
+  <section>
+    <h2>Field rung</h2>
+    <p class="blurb">
+      The analytic sibling of the <em>Light streaks</em> preset — running head, exponential wake and
+      spark, on an explicit curve instead of a Bézier. These sliders drive the <strong>Field</strong>
+      rung only.
+    </p>
+    <label>strands <input type="range" data-streak="strands" min="1" max="48" step="1"><output></output></label>
+    <label>amplitude <input type="range" data-streak="amplitude" min="0" max="0.06" step="0.001"><output></output></label>
+    <label>waves <input type="range" data-streak="waves" min="0.2" max="8" step="0.1"><output></output></label>
+    <label>speed <input type="range" data-streak="speed" min="0" max="3" step="0.01"><output></output></label>
+    <label>tail <input type="range" data-streak="tail" min="0.02" max="1.5" step="0.01"><output></output></label>
+    <label>seed <input type="range" data-streak="seed" min="0" max="64" step="1"><output></output></label>
+    <label>intensity <input type="range" data-streak="intensity" min="0" max="4" step="0.01"><output></output></label>
+    <label>core <input type="range" data-streak="core" min="0.0005" max="0.012" step="0.0001"><output></output></label>
+    <label>field opacity <input type="range" data-field="fieldOpacity" min="0" max="1" step="0.01" value="0.85"></label>
+  </section>
+
+  <section>
+    <h2>Instrument</h2>
+    <label>speed <input type="range" data-field="speed" min="0" max="320" step="1"></label>
+    <label>boost <input type="range" data-field="boost" min="0" max="1" step="0.01"></label>
+    <label>regen <input type="range" data-field="regen" min="0" max="1" step="0.01"></label>
+    <label class="switch"><input type="checkbox" data-field="sport"> sport</label>
+    <label class="switch"><input type="checkbox" data-field="demo" checked> run the scripted cycle</label>
+  </section>
+
+  <section>
+    <h2>Room</h2>
+    <p class="blurb">
+      The bezel and the card are albedo, not decals: drop the room light and they sink, while the
+      streaks, the arc and the lit knob stay — they are the parts that actually emit.
+    </p>
+    <label>ambient <input type="range" data-field="ambient" min="0" max="1.5" step="0.01" value="0.35"></label>
+  </section>
+</aside>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

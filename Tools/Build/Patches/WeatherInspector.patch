@@ -1,0 +1,335 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -253,6 +253,7 @@
+     Engine/Editor/MoonInspectorPanel.cpp
+     Engine/Editor/StarsInspectorPanel.cpp
+     Engine/Editor/CloudsInspectorPanel.cpp
++    Engine/Editor/WeatherInspectorPanel.cpp
+     Engine/Editor/FogInspectorPanel.cpp
+     Engine/Editor/GizmoFigures.cpp
+     Engine/DisplayPresentation/ExposureIntegrator.cpp
+--- a/Engine/Editor/EditorInstance.h
++++ b/Engine/Editor/EditorInstance.h
+@@ -199,7 +199,7 @@
+     uint32_t        PropertyCount = 0u;
+ };
+ 
+-enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud, HeightFog, AerialFog, LocalFog };
++enum class EditorSheetAppearance : uint8_t { Generic, Sun, LensFlare, AtmosphereSky, Moon, Stars, GlobalCloud, LocalCloud, HeightFog, AerialFog, LocalFog, Wind, Precipitation, Rainbow };
+ 
+ // Borrowed immutable image data; project retains ownership through the editor frame.
+ struct EditorSkyImage {
+@@ -215,8 +215,10 @@
+ struct StarRecord;
+ struct EditorStarPreview { const StarRecord* Records=nullptr; uint32_t Count=0; float Seconds=0; };
+ struct EditorFogPreview {float Rayleigh[3]={5.8e-6f,13.5e-6f,33.1e-6f};float Mie=21e-6f,RayleighHeight=8000,MieHeight=1200;};
++struct EditorWeatherPreview { float Wind[8]={}; uint32_t Alive=0; float SnowDepth=0, RainVisibility=0; bool AboveWeather=false; };
+ struct EditorSheet
+ {
++    EditorWeatherPreview WeatherPreview{};
+     EditorSkyImage SkyImage{};
+     EditorStarPreview StarPreview{};
+     EditorFogPreview FogPreview{};
+--- a/Engine/Editor/InspectorPanel.cpp
++++ b/Engine/Editor/InspectorPanel.cpp
+@@ -13,6 +13,7 @@
+ #include "StarsInspectorPanel.h"
+ #include "CloudsInspectorPanel.h"
+ #include "FogInspectorPanel.h"
++#include "WeatherInspectorPanel.h"
+ #include <imgui_internal.h>   // ImGuiWindow: the SkipItems early-out
+ 
+ #include <cctype>
+@@ -133,6 +134,11 @@
+         return;
+     }
+ 
++    if (Sheet->Appearance == EditorSheetAppearance::Wind || Sheet->Appearance == EditorSheetAppearance::Precipitation || Sheet->Appearance == EditorSheetAppearance::Rainbow) {
++        ImGui::BeginChild("##weather-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
++        ImGui::PushID(static_cast<int>(PickedIndex));RecordWeatherInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
++        ImGui::EndChild();RecordFooter(Picked);ImGui::End();return;
++    }
+     if (Sheet->Appearance == EditorSheetAppearance::HeightFog || Sheet->Appearance == EditorSheetAppearance::AerialFog || Sheet->Appearance == EditorSheetAppearance::LocalFog) {
+         ImGui::BeginChild("##fog-properties",ImVec2(0,ImMax(0.f,Controls_->QueryFootTop()-ImGui::GetCursorScreenPos().y)),false);
+         ImGui::PushID(static_cast<int>(PickedIndex));RecordFogInspector(*Controls_,*Picked,*Sheet);ImGui::PopID();
+--- a/Projects/Project-Zero/Source/CelestialSequence.h
++++ b/Projects/Project-Zero/Source/CelestialSequence.h
+@@ -278,6 +278,10 @@
+     void BuildSunSheet(EditorSheet& Sheet) const noexcept;
+     void BuildAtmosphereSkySheet(EditorSheet& Sheet) const noexcept;
+     void BuildFlareSheet(EditorSheet& Sheet) const noexcept;
++    void BuildWindSheet(EditorSheet& Sheet) const noexcept;
++    void BuildPrecipitationSheet(EditorSheet& Sheet) const noexcept;
++    void BuildPrecipitationBehaviour(EditorSheet& Sheet) const noexcept;
++    void BuildRainbowSheet(EditorSheet& Sheet) const noexcept;
+     void BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept;
+     CelestialFrame      Solved{};
+     PrecipitationSystem Rain{};
+--- a/Projects/Project-Zero/Source/CelestialSequence.cpp
++++ b/Projects/Project-Zero/Source/CelestialSequence.cpp
+@@ -3,6 +3,7 @@
+ //============================================================================================================================================
+ 
+ #include "CelestialSequence.h"
++#include "DisplayPresentation/WeatherDiagnostics.h"
+ #include "DisplayPresentation/StarFieldControls.h"
+ #include "../../../Engine/DisplayPresentation/SunColourTemperature.h"
+ 
+@@ -371,7 +372,7 @@
+     if (Wind.GustPhase > 6.28318531f * 1024.0f) Wind.GustPhase -= 6.28318531f * 1024.0f;
+ 
+     // ④ Precipitation last: its emitter reads the cloud layer, which the wind has just moved.
+-    const bool Falling = Precip.Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)];
++    const bool Falling = Enabled && Precip.Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)];
+     PrecipitationSettings Active = Precip;
+     Active.Enabled = Falling;
+     Rain.Step(Active, Shown[static_cast<uint32_t>(CelestialEntity::CloudLayer)] ? Cloud : CloudLayerSettings{},
+@@ -702,17 +703,7 @@
+ 
+     // Rain visibility rises with the fall rate (10 mm/h moderate = full column); drizzle earns half, snow and
+     //    hail earn nothing — ice makes halos, not bows. Default off with the precipitation itself.
+-    float RainVisibility = 0.0f;
+-    if (Enabled && Precip.Enabled)
+-    {
+-        if (Precip.Category == Frontier::PrecipitationCategory::Rain)
+-            RainVisibility = Precip.RateMillimetresPerHour / 10.0f > 1.0f ? 1.0f
+-                           : Precip.RateMillimetresPerHour / 10.0f;
+-        else if (Precip.Category == Frontier::PrecipitationCategory::Drizzle)
+-            RainVisibility = Precip.RateMillimetresPerHour / 20.0f > 0.5f ? 0.5f
+-                           : Precip.RateMillimetresPerHour / 20.0f;
+-        if (RainVisibility < 0.0f) RainVisibility = 0.0f;
+-    }
++    const float RainVisibility = WeatherDiagnostics::RainVisibility(Precip, Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)]);
+     const bool WantBow = Enabled && Shown[static_cast<uint32_t>(CelestialEntity::Rainbow)] && Rainbow.Enabled;
+ 
+     // The horizon fade for the flare's visibility, −2..0° of sun elevation. The model's SmoothStep is private
+@@ -804,7 +795,15 @@
+     CelestialEntity::Sky,
+     CelestialEntity::Stars,
+     CelestialEntity::Moons,
+-    CelestialEntity::LensFlare
++    CelestialEntity::LensFlare,
++    CelestialEntity::Wind,
++    CelestialEntity::CloudLayer,
++    CelestialEntity::Precipitation,
++    CelestialEntity::LocalCloud,
++    CelestialEntity::HeightFog,
++    CelestialEntity::AtmosphericFog,
++    CelestialEntity::LocalFog,
++    CelestialEntity::Rainbow
+ };
+ constexpr uint32_t kOutlinerEntityCount = static_cast<uint32_t>(sizeof(kOutlinerEntities) / sizeof(kOutlinerEntities[0]));
+ 
+@@ -839,7 +838,7 @@
+         EditorInstance& Row = Instances[Written + Count];
+         Row = EditorInstance{};
+         std::snprintf(Row.Label, sizeof(Row.Label), "%s", CelestialEntityName(Entity));
+-        Row.Depth   = 1u;
++        Row.Depth   = Entity == CelestialEntity::Precipitation ? 2u : 1u;
+         Row.Visible = Shown[EntityIdx];
+         // A Light row for the sun (it is one), Geometry for the rest; the narrowing pills read the page's own
+         //    groups (Sky for the medium, Bodies for the moons, Lights for the sun).
+@@ -851,7 +850,8 @@
+         Row.Dynamic = (Entity == CelestialEntity::Sun || Entity == CelestialEntity::Stars || Entity == CelestialEntity::Moons);
+         RefreshRow(Entity, Row);
+         ++Count;
+-        ++Folder.KidCount;
++        if(Entity == CelestialEntity::Precipitation) ++Instances[Written + Count - 2u].KidCount;
++        else ++Folder.KidCount;
+     }
+     return Count;
+ }
+@@ -997,7 +997,7 @@
+ {
+     // Clear in place, one property at a time: do not materialize a whole sheet on the stack.
+     Sheet.Appearance = EditorSheetAppearance::Generic;
+-    Sheet.SkyImage = {};Sheet.StarPreview={};Sheet.FogPreview={};
++    Sheet.SkyImage = {};Sheet.StarPreview={};Sheet.FogPreview={};Sheet.WeatherPreview={};
+     for(auto& Body:Sheet.MoonBodies)Body=EditorMoonBody{};Sheet.MoonAtlasRevision=0;
+     Sheet.MoonAzimuth=Sheet.MoonElevation=Sheet.MoonPhase=0;
+     Sheet.GroupCount = 0;
+@@ -1014,6 +1014,9 @@
+     else if (Entity == CelestialEntity::Atmosphere || Entity == CelestialEntity::Sky) BuildAtmosphereSkySheet(Sheet);
+     else if (Entity == CelestialEntity::Moons) BuildMoonSheet(Sheet);
+     else if (Entity == CelestialEntity::Stars) BuildStarsSheet(Sheet);
++    else if(Entity==CelestialEntity::Wind)BuildWindSheet(Sheet);
++    else if(Entity==CelestialEntity::Precipitation)BuildPrecipitationSheet(Sheet);
++    else if(Entity==CelestialEntity::Rainbow)BuildRainbowSheet(Sheet);
+     else if(Entity==CelestialEntity::HeightFog||Entity==CelestialEntity::AtmosphericFog||Entity==CelestialEntity::LocalFog)BuildFogSheet(Entity,Sheet);
+     else if (Entity == CelestialEntity::CloudLayer || Entity == CelestialEntity::LocalCloud) BuildCloudSheet(Entity==CelestialEntity::LocalCloud,Sheet);
+     else BuildOtherSheet(Entity, Sheet);
+@@ -1213,13 +1216,14 @@
+     }
+ }
+ 
+-void CelestialSequence::BuildOtherSheet(CelestialEntity Entity, EditorSheet& Sheet) const noexcept
+-{
+-    char Text[48];
+-    switch (Entity)
+-    {
+-    case CelestialEntity::Wind:
+-    {
++void CelestialSequence::BuildWindSheet(EditorSheet& Sheet) const noexcept
++{
++    Sheet.Appearance=EditorSheetAppearance::Wind;
++ char Text[48];
++    auto& P=Sheet.WeatherPreview;
++    P.Wind[0]=Wind.Speed;P.Wind[1]=Wind.Bearing;P.Wind[2]=Wind.Shear;P.Wind[3]=Wind.Veer;P.Wind[4]=Wind.Gust;P.Wind[5]=Wind.Turbulence;P.Wind[6]=Wind.Steadiness;P.Wind[7]=Wind.GustPhase;
++    P.Alive=Rain.Telemetry().Alive;P.SnowDepth=Rain.Field().DeepestMetres();P.AboveWeather=Rain.Telemetry().AboveWeather;P.RainVisibility=WeatherDiagnostics::RainVisibility(Precip,Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)]);
++
+         EditorPropertyGroup& Flow = OpenGroup(Sheet, "Flow");
+         Push(Flow, MakeSlider("Speed", 0.0f, 40.0f, Wind.Speed, 1, "m/s"));
+         Push(Flow, MakeSlider("Bearing", 0.0f, 360.0f, Wind.Bearing, 0, "deg"));
+@@ -1235,10 +1239,33 @@
+         const uint32_t Force = WindField::BeaufortForce(Wind.Speed);
+         std::snprintf(Text, sizeof(Text), "%u %s", Force, WindField::BeaufortName(Force));
+         Push(Live, MakeReadout("Force", Text));
+-        break;
+-    }
+-    case CelestialEntity::Precipitation:
+-    {
++}
++
++void CelestialSequence::BuildPrecipitationBehaviour(EditorSheet& Sheet) const noexcept
++{
++ char Text[48];
++        EditorPropertyGroup& Drift = OpenGroup(Sheet, "Wind");
++        Push(Drift, MakeSlider("Wind Drift", 0.0f, 1.0f, Precip.WindDrift, 2, ""));
++        Push(Drift, MakeSwitch("Follow Wind", Precip.FollowWind));
++        Push(Drift, MakeSwitch("Spawn from Clouds", Precip.SpawnFromClouds));
++
++        EditorPropertyGroup& Land = OpenGroup(Sheet, "Collision");
++        Push(Land, MakeSwitch("Ground Collision", Precip.GroundCollision));
++        Push(Land, MakeSlider("Accumulation", 0.0f, 1.0f, Precip.Accumulation, 2, ""));
++
++        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
++        std::snprintf(Text, sizeof(Text), "%u alive", Rain.Telemetry().Alive);
++        Push(Live, MakeReadout("Particles", Text));
++        std::snprintf(Text, sizeof(Text), "%.3f m", static_cast<double>(Rain.Field().DeepestMetres()));
++        Push(Live, MakeReadout("Snow Depth", Text));
++}
++void CelestialSequence::BuildPrecipitationSheet(EditorSheet& Sheet) const noexcept
++{
++    Sheet.Appearance=EditorSheetAppearance::Precipitation;
++    auto& P=Sheet.WeatherPreview;
++    P.Wind[0]=Wind.Speed;P.Wind[1]=Wind.Bearing;P.Wind[2]=Wind.Shear;P.Wind[3]=Wind.Veer;P.Wind[4]=Wind.Gust;P.Wind[5]=Wind.Turbulence;P.Wind[6]=Wind.Steadiness;P.Wind[7]=Wind.GustPhase;
++    P.Alive=Rain.Telemetry().Alive;P.SnowDepth=Rain.Field().DeepestMetres();P.AboveWeather=Rain.Telemetry().AboveWeather;P.RainVisibility=WeatherDiagnostics::RainVisibility(Precip,Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)]);
++
+         EditorPropertyGroup& Kind = OpenGroup(Sheet, "Type");
+         Push(Kind, MakeSwitch("Enabled", Precip.Enabled));
+         {
+@@ -1249,36 +1276,26 @@
+         Push(Kind, MakeSlider("Density", 0.1f, 6.0f, Precip.Density, 2, "x"));
+         Push(Kind, MakeSlider("Particle Size", 0.3f, 3.0f, Precip.SizeScale, 2, "x"));
+ 
+-        EditorPropertyGroup& Drift = OpenGroup(Sheet, "Wind");
+-        Push(Drift, MakeSlider("Wind Drift", 0.0f, 1.0f, Precip.WindDrift, 2, ""));
+-        Push(Drift, MakeSwitch("Follow Wind", Precip.FollowWind));
+-        Push(Drift, MakeSwitch("Spawn from Clouds", Precip.SpawnFromClouds));
+-
+-        EditorPropertyGroup& Land = OpenGroup(Sheet, "Collision");
+-        Push(Land, MakeSwitch("Ground Collision", Precip.GroundCollision));
+-        Push(Land, MakeSlider("Accumulation", 0.0f, 1.0f, Precip.Accumulation, 2, ""));
+-
+-        EditorPropertyGroup& Live = OpenGroup(Sheet, "Live");
+-        std::snprintf(Text, sizeof(Text), "%u alive", Rain.Telemetry().Alive);
+-        Push(Live, MakeReadout("Particles", Text));
+-        std::snprintf(Text, sizeof(Text), "%.3f m", static_cast<double>(Rain.Field().DeepestMetres()));
+-        Push(Live, MakeReadout("Snow Depth", Text));
+-        break;
+-    }
+-    case CelestialEntity::Rainbow:
+-    {
++        BuildPrecipitationBehaviour(Sheet);
++}
++
++void CelestialSequence::BuildRainbowSheet(EditorSheet& Sheet) const noexcept
++{
++    Sheet.Appearance=EditorSheetAppearance::Rainbow;
++    auto& P=Sheet.WeatherPreview;
++    P.Wind[0]=Wind.Speed;P.Wind[1]=Wind.Bearing;P.Wind[2]=Wind.Shear;P.Wind[3]=Wind.Veer;P.Wind[4]=Wind.Gust;P.Wind[5]=Wind.Turbulence;P.Wind[6]=Wind.Steadiness;P.Wind[7]=Wind.GustPhase;
++    P.Alive=Rain.Telemetry().Alive;P.SnowDepth=Rain.Field().DeepestMetres();P.AboveWeather=Rain.Telemetry().AboveWeather;P.RainVisibility=WeatherDiagnostics::RainVisibility(Precip,Enabled&&Shown[static_cast<uint32_t>(CelestialEntity::Precipitation)]);
++
+         EditorPropertyGroup& Bow = OpenGroup(Sheet, "Bow");
+         Push(Bow, MakeSwitch("Enabled", Rainbow.Enabled));
+         Push(Bow, MakeSlider("Intensity", 0.0f, 3.0f, Rainbow.Intensity, 2, "x"));
+         Push(Bow, MakeSlider("Width", 0.1f, 4.0f, Rainbow.Width, 2, "x"));
+         Push(Bow, MakeSlider("Secondary", 0.0f, 1.0f, Rainbow.SecondaryGain, 2, ""));
+         Push(Bow, MakeSwitch("Alexander's Band", Rainbow.AlexanderBand));
+-        break;
+-    }
+-    default:
+-        break;
+-    }
+-}
++        Push(Bow, MakeSlider("Minimum Path", 1.0f, 2000.0f, Rainbow.MinimumPathMetres, 0, "m"));
++}
++
++void CelestialSequence::BuildOtherSheet(CelestialEntity, EditorSheet&) const noexcept {}
+ 
+ //------------------------------------------------------------------------------------------------------------------------
+ 
+@@ -1475,34 +1492,44 @@
+         break;
+     }
+     case CelestialEntity::Wind:
+-        Wind.Speed      = ReadSlider(Sheet, "Speed", Wind.Speed);
+-        Wind.Bearing    = ReadSlider(Sheet, "Bearing", Wind.Bearing);
+-        Wind.Shear      = ReadSlider(Sheet, "Shear", Wind.Shear);
+-        Wind.Veer       = ReadSlider(Sheet, "Veer", Wind.Veer);
+-        Wind.Gust       = ReadSlider(Sheet, "Gust", Wind.Gust);
+-        Wind.Turbulence = ReadSlider(Sheet, "Turbulence", Wind.Turbulence);
+-        Wind.Steadiness = ReadSlider(Sheet, "Steadiness", Wind.Steadiness);
+-        break;
++    {
++        auto Safe=[&](const char* N,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};
++        Wind.Speed      = Safe("Speed", Wind.Speed, 0.0f, 40.0f);
++        Wind.Bearing    = Safe("Bearing", Wind.Bearing, 0.0f, 360.0f);
++        Wind.Shear      = Safe("Shear", Wind.Shear, 0.0f, 2.0f);
++        Wind.Veer       = Safe("Veer", Wind.Veer, -60.0f, 60.0f);
++        Wind.Gust       = Safe("Gust", Wind.Gust, 0.0f, 1.0f);
++        Wind.Turbulence = Safe("Turbulence", Wind.Turbulence, 0.0f, 1.0f);
++        Wind.Steadiness = Safe("Steadiness", Wind.Steadiness, 0.0f, 1.0f);
++        break;
++    }
+     case CelestialEntity::Precipitation:
++    {
++        auto Safe=[&](const char* N,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};
+         Precip.Enabled                = ReadSwitch(Sheet, "Enabled", Precip.Enabled);
+-        Precip.Category               = static_cast<PrecipitationCategory>(
+-                                            ReadSelect(Sheet, "Precipitation", static_cast<uint32_t>(Precip.Category)));
+-        Precip.RateMillimetresPerHour = ReadSlider(Sheet, "Intensity", Precip.RateMillimetresPerHour);
+-        Precip.Density                = ReadSlider(Sheet, "Density", Precip.Density);
+-        Precip.SizeScale              = ReadSlider(Sheet, "Particle Size", Precip.SizeScale);
+-        Precip.WindDrift              = ReadSlider(Sheet, "Wind Drift", Precip.WindDrift);
++        const uint32_t Type=ReadSelect(Sheet,"Precipitation",static_cast<uint32_t>(Precip.Category));
++        if(Type<5u)Precip.Category=static_cast<PrecipitationCategory>(Type);
++        Precip.RateMillimetresPerHour = Safe("Intensity", Precip.RateMillimetresPerHour, 0.0f, 100.0f);
++        Precip.Density                = Safe("Density", Precip.Density, 0.1f, 6.0f);
++        Precip.SizeScale              = Safe("Particle Size", Precip.SizeScale, 0.3f, 3.0f);
++        Precip.WindDrift              = Safe("Wind Drift", Precip.WindDrift, 0.0f, 1.0f);
+         Precip.FollowWind             = ReadSwitch(Sheet, "Follow Wind", Precip.FollowWind);
+         Precip.SpawnFromClouds        = ReadSwitch(Sheet, "Spawn from Clouds", Precip.SpawnFromClouds);
+         Precip.GroundCollision        = ReadSwitch(Sheet, "Ground Collision", Precip.GroundCollision);
+-        Precip.Accumulation           = ReadSlider(Sheet, "Accumulation", Precip.Accumulation);
+-        break;
++        Precip.Accumulation           = Safe("Accumulation", Precip.Accumulation, 0.0f, 1.0f);
++        break;
++    }
+     case CelestialEntity::Rainbow:
++    {
++        auto Safe=[&](const char* N,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,N,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};
+         Rainbow.Enabled       = ReadSwitch(Sheet, "Enabled", Rainbow.Enabled);
+-        Rainbow.Intensity     = ReadSlider(Sheet, "Intensity", Rainbow.Intensity);
+-        Rainbow.Width         = ReadSlider(Sheet, "Width", Rainbow.Width);
+-        Rainbow.SecondaryGain = ReadSlider(Sheet, "Secondary", Rainbow.SecondaryGain);
++        Rainbow.Intensity     = Safe("Intensity", Rainbow.Intensity, 0.0f, 3.0f);
++        Rainbow.Width         = Safe("Width", Rainbow.Width, 0.1f, 4.0f);
++        Rainbow.SecondaryGain = Safe("Secondary", Rainbow.SecondaryGain, 0.0f, 1.0f);
++        Rainbow.MinimumPathMetres=Safe("Minimum Path",Rainbow.MinimumPathMetres,1,2000);
+         Rainbow.AlexanderBand = ReadSwitch(Sheet, "Alexander's Band", Rainbow.AlexanderBand);
+         break;
++    }
+     case CelestialEntity::LensFlare:
+     {
+         auto Bounded=[&](const char* Label,float Old,float Lo,float Hi){float V=ReadSlider(Sheet,Label,Old);return std::isfinite(V)?std::clamp(V,Lo,Hi):Old;};

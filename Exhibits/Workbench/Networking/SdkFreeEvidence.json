@@ -1,0 +1,29 @@
+{
+  "compiled": [
+    "BackendClient.cpp",
+    "EosTransport.cpp",
+    "TransportRouter.cpp",
+    "PhotonLinkStub.cpp",
+    "ReplicationLink.cpp",
+    "PhotonReplicationLink.cpp",
+    "ReplicationSequence.cpp"
+  ],
+  "checks": [
+    {
+      "check": "TransportChecks.cpp",
+      "passes": 19,
+      "closing": "PASS english display names unchanged"
+    },
+    {
+      "check": "LobbyChecks.cpp",
+      "passes": 48,
+      "closing": "Scope: deterministic local logic only. EOS lobby, RTC and cloud integration are not exercised here."
+    },
+    {
+      "check": "LoginSequenceChecks.cpp",
+      "passes": 13,
+      "closing": "Scope: synthetic acceptance ordering only. LIVE EOS AUTHENTICATION NOT RUN."
+    }
+  ],
+  "passes": 80
+}

@@ -1,0 +1,93 @@
+
+The four bands and the three columns
+  PASS  the header is 54 px, as .app-header is
+  PASS  and the document bar another 36
+  PASS  the status bar is 26 px off the bottom
+  PASS  so the workspace absorbs 784
+  PASS  the outliner is 236 wide and the inspector 310, the stylesheet's own columns
+  PASS  and the viewport takes the 894 between them
+  PASS  the transport is 48 tall and the timeline 88, stacked onto the status bar
+  PASS  which leaves the viewport itself 607 px under its 41 px bar
+  PASS  at 1600 and up both panes widen, to 258 and 330
+  PASS  and the same breakpoint loosens the property rows, the group foot and the preset cards
+  PASS  at 1200 and under they narrow to 205 and 277
+  PASS  at 960 and under, to 175 and 245
+  PASS  and the gas tag leaves the header, which is what that breakpoint hides
+  PASS  under 760 the outliner is dropped entirely rather than squeezed
+  PASS  the viewport slides to the left edge and the inspector holds 230
+  PASS  the centre never goes under its minmax floor, however narrow the page gets
+
+The control table is the browser's, and it is complete
+  PASS  all 82 controls came across
+  PASS  and all 18 preset cards
+  PASS  with the nine debug channels DEBUG_CHANNELS lists
+  PASS  boundsWidth is in the table
+  PASS  carrying 1 to 4 m in steps of 0.05, which is what SceneSpecification.js declares
+  PASS  and the metre unit cell RenderControl() gives it
+  PASS  the short label and the long heading are both kept, as the browser keeps both
+  PASS  the resolution is a select of seven
+  PASS  running 16 to 128, in the order the option list is written
+  PASS  and emission is a switch, not a slider
+  PASS  a key nothing carries reads as absent, not as zero
+
+Every key the inspector names can actually be drawn
+  PASS  the twelve tab-and-object combinations name 283 rows between them
+  PASS  not one of them names a key the control table does not carry
+  PASS  and not one names a key GasSettings cannot answer, so no row paints blank
+
+The inspector's groups are ConstructInspector()'s groups
+  PASS  an emitter's Source tab has five groups
+  PASS  Emission leads, badged SOURCE and open
+  PASS  the burst generator is fourth and closed
+  PASS  and the collider trails it, also closed
+  PASS  select the collider itself and that group comes to the top, open, with the emission groups gone
+  PASS  and it keeps its hint about normalised position, which is the only place that is explained
+  PASS  the Simulation tab is Domain, Voxel lattice, Forces and Combustion
+  PASS  with the first two open and the last two closed
+  PASS  on Rendering, volume shading leads when a domain is selected
+  PASS  select the sun and the light group is promoted instead, exactly as the collider is
+  PASS  and volume shading drops to second rather than being removed
+
+The rail answers its filters
+  PASS  All shows all eighteen
+  PASS  and fire, smoke and blast hold 7, 7 and 4 of them
+  PASS  which is every card accounted for exactly once -- no effect is unreachable behind a filter, and none is reachable behind two
+  PASS  the rail opens on the pyro plume, under the short name the card shows rather than the long one the preset library stores
+  PASS  and ends on the lightweight plume
+
+The derived readings
+  PASS  an idle transport reads 00:00.000
+  PASS  3.25 s reads 00:03.250
+  PASS  and past two minutes it carries into the minute field
+  PASS  a 48 lattice is 110,592 voxels, grouped as toLocaleString groups it
+  PASS  and a 16 one needs only the one separator
+  PASS  the bounds line prints width, height, width -- X and Z are one setting, which is why it cannot read three different numbers
+  PASS  the HUD reads 96 cubed
+  PASS  on the lit channel the caption says physically shaded
+  PASS  and on any other it names that channel instead
+  PASS  a channel out of range falls back to the lit one rather than reading off the end
+  PASS  the camp fire emits continuously with a burst armed
+  PASS  disarm it and the track just emits
+  PASS  and with the source off the track says so rather than going blank
+  PASS  a step of 0.05 still prints two decimals -- FormatNumber brackets on a hundredth, it does not count the step's own places
+  PASS  finer than a hundredth and it prints three
+  PASS  and a whole step prints a whole number
+  PASS  the eyebrow under a name is the browser's own word for that kind of object
+  PASS  and the outliner counts three of the four rows enabled
+
+The inspector fits the pane it is given
+  PASS  the open tab has a measurable height
+  PASS  which is within three screens -- the pane scrolls in the browser, so this only has to be sane
+  PASS  and switching tabs changes it, which is the only way to know the measure reads the tab at all
+  PASS  a closed group is exactly its summary, with no content left behind under it
+  PASS  and an open one is its summary plus four rows and a hint
+
+Capture
+  PASS  the page is written out as SourceTab.png
+  PASS  the page is written out as SimulationTab.png
+  PASS  the page is written out as RenderingTabWithSunSelected.png
+  PASS  the page is written out as WideBreakpoint.png
+  PASS  the page is written out as NarrowBreakpoint.png
+
+PASS 74
+Exit: 0

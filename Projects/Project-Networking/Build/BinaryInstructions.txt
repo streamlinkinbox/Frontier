@@ -1,0 +1,94 @@
+FRONTIER / CHARGE - LOBBY LAB
+============================
+START
+1. Extract into a fresh folder. Run the official EOS service installer once if
+   it is not already installed. Open Charge.exe, the configured Epic Bootstrapper.
+2. For portable login and EOS cloud history, put PRIVATE Charge.local.ini next
+   to Charge.exe. Carry this SAME file to each PC. It contains readable client
+   credentials and the 64-hex-character player-data encryption key: keep it private.
+   It is deliberately NOT in this public ZIP. Never commit or share it.
+3. Click Log in. The existing Windows vault route also works, but cloud history
+   needs the data key from the private file (or Setup > Advanced).
+4. Optional: Setup offers auto-login (uses the Epic token saved on this PC, no
+   browser on later runs), forget-auto-login (revokes that token), the app
+   UI language (English / Simplified Chinese, applied instantly), and the manual
+   Premium multiplayer (Photon) switch. Logs stay in English.
+
+FLOW
+Verified Auth + Connect -> automatic EOS lobby/RTC room and prepared match session
+-> mark yourself ready -> mark local dummy players ready -> start EOS match session
+-> End test match -> cache and queue a completed test record to EOS Player Data Storage.
+The host can disable auto-start. Prepare next match recreates the ended session.
+Use the Browse tab to search lobbies by tags (style, language, map, mode on the
+server; open / in-match / full and public / presence / invite locally) or join
+a lobby by ID from the collapsed section. Members join the host match session
+explicitly from the Lobby tab. Leaving the lobby always ends, unregisters and
+destroys the match session first. The host manages session registration.
+
+TRANSPORT
+After login the app picks a multiplayer transport and shows it on the account
+card. Standard accounts stay on the EOS direct path (lobby and voice; no packet
+relay yet). Turning on Premium multiplayer (Photon) in Setup routes match
+traffic over Photon Realtime with Epic authentication: the app joins (or creates)
+the FrontierDevRoom room and sends a first handshake packet, then carries engine
+replication packets. Photon failures fall back to EOS automatically.
+This build links the official Photon Realtime Core 6.0.0.347 /MD x64 libs.
+Developers: PHOTON_APP_ID,
+PHOTON_ROOM and PHOTON_APP_VERSION override the built-ins; EOS_CATALOG_ITEM_IDS
+(comma-separated) enables the Ecom ownership-token check; the dashboard currently
+checks no catalog items. No tokens are written to logs.
+
+SETTINGS
+The Settings tab edits lobby properties (bucket, members, permission, presence,
+invites, voice, migration, join-by-ID, rejoin rule, map/mode/region/note, style,
+language) and match-session properties (name, bucket, players, permission,
+join-in-progress, presence, map/mode). Lobby edits apply to new lobbies and live
+for the host; session edits apply when the host prepares the next session.
+Invalid values are rejected with no EOS call.
+
+SESSION POLICY
+If the log shows session_register_real_players result=EOS_ClientPolicyMissingAction,
+open the Epic Dev Portal for this client and grant the Sessions actions used by
+this lab (create/update, register/unregister, start/end, destroy, search, join).
+Use minimal client permissions, not admin or trusted-server policies. Until then
+the host can still run a lifecycle-only match without registration.
+
+DUMMY PLAYERS
+The default three LOCAL DUMMY cards are only readiness controls for testing alone.
+They do not have Epic identities, are not registered session players and cannot
+send or receive voice. Records count real and dummy participants separately.
+
+VOICE
+EOS lobby RTC is real SDK functionality and starts with local audio input muted.
+Click Enable microphone explicitly. Use OS default input/output devices and allow
+microphone access in Windows. Connected voice is not proof that another person
+can hear you: test with a second eligible Epic account on another PC.
+Microsoft's hash-pinned XAudio2 redistributable is included under App, with notices.
+
+CLOUD HISTORY
+Client policy must allow the lobby, sessions, voice and Player Data Storage actions
+used by this test app. Use minimal appropriate client permissions, not admin or
+trusted-server permissions. An EOS access/policy failure is displayed in the log.
+Cloud records include successful-login UTC, prepared session ID, completed or
+abandoned test sessions, duration and explicit dummy counts. No invented kills,
+scores or gameplay results. This is client-written history, not trusted competition
+statistics or an EOS Stats leaderboard. Up to 64 recent records are shown.
+
+Records are separate immutable event files to avoid overwriting another PC's log.
+Local cache/pending uploads: %LOCALAPPDATA%\FrontierCharge\dev-v1\history\<PUID>.
+Keep the same storage_key on both PCs. Losing/changing it can make old cloud data
+unreadable. Rotating client_secret does NOT require changing storage_key.
+Failed uploads remain locally pending. Use Sync cloud history to retry. Normal
+Disconnect/close waits up to 8 seconds for cleanup/sync, then reports any timeout.
+Hard process termination cannot guarantee immediate remote lobby/session cleanup.
+
+PRIVACY / DIAGNOSTICS
+Copy log places redacted diagnostics on the Windows clipboard. Profile details,
+credentials and cloud encryption keys are not included. The private config may
+contain a credential previously exposed in chat: rotate it and replace only its
+client_secret value. No portable credential file belongs in a public release.
+
+PROOF BOUNDARIES
+WindowProof.bmp: rendered login window. LobbyProof.bmp: clearly labelled synthetic
+layout preview, NOT a real lobby or login. CI checks SDK/platform creation and local
+logic, NOT authenticated lobby creation, RTC transmission or player-data transfers.

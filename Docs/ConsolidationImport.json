@@ -1,0 +1,2779 @@
+{
+  "upstream": "SultanAladin/Frontier-",
+  "revision": "f6c99702c769ef9fd44c39ac8819e0ebeae35b9b",
+  "appliedToImportedSources": [
+    "NativeOutliner",
+    "SunInspector",
+    "FullSunInspector",
+    "SunLightingBindings",
+    "SunMotionBindings",
+    "LensFlareInspector",
+    "AtmosphereSkyInspector",
+    "MoonInspector",
+    "MoonCatalogue",
+    "AtmosphereOverview",
+    "StarsInspector",
+    "CloudsInspector",
+    "FogInspector",
+    "WeatherInspector",
+    "CameraInspector",
+    "MainEditorIntegration",
+    "NativeConstruct",
+    "NativeBillboards",
+    "IconArt-TargetCMake"
+  ],
+  "files": [
+    {
+      "path": "Engine/ContentInterchange/AssetResolution.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/AssetResolution.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ContentCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ContentCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/FbxCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/FbxCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialCodec.cpp",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialDescriptor.h",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialIndex.cpp",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialIndex.h",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialSwatchStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/MaterialSwatchStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ObjCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ObjCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/PngWriteCounterpart.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SceneCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SceneCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShaderBallStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShaderBallStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShaderballPreview.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShaderballPreview.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShowcaseStructure.cpp",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/ShowcaseStructure.h",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceExport.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceExport.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/SpaceFormat.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/TextureIndex.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/TextureIndex.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/ContentInterchange/UfbxTranslation.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/DiagnosticMetrics.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/GizmoExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/DiagnosticMetrics.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/GizmoExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/InputExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/InputExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/InterfaceExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/InterfaceExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/OrientationClassifier.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/OrientationClassifier.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/RayTracingCapabilitySet.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/RayTracingCapabilitySet.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/RelayQueue.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/ShadowExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/SwapchainExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/SwapchainExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/TelemetryProbe.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/TelemetryProbe.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/TriangleSpan.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/VisibilityExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DeviceExchange/VisibilityExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AppearanceInspector.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/CelestialTier.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AppearanceInspector.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AtmosphereModel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/AtmosphericOptics.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/CelestialSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/CelestialSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/CloudShadowStaging.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ColourTransfer.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationInspector.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationInspector.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationRegistry.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationRegistry.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ConfigurationStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ControlCentreHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ControlCentreHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ControlKit.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ControlKit.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/DiagnosticInspector.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/DiagnosticInspector.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/DialogueHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/DialogueHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ExposureIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ExposureIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/FidelityClassifier.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/FidelityClassifier.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/FontCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/FontCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/GlyphSpace.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/GlyphSpace.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/LtcSheenTable.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/MaterialInspector.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/MaterialInspector.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/MoonConstantRecord.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/MotionIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/MotionIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/NotificationQueue.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/NotificationQueue.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/PixelSpace.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/PixelSpace.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/PostConstantRecord.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/Precipitation.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ReSTIRIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ReSTIRIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/RenderScheduler.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/RenderScheduler.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ShadingTableCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ShadingTableCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/SkyConstantRecord.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/SkyDomeSheet.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/TelemetryMetrics.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/TelemetryMetrics.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/TextEntryState.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ThemeStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/ThemeStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/TypefaceRegistry.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/TypefaceRegistry.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/VectorCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/VectorCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/VolumetricMedia.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/DisplayPresentation/WindField.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ControlPanel.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ControlPanel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/EditorHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/EditorHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/EditorInstance.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/GizmoFigures.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/GizmoFigures.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/InspectorPanel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/InspectorPanel.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/OutlinerPanel.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/OutlinerPanel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ShadeTick.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ShadeTick.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ViewportPanel.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Editor/ViewportPanel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasBuildMirror.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasBuildMirror.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasBuildPipeline.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasBuildPipeline.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasDevicePayload.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/BlasDevicePayload.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/CameraProjection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/CameraProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/ClipProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/GeometryStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/GeometryStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/InstanceAcceleration.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/InstanceAcceleration.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/SceneStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/SceneStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/StarCatalogueIndex.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/StarCatalogueIndex.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/TraversalIndex.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/TraversalIndex.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/VisibilityRaster.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/GeometricRaster/VisibilityRaster.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PhysicalDynamics/RigidBodySolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PhysicalDynamics/RigidBodySolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PlatformInterchange/AudioExchange.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PlatformInterchange/AudioExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PlatformInterchange/MiniaudioTranslation.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PlatformInterchange/WaveCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/PlatformInterchange/WaveCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/AtrousDenoise.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/BlasBuild.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/AutomotiveMaterialProfiles.slang",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/Shaders/BlasLayout.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/BlasRefit.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/CloudShadow.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ClusterCull.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/GizmoRaster.frag.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/GizmoRaster.vert.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/GizmoRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/HiZReduce.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/InterfacePanelSample.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/InterfaceRaster.frag.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/InterfaceRaster.vert.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/InterfaceRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/InterfaceSignedDistance.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/LuminanceReduce.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/MaterialEvaluation.slang",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/Shaders/MoonRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/OutlineRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/PostRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/RayGeneration.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ReSTIRViewport.slang",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Engine/Shaders/SceneRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/SelectionOutline.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ShadowRaster.frag.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ShadowRaster.vert.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ShadowRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ShadowResolve.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/ShadowSample.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/SkyRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/SlangCpuShim.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/SurfaceResolve.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/TraversalCWBVH.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/TraversalRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/VisibilityRaster.frag.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/Shaders/VisibilityRaster.vert.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceLayoutCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/VolumeMarker.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceLayoutCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceLightProjection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceLightProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfacePointerProjection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfacePointerProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceScreenSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceScreenSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceSpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceTextProjection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceTextProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceVectorCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/InterfaceVectorCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/PaletteConfiguration.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Engine/SpatialInterface/PaletteConfiguration.h",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/AudioArchives/FerrariLaFerrari/FerrariLaFerrari.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/AudioArchives/NissanGtrNismo/NissanGtrNismo.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/AudioArchives/Porsche918Spyder/Porsche918Spyder.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/ember_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/glacier_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/luna_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/shard_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/shroud_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/CelestialTextures/sulfur_2k.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/Archivo.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Archivo/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/ClashDisplay/ClashDisplay.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/FiraSans.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/FiraSans/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/GeneralSans/GeneralSans.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/GeneralSans/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Black.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Bold.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-ExtraBold.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-ExtraLight.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Light.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Medium.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Regular.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-SemiBold.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter-Thin.otf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/Inter.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Inter/LICENSE.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/JetBrainsMono/JetBrainsMono.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/Lato.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Lato/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/Montserrat.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Montserrat/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/LICENSE.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Outfit/Outfit.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Black.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-ExtraBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-ExtraLight.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-SemiBold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins-Thin.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/Poppins/Poppins.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/OFL.txt",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/SpaceGrotesk-Bold.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/SpaceGrotesk-Light.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/SpaceGrotesk-Medium.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/SpaceGrotesk-Regular.ttf",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/FontArchives/SpaceGrotesk/SpaceGrotesk.toml",
+      "action": "imported"
+    },
+    {
+      "path": "EngineContent/StarCatalogue/BrightStars.bin",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/CMakeLists.txt",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/UPSTREAM_SOLIDARC_NOTES.md",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/CommandCodec.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/CommandCodec.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleInteraction.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/ConsoleSelection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Console/SolidArcConsole.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/FigureRecipe.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/SceneDocument.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Document/UndoSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcEditorHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Editor/SolidArcOutlinerAdapter.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/CameraProjection.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/CameraProjection.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/HotkeyChart.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/HotkeyChart.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/InputEvent.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/InputEvent.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/SnapResolution.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/SnapResolution.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/ToolSession.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/ToolSession.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/TransformGizmo.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Interaction/TransformGizmo.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/BlendSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/BlendSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ConstraintGraph.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ConstraintGraph.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ConstraintSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ConstraintSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/CurveSpecification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/CurveSpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/FairPatchSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/FairPatchSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/IntersectionSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/IntersectionSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/MirrorSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/MirrorSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ProfileSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ProfileSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/ScalarCriteria.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/SkinSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/SkinSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/SurfaceSpecification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/SurfaceSpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/TopologySpecification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/TopologySpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Kernel/VectorSpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/RasterExchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/ScenePresentation.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/ScenePresentation.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/SoftwareRaster.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/LatticeProjection.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/LineRaster.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/MatcapStudio.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/PointRaster.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/ShadingRecords.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/SlangMirror.h",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Presentation/Shaders/SurfaceRaster.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Samples/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Samples/ToyBiplane.arc",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Samples/ToyCar.arc",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Samples/ToySailboat.arc",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ArrayAndBridgeVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BlendVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BodyOpsVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BooleanContactVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BooleanCylinderSeamVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BooleanEquivalenceVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/BooleanIdentityVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ConeCapPushVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ConeSidePushVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ConstraintVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/CornerFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/CylinderChamferVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/CylinderFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/CylinderPushVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/CylinderSidePushVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DimensionVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DocumentVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DualBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DualSideBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DualSideSteppedBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/DualSteppedBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/FairPatchVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/InteractionVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/IntersectionVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/KernelVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MirrorVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MixedStageSideBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiEdgeFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiSideBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiSideSteppedBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiStageBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/MultiStageSideBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/OffsetBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/OpenChainFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/PerforatedPrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/PlaneConeFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/PlaneCylinderFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ProfileAdversarialVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/ProfileVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/RasterVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/RoundedBoxFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/RoundedPrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SectorEndpointFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SelectionVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SideBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SideSteppedBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SkinVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SteppedBlindBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/SubEntityDimensionVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/TangentChainFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/TopologyVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/TwinBorePrismFilletVerification.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Editor/AuthoringTools/Modelling/SolidArc/Verification/VerificationPanel.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Build/ToolchainSequence.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Build/ToolchainSequence.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Source/CrankClickIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Source/DynoSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Source/CrankClickIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Source/DynoSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Dyno/Source/GameExecution.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Construct.bat",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/INTEGRATION.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Makefile",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Build/Construct.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Build/FetchSponza.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Build/ToolchainSequence.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Content/Scenes/CornellBox.gltf",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Content/Scenes/GlassProof.gltf",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/CelestialParity.txt",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/FogParity.txt",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/CheckCelestialSlang.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/RunCelestialParity.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/RunFogParity.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0000_night_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0005_OFF.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0000_night_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0005_FIN3.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0005_HASHES.txt",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0005_OVC.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0589_sun_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0589_sun_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0600_sun_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0600_sun_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_default_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_default_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_lookup_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_lookup_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_sun_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0640_sun_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0760_lookup_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0760_lookup_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0760_sun_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/0760_sun_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/1200_lookup_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/1200_lookup_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/1811_sun_diff_oracle.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/1811_sun_slang.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/ReSTIRConvergence.txt",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_0600_extinct_crop.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_0600_off.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_0640d_off.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_1811_off.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_5778_off.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_5778_on.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_ignition_crop.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_line_off_crop.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_line_on_crop.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fig_sunset_off_full.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fog_backlit.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fog_clear.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/fog_morning.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/pz_courtyard_backlit75.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/pz_courtyard_clear.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/pz_courtyard_morning.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/restir.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Diagnostics/Proof/restir_mean.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CelHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/FogProbe.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPortDiff.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/FogViewport.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/Makefile",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/MaterialLevelViewport.cpp",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/MediaProbe.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/ReSTIRConvergence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/SkyViewport.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/SunPosition.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/CelestialIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/CelestialIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/CelestialSpecification.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/PROVENANCE.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/DeviceExchange/OrientationClassifier.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Host/CpuPort/DeviceExchange/OrientationClassifier.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Build/FormatDirectives.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Build/PortSky.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/FlareSpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/FogSpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/ReSTIRSequence.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/SkySpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Integration/Shaders/SlangInterchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/MoonTextures/GenerateMoonTextures.py",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/PZIntegration/moons_contact.jpg",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/PZIntegration/showcase_night.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/PZIntegration/showcase_anamorphic.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/PZIntegration/showcase_sunset.png",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Reviews/Fog-Research-2026-09-14.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Reviews/SunSky-Mirror-Report-2026-09-14.md",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Shaders/FlareSpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Shaders/FogSpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Shaders/SkySpecification.slang",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Shaders/SlangInterchange.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CelestialSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CommandLine.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/EditorFeedSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CommandLine.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CpuReferenceMain.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/CelestialSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/GameExecution.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/FlyThroughSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/FlyThroughSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InstanceMotionSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InstanceMotionSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InterfaceAudioSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InterfaceAudioSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InterfaceTrialSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/InterfaceTrialSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/PerformanceTelemetrySequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/PerformanceTelemetrySequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/PhysicsInstanceSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/PhysicsInstanceSequence.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/RayTracingSolver.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/RayTracingSolver.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/RendererHost.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/RendererHost.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/ShowroomStructure.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/ShowroomStructure.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/SkyFogIntegrator.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/SkyFogIntegrator.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/TracingIndex.h",
+      "action": "imported"
+    },
+    {
+      "path": "Projects/Project-Zero/Source/EditorFeedSequence.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/ApplyImGuiPatches.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/BuildGlslang.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/ApplyImGuiPatches.py",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/BuildJolt.ps1",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/BuildJolt.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckBuildSourceList.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckCelestialContent.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckCelestialShadow.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckEditorDockingSolidArc.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckEditorVisualProofs.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckGlassPathState.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckInstanceTraversalUpload.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckPerformanceTelemetry.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckShaderTableParity.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckShaders.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckShowcaseLevel.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckSolidArc.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/CheckTelemetryProbe.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/CelestialContentGate.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/CelestialShadowGate.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/PerformanceTelemetryGate.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/ShowcaseLevelGate.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/ShowcaseLevelGateCodecStub.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Gates/TelemetryProbeGate.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/PatchA-TrapezoidalTabs.patch",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/Patches.md",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/PatchB-TabOverlapZOrder.patch",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/PatchC-RoundTabButtons.patch",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/PatchD-TabAddButton.patch",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Build/Patches/PatchE-NoTabScrollButtons.patch",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Scripts/ExplodeProject.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Scripts/PackProject.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Tools/Scripts/GenerateMoonTextures.py",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/README.md",
+      "action": "kept workspace version"
+    },
+    {
+      "path": "Experimental/Liquid/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Ocean/Ocean.html",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Ocean/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Ocean/RESEARCH.md",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Ocean/lib/three.module.min.js",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Ocean/lib/addons/OrbitControls.js",
+      "action": "imported"
+    },
+    {
+      "path": "Experimental/Water/README.md",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Automotive/AutomotiveMaterialPreview.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Automotive/RunAutomotiveMaterialPreview.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/CheckEditorProof.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/CpuReSTIRTrace.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/EditorKnobCheck.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/EditorProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/EditorSelectionProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/PngWriteCounterpart.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/SolidArcEditorProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/Counterparts/GLFW/glfw3.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Editor/Counterparts/vulkan/vulkan.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/AtrousDenoiseMirror.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/DenoiseCpuShim.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/AtrousDenoiseMirror.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialCodec.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialDenoise.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialInspector.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialScenes.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialSwatches.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckMaterialsProof.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckRestirSoak.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/CheckTemporalIdentity.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/DenoiseExhibit.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/DenoiseReprojectionProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/DenoiseStreams.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/GiClassError.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/GlassAluminumProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialChannelCoverage.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialCodecProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialFurnaceProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialInspectorProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialProofsReport.md",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialSceneProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/MaterialSwatchProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/ReportGiClassError.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/ReportGiCoverage.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/ReprojectionMirror.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunDenoiseExhibit.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunGlassAluminumProof.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunGlintSheet.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunMaterialLibraryViewport.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunRestirConvergence.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunRestirViewport.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/RunShaderballExhibit.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/SlangCpuShim.h",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Materials/StageAtrousDenoise.py",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/CheckSpaceFamily.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/SpaceFamilyProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/ProjectFormat/SpaceTool.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Sky/CheckSkyProbeProof.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Sky/SunLimbProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Sky/SkyDomeKernelProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Sky/SkyProbeProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Sky/SkyReservoirProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Traversal/BlasDeviceRun.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Traversal/CheckTwoLevelBvh.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Traversal/RunBlasDevice.sh",
+      "action": "imported"
+    },
+    {
+      "path": "Exhibits/Workbench/Traversal/TwoLevelBvhProof.cpp",
+      "action": "imported"
+    },
+    {
+      "path": "Docs/DynamicGeometry.md",
+      "action": "imported"
+    },
+    {
+      "path": "Docs/Phase9.md",
+      "action": "imported"
+    },
+    {
+      "path": "Docs/ProjectFormat.md",
+      "action": "imported"
+    },
+    {
+      "path": "Docs/Roadmap.md",
+      "action": "imported"
+    },
+    {
+      "path": "References/AutomotiveMaterials-Plan.md",
+      "action": "imported"
+    },
+    {
+      "path": "References/MaterialRestir-Plan.md",
+      "action": "imported"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "Propagation": {
+    "branch": "arena/01a0f3a8-slate",
+    "commit": "bc90f99797afa01e14fd4fee7b5936bdd14aabf3",
+    "files": {
+      "src/core/math.ts": "91ec2980b126d5e9f559d6fa7725af6c101b80aa0504ce0ed3c5c37b8d5e9524",
+      "src/sim/materials.ts": "d2b018ed903638e076f6b11048a6a08cb022715a776f2e8beb2fc836ee01aacb",
+      "src/geom/convex.ts": "4000ef311ad98bb914bc205e2f93c6f5423afb78db1a44d154bb8af824f828b8",
+      "src/frac/crack2d.ts": "034e6bc1af02e5a33640312c7db04e3717040387088e4fa5adf500a2a35afc7b",
+      "src/frac/regions.ts": "b86bd688bac7f7f75dcbef491fcce992dbb0acc365cbd8468895ef554e6c4627",
+      "src/frac/dent.ts": "a7092ee2a37736d0c51f5764da3060c9af830d5428b4470f41808f9c9ca950bd",
+      "src/frac/dentmap.ts": "c6d9ad24c974884353cf8bdb20fb038e32e6b34ec89d1dcfba11eb01cf7a19b0",
+      "src/geom/carbody.ts": "bc419964e58a60458293a46d198c7ed9d8712a9e30c5a3e549de5574a73f0c58"
+    }
+  },
+  "Fragmentation": {
+    "branch": "arena/01a0f3a4-slate",
+    "commit": "0cf178add2cb387bb958c77996bd4fc07d365e27",
+    "files": {
+      "src/core/math.ts": "d9efe2faf8d8b7351dd899c5f69e380d196e5eaa5c55b7837d9850d1b29255cc",
+      "src/core/convex.ts": "a997f0034b13118d61e10f78da89be8ee46c2237ddd6619332cc25f74a68b802",
+      "src/fracture/materials.ts": "bbd49a96cb72c2a02b9f7c43314b6291e854ee8e2522083c64c9dff76847a14f",
+      "src/fracture/fracture.ts": "23fd3dec18be45925b21962a6b7ff3b855d3684e1ab3b75101d251f7a1a688e8",
+      "src/scene/targets.ts": "7e663383f23ad06183c18432656b75717005fad2fe33e2f4aee2dcb2d70d6036"
+    }
+  }
+}

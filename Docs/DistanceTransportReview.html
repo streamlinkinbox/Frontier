@@ -1,0 +1,325 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deforming signed fields — GI, debug views and limits</title><link rel="icon" href="data:,"><style>
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Regular.ttf')}
+@font-face{font-family:DM;src:url('../EngineContent/Fonts/SunReference/DMSans-Light.ttf');font-weight:300}
+:root{color-scheme:light;--Ink:#223032;--Muted:#66726d;--Line:#d8ded5;--Accent:#33604a}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{margin:0;background:#f4f5f0;color:var(--Ink);font:16px/1.8 DM,system-ui,sans-serif}
+a{color:var(--Accent);text-underline-offset:3px}a:hover{color:#142f24}button,a{touch-action:manipulation}
+.Top{position:sticky;top:0;z-index:2;background:#f4f5f0f2;backdrop-filter:blur(12px);border-bottom:1px solid var(--Line)}
+.Top>div{max-width:1320px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:18px 32px;gap:18px}
+.Brand{font-size:14px;letter-spacing:2px;text-decoration:none;color:var(--Ink)}.Brand span{color:var(--Muted);font-size:11px}
+.Open{padding:8px 18px;border:1px solid var(--Accent);border-radius:5px;text-decoration:none;font-size:13px;white-space:nowrap}
+.Layout{max-width:1280px;margin:52px auto 100px;padding:0 32px;display:grid;grid-template-columns:225px minmax(0,1fr);gap:58px}
+.Side{align-self:start;position:sticky;top:110px;font-size:12px;line-height:1.55;max-height:calc(100vh - 130px);overflow:auto}
+.Kicker{font-size:10px;letter-spacing:2px;color:var(--Accent);font-weight:600;margin-bottom:22px}
+.toc ul{padding:0;list-style:none}.toc li{margin:13px 0}.toc li ul{padding-left:14px;font-size:11px}.toc a{color:var(--Muted);text-decoration:none}
+.toc a:hover{color:var(--Accent)}main{min-width:0}h1,h2,h3{font-weight:300;line-height:1.2;letter-spacing:-.025em}
+h1{font-size:46px;margin:0 0 26px;max-width:850px}h2{font-size:30px;margin:60px 0 22px;padding-top:22px;border-top:1px solid var(--Line)}
+h3{font-size:22px;margin:34px 0 14px}p{margin:18px 0}li{margin:8px 0}strong{font-weight:600}
+img{display:block;width:100%;height:auto;border-radius:7px;border:1px solid #cdd4cc;margin:26px 0}
+pre{background:#e6ebe3;padding:20px 24px;overflow:auto;border:1px solid var(--Line);border-radius:5px;font-size:13px;line-height:1.65}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.85em;background:#e7ebe3;border-radius:3px;padding:2px 4px;overflow-wrap:anywhere}
+pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.5;margin:28px 0}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--Line)}
+th{background:#e6ebe3;color:var(--Accent);font-weight:500}blockquote{border-left:3px solid var(--Accent);padding-left:24px;color:var(--Muted)}
+.Diagnostics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:34px 0}.Diagnostics figure{margin:0}.Diagnostics img{margin:0 0 10px}
+figcaption{font-size:11px;color:var(--Muted)}.End{padding-top:30px;border-top:1px solid var(--Line);margin-top:50px;color:var(--Muted);font-size:12px}
+@media(max-width:960px){.Layout{grid-template-columns:1fr;gap:20px}.Side{display:none}h1{font-size:38px}}
+@media(max-width:580px){body{font-size:15px}.Top>div{padding:14px 18px}.Brand span{display:none}.Layout{padding:0 20px;margin-top:34px}h1{font-size:33px}h2{font-size:26px}th,td{padding:8px 5px;font-size:11px}.Diagnostics{grid-template-columns:1fr}pre{padding:16px}}
+</style></head><body>
+<header class="Top"><div><a class="Brand" href="../Experimental/DistanceIntegrator/index.html">DEFORM <span>/ DISTANCE</span></a><a class="Open" href="../Experimental/DistanceIntegrator/index.html">Launch SDF demo ↗</a></div></header>
+<div class="Layout"><aside class="Side"><div class="Kicker">DYNAMIC SIGNED FIELDS<br>05 OCT 2026 / C038</div><div class="toc">
+<ul>
+<li><a href="#first-the-correction">First, the correction</a></li>
+<li><a href="#is-progressive-path-tracing-better-than-our-restir">Is progressive path tracing better than our ReSTIR?</a></li>
+<li><a href="#what-changed-in-this-demonstration">What changed in this demonstration</a></li>
+<li><a href="#the-debug-views-are-not-hidden-behind-the-mesh">The debug views are not hidden behind the mesh</a></li>
+<li><a href="#construction-and-tracing">Construction and tracing</a></li>
+<li><a href="#what-was-actually-verified">What was actually verified</a><ul>
+<li><a href="#field-fidelity-include-the-failures-not-just-the-median">Field fidelity: include the failures, not just the median</a></li>
+</ul>
+</li>
+<li><a href="#rebuild-cost-must-not-disappear-from-the-comparison">Rebuild cost must not disappear from the comparison</a></li>
+<li><a href="#what-this-means-for-the-actual-renderer">What this means for the actual renderer</a></li>
+<li><a href="#reproduction-and-files">Reproduction and files</a></li>
+</ul>
+</div>
+<p><a href="DistanceTransportReview.md">Markdown document</a><br><a href="../../VisualProof/DistanceIntegrator/Captures/WebGpu.json">Field and rendering checks</a><br><a href="../../VisualProof/DistanceIntegrator/Captures/Controls.json">External input and control checks</a></p></aside><main><h1 id="deforming-geometry-signed-distance-field-gi">Deforming geometry → signed distance field → GI</h1>
+<p><strong>5 October 2026 · C038 · Native WebGPU investigation</strong></p>
+<p><a href="../Experimental/DistanceIntegrator/index.html">Open the corrected SDF demo</a> ·
+<a href="DistanceTransportReview.html">Webpage version</a></p>
+<h2 id="first-the-correction">First, the correction</h2>
+<p>The preceding tyre demo traced <strong>triangles</strong>. There was no SDF hidden behind that mesh. Its progressive diffuse
+path tracer was a geometry/lighting reference, not the requested SDF-raymarching implementation. This new,
+separate demo corrects that mismatch. The previous tyre demo remains available and unchanged as a reference.</p>
+<p>The default view is now <strong>SDF surface only</strong>. It does not issue a triangle raster pass. The vehicle-style assembly
+is displayed by raymarching a signed volume rebuilt from its current deformed triangle surfaces.</p>
+<p><img alt="Actual SDF-only browser capture" src="../../VisualProof/DistanceIntegrator/Captures/13SdfOnly96.png" /></p>
+<h2 id="is-progressive-path-tracing-better-than-our-restir">Is progressive path tracing better than our ReSTIR?</h2>
+<p><strong>No such conclusion follows from these demos, and replacing the native ReSTIR renderer is not recommended.</strong></p>
+<p>Path tracing describes transport along light paths. ReSTIR is a family of reservoir-based sample-resampling and
+reuse techniques; it is not a competing geometry representation. SDF raymarching describes how a ray finds a
+surface or tests visibility. These choices can be combined.</p>
+<p>The checked native source, <code>Frontier/Engine/Shaders/ViewportIntegrator.slang</code>, already has separate direct-light
+and GI reservoir storage and temporal/spatial GI reuse. <code>ReSTIRViewport.slang</code> includes that shared implementation.
+Adding a second progressive renderer is therefore not necessary just to make animated geometry contribute to GI.
+A small reference tracer can remain useful for development comparisons, but it should not be mistaken for an
+upgrade over the production reuse scheme.</p>
+<p>The relevant integration work is to provide <strong>current SDF hit/visibility information</strong> to the existing lighting
+calculation. Reused samples need current visibility/target evaluation and appropriate rejection when geometry,
+surface identity or the field changes. ReSTIR cannot recover a thin panel that is missing from the field, and
+reusing an invalid old visibility result can preserve incorrect lighting.</p>
+<p>The older prototype's apparent speed was not an equivalent benchmark against the native renderer: different
+scenes, material models, lights, resolutions, sampling and hardware were involved. The captured-pose GIF was not
+a real-time recording. This delivery still has <strong>no gaming-GPU benchmark</strong>.</p>
+<h2 id="what-changed-in-this-demonstration">What changed in this demonstration</h2>
+<ul>
+<li><strong>11,572 triangles / 5,786 quads / 5,852 vertices</strong> in a procedural vehicle-bodywork stress scene.</li>
+<li><strong>31 individually closed components:</strong> crowned hood panels with a real central opening, four curved wheel arches,
+  cabin roof and pillars, lower side panels, rails, an open grille surround, a rear bulkhead, an engine casing,
+  six thin cooling fins, diagonal braces and a thin undertray.</li>
+<li>Non-rigid front compression, lateral expansion and panel buckling. Vertices, normals and triangle bounds change.
+  This is a controlled deformation, not a calibrated crash or XPBD simulation.</li>
+<li>The <strong>35 mm cooling fins</strong> and <strong>25 mm undertray</strong> deliberately challenge field resolution. The thicker body
+  panels are approximately 130–160 mm in this enlarged study; they are not realistic sheet-metal gauges.</li>
+<li>Actual <strong>mesh-derived signed-volume construction on the GPU</strong>, not a hand-authored analytic SDF for the car.</li>
+<li><strong>Single-frame, one-bounce diffuse gathering</strong> with SDF shadow and bounce rays. There is no progressive image
+  accumulation, recursive multibounce renderer or ReSTIR reuse in this browser study.</li>
+<li>A triangle reference uses the same point lights and diffuse-direction quadrature for comparison. It is not the
+  default lighting path and does not silently replace failed SDF traces.</li>
+</ul>
+<p>This is more demanding than the tyre, but it is still a bounded synthetic assembly, <strong>not validation on your
+production car asset, arbitrary open/nonmanifold meshes, tearing geometry or an open world</strong>.</p>
+<h2 id="the-debug-views-are-not-hidden-behind-the-mesh">The debug views are not hidden behind the mesh</h2>
+<table>
+<thead>
+<tr>
+<th>View</th>
+<th>What is actually displayed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SDF surface only</td>
+<td>Raymarched field surface with direct field-shadowed lighting; no raster</td>
+</tr>
+<tr>
+<td>SDF gradient normals</td>
+<td>Normals from distance-field finite differences; no raster</td>
+</tr>
+<tr>
+<td>Signed-distance slice</td>
+<td>X/Y/Z section: blue outside, orange inside, white near zero, cell contours</td>
+</tr>
+<tr>
+<td>Mesh ↔ SDF hit error</td>
+<td>Primary-ray depth/hit comparison, independent of mesh rasterization</td>
+</tr>
+<tr>
+<td>Sphere-tracing step cost</td>
+<td>March counts; magenta explicitly marks iteration-budget exhaustion</td>
+</tr>
+<tr>
+<td>Raster + SDF one-bounce GI</td>
+<td>Detailed visible triangles; all shadow/bounce queries use the field</td>
+</tr>
+<tr>
+<td>Indirect only</td>
+<td>Only the one-bounce field-gather contribution</td>
+</tr>
+<tr>
+<td>Triangle reference GI</td>
+<td>Same simple lighting estimator with actual triangle queries</td>
+</tr>
+<tr>
+<td>Mesh normals + quad edges</td>
+<td>The actual deformed source surface, not a distance-field reconstruction</td>
+</tr>
+<tr>
+<td>Raster direct only</td>
+<td>Same raster receivers, with only direct SDF-shadowed lighting</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Error colours:</strong> green is close; yellow increases toward two largest-axis voxel spacings of depth difference.
+Red means no field hit or a field hit more than two voxel spacings behind the triangle hit. Blue means an extra
+field hit or one more than two spacings in front. Magenta means the field marcher exhausted its iteration budget.
+Green is therefore not an exact-equality certificate, and the thresholds change with the voxel spacing.</p>
+<p><img alt="Signed horizontal slice" src="../../VisualProof/DistanceIntegrator/Captures/07SignedSliceY.png" /></p>
+<p><img alt="Mesh-versus-field error at 64 cubed" src="../../VisualProof/DistanceIntegrator/Captures/09Error64.png" /></p>
+<p>Try <strong>Undeformed / Full deformation</strong>, then switch between surface, slice and error views. Freeze the current SDF
+and move the geometry to expose stale-field errors. <strong>Rebuild field now</strong> forces a fresh volume even while frozen.
+Changing volume resolution also allocates/rebuilds a new field. Drag to orbit, right-drag to pan, wheel to zoom;
+Space toggles deformation and H hides controls. Animation starts paused so the initial field is inspectable.</p>
+<h2 id="construction-and-tracing">Construction and tracing</h2>
+<p>The geometry preparation sequence is:</p>
+<pre><code class="language-text">Current vertices → expanded triangles/normals → refitted construction BVH
+    → component bounds → per-voxel distance and inside classification
+    → signed 3D texture → sphere-traced visibility and diffuse gather
+</code></pre>
+<p>The fixed-topology BVH has <strong>8,191 bounds, depth 12</strong>. Nearest-distance queries traverse nearer bounds first and
+prune by squared distance. Per-bound component membership and freshly computed component AABBs prune sign queries.
+A 32-entry local traversal stack is adequate for this checked topology; the constructor rejects excess depth.</p>
+<p>At a voxel position, the GPU computes triangle distance and ray-crossing parity for the closed components. A
+32-bit parity mask keeps their classifications separate, so overlapping components do not cancel as they would
+under one undifferentiated odd/even count. Component signed distances are combined by CSG minimum. This gives the
+union's sign and zero surface; inside overlapping solids it is not necessarily the exact Euclidean distance to
+the union boundary. The scene is limited to 32 closed components by this representation.</p>
+<p>The stored volume is <code>rgba16float</code>: signed distance, material identifier, component identifier and a written marker.
+Distance is trilinearly sampled; material lookup uses a nearest voxel. Normals use finite differences. The sampled
+dynamic volume occupies <strong>2 MiB at 64³</strong>, <strong>6.75 MiB at 96³</strong>, or <strong>16 MiB at 128³</strong>; these are payload sizes, not total
+GPU-resident memory. The static floor and two room panels use analytic box SDFs matching their raster geometry.</p>
+<p>The marcher uses a 0.75 distance-step factor, a small minimum step, a voxel-relative hit tolerance, sign-crossing
+refinement and a 256-iteration limit. These are practical numerical choices, <strong>not a certified intersection guarantee
+for an arbitrary trilinear field</strong>. Shadow-ray exhaustion fails dark; missed/exhausted bounce rays contribute no
+bounce. Primary diagnostic exhaustion is coloured magenta rather than hidden.</p>
+<p>The one-bounce gather uses a fixed cosine-weighted direction pattern and evaluates direct point lighting at the
+hit surface. It is a low-sample approximation with visible directional/banding error. It is not a converged
+radiometric solution, a surface-lighting cache, a denoiser or ReSTIR. The SDF lighting path uses a 0.7-voxel origin
+bias to limit self-occlusion; the triangle reference uses 2 mm. Their images therefore differ in normal/material
+reconstruction and ray bias as well as intersection geometry.</p>
+<h2 id="what-was-actually-verified">What was actually verified</h2>
+<p><code>VerifyStructure.mjs</code> checks the 31 component edge incidences, BVH leaf coverage, field-domain containment, finite
+normals and positive triangle areas at five poses. The smallest tested triangle area is <strong>0.00115688 m²</strong>. The
+largest tested vertex displacement is <strong>1.06727 m</strong>. This is not a complete arbitrary-mesh self-intersection audit.</p>
+<p><code>VerifyWebGpu.cjs</code> executes the actual WGSL, reads back vertices and every stored voxel, and compares sampled field
+locations against an independent CPU closest-point/parity calculation. The CPU closest-point routine uses triangle
+Voronoi regions, rather than copying the GPU's plane/edge-distance calculation.</p>
+<ul>
+<li>Four volumes: 32³, 64³ and 96³ at deformation 0.55, plus 64³ at deformation 1.</li>
+<li>All written voxels finite, all written markers present, and both negative and positive samples present.</li>
+<li><strong>96 selected voxel positions</strong>, covering inside, near-surface and distant samples, agree with the independent
+  calculation within <strong>0.487 mm maximum absolute error</strong>. This includes half-float storage error. It is accuracy
+  <strong>at those sample positions</strong>, not a bound on the reconstructed surface between voxels.</li>
+<li>GPU deformation differs from the double-precision CPU formula by at most <strong>0.0470 mm</strong> in the tested poses,
+  including shader trigonometric approximation. Distance/ray oracles use the actual GPU vertices to isolate the
+  field/intersection calculations from that deformation arithmetic difference.</li>
+<li><strong>720 paired GPU field/triangle ray queries</strong> across three resolutions. The triangle query distances agree with
+  independent brute-force intersections within <strong>3.25e-6 m</strong>.</li>
+<li>The SDF-GI render records <strong>741,180 marches and zero triangle ray queries</strong>. The reference render records
+  <strong>742,381 triangle queries and zero marches</strong>. Counters exclude triangle work used to construct the volume.</li>
+<li>SDF-only views do not issue raster passes. Frozen fields remain byte-identical while the visible geometry changes;
+  refreshing the field changes lighting. Returning to the same settings reproduces the HDR image exactly.</li>
+<li>Full/direct/indirect decomposition agrees within <strong>0.001893 RGB</strong>, including separate half-float output rounding.
+  Indirect mean RGB is <strong>0.010240</strong> over visible surfaces; light power zero yields exactly zero surface RGB.</li>
+<li>External position injection changes the volume, invalid inputs/static-room edits are refused, and restoring
+  procedural positions exactly reproduces the original volume. Animation updates geometry and field revisions
+  together. Scale controls, mobile layout and explicit no-WebGPU refusal pass without recorded browser errors.</li>
+</ul>
+<h3 id="field-fidelity-include-the-failures-not-just-the-median">Field fidelity: include the failures, not just the median</h3>
+<p>The fixed ray set contains <strong>168 triangle-reference body hits</strong> among 240 rays. A missing-body result means the
+field ray misses the body entirely or instead reaches the static room. A matched-body result can still hit the
+wrong body surface farther along the ray, so its depth error must also be reported.</p>
+<table>
+<thead>
+<tr>
+<th>Resolution</th>
+<th>Missing body / 168</th>
+<th>Extra body</th>
+<th>Matched median</th>
+<th>Matched mean</th>
+<th>Matched p95</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32³</td>
+<td>48</td>
+<td>1</td>
+<td>18.48 mm</td>
+<td>172.68 mm</td>
+<td>1,929.48 mm</td>
+</tr>
+<tr>
+<td>64³</td>
+<td>8</td>
+<td>0</td>
+<td>5.52 mm</td>
+<td>91.49 mm</td>
+<td>497.25 mm</td>
+</tr>
+<tr>
+<td>96³</td>
+<td>6</td>
+<td>0</td>
+<td>2.88 mm</td>
+<td>69.49 mm</td>
+<td>30.58 mm</td>
+</tr>
+</tbody>
+</table>
+<p>The matched medians improve, <strong>but thin-feature and farther-surface failures remain</strong>. The full-screen 64³ GI render
+also exhausts the march budget on <strong>539 of 741,180 queries</strong>; those failures are handled as described above, not
+silently replaced with triangle tracing. This does not establish production-quality GI for complex thin car panels.</p>
+<h2 id="rebuild-cost-must-not-disappear-from-the-comparison">Rebuild cost must not disappear from the comparison</h2>
+<p>All timings below are <strong>Chromium 133 / SwiftShader software Vulkan-WebGPU</strong>, not gaming-GPU measurements. The HUD
+retains <strong>Last SDF rebuild</strong> separately, even when an unchanged scene reuses its volume.</p>
+<table>
+<thead>
+<tr>
+<th>Measured work</th>
+<th>Software GPU interval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32³ construction, deformation 0.55</td>
+<td>2,138.42 ms</td>
+</tr>
+<tr>
+<td>64³ construction, deformation 0.55</td>
+<td>15,649.39 ms</td>
+</tr>
+<tr>
+<td>64³ construction, deformation 1</td>
+<td>16,642.37 ms</td>
+</tr>
+<tr>
+<td>96³ construction, deformation 0.55</td>
+<td>50,572.36 ms</td>
+</tr>
+<tr>
+<td>Reused-field GI render, 480 × 328, four directions</td>
+<td>2,227.19 ms total</td>
+</tr>
+<tr>
+<td>Triangle-reference GI, same size/direction count</td>
+<td>5,669.37 ms total</td>
+</tr>
+</tbody>
+</table>
+<p>These are individual executed samples with instrumentation enabled, not hardware throughput statistics. The
+render totals cover measured raster/compute/display intervals, not browser compositing, CPU work or readback.
+The two representations do not produce equal-quality images, so the ratio is not an equal-quality speedup claim.</p>
+<p><strong>The finished field is cheaper to query here, but rebuilding this dense field dominates a changing scene.</strong>
+A reused-field timing is not the cost of dynamic SDF GI. This is a correctness/diagnostic construction route,
+not a production update strategy, and these results are not a comparison against the native ReSTIR renderer.</p>
+<h2 id="what-this-means-for-the-actual-renderer">What this means for the actual renderer</h2>
+<p>Keep ReSTIR as the sampling/reuse component. Decide separately how changing geometry supplies reliable visibility:</p>
+<ul>
+<li>Profile dynamic <strong>per-object fields or dirty bricks</strong>, not a full uniform volume rebuild for every pose. Updating
+  moving geometry must cover both its old and new affected extents, with explicit validity/version tracking.</li>
+<li>For suitably constrained motion, investigate inverse-warping a local rest-pose field with corrected distance
+  bounds. Arbitrary crumpling may not have a usable inverse. This demo rebuilds the field; it does not implement
+  inverse-warped queries or demonstrate their accuracy.</li>
+<li>Investigate surface voxelization plus distance propagation/narrow-band updates when full nearest-triangle queries
+  are too expensive. Validate signs and conservative stepping, not just construction speed.</li>
+<li>Use smaller local domains/adaptive resolution for thin parts. At 64³ this volume has approximately <strong>95 × 57 ×
+  114 mm</strong> spacing; at 96³ it has <strong>63 × 38 × 76 mm</strong> spacing. Real millimetre-scale body sheets will not be reliably
+  represented at those spacings. A topology/sign policy for open surfaces is required; this demo uses closed solids.</li>
+<li>If thin features or close-contact lighting need higher accuracy than the field can provide, retain a selective
+  accurate representation for those queries, or knowingly accept/thicken the proxy. Do not call either choice exact.</li>
+<li>Reject or reevaluate reused lighting when field changes invalidate it. Motion vectors, hit identity and geometric
+  confidence matter; merely retaining old reservoirs is not sufficient.</li>
+<li>Benchmark representative deformations and materials on the target GPU before choosing the update strategy.</li>
+</ul>
+<p>No native ReSTIR, SDF, XPBD, vehicle asset or approved experiment was modified by this browser demonstration.</p>
+<h2 id="reproduction-and-files">Reproduction and files</h2>
+<p>Application: <code>Frontier/Experimental/DistanceIntegrator/index.html</code>, served over HTTPS or localhost, without a build
+step. <code>?manual=1&amp;width=480</code> enables deterministic stepping through <code>DistanceApp.Step(amount)</code>. The position-input API
+accepts finite XYZ/XYZW coordinates for the scene vertices; dynamic vertices must stay inside the fixed field domain
+and static room vertices cannot move through that input. Topology and closed-component identities remain fixed.</p>
+<p>Verification entry points are <code>VisualProof/DistanceIntegrator/VerifyStructure.mjs</code>, <code>VerifyWebGpu.cjs</code> and
+<code>VerifyControls.cjs</code>. Browser verification uses Playwright 1.63 / Sparticuz Chromium 133 with the existing software
+WebGPU launch configuration. The current source hashes, numerical results and actual screenshots are retained in
+<code>VisualProof/DistanceIntegrator/Captures/</code>. Full voxel dumps and dependencies remain ignored scratch.</p><div class="End">Actual WebGPU field construction and raymarching · Software measurements · Thin-feature and update-cost limits retained</div></main></div></body></html>

@@ -1,0 +1,89 @@
+NATIVE GAS OBSTRUCTION - the three collision levels, and who consented to each
+
+① The opt-in is the deliverable: nothing obstructs until an object says so
+  PASS  a freshly made record obstructs nothing and is pushed by nothing - every default is off
+  PASS  and all three levels agree about it
+  PASS  ticking the box without giving it a shape still obstructs nothing - that is an unfinished crate, not an error
+  PASS  with a box it obstructs through level ①
+  PASS  and not through level ②, which is a different answer
+  PASS  an object sent to the distance field is not also walked as a primitive - that would be two admissions of one crate
+  PASS  ⑤ and none of that turned the two-way switch on
+
+The routing rule: analytic shapes take level ①, everything else takes level ②
+  PASS  a crate is a box, and a box is level ① - 32768 clipmap samples to rediscover six planes is the wrong answer
+  PASS  terrain is not a sphere, so it is level ② - and it never moves, so the clipmap never restages
+  PASS  giving an object a primitive moves it to level ① in the same breath, with no second switch to forget
+  PASS  and taking it away moves it back
+  PASS  ① routing an object is not consenting for it: it still obstructs nothing until somebody ticks the box
+  PASS  a car that is parked for good may be composited into the world like any other scenery
+  PASS  ⚠️ but a car at 100 km/h is read in its own space instead - the composited world is stale the moment it moves
+  PASS  and so is one creeping either way: anything that moves perceptibly is better asked than rebaked
+  PASS  a wheel that is already a ring is analytic and has nothing to read locally
+  PASS  which is what GasColliderShape::TyreRing was for: a thing this simple stays level ①
+
+⑤ The two-way switch is read from exactly one place
+  PASS  the object's own record wins over a stale toggle in the tuning - one switch, one place
+  PASS  while the authored tuning survives intact
+  PASS  so a barrel nobody opted in feels exactly zero newtons in a six metre a second flow
+  PASS  and the same barrel, opted in, is pushed along the flow
+
+② The cull is by scene order, and drops its tail rather than reordering
+  PASS  three of six are walked: one is far away, one never opted in, one is level ②
+  PASS  and they come out in scene order with the gaps closed, not in whatever order they were found
+  PASS  a cramped list is filled to its room
+  PASS  ② and it is the TAIL that is dropped - the same two survive on every machine with this scene
+  PASS  a scene with no records walks nothing
+
+Level ①: a sphere in the plume, and the plume goes around it
+  PASS  the boulder is in the lattice
+  PASS  and an unobstructed field has nothing solid in it at all
+  PASS  🔴 no smoke is inside the boulder - gas inside geometry is a hole in the world the player can see through
+  PASS  less smoke reaches the top of the box than without it, because some of it went around
+  PASS  but not none: a 55 cm boulder splits a plume, it does not cap a chimney
+
+③ Occupancy is rebuilt every advance, so a moved obstruction leaves no wake
+  PASS  a platform at one metre fills some voxels
+  PASS  raised, it fills about the same number - nothing like the sum of where it has been
+  PASS  ③ and where it used to be is open air again, with no solid wake behind it
+
+④ A moving obstruction pushes the air in front of it, through its boundary
+  PASS  a door standing still moves no air at all
+  PASS  ④ swung at three and a half metres a second, it writes into the air around it
+  PASS  ④ and never inside itself, where the solver would still the air in the same advance
+  PASS  every push landed in open air, which is the only place it can carry from
+  PASS  and smoke beside a swinging door is driven away from it, where a parked one leaves it
+
+Level ②: the engine's own global distance field, with no primitive anywhere
+  PASS  🔴 an L-shaped wall obstructs the gas with no primitive authored for it - the raster already knew the shape
+  PASS  and a level with no distance field admits nothing rather than refusing to run
+  PASS  the wall is in the gas lattice as well as in the raster
+  PASS  and no smoke is inside it
+  PASS  the plume reaches the ceiling less readily with a wall over it than without one
+  PASS  the two levels compose in one admission, in one field
+  PASS  and the sphere adds solid voxels the wall did not already own
+
+🔴 A moving body is asked in its own space, never restaged - and so it may also turn
+  PASS  a point along the plank's length is inside it
+  PASS  and one along its width is outside it
+  PASS  🔴 turned a quarter turn, the plank is now inside where it was outside - rotation the composited world cannot express at all
+  PASS  and outside where it was inside
+  PASS  and sliding the body slides what the gas sees, with nothing restaged anywhere
+  PASS  a half-size plank no longer reaches 0.6 m along itself
+  PASS  the plank is in the gas lattice, read straight out of its own space
+  PASS  and moving it moves the solid voxels - without one call to UpdateGlobalGrid in this whole section
+  PASS  a plank spinning on the spot still drags the air beside it
+  PASS  with a velocity that comes from the spin crossed into the arm, not from a translation it has not made
+  PASS  while a plank that is doing nothing moves no air at all
+  PASS  a point far from everything is outside everything
+  PASS  and a reading with no scene behind it answers 'nothing near' rather than crashing a solver
+
+The whole obstruction step is reproducible
+  PASS  sixty advances past a moving boulder are bit-identical on a repeat, occupancy included
+
+Captures
+    wrote Exhibits/Gallery/GasObstruction/PlumeUnobstructed.png
+    wrote Exhibits/Gallery/GasObstruction/PlumeAroundSphere.png
+    wrote Exhibits/Gallery/GasObstruction/PlumeUnderDistanceField.png
+  PASS  three captures: no obstruction, a primitive, and the engine's own distance field
+
+PASS 61
