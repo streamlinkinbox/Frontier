@@ -3356,7 +3356,26 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     }
 
     Vulkan->ActiveSlot = (ActiveSlot + 1u) % kCycleSlotCount;
-}E_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                           RECORD COMPUTE COMMANDS
+//------------------------------------------------------------------------------------------------------------------------
+
+void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const DispatchConfiguration& Dispatch) noexcept
+{
+    VkCommandBuffer Command = Vulkan->ComputeCommands[ImageOrdinal];
+
+    VkCommandBufferBeginInfo BeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+    BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    (void)vkBeginCommandBuffer(Command, &BeginInfo);
+    if ((Dispatch.FeatureFlags & DispatchFeatureRaytracing) != 0u) Vulkan->RayQueries.RecordRefit(Command);
+    if (!Vulkan->PendingTraversal.empty())
+    {
+        VkMemoryBarrier Transfer{ VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+        Transfer.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        Transfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(Command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0u, 1u, &Transfer, 0u, nullptr, 0u, nullptr);
         for (const auto& Upload : Vulkan->PendingTraversal)
             for (VkDeviceSize Offset = 0u; Offset < Upload.Bytes.size(); Offset += 65536u)
