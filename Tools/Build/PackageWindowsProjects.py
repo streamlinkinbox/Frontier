@@ -235,7 +235,7 @@ def Main() -> None:
                           "executionValidation": "Production SPIR-V with synchronization and GPU-assisted shader-access validation",
                           "transport": "Three camera-snapped distance volumes, GPU-captured textured surface-card atlas with Jacobi radiance, exact mesh secondary rays",
                           "activation": "Only after all scene resources and shader pipelines are ready",
-                          "fallback": "Existing Surfel GI, or existing compute fallback if Surfel is unavailable"},
+                          "fallback": "Plain visibility raster if Distance Field GI is unavailable (Surfel GI removed)"},
                 "requirements": ["Windows x64", "Microsoft Visual C++ x64 runtime (bundled)",
                                  "Compatible Vulkan GPU and its installed driver"],
                 "sha256": {Location.relative_to(Destination).as_posix(): hashlib.sha256(Location.read_bytes()).hexdigest()

@@ -385,8 +385,6 @@ $ShaderTable = @(
     @{ Source = 'ReSTIRViewport.slang';        Stage = 'compute';  Output = 'ReSTIRViewport.spv' }
     @{ Source = 'RasterViewport.slang';        Stage = 'compute';  Output = 'RasterViewport.spv' }
     @{ Source = 'RayQueryViewport.slang';        Stage = 'compute';  Output = 'RayQueryViewport.spv' }
-    @{ Source = 'SurfelIrradianceUpdate.slang'; Stage = 'compute';  Output = 'SurfelIrradianceUpdate.spv' }
-    @{ Source = 'SurfelCommit.slang';           Stage = 'compute';  Output = 'SurfelCommit.spv' }
     @{ Source = 'DistanceFieldConstruct.slang'; Stage = 'compute'; Output = 'DistanceFieldConstruct.spv' }
     @{ Source = 'DistanceFieldCapture.slang'; Stage = 'compute'; Output = 'DistanceFieldCapture.spv' }
     @{ Source = 'DistanceFieldCaptureFixed.slang'; Stage = 'compute'; Output = 'DistanceFieldCaptureFixed.spv' }
@@ -395,7 +393,6 @@ $ShaderTable = @(
     @{ Source = 'DistanceFieldGatherFixed.slang'; Stage = 'compute'; Output = 'DistanceFieldGatherFixed.spv' }
     @{ Source = 'DistanceFieldGIResolveFixed.slang'; Stage = 'compute'; Output = 'DistanceFieldGIResolveFixed.spv' }
     @{ Source = 'DistanceFieldGIResolve.slang'; Stage = 'compute'; Output = 'DistanceFieldGIResolve.spv' }
-    @{ Source = 'SurfelGIResolve.slang';         Stage = 'compute';  Output = 'SurfelGIResolve.spv' }
     @{ Source = 'ClusterCull.slang';           Stage = 'compute';  Output = 'ClusterCull.spv' }
     @{ Source = 'HiZReduce.slang';             Stage = 'compute';  Output = 'HiZReduce.spv' }
     @{ Source = 'AtrousDenoise.slang';         Stage = 'compute';  Output = 'AtrousDenoise.spv' }

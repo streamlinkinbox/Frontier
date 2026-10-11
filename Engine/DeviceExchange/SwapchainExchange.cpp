@@ -24,6 +24,7 @@
 #include "../GeometricRaster/InstanceAcceleration.h"   // D6/D7 two-level: what bindings 27-30 are uploaded from
 #include "../GeometricRaster/SceneStructure.h"
 #include <algorithm>
+#include <chrono>
 #include <array>
 #include <cstring>
 #include <filesystem>
@@ -79,13 +80,13 @@ static constexpr uint32_t kLuminanceSampleStride = 32u;
 //    layer below it), so the size is restated here and CheckSkyKernel.sh fails the build if the two disagree.
 static constexpr uint32_t kSkyRecordBytes = 144u;
 // DeviceExchange receives sky data as the 144-byte ABI payload rather than depending on the presentation layer.
-// The surfel route consumes only the first two std140 rows, whose layout is fixed by the SkyKernelParity gate.
+// The GI route consumes only the first two std140 rows, whose layout is fixed by the SkyKernelParity gate.
 struct SkyTransportPrefix
 {
     float SunDirection[4];
     float SunRadiance[4];
 };
-static_assert(sizeof(SkyTransportPrefix) == 32u, "surfel sky prefix must consume exactly two std140 rows");
+static_assert(sizeof(SkyTransportPrefix) == 32u, "sky prefix must consume exactly two std140 rows");
 // The Celestial moon uniform block (binding 22) is eighteen std140 rows — 288 B, pinned by static_assert in
 //    DisplayPresentation/MoonConstantRecord.h. Same layering as the sky record above: restated here, and the moon
 //    gate fails the build if the two disagree.
@@ -424,6 +425,7 @@ static void AllocateBuffer(
     VkMemoryAllocateInfo AllocateInfo{};
     AllocateInfo.sType          = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     AllocateInfo.allocationSize = Requirements.size;
+    bool Matched = false;
     for (uint32_t Index = 0u; Index < MemoryProperties.memoryTypeCount; ++Index)
     {
         if ((Requirements.memoryTypeBits & (1u << Index)) &&
@@ -431,11 +433,17 @@ static void AllocateBuffer(
              static_cast<VkMemoryPropertyFlags>(MemoryFlags))
         {
             AllocateInfo.memoryTypeIndex = Index;
+            Matched = true;
             break;
         }
     }
+    // Phase 1 diagnostics: a request with no matching memory type used to fall back to type 0 silently.
+    if (!Matched) std::cerr << "[Allocation] ERROR no memory type matches flags=" << MemoryFlags << " for " << ByteCount << " bytes; falling back to type 0\n";
+    const VkMemoryPropertyFlags Chosen = MemoryProperties.memoryTypes[AllocateInfo.memoryTypeIndex].propertyFlags;
     std::cerr << "[Allocation] buffer requested=" << ByteCount << " allocated=" << Requirements.size
-              << " memory_flags=" << MemoryProperties.memoryTypes[AllocateInfo.memoryTypeIndex].propertyFlags << " (request, not live total)\n";
+              << " memory_flags=" << Chosen
+              << " placement=" << ((Chosen & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ? "VRAM(device-local)" : "system(host-visible)")
+              << " (request, not live total)\n";
     (void)vkAllocateMemory(Device, &AllocateInfo, nullptr, &OutMemory);
     vkBindBufferMemory(Device, OutBuffer, OutMemory, 0);
 }
@@ -594,7 +602,6 @@ void SwapchainExchange::Retire() noexcept
     if (Vulkan->ImGuiDescriptorPool) vkDestroyDescriptorPool (Vulkan->Device, Vulkan->ImGuiDescriptorPool, nullptr);
 
     DistanceFieldStage.Destroy();
-    SurfelStage.Destroy();
     Vulkan->RayQueries.Retire();
     Visibility.Retire();
     RetireSwapchain();
@@ -2481,7 +2488,7 @@ void SwapchainExchange::UploadMaterials(const MaterialIndex& Materials) noexcept
     if (!Vulkan->Device) return;
 
     if (Vulkan->MaterialBuffer || Vulkan->SlabBuffer) vkDeviceWaitIdle(Vulkan->Device);
-    DistanceFieldStage.Destroy(); SurfelStage.Destroy();
+    DistanceFieldStage.Destroy();
     if (Vulkan->MaterialBuffer) vkDestroyBuffer(Vulkan->Device, Vulkan->MaterialBuffer, nullptr);
     if (Vulkan->MaterialMemory) vkFreeMemory   (Vulkan->Device, Vulkan->MaterialMemory, nullptr);
     if (Vulkan->SlabBuffer)     vkDestroyBuffer(Vulkan->Device, Vulkan->SlabBuffer, nullptr);
@@ -2534,7 +2541,7 @@ void SwapchainExchange::UploadTextures(const TextureIndex& Textures) noexcept
 {
     if (!Vulkan->Device || !Vulkan->DescriptorIndexing) return;
     vkDeviceWaitIdle(Vulkan->Device);
-    DistanceFieldStage.Destroy(); SurfelStage.Destroy();
+    DistanceFieldStage.Destroy();
     ++SurfaceMaterialRevision;
     DestroyTextures();
 
@@ -2755,7 +2762,6 @@ void SwapchainExchange::UploadShadingTables(const float* Energy, const float* Sh
     //    garbage on forgiving drivers, a fault on strict ones. The rewrite is idempotent for every other binding.
     WriteDescriptorSet();
     (void)BringDistanceFieldGIStage();
-    (void)BringSurfelGIStage();
 }
 
 void* SwapchainExchange::SwapReservoirParity() noexcept
@@ -3086,8 +3092,20 @@ void SwapchainExchange::UploadStarTables(const void* CellBytes, uint32_t CellCou
     vkUpdateDescriptorSets(Vulkan->Device, 1u, &Write, 0u, nullptr);
 }
 
-void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures) noexcept
+void SwapchainExchange::UploadScene(const SceneStructure& Scene, const TraversalIndex& Traversal, const TextureIndex* Textures,
+                                    const char* Reason) noexcept
 {
+    // Phase 1 diagnostics: every upload states why it happened and how long it took (logged on every return path).
+    struct UploadTiming
+    {
+        const char*                           Why;
+        std::chrono::steady_clock::time_point Start = std::chrono::steady_clock::now();
+        ~UploadTiming()
+        {
+            const double Ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Start).count();
+            std::cerr << "[UploadScene] reason=" << Why << " total_ms=" << Ms << "\n";
+        }
+    } Timing{Reason};
     if (!Vulkan->Device) return;
     SceneUploadInProgress = true;
     Visibility.UploadScene(Scene);
@@ -3104,7 +3122,6 @@ void SwapchainExchange::UploadScene(const SceneStructure& Scene, const Traversal
             std::cerr << "[RayQuery] Hardware triangle BLAS/TLAS resident: " << Vulkan->RayQueryInstanceCount
                       << " instances; inline ray queries enabled for ReSTIR GI, shadows and mesh reflections.\n";
     }
-    BuildSurfelSamples(Scene);
     try
     {
         if (!DistanceGeometry.Construct(Scene)) std::cerr << "[SdfGI] Scene contains no valid distance geometry.\n";
@@ -3119,8 +3136,6 @@ void SwapchainExchange::UploadScene(const SceneStructure& Scene, const Traversal
     // shared visibility targets exist, so no descriptor ever points at an old or null traversal buffer.
     if (!BringDistanceFieldGIStage())
         std::cerr << "[DistanceFieldGIStage] unavailable after scene upload; retaining the established renderer as fallback.\n";
-    if (!BringSurfelGIStage())
-        std::cerr << "[SurfelGIStage] unavailable after scene upload; retaining the established renderer as fallback.\n";
 
     // R4b: the raster's alpha-mask test borrows the slab SSBO and the bindless table (VisibilityRaster.frag bindings 6 / 7).
     if (Vulkan->DescriptorIndexing)
@@ -3182,7 +3197,6 @@ void SwapchainExchange::RefreshMaterialDescriptors() noexcept
     // Uploads wait for the device before replacing borrowed buffers/views. Recreate both GI descriptor sets,
     // including the fallback, so a live material or texture edit can never leave stale image handles behind.
     (void)BringDistanceFieldGIStage();
-    (void)BringSurfelGIStage();
     if (Vulkan->DescriptorIndexing && Visibility.IsReady())
     {
         std::vector<const void*> Views;
@@ -3222,94 +3236,16 @@ bool SwapchainExchange::BringDistanceFieldGIStage() noexcept
     Init.EnergyLutView    = Vulkan->ShadingTables[0].View;
     Init.SheenLutView     = Vulkan->ShadingTables[1].View;
     Init.TextureSampler   = Vulkan->TextureSampler;
-    SurfelTextureViews.clear();
-    SurfelTextureViews.reserve(Vulkan->Textures.size());
-    for (const VulkanRecord::ResidentTexture& T : Vulkan->Textures) SurfelTextureViews.push_back(T.View);
-    Init.TextureViews     = SurfelTextureViews.data();
-    Init.TextureCount     = static_cast<uint32_t>(SurfelTextureViews.size());
+    DistanceFieldTextureViews.clear();
+    DistanceFieldTextureViews.reserve(Vulkan->Textures.size());
+    for (const VulkanRecord::ResidentTexture& T : Vulkan->Textures) DistanceFieldTextureViews.push_back(T.View);
+    Init.TextureViews     = DistanceFieldTextureViews.data();
+    Init.TextureCount     = static_cast<uint32_t>(DistanceFieldTextureViews.size());
     Init.TextureCapacity  = Vulkan->DescriptorIndexing ? Init.TextureCount : 0u;
     if (!Init.TriangleBuffer || !Init.MaterialBuffer || !Init.InstanceBuffer
      || !Init.SlabBuffer     || !Init.VertexBuffer   || !Init.IndexBuffer
      || !Init.EnergyLutView  || !Init.SheenLutView) return true;
     return DistanceFieldStage.Bring(Init);
-}
-
-bool SwapchainExchange::BringSurfelGIStage() noexcept
-{
-    SurfelStage.Destroy();
-    // Initial device bring-up and a resize before the first scene have no CWBVH yet. This is a normal
-    // deferred state, not a failed renderer; UploadScene will call us immediately after UploadTraversal.
-    if (!Vulkan->TraversalNodeBuffer || !Vulkan->TraversalLeafBuffer || !Visibility.IsReady()) return true;
-    SurfelStageInit Init{};
-    Init.Device           = Vulkan->Device;
-    Init.MemoryProperties = Vulkan->MemoryProperties;
-    Init.CwbvhNodeBuffer  = Vulkan->TraversalNodeBuffer;
-    Init.CwbvhLeafBuffer  = Vulkan->TraversalLeafBuffer;
-    Init.OutputImageView  = Vulkan->StorageImageView;
-    Init.SurfaceImageView = static_cast<VkImageView>(Visibility.QuerySurfaceView());
-    Init.NormalImageView  = static_cast<VkImageView>(Visibility.QueryNormalView());
-    // ── the scene, lent to the surfel passes ────────────────────────────────────────────────────────────────
-    // Both passes decode the real hit and evaluate the real slab now, so they borrow exactly what the kernel
-    //    binds. Same buffers, same LUTs, same bindless table — not copies, not a reduced G-buffer encoding.
-    //    This function already runs after UploadTriangles/UploadMaterials/UploadTraversal, so the handles are
-    //    current; any later reupload calls it again and the descriptors are rewritten.
-    Init.TriangleBuffer   = static_cast<VkBuffer>(Visibility.QueryFlatTriangleBuffer());
-    Init.MaterialBuffer   = Vulkan->MaterialBuffer;
-    Init.InstanceBuffer   = static_cast<VkBuffer>(Visibility.QueryInstanceBuffer());
-    Init.SlabBuffer       = Vulkan->SlabBuffer;
-    Init.VertexBuffer     = static_cast<VkBuffer>(Visibility.QueryVertexBuffer());
-    Init.IndexBuffer      = static_cast<VkBuffer>(Visibility.QueryIndexBuffer());
-    Init.TableSampler     = Vulkan->TableSampler;
-    Init.EnergyLutView    = Vulkan->ShadingTables[0].View;
-    Init.SheenLutView     = Vulkan->ShadingTables[1].View;
-    Init.TextureSampler   = Vulkan->TextureSampler;
-    SurfelTextureViews.clear();
-    SurfelTextureViews.reserve(Vulkan->Textures.size());
-    for (const VulkanRecord::ResidentTexture& T : Vulkan->Textures) SurfelTextureViews.push_back(T.View);
-    Init.TextureViews     = SurfelTextureViews.data();
-    Init.TextureCount     = static_cast<uint32_t>(SurfelTextureViews.size());
-    Init.TextureCapacity  = Vulkan->DescriptorIndexing ? kTextureSlotCapacity : 0u;
-    // Every scene buffer has to be real before the passes can decode anything. Missing one is the deferred
-    //    bring-up state the CWBVH check above describes, not a failure.
-    if (!Init.TriangleBuffer || !Init.MaterialBuffer || !Init.InstanceBuffer
-     || !Init.SlabBuffer     || !Init.VertexBuffer   || !Init.IndexBuffer
-     || !Init.EnergyLutView  || !Init.SheenLutView) return true;
-    Init.GridCellSize     = 0.25f;
-    return SurfelStage.Bring(Init);
-}
-
-void SwapchainExchange::BuildSurfelSamples(const SceneStructure& Scene) noexcept
-{
-    SurfelSamples.clear();
-    const std::vector<TriangleIndex>& Facets = Scene.QueryFlatTriangles();
-    const std::vector<MaterialRecord>& Materials = Scene.QueryMaterials().QueryRecords();
-    if (Facets.empty() || Materials.empty()) return;
-
-    constexpr size_t MaximumSamples = 16384u;
-    const size_t Stride = std::max<size_t>(1u, Facets.size() / MaximumSamples);
-    float Minimum[3] = { 1.0e30f, 1.0e30f, 1.0e30f };
-    for (size_t Index = 0u; Index < Facets.size(); Index += Stride)
-    {
-        const TriangleIndex& Facet = Facets[Index];
-        const float EdgeAlpha[3] = { Facet.VertexBetaX - Facet.VertexAlphaX, Facet.VertexBetaY - Facet.VertexAlphaY, Facet.VertexBetaZ - Facet.VertexAlphaZ };
-        const float EdgeBeta[3]  = { Facet.VertexGammaX - Facet.VertexAlphaX, Facet.VertexGammaY - Facet.VertexAlphaY, Facet.VertexGammaZ - Facet.VertexAlphaZ };
-        float Normal[3] = { EdgeAlpha[1] * EdgeBeta[2] - EdgeAlpha[2] * EdgeBeta[1], EdgeAlpha[2] * EdgeBeta[0] - EdgeAlpha[0] * EdgeBeta[2], EdgeAlpha[0] * EdgeBeta[1] - EdgeAlpha[1] * EdgeBeta[0] };
-        const float Length = std::sqrt(Normal[0] * Normal[0] + Normal[1] * Normal[1] + Normal[2] * Normal[2]);
-        if (Length <= 1.0e-6f) continue;
-        Normal[0] /= Length; Normal[1] /= Length; Normal[2] /= Length;
-        uint32_t MaterialSlot = 0u;
-        std::memcpy(&MaterialSlot, &Facet.MaterialSlot, sizeof(MaterialSlot));
-        const MaterialRecord& Material = Materials[MaterialSlot < Materials.size() ? MaterialSlot : 0u];
-        SurfaceSample Sample{};
-        Sample.Position[0] = (Facet.VertexAlphaX + Facet.VertexBetaX + Facet.VertexGammaX) / 3.0f;
-        Sample.Position[1] = (Facet.VertexAlphaY + Facet.VertexBetaY + Facet.VertexGammaY) / 3.0f;
-        Sample.Position[2] = (Facet.VertexAlphaZ + Facet.VertexBetaZ + Facet.VertexGammaZ) / 3.0f;
-        std::memcpy(Sample.Normal, Normal, sizeof(Normal));
-        Sample.Albedo[0] = Material.AlbedoR; Sample.Albedo[1] = Material.AlbedoG; Sample.Albedo[2] = Material.AlbedoB;
-        for (uint32_t Axis = 0u; Axis < 3u; ++Axis) Minimum[Axis] = std::min(Minimum[Axis], Sample.Position[Axis]);
-        SurfelSamples.push_back(Sample);
-    }
-    for (uint32_t Axis = 0u; Axis < 3u; ++Axis) SurfelGridOrigin[Axis] = Minimum[Axis] - 0.5f;
 }
 
 //============================================================================================================================================
@@ -3324,7 +3260,8 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     {
         std::cerr << "[SwapchainExchange] " << Operation << " failed: VkResult "
                   << static_cast<int>(Result) << (Result == VK_ERROR_DEVICE_LOST ? " (VK_ERROR_DEVICE_LOST)" : "")
-                  << ". Rendering stopped; inspect the driver/validation logs.\n";
+                  << " at accumulation frame " << Dispatch.AccumulationIndex
+                  << ". Rendering stopped: no further acquire/submit will be attempted. Inspect the driver/validation logs.\n";
         FrameFailed = true;
         FrameFailureOperation = Operation;
         FrameFailureCode = static_cast<int32_t>(Result);
@@ -3340,7 +3277,7 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     if (ResizePending)
     {
         ResizePending = false;
-        if (!RebuildSwapchain()) Failed("RebuildSwapchain(resize)", VK_ERROR_INITIALIZATION_FAILED);
+        if (!RebuildSwapchain("window-resize")) Failed("RebuildSwapchain(resize)", VK_ERROR_INITIALIZATION_FAILED);
         return;
     }
 
@@ -3357,7 +3294,7 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     // An out-of-date acquire does not signal, so rebuilding here is safe.
     if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        if (!RebuildSwapchain()) Failed("RebuildSwapchain(acquire)", VK_ERROR_INITIALIZATION_FAILED);
+        if (!RebuildSwapchain("acquire-out-of-date")) Failed("RebuildSwapchain(acquire)", VK_ERROR_INITIALIZATION_FAILED);
         return;
     }
 
@@ -3410,7 +3347,7 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR || ResizePending)
     {
         ResizePending = false;
-        if (!RebuildSwapchain()) { Failed("RebuildSwapchain(present)", VK_ERROR_INITIALIZATION_FAILED); return; }
+        if (!RebuildSwapchain("present-suboptimal-or-out-of-date")) { Failed("RebuildSwapchain(present)", VK_ERROR_INITIALIZATION_FAILED); return; }
     }
     else if (PresentResult != VK_SUCCESS)
     {
@@ -3570,7 +3507,7 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
     Frame.RenderHeight = RenderHeight;
     Visibility.RecordFrame(Command, Vulkan->ActiveSlot, Frame);
 
-    // Non-raytraced GI: prefer SDF only when ready; otherwise retain the existing Surfel route.
+    // Non-raytraced GI: the Distance Field GI stage is the only GI route. Surfel GI has been removed.
     const bool NonRaytracedGIRequested = (Dispatch.FeatureFlags & DispatchFeatureRaytracing) == 0u
                                       && (Dispatch.FeatureFlags & DispatchFeatureGlobalIllumination) != 0u;
     bool NonRaytracedGIRecorded = false;
@@ -3601,35 +3538,6 @@ void SwapchainExchange::RecordAndPresent(const DispatchConfiguration& Dispatch) 
         DfParams.RenderWidth    = RenderWidth;
         DfParams.RenderHeight   = RenderHeight;
         NonRaytracedGIRecorded = DistanceFieldStage.RecordFrame(Command, DfParams);
-    }
-
-    // 2) Surfel GI (Retained fallback if Distance Field GI is unavailable)
-    if (Frame.DebugView == DebugViewCategory::Off && NonRaytracedGIRequested && !NonRaytracedGIRecorded && SurfelStage.IsReady())
-    {
-        SurfelFrameParams SurfelParams{};
-        const SkyTransportPrefix* Sky = static_cast<const SkyTransportPrefix*>(Vulkan->SkyMapped);
-        if (Sky)
-        {
-            for (uint32_t Channel = 0u; Channel < 3u; ++Channel)
-            {
-                SurfelParams.SunDirection[Channel] = Sky->SunDirection[Channel];
-                SurfelParams.SunColour[Channel]    = Sky->SunRadiance[Channel];
-                // The canonical sky record has no cube. Its sun radiance is the analytic, shared direct-light
-                // input; a small stable fraction provides the non-raytraced diffuse dome term.
-                SurfelParams.SkyAmbient[Channel]   = Sky->SunRadiance[Channel] * 0.04f;
-            }
-            SurfelParams.SunRadiance = Sky->SunRadiance[3] > 0.0f ? 1.0f : 0.0f;
-        }
-        SurfelParams.GridOrigin[0] = SurfelGridOrigin[0]; SurfelParams.GridOrigin[1] = SurfelGridOrigin[1]; SurfelParams.GridOrigin[2] = SurfelGridOrigin[2];
-        SurfelParams.CameraEye[0]  = Dispatch.CameraOriginX; SurfelParams.CameraEye[1] = Dispatch.CameraOriginY; SurfelParams.CameraEye[2] = Dispatch.CameraOriginZ;
-        SurfelParams.Exposure      = Dispatch.Exposure;
-        SurfelParams.FrameIndex    = Dispatch.AccumulationIndex;
-        SurfelParams.FeatureFlags  = Dispatch.FeatureFlags;
-        SurfelParams.ReflectionMode = (Dispatch.FeatureFlags & DispatchFeatureReflectionMask) >> DispatchFeatureReflectionShift;
-        SurfelParams.RenderWidth   = RenderWidth;
-        SurfelParams.RenderHeight  = RenderHeight;
-        SurfelStage.UpdateField(SurfelSamples, SurfelParams);
-        NonRaytracedGIRecorded = SurfelStage.RecordFrame(Command, SurfelParams);
     }
 
     // Raster and SDF failure never silently request ReSTIR. Weather belongs in both resolves.
@@ -4193,8 +4101,20 @@ void SwapchainExchange::AssignFullscreen(bool Desired) noexcept
 //                                             SWAPCHAIN REBUILD (on resize)
 //============================================================================================================================================
 
-bool SwapchainExchange::RebuildSwapchain() noexcept
+bool SwapchainExchange::RebuildSwapchain(const char* Reason) noexcept
 {
+    struct RebuildTiming
+    {
+        const char*                           Why;
+        std::chrono::steady_clock::time_point Start = std::chrono::steady_clock::now();
+        ~RebuildTiming()
+        {
+            const double Ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Start).count();
+            std::cerr << "[SwapchainRebuild] reason=" << Why << " total_ms=" << Ms
+                      << " (recreates screen images; SDF stage is rebound)\n";
+        }
+    } Timing{Reason};
+
     int FramebufferW = 0, FramebufferH = 0;
     glfwGetFramebufferSize(GlfwWindow, &FramebufferW, &FramebufferH);
     while (FramebufferW == 0 || FramebufferH == 0)
@@ -4214,7 +4134,6 @@ bool SwapchainExchange::RebuildSwapchain() noexcept
     if (!BringSwapchain() || !BringStorageImage()) return false;
     if (!Visibility.Resize(Configuration.Width, Configuration.Height, Vulkan->StorageImageView)) return false;
     (void)BringDistanceFieldGIStage();
-    if (!BringSurfelGIStage()) return false;
 
     // Every view handed out by the device seam has just been destroyed and recreated. Bumping the generation is how
     //    an overlay learns it must re-Resize; without it, it would keep rendering into a stale VkImageView.
@@ -4448,6 +4367,25 @@ void SwapchainExchange::OnFramebuffer(GLFWwindow* Window, int, int) noexcept
 } // namespace Frontier
 
 namespace Frontier {
+void SwapchainExchange::LogRayTracingDecision(const char* Caller) const noexcept
+{
+    const bool Pipeline = Vulkan && Vulkan->RayQueryPipeline;
+    const bool Ready    = Vulkan && Vulkan->RayQueries.Ready();
+    const uint32_t Instances = Vulkan ? Vulkan->RayQueryInstanceCount : 0u;
+    const bool Tier = QueryRayTracingTier() == RayTracingTierCategory::RayQuery;
+    const char* Reason = Tier ? "none"
+                       : !Vulkan ? "no Vulkan device"
+                       : !Pipeline ? "RayQueryViewport pipeline not built"
+                       : !Ready ? "ray-query resources not ready"
+                       : (!InstanceTraversalResident && Instances != 1u)
+                           ? "multi-instance scene without a resident software two-level BVH (hardware instance table not wired)"
+                           : "unknown";
+    std::cerr << "[RayTracing] caller=" << Caller << " tier=" << (Tier ? "hardware-RayQuery" : "software-BVH")
+              << " pipeline=" << (Pipeline ? 1 : 0) << " ready=" << (Ready ? 1 : 0)
+              << " instances=" << Instances << " instanceTraversalResident=" << (InstanceTraversalResident ? 1 : 0)
+              << " refusal=" << Reason << "\n";
+}
+
 RayTracingTierCategory SwapchainExchange::QueryRayTracingTier() const noexcept
 {
     return Vulkan && Vulkan->RayQueryPipeline && Vulkan->RayQueries.Ready()

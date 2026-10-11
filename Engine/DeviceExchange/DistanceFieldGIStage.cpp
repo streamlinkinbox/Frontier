@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 
 namespace Frontier
 {
@@ -323,12 +324,23 @@ bool DistanceFieldGIStage::RecordFrame(VkCommandBuffer Command, const DistanceFi
     }
     const auto& Geometry        = *Initialization.Geometry;
     const bool  GeometryChanged = ResidentRevision != Geometry.QueryRevision();
-    const bool  Reconstruct     = GeometryChanged || std::memcmp(Origins, Constants.Origins, sizeof(Origins)) != 0;
+    const bool  OriginMoved     = std::memcmp(Origins, Constants.Origins, sizeof(Origins)) != 0;
+    const bool  Reconstruct     = GeometryChanged || OriginMoved;
     Constants.Counts[0]         = Resolution;
     Constants.Counts[1]         = static_cast<uint32_t>(Geometry.QueryBranches().size());
     Constants.Counts[2]         = static_cast<uint32_t>(Geometry.QueryFacets().size());
     Constants.Counts[3]         = Initialization.CardResolution;
-    const bool        Capture   = GeometryChanged || ResidentMaterials != Frame.MaterialRevision;
+    const bool        MaterialsChanged = ResidentMaterials != Frame.MaterialRevision;
+    const bool        Capture   = GeometryChanged || MaterialsChanged;
+    // Phase 1 diagnostics: every SDF rebuild names its trigger; the first 20 and then every 100th are printed.
+    if (Reconstruct || Capture)
+    {
+        ++RebuildEvents;
+        if (RebuildEvents <= 20u || RebuildEvents % 100u == 0u)
+            std::cerr << "[SDF] rebuild #" << RebuildEvents << " reason=" << (GeometryChanged ? "geometry-revision " : "")
+                      << (OriginMoved ? "camera-cell-crossed " : "") << (MaterialsChanged ? "material-revision " : "")
+                      << "frame=" << Frame.FrameIndex << "\n";
+    }
     DistanceFieldPush Push{};
     std::memcpy(Push.Sun, Frame.SunDirection, 12u);
     Push.Sun[3] = Frame.SunRadiance;

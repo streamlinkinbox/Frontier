@@ -736,7 +736,7 @@ int Frontier::RunFrontierRuntime(
     Startup.Mark("DecodedTexturePayload",-1,TexturePayload);
     Startup.Mark("DecodedTextureCapacity",-1,TextureCapacity);
     Startup.Mark("CpuGeometryPayload",-1,Level.QueryVertices().size()*sizeof(Frontier::VertexRecord)+Level.QueryIndices().size()*sizeof(uint32_t)+Level.QueryFlatTriangles().size()*sizeof(Frontier::TriangleIndex));
-    Surface.UploadScene(Level, Traversal, &Textures);
+    Surface.UploadScene(Level, Traversal, &Textures, "scene-load");
     FRONTIER_PROBE_PHASE_END("SceneUpload");
         Startup.Mark("SceneUpload:end",Frontier::HostRuntime::StartupLog::Elapsed(SceneUploadStart));
 
@@ -1068,7 +1068,7 @@ int Frontier::RunFrontierRuntime(
         Integrator.AssignDenoiseLevelCount(Criteria.DenoiseLevelCount);
         // ── Render-path decision matrix (Raytracing tile × Global Illumination tile) ──────────────────────────────────
         //    RT ON            -> raytraced ReSTIR kernel (GI and/or raytraced reflections).
-        //    RT OFF + GI ON   -> surfel GI (visibility raster primary + persistent world-space surfel indirect).
+        //    RT OFF + GI ON   -> Distance Field GI (visibility raster primary + SDF radiance; Surfel GI removed).
         //    RT OFF + GI OFF  -> plain visibility raster (materials + direct + sky ambient; no GI, no rays).
         //    Guard: RT ON + GI OFF + Reflections OFF is flat and pointless, so it falls back to the plain raster —
         //           which looks better than a raytraced path carrying neither GI nor reflections.
@@ -1086,8 +1086,7 @@ int Frontier::RunFrontierRuntime(
         {
             const char* PathName = RenderPath == 0u ? "raytraced ReSTIR kernel"
                                  : RenderPath == 1u ? (Surface.QueryDistanceFieldGIReady() ? "Distance Field GI"
-                                                      : Surface.QuerySurfelGIReady() ? "Surfel GI (SDF unavailable)"
-                                                      : "raster fallback (SDF/Surfel unavailable)")
+                                                      : "raster fallback (Distance Field GI unavailable)")
                                  :                    "plain visibility raster (no GI)";
             const char* ReflName = EffReflMode == Frontier::ReflectionModeCategory::Off ? "off"
                                  : EffReflMode == Frontier::ReflectionModeCategory::Sky ? "sky" : "raytraced";
@@ -1098,6 +1097,7 @@ int Frontier::RunFrontierRuntime(
                           "Render path: %s | reflections: %s%s. (Raytracing tile %s, GI %s.)",
                           PathName, ReflName, Note, S.Raytracing ? "on" : "off", GiActive ? "on" : "off");
             Logger.RecordMessage(Frontier::DiagnosticSeverity::Information, "RenderPath", PathLine);
+            Surface.LogRayTracingDecision("render-path-change");   // Phase 1: why hardware RT was or was not used
         }
         if (RenderPath == 1u)
         {
@@ -1483,6 +1483,18 @@ int Frontier::RunFrontierRuntime(
         PreviousTime        = NowTime;
 
         // Clamp Δτ to prevent spiral-of-death on window drag or breakpoints
+        // Phase 1 diagnostics: uncapped frame time (the 0.1 s clamp below hides stalls), reported every 5 s.
+        {
+            static double RawSum = 0.0, RawMax = 0.0, RawWindow = 0.0;
+            static uint32_t RawFrames = 0u;
+            RawSum += Δτ; RawMax = std::max(RawMax, static_cast<double>(Δτ)); RawWindow += Δτ; ++RawFrames;
+            if (RawWindow >= 5.0)
+            {
+                std::cerr << "[FrameTiming] uncapped mean_ms=" << (RawSum / RawFrames * 1000.0) << " max_ms=" << (RawMax * 1000.0)
+                          << " frames=" << RawFrames << " (5 s window)\n";
+                RawWindow = 0.0; RawFrames = 0u; RawSum = 0.0; RawMax = 0.0;
+            }
+        }
         if (Δτ > 0.1f) Δτ = 0.1f;
 
         // Dev/debug probe: open this frame's row. Every FRONTIER_PROBE_LAP below charges the time since the
@@ -1669,7 +1681,7 @@ int Frontier::RunFrontierRuntime(
                 // Apply previously only derived CPU records. This authoring-time, idle upload is
                 // deliberately conservative (not a per-frame fast path); it also refreshes emitters.
                 Level.Finalise(std::max(1u, Level.QueryMaterials().QueryMetrics().SlabLimit));
-                Surface.UploadScene(Level, Traversal, &Textures);
+                Surface.UploadScene(Level, Traversal, &Textures, "material-apply");
                 Integrator.ResetAccumulation("material apply");   // committed constants change the shading - restart like any look change
                 if (ControlCentre.QueryNotifications().QueryApplied().RenderFinished)
                 {
@@ -1856,7 +1868,7 @@ int Frontier::RunFrontierRuntime(
                     Logger.RecordMessage(Frontier::DiagnosticSeverity::Refusal, "Project geometry", "Traversal rebuild refused");
                     break;
                 }
-                Surface.UploadScene(Level, Traversal);
+                Surface.UploadScene(Level, Traversal, nullptr, "project-geometry-moved-per-frame");
             }
             else (void)Surface.RefreshInstances(AnimatedInstances.data(), static_cast<uint32_t>(AnimatedInstances.size()));
             if (InstancesResident)

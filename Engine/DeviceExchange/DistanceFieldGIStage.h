@@ -146,6 +146,7 @@ class DistanceFieldGIStage
     bool                   CardImagesInitialized = false;
     uint64_t               ResidentMaterials     = UINT64_MAX;
     uint32_t               VoxelCount = 0u, FrameNumber = 0u;
+    uint32_t               RebuildEvents = 0u; // Phase 1 diagnostics: count of SDF rebuild triggers
     uint64_t               ResidentRevision = 0u;
     float                  Origins[12]{};
     float                  PreviousLighting[12]{};
