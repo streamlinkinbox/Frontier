@@ -9,6 +9,8 @@
     avenue: { name: 'Avenue (2+2, raised median)', lanesF: 2, lanesB: 2, laneWidth: 3.5, parkingL: 2.2, parkingR: 2.2, median: 2.0, medianKind: 'raised', shoulder: 0, sidewalkL: 4.0, sidewalkR: 4.0, curbH: 0.125, speed: 60, cornerRadius: 10, cycle: 0, verge: 0, kind: 'urban' },
     boulevard: { name: 'Boulevard (3+3, cycle tracks)', lanesF: 3, lanesB: 3, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 4.0, medianKind: 'raised', shoulder: 0, sidewalkL: 5.0, sidewalkR: 5.0, curbH: 0.125, speed: 60, cornerRadius: 12, cycle: 2.0, verge: 0, kind: 'urban' },
     oneway: { name: 'One-way street (2 lanes)', lanesF: 2, lanesB: 0, laneWidth: 3.2, parkingL: 2.2, parkingR: 0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 2.5, sidewalkR: 2.5, curbH: 0.125, speed: 50, cornerRadius: 6, cycle: 0, verge: 0, kind: 'urban' },
+    highstreet: { name: 'High street (2+2, bus lanes)', lanesF: 2, lanesB: 2, laneWidth: 3.3, parkingL: 0, parkingR: 0, median: 0, medianKind: 'painted', shoulder: 0, sidewalkL: 3.5, sidewalkR: 3.5, curbH: 0.125, speed: 50, cornerRadius: 10, cycle: 0, bus: 3.3, verge: 0, kind: 'urban' },
+    cyclestreet: { name: 'Cycle street (1+1, cycle lanes)', lanesF: 1, lanesB: 1, laneWidth: 3.25, parkingL: 0, parkingR: 2.0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 2.5, sidewalkR: 2.5, curbH: 0.125, speed: 30, cornerRadius: 6, cycle: 1.8, verge: 0, kind: 'urban' },
     service: { name: 'Service lane', lanesF: 1, lanesB: 0, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 1.2, sidewalkR: 1.2, curbH: 0.1, speed: 20, cornerRadius: 4, cycle: 0, verge: 0, kind: 'urban' },
     rural: { name: 'Rural road', lanesF: 1, lanesB: 1, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 0, medianKind: 'none', shoulder: 1.0, sidewalkL: 0, sidewalkR: 0, curbH: 0, speed: 80, cornerRadius: 12, cycle: 0, verge: 2.0, kind: 'rural' },
     highway: { name: 'Motorway (3+3, barrier median)', lanesF: 3, lanesB: 3, laneWidth: 3.65, parkingL: 0, parkingR: 0, median: 1.2, medianKind: 'barrier', shoulder: 3.0, shoulderInner: 1.0, sidewalkL: 0, sidewalkR: 0, curbH: 0, speed: 120, cornerRadius: 3, cycle: 0, verge: 3.0, kind: 'highway' },
@@ -36,7 +38,7 @@
     const lanes = [];
     const medW = prof.median || 0;
     const shoulder = prof.shoulder || 0, shoulderIn = prof.shoulderInner || 0;
-    const cycle = prof.cycle || 0;
+    const cycle = prof.cycle || 0, bus = prof.bus || 0;
     // forward lanes on +n for right-hand traffic
     const sgn = handedness === 'right' ? 1 : -1;
     const half = medW / 2;
@@ -44,6 +46,7 @@
     let t = half;
     if (prof.lanesF > 0 && prof.lanesB > 0 && shoulderIn > 0 && medW > 0) { lanes.push({ t0: t, t1: t + shoulderIn, kind: 'shoulder', dir: 1 }); t += shoulderIn; }
     for (let i = 0; i < prof.lanesF; i++) { lanes.push({ t0: t, t1: t + lw, kind: 'drive', dir: 1, index: i }); t += lw; }
+    if (bus > 0) { lanes.push({ t0: t, t1: t + bus, kind: 'bus', dir: 1 }); t += bus; }
     if (cycle > 0) { lanes.push({ t0: t, t1: t + cycle, kind: 'cycle', dir: 1 }); t += cycle; }
     if (prof.parkingR > 0) { lanes.push({ t0: t, t1: t + prof.parkingR, kind: 'parking', dir: 1 }); t += prof.parkingR; }
     if (shoulder > 0) { lanes.push({ t0: t, t1: t + shoulder, kind: 'shoulder', dir: 1 }); t += shoulder; }
@@ -53,6 +56,7 @@
     if (prof.lanesB > 0) {
       if (prof.lanesF > 0 && shoulderIn > 0 && medW > 0) { lanes.push({ t0: t - shoulderIn, t1: t, kind: 'shoulder', dir: -1 }); t -= shoulderIn; }
       for (let i = 0; i < prof.lanesB; i++) { lanes.push({ t0: t - lw, t1: t, kind: 'drive', dir: -1, index: i }); t -= lw; }
+      if (bus > 0) { lanes.push({ t0: t - bus, t1: t, kind: 'bus', dir: -1 }); t -= bus; }
       if (cycle > 0) { lanes.push({ t0: t - cycle, t1: t, kind: 'cycle', dir: -1 }); t -= cycle; }
       if (prof.parkingL > 0) { lanes.push({ t0: t - prof.parkingL, t1: t, kind: 'parking', dir: -1 }); t -= prof.parkingL; }
       if (shoulder > 0) { lanes.push({ t0: t - shoulder, t1: t, kind: 'shoulder', dir: -1 }); t -= shoulder; }

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 globalThis.RF = {};
-for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'roadmesh']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f + '.js' });
+for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'blocks', 'roadmesh']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f + '.js' });
 const RF = globalThis.RF;
 let failures = 0;
 const check = (cond, msg) => { if (!cond) { failures++; console.log('  ✗', msg); } };

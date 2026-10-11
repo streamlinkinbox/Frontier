@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 globalThis.RF = {};
-for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'roadmesh', 'structures', 'materials', 'props', 'rail', 'traffic', 'scene', 'templates']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f + '.js' });
+for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'blocks', 'roadmesh', 'structures', 'materials', 'props', 'rail', 'traffic', 'scene', 'templates']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f + '.js' });
 const RF = globalThis.RF;
 class StubRenderer { constructor() { this.items = new Map(); } setItem(it) { this.items.set(it.id, { ...it, gpu: { count: it.mesh.indices.length, quadCount: it.mesh.quadCount, vertexCount: it.mesh.vertexCount }, instanceCount: it.instances ? it.instances.length / 24 : 1 }); } removeItem(id) { this.items.delete(id); } removeByPrefix(p) { for (const k of [...this.items.keys()]) if (k.startsWith(p)) this.items.delete(k); } updateMaterial() {} updateInstances(id, d) { const r = this.items.get(id); if (r) r.instanceCount = d.length / 24; } setLights() {} stats() { let tris = 0, quads = 0, draws = 0, verts = 0; for (const it of this.items.values()) { draws++; tris += (it.gpu.count / 3) * it.instanceCount; quads += it.gpu.quadCount * it.instanceCount; verts += it.gpu.vertexCount * it.instanceCount; } return { tris, quads, draws, verts, items: this.items.size }; } }
 const names = process.argv[2] ? [process.argv[2]] : Object.keys(RF.templates.list);

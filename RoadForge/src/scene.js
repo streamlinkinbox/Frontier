@@ -23,7 +23,7 @@
   }
 
   function emptyProject(name = 'Untitled network') {
-    return { name, version: 1, settings: { handedness: 'right' }, nodes: {}, roads: {}, rails: {}, blocks: {}, layers: defaultLayers() };
+    return { name, version: 1, settings: { handedness: 'right', autoBlocks: { enabled: true, surface: 'mixed', depth: 120 } }, nodes: {}, roads: {}, rails: {}, blocks: {}, blockOverrides: {}, layers: defaultLayers() };
   }
 
   /** Split roads where their centrelines cross at (near) grade and insert shared nodes. Mutates & returns the project. */
@@ -127,7 +127,7 @@
     const get = (m) => (out[m] || (out[m] = new MB(m)));
     const poly = block.poly; if (!poly || poly.length < 3) return;
     const y = block.y ?? (RF.structures ? RF.structures.GROUND_Y : 0);
-    const curbH = 0.125, cw = 0.15, sw = block.sidewalk ?? 3.0;
+    const curbH = block.edgeH ?? 0.125, cw = 0.15, sw = block.sidewalk ?? 3.0;
     const curb = get(layers.curbMaterial || 'curb'), pav = get('paving'), fill = get(block.surface === 'grass' ? 'grass' : block.surface === 'gravel' ? 'ballast' : block.surface === 'concrete' ? 'concrete' : 'paving_alt');
     const area = poly.reduce((a, p, i) => { const q = poly[(i + 1) % poly.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
     const ring = area > 0 ? poly : [...poly].reverse(); // CCW in (x,z)
@@ -138,8 +138,8 @@
     for (let i = 0; i <= n; i++) { const a = r0[i % n], b = r1[i % n]; rowsCurb[0].push(curb.vertex([a[0], y, a[1]], [i, 0])); rowsCurb[1].push(curb.vertex([a[0] + (b[0] - a[0]) * 0.08, y + curbH - 0.015, a[1] + (b[1] - a[1]) * 0.08], [i, curbH])); rowsCurb[2].push(curb.vertex([a[0] + (b[0] - a[0]) * 0.2, y + curbH, a[1] + (b[1] - a[1]) * 0.2], [i, curbH + 0.02])); rowsCurb[3].push(curb.vertex([b[0], y + curbH, b[1]], [i, curbH + cw])); }
     curb.grid(rowsCurb, false);
     const rowsPav = [[], []];
-    for (let i = 0; i <= n; i++) { const a = r1[i % n], b = r2[i % n]; rowsPav[0].push(pav.vertex([a[0], y + curbH, a[1]], [a[0], a[1]], [0, 0, 60, 0])); rowsPav[1].push(pav.vertex([b[0], y + curbH + 0.02, b[1]], [b[0], b[1]], [0, 0, 60, 0])); }
-    pav.grid(rowsPav, false);
+    if (sw > 0) for (let i = 0; i <= n; i++) { const a = r1[i % n], b = r2[i % n]; rowsPav[0].push(pav.vertex([a[0], y + curbH, a[1]], [a[0], a[1]], [0, 0, 60, 0])); rowsPav[1].push(pav.vertex([b[0], y + curbH + 0.02, b[1]], [b[0], b[1]], [0, 0, 60, 0])); }
+    if (sw > 0) pav.grid(rowsPav, false);
     // interior fill: ear-clipped triangles (quads preferred elsewhere; interior polygons are arbitrary)
     const tris = earcut(r2);
     const vi = r2.map((p) => fill.vertex([p[0], y + curbH + 0.02 + (block.surface === 'grass' ? 0.03 : 0), p[1]], [p[0], p[1]]));
@@ -209,8 +209,11 @@
         this.rails.push(T);
         if (L.traffic.trains !== false) this.trains.push({ T, trains: RF.rail.makeTrains(T, rail.trains ?? 1) });
       }
-      // --- blocks
-      for (const b of Object.values(P.blocks || {})) buildBlock(b, layers, get('block:' + b.id));
+      // --- blocks: explicit polygons plus the automatic blocks traced from the network's faces
+      this.autoBlocks = {};
+      const ab = P.settings?.autoBlocks || {};
+      if (ab.enabled ?? (Object.keys(P.blocks || {}).length === 0)) for (const b of RF.blocks.autoBlocks(net, P, { surface: ab.surface || 'mixed', depth: ab.depth || 120 })) this.autoBlocks[b.id] = b;
+      for (const b of [...Object.values(P.blocks || {}), ...Object.values(this.autoBlocks)]) buildBlock(b, layers, get('block:' + b.id));
       // --- furniture (W-beams go into the owning road's out map)
       ctx.out = null;
       ctx.outFor = (owner) => get(owner);
@@ -237,6 +240,8 @@
       this.updateStats();
       this.buildPickables();
     }
+    /** Explicit or automatic block record by id. */
+    blockById(id) { return (this.project.blocks || {})[id] || (this.autoBlocks || {})[id] || null; }
     isSelectedOwner(owner) { for (const id of this.selection) if (owner === 'road:' + id || owner === 'node:' + id || owner === 'rail:' + id || owner === 'block:' + id) return true; return false; }
 
     uploadPlaced() {
@@ -304,7 +309,7 @@
     buildPickables() {
       const net = this.net; this.pickMeshes = [];
       for (const [owner, mats] of this.meshes) {
-        const [type, id] = owner.split(':');
+        const ci = owner.indexOf(':'); const type = owner.slice(0, ci), id = owner.slice(ci + 1);
         for (const [mat, mesh] of Object.entries(mats)) {
           if (type === 'road' && !/asphalt|concrete_road|paving|grass|curb/.test(mat)) continue;
           if (type === 'node' && !/asphalt|concrete_road|paving/.test(mat)) continue;
@@ -338,30 +343,42 @@
       const R = this.R; R.removeByPrefix('gizmo|');
       if (!pos) return;
       const scale = opts.scale || 1;
-      const axes = [[[1, 0, 0], [0.92, 0.3, 0.3], 'x'], [[0, 1, 0], [0.45, 0.85, 0.4], 'y'], [[0, 0, 1], [0.35, 0.55, 0.95], 'z']];
-      for (const [d, col, name] of axes) {
-        const b = new MB('gizmo'); const L = 6 * scale;
-        const fr = [{ p: pos, d, n: V.perp(d[1] ? [1, 0, 0] : d), up: d[1] ? [0, 0, 1] : [0, 1, 0] }, { p: V.madd(pos, d, L), d, n: V.perp(d[1] ? [1, 0, 0] : d), up: d[1] ? [0, 0, 1] : [0, 1, 0] }];
-        RF.prim.sweep(b, fr, circleP(0.12 * scale, 8), { closed: true });
-        // arrow head
-        const tip = V.madd(pos, d, L + 1.2 * scale);
-        const head = M4.frame(V.madd(pos, d, L), d);
-        RF.prim.lathe(b, [[0.4 * scale, 0], [0.0, 1.2 * scale]], 12, { transform: M4.mul(M4.translation(0, 0, 0), M4.mul(head, M4.trs([0, 0, 0], 0, 1, Math.PI / 2))), capBottom: true });
-        void tip;
+      const L = 5.2 * scale, headL = 1.7 * scale, headR = 0.5 * scale, shaftR = 0.17 * scale;
+      // axis, colour, name, lateral basis (u, v) so that fromBasis(u, d, v) maps local +Y onto the axis
+      const axes = [
+        [[1, 0, 0], [0.96, 0.32, 0.3], 'x', [0, 0, -1], [0, 1, 0]],
+        [[0, 1, 0], [0.5, 0.95, 0.4], 'y', [1, 0, 0], [0, 0, 1]],
+        [[0, 0, 1], [0.35, 0.6, 1.0], 'z', [1, 0, 0], [0, -1, 0]],
+      ];
+      for (const [d, col, name, u, v] of axes) {
+        const b = new MB('gizmo');
+        const T = M4.fromBasis(u, d, v, pos);
+        // shaft (closed tube) + cone head, both built along local +Y then mapped onto the axis
+        RF.prim.lathe(b, [[0.001, 0.9 * scale], [shaftR, 0.9 * scale], [shaftR, L]], 10, { transform: T });
+        RF.prim.lathe(b, [[0.001, L], [headR, L], [0.001, L + headL]], 16, { transform: T });
         const mesh = b.build();
         const hl = opts.active === name;
         R.setItem({ id: 'gizmo|' + name, mesh, material: { type: 'flat', color: hl ? [1, 0.95, 0.4] : col, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
       }
-      // centre disc (XZ plane drag)
-      const b = new MB('gizmo'); RF.prim.lathe(b, [[0.001, 0.02 * scale], [1.1 * scale, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) }); RF.prim.lathe(b, [[1.1 * scale, 0.02 * scale], [1.5 * scale, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
-      R.setItem({ id: 'gizmo|c', mesh: b.build(), material: { type: 'flat', color: opts.active === 'c' ? [1, 0.95, 0.4] : [0.85, 0.85, 0.85], alpha: 0.6, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      // centre disc (XZ plane drag) — flat disc with a thin ring
+      const b = new MB('gizmo');
+      RF.prim.lathe(b, [[1.3 * scale, 0.02 * scale], [0.001, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
+      RF.prim.lathe(b, [[1.3 * scale, 0], [1.3 * scale, 0.12 * scale], [1.55 * scale, 0.12 * scale], [1.55 * scale, 0]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
+      R.setItem({ id: 'gizmo|c', mesh: b.build(), material: { type: 'flat', color: opts.active === 'c' ? [1, 0.95, 0.4] : [0.88, 0.88, 0.88], alpha: 0.6, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      // height reference: a thin plumb line from the handle down to (or up to) ground level with a ground marker
+      if (Math.abs(pos[1]) > 0.05) {
+        const g = new MB('gizmo'); const y0 = Math.min(pos[1], 0), y1 = Math.max(pos[1], 0);
+        RF.prim.lathe(g, [[0.05 * scale, y0], [0.05 * scale, y1]], 6, { transform: M4.translation(pos[0], 0, pos[2]) });
+        RF.prim.lathe(g, [[1.0 * scale, 0], [1.0 * scale, 0.08 * scale], [1.15 * scale, 0.08 * scale], [1.15 * scale, 0]], 24, { transform: M4.translation(pos[0], 0, pos[2]) });
+        R.setItem({ id: 'gizmo|plumb', mesh: g.build(), material: { type: 'flat', color: [0.5, 0.95, 0.4], alpha: 0.5, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      }
     }
     /** Hit-test gizmo handles. Returns 'x'|'y'|'z'|'c'|null. */
     pickGizmo(ray, pos, scale = 1) {
       const axes = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
       let best = null;
       for (const [name, d] of Object.entries(axes)) {
-        const res = rayCylinder(ray, pos, d, 7.4 * scale, 0.6 * scale); if (res != null && (!best || res < best.t)) best = { t: res, name };
+        const res = rayCylinder(ray, pos, d, 7.2 * scale, 0.75 * scale); if (res != null && (!best || res < best.t)) best = { t: res, name };
       }
       const tc = rayPlane(ray, pos[1]); if (tc != null) { const p = V.madd(ray.o, ray.d, tc); if (V.distXZ(p, pos) < 1.6 * scale && (!best || tc < best.t)) best = { t: tc, name: 'c' }; }
       return best ? best.name : null;

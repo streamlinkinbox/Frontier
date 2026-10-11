@@ -126,7 +126,7 @@
         h('ul', {}, h('li', {}, h('b', {}, 'Navigate: '), 'right-drag or Alt+drag orbits, middle-drag / Shift+drag pans, wheel zooms, ', h('kbd', {}, 'F'), ' frames the selection, ', h('kbd', {}, 'P'), ' toggles plan view.'),
           h('li', {}, h('b', {}, 'Road tool '), h('kbd', {}, 'R'), ': click to place points (click an existing node or road to connect / split). Double-click or ', h('kbd', {}, 'Enter'), ' finishes with a free end, ', h('kbd', {}, 'Esc'), ' cancels. Crossing roads at grade are split and joined automatically.'),
           h('li', {}, h('b', {}, 'Select '), h('kbd', {}, 'V'), ': click a junction to move it (and every connected road) with the gizmo; click a road to edit its control points, profile, structure, damage and furniture.'),
-          h('li', {}, h('b', {}, 'Rail '), h('kbd', {}, 'T'), ' and ', h('b', {}, 'Block '), h('kbd', {}, 'B'), ' tools draw railways (level crossings, bridges and subway tunnels are derived from height) and city block footprints.'),
+          h('li', {}, h('b', {}, 'Rail '), h('kbd', {}, 'T'), ' and ', h('b', {}, 'Block '), h('kbd', {}, 'B'), ' tools draw railways (level crossings, bridges and subway tunnels are derived from height) and extra city block footprints — blocks are otherwise generated from the network and follow your junctions live.'),
           h('li', {}, h('b', {}, 'Elevation: '), 'drag the green gizmo axis or type Y in the inspector. Heights above 4.5 m become viaducts; below −0.6 m become retained cuttings or tunnels; crossing roads with a height difference pass over / under each other.'),
           h('li', {}, h('kbd', {}, 'Delete'), ' removes the selection, ', h('kbd', {}, 'Ctrl+Z'), ' / ', h('kbd', {}, 'Ctrl+Shift+Z'), ' undo / redo, ', h('kbd', {}, 'X'), ' X-ray, ', h('kbd', {}, 'W'), ' topology (quad wire) view.'))));
       document.body.append(bg);
@@ -163,8 +163,8 @@
       group('roads', 'Roads', roads.map((r) => { const Rd = net && net.roads.get(r.id); return row('road', r.id, I.road, 'var(--accent-c)', r.name || r.id, Rd ? `${Rd.length.toFixed(0)} m` : ''); }));
       const rails = Object.values(P.rails || {}).filter((r) => match(r.name));
       if (rails.length || !q) group('rails', 'Railways', rails.map((r) => row('rail', r.id, I.train, 'var(--accent-e)', r.name || r.id, r.kind)));
-      const blocks = Object.values(P.blocks || {}).filter((b) => match(b.name));
-      if (blocks.length || !q) group('blocks', 'City blocks', blocks.map((b) => row('block', b.id, I.block, 'var(--accent-d)', b.name || b.id, b.surface)));
+      const blocks = [...Object.values(P.blocks || {}), ...Object.values(this.scene.autoBlocks || {})].filter((b) => match(b.name) || match(b.surface));
+      if (blocks.length || !q) group('blocks', 'City blocks', blocks.map((b) => row('block', b.id, I.block, 'var(--accent-d)', b.name || b.id, (b.auto ? 'auto · ' : '') + b.surface)));
       const diags = this.scene.diagnostics || [];
       if (diags.length) group('diagnostics', 'Diagnostics', diags.map((d) => h('div', { class: 'diag ' + (d.level === 'error' ? 'err' : 'warn'), onclick: () => { if (d.owner) this.select(P.roads[d.owner] ? { type: 'road', id: d.owner } : { type: 'node', id: d.owner }); } }, d.message)));
       $('#outliner-count').textContent = `${Object.keys(P.roads).length} roads · ${Object.keys(P.nodes).length} nodes`;
@@ -272,12 +272,19 @@
         card.append(this.sliderField('Crossfall', S.crossfall * 100, 0, 4, 0.25, (v, d) => { S.crossfall = v / 100; if (d) this.commit('Crossfall'); }, '%'));
         card.append(h('div', { class: 'section-label' }, 'Intersections'), h('div', { class: 'hint' }, 'Junctions are solved from the kerb lines of every approach: facing edges are intersected, tangent-continuous fillets are fitted and each approach is trimmed back — acute merges receive long runouts instead of overlapping geometry. The surface is one welded all-quad patch.'),
           h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.plus + 'Auto-join crossing roads', onclick: () => this.commit('Joined crossing roads', { intersect: true }) })));
+        const AB = (P.settings.autoBlocks = P.settings.autoBlocks || { enabled: Object.keys(P.blocks || {}).length === 0, surface: 'mixed', depth: 120 });
+        card.append(h('div', { class: 'section-label' }, 'City blocks'), this.toggleField('Generate blocks from the network', AB.enabled !== false, (v) => { AB.enabled = v; this.commit(v ? 'Auto blocks on' : 'Auto blocks off'); }));
+        card.append(this.pillsField('Block surface', [['mixed', 'Mixed'], ['paving', 'Paved'], ['grass', 'Parks'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], AB.surface || 'mixed', (v) => { AB.surface = v; this.commit('Block surface'); }));
+        card.append(this.sliderField('Roadside block depth', AB.depth ?? 120, 30, 300, 5, (v, d) => { AB.depth = v; if (d) this.commit('Block depth'); }, ' m'));
+        const hiddenN = Object.values(P.blockOverrides || {}).filter((o) => o.hidden).length;
+        if (hiddenN) card.append(h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.plus + `Restore ${hiddenN} hidden block${hiddenN === 1 ? '' : 's'}`, onclick: () => { for (const o of Object.values(P.blockOverrides)) delete o.hidden; this.commit('Restored blocks'); } })));
+        card.append(h('div', { class: 'hint' }, 'Closed faces of the network become blocks bounded by the footway edges; corners on the outside of the network get roadside blocks of the depth above. Blocks are rebuilt live while you drag junctions. Draw extra blocks anywhere with the Block tool.'));
         card.append(h('div', { class: 'section-label' }, 'Profiles'), h('div', { class: 'hint' }, Object.values(RF.PROFILES).map((p) => p.name).join(' · ')));
       } else if (id === 'surface') {
         card.append(h('div', { class: 'section-label' }, 'Asphalt'), this.colorField('Tone', S.asphaltColor || '#161617', (v, d) => { S.asphaltColor = v; mat('Asphalt tone')(v, d); }));
         card.append(this.sliderField('Wear & polish', S.wear, 0, 1, 0.01, (v, d) => { S.wear = v; mat('Wear')(v, d); }), this.sliderField('Cracks', S.cracks, 0, 1, 0.01, (v, d) => { S.cracks = v; mat('Cracks')(v, d); }), this.sliderField('Patches & repairs', S.patches, 0, 1, 0.01, (v, d) => { S.patches = v; mat('Patches')(v, d); }), this.sliderField('Wetness', S.wetness, 0, 1, 0.01, (v, d) => { S.wetness = v; mat('Wetness')(v, d); }), this.sliderField('Aggregate scale', S.aggregateScale, 0.5, 2, 0.05, (v, d) => { S.aggregateScale = v; mat('Aggregate')(v, d); }));
         card.append(this.numberField('Noise seed', S.seed || 1, 1, (v) => { S.seed = v; this.commit('Seed', { materialsOnly: true }); }));
-        card.append(h('div', { class: 'section-label' }, 'Markings'), this.sliderField('Paint wear', S.paintWear, 0, 1, 0.01, (v, d) => { S.paintWear = v; mat('Paint wear')(v, d); }));
+        card.append(h('div', { class: 'section-label' }, 'Markings'), this.sliderField('Paint wear', S.paintWear, 0, 1, 0.01, (v, d) => { S.paintWear = v; mat('Paint wear')(v, d); }), this.toggleField('Coloured bus / cycle lanes', S.colouredLanes !== false, (v) => { S.colouredLanes = v; this.commit('Coloured lanes'); }));
         card.append(h('div', { class: 'section-label' }, 'Kerbs & footways'), this.pillsField('Kerb', [['concrete', 'Precast concrete'], ['granite', 'Granite setts']], S.curbMaterial, (v) => { S.curbMaterial = v; this.commit('Kerb material'); }));
         card.append(this.selectField('Paving pattern', RF.materials.PAVING_PATTERNS.map((p) => [String(p.id), p.name]), String(S.pavingPattern), (v) => { S.pavingPattern = parseInt(v); this.commit('Paving pattern', { materialsOnly: true }); }), this.colorField('Paving tone', S.pavingColor || '#9c9384', (v, d) => { S.pavingColor = v; mat('Paving tone')(v, d); }), this.sliderField('Paving scale', S.pavingScale, 0.5, 2.5, 0.05, (v, d) => { S.pavingScale = v; mat('Paving scale')(v, d); }));
         card.append(this.pillsField('Raised median', [['paving', 'Paved'], ['grass', 'Planted']], S.medianSurface, (v) => { S.medianSurface = v; this.commit('Median surface'); }));
@@ -327,6 +334,7 @@
         const ov = (key, label, min, max, step, unit = '') => this.sliderField(label, prof[key], min, max, step, (v, d) => { r.overrides[key] = v; if (d) this.commit(label); }, unit);
         card.append(ov('laneWidth', 'Lane width', 2.5, 4.5, 0.05, ' m'), this.numberField('Lanes forward', prof.lanesF, 1, (v) => { r.overrides.lanesF = Math.max(0, v | 0); this.commit('Lanes'); }), this.numberField('Lanes backward', prof.lanesB, 1, (v) => { r.overrides.lanesB = Math.max(0, v | 0); this.commit('Lanes'); }));
         card.append(ov('sidewalkL', 'Footway left', 0, 8, 0.1, ' m'), ov('sidewalkR', 'Footway right', 0, 8, 0.1, ' m'), ov('parkingL', 'Parking bay left', 0, 2.5, 0.1, ' m'), ov('parkingR', 'Parking bay right', 0, 2.5, 0.1, ' m'), ov('median', 'Median width', 0, 8, 0.1, ' m'));
+        card.append(this.sliderField('Bus lane (each direction)', prof.bus || 0, 0, 4, 0.1, (v, d) => { r.overrides.bus = v < 0.5 ? 0 : v; if (d) this.commit('Bus lane'); }, ' m'), this.sliderField('Cycle lane (each direction)', prof.cycle || 0, 0, 3, 0.1, (v, d) => { r.overrides.cycle = v < 0.5 ? 0 : v; if (d) this.commit('Cycle lane'); }, ' m'));
         card.append(this.pillsField('Median kind', [['none', 'None'], ['painted', 'Painted'], ['raised', 'Raised kerb'], ['barrier', 'Barrier']], prof.medianKind, (v) => { r.overrides.medianKind = v; if (v !== 'none' && !(prof.median > 0)) r.overrides.median = v === 'barrier' ? 1.2 : 2.0; this.commit('Median'); }));
         card.append(this.pillsField('Surface', [['asphalt', 'Asphalt'], ['concrete', 'Concrete (jointed)']], r.surface || 'asphalt', (v) => { r.surface = v; this.commit('Surface'); }));
         card.append(h('div', { class: 'section-label' }, 'Structure'), this.pillsField('Vertical structure', [['auto', 'Auto (from height)'], ['ground', 'At grade'], ['embankment', 'Embankment'], ['bridge', 'Bridge / viaduct'], ['retained', 'Retained cutting'], ['cut', 'Open cutting'], ['tunnel', 'Tunnel']], r.structure || 'auto', (v) => { r.structure = v; this.commit('Structure'); }));
@@ -378,8 +386,17 @@
         return card;
       }
       if (sel.type === 'block') {
-        const b = P.blocks[sel.id]; if (!b) return null;
-        const card = h('div', { class: 'card' }, h('div', { class: 'obj-icon', style: 'color:var(--accent-d)', html: I.block }), h('div', { class: 'eyebrow' }, 'City block'), h('div', { class: 'h1' }, b.name || b.id));
+        const b = this.scene.blockById(sel.id); if (!b) return null;
+        const card = h('div', { class: 'card' }, h('div', { class: 'obj-icon', style: 'color:var(--accent-d)', html: I.block }), h('div', { class: 'eyebrow' }, b.auto ? 'City block · generated' : 'City block'), h('div', { class: 'h1' }, b.name || b.id));
+        if (b.auto) {
+          const ov = () => { P.blockOverrides = P.blockOverrides || {}; return (P.blockOverrides[b.id] = P.blockOverrides[b.id] || {}); };
+          card.append(h('div', { class: 'hint' }, `Traced from the footway edges of ${b.roads.length} road${b.roads.length === 1 ? '' : 's'} — it follows the network live when junctions or roads move.`));
+          card.append(this.textField('Name', b.name, (v) => { ov().name = v; b.name = v; this.commit('Rename', { remesh: false }); }));
+          card.append(this.pillsField('Interior', [['paving', 'Paving'], ['grass', 'Grass / park'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], b.surface, (v) => { ov().surface = v; this.commit('Block surface'); }));
+          card.append(h('div', { class: 'muted', style: 'margin-top:8px' }, `${b.poly.length} corners · ${b.area.toFixed(0)} m²`));
+          card.append(h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.focus + 'Frame', onclick: () => this.frameSelection() }), h('button', { class: 'btn danger', html: I.trash + 'Hide block', onclick: () => this.deleteSelection() })));
+          return card;
+        }
         card.append(this.textField('Name', b.name, (v) => { b.name = v; this.commit('Rename', { remesh: false }); }));
         card.append(this.pillsField('Interior', [['paving', 'Paving'], ['grass', 'Grass / park'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], b.surface, (v) => { b.surface = v; this.commit('Block surface'); }), this.sliderField('Footway width', b.sidewalk ?? 3, 1, 8, 0.5, (v, d) => { b.sidewalk = v; if (d) this.commit('Footway'); }, ' m'));
         card.append(h('div', { class: 'muted', style: 'margin-top:8px' }, `${b.poly.length} corners · ${Math.abs(RF.spline.polygonArea(b.poly.map((p) => [p[0], 0, p[1]]))).toFixed(0)} m²`));
@@ -399,7 +416,7 @@
       if (sel.type === 'node') { const n = this.project.nodes[sel.id]; if (n) this.scene.setGizmo(n.p, { scale }); }
       else if (sel.type === 'road') { this.cpHandles = this.scene.setControlPointHandles([sel.id], scale); if (sel.cp != null && this.project.roads[sel.id]?.pts?.[sel.cp]) this.scene.setGizmo(this.project.roads[sel.id].pts[sel.cp], { scale }); }
       else if (sel.type === 'rail') { const r = this.project.rails[sel.id]; if (r) { this.cpHandles = r.pts.map((p, i) => ({ road: sel.id, index: i, p, r: 1.2 * scale, rail: true })); const b = new RF.MeshBuilder('gizmo'); for (const p of r.pts) RF.prim.lathe(b, [[0.001, -0.7 * scale], [0.7 * scale, 0], [0.001, 0.7 * scale]], 10, { transform: RF.M4.translation(p[0], p[1] + 0.3, p[2]) }); this.renderer.setItem({ id: 'cph|rail', mesh: b.build(), material: { type: 'flat', color: [0.45, 0.75, 0.85], pipeline: 'overlay' }, pipeline: 'overlay' }); if (sel.cp != null) this.scene.setGizmo(r.pts[sel.cp], { scale }); } }
-      else if (sel.type === 'block') { const b = this.project.blocks[sel.id]; if (b) { const mb = new RF.MeshBuilder('gizmo'); const fr = [...b.poly, b.poly[0]].map((p) => ({ p: [p[0], (b.y ?? 0) + 0.3, p[1]], d: [1, 0, 0], n: [0, 0, 1], up: [0, 1, 0] })); for (let i = 0; i < fr.length - 1; i++) { const d = V.normXZ(V.sub(fr[i + 1].p, fr[i].p)); fr[i].d = d; fr[i].n = V.perp(d); } fr[fr.length - 1].d = fr[fr.length - 2].d; fr[fr.length - 1].n = fr[fr.length - 2].n; RF.prim.sweep(mb, fr, [[-0.15 * scale, 0], [0.15 * scale, 0]], {}); this.renderer.setItem({ id: 'cph|block', mesh: mb.build(), material: { type: 'flat', color: [0.84, 0.63, 0.47], pipeline: 'overlay' }, pipeline: 'overlay' }); } }
+      else if (sel.type === 'block') { const b = this.scene.blockById(sel.id); if (b) { const mb = new RF.MeshBuilder('gizmo'); const fr = [...b.poly, b.poly[0]].map((p) => ({ p: [p[0], (b.y ?? 0) + 0.3, p[1]], d: [1, 0, 0], n: [0, 0, 1], up: [0, 1, 0] })); for (let i = 0; i < fr.length - 1; i++) { const d = V.normXZ(V.sub(fr[i + 1].p, fr[i].p)); fr[i].d = d; fr[i].n = V.perp(d); } fr[fr.length - 1].d = fr[fr.length - 2].d; fr[fr.length - 1].n = fr[fr.length - 2].n; RF.prim.sweep(mb, fr, [[-0.15 * scale, 0], [0.15 * scale, 0]], {}); this.renderer.setItem({ id: 'cph|block', mesh: mb.build(), material: { type: 'flat', color: [0.84, 0.63, 0.47], pipeline: 'overlay' }, pipeline: 'overlay' }); } }
     },
     handleScale() { return RF.clamp(this.cam.distance / 60, 0.3, 12); },
     frameSelection() {
@@ -407,7 +424,7 @@
       if (sel.type === 'node') { const n = P.nodes[sel.id]; this.cam.focus(n.p, Math.max(40, this.cam.distance * 0.6)); }
       else if (sel.type === 'road') { const Rd = this.scene.net.roads.get(sel.id); if (Rd) { const m = Rd.samples[Math.floor(Rd.samples.length / 2)].p; this.cam.focus(m, RF.clamp(Rd.length * 0.9, 40, 600)); } }
       else if (sel.type === 'rail') { const r = P.rails[sel.id]; const m = r.pts[Math.floor(r.pts.length / 2)]; this.cam.focus([m[0], 0, m[2]], 200); }
-      else if (sel.type === 'block') { const b = P.blocks[sel.id]; const c = b.poly.reduce((a, p) => [a[0] + p[0] / b.poly.length, 0, a[2] + p[1] / b.poly.length], [0, 0, 0]); this.cam.focus(c, 160); }
+      else if (sel.type === 'block') { const b = this.scene.blockById(sel.id); if (!b) return; const c = b.poly.reduce((a, p) => [a[0] + p[0] / b.poly.length, 0, a[2] + p[1] / b.poly.length], [0, 0, 0]); this.cam.focus(c, 160); }
       this.needsRender = true; this.updateHandles();
     },
     frameAll() {
@@ -420,7 +437,7 @@
       if (sel.type === 'node') { for (const r of Object.values(P.roads)) if (r.a === sel.id || r.b === sel.id) delete P.roads[r.id]; delete P.nodes[sel.id]; this.pruneNodes(); this.selection = null; this.commit('Deleted junction'); }
       else if (sel.type === 'road') { if (sel.cp != null && P.roads[sel.id]?.pts) { P.roads[sel.id].pts.splice(sel.cp, 1); sel.cp = null; this.commit('Removed control point'); return; } delete P.roads[sel.id]; this.pruneNodes(); this.selection = null; this.commit('Deleted road'); }
       else if (sel.type === 'rail') { delete P.rails[sel.id]; this.selection = null; this.commit('Deleted railway'); }
-      else if (sel.type === 'block') { delete P.blocks[sel.id]; this.selection = null; this.commit('Deleted block'); }
+      else if (sel.type === 'block') { if (P.blocks[sel.id]) delete P.blocks[sel.id]; else { P.blockOverrides = P.blockOverrides || {}; P.blockOverrides[sel.id] = { ...(P.blockOverrides[sel.id] || {}), hidden: true }; } this.selection = null; this.commit(P.blocks[sel.id] ? 'Deleted block' : 'Hid block'); }
       this.scene.setSelection([]);
     },
     pruneNodes() { const P = this.project; const used = new Set(); for (const r of Object.values(P.roads)) { used.add(r.a); used.add(r.b); } for (const id of Object.keys(P.nodes)) if (!used.has(id)) delete P.nodes[id]; },
@@ -604,7 +621,7 @@
     },
     frame(t) {
       // ?headless=N renders N frames then exposes a PNG for automated screenshots
-      if (this._headless == null) { const q = new URLSearchParams(location.search); this._headless = q.has('headless') ? parseInt(q.get('headless')) || 3 : -1; if (q.has('template') && RF.templates.list[q.get('template')]) { this.loadProject(RF.templates.list[q.get('template')].make()); this.frameAll(); } if (q.has('cam')) { const [d, yaw, pitch, tx, ty, tz] = q.get('cam').split(',').map(parseFloat); this.cam.distance = d; this.cam.yaw = yaw; this.cam.pitch = pitch; this.cam.target = [tx, ty, tz]; this.cam.update(); } if (q.has('plan')) this.togglePlan(); if (q.has('wire')) { this.view.wire = true; this.updateViewBtns(); } if (q.has('select')) { const [type, id] = q.get('select').split(':'); this.select({ type, id }); } }
+      if (this._headless == null) { const q = new URLSearchParams(location.search); this._headless = q.has('headless') ? parseInt(q.get('headless')) || 3 : -1; if (q.has('template') && RF.templates.list[q.get('template')]) { this.loadProject(RF.templates.list[q.get('template')].make()); this.frameAll(); } if (q.has('cam')) { const [d, yaw, pitch, tx, ty, tz] = q.get('cam').split(',').map(parseFloat); this.cam.distance = d; this.cam.yaw = yaw; this.cam.pitch = pitch; this.cam.target = [tx, ty, tz]; this.cam.update(); } if (q.has('move')) { for (const m of q.getAll('move')) { const [type, id, xyz] = m.split(':'); const v = xyz.split(',').map(parseFloat); if (type === 'node' && this.project.nodes[id]) { this.project.nodes[id].p = v; this.commit('Moved (url)'); } } } if (q.has('plan')) this.togglePlan(); if (q.has('wire')) { this.view.wire = true; this.updateViewBtns(); } if (q.has('select')) { const [type, id] = q.get('select').split(':'); this.select({ type, id }); } }
       if (this._headless > 0 && this._frames >= this._headless) { if (!window.__done) { window.__png = this.canvas.toDataURL('image/png'); window.__done = true; } return; }
       this._frames = (this._frames || 0) + 1;
       requestAnimationFrame((tt) => this.frame(tt));

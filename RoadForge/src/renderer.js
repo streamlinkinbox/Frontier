@@ -236,6 +236,9 @@
       this.writeFrame(cam, env);
       const d = this.device, enc = d.createCommandEncoder();
       const items = [...this.items.values()].filter((it) => it.visible !== false);
+      // decals do not write depth: draw coloured lane surfacing before paint lines so the markings stay on top
+      const decalRank = (it) => (it.pipeline === 'decal' ? (/\|surface_/.test(it.id) ? 0 : 1) : 0);
+      items.sort((a, b) => decalRank(a) - decalRank(b));
       // shadow pass
       if (env.sunIntensity > 0.01) {
         const sp = enc.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: this.shadowView, depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' } });

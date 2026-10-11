@@ -25,6 +25,8 @@
       granite: { type: 'curb', color: srgb('#8d8d8c'), roughness: 0.5, pattern: 1 },
       paint_white: { type: 'paint', color: [0.86, 0.86, 0.84], roughness: 0.6, wear: L.paintWear ?? 0.35, pipeline: 'decal' },
       paint_yellow: { type: 'paint', color: srgb('#e3b63a'), roughness: 0.6, wear: L.paintWear ?? 0.35, pipeline: 'decal' },
+      surface_red: { type: 'paint', color: srgb('#4a2320'), roughness: 0.88, wear: (L.paintWear ?? 0.35) * 0.25, pipeline: 'decal' },
+      surface_green: { type: 'paint', color: srgb('#245a34'), roughness: 0.88, wear: (L.paintWear ?? 0.35) * 0.25, pipeline: 'decal' },
       grass: { type: 'grass', color: [0.5, 0.5, 0.5], roughness: 1 },
       ground: { type: 'ground', color: [0.5, 0.5, 0.5], roughness: 1, pipeline: 'ground' },
       hole: { type: 'flat', color: [0, 0, 0], pipeline: 'hole' },

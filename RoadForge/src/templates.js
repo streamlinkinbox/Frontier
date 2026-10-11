@@ -17,7 +17,6 @@
         R(p, 'r1', 'n', 'c', 'avenue', [], { name: 'Main Avenue (N)' }); R(p, 'r2', 'c', 's', 'avenue', [], { name: 'Main Avenue (S)' });
         R(p, 'r3', 'w', 'c', 'street', [], { name: '1st Street (W)', features: { potholes: [{ s: 60, t: 1.4, r: 0.7, depth: 0.07 }, { s: 75, t: -1.2, r: 0.5, depth: 0.05 }], speedBumps: [{ s: 110 }] }, props: { bollards: 'steel' } });
         R(p, 'r4', 'c', 'e', 'residential', [], { name: '1st Street (E)', props: { bollards: 'cast' } });
-        for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) block(p, 'b' + sx + sz, [[sx * 16, sz * 12], [sx * 150, sz * 12], [sx * 150, sz * 140], [sx * 16, sz * 140]], { surface: 'paving' });
         return p;
       },
     },
@@ -34,11 +33,6 @@
         for (let j = 0; j < 3; j++) { const pr = prof.x[j]; R(p, `rx${j}_0`, `nW${j}`, `n0${j}`, pr); R(p, `rx${j}_1`, `n0${j}`, `n1${j}`, pr); R(p, `rx${j}_2`, `n1${j}`, `n2${j}`, pr); R(p, `rx${j}_3`, `n2${j}`, `nE${j}`, pr); }
         p.roads.rz2_1.features = { speedBumps: [{ s: 80 }, { s: 130 }] };
         p.roads.rx1_1.props = { bollards: 'steel' };
-        const hw = { street: 10.5, boulevard: 20, oneway: 9.6, collector: 11.8, avenue: 16, residential: 9.2 };
-        for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
-          const x0 = xs[i] + hw[prof.z[i]] + 0.3, x1 = xs[i + 1] - hw[prof.z[i + 1]] - 0.3, z0 = zs[j] + hw[prof.x[j]] + 0.3, z1 = zs[j + 1] - hw[prof.x[j + 1]] - 0.3;
-          block(p, `b${i}${j}`, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], { surface: (i + j) % 2 ? 'grass' : 'paving', name: `Block ${i}${j}` });
-        }
         return p;
       },
     },
@@ -156,8 +150,68 @@
         R(p, 'w', 'a', 'j', 'collector', [], { name: 'Works Street (W)', features: { construction: [{ s0: 70, s1: 150, side: 1, width: 3.4 }], potholes: [{ s: 40, t: 2, r: 0.6, depth: 0.06 }] }, props: { bollards: 'striped' } });
         R(p, 'e', 'j', 'b', 'collector', [[120, 0, -30]], { name: 'Works Street (E)', features: { speedBumps: [{ s: 90 }] }, props: { bollards: 'wood' } });
         R(p, 's', 'j', 'c', 'residential', [[20, 0, 110]], { name: 'Side Street', features: { potholes: [{ s: 50, t: -1, r: 0.9, depth: 0.08 }] }, props: { bollards: 'concrete' } });
-        block(p, 'b1', [[12, 12], [200, 10], [200, 150], [40, 150]], { surface: 'paving' });
-        block(p, 'b2', [[-200, 12], [-14, 12], [-14, 150], [-200, 150]], { surface: 'grass' });
+        return p;
+      },
+    },
+    showcase: {
+      name: 'Showcase city', blurb: 'Everything in one map: bus-lane high street, boulevard with cycle tracks, one-way pair, parking, a park, level crossings and a rail overbridge, a metro line, a diamond interchange with billboards, speed tables, potholes and street works.',
+      make() {
+        const p = P('Showcase city');
+        p.layers.traffic.count = 25;
+        // --- downtown grid: columns (N-S) x = -240 / 0 / 240, rows (E-W) z = -200 / 0 / 200, one-way pair row at z = 360
+        const xs = [-240, 0, 240], zs = [-200, 0, 200];
+        const colProf = ['avenue', 'collector', 'residential'], rowProf = ['highstreet', 'boulevard', 'cyclestreet'];
+        const colBollard = ['striped', 'concrete', 'wood'], rowBollard = ['steel', 'sphere', 'cast'];
+        const names = { '00': 'Station Square', '10': 'Market Cross', '20': 'Mill Corner', '01': 'Grand Circus', '11': 'Civic Centre', '21': 'Park Gate', '02': 'Canal Corner', '12': 'Old Town', '22': 'East Gate' };
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) N(p, `n${i}${j}`, xs[i], 0, zs[j], { name: names[`${i}${j}`], control: j === 1 || i === 0 ? 'signals' : 'auto' });
+        for (let i = 0; i < 3; i++) { N(p, `n${i}N`, xs[i], 0, -360); N(p, `n${i}S`, xs[i], 0, 360); }
+        for (let j = 0; j < 3; j++) { N(p, `nW${j}`, -480, 0, zs[j]); N(p, `nE${j}`, j === 1 ? 700 : 640, 0, zs[j]); }
+        // columns
+        for (let i = 0; i < 3; i++) {
+          const pr = colProf[i], props = { bollards: colBollard[i] };
+          R(p, `c${i}_0`, `n${i}N`, `n${i}0`, pr, [], { props: { ...props } }); R(p, `c${i}_1`, `n${i}0`, `n${i}1`, pr, [], { props: { ...props } }); R(p, `c${i}_2`, `n${i}1`, `n${i}2`, pr, [], { props: { ...props } }); R(p, `c${i}_3`, `n${i}2`, `n${i}S`, pr, [], { props: { ...props } });
+        }
+        p.roads.c0_0.name = 'Station Avenue'; p.roads.c1_1.name = 'Works Street'; p.roads.c1_2.name = 'Old Town Street'; p.roads.c2_2.name = 'Mews Lane';
+        p.roads.c1_1.features = { construction: [{ s0: 55, s1: 130, side: 1, width: 3.4 }], potholes: [{ s: 30, t: 1.5, r: 0.6, depth: 0.06 }] };
+        p.roads.c1_2.features = { speedBumps: [{ s: 60 }, { s: 130 }], potholes: [{ s: 95, t: -1.2, r: 0.8, depth: 0.07 }, { s: 150, t: 2.0, r: 0.5, depth: 0.05 }] };
+        // rows
+        for (let j = 0; j < 3; j++) {
+          const pr = rowProf[j], props = { bollards: rowBollard[j] };
+          R(p, `r${j}_0`, `nW${j}`, `n0${j}`, pr, [], { props: { ...props } }); R(p, `r${j}_1`, `n0${j}`, `n1${j}`, pr, [], { props: { ...props } }); R(p, `r${j}_2`, `n1${j}`, `n2${j}`, pr, [], { props: { ...props } });
+          const pts = j === 1 ? [[380, 0, 0], [450, 7.2, 0], [550, 7.2, 0], [620, 0, 0]] : [];
+          R(p, `r${j}_3`, `n2${j}`, `nE${j}`, pr, pts, { props: { ...props }, name: j === 1 ? 'Boulevard (rail overbridge)' : undefined });
+        }
+        p.roads.r0_1.name = 'High Street (bus lanes)'; p.roads.r1_1.name = 'Grand Boulevard'; p.roads.r2_1.name = 'Canal Street (cycle lanes)';
+        p.roads.r0_3.name = 'High Street (level crossing)'; p.roads.r2_3.name = 'Canal Street (level crossing)';
+        // one-way pair: eastbound at z = 360 (south ends), westbound at z = 440
+        N(p, 'oW', -480, 0, 360); N(p, 'oE', 640, 0, 360);
+        R(p, 'o_0', 'oW', 'n0S', 'oneway'); R(p, 'o_1', 'n0S', 'n1S', 'oneway'); R(p, 'o_2', 'n1S', 'n2S', 'oneway'); R(p, 'o_3', 'n2S', 'oE', 'oneway', [], { name: 'One-way east (level crossing)' });
+        N(p, 'wW', -480, 0, 440); N(p, 'wE', 640, 0, 440); N(p, 'w0', -240, 0, 440); N(p, 'w1', 0, 0, 440); N(p, 'w2', 240, 0, 440);
+        R(p, 'w_0', 'wE', 'w2', 'oneway', [], { name: 'One-way west (level crossing)' }); R(p, 'w_1', 'w2', 'w1', 'oneway'); R(p, 'w_2', 'w1', 'w0', 'oneway'); R(p, 'w_3', 'w0', 'wW', 'oneway');
+        R(p, 'l0', 'n0S', 'w0', 'residential'); R(p, 'l1', 'n1S', 'w1', 'residential'); R(p, 'l2', 'n2S', 'w2', 'residential');
+        // --- diamond interchange on the elevated motorway north of town (centre x = -240, z = -600)
+        const cx = -240, cz = -600, H = 7.0;
+        for (const [tag, dz, dir] of [['EB', 9, 1], ['WB', -9, -1]]) {
+          const mx = dir > 0 ? [-900, -330, 330, 1100] : [1100, 330, -330, -900];
+          mx.forEach((x, i) => N(p, `${tag}${i}`, cx + x, i === 0 || i === 3 ? 0 : H, cz + dz, { name: `${tag} ${i}` }));
+          const pts = (i) => (i === 0 ? [[cx + dir * -520, 0, cz + dz], [cx + dir * -420, H, cz + dz]] : i === 2 ? [[cx + dir * 420, H, cz + dz], [cx + dir * 520, 0, cz + dz]] : []);
+          for (let i = 0; i < 3; i++) R(p, `${tag}r${i}`, `${tag}${i}`, `${tag}${i + 1}`, 'carriageway', pts(i), { name: `Motorway ${tag} ${i + 1}` });
+        }
+        N(p, 'aN', cx, 0, cz - 420); N(p, 'tN', cx, 0, cz - 95, { name: 'North terminal', control: 'signals' }); N(p, 'tS', cx, 0, cz + 95, { name: 'South terminal', control: 'signals' });
+        R(p, 'av0', 'aN', 'tN', 'avenue'); R(p, 'av1', 'tN', 'tS', 'avenue', [], { name: 'Avenue (under motorway)' }); R(p, 'av2', 'tS', 'n0N', 'avenue', [], { name: 'Station Avenue (N)' });
+        R(p, 'rampEBoff', 'EB1', 'tS', 'ramp', [[cx - 250, 5.5, cz + 22], [cx - 120, 2, cz + 60], [cx - 40, 0, cz + 90]], { name: 'EB off-ramp' });
+        R(p, 'rampEBon', 'tS', 'EB2', 'ramp', [[cx + 40, 0, cz + 90], [cx + 120, 2, cz + 60], [cx + 250, 5.5, cz + 22]], { name: 'EB on-ramp' });
+        R(p, 'rampWBoff', 'WB1', 'tN', 'ramp', [[cx + 250, 5.5, cz - 22], [cx + 120, 2, cz - 60], [cx + 40, 0, cz - 90]], { name: 'WB off-ramp' });
+        R(p, 'rampWBon', 'tN', 'WB2', 'ramp', [[cx - 40, 0, cz - 90], [cx - 120, 2, cz - 60], [cx - 250, 5.5, cz - 22]], { name: 'WB on-ramp' });
+        p.roads.EBr1.props.billboards = [{ s: 120, side: 1 }, { s: 480, side: 1 }];
+        p.roads.WBr1.props.billboards = [{ s: 200, side: 1 }];
+        p.roads.EBr2.features = { construction: [{ s0: 300, s1: 420, side: 1, width: 3.6 }] };
+        // --- railways: main line at grade east of town (level crossings + boulevard overbridge), metro under the town
+        p.rails.main = { id: 'main', name: 'Main line', kind: 'rail', electrified: true, trains: 1, cars: 6, pts: [[500, 0, -440], [500, 0, 760]] };
+        p.rails.metro = { id: 'metro', name: 'Metro line', kind: 'subway', trains: 2, cars: 4, pts: [[-520, -13, 100], [760, -13, 100]] };
+        // --- blocks: generated from the network; the two central faces become a park and a paved plaza
+        p.settings.autoBlocks = { enabled: true, surface: 'mixed', depth: 110 };
+        p.blockOverrides = { 'auto:n10+n11+n20+n21:4': { surface: 'grass', name: 'Central Park' }, 'auto:n00+n01+n10+n11:4': { surface: 'paving', name: 'Civic Plaza' } };
         return p;
       },
     },

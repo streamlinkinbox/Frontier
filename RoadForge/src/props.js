@@ -57,12 +57,12 @@
       return [pole, head, r, a, g];
     },
     bollard(kind) {
-      const b = new MB(kind === 'concrete' ? 'concrete' : kind === 'wood' ? 'wood' : kind === 'cast' ? 'cast_iron' : kind === 'striped' ? 'plastic_white' : 'metal_dark');
+      const b = new MB(kind === 'concrete' ? 'concrete' : kind === 'wood' ? 'wood' : kind === 'cast' ? 'cast_iron' : kind === 'striped' ? 'plastic_white' : kind === 'sphere' ? 'granite' : 'metal_dark');
       if (kind === 'steel' || kind === 'striped') prim.lathe(b, [[0.057, 0], [0.057, 0.88], [0.05, 0.93], [0.03, 0.98], [0, 1.0]], 14);
       else if (kind === 'cast') prim.lathe(b, [[0.09, 0], [0.09, 0.08], [0.075, 0.1], [0.075, 0.6], [0.095, 0.66], [0.095, 0.72], [0.07, 0.78], [0.07, 0.86], [0.1, 0.9], [0.1, 0.94], [0.05, 1.0], [0, 1.02]], 16);
       else if (kind === 'concrete') prim.lathe(b, [[0.19, 0], [0.19, 0.42], [0.17, 0.5], [0.09, 0.56], [0, 0.57]], 18);
       else if (kind === 'wood') prim.box(b, [0.15, 1.0, 0.15], { center: [0, 0.5, 0], bevel: 0.02 });
-      else if (kind === 'sphere') prim.lathe(new MB('granite'), [[0.001, 0], [0.2, 0.05], [0.3, 0.3], [0.2, 0.55], [0.001, 0.6]], 16);
+      else if (kind === 'sphere') prim.lathe(b, [[0.001, 0], [0.2, 0.05], [0.3, 0.3], [0.2, 0.55], [0.001, 0.6]], 16);
       return [b];
     },
     railingPanel() {
@@ -274,7 +274,7 @@
       // -- bollards along footways
       const bk = props.bollards || 'none';
       if (bk !== 'none' && lay.hasCurb) {
-        const parts = get('bollard', bk); const pitch = 1.5;
+        const parts = get('bollard', bk); const pitch = bk === 'sphere' || bk === 'concrete' ? 3.0 : 2.2;
         for (const side of [1, -1]) {
           const sw = side > 0 ? lay.sidewalkR : lay.sidewalkL; if (sw < 1.2) continue;
           for (let s = s0 + 3; s < s1 - 3; s += pitch) { if (structAt(s) === 'tunnel') continue; const f = RF.roadmesh.frameAt(R, s); add('bollard:' + bk, parts, surf(R, s, side * (lay.hwR * (side > 0 ? 1 : 0) + lay.hwL * (side < 0 ? 1 : 0) + lay.curbW + 0.35), lay.curbH), V.perp(f.d), R.id); }

@@ -711,14 +711,14 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       if (i > 0) v += Math.hypot(profile[i][0] - profile[i - 1][0], profile[i][1] - profile[i - 1][1]) / (total || 1);
       rows.push(addRing(profile[i][0], profile[i][1], v * uvScale));
     }
-    // winding: profile from bottom to top, outward normals
-    for (let r = 0; r < rows.length - 1; r++) b.strip(rows[r], rows[r + 1], true);
+    // winding: profile from bottom to top (increasing y, radius on +x) gives outward normals (verified by signed volume)
+    for (let r = 0; r < rows.length - 1; r++) b.strip(rows[r], rows[r + 1], false);
     const cap = (ring, y, up) => {
       const r0 = profile[up ? profile.length - 1 : 0][0];
       const inner = addRing(r0 * 0.3, y, 0);
       const centre = addRing(0, y, 0);
-      if (up) { b.strip(ring, inner, true); b.strip(inner, centre, true); }
-      else { b.strip(ring, inner, false); b.strip(inner, centre, false); }
+      if (up) { b.strip(ring, inner, false); b.strip(inner, centre, false); }
+      else { b.strip(ring, inner, true); b.strip(inner, centre, true); }
     };
     if (capTop) cap(rows[rows.length - 1], profile[profile.length - 1][1], true);
     if (capBottom) cap(rows[0], profile[0][1], false);
@@ -746,7 +746,8 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       });
       return;
     }
-    // Bevelled box: 26-patch (faces, edges, corners) all quads.
+    // Bevelled box: 26-patch (faces, edges, corners) all quads. Patches are generated inward-wound; flipped as a whole below.
+    const q0 = b.quads.length;
     const e = Math.min(bevel, hx, hy, hz) ;
     const xs = [-hx, -hx + e, hx - e, hx], ys = [-hy, -hy + e, hy - e, hy], zs = [-hz, -hz + e, hz - e, hz];
     // Build a rounded box by sampling superellipse-ish: use 3x3 grid per face with corner rounding via normalisation blend.
@@ -816,6 +817,7 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       b.grid(rows, (sx * sy * sz) < 0);
     };
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) cornerPatch(sx, sy, sz);
+    for (let i = q0; i < b.quads.length; i += 4) { const t = b.quads[i + 1]; b.quads[i + 1] = b.quads[i + 3]; b.quads[i + 3] = t; }
   }
 
   /**
@@ -888,6 +890,8 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
     avenue: { name: 'Avenue (2+2, raised median)', lanesF: 2, lanesB: 2, laneWidth: 3.5, parkingL: 2.2, parkingR: 2.2, median: 2.0, medianKind: 'raised', shoulder: 0, sidewalkL: 4.0, sidewalkR: 4.0, curbH: 0.125, speed: 60, cornerRadius: 10, cycle: 0, verge: 0, kind: 'urban' },
     boulevard: { name: 'Boulevard (3+3, cycle tracks)', lanesF: 3, lanesB: 3, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 4.0, medianKind: 'raised', shoulder: 0, sidewalkL: 5.0, sidewalkR: 5.0, curbH: 0.125, speed: 60, cornerRadius: 12, cycle: 2.0, verge: 0, kind: 'urban' },
     oneway: { name: 'One-way street (2 lanes)', lanesF: 2, lanesB: 0, laneWidth: 3.2, parkingL: 2.2, parkingR: 0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 2.5, sidewalkR: 2.5, curbH: 0.125, speed: 50, cornerRadius: 6, cycle: 0, verge: 0, kind: 'urban' },
+    highstreet: { name: 'High street (2+2, bus lanes)', lanesF: 2, lanesB: 2, laneWidth: 3.3, parkingL: 0, parkingR: 0, median: 0, medianKind: 'painted', shoulder: 0, sidewalkL: 3.5, sidewalkR: 3.5, curbH: 0.125, speed: 50, cornerRadius: 10, cycle: 0, bus: 3.3, verge: 0, kind: 'urban' },
+    cyclestreet: { name: 'Cycle street (1+1, cycle lanes)', lanesF: 1, lanesB: 1, laneWidth: 3.25, parkingL: 0, parkingR: 2.0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 2.5, sidewalkR: 2.5, curbH: 0.125, speed: 30, cornerRadius: 6, cycle: 1.8, verge: 0, kind: 'urban' },
     service: { name: 'Service lane', lanesF: 1, lanesB: 0, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 0, medianKind: 'none', shoulder: 0, sidewalkL: 1.2, sidewalkR: 1.2, curbH: 0.1, speed: 20, cornerRadius: 4, cycle: 0, verge: 0, kind: 'urban' },
     rural: { name: 'Rural road', lanesF: 1, lanesB: 1, laneWidth: 3.5, parkingL: 0, parkingR: 0, median: 0, medianKind: 'none', shoulder: 1.0, sidewalkL: 0, sidewalkR: 0, curbH: 0, speed: 80, cornerRadius: 12, cycle: 0, verge: 2.0, kind: 'rural' },
     highway: { name: 'Motorway (3+3, barrier median)', lanesF: 3, lanesB: 3, laneWidth: 3.65, parkingL: 0, parkingR: 0, median: 1.2, medianKind: 'barrier', shoulder: 3.0, shoulderInner: 1.0, sidewalkL: 0, sidewalkR: 0, curbH: 0, speed: 120, cornerRadius: 3, cycle: 0, verge: 3.0, kind: 'highway' },
@@ -915,7 +919,7 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
     const lanes = [];
     const medW = prof.median || 0;
     const shoulder = prof.shoulder || 0, shoulderIn = prof.shoulderInner || 0;
-    const cycle = prof.cycle || 0;
+    const cycle = prof.cycle || 0, bus = prof.bus || 0;
     // forward lanes on +n for right-hand traffic
     const sgn = handedness === 'right' ? 1 : -1;
     const half = medW / 2;
@@ -923,6 +927,7 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
     let t = half;
     if (prof.lanesF > 0 && prof.lanesB > 0 && shoulderIn > 0 && medW > 0) { lanes.push({ t0: t, t1: t + shoulderIn, kind: 'shoulder', dir: 1 }); t += shoulderIn; }
     for (let i = 0; i < prof.lanesF; i++) { lanes.push({ t0: t, t1: t + lw, kind: 'drive', dir: 1, index: i }); t += lw; }
+    if (bus > 0) { lanes.push({ t0: t, t1: t + bus, kind: 'bus', dir: 1 }); t += bus; }
     if (cycle > 0) { lanes.push({ t0: t, t1: t + cycle, kind: 'cycle', dir: 1 }); t += cycle; }
     if (prof.parkingR > 0) { lanes.push({ t0: t, t1: t + prof.parkingR, kind: 'parking', dir: 1 }); t += prof.parkingR; }
     if (shoulder > 0) { lanes.push({ t0: t, t1: t + shoulder, kind: 'shoulder', dir: 1 }); t += shoulder; }
@@ -932,6 +937,7 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
     if (prof.lanesB > 0) {
       if (prof.lanesF > 0 && shoulderIn > 0 && medW > 0) { lanes.push({ t0: t - shoulderIn, t1: t, kind: 'shoulder', dir: -1 }); t -= shoulderIn; }
       for (let i = 0; i < prof.lanesB; i++) { lanes.push({ t0: t - lw, t1: t, kind: 'drive', dir: -1, index: i }); t -= lw; }
+      if (bus > 0) { lanes.push({ t0: t - bus, t1: t, kind: 'bus', dir: -1 }); t -= bus; }
       if (cycle > 0) { lanes.push({ t0: t - cycle, t1: t, kind: 'cycle', dir: -1 }); t -= cycle; }
       if (prof.parkingL > 0) { lanes.push({ t0: t - prof.parkingL, t1: t, kind: 'parking', dir: -1 }); t -= prof.parkingL; }
       if (shoulder > 0) { lanes.push({ t0: t - shoulder, t1: t, kind: 'shoulder', dir: -1 }); t -= shoulder; }
@@ -1278,6 +1284,185 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
 
 </script>
 <script>
+/* RoadForge — automatic city blocks: the planar faces of the road network, bounded by the footway outer edges. */
+(function (RF) {
+  'use strict';
+  const V = RF.V, S = RF.spline;
+
+  const MIN_AREA = 150, MAX_AREA = 450000, MAX_GRADE_Y = 0.6;
+
+  function signedArea(pts) { let a = 0; for (let i = 0, n = pts.length; i < n; i++) { const p = pts[i], q = pts[(i + 1) % n]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+
+  /** Ramer–Douglas–Peucker simplification of a closed loop (keeps fillet corners, collapses straight runs). */
+  function simplifyLoop(pts, tol) {
+    if (pts.length < 8) return pts;
+    // open the loop at the two farthest-apart vertices so the closing edge is handled too
+    let i0 = 0, i1 = 0, best = -1;
+    for (let i = 0; i < pts.length; i += Math.max(1, Math.floor(pts.length / 64))) for (let j = i + 1; j < pts.length; j += Math.max(1, Math.floor(pts.length / 64))) { const d = (pts[i][0] - pts[j][0]) ** 2 + (pts[i][1] - pts[j][1]) ** 2; if (d > best) { best = d; i0 = i; i1 = j; } }
+    const a = [], b = [];
+    for (let i = i0; i !== i1; i = (i + 1) % pts.length) a.push(pts[i]); a.push(pts[i1]);
+    for (let i = i1; i !== i0; i = (i + 1) % pts.length) b.push(pts[i]); b.push(pts[i0]);
+    const rdp = (arr) => {
+      if (arr.length < 3) return arr;
+      const p0 = arr[0], p1 = arr[arr.length - 1]; const dx = p1[0] - p0[0], dz = p1[1] - p0[1]; const L = Math.hypot(dx, dz) || 1;
+      let far = -1, fi = -1;
+      for (let i = 1; i < arr.length - 1; i++) { const d = Math.abs((arr[i][0] - p0[0]) * dz - (arr[i][1] - p0[1]) * dx) / L; if (d > far) { far = d; fi = i; } }
+      if (far <= tol) return [p0, p1];
+      const left = rdp(arr.slice(0, fi + 1)), right = rdp(arr.slice(fi));
+      return left.slice(0, -1).concat(right);
+    };
+    const ra = rdp(a), rb = rdp(b);
+    return ra.slice(0, -1).concat(rb.slice(0, -1));
+  }
+
+  function selfIntersects(pts) {
+    const n = pts.length; if (n < 4) return false;
+    const segInt = (a, b, c, d) => {
+      const r = [b[0] - a[0], b[1] - a[1]], s = [d[0] - c[0], d[1] - c[1]];
+      const den = r[0] * s[1] - r[1] * s[0]; if (Math.abs(den) < 1e-12) return false;
+      const t = ((c[0] - a[0]) * s[1] - (c[1] - a[1]) * s[0]) / den, u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den;
+      return t > 1e-6 && t < 1 - 1e-6 && u > 1e-6 && u < 1 - 1e-6;
+    };
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 2; j < n; j++) {
+        if (i === 0 && j === n - 1) continue;
+        if (segInt(pts[i], pts[(i + 1) % n], pts[j], pts[(j + 1) % n])) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Trace the faces of the solved network and return block records (same shape as explicit project blocks).
+   * Every face is walked with the block on the traveller's left: along each road's left footway edge, then around the
+   * junction corner footway between the arriving arm and the next arm anticlockwise.
+   */
+  function autoBlocks(net, project, opts = {}) {
+    const surfaceMode = opts.surface || 'mixed';
+    const depth = opts.depth || 120;
+    const overrides = project.blockOverrides || {};
+    const visited = new Set();
+    const faces = [];
+    const halfKey = (roadId, dir) => roadId + (dir > 0 ? '>' : '<');
+    const urbanOK = (R) => R.lay.kind === 'urban' && R.lay.hasCurb;
+    const atGrade = (R) => (R.samples || []).every((f) => Math.abs(f.p[1]) <= MAX_GRADE_Y);
+    /** Footway outer-edge points of a half-edge (travelling dir), optionally limited to `fromEnd` metres before the far node / `fromStart` after the start. */
+    const edgePts = (R, dir, lim = {}) => {
+      const lay = R.lay, off = dir > 0 ? -lay.outerL : lay.outerR;
+      const sm = R.samples || []; const order = dir > 0 ? sm : [...sm].reverse();
+      const s0 = order.length ? order[0].s : 0, s1 = order.length ? order[order.length - 1].s : 0;
+      const along = (f) => Math.abs(f.s - s0), total = Math.abs(s1 - s0);
+      const out = [];
+      for (const f of order) {
+        const a = along(f);
+        if (lim.fromStart != null && a > lim.fromStart + 1e-6) break;
+        if (lim.fromEnd != null && total - a > lim.fromEnd + 1e-6) continue;
+        out.push([f.p[0] + f.n[0] * off, f.p[2] + f.n[2] * off]);
+      }
+      // exact cut points
+      const cut = (sta) => { const e = S.evalAt(R.dense, R.cum, sta); const d = V.normXZ(e.d), n = V.perp(d); return [e.p[0] + n[0] * off, e.p[2] + n[2] * off]; };
+      if (lim.fromStart != null && lim.fromStart < total) out.push(cut(dir > 0 ? s0 + lim.fromStart : s0 - lim.fromStart));
+      if (lim.fromEnd != null && lim.fromEnd < total) out.unshift(cut(dir > 0 ? s1 - lim.fromEnd : s1 + lim.fromEnd));
+      return out;
+    };
+    const cornerPts = (rec, corner) => {
+      const X = corner.A, B = corner.B, layA = X.road.lay, layB = B.road.lay;
+      const swA = X.isStart ? layA.sidewalkR : layA.sidewalkL, swB = B.isStart ? layB.sidewalkL : layB.sidewalkR;
+      const poly = S.resampleEqual(corner.poly, Math.max(2, Math.ceil(corner.length / 0.6)));
+      const n = poly.length, C = rec.node.p, out = [];
+      for (let i = 0; i < n; i++) {
+        const p = poly[i]; let nn;
+        if (i === 0) nn = X.nOut; else if (i === n - 1) nn = V.mul(B.nOut, -1);
+        else { const a = poly[i - 1], b = poly[i + 1]; nn = V.perp(V.normXZ(V.sub(b, a))); if (V.dot(nn, V.sub(p, C)) < 0) nn = V.mul(nn, -1); }
+        const t = i / (n - 1), d = (layA.hasCurb || layB.hasCurb ? 0.15 : 0) + RF.lerp(swA, swB, t) + Math.max(layA.verge, layB.verge);
+        out.push([p[0] + nn[0] * d, p[2] + nn[2] * d]);
+      }
+      return out;
+    };
+    // --- 1. trace every face as a sequence of (half-edge, node, corner) steps
+    for (const R0 of net.roads.values()) {
+      for (const dir0 of [1, -1]) {
+        if (visited.has(halfKey(R0.id, dir0))) continue;
+        const steps = []; let R = R0, dir = dir0, ok = true, guard = 0;
+        while (guard++ < 4000) {
+          const key = halfKey(R.id, dir);
+          if (visited.has(key)) { if (!(R === R0 && dir === dir0 && steps.length)) ok = false; break; }
+          visited.add(key);
+          const nodeId = dir > 0 ? R.road.b : R.road.a;
+          const rec = net.nodes.get(nodeId); if (!rec) { ok = false; break; }
+          const X = R.arms[dir > 0 ? 'b' : 'a'];
+          const idx = rec.arms.indexOf(X); if (idx < 0) { ok = false; break; }
+          const next = rec.arms[(idx + 1) % rec.arms.length];
+          const corner = (rec.corners || []).find((c) => c.A === X && c.poly) || null;
+          steps.push({ R, dir, rec, X, next, corner });
+          R = next.road; dir = next.isStart ? 1 : -1;
+          if (R === R0 && dir === dir0) break;
+        }
+        if (!ok || !steps.length) continue;
+        const pts = [];
+        for (const st of steps) { pts.push(...edgePts(st.R, st.dir)); if (st.corner) pts.push(...cornerPts(st.rec, st.corner)); }
+        const clean = dedupe(pts);
+        if (clean.length < 3) continue;
+        faces.push({ steps, pts: clean, area: signedArea(clean), allUrban: steps.every((st) => urbanOK(st.R) && atGrade(st.R)) });
+      }
+    }
+    if (!faces.length) return [];
+    // the unbounded face of each component is traced with the opposite orientation to the inner faces
+    let outer = faces[0]; for (const f of faces) if (Math.abs(f.area) > Math.abs(outer.area)) outer = f;
+    const outerSign = Math.sign(outer.area);
+    const out = [];
+    const emit = (key, poly, roads, nodes, maxCh, maxSw) => {
+      if (poly.length < 3) return;
+      const A = Math.abs(signedArea(poly));
+      if (A < MIN_AREA || A > MAX_AREA || selfIntersects(poly)) return;
+      const ov = overrides[key] || {};
+      if (ov.hidden) return;
+      const cx = poly.reduce((a, p) => a + p[0], 0) / poly.length, cz = poly.reduce((a, p) => a + p[1], 0) / poly.length;
+      const hsh = Math.abs(RF.hashStr ? RF.hashStr(key) : Math.round(cx * 7 + cz * 13));
+      const mixed = ['paving', 'grass', 'paving', 'gravel', 'grass', 'concrete'];
+      const surface = ov.surface || (surfaceMode === 'mixed' ? mixed[hsh % mixed.length] : surfaceMode);
+      out.push({ id: key, name: ov.name || `Block ${out.length + 1}`, poly, surface, sidewalk: 0, auto: true, edgeH: 0.02 + maxCh + maxSw * 0.02 + 0.03, area: A, centre: [cx, 0, cz], roads, nodes });
+    };
+    for (const f of faces) {
+      const inner = Math.sign(f.area) !== outerSign && Math.abs(f.area) <= MAX_AREA;
+      if (inner && f.allUrban) {
+        const roads = [...new Set(f.steps.map((st) => st.R.id))], nodes = [...new Set(f.steps.map((st) => st.rec.id))];
+        const maxCh = Math.max(...f.steps.map((st) => st.R.lay.curbH)), maxSw = Math.max(...f.steps.map((st) => st.dir > 0 ? st.R.lay.sidewalkL : st.R.lay.sidewalkR));
+        emit('auto:' + nodes.slice().sort().join('+') + ':' + roads.length, simplifyLoop(f.pts, 0.02), roads, nodes, maxCh, maxSw);
+        continue;
+      }
+      // --- 2. unbounded / oversized faces: one roadside "quadrant" block per junction corner, `depth` metres deep
+      for (const st of f.steps) {
+        if (!st.corner || st.corner.gap > 2.6) continue;
+        const RA = st.R, RB = st.next.road, dirB = st.next.isStart ? 1 : -1;
+        if (!urbanOK(RA) || !urbanOK(RB) || !atGrade(RA) || !atGrade(RB)) continue;
+        const farEnd = (R, dir) => net.nodes.get(dir > 0 ? R.road.b : R.road.a)?.kind === 'end';
+        const LA = Math.min(depth, farEnd(RA, -st.dir) ? RA.bodyLength : RA.bodyLength / 2);
+        const LB = Math.min(depth, farEnd(RB, dirB) ? RB.bodyLength : RB.bodyLength / 2);
+        if (LA < 12 || LB < 12) continue;
+        const ea = edgePts(RA, st.dir, { fromEnd: LA }), cp = cornerPts(st.rec, st.corner), eb = edgePts(RB, dirB, { fromStart: LB });
+        if (!ea.length || !eb.length) continue;
+        const E1 = ea[0], E2 = eb[eb.length - 1], P2 = eb[0];
+        const K = [E1[0] + (E2[0] - P2[0]), E1[1] + (E2[1] - P2[1])];
+        const poly = simplifyLoop(dedupe([...ea, ...cp, ...eb, K]), 0.02);
+        emit('auto:' + st.rec.id + ':' + RA.id + '>' + RB.id, poly, [RA.id, RB.id], [st.rec.id], Math.max(RA.lay.curbH, RB.lay.curbH), Math.max(st.dir > 0 ? RA.lay.sidewalkL : RA.lay.sidewalkR, dirB > 0 ? RB.lay.sidewalkL : RB.lay.sidewalkR));
+      }
+    }
+    return out;
+  }
+  function dedupe(pts) {
+    if (!pts.length) return [];
+    const clean = [pts[0]];
+    for (let i = 1; i < pts.length; i++) { const q = clean[clean.length - 1]; if (Math.hypot(pts[i][0] - q[0], pts[i][1] - q[1]) > 0.05) clean.push(pts[i]); }
+    while (clean.length > 1 && Math.hypot(clean[0][0] - clean[clean.length - 1][0], clean[0][1] - clean[clean.length - 1][1]) < 0.05) clean.pop();
+    return clean;
+  }
+
+  RF.blocks = { autoBlocks, signedArea, simplifyLoop, selfIntersects };
+})(globalThis.RF || (globalThis.RF = {}));
+
+</script>
+<script>
 /* RoadForge — road body, kerbs, footways, medians, markings and junction patch meshes (all quads). */
 (function (RF) {
   'use strict';
@@ -1314,7 +1499,7 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
   function paintMat(color) { return color === 'yellow' ? 'paint_yellow' : 'paint_white'; }
 
   /** Paint a longitudinal line at lateral t (centre of the line), width w, between stations s0..s1, optional dash [on, off]. */
-  function paintLine(b, R, t, w, s0, s1, dash, layers, phase = 0) {
+  function paintLine(b, R, t, w, s0, s1, dash, layers, phase = 0, lift = PAINT_LIFT) {
     s0 = Math.max(s0, R.samples[0].s); s1 = Math.min(s1, R.samples[R.samples.length - 1].s);
     if (s1 - s0 < 0.05) return;
     const pieces = [];
@@ -1325,8 +1510,8 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       const rowL = [], rowR = [];
       for (let k = 0; k <= steps; k++) {
         const s = a + ((e - a) * k) / steps;
-        rowL.push(b.vertex(surfPoint(R, s, t - w / 2, layers, PAINT_LIFT), [s, 0], [0, 0, 0, 0]));
-        rowR.push(b.vertex(surfPoint(R, s, t + w / 2, layers, PAINT_LIFT), [s, 1], [0, 0, 0, 0]));
+        rowL.push(b.vertex(surfPoint(R, s, t - w / 2, layers, lift), [s, 0], [0, 0, 0, 0]));
+        rowR.push(b.vertex(surfPoint(R, s, t + w / 2, layers, lift), [s, 1], [0, 0, 0, 0]));
       }
       b.strip(rowL, rowR, true);
     }
@@ -1377,6 +1562,42 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       for (let k = 0; k <= steps; k++) { const f = k / steps; const ss = s + f * span * 0.9, tt = t0 + f * span; if (ss > s1) break; rowA.push(b.vertex(surfPoint(R, ss, tt, layers, PAINT_LIFT), [ss, tt], [0, 0, 0, 0])); rowB.push(b.vertex(surfPoint(R, ss + w * 1.4, tt, layers, PAINT_LIFT), [ss, tt], [0, 0, 0, 0])); }
       if (rowA.length > 1) b.strip(rowA, rowB, false);
     }
+  }
+
+  /** Local glyph painter: (u across, v along travel) → surface point; strokes & rings as quads. */
+  function glyphPainter(b, R, s, t, dir, layers) {
+    const P = (u, v) => surfPoint(R, s + v * dir, t + u * dir, layers, PAINT_LIFT);
+    const quadP = (p0, p1, p2, p3) => { const i = [p0, p1, p2, p3].map((p) => b.vertex(p, [p[0], p[2]], [0, 0, 0, 0])); if (dir > 0) b.quad(i[0], i[1], i[2], i[3]); else b.quad(i[3], i[2], i[1], i[0]); };
+    const rect = (u0, v0, u1, v1) => quadP(P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1));
+    const stroke = (u0, v0, u1, v1, w) => { const du = u1 - u0, dv = v1 - v0; const L = Math.hypot(du, dv) || 1; const nu = (-dv / L) * w / 2, nv = (du / L) * w / 2; quadP(P(u0 - nu, v0 - nv), P(u0 + nu, v0 + nv), P(u1 + nu, v1 + nv), P(u1 - nu, v1 - nv)); };
+    const ring = (uc, vc, ru, rv, w, n = 12) => { const ri = [], ro = []; for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); ri.push(b.vertex(P(uc + c * (ru - w / 2), vc + sn * (rv - w / 2)), [0, 0], [0, 0, 0, 0])); ro.push(b.vertex(P(uc + c * ru, vc + sn * rv), [0, 1], [0, 0, 0, 0])); } b.strip(ri, ro, dir < 0); };
+    return { rect, stroke, ring };
+  }
+  /** Elongated road lettering (2.0 m letters, read by approaching traffic), first letter nearest the driver. */
+  function paintText(b, R, s, t, dir, text, layers) {
+    const H = 2.0, W = 0.9, w = 0.16, gap = 0.5;
+    const g = glyphPainter(b, R, s, t, dir, layers);
+    const letters = {
+      B: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2, v0 + H - w, W / 2 - 0.1, v0 + H); g.rect(-W / 2, v0 + H / 2 - w / 2, W / 2 - 0.1, v0 + H / 2 + w / 2); g.rect(-W / 2, v0, W / 2, v0 + w); g.rect(W / 2 - 0.1 - w, v0 + H / 2, W / 2 - 0.1, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H / 2); },
+      U: (v0) => { g.rect(-W / 2, v0 + 0.15, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0 + 0.15, W / 2, v0 + H); g.rect(-W / 2 + w * 0.5, v0, W / 2 - w * 0.5, v0 + w); g.rect(-W / 2, v0 + 0.05, -W / 2 + w, v0 + 0.15); g.rect(W / 2 - w, v0 + 0.05, W / 2, v0 + 0.15); },
+      S: (v0) => { g.rect(-W / 2, v0 + H - w, W / 2, v0 + H); g.rect(-W / 2, v0 + H / 2, -W / 2 + w, v0 + H - w); g.rect(-W / 2, v0 + H / 2 - w / 2, W / 2, v0 + H / 2 + w / 2); g.rect(W / 2 - w, v0 + w, W / 2, v0 + H / 2 - w / 2); g.rect(-W / 2, v0, W / 2, v0 + w); },
+      T: (v0) => { g.rect(-W / 2, v0 + H - w, W / 2, v0 + H); g.rect(-w / 2, v0, w / 2, v0 + H - w); },
+      O: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H); g.rect(-W / 2 + w, v0 + H - w, W / 2 - w, v0 + H); g.rect(-W / 2 + w, v0, W / 2 - w, v0 + w); },
+      P: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2 + w, v0 + H - w, W / 2, v0 + H); g.rect(-W / 2 + w, v0 + H / 2 - w / 2, W / 2, v0 + H / 2 + w / 2); g.rect(W / 2 - w, v0 + H / 2 + w / 2, W / 2, v0 + H - w); },
+      L: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2 + w, v0, W / 2, v0 + w); },
+      W: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H); g.rect(-w / 2, v0, w / 2, v0 + H * 0.6); g.rect(-W / 2 + w, v0, W / 2 - w, v0 + w); },
+    };
+    let v = 0;
+    for (const ch of text) { const f = letters[ch]; if (f) f(v); v += H + gap; }
+  }
+  /** Cycle-lane symbol: side-on bicycle, elongated 1.8× along the travel direction, 1.6 m wide. */
+  function paintCycleGlyph(b, R, s, t, dir, layers) {
+    const g = glyphPainter(b, R, s, t, dir, layers);
+    const E = 1.8, w = 0.12; const X = (u) => u, Y = (v) => v * E;
+    g.ring(X(-0.55), Y(0.35), 0.32, 0.32 * E, w, 14); g.ring(X(0.55), Y(0.35), 0.32, 0.32 * E, w, 14);
+    const st = (u0, v0, u1, v1) => g.stroke(X(u0), Y(v0), X(u1), Y(v1), w);
+    st(-0.55, 0.35, -0.2, 0.9); st(-0.2, 0.9, 0.08, 0.35); st(0.08, 0.35, -0.55, 0.35); st(0.08, 0.35, 0.42, 0.95); st(0.42, 0.95, 0.55, 0.35); st(-0.2, 0.9, 0.42, 0.95);
+    st(-0.32, 0.9, -0.08, 0.9); st(0.42, 0.95, 0.6, 1.12);
   }
 
   /* ------------------------------------------------------------------ */
@@ -1557,8 +1778,22 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       }
       if (!shoulderMarks.length) { paintLine(white, R, lay.hwR - std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); paintLine(white, R, -lay.hwL + std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); }
     }
-    // cycle lanes: solid white separator + green? keep white line
-    for (const l of lay.lanes) if (l.kind === 'cycle') paintLine(white, R, l.dir > 0 ? l.t0 : l.t1, std.lineW, lineStart, lineEnd, null, layers);
+    // cycle lanes: green surfacing, solid white separator and a cycle symbol every 30 m
+    for (const l of lay.lanes) if (l.kind === 'cycle') {
+      const inner = l.dir > 0 ? l.t0 : l.t1, tc = (l.t0 + l.t1) / 2;
+      if (layers.colouredLanes !== false) paintLine(get('surface_green'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
+      paintLine(white, R, inner, std.lineW, lineStart, lineEnd, null, layers);
+      const a = lineStart + 6, e = lineEnd - 6; const first = l.dir > 0 ? a : e;
+      for (let k = 0; first + l.dir * (k * 30 + 2.6) > a && first + l.dir * (k * 30 + 2.6) < e; k++) paintCycleGlyph(white, R, first + l.dir * k * 30, tc, l.dir, layers);
+    }
+    // bus lanes: red surfacing, wide solid separator and BUS lettering every 40 m
+    for (const l of lay.lanes) if (l.kind === 'bus') {
+      const inner = l.dir > 0 ? l.t0 : l.t1, tc = (l.t0 + l.t1) / 2;
+      if (layers.colouredLanes !== false) paintLine(get('surface_red'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
+      paintLine(white, R, inner, 0.25, lineStart, lineEnd, null, layers);
+      const a = lineStart + 8, e = lineEnd - 8; const first = l.dir > 0 ? a : e;
+      for (let k = 0; first + l.dir * (k * 40 + 7.5) > a && first + l.dir * (k * 40 + 7.5) < e; k++) paintText(white, R, first + l.dir * k * 40, tc, l.dir, 'BUS', layers);
+    }
     // parking bays: T / L markings every 6 m
     if (layers.parkingBays !== false) for (const l of lay.lanes) if (l.kind === 'parking') {
       const inner = l.dir > 0 ? l.t0 : l.t1; // lane-side edge
@@ -2133,6 +2368,8 @@ input.num:focus, input.txt:focus, select.sel:focus { border-color: #555; }
       granite: { type: 'curb', color: srgb('#8d8d8c'), roughness: 0.5, pattern: 1 },
       paint_white: { type: 'paint', color: [0.86, 0.86, 0.84], roughness: 0.6, wear: L.paintWear ?? 0.35, pipeline: 'decal' },
       paint_yellow: { type: 'paint', color: srgb('#e3b63a'), roughness: 0.6, wear: L.paintWear ?? 0.35, pipeline: 'decal' },
+      surface_red: { type: 'paint', color: srgb('#4a2320'), roughness: 0.88, wear: (L.paintWear ?? 0.35) * 0.25, pipeline: 'decal' },
+      surface_green: { type: 'paint', color: srgb('#245a34'), roughness: 0.88, wear: (L.paintWear ?? 0.35) * 0.25, pipeline: 'decal' },
       grass: { type: 'grass', color: [0.5, 0.5, 0.5], roughness: 1 },
       ground: { type: 'ground', color: [0.5, 0.5, 0.5], roughness: 1, pipeline: 'ground' },
       hole: { type: 'flat', color: [0, 0, 0], pipeline: 'hole' },
@@ -3001,6 +3238,9 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       this.writeFrame(cam, env);
       const d = this.device, enc = d.createCommandEncoder();
       const items = [...this.items.values()].filter((it) => it.visible !== false);
+      // decals do not write depth: draw coloured lane surfacing before paint lines so the markings stay on top
+      const decalRank = (it) => (it.pipeline === 'decal' ? (/\|surface_/.test(it.id) ? 0 : 1) : 0);
+      items.sort((a, b) => decalRank(a) - decalRank(b));
       // shadow pass
       if (env.sunIntensity > 0.01) {
         const sp = enc.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: this.shadowView, depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' } });
@@ -3154,12 +3394,12 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       return [pole, head, r, a, g];
     },
     bollard(kind) {
-      const b = new MB(kind === 'concrete' ? 'concrete' : kind === 'wood' ? 'wood' : kind === 'cast' ? 'cast_iron' : kind === 'striped' ? 'plastic_white' : 'metal_dark');
+      const b = new MB(kind === 'concrete' ? 'concrete' : kind === 'wood' ? 'wood' : kind === 'cast' ? 'cast_iron' : kind === 'striped' ? 'plastic_white' : kind === 'sphere' ? 'granite' : 'metal_dark');
       if (kind === 'steel' || kind === 'striped') prim.lathe(b, [[0.057, 0], [0.057, 0.88], [0.05, 0.93], [0.03, 0.98], [0, 1.0]], 14);
       else if (kind === 'cast') prim.lathe(b, [[0.09, 0], [0.09, 0.08], [0.075, 0.1], [0.075, 0.6], [0.095, 0.66], [0.095, 0.72], [0.07, 0.78], [0.07, 0.86], [0.1, 0.9], [0.1, 0.94], [0.05, 1.0], [0, 1.02]], 16);
       else if (kind === 'concrete') prim.lathe(b, [[0.19, 0], [0.19, 0.42], [0.17, 0.5], [0.09, 0.56], [0, 0.57]], 18);
       else if (kind === 'wood') prim.box(b, [0.15, 1.0, 0.15], { center: [0, 0.5, 0], bevel: 0.02 });
-      else if (kind === 'sphere') prim.lathe(new MB('granite'), [[0.001, 0], [0.2, 0.05], [0.3, 0.3], [0.2, 0.55], [0.001, 0.6]], 16);
+      else if (kind === 'sphere') prim.lathe(b, [[0.001, 0], [0.2, 0.05], [0.3, 0.3], [0.2, 0.55], [0.001, 0.6]], 16);
       return [b];
     },
     railingPanel() {
@@ -3371,7 +3611,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       // -- bollards along footways
       const bk = props.bollards || 'none';
       if (bk !== 'none' && lay.hasCurb) {
-        const parts = get('bollard', bk); const pitch = 1.5;
+        const parts = get('bollard', bk); const pitch = bk === 'sphere' || bk === 'concrete' ? 3.0 : 2.2;
         for (const side of [1, -1]) {
           const sw = side > 0 ? lay.sidewalkR : lay.sidewalkL; if (sw < 1.2) continue;
           for (let s = s0 + 3; s < s1 - 3; s += pitch) { if (structAt(s) === 'tunnel') continue; const f = RF.roadmesh.frameAt(R, s); add('bollard:' + bk, parts, surf(R, s, side * (lay.hwR * (side > 0 ? 1 : 0) + lay.hwL * (side < 0 ? 1 : 0) + lay.curbW + 0.35), lay.curbH), V.perp(f.d), R.id); }
@@ -4010,7 +4250,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
   }
 
   function emptyProject(name = 'Untitled network') {
-    return { name, version: 1, settings: { handedness: 'right' }, nodes: {}, roads: {}, rails: {}, blocks: {}, layers: defaultLayers() };
+    return { name, version: 1, settings: { handedness: 'right', autoBlocks: { enabled: true, surface: 'mixed', depth: 120 } }, nodes: {}, roads: {}, rails: {}, blocks: {}, blockOverrides: {}, layers: defaultLayers() };
   }
 
   /** Split roads where their centrelines cross at (near) grade and insert shared nodes. Mutates & returns the project. */
@@ -4114,7 +4354,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
     const get = (m) => (out[m] || (out[m] = new MB(m)));
     const poly = block.poly; if (!poly || poly.length < 3) return;
     const y = block.y ?? (RF.structures ? RF.structures.GROUND_Y : 0);
-    const curbH = 0.125, cw = 0.15, sw = block.sidewalk ?? 3.0;
+    const curbH = block.edgeH ?? 0.125, cw = 0.15, sw = block.sidewalk ?? 3.0;
     const curb = get(layers.curbMaterial || 'curb'), pav = get('paving'), fill = get(block.surface === 'grass' ? 'grass' : block.surface === 'gravel' ? 'ballast' : block.surface === 'concrete' ? 'concrete' : 'paving_alt');
     const area = poly.reduce((a, p, i) => { const q = poly[(i + 1) % poly.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0);
     const ring = area > 0 ? poly : [...poly].reverse(); // CCW in (x,z)
@@ -4125,8 +4365,8 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
     for (let i = 0; i <= n; i++) { const a = r0[i % n], b = r1[i % n]; rowsCurb[0].push(curb.vertex([a[0], y, a[1]], [i, 0])); rowsCurb[1].push(curb.vertex([a[0] + (b[0] - a[0]) * 0.08, y + curbH - 0.015, a[1] + (b[1] - a[1]) * 0.08], [i, curbH])); rowsCurb[2].push(curb.vertex([a[0] + (b[0] - a[0]) * 0.2, y + curbH, a[1] + (b[1] - a[1]) * 0.2], [i, curbH + 0.02])); rowsCurb[3].push(curb.vertex([b[0], y + curbH, b[1]], [i, curbH + cw])); }
     curb.grid(rowsCurb, false);
     const rowsPav = [[], []];
-    for (let i = 0; i <= n; i++) { const a = r1[i % n], b = r2[i % n]; rowsPav[0].push(pav.vertex([a[0], y + curbH, a[1]], [a[0], a[1]], [0, 0, 60, 0])); rowsPav[1].push(pav.vertex([b[0], y + curbH + 0.02, b[1]], [b[0], b[1]], [0, 0, 60, 0])); }
-    pav.grid(rowsPav, false);
+    if (sw > 0) for (let i = 0; i <= n; i++) { const a = r1[i % n], b = r2[i % n]; rowsPav[0].push(pav.vertex([a[0], y + curbH, a[1]], [a[0], a[1]], [0, 0, 60, 0])); rowsPav[1].push(pav.vertex([b[0], y + curbH + 0.02, b[1]], [b[0], b[1]], [0, 0, 60, 0])); }
+    if (sw > 0) pav.grid(rowsPav, false);
     // interior fill: ear-clipped triangles (quads preferred elsewhere; interior polygons are arbitrary)
     const tris = earcut(r2);
     const vi = r2.map((p) => fill.vertex([p[0], y + curbH + 0.02 + (block.surface === 'grass' ? 0.03 : 0), p[1]], [p[0], p[1]]));
@@ -4196,8 +4436,11 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         this.rails.push(T);
         if (L.traffic.trains !== false) this.trains.push({ T, trains: RF.rail.makeTrains(T, rail.trains ?? 1) });
       }
-      // --- blocks
-      for (const b of Object.values(P.blocks || {})) buildBlock(b, layers, get('block:' + b.id));
+      // --- blocks: explicit polygons plus the automatic blocks traced from the network's faces
+      this.autoBlocks = {};
+      const ab = P.settings?.autoBlocks || {};
+      if (ab.enabled ?? (Object.keys(P.blocks || {}).length === 0)) for (const b of RF.blocks.autoBlocks(net, P, { surface: ab.surface || 'mixed', depth: ab.depth || 120 })) this.autoBlocks[b.id] = b;
+      for (const b of [...Object.values(P.blocks || {}), ...Object.values(this.autoBlocks)]) buildBlock(b, layers, get('block:' + b.id));
       // --- furniture (W-beams go into the owning road's out map)
       ctx.out = null;
       ctx.outFor = (owner) => get(owner);
@@ -4224,6 +4467,8 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       this.updateStats();
       this.buildPickables();
     }
+    /** Explicit or automatic block record by id. */
+    blockById(id) { return (this.project.blocks || {})[id] || (this.autoBlocks || {})[id] || null; }
     isSelectedOwner(owner) { for (const id of this.selection) if (owner === 'road:' + id || owner === 'node:' + id || owner === 'rail:' + id || owner === 'block:' + id) return true; return false; }
 
     uploadPlaced() {
@@ -4291,7 +4536,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
     buildPickables() {
       const net = this.net; this.pickMeshes = [];
       for (const [owner, mats] of this.meshes) {
-        const [type, id] = owner.split(':');
+        const ci = owner.indexOf(':'); const type = owner.slice(0, ci), id = owner.slice(ci + 1);
         for (const [mat, mesh] of Object.entries(mats)) {
           if (type === 'road' && !/asphalt|concrete_road|paving|grass|curb/.test(mat)) continue;
           if (type === 'node' && !/asphalt|concrete_road|paving/.test(mat)) continue;
@@ -4325,30 +4570,42 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       const R = this.R; R.removeByPrefix('gizmo|');
       if (!pos) return;
       const scale = opts.scale || 1;
-      const axes = [[[1, 0, 0], [0.92, 0.3, 0.3], 'x'], [[0, 1, 0], [0.45, 0.85, 0.4], 'y'], [[0, 0, 1], [0.35, 0.55, 0.95], 'z']];
-      for (const [d, col, name] of axes) {
-        const b = new MB('gizmo'); const L = 6 * scale;
-        const fr = [{ p: pos, d, n: V.perp(d[1] ? [1, 0, 0] : d), up: d[1] ? [0, 0, 1] : [0, 1, 0] }, { p: V.madd(pos, d, L), d, n: V.perp(d[1] ? [1, 0, 0] : d), up: d[1] ? [0, 0, 1] : [0, 1, 0] }];
-        RF.prim.sweep(b, fr, circleP(0.12 * scale, 8), { closed: true });
-        // arrow head
-        const tip = V.madd(pos, d, L + 1.2 * scale);
-        const head = M4.frame(V.madd(pos, d, L), d);
-        RF.prim.lathe(b, [[0.4 * scale, 0], [0.0, 1.2 * scale]], 12, { transform: M4.mul(M4.translation(0, 0, 0), M4.mul(head, M4.trs([0, 0, 0], 0, 1, Math.PI / 2))), capBottom: true });
-        void tip;
+      const L = 5.2 * scale, headL = 1.7 * scale, headR = 0.5 * scale, shaftR = 0.17 * scale;
+      // axis, colour, name, lateral basis (u, v) so that fromBasis(u, d, v) maps local +Y onto the axis
+      const axes = [
+        [[1, 0, 0], [0.96, 0.32, 0.3], 'x', [0, 0, -1], [0, 1, 0]],
+        [[0, 1, 0], [0.5, 0.95, 0.4], 'y', [1, 0, 0], [0, 0, 1]],
+        [[0, 0, 1], [0.35, 0.6, 1.0], 'z', [1, 0, 0], [0, -1, 0]],
+      ];
+      for (const [d, col, name, u, v] of axes) {
+        const b = new MB('gizmo');
+        const T = M4.fromBasis(u, d, v, pos);
+        // shaft (closed tube) + cone head, both built along local +Y then mapped onto the axis
+        RF.prim.lathe(b, [[0.001, 0.9 * scale], [shaftR, 0.9 * scale], [shaftR, L]], 10, { transform: T });
+        RF.prim.lathe(b, [[0.001, L], [headR, L], [0.001, L + headL]], 16, { transform: T });
         const mesh = b.build();
         const hl = opts.active === name;
         R.setItem({ id: 'gizmo|' + name, mesh, material: { type: 'flat', color: hl ? [1, 0.95, 0.4] : col, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
       }
-      // centre disc (XZ plane drag)
-      const b = new MB('gizmo'); RF.prim.lathe(b, [[0.001, 0.02 * scale], [1.1 * scale, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) }); RF.prim.lathe(b, [[1.1 * scale, 0.02 * scale], [1.5 * scale, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
-      R.setItem({ id: 'gizmo|c', mesh: b.build(), material: { type: 'flat', color: opts.active === 'c' ? [1, 0.95, 0.4] : [0.85, 0.85, 0.85], alpha: 0.6, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      // centre disc (XZ plane drag) — flat disc with a thin ring
+      const b = new MB('gizmo');
+      RF.prim.lathe(b, [[1.3 * scale, 0.02 * scale], [0.001, 0.02 * scale]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
+      RF.prim.lathe(b, [[1.3 * scale, 0], [1.3 * scale, 0.12 * scale], [1.55 * scale, 0.12 * scale], [1.55 * scale, 0]], 24, { transform: M4.translation(pos[0], pos[1], pos[2]) });
+      R.setItem({ id: 'gizmo|c', mesh: b.build(), material: { type: 'flat', color: opts.active === 'c' ? [1, 0.95, 0.4] : [0.88, 0.88, 0.88], alpha: 0.6, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      // height reference: a thin plumb line from the handle down to (or up to) ground level with a ground marker
+      if (Math.abs(pos[1]) > 0.05) {
+        const g = new MB('gizmo'); const y0 = Math.min(pos[1], 0), y1 = Math.max(pos[1], 0);
+        RF.prim.lathe(g, [[0.05 * scale, y0], [0.05 * scale, y1]], 6, { transform: M4.translation(pos[0], 0, pos[2]) });
+        RF.prim.lathe(g, [[1.0 * scale, 0], [1.0 * scale, 0.08 * scale], [1.15 * scale, 0.08 * scale], [1.15 * scale, 0]], 24, { transform: M4.translation(pos[0], 0, pos[2]) });
+        R.setItem({ id: 'gizmo|plumb', mesh: g.build(), material: { type: 'flat', color: [0.5, 0.95, 0.4], alpha: 0.5, pipeline: 'overlay' }, pipeline: 'overlay', castShadow: false });
+      }
     }
     /** Hit-test gizmo handles. Returns 'x'|'y'|'z'|'c'|null. */
     pickGizmo(ray, pos, scale = 1) {
       const axes = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
       let best = null;
       for (const [name, d] of Object.entries(axes)) {
-        const res = rayCylinder(ray, pos, d, 7.4 * scale, 0.6 * scale); if (res != null && (!best || res < best.t)) best = { t: res, name };
+        const res = rayCylinder(ray, pos, d, 7.2 * scale, 0.75 * scale); if (res != null && (!best || res < best.t)) best = { t: res, name };
       }
       const tc = rayPlane(ray, pos[1]); if (tc != null) { const p = V.madd(ray.o, ray.d, tc); if (V.distXZ(p, pos) < 1.6 * scale && (!best || tc < best.t)) best = { t: tc, name: 'c' }; }
       return best ? best.name : null;
@@ -4505,7 +4762,6 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         R(p, 'r1', 'n', 'c', 'avenue', [], { name: 'Main Avenue (N)' }); R(p, 'r2', 'c', 's', 'avenue', [], { name: 'Main Avenue (S)' });
         R(p, 'r3', 'w', 'c', 'street', [], { name: '1st Street (W)', features: { potholes: [{ s: 60, t: 1.4, r: 0.7, depth: 0.07 }, { s: 75, t: -1.2, r: 0.5, depth: 0.05 }], speedBumps: [{ s: 110 }] }, props: { bollards: 'steel' } });
         R(p, 'r4', 'c', 'e', 'residential', [], { name: '1st Street (E)', props: { bollards: 'cast' } });
-        for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) block(p, 'b' + sx + sz, [[sx * 16, sz * 12], [sx * 150, sz * 12], [sx * 150, sz * 140], [sx * 16, sz * 140]], { surface: 'paving' });
         return p;
       },
     },
@@ -4522,11 +4778,6 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         for (let j = 0; j < 3; j++) { const pr = prof.x[j]; R(p, `rx${j}_0`, `nW${j}`, `n0${j}`, pr); R(p, `rx${j}_1`, `n0${j}`, `n1${j}`, pr); R(p, `rx${j}_2`, `n1${j}`, `n2${j}`, pr); R(p, `rx${j}_3`, `n2${j}`, `nE${j}`, pr); }
         p.roads.rz2_1.features = { speedBumps: [{ s: 80 }, { s: 130 }] };
         p.roads.rx1_1.props = { bollards: 'steel' };
-        const hw = { street: 10.5, boulevard: 20, oneway: 9.6, collector: 11.8, avenue: 16, residential: 9.2 };
-        for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
-          const x0 = xs[i] + hw[prof.z[i]] + 0.3, x1 = xs[i + 1] - hw[prof.z[i + 1]] - 0.3, z0 = zs[j] + hw[prof.x[j]] + 0.3, z1 = zs[j + 1] - hw[prof.x[j + 1]] - 0.3;
-          block(p, `b${i}${j}`, [[x0, z0], [x1, z0], [x1, z1], [x0, z1]], { surface: (i + j) % 2 ? 'grass' : 'paving', name: `Block ${i}${j}` });
-        }
         return p;
       },
     },
@@ -4644,8 +4895,68 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         R(p, 'w', 'a', 'j', 'collector', [], { name: 'Works Street (W)', features: { construction: [{ s0: 70, s1: 150, side: 1, width: 3.4 }], potholes: [{ s: 40, t: 2, r: 0.6, depth: 0.06 }] }, props: { bollards: 'striped' } });
         R(p, 'e', 'j', 'b', 'collector', [[120, 0, -30]], { name: 'Works Street (E)', features: { speedBumps: [{ s: 90 }] }, props: { bollards: 'wood' } });
         R(p, 's', 'j', 'c', 'residential', [[20, 0, 110]], { name: 'Side Street', features: { potholes: [{ s: 50, t: -1, r: 0.9, depth: 0.08 }] }, props: { bollards: 'concrete' } });
-        block(p, 'b1', [[12, 12], [200, 10], [200, 150], [40, 150]], { surface: 'paving' });
-        block(p, 'b2', [[-200, 12], [-14, 12], [-14, 150], [-200, 150]], { surface: 'grass' });
+        return p;
+      },
+    },
+    showcase: {
+      name: 'Showcase city', blurb: 'Everything in one map: bus-lane high street, boulevard with cycle tracks, one-way pair, parking, a park, level crossings and a rail overbridge, a metro line, a diamond interchange with billboards, speed tables, potholes and street works.',
+      make() {
+        const p = P('Showcase city');
+        p.layers.traffic.count = 25;
+        // --- downtown grid: columns (N-S) x = -240 / 0 / 240, rows (E-W) z = -200 / 0 / 200, one-way pair row at z = 360
+        const xs = [-240, 0, 240], zs = [-200, 0, 200];
+        const colProf = ['avenue', 'collector', 'residential'], rowProf = ['highstreet', 'boulevard', 'cyclestreet'];
+        const colBollard = ['striped', 'concrete', 'wood'], rowBollard = ['steel', 'sphere', 'cast'];
+        const names = { '00': 'Station Square', '10': 'Market Cross', '20': 'Mill Corner', '01': 'Grand Circus', '11': 'Civic Centre', '21': 'Park Gate', '02': 'Canal Corner', '12': 'Old Town', '22': 'East Gate' };
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) N(p, `n${i}${j}`, xs[i], 0, zs[j], { name: names[`${i}${j}`], control: j === 1 || i === 0 ? 'signals' : 'auto' });
+        for (let i = 0; i < 3; i++) { N(p, `n${i}N`, xs[i], 0, -360); N(p, `n${i}S`, xs[i], 0, 360); }
+        for (let j = 0; j < 3; j++) { N(p, `nW${j}`, -480, 0, zs[j]); N(p, `nE${j}`, j === 1 ? 700 : 640, 0, zs[j]); }
+        // columns
+        for (let i = 0; i < 3; i++) {
+          const pr = colProf[i], props = { bollards: colBollard[i] };
+          R(p, `c${i}_0`, `n${i}N`, `n${i}0`, pr, [], { props: { ...props } }); R(p, `c${i}_1`, `n${i}0`, `n${i}1`, pr, [], { props: { ...props } }); R(p, `c${i}_2`, `n${i}1`, `n${i}2`, pr, [], { props: { ...props } }); R(p, `c${i}_3`, `n${i}2`, `n${i}S`, pr, [], { props: { ...props } });
+        }
+        p.roads.c0_0.name = 'Station Avenue'; p.roads.c1_1.name = 'Works Street'; p.roads.c1_2.name = 'Old Town Street'; p.roads.c2_2.name = 'Mews Lane';
+        p.roads.c1_1.features = { construction: [{ s0: 55, s1: 130, side: 1, width: 3.4 }], potholes: [{ s: 30, t: 1.5, r: 0.6, depth: 0.06 }] };
+        p.roads.c1_2.features = { speedBumps: [{ s: 60 }, { s: 130 }], potholes: [{ s: 95, t: -1.2, r: 0.8, depth: 0.07 }, { s: 150, t: 2.0, r: 0.5, depth: 0.05 }] };
+        // rows
+        for (let j = 0; j < 3; j++) {
+          const pr = rowProf[j], props = { bollards: rowBollard[j] };
+          R(p, `r${j}_0`, `nW${j}`, `n0${j}`, pr, [], { props: { ...props } }); R(p, `r${j}_1`, `n0${j}`, `n1${j}`, pr, [], { props: { ...props } }); R(p, `r${j}_2`, `n1${j}`, `n2${j}`, pr, [], { props: { ...props } });
+          const pts = j === 1 ? [[380, 0, 0], [450, 7.2, 0], [550, 7.2, 0], [620, 0, 0]] : [];
+          R(p, `r${j}_3`, `n2${j}`, `nE${j}`, pr, pts, { props: { ...props }, name: j === 1 ? 'Boulevard (rail overbridge)' : undefined });
+        }
+        p.roads.r0_1.name = 'High Street (bus lanes)'; p.roads.r1_1.name = 'Grand Boulevard'; p.roads.r2_1.name = 'Canal Street (cycle lanes)';
+        p.roads.r0_3.name = 'High Street (level crossing)'; p.roads.r2_3.name = 'Canal Street (level crossing)';
+        // one-way pair: eastbound at z = 360 (south ends), westbound at z = 440
+        N(p, 'oW', -480, 0, 360); N(p, 'oE', 640, 0, 360);
+        R(p, 'o_0', 'oW', 'n0S', 'oneway'); R(p, 'o_1', 'n0S', 'n1S', 'oneway'); R(p, 'o_2', 'n1S', 'n2S', 'oneway'); R(p, 'o_3', 'n2S', 'oE', 'oneway', [], { name: 'One-way east (level crossing)' });
+        N(p, 'wW', -480, 0, 440); N(p, 'wE', 640, 0, 440); N(p, 'w0', -240, 0, 440); N(p, 'w1', 0, 0, 440); N(p, 'w2', 240, 0, 440);
+        R(p, 'w_0', 'wE', 'w2', 'oneway', [], { name: 'One-way west (level crossing)' }); R(p, 'w_1', 'w2', 'w1', 'oneway'); R(p, 'w_2', 'w1', 'w0', 'oneway'); R(p, 'w_3', 'w0', 'wW', 'oneway');
+        R(p, 'l0', 'n0S', 'w0', 'residential'); R(p, 'l1', 'n1S', 'w1', 'residential'); R(p, 'l2', 'n2S', 'w2', 'residential');
+        // --- diamond interchange on the elevated motorway north of town (centre x = -240, z = -600)
+        const cx = -240, cz = -600, H = 7.0;
+        for (const [tag, dz, dir] of [['EB', 9, 1], ['WB', -9, -1]]) {
+          const mx = dir > 0 ? [-900, -330, 330, 1100] : [1100, 330, -330, -900];
+          mx.forEach((x, i) => N(p, `${tag}${i}`, cx + x, i === 0 || i === 3 ? 0 : H, cz + dz, { name: `${tag} ${i}` }));
+          const pts = (i) => (i === 0 ? [[cx + dir * -520, 0, cz + dz], [cx + dir * -420, H, cz + dz]] : i === 2 ? [[cx + dir * 420, H, cz + dz], [cx + dir * 520, 0, cz + dz]] : []);
+          for (let i = 0; i < 3; i++) R(p, `${tag}r${i}`, `${tag}${i}`, `${tag}${i + 1}`, 'carriageway', pts(i), { name: `Motorway ${tag} ${i + 1}` });
+        }
+        N(p, 'aN', cx, 0, cz - 420); N(p, 'tN', cx, 0, cz - 95, { name: 'North terminal', control: 'signals' }); N(p, 'tS', cx, 0, cz + 95, { name: 'South terminal', control: 'signals' });
+        R(p, 'av0', 'aN', 'tN', 'avenue'); R(p, 'av1', 'tN', 'tS', 'avenue', [], { name: 'Avenue (under motorway)' }); R(p, 'av2', 'tS', 'n0N', 'avenue', [], { name: 'Station Avenue (N)' });
+        R(p, 'rampEBoff', 'EB1', 'tS', 'ramp', [[cx - 250, 5.5, cz + 22], [cx - 120, 2, cz + 60], [cx - 40, 0, cz + 90]], { name: 'EB off-ramp' });
+        R(p, 'rampEBon', 'tS', 'EB2', 'ramp', [[cx + 40, 0, cz + 90], [cx + 120, 2, cz + 60], [cx + 250, 5.5, cz + 22]], { name: 'EB on-ramp' });
+        R(p, 'rampWBoff', 'WB1', 'tN', 'ramp', [[cx + 250, 5.5, cz - 22], [cx + 120, 2, cz - 60], [cx + 40, 0, cz - 90]], { name: 'WB off-ramp' });
+        R(p, 'rampWBon', 'tN', 'WB2', 'ramp', [[cx - 40, 0, cz - 90], [cx - 120, 2, cz - 60], [cx - 250, 5.5, cz - 22]], { name: 'WB on-ramp' });
+        p.roads.EBr1.props.billboards = [{ s: 120, side: 1 }, { s: 480, side: 1 }];
+        p.roads.WBr1.props.billboards = [{ s: 200, side: 1 }];
+        p.roads.EBr2.features = { construction: [{ s0: 300, s1: 420, side: 1, width: 3.6 }] };
+        // --- railways: main line at grade east of town (level crossings + boulevard overbridge), metro under the town
+        p.rails.main = { id: 'main', name: 'Main line', kind: 'rail', electrified: true, trains: 1, cars: 6, pts: [[500, 0, -440], [500, 0, 760]] };
+        p.rails.metro = { id: 'metro', name: 'Metro line', kind: 'subway', trains: 2, cars: 4, pts: [[-520, -13, 100], [760, -13, 100]] };
+        // --- blocks: generated from the network; the two central faces become a park and a paved plaza
+        p.settings.autoBlocks = { enabled: true, surface: 'mixed', depth: 110 };
+        p.blockOverrides = { 'auto:n10+n11+n20+n21:4': { surface: 'grass', name: 'Central Park' }, 'auto:n00+n01+n10+n11:4': { surface: 'paving', name: 'Civic Plaza' } };
         return p;
       },
     },
@@ -4783,7 +5094,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         h('ul', {}, h('li', {}, h('b', {}, 'Navigate: '), 'right-drag or Alt+drag orbits, middle-drag / Shift+drag pans, wheel zooms, ', h('kbd', {}, 'F'), ' frames the selection, ', h('kbd', {}, 'P'), ' toggles plan view.'),
           h('li', {}, h('b', {}, 'Road tool '), h('kbd', {}, 'R'), ': click to place points (click an existing node or road to connect / split). Double-click or ', h('kbd', {}, 'Enter'), ' finishes with a free end, ', h('kbd', {}, 'Esc'), ' cancels. Crossing roads at grade are split and joined automatically.'),
           h('li', {}, h('b', {}, 'Select '), h('kbd', {}, 'V'), ': click a junction to move it (and every connected road) with the gizmo; click a road to edit its control points, profile, structure, damage and furniture.'),
-          h('li', {}, h('b', {}, 'Rail '), h('kbd', {}, 'T'), ' and ', h('b', {}, 'Block '), h('kbd', {}, 'B'), ' tools draw railways (level crossings, bridges and subway tunnels are derived from height) and city block footprints.'),
+          h('li', {}, h('b', {}, 'Rail '), h('kbd', {}, 'T'), ' and ', h('b', {}, 'Block '), h('kbd', {}, 'B'), ' tools draw railways (level crossings, bridges and subway tunnels are derived from height) and extra city block footprints — blocks are otherwise generated from the network and follow your junctions live.'),
           h('li', {}, h('b', {}, 'Elevation: '), 'drag the green gizmo axis or type Y in the inspector. Heights above 4.5 m become viaducts; below −0.6 m become retained cuttings or tunnels; crossing roads with a height difference pass over / under each other.'),
           h('li', {}, h('kbd', {}, 'Delete'), ' removes the selection, ', h('kbd', {}, 'Ctrl+Z'), ' / ', h('kbd', {}, 'Ctrl+Shift+Z'), ' undo / redo, ', h('kbd', {}, 'X'), ' X-ray, ', h('kbd', {}, 'W'), ' topology (quad wire) view.'))));
       document.body.append(bg);
@@ -4820,8 +5131,8 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       group('roads', 'Roads', roads.map((r) => { const Rd = net && net.roads.get(r.id); return row('road', r.id, I.road, 'var(--accent-c)', r.name || r.id, Rd ? `${Rd.length.toFixed(0)} m` : ''); }));
       const rails = Object.values(P.rails || {}).filter((r) => match(r.name));
       if (rails.length || !q) group('rails', 'Railways', rails.map((r) => row('rail', r.id, I.train, 'var(--accent-e)', r.name || r.id, r.kind)));
-      const blocks = Object.values(P.blocks || {}).filter((b) => match(b.name));
-      if (blocks.length || !q) group('blocks', 'City blocks', blocks.map((b) => row('block', b.id, I.block, 'var(--accent-d)', b.name || b.id, b.surface)));
+      const blocks = [...Object.values(P.blocks || {}), ...Object.values(this.scene.autoBlocks || {})].filter((b) => match(b.name) || match(b.surface));
+      if (blocks.length || !q) group('blocks', 'City blocks', blocks.map((b) => row('block', b.id, I.block, 'var(--accent-d)', b.name || b.id, (b.auto ? 'auto · ' : '') + b.surface)));
       const diags = this.scene.diagnostics || [];
       if (diags.length) group('diagnostics', 'Diagnostics', diags.map((d) => h('div', { class: 'diag ' + (d.level === 'error' ? 'err' : 'warn'), onclick: () => { if (d.owner) this.select(P.roads[d.owner] ? { type: 'road', id: d.owner } : { type: 'node', id: d.owner }); } }, d.message)));
       $('#outliner-count').textContent = `${Object.keys(P.roads).length} roads · ${Object.keys(P.nodes).length} nodes`;
@@ -4929,12 +5240,19 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         card.append(this.sliderField('Crossfall', S.crossfall * 100, 0, 4, 0.25, (v, d) => { S.crossfall = v / 100; if (d) this.commit('Crossfall'); }, '%'));
         card.append(h('div', { class: 'section-label' }, 'Intersections'), h('div', { class: 'hint' }, 'Junctions are solved from the kerb lines of every approach: facing edges are intersected, tangent-continuous fillets are fitted and each approach is trimmed back — acute merges receive long runouts instead of overlapping geometry. The surface is one welded all-quad patch.'),
           h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.plus + 'Auto-join crossing roads', onclick: () => this.commit('Joined crossing roads', { intersect: true }) })));
+        const AB = (P.settings.autoBlocks = P.settings.autoBlocks || { enabled: Object.keys(P.blocks || {}).length === 0, surface: 'mixed', depth: 120 });
+        card.append(h('div', { class: 'section-label' }, 'City blocks'), this.toggleField('Generate blocks from the network', AB.enabled !== false, (v) => { AB.enabled = v; this.commit(v ? 'Auto blocks on' : 'Auto blocks off'); }));
+        card.append(this.pillsField('Block surface', [['mixed', 'Mixed'], ['paving', 'Paved'], ['grass', 'Parks'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], AB.surface || 'mixed', (v) => { AB.surface = v; this.commit('Block surface'); }));
+        card.append(this.sliderField('Roadside block depth', AB.depth ?? 120, 30, 300, 5, (v, d) => { AB.depth = v; if (d) this.commit('Block depth'); }, ' m'));
+        const hiddenN = Object.values(P.blockOverrides || {}).filter((o) => o.hidden).length;
+        if (hiddenN) card.append(h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.plus + `Restore ${hiddenN} hidden block${hiddenN === 1 ? '' : 's'}`, onclick: () => { for (const o of Object.values(P.blockOverrides)) delete o.hidden; this.commit('Restored blocks'); } })));
+        card.append(h('div', { class: 'hint' }, 'Closed faces of the network become blocks bounded by the footway edges; corners on the outside of the network get roadside blocks of the depth above. Blocks are rebuilt live while you drag junctions. Draw extra blocks anywhere with the Block tool.'));
         card.append(h('div', { class: 'section-label' }, 'Profiles'), h('div', { class: 'hint' }, Object.values(RF.PROFILES).map((p) => p.name).join(' · ')));
       } else if (id === 'surface') {
         card.append(h('div', { class: 'section-label' }, 'Asphalt'), this.colorField('Tone', S.asphaltColor || '#161617', (v, d) => { S.asphaltColor = v; mat('Asphalt tone')(v, d); }));
         card.append(this.sliderField('Wear & polish', S.wear, 0, 1, 0.01, (v, d) => { S.wear = v; mat('Wear')(v, d); }), this.sliderField('Cracks', S.cracks, 0, 1, 0.01, (v, d) => { S.cracks = v; mat('Cracks')(v, d); }), this.sliderField('Patches & repairs', S.patches, 0, 1, 0.01, (v, d) => { S.patches = v; mat('Patches')(v, d); }), this.sliderField('Wetness', S.wetness, 0, 1, 0.01, (v, d) => { S.wetness = v; mat('Wetness')(v, d); }), this.sliderField('Aggregate scale', S.aggregateScale, 0.5, 2, 0.05, (v, d) => { S.aggregateScale = v; mat('Aggregate')(v, d); }));
         card.append(this.numberField('Noise seed', S.seed || 1, 1, (v) => { S.seed = v; this.commit('Seed', { materialsOnly: true }); }));
-        card.append(h('div', { class: 'section-label' }, 'Markings'), this.sliderField('Paint wear', S.paintWear, 0, 1, 0.01, (v, d) => { S.paintWear = v; mat('Paint wear')(v, d); }));
+        card.append(h('div', { class: 'section-label' }, 'Markings'), this.sliderField('Paint wear', S.paintWear, 0, 1, 0.01, (v, d) => { S.paintWear = v; mat('Paint wear')(v, d); }), this.toggleField('Coloured bus / cycle lanes', S.colouredLanes !== false, (v) => { S.colouredLanes = v; this.commit('Coloured lanes'); }));
         card.append(h('div', { class: 'section-label' }, 'Kerbs & footways'), this.pillsField('Kerb', [['concrete', 'Precast concrete'], ['granite', 'Granite setts']], S.curbMaterial, (v) => { S.curbMaterial = v; this.commit('Kerb material'); }));
         card.append(this.selectField('Paving pattern', RF.materials.PAVING_PATTERNS.map((p) => [String(p.id), p.name]), String(S.pavingPattern), (v) => { S.pavingPattern = parseInt(v); this.commit('Paving pattern', { materialsOnly: true }); }), this.colorField('Paving tone', S.pavingColor || '#9c9384', (v, d) => { S.pavingColor = v; mat('Paving tone')(v, d); }), this.sliderField('Paving scale', S.pavingScale, 0.5, 2.5, 0.05, (v, d) => { S.pavingScale = v; mat('Paving scale')(v, d); }));
         card.append(this.pillsField('Raised median', [['paving', 'Paved'], ['grass', 'Planted']], S.medianSurface, (v) => { S.medianSurface = v; this.commit('Median surface'); }));
@@ -4984,6 +5302,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         const ov = (key, label, min, max, step, unit = '') => this.sliderField(label, prof[key], min, max, step, (v, d) => { r.overrides[key] = v; if (d) this.commit(label); }, unit);
         card.append(ov('laneWidth', 'Lane width', 2.5, 4.5, 0.05, ' m'), this.numberField('Lanes forward', prof.lanesF, 1, (v) => { r.overrides.lanesF = Math.max(0, v | 0); this.commit('Lanes'); }), this.numberField('Lanes backward', prof.lanesB, 1, (v) => { r.overrides.lanesB = Math.max(0, v | 0); this.commit('Lanes'); }));
         card.append(ov('sidewalkL', 'Footway left', 0, 8, 0.1, ' m'), ov('sidewalkR', 'Footway right', 0, 8, 0.1, ' m'), ov('parkingL', 'Parking bay left', 0, 2.5, 0.1, ' m'), ov('parkingR', 'Parking bay right', 0, 2.5, 0.1, ' m'), ov('median', 'Median width', 0, 8, 0.1, ' m'));
+        card.append(this.sliderField('Bus lane (each direction)', prof.bus || 0, 0, 4, 0.1, (v, d) => { r.overrides.bus = v < 0.5 ? 0 : v; if (d) this.commit('Bus lane'); }, ' m'), this.sliderField('Cycle lane (each direction)', prof.cycle || 0, 0, 3, 0.1, (v, d) => { r.overrides.cycle = v < 0.5 ? 0 : v; if (d) this.commit('Cycle lane'); }, ' m'));
         card.append(this.pillsField('Median kind', [['none', 'None'], ['painted', 'Painted'], ['raised', 'Raised kerb'], ['barrier', 'Barrier']], prof.medianKind, (v) => { r.overrides.medianKind = v; if (v !== 'none' && !(prof.median > 0)) r.overrides.median = v === 'barrier' ? 1.2 : 2.0; this.commit('Median'); }));
         card.append(this.pillsField('Surface', [['asphalt', 'Asphalt'], ['concrete', 'Concrete (jointed)']], r.surface || 'asphalt', (v) => { r.surface = v; this.commit('Surface'); }));
         card.append(h('div', { class: 'section-label' }, 'Structure'), this.pillsField('Vertical structure', [['auto', 'Auto (from height)'], ['ground', 'At grade'], ['embankment', 'Embankment'], ['bridge', 'Bridge / viaduct'], ['retained', 'Retained cutting'], ['cut', 'Open cutting'], ['tunnel', 'Tunnel']], r.structure || 'auto', (v) => { r.structure = v; this.commit('Structure'); }));
@@ -5035,8 +5354,17 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
         return card;
       }
       if (sel.type === 'block') {
-        const b = P.blocks[sel.id]; if (!b) return null;
-        const card = h('div', { class: 'card' }, h('div', { class: 'obj-icon', style: 'color:var(--accent-d)', html: I.block }), h('div', { class: 'eyebrow' }, 'City block'), h('div', { class: 'h1' }, b.name || b.id));
+        const b = this.scene.blockById(sel.id); if (!b) return null;
+        const card = h('div', { class: 'card' }, h('div', { class: 'obj-icon', style: 'color:var(--accent-d)', html: I.block }), h('div', { class: 'eyebrow' }, b.auto ? 'City block · generated' : 'City block'), h('div', { class: 'h1' }, b.name || b.id));
+        if (b.auto) {
+          const ov = () => { P.blockOverrides = P.blockOverrides || {}; return (P.blockOverrides[b.id] = P.blockOverrides[b.id] || {}); };
+          card.append(h('div', { class: 'hint' }, `Traced from the footway edges of ${b.roads.length} road${b.roads.length === 1 ? '' : 's'} — it follows the network live when junctions or roads move.`));
+          card.append(this.textField('Name', b.name, (v) => { ov().name = v; b.name = v; this.commit('Rename', { remesh: false }); }));
+          card.append(this.pillsField('Interior', [['paving', 'Paving'], ['grass', 'Grass / park'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], b.surface, (v) => { ov().surface = v; this.commit('Block surface'); }));
+          card.append(h('div', { class: 'muted', style: 'margin-top:8px' }, `${b.poly.length} corners · ${b.area.toFixed(0)} m²`));
+          card.append(h('div', { class: 'btnrow' }, h('button', { class: 'btn', html: I.focus + 'Frame', onclick: () => this.frameSelection() }), h('button', { class: 'btn danger', html: I.trash + 'Hide block', onclick: () => this.deleteSelection() })));
+          return card;
+        }
         card.append(this.textField('Name', b.name, (v) => { b.name = v; this.commit('Rename', { remesh: false }); }));
         card.append(this.pillsField('Interior', [['paving', 'Paving'], ['grass', 'Grass / park'], ['gravel', 'Gravel'], ['concrete', 'Concrete']], b.surface, (v) => { b.surface = v; this.commit('Block surface'); }), this.sliderField('Footway width', b.sidewalk ?? 3, 1, 8, 0.5, (v, d) => { b.sidewalk = v; if (d) this.commit('Footway'); }, ' m'));
         card.append(h('div', { class: 'muted', style: 'margin-top:8px' }, `${b.poly.length} corners · ${Math.abs(RF.spline.polygonArea(b.poly.map((p) => [p[0], 0, p[1]]))).toFixed(0)} m²`));
@@ -5056,7 +5384,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       if (sel.type === 'node') { const n = this.project.nodes[sel.id]; if (n) this.scene.setGizmo(n.p, { scale }); }
       else if (sel.type === 'road') { this.cpHandles = this.scene.setControlPointHandles([sel.id], scale); if (sel.cp != null && this.project.roads[sel.id]?.pts?.[sel.cp]) this.scene.setGizmo(this.project.roads[sel.id].pts[sel.cp], { scale }); }
       else if (sel.type === 'rail') { const r = this.project.rails[sel.id]; if (r) { this.cpHandles = r.pts.map((p, i) => ({ road: sel.id, index: i, p, r: 1.2 * scale, rail: true })); const b = new RF.MeshBuilder('gizmo'); for (const p of r.pts) RF.prim.lathe(b, [[0.001, -0.7 * scale], [0.7 * scale, 0], [0.001, 0.7 * scale]], 10, { transform: RF.M4.translation(p[0], p[1] + 0.3, p[2]) }); this.renderer.setItem({ id: 'cph|rail', mesh: b.build(), material: { type: 'flat', color: [0.45, 0.75, 0.85], pipeline: 'overlay' }, pipeline: 'overlay' }); if (sel.cp != null) this.scene.setGizmo(r.pts[sel.cp], { scale }); } }
-      else if (sel.type === 'block') { const b = this.project.blocks[sel.id]; if (b) { const mb = new RF.MeshBuilder('gizmo'); const fr = [...b.poly, b.poly[0]].map((p) => ({ p: [p[0], (b.y ?? 0) + 0.3, p[1]], d: [1, 0, 0], n: [0, 0, 1], up: [0, 1, 0] })); for (let i = 0; i < fr.length - 1; i++) { const d = V.normXZ(V.sub(fr[i + 1].p, fr[i].p)); fr[i].d = d; fr[i].n = V.perp(d); } fr[fr.length - 1].d = fr[fr.length - 2].d; fr[fr.length - 1].n = fr[fr.length - 2].n; RF.prim.sweep(mb, fr, [[-0.15 * scale, 0], [0.15 * scale, 0]], {}); this.renderer.setItem({ id: 'cph|block', mesh: mb.build(), material: { type: 'flat', color: [0.84, 0.63, 0.47], pipeline: 'overlay' }, pipeline: 'overlay' }); } }
+      else if (sel.type === 'block') { const b = this.scene.blockById(sel.id); if (b) { const mb = new RF.MeshBuilder('gizmo'); const fr = [...b.poly, b.poly[0]].map((p) => ({ p: [p[0], (b.y ?? 0) + 0.3, p[1]], d: [1, 0, 0], n: [0, 0, 1], up: [0, 1, 0] })); for (let i = 0; i < fr.length - 1; i++) { const d = V.normXZ(V.sub(fr[i + 1].p, fr[i].p)); fr[i].d = d; fr[i].n = V.perp(d); } fr[fr.length - 1].d = fr[fr.length - 2].d; fr[fr.length - 1].n = fr[fr.length - 2].n; RF.prim.sweep(mb, fr, [[-0.15 * scale, 0], [0.15 * scale, 0]], {}); this.renderer.setItem({ id: 'cph|block', mesh: mb.build(), material: { type: 'flat', color: [0.84, 0.63, 0.47], pipeline: 'overlay' }, pipeline: 'overlay' }); } }
     },
     handleScale() { return RF.clamp(this.cam.distance / 60, 0.3, 12); },
     frameSelection() {
@@ -5064,7 +5392,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       if (sel.type === 'node') { const n = P.nodes[sel.id]; this.cam.focus(n.p, Math.max(40, this.cam.distance * 0.6)); }
       else if (sel.type === 'road') { const Rd = this.scene.net.roads.get(sel.id); if (Rd) { const m = Rd.samples[Math.floor(Rd.samples.length / 2)].p; this.cam.focus(m, RF.clamp(Rd.length * 0.9, 40, 600)); } }
       else if (sel.type === 'rail') { const r = P.rails[sel.id]; const m = r.pts[Math.floor(r.pts.length / 2)]; this.cam.focus([m[0], 0, m[2]], 200); }
-      else if (sel.type === 'block') { const b = P.blocks[sel.id]; const c = b.poly.reduce((a, p) => [a[0] + p[0] / b.poly.length, 0, a[2] + p[1] / b.poly.length], [0, 0, 0]); this.cam.focus(c, 160); }
+      else if (sel.type === 'block') { const b = this.scene.blockById(sel.id); if (!b) return; const c = b.poly.reduce((a, p) => [a[0] + p[0] / b.poly.length, 0, a[2] + p[1] / b.poly.length], [0, 0, 0]); this.cam.focus(c, 160); }
       this.needsRender = true; this.updateHandles();
     },
     frameAll() {
@@ -5077,7 +5405,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
       if (sel.type === 'node') { for (const r of Object.values(P.roads)) if (r.a === sel.id || r.b === sel.id) delete P.roads[r.id]; delete P.nodes[sel.id]; this.pruneNodes(); this.selection = null; this.commit('Deleted junction'); }
       else if (sel.type === 'road') { if (sel.cp != null && P.roads[sel.id]?.pts) { P.roads[sel.id].pts.splice(sel.cp, 1); sel.cp = null; this.commit('Removed control point'); return; } delete P.roads[sel.id]; this.pruneNodes(); this.selection = null; this.commit('Deleted road'); }
       else if (sel.type === 'rail') { delete P.rails[sel.id]; this.selection = null; this.commit('Deleted railway'); }
-      else if (sel.type === 'block') { delete P.blocks[sel.id]; this.selection = null; this.commit('Deleted block'); }
+      else if (sel.type === 'block') { if (P.blocks[sel.id]) delete P.blocks[sel.id]; else { P.blockOverrides = P.blockOverrides || {}; P.blockOverrides[sel.id] = { ...(P.blockOverrides[sel.id] || {}), hidden: true }; } this.selection = null; this.commit(P.blocks[sel.id] ? 'Deleted block' : 'Hid block'); }
       this.scene.setSelection([]);
     },
     pruneNodes() { const P = this.project; const used = new Set(); for (const r of Object.values(P.roads)) { used.add(r.a); used.add(r.b); } for (const id of Object.keys(P.nodes)) if (!used.has(id)) delete P.nodes[id]; },
@@ -5261,7 +5589,7 @@ struct SkyOut { @builtin(position) pos : vec4<f32>, @location(0) ndc : vec2<f32>
     },
     frame(t) {
       // ?headless=N renders N frames then exposes a PNG for automated screenshots
-      if (this._headless == null) { const q = new URLSearchParams(location.search); this._headless = q.has('headless') ? parseInt(q.get('headless')) || 3 : -1; if (q.has('template') && RF.templates.list[q.get('template')]) { this.loadProject(RF.templates.list[q.get('template')].make()); this.frameAll(); } if (q.has('cam')) { const [d, yaw, pitch, tx, ty, tz] = q.get('cam').split(',').map(parseFloat); this.cam.distance = d; this.cam.yaw = yaw; this.cam.pitch = pitch; this.cam.target = [tx, ty, tz]; this.cam.update(); } if (q.has('plan')) this.togglePlan(); if (q.has('wire')) { this.view.wire = true; this.updateViewBtns(); } if (q.has('select')) { const [type, id] = q.get('select').split(':'); this.select({ type, id }); } }
+      if (this._headless == null) { const q = new URLSearchParams(location.search); this._headless = q.has('headless') ? parseInt(q.get('headless')) || 3 : -1; if (q.has('template') && RF.templates.list[q.get('template')]) { this.loadProject(RF.templates.list[q.get('template')].make()); this.frameAll(); } if (q.has('cam')) { const [d, yaw, pitch, tx, ty, tz] = q.get('cam').split(',').map(parseFloat); this.cam.distance = d; this.cam.yaw = yaw; this.cam.pitch = pitch; this.cam.target = [tx, ty, tz]; this.cam.update(); } if (q.has('move')) { for (const m of q.getAll('move')) { const [type, id, xyz] = m.split(':'); const v = xyz.split(',').map(parseFloat); if (type === 'node' && this.project.nodes[id]) { this.project.nodes[id].p = v; this.commit('Moved (url)'); } } } if (q.has('plan')) this.togglePlan(); if (q.has('wire')) { this.view.wire = true; this.updateViewBtns(); } if (q.has('select')) { const [type, id] = q.get('select').split(':'); this.select({ type, id }); } }
       if (this._headless > 0 && this._frames >= this._headless) { if (!window.__done) { window.__png = this.canvas.toDataURL('image/png'); window.__done = true; } return; }
       this._frames = (this._frames || 0) + 1;
       requestAnimationFrame((tt) => this.frame(tt));

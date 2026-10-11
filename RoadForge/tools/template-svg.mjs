@@ -1,7 +1,7 @@
 // Plan-view SVG of a template's centrelines + nodes for layout checking. Usage: node tools/template-svg.mjs <template> [out.svg] [--mesh]
 import { readFileSync, writeFileSync } from 'node:fs'; import vm from 'node:vm';
 globalThis.RF = {}; globalThis.window = globalThis;
-for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'roadmesh', 'structures', 'materials', 'props', 'rail', 'traffic', 'scene', 'templates']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f });
+for (const f of ['math', 'spline', 'mesh', 'profiles', 'network', 'blocks', 'roadmesh', 'structures', 'materials', 'props', 'rail', 'traffic', 'scene', 'templates']) vm.runInThisContext(readFileSync(new URL(`../src/${f}.js`, import.meta.url), 'utf8'), { filename: f });
 const RF = globalThis.RF;
 const name = process.argv[2] || 'cloverleaf', outFile = process.argv[3] || `/tmp/tpl-${name}.svg`;
 const project = RF.templates.list[name].make(); RF.scene.autoIntersect(project);

@@ -34,7 +34,7 @@
   function paintMat(color) { return color === 'yellow' ? 'paint_yellow' : 'paint_white'; }
 
   /** Paint a longitudinal line at lateral t (centre of the line), width w, between stations s0..s1, optional dash [on, off]. */
-  function paintLine(b, R, t, w, s0, s1, dash, layers, phase = 0) {
+  function paintLine(b, R, t, w, s0, s1, dash, layers, phase = 0, lift = PAINT_LIFT) {
     s0 = Math.max(s0, R.samples[0].s); s1 = Math.min(s1, R.samples[R.samples.length - 1].s);
     if (s1 - s0 < 0.05) return;
     const pieces = [];
@@ -45,8 +45,8 @@
       const rowL = [], rowR = [];
       for (let k = 0; k <= steps; k++) {
         const s = a + ((e - a) * k) / steps;
-        rowL.push(b.vertex(surfPoint(R, s, t - w / 2, layers, PAINT_LIFT), [s, 0], [0, 0, 0, 0]));
-        rowR.push(b.vertex(surfPoint(R, s, t + w / 2, layers, PAINT_LIFT), [s, 1], [0, 0, 0, 0]));
+        rowL.push(b.vertex(surfPoint(R, s, t - w / 2, layers, lift), [s, 0], [0, 0, 0, 0]));
+        rowR.push(b.vertex(surfPoint(R, s, t + w / 2, layers, lift), [s, 1], [0, 0, 0, 0]));
       }
       b.strip(rowL, rowR, true);
     }
@@ -97,6 +97,42 @@
       for (let k = 0; k <= steps; k++) { const f = k / steps; const ss = s + f * span * 0.9, tt = t0 + f * span; if (ss > s1) break; rowA.push(b.vertex(surfPoint(R, ss, tt, layers, PAINT_LIFT), [ss, tt], [0, 0, 0, 0])); rowB.push(b.vertex(surfPoint(R, ss + w * 1.4, tt, layers, PAINT_LIFT), [ss, tt], [0, 0, 0, 0])); }
       if (rowA.length > 1) b.strip(rowA, rowB, false);
     }
+  }
+
+  /** Local glyph painter: (u across, v along travel) → surface point; strokes & rings as quads. */
+  function glyphPainter(b, R, s, t, dir, layers) {
+    const P = (u, v) => surfPoint(R, s + v * dir, t + u * dir, layers, PAINT_LIFT);
+    const quadP = (p0, p1, p2, p3) => { const i = [p0, p1, p2, p3].map((p) => b.vertex(p, [p[0], p[2]], [0, 0, 0, 0])); if (dir > 0) b.quad(i[0], i[1], i[2], i[3]); else b.quad(i[3], i[2], i[1], i[0]); };
+    const rect = (u0, v0, u1, v1) => quadP(P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1));
+    const stroke = (u0, v0, u1, v1, w) => { const du = u1 - u0, dv = v1 - v0; const L = Math.hypot(du, dv) || 1; const nu = (-dv / L) * w / 2, nv = (du / L) * w / 2; quadP(P(u0 - nu, v0 - nv), P(u0 + nu, v0 + nv), P(u1 + nu, v1 + nv), P(u1 - nu, v1 - nv)); };
+    const ring = (uc, vc, ru, rv, w, n = 12) => { const ri = [], ro = []; for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI * 2, c = Math.cos(a), sn = Math.sin(a); ri.push(b.vertex(P(uc + c * (ru - w / 2), vc + sn * (rv - w / 2)), [0, 0], [0, 0, 0, 0])); ro.push(b.vertex(P(uc + c * ru, vc + sn * rv), [0, 1], [0, 0, 0, 0])); } b.strip(ri, ro, dir < 0); };
+    return { rect, stroke, ring };
+  }
+  /** Elongated road lettering (2.0 m letters, read by approaching traffic), first letter nearest the driver. */
+  function paintText(b, R, s, t, dir, text, layers) {
+    const H = 2.0, W = 0.9, w = 0.16, gap = 0.5;
+    const g = glyphPainter(b, R, s, t, dir, layers);
+    const letters = {
+      B: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2, v0 + H - w, W / 2 - 0.1, v0 + H); g.rect(-W / 2, v0 + H / 2 - w / 2, W / 2 - 0.1, v0 + H / 2 + w / 2); g.rect(-W / 2, v0, W / 2, v0 + w); g.rect(W / 2 - 0.1 - w, v0 + H / 2, W / 2 - 0.1, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H / 2); },
+      U: (v0) => { g.rect(-W / 2, v0 + 0.15, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0 + 0.15, W / 2, v0 + H); g.rect(-W / 2 + w * 0.5, v0, W / 2 - w * 0.5, v0 + w); g.rect(-W / 2, v0 + 0.05, -W / 2 + w, v0 + 0.15); g.rect(W / 2 - w, v0 + 0.05, W / 2, v0 + 0.15); },
+      S: (v0) => { g.rect(-W / 2, v0 + H - w, W / 2, v0 + H); g.rect(-W / 2, v0 + H / 2, -W / 2 + w, v0 + H - w); g.rect(-W / 2, v0 + H / 2 - w / 2, W / 2, v0 + H / 2 + w / 2); g.rect(W / 2 - w, v0 + w, W / 2, v0 + H / 2 - w / 2); g.rect(-W / 2, v0, W / 2, v0 + w); },
+      T: (v0) => { g.rect(-W / 2, v0 + H - w, W / 2, v0 + H); g.rect(-w / 2, v0, w / 2, v0 + H - w); },
+      O: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H); g.rect(-W / 2 + w, v0 + H - w, W / 2 - w, v0 + H); g.rect(-W / 2 + w, v0, W / 2 - w, v0 + w); },
+      P: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2 + w, v0 + H - w, W / 2, v0 + H); g.rect(-W / 2 + w, v0 + H / 2 - w / 2, W / 2, v0 + H / 2 + w / 2); g.rect(W / 2 - w, v0 + H / 2 + w / 2, W / 2, v0 + H - w); },
+      L: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(-W / 2 + w, v0, W / 2, v0 + w); },
+      W: (v0) => { g.rect(-W / 2, v0, -W / 2 + w, v0 + H); g.rect(W / 2 - w, v0, W / 2, v0 + H); g.rect(-w / 2, v0, w / 2, v0 + H * 0.6); g.rect(-W / 2 + w, v0, W / 2 - w, v0 + w); },
+    };
+    let v = 0;
+    for (const ch of text) { const f = letters[ch]; if (f) f(v); v += H + gap; }
+  }
+  /** Cycle-lane symbol: side-on bicycle, elongated 1.8× along the travel direction, 1.6 m wide. */
+  function paintCycleGlyph(b, R, s, t, dir, layers) {
+    const g = glyphPainter(b, R, s, t, dir, layers);
+    const E = 1.8, w = 0.12; const X = (u) => u, Y = (v) => v * E;
+    g.ring(X(-0.55), Y(0.35), 0.32, 0.32 * E, w, 14); g.ring(X(0.55), Y(0.35), 0.32, 0.32 * E, w, 14);
+    const st = (u0, v0, u1, v1) => g.stroke(X(u0), Y(v0), X(u1), Y(v1), w);
+    st(-0.55, 0.35, -0.2, 0.9); st(-0.2, 0.9, 0.08, 0.35); st(0.08, 0.35, -0.55, 0.35); st(0.08, 0.35, 0.42, 0.95); st(0.42, 0.95, 0.55, 0.35); st(-0.2, 0.9, 0.42, 0.95);
+    st(-0.32, 0.9, -0.08, 0.9); st(0.42, 0.95, 0.6, 1.12);
   }
 
   /* ------------------------------------------------------------------ */
@@ -277,8 +313,22 @@
       }
       if (!shoulderMarks.length) { paintLine(white, R, lay.hwR - std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); paintLine(white, R, -lay.hwL + std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); }
     }
-    // cycle lanes: solid white separator + green? keep white line
-    for (const l of lay.lanes) if (l.kind === 'cycle') paintLine(white, R, l.dir > 0 ? l.t0 : l.t1, std.lineW, lineStart, lineEnd, null, layers);
+    // cycle lanes: green surfacing, solid white separator and a cycle symbol every 30 m
+    for (const l of lay.lanes) if (l.kind === 'cycle') {
+      const inner = l.dir > 0 ? l.t0 : l.t1, tc = (l.t0 + l.t1) / 2;
+      if (layers.colouredLanes !== false) paintLine(get('surface_green'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
+      paintLine(white, R, inner, std.lineW, lineStart, lineEnd, null, layers);
+      const a = lineStart + 6, e = lineEnd - 6; const first = l.dir > 0 ? a : e;
+      for (let k = 0; first + l.dir * (k * 30 + 2.6) > a && first + l.dir * (k * 30 + 2.6) < e; k++) paintCycleGlyph(white, R, first + l.dir * k * 30, tc, l.dir, layers);
+    }
+    // bus lanes: red surfacing, wide solid separator and BUS lettering every 40 m
+    for (const l of lay.lanes) if (l.kind === 'bus') {
+      const inner = l.dir > 0 ? l.t0 : l.t1, tc = (l.t0 + l.t1) / 2;
+      if (layers.colouredLanes !== false) paintLine(get('surface_red'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
+      paintLine(white, R, inner, 0.25, lineStart, lineEnd, null, layers);
+      const a = lineStart + 8, e = lineEnd - 8; const first = l.dir > 0 ? a : e;
+      for (let k = 0; first + l.dir * (k * 40 + 7.5) > a && first + l.dir * (k * 40 + 7.5) < e; k++) paintText(white, R, first + l.dir * k * 40, tc, l.dir, 'BUS', layers);
+    }
     // parking bays: T / L markings every 6 m
     if (layers.parkingBays !== false) for (const l of lay.lanes) if (l.kind === 'parking') {
       const inner = l.dir > 0 ? l.t0 : l.t1; // lane-side edge

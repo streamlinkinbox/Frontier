@@ -173,14 +173,14 @@
       if (i > 0) v += Math.hypot(profile[i][0] - profile[i - 1][0], profile[i][1] - profile[i - 1][1]) / (total || 1);
       rows.push(addRing(profile[i][0], profile[i][1], v * uvScale));
     }
-    // winding: profile from bottom to top, outward normals
-    for (let r = 0; r < rows.length - 1; r++) b.strip(rows[r], rows[r + 1], true);
+    // winding: profile from bottom to top (increasing y, radius on +x) gives outward normals (verified by signed volume)
+    for (let r = 0; r < rows.length - 1; r++) b.strip(rows[r], rows[r + 1], false);
     const cap = (ring, y, up) => {
       const r0 = profile[up ? profile.length - 1 : 0][0];
       const inner = addRing(r0 * 0.3, y, 0);
       const centre = addRing(0, y, 0);
-      if (up) { b.strip(ring, inner, true); b.strip(inner, centre, true); }
-      else { b.strip(ring, inner, false); b.strip(inner, centre, false); }
+      if (up) { b.strip(ring, inner, false); b.strip(inner, centre, false); }
+      else { b.strip(ring, inner, true); b.strip(inner, centre, true); }
     };
     if (capTop) cap(rows[rows.length - 1], profile[profile.length - 1][1], true);
     if (capBottom) cap(rows[0], profile[0][1], false);
@@ -208,7 +208,8 @@
       });
       return;
     }
-    // Bevelled box: 26-patch (faces, edges, corners) all quads.
+    // Bevelled box: 26-patch (faces, edges, corners) all quads. Patches are generated inward-wound; flipped as a whole below.
+    const q0 = b.quads.length;
     const e = Math.min(bevel, hx, hy, hz) ;
     const xs = [-hx, -hx + e, hx - e, hx], ys = [-hy, -hy + e, hy - e, hy], zs = [-hz, -hz + e, hz - e, hz];
     // Build a rounded box by sampling superellipse-ish: use 3x3 grid per face with corner rounding via normalisation blend.
@@ -278,6 +279,7 @@
       b.grid(rows, (sx * sy * sz) < 0);
     };
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) cornerPatch(sx, sy, sz);
+    for (let i = q0; i < b.quads.length; i += 4) { const t = b.quads[i + 1]; b.quads[i + 1] = b.quads[i + 3]; b.quads[i + 3] = t; }
   }
 
   /**
