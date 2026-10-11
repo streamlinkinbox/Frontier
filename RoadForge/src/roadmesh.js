@@ -37,9 +37,15 @@
   function paintLine(b, R, t, w, s0, s1, dash, layers, phase = 0, lift = PAINT_LIFT) {
     s0 = Math.max(s0, R.samples[0].s); s1 = Math.min(s1, R.samples[R.samples.length - 1].s);
     if (s1 - s0 < 0.05) return;
-    const pieces = [];
+    let pieces = [];
     if (!dash) pieces.push([s0, s1]);
     else { const period = dash[0] + dash[1]; let s = s0 - ((s0 + phase) % period); while (s < s1) { const a = Math.max(s, s0), e = Math.min(s + dash[0], s1); if (e - a > 0.05) pieces.push([a, e]); s += period; } }
+    // no paint across level-crossing panels
+    for (const g of R.railCrossings || []) {
+      const g0 = g.s - g.half, g1 = g.s + g.half, next = [];
+      for (const [a, e] of pieces) { if (e <= g0 || a >= g1) next.push([a, e]); else { if (g0 - a > 0.05) next.push([a, g0]); if (e - g1 > 0.05) next.push([g1, e]); } }
+      pieces = next;
+    }
     for (const [a, e] of pieces) {
       const steps = Math.max(1, Math.ceil((e - a) / 1.0));
       const rowL = [], rowR = [];
@@ -313,13 +319,21 @@
       }
       if (!shoulderMarks.length) { paintLine(white, R, lay.hwR - std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); paintLine(white, R, -lay.hwL + std.edgeW, std.edgeW, lineStart, lineEnd, null, layers); }
     }
+    const clearOfCrossing = (sa, sb) => !(R.railCrossings || []).some((g) => Math.max(sa, sb) > g.s - g.half - 1 && Math.min(sa, sb) < g.s + g.half + 1);
+    // level crossings: stop line across each approach, 5.5 m before the barrier line
+    for (const g of R.railCrossings || []) for (const dir of [1, -1]) {
+      const grp = lay.lanes.filter((l) => l.dir === dir && (l.kind === 'drive' || l.kind === 'bus' || l.kind === 'cycle'));
+      if (!grp.length) continue;
+      const sStop = g.s - dir * (g.half + 5.5); if (sStop < lineStart || sStop > lineEnd) continue;
+      paintBar(white, R, sStop - std.stopW / 2, std.stopW, Math.min(...grp.map((l) => l.t0)) + 0.05, Math.max(...grp.map((l) => l.t1)) - 0.05, layers, 1);
+    }
     // cycle lanes: green surfacing, solid white separator and a cycle symbol every 30 m
     for (const l of lay.lanes) if (l.kind === 'cycle') {
       const inner = l.dir > 0 ? l.t0 : l.t1, tc = (l.t0 + l.t1) / 2;
       if (layers.colouredLanes !== false) paintLine(get('surface_green'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
       paintLine(white, R, inner, std.lineW, lineStart, lineEnd, null, layers);
       const a = lineStart + 6, e = lineEnd - 6; const first = l.dir > 0 ? a : e;
-      for (let k = 0; first + l.dir * (k * 30 + 2.6) > a && first + l.dir * (k * 30 + 2.6) < e; k++) paintCycleGlyph(white, R, first + l.dir * k * 30, tc, l.dir, layers);
+      for (let k = 0; first + l.dir * (k * 30 + 2.6) > a && first + l.dir * (k * 30 + 2.6) < e; k++) if (clearOfCrossing(first + l.dir * k * 30, first + l.dir * (k * 30 + 2.6))) paintCycleGlyph(white, R, first + l.dir * k * 30, tc, l.dir, layers);
     }
     // bus lanes: red surfacing, wide solid separator and BUS lettering every 40 m
     for (const l of lay.lanes) if (l.kind === 'bus') {
@@ -327,7 +341,7 @@
       if (layers.colouredLanes !== false) paintLine(get('surface_red'), R, tc, (l.t1 - l.t0) - 0.1, lineStart, lineEnd, null, layers, 0, PAINT_LIFT * 0.5);
       paintLine(white, R, inner, 0.25, lineStart, lineEnd, null, layers);
       const a = lineStart + 8, e = lineEnd - 8; const first = l.dir > 0 ? a : e;
-      for (let k = 0; first + l.dir * (k * 40 + 7.5) > a && first + l.dir * (k * 40 + 7.5) < e; k++) paintText(white, R, first + l.dir * k * 40, tc, l.dir, 'BUS', layers);
+      for (let k = 0; first + l.dir * (k * 40 + 7.5) > a && first + l.dir * (k * 40 + 7.5) < e; k++) if (clearOfCrossing(first + l.dir * k * 40, first + l.dir * (k * 40 + 7.5))) paintText(white, R, first + l.dir * k * 40, tc, l.dir, 'BUS', layers);
     }
     // parking bays: T / L markings every 6 m
     if (layers.parkingBays !== false) for (const l of lay.lanes) if (l.kind === 'parking') {

@@ -179,6 +179,12 @@
       const net = RF.network.solve(P, { layers });
       const railT = new Map(); for (const rail of Object.values(P.rails || {})) { const T = RF.rail.solve(rail); if (T) railT.set(rail.id, T); }
       RF.structures.classify(net, { corridors: [...railT.values()].map((T) => ({ dense: T.dense, cum: T.cum, half: 4.5 })) });
+      // level crossings: tell the roads where the panels are so markings stop short and stop lines are painted
+      for (const T of railT.values()) for (const x of RF.rail.crossings(T, net)) {
+        if (!x.level) continue;
+        const sinA = Math.max(0.35, Math.abs(x.dRail[0] * x.dRoad[2] - x.dRail[2] * x.dRoad[0]));
+        (x.road.railCrossings = x.road.railCrossings || []).push({ s: x.sRoad, half: (RF.rail.GAUGE / 2 + 1.0) / sinA + 0.5 });
+      }
       this.net = net;
       // --- dispose old
       for (const owner of this.meshes.keys()) R.removeByPrefix(owner + '|');
