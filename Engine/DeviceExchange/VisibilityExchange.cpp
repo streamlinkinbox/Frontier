@@ -521,7 +521,7 @@ bool VisibilityExchange::BringPipelines() noexcept
     if (!MakePipelineLayout(Vulkan->HiZLayout, sizeof(HiZPushRecord), CS, Vulkan->HiZPipelineLayout)) return false;
     if (!MakeCompute("Engine/Shaders/HiZReduce.spv", Vulkan->HiZPipelineLayout, Vulkan->HiZPipeline)) return false;
 
-    // ④ Resolve: shared position, normal, material-auxiliary, and albedo targets feed the non-raytraced Surfel route.
+    // ④ Resolve: shared position, normal, material-auxiliary, and albedo targets feed the non-raytraced Distance Field GI route.
     if (!MakeLayout({ Binding(0, UBO, CS), Binding(1, SSBO, CS), Binding(2, SSBO, CS), Binding(3, SSBO, CS), Binding(4, SSBO, CS), Binding(5, SSBO, CS),
                       Binding(6, TEX, CS), Binding(7, TEX, CS), Binding(8, TEX, CS), Binding(9, TEX, CS), Binding(10, IMG, CS), Binding(11, IMG, CS), Binding(12, IMG, CS), Binding(13, SSBO, CS), Binding(14, IMG, CS), Binding(15, IMG, CS) }, Vulkan->ResolveLayout)) return false;
     if (!MakePipelineLayout(Vulkan->ResolveLayout, 0u, 0u, Vulkan->ResolvePipelineLayout)) return false;

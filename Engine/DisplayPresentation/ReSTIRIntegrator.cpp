@@ -122,7 +122,7 @@ DispatchConfiguration ReSTIRIntegrator::BuildDispatch(
                                    //    unless something turns it off — off is the bit-for-bit pre-sky estimator.
                                    | (ActiveConfiguration.RenderPath == 0u && ActiveConfiguration.SkyReservoir       ? DispatchFeatureSkyReservoir       : 0u)
                                    // Thread E. Raytracing ON ⇔ RenderPath 0 (the raytraced ReSTIR kernel is the active
-                                   //    path); the surfel-GI and plain-raster paths clear bit 11 so the kernel early-outs
+                                   //    path); the Distance Field GI and plain-raster paths clear bit 11 so the kernel early-outs
                                    //    when the host dispatches one of them instead. The Reflections tile is a 2-bit field
                                    //    (0 Off / 1 Sky / 2 Raytraced) packed at bits 15-16 — masked to 3 so a stray high bit
                                    //    can never bleed into another flag. No screen-space reflections exist to select.

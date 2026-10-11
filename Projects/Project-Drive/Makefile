@@ -5,7 +5,6 @@
 #  GameExecution is wired — see README). These two targets are the GPU-free references, buildable with plain g++:
 #
 #     make telemetry   -> bin/DriveTelemetry    physics -> Diagnostics/{telemetry.csv,timing.log,run.log}
-#     make surfel      -> bin/SurfelReference    surfel-GI render -> Diagnostics/{drive_gi.ppm,surfel_timing.log}
 #     make run         -> build both and run them into Diagnostics/
 #
 #  Explicit file lists only — never glob Source/ (Project-Zero's rot-guard rule).
@@ -25,24 +24,19 @@ VEHICLE_SRCS := \
 	$(VEHICLE)/TyreSlipDynamics.cpp \
 	$(VEHICLE)/Drivetrain.cpp
 
-.PHONY: all telemetry surfel run clean
-all: telemetry surfel
+.PHONY: all telemetry run clean
+all: telemetry
 
 telemetry: $(BIN)/DriveTelemetry
-surfel:    $(BIN)/SurfelReference
 
 $(BIN)/DriveTelemetry: Source/DriveTelemetry.cpp Source/DriveCourse.h $(VEHICLE_SRCS) | $(BIN)
 	$(CXX) $(CXXFLAGS) -I$(VEHICLE) -ISource Source/DriveTelemetry.cpp $(VEHICLE_SRCS) -o $@
-
-$(BIN)/SurfelReference: Source/SurfelReference.cpp Source/DriveCourse.h Source/ControlVehicleMesh.inl | $(BIN)
-	$(CXX) $(CXXFLAGS) -pthread -ISource Source/SurfelReference.cpp -o $@
 
 $(BIN) $(DIAG):
 	@mkdir -p $@
 
 run: all | $(DIAG)
 	./$(BIN)/DriveTelemetry  $(DIAG)
-	./$(BIN)/SurfelReference --w 800 --h 450 --frames 24 --rays 8 --out $(DIAG)
 
 clean:
 	rm -rf $(BIN)

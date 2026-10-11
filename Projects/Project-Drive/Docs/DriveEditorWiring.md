@@ -3,7 +3,7 @@
 ## Runtime ownership
 
 `Frontier.exe` owns the shared window, device, renderer, editor, input exchange, global camera facilities, celestial
-presentation, and GPU/CPU Surfel GI. `ProjectDrive.dll` owns only Project-Drive semantics: course construction,
+presentation, and Distance Field GI. `ProjectDrive.dll` owns only Project-Drive semantics: course construction,
 vehicle simulation, driver interpretation, chase-camera requests, and vehicle panel declarations.
 
 The project starts through:

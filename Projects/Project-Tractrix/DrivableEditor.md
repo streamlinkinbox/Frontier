@@ -20,4 +20,4 @@ The creator writes a project specification, content/scene folder, build ignore r
 It does not copy `GameExecution.cpp`, another project's source folder, a renderer, an editor, or a windowed entry.
 
 Vehicle course, simulation, driver input, camera requests, and project panels remain code-image responsibilities. The
-shared engine facilities, including GPU and CPU Surfel GI, remain Frontier ownership.
+shared engine facilities, including Distance Field GI, remain Frontier ownership.

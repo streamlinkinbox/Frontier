@@ -102,7 +102,7 @@ typedef struct FrontierProjectRenderingPreference
 {
     uint32_t StructureSize;                 // [B] - guards additions at this C edge
     uint32_t RenderModeNumber;              // [-] - project preference; engine selects supported shared mode
-    uint32_t IndirectIlluminationEnabled;   // [-] - shared ReSTIR or Surfel-GI preference
+    uint32_t IndirectIlluminationEnabled;   // [-] - shared ReSTIR or Distance Field GI preference
 } FrontierProjectRenderingPreference;
 
 typedef struct FrontierProjectPanel

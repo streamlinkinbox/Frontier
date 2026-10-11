@@ -1068,7 +1068,7 @@ int Frontier::RunFrontierRuntime(
         Integrator.AssignDenoiseLevelCount(Criteria.DenoiseLevelCount);
         // ── Render-path decision matrix (Raytracing tile × Global Illumination tile) ──────────────────────────────────
         //    RT ON            -> raytraced ReSTIR kernel (GI and/or raytraced reflections).
-        //    RT OFF + GI ON   -> Distance Field GI (visibility raster primary + SDF radiance; Surfel GI removed).
+        //    RT OFF + GI ON   -> Distance Field GI (visibility raster primary + SDF radiance).
         //    RT OFF + GI OFF  -> plain visibility raster (materials + direct + sky ambient; no GI, no rays).
         //    Guard: RT ON + GI OFF + Reflections OFF is flat and pointless, so it falls back to the plain raster —
         //           which looks better than a raytraced path carrying neither GI nor reflections.

@@ -18,5 +18,5 @@ Run the project through:
 Frontier.exe Projects/Project-Tractrix/ProjectTractrix.frontier
 ```
 
-Shared window, Vulkan, editor, camera, celestial, renderer, and Surfel-GI facilities remain Frontier ownership.
+Shared window, Vulkan, editor, camera, celestial, renderer, and Distance Field GI facilities remain Frontier ownership.
 Project-specific vehicle and course semantics remain Project-Tractrix ownership behind the versioned C ABI.

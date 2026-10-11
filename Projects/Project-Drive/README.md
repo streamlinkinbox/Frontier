@@ -8,7 +8,7 @@ Project-Drive is opened by `Frontier.exe`, never by a project-owned windowed exe
 | Capability | Owner |
 |---|---|
 | Window, Vulkan device, renderer, editor, global camera, input, celestial environment | `Frontier.exe` |
-| GPU Surfel GI and deterministic CPU Surfel reference field | shared `Engine/` facilities |
+| Distance Field GI (per-object fields, built once) | shared `Engine/` facilities |
 | Drive course, vehicle simulation, driver interpretation, chase-camera requests, vehicle panels | `ProjectDrive.dll` |
 
 The code image reaches host facilities through the versioned `CodeInterchange` C ABI. C++ standard-library records,
@@ -17,8 +17,8 @@ exceptions, allocator ownership, Vulkan references, and ImGui records do not cro
 ## Project content
 
 `Source/DriveCourse.h` describes the proving ground shared by the vehicle and its content authoring. The project vehicle
-sources keep course and ControlVehicle semantics project-owned. `Source/SurfelReference.cpp` remains a project fixture
-using the engine-owned CPU `SurfelReferenceField`; it is not a project renderer or a second Surfel-GI implementation.
+sources keep course and ControlVehicle semantics project-owned. (Surfel reference fixture removed)
+
 
 ## Build and opening
 

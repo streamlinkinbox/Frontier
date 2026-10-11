@@ -67,9 +67,9 @@ Frontier's three-way render mode matrix cleanly decouples primary visibility, in
   - Dispatches `DistanceFieldGIResolve.slang` (16×16 compute workgroups) with push constant parameters.
 
 ### 2.2 Swapchain Wiring (`SwapchainExchange`)
-- Replaces legacy `SurfelGIStage` for `RenderPath == 1` inside `RecordComputeCommands()`.
+- Replaced the legacy `SurfelGIStage` (now removed) for `RenderPath == 1` inside `RecordComputeCommands()`.
 - Adds `BringDistanceFieldGIStage()` and lifecycle management in `UploadScene()`, `RebuildSwapchain()`, and `Retire()`.
-- Retains `SurfelStage` as a fallback safety layer if `DistanceFieldGIStage` is uninitialized.
+- The Surfel fallback has been removed; `DistanceFieldGIStage` is the only GI route.
 
 ### 2.3 Diagnostics and Runtime Routing
 - `FrontierRuntime.cpp` and `ReSTIRIntegrator.h` updated to declare and log:

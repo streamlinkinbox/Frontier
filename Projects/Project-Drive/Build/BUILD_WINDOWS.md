@@ -1,7 +1,7 @@
 # Project-Drive through Frontier.exe
 
 Project-Drive is opened by `Frontier.exe`; it is not a windowed executable. The shared host owns the window, Vulkan
-estate, renderer, editor, input, camera facilities, celestial environment, and shared GPU/CPU Surfel GI.
+estate, renderer, editor, input, camera facilities, celestial environment, and shared Distance Field GI.
 
 ## Windows build route
 

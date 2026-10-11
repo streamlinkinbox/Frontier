@@ -3526,7 +3526,7 @@ void SwapchainExchange::RecordComputeCommands(uint32_t ImageOrdinal, const Dispa
     Frame.RenderHeight = RenderHeight;
     Visibility.RecordFrame(Command, Vulkan->ActiveSlot, Frame);
 
-    // Non-raytraced GI: the Distance Field GI stage is the only GI route. Surfel GI has been removed.
+    // Non-raytraced GI: the Distance Field GI stage is the only GI route..
     const bool NonRaytracedGIRequested = (Dispatch.FeatureFlags & DispatchFeatureRaytracing) == 0u
                                       && (Dispatch.FeatureFlags & DispatchFeatureGlobalIllumination) != 0u;
     bool NonRaytracedGIRecorded = false;

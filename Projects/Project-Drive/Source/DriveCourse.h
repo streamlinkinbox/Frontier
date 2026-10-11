@@ -3,7 +3,7 @@
 //============================================================================================================================================
 //
 //    ONE definition of the course, read by both hosts exactly like ShowroomStructure is in Project-Zero:
-//      • the RENDER side (SurfelReference / the Vulkan app) emits triangles from EmitCourseTriangles();
+//      • the RENDER side (the Vulkan app) emits triangles from EmitCourseTriangles();
 //      • the PHYSICS side (DriveTelemetry / the live drive) samples CourseHeight()/CourseNormal() as the tyre ground query.
 //    Because both come from these functions, the wheels rest exactly on the surface the renderer draws.
 //

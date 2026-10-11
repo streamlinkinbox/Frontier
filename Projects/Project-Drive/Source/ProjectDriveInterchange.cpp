@@ -168,7 +168,7 @@ uint32_t FRONTIER_CODE_IMAGE_CALL ConstructProject(
             { sizeof(FrontierProjectPanel), "ControlVehicle",     "ControlVehicle Inspector" },
             { sizeof(FrontierProjectPanel), "XPBDTyres",          "XPBD Tyres" },
             { sizeof(FrontierProjectPanel), "VehicleDynamics",    "Vehicle Dynamics" },
-            { sizeof(FrontierProjectPanel), "DriveRenderModes",   "Surfel GI / ReSTIR" },
+            { sizeof(FrontierProjectPanel), "DriveRenderModes",   "Distance Field GI / ReSTIR" },
         };
         for (const FrontierProjectPanel& Panel : Panels)
             HostInterchange->ReceivePanel(&Panel, HostInterchange->ProjectReception);

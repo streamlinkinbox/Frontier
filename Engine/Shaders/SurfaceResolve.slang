@@ -32,7 +32,7 @@ layout(set = 0, binding = 9)          uniform sampler2D  HiZImage;
 layout(set = 0, binding = 10, rgba32f) uniform writeonly image2D SurfaceImage;
 layout(set = 0, binding = 11, rgba16f) uniform writeonly image2D NormalImage;
 layout(set = 0, binding = 12, rgba8)   uniform writeonly image2D OutputImage;
-// Thread E — material aux G-buffer. The surfel-GI and plain-raster paths do NOT run the full OpenPBR material
+// Thread E — material aux G-buffer. The distance-field-GI and plain-raster paths do NOT run the full OpenPBR material
 //    evaluation, so they need the primary surface's metalness/roughness spelled out here to shade every material
 //    correctly (metals reflect, dielectrics diffuse). x = metalness, y = specular roughness, zw = 0. rgba16f is
 //    plenty for two 0..1 scalars and matches NormalImage's format. Written every pixel (background = 0,1).

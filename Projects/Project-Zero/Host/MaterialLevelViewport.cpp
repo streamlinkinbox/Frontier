@@ -59,7 +59,7 @@
 #include <thread>
 #include <vector>
 
-// The engine's single material model, shared with VisibilityRaster and SurfelReference.
+// The engine's single material model, shared with VisibilityRaster.
 #include "ContentInterchange/UnifiedMaterialEvaluation.h"
 namespace { const Frontier::ShadingTableSet* g_Tables = nullptr; }
 
@@ -3394,7 +3394,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     Frontier::ShadingTableSet Tables = Frontier::ShadingTableCodec::Bake(1024u);
     g_Tables = &Tables;
-    Frontier::UnifiedMaterial::BindTables(Tables);   // the raster and surfel paths read these too
+    Frontier::UnifiedMaterial::BindTables(Tables);   // the raster and distance-field paths read these too
 
     if (Denoise && Width != Height)
     {

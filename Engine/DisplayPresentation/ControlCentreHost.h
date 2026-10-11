@@ -104,7 +104,7 @@ enum class QuickTileCategory : uint32_t
     Notifications      = 4,
     Quality            = 5,
     PatchGeometry      = 6,
-    Raytracing         = 7,   // master: ReSTIR raytraced path on/off. Off -> surfel GI (GI on) / plain visibility raster (GI off)
+    Raytracing         = 7,   // master: ReSTIR raytraced path on/off. Off -> Distance Field GI (GI on) / plain visibility raster (GI off)
     Count              = 8
 };
 
@@ -130,7 +130,7 @@ enum class ReflectionModeCategory : uint32_t { Off = 0, Sky = 1, Raytraced = 2, 
 struct ControlCentreSettings
 {
     bool             GlobalIllumination = true;
-    bool             Raytracing         = true;   // ReSTIR raytraced path. Off -> surfel GI (GI on) / plain visibility raster (GI off)
+    bool             Raytracing         = true;   // ReSTIR raytraced path. Off -> Distance Field GI (GI on) / plain visibility raster (GI off)
     bool             AntiAliasing       = true;
     bool             FrameRateOverlay   = false;
     bool             Notifications      = true;

@@ -87,7 +87,7 @@ vec3 ReconstructIrradiance(ivec2 Pixel, vec3 Position, uint Visibility)
 vec3 Fresnel(vec3 f0, float cosTheta){ float m = clamp(1.0 - cosTheta, 0.0, 1.0); float m2 = m*m; return f0 + (vec3(1.0) - f0) * (m2*m2*m); }
 
 // Shade a ray hit: the real triangle, the real slab, the engine's BSDF. Shared by the reflection ray here and
-//    by SurfelIrradianceUpdate.slang's bounce — the two must agree about what a surface does with light.
+//    by the distance-field radiance bounce — the two must agree about what a surface does with light.
 vec3 ShadeHit(vec3 hp, uint FacetSlot, vec3 wo)
 {
     DistanceFacet Facet=Facets[FacetSlot];
