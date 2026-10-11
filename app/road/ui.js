@@ -255,7 +255,9 @@ function renderTree() {
   root.querySelectorAll('[data-eye]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const k = b.dataset.eye;
-    scene.setLayer(k, scene.layers[k] === false);
+    const on = scene.layers[k] === false;
+    scene.setLayer(k, on);
+    if (k === 'underground') { scene.flags.xray = on; $('#fXray').setAttribute('aria-pressed', String(on)); scene.applyView(); }
     renderTree();
   }));
   root.querySelectorAll('[data-layer]').forEach(el => el.addEventListener('dblclick', () => { scene.setLayer(el.dataset.layer, scene.layers[el.dataset.layer] === false); renderTree(); }));
