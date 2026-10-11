@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Frontier Road Studio</title>
+    <link rel="stylesheet" href="./src/app/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <main>
+        <canvas id="view"></canvas>
+        <div class="hud">
+          <div class="brand"><span class="dot"></span> Frontier Road Studio <em>WebGPU</em></div>
+          <div id="status" class="status">initialising…</div>
+          <div id="fps" class="fps">– fps</div>
+        </div>
+      </main>
+      <aside id="panel">
+        <header class="panel-top">
+          <div class="scene-icon">◈</div>
+          <div class="titles">
+            <h1>Road network</h1>
+            <span>procedural district</span>
+          </div>
+          <button id="rebuild" type="button">Rebuild</button>
+        </header>
+        <section class="cards">
+          <div class="card">
+            <div class="card-title">Scene</div>
+            <select id="scene"></select>
+          </div>
+          <div class="card">
+            <div class="card-title">Quality</div>
+            <select id="quality"></select>
+          </div>
+          <div class="card">
+            <div class="card-title">View</div>
+            <label class="toggle"><input type="checkbox" id="wire" /><span>Topology wireframe</span></label>
+            <label class="toggle"><input type="checkbox" id="turntable" /><span>Turntable</span></label>
+          </div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Layers</h2><span class="section-hint">outliner</span></div>
+          <div id="layers"></div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Fields</h2><span class="section-hint">build</span></div>
+          <div id="stats" class="stats"></div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Diagnostics</h2><span class="section-hint">topology</span></div>
+          <div id="diag" class="diag"></div>
+        </section>
+      </aside>
+    </div>
+    <script type="module" src="./dist/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "frontier-road-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Frontier Road Studio - WebGPU road network generator (standalone HTML)",
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "build": "node tools/build-standalone.mjs",
+    "check": "tsc --noEmit",
+    "verify": "node tools/render-check.mjs"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "^153.0.0",
+    "@types/node": "^22.20.5",
+    "@webgpu/types": "^0.1.74",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "webgpu": "^0.6.2"
+  }
+}

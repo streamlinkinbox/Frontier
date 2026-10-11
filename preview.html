@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Frontier Road Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23101010%22%2F%3E%3Cpath%20d%3D%22M32%206c6%2012%206%2022%200%2032s-6%2014%200%2020%22%20stroke%3D%22%2372c8b3%22%20stroke-width%3D%225%22%20fill%3D%22none%22%2F%3E%3Cpath%20d%3D%22M12%2050c8-2%2012-6%2020-18s12-16%2020-18%22%20stroke%3D%22%23e8b65f%22%20stroke-width%3D%225%22%20fill%3D%22none%22%2F%3E%3C%2Fsvg%3E" />
+    <style>
+/* Frontier Road Studio — shell styled after the ProjectZeroEditor language:
+   graphite surfaces, one accent per card, thin type, right-hand outliner. */
+
+:root {
+  --shell: #101010;
+  --panel: #141414;
+  --card-a: #1b1b1b;
+  --card-b: #161616;
+  --row: #161616;
+  --row-sel: #2a2a2a;
+  --line: #262626;
+  --text: #e8e8e6;
+  --dim: #8b8b88;
+  --dimmer: #5f5f5c;
+  --accent-road: #b8b2a6;
+  --accent-pav: #99aafa;
+  --accent-kerb: #e8b65f;
+  --accent-plant: #72c8b3;
+  --accent-mark: #f0f0f0;
+  --accent-struct: #c78ce0;
+  --ok: #7fd6a0;
+  --warn: #e8b65f;
+  --radius: 10px;
+  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--shell);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+#app { display: flex; height: 100vh; width: 100vw; }
+
+main { position: relative; flex: 1 1 auto; min-width: 0; }
+canvas#view { display: block; width: 100%; height: 100%; outline: none; }
+
+.hud {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(16, 16, 16, 0.72);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.brand em { font-style: normal; color: var(--dim); font-weight: 500; }
+.brand .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent-plant);
+  box-shadow: 0 0 10px rgba(114, 200, 179, 0.7);
+}
+
+.status, .fps {
+  align-self: flex-start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(16, 16, 16, 0.65);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 12px;
+}
+.status.error { color: #ff9a8a; border-color: #4a2622; }
+
+aside#panel {
+  width: 300px;
+  flex: 0 0 300px;
+  height: 100%;
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 60% at 100% 0%, #1d1d1d 0%, var(--panel) 60%),
+    var(--panel);
+  border-left: 1px solid #050505;
+}
+
+.panel-top {
+  height: 71px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: rgba(20, 20, 20, 0.94);
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.scene-icon {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  background: linear-gradient(#313131, #242424);
+  border: 1px solid #3c3c3c;
+  color: var(--accent-plant);
+}
+
+.titles h1 { font-size: 13px; margin: 0; font-weight: 600; }
+.titles span { font-size: 11px; color: var(--dim); }
+
+.panel-top button {
+  margin-left: auto;
+  border: 1px solid #3c3c3c;
+  background: linear-gradient(#2d2d2d, #232323);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.panel-top button:hover { background: linear-gradient(#343434, #282828); }
+.panel-top button:active { transform: translateY(1px); }
+
+.cards { padding: 18px 16px 6px; display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  padding: 22px 20px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--card-a), var(--card-b));
+  border: 1px solid #232323;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+}
+
+.card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.card:nth-child(1) .card-title { color: var(--accent-pav); }
+.card:nth-child(2) .card-title { color: var(--accent-kerb); }
+.card:nth-child(3) .card-title { color: var(--accent-plant); }
+
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0e0e0e;
+  color: var(--text);
+  border: 1px solid #303030;
+  font: inherit;
+  font-size: 12px;
+}
+
+.toggle { display: flex; align-items: center; gap: 9px; padding: 6px 0; font-size: 12px; color: #cfcfcb; cursor: pointer; }
+.toggle input { accent-color: var(--accent-plant); }
+
+.stack { padding: 12px 16px 4px; }
+
+.section-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.section-head h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin: 0; color: #b9b9b4; }
+.section-hint { font-size: 10px; color: var(--dimmer); }
+
+.layer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--row);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.layer:hover { background: #1f1f1f; }
+.layer.off { opacity: 0.45; }
+.layer .layer-name { flex: 1 1 auto; font-size: 12px; }
+.layer .layer-count { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.layer .eye { font-size: 11px; color: var(--dim); }
+.layer-hint { font-size: 10px; color: var(--dimmer); padding: 0 0 8px 30px; }
+
+.swatch { width: 10px; height: 10px; border-radius: 3px; background: #666; }
+.swatch[data-layer='carriageway'] { background: var(--accent-road); }
+.swatch[data-layer='markings'] { background: var(--accent-mark); }
+.swatch[data-layer='footway'] { background: var(--accent-pav); }
+.swatch[data-layer='kerbs'] { background: var(--accent-kerb); }
+.swatch[data-layer='planting'] { background: var(--accent-plant); }
+.swatch[data-layer='structures'] { background: var(--accent-struct); }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat {
+  height: 45px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 9px;
+  background: #171717;
+  border: 1px solid #232323;
+}
+.stat span { font-size: 10px; color: var(--dimmer); }
+.stat b { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.diag { display: flex; flex-direction: column; gap: 6px; padding-bottom: 24px; }
+.diag .ok { font-size: 11px; color: var(--ok); background: rgba(127, 214, 160, 0.07); border: 1px solid rgba(127, 214, 160, 0.22); border-radius: 8px; padding: 9px 11px; }
+.diag .warn { font-size: 11px; color: var(--warn); background: rgba(232, 182, 95, 0.07); border: 1px solid rgba(232, 182, 95, 0.22); border-radius: 8px; padding: 9px 11px; line-height: 1.45; }
+
+aside#panel::-webkit-scrollbar { width: 10px; }
+aside#panel::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; border: 3px solid var(--panel); }
+
+</style>
+  </head>
+  <body>
+    <div id="app">
+      <main>
+        <canvas id="view"></canvas>
+        <div class="hud">
+          <div class="brand"><span class="dot"></span> Frontier Road Studio <em>WebGPU</em></div>
+          <div id="status" class="status">initialising…</div>
+          <div id="fps" class="fps">– fps</div>
+        </div>
+      </main>
+      <aside id="panel">
+        <header class="panel-top">
+          <div class="scene-icon">◈</div>
+          <div class="titles">
+            <h1>Road network</h1>
+            <span>procedural district</span>
+          </div>
+          <button id="rebuild" type="button">Rebuild</button>
+        </header>
+        <section class="cards">
+          <div class="card">
+            <div class="card-title">Scene</div>
+            <select id="scene"></select>
+          </div>
+          <div class="card">
+            <div class="card-title">Quality</div>
+            <select id="quality"></select>
+          </div>
+          <div class="card">
+            <div class="card-title">View</div>
+            <label class="toggle"><input type="checkbox" id="wire" /><span>Topology wireframe</span></label>
+            <label class="toggle"><input type="checkbox" id="turntable" /><span>Turntable</span></label>
+          </div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Layers</h2><span class="section-hint">outliner</span></div>
+          <div id="layers"></div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Fields</h2><span class="section-hint">build</span></div>
+          <div id="stats" class="stats"></div>
+        </section>
+        <section class="stack">
+          <div class="section-head"><h2>Diagnostics</h2><span class="section-hint">topology</span></div>
+          <div id="diag" class="diag"></div>
+        </section>
+      </aside>
+    </div>
+    <script type="module">
+var oe=Math.PI*2,rr=Math.PI/180,ar=180/Math.PI,R=(e,t,r)=>e<t?t:e>r?r:e,kt=e=>R(e,0,1),z=(e,t,r)=>e+(t-e)*r,St=e=>{let t=kt(e);return t*t*(3-2*t)},Re=e=>{let t=kt(e);return t*t*t*(t*(t*6-15)+10)};var j=(e,t)=>[e[0]+t[0],e[1]+t[1]],Z=(e,t)=>[e[0]-t[0],e[1]-t[1]],H=(e,t)=>[e[0]*t,e[1]*t],fe=(e,t)=>e[0]*t[0]+e[1]*t[1],ve=(e,t)=>e[0]*t[1]-e[1]*t[0],re=e=>Math.hypot(e[0],e[1]),ne=(e,t)=>Math.hypot(e[0]-t[0],e[1]-t[1]);var Q=e=>{let t=Math.hypot(e[0],e[1]);return t<1e-9?[1,0]:[e[0]/t,e[1]/t]};var ce=e=>Math.atan2(e[0],e[1]);var on=(e,t)=>[e[0]-t[0],e[1]-t[1],e[2]-t[2]];var tt=(e,t)=>e[0]*t[0]+e[1]*t[1]+e[2]*t[2],nt=(e,t)=>[e[1]*t[2]-e[2]*t[1],e[2]*t[0]-e[0]*t[2],e[0]*t[1]-e[1]*t[0]],Vt=e=>Math.hypot(e[0],e[1],e[2]);var Mt=e=>{let t=Vt(e);return t<1e-9?[0,1,0]:[e[0]/t,e[1]/t,e[2]/t]};function At(e,t,r=new Float32Array(16)){for(let n=0;n<4;n++)for(let o=0;o<4;o++){let a=0;for(let i=0;i<4;i++)a+=e[i*4+o]*t[n*4+i];r[n*4+o]=a}return r}function Pt(e,t,r,n,o=new Float32Array(16)){let a=1/Math.tan(e/2);o.fill(0),o[0]=a/t,o[5]=a,o[11]=-1;let i=1/(r-n);return o[10]=n*i,o[14]=n*r*i,o}function Ct(e,t,r,n=new Float32Array(16)){let o=Mt(on(e,t)),a=nt(r,o);Vt(a)<1e-6&&(a=nt([0,0,1],o)),a=Mt(a);let i=nt(o,a);return n[0]=a[0],n[1]=i[0],n[2]=o[0],n[3]=0,n[4]=a[1],n[5]=i[1],n[6]=o[1],n[7]=0,n[8]=a[2],n[9]=i[2],n[10]=o[2],n[11]=0,n[12]=-tt(a,e),n[13]=-tt(i,e),n[14]=-tt(o,e),n[15]=1,n}function rt(e,t,r,n,o){let a=1-o,i=a*a*a,l=3*a*a*o,c=3*a*o*o,d=o*o*o,f=new Array(e.length);for(let m=0;m<e.length;m++)f[m]=i*e[m]+l*t[m]+c*r[m]+d*n[m];return f}function at(e,t,r,n,o){let a=1-o,i=3*a*a,l=6*a*o,c=3*o*o;return[i*(t[0]-e[0])+l*(r[0]-t[0])+c*(n[0]-r[0]),i*(t[1]-e[1])+l*(r[1]-t[1])+c*(n[1]-r[1]),i*(t[2]-e[2])+l*(r[2]-t[2])+c*(n[2]-r[2])]}function Bt(e,t,r,n,o){let a=1-o;return[6*a*(r[0]-2*t[0]+e[0])+6*o*(n[0]-2*r[0]+t[0]),6*a*(r[1]-2*t[1]+e[1])+6*o*(n[1]-2*r[1]+t[1]),6*a*(r[2]-2*t[2]+e[2])+6*o*(n[2]-2*r[2]+t[2])]}function ot(e){let t=0,r=0,n=0;for(let o=0,a=e.length-1;o<e.length;a=o++){let i=e[a][0]*e[o][1]-e[o][0]*e[a][1];n+=i,t+=(e[a][0]+e[o][0])*i,r+=(e[a][1]+e[o][1])*i}if(n*=.5,Math.abs(n)<1e-9){let o=0,a=0;for(let i of e)o+=i[0],a+=i[1];return[o/e.length,a/e.length]}return[t/(6*n),r/(6*n)]}function sn(e){let t=e>>>0;return function(){t|=0,t=t+1831565813|0;let n=Math.imul(t^t>>>15,1|t);return n=n+Math.imul(n^n>>>7,61|n)^n,((n^n>>>14)>>>0)/4294967296}}var we=["asphalt","asphalt-worn","asphalt-fresh","concrete","concrete-panel","pavers","pavers-mixed","slabs","cobble","tactile","gravel","soil","grass","ballast","steel","paint","wood","rubber","water","kerb","road-plate"],Ee=Object.fromEntries(we.map((e,t)=>[e,t]));function ln(e,t,r){return Math.abs((t[0]-e[0])*(r[2]-e[2])-(r[0]-e[0])*(t[2]-e[2]))}var xe=class{verts=[];quads=[];tris=[];quadMat=[];get vertexCount(){return this.verts.length}get quadCount(){return this.quads.length/4}get triCount(){return this.tris.length/3}addVertex(t){return this.verts.push(t),this.verts.length-1}addQuad(t,r,n,o){if(t===r||r===n||n===o||o===t||t===n||r===o)return;let a=this.verts[t],i=this.verts[r],l=this.verts[n],c=i.p[0]-a.p[0],d=i.p[1]-a.p[1],f=i.p[2]-a.p[2],m=l.p[0]-a.p[0],g=l.p[1]-a.p[1],v=l.p[2]-a.p[2],b=d*v-f*g,x=f*m-c*v,k=c*g-d*m,C=a.n,P=b*C[0]+x*C[1]+k*C[2];if(Math.hypot(b,x,k)<1e-7||ln(a.p,i.p,l.p)<1e-9)return;P<0?(this.quads.push(t,o,n,r),this.tris.push(t,o,n,t,n,r)):(this.quads.push(t,r,n,o),this.tris.push(t,r,n,t,n,o)),this.quadMat.push(a.mat)}addTriangle(t,r,n){this.tris.push(t,r,n)}static index(t,r,n){return t*n+r}append(t){let r=this.verts.length;this.verts.push(...t.verts);for(let n of t.quads)this.quads.push(n+r);for(let n of t.tris)this.tris.push(n+r);this.quadMat.push(...t.quadMat)}pack(){let t=this.verts.length,r=new Float32Array(t*3),n=new Float32Array(t*3),o=new Float32Array(t*2),a=new Float32Array(t*2),i=new Uint32Array(t),l=new Uint8Array(t*4);for(let c=0;c<t;c++){let d=this.verts[c];r[c*3]=d.p[0],r[c*3+1]=d.p[1],r[c*3+2]=d.p[2],n[c*3]=d.n[0],n[c*3+1]=d.n[1],n[c*3+2]=d.n[2],o[c*2]=d.uv[0],o[c*2+1]=d.uv[1],a[c*2]=d.uv2[0],a[c*2+1]=d.uv2[1],i[c]=d.mat,l[c*4]=Math.round(Math.min(1,Math.max(0,d.tint[0]))*255),l[c*4+1]=Math.round(Math.min(1,Math.max(0,d.tint[1]))*255),l[c*4+2]=Math.round(Math.min(1,Math.max(0,d.tint[2]))*255),l[c*4+3]=Math.round(Math.min(1,Math.max(0,d.tint[3]))*255)}return{positions:r,normals:n,uvs:o,uv2s:a,mats:i,tints:l,indices:new Uint32Array(this.tris)}}};var Lt=0,Se=e=>(Lt+=1,`${e}_${Date.now().toString(36).slice(-4)}${(Lt%1e5).toString(36)}${Math.floor(Math.random()*1296).toString(36)}`);var cn={asphalt:{color:"#3a3b3d",roughness:.72,metalness:0,scale:.55},"asphalt-worn":{color:"#4a4a4a",roughness:.82,metalness:0,scale:.45},"asphalt-fresh":{color:"#2b2c2e",roughness:.62,metalness:0,scale:.6},concrete:{color:"#9a9992",roughness:.78,metalness:0,scale:.35},"concrete-panel":{color:"#a3a29b",roughness:.7,metalness:0,scale:.25},pavers:{color:"#7d766c",roughness:.72,metalness:0,scale:.5},"pavers-mixed":{color:"#8a8074",roughness:.74,metalness:0,scale:.45},slabs:{color:"#a9a49a",roughness:.66,metalness:0,scale:.3},cobble:{color:"#6f6a63",roughness:.8,metalness:0,scale:.7},tactile:{color:"#c9a13a",roughness:.62,metalness:0,scale:1},gravel:{color:"#8d8577",roughness:.9,metalness:0,scale:.4},soil:{color:"#5b4a38",roughness:.95,metalness:0,scale:.3},grass:{color:"#4a6b32",roughness:.9,metalness:0,scale:.35},ballast:{color:"#5c584f",roughness:.95,metalness:0,scale:.8},steel:{color:"#8d9095",roughness:.42,metalness:.85,scale:.5},paint:{color:"#e8e6df",roughness:.55,metalness:0,scale:1.4},wood:{color:"#8a6a45",roughness:.8,metalness:0,scale:.6},rubber:{color:"#2a2a2c",roughness:.85,metalness:0,scale:1},water:{color:"#243038",roughness:.06,metalness:0,scale:.15},kerb:{color:"#a8a49b",roughness:.7,metalness:0,scale:.4},"road-plate":{color:"#6b6f74",roughness:.35,metalness:.9,scale:.4}},X=()=>({centreLine:"double-yellow",laneLines:!0,edgeLines:!0,edgeLineInset:.25,laneDash:[3,6],stopBars:!0,giveWay:!0,zebra:!0,crossDashes:!0,arrows:!0,text:!0,bayLines:!0,hatching:!0,yellowBox:!0,cycleSymbols:!0,railCrossing:!0,reflectors:!0,lineWidth:.12,markingColor:"white"}),K=(e={})=>({footway:{width:2.4,surface:"concrete",crossfall:2,edgeCourse:!0,plantingWidth:0,plantingSurface:"soil"},verge:0,vergeSurface:"grass",parking:"none",parkingWidth:2.2,bikeLane:0,bikeLaneSurface:"paint",busLane:0,taperOut:0,...e}),un={motorway:()=>({class:"motorway",lanesA:3,lanesB:3,laneWidth:3.65,shoulderA:2.5,shoulderB:2.5,shoulderSurface:"asphalt",median:"barrier",medianWidth:3.2,medianSurface:"concrete",kerb:"flush",kerbHeight:0,gutterWidth:0,crown:.06,crossfall:2.5,superElevationMax:6,left:K({footway:null,verge:6,vergeSurface:"grass"}),right:K({footway:null,verge:6,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",zebra:!1,crossDashes:!1,edgeLines:!0,edgeLineInset:.4,markingColor:"white"},speedLimit:110,oneWay:!1,priority:5,retainingWall:!0}),expressway:()=>({class:"expressway",lanesA:2,lanesB:2,laneWidth:3.5,shoulderA:1.8,shoulderB:1.8,shoulderSurface:"asphalt",median:"barrier",medianWidth:2.4,medianSurface:"concrete",kerb:"flush",kerbHeight:0,gutterWidth:0,crown:.06,crossfall:2.5,superElevationMax:5,left:K({footway:null,verge:10,vergeSurface:"grass"}),right:K({footway:null,verge:10,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",zebra:!1,markingColor:"white",edgeLineInset:.3},speedLimit:90,oneWay:!1,priority:5,retainingWall:!0}),arterial:()=>({class:"arterial",lanesA:2,lanesB:2,laneWidth:3.5,shoulderA:.4,shoulderB:.4,shoulderSurface:"asphalt",median:"raised",medianWidth:1.8,medianSurface:"concrete",kerb:"standard",kerbHeight:.15,gutterWidth:.35,crown:.08,crossfall:2.2,superElevationMax:4,left:K({footway:{width:3,surface:"concrete",crossfall:2,edgeCourse:!0,plantingWidth:0,plantingSurface:"soil"}}),right:K({footway:{width:3,surface:"concrete",crossfall:2,edgeCourse:!0,plantingWidth:0,plantingSurface:"soil"}}),markings:{...X(),centreLine:"double",markingColor:"white",yellowBox:!1},speedLimit:60,oneWay:!1,priority:4,retainingWall:!1}),boulevard:()=>({class:"boulevard",lanesA:2,lanesB:2,laneWidth:3.35,shoulderA:.3,shoulderB:.3,shoulderSurface:"asphalt",median:"grass",medianWidth:5,medianSurface:"grass",kerb:"standard",kerbHeight:.14,gutterWidth:.35,crown:.08,crossfall:2,superElevationMax:3,left:K({footway:{width:4.5,surface:"pavers",crossfall:2,edgeCourse:!0,plantingWidth:1.6,plantingSurface:"soil"},bikeLane:1.8,bikeLaneSurface:"raised"}),right:K({footway:{width:4.5,surface:"pavers",crossfall:2,edgeCourse:!0,plantingWidth:1.6,plantingSurface:"soil"},bikeLane:1.8,bikeLaneSurface:"raised"}),markings:{...X(),centreLine:"none",markingColor:"white"},speedLimit:50,oneWay:!1,priority:4,retainingWall:!1}),avenue:()=>({class:"avenue",lanesA:2,lanesB:2,laneWidth:3.3,shoulderA:.2,shoulderB:.2,shoulderSurface:"asphalt",median:"raised",medianWidth:2.4,medianSurface:"concrete",kerb:"standard",kerbHeight:.15,gutterWidth:.35,crown:.08,crossfall:2,superElevationMax:3,left:K({footway:{width:3.6,surface:"pavers",crossfall:2,edgeCourse:!0,plantingWidth:1.2,plantingSurface:"soil"}}),right:K({footway:{width:3.6,surface:"pavers",crossfall:2,edgeCourse:!0,plantingWidth:1.2,plantingSurface:"soil"}}),markings:{...X(),centreLine:"double",markingColor:"yellow"},speedLimit:50,oneWay:!1,priority:4,retainingWall:!1}),street:()=>({class:"street",lanesA:1,lanesB:1,laneWidth:3.2,shoulderA:0,shoulderB:0,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"standard",kerbHeight:.15,gutterWidth:.3,crown:.07,crossfall:2.2,superElevationMax:3,left:K({parking:"parallel",parkingWidth:2.3}),right:K({parking:"parallel",parkingWidth:2.3}),markings:{...X(),centreLine:"dashed",markingColor:"white",yellowBox:!1},speedLimit:40,oneWay:!1,priority:3,retainingWall:!1}),local:()=>({class:"local",lanesA:1,lanesB:1,laneWidth:2.9,shoulderA:0,shoulderB:0,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"mountable",kerbHeight:.12,gutterWidth:.25,crown:.06,crossfall:2.2,superElevationMax:3,left:K({parking:"parallel",parkingWidth:2.1,verge:1.5,vergeSurface:"grass"}),right:K({parking:"parallel",parkingWidth:2.1,verge:1.5,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",laneLines:!1,markingColor:"white",yellowBox:!1,arrows:!1},speedLimit:30,oneWay:!1,priority:2,retainingWall:!1}),lane:()=>({class:"lane",lanesA:1,lanesB:1,laneWidth:2.7,shoulderA:.6,shoulderB:.6,shoulderSurface:"gravel",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"none",kerbHeight:0,gutterWidth:0,crown:.05,crossfall:3,superElevationMax:2,left:K({footway:null,verge:1.2,vergeSurface:"grass"}),right:K({footway:null,verge:1.2,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",laneLines:!1,edgeLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!1,text:!1,bayLines:!1,hatching:!1,yellowBox:!1,cycleSymbols:!1,lineWidth:.1},speedLimit:30,oneWay:!1,priority:1,retainingWall:!1}),alley:()=>({class:"alley",lanesA:1,lanesB:0,laneWidth:3,shoulderA:.2,shoulderB:.2,shoulderSurface:"concrete",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"flush",kerbHeight:.05,gutterWidth:.2,crown:.04,crossfall:2,superElevationMax:0,left:K({footway:{width:1,surface:"concrete",crossfall:2,edgeCourse:!1,plantingWidth:0,plantingSurface:"soil"}}),right:K({footway:{width:1,surface:"concrete",crossfall:2,edgeCourse:!1,plantingWidth:0,plantingSurface:"soil"}}),markings:{...X(),centreLine:"none",laneLines:!1,edgeLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!1,text:!1,bayLines:!1,hatching:!1,yellowBox:!1,cycleSymbols:!1},speedLimit:15,oneWay:!0,priority:1,retainingWall:!1}),service:()=>({class:"service",lanesA:1,lanesB:1,laneWidth:3,shoulderA:.5,shoulderB:.5,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"flush",kerbHeight:.08,gutterWidth:.25,crown:.05,crossfall:2,superElevationMax:2,left:K({footway:null,verge:2,vergeSurface:"gravel"}),right:K({footway:null,verge:2,vergeSurface:"gravel"}),markings:{...X(),centreLine:"none",laneLines:!1,arrows:!1,text:!1,yellowBox:!1,zebra:!1},speedLimit:20,oneWay:!1,priority:2,retainingWall:!1}),ramp:()=>({class:"ramp",lanesA:1,lanesB:0,laneWidth:3.7,shoulderA:1.5,shoulderB:.6,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"flush",kerbHeight:0,gutterWidth:0,crown:.06,crossfall:3,superElevationMax:7,left:K({footway:null,verge:4,vergeSurface:"grass"}),right:K({footway:null,verge:4,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",laneLines:!1,zebra:!1,crossDashes:!1,text:!1,bayLines:!1,hatching:!1,yellowBox:!1,cycleSymbols:!1,stopBars:!1,markingColor:"white"},speedLimit:60,oneWay:!0,priority:4,retainingWall:!0}),roundabout:()=>({class:"roundabout",lanesA:1,lanesB:1,laneWidth:4,shoulderA:.3,shoulderB:.3,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"standard",kerbHeight:.14,gutterWidth:.3,crown:.05,crossfall:2,superElevationMax:2,left:K({footway:null,verge:1.5,vergeSurface:"grass"}),right:K({footway:null,verge:1.5,vergeSurface:"grass"}),markings:{...X(),centreLine:"none",laneLines:!1,zebra:!1,arrows:!0,crossDashes:!1,yellowBox:!1},speedLimit:30,oneWay:!0,priority:3,retainingWall:!1}),"parking-aisle":()=>({class:"parking-aisle",lanesA:1,lanesB:1,laneWidth:5.5,shoulderA:0,shoulderB:0,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"flush",kerbHeight:.05,gutterWidth:0,crown:.04,crossfall:2,superElevationMax:0,left:K({footway:null,verge:0}),right:K({footway:null,verge:0}),markings:{...X(),centreLine:"none",laneLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!0,hatching:!1,yellowBox:!1,bayLines:!0},speedLimit:15,oneWay:!1,priority:1,retainingWall:!1}),cycleway:()=>({class:"cycleway",lanesA:1,lanesB:1,laneWidth:2,shoulderA:.15,shoulderB:.15,shoulderSurface:"asphalt",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"flush",kerbHeight:.1,gutterWidth:.2,crown:.04,crossfall:2,superElevationMax:2,left:K({footway:null,verge:1,vergeSurface:"grass"}),right:K({footway:null,verge:1,vergeSurface:"grass"}),markings:{...X(),centreLine:"dashed",laneLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!1,text:!1,hatching:!1,yellowBox:!1,cycleSymbols:!0},speedLimit:25,oneWay:!1,priority:1,retainingWall:!1}),footpath:()=>({class:"footpath",lanesA:1,lanesB:0,laneWidth:2.2,shoulderA:.1,shoulderB:.1,shoulderSurface:"concrete",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"none",kerbHeight:0,gutterWidth:0,crown:.03,crossfall:2,superElevationMax:0,left:K({footway:null,verge:.5,vergeSurface:"soil"}),right:K({footway:null,verge:.5,vergeSurface:"soil"}),markings:{...X(),centreLine:"none",laneLines:!1,edgeLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!1,text:!1,bayLines:!1,hatching:!1,yellowBox:!1,cycleSymbols:!1},speedLimit:8,oneWay:!0,priority:1,retainingWall:!1}),rail:()=>({class:"rail",lanesA:1,lanesB:0,laneWidth:1.435,shoulderA:1.6,shoulderB:1.6,shoulderSurface:"ballast",median:"none",medianWidth:0,medianSurface:"gravel",kerb:"none",kerbHeight:0,gutterWidth:0,crown:.02,crossfall:1,superElevationMax:4,left:K({footway:null,verge:2.5,vergeSurface:"gravel"}),right:K({footway:null,verge:2.5,vergeSurface:"gravel"}),markings:{...X(),centreLine:"none",laneLines:!1,edgeLines:!1,stopBars:!1,giveWay:!1,zebra:!1,crossDashes:!1,arrows:!1,text:!1,bayLines:!1,hatching:!1,yellowBox:!1,cycleSymbols:!1},speedLimit:100,oneWay:!0,priority:6,retainingWall:!1}),tram:()=>({class:"tram",lanesA:1,lanesB:1,laneWidth:3.2,shoulderA:.2,shoulderB:.2,shoulderSurface:"concrete",median:"none",medianWidth:0,medianSurface:"concrete",kerb:"standard",kerbHeight:.14,gutterWidth:.3,crown:.06,crossfall:2,superElevationMax:2,left:K({}),right:K({}),markings:{...X(),centreLine:"none",markingColor:"white",laneLines:!0},speedLimit:40,oneWay:!1,priority:4,retainingWall:!1})},dn=e=>un[e]();function se(e,t,r=0,n="auto"){return{id:Se("n"),name:"",x:e,z:t,y:r,kind:n,corner:!1,tension:.45,junction:mn(),layerId:null,locked:!1}}function mn(){return{radiusScale:1,radius:-1,minAngle:40,corner:"return",chamfer:3,table:!1,tableHeight:.1,turnRestrictions:[],signalised:!1}}function ie(e,t,r){return{id:Se("e"),name:"",a:e,b:t,spec:dn(r),features:[],ha:null,hb:null,vertical:null,layerId:null,hidden:!1,locked:!1,rail:r==="rail"?fn():null}}function fn(){return{gauge:1.435,ballastWidth:3.6,ballastDepth:.55,sleeperSpacing:.6,sleeperLength:2.6,electrified:!0,railHeight:.172,railWeight:60,slabTrack:!1,crossovers:!1,speed:27}}function It(e,t,r={}){return{id:Se("a"),name:"",kind:e,polygon:t,surface:e==="parking-lot"?"asphalt":"pavers",edgeCourse:!0,kerb:"standard",kerbHeight:.14,elevation:.14,markings:e==="parking-lot"?"parking-bays":"none",baySize:2.5,slope:1.5,layerId:null,hidden:!1,locked:!1,...r}}function W(e,t={}){return{id:Se("tl"),name:e,pattern:e,blend:"normal",visible:!0,opacity:1,scale:1,rotation:0,offsetU:0,offsetV:0,relief:.5,contrast:1,tintHex:"#ffffff",seed:Math.floor(Math.random()*65535),lowCut:0,highCut:1,...t}}function Me(e,t={}){let r=cn[e],n=()=>{switch(e){case"asphalt":return[W("aggregate",{scale:1.4,relief:.55,contrast:1.05}),W("asphalt-worn",{scale:.12,opacity:.85,relief:.05,blend:"multiply"}),W("patch",{scale:.05,opacity:.7,blend:"multiply",relief:.2}),W("grime",{scale:.03,opacity:.45,blend:"multiply",relief:.05})];case"asphalt-worn":return[W("aggregate",{scale:1.2,relief:.5}),W("patch",{scale:.08,opacity:.85,blend:"multiply",relief:.25}),W("crack",{scale:.06,opacity:.55,blend:"multiply",relief:.6}),W("oil",{scale:.05,opacity:.3,blend:"multiply"}),W("grime",{scale:.02,opacity:.5,blend:"multiply"})];case"asphalt-fresh":return[W("aggregate",{scale:1.8,relief:.35,contrast:.9}),W("tyre-polish",{scale:.04,opacity:.35,blend:"multiply"})];case"concrete":case"concrete-panel":return[W("joints",{scale:.25,relief:.85}),W("concrete-panels",{scale:.1,opacity:.5,blend:"overlay",relief:.2}),W("grime",{scale:.05,opacity:.35,blend:"multiply"}),W("moss",{scale:.03,opacity:.2,blend:"overlay"})];case"pavers":return[W("brick-running",{scale:.5,relief:1}),W("grime",{scale:.04,opacity:.4,blend:"multiply"}),W("moss",{scale:.03,opacity:.22,blend:"overlay"})];case"pavers-mixed":return[W("brick-herringbone",{scale:.45,relief:1}),W("grime",{scale:.04,opacity:.4,blend:"multiply"})];case"slabs":return[W("slabs",{scale:.28,relief:.9}),W("grime",{scale:.04,opacity:.35,blend:"multiply"}),W("moss",{scale:.03,opacity:.18,blend:"overlay"})];case"cobble":return[W("cobble",{scale:.55,relief:1.2}),W("grime",{scale:.05,opacity:.45,blend:"multiply"})];case"tactile":return[W("tactile-dots",{scale:1,relief:.7}),W("grime",{scale:.1,opacity:.25,blend:"multiply"})];case"gravel":return[W("gravel-scatter",{scale:.9,relief:.9}),W("grime",{scale:.06,opacity:.3,blend:"multiply"})];case"soil":return[W("soil-detail",{scale:.5,relief:.8}),W("grime",{scale:.08,opacity:.3,blend:"multiply"})];case"grass":return[W("grass-tufts",{scale:.45,relief:.9}),W("leaves",{scale:.15,opacity:.25,blend:"overlay"})];case"ballast":return[W("ballast-stones",{scale:.9,relief:1.1}),W("oil",{scale:.05,opacity:.4,blend:"multiply"})];case"steel":return[W("steel-brushed",{scale:.6,relief:.35}),W("rust",{scale:.08,opacity:.35,blend:"overlay"})];case"paint":return[W("paint-wear",{scale:.5,relief:.1}),W("grime",{scale:.05,opacity:.25,blend:"multiply"})];case"wood":return[W("wood-grain",{scale:.5,relief:.6})];case"kerb":return[W("joints",{scale:.35,relief:.7}),W("grime",{scale:.08,opacity:.4,blend:"multiply"})];case"road-plate":return[W("steel-brushed",{scale:1.2,relief:.3})];case"water":return[W("puddles",{scale:.06,relief:.05})];case"rubber":return[W("aggregate",{scale:3,relief:.4})]}return[W("aggregate",{scale:1})]};return{id:Se("m"),name:e,surface:e,layers:n(),baseColorHex:r.color,roughness:r.roughness,metalness:r.metalness,texScale:r.scale,texRotation:0,normalStrength:1,wetness:0,reflectance:e==="steel"||e==="road-plate"?.6:.04,age:.35,edgeWear:.5,...t}}function hn(){let t=["asphalt","asphalt-worn","asphalt-fresh","concrete","pavers","pavers-mixed","slabs","cobble","tactile","gravel","soil","grass","ballast","steel","paint","wood","kerb","road-plate"].map(c=>{let d=Me(c),f={asphalt:"Asphalt \u2014 standard","asphalt-worn":"Asphalt \u2014 worn","asphalt-fresh":"Asphalt \u2014 fresh",concrete:"Concrete \u2014 pavement",pavers:"Pavers \u2014 grey running bond","pavers-mixed":"Pavers \u2014 herringbone",slabs:"Slabs \u2014 600 flagstones",cobble:"Cobbles \u2014 granite setts",tactile:"Tactile \u2014 warning",gravel:"Gravel \u2014 compacted",soil:"Soil \u2014 bare earth",grass:"Grass \u2014 amenity",ballast:"Ballast \u2014 railway",steel:"Steel \u2014 galvanised",paint:"Road paint \u2014 white",wood:"Timber",kerb:"Kerb \u2014 precast concrete","road-plate":"Road plate \u2014 steel"};return d.name=f[c]??c,d.builtin=!0,d}),r=Me("paint",{name:"Road paint \u2014 yellow",baseColorHex:"#d8b13a"});r.builtin=!0;let n=Me("pavers",{name:"Pavers \u2014 charcoal",baseColorHex:"#55565a",layers:[W("brick-running",{scale:.55,relief:1,tintHex:"#c9c9c9"}),W("grime",{scale:.05,opacity:.4,blend:"multiply"})]});n.builtin=!0;let o=Me("pavers",{name:"Pavers \u2014 buff",baseColorHex:"#9c8a6a",layers:[W("brick-stretcher",{scale:.5,relief:1,tintHex:"#ffeeda"}),W("grime",{scale:.05,opacity:.35,blend:"multiply"})]});o.builtin=!0;let a=Me("asphalt",{name:"Asphalt \u2014 reddish (bus/cycle)",baseColorHex:"#5c3a34",layers:[W("aggregate",{scale:1.5,relief:.5,tintHex:"#d9b0a0"}),W("tyre-polish",{scale:.04,opacity:.4,blend:"multiply"}),W("grime",{scale:.03,opacity:.4,blend:"multiply"})]});a.builtin=!0;let i=Me("asphalt-fresh",{name:"Asphalt \u2014 new overlay",baseColorHex:"#232426"});i.builtin=!0;let l=Me("concrete-panel",{name:"Concrete \u2014 expansion jointed",baseColorHex:"#b0aea6"});return l.builtin=!0,t.push(r,n,o,a,i,l),t}function pn(){let e=(t,r,n,o={})=>({id:Se("l"),name:t,visible:!0,locked:!1,solo:!1,colorHex:n,kind:r,parentId:null,collapsed:!1,opacity:1,...o});return[e("Ground & paving","ground","#8a8f7a"),e("Roads","roads","#9aa3b0"),e("Junctions","junctions","#b0a48a"),e("Road markings","markings","#d8d3c4"),e("Structures","structures","#9d8f86"),e("Rail","rail","#8f9aa5"),e("Street furniture","props","#b3b6bd"),e("Traffic","traffic","#8d9db3")]}function bn(){return{timeOfDay:15.4,dayOfYear:172,latitude:51.5,timeScale:0,weather:"sunny-haze",cloudCover:.28,cloudHeight:900,windSpeed:3.2,windDirection:240,wetness:0,puddles:.2,fogDensity:.15,fogHeight:60,snowCover:0,leavesAmount:.1,sunIntensity:1,ambientIntensity:1,exposure:0,contrast:1,saturation:1,shadowStrength:1,streetlightsOn:0,nightGlow:1,rainOnLens:!0}}function gn(){return{quality:"high",resolutionScale:1,msaaSamples:4,shadows:!0,shadowMapSize:2048,cascadeCount:3,shadowDistance:220,ssao:!0,bloom:!0,bloomStrength:.55,fxaa:!0,grain:.04,vignette:.35,chromatic:.12,depthOfField:!1,focalDistance:40,fStop:4,motionBlur:!1,showGizmos:!0,showRoadPlan:!1,showSurfaceFlow:!1,wireframe:!1,bakes:!1,instancedDensity:1,drawDistance:900,lodBias:0}}function yn(){return{enabled:!0,maxVehicles:25,density:.6,mixCars:.62,mixVans:.14,mixTrucks:.1,mixBuses:.08,mixEmergency:.06,speedFactor:1,obedience:.9,aggressiveness:1,rightHandTraffic:!0,headlightsAuto:!0,horns:!1,despawnRadius:620,spawnRadius:420,pedestrians:0,cyclists:0}}function vn(){return{surface:"grass",elevation:0,undulation:.35,plotSurface:"soil",showGrid:!1,size:1600}}function xn(){return{drawClass:"street",snapAngle:15,snapGrid:1,snapNodeDistance:6,mergeNodes:!0,autoSplitCrossings:!0,autoMinAngle:!0,defaultCrossing:"crossing-zebra",angleConstraint:40,unitSystem:"metric"}}function Ve(e="Untitled network"){return{version:1,name:e,nodes:[],edges:[],props:[],areas:[],districts:[],trains:[],materials:hn(),layers:pn(),env:bn(),render:gn(),traffic:yn(),ground:vn(),settings:xn()}}var st={none:{upstand:0,chamfer:0,faceSlope:0,topWidth:0},flush:{upstand:.02,chamfer:.02,faceSlope:.1,topWidth:.2},mountable:{upstand:.07,chamfer:.05,faceSlope:.45,topWidth:.2},low:{upstand:.1,chamfer:.04,faceSlope:.15,topWidth:.2},standard:{upstand:.15,chamfer:.02,faceSlope:.03,topWidth:.2},tall:{upstand:.22,chamfer:.02,faceSlope:.02,topWidth:.22},stone:{upstand:.16,chamfer:.03,faceSlope:.05,topWidth:.3},rolled:{upstand:.12,chamfer:.06,faceSlope:.25,topWidth:.25},timber:{upstand:.14,chamfer:0,faceSlope:.02,topWidth:.24}};var wn=(e,t)=>{switch(e){case"angle-45":return t/Math.sin(Math.PI/4);case"angle-60":return t/Math.sin(Math.PI/3);default:return t}};function Ke(e,t,r){let n=r??e.crown,o=Math.max(.5,e.laneWidth*Math.max(e.lanesA,e.lanesB)+Math.max(e.shoulderA,e.shoulderB)),a=R(t/o,0,3);return-n*Math.pow(a,1.5)}function qe(e){let t=st[e.kerb],r=e.gutterWidth,n=e.median==="raised"||e.median==="grass"||e.median==="barrier",o=e.median==="painted",a=n||o?e.medianWidth/2:0,i=n&&e.median!=="barrier"?t.topWidth:0,l=n&&e.median!=="barrier"?Math.min(r,.35):0,c=e.crown,d=-c+t.upstand,f=-c-.015,m=o?-c:n?-c+t.upstand:0,g=s=>{let u=s<0?e.left:e.right,h=s<0?e.lanesB:e.lanesA,y=s<0?e.shoulderB:e.shoulderA,w=[];for(let V=0;V<h;V++)w.push({kind:"lane",width:e.laneWidth,material:"asphalt",dir:s,laneIndex:V,name:`Lane ${s<0?"B":"A"}${V+1}`});y>.001&&w.push({kind:"shoulder",width:y,material:e.shoulderSurface,dir:s,laneIndex:-1,name:`Shoulder ${s<0?"L":"R"}`}),u.bikeLane>.001&&w.push({kind:"bike",width:u.bikeLane,material:u.bikeLaneSurface==="raised"?"pavers":"asphalt",dir:s,laneIndex:-1,name:`Cycle ${s<0?"L":"R"}`}),u.busLane>.001&&w.push({kind:"bus",width:u.busLane,material:"asphalt",dir:s,laneIndex:-1,name:`Bus lane ${s<0?"L":"R"}`}),u.parking!=="none"&&w.push({kind:"parking",width:wn(u.parking,u.parkingWidth),material:u.parking==="parallel"?"asphalt":"pavers",dir:s,laneIndex:-1,name:`Parking ${s<0?"L":"R"}`});let p=u.footway,S=[];if(p&&p.width>.01){let V=d+p.crossfall/100*p.width;S.push({kind:"footway",width:p.width,material:p.surface,yIn:d,yOut:V,density:p.width>2.6?2:1,name:`Footway ${s<0?"L":"R"}`,id:e.footwayMaterialId})}if(p&&p.plantingWidth>.01&&S.push({kind:"planting",width:p.plantingWidth,material:p.plantingSurface,yIn:d+p.crossfall/100*p.width+.02,yOut:d+p.crossfall/100*p.width+.02,density:1,name:`Planting ${s<0?"L":"R"}`}),u.verge>.01){let V=d+(p?p.crossfall/100*p.width:0)+(p?p.plantingWidth*0:0);S.push({kind:"verge",width:u.verge,material:u.vergeSurface,yIn:V+.02,yOut:V+u.verge*.03,density:u.verge>3?2:1,name:`Verge ${s<0?"L":"R"}`,id:e.vergeMaterialId})}return{side:s,cw:w,medianChannel:l,edgeChannel:r,kerbTop:t.topWidth,kerbUpstand:t.upstand,outer:S,medianHalf:a,medianKerbTop:i,medianRaised:n}},v=[],b=0,x=s=>{let u={index:b++,yFrom:0,yTo:0,material:"asphalt",dir:0,laneIndex:-1,density:1,name:s.kind,vertical:!1,upstand:0,side:s.from+s.to<0?-1:s.from+s.to>0?1:0,...s};return v.push(u),u},k=s=>{let u=s.side,h=s.medianRaised||o?s.medianHalf+s.medianKerbTop:0,y=[],w=A=>y.push(x(A)),p=h;s.medianKerbTop>.01&&w({kind:"kerb-face",from:u*(s.medianHalf+s.medianKerbTop),to:u*(s.medianHalf+s.medianKerbTop),yFrom:m,yTo:f,material:"kerb",materialId:e.kerbMaterialId,vertical:!0,density:1,name:"Median kerb face",upstand:t.upstand}),s.medianChannel>.01&&(w({kind:"gutter",from:u*(s.medianHalf+s.medianKerbTop),to:u*(s.medianHalf+s.medianKerbTop+s.medianChannel),yFrom:f,yTo:-e.crown,material:"concrete",density:1,name:"Channel (median)"}),p=s.medianHalf+s.medianKerbTop+s.medianChannel);for(let A of s.cw){let I=u*p,M=u*(p+A.width);w({kind:A.kind,from:I,to:M,yFrom:Ke(e,p),yTo:Ke(e,p+A.width),material:A.material,dir:A.dir,laneIndex:A.laneIndex,density:A.width>3.4?2:1,name:A.name}),p+=A.width}s.edgeChannel>.01&&(w({kind:"gutter",from:u*p,to:u*(p+s.edgeChannel),yFrom:-e.crown,yTo:f,material:"concrete",density:1,name:"Channel (kerb)"}),p+=s.edgeChannel);let S=p;s.kerbUpstand>.001&&e.kerb!=="none"&&w({kind:"kerb-face",from:u*p,to:u*p,yFrom:f,yTo:d,material:"kerb",materialId:e.kerbMaterialId,vertical:!0,density:1,name:"Kerb face",upstand:s.kerbUpstand}),s.kerbTop>.01&&(w({kind:"kerb-top",from:u*p,to:u*(p+s.kerbTop),yFrom:d,yTo:d,material:"kerb",materialId:e.kerbMaterialId,density:1,name:"Kerb",upstand:s.kerbUpstand}),p+=s.kerbTop);for(let A of s.outer)w({kind:A.kind,from:u*p,to:u*(p+A.width),yFrom:A.yIn,yTo:A.yOut,material:A.material,materialId:A.id,density:A.density,name:A.name}),p+=A.width;let V=u*S;return u<0&&y.reverse(),{zones:y,kerbOffset:V,extent:p}},C=k(g(-1)),P=k(g(1)),L=[];if(o&&a>.01)L.push(x({kind:"median-flush",from:-a,to:a,yFrom:Ke(e,a),yTo:Ke(e,a),material:"asphalt",density:a>1?2:1,name:"Painted median"}));else if(n)if(e.median==="barrier"){let s=Math.max(.35,e.medianWidth*.5);L.push(x({kind:"median-face",from:-s,to:-s,yFrom:-e.crown,yTo:m,material:"concrete",materialId:e.medianMaterialId,vertical:!0,density:1,name:"Barrier face L",upstand:t.upstand}),x({kind:"barrier",from:-s,to:s,yFrom:m,yTo:m,material:"concrete",materialId:e.medianMaterialId,density:2,name:"Barrier"}),x({kind:"median-face",from:s,to:s,yFrom:m,yTo:-e.crown,material:"concrete",materialId:e.medianMaterialId,vertical:!0,density:1,name:"Barrier face R",upstand:t.upstand}))}else L.push(x({kind:"median-top",from:-a,to:a,yFrom:m-.01,yTo:m-.01,material:e.median==="grass"?"grass":"concrete",materialId:e.medianMaterialId,density:e.medianWidth>3?2:1,name:"Median"}),x({kind:"kerb-top",from:a,to:a+i,yFrom:m,yTo:m,material:"kerb",materialId:e.kerbMaterialId,density:1,name:"Median kerb R",upstand:t.upstand}),x({kind:"kerb-top",from:-a-i,to:-a,yFrom:m,yTo:m,material:"kerb",materialId:e.kerbMaterialId,density:1,name:"Median kerb L",upstand:t.upstand})),L.sort((s,u)=>s.from-u.from||s.kind.localeCompare(u.kind));v.length=0,v.push(...C.zones,...L,...P.zones),v.forEach((s,u)=>{s.index=u,s.side=s.from+s.to<-1e-9?-1:s.from+s.to>1e-9?1:s.from<0?-1:s.from>0?1:0});let D=[];for(let s of v)s.kind==="lane"&&D.push({u:(s.from+s.to)/2,dir:s.dir===0?1:s.dir,index:s.laneIndex,width:s.to-s.from,kind:s.kind});D.sort((s,u)=>s.u-u.u);let E=(s,u)=>v.find(h=>h.kind===s&&(u<0?h.to<=0:h.from>=0))??null;return{spec:e,zones:v,bounds:{left:Math.min(v[0].from,v[0].to),right:Math.max(v[v.length-1].from,v[v.length-1].to)},kerb:{left:C.kerbOffset,right:P.kerbOffset},median:e.median==="none"?null:{from:-a,to:a,type:e.median,topY:m,kerbTop:i},laneCentres:D,carriagewayWidth:P.kerbOffset-C.kerbOffset,footways:{left:E("footway",-1),right:E("footway",1)},verges:{left:E("verge",-1),right:E("verge",1)},parking:{left:E("parking",-1),right:E("parking",1)},bike:{left:E("bike",-1),right:E("bike",1)},bus:{left:E("bus",-1),right:E("bus",1)},envelope:Math.max(Math.abs(Math.min(v[0].from,v[0].to)),Math.abs(Math.max(v[v.length-1].from,v[v.length-1].to)))}}function Rt(e,t={},r){let n=e.spec,o=t.crownScale??1,a=Math.max(.05,t.rampLength??1.2),i=R(t.kerbDropLeft??0,0,1),l=R(t.kerbDropRight??0,0,1),c=Math.max(0,t.widthAddLeft??0),d=Math.max(0,t.widthAddRight??0),f=Math.max(0,t.footwayAddLeft??0),m=Math.max(0,t.footwayAddRight??0),g=t.shift??0,v=-n.crown+st[n.kerb].upstand,b=-n.crown+.02,x=e.kerb.left+e.spec.gutterWidth,k=e.kerb.right-e.spec.gutterWidth,C=(Math.abs(e.median?.from??0)+Math.abs(e.median?.to??0))/2,P=t.medianWidth!==void 0?Math.max(0,t.medianWidth)/2:C,L=P-C,D=C+(e.median?.kerbTop??0)+1e-6,E=h=>{let y=Math.abs(h),w=h<0?-1:1;return Math.abs(L)>1e-9&&C>.01&&y<=D?(y=y*P/C,w*y+g):(Math.abs(L)>1e-9&&C>.01&&y>D&&(y+=L),h<0?(c>0&&y>Math.abs(x)+1e-6&&(y+=c),f>0&&y>Math.abs(e.kerb.left)+1e-6&&(y+=f)):(d>0&&y>Math.abs(k)+1e-6&&(y+=d),m>0&&y>Math.abs(e.kerb.right)+1e-6&&(y+=m)),w*y+g)},s=[],u=(h,y,w)=>{s.push({u:h,y,zones:[w.index],index:s.length,kind:w.kind,upstand:w.upstand,mat:w.material})};for(let h of e.zones){let y=Math.max(1,h.density),w=h.side<0?i:l,p=E(h.from),S=E(h.to);for(let V=0;V<=y;V++){let A=y===0?0:V/y,I=z(p,S,A),M=z(h.yFrom,h.yTo,A);if(o!==1&&h.kind!=="median-top"&&h.kind!=="kerb-top"&&h.kind!=="kerb-face"&&(M*=o),w>0)if(h.kind==="kerb-top"||h.kind==="kerb-face")M=z(M,b,w);else if(h.kind==="footway"){let B=Math.abs(I-p),F=1-St(B/a),U=b+B*1.2/100;M=z(M,z(M,U,F),w)}else h.kind==="gutter"&&(M=z(M,-n.crown,w*.6));h.kind==="kerb-top"&&w>0&&(M=z(v,b,w)),u(I,M,h)}}return s.forEach((h,y)=>h.index=y),s}function it(e,t){if(!e.length)return 0;if(t<=e[0].u)return e[0].y;for(let r=1;r<e.length;r++){let n=e[r-1],o=e[r];if(t<=o.u+1e-9)return Math.abs(o.u-n.u)<1e-9?Math.max(n.y,o.y):z(n.y,o.y,R((t-n.u)/(o.u-n.u),0,1))}return e[e.length-1].y}var Mn=(e,t)=>[e[0]-t[0],e[1]-t[1],e[2]-t[2]];function Et(e){switch(e.kind){case"line":return Math.hypot(e.b[0]-e.a[0],e.b[1]-e.a[1],e.b[2]-e.a[2]);case"arc":return Math.abs(e.sweep)*e.radius;case"cubic":return lt(e).s[lt(e).s.length-1]}}var Tt=new WeakMap;function lt(e){let t=Tt.get(e);if(!t){let n=[0],o=[0],a=e.p0,i=0;for(let l=1;l<=32;l++){let c=l/32,d=rt(e.p0,e.p1,e.p2,e.p3,c);i+=Math.hypot(d[0]-a[0],d[1]-a[1],d[2]-a[2]),a=d,n.push(c),o.push(i)}t={t:n,s:o},Tt.set(e,t)}return t}function kn(e,t){let{t:r,s:n}=lt(e),o=n[n.length-1];if(o<=1e-12)return 0;let a=R(t,0,o),i=0,l=n.length-1;for(;i<l;){let m=i+l+1>>1;n[m]<=a?i=m:l=m-1}let c=Math.min(i+1,n.length-1),d=n[c]-n[i],f=d<1e-12?0:(a-n[i])/d;return R(z(r[i],r[c],f),0,1)}function Ge(e,t){switch(e.kind){case"line":return[z(e.a[0],e.b[0],t),z(e.a[1],e.b[1],t),z(e.a[2],e.b[2],t)];case"arc":{let r=e.startAngle+e.sweep*t;return[e.centre[0]+Math.cos(r)*e.radius,z(e.y0,e.y1,t),e.centre[2]+Math.sin(r)*e.radius]}case"cubic":return rt(e.p0,e.p1,e.p2,e.p3,t)}}function Wt(e,t){switch(e.kind){case"line":{let r=Mn(e.b,e.a),n=Math.hypot(r[0],r[1],r[2])||1;return[r[0]/n,r[1]/n,r[2]/n]}case"arc":{let r=e.startAngle+e.sweep*t,n=e.sweep>=0?1:-1,o=-Math.sin(r)*n,a=Math.cos(r)*n,i=(e.y1-e.y0)/Math.max(1e-6,Math.abs(e.sweep)*e.radius),l=Math.hypot(o,i,a)||1;return[o/l,i/l,a/l]}case"cubic":{let r=at(e.p0,e.p1,e.p2,e.p3,t),n=Math.hypot(r[0],r[1],r[2])||1;return[r[0]/n,r[1]/n,r[2]/n]}}}function Dt(e,t){switch(e.kind){case"line":return 0;case"arc":return(e.sweep>=0?1:-1)/Math.max(1e-6,e.radius);case"cubic":{let r=at(e.p0,e.p1,e.p2,e.p3,t),n=Bt(e.p0,e.p1,e.p2,e.p3,t),o=Math.hypot(r[0],r[2])||1e-6;return-((r[2]*n[0]-r[0]*n[2])/Math.pow(o,3))}}}var Te=class e{pieces=[];lens=[];total=-1;static fromLine(t,r){let n=new e;return n.pieces=[{kind:"line",a:t,b:r}],n}static fromCubic(t,r,n,o){let a=new e;return a.pieces=[{kind:"cubic",p0:t,p1:r,p2:n,p3:o}],a}static fromArc(t,r,n,o,a=0,i=0){let l=new e;return l.pieces=[{kind:"arc",centre:t,radius:r,startAngle:n,sweep:o,y0:a,y1:i}],l}clone(){let t=new e;return t.pieces=this.pieces.map(r=>({...r})),t}append(t){return this.pieces.push(...t.pieces.map(r=>({...r}))),this.total=-1,this}prepend(t){return this.pieces.unshift(...t.pieces.map(r=>({...r}))),this.total=-1,this}get length(){return this.total<0&&(this.lens=this.pieces.map(Et),this.total=this.lens.reduce((t,r)=>t+r,0)),this.total}locate(t){let r=this.length,n=R(t,0,r),o=0;for(let i=0;i<this.pieces.length;i++){let l=this.lens[i];if(n<=o+l+1e-9){let c=this.pieces[i],d=R(n-o,0,l),f=c.kind==="cubic"?kn(c,d):l<1e-9?0:d/l;return{index:i,t:R(f,0,1)}}o+=l}return{index:this.pieces.length-1,t:1}}pointAt(t){let{index:r,t:n}=this.locate(t),o=this.pieces[r];return{p:Ge(o,n),t:Wt(o,n),s:R(t,0,this.length),k:Dt(o,n),piece:r}}positionAt(t){let{index:r,t:n}=this.locate(t);return Ge(this.pieces[r],n)}tangentAt(t){let{index:r,t:n}=this.locate(t);return Wt(this.pieces[r],n)}curvatureAt(t){let{index:r,t:n}=this.locate(t);return Dt(this.pieces[r],n)}trimmed(t,r){let n=R(Math.min(t,r),0,this.length),o=R(Math.max(t,r),0,this.length),a=[],i=0;for(let c=0;c<this.pieces.length;c++){let d=this.pieces[c],f=this.lens[c]||Et(d),m=i,g=i+f;if(i=g,g<=n+1e-9||m>=o-1e-9)continue;let v=f<1e-9?0:R((Math.max(n,m)-m)/f,0,1),b=f<1e-9?1:R((Math.min(o,g)-m)/f,0,1),x=Sn(d,v,b);x&&a.push(x)}let l=new e;return l.pieces=a,l}splitAt(t){let n=[0,...[...new Set(t.map(a=>R(a,0,this.length)))].sort((a,i)=>a-i).filter(a=>a>1e-6&&a<this.length-1e-6),this.length],o=[];for(let a=1;a<n.length;a++)o.push(this.trimmed(n[a-1],n[a]));return o}polyline(t){let r=Math.max(2,Math.ceil(this.length/Math.max(.05,t))+1),n=[];for(let o=0;o<r;o++)n.push(this.positionAt(this.length*o/(r-1)));return n}adaptiveStations(t,r=.25){let n=[0],o=0,a=this.length;for(;o<a-1e-6;){let i=Math.abs(this.curvatureAt(o+.5)),l=i>1e-6?1/i:1e6,c=Math.sqrt(8*.012*l),d=R(Math.min(t,Math.max(r,c)),r,t);o=Math.min(a,o+d),n.push(o)}return n[n.length-1]<a&&n.push(a),n}planLength(){return this.polyline(1).reduce((t,r,n,o)=>n===0?0:t+Math.hypot(r[0]-o[n-1][0],r[2]-o[n-1][2]),0)}};function Sn(e,t,r){if(r-t<1e-9)return null;switch(e.kind){case"line":{let n=Ge(e,t),o=Ge(e,r);return{kind:"line",a:n,b:o}}case"arc":{let n=e.startAngle+e.sweep*t,o=e.sweep*(r-t),a=z(e.y0,e.y1,t),i=z(e.y0,e.y1,r);return{kind:"arc",centre:e.centre,radius:e.radius,startAngle:n,sweep:o,y0:a,y1:i}}case"cubic":{let[n,o,,,,,a]=Ot(e.p0,e.p1,e.p2,e.p3,r);if(t<=1e-9)return{kind:"cubic",p0:e.p0,p1:e.p1,p2:e.p2,p3:e.p3};let[i,l,c,d]=Ot(n,o,e.p2,a,t/Math.max(1e-9,r));return{kind:"cubic",p0:i,p1:l,p2:c,p3:d}}}}function Vn(e,t,r,n,o){let a=Ae(e,t,o),i=Ae(t,r,o),l=Ae(r,n,o),c=Ae(a,i,o),d=Ae(i,l,o),f=Ae(c,d,o);return[[e,a,c,f],[f,d,l,n]]}function Ae(e,t,r){return[z(e[0],t[0],r),z(e[1],t[1],r),z(e[2],t[2],r)]}function Ot(e,t,r,n,o){let[a,i]=Vn(e,t,r,n,o);return[...a,...i.slice(1)]}var An=.42,We=(e,t)=>`${e}|${t}`;function Ft(e,t=[]){let r=new Map;for(let l of e.edges)r.has(l.a)||r.set(l.a,[]),r.has(l.b)||r.set(l.b,[]),r.get(l.a).push(l),r.get(l.b).push(l);let n=new Map(e.nodes.map(l=>[l.id,l])),o=new Map,a=new Map,i=(l,c)=>{let d=n.get(l),f=n.get(c),m=Z([f.x,f.z],[d.x,d.z]),g=re(m);return{dir:g<1e-6?[1,0]:Q(m),dist:g}};for(let l of e.edges){let c=i(l.a,l.b),d={dir:H(c.dir,-1),dist:c.dist},f=(x,k,C)=>{let P=n.get(x),L=r.get(x)??[],D=R(P.tension,.05,1),E=L.map(h=>{let y=h.a===x?h.b:h.a;if(y===x)return null;let w=i(x,y);return{id:y,dir:w.dir,dist:w.dist,edge:h}}).filter(h=>!!h&&h.dist>1e-4),s=C.dir;if(E.length===2){let[h,y]=E,w=Z([n.get(y.id).x,n.get(y.id).z],[n.get(h.id).x,n.get(h.id).z]);if(re(w)>1e-4){let p=Q(w);s=p[0]*C.dir[0]+p[1]*C.dir[1]>=0?p:H(p,-1)}}let u=Math.min(C.dist*An*D,70);return{dir:s,mag:u,tension:D,node:P,count:L.length}},m=f(l.a,l.b,c),g=f(l.b,l.a,d),v=l.ha&&re(l.ha)>.05?l.ha:H(m.dir,m.mag),b=l.hb&&re(l.hb)>.05?l.hb:H(g.dir,g.mag);o.set(We(l.id,"a"),v),o.set(We(l.id,"b"),b),a.set(l.a,m.tension),a.set(l.b,g.tension)}for(let l of e.nodes){let c=r.get(l.id)??[];if(c.length<3)continue;let d=(l.junction.minAngle||e.settings.angleConstraint||40)*(Math.PI/180),f=c.map(m=>{let g=m.a===l.id?m.b:m.a,v=i(l.id,g),b=m.a===l.id?1:-1;return{edge:m,dir:v.dir,dist:v.dist,flip:b,key:We(m.id,b===1?"a":"b")}});f.sort((m,g)=>ce(m.dir)-ce(g.dir));for(let m=0;m<f.length;m++){let g=f[m],v=f[(m+1)%f.length],b=Pn(f.map(E=>E.dir),m,(m+1)%f.length);if(b>Math.PI&&(b=Math.PI*2-b),b>=d-1e-4)continue;let x=d-b,k=g.dist<=v.dist?g:v,C=k===g?-1:1,P=ce(k.dir)+C*x*.5,L=[Math.sin(P),Math.cos(P)],D=re(o.get(k.key)??[0,0])||k.dist*.25;o.set(k.key,H(L,D)),k.dir=L,t.push({level:"warn",nodeId:l.id,edgeId:k.edge.id,message:`${k.edge.name||"Road"}: junction angle widened to ${((b+x*.5)*(180/Math.PI)).toFixed(0)}\xB0 (minimum ${(d*180/Math.PI).toFixed(0)}\xB0) so the intersection stays clean.`})}}return{handles:o,nodeTension:a}}function Pn(e,t,r){let n=ce(e[t]),a=ce(e[r])-n;for(;a<0;)a+=Math.PI*2;for(;a>Math.PI*2;)a-=Math.PI*2;return a}function Cn(e){let t=new Map;for(let r of e.nodes)t.set(r.id,[]);for(let r of e.edges)t.has(r.a)&&t.get(r.a).push(r),t.has(r.b)&&t.get(r.b).push(r);return t}function zt(e,t,r,n){let o=Cn(e),a=new Map(e.nodes.map(f=>[f.id,f])),i=new Set,l=[],c=f=>{let m=a.get(f);if(!m)return!1;let g=o.get(f)??[];if(g.length!==2||m.corner||m.kind==="junction"||m.kind==="roundabout"||m.kind==="dead-end"||m.kind==="crossing")return!1;let[v,b]=g;return!(v.spec.class!==b.spec.class||v.rail===null!=(b.rail===null)||v.layerId!==b.layerId)},d=(f,m)=>{if(i.has(f.id))return;let g=[],v=[],b=[],x=m,k=f;for(;k&&!i.has(k.id);){i.add(k.id);let C=k.a!==x,P=C?k.a:k.b;if(g.push(k),v.push(a.get(x)),b.push(C),x=P,!c(x))break;k=(o.get(x)??[]).find(L=>!i.has(L.id))??null}v.push(a.get(x)),l.push(Bn(g,v,b,r,n))};for(let f of e.edges)if(!i.has(f.id)){for(let m of[f.a,f.b])!i.has(f.id)&&!c(m)&&d(f,m);i.has(f.id)||d(f,f.a)}return{corridors:l,incident:o}}function Bn(e,t,r,n,o){let a=new Te,i=[],l=0;for(let m=0;m<e.length;m++){let g=e[m],v=t[m],b=t[m+1],x=!r[m],k=[v.x,v.z],C=[b.x,b.z],P=o.get(We(g.id,x?"a":"b"))??[0,0],L=o.get(We(g.id,x?"b":"a"))??[0,0],D=j(k,P),E=j(C,L),s=ne(k,C),u=Math.max(.5,s*.75),h=Z(D,k),y=Z(E,C);re(h)>u&&(D=j(k,H(Q(h),u))),re(y)>u&&(E=j(C,H(Q(y),u))),i.push(l);let w=[k[0],0,k[1]],p=[D[0],0,D[1]],S=[E[0],0,E[1]],V=[C[0],0,C[1]],A=Te.fromCubic(w,p,S,V);l+=A.length,a.append(A)}i.push(l);let c=t.map(m=>m.y),d=Ln(i,c);for(let m=0;m<e.length;m++){let g=Math.abs((c[m+1]-c[m])/Math.max(1,i[m+1]-i[m]));g>.1&&n.push({level:"warn",edgeId:e[m].id,message:`${e[m].name||"Road"}: ${(g*100).toFixed(1)}% grade exceeds 10% \u2014 check node elevations.`})}let f=e.reduce((m,g)=>g.spec.priority>m.priority?g.spec:m,e[0].spec);return{id:`c_${e[0].id}`,name:e.length===1?e[0].name:`${e[0].name||"Road"} \u2014 corridor`,edges:e,nodes:t,flipped:r,path:a,nodeStations:i,length:l,elevationAt:d,gradeAt:m=>d(m+.5)-d(m-.5),bankAt:()=>0,start:{kind:"free",nodeId:t[0].id,station:0,trim:0,flipped:r[0]??!1},end:{kind:"free",nodeId:t[t.length-1].id,station:l,trim:l,flipped:r[r.length-1]??!1},spec:f,layerId:e[0].layerId,hidden:e.every(m=>m.hidden)}}function Ln(e,t){let r=e.length;if(r===0)return()=>0;if(r===1)return()=>t[0];let n=new Array(r).fill(0);for(let o=1;o<r-1;o++){let a=(t[o]-t[o-1])/Math.max(1e-6,e[o]-e[o-1]),i=(t[o+1]-t[o])/Math.max(1e-6,e[o+1]-e[o]);n[o]=a*i<=0?0:R((a+i)/2,-.12,.12)}return o=>{let a=R(o,e[0],e[r-1]),i=0;for(;i<r-2&&e[i+1]<a;)i++;let l=Math.max(1e-6,e[i+1]-e[i]),c=R((a-e[i])/l,0,1),d=c*c,f=d*c;return(2*f-3*d+1)*t[i]+(f-2*d+c)*l*n[i]+(-2*f+3*d)*t[i+1]+(f-d)*l*n[i+1]}}function Ut(e){let t=new Map;for(let r of e){let n=["start","end"];for(let o of n){let a=o==="start"?0:r.nodes.length-1,i=r.nodes[a],l=o==="start"?0:r.edges.length-1,c=r.edges[l],d=r.nodeStations[a],f=R(r.length*.06,.5,8),m=o==="start"?Math.min(r.length,d+f):Math.max(0,d-f),g=r.path.positionAt(m),v=r.path.positionAt(d),b=o==="start"?Z([g[0],g[2]],[v[0],v[2]]):Z([v[0],v[2]],[g[0],g[2]]),x=re(b)<1e-6?[1,0]:Q(b),k=o==="start"?(r.elevationAt(m)-r.elevationAt(d))/Math.max(1e-6,f):(r.elevationAt(d)-r.elevationAt(m))/Math.max(1e-6,f),C=r.flipped[l]?-1:1,P={id:`arm_${c.id}_${o}`,node:i,edge:c,corridor:r,end:o,dirOut:x,tangentOut:[x[0],k,x[1]],profile:qe(c.spec),nodeStation:d,flip:C,pos:[i.x,i.z],edgeEnd:C===1?"a":"b"};t.has(i.id)||t.set(i.id,[]),t.get(i.id).push(P)}}for(let r of t.values())r.sort((n,o)=>ce(n.dirOut)-ce(o.dirOut));return t}function ct(e,t){let r=0;for(;r<e.edges.length-1&&e.nodeStations[r+1]<t;)r++;let n=e.nodeStations[r],o=e.nodeStations[r+1]-n,a=e.flipped[r]?o-(t-n):t-n;return{edge:e.edges[r],index:r,local:a}}function Ht(e,t){let r=e.spec,n=Math.max(6,r.speedLimit/3.6),o=9.81,a=Math.tan(r.superElevationMax*Math.PI/180),i=e.path.adaptiveStations(Math.max(2,e.length/30),1),l=[];for(let c of i){let d=e.path.curvatureAt(c),f=R(-d*n*n/o,-a,a);for(let[m,g]of t){let v=c<m?m-c:c>g?c-g:0,b=Math.abs(f)<1e-5?12:Math.max(12,Math.abs(f)/.005*1.2);f*=Re(R(v/b,0,1))}l.push({s:c,e:f})}for(let c=1;c<l.length;c++){let f=.004*Math.max(1e-6,l[c].s-l[c-1].s),m=l[c].e-l[c-1].e;Math.abs(m)>f&&(l[c].e=l[c-1].e+Math.sign(m)*f)}e.bankAt=c=>{if(!l.length)return 0;for(let d=1;d<l.length;d++)if(l[d].s>=c){let f=R((c-l[d-1].s)/Math.max(1e-6,l[d].s-l[d-1].s),0,1);return z(l[d-1].e,l[d].e,f)}return l[l.length-1].e}}function In(e,t,r,n){let o={},a=r;for(let i of t.features){let l=Math.max(.01,i.length/2),c=a>=i.station-l&&a<=i.station+l,d=i.length>.01?R((a-(i.station-l))/i.length,0,1):.5,f=Math.sin(R(d,0,1)*Math.PI);switch(i.kind){case"bus-bay":case"bus-stop":case"parking-bay":case"loading-bay":case"kerb-extension":case"chicane":{if(!c&&i.kind!=="kerb-extension")break;let m=i.width||2.06,g=i.side==="left"?"widthAddLeft":"widthAddRight";o[g]=(o[g]??0)+m*f;break}case"driveway":case"field-entry":case"crossing-zebra":case"crossing-signal":case"crossing-unsignalised":case"crossing-raised":{if(!c)break;let m=1;(i.side==="both"||i.side==="left")&&(o.kerbDropLeft=Math.max(o.kerbDropLeft??0,m)),(i.side==="both"||i.side==="right")&&(o.kerbDropRight=Math.max(o.kerbDropRight??0,m));let g=t.spec.left.footway?.width??t.spec.right.footway?.width??1.2;o.rampLength=Math.max(o.rampLength??1.2,Math.min(2.2,g));break}default:break}}return n>0&&(o.footwayAddLeft=(o.footwayAddLeft??0)+n,o.footwayAddRight=(o.footwayAddRight??0)+n),o}function ke(e,t,r,n=[],o){let{edge:a,index:i,local:l}=ct(e,r),c=In(e,a,l,0);for(let d of n){if(d.kind!=="junction")continue;let f=Math.abs(r-d.mouth);if(d.medianTaper>0&&f<d.medianTaper){let m=t.spec.medianWidth,g=Re(R(f/d.medianTaper,0,1));c.medianWidth=Math.min(c.medianWidth??m,m*g)}if(d.footwayTaper>0&&f<25){let m=Re(R(f/25,0,1));c.footwayAddLeft=(c.footwayAddLeft??0)+d.footwayTaper*m,c.footwayAddRight=(c.footwayAddRight??0)+d.footwayTaper*m}if(d.widthAdd>0&&f<40){let m=Re(R(f/40,0,1));c.widthAddRight=(c.widthAddRight??0)+d.widthAdd*m}}return Rt(t,c)}var ut={motorway:30,expressway:24,arterial:15,boulevard:12,avenue:11,street:9,local:6,lane:4.5,alley:2.5,service:5,ramp:20,roundabout:8,"parking-aisle":4,cycleway:3,footpath:1.5,rail:40,tram:12},Rn=148*Math.PI/180,En=.35,Pe=1.1,dt=60,Kt=.35;function Nt(e,t,r,n){let o=t[0].node,a=[],i=[],l=[],c=t.map(s=>({arm:s,bearing:ce(s.dirOut)})).sort((s,u)=>s.bearing-u.bearing).map(s=>s.arm);for(let s=0;s<c.length;s++){let u=c[s],h=n.get(u.edge.id)??u.profile,y=u.dirOut,w=[y[1],-y[0]],p=u.flip>0?h.kerb.left:-h.kerb.right,S=u.flip>0?h.kerb.right:-h.kerb.left,V=I=>u.end==="start"?u.nodeStation+I:u.nodeStation-I,A=I=>u.flip>0?I:-I;l.push({arm:u,index:s,bearing:ce(y),outDir:y,rightDir:w,kerb:{left:p,right:S},nodeStation:u.nodeStation,end:u.end,stationLeft:0,stationRight:0,floor:Pe,mouthOffsets:[],mouthProfile:[],ringStart:-1,ringEnd:-1,roadOffset:A,flipOffset:I=>u.flip>0?I:-I,corridorStation:V,outwardNormal:I=>I==="right"?w:[-w[0],-w[1]]})}let d=l.length,f=(s,u)=>{let h=s.arm.corridor,y=s.corridorStation(u),w=R(y-1,0,h.path.length),p=R(y+1,0,h.path.length),S=h.path.positionAt(w),V=h.path.positionAt(p),A=Q([V[0]-S[0],V[2]-S[2]]);return re(A)<1e-6?s.outDir:fe(A,s.outDir)>=0?A:H(A,-1)},m=(s,u,h)=>{let y=h==="left"?s.kerb.left:s.kerb.right,w=s.corridorStation(u),p=s.arm.corridor.path.positionAt(w),S=f(s,u),V=[S[1],-S[0]];return j([p[0],p[2]],H(V,y))},g=(s,u,h)=>({p:m(s,u,h),d:f(s,u)});for(let s of l){let u=Pe,h=Math.max(Math.abs(s.kerb.left),Math.abs(s.kerb.right));for(let w of l){if(w===s)continue;let p=Math.abs(Math.sin(w.bearing-s.bearing)),S=Math.max(Math.abs(w.kerb.left),Math.abs(w.kerb.right));if(p<En){if(!(Math.cos(w.bearing-s.bearing)>0))continue;u=Math.max(u,Math.min(S,h)*.35+Kt);continue}u=Math.max(u,S/p+Kt)}let y=Math.max(Pe,Math.min(dt,s.arm.corridor.length*.42));s.floor=R(u,Pe,y)}let v=s=>Math.max(3,Math.min(25,s.arm.corridor.length*.12)),b=[];for(let s=0;s<d;s++){let u=l[s],h=l[(s+1)%d],y=v(u),w=v(h),p=h.bearing-u.bearing;for(;p<0;)p+=oe;for(;p>oe;)p-=oe;let S=p>Math.PI?oe-p:p,V="right",A="left",I=g(u,y,V),M=g(h,w,A),B=ve(I.d,M.d),F=null;if(Math.abs(B)>1e-6){let me=Z(M.p,I.p),pe=ve(me,M.d)/B;F=j(I.p,H(I.d,pe))}let U=ut[u.arm.edge.spec.class]??8,T=ut[h.arm.edge.spec.class]??8,N=(o.junction.radius>0?o.junction.radius:(U+T)/2)*R(o.junction.radiusScale||1,.1,4),$=Math.max(Pe,Math.min(dt,u.arm.corridor.length*.9)),q=Math.max(Pe,Math.min(dt,h.arm.corridor.length*.9)),O=V==="right"?u.kerb.right:u.kerb.left,te=A==="right"?h.kerb.right:h.kerb.left;if(!F||S>Rn){b.push({index:s,armA:s,armB:(s+1)%d,kind:"open",V:F,radius:0,centre:null,startAngle:0,sweep:0,tangencyA:0,tangencyB:0,sideA:V,sideB:A,offsetA:O,offsetB:te,midPoints:[],bandsA:[],bandsB:[],feasible:!0,note:"through road \u2014 kerb continues"});continue}let ee=R(S,.04,Math.PI-.02)/2,Y=f(u,y),he=f(h,w),Be=Q(j(Y,he)),yt=me=>{let pe=me/Math.tan(ee),ye=j(F,H(Y,pe)),He=j(F,H(he,pe)),Le=j(F,H(Be,me/Math.max(1e-6,Math.sin(ee)))),wt=Math.atan2(ye[1]-Le[1],ye[0]-Le[0]),Ie=Math.atan2(He[1]-Le[1],He[0]-Le[0])-wt;for(;Ie>Math.PI;)Ie-=oe;for(;Ie<-Math.PI;)Ie+=oe;let Xe=fe(Z(ye,u.arm.pos),u.outDir),et=fe(Z(He,h.arm.pos),h.outDir);return{ok:Xe>=.2&&et>=.2&&Xe<=<script type="module" src="./dist/app.js"></script>&et<=q&&me>0,taStation:Xe,tbStation:et,taPoint:ye,tbPoint:He,centre:Le,startAngle:wt,sweep:Ie,r:me}},de=yt(0),vt=0,xt=N;if(de.taStation<=<script type="module" src="./dist/app.js"></script>&de.tbStation<=q&&N>.05)for(let me=0;me<26;me++){let pe=(vt+xt)/2,ye=yt(pe);ye.ok?(vt=pe,de=ye):xt=pe}let Qe=de.r,Ye=Qe<.75&&S<35*Math.PI/180,an={index:s,armA:s,armB:(s+1)%d,kind:"fillet",V:F,radius:Qe,centre:Qe>.001?de.centre:null,startAngle:de.startAngle,sweep:de.sweep,tangencyA:de.taStation,tangencyB:de.tbStation,sideA:V,sideB:A,offsetA:O,offsetB:te,midPoints:[],bandsA:[],bandsB:[],feasible:!Ye,note:Ye?"kerb return below 0.75 m":""};Ye&&i.push(`${o.name||"Junction"}: ${Math.round(S*180/Math.PI)}\xB0 between arms ${s+1} and ${s+2} is too tight for a kerb return \u2014 widen the angle or shorten the arms.`),b.push(an)}for(let s of l)s.stationLeft=s.floor,s.stationRight=s.floor;for(let s of b){if(s.kind==="open")continue;let u=l[s.armA],h=l[s.armB];s.sideA==="right"?u.stationRight=Math.max(u.stationRight,s.tangencyA):u.stationLeft=Math.max(u.stationLeft,s.tangencyA),s.sideB==="left"?h.stationLeft=Math.max(h.stationLeft,s.tangencyB):h.stationRight=Math.max(h.stationRight,s.tangencyB)}let x=s=>({a:m(s,s.stationLeft,"left"),b:m(s,s.stationRight,"right")});for(let s=0;s<8;s++){let u=!1;for(let h=0;h<d&&!u;h++)for(let y=h+1;y<d&&!u;y++){let w=l[h],p=l[y];Wn(x(w),x(p))&&(w.stationLeft+=.8,w.stationRight+=.8,p.stationLeft+=.8,p.stationRight+=.8,u=!0)}if(!u)break}let k=new Map;for(let s of l){let u=s.arm.edge.spec,h=(s.stationLeft+s.stationRight)/2,y=ut[u.class]??8,p=u.median!=="none"&&u.median!=="painted"?R(h-.4,0,Math.max(4,Math.min(16,y*.9))):0;k.set(`${s.arm.corridor.id}|${s.arm.end}`,{kind:"junction",mouth:s.corridorStation(h),nodeStation:s.nodeStation,medianTaper:p,footwayTaper:0,widthAdd:0})}for(let s of l){let u=n.get(s.arm.edge.id)??s.arm.profile,h=(s.stationLeft+s.stationRight)/2,y=k.get(`${s.arm.corridor.id}|${s.arm.end}`),w=ke(s.arm.corridor,u,s.corridorStation(h),y?[y]:[],r);s.mouthProfile=w;let p=[];for(let S of w){let V=s.flipOffset(S.u);V>=s.kerb.left-1e-6&&V<=s.kerb.right+1e-6&&(p.some(A=>Math.abs(A-V)<1e-6)||p.push(V))}p.sort((S,V)=>S-V),(!p.length||Math.abs(p[0]-s.kerb.left)>1e-6)&&p.unshift(s.kerb.left),Math.abs(p[p.length-1]-s.kerb.right)>1e-6&&p.push(s.kerb.right),s.mouthOffsets=p,p.length<3&&i.push(`${o.name||"Junction"}: arm ${s.index+1} produced a degenerate mouth.`)}let C=(s,u,h,y)=>{let w=n.get(s.arm.edge.id)??s.arm.profile,p=s.corridorStation(h),S=ke(s.arm.corridor,w,p,y,r),V=u==="right"?s.kerb.right:s.kerb.left,A=[];for(let I of S){let M=s.flipOffset(I.u);if(u==="right"&&M<V-1e-6||u==="left"&&M>V+1e-6)continue;let B=u==="right"?M-V:V-M;A.push({offset:B,y:I.y+Math.tan(s.arm.corridor.bankAt(p))*s.roadOffset(M)+s.arm.corridor.elevationAt(p),mat:I.mat,kind:I.kind,vertical:!1})}for(let I=1;I<A.length;I++)Math.abs(A[I].offset-A[I-1].offset)<1e-6&&(A[I-1].vertical=!0,A[I].y>A[I-1].y&&(A[I-1].mat=A[I].mat));return A};for(let s of b){let u=l[s.armA],h=l[s.armB],y=k.get(`${u.arm.corridor.id}|${u.arm.end}`),w=k.get(`${h.arm.corridor.id}|${h.arm.end}`),p=y?[y]:[],S=w?[w]:[],V=s.sideA==="right"?u.stationRight:u.stationLeft,A=s.sideB==="left"?h.stationLeft:h.stationRight;s.bandsA=C(u,s.sideA,V,p),s.bandsB=C(h,s.sideB,A,S);let I=m(u,V,s.sideA),M=m(h,A,s.sideB),B=[],F=u.outwardNormal(s.sideA),U=h.outwardNormal(s.sideB);if(s.kind!=="open"){if(s.tangencyA<V-.05){let O=m(u,s.tangencyA,s.sideA);B.push({p:O,y:0,t:0,outward:F,arc:!1})}if(s.centre&&s.radius>.001){let O=Math.abs(s.sweep)*s.radius,le=Math.max(4,Math.round(R(O/(r==="cinematic"?.3:r==="high"?.5:r==="standard"?.9:1.6),4,72)));for(let ee=1;ee<le;ee++){let Y=s.startAngle+s.sweep*ee/le,he=[s.centre[0]+Math.cos(Y)*s.radius,s.centre[1]+Math.sin(Y)*s.radius],Be=Q(Z(he,s.centre));B.push({p:he,y:0,t:0,outward:Be,arc:!0})}}else if(s.V){let O=s.V;ne(O,I)>.25&&ne(O,M)>.25&&B.push({p:O,y:0,t:.5,outward:Q(j(F,U)),arc:!1})}if(s.tangencyB<A-.05){let O=m(h,s.tangencyB,s.sideB);B.push({p:O,y:0,t:1,outward:U,arc:!1})}}let T=[{p:I,outward:F,arc:!1},...B.map(O=>({p:O.p,outward:O.outward,arc:O.arc})),{p:M,outward:U,arc:!1}],G=[0];for(let O=1;O<T.length;O++)G.push(G[O-1]+ne(T[O-1].p,T[O].p));let N=Math.max(1e-6,G[G.length-1]),$=s.bandsA[0]?.y??0,q=s.bandsB[0]?.y??0;for(let O=0;O<B.length;O++){let te=G[O+1]/N;B[O].t=te,B[O].y=z($,q,te)}s.midPoints=B}let P=[];for(let s=0;s<d;s++){let u=l[s];u.ringStart=P.length;for(let h=0;h<u.mouthOffsets.length;h++){let y=u.mouthOffsets[h],w=R((y-u.kerb.left)/Math.max(1e-6,u.kerb.right-u.kerb.left),0,1),p=z(u.stationLeft,u.stationRight,w),S=k.get(`${u.arm.corridor.id}|${u.arm.end}`),V=mt(u,y,p,n,r,S?[S]:[]);P.push({p:V.p,y:V.y,arm:s,corner:-1,roadOffset:u.roadOffset(y),kind:"mouth"})}u.ringEnd=P.length-1;for(let h of b[s].midPoints)P.push({p:h.p,y:h.y,arm:-1,corner:s,roadOffset:0,kind:"corner"})}let L=Dn(P.map(s=>s.p)),D=P.map(s=>s.y),E=D.reduce((s,u)=>s+u,0)/Math.max(1,D.length);return{nodeId:o.id,nodeIndex:e,name:o.name,arms:l,corners:b,ring:P,centre:L,centreY:E,diagnostics:a,warnings:i,area:Math.abs(Tn(P.map(s=>s.p))),signalised:o.junction.signalised,endStates:k}}function Ce(e,t){if(!e.length)return 0;if(t<=e[0].offset)return e[0].y;for(let r=1;r<e.length;r++){let n=e[r-1],o=e[r];if(t<=o.offset+1e-9)return Math.abs(o.offset-n.offset)<1e-9?Math.max(n.y,o.y):z(n.y,o.y,R((t-n.offset)/(o.offset-n.offset),0,1))}return e[e.length-1].y}function Tn(e){let t=0;for(let r=0,n=e.length-1;r<e.length;n=r++)t+=e[n][0]*e[r][1]-e[r][0]*e[n][1];return t/2}function Wn(e,t){let r=Z(e.b,e.a),n=Z(t.b,t.a),o=ve(r,n);if(Math.abs(o)<1e-9)return!1;let a=Z(t.a,e.a),i=ve(a,n)/o,l=ve(a,r)/o,c=.02;return i>c&&i<1-c&&l>c&&l<1-c}function mt(e,t,r,n,o,a=[]){let i=e.arm.corridor,l=e.corridorStation(r),c=i.path.positionAt(l),d=R(l-1,0,i.path.length),f=R(l+1,0,i.path.length),m=i.path.positionAt(d),g=i.path.positionAt(f),v=Q([g[0]-m[0],g[2]-m[2]]);re(v)<1e-6&&(v=e.outDir),fe(v,e.outDir)<0&&(v=H(v,-1));let b=[v[1],-v[0]],x=j([c[0],c[2]],H(b,t)),k=n.get(e.arm.edge.id)??e.arm.profile,C=ke(i,k,l,a,o),P=e.roadOffset(t),L=i.elevationAt(l)+it(C,P)+Math.tan(i.bankAt(l))*P;return{p:x,y:L}}function Dn(e){let t=ot(e);for(let r=0;r<40;r++){let n=1/0,o=null;for(let d=0,f=e.length-1;d<e.length;f=d++){let m=On(t,e[f],e[d]);m<n&&(n=m,o=[e[f],e[d]])}if(n>.2||!o)break;let[a,i]=o,l=H(j(a,i),.5),c=Q(Z(t,l));t=j(l,H(c,Math.max(.3,n*1.5)))}if(!qt(t,e)){let r=ot(e);for(let n=1;n<=24;n++){let o=j(r,H(Z(t,r),n/24));if(qt(o,e))return o}}return t}function On(e,t,r){let n=Z(r,t),o=fe(n,n),a=o<1e-12?0:R(fe(Z(e,t),n)/o,0,1);return ne(e,j(t,H(n,a)))}function qt(e,t){let r=!1;for(let n=0,o=t.length-1;n<t.length;o=n++){let a=t[n][1],i=t[o][1];a>e[1]!=i>e[1]&&e[0]<(t[o][0]-t[n][0])*(e[1]-a)/(i-a+1e-12)+t[n][0]&&(r=!r)}return r}function $t(e,t){let{builder:r}=t,n=e.ring,o=n.length;if(o<6)return 0;let a=e.centre,i=e.centreY,l=t.junctionMat,c=r.vertexCount,d=r.quadCount,f=[0];for(let M=1;M<o;M++)f.push(f[M-1]+ne(n[M-1].p,n[M].p));let m=Math.max(.001,f[o-1]+ne(n[o-1].p,n[0].p)),g=n.map(M=>ne(M.p,a)),v=Math.max(.5,Math.min(...g)),b=R(v*.36,.45,7),x=(M,B)=>[f[M]*.25,B*.25],k=(M,B,F,U)=>r.addVertex({p:[M[0],B,M[1]],n:[0,1,0],uv:x(F,U),uv2:[M[0],M[1]],mat:l,tint:[1,1,1,1]}),C=[],P=[],L=[];for(let M=0;M<o;M++){let B=Math.max(.001,g[M]),F=R(1-b/B,.32,.93),U=j(a,H(Z(n[M].p,a),F)),T=z(n[M].y,i,1-F);L.push({p:U,y:T}),C.push(k(n[M].p,n[M].y,M,0)),P.push(k(U,T,M,b))}let D=v>9?3:v>4.5?2:1,E=C;for(let M=1;M<=D;M++){let B=M/(D+1),F=Math.pow(B,1.25),U=[];for(let T=0;T<o;T++){let G=[z(n[T].p[0],L[T].p[0],F),z(n[T].p[1],L[T].p[1],F)],N=z(n[T].y,L[T].y,F);U.push(k(G,N,T,b*F))}for(let T=0;T<o;T++){let G=(T+1)%o;r.addQuad(E[T],E[G],U[G],U[T]),je(t,E[T],E[G],U[G],U[T])}E=U}for(let M=0;M<o;M++){let B=(M+1)%o;r.addQuad(E[M],E[B],P[B],P[M]),je(t,E[M],E[B],P[B],P[M])}let s=e.arms.reduce((M,B)=>B.arm.edge.spec.priority>M.p?{p:B.arm.edge.spec.priority,dir:B.outDir}:M,{p:-1,dir:[1,0]}).dir,u=Q(s),h=[u[1],-u[0]],y=Math.max(.35,Math.min(...L.map(M=>ne(M.p,a)))*.42),w=[{p:j(a,j(H(u,y),H(h,y))),y:i},{p:j(a,j(H(u,y),H(h,-y))),y:i},{p:j(a,j(H(u,-y),H(h,-y))),y:i},{p:j(a,j(H(u,-y),H(h,y))),y:i}],p=w.map(M=>k(M.p,M.y,0,ne(M.p,a))),S=Math.atan2(w[0].p[1]-a[1],w[0].p[0]-a[0]),V=M=>{let B=M-S;for(;B<0;)B+=oe;for(;B>=oe;)B-=oe;return B},A=w.map(M=>V(Math.atan2(M.p[1]-a[1],M.p[0]-a[0]))),I=L.map(M=>V(Math.atan2(M.p[1]-a[1],M.p[0]-a[0])));for(let M=0;M<4;M++){let B=A[M],F=M===3?oe:A[M+1],U=Math.max(1e-4,F-B),T=[];for(let q=0;q<o;q++){let O=I[q];O>=B-1e-9&&O<F-1e-9&&T.push(q)}T.sort((q,O)=>I[q]-I[O]),T.unshift(-1),T.push(-2);let G=T.length;if(G<2)continue;let N=[],$=[];for(let q=0;q<G;q++){let O=T[q],te=O===-1?B:O===-2?F:I[O],le=R((te-B)/U,0,1),ee=w[M],Y=w[(M+1)%4],he=[z(ee.p[0],Y.p[0],le),z(ee.p[1],Y.p[1],le)],Be=z(ee.y,Y.y,le);N.push(k(he,Be,O>=0?O:0,ne(he,a))),O===-1?$.push(p[M]):O===-2?$.push(p[(M+1)%4]):$.push(P[O])}for(let q=0;q+1<G;q++)r.addQuad(N[q],N[q+1],$[q+1],$[q]),je(t,N[q],N[q+1],$[q+1],$[q])}return r.addQuad(p[0],p[1],p[2],p[3]),je(t,p[0],p[1],p[2],p[3]),ft(r,c),r.quadCount-d}function je(e,t,r,n,o){let a=e.builder.verts[t],i=e.builder.verts[r],l=e.builder.verts[n],c=e.builder.verts[o];e.sheetQuads.push([a.p,i.p,l.p,c.p])}function ft(e,t){let r=e.vertexCount,n=new Float32Array(Math.max(0,r-t)*3),o=(a,i,l,c)=>{let d=(a-t)*3;d<0||d+2>=n.length||(n[d]+=i,n[d+1]+=l,n[d+2]+=c)};for(let a=0;a+2<e.tris.length;a+=3){let i=e.tris[a],l=e.tris[a+1],c=e.tris[a+2];if(i<t||l<t||c<t)continue;let d=e.verts[i].p,f=e.verts[l].p,m=e.verts[c].p,g=f[0]-d[0],v=f[1]-d[1],b=f[2]-d[2],x=m[0]-d[0],k=m[1]-d[1],C=m[2]-d[2],P=v*C-b*k,L=b*x-g*C,D=g*k-v*x;o(i,P,L,D),o(l,P,L,D),o(c,P,L,D)}for(let a=t;a<r;a++){let i=(a-t)*3,l=n[i],c=n[i+1],d=n[i+2],f=Math.hypot(l,c,d);f<1e-9?(l=0,c=1,d=0):(l/=f,c/=f,d/=f),c<0&&(l=-l,c=-c,d=-d),e.verts[a].n=[l,c,d]}}function Jt(e,t){let{builder:r}=t,n=r.quadCount;for(let o of e.corners){let a=e.arms[o.armA],i=e.arms[o.armB],l=o.bandsA,c=o.bandsB;if(l.length<2&&c.length<2)continue;let d=jt(a,o.sideA),f=jt(i,o.sideB),m=[{p:d.p,outward:a.outwardNormal(o.sideA),t:0},...o.midPoints.map(x=>({p:x.p,outward:x.outward,t:x.t})),{p:f.p,outward:i.outwardNormal(o.sideB),t:1}];if(m.length<2)continue;let g=[];for(let x of[...l,...c])x.offset<-1e-6||g.some(k=>Math.abs(k-x.offset)<1e-6)||g.push(x.offset);g.sort((x,k)=>x-k);let v=g.length;if(v<2)continue;let b=[];for(let x=0;x<m.length;x++){let k=m[x],C=[];for(let P of g){let L=z(Ce(l,P),Ce(c,P),k.t),D=[k.p[0]+k.outward[0]*P,k.p[1]+k.outward[1]*P],E=(k.t<.5?Gt(l,P):Gt(c,P))?.mat??"concrete";C.push(r.addVertex({p:[D[0],L,D[1]],n:[0,1,0],uv:[P,0],uv2:[D[0],D[1]],mat:t.matOf(E),tint:[1,1,1,1]}))}b.push(C)}for(let x=0;x+1<m.length;x++){let k=m[x],C=m[x+1],P=Z(C.p,k.p);for(let L=0;L+1<v;L++){let D=g[L],E=g[L+1],s=k.t,u=Q(j(H(k.outward,1-s),H(C.outward,s))),h=Math.abs(E-D)<1e-6,y=E-D,w=z(Ce(l,E)-Ce(l,D),Ce(c,E)-Ce(c,D),s),p;if(h)p=[u[0],0,u[1]];else{let S=[u[0]*y,w,u[1]*y],V=[P[0],0,P[1]],A=V[1]*S[2]-V[2]*S[1],I=V[2]*S[0]-V[0]*S[2],M=V[0]*S[1]-V[1]*S[0],B=Math.hypot(A,I,M)||1;p=[A/B,I/B,M/B],p[1]<0&&(p=[-p[0],-p[1],-p[2]])}for(let S of[L,L+1])r.verts[b[x][S]].n=p,r.verts[b[x+1][S]].n=p;r.addQuad(b[x][L],b[x][L+1],b[x+1][L+1],b[x+1][L])}}}return r.quadCount-n}function Gt(e,t){let r=null;for(let n of e)n.offset<=t+1e-6&&(r=n);return r??e[0]??null}function jt(e,t){let r=t==="right"?e.stationRight:e.stationLeft,n=e.corridorStation(r),o=e.arm.corridor.path.positionAt(n),a=R(n-1,0,e.arm.corridor.path.length),i=R(n+1,0,e.arm.corridor.path.length),l=e.arm.corridor.path.positionAt(a),c=e.arm.corridor.path.positionAt(i),d=Q([c[0]-l[0],c[2]-l[2]]);re(d)<1e-6&&(d=e.outDir),fe(d,e.outDir)<0&&(d=H(d,-1));let f=[d[1],-d[0]],m=t==="right"?e.kerb.right:e.kerb.left;return{p:j([o[0],o[2]],H(f,m)),y:0}}var Fn=new Set(["gutter","lane","shoulder","parking","bike","bus","median-flush","median-top","barrier","tram-track"]);function ht(e,t,r,n){let o=Math.min(t,r),a=Math.max(t,r),i=n==="cinematic"?.6:n==="high"?1.1:n==="standard"?2:3.5,l=Math.max(.001,a-o),c=Math.max(2,Math.ceil(l/i)),d=[],f=[0,.7,1.6,3,5,8,12,18];for(let g of f)o+g<a-.001&&d.push(o+g);for(let g=1;g<c;g++)d.push(o+l*g/c);for(let g=f.length-1;g>=0;g--)a-f[g]>o+.001&&d.push(a-f[g]);return d.push(a),Array.from(new Set(d.map(g=>Math.round(g*1e3)/1e3))).sort((g,v)=>g-v).filter(g=>g>=o-1e-6&&g<=a+1e-6)}function Zt(e,t,r,n,o,a,i){let l=a.quality,c=r?r.corridorStation((r.stationLeft+r.stationRight)/2):0,d=n?n.corridorStation((n.stationLeft+n.stationRight)/2):e.length,f=Math.min(c,d),m=Math.max(c,d);if(m-f<.5)return{rows:0,cols:0,quads:0};let g=ht(e,f,m,l),v=[],b=u=>i.get(u)??t,x=(u,h)=>{if(h){let T=[],G=[],N=[],$=[],q=ke(e,b(h.arm.edge.id),u,o,l);for(let O of q){let te=h.flipOffset(O.u),le=R((te-h.kerb.left)/Math.max(1e-6,h.kerb.right-h.kerb.left),0,1),ee=z(h.stationLeft,h.stationRight,le),Y=mt(h,te,ee,i,a.quality,o);T.push(te),G.push([Y.p[0],Y.y,Y.p[1]]),N.push(O),$.push(h.corridorStation(ee))}return{s:u,cs:$,samples:N,pos:G,mouth:!0}}let y=ke(e,b(ct(e,u).edge.id),u,o,l),w=e.path.positionAt(u),p=R(u-.6,0,e.path.length),S=R(u+.6,0,e.path.length),V=e.path.positionAt(p),A=e.path.positionAt(S),I=Q([A[0]-V[0],A[2]-V[2]]),M=[I[1],-I[0]],B=Math.tan(e.bankAt(u)),F=e.elevationAt(u),U=y.map(T=>[w[0]+M[0]*T.u,F+T.y+B*T.u,w[2]+M[1]*T.u]);return{s:u,cs:y.map(()=>u),samples:y,pos:U,mouth:!1}};r&&v.push(x(f,r));for(let u of g)r&&Math.abs(u-f)<1e-6||n&&Math.abs(u-m)<1e-6||v.push(x(u,null));if(n&&v.push(x(m,n)),!v.length)return{rows:0,cols:0,quads:0};let k=v[0].samples.length;if(k<2)return{rows:v.length,cols:k,quads:0};for(let u of v)if(u.samples.length!==k)return{rows:v.length,cols:k,quads:0};let C=new Map;for(let u=0;u<k;u++)for(let h of v[0].samples[u].zones)C.has(h)||C.set(h,[]),C.get(h).push(u);let P=new Float32Array(v.length*k*3);for(let u=0;u<v.length;u++){let h=v[u],y=v[Math.max(0,u-1)],w=v[Math.min(v.length-1,u+1)];for(let p=0;p<k;p++){let S=h.samples[p].zones[0],V=C.get(S)??[p],A=V.indexOf(p),I=A>0?V[A-1]:p,M=A>=0&&A<V.length-1?V[A+1]:p,B=[h.pos[M][0]-h.pos[I][0],h.pos[M][1]-h.pos[I][1],h.pos[M][2]-h.pos[I][2]],F=[w.pos[p][0]-y.pos[p][0],w.pos[p][1]-y.pos[p][1],w.pos[p][2]-y.pos[p][2]],U=F[1]*B[2]-F[2]*B[1],T=F[2]*B[0]-F[0]*B[2],G=F[0]*B[1]-F[1]*B[0],N=Math.hypot(U,T,G);N<1e-9?(U=0,T=1,G=0):(U/=N,T/=N,G/=N),T<0&&(U=-U,T=-T,G=-G);let $=(u*k+p)*3;P[$]=U,P[$+1]=T,P[$+2]=G}}let L=[],D=new Map;for(let u=0;u<v.length;u++){let h=v[u],y=[];for(let w=0;w<k;w++){let p=h.samples[w],S=t.zones[p.zones[0]],V=a.matOf(S?.material??"asphalt"),A=(u*k+w)*3,I=[P[A],P[A+1],P[A+2]],M=h.pos[w],B=`${Math.round(M[0]*256)},${Math.round(M[1]*256)},${Math.round(M[2]*256)}|${Math.round(I[0]*20)},${Math.round(I[1]*20)},${Math.round(I[2]*20)}`,F=D.get(B);if(F===void 0){let U=S?.vertical??!1,T={p:M,n:I,uv:U?[h.cs[w],M[1]]:[h.cs[w],p.u],uv2:[M[0],M[2]],mat:V,tint:[1,1,1,1]};F=a.builder.addVertex(T),D.set(B,F)}y.push(F)}L.push(y)}let E=0;for(let u=0;u+1<v.length;u++)for(let h=0;h+1<k;h++){let y=t.zones[v[0].samples[h].zones[0]]?.kind??"lane",w=L[u][h],p=L[u][h+1],S=L[u+1][h+1],V=L[u+1][h];a.builder.addQuad(w,p,S,V),Fn.has(y)&&_t(a,w,p,S,V),E+=1}let s=(u,h)=>{for(let y=0;y+1<k;y++){let w=L[u][y],p=L[u][y+1],S=a.builder.verts[w],V=a.builder.verts[p],A=[h[0],0,h[1]],I=a.builder.addVertex({p:[S.p[0],S.p[1]-.05,S.p[2]],n:A,uv:S.uv,uv2:S.uv2,mat:S.mat,tint:[1,1,1,1]}),M=a.builder.addVertex({p:[V.p[0],V.p[1]-.05,V.p[2]],n:A,uv:V.uv,uv2:V.uv2,mat:V.mat,tint:[1,1,1,1]});a.builder.addQuad(w,I,M,p)}};if(!r){let u=e.path.tangentAt(0);s(0,[-u[0],-u[2]])}if(!n){let u=e.path.tangentAt(e.length);s(v.length-1,[u[0],u[2]])}return{rows:v.length,cols:k,quads:E}}function _t(e,t,r,n,o){let a=e.builder.verts[t],i=e.builder.verts[r],l=e.builder.verts[n],c=e.builder.verts[o];e.sheetQuads.push([a.p,i.p,l.p,c.p])}function pt(e,t,r,n){let o=r==="start"?0:e.length,a=r==="start"?-1:1,i=e.path.positionAt(o),l=e.path.tangentAt(o),c=[l[0]*a,l[2]*a],d=Math.max(4.5,t.envelope+1.6),f=[i[0]+c[0]*(d-1),i[2]+c[1]*(d-1)],m=e.elevationAt(o),g=n.matOf("asphalt"),v=n.builder.quadCount,b=28,x=d*.52,k=x*.5,C=c,P=[C[1],-C[0]],L=[{p:[f[0]+C[0]*k+P[0]*k,f[1]+C[1]*k+P[1]*k],y:m},{p:[f[0]+C[0]*k-P[0]*k,f[1]+C[1]*k-P[1]*k],y:m},{p:[f[0]-C[0]*k-P[0]*k,f[1]-C[1]*k-P[1]*k],y:m},{p:[f[0]-C[0]*k+P[0]*k,f[1]-C[1]*k+P[1]*k],y:m}],D=S=>n.builder.addVertex({p:[S[0],m,S[1]],n:[0,1,0],uv:[S[0]*.25,S[1]*.25],uv2:[S[0],S[1]],mat:g,tint:[1,1,1,1]}),E=[],s=[];for(let S=0;S<=b;S++){let V=S/b*Math.PI*2;s.push(D([f[0]+Math.cos(V)*x,f[1]+Math.sin(V)*x])),E.push(D([f[0]+Math.cos(V)*d,f[1]+Math.sin(V)*d]))}for(let S=0;S<b;S++)n.builder.addQuad(s[S],s[S+1],E[S+1],E[S]),_t(n,s[S],s[S+1],E[S+1],E[S]);let u=L.map(S=>D(S.p)),h=Math.atan2(L[0].p[1]-f[1],L[0].p[0]-f[0]),y=S=>{let V=S-h;for(;V<0;)V+=Math.PI*2;for(;V>=Math.PI*2;)V-=Math.PI*2;return V},w=L.map(S=>y(Math.atan2(S.p[1]-f[1],S.p[0]-f[0]))),p=[];for(let S=0;S<=b;S++)p.push(y(S/b*Math.PI*2));for(let S=0;S<4;S++){let V=w[S],A=S===3?Math.PI*2:w[S+1],I=Math.max(1e-4,A-V),M=[-1];for(let B=0;B<=b;B++)p[B]>=V-1e-9&&p[B]<A-1e-9&&M.push(B);M.push(-2);for(let B=0;B+1<M.length;B++){let F=M[B],U=M[B+1],T=Y=>Y===-1?V:Y===-2?A:p[Y],G=R((T(F)-V)/I,0,1),N=R((T(U)-V)/I,0,1),$=L[S],q=L[(S+1)%4],O=D([z($.p[0],q.p[0],G),z($.p[1],q.p[1],G)]),te=D([z($.p[0],q.p[0],N),z($.p[1],q.p[1],N)]),le=F===-1?u[S]:s[F],ee=U===-2?u[(S+1)%4]:s[U];n.builder.addQuad(O,te,ee,le)}}return n.builder.addQuad(u[0],u[1],u[2],u[3]),ft(n.builder,n.builder.vertexCount-(b+1)*2-4),n.builder.quadCount-v}function Yt(e,t,r={}){let n=Date.now(),o=[],a=new xe,i=[],{handles:l}=Ft(e,o),{corridors:c,incident:d}=zt(e,t,o,l),f=Ut(c),m=new Map,g=new Map;for(let s of e.materials)g.set(s.id,Ee[s.surface]??0);for(let s of e.edges)m.set(s.id,qe(s.spec));let v=s=>Ee[s]??0;for(let s of c){let u=[];for(let h of s.nodeStations)u.push([h-35,h+35]);Ht(s,u)}let b=[],x=new Map,k=new Map,C=new Map;e.nodes.forEach((s,u)=>C.set(s.id,u));for(let[s,u]of f){if(u.length<3||!e.nodes.find(w=>w.id===s))continue;let y=Nt(C.get(s)??0,u,t,m);b.push(y),k.set(s,y);for(let[w,p]of y.endStates)x.set(w,p);o.push(...y.diagnostics.map(w=>({level:"info",message:w,nodeId:s}))),o.push(...y.warnings.map(w=>({level:"warn",message:w,nodeId:s})))}let P={builder:a,sheetQuads:i,junctionMat:v(zn(e,b)),quality:t,matOf:v};for(let s of c){if(s.hidden||r.junctionOnly)continue;let u=m.get(s.edges[0].id);if(!u)continue;let h=Qt(f,s,"start"),y=Qt(f,s,"end"),w=[],p=x.get(`${s.id}|start`),S=x.get(`${s.id}|end`);p&&w.push(p),S&&w.push(S);let V=h?h.corridorStation((h.stationLeft+h.stationRight)/2):0,A=y?y.corridorStation((y.stationLeft+y.stationRight)/2):s.length;if(Math.abs(A-V)<.6)continue;Zt(s,u,h,y,w,P,m).rows||o.push({level:"warn",edgeId:s.edges[0].id,message:`${s.name}: corridor too short to build (mouths overlap).`}),!h&&s.length>8&&s.spec.class!=="footpath"&&pt(s,u,"start",P),!y&&s.length>8&&s.spec.class!=="footpath"&&pt(s,u,"end",P)}let L=r.stopAfter??"all";for(let s of b){if(L==="corridors")break;$t(s,P),L!=="junctions"&&Jt(s,P)}let D=a.pack(),E={corridors:c.length,junctions:b.length,vertices:a.vertexCount,quads:a.quadCount,triangles:a.triCount,sheetQuads:i.length,milliseconds:Date.now()-n};return{builder:a,sheetQuads:i,corridors:c,junctions:b,armsByNode:f,cpByEdge:m,endStates:x,diagnostics:o,stats:E,matIndex:g}}function Qt(e,t,r){let n=r==="start"?t.start.nodeId:t.end.nodeId,o=e.get(n);if(!o||o.length<3)return null;let a=o.find(i=>i.corridor.id===t.id&&i.end===r);return a?{arm:a,index:-1,bearing:0,outDir:a.dirOut,rightDir:[a.dirOut[1],-a.dirOut[0]],kerb:{left:0,right:0},nodeStation:a.nodeStation,end:a.end,stationLeft:0,stationRight:0,floor:0,mouthOffsets:[],mouthProfile:[],ringStart:-1,ringEnd:-1,roadOffset:i=>i,flipOffset:i=>i,corridorStation:i=>a.end==="start"?a.nodeStation+i:a.nodeStation-i,outwardNormal:i=>[i==="right"?a.dirOut[1]:-a.dirOut[1],i==="right"?-a.dirOut[0]:a.dirOut[0]]}:null}function zn(e,t){return"asphalt"}var bt=`
+struct Frame {
+  viewProj : mat4x4<f32>,
+  cameraPos : vec4<f32>,
+  sunDir : vec4<f32>,
+  skyTop : vec4<f32>,
+  skyBottom : vec4<f32>,
+  ground : vec4<f32>,
+  params : vec4<f32>,
+  fog : vec4<f32>,
+};
+@group(0) @binding(0) var<uniform> frame : Frame;
+
+struct VSOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) ndc : vec2<f32>,
+};
+
+@vertex
+fn vs(@builtin(vertex_index) vi : u32) -> VSOut {
+  var p = array<vec2<f32>, 3>(vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));
+  var out : VSOut;
+  out.pos = vec4<f32>(p[vi], 1.0, 1.0);
+  out.ndc = p[vi];
+  return out;
+}
+
+@fragment
+fn fs(in : VSOut) -> @location(0) vec4<f32> {
+  let horizonY = frame.params.x;
+  let t = clamp((in.ndc.y - horizonY) * 1.35 + 0.42, -0.2, 1.4);
+  let up = smoothstep(-0.05, 1.0, t);
+  var col = mix(frame.skyBottom.rgb, frame.skyTop.rgb, up);
+  // sun glow
+  let sun = max(dot(normalize(vec3<f32>(in.ndc.x, t, 1.0)), normalize(frame.sunDir.xyz)), 0.0);
+  col = col + frame.sunDir.w * 0.22 * pow(sun, 24.0) * vec3<f32>(1.0, 0.94, 0.82);
+  col = mix(col, frame.fog.rgb, frame.fog.w * 0.5);
+  return vec4<f32>(col, 1.0);
+}
+`,gt=`
+struct Frame {
+  viewProj : mat4x4<f32>,
+  cameraPos : vec4<f32>,
+  sunDir : vec4<f32>,
+  skyTop : vec4<f32>,
+  skyBottom : vec4<f32>,
+  ground : vec4<f32>,
+  params : vec4<f32>,
+  fog : vec4<f32>,
+};
+@group(0) @binding(0) var<uniform> frame : Frame;
+
+struct Mat {
+  albedo : vec4<f32>,
+  params : vec4<f32>,
+};
+@group(0) @binding(1) var<uniform> mats : array<Mat, 32>;
+
+struct VSIn {
+  @location(0) pos : vec3<f32>,
+  @location(1) nrm : vec3<f32>,
+  @location(2) uv : vec2<f32>,
+  @location(3) uv2 : vec2<f32>,
+  @location(4) mat : u32,
+  @location(5) tint : vec4<f32>,
+};
+
+struct VSOut {
+  @builtin(position) pos : vec4<f32>,
+  @location(0) nrm : vec3<f32>,
+  @location(1) uv : vec2<f32>,
+  @location(2) uv2 : vec2<f32>,
+  @location(3) world : vec3<f32>,
+  @location(4) @interpolate(flat) mat : u32,
+  @location(5) tint : vec4<f32>,
+};
+
+@vertex
+fn vs(in : VSIn) -> VSOut {
+  var out : VSOut;
+  out.pos = frame.viewProj * vec4<f32>(in.pos, 1.0);
+  out.nrm = in.nrm;
+  out.uv = in.uv;
+  out.uv2 = in.uv2;
+  out.world = in.pos;
+  out.mat = in.mat;
+  out.tint = in.tint;
+  return out;
+}
+
+fn hash2(p : vec2<f32>) -> f32 {
+  var q = fract(p * vec2<f32>(127.1, 311.7));
+  q = q + vec2<f32>(dot(q, q + 19.19));
+  return fract(q.x * q.y);
+}
+
+fn valueNoise(p : vec2<f32>) -> f32 {
+  let i = floor(p);
+  let f = fract(p);
+  let u = f * f * (3.0 - 2.0 * f);
+  let a = hash2(i);
+  let b = hash2(i + vec2<f32>(1.0, 0.0));
+  let c = hash2(i + vec2<f32>(0.0, 1.0));
+  let d = hash2(i + vec2<f32>(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+fn fbm(p : vec2<f32>) -> f32 {
+  var v = 0.0;
+  var amp = 0.5;
+  var q = p;
+  for (var i = 0; i < 4; i = i + 1) {
+    v = v + amp * valueNoise(q);
+    q = q * 2.03;
+    amp = amp * 0.5;
+  }
+  return v;
+}
+
+@fragment
+fn fs(in : VSOut) -> @location(0) vec4<f32> {
+  let m = mats[in.mat];
+  var albedo = m.albedo.rgb * in.tint.rgb;
+  let rough = m.params.x;
+  let style = m.params.y;
+
+  // metre-space surface detail: aggregate, jointing, wear
+  let uv = in.uv;
+  var grain = 0.0;
+  if (style < 0.5) {
+    // asphalt: coarse aggregate + wheel-track wear
+    grain = fbm(uv * 3.4) * 0.16 + fbm(uv * 24.0) * 0.09;
+    let wear = valueNoise(uv * 0.22) * 0.07;
+    albedo = albedo * (0.94 + grain) + vec3<f32>(wear * 0.5);
+  } else if (style < 1.5) {
+    // concrete / slabs: panel joints on a 1.8 m grid
+    let g = abs(fract(uv / 1.8) - 0.5);
+    let joint = smoothstep(0.46, 0.5, max(g.x, g.y));
+    grain = fbm(uv * 9.0) * 0.07;
+    albedo = albedo * (0.97 + grain) * (1.0 - joint * 0.28);
+  } else if (style < 2.5) {
+    // block paving: staggered bonds
+    let cell = vec2<f32>(0.22, 0.11);
+    var p = uv / cell;
+    let row = floor(p.y);
+    p.x = p.x + select(0.0, 0.5, fract(row * 0.5) > 0.25);
+    let f = fract(p);
+    let mortar = smoothstep(0.40, 0.5, max(abs(f.x - 0.5), abs(f.y - 0.5)));
+    grain = fbm(uv * 18.0) * 0.10;
+    albedo = albedo * (0.96 + grain) * (1.0 - mortar * 0.35);
+  } else if (style < 3.5) {
+    // tactile / kerb: fine cast texture
+    grain = fbm(uv * 40.0) * 0.05;
+    albedo = albedo * (0.99 + grain);
+  } else if (style < 4.5) {
+    // grass / soil / gravel: clumps
+    grain = fbm(uv * 6.0) * 0.35 + fbm(uv * 30.0) * 0.16;
+    let clump = valueNoise(uv * 0.6);
+    albedo = albedo * (0.78 + grain) + albedo * clump * 0.25;
+  } else {
+    // paint / steel: crisp
+    grain = fbm(uv * 12.0) * 0.03;
+    albedo = albedo * (0.99 + grain);
+  }
+  albedo = clamp(albedo, vec3<f32>(0.0), vec3<f32>(1.0));
+
+  let n = normalize(in.nrm);
+  let sun = normalize(frame.sunDir.xyz);
+  let lambert = max(dot(n, sun), 0.0);
+  // soft terminator so the low sun does not clip to black on flat asphalt
+  let soft = pow(clamp(dot(n, sun) * 0.5 + 0.5, 0.0, 1.0), 1.6);
+  let hemi = 0.5 + 0.5 * n.y;
+  let skyAmb = frame.skyTop.rgb * mix(0.55, 1.0, hemi);
+  let ambient = mix(frame.ground.rgb, skyAmb, hemi) * 0.22;
+
+  // specular: wet-ish highlight on smooth materials
+  let view = normalize(frame.cameraPos.xyz - in.world);
+  let halfV = normalize(sun + view);
+  let spec = pow(max(dot(n, halfV), 0.0), mix(8.0, 90.0, 1.0 - rough)) * (1.0 - rough) * 0.22;
+
+  let sunLight = frame.sunDir.w * mix(lambert, soft, 0.45) * (1.0 - rough * 0.5);
+  var col = albedo * (ambient + vec3<f32>(sunLight)) + vec3<f32>(spec) * frame.sunDir.w;
+
+  // aerial perspective: only bites at long range
+  let dist = length(frame.cameraPos.xyz - in.world);
+  let fogF = 1.0 - exp(-dist * frame.fog.w);
+  col = mix(col, frame.fog.rgb, clamp(fogF, 0.0, 0.9));
+
+  // ACES-ish filmic curve + sRGB transfer
+  col = col * 1.15;
+  col = (col * (2.51 * col + vec3<f32>(0.03))) / (col * (2.43 * col + vec3<f32>(0.59)) + vec3<f32>(0.14));
+  col = pow(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), vec3<f32>(0.4545));
+  return vec4<f32>(col, 1.0);
+}
+`,Xt=`
+struct Frame {
+  viewProj : mat4x4<f32>,
+  cameraPos : vec4<f32>,
+  sunDir : vec4<f32>,
+  skyTop : vec4<f32>,
+  skyBottom : vec4<f32>,
+  ground : vec4<f32>,
+  params : vec4<f32>,
+  fog : vec4<f32>,
+};
+@group(0) @binding(0) var<uniform> frame : Frame;
+
+@vertex
+fn vs(@location(0) pos : vec3<f32>) -> @builtin(position) vec4<f32> {
+  return frame.viewProj * vec4<f32>(pos, 1.0);
+}
+
+@fragment
+fn fs() -> @location(0) vec4<f32> {
+  return vec4<f32>(0.06, 0.62, 0.72, 1.0);
+}
+`;var _={asphalt:0,concrete:1,paving:2,cast:3,soft:4,hard:5},en={asphalt:{color:[.022,.022,.024],roughness:.8,style:_.asphalt},"asphalt-worn":{color:[.036,.035,.033],roughness:.88,style:_.asphalt},"asphalt-fresh":{color:[.014,.014,.016],roughness:.62,style:_.asphalt},concrete:{color:[.19,.185,.175],roughness:.74,style:_.concrete},"concrete-panel":{color:[.15,.15,.147],roughness:.76,style:_.concrete},pavers:{color:[.12,.055,.042],roughness:.82,style:_.paving},"pavers-mixed":{color:[.17,.15,.13],roughness:.8,style:_.paving},slabs:{color:[.22,.215,.205],roughness:.72,style:_.concrete},cobble:{color:[.085,.082,.078],roughness:.86,style:_.paving},tactile:{color:[.3,.21,.045],roughness:.7,style:_.cast},gravel:{color:[.13,.12,.11],roughness:.92,style:_.soft},soil:{color:[.032,.026,.019],roughness:.95,style:_.soft},grass:{color:[.045,.075,.028],roughness:.9,style:_.soft},ballast:{color:[.075,.072,.07],roughness:.95,style:_.soft},steel:{color:[.28,.3,.33],roughness:.35,style:_.hard},paint:{color:[.72,.72,.7],roughness:.5,style:_.hard},wood:{color:[.08,.05,.028],roughness:.85,style:_.hard},rubber:{color:[.012,.012,.013],roughness:.94,style:_.hard},water:{color:[.012,.022,.03],roughness:.06,style:_.hard},kerb:{color:[.24,.235,.225],roughness:.7,style:_.cast},"road-plate":{color:[.05,.052,.058],roughness:.4,style:_.hard}};function tn(){let e=new Float32Array(256);return we.forEach((t,r)=>{let n=en[t]??en.asphalt;e[r*8]=n.color[0],e[r*8+1]=n.color[1],e[r*8+2]=n.color[2],e[r*8+3]=1,e[r*8+4]=n.roughness,e[r*8+5]=n.style}),e}var Ne=class e{device;format;depthFormat;surfacePipeline;skyPipeline;wirePipeline;wireBind;frameBuffer;materialBuffer;surfaceBind;skyBind;depthTexture=null;depthSize=[0,0];batches=[];frameData=new Float32Array(44);constructor(t,r,n){this.device=t,this.format=r,this.depthFormat=n;let o=t.createShaderModule({code:gt,label:"surface"}),a=t.createShaderModule({code:bt,label:"sky"}),i={arrayStride:48,attributes:[{shaderLocation:0,offset:0,format:"float32x3"},{shaderLocation:1,offset:12,format:"float32x3"},{shaderLocation:2,offset:24,format:"float32x2"},{shaderLocation:3,offset:32,format:"float32x2"},{shaderLocation:4,offset:40,format:"uint32"},{shaderLocation:5,offset:44,format:"unorm8x4"}]};this.surfacePipeline=t.createRenderPipeline({label:"surface",layout:"auto",vertex:{module:o,entryPoint:"vs",buffers:[i]},fragment:{module:o,entryPoint:"fs",targets:[{format:r}]},primitive:{topology:"triangle-list",cullMode:"back",frontFace:"ccw"},depthStencil:{format:n,depthWriteEnabled:!0,depthCompare:"less"}}),this.skyPipeline=t.createRenderPipeline({label:"sky",layout:"auto",vertex:{module:a,entryPoint:"vs"},fragment:{module:a,entryPoint:"fs",targets:[{format:r}]},primitive:{topology:"triangle-list"},depthStencil:{format:n,depthWriteEnabled:!1,depthCompare:"always"}});let l=t.createShaderModule({code:Xt,label:"wire"});this.wirePipeline=t.createRenderPipeline({label:"wire",layout:"auto",vertex:{module:l,entryPoint:"vs",buffers:[{arrayStride:48,attributes:[{shaderLocation:0,offset:0,format:"float32x3"}]}]},fragment:{module:l,entryPoint:"fs",targets:[{format:r}]},primitive:{topology:"line-list"},depthStencil:{format:n,depthWriteEnabled:!1,depthCompare:"less-equal"}}),this.frameBuffer=t.createBuffer({size:this.frameData.byteLength,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST,label:"frame"});let c=tn();this.materialBuffer=t.createBuffer({size:c.byteLength,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST,label:"materials"}),t.queue.writeBuffer(this.materialBuffer,0,c.buffer),this.surfaceBind=t.createBindGroup({layout:this.surfacePipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:this.frameBuffer}},{binding:1,resource:{buffer:this.materialBuffer}}]}),this.skyBind=t.createBindGroup({layout:this.skyPipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:this.frameBuffer}}]}),this.wireBind=t.createBindGroup({layout:this.wirePipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:this.frameBuffer}}]})}static async create(t,r,n="depth24plus"){let o=new e(t,r,n),i=(await Promise.all([t.createShaderModule({code:gt}).getCompilationInfo(),t.createShaderModule({code:bt}).getCompilationInfo()])).flatMap(l=>l.messages.filter(c=>c.type==="error"));if(i.length)throw new Error(`WGSL errors:
+`+i.map(l=>`${l.lineNum}:${l.linePos} ${l.message}`).join(`
+`));return o}upload(t){let r=this.device,n=t.pack(),o=n.positions.length/3,a=48,i=new ArrayBuffer(o*a),l=new Float32Array(i),c=new Uint32Array(i),d=new Uint8Array(i);for(let b=0;b<o;b++){let x=b*(a/4),k=b*a;l[x]=n.positions[b*3],l[x+1]=n.positions[b*3+1],l[x+2]=n.positions[b*3+2],l[x+3]=n.normals[b*3],l[x+4]=n.normals[b*3+1],l[x+5]=n.normals[b*3+2],l[x+6]=n.uvs[b*2],l[x+7]=n.uvs[b*2+1],l[x+8]=n.uv2s[b*2],l[x+9]=n.uv2s[b*2+1],c[x+10]=n.mats[b],d[k+44]=n.tints[b*4],d[k+45]=n.tints[b*4+1],d[k+46]=n.tints[b*4+2],d[k+47]=n.tints[b*4+3]}let f=r.createBuffer({size:Math.max(48,i.byteLength),usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST,label:"verts"});r.queue.writeBuffer(f,0,i);let m=n.indices.byteLength,g=r.createBuffer({size:Math.max(4,m),usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST,label:"indices"});r.queue.writeBuffer(g,0,n.indices.buffer,n.indices.byteOffset,n.indices.byteLength);let v={vbo:f,ibo:g,indexCount:n.indices.length,vertexCount:o};return this.batches.push(v),v}uploadWire(t,r){let n=this.device,o=t.pack(),a=o.positions.length/3,i=48,l=new ArrayBuffer(a*i),c=new Float32Array(l);for(let m=0;m<a;m++){let g=m*(i/4);c[g]=o.positions[m*3],c[g+1]=o.positions[m*3+1],c[g+2]=o.positions[m*3+2]}let d=n.createBuffer({size:Math.max(48,l.byteLength),usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST,label:"wire-verts"});n.queue.writeBuffer(d,0,l);let f=n.createBuffer({size:Math.max(4,r.byteLength),usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST,label:"wire-indices"});return n.queue.writeBuffer(f,0,r.buffer,r.byteOffset,r.byteLength),{vbo:d,ibo:f,indexCount:r.length,vertexCount:a}}renderWire(t,r,n,o,a){if(!a.indexCount||!this.depthTexture)return;let i=t.beginRenderPass({colorAttachments:[{view:r,loadOp:"load",storeOp:"store"}],depthStencilAttachment:{view:this.depthTexture.createView(),depthLoadOp:"load",depthStoreOp:"store"}});i.setPipeline(this.wirePipeline),i.setBindGroup(0,this.wireBind),i.setVertexBuffer(0,a.vbo),i.setIndexBuffer(a.ibo,"uint32"),i.drawIndexed(a.indexCount),i.end()}clearBatches(){for(let t of this.batches)t.vbo.destroy(),t.ibo.destroy();this.batches=[]}depthFor(t,r){return(!this.depthTexture||this.depthSize[0]!==t||this.depthSize[1]!==r)&&(this.depthTexture?.destroy(),this.depthTexture=this.device.createTexture({size:[t,r],format:this.depthFormat,usage:GPUTextureUsage.RENDER_ATTACHMENT,label:"depth"}),this.depthSize=[t,r]),this.depthTexture}writeFrame(t,r,n,o){let a=this.frameData;a.set(t.viewProj,0),a[16]=t.cameraPos[0],a[17]=t.cameraPos[1],a[18]=t.cameraPos[2],a[19]=1,a[20]=t.sunDir[0],a[21]=t.sunDir[1],a[22]=t.sunDir[2],a[23]=t.sunDir[3],a[24]=t.skyTop[0],a[25]=t.skyTop[1],a[26]=t.skyTop[2],a[27]=1,a[28]=t.skyBottom[0],a[29]=t.skyBottom[1],a[30]=t.skyBottom[2],a[31]=1,a[32]=t.ground[0],a[33]=t.ground[1],a[34]=t.ground[2],a[35]=1,a[36]=t.params[0],a[37]=t.params[1],a[38]=t.params[2],a[39]=o,a[40]=t.fog[0],a[41]=t.fog[1],a[42]=t.fog[2],a[43]=t.fog[3],this.device.queue.writeBuffer(this.frameBuffer,0,a.buffer)}render(t,r,n,o,a){let i=this.depthFor(n,o);this.writeFrame(a,n,o,n/Math.max(1,o));let l=t.beginRenderPass({colorAttachments:[{view:r,clearValue:{r:a.skyBottom[0],g:a.skyBottom[1],b:a.skyBottom[2],a:1},loadOp:"clear",storeOp:"store"}],depthStencilAttachment:{view:i.createView(),depthClearValue:1,depthLoadOp:"clear",depthStoreOp:"store"}});l.setPipeline(this.skyPipeline),l.setBindGroup(0,this.skyBind),l.draw(3),l.setPipeline(this.surfacePipeline),l.setBindGroup(0,this.surfaceBind);for(let c of this.batches)c.indexCount&&(l.setVertexBuffer(0,c.vbo),l.setIndexBuffer(c.ibo,"uint32"),l.drawIndexed(c.indexCount));l.end()}dispose(){this.clearBatches(),this.depthTexture?.destroy()}};var $e=class{target=[0,0,0];distance=150;yaw=.6;pitch=.62;fov=38*Math.PI/180;near=.4;far=3e3;eye(){let t=Math.cos(this.pitch);return[this.target[0]+Math.sin(this.yaw)*t*this.distance,this.target[1]+Math.sin(this.pitch)*this.distance,this.target[2]+Math.cos(this.yaw)*t*this.distance]}viewProj(t){let r=Ct(this.eye(),this.target,[0,1,0]),n=Pt(this.fov,t,this.near,this.far);return At(n,r)}orbit(t,r){this.yaw-=t*.006,this.pitch=R(this.pitch+r*.005,.03,1.52)}pan(t,r){let n=this.eye(),o=[this.target[0]-n[0],this.target[1]-n[1],this.target[2]-n[2]],a=Math.hypot(o[0],o[1],o[2])||1,i=[o[0]/a,o[1]/a,o[2]/a],l=[i[2],0,-i[0]],c=Math.hypot(l[0],l[2])||1,d=[l[0]/c,0,l[2]/c],f=[-d[2]*i[1],d[0]*i[2]-d[2]*i[0],d[0]*i[1]],m=[d[2]*i[0]-d[0]*i[2],d[2]*i[1]-d[1]*i[2],d[1]*i[0]-d[0]*i[1]],g=this.distance*.0016;this.target=[this.target[0]-d[0]*t*g-i[0]*r*g,this.target[1],this.target[2]-d[2]*t*g-i[2]*r*g]}zoom(t){this.distance=R(this.distance*Math.exp(t*.0016),8,2200)}};function Un(){let e=Ve("Grid district"),t=4,r=96;for(let o=0;o<t;o++)for(let a=0;a<t;a++)e.nodes.push(se((o-(t-1)/2)*r,(a-(t-1)/2)*r));let n=(o,a)=>e.nodes[a*t+o];for(let o=0;o<t;o++)for(let a=0;a+1<t;a++)e.edges.push(ie(n(a,o).id,n(a+1,o).id,o===1?"avenue":"street"));for(let o=0;o<t;o++)for(let a=0;a+1<t;a++)e.edges.push(ie(n(o,a).id,n(o,a+1).id,o===2?"boulevard":"street"));return e}function Hn(){let e=Ve("Boulevard crossing"),t=se(0,0);e.nodes.push(t);let r=[[0,"boulevard"],[90,"arterial"],[180,"boulevard"],[270,"arterial"]];for(let[n,o]of r){let a=n/180*Math.PI,i=se(Math.cos(a)*150,Math.sin(a)*150);e.nodes.push(i),e.edges.push(ie(t.id,i.id,o))}return e}function Kn(){let e=Ve("Y junction"),t=se(0,0);e.nodes.push(t);let r=[[-24,130,"avenue"],[196,130,"avenue"],[86,110,"street"]];for(let[n,o,a]of r){let i=n/180*Math.PI,l=se(Math.cos(i)*o,Math.sin(i)*o);e.nodes.push(l),e.edges.push(ie(t.id,l.id,a))}return e}function qn(){let e=Ve("Interchange"),t=se(0,0);e.nodes.push(t);let r=[[0,260,"motorway"],[180,260,"motorway"],[34,180,"ramp"],[214,180,"ramp"]];for(let[n,o,a]of r){let i=n/180*Math.PI,l=se(Math.cos(i)*o,Math.sin(i)*o);e.nodes.push(l),e.edges.push(ie(t.id,l.id,a))}return e}function Gn(){let e=Ve("Residential loop"),t=7,r=120,n=[];for(let l=0;l<t;l++){let c=l/t*Math.PI*2,d=se(Math.cos(c)*r,Math.sin(c)*r);e.nodes.push(d),n.push(d.id)}for(let l=0;l<t;l++)e.edges.push(ie(n[l],n[(l+1)%t],"local"));let o=se(0,0),a=se(0,0);e.nodes.push(o,a),e.edges.push(ie(n[0],o.id,"street")),e.edges.push(ie(o.id,n[3],"street")),e.edges.push(ie(n[5],a.id,"lane")),e.edges.push(ie(a.id,n[2],"lane"));let i=se(0,-r*.45);return e.nodes.push(i),e.edges.push(ie(o.id,i.id,"lane")),e.areas.push(It("plaza",[[-26+r*.2,30],[26+r*.2,30],[26+r*.2,74],[-26+r*.2,74]])),e}var De=[{id:"grid",name:"Grid district",build:Un},{id:"cross",name:"Boulevard crossing",build:Hn},{id:"y",name:"Y junction",build:Kn},{id:"interchange",name:"Interchange",build:qn},{id:"hood",name:"Residential loop",build:Gn}];var Fe=[{id:"carriageway",name:"Carriageway",hint:"asphalt \xB7 channels \xB7 shoulders",materials:["asphalt","asphalt-worn","asphalt-fresh","road-plate","water"],visible:!0,batch:null,quads:0},{id:"markings",name:"Markings",hint:"lane lines \xB7 crossing paint",materials:["paint"],visible:!0,batch:null,quads:0},{id:"footway",name:"Footways & paving",hint:"slabs \xB7 pavers \xB7 tactile",materials:["concrete","concrete-panel","slabs","pavers","pavers-mixed","cobble","tactile"],visible:!0,batch:null,quads:0},{id:"kerbs",name:"Kerbs",hint:"kerb runs \xB7 islands",materials:["kerb"],visible:!0,batch:null,quads:0},{id:"planting",name:"Planting & verges",hint:"grass \xB7 soil \xB7 gravel \xB7 ballast",materials:["grass","soil","gravel","ballast"],visible:!0,batch:null,quads:0},{id:"structures",name:"Structures",hint:"steel \xB7 timber \xB7 rubber",materials:["steel","wood","rubber"],visible:!0,batch:null,quads:0}],jn=[{id:"draft",name:"Draft",hint:"fast, coarse"},{id:"standard",name:"Standard",hint:"balanced"},{id:"high",name:"High",hint:"default detail"},{id:"cinematic",name:"Cinematic",hint:"0.3 m arcs"}],J={sceneId:De[0].id,quality:"high",showWire:!1,turnTable:!1,last:null,buildMs:0,camera:new $e},ge=null,Oe=null,ae,be,nn,Ze,_e,ze=null,Ue=null;function ue(e){let t=document.getElementById(e);if(!t)throw new Error(`missing element #${e}`);return t}function Nn(e){let t=new Map;for(let i of Fe)t.set(i.id,new xe);let r=e.verts,n=e.quads,o=new Map;Fe.forEach(i=>i.materials.forEach(l=>o.set(we.indexOf(l),i)));let a=new Map;for(let i=0;i+3<n.length;i+=4){let l=[n[i],n[i+1],n[i+2],n[i+3]],c=we[r[l[0]].mat]??"asphalt",d=o.get(r[l[0]].mat);if(!d)continue;let f=t.get(d.id);d.quads+=1;let m=[];for(let g of l){let v=r[g],b=`${d.id}|${g}`,x=a.get(b);if(x===void 0){let k={p:[...v.p],n:[...v.n],uv:[...v.uv],uv2:[...v.uv2],mat:v.mat,tint:[...v.tint]};x=f.addVertex(k),a.set(b,x)}m.push(x)}f.addQuad(m[0],m[1],m[2],m[3])}return Fe.map(i=>({layer:i,builder:t.get(i.id)}))}function $n(e){let t=new Set,r=[],n=e.quads,o=(a,i)=>a<i?a*4294967296+i:i*4294967296+a;for(let a=0;a+3<n.length;a+=4)for(let i=0;i<4;i++){let l=n[a+i],c=n[a+(i+1)%4],d=o(l,c);t.has(d)||(t.add(d),r.push(l,c))}return new Uint32Array(r)}function Jn(e){let t=new xe,r=we.indexOf("soil"),n=24,o=[],a=e*2/n,i=[];for(let l=0;l<=n;l++){let c=[];for(let d=0;d<=n;d++){let f=-e+d*a,m=-e+l*a,g=-.42+Math.sin(f*.011)*.18+Math.cos(m*.014)*.18;c.push(t.addVertex({p:[f,g,m],n:[0,1,0],uv:[f,m],uv2:[f,m],mat:r,tint:[1,1,1,1]}))}i.push(c)}for(let l=0;l<n;l++)for(let c=0;c<n;c++)t.addQuad(i[l][c],i[l][c+1],i[l+1][c+1],i[l+1][c]);return t}function Je(){if(!ge)return;let t=(De.find(a=>a.id===J.sceneId)??De[0]).build(),r=performance.now(),n=Yt(t,J.quality);J.buildMs=performance.now()-r,J.last=n,ge.clearBatches();for(let{layer:a,builder:i}of Nn(n.builder))a.batch&&(a.batch.vbo.destroy(),a.batch.ibo.destroy()),a.batch=i.triCount?ge.upload(i):null;Ue?.vbo.destroy(),Ue?.ibo.destroy(),Ue=ge.upload(Jn(1400)),ze?.vbo.destroy(),ze?.ibo.destroy(),ze=ge.uploadWire(n.builder,$n(n.builder));let o=Zn(n);J.camera.target=[o.cx,0,o.cz],J.camera.distance=Math.max(60,o.radius*2.4),rn(),_n(),Qn()}function Zn(e){let t=1/0,r=-1/0,n=1/0,o=-1/0;for(let a of e.corridors){let i=a.path.positionAt(0),l=a.path.positionAt(a.length),c=a.path.positionAt(a.length/2);for(let d of[i,l,c])t=Math.min(t,d[0]),r=Math.max(r,d[0]),n=Math.min(n,d[2]),o=Math.max(o,d[2])}return Number.isFinite(t)?{cx:(t+r)/2,cz:(n+o)/2,radius:Math.max(40,Math.hypot(r-t,o-n)/2)}:{cx:0,cz:0,radius:100}}function rn(){Ze.innerHTML="";for(let e of Fe){let t=document.createElement("button");t.className=`layer${e.visible?"":" off"}`,t.type="button",t.innerHTML=`
+      <span class="swatch" data-layer="${e.id}"></span>
+      <span class="layer-name">${e.name}</span>
+      <span class="layer-count">${e.batch?e.quads.toLocaleString():"\u2013"}</span>
+      <span class="eye">${e.visible?"\u25C9":"\u25CB"}</span>`,t.addEventListener("click",()=>{e.visible=!e.visible,rn()}),Ze.appendChild(t);let r=document.createElement("div");r.className="layer-hint",r.textContent=e.hint,Ze.appendChild(r)}}function _n(){let e=J.last;if(_e.innerHTML="",!e)return;let t=[...new Set(e.diagnostics.filter(r=>r.level==="warn").map(r=>r.message))];if(!t.length){_e.innerHTML='<div class="ok">Topology clean \u2014 every junction solved within tolerance.</div>';return}for(let r of t.slice(0,8)){let n=document.createElement("div");n.className="warn",n.textContent=r,_e.appendChild(n)}}function Qn(){let e=J.last;if(!e)return;let t=e.stats;nn.innerHTML=`
+    <div class="stat"><span>Build</span><b>${J.buildMs.toFixed(0)} ms</b></div>
+    <div class="stat"><span>Vertices</span><b>${t.vertices.toLocaleString()}</b></div>
+    <div class="stat"><span>Quads</span><b>${t.quads.toLocaleString()}</b></div>
+    <div class="stat"><span>Triangles</span><b>${t.triangles.toLocaleString()}</b></div>
+    <div class="stat"><span>Junctions</span><b>${t.junctions}</b></div>
+    <div class="stat"><span>Decal sheet</span><b>${t.sheetQuads.toLocaleString()}</b></div>`}var Yn=[.42,.78,.46,1.15];function Xn(e,t,r,n){J.turnTable&&(J.camera.yaw+=n*12e-5);let o=[r.width,r.height],a={viewProj:J.camera.viewProj(o[0]/Math.max(1,o[1])),cameraPos:J.camera.eye(),sunDir:Yn,skyTop:[.24,.42,.72],skyBottom:[.66,.74,.8],ground:[.1,.1,.09],params:[0,0,0,0],fog:[.68,.74,.8,1/2400]};e.batches=[],Ue&&e.batches.push(Ue),e.batches.push(...Fe.filter(c=>c.visible&&c.batch).map(c=>c.batch));let i=e.device.createCommandEncoder(),l=t.getCurrentTexture().createView();e.render(i,l,o[0],o[1],a),J.showWire&&ze&&e.renderWire(i,l,o[0],o[1],ze),e.device.queue.submit([i.finish()])}async function er(){if(ae=ue("view"),be=ue("status"),nn=ue("stats"),Ze=ue("layers"),_e=ue("diag"),!navigator.gpu){be.textContent="WebGPU is not available in this browser. Use Chrome 113+, Edge 113+ or Safari 18+.",be.classList.add("error");return}let e=await navigator.gpu.requestAdapter({powerPreference:"high-performance"});if(!e){be.textContent="No WebGPU adapter found (a discrete or integrated GPU is required).",be.classList.add("error");return}let t=await e.requestDevice(),r=e.info??{};if(Oe=ae.getContext("webgpu"),!Oe){be.textContent="Could not create a WebGPU canvas context.",be.classList.add("error");return}let n=navigator.gpu.getPreferredCanvasFormat();Oe.configure({device:t,format:n,alphaMode:"opaque"}),ge=await Ne.create(t,n),be.textContent=`${r.vendor??"GPU"} \xB7 ${r.architecture??""} \xB7 ${n}`;let o=()=>{let b=Math.min(2,window.devicePixelRatio||1),x=ae.getBoundingClientRect();ae.width=Math.max(320,Math.floor(x.width*b)),ae.height=Math.max(240,Math.floor(x.height*b))};new ResizeObserver(o).observe(ae),o();let a=0,i=0,l=0;ae.addEventListener("pointerdown",b=>{a=b.button===0&&!b.shiftKey?1:2,i=b.clientX,l=b.clientY,ae.setPointerCapture(b.pointerId)}),ae.addEventListener("pointerup",b=>{a=0,ae.releasePointerCapture(b.pointerId)}),ae.addEventListener("pointermove",b=>{if(!a)return;let x=b.clientX-i,k=b.clientY-l;i=b.clientX,l=b.clientY,a===1?J.camera.orbit(x,k):J.camera.pan(x,k)}),ae.addEventListener("wheel",b=>{b.preventDefault(),J.camera.zoom(b.deltaY)},{passive:!1});let c=ue("scene");c.innerHTML=De.map(b=>`<option value="${b.id}">${b.name}</option>`).join(""),c.value=J.sceneId,c.addEventListener("change",()=>{J.sceneId=c.value,Je()});let d=ue("quality");d.innerHTML=jn.map(b=>`<option value="${b.id}">${b.name} \u2014 ${b.hint}</option>`).join(""),d.value=J.quality,d.addEventListener("change",()=>{J.quality=d.value,Je()}),ue("rebuild").addEventListener("click",()=>Je());let f=ue("wire");f.addEventListener("change",()=>{J.showWire=f.checked});let m=ue("turntable");m.addEventListener("change",()=>{J.turnTable=m.checked}),Je();let g=performance.now(),v=()=>{let b=performance.now(),x=b-g;g=b,ge&&Oe&&Xn(ge,Oe,ae,x);let k=x>0?Math.round(1e3/x):0,C=document.getElementById("fps");C&&(C.textContent=`${k} fps`),requestAnimationFrame(v)};requestAnimationFrame(v)}er().catch(e=>{let t=document.getElementById("status");t&&(t.textContent=`Failed to start: ${e instanceof Error?e.message:String(e)}`,t.classList.add("error")),console.error(e)});export{Yt as buildScene,sn as makeRng};
+
+</script>
+  </body>
+</html>
