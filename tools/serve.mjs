@@ -10,9 +10,12 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 
 http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split("?")[0]);
-  if (url === "/") url = "/RoadGenerator/index.html";
-  const file = path.join(root, url);
+  // the app lives in /RoadGenerator/ and uses relative asset URLs — redirect the root so they resolve
+  if (url === "/" || url === "/index.html") { res.writeHead(302, { Location: "/RoadGenerator/" }); return res.end(); }
+  let file = path.join(root, url);
   if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
+  // fallback: root-relative requests for app files (e.g. /src/ui/app.js) map into RoadGenerator/
+  if (!fs.existsSync(file) && fs.existsSync(path.join(root, "RoadGenerator", url))) file = path.join(root, "RoadGenerator", url);
   fs.stat(file, (err, st) => {
     if (err) { res.writeHead(404); return res.end("not found"); }
     const target = st.isDirectory() ? path.join(file, "index.html") : file;
