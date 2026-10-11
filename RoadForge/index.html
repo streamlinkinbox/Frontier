@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RoadForge — WebGPU road network generator</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <header id="topbar"></header>
+  <aside id="left" class="panel"></aside>
+  <main id="viewport">
+    <canvas id="gl" tabindex="0"></canvas>
+    <div class="hud bl" id="hud-bl"></div>
+    <div class="hud tr" id="hud-tr"></div>
+    <div class="toast" id="toast"></div>
+    <div id="nogpu"><div class="modal"><h2>WebGPU is not available</h2><p>RoadForge renders with WebGPU. Use a current Chromium-based browser (Chrome / Edge 113+), Firefox 141+, or Safari 26 and make sure hardware acceleration is enabled.</p><p id="nogpu-reason" class="muted"></p></div></div>
+  </main>
+  <aside id="right" class="panel">
+    <section id="layers"></section>
+    <section id="inspector"></section>
+  </aside>
+</div>
+<script src="src/math.js"></script>
+<script src="src/spline.js"></script>
+<script src="src/mesh.js"></script>
+<script src="src/profiles.js"></script>
+<script src="src/network.js"></script>
+<script src="src/roadmesh.js"></script>
+<script src="src/structures.js"></script>
+<script src="src/materials.js"></script>
+<script src="src/shaders.js"></script>
+<script src="src/renderer.js"></script>
+<script src="src/props.js"></script>
+<script src="src/rail.js"></script>
+<script src="src/traffic.js"></script>
+<script src="src/scene.js"></script>
+<script src="src/templates.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
