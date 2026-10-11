@@ -2,6 +2,7 @@
 import { analyse } from "./network.js";
 import { MeshBuilder } from "./mesh.js";
 import { solveTrims, sweepRoads, buildJunctions } from "./junction.js";
+import { applyLevelCrossingRegrades } from "./rail.js";
 
 export function buildRoadNetwork(net, settings = {}) {
   const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -9,6 +10,7 @@ export function buildRoadNetwork(net, settings = {}) {
   solveTrims(plan);
   const mb = new MeshBuilder("network");
   sweepRoads(plan, mb, settings);
+  if (net.rails && net.rails.size && settings.regradeCrossings !== false) applyLevelCrossingRegrades(net, plan, mb);
   buildJunctions(plan, mb, settings);
   mb.compact();
   plan.mesh = mb;

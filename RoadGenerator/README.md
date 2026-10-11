@@ -65,7 +65,8 @@ RoadGenerator/
                       network footprint (two-level adaptive marching squares, trench holes, X-ray tagging)
     structures.js     bridges (box girder, hammerhead piers, parapets), viaduct decks under elevated
                       junctions, retaining walls, underpass trenches, embankment / cutting skirts
-    rail.js           ballast, sleepers, rails, level crossings (booms, crossbucks), subway tunnels
+    rail.js           ballast formation, sleepers, rails, level crossings (road regraded flat to the rail plane,
+                      rubber panels, booms, crossbucks), subway tunnels
     traffic.js        lane graph, car-following, signal phases, trains (≤ 25 vehicles)
     city.js           presets: grid, organic, diamond, cloverleaf (rotated quadrant template), demo
     textures.js       procedural texture layer stacks → albedo / normal / ORM

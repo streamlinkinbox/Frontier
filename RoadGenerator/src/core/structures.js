@@ -98,12 +98,20 @@ export function buildStructures(plan, S = defaultStructureSettings(), rails = []
     }
   }
   const segments = classifyRoads(plan, crossings);
-  const terrain = buildTerrain(plan, S);
+  // surface railways run on a formation 0.7 m below rail level: the ground is cut along the corridor and the
+  // terrain hugs the formation edges (rail datum − 0.02) so the ballast shoulders meet the grass cleanly
+  const railLines = [], railHoles = [];
+  for (const rl of rails) if (!rl.tunnel) {
+    const n = Math.max(2, Math.ceil(rl.length / 4)), L = [], Rr = [];
+    for (let i = 0; i <= n; i++) { const F = rl.spline.frameAt((i / n) * rl.length), r = rightXZ(F.dxz); const y = F.p[1] - 0.02; L.push([F.p[0] - r[0] * 4.2, y, F.p[2] - r[2] * 4.2]); Rr.push([F.p[0] + r[0] * 4.2, y, F.p[2] + r[2] * 4.2]); }
+    railLines.push(L, Rr); railHoles.push(corridorSpline(rl.spline, rl.length, 4.15));
+  }
+  const terrain = buildTerrain(plan, S, railLines);
   const mb = new MeshBuilder("structures");
   const concrete = mb.material("concrete"), steel = mb.material("metalPainted"), galv = mb.material("steelGalv"), lamp = mb.material("lamp"), grass = mb.material("grass");
   const instances = new Map();
   const inst = (prop, variant, m) => { const k = prop + "|" + variant; (instances.get(k) || instances.set(k, { prop, variant, group: "", mats: [] }).get(k)).mats.push(m); };
-  const holes = []; // polygons (XZ) where the ground is removed
+  const holes = [...railHoles]; // polygons (XZ) where the ground is removed
   const xrayHoles = [];
   for (const [R, segs] of segments) {
     const fp = footprint(R);

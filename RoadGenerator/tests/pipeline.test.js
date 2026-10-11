@@ -128,7 +128,7 @@ test("city blocks: every bounded face of the grid becomes a plot hugging the foo
 });
 
 test("terrain: the ground never shows through a road — no ground face inside any carriageway, ground meets the kit backs", () => {
-  const { plan, st } = pipeline("demo");
+  const { plan, st, rails } = pipeline("demo");
   // 1. every ground face centroid lies outside the cut footprint (strict: carriageway + kerb + footway)
   const g = st.ground, P = g.positions;
   let inside = 0, total = 0, maxAbove = -Infinity;
@@ -161,7 +161,37 @@ test("terrain: the ground never shows through a road — no ground face inside a
   for (const R of plan.roads.values()) {
     const s = (R.cutA + R.length - R.cutB) / 2, c = roadPoint(R, s, 0, 0), fp = footprint(R), o = roadPoint(R, s, fp.right + 1.5, 0);
     assert.ok(st.field.distance(c[0], c[2]) < 0, "centre is cut");
-    const lonely = [...plan.roads.values()].every((Q) => Q === R || Q.frames.every((F) => Math.hypot(F.p[0] - o[0], F.p[2] - o[2]) > 20));
+    const farFromRail = rails.lines.every((rl) => { for (let t = 0; t <= rl.length; t += 4) { const q = rl.spline.pointAt(t); if (Math.hypot(q[0] - o[0], q[2] - o[2]) < 8) return false; } return true; });
+    const lonely = farFromRail && [...plan.roads.values()].every((Q) => Q === R || Q.frames.every((F) => Math.hypot(F.p[0] - o[0], F.p[2] - o[2]) > 20));
     if (Math.abs(o[1]) < 0.3 && lonely) assert.ok(st.field.distance(o[0], o[2]) > 0, "1.5 m beyond the kit back is ground");
   }
+});
+
+test("level crossings: the carriageway is regraded flat to the rail plane and the ballast formation is cut into the ground", () => {
+  const { plan, rails, st } = pipeline("demo");
+  assert.ok(rails.crossings.length >= 2, "demo has level crossings");
+  for (const x of rails.crossings) {
+    const R = x.road, railY = x.rail.spline.pointAt(x.s)[1];
+    // across the whole carriageway at the crossing station the surface sits 15 mm under the rail head (flat, no crown)
+    for (const lat of [-R.section.widthL + 0.2, 0, R.section.widthR - 0.2]) {
+      const y = roadPoint(R, x.roadS, lat, 0)[1];
+      assert.ok(Math.abs(y - (railY - 0.015)) < 0.003, `flat at ${lat.toFixed(1)}: ${y.toFixed(3)} vs rail ${railY.toFixed(3)}`);
+    }
+    // 25 m away the crown is back
+    const far = x.roadS + 25 < R.length - R.cutB ? x.roadS + 25 : x.roadS - 25;
+    assert.ok(roadPoint(R, far, 0, 0)[1] - roadPoint(R, far, R.section.widthR - 0.2, 0)[1] > 0.05, "crossfall restored away from the crossing");
+    // the swept mesh rows agree with roadPoint (the regrade moved the vertices, not just the query)
+    const k = R.stations.findIndex((s) => Math.abs(s - x.roadS) < 1.01);
+    assert.ok(k >= 0);
+    const edge = plan.mesh.position(R.rows[k][R.rows[k].length - 1]);
+    assert.ok(Math.abs(edge[1] - (railY - 0.015)) < 0.02, "mesh edge vertex is regraded");
+  }
+  // ballast formation: the ground is cut along surface railways (no ground face centroid within the ±4.1 m corridor)
+  const g = st.ground, P = g.positions;
+  let inCorridor = 0;
+  for (const f of g.faces) {
+    let cx = 0, cz = 0; for (const i of f.i) { cx += P[i * 3] / f.i.length; cz += P[i * 3 + 2] / f.i.length; }
+    for (const rl of rails.lines) { if (rl.tunnel) continue; const q = rl.spline.closestStation([cx, 0, cz]); if (!q) continue; const p = rl.spline.pointAt(q.s); if (q.s > 2 && q.s < rl.length - 2 && Math.hypot(p[0] - cx, p[2] - cz) < 3.5) { inCorridor++; break; } }
+  }
+  assert.equal(inCorridor, 0, "no ground inside the railway formation");
 });

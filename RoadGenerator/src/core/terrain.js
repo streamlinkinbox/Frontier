@@ -68,11 +68,12 @@ export function junctionRing(J, off = 0) {
 }
 
 /**
- * Terrain height field: for every grid node, each at-grade kit-back line contributes its *nearest* point (distance
+ * Terrain height field: for every grid node, each at-grade kit-back line (plus `extraLines`, e.g. railway formation
+ * edges) contributes its *nearest* point (distance
  * to the polyline, height interpolated along it) with a sharp inverse-square kernel, so the ground hugs the back of
  * the closest footway and blends smoothly between roads of different level; far from the network it relaxes to DATUM.
  */
-export function buildTerrain(plan, S = {}) {
+export function buildTerrain(plan, S = {}, extraLines = []) {
   const pad = (S.groundExtent || 160) + INFLUENCE;
   const B = bounds(plan, pad);
   const cell = TERRAIN_CELL;
@@ -81,7 +82,7 @@ export function buildTerrain(plan, S = {}) {
   const wTmp = new Float32Array(nx * nz), hTmp = new Float32Array(nx * nz);
   const r = INFLUENCE, rc = Math.ceil(r / cell);
   const kernel = (d) => (1 - d / r) ** 2 / (0.25 + d * d);
-  for (const line of kitBackLines(plan)) {
+  for (const line of [...kitBackLines(plan), ...extraLines]) {
     const touched = [];
     for (let k = 0; k + 1 < line.length; k++) {
       const a = line[k], b = line[k + 1];

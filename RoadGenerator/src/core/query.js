@@ -29,13 +29,32 @@ export function kitY(kit, d) {
 /** World point on/above the road surface. x: lateral (right positive). lift: metres above the surface. */
 export function roadPoint(R, s, x, lift = 0) {
   const F = R.frameAt(s);
-  const sec = R.section;
-  let y;
-  if (x < -sec.widthL) y = sectionY(sec, -sec.widthL) + kitY(R.kitL, -sec.widthL - x);
-  else if (x > sec.widthR) y = sectionY(sec, sec.widthR) + kitY(R.kitR, x - sec.widthR);
-  else y = sectionY(sec, x);
-  y += bankAt(R, s) * x;
-  return [F.p[0] + F.r[0] * x, F.p[1] + y + lift, F.p[2] + F.r[2] * x];
+  const sec = R.section, bank = bankAt(R, s);
+  let base, extra = 0;
+  if (x < -sec.widthL) { base = sectionY(sec, -sec.widthL) - bank * sec.widthL; extra = kitY(R.kitL, -sec.widthL - x); }
+  else if (x > sec.widthR) { base = sectionY(sec, sec.widthR) + bank * sec.widthR; extra = kitY(R.kitR, x - sec.widthR); }
+  else base = sectionY(sec, x) + bank * x;
+  const w = regradeWeight(R, s);
+  if (w > 0) base = lerp(base, regradeTarget(R, s) - F.p[1], w);
+  return [F.p[0] + F.r[0] * x, F.p[1] + base + extra + lift, F.p[2] + F.r[2] * x];
+}
+/**
+ * Regrades: zones where the carriageway is flattened to a fixed level (level crossings: the road is regraded to the
+ * rail plane). R.regrades = [{ s0, s1, y, T }] → weight 1 inside [s0, s1], smoothstep to 0 over T outside.
+ */
+export function regradeWeight(R, s) {
+  let w = 0;
+  for (const z of R.regrades || []) {
+    const d = s < z.s0 ? z.s0 - s : s > z.s1 ? s - z.s1 : 0;
+    if (d >= z.T) continue;
+    const t = 1 - d / z.T; w = Math.max(w, t * t * (3 - 2 * t));
+  }
+  return w;
+}
+export function regradeTarget(R, s) {
+  let best = null, bw = -1;
+  for (const z of R.regrades || []) { const d = s < z.s0 ? z.s0 - s : s > z.s1 ? s - z.s1 : 0; const w = Math.max(0, 1 - d / z.T); if (w > bw) { bw = w; best = z; } }
+  return best ? best.y : 0;
 }
 /** Full frame: point, forward (dxz), right, up-ish normal. */
 export function roadFrame(R, s, x, lift = 0) {

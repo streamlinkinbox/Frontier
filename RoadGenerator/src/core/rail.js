@@ -3,7 +3,7 @@
 import { MeshBuilder } from "./mesh.js";
 import { Spline, madd, mul, add, sub, norm, rightXZ, lerp, clamp, mat4, cross } from "./math.js";
 import { loft, box, lathe, frames, sweep } from "./primitives.js";
-import { footprint, roadPoint } from "./query.js";
+import { footprint, roadPoint, regradeWeight, regradeTarget } from "./query.js";
 import { basis, basisAlong } from "./furnish.js";
 
 export const GAUGE = 1.435, RAIL_H = 0.172, SLEEPER = { w: 2.6, h: 0.2, d: 0.26, spacing: 0.6 };
@@ -23,6 +23,66 @@ const railSection = (() => { // flat-bottom rail, half-profile mirrored (metres)
   return pts.map(([x, y]) => ({ x, y }));
 })();
 
+/** Level crossings of one surface rail line with the roads: [{ R, roadS, mid, a, b, halfW }] (rail stations a..b). */
+export function levelCrossings(RL, plan) {
+  const L = RL.length, xs = [];
+  for (const R of plan.roads.values()) {
+    const fp = footprint(R);
+    const bb = roadBounds(R, fp);
+    for (let s = 0; s < L; s += 1) {
+      const p = RL.spline.pointAt(s);
+      if (p[0] < bb.minX || p[0] > bb.maxX || p[2] < bb.minZ || p[2] > bb.maxZ) continue;
+      const near = R.spline.closestStation(p);
+      if (!near) continue;
+      const F = R.frameAt(near.s);
+      const d = sub(p, F.p); const lat = d[0] * F.r[0] + d[2] * F.r[2];
+      if (lat > -R.section.widthL - 0.05 && lat < R.section.widthR + 0.05 && Math.abs(p[1] - F.p[1]) < 1.5 && near.s > R.cutA + 2 && near.s < R.length - R.cutB - 2) {
+        const last = xs[xs.length - 1];
+        if (last && last.R === R && s - last.s1 < 3) { last.s1 = s; continue; }
+        xs.push({ R, s0: s, s1: s, roadS: near.s });
+      }
+    }
+  }
+  for (const x of xs) { // extend over the full carriageway + 1.5 m apron each side
+    const Fd = RL.spline.frameAt((x.s0 + x.s1) / 2).dxz, Rd = x.R.frameAt(x.roadS).dxz;
+    const sinA = Math.max(0.3, Math.abs(Fd[0] * Rd[2] - Fd[2] * Rd[0]));
+    const halfW = (x.R.section.widthL + x.R.section.widthR) / 2 / sinA;
+    const mid = (x.s0 + x.s1) / 2;
+    x.a = mid - halfW - 1.5; x.b = mid + halfW + 1.5; x.mid = mid; x.halfW = halfW; x.sinA = sinA;
+  }
+  return xs;
+}
+
+/** Road level at a crossing: 15 mm below rail head so the rubber panels (−12 mm) sit flush with the surface. */
+export const CROSSING_ROAD_DROP = 0.015;
+
+/**
+ * Regrade the carriageways through level crossings to the rail plane (flat across the crossing, blending back to
+ * the crowned section over 10 m each side), moving the already-swept road rows + kit rows in `mb` and recording
+ * R.regrades so roadPoint()/markings/furniture follow. Call after sweepRoads, before buildJunctions compacts.
+ */
+export function applyLevelCrossingRegrades(net, plan, mb) {
+  const lines = [...net.rails.values()].map(analyseRail).filter((rl) => !rl.tunnel);
+  for (const RL of lines) for (const x of levelCrossings(RL, plan)) {
+    const R = x.R, span = halfTrackSpan(RL, R, x) + 2.2, y = RL.spline.pointAt(x.mid)[1] - CROSSING_ROAD_DROP;
+    (R.regrades || (R.regrades = [])).push({ s0: x.roadS - span, s1: x.roadS + span, y, T: 10 });
+  }
+  const P = mb.positions;
+  for (const R of plan.roads.values()) {
+    if (!R.regrades || !R.rows) continue;
+    const sec = R.section, nC = sec.cols.length;
+    R.stations.forEach((s, k) => {
+      const w = regradeWeight(R, s); if (w <= 0) return;
+      const F = R.frames[k], bank = R.bank ? R.bank[k] : 0, target = regradeTarget(R, s) - F.p[1];
+      const rel = (j) => sec.cols[j].y + bank * sec.cols[j].x;
+      R.rows[k].forEach((id, j) => { P[id * 3 + 1] = F.p[1] + lerp(rel(j), target, w); });
+      const dL = lerp(rel(0), target, w) - rel(0), dR = lerp(rel(nC - 1), target, w) - rel(nC - 1);
+      for (const strip of R.kitRows[0]) for (const id of strip[k]) P[id * 3 + 1] += dL;
+      for (const strip of R.kitRows[1]) for (const id of strip[k]) P[id * 3 + 1] += dR;
+    });
+  }
+}
+
 /** Build track geometry for all rail lines. Returns { solid, instances, crossings, lines }. */
 export function buildRails(net, plan, S = defaultRailSettings()) {
   S = { ...defaultRailSettings(), ...S };
@@ -35,32 +95,8 @@ export function buildRails(net, plan, S = defaultRailSettings()) {
   for (const RL of lines) {
     const L = RL.length;
     // --- level crossings: where the rail polyline passes through a road's carriageway at similar height
-    const xs = [];
-    if (S.crossings && !RL.tunnel) for (const R of plan.roads.values()) {
-      const fp = footprint(R);
-      const bb = roadBounds(R, fp);
-      for (let s = 0; s < L; s += 1) {
-        const p = RL.spline.pointAt(s);
-        if (p[0] < bb.minX || p[0] > bb.maxX || p[2] < bb.minZ || p[2] > bb.maxZ) continue;
-        const near = R.spline.closestStation(p);
-        if (!near) continue;
-        const F = R.frameAt(near.s);
-        const d = sub(p, F.p); const lat = d[0] * F.r[0] + d[2] * F.r[2];
-        if (lat > -R.section.widthL - 0.05 && lat < R.section.widthR + 0.05 && Math.abs(p[1] - F.p[1]) < 1.5 && near.s > R.cutA + 2 && near.s < R.length - R.cutB - 2) {
-          const last = xs[xs.length - 1];
-          if (last && last.R === R && s - last.s1 < 3) { last.s1 = s; continue; }
-          xs.push({ R, s0: s, s1: s, roadS: near.s });
-        }
-      }
-    }
-    for (const x of xs) { // extend over the full carriageway + 1.5 m apron each side
-      const Fd = RL.spline.frameAt((x.s0 + x.s1) / 2).dxz, Rd = x.R.frameAt(x.roadS).dxz;
-      const sinA = Math.max(0.3, Math.abs(Fd[0] * Rd[2] - Fd[2] * Rd[0]));
-      const halfW = (x.R.section.widthL + x.R.section.widthR) / 2 / sinA;
-      const mid = (x.s0 + x.s1) / 2;
-      x.a = mid - halfW - 1.5; x.b = mid + halfW + 1.5; x.mid = mid;
-      crossings.push({ rail: RL, road: x.R, s: mid, roadS: x.roadS, a: x.a, b: x.b });
-    }
+    const xs = S.crossings && !RL.tunnel ? levelCrossings(RL, plan) : [];
+    for (const x of xs) crossings.push({ rail: RL, road: x.R, s: x.mid, roadS: x.roadS, a: x.a, b: x.b });
     const inCrossing = (s) => xs.find((x) => s >= x.a && s <= x.b);
     // --- ballast bed / tunnel lining
     if (!RL.tunnel) {
@@ -72,11 +108,20 @@ export function buildRails(net, plan, S = defaultRailSettings()) {
       const mats = (j) => (j === 0 || j === 5 ? grass : ballast);
       let rows = [];
       const flush = () => { if (rows.length > 1) mb.gridAuto(mats, rows, RL.line.id); rows = []; };
-      for (let s = 0; s <= L + 1e-6; s += 1.5) {
-        const ss = Math.min(s, L);
-        if (inCrossing(ss)) { flush(); continue; }
-        rows.push(cols.map(([x, dy]) => mb.vertex(railPoint(RL, ss, x, dy), [ss, x], [0, 1, 0.5, 0])));
-        if (ss >= L) break;
+      // the bed is continuous through level crossings but dips 0.45 m there so its shoulders stay below the road's
+      // gutters (the crossing deck / footway kits hide it); the dip starts under the footway, 1 m outside the apron
+      // the step down is a vertical face exactly 0.2 m outside the apron (still under the footway kit)
+      const zones = xs.map((x) => [x.a - 0.2, x.b + 0.2]);
+      const stations = [];
+      for (let s = 0; s < L; s += 1.5) stations.push([s, 0]);
+      stations.push([L, 0]);
+      for (const [za, zb] of zones) { stations.push([za, 0], [za, 1], [zb, 1], [zb, 0]); }
+      stations.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+      const inZone = (ss) => zones.some(([za, zb]) => ss > za && ss < zb);
+      for (const [ss, tag] of stations) {
+        if (ss < 0 || ss > L) continue;
+        const dipped = inZone(ss) || tag === 1;
+        rows.push(cols.map(([x, dy]) => mb.vertex(railPoint(RL, ss, x, dy + (dipped ? -0.45 : 0)), [ss, x], [0, 1, 0.5, 0])));
       }
       flush();
       // sleepers
@@ -100,7 +145,7 @@ export function buildRails(net, plan, S = defaultRailSettings()) {
       seg(-GAUGE / 2 + 0.07, GAUGE / 2 - 0.07, -0.012); seg(-GAUGE / 2 - 0.5, -GAUGE / 2 - 0.08, -0.012); seg(GAUGE / 2 + 0.08, GAUGE / 2 + 0.5, -0.012);
       // asphalt apron between the road surface and the panels
       const asphalt = mb.material("asphalt");
-      for (const [xa, xb] of [[-2.0, -GAUGE / 2 - 0.5], [GAUGE / 2 + 0.5, 2.0]]) { const rows = []; for (const s of [x.a, x.b]) rows.push([railPoint(RL, s, xa, -0.1), railPoint(RL, s, xb, -0.012)].map((p) => mb.vertex(p, [s, p[0]], [0.2, 1, 0.5, 0]))); mb.gridAuto(asphalt, rows, RL.line.id); }
+      for (const [xa, xb] of [[-2.0, -GAUGE / 2 - 0.5], [GAUGE / 2 + 0.5, 2.0]]) { const rows = []; for (const s of [x.a, x.b]) rows.push([railPoint(RL, s, xa, -CROSSING_ROAD_DROP + 0.003), railPoint(RL, s, xb, -0.012)].map((p) => mb.vertex(p, [s, p[0]], [0.2, 1, 0.5, 0]))); mb.gridAuto(asphalt, rows, RL.line.id); }
       // crossbucks + half barriers on each approach, drivers' right, 4 m before the near rail
       const R = x.R;
       for (const dir of [-1, 1]) {
