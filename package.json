@@ -1,0 +1,17 @@
+{
+  "name": "frontier-road-generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontier Road Generator — standalone WebGPU road network authoring tool",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "build": "node tools/build.mjs",
+    "test": "node --test RoadGenerator/tests/*.test.js",
+    "check:wgsl": "node tools/check-wgsl.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "naga-wasm": "^30.2.0"
+  }
+}

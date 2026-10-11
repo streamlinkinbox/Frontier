@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>frontier. — Road Network Generator</title>
+<link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <div class="brand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 10 4"/><path d="M14 4l6 16"/><path d="M12 8v2"/><path d="M12 13v2"/><path d="M12 18v2"/></svg>frontier.<span class="tag">Roads / 01</span></div>
+    <div class="zone" id="hdr-tools"></div>
+    <div class="spacer"></div>
+    <div class="zone" id="hdr-mode"></div>
+    <div class="spacer"></div>
+    <div class="zone" id="status"><span id="status-text">Ready</span><span class="dot" id="status-dot"></span></div>
+    <div id="progress"></div>
+  </header>
+  <div id="main">
+    <nav id="rail"></nav>
+    <aside id="left"></aside>
+    <section id="viewport">
+      <canvas id="gl" tabindex="0"></canvas>
+      <div id="overlay"></div>
+      <div id="vp-top"></div>
+      <div id="vp-hint"></div>
+      <div id="vp-stats"></div>
+    </section>
+    <aside id="right">
+      <div id="layers"></div>
+      <div id="inspector"></div>
+    </aside>
+  </div>
+  <div id="loading"><div class="box"><div class="brand">frontier<span style="color:var(--accent)">.</span> roads</div><div class="bar"><div id="load-bar"></div></div><div class="msg" id="load-msg">Starting WebGPU…</div><div class="err" id="load-err"></div></div></div>
+</div>
+<script type="module" src="./src/ui/app.js"></script>
+</body>
+</html>
