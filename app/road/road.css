@@ -286,3 +286,16 @@ select{background:#1d1d1d;border:1px solid #333;border-radius:8px;padding:6px 8p
 [data-mode=drive] .vp-title{opacity:.5}
 .hidden{display:none!important}
 @media (max-width:1180px){.body{grid-template-columns:232px minmax(0,1fr) 336px}}
+@media (max-width:980px){
+  .app{min-width:0}
+  .body{grid-template-columns:0 minmax(0,1fr) minmax(300px,340px)}
+  .outliner{display:none}
+  .minimap,.legend{display:none}
+  .det-body{padding:12px}
+  .tabs .i{display:none}
+}
+@media (max-width:760px){
+  .body{grid-template-columns:0 minmax(0,1fr) 0}
+  .details{position:absolute;right:0;top:46px;bottom:28px;width:min(360px,92vw);z-index:40;box-shadow:-24px 0 48px -20px #000}
+  .menu:nth-of-type(n+3){display:none}
+}
