@@ -31,7 +31,7 @@ Safari 26 — WebGPU must be available. Rebuild the single file with `node tools
 | Structures | `structures.js` | Per-station classification (ground, embankment, bridge, cutting, retained, tunnel). Embankments become decks only where they pass over another road or railway corridor (span = corridor + verge + slope run); box girders ≈ span/22 deep, 0.45 × 0.95 m parapets, Ø1.5 m piers that are slid out of lower carriageways; retaining walls and stencil ground holes for underpasses; tunnel boxes and portals. |
 | Rail | `rail.js` | Track (UIC-54 style rail profile, instanced sleepers, ballast prism in a drained trench or on a bridge), level crossings with panels, barriers and crossbucks, catenary, plate-girder rail bridges, subway tunnels, and trains that run on the line. |
 | Props | `props.js` | Street lights, traffic signals ("robots"), signs, 6 bollard families, pedestrian railings, W-beam guardrails, billboards, parked cars — placed from the network with real spacing rules. |
-| Traffic | `traffic.js` | Lane graph with Bézier connectors, IDM car-following, signal phases, ≤ 25 vehicles. |
+| Traffic | `traffic.js` | Lane graph with Bézier connectors, IDM car-following, signal phases, ≤ 25 vehicles; buses run in bus lanes (cars never do). |
 
 Topology rules: everything is built from **quads** (triangles only appear in city-block interiors); all
 surface layers are checked to face +Y; junctions are single welded manifolds — there is never a road

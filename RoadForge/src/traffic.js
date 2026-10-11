@@ -6,7 +6,7 @@
   const V = RF.V, S = RF.spline;
   const MAX_VEHICLES = 25;
   const IDM = { a: 1.6, b: 2.4, s0: 2.5, T: 1.4 };
-  const KINDS = [['sedan', 4.7, 0.42], ['hatch', 4.1, 0.25], ['suv', 4.8, 0.2], ['van', 5.4, 0.08], ['truck', 8.5, 0.03], ['bus', 12, 0.02]];
+  const KINDS = [['sedan', 4.7, 0.42], ['hatch', 4.1, 0.25], ['suv', 4.8, 0.2], ['van', 5.4, 0.08], ['truck', 8.5, 0.03], ['bus', 12, 0.04]];
 
   /* ---------------- lane graph ---------------- */
   function buildGraph(net, layers) {
@@ -14,16 +14,19 @@
     const byNodeIn = new Map(), byNodeOut = new Map();
     const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
     for (const R of net.roads.values()) {
-      const dl = R.lay.driveLanes; if (!dl.length || R.samples.length < 2) continue;
+      const dl = R.lay.lanes.filter((l) => l.kind === 'drive' || l.kind === 'bus'); if (!dl.length || R.samples.length < 2) continue;
+      // bus lanes sit outside the general lanes (kerb side) and are only used by buses
       const fwd = dl.filter((l) => l.dir > 0).sort((a, b) => a.t0 - b.t0); // innermost (left for RHT) first
       const bwd = dl.filter((l) => l.dir < 0).sort((a, b) => b.t0 - a.t0);
       for (const [group, dir] of [[fwd, 1], [bwd, -1]]) {
+        const nGen = group.filter((l) => l.kind === 'drive').length;
+        if (!nGen) continue;
         group.forEach((l, idx) => {
           const t = (l.t0 + l.t1) / 2;
           const sm = dir > 0 ? R.samples : [...R.samples].reverse();
           const pts = sm.map((f) => RF.roadmesh.surfPoint(R, f.s, t, layers, 0.0));
           const cum = S.cumulativeXZ(pts);
-          const lane = { id: `${R.id}:${dir}:${idx}`, kind: 'lane', road: R, dir, t, idx, n: group.length, pts, cum, length: cum[cum.length - 1], from: dir > 0 ? R.road.a : R.road.b, to: dir > 0 ? R.road.b : R.road.a, next: [], vmax: (R.lay.speed || 50) / 3.6, vehicles: [] };
+          const lane = { id: `${R.id}:${dir}:${idx}`, kind: 'lane', busOnly: l.kind === 'bus', nGen, road: R, dir, t, idx, n: group.length, pts, cum, length: cum[cum.length - 1], from: dir > 0 ? R.road.a : R.road.b, to: dir > 0 ? R.road.b : R.road.a, next: [], vmax: (R.lay.speed || 50) / 3.6, vehicles: [] };
           lanes.push(lane); segs.push(lane); push(byNodeIn, lane.to, lane); push(byNodeOut, lane.from, lane);
         });
       }
@@ -42,14 +45,18 @@
         });
         const movesByTurn = (turn) => candidates.filter((c) => c.turn === turn);
         const allowed = [];
-        const nIn = li.n, isLeftmost = li.idx === 0, isRightmost = li.idx === nIn - 1;
+        const nIn = li.n, isLeftmost = li.idx === 0, isRightmost = li.busOnly || li.idx === li.nGen - 1;
         for (const c of candidates) {
-          if (c.turn === 'straight') { if (c.lo.idx === Math.min(li.idx, c.lo.n - 1) || (nIn === 1)) allowed.push(c); }
-          else if (c.turn === 'left' && isLeftmost && c.lo.idx === 0) allowed.push(c);
-          else if (c.turn === 'right' && isRightmost && c.lo.idx === c.lo.n - 1) allowed.push(c);
+          const loGenLast = c.lo.nGen - 1; // rightmost general lane of the exit
+          if (c.turn === 'straight') {
+            if (li.busOnly) { if (c.lo.busOnly || (c.lo.idx === loGenLast && !c.lo.road.lay.lanes.some((l) => l.kind === 'bus'))) allowed.push(c); }
+            else if (!c.lo.busOnly && (c.lo.idx === Math.min(li.idx, loGenLast) || nIn === 1)) allowed.push(c);
+          }
+          else if (c.turn === 'left' && isLeftmost && c.lo.idx === 0 && !c.lo.busOnly) allowed.push(c);
+          else if (c.turn === 'right' && isRightmost && !c.lo.busOnly && c.lo.idx === loGenLast) allowed.push(c);
         }
         // guarantee every lane has an exit where any exists
-        if (!allowed.length && candidates.length) { const s = movesByTurn('straight'); allowed.push(s.length ? s.reduce((a, b) => (Math.abs(a.lo.idx - li.idx) < Math.abs(b.lo.idx - li.idx) ? a : b)) : candidates[0]); }
+        if (!allowed.length && candidates.filter((c) => !c.lo.busOnly).length) { const s = movesByTurn('straight').filter((c) => !c.lo.busOnly); allowed.push(s.length ? s.reduce((a, b) => (Math.abs(a.lo.idx - li.idx) < Math.abs(b.lo.idx - li.idx) ? a : b)) : candidates[0]); }
         // dead end: U-turn onto the opposite lane of the same road
         if (!candidates.length) { const back = outs.find((lo) => lo.road === li.road && lo.dir !== li.dir && lo.idx === 0); if (back) allowed.push({ lo: back, ang: Math.PI, turn: 'uturn', pStart: back.pts[0], dStart: V.normXZ(V.sub(back.pts[1], back.pts[0])) }); }
         for (const c of allowed) {
@@ -108,13 +115,18 @@
     }
     setCount(n) { this.target = RF.clamp(n | 0, 0, MAX_VEHICLES); }
     spawn() {
-      const lanes = this.graph.lanes.filter((l) => l.length > 30);
-      if (!lanes.length) return false;
+      const all = this.graph.lanes.filter((l) => l.length > 30);
+      if (!all.length) return false;
+      const busLanes = all.filter((l) => l.busOnly);
       for (let tries = 0; tries < 12; tries++) {
-        const lane = lanes[Math.floor(this.rng() * lanes.length)];
+        let { kind, length } = pickKind(this.rng);
+        // keep a bus on every bus-lane corridor
+        if (busLanes.length && !this.vehicles.some((v) => v.kind === 'bus') && tries === 0) { kind = 'bus'; length = 12; }
+        const pool = kind === 'bus' && busLanes.length ? busLanes : all.filter((l) => !l.busOnly);
+        if (!pool.length) continue;
+        const lane = pool[Math.floor(this.rng() * pool.length)];
         const s = 10 + this.rng() * (lane.length - 20);
         if (lane.vehicles.some((v) => Math.abs(v.s - s) < 14)) continue;
-        const { kind, length } = pickKind(this.rng);
         const col = RF.props.CAR_COLORS[Math.floor(this.rng() * RF.props.CAR_COLORS.length)];
         const veh = { id: this.vehicles.length + ':' + (this.time | 0), kind, length, color: col, seg: lane, s, v: lane.vmax * 0.6, plan: null, wait: 0, pos: null, dir: null };
         this.vehicles.push(veh); lane.vehicles.push(veh);
@@ -123,9 +135,11 @@
       return false;
     }
     choosePlan(veh) {
-      const nx = veh.seg.next; if (!nx.length) return null;
+      let nx = veh.seg.next; if (!nx.length) return null;
+      // bus lanes are for buses only; buses prefer them
+      if (veh.kind !== 'bus') { const gen = nx.filter((c) => !c.to.busOnly); if (gen.length) nx = gen; }
       // prefer straight; avoid U-turns when alternatives exist
-      const weights = nx.map((c) => (c.turn === 'straight' ? 3 : c.turn === 'uturn' ? 0.2 : 1));
+      const weights = nx.map((c) => (c.turn === 'straight' ? 3 : c.turn === 'uturn' ? 0.2 : 1) * (veh.kind === 'bus' && c.to.busOnly ? 4 : 1));
       let r = this.rng() * weights.reduce((a, b) => a + b, 0);
       for (let i = 0; i < nx.length; i++) { r -= weights[i]; if (r <= 0) return nx[i]; }
       return nx[nx.length - 1];
@@ -211,7 +225,7 @@
         while (veh.s > seg.length && veh.seg) {
           const nxt = seg.kind === 'lane' ? veh.plan : seg.next[0];
           seg.vehicles = seg.vehicles.filter((x) => x !== veh);
-          if (!nxt) { veh.s = 0; veh.seg = this.graph.lanes[Math.floor(this.rng() * this.graph.lanes.length)]; veh.seg.vehicles.push(veh); veh.plan = null; break; }
+          if (!nxt) { const pool = this.graph.lanes.filter((l) => veh.kind === 'bus' ? true : !l.busOnly); veh.s = 0; veh.seg = pool[Math.floor(this.rng() * pool.length)] || this.graph.lanes[0]; veh.seg.vehicles.push(veh); veh.plan = null; break; }
           veh.s -= seg.length; veh.seg = nxt; nxt.vehicles.push(veh); veh.plan = nxt.kind === 'lane' ? null : veh.plan;
           if (nxt.kind === 'lane') veh.plan = this.choosePlan(veh);
           break;
