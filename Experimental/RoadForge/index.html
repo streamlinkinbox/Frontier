@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="color-scheme" content="dark" />
+  <title>RoadForge — Procedural road studio</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-roadmark" viewBox="0 0 24 24"><path d="M8 3 5 21M16 3l3 18M12 5v3m0 4v3m0 4v1"/><path d="M4.5 17h-2m19 0h-2"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9.5h17M3.5 15.5h17M9.5 3.5v17M15.5 3.5v17"/></symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m5 3 14 11-7 .6-3.4 6.4L5 3Z"/><path d="m12 15 3.2 5.1"/></symbol>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3m3-3 3 3m6 6-3-3m3 3-3 3M12 21l-3-3m3 3 3-3M3 12l3-3m-3 3 3 3"/></symbol>
+    <symbol id="i-spline" viewBox="0 0 24 24"><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c7 0 3-12 10-12"/><path d="m9 14-2 4 4 1m4-9 2-4-4-1"/></symbol>
+    <symbol id="i-intersection" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="5.2"/></symbol>
+    <symbol id="i-terrain" viewBox="0 0 24 24"><path d="m3 18 6-8 4 5 3-4 5 7H3Z"/><path d="m9 10 2.2-3 2.3 3M3 21h18"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.2-6.2 9.5-6.2 9.5 6.2 9.5 6.2-3.2 6.2-9.5 6.2S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 5.9a10 10 0 0 1 1.4-.1c6.3 0 9.5 6.2 9.5 6.2a16 16 0 0 1-3.1 3.8M6.2 6.4C3.8 8 2.5 12 2.5 12s3.2 6.2 9.5 6.2c1.2 0 2.3-.2 3.2-.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="m9 14-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9h-9a7 7 0 0 0-7 7v3"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-orbit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.4"/><path d="M3.5 12c0-3.7 3.8-6.7 8.5-6.7s8.5 3 8.5 6.7-3.8 6.7-8.5 6.7-8.5-3-8.5-6.7Z" transform="rotate(-24 12 12)"/></symbol>
+    <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9m4 0h3M4 12h3m4 0h9M4 18h9m4 0h3"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="m4 14 1.5-5h13L20 14v5h-2v-2H6v2H4v-5Z"/><path d="m6 9 2-4h8l2 4M6 13h.01M18 13h.01"/></symbol>
+    <symbol id="i-robot" viewBox="0 0 24 24"><path d="M12 3v3M9 3h6M5 9a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9Z"/><path d="M8.5 11h.01M15.5 11h.01M9 15h6M2.5 11v5M21.5 11v5"/></symbol>
+    <symbol id="i-train" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M8 18l-2 3m10-3 2 3M8 7h8m-8 4h.01M16 11h.01M7 15h10"/></symbol>
+    <symbol id="i-bridge" viewBox="0 0 24 24"><path d="M3 6h18M5 6v13m14-13v13M3 19h18M8 6v7m8-7v7m-8 0a4 4 0 0 0 8 0"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a5 5 0 0 0-6.9 6.9L3 18l3 3 4.8-4.8a5 5 0 0 0 6.9-6.9l-3 3-3-3 3-3Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.7 1.7 0 1 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 1 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 1 1 0-3.4h.2A1.7 1.7 0 0 0 5.4 6l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2v-.2a1.7 1.7 0 1 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 1 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z" transform="translate(0 2) scale(.9)"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 8l6-5m12 5-6-5M3 16l6 5m12-5-6 5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-mesh" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.7 8-4.7M12 12.2V21m-4-9.8 3-7.3m5 14.8-4-6.5"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.7 8-4.7M12 12.2V21"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup" aria-label="RoadForge">
+        <div class="brand-mark"><svg class="icon"><use href="#i-roadmark"/></svg></div>
+        <div class="brand-word"><strong>ROAD<span>FORGE</span></strong><small>PROCEDURAL STUDIO</small></div>
+      </div>
+      <div class="project-chip"><span class="project-dot"></span><span class="project-name">NORTH QUAY <b>/</b> NETWORK 04</span><svg class="icon tiny"><use href="#i-chevron"/></svg></div>
+      <div class="top-tabs" role="tablist" aria-label="Workspace">
+        <button class="top-tab active" data-mode="network">Network</button>
+        <button class="top-tab" data-mode="surface">Surface</button>
+        <button class="top-tab" data-mode="traffic">Traffic</button>
+      </div>
+      <div class="top-spacer"></div>
+      <div class="save-indicator" id="saveIndicator"><span class="save-dot"></span><span>Saved locally</span></div>
+      <div class="top-divider"></div>
+      <div class="renderer-pill" id="rendererPill" title="Browser GPU status"><i></i><span>CONNECTING GPU</span></div>
+      <button class="top-icon" id="undoButton" title="Undo · Ctrl/⌘ Z"><svg class="icon"><use href="#i-undo"/></svg></button>
+      <button class="top-icon" id="redoButton" title="Redo · Ctrl/⌘ Shift Z"><svg class="icon"><use href="#i-redo"/></svg></button>
+      <button class="export-button" id="exportButton"><svg class="icon"><use href="#i-export"/></svg><span>Export</span><kbd>⌘ E</kbd></button>
+      <button class="avatar-button" title="RoadForge demo project">RF</button>
+    </header>
+
+    <div class="workspace">
+      <aside class="tool-rail" aria-label="Tools">
+        <div class="rail-group">
+          <button class="tool-button active" data-tool="select" title="Select · Q"><svg class="icon"><use href="#i-cursor"/></svg><span>Select</span></button>
+          <button class="tool-button" data-tool="move" title="Move intersection · W"><svg class="icon"><use href="#i-move"/></svg><span>Move</span></button>
+          <button class="tool-button" data-tool="road" title="Draw road · R"><svg class="icon"><use href="#i-spline"/></svg><span>Road</span></button>
+          <button class="tool-button" data-tool="junction" title="Add junction · J"><svg class="icon"><use href="#i-intersection"/></svg><span>Junction</span></button>
+        </div>
+        <div class="rail-separator"></div>
+        <div class="rail-group">
+          <button class="tool-button" data-tool="measure" title="Measure · M"><svg class="icon"><use href="#i-terrain"/></svg><span>Measure</span></button>
+        </div>
+        <div class="rail-bottom">
+          <button class="tool-button rail-utility" id="frameButton" title="Frame scene · F"><svg class="icon"><use href="#i-expand"/></svg></button>
+          <button class="tool-button rail-utility" id="helpButton" title="Shortcuts and help"><svg class="icon"><use href="#i-settings"/></svg></button>
+          <div class="rail-key">RF / 01</div>
+        </div>
+      </aside>
+
+      <aside class="generator-panel">
+        <div class="panel-title-row">
+          <div><div class="eyebrow">ROAD SYSTEM / 01</div><h1>Network generator</h1></div>
+          <button class="square-button" id="generatorMenu" title="Generator options"><svg class="icon"><use href="#i-more"/></svg></button>
+        </div>
+        <div class="generator-scroll">
+          <div class="control-section">
+            <div class="section-heading"><span>NETWORK PRESET</span><span class="section-trailing">3 templates</span></div>
+            <div class="preset-grid">
+              <button class="preset-card selected" data-preset="urban">
+                <span class="preset-art urban-art"><svg viewBox="0 0 72 42" aria-hidden="true"><path d="M10 0v42M29 0v42M48 0v42M66 0v42M0 9h72M0 28h72"/><path class="preset-road-center" d="M29 0v42M0 28h72"/><circle cx="29" cy="28" r="3.1"/><circle cx="48" cy="9" r="2"/></svg></span>
+                <span class="preset-copy"><b>Urban grid</b><small>Blocks · signals · mixed use</small></span><span class="preset-selected-dot"></span>
+              </button>
+              <button class="preset-card" data-preset="suburban">
+                <span class="preset-art suburban-art"><svg viewBox="0 0 72 42" aria-hidden="true"><path d="M0 30c16-2 20-5 28-15S45 2 72 6M5 40c10-14 18-22 32-24S58 20 72 34"/><path class="preset-road-center" d="M0 30c16-2 20-5 28-15S45 2 72 6"/><circle cx="29" cy="15" r="2.4"/></svg></span>
+                <span class="preset-copy"><b>Suburban arterial</b><small>Curves · driveways · cul-de-sac</small></span><span class="preset-selected-dot"></span>
+              </button>
+              <button class="preset-card" data-preset="highway">
+                <span class="preset-art highway-art"><svg viewBox="0 0 72 42" aria-hidden="true"><path d="M0 30h72M6 30c0-14 10-21 23-21h10c14 0 20 6 20 21M0 11h72"/><path class="preset-road-center" d="M0 30h72"/><path d="M13 12h14M45 12h14"/></svg></span>
+                <span class="preset-copy"><b>Highway interchange</b><small>Grade separation · braided ramps</small></span><span class="preset-selected-dot"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="control-section">
+            <div class="section-heading"><span>GENERATION</span><span class="section-trailing" id="seedStatus">SEEDED</span></div>
+            <div class="seed-row">
+              <label class="seed-field"><span>Seed</span><input id="seedInput" type="number" value="1842" min="1" max="999999" aria-label="Network seed" /></label>
+              <button class="seed-random" id="randomSeed" title="Random seed"><svg class="icon"><use href="#i-orbit"/></svg></button>
+            </div>
+            <div class="range-control">
+              <div class="range-label"><label for="densityRange">Street density</label><output id="densityValue">0.68</output></div>
+              <input id="densityRange" type="range" min="0.25" max="1" value="0.68" step="0.01" />
+              <div class="range-hints"><span>Open</span><span>Compact</span></div>
+            </div>
+            <div class="range-control">
+              <div class="range-label"><label for="blockRange">Block scale</label><output id="blockValue">18 m</output></div>
+              <input id="blockRange" type="range" min="12" max="30" value="18" step="1" />
+              <div class="range-hints"><span>Fine grain</span><span>Large blocks</span></div>
+            </div>
+            <div class="control-row two-up">
+              <label class="select-control"><span>Traffic side</span><select id="trafficSide"><option value="right">Right-hand</option><option value="left">Left-hand</option></select><svg class="icon tiny"><use href="#i-chevron"/></svg></label>
+              <label class="select-control"><span>Region</span><select id="regionSelect"><option value="na">North America</option><option value="eu">Continental EU</option><option value="uk">United Kingdom</option></select><svg class="icon tiny"><use href="#i-chevron"/></svg></label>
+            </div>
+          </div>
+
+          <div class="control-section feature-section">
+            <div class="section-heading"><span>ROAD COMPONENTS</span><span class="section-trailing">LIVE BUILD</span></div>
+            <div class="feature-grid">
+              <label class="feature-toggle"><input type="checkbox" data-feature="markings" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Markings</b><small>Lane + crosswalk</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="sidewalks" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Sidewalks</b><small>Curbs + paving</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="blocks" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>City blocks</b><small>Lots, no buildings</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="signals" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Signals</b><small>Junction controls</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="damage" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Road wear</b><small>Ravel + potholes</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="construction" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Construction</b><small>Work zone kit</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="rail" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Rail underpass</b><small>Cut + retaining walls</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="bridge" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Viaduct</b><small>Deck + guardrail</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="streetlights" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Streetlights</b><small>Warm LED poles</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="robots" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Service robots</b><small>Autonomous deliveries</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="parking" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Parking bays</b><small>Kerbside pockets</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="bollards" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Bollards</b><small>Pedestrian edges</small></span></label>
+              <label class="feature-toggle"><input type="checkbox" data-feature="billboards" checked /><span class="fake-check"><svg class="icon"><use href="#i-check"/></svg></span><span><b>Wayfinding</b><small>Signs + panels</small></span></label>
+            </div>
+          </div>
+
+          <div class="control-section traffic-settings">
+            <div class="section-heading"><span>TRAFFIC SIMULATION</span><button class="text-button" data-mode="traffic">Open <span>↗</span></button></div>
+            <div class="traffic-count-row"><span class="traffic-count-icon"><svg class="icon"><use href="#i-car"/></svg></span><div class="traffic-count-copy"><b>AI vehicles</b><small>Hard cap · 25 vehicles total</small></div><output id="vehicleCountValue">8</output></div>
+            <input id="vehicleCountRange" type="range" min="0" max="25" value="8" step="1" aria-label="AI traffic count, maximum 25" />
+            <div class="traffic-play-row"><button class="mini-play" id="simulationButton"><svg class="icon"><use href="#i-pause"/></svg><span>Pause simulation</span></button><span class="sim-clock"><svg class="icon tiny"><use href="#i-clock"/></svg><b id="simClock">08:42:16</b></span></div>
+          </div>
+        </div>
+        <div class="generator-footer">
+          <button class="generate-button" id="generateButton"><span class="generate-icon"><svg class="icon"><use href="#i-spark"/></svg><span>01</span></span><span>Generate network</span><kbd>↵</kbd></button>
+          <div class="generator-footnote"><span class="status-green"></span> Quad ribbons <b>·</b> shared junction patches <b>·</b> WebGPU</div>
+        </div>
+      </aside>
+
+      <main class="viewport-column">
+        <div class="viewport-toolbar">
+          <div class="viewport-context"><span class="context-icon"><svg class="icon"><use href="#i-grid"/></svg></span><div><b id="viewportModeTitle">Network view</b><small id="viewportModeCaption">Perspective / real-world scale</small></div></div>
+          <div class="viewport-actions">
+            <button class="view-control active" id="perspectiveButton" title="Perspective view"><svg class="icon"><use href="#i-orbit"/></svg><span>Perspective</span></button>
+            <button class="view-control" id="topViewButton" title="Top view"><svg class="icon"><use href="#i-grid"/></svg><span>Top</span></button>
+            <span class="view-separator"></span>
+            <button class="view-square" id="gridButton" title="Toggle ground grid"><svg class="icon"><use href="#i-grid"/></svg></button>
+            <button class="view-square" id="frameViewportButton" title="Frame scene"><svg class="icon"><use href="#i-expand"/></svg></button>
+            <button class="view-square" id="viewportMenuButton" title="Viewport options"><svg class="icon"><use href="#i-more"/></svg></button>
+          </div>
+        </div>
+        <div class="viewport-wrap" id="viewportWrap">
+          <canvas id="viewport" aria-label="Interactive WebGPU road network viewport"></canvas>
+          <div class="viewport-vignette"></div>
+          <div class="view-top-left">
+            <div class="view-chip"><span class="record-dot"></span> LIVE SIMULATION</div>
+            <div class="view-location"><b>NORTH QUAY</b><span>METRIC / M</span></div>
+          </div>
+          <div class="view-top-right">
+            <div class="camera-axis" id="cameraAxis" title="Camera orientation"><span class="axis-y">Y</span><span class="axis-x">X</span><span class="axis-z">Z</span><i></i></div>
+            <div class="scale-chip"><svg class="icon tiny"><use href="#i-crosshair"/></svg><span>1 : 640</span></div>
+          </div>
+          <div class="scene-labels" id="sceneLabels"></div>
+          <div class="gizmo-layer" id="gizmoLayer"></div>
+          <div class="tool-instruction" id="toolInstruction"><span class="instruction-dot"></span><span>Click a road or intersection to inspect</span><kbd>Q</kbd></div>
+          <div class="mini-map-wrap">
+            <div class="mini-map-title"><span>NETWORK MAP</span><button id="miniMapToggle" title="Toggle map"><svg class="icon tiny"><use href="#i-minus"/></svg></button></div>
+            <svg class="mini-map" id="miniMap" viewBox="0 0 160 104" role="img" aria-label="Road network minimap"></svg>
+            <div class="mini-map-footer"><span><i></i> road graph</span><span id="miniMapNodeCount">16 nodes</span></div>
+          </div>
+          <div class="viewport-footer-left">
+            <span><i class="footer-dot"></i> ORTHOGONAL TOPOLOGY</span><span class="footer-divider"></span><span id="meshStats">— verts / — quads</span>
+          </div>
+          <div class="viewport-footer-right">
+            <span class="camera-hint"><svg class="icon tiny"><use href="#i-orbit"/></svg> Orbit</span>
+            <span class="camera-hint"><span class="mouse-glyph">⌘</span> Pan</span>
+            <span class="camera-hint">Scroll Zoom</span>
+          </div>
+          <div class="loading-state" id="loadingState"><div class="loading-ring"></div><b>Building road surface</b><span>Sampling splines · resolving junction patches</span></div>
+          <div class="webgpu-warning" id="webgpuWarning" hidden><div><b>WebGPU is not available in this browser</b><span>Use a current Chromium browser on a secure origin. A vector preview is shown in the meantime.</span></div></div>
+        </div>
+        <div class="viewport-statusbar">
+          <div class="status-left"><span class="status-coordinate" id="coordinateReadout">X 0.00 <b>m</b> <span>·</span> Z 0.00 <b>m</b></span><span class="status-separator"></span><span><svg class="icon tiny"><use href="#i-pin"/></svg> WORLD / LOCAL</span></div>
+          <div class="status-right"><span id="selectionReadout">No selection</span><span class="status-separator"></span><span id="gpuFrameRate">GPU —</span></div>
+        </div>
+      </main>
+
+      <aside class="right-dock">
+        <div class="dock-header">
+          <div class="dock-tabs" role="tablist" aria-label="Right panel">
+            <button class="dock-tab active" data-dock="scene">Scene</button>
+            <button class="dock-tab" data-dock="surface">Surface stack <span class="tab-count">06</span></button>
+          </div>
+          <button class="square-button" id="dockOptions" title="Panel options"><svg class="icon"><use href="#i-more"/></svg></button>
+        </div>
+        <div class="dock-scroll">
+          <section class="dock-section outliner-section" id="outlinerSection">
+            <div class="dock-section-heading"><div><span class="eyebrow">PROJECT / NORTH QUAY</span><h2>Outliner <span class="count-pill" id="objectCount">08</span></h2></div><button class="small-icon-button" id="addObjectButton" title="Add object"><svg class="icon"><use href="#i-plus"/></svg></button></div>
+            <div class="outliner-search"><svg class="icon"><use href="#i-search"/></svg><input id="outlinerSearch" placeholder="Filter scene objects" /><kbd>⌘ K</kbd></div>
+            <div class="outliner-tree" id="outlinerTree"></div>
+          </section>
+          <section class="dock-section inspector-section" id="inspectorSection">
+            <div class="inspector-head"><span class="eyebrow">INSPECTOR</span><button class="small-icon-button" id="resetSelectionButton" title="Reset selected object"><svg class="icon"><use href="#i-undo"/></svg></button></div>
+            <div id="inspectorContent" class="inspector-content"></div>
+          </section>
+          <section class="dock-section layer-section" id="layerSection">
+            <div class="layer-heading"><div><span class="eyebrow">MATERIAL / ROAD SYSTEM</span><h2>Surface layers <span class="count-pill">06</span></h2></div><button class="small-icon-button" id="addLayerButton" title="Add material layer"><svg class="icon"><use href="#i-plus"/></svg></button></div>
+            <div class="surface-mini-preview"><div class="surface-preview-art"><span class="aggregate"></span><span class="marking"></span><span class="grit"></span></div><div><b>Wet asphalt · R04</b><small><span class="surface-dot"></span> Physically layered · 4K</small></div><button class="preview-menu" title="Surface options"><svg class="icon"><use href="#i-more"/></svg></button></div>
+            <div class="layer-list" id="layerList"></div>
+            <div class="layer-properties" id="layerProperties"></div>
+          </section>
+        </div>
+        <div class="dock-footer"><span class="dock-footer-dot"></span><span>Project autosave</span><span class="dock-footer-sep">/</span><span id="projectSize">LOCAL</span></div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="context-menu" id="contextMenu" hidden></div>
+  <div class="modal-backdrop" id="exportModal" hidden>
+    <section class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <div class="dialog-head"><div class="dialog-icon"><svg class="icon"><use href="#i-export"/></svg></div><div><span class="eyebrow">DELIVERY / ROADFORGE</span><h2 id="exportTitle">Export network</h2></div><button class="small-icon-button" id="closeExport"><svg class="icon"><use href="#i-close"/></svg></button></div>
+      <p class="dialog-copy">Export the generated road graph, layered surface settings, or a triangulated mesh for your DCC pipeline.</p>
+      <div class="export-options">
+        <button class="export-option selected" data-export="obj"><span class="export-file-icon">OBJ</span><span><b>Wavefront mesh</b><small>Roads, junctions, markings, props · .obj + .mtl</small></span><span class="radio-mark"></span></button>
+        <button class="export-option" data-export="json"><span class="export-file-icon json-icon">{ }</span><span><b>RoadForge project</b><small>Editable network, layers, seed, traffic settings · .json</small></span><span class="radio-mark"></span></button>
+      </div>
+      <div class="dialog-foot"><span><svg class="icon tiny"><use href="#i-mesh"/></svg><span id="exportMeshInfo">Quad strips triangulated at export</span></span><button class="primary-button" id="confirmExport"><svg class="icon"><use href="#i-download"/></svg> Export file</button></div>
+    </section>
+  </div>
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <script type="module" src="./roadforge.js"></script>
+</body>
+</html>
